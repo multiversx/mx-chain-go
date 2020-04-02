@@ -485,6 +485,7 @@ func createNodes(
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: consensusSize,
 			MetaConsensusGroupSize:  1,
+			Marshalizer:             integrationTests.TestMarshalizer,
 			Hasher:                  createHasher(consensusType),
 			Shuffler:                nodeShuffler,
 			EpochStartNotifier:      epochStartRegistrationHandler,

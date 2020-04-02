@@ -40,6 +40,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: arg.shardConsensusGroupSize,
 		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,
+		Marshalizer:             TestMarshalizer,
 		Hasher:                  arg.hasher,
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      arg.epochStartSubscriber,
@@ -76,6 +77,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: arg.shardConsensusGroupSize,
 		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,
+		Marshalizer:             TestMarshalizer,
 		Hasher:                  arg.hasher,
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      arg.epochStartSubscriber,

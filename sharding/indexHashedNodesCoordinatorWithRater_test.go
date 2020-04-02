@@ -62,6 +62,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: 2,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
@@ -137,6 +138,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: consensusGroupSize,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
@@ -179,6 +181,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
@@ -214,6 +217,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
@@ -263,6 +267,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
@@ -329,6 +334,7 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
@@ -424,6 +430,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: consensusGroupSize,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,

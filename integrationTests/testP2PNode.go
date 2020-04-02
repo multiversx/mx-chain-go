@@ -259,6 +259,7 @@ func CreateNodesWithTestP2PNodes(
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
+			Marshalizer:             TestMarshalizer,
 			Hasher:                  TestHasher,
 			ShardIDAsObserver:       shardId,
 			NbShards:                uint32(numShards),
@@ -298,6 +299,7 @@ func CreateNodesWithTestP2PNodes(
 			argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 				ShardConsensusGroupSize: shardConsensusGroupSize,
 				MetaConsensusGroupSize:  metaConsensusGroupSize,
+				Marshalizer:             TestMarshalizer,
 				Hasher:                  TestHasher,
 				ShardIDAsObserver:       shardId,
 				NbShards:                uint32(numShards),

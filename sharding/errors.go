@@ -22,8 +22,8 @@ var ErrInvalidNumberPubKeys = errors.New("invalid number of public keys")
 // ErrNilNodesCoordinator signals that the nodesCoordinator is nil
 var ErrNilNodesCoordinator = errors.New("nil nodesCoordinator")
 
-// ErrNilRater signals that the rater is nil
-var ErrNilRater = errors.New("nil rater")
+// ErrNilMarshalizer signals that the marshalizer is nil
+var ErrNilMarshalizer = errors.New("nil marshalizer")
 
 // ErrNoPubKeys signals an error when public keys are missing
 var ErrNoPubKeys = errors.New("no public keys defined")
@@ -78,9 +78,6 @@ var ErrNilShuffler = errors.New("nil nodes shuffler provided")
 
 // ErrNilBootStorer signals that a nil boot storer was provided
 var ErrNilBootStorer = errors.New("nil boot storer provided")
-
-// ErrNilAddress signals that the address is nil
-var ErrNilAddress = errors.New("nil address")
 
 // ErrValidatorNotFound signals that the validator has not been found
 var ErrValidatorNotFound = errors.New("validator not found")

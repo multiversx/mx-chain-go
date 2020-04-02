@@ -11,7 +11,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/stretchr/testify/require"
@@ -75,6 +78,7 @@ func createArguments() ArgNodesCoordinator {
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
@@ -207,6 +211,7 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: 2,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
@@ -250,6 +255,7 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testi
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: 10,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
@@ -307,6 +313,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
@@ -350,6 +357,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: consensusGroupSize,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
@@ -421,6 +429,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: consensusGroupSize,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
@@ -475,6 +484,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameP
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: consensusGroupSize,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
@@ -522,6 +532,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: consensusGroupSize,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
@@ -553,6 +564,7 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: consensusGroupSize,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		EpochStartNotifier:      epochStartSubscriber,
 		Shuffler:                nodeShuffler,
@@ -586,6 +598,7 @@ func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize in
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: consensusGroupSize,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		EpochStartNotifier:      epochStartSubscriber,
 		Shuffler:                nodeShuffler,
@@ -709,6 +722,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
@@ -785,6 +799,7 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
@@ -846,6 +861,7 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 	arguments := ArgNodesCoordinator{
 		ShardConsensusGroupSize: 1,
 		MetaConsensusGroupSize:  1,
+		Marshalizer:             &mock.MarshalizerMock{},
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartSubscriber,
@@ -863,6 +879,39 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 	allValidatorsPublicKeys, err := ihgs.GetAllWaitingValidatorsPublicKeys(0)
 	require.Equal(t, expectedValidatorsPubKeys, allValidatorsPublicKeys)
 	require.Nil(t, err)
+}
+
+func createBlockBodyFromNodesCoordinator(ihgs *indexHashedNodesCoordinator, epoch uint32) *block.Body {
+	body := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0)}
+
+	mbs := createMiniBlocksForNodesMap(ihgs.nodesConfig[epoch].eligibleMap, string(core.EligibleList), ihgs.marshalizer)
+	body.MiniBlocks = append(body.MiniBlocks, mbs...)
+
+	mbs = createMiniBlocksForNodesMap(ihgs.nodesConfig[epoch].waitingMap, string(core.WaitingList), ihgs.marshalizer)
+	body.MiniBlocks = append(body.MiniBlocks, mbs...)
+
+	return body
+}
+
+func createMiniBlocksForNodesMap(nodesMap map[uint32][]Validator, list string, marshalizer marshal.Marshalizer) []*block.MiniBlock {
+	miniBlocks := make([]*block.MiniBlock, 0)
+	for shId, eligibleList := range nodesMap {
+		miniBlock := &block.MiniBlock{Type: block.PeerBlock}
+		for index, eligible := range eligibleList {
+			shardVInfo := &state.ShardValidatorInfo{
+				PublicKey:  eligible.PubKey(),
+				ShardId:    shId,
+				List:       list,
+				Index:      uint32(index),
+				TempRating: 10,
+			}
+
+			marshalledData, _ := marshalizer.Marshal(shardVInfo)
+			miniBlock.TxHashes = append(miniBlock.TxHashes, marshalledData)
+		}
+		miniBlocks = append(miniBlocks, miniBlock)
+	}
+	return miniBlocks
 }
 
 func TestIndexHashedNodesCoordinator_EpochStart(t *testing.T) {
@@ -885,7 +934,8 @@ func TestIndexHashedNodesCoordinator_EpochStart(t *testing.T) {
 		},
 	}
 
-	ihgs.EpochStartPrepare(header, nil)
+	body := createBlockBodyFromNodesCoordinator(ihgs, 0)
+	ihgs.EpochStartPrepare(header, body)
 	ihgs.EpochStartAction(header)
 
 	validators, err := ihgs.GetAllEligibleValidatorsPublicKeys(1)
@@ -985,7 +1035,8 @@ func TestIndexHashedNodesCoordinator_GetSavedStateKey(t *testing.T) {
 		},
 	}
 
-	ihgs.EpochStartPrepare(header, nil)
+	body := createBlockBodyFromNodesCoordinator(ihgs, 0)
+	ihgs.EpochStartPrepare(header, body)
 	ihgs.EpochStartAction(header)
 
 	key := ihgs.GetSavedStateKey()
@@ -1074,7 +1125,8 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesEpoch1(t *testi
 		},
 	}
 
-	ihgs.EpochStartPrepare(header, nil)
+	body := createBlockBodyFromNodesCoordinator(ihgs, 0)
+	ihgs.EpochStartPrepare(header, body)
 	ihgs.EpochStartAction(header)
 
 	nodesPrevEpoch, err := ihgs.GetAllEligibleValidatorsPublicKeys(0)
@@ -1121,11 +1173,13 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 		},
 	}
 
-	ihgs.EpochStartPrepare(header, nil)
+	body := createBlockBodyFromNodesCoordinator(ihgs, 0)
+	ihgs.EpochStartPrepare(header, body)
 	ihgs.EpochStartAction(header)
 
 	atomic.StoreUint32(&epoch, 2)
-	ihgs.EpochStartPrepare(header, nil)
+	body = createBlockBodyFromNodesCoordinator(ihgs, 1)
+	ihgs.EpochStartPrepare(header, body)
 	ihgs.EpochStartAction(header)
 
 	nodesEpoch1, err := ihgs.GetAllEligibleValidatorsPublicKeys(1)

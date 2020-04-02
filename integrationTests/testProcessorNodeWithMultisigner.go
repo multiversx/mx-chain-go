@@ -288,6 +288,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
+			Marshalizer:             TestMarshalizer,
 			Hasher:                  TestHasher,
 			Shuffler:                nodeShuffler,
 			BootStorer:              bootStorer,
@@ -366,6 +367,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
+			Marshalizer:             TestMarshalizer,
 			Hasher:                  TestHasher,
 			Shuffler:                nodeShuffler,
 			EpochStartNotifier:      epochStartSubscriber,

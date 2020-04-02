@@ -151,6 +151,9 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	if arguments.ConsensusGroupCache == nil {
 		return ErrNilCacher
 	}
+	if check.IfNil(arguments.Marshalizer) {
+		return ErrNilMarshalizer
+	}
 
 	return nil
 }
