@@ -2471,12 +2471,13 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	round := uint64(10)
+	nonce := uint64(5)
 
 	metaHdr := &block.MetaBlock{Round: round}
 	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
 	assert.Nil(t, err)
 
-	headerHandler := mp.CreateNewHeader(round)
+	headerHandler := mp.CreateNewHeader(round, nonce)
 	headerHandler.SetRound(uint64(1))
 	headerHandler.SetNonce(1)
 	headerHandler.SetPrevHash(hash)

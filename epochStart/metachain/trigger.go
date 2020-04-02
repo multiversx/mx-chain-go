@@ -23,6 +23,8 @@ import (
 
 var log = logger.GetOrCreate("epochStart/metachain")
 
+const minimumNonceToStartEpoch = 4
+
 // ArgsNewMetaEpochStartTrigger defines struct needed to create a new start of epoch trigger
 type ArgsNewMetaEpochStartTrigger struct {
 	GenesisTime        time.Time
@@ -99,7 +101,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 
 	trigStateKey := fmt.Sprintf("initial_value_epoch%d", args.Epoch)
 
-	trigger := &trigger{
+	trig := &trigger{
 		triggerStateKey:             []byte(trigStateKey),
 		roundsPerEpoch:              uint64(args.Settings.RoundsPerEpoch),
 		epochStartTime:              args.GenesisTime,
@@ -118,12 +120,12 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		appStatusHandler:            &statusHandler.NilStatusHandler{},
 	}
 
-	err := trigger.saveState(trigger.triggerStateKey)
+	err := trig.saveState(trig.triggerStateKey)
 	if err != nil {
 		return nil, err
 	}
 
-	return trigger, nil
+	return trig, nil
 }
 
 // IsEpochStart return true if conditions are fulfilled for start of epoch
@@ -182,7 +184,7 @@ func (t *trigger) ForceEpochStart(round uint64) error {
 }
 
 // Update processes changes in the trigger
-func (t *trigger) Update(round uint64) {
+func (t *trigger) Update(round uint64, nonce uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
@@ -192,7 +194,10 @@ func (t *trigger) Update(round uint64) {
 		return
 	}
 
-	if t.currentRound > t.currEpochStartRound+t.roundsPerEpoch {
+	isZeroEpochEdgeCase := nonce < minimumNonceToStartEpoch
+	isEpochStart := t.currentRound > t.currEpochStartRound+t.roundsPerEpoch
+	shouldTriggerEpochStart := isEpochStart && !isZeroEpochEdgeCase
+	if shouldTriggerEpochStart {
 		t.epoch += 1
 		t.isEpochStart = true
 		t.prevEpochStartRound = t.currEpochStartRound
