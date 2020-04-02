@@ -203,12 +203,12 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	return t, nil
 }
 
-func (t *trigger) clearMissingMiniblocksMapForEpoch(epoch uint32) {
+func (t *trigger) clearMissingMiniblocksMap(epoch uint32) {
 	t.mutMissingMiniblocks.Lock()
 	defer t.mutMissingMiniblocks.Unlock()
 
 	for hash, epochOfMissingMb := range t.mapMissingMiniblocks {
-		if epoch == epochOfMissingMb {
+		if epochOfMissingMb <= epoch {
 			delete(t.mapMissingMiniblocks, hash)
 		}
 	}
@@ -418,7 +418,7 @@ func (t *trigger) updateTriggerFromMeta() {
 			log.Debug(display.Headline(msg, "", "#"))
 			log.Debug("trigger.updateTriggerFromMeta", "isEpochStart", t.isEpochStart)
 			logger.SetCorrelationEpoch(t.epoch)
-			t.clearMissingMiniblocksMapForEpoch(t.epoch)
+			t.clearMissingMiniblocksMap(t.epoch)
 		}
 
 		// save all final-valid epoch start blocks
