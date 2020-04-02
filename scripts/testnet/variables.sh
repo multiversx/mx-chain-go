@@ -26,7 +26,7 @@ export SEEDNODE="$SEEDNODEDIR/seednode"   # Leave unchanged.
 
 # Niceness value of the Seednode, Observer Nodes and Validator Nodes. Leave
 # blank to not adjust niceness.
-export NODE_NICENESS=
+export NODE_NICENESS=10
 
 # Use tmux or not. If set to 1, only 2 terminal windows will be opened, and
 # tmux will be used to display the running executables using split windows.
