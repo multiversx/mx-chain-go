@@ -26,7 +26,7 @@ type crossTxInfo struct {
 	txStore         storage.Cacher
 }
 
-// crossTxsPoolsCleaner represents a pools cleaner that check and clean cross txs which should not be in pool anymore
+// crossTxsPoolsCleaner represents a pools cleaner that checks and cleans cross txs which should not be in pool anymore
 type crossTxsPoolsCleaner struct {
 	blockTracker             BlockTracker
 	blockTransactionsPool    dataRetriever.ShardedDataCacherNotifier
