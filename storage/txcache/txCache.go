@@ -214,8 +214,8 @@ func (cache *TxCache) Keys() [][]byte {
 
 // MaxSize is not implemented
 func (cache *TxCache) MaxSize() int {
-	log.Error("TxCache.MaxSize is not implemented")
-	return 0
+	//TODO: Should be analyzed if the returned value represents the max size of one cache in sharded cache configuration
+	return int(cache.config.CountThreshold)
 }
 
 // RegisterHandler is not implemented

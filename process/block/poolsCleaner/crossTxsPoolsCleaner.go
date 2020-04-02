@@ -2,6 +2,7 @@ package poolsCleaner
 
 import (
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -12,13 +13,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+// sleepTime defines the time between each iteration made in clean...Pools methods
+const sleepTime = time.Minute
+
 const (
 	blockTx = iota
 	rewardTx
 	unsignedTx
 )
 
-type crossTxInfo struct {
+type txInfo struct {
 	round           int64
 	senderShardID   uint32
 	receiverShardID uint32
@@ -36,7 +40,7 @@ type crossTxsPoolsCleaner struct {
 	shardCoordinator         sharding.Coordinator
 
 	mutMapCrossTxsRounds sync.RWMutex
-	mapCrossTxsRounds    map[string]*crossTxInfo
+	mapCrossTxsRounds    map[string]*txInfo
 }
 
 // NewCrossTxsPoolsCleaner will return a new cross txs pools cleaner
@@ -78,13 +82,22 @@ func NewCrossTxsPoolsCleaner(
 		shardCoordinator:         shardCoordinator,
 	}
 
-	ctpc.mapCrossTxsRounds = make(map[string]*crossTxInfo)
+	ctpc.mapCrossTxsRounds = make(map[string]*txInfo)
 
 	ctpc.blockTransactionsPool.RegisterHandler(ctpc.receivedBlockTx)
 	ctpc.rewardTransactionsPool.RegisterHandler(ctpc.receivedRewardTx)
 	ctpc.unsignedTransactionsPool.RegisterHandler(ctpc.receivedUnsignedTx)
 
+	go ctpc.cleanCrossTxsPools()
+
 	return &ctpc, nil
+}
+
+func (ctpc *crossTxsPoolsCleaner) cleanCrossTxsPools() {
+	for {
+		time.Sleep(sleepTime)
+		ctpc.cleanCrossTxsPoolsIfNeeded()
+	}
 }
 
 func (ctpc *crossTxsPoolsCleaner) receivedBlockTx(key []byte) {
@@ -116,7 +129,7 @@ func (ctpc *crossTxsPoolsCleaner) receivedUnsignedTx(key []byte) {
 
 func (ctpc *crossTxsPoolsCleaner) processReceivedTx(key []byte, txType int8) {
 	isCrossTx := false
-	var crossTxInfo *crossTxInfo
+	var crossTxInfo *txInfo
 	for shardID := uint32(0); shardID < ctpc.shardCoordinator.NumberOfShards(); shardID++ {
 		isCrossTx, crossTxInfo = ctpc.isCrossTxFromShard(key, shardID, txType)
 		if isCrossTx {
@@ -129,6 +142,10 @@ func (ctpc *crossTxsPoolsCleaner) processReceivedTx(key []byte, txType int8) {
 		if !isCrossTx {
 			return
 		}
+	}
+
+	if crossTxInfo == nil {
+		return
 	}
 
 	ctpc.mutMapCrossTxsRounds.Lock()
@@ -146,11 +163,9 @@ func (ctpc *crossTxsPoolsCleaner) processReceivedTx(key []byte, txType int8) {
 			"receiver shard", crossTxInfo.receiverShardID,
 			"type", getTxTypeName(crossTxInfo.txType))
 	}
-
-	ctpc.cleanCrossTxsPoolsIfNeeded()
 }
 
-func (ctpc *crossTxsPoolsCleaner) isCrossTxFromShard(txHash []byte, shardID uint32, txType int8) (bool, *crossTxInfo) {
+func (ctpc *crossTxsPoolsCleaner) isCrossTxFromShard(txHash []byte, shardID uint32, txType int8) (bool, *txInfo) {
 	transactionPool := ctpc.getTransactionPool(txType)
 	if transactionPool == nil {
 		return false, nil
@@ -172,10 +187,13 @@ func (ctpc *crossTxsPoolsCleaner) isCrossTxFromShard(txHash []byte, shardID uint
 		return false, nil
 	}
 
-	return true, &crossTxInfo{txStore: txStore, senderShardID: shardID, receiverShardID: selfShardID}
+	return true, &txInfo{txStore: txStore, senderShardID: shardID, receiverShardID: selfShardID}
 }
 
 func (ctpc *crossTxsPoolsCleaner) cleanCrossTxsPoolsIfNeeded() {
+	ctpc.mutMapCrossTxsRounds.Lock()
+	defer ctpc.mutMapCrossTxsRounds.Unlock()
+
 	selfShardID := ctpc.shardCoordinator.SelfId()
 	numPendingMiniBlocks := ctpc.blockTracker.GetNumPendingMiniBlocks(selfShardID)
 	numTxsCleaned := 0

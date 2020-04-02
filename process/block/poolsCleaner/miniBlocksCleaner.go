@@ -2,6 +2,7 @@ package poolsCleaner
 
 import (
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -57,7 +58,16 @@ func NewMiniBlocksPoolsCleaner(
 	mbpc.mapMiniBlocksRounds = make(map[string]int64)
 	mbpc.miniblocksPool.RegisterHandler(mbpc.receivedMiniBlock)
 
+	go mbpc.cleanMiniblocksPools()
+
 	return &mbpc, nil
+}
+
+func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPools() {
+	for {
+		time.Sleep(sleepTime)
+		mbpc.cleanMiniblocksPoolsIfNeeded()
+	}
 }
 
 func (mbpc *miniBlocksPoolsCleaner) receivedMiniBlock(key []byte) {
@@ -77,11 +87,12 @@ func (mbpc *miniBlocksPoolsCleaner) receivedMiniBlock(key []byte) {
 			"hash", key,
 			"round", mbpc.rounder.Index())
 	}
-
-	mbpc.cleanMiniblocksPoolsIfNeeded()
 }
 
 func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() {
+	mbpc.mutMapMiniBlocksRounds.Lock()
+	defer mbpc.mutMapMiniBlocksRounds.Unlock()
+
 	selfShardID := mbpc.shardCoordinator.SelfId()
 	numPendingMiniBlocks := mbpc.blockTracker.GetNumPendingMiniBlocks(selfShardID)
 	percentUsed := float64(mbpc.miniblocksPool.Len()) / float64(mbpc.miniblocksPool.MaxSize())
