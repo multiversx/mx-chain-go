@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/syncer"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	factoryDataPool "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
@@ -53,15 +54,15 @@ type Parameters struct {
 
 // ComponentsNeededForBootstrap holds the components which need to be initialized from network
 type ComponentsNeededForBootstrap struct {
-	EpochStartMetaBlock     *block.MetaBlock
-	PreviousEpochStartRound uint64
-	ShardHeader             *block.Header
-	NodesConfig             *sharding.NodesCoordinatorRegistry
-	Headers                 map[string]data.HeaderHandler
-	ShardCoordinator        sharding.Coordinator
-	UserAccountTries        map[string]data.Trie
-	PeerAccountTries        map[string]data.Trie
-	PendingMiniBlocks       map[string]*block.MiniBlock
+	EpochStartMetaBlock *block.MetaBlock
+	PreviousEpochStart  *block.MetaBlock
+	ShardHeader         *block.Header
+	NodesConfig         *sharding.NodesCoordinatorRegistry
+	Headers             map[string]data.HeaderHandler
+	ShardCoordinator    sharding.Coordinator
+	UserAccountTries    map[string]data.Trie
+	PeerAccountTries    map[string]data.Trie
+	PendingMiniBlocks   map[string]*block.MiniBlock
 }
 
 // epochStartBootstrap will handle requesting the needed data to start when joining late the network
@@ -90,6 +91,8 @@ type epochStartBootstrap struct {
 	rater                      sharding.ChanceComputer
 	trieContainer              state.TriesHolder
 	trieStorageManagers        map[string]data.StorageManager
+	uint64Converter            typeConverters.Uint64ByteSliceConverter
+	nodeShuffler               sharding.NodesShuffler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -144,10 +147,17 @@ type ArgsEpochStartBootstrap struct {
 	DestinationShardAsObserver string
 	TrieContainer              state.TriesHolder
 	TrieStorageManagers        map[string]data.StorageManager
+	Uint64Converter            typeConverters.Uint64ByteSliceConverter
+	NodeShuffler               sharding.NodesShuffler
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
 func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap, error) {
+	err := checkArguments(args)
+	if err != nil {
+		return nil, err
+	}
+
 	epochStartProvider := &epochStartBootstrap{
 		publicKey:                  args.PublicKey,
 		marshalizer:                args.Marshalizer,
@@ -171,6 +181,8 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		destinationShardAsObserver: args.DestinationShardAsObserver,
 		trieContainer:              args.TrieContainer,
 		trieStorageManagers:        args.TrieStorageManagers,
+		uint64Converter:            args.Uint64Converter,
+		nodeShuffler:               args.NodeShuffler,
 	}
 
 	return epochStartProvider, nil
@@ -215,7 +227,23 @@ func (e *epochStartBootstrap) computeMostProbableEpoch() {
 	e.computedEpoch = uint32(elaspedTimeInSeconds / timeForOneEpochInSeconds)
 }
 
+// Bootstrap runs the fast bootstrap method from the network or local storage
 func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
+	if !e.generalConfig.GeneralSettings.StartInEpochEnabled {
+		log.Warn("fast bootstrap is disabled")
+
+		return Parameters{
+			Epoch:       0,
+			SelfShardId: e.genesisShardCoordinator.SelfId(),
+			NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
+		}, nil
+	}
+
+	defer func() {
+		errMessenger := e.messenger.UnregisterAllMessageProcessors()
+		log.LogIfError(errMessenger, "error on unregistering message processor")
+	}()
+
 	var err error
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
 	if err != nil {
@@ -247,6 +275,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
+	log.Debug("start in epoch boostrap: got epoch start meta header", "epoch", e.epochStartMeta.Epoch, "nonce", e.epochStartMeta.Nonce)
 
 	err = e.createSyncers()
 	if err != nil {
@@ -401,8 +430,6 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	log.Debug("start in epoch bootstrap: createTrieStorageManagers")
-
 	log.Debug("start in epoch bootstrap: started syncPeerAccountsState")
 	err = e.syncPeerAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
 	if err != nil {
@@ -416,24 +443,12 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	}
 	log.Debug("start in epoch bootstrap: processNodesConfig")
 
-	if e.baseData.shardId == core.AllShardId {
-		destShardID := core.MetachainShardId
-		if e.destinationShardAsObserver != "metachain" {
-			var destShardIDUint64 uint64
-			destShardIDUint64, err = strconv.ParseUint(e.destinationShardAsObserver, 10, 64)
-			if err != nil {
-				return Parameters{}, nil
-			}
-			destShardID = uint32(destShardIDUint64)
-		}
-
-		e.baseData.shardId = destShardID
-	}
+	e.saveSelfShardId()
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
 	if err != nil {
 		return Parameters{}, err
 	}
-	log.Debug("start in epoch bootstrap: shardCoordinator")
+	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
 
 	if e.shardCoordinator.SelfId() != e.genesisShardCoordinator.SelfId() {
 		err = e.createTriesForNewShardId(e.shardCoordinator.SelfId())
@@ -455,11 +470,33 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	}
 
 	parameters := Parameters{
-		Epoch:       e.baseData.shardId,
-		SelfShardId: core.MetachainShardId,
+		Epoch:       e.baseData.lastEpoch,
+		SelfShardId: e.baseData.shardId,
 		NumOfShards: e.baseData.numberOfShards,
 	}
 	return parameters, nil
+}
+
+func (e *epochStartBootstrap) saveSelfShardId() {
+	if e.baseData.shardId != core.AllShardId {
+		return
+	}
+
+	destShardID := core.MetachainShardId
+	if e.destinationShardAsObserver == "metachain" {
+		e.baseData.shardId = destShardID
+		return
+	}
+
+	var destShardIDUint64 uint64
+	destShardIDUint64, err := strconv.ParseUint(e.destinationShardAsObserver, 10, 64)
+	if err == nil && destShardIDUint64 < uint64(e.baseData.numberOfShards) {
+		destShardID = uint32(destShardIDUint64)
+	} else {
+		destShardID = e.genesisShardCoordinator.SelfId()
+	}
+
+	e.baseData.shardId = destShardID
 }
 
 func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
@@ -470,6 +507,7 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		RequestHandler:     e.requestHandler,
 		Rater:              e.rater,
 		GenesisNodesConfig: e.genesisNodesConfig,
+		NodeShuffler:       e.nodeShuffler,
 	}
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {
@@ -488,13 +526,13 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	}
 
 	components := &ComponentsNeededForBootstrap{
-		EpochStartMetaBlock:     e.epochStartMeta,
-		PreviousEpochStartRound: e.prevEpochStartMeta.Round,
-		NodesConfig:             e.nodesConfig,
-		Headers:                 e.syncedHeaders,
-		ShardCoordinator:        e.shardCoordinator,
-		UserAccountTries:        e.userAccountTries,
-		PeerAccountTries:        e.peerAccountTries,
+		EpochStartMetaBlock: e.epochStartMeta,
+		PreviousEpochStart:  e.prevEpochStartMeta,
+		NodesConfig:         e.nodesConfig,
+		Headers:             e.syncedHeaders,
+		ShardCoordinator:    e.shardCoordinator,
+		UserAccountTries:    e.userAccountTries,
+		PeerAccountTries:    e.peerAccountTries,
 	}
 
 	storageHandlerComponent, err := NewMetaStorageHandler(
@@ -504,6 +542,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 		e.marshalizer,
 		e.hasher,
 		e.epochStartMeta.Epoch,
+		e.uint64Converter,
 	)
 	if err != nil {
 		return err
@@ -586,18 +625,17 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	log.Debug("start in epoch bootstrap: syncUserAccountsState")
 
 	components := &ComponentsNeededForBootstrap{
-		EpochStartMetaBlock:     e.epochStartMeta,
-		PreviousEpochStartRound: e.prevEpochStartMeta.Round,
-		ShardHeader:             ownShardHdr,
-		NodesConfig:             e.nodesConfig,
-		Headers:                 e.syncedHeaders,
-		ShardCoordinator:        e.shardCoordinator,
-		UserAccountTries:        e.userAccountTries,
-		PeerAccountTries:        e.peerAccountTries,
-		PendingMiniBlocks:       pendingMiniBlocks,
+		EpochStartMetaBlock: e.epochStartMeta,
+		PreviousEpochStart:  e.prevEpochStartMeta,
+		ShardHeader:         ownShardHdr,
+		NodesConfig:         e.nodesConfig,
+		Headers:             e.syncedHeaders,
+		ShardCoordinator:    e.shardCoordinator,
+		UserAccountTries:    e.userAccountTries,
+		PeerAccountTries:    e.peerAccountTries,
+		PendingMiniBlocks:   pendingMiniBlocks,
 	}
 
-	log.Debug("reached maximum tested point from integration test")
 	storageHandlerComponent, err := NewShardStorageHandler(
 		e.generalConfig,
 		e.shardCoordinator,
@@ -605,6 +643,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		e.marshalizer,
 		e.hasher,
 		e.baseData.lastEpoch,
+		e.uint64Converter,
 	)
 	if err != nil {
 		return err

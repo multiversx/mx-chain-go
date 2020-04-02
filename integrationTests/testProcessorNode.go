@@ -925,7 +925,7 @@ func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) 
 func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	var err error
 	tpn.ValidatorInfoProcessor = &mock.ValidatorInfoProcessorStub{}
-	tpn.ForkDetector = &mock.ForkDetectorMock{
+	tpn.ForkDetector = &mock.ForkDetectorStub{
 		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
 			return nil
 		},

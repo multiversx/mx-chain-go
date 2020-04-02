@@ -42,6 +42,7 @@ type PublicKeysSelector interface {
 	GetValidatorsIndexes(publicKeys []string, epoch uint32) ([]uint64, error)
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetAllLeavingValidatorsPublicKeys(epoch uint32) ([][]byte, error)
 	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetOwnPublicKey() []byte
 }
@@ -71,11 +72,7 @@ type NodesShuffler interface {
 
 // NodesPerShardSetter provides polymorphism functionality for nodesCoordinator
 type NodesPerShardSetter interface {
-	SetNodesPerShards(
-		eligible map[uint32][]Validator,
-		waiting map[uint32][]Validator,
-		epoch uint32,
-	) error
+	SetNodesPerShards(eligible map[uint32][]Validator, waiting map[uint32][]Validator, leaving []Validator, epoch uint32) error
 	ComputeLeaving(allValidators []Validator) []Validator
 }
 

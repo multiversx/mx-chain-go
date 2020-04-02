@@ -13,6 +13,11 @@ type NodesCoordinatorStub struct {
 	GetAllValidatorsPublicKeysCalled    func() (map[uint32][][]byte, error)
 }
 
+// GetAllLeavingValidatorsPublicKeys -
+func (ncm *NodesCoordinatorStub) GetAllLeavingValidatorsPublicKeys(_ uint32) ([][]byte, error) {
+	return nil, nil
+}
+
 // SetConfig -
 func (ncm *NodesCoordinatorStub) SetConfig(_ *sharding.NodesCoordinatorRegistry) error {
 	return nil
@@ -89,7 +94,7 @@ func (ncm *NodesCoordinatorStub) GetConsensusValidatorsPublicKeys(
 }
 
 // SetNodesPerShards -
-func (ncm *NodesCoordinatorStub) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32) error {
+func (ncm *NodesCoordinatorStub) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ []sharding.Validator, _ uint32) error {
 	return nil
 }
 

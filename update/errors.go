@@ -172,3 +172,6 @@ var ErrInvalidValue = errors.New("invalid value")
 
 // ErrTriggerPubKeyMismatch signals that there is a mismatch between the public key received and the one read from the config
 var ErrTriggerPubKeyMismatch = errors.New("trigger public key mismatch")
+
+// ErrNilAntiFloodHandler signals that nil anti flood handler has been provided
+var ErrNilAntiFloodHandler = errors.New("nil anti flood handler")

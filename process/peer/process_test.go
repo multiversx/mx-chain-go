@@ -475,19 +475,13 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateComputeValidatorErrShouldEr
 			return nil, computeValidatorsErr
 		},
 	}
-	arguments.DataPool = &mock.PoolsHolderStub{
-		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{
-				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
-					return getMetaHeaderHandler([]byte("header")), nil
-				},
-			}
-		},
-	}
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
-	_, err := validatorStatistics.UpdatePeerState(header, createMockCache())
+	cache := createMockCache()
+	cache[string(header.GetPrevHash())] = getMetaHeaderHandler([]byte("header"))
+
+	_, err := validatorStatistics.UpdatePeerState(header, cache)
 
 	assert.Equal(t, computeValidatorsErr, err)
 }
@@ -508,20 +502,13 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCreateAddressFromPublicKeyB
 			return nil, createAddressErr
 		},
 	}
-	arguments.DataPool = &mock.PoolsHolderStub{
-		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{
-				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
-					return getMetaHeaderHandler([]byte("header")), nil
-				},
-			}
-		},
-	}
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
-	_, err := validatorStatistics.UpdatePeerState(header, createMockCache())
+	cache := createMockCache()
+	cache[string(header.GetPrevHash())] = getMetaHeaderHandler([]byte("header"))
+	_, err := validatorStatistics.UpdatePeerState(header, cache)
 
 	assert.Equal(t, createAddressErr, err)
 }
@@ -546,20 +533,13 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountErr(t *te
 			return &mock.AddressMock{}, nil
 		},
 	}
-	arguments.DataPool = &mock.PoolsHolderStub{
-		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{
-				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
-					return getMetaHeaderHandler([]byte("header")), nil
-				},
-			}
-		},
-	}
 	arguments.PeerAdapter = adapter
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
-	_, err := validatorStatistics.UpdatePeerState(header, createMockCache())
+	cache := createMockCache()
+	cache[string(header.GetPrevHash())] = getMetaHeaderHandler([]byte("header"))
+	_, err := validatorStatistics.UpdatePeerState(header, cache)
 
 	assert.Equal(t, existingAccountErr, err)
 }
@@ -583,20 +563,13 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetExistingAccountInvalidTy
 			return &mock.AddressMock{}, nil
 		},
 	}
-	arguments.DataPool = &mock.PoolsHolderStub{
-		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{
-				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
-					return getMetaHeaderHandler([]byte("header")), nil
-				},
-			}
-		},
-	}
 	arguments.PeerAdapter = adapter
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
 	header := getMetaHeaderHandler([]byte("header"))
-	_, err := validatorStatistics.UpdatePeerState(header, createMockCache())
+	cache := createMockCache()
+	cache[string(header.GetPrevHash())] = getMetaHeaderHandler([]byte("header"))
+	_, err := validatorStatistics.UpdatePeerState(header, cache)
 
 	assert.Equal(t, process.ErrInvalidPeerAccount, err)
 }
@@ -649,61 +622,6 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderError(t *testing.T
 	_, err := validatorStatistics.UpdatePeerState(header, createMockCache())
 
 	assert.True(t, errors.Is(err, process.ErrMissingHeader))
-}
-
-func TestValidatorStatisticsProcessor_UpdatePeerStateGetHeaderUnmarshalError(t *testing.T) {
-	t.Parallel()
-
-	getHeaderUnmarshalError := errors.New("get header unmarshal error")
-	adapter := getAccountsMock()
-	marshalizer := &mock.MarshalizerStub{
-		UnmarshalCalled: func(obj interface{}, buff []byte) error {
-			return getHeaderUnmarshalError
-		},
-	}
-
-	adapter.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return state.NewPeerAccount(addressContainer)
-	}
-	shardCoordinatorMock := mock.NewOneShardCoordinatorMock()
-
-	arguments := createMockArguments()
-	arguments.Marshalizer = marshalizer
-	arguments.DataPool = &mock.PoolsHolderStub{
-		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{}
-		},
-	}
-	arguments.StorageService = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
-				GetCalled: func(key []byte) (bytes []byte, e error) {
-					return nil, nil
-				},
-			}
-		},
-	}
-	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []sharding.Validator, err error) {
-			return []sharding.Validator{&mock.ValidatorMock{}, &mock.ValidatorMock{}}, nil
-		},
-	}
-	arguments.ShardCoordinator = shardCoordinatorMock
-	arguments.AdrConv = &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-			return &mock.AddressMock{}, nil
-		},
-	}
-	arguments.PeerAdapter = adapter
-	arguments.Rater = mock.GetNewMockRater()
-
-	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-
-	header := getMetaHeaderHandler([]byte("header"))
-	header.Nonce = 2
-	_, err := validatorStatistics.UpdatePeerState(header, createMockCache())
-
-	assert.Equal(t, process.ErrUnmarshalWithoutSuccess, err)
 }
 
 func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T) {
@@ -780,8 +698,12 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 
 		return nil
 	}
-
-	_, err := validatorStatistics.UpdatePeerState(header, createMockCache())
+	cache := createMockCache()
+	cache[string(header.GetPrevHash())] = &block.MetaBlock{
+		PubKeysBitmap:   []byte{255, 255},
+		AccumulatedFees: big.NewInt(0),
+	}
+	_, err := validatorStatistics.UpdatePeerState(header, cache)
 
 	assert.Nil(t, err)
 	assert.True(t, increaseLeaderCalled)
@@ -866,8 +788,12 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCheckForMissedBlocksErr(t *
 
 		return nil
 	}
-
-	_, err := validatorStatistics.UpdatePeerState(header, createMockCache())
+	cache := createMockCache()
+	cache[string(header.GetPrevHash())] = &block.MetaBlock{
+		Nonce:         0,
+		PubKeysBitmap: []byte{0, 0},
+	}
+	_, err := validatorStatistics.UpdatePeerState(header, cache)
 
 	assert.Equal(t, missedBlocksErr, err)
 }
@@ -1444,7 +1370,9 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsPubKeyForValidator(t *
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	header := getMetaHeaderHandler([]byte("header"))
 
-	_, _ = validatorStatistics.UpdatePeerState(header, createMockCache())
+	cache := createMockCache()
+	cache[string(header.GetPrevHash())] = getMetaHeaderHandler([]byte("header"))
+	_, _ = validatorStatistics.UpdatePeerState(header, cache)
 
 	assert.True(t, pubKeyCalled)
 	assert.False(t, addressCalled)

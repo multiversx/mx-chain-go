@@ -3,17 +3,19 @@ package startInEpoch
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -21,7 +23,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/ElrondNetwork/elrond-go/process/block/pendingMb"
+	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -34,34 +39,31 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	testNodeStartsInEpoch(t, 0, 18)
+}
+
+func TestStartInEpochForAMetaNodeInMultiShardedEnvironment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testNodeStartsInEpoch(t, core.MetachainShardId, 20)
+}
+
+func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound uint64) {
 	numOfShards := 2
-	totalNodesPerShard := 4
-	numNodesPerShardOnline := totalNodesPerShard - 1
-	shardCnsSize := 2
-	metaCnsSize := 3
+	numNodesPerShard := 3
 	numMetachainNodes := 3
 
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
-	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
-		numNodesPerShardOnline,
-		numMetachainNodes,
+	nodes := integrationTests.CreateNodes(
 		numOfShards,
-		shardCnsSize,
-		metaCnsSize,
+		numNodesPerShard,
+		numMetachainNodes,
 		integrationTests.GetConnectableAddress(advertiser),
 	)
-
-	nodes := convertToSlice(nodesMap)
-
-	// TODO: refactor test - node to join late should be created late.
-	nodeToJoinLate := nodes[numNodesPerShardOnline] // will return the last node in shard 0 which was not used in consensus
-	_ = nodeToJoinLate.Messenger.Close()            // set not offline
-	// TODO: call nodeToJoinLate.Messenger.Bootstrap() later in the test and followed by a time.sleep as to allow it to bootstrap its peers.
-
-	nodes = append(nodes[:numNodesPerShardOnline], nodes[numNodesPerShardOnline+1:]...)
-	nodes = append(nodes[:2*numNodesPerShardOnline], nodes[2*numNodesPerShardOnline+1:]...)
 
 	roundsPerEpoch := uint64(10)
 	for _, node := range nodes {
@@ -70,9 +72,9 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 
 	idxProposers := make([]int, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * numNodesPerShardOnline
+		idxProposers[i] = i * numNodesPerShard
 	}
-	idxProposers[numOfShards] = numOfShards * numNodesPerShardOnline
+	idxProposers[numOfShards] = numOfShards * numNodesPerShard
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -126,15 +128,13 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 		_ = dataRetriever.SetEpochHandlerToHdrResolver(node.ResolversContainer, epochHandler)
 	}
 
-	// TODO: refactor this test in another PR
-
 	generalConfig := getGeneralConfig()
 	roundDurationMillis := 4000
 	epochDurationMillis := generalConfig.EpochStartConfig.RoundsPerEpoch * int64(roundDurationMillis)
 	nodesConfig := sharding.NodesSetup{
 		StartTime:     time.Now().Add(-time.Duration(epochDurationMillis) * time.Millisecond).Unix(),
 		RoundDuration: 4000,
-		InitialNodes:  getInitialNodes(nodesMap),
+		InitialNodes:  getInitialNodes(nodes),
 		ChainID:       string(integrationTests.ChainID),
 	}
 	nodesConfig.SetNumberOfShards(uint32(numOfShards))
@@ -145,9 +145,18 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 	}()
 
 	genesisShardCoordinator, _ := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), 0)
+
+	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
+	shardIDStr := fmt.Sprintf("%d", shardID)
+	if shardID == core.MetachainShardId {
+		shardIDStr = "metachain"
+	}
+
+	nodeToJoinLate := integrationTests.NewTestProcessorNode(uint32(numOfShards), shardID, shardID, "")
 	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), integrationTests.GetConnectableAddress(advertiser))
 	_ = messenger.Bootstrap()
 	time.Sleep(integrationTests.P2pBootstrapDelay)
+	nodeToJoinLate.Messenger = messenger
 
 	trieStorageManager, triesHolder, _ := createTries(getGeneralConfig(), integrationTests.TestMarshalizer, integrationTests.TestHasher, 0, &mock.PathManagerStub{})
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
@@ -155,7 +164,7 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 		Marshalizer:                integrationTests.TestMarshalizer,
 		TxSignMarshalizer:          integrationTests.TestTxSignMarshalizer,
 		Hasher:                     integrationTests.TestHasher,
-		Messenger:                  messenger,
+		Messenger:                  nodeToJoinLate.Messenger,
 		GeneralConfig:              getGeneralConfig(),
 		GenesisShardCoordinator:    genesisShardCoordinator,
 		EconomicsData:              integrationTests.CreateEconomicsData(),
@@ -170,52 +179,89 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 		DefaultEpochString:         "test_epoch",
 		DefaultShardString:         "test_shard",
 		Rater:                      &mock.RaterMock{},
-		DestinationShardAsObserver: "0",
+		DestinationShardAsObserver: shardIDStr,
 		TrieContainer:              triesHolder,
 		TrieStorageManagers:        trieStorageManager,
+		Uint64Converter:            uint64Converter,
+		NodeShuffler:               &mock.NodeShufflerMock{},
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
 
-	_, err = epochStartBootstrap.Bootstrap()
+	bootstrapParams, err := epochStartBootstrap.Bootstrap()
 	assert.NoError(t, err)
-	//assert.Equal(t, epoch, params.Epoch)
-	//assert.Equal(t, uint32(0), params.SelfShardId)
-	//assert.Equal(t, uint32(2), params.NumOfShards)
+	assert.Equal(t, bootstrapParams.SelfShardId, shardID)
+	assert.Equal(t, bootstrapParams.Epoch, epoch)
 
-	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
+	shardC, _ := sharding.NewMultiShardCoordinator(2, shardID)
 
 	storageFactory, err := factory.NewStorageServiceFactory(
 		&generalConfig,
 		shardC,
 		&mock.PathManagerStub{},
 		&mock.EpochStartNotifierStub{},
-		epoch)
+		0)
 	assert.NoError(t, err)
-	storageServiceShard, err := storageFactory.CreateForShard()
+	storageServiceShard, err := storageFactory.CreateForMeta()
 	assert.NoError(t, err)
 	assert.NotNil(t, storageServiceShard)
 
 	bootstrapUnit := storageServiceShard.GetStorer(dataRetriever.BootstrapUnit)
 	assert.NotNil(t, bootstrapUnit)
 
-	highestRound, err := bootstrapUnit.Get([]byte(core.HighestRoundFromBootStorage))
+	bootstrapStorer, err := bootstrapStorage.NewBootstrapStorer(integrationTests.TestMarshalizer, bootstrapUnit)
 	assert.NoError(t, err)
-	var roundFromStorage bootstrapStorage.RoundNum
-	err = integrationTests.TestMarshalizer.Unmarshal(&roundFromStorage, highestRound)
-	assert.NoError(t, err)
+	assert.NotNil(t, bootstrapStorer)
 
-	roundInt64 := roundFromStorage.Num
-	assert.Equal(t, int64(21), roundInt64)
+	argsBaseBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
+		BootStorer:          bootstrapStorer,
+		ForkDetector:        &mock.ForkDetectorStub{},
+		BlockProcessor:      &mock.BlockProcessorMock{},
+		ChainHandler:        &mock.BlockChainMock{},
+		Marshalizer:         integrationTests.TestMarshalizer,
+		Store:               storageServiceShard,
+		Uint64Converter:     uint64Converter,
+		BootstrapRoundIndex: round,
+		ShardCoordinator:    shardC,
+		NodesCoordinator:    &mock.NodesCoordinatorMock{},
+		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
+		ResolversFinder: &mock.ResolversFinderStub{
+			IntraShardResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
+				return &mock.MiniBlocksResolverMock{
+					GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+						return nil, nil
+					},
+				}, nil
+			},
+		},
+		BlockTracker: &mock.BlockTrackerStub{
+			RestoreToGenesisCalled: func() {},
+		},
+	}
 
-	key := []byte(strconv.FormatInt(roundInt64, 10))
-	bootstrapDataBytes, err := bootstrapUnit.Get(key)
+	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)
 	assert.NoError(t, err)
+	assert.NotNil(t, bootstrapper)
 
-	var bd bootstrapStorage.BootstrapData
-	err = integrationTests.TestMarshalizer.Unmarshal(&bd, bootstrapDataBytes)
+	err = bootstrapper.LoadFromStorage()
 	assert.NoError(t, err)
-	assert.Equal(t, epoch-1, bd.LastHeader.Epoch)
+	highestNonce := bootstrapper.GetHighestBlockNonce()
+	assert.True(t, highestNonce > expectedHighestRound)
+}
+
+func getBootstrapper(shardID uint32, baseArgs storageBootstrap.ArgsBaseStorageBootstrapper) (process.BootstrapperFromStorage, error) {
+	if shardID == core.MetachainShardId {
+		pendingMiniBlocksHandler, _ := pendingMb.NewPendingMiniBlocks()
+		bootstrapperArgs := storageBootstrap.ArgsMetaStorageBootstrapper{
+			ArgsBaseStorageBootstrapper: baseArgs,
+			PendingMiniBlocksHandler:    pendingMiniBlocksHandler,
+		}
+
+		return storageBootstrap.NewMetaStorageBootstrapper(bootstrapperArgs)
+	}
+
+	bootstrapperArgs := storageBootstrap.ArgsShardStorageBootstrapper{ArgsBaseStorageBootstrapper: baseArgs}
+	return storageBootstrap.NewShardStorageBootstrapper(bootstrapperArgs)
 }
 
 func createTries(
@@ -258,30 +304,17 @@ func createTries(
 	return trieStorageManagers, trieContainer, nil
 }
 
-func convertToSlice(originalMap map[uint32][]*integrationTests.TestProcessorNode) []*integrationTests.TestProcessorNode {
-	sliceToRet := make([]*integrationTests.TestProcessorNode, 0)
-	for _, nodesPerShard := range originalMap {
-		for _, node := range nodesPerShard {
-			sliceToRet = append(sliceToRet, node)
-		}
-	}
-
-	return sliceToRet
-}
-
-func getInitialNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) []*sharding.InitialNode {
+func getInitialNodes(nodes []*integrationTests.TestProcessorNode) []*sharding.InitialNode {
 	sliceToRet := make([]*sharding.InitialNode, 0)
-	for _, nodesPerShard := range nodesMap {
-		for _, node := range nodesPerShard {
-			pubKeyBytes, _ := node.NodeKeys.Pk.ToByteArray()
-			addressBytes := node.OwnAccount.Address.Bytes()
-			entry := &sharding.InitialNode{
-				PubKey:   hex.EncodeToString(pubKeyBytes),
-				Address:  hex.EncodeToString(addressBytes),
-				NodeInfo: sharding.NodeInfo{},
-			}
-			sliceToRet = append(sliceToRet, entry)
+	for _, node := range nodes {
+		pubKeyBytes, _ := node.NodeKeys.Pk.ToByteArray()
+		addressBytes := node.OwnAccount.Address.Bytes()
+		entry := &sharding.InitialNode{
+			PubKey:   hex.EncodeToString(pubKeyBytes),
+			Address:  hex.EncodeToString(addressBytes),
+			NodeInfo: sharding.NodeInfo{},
 		}
+		sliceToRet = append(sliceToRet, entry)
 	}
 
 	return sliceToRet
@@ -289,6 +322,9 @@ func getInitialNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) 
 
 func getGeneralConfig() config.Config {
 	return config.Config{
+		GeneralSettings: config.GeneralSettingsConfig{
+			StartInEpochEnabled: true,
+		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinRoundsBetweenEpochs: 5,
 			RoundsPerEpoch:         10,
@@ -303,6 +339,23 @@ func getGeneralConfig() config.Config {
 			FullArchive:         true,
 			NumEpochsToKeep:     3,
 			NumActivePersisters: 3,
+		},
+		EvictionWaitingList: config.EvictionWaitingListConfig{
+			Size: 100,
+			DB: config.DBConfig{
+				FilePath:          "EvictionWaitingList",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		TrieSnapshotDB: config.DBConfig{
+			FilePath:          "TrieSnapshot",
+			Type:              "MemoryDB",
+			BatchDelaySeconds: 30,
+			MaxBatchSize:      6,
+			MaxOpenFiles:      10,
 		},
 		AccountsTrieStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
@@ -368,7 +421,7 @@ func getGeneralConfig() config.Config {
 			},
 			DB: config.DBConfig{
 				FilePath:          "MiniBlocks",
-				Type:              "MemoryDB",
+				Type:              string(storageUnit.LvlDBSerial),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -379,8 +432,8 @@ func getGeneralConfig() config.Config {
 				Size: 10000, Type: "LRU", Shards: 1,
 			},
 			DB: config.DBConfig{
-				FilePath:          "MiniBlocks",
-				Type:              "MemoryDB",
+				FilePath:          "MiniBlockHeaders",
+				Type:              string(storageUnit.LvlDBSerial),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -392,7 +445,7 @@ func getGeneralConfig() config.Config {
 			},
 			DB: config.DBConfig{
 				FilePath:          "ShardHdrHashNonce",
-				Type:              "MemoryDB",
+				Type:              string(storageUnit.LvlDBSerial),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -404,7 +457,7 @@ func getGeneralConfig() config.Config {
 			},
 			DB: config.DBConfig{
 				FilePath:          "MetaBlock",
-				Type:              "MemoryDB",
+				Type:              string(storageUnit.LvlDBSerial),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -416,7 +469,7 @@ func getGeneralConfig() config.Config {
 			},
 			DB: config.DBConfig{
 				FilePath:          "MetaHdrHashNonce",
-				Type:              "MemoryDB",
+				Type:              string(storageUnit.LvlDBSerial),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -452,7 +505,7 @@ func getGeneralConfig() config.Config {
 			},
 			DB: config.DBConfig{
 				FilePath:          "BlockHeaders",
-				Type:              "MemoryDB",
+				Type:              string(storageUnit.LvlDBSerial),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
@@ -490,7 +543,7 @@ func getGeneralConfig() config.Config {
 			},
 			DB: config.DBConfig{
 				FilePath:          "PeerBlocks",
-				Type:              "MemoryDB",
+				Type:              string(storageUnit.LvlDBSerial),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,

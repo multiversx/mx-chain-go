@@ -620,6 +620,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	nodesShuffler := sharding.NewXorValidatorsShuffler(
+		genesisNodesConfig.MinNodesPerShard,
+		genesisNodesConfig.MetaChainMinNodes,
+		genesisNodesConfig.Hysteresis,
+		genesisNodesConfig.Adaptivity,
+	)
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  pubKey,
 		Marshalizer:                coreComponents.InternalMarshalizer,
@@ -640,9 +647,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		DefaultEpochString:         defaultEpochString,
 		DefaultShardString:         defaultShardString,
 		Rater:                      rater,
-		DestinationShardAsObserver: ctx.GlobalString(destinationShardAsObserver.Name),
+		DestinationShardAsObserver: preferencesConfig.Preferences.DestinationShardAsObserver,
 		TrieContainer:              coreComponents.TriesContainer,
 		TrieStorageManagers:        coreComponents.TrieStorageManagers,
+		Uint64Converter:            coreComponents.Uint64ByteSliceConverter,
+		NodeShuffler:               nodesShuffler,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -655,11 +664,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	log.Info("bootstrap parameters", "shardId", bootstrapParameters.SelfShardId, "epoch", bootstrapParameters.Epoch, "numShards", bootstrapParameters.NumOfShards)
+
 	currentEpoch := bootstrapParameters.Epoch
+	storerEpoch := currentEpoch
 	if !generalConfig.StoragePruning.Enabled {
 		// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0
 		// and it should be Epoch_ALL or something similar
-		currentEpoch = 0
+		storerEpoch = 0
 	}
 
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(bootstrapParameters.NumOfShards, bootstrapParameters.SelfShardId)
@@ -686,7 +698,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating data components")
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
-	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, economicsData, shardCoordinator, coreComponents, pathManager, epochStartNotifier, currentEpoch)
+	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, economicsData, shardCoordinator, coreComponents, pathManager, epochStartNotifier, storerEpoch)
 	dataComponents, err := factory.DataComponentsFactory(dataArgs)
 	if err != nil {
 		return err
@@ -719,6 +731,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		coreComponents.Hasher,
 		rater,
 		dataComponents.Store.GetStorer(dataRetriever.BootstrapUnit),
+		nodesShuffler,
 	)
 	if err != nil {
 		return err
@@ -1235,6 +1248,7 @@ func createNodesCoordinator(
 	hasher hashing.Hasher,
 	ratingAndListIndexHandler sharding.PeerAccountListAndRatingHandler,
 	bootStorer storage.Storer,
+	nodeShuffler sharding.NodesShuffler,
 ) (sharding.NodesCoordinator, error) {
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
 	if err != nil {
@@ -1260,13 +1274,6 @@ func createNodesCoordinator(
 	if err != nil {
 		return nil, err
 	}
-
-	nodeShuffler := sharding.NewXorValidatorsShuffler(
-		nodesConfig.MinNodesPerShard,
-		nodesConfig.MetaChainMinNodes,
-		nodesConfig.Hysteresis,
-		nodesConfig.Adaptivity,
-	)
 
 	consensusGroupCache, err := lrucache.NewCache(25000)
 	if err != nil {

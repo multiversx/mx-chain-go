@@ -20,6 +20,7 @@ type SerializableValidator struct {
 type EpochValidators struct {
 	EligibleValidators map[string][]*SerializableValidator `json:"eligibleValidators"`
 	WaitingValidators  map[string][]*SerializableValidator `json:"waitingValidators"`
+	LeavingValidators  []*SerializableValidator            `json:"leavingValidators"`
 }
 
 // NodesCoordinatorRegistry holds the data that can be used to initialize a nodes coordinator
@@ -165,6 +166,7 @@ func epochNodesConfigToEpochValidators(config *epochNodesConfig) *EpochValidator
 	result := &EpochValidators{
 		EligibleValidators: make(map[string][]*SerializableValidator, len(config.eligibleMap)),
 		WaitingValidators:  make(map[string][]*SerializableValidator, len(config.waitingMap)),
+		LeavingValidators:  make([]*SerializableValidator, 0, len(config.leavingList)),
 	}
 
 	for k, v := range config.eligibleMap {
@@ -173,6 +175,13 @@ func epochNodesConfigToEpochValidators(config *epochNodesConfig) *EpochValidator
 
 	for k, v := range config.waitingMap {
 		result.WaitingValidators[fmt.Sprint(k)] = ValidatorArrayToSerializableValidatorArray(v)
+	}
+
+	for _, v := range config.leavingList {
+		result.LeavingValidators = append(result.LeavingValidators, &SerializableValidator{
+			PubKey:  v.PubKey(),
+			Address: v.Address(),
+		})
 	}
 
 	return result
@@ -190,6 +199,15 @@ func epochValidatorsToEpochNodesConfig(config *EpochValidators) (*epochNodesConf
 	result.waitingMap, err = serializableValidatorsMapToValidatorsMap(config.WaitingValidators)
 	if err != nil {
 		return nil, err
+	}
+
+	result.leavingList = make([]Validator, 0, len(config.LeavingValidators))
+	for _, serializableValidator := range config.LeavingValidators {
+		validator, err := NewValidator(serializableValidator.PubKey, serializableValidator.Address)
+		if err != nil {
+			return nil, err
+		}
+		result.leavingList = append(result.leavingList, validator)
 	}
 
 	result.expandedEligibleMap = result.eligibleMap

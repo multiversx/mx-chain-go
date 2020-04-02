@@ -60,6 +60,8 @@ type ArgsExporter struct {
 	ChainID                  []byte
 	ValidityAttester         process.ValidityAttester
 	ValidatorInfoProcessor   process.ValidatorInfoProcessorHandler
+	InputAntifloodHandler    dataRetriever.P2PAntifloodHandler
+	OutputAntifloodHandler   dataRetriever.P2PAntifloodHandler
 }
 
 type exportHandlerFactory struct {
@@ -94,6 +96,8 @@ type exportHandlerFactory struct {
 	validityAttester         process.ValidityAttester
 	resolverContainer        dataRetriever.ResolversContainer
 	validatorInfoProcessor   process.ValidatorInfoProcessorHandler
+	inputAntifloodHandler    dataRetriever.P2PAntifloodHandler
+	outputAntifloodHandler   dataRetriever.P2PAntifloodHandler
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -170,6 +174,12 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.TxSignMarshalizer) {
 		return nil, update.ErrNilMarshalizer
 	}
+	if check.IfNil(args.InputAntifloodHandler) {
+		return nil, update.ErrNilAntiFloodHandler
+	}
+	if check.IfNil(args.OutputAntifloodHandler) {
+		return nil, update.ErrNilAntiFloodHandler
+	}
 
 	e := &exportHandlerFactory{
 		txSignMarshalizer:        args.TxSignMarshalizer,
@@ -201,6 +211,8 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		validityAttester:         args.ValidityAttester,
 		chainID:                  args.ChainID,
 		validatorInfoProcessor:   args.ValidatorInfoProcessor,
+		inputAntifloodHandler:    args.InputAntifloodHandler,
+		outputAntifloodHandler:   args.OutputAntifloodHandler,
 	}
 
 	return e, nil
@@ -244,11 +256,14 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsResolvers := ArgsNewResolversContainerFactory{
-		ShardCoordinator:  e.shardCoordinator,
-		Messenger:         e.messenger,
-		Marshalizer:       e.marshalizer,
-		DataTrieContainer: dataTries,
-		ExistingResolvers: e.existingResolvers,
+		ShardCoordinator:           e.shardCoordinator,
+		Messenger:                  e.messenger,
+		Marshalizer:                e.marshalizer,
+		DataTrieContainer:          dataTries,
+		ExistingResolvers:          e.existingResolvers,
+		NumConcurrentResolvingJobs: 100,
+		InputAntifloodHandler:      e.inputAntifloodHandler,
+		OutputAntifloodHandler:     e.outputAntifloodHandler,
 	}
 	resolversContainerFactory, err := NewResolversContainerFactory(argsResolvers)
 	if err != nil {
@@ -394,6 +409,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		EpochStartTrigger:      e.epochStartTrigger,
 		WhiteListHandler:       e.whiteListHandler,
 		InterceptorsContainer:  e.interceptorsContainer,
+		AntifloodHandler:       e.inputAntifloodHandler,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {
