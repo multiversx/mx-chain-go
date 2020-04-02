@@ -41,7 +41,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.validatorInfoProcessor = t.validatorInfoProcessor
 	rt.appStatusHandler = t.appStatusHandler
 	rt.miniBlocksPool = t.miniBlocksPool
-	rt.mapMisingMiniblocks = t.mapMisingMiniblocks
+	rt.mapMissingMiniblocks = t.mapMissingMiniblocks
 	return rt
 }
 

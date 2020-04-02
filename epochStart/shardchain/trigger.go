@@ -90,7 +90,7 @@ type trigger struct {
 
 	appStatusHandler core.AppStatusHandler
 
-	mapMisingMiniblocks  map[string]uint32
+	mapMissingMiniblocks map[string]uint32
 	mutMissingMiniblocks sync.RWMutex
 }
 
@@ -197,19 +197,19 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		return nil, err
 	}
 
-	t.mapMisingMiniblocks = make(map[string]uint32)
+	t.mapMissingMiniblocks = make(map[string]uint32)
 	go t.requestMissingMiniblocks()
 
 	return t, nil
 }
 
-func (t *trigger) clearMissingMiniblocksMap(epoch uint32) {
+func (t *trigger) clearMissingMiniblocksMapForEpoch(epoch uint32) {
 	t.mutMissingMiniblocks.Lock()
 	defer t.mutMissingMiniblocks.Unlock()
 
-	for hash, epochOfMissingMb := range t.mapMisingMiniblocks {
+	for hash, epochOfMissingMb := range t.mapMissingMiniblocks {
 		if epoch == epochOfMissingMb {
-			delete(t.mapMisingMiniblocks, hash)
+			delete(t.mapMissingMiniblocks, hash)
 		}
 	}
 }
@@ -219,13 +219,13 @@ func (t *trigger) requestMissingMiniblocks() {
 		time.Sleep(sleepTime)
 
 		t.mutMissingMiniblocks.RLock()
-		if len(t.mapMisingMiniblocks) == 0 {
+		if len(t.mapMissingMiniblocks) == 0 {
 			t.mutMissingMiniblocks.RUnlock()
 			continue
 		}
 
-		missingMiniblocks := make([][]byte, len(t.mapMisingMiniblocks))
-		for hash := range t.mapMisingMiniblocks {
+		missingMiniblocks := make([][]byte, len(t.mapMissingMiniblocks))
+		for hash := range t.mapMissingMiniblocks {
 			missingMiniblocks = append(missingMiniblocks, []byte(hash))
 			log.Debug("trigger.requestMissingMiniblocks", "hash", []byte(hash))
 		}
@@ -239,12 +239,12 @@ func (t *trigger) requestMissingMiniblocks() {
 
 func (t *trigger) updateMissingMiniblocks() {
 	t.mutMissingMiniblocks.Lock()
-	for hash := range t.mapMisingMiniblocks {
+	for hash := range t.mapMissingMiniblocks {
 		if t.miniBlocksPool.Has([]byte(hash)) {
-			delete(t.mapMisingMiniblocks, hash)
+			delete(t.mapMissingMiniblocks, hash)
 		}
 	}
-	numMissingMiniblocks := len(t.mapMisingMiniblocks)
+	numMissingMiniblocks := len(t.mapMissingMiniblocks)
 	t.mutMissingMiniblocks.Unlock()
 
 	if numMissingMiniblocks == 0 {
@@ -418,7 +418,7 @@ func (t *trigger) updateTriggerFromMeta() {
 			log.Debug(display.Headline(msg, "", "#"))
 			log.Debug("trigger.updateTriggerFromMeta", "isEpochStart", t.isEpochStart)
 			logger.SetCorrelationEpoch(t.epoch)
-			t.clearMissingMiniblocksMap(t.epoch)
+			t.clearMissingMiniblocksMapForEpoch(t.epoch)
 		}
 
 		// save all final-valid epoch start blocks
@@ -525,7 +525,7 @@ func (t *trigger) addMissingMiniblocks(epoch uint32, missingMiniblocks map[strin
 	defer t.mutMissingMiniblocks.Unlock()
 
 	for hash := range missingMiniblocks {
-		t.mapMisingMiniblocks[hash] = epoch
+		t.mapMissingMiniblocks[hash] = epoch
 		log.Debug("trigger.addMissingMiniblocks", "epoch", epoch, "hash", []byte(hash))
 	}
 }
