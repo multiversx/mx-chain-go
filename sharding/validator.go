@@ -51,6 +51,16 @@ func (v *validator) SetChances(chances uint32) {
 	v.mutChances.Unlock()
 }
 
+// Clone clones the validator
+func (v *validator) Clone() (interface{}, error) {
+	if v == nil {
+		return nil, ErrNilValidator
+	}
+	v2 := *v
+
+	return &v2, nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (v *validator) IsInterfaceNil() bool {
 	return v == nil

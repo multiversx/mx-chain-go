@@ -1,6 +1,8 @@
 package mock
 
-import "sync"
+import (
+	"sync"
+)
 
 // ValidatorMock -
 type ValidatorMock struct {
@@ -50,4 +52,10 @@ func (vm *ValidatorMock) SetChances(chances uint32) {
 	vm.mutChances.Lock()
 	vm.chances = chances
 	vm.mutChances.Unlock()
+}
+
+// Clone clones the validator
+func (vm *ValidatorMock) Clone() (interface{}, error) {
+	v2 := *vm
+	return &v2, nil
 }
