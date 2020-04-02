@@ -142,3 +142,22 @@ func TestNodeApiResolver_StatusP2PMetricsMapShouldBeCalled(t *testing.T) {
 
 	assert.True(t, wasCalled)
 }
+
+func TestNodeApiResolver_EpochMetricsMapShouldBeCalled(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	nar, _ := external.NewNodeApiResolver(
+		&mock.SCQueryServiceStub{},
+		&mock.StatusMetricsStub{
+			EpochMetricsCalled: func() map[string]interface{} {
+				wasCalled = true
+				return nil
+			},
+		},
+		&mock.TransactionCostEstimatorMock{},
+	)
+	_ = nar.StatusMetrics().EpochMetrics()
+
+	assert.True(t, wasCalled)
+}
