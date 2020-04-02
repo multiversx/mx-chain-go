@@ -79,17 +79,23 @@ func (mbpc *miniBlocksPoolsCleaner) receivedMiniBlock(key []byte) {
 
 	if _, ok := mbpc.mapMiniBlocksRounds[string(key)]; !ok {
 		mbpc.mapMiniBlocksRounds[string(key)] = mbpc.rounder.Index()
+
+		log.Trace("miniblock has been added",
+			"hash", key,
+			"round", mbpc.rounder.Index())
 	}
 
-	mbpc.cleanPoolIfNeeded()
+	mbpc.cleanMiniblocksPoolsIfNeeded()
 }
 
-func (mbpc *miniBlocksPoolsCleaner) cleanPoolIfNeeded() {
-	selfShard := mbpc.shardCoordinator.SelfId()
-	numPendingMiniBlocks := mbpc.blockTracker.GetNumPendingMiniBlocks(selfShard)
+func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() {
+	selfShardID := mbpc.shardCoordinator.SelfId()
+	numPendingMiniBlocks := mbpc.blockTracker.GetNumPendingMiniBlocks(selfShardID)
 	miniBlocksPool := mbpc.dataPool.MiniBlocks()
 	transactionsPool := mbpc.dataPool.Transactions()
 	percentUsed := float64(miniBlocksPool.Len()) / float64(miniBlocksPool.MaxSize())
+	numMbsCleaned := 0
+	numTxsCleaned := 0
 
 	for hash, round := range mbpc.mapMiniBlocksRounds {
 		value, ok := miniBlocksPool.Get([]byte(hash))
@@ -103,13 +109,13 @@ func (mbpc *miniBlocksPoolsCleaner) cleanPoolIfNeeded() {
 
 		miniBlock, ok := value.(*block.MiniBlock)
 		if !ok {
-			log.Debug("cleanPoolIfNeeded", "error", process.ErrWrongTypeAssertion,
+			log.Debug("cleanMiniblocksPoolsIfNeeded", "error", process.ErrWrongTypeAssertion,
 				"hash", []byte(hash),
 				"round", round)
 			continue
 		}
 
-		if miniBlock.SenderShardID != selfShard {
+		if miniBlock.SenderShardID != selfShardID {
 			if numPendingMiniBlocks > 0 && percentUsed < percentAllowed {
 				log.Trace("cleaning cross miniblock not yet allowed",
 					"hash", []byte(hash),
@@ -141,13 +147,21 @@ func (mbpc *miniBlocksPoolsCleaner) cleanPoolIfNeeded() {
 		transactionsPool.RemoveSetOfDataFromPool(miniBlock.TxHashes, strCache)
 		miniBlocksPool.Remove([]byte(hash))
 		delete(mbpc.mapMiniBlocksRounds, hash)
+		numMbsCleaned++
+		numTxsCleaned += len(miniBlock.TxHashes)
 
-		log.Debug("miniblock has been cleaned",
+		log.Trace("miniblock has been cleaned",
 			"hash", []byte(hash),
 			"round", round,
 			"type", miniBlock.Type,
 			"sender", miniBlock.SenderShardID,
 			"receiver", miniBlock.ReceiverShardID,
 			"num txs", len(miniBlock.TxHashes))
+	}
+
+	if numMbsCleaned > 0 {
+		log.Debug("miniBlocksPoolsCleaner.cleanMiniblocksPoolsIfNeeded",
+			"num mbs cleaned", numMbsCleaned,
+			"num txs cleaned", numTxsCleaned)
 	}
 }
