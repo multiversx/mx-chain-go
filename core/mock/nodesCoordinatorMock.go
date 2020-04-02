@@ -231,6 +231,16 @@ func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
 	panic("not implemented")
 }
 
+// ValidatorsWeights -
+func (ncm *NodesCoordinatorMock) ValidatorsWeights(validators []sharding.Validator) ([]uint32, error) {
+	weights := make([]uint32, len(validators))
+	for i := range validators {
+		weights[i] = 1
+	}
+
+	return weights, nil
+}
+
 // IsInterfaceNil -
 func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {
 	return ncm == nil
