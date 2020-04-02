@@ -45,9 +45,10 @@ func NewIndexHashedNodesCoordinatorWithRater(
 func (ihgs *indexHashedNodesCoordinatorWithRater) SetNodesPerShards(
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
+	leaving []Validator,
 	epoch uint32,
 ) error {
-	err := ihgs.indexHashedNodesCoordinator.SetNodesPerShards(eligible, waiting, epoch)
+	err := ihgs.indexHashedNodesCoordinator.SetNodesPerShards(eligible, waiting, leaving, epoch)
 	if err != nil {
 		return err
 	}

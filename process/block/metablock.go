@@ -1749,6 +1749,7 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 	metaHdr.TxCount += uint32(totalTxCount)
 
 	sw.Start("UpdatePeerState")
+	mp.addCurrentBlockHeaderToInternalMap()
 	metaHdr.ValidatorStatsRootHash, err = mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr, mp.hdrsForCurrBlock.getHdrHashMap())
 	sw.Stop("UpdatePeerState")
 	if err != nil {
@@ -1764,7 +1765,22 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 	return body, nil
 }
 
+func (mp *metaProcessor) addCurrentBlockHeaderToInternalMap() {
+	currentBlockHeader := mp.blockChain.GetCurrentBlockHeader()
+	currentBlockHeaderHash := mp.blockChain.GetCurrentBlockHeaderHash()
+
+	if check.IfNil(currentBlockHeader) {
+		currentBlockHeader = mp.blockChain.GetGenesisHeader()
+		currentBlockHeaderHash = mp.blockChain.GetGenesisHeaderHash()
+	}
+
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	mp.hdrsForCurrBlock.hdrHashAndInfo[string(currentBlockHeaderHash)] = &hdrInfo{false, currentBlockHeader}
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+}
+
 func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlock) error {
+	mp.addCurrentBlockHeaderToInternalMap()
 	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, mp.hdrsForCurrBlock.getHdrHashMap())
 	if err != nil {
 		return err

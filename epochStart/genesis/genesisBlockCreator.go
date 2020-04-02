@@ -43,7 +43,6 @@ func CreateShardGenesisBlockFromInitialBalances(
 	addrConv state.AddressConverter,
 	initialBalances map[string]*big.Int,
 	genesisTime uint64,
-	validatorStatsRootHash []byte,
 ) (data.HeaderHandler, error) {
 
 	if check.IfNil(accounts) {
@@ -70,17 +69,16 @@ func CreateShardGenesisBlockFromInitialBalances(
 	}
 
 	header := &block.Header{
-		Nonce:                  0,
-		ShardID:                shardCoordinator.SelfId(),
-		BlockBodyType:          block.StateBlock,
-		PubKeysBitmap:          []byte{1},
-		Signature:              rootHash,
-		RootHash:               rootHash,
-		PrevRandSeed:           rootHash,
-		RandSeed:               rootHash,
-		TimeStamp:              genesisTime,
-		ValidatorStatsRootHash: validatorStatsRootHash,
-		AccumulatedFees:        big.NewInt(0),
+		Nonce:           0,
+		ShardID:         shardCoordinator.SelfId(),
+		BlockBodyType:   block.StateBlock,
+		PubKeysBitmap:   []byte{1},
+		Signature:       rootHash,
+		RootHash:        rootHash,
+		PrevRandSeed:    rootHash,
+		RandSeed:        rootHash,
+		TimeStamp:       genesisTime,
+		AccumulatedFees: big.NewInt(0),
 	}
 
 	return header, err

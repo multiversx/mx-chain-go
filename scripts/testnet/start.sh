@@ -19,13 +19,17 @@ buildNode
 
 
 # Phase 2: generate configuration
-copyConfig
+if [ $ALWAYS_UPDATE_CONFIGS -eq 1 ]; then
+  copyConfig
+fi
 
 copySeednodeConfig
 updateSeednodeConfig
 
+if [ $ALWAYS_UPDATE_CONFIGS -eq 1 ]; then
 copyNodeConfig
 updateNodeConfig
+fi
 
 
 # Phase 3: start the Seednode

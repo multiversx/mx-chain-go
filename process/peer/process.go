@@ -120,7 +120,6 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if !ok {
 		return nil, process.ErrNilRatingReaderSetter
 	}
-	log.Debug("setting ratingReader")
 
 	rr := &RatingReader{
 		getRating:                  vs.getRating,
@@ -128,13 +127,85 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	}
 
 	ratingReaderSetter.SetRatingReader(rr)
-
-	err := vs.saveInitialState(arguments.StakeValue, rater.GetStartRating(), arguments.StartEpoch)
+	err := vs.saveInitialState(arguments.StakeValue, rater.GetStartRating(), 0)
 	if err != nil {
 		return nil, err
 	}
 
 	return vs, nil
+}
+
+// saveNodesCoordinatorUpdates is called at the first block after start in epoch to update the state trie according to
+// the shuffling and changes done by the nodesCoordinator at the end of the epoch
+func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) error {
+	nodesMap, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
+	if err != nil {
+		return err
+	}
+
+	err = vs.saveUpdatesForNodesMap(nodesMap, core.EligibleList)
+	if err != nil {
+		return err
+	}
+
+	nodesMap, err = vs.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
+	if err != nil {
+		return err
+	}
+
+	err = vs.saveUpdatesForNodesMap(nodesMap, core.WaitingList)
+	if err != nil {
+		return err
+	}
+
+	nodesList, err := vs.nodesCoordinator.GetAllLeavingValidatorsPublicKeys(epoch)
+	if err != nil {
+		return err
+	}
+
+	err = vs.saveUpdatesForList(nodesList, 0, core.LeavingList)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (vs *validatorStatistics) saveUpdatesForNodesMap(
+	nodesMap map[uint32][][]byte,
+	peerType core.PeerType,
+) error {
+	for shardID, pks := range nodesMap {
+		err := vs.saveUpdatesForList(pks, shardID, peerType)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (vs *validatorStatistics) saveUpdatesForList(
+	pks [][]byte,
+	shardID uint32,
+	peerType core.PeerType,
+) error {
+	for index, pubKey := range pks {
+		peerAcc, err := vs.GetPeerAccount(pubKey)
+		if err != nil {
+			log.Debug("error getting peer account", "error", err, "key", pubKey)
+			return err
+		}
+
+		peerAcc.SetListAndIndex(shardID, string(peerType), uint32(index))
+
+		err = vs.peerAdapter.SaveAccount(peerAcc)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // saveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
@@ -148,7 +219,7 @@ func (vs *validatorStatistics) saveInitialState(
 		return err
 	}
 
-	err = vs.saveInitialValueForMap(nodesMap, startEpoch, stakeValue, startRating)
+	err = vs.saveInitialValueForMap(nodesMap, startEpoch, stakeValue, startRating, core.EligibleList)
 	if err != nil {
 		return err
 	}
@@ -158,7 +229,7 @@ func (vs *validatorStatistics) saveInitialState(
 		return err
 	}
 
-	err = vs.saveInitialValueForMap(nodesMap, startEpoch, stakeValue, startRating)
+	err = vs.saveInitialValueForMap(nodesMap, startEpoch, stakeValue, startRating, core.WaitingList)
 	if err != nil {
 		return err
 	}
@@ -178,20 +249,22 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 	startEpoch uint32,
 	stakeValue *big.Int,
 	startRating uint32,
+	peerType core.PeerType,
 ) error {
-	for shardId, pks := range nodesMap {
-		for _, pk := range pks {
+	for shardID, pks := range nodesMap {
+		for index, pk := range pks {
 			node, _, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk, startEpoch)
 			if err != nil {
 				return err
 			}
 
-			err = vs.initializeNode(node, stakeValue, startRating, shardId)
+			err = vs.initializeNode(node, stakeValue, startRating, shardID, uint32(index), peerType)
 			if err != nil {
 				return err
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -212,10 +285,19 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 		epoch = epoch - 1
 	}
 
-	previousHeader, err := process.GetMetaHeader(header.GetPrevHash(), vs.dataPool.Headers(), vs.marshalizer, vs.storageService)
-	if err != nil {
-		log.Warn("UpdatePeerState could not get meta header from storage", "error", err.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
-		return nil, err
+	previousHeader, ok := cache[string(header.GetPrevHash())]
+	if !ok {
+		log.Warn("UpdatePeerState could not get meta header from cache", "error", process.ErrMissingHeader.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
+		return nil, process.ErrMissingHeader
+	}
+
+	var err error
+	if previousHeader.IsStartOfEpochBlock() {
+		err = vs.saveNodesCoordinatorUpdates(previousHeader.GetEpoch())
+		if err != nil {
+			log.Warn("could not update info from nodesCoordinator")
+			return nil, err
+		}
 	}
 
 	err = vs.checkForMissedBlocks(
@@ -271,9 +353,9 @@ func (vs *validatorStatistics) displayRatings(epoch uint32) {
 		return
 	}
 	log.Trace("started printing tempRatings")
-	for shardId, list := range validatorPKs {
+	for shardID, list := range validatorPKs {
 		for _, pk := range list {
-			log.Trace("tempRating", "PK", pk, "tempRating", vs.getTempRating(string(pk)), "ShardID", shardId)
+			log.Trace("tempRating", "PK", pk, "tempRating", vs.getTempRating(string(pk)), "ShardID", shardID)
 		}
 	}
 	log.Trace("finished printing tempRatings")
@@ -313,7 +395,6 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 
 		currentShardId := peerAccount.GetCurrentShardId()
 		validatorInfoData := vs.peerAccountToValidatorInfo(peerAccount)
-
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
 	}
 
@@ -424,7 +505,7 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 	currentHeaderRound,
 	previousHeaderRound uint64,
 	prevRandSeed []byte,
-	shardId uint32,
+	shardID uint32,
 	epoch uint32,
 ) error {
 	missedRounds := currentHeaderRound - previousHeaderRound
@@ -434,13 +515,13 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 
 	tooManyComputations := missedRounds > vs.maxComputableRounds
 	if !tooManyComputations {
-		return vs.computeDecrease(previousHeaderRound, currentHeaderRound, prevRandSeed, shardId, epoch)
+		return vs.computeDecrease(previousHeaderRound, currentHeaderRound, prevRandSeed, shardID, epoch)
 	}
 
-	return vs.decreaseAll(shardId, missedRounds-1, epoch)
+	return vs.decreaseAll(shardID, missedRounds-1, epoch)
 }
 
-func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, currentHeaderRound uint64, prevRandSeed []byte, shardId uint32, epoch uint32) error {
+func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, currentHeaderRound uint64, prevRandSeed []byte, shardID uint32, epoch uint32) error {
 	sw := core.NewStopWatch()
 	sw.Start("checkForMissedBlocks")
 	defer func() {
@@ -452,7 +533,7 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 		swInner := core.NewStopWatch()
 
 		swInner.Start("ComputeValidatorsGroup")
-		consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(prevRandSeed, i, shardId, epoch)
+		consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(prevRandSeed, i, shardID, epoch)
 		swInner.Stop("ComputeValidatorsGroup")
 		if err != nil {
 			return err
@@ -588,14 +669,16 @@ func (vs *validatorStatistics) initializeNode(
 	node sharding.Validator,
 	stakeValue *big.Int,
 	startRating uint32,
-	shardId uint32,
+	shardID uint32,
+	index uint32,
+	peerType core.PeerType,
 ) error {
 	peerAccount, err := vs.GetPeerAccount(node.PubKey())
 	if err != nil {
 		return err
 	}
 
-	return vs.savePeerAccountData(peerAccount, node, stakeValue, startRating, shardId)
+	return vs.savePeerAccountData(peerAccount, node, stakeValue, startRating, shardID, index, peerType)
 }
 
 func (vs *validatorStatistics) savePeerAccountData(
@@ -603,7 +686,9 @@ func (vs *validatorStatistics) savePeerAccountData(
 	data sharding.Validator,
 	stakeValue *big.Int,
 	startRating uint32,
-	shardId uint32,
+	shardID uint32,
+	index uint32,
+	peerType core.PeerType,
 ) error {
 	err := peerAccount.SetRewardAddress(data.Address())
 	if err != nil {
@@ -627,8 +712,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 
 	peerAccount.SetRating(startRating)
 	peerAccount.SetTempRating(startRating)
-	peerAccount.SetCurrentShardId(shardId)
-	peerAccount.SetNextShardId(shardId)
+	peerAccount.SetListAndIndex(shardID, string(peerType), index)
 
 	return vs.peerAdapter.SaveAccount(peerAccount)
 }
@@ -814,18 +898,6 @@ func (vs *validatorStatistics) updateRatingFromTempRating(pks []string) error {
 	return nil
 }
 
-// updateListAndIndex updates the list and the index for a given public key
-func (vs *validatorStatistics) updateListAndIndex(pubKey string, shardID uint32, list string, index uint32) error {
-	peer, err := vs.GetPeerAccount([]byte(pubKey))
-	if err != nil {
-		log.Debug("error getting peer account", "error", err, "key", pubKey)
-		return err
-	}
-
-	peer.SetListAndIndex(shardID, list, index)
-	return nil
-}
-
 func (vs *validatorStatistics) display(validatorKey string) {
 	peerAcc, err := vs.GetPeerAccount([]byte(validatorKey))
 
@@ -852,15 +924,15 @@ func (vs *validatorStatistics) display(validatorKey string) {
 	)
 }
 
-func (vs *validatorStatistics) decreaseAll(shardId uint32, missedRounds uint64, epoch uint32) error {
+func (vs *validatorStatistics) decreaseAll(shardID uint32, missedRounds uint64, epoch uint32) error {
 
-	log.Trace("ValidatorStatistics decreasing all", "shardId", shardId, "missedRounds", missedRounds)
-	consensusGroupSize := vs.nodesCoordinator.ConsensusGroupSize(shardId)
+	log.Trace("ValidatorStatistics decreasing all", "shardID", shardID, "missedRounds", missedRounds)
+	consensusGroupSize := vs.nodesCoordinator.ConsensusGroupSize(shardID)
 	validators, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		return err
 	}
-	shardValidators := validators[shardId]
+	shardValidators := validators[shardID]
 	validatorsCount := len(shardValidators)
 	percentageRoundMissedFromTotalValidators := float64(missedRounds) / float64(validatorsCount)
 	leaderAppearances := uint32(percentageRoundMissedFromTotalValidators + 1 - math.SmallestNonzeroFloat64)

@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -147,7 +146,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	genesisShardCoordinator, _ := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), 0)
 
-	_ = logger.SetLogLevel("*:DEBUG")
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 	shardIDStr := fmt.Sprintf("%d", shardID)
 	if shardID == core.MetachainShardId {
@@ -185,12 +183,15 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		TrieContainer:              triesHolder,
 		TrieStorageManagers:        trieStorageManager,
 		Uint64Converter:            uint64Converter,
+		NodeShuffler:               &mock.NodeShufflerMock{},
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
 
-	_, err = epochStartBootstrap.Bootstrap()
+	bootstrapParams, err := epochStartBootstrap.Bootstrap()
 	assert.NoError(t, err)
+	assert.Equal(t, bootstrapParams.SelfShardId, shardID)
+	assert.Equal(t, bootstrapParams.Epoch, epoch)
 
 	shardC, _ := sharding.NewMultiShardCoordinator(2, shardID)
 
@@ -321,6 +322,9 @@ func getInitialNodes(nodes []*integrationTests.TestProcessorNode) []*sharding.In
 
 func getGeneralConfig() config.Config {
 	return config.Config{
+		GeneralSettings: config.GeneralSettingsConfig{
+			StartInEpochEnabled: true,
+		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinRoundsBetweenEpochs: 5,
 			RoundsPerEpoch:         10,

@@ -7,6 +7,10 @@
    # by the validator statistics processor
    MaxComputableRounds = 100
 
+   # StartInEpochEnabled represents that the fast bootstrap mechanism from the network is enabled if data is not
+   # available in local disk
+   StartInEpochEnabled = true
+
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
    Enabled = true

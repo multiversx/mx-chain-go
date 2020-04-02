@@ -63,6 +63,11 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 	}
 }
 
+// GetAllLeavingValidatorsPublicKeys -
+func (ncm *NodesCoordinatorMock) GetAllLeavingValidatorsPublicKeys(_ uint32) ([][]byte, error) {
+	return nil, nil
+}
+
 // SetConfig -
 func (ncm *NodesCoordinatorMock) SetConfig(_ *sharding.NodesCoordinatorRegistry) error {
 	return nil
@@ -139,11 +144,7 @@ func (ncm *NodesCoordinatorMock) GetConsensusValidatorsPublicKeys(
 }
 
 // SetNodesPerShards -
-func (ncm *NodesCoordinatorMock) SetNodesPerShards(
-	eligible map[uint32][]sharding.Validator,
-	_ map[uint32][]sharding.Validator,
-	epoch uint32,
-) error {
+func (ncm *NodesCoordinatorMock) SetNodesPerShards(eligible map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ []sharding.Validator, epoch uint32) error {
 	if ncm.SetNodesPerShardsCalled != nil {
 		return ncm.SetNodesPerShardsCalled(eligible, epoch)
 	}

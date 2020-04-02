@@ -35,6 +35,7 @@ type epochNodesConfig struct {
 	waitingMap              map[uint32][]Validator
 	expandedEligibleMap     map[uint32][]Validator
 	publicKeyToValidatorMap map[string]*validatorWithShardID
+	leavingList             []Validator
 	mutNodesMaps            sync.RWMutex
 }
 
@@ -98,7 +99,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	}
 
 	ihgs.nodesPerShardSetter = ihgs
-	err = ihgs.nodesPerShardSetter.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, arguments.Epoch)
+	err = ihgs.nodesPerShardSetter.SetNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, nil, arguments.Epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -144,11 +145,7 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 }
 
 // SetNodesPerShards loads the distribution of nodes per shard into the nodes management component
-func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
-	eligible map[uint32][]Validator,
-	waiting map[uint32][]Validator,
-	epoch uint32,
-) error {
+func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(eligible map[uint32][]Validator, waiting map[uint32][]Validator, leaving []Validator, epoch uint32) error {
 	ihgs.mutNodesConfig.Lock()
 	defer ihgs.mutNodesConfig.Unlock()
 
@@ -162,6 +159,11 @@ func (ihgs *indexHashedNodesCoordinator) SetNodesPerShards(
 
 	if eligible == nil || waiting == nil {
 		return ErrNilInputNodesMap
+	}
+
+	nodesConfig.leavingList = make([]Validator, 0, len(leaving))
+	for _, validator := range leaving {
+		nodesConfig.leavingList = append(nodesConfig.leavingList, validator)
 	}
 
 	nodesList, ok := eligible[core.MetachainShardId]
@@ -389,10 +391,8 @@ func (ihgs *indexHashedNodesCoordinator) GetAllWaitingValidatorsPublicKeys(epoch
 	return validatorsPubKeys, nil
 }
 
-// GetWaitingPublicKeysPerShard will return all validators public keys in waiting list for all shards
-func (ihgs *indexHashedNodesCoordinator) GetWaitingPublicKeysPerShard(epoch uint32) (map[uint32][][]byte, error) {
-	validatorsPubKeys := make(map[uint32][][]byte)
-
+// GetAllLeavingValidatorsPublicKeys will return all leaving validators public keys for all shards
+func (ihgs *indexHashedNodesCoordinator) GetAllLeavingValidatorsPublicKeys(epoch uint32) ([][]byte, error) {
 	ihgs.mutNodesConfig.RLock()
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	ihgs.mutNodesConfig.RUnlock()
@@ -404,13 +404,13 @@ func (ihgs *indexHashedNodesCoordinator) GetWaitingPublicKeysPerShard(epoch uint
 	nodesConfig.mutNodesMaps.RLock()
 	defer nodesConfig.mutNodesMaps.RUnlock()
 
-	for shardId, shardWaiting := range nodesConfig.waitingMap {
-		for i := 0; i < len(shardWaiting); i++ {
-			validatorsPubKeys[shardId] = append(validatorsPubKeys[shardId], nodesConfig.waitingMap[shardId][i].PubKey())
-		}
+	leavingPubKeys := make([][]byte, 0, len(nodesConfig.leavingList))
+
+	for _, leaving := range nodesConfig.leavingList {
+		leavingPubKeys = append(leavingPubKeys, leaving.PubKey())
 	}
 
-	return validatorsPubKeys, nil
+	return leavingPubKeys, nil
 }
 
 // GetValidatorsIndexes will return validators indexes for a block
@@ -502,7 +502,8 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 
 	eligibleMap, waitingMap, stillRemaining := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
 
-	err := ihgs.nodesPerShardSetter.SetNodesPerShards(eligibleMap, waitingMap, newEpoch)
+	actualLeaving := ComputeActuallyLeaving(leaving, stillRemaining)
+	err := ihgs.nodesPerShardSetter.SetNodesPerShards(eligibleMap, waitingMap, actualLeaving, newEpoch)
 	if err != nil {
 		log.Error("set nodes per shard failed", "error", err.Error())
 	}
@@ -517,6 +518,26 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 	ihgs.mutSavedStateKey.Lock()
 	ihgs.savedStateKey = randomness
 	ihgs.mutSavedStateKey.Unlock()
+}
+
+// ComputeActuallyLeaving returns the list of those nodes which are actually leaving
+func ComputeActuallyLeaving(leaving []Validator, stillRemaining []Validator) []Validator {
+	actualLeaving := make([]Validator, 0)
+	for _, shouldLeave := range leaving {
+		willRemain := false
+		for _, remains := range stillRemaining {
+			if bytes.Equal(shouldLeave.PubKey(), remains.PubKey()) {
+				willRemain = true
+				break
+			}
+		}
+
+		if !willRemain {
+			actualLeaving = append(actualLeaving, shouldLeave)
+		}
+	}
+
+	return actualLeaving
 }
 
 // EpochStartAction is called upon a start of epoch event.

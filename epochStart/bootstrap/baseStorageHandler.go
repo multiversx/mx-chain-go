@@ -42,28 +42,11 @@ func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*blo
 	return sliceToRet, nil
 }
 
-func (bsh *baseStorageHandler) saveMiniBlocksToStorage(miniBlocks map[string]*block.MiniBlock) error {
-	miniBlockStorage := bsh.storageService.GetStorer(dataRetriever.MiniBlockUnit)
-	for hash, miniBlock := range miniBlocks {
-		marshalledData, err := bsh.marshalizer.Marshal(miniBlock)
-		if err != nil {
-			return err
-		}
-
-		err = miniBlockStorage.Put([]byte(hash), marshalledData)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 	metaBlock *block.MetaBlock,
 	nodesConfig *sharding.NodesCoordinatorRegistry,
 ) ([]byte, error) {
-	key := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), metaBlock.RandSeed...)
+	key := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), metaBlock.PrevRandSeed...)
 
 	// TODO: replace hardcoded json - although it is hardcoded in nodesCoordinator as well.
 	registryBytes, err := json.Marshal(nodesConfig)
@@ -71,12 +54,15 @@ func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 		return nil, err
 	}
 
-	err = bsh.storageService.GetStorer(dataRetriever.BootstrapUnit).Put(key, registryBytes)
+	bootstrapUnit := bsh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	err = bootstrapUnit.Put(key, registryBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	return key, nil
+	log.Debug("saving nodes coordinator config", "key", key)
+
+	return metaBlock.PrevRandSeed, nil
 }
 
 func (bsh *baseStorageHandler) commitTries(components *ComponentsNeededForBootstrap) error {

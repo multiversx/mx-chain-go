@@ -140,7 +140,7 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
-	log.Info("saved bootstrap data to storage")
+	log.Info("saved bootstrap data to storage", "round", roundToUseAsKey)
 	key := []byte(strconv.FormatInt(roundToUseAsKey, 10))
 	err = bootStorer.Put(key, bootStrapDataBytes)
 	if err != nil {
@@ -314,7 +314,8 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 		EpochFinalityAttestingRound: 0,
 	}
 
-	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), []byte(fmt.Sprint(shardHeader.Round))...)
+	bootstrapKey := []byte(fmt.Sprint(shardHeader.Round))
+	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), bootstrapKey...)
 
 	triggerRegBytes, err := json.Marshal(&triggerReg)
 	if err != nil {
@@ -326,7 +327,7 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 		return nil, errPut
 	}
 
-	return trigInternalKey, nil
+	return bootstrapKey, nil
 }
 
 func getAllMiniBlocksWithDst(metaBlock *block.MetaBlock, destId uint32) map[string]block.ShardMiniBlockHeader {
