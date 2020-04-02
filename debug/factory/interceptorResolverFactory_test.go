@@ -12,9 +12,8 @@ func TestNewInterceptorResolverFactory_DisabledShouldWork(t *testing.T) {
 	t.Parallel()
 
 	irdh, err := NewInterceptorResolverFactory(
-		config.DebugConfig{
-			Enabled:     false,
-			CachersSize: 0,
+		config.InterceptorResolverDebugConfig{
+			Enabled: false,
 		},
 	)
 
@@ -27,13 +26,16 @@ func TestNewInterceptorResolverFactory_InterceptorResolver(t *testing.T) {
 	t.Parallel()
 
 	irdh, err := NewInterceptorResolverFactory(
-		config.DebugConfig{
-			Enabled:     true,
-			CachersSize: 10000,
+		config.InterceptorResolverDebugConfig{
+			Enabled:   true,
+			CacheSize: 1000,
 		},
 	)
 
 	assert.Nil(t, err)
-	expected, _ := resolver.NewInterceptorResolver(1)
+	expected, _ := resolver.NewInterceptorResolver(config.InterceptorResolverDebugConfig{
+		Enabled:   false,
+		CacheSize: 1,
+	})
 	assert.IsType(t, expected, irdh)
 }

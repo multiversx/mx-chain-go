@@ -6,10 +6,10 @@ import (
 )
 
 // NewInterceptorResolverFactory will instantiate an InterceptorResolverDebugHandler based on the provided config
-func NewInterceptorResolverFactory(config config.DebugConfig) (InterceptorResolverDebugHandler, error) {
+func NewInterceptorResolverFactory(config config.InterceptorResolverDebugConfig) (InterceptorResolverDebugHandler, error) {
 	if !config.Enabled {
 		return resolver.NewDisabledInterceptorResolver()
 	}
 
-	return resolver.NewInterceptorResolver(config.CachersSize)
+	return resolver.NewInterceptorResolver(config)
 }

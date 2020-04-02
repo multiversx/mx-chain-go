@@ -368,5 +368,10 @@
     MaxSizeInBytes = 943718 # 943718 is 90% from 1MB
 
 [Debug]
-    Enabled = true
-    CachersSize = 10000
+    [Debug.InterceptorResolver]
+        Enabled = true
+        CacheSize = 2000
+        EnableAutoPrint	= true
+        IntervalAutoPrintInSeconds = 20
+        NumRequestsThreshold = 9
+        NumResolveFailureThreshold = 3

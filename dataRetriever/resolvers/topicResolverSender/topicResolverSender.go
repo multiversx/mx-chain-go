@@ -17,29 +17,29 @@ const minPeersToQuery = 2
 
 // ArgTopicResolverSender is the argument structure used to create new TopicResolverSender instance
 type ArgTopicResolverSender struct {
-	Messenger           dataRetriever.MessageHandler
-	TopicName           string
-	PeerListCreator     dataRetriever.PeerListCreator
-	Marshalizer         marshal.Marshalizer
-	Randomizer          dataRetriever.IntRandomizer
-	TargetShardId       uint32
-	OutputAntiflooder   dataRetriever.P2PAntifloodHandler
-	RequestDebugHandler dataRetriever.RequestDebugHandler
-	NumIntraShardPeers  int
-	NumCrossShardPeers  int
+	Messenger            dataRetriever.MessageHandler
+	TopicName            string
+	PeerListCreator      dataRetriever.PeerListCreator
+	Marshalizer          marshal.Marshalizer
+	Randomizer           dataRetriever.IntRandomizer
+	TargetShardId        uint32
+	OutputAntiflooder    dataRetriever.P2PAntifloodHandler
+	ResolverDebugHandler dataRetriever.ResolverDebugHandler
+	NumIntraShardPeers   int
+	NumCrossShardPeers   int
 }
 
 type topicResolverSender struct {
-	messenger           dataRetriever.MessageHandler
-	marshalizer         marshal.Marshalizer
-	topicName           string
-	peerListCreator     dataRetriever.PeerListCreator
-	randomizer          dataRetriever.IntRandomizer
-	targetShardId       uint32
-	outputAntiflooder   dataRetriever.P2PAntifloodHandler
-	requestDebugHandler dataRetriever.RequestDebugHandler
-	numIntraShardPeers  int
-	numCrossShardPeers  int
+	messenger            dataRetriever.MessageHandler
+	marshalizer          marshal.Marshalizer
+	topicName            string
+	peerListCreator      dataRetriever.PeerListCreator
+	randomizer           dataRetriever.IntRandomizer
+	targetShardId        uint32
+	outputAntiflooder    dataRetriever.P2PAntifloodHandler
+	resolverDebugHandler dataRetriever.ResolverDebugHandler
+	numIntraShardPeers   int
+	numCrossShardPeers   int
 }
 
 // NewTopicResolverSender returns a new topic resolver instance
@@ -59,8 +59,8 @@ func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, e
 	if check.IfNil(arg.OutputAntiflooder) {
 		return nil, dataRetriever.ErrNilAntifloodHandler
 	}
-	if check.IfNil(arg.RequestDebugHandler) {
-		return nil, dataRetriever.ErrNilRequestDebugHandler
+	if check.IfNil(arg.ResolverDebugHandler) {
+		return nil, dataRetriever.ErrNilResolverDebugHandler
 	}
 	if arg.NumIntraShardPeers < 0 {
 		return nil, fmt.Errorf("%w for NumIntraShardPeers as the value should be greater or equal than 0",
@@ -76,16 +76,16 @@ func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, e
 	}
 
 	resolver := &topicResolverSender{
-		messenger:           arg.Messenger,
-		topicName:           arg.TopicName,
-		peerListCreator:     arg.PeerListCreator,
-		marshalizer:         arg.Marshalizer,
-		randomizer:          arg.Randomizer,
-		targetShardId:       arg.TargetShardId,
-		outputAntiflooder:   arg.OutputAntiflooder,
-		numIntraShardPeers:  arg.NumIntraShardPeers,
-		numCrossShardPeers:  arg.NumCrossShardPeers,
-		requestDebugHandler: arg.RequestDebugHandler,
+		messenger:            arg.Messenger,
+		topicName:            arg.TopicName,
+		peerListCreator:      arg.PeerListCreator,
+		marshalizer:          arg.Marshalizer,
+		randomizer:           arg.Randomizer,
+		targetShardId:        arg.TargetShardId,
+		outputAntiflooder:    arg.OutputAntiflooder,
+		numIntraShardPeers:   arg.NumIntraShardPeers,
+		numCrossShardPeers:   arg.NumCrossShardPeers,
+		resolverDebugHandler: arg.ResolverDebugHandler,
 	}
 
 	return resolver, nil
@@ -117,13 +117,13 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 }
 
 func (trs *topicResolverSender) callDebugHandler(originalHashes [][]byte, numSentIntra int, numSentCross int) {
-	if !trs.requestDebugHandler.Enabled() {
+	if !trs.resolverDebugHandler.Enabled() {
 		//this check prevents a useless range when using a mock implementation
 		return
 	}
 
 	for _, hash := range originalHashes {
-		trs.requestDebugHandler.RequestedData(trs.topicName, hash, numSentIntra, numSentCross)
+		trs.resolverDebugHandler.RequestedData(trs.topicName, hash, numSentIntra, numSentCross)
 	}
 }
 
@@ -195,6 +195,11 @@ func (trs *topicResolverSender) RequestTopic() string {
 // TargetShardID returns the target shard ID for this resolver should serve data
 func (trs *topicResolverSender) TargetShardID() uint32 {
 	return trs.targetShardId
+}
+
+// ResolverDebugHandler returns the debug handler used in resolvers
+func (trs *topicResolverSender) ResolverDebugHandler() dataRetriever.ResolverDebugHandler {
+	return trs.resolverDebugHandler
 }
 
 func fisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) []int {

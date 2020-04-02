@@ -1,6 +1,7 @@
 package dataRetriever
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -11,6 +12,42 @@ import (
 
 // UnitType is the type for Storage unit identifiers
 type UnitType uint8
+
+// String returns the friendly name of the unit
+func (ut UnitType) String() string {
+	switch ut {
+	case TransactionUnit:
+		return "TransactionUnit"
+	case MiniBlockUnit:
+		return "MiniBlockUnit"
+	case PeerChangesUnit:
+		return "PeerChangesUnit"
+	case BlockHeaderUnit:
+		return "BlockHeaderUnit"
+	case MetaBlockUnit:
+		return "MetaBlockUnit"
+	case UnsignedTransactionUnit:
+		return "UnsignedTransactionUnit"
+	case RewardTransactionUnit:
+		return "RewardTransactionUnit"
+	case MetaHdrNonceHashDataUnit:
+		return "MetaHdrNonceHashDataUnit"
+	case HeartbeatUnit:
+		return "HeartbeatUnit"
+	case MiniBlockHeaderUnit:
+		return "MiniBlockHeaderUnit"
+	case BootstrapUnit:
+		return "BootstrapUnit"
+	case StatusMetricsUnit:
+		return "StatusMetricsUnit"
+	}
+
+	if ut < ShardHdrNonceHashDataUnit {
+		return fmt.Sprintf("unknown type %d", ut)
+	}
+
+	return fmt.Sprintf("%s%d", "ShardHdrNonceHashDataUnit", ut-ShardHdrNonceHashDataUnit)
+}
 
 const (
 	// TransactionUnit is the transactions storage unit identifier
@@ -83,6 +120,7 @@ type TopicResolverSender interface {
 	Send(buff []byte, peer p2p.PeerID) error
 	RequestTopic() string
 	TargetShardID() uint32
+	ResolverDebugHandler() ResolverDebugHandler
 	IsInterfaceNil() bool
 }
 
@@ -300,9 +338,10 @@ type P2PAntifloodHandler interface {
 	IsInterfaceNil() bool
 }
 
-// RequestDebugHandler defines an interface for debugging the reqested-resolved data
-type RequestDebugHandler interface {
+// ResolverDebugHandler defines an interface for debugging the reqested-resolved data
+type ResolverDebugHandler interface {
 	RequestedData(topic string, hash []byte, numReqIntra int, numReqCross int)
+	FailedToResolveData(topic string, hash []byte, err error)
 	Enabled() bool
 	IsInterfaceNil() bool
 }

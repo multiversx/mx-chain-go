@@ -90,7 +90,17 @@ func (gbbRes *genericBlockBodyResolver) ProcessReceivedMessage(message p2p.Messa
 		return nil
 	}
 
-	return gbbRes.Send(buff, message.Peer())
+	//TODO refactor this struct. Should use a data packer.
+	err = gbbRes.Send(buff, message.Peer())
+	if err != nil {
+		log.Debug("error replying to request",
+			"error", err,
+			"topic", gbbRes.topic,
+			"error", err,
+		)
+	}
+
+	return nil
 }
 
 func (gbbRes *genericBlockBodyResolver) resolveBlockBodyRequest(rd *dataRetriever.RequestData) ([]byte, error) {
@@ -103,7 +113,9 @@ func (gbbRes *genericBlockBodyResolver) resolveBlockBodyRequest(rd *dataRetrieve
 		return nil, err
 	}
 
-	miniBlocks, _ := gbbRes.GetMiniBlocks(hashes)
+	miniBlocks, missing := gbbRes.GetMiniBlocks(hashes)
+	gbbRes.processDebugMissingData(missing)
+
 	if len(miniBlocks) == 0 {
 		return nil, dataRetriever.ErrEmptyMiniBlockSlice
 	}
@@ -115,6 +127,16 @@ func (gbbRes *genericBlockBodyResolver) resolveBlockBodyRequest(rd *dataRetrieve
 	}
 
 	return buff, nil
+}
+
+func (gbbRes *genericBlockBodyResolver) processDebugMissingData(missing [][]byte) {
+	if !gbbRes.ResolverDebugHandler().Enabled() {
+		return
+	}
+
+	for _, hash := range missing {
+		gbbRes.ResolverDebugHandler().FailedToResolveData(gbbRes.topic, hash, dataRetriever.ErrMissingData)
+	}
 }
 
 func (gbbRes *genericBlockBodyResolver) miniBlockHashesFromRequestType(requestData *dataRetriever.RequestData) ([][]byte, error) {

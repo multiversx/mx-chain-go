@@ -18,5 +18,6 @@ func TestDisabledInterceptorResolver(t *testing.T) {
 	dir.ReceivedHash("", nil)
 	dir.ProcessedHash("", nil, nil)
 	dir.RequestedData("", nil, 0, 0)
+	dir.FailedToResolveData("", nil, nil)
 	assert.Equal(t, 0, len(dir.Query("*")))
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
-	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -159,9 +158,7 @@ func QueryDebug(c *gin.Context) {
 		return
 	}
 
-	strResult := strings.Join(qh.Query(gtx.Search), "\r\n")
-
-	c.JSON(http.StatusOK, gin.H{"result": strResult})
+	c.JSON(http.StatusOK, gin.H{"result": qh.Query(gtx.Search)})
 }
 
 func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResponse {

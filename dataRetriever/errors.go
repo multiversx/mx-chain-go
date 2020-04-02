@@ -176,5 +176,8 @@ var ErrEmptyString = errors.New("empty string")
 // ErrInvalidValue signals that an invalid value has been provided
 var ErrInvalidValue = errors.New("invalid value")
 
-// ErrNilRequestDebugHandler signals that a nil request debug handler has been provided
-var ErrNilRequestDebugHandler = errors.New("nil request debug handler")
+// ErrNilResolverDebugHandler signals that a nil request debug handler has been provided
+var ErrNilResolverDebugHandler = errors.New("nil request-resolver debug handler")
+
+// ErrMissingData signals that the required data is missing
+var ErrMissingData = errors.New("missing data")

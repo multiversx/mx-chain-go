@@ -351,9 +351,9 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 
 func (tpn *TestProcessorNode) initTestNode() {
 	tpn.InterceptorResolverDebugger, _ = debugFactory.NewInterceptorResolverFactory(
-		config.DebugConfig{
-			Enabled:     true,
-			CachersSize: 10000,
+		config.InterceptorResolverDebugConfig{
+			Enabled:   true,
+			CacheSize: 10000,
 		},
 	)
 
@@ -683,7 +683,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 		InputAntifloodHandler:      &mock.NilAntifloodHandler{},
 		OutputAntifloodHandler:     &mock.NilAntifloodHandler{},
 		NumConcurrentResolvingJobs: 10,
-		RequestDebugHandler:        tpn.InterceptorResolverDebugger,
+		ResolverDebugHandler:       tpn.InterceptorResolverDebugger,
 	}
 
 	var err error

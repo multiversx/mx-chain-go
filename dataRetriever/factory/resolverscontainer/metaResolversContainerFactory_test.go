@@ -260,6 +260,6 @@ func getArgumentsMeta() resolverscontainer.FactoryArgs {
 		InputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
 		OutputAntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
 		NumConcurrentResolvingJobs: 10,
-		RequestDebugHandler:        &mock.RequestDebugHandlerStub{},
+		ResolverDebugHandler:       &mock.ResolverDebugHandlerStub{},
 	}
 }

@@ -18,16 +18,16 @@ var defaultHashes = [][]byte{[]byte("hash")}
 
 func createMockArgTopicResolverSender() topicResolverSender.ArgTopicResolverSender {
 	return topicResolverSender.ArgTopicResolverSender{
-		Messenger:           &mock.MessageHandlerStub{},
-		TopicName:           "topic",
-		PeerListCreator:     &mock.PeerListCreatorStub{},
-		Marshalizer:         &mock.MarshalizerMock{},
-		Randomizer:          &mock.IntRandomizerStub{},
-		TargetShardId:       0,
-		OutputAntiflooder:   &mock.P2PAntifloodHandlerStub{},
-		NumIntraShardPeers:  2,
-		NumCrossShardPeers:  2,
-		RequestDebugHandler: &mock.RequestDebugHandlerStub{},
+		Messenger:            &mock.MessageHandlerStub{},
+		TopicName:            "topic",
+		PeerListCreator:      &mock.PeerListCreatorStub{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		Randomizer:           &mock.IntRandomizerStub{},
+		TargetShardId:        0,
+		OutputAntiflooder:    &mock.P2PAntifloodHandlerStub{},
+		NumIntraShardPeers:   2,
+		NumCrossShardPeers:   2,
+		ResolverDebugHandler: &mock.ResolverDebugHandlerStub{},
 	}
 }
 
@@ -128,11 +128,11 @@ func TestNewTopicResolverSender_NilRequestDebugHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgTopicResolverSender()
-	arg.RequestDebugHandler = nil
+	arg.ResolverDebugHandler = nil
 	trs, err := topicResolverSender.NewTopicResolverSender(arg)
 
 	assert.True(t, check.IfNil(trs))
-	assert.True(t, errors.Is(err, dataRetriever.ErrNilRequestDebugHandler))
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilResolverDebugHandler))
 }
 
 func TestNewTopicResolverSender_OkValsShouldWork(t *testing.T) {
@@ -227,7 +227,7 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 			return []p2p.PeerID{pID2}
 		},
 	}
-	arg.RequestDebugHandler = &mock.RequestDebugHandlerStub{
+	arg.ResolverDebugHandler = &mock.ResolverDebugHandlerStub{
 		RequestedDataCalled: func(hash []byte, topic string, numReqIntra int, numReqCross int) {
 			numRequested++
 		},

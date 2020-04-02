@@ -7,9 +7,10 @@ import (
 
 // TopicResolverSenderStub -
 type TopicResolverSenderStub struct {
-	SendOnRequestTopicCalled func(rd *dataRetriever.RequestData, hashes [][]byte) error
-	SendCalled               func(buff []byte, peer p2p.PeerID) error
-	TargetShardIDCalled      func() uint32
+	SendOnRequestTopicCalled   func(rd *dataRetriever.RequestData, hashes [][]byte) error
+	SendCalled                 func(buff []byte, peer p2p.PeerID) error
+	TargetShardIDCalled        func() uint32
+	ResolverDebugHandlerCalled func() dataRetriever.ResolverDebugHandler
 }
 
 // RequestTopic -
@@ -42,6 +43,15 @@ func (trss *TopicResolverSenderStub) TargetShardID() uint32 {
 	}
 
 	return 0
+}
+
+// ResolverDebugHandler -
+func (trss *TopicResolverSenderStub) ResolverDebugHandler() dataRetriever.ResolverDebugHandler {
+	if trss.ResolverDebugHandlerCalled != nil {
+		return trss.ResolverDebugHandlerCalled()
+	}
+
+	return &ResolverDebugHandlerStub{}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

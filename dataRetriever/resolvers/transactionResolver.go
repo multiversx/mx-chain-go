@@ -146,6 +146,8 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.
 		var tx []byte
 		tx, err = txRes.fetchTxAsByteSlice(hash)
 		if err != nil {
+			txRes.processDebugMissingData(hash, err)
+
 			//it might happen to error on a tx (maybe it is missing) but should continue
 			// as to send back as many as it can
 			log.Trace("fetchTxAsByteSlice missing",
@@ -158,17 +160,34 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.
 
 	buffsToSend, err := txRes.dataPacker.PackDataInChunks(txsBuffSlice, maxBuffToSendBulkTransactions)
 	if err != nil {
+		log.Warn("internal error while packing data",
+			"topic", txRes.topic,
+			"error", err,
+		)
+
 		return err
 	}
 
 	for _, buff := range buffsToSend {
 		err = txRes.Send(buff, pid)
 		if err != nil {
-			return err
+			log.Debug("error replying to request",
+				"error", err,
+				"topic", txRes.topic,
+				"error", err,
+			)
 		}
 	}
 
 	return nil
+}
+
+func (txRes *TxResolver) processDebugMissingData(hash []byte, err error) {
+	if !txRes.ResolverDebugHandler().Enabled() {
+		return
+	}
+
+	txRes.ResolverDebugHandler().FailedToResolveData(txRes.topic, hash, err)
 }
 
 // RequestDataFromHash requests a transaction from other peers having input the tx hash

@@ -46,7 +46,7 @@ func NewShardResolversContainerFactory(
 		inputAntifloodHandler:    args.InputAntifloodHandler,
 		outputAntifloodHandler:   args.OutputAntifloodHandler,
 		throttler:                thr,
-		requestDebugHandler:      args.RequestDebugHandler,
+		resolverDebugHandler:     args.ResolverDebugHandler,
 	}
 
 	err = base.checkParams()

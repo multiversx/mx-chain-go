@@ -95,6 +95,7 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 		"round", metaBlock.GetRound(),
 		"nonce", metaBlock.GetNonce(),
 		"hash", metaBlockHash,
+		"prev hash", metaBlock.PrevHash,
 	)
 
 	if !bbt.ShouldAddHeader(headerHandler) {

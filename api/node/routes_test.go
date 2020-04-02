@@ -40,7 +40,7 @@ type StatusResponse struct {
 
 type QueryResponse struct {
 	GeneralResponse
-	Result string `json:"result"`
+	Result []string `json:"result"`
 }
 
 type StatisticsResponse struct {

@@ -131,15 +131,36 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 		return dataRetriever.ErrResolveTypeUnknown
 	}
 	if err != nil {
+		hdrRes.processDebugMissingData(rd.Value, err)
+
 		return err
 	}
 	if buff == nil {
+		hdrRes.processDebugMissingData(rd.Value, dataRetriever.ErrMissingData)
+
 		log.Trace("missing data",
 			"data", rd)
 		return nil
 	}
 
-	return hdrRes.Send(buff, message.Peer())
+	err = hdrRes.Send(buff, message.Peer())
+	if err != nil {
+		log.Debug("error replying to request",
+			"error", err,
+			"topic", hdrRes.topic,
+			"error", err,
+		)
+	}
+
+	return nil
+}
+
+func (hdrRes *HeaderResolver) processDebugMissingData(hash []byte, err error) {
+	if !hdrRes.ResolverDebugHandler().Enabled() {
+		return
+	}
+
+	hdrRes.ResolverDebugHandler().FailedToResolveData(hdrRes.topic, hash, err)
 }
 
 func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestData) ([]byte, error) {

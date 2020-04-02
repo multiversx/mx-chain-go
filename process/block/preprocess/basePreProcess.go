@@ -119,6 +119,10 @@ func (bpp *basePreProcess) saveTxsToStorage(
 
 	for i := 0; i < len(txHashes); i++ {
 		txHash := txHashes[i]
+		log.Trace("saving tx",
+			"type", dataUnit.String(),
+			"hash", txHash,
+		)
 
 		forBlock.mutTxsForBlock.RLock()
 		txInfoFromMap := forBlock.txHashAndInfo[string(txHash)]

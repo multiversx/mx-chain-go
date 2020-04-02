@@ -78,6 +78,8 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fr
 		var serializedNodes [][]byte
 		serializedNodes, err = tnRes.trieDataGetter.GetSerializedNodes(rd.Value, maxBuffToSendTrieNodes)
 		if err != nil {
+			tnRes.processDebugMissingData(rd.Value, err)
+
 			return err
 		}
 
@@ -87,10 +89,27 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fr
 			return err
 		}
 
-		return tnRes.Send(buff, message.Peer())
+		err = tnRes.Send(buff, message.Peer())
+		if err != nil {
+			log.Debug("error replying to request",
+				"error", err,
+				"topic", tnRes.topic,
+				"error", err,
+			)
+		}
+
+		return nil
 	default:
 		return dataRetriever.ErrRequestTypeNotImplemented
 	}
+}
+
+func (tnRes *TrieNodeResolver) processDebugMissingData(hash []byte, err error) {
+	if !tnRes.ResolverDebugHandler().Enabled() {
+		return
+	}
+
+	tnRes.ResolverDebugHandler().FailedToResolveData(tnRes.topic, hash, err)
 }
 
 // RequestDataFromHash requests trie nodes from other peers having input a trie node hash

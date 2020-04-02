@@ -62,9 +62,9 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn.MultiSigner = TestMultiSig
 	tpn.OwnAccount = CreateTestWalletAccount(shardCoordinator, txSignPrivKeyShardId)
 	tpn.InterceptorResolverDebugger, _ = debugFactory.NewInterceptorResolverFactory(
-		config.DebugConfig{
-			Enabled:     true,
-			CachersSize: 10000,
+		config.InterceptorResolverDebugConfig{
+			Enabled:   true,
+			CacheSize: 10000,
 		},
 	)
 

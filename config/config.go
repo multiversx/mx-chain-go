@@ -227,6 +227,15 @@ type AntifloodConfig struct {
 
 // DebugConfig will hold debugging configuration
 type DebugConfig struct {
-	Enabled     bool
-	CachersSize int
+	InterceptorResolver InterceptorResolverDebugConfig
+}
+
+// InterceptorResolverDebugConfig will hold the interceptor-resolver debug configuration
+type InterceptorResolverDebugConfig struct {
+	Enabled                    bool
+	CacheSize                  int
+	EnableAutoPrint            bool
+	IntervalAutoPrintInSeconds int
+	NumRequestsThreshold       int
+	NumResolveFailureThreshold int
 }

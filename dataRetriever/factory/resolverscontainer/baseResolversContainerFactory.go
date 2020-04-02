@@ -34,7 +34,7 @@ type baseResolversContainerFactory struct {
 	inputAntifloodHandler    dataRetriever.P2PAntifloodHandler
 	outputAntifloodHandler   dataRetriever.P2PAntifloodHandler
 	throttler                dataRetriever.ResolverThrottler
-	requestDebugHandler      dataRetriever.RequestDebugHandler
+	resolverDebugHandler     dataRetriever.ResolverDebugHandler
 	intraShardTopic          string
 }
 
@@ -72,8 +72,8 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	if check.IfNil(brcf.throttler) {
 		return dataRetriever.ErrNilThrottler
 	}
-	if check.IfNil(brcf.requestDebugHandler) {
-		return dataRetriever.ErrNilRequestDebugHandler
+	if check.IfNil(brcf.resolverDebugHandler) {
+		return dataRetriever.ErrNilResolverDebugHandler
 	}
 
 	return nil
@@ -237,16 +237,16 @@ func (brcf *baseResolversContainerFactory) createOneResolverSender(
 	}
 
 	arg := topicResolverSender.ArgTopicResolverSender{
-		Messenger:           brcf.messenger,
-		TopicName:           topic,
-		PeerListCreator:     peerListCreator,
-		Marshalizer:         brcf.marshalizer,
-		Randomizer:          brcf.intRandomizer,
-		TargetShardId:       targetShardId,
-		OutputAntiflooder:   brcf.outputAntifloodHandler,
-		NumCrossShardPeers:  numCrossShardPeers,
-		NumIntraShardPeers:  numIntraShardPeers,
-		RequestDebugHandler: brcf.requestDebugHandler,
+		Messenger:            brcf.messenger,
+		TopicName:            topic,
+		PeerListCreator:      peerListCreator,
+		Marshalizer:          brcf.marshalizer,
+		Randomizer:           brcf.intRandomizer,
+		TargetShardId:        targetShardId,
+		OutputAntiflooder:    brcf.outputAntifloodHandler,
+		NumCrossShardPeers:   numCrossShardPeers,
+		NumIntraShardPeers:   numIntraShardPeers,
+		ResolverDebugHandler: brcf.resolverDebugHandler,
 	}
 	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
 	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units

@@ -2,13 +2,28 @@ package resolver
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 	"sync"
+	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
-type request struct {
+const requestEvent = "request"
+const resolveEvent = "resolve"
+const minIntervalInSeconds = 1
+const minThresholdResolve = 1
+const minThresholdRequests = 1
+const newLineChar = "\n"
+
+var log = logger.GetOrCreate("debug/resolver")
+
+type event struct {
+	eventType    string
 	hash         []byte
 	topic        string
 	numReqIntra  int
@@ -18,34 +33,116 @@ type request struct {
 	lastErr      error
 }
 
+func (ev *event) String() string {
+	strErr := ""
+	if ev.lastErr != nil {
+		strErr = ev.lastErr.Error()
+	}
+	return fmt.Sprintf("type: %s, topic: %s, hash: %s, numReqIntra: %d, numReqCross: %d, "+
+		"numReceived: %d, numProcessed: %d, last err: %s",
+		ev.eventType,
+		ev.topic,
+		logger.DisplayByteSlice(ev.hash),
+		ev.numReqIntra,
+		ev.numReqCross,
+		ev.numReceived,
+		ev.numProcessed,
+		strErr,
+	)
+}
+
 type interceptorResolver struct {
-	mutCriticalArea sync.Mutex
-	cache           *lrucache.LRUCache
+	mutCriticalArea      sync.RWMutex
+	cache                *lrucache.LRUCache
+	intervalAutoPrint    time.Duration
+	requestsThreshold    int
+	resolveFailThreshold int
 }
 
 // NewInterceptorResolver creates a new interceptorResolver able to hold requested-intercepted information
-func NewInterceptorResolver(size int) (*interceptorResolver, error) {
-	cache, err := lrucache.NewCache(size)
+func NewInterceptorResolver(config config.InterceptorResolverDebugConfig) (*interceptorResolver, error) {
+	cache, err := lrucache.NewCache(config.CacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("%w when creating NewInterceptorResolver", err)
 	}
 
-	return &interceptorResolver{
+	ir := &interceptorResolver{
 		cache: cache,
-	}, nil
+	}
+
+	err = ir.parseConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	if config.EnableAutoPrint {
+		go ir.autoPrint()
+	}
+
+	return ir, nil
+}
+
+func (ir *interceptorResolver) parseConfig(config config.InterceptorResolverDebugConfig) error {
+	if !config.EnableAutoPrint {
+		return nil
+	}
+	if config.IntervalAutoPrintInSeconds < minIntervalInSeconds {
+		return fmt.Errorf("%w for IntervalAutoPrintInSeconds, minimum is %d", debug.ErrInvalidValue, minIntervalInSeconds)
+	}
+	if config.NumRequestsThreshold < minThresholdRequests {
+		return fmt.Errorf("%w for NumRequestsThreshold, minimum is %d", debug.ErrInvalidValue, minThresholdRequests)
+	}
+	if config.NumResolveFailureThreshold < minThresholdResolve {
+		return fmt.Errorf("%w for NumResolveFailureThreshold, minimum is %d", debug.ErrInvalidValue, minThresholdResolve)
+	}
+
+	ir.intervalAutoPrint = time.Second * time.Duration(config.IntervalAutoPrintInSeconds)
+	ir.requestsThreshold = config.NumRequestsThreshold
+	ir.resolveFailThreshold = config.NumResolveFailureThreshold
+
+	return nil
+}
+
+func (ir *interceptorResolver) autoPrint() {
+	for {
+		time.Sleep(ir.intervalAutoPrint)
+
+		events := []string{"Requests pending and resolver fails:"}
+		events = append(events, ir.getStringEvents()...)
+		if len(events) == 0 {
+			continue
+		}
+
+		stringEvent := strings.Join(events, newLineChar)
+		log.Debug(stringEvent)
+	}
+}
+
+//TODO replace this with a call to Query(search) when a suitable conditional parser will be used. Also replace config parameters
+// with a query string so it will be more extensible
+func (ir *interceptorResolver) getStringEvents() []string {
+	acceptEvent := func(ev *event) bool {
+		shouldAcceptRequested := ev.eventType == requestEvent && ev.numReqCross+ev.numReqIntra >= ir.requestsThreshold
+		shouldAcceptResolved := ev.eventType == resolveEvent && ev.numReceived >= ir.resolveFailThreshold
+
+		return shouldAcceptRequested || shouldAcceptResolved
+	}
+
+	return ir.query(acceptEvent)
 }
 
 // RequestedData is called whenever a hash has been requested
 func (ir *interceptorResolver) RequestedData(topic string, hash []byte, numReqIntra int, numReqCross int) {
-	identifier := ir.computeIdentifier(topic, hash)
+	identifier := ir.computeIdentifier(requestEvent, topic, hash)
 
 	ir.mutCriticalArea.Lock()
 	defer ir.mutCriticalArea.Unlock()
 
 	obj, ok := ir.cache.Get(identifier)
 	if !ok {
-		req := &request{
+		req := &event{
 			hash:         hash,
+			eventType:    requestEvent,
 			topic:        topic,
 			numReqIntra:  numReqIntra,
 			numReqCross:  numReqCross,
@@ -58,7 +155,7 @@ func (ir *interceptorResolver) RequestedData(topic string, hash []byte, numReqIn
 		return
 	}
 
-	req, ok := obj.(*request)
+	req, ok := obj.(*event)
 	if !ok {
 		return
 	}
@@ -70,7 +167,7 @@ func (ir *interceptorResolver) RequestedData(topic string, hash []byte, numReqIn
 
 // ReceivedHash is called whenever a request hash has been received
 func (ir *interceptorResolver) ReceivedHash(topic string, hash []byte) {
-	identifier := ir.computeIdentifier(topic, hash)
+	identifier := ir.computeIdentifier(requestEvent, topic, hash)
 
 	ir.mutCriticalArea.Lock()
 	defer ir.mutCriticalArea.Unlock()
@@ -80,7 +177,7 @@ func (ir *interceptorResolver) ReceivedHash(topic string, hash []byte) {
 		return
 	}
 
-	req, ok := obj.(*request)
+	req, ok := obj.(*event)
 	if !ok {
 		return
 	}
@@ -91,7 +188,7 @@ func (ir *interceptorResolver) ReceivedHash(topic string, hash []byte) {
 
 // ProcessedHash is called whenever a request hash has been processed
 func (ir *interceptorResolver) ProcessedHash(topic string, hash []byte, err error) {
-	identifier := ir.computeIdentifier(topic, hash)
+	identifier := ir.computeIdentifier(requestEvent, topic, hash)
 
 	ir.mutCriticalArea.Lock()
 	defer ir.mutCriticalArea.Unlock()
@@ -101,7 +198,7 @@ func (ir *interceptorResolver) ProcessedHash(topic string, hash []byte, err erro
 		return
 	}
 
-	req, ok := obj.(*request)
+	req, ok := obj.(*event)
 	if !ok {
 		return
 	}
@@ -122,53 +219,85 @@ func (ir *interceptorResolver) Enabled() bool {
 	return true
 }
 
-func (ir *interceptorResolver) computeIdentifier(topic string, hash []byte) []byte {
-	return append([]byte(topic), hash...)
+func (ir *interceptorResolver) computeIdentifier(eventType string, topic string, hash []byte) []byte {
+	return append([]byte(eventType+topic), hash...)
 }
 
 // Query returns active requests in a string-ified format having the topic provided
 // * will return each and every data
-func (ir *interceptorResolver) Query(topic string) []string {
-	ir.mutCriticalArea.Lock()
-	defer ir.mutCriticalArea.Unlock()
+func (ir *interceptorResolver) Query(search string) []string {
+	acceptEvent := func(ev *event) bool {
+		//TODO replace this rudimentary search pattern with something like
+		// github.com/oleksandr/conditions
+		return search == "*" || search == ev.topic
+	}
+
+	return ir.query(acceptEvent)
+}
+
+func (ir *interceptorResolver) query(acceptEvent func(ev *event) bool) []string {
+	ir.mutCriticalArea.RLock()
+	defer ir.mutCriticalArea.RUnlock()
 
 	keys := ir.cache.Keys()
-	stringRequests := make([]string, 0, len(keys))
+	events := make([]string, 0, len(keys))
 	for _, key := range keys {
 		obj, ok := ir.cache.Get(key)
 		if !ok {
 			continue
 		}
 
-		req, ok := obj.(*request)
+		ev, ok := obj.(*event)
 		if !ok {
 			continue
 		}
 
-		topicMatches := topic == "*" || topic == req.topic
-		if !topicMatches {
+		if !acceptEvent(ev) {
 			continue
 		}
 
-		strErr := ""
-		if req.lastErr != nil {
-			strErr = req.lastErr.Error()
-		}
-		strReq := fmt.Sprintf("hash: %s, topic: %s, numReqIntra: %d, numReqCross: %d, "+
-			"numReceived: %d, numProcessed: %d, last err: %s",
-			logger.DisplayByteSlice(req.hash),
-			req.topic,
-			req.numReqIntra,
-			req.numReqCross,
-			req.numReceived,
-			req.numProcessed,
-			strErr,
-		)
-
-		stringRequests = append(stringRequests, strReq)
+		events = append(events, ev.String())
 	}
 
-	return stringRequests
+	sort.Slice(events, func(i, j int) bool {
+		return events[i] < events[j]
+	})
+
+	return events
+}
+
+// FailedToResolveData adds a record stating that the resolver was unable to process the data
+func (ir *interceptorResolver) FailedToResolveData(topic string, hash []byte, err error) {
+	identifier := ir.computeIdentifier(resolveEvent, topic, hash)
+
+	ir.mutCriticalArea.Lock()
+	defer ir.mutCriticalArea.Unlock()
+
+	obj, ok := ir.cache.Get(identifier)
+	if !ok {
+		req := &event{
+			hash:         hash,
+			eventType:    resolveEvent,
+			topic:        topic,
+			numReqIntra:  0,
+			numReqCross:  0,
+			numReceived:  1,
+			numProcessed: 0,
+			lastErr:      err,
+		}
+		ir.cache.Put(identifier, req)
+
+		return
+	}
+
+	ev, ok := obj.(*event)
+	if !ok {
+		return
+	}
+
+	ev.numReceived++
+	ev.lastErr = err
+	ir.cache.Put(identifier, ev)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

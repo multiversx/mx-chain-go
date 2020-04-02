@@ -228,7 +228,7 @@ func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
 		return nil, err
 	}
 
-	interceptorRequesterDebugHandler, err := debugFactory.NewInterceptorResolverFactory(args.config.Debug)
+	interceptorRequesterDebugHandler, err := debugFactory.NewInterceptorResolverFactory(args.config.Debug.InterceptorResolver)
 	if err != nil {
 		return nil, err
 	}
@@ -1403,7 +1403,7 @@ func newShardResolverContainerFactory(
 		InputAntifloodHandler:      network.InputAntifloodHandler,
 		OutputAntifloodHandler:     network.OutputAntifloodHandler,
 		NumConcurrentResolvingJobs: numConcurrentResolverJobs,
-		RequestDebugHandler:        core.InterceptorResolverDebugHandler,
+		ResolverDebugHandler:       core.InterceptorResolverDebugHandler,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1439,7 +1439,7 @@ func newMetaResolverContainerFactory(
 		InputAntifloodHandler:      network.InputAntifloodHandler,
 		OutputAntifloodHandler:     network.OutputAntifloodHandler,
 		NumConcurrentResolvingJobs: numConcurrentResolverJobs,
-		RequestDebugHandler:        core.InterceptorResolverDebugHandler,
+		ResolverDebugHandler:       core.InterceptorResolverDebugHandler,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
