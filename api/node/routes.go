@@ -43,7 +43,7 @@ type shardStatisticsResponse struct {
 	AverageTPS            *big.Int `json:"averageTPS"`
 	PeakTPS               float64  `json:"peakTPS"`
 	CurrentBlockNonce     uint64   `json:"currentBlockNonce"`
-	TotalProcessedTxCount *big.Int `json:"totalProce	assert.Equal(t, queryResponse.Error, apiErrors.ErrInvalidAppContext.Error())ssedTxCount"`
+	TotalProcessedTxCount *big.Int `json:"totalProcessedTxCount"`
 	ShardID               uint32   `json:"shardID"`
 	AverageBlockTxCount   uint32   `json:"averageBlockTxCount"`
 	LastBlockTxCount      uint32   `json:"lastBlockTxCount"`
