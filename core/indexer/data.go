@@ -9,7 +9,7 @@ import (
 //  to be saved for a transaction. It has all the default fields
 //  plus some extra information for ease of search and filter
 type Transaction struct {
-	Hash          string        `json:"hash"`
+	Hash          string        `json:"-"`
 	MBHash        string        `json:"miniBlockHash"`
 	BlockHash     string        `json:"blockHash"`
 	Nonce         uint64        `json:"nonce"`
@@ -34,7 +34,7 @@ type Block struct {
 	Nonce                 uint64        `json:"nonce"`
 	Round                 uint64        `json:"round"`
 	Epoch                 uint32        `json:"epoch"`
-	Hash                  string        `json:"hash"`
+	Hash                  string        `json:"-"`
 	MiniBlocksHashes      []string      `json:"miniBlocksHashes"`
 	NotarizedBlocksHashes []string      `json:"notarizedBlocksHashes"`
 	Proposer              uint64        `json:"proposer"`
