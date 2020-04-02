@@ -506,14 +506,14 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 	}
 
 	if metaHdr.IsStartOfEpochBlock() {
-		missingMiniblocksHashes, err := t.validatorInfoProcessor.ProcessMetaBlock(metaHdr, []byte(hash))
+		missingMiniblocksHashes, blockBody, err := t.validatorInfoProcessor.SyncPeerMiniBlocks(metaHdr)
 		if err != nil {
 			t.addMissingMiniblocks(metaHdr.Epoch, missingMiniblocksHashes)
 			log.Warn("processMetablock failed", "error", err)
 			return false, 0
 		}
 
-		t.epochStartNotifier.NotifyAllPrepare(metaHdr)
+		t.epochStartNotifier.NotifyAllPrepare(metaHdr, blockBody)
 	}
 
 	isMetaHdrFinal, finalityAttestingRound := t.isMetaBlockFinal(hash, metaHdr)
@@ -694,7 +694,7 @@ func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (
 }
 
 // SetProcessed sets start of epoch to false and cleans underlying structure
-func (t *trigger) SetProcessed(header data.HeaderHandler) {
+func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 

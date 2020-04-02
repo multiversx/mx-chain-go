@@ -19,9 +19,8 @@ type Coordinator interface {
 // or block proposer
 type Validator interface {
 	PubKey() []byte
-	Address() []byte
 	Chances() uint32
-	SetChances(chances uint32)
+	Index() uint32
 }
 
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection
@@ -75,12 +74,12 @@ type NodesShuffler interface {
 // NodesCoordinatorHelper provides polymorphism functionality for nodesCoordinator
 type NodesCoordinatorHelper interface {
 	ValidatorsWeights(validators []Validator) ([]uint32, error)
-	ComputeLeaving(allValidators []Validator) []Validator
+	ComputeLeaving(allValidators []*state.ShardValidatorInfo) ([]Validator, error)
+	GetChance(uint32) uint32
 }
 
 //PeerAccountListAndRatingHandler provides Rating Computation Capabilites for the Nodes Coordinator and ValidatorStatistics
 type PeerAccountListAndRatingHandler interface {
-	RatingReader
 	//GetChance returns the chances for the the rating
 	GetChance(uint32) uint32
 	//GetStartRating gets the start rating values
@@ -99,32 +98,10 @@ type PeerAccountListAndRatingHandler interface {
 	ComputeDecreaseValidator(shardId uint32, currentRating uint32) uint32
 }
 
-//RatingReader provides rating reading capabilities for the ratingHandler
-type RatingReader interface {
-	//GetRating gets the rating for the public key
-	GetRating(string) uint32
-	//IsInterfaceNil verifies if the interface is nil
-	IsInterfaceNil() bool
-}
-
 //ChanceComputer provides chance computation capabilities based on a rating
 type ChanceComputer interface {
 	//GetChance returns the chances for the the rating
 	GetChance(uint32) uint32
-	//IsInterfaceNil verifies if the interface is nil
-	IsInterfaceNil() bool
-}
-
-//RatingReaderWithChanceComputer provides chance computation capabilities with Rater
-type RatingReaderWithChanceComputer interface {
-	RatingReader
-	GetChance(uint32) uint32
-}
-
-//RatingReaderSetter provides the capabilities to set a RatingReader
-type RatingReaderSetter interface {
-	//SetRatingReader sets the rating
-	SetRatingReader(RatingReader)
 	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }
@@ -146,6 +123,11 @@ type RandomSelector interface {
 // EpochStartActionHandler defines the action taken on epoch start event
 type EpochStartActionHandler interface {
 	EpochStartAction(hdr data.HeaderHandler)
-	EpochStartPrepare(hdr data.HeaderHandler)
+	EpochStartPrepare(hdr data.HeaderHandler, body data.BodyHandler)
 	NotifyOrder() uint32
+}
+
+// BodyToValidatorInfoHandler
+type BodyToValidatorInfoHandler interface {
+	IsInterfaceNil() bool
 }

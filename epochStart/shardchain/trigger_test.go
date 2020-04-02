@@ -498,7 +498,7 @@ func TestTrigger_RevertStateToBlockBehindEpochStart(t *testing.T) {
 		EpochStartMetaHash: []byte("metaHash"),
 		Epoch:              3,
 	}
-	et.SetProcessed(epochStartShHdr)
+	et.SetProcessed(epochStartShHdr, nil)
 
 	err := et.RevertStateToBlock(epochStartShHdr)
 	assert.Nil(t, err)

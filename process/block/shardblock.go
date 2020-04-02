@@ -748,7 +748,7 @@ func (sp *shardProcessor) CommitBlock(
 			return err
 		}
 
-		sp.epochStartTrigger.SetProcessed(header)
+		sp.epochStartTrigger.SetProcessed(header, nil)
 	}
 
 	marshalizedHeader, err := sp.marshalizer.Marshal(header)

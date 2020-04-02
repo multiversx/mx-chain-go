@@ -36,7 +36,7 @@ func (e *epochStartTrigger) EpochStartRound() uint64 {
 }
 
 // SetProcessed -
-func (e *epochStartTrigger) SetProcessed(_ data.HeaderHandler) {
+func (e *epochStartTrigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler) {
 }
 
 // RevertStateToBlock -

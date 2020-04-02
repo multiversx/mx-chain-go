@@ -886,7 +886,7 @@ func TestIndexHashedNodesCoordinator_EpochStart(t *testing.T) {
 		},
 	}
 
-	ihgs.EpochStartPrepare(header)
+	ihgs.EpochStartPrepare(header, nil)
 	ihgs.EpochStartAction(header)
 
 	validators, err := ihgs.GetAllEligibleValidatorsPublicKeys(1)
@@ -986,7 +986,7 @@ func TestIndexHashedNodesCoordinator_GetSavedStateKey(t *testing.T) {
 		},
 	}
 
-	ihgs.EpochStartPrepare(header)
+	ihgs.EpochStartPrepare(header, nil)
 	ihgs.EpochStartAction(header)
 
 	key := ihgs.GetSavedStateKey()
@@ -1075,7 +1075,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesEpoch1(t *testi
 		},
 	}
 
-	ihgs.EpochStartPrepare(header)
+	ihgs.EpochStartPrepare(header, nil)
 	ihgs.EpochStartAction(header)
 
 	nodesPrevEpoch, err := ihgs.GetAllEligibleValidatorsPublicKeys(0)
@@ -1122,11 +1122,11 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 		},
 	}
 
-	ihgs.EpochStartPrepare(header)
+	ihgs.EpochStartPrepare(header, nil)
 	ihgs.EpochStartAction(header)
 
 	atomic.StoreUint32(&epoch, 2)
-	ihgs.EpochStartPrepare(header)
+	ihgs.EpochStartPrepare(header, nil)
 	ihgs.EpochStartAction(header)
 
 	nodesEpoch1, err := ihgs.GetAllEligibleValidatorsPublicKeys(1)

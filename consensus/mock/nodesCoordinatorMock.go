@@ -1,6 +1,7 @@
 package mock
 
 import (
+	state2 "github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -148,8 +149,8 @@ func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
 }
 
 // ComputeLeaving -
-func (ncm *NodesCoordinatorMock) ComputeLeaving([]sharding.Validator) []sharding.Validator {
-	return make([]sharding.Validator, 0)
+func (ncm *NodesCoordinatorMock) ComputeLeaving([]*state2.ShardValidatorInfo) ([]sharding.Validator, error) {
+	return make([]sharding.Validator, 0), nil
 }
 
 // GetValidatorWithPublicKey -

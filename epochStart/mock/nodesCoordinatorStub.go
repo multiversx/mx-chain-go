@@ -1,6 +1,7 @@
 package mock
 
 import (
+	state2 "github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -29,8 +30,8 @@ func (ncm *NodesCoordinatorStub) SetConfig(_ *sharding.NodesCoordinatorRegistry)
 }
 
 // ComputeLeaving -
-func (ncm *NodesCoordinatorStub) ComputeLeaving(_ []sharding.Validator) []sharding.Validator {
-	return nil
+func (ncm *NodesCoordinatorStub) ComputeLeaving(allValidators []*state2.ShardValidatorInfo) ([]sharding.Validator, error) {
+	return nil, nil
 }
 
 // GetAllEligibleValidatorsPublicKeys -

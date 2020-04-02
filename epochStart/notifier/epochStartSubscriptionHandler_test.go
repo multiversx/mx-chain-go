@@ -105,7 +105,7 @@ func TestEpochStartSubscriptionHandler_NotifyAll(t *testing.T) {
 	assert.False(t, secondHandlerWasCalled)
 
 	// now we call the NotifyAll method and all handlers should be called
-	essh.NotifyAll(&block.Header{})
+	essh.NotifyAll(&block.Header{}, nil)
 	assert.True(t, firstHandlerWasCalled)
 	assert.True(t, secondHandlerWasCalled)
 	assert.Equal(t, lastCalled, 2)

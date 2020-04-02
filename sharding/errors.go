@@ -105,3 +105,12 @@ var ErrInvalidWeight = errors.New("invalid weight")
 
 // ErrNilRandomSelector signals that a nil selector was provided
 var ErrNilRandomSelector = errors.New("nil selector")
+
+// ErrNilChanceComputer signals that a nil chance computer was provided
+var ErrNilChanceComputer = errors.New("nil chance computer")
+
+// ErrWrongTypeAssertion signals wrong type assertion error
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrNilBlockBody signals that block body is nil
+var ErrNilBlockBody = errors.New("nil block body")

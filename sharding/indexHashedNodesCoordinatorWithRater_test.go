@@ -543,7 +543,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeLeavingShouldWork(t *testing.T
 	leavingValidator := mock.NewValidatorMock([]byte(pkLeaving), []byte(pkLeaving), defaultSelectionChances)
 	notLeavingValidator := mock.NewValidatorMock([]byte(pkNotLeaving), []byte(pkNotLeaving), defaultSelectionChances)
 	validators := []Validator{leavingValidator, notLeavingValidator}
-	leavingValidators := ihgs.ComputeLeaving(validators)
+	leavingValidators, _ := ihgs.ComputeLeaving(validators)
 
 	require.Equal(t, 1, len(leavingValidators))
 	require.Equal(t, leavingValidator, leavingValidators[0])
@@ -566,7 +566,7 @@ func TestIndexHashedGroupSelectorWithRater_ComputeLeavingWithAllChancesBigShould
 	leavingValidator := mock.NewValidatorMock([]byte(pkLeaving), []byte(pkLeaving), defaultSelectionChances)
 	notLeavingValidator := mock.NewValidatorMock([]byte(pkNotLeaving), []byte(pkNotLeaving), defaultSelectionChances)
 	validators := []Validator{leavingValidator, notLeavingValidator}
-	leavingValidators := ihgs.ComputeLeaving(validators)
+	leavingValidators, _ := ihgs.ComputeLeaving(validators)
 
 	require.Equal(t, 0, len(leavingValidators))
 }

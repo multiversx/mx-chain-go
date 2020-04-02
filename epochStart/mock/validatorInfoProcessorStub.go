@@ -1,14 +1,17 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data/block"
+import (
+	data2 "github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+)
 
 // ValidatorInfoProcessorStub -
 type ValidatorInfoProcessorStub struct {
 }
 
-// ProcessMetaBlock -
-func (vip *ValidatorInfoProcessorStub) ProcessMetaBlock(*block.MetaBlock, []byte) ([][]byte, error) {
-	return nil, nil
+// SyncPeerMiniBlocks -
+func (vip *ValidatorInfoProcessorStub) SyncPeerMiniBlocks(*block.MetaBlock) ([][]byte, data2.BodyHandler, error) {
+	return nil, nil, nil
 }
 
 // IsInterfaceNil

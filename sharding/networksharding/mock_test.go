@@ -1,6 +1,7 @@
 package networksharding_test
 
 import (
+	state2 "github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -16,7 +17,7 @@ func (ncs *nodesCoordinatorStub) GetAllLeavingValidatorsPublicKeys(_ uint32) ([]
 }
 
 // ComputeLeaving -
-func (ncs *nodesCoordinatorStub) ComputeLeaving(_ []sharding.Validator) []sharding.Validator {
+func (ncs *nodesCoordinatorStub) ComputeLeaving(allValidators []*state2.ShardValidatorInfo) ([]sharding.Validator, error) {
 	panic("implement me")
 }
 

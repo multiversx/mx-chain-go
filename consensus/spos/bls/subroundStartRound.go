@@ -249,7 +249,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 // EpochStartPrepare wis called when an epoch start event is observed, but not yet confirmed/committed.
 // Some components may need to do initialisation on this event
-func (sr *subroundStartRound) EpochStartPrepare(metaHeader data.HeaderHandler) {
+func (sr *subroundStartRound) EpochStartPrepare(hdr data.HeaderHandler, body data.BodyHandler) {
 	log.Trace(fmt.Sprintf("epoch %d start prepare in consensus", metaHeader.GetEpoch()))
 }
 

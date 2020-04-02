@@ -19,7 +19,7 @@ type TriggerHandler interface {
 	EpochStartMetaHdrHash() []byte
 	GetSavedStateKey() []byte
 	LoadState(key []byte) error
-	SetProcessed(header data.HeaderHandler)
+	SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	SetFinalityAttestingRound(round uint64)
 	EpochFinalityAttestingRound() uint64
 	RevertStateToBlock(header data.HeaderHandler) error
@@ -59,7 +59,7 @@ type RequestHandler interface {
 // ActionHandler defines the action taken on epoch start event
 type ActionHandler interface {
 	EpochStartAction(hdr data.HeaderHandler)
-	EpochStartPrepare(hdr data.HeaderHandler)
+	EpochStartPrepare(hdr data.HeaderHandler, body data.BodyHandler)
 	NotifyOrder() uint32
 }
 
@@ -72,7 +72,7 @@ type RegistrationHandler interface {
 // Notifier defines which actions should be done for handling new epoch's events
 type Notifier interface {
 	NotifyAll(hdr data.HeaderHandler)
-	NotifyAllPrepare(hdr data.HeaderHandler)
+	NotifyAllPrepare(hdr data.HeaderHandler, body data.BodyHandler)
 	IsInterfaceNil() bool
 }
 

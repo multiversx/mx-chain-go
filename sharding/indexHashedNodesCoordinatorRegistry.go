@@ -9,13 +9,12 @@ import (
 )
 
 const keyPrefix = "indexHashed_"
-const defaultChance = 1
 
 // SerializableValidator holds the minimal data required for marshalling and un-marshalling a validator
 type SerializableValidator struct {
 	PubKey  []byte `json:"pubKey"`
-	Address []byte `json:"address"`
 	Chances uint32 `json:"chances"`
+	Index   uint32 `json:"index"`
 }
 
 // EpochValidators holds one epoch configuration for a nodes coordinator
@@ -177,7 +176,8 @@ func epochNodesConfigToEpochValidators(config *epochNodesConfig) *EpochValidator
 	for _, v := range config.leavingList {
 		result.LeavingValidators = append(result.LeavingValidators, &SerializableValidator{
 			PubKey:  v.PubKey(),
-			Address: v.Address(),
+			Chances: v.Chances(),
+			Index:   v.Index(),
 		})
 	}
 
@@ -200,7 +200,7 @@ func epochValidatorsToEpochNodesConfig(config *EpochValidators) (*epochNodesConf
 
 	result.leavingList = make([]Validator, 0, len(config.LeavingValidators))
 	for _, serializableValidator := range config.LeavingValidators {
-		validator, err := NewValidator(serializableValidator.PubKey, serializableValidator.Address, serializableValidator.Chances)
+		validator, err := NewValidator(serializableValidator.PubKey, serializableValidator.Chances, serializableValidator.Index)
 		if err != nil {
 			return nil, err
 		}
@@ -238,8 +238,8 @@ func ValidatorArrayToSerializableValidatorArray(validators []Validator) []*Seria
 	for i, v := range validators {
 		result[i] = &SerializableValidator{
 			PubKey:  v.PubKey(),
-			Address: v.Address(),
 			Chances: v.Chances(),
+			Index:   v.Index(),
 		}
 	}
 
@@ -251,7 +251,7 @@ func serializableValidatorArrayToValidatorArray(sValidators []*SerializableValid
 	var err error
 
 	for i, v := range sValidators {
-		result[i], err = NewValidator(v.PubKey, v.Address, v.Chances)
+		result[i], err = NewValidator(v.PubKey, v.Chances, v.Index)
 		if err != nil {
 			return nil, err
 		}
@@ -266,8 +266,8 @@ func NodesInfoToValidators(nodesInfo map[uint32][]*NodeInfo) (map[uint32][]Valid
 
 	for shId, nodeInfoList := range nodesInfo {
 		validators := make([]Validator, 0, len(nodeInfoList))
-		for _, nodeInfo := range nodeInfoList {
-			validator, err := NewValidator(nodeInfo.PubKey(), nodeInfo.Address(), defaultChance)
+		for index, nodeInfo := range nodeInfoList {
+			validator, err := NewValidator(nodeInfo.PubKey(), defaultSelectionChances, uint32(index))
 			if err != nil {
 				return nil, err
 			}

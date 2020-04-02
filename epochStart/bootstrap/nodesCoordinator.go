@@ -75,10 +75,7 @@ func (n *nodesCoordinator) ComputeNodesConfigForGenesis(nodesConfig *sharding.No
 }
 
 // ComputeNodesConfigFor computes the actual nodes config for the set epoch from the validator info
-func (n *nodesCoordinator) ComputeNodesConfigFor(
-	metaBlock *block.MetaBlock,
-	validatorInfos []*state.ValidatorInfo,
-) (*sharding.EpochValidators, error) {
+func (n *nodesCoordinator) ComputeNodesConfigFor(metaBlock *block.MetaBlock, validatorInfos []*state.ShardValidatorInfo) (*sharding.EpochValidators, error) {
 	if check.IfNil(metaBlock) {
 		return nil, epochStart.ErrNilHeaderHandler
 	}
@@ -101,21 +98,14 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(
 
 	eligibleMap := make(map[uint32][]sharding.Validator)
 	waitingMap := make(map[uint32][]sharding.Validator)
-	newNodesMap := make([]sharding.Validator, 0)
-	for i := uint32(0); i < n.numShards[newEpoch]; i++ {
-		eligibleMap[i] = make([]sharding.Validator, 0)
-		waitingMap[i] = make([]sharding.Validator, 0)
-	}
-	eligibleMap[core.MetachainShardId] = make([]sharding.Validator, 0)
-	waitingMap[core.MetachainShardId] = make([]sharding.Validator, 0)
+	newNodesList := make([]sharding.Validator, 0)
 
-	mapValidatorInfo := make(map[string]*state.ValidatorInfo, len(validatorInfos))
 	for _, validatorInfo := range validatorInfos {
-		validator, err := sharding.NewValidator(validatorInfo.PublicKey, validatorInfo.RewardAddress, validatorInfo.TempRating)
+		chance := n.chance.GetChance(validatorInfo.TempRating)
+		validator, err := sharding.NewValidator(validatorInfo.PublicKey, chance, validatorInfo.Index)
 		if err != nil {
 			return nil, err
 		}
-		mapValidatorInfo[string(validatorInfo.PublicKey)] = validatorInfo
 
 		switch validatorInfo.List {
 		case string(core.WaitingList):
@@ -123,14 +113,30 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(
 		case string(core.EligibleList):
 			eligibleMap[validatorInfo.ShardId] = append(eligibleMap[validatorInfo.ShardId], validator)
 		case string(core.NewList):
-			newNodesMap = append(newNodesMap, validator)
+			newNodesList = append(newNodesList, validator)
 		}
+	}
+
+	sort.Slice(newNodesList, func(i, j int) bool {
+		return newNodesList[i].Index() > newNodesList[j].Index()
+	})
+
+	for _, eligibleList := range eligibleMap {
+		sort.Slice(eligibleList, func(i, j int) bool {
+			return eligibleList[i].Index() > eligibleList[j].Index()
+		})
+	}
+
+	for _, waitingList := range waitingMap {
+		sort.Slice(waitingList, func(i, j int) bool {
+			return waitingList[i].Index() > waitingList[j].Index()
+		})
 	}
 
 	shufflerArgs := sharding.ArgsUpdateNodes{
 		Eligible: eligibleMap,
 		Waiting:  waitingMap,
-		NewNodes: newNodesMap,
+		NewNodes: newNodesList,
 		Leaving:  leaving,
 		Rand:     randomness,
 		NbShards: n.numShards[newEpoch],
@@ -144,11 +150,6 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(
 		return nil, err
 	}
 
-	err = n.expandSavedNodes(mapValidatorInfo, newEpoch)
-	if err != nil {
-		return nil, err
-	}
-
 	epochValidators := epochNodesConfigToEpochValidators(n.nodesConfig[newEpoch])
 
 	return epochValidators, nil
@@ -158,10 +159,9 @@ func (n *nodesCoordinator) computeLeaving(allValidators []*state.ValidatorInfo) 
 	leavingValidators := make([]sharding.Validator, 0)
 	minChances := n.chance.GetChance(0)
 	for _, validator := range allValidators {
-
 		chances := n.chance.GetChance(validator.TempRating)
-		if chances < minChances {
-			val, err := sharding.NewValidator(validator.PublicKey, validator.RewardAddress, chances)
+		if chances < minChances || validator.List == string(core.LeavingList) {
+			val, err := sharding.NewValidator(validator.PublicKey, chances, validator.Index)
 			if err != nil {
 				return nil, err
 			}
@@ -300,7 +300,7 @@ func epochNodesConfigToEpochValidators(config *epochNodesConfig) *sharding.Epoch
 	for _, v := range config.leavingList {
 		result.LeavingValidators = append(result.LeavingValidators, &sharding.SerializableValidator{
 			PubKey:  v.PubKey(),
-			Address: v.Address(),
+			Chances: v.Chances(),
 		})
 	}
 

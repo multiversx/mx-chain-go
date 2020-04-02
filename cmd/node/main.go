@@ -73,7 +73,6 @@ const (
 	defaultShardString           = "Shard"
 	metachainShardName           = "metachain"
 	secondsToWaitForP2PBootstrap = 20
-	defaultChancesSelection = 1
 )
 
 var (

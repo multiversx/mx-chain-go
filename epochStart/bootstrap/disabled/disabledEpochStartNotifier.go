@@ -18,7 +18,7 @@ func (desn *EpochStartNotifier) UnregisterHandler(handler epochStart.ActionHandl
 }
 
 // NotifyAllPrepare -
-func (desn *EpochStartNotifier) NotifyAllPrepare(metaHeader data.HeaderHandler) {
+func (desn *EpochStartNotifier) NotifyAllPrepare(hdr data.HeaderHandler, body data.BodyHandler) {
 }
 
 // NotifyAll -

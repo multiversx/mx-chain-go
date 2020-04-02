@@ -1204,7 +1204,7 @@ func (mp *metaProcessor) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBl
 
 func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
-		mp.epochStartTrigger.SetProcessed(header)
+		mp.epochStartTrigger.SetProcessed(header, nil)
 
 		go mp.epochRewardsCreator.SaveTxBlockToStorage(header, body)
 		go mp.validatorInfoCreator.SaveValidatorInfoBlocksToStorage(header, body)

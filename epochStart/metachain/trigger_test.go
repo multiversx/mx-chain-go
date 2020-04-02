@@ -155,7 +155,7 @@ func TestTrigger_Update(t *testing.T) {
 
 	epochStartTrigger.SetProcessed(&block.MetaBlock{
 		Round:      round,
-		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}}}})
+		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}}}}, nil)
 	ret = epochStartTrigger.IsEpochStart()
 	assert.False(t, ret)
 	assert.True(t, notifierWasCalled)
@@ -249,7 +249,7 @@ func TestTrigger_UpdateRevertToEndOfEpochUpdate(t *testing.T) {
 				NodePrice:              big.NewInt(0),
 				PrevEpochStartRound:    0,
 			}}}
-	epochStartTrigger.SetProcessed(metaHdr)
+	epochStartTrigger.SetProcessed(metaHdr, nil)
 	ret = epochStartTrigger.IsEpochStart()
 	assert.False(t, ret)
 
@@ -269,7 +269,7 @@ func TestTrigger_UpdateRevertToEndOfEpochUpdate(t *testing.T) {
 	epochStartTrigger.SetProcessed(&block.MetaBlock{
 		Round:      round,
 		Epoch:      epoch + 1,
-		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}}}})
+		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}}}}, nil)
 	ret = epochStartTrigger.IsEpochStart()
 	assert.False(t, ret)
 }
@@ -339,7 +339,7 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 				NodePrice:              big.NewInt(0),
 				PrevEpochStartRound:    0,
 			}}}
-	epochStartTrigger.SetProcessed(metaHdr)
+	epochStartTrigger.SetProcessed(metaHdr, nil)
 	ret = epochStartTrigger.IsEpochStart()
 	assert.False(t, ret)
 
@@ -365,7 +365,7 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 	epochStartTrigger.SetProcessed(&block.MetaBlock{
 		Round:      round,
 		Epoch:      epoch + 1,
-		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}}}})
+		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}}}}, nil)
 	ret = epochStartTrigger.IsEpochStart()
 	assert.False(t, ret)
 }

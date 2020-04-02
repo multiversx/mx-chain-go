@@ -11,8 +11,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -38,6 +41,7 @@ type epochNodesConfig struct {
 	selectors               map[uint32]RandomSelector
 	publicKeyToValidatorMap map[string]*validatorWithShardID
 	leavingList             []Validator
+	newList                 []Validator
 	mutNodesMaps            sync.RWMutex
 }
 
@@ -48,23 +52,24 @@ type EpochStartEventNotifier interface {
 }
 
 type indexHashedNodesCoordinator struct {
-	hasher                  hashing.Hasher
-	shuffler                NodesShuffler
+	marshalizer                   marshal.Marshalizer
+	hasher                        hashing.Hasher
+	shuffler                      NodesShuffler
 	epochStartRegistrationHandler EpochStartEventNotifier
-	bootStorer              storage.Storer
-	selfPubKey              []byte
-	nodesConfig             map[uint32]*epochNodesConfig
-	mutNodesConfig          sync.RWMutex
-	currentEpoch            uint32
-	savedStateKey           []byte
-	mutSavedStateKey        sync.RWMutex
-	numTotalEligible        uint64
-	shardConsensusGroupSize int
-	metaConsensusGroupSize  int
-	nodesPerShardSetter     NodesCoordinatorHelper
-	consensusGroupCacher    Cacher
-	shardIDAsObserver       uint32
-	loadingFromDisk         atomic.Value
+	bootStorer                    storage.Storer
+	selfPubKey                    []byte
+	nodesConfig                   map[uint32]*epochNodesConfig
+	mutNodesConfig                sync.RWMutex
+	currentEpoch                  uint32
+	savedStateKey                 []byte
+	mutSavedStateKey              sync.RWMutex
+	numTotalEligible              uint64
+	shardConsensusGroupSize       int
+	metaConsensusGroupSize        int
+	nodesPerShardSetter           NodesCoordinatorHelper
+	consensusGroupCacher          Cacher
+	shardIDAsObserver             uint32
+	loadingFromDisk               atomic.Value
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -87,6 +92,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	savedKey := arguments.Hasher.Compute(string(arguments.SelfPublicKey))
 
 	ihgs := &indexHashedNodesCoordinator{
+		marshalizer:                   arguments.Marshalizer,
 		hasher:                        arguments.Hasher,
 		shuffler:                      arguments.Shuffler,
 		epochStartRegistrationHandler: arguments.EpochStartNotifier,
@@ -209,8 +215,19 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 }
 
 // ComputeLeaving - computes leaving validators
-func (ihgs *indexHashedNodesCoordinator) ComputeLeaving([]Validator) []Validator {
-	return make([]Validator, 0)
+func (ihgs *indexHashedNodesCoordinator) ComputeLeaving(allValidators []*state.ShardValidatorInfo) ([]Validator, error) {
+	leavingList := make([]Validator, 0)
+	for _, vInfo := range allValidators {
+		if vInfo.List == string(core.LeavingList) {
+			val, err := NewValidator(vInfo.PublicKey, ihgs.GetChance(vInfo.TempRating), vInfo.Index)
+			if err != nil {
+				return nil, err
+			}
+
+			leavingList = append(leavingList, val)
+		}
+	}
+	return leavingList, nil
 }
 
 // ComputeConsensusGroup will generate a list of validators based on the the eligible list
@@ -451,49 +468,35 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 
 // EpochStartPrepare is called when an epoch start event is observed, but not yet confirmed/committed.
 // Some components may need to do some initialisation on this event
-func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.HeaderHandler) {
-	randomness := metaHeader.GetPrevRandSeed()
-	newEpoch := metaHeader.GetEpoch()
+func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(hdr data.HeaderHandler, body data.BodyHandler) {
+	randomness := hdr.GetPrevRandSeed()
+	newEpoch := hdr.GetEpoch()
 
-	ihgs.mutNodesConfig.RLock()
-	nodesConfig, ok := ihgs.nodesConfig[newEpoch-1]
-	ihgs.mutNodesConfig.RUnlock()
-
-	if !ok {
-		log.Error("no configured epoch found")
+	allValidatorInfo, err := createValidatorInfoFromBody(body, ihgs.marshalizer, ihgs.numTotalEligible)
+	if err != nil {
+		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare")
 		return
 	}
 
-	allValidators := make([]Validator, 0)
-
-	for _, shardValidators := range nodesConfig.eligibleMap {
-		allValidators = append(allValidators, shardValidators...)
+	newNodesConfig, err := ihgs.computeNodesConfigFromList(allValidatorInfo)
+	if err != nil {
+		log.Error("could not compute nodes config from list - do nothing on nodesCoordinator epochStartPrepare")
+		return
 	}
 
-	for _, shardValidators := range nodesConfig.waitingMap {
-		allValidators = append(allValidators, shardValidators...)
-	}
-
-	sort.Slice(allValidators, func(i, j int) bool {
-		return bytes.Compare(allValidators[i].PubKey(), allValidators[j].PubKey()) < 0
-	})
-
-	leaving := ihgs.nodesPerShardSetter.ComputeLeaving(allValidators)
-
-	// TODO: update the new nodes and leaving nodes as well
 	shufflerArgs := ArgsUpdateNodes{
-		Eligible: nodesConfig.eligibleMap,
-		Waiting:  nodesConfig.waitingMap,
-		NewNodes: make([]Validator, 0),
-		Leaving:  leaving,
+		Eligible: newNodesConfig.eligibleMap,
+		Waiting:  newNodesConfig.waitingMap,
+		NewNodes: newNodesConfig.newList,
+		Leaving:  newNodesConfig.leavingList,
 		Rand:     randomness,
-		NbShards: nodesConfig.nbShards,
+		NbShards: newNodesConfig.nbShards,
 	}
 
 	eligibleMap, waitingMap, stillRemaining := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
 
-	actualLeaving := ComputeActuallyLeaving(leaving, stillRemaining)
-	err := ihgs.setNodesPerShards(eligibleMap, waitingMap, actualLeaving, newEpoch)
+	actualLeaving := ComputeActuallyLeaving(newNodesConfig.leavingList, stillRemaining)
+	err = ihgs.setNodesPerShards(eligibleMap, waitingMap, actualLeaving, newEpoch)
 	if err != nil {
 		log.Error("set nodes per shard failed", "error", err.Error())
 	}
@@ -503,31 +506,73 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHeader data.Heade
 		log.Error("saving nodes coordinator config failed", "error", err.Error())
 	}
 
-	displayNodesConfiguration(eligibleMap, waitingMap, leaving, stillRemaining, nodesConfig.nbShards)
+	displayNodesConfiguration(eligibleMap, waitingMap, newNodesConfig.leavingList, stillRemaining, newNodesConfig.nbShards)
 
 	ihgs.mutSavedStateKey.Lock()
 	ihgs.savedStateKey = randomness
 	ihgs.mutSavedStateKey.Unlock()
 }
 
-// ComputeActuallyLeaving returns the list of those nodes which are actually leaving
-func ComputeActuallyLeaving(leaving []Validator, stillRemaining []Validator) []Validator {
-	actualLeaving := make([]Validator, 0)
-	for _, shouldLeave := range leaving {
-		willRemain := false
-		for _, remains := range stillRemaining {
-			if bytes.Equal(shouldLeave.PubKey(), remains.PubKey()) {
-				willRemain = true
-				break
-			}
+// GetChance will return default chance
+func (ihgs *indexHashedNodesCoordinator) GetChance(_ uint32) uint32 {
+	return defaultSelectionChances
+}
+
+func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
+	validatorInfos []*state.ShardValidatorInfo,
+) (*epochNodesConfig, error) {
+
+	leaving, err := ihgs.nodesPerShardSetter.ComputeLeaving(validatorInfos)
+	if err != nil {
+		return nil, err
+	}
+
+	eligibleMap := make(map[uint32][]Validator)
+	waitingMap := make(map[uint32][]Validator)
+	newNodesList := make([]Validator, 0)
+
+	for _, validatorInfo := range validatorInfos {
+		chance := ihgs.nodesPerShardSetter.GetChance(validatorInfo.TempRating)
+		validator, err := NewValidator(validatorInfo.PublicKey, chance, validatorInfo.Index)
+		if err != nil {
+			return nil, err
 		}
 
-		if !willRemain {
-			actualLeaving = append(actualLeaving, shouldLeave)
+		switch validatorInfo.List {
+		case string(core.WaitingList):
+			waitingMap[validatorInfo.ShardId] = append(waitingMap[validatorInfo.ShardId], validator)
+		case string(core.EligibleList):
+			eligibleMap[validatorInfo.ShardId] = append(eligibleMap[validatorInfo.ShardId], validator)
+		case string(core.NewList):
+			newNodesList = append(newNodesList, validator)
 		}
 	}
 
-	return actualLeaving
+	sort.Slice(newNodesList, func(i, j int) bool {
+		return newNodesList[i].Index() > newNodesList[j].Index()
+	})
+
+	for _, eligibleList := range eligibleMap {
+		sort.Slice(eligibleList, func(i, j int) bool {
+			return eligibleList[i].Index() > eligibleList[j].Index()
+		})
+	}
+
+	for _, waitingList := range waitingMap {
+		sort.Slice(waitingList, func(i, j int) bool {
+			return waitingList[i].Index() > waitingList[j].Index()
+		})
+	}
+
+	newNodesConfig := &epochNodesConfig{
+		eligibleMap: eligibleMap,
+		waitingMap:  waitingMap,
+		leavingList: leaving,
+		newList:     newNodesList,
+		nbShards:    uint32(len(eligibleMap)),
+	}
+
+	return newNodesConfig, nil
 }
 
 // EpochStartAction is called upon a start of epoch event.
@@ -786,4 +831,39 @@ func selectValidators(
 	displayValidatorsForRandomness(consensusGroup, randomness)
 
 	return consensusGroup, nil
+}
+
+// createValidatorInfoFromBody unmarshalls body data to create validator info
+func createValidatorInfoFromBody(
+	body data.BodyHandler,
+	marshalizer marshal.Marshalizer,
+	previousTotal uint64,
+) ([]*state.ShardValidatorInfo, error) {
+	if check.IfNil(body) {
+		return nil, ErrNilBlockBody
+	}
+
+	blockBody, ok := body.(*block.Body)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	allValidatorInfo := make([]*state.ShardValidatorInfo, 0, previousTotal)
+	for _, peerMiniBlock := range blockBody.MiniBlocks {
+		if peerMiniBlock.Type != block.PeerBlock {
+			continue
+		}
+
+		for _, txHash := range peerMiniBlock.TxHashes {
+			vid := &state.ShardValidatorInfo{}
+			err := marshalizer.Unmarshal(vid, txHash)
+			if err != nil {
+				return nil, err
+			}
+
+			allValidatorInfo = append(allValidatorInfo, vid)
+		}
+	}
+
+	return allValidatorInfo, nil
 }
