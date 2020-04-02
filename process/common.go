@@ -169,15 +169,15 @@ func GetMarshalizedHeaderFromStorage(
 	storageService dataRetriever.StorageService,
 ) ([]byte, error) {
 
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if storageService == nil || storageService.IsInterfaceNil() {
+	if check.IfNil(storageService) {
 		return nil, ErrNilStorage
 	}
 
 	hdrStore := storageService.GetStorer(blockUnit)
-	if hdrStore == nil || hdrStore.IsInterfaceNil() {
+	if check.IfNil(hdrStore) {
 		return nil, ErrNilHeadersStorage
 	}
 
