@@ -3,6 +3,7 @@ package epochStart
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -22,6 +23,7 @@ type TriggerHandler interface {
 	RevertStateToBlock(header data.HeaderHandler) error
 	SetCurrentEpochStartRound(round uint64)
 	RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler)
+	SetAppStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -74,6 +76,7 @@ type EpochStartNotifier interface {
 // ValidatorStatisticsProcessorHandler defines the actions for processing validator statistics
 // needed in the epoch events
 type ValidatorStatisticsProcessorHandler interface {
-	Process(info data.ValidatorInfoHandler) error
+	Process(info data.ShardValidatorInfoHandler) error
+	Commit() ([]byte, error)
 	IsInterfaceNil() bool
 }

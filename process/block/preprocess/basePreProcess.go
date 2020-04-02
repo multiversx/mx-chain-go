@@ -216,16 +216,16 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 			if err != nil {
 				txHashes = append(txHashes, txHash)
 				forBlock.missingTxs++
+				log.Trace("missing tx",
+					"miniblock type", miniBlock.Type,
+					"sender", miniBlock.SenderShardID,
+					"receiver", miniBlock.ReceiverShardID,
+					"hash", txHash,
+				)
 				continue
 			}
 
 			forBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoObject}
-			log.Trace("missing txs",
-				"block type", miniBlock.Type.String(),
-				"sender shard id", miniBlock.SenderShardID,
-				"receiver shard id", miniBlock.ReceiverShardID,
-				"hash", txHash,
-			)
 		}
 
 		if len(txHashes) > 0 {
