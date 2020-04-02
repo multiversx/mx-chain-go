@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -53,6 +54,7 @@ type trigger struct {
 	triggerStorage              storage.Storer
 	marshalizer                 marshal.Marshalizer
 	hasher                      hashing.Hasher
+	appStatusHandler            core.AppStatusHandler
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -113,6 +115,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		marshalizer:                 args.Marshalizer,
 		hasher:                      args.Hasher,
 		epochStartMeta:              &block.MetaBlock{},
+		appStatusHandler:            &statusHandler.NilStatusHandler{},
 	}
 
 	err := trigger.saveState(trigger.triggerStateKey)
@@ -221,6 +224,8 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 		log.Debug("SetProcessed marshal", "error", errNotCritical.Error())
 	}
 
+	t.appStatusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, metaBlock.Round)
+
 	metaHash := t.hasher.Compute(string(metaBuff))
 
 	t.currEpochStartRound = metaBlock.Round
@@ -295,6 +300,16 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	t.currentRound = header.GetRound()
 	t.mutTrigger.Unlock()
 
+	return nil
+}
+
+// SetAppStatusHandler will set the satus handler for the trigger
+func (t *trigger) SetAppStatusHandler(handler core.AppStatusHandler) error {
+	if check.IfNil(handler) {
+		return epochStart.ErrNilStatusHandler
+	}
+
+	t.appStatusHandler = handler
 	return nil
 }
 
