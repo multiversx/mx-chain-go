@@ -47,8 +47,8 @@ func NewIndexHashedNodesCoordinatorWithRater(
 		return nil, err
 	}
 
-	ihncr.epochStartSubscriber.UnregisterHandler(indexNodesCoordinator)
-	ihncr.epochStartSubscriber.RegisterHandler(ihncr)
+	ihncr.epochStartRegistrationHandler.UnregisterHandler(indexNodesCoordinator)
+	ihncr.epochStartRegistrationHandler.RegisterHandler(ihncr)
 	return ihncr, nil
 }
 

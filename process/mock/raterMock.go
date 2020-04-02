@@ -158,19 +158,6 @@ func (rm *RaterMock) GetChance(rating uint32) uint32 {
 	return rm.GetChancesCalled(rating)
 }
 
-// SetListIndexUpdater -
-func (rm *RaterMock) SetListIndexUpdater(_ sharding.ListIndexUpdaterHandler) {
-}
-
-// UpdateListAndIndex -
-func (rm *RaterMock) UpdateListAndIndex(pubKey string, shardID uint32, list string, index uint32) error {
-	if rm.UpdateListAndIndexCalled != nil {
-		return rm.UpdateListAndIndexCalled(pubKey, shardID, list, index)
-	}
-
-	return nil
-}
-
 // IsInterfaceNil -
 func (rm *RaterMock) IsInterfaceNil() bool {
 	return rm == nil

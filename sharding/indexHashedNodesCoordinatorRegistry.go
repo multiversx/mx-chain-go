@@ -9,6 +9,7 @@ import (
 )
 
 const keyPrefix = "indexHashed_"
+const defaultChance = 1
 
 // SerializableValidator holds the minimal data required for marshalling and un-marshalling a validator
 type SerializableValidator struct {
@@ -143,8 +144,6 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 			return nil, ErrInvalidNumberOfShards
 		}
 
-		nodesConfig.expandedEligibleMap = nodesConfig.eligibleMap
-
 		// shards without metachain shard
 		nodesConfig.nbShards = nbShards - 1
 		nodesConfig.shardID = ihgs.computeShardForSelfPublicKey(nodesConfig)
@@ -201,7 +200,7 @@ func epochValidatorsToEpochNodesConfig(config *EpochValidators) (*epochNodesConf
 
 	result.leavingList = make([]Validator, 0, len(config.LeavingValidators))
 	for _, serializableValidator := range config.LeavingValidators {
-		validator, err := NewValidator(serializableValidator.PubKey, serializableValidator.Address)
+		validator, err := NewValidator(serializableValidator.PubKey, serializableValidator.Address, serializableValidator.Chances)
 		if err != nil {
 			return nil, err
 		}
@@ -268,7 +267,7 @@ func NodesInfoToValidators(nodesInfo map[uint32][]*NodeInfo) (map[uint32][]Valid
 	for shId, nodeInfoList := range nodesInfo {
 		validators := make([]Validator, 0, len(nodeInfoList))
 		for _, nodeInfo := range nodeInfoList {
-			validator, err := NewValidator(nodeInfo.PubKey(), nodeInfo.Address())
+			validator, err := NewValidator(nodeInfo.PubKey(), nodeInfo.Address(), defaultChance)
 			if err != nil {
 				return nil, err
 			}

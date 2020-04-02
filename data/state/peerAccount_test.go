@@ -123,7 +123,7 @@ func TestPeerAccount_SetAndGetAccumulatedFees(t *testing.T) {
 	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
 	fees := big.NewInt(10)
 
-	acc.SetAccumulatedFees(fees)
+	acc.AddToAccumulatedFees(fees)
 	assert.Equal(t, fees, acc.GetAccumulatedFees())
 }
 
@@ -237,7 +237,7 @@ func TestPeerAccount_ResetAtNewEpoch(t *testing.T) {
 	t.Parallel()
 
 	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
-	acc.SetAccumulatedFees(big.NewInt(15))
+	acc.AddToAccumulatedFees(big.NewInt(15))
 	tempRating := uint32(5)
 	acc.SetTempRating(tempRating)
 	acc.IncreaseLeaderSuccessRate(2)

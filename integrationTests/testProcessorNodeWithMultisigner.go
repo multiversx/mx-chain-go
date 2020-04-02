@@ -214,7 +214,6 @@ func createNode(
 		TestHasher,
 		cache,
 		bootStorer,
-		&mock.ListIndexUpdaterStub{},
 	}
 	nodesCoordinator := coordinatorFactory.CreateNodesCoordinator(argFactory)
 

@@ -83,8 +83,6 @@ type PeerAccountListAndRatingHandler interface {
 	RatingReader
 	//GetChance returns the chances for the the rating
 	GetChance(uint32) uint32
-	// UpdateListAndIndex updated the list and the index for a peer
-	UpdateListAndIndex(pubKey string, shardID uint32, list string, index uint32) error
 	//GetStartRating gets the start rating values
 	GetStartRating() uint32
 	//GetSignedBlocksThreshold gets the threshold for the minimum signed blocks
@@ -99,22 +97,6 @@ type PeerAccountListAndRatingHandler interface {
 	ComputeIncreaseValidator(shardId uint32, currentRating uint32) uint32
 	//ComputeDecreaseValidator computes the new rating for the decreaseValidator
 	ComputeDecreaseValidator(shardId uint32, currentRating uint32) uint32
-}
-
-// ListIndexUpdaterHandler defines what a component which can update the list and index for a peer should do
-type ListIndexUpdaterHandler interface {
-	// UpdateListAndIndex updated the list and the index for a peer
-	UpdateListAndIndex(pubKey string, shardID uint32, list string, index uint32) error
-	//IsInterfaceNil verifies if the interface is nil
-	IsInterfaceNil() bool
-}
-
-// ListIndexUpdaterSetter provides the capabilities to set a ListIndexUpdater
-type ListIndexUpdaterSetter interface {
-	// SetListIndexUpdater will set the updater
-	SetListIndexUpdater(updater ListIndexUpdaterHandler)
-	//IsInterfaceNil verifies if the interface is nil
-	IsInterfaceNil() bool
 }
 
 //RatingReader provides rating reading capabilities for the ratingHandler
@@ -153,12 +135,6 @@ type Cacher interface {
 	Put(key []byte, value interface{}) (evicted bool)
 	// Get looks up a key's value from the cache.
 	Get(key []byte) (value interface{}, ok bool)
-}
-
-// EpochHandler defines a struct able to output current epoch
-type EpochHandler interface {
-	Epoch() uint32
-	IsInterfaceNil() bool
 }
 
 // RandomSelector selects randomly a subset of elements from a set of data

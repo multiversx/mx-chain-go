@@ -96,7 +96,7 @@ func setupRater(rd process.RatingsInfoHandler, pk string, initialRating uint32) 
 func TestBlockSigningRater_GetRatingWithNotSetRatingReaderShouldReturnStartRating(t *testing.T) {
 	rd := createDefaultRatingsData()
 
-	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(rd)
+	bsr, _ := rating.NewBlockSigningRater(rd)
 	rrm := createDefaultRatingReader(make(map[string]uint32))
 	bsr.SetRatingReader(rrm)
 
@@ -107,7 +107,7 @@ func TestBlockSigningRater_GetRatingWithNotSetRatingReaderShouldReturnStartRatin
 
 func TestBlockSigningRater_GetRatingWithUnknownPkShoudReturnStartRating(t *testing.T) {
 	rd := createDefaultRatingsData()
-	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(rd)
+	bsr, _ := rating.NewBlockSigningRater(rd)
 
 	rrm := createDefaultRatingReader(make(map[string]uint32))
 	bsr.SetRatingReader(rrm)
@@ -120,7 +120,7 @@ func TestBlockSigningRater_GetRatingWithUnknownPkShoudReturnStartRating(t *testi
 func TestBlockSigningRater_GetRatingWithKnownPkShoudReturnSetRating(t *testing.T) {
 	rd := createDefaultRatingsData()
 
-	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(rd)
+	bsr, _ := rating.NewBlockSigningRater(rd)
 
 	ratingPk := "test"
 	ratingValue := uint32(5)
@@ -301,7 +301,7 @@ func TestBlockSigningRater_NewBlockSigningRaterWithChancesNilShouldErr(t *testin
 	ratingsData := createDefaultRatingsData()
 	ratingsData.SelectionChancesProperty = nil
 
-	bsr, err := rating.NewBlockSigningRaterAndListIndexer(ratingsData)
+	bsr, err := rating.NewBlockSigningRater(ratingsData)
 
 	assert.Nil(t, bsr)
 	assert.Equal(t, process.ErrNoChancesProvided, err)
@@ -318,7 +318,7 @@ func TestBlockSigningRater_NewBlockSigningRaterWithDupplicateMaxThresholdShouldE
 	ratingsData := createDefaultRatingsData()
 	ratingsData.SelectionChancesProperty = chances
 
-	bsr, err := rating.NewBlockSigningRaterAndListIndexer(ratingsData)
+	bsr, err := rating.NewBlockSigningRater(ratingsData)
 
 	assert.Nil(t, bsr)
 	assert.Equal(t, process.ErrDuplicateThreshold, err)
@@ -328,7 +328,7 @@ func TestBlockSigningRater_NewBlockSigningRaterWithZeroMinRatingShouldErr(t *tes
 	ratingsData := createDefaultRatingsData()
 	ratingsData.MinRatingProperty = 0
 
-	_, err := economics.NewRatingsData(data)
+	_, err := rating.NewBlockSigningRater(ratingsData)
 	assert.Equal(t, process.ErrMinRatingSmallerThanOne, err)
 }
 
@@ -374,7 +374,7 @@ func TestBlockSigningRater_NewBlockSigningRaterWithNonExistingMaxThresholdZeroSh
 	ratingsData := createDefaultRatingsData()
 	ratingsData.SelectionChancesProperty = chances
 
-	bsr, err := rating.NewBlockSigningRaterAndListIndexer(ratingsData)
+	bsr, err := rating.NewBlockSigningRater(ratingsData)
 
 	assert.Nil(t, bsr)
 	assert.Equal(t, process.ErrNilMinChanceIfZero, err)
@@ -389,7 +389,7 @@ func TestBlockSigningRater_NewBlockSigningRaterWithNoValueForMaxThresholdShouldE
 	ratingsData := createDefaultRatingsData()
 	ratingsData.SelectionChancesProperty = chances
 
-	bsr, err := rating.NewBlockSigningRaterAndListIndexer(ratingsData)
+	bsr, err := rating.NewBlockSigningRater(ratingsData)
 
 	assert.Nil(t, bsr)
 	assert.Equal(t, process.ErrNoChancesForMaxThreshold, err)
@@ -485,7 +485,7 @@ func TestBlockSigningRater_NewBlockSigningRaterWithCorrectValueShouldWork(t *tes
 	shardRatingsStepHandler := ratingsData.ShardChainRatingsStepHandler()
 	metaRatingsStepHandler := ratingsData.MetaRatingsStepDataProperty
 
-	bsr, err := rating.NewBlockSigningRaterAndListIndexer(ratingsData)
+	bsr, err := rating.NewBlockSigningRater(ratingsData)
 
 	assert.NotNil(t, bsr)
 	assert.Nil(t, err)
@@ -519,7 +519,7 @@ func TestBlockSigningRater_NewBlockSigningRaterWithCorrectValueShouldWork(t *tes
 func TestBlockSigningRater_GetChancesForStartRatingdReturnStartRatingChance(t *testing.T) {
 	ratingsData := createDefaultRatingsData()
 
-	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(ratingsData)
+	bsr, _ := rating.NewBlockSigningRater(ratingsData)
 
 	chance := bsr.GetChance(startRating)
 
@@ -530,7 +530,7 @@ func TestBlockSigningRater_GetChancesForStartRatingdReturnStartRatingChance(t *t
 func TestBlockSigningRater_GetChancesForSetRatingShouldReturnCorrectRating(t *testing.T) {
 	rd := createDefaultRatingsData()
 
-	bsr, _ := rating.NewBlockSigningRaterAndListIndexer(rd)
+	bsr, _ := rating.NewBlockSigningRater(rd)
 
 	ratingValue := uint32(80)
 	chances := bsr.GetChance(ratingValue)

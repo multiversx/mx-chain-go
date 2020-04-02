@@ -596,7 +596,7 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 		vs.mutMissedBlocksCounters.Unlock()
 
 		swInner.Start("ComputeDecreaseProposer")
-		newRating := vs.rater.ComputeDecreaseProposer(shardId, leaderPeerAcc.GetTempRating(), leaderPeerAcc.GetConsecutiveProposerMisses())
+		newRating := vs.rater.ComputeDecreaseProposer(shardID, leaderPeerAcc.GetTempRating(), leaderPeerAcc.GetConsecutiveProposerMisses())
 		swInner.Stop("ComputeDecreaseProposer")
 
 		swInner.Start("SetConsecutiveProposerMisses")
@@ -612,7 +612,7 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 		}
 
 		swInner.Start("ComputeDecreaseAllValidators")
-		err = vs.decreaseForConsensusValidators(consensusGroup, shardId)
+		err = vs.decreaseForConsensusValidators(consensusGroup, shardID)
 		swInner.Stop("ComputeDecreaseAllValidators")
 		if err != nil {
 			return err
@@ -966,11 +966,11 @@ func (vs *validatorStatistics) decreaseAll(shardID uint32, missedRounds uint64, 
 
 		currentTempRating := validatorPeerAccount.GetTempRating()
 		for ct := uint32(0); ct < leaderAppearances; ct++ {
-			currentTempRating = vs.rater.ComputeDecreaseProposer(shardId, currentTempRating, 0)
+			currentTempRating = vs.rater.ComputeDecreaseProposer(shardID, currentTempRating, 0)
 		}
 
 		for ct := uint32(0); ct < consensusGroupAppearances; ct++ {
-			currentTempRating = vs.rater.ComputeDecreaseValidator(shardId, currentTempRating)
+			currentTempRating = vs.rater.ComputeDecreaseValidator(shardID, currentTempRating)
 		}
 
 		if i == 0 {

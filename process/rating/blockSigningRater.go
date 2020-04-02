@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -73,7 +72,7 @@ func NewBlockSigningRater(ratingsData process.RatingsInfoHandler) (*BlockSigning
 		signedBlocksThreshold:   ratingsData.SignedBlocksThreshold(),
 		shardRatingsStepHandler: ratingsData.ShardChainRatingsStepHandler(),
 		metaRatingsStepHandler:  ratingsData.MetaChainRatingsStepHandler(),
-		RatingReader:            NewNilRatingReader(ratingsData.StartRating()),
+		RatingReader:            &disabledRatingReader{startRating: ratingsData.StartRating()},
 		ratingChances:           ratingChances,
 	}, nil
 }
@@ -142,36 +141,24 @@ func (bsr *BlockSigningRater) computeRating(ratingStep int32, currentRating uint
 }
 
 // GetRating returns the Rating for the specified public key
-func (bsr *BlockSigningRaterAndListIndexer) GetRating(pk string) uint32 {
+func (bsr *BlockSigningRater) GetRating(pk string) uint32 {
 	return bsr.RatingReader.GetRating(pk)
 }
 
 // SetRatingReader sets the Reader that can read ratings
-func (bsr *BlockSigningRaterAndListIndexer) SetRatingReader(reader sharding.RatingReader) {
+func (bsr *BlockSigningRater) SetRatingReader(reader sharding.RatingReader) {
 	if !check.IfNil(reader) {
 		bsr.RatingReader = reader
 	}
 }
 
-// UpdateRatingFromTempRating returns the TempRating for the specified public keys
-func (bsr *BlockSigningRaterAndListIndexer) UpdateRatingFromTempRating(pks []string) error {
-	return bsr.RatingReader.UpdateRatingFromTempRating(pks)
-}
-
-// SetListIndexUpdater sets the list index update
-func (bsr *BlockSigningRaterAndListIndexer) SetListIndexUpdater(updater sharding.ListIndexUpdaterHandler) {
-	if !check.IfNil(updater) {
-		bsr.ListIndexUpdaterHandler = updater
-	}
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
-func (bsr *BlockSigningRaterAndListIndexer) IsInterfaceNil() bool {
+func (bsr *BlockSigningRater) IsInterfaceNil() bool {
 	return bsr == nil
 }
 
 // GetStartRating gets the StartingRating
-func (bsr *BlockSigningRaterAndListIndexer) GetStartRating() uint32 {
+func (bsr *BlockSigningRater) GetStartRating() uint32 {
 	return bsr.startRating
 }
 

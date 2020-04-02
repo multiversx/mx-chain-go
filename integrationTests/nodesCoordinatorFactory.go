@@ -24,7 +24,6 @@ type ArgIndexHashedNodesCoordinatorFactory struct {
 	hasher                  hashing.Hasher
 	consensusGroupCache     sharding.Cacher
 	bootStorer              storage.Storer
-	listIndexUpdater        sharding.ListIndexUpdaterHandler
 }
 
 // IndexHashedNodesCoordinatorFactory -
