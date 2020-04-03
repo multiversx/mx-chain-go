@@ -1444,7 +1444,8 @@ func createNode(
 		config,
 		nodesCoordinator,
 		shardCoordinator,
-		process.EpochStartTrigger,
+		epochStartRegistrationHandler,
+		process.EpochStartTrigger.Epoch(),
 	)
 	if err != nil {
 		return nil, err

@@ -111,3 +111,6 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
 // ErrNilBlockBody signals that block body is nil
 var ErrNilBlockBody = errors.New("nil block body")
+
+// ErrNilValidator signals that a nil validator was provided
+var ErrNilValidator = errors.New("nil validator")

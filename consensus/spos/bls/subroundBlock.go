@@ -265,21 +265,24 @@ func (sr *subroundBlock) sendBlockHeader(headerHandler data.HeaderHandler, marsh
 }
 
 func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
-	hdr := sr.BlockProcessor().CreateNewHeader(uint64(sr.Rounder().Index()))
+	var nonce uint64
+	var prevHash []byte
+	var prevRandSeed []byte
 
 	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
-	var prevRandSeed []byte
 	if check.IfNil(currentHeader) {
-		hdr.SetNonce(1)
-		hdr.SetPrevHash(sr.Blockchain().GetGenesisHeaderHash())
-
+		nonce = 1
+		prevHash = sr.Blockchain().GetGenesisHeaderHash()
 		prevRandSeed = sr.Blockchain().GetGenesisHeader().GetRandSeed()
 	} else {
-		hdr.SetNonce(currentHeader.GetNonce() + 1)
-		hdr.SetPrevHash(sr.Blockchain().GetCurrentBlockHeaderHash())
-
+		nonce = currentHeader.GetNonce() + 1
+		prevHash = sr.Blockchain().GetCurrentBlockHeaderHash()
 		prevRandSeed = currentHeader.GetRandSeed()
 	}
+
+	round := uint64(sr.Rounder().Index())
+	hdr := sr.BlockProcessor().CreateNewHeader(round, nonce)
+	hdr.SetPrevHash(prevHash)
 
 	randSeed, err := sr.SingleSigner().Sign(sr.PrivateKey(), prevRandSeed)
 	if err != nil {
@@ -287,7 +290,6 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	}
 
 	hdr.SetShardID(sr.ShardCoordinator().SelfId())
-	hdr.SetRound(uint64(sr.Rounder().Index()))
 	hdr.SetTimeStamp(uint64(sr.Rounder().TimeStamp().Unix()))
 	hdr.SetPrevRandSeed(prevRandSeed)
 	hdr.SetRandSeed(randSeed)

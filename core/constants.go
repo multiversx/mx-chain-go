@@ -274,6 +274,8 @@ const (
 	NodesCoordinatorOrder
 	// ConsensusOrder defines the order in which Consensus is notified of a start of epoch event
 	ConsensusOrder
+	// NetworkShardingOrder defines the order in which the network sharding subsystem is notified of a start of epoch event
+	NetworkShardingOrder
 )
 
 // NodeState specifies what type of state a node could have

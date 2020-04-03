@@ -130,6 +130,7 @@ func TestTrigger_Update(t *testing.T) {
 	notifierWasCalled := false
 	epoch := uint32(0)
 	round := uint64(0)
+	nonce := uint64(100)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
 	arguments.EpochStartNotifier = &mock.EpochStartNotifierStub{
@@ -139,13 +140,13 @@ func TestTrigger_Update(t *testing.T) {
 	}
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
 
-	epochStartTrigger.Update(round)
+	epochStartTrigger.Update(round, nonce)
 	round++
-	epochStartTrigger.Update(round)
+	epochStartTrigger.Update(round, nonce)
 	round++
-	epochStartTrigger.Update(round)
+	epochStartTrigger.Update(round, nonce)
 	round++
-	epochStartTrigger.Update(round)
+	epochStartTrigger.Update(round, nonce)
 
 	ret := epochStartTrigger.IsEpochStart()
 	assert.True(t, ret)
@@ -165,10 +166,11 @@ func TestTrigger_ForceEpochStartIncorrectRoundShouldErr(t *testing.T) {
 	t.Parallel()
 
 	round := uint64(1)
+	nonce := uint64(100)
 	arguments := createMockEpochStartTriggerArguments()
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
 
-	epochStartTrigger.Update(round)
+	epochStartTrigger.Update(round, nonce)
 
 	err := epochStartTrigger.ForceEpochStart(0)
 	assert.Equal(t, epochStart.ErrSavedRoundIsHigherThanInputRound, err)
@@ -218,17 +220,18 @@ func TestTrigger_UpdateRevertToEndOfEpochUpdate(t *testing.T) {
 
 	epoch := uint32(0)
 	round := uint64(0)
+	nonce := uint64(100)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
 
-	epochStartTrigger.Update(round)
+	epochStartTrigger.Update(round, nonce)
 	round++
-	epochStartTrigger.Update(round)
+	epochStartTrigger.Update(round, nonce)
 	round++
-	epochStartTrigger.Update(round)
+	epochStartTrigger.Update(round, nonce)
 	round++
-	epochStartTrigger.Update(round)
+	epochStartTrigger.Update(round, nonce)
 
 	ret := epochStartTrigger.IsEpochStart()
 	assert.True(t, ret)
@@ -259,7 +262,7 @@ func TestTrigger_UpdateRevertToEndOfEpochUpdate(t *testing.T) {
 	assert.False(t, epochStartTrigger.IsEpochStart())
 	assert.Equal(t, epochStartTrigger.currEpochStartRound, metaHdr.Round)
 
-	epochStartTrigger.Update(round)
+	epochStartTrigger.Update(round, nonce)
 	ret = epochStartTrigger.IsEpochStart()
 	assert.False(t, ret)
 
@@ -279,6 +282,7 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 
 	epoch := uint32(0)
 	round := uint64(0)
+	nonce := uint64(100)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
 	firstBlock := &block.MetaBlock{}
@@ -305,13 +309,13 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
 
-	epochStartTrigger.Update(round)
+	epochStartTrigger.Update(round, nonce)
 	round++
-	epochStartTrigger.Update(round)
+	epochStartTrigger.Update(round, nonce)
 	round++
-	epochStartTrigger.Update(round)
+	epochStartTrigger.Update(round, nonce)
 	round++
-	epochStartTrigger.Update(round)
+	epochStartTrigger.Update(round, nonce)
 
 	ret := epochStartTrigger.IsEpochStart()
 	assert.True(t, ret)
@@ -355,7 +359,7 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 	assert.False(t, epochStartTrigger.IsEpochStart())
 	assert.Equal(t, epochStartTrigger.currEpochStartRound, firstBlock.Round)
 
-	epochStartTrigger.Update(round)
+	epochStartTrigger.Update(round, nonce)
 	ret = epochStartTrigger.IsEpochStart()
 	assert.True(t, ret)
 

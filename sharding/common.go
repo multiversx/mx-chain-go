@@ -6,6 +6,30 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
+func cloneValidatorsMap(validatorsMap map[uint32][]Validator) (map[uint32][]Validator, error) {
+	var err error
+	resultMap := make(map[uint32][]Validator)
+	for shard, vList := range validatorsMap {
+		resultMap[shard], err = cloneValidatorsList(vList)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return resultMap, nil
+}
+
+func cloneValidatorsList(validatorsList []Validator) ([]Validator, error) {
+	resultList := make([]Validator, len(validatorsList))
+	for i, v := range validatorsList {
+		clone, err := v.Clone()
+		if err != nil {
+			return nil, err
+		}
+		resultList[i] = clone.(Validator)
+	}
+	return resultList, nil
+}
+
 func computeStartIndexAndNumAppearancesForValidator(expEligibleList []uint32, idx int64) (int64, int64) {
 	val := expEligibleList[idx]
 	startIdx := int64(0)
@@ -36,7 +60,7 @@ func displayValidatorsForRandomness(validators []Validator, randomness []byte) {
 		strValidators += "\n" + core.ToHex(v.PubKey())
 	}
 
-	log.Debug("selectValidators", "randomness", randomness, "validators", strValidators)
+	log.Trace("selectValidators", "randomness", randomness, "validators", strValidators)
 }
 
 func displayNodesConfiguration(
