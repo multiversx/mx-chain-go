@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TODO: Rename this file to "utils_test.go", otherwise is production code.
+// TODO: Rename this file to "utils_test.go".
 
 // VMTypeHex -
 const VMTypeHex = "0500"

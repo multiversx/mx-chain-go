@@ -1040,8 +1040,7 @@ func (sc *scProcessor) processSimpleSCR(
 	outputAccount := &vmcommon.OutputAccount{
 		Code:         scResult.Code,
 		CodeMetadata: scResult.CodeMetadata,
-		// TODO: Where is VMType in OutputAccount though? Is it in the data field?
-		Address: scResult.RcvAddr,
+		Address:      scResult.RcvAddr,
 	}
 
 	err := sc.updateSmartContractCode(destinationScAccount, outputAccount, scResult)

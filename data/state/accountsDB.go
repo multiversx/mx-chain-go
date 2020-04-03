@@ -1,7 +1,7 @@
 package state
 
 import (
-	bytes "bytes"
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"sync"

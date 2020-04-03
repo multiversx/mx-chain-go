@@ -69,7 +69,7 @@ func TestUpgrades_HelloUpgradesToNotUpgradeable(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, uint64(42), context.QuerySCInt("getUltimateAnswer", [][]byte{}))
 
-	fmt.Println("Upgrade to v3")
+	fmt.Println("Upgrade to v3, should not be possible")
 
 	err = context.UpgradeSC("../testdata/hello-v3/answer.wasm", "")
 	require.Nil(t, err)
@@ -108,7 +108,7 @@ func TestUpgrades_ParentAndChildContracts(t *testing.T) {
 	// We need to double hex-encode the code (so that we don't have to hex-encode in the contract).
 	childUpgradedCode := arwen.GetSCCode("../testdata/hello-v2/answer.wasm")
 	childUpgradedCode = hex.EncodeToString([]byte(childUpgradedCode))
-	// Not supported at this moment.
+	// Not supported at this moment, expect error.
 	err = context.ExecuteSC(owner, "upgradeChild@"+childUpgradedCode)
 	require.NotNil(t, err)
 }
