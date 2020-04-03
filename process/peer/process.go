@@ -8,7 +8,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -180,12 +180,12 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 ) error {
 	for _, pks := range nodesMap {
 		for _, pk := range pks {
-			node, _, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk, startEpoch)
+			node, shardID, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk, startEpoch)
 			if err != nil {
 				return err
 			}
 
-			err = vs.initializeNode(node, stakeValue, startRating)
+			err = vs.initializeNode(node, shardID, stakeValue, startRating)
 			if err != nil {
 				return err
 			}
@@ -413,6 +413,10 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(validator *s
 		}
 
 		pa.SetTempRating(newTempRating)
+		err = vs.peerAdapter.SaveAccount(pa)
+		if err != nil {
+			return err
+		}
 
 		log.Debug("below signed blocks threshold",
 			"pk", validator.PublicKey,
@@ -635,6 +639,7 @@ func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data
 
 func (vs *validatorStatistics) initializeNode(
 	node sharding.Validator,
+	shardID uint32,
 	stakeValue *big.Int,
 	startRating uint32,
 ) error {
@@ -643,12 +648,13 @@ func (vs *validatorStatistics) initializeNode(
 		return err
 	}
 
-	return vs.savePeerAccountData(peerAccount, node, stakeValue, startRating)
+	return vs.savePeerAccountData(peerAccount, node, shardID, stakeValue, startRating)
 }
 
 func (vs *validatorStatistics) savePeerAccountData(
 	peerAccount state.PeerAccountHandler,
 	data sharding.Validator,
+	shardID uint32,
 	stakeValue *big.Int,
 	startRating uint32,
 ) error {
@@ -672,6 +678,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 		return err
 	}
 
+	peerAccount.SetCurrentShardId(shardID)
 	peerAccount.SetRating(startRating)
 	peerAccount.SetTempRating(startRating)
 
