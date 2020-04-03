@@ -879,7 +879,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		log.Trace("activating nodesCoordinator's validators indexing")
-		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator, log)
+		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator, processComponents.EpochStartTrigger.Epoch(), log)
 	}
 
 	log.Trace("creating api resolver structure")
@@ -1058,12 +1058,17 @@ func prepareLogFile(workingDir string) (*os.File, error) {
 	return fileForLog, nil
 }
 
-func indexValidatorsListIfNeeded(elasticIndexer indexer.Indexer, coordinator sharding.NodesCoordinator, log logger.Logger) {
+func indexValidatorsListIfNeeded(
+	elasticIndexer indexer.Indexer,
+	coordinator sharding.NodesCoordinator,
+	epoch uint32,
+	log logger.Logger,
+
+) {
 	if check.IfNil(elasticIndexer) {
 		return
 	}
 
-	epoch := uint32(0)
 	validatorsPubKeys, err := coordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		log.Warn("GetAllEligibleValidatorPublicKeys for epoch 0 failed", "error", err)

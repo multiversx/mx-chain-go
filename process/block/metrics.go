@@ -237,7 +237,7 @@ func indexValidatorsRating(
 	valStatProc process.ValidatorStatisticsProcessor,
 	metaBlock data.HeaderHandler,
 ) {
-
+	// TODO use validatorInfoProvider  to get information about rating
 	latestHash, err := valStatProc.RootHash()
 	if err != nil {
 		return

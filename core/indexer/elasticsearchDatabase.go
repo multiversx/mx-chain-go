@@ -165,11 +165,12 @@ func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(
 		Proposer:              signersIndexes[0],
 		Validators:            signersIndexes,
 		PubKeyBitmap:          hex.EncodeToString(header.GetPubKeysBitmap()),
-		Size:                  int64(len(h)),
-		Timestamp:             time.Duration(header.GetTimeStamp()),
-		TxCount:               header.GetTxCount(),
-		StateRootHash:         hex.EncodeToString(header.GetRootHash()),
-		PrevHash:              hex.EncodeToString(header.GetPrevHash()),
+		// TODO compute correctly size of block = size(header) + size(body) + size(transactions)
+		Size:          int64(len(h)),
+		Timestamp:     time.Duration(header.GetTimeStamp()),
+		TxCount:       header.GetTxCount(),
+		StateRootHash: hex.EncodeToString(header.GetRootHash()),
+		PrevHash:      hex.EncodeToString(header.GetPrevHash()),
 	}
 
 	serializedBlock, err := json.Marshal(elasticBlock)
