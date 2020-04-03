@@ -47,6 +47,8 @@ script:
     cp -f $GOPATH/pkg/mod/github.com/\!elrond\!network/arwen-wasm-vm@$ARWEN_VERSION/wasmer/libwasmer_darwin_amd64.dylib $TRAVIS_BUILD_DIR/build;
   fi
 
+ - ARWEN_PATH=$TRAVIS_BUILD_DIR/build make arwen
+
 before_deploy:
 - cd "$TRAVIS_BUILD_DIR/build"
 - tar czvf "$TRAVIS_BUILD_DIR/$ARCHIVE" *
