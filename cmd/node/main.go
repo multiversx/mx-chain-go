@@ -73,7 +73,6 @@ const (
 	defaultShardString           = "Shard"
 	metachainShardName           = "metachain"
 	secondsToWaitForP2PBootstrap = 20
-	defaultChancesSelection = 1
 )
 
 var (
@@ -1442,7 +1441,7 @@ func createNode(
 		config,
 		nodesCoordinator,
 		shardCoordinator,
-		epochStartSubscriber,
+		epochStartRegistrationHandler,
 		process.EpochStartTrigger.Epoch(),
 	)
 	if err != nil {
