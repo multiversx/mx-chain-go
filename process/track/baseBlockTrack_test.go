@@ -750,27 +750,6 @@ func TestAddHeader_ShouldNotAddIfItAlreadyExist(t *testing.T) {
 	assert.Equal(t, header, headers[0])
 }
 
-func TestAddHeader_ShouldCleanupWhenMaxCapacityIsReached(t *testing.T) {
-	t.Parallel()
-
-	shardArguments := CreateShardTrackerMockArguments()
-	sbt, _ := track.NewShardBlockTrack(shardArguments)
-
-	maxNumHeadersToKeepPerShard := sbt.GetMaxNumHeadersToKeepPerShard()
-
-	for i := uint64(0); i < uint64(maxNumHeadersToKeepPerShard); i++ {
-		sbt.AddHeader(&block.Header{Nonce: i, ShardID: shardArguments.ShardCoordinator.SelfId()}, nil)
-	}
-
-	headers, _ := sbt.GetTrackedHeaders(shardArguments.ShardCoordinator.SelfId())
-	require.Equal(t, maxNumHeadersToKeepPerShard, len(headers))
-
-	sbt.AddHeader(&block.Header{Nonce: uint64(maxNumHeadersToKeepPerShard), ShardID: shardArguments.ShardCoordinator.SelfId()}, nil)
-
-	headers, _ = sbt.GetTrackedHeaders(shardArguments.ShardCoordinator.SelfId())
-	require.Equal(t, int(float64(maxNumHeadersToKeepPerShard)*track.PercentToKeep), len(headers))
-}
-
 func TestAddHeader_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -797,73 +776,6 @@ func TestAddHeader_ShouldWork(t *testing.T) {
 	require.Equal(t, 2, len(headers))
 	assert.Equal(t, hdr1, headers[0])
 	assert.Equal(t, hdr2, headers[1])
-}
-
-func TestCleanupWhenMaxCapacityIsReached_ShouldNotCleanTrackedHeadersWhenMaxCapacityIsNotReached(t *testing.T) {
-	t.Parallel()
-
-	shardArguments := CreateShardTrackerMockArguments()
-	sbt, _ := track.NewShardBlockTrack(shardArguments)
-
-	maxNumHeadersToKeepPerShard := sbt.GetMaxNumHeadersToKeepPerShard()
-
-	for i := uint64(0); i < uint64(maxNumHeadersToKeepPerShard); i++ {
-		sbt.AppendTrackedHeader(&block.Header{Nonce: i, ShardID: shardArguments.ShardCoordinator.SelfId()})
-	}
-
-	sbt.CleanupWhenMaxCapacityIsReached(shardArguments.ShardCoordinator.SelfId())
-	headers, _ := sbt.GetTrackedHeaders(shardArguments.ShardCoordinator.SelfId())
-	require.Equal(t, maxNumHeadersToKeepPerShard, len(headers))
-}
-
-func TestCleanupWhenMaxCapacityIsReached_ShouldCleanOldestTrackedHeaders(t *testing.T) {
-	t.Parallel()
-
-	shardArguments := CreateShardTrackerMockArguments()
-	sbt, _ := track.NewShardBlockTrack(shardArguments)
-
-	maxNumHeadersToKeepPerShard := sbt.GetMaxNumHeadersToKeepPerShard()
-	notarizedHeadersCount := maxNumHeadersToKeepPerShard + 1
-	shardID := shardArguments.ShardCoordinator.SelfId()
-
-	for i := uint64(0); i < uint64(notarizedHeadersCount); i++ {
-		sbt.AppendTrackedHeader(&block.Header{Nonce: i, ShardID: shardID})
-	}
-
-	sbt.CleanupWhenMaxCapacityIsReached(shardID)
-	headers, _ := sbt.GetTrackedHeaders(shardID)
-	require.Equal(t, int(float64(maxNumHeadersToKeepPerShard)*track.PercentToKeep), len(headers))
-
-	firstNonce := notarizedHeadersCount - int(float64(maxNumHeadersToKeepPerShard)*track.PercentToKeep)
-	require.Equal(t, uint64(firstNonce), headers[0].GetNonce())
-
-	lastNonce := notarizedHeadersCount - 1
-	require.Equal(t, uint64(lastNonce), headers[len(headers)-1].GetNonce())
-}
-
-func TestCleanupWhenMaxCapacityIsReached_ShouldCleanNewestTrackedHeaders(t *testing.T) {
-	t.Parallel()
-
-	shardArguments := CreateShardTrackerMockArguments()
-	sbt, _ := track.NewShardBlockTrack(shardArguments)
-
-	maxNumHeadersToKeepPerShard := sbt.GetMaxNumHeadersToKeepPerShard()
-	notarizedHeadersCount := maxNumHeadersToKeepPerShard + 1
-	shardID := uint32(1)
-
-	for i := uint64(0); i < uint64(notarizedHeadersCount); i++ {
-		sbt.AppendTrackedHeader(&block.Header{Nonce: i, ShardID: shardID})
-	}
-
-	sbt.CleanupWhenMaxCapacityIsReached(shardID)
-	headers, _ := sbt.GetTrackedHeaders(shardID)
-	require.Equal(t, int(float64(maxNumHeadersToKeepPerShard)*track.PercentToKeep), len(headers))
-
-	firstNonce := 0
-	require.Equal(t, uint64(firstNonce), headers[0].GetNonce())
-
-	lastNonce := int(float64(maxNumHeadersToKeepPerShard)*track.PercentToKeep) - 1
-	require.Equal(t, uint64(lastNonce), headers[len(headers)-1].GetNonce())
 }
 
 func TestAddCrossNotarizedHeader_ShouldWork(t *testing.T) {
