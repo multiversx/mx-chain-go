@@ -428,6 +428,9 @@ var ErrNilEpochHandler = errors.New("nil epoch handler")
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
 
+// ErrVMTypeLengthInvalid signals that vm type length is too long
+var ErrVMTypeLengthInvalid = errors.New("vm type length is too long")
+
 // ErrOverallBalanceChangeFromSC signals that all sumed balance changes are not zero
 var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wrong")
 

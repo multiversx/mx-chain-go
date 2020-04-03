@@ -3,6 +3,7 @@ package smartContract
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -10,58 +11,113 @@ import (
 )
 
 func (sc *scProcessor) createVMDeployInput(tx data.TransactionHandler) (*vmcommon.ContractCreateInput, []byte, error) {
-	vmInput, err := sc.createVMInput(tx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	vmType, err := sc.argsParser.GetVMType()
+	err := sc.argsParser.ParseData(string(tx.GetData()))
 	if err != nil {
 		return nil, nil, err
 	}
 
 	vmCreateInput := &vmcommon.ContractCreateInput{}
-	vmCreateInput.VMInput = *vmInput
+
 	vmCreateInput.ContractCode, err = sc.argsParser.GetCodeDecoded()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	codeMetadata, err := sc.argsParser.GetCodeMetadata()
+	vmCreateInput.ContractCodeMetadata, err = sc.getCodeMetadata()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	vmCreateInput.ContractCodeMetadata = codeMetadata.ToBytes()
+	vmCreateInput.VMInput = vmcommon.VMInput{}
+	sc.initializeVMInputFromTx(vmCreateInput.VMInput, tx)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	vmCreateInput.VMInput.Arguments, err = sc.argsParser.GetConstructorArguments()
 	if err != nil {
 		return nil, nil, err
 	}
 
+	vmType, err := sc.getVMType()
+
 	return vmCreateInput, vmType, nil
 }
 
-func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMInput, error) {
-	vmInput := &vmcommon.VMInput{}
-	vmInput.CallType = determineCallType(tx)
+func (sc *scProcessor) getCodeMetadata() ([]byte, error) {
+	codeMetadata, err := sc.argsParser.GetCodeMetadata()
+	if err != nil {
+		return nil, err
+	}
+
+	return codeMetadata.ToBytes(), nil
+}
+
+func (sc *scProcessor) initializeVMInputFromTx(vmInput vmcommon.VMInput, tx data.TransactionHandler) error {
+	var err error
+
 	vmInput.CallerAddr = tx.GetSndAddr()
 	vmInput.CallValue = new(big.Int).Set(tx.GetValue())
 	vmInput.GasPrice = tx.GetGasPrice()
+	vmInput.GasProvided, err = sc.prepareGasProvided(tx)
+	if err != nil {
+		return err
+	}
 
-	txData := prependCallbackToTxDataIfAsyncCall(tx.GetData(), vmInput.CallType)
+	return nil
+}
+
+func (sc *scProcessor) prepareGasProvided(tx data.TransactionHandler) (uint64, error) {
+	gasForTxData := sc.economicsFee.ComputeGasLimit(tx)
+	if tx.GetGasLimit() < gasForTxData {
+		return 0, process.ErrNotEnoughGas
+	}
+
+	return tx.GetGasLimit() - gasForTxData, nil
+}
+
+func (sc *scProcessor) getVMType() ([]byte, error) {
+	vmType, err := sc.argsParser.GetVMType()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(vmType) != core.VMTypeLen {
+		return nil, process.ErrVMTypeLengthInvalid
+	}
+
+	return vmType, nil
+}
+
+func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler) (*vmcommon.ContractCallInput, error) {
+	callType := determineCallType(tx)
+	txData := prependCallbackToTxDataIfAsyncCall(tx.GetData(), callType)
 
 	err := sc.argsParser.ParseData(string(txData))
 	if err != nil {
 		return nil, err
 	}
 
-	vmInput.GasProvided, err = sc.prepareGasProvided(tx)
+	vmCallInput := &vmcommon.ContractCallInput{}
+	vmCallInput.CallType = callType
+	vmCallInput.RecipientAddr = tx.GetRcvAddr()
+	vmCallInput.Function, err = sc.argsParser.GetFunction()
 	if err != nil {
 		return nil, err
 	}
 
-	return vmInput, nil
+	vmCallInput.VMInput = vmcommon.VMInput{}
+	sc.initializeVMInputFromTx(vmCallInput.VMInput, tx)
+	if err != nil {
+		return nil, err
+	}
+
+	vmCallInput.VMInput.Arguments, err = sc.argsParser.GetFunctionArguments()
+	if err != nil {
+		return nil, err
+	}
+
+	return vmCallInput, nil
 }
 
 func determineCallType(tx data.TransactionHandler) vmcommon.CallType {
@@ -79,36 +135,4 @@ func prependCallbackToTxDataIfAsyncCall(txData []byte, callType vmcommon.CallTyp
 	}
 
 	return txData
-}
-
-func (sc *scProcessor) prepareGasProvided(tx data.TransactionHandler) (uint64, error) {
-	gasForTxData := sc.economicsFee.ComputeGasLimit(tx)
-	if tx.GetGasLimit() < gasForTxData {
-		return 0, process.ErrNotEnoughGas
-	}
-
-	return tx.GetGasLimit() - gasForTxData, nil
-}
-
-func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler) (*vmcommon.ContractCallInput, error) {
-	vmInput, err := sc.createVMInput(tx)
-	if err != nil {
-		return nil, err
-	}
-
-	vmCallInput := &vmcommon.ContractCallInput{}
-	vmCallInput.VMInput = *vmInput
-	vmCallInput.Function, err = sc.argsParser.GetFunction()
-	if err != nil {
-		return nil, err
-	}
-
-	vmCallInput.RecipientAddr = tx.GetRcvAddr()
-
-	vmCallInput.VMInput.Arguments, err = sc.argsParser.GetFunctionArguments()
-	if err != nil {
-		return nil, err
-	}
-
-	return vmCallInput, nil
 }
