@@ -28,7 +28,7 @@ func (sc *scProcessor) createVMDeployInput(tx data.TransactionHandler) (*vmcommo
 	}
 
 	vmCreateInput.VMInput = vmcommon.VMInput{}
-	sc.initializeVMInputFromTx(&vmCreateInput.VMInput, tx)
+	err = sc.initializeVMInputFromTx(&vmCreateInput.VMInput, tx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -39,6 +39,9 @@ func (sc *scProcessor) createVMDeployInput(tx data.TransactionHandler) (*vmcommo
 	}
 
 	vmType, err := sc.getVMType()
+	if err != nil {
+		return nil, nil, err
+	}
 
 	return vmCreateInput, vmType, nil
 }
@@ -106,7 +109,7 @@ func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler) (*vmcommon.
 	}
 
 	vmCallInput.VMInput = vmcommon.VMInput{}
-	sc.initializeVMInputFromTx(&vmCallInput.VMInput, tx)
+	err = sc.initializeVMInputFromTx(&vmCallInput.VMInput, tx)
 	if err != nil {
 		return nil, err
 	}
