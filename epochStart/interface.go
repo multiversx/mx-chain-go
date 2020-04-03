@@ -51,8 +51,8 @@ type RequestHandler interface {
 	RequestStartOfEpochMetaBlock(epoch uint32)
 	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)
 	RequestInterval() time.Duration
-	SetIntraAndCrossShardNumPeersToQuery(key string, intra int, cross int) error
-	GetIntraAndCrossShardNumPeersToQuery(key string) (int, int, error)
+	SetNumPeersToQuery(key string, intra int, cross int) error
+	GetNumPeersToQuery(key string) (int, int, error)
 	IsInterfaceNil() bool
 }
 

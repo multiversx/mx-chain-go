@@ -56,8 +56,8 @@ var ErrMetaHdrNotFound = errors.New("meta header not found")
 // ErrNilHasher signals that nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher")
 
-// ErrNilInvalidConsensusThreshold signals that an invalid consensus threshold has been provided
-var ErrNilInvalidConsensusThreshold = errors.New("invalid consensus threshold")
+// ErrInvalidConsensusThreshold signals that an invalid consensus threshold has been provided
+var ErrInvalidConsensusThreshold = errors.New("invalid consensus threshold")
 
 // ErrNilHeaderValidator signals that nil header validator has been provided
 var ErrNilHeaderValidator = errors.New("nil header validator")
@@ -139,9 +139,6 @@ var ErrMissingHeader = errors.New("missing header")
 
 // ErrSmallShardEligibleListSize signals that the eligible validators list's size is less than the consensus size
 var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
-
-// ErrSmallMetachainEligibleListSize signals that the eligible validators list's size is less than the consensus size
-var ErrSmallMetachainEligibleListSize = errors.New("small metachain eligible list size")
 
 // ErrNilPathManager signals that a nil path manager has been provided
 var ErrNilPathManager = errors.New("nil path manager")

@@ -66,7 +66,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	if err != nil {
 		return nil, err
 	}
-	e.metaBlockProcessor = processor.(*epochStartMetaBlockProcessor)
+	e.metaBlockProcessor = processor
 
 	addrConv, err := addressConverters.NewPlainAddressConverter(32, "")
 	if err != nil {

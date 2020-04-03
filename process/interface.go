@@ -435,8 +435,8 @@ type RequestHandler interface {
 	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
 	RequestStartOfEpochMetaBlock(epoch uint32)
 	RequestInterval() time.Duration
-	SetIntraAndCrossShardNumPeersToQuery(key string, intra int, cross int) error
-	GetIntraAndCrossShardNumPeersToQuery(key string) (int, int, error)
+	SetNumPeersToQuery(key string, intra int, cross int) error
+	GetNumPeersToQuery(key string) (int, int, error)
 	IsInterfaceNil() bool
 }
 

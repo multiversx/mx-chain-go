@@ -13,15 +13,40 @@ type RequestHandlerStub struct {
 	RequestRewardTxHandlerCalled       func(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlocksHandlerCalled     func(destShardID uint32, miniblockHashes [][]byte)
 	RequestStartOfEpochMetaBlockCalled func(epoch uint32)
+	SetNumPeersToQueryCalled           func(key string, intra int, cross int) error
+	GetNumPeersToQueryCalled           func(key string) (int, int, error)
 }
 
-// SetIntraAndCrossShardNumPeersToQuery -
-func (rhs *RequestHandlerStub) SetIntraAndCrossShardNumPeersToQuery(key string, intra int, cross int) error {
+// SetEpoch -
+func (rhs *RequestHandlerStub) SetEpoch(epoch uint32) {
+	panic("implement me")
+}
+
+// RequestMiniBlock -
+func (rhs *RequestHandlerStub) RequestMiniBlock(destShardID uint32, miniblockHash []byte) {
+	panic("implement me")
+}
+
+// RequestTrieNodes -
+func (rhs *RequestHandlerStub) RequestTrieNodes(destShardID uint32, hash []byte, topic string) {
+	panic("implement me")
+}
+
+// SetNumPeersToQuery -
+func (rhs *RequestHandlerStub) SetNumPeersToQuery(key string, intra int, cross int) error {
+	if rhs.SetNumPeersToQueryCalled != nil {
+		return rhs.SetNumPeersToQueryCalled(key, intra, cross)
+	}
+
 	return nil
 }
 
-// GetIntraAndCrossShardNumPeersToQuery -
-func (rhs *RequestHandlerStub) GetIntraAndCrossShardNumPeersToQuery(key string) (int, int, error) {
+// GetNumPeersToQuery -
+func (rhs *RequestHandlerStub) GetNumPeersToQuery(key string) (int, int, error) {
+	if rhs.GetNumPeersToQueryCalled != nil {
+		return rhs.GetNumPeersToQueryCalled(key)
+	}
+
 	return 2, 2, nil
 }
 

@@ -13,7 +13,7 @@ func NewMultiSigVerifier() *multiSignatureVerifier {
 }
 
 // Create will return a disabled multi signer
-func (m *multiSignatureVerifier) Create(pubKeys []string, index uint16) (crypto.MultiSigner, error) {
+func (m *multiSignatureVerifier) Create(_ []string, _ uint16) (crypto.MultiSigner, error) {
 	return NewMultiSigner(), nil
 }
 
@@ -23,8 +23,8 @@ func (m *multiSignatureVerifier) SetAggregatedSig([]byte) error {
 }
 
 // Verify will return nil
-func (m *multiSignatureVerifier) Verify(msg []byte, bitmap []byte) error {
-	panic("implement me")
+func (m *multiSignatureVerifier) Verify(_ []byte, _ []byte) error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

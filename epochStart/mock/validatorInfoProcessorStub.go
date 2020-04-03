@@ -11,7 +11,7 @@ func (vip *ValidatorInfoProcessorStub) ProcessMetaBlock(*block.MetaBlock, []byte
 	return nil
 }
 
-// IsInterfaceNil
+// IsInterfaceNil -
 func (vip *ValidatorInfoProcessorStub) IsInterfaceNil() bool {
 	return vip == nil
 }

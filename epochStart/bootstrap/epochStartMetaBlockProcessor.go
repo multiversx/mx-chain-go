@@ -17,8 +17,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
-const timeToWaitBeforeCheckingReceivedHeaders = 200 * time.Millisecond
+const durationBetweenChecks = 200 * time.Millisecond
 const durationBetweenReRequests = 1 * time.Second
+const durationBetweenCheckingNumConnectedPeers = 500 * time.Millisecond
+const minNumConnectedPeers = 6
 
 var _ process.InterceptorProcessor = (*epochStartMetaBlockProcessor)(nil)
 
@@ -42,7 +44,7 @@ func NewEpochStartMetaBlockProcessor(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	consensusPercentage float64,
-) (process.InterceptorProcessor, error) {
+) (*epochStartMetaBlockProcessor, error) {
 	if check.IfNil(messenger) {
 		return nil, epochStart.ErrNilMessenger
 	}
@@ -56,11 +58,10 @@ func NewEpochStartMetaBlockProcessor(
 		return nil, epochStart.ErrNilHasher
 	}
 	if !(consensusPercentage > 0.0 && consensusPercentage < 1.0) {
-		return nil, epochStart.ErrNilInvalidConsensusThreshold
+		return nil, epochStart.ErrInvalidConsensusThreshold
 	}
 
-	peerCountTarget := int(consensusPercentage * float64(len(messenger.ConnectedPeers())))
-	return &epochStartMetaBlockProcessor{
+	processor := &epochStartMetaBlockProcessor{
 		messenger:              messenger,
 		requestHandler:         handler,
 		marshalizer:            marshalizer,
@@ -68,9 +69,13 @@ func NewEpochStartMetaBlockProcessor(
 		mutReceivedMetaBlocks:  sync.RWMutex{},
 		mapReceivedMetaBlocks:  make(map[string]*block.MetaBlock),
 		mapMetaBlocksFromPeers: make(map[string][]p2p.PeerID),
-		peerCountTarget:        peerCountTarget,
 		chanConsensusReached:   make(chan bool, 1),
-	}, nil
+	}
+
+	processor.waitForEnoughNumConnectedPeers(messenger)
+	peerCountTarget := int(consensusPercentage * float64(len(messenger.ConnectedPeers())))
+	processor.peerCountTarget = peerCountTarget
+	return processor, nil
 }
 
 // Validate will return nil as there is no need for validation
@@ -78,8 +83,25 @@ func (e *epochStartMetaBlockProcessor) Validate(_ process.InterceptedData, _ p2p
 	return nil
 }
 
+func (e *epochStartMetaBlockProcessor) waitForEnoughNumConnectedPeers(messenger p2p.Messenger) {
+	for {
+		if len(messenger.ConnectedPeers()) >= minNumConnectedPeers {
+			break
+		}
+
+		time.Sleep(durationBetweenCheckingNumConnectedPeers)
+	}
+}
+
 // Save will handle the consensus mechanism for the fetched metablocks
+// All errors are just logged because if this function returns an error, the processing is finished. This way, we ignore
+// wrong received data and wait for relevant intercepted data
 func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromConnectedPeer p2p.PeerID) error {
+	if check.IfNil(data) {
+		log.Debug("epoch bootstrapper: nil intercepted data")
+		return nil
+	}
+
 	log.Info("received header", "type", data.Type(), "hash", data.Hash())
 	interceptedHdr, ok := data.(process.HdrValidatorHandler)
 	if !ok {
@@ -120,37 +142,15 @@ func (e *epochStartMetaBlockProcessor) addToPeerList(hash string, peer p2p.PeerI
 }
 
 // GetEpochStartMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
+// This is a blocking method which will end after the consensus for the meta block is obtained or the context is done
 func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (*block.MetaBlock, error) {
-	err := e.requestMetaBlock()
+	originalIntra, originalCross, err := e.requestHandler.GetNumPeersToQuery(factory.MetachainBlocksTopic)
 	if err != nil {
 		return nil, err
 	}
 
-	for {
-		select {
-		case <-e.chanConsensusReached:
-			return e.metaBlock, nil
-		case <-ctx.Done():
-			return nil, epochStart.ErrTimeoutWaitingForMetaBlock
-		case <-time.After(durationBetweenReRequests):
-			err = e.requestMetaBlock()
-			if err != nil {
-				return nil, err
-			}
-		default:
-			e.checkMaps()
-		}
-	}
-}
-
-func (e *epochStartMetaBlockProcessor) requestMetaBlock() error {
-	originalIntra, originalCross, err := e.requestHandler.GetIntraAndCrossShardNumPeersToQuery(factory.MetachainBlocksTopic)
-	if err != nil {
-		return err
-	}
-
 	defer func() {
-		err = e.requestHandler.SetIntraAndCrossShardNumPeersToQuery(factory.MetachainBlocksTopic, originalIntra, originalCross)
+		err = e.requestHandler.SetNumPeersToQuery(factory.MetachainBlocksTopic, originalIntra, originalCross)
 		if err != nil {
 			log.Warn("epoch bootstrapper: error setting num of peers intra/cross for resolver",
 				"resolver", factory.MetachainBlocksTopic,
@@ -158,8 +158,35 @@ func (e *epochStartMetaBlockProcessor) requestMetaBlock() error {
 		}
 	}()
 
+	err = e.requestMetaBlock()
+	if err != nil {
+		return nil, err
+	}
+
+	chanRequests := time.After(durationBetweenReRequests)
+	chanCheckMaps := time.After(durationBetweenChecks)
+	for {
+		select {
+		case <-e.chanConsensusReached:
+			return e.metaBlock, nil
+		case <-ctx.Done():
+			return nil, epochStart.ErrTimeoutWaitingForMetaBlock
+		case <-chanRequests:
+			err = e.requestMetaBlock()
+			if err != nil {
+				return nil, err
+			}
+			chanRequests = time.After(durationBetweenReRequests)
+		case <-chanCheckMaps:
+			e.checkMaps()
+			chanCheckMaps = time.After(durationBetweenChecks)
+		}
+	}
+}
+
+func (e *epochStartMetaBlockProcessor) requestMetaBlock() error {
 	numConnectedPeers := len(e.messenger.ConnectedPeers())
-	err = e.requestHandler.SetIntraAndCrossShardNumPeersToQuery(factory.MetachainBlocksTopic, numConnectedPeers, numConnectedPeers)
+	err := e.requestHandler.SetNumPeersToQuery(factory.MetachainBlocksTopic, numConnectedPeers, numConnectedPeers)
 	if err != nil {
 		return err
 	}
@@ -171,7 +198,6 @@ func (e *epochStartMetaBlockProcessor) requestMetaBlock() error {
 }
 
 func (e *epochStartMetaBlockProcessor) checkMaps() {
-	time.Sleep(timeToWaitBeforeCheckingReceivedHeaders)
 	e.mutReceivedMetaBlocks.RLock()
 	defer e.mutReceivedMetaBlocks.RUnlock()
 	for hash, peersList := range e.mapMetaBlocksFromPeers {

@@ -4,6 +4,7 @@ import (
 	"sync"
 )
 
+// CacherMock -
 type CacherMock struct {
 	mut     sync.Mutex
 	dataMap map[string]interface{}
@@ -12,12 +13,14 @@ type CacherMock struct {
 	addedDataHandlers    []func(key []byte)
 }
 
+// NewCacherMock -
 func NewCacherMock() *CacherMock {
 	return &CacherMock{
 		dataMap: make(map[string]interface{}),
 	}
 }
 
+// Clear -
 func (cm *CacherMock) Clear() {
 	cm.mut.Lock()
 	defer cm.mut.Unlock()
@@ -25,6 +28,7 @@ func (cm *CacherMock) Clear() {
 	cm.dataMap = make(map[string]interface{})
 }
 
+// Put -
 func (cm *CacherMock) Put(key []byte, value interface{}) (evicted bool) {
 	cm.mut.Lock()
 	defer cm.mut.Unlock()
@@ -36,6 +40,7 @@ func (cm *CacherMock) Put(key []byte, value interface{}) (evicted bool) {
 	return false
 }
 
+// Get -
 func (cm *CacherMock) Get(key []byte) (value interface{}, ok bool) {
 	cm.mut.Lock()
 	defer cm.mut.Unlock()
@@ -45,6 +50,7 @@ func (cm *CacherMock) Get(key []byte) (value interface{}, ok bool) {
 	return val, ok
 }
 
+// Has -
 func (cm *CacherMock) Has(key []byte) bool {
 	cm.mut.Lock()
 	defer cm.mut.Unlock()
@@ -54,6 +60,7 @@ func (cm *CacherMock) Has(key []byte) bool {
 	return ok
 }
 
+// Peek -
 func (cm *CacherMock) Peek(key []byte) (value interface{}, ok bool) {
 	cm.mut.Lock()
 	defer cm.mut.Unlock()
@@ -63,6 +70,7 @@ func (cm *CacherMock) Peek(key []byte) (value interface{}, ok bool) {
 	return val, ok
 }
 
+// HasOrAdd -
 func (cm *CacherMock) HasOrAdd(key []byte, value interface{}) (bool, bool) {
 	cm.mut.Lock()
 	defer cm.mut.Unlock()
@@ -75,6 +83,7 @@ func (cm *CacherMock) HasOrAdd(key []byte, value interface{}) (bool, bool) {
 	return ok, false
 }
 
+// Remove -
 func (cm *CacherMock) Remove(key []byte) {
 	cm.mut.Lock()
 	defer cm.mut.Unlock()
@@ -82,14 +91,17 @@ func (cm *CacherMock) Remove(key []byte) {
 	delete(cm.dataMap, string(key))
 }
 
+// RemoveOldest -
 func (cm *CacherMock) RemoveOldest() {
 	panic("implement me")
 }
 
+// Keys -
 func (cm *CacherMock) Keys() [][]byte {
 	panic("implement me")
 }
 
+// Len -
 func (cm *CacherMock) Len() int {
 	cm.mut.Lock()
 	defer cm.mut.Unlock()
@@ -97,10 +109,12 @@ func (cm *CacherMock) Len() int {
 	return len(cm.dataMap)
 }
 
+// MaxSize -
 func (cm *CacherMock) MaxSize() int {
 	return 10000
 }
 
+// RegisterHandler -
 func (cm *CacherMock) RegisterHandler(handler func(key []byte)) {
 	if handler == nil {
 		return

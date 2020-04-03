@@ -10,14 +10,23 @@ type TopicResolverSenderStub struct {
 	SendOnRequestTopicCalled func(rd *dataRetriever.RequestData) error
 	SendCalled               func(buff []byte, peer p2p.PeerID) error
 	TargetShardIDCalled      func() uint32
+	SetNumPeersToQueryCalled func(intra int, cross int)
+	GetNumPeersToQueryCalled func() (int, int)
 }
 
-// SetIntraAndCrossShardNumPeersToQuery -
-func (trss *TopicResolverSenderStub) SetIntraAndCrossShardNumPeersToQuery(intra int, cross int) {
+// SetNumPeersToQuery -
+func (trss *TopicResolverSenderStub) SetNumPeersToQuery(intra int, cross int) {
+	if trss.SetNumPeersToQueryCalled != nil {
+		trss.SetNumPeersToQueryCalled(intra, cross)
+	}
 }
 
-// GetIntraAndCrossShardNumPeersToQuery -
-func (trss *TopicResolverSenderStub) GetIntraAndCrossShardNumPeersToQuery() (int, int) {
+// GetNumPeersToQuery -
+func (trss *TopicResolverSenderStub) GetNumPeersToQuery() (int, int) {
+	if trss.GetNumPeersToQueryCalled != nil {
+		return trss.GetNumPeersToQueryCalled()
+	}
+
 	return 2, 2
 }
 

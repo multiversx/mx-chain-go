@@ -545,26 +545,26 @@ func (rrh *resolverRequestHandler) sweepIfNeeded() {
 	rrh.requestedItemsHandler.Sweep()
 }
 
-// SetIntraAndCrossShardNumPeersToQuery will set the number of intra shard and cross shard number of peers to query
+// SetNumPeersToQuery will set the number of intra shard and cross shard number of peers to query
 // for a given resolver
-func (rrh *resolverRequestHandler) SetIntraAndCrossShardNumPeersToQuery(key string, intra int, cross int) error {
+func (rrh *resolverRequestHandler) SetNumPeersToQuery(key string, intra int, cross int) error {
 	resolver, err := rrh.resolversFinder.Get(key)
 	if err != nil {
 		return err
 	}
 
-	resolver.SetIntraAndCrossShardNumPeersToQuery(intra, cross)
+	resolver.SetNumPeersToQuery(intra, cross)
 	return nil
 }
 
-// GetIntraAndCrossShardNumPeersToQuery will return the number of intra shard and cross shard number of peers to query
+// GetNumPeersToQuery will return the number of intra shard and cross shard number of peers to query
 // for a given resolver
-func (rrh *resolverRequestHandler) GetIntraAndCrossShardNumPeersToQuery(key string) (int, int, error) {
+func (rrh *resolverRequestHandler) GetNumPeersToQuery(key string) (int, int, error) {
 	resolver, err := rrh.resolversFinder.Get(key)
 	if err != nil {
 		return 0, 0, err
 	}
 
-	intra, cross := resolver.GetIntraAndCrossShardNumPeersToQuery()
+	intra, cross := resolver.GetNumPeersToQuery()
 	return intra, cross, nil
 }

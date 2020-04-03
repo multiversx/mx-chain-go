@@ -6,11 +6,13 @@ import (
 	"golang.org/x/net/context"
 )
 
+// PendingTransactionsSyncHandlerMock -
 type PendingTransactionsSyncHandlerMock struct {
 	SyncPendingTransactionsForCalled func(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error
 	GetTransactionsCalled            func() (map[string]data.TransactionHandler, error)
 }
 
+// SyncPendingTransactionsFor -
 func (et *PendingTransactionsSyncHandlerMock) SyncPendingTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error {
 	if et.SyncPendingTransactionsForCalled != nil {
 		return et.SyncPendingTransactionsForCalled(miniBlocks, epoch, ctx)
@@ -18,6 +20,7 @@ func (et *PendingTransactionsSyncHandlerMock) SyncPendingTransactionsFor(miniBlo
 	return nil
 }
 
+// GetTransactions -
 func (et *PendingTransactionsSyncHandlerMock) GetTransactions() (map[string]data.TransactionHandler, error) {
 	if et.GetTransactionsCalled != nil {
 		return et.GetTransactionsCalled()
@@ -25,6 +28,7 @@ func (et *PendingTransactionsSyncHandlerMock) GetTransactions() (map[string]data
 	return nil, nil
 }
 
+// IsInterfaceNil -
 func (et *PendingTransactionsSyncHandlerMock) IsInterfaceNil() bool {
 	return et == nil
 }
