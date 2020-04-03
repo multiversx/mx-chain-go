@@ -108,6 +108,7 @@ func TestUpgrades_ParentAndChildContracts(t *testing.T) {
 	// We need to double hex-encode the code (so that we don't have to hex-encode in the contract).
 	childUpgradedCode := arwen.GetSCCode("../testdata/hello-v2/answer.wasm")
 	childUpgradedCode = hex.EncodeToString([]byte(childUpgradedCode))
+	// Not supported at this moment.
 	err = context.ExecuteSC(owner, "upgradeChild@"+childUpgradedCode)
-	require.Nil(t, err)
+	require.NotNil(t, err)
 }
