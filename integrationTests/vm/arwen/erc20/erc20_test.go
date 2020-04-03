@@ -16,16 +16,23 @@ func Test_SOL_002(t *testing.T) {
 	bob := &context.Bob
 	carol := &context.Carol
 
-	context.DeploySC("../testdata/erc20-solidity-002/0-0-2.wasm", "")
+	err := context.DeploySC("../testdata/erc20-solidity-002/0-0-2.wasm", "")
+	require.Nil(t, err)
 
 	// Initial tokens and allowances
-	context.ExecuteSC(owner, "transfer(address,uint256)@"+alice.AddressHex()+"@"+arwen.FormatHexNumber(1000))
-	context.ExecuteSC(owner, "transfer(address,uint256)@"+bob.AddressHex()+"@"+arwen.FormatHexNumber(1000))
+	err = context.ExecuteSC(owner, "transfer(address,uint256)@"+alice.AddressHex()+"@"+arwen.FormatHexNumber(1000))
+	require.Nil(t, err)
+	err = context.ExecuteSC(owner, "transfer(address,uint256)@"+bob.AddressHex()+"@"+arwen.FormatHexNumber(1000))
+	require.Nil(t, err)
 
-	context.ExecuteSC(alice, "increaseAllowance(address,uint256)@"+bob.AddressHex()+"@"+arwen.FormatHexNumber(500))
-	context.ExecuteSC(alice, "decreaseAllowance(address,uint256)@"+bob.AddressHex()+"@"+arwen.FormatHexNumber(5))
-	context.ExecuteSC(bob, "increaseAllowance(address,uint256)@"+alice.AddressHex()+"@"+arwen.FormatHexNumber(500))
-	context.ExecuteSC(bob, "decreaseAllowance(address,uint256)@"+alice.AddressHex()+"@"+arwen.FormatHexNumber(5))
+	err = context.ExecuteSC(alice, "increaseAllowance(address,uint256)@"+bob.AddressHex()+"@"+arwen.FormatHexNumber(500))
+	require.Nil(t, err)
+	err = context.ExecuteSC(alice, "decreaseAllowance(address,uint256)@"+bob.AddressHex()+"@"+arwen.FormatHexNumber(5))
+	require.Nil(t, err)
+	err = context.ExecuteSC(bob, "increaseAllowance(address,uint256)@"+alice.AddressHex()+"@"+arwen.FormatHexNumber(500))
+	require.Nil(t, err)
+	err = context.ExecuteSC(bob, "decreaseAllowance(address,uint256)@"+alice.AddressHex()+"@"+arwen.FormatHexNumber(5))
+	require.Nil(t, err)
 
 	// Assertion
 	require.Equal(t, uint64(42000), context.QuerySCInt("totalSupply()", [][]byte{}))
@@ -35,8 +42,10 @@ func Test_SOL_002(t *testing.T) {
 	require.Equal(t, uint64(495), context.QuerySCInt("allowance(address,address)", [][]byte{bob.Address, alice.Address}))
 
 	// Payments
-	context.ExecuteSC(alice, "transferFrom(address,address,uint256)@"+bob.AddressHex()+"@"+carol.AddressHex()+"@"+arwen.FormatHexNumber(50))
-	context.ExecuteSC(bob, "transferFrom(address,address,uint256)@"+alice.AddressHex()+"@"+carol.AddressHex()+"@"+arwen.FormatHexNumber(50))
+	err = context.ExecuteSC(alice, "transferFrom(address,address,uint256)@"+bob.AddressHex()+"@"+carol.AddressHex()+"@"+arwen.FormatHexNumber(50))
+	require.Nil(t, err)
+	err = context.ExecuteSC(bob, "transferFrom(address,address,uint256)@"+alice.AddressHex()+"@"+carol.AddressHex()+"@"+arwen.FormatHexNumber(50))
+	require.Nil(t, err)
 
 	// Assertion
 	require.Equal(t, uint64(950), context.QuerySCInt("balanceOf(address)", [][]byte{alice.Address}))
@@ -52,19 +61,24 @@ func Test_SOL_003(t *testing.T) {
 	alice := &context.Alice
 	bob := &context.Bob
 
-	context.DeploySC("../testdata/erc20-solidity-003/0-0-3.wasm", "")
+	err := context.DeploySC("../testdata/erc20-solidity-003/0-0-3.wasm", "")
+	require.Nil(t, err)
 
 	// Minting
-	context.ExecuteSC(owner, "transfer(address,uint256)@"+alice.AddressHex()+"@"+arwen.FormatHexNumber(1000))
-	context.ExecuteSC(owner, "transfer(address,uint256)@"+bob.AddressHex()+"@"+arwen.FormatHexNumber(1000))
+	err = context.ExecuteSC(owner, "transfer(address,uint256)@"+alice.AddressHex()+"@"+arwen.FormatHexNumber(1000))
+	require.Nil(t, err)
+	err = context.ExecuteSC(owner, "transfer(address,uint256)@"+bob.AddressHex()+"@"+arwen.FormatHexNumber(1000))
+	require.Nil(t, err)
 
 	// Assertion
 	require.Equal(t, uint64(1000), context.QuerySCInt("balanceOf(address)", [][]byte{alice.Address}))
 	require.Equal(t, uint64(1000), context.QuerySCInt("balanceOf(address)", [][]byte{bob.Address}))
 
 	// Regular transfers
-	context.ExecuteSC(alice, "transfer(address,uint256)@"+bob.AddressHex()+"@"+arwen.FormatHexNumber(200))
-	context.ExecuteSC(bob, "transfer(address,uint256)@"+alice.AddressHex()+"@"+arwen.FormatHexNumber(400))
+	err = context.ExecuteSC(alice, "transfer(address,uint256)@"+bob.AddressHex()+"@"+arwen.FormatHexNumber(200))
+	require.Nil(t, err)
+	err = context.ExecuteSC(bob, "transfer(address,uint256)@"+alice.AddressHex()+"@"+arwen.FormatHexNumber(400))
+	require.Nil(t, err)
 
 	// Assertion
 	require.Equal(t, uint64(1200), context.QuerySCInt("balanceOf(address)", [][]byte{alice.Address}))
