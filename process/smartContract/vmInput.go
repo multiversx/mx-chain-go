@@ -17,7 +17,6 @@ func (sc *scProcessor) createVMDeployInput(tx data.TransactionHandler) (*vmcommo
 	}
 
 	vmCreateInput := &vmcommon.ContractCreateInput{}
-
 	vmCreateInput.ContractCode, err = sc.argsParser.GetCodeDecoded()
 	if err != nil {
 		return nil, nil, err
