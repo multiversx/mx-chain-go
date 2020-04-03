@@ -644,7 +644,7 @@ func TestScProcessor_CreateVMDeployInputNotEnoughArguments(t *testing.T) {
 	require.Equal(t, vmcommon.ErrInvalidDeployArguments, err)
 }
 
-func TestScProcessor_CreateVMInputNotEnoughGas(t *testing.T) {
+func TestScProcessor_InitializeVMInputFromTx_ShouldErrNotEnoughGas(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
@@ -669,12 +669,12 @@ func TestScProcessor_CreateVMInputNotEnoughGas(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	tx.GasLimit = 100
 
-	vmInput, err := sc.createVMInput(tx)
-	require.Nil(t, vmInput)
+	vmInput := &vmcommon.VMInput{}
+	err = sc.initializeVMInputFromTx(vmInput, tx)
 	require.Equal(t, process.ErrNotEnoughGas, err)
 }
 
-func TestScProcessor_CreateVMInput(t *testing.T) {
+func TestScProcessor_InitializeVMInputFromTx(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
@@ -693,9 +693,9 @@ func TestScProcessor_CreateVMInput(t *testing.T) {
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
-	vmInput, err := sc.createVMInput(tx)
-	require.NotNil(t, vmInput)
-	require.Equal(t, nil, err)
+	vmInput := &vmcommon.VMInput{}
+	err = sc.initializeVMInputFromTx(vmInput, tx)
+	require.Nil(t, err)
 }
 
 func createAccountsAndTransaction() (state.UserAccountHandler, state.UserAccountHandler, *transaction.Transaction) {
