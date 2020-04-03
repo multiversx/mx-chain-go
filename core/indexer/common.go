@@ -31,14 +31,17 @@ func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
 	if arguments.Password == "" {
 		return ErrEmptyPassword
 	}
-	if check.IfNil(arguments.ShardCoordinator) {
-		return core.ErrNilCoordinator
-	}
 	if check.IfNil(arguments.Marshalizer) {
 		return core.ErrNilMarshalizer
 	}
 	if check.IfNil(arguments.Hasher) {
 		return core.ErrNilHasher
+	}
+	if check.IfNil(arguments.NodesCoordinator) {
+		return core.ErrNilNodesCoordinator
+	}
+	if arguments.EpochStartNotifier == nil {
+		return core.ErrNilEpochStartNotifier
 	}
 
 	return nil
@@ -213,7 +216,7 @@ func buildRewardTransaction(
 		Round:         rTx.Round,
 		Value:         rTx.Value.String(),
 		Receiver:      hex.EncodeToString(rTx.RcvAddr),
-		Sender:        metachainTpsDocID,
+		Sender:        fmt.Sprintf("%d", core.MetachainShardId),
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      0,
@@ -251,4 +254,70 @@ func buildReceiptTransaction(
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        "Success",
 	}
+}
+
+func serializeBulkMiniBlocks(hdrShardID uint32, bulkMbs []*Miniblock) bytes.Buffer {
+	var buff bytes.Buffer
+
+	for _, mb := range bulkMbs {
+		var err error
+		var meta, serializedData []byte
+		if hdrShardID == mb.SenderShardID {
+			//insert miniblock
+			meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, mb.Hash, "_doc", "\n"))
+			serializedData, err = json.Marshal(mb)
+			if err != nil {
+				log.Debug("indexer: marshal",
+					"error", "could not serialize miniblock, will skip indexing",
+					"mb hash", mb.Hash)
+				continue
+			}
+		} else {
+			// update miniblock
+			meta = []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s" } }%s`, mb.Hash, "\n"))
+			serializedData = []byte(fmt.Sprintf(`{ "doc": { "receiverBlockHash" : "%s" } }`, mb.ReceiverBlockHash))
+		}
+
+		// append a newline for each element
+		serializedData = append(serializedData, "\n"...)
+		buff.Grow(len(meta) + len(serializedData))
+		_, err = buff.Write(meta)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk miniblocks, write meta", "error", err.Error())
+		}
+		_, err = buff.Write(serializedData)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk miniblocks, write serialized miniblock", "error", err.Error())
+		}
+	}
+
+	return buff
+}
+
+func serializeBulkTxs(bulk []*Transaction) bytes.Buffer {
+	var buff bytes.Buffer
+	for _, tx := range bulk {
+		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
+		serializedTx, err := json.Marshal(tx)
+		if err != nil {
+			log.Debug("indexer: marshal",
+				"error", "could not serialize transaction, will skip indexing",
+				"tx hash", tx.Hash)
+			continue
+		}
+		// append a newline for each element
+		serializedTx = append(serializedTx, "\n"...)
+
+		buff.Grow(len(meta) + len(serializedTx))
+		_, err = buff.Write(meta)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk tx, write meta", "error", err.Error())
+		}
+		_, err = buff.Write(serializedTx)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk tx, write serialized tx", "error", err.Error())
+		}
+	}
+
+	return buff
 }

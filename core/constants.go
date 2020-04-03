@@ -270,6 +270,8 @@ const (
 	ConsensusOrder
 	// NetworkShardingOrder defines the order in which the network sharding subsystem is notified of a start of epoch event
 	NetworkShardingOrder
+	// IndexerOrder defines the order in which Indexer is notified of a start of epoch event
+	IndexerOrder
 )
 
 // NodeState specifies what type of state a node could have
