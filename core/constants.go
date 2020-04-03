@@ -268,6 +268,8 @@ const (
 	NodesCoordinatorOrder
 	// ConsensusOrder defines the order in which Consensus is notified of a start of epoch event
 	ConsensusOrder
+	// NetworkShardingOrder defines the order in which the network sharding subsystem is notified of a start of epoch event
+	NetworkShardingOrder
 	// IndexerOrder defines the order in which Indexer is notified of a start of epoch event
 	IndexerOrder
 )

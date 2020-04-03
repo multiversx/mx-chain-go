@@ -1,6 +1,8 @@
 package mock
 
-import "sync"
+import (
+	"sync"
+)
 
 // ValidatorMock -
 type ValidatorMock struct {
@@ -31,6 +33,12 @@ func (vm *ValidatorMock) Chances() uint32 {
 	defer vm.mutChances.RUnlock()
 
 	return vm.chances
+}
+
+// Clone clones the validator
+func (vm *ValidatorMock) Clone() (interface{}, error) {
+	v2 := *vm
+	return &v2, nil
 }
 
 // SetChances -
