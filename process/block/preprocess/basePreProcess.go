@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
 const initialTxHashesSliceLen = 10
@@ -148,29 +149,25 @@ func (bpp *basePreProcess) saveTxsToStorage(
 
 func (bpp *basePreProcess) baseReceivedTransaction(
 	txHash []byte,
+	value interface{},
 	forBlock *txsForBlock,
-	txPool dataRetriever.ShardedDataCacherNotifier,
-	blockType block.Type,
 ) bool {
-	searchFirst := blockType == block.InvalidBlock
-	forBlock.mutTxsForBlock.Lock()
 
+	wrappedTx, ok := value.(*txcache.WrappedTransaction)
+	if !ok {
+		log.Warn("basePreProcess.baseReceivedTransaction", "error", process.ErrWrongTypeAssertion)
+		return false
+	}
+
+	forBlock.mutTxsForBlock.Lock()
 	if forBlock.missingTxs > 0 {
 		txInfoForHash := forBlock.txHashAndInfo[string(txHash)]
 		if txInfoForHash != nil && txInfoForHash.txShardInfo != nil &&
 			(txInfoForHash.tx == nil || txInfoForHash.tx.IsInterfaceNil()) {
-			tx, _ := process.GetTransactionHandlerFromPool(
-				txInfoForHash.senderShardID,
-				txInfoForHash.receiverShardID,
-				txHash,
-				txPool,
-				searchFirst)
-
-			if tx != nil {
-				forBlock.txHashAndInfo[string(txHash)].tx = tx
-				forBlock.missingTxs--
-			}
+			forBlock.txHashAndInfo[string(txHash)].tx = wrappedTx.Tx
+			forBlock.missingTxs--
 		}
+
 		missingTxs := forBlock.missingTxs
 		forBlock.mutTxsForBlock.Unlock()
 

@@ -25,7 +25,7 @@ type shardedData struct {
 	cacherConfig     storageUnit.CacheConfig
 
 	mutAddedDataHandlers sync.RWMutex
-	addedDataHandlers    []func(key []byte)
+	addedDataHandlers    []func(key []byte, value interface{})
 }
 
 type shardStore struct {
@@ -45,7 +45,7 @@ func NewShardedData(cacherConfig storageUnit.CacheConfig) (*shardedData, error) 
 		mutShardedDataStore:  sync.RWMutex{},
 		shardedDataStore:     make(map[string]*shardStore),
 		mutAddedDataHandlers: sync.RWMutex{},
-		addedDataHandlers:    make([]func(key []byte), 0),
+		addedDataHandlers:    make([]func(key []byte, value interface{}), 0),
 	}, nil
 }
 
@@ -103,7 +103,7 @@ func (sd *shardedData) ShardDataStore(cacheId string) (c storage.Cacher) {
 }
 
 // AddData will add data to the corresponding shard store
-func (sd *shardedData) AddData(key []byte, data interface{}, cacheId string) {
+func (sd *shardedData) AddData(key []byte, value interface{}, cacheId string) {
 	var mp *shardStore
 
 	sd.mutShardedDataStore.Lock()
@@ -113,12 +113,12 @@ func (sd *shardedData) AddData(key []byte, data interface{}, cacheId string) {
 	}
 	sd.mutShardedDataStore.Unlock()
 
-	found, _ := mp.DataStore.HasOrAdd(key, data)
+	found, _ := mp.DataStore.HasOrAdd(key, value)
 
 	if !found {
 		sd.mutAddedDataHandlers.RLock()
 		for _, handler := range sd.addedDataHandlers {
-			go handler(key)
+			go handler(key, value)
 		}
 		sd.mutAddedDataHandlers.RUnlock()
 	}
@@ -213,7 +213,7 @@ func (sd *shardedData) ClearShardStore(cacheId string) {
 }
 
 // RegisterHandler registers a new handler to be called when a new data is added
-func (sd *shardedData) RegisterHandler(handler func(key []byte)) {
+func (sd *shardedData) RegisterHandler(handler func(key []byte, value interface{})) {
 	if handler == nil {
 		log.Error("attempt to register a nil handler to a ShardedData object")
 		return

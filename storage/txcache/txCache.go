@@ -214,12 +214,12 @@ func (cache *TxCache) Keys() [][]byte {
 
 // MaxSize is not implemented
 func (cache *TxCache) MaxSize() int {
-	log.Error("TxCache.MaxSize is not implemented")
-	return 0
+	//TODO: Should be analyzed if the returned value represents the max size of one cache in sharded cache configuration
+	return int(cache.config.CountThreshold)
 }
 
 // RegisterHandler is not implemented
-func (cache *TxCache) RegisterHandler(func(key []byte)) {
+func (cache *TxCache) RegisterHandler(func(key []byte, value interface{})) {
 	log.Error("TxCache.RegisterHandler is not implemented")
 }
 
