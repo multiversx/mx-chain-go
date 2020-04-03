@@ -124,7 +124,7 @@ type RandomSelector interface {
 // EpochStartActionHandler defines the action taken on epoch start event
 type EpochStartActionHandler interface {
 	EpochStartAction(hdr data.HeaderHandler)
-	EpochStartPrepare(hdr data.HeaderHandler, body data.BodyHandler)
+	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	NotifyOrder() uint32
 }
 

@@ -64,6 +64,10 @@ func (p *peerMiniBlockSyncer) init() {
 
 // SyncPeerMiniBlocks processes an epochstart block asyncrhonous, processing the PeerMiniblocks
 func (p *peerMiniBlockSyncer) SyncPeerMiniBlocks(metaBlock *block.MetaBlock) ([][]byte, data.BodyHandler, error) {
+	if check.IfNil(metaBlock) {
+		return nil, nil, epochStart.ErrNilMetaBlock
+	}
+
 	p.init()
 
 	p.computeMissingPeerBlocks(metaBlock)
@@ -109,6 +113,9 @@ func (p *peerMiniBlockSyncer) receivedMiniBlock(key []byte) {
 }
 
 func (p *peerMiniBlockSyncer) getAllPeerMiniBlocks(metaBlock *block.MetaBlock) data.BodyHandler {
+	p.mutMiniBlocksForBlock.Lock()
+	defer p.mutMiniBlocksForBlock.Unlock()
+
 	peerBlockBody := &block.Body{
 		MiniBlocks: make([]*block.MiniBlock, 0),
 	}

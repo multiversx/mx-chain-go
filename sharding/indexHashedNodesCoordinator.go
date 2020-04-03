@@ -158,7 +158,7 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	return nil
 }
 
-// SetNodesPerShards loads the distribution of nodes per shard into the nodes management component
+// setNodesPerShards loads the distribution of nodes per shard into the nodes management component
 func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
@@ -471,19 +471,19 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorsIndexes(
 
 // EpochStartPrepare is called when an epoch start event is observed, but not yet confirmed/committed.
 // Some components may need to do some initialisation on this event
-func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(hdr data.HeaderHandler, body data.BodyHandler) {
-	if !hdr.IsStartOfEpochBlock() {
+func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
+	if !metaHdr.IsStartOfEpochBlock() {
 		log.Error("could not process EpochStartPrepare on nodesCoordinator - not epoch start block")
 		return
 	}
 
-	if _, ok := hdr.(*block.MetaBlock); !ok {
+	if _, ok := metaHdr.(*block.MetaBlock); !ok {
 		log.Error("could not process EpochStartPrepare on nodesCoordinator - not metaBlock")
 		return
 	}
 
-	randomness := hdr.GetPrevRandSeed()
-	newEpoch := hdr.GetEpoch()
+	randomness := metaHdr.GetPrevRandSeed()
+	newEpoch := metaHdr.GetEpoch()
 
 	allValidatorInfo, err := createValidatorInfoFromBody(body, ihgs.marshalizer, ihgs.numTotalEligible)
 	if err != nil {

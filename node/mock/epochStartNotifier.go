@@ -38,13 +38,13 @@ func (esnm *EpochStartNotifierStub) UnregisterHandler(handler epochStart.ActionH
 }
 
 // NotifyAllPrepare -
-func (esnm *EpochStartNotifierStub) NotifyAllPrepare(hdr data.HeaderHandler, body data.BodyHandler) {
+func (esnm *EpochStartNotifierStub) NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
 	if esnm.NotifyAllPrepareCalled != nil {
-		esnm.NotifyAllPrepareCalled(hdr)
+		esnm.NotifyAllPrepareCalled(metaHdr)
 	}
 
 	for _, hdl := range esnm.epochStartHdls {
-		hdl.EpochStartPrepare(hdr, body)
+		hdl.EpochStartPrepare(metaHdr, body)
 	}
 }
 

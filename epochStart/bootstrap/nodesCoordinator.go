@@ -72,6 +72,7 @@ func (n *nodesCoordinator) ComputeNodesConfigForGenesis(nodesConfig *sharding.No
 	return epochValidators, nil
 }
 
+// TODO: use common functionality from indexHashesNodesCoordinator
 // ComputeNodesConfigFor computes the actual nodes config for the set epoch from the validator info
 func (n *nodesCoordinator) ComputeNodesConfigFor(
 	metaBlock *block.MetaBlock,
