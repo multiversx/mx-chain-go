@@ -62,8 +62,8 @@ func (p *peerMiniBlockSyncer) init() {
 	p.mutMiniBlocksForBlock.Unlock()
 }
 
-// SyncPeerMiniBlocks processes an epochstart block asyncrhonous, processing the PeerMiniblocks
-func (p *peerMiniBlockSyncer) SyncPeerMiniBlocks(metaBlock *block.MetaBlock) ([][]byte, data.BodyHandler, error) {
+// SyncMiniBlocks processes an epochstart block asyncrhonous, processing the PeerMiniblocks
+func (p *peerMiniBlockSyncer) SyncMiniBlocks(metaBlock *block.MetaBlock) ([][]byte, data.BodyHandler, error) {
 	if check.IfNil(metaBlock) {
 		return nil, nil, epochStart.ErrNilMetaBlock
 	}

@@ -8,7 +8,7 @@ type ValidatorMock struct {
 }
 
 // NewValidatorMock -
-func NewValidatorMock(pubKey []byte, index uint32, chances uint32) *ValidatorMock {
+func NewValidatorMock(pubKey []byte, chances uint32, index uint32) *ValidatorMock {
 	return &ValidatorMock{pubKey: pubKey, index: index, chances: chances}
 }
 

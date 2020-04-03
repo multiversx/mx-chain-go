@@ -28,7 +28,7 @@ func NewIndexHashedNodesCoordinatorWithRater(
 		chanceComputer:              chanceComputer,
 	}
 
-	ihncr.nodesPerShardSetter = ihncr
+	ihncr.nodesCoordinatorHelper = ihncr
 
 	ihncr.mutNodesConfig.Lock()
 	defer ihncr.mutNodesConfig.Unlock()

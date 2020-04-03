@@ -114,6 +114,10 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(
 		}
 	}
 
+	sort.Slice(leaving, func(i, j int) bool {
+		return leaving[i].Index() > leaving[j].Index()
+	})
+
 	sort.Slice(newNodesList, func(i, j int) bool {
 		return newNodesList[i].Index() > newNodesList[j].Index()
 	})

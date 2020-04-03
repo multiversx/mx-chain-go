@@ -66,7 +66,7 @@ type indexHashedNodesCoordinator struct {
 	numTotalEligible              uint64
 	shardConsensusGroupSize       int
 	metaConsensusGroupSize        int
-	nodesPerShardSetter           NodesCoordinatorHelper
+	nodesCoordinatorHelper        NodesCoordinatorHelper
 	consensusGroupCacher          Cacher
 	shardIDAsObserver             uint32
 	loadingFromDisk               atomic.Value
@@ -109,7 +109,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 
 	ihgs.loadingFromDisk.Store(false)
 
-	ihgs.nodesPerShardSetter = ihgs
+	ihgs.nodesCoordinatorHelper = ihgs
 	err = ihgs.setNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, nil, arguments.Epoch)
 	if err != nil {
 		return nil, err
@@ -202,14 +202,8 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 	var err error
 	// nbShards holds number of shards without meta
 	nodesConfig.nbShards = uint32(len(eligible) - 1)
-	nodesConfig.eligibleMap, err = cloneValidatorsMap(eligible)
-	if err != nil {
-		return err
-	}
-	nodesConfig.waitingMap, err = cloneValidatorsMap(waiting)
-	if err != nil {
-		return err
-	}
+	nodesConfig.eligibleMap = eligible
+	nodesConfig.waitingMap = waiting
 	nodesConfig.publicKeyToValidatorMap = ihgs.createPublicKeyToValidatorMap(eligible, waiting)
 	nodesConfig.shardID = ihgs.computeShardForSelfPublicKey(nodesConfig)
 	nodesConfig.selectors, err = ihgs.createSelectors(nodesConfig)
@@ -541,7 +535,7 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 	validatorInfos []*state.ShardValidatorInfo,
 ) (*epochNodesConfig, error) {
 
-	leaving, err := ihgs.nodesPerShardSetter.ComputeLeaving(validatorInfos)
+	leaving, err := ihgs.nodesCoordinatorHelper.ComputeLeaving(validatorInfos)
 	if err != nil {
 		return nil, err
 	}
@@ -551,7 +545,7 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 	newNodesList := make([]Validator, 0)
 
 	for _, validatorInfo := range validatorInfos {
-		chance := ihgs.nodesPerShardSetter.GetChance(validatorInfo.TempRating)
+		chance := ihgs.nodesCoordinatorHelper.GetChance(validatorInfo.TempRating)
 		validator, err := NewValidator(validatorInfo.PublicKey, chance, validatorInfo.Index)
 		if err != nil {
 			return nil, err
@@ -566,6 +560,10 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 			newNodesList = append(newNodesList, validator)
 		}
 	}
+
+	sort.Slice(leaving, func(i, j int) bool {
+		return leaving[i].Index() > leaving[j].Index()
+	})
 
 	sort.Slice(newNodesList, func(i, j int) bool {
 		return newNodesList[i].Index() > newNodesList[j].Index()
@@ -799,7 +797,7 @@ func (ihgs *indexHashedNodesCoordinator) createSelectors(
 	// weights for validators are computed according to each validator rating
 	for shard, vList := range nodesConfig.eligibleMap {
 		log.Debug("create selectors", "shard", shard)
-		weights, err = ihgs.nodesPerShardSetter.ValidatorsWeights(vList)
+		weights, err = ihgs.nodesCoordinatorHelper.ValidatorsWeights(vList)
 		if err != nil {
 			return nil, err
 		}

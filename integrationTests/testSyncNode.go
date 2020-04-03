@@ -57,7 +57,7 @@ func NewTestSyncNode(
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, 1, defaultChancesSelection)
+			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
 	}

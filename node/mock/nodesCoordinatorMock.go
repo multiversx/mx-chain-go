@@ -1,7 +1,7 @@
 package mock
 
 import (
-	state2 "github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -103,7 +103,7 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 }
 
 // ComputeLeaving -
-func (ncm *NodesCoordinatorMock) ComputeLeaving([]*state2.ShardValidatorInfo) ([]sharding.Validator, error) {
+func (ncm *NodesCoordinatorMock) ComputeLeaving([]*state.ShardValidatorInfo) ([]sharding.Validator, error) {
 	return make([]sharding.Validator, 0), nil
 }
 

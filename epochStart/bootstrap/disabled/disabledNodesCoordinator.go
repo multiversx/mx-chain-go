@@ -1,7 +1,7 @@
 package disabled
 
 import (
-	state2 "github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -30,7 +30,7 @@ func (n *nodesCoordinator) ValidatorsWeights(validators []sharding.Validator) ([
 }
 
 // ComputeLeaving -
-func (n *nodesCoordinator) ComputeLeaving(_ []*state2.ShardValidatorInfo) ([]sharding.Validator, error) {
+func (n *nodesCoordinator) ComputeLeaving(_ []*state.ShardValidatorInfo) ([]sharding.Validator, error) {
 	return nil, nil
 }
 

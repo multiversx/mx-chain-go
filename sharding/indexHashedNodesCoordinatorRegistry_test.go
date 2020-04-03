@@ -45,6 +45,12 @@ func sameValidators(list1 []Validator, list2 []Validator) bool {
 		if !bytes.Equal(validator.PubKey(), list2[i].PubKey()) {
 			return false
 		}
+		if validator.Index() != list2[i].Index() {
+			return false
+		}
+		if validator.Chances() != list2[i].Chances() {
+			return false
+		}
 	}
 
 	return true

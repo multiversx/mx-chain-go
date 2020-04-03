@@ -43,7 +43,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkBytes, 1, defaultChancesSelection)
+			v, _ := sharding.NewValidator(pkBytes, defaultChancesSelection, 1)
 			return []sharding.Validator{v}, nil
 		},
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
@@ -53,7 +53,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, 1, defaultChancesSelection)
+			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
 	}

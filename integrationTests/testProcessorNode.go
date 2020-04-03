@@ -272,7 +272,7 @@ func NewTestProcessorNode(
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, 1, defaultChancesSelection)
+			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
 	}
@@ -632,7 +632,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			MiniBlocksPool: tpn.DataPool.MiniBlocks(),
 			Requesthandler: tpn.RequestHandler,
 		}
-		validatorInfoProcess, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
+		peerMiniBlockSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
 			Marshalizer:          TestMarshalizer,
 			Hasher:               TestHasher,
@@ -645,7 +645,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			Validity:             1,
 			Finality:             1,
 			EpochStartNotifier:   tpn.EpochStartNotifier,
-			PeerMiniBlocksSyncer: validatorInfoProcess,
+			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}

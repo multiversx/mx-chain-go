@@ -82,7 +82,7 @@ func TestValidatorInfoProcessor_ProcessMetaBlockThatIsNoStartOfEpochShouldWork(t
 	previousHeader99 := &block.MetaBlock{Nonce: 99, Epoch: 0}
 
 	syncer, _ := NewPeerMiniBlockSyncer(args)
-	_, _, processError := syncer.SyncPeerMiniBlocks(previousHeader99)
+	_, _, processError := syncer.SyncMiniBlocks(previousHeader99)
 
 	require.Nil(t, processError)
 }
@@ -116,7 +116,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithNoPeerMiniblocksShouldWork
 	}
 
 	syncer, _ := NewPeerMiniBlockSyncer(args)
-	_, _, processError := syncer.SyncPeerMiniBlocks(epochStartHeader)
+	_, _, processError := syncer.SyncMiniBlocks(epochStartHeader)
 
 	require.Nil(t, processError)
 	require.False(t, peekCalled)
@@ -180,7 +180,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithPeerMiniblocksInPoolShould
 	}
 
 	syncer, _ := NewPeerMiniBlockSyncer(args)
-	_, _, processError := syncer.SyncPeerMiniBlocks(epochStartHeader)
+	_, _, processError := syncer.SyncMiniBlocks(epochStartHeader)
 
 	require.Nil(t, processError)
 }
@@ -262,7 +262,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksShould
 	}
 
 	syncer, _ := NewPeerMiniBlockSyncer(args)
-	_, _, processError := syncer.SyncPeerMiniBlocks(epochStartHeader)
+	_, _, processError := syncer.SyncMiniBlocks(epochStartHeader)
 
 	require.Nil(t, processError)
 }
@@ -327,7 +327,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksTimeou
 	}
 
 	syncer, _ := NewPeerMiniBlockSyncer(args)
-	_, _, processError := syncer.SyncPeerMiniBlocks(epochStartHeader)
+	_, _, processError := syncer.SyncMiniBlocks(epochStartHeader)
 
 	require.Equal(t, process.ErrTimeIsOut, processError)
 }

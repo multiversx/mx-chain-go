@@ -1002,7 +1002,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 			return validatorPublicKeys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, 1, defaultChancesSelection)
+			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
 	}
@@ -1066,7 +1066,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksWithRoundDifferenceGre
 			return validatorPublicKeys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, 1, defaultChancesSelection)
+			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
 	}
@@ -1273,7 +1273,7 @@ func DoComputeMissingBlocks(
 			return consensusGroupSize
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte, _ uint32) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, 1, defaultChancesSelection)
+			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
 	}

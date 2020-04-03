@@ -47,7 +47,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 		},
 		RequestHandler:       &mock.RequestHandlerStub{},
 		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
-		PeerMiniBlocksSyncer: &mock.ValidatorInfoProcessorStub{},
+		PeerMiniBlocksSyncer: &mock.ValidatorInfoSyncerStub{},
 	}
 }
 

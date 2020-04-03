@@ -42,7 +42,7 @@ type ArgsShardEpochStartTrigger struct {
 	Storage              dataRetriever.StorageService
 	RequestHandler       epochStart.RequestHandler
 	EpochStartNotifier   epochStart.Notifier
-	PeerMiniBlocksSyncer process.ValidatorInfoProcessorHandler
+	PeerMiniBlocksSyncer process.ValidatorInfoSyncer
 
 	Epoch    uint32
 	Validity uint64
@@ -86,7 +86,7 @@ type trigger struct {
 	newEpochHdrReceived bool
 	isEpochStart        bool
 
-	peerMiniBlocksSyncer process.ValidatorInfoProcessorHandler
+	peerMiniBlocksSyncer process.ValidatorInfoSyncer
 
 	appStatusHandler core.AppStatusHandler
 
@@ -506,7 +506,7 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 	}
 
 	if metaHdr.IsStartOfEpochBlock() {
-		missingMiniblocksHashes, blockBody, err := t.peerMiniBlocksSyncer.SyncPeerMiniBlocks(metaHdr)
+		missingMiniblocksHashes, blockBody, err := t.peerMiniBlocksSyncer.SyncMiniBlocks(metaHdr)
 		if err != nil {
 			t.addMissingMiniblocks(metaHdr.Epoch, missingMiniblocksHashes)
 			log.Warn("processMetablock failed", "error", err)

@@ -34,16 +34,6 @@ func (v *validator) Index() uint32 {
 	return v.index
 }
 
-// Clone clones the validator
-func (v *validator) Clone() (interface{}, error) {
-	if v == nil {
-		return nil, ErrNilValidator
-	}
-	v2 := *v
-
-	return &v2, nil
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (v *validator) IsInterfaceNil() bool {
 	return v == nil

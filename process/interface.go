@@ -767,9 +767,9 @@ type RatingsStepHandler interface {
 	ConsecutiveMissedBlocksPenalty() float32
 }
 
-// ValidatorInfoProcessorHandler defines the method needed for validatorInfoProcessing
-type ValidatorInfoProcessorHandler interface {
-	SyncPeerMiniBlocks(metaBlock *block.MetaBlock) ([][]byte, data.BodyHandler, error)
+// ValidatorInfoSyncer defines the method needed for validatorInfoProcessing
+type ValidatorInfoSyncer interface {
+	SyncMiniBlocks(metaBlock *block.MetaBlock) ([][]byte, data.BodyHandler, error)
 	IsInterfaceNil() bool
 }
 

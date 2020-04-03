@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	state2 "github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -39,7 +39,7 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 			validatorsList[v], _ = sharding.NewValidator(
 				[]byte(fmt.Sprintf("pubKey%d%d", sh, v)),
 				1,
-				1,
+				uint32(v),
 			)
 		}
 		validatorsMap[sh] = validatorsList
@@ -50,7 +50,7 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 		validatorsList[v], _ = sharding.NewValidator(
 			[]byte(fmt.Sprintf("pubKey%d%d", core.MetachainShardId, v)),
 			1,
-			1,
+			uint32(v),
 		)
 	}
 
@@ -165,7 +165,7 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 }
 
 // ComputeLeaving -
-func (ncm *NodesCoordinatorMock) ComputeLeaving([]*state2.ShardValidatorInfo) ([]sharding.Validator, error) {
+func (ncm *NodesCoordinatorMock) ComputeLeaving([]*state.ShardValidatorInfo) ([]sharding.Validator, error) {
 	return make([]sharding.Validator, 0), nil
 }
 

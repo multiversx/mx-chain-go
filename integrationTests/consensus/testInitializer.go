@@ -81,7 +81,7 @@ func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]shard
 	for shardId, shardNodesPks := range pubKeysMap {
 		shardValidators := make([]sharding.Validator, 0)
 		for i := 0; i < len(shardNodesPks); i++ {
-			v, _ := sharding.NewValidator([]byte(shardNodesPks[i]), 1, 1)
+			v, _ := sharding.NewValidator([]byte(shardNodesPks[i]), 1, uint32(i))
 			shardValidators = append(shardValidators, v)
 		}
 		validatorsMap[shardId] = shardValidators
