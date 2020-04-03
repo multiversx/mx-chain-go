@@ -8,7 +8,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -413,6 +413,10 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(validator *s
 		}
 
 		pa.SetTempRating(newTempRating)
+		err = vs.peerAdapter.SaveAccount(pa)
+		if err != nil {
+			return err
+		}
 
 		log.Debug("below signed blocks threshold",
 			"pk", validator.PublicKey,
