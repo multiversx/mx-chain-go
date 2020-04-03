@@ -960,6 +960,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	case <-sigs:
 		log.Info("terminating at user's signal...")
 	case <-chanStopNodeProcess:
+		log.Info("terminating at internal stop signal...")
 	}
 
 	log.Debug("closing all store units....")
