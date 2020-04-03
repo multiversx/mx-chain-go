@@ -250,8 +250,8 @@ func (rtp *rewardTxPreprocessor) SaveTxBlockToStorage(body *block.Body) error {
 
 // receivedRewardTransaction is a callback function called when a new reward transaction
 // is added in the reward transactions pool
-func (rtp *rewardTxPreprocessor) receivedRewardTransaction(txHash []byte) {
-	receivedAllMissing := rtp.baseReceivedTransaction(txHash, &rtp.rewardTxsForBlock, rtp.rewardTxPool, block.RewardsBlock)
+func (rtp *rewardTxPreprocessor) receivedRewardTransaction(key []byte, value interface{}) {
+	receivedAllMissing := rtp.baseReceivedTransaction(key, value, &rtp.rewardTxsForBlock)
 
 	if receivedAllMissing {
 		rtp.chReceivedAllRewardTxs <- true

@@ -1217,12 +1217,12 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.DataPool.Headers().RegisterHandler(hdrHandlers)
 	} else {
-		txHandler := func(key []byte) {
+		txHandler := func(key []byte, value interface{}) {
 			tx, _ := tpn.DataPool.Transactions().SearchFirstData(key)
 			tpn.ReceivedTransactions.Store(string(key), tx)
 			atomic.AddInt32(&tpn.CounterTxRecv, 1)
 		}
-		mbHandlers := func(key []byte) {
+		mbHandlers := func(key []byte, value interface{}) {
 			atomic.AddInt32(&tpn.CounterMbRecv, 1)
 		}
 

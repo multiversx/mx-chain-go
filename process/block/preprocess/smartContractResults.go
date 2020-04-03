@@ -275,8 +275,8 @@ func (scr *smartContractResults) SaveTxBlockToStorage(body *block.Body) error {
 
 // receivedSmartContractResult is a call back function which is called when a new smartContractResult
 // is added in the smartContractResult pool
-func (scr *smartContractResults) receivedSmartContractResult(txHash []byte) {
-	receivedAllMissing := scr.baseReceivedTransaction(txHash, &scr.scrForBlock, scr.scrPool, block.SmartContractResultBlock)
+func (scr *smartContractResults) receivedSmartContractResult(key []byte, value interface{}) {
+	receivedAllMissing := scr.baseReceivedTransaction(key, value, &scr.scrForBlock)
 
 	if receivedAllMissing {
 		scr.chRcvAllScrs <- true
