@@ -128,14 +128,14 @@ type EpochStartActionHandler interface {
 	NotifyOrder() uint32
 }
 
-// GenesisNodesSetupHandler
+// GenesisNodesSetupHandler returns the genesis nodes info
 type GenesisNodesSetupHandler interface {
 	InitialNodesInfoForShard(shardId uint32) ([]GenesisNodeInfoHandler, []GenesisNodeInfoHandler, error)
 	InitialNodesInfo() (map[uint32][]GenesisNodeInfoHandler, map[uint32][]GenesisNodeInfoHandler)
 	IsInterfaceNil() bool
 }
 
-// GenesisNodeInfoHandler
+// GenesisNodeInfoHandler defines the public methods for the genesis nodes info
 type GenesisNodeInfoHandler interface {
 	AssignedShard() uint32
 	Address() []byte

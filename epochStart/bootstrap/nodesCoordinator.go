@@ -16,7 +16,6 @@ import (
 type nodesCoordinator struct {
 	shuffler                sharding.NodesShuffler
 	chance                  sharding.ChanceComputer
-	numShards               map[uint32]uint32
 	shardConsensusGroupSize uint32
 	metaConsensusGroupSize  uint32
 
@@ -48,7 +47,6 @@ func NewStartInEpochNodesCoordinator(args ArgsNewStartInEpochNodesCoordinator) (
 		shardConsensusGroupSize: args.ShardConsensusGroupSize,
 		metaConsensusGroupSize:  args.MetaConsensusGroupSize,
 		nodesConfig:             make(map[uint32]*epochNodesConfig),
-		numShards:               make(map[uint32]uint32),
 	}
 
 	return n, nil
@@ -75,7 +73,10 @@ func (n *nodesCoordinator) ComputeNodesConfigForGenesis(nodesConfig *sharding.No
 }
 
 // ComputeNodesConfigFor computes the actual nodes config for the set epoch from the validator info
-func (n *nodesCoordinator) ComputeNodesConfigFor(metaBlock *block.MetaBlock, validatorInfos []*state.ShardValidatorInfo) (*sharding.EpochValidators, error) {
+func (n *nodesCoordinator) ComputeNodesConfigFor(
+	metaBlock *block.MetaBlock,
+	validatorInfos []*state.ShardValidatorInfo,
+) (*sharding.EpochValidators, error) {
 	if check.IfNil(metaBlock) {
 		return nil, epochStart.ErrNilHeaderHandler
 	}
@@ -85,7 +86,6 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(metaBlock *block.MetaBlock, val
 
 	randomness := metaBlock.GetPrevRandSeed()
 	newEpoch := metaBlock.GetEpoch()
-	n.numShards[newEpoch] = uint32(len(metaBlock.EpochStart.LastFinalizedHeaders))
 
 	leaving, err := n.computeLeaving(validatorInfos)
 	if err != nil {
@@ -135,7 +135,7 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(metaBlock *block.MetaBlock, val
 		NewNodes: newNodesList,
 		Leaving:  leaving,
 		Rand:     randomness,
-		NbShards: n.numShards[newEpoch],
+		NbShards: uint32(len(eligibleMap)),
 	}
 
 	newEligibleMap, newWaitingMap, stillRemaining := n.shuffler.UpdateNodeLists(shufflerArgs)
@@ -180,8 +180,8 @@ func (n *nodesCoordinator) setNodesPerShards(
 	}
 
 	nodesList, ok := eligible[core.MetachainShardId]
-	if !ok || uint32(len(nodesList)) < n.metaConsensusGroupSize {
-		return fmt.Errorf("%w computed size %d needed size %d", epochStart.ErrSmallShardEligibleListSize, uint32(len(nodesList)), n.metaConsensusGroupSize)
+	if uint32(len(nodesList)) < n.metaConsensusGroupSize {
+		return fmt.Errorf("%w computed size %d needed size %d", epochStart.ErrSmallMetachainEligibleListSize, uint32(len(nodesList)), n.metaConsensusGroupSize)
 	}
 
 	for shardId := uint32(0); shardId < uint32(len(eligible)-1); shardId++ {

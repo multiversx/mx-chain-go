@@ -953,7 +953,6 @@ func CreateNodes(
 	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
 			n := NewTestProcessorNode(uint32(numOfShards), shardId, shardId, serviceID)
-
 			nodes[idx] = n
 			idx++
 		}

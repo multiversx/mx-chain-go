@@ -430,13 +430,6 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	log.Debug("start in epoch bootstrap: started syncPeerAccountsState")
-	err = e.syncPeerAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
-	if err != nil {
-		return Parameters{}, err
-	}
-	log.Debug("start in epoch bootstrap: syncPeerAccountsState", "peer account tries map length", len(e.peerAccountTries))
-
 	err = e.processNodesConfig(pubKeyBytes)
 	if err != nil {
 		return Parameters{}, err
@@ -520,6 +513,14 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 
 func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	var err error
+
+	log.Debug("start in epoch bootstrap: started syncPeerAccountsState")
+	err = e.syncPeerAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
+	if err != nil {
+		return nil
+	}
+	log.Debug("start in epoch bootstrap: syncPeerAccountsState", "peer account tries map length", len(e.peerAccountTries))
+
 	err = e.syncUserAccountsState(e.epochStartMeta.RootHash)
 	if err != nil {
 		return err
