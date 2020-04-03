@@ -153,7 +153,7 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 			require.Equal(t, blockIndex, req.Index)
 
 			var block Block
-			blockBytes := make([]byte, 353)
+			blockBytes := make([]byte, 279)
 			_, _ = req.Body.Read(blockBytes)
 			_ = json.Unmarshal(blockBytes, &block)
 			require.Equal(t, header.Nonce, block.Nonce)
