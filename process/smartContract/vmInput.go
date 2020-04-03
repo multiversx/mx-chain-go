@@ -29,7 +29,7 @@ func (sc *scProcessor) createVMDeployInput(tx data.TransactionHandler) (*vmcommo
 	}
 
 	vmCreateInput.VMInput = vmcommon.VMInput{}
-	sc.initializeVMInputFromTx(vmCreateInput.VMInput, tx)
+	sc.initializeVMInputFromTx(&vmCreateInput.VMInput, tx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -53,7 +53,7 @@ func (sc *scProcessor) getCodeMetadata() ([]byte, error) {
 	return codeMetadata.ToBytes(), nil
 }
 
-func (sc *scProcessor) initializeVMInputFromTx(vmInput vmcommon.VMInput, tx data.TransactionHandler) error {
+func (sc *scProcessor) initializeVMInputFromTx(vmInput *vmcommon.VMInput, tx data.TransactionHandler) error {
 	var err error
 
 	vmInput.CallerAddr = tx.GetSndAddr()
@@ -107,7 +107,7 @@ func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler) (*vmcommon.
 	}
 
 	vmCallInput.VMInput = vmcommon.VMInput{}
-	sc.initializeVMInputFromTx(vmCallInput.VMInput, tx)
+	sc.initializeVMInputFromTx(&vmCallInput.VMInput, tx)
 	if err != nil {
 		return nil, err
 	}
