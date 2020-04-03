@@ -96,7 +96,8 @@ func NewCrossTxsPoolsCleaner(
 func (ctpc *crossTxsPoolsCleaner) cleanCrossTxsPools() {
 	for {
 		time.Sleep(sleepTime)
-		ctpc.cleanCrossTxsPoolsIfNeeded()
+		numCrossTxsInMap := ctpc.cleanCrossTxsPoolsIfNeeded()
+		log.Debug("crossTxsPoolsCleaner.cleanCrossTxsPools", "num cross txs in map", numCrossTxsInMap)
 	}
 }
 
@@ -190,7 +191,7 @@ func (ctpc *crossTxsPoolsCleaner) isCrossTxFromShard(txHash []byte, shardID uint
 	return true, &txInfo{txStore: txStore, senderShardID: shardID, receiverShardID: selfShardID}
 }
 
-func (ctpc *crossTxsPoolsCleaner) cleanCrossTxsPoolsIfNeeded() {
+func (ctpc *crossTxsPoolsCleaner) cleanCrossTxsPoolsIfNeeded() int {
 	ctpc.mutMapCrossTxsRounds.Lock()
 	defer ctpc.mutMapCrossTxsRounds.Unlock()
 
@@ -274,6 +275,8 @@ func (ctpc *crossTxsPoolsCleaner) cleanCrossTxsPoolsIfNeeded() {
 	if numTxsCleaned > 0 {
 		log.Debug("crossTxsPoolsCleaner.cleanCrossTxsPoolsIfNeeded", "num txs cleaned", numTxsCleaned)
 	}
+
+	return len(ctpc.mapCrossTxsRounds)
 }
 
 func (ctpc *crossTxsPoolsCleaner) getTransactionPool(txType int8) dataRetriever.ShardedDataCacherNotifier {

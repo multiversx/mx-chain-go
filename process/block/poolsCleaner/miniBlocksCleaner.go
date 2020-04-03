@@ -66,7 +66,9 @@ func NewMiniBlocksPoolsCleaner(
 func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPools() {
 	for {
 		time.Sleep(sleepTime)
-		mbpc.cleanMiniblocksPoolsIfNeeded()
+		numMiniblocksInMap := mbpc.cleanMiniblocksPoolsIfNeeded()
+		log.Debug("miniBlocksPoolsCleaner.cleanMiniblocksPools", "num miniblocks in map", numMiniblocksInMap)
+
 	}
 }
 
@@ -89,7 +91,7 @@ func (mbpc *miniBlocksPoolsCleaner) receivedMiniBlock(key []byte) {
 	}
 }
 
-func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() {
+func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() int {
 	mbpc.mutMapMiniBlocksRounds.Lock()
 	defer mbpc.mutMapMiniBlocksRounds.Unlock()
 
@@ -161,4 +163,6 @@ func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() {
 		log.Debug("miniBlocksPoolsCleaner.cleanMiniblocksPoolsIfNeeded",
 			"num mbs cleaned", numMbsCleaned)
 	}
+
+	return len(mbpc.mapMiniBlocksRounds)
 }
