@@ -473,6 +473,11 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(validator *s
 
 		pa.SetTempRating(newTempRating)
 
+		err = vs.peerAdapter.SaveAccount(pa)
+		if err != nil {
+			return err
+		}
+
 		log.Debug("below signed blocks threshold",
 			"pk", validator.PublicKey,
 			"signed %", computedThreshold,

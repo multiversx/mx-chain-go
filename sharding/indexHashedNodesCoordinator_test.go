@@ -922,16 +922,10 @@ func TestIndexHashedNodesCoordinator_EpochStart(t *testing.T) {
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
 
-	header := &mock.HeaderHandlerStub{
-		GetPrevRandSeedCalled: func() []byte {
-			return []byte("rand seed")
-		},
-		IsStartOfEpochBlockCalled: func() bool {
-			return true
-		},
-		GetEpochCaled: func() uint32 {
-			return 1
-		},
+	header := &block.MetaBlock{
+		PrevRandSeed: []byte("rand seed"),
+		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		Epoch:        1,
 	}
 
 	body := createBlockBodyFromNodesCoordinator(ihgs, 0)
@@ -1022,17 +1016,10 @@ func TestIndexHashedNodesCoordinator_GetSavedStateKey(t *testing.T) {
 	ihgs, err := NewIndexHashedNodesCoordinator(args)
 	require.Nil(t, err)
 
-	epoch := uint32(1)
-	header := &mock.HeaderHandlerStub{
-		GetPrevRandSeedCalled: func() []byte {
-			return []byte("rand seed")
-		},
-		IsStartOfEpochBlockCalled: func() bool {
-			return true
-		},
-		GetEpochCaled: func() uint32 {
-			return atomic.LoadUint32(&epoch)
-		},
+	header := &block.MetaBlock{
+		PrevRandSeed: []byte("rand seed"),
+		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		Epoch:        1,
 	}
 
 	body := createBlockBodyFromNodesCoordinator(ihgs, 0)
@@ -1113,16 +1100,10 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesEpoch1(t *testi
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
 
-	header := &mock.HeaderHandlerStub{
-		GetPrevRandSeedCalled: func() []byte {
-			return []byte("rand seed")
-		},
-		IsStartOfEpochBlockCalled: func() bool {
-			return true
-		},
-		GetEpochCaled: func() uint32 {
-			return 1
-		},
+	header := &block.MetaBlock{
+		PrevRandSeed: []byte("rand seed"),
+		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		Epoch:        1,
 	}
 
 	body := createBlockBodyFromNodesCoordinator(ihgs, 0)
@@ -1160,25 +1141,22 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
 
-	epoch := uint32(1)
-	header := &mock.HeaderHandlerStub{
-		GetPrevRandSeedCalled: func() []byte {
-			return []byte("rand seed")
-		},
-		IsStartOfEpochBlockCalled: func() bool {
-			return true
-		},
-		GetEpochCaled: func() uint32 {
-			return atomic.LoadUint32(&epoch)
-		},
+	header := &block.MetaBlock{
+		PrevRandSeed: []byte("rand seed"),
+		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		Epoch:        1,
 	}
 
 	body := createBlockBodyFromNodesCoordinator(ihgs, 0)
 	ihgs.EpochStartPrepare(header, body)
 	ihgs.EpochStartAction(header)
 
-	atomic.StoreUint32(&epoch, 2)
 	body = createBlockBodyFromNodesCoordinator(ihgs, 1)
+	header = &block.MetaBlock{
+		PrevRandSeed: []byte("rand seed"),
+		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		Epoch:        2,
+	}
 	ihgs.EpochStartPrepare(header, body)
 	ihgs.EpochStartAction(header)
 
