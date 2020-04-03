@@ -45,9 +45,9 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 				}
 			},
 		},
-		RequestHandler:         &mock.RequestHandlerStub{},
-		EpochStartNotifier:     &mock.EpochStartNotifierStub{},
-		ValidatorInfoProcessor: &mock.ValidatorInfoProcessorStub{},
+		RequestHandler:       &mock.RequestHandlerStub{},
+		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
+		PeerMiniBlocksSyncer: &mock.ValidatorInfoProcessorStub{},
 	}
 }
 
@@ -205,7 +205,7 @@ func TestNewEpochStartTrigger_NilValidatorInfoProcessorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
-	args.ValidatorInfoProcessor = nil
+	args.PeerMiniBlocksSyncer = nil
 	epochStartTrigger, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, epochStartTrigger)

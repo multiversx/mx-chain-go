@@ -38,11 +38,11 @@ type ArgsShardEpochStartTrigger struct {
 	HeaderValidator epochStart.HeaderValidator
 	Uint64Converter typeConverters.Uint64ByteSliceConverter
 
-	DataPool               dataRetriever.PoolsHolder
-	Storage                dataRetriever.StorageService
-	RequestHandler         epochStart.RequestHandler
-	EpochStartNotifier     epochStart.Notifier
-	ValidatorInfoProcessor process.ValidatorInfoProcessorHandler
+	DataPool             dataRetriever.PoolsHolder
+	Storage              dataRetriever.StorageService
+	RequestHandler       epochStart.RequestHandler
+	EpochStartNotifier   epochStart.Notifier
+	PeerMiniBlocksSyncer process.ValidatorInfoProcessorHandler
 
 	Epoch    uint32
 	Validity uint64
@@ -86,7 +86,7 @@ type trigger struct {
 	newEpochHdrReceived bool
 	isEpochStart        bool
 
-	validatorInfoProcessor process.ValidatorInfoProcessorHandler
+	peerMiniBlocksSyncer process.ValidatorInfoProcessorHandler
 
 	appStatusHandler core.AppStatusHandler
 
@@ -125,7 +125,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if check.IfNil(args.DataPool.Headers()) {
 		return nil, epochStart.ErrNilMetaBlocksPool
 	}
-	if check.IfNil(args.ValidatorInfoProcessor) {
+	if check.IfNil(args.PeerMiniBlocksSyncer) {
 		return nil, epochStart.ErrNilValidatorInfoProcessor
 	}
 	if check.IfNil(args.Uint64Converter) {
@@ -186,7 +186,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		epochStartNotifier:          args.EpochStartNotifier,
 		epochStartMeta:              &block.MetaBlock{},
 		epochStartShardHeader:       &block.Header{},
-		validatorInfoProcessor:      args.ValidatorInfoProcessor,
+		peerMiniBlocksSyncer:        args.PeerMiniBlocksSyncer,
 		appStatusHandler:            &statusHandler.NilStatusHandler{},
 	}
 
@@ -506,7 +506,7 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 	}
 
 	if metaHdr.IsStartOfEpochBlock() {
-		missingMiniblocksHashes, blockBody, err := t.validatorInfoProcessor.SyncPeerMiniBlocks(metaHdr)
+		missingMiniblocksHashes, blockBody, err := t.peerMiniBlocksSyncer.SyncPeerMiniBlocks(metaHdr)
 		if err != nil {
 			t.addMissingMiniblocks(metaHdr.Epoch, missingMiniblocksHashes)
 			log.Warn("processMetablock failed", "error", err)

@@ -902,18 +902,18 @@ func newEpochStartTrigger(
 		}
 
 		argEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:            args.coreData.InternalMarshalizer,
-			Hasher:                 args.coreData.Hasher,
-			HeaderValidator:        headerValidator,
-			Uint64Converter:        args.coreData.Uint64ByteSliceConverter,
-			DataPool:               args.data.Datapool,
-			Storage:                args.data.Store,
-			RequestHandler:         requestHandler,
-			Epoch:                  0,
-			EpochStartNotifier:     args.epochStartNotifier,
-			Validity:               process.MetaBlockValidity,
-			Finality:               process.BlockFinality,
-			ValidatorInfoProcessor: peerMiniBlockSyncer,
+			Marshalizer:          args.coreData.InternalMarshalizer,
+			Hasher:               args.coreData.Hasher,
+			HeaderValidator:      headerValidator,
+			Uint64Converter:      args.coreData.Uint64ByteSliceConverter,
+			DataPool:             args.data.Datapool,
+			Storage:              args.data.Store,
+			RequestHandler:       requestHandler,
+			Epoch:                0,
+			EpochStartNotifier:   args.epochStartNotifier,
+			Validity:             process.MetaBlockValidity,
+			Finality:             process.BlockFinality,
+			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
 		if err != nil {
