@@ -19,11 +19,14 @@ type Coordinator interface {
 type Validator interface {
 	PubKey() []byte
 	Address() []byte
+	Chances() uint32
+	SetChances(chances uint32)
+	Clone() (interface{}, error)
 }
 
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection
 type NodesCoordinator interface {
-	NodesPerShardSetter
+	NodesCoordinatorHelper
 	PublicKeysSelector
 	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte, epoch uint32) (validator Validator, shardId uint32, err error)
@@ -63,13 +66,9 @@ type NodesShuffler interface {
 	IsInterfaceNil() bool
 }
 
-// NodesPerShardSetter provides polymorphism functionality for nodesCoordinator
-type NodesPerShardSetter interface {
-	SetNodesPerShards(
-		eligible map[uint32][]Validator,
-		waiting map[uint32][]Validator,
-		epoch uint32,
-	) error
+// NodesCoordinatorHelper provides polymorphism functionality for nodesCoordinator
+type NodesCoordinatorHelper interface {
+	ValidatorsWeights(validators []Validator) ([]uint32, error)
 	ComputeLeaving(allValidators []Validator) []Validator
 }
 
@@ -143,5 +142,11 @@ type ShuffledOutHandler interface {
 // EpochHandler defines a struct able to output current epoch
 type EpochHandler interface {
 	Epoch() uint32
+	IsInterfaceNil() bool
+}
+
+// RandomSelector selects randomly a subset of elements from a set of data
+type RandomSelector interface {
+	Select(randSeed []byte, sampleSize uint32) ([]uint32, error)
 	IsInterfaceNil() bool
 }

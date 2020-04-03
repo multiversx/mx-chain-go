@@ -459,6 +459,9 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 
 	resolver, err := n.resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	if err != nil {
+		keys := n.resolversFinder.ResolverKeys()
+		log.Warn("existing resolvers", "resolvers", keys)
+
 		return nil, err
 	}
 
@@ -530,6 +533,9 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 
 	resolver, err := n.resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
 	if err != nil {
+		keys := n.resolversFinder.ResolverKeys()
+		log.Warn("existing resolvers", "resolvers", keys)
+
 		return nil, err
 	}
 
@@ -758,7 +764,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	}
 
 	err = txValidator.CheckTxValidity(intTx)
-	if errors.Is(err, process.ErrAddressNotInThisShard) {
+	if errors.Is(err, process.ErrAccountNotFound) {
 		// we allow the broadcast of provided transaction even if that transaction is not targeted on the current shard
 		return nil
 	}

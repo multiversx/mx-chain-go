@@ -31,6 +31,11 @@ func (ids *InterceptedDataStub) Type() string {
 	return "intercepted data stub"
 }
 
+// String -
+func (ids *InterceptedDataStub) String() string {
+	return "intercepted data stub string"
+}
+
 // IsInterfaceNil -
 func (ids *InterceptedDataStub) IsInterfaceNil() bool {
 	return ids == nil
