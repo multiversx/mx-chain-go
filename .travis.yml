@@ -32,6 +32,7 @@ script:
 - ERD_PACKAGE=termui
 - cd $TRAVIS_BUILD_DIR/cmd/$ERD_PACKAGE
 - go build -o "$TRAVIS_BUILD_DIR/build/$ERD_PACKAGE" -a -i -ldflags="-X main.appVersion=$APP_VER"
+- ARWEN_PATH=$TRAVIS_BUILD_DIR/build make arwen
 
 - GOOS=$(go env GOOS)
 - GOARCH=$(go env GOARCH)
@@ -46,8 +47,6 @@ script:
 - if [[ "$GOOS" == darwin && "$GOARCH" == amd64 ]]; then
     cp -f $GOPATH/pkg/mod/github.com/\!elrond\!network/arwen-wasm-vm@$ARWEN_VERSION/wasmer/libwasmer_darwin_amd64.dylib $TRAVIS_BUILD_DIR/build;
   fi
-
- - ARWEN_PATH=$TRAVIS_BUILD_DIR/build make arwen
 
 before_deploy:
 - cd "$TRAVIS_BUILD_DIR/build"
