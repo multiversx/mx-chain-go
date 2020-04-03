@@ -106,18 +106,13 @@ func (vip *ValidatorInfoProcessor) ProcessMetaBlock(metaBlock *block.MetaBlock, 
 	return allMissingPeerMiniblocksHashes, nil
 }
 
-func (vip *ValidatorInfoProcessor) receivedMiniBlock(key []byte) {
-	mb, ok := vip.miniBlocksPool.Get(key)
-	if !ok {
-		return
-	}
-
-	peerMb, ok := mb.(*block.MiniBlock)
+func (vip *ValidatorInfoProcessor) receivedMiniBlock(key []byte, value interface{}) {
+	peerMb, ok := value.(*block.MiniBlock)
 	if !ok || peerMb.Type != block.PeerBlock {
 		return
 	}
 
-	log.Trace(fmt.Sprintf("received miniblock of type %s", peerMb.Type))
+	log.Debug(fmt.Sprintf("received miniblock of type %s", peerMb.Type))
 
 	vip.mutMiniBlocksForBlock.Lock()
 	havingPeerMb, ok := vip.mapAllPeerMiniblocks[string(key)]

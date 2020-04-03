@@ -1516,7 +1516,7 @@ func CreateRequesterDataPool(t *testing.T, recvTxs map[int]map[string]struct{}, 
 
 			txMap[string(key)] = struct{}{}
 		},
-		RegisterHandlerCalled: func(i func(key []byte)) {
+		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 		},
 	}, selfShardID)
 }

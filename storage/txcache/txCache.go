@@ -219,7 +219,7 @@ func (cache *TxCache) MaxSize() int {
 }
 
 // RegisterHandler is not implemented
-func (cache *TxCache) RegisterHandler(func(key []byte)) {
+func (cache *TxCache) RegisterHandler(func(key []byte, value interface{})) {
 	log.Error("TxCache.RegisterHandler is not implemented")
 }
 
