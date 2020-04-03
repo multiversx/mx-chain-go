@@ -1,7 +1,6 @@
 package shardchain
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -29,8 +28,8 @@ type ArgValidatorInfoProcessor struct {
 	Hasher                       hashing.Hasher
 }
 
-// ValidatorInfoProcessor implements validator info processing for miniblocks of type peerMiniblock
-type ValidatorInfoProcessor struct {
+// validatorInfoProcessor implements validator info processing for miniblocks of type peerMiniblock
+type validatorInfoProcessor struct {
 	miniBlocksPool               storage.Cacher
 	marshalizer                  marshal.Marshalizer
 	hasher                       hashing.Hasher
@@ -45,8 +44,8 @@ type ValidatorInfoProcessor struct {
 	numMissingPeerMiniblocks uint32
 }
 
-// NewValidatorInfoProcessor creates a new ValidatorInfoProcessor object
-func NewValidatorInfoProcessor(arguments ArgValidatorInfoProcessor) (*ValidatorInfoProcessor, error) {
+// NewValidatorInfoProcessor creates a new validatorInfoProcessor object
+func NewValidatorInfoProcessor(arguments ArgValidatorInfoProcessor) (*validatorInfoProcessor, error) {
 	if check.IfNil(arguments.ValidatorStatisticsProcessor) {
 		return nil, epochStart.ErrNilValidatorStatistics
 	}
@@ -63,7 +62,7 @@ func NewValidatorInfoProcessor(arguments ArgValidatorInfoProcessor) (*ValidatorI
 		return nil, epochStart.ErrNilRequestHandler
 	}
 
-	vip := &ValidatorInfoProcessor{
+	vip := &validatorInfoProcessor{
 		miniBlocksPool:               arguments.MiniBlocksPool,
 		marshalizer:                  arguments.Marshalizer,
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
@@ -78,7 +77,7 @@ func NewValidatorInfoProcessor(arguments ArgValidatorInfoProcessor) (*ValidatorI
 	return vip, nil
 }
 
-func (vip *ValidatorInfoProcessor) init(metaBlock *block.MetaBlock, metablockHash []byte) {
+func (vip *validatorInfoProcessor) init(metaBlock *block.MetaBlock, metablockHash []byte) {
 	vip.mutMiniBlocksForBlock.Lock()
 	vip.metaHeader = metaBlock
 	vip.mapAllPeerMiniblocks = make(map[string]*block.MiniBlock)
@@ -88,7 +87,7 @@ func (vip *ValidatorInfoProcessor) init(metaBlock *block.MetaBlock, metablockHas
 }
 
 // ProcessMetaBlock processes an epochstart block asyncrhonous, processing the PeerMiniblocks
-func (vip *ValidatorInfoProcessor) ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) ([][]byte, error) {
+func (vip *validatorInfoProcessor) ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) ([][]byte, error) {
 	vip.init(metaBlock, metablockHash)
 
 	vip.computeMissingPeerBlocks(metaBlock)
@@ -106,13 +105,17 @@ func (vip *ValidatorInfoProcessor) ProcessMetaBlock(metaBlock *block.MetaBlock, 
 	return allMissingPeerMiniblocksHashes, nil
 }
 
-func (vip *ValidatorInfoProcessor) receivedMiniBlock(key []byte, value interface{}) {
+func (vip *validatorInfoProcessor) receivedMiniBlock(key []byte, value interface{}) {
 	peerMb, ok := value.(*block.MiniBlock)
 	if !ok || peerMb.Type != block.PeerBlock {
 		return
 	}
 
-	log.Debug(fmt.Sprintf("received miniblock of type %s", peerMb.Type))
+	log.Debug("validatorInfoProcessor.receivedMiniBlock",
+		"sender", peerMb.SenderShardID,
+		"receiver", peerMb.ReceiverShardID,
+		"type", peerMb.Type,
+		"num txs", len(peerMb.TxHashes))
 
 	vip.mutMiniBlocksForBlock.Lock()
 	havingPeerMb, ok := vip.mapAllPeerMiniblocks[string(key)]
@@ -131,7 +134,7 @@ func (vip *ValidatorInfoProcessor) receivedMiniBlock(key []byte, value interface
 	}
 }
 
-func (vip *ValidatorInfoProcessor) processAllPeerMiniBlocks(metaBlock *block.MetaBlock) error {
+func (vip *validatorInfoProcessor) processAllPeerMiniBlocks(metaBlock *block.MetaBlock) error {
 	for _, peerMiniBlock := range metaBlock.MiniBlockHeaders {
 		if peerMiniBlock.Type != block.PeerBlock {
 			continue
@@ -157,7 +160,7 @@ func (vip *ValidatorInfoProcessor) processAllPeerMiniBlocks(metaBlock *block.Met
 	return err
 }
 
-func (vip *ValidatorInfoProcessor) computeMissingPeerBlocks(metaBlock *block.MetaBlock) {
+func (vip *validatorInfoProcessor) computeMissingPeerBlocks(metaBlock *block.MetaBlock) {
 	numMissingPeerMiniblocks := uint32(0)
 	vip.mutMiniBlocksForBlock.Lock()
 
@@ -187,7 +190,7 @@ func (vip *ValidatorInfoProcessor) computeMissingPeerBlocks(metaBlock *block.Met
 	vip.mutMiniBlocksForBlock.Unlock()
 }
 
-func (vip *ValidatorInfoProcessor) retrieveMissingBlocks() ([][]byte, error) {
+func (vip *validatorInfoProcessor) retrieveMissingBlocks() ([][]byte, error) {
 	vip.mutMiniBlocksForBlock.Lock()
 	missingMiniblocks := make([][]byte, 0)
 	for mbHash, mb := range vip.mapAllPeerMiniblocks {
@@ -212,7 +215,7 @@ func (vip *ValidatorInfoProcessor) retrieveMissingBlocks() ([][]byte, error) {
 	}
 }
 
-func (vip *ValidatorInfoProcessor) getAllMissingPeerMiniblocksHashes() [][]byte {
+func (vip *validatorInfoProcessor) getAllMissingPeerMiniblocksHashes() [][]byte {
 	vip.mutMiniBlocksForBlock.RLock()
 	defer vip.mutMiniBlocksForBlock.RUnlock()
 
@@ -227,6 +230,6 @@ func (vip *ValidatorInfoProcessor) getAllMissingPeerMiniblocksHashes() [][]byte 
 }
 
 // IsInterfaceNil returns true if underlying object is nil
-func (vip *ValidatorInfoProcessor) IsInterfaceNil() bool {
+func (vip *validatorInfoProcessor) IsInterfaceNil() bool {
 	return vip == nil
 }
