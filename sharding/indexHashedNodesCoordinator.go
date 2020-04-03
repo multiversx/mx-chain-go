@@ -186,8 +186,14 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 	var err error
 	// nbShards holds number of shards without meta
 	nodesConfig.nbShards = uint32(len(eligible) - 1)
-	nodesConfig.eligibleMap = eligible
-	nodesConfig.waitingMap = waiting
+	nodesConfig.eligibleMap, err = cloneValidatorsMap(eligible)
+	if err != nil {
+		return err
+	}
+	nodesConfig.waitingMap, err = cloneValidatorsMap(waiting)
+	if err != nil {
+		return err
+	}
 	nodesConfig.publicKeyToValidatorMap = ihgs.createPublicKeyToValidatorMap(eligible, waiting)
 	nodesConfig.shardID = ihgs.computeShardForSelfPublicKey(nodesConfig)
 	nodesConfig.selectors, err = ihgs.createSelectors(nodesConfig)
@@ -711,7 +717,7 @@ func (ihgs *indexHashedNodesCoordinator) createSelectors(
 			return nil, err
 		}
 
-		selectors[shard], err = NewSelectorWRS(weights, ihgs.hasher)
+		selectors[shard], err = NewSelectorExpandedList(weights, ihgs.hasher)
 		if err != nil {
 			return nil, err
 		}
