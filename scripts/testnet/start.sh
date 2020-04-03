@@ -27,8 +27,8 @@ copySeednodeConfig
 updateSeednodeConfig
 
 if [ $ALWAYS_UPDATE_CONFIGS -eq 1 ]; then
-copyNodeConfig
-updateNodeConfig
+  copyNodeConfig
+  updateNodeConfig
 fi
 
 

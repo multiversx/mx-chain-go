@@ -206,7 +206,7 @@ func (mp *metaProcessor) ProcessBlock(
 
 	mp.createBlockStarted()
 	mp.blockChainHook.SetCurrentHeader(headerHandler)
-	mp.epochStartTrigger.Update(header.GetRound())
+	mp.epochStartTrigger.Update(header.GetRound(), header.GetNonce())
 
 	err = mp.checkEpochCorrectness(header)
 	if err != nil {
@@ -605,7 +605,7 @@ func (mp *metaProcessor) CreateBlock(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	mp.epochStartTrigger.Update(initialHdr.GetRound())
+	mp.epochStartTrigger.Update(initialHdr.GetRound(), initialHdr.GetNonce())
 	metaHdr.SetEpoch(mp.epochStartTrigger.Epoch())
 	mp.blockChainHook.SetCurrentHeader(initialHdr)
 
@@ -1799,13 +1799,15 @@ func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
 }
 
 // CreateNewHeader creates a new header
-func (mp *metaProcessor) CreateNewHeader(round uint64) data.HeaderHandler {
+func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) data.HeaderHandler {
 	metaHeader := &block.MetaBlock{
+		Nonce:                  nonce,
+		Round:                  round,
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
 	}
 
-	mp.epochStartTrigger.Update(round)
+	mp.epochStartTrigger.Update(round, nonce)
 
 	return metaHeader
 }

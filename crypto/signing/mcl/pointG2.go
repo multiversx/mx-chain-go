@@ -1,6 +1,8 @@
 package mcl
 
 import (
+	"runtime"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/herumi/bls-go-binary/bls"
@@ -99,6 +101,7 @@ func (po *PointG2) Add(p crypto.Point) (crypto.Point, error) {
 	}
 
 	bls.G2Add(po2.G2, po.G2, po1.G2)
+	runtime.KeepAlive(po1)
 
 	return &po2, nil
 }
@@ -120,6 +123,7 @@ func (po *PointG2) Sub(p crypto.Point) (crypto.Point, error) {
 	}
 
 	bls.G2Sub(po2.G2, po.G2, po1.G2)
+	runtime.KeepAlive(po1)
 
 	return &po2, nil
 }
@@ -151,6 +155,7 @@ func (po *PointG2) Mul(s crypto.Scalar) (crypto.Point, error) {
 	}
 
 	bls.G2Mul(po2.G2, po.G2, s1.Scalar)
+	runtime.KeepAlive(s1)
 
 	return &po2, nil
 }
@@ -165,6 +170,7 @@ func (po *PointG2) Pick() (crypto.Point, error) {
 	}
 
 	bls.G2Mul(po2.G2, po.G2, scalar)
+	runtime.KeepAlive(scalar)
 
 	return &po2, nil
 }

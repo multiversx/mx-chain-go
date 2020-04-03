@@ -71,12 +71,13 @@ func NewTestP2PNode(
 	pidPk, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 0)
 	pkShardId, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 0)
 	pidShardId, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 0)
+	startInEpoch := uint32(0)
 	tP2pNode.NetworkShardingUpdater, err = networksharding.NewPeerShardMapper(
 		pidPk,
 		pkShardId,
 		pidShardId,
 		coordinator,
-		&mock.EpochStartTriggerStub{},
+		startInEpoch,
 	)
 	if err != nil {
 		fmt.Printf("Error creating NewPeerShardMapper: %s\n", err.Error())

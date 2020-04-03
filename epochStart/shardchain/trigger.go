@@ -819,7 +819,7 @@ func (t *trigger) GetSavedStateKey() []byte {
 }
 
 // Update updates the end-of-epoch trigger
-func (t *trigger) Update(_ uint64) {
+func (t *trigger) Update(_ uint64, _ uint64) {
 }
 
 // SetFinalityAttestingRound sets the round which finalized the start of epoch block

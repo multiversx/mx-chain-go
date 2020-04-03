@@ -20,8 +20,6 @@ import (
 
 var log = logger.GetOrCreate("process/track")
 
-const percentToKeep = 0.8
-
 // HeaderInfo holds the information about a header
 type HeaderInfo struct {
 	Hash   []byte
@@ -170,33 +168,6 @@ func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
 	}
 
 	headersForShard[nonce] = append(headersForShard[nonce], &HeaderInfo{Hash: hash, Header: header})
-	numHeadersForShard := len(headersForShard)
-	bbt.mutHeaders.Unlock()
-
-	if numHeadersForShard > bbt.maxNumHeadersToKeepPerShard {
-		bbt.cleanupWhenMaxCapacityIsReached(shardID)
-	}
-}
-
-func (bbt *baseBlockTrack) cleanupWhenMaxCapacityIsReached(shardID uint32) {
-	headers, _ := bbt.GetTrackedHeaders(shardID)
-	trackedHeadersCount := len(headers)
-	if trackedHeadersCount <= bbt.maxNumHeadersToKeepPerShard {
-		return
-	}
-
-	bbt.mutHeaders.Lock()
-	if shardID == bbt.shardCoordinator.SelfId() {
-		index := trackedHeadersCount - int(float64(bbt.maxNumHeadersToKeepPerShard)*percentToKeep)
-		for i := 0; i < index; i++ {
-			delete(bbt.headers[shardID], headers[i].GetNonce())
-		}
-	} else {
-		index := int(float64(bbt.maxNumHeadersToKeepPerShard) * percentToKeep)
-		for i := trackedHeadersCount - 1; i >= index; i-- {
-			delete(bbt.headers[shardID], headers[i].GetNonce())
-		}
-	}
 	bbt.mutHeaders.Unlock()
 }
 

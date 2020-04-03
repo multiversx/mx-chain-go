@@ -31,11 +31,11 @@ export NODE_NICENESS=10
 # Use tmux or not. If set to 1, only 2 terminal windows will be opened, and
 # tmux will be used to display the running executables using split windows.
 # Recommended. Tmux needs to be installed.
-export USETMUX=0
+export USETMUX=1
 
 # Start Nodes with TermUI or not. Looks good with TermUI, but if you want full
 # info and saved logs, set this to 0. TermUI can't save logs.
-export NODETERMUI=0
+export NODETERMUI=1
 
 # Log level for the logger in the Node.
 export LOGLEVEL="*:DEBUG"
@@ -65,8 +65,12 @@ export TOTAL_NODECOUNT=$total_node_count
 
 # Okay as defaults, change if needed.
 export MINT_VALUE="1000000000000000000000000000"
-export ALWAYS_NEW_CHAINID=0
-export ALWAYS_UPDATE_CONFIGS=0
+# ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
+export ALWAYS_NEW_CHAINID=1
+# ALWAYS_UPDATE_CONFIGS will re-generate configs (toml + json) each time ./start.sh
+# Set this variable to 0 when testing bootstram from storage or other edge cases where you do not want a fresh new config
+# each time.
+export ALWAYS_UPDATE_CONFIGS=1
 
 # Ports used by the Nodes
 export PORT_SEEDNODE="9999"

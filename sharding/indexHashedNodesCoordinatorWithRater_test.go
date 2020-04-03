@@ -74,10 +74,17 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 	}
 	nc, err := NewIndexHashedNodesCoordinator(arguments)
 	assert.Nil(t, err)
+	readEligible := nc.nodesConfig[0].eligibleMap[0]
+	assert.Equal(t, eligibleMap[0], readEligible)
 
-	ihgs, err := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
+	rater := &mock.RaterMock{}
+	ihgs, err := NewIndexHashedNodesCoordinatorWithRater(nc, rater)
 	assert.Nil(t, err)
-	readEligible := ihgs.nodesConfig[0].eligibleMap[0]
+
+	for i := 0; i < len(eligibleMap[0]); i++ {
+		eligibleMap[0][i].SetChances(rater.GetChance(0))
+	}
+	readEligible = ihgs.nodesConfig[0].eligibleMap[0]
 	assert.Equal(t, eligibleMap[0], readEligible)
 }
 
