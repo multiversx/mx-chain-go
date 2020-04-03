@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -153,8 +154,7 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 			require.Equal(t, blockIndex, req.Index)
 
 			var block Block
-			blockBytes := make([]byte, 279)
-			_, _ = req.Body.Read(blockBytes)
+			blockBytes, _ := ioutil.ReadAll(req.Body)
 			_ = json.Unmarshal(blockBytes, &block)
 			require.Equal(t, header.Nonce, block.Nonce)
 			require.Equal(t, hexEncodedHash, block.MiniBlocksHashes[0])
