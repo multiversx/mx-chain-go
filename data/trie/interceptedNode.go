@@ -2,10 +2,12 @@ package trie
 
 import (
 	"fmt"
+	"math/big"
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
@@ -93,6 +95,31 @@ func (inTn *InterceptedTrieNode) String() string {
 	return fmt.Sprintf("hash=%s",
 		logger.DisplayByteSlice(inTn.hash),
 	)
+}
+
+// SenderShardId returns 0
+func (inTn *InterceptedTrieNode) SenderShardId() uint32 {
+	return 0
+}
+
+// ReceiverShardId return 0
+func (inTn *InterceptedTrieNode) ReceiverShardId() uint32 {
+	return 0
+}
+
+// Nonce return 0
+func (inTn *InterceptedTrieNode) Nonce() uint64 {
+	return 0
+}
+
+// SenderAddress return 0
+func (inTn *InterceptedTrieNode) SenderAddress() state.AddressContainer {
+	return nil
+}
+
+// Fee returns big.NewInt(0)
+func (inTn *InterceptedTrieNode) Fee() *big.Int {
+	return big.NewInt(0)
 }
 
 // CreateEndOfProcessingTriggerNode changes the hash of the current node by appending the hash to the current hash.

@@ -925,6 +925,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer,
 		requestedItemsHandler,
 		epochStartNotifier,
+		whiteListHandler,
 	)
 	if err != nil {
 		return err
@@ -1418,6 +1419,7 @@ func createNode(
 	indexer indexer.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
+	whiteListHandler process.WhiteListHandler,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -1520,6 +1522,7 @@ func createNode(
 		node.WithInputAntifloodHandler(network.InputAntifloodHandler),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(hardforkTrigger),
+		node.WithWhiteListHanlder(whiteListHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

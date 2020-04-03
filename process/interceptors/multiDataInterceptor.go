@@ -20,7 +20,7 @@ type MultiDataInterceptor struct {
 	factory          process.InterceptedDataFactory
 	processor        process.InterceptorProcessor
 	throttler        process.InterceptorThrottler
-	dataVerifier 	 process.InterceptedDataVerifier
+	whiteListHandler process.WhiteListHandler
 	antifloodHandler process.P2PAntifloodHandler
 }
 
@@ -32,6 +32,7 @@ func NewMultiDataInterceptor(
 	processor process.InterceptorProcessor,
 	throttler process.InterceptorThrottler,
 	antifloodHandler process.P2PAntifloodHandler,
+	whiteListHandler process.WhiteListHandler,
 ) (*MultiDataInterceptor, error) {
 	if len(topic) == 0 {
 		return nil, process.ErrEmptyTopic
@@ -51,6 +52,9 @@ func NewMultiDataInterceptor(
 	if check.IfNil(antifloodHandler) {
 		return nil, process.ErrNilAntifloodHandler
 	}
+	if check.IfNil(whiteListHandler) {
+		return nil, process.ErrNilWhiteListHandler
+	}
 
 	multiDataIntercept := &MultiDataInterceptor{
 		topic:            topic,
@@ -58,20 +62,11 @@ func NewMultiDataInterceptor(
 		factory:          factory,
 		processor:        processor,
 		throttler:        throttler,
-		dataVerifier: 	  NewDefaultDataVerifier(),
+		whiteListHandler: whiteListHandler,
 		antifloodHandler: antifloodHandler,
 	}
 
 	return multiDataIntercept, nil
-}
-
-// SetIsDataForCurrentShardVerifier sets a different implementation for the data verifier
-func (mdi *MultiDataInterceptor) SetIsDataForCurrentShardVerifier(verifier process.InterceptedDataVerifier) error {
-	if check.IfNil(verifier) {
-		return process.ErrNilInterceptedDataVerifier
-	}
-	mdi.dataVerifier = verifier
-	return nil
 }
 
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
@@ -116,18 +111,21 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 		interceptedMultiData = append(interceptedMultiData, interceptedData)
 
-		if !mdi.dataVerifier.IsForCurrentShard(interceptedData) {
-			log.Trace("intercepted data is for other shards",
+		shouldProcess := interceptedData.IsForCurrentShard() || mdi.whiteListHandler.IsWhiteListed(interceptedData)
+		if !shouldProcess {
+			log.Trace("intercepted data should not be processed",
 				"pid", p2p.MessageOriginatorPid(message),
 				"seq no", p2p.MessageOriginatorSeq(message),
 				"topics", message.Topics(),
 				"hash", interceptedData.Hash(),
+				"is for this shard", interceptedData.IsForCurrentShard(),
 			)
+			mdi.whiteListHandler.Remove([][]byte{interceptedData.Hash()})
 			wgProcess.Done()
 			continue
 		}
 
-		go processInterceptedData(mdi.processor, interceptedData, wgProcess, message)
+		go processInterceptedData(mdi.processor, mdi.whiteListHandler, interceptedData, wgProcess, message)
 	}
 
 	return lastErrEncountered

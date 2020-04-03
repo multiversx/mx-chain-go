@@ -156,3 +156,6 @@ var ErrNilTxAccumulator = errors.New("nil tx accumulator")
 
 // ErrNilHardforkTrigger signals that a nil hardfork trigger has been provided
 var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
+
+// ErrNilWhiteListHandler signals that white list handler is nil
+var ErrNilWhiteListHandler = errors.New("nil whitelist handler")

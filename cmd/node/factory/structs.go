@@ -553,7 +553,7 @@ type processComponentsFactoryArgs struct {
 	network                   *Network
 	coreServiceContainer      serviceContainer.Core
 	requestedItemsHandler     dataRetriever.RequestedItemsHandler
-	whiteListHandler          process.InterceptedDataWhiteList
+	whiteListHandler          process.WhiteListHandler
 	epochStartNotifier        EpochStartNotifier
 	epochStart                *config.EpochStartConfig
 	rater                     sharding.PeerAccountListAndRatingHandler
@@ -584,7 +584,7 @@ func NewProcessComponentsFactoryArgs(
 	network *Network,
 	coreServiceContainer serviceContainer.Core,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
-	whiteListHandler process.InterceptedDataWhiteList,
+	whiteListHandler process.WhiteListHandler,
 	epochStartNotifier EpochStartNotifier,
 	epochStart *config.EpochStartConfig,
 	startEpochNum uint32,
@@ -1084,7 +1084,7 @@ func newInterceptorContainerFactory(
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
-	whiteListHandler process.InterceptedDataWhiteList,
+	whiteListHandler process.WhiteListHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1171,7 +1171,7 @@ func newShardInterceptorContainerFactory(
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
-	whiteListHandler process.InterceptedDataWhiteList,
+	whiteListHandler process.WhiteListHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
@@ -1222,7 +1222,7 @@ func newMetaInterceptorContainerFactory(
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
-	whiteListHandler process.InterceptedDataWhiteList,
+	whiteListHandler process.WhiteListHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{

@@ -200,7 +200,7 @@ type TestProcessorNode struct {
 	BootstrapStorer          *mock.BoostrapStorerMock
 	StorageBootstrapper      *mock.StorageBootstrapperMock
 	RequestedItemsHandler    dataRetriever.RequestedItemsHandler
-	WhiteListHandler         process.InterceptedDataWhiteList
+	WhiteListHandler         process.WhiteListHandler
 	NetworkShardingCollector consensus.NetworkShardingCollector
 
 	ValidatorInfoProcessor process.ValidatorInfoProcessorHandler
@@ -474,7 +474,7 @@ func CreateEconomicsData() *economics.EconomicsData {
 	return economicsData
 }
 
-// CreateEconomicsData creates a mock EconomicsData object
+// CreateRatingsData creates a mock RatingsData object
 func CreateRatingsData() *rating.RatingsData {
 	ratingsConfig := config.RatingsConfig{
 		ShardChain: config.ShardChain{

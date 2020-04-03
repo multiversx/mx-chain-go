@@ -81,7 +81,8 @@ type Node struct {
 	appStatusHandler              core.AppStatusHandler
 	validatorStatistics           process.ValidatorStatisticsProcessor
 	hardforkTrigger               HardforkTrigger
-	validatorsProvider       	  process.ValidatorsProvider
+	validatorsProvider            process.ValidatorsProvider
+	whiteListHandler              process.WhiteListHandler
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -717,7 +718,12 @@ func (n *Node) getSenderShardId(tx *transaction.Transaction) (uint32, error) {
 
 // ValidateTransaction will validate a transaction
 func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
-	txValidator, err := dataValidators.NewTxValidator(n.accounts, n.shardCoordinator, core.MaxTxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(
+		n.accounts,
+		n.shardCoordinator,
+		n.whiteListHandler,
+		core.MaxTxNonceDeltaAllowed,
+	)
 	if err != nil {
 		return nil
 	}

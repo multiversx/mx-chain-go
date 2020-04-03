@@ -225,11 +225,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) Create() (process.Interceptors
 		return nil, err
 	}
 
-	err = ficf.setWhiteListHandlerToInterceptors()
-	if err != nil {
-		return nil, err
-	}
-
 	return ficf.container, nil
 }
 
@@ -301,7 +296,8 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateShardHeaderInterceptor
 			continue
 		}
 
-		interceptor, err := ficf.createOneShardHeaderInterceptor(identifierHeader)
+		var interceptor process.Interceptor
+		interceptor, err = ficf.createOneShardHeaderInterceptor(identifierHeader)
 		if err != nil {
 			return err
 		}
@@ -340,6 +336,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneShardHeaderIntercepto
 		hdrProcessor,
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
+		ficf.whiteListHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -484,7 +481,12 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic string) (process.Interceptor, error) {
-	txValidator, err := dataValidators.NewTxValidator(ficf.accounts, ficf.shardCoordinator, ficf.maxTxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(
+		ficf.accounts,
+		ficf.shardCoordinator,
+		ficf.whiteListHandler,
+		ficf.maxTxNonceDeltaAllowed,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -510,6 +512,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 		txProcessor,
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
+		ficf.whiteListHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -545,6 +548,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 		txProcessor,
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
+		ficf.whiteListHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -580,6 +584,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(t
 		txProcessor,
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
+		ficf.whiteListHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -646,6 +651,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor
 		txBlockBodyProcessor,
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
+		ficf.whiteListHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -687,6 +693,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 		hdrProcessor,
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
+		ficf.whiteListHandler,
 	)
 	if err != nil {
 		return err
@@ -718,6 +725,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTrieNodesInterceptor(
 		trieNodesProcessor,
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
+		ficf.whiteListHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -743,7 +751,8 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateRewardTxInterceptors()
 			return nil
 		}
 
-		interceptor, err := ficf.createOneRewardTxInterceptor(identifierScr)
+		var interceptor process.Interceptor
+		interceptor, err = ficf.createOneRewardTxInterceptor(identifierScr)
 		if err != nil {
 			return err
 		}
@@ -753,21 +762,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateRewardTxInterceptors()
 	}
 
 	return ficf.container.AddMultiple(keys, interceptorSlice)
-}
-
-func (ficf *fullSyncInterceptorsContainerFactory) setWhiteListHandlerToInterceptors() error {
-	var err error
-
-	ficf.container.Iterate(func(key string, interceptor process.Interceptor) bool {
-		errFound := interceptor.SetIsDataForCurrentShardVerifier(ficf.whiteListHandler)
-		if errFound != nil {
-			err = errFound
-			return false
-		}
-		return true
-	})
-
-	return err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
