@@ -191,6 +191,10 @@ func (esd *elasticSearchDatabase) SaveTransactions(
 	bulks := esd.buildTransactionBulks(body, header, txPool, selfShardId)
 	for _, bulk := range bulks {
 		buff := serializeBulkTxs(bulk)
+		if buff.Len() == 0 {
+			continue
+		}
+
 		err := esd.dbWriter.DoBulkRequest(&buff, txIndex)
 		if err != nil {
 			log.Warn("indexer", "error", "indexing bulk of transactions")
@@ -213,6 +217,13 @@ func (esd *elasticSearchDatabase) buildTransactionBulks(
 	blockHash := esd.hasher.Compute(string(blockMarshal))
 
 	for _, mb := range body.MiniBlocks {
+		if header.GetShardID() == core.MetachainShardId && mb.Type == block.RewardsBlock {
+			continue
+		}
+		if mb.Type == block.PeerBlock {
+			continue
+		}
+
 		mbMarshal, err := esd.marshalizer.Marshal(mb)
 		if err != nil {
 			log.Debug("indexer: marshal", "error", "could not marshal miniblock")
