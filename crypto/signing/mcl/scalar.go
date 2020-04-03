@@ -1,6 +1,8 @@
 package mcl
 
 import (
+	"runtime"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/herumi/bls-go-binary/bls"
@@ -98,6 +100,7 @@ func (sc *Scalar) Add(s crypto.Scalar) (crypto.Scalar, error) {
 	}
 
 	bls.FrAdd(s1.Scalar, sc.Scalar, s2.Scalar)
+	runtime.KeepAlive(s2)
 
 	return &s1, nil
 }
@@ -118,6 +121,7 @@ func (sc *Scalar) Sub(s crypto.Scalar) (crypto.Scalar, error) {
 	}
 
 	bls.FrSub(s1.Scalar, sc.Scalar, s2.Scalar)
+	runtime.KeepAlive(s2)
 
 	return &s1, nil
 }
@@ -160,6 +164,7 @@ func (sc *Scalar) Mul(s crypto.Scalar) (crypto.Scalar, error) {
 	}
 
 	bls.FrMul(s1.Scalar, sc.Scalar, s2.Scalar)
+	runtime.KeepAlive(s2)
 
 	return &s1, nil
 }
@@ -180,6 +185,7 @@ func (sc *Scalar) Div(s crypto.Scalar) (crypto.Scalar, error) {
 	}
 
 	bls.FrDiv(s1.Scalar, sc.Scalar, s2.Scalar)
+	runtime.KeepAlive(s2)
 
 	return &s1, nil
 }
@@ -200,6 +206,7 @@ func (sc *Scalar) Inv(s crypto.Scalar) (crypto.Scalar, error) {
 	}
 
 	bls.FrInv(s1.Scalar, s2.Scalar)
+	runtime.KeepAlive(s2)
 
 	return &s1, nil
 }

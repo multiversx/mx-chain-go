@@ -105,3 +105,6 @@ var ErrInvalidWeight = errors.New("invalid weight")
 
 // ErrNilRandomSelector signals that a nil selector was provided
 var ErrNilRandomSelector = errors.New("nil selector")
+
+// ErrNilValidator signals that a nil validator was provided
+var ErrNilValidator = errors.New("nil validator")
