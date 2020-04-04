@@ -748,6 +748,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	_, err = poolsCleaner.NewCrossTxsPoolsCleaner(
+		args.state.AddressConverter,
 		blockTracker,
 		args.data.Datapool,
 		rounder,

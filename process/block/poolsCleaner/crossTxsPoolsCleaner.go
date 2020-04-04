@@ -1,10 +1,13 @@
 package poolsCleaner
 
 import (
+	"bytes"
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -31,6 +34,7 @@ type txInfo struct {
 
 // crossTxsPoolsCleaner represents a pools cleaner that checks and cleans cross txs which should not be in pool anymore
 type crossTxsPoolsCleaner struct {
+	addressConverter         state.AddressConverter
 	blockTracker             BlockTracker
 	blockTransactionsPool    dataRetriever.ShardedDataCacherNotifier
 	rewardTransactionsPool   dataRetriever.ShardedDataCacherNotifier
@@ -40,16 +44,21 @@ type crossTxsPoolsCleaner struct {
 
 	mutMapCrossTxsRounds sync.RWMutex
 	mapCrossTxsRounds    map[string]*txInfo
+	emptyAddress         []byte
 }
 
 // NewCrossTxsPoolsCleaner will return a new cross txs pools cleaner
 func NewCrossTxsPoolsCleaner(
+	addressConverter state.AddressConverter,
 	blockTracker BlockTracker,
 	dataPool dataRetriever.PoolsHolder,
 	rounder process.Rounder,
 	shardCoordinator sharding.Coordinator,
 ) (*crossTxsPoolsCleaner, error) {
 
+	if check.IfNil(addressConverter) {
+		return nil, process.ErrNilAddressConverter
+	}
 	if check.IfNil(blockTracker) {
 		return nil, process.ErrNilBlockTracker
 	}
@@ -73,6 +82,7 @@ func NewCrossTxsPoolsCleaner(
 	}
 
 	ctpc := crossTxsPoolsCleaner{
+		addressConverter:         addressConverter,
 		blockTracker:             blockTracker,
 		blockTransactionsPool:    dataPool.Transactions(),
 		rewardTransactionsPool:   dataPool.RewardTransactions(),
@@ -86,6 +96,8 @@ func NewCrossTxsPoolsCleaner(
 	ctpc.blockTransactionsPool.RegisterHandler(ctpc.receivedBlockTx)
 	ctpc.rewardTransactionsPool.RegisterHandler(ctpc.receivedRewardTx)
 	ctpc.unsignedTransactionsPool.RegisterHandler(ctpc.receivedUnsignedTx)
+
+	ctpc.emptyAddress = make([]byte, ctpc.addressConverter.AddressLen())
 
 	go ctpc.cleanCrossTxsPools()
 
@@ -106,7 +118,14 @@ func (ctpc *crossTxsPoolsCleaner) receivedBlockTx(key []byte, value interface{})
 	}
 
 	log.Trace("crossTxsPoolsCleaner.receivedBlockTx", "hash", key)
-	ctpc.processReceivedTx(key, value, blockTx)
+
+	wrappedTx, ok := value.(*txcache.WrappedTransaction)
+	if !ok {
+		log.Warn("crossTxsPoolsCleaner.receivedBlockTx", "error", process.ErrWrongTypeAssertion)
+		return
+	}
+
+	ctpc.processReceivedTx(key, wrappedTx.SenderShardID, wrappedTx.ReceiverShardID, blockTx)
 }
 
 func (ctpc *crossTxsPoolsCleaner) receivedRewardTx(key []byte, value interface{}) {
@@ -115,7 +134,19 @@ func (ctpc *crossTxsPoolsCleaner) receivedRewardTx(key []byte, value interface{}
 	}
 
 	log.Trace("crossTxsPoolsCleaner.receivedRewardTx", "hash", key)
-	ctpc.processReceivedTx(key, value, rewardTx)
+
+	tx, ok := value.(data.TransactionHandler)
+	if !ok {
+		log.Warn("crossTxsPoolsCleaner.receivedRewardTx", "error", process.ErrWrongTypeAssertion)
+		return
+	}
+
+	senderShardID, receiverShardID, err := ctpc.computeSenderAndReceiverShards(tx)
+	if err != nil {
+		log.Debug("crossTxsPoolsCleaner.receivedRewardTx", "error", err.Error())
+	}
+
+	ctpc.processReceivedTx(key, senderShardID, receiverShardID, rewardTx)
 }
 
 func (ctpc *crossTxsPoolsCleaner) receivedUnsignedTx(key []byte, value interface{}) {
@@ -124,17 +155,28 @@ func (ctpc *crossTxsPoolsCleaner) receivedUnsignedTx(key []byte, value interface
 	}
 
 	log.Trace("crossTxsPoolsCleaner.receivedUnsignedTx", "hash", key)
-	ctpc.processReceivedTx(key, value, unsignedTx)
-}
 
-func (ctpc *crossTxsPoolsCleaner) processReceivedTx(key []byte, value interface{}, txType int8) {
-	wrappedTx, ok := value.(*txcache.WrappedTransaction)
+	tx, ok := value.(data.TransactionHandler)
 	if !ok {
-		log.Warn("crossTxsPoolsCleaner.processReceivedTx", "error", process.ErrWrongTypeAssertion)
+		log.Warn("crossTxsPoolsCleaner.receivedUnsignedTx", "error", process.ErrWrongTypeAssertion)
 		return
 	}
 
-	if wrappedTx.SenderShardID == ctpc.shardCoordinator.SelfId() {
+	senderShardID, receiverShardID, err := ctpc.computeSenderAndReceiverShards(tx)
+	if err != nil {
+		log.Debug("crossTxsPoolsCleaner.receivedUnsignedTx", "error", err.Error())
+	}
+
+	ctpc.processReceivedTx(key, senderShardID, receiverShardID, unsignedTx)
+}
+
+func (ctpc *crossTxsPoolsCleaner) processReceivedTx(
+	key []byte,
+	senderShardID uint32,
+	receiverShardID uint32,
+	txType int8,
+) {
+	if senderShardID == ctpc.shardCoordinator.SelfId() {
 		return
 	}
 
@@ -147,7 +189,7 @@ func (ctpc *crossTxsPoolsCleaner) processReceivedTx(key []byte, value interface{
 			return
 		}
 
-		strCache := process.ShardCacherIdentifier(wrappedTx.SenderShardID, wrappedTx.ReceiverShardID)
+		strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
 		txStore := transactionPool.ShardDataStore(strCache)
 		if txStore == nil {
 			return
@@ -155,8 +197,8 @@ func (ctpc *crossTxsPoolsCleaner) processReceivedTx(key []byte, value interface{
 
 		crossTxInfo := &txInfo{
 			round:           ctpc.rounder.Index(),
-			senderShardID:   wrappedTx.SenderShardID,
-			receiverShardID: wrappedTx.ReceiverShardID,
+			senderShardID:   senderShardID,
+			receiverShardID: receiverShardID,
 			txType:          txType,
 			txStore:         txStore,
 		}
@@ -251,4 +293,32 @@ func getTxTypeName(txType int8) string {
 	}
 
 	return "unknownTx"
+}
+
+func (ctpc *crossTxsPoolsCleaner) computeSenderAndReceiverShards(tx data.TransactionHandler) (uint32, uint32, error) {
+	senderShardID, err := ctpc.getShardFromAddress(tx.GetSndAddr())
+	if err != nil {
+		return 0, 0, err
+	}
+
+	receiverShardID, err := ctpc.getShardFromAddress(tx.GetRcvAddr())
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return senderShardID, receiverShardID, nil
+}
+
+func (ctpc *crossTxsPoolsCleaner) getShardFromAddress(address []byte) (uint32, error) {
+	isEmptyAddress := bytes.Equal(address, ctpc.emptyAddress)
+	if isEmptyAddress {
+		return ctpc.shardCoordinator.SelfId(), nil
+	}
+
+	addressContainer, err := ctpc.addressConverter.CreateAddressFromPublicKeyBytes(address)
+	if err != nil {
+		return 0, err
+	}
+
+	return ctpc.shardCoordinator.ComputeId(addressContainer), nil
 }

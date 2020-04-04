@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
 const initialTxHashesSliceLen = 10
@@ -149,22 +148,15 @@ func (bpp *basePreProcess) saveTxsToStorage(
 
 func (bpp *basePreProcess) baseReceivedTransaction(
 	txHash []byte,
-	value interface{},
+	tx data.TransactionHandler,
 	forBlock *txsForBlock,
 ) bool {
-
-	wrappedTx, ok := value.(*txcache.WrappedTransaction)
-	if !ok {
-		log.Warn("basePreProcess.baseReceivedTransaction", "error", process.ErrWrongTypeAssertion)
-		return false
-	}
-
 	forBlock.mutTxsForBlock.Lock()
 	if forBlock.missingTxs > 0 {
 		txInfoForHash := forBlock.txHashAndInfo[string(txHash)]
 		if txInfoForHash != nil && txInfoForHash.txShardInfo != nil &&
 			(txInfoForHash.tx == nil || txInfoForHash.tx.IsInterfaceNil()) {
-			forBlock.txHashAndInfo[string(txHash)].tx = wrappedTx.Tx
+			forBlock.txHashAndInfo[string(txHash)].tx = tx
 			forBlock.missingTxs--
 		}
 
