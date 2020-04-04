@@ -326,8 +326,13 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	}
 
 	msgType := consensus.MessageType(cnsDta.MsgType)
+	if !wrk.consensusService.IsMessageTypeValid(msgType) {
+		return fmt.Errorf("%w : received message type from consensus topic is invalid: %d",
+			ErrInvalidMessageType,
+			msgType)
+	}
 
-	log.Trace("received from consensus topic",
+	log.Trace("received message from consensus topic",
 		"msg type", wrk.consensusService.GetStringValue(msgType),
 		"from", core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
 		"header hash", cnsDta.BlockHeaderHash,
@@ -342,8 +347,19 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 			logger.DisplayByteSlice(cnsDta.PubKey))
 	}
 
+	if wrk.consensusState.RoundIndex+1 < cnsDta.RoundIndex {
+		log.Trace("received message from consensus topic is for future round",
+			"msg type", wrk.consensusService.GetStringValue(msgType),
+			"from", core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
+			"header hash", cnsDta.BlockHeaderHash,
+			"msg round", cnsDta.RoundIndex,
+			"round", wrk.consensusState.RoundIndex,
+		)
+		return ErrMessageForFutureRound
+	}
+
 	if wrk.consensusState.RoundIndex > cnsDta.RoundIndex {
-		log.Trace("late received from consensus topic",
+		log.Trace("received message from consensus topic is for past round",
 			"msg type", wrk.consensusService.GetStringValue(msgType),
 			"from", core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
 			"header hash", cnsDta.BlockHeaderHash,

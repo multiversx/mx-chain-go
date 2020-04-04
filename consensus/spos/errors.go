@@ -109,6 +109,9 @@ var ErrSenderNotOk = errors.New("sender is invalid")
 // ErrMessageForPastRound is raised when message is for past round
 var ErrMessageForPastRound = errors.New("message is for past round")
 
+// ErrMessageForFutureRound is raised when message is for future round
+var ErrMessageForFutureRound = errors.New("message is for future round")
+
 // ErrInvalidSignature is raised when signature is invalid
 var ErrInvalidSignature = errors.New("signature is invalid")
 
@@ -153,3 +156,6 @@ var ErrInvalidChainID = errors.New("invalid chain ID in consensus")
 
 // ErrNilNetworkShardingCollector defines the error for setting a nil network sharding collector
 var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
+
+// ErrInvalidMessageType signals that an invalid message type has been received from consensus topic
+var ErrInvalidMessageType = errors.New("invalid message type")

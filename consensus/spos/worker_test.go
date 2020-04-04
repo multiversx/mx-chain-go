@@ -995,35 +995,6 @@ func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWorker_ProcessReceivedMessageHeaderShouldRetNil(t *testing.T) {
-	t.Parallel()
-	wrk := *initWorker()
-	hdr := &block.Header{}
-	hdr.Nonce = 1
-	hdr.TimeStamp = uint64(wrk.Rounder().TimeStamp().Unix())
-	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
-	hdrHash := mock.HasherMock{}.Compute(string(hdrStr))
-	cnsMsg := consensus.NewConsensusMessage(
-		hdrHash,
-		nil,
-		nil,
-		hdrStr,
-		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
-		[]byte("sig"),
-		int(bls.MtUnknown),
-		0,
-		chainID,
-		nil,
-		nil,
-		nil,
-	)
-	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-	time.Sleep(time.Second)
-	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
-
-	assert.Nil(t, err)
-}
-
 func TestWorker_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
@@ -1156,7 +1127,61 @@ func TestWorker_ProcessReceivedMessageInconsistentChainIDInConsensusMessageShoul
 	assert.True(t, errors.Is(err, spos.ErrInvalidChainID))
 }
 
-func TestWorker_ProcessReceivedMessageMessageIsForPastRoundShouldErr(t *testing.T) {
+func TestWorker_ProcessReceivedMessageTypeInvalidShouldErr(t *testing.T) {
+	t.Parallel()
+	wrk := *initWorker()
+	blk := &block.Body{}
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
+	cnsMsg := consensus.NewConsensusMessage(
+		nil,
+		nil,
+		blkStr,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(666),
+		0,
+		chainID,
+		nil,
+		nil,
+		nil,
+	)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
+	time.Sleep(time.Second)
+
+	assert.Equal(t, 0, len(wrk.ReceivedMessages()[666]))
+	assert.True(t, errors.Is(err, spos.ErrInvalidMessageType), err)
+}
+
+func TestWorker_ProcessReceivedMessageForFutureRoundShouldErr(t *testing.T) {
+	t.Parallel()
+	wrk := *initWorker()
+	blk := &block.Body{}
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
+	cnsMsg := consensus.NewConsensusMessage(
+		nil,
+		nil,
+		blkStr,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bls.MtBlockBody),
+		2,
+		chainID,
+		nil,
+		nil,
+		nil,
+	)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
+	time.Sleep(time.Second)
+
+	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
+	assert.Equal(t, spos.ErrMessageForFutureRound, err)
+}
+
+func TestWorker_ProcessReceivedMessageForPastRoundShouldErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
 	blk := &block.Body{}
