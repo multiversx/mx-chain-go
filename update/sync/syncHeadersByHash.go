@@ -169,7 +169,7 @@ func (m *syncHeadersByHash) getHeaderFromPoolOrStorage(hash []byte) (data.Header
 		return header, true
 	}
 
-	hdrData, err := GetDataFromStorage(hash, m.storage, m.epochToSync)
+	hdrData, err := GetDataFromStorage(hash, m.storage)
 	if err != nil {
 		return nil, false
 	}

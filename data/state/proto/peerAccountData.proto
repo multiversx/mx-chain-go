@@ -42,29 +42,28 @@ message ValidatorApiResponse {
 // PeerAccountData represents the data that defines the PeerAccount
 message PeerAccountData {
     bytes BLSPublicKey = 1;
-    bytes SchnorrPublicKey = 2;
-    bytes RewardAddress = 3;
-    bytes Stake = 4 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes RewardAddress = 2;
+    bytes Stake = 3 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 
-    TimePeriod JailTime = 5 [(gogoproto.nullable) = false];
-    repeated TimePeriod PastJailTimes = 6 [(gogoproto.nullable) = false];
+    TimePeriod JailTime = 4 [(gogoproto.nullable) = false];
+    repeated TimePeriod PastJailTimes = 5 [(gogoproto.nullable) = false];
 
-    uint32 CurrentShardId = 7;
-    uint32 NextShardId = 8;
-    bool NodeInWaitingList = 9;
-    uint64 UnStakedNonce = 10;
+    uint32 CurrentShardId = 6;
+    uint32 NextShardId = 7;
+    bool NodeInWaitingList = 8;
+    uint64 UnStakedNonce = 9;
 
-    SignRate ValidatorSuccessRate = 11 [(gogoproto.nullable) = false];
-    SignRate LeaderSuccessRate = 12 [(gogoproto.nullable) = false];
+    SignRate ValidatorSuccessRate = 10 [(gogoproto.nullable) = false];
+    SignRate LeaderSuccessRate = 11 [(gogoproto.nullable) = false];
 
-    uint32 Rating = 13;
-    uint64 Nonce = 14;
-    uint32 TempRating = 15;
-    bytes AccumulatedFees = 16 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    uint32 NumSelectedInSuccessBlocks = 17;
-	uint32 IndexInList = 18;
-	string List        = 19;
-    uint32 ConsecutiveProposerMisses = 20;
-    SignRate TotalValidatorSuccessRate = 21 [(gogoproto.nullable) = false];
-    SignRate TotalLeaderSuccessRate = 22 [(gogoproto.nullable) = false];
+    uint32 Rating = 12;
+    uint64 Nonce = 13;
+    uint32 TempRating = 14;
+    bytes AccumulatedFees = 15 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    uint32 NumSelectedInSuccessBlocks = 16;
+	uint32 IndexInList = 17;
+	string List        = 18;
+    uint32 ConsecutiveProposerMisses = 19;
+    SignRate TotalValidatorSuccessRate = 20 [(gogoproto.nullable) = false];
+    SignRate TotalLeaderSuccessRate = 21 [(gogoproto.nullable) = false];
 }

@@ -226,7 +226,7 @@ func (p *pendingTransactions) getTransactionFromPoolOrStorage(hash []byte) (data
 		return nil, false
 	}
 
-	txData, err := GetDataFromStorage(hash, p.storage[miniBlock.Type], p.epochToSync)
+	txData, err := GetDataFromStorage(hash, p.storage[miniBlock.Type])
 	if err != nil {
 		return nil, false
 	}

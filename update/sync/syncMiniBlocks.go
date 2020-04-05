@@ -272,7 +272,7 @@ func (p *pendingMiniBlocks) getMiniBlockFromPoolOrStorage(hash []byte) (*block.M
 		return miniBlock, true
 	}
 
-	mbData, err := GetDataFromStorage(hash, p.storage, p.epochToSync)
+	mbData, err := GetDataFromStorage(hash, p.storage)
 	if err != nil {
 		return nil, false
 	}

@@ -40,6 +40,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: arg.shardConsensusGroupSize,
 		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,
+		Marshalizer:             TestMarshalizer,
 		Hasher:                  arg.hasher,
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      arg.epochStartSubscriber,
@@ -76,6 +77,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: arg.shardConsensusGroupSize,
 		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,
+		Marshalizer:             TestMarshalizer,
 		Hasher:                  arg.hasher,
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      arg.epochStartSubscriber,
@@ -99,15 +101,15 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	}
 
 	return &NodesWithRater{
-		NodesCoordinator:                nodesCoordinator,
-		PeerAccountListAndRatingHandler: ihncrf.PeerAccountListAndRatingHandler,
+		NodesCoordinator: nodesCoordinator,
+		rater:            ihncrf.PeerAccountListAndRatingHandler,
 	}
 }
 
 // NodesWithRater -
 type NodesWithRater struct {
 	sharding.NodesCoordinator
-	sharding.PeerAccountListAndRatingHandler
+	rater sharding.PeerAccountListAndRatingHandler
 }
 
 // IsInterfaceNil -

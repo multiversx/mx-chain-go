@@ -253,6 +253,7 @@ func CreateNodesWithTestP2PNodes(
 	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, uint32(numShards))
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(numShards))
+	validatorsForNodesCoordinator, _ := sharding.NodesInfoToValidators(validatorsMap)
 	nodesMap := make(map[uint32][]*TestP2PNode)
 	cacherCfg := storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache, Shards: 1}
 	cache, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
@@ -260,10 +261,11 @@ func CreateNodesWithTestP2PNodes(
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,
 			MetaConsensusGroupSize:  metaConsensusGroupSize,
+			Marshalizer:             TestMarshalizer,
 			Hasher:                  TestHasher,
 			ShardIDAsObserver:       shardId,
 			NbShards:                uint32(numShards),
-			EligibleNodes:           validatorsMap,
+			EligibleNodes:           validatorsForNodesCoordinator,
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
 			ConsensusGroupCache:     cache,
 			Shuffler:                &mock.NodeShufflerMock{},
@@ -299,10 +301,11 @@ func CreateNodesWithTestP2PNodes(
 			argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 				ShardConsensusGroupSize: shardConsensusGroupSize,
 				MetaConsensusGroupSize:  metaConsensusGroupSize,
+				Marshalizer:             TestMarshalizer,
 				Hasher:                  TestHasher,
 				ShardIDAsObserver:       shardId,
 				NbShards:                uint32(numShards),
-				EligibleNodes:           validatorsMap,
+				EligibleNodes:           validatorsForNodesCoordinator,
 				SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
 				ConsensusGroupCache:     cache,
 				Shuffler:                &mock.NodeShufflerMock{},

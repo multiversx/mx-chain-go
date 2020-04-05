@@ -215,7 +215,7 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 }
 
 // SetProcessed sets start of epoch to false and cleans underlying structure
-func (t *trigger) SetProcessed(header data.HeaderHandler) {
+func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
@@ -238,7 +238,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 
 	t.currEpochStartRound = metaBlock.Round
 	t.epoch = metaBlock.Epoch
-	t.epochStartNotifier.NotifyAllPrepare(metaBlock)
+	t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
 	t.epochStartNotifier.NotifyAll(metaBlock)
 	t.isEpochStart = false
 	t.currentRound = metaBlock.Round
@@ -280,7 +280,7 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 
 	if header.IsStartOfEpochBlock() {
 		log.Debug("RevertStateToBlock with epoch start block called")
-		t.SetProcessed(header)
+		t.SetProcessed(header, nil)
 		return nil
 	}
 

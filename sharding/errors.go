@@ -22,8 +22,8 @@ var ErrInvalidNumberPubKeys = errors.New("invalid number of public keys")
 // ErrNilNodesCoordinator signals that the nodesCoordinator is nil
 var ErrNilNodesCoordinator = errors.New("nil nodesCoordinator")
 
-// ErrNilRater signals that the rater is nil
-var ErrNilRater = errors.New("nil rater")
+// ErrNilMarshalizer signals that the marshalizer is nil
+var ErrNilMarshalizer = errors.New("nil marshalizer")
 
 // ErrNoPubKeys signals an error when public keys are missing
 var ErrNoPubKeys = errors.New("no public keys defined")
@@ -79,9 +79,6 @@ var ErrNilShuffler = errors.New("nil nodes shuffler provided")
 // ErrNilBootStorer signals that a nil boot storer was provided
 var ErrNilBootStorer = errors.New("nil boot storer provided")
 
-// ErrNilAddress signals that the address is nil
-var ErrNilAddress = errors.New("nil address")
-
 // ErrValidatorNotFound signals that the validator has not been found
 var ErrValidatorNotFound = errors.New("validator not found")
 
@@ -105,6 +102,15 @@ var ErrInvalidWeight = errors.New("invalid weight")
 
 // ErrNilRandomSelector signals that a nil selector was provided
 var ErrNilRandomSelector = errors.New("nil selector")
+
+// ErrNilChanceComputer signals that a nil chance computer was provided
+var ErrNilChanceComputer = errors.New("nil chance computer")
+
+// ErrWrongTypeAssertion signals wrong type assertion error
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrNilBlockBody signals that block body is nil
+var ErrNilBlockBody = errors.New("nil block body")
 
 // ErrNilValidator signals that a nil validator was provided
 var ErrNilValidator = errors.New("nil validator")

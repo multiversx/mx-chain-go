@@ -154,6 +154,7 @@ type CryptoParams struct {
 type TestProcessorNode struct {
 	ShardCoordinator sharding.Coordinator
 	NodesCoordinator sharding.NodesCoordinator
+	NodesSetup       sharding.GenesisNodesSetupHandler
 	Messenger        p2p.Messenger
 
 	OwnAccount *TestWalletAccount
@@ -203,9 +204,8 @@ type TestProcessorNode struct {
 	WhiteListHandler         process.InterceptedDataWhiteList
 	NetworkShardingCollector consensus.NetworkShardingCollector
 
-	ValidatorInfoProcessor process.ValidatorInfoProcessorHandler
-	EpochStartTrigger      TestEpochStartTrigger
-	EpochStartNotifier     notifier.EpochStartNotifier
+	EpochStartTrigger  TestEpochStartTrigger
+	EpochStartNotifier notifier.EpochStartNotifier
 
 	MultiSigner       crypto.MultiSigner
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
@@ -247,9 +247,22 @@ func NewTestProcessorNode(
 	pkBytes = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
 	address := make([]byte, 32)
 	address = []byte("afafafafafafafafafafafafafafafaf")
+
+	nodesSetup := &mock.NodesSetupStub{
+		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
+			oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+			oneMap[0] = append(oneMap[0], mock.NewNodeInfo(address, pkBytes, 0))
+			return oneMap, nil
+		},
+		InitialNodesInfoForShardCalled: func(shardId uint32) (handlers []sharding.GenesisNodeInfoHandler, handlers2 []sharding.GenesisNodeInfoHandler, err error) {
+			list := make([]sharding.GenesisNodeInfoHandler, 0)
+			list = append(list, mock.NewNodeInfo(address, pkBytes, 0))
+			return list, nil, nil
+		},
+	}
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkBytes, address, defaultChancesSelection)
+			v, _ := sharding.NewValidator(pkBytes, 1, defaultChancesSelection)
 			return []sharding.Validator{v}, nil
 		},
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
@@ -259,7 +272,7 @@ func NewTestProcessorNode(
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, address, defaultChancesSelection)
+			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
 	}
@@ -271,6 +284,7 @@ func NewTestProcessorNode(
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           ChainID,
+		NodesSetup:        nodesSetup,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -337,6 +351,10 @@ func (tpn *TestProcessorNode) initAccountDBs() {
 func (tpn *TestProcessorNode) initValidatorStatistics() {
 	rater, _ := rating.NewBlockSigningRater(tpn.RatingsData)
 
+	if check.IfNil(tpn.NodesSetup) {
+		tpn.NodesSetup = &mock.NodesSetupStub{}
+	}
+
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		PeerAdapter:         tpn.PeerState,
 		AdrConv:             TestAddressConverterBLS,
@@ -350,6 +368,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		MaxComputableRounds: 1000,
 		RewardsHandler:      tpn.EconomicsData,
 		StartEpoch:          0,
+		NodesSetup:          tpn.NodesSetup,
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
@@ -609,19 +628,24 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			log.Debug("interceptor container factory Create", "error", err.Error())
 		}
 	} else {
+		argsPeerMiniBlocksSyncer := shardchain.ArgPeerMiniBlockSyncer{
+			MiniBlocksPool: tpn.DataPool.MiniBlocks(),
+			Requesthandler: tpn.RequestHandler,
+		}
+		peerMiniBlockSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:            TestMarshalizer,
-			Hasher:                 TestHasher,
-			HeaderValidator:        tpn.HeaderValidator,
-			Uint64Converter:        TestUint64Converter,
-			DataPool:               tpn.DataPool,
-			Storage:                tpn.Storage,
-			RequestHandler:         tpn.RequestHandler,
-			Epoch:                  0,
-			Validity:               1,
-			Finality:               1,
-			EpochStartNotifier:     tpn.EpochStartNotifier,
-			ValidatorInfoProcessor: &mock.ValidatorInfoProcessorStub{},
+			Marshalizer:          TestMarshalizer,
+			Hasher:               TestHasher,
+			HeaderValidator:      tpn.HeaderValidator,
+			Uint64Converter:      TestUint64Converter,
+			DataPool:             tpn.DataPool,
+			Storage:              tpn.Storage,
+			RequestHandler:       tpn.RequestHandler,
+			Epoch:                0,
+			Validity:             1,
+			Finality:             1,
+			EpochStartNotifier:   tpn.EpochStartNotifier,
+			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -953,7 +977,7 @@ func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) 
 
 func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	var err error
-	tpn.ValidatorInfoProcessor = &mock.ValidatorInfoProcessorStub{}
+
 	tpn.ForkDetector = &mock.ForkDetectorStub{
 		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
 			return nil
@@ -1101,19 +1125,24 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
 		if check.IfNil(tpn.EpochStartTrigger) {
+			argsPeerMiniBlocksSyncer := shardchain.ArgPeerMiniBlockSyncer{
+				MiniBlocksPool: tpn.DataPool.MiniBlocks(),
+				Requesthandler: tpn.RequestHandler,
+			}
+			peerMiniBlocksSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 			argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-				Marshalizer:            TestMarshalizer,
-				Hasher:                 TestHasher,
-				HeaderValidator:        tpn.HeaderValidator,
-				Uint64Converter:        TestUint64Converter,
-				DataPool:               tpn.DataPool,
-				Storage:                tpn.Storage,
-				RequestHandler:         tpn.RequestHandler,
-				Epoch:                  0,
-				Validity:               1,
-				Finality:               1,
-				EpochStartNotifier:     tpn.EpochStartNotifier,
-				ValidatorInfoProcessor: &mock.ValidatorInfoProcessorStub{},
+				Marshalizer:          TestMarshalizer,
+				Hasher:               TestHasher,
+				HeaderValidator:      tpn.HeaderValidator,
+				Uint64Converter:      TestUint64Converter,
+				DataPool:             tpn.DataPool,
+				Storage:              tpn.Storage,
+				RequestHandler:       tpn.RequestHandler,
+				Epoch:                0,
+				Validity:             1,
+				Finality:             1,
+				EpochStartNotifier:   tpn.EpochStartNotifier,
+				PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
 			}
 			epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 			tpn.EpochStartTrigger = &shardchain.TestTrigger{}
