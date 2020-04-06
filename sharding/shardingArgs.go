@@ -2,6 +2,7 @@ package sharding
 
 import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -9,6 +10,7 @@ import (
 type ArgNodesCoordinator struct {
 	ShardConsensusGroupSize int
 	MetaConsensusGroupSize  int
+	Marshalizer             marshal.Marshalizer
 	Hasher                  hashing.Hasher
 	Shuffler                NodesShuffler
 	EpochStartNotifier      EpochStartEventNotifier

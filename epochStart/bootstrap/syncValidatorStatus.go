@@ -138,7 +138,7 @@ func findPeerMiniBlockHeaders(metaBlock *block.MetaBlock) []block.ShardMiniBlock
 
 func (s *syncValidatorStatus) processNodesConfigFor(
 	metaBlock *block.MetaBlock,
-) ([]*state.ValidatorInfo, error) {
+) ([]*state.ShardValidatorInfo, error) {
 	shardMBHeaders := findPeerMiniBlockHeaders(metaBlock)
 
 	s.miniBlocksSyncer.ClearFields()
@@ -154,10 +154,10 @@ func (s *syncValidatorStatus) processNodesConfigFor(
 		return nil, err
 	}
 
-	validatorInfos := make([]*state.ValidatorInfo, 0)
+	validatorInfos := make([]*state.ShardValidatorInfo, 0)
 	for _, mb := range peerMiniBlocks {
 		for _, txHash := range mb.TxHashes {
-			vid := &state.ValidatorInfo{}
+			vid := &state.ShardValidatorInfo{}
 			err := s.marshalizer.Unmarshal(vid, txHash)
 			if err != nil {
 				return nil, err

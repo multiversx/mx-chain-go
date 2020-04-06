@@ -42,16 +42,6 @@ func (p *PeerAccountHandlerMock) SetBLSPublicKey([]byte) error {
 	return nil
 }
 
-// GetSchnorrPublicKey -
-func (p *PeerAccountHandlerMock) GetSchnorrPublicKey() []byte {
-	return nil
-}
-
-// SetSchnorrPublicKey -
-func (p *PeerAccountHandlerMock) SetSchnorrPublicKey([]byte) error {
-	return nil
-}
-
 // GetRewardAddress -
 func (p *PeerAccountHandlerMock) GetRewardAddress() []byte {
 	return nil

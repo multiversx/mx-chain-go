@@ -1,7 +1,5 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/sharding"
-
 // RaterMock -
 type RaterMock struct {
 	GetRatingCalled                func(string) uint32
@@ -13,7 +11,6 @@ type RaterMock struct {
 	ComputeIncreaseValidatorCalled func(shardId uint32, rating uint32) uint32
 	ComputeDecreaseValidatorCalled func(shardId uint32, rating uint32) uint32
 	GetChanceCalled                func(rating uint32) uint32
-	RatingReader                   sharding.RatingReader
 }
 
 // GetRating -
@@ -63,11 +60,6 @@ func (rm *RaterMock) GetChance(rating uint32) uint32 {
 	}
 
 	return 80
-}
-
-// SetRatingReader -
-func (rm *RaterMock) SetRatingReader(reader sharding.RatingReader) {
-	rm.RatingReader = reader
 }
 
 // IsInterfaceNil -

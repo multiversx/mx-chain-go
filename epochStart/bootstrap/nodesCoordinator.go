@@ -16,7 +16,6 @@ import (
 type nodesCoordinator struct {
 	shuffler                sharding.NodesShuffler
 	chance                  sharding.ChanceComputer
-	numShards               map[uint32]uint32
 	shardConsensusGroupSize uint32
 	metaConsensusGroupSize  uint32
 
@@ -48,7 +47,6 @@ func NewStartInEpochNodesCoordinator(args ArgsNewStartInEpochNodesCoordinator) (
 		shardConsensusGroupSize: args.ShardConsensusGroupSize,
 		metaConsensusGroupSize:  args.MetaConsensusGroupSize,
 		nodesConfig:             make(map[uint32]*epochNodesConfig),
-		numShards:               make(map[uint32]uint32),
 	}
 
 	return n, nil
@@ -74,10 +72,11 @@ func (n *nodesCoordinator) ComputeNodesConfigForGenesis(nodesConfig *sharding.No
 	return epochValidators, nil
 }
 
+// TODO: use common functionality from indexHashesNodesCoordinator
 // ComputeNodesConfigFor computes the actual nodes config for the set epoch from the validator info
 func (n *nodesCoordinator) ComputeNodesConfigFor(
 	metaBlock *block.MetaBlock,
-	validatorInfos []*state.ValidatorInfo,
+	validatorInfos []*state.ShardValidatorInfo,
 ) (*sharding.EpochValidators, error) {
 	if check.IfNil(metaBlock) {
 		return nil, epochStart.ErrNilHeaderHandler
@@ -88,11 +87,6 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(
 
 	randomness := metaBlock.GetPrevRandSeed()
 	newEpoch := metaBlock.GetEpoch()
-	n.numShards[newEpoch] = uint32(len(metaBlock.EpochStart.LastFinalizedHeaders))
-
-	sort.Slice(validatorInfos, func(i, j int) bool {
-		return bytes.Compare(validatorInfos[i].PublicKey, validatorInfos[j].PublicKey) < 0
-	})
 
 	leaving, err := n.computeLeaving(validatorInfos)
 	if err != nil {
@@ -101,21 +95,14 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(
 
 	eligibleMap := make(map[uint32][]sharding.Validator)
 	waitingMap := make(map[uint32][]sharding.Validator)
-	newNodesMap := make([]sharding.Validator, 0)
-	for i := uint32(0); i < n.numShards[newEpoch]; i++ {
-		eligibleMap[i] = make([]sharding.Validator, 0)
-		waitingMap[i] = make([]sharding.Validator, 0)
-	}
-	eligibleMap[core.MetachainShardId] = make([]sharding.Validator, 0)
-	waitingMap[core.MetachainShardId] = make([]sharding.Validator, 0)
+	newNodesList := make([]sharding.Validator, 0)
 
-	mapValidatorInfo := make(map[string]*state.ValidatorInfo, len(validatorInfos))
 	for _, validatorInfo := range validatorInfos {
-		validator, err := sharding.NewValidator(validatorInfo.PublicKey, validatorInfo.RewardAddress, validatorInfo.TempRating)
+		chance := n.chance.GetChance(validatorInfo.TempRating)
+		validator, err := sharding.NewValidator(validatorInfo.PublicKey, chance, validatorInfo.Index)
 		if err != nil {
 			return nil, err
 		}
-		mapValidatorInfo[string(validatorInfo.PublicKey)] = validatorInfo
 
 		switch validatorInfo.List {
 		case string(core.WaitingList):
@@ -123,17 +110,37 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(
 		case string(core.EligibleList):
 			eligibleMap[validatorInfo.ShardId] = append(eligibleMap[validatorInfo.ShardId], validator)
 		case string(core.NewList):
-			newNodesMap = append(newNodesMap, validator)
+			newNodesList = append(newNodesList, validator)
 		}
+	}
+
+	sort.Slice(leaving, func(i, j int) bool {
+		return leaving[i].Index() > leaving[j].Index()
+	})
+
+	sort.Slice(newNodesList, func(i, j int) bool {
+		return newNodesList[i].Index() > newNodesList[j].Index()
+	})
+
+	for _, eligibleList := range eligibleMap {
+		sort.Slice(eligibleList, func(i, j int) bool {
+			return eligibleList[i].Index() > eligibleList[j].Index()
+		})
+	}
+
+	for _, waitingList := range waitingMap {
+		sort.Slice(waitingList, func(i, j int) bool {
+			return waitingList[i].Index() > waitingList[j].Index()
+		})
 	}
 
 	shufflerArgs := sharding.ArgsUpdateNodes{
 		Eligible: eligibleMap,
 		Waiting:  waitingMap,
-		NewNodes: newNodesMap,
+		NewNodes: newNodesList,
 		Leaving:  leaving,
 		Rand:     randomness,
-		NbShards: n.numShards[newEpoch],
+		NbShards: uint32(len(eligibleMap)),
 	}
 
 	newEligibleMap, newWaitingMap, stillRemaining := n.shuffler.UpdateNodeLists(shufflerArgs)
@@ -144,24 +151,18 @@ func (n *nodesCoordinator) ComputeNodesConfigFor(
 		return nil, err
 	}
 
-	err = n.expandSavedNodes(mapValidatorInfo, newEpoch)
-	if err != nil {
-		return nil, err
-	}
-
 	epochValidators := epochNodesConfigToEpochValidators(n.nodesConfig[newEpoch])
 
 	return epochValidators, nil
 }
 
-func (n *nodesCoordinator) computeLeaving(allValidators []*state.ValidatorInfo) ([]sharding.Validator, error) {
+func (n *nodesCoordinator) computeLeaving(allValidators []*state.ShardValidatorInfo) ([]sharding.Validator, error) {
 	leavingValidators := make([]sharding.Validator, 0)
 	minChances := n.chance.GetChance(0)
 	for _, validator := range allValidators {
-
 		chances := n.chance.GetChance(validator.TempRating)
-		if chances < minChances {
-			val, err := sharding.NewValidator(validator.PublicKey, validator.RewardAddress, chances)
+		if chances < minChances || validator.List == string(core.LeavingList) {
+			val, err := sharding.NewValidator(validator.PublicKey, chances, validator.Index)
 			if err != nil {
 				return nil, err
 			}
@@ -184,8 +185,8 @@ func (n *nodesCoordinator) setNodesPerShards(
 	}
 
 	nodesList, ok := eligible[core.MetachainShardId]
-	if !ok || uint32(len(nodesList)) < n.metaConsensusGroupSize {
-		return fmt.Errorf("%w computed size %d needed size %d", epochStart.ErrSmallShardEligibleListSize, uint32(len(nodesList)), n.metaConsensusGroupSize)
+	if uint32(len(nodesList)) < n.metaConsensusGroupSize {
+		return fmt.Errorf("%w computed size %d needed size %d", epochStart.ErrSmallMetachainEligibleListSize, uint32(len(nodesList)), n.metaConsensusGroupSize)
 	}
 
 	for shardId := uint32(0); shardId < uint32(len(eligible)-1); shardId++ {
@@ -230,58 +231,6 @@ func (n *nodesCoordinator) ComputeShardForSelfPublicKey(epoch uint32, pubKey []b
 	return core.AllShardId
 }
 
-func (n *nodesCoordinator) expandSavedNodes(
-	mapValidatorInfo map[string]*state.ValidatorInfo,
-	epoch uint32,
-) error {
-	nodesConfig := n.nodesConfig[epoch]
-	nodesConfig.expandedEligibleMap = make(map[uint32][]sharding.Validator)
-
-	nrShards := len(nodesConfig.eligibleMap)
-	var err error
-	nodesConfig.expandedEligibleMap[core.MetachainShardId], err = n.expandEligibleList(nodesConfig.eligibleMap[core.MetachainShardId], mapValidatorInfo)
-	if err != nil {
-		return err
-	}
-
-	for shardId := uint32(0); shardId < uint32(nrShards-1); shardId++ {
-		nodesConfig.expandedEligibleMap[shardId], err = n.expandEligibleList(nodesConfig.eligibleMap[shardId], mapValidatorInfo)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (n *nodesCoordinator) expandEligibleList(
-	validators []sharding.Validator,
-	mapValidatorInfo map[string]*state.ValidatorInfo,
-) ([]sharding.Validator, error) {
-	minChance := n.chance.GetChance(0)
-	minSize := len(validators) * int(minChance)
-	validatorList := make([]sharding.Validator, 0, minSize)
-
-	for _, validatorInShard := range validators {
-		pk := validatorInShard.PubKey()
-		validatorInfo, ok := mapValidatorInfo[string(pk)]
-		if !ok {
-			return nil, epochStart.ErrNilValidatorInfo
-		}
-
-		chances := n.chance.GetChance(validatorInfo.TempRating)
-		if chances < minChance {
-			chances = minChance
-		}
-
-		for i := uint32(0); i < chances; i++ {
-			validatorList = append(validatorList, validatorInShard)
-		}
-	}
-
-	return validatorList, nil
-}
-
 func epochNodesConfigToEpochValidators(config *epochNodesConfig) *sharding.EpochValidators {
 	result := &sharding.EpochValidators{
 		EligibleValidators: make(map[string][]*sharding.SerializableValidator, len(config.eligibleMap)),
@@ -300,7 +249,8 @@ func epochNodesConfigToEpochValidators(config *epochNodesConfig) *sharding.Epoch
 	for _, v := range config.leavingList {
 		result.LeavingValidators = append(result.LeavingValidators, &sharding.SerializableValidator{
 			PubKey:  v.PubKey(),
-			Address: v.Address(),
+			Chances: v.Chances(),
+			Index:   v.Index(),
 		})
 	}
 

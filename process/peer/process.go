@@ -46,6 +46,7 @@ type ArgValidatorStatisticsProcessor struct {
 	RewardsHandler      process.RewardsHandler
 	MaxComputableRounds uint64
 	StartEpoch          uint32
+	NodesSetup          sharding.GenesisNodesSetupHandler
 }
 
 type validatorStatistics struct {
@@ -99,6 +100,9 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if check.IfNil(arguments.RewardsHandler) {
 		return nil, process.ErrNilRewardsHandler
 	}
+	if check.IfNil(arguments.NodesSetup) {
+		return nil, process.ErrNilNodesSetup
+	}
 
 	vs := &validatorStatistics{
 		peerAdapter:          arguments.PeerAdapter,
@@ -115,18 +119,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	}
 
 	rater := arguments.Rater
-	ratingReaderSetter, ok := rater.(sharding.RatingReaderSetter)
-
-	if !ok {
-		return nil, process.ErrNilRatingReaderSetter
-	}
-
-	rr := &RatingReader{
-		getRating: vs.getRating,
-	}
-
-	ratingReaderSetter.SetRatingReader(rr)
-	err := vs.saveInitialState(arguments.StakeValue, rater.GetStartRating(), 0)
+	err := vs.saveInitialState(arguments.NodesSetup, arguments.StakeValue, rater.GetStartRating())
 	if err != nil {
 		return nil, err
 	}
@@ -209,26 +202,17 @@ func (vs *validatorStatistics) saveUpdatesForList(
 
 // saveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
 func (vs *validatorStatistics) saveInitialState(
+	nodesConfig sharding.GenesisNodesSetupHandler,
 	stakeValue *big.Int,
 	startRating uint32,
-	startEpoch uint32,
 ) error {
-	nodesMap, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(startEpoch)
+	eligibleNodesInfo, waitingNodesInfo := nodesConfig.InitialNodesInfo()
+	err := vs.saveInitialValueForMap(eligibleNodesInfo, stakeValue, startRating, core.EligibleList)
 	if err != nil {
 		return err
 	}
 
-	err = vs.saveInitialValueForMap(nodesMap, startEpoch, stakeValue, startRating, core.EligibleList)
-	if err != nil {
-		return err
-	}
-
-	nodesMap, err = vs.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(startEpoch)
-	if err != nil {
-		return err
-	}
-
-	err = vs.saveInitialValueForMap(nodesMap, startEpoch, stakeValue, startRating, core.WaitingList)
+	err = vs.saveInitialValueForMap(waitingNodesInfo, stakeValue, startRating, core.WaitingList)
 	if err != nil {
 		return err
 	}
@@ -244,20 +228,14 @@ func (vs *validatorStatistics) saveInitialState(
 }
 
 func (vs *validatorStatistics) saveInitialValueForMap(
-	nodesMap map[uint32][][]byte,
-	startEpoch uint32,
+	nodesInfo map[uint32][]sharding.GenesisNodeInfoHandler,
 	stakeValue *big.Int,
 	startRating uint32,
 	peerType core.PeerType,
 ) error {
-	for shardID, pks := range nodesMap {
-		for index, pk := range pks {
-			node, _, err := vs.nodesCoordinator.GetValidatorWithPublicKey(pk, startEpoch)
-			if err != nil {
-				return err
-			}
-
-			err = vs.initializeNode(node, stakeValue, startRating, shardID, uint32(index), peerType)
+	for shardID, nodeInfoList := range nodesInfo {
+		for index, nodeInfo := range nodeInfoList {
+			err := vs.initializeNode(nodeInfo, stakeValue, startRating, shardID, peerType, uint32(index))
 			if err != nil {
 				return err
 			}
@@ -495,6 +473,11 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(validator *s
 
 		pa.SetTempRating(newTempRating)
 
+		err = vs.peerAdapter.SaveAccount(pa)
+		if err != nil {
+			return err
+		}
+
 		log.Debug("below signed blocks threshold",
 			"pk", validator.PublicKey,
 			"signed %", computedThreshold,
@@ -715,41 +698,36 @@ func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data
 }
 
 func (vs *validatorStatistics) initializeNode(
-	node sharding.Validator,
+	node sharding.GenesisNodeInfoHandler,
 	stakeValue *big.Int,
 	startRating uint32,
 	shardID uint32,
-	index uint32,
 	peerType core.PeerType,
+	index uint32,
 ) error {
 	peerAccount, err := vs.GetPeerAccount(node.PubKey())
 	if err != nil {
 		return err
 	}
 
-	return vs.savePeerAccountData(peerAccount, node, stakeValue, startRating, shardID, index, peerType)
+	return vs.savePeerAccountData(peerAccount, node, stakeValue, startRating, shardID, peerType, index)
 }
 
 func (vs *validatorStatistics) savePeerAccountData(
 	peerAccount state.PeerAccountHandler,
-	data sharding.Validator,
+	node sharding.GenesisNodeInfoHandler,
 	stakeValue *big.Int,
 	startRating uint32,
 	shardID uint32,
-	index uint32,
 	peerType core.PeerType,
+	index uint32,
 ) error {
-	err := peerAccount.SetRewardAddress(data.Address())
+	err := peerAccount.SetRewardAddress(node.Address())
 	if err != nil {
 		return err
 	}
 
-	err = peerAccount.SetSchnorrPublicKey(data.Address())
-	if err != nil {
-		return err
-	}
-
-	err = peerAccount.SetBLSPublicKey(data.PubKey())
+	err = peerAccount.SetBLSPublicKey(node.PubKey())
 	if err != nil {
 		return err
 	}

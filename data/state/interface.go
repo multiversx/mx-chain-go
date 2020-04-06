@@ -61,8 +61,6 @@ type AccountHandler interface {
 type PeerAccountHandler interface {
 	GetBLSPublicKey() []byte
 	SetBLSPublicKey([]byte) error
-	GetSchnorrPublicKey() []byte
-	SetSchnorrPublicKey([]byte) error
 	GetRewardAddress() []byte
 	SetRewardAddress([]byte) error
 	GetStake() *big.Int
