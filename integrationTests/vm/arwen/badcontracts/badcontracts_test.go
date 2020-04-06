@@ -8,8 +8,9 @@ import (
 
 func Test_Bad_C_NoPanic(t *testing.T) {
 	context := arwen.SetupTestContext(t)
+	defer context.Close()
 
-	context.DeploySC("../testdata/bad/bad.wasm", "")
+	context.DeploySC("../testdata/bad-misc/bad.wasm", "")
 
 	context.ExecuteSC(&context.Owner, "memoryFault")
 	context.ExecuteSC(&context.Owner, "divideByZero")
@@ -31,14 +32,31 @@ func Test_Bad_C_NoPanic(t *testing.T) {
 
 func Test_Empty_C_NoPanic(t *testing.T) {
 	context := arwen.SetupTestContext(t)
+	defer context.Close()
 
-	context.DeploySC("../testdata/bad/empty.wasm", "")
+	context.DeploySC("../testdata/bad-empty/empty.wasm", "")
 	context.ExecuteSC(&context.Owner, "thisDoesNotExist")
 }
 
 func Test_Corrupt_NoPanic(t *testing.T) {
 	context := arwen.SetupTestContext(t)
+	defer context.Close()
 
-	context.DeploySC("../testdata/bad/corrupt.wasm", "")
+	context.DeploySC("../testdata/bad_corrupt.wasm", "")
 	context.ExecuteSC(&context.Owner, "thisDoesNotExist")
+}
+
+func Test_NoMemoryDeclaration_NoPanic(t *testing.T) {
+	context := arwen.SetupTestContext(t)
+	defer context.Close()
+
+	context.DeploySC("../testdata/bad-nomemory/nomemory.wasm", "")
+	context.ExecuteSC(&context.Owner, "memoryFault")
+}
+
+func Test_BadFunctionNames_NoPanic(t *testing.T) {
+	context := arwen.SetupTestContext(t)
+	defer context.Close()
+
+	context.DeploySC("../testdata/bad-functionNames/badFunctionNames.wasm", "")
 }

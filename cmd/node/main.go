@@ -884,6 +884,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating api resolver structure")
 	apiResolver, err := createApiResolver(
+		generalConfig,
 		stateComponents.AccountsAdapter,
 		stateComponents.AddressConverter,
 		dataComponents.Store,
@@ -1565,6 +1566,7 @@ func startStatisticsMonitor(
 }
 
 func createApiResolver(
+	config *config.Config,
 	accnts state.AccountsAdapter,
 	addrConv state.AddressConverter,
 	storageService dataRetriever.StorageService,
@@ -1596,7 +1598,7 @@ func createApiResolver(
 			return nil, err
 		}
 	} else {
-		vmFactory, err = shard.NewVMContainerFactory(economics.MaxGasLimitPerBlock(), gasSchedule, argsHook)
+		vmFactory, err = shard.NewVMContainerFactory(config.VirtualMachineConfig, economics.MaxGasLimitPerBlock(), gasSchedule, argsHook)
 		if err != nil {
 			return nil, err
 		}
