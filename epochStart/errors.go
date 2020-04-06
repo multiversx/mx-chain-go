@@ -149,6 +149,9 @@ var ErrMissingHeader = errors.New("missing header")
 // ErrSmallShardEligibleListSize signals that the eligible validators list's size is less than the consensus size
 var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
 
+// ErrSmallMetachainEligibleListSize signals that the metachain eligible validators list's size is less than the consensus size
+var ErrSmallMetachainEligibleListSize = errors.New("small metachain eligible list size")
+
 // ErrNilPathManager signals that a nil path manager has been provided
 var ErrNilPathManager = errors.New("nil path manager")
 
