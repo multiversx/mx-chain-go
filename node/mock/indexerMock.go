@@ -13,27 +13,27 @@ type IndexerMock struct {
 }
 
 // SaveBlock -
-func (im *IndexerMock) SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler, signersIndexes []uint64) {
-	panic("implement me")
-}
-
-// SaveMetaBlock -
-func (im *IndexerMock) SaveMetaBlock(header data.HeaderHandler, signersIndexes []uint64) {
+func (im *IndexerMock) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[string]data.TransactionHandler, _ []uint64, _ []string) {
 	panic("implement me")
 }
 
 // UpdateTPS -
-func (im *IndexerMock) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
+func (im *IndexerMock) UpdateTPS(_ statistics.TPSBenchmark) {
 	panic("implement me")
 }
 
 // SaveRoundInfo -
-func (im *IndexerMock) SaveRoundInfo(roundInfo indexer.RoundInfo) {
+func (im *IndexerMock) SaveRoundInfo(_ indexer.RoundInfo) {
 	panic("implement me")
 }
 
+// SaveValidatorsRating --
+func (im *IndexerMock) SaveValidatorsRating(_ string, _ []indexer.ValidatorRatingInfo) {
+
+}
+
 // SaveValidatorsPubKeys -
-func (im *IndexerMock) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte) {
+func (im *IndexerMock) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 	panic("implement me")
 }
 

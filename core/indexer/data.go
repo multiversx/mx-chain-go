@@ -9,7 +9,7 @@ import (
 //  to be saved for a transaction. It has all the default fields
 //  plus some extra information for ease of search and filter
 type Transaction struct {
-	Hash          string        `json:"hash"`
+	Hash          string        `json:"-"`
 	MBHash        string        `json:"miniBlockHash"`
 	BlockHash     string        `json:"blockHash"`
 	Nonce         uint64        `json:"nonce"`
@@ -31,18 +31,21 @@ type Transaction struct {
 //  to be saved for a block. It has all the default fields
 //  plus some extra information for ease of search and filter
 type Block struct {
-	Nonce         uint64        `json:"nonce"`
-	Round         uint64        `json:"round"`
-	Hash          string        `json:"hash"`
-	Proposer      uint64        `json:"proposer"`
-	Validators    []uint64      `json:"validators"`
-	PubKeyBitmap  string        `json:"pubKeyBitmap"`
-	Size          int64         `json:"size"`
-	Timestamp     time.Duration `json:"timestamp"`
-	StateRootHash string        `json:"stateRootHash"`
-	PrevHash      string        `json:"prevHash"`
-	ShardID       uint32        `json:"shardId"`
-	TxCount       uint32        `json:"txCount"`
+	Nonce                 uint64        `json:"nonce"`
+	Round                 uint64        `json:"round"`
+	Epoch                 uint32        `json:"epoch"`
+	Hash                  string        `json:"-"`
+	MiniBlocksHashes      []string      `json:"miniBlocksHashes"`
+	NotarizedBlocksHashes []string      `json:"notarizedBlocksHashes"`
+	Proposer              uint64        `json:"proposer"`
+	Validators            []uint64      `json:"validators"`
+	PubKeyBitmap          string        `json:"pubKeyBitmap"`
+	Size                  int64         `json:"size"`
+	Timestamp             time.Duration `json:"timestamp"`
+	StateRootHash         string        `json:"stateRootHash"`
+	PrevHash              string        `json:"prevHash"`
+	ShardID               uint32        `json:"shardId"`
+	TxCount               uint32        `json:"txCount"`
 }
 
 //ValidatorsPublicKeys is a structure containing fields for validators public keys
@@ -52,11 +55,32 @@ type ValidatorsPublicKeys struct {
 
 // RoundInfo is a structure containing block signers and shard id
 type RoundInfo struct {
-	Index            uint64        `json:"-"`
+	Index            uint64        `json:"round"`
 	SignersIndexes   []uint64      `json:"signersIndexes"`
 	BlockWasProposed bool          `json:"blockWasProposed"`
 	ShardId          uint32        `json:"shardId"`
 	Timestamp        time.Duration `json:"timestamp"`
+}
+
+// ValidatorsRatingInfo is a structure containing validators information
+type ValidatorsRatingInfo struct {
+	ValidatorsInfos []ValidatorRatingInfo `json:"validatorsRating"`
+}
+
+// ValidatorRatingInfo is a structure containing validator rating information
+type ValidatorRatingInfo struct {
+	PublicKey string  `json:"publicKey"`
+	Rating    float32 `json:"rating"`
+}
+
+// Miniblock is a structure containing miniblock information
+type Miniblock struct {
+	Hash              string `json:"-"`
+	SenderShardID     uint32 `json:"senderShard"`
+	ReceiverShardID   uint32 `json:"receiverShard"`
+	SenderBlockHash   string `json:"senderBlockHash"`
+	ReceiverBlockHash string `json:"receiverBlockHash"`
+	Type              string `json:"type"`
 }
 
 // TPS is a structure containing all the fields that need to

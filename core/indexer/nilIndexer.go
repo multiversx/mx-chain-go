@@ -15,11 +15,7 @@ func NewNilIndexer() *NilIndexer {
 }
 
 // SaveBlock will do nothing
-func (ni *NilIndexer) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[string]data.TransactionHandler, _ []uint64) {
-}
-
-// SaveMetaBlock will do nothing
-func (ni *NilIndexer) SaveMetaBlock(_ data.HeaderHandler, _ []uint64) {
+func (ni *NilIndexer) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[string]data.TransactionHandler, _ []uint64, _ []string) {
 }
 
 // SaveRoundInfo will do nothing
@@ -30,8 +26,12 @@ func (ni *NilIndexer) SaveRoundInfo(_ RoundInfo) {
 func (ni *NilIndexer) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
+// SaveValidatorsRating --
+func (ni *NilIndexer) SaveValidatorsRating(_ string, _ []ValidatorRatingInfo) {
+}
+
 // SaveValidatorsPubKeys will do nothing
-func (ni *NilIndexer) SaveValidatorsPubKeys(_ map[uint32][][]byte) {
+func (ni *NilIndexer) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
