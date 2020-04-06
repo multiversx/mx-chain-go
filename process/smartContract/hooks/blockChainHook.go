@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("process/smartContract/blockChainHook")
@@ -30,6 +31,7 @@ type BlockChainHookImpl struct {
 	shardCoordinator sharding.Coordinator
 	marshalizer      marshal.Marshalizer
 	uint64Converter  typeConverters.Uint64ByteSliceConverter
+	builtInFunctions process.BuiltInFunctionContainer
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -55,6 +57,7 @@ func NewBlockChainHookImpl(
 		shardCoordinator: args.ShardCoordinator,
 		marshalizer:      args.Marshalizer,
 		uint64Converter:  args.Uint64Converter,
+		builtInFunctions: args.BuiltInFunctions,
 	}
 
 	blockChainHookImpl.currentHdr = &block.Header{}
@@ -343,8 +346,85 @@ func (bh *BlockChainHookImpl) NewAddress(creatorAddress []byte, creatorNonce uin
 	return base, nil
 }
 
-func (bh *BlockChainHookImpl) ProcessBuiltInFunction() {
+// ProcessBuiltInFunction is the hook through which a smart contract can execute a built in function
+func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*big.Int, uint64, error) {
+	if input == nil {
+		return big.NewInt(0), 0, process.ErrNilVmInput
+	}
 
+	function, err := bh.builtInFunctions.Get(input.Function)
+	if err != nil {
+		return big.NewInt(0), input.GasProvided, err
+	}
+
+	sndAccount, dstAccount, err := bh.getUserAccounts(input)
+	if err != nil {
+		return big.NewInt(0), input.GasProvided, err
+	}
+
+	value, gasConsumed, err := function.ProcessBuiltinFunction(sndAccount, dstAccount, input)
+	if err != nil {
+		return big.NewInt(0), input.GasProvided, err
+	}
+
+	if !check.IfNil(sndAccount) {
+		err := bh.accounts.SaveAccount(sndAccount)
+		if err != nil {
+			return big.NewInt(0), input.GasProvided, err
+		}
+	}
+
+	err = bh.accounts.SaveAccount(dstAccount)
+	if err != nil {
+		return big.NewInt(0), input.GasProvided, err
+	}
+
+	return value, gasConsumed, nil
+}
+
+func (bh *BlockChainHookImpl) getUserAccounts(
+	input *vmcommon.ContractCallInput,
+) (state.UserAccountHandler, state.UserAccountHandler, error) {
+	sndAddr, err := bh.addrConv.CreateAddressFromPublicKeyBytes(input.CallerAddr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	dstAddr, err := bh.addrConv.CreateAddressFromPublicKeyBytes(input.RecipientAddr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	shardId := bh.shardCoordinator.ComputeId(dstAddr)
+	if shardId != bh.shardCoordinator.SelfId() {
+		return nil, nil, process.ErrDestinationNotInSelfShard
+	}
+
+	var sndAccount state.UserAccountHandler
+	sndShardId := bh.shardCoordinator.ComputeId(sndAddr)
+	if sndShardId == bh.shardCoordinator.SelfId() {
+		acc, err := bh.accounts.GetExistingAccount(sndAddr)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		var ok bool
+		sndAccount, ok = acc.(state.UserAccountHandler)
+		if !ok {
+			return nil, nil, process.ErrWrongTypeAssertion
+		}
+	}
+
+	acc, err := bh.accounts.LoadAccount(dstAddr)
+	if err != nil {
+		return nil, nil, err
+	}
+	dstAccount, ok := acc.(state.UserAccountHandler)
+	if !ok {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+
+	return sndAccount, dstAccount, nil
 }
 
 func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte {

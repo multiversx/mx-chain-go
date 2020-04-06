@@ -20,33 +20,36 @@ func NewClaimDeveloperRewardsFunc(gasCost uint64) *claimDeveloperRewards {
 }
 
 // ProcessBuiltinFunction processes the protocol built-in smart contract function
-func (c *claimDeveloperRewards) ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, error) {
+func (c *claimDeveloperRewards) ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, uint64, error) {
 	if vmInput == nil {
-		return nil, process.ErrNilVmInput
+		return nil, vmInput.GasProvided, process.ErrNilVmInput
 	}
 	if check.IfNil(acntDst) {
-		return nil, process.ErrNilSCDestAccount
+		return nil, vmInput.GasProvided, process.ErrNilSCDestAccount
 	}
 
 	if !bytes.Equal(vmInput.CallerAddr, acntDst.GetOwnerAddress()) {
-		return nil, process.ErrOperationNotPermitted
+		return nil, vmInput.GasProvided, process.ErrOperationNotPermitted
+	}
+	if vmInput.GasProvided < c.gasCost {
+		return nil, vmInput.GasProvided, process.ErrNotEnoughGas
 	}
 
 	value, err := acntDst.ClaimDeveloperRewards(vmInput.CallerAddr)
 	if err != nil {
-		return nil, err
+		return nil, vmInput.GasProvided, err
 	}
 
 	if check.IfNil(acntSnd) {
-		return value, nil
+		return value, vmInput.GasProvided, nil
 	}
 
 	err = acntSnd.AddToBalance(value)
 	if err != nil {
-		return nil, err
+		return nil, vmInput.GasProvided, err
 	}
 
-	return value, nil
+	return value, c.gasCost, nil
 }
 
 // GasUsed returns the gas used for processing the change

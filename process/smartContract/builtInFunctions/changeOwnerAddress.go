@@ -20,30 +20,32 @@ func NewChangeOwnerAddressFunc(gasCost uint64) *changeOwnerAddress {
 }
 
 // ProcessBuiltinFunction processes simple protocol built-in function
-func (c *changeOwnerAddress) ProcessBuiltinFunction(_, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, error) {
+func (c *changeOwnerAddress) ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, uint64, error) {
 	if vmInput == nil {
-		return nil, process.ErrNilVmInput
+		return nil, 0, process.ErrNilVmInput
 	}
 	if len(vmInput.Arguments) == 0 {
-		return nil, process.ErrInvalidArguments
+		return nil, vmInput.GasProvided, process.ErrInvalidArguments
 	}
 	if check.IfNil(acntDst) {
-		return nil, process.ErrNilSCDestAccount
+		return nil, vmInput.GasProvided, process.ErrNilSCDestAccount
 	}
 
 	if !bytes.Equal(vmInput.CallerAddr, acntDst.GetOwnerAddress()) {
-		return nil, process.ErrOperationNotPermitted
+		return nil, 0, process.ErrOperationNotPermitted
 	}
 	if len(vmInput.Arguments[0]) != len(acntDst.AddressContainer().Bytes()) {
-		return nil, process.ErrInvalidAddressLength
+		return nil, 0, process.ErrInvalidAddressLength
 	}
-
+	if vmInput.GasProvided < c.gasCost {
+		return nil, vmInput.GasProvided, process.ErrNotEnoughGas
+	}
 	err := acntDst.ChangeOwnerAddress(vmInput.CallerAddr, vmInput.Arguments[0])
 	if err != nil {
-		return nil, err
+		return nil, vmInput.GasProvided, err
 	}
 
-	return big.NewInt(0), nil
+	return big.NewInt(0), c.gasCost, nil
 }
 
 // GasUsed returns the gas used for processing the change

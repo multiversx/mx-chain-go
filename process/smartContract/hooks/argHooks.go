@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -18,4 +19,5 @@ type ArgBlockChainHook struct {
 	ShardCoordinator sharding.Coordinator
 	Marshalizer      marshal.Marshalizer
 	Uint64Converter  typeConverters.Uint64ByteSliceConverter
+	BuiltInFunctions process.BuiltInFunctionContainer
 }

@@ -165,9 +165,10 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
+	snapshot := sc.accounts.JournalLen()
 	defer func() {
 		if err != nil {
-			errNotCritical := sc.ProcessIfError(acntSnd, txHash, tx, err.Error())
+			errNotCritical := sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), snapshot)
 			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
@@ -283,12 +284,11 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		return true, process.ErrNilBuiltInFunction
 	}
 
-	valueToSend, err := builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
+	valueToSend, gasConsumed, err := builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
 	if err != nil {
 		return true, err
 	}
 
-	gasConsumed := builtIn.GasUsed()
 	if tx.GetGasLimit() < gasConsumed {
 		return true, process.ErrNotEnoughGas
 	}
@@ -327,7 +327,13 @@ func (sc *scProcessor) ProcessIfError(
 	txHash []byte,
 	tx data.TransactionHandler,
 	returnCode string,
+	snapShot int,
 ) error {
+	err := sc.accounts.RevertToSnapshot(snapShot)
+	if err != nil {
+		log.Warn("revert to snapshot", "error", err.Error())
+	}
+
 	consumedFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
 	scrIfError, err := sc.createSCRsWhenError(txHash, tx, returnCode)
 	if err != nil {
@@ -422,9 +428,10 @@ func (sc *scProcessor) DeploySmartContract(
 		return err
 	}
 
+	snapshot := sc.accounts.JournalLen()
 	defer func() {
 		if err != nil {
-			errNotCritical := sc.ProcessIfError(acntSnd, txHash, tx, err.Error())
+			errNotCritical := sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), snapshot)
 			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
@@ -1021,9 +1028,10 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		return err
 	}
 
+	snapshot := sc.accounts.JournalLen()
 	defer func() {
 		if err != nil {
-			errNotCritical := sc.ProcessIfError(nil, txHash, scr, err.Error())
+			errNotCritical := sc.ProcessIfError(nil, txHash, scr, err.Error(), snapshot)
 			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}

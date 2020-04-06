@@ -4,31 +4,24 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-// KeyValueGasCost -
-type KeyValueGasCost struct {
-	BaseCost       uint64
-	SavePerByte    uint64
-	ChangePerByte  uint64
-	ReleasePerByte uint64
-}
-
 type keyValueStorage struct {
-	gasConfig KeyValueGasCost
+	gasConfig smartContract.BaseOperationCost
 }
 
 // NewKeyValueStorageFunc -
 func NewKeyValueStorageFunc(
-	gasConfig KeyValueGasCost,
+	gasConfig smartContract.BaseOperationCost,
 ) *keyValueStorage {
 	return &keyValueStorage{gasConfig: gasConfig}
 }
 
 // ProcessBuiltinFunction -
-func (k *keyValueStorage) ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, error) {
-	return big.NewInt(0), nil
+func (k *keyValueStorage) ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, uint64, error) {
+	return big.NewInt(0), 0, nil
 }
 
 // GasUsed -

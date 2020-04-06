@@ -14,6 +14,8 @@ const claimDeveloperRewardsFunctionName = "ClaimDeveloperRewards"
 // changeOwnerAddressFunctionName is a constant which defines the name for the change owner address function
 const changeOwnerAddressFunctionName = "ChangeOwnerAddress"
 
+const setUserName = "SetUserName"
+
 // ArgsCreateBuiltInFunctionContainer -
 type ArgsCreateBuiltInFunctionContainer struct {
 	GasMap          map[string]map[string]uint64
@@ -38,12 +40,16 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (pr
 	}
 
 	newFunc = NewChangeOwnerAddressFunc(gasConfig.BuiltInCost.ChangeOwnerAddress)
-	err = container.Add(claimDeveloperRewardsFunctionName, newFunc)
+	err = container.Add(changeOwnerAddressFunctionName, newFunc)
 	if err != nil {
 		return nil, err
 	}
 
-	newFunc, err = NewUserNameFunc(gasConfig.BuiltInCost.UserName, args.MapDNSAddresses)
+	newFunc, err = NewSaveUserNameFunc(gasConfig.BuiltInCost.SaveUserName, args.MapDNSAddresses)
+	if err != nil {
+		return nil, err
+	}
+	err = container.Add(setUserName, newFunc)
 	if err != nil {
 		return nil, err
 	}

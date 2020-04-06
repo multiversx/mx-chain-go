@@ -27,18 +27,18 @@ func TestChangeOwnerAddress_ProcessBuiltinFunction(t *testing.T) {
 	acc, _ := state.NewUserAccount(mock.NewAddressMock(addr))
 	vmInput := &vmcommon.ContractCallInput{}
 
-	_, err := coa.ProcessBuiltinFunction(nil, acc, vmInput)
+	_, _, err := coa.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Equal(t, process.ErrInvalidArguments, err)
 
 	newAddr := []byte("0000")
 	vmInput.Arguments = [][]byte{newAddr}
-	_, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
+	_, _, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Equal(t, process.ErrNilTransaction, err)
 
-	_, err = coa.ProcessBuiltinFunction(nil, nil, vmInput)
+	_, _, err = coa.ProcessBuiltinFunction(nil, nil, vmInput)
 	require.Equal(t, process.ErrNilSCDestAccount, err)
 
 	acc.OwnerAddress = owner
-	_, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
+	_, _, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Nil(t, err)
 }

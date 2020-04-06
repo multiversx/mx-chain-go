@@ -13,6 +13,7 @@ type BaseOperationCost struct {
 type BuiltInCost struct {
 	ChangeOwnerAddress    uint64
 	ClaimDeveloperRewards uint64
+	SaveUserName          uint64
 }
 
 // GasCost holds all the needed gas costs for system smart contracts

@@ -740,3 +740,8 @@ var ErrNilVmInput = errors.New("nil vm input")
 
 // ErrNilDnsAddresses signals that nil dns addresses map was provided
 var ErrNilDnsAddresses = errors.New("nil dns addresses map")
+
+// ErrCallerIsNotTheDNSAddress
+var ErrCallerIsNotTheDNSAddress = errors.New("not a dns address")
+var ErrUserNameChangeIsDisabled = errors.New("user name change is disabled")
+var ErrDestinationNotInSelfShard = errors.New("destination is not in self shard")
