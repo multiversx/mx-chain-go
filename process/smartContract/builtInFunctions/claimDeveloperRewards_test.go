@@ -1,4 +1,4 @@
-package smartContract
+package builtInFunctions
 
 import (
 	"math/big"

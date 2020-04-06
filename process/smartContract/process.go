@@ -169,15 +169,6 @@ func (sc *scProcessor) createGasConfig(gasMap map[string]map[string]uint64) erro
 	return nil
 }
 
-func (sc *scProcessor) createBuiltInFunctions() error {
-	sc.builtInFunctions = make(map[string]process.BuiltinFunction)
-
-	sc.builtInFunctions[claimDeveloperRewardsFunctionName] = &claimDeveloperRewards{gasCost: sc.gasCost.BuiltInCost.ClaimDeveloperRewards}
-	sc.builtInFunctions[changeOwnerAddressFunctionName] = &changeOwnerAddress{gasCost: sc.gasCost.BuiltInCost.ClaimDeveloperRewards}
-
-	return nil
-}
-
 func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
 	if check.IfNil(tx) {
 		return process.ErrNilTransaction

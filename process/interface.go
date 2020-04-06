@@ -718,6 +718,16 @@ type BuiltinFunction interface {
 	IsInterfaceNil() bool
 }
 
+// BuiltInFunctionContainer defines the methods for the built-in protocol container
+type BuiltInFunctionContainer interface {
+	Get(key string) (BuiltinFunction, error)
+	Add(key string, function BuiltinFunction) error
+	Replace(key string, function BuiltinFunction) error
+	Remove(key string)
+	Len() int
+	Keys() map[string]struct{}
+}
+
 // RoundTimeDurationHandler defines the methods to get the time duration of a round
 type RoundTimeDurationHandler interface {
 	TimeDuration() time.Duration
