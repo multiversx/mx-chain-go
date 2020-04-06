@@ -2,6 +2,7 @@ package smartContract
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -242,13 +243,13 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
-	parseError := errors.New("fooError")
+	parseError := fmt.Errorf("fooError")
 	argParser.ParseDataCalled = func(data string) error {
 		return parseError
 	}
 
 	_ = sc.DeploySmartContract(tx, acntSrc)
-	require.Equal(t, parseError, sc.GetLastSilentError())
+	require.Equal(t, parseError, GetLatestTestError(sc))
 }
 
 func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
@@ -275,7 +276,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 
 	vm := &mock.VMExecutionHandlerStub{}
 
-	createError := errors.New("fooError")
+	createError := fmt.Errorf("fooError")
 	vm.RunSmartContractCreateCalled = func(input *vmcommon.ContractCreateInput) (output *vmcommon.VMOutput, e error) {
 		return nil, createError
 	}
@@ -285,7 +286,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	}
 
 	_ = sc.DeploySmartContract(tx, acntSrc)
-	require.Equal(t, createError, sc.GetLastSilentError())
+	require.Equal(t, createError, GetLatestTestError(sc))
 }
 
 func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
@@ -341,7 +342,8 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	}
 
 	err = sc.DeploySmartContract(tx, acntSrc)
-	require.Nil(t, sc.GetLastSilentError())
+	require.Nil(t, err)
+	require.Nil(t, GetLatestTestError(sc))
 }
 
 func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
@@ -1523,7 +1525,7 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	tx.GasLimit = 15
 	txHash := []byte("txHash")
 
-	scTxs, err := sc.CreateSCRTransactions(outputAccounts, tx, txHash)
+	scTxs, err := sc.processSCOutputAccounts(outputAccounts, tx, txHash)
 	require.Nil(t, err)
 	require.Equal(t, len(outputAccounts), len(scTxs))
 }

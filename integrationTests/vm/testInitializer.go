@@ -59,9 +59,9 @@ func (vmTestContext *VMTestContext) Close() {
 	vmTestContext.VMContainer.Close()
 }
 
-// GetSilentSCProcessorError -
-func (vmTestContext *VMTestContext) GetSilentSCProcessorError() error {
-	return vmTestContext.ScProcessor.(interface{ GetLastSilentError() error }).GetLastSilentError()
+// GetLatestError -
+func (vmTestContext *VMTestContext) GetLatestError() error {
+	return smartContract.GetLatestTestError(vmTestContext.ScProcessor)
 }
 
 type accountFactory struct {
