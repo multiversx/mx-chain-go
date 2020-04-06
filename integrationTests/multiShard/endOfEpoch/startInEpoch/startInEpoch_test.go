@@ -2,8 +2,6 @@ package startInEpoch
 
 import (
 	"context"
-	"encoding/hex"
-	"fmt"
 	"math/big"
 	"os"
 	"testing"
@@ -131,13 +129,39 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	generalConfig := getGeneralConfig()
 	roundDurationMillis := 4000
 	epochDurationMillis := generalConfig.EpochStartConfig.RoundsPerEpoch * int64(roundDurationMillis)
-	nodesConfig := sharding.NodesSetup{
-		StartTime:     time.Now().Add(-time.Duration(epochDurationMillis) * time.Millisecond).Unix(),
-		RoundDuration: 4000,
-		InitialNodes:  getInitialNodes(nodes),
-		ChainID:       string(integrationTests.ChainID),
+
+	pksBytes := integrationTests.CreatePkBytes(uint32(numOfShards))
+	address := make([]byte, 32)
+	address = []byte("afafafafafafafafafafafafafafafaf")
+
+	nodesConfig := &mock.NodesSetupStub{
+		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
+			oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+			for i := uint32(0); i < uint32(numOfShards); i++ {
+				oneMap[i] = append(oneMap[i], mock.NewNodeInfo(address, pksBytes[i], i))
+			}
+			oneMap[core.MetachainShardId] = append(oneMap[core.MetachainShardId], mock.NewNodeInfo(address, pksBytes[core.MetachainShardId], core.MetachainShardId))
+			return oneMap, nil
+		},
+		GetStartTimeCalled: func() int64 {
+			return time.Now().Add(-time.Duration(epochDurationMillis) * time.Millisecond).Unix()
+		},
+		GetRoundDurationCalled: func() uint64 {
+			return 4000
+		},
+		GetChainIdCalled: func() string {
+			return string(integrationTests.ChainID)
+		},
+		GetShardConsensusGroupSizeCalled: func() uint32 {
+			return 1
+		},
+		GetMetaConsensusGroupSizeCalled: func() uint32 {
+			return 1
+		},
+		NumberOfShardsCalled: func() uint32 {
+			return uint32(numOfShards)
+		},
 	}
-	nodesConfig.SetNumberOfShards(uint32(numOfShards))
 
 	defer func() {
 		errRemoveDir := os.RemoveAll("Epoch_0")
@@ -147,10 +171,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	genesisShardCoordinator, _ := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), 0)
 
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
-	shardIDStr := fmt.Sprintf("%d", shardID)
-	if shardID == core.MetachainShardId {
-		shardIDStr = "metachain"
-	}
 
 	nodeToJoinLate := integrationTests.NewTestProcessorNode(uint32(numOfShards), shardID, shardID, "")
 	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), integrationTests.GetConnectableAddress(advertiser))
@@ -172,14 +192,14 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		BlockSingleSigner:          &mock.SignerMock{},
 		KeyGen:                     &mock.KeyGenMock{},
 		BlockKeyGen:                &mock.KeyGenMock{},
-		GenesisNodesConfig:         &nodesConfig,
+		GenesisNodesConfig:         nodesConfig,
 		PathManager:                &mock.PathManagerStub{},
 		WorkingDir:                 "test_directory",
 		DefaultDBPath:              "test_db",
 		DefaultEpochString:         "test_epoch",
 		DefaultShardString:         "test_shard",
 		Rater:                      &mock.RaterMock{},
-		DestinationShardAsObserver: shardIDStr,
+		DestinationShardAsObserver: shardID,
 		TrieContainer:              triesHolder,
 		TrieStorageManagers:        trieStorageManager,
 		Uint64Converter:            uint64Converter,
@@ -302,22 +322,6 @@ func createTries(
 	trieStorageManagers[triesFactory.PeerAccountTrie] = peerStorageManager
 
 	return trieStorageManagers, trieContainer, nil
-}
-
-func getInitialNodes(nodes []*integrationTests.TestProcessorNode) []*sharding.InitialNode {
-	sliceToRet := make([]*sharding.InitialNode, 0)
-	for _, node := range nodes {
-		pubKeyBytes, _ := node.NodeKeys.Pk.ToByteArray()
-		addressBytes := node.OwnAccount.Address.Bytes()
-		entry := &sharding.InitialNode{
-			PubKey:   hex.EncodeToString(pubKeyBytes),
-			Address:  hex.EncodeToString(addressBytes),
-			NodeInfo: sharding.NodeInfo{},
-		}
-		sliceToRet = append(sliceToRet, entry)
-	}
-
-	return sliceToRet
 }
 
 func getGeneralConfig() config.Config {

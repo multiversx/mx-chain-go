@@ -230,6 +230,21 @@ type TestProcessorNode struct {
 	ExportHandler update.ExportHandler
 }
 
+func CreatePkBytes(numShards uint32) map[uint32][]byte {
+	pksbytes := make(map[uint32][]byte, numShards+1)
+	for i := uint32(0); i < numShards; i++ {
+		pksbytes[i] = make([]byte, 128)
+		pksbytes[i] = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
+		pksbytes[i][0] = byte(i)
+	}
+
+	pksbytes[core.MetachainShardId] = make([]byte, 128)
+	pksbytes[core.MetachainShardId] = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
+	pksbytes[core.MetachainShardId][0] = byte(numShards)
+
+	return pksbytes
+}
+
 // NewTestProcessorNode returns a new TestProcessorNode instance with a libp2p messenger
 func NewTestProcessorNode(
 	maxShards uint32,
@@ -243,32 +258,39 @@ func NewTestProcessorNode(
 	kg := &mock.KeyGenMock{}
 	sk, pk := kg.GeneratePair()
 
-	pkBytes := make([]byte, 128)
-	pkBytes = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
+	pksBytes := CreatePkBytes(maxShards)
 	address := make([]byte, 32)
 	address = []byte("afafafafafafafafafafafafafafafaf")
 
 	nodesSetup := &mock.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
 			oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
-			oneMap[0] = append(oneMap[0], mock.NewNodeInfo(address, pkBytes, 0))
+			for i := uint32(0); i < maxShards; i++ {
+				oneMap[i] = append(oneMap[i], mock.NewNodeInfo(address, pksBytes[i], i))
+			}
+			oneMap[core.MetachainShardId] = append(oneMap[core.MetachainShardId], mock.NewNodeInfo(address, pksBytes[core.MetachainShardId], core.MetachainShardId))
 			return oneMap, nil
 		},
 		InitialNodesInfoForShardCalled: func(shardId uint32) (handlers []sharding.GenesisNodeInfoHandler, handlers2 []sharding.GenesisNodeInfoHandler, err error) {
 			list := make([]sharding.GenesisNodeInfoHandler, 0)
-			list = append(list, mock.NewNodeInfo(address, pkBytes, 0))
+			list = append(list, mock.NewNodeInfo(address, pksBytes[shardId], shardId))
 			return list, nil, nil
 		},
 	}
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkBytes, 1, defaultChancesSelection)
+			v, _ := sharding.NewValidator(pksBytes[shardId], 1, defaultChancesSelection)
 			return []sharding.Validator{v}, nil
 		},
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			keys := make(map[uint32][][]byte)
-			keys[0] = make([][]byte, 0)
-			keys[0] = append(keys[0], pkBytes)
+			for shardID := uint32(0); shardID < maxShards; shardID++ {
+				keys[shardID] = append(keys[shardID], pksBytes[shardID])
+			}
+
+			shardID := core.MetachainShardId
+			keys[shardID] = append(keys[shardID], pksBytes[shardID])
+
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
