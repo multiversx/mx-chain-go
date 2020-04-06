@@ -241,6 +241,44 @@ func TestMutexMap_KeysConcurrent(t *testing.T) {
 	wg.Wait()
 }
 
+//------- Values
+
+func TestMutexMap_Values(t *testing.T) {
+	t.Parallel()
+
+	mm := NewMutexMap()
+	values := mm.Values()
+	assert.Equal(t, 0, len(values))
+
+	mm.Set("1", "value1")
+	mm.Set("2", "value2")
+	mm.Set("3", "value3")
+
+	values = mm.Values()
+	require.Equal(t, 3, len(values))
+	require.ElementsMatch(t, []interface{}{"value1", "value2", "value3"}, values)
+}
+
+func TestMutexMap_ValuesConcurrent(t *testing.T) {
+	t.Parallel()
+
+	mm := NewMutexMap()
+
+	numIterations := 100
+	wg := &sync.WaitGroup{}
+	wg.Add(numIterations)
+	for i := 0; i < numIterations; i++ {
+		go func(i int) {
+			mm.Set(i, i)
+			assert.GreaterOrEqual(t, len(mm.Values()), 1)
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+	require.Equal(t, numIterations, len(mm.Values()))
+}
+
 //------- Len
 
 func TestMutexMap_Len(t *testing.T) {
