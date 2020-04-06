@@ -59,7 +59,6 @@ type ArgsExporter struct {
 	HeaderSigVerifier        process.InterceptedHeaderSigVerifier
 	ChainID                  []byte
 	ValidityAttester         process.ValidityAttester
-	ValidatorInfoProcessor   process.ValidatorInfoProcessorHandler
 	InputAntifloodHandler    dataRetriever.P2PAntifloodHandler
 	OutputAntifloodHandler   dataRetriever.P2PAntifloodHandler
 }
@@ -95,7 +94,6 @@ type exportHandlerFactory struct {
 	chainID                  []byte
 	validityAttester         process.ValidityAttester
 	resolverContainer        dataRetriever.ResolversContainer
-	validatorInfoProcessor   process.ValidatorInfoProcessorHandler
 	inputAntifloodHandler    dataRetriever.P2PAntifloodHandler
 	outputAntifloodHandler   dataRetriever.P2PAntifloodHandler
 }
@@ -168,9 +166,6 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.ValidityAttester) {
 		return nil, update.ErrNilValidityAttester
 	}
-	if check.IfNil(args.ValidatorInfoProcessor) {
-		return nil, update.ErrNilValidatorInfoProcessor
-	}
 	if check.IfNil(args.TxSignMarshalizer) {
 		return nil, update.ErrNilMarshalizer
 	}
@@ -210,7 +205,6 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		headerSigVerifier:        args.HeaderSigVerifier,
 		validityAttester:         args.ValidityAttester,
 		chainID:                  args.ChainID,
-		validatorInfoProcessor:   args.ValidatorInfoProcessor,
 		inputAntifloodHandler:    args.InputAntifloodHandler,
 		outputAntifloodHandler:   args.OutputAntifloodHandler,
 	}
@@ -220,19 +214,27 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 
 // Create makes a new export handler
 func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
+	argsPeerMiniBlocksSyncer := shardchain.ArgPeerMiniBlockSyncer{
+		MiniBlocksPool: e.dataPool.MiniBlocks(),
+		Requesthandler: e.requestHandler,
+	}
+	peerMiniBlocksSyncer, err := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
+	if err != nil {
+		return nil, err
+	}
 	argsEpochTrigger := shardchain.ArgsShardEpochStartTrigger{
-		Marshalizer:            e.marshalizer,
-		Hasher:                 e.hasher,
-		HeaderValidator:        e.headerValidator,
-		Uint64Converter:        e.uint64Converter,
-		DataPool:               e.dataPool,
-		Storage:                e.storageService,
-		RequestHandler:         e.requestHandler,
-		EpochStartNotifier:     notifier.NewEpochStartSubscriptionHandler(),
-		Epoch:                  0,
-		Validity:               process.MetaBlockValidity,
-		Finality:               process.BlockFinality,
-		ValidatorInfoProcessor: e.validatorInfoProcessor,
+		Marshalizer:          e.marshalizer,
+		Hasher:               e.hasher,
+		HeaderValidator:      e.headerValidator,
+		Uint64Converter:      e.uint64Converter,
+		DataPool:             e.dataPool,
+		Storage:              e.storageService,
+		RequestHandler:       e.requestHandler,
+		EpochStartNotifier:   notifier.NewEpochStartSubscriptionHandler(),
+		Epoch:                0,
+		Validity:             process.MetaBlockValidity,
+		Finality:             process.BlockFinality,
+		PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)
 	if err != nil {

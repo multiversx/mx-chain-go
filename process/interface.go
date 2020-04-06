@@ -375,7 +375,7 @@ type EpochStartTriggerHandler interface {
 	IsEpochStart() bool
 	Epoch() uint32
 	EpochStartRound() uint64
-	SetProcessed(header data.HeaderHandler)
+	SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	RevertStateToBlock(header data.HeaderHandler) error
 	EpochStartMetaHdrHash() []byte
 	GetSavedStateKey() []byte
@@ -766,9 +766,9 @@ type RatingsStepHandler interface {
 	ConsecutiveMissedBlocksPenalty() float32
 }
 
-// ValidatorInfoProcessorHandler defines the method needed for validatorInfoProcessing
-type ValidatorInfoProcessorHandler interface {
-	ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) ([][]byte, error)
+// ValidatorInfoSyncer defines the method needed for validatorInfoProcessing
+type ValidatorInfoSyncer interface {
+	SyncMiniBlocks(metaBlock *block.MetaBlock) ([][]byte, data.BodyHandler, error)
 	IsInterfaceNil() bool
 }
 

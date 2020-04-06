@@ -9,18 +9,12 @@ import (
 )
 
 // GetDataFromStorage searches for data from storage
-func GetDataFromStorage(hash []byte, storer update.HistoryStorer, syncingEpoch uint32) ([]byte, error) {
+func GetDataFromStorage(hash []byte, storer update.HistoryStorer) ([]byte, error) {
 	if check.IfNil(storer) {
 		return nil, update.ErrNilStorage
 	}
 
 	currData, err := storer.Get(hash)
-	if err != nil {
-		currData, err = storer.GetFromEpoch(hash, syncingEpoch)
-		if err != nil {
-			currData, err = storer.GetFromEpoch(hash, syncingEpoch-1)
-		}
-	}
 
 	return currData, err
 }

@@ -748,6 +748,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		preferencesConfig.Preferences,
 		epochStartNotifier,
 		pubKey,
+		coreComponents.InternalMarshalizer,
 		coreComponents.Hasher,
 		rater,
 		dataComponents.Store.GetStorer(dataRetriever.BootstrapUnit),
@@ -1277,6 +1278,7 @@ func createNodesCoordinator(
 	prefsConfig config.PreferencesConfig,
 	epochStartNotifier epochStart.RegistrationHandler,
 	pubKey crypto.PublicKey,
+	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	ratingAndListIndexHandler sharding.PeerAccountListAndRatingHandler,
 	bootStorer storage.Storer,
@@ -1315,6 +1317,7 @@ func createNodesCoordinator(
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: shardConsensusGroupSize,
 		MetaConsensusGroupSize:  metaConsensusGroupSize,
+		Marshalizer:             marshalizer,
 		Hasher:                  hasher,
 		Shuffler:                nodeShuffler,
 		EpochStartNotifier:      epochStartNotifier,

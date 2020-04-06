@@ -13,7 +13,7 @@ type EpochStartNotifier interface {
 	RegisterHandler(handler epochStart.ActionHandler)
 	UnregisterHandler(handler epochStart.ActionHandler)
 	NotifyAll(hdr data.HeaderHandler)
-	NotifyAllPrepare(hdr data.HeaderHandler)
+	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	IsInterfaceNil() bool
 }
 
@@ -69,7 +69,7 @@ func (essh *epochStartSubscriptionHandler) NotifyAll(hdr data.HeaderHandler) {
 
 // NotifyAllPrepare will call all the subscribed clients to notify them that an epoch change block has been
 // observed, but not yet confirmed/committed. Some components may need to do some initialisation/preparation
-func (essh *epochStartSubscriptionHandler) NotifyAllPrepare(metaHeader data.HeaderHandler) {
+func (essh *epochStartSubscriptionHandler) NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
 	essh.mutEpochStartHandler.Lock()
 
 	sort.Slice(essh.epochStartHandlers, func(i, j int) bool {
@@ -77,7 +77,7 @@ func (essh *epochStartSubscriptionHandler) NotifyAllPrepare(metaHeader data.Head
 	})
 
 	for i := 0; i < len(essh.epochStartHandlers); i++ {
-		essh.epochStartHandlers[i].EpochStartPrepare(metaHeader)
+		essh.epochStartHandlers[i].EpochStartPrepare(metaHdr, body)
 	}
 	essh.mutEpochStartHandler.Unlock()
 }
