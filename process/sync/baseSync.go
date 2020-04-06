@@ -828,9 +828,9 @@ func (boot *baseBootstrap) setRequestedMiniBlocks(hashes [][]byte) {
 	boot.requestedHashes.SetHashes(hashes)
 }
 
-// receivedBodyHash method is a call back function which is called when a new body is added
+// receivedMiniblock method is a call back function which is called when a new body is added
 // in the block bodies pool
-func (boot *baseBootstrap) receivedBodyHash(hash []byte) {
+func (boot *baseBootstrap) receivedMiniblock(hash []byte, _ interface{}) {
 	boot.mutRcvMiniBlocks.Lock()
 	if len(boot.requestedHashes.ExpectedData()) == 0 {
 		boot.mutRcvMiniBlocks.Unlock()
@@ -904,7 +904,7 @@ func (boot *baseBootstrap) init() {
 	boot.setRequestedHeaderHash(nil)
 	boot.setRequestedMiniBlocks(nil)
 
-	boot.poolsHolder.MiniBlocks().RegisterHandler(boot.receivedBodyHash)
+	boot.poolsHolder.MiniBlocks().RegisterHandler(boot.receivedMiniblock)
 	boot.headers.RegisterHandler(boot.processReceivedHeader)
 
 	boot.chStopSync = make(chan bool)

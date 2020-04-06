@@ -3,6 +3,8 @@ package statusHandler
 import (
 	"strings"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 // statusMetrics will handle displaying at /node/details all metrics already collected for other status handlers
@@ -122,4 +124,38 @@ func (sm *statusMetrics) StatusP2pMetricsMap() map[string]interface{} {
 	})
 
 	return statusMetricsMap
+}
+
+// EpochMetrics will return metrics related to current epoch
+func (sm *statusMetrics) EpochMetrics() map[string]interface{} {
+	epochMetrics := make(map[string]interface{})
+	var currentEpoch uint32
+	var roundNumberAtEpochStart uint64
+	var roundsPerEpoch uint32
+	var currentRound uint64
+	var ok bool
+	currentEpochObj, ok := sm.nodeMetrics.Load(core.MetricEpochNumber)
+	if ok {
+		currentEpoch = uint32(currentEpochObj.(uint64))
+	}
+	roundNumberAtEpochStartObj, ok := sm.nodeMetrics.Load(core.MetricRoundAtEpochStart)
+	if ok {
+		roundNumberAtEpochStart = roundNumberAtEpochStartObj.(uint64)
+	}
+	roundsPerEpochObj, ok := sm.nodeMetrics.Load(core.MetricRoundsPerEpoch)
+	if ok {
+		roundsPerEpoch = uint32(roundsPerEpochObj.(uint64))
+	}
+	currentRoundObj, ok := sm.nodeMetrics.Load(core.MetricCurrentRound)
+	if ok {
+		currentRound = currentRoundObj.(uint64)
+	}
+
+	epochMetrics[core.MetricEpochNumber] = currentEpoch
+	epochMetrics[core.MetricRoundAtEpochStart] = roundNumberAtEpochStart
+	epochMetrics[core.MetricRoundsPerEpoch] = roundsPerEpoch
+	epochMetrics[core.MetricCurrentRound] = currentRound
+	epochMetrics[core.MetricRoundsPassedInCurrentEpoch] = currentRound - roundNumberAtEpochStart
+
+	return epochMetrics
 }

@@ -148,29 +148,18 @@ func (bpp *basePreProcess) saveTxsToStorage(
 
 func (bpp *basePreProcess) baseReceivedTransaction(
 	txHash []byte,
+	tx data.TransactionHandler,
 	forBlock *txsForBlock,
-	txPool dataRetriever.ShardedDataCacherNotifier,
-	blockType block.Type,
 ) bool {
-	searchFirst := blockType == block.InvalidBlock
 	forBlock.mutTxsForBlock.Lock()
-
 	if forBlock.missingTxs > 0 {
 		txInfoForHash := forBlock.txHashAndInfo[string(txHash)]
 		if txInfoForHash != nil && txInfoForHash.txShardInfo != nil &&
 			(txInfoForHash.tx == nil || txInfoForHash.tx.IsInterfaceNil()) {
-			tx, _ := process.GetTransactionHandlerFromPool(
-				txInfoForHash.senderShardID,
-				txInfoForHash.receiverShardID,
-				txHash,
-				txPool,
-				searchFirst)
-
-			if tx != nil {
-				forBlock.txHashAndInfo[string(txHash)].tx = tx
-				forBlock.missingTxs--
-			}
+			forBlock.txHashAndInfo[string(txHash)].tx = tx
+			forBlock.missingTxs--
 		}
+
 		missingTxs := forBlock.missingTxs
 		forBlock.mutTxsForBlock.Unlock()
 
@@ -216,16 +205,16 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 			if err != nil {
 				txHashes = append(txHashes, txHash)
 				forBlock.missingTxs++
+				log.Trace("missing tx",
+					"miniblock type", miniBlock.Type,
+					"sender", miniBlock.SenderShardID,
+					"receiver", miniBlock.ReceiverShardID,
+					"hash", txHash,
+				)
 				continue
 			}
 
 			forBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoObject}
-			log.Trace("missing txs",
-				"block type", miniBlock.Type.String(),
-				"sender shard id", miniBlock.SenderShardID,
-				"receiver shard id", miniBlock.ReceiverShardID,
-				"hash", txHash,
-			)
 		}
 
 		if len(txHashes) > 0 {

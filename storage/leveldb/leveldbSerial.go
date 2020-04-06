@@ -84,7 +84,7 @@ func (s *SerialDB) batchTimeoutHandle(ctx context.Context) {
 				continue
 			}
 		case <-ctx.Done():
-			log.Debug("closing the timed batch handler")
+			log.Debug("closing the timed batch handler", "path", s.path)
 			return
 		}
 	}

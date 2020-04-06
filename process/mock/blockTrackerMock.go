@@ -35,6 +35,7 @@ type BlockTrackerMock struct {
 	GetLastCrossNotarizedHeaderCalled                 func(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeadersForAllShardsCalled    func() (map[uint32]data.HeaderHandler, error)
 	GetLastSelfNotarizedHeaderCalled                  func(shardID uint32) (data.HeaderHandler, []byte, error)
+	GetNumPendingMiniBlocksCalled                     func(shardID uint32) uint32
 	GetTrackedHeadersCalled                           func(shardID uint32) ([]data.HeaderHandler, [][]byte)
 	GetTrackedHeadersForAllShardsCalled               func() map[uint32][]data.HeaderHandler
 	GetTrackedHeadersWithNonceCalled                  func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
@@ -365,6 +366,15 @@ func (btm *BlockTrackerMock) lastSelfNotarizedHdrForShard(shardID uint32) *heade
 	}
 
 	return nil
+}
+
+// GetNumPendingMiniBlocks -
+func (btm *BlockTrackerMock) GetNumPendingMiniBlocks(shardID uint32) uint32 {
+	if btm.GetNumPendingMiniBlocksCalled != nil {
+		return btm.GetNumPendingMiniBlocksCalled(shardID)
+	}
+
+	return 0
 }
 
 // GetTrackedHeaders -
