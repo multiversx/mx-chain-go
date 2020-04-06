@@ -1042,11 +1042,11 @@ func (sc *scProcessor) processSimpleSCR(
 		if err != nil {
 			return err
 		}
+	}
 
-		err = sc.accounts.SaveAccount(dstAcc)
-		if err != nil {
-			return err
-		}
+	err = sc.accounts.SaveAccount(dstAcc)
+	if err != nil {
+		return err
 	}
 
 	return nil
