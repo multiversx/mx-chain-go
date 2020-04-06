@@ -17,8 +17,10 @@ import (
 
 const emptyExcludePeersOnTopic = ""
 const defaultTargetShardID = uint32(0)
-const numCrossShardPeers = 2
-const numIntraShardPeers = 2
+
+//TODO extract these in config
+const numCrossShardPeers = 1
+const numIntraShardPeers = 1
 
 type baseResolversContainerFactory struct {
 	container                dataRetriever.ResolversContainer
