@@ -17,8 +17,23 @@ type userName struct {
 	mapDnsAddresses map[string]struct{}
 }
 
+// NewUserNameFunc returns a username built in function implementation
+func (u *userName) NewUserNameFunc(
+	gasCost uint64,
+	mapDnsAddresses map[string]struct{},
+) (*userName, error) {
+	if mapDnsAddresses == nil {
+		return nil, process.ErrNilDnsAddresses
+	}
+
+	return &userName{
+		gasCost:         gasCost,
+		mapDnsAddresses: mapDnsAddresses,
+	}, nil
+}
+
 // ProcessBuiltinFunction sets the username to the account if it is allowed
-func (s *userName) ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, error) {
+func (u *userName) ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, error) {
 	if vmInput == nil {
 		return nil, process.ErrNilVmInput
 	}
@@ -30,11 +45,11 @@ func (s *userName) ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHand
 }
 
 // GasUsed returns the used gas from the built-in function
-func (s *userName) GasUsed() uint64 {
-	return s.gasCost
+func (u *userName) GasUsed() uint64 {
+	return u.gasCost
 }
 
 // IsInterfaceNil
-func (s *userName) IsInterfaceNil() bool {
-	return s == nil
+func (u *userName) IsInterfaceNil() bool {
+	return u == nil
 }

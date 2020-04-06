@@ -14,6 +14,11 @@ type claimDeveloperRewards struct {
 	gasCost uint64
 }
 
+// NewClaimDeveloperRewardsFunc returns a new developer rewards implementation
+func NewClaimDeveloperRewardsFunc(gasCost uint64) *claimDeveloperRewards {
+	return &claimDeveloperRewards{gasCost: gasCost}
+}
+
 // ProcessBuiltinFunction processes the protocol built-in smart contract function
 func (c *claimDeveloperRewards) ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, error) {
 	if vmInput == nil {

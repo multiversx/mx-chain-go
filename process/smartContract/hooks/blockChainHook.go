@@ -343,6 +343,10 @@ func (bh *BlockChainHookImpl) NewAddress(creatorAddress []byte, creatorNonce uin
 	return base, nil
 }
 
+func (bh *BlockChainHookImpl) ProcessBuiltInFunction() {
+
+}
+
 func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte {
 	buffNonce := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buffNonce, creatorNonce)

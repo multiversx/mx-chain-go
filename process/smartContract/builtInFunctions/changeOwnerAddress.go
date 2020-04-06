@@ -14,6 +14,11 @@ type changeOwnerAddress struct {
 	gasCost uint64
 }
 
+// NewChangeOwnerAddressFunc create a new change owner built in function
+func NewChangeOwnerAddressFunc(gasCost uint64) *changeOwnerAddress {
+	return &changeOwnerAddress{gasCost: gasCost}
+}
+
 // ProcessBuiltinFunction processes simple protocol built-in function
 func (c *changeOwnerAddress) ProcessBuiltinFunction(_, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, error) {
 	if vmInput == nil {

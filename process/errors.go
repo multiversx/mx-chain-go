@@ -737,3 +737,6 @@ var ErrInvalidMetaTransaction = errors.New("meta transaction is invalid")
 
 // ErrNilVmInput signals that provided vm input is nil
 var ErrNilVmInput = errors.New("nil vm input")
+
+// ErrNilDnsAddresses signals that nil dns addresses map was provided
+var ErrNilDnsAddresses = errors.New("nil dns addresses map")

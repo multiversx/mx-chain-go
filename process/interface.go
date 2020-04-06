@@ -726,6 +726,7 @@ type BuiltInFunctionContainer interface {
 	Remove(key string)
 	Len() int
 	Keys() map[string]struct{}
+	IsInterfaceNil() bool
 }
 
 // RoundTimeDurationHandler defines the methods to get the time duration of a round
