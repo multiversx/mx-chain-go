@@ -337,17 +337,15 @@ func calculateSizeOfTxs(marshalizer marshal.Marshalizer, txs map[string]data.Tra
 		return 0
 	}
 
-	txsArray := make([]data.TransactionHandler, len(txs))
-	i := 0
+	txsSize := 0
 	for _, tx := range txs {
-		txsArray[i] = tx
-		i++
+		txBytes, err := marshalizer.Marshal(tx)
+		if err != nil {
+			return 0
+		}
+
+		txsSize += len(txBytes)
 	}
 
-	txsBytes, err := marshalizer.Marshal(&txsArray)
-	if err != nil {
-		return 0
-	}
-
-	return len(txsBytes)
+	return txsSize
 }
