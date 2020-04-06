@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -278,6 +279,27 @@ func (rc *rewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][
 	}
 
 	return txs
+}
+
+// GetRewardsTxs will return rewards txs MUST be called before SaveTxBlockToStorage
+func (rc *rewardsCreator) GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler {
+	rewardsTxs := make(map[string]data.TransactionHandler)
+	for _, miniBlock := range body.MiniBlocks {
+		if miniBlock.Type != block.RewardsBlock {
+			continue
+		}
+
+		for _, txHash := range miniBlock.TxHashes {
+			rwTx, err := rc.currTxs.GetTx(txHash)
+			if err != nil {
+				continue
+			}
+
+			rewardsTxs[string(txHash)] = rwTx
+		}
+	}
+
+	return rewardsTxs
 }
 
 // SaveTxBlockToStorage saves created data to storage

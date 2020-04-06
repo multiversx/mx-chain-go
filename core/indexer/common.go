@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
@@ -135,7 +136,7 @@ func getTransactionByType(
 	case *smartContractResult.SmartContractResult:
 		return buildSmartContractResult(currentType, txHash, mbHash, blockHash, mb, header)
 	case *rewardTx.RewardTx:
-		return buildRewardTransaction(currentType, txHash, mbHash, blockHash, mb, header)
+		return buildRewardTransaction(currentType, txHash, mbHash, blockHash, mb, header, txStatus)
 	case *receipt.Receipt:
 		return buildReceiptTransaction(currentType, txHash, mbHash, blockHash, mb, header)
 	default:
@@ -207,6 +208,7 @@ func buildRewardTransaction(
 	blockHash []byte,
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
+	txStatus string,
 ) *Transaction {
 	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
@@ -224,7 +226,7 @@ func buildRewardTransaction(
 		Data:          []byte(""),
 		Signature:     "",
 		Timestamp:     time.Duration(header.GetTimeStamp()),
-		Status:        "Success",
+		Status:        txStatus,
 	}
 }
 
@@ -320,4 +322,24 @@ func serializeBulkTxs(bulk []*Transaction) bytes.Buffer {
 	}
 
 	return buff
+}
+
+func calculateSizeOfTxs(marshalizer marshal.Marshalizer, txs map[string]data.TransactionHandler) int {
+	if len(txs) == 0 {
+		return 0
+	}
+
+	txsArray := make([]data.TransactionHandler, len(txs))
+	i := 0
+	for _, tx := range txs {
+		txsArray[i] = tx
+		i++
+	}
+
+	txsBytes, err := marshalizer.Marshal(&txsArray)
+	if err != nil {
+		return 0
+	}
+
+	return len(txsBytes)
 }
