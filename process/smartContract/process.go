@@ -895,11 +895,9 @@ func (sc *scProcessor) updateSmartContractCode(
 		return nil
 	}
 
-	isDeployment := len(scAccount.GetCode()) == 0
-	isSenderOwner := bytes.Equal(scAccount.GetOwnerAddress(), tx.GetSndAddr())
 	codeMetadata := vmcommon.CodeMetadataFromBytes(scAccount.GetCodeMetadata())
-	isUpgrade := !isDeployment && isSenderOwner && codeMetadata.Upgradeable
 
+	isDeployment := len(scAccount.GetCode()) == 0
 	if isDeployment {
 		scAccount.SetOwnerAddress(tx.GetSndAddr())
 		scAccount.SetCodeMetadata(outputAccount.CodeMetadata)
@@ -908,6 +906,8 @@ func (sc *scProcessor) updateSmartContractCode(
 		return nil
 	}
 
+	isSenderOwner := bytes.Equal(scAccount.GetOwnerAddress(), tx.GetSndAddr())
+	isUpgrade := !isDeployment && isSenderOwner && codeMetadata.Upgradeable
 	if isUpgrade {
 		scAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		scAccount.SetCode(outputAccount.Code)
@@ -1052,13 +1052,11 @@ func (sc *scProcessor) processSimpleSCR(
 	return nil
 }
 
-// [NotConcurrentSafe]
 func (sc *scProcessor) setSilentError(err error) {
 	sc.lastSilentError = err
 }
 
 // GetLastSilentError returns the last silent error encountered when processing a smart contract transaction
-// [NotConcurrentSafe]
 func (sc *scProcessor) GetLastSilentError() error {
 	return sc.lastSilentError
 }
