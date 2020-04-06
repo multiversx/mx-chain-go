@@ -47,6 +47,12 @@ func processInterceptedData(
 ) {
 	hash := data.Hash()
 	err := processor.Validate(data)
+
+	defer func() {
+		whiteListhandler.Remove([][]byte{hash})
+		wgProcess.Done()
+	}()
+
 	if err != nil {
 		log.Trace("intercepted data is not valid",
 			"hash", data.Hash(),
@@ -56,8 +62,6 @@ func processInterceptedData(
 			"data", data.String(),
 			"error", err.Error(),
 		)
-		whiteListhandler.Remove([][]byte{hash})
-		wgProcess.Done()
 
 		return
 	}
@@ -72,8 +76,6 @@ func processInterceptedData(
 			"data", data.String(),
 			"error", err.Error(),
 		)
-		whiteListhandler.Remove([][]byte{hash})
-		wgProcess.Done()
 
 		return
 	}
@@ -85,6 +87,4 @@ func processInterceptedData(
 		"seq no", p2p.MessageOriginatorSeq(msg),
 		"data", data.String(),
 	)
-	whiteListhandler.Remove([][]byte{hash})
-	wgProcess.Done()
 }

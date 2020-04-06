@@ -111,14 +111,17 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 		interceptedMultiData = append(interceptedMultiData, interceptedData)
 
-		shouldProcess := interceptedData.IsForCurrentShard() || mdi.whiteListHandler.IsWhiteListed(interceptedData)
+		isForCurrentShard := interceptedData.IsForCurrentShard()
+		isWhiteListed := mdi.whiteListHandler.IsWhiteListed(interceptedData)
+		shouldProcess := isForCurrentShard || isWhiteListed
 		if !shouldProcess {
 			log.Trace("intercepted data should not be processed",
 				"pid", p2p.MessageOriginatorPid(message),
 				"seq no", p2p.MessageOriginatorSeq(message),
 				"topics", message.Topics(),
 				"hash", interceptedData.Hash(),
-				"is for this shard", interceptedData.IsForCurrentShard(),
+				"is for this shard", isForCurrentShard,
+				"is white listed", isWhiteListed,
 			)
 			mdi.whiteListHandler.Remove([][]byte{interceptedData.Hash()})
 			wgProcess.Done()

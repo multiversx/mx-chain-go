@@ -296,10 +296,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateShardHeaderInterceptor
 			continue
 		}
 
-		var interceptor process.Interceptor
-		interceptor, err = ficf.createOneShardHeaderInterceptor(identifierHeader)
-		if err != nil {
-			return err
+		interceptor, errCreate := ficf.createOneShardHeaderInterceptor(identifierHeader)
+		if errCreate != nil {
+			return errCreate
 		}
 
 		keys[int(idx)] = identifierHeader

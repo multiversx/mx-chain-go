@@ -102,7 +102,7 @@ func (inTn *InterceptedTrieNode) SenderShardId() uint32 {
 	return 0
 }
 
-// ReceiverShardId return 0
+// ReceiverShardId returns 0
 func (inTn *InterceptedTrieNode) ReceiverShardId() uint32 {
 	return 0
 }
@@ -112,7 +112,7 @@ func (inTn *InterceptedTrieNode) Nonce() uint64 {
 	return 0
 }
 
-// SenderAddress return 0
+// SenderAddress returns nil
 func (inTn *InterceptedTrieNode) SenderAddress() state.AddressContainer {
 	return nil
 }
