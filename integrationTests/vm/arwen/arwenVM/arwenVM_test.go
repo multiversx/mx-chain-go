@@ -50,7 +50,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 
 	err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetSilentSCProcessorError())
+	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -93,7 +93,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 
 	err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetSilentSCProcessorError())
+	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -112,7 +112,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 
 	err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetSilentSCProcessorError())
+	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -181,7 +181,7 @@ func runWASMVMBenchmark(
 
 	err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(tb, err)
-	require.Nil(tb, testContext.GetSilentSCProcessorError())
+	require.Nil(tb, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(tb, err)
@@ -263,7 +263,7 @@ func TestWASMNamespacing(t *testing.T) {
 
 	err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetSilentSCProcessorError())
+	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -290,7 +290,7 @@ func TestWASMNamespacing(t *testing.T) {
 
 	err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetSilentSCProcessorError())
+	require.Nil(t, testContext.GetLatestError())
 }
 
 func TestWASMMetering(t *testing.T) {
@@ -322,7 +322,7 @@ func TestWASMMetering(t *testing.T) {
 
 	err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetSilentSCProcessorError())
+	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -349,7 +349,7 @@ func TestWASMMetering(t *testing.T) {
 
 	err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetSilentSCProcessorError())
+	require.Nil(t, testContext.GetLatestError())
 
 	expectedBalance := big.NewInt(2615)
 	expectedNonce := uint64(1)
@@ -405,7 +405,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 
 	err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetSilentSCProcessorError())
+	require.Nil(t, testContext.GetLatestError())
 	ownerNonce++
 
 	alice := []byte("12345678901234567890123456789111")
@@ -420,7 +420,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 
 	err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetSilentSCProcessorError())
+	require.Nil(t, testContext.GetLatestError())
 
 	start := time.Now()
 
@@ -429,7 +429,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 
 		err = testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
-		require.Nil(t, testContext.GetSilentSCProcessorError())
+		require.Nil(t, testContext.GetLatestError())
 		aliceNonce++
 	}
 
@@ -492,7 +492,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 
 	err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetSilentSCProcessorError())
+	require.Nil(t, testContext.GetLatestError())
 	ownerNonce++
 
 	alice := []byte("12345678901234567890123456789111")
@@ -510,7 +510,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 
 	err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetSilentSCProcessorError())
+	require.Nil(t, testContext.GetLatestError())
 
 	for j := 0; j < 2000; j++ {
 		start := time.Now()
@@ -520,7 +520,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 
 			err = testContext.TxProcessor.ProcessTransaction(tx)
 			require.Nil(t, err)
-			require.Nil(t, testContext.GetSilentSCProcessorError())
+			require.Nil(t, testContext.GetLatestError())
 			aliceNonce++
 		}
 
@@ -541,7 +541,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 
 		err = testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
-		require.Nil(t, testContext.GetSilentSCProcessorError())
+		require.Nil(t, testContext.GetLatestError())
 
 		aliceNonce++
 	}

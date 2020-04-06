@@ -46,9 +46,6 @@ type scProcessor struct {
 	txTypeHandler process.TxTypeHandler
 	gasHandler    process.GasHandler
 	gasCost       GasCost
-	// This is set when the deployment or execution fails for some reason,
-	// but the originating transaction isn't supposed to be treated as erroneous
-	lastSilentError error
 }
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
@@ -239,7 +236,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
-		sc.setSilentError(err)
 		log.Debug("prepare smart contract call error", "error", err.Error())
 		return nil
 	}
@@ -247,7 +243,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var vmInput *vmcommon.ContractCallInput
 	vmInput, err = sc.createVMCallInput(tx)
 	if err != nil {
-		sc.setSilentError(err)
 		log.Debug("create vm call input error", "error", err.Error())
 		return nil
 	}
@@ -255,7 +250,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var executed bool
 	executed, err = sc.resolveBuiltInFunctions(txHash, tx, acntSnd, acntDst, vmInput)
 	if err != nil {
-		sc.setSilentError(err)
 		log.Debug("processed built in functions error", "error", err.Error())
 		return nil
 	}
@@ -266,7 +260,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var vm vmcommon.VMExecutionHandler
 	vm, err = findVMByTransaction(sc.vmContainer, tx)
 	if err != nil {
-		sc.setSilentError(err)
 		log.Debug("get vm from address error", "error", err.Error())
 		return nil
 	}
@@ -274,7 +267,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vm.RunSmartContractCall(vmInput)
 	if err != nil {
-		sc.setSilentError(err)
 		log.Debug("run smart contract call error", "error", err.Error())
 		return nil
 	}
@@ -288,14 +280,12 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var results []data.TransactionHandler
 	results, consumedFee, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType)
 	if err != nil {
-		sc.setSilentError(err)
 		log.Trace("process vm output error", "error", err.Error())
 		return nil
 	}
 
 	err = sc.scrForwarder.AddIntermediateTransactions(results)
 	if err != nil {
-		sc.setSilentError(err)
 		log.Debug("AddIntermediateTransactions error", "error", err.Error())
 		return nil
 	}
@@ -305,7 +295,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	acntDst, err = sc.reloadLocalAccount(acntDst)
 	if err != nil {
-		sc.setSilentError(err)
 		log.Debug("reloadLocalAccount error", "error", err.Error())
 		return nil
 	}
@@ -315,7 +304,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	err = sc.accounts.SaveAccount(acntDst)
 	if err != nil {
-		sc.setSilentError(err)
 		log.Debug("error saving account")
 	}
 
@@ -486,49 +474,42 @@ func (sc *scProcessor) DeploySmartContract(
 
 	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
-		sc.setSilentError(err)
 		log.Debug("Transaction error", "error", err.Error())
 		return nil
 	}
 
 	vmInput, vmType, err := sc.createVMDeployInput(tx)
 	if err != nil {
-		sc.setSilentError(err)
 		log.Debug("Transaction error", "error", err.Error())
 		return nil
 	}
 
 	vm, err := sc.vmContainer.Get(vmType)
 	if err != nil {
-		sc.setSilentError(err)
 		log.Debug("VM error", "error", err.Error())
 		return nil
 	}
 
 	vmOutput, err := vm.RunSmartContractCreate(vmInput)
 	if err != nil {
-		sc.setSilentError(err)
 		log.Debug("VM error", "error", err.Error())
 		return nil
 	}
 
 	err = sc.accounts.SaveAccount(acntSnd)
 	if err != nil {
-		sc.setSilentError(err)
 		log.Debug("Save account error", "error", err.Error())
 		return nil
 	}
 
 	results, consumedFee, err := sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType)
 	if err != nil {
-		sc.setSilentError(err)
 		log.Trace("Processing error", "error", err.Error())
 		return nil
 	}
 
 	err = sc.scrForwarder.AddIntermediateTransactions(results)
 	if err != nil {
-		sc.setSilentError(err)
 		log.Debug("AddIntermediate Transaction error", "error", err.Error())
 		return nil
 	}
@@ -1044,21 +1025,7 @@ func (sc *scProcessor) processSimpleSCR(
 		}
 	}
 
-	err = sc.accounts.SaveAccount(dstAcc)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (sc *scProcessor) setSilentError(err error) {
-	sc.lastSilentError = err
-}
-
-// GetLastSilentError returns the last silent error encountered when processing a smart contract transaction
-func (sc *scProcessor) GetLastSilentError() error {
-	return sc.lastSilentError
+	return sc.accounts.SaveAccount(dstAcc)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

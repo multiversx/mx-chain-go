@@ -149,7 +149,7 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 		return err
 	}
 
-	err = context.GetSilentSCProcessorError()
+	err = context.GetLatestError()
 	if err != nil {
 		return err
 	}
@@ -189,7 +189,7 @@ func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) 
 		return err
 	}
 
-	err = context.GetSilentSCProcessorError()
+	err = context.GetLatestError()
 	if err != nil {
 		return err
 	}
@@ -240,7 +240,7 @@ func (context *TestContext) executeSCWithValue(sender *testParticipant, txData s
 	if err != nil {
 		return err
 	}
-	err = context.GetSilentSCProcessorError()
+	err = context.GetLatestError()
 	if err != nil {
 		return err
 	}
@@ -289,9 +289,9 @@ func (context *TestContext) querySC(function string, args [][]byte) []byte {
 	return firstResult
 }
 
-// GetSilentSCProcessorError -
-func (context *TestContext) GetSilentSCProcessorError() error {
-	return context.ScProcessor.(interface{ GetLastSilentError() error }).GetLastSilentError()
+// GetLatestError -
+func (context *TestContext) GetLatestError() error {
+	smartContract.GetLatestTestError(context.ScProcessor)
 }
 
 // FormatHexNumber -
