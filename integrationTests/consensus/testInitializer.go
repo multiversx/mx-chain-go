@@ -81,8 +81,7 @@ func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]shard
 	for shardId, shardNodesPks := range pubKeysMap {
 		shardValidators := make([]sharding.Validator, 0)
 		for i := 0; i < len(shardNodesPks); i++ {
-			address := fmt.Sprintf("addr_%d_%d", shardId, i)
-			v, _ := sharding.NewValidator([]byte(shardNodesPks[i]), []byte(address))
+			v, _ := sharding.NewValidator([]byte(shardNodesPks[i]), 1, uint32(i))
 			shardValidators = append(shardValidators, v)
 		}
 		validatorsMap[shardId] = shardValidators
@@ -310,8 +309,11 @@ func createConsensusOnlyNode(
 			mrsTxs := make(map[string][][]byte)
 			return mrsData, mrsTxs, nil
 		},
-		CreateNewHeaderCalled: func(round uint64) data.HeaderHandler {
-			return &dataBlock.Header{}
+		CreateNewHeaderCalled: func(round uint64, nonce uint64) data.HeaderHandler {
+			return &dataBlock.Header{
+				Round: round,
+				Nonce: nonce,
+			}
 		},
 	}
 
@@ -486,6 +488,7 @@ func createNodes(
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: consensusSize,
 			MetaConsensusGroupSize:  1,
+			Marshalizer:             integrationTests.TestMarshalizer,
 			Hasher:                  createHasher(consensusType),
 			Shuffler:                nodeShuffler,
 			EpochStartNotifier:      epochStartRegistrationHandler,

@@ -67,3 +67,8 @@ func (adb *PeerAccountsDB) RecreateAllTries(rootHash []byte) (map[string]data.Tr
 
 	return allTries, nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (adb *PeerAccountsDB) IsInterfaceNil() bool {
+	return adb == nil
+}

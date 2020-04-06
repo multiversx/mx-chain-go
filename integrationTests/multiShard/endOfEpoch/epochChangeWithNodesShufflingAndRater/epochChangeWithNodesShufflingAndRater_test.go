@@ -30,7 +30,7 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
-	rater, _ := rating.NewBlockSigningRaterAndListIndexer(integrationTests.CreateEconomicsData().RatingsData())
+	rater, _ := rating.NewBlockSigningRater(integrationTests.CreateRatingsData())
 
 	coordinatorFactory := &integrationTests.IndexHashedNodesCoordinatorWithRaterFactory{
 		PeerAccountListAndRatingHandler: rater,

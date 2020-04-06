@@ -25,7 +25,7 @@ type FeeSettings struct {
 
 // ValidatorSettings will hold the validator settings
 type ValidatorSettings struct {
-	GenesisNodePrice string
+	GenesisNodePrice         string
 	UnBondPeriod             string
 	TotalSupply              string
 	MinStepValue             string
@@ -38,35 +38,10 @@ type ValidatorSettings struct {
 	UnJailValue              string
 }
 
-// RatingSettings will hold rating settings
-type RatingSettings struct {
-	StartRating                 uint32
-	MaxRating                   uint32
-	MinRating                   uint32
-	ProposerIncreaseRatingStep  uint32
-	ProposerDecreaseRatingStep  uint32
-	ValidatorIncreaseRatingStep uint32
-	ValidatorDecreaseRatingStep uint32
-	SelectionChance             []SelectionChance
-}
-
-//RatingValue will hold different rating options with increase and decrease steps
-type RatingValue struct {
-	Name  string
-	Value int32
-}
-
 // EconomicsConfig will hold economics config
 type EconomicsConfig struct {
 	GlobalSettings    GlobalSettings
 	RewardsSettings   RewardsSettings
 	FeeSettings       FeeSettings
 	ValidatorSettings ValidatorSettings
-	RatingSettings    RatingSettings
-}
-
-//RatingValue will hold different rating options with increase and decresea steps
-type SelectionChance struct {
-	MaxThreshold  uint32
-	ChancePercent uint32
 }

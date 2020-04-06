@@ -131,6 +131,15 @@ var ErrValidatorInfoMiniBlocksNumDoesNotMatch = errors.New("number of created an
 // ErrNilValidatorInfo signals that a nil value for the validatorInfo has been provided
 var ErrNilValidatorInfo = errors.New("validator info is nil")
 
+// ErrNilMetaBlock signals that a nil metablock has been provided
+var ErrNilMetaBlock = errors.New("nil metablock")
+
+// ErrNilMiniBlockPool signals that a nil mini blocks pool was used
+var ErrNilMiniBlockPool = errors.New("nil mini block pool")
+
+// ErrNilStatusHandler signals that a nil status handler has been provided
+var ErrNilStatusHandler = errors.New("nil app status handler")
+
 // ErrEpochStartDataForShardNotFound signals that epoch start shard data was not found for current shard id
 var ErrEpochStartDataForShardNotFound = errors.New("epoch start data for current shard not found")
 

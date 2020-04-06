@@ -251,7 +251,6 @@ func createHardForkExporter(
 			HeaderSigVerifier:      node.HeaderSigVerifier,
 			ChainID:                node.ChainID,
 			ValidityAttester:       node.BlockTracker,
-			ValidatorInfoProcessor: node.ValidatorInfoProcessor,
 			OutputAntifloodHandler: &mock.NilAntifloodHandler{},
 			InputAntifloodHandler:  &mock.NilAntifloodHandler{},
 		}

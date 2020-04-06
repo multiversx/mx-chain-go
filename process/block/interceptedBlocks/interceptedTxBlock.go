@@ -1,6 +1,8 @@
 package interceptedBlocks
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -127,6 +129,13 @@ func (inTxBody *InterceptedTxBlockBody) integrity() error {
 // Type returns the type of this intercepted data
 func (inTxBody *InterceptedTxBlockBody) Type() string {
 	return "intercepted block body"
+}
+
+// String returns the transactions body's most important fields as string
+func (inTxBody *InterceptedTxBlockBody) String() string {
+	return fmt.Sprintf("numMiniblocks=%d",
+		len(inTxBody.txBlockBody.MiniBlocks),
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

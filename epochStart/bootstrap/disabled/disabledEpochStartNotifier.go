@@ -10,19 +10,19 @@ type EpochStartNotifier struct {
 }
 
 // RegisterHandler -
-func (desn *EpochStartNotifier) RegisterHandler(handler epochStart.ActionHandler) {
+func (desn *EpochStartNotifier) RegisterHandler(_ epochStart.ActionHandler) {
 }
 
 // UnregisterHandler -
-func (desn *EpochStartNotifier) UnregisterHandler(handler epochStart.ActionHandler) {
+func (desn *EpochStartNotifier) UnregisterHandler(_ epochStart.ActionHandler) {
 }
 
 // NotifyAllPrepare -
-func (desn *EpochStartNotifier) NotifyAllPrepare(metaHeader data.HeaderHandler) {
+func (desn *EpochStartNotifier) NotifyAllPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
 }
 
 // NotifyAll -
-func (desn *EpochStartNotifier) NotifyAll(hdr data.HeaderHandler) {
+func (desn *EpochStartNotifier) NotifyAll(_ data.HeaderHandler) {
 }
 
 // IsInterfaceNil -

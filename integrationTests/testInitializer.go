@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
@@ -80,6 +80,8 @@ const (
 	// ValidatorAccount identifies an account holding stake, crypto public keys, assigned shard, rating
 	ValidatorAccount Type = 1
 )
+
+const defaultChancesSelection = 1
 
 // GetConnectableAddress returns a non circuit, non windows default connectable address for provided messenger
 func GetConnectableAddress(mes p2p.Messenger) string {
@@ -951,7 +953,6 @@ func CreateNodes(
 	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
 			n := NewTestProcessorNode(uint32(numOfShards), shardId, shardId, serviceID)
-
 			nodes[idx] = n
 			idx++
 		}
@@ -998,13 +999,17 @@ func CreateNodesWithCustomStateCheckpointModulus(
 // DisplayAndStartNodes prints each nodes shard ID, sk and pk, and then starts the node
 func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 	for _, n := range nodes {
-		skBuff, _ := n.OwnAccount.SkTxSign.ToByteArray()
-		pkBuff, _ := n.OwnAccount.PkTxSign.ToByteArray()
+		skTxBuff, _ := n.OwnAccount.SkTxSign.ToByteArray()
+		pkTxBuff, _ := n.OwnAccount.PkTxSign.ToByteArray()
+		pkNode := n.NodesCoordinator.GetOwnPublicKey()
 
-		fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
+		fmt.Printf("Shard ID: %v, pkNode: %s\n",
 			n.ShardCoordinator.SelfId(),
-			hex.EncodeToString(skBuff),
-			hex.EncodeToString(pkBuff),
+			hex.EncodeToString(pkNode))
+
+		fmt.Printf("skTx: %s, pkTx: %s\n",
+			hex.EncodeToString(skTxBuff),
+			hex.EncodeToString(pkTxBuff),
 		)
 		n.Node.Start()
 		_ = n.Messenger.Bootstrap()
@@ -1665,19 +1670,13 @@ func PubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]st
 }
 
 // GenValidatorsFromPubKeys generates a map of validators per shard out of public keys map
-func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, nbShards uint32) map[uint32][]sharding.Validator {
-	validatorsMap := make(map[uint32][]sharding.Validator)
+func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, _ uint32) map[uint32][]sharding.GenesisNodeInfoHandler {
+	validatorsMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
 
 	for shardId, shardNodesPks := range pubKeysMap {
-		var shardValidators []sharding.Validator
-		shardCoordinator, _ := sharding.NewMultiShardCoordinator(nbShards, shardId)
+		var shardValidators []sharding.GenesisNodeInfoHandler
 		for i := 0; i < len(shardNodesPks); i++ {
-			_, pk, _ := GenerateSkAndPkInShard(shardCoordinator, shardId)
-			address, err := pk.ToByteArray()
-			if err != nil {
-				return nil
-			}
-			v, _ := sharding.NewValidator([]byte(shardNodesPks[i]), address)
+			v := mock.NewNodeInfo([]byte(shardNodesPks[i][:32]), []byte(shardNodesPks[i]), shardId)
 			shardValidators = append(shardValidators, v)
 		}
 		validatorsMap[shardId] = shardValidators

@@ -13,7 +13,7 @@ func NewEpochStartTrigger() *epochStartTrigger {
 }
 
 // Update -
-func (e *epochStartTrigger) Update(_ uint64) {
+func (e *epochStartTrigger) Update(_ uint64, _ uint64) {
 }
 
 // ReceivedHeader -
@@ -36,7 +36,7 @@ func (e *epochStartTrigger) EpochStartRound() uint64 {
 }
 
 // SetProcessed -
-func (e *epochStartTrigger) SetProcessed(_ data.HeaderHandler) {
+func (e *epochStartTrigger) SetProcessed(_ data.HeaderHandler, _ data.BodyHandler) {
 }
 
 // RevertStateToBlock -

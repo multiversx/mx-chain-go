@@ -17,6 +17,8 @@ type PeerAccountHandlerMock struct {
 	GetTempRatingCalled                func() uint32
 	SetAccumulatedFeesCalled           func(*big.Int)
 	GetAccumulatedFeesCalled           func() *big.Int
+	GetConsecutiveProposerMissesCalled func() uint32
+	SetConsecutiveProposerMissesCalled func(rating uint32)
 	SetListAndIndexCalled              func(shardID uint32, list string, index uint32)
 }
 
@@ -37,16 +39,6 @@ func (p *PeerAccountHandlerMock) GetBLSPublicKey() []byte {
 
 // SetBLSPublicKey -
 func (p *PeerAccountHandlerMock) SetBLSPublicKey([]byte) error {
-	return nil
-}
-
-// GetSchnorrPublicKey -
-func (p *PeerAccountHandlerMock) GetSchnorrPublicKey() []byte {
-	return nil
-}
-
-// SetSchnorrPublicKey -
-func (p *PeerAccountHandlerMock) SetSchnorrPublicKey([]byte) error {
 	return nil
 }
 
@@ -183,6 +175,16 @@ func (p *PeerAccountHandlerMock) GetValidatorSuccessRate() state.SignRate {
 	return state.SignRate{}
 }
 
+// GetLeaderSuccessRate -
+func (p *PeerAccountHandlerMock) GetTotalLeaderSuccessRate() state.SignRate {
+	return state.SignRate{}
+}
+
+// GetValidatorSuccessRate -
+func (p *PeerAccountHandlerMock) GetTotalValidatorSuccessRate() state.SignRate {
+	return state.SignRate{}
+}
+
 // GetRating -
 func (p *PeerAccountHandlerMock) GetRating() uint32 {
 	return 0
@@ -209,8 +211,7 @@ func (p *PeerAccountHandlerMock) SetTempRating(val uint32) {
 }
 
 // ResetAtNewEpoch -
-func (p *PeerAccountHandlerMock) ResetAtNewEpoch() error {
-	return nil
+func (p *PeerAccountHandlerMock) ResetAtNewEpoch() {
 }
 
 // AddressContainer -
@@ -270,6 +271,21 @@ func (p *PeerAccountHandlerMock) DataTrie() data.Trie {
 // DataTrieTracker -
 func (p *PeerAccountHandlerMock) DataTrieTracker() state.DataTrieTracker {
 	return nil
+}
+
+// GetConsecutiveProposerMisses -
+func (pahm *PeerAccountHandlerMock) GetConsecutiveProposerMisses() uint32 {
+	if pahm.GetConsecutiveProposerMissesCalled != nil {
+		return pahm.GetConsecutiveProposerMissesCalled()
+	}
+	return 0
+}
+
+// SetConsecutiveProposerMissesWithJournal -
+func (pahm *PeerAccountHandlerMock) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
+	if pahm.SetConsecutiveProposerMissesCalled != nil {
+		pahm.SetConsecutiveProposerMissesCalled(consecutiveMisses)
+	}
 }
 
 // SetListAndIndex -

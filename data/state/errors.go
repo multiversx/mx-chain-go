@@ -36,13 +36,6 @@ func (e *ErrorWrongSize) Error() string {
 	return fmt.Sprintf("wrong size, expected: %d, got %d", e.Exp, e.Got)
 }
 
-//------- ErrorTrieNotNormalized
-
-// NewErrorTrieNotNormalized returns a new instantiated struct
-func NewErrorTrieNotNormalized(exp int, actual int) *ErrorTrieNotNormalized {
-	return &ErrorTrieNotNormalized{expectedHashLength: exp, actualHashLength: actual}
-}
-
 // Error returns the error as string
 func (e *ErrorTrieNotNormalized) Error() string {
 	return "attempt to search a hash not normalized to " +
@@ -88,9 +81,6 @@ var ErrNegativeValue = errors.New("negative values are not permited")
 
 // ErrNilAccountFactory signals that a nil account factory was provided
 var ErrNilAccountFactory = errors.New("account factory is nil")
-
-// ErrNilAccountTracker signals that a nil account tracker has been provided
-var ErrNilAccountTracker = errors.New("nil account tracker provided")
 
 // ErrNilUpdater signals that a nil updater has been provided
 var ErrNilUpdater = errors.New("updater is nil")
@@ -164,3 +154,6 @@ var ErrNilCacher = errors.New("nil cacher")
 
 // ErrSnapshotValueOutOfBounds signals that the snapshot value is out of bounds
 var ErrSnapshotValueOutOfBounds = errors.New("snapshot value out of bounds")
+
+// ErrInvalidHash signals that the given hash is invalid
+var ErrInvalidHash = errors.New("invalid hash provided")

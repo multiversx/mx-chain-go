@@ -1,6 +1,7 @@
 package disabled
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -13,24 +14,24 @@ func NewNodesCoordinator() *nodesCoordinator {
 	return &nodesCoordinator{}
 }
 
+// GetChance -
+func (n *nodesCoordinator) GetChance(uint32) uint32 {
+	return 1
+}
+
 // GetAllLeavingValidatorsPublicKeys -
 func (n *nodesCoordinator) GetAllLeavingValidatorsPublicKeys(_ uint32) ([][]byte, error) {
 	return nil, nil
 }
 
-// SetNodesPerShards -
-func (n *nodesCoordinator) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ []sharding.Validator, _ uint32) error {
-	return nil
-}
-
-// SetConfig -
-func (n *nodesCoordinator) SetConfig(_ *sharding.NodesCoordinatorRegistry) error {
-	return nil
+// ValidatorsWeights -
+func (n *nodesCoordinator) ValidatorsWeights(validators []sharding.Validator) ([]uint32, error) {
+	return make([]uint32, len(validators)), nil
 }
 
 // ComputeLeaving -
-func (n *nodesCoordinator) ComputeLeaving(_ []sharding.Validator) []sharding.Validator {
-	return nil
+func (n *nodesCoordinator) ComputeLeaving(_ []*state.ShardValidatorInfo) ([]sharding.Validator, error) {
+	return nil, nil
 }
 
 // GetValidatorsIndexes -

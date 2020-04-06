@@ -42,10 +42,13 @@ func sameValidators(list1 []Validator, list2 []Validator) bool {
 	}
 
 	for i, validator := range list1 {
-		if !bytes.Equal(validator.Address(), list2[i].Address()) {
+		if !bytes.Equal(validator.PubKey(), list2[i].PubKey()) {
 			return false
 		}
-		if !bytes.Equal(validator.PubKey(), list2[i].PubKey()) {
+		if validator.Index() != list2[i].Index() {
+			return false
+		}
+		if validator.Chances() != list2[i].Chances() {
 			return false
 		}
 	}
@@ -59,9 +62,6 @@ func validatorsEqualSerializableValidators(validators []Validator, sValidators [
 	}
 
 	for i, validator := range validators {
-		if !bytes.Equal(validator.Address(), sValidators[i].Address) {
-			return false
-		}
 		if !bytes.Equal(validator.PubKey(), sValidators[i].PubKey) {
 			return false
 		}

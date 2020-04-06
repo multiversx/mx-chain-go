@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -43,15 +44,15 @@ func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 	}
 
 	list := []sharding.Validator{
-		NewValidatorMock([]byte("A"), []byte("AA")),
-		NewValidatorMock([]byte("B"), []byte("BB")),
-		NewValidatorMock([]byte("C"), []byte("CC")),
-		NewValidatorMock([]byte("D"), []byte("DD")),
-		NewValidatorMock([]byte("E"), []byte("EE")),
-		NewValidatorMock([]byte("F"), []byte("FF")),
-		NewValidatorMock([]byte("G"), []byte("GG")),
-		NewValidatorMock([]byte("H"), []byte("HH")),
-		NewValidatorMock([]byte("I"), []byte("II")),
+		NewValidatorMock([]byte("A"), 1, 1),
+		NewValidatorMock([]byte("B"), 1, 1),
+		NewValidatorMock([]byte("C"), 1, 1),
+		NewValidatorMock([]byte("D"), 1, 1),
+		NewValidatorMock([]byte("E"), 1, 1),
+		NewValidatorMock([]byte("F"), 1, 1),
+		NewValidatorMock([]byte("G"), 1, 1),
+		NewValidatorMock([]byte("H"), 1, 1),
+		NewValidatorMock([]byte("I"), 1, 1),
 	}
 
 	return list, nil
@@ -93,13 +94,17 @@ func (ncm *NodesCoordinatorMock) GetConsensusValidatorsPublicKeys(
 }
 
 // SetNodesPerShards -
-func (ncm *NodesCoordinatorMock) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ []sharding.Validator, _ uint32) error {
+func (ncm *NodesCoordinatorMock) SetNodesPerShards(
+	_ map[uint32][]sharding.Validator,
+	_ map[uint32][]sharding.Validator,
+	_ uint32,
+) error {
 	return nil
 }
 
 // ComputeLeaving -
-func (ncm *NodesCoordinatorMock) ComputeLeaving([]sharding.Validator) []sharding.Validator {
-	return make([]sharding.Validator, 0)
+func (ncm *NodesCoordinatorMock) ComputeLeaving([]*state.ShardValidatorInfo) ([]sharding.Validator, error) {
+	return make([]sharding.Validator, 0), nil
 }
 
 // LoadState -
@@ -150,9 +155,19 @@ func (ncm *NodesCoordinatorMock) GetOwnPublicKey() []byte {
 	panic("implement me")
 }
 
-// GetNodesPerShard -
-func (ncm *NodesCoordinatorMock) GetNodesPerShard(_ uint32) (map[uint32][]sharding.Validator, error) {
-	return nil, nil
+// ValidatorsWeights -
+func (ncm *NodesCoordinatorMock) ValidatorsWeights(validators []sharding.Validator) ([]uint32, error) {
+	weights := make([]uint32, len(validators))
+	for i := range validators {
+		weights[i] = 1
+	}
+
+	return weights, nil
+}
+
+// GetChance -
+func (ncm *NodesCoordinatorMock) GetChance(uint32) uint32 {
+	return 1
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

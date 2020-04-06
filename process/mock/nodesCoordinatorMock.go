@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -24,7 +25,6 @@ type NodesCoordinatorMock struct {
 	GetAllEligibleValidatorsPublicKeysCalled func() (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeysCalled  func() (map[uint32][][]byte, error)
 	ConsensusGroupSizeCalled                 func(uint32) int
-	UpdatePeersListAndIndexCalled            func() error
 }
 
 // NewNodesCoordinatorMock -
@@ -38,7 +38,8 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 		for v := 0; v < nodesPerShard; v++ {
 			validatorsList[v], _ = sharding.NewValidator(
 				[]byte(fmt.Sprintf("pubKey%d%d", sh, v)),
-				[]byte(fmt.Sprintf("address%d%d", sh, v)),
+				1,
+				uint32(v),
 			)
 		}
 		validatorsMap[sh] = validatorsList
@@ -48,7 +49,8 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 	for v := 0; v < nodesPerShard; v++ {
 		validatorsList[v], _ = sharding.NewValidator(
 			[]byte(fmt.Sprintf("pubKey%d%d", core.MetachainShardId, v)),
-			[]byte(fmt.Sprintf("address%d%d", core.MetachainShardId, v)),
+			1,
+			uint32(v),
 		)
 	}
 
@@ -63,14 +65,14 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 	}
 }
 
+// GetChance -
+func (ncm *NodesCoordinatorMock) GetChance(uint32) uint32 {
+	return 1
+}
+
 // GetAllLeavingValidatorsPublicKeys -
 func (ncm *NodesCoordinatorMock) GetAllLeavingValidatorsPublicKeys(_ uint32) ([][]byte, error) {
 	return nil, nil
-}
-
-// SetConfig -
-func (ncm *NodesCoordinatorMock) SetConfig(_ *sharding.NodesCoordinatorRegistry) error {
-	return nil
 }
 
 // GetNumTotalEligible -
@@ -144,7 +146,11 @@ func (ncm *NodesCoordinatorMock) GetConsensusValidatorsPublicKeys(
 }
 
 // SetNodesPerShards -
-func (ncm *NodesCoordinatorMock) SetNodesPerShards(eligible map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ []sharding.Validator, epoch uint32) error {
+func (ncm *NodesCoordinatorMock) SetNodesPerShards(
+	eligible map[uint32][]sharding.Validator,
+	_ map[uint32][]sharding.Validator,
+	epoch uint32,
+) error {
 	if ncm.SetNodesPerShardsCalled != nil {
 		return ncm.SetNodesPerShardsCalled(eligible, epoch)
 	}
@@ -159,8 +165,8 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(eligible map[uint32][]shardin
 }
 
 // ComputeLeaving -
-func (ncm *NodesCoordinatorMock) ComputeLeaving([]sharding.Validator) []sharding.Validator {
-	return make([]sharding.Validator, 0)
+func (ncm *NodesCoordinatorMock) ComputeLeaving([]*state.ShardValidatorInfo) ([]sharding.Validator, error) {
+	return make([]sharding.Validator, 0), nil
 }
 
 // ComputeConsensusGroup -
@@ -252,18 +258,14 @@ func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
 	panic("not implemented")
 }
 
-// GetNodesPerShard -
-func (ncm *NodesCoordinatorMock) GetNodesPerShard(_ uint32) (map[uint32][]sharding.Validator, error) {
-	return nil, nil
-}
-
-// UpdatePeersListAndIndex -
-func (ncm *NodesCoordinatorMock) UpdatePeersListAndIndex() error {
-	if ncm.UpdatePeersListAndIndexCalled != nil {
-		return ncm.UpdatePeersListAndIndexCalled()
+// ValidatorsWeights -
+func (ncm *NodesCoordinatorMock) ValidatorsWeights(validators []sharding.Validator) ([]uint32, error) {
+	weights := make([]uint32, len(validators))
+	for i := range validators {
+		weights[i] = 1
 	}
 
-	return nil
+	return weights, nil
 }
 
 // IsInterfaceNil -

@@ -1,8 +1,10 @@
 package trie
 
 import (
+	"fmt"
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -84,6 +86,13 @@ func (inTn *InterceptedTrieNode) EncodedNode() []byte {
 // Type returns the type of this intercepted data
 func (inTn *InterceptedTrieNode) Type() string {
 	return "intercepted trie node"
+}
+
+// String returns the trie node's most important fields as string
+func (inTn *InterceptedTrieNode) String() string {
+	return fmt.Sprintf("hash=%s",
+		logger.DisplayByteSlice(inTn.hash),
+	)
 }
 
 // CreateEndOfProcessingTriggerNode changes the hash of the current node by appending the hash to the current hash.

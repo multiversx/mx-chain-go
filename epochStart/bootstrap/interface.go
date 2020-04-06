@@ -27,10 +27,7 @@ type EpochStartInterceptor interface {
 
 // EpochStartNodesCoordinator -
 type EpochStartNodesCoordinator interface {
-	ComputeNodesConfigFor(
-		metaBlock *block.MetaBlock,
-		validatorInfos []*state.ValidatorInfo,
-	) (*sharding.EpochValidators, error)
+	ComputeNodesConfigFor(metaBlock *block.MetaBlock, validatorInfos []*state.ShardValidatorInfo) (*sharding.EpochValidators, error)
 	ComputeNodesConfigForGenesis(genesis *sharding.NodesSetup) (*sharding.EpochValidators, error)
 	ComputeShardForSelfPublicKey(epoch uint32, pubKey []byte) uint32
 	IsInterfaceNil() bool

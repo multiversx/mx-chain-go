@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
@@ -13,17 +14,18 @@ type TriggerHandler interface {
 	ForceEpochStart(round uint64) error
 	IsEpochStart() bool
 	Epoch() uint32
-	Update(round uint64)
+	Update(round uint64, nonce uint64)
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
 	GetSavedStateKey() []byte
 	LoadState(key []byte) error
-	SetProcessed(header data.HeaderHandler)
+	SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	SetFinalityAttestingRound(round uint64)
 	EpochFinalityAttestingRound() uint64
 	RevertStateToBlock(header data.HeaderHandler) error
 	SetCurrentEpochStartRound(round uint64)
 	RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler)
+	SetAppStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -59,7 +61,7 @@ type RequestHandler interface {
 // ActionHandler defines the action taken on epoch start event
 type ActionHandler interface {
 	EpochStartAction(hdr data.HeaderHandler)
-	EpochStartPrepare(hdr data.HeaderHandler)
+	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	NotifyOrder() uint32
 }
 
@@ -72,14 +74,15 @@ type RegistrationHandler interface {
 // Notifier defines which actions should be done for handling new epoch's events
 type Notifier interface {
 	NotifyAll(hdr data.HeaderHandler)
-	NotifyAllPrepare(hdr data.HeaderHandler)
+	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	IsInterfaceNil() bool
 }
 
 // ValidatorStatisticsProcessorHandler defines the actions for processing validator statistics
 // needed in the epoch events
 type ValidatorStatisticsProcessorHandler interface {
-	Process(info data.ValidatorInfoHandler) error
+	Process(info data.ShardValidatorInfoHandler) error
+	Commit() ([]byte, error)
 	IsInterfaceNil() bool
 }
 
