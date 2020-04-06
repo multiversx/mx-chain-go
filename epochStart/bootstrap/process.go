@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"context"
-	"strconv"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -87,7 +86,7 @@ type epochStartBootstrap struct {
 	defaultDBPath              string
 	defaultEpochString         string
 	defaultShardString         string
-	destinationShardAsObserver string
+	destinationShardAsObserver uint32
 	rater                      sharding.ChanceComputer
 	trieContainer              state.TriesHolder
 	trieStorageManagers        map[string]data.StorageManager
@@ -144,7 +143,7 @@ type ArgsEpochStartBootstrap struct {
 	DefaultEpochString         string
 	DefaultShardString         string
 	Rater                      sharding.ChanceComputer
-	DestinationShardAsObserver string
+	DestinationShardAsObserver uint32
 	TrieContainer              state.TriesHolder
 	TrieStorageManagers        map[string]data.StorageManager
 	Uint64Converter            typeConverters.Uint64ByteSliceConverter
@@ -476,15 +475,13 @@ func (e *epochStartBootstrap) saveSelfShardId() {
 	}
 
 	destShardID := core.MetachainShardId
-	if e.destinationShardAsObserver == "metachain" {
+	if e.destinationShardAsObserver == core.MetachainShardId {
 		e.baseData.shardId = destShardID
 		return
 	}
 
-	var destShardIDUint64 uint64
-	destShardIDUint64, err := strconv.ParseUint(e.destinationShardAsObserver, 10, 64)
-	if err == nil && destShardIDUint64 < uint64(e.baseData.numberOfShards) {
-		destShardID = uint32(destShardIDUint64)
+	if e.destinationShardAsObserver < e.baseData.numberOfShards {
+		destShardID = e.destinationShardAsObserver
 	} else {
 		destShardID = e.genesisShardCoordinator.SelfId()
 	}
@@ -498,16 +495,19 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		DataPool:           e.dataPool,
 		Marshalizer:        e.marshalizer,
 		RequestHandler:     e.requestHandler,
-		Rater:              e.rater,
+		ChanceComputer:     e.rater,
 		GenesisNodesConfig: e.genesisNodesConfig,
 		NodeShuffler:       e.nodeShuffler,
+		Hasher:             e.hasher,
+		PubKey:             pubKey,
+		ShardIdAsObserver:  e.destinationShardAsObserver,
 	}
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {
 		return err
 	}
 
-	e.nodesConfig, e.baseData.shardId, err = e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta, pubKey)
+	e.nodesConfig, e.baseData.shardId, err = e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta)
 	return err
 }
 

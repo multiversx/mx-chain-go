@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
-const defaultMemDBSize = 1000
+const defaultMemDBSize = 10000
 const defaultNumShards = 1
 
 // CreateMemUnit creates an in-memory storer unit using maps

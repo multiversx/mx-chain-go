@@ -251,7 +251,10 @@ func NewTestProcessorNode(
 	nodesSetup := &mock.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
 			oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
-			oneMap[0] = append(oneMap[0], mock.NewNodeInfo(address, pkBytes, 0))
+			/*for i := uint32(0); i < maxShards; i++ {
+				oneMap[i] = append(oneMap[i], mock.NewNodeInfo(address, pkBytes, i))
+			}*/
+			oneMap[core.MetachainShardId] = append(oneMap[core.MetachainShardId], mock.NewNodeInfo(address, pkBytes, core.MetachainShardId))
 			return oneMap, nil
 		},
 		InitialNodesInfoForShardCalled: func(shardId uint32) (handlers []sharding.GenesisNodeInfoHandler, handlers2 []sharding.GenesisNodeInfoHandler, err error) {

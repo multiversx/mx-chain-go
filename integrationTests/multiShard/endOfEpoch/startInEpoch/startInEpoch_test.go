@@ -3,7 +3,6 @@ package startInEpoch
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"os"
 	"testing"
@@ -132,10 +131,12 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	roundDurationMillis := 4000
 	epochDurationMillis := generalConfig.EpochStartConfig.RoundsPerEpoch * int64(roundDurationMillis)
 	nodesConfig := sharding.NodesSetup{
-		StartTime:     time.Now().Add(-time.Duration(epochDurationMillis) * time.Millisecond).Unix(),
-		RoundDuration: 4000,
-		InitialNodes:  getInitialNodes(nodes),
-		ChainID:       string(integrationTests.ChainID),
+		StartTime:                   time.Now().Add(-time.Duration(epochDurationMillis) * time.Millisecond).Unix(),
+		RoundDuration:               4000,
+		InitialNodes:                getInitialNodes(nodes),
+		ChainID:                     string(integrationTests.ChainID),
+		ConsensusGroupSize:          1,
+		MetaChainConsensusGroupSize: 1,
 	}
 	nodesConfig.SetNumberOfShards(uint32(numOfShards))
 
@@ -147,10 +148,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	genesisShardCoordinator, _ := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), 0)
 
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
-	shardIDStr := fmt.Sprintf("%d", shardID)
-	if shardID == core.MetachainShardId {
-		shardIDStr = "metachain"
-	}
 
 	nodeToJoinLate := integrationTests.NewTestProcessorNode(uint32(numOfShards), shardID, shardID, "")
 	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), integrationTests.GetConnectableAddress(advertiser))
@@ -179,7 +176,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		DefaultEpochString:         "test_epoch",
 		DefaultShardString:         "test_shard",
 		Rater:                      &mock.RaterMock{},
-		DestinationShardAsObserver: shardIDStr,
+		DestinationShardAsObserver: shardID,
 		TrieContainer:              triesHolder,
 		TrieStorageManagers:        trieStorageManager,
 		Uint64Converter:            uint64Converter,

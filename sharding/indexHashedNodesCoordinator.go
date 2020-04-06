@@ -148,7 +148,7 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	if check.IfNil(arguments.BootStorer) {
 		return ErrNilBootStorer
 	}
-	if arguments.ConsensusGroupCache == nil {
+	if check.IfNilReflect(arguments.ConsensusGroupCache) {
 		return ErrNilCacher
 	}
 	if check.IfNil(arguments.Marshalizer) {
@@ -185,8 +185,8 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 		nodesConfig.leavingList = append(nodesConfig.leavingList, validator)
 	}
 
-	nodesList, ok := eligible[core.MetachainShardId]
-	if !ok || len(nodesList) < ihgs.metaConsensusGroupSize {
+	nodesList := eligible[core.MetachainShardId]
+	if len(nodesList) < ihgs.metaConsensusGroupSize {
 		return ErrSmallMetachainEligibleListSize
 	}
 

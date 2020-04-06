@@ -90,7 +90,7 @@ func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
 }
 
 func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
-	registry := ihgs.nodesCoordinatorToRegistry()
+	registry := ihgs.NodesCoordinatorToRegistry()
 	data, err := json.Marshal(registry)
 	if err != nil {
 		return err
@@ -103,7 +103,8 @@ func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
 	return ihgs.bootStorer.Put(ncInternalkey, data)
 }
 
-func (ihgs *indexHashedNodesCoordinator) nodesCoordinatorToRegistry() *NodesCoordinatorRegistry {
+// NodesCoordinatorToRegistry will export the nodesCoordinator data to the registry
+func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoordinatorRegistry {
 	ihgs.mutNodesConfig.RLock()
 	defer ihgs.mutNodesConfig.RUnlock()
 

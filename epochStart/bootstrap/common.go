@@ -58,9 +58,6 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.TrieContainer) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilTriesContainer)
 	}
-	if len(args.DestinationShardAsObserver) == 0 {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidDestinationShardAsObserver)
-	}
 	if len(args.DefaultDBPath) == 0 {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidDefaultDBPath)
 	}
