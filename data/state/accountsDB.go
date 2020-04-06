@@ -114,7 +114,6 @@ func (adb *AccountsDB) saveCode(accountHandler baseAccountHandler) error {
 	codeHash := adb.hasher.Compute(string(code))
 	currentCodeHash := accountHandler.GetCodeHash()
 	noUpdateNeeded := bytes.Equal(codeHash, currentCodeHash)
-
 	if noUpdateNeeded {
 		return nil
 	}
@@ -125,7 +124,6 @@ func (adb *AccountsDB) saveCode(accountHandler baseAccountHandler) error {
 	}
 
 	isCodeInTrie := len(codeFromTrie) > 0
-
 	if isCodeInTrie {
 		accountHandler.SetCodeHash(codeHash)
 		return nil

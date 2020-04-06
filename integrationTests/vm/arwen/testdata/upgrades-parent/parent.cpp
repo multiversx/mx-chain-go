@@ -2,20 +2,19 @@ typedef unsigned char byte;
 typedef unsigned int u32;
 typedef unsigned long long u64;
 
-extern "C" void int64finish(long long value);
-extern "C" void finish(byte *data, int length);
-
-extern "C" int createContract(byte *value, byte *code, int length, byte *result, int numArguments, byte *argumentsLengths, byte *data);
-
-extern "C" int getNumArguments();
-extern "C" int getArgument(int argumentIndex, byte *argument);
-extern "C" int getArgumentLength(int argumentIndex);
-
-extern "C" int storageStore(byte *key, byte *data, int dataLength);
-extern "C" int storageLoad(byte *key, byte *data);
-
-extern "C" void signalError(byte *message, int length);
-extern "C" void asyncCall(byte *destination, byte *value, byte *data, int length);
+extern "C"
+{
+    void int64finish(long long value);
+    void finish(byte *data, int length);
+    int createContract(byte *value, byte *code, int length, byte *result, int numArguments, byte *argumentsLengths, byte *data);
+    int getNumArguments();
+    int getArgument(int argumentIndex, byte *argument);
+    int getArgumentLength(int argumentIndex);
+    int storageStore(byte *key, byte *data, int dataLength);
+    int storageLoad(byte *key, byte *data);
+    void signalError(byte *message, int length);
+    void asyncCall(byte *destination, byte *value, byte *data, int length);
+}
 
 void memcpy(void *dest, void *src, int n);
 

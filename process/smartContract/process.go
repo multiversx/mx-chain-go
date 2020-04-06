@@ -639,11 +639,6 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, err
 	}
 
-	err = sc.processTouchedAccounts(vmOutput.TouchedAccounts)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
 
 	return scrTxs, consumedFee, nil
@@ -916,7 +911,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	if isUpgrade {
 		scAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		scAccount.SetCode(outputAccount.Code)
-		log.Trace("updateSmartContractCode(): updated", "address", outputAccount.Address)
+		log.Trace("updateSmartContractCode(): upgraded", "address", outputAccount.Address)
 		return nil
 	}
 
@@ -943,12 +938,6 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 			return err
 		}
 	}
-	return nil
-}
-
-// TODO: Check - do we still need this?
-func (sc *scProcessor) processTouchedAccounts(_ [][]byte) error {
-	//TODO: implement
 	return nil
 }
 
@@ -1035,7 +1024,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 
 func (sc *scProcessor) processSimpleSCR(
 	scResult *smartContractResult.SmartContractResult,
-	destinationScAccount state.UserAccountHandler,
+	dstAcc state.UserAccountHandler,
 ) error {
 	outputAccount := &vmcommon.OutputAccount{
 		Code:         scResult.Code,
@@ -1043,18 +1032,18 @@ func (sc *scProcessor) processSimpleSCR(
 		Address:      scResult.RcvAddr,
 	}
 
-	err := sc.updateSmartContractCode(destinationScAccount, outputAccount, scResult)
+	err := sc.updateSmartContractCode(dstAcc, outputAccount, scResult)
 	if err != nil {
 		return err
 	}
 
 	if scResult.Value != nil {
-		err = destinationScAccount.AddToBalance(scResult.Value)
+		err = dstAcc.AddToBalance(scResult.Value)
 		if err != nil {
 			return err
 		}
 
-		err = sc.accounts.SaveAccount(destinationScAccount)
+		err = sc.accounts.SaveAccount(dstAcc)
 		if err != nil {
 			return err
 		}

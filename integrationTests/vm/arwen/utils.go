@@ -23,8 +23,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TODO: Rename this file to "utils_test.go".
-
 // VMTypeHex -
 const VMTypeHex = "0500"
 
