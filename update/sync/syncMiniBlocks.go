@@ -235,7 +235,7 @@ func getAllMiniBlocksWithDst(m *block.MetaBlock, destId uint32) []block.ShardMin
 
 // receivedMiniBlock is a callback function when a new miniblock was received
 // it will further ask for missing transactions
-func (p *pendingMiniBlocks) receivedMiniBlock(miniBlockHash []byte) {
+func (p *pendingMiniBlocks) receivedMiniBlock(miniBlockHash []byte, val interface{}) {
 	p.mutPendingMb.Lock()
 	if p.stopSyncing {
 		p.mutPendingMb.Unlock()
@@ -252,7 +252,7 @@ func (p *pendingMiniBlocks) receivedMiniBlock(miniBlockHash []byte) {
 		return
 	}
 
-	miniBlock, ok := p.getMiniBlockFromPool(miniBlockHash)
+	miniBlock, ok := val.(*block.MiniBlock)
 	if !ok {
 		p.mutPendingMb.Unlock()
 		return

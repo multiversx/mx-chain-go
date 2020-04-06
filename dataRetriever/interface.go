@@ -177,7 +177,7 @@ type DataRetriever interface {
 
 // Notifier defines a way to register funcs that get called when something useful happens
 type Notifier interface {
-	RegisterHandler(func(key []byte))
+	RegisterHandler(func(key []byte, value interface{}))
 	IsInterfaceNil() bool
 }
 

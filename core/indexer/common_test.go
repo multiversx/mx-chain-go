@@ -2,9 +2,11 @@ package indexer
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -56,7 +58,7 @@ func TestGetTransactionByType_RewardTx(t *testing.T) {
 		Receiver:  hex.EncodeToString(rcvAddr),
 		Status:    "Success",
 		Value:     "<nil>",
-		Sender:    metachainTpsDocID,
+		Sender:    fmt.Sprintf("%d", core.MetachainShardId),
 		Data:      []byte(""),
 	}
 	require.Equal(t, expectedTx, resultTx)

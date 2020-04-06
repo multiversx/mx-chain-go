@@ -276,6 +276,8 @@ const (
 	ConsensusOrder
 	// NetworkShardingOrder defines the order in which the network sharding subsystem is notified of a start of epoch event
 	NetworkShardingOrder
+	// IndexerOrder defines the order in which Indexer is notified of a start of epoch event
+	IndexerOrder
 )
 
 // NodeState specifies what type of state a node could have
@@ -322,3 +324,6 @@ const TriggerRegistryInitialKeyPrefix = "initial_value_epoch_"
 
 // NodesCoordinatorRegistryKeyPrefix is the key prefix to save epoch start registry to storage
 const NodesCoordinatorRegistryKeyPrefix = "indexHashed_"
+
+// HashSizeInBytes represents the size in bytes of a hash
+const HashSizeInBytes = 32

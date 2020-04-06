@@ -172,7 +172,7 @@ func TestSyncPendingTransactionsFor_ReceiveMissingTx(t *testing.T) {
 		}
 		pendingTxsSyncer.txPools[block.TxBlock].AddData(txHash, tx, "0")
 
-		pendingTxsSyncer.receivedTransaction(txHash)
+		pendingTxsSyncer.receivedTransaction(txHash, tx)
 	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
