@@ -258,42 +258,50 @@ func buildReceiptTransaction(
 	}
 }
 
-func serializeBulkMiniBlocks(hdrShardID uint32, bulkMbs []*Miniblock) bytes.Buffer {
-	var buff bytes.Buffer
-
+func serializeBulkMiniBlocks(hdrShardID uint32, bulkMbs []*Miniblock) (insert, update bytes.Buffer) {
 	for _, mb := range bulkMbs {
-		var err error
-		var meta, serializedData []byte
 		if hdrShardID == mb.SenderShardID {
 			//insert miniblock
-			meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, mb.Hash, "_doc", "\n"))
-			serializedData, err = json.Marshal(mb)
+			meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, mb.Hash, "_doc", "\n"))
+			serializedData, err := json.Marshal(mb)
 			if err != nil {
 				log.Debug("indexer: marshal",
 					"error", "could not serialize miniblock, will skip indexing",
 					"mb hash", mb.Hash)
 				continue
 			}
+
+			// append a newline for each element
+			serializedData = append(serializedData, "\n"...)
+			insert.Grow(len(meta) + len(serializedData))
+			_, err = insert.Write(meta)
+			if err != nil {
+				log.Warn("elastic search: serialize bulk miniblocks, write meta", "error", err.Error())
+			}
+			_, err = insert.Write(serializedData)
+			if err != nil {
+				log.Warn("elastic search: serialize bulk miniblocks, write serialized miniblock", "error", err.Error())
+			}
 		} else {
 			// update miniblock
-			meta = []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s" } }%s`, mb.Hash, "\n"))
-			serializedData = []byte(fmt.Sprintf(`{ "doc": { "receiverBlockHash" : "%s" } }`, mb.ReceiverBlockHash))
-		}
+			meta := []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s" } } %s`, mb.Hash, "\n"))
+			serializedData := []byte(fmt.Sprintf(`{ "doc": { "receiverBlockHash" : "%s" } }`, mb.ReceiverBlockHash))
 
-		// append a newline for each element
-		serializedData = append(serializedData, "\n"...)
-		buff.Grow(len(meta) + len(serializedData))
-		_, err = buff.Write(meta)
-		if err != nil {
-			log.Warn("elastic search: serialize bulk miniblocks, write meta", "error", err.Error())
-		}
-		_, err = buff.Write(serializedData)
-		if err != nil {
-			log.Warn("elastic search: serialize bulk miniblocks, write serialized miniblock", "error", err.Error())
+			// append a newline for each element
+			serializedData = append(serializedData, "\n"...)
+			update.Grow(len(meta) + len(serializedData))
+			_, err := update.Write(meta)
+			if err != nil {
+				log.Warn("elastic search: serialize bulk miniblocks, write meta", "error", err.Error())
+			}
+			_, err = update.Write(serializedData)
+			if err != nil {
+				log.Warn("elastic search: serialize bulk miniblocks, write serialized miniblock", "error", err.Error())
+			}
 		}
 	}
 
-	return buff
+	return
 }
 
 func serializeBulkTxs(bulk []*Transaction) bytes.Buffer {

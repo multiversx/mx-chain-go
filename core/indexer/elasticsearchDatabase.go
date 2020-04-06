@@ -275,10 +275,15 @@ func (esd *elasticSearchDatabase) SaveMiniblocks(header data.HeaderHandler, body
 		return
 	}
 
-	buff := serializeBulkMiniBlocks(header.GetShardID(), miniblocks)
-	err := esd.dbWriter.DoBulkRequest(&buff, miniblocksIndex)
+	buffInsert, buffUpdate := serializeBulkMiniBlocks(header.GetShardID(), miniblocks)
+	err := esd.dbWriter.DoBulkRequest(&buffInsert, miniblocksIndex)
 	if err != nil {
-		log.Warn("indexing bulk of miniblock", "error", err.Error())
+		log.Warn("indexing bulk of miniblock insert ", "error", err.Error())
+	}
+
+	err = esd.dbWriter.DoBulkRequest(&buffUpdate, miniblocksIndex)
+	if err != nil {
+		log.Warn("indexing bulk of miniblock update ", "error", err.Error())
 	}
 }
 
