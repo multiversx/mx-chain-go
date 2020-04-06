@@ -82,13 +82,8 @@ func (p *peerMiniBlockSyncer) SyncMiniBlocks(metaBlock *block.MetaBlock) ([][]by
 	return nil, peerBlockBody, nil
 }
 
-func (p *peerMiniBlockSyncer) receivedMiniBlock(key []byte) {
-	mb, ok := p.miniBlocksPool.Get(key)
-	if !ok {
-		return
-	}
-
-	peerMb, ok := mb.(*block.MiniBlock)
+func (p *peerMiniBlockSyncer) receivedMiniBlock(key []byte, val interface{}) {
+	peerMb, ok := val.(*block.MiniBlock)
 	if !ok || peerMb.Type != block.PeerBlock {
 		return
 	}

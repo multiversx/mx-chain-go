@@ -1050,10 +1050,6 @@ func TestBranchNode_loadChildren(t *testing.T) {
 		node, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
 		nodesCacher.Put(node.hash, node)
 	}
-	syncer, _ := NewTrieSyncer(resolver, nodesCacher, tr, time.Second)
-	syncer.interceptedNodes.RegisterHandler(func(key []byte, value interface{}) {
-		syncer.chRcvTrieNodes <- true
-	})
 
 	firstChildIndex := 5
 	secondChildIndex := 7

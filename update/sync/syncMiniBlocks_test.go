@@ -18,7 +18,7 @@ func createMockArgsPendingMiniBlock() ArgsNewPendingMiniBlocksSyncer {
 	return ArgsNewPendingMiniBlocksSyncer{
 		Storage: &mock.StorerStub{},
 		Cache: &mock.CacherStub{
-			RegisterHandlerCalled: func(f func(key []byte)) {},
+			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
 		RequestHandler: &mock.RequestHandlerStub{},
@@ -89,7 +89,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPool(t *testing.T) {
 	args := ArgsNewPendingMiniBlocksSyncer{
 		Storage: &mock.StorerStub{},
 		Cache: &mock.CacherStub{
-			RegisterHandlerCalled: func(f func(key []byte)) {},
+			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
 				miniBlockInPool = true
 				return mb, true
@@ -143,7 +143,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolMissingTimeout(t *testing
 			},
 		},
 		Cache: &mock.CacherStub{
-			RegisterHandlerCalled: func(f func(key []byte)) {},
+			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
