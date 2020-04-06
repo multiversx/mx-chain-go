@@ -69,3 +69,11 @@ func Test_BadFunctionNames_NoPanic(t *testing.T) {
 	err := context.DeploySC("../testdata/bad-functionNames/badFunctionNames.wasm", "")
 	require.NotNil(t, err)
 }
+
+func Test_BadReservedFunctions(t *testing.T) {
+	context := arwen.SetupTestContext(t)
+	defer context.Close()
+
+	err := context.DeploySC("../testdata/bad-reservedFunctions/reservedFunctions.wasm", "")
+	require.NotNil(t, err)
+}
