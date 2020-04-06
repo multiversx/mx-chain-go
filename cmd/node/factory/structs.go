@@ -738,7 +738,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	_, err = poolsCleaner.NewMiniBlocksPoolsCleaner(
-		blockTracker,
 		args.data.Datapool.MiniBlocks(),
 		rounder,
 		args.shardCoordinator,
@@ -748,7 +747,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	_, err = poolsCleaner.NewCrossTxsPoolsCleaner(
-		blockTracker,
+		args.state.AddressConverter,
 		args.data.Datapool,
 		rounder,
 		args.shardCoordinator,
