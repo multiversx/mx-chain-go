@@ -26,7 +26,7 @@ type ShardInterceptorsContainerFactoryArgs struct {
 	BlockSingleSigner      crypto.SingleSigner
 	MultiSigner            crypto.MultiSigner
 	DataPool               dataRetriever.PoolsHolder
-	PubkeyConverter        state.PubkeyConverter
+	AddressPubkeyConverter state.PubkeyConverter
 	MaxTxNonceDeltaAllowed int
 	TxFeeHandler           process.FeeHandler
 	BlackList              process.BlackListHandler
@@ -50,7 +50,7 @@ type MetaInterceptorsContainerFactoryArgs struct {
 	MultiSigner            crypto.MultiSigner
 	DataPool               dataRetriever.PoolsHolder
 	Accounts               state.AccountsAdapter
-	PubkeyConverter        state.PubkeyConverter
+	AddressPubkeyConverter state.PubkeyConverter
 	SingleSigner           crypto.SingleSigner
 	BlockSingleSigner      crypto.SingleSigner
 	KeyGen                 crypto.KeyGenerator

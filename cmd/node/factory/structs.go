@@ -115,6 +115,15 @@ type EpochStartNotifier interface {
 	IsInterfaceNil() bool
 }
 
+// CryptoParams is a DTO for holding block signing parameters
+type CryptoParams struct {
+	KeyGenerator    crypto.KeyGenerator
+	PrivateKey      crypto.PrivateKey
+	PublicKey       crypto.PublicKey
+	PublicKeyBytes  []byte
+	PublicKeyString string
+}
+
 // Network struct holds the network components of the Elrond protocol
 type Network struct {
 	NetMessenger           p2p.Messenger
@@ -136,11 +145,11 @@ type Core struct {
 
 // State struct holds the state components of the Elrond protocol
 type State struct {
-	AddressPubkeyConverter state.PubkeyConverter
-	BLSPubkeyConverter     state.PubkeyConverter
-	PeerAccounts           state.AccountsAdapter
-	AccountsAdapter        state.AccountsAdapter
-	InBalanceForShard      map[string]*big.Int
+	AddressPubkeyConverter   state.PubkeyConverter
+	ValidatorPubkeyConverter state.PubkeyConverter
+	PeerAccounts             state.AccountsAdapter
+	AccountsAdapter          state.AccountsAdapter
+	InBalanceForShard        map[string]*big.Int
 }
 
 // Data struct holds the data components of the Elrond protocol
@@ -308,9 +317,9 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, fmt.Errorf("%w for ProcessPubkeyConverter", err)
 	}
 
-	blsPubkeyConverter, err := factoryState.NewPubkeyConverter(args.config.BLSPubkeyConverter)
+	validatorPubkeyConverter, err := factoryState.NewPubkeyConverter(args.config.ValidatorPubkeyConverter)
 	if err != nil {
-		return nil, fmt.Errorf("%w for BLSPubkeyConverter", err)
+		return nil, fmt.Errorf("%w for ValidatorPubkeyConverter", err)
 	}
 
 	accountFactory := factoryState.NewAccountCreator()
@@ -333,11 +342,11 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 	}
 
 	return &State{
-		PeerAccounts:           peerAdapter,
-		AddressPubkeyConverter: processPubkeyConverter,
-		BLSPubkeyConverter:     blsPubkeyConverter,
-		AccountsAdapter:        accountsAdapter,
-		InBalanceForShard:      inBalanceForShard,
+		PeerAccounts:             peerAdapter,
+		AddressPubkeyConverter:   processPubkeyConverter,
+		ValidatorPubkeyConverter: validatorPubkeyConverter,
+		AccountsAdapter:          accountsAdapter,
+		InBalanceForShard:        inBalanceForShard,
 	}, nil
 }
 
@@ -553,6 +562,7 @@ type processComponentsFactoryArgs struct {
 	minSizeInBytes            uint32
 	maxSizeInBytes            uint32
 	maxRating                 uint32
+	validatorPubkeyConverter  state.PubkeyConverter
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -583,6 +593,7 @@ func NewProcessComponentsFactoryArgs(
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
 	maxRating uint32,
+	validatorPubkeyConverter state.PubkeyConverter,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -611,6 +622,7 @@ func NewProcessComponentsFactoryArgs(
 		minSizeInBytes:            minSizeInBytes,
 		maxSizeInBytes:            maxSizeInBytes,
 		maxRating:                 maxRating,
+		validatorPubkeyConverter:  validatorPubkeyConverter,
 	}
 }
 
@@ -670,7 +682,11 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	validatorsProvider, err := peer.NewValidatorsProvider(validatorStatisticsProcessor, args.maxRating)
+	validatorsProvider, err := peer.NewValidatorsProvider(
+		validatorStatisticsProcessor,
+		args.maxRating,
+		args.validatorPubkeyConverter,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1272,7 +1288,7 @@ func newShardInterceptorContainerFactory(
 		BlockSingleSigner:      crypto.SingleSigner,
 		MultiSigner:            crypto.MultiSigner,
 		DataPool:               data.Datapool,
-		PubkeyConverter:        state.AddressPubkeyConverter,
+		AddressPubkeyConverter: state.AddressPubkeyConverter,
 		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:           economics,
 		BlackList:              headerBlackList,
@@ -1317,7 +1333,7 @@ func newMetaInterceptorContainerFactory(
 		MultiSigner:            crypto.MultiSigner,
 		DataPool:               data.Datapool,
 		Accounts:               state.AccountsAdapter,
-		PubkeyConverter:        state.AddressPubkeyConverter,
+		AddressPubkeyConverter: state.AddressPubkeyConverter,
 		SingleSigner:           crypto.TxSingleSigner,
 		BlockSingleSigner:      crypto.SingleSigner,
 		KeyGen:                 crypto.TxSignKeyGen,
@@ -2157,7 +2173,7 @@ func newMetaBlockProcessor(
 	}
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		PubkeyConv:       stateComponents.BLSPubkeyConverter,
+		PubkeyConv:       stateComponents.ValidatorPubkeyConverter,
 		Hasher:           core.Hasher,
 		ProtoMarshalizer: core.InternalMarshalizer,
 		VmMarshalizer:    core.VmMarshalizer,
@@ -2291,7 +2307,7 @@ func newValidatorStatisticsProcessor(
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		PeerAdapter:         processComponents.state.PeerAccounts,
-		PubkeyConv:          processComponents.state.BLSPubkeyConverter,
+		PubkeyConv:          processComponents.state.ValidatorPubkeyConverter,
 		NodesCoordinator:    processComponents.nodesCoordinator,
 		ShardCoordinator:    processComponents.shardCoordinator,
 		DataPool:            peerDataPool,
@@ -2416,60 +2432,46 @@ func createMemUnit() storage.Storer {
 // GetSigningParams returns a key generator, a private key, and a public key
 func GetSigningParams(
 	ctx *cli.Context,
+	pubkeyConverter state.PubkeyConverter,
 	skName string,
 	skIndexName string,
 	skPemFileName string,
 	suite crypto.Suite,
-) (keyGen crypto.KeyGenerator, privKey crypto.PrivateKey, pubKey crypto.PublicKey, err error) {
+) (*CryptoParams, error) {
 
-	sk, readPk, err := getSkPk(ctx, skName, skIndexName, skPemFileName)
+	cryptoParams := &CryptoParams{}
+	sk, readPk, err := getSkPk(ctx, pubkeyConverter, skName, skIndexName, skPemFileName)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
-	keyGen = signing.NewKeyGenerator(suite)
-
-	privKey, err = keyGen.PrivateKeyFromByteArray(sk)
+	cryptoParams.KeyGenerator = signing.NewKeyGenerator(suite)
+	cryptoParams.PrivateKey, err = cryptoParams.KeyGenerator.PrivateKeyFromByteArray(sk)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
-	pubKey = privKey.GeneratePublic()
+	cryptoParams.PublicKey = cryptoParams.PrivateKey.GeneratePublic()
 	if len(readPk) > 0 {
-		var computedPkBytes []byte
-		computedPkBytes, err = pubKey.ToByteArray()
+
+		cryptoParams.PublicKeyBytes, err = cryptoParams.PublicKey.ToByteArray()
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, err
 		}
 
-		if !bytes.Equal(computedPkBytes, readPk) {
-			return nil, nil, nil, errPublicKeyMismatch
+		if !bytes.Equal(cryptoParams.PublicKeyBytes, readPk) {
+			return nil, errPublicKeyMismatch
 		}
 	}
 
-	return keyGen, privKey, pubKey, err
-}
+	cryptoParams.PublicKeyString = pubkeyConverter.Encode(cryptoParams.PublicKeyBytes)
 
-// GetPkEncoded returns the encoded public key
-func GetPkEncoded(pubKey crypto.PublicKey) string {
-	pk, err := pubKey.ToByteArray()
-	if err != nil {
-		return err.Error()
-	}
-
-	return encodeAddress(pk)
-}
-
-func encodeAddress(address []byte) string {
-	return hex.EncodeToString(address)
-}
-
-func decodeAddress(address string) ([]byte, error) {
-	return hex.DecodeString(address)
+	return cryptoParams, nil
 }
 
 func getSkPk(
 	ctx *cli.Context,
+	pubkeyConverter state.PubkeyConverter,
 	skName string,
 	skIndexName string,
 	skPemFileName string,
@@ -2478,25 +2480,25 @@ func getSkPk(
 	//if flag is defined, it shall overwrite what was read from pem file
 	if ctx.GlobalIsSet(skName) {
 		encodedSk := []byte(ctx.GlobalString(skName))
-		sk, err := decodeAddress(string(encodedSk))
+		sk, err := hex.DecodeString(string(encodedSk))
 
 		return sk, nil, err
 	}
 
 	skIndex := ctx.GlobalInt(skIndexName)
-	encodedSk, encodedPk, err := core.LoadSkPkFromPemFile(skPemFileName, skIndex)
+	encodedSk, pkString, err := core.LoadSkPkFromPemFile(skPemFileName, skIndex)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	skBytes, err := decodeAddress(string(encodedSk))
+	skBytes, err := hex.DecodeString(string(encodedSk))
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w for encoded secret key", err)
 	}
 
-	pkBytes, err := decodeAddress(string(encodedPk))
+	pkBytes, err := pubkeyConverter.Decode(pkString)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w for encoded public key", err)
+		return nil, nil, fmt.Errorf("%w for encoded public key %s", err, pkString)
 	}
 
 	return skBytes, pkBytes, nil

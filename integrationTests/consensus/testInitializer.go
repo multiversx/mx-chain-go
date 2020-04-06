@@ -53,6 +53,7 @@ import (
 const blsConsensusType = "bls"
 
 var consensusChainID = []byte("consensus chain ID")
+var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 type testNode struct {
 	node         *node.Node
@@ -124,7 +125,7 @@ func displayAndStartNodes(nodes []*testNode) {
 		fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
 			n.shardId,
 			hex.EncodeToString(skBuff),
-			hex.EncodeToString(pkBuff),
+			testPubkeyConverter.Encode(pkBuff),
 		)
 		_ = n.node.Start()
 		_ = n.node.P2PBootstrap()
@@ -288,7 +289,6 @@ func createConsensusOnlyNode(
 
 	testHasher := createHasher(consensusType)
 	testMarshalizer := &marshal.GogoProtoMarshalizer{}
-	testPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
 
 	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), initialAddr)
 	rootHash := []byte("roothash")
@@ -415,7 +415,7 @@ func createConsensusOnlyNode(
 		node.WithVmMarshalizer(&marshal.JsonMarshalizer{}),
 		node.WithTxSignMarshalizer(&marshal.JsonMarshalizer{}),
 		node.WithHasher(testHasher),
-		node.WithPubkeyConverter(testPubkeyConverter),
+		node.WithAddressPubkeyConverter(testPubkeyConverter),
 		node.WithAccountsAdapter(accntAdapter),
 		node.WithKeyGen(testKeyGen),
 		node.WithShardCoordinator(shardCoordinator),

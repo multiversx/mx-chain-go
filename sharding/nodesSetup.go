@@ -2,10 +2,11 @@ package sharding
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // InitialNode holds data from json
@@ -54,16 +55,33 @@ type NodesSetup struct {
 	Hysteresis float32 `json:"hysteresis"`
 	Adaptivity bool    `json:"adaptivity"`
 
-	nrOfShards         uint32
-	nrOfNodes          uint32
-	nrOfMetaChainNodes uint32
-	eligible           map[uint32][]*NodeInfo
-	waiting            map[uint32][]*NodeInfo
+	nrOfShards               uint32
+	nrOfNodes                uint32
+	nrOfMetaChainNodes       uint32
+	eligible                 map[uint32][]*NodeInfo
+	waiting                  map[uint32][]*NodeInfo
+	validatorPubkeyConverter state.PubkeyConverter
+	addressPubkeyConverter   state.PubkeyConverter
 }
 
 // NewNodesSetup creates a new decoded nodes structure from json config file
-func NewNodesSetup(nodesFilePath string) (*NodesSetup, error) {
-	nodes := &NodesSetup{}
+func NewNodesSetup(
+	nodesFilePath string,
+	addressPubkeyConverter state.PubkeyConverter,
+	validatorPubkeyConverter state.PubkeyConverter,
+) (*NodesSetup, error) {
+
+	if check.IfNil(addressPubkeyConverter) {
+		return nil, fmt.Errorf("%w for addressPubkeyConverter", ErrNilPubkeyConverter)
+	}
+	if check.IfNil(validatorPubkeyConverter) {
+		return nil, fmt.Errorf("%w for validatorPubkeyConverter", ErrNilPubkeyConverter)
+	}
+
+	nodes := &NodesSetup{
+		addressPubkeyConverter:   addressPubkeyConverter,
+		validatorPubkeyConverter: validatorPubkeyConverter,
+	}
 
 	err := core.LoadJsonFile(nodes, nodesFilePath)
 	if err != nil {
@@ -89,13 +107,13 @@ func (ns *NodesSetup) processConfig() error {
 	ns.nrOfMetaChainNodes = 0
 	for i := 0; i < len(ns.InitialNodes); i++ {
 		pubKey := ns.InitialNodes[i].PubKey
-		ns.InitialNodes[i].pubKey, err = hex.DecodeString(pubKey)
+		ns.InitialNodes[i].pubKey, err = ns.validatorPubkeyConverter.Decode(pubKey)
 		if err != nil {
 			return fmt.Errorf("%w, %s for string %s", ErrCouldNotParsePubKey, err.Error(), pubKey)
 		}
 
 		address := ns.InitialNodes[i].Address
-		ns.InitialNodes[i].address, err = hex.DecodeString(address)
+		ns.InitialNodes[i].address, err = ns.addressPubkeyConverter.Decode(address)
 		if err != nil {
 			return fmt.Errorf("%w, %s for string %s", ErrCouldNotParseAddress, err.Error(), address)
 		}

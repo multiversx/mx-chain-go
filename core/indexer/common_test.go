@@ -15,12 +15,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func createCommonProcessor() commonProcessor {
+	return commonProcessor{
+		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
+	}
+}
+
 func TestGetTransactionByType_SC(t *testing.T) {
 	t.Parallel()
 
-	cp := commonProcessor{
-		pubkeyConverter: mock.NewPubkeyConverterMock(32),
-	}
+	cp := createCommonProcessor()
 
 	nonce := uint64(10)
 	smartContract := &smartContractResult.SmartContractResult{Nonce: nonce}
@@ -47,9 +52,7 @@ func TestGetTransactionByType_SC(t *testing.T) {
 func TestGetTransactionByType_RewardTx(t *testing.T) {
 	t.Parallel()
 
-	cp := commonProcessor{
-		pubkeyConverter: mock.NewPubkeyConverterMock(32),
-	}
+	cp := createCommonProcessor()
 
 	round := uint64(10)
 	rcvAddr := []byte("receiver")
@@ -80,9 +83,7 @@ func TestGetTransactionByType_RewardTx(t *testing.T) {
 func TestGetTransactionByType_Receipt(t *testing.T) {
 	t.Parallel()
 
-	cp := commonProcessor{
-		pubkeyConverter: mock.NewPubkeyConverterMock(32),
-	}
+	cp := createCommonProcessor()
 
 	receiptTest := &receipt.Receipt{Value: big.NewInt(100)}
 	txHash := []byte("txHash")
@@ -107,9 +108,7 @@ func TestGetTransactionByType_Receipt(t *testing.T) {
 func TestGetTransactionByType_Nil(t *testing.T) {
 	t.Parallel()
 
-	cp := commonProcessor{
-		pubkeyConverter: mock.NewPubkeyConverterMock(32),
-	}
+	cp := createCommonProcessor()
 
 	txHash := []byte("txHash")
 	mbHash := []byte("mbHash")

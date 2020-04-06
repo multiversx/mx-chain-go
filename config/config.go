@@ -111,9 +111,7 @@ type Config struct {
 	TrieNodesDataPool           CacheConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
-	BLSPubkeyConverter          PubkeyConfig
-	IndexerPubkeyConverter      PubkeyConfig
-	GenesisPubkeyConverter      PubkeyConfig
+	ValidatorPubkeyConverter    PubkeyConfig
 	Hasher                      TypeConfig
 	MultisigHasher              TypeConfig
 	Marshalizer                 MarshalizerConfig

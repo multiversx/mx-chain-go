@@ -36,6 +36,7 @@ type baseInterceptorsContainerFactory struct {
 	globalThrottler        process.InterceptorThrottler
 	maxTxNonceDeltaAllowed int
 	antifloodHandler       process.P2PAntifloodHandler
+	addressPubkeyConverter state.PubkeyConverter
 }
 
 func checkBaseParams(
@@ -51,6 +52,7 @@ func checkBaseParams(
 	nodesCoordinator sharding.NodesCoordinator,
 	blackList process.BlackListHandler,
 	antifloodHandler process.P2PAntifloodHandler,
+	addressPubkeyConverter state.PubkeyConverter,
 ) error {
 	if check.IfNil(shardCoordinator) {
 		return process.ErrNilShardCoordinator
@@ -84,6 +86,9 @@ func checkBaseParams(
 	}
 	if check.IfNil(antifloodHandler) {
 		return process.ErrNilAntifloodHandler
+	}
+	if check.IfNil(addressPubkeyConverter) {
+		return process.ErrNilPubkeyConverter
 	}
 
 	return nil
@@ -140,7 +145,12 @@ func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic string) (process.Interceptor, error) {
-	txValidator, err := dataValidators.NewTxValidator(bicf.accounts, bicf.shardCoordinator, bicf.maxTxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(
+		bicf.accounts,
+		bicf.shardCoordinator,
+		bicf.maxTxNonceDeltaAllowed,
+		bicf.addressPubkeyConverter,
+	)
 	if err != nil {
 		return nil, err
 	}

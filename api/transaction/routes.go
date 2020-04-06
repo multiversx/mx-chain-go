@@ -13,12 +13,13 @@ import (
 
 // TxService interface defines methods that can be used from `elrondFacade` context variable
 type TxService interface {
-	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
+	CreateTransaction(nonce uint64, value string, receiver string, sender string, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
+	EncodeAddressPubkey(pk []byte) string
 	IsInterfaceNil() bool
 }
 
@@ -188,14 +189,14 @@ func GetTransaction(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"transaction": txResponseFromTransaction(tx)})
+	c.JSON(http.StatusOK, gin.H{"transaction": txResponseFromTransaction(ef, tx)})
 }
 
-func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {
+func txResponseFromTransaction(ef TxService, tx *transaction.Transaction) TxResponse {
 	response := TxResponse{}
 	response.Nonce = tx.Nonce
-	response.Sender = hex.EncodeToString(tx.SndAddr)
-	response.Receiver = hex.EncodeToString(tx.RcvAddr)
+	response.Sender = ef.EncodeAddressPubkey(tx.SndAddr)
+	response.Receiver = ef.EncodeAddressPubkey(tx.RcvAddr)
 	response.Data = tx.Data
 	response.Signature = hex.EncodeToString(tx.Signature)
 	response.Value = tx.Value.String()

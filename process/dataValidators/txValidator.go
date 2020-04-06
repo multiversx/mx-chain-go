@@ -1,7 +1,6 @@
 package dataValidators
 
 import (
-	"encoding/hex"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -12,9 +11,10 @@ import (
 
 // txValidator represents a tx handler validator that doesn't check the validity of provided txHandler
 type txValidator struct {
-	accounts             state.AccountsAdapter
-	shardCoordinator     sharding.Coordinator
-	maxNonceDeltaAllowed int
+	accounts               state.AccountsAdapter
+	shardCoordinator       sharding.Coordinator
+	addressPubkeyConverter state.PubkeyConverter
+	maxNonceDeltaAllowed   int
 }
 
 // NewTxValidator creates a new nil tx handler validator instance
@@ -22,6 +22,7 @@ func NewTxValidator(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	maxNonceDeltaAllowed int,
+	addressPubkeyConverter state.PubkeyConverter,
 ) (*txValidator, error) {
 
 	if check.IfNil(accounts) {
@@ -30,11 +31,15 @@ func NewTxValidator(
 	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if check.IfNil(addressPubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
+	}
 
 	return &txValidator{
-		accounts:             accounts,
-		shardCoordinator:     shardCoordinator,
-		maxNonceDeltaAllowed: maxNonceDeltaAllowed,
+		accounts:               accounts,
+		shardCoordinator:       shardCoordinator,
+		maxNonceDeltaAllowed:   maxNonceDeltaAllowed,
+		addressPubkeyConverter: addressPubkeyConverter,
 	}, nil
 }
 
@@ -54,7 +59,7 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	if err != nil {
 		return fmt.Errorf("%w for address %s and shard %d",
 			process.ErrAddressNotInThisShard,
-			hex.EncodeToString(senderAddress.Bytes()),
+			txv.addressPubkeyConverter.Encode(senderAddress.Bytes()),
 			shardID,
 		)
 	}
@@ -76,7 +81,7 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	if !ok {
 		return fmt.Errorf("%w, account is not of type *state.Account, address: %s",
 			process.ErrWrongTypeAssertion,
-			hex.EncodeToString(senderAddress.Bytes()),
+			txv.addressPubkeyConverter.Encode(senderAddress.Bytes()),
 		)
 	}
 
@@ -85,7 +90,7 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	if accountBalance.Cmp(txFee) < 0 {
 		return fmt.Errorf("%w, for address: %s, wanted %v, have %v",
 			process.ErrInsufficientFunds,
-			hex.EncodeToString(senderAddress.Bytes()),
+			txv.addressPubkeyConverter.Encode(senderAddress.Bytes()),
 			txFee,
 			accountBalance,
 		)

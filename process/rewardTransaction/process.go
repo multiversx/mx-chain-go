@@ -81,7 +81,12 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 		return nil
 	}
 
-	process.DisplayProcessTxDetails("ProcessRewardTransaction: receiver account details", accHandler, rTx)
+	process.DisplayProcessTxDetails(
+		"ProcessRewardTransaction: receiver account details",
+		accHandler,
+		rTx,
+		rtp.pubkeyConv,
+	)
 
 	err = accHandler.AddToBalance(rTx.Value)
 	if err != nil {

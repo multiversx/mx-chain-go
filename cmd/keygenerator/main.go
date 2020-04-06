@@ -236,10 +236,7 @@ func generateAndSave(index int, baseFilename string, genForBlockSigningSk crypto
 
 	sk, pk, err := generateKeys(genForBlockSigningSk)
 
-	pkString, err := pubkeyConverter.String(pk)
-	if err != nil {
-		return err
-	}
+	pkString := pubkeyConverter.Encode(pk)
 
 	return core.SaveSkToPemFile(file, pkString, []byte(hex.EncodeToString(sk)))
 }

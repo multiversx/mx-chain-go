@@ -1,8 +1,10 @@
 package pubkeyConverter
 
 import (
+	"encoding/hex"
 	"fmt"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/btcsuite/btcutil/bech32"
 )
@@ -20,6 +22,8 @@ var bech32Config = config{
 	toBits:   byte(5),
 	pad:      true,
 }
+
+var log = logger.GetOrCreate("data/state/pubkeyconverter")
 
 // bech32PubkeyConverter encodes or decodes provided public key as/from bech32 format
 type bech32PubkeyConverter struct {
@@ -47,8 +51,8 @@ func (bpc *bech32PubkeyConverter) Len() int {
 	return bpc.len
 }
 
-// Bytes converts the provided public key string as bech32 decoded bytes
-func (bpc *bech32PubkeyConverter) Bytes(humanReadable string) ([]byte, error) {
+// Decode converts the provided public key string as bech32 decoded bytes
+func (bpc *bech32PubkeyConverter) Decode(humanReadable string) ([]byte, error) {
 	decodedPrefix, buff, err := bech32.Decode(humanReadable)
 	if err != nil {
 		return nil, err
@@ -71,19 +75,34 @@ func (bpc *bech32PubkeyConverter) Bytes(humanReadable string) ([]byte, error) {
 	return decodedBytes, nil
 }
 
-// String converts the provided bytes in a bech32 form
-func (bpc *bech32PubkeyConverter) String(pkBytes []byte) (string, error) {
-	conv, err := bech32.ConvertBits(pkBytes, 8, 5, bech32Config.pad)
+// Encode converts the provided bytes in a bech32 form
+func (bpc *bech32PubkeyConverter) Encode(pkBytes []byte) string {
+	//since the errors generated here are usually because of a bad config, they will be treated here
+	conv, err := bech32.ConvertBits(pkBytes, bech32Config.fromBits, bech32Config.toBits, bech32Config.pad)
 	if err != nil {
-		return "", err
+		log.Warn("bech32PubkeyConverter.Encode ConvertBits",
+			"hex buff", hex.EncodeToString(pkBytes),
+			"error", err,
+		)
+		return ""
 	}
 
-	return bech32.Encode(bech32Config.prefix, conv)
+	converted, err := bech32.Encode(bech32Config.prefix, conv)
+	if err != nil {
+		log.Warn("bech32PubkeyConverter.Encode Encode",
+			"hex buff", hex.EncodeToString(pkBytes),
+			"conv", hex.EncodeToString(conv),
+			"error", err,
+		)
+		return ""
+	}
+
+	return converted
 }
 
 // CreateAddressFromString creates an address container based on the provided string
 func (bpc *bech32PubkeyConverter) CreateAddressFromString(humanReadable string) (state.AddressContainer, error) {
-	buff, err := bpc.Bytes(humanReadable)
+	buff, err := bpc.Decode(humanReadable)
 	if err != nil {
 		return nil, err
 	}

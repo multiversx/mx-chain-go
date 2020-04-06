@@ -123,7 +123,7 @@ func TestHeartbeatstatus(t *testing.T) {
 
 	hbStatus := []heartbeat.PubKeyHeartbeat{
 		{
-			HexPublicKey:    "pk1",
+			PublicKey:       "pk1",
 			TimeStamp:       time.Now(),
 			MaxInactiveTime: heartbeat.Duration{Duration: 0},
 			IsActive:        true,

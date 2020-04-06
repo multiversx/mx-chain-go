@@ -278,7 +278,7 @@ func verifyInitialBalance(t *testing.T, nodes []*integrationTests.TestProcessorN
 }
 
 func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) state.UserAccountHandler {
-	addrCont, _ := integrationTests.TestPubkeyConverter.CreateAddressFromBytes(address)
+	addrCont, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(address)
 	sndrAcc, _ := accState.GetExistingAccount(addrCont)
 
 	sndAccSt, _ := sndrAcc.(state.UserAccountHandler)

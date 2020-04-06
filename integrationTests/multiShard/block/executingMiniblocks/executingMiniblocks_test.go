@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -336,7 +337,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 			assert.Equal(t, big.NewInt(0), account.GetBalance())
 		}
 
-		receiver, _ := integrationTests.TestPubkeyConverter.CreateAddressFromBytes(receiverAddress)
+		receiver, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(receiverAddress)
 		accWrp, err := verifierNode.AccntState.GetExistingAccount(receiver)
 		if err != nil {
 			continue

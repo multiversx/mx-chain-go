@@ -309,7 +309,7 @@ func getRootHashByRunningInitialBalances(initialBalances []*sharding.InitialBala
 		ib := initialBalances[idx]
 		balance, _ := big.NewInt(0).SetString(ib.Balance, 10)
 
-		decoded, _ := integrationTests.TestPubkeyConverter.Bytes(ib.PubKey)
+		decoded, _ := integrationTests.TestAddressPubkeyConverter.Decode(ib.PubKey)
 		integrationTests.MintAddress(adb, decoded, balance)
 	}
 

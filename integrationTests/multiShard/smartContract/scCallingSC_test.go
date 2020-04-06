@@ -178,7 +178,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 		nonce++
 	}
 
-	address, _ := integrationTests.TestPubkeyConverter.CreateAddressFromBytes(firstSCAddress)
+	address, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(firstSCAddress)
 	shId := nodes[0].ShardCoordinator.ComputeId(address)
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() != shId {
@@ -280,7 +280,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 		nonce++
 	}
 
-	address, _ := integrationTests.TestPubkeyConverter.CreateAddressFromBytes(firstSCAddress)
+	address, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(firstSCAddress)
 	shId := nodes[0].ShardCoordinator.ComputeId(address)
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() != shId {
@@ -322,7 +322,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 }
 
 func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) state.UserAccountHandler {
-	addrCont, _ := integrationTests.TestPubkeyConverter.CreateAddressFromBytes(address)
+	addrCont, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(address)
 	sndrAcc, _ := accState.GetExistingAccount(addrCont)
 
 	sndAccSt, _ := sndrAcc.(state.UserAccountHandler)
@@ -401,7 +401,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	// verify how many times was shard 0 and shard 1 called
-	address, _ := integrationTests.TestPubkeyConverter.CreateAddressFromBytes(firstSCAddress)
+	address, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(firstSCAddress)
 	shId := nodes[0].ShardCoordinator.ComputeId(address)
 	for index, node := range nodes {
 		if node.ShardCoordinator.SelfId() != shId {
@@ -493,8 +493,8 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 
 	time.Sleep(time.Second)
 	// verify system smart contract has the value
-	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() != core.MetachainShardId {
 			continue
 		}
 		scQuery := &process.SCQuery{
@@ -502,7 +502,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 			FuncName:  "isStaked",
 			Arguments: [][]byte{stakerBLSKey},
 		}
-		vmOutput, _ := node.SCQueryService.ExecuteQuery(scQuery)
+		vmOutput, _ := n.SCQueryService.ExecuteQuery(scQuery)
 
 		assert.NotNil(t, vmOutput)
 		if vmOutput != nil {
@@ -546,7 +546,7 @@ func putDeploySCToDataPool(
 	}
 	txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)
 
-	address, _ := integrationTests.TestPubkeyConverter.CreateAddressFromBytes(pubkey)
+	address, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(pubkey)
 	shId := nodes[0].ShardCoordinator.ComputeId(address)
 
 	for _, node := range nodes {
@@ -565,7 +565,7 @@ func mintPubKey(
 	initialVal *big.Int,
 	nodes []*integrationTests.TestProcessorNode,
 ) {
-	address, _ := integrationTests.TestPubkeyConverter.CreateAddressFromBytes(pubkey)
+	address, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(pubkey)
 	shId := nodes[0].ShardCoordinator.ComputeId(address)
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() != shId {

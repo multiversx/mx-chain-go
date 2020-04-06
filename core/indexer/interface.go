@@ -27,7 +27,7 @@ type databaseHandler interface {
 	SaveHeader(header data.HeaderHandler, signersIndexes []uint64)
 	SaveTransactions(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardId uint32)
 	SaveRoundInfo(info RoundInfo)
-	SaveShardValidatorsPubKeys(shardId uint32, shardValidatorsPubKeys []string)
+	SaveShardValidatorsPubKeys(shardId uint32, shardValidatorsPubKeys [][]byte)
 	SaveShardStatistics(tpsBenchmark statistics.TPSBenchmark)
 }
 

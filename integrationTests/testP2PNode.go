@@ -139,6 +139,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 				}, nil
 			},
 		}),
+		node.WithValidatorPubkeyConverter(TestValidatorPubkeyConverter),
 	)
 	if err != nil {
 		fmt.Printf("Error creating node: %s\n", err.Error())

@@ -69,7 +69,12 @@ func TestTxValidator_NewValidatorNilAccountsShouldErr(t *testing.T) {
 
 	shardCoordinator := createMockCoordinator("_", 0)
 	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(nil, shardCoordinator, maxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(
+		nil,
+		shardCoordinator,
+		maxNonceDeltaAllowed,
+		mock.NewPubkeyConverterMock(32),
+	)
 
 	assert.Nil(t, txValidator)
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -80,7 +85,12 @@ func TestTxValidator_NewValidatorNilShardCoordinatorShouldErr(t *testing.T) {
 
 	adb := getAccAdapter(0, big.NewInt(0))
 	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(adb, nil, maxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(
+		adb,
+		nil,
+		maxNonceDeltaAllowed,
+		mock.NewPubkeyConverterMock(32),
+	)
 
 	assert.Nil(t, txValidator)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -92,7 +102,12 @@ func TestTxValidator_NewValidatorShouldWork(t *testing.T) {
 	adb := getAccAdapter(0, big.NewInt(0))
 	shardCoordinator := createMockCoordinator("_", 0)
 	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(adb, shardCoordinator, maxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(
+		adb,
+		shardCoordinator,
+		maxNonceDeltaAllowed,
+		mock.NewPubkeyConverterMock(32),
+	)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, txValidator)
@@ -108,7 +123,12 @@ func TestTxValidator_CheckTxValidityTxCrossShardShouldWork(t *testing.T) {
 	currentShard := uint32(0)
 	shardCoordinator := createMockCoordinator("_", currentShard)
 	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(adb, shardCoordinator, maxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(
+		adb,
+		shardCoordinator,
+		maxNonceDeltaAllowed,
+		mock.NewPubkeyConverterMock(32),
+	)
 	assert.Nil(t, err)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
@@ -127,7 +147,12 @@ func TestTxValidator_CheckTxValidityAccountNonceIsGreaterThanTxNonceShouldReturn
 	adb := getAccAdapter(accountNonce, big.NewInt(0))
 	shardCoordinator := createMockCoordinator("_", 0)
 	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(adb, shardCoordinator, maxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(
+		adb,
+		shardCoordinator,
+		maxNonceDeltaAllowed,
+		mock.NewPubkeyConverterMock(32),
+	)
 	assert.Nil(t, err)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
@@ -147,7 +172,12 @@ func TestTxValidator_CheckTxValidityTxNonceIsTooHigh(t *testing.T) {
 
 	adb := getAccAdapter(accountNonce, big.NewInt(0))
 	shardCoordinator := createMockCoordinator("_", 0)
-	txValidator, err := dataValidators.NewTxValidator(adb, shardCoordinator, maxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(
+		adb,
+		shardCoordinator,
+		maxNonceDeltaAllowed,
+		mock.NewPubkeyConverterMock(32),
+	)
 	assert.Nil(t, err)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
@@ -169,7 +199,12 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 	adb := getAccAdapter(accountNonce, accountBalance)
 	shardCoordinator := createMockCoordinator("_", 0)
 	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(adb, shardCoordinator, maxNonceDeltaAllowed)
+	txValidator, err := dataValidators.NewTxValidator(
+		adb,
+		shardCoordinator,
+		maxNonceDeltaAllowed,
+		mock.NewPubkeyConverterMock(32),
+	)
 	assert.Nil(t, err)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
@@ -190,7 +225,12 @@ func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.
 	}
 	shardCoordinator := createMockCoordinator("_", 0)
 	maxNonceDeltaAllowed := 100
-	txValidator, _ := dataValidators.NewTxValidator(accDB, shardCoordinator, maxNonceDeltaAllowed)
+	txValidator, _ := dataValidators.NewTxValidator(
+		accDB,
+		shardCoordinator,
+		maxNonceDeltaAllowed,
+		mock.NewPubkeyConverterMock(32),
+	)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
 	currentShard := uint32(0)
@@ -209,7 +249,12 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 	}
 	shardCoordinator := createMockCoordinator("_", 0)
 	maxNonceDeltaAllowed := 100
-	txValidator, _ := dataValidators.NewTxValidator(accDB, shardCoordinator, maxNonceDeltaAllowed)
+	txValidator, _ := dataValidators.NewTxValidator(
+		accDB,
+		shardCoordinator,
+		maxNonceDeltaAllowed,
+		mock.NewPubkeyConverterMock(32),
+	)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
 	currentShard := uint32(0)
@@ -227,7 +272,12 @@ func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
 	adb := getAccAdapter(accountNonce, accountBalance)
 	shardCoordinator := createMockCoordinator("_", 0)
 	maxNonceDeltaAllowed := 100
-	txValidator, _ := dataValidators.NewTxValidator(adb, shardCoordinator, maxNonceDeltaAllowed)
+	txValidator, _ := dataValidators.NewTxValidator(
+		adb,
+		shardCoordinator,
+		maxNonceDeltaAllowed,
+		mock.NewPubkeyConverterMock(32),
+	)
 
 	addressMock := mock.NewAddressMock([]byte("address"))
 	currentShard := uint32(0)
@@ -244,7 +294,12 @@ func TestTxValidator_IsInterfaceNil(t *testing.T) {
 
 	adb := getAccAdapter(0, big.NewInt(0))
 	shardCoordinator := createMockCoordinator("_", 0)
-	txValidator, _ := dataValidators.NewTxValidator(adb, shardCoordinator, 100)
+	txValidator, _ := dataValidators.NewTxValidator(
+		adb,
+		shardCoordinator,
+		100,
+		mock.NewPubkeyConverterMock(32),
+	)
 	_ = txValidator
 	txValidator = nil
 

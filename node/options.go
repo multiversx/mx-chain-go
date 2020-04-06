@@ -100,13 +100,24 @@ func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 	}
 }
 
-// WithPubkeyConverter sets up the public key converter adapter option for the Node
-func WithPubkeyConverter(pubkeyConverter state.PubkeyConverter) Option {
+// WithAddressPubkeyConverter sets up the address public key converter adapter option for the Node
+func WithAddressPubkeyConverter(pubkeyConverter state.PubkeyConverter) Option {
 	return func(n *Node) error {
 		if check.IfNil(pubkeyConverter) {
-			return ErrNilPubkeyConverter
+			return fmt.Errorf("%w in WithAddressPubkeyConverter", ErrNilPubkeyConverter)
 		}
-		n.pubkeyConverter = pubkeyConverter
+		n.addressPubkeyConverter = pubkeyConverter
+		return nil
+	}
+}
+
+// WithValidatorPubkeyConverter sets up the validator public key converter adapter option for the Node
+func WithValidatorPubkeyConverter(pubkeyConverter state.PubkeyConverter) Option {
+	return func(n *Node) error {
+		if check.IfNil(pubkeyConverter) {
+			return fmt.Errorf("%w in WithValidatorPubkeyConverter", ErrNilPubkeyConverter)
+		}
+		n.validatorPubkeyConverter = pubkeyConverter
 		return nil
 	}
 }

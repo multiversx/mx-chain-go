@@ -2,6 +2,7 @@ package peer
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
@@ -167,7 +168,7 @@ func (vs *validatorStatistics) saveInitialState(
 		return err
 	}
 
-	log.Trace("committed peer adapter", "root hash", core.ToHex(hash))
+	log.Trace("committed peer adapter", "root hash", hex.EncodeToString(hash))
 
 	return nil
 }

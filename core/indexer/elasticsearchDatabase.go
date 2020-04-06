@@ -20,12 +20,13 @@ import (
 
 // elasticSearchDatabaseArgs is struct that is used to store all parameters that are needed to create a elasticsearch database
 type elasticSearchDatabaseArgs struct {
-	url             string
-	userName        string
-	password        string
-	marshalizer     marshal.Marshalizer
-	hasher          hashing.Hasher
-	pubkeyConverter state.PubkeyConverter
+	url                      string
+	userName                 string
+	password                 string
+	marshalizer              marshal.Marshalizer
+	hasher                   hashing.Hasher
+	addressPubkeyConverter   state.PubkeyConverter
+	validatorPubkeyConverter state.PubkeyConverter
 }
 
 // elasticSearchDatabase object it contains business logic built over databaseWriterHandler glue code wrapper
@@ -54,7 +55,8 @@ func newElasticSearchDatabase(arguments elasticSearchDatabaseArgs) (*elasticSear
 		hasher:      arguments.hasher,
 	}
 	esdb.commonProcessor = &commonProcessor{
-		pubkeyConverter: arguments.pubkeyConverter,
+		addressPubkeyConverter:   arguments.addressPubkeyConverter,
+		validatorPubkeyConverter: arguments.validatorPubkeyConverter,
 	}
 
 	err = esdb.createIndexes()
@@ -279,10 +281,17 @@ func (esd *elasticSearchDatabase) SaveRoundInfo(info RoundInfo) {
 }
 
 // SaveShardValidatorsPubKeys will prepare and save information about a shard validators public keys in elasticsearch server
-func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardId uint32, shardValidatorsPubKeys []string) {
+func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardId uint32, shardValidatorsPubKeys [][]byte) {
 	var buff bytes.Buffer
 
-	shardValPubKeys := ValidatorsPublicKeys{PublicKeys: shardValidatorsPubKeys}
+	shardValPubKeys := ValidatorsPublicKeys{
+		PublicKeys: make([]string, 0, len(shardValidatorsPubKeys)),
+	}
+	for _, validatorPk := range shardValidatorsPubKeys {
+		strValidatorPk := esd.validatorPubkeyConverter.Encode(validatorPk)
+		shardValPubKeys.PublicKeys = append(shardValPubKeys.PublicKeys, strValidatorPk)
+	}
+
 	marshalizedValidatorPubKeys, err := json.Marshal(shardValPubKeys)
 	if err != nil {
 		log.Debug("indexer: marshal", "error", "could not marshal validators public keys")

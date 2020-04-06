@@ -998,7 +998,7 @@ func (sc *scProcessor) updateSmartContractCode(
 		account.SetOwnerAddress(tx.GetSndAddr())
 		account.SetCode(outAcc.Code)
 
-		log.Trace("created SC address", "address", hex.EncodeToString(outAcc.Address))
+		log.Trace("created SC address", "address", sc.pubkeyConv.Encode(outAcc.Address))
 		return nil
 	}
 
@@ -1007,7 +1007,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	if isUpgradeEnabled {
 		account.SetCode(outAcc.Code)
 
-		log.Trace("created SC address", "address", hex.EncodeToString(outAcc.Address))
+		log.Trace("created SC address", "address", sc.pubkeyConv.Encode(outAcc.Address))
 		return nil
 	}
 
@@ -1097,7 +1097,12 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		return nil
 	}
 
-	process.DisplayProcessTxDetails("ProcessSmartContractResult: receiver account details", dstAcc, scr)
+	process.DisplayProcessTxDetails(
+		"ProcessSmartContractResult: receiver account details",
+		dstAcc,
+		scr,
+		sc.pubkeyConv,
+	)
 
 	txType, err := sc.txTypeHandler.ComputeTransactionType(scr)
 	if err != nil {
