@@ -1,3 +1,3 @@
-void ClaimDeveloperRewards()
+void PlaceholderFunction()
 {
 }
