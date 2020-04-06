@@ -13,7 +13,7 @@ type StartOfEpochNodesConfigHandler interface {
 	IsInterfaceNil() bool
 }
 
-// EpochStartInterceptor defines the methods to sync and epoch start metablock
+// EpochStartInterceptor defines the methods to sync an epoch start metablock
 type EpochStartInterceptor interface {
 	process.Interceptor
 	GetEpochStartMetaBlock(target int, epoch uint32) (*block.MetaBlock, error)

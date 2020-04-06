@@ -242,6 +242,7 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 		return nil
 	}
 
+	// TODO: check why range over map does not give the same validator statistics roothash
 	for shardID := uint32(0); shardID < vs.shardCoordinator.NumberOfShards(); shardID++ {
 		nodeInfoList := nodesInfo[shardID]
 		for index, nodeInfo := range nodeInfoList {

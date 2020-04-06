@@ -19,6 +19,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/sync"
 )
 
+const consensusGroupCacheSize = 50
+
 type syncValidatorStatus struct {
 	miniBlocksSyncer   epochStart.PendingMiniBlocksSyncHandler
 	dataPool           dataRetriever.PoolsHolder
@@ -74,7 +76,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		return nil, err
 	}
 
-	consensusGroupCache, err := lrucache.NewCache(50)
+	consensusGroupCache, err := lrucache.NewCache(consensusGroupCacheSize)
 	if err != nil {
 		return nil, err
 	}

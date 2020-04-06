@@ -474,19 +474,12 @@ func (e *epochStartBootstrap) saveSelfShardId() {
 		return
 	}
 
-	destShardID := core.MetachainShardId
-	if e.destinationShardAsObserver == core.MetachainShardId {
-		e.baseData.shardId = destShardID
-		return
-	}
+	e.baseData.shardId = e.destinationShardAsObserver
 
-	if e.destinationShardAsObserver < e.baseData.numberOfShards {
-		destShardID = e.destinationShardAsObserver
-	} else {
-		destShardID = e.genesisShardCoordinator.SelfId()
+	if e.baseData.shardId > e.baseData.numberOfShards &&
+		e.baseData.shardId != core.MetachainShardId {
+		e.baseData.shardId = e.genesisShardCoordinator.SelfId()
 	}
-
-	e.baseData.shardId = destShardID
 }
 
 func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
