@@ -138,6 +138,7 @@ func (ctpc *crossTxsPoolsCleaner) receivedRewardTx(key []byte, value interface{}
 	senderShardID, receiverShardID, err := ctpc.computeSenderAndReceiverShards(tx)
 	if err != nil {
 		log.Debug("crossTxsPoolsCleaner.receivedRewardTx", "error", err.Error())
+		return
 	}
 
 	ctpc.processReceivedTx(key, senderShardID, receiverShardID, rewardTx)
@@ -159,6 +160,7 @@ func (ctpc *crossTxsPoolsCleaner) receivedUnsignedTx(key []byte, value interface
 	senderShardID, receiverShardID, err := ctpc.computeSenderAndReceiverShards(tx)
 	if err != nil {
 		log.Debug("crossTxsPoolsCleaner.receivedUnsignedTx", "error", err.Error())
+		return
 	}
 
 	ctpc.processReceivedTx(key, senderShardID, receiverShardID, unsignedTx)
