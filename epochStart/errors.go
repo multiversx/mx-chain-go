@@ -146,12 +146,6 @@ var ErrNumTriesExceeded = errors.New("number of tries exceeded")
 // ErrMissingHeader signals that searched header is missing
 var ErrMissingHeader = errors.New("missing header")
 
-// ErrSmallShardEligibleListSize signals that the eligible validators list's size is less than the consensus size
-var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
-
-// ErrSmallMetachainEligibleListSize signals that the eligible validators list's size is less than the consensus size
-var ErrSmallMetachainEligibleListSize = errors.New("small metachain eligible list size")
-
 // ErrNilPathManager signals that a nil path manager has been provided
 var ErrNilPathManager = errors.New("nil path manager")
 
@@ -187,9 +181,6 @@ var ErrNilTriesContainer = errors.New("nil tries container")
 
 // ErrNilTrieStorageManager signals that a nil trie storage managers map has been provided
 var ErrNilTrieStorageManager = errors.New("nil trie storage managers map")
-
-// ErrInvalidDestinationShardAsObserver signals that an invalid destination shard as observer has been provided
-var ErrInvalidDestinationShardAsObserver = errors.New("invalid destination shard as observer")
 
 // ErrInvalidDefaultDBPath signals that an invalid default database path has been provided
 var ErrInvalidDefaultDBPath = errors.New("invalid default db path")
