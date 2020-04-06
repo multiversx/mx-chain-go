@@ -35,7 +35,6 @@ type txInfo struct {
 // crossTxsPoolsCleaner represents a pools cleaner that checks and cleans cross txs which should not be in pool anymore
 type crossTxsPoolsCleaner struct {
 	addressConverter         state.AddressConverter
-	blockTracker             BlockTracker
 	blockTransactionsPool    dataRetriever.ShardedDataCacherNotifier
 	rewardTransactionsPool   dataRetriever.ShardedDataCacherNotifier
 	unsignedTransactionsPool dataRetriever.ShardedDataCacherNotifier
@@ -50,7 +49,6 @@ type crossTxsPoolsCleaner struct {
 // NewCrossTxsPoolsCleaner will return a new cross txs pools cleaner
 func NewCrossTxsPoolsCleaner(
 	addressConverter state.AddressConverter,
-	blockTracker BlockTracker,
 	dataPool dataRetriever.PoolsHolder,
 	rounder process.Rounder,
 	shardCoordinator sharding.Coordinator,
@@ -58,9 +56,6 @@ func NewCrossTxsPoolsCleaner(
 
 	if check.IfNil(addressConverter) {
 		return nil, process.ErrNilAddressConverter
-	}
-	if check.IfNil(blockTracker) {
-		return nil, process.ErrNilBlockTracker
 	}
 	if check.IfNil(dataPool) {
 		return nil, process.ErrNilPoolsHolder
@@ -83,7 +78,6 @@ func NewCrossTxsPoolsCleaner(
 
 	ctpc := crossTxsPoolsCleaner{
 		addressConverter:         addressConverter,
-		blockTracker:             blockTracker,
 		blockTransactionsPool:    dataPool.Transactions(),
 		rewardTransactionsPool:   dataPool.RewardTransactions(),
 		unsignedTransactionsPool: dataPool.UnsignedTransactions(),
@@ -218,22 +212,18 @@ func (ctpc *crossTxsPoolsCleaner) cleanCrossTxsPoolsIfNeeded() int {
 	ctpc.mutMapCrossTxsRounds.Lock()
 	defer ctpc.mutMapCrossTxsRounds.Unlock()
 
-	selfShardID := ctpc.shardCoordinator.SelfId()
-	numPendingMiniBlocks := ctpc.blockTracker.GetNumPendingMiniBlocks(selfShardID)
 	numTxsCleaned := 0
 
 	for hash, crossTxInfo := range ctpc.mapCrossTxsRounds {
-		percentUsed := float64(crossTxInfo.txStore.Len()) / float64(crossTxInfo.txStore.MaxSize())
-		if numPendingMiniBlocks > 0 && percentUsed < percentAllowed {
-			log.Trace("cleaning cross transaction not yet allowed",
+		_, ok := crossTxInfo.txStore.Get([]byte(hash))
+		if !ok {
+			log.Trace("transaction not found in pool",
 				"hash", []byte(hash),
 				"round", crossTxInfo.round,
 				"sender", crossTxInfo.senderShardID,
 				"receiver", crossTxInfo.receiverShardID,
-				"type", getTxTypeName(crossTxInfo.txType),
-				"num pending miniblocks", numPendingMiniBlocks,
-				"transactions pool percent used", percentUsed)
-
+				"type", getTxTypeName(crossTxInfo.txType))
+			delete(ctpc.mapCrossTxsRounds, hash)
 			continue
 		}
 
