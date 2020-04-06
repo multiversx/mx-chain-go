@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -457,7 +456,7 @@ func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) 
 	txs.SetMissingScr(3)
 
 	//received txHash2
-	txs.receivedSmartContractResult(txHash2, &txcache.WrappedTransaction{Tx: &smartContractResult.SmartContractResult{}})
+	txs.receivedSmartContractResult(txHash2, &smartContractResult.SmartContractResult{})
 
 	assert.True(t, txs.IsScrHashRequested(txHash1))
 	assert.False(t, txs.IsScrHashRequested(txHash2))
