@@ -291,7 +291,7 @@ func (context *TestContext) querySC(function string, args [][]byte) []byte {
 
 // GetLatestError -
 func (context *TestContext) GetLatestError() error {
-	smartContract.GetLatestTestError(context.ScProcessor)
+	return smartContract.GetLatestTestError(context.ScProcessor)
 }
 
 // FormatHexNumber -
