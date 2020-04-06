@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -20,8 +19,8 @@ import (
 )
 
 type epochStartMetaSyncer struct {
-	requestHandler                 process.RequestHandler
-	messenger                      p2p.Messenger
+	requestHandler                 RequestHandler
+	messenger                      Messenger
 	epochStartMetaBlockInterceptor EpochStartInterceptor
 	marshalizer                    marshal.Marshalizer
 	hasher                         hashing.Hasher
@@ -31,8 +30,8 @@ type epochStartMetaSyncer struct {
 
 // ArgsNewEpochStartMetaSyncer -
 type ArgsNewEpochStartMetaSyncer struct {
-	RequestHandler    process.RequestHandler
-	Messenger         p2p.Messenger
+	RequestHandler    RequestHandler
+	Messenger         Messenger
 	Marshalizer       marshal.Marshalizer
 	TxSignMarshalizer marshal.Marshalizer
 	ShardCoordinator  sharding.Coordinator
@@ -45,7 +44,9 @@ type ArgsNewEpochStartMetaSyncer struct {
 	EconomicsData     *economics.EconomicsData
 }
 
-const thresholdForConsideringMetaBlockCorrect = 0.2
+// thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
+// the same meta block in order to consider it correct
+const thresholdForConsideringMetaBlockCorrect = 67
 
 // NewEpochStartMetaSyncer will return a new instance of epochStartMetaSyncer
 func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaSyncer, error) {

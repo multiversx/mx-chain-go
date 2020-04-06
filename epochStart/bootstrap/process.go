@@ -27,7 +27,6 @@ import (
 	factoryInterceptors "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
@@ -72,7 +71,7 @@ type epochStartBootstrap struct {
 	marshalizer                marshal.Marshalizer
 	txSignMarshalizer          marshal.Marshalizer
 	hasher                     hashing.Hasher
-	messenger                  p2p.Messenger
+	messenger                  Messenger
 	generalConfig              config.Config
 	economicsData              *economics.EconomicsData
 	singleSigner               crypto.SingleSigner
@@ -129,7 +128,7 @@ type ArgsEpochStartBootstrap struct {
 	Marshalizer                marshal.Marshalizer
 	TxSignMarshalizer          marshal.Marshalizer
 	Hasher                     hashing.Hasher
-	Messenger                  p2p.Messenger
+	Messenger                  Messenger
 	GeneralConfig              config.Config
 	EconomicsData              *economics.EconomicsData
 	SingleSigner               crypto.SingleSigner

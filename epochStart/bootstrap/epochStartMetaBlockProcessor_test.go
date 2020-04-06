@@ -23,7 +23,7 @@ func TestNewEpochStartMetaBlockProcessor_NilMessengerShouldErr(t *testing.T) {
 		&mock.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		0.5,
+		50,
 	)
 
 	assert.Equal(t, epochStart.ErrNilMessenger, err)
@@ -38,7 +38,7 @@ func TestNewEpochStartMetaBlockProcessor_NilRequestHandlerShouldErr(t *testing.T
 		nil,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		0.5,
+		50,
 	)
 
 	assert.Equal(t, epochStart.ErrNilRequestHandler, err)
@@ -53,7 +53,7 @@ func TestNewEpochStartMetaBlockProcessor_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.RequestHandlerStub{},
 		nil,
 		&mock.HasherMock{},
-		0.5,
+		50,
 	)
 
 	assert.Equal(t, epochStart.ErrNilMarshalizer, err)
@@ -68,7 +68,7 @@ func TestNewEpochStartMetaBlockProcessor_NilHasherShouldErr(t *testing.T) {
 		&mock.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		nil,
-		0.5,
+		50,
 	)
 
 	assert.Equal(t, epochStart.ErrNilHasher, err)
@@ -83,7 +83,7 @@ func TestNewEpochStartMetaBlockProcessor_InvalidConsensusPercentageShouldErr(t *
 		&mock.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		-0.5,
+		101,
 	)
 
 	assert.Equal(t, epochStart.ErrInvalidConsensusThreshold, err)
@@ -98,7 +98,41 @@ func TestNewEpochStartMetaBlockProcessorOkValsShouldWork(t *testing.T) {
 		&mock.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		0.5,
+		50,
+	)
+
+	assert.NoError(t, err)
+	assert.False(t, check.IfNil(esmbp))
+}
+
+func getConnectedPeers(counter int) []p2p.PeerID {
+	switch counter {
+	case 0:
+		return []p2p.PeerID{"peer0", "peer1"}
+	case 1:
+		return []p2p.PeerID{"peer0", "peer1", "peer2", "peer3"}
+	case 2:
+		return []p2p.PeerID{"peer0", "peer1", "peer2", "peer3", "peer4", "peer5"}
+	}
+	return nil
+}
+
+func TestNewEpochStartMetaBlockProcessorOkValsShouldWorkAfterMoreTriesWaitingForConnectedPeers(t *testing.T) {
+	t.Parallel()
+
+	counter := 0
+	esmbp, err := bootstrap.NewEpochStartMetaBlockProcessor(
+		&mock.MessengerStub{
+			ConnectedPeersCalled: func() []p2p.PeerID {
+				peers := getConnectedPeers(counter)
+				counter++
+				return peers
+			},
+		},
+		&mock.RequestHandlerStub{},
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		50,
 	)
 
 	assert.NoError(t, err)
@@ -113,7 +147,7 @@ func TestEpochStartMetaBlockProcessor_Validate(t *testing.T) {
 		&mock.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		0.5,
+		50,
 	)
 
 	assert.Nil(t, esmbp.Validate(nil, ""))
@@ -127,7 +161,7 @@ func TestEpochStartMetaBlockProcessor_SaveNilInterceptedDataShouldNotReturnError
 		&mock.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		0.5,
+		50,
 	)
 
 	err := esmbp.Save(nil, "peer0")
@@ -142,7 +176,7 @@ func TestEpochStartMetaBlockProcessor_SaveOkInterceptedDataShouldWork(t *testing
 		&mock.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		0.5,
+		50,
 	)
 
 	assert.Zero(t, len(esmbp.GetMapMetaBlock()))
@@ -169,7 +203,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldTimeOut(t *tes
 		&mock.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		0.5,
+		50,
 	)
 
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Millisecond)
@@ -190,7 +224,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstT
 		&mock.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		0.5,
+		50,
 	)
 
 	expectedMetaBlock := &block.MetaBlock{
@@ -221,7 +255,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkAfterMulti
 		&mock.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		0.64,
+		64,
 	)
 
 	expectedMetaBlock := &block.MetaBlock{
@@ -259,7 +293,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkAfterMulti
 		&mock.RequestHandlerStub{},
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		0.64,
+		64,
 	)
 
 	expectedMetaBlock := &block.MetaBlock{

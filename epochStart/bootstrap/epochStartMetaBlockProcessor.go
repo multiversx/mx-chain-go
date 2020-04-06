@@ -25,8 +25,8 @@ const minNumConnectedPeers = 6
 var _ process.InterceptorProcessor = (*epochStartMetaBlockProcessor)(nil)
 
 type epochStartMetaBlockProcessor struct {
-	messenger              p2p.Messenger
-	requestHandler         process.RequestHandler
+	messenger              Messenger
+	requestHandler         RequestHandler
 	marshalizer            marshal.Marshalizer
 	hasher                 hashing.Hasher
 	mutReceivedMetaBlocks  sync.RWMutex
@@ -39,11 +39,11 @@ type epochStartMetaBlockProcessor struct {
 
 // NewEpochStartMetaBlockProcessor will return a interceptor processor for epoch start meta block
 func NewEpochStartMetaBlockProcessor(
-	messenger p2p.Messenger,
-	handler process.RequestHandler,
+	messenger Messenger,
+	handler RequestHandler,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	consensusPercentage float64,
+	consensusPercentage uint8,
 ) (*epochStartMetaBlockProcessor, error) {
 	if check.IfNil(messenger) {
 		return nil, epochStart.ErrNilMessenger
@@ -57,7 +57,7 @@ func NewEpochStartMetaBlockProcessor(
 	if check.IfNil(hasher) {
 		return nil, epochStart.ErrNilHasher
 	}
-	if !(consensusPercentage > 0.0 && consensusPercentage < 1.0) {
+	if !(consensusPercentage > 0 && consensusPercentage <= 100) {
 		return nil, epochStart.ErrInvalidConsensusThreshold
 	}
 
@@ -73,7 +73,9 @@ func NewEpochStartMetaBlockProcessor(
 	}
 
 	processor.waitForEnoughNumConnectedPeers(messenger)
-	peerCountTarget := int(consensusPercentage * float64(len(messenger.ConnectedPeers())))
+	percentage := float64(consensusPercentage) / 100.0
+	log.Debug("consensus percentage for epoch start meta block ", "value (%)", consensusPercentage)
+	peerCountTarget := int(percentage * float64(len(messenger.ConnectedPeers())))
 	processor.peerCountTarget = peerCountTarget
 	return processor, nil
 }
@@ -83,12 +85,16 @@ func (e *epochStartMetaBlockProcessor) Validate(_ process.InterceptedData, _ p2p
 	return nil
 }
 
-func (e *epochStartMetaBlockProcessor) waitForEnoughNumConnectedPeers(messenger p2p.Messenger) {
+func (e *epochStartMetaBlockProcessor) waitForEnoughNumConnectedPeers(messenger Messenger) {
 	for {
-		if len(messenger.ConnectedPeers()) >= minNumConnectedPeers {
+		numConnectedPeers := len(messenger.ConnectedPeers())
+		if numConnectedPeers >= minNumConnectedPeers {
 			break
 		}
 
+		log.Debug("epoch bootstrapper: not enough connected peers",
+			"wanted", minNumConnectedPeers,
+			"actual", numConnectedPeers)
 		time.Sleep(durationBetweenCheckingNumConnectedPeers)
 	}
 }
