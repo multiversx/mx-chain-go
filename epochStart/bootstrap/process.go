@@ -79,7 +79,7 @@ type epochStartBootstrap struct {
 	keyGen                     crypto.KeyGenerator
 	blockKeyGen                crypto.KeyGenerator
 	shardCoordinator           sharding.Coordinator
-	genesisNodesConfig         *sharding.NodesSetup
+	genesisNodesConfig         sharding.GenesisNodesSetupHandler
 	genesisShardCoordinator    sharding.Coordinator
 	pathManager                storage.PathManagerHandler
 	workingDir                 string
@@ -135,7 +135,7 @@ type ArgsEpochStartBootstrap struct {
 	BlockSingleSigner          crypto.SingleSigner
 	KeyGen                     crypto.KeyGenerator
 	BlockKeyGen                crypto.KeyGenerator
-	GenesisNodesConfig         *sharding.NodesSetup
+	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
 	GenesisShardCoordinator    sharding.Coordinator
 	PathManager                storage.PathManagerHandler
 	WorkingDir                 string
@@ -188,12 +188,12 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 }
 
 func (e *epochStartBootstrap) computedDurationOfEpoch() time.Duration {
-	return time.Duration(e.genesisNodesConfig.RoundDuration*
+	return time.Duration(e.genesisNodesConfig.GetRoundDuration()*
 		uint64(e.generalConfig.EpochStartConfig.RoundsPerEpoch)) * time.Millisecond
 }
 
 func (e *epochStartBootstrap) isStartInEpochZero() bool {
-	startTime := time.Unix(e.genesisNodesConfig.StartTime, 0)
+	startTime := time.Unix(e.genesisNodesConfig.GetStartTime(), 0)
 	isCurrentTimeBeforeGenesis := time.Now().Sub(startTime) < 0
 	if isCurrentTimeBeforeGenesis {
 		return true
@@ -215,7 +215,7 @@ func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
 }
 
 func (e *epochStartBootstrap) computeMostProbableEpoch() {
-	startTime := time.Unix(e.genesisNodesConfig.StartTime, 0)
+	startTime := time.Unix(e.genesisNodesConfig.GetStartTime(), 0)
 	elapsedTime := time.Since(startTime)
 
 	timeForOneEpoch := e.computedDurationOfEpoch()
@@ -345,7 +345,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		KeyGen:            e.keyGen,
 		BlockKeyGen:       e.blockKeyGen,
 		WhiteListHandler:  e.whiteListHandler,
-		ChainID:           []byte(e.genesisNodesConfig.ChainID),
+		ChainID:           []byte(e.genesisNodesConfig.GetChainId()),
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)

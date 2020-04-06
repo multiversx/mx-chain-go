@@ -25,7 +25,7 @@ type syncValidatorStatus struct {
 	marshalizer        marshal.Marshalizer
 	requestHandler     process.RequestHandler
 	nodeCoordinator    StartInEpochNodesCoordinator
-	genesisNodesConfig *sharding.NodesSetup
+	genesisNodesConfig sharding.GenesisNodesSetupHandler
 	memDB              storage.Storer
 }
 
@@ -36,7 +36,7 @@ type ArgsNewSyncValidatorStatus struct {
 	Hasher             hashing.Hasher
 	RequestHandler     process.RequestHandler
 	ChanceComputer     sharding.ChanceComputer
-	GenesisNodesConfig *sharding.NodesSetup
+	GenesisNodesConfig sharding.GenesisNodesSetupHandler
 	NodeShuffler       sharding.NodesShuffler
 	PubKey             []byte
 	ShardIdAsObserver  uint32
@@ -82,8 +82,8 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 	s.memDB = disabled.CreateMemUnit()
 
 	argsNodesCoordinator := sharding.ArgNodesCoordinator{
-		ShardConsensusGroupSize: int(args.GenesisNodesConfig.ConsensusGroupSize),
-		MetaConsensusGroupSize:  int(args.GenesisNodesConfig.MetaChainConsensusGroupSize),
+		ShardConsensusGroupSize: int(args.GenesisNodesConfig.GetShardConsensusGroupSize()),
+		MetaConsensusGroupSize:  int(args.GenesisNodesConfig.GetMetaConsensusGroupSize()),
 		Marshalizer:             args.Marshalizer,
 		Hasher:                  args.Hasher,
 		Shuffler:                args.NodeShuffler,

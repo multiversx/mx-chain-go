@@ -258,11 +258,6 @@ func (ns *NodesSetup) InitialNodesInfoForShard(shardId uint32) ([]GenesisNodeInf
 	return ns.eligible[shardId], ns.waiting[shardId], nil
 }
 
-// SetNumberOfShards will update the number of shards. Should be used only when testing
-func (ns *NodesSetup) SetNumberOfShards(numShards uint32) {
-	ns.nrOfShards = numShards
-}
-
 // NumberOfShards returns the calculated number of shards
 func (ns *NodesSetup) NumberOfShards() uint32 {
 	return ns.nrOfShards
@@ -276,6 +271,31 @@ func (ns *NodesSetup) GetShardIDForPubKey(pubKey []byte) (uint32, error) {
 		}
 	}
 	return 0, ErrPublicKeyNotFoundInGenesis
+}
+
+// GetStartTime returns the start time
+func (ns *NodesSetup) GetStartTime() int64 {
+	return ns.StartTime
+}
+
+// GetRoundDuration returns the round duration
+func (ns *NodesSetup) GetRoundDuration() uint64 {
+	return ns.RoundDuration
+}
+
+// GetChainId returns the chain ID
+func (ns *NodesSetup) GetChainId() string {
+	return ns.ChainID
+}
+
+// GetShardConsensusGroupSize returns the shard consensus group size
+func (ns *NodesSetup) GetShardConsensusGroupSize() uint32 {
+	return ns.ConsensusGroupSize
+}
+
+// GetMetaConsensusGroupSize returns the metachain consensus group size
+func (ns *NodesSetup) GetMetaConsensusGroupSize() uint32 {
+	return ns.MetaChainConsensusGroupSize
 }
 
 // IsInterfaceNil returns true if underlying object is nil
