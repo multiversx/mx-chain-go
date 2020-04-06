@@ -64,7 +64,7 @@ func TestGetTransactionByType_RewardTx(t *testing.T) {
 		Status:    status,
 		Value:     "<nil>",
 		Sender:    fmt.Sprintf("%d", core.MetachainShardId),
-		Data:      []byte(""),
+		Data:      "",
 	}
 	require.Equal(t, expectedTx, resultTx)
 }
