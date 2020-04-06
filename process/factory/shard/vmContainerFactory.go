@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -26,6 +27,7 @@ type vmContainerFactory struct {
 	cryptoHook         vmcommon.CryptoHook
 	blockGasLimit      uint64
 	gasSchedule        map[string]map[string]uint64
+	builtinFunctions   []string
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -43,7 +45,9 @@ func NewVMContainerFactory(
 	if err != nil {
 		return nil, err
 	}
+
 	cryptoHook := hooks.NewVMCryptoHook()
+	builtinFunctions := smartContract.GetBuiltinFunctions()
 
 	return &vmContainerFactory{
 		config:             config,
@@ -51,6 +55,7 @@ func NewVMContainerFactory(
 		cryptoHook:         cryptoHook,
 		blockGasLimit:      blockGasLimit,
 		gasSchedule:        gasSchedule,
+		builtinFunctions:   builtinFunctions,
 	}, nil
 }
 
@@ -98,9 +103,10 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 		vmf.blockChainHookImpl,
 		ipcCommon.ArwenArguments{
 			VMHostArguments: ipcCommon.VMHostArguments{
-				VMType:        factory.ArwenVirtualMachine,
-				BlockGasLimit: vmf.blockGasLimit,
-				GasSchedule:   vmf.gasSchedule,
+				VMType:                    factory.ArwenVirtualMachine,
+				BlockGasLimit:             vmf.blockGasLimit,
+				GasSchedule:               vmf.gasSchedule,
+				ProtocolReservedFunctions: vmf.builtinFunctions,
 			},
 			MainLogLevel:        mainLogLevel,
 			DialogueLogLevel:    dialogueLogLevel,
@@ -114,7 +120,14 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 
 func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
 	logVMContainerFactory.Info("createInProcessArwenVM")
-	return arwen.NewArwenVM(vmf.blockChainHookImpl, vmf.cryptoHook, factory.ArwenVirtualMachine, vmf.blockGasLimit, vmf.gasSchedule)
+	return arwen.NewArwenVM(
+		vmf.blockChainHookImpl,
+		vmf.cryptoHook,
+		factory.ArwenVirtualMachine,
+		vmf.blockGasLimit,
+		vmf.gasSchedule,
+		vmf.builtinFunctions,
+	)
 }
 
 // BlockChainHookImpl returns the created blockChainHookImpl
