@@ -159,3 +159,6 @@ var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector"
 
 // ErrInvalidMessageType signals that an invalid message type has been received from consensus topic
 var ErrInvalidMessageType = errors.New("invalid message type")
+
+// ErrInvalidHeaderHashSize signals that an invalid header hash size has been received from consensus topic
+var ErrInvalidHeaderHashSize = errors.New("invalid header hash size")

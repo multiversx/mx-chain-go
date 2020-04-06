@@ -332,6 +332,12 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 			msgType)
 	}
 
+	if len(cnsDta.BlockHeaderHash) != core.HashSizeInBytes {
+		return fmt.Errorf("%w : received header hash from consensus topic has an invalid size: %d",
+			ErrInvalidHeaderHashSize,
+			msgType)
+	}
+
 	log.Trace("received message from consensus topic",
 		"msg type", wrk.consensusService.GetStringValue(msgType),
 		"from", core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),

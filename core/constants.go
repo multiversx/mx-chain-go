@@ -306,3 +306,6 @@ const MetricP2PUnknownPeers = "erd_p2p_unknown_shard_peers"
 
 // MetricP2PNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
 const MetricP2PNumConnectedPeersClassification = "erd_p2p_num_connected_peers_classification"
+
+// HashSizeInBytes represents the size in bytes of a hash
+const HashSizeInBytes = 32
