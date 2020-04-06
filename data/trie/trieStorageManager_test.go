@@ -360,7 +360,7 @@ func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
 
 	snapshotWg.Wait()
 	checkpointWg.Wait()
-	time.Sleep(snapshotDelay)
+	time.Sleep(snapshotDelay * 3)
 
 	trieStorage.storageOperationMutex.Lock()
 	assert.Equal(t, totalNumSnapshot, trieStorage.snapshotId)

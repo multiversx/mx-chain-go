@@ -1,6 +1,8 @@
 package interceptors
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
@@ -14,29 +16,26 @@ type whiteListDataVerifier struct {
 // NewWhiteListDataVerifier returns a default data verifier
 func NewWhiteListDataVerifier(cacher storage.Cacher) (*whiteListDataVerifier, error) {
 	if check.IfNil(cacher) {
-		return nil, process.ErrNilCacher
+		return nil, fmt.Errorf("%w in NewWhiteListDataVerifier", process.ErrNilCacher)
 	}
 
-	return &whiteListDataVerifier{cache: cacher}, nil
+	return &whiteListDataVerifier{
+		cache: cacher,
+	}, nil
 }
 
-// IsForCurrentShard return true if intercepted data is for shard
-func (w *whiteListDataVerifier) IsForCurrentShard(interceptedData process.InterceptedData) bool {
+// IsWhiteListed return true if intercepted data is accepted
+func (w *whiteListDataVerifier) IsWhiteListed(interceptedData process.InterceptedData) bool {
 	if check.IfNil(interceptedData) {
 		return false
 	}
 
-	// TODO: refactor generic block body resolver and delete the next condition
+	// TODO(iulian): refactor generic block body resolver and intercepted data and delete the next condition
 	if _, ok := interceptedData.(*interceptedBlocks.InterceptedTxBlockBody); ok {
 		return true
 	}
 
-	wasItRequested := w.cache.Has(interceptedData.Hash())
-	if wasItRequested {
-		w.cache.Remove(interceptedData.Hash())
-	}
-
-	return wasItRequested
+	return w.cache.Has(interceptedData.Hash())
 }
 
 // Add ads all the list to the cache

@@ -47,7 +47,7 @@ type ArgsExporter struct {
 	ExportFolder             string
 	ExportTriesStorageConfig config.StorageConfig
 	ExportStateStorageConfig config.StorageConfig
-	WhiteListHandler         process.InterceptedDataWhiteList
+	WhiteListHandler         process.WhiteListHandler
 	InterceptorsContainer    process.InterceptorsContainer
 	MultiSigner              crypto.MultiSigner
 	NodesCoordinator         sharding.NodesCoordinator
@@ -78,7 +78,7 @@ type exportHandlerFactory struct {
 	exportFolder             string
 	exportTriesStorageConfig config.StorageConfig
 	exportStateStorageConfig config.StorageConfig
-	whiteListHandler         process.InterceptedDataWhiteList
+	whiteListHandler         process.WhiteListHandler
 	interceptorsContainer    process.InterceptorsContainer
 	existingResolvers        dataRetriever.ResolversContainer
 	epochStartTrigger        epochStart.TriggerHandler
@@ -267,11 +267,11 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		InputAntifloodHandler:      e.inputAntifloodHandler,
 		OutputAntifloodHandler:     e.outputAntifloodHandler,
 	}
-	resolversContainerFactory, err := NewResolversContainerFactory(argsResolvers)
+	resolversFactory, err := NewResolversContainerFactory(argsResolvers)
 	if err != nil {
 		return nil, err
 	}
-	e.resolverContainer, err = resolversContainerFactory.Create()
+	e.resolverContainer, err = resolversFactory.Create()
 	if err != nil {
 		return nil, err
 	}

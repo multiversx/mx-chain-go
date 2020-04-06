@@ -2,17 +2,11 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // InterceptorStub -
 type InterceptorStub struct {
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
-	SetIsDataForCurrentShardVerifierCalled func(verifier process.InterceptedDataVerifier) error
-}
-
-func (is *InterceptorStub) SetIsDataForCurrentShardVerifier(verifier process.InterceptedDataVerifier) error {
-	return is.SetIsDataForCurrentShardVerifierCalled(verifier)
 }
 
 // ProcessReceivedMessage -

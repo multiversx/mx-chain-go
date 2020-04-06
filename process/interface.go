@@ -410,7 +410,6 @@ type BlockChainHookHandler interface {
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
-	SetIsDataForCurrentShardVerifier(verifier InterceptedDataVerifier) error
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
 	IsInterfaceNil() bool
 }
@@ -783,24 +782,10 @@ type RatingChanceHandler interface {
 	IsInterfaceNil() bool
 }
 
-// InterceptedDataVerifier check whether the received data is needed by shard
-type InterceptedDataVerifier interface {
-	IsForCurrentShard(interceptedData InterceptedData) bool
-	IsInterfaceNil() bool
-}
-
-// InterceptedDataWhiteList is the interface needed to add whitelisted data
-type InterceptedDataWhiteList interface {
-	IsForCurrentShard(interceptedData InterceptedData) bool
-	Remove(keys [][]byte)
-	Add(keys [][]byte)
-	IsInterfaceNil() bool
-}
-
 // WhiteListHandler is the interface needed to add whitelisted data
 type WhiteListHandler interface {
 	Remove(keys [][]byte)
 	Add(keys [][]byte)
-	IsForCurrentShard(interceptedData InterceptedData) bool
+	IsWhiteListed(interceptedData InterceptedData) bool
 	IsInterfaceNil() bool
 }

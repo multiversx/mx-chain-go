@@ -513,5 +513,6 @@ func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactory
 		ValidityAttester:       &mock.ValidityAttesterStub{},
 		EpochStartTrigger:      &mock.EpochStartTriggerStub{},
 		AntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
+		WhiteListHandler:       &mock.WhiteListHandlerStub{},
 	}
 }

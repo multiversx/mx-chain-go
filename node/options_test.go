@@ -1158,3 +1158,27 @@ func TestWithHardforkTrigger_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, node.hardforkTrigger == hardforkTrigger)
 }
+
+func TestWithHardforkTrigger_NilWhiteListHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithWhiteListHanlder(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilWhiteListHandler, err)
+}
+
+func TestWithHardforkTrigger_WhiteListHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	whiteListHandler := &mock.WhiteListHandlerStub{}
+	opt := WithWhiteListHanlder(whiteListHandler)
+	err := opt(node)
+
+	assert.Nil(t, err)
+	assert.True(t, node.whiteListHandler == whiteListHandler)
+}

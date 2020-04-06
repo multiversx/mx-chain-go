@@ -15,7 +15,7 @@ func (w *WhiteListHandlerStub) IsWhiteListed(interceptedData process.Intercepted
 	if w.IsWhiteListedCalled != nil {
 		return w.IsWhiteListedCalled(interceptedData)
 	}
-	return false
+	return true
 }
 
 // IsForCurrentShard -

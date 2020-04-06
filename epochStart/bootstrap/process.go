@@ -170,7 +170,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		workingDir:                 args.WorkingDir,
 		pathManager:                args.PathManager,
 		defaultEpochString:         args.DefaultEpochString,
-		defaultDBPath:              args.DefaultEpochString,
+		defaultDBPath:              args.DefaultDBPath,
 		defaultShardString:         args.DefaultShardString,
 		keyGen:                     args.KeyGen,
 		blockKeyGen:                args.BlockKeyGen,
@@ -231,8 +231,10 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	if !e.generalConfig.GeneralSettings.StartInEpochEnabled {
 		log.Warn("fast bootstrap is disabled")
 
+		e.initializeFromLocalStorage()
+
 		return Parameters{
-			Epoch:       0,
+			Epoch:       e.baseData.lastEpoch,
 			SelfShardId: e.genesisShardCoordinator.SelfId(),
 			NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
 		}, nil
