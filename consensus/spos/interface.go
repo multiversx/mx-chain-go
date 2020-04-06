@@ -71,6 +71,8 @@ type ConsensusService interface {
 	IsMessageWithBlockHeader(consensus.MessageType) bool
 	//IsMessageWithSignature returns if the current messageType is about signature
 	IsMessageWithSignature(consensus.MessageType) bool
+	//IsMessageTypeValid returns if the current messageType is valid
+	IsMessageTypeValid(consensus.MessageType) bool
 	//IsSubroundSignature returns if the current subround is about signature
 	IsSubroundSignature(int) bool
 	//IsSubroundStartRound returns if the current subround is about start round

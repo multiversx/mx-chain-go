@@ -757,6 +757,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 		return err
 	}
 
+	peerAccount.SetCurrentShardId(shardID)
 	peerAccount.SetRating(startRating)
 	peerAccount.SetTempRating(startRating)
 	peerAccount.SetListAndIndex(shardID, string(peerType), index)
