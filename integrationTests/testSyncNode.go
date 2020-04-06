@@ -148,7 +148,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder, tpn.BlackListHandler, tpn.BlockTracker, 0)
+		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
 		argumentsBase.Core = &mock.ServiceContainerMock{}
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
@@ -166,7 +166,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
-		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder, tpn.BlackListHandler, tpn.BlockTracker, 0)
+		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
@@ -207,7 +207,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		RequestHandler:      tpn.RequestHandler,
 		ShardCoordinator:    tpn.ShardCoordinator,
 		Accounts:            tpn.AccntState,
-		BlackListHandler:    tpn.BlackListHandler,
+		BlackListHandler:    tpn.BlockBlackListHandler,
 		NetworkWatcher:      tpn.Messenger,
 		BootStorer:          tpn.BootstrapStorer,
 		StorageBootstrapper: tpn.StorageBootstrapper,
@@ -254,7 +254,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		RequestHandler:      tpn.RequestHandler,
 		ShardCoordinator:    tpn.ShardCoordinator,
 		Accounts:            tpn.AccntState,
-		BlackListHandler:    tpn.BlackListHandler,
+		BlackListHandler:    tpn.BlockBlackListHandler,
 		NetworkWatcher:      tpn.Messenger,
 		BootStorer:          tpn.BootstrapStorer,
 		StorageBootstrapper: tpn.StorageBootstrapper,

@@ -66,9 +66,10 @@ func createMockArgHeartbeatMonitor() heartbeat.ArgHeartbeatMonitor {
 				return "", 1, nil
 			},
 		},
-		Timer:            mock.NewMockTimer(),
-		AntifloodHandler: createMockP2PAntifloodHandler(),
-		HardforkTrigger:  &mock.HardforkTriggerStub{},
+		Timer:                mock.NewMockTimer(),
+		AntifloodHandler:     createMockP2PAntifloodHandler(),
+		HardforkTrigger:      &mock.HardforkTriggerStub{},
+		PeerBlackListHandler: &mock.BlackListHandlerStub{},
 	}
 }
 
@@ -160,6 +161,17 @@ func TestNewMonitor_NilHardforkTriggerShouldErr(t *testing.T) {
 
 	assert.Nil(t, mon)
 	assert.Equal(t, heartbeat.ErrNilHardforkTrigger, err)
+}
+
+func TestNewMonitor_NilPeerBlackListHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatMonitor()
+	arg.PeerBlackListHandler = nil
+	mon, err := heartbeat.NewMonitor(arg)
+
+	assert.Nil(t, mon)
+	assert.True(t, errors.Is(err, heartbeat.ErrNilBlackListHandler))
 }
 
 func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
@@ -255,17 +267,16 @@ func TestMonitor_ProcessReceivedMessageProcessTriggerErrorShouldErr(t *testing.T
 		},
 	}
 	arg.HardforkTrigger = &mock.HardforkTriggerStub{
-		TriggerReceivedCalled: func(payload []byte, pkBytes []byte) error {
+		TriggerReceivedCalled: func(payload []byte, data []byte, pkBytes []byte) (bool, error) {
 			triggerWasCalled = true
 
-			return expectedErr
+			return true, expectedErr
 		},
 	}
 	mon, _ := heartbeat.NewMonitor(arg)
 
 	hb := heartbeat.Heartbeat{
-		Pubkey:  []byte(pubKey),
-		Payload: []byte(heartbeat.HardforkTriggerString),
+		Pubkey: []byte(pubKey),
 	}
 	hbBytes, _ := json.Marshal(hb)
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: hbBytes}, fromConnectedPeerId)
@@ -442,6 +453,59 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 	assert.True(t, hbStatus[0].IsActive)
 	// check if pk2 was set to offline by pk1
 	assert.False(t, hbStatus[1].IsActive)
+}
+
+func TestMonitor_ProcessReceivedMessageImpersonatedMessageShouldErr(t *testing.T) {
+	t.Parallel()
+
+	pubKey := "pk1"
+	originator := p2p.PeerID("message originator")
+
+	arg := createMockArgHeartbeatMonitor()
+	arg.Marshalizer = &mock.MarshalizerMock{
+		UnmarshalHandler: func(obj interface{}, buff []byte) error {
+			(obj.(*heartbeat.Heartbeat)).Pubkey = []byte(pubKey)
+			return nil
+		},
+	}
+	arg.MaxDurationPeerUnresponsive = time.Second * 1000
+	arg.PubKeysMap = map[uint32][]string{0: {"pk2"}}
+	arg.MessageHandler = &mock.MessageHandlerStub{
+		CreateHeartbeatFromP2PMessageCalled: func(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
+			var rcvHb heartbeat.Heartbeat
+			_ = json.Unmarshal(message.Data(), &rcvHb)
+			return &rcvHb, nil
+		},
+	}
+	originatorWasBlacklisted := false
+	connectedPeerWasBlacklisted := false
+	arg.PeerBlackListHandler = &mock.BlackListHandlerStub{
+		AddCalled: func(key string) error {
+			if key == originator.Pretty() {
+				originatorWasBlacklisted = true
+			}
+			if key == fromConnectedPeerId.Pretty() {
+				connectedPeerWasBlacklisted = true
+			}
+
+			return nil
+		},
+	}
+	mon, _ := heartbeat.NewMonitor(arg)
+
+	hb := heartbeat.Heartbeat{
+		Pubkey: []byte(pubKey),
+	}
+	hbBytes, _ := json.Marshal(hb)
+	message := &mock.P2PMessageStub{
+		DataField: hbBytes,
+		PeerField: originator,
+	}
+
+	err := mon.ProcessReceivedMessage(message, fromConnectedPeerId)
+	assert.True(t, errors.Is(err, heartbeat.ErrHearbeatPidMismatch))
+	assert.True(t, originatorWasBlacklisted)
+	assert.True(t, connectedPeerWasBlacklisted)
 }
 
 func sendHbMessageFromPubKey(pubKey string, mon *heartbeat.Monitor) error {

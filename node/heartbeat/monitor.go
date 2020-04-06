@@ -4,6 +4,7 @@ package heartbeat
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -19,8 +20,6 @@ import (
 
 var log = logger.GetOrCreate("node/heartbeat")
 
-const hardforkTriggerString = "hardfork trigger"
-
 // ArgHeartbeatMonitor represents the arguments for the heartbeat monitor
 type ArgHeartbeatMonitor struct {
 	Marshalizer                 marshal.Marshalizer
@@ -33,6 +32,7 @@ type ArgHeartbeatMonitor struct {
 	Timer                       Timer
 	AntifloodHandler            P2PAntifloodHandler
 	HardforkTrigger             HardforkTrigger
+	PeerBlackListHandler        BlackListHandler
 }
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
@@ -53,6 +53,7 @@ type Monitor struct {
 	timer                       Timer
 	antifloodHandler            P2PAntifloodHandler
 	hardforkTrigger             HardforkTrigger
+	peerBlackListHandler        BlackListHandler
 }
 
 // NewMonitor returns a new monitor instance
@@ -81,6 +82,9 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 	if check.IfNil(arg.HardforkTrigger) {
 		return nil, ErrNilHardforkTrigger
 	}
+	if check.IfNil(arg.PeerBlackListHandler) {
+		return nil, fmt.Errorf("%w in NewMonitor", ErrNilBlackListHandler)
+	}
 
 	mon := &Monitor{
 		marshalizer:                 arg.Marshalizer,
@@ -94,6 +98,7 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		timer:                       arg.Timer,
 		antifloodHandler:            arg.AntifloodHandler,
 		hardforkTrigger:             arg.HardforkTrigger,
+		peerBlackListHandler:        arg.PeerBlackListHandler,
 	}
 
 	err := mon.storer.UpdateGenesisTime(arg.GenesisTime)
@@ -247,12 +252,27 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 		return err
 	}
 
-	isHardforkTrigger := bytes.Equal(hbRecv.Payload, []byte(hardforkTriggerString))
+	isHardforkTrigger, err := m.hardforkTrigger.TriggerReceived(message.Data(), hbRecv.Payload, hbRecv.Pubkey)
 	if isHardforkTrigger {
-		errHardforkTrigger := m.hardforkTrigger.TriggerReceived(hbRecv.Pubkey, hbRecv.Payload)
-		if errHardforkTrigger != nil {
-			return errHardforkTrigger
-		}
+		return err
+	}
+
+	if !bytes.Equal(hbRecv.Pid, message.Peer().Bytes()) {
+		//this situation is so severe that we have to black list both the message originator and the connected peer
+		//that disseminated this message.
+		_ = m.peerBlackListHandler.Add(message.Peer().Pretty())
+		_ = m.peerBlackListHandler.Add(fromConnectedPeer.Pretty())
+
+		log.Debug("blacklisted due to inconsistent heartbeat message",
+			"message originator", p2p.PeerIdToShortString(message.Peer()),
+			"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
+		)
+
+		return fmt.Errorf("%w heartbeat pid %s, message pid %s",
+			ErrHearbeatPidMismatch,
+			p2p.PeerIdToShortString(p2p.PeerID(hbRecv.Pid)),
+			p2p.PeerIdToShortString(message.Peer()),
+		)
 	}
 
 	//message is validated, process should be done async, method can return nil

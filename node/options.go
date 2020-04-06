@@ -424,13 +424,24 @@ func WithIndexer(indexer indexer.Indexer) Option {
 	}
 }
 
-// WithBlackListHandler sets up a black list handler for the Node
-func WithBlackListHandler(blackListHandler process.BlackListHandler) Option {
+// WithBlockBlackListHandler sets up a block black list handler for the Node
+func WithBlockBlackListHandler(blackListHandler process.BlackListHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(blackListHandler) {
-			return ErrNilBlackListHandler
+			return fmt.Errorf("%w for WithBlockBlackListHandler", ErrNilBlackListHandler)
 		}
-		n.blackListHandler = blackListHandler
+		n.blocksBlackListHandler = blackListHandler
+		return nil
+	}
+}
+
+// WithPeerBlackListHandler sets up a block black list handler for the Node
+func WithPeerBlackListHandler(blackListHandler process.BlackListHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(blackListHandler) {
+			return fmt.Errorf("%w for WithPeerBlackListHandler", ErrNilBlackListHandler)
+		}
+		n.peerBlackListHandler = blackListHandler
 		return nil
 	}
 }

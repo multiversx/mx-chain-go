@@ -171,7 +171,7 @@ type TestProcessorNode struct {
 	EconomicsData *economics.TestEconomicsData
 	RatingsData   *rating.RatingsData
 
-	BlackListHandler      process.BlackListHandler
+	BlockBlackListHandler process.BlackListHandler
 	HeaderValidator       process.HeaderConstructionValidator
 	BlockTracker          process.BlockTracker
 	InterceptorsContainer process.InterceptorsContainer
@@ -474,7 +474,7 @@ func CreateEconomicsData() *economics.EconomicsData {
 	return economicsData
 }
 
-// CreateEconomicsData creates a mock EconomicsData object
+// CreateRatingsData creates a mock RatingsData object
 func CreateRatingsData() *rating.RatingsData {
 	ratingsConfig := config.RatingsConfig{
 		ShardChain: config.ShardChain{
@@ -554,7 +554,7 @@ func CreateRatingsData() *rating.RatingsData {
 
 func (tpn *TestProcessorNode) initInterceptors() {
 	var err error
-	tpn.BlackListHandler = timecache.NewTimeCache(TimeSpanForBadHeaders)
+	tpn.BlockBlackListHandler = timecache.NewTimeCache(TimeSpanForBadHeaders)
 	if check.IfNil(tpn.EpochStartNotifier) {
 		tpn.EpochStartNotifier = &mock.EpochStartNotifierStub{}
 	}
@@ -593,7 +593,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			BlockKeyGen:            tpn.OwnAccount.KeygenBlockSign,
 			MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
 			TxFeeHandler:           tpn.EconomicsData,
-			BlackList:              tpn.BlackListHandler,
+			BlackList:              tpn.BlockBlackListHandler,
 			HeaderSigVerifier:      tpn.HeaderSigVerifier,
 			ChainID:                tpn.ChainID,
 			SizeCheckDelta:         sizeCheckDelta,
@@ -645,7 +645,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			AddrConverter:          TestAddressConverter,
 			MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
 			TxFeeHandler:           tpn.EconomicsData,
-			BlackList:              tpn.BlackListHandler,
+			BlackList:              tpn.BlockBlackListHandler,
 			HeaderSigVerifier:      tpn.HeaderSigVerifier,
 			ChainID:                tpn.ChainID,
 			SizeCheckDelta:         sizeCheckDelta,
@@ -1176,7 +1176,8 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithTxSingleSigner(tpn.OwnAccount.SingleSigner),
 		node.WithDataStore(tpn.Storage),
 		node.WithSyncer(&mock.SyncTimerMock{}),
-		node.WithBlackListHandler(tpn.BlackListHandler),
+		node.WithBlockBlackListHandler(tpn.BlockBlackListHandler),
+		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithDataPool(tpn.DataPool),
 		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),

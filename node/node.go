@@ -76,12 +76,13 @@ type Node struct {
 	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
 	interceptorsContainer         process.InterceptorsContainer
 	resolversFinder               dataRetriever.ResolversFinder
+	peerBlackListHandler          process.BlackListHandler
 	heartbeatMonitor              *heartbeat.Monitor
 	heartbeatSender               *heartbeat.Sender
 	appStatusHandler              core.AppStatusHandler
 	validatorStatistics           process.ValidatorStatisticsProcessor
 	hardforkTrigger               HardforkTrigger
-	validatorsProvider       	  process.ValidatorsProvider
+	validatorsProvider            process.ValidatorsProvider
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -107,11 +108,11 @@ type Node struct {
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
-	indexer               indexer.Indexer
-	blackListHandler      process.BlackListHandler
-	bootStorer            process.BootStorer
-	requestedItemsHandler dataRetriever.RequestedItemsHandler
-	headerSigVerifier     spos.RandSeedVerifier
+	indexer                indexer.Indexer
+	blocksBlackListHandler process.BlackListHandler
+	bootStorer             process.BootStorer
+	requestedItemsHandler  dataRetriever.RequestedItemsHandler
+	headerSigVerifier      spos.RandSeedVerifier
 
 	chainID                  []byte
 	blockTracker             process.BlockTracker
@@ -467,7 +468,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		RequestHandler:      n.requestHandler,
 		ShardCoordinator:    n.shardCoordinator,
 		Accounts:            n.accounts,
-		BlackListHandler:    n.blackListHandler,
+		BlackListHandler:    n.blocksBlackListHandler,
 		NetworkWatcher:      n.messenger,
 		BootStorer:          n.bootStorer,
 		StorageBootstrapper: shardStorageBootstrapper,
@@ -541,7 +542,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		RequestHandler:      n.requestHandler,
 		ShardCoordinator:    n.shardCoordinator,
 		Accounts:            n.accounts,
-		BlackListHandler:    n.blackListHandler,
+		BlackListHandler:    n.blocksBlackListHandler,
 		NetworkWatcher:      n.messenger,
 		BootStorer:          n.bootStorer,
 		StorageBootstrapper: metaStorageBootstrapper,
@@ -971,6 +972,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		Timer:                       timer,
 		AntifloodHandler:            n.inputAntifloodHandler,
 		HardforkTrigger:             n.hardforkTrigger,
+		PeerBlackListHandler:        n.peerBlackListHandler,
 	}
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(argMonitor)
 	if err != nil {

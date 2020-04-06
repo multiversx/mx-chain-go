@@ -73,3 +73,9 @@ var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
 
 // ErrNilHardforkTrigger signals that a nil hardfork trigger has been provided
 var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
+
+// ErrHearbeatPidMismatch signals that a received hearbeat did not come from the correct originator
+var ErrHearbeatPidMismatch = errors.New("heartbeat peer id mismatch")
+
+// ErrNilBlackListHandler signals that a nil black list handler was provided
+var ErrNilBlackListHandler = errors.New("nil black list handler")

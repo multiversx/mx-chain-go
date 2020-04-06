@@ -10,6 +10,7 @@ import (
 // PeerMessenger defines a subset of the p2p.Messenger interface
 type PeerMessenger interface {
 	Broadcast(topic string, buff []byte)
+	ID() p2p.PeerID
 	IsInterfaceNil() bool
 }
 
@@ -68,7 +69,16 @@ type PeerTypeProviderHandler interface {
 
 // HardforkTrigger defines the behavior of a hardfork trigger
 type HardforkTrigger interface {
-	TriggerReceived(payload []byte, pkBytes []byte) error
+	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessage() ([]byte, bool)
+	CreateData() []byte
+	IsInterfaceNil() bool
+}
+
+// BlackListHandler can determine if a certain key is or not blacklisted
+type BlackListHandler interface {
+	Add(key string) error
+	Has(key string) bool
+	Sweep()
 	IsInterfaceNil() bool
 }

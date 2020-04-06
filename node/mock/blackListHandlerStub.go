@@ -1,22 +1,38 @@
 package mock
 
+// BlackListHandlerStub -
 type BlackListHandlerStub struct {
-	AddCalled func(key string) error
-	HasCalled func(key string) bool
+	AddCalled   func(key string) error
+	HasCalled   func(key string) bool
+	SweepCalled func()
 }
 
+// Sweep -
 func (blhs *BlackListHandlerStub) Sweep() {
-	panic("implement me")
+	if blhs.SweepCalled != nil {
+		blhs.SweepCalled()
+	}
 }
 
+// Add -
 func (blhs *BlackListHandlerStub) Add(key string) error {
-	return blhs.AddCalled(key)
+	if blhs.AddCalled != nil {
+		return blhs.AddCalled(key)
+	}
+
+	return nil
 }
 
+// Has -
 func (blhs *BlackListHandlerStub) Has(key string) bool {
-	return blhs.HasCalled(key)
+	if blhs.HasCalled != nil {
+		return blhs.HasCalled(key)
+	}
+
+	return false
 }
 
+// IsInterfaceNil -
 func (blhs *BlackListHandlerStub) IsInterfaceNil() bool {
 	return blhs == nil
 }

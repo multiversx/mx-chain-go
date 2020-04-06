@@ -1071,8 +1071,8 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 	validatorProvider := &mock.ValidatorsProviderStub{GetLatestValidatorsCalled: func() map[string]*state.ValidatorApiResponse {
 		apiResponses := make(map[string]*state.ValidatorApiResponse)
 
-		for _, validatorsInfo := range validatorsInfo {
-			for _, vi := range validatorsInfo {
+		for _, vis := range validatorsInfo {
+			for _, vi := range vis {
 				apiResponses[hex.EncodeToString(vi.GetPublicKey())] = &state.ValidatorApiResponse{}
 			}
 		}
@@ -1360,6 +1360,7 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 			},
 		}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1445,6 +1446,7 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 			},
 		}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1524,6 +1526,7 @@ func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
 			},
 		}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1612,6 +1615,7 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 			},
 		}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1702,6 +1706,7 @@ func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *tes
 			},
 		}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -2069,7 +2074,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithForkDetector(&mock.ForkDetectorMock{}),
-		node.WithBlackListHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithBlockBlackListHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithMessenger(&mock.MessengerStub{
 			IsConnectedToTheNetworkCalled: func() bool {
 				return false
@@ -2157,7 +2162,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		node.WithHasher(&mock.HasherMock{}),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithForkDetector(&mock.ForkDetectorMock{}),
-		node.WithBlackListHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithBlockBlackListHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithMessenger(&mock.MessengerStub{
 			IsConnectedToTheNetworkCalled: func() bool {
 				return false
@@ -2252,7 +2257,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 				return 0
 			},
 		}),
-		node.WithBlackListHandler(&mock.RequestedItemsHandlerStub{}),
+		node.WithBlockBlackListHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithMessenger(&mock.MessengerStub{
 			IsConnectedToTheNetworkCalled: func() bool {
 				return false

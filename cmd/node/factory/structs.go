@@ -118,6 +118,7 @@ type Network struct {
 	NetMessenger           p2p.Messenger
 	InputAntifloodHandler  P2PAntifloodHandler
 	OutputAntifloodHandler P2PAntifloodHandler
+	PeerBlackListHandler   process.BlackListHandler
 }
 
 // Core struct holds the core components of the Elrond protocol
@@ -534,6 +535,7 @@ func NetworkComponentsFactory(
 		NetMessenger:           netMessenger,
 		InputAntifloodHandler:  inputAntifloodHandler,
 		OutputAntifloodHandler: outputAntifloodHandler,
+		PeerBlackListHandler:   p2pPeerBlackList,
 	}, nil
 }
 

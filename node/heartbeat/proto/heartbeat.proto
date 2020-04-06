@@ -12,6 +12,7 @@ message Heartbeat {
 	uint32 ShardID         = 4;
 	string VersionNumber   = 5;
 	string NodeDisplayName = 6;
+	bytes  Pid 			   = 7;
 }
 
 // HeartbeatDTO is the struct used for handling DB operations for heartbeatMessageInfo struct
