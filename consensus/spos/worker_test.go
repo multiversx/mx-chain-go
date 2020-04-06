@@ -25,6 +25,9 @@ const roundTimeDuration = 100 * time.Millisecond
 
 var fromConnectedPeerId = p2p.PeerID("connected peer id")
 
+var blockHeaderHash = make([]byte, core.HashSizeInBytes)
+var invalidBlockHeaderHash = make([]byte, core.HashSizeInBytes+1)
+
 func createMockNetworkShardingCollector() *mock.NetworkShardingCollectorStub {
 	return &mock.NetworkShardingCollectorStub{
 		UpdatePeerIdPublicKeyCalled:  func(pid p2p.PeerID, pk []byte) {},
@@ -975,7 +978,7 @@ func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		nil,
+		blockHeaderHash,
 		nil,
 		blkStr,
 		nil,
@@ -1021,7 +1024,7 @@ func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		nil,
+		blockHeaderHash,
 		nil,
 		blkStr,
 		nil,
@@ -1108,7 +1111,7 @@ func TestWorker_ProcessReceivedMessageInconsistentChainIDInConsensusMessageShoul
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		nil,
+		blockHeaderHash,
 		nil,
 		blkStr,
 		nil,
@@ -1133,7 +1136,7 @@ func TestWorker_ProcessReceivedMessageTypeInvalidShouldErr(t *testing.T) {
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		nil,
+		blockHeaderHash,
 		nil,
 		blkStr,
 		nil,
@@ -1154,13 +1157,40 @@ func TestWorker_ProcessReceivedMessageTypeInvalidShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, spos.ErrInvalidMessageType), err)
 }
 
+func TestWorker_ProcessReceivedHeaderHashSizeInvalidShouldErr(t *testing.T) {
+	t.Parallel()
+	wrk := *initWorker()
+	blk := &block.Body{}
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
+	cnsMsg := consensus.NewConsensusMessage(
+		invalidBlockHeaderHash,
+		nil,
+		blkStr,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bls.MtBlockBody),
+		0,
+		chainID,
+		nil,
+		nil,
+		nil,
+	)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
+	time.Sleep(time.Second)
+
+	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
+	assert.True(t, errors.Is(err, spos.ErrInvalidHeaderHashSize), err)
+}
+
 func TestWorker_ProcessReceivedMessageForFutureRoundShouldErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		nil,
+		blockHeaderHash,
 		nil,
 		blkStr,
 		nil,
@@ -1187,7 +1217,7 @@ func TestWorker_ProcessReceivedMessageForPastRoundShouldErr(t *testing.T) {
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		nil,
+		blockHeaderHash,
 		nil,
 		blkStr,
 		nil,
@@ -1214,7 +1244,7 @@ func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		nil,
+		blockHeaderHash,
 		nil,
 		blkStr,
 		nil,
@@ -1241,7 +1271,7 @@ func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNo
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		nil,
+		blockHeaderHash,
 		nil,
 		blkStr,
 		nil,
@@ -1269,7 +1299,7 @@ func TestWorker_ProcessReceivedMessageWhenRoundIsCanceledShouldRetNilAndNotProce
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		nil,
+		blockHeaderHash,
 		nil,
 		blkStr,
 		nil,
