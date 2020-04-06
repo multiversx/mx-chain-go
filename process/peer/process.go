@@ -167,11 +167,16 @@ func (vs *validatorStatistics) saveUpdatesForNodesMap(
 	nodesMap map[uint32][][]byte,
 	peerType core.PeerType,
 ) error {
-	for shardID, pks := range nodesMap {
-		err := vs.saveUpdatesForList(pks, shardID, peerType)
+	for shardID := uint32(0); shardID < vs.shardCoordinator.NumberOfShards(); shardID++ {
+		err := vs.saveUpdatesForList(nodesMap[shardID], shardID, peerType)
 		if err != nil {
 			return err
 		}
+	}
+
+	err := vs.saveUpdatesForList(nodesMap[core.MetachainShardId], core.MetachainShardId, peerType)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -233,12 +238,27 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 	startRating uint32,
 	peerType core.PeerType,
 ) error {
-	for shardID, nodeInfoList := range nodesInfo {
+	if len(nodesInfo) == 0 {
+		return nil
+	}
+
+	// TODO: check why range over map does not give the same validator statistics roothash
+	for shardID := uint32(0); shardID < vs.shardCoordinator.NumberOfShards(); shardID++ {
+		nodeInfoList := nodesInfo[shardID]
 		for index, nodeInfo := range nodeInfoList {
 			err := vs.initializeNode(nodeInfo, stakeValue, startRating, shardID, peerType, uint32(index))
 			if err != nil {
 				return err
 			}
+		}
+	}
+
+	shardID := core.MetachainShardId
+	nodeInfoList := nodesInfo[shardID]
+	for index, nodeInfo := range nodeInfoList {
+		err := vs.initializeNode(nodeInfo, stakeValue, startRating, shardID, peerType, uint32(index))
+		if err != nil {
+			return err
 		}
 	}
 

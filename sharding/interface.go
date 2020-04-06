@@ -132,6 +132,12 @@ type EpochStartActionHandler interface {
 type GenesisNodesSetupHandler interface {
 	InitialNodesInfoForShard(shardId uint32) ([]GenesisNodeInfoHandler, []GenesisNodeInfoHandler, error)
 	InitialNodesInfo() (map[uint32][]GenesisNodeInfoHandler, map[uint32][]GenesisNodeInfoHandler)
+	GetStartTime() int64
+	GetRoundDuration() uint64
+	GetChainId() string
+	GetShardConsensusGroupSize() uint32
+	GetMetaConsensusGroupSize() uint32
+	NumberOfShards() uint32
 	IsInterfaceNil() bool
 }
 

@@ -647,6 +647,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		genesisNodesConfig.Adaptivity,
 	)
 
+	destShardIdAsObserver, err := processDestinationShardAsObserver(preferencesConfig.Preferences)
+	if err != nil {
+		return err
+	}
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  pubKey,
 		Marshalizer:                coreComponents.InternalMarshalizer,
@@ -667,7 +672,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		DefaultEpochString:         defaultEpochString,
 		DefaultShardString:         defaultShardString,
 		Rater:                      rater,
-		DestinationShardAsObserver: preferencesConfig.Preferences.DestinationShardAsObserver,
+		DestinationShardAsObserver: destShardIdAsObserver,
 		TrieContainer:              coreComponents.TriesContainer,
 		TrieStorageManagers:        coreComponents.TrieStorageManagers,
 		Uint64Converter:            coreComponents.Uint64ByteSliceConverter,
