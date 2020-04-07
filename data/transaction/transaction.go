@@ -2,6 +2,7 @@
 package transaction
 
 import (
+	"encoding/json"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -52,4 +53,65 @@ func TrimSliceHandler(in []data.TransactionHandler) []data.TransactionHandler {
 	ret := make([]data.TransactionHandler, len(in))
 	copy(ret, in)
 	return ret
+}
+
+type jsonTransaction struct {
+	Nonce       uint64 `json:"nonce"`
+	Value       string `json:"value"`
+	RcvAddr     []byte `json:"receiver"`
+	RcvUserName []byte `json:"rcvUserName,omitempty"`
+	SndAddr     []byte `json:"sender"`
+	SndUserName []byte `json:"sndUserName,omitempty"`
+	GasPrice    uint64 `json:"gasPrice,omitempty"`
+	GasLimit    uint64 `json:"gasLimit,omitempty"`
+	Data        []byte `json:"data,omitempty"`
+	Signature   []byte `json:"signature,omitempty"`
+}
+
+// MarshalJSON converts the Transaction data type into its corresponding equivalent in byte slice.
+// Note that Value data type is converted in a string
+func (tx *Transaction) MarshalJSON() ([]byte, error) {
+	valAsString := "nil"
+	if tx.Value != nil {
+		valAsString = tx.Value.String()
+	}
+
+	jsonTx := &jsonTransaction{
+		Nonce:       tx.Nonce,
+		Value:       valAsString,
+		RcvAddr:     tx.RcvAddr,
+		RcvUserName: tx.RcvUserName,
+		SndAddr:     tx.SndAddr,
+		SndUserName: tx.SndUserName,
+		GasPrice:    tx.GasPrice,
+		GasLimit:    tx.GasLimit,
+		Data:        tx.Data,
+		Signature:   tx.Signature,
+	}
+	return json.Marshal(jsonTx)
+}
+
+// UnmarshalJSON converts the provided bytes into a Transaction data type.
+func (tx *Transaction) UnmarshalJSON(dataBuff []byte) error {
+	aux := &jsonTransaction{}
+	if err := json.Unmarshal(dataBuff, &aux); err != nil {
+		return err
+	}
+	tx.Nonce = aux.Nonce
+	tx.RcvAddr = aux.RcvAddr
+	tx.RcvUserName = aux.RcvUserName
+	tx.SndAddr = aux.SndAddr
+	tx.SndUserName = aux.SndUserName
+	tx.GasPrice = aux.GasPrice
+	tx.GasLimit = aux.GasLimit
+	tx.Data = aux.Data
+	tx.Signature = aux.Signature
+
+	var ok bool
+	tx.Value, ok = big.NewInt(0).SetString(aux.Value, 10)
+	if !ok {
+		tx.Value = nil
+	}
+
+	return nil
 }

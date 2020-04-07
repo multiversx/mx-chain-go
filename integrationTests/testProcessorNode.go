@@ -739,6 +739,14 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ShardCoordinator,
 	)
 
+	gasSchedule := arwenConfig.MakeGasMap(1)
+	vm.FillGasMapInternal(gasSchedule, 1)
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasMap:          gasSchedule,
+		MapDNSAddresses: make(map[string]struct{}),
+	}
+	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         tpn.AccntState,
 		AddrConv:         TestAddressConverter,
@@ -747,10 +755,9 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		ShardCoordinator: tpn.ShardCoordinator,
 		Marshalizer:      TestMarshalizer,
 		Uint64Converter:  TestUint64Converter,
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
+		BuiltInFunctions: builtInFuncs,
 	}
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	gasSchedule := arwenConfig.MakeGasMap(1)
 	vmFactory, _ := shard.NewVMContainerFactory(
 		config.VirtualMachineConfig{
 			OutOfProcessEnabled: true,
@@ -779,7 +786,6 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 
-	vm.FillGasMapInternal(gasSchedule, 1)
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      tpn.VMContainer,
 		ArgsParser:       tpn.ArgsParser,
