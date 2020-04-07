@@ -260,6 +260,8 @@ func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 
 	cache := NewTxCache(config)
 	addManyTransactionsWithUniformDistribution(cache, numSenders, numTxsPerSender)
+
+	// Sometimes (due to map iteration non-determinism), more eviction happens - one more step of 100 senders.
 	require.LessOrEqual(t, uint32(cache.CountTx()), config.CountThreshold)
 	require.GreaterOrEqual(t, uint32(cache.CountTx()), config.CountThreshold-config.NumSendersToEvictInOneStep*uint32(numTxsPerSender))
 }
