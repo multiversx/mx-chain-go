@@ -41,6 +41,7 @@ type Block struct {
 	Validators            []uint64      `json:"validators"`
 	PubKeyBitmap          string        `json:"pubKeyBitmap"`
 	Size                  int64         `json:"size"`
+	SizeTxs               int64         `json:"sizeTxs"`
 	Timestamp             time.Duration `json:"timestamp"`
 	StateRootHash         string        `json:"stateRootHash"`
 	PrevHash              string        `json:"prevHash"`

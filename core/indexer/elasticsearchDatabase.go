@@ -136,19 +136,20 @@ func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(
 	signersIndexes []uint64,
 	body *block.Body,
 	notarizedHeadersHashes []string,
-	txsSize int,
+	sizeTxs int,
 ) ([]byte, []byte) {
 	headerBytes, err := esd.marshalizer.Marshal(header)
 	if err != nil {
-		log.Debug("indexer: marshal", "error", "could not marshal header")
+		log.Debug("indexer: marshal header", "error", err)
 		return nil, nil
 	}
 	bodyBytes, err := esd.marshalizer.Marshal(body)
 	if err != nil {
-		log.Debug("indeder: marshal", "error", "could not marshal body")
+		log.Debug("indexer: marshal body", "error", err)
+		return nil, nil
 	}
 
-	blockSizeInBytes := txsSize + len(headerBytes) + len(bodyBytes)
+	blockSizeInBytes := len(headerBytes) + len(bodyBytes)
 
 	miniblocksHashes := make([]string, 0)
 	for _, miniblock := range body.MiniBlocks {
@@ -174,6 +175,7 @@ func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(
 		Validators:            signersIndexes,
 		PubKeyBitmap:          hex.EncodeToString(header.GetPubKeysBitmap()),
 		Size:                  int64(blockSizeInBytes),
+		SizeTxs:               int64(sizeTxs),
 		Timestamp:             time.Duration(header.GetTimeStamp()),
 		TxCount:               header.GetTxCount(),
 		StateRootHash:         hex.EncodeToString(header.GetRootHash()),

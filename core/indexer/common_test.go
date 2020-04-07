@@ -1,9 +1,11 @@
 package indexer
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"reflect"
 	"testing"
 	"time"
 
@@ -103,6 +105,23 @@ func TestGetTransactionByType_Nil(t *testing.T) {
 	require.Nil(t, resultTx)
 }
 
+func TestPrepareBufferMiniblocks(t *testing.T) {
+	var buff bytes.Buffer
+
+	meta := []byte("test1")
+	serializedData := []byte("test2")
+
+	buff = prepareBufferMiniblocks(buff, meta, serializedData)
+
+	var expectedBuff bytes.Buffer
+	serializedData = append(serializedData, "\n"...)
+	expectedBuff.Grow(len(meta) + len(serializedData))
+	_, _ = expectedBuff.Write(meta)
+	_, _ = expectedBuff.Write(serializedData)
+
+	require.Equal(t, expectedBuff, buff)
+}
+
 func generateTxs(numTxs int) map[string]data.TransactionHandler {
 	txs := make(map[string]data.TransactionHandler, numTxs)
 	for i := 0; i < numTxs; i++ {
@@ -122,22 +141,38 @@ func generateTxs(numTxs int) map[string]data.TransactionHandler {
 	return txs
 }
 
-func TestMarshalTxs(t *testing.T) {
-	const KILOBYTE = 1024
+func TestComputeSizeOfTxsDuration(t *testing.T) {
+	res := testing.Benchmark(benchmarkComputeSizeOfTxsDuration)
+
+	fmt.Println("Time to calculate size of txs :", time.Duration(res.NsPerOp()))
+}
+
+func benchmarkComputeSizeOfTxsDuration(b *testing.B) {
 	numTxs := 20000
-
-	start := time.Now()
 	txs := generateTxs(numTxs)
-	elapsed := time.Since(start)
-	fmt.Printf("Generate %d txs took %s \n", numTxs, elapsed)
-
 	gogoMarsh := &marshal.GogoProtoMarshalizer{}
 
-	start = time.Now()
-	lenTxs := calculateSizeOfTxs(gogoMarsh, txs)
-	elapsed = time.Since(start)
+	for i := 0; i < b.N; i++ {
+		computeSizeOfTxs(gogoMarsh, txs)
+	}
+}
 
-	require.Greater(t, lenTxs, 0)
-	fmt.Printf("Marshal %d txs took %s \n", numTxs, elapsed)
-	fmt.Printf("Size of %d transactions : %d Kbs \n", numTxs, lenTxs/KILOBYTE)
+func TestComputeSizeOfTxs(t *testing.T) {
+	const kb = 1024
+	numTxs := 20000
+
+	txs := generateTxs(numTxs)
+	gogoMarsh := &marshal.GogoProtoMarshalizer{}
+	lenTxs := computeSizeOfTxs(gogoMarsh, txs)
+
+	keys := reflect.ValueOf(txs).MapKeys()
+	oneTxBytes, _ := gogoMarsh.Marshal(txs[fmt.Sprintf("%s", keys[0])])
+	oneTxSize := len(oneTxBytes)
+	expectedSize := numTxs * oneTxSize
+	expectedSizeDeltaPlus := expectedSize + int(0.01*float64(expectedSize))
+	expectedSizeDeltaMinus := expectedSize - int(0.01*float64(expectedSize))
+
+	require.Greater(t, lenTxs, expectedSizeDeltaMinus)
+	require.Less(t, lenTxs, expectedSizeDeltaPlus)
+	fmt.Printf("Size of %d transactions : %d Kbs \n", numTxs, lenTxs/kb)
 }

@@ -98,7 +98,7 @@ func (ei *elasticIndexer) SaveBlock(
 		return
 	}
 
-	txsSizeInBytes := calculateSizeOfTxs(ei.marshalizer, txPool)
+	txsSizeInBytes := computeSizeOfTxs(ei.marshalizer, txPool)
 	go ei.database.SaveHeader(headerHandler, signersIndexes, body, notarizedHeadersHashes, txsSizeInBytes)
 
 	if len(body.MiniBlocks) == 0 {
