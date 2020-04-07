@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -43,12 +42,6 @@ type epochNodesConfig struct {
 	leavingList             []Validator
 	newList                 []Validator
 	mutNodesMaps            sync.RWMutex
-}
-
-// EpochStartEventNotifier provides Register and Unregister functionality for the end of epoch events
-type EpochStartEventNotifier interface {
-	RegisterHandler(handler epochStart.ActionHandler)
-	UnregisterHandler(handler epochStart.ActionHandler)
 }
 
 type indexHashedNodesCoordinator struct {
@@ -148,7 +141,7 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	if check.IfNil(arguments.BootStorer) {
 		return ErrNilBootStorer
 	}
-	if arguments.ConsensusGroupCache == nil {
+	if check.IfNilReflect(arguments.ConsensusGroupCache) {
 		return ErrNilCacher
 	}
 	if check.IfNil(arguments.Marshalizer) {
@@ -185,8 +178,8 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 		nodesConfig.leavingList = append(nodesConfig.leavingList, validator)
 	}
 
-	nodesList, ok := eligible[core.MetachainShardId]
-	if !ok || len(nodesList) < ihgs.metaConsensusGroupSize {
+	nodesList := eligible[core.MetachainShardId]
+	if len(nodesList) < ihgs.metaConsensusGroupSize {
 		return ErrSmallMetachainEligibleListSize
 	}
 

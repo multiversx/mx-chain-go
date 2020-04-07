@@ -66,7 +66,7 @@ func createPendingMiniBlocksSyncHandler() update.EpochStartPendingMiniBlocksSync
 	args := ArgsNewPendingMiniBlocksSyncer{
 		Storage: &mock.StorerStub{},
 		Cache: &mock.CacherStub{
-			RegisterHandlerCalled: func(f func(key []byte)) {},
+			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
 				return mb, true
 			},

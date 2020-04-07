@@ -20,7 +20,7 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 		e.generalConfig,
 		e.marshalizer,
 		e.workingDir,
-		e.genesisNodesConfig.ChainID,
+		e.genesisNodesConfig.GetChainId(),
 		e.defaultDBPath,
 		e.defaultEpochString,
 		e.defaultShardString,
@@ -33,7 +33,7 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 		log.Debug("got last data from storage",
 			"epoch", e.baseData.lastEpoch,
 			"last round", e.baseData.lastRound,
-			"last shard ID", e.baseData.lastRound)
+			"last shard ID", e.baseData.shardId)
 	}
 }
 
@@ -42,7 +42,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		GeneralConfig:      e.generalConfig,
 		Marshalizer:        e.marshalizer,
 		WorkingDir:         e.workingDir,
-		ChainID:            e.genesisNodesConfig.ChainID,
+		ChainID:            e.genesisNodesConfig.GetChainId(),
 		DefaultDBPath:      e.defaultDBPath,
 		DefaultEpochString: e.defaultEpochString,
 		DefaultShardString: e.defaultShardString,

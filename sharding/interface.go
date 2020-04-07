@@ -3,6 +3,7 @@ package sharding
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
 // Coordinator defines what a shard state coordinator should hold
@@ -36,6 +37,12 @@ type NodesCoordinator interface {
 	ConsensusGroupSize(uint32) int
 	GetNumTotalEligible() uint64
 	IsInterfaceNil() bool
+}
+
+// EpochStartEventNotifier provides Register and Unregister functionality for the end of epoch events
+type EpochStartEventNotifier interface {
+	RegisterHandler(handler epochStart.ActionHandler)
+	UnregisterHandler(handler epochStart.ActionHandler)
 }
 
 // PublicKeysSelector allows retrieval of eligible validators public keys
@@ -132,6 +139,12 @@ type EpochStartActionHandler interface {
 type GenesisNodesSetupHandler interface {
 	InitialNodesInfoForShard(shardId uint32) ([]GenesisNodeInfoHandler, []GenesisNodeInfoHandler, error)
 	InitialNodesInfo() (map[uint32][]GenesisNodeInfoHandler, map[uint32][]GenesisNodeInfoHandler)
+	GetStartTime() int64
+	GetRoundDuration() uint64
+	GetChainId() string
+	GetShardConsensusGroupSize() uint32
+	GetMetaConsensusGroupSize() uint32
+	NumberOfShards() uint32
 	IsInterfaceNil() bool
 }
 

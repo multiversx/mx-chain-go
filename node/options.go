@@ -583,3 +583,16 @@ func WithHardforkTrigger(hardforkTrigger HardforkTrigger) Option {
 		return nil
 	}
 }
+
+// WithWhiteListHanlder sets up a white list handler option
+func WithWhiteListHanlder(whiteListHandler process.WhiteListHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(whiteListHandler) {
+			return ErrNilWhiteListHandler
+		}
+
+		n.whiteListHandler = whiteListHandler
+
+		return nil
+	}
+}

@@ -553,7 +553,7 @@ type processComponentsFactoryArgs struct {
 	network                   *Network
 	coreServiceContainer      serviceContainer.Core
 	requestedItemsHandler     dataRetriever.RequestedItemsHandler
-	whiteListHandler          process.InterceptedDataWhiteList
+	whiteListHandler          process.WhiteListHandler
 	epochStartNotifier        EpochStartNotifier
 	epochStart                *config.EpochStartConfig
 	rater                     sharding.PeerAccountListAndRatingHandler
@@ -584,7 +584,7 @@ func NewProcessComponentsFactoryArgs(
 	network *Network,
 	coreServiceContainer serviceContainer.Core,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
-	whiteListHandler process.InterceptedDataWhiteList,
+	whiteListHandler process.WhiteListHandler,
 	epochStartNotifier EpochStartNotifier,
 	epochStart *config.EpochStartConfig,
 	startEpochNum uint32,
@@ -752,7 +752,16 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	_, err = poolsCleaner.NewMiniBlocksPoolsCleaner(
-		blockTracker,
+		args.data.Datapool.MiniBlocks(),
+		rounder,
+		args.shardCoordinator,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = poolsCleaner.NewCrossTxsPoolsCleaner(
+		args.state.AddressConverter,
 		args.data.Datapool,
 		rounder,
 		args.shardCoordinator,
@@ -1080,7 +1089,7 @@ func newInterceptorContainerFactory(
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
-	whiteListHandler process.InterceptedDataWhiteList,
+	whiteListHandler process.WhiteListHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1167,7 +1176,7 @@ func newShardInterceptorContainerFactory(
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
-	whiteListHandler process.InterceptedDataWhiteList,
+	whiteListHandler process.WhiteListHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
@@ -1218,7 +1227,7 @@ func newMetaInterceptorContainerFactory(
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
-	whiteListHandler process.InterceptedDataWhiteList,
+	whiteListHandler process.WhiteListHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
@@ -1570,6 +1579,7 @@ func newBlockProcessor(
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardBlockProcessor(
+			processArgs.coreComponents.config,
 			requestHandler,
 			processArgs.shardCoordinator,
 			processArgs.nodesCoordinator,
@@ -1620,6 +1630,7 @@ func newBlockProcessor(
 }
 
 func newShardBlockProcessor(
+	config *config.Config,
 	requestHandler process.RequestHandler,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
@@ -1650,7 +1661,7 @@ func newShardBlockProcessor(
 		Marshalizer:      core.InternalMarshalizer,
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 	}
-	vmFactory, err := shard.NewVMContainerFactory(economics.MaxGasLimitPerBlock(), gasSchedule, argsHook)
+	vmFactory, err := shard.NewVMContainerFactory(config.VirtualMachineConfig, economics.MaxGasLimitPerBlock(), gasSchedule, argsHook)
 	if err != nil {
 		return nil, err
 	}

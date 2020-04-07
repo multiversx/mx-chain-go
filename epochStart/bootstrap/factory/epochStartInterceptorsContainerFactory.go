@@ -99,10 +99,5 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		return nil, err
 	}
 
-	err = interceptorscontainer.SetWhiteListHandlerToInterceptors(container, args.WhiteListHandler)
-	if err != nil {
-		return nil, err
-	}
-
 	return container, nil
 }

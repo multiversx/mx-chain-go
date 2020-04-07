@@ -162,7 +162,7 @@ type DataReader interface {
 type WhiteListHandler interface {
 	Remove(keys [][]byte)
 	Add(keys [][]byte)
-	IsForCurrentShard(interceptedData process.InterceptedData) bool
+	IsWhiteListed(interceptedData process.InterceptedData) bool
 	IsInterfaceNil() bool
 }
 

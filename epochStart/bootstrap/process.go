@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"context"
-	"strconv"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -79,14 +78,14 @@ type epochStartBootstrap struct {
 	keyGen                     crypto.KeyGenerator
 	blockKeyGen                crypto.KeyGenerator
 	shardCoordinator           sharding.Coordinator
-	genesisNodesConfig         *sharding.NodesSetup
+	genesisNodesConfig         sharding.GenesisNodesSetupHandler
 	genesisShardCoordinator    sharding.Coordinator
 	pathManager                storage.PathManagerHandler
 	workingDir                 string
 	defaultDBPath              string
 	defaultEpochString         string
 	defaultShardString         string
-	destinationShardAsObserver string
+	destinationShardAsObserver uint32
 	rater                      sharding.ChanceComputer
 	trieContainer              state.TriesHolder
 	trieStorageManagers        map[string]data.StorageManager
@@ -135,7 +134,7 @@ type ArgsEpochStartBootstrap struct {
 	BlockSingleSigner          crypto.SingleSigner
 	KeyGen                     crypto.KeyGenerator
 	BlockKeyGen                crypto.KeyGenerator
-	GenesisNodesConfig         *sharding.NodesSetup
+	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
 	GenesisShardCoordinator    sharding.Coordinator
 	PathManager                storage.PathManagerHandler
 	WorkingDir                 string
@@ -143,7 +142,7 @@ type ArgsEpochStartBootstrap struct {
 	DefaultEpochString         string
 	DefaultShardString         string
 	Rater                      sharding.ChanceComputer
-	DestinationShardAsObserver string
+	DestinationShardAsObserver uint32
 	TrieContainer              state.TriesHolder
 	TrieStorageManagers        map[string]data.StorageManager
 	Uint64Converter            typeConverters.Uint64ByteSliceConverter
@@ -170,7 +169,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		workingDir:                 args.WorkingDir,
 		pathManager:                args.PathManager,
 		defaultEpochString:         args.DefaultEpochString,
-		defaultDBPath:              args.DefaultEpochString,
+		defaultDBPath:              args.DefaultDBPath,
 		defaultShardString:         args.DefaultShardString,
 		keyGen:                     args.KeyGen,
 		blockKeyGen:                args.BlockKeyGen,
@@ -188,12 +187,12 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 }
 
 func (e *epochStartBootstrap) computedDurationOfEpoch() time.Duration {
-	return time.Duration(e.genesisNodesConfig.RoundDuration*
+	return time.Duration(e.genesisNodesConfig.GetRoundDuration()*
 		uint64(e.generalConfig.EpochStartConfig.RoundsPerEpoch)) * time.Millisecond
 }
 
 func (e *epochStartBootstrap) isStartInEpochZero() bool {
-	startTime := time.Unix(e.genesisNodesConfig.StartTime, 0)
+	startTime := time.Unix(e.genesisNodesConfig.GetStartTime(), 0)
 	isCurrentTimeBeforeGenesis := time.Now().Sub(startTime) < 0
 	if isCurrentTimeBeforeGenesis {
 		return true
@@ -215,7 +214,7 @@ func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
 }
 
 func (e *epochStartBootstrap) computeMostProbableEpoch() {
-	startTime := time.Unix(e.genesisNodesConfig.StartTime, 0)
+	startTime := time.Unix(e.genesisNodesConfig.GetStartTime(), 0)
 	elapsedTime := time.Since(startTime)
 
 	timeForOneEpoch := e.computedDurationOfEpoch()
@@ -231,8 +230,10 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	if !e.generalConfig.GeneralSettings.StartInEpochEnabled {
 		log.Warn("fast bootstrap is disabled")
 
+		e.initializeFromLocalStorage()
+
 		return Parameters{
-			Epoch:       0,
+			Epoch:       e.baseData.lastEpoch,
 			SelfShardId: e.genesisShardCoordinator.SelfId(),
 			NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
 		}, nil
@@ -353,7 +354,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		KeyGen:            e.keyGen,
 		BlockKeyGen:       e.blockKeyGen,
 		WhiteListHandler:  e.whiteListHandler,
-		ChainID:           []byte(e.genesisNodesConfig.ChainID),
+		ChainID:           []byte(e.genesisNodesConfig.GetChainId()),
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
@@ -482,21 +483,12 @@ func (e *epochStartBootstrap) saveSelfShardId() {
 		return
 	}
 
-	destShardID := core.MetachainShardId
-	if e.destinationShardAsObserver == "metachain" {
-		e.baseData.shardId = destShardID
-		return
-	}
+	e.baseData.shardId = e.destinationShardAsObserver
 
-	var destShardIDUint64 uint64
-	destShardIDUint64, err := strconv.ParseUint(e.destinationShardAsObserver, 10, 64)
-	if err == nil && destShardIDUint64 < uint64(e.baseData.numberOfShards) {
-		destShardID = uint32(destShardIDUint64)
-	} else {
-		destShardID = e.genesisShardCoordinator.SelfId()
+	if e.baseData.shardId > e.baseData.numberOfShards &&
+		e.baseData.shardId != core.MetachainShardId {
+		e.baseData.shardId = e.genesisShardCoordinator.SelfId()
 	}
-
-	e.baseData.shardId = destShardID
 }
 
 func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
@@ -505,16 +497,19 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 		DataPool:           e.dataPool,
 		Marshalizer:        e.marshalizer,
 		RequestHandler:     e.requestHandler,
-		Rater:              e.rater,
+		ChanceComputer:     e.rater,
 		GenesisNodesConfig: e.genesisNodesConfig,
 		NodeShuffler:       e.nodeShuffler,
+		Hasher:             e.hasher,
+		PubKey:             pubKey,
+		ShardIdAsObserver:  e.destinationShardAsObserver,
 	}
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {
 		return err
 	}
 
-	e.nodesConfig, e.baseData.shardId, err = e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta, pubKey)
+	e.nodesConfig, e.baseData.shardId, err = e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta)
 	return err
 }
 

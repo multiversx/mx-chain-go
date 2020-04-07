@@ -96,7 +96,7 @@ func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistry(t *testing.T) {
 	args := createArguments()
 	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
 
-	ncr := nodesCoordinator.nodesCoordinatorToRegistry()
+	ncr := nodesCoordinator.NodesCoordinatorToRegistry()
 	nc := nodesCoordinator.nodesConfig
 
 	assert.Equal(t, nodesCoordinator.currentEpoch, ncr.CurrentEpoch)
@@ -111,7 +111,7 @@ func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistry(t *testing.T) {
 func TestIndexHashedNodesCoordinator_registryToNodesCoordinator(t *testing.T) {
 	args := createArguments()
 	nodesCoordinator1, _ := NewIndexHashedNodesCoordinator(args)
-	ncr := nodesCoordinator1.nodesCoordinatorToRegistry()
+	ncr := nodesCoordinator1.NodesCoordinatorToRegistry()
 
 	args = createArguments()
 	nodesCoordinator2, _ := NewIndexHashedNodesCoordinator(args)
