@@ -21,7 +21,11 @@ func (wrk *Worker) checkConsensusMessageValidity(cnsMsg *consensus.Message) erro
 		return err
 	}
 
-	if len(cnsMsg.BlockHeaderHash) != core.HashSizeInBytes {
+	msgType := consensus.MessageType(cnsMsg.MsgType)
+
+	isBlockHeaderHashSizeInvalid := wrk.consensusService.IsMessageWithBlockBody(msgType) && cnsMsg.BlockHeaderHash != nil ||
+		!wrk.consensusService.IsMessageWithBlockBody(msgType) && len(cnsMsg.BlockHeaderHash) != core.HashSizeInBytes
+	if isBlockHeaderHashSizeInvalid {
 		return fmt.Errorf("%w : received header hash from consensus topic has an invalid size: %d",
 			ErrInvalidHeaderHashSize,
 			len(cnsMsg.BlockHeaderHash))
@@ -45,8 +49,6 @@ func (wrk *Worker) checkConsensusMessageValidity(cnsMsg *consensus.Message) erro
 			ErrNodeIsNotInEligibleList,
 			logger.DisplayByteSlice(cnsMsg.PubKey))
 	}
-
-	msgType := consensus.MessageType(cnsMsg.MsgType)
 
 	if wrk.consensusState.RoundIndex+1 < cnsMsg.RoundIndex {
 		log.Trace("received message from consensus topic has a future round",
