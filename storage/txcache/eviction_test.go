@@ -257,5 +257,5 @@ func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 
 	cache := NewTxCache(config)
 	addManyTransactionsWithUniformDistribution(cache, 25000, 10)
-	require.Equal(t, int64(240000), cache.CountTx())
+	require.LessOrEqual(t, cache.CountTx(), int64(240000))
 }
