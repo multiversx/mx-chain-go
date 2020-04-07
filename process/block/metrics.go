@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -124,6 +126,14 @@ func incrementCountAcceptedBlocks(
 	}
 
 	bitMap := header.GetPubKeysBitmap()
+	indexOutOfBounds := myIndex/8 >= len(bitMap)
+	if indexOutOfBounds {
+		log.Trace("process blocks metrics: index out of bounds",
+			"index", myIndex,
+			"bitMap", bitMap,
+			"bitMap length", len(bitMap))
+		return
+	}
 
 	indexInBitmap := bitMap[myIndex/8]&(1<<uint8(myIndex%8)) != 0
 	if indexInBitmap {
@@ -182,8 +192,8 @@ func countNotarizedHeaders(
 	appStatusHandler.AddUint64(core.MetricCountConsensusAcceptedBlocks, uint64(numBlockHeaders))
 }
 
-func saveRoundInfoInElastic(
-	elasticIndexer indexer.Indexer,
+func indexRoundInfo(
+	indexerHandler indexer.Indexer,
 	nodesCoordinator sharding.NodesCoordinator,
 	shardId uint32,
 	header data.HeaderHandler,
@@ -198,7 +208,7 @@ func saveRoundInfoInElastic(
 		Timestamp:        time.Duration(header.GetTimeStamp()),
 	}
 
-	go elasticIndexer.SaveRoundInfo(roundInfo)
+	go indexerHandler.SaveRoundInfo(roundInfo)
 
 	if check.IfNil(lastHeader) {
 		return
@@ -226,7 +236,38 @@ func saveRoundInfoInElastic(
 			Timestamp:        time.Duration(header.GetTimeStamp() - ((currentBlockRound - i) * roundDuration)),
 		}
 
-		go elasticIndexer.SaveRoundInfo(roundInfo)
+		go indexerHandler.SaveRoundInfo(roundInfo)
+	}
+}
+
+func indexValidatorsRating(
+	indexerHandler indexer.Indexer,
+	valStatProc process.ValidatorStatisticsProcessor,
+	metaBlock data.HeaderHandler,
+) {
+	// TODO use validatorInfoProvider  to get information about rating
+	latestHash, err := valStatProc.RootHash()
+	if err != nil {
+		return
+	}
+
+	validators, err := valStatProc.GetValidatorInfoForRootHash(latestHash)
+	if err != nil {
+		return
+	}
+
+	for shardID, validatorInfosInShard := range validators {
+		validatorsInfos := make([]indexer.ValidatorRatingInfo, 0)
+		for _, validatorInfo := range validatorInfosInShard {
+			validatorsInfos = append(validatorsInfos, indexer.ValidatorRatingInfo{
+				PublicKey: hex.EncodeToString(validatorInfo.PublicKey),
+				Rating:    float32(validatorInfo.Rating) * 100 / 1000000,
+			})
+
+		}
+
+		indexID := fmt.Sprintf("%d_%d", shardID, metaBlock.GetEpoch())
+		indexerHandler.SaveValidatorsRating(indexID, validatorsInfos)
 	}
 }
 

@@ -15,7 +15,7 @@ type LRUCache struct {
 	maxsize int
 
 	mutAddedDataHandlers sync.RWMutex
-	addedDataHandlers    []func(key []byte)
+	addedDataHandlers    []func(key []byte, value interface{})
 }
 
 // NewCache creates a new LRU cache instance
@@ -30,7 +30,7 @@ func NewCache(size int) (*LRUCache, error) {
 		cache:                cache,
 		maxsize:              size,
 		mutAddedDataHandlers: sync.RWMutex{},
-		addedDataHandlers:    make([]func(key []byte), 0),
+		addedDataHandlers:    make([]func(key []byte, value interface{}), 0),
 	}
 
 	return lruCache, nil
@@ -45,13 +45,13 @@ func (c *LRUCache) Clear() {
 func (c *LRUCache) Put(key []byte, value interface{}) (evicted bool) {
 	evicted = c.cache.Add(string(key), value)
 
-	c.callAddedDataHandlers(key)
+	c.callAddedDataHandlers(key, value)
 
 	return evicted
 }
 
 // RegisterHandler registers a new handler to be called when a new data is added
-func (c *LRUCache) RegisterHandler(handler func(key []byte)) {
+func (c *LRUCache) RegisterHandler(handler func(key []byte, value interface{})) {
 	if handler == nil {
 		log.Error("attempt to register a nil handler to a cacher object")
 		return
@@ -92,16 +92,16 @@ func (c *LRUCache) HasOrAdd(key []byte, value interface{}) (found, evicted bool)
 	found, evicted = c.cache.ContainsOrAdd(string(key), value)
 
 	if !found {
-		c.callAddedDataHandlers(key)
+		c.callAddedDataHandlers(key, value)
 	}
 
 	return
 }
 
-func (c *LRUCache) callAddedDataHandlers(key []byte) {
+func (c *LRUCache) callAddedDataHandlers(key []byte, value interface{}) {
 	c.mutAddedDataHandlers.RLock()
 	for _, handler := range c.addedDataHandlers {
-		go handler(key)
+		go handler(key, value)
 	}
 	c.mutAddedDataHandlers.RUnlock()
 }

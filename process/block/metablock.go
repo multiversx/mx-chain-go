@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
@@ -494,6 +495,8 @@ func (mp *metaProcessor) indexBlock(
 	metaBlock data.HeaderHandler,
 	body data.BodyHandler,
 	lastMetaBlock data.HeaderHandler,
+	notarizedHeadersHashes []string,
+	rewardsTxs map[string]data.TransactionHandler,
 ) {
 	if mp.core == nil || mp.core.Indexer() == nil {
 		return
@@ -510,6 +513,9 @@ func (mp *metaProcessor) indexBlock(
 	for hash, tx := range scPool {
 		txPool[hash] = tx
 	}
+	for hash, tx := range rewardsTxs {
+		txPool[hash] = tx
+	}
 
 	publicKeys, err := mp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
 		metaBlock.GetPrevRandSeed(), metaBlock.GetRound(), core.MetachainShardId, metaBlock.GetEpoch(),
@@ -523,9 +529,15 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	go mp.core.Indexer().SaveBlock(body, metaBlock, txPool, signersIndexes)
+	go mp.core.Indexer().SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes)
 
-	saveRoundInfoInElastic(mp.core.Indexer(), mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
+	indexRoundInfo(mp.core.Indexer(), mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
+
+	if metaBlock.GetNonce() != 1 && !metaBlock.IsStartOfEpochBlock() {
+		return
+	}
+
+	indexValidatorsRating(mp.core.Indexer(), mp.validatorStatisticsProcessor, metaBlock)
 }
 
 // RestoreBlockIntoPools restores the block into associated pools
@@ -995,6 +1007,8 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
+	rewardsTxs := mp.getRewardsTxs(header, body)
+
 	mp.commitEpochStart(header, body)
 
 	err = mp.saveLastNotarizedHeader(header)
@@ -1013,7 +1027,7 @@ func (mp *metaProcessor) CommitBlock(
 		"nonce", header.Nonce,
 		"hash", headerHash)
 
-	errNotCritical := mp.updateCrossShardInfo(header)
+	notarizedHeadersHashes, errNotCritical := mp.updateCrossShardInfo(header)
 	if errNotCritical != nil {
 		log.Debug("updateCrossShardInfo", "error", errNotCritical.Error())
 	}
@@ -1058,7 +1072,7 @@ func (mp *metaProcessor) CommitBlock(
 		mp.core.TPSBenchmark().Update(header)
 	}
 
-	mp.indexBlock(header, body, lastMetaBlock)
+	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
 
 	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
 
@@ -1105,36 +1119,39 @@ func (mp *metaProcessor) CommitBlock(
 	return nil
 }
 
-func (mp *metaProcessor) updateCrossShardInfo(metaBlock *block.MetaBlock) error {
+func (mp *metaProcessor) updateCrossShardInfo(metaBlock *block.MetaBlock) ([]string, error) {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
+	notarizedHeadersHashes := make([]string, 0)
 	for i := 0; i < len(metaBlock.ShardInfo); i++ {
 		shardHeaderHash := metaBlock.ShardInfo[i].HeaderHash
 		headerInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
 		if !ok {
-			return fmt.Errorf("%w : updateCrossShardInfo shardHeaderHash = %s",
+			return nil, fmt.Errorf("%w : updateCrossShardInfo shardHeaderHash = %s",
 				process.ErrMissingHeader, logger.DisplayByteSlice(shardHeaderHash))
 		}
 
 		shardHeader, ok := headerInfo.hdr.(*block.Header)
 		if !ok {
-			return process.ErrWrongTypeAssertion
+			return nil, process.ErrWrongTypeAssertion
 		}
 
 		mp.updateShardHeadersNonce(shardHeader.ShardID, shardHeader.Nonce)
 
 		marshalizedShardHeader, err := mp.marshalizer.Marshal(shardHeader)
 		if err != nil {
-			return err
+			return nil, err
 		}
+
+		notarizedHeadersHashes = append(notarizedHeadersHashes, hex.EncodeToString(shardHeaderHash))
 
 		mp.saveShardHeader(shardHeader, shardHeaderHash, marshalizedShardHeader)
 	}
 
 	mp.saveMetricCrossCheckBlockHeight()
 
-	return nil
+	return notarizedHeadersHashes, nil
 }
 
 func (mp *metaProcessor) displayPoolsInfo() {
@@ -1199,6 +1216,20 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(_ uint32) (data.Heade
 
 // ApplyProcessedMiniBlocks will do nothing on meta processor
 func (mp *metaProcessor) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
+}
+
+// getRewardsTxs must be called before method commitEpoch start because when commit is done rewards txs are removed from pool and saved in storage
+func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body) (rewardsTx map[string]data.TransactionHandler) {
+	if check.IfNil(mp.core) || check.IfNil(mp.core.Indexer()) {
+		return
+	}
+
+	if !header.IsStartOfEpochBlock() {
+		return
+	}
+
+	rewardsTx = mp.epochRewardsCreator.GetRewardsTxs(body)
+	return rewardsTx
 }
 
 func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.Body) {

@@ -86,7 +86,7 @@ func TestNewValidatorInfoProcessor_NilRequestHandlerShouldErr(t *testing.T) {
 func TestValidatorInfoProcessor_IsInterfaceNil(t *testing.T) {
 	args := createDefaultArguments()
 	args.MiniBlocksPool = &mock.CacherStub{
-		RegisterHandlerCalled: func(f func(key []byte)) {
+		RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 		},
 	}
 
@@ -99,7 +99,7 @@ func TestValidatorInfoProcessor_IsInterfaceNil(t *testing.T) {
 func TestValidatorInfoProcessor_ShouldWork(t *testing.T) {
 	args := createDefaultArguments()
 	args.MiniBlocksPool = &mock.CacherStub{
-		RegisterHandlerCalled: func(f func(key []byte)) {
+		RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 		},
 	}
 
@@ -112,7 +112,7 @@ func TestValidatorInfoProcessor_ShouldWork(t *testing.T) {
 func TestValidatorInfoProcessor_ProcessMetaBlockThatIsNoStartOfEpochShouldWork(t *testing.T) {
 	args := createDefaultArguments()
 	args.MiniBlocksPool = &mock.CacherStub{
-		RegisterHandlerCalled: func(f func(key []byte)) {
+		RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 		},
 	}
 
@@ -128,7 +128,7 @@ func TestValidatorInfoProcessor_ProcessMetaBlockThatIsNoStartOfEpochShouldWork(t
 func TestValidatorInfoProcessor_ProcesStartOfEpochWithNoResolvedPeerMiniblocksShouldErr(t *testing.T) {
 	args := createDefaultArguments()
 	args.MiniBlocksPool = &mock.CacherStub{
-		RegisterHandlerCalled: func(f func(key []byte)) {
+		RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 		},
 	}
 
@@ -144,7 +144,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithNoResolvedPeerMiniblocksSh
 func TestValidatorInfoProcessor_ProcesStartOfEpochWithNoPeerMiniblocksShouldWork(t *testing.T) {
 	args := createDefaultArguments()
 	args.MiniBlocksPool = &mock.CacherStub{
-		RegisterHandlerCalled: func(f func(key []byte)) {
+		RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 		},
 	}
 
@@ -170,7 +170,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithNoPeerMiniblocksShouldWork
 
 	peekCalled := false
 	args.MiniBlocksPool = &mock.CacherStub{
-		RegisterHandlerCalled: func(f func(key []byte)) {
+		RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 
 		},
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -242,7 +242,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithPeerMiniblocksInPoolShould
 	epochStartHeaderHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, epochStartHeader)
 
 	args.MiniBlocksPool = &mock.CacherStub{
-		RegisterHandlerCalled: func(f func(key []byte)) {
+		RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 
 		},
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -318,9 +318,9 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksShould
 	epochStartHeader.MiniBlockHeaders = []block.MiniBlockHeader{miniBlockHeader}
 	epochStartHeaderHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, epochStartHeader)
 
-	var receivedMiniblock func(key []byte)
+	var receivedMiniblock func(key []byte, value interface{})
 	args.MiniBlocksPool = &mock.CacherStub{
-		RegisterHandlerCalled: func(f func(key []byte)) {
+		RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 			receivedMiniblock = f
 		},
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -334,7 +334,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksShould
 		},
 		PutCalled: func(key []byte, value interface{}) (evicted bool) {
 			if bytes.Equal(key, peerMiniBlockHash) {
-				receivedMiniblock(key)
+				receivedMiniblock(key, value)
 				return false
 			}
 			return false
@@ -357,7 +357,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksShould
 		RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblockHashes [][]byte) {
 			if destShardID == core.MetachainShardId &&
 				bytes.Equal(miniblockHashes[0], peerMiniBlockHash) {
-				args.MiniBlocksPool.Put(peerMiniBlockHash, miniBlockHeader)
+				args.MiniBlocksPool.Put(peerMiniBlockHash, peerMiniblock)
 			}
 		},
 	}
@@ -397,9 +397,9 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksTimeou
 	epochStartHeader.MiniBlockHeaders = []block.MiniBlockHeader{miniBlockHeader}
 	epochStartHeaderHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, epochStartHeader)
 
-	var receivedMiniblock func(key []byte)
+	var receivedMiniblock func(key []byte, value interface{})
 	args.MiniBlocksPool = &mock.CacherStub{
-		RegisterHandlerCalled: func(f func(key []byte)) {
+		RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 			receivedMiniblock = f
 		},
 		PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -413,7 +413,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksTimeou
 		},
 		PutCalled: func(key []byte, value interface{}) (evicted bool) {
 			if bytes.Equal(key, peerMiniBlockHash) {
-				receivedMiniblock(key)
+				receivedMiniblock(key, value)
 				return false
 			}
 			return false

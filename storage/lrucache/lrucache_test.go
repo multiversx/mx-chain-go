@@ -300,7 +300,7 @@ func TestLRUCache_CacherRegisterPutAddedDataHandlerShouldWork(t *testing.T) {
 	wg.Add(1)
 	chDone := make(chan bool)
 
-	f := func(key []byte) {
+	f := func(key []byte, value interface{}) {
 		if !bytes.Equal([]byte("aaaa"), key) {
 			return
 		}
@@ -335,7 +335,7 @@ func TestLRUCache_CacherRegisterHasOrAddAddedDataHandlerShouldWork(t *testing.T)
 	wg.Add(1)
 	chDone := make(chan bool)
 
-	f := func(key []byte) {
+	f := func(key []byte, value interface{}) {
 		if !bytes.Equal([]byte("aaaa"), key) {
 			return
 		}
@@ -370,7 +370,7 @@ func TestLRUCache_CacherRegisterHasOrAddAddedDataHandlerNotAddedShouldNotCall(t 
 	wg.Add(1)
 	chDone := make(chan bool)
 
-	f := func(key []byte) {
+	f := func(key []byte, value interface{}) {
 		wg.Done()
 	}
 

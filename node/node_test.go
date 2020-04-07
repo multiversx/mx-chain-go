@@ -1825,7 +1825,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 		node.WithDataPool(&mock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
 				return &mock.CacherStub{
-					RegisterHandlerCalled: func(f func(key []byte)) {
+					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 
 					},
 				}
@@ -2078,7 +2078,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		node.WithDataPool(&mock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
 				return &mock.CacherStub{
-					RegisterHandlerCalled: func(f func(key []byte)) {
+					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 
 					},
 				}
@@ -2166,7 +2166,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		node.WithDataPool(&mock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
 				return &mock.CacherStub{
-					RegisterHandlerCalled: func(f func(key []byte)) {
+					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 
 					},
 				}
@@ -2254,7 +2254,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithDataPool(&mock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
 				return &mock.CacherStub{
-					RegisterHandlerCalled: func(f func(key []byte)) {
+					RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 
 					},
 				}
