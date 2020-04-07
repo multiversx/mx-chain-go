@@ -192,10 +192,8 @@ func (wr *WidgetsRender) prepareChainInfo() {
 
 	synchronizedRound := wr.presenter.GetSynchronizedRound()
 	currentRound := wr.presenter.GetCurrentRound()
-	syncingStr := "undefined"
 
-	remainingTimeMessage := ""
-	blocksPerSecondMessage := ""
+	var syncingStr, remainingTimeMessage, blocksPerSecondMessage string
 	switch {
 	case synchronizedRound < currentRound:
 		syncingStr = statusSyncing
