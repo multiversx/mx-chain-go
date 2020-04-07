@@ -245,6 +245,7 @@ func TestPeerAccount_ResetAtNewEpoch(t *testing.T) {
 	acc.IncreaseValidatorSuccessRate(2)
 	acc.DecreaseValidatorSuccessRate(2)
 	acc.IncreaseNumSelectedInSuccessBlocks()
+	acc.ConsecutiveProposerMisses = 7
 
 	acc.ResetAtNewEpoch()
 	assert.Equal(t, big.NewInt(0), acc.GetAccumulatedFees())
@@ -254,6 +255,7 @@ func TestPeerAccount_ResetAtNewEpoch(t *testing.T) {
 	assert.Equal(t, uint32(0), acc.GetValidatorSuccessRate().NumSuccess)
 	assert.Equal(t, uint32(0), acc.GetValidatorSuccessRate().NumFailure)
 	assert.Equal(t, uint32(0), acc.GetNumSelectedInSuccessBlocks())
+	assert.Equal(t, uint32(7), acc.GetConsecutiveProposerMisses())
 }
 
 func TestPeerAccount_IncreaseAndGetNonce(t *testing.T) {
