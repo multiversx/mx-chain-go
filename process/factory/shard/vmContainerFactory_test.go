@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,6 +26,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 		Marshalizer:      &mock.MarshalizerMock{},
 		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 	}
 	return arguments
 }

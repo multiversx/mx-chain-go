@@ -26,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -249,6 +250,7 @@ func createProcessorsForMetaGenesisBlock(
 		ShardCoordinator: args.ShardCoordinator,
 		Marshalizer:      args.Marshalizer,
 		Uint64Converter:  args.Uint64ByteSliceConverter,
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 	}
 
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics, &NilMessageSignVerifier{}, args.GasMap)
@@ -297,20 +299,20 @@ func createProcessorsForMetaGenesisBlock(
 
 	genesisFeeHandler := NewGenesisFeeHandler()
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:   vmContainer,
-		ArgsParser:    argsParser,
-		Hasher:        args.Hasher,
-		Marshalizer:   args.Marshalizer,
-		AccountsDB:    args.Accounts,
-		TempAccounts:  virtualMachineFactory.BlockChainHookImpl(),
-		AdrConv:       args.AddrConv,
-		Coordinator:   args.ShardCoordinator,
-		ScrForwarder:  scForwarder,
-		TxFeeHandler:  genesisFeeHandler,
-		EconomicsFee:  genesisFeeHandler,
-		TxTypeHandler: txTypeHandler,
-		GasHandler:    gasHandler,
-		GasMap:        args.GasMap,
+		VmContainer:      vmContainer,
+		ArgsParser:       argsParser,
+		Hasher:           args.Hasher,
+		Marshalizer:      args.Marshalizer,
+		AccountsDB:       args.Accounts,
+		TempAccounts:     virtualMachineFactory.BlockChainHookImpl(),
+		AdrConv:          args.AddrConv,
+		Coordinator:      args.ShardCoordinator,
+		ScrForwarder:     scForwarder,
+		TxFeeHandler:     genesisFeeHandler,
+		EconomicsFee:     genesisFeeHandler,
+		TxTypeHandler:    txTypeHandler,
+		GasHandler:       gasHandler,
+		BuiltInFunctions: virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {

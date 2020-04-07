@@ -22,6 +22,18 @@ import (
 
 var log = logger.GetOrCreate("process/smartContract/blockChainHook")
 
+// ArgBlockChainHook represents the arguments structure for the blockchain hook
+type ArgBlockChainHook struct {
+	Accounts         state.AccountsAdapter
+	AddrConv         state.AddressConverter
+	StorageService   dataRetriever.StorageService
+	BlockChain       data.ChainHandler
+	ShardCoordinator sharding.Coordinator
+	Marshalizer      marshal.Marshalizer
+	Uint64Converter  typeConverters.Uint64ByteSliceConverter
+	BuiltInFunctions process.BuiltInFunctionContainer
+}
+
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
 type BlockChainHookImpl struct {
 	accounts         state.AccountsAdapter
@@ -67,26 +79,29 @@ func NewBlockChainHookImpl(
 }
 
 func checkForNil(args ArgBlockChainHook) error {
-	if args.Accounts == nil || args.Accounts.IsInterfaceNil() {
+	if check.IfNil(args.Accounts) {
 		return process.ErrNilAccountsAdapter
 	}
-	if args.AddrConv == nil || args.AddrConv.IsInterfaceNil() {
+	if check.IfNil(args.AddrConv) {
 		return process.ErrNilAddressConverter
 	}
-	if args.StorageService == nil || args.StorageService.IsInterfaceNil() {
+	if check.IfNil(args.StorageService) {
 		return process.ErrNilStorage
 	}
-	if args.BlockChain == nil || args.BlockChain.IsInterfaceNil() {
+	if check.IfNil(args.BlockChain) {
 		return process.ErrNilBlockChain
 	}
-	if args.ShardCoordinator == nil || args.ShardCoordinator.IsInterfaceNil() {
+	if check.IfNil(args.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
-	if args.Marshalizer == nil || args.Marshalizer.IsInterfaceNil() {
+	if check.IfNil(args.Marshalizer) {
 		return process.ErrNilMarshalizer
 	}
-	if args.Uint64Converter == nil || args.Uint64Converter.IsInterfaceNil() {
+	if check.IfNil(args.Uint64Converter) {
 		return process.ErrNilUint64Converter
+	}
+	if check.IfNil(args.BuiltInFunctions) {
+		return process.ErrNilBuiltInFunction
 	}
 
 	return nil
@@ -427,6 +442,11 @@ func (bh *BlockChainHookImpl) getUserAccounts(
 	return sndAccount, dstAccount, nil
 }
 
+// GetBuiltInFunctions returns the built in functions container
+func (bh *BlockChainHookImpl) GetBuiltInFunctions() process.BuiltInFunctionContainer {
+	return bh.builtInFunctions
+}
+
 func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte {
 	buffNonce := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buffNonce, creatorNonce)
@@ -520,11 +540,6 @@ func (bh *BlockChainHookImpl) TempAccount(address []byte) state.AccountHandler {
 	return nil
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (bh *BlockChainHookImpl) IsInterfaceNil() bool {
-	return bh == nil
-}
-
 // SetCurrentHeader sets current header to be used by smart contracts
 func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) {
 	if check.IfNil(hdr) {
@@ -534,4 +549,9 @@ func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) {
 	bh.mutCurrentHdr.Lock()
 	bh.currentHdr = hdr
 	bh.mutCurrentHdr.Unlock()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (bh *BlockChainHookImpl) IsInterfaceNil() bool {
+	return bh == nil
 }

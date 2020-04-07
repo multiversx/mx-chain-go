@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -18,8 +17,9 @@ const setUserName = "SetUserName"
 
 // ArgsCreateBuiltInFunctionContainer -
 type ArgsCreateBuiltInFunctionContainer struct {
-	GasMap          map[string]map[string]uint64
-	MapDNSAddresses map[string]struct{}
+	GasMap               map[string]map[string]uint64
+	MapDNSAddresses      map[string]struct{}
+	EnableUserNameChange bool
 }
 
 // CreateBuiltInFunctionContainer will create the list of built-in functions
@@ -45,7 +45,7 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (pr
 		return nil, err
 	}
 
-	newFunc, err = NewSaveUserNameFunc(gasConfig.BuiltInCost.SaveUserName, args.MapDNSAddresses)
+	newFunc, err = NewSaveUserNameFunc(gasConfig.BuiltInCost.SaveUserName, args.MapDNSAddresses, args.EnableUserNameChange)
 	if err != nil {
 		return nil, err
 	}
@@ -57,8 +57,8 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (pr
 	return container, nil
 }
 
-func createGasConfig(gasMap map[string]map[string]uint64) (*smartContract.GasCost, error) {
-	baseOps := &smartContract.BaseOperationCost{}
+func createGasConfig(gasMap map[string]map[string]uint64) (*GasCost, error) {
+	baseOps := &BaseOperationCost{}
 	err := mapstructure.Decode(gasMap[core.BaseOperationCost], baseOps)
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func createGasConfig(gasMap map[string]map[string]uint64) (*smartContract.GasCos
 		return nil, err
 	}
 
-	builtInOps := &smartContract.BuiltInCost{}
+	builtInOps := &BuiltInCost{}
 	err = mapstructure.Decode(gasMap[core.BuiltInCost], builtInOps)
 	if err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ func createGasConfig(gasMap map[string]map[string]uint64) (*smartContract.GasCos
 		return nil, err
 	}
 
-	gasCost := smartContract.GasCost{
+	gasCost := GasCost{
 		BaseOperationCost: *baseOps,
 		BuiltInCost:       *builtInOps,
 	}

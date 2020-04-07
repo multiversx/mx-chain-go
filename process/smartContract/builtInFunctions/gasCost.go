@@ -1,4 +1,4 @@
-package smartContract
+package builtInFunctions
 
 // BaseOperationCost defines cost for base operation cost
 type BaseOperationCost struct {

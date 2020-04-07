@@ -104,7 +104,9 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) e
 	if err != nil {
 		return err
 	}
-	err = txProc.scProcessor.ProcessIfError(acntSnd, txHash, tx, process.ErrWrongTransaction.Error())
+
+	snapshot := txProc.accounts.JournalLen()
+	err = txProc.scProcessor.ProcessIfError(acntSnd, txHash, tx, process.ErrWrongTransaction.Error(), snapshot)
 	if err != nil {
 		return err
 	}

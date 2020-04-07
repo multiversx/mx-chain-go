@@ -96,6 +96,9 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.TxTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
+	if check.IfNil(args.GasHandler) {
+		return nil, process.ErrNilGasHandler
+	}
 	if check.IfNil(args.BuiltInFunctions) {
 		return nil, process.ErrNilBuiltInFunction
 	}
@@ -972,7 +975,7 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 			return err
 		}
 
-		if acc == nil || acc.IsInterfaceNil() {
+		if check.IfNil(acc) {
 			//TODO: sharded Smart Contract processing
 			continue
 		}

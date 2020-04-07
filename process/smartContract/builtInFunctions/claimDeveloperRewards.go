@@ -22,7 +22,7 @@ func NewClaimDeveloperRewardsFunc(gasCost uint64) *claimDeveloperRewards {
 // ProcessBuiltinFunction processes the protocol built-in smart contract function
 func (c *claimDeveloperRewards) ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, uint64, error) {
 	if vmInput == nil {
-		return nil, vmInput.GasProvided, process.ErrNilVmInput
+		return nil, 0, process.ErrNilVmInput
 	}
 	if check.IfNil(acntDst) {
 		return nil, vmInput.GasProvided, process.ErrNilSCDestAccount

@@ -140,7 +140,7 @@ type TransactionCoordinator interface {
 type SmartContractProcessor interface {
 	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) error
 	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) error
-	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string) error
+	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, snapshot int) error
 	IsInterfaceNil() bool
 }
 
@@ -403,6 +403,7 @@ type PendingMiniBlocksHandler interface {
 type BlockChainHookHandler interface {
 	TemporaryAccountsHandler
 	SetCurrentHeader(hdr data.HeaderHandler)
+	GetBuiltInFunctions() BuiltInFunctionContainer
 }
 
 // Interceptor defines what a data interceptor should do

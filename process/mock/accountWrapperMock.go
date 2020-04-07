@@ -26,6 +26,23 @@ type AccountWrapMock struct {
 	SetCodeWithJournalCalled     func(codeHash []byte) error `json:"-"`
 }
 
+// NewAccountWrapMock -
+func NewAccountWrapMock(adr state.AddressContainer) *AccountWrapMock {
+	return &AccountWrapMock{
+		address:           adr,
+		trackableDataTrie: state.NewTrackableDataTrie([]byte("identifier"), nil),
+	}
+}
+
+// SetUserName -
+func (awm *AccountWrapMock) SetUserName(_ []byte) {
+}
+
+// GetUserName -
+func (awm *AccountWrapMock) GetUserName() []byte {
+	return nil
+}
+
 // AddToBalance -
 func (awm *AccountWrapMock) AddToBalance(_ *big.Int) error {
 	return nil
@@ -69,14 +86,6 @@ func (awm *AccountWrapMock) SetOwnerAddress([]byte) {
 // GetOwnerAddress -
 func (awm *AccountWrapMock) GetOwnerAddress() []byte {
 	return nil
-}
-
-// NewAccountWrapMock -
-func NewAccountWrapMock(adr state.AddressContainer) *AccountWrapMock {
-	return &AccountWrapMock{
-		address:           adr,
-		trackableDataTrie: state.NewTrackableDataTrie([]byte("identifier"), nil),
-	}
 }
 
 // GetCodeHash -
