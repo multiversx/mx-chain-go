@@ -14,7 +14,7 @@ func (vip *ValidatorInfoSyncerStub) SyncMiniBlocks(*block.MetaBlock) ([][]byte, 
 	return nil, nil, nil
 }
 
-// IsInterfaceNil
+// IsInterfaceNil -
 func (vip *ValidatorInfoSyncerStub) IsInterfaceNil() bool {
 	return vip == nil
 }

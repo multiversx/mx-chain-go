@@ -94,8 +94,8 @@ type InterceptedData interface {
 
 // InterceptorProcessor further validates and saves received data
 type InterceptorProcessor interface {
-	Validate(data InterceptedData) error
-	Save(data InterceptedData) error
+	Validate(data InterceptedData, fromConnectedPeer p2p.PeerID) error
+	Save(data InterceptedData, fromConnectedPeer p2p.PeerID) error
 	SignalEndOfProcessing(data []InterceptedData)
 	IsInterfaceNil() bool
 }
@@ -444,6 +444,8 @@ type RequestHandler interface {
 	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
 	RequestStartOfEpochMetaBlock(epoch uint32)
 	RequestInterval() time.Duration
+	SetNumPeersToQuery(key string, intra int, cross int) error
+	GetNumPeersToQuery(key string) (int, int, error)
 	IsInterfaceNil() bool
 }
 

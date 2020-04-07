@@ -1,20 +1,14 @@
 package bootstrap
 
-import (
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-)
+import "github.com/ElrondNetwork/elrond-go/data/block"
 
-func (s *simpleEpochStartMetaBlockInterceptor) GetReceivedMetablocks() map[string]*block.MetaBlock {
-	s.mutReceivedMetaBlocks.RLock()
-	defer s.mutReceivedMetaBlocks.RUnlock()
+func (e *epochStartMetaBlockProcessor) GetMapMetaBlock() map[string]*block.MetaBlock {
+	e.mutReceivedMetaBlocks.RLock()
+	defer e.mutReceivedMetaBlocks.RUnlock()
 
-	return s.mapReceivedMetaBlocks
+	return e.mapReceivedMetaBlocks
 }
 
-func (s *simpleEpochStartMetaBlockInterceptor) GetPeersSliceForMetablocks() map[string][]p2p.PeerID {
-	s.mutReceivedMetaBlocks.RLock()
-	defer s.mutReceivedMetaBlocks.RUnlock()
+const DurationBetweenChecksForEpochStartMetaBlock = durationBetweenChecks
 
-	return s.mapMetaBlocksFromPeers
-}
+const DurationBetweenReRequest = durationBetweenReRequests

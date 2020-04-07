@@ -58,6 +58,8 @@ type ResolverThrottler interface {
 type Resolver interface {
 	RequestDataFromHash(hash []byte, epoch uint32) error
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	SetNumPeersToQuery(intra int, cross int)
+	GetNumPeersToQuery() (int, int)
 	IsInterfaceNil() bool
 }
 
@@ -83,6 +85,8 @@ type TopicResolverSender interface {
 	Send(buff []byte, peer p2p.PeerID) error
 	RequestTopic() string
 	TargetShardID() uint32
+	SetNumPeersToQuery(intra int, cross int)
+	GetNumPeersToQuery() (int, int)
 	IsInterfaceNil() bool
 }
 

@@ -46,13 +46,12 @@ func processInterceptedData(
 	msg p2p.MessageP2P,
 ) {
 	hash := data.Hash()
-	err := processor.Validate(data)
+	err := processor.Validate(data, msg.Peer())
 
 	defer func() {
 		whiteListhandler.Remove([][]byte{hash})
 		wgProcess.Done()
 	}()
-
 	if err != nil {
 		log.Trace("intercepted data is not valid",
 			"hash", data.Hash(),
@@ -66,7 +65,7 @@ func processInterceptedData(
 		return
 	}
 
-	err = processor.Save(data)
+	err = processor.Save(data, msg.Peer())
 	if err != nil {
 		log.Trace("intercepted data can not be processed",
 			"hash", data.Hash(),
