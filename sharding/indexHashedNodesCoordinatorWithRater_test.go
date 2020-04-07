@@ -11,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
+	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -235,6 +236,80 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 
 		assert.Equal(b, consensusGroupSize, len(list2))
 	}
+}
+
+func Test_ComputeValidatorsGroup63of400(t *testing.T) {
+	t.Skip("Long test")
+
+	consensusGroupSize := 63
+	shardSize := uint32(400)
+	list := make([]Validator, 0)
+
+	//generate 400 validators
+	for i := uint32(0); i < shardSize; i++ {
+		list = append(list, mock.NewValidatorMock([]byte(fmt.Sprintf("pk%v", i)), []byte(fmt.Sprintf("addr%v", i)), defaultSelectionChances))
+	}
+	listMeta := []Validator{
+		mock.NewValidatorMock([]byte("pkMeta1"), []byte("addrMeta1"), defaultSelectionChances),
+		mock.NewValidatorMock([]byte("pkMeta2"), []byte("addrMeta2"), defaultSelectionChances),
+	}
+
+	consensusAppearances := make(map[string]uint64)
+	leaderAppearances := make(map[string]uint64)
+	for _, validator := range list {
+		consensusAppearances[string(validator.PubKey())] = 0
+		leaderAppearances[string(validator.PubKey())] = 0
+	}
+
+	eligibleMap := make(map[uint32][]Validator)
+	waitingMap := make(map[uint32][]Validator)
+	eligibleMap[0] = list
+	eligibleMap[core.MetachainShardId] = listMeta
+	nodeShuffler := NewXorValidatorsShuffler(shardSize, 1, 0, false)
+	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+	bootStorer := mock.NewStorerMock()
+
+	arguments := ArgNodesCoordinator{
+		ShardConsensusGroupSize: consensusGroupSize,
+		MetaConsensusGroupSize:  1,
+		Hasher:                  &mock.HasherMock{},
+		Shuffler:                nodeShuffler,
+		EpochStartSubscriber:    epochStartSubscriber,
+		BootStorer:              bootStorer,
+		NbShards:                1,
+		EligibleNodes:           eligibleMap,
+		WaitingNodes:            waitingMap,
+		SelfPublicKey:           []byte("key"),
+		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+	}
+	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
+	numRounds := uint64(1000000)
+	hasher := sha256.Sha256{}
+	for i := uint64(0); i < numRounds; i++ {
+		randomness := hasher.Compute(fmt.Sprintf("%v%v", i, time.Millisecond))
+		consensusGroup, _ := ihgs.ComputeConsensusGroup((randomness), uint64(0), 0, 0)
+		leaderAppearances[string(consensusGroup[0].PubKey())]++
+		for _, v := range consensusGroup {
+			consensusAppearances[string(v.PubKey())]++
+		}
+	}
+
+	leaderAverage := numRounds / uint64(shardSize)
+	percentDifference := leaderAverage * 5 / 100
+	for pk, v := range leaderAppearances {
+		if v < leaderAverage-percentDifference || v > leaderAverage+percentDifference {
+			log.Warn("leader outside of 5%", "pk", pk, "leaderAverage", leaderAverage, "actual", v)
+		}
+	}
+
+	validatorAverage := numRounds * uint64(consensusGroupSize) / uint64(shardSize)
+	percentDifference = validatorAverage * 5 / 100
+	for pk, v := range consensusAppearances {
+		if v < validatorAverage-percentDifference || v > validatorAverage+percentDifference {
+			log.Warn("validator outside of 5%", "pk", pk, "validatorAverage", validatorAverage, "actual", v)
+		}
+	}
+
 }
 
 func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturnErrNilPubKey(t *testing.T) {
