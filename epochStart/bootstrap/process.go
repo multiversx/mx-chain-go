@@ -193,13 +193,13 @@ func (e *epochStartBootstrap) computedDurationOfEpoch() time.Duration {
 
 func (e *epochStartBootstrap) isStartInEpochZero() bool {
 	startTime := time.Unix(e.genesisNodesConfig.GetStartTime(), 0)
-	isCurrentTimeBeforeGenesis := time.Now().Sub(startTime) < 0
+	isCurrentTimeBeforeGenesis := time.Since(startTime) < 0
 	if isCurrentTimeBeforeGenesis {
 		return true
 	}
 
 	configuredDurationOfEpoch := startTime.Add(e.computedDurationOfEpoch())
-	isEpochZero := time.Now().Sub(configuredDurationOfEpoch) < 0
+	isEpochZero := time.Since(configuredDurationOfEpoch) < 0
 
 	return isEpochZero
 }
@@ -370,6 +370,9 @@ func (e *epochStartBootstrap) createSyncers() error {
 		RequestHandler: e.requestHandler,
 	}
 	e.miniBlocksSyncer, err = sync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+	if err != nil {
+		return err
+	}
 
 	syncMissingHeadersArgs := sync.ArgsNewMissingHeadersByHashSyncer{
 		Storage:        disabled.CreateMemUnit(),
@@ -379,7 +382,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 	}
 	e.headersSyncer, err = sync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
 
-	return nil
+	return err
 }
 
 func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string]data.HeaderHandler, error) {

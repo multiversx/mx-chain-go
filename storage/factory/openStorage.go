@@ -38,8 +38,8 @@ type openStorageUnits struct {
 	defaultShardString string
 }
 
-// TODO refactor this and unit tests
 // NewStorageUnitOpenHandler creates an openStorageUnits component
+// TODO refactor this and unit tests
 func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits, error) {
 	o := &openStorageUnits{
 		generalConfig:      args.GeneralConfig,
@@ -90,9 +90,9 @@ func (o *openStorageUnits) OpenStorageUnits(
 			filePath,
 		)
 
-		persister, err := persisterFactory.Create(persisterPath)
-		if err != nil {
-			return nil, err
+		persister, errCreate := persisterFactory.Create(persisterPath)
+		if errCreate != nil {
+			return nil, errCreate
 		}
 
 		defer func() {
@@ -102,14 +102,14 @@ func (o *openStorageUnits) OpenStorageUnits(
 			}
 		}()
 
-		cacher, err := lrucache.NewCache(10)
-		if err != nil {
-			return nil, err
+		cacher, errCache := lrucache.NewCache(10)
+		if errCache != nil {
+			return nil, errCache
 		}
 
-		storer, err := storageUnit.NewStorageUnit(cacher, persister)
-		if err != nil {
-			return nil, err
+		storer, errStorageUnit := storageUnit.NewStorageUnit(cacher, persister)
+		if errStorageUnit != nil {
+			return nil, errStorageUnit
 		}
 
 		openedStorers = append(openedStorers, storer)
@@ -342,6 +342,9 @@ func getShardsFromDirectory(path string, defaultShardString string) ([]string, e
 
 	files, err := f.Readdir(allFiles)
 	_ = f.Close()
+	if err != nil {
+		return nil, err
+	}
 
 	for _, file := range files {
 		fileName := file.Name()
