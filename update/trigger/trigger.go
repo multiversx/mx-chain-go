@@ -3,10 +3,16 @@ package trigger
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/update"
 )
+
+const hardforkTriggerString = "hardfork trigger"
+const dataSeparator = "|"
+const hardforkGracePeriod = time.Minute * 5
 
 // ArgHardforkTrigger contains the
 type ArgHardforkTrigger struct {
@@ -29,6 +35,7 @@ type trigger struct {
 	mutTriggered           sync.RWMutex
 	triggered              bool
 	recordedTriggerMessage []byte
+	getTimestampHandler    func() int64
 }
 
 // NewTrigger returns the trigger instance
@@ -50,7 +57,13 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 	}
 	t.isTriggerSelf = bytes.Equal(arg.TriggerPubKeyBytes, arg.SelfPubKeyBytes)
 
+	t.getTimestampHandler = t.getCurrentUnixTime
+
 	return t, nil
+}
+
+func (t *trigger) getCurrentUnixTime() int64 {
+	return time.Now().Unix()
 }
 
 // Trigger will start of the hardfork process
@@ -74,18 +87,54 @@ func (t *trigger) doTrigger(payload []byte) error {
 }
 
 // TriggerReceived is called whenever a trigger is received from the p2p side
-func (t *trigger) TriggerReceived(payload []byte, pkBytes []byte) error {
+func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes []byte) (bool, error) {
+	isTriggerMessage := bytes.Contains(data, []byte(hardforkTriggerString))
+	if !isTriggerMessage {
+		return false, nil
+	}
+
 	isTriggerEnabled := t.enabled && t.enabledAuthenticated
 	if !isTriggerEnabled {
 		//should not return error as to allow the message to get to other peers
-		return nil
+		return true, nil
 	}
 
 	if !bytes.Equal(pkBytes, t.triggerPubKey) {
-		return update.ErrTriggerPubKeyMismatch
+		return true, update.ErrTriggerPubKeyMismatch
 	}
 
-	return t.doTrigger(payload)
+	timestamp, err := t.getTimestampFromPayload(data)
+	if err != nil {
+		return true, err
+	}
+
+	currentTimeStamp := t.getTimestampHandler()
+	if timestamp+int64(hardforkGracePeriod.Seconds()) < currentTimeStamp {
+		return true, fmt.Errorf("%w out of grace period message", update.ErrIncorrectHardforkMessage)
+	}
+
+	return true, t.doTrigger(originalPayload)
+}
+
+func (t *trigger) getTimestampFromPayload(payload []byte) (int64, error) {
+	splits := bytes.Split(payload, []byte(dataSeparator))
+	if len(splits) < 2 {
+		return 0, fmt.Errorf("%w, not enough tokens found: expected 2, found: %d",
+			update.ErrIncorrectHardforkMessage,
+			len(splits),
+		)
+	}
+
+	encodedValue := string(splits[1])
+	n, err := strconv.ParseInt(encodedValue, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("%w, convert error, `%s` is not a valid int",
+			update.ErrIncorrectHardforkMessage,
+			encodedValue,
+		)
+	}
+
+	return n, nil
 }
 
 func (t *trigger) callAddedDataHandlers() {
@@ -120,6 +169,13 @@ func (t *trigger) RecordedTriggerMessage() ([]byte, bool) {
 	defer t.mutTriggered.RUnlock()
 
 	return t.recordedTriggerMessage, t.triggered
+}
+
+// CreateData creates a correct hardfork trigger message based on the identifier and the additional information
+func (t *trigger) CreateData() []byte {
+	payload := hardforkTriggerString + dataSeparator + fmt.Sprintf("%d", t.getTimestampHandler())
+
+	return []byte(payload)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -4,8 +4,9 @@ package mock
 type HardforkTriggerStub struct {
 	TriggerCalled                func() error
 	IsSelfTriggerCalled          func() bool
-	TriggerReceivedCalled        func(payload []byte, pkBytes []byte) error
+	TriggerReceivedCalled        func(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessageCalled func() ([]byte, bool)
+	CreateDataCalled             func() []byte
 }
 
 // Trigger -
@@ -27,12 +28,12 @@ func (hts *HardforkTriggerStub) IsSelfTrigger() bool {
 }
 
 // TriggerReceived -
-func (hts *HardforkTriggerStub) TriggerReceived(payload []byte, pkBytes []byte) error {
+func (hts *HardforkTriggerStub) TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error) {
 	if hts.TriggerReceivedCalled != nil {
-		return hts.TriggerReceivedCalled(payload, pkBytes)
+		return hts.TriggerReceivedCalled(payload, data, pkBytes)
 	}
 
-	return nil
+	return false, nil
 }
 
 // RecordedTriggerMessage -
@@ -42,6 +43,15 @@ func (hts *HardforkTriggerStub) RecordedTriggerMessage() ([]byte, bool) {
 	}
 
 	return nil, false
+}
+
+// CreateData -
+func (hts *HardforkTriggerStub) CreateData() []byte {
+	if hts.CreateDataCalled != nil {
+		return hts.CreateDataCalled()
+	}
+
+	return make([]byte, 0)
 }
 
 // IsInterfaceNil -

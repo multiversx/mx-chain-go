@@ -19,6 +19,7 @@ type P2PMessenger interface {
 	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
 	PeerAddress(pid p2p.PeerID) string
 	IsConnectedToTheNetwork() bool
+	ID() p2p.PeerID
 	IsInterfaceNil() bool
 }
 
@@ -50,9 +51,10 @@ type Accumulator interface {
 
 // HardforkTrigger defines the behavior of a hardfork trigger
 type HardforkTrigger interface {
-	TriggerReceived(payload []byte, pkBytes []byte) error
+	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessage() ([]byte, bool)
 	Trigger() error
+	CreateData() []byte
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }
