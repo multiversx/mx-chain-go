@@ -5,12 +5,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
+// handlerStruct represents a struct which satisfies the SubscribeFunctionHandler interface
+type handlerStruct struct {
+	act     func(hdr data.HeaderHandler)
+	prepare func(metaHeader data.HeaderHandler)
+	id      uint32
+}
+
 // NewHandlerForEpochStart will return a struct which will satisfy the above interface
 func NewHandlerForEpochStart(
 	actionFunc func(hdr data.HeaderHandler),
 	prepareFunc func(metaHeader data.HeaderHandler),
 	id uint32,
-) epochStart.EpochStartHandler {
+) epochStart.ActionHandler {
 	handler := handlerStruct{
 		act:     actionFunc,
 		prepare: prepareFunc,
@@ -20,18 +27,11 @@ func NewHandlerForEpochStart(
 	return &handler
 }
 
-// handlerStruct represents a struct which satisfies the SubscribeFunctionHandler interface
-type handlerStruct struct {
-	act     func(hdr data.HeaderHandler)
-	prepare func(metaHeader data.HeaderHandler)
-	id      uint32
-}
-
 // EpochStartPrepare will notify the subscriber to prepare for a start of epoch.
 // The event can be triggered multiple times
-func (hs *handlerStruct) EpochStartPrepare(metaHeader data.HeaderHandler) {
+func (hs *handlerStruct) EpochStartPrepare(metaHdr data.HeaderHandler, _ data.BodyHandler) {
 	if hs.act != nil {
-		hs.prepare(metaHeader)
+		hs.prepare(metaHdr)
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -53,13 +54,13 @@ func NewTxBodyInterceptorProcessor(argument *ArgTxBodyInterceptorProcessor) (*Tx
 // It returns nil as a body might consist of multiple miniblocks
 // Since some might be valid and others not, we rather do the checking when
 // we iterate the slice for processing as it is optimal to do so
-func (tbip *TxBodyInterceptorProcessor) Validate(_ process.InterceptedData) error {
+func (tbip *TxBodyInterceptorProcessor) Validate(_ process.InterceptedData, _ p2p.PeerID) error {
 	return nil
 }
 
 // Save will save the received miniblocks inside the miniblock cacher after a new validation round
 // that will be done on each miniblock
-func (tbip *TxBodyInterceptorProcessor) Save(data process.InterceptedData) error {
+func (tbip *TxBodyInterceptorProcessor) Save(data process.InterceptedData, _ p2p.PeerID) error {
 	interceptedTxBody, ok := data.(*interceptedBlocks.InterceptedTxBlockBody)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -92,17 +93,7 @@ func (tbip *TxBodyInterceptorProcessor) processMiniblock(miniblock *block.MiniBl
 	return nil
 }
 
-func (tbip *TxBodyInterceptorProcessor) checkMiniblock(miniblock *block.MiniBlock) error {
-	//TODO check for whitelisting
-
-	isForCurrentShardRecv := miniblock.ReceiverShardID == tbip.shardCoordinator.SelfId()
-	isForCurrentShardSender := miniblock.SenderShardID == tbip.shardCoordinator.SelfId()
-	isForAllShards := miniblock.SenderShardID == core.AllShardId || miniblock.ReceiverShardID == core.AllShardId
-	isForCurrentShard := isForCurrentShardRecv || isForCurrentShardSender || isForAllShards
-	if !isForCurrentShard {
-		return process.ErrMiniblockNotForCurrentShard
-	}
-
+func (tbip *TxBodyInterceptorProcessor) checkMiniblock(_ *block.MiniBlock) error {
 	return nil
 }
 

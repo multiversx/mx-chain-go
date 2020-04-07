@@ -55,9 +55,25 @@ func (wrk *worker) IsMessageWithBlockHeader(msgType consensus.MessageType) bool 
 	return msgType == MtBlockHeader
 }
 
+// IsMessageWithBlockBody returns if the current messageType is about block body
+func (wrk *worker) IsMessageWithBlockBody(msgType consensus.MessageType) bool {
+	return msgType == MtBlockBody
+}
+
 //IsMessageWithSignature returns if the current messageType is about signature
 func (wrk *worker) IsMessageWithSignature(msgType consensus.MessageType) bool {
 	return msgType == MtSignature
+}
+
+//IsMessageTypeValid returns if the current messageType is valid
+func (wrk *worker) IsMessageTypeValid(msgType consensus.MessageType) bool {
+	isMessageTypeValid := msgType == MtBlockBodyAndHeader ||
+		msgType == MtBlockBody ||
+		msgType == MtBlockHeader ||
+		msgType == MtSignature ||
+		msgType == MtBlockHeaderFinalInfo
+
+	return isMessageTypeValid
 }
 
 //IsSubroundSignature returns if the current subround is about signature

@@ -16,6 +16,7 @@ prepareFolders
 # Phase 1: build Seednode and Node executables
 buildSeednode
 buildNode
+buildArwen
 
 
 # Phase 2: generate configuration

@@ -251,7 +251,13 @@ func (rtp *rewardTxPreprocessor) SaveTxBlockToStorage(body *block.Body) error {
 // receivedRewardTransaction is a callback function called when a new reward transaction
 // is added in the reward transactions pool
 func (rtp *rewardTxPreprocessor) receivedRewardTransaction(key []byte, value interface{}) {
-	receivedAllMissing := rtp.baseReceivedTransaction(key, value, &rtp.rewardTxsForBlock)
+	tx, ok := value.(data.TransactionHandler)
+	if !ok {
+		log.Warn("rewardTxPreprocessor.receivedRewardTransaction", "error", process.ErrWrongTypeAssertion)
+		return
+	}
+
+	receivedAllMissing := rtp.baseReceivedTransaction(key, tx, &rtp.rewardTxsForBlock)
 
 	if receivedAllMissing {
 		rtp.chReceivedAllRewardTxs <- true
@@ -260,7 +266,7 @@ func (rtp *rewardTxPreprocessor) receivedRewardTransaction(key []byte, value int
 
 // CreateBlockStarted cleans the local cache map for processed/created reward transactions at this round
 func (rtp *rewardTxPreprocessor) CreateBlockStarted() {
-	_ = process.EmptyChannel(rtp.chReceivedAllRewardTxs)
+	_ = core.EmptyChannel(rtp.chReceivedAllRewardTxs)
 
 	rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
 	rtp.rewardTxsForBlock.missingTxs = 0
