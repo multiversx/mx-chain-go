@@ -71,8 +71,6 @@ type ConsensusService interface {
 	IsMessageWithBlockBody(consensus.MessageType) bool
 	//IsMessageWithBlockHeader returns if the current messageType is about block header
 	IsMessageWithBlockHeader(consensus.MessageType) bool
-	//IsMessageWithBlockBody returns if the current messageType is about block body
-	IsMessageWithBlockBody(msgType consensus.MessageType) bool
 	//IsMessageWithSignature returns if the current messageType is about signature
 	IsMessageWithSignature(consensus.MessageType) bool
 	//IsMessageWithFinalInfo returns if the current messageType is about header final info
