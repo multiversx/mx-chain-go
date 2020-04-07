@@ -2,6 +2,7 @@ package processor
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -31,7 +32,7 @@ func NewTxInterceptorProcessor(argument *ArgTxInterceptorProcessor) (*TxIntercep
 }
 
 // Validate checks if the intercepted data can be processed
-func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData) error {
+func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData, _ p2p.PeerID) error {
 	interceptedTx, ok := data.(InterceptedTransactionHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -41,7 +42,7 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData) error
 }
 
 // Save will save the received data into the cacher
-func (txip *TxInterceptorProcessor) Save(data process.InterceptedData) error {
+func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ p2p.PeerID) error {
 	interceptedTx, ok := data.(InterceptedTransactionHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion

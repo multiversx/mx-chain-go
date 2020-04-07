@@ -11,13 +11,10 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-//NodeWrapper contains all functions that a node should contain.
-type NodeWrapper interface {
+//NodeHandler contains all functions that a node should contain.
+type NodeHandler interface {
 	// Start will create a new messenger and and set up the Node state as running
-	Start() error
-
-	// P2PBootstrap starts the peer discovery process and peer connection filtering
-	P2PBootstrap() error
+	Start()
 
 	//IsRunning returns if the underlying node is running
 	IsRunning() bool
@@ -53,6 +50,8 @@ type NodeWrapper interface {
 
 	// ValidatorStatisticsApi return the statistics for all the validators
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
+	DirectTrigger() error
+	IsSelfTrigger() bool
 }
 
 // ApiResolver defines a structure capable of resolving REST API requests
@@ -60,5 +59,12 @@ type ApiResolver interface {
 	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
 	StatusMetrics() external.StatusMetricsHandler
+	IsInterfaceNil() bool
+}
+
+// HardforkTrigger defines the structure used to trigger hardforks
+type HardforkTrigger interface {
+	Trigger() error
+	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }

@@ -865,7 +865,7 @@ func (boot *baseBootstrap) requestMiniBlocksByHashes(hashes [][]byte) {
 func (boot *baseBootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (block.MiniBlockSlice, error) {
 	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
-		_ = process.EmptyChannel(boot.chRcvMiniBlocks)
+		_ = core.EmptyChannel(boot.chRcvMiniBlocks)
 		boot.requestMiniBlocksByHashes(missingMiniBlocksHashes)
 		err := boot.waitForMiniBlocks()
 		if err != nil {

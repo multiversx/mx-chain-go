@@ -18,7 +18,7 @@ import (
 )
 
 const pruningDelay = time.Second
-const snapshotDelay = time.Millisecond
+const snapshotDelay = time.Second
 
 func TestNewTrieStorageManagerNilDb(t *testing.T) {
 	t.Parallel()
@@ -85,10 +85,7 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.Root()
 	tr.TakeSnapshot(rootHash)
-
-	for trieStorage.snapshotsBuffer.len() != 0 {
-		time.Sleep(snapshotDelay)
-	}
+	time.Sleep(snapshotDelay)
 
 	trieStorage.storageOperationMutex.Lock()
 	_ = trieStorage.snapshots[0].Close()
@@ -189,9 +186,7 @@ func TestEachSnapshotCreatesOwnDatabase(t *testing.T) {
 		_ = tr.Update(testVal.key, testVal.value)
 		_ = tr.Commit()
 		tr.TakeSnapshot(tr.root.getHash())
-		for trieStorage.snapshotsBuffer.len() != 0 {
-			time.Sleep(snapshotDelay)
-		}
+		time.Sleep(snapshotDelay)
 
 		trieStorage.storageOperationMutex.Lock()
 		snapshotId := strconv.Itoa(trieStorage.snapshotId - 1)
@@ -226,10 +221,7 @@ func TestDeleteOldSnapshots(t *testing.T) {
 		_ = tr.Commit()
 		tr.TakeSnapshot(tr.root.getHash())
 	}
-
-	for trieStorage.snapshotsBuffer.len() != 0 {
-		time.Sleep(snapshotDelay)
-	}
+	time.Sleep(snapshotDelay)
 
 	snapshots, _ := ioutil.ReadDir(trieStorage.snapshotDbCfg.FilePath)
 	assert.Equal(t, 2, len(snapshots))
@@ -247,12 +239,14 @@ func TestPruningIsDoneAfterSnapshotIsFinished(t *testing.T) {
 
 	_ = tr.Commit()
 	rootHash := tr.root.getHash()
+	tr.CancelPrune(rootHash, data.NewRoot)
+	tr.EnterSnapshotMode()
 	tr.TakeSnapshot(rootHash)
 	tr.Prune(rootHash, data.NewRoot)
+	time.Sleep(pruningDelay)
 
-	for trieStorage.snapshotsBuffer.len() != 0 {
-		time.Sleep(snapshotDelay)
-	}
+	tr.ExitSnapshotMode()
+	time.Sleep(snapshotDelay)
 
 	val, err := trieStorage.snapshots[0].Get(rootHash)
 	assert.NotNil(t, val)
@@ -269,9 +263,7 @@ func TestTrieCheckpoint(t *testing.T) {
 
 	_ = tr.Commit()
 	tr.TakeSnapshot(tr.root.getHash())
-	for trieStorage.snapshotsBuffer.len() != 0 {
-		time.Sleep(snapshotDelay)
-	}
+	time.Sleep(snapshotDelay)
 
 	_ = tr.Update([]byte("doge"), []byte("reindeer"))
 	_ = tr.Commit()
@@ -294,9 +286,7 @@ func TestTrieCheckpoint(t *testing.T) {
 	assert.Nil(t, val)
 
 	tr.SetCheckpoint(tr.root.getHash())
-	for trieStorage.snapshotsBuffer.len() != 0 {
-		time.Sleep(snapshotDelay)
-	}
+	time.Sleep(snapshotDelay)
 
 	val, err = snapshotTrie.Get([]byte("doge"))
 	assert.Nil(t, err)
@@ -315,9 +305,7 @@ func TestTrieCheckpointWithNoSnapshotCreatesSnapshot(t *testing.T) {
 
 	_ = tr.Commit()
 	tr.SetCheckpoint(tr.root.getHash())
-	for trieStorage.snapshotsBuffer.len() != 0 {
-		time.Sleep(snapshotDelay)
-	}
+	time.Sleep(snapshotDelay)
 
 	trieStorage.storageOperationMutex.Lock()
 	assert.Equal(t, 1, len(trieStorage.snapshots))
@@ -334,9 +322,7 @@ func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
 	_ = tr.Commit()
 
 	tr.TakeSnapshot(tr.root.getHash())
-	for trieStorage.snapshotsBuffer.len() != 0 {
-		time.Sleep(snapshotDelay)
-	}
+	time.Sleep(snapshotDelay)
 
 	numSnapshots := 5
 	numCheckpoints := 5
@@ -374,9 +360,7 @@ func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
 
 	snapshotWg.Wait()
 	checkpointWg.Wait()
-	for trieStorage.snapshotsBuffer.len() != 0 {
-		time.Sleep(snapshotDelay)
-	}
+	time.Sleep(snapshotDelay * 3)
 
 	trieStorage.storageOperationMutex.Lock()
 	assert.Equal(t, totalNumSnapshot, trieStorage.snapshotId)

@@ -38,6 +38,11 @@ func (ni *NodeInfo) PubKey() []byte {
 	return ni.pubKey
 }
 
+// IsInterfaceNil returns true if underlying object is nil
+func (ni *NodeInfo) IsInterfaceNil() bool {
+	return ni == nil
+}
+
 // NodesSetup hold data for decoded data from json file
 type NodesSetup struct {
 	StartTime          int64  `json:"startTime"`
@@ -57,8 +62,8 @@ type NodesSetup struct {
 	nrOfShards         uint32
 	nrOfNodes          uint32
 	nrOfMetaChainNodes uint32
-	eligible           map[uint32][]*NodeInfo
-	waiting            map[uint32][]*NodeInfo
+	eligible           map[uint32][]GenesisNodeInfoHandler
+	waiting            map[uint32][]GenesisNodeInfoHandler
 }
 
 // NewNodesSetup creates a new decoded nodes structure from json config file
@@ -189,8 +194,8 @@ func (ns *NodesSetup) processShardAssignment() {
 func (ns *NodesSetup) createInitialNodesInfo() {
 	nrOfShardAndMeta := ns.nrOfShards + 1
 
-	ns.eligible = make(map[uint32][]*NodeInfo, nrOfShardAndMeta)
-	ns.waiting = make(map[uint32][]*NodeInfo, nrOfShardAndMeta)
+	ns.eligible = make(map[uint32][]GenesisNodeInfoHandler, nrOfShardAndMeta)
+	ns.waiting = make(map[uint32][]GenesisNodeInfoHandler, nrOfShardAndMeta)
 	for _, in := range ns.InitialNodes {
 		if in.pubKey != nil && in.address != nil {
 			nodeInfo := &NodeInfo{in.assignedShard, in.eligible, in.pubKey, in.address}
@@ -209,7 +214,7 @@ func (ns *NodesSetup) InitialNodesPubKeys() map[uint32][]string {
 	for shardId, nodesInfo := range ns.eligible {
 		pubKeys := make([]string, len(nodesInfo))
 		for i := 0; i < len(nodesInfo); i++ {
-			pubKeys[i] = string(nodesInfo[i].pubKey)
+			pubKeys[i] = string(nodesInfo[i].PubKey())
 		}
 
 		allNodesPubKeys[shardId] = pubKeys
@@ -219,7 +224,7 @@ func (ns *NodesSetup) InitialNodesPubKeys() map[uint32][]string {
 }
 
 // InitialNodesInfo - gets initial nodes info
-func (ns *NodesSetup) InitialNodesInfo() (map[uint32][]*NodeInfo, map[uint32][]*NodeInfo) {
+func (ns *NodesSetup) InitialNodesInfo() (map[uint32][]GenesisNodeInfoHandler, map[uint32][]GenesisNodeInfoHandler) {
 	return ns.eligible, ns.waiting
 }
 
@@ -235,14 +240,14 @@ func (ns *NodesSetup) InitialEligibleNodesPubKeysForShard(shardId uint32) ([]str
 	nodesInfo := ns.eligible[shardId]
 	pubKeys := make([]string, len(nodesInfo))
 	for i := 0; i < len(nodesInfo); i++ {
-		pubKeys[i] = string(nodesInfo[i].pubKey)
+		pubKeys[i] = string(nodesInfo[i].PubKey())
 	}
 
 	return pubKeys, nil
 }
 
 // InitialNodesInfoForShard - gets initial nodes info for shard
-func (ns *NodesSetup) InitialNodesInfoForShard(shardId uint32) ([]*NodeInfo, []*NodeInfo, error) {
+func (ns *NodesSetup) InitialNodesInfoForShard(shardId uint32) ([]GenesisNodeInfoHandler, []GenesisNodeInfoHandler, error) {
 	if ns.eligible[shardId] == nil {
 		return nil, nil, ErrShardIdOutOfRange
 	}
@@ -266,4 +271,34 @@ func (ns *NodesSetup) GetShardIDForPubKey(pubKey []byte) (uint32, error) {
 		}
 	}
 	return 0, ErrPublicKeyNotFoundInGenesis
+}
+
+// GetStartTime returns the start time
+func (ns *NodesSetup) GetStartTime() int64 {
+	return ns.StartTime
+}
+
+// GetRoundDuration returns the round duration
+func (ns *NodesSetup) GetRoundDuration() uint64 {
+	return ns.RoundDuration
+}
+
+// GetChainId returns the chain ID
+func (ns *NodesSetup) GetChainId() string {
+	return ns.ChainID
+}
+
+// GetShardConsensusGroupSize returns the shard consensus group size
+func (ns *NodesSetup) GetShardConsensusGroupSize() uint32 {
+	return ns.ConsensusGroupSize
+}
+
+// GetMetaConsensusGroupSize returns the metachain consensus group size
+func (ns *NodesSetup) GetMetaConsensusGroupSize() uint32 {
+	return ns.MetaChainConsensusGroupSize
+}
+
+// IsInterfaceNil returns true if underlying object is nil
+func (ns *NodesSetup) IsInterfaceNil() bool {
+	return ns == nil
 }

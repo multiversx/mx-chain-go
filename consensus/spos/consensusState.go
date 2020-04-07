@@ -129,7 +129,7 @@ func (cns *ConsensusState) GetNextConsensusGroup(
 	shardId uint32,
 	nodesCoordinator sharding.NodesCoordinator,
 	epoch uint32,
-) ([]string, []string, error) {
+) ([]string, error) {
 	validatorsGroup, err := nodesCoordinator.ComputeConsensusGroup(randomSource, round, shardId, epoch)
 	if err != nil {
 		log.Debug(
@@ -140,19 +140,17 @@ func (cns *ConsensusState) GetNextConsensusGroup(
 			"shardId", shardId,
 			"epoch", epoch,
 		)
-		return nil, nil, err
+		return nil, err
 	}
 
 	consensusSize := len(validatorsGroup)
 	newConsensusGroup := make([]string, consensusSize)
-	consensusRewardAddresses := make([]string, consensusSize)
 
 	for i := 0; i < consensusSize; i++ {
 		newConsensusGroup[i] = string(validatorsGroup[i].PubKey())
-		consensusRewardAddresses[i] = string(validatorsGroup[i].Address())
 	}
 
-	return newConsensusGroup, consensusRewardAddresses, nil
+	return newConsensusGroup, nil
 }
 
 // IsConsensusDataSet method returns true if the consensus data for the current round is set and false otherwise
