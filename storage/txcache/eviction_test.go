@@ -255,7 +255,11 @@ func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 		NumTxsToEvictFromASender:   250,
 	}
 
+	numSenders := 25000
+	numTxsPerSender := 10
+
 	cache := NewTxCache(config)
-	addManyTransactionsWithUniformDistribution(cache, 25000, 10)
-	require.LessOrEqual(t, cache.CountTx(), int64(240000))
+	addManyTransactionsWithUniformDistribution(cache, numSenders, numTxsPerSender)
+	require.LessOrEqual(t, uint32(cache.CountTx()), config.CountThreshold)
+	require.GreaterOrEqual(t, uint32(cache.CountTx()), config.CountThreshold-config.NumSendersToEvictInOneStep*uint32(numTxsPerSender))
 }
