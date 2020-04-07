@@ -32,11 +32,6 @@ func (i *interceptedMetaBlockMock) IsForCurrentShard() bool {
 	return true
 }
 
-// IsInterfaceNil -
-func (i *interceptedMetaBlockMock) IsInterfaceNil() bool {
-	return i == nil
-}
-
 // Hash -
 func (i *interceptedMetaBlockMock) Hash() []byte {
 	return i.HashToUse
@@ -45,4 +40,13 @@ func (i *interceptedMetaBlockMock) Hash() []byte {
 // Type -
 func (i *interceptedMetaBlockMock) Type() string {
 	return "type"
+}
+
+func (i *interceptedMetaBlockMock) String() string {
+	return "metaBlock"
+}
+
+// IsInterfaceNil -
+func (i *interceptedMetaBlockMock) IsInterfaceNil() bool {
+	return i == nil
 }
