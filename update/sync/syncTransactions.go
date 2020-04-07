@@ -163,7 +163,7 @@ func (p *pendingTransactions) requestTransactionsFor(miniBlock *block.MiniBlock)
 }
 
 // receivedMiniBlock is a callback function when a new transactions was received
-func (p *pendingTransactions) receivedTransaction(txHash []byte) {
+func (p *pendingTransactions) receivedTransaction(txHash []byte, val interface{}) {
 	p.mutPendingTx.Lock()
 	if p.stopSync {
 		p.mutPendingTx.Unlock()
@@ -179,7 +179,7 @@ func (p *pendingTransactions) receivedTransaction(txHash []byte) {
 		return
 	}
 
-	tx, ok := p.getTransactionFromPool(txHash)
+	tx, ok := val.(data.TransactionHandler)
 	if !ok {
 		p.mutPendingTx.Unlock()
 		return

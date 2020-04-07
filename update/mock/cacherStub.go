@@ -12,7 +12,7 @@ type CacherStub struct {
 	KeysCalled            func() [][]byte
 	LenCalled             func() int
 	MaxSizeCalled         func() int
-	RegisterHandlerCalled func(func(key []byte))
+	RegisterHandlerCalled func(func(key []byte, val interface{}))
 }
 
 func (cs *CacherStub) Clear() {
@@ -59,7 +59,7 @@ func (cs *CacherStub) MaxSize() int {
 	return cs.MaxSizeCalled()
 }
 
-func (cs *CacherStub) RegisterHandler(handler func(key []byte)) {
+func (cs *CacherStub) RegisterHandler(handler func(key []byte, val interface{})) {
 	cs.RegisterHandlerCalled(handler)
 }
 

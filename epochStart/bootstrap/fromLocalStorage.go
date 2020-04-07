@@ -33,7 +33,7 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 		log.Debug("got last data from storage",
 			"epoch", e.baseData.lastEpoch,
 			"last round", e.baseData.lastRound,
-			"last shard ID", e.baseData.lastRound)
+			"last shard ID", e.baseData.shardId)
 	}
 }
 

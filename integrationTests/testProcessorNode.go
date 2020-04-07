@@ -201,7 +201,7 @@ type TestProcessorNode struct {
 	BootstrapStorer          *mock.BoostrapStorerMock
 	StorageBootstrapper      *mock.StorageBootstrapperMock
 	RequestedItemsHandler    dataRetriever.RequestedItemsHandler
-	WhiteListHandler         process.InterceptedDataWhiteList
+	WhiteListHandler         process.WhiteListHandler
 	NetworkShardingCollector consensus.NetworkShardingCollector
 
 	EpochStartTrigger  TestEpochStartTrigger
@@ -810,9 +810,22 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	}
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	gasSchedule := arwenConfig.MakeGasMap(1)
-	vmFactory, _ := shard.NewVMContainerFactory(maxGasLimitPerBlock, gasSchedule, argsHook)
+	vmFactory, _ := shard.NewVMContainerFactory(
+		config.VirtualMachineConfig{
+			OutOfProcessEnabled: true,
+			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+		},
+		maxGasLimitPerBlock,
+		gasSchedule,
+		argsHook,
+	)
 
-	tpn.VMContainer, _ = vmFactory.Create()
+	var err error
+	tpn.VMContainer, err = vmFactory.Create()
+	if err != nil {
+		panic(err)
+	}
+
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
 	createAndAddIeleVM(tpn.VMContainer, tpn.BlockchainHook)
 
@@ -1273,12 +1286,12 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.DataPool.Headers().RegisterHandler(hdrHandlers)
 	} else {
-		txHandler := func(key []byte) {
+		txHandler := func(key []byte, value interface{}) {
 			tx, _ := tpn.DataPool.Transactions().SearchFirstData(key)
 			tpn.ReceivedTransactions.Store(string(key), tx)
 			atomic.AddInt32(&tpn.CounterTxRecv, 1)
 		}
-		mbHandlers := func(key []byte) {
+		mbHandlers := func(key []byte, value interface{}) {
 			atomic.AddInt32(&tpn.CounterMbRecv, 1)
 		}
 

@@ -9,7 +9,7 @@ type CacherMock struct {
 	dataMap map[string]interface{}
 
 	mutAddedDataHandlers sync.RWMutex
-	addedDataHandlers    []func(key []byte)
+	addedDataHandlers    []func(key []byte, val interface{})
 }
 
 func NewCacherMock() *CacherMock {
@@ -31,7 +31,7 @@ func (cm *CacherMock) Put(key []byte, value interface{}) (evicted bool) {
 
 	cm.dataMap[string(key)] = value
 
-	cm.callAddedDataHandlers(key)
+	cm.callAddedDataHandlers(key, value)
 
 	return false
 }
@@ -101,7 +101,7 @@ func (cm *CacherMock) MaxSize() int {
 	return 10000
 }
 
-func (cm *CacherMock) RegisterHandler(handler func(key []byte)) {
+func (cm *CacherMock) RegisterHandler(handler func(key []byte, val interface{})) {
 	if handler == nil {
 		return
 	}
@@ -111,10 +111,10 @@ func (cm *CacherMock) RegisterHandler(handler func(key []byte)) {
 	cm.mutAddedDataHandlers.Unlock()
 }
 
-func (cm *CacherMock) callAddedDataHandlers(key []byte) {
+func (cm *CacherMock) callAddedDataHandlers(key []byte, val interface{}) {
 	cm.mutAddedDataHandlers.RLock()
 	for _, handler := range cm.addedDataHandlers {
-		go handler(key)
+		go handler(key, val)
 	}
 	cm.mutAddedDataHandlers.RUnlock()
 }

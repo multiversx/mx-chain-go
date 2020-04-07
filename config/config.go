@@ -133,6 +133,7 @@ type Config struct {
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
 	BlockSizeThrottleConfig BlockSizeThrottleConfig
+	VirtualMachineConfig    VirtualMachineConfig
 
 	Hardfork HardforkConfig
 }
@@ -226,6 +227,19 @@ type AntifloodConfig struct {
 	WebServer                 WebServerAntifloodConfig
 	Topic                     TopicAntifloodConfig
 	TxAccumulator             TxAccumulatorConfig
+}
+
+// VirtualMachineConfig holds configuration for the Virtual Machine(s)
+type VirtualMachineConfig struct {
+	OutOfProcessEnabled bool
+	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
+}
+
+// VirtualMachineOutOfProcessConfig holds configuration for out-of-process virtual machine(s)
+type VirtualMachineOutOfProcessConfig struct {
+	LogsMarshalizer     string
+	MessagesMarshalizer string
+	MaxLoopTime         int
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger

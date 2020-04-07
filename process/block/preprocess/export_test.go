@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
-func (txs *transactions) ReceivedTransaction(txHash []byte) {
-	txs.receivedTransaction(txHash)
+func (txs *transactions) ReceivedTransaction(txHash []byte, value interface{}) {
+	txs.receivedTransaction(txHash, value)
 }
 
 func (txs *transactions) AddTxHashToRequestedList(txHash []byte) {
@@ -106,7 +106,7 @@ func (txs *transactions) AddTxForCurrentBlock(
 	txHandler data.TransactionHandler,
 	senderShardID uint32,
 	receiverShardID uint32,
-	) {
+) {
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
 	defer txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
