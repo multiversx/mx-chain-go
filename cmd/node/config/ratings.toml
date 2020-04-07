@@ -8,7 +8,6 @@
 # ProposerDecreaseRatingStep = -2 * ProposerIncreaseRatingStep
 # ValidatorDecreaseRatingStep = -2 * ValidatorIncreaseRatingStep
 
-# ratings config for 63 validators / shard with 51 in consensus
 
 [General]
     StartRating = 500000
@@ -30,15 +29,15 @@
     ]
 
 [ShardChain.RatingSteps]
-    ProposerIncreaseRatingStep = 365
-    ProposerDecreaseRatingStep = -1460
-    ValidatorIncreaseRatingStep = 7
-    ValidatorDecreaseRatingStep = -28
-    ConsecutiveMissedBlocksPenalty = 1.2
+    ProposerIncreaseRatingStep = 2315
+    ProposerDecreaseRatingStep = -9260
+    ValidatorIncreaseRatingStep = 37
+    ValidatorDecreaseRatingStep = -148
+    ConsecutiveMissedBlocksPenalty = 1.10
 
 [MetaChain.RatingSteps]
-    ProposerIncreaseRatingStep = 365
-    ProposerDecreaseRatingStep = -1460
+    ProposerIncreaseRatingStep = 2315
+    ProposerDecreaseRatingStep = -9260
     ValidatorIncreaseRatingStep = 6
     ValidatorDecreaseRatingStep = -24
-    ConsecutiveMissedBlocksPenalty = 1.2
+    ConsecutiveMissedBlocksPenalty = 1.10
