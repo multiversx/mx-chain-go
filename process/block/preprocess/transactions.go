@@ -511,7 +511,13 @@ func (txs *transactions) SaveTxBlockToStorage(body *block.Body) error {
 // receivedTransaction is a call back function which is called when a new transaction
 // is added in the transaction pool
 func (txs *transactions) receivedTransaction(key []byte, value interface{}) {
-	receivedAllMissing := txs.baseReceivedTransaction(key, value, &txs.txsForCurrBlock)
+	wrappedTx, ok := value.(*txcache.WrappedTransaction)
+	if !ok {
+		log.Warn("transactions.receivedTransaction", "error", process.ErrWrongTypeAssertion)
+		return
+	}
+
+	receivedAllMissing := txs.baseReceivedTransaction(key, wrappedTx.Tx, &txs.txsForCurrBlock)
 
 	if receivedAllMissing {
 		txs.chRcvAllTxs <- true

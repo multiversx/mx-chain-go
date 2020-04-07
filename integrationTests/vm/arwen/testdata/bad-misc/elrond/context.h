@@ -10,7 +10,7 @@ long long getGasLeft();
 void finish(byte *data, int length);
 void int64finish(long long value);
 void writeLog(byte *pointer, int length, byte *topicPtr, int numTopics);
-void signalError(char *message, int length);
+void signalError(byte *messagePointer, int messageLength);
 
 // Blockchain-related functions
 long long getBlockTimestamp();
