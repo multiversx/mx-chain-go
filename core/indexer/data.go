@@ -21,7 +21,7 @@ type Transaction struct {
 	SenderShard   uint32        `json:"senderShard"`
 	GasPrice      uint64        `json:"gasPrice"`
 	GasLimit      uint64        `json:"gasLimit"`
-	Data          []byte        `json:"data"`
+	Data          string        `json:"data"`
 	Signature     string        `json:"signature"`
 	Timestamp     time.Duration `json:"timestamp"`
 	Status        string        `json:"status"`
@@ -41,6 +41,7 @@ type Block struct {
 	Validators            []uint64      `json:"validators"`
 	PubKeyBitmap          string        `json:"pubKeyBitmap"`
 	Size                  int64         `json:"size"`
+	SizeTxs               int64         `json:"sizeTxs"`
 	Timestamp             time.Duration `json:"timestamp"`
 	StateRootHash         string        `json:"stateRootHash"`
 	PrevHash              string        `json:"prevHash"`

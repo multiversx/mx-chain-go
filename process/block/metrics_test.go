@@ -3,6 +3,9 @@ package block
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,4 +20,73 @@ func TestMetrics_CalculateRoundDuration(t *testing.T) {
 
 	roundDuration := calculateRoundDuration(lastBlockTimestamp, currentBlockTimestamp, lastBlockRound, currentBlockRound)
 	assert.Equal(t, expectedRoundDuration, roundDuration)
+}
+
+func TestMetrics_IncrementCountAcceptedBlocks_KeyNotFoundShouldNotIncrement(t *testing.T) {
+	t.Parallel()
+
+	incrementWasCalled := false
+
+	nodesCoord := &mock.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
+			return []sharding.Validator{
+				mock.NewValidatorMock([]byte("wrong-key1"), []byte("addr1")), // nodes coordinator default return for OwnPubKey()
+				mock.NewValidatorMock([]byte("wrong-key2"), []byte("addr2")),
+			}, nil
+		},
+	}
+	statusHandler := &mock.AppStatusHandlerStub{
+		IncrementHandler: func(_ string) {
+			incrementWasCalled = true
+		},
+	}
+
+	incrementCountAcceptedBlocks(nodesCoord, statusHandler, &block.Header{PubKeysBitmap: []byte{1, 0}})
+	assert.False(t, incrementWasCalled)
+}
+
+func TestMetrics_IncrementCountAcceptedBlocks_IndexOutOfBoundsShouldNotIncrement(t *testing.T) {
+	t.Parallel()
+
+	incrementWasCalled := false
+
+	nodesCoord := &mock.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
+			return []sharding.Validator{
+				mock.NewValidatorMock([]byte("key"), []byte("addr1")), // nodes coordinator default return for OwnPubKey()
+				mock.NewValidatorMock([]byte("wrong-key2"), []byte("addr2")),
+			}, nil
+		},
+	}
+	statusHandler := &mock.AppStatusHandlerStub{
+		IncrementHandler: func(_ string) {
+			incrementWasCalled = true
+		},
+	}
+
+	incrementCountAcceptedBlocks(nodesCoord, statusHandler, &block.Header{PubKeysBitmap: []byte{}})
+	assert.False(t, incrementWasCalled)
+}
+
+func TestMetrics_IncrementCountAcceptedBlocks_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	incrementWasCalled := false
+
+	nodesCoord := &mock.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
+			return []sharding.Validator{
+				mock.NewValidatorMock([]byte("key"), []byte("addr1")), // nodes coordinator default return for OwnPubKey()
+				mock.NewValidatorMock([]byte("another-key"), []byte("addr2")),
+			}, nil
+		},
+	}
+	statusHandler := &mock.AppStatusHandlerStub{
+		IncrementHandler: func(_ string) {
+			incrementWasCalled = true
+		},
+	}
+
+	incrementCountAcceptedBlocks(nodesCoord, statusHandler, &block.Header{PubKeysBitmap: []byte{1, 0}})
+	assert.True(t, incrementWasCalled)
 }
