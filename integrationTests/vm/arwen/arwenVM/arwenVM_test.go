@@ -521,7 +521,6 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 	require.Nil(t, err)
 
 	start := time.Now()
-
 	for i := 0; i < numRun; i++ {
 		tx = vm.CreateTransferTokenTx(aliceNonce, transferOnCalls, scAddress, alice, testAddresses[i])
 

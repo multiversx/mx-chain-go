@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -127,6 +128,8 @@ type Trie interface {
 	GetSerializedNodes([]byte, uint64) ([][]byte, error)
 	GetAllLeaves() (map[string][]byte, error)
 	IsPruningEnabled() bool
+	EnterSnapshotMode()
+	ExitSnapshotMode()
 	IsInterfaceNil() bool
 	ClosePersister() error
 }
@@ -150,7 +153,8 @@ type DBRemoveCacher interface {
 
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
-	StartSyncing(rootHash []byte) error
+	StartSyncing(rootHash []byte, ctx context.Context) error
+	Trie() Trie
 	IsInterfaceNil() bool
 }
 
@@ -164,12 +168,14 @@ type StorageManager interface {
 	MarkForEviction([]byte, ModifiedHashes) error
 	GetDbThatContainsHash([]byte) DBWriteCacher
 	IsPruningEnabled() bool
+	EnterSnapshotMode()
+	ExitSnapshotMode()
 	IsInterfaceNil() bool
 }
 
 // TrieFactory creates new tries
 type TrieFactory interface {
-	Create(config.StorageConfig, bool) (Trie, error)
+	Create(config.StorageConfig, bool) (StorageManager, Trie, error)
 	IsInterfaceNil() bool
 }
 

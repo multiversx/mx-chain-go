@@ -14,6 +14,7 @@ import (
 type txValidator struct {
 	accounts             state.AccountsAdapter
 	shardCoordinator     sharding.Coordinator
+	whiteListHandler     process.WhiteListHandler
 	maxNonceDeltaAllowed int
 }
 
@@ -21,19 +22,23 @@ type txValidator struct {
 func NewTxValidator(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
+	whiteListHandler process.WhiteListHandler,
 	maxNonceDeltaAllowed int,
 ) (*txValidator, error) {
-
 	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
 	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if check.IfNil(whiteListHandler) {
+		return nil, process.ErrNilWhiteListHandler
+	}
 
 	return &txValidator{
 		accounts:             accounts,
 		shardCoordinator:     shardCoordinator,
+		whiteListHandler:     whiteListHandler,
 		maxNonceDeltaAllowed: maxNonceDeltaAllowed,
 	}, nil
 }
@@ -41,6 +46,13 @@ func NewTxValidator(
 // CheckTxValidity will filter transactions that needs to be added in pools
 func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler) error {
 	// TODO: Refactor, extract methods.
+
+	interceptedData, ok := interceptedTx.(process.InterceptedData)
+	if ok {
+		if txv.whiteListHandler.IsWhiteListed(interceptedData) {
+			return nil
+		}
+	}
 
 	shardID := txv.shardCoordinator.SelfId()
 	txShardID := interceptedTx.SenderShardId()

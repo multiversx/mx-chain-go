@@ -175,3 +175,9 @@ var ErrEmptyString = errors.New("empty string")
 
 // ErrInvalidValue signals that an invalid value has been provided
 var ErrInvalidValue = errors.New("invalid value")
+
+// ErrNilWhiteListHandler signals that white list handler is nil
+var ErrNilWhiteListHandler = errors.New("nil white list handler")
+
+// ErrRequestIntervalTooSmall signals that request interval is too small
+var ErrRequestIntervalTooSmall = errors.New("request interval is too small")

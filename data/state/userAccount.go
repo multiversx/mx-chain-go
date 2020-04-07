@@ -16,6 +16,17 @@ type userAccount struct {
 
 var zero = big.NewInt(0)
 
+// NewEmptyUserAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
+func NewEmptyUserAccount() *userAccount {
+	return &userAccount{
+		baseAccount: &baseAccount{},
+		UserAccountData: UserAccountData{
+			DeveloperReward: big.NewInt(0),
+			Balance:         big.NewInt(0),
+		},
+	}
+}
+
 // NewUserAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
 func NewUserAccount(addressContainer AddressContainer) (*userAccount, error) {
 	if check.IfNil(addressContainer) {

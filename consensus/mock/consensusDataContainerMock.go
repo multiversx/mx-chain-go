@@ -28,10 +28,11 @@ type ConsensusCoreMock struct {
 	shardCoordinator       sharding.Coordinator
 	syncTimer              ntp.SyncTimer
 	validatorGroupSelector sharding.NodesCoordinator
-	epochStartSubscriber   epochStart.EpochStartSubscriber
+	epochStartNotifier     epochStart.RegistrationHandler
 	antifloodHandler       consensus.P2PAntifloodHandler
 }
 
+// GetAntiFloodHandler -
 func (ccm *ConsensusCoreMock) GetAntiFloodHandler() consensus.P2PAntifloodHandler {
 	return ccm.antifloodHandler
 }
@@ -96,9 +97,9 @@ func (ccm *ConsensusCoreMock) NodesCoordinator() sharding.NodesCoordinator {
 	return ccm.validatorGroupSelector
 }
 
-// EpochStartSubscriber -
-func (ccm *ConsensusCoreMock) EpochStartSubscriber() epochStart.EpochStartSubscriber {
-	return ccm.epochStartSubscriber
+// RegistrationHandler -
+func (ccm *ConsensusCoreMock) EpochStartRegistrationHandler() epochStart.RegistrationHandler {
+	return ccm.epochStartNotifier
 }
 
 // SetBlockchain -

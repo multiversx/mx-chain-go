@@ -50,6 +50,7 @@ func TestNewSingleDataInterceptor_EmptyTopicShouldErr(t *testing.T) {
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, sdi)
@@ -65,6 +66,7 @@ func TestNewSingleDataInterceptor_NilInterceptedDataFactoryShouldErr(t *testing.
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, sdi)
@@ -80,6 +82,7 @@ func TestNewSingleDataInterceptor_NilInterceptedDataProcessorShouldErr(t *testin
 		nil,
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, sdi)
@@ -95,6 +98,7 @@ func TestNewSingleDataInterceptor_NilInterceptorThrottlerShouldErr(t *testing.T)
 		&mock.InterceptorProcessorStub{},
 		nil,
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, sdi)
@@ -110,10 +114,27 @@ func TestNewSingleDataInterceptor_NilP2PAntifloodHandlerShouldErr(t *testing.T) 
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
 		nil,
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, sdi)
 	assert.Equal(t, process.ErrNilAntifloodHandler, err)
+}
+
+func TestNewSingleDataInterceptor_NilWhiteListHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	sdi, err := interceptors.NewSingleDataInterceptor(
+		testTopic,
+		&mock.InterceptedDataFactoryStub{},
+		&mock.InterceptorProcessorStub{},
+		&mock.InterceptorThrottlerStub{},
+		&mock.P2PAntifloodHandlerStub{},
+		nil,
+	)
+
+	assert.Nil(t, sdi)
+	assert.Equal(t, process.ErrNilWhiteListHandler, err)
 }
 
 func TestNewSingleDataInterceptor(t *testing.T) {
@@ -126,6 +147,7 @@ func TestNewSingleDataInterceptor(t *testing.T) {
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	require.False(t, check.IfNil(sdi))
@@ -144,6 +166,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *test
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	err := sdi.ProcessReceivedMessage(nil, fromConnectedPeerId)
@@ -169,6 +192,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageFactoryCreationErrorShouldE
 			},
 		},
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -205,6 +229,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotValidShouldNotCallProc
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		throttler,
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -246,6 +271,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldN
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		throttler,
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	msg := &mock.P2PMessageMock{
@@ -287,6 +313,53 @@ func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		throttler,
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+	)
+
+	msg := &mock.P2PMessageMock{
+		DataField: []byte("data to be processed"),
+	}
+	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+
+	time.Sleep(time.Second)
+
+	assert.Nil(t, err)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&checkCalledNum))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&processCalledNum))
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+}
+
+func TestSingleDataInterceptor_ProcessReceivedMessageWhitelistedShouldWork(t *testing.T) {
+	t.Parallel()
+
+	checkCalledNum := int32(0)
+	processCalledNum := int32(0)
+	throttler := createMockThrottler()
+	interceptedData := &mock.InterceptedDataStub{
+		CheckValidityCalled: func() error {
+			return nil
+		},
+		IsForCurrentShardCalled: func() bool {
+			return false
+		},
+	}
+
+	sdi, _ := interceptors.NewSingleDataInterceptor(
+		testTopic,
+		&mock.InterceptedDataFactoryStub{
+			CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
+				return interceptedData, nil
+			},
+		},
+		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
+		throttler,
+		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{
+			IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
+				return true
+			},
+		},
 	)
 
 	msg := &mock.P2PMessageMock{

@@ -20,7 +20,7 @@ type ArgIndexHashedNodesCoordinatorFactory struct {
 	waitingMap              map[uint32][]sharding.Validator
 	keyIndex                int
 	cp                      *CryptoParams
-	epochStartSubscriber    sharding.EpochStartSubscriber
+	epochStartSubscriber    sharding.EpochStartEventNotifier
 	hasher                  hashing.Hasher
 	consensusGroupCache     sharding.Cacher
 	bootStorer              storage.Storer
@@ -40,9 +40,10 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: arg.shardConsensusGroupSize,
 		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,
+		Marshalizer:             TestMarshalizer,
 		Hasher:                  arg.hasher,
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    arg.epochStartSubscriber,
+		EpochStartNotifier:      arg.epochStartSubscriber,
 		ShardIDAsObserver:       arg.shardId,
 		NbShards:                uint32(arg.nbShards),
 		EligibleNodes:           arg.validatorsMap,
@@ -61,7 +62,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 
 // IndexHashedNodesCoordinatorWithRaterFactory -
 type IndexHashedNodesCoordinatorWithRaterFactory struct {
-	sharding.RaterHandler
+	sharding.PeerAccountListAndRatingHandler
 }
 
 // CreateNodesCoordinator is used for creating a nodes coordinator in the integration tests
@@ -76,9 +77,10 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: arg.shardConsensusGroupSize,
 		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,
+		Marshalizer:             TestMarshalizer,
 		Hasher:                  arg.hasher,
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    arg.epochStartSubscriber,
+		EpochStartNotifier:      arg.epochStartSubscriber,
 		ShardIDAsObserver:       arg.shardId,
 		NbShards:                uint32(arg.nbShards),
 		EligibleNodes:           arg.validatorsMap,
@@ -93,21 +95,21 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		log.Debug("Error creating node coordinator")
 	}
 
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseCoordinator, ihncrf.RaterHandler)
+	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseCoordinator, ihncrf.PeerAccountListAndRatingHandler)
 	if err != nil {
 		log.Debug("Error creating node coordinator")
 	}
 
 	return &NodesWithRater{
 		NodesCoordinator: nodesCoordinator,
-		RaterHandler:     ihncrf.RaterHandler,
+		rater:            ihncrf.PeerAccountListAndRatingHandler,
 	}
 }
 
 // NodesWithRater -
 type NodesWithRater struct {
 	sharding.NodesCoordinator
-	sharding.RaterHandler
+	rater sharding.PeerAccountListAndRatingHandler
 }
 
 // IsInterfaceNil -
