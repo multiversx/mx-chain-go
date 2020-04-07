@@ -2,6 +2,7 @@ package builtInFunctions
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -32,7 +33,7 @@ func (c *changeOwnerAddress) ProcessBuiltinFunction(_, acntDst state.UserAccount
 	}
 
 	if !bytes.Equal(vmInput.CallerAddr, acntDst.GetOwnerAddress()) {
-		return nil, 0, process.ErrOperationNotPermitted
+		return nil, 0, fmt.Errorf("%w not the owner of the account", process.ErrOperationNotPermitted)
 	}
 	if len(vmInput.Arguments[0]) != len(acntDst.AddressContainer().Bytes()) {
 		return nil, 0, process.ErrInvalidAddressLength

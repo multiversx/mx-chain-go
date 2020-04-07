@@ -13,7 +13,7 @@ type functionContainer struct {
 	objects *container.MutexMap
 }
 
-// NewInterceptorsContainer will create a new instance of a container
+// NewBuiltInFunctionContainer will create a new instance of a container
 func NewBuiltInFunctionContainer() *functionContainer {
 	return &functionContainer{
 		objects: container.NewMutexMap(),
@@ -42,6 +42,9 @@ func (f *functionContainer) Add(key string, function process.BuiltinFunction) er
 	if check.IfNil(function) {
 		return process.ErrNilContainerElement
 	}
+	if len(key) == 0 {
+		return process.ErrEmptyFunctionName
+	}
 
 	ok := f.objects.Insert(key, function)
 	if !ok {
@@ -55,6 +58,9 @@ func (f *functionContainer) Add(key string, function process.BuiltinFunction) er
 func (f *functionContainer) Replace(key string, function process.BuiltinFunction) error {
 	if check.IfNil(function) {
 		return process.ErrNilContainerElement
+	}
+	if len(key) == 0 {
+		return process.ErrEmptyFunctionName
 	}
 
 	f.objects.Set(key, function)

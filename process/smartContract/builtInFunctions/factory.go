@@ -24,7 +24,6 @@ type ArgsCreateBuiltInFunctionContainer struct {
 
 // CreateBuiltInFunctionContainer will create the list of built-in functions
 func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (process.BuiltInFunctionContainer, error) {
-
 	gasConfig, err := createGasConfig(args.GasMap)
 	if err != nil {
 		return nil, err

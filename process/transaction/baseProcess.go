@@ -172,15 +172,15 @@ func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSn
 }
 
 func (txProc *baseTxProcessor) checkUserNames(tx *transaction.Transaction, acntSnd, acntDst state.UserAccountHandler) error {
-	isSenderUserNameCorrect := len(tx.SndUserName) > 0 &&
+	isUserNameWrong := len(tx.SndUserName) > 0 &&
 		!check.IfNil(acntSnd) && !bytes.Equal(tx.SndUserName, acntSnd.GetUserName())
-	if isSenderUserNameCorrect {
+	if isUserNameWrong {
 		return process.ErrUserNameDoesNotMatch
 	}
 
-	isDstUserNameCorrect := len(tx.RcvUserName) > 0 &&
+	isUserNameWrong = len(tx.RcvUserName) > 0 &&
 		!check.IfNil(acntDst) && !bytes.Equal(tx.RcvUserName, acntDst.GetUserName())
-	if isDstUserNameCorrect {
+	if isUserNameWrong {
 		if check.IfNil(acntSnd) {
 			return process.ErrUserNameDoesNotMatchInCrossShardTx
 		}
