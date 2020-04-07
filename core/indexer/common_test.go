@@ -166,7 +166,7 @@ func TestComputeSizeOfTxs(t *testing.T) {
 	lenTxs := computeSizeOfTxs(gogoMarsh, txs)
 
 	keys := reflect.ValueOf(txs).MapKeys()
-	oneTxBytes, _ := gogoMarsh.Marshal(txs[fmt.Sprintf("%s", keys[0])])
+	oneTxBytes, _ := gogoMarsh.Marshal(txs[keys[0].String()])
 	oneTxSize := len(oneTxBytes)
 	expectedSize := numTxs * oneTxSize
 	expectedSizeDeltaPlus := expectedSize + int(0.01*float64(expectedSize))
