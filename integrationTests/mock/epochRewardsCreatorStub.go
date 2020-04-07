@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
@@ -13,6 +14,7 @@ type EpochRewardsCreatorStub struct {
 	SaveTxBlockToStorageCalled     func(metaBlock *block.MetaBlock, body *block.Body)
 	DeleteTxsFromStorageCalled     func(metaBlock *block.MetaBlock, body *block.Body)
 	RemoveBlockDataFromPoolsCalled func(metaBlock *block.MetaBlock, body *block.Body)
+	GetRewardsTxsCalled            func(body *block.Body) map[string]data.TransactionHandler
 }
 
 // CreateRewardsMiniBlocks -
@@ -21,6 +23,14 @@ func (e *EpochRewardsCreatorStub) CreateRewardsMiniBlocks(metaBlock *block.MetaB
 		return e.CreateRewardsMiniBlocksCalled(metaBlock, validatorsInfo)
 	}
 	return nil, nil
+}
+
+// GetRewardsTxs --
+func (e *EpochRewardsCreatorStub) GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler {
+	if e.GetRewardsTxsCalled != nil {
+		return e.GetRewardsTxsCalled(body)
+	}
+	return nil
 }
 
 // VerifyRewardsMiniBlocks -

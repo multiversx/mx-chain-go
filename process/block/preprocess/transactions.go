@@ -526,7 +526,7 @@ func (txs *transactions) receivedTransaction(key []byte, value interface{}) {
 
 // CreateBlockStarted cleans the local cache map for processed/created transactions at this round
 func (txs *transactions) CreateBlockStarted() {
-	_ = process.EmptyChannel(txs.chRcvAllTxs)
+	_ = core.EmptyChannel(txs.chRcvAllTxs)
 
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
 	txs.txsForCurrBlock.missingTxs = 0

@@ -45,6 +45,7 @@ func (f *feeHandler) ProcessTransactionFee(cost *big.Int, txHash []byte) {
 		return
 	}
 
+	// TODO: Remove mutex, since all processing is performed sequentially?
 	f.mut.Lock()
 	f.mapHashFee[string(txHash)] = big.NewInt(0).Set(cost)
 	f.accumulatedFees.Add(f.accumulatedFees, cost)

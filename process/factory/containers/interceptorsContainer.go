@@ -44,7 +44,6 @@ func (ic *interceptorsContainer) Add(key string, interceptor process.Interceptor
 	}
 
 	ok := ic.objects.Insert(key, interceptor)
-
 	if !ok {
 		return process.ErrContainerKeyAlreadyExists
 	}
@@ -60,6 +59,10 @@ func (ic *interceptorsContainer) AddMultiple(keys []string, interceptors []proce
 	}
 
 	for idx, key := range keys {
+		if len(key) == 0 {
+			continue
+		}
+
 		err := ic.Add(key, interceptors[idx])
 		if err != nil {
 			return err
@@ -87,6 +90,35 @@ func (ic *interceptorsContainer) Remove(key string) {
 // Len returns the length of the added objects
 func (ic *interceptorsContainer) Len() int {
 	return ic.objects.Len()
+}
+
+// Iterate will call the provided handler for each and every key-value pair
+func (ic *interceptorsContainer) Iterate(handler func(key string, interceptor process.Interceptor) bool) {
+	if handler == nil {
+		return
+	}
+
+	for _, keyVal := range ic.objects.Keys() {
+		key, ok := keyVal.(string)
+		if !ok {
+			continue
+		}
+
+		val, ok := ic.objects.Get(key)
+		if !ok {
+			continue
+		}
+
+		interceptor, ok := val.(process.Interceptor)
+		if !ok {
+			continue
+		}
+
+		shouldContinue := handler(key, interceptor)
+		if !shouldContinue {
+			return
+		}
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

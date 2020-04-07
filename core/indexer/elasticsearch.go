@@ -31,7 +31,7 @@ type ElasticIndexerArgs struct {
 	Password           string
 	Marshalizer        marshal.Marshalizer
 	Hasher             hashing.Hasher
-	EpochStartNotifier sharding.EpochStartSubscriber
+	EpochStartNotifier sharding.EpochStartEventNotifier
 	NodesCoordinator   sharding.NodesCoordinator
 	Options            *Options
 }
@@ -40,6 +40,7 @@ type elasticIndexer struct {
 	database     databaseHandler
 	options      *Options
 	coordinator  sharding.NodesCoordinator
+	marshalizer  marshal.Marshalizer
 	isNilIndexer bool
 }
 
@@ -67,6 +68,7 @@ func NewElasticIndexer(arguments ElasticIndexerArgs) (Indexer, error) {
 		database:     client,
 		options:      arguments.Options,
 		coordinator:  arguments.NodesCoordinator,
+		marshalizer:  arguments.Marshalizer,
 		isNilIndexer: false,
 	}
 
@@ -96,7 +98,8 @@ func (ei *elasticIndexer) SaveBlock(
 		return
 	}
 
-	go ei.database.SaveHeader(headerHandler, signersIndexes, body, notarizedHeadersHashes)
+	txsSizeInBytes := computeSizeOfTxs(ei.marshalizer, txPool)
+	go ei.database.SaveHeader(headerHandler, signersIndexes, body, notarizedHeadersHashes, txsSizeInBytes)
 
 	if len(body.MiniBlocks) == 0 {
 		log.Debug("indexer", "error", ErrNoMiniblocks.Error())
@@ -115,7 +118,7 @@ func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
 	ei.database.SaveRoundInfo(roundInfo)
 }
 
-func (ei *elasticIndexer) epochStartEventHandler() epochStart.EpochStartHandler {
+func (ei *elasticIndexer) epochStartEventHandler() epochStart.ActionHandler {
 	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
 		currentEpoch := hdr.GetEpoch()
 		validatorsPubKeys, err := ei.coordinator.GetAllEligibleValidatorsPublicKeys(currentEpoch)

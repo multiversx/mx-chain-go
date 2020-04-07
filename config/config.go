@@ -109,6 +109,7 @@ type Config struct {
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesDataPool           CacheConfig
+	WhiteListPool               CacheConfig
 	EpochStartConfig            EpochStartConfig
 	Address                     AddressConfig
 	BLSPublicKey                AddressConfig
@@ -132,6 +133,9 @@ type Config struct {
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
 	BlockSizeThrottleConfig BlockSizeThrottleConfig
+	VirtualMachineConfig    VirtualMachineConfig
+
+	Hardfork HardforkConfig
 }
 
 // StoragePruningConfig will hold settings relates to storage pruning
@@ -161,6 +165,7 @@ type HeartbeatConfig struct {
 type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec int
 	MaxComputableRounds      uint64
+	StartInEpochEnabled      bool
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -222,4 +227,24 @@ type AntifloodConfig struct {
 	WebServer                 WebServerAntifloodConfig
 	Topic                     TopicAntifloodConfig
 	TxAccumulator             TxAccumulatorConfig
+}
+
+// VirtualMachineConfig holds configuration for the Virtual Machine(s)
+type VirtualMachineConfig struct {
+	OutOfProcessEnabled bool
+	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
+}
+
+// VirtualMachineOutOfProcessConfig holds configuration for out-of-process virtual machine(s)
+type VirtualMachineOutOfProcessConfig struct {
+	LogsMarshalizer     string
+	MessagesMarshalizer string
+	MaxLoopTime         int
+}
+
+// HardforkConfig holds the configuration for the hardfork trigger
+type HardforkConfig struct {
+	EnableTrigger         bool
+	EnableTriggerFromP2P  bool
+	PublicKeyToListenFrom string
 }

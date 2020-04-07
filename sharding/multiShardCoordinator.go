@@ -2,7 +2,6 @@ package sharding
 
 import (
 	"bytes"
-	"fmt"
 	"math"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -98,40 +97,10 @@ func (msc *multiShardCoordinator) SameShard(firstAddress, secondAddress state.Ad
 // CommunicationIdentifier returns the identifier between current shard ID and destination shard ID
 // identifier is generated such as the first shard from identifier is always smaller or equal than the last
 func (msc *multiShardCoordinator) CommunicationIdentifier(destShardID uint32) string {
-	return communicationIdentifierBetweenShards(msc.selfId, destShardID)
+	return core.CommunicationIdentifierBetweenShards(msc.selfId, destShardID)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (msc *multiShardCoordinator) IsInterfaceNil() bool {
 	return msc == nil
-}
-
-// communicationIdentifierBetweenShards is used to generate the identifier between shardID1 and shardID2
-// identifier is generated such as the first shard from identifier is always smaller or equal than the last
-func communicationIdentifierBetweenShards(shardId1 uint32, shardId2 uint32) string {
-	if shardId1 == core.AllShardId || shardId2 == core.AllShardId {
-		return shardIdToString(core.AllShardId)
-	}
-
-	if shardId1 == shardId2 {
-		return shardIdToString(shardId1)
-	}
-
-	if shardId1 < shardId2 {
-		return shardIdToString(shardId1) + shardIdToString(shardId2)
-	}
-
-	return shardIdToString(shardId2) + shardIdToString(shardId1)
-}
-
-func shardIdToString(shardId uint32) string {
-	if shardId == core.MetachainShardId {
-		return "_META"
-	}
-
-	if shardId == core.AllShardId {
-		return "_ALL"
-	}
-
-	return fmt.Sprintf("_%d", shardId)
 }

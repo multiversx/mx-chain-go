@@ -101,6 +101,16 @@ func (tnRes *TrieNodeResolver) RequestDataFromHash(hash []byte, _ uint32) error 
 	})
 }
 
+// SetNumPeersToQuery will set the number of intra shard and cross shard number of peer to query
+func (tnRes *TrieNodeResolver) SetNumPeersToQuery(intra int, cross int) {
+	tnRes.TopicResolverSender.SetNumPeersToQuery(intra, cross)
+}
+
+// GetNumPeersToQuery will return the number of intra shard and cross shard number of peer to query
+func (tnRes *TrieNodeResolver) GetNumPeersToQuery() (int, int) {
+	return tnRes.TopicResolverSender.GetNumPeersToQuery()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (tnRes *TrieNodeResolver) IsInterfaceNil() bool {
 	return tnRes == nil

@@ -3,9 +3,9 @@ module github.com/ElrondNetwork/elrond-go
 go 1.13
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm v0.3.10
+	github.com/ElrondNetwork/arwen-wasm-vm v0.3.11
 	github.com/ElrondNetwork/concurrent-map v0.1.2
-	github.com/ElrondNetwork/elrond-go-logger v0.0.0-20200325162737-10cc6869afc5
+	github.com/ElrondNetwork/elrond-go-logger v1.0.1
 	github.com/ElrondNetwork/elrond-vm v0.0.25
 	github.com/ElrondNetwork/elrond-vm-common v0.1.12
 	github.com/beevik/ntp v0.2.0
@@ -44,5 +44,6 @@ require (
 	github.com/whyrusleeping/go-logging v0.0.1 // indirect
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
+	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
