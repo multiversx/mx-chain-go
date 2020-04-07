@@ -123,7 +123,7 @@ func TestElasticseachDatabaseSaveHeader_RequestError(t *testing.T) {
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveHeader(header, signerIndexes, &dataBlock.Body{}, nil)
+	elasticDatabase.SaveHeader(header, signerIndexes, &dataBlock.Body{}, nil, 1)
 
 	defer func() {
 		_ = logger.RemoveLogObserver(output)
@@ -165,7 +165,7 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveHeader(header, signerIndexes, blockBody, nil)
+	elasticDatabase.SaveHeader(header, signerIndexes, blockBody, nil, 1)
 }
 
 func TestElasticseachSaveTransactions(t *testing.T) {
