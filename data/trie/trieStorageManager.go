@@ -209,6 +209,7 @@ func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
 			return err
 		}
 
+		log.Trace("remove hash from trie db", "hash", hex.EncodeToString(hash))
 		err = tsm.db.Remove(hash)
 		if err != nil {
 			return err
@@ -285,7 +286,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshot snapshotsQueueEntry, msh ma
 		return
 	}
 
-	log.Trace("trie snapshot started", "rootHash", snapshot.rootHash)
+	log.Debug("trie snapshot started", "rootHash", snapshot.rootHash)
 
 	newRoot, err := newSnapshotNode(tsm.db, msh, hsh, snapshot.rootHash)
 	if err != nil {
