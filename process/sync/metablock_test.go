@@ -493,7 +493,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 			HasOrAddCalled: func(key []byte, value interface{}) (ok, evicted bool) {
 				return false, false
 			},
-			RegisterHandlerCalled: func(func(key []byte)) {},
+			RegisterHandlerCalled: func(func(key []byte, value interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},

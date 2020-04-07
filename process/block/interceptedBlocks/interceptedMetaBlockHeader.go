@@ -1,6 +1,8 @@
 package interceptedBlocks
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -126,6 +128,15 @@ func (imh *InterceptedMetaHeader) IsForCurrentShard() bool {
 // Type returns the type of this intercepted data
 func (imh *InterceptedMetaHeader) Type() string {
 	return "intercepted meta header"
+}
+
+// String returns the meta header's most important fields as string
+func (imh *InterceptedMetaHeader) String() string {
+	return fmt.Sprintf("epoch=%d, round=%d, nonce=%d",
+		imh.hdr.Epoch,
+		imh.hdr.Round,
+		imh.hdr.Nonce,
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

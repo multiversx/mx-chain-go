@@ -155,6 +155,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return process.ErrNilSCDestAccount
 	}
 
+	log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "data", string(tx.GetData()))
+
 	err := sc.processSCPayment(tx, acntSnd)
 	if err != nil {
 		log.Debug("process sc payment error", "error", err.Error())
@@ -1023,6 +1025,8 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	if scr == nil {
 		return process.ErrNilSmartContractResult
 	}
+
+	log.Trace("scProcessor.ProcessSmartContractResult()", "sender", scr.GetSndAddr(), "receiver", scr.GetRcvAddr())
 
 	var err error
 	txHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, scr)

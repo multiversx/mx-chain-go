@@ -197,7 +197,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.
 	txValidatorHandler := getTxValidatorHandler(currentShard, currentShard, 1, addressMock, big.NewInt(0))
 
 	result := txValidator.CheckTxValidity(txValidatorHandler)
-	assert.True(t, errors.Is(result, process.ErrAddressNotInThisShard))
+	assert.True(t, errors.Is(result, process.ErrAccountNotFound))
 }
 
 func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing.T) {

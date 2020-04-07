@@ -242,7 +242,7 @@ func NewTestProcessorNode(
 	address = []byte("afafafafafafafafafafafafafafafaf")
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkBytes, address)
+			v, _ := sharding.NewValidator(pkBytes, address, defaultChancesSelection)
 			return []sharding.Validator{v}, nil
 		},
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
@@ -252,7 +252,7 @@ func NewTestProcessorNode(
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, address)
+			validator, _ := sharding.NewValidator(publicKey, address, defaultChancesSelection)
 			return validator, 0, nil
 		},
 	}
@@ -751,9 +751,22 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	}
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	gasSchedule := arwenConfig.MakeGasMap(1)
-	vmFactory, _ := shard.NewVMContainerFactory(maxGasLimitPerBlock, gasSchedule, argsHook)
+	vmFactory, _ := shard.NewVMContainerFactory(
+		config.VirtualMachineConfig{
+			OutOfProcessEnabled: true,
+			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+		},
+		maxGasLimitPerBlock,
+		gasSchedule,
+		argsHook,
+	)
 
-	tpn.VMContainer, _ = vmFactory.Create()
+	var err error
+	tpn.VMContainer, err = vmFactory.Create()
+	if err != nil {
+		panic(err)
+	}
+
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
 	createAndAddIeleVM(tpn.VMContainer, tpn.BlockchainHook)
 
@@ -1059,6 +1072,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			MiniBlockStorage: miniBlockStorage,
 			Hasher:           TestHasher,
 			Marshalizer:      TestMarshalizer,
+			DataPool:         tpn.DataPool,
 		}
 		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)
 
@@ -1067,6 +1081,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			MiniBlockStorage: miniBlockStorage,
 			Hasher:           TestHasher,
 			Marshalizer:      TestMarshalizer,
+			DataPool:         tpn.DataPool,
 		}
 
 		epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)
@@ -1205,12 +1220,12 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.DataPool.Headers().RegisterHandler(hdrHandlers)
 	} else {
-		txHandler := func(key []byte) {
+		txHandler := func(key []byte, value interface{}) {
 			tx, _ := tpn.DataPool.Transactions().SearchFirstData(key)
 			tpn.ReceivedTransactions.Store(string(key), tx)
 			atomic.AddInt32(&tpn.CounterTxRecv, 1)
 		}
-		mbHandlers := func(key []byte) {
+		mbHandlers := func(key []byte, value interface{}) {
 			atomic.AddInt32(&tpn.CounterMbRecv, 1)
 		}
 
@@ -1249,11 +1264,9 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		return remainingTime > 0
 	}
 
-	blockHeader := tpn.BlockProcessor.CreateNewHeader(round)
+	blockHeader := tpn.BlockProcessor.CreateNewHeader(round, nonce)
 
 	blockHeader.SetShardID(tpn.ShardCoordinator.SelfId())
-	blockHeader.SetRound(round)
-	blockHeader.SetNonce(nonce)
 	blockHeader.SetPubKeysBitmap([]byte{1})
 
 	currHdr := tpn.BlockChain.GetCurrentBlockHeader()

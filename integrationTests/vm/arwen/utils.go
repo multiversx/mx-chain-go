@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestContext -
@@ -35,6 +35,7 @@ type TestContext struct {
 	Accounts     *state.AccountsDB
 	TxProcessor  process.TransactionProcessor
 	QueryService external.SCQueryService
+	VMContainer  process.VirtualMachinesContainer
 }
 
 type testParticipant struct {
@@ -57,7 +58,7 @@ func SetupTestContext(t *testing.T) TestContext {
 	context.initAccounts()
 
 	gasSchedule, err := core.LoadGasScheduleConfig("../gasSchedule.toml")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	vmContainer, blockChainHook := vm.CreateVMAndBlockchainHook(context.Accounts, gasSchedule)
 	context.TxProcessor = vm.CreateTxProcessorWithOneSCExecutorWithVMs(context.Accounts, vmContainer, blockChainHook)
@@ -67,8 +68,14 @@ func SetupTestContext(t *testing.T) TestContext {
 			return uint64(math.MaxUint64)
 		},
 	})
+	context.VMContainer = vmContainer
 
 	return context
+}
+
+// Close closes the test context
+func (context *TestContext) Close() {
+	context.VMContainer.Close()
 }
 
 func (context *TestContext) initAccounts() {
@@ -104,13 +111,13 @@ func (context *TestContext) initAccounts() {
 func (context *TestContext) createAccount(participant *testParticipant) {
 	_, err := vm.CreateAccount(context.Accounts, participant.Address, participant.Nonce, participant.Balance)
 	if err != nil {
-		assert.FailNow(context.T, err.Error())
+		require.FailNow(context.T, err.Error())
 	}
 }
 
 // DeploySC -
 func (context *TestContext) DeploySC(wasmPath string, parametersString string) {
-	smartContractCode := getSCCode(wasmPath)
+	smartContractCode := GetSCCode(wasmPath)
 	owner := &context.Owner
 
 	txData := smartContractCode + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)
@@ -130,19 +137,24 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) {
 
 	err := context.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
-		assert.FailNow(context.T, err.Error())
+		require.FailNow(context.T, err.Error())
 	}
 
 	owner.Nonce++
 
 	_, err = context.Accounts.Commit()
 	if err != nil {
-		assert.FailNow(context.T, err.Error())
+		require.FailNow(context.T, err.Error())
 	}
 }
 
-func getSCCode(fileName string) string {
-	code, _ := ioutil.ReadFile(filepath.Clean(fileName))
+// GetSCCode -
+func GetSCCode(fileName string) string {
+	code, err := ioutil.ReadFile(filepath.Clean(fileName))
+	if err != nil {
+		panic("Could not get SC code.")
+	}
+
 	codeEncoded := hex.EncodeToString(code)
 
 	return codeEncoded
@@ -166,14 +178,14 @@ func (context *TestContext) executeSCWithValue(sender *testParticipant, txData s
 
 	err := context.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
-		assert.FailNow(context.T, err.Error())
+		require.FailNow(context.T, err.Error())
 	}
 
 	sender.Nonce++
 
 	_, err = context.Accounts.Commit()
 	if err != nil {
-		assert.FailNow(context.T, err.Error())
+		require.FailNow(context.T, err.Error())
 	}
 }
 
@@ -194,7 +206,7 @@ func (context *TestContext) querySC(function string, args [][]byte) []byte {
 
 	vmOutput, err := context.QueryService.ExecuteQuery(&query)
 	if err != nil {
-		assert.FailNow(context.T, err.Error())
+		require.FailNow(context.T, err.Error())
 		return []byte{}
 	}
 

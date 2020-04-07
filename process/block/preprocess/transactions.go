@@ -217,12 +217,16 @@ func (txs *transactions) RestoreTxBlockIntoPools(
 			txs.txPool.AddData([]byte(txHash), &tx, strCache)
 		}
 
-		miniBlockHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
-		if err != nil {
-			return txsRestored, err
-		}
+		//TODO: Should be analyzed if restoring into pool only cross-shard miniblocks with destination in self shard,
+		//would create problems or not
+		if miniBlock.SenderShardID != txs.shardCoordinator.SelfId() {
+			miniBlockHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
+			if err != nil {
+				return txsRestored, err
+			}
 
-		miniBlockPool.Put(miniBlockHash, miniBlock)
+			miniBlockPool.Put(miniBlockHash, miniBlock)
+		}
 
 		txsRestored += len(miniBlock.TxHashes)
 	}
@@ -506,8 +510,14 @@ func (txs *transactions) SaveTxBlockToStorage(body *block.Body) error {
 
 // receivedTransaction is a call back function which is called when a new transaction
 // is added in the transaction pool
-func (txs *transactions) receivedTransaction(txHash []byte) {
-	receivedAllMissing := txs.baseReceivedTransaction(txHash, &txs.txsForCurrBlock, txs.txPool, txs.blockType)
+func (txs *transactions) receivedTransaction(key []byte, value interface{}) {
+	wrappedTx, ok := value.(*txcache.WrappedTransaction)
+	if !ok {
+		log.Warn("transactions.receivedTransaction", "error", process.ErrWrongTypeAssertion)
+		return
+	}
+
+	receivedAllMissing := txs.baseReceivedTransaction(key, wrappedTx.Tx, &txs.txsForCurrBlock)
 
 	if receivedAllMissing {
 		txs.chRcvAllTxs <- true

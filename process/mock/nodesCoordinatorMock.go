@@ -38,6 +38,7 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 			validatorsList[v], _ = sharding.NewValidator(
 				[]byte(fmt.Sprintf("pubKey%d%d", sh, v)),
 				[]byte(fmt.Sprintf("address%d%d", sh, v)),
+				1,
 			)
 		}
 		validatorsMap[sh] = validatorsList
@@ -48,6 +49,7 @@ func NewNodesCoordinatorMock() *NodesCoordinatorMock {
 		validatorsList[v], _ = sharding.NewValidator(
 			[]byte(fmt.Sprintf("pubKey%d%d", core.MetachainShardId, v)),
 			[]byte(fmt.Sprintf("address%d%d", core.MetachainShardId, v)),
+			1,
 		)
 	}
 
@@ -267,6 +269,16 @@ func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
 	_ uint32,
 ) (map[string]struct{}, error) {
 	panic("not implemented")
+}
+
+// ValidatorsWeights -
+func (ncm *NodesCoordinatorMock) ValidatorsWeights(validators []sharding.Validator) ([]uint32, error) {
+	weights := make([]uint32, len(validators))
+	for i := range validators {
+		weights[i] = 1
+	}
+
+	return weights, nil
 }
 
 // IsInterfaceNil -

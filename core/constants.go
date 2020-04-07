@@ -213,6 +213,15 @@ const MetricLeaderPercentage = "erd_metric_leader_percentage"
 //MetricDenominationCoefficient is the metric for denomination coefficient that is used in views
 const MetricDenominationCoefficient = "erd_metric_denomination_coefficient"
 
+// MetricRoundAtEpochStart is the metric for storing the first round of the current epoch
+const MetricRoundAtEpochStart = "erd_round_at_epoch_start"
+
+// MetricRoundsPerEpoch is the metric that tells the number of rounds in an epoch
+const MetricRoundsPerEpoch = "erd_rounds_per_epoch"
+
+// MetricRoundsPassedInCurrentEpoch is the metric that tells the number of rounds passed in current epoch
+const MetricRoundsPassedInCurrentEpoch = "erd_rounds_passed_in_current_epoch"
+
 //MetricReceivedProposedBlock is the metric that specify the moment in the round when the received block has reached the
 //current node. The value is provided in percent (0 meaning it has been received just after the round started and
 //100 meaning that the block has been received in the last moment of the round)
@@ -259,6 +268,10 @@ const (
 	NodesCoordinatorOrder
 	// ConsensusOrder defines the order in which Consensus is notified of a start of epoch event
 	ConsensusOrder
+	// NetworkShardingOrder defines the order in which the network sharding subsystem is notified of a start of epoch event
+	NetworkShardingOrder
+	// IndexerOrder defines the order in which Indexer is notified of a start of epoch event
+	IndexerOrder
 )
 
 // NodeState specifies what type of state a node could have
@@ -293,3 +306,6 @@ const MetricP2PUnknownPeers = "erd_p2p_unknown_shard_peers"
 
 // MetricP2PNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
 const MetricP2PNumConnectedPeersClassification = "erd_p2p_num_connected_peers_classification"
+
+// HashSizeInBytes represents the size in bytes of a hash
+const HashSizeInBytes = 32

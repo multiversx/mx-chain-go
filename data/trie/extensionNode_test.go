@@ -845,7 +845,7 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 		},
 	}
 	syncer, _ := NewTrieSyncer(resolver, nodesCacher, tr, time.Second)
-	syncer.interceptedNodes.RegisterHandler(func(key []byte) {
+	syncer.interceptedNodes.RegisterHandler(func(key []byte, value interface{}) {
 		syncer.chRcvTrieNodes <- true
 	})
 

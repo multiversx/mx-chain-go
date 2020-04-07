@@ -154,7 +154,7 @@ func (ts *trieSyncer) waitForTrieNode() error {
 	}
 }
 
-func (ts *trieSyncer) trieNodeIntercepted(hash []byte) {
+func (ts *trieSyncer) trieNodeIntercepted(hash []byte, _ interface{}) {
 	ts.requestedHashesMutex.Lock()
 
 	if hashInSlice(hash, ts.requestedHashes) {
