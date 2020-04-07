@@ -105,10 +105,11 @@ func (esd *elasticSearchDatabase) SaveHeader(
 	signersIndexes []uint64,
 	body *block.Body,
 	notarizedHeadersHashes []string,
+	txsSize int,
 ) {
 	var buff bytes.Buffer
 
-	serializedBlock, headerHash := esd.getSerializedElasticBlockAndHeaderHash(header, signersIndexes, body, notarizedHeadersHashes)
+	serializedBlock, headerHash := esd.getSerializedElasticBlockAndHeaderHash(header, signersIndexes, body, notarizedHeadersHashes, txsSize)
 
 	buff.Grow(len(serializedBlock))
 	_, err := buff.Write(serializedBlock)
@@ -135,12 +136,20 @@ func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(
 	signersIndexes []uint64,
 	body *block.Body,
 	notarizedHeadersHashes []string,
+	sizeTxs int,
 ) ([]byte, []byte) {
-	h, err := esd.marshalizer.Marshal(header)
+	headerBytes, err := esd.marshalizer.Marshal(header)
 	if err != nil {
-		log.Debug("indexer: marshal", "error", "could not marshal header")
+		log.Debug("indexer: marshal header", "error", err)
 		return nil, nil
 	}
+	bodyBytes, err := esd.marshalizer.Marshal(body)
+	if err != nil {
+		log.Debug("indexer: marshal body", "error", err)
+		return nil, nil
+	}
+
+	blockSizeInBytes := len(headerBytes) + len(bodyBytes)
 
 	miniblocksHashes := make([]string, 0)
 	for _, miniblock := range body.MiniBlocks {
@@ -153,7 +162,7 @@ func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(
 		miniblocksHashes = append(miniblocksHashes, encodedMbHash)
 	}
 
-	headerHash := esd.hasher.Compute(string(h))
+	headerHash := esd.hasher.Compute(string(headerBytes))
 	elasticBlock := Block{
 		Nonce:                 header.GetNonce(),
 		Round:                 header.GetRound(),
@@ -165,12 +174,12 @@ func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(
 		Proposer:              signersIndexes[0],
 		Validators:            signersIndexes,
 		PubKeyBitmap:          hex.EncodeToString(header.GetPubKeysBitmap()),
-		// TODO compute correctly size of block = size(header) + size(body) + size(transactions)
-		Size:          int64(len(h)),
-		Timestamp:     time.Duration(header.GetTimeStamp()),
-		TxCount:       header.GetTxCount(),
-		StateRootHash: hex.EncodeToString(header.GetRootHash()),
-		PrevHash:      hex.EncodeToString(header.GetPrevHash()),
+		Size:                  int64(blockSizeInBytes),
+		SizeTxs:               int64(sizeTxs),
+		Timestamp:             time.Duration(header.GetTimeStamp()),
+		TxCount:               header.GetTxCount(),
+		StateRootHash:         hex.EncodeToString(header.GetRootHash()),
+		PrevHash:              hex.EncodeToString(header.GetPrevHash()),
 	}
 
 	serializedBlock, err := json.Marshal(elasticBlock)
@@ -218,9 +227,6 @@ func (esd *elasticSearchDatabase) buildTransactionBulks(
 	blockHash := esd.hasher.Compute(string(blockMarshal))
 
 	for _, mb := range body.MiniBlocks {
-		if header.GetShardID() == core.MetachainShardId && mb.Type == block.RewardsBlock {
-			continue
-		}
 		if mb.Type == block.PeerBlock {
 			continue
 		}
@@ -271,10 +277,15 @@ func (esd *elasticSearchDatabase) SaveMiniblocks(header data.HeaderHandler, body
 		return
 	}
 
-	buff := serializeBulkMiniBlocks(header.GetShardID(), miniblocks)
-	err := esd.dbWriter.DoBulkRequest(&buff, miniblocksIndex)
+	buffInsert, buffUpdate := serializeBulkMiniBlocks(header.GetShardID(), miniblocks)
+	err := esd.dbWriter.DoBulkRequest(&buffInsert, miniblocksIndex)
 	if err != nil {
-		log.Warn("indexing bulk of miniblock", "error", err.Error())
+		log.Warn("indexing bulk of miniblock insert ", "error", err.Error())
+	}
+
+	err = esd.dbWriter.DoBulkRequest(&buffUpdate, miniblocksIndex)
+	if err != nil {
+		log.Warn("indexing bulk of miniblock update ", "error", err.Error())
 	}
 }
 
@@ -306,6 +317,10 @@ func (esd *elasticSearchDatabase) getMiniblocks(header data.HeaderHandler, body 
 		if mb.SenderShardID == header.GetShardID() {
 			mb.SenderBlockHash = encodedHeaderHash
 		} else {
+			mb.ReceiverBlockHash = encodedHeaderHash
+		}
+
+		if mb.SenderShardID == mb.ReceiverShardID {
 			mb.ReceiverBlockHash = encodedHeaderHash
 		}
 
