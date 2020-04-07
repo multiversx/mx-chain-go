@@ -225,6 +225,17 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilMarshalizer, err)
 }
 
+func TestWorker_NewWorkerHasherNilShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.Hasher = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilHasher, err)
+}
+
 func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 	t.Parallel()
 
@@ -300,6 +311,17 @@ func TestWorker_NewWorkerNilAntifloodHandlerShouldFail(t *testing.T) {
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilAntifloodHandler, err)
+}
+
+func TestWorker_NewWorkerPoolAdderNilShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.PoolAdder = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilPoolAdder, err)
 }
 
 func TestWorker_NewWorkerShouldWork(t *testing.T) {

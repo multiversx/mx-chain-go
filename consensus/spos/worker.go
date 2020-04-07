@@ -88,9 +88,7 @@ type WorkerArgs struct {
 }
 
 // NewWorker creates a new Worker object
-func NewWorker(
-	args *WorkerArgs,
-) (*Worker, error) {
+func NewWorker(args *WorkerArgs) (*Worker, error) {
 	err := checkNewWorkerParams(
 		args,
 	)
