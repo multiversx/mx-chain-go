@@ -128,7 +128,7 @@ func incrementCountAcceptedBlocks(
 	bitMap := header.GetPubKeysBitmap()
 	indexOutOfBounds := myIndex/8 >= len(bitMap)
 	if indexOutOfBounds {
-		log.Debug("process blocks metrics: index out of bounds",
+		log.Trace("process blocks metrics: index out of bounds",
 			"index", myIndex,
 			"bitMap", bitMap,
 			"bitMap length", len(bitMap))
