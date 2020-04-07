@@ -19,6 +19,17 @@ type PeerAccountHandlerMock struct {
 	GetAccumulatedFeesCalled           func() *big.Int
 	GetConsecutiveProposerMissesCalled func() uint32
 	SetConsecutiveProposerMissesCalled func(rating uint32)
+	SetListAndIndexCalled              func(shardID uint32, list string, index uint32)
+}
+
+// GetList -
+func (p *PeerAccountHandlerMock) GetList() string {
+	return ""
+}
+
+// GetIndex -
+func (p *PeerAccountHandlerMock) GetIndex() uint32 {
+	return 0
 }
 
 // GetBLSPublicKey -
@@ -28,16 +39,6 @@ func (p *PeerAccountHandlerMock) GetBLSPublicKey() []byte {
 
 // SetBLSPublicKey -
 func (p *PeerAccountHandlerMock) SetBLSPublicKey([]byte) error {
-	return nil
-}
-
-// GetSchnorrPublicKey -
-func (p *PeerAccountHandlerMock) GetSchnorrPublicKey() []byte {
-	return nil
-}
-
-// SetSchnorrPublicKey -
-func (p *PeerAccountHandlerMock) SetSchnorrPublicKey([]byte) error {
 	return nil
 }
 
@@ -69,8 +70,8 @@ func (p *PeerAccountHandlerMock) GetAccumulatedFees() *big.Int {
 	return big.NewInt(0)
 }
 
-// SetAccumulatedFees -
-func (p *PeerAccountHandlerMock) SetAccumulatedFees(val *big.Int) {
+// AddToAccumulatedFees -
+func (p *PeerAccountHandlerMock) AddToAccumulatedFees(val *big.Int) {
 	if p.SetAccumulatedFeesCalled != nil {
 		p.SetAccumulatedFeesCalled(val)
 	}
@@ -284,6 +285,13 @@ func (pahm *PeerAccountHandlerMock) GetConsecutiveProposerMisses() uint32 {
 func (pahm *PeerAccountHandlerMock) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
 	if pahm.SetConsecutiveProposerMissesCalled != nil {
 		pahm.SetConsecutiveProposerMissesCalled(consecutiveMisses)
+	}
+}
+
+// SetListAndIndex -
+func (pahm *PeerAccountHandlerMock) SetListAndIndex(shardID uint32, list string, index uint32) {
+	if pahm.SetListAndIndexCalled != nil {
+		pahm.SetListAndIndexCalled(shardID, list, index)
 	}
 }
 

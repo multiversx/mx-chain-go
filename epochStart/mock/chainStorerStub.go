@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ChainStorerStub is a mock implementation of the ChianStorer interface
+// ChainStorerStub is a mock implementation of the ChainStorer interface
 type ChainStorerStub struct {
 	AddStorerCalled func(key dataRetriever.UnitType, s storage.Storer)
 	GetStorerCalled func(unitType dataRetriever.UnitType) storage.Storer

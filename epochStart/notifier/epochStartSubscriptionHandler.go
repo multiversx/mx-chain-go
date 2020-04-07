@@ -10,29 +10,29 @@ import (
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
-	RegisterHandler(handler epochStart.EpochStartHandler)
-	UnregisterHandler(handler epochStart.EpochStartHandler)
+	RegisterHandler(handler epochStart.ActionHandler)
+	UnregisterHandler(handler epochStart.ActionHandler)
 	NotifyAll(hdr data.HeaderHandler)
-	NotifyAllPrepare(hdr data.HeaderHandler)
+	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	IsInterfaceNil() bool
 }
 
 // epochStartSubscriptionHandler will handle subscription of function and notifying them
 type epochStartSubscriptionHandler struct {
-	epochStartHandlers   []epochStart.EpochStartHandler
+	epochStartHandlers   []epochStart.ActionHandler
 	mutEpochStartHandler sync.RWMutex
 }
 
 // NewEpochStartSubscriptionHandler returns a new instance of epochStartSubscriptionHandler
 func NewEpochStartSubscriptionHandler() *epochStartSubscriptionHandler {
 	return &epochStartSubscriptionHandler{
-		epochStartHandlers:   make([]epochStart.EpochStartHandler, 0),
+		epochStartHandlers:   make([]epochStart.ActionHandler, 0),
 		mutEpochStartHandler: sync.RWMutex{},
 	}
 }
 
 // RegisterHandler will subscribe a function so it will be called when NotifyAll method is called
-func (essh *epochStartSubscriptionHandler) RegisterHandler(handler epochStart.EpochStartHandler) {
+func (essh *epochStartSubscriptionHandler) RegisterHandler(handler epochStart.ActionHandler) {
 	if handler != nil {
 		essh.mutEpochStartHandler.Lock()
 		essh.epochStartHandlers = append(essh.epochStartHandlers, handler)
@@ -41,7 +41,7 @@ func (essh *epochStartSubscriptionHandler) RegisterHandler(handler epochStart.Ep
 }
 
 // UnregisterHandler will unsubscribe a function from the slice
-func (essh *epochStartSubscriptionHandler) UnregisterHandler(handlerToUnregister epochStart.EpochStartHandler) {
+func (essh *epochStartSubscriptionHandler) UnregisterHandler(handlerToUnregister epochStart.ActionHandler) {
 	if handlerToUnregister != nil {
 		essh.mutEpochStartHandler.Lock()
 		for idx, handler := range essh.epochStartHandlers {
@@ -69,7 +69,7 @@ func (essh *epochStartSubscriptionHandler) NotifyAll(hdr data.HeaderHandler) {
 
 // NotifyAllPrepare will call all the subscribed clients to notify them that an epoch change block has been
 // observed, but not yet confirmed/committed. Some components may need to do some initialisation/preparation
-func (essh *epochStartSubscriptionHandler) NotifyAllPrepare(metaHeader data.HeaderHandler) {
+func (essh *epochStartSubscriptionHandler) NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
 	essh.mutEpochStartHandler.Lock()
 
 	sort.Slice(essh.epochStartHandlers, func(i, j int) bool {
@@ -77,7 +77,7 @@ func (essh *epochStartSubscriptionHandler) NotifyAllPrepare(metaHeader data.Head
 	})
 
 	for i := 0; i < len(essh.epochStartHandlers); i++ {
-		essh.epochStartHandlers[i].EpochStartPrepare(metaHeader)
+		essh.epochStartHandlers[i].EpochStartPrepare(metaHdr, body)
 	}
 	essh.mutEpochStartHandler.Unlock()
 }

@@ -1486,7 +1486,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 		)
 	}
 
-	numDelayRounds := uint32(4)
+	numDelayRounds := uint32(6)
 	for i := uint64(0); i < uint64(numDelayRounds); i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		time.Sleep(integrationTests.StepDelay)
@@ -1549,9 +1549,6 @@ func testNodeStateCheckpointSnapshotAndPruning(
 	assert.Equal(t, 5, len(prunedRootHashes))
 	for i := range prunedRootHashes {
 		tr, err := stateTrie.Recreate(prunedRootHashes[i])
-		if err == nil {
-			fmt.Println(fmt.Sprintf("Should have been pruned: %s", core.ToHex(prunedRootHashes[i])))
-		}
 		assert.Nil(t, tr)
 		assert.NotNil(t, err)
 	}

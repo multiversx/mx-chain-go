@@ -67,7 +67,7 @@ func TestTxInterceptorProcessor_ValidateNilTxShouldErr(t *testing.T) {
 
 	txip, _ := processor.NewTxInterceptorProcessor(createMockTxArgument())
 
-	err := txip.Validate(nil)
+	err := txip.Validate(nil, "")
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
@@ -88,7 +88,7 @@ func TestTxInterceptorProcessor_ValidateReturnsFalseShouldErr(t *testing.T) {
 		mock.InterceptedDataStub
 		mock.InterceptedTxHandlerStub
 	}{}
-	err := txip.Validate(txInterceptedData)
+	err := txip.Validate(txInterceptedData, "")
 
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), expectedErr.Error()))
@@ -109,7 +109,7 @@ func TestTxInterceptorProcessor_ValidateReturnsTrueShouldWork(t *testing.T) {
 		mock.InterceptedDataStub
 		mock.InterceptedTxHandlerStub
 	}{}
-	err := txip.Validate(txInterceptedData)
+	err := txip.Validate(txInterceptedData, "")
 
 	assert.Nil(t, err)
 }
@@ -121,7 +121,7 @@ func TestTxInterceptorProcessor_SaveNilDataShouldErr(t *testing.T) {
 
 	txip, _ := processor.NewTxInterceptorProcessor(createMockTxArgument())
 
-	err := txip.Save(nil)
+	err := txip.Save(nil, "")
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
@@ -159,7 +159,7 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	txip, _ := processor.NewTxInterceptorProcessor(arg)
 
-	err := txip.Save(txInterceptedData)
+	err := txip.Save(txInterceptedData, "")
 
 	assert.Nil(t, err)
 	assert.True(t, addedWasCalled)

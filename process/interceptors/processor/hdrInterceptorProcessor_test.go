@@ -84,7 +84,7 @@ func TestHdrInterceptorProcessor_ValidateNilHdrShouldErr(t *testing.T) {
 
 	hip, _ := processor.NewHdrInterceptorProcessor(createMockHdrArgument())
 
-	err := hip.Validate(nil)
+	err := hip.Validate(nil, "")
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
@@ -115,7 +115,7 @@ func TestHdrInterceptorProcessor_ValidateHeaderIsBlackListedShouldErr(t *testing
 			},
 		},
 	}
-	err := hip.Validate(hdrInterceptedData)
+	err := hip.Validate(hdrInterceptedData, "")
 
 	assert.Equal(t, process.ErrHeaderIsBlackListed, err)
 }
@@ -143,7 +143,7 @@ func TestHdrInterceptorProcessor_ValidateReturnsErrFromIsValid(t *testing.T) {
 			},
 		},
 	}
-	err := hip.Validate(hdrInterceptedData)
+	err := hip.Validate(hdrInterceptedData, "")
 
 	assert.Equal(t, expectedErr, err)
 }
@@ -155,7 +155,7 @@ func TestHdrInterceptorProcessor_SaveNilDataShouldErr(t *testing.T) {
 
 	hip, _ := processor.NewHdrInterceptorProcessor(createMockHdrArgument())
 
-	err := hip.Save(nil)
+	err := hip.Save(nil, "")
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
@@ -190,7 +190,7 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
 
-	err := hip.Save(hdrInterceptedData)
+	err := hip.Save(hdrInterceptedData, "")
 
 	assert.Nil(t, err)
 	assert.True(t, wasAddedHeaders)

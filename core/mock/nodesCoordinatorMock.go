@@ -3,6 +3,7 @@ package mock
 import (
 	"bytes"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -22,6 +23,16 @@ type NodesCoordinatorMock struct {
 	GetAllEligibleValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeysCalled  func() (map[uint32][][]byte, error)
 	ConsensusGroupSizeCalled                 func(uint32) int
+}
+
+// GetChance -
+func (ncm *NodesCoordinatorMock) GetChance(uint32) uint32 {
+	return 1
+}
+
+// GetAllLeavingValidatorsPublicKeys -
+func (ncm *NodesCoordinatorMock) GetAllLeavingValidatorsPublicKeys(_ uint32) ([][]byte, error) {
+	return nil, nil
 }
 
 // GetNumTotalEligible -
@@ -94,30 +105,6 @@ func (ncm *NodesCoordinatorMock) GetConsensusValidatorsPublicKeys(
 	return valGrStr, nil
 }
 
-// GetConsensusValidatorsRewardsAddresses -
-func (ncm *NodesCoordinatorMock) GetConsensusValidatorsRewardsAddresses(
-	randomness []byte,
-	round uint64,
-	shardId uint32,
-	epoch uint32,
-) ([]string, error) {
-	if ncm.GetValidatorsPublicKeysCalled != nil {
-		return ncm.GetValidatorsRewardsAddressesCalled(randomness, round, shardId, epoch)
-	}
-
-	validators, err := ncm.ComputeConsensusGroup(randomness, round, shardId, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	addresses := make([]string, 0)
-	for _, v := range validators {
-		addresses = append(addresses, string(v.Address()))
-	}
-
-	return addresses, nil
-}
-
 // SetNodesPerShards -
 func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	eligible map[uint32][]sharding.Validator,
@@ -138,8 +125,8 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 }
 
 // ComputeLeaving -
-func (ncm *NodesCoordinatorMock) ComputeLeaving([]sharding.Validator) []sharding.Validator {
-	return make([]sharding.Validator, 0)
+func (ncm *NodesCoordinatorMock) ComputeLeaving(_ []*state.ShardValidatorInfo) ([]sharding.Validator, error) {
+	return make([]sharding.Validator, 0), nil
 }
 
 // ComputeConsensusGroup -

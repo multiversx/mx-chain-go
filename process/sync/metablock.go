@@ -171,7 +171,7 @@ func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 		nonce,
 		boot.headers)
 	if err != nil {
-		_ = process.EmptyChannel(boot.chRcvHdrNonce)
+		_ = core.EmptyChannel(boot.chRcvHdrNonce)
 		boot.requestHeaderWithNonce(nonce)
 		err = boot.waitForHeaderNonce()
 		if err != nil {
@@ -194,7 +194,7 @@ func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 func (boot *MetaBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (data.HeaderHandler, error) {
 	hdr, err := process.GetMetaHeader(hash, boot.headers, boot.marshalizer, boot.store)
 	if err != nil {
-		_ = process.EmptyChannel(boot.chRcvHdrHash)
+		_ = core.EmptyChannel(boot.chRcvHdrHash)
 		boot.requestHeaderWithHash(hash)
 		err = boot.waitForHeaderHash()
 		if err != nil {
