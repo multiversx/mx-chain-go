@@ -206,8 +206,9 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldTimeOut(t *tes
 		50,
 	)
 
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	mb, err := esmbp.GetEpochStartMetaBlock(ctx)
+	cancel()
 	assert.Nil(t, mb)
 	assert.Equal(t, epochStart.ErrTimeoutWaitingForMetaBlock, err)
 }
@@ -237,8 +238,9 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstT
 		_ = esmbp.Save(intData, p2p.PeerID(fmt.Sprintf("peer_%d", i)))
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	mb, err := esmbp.GetEpochStartMetaBlock(ctx)
+	cancel()
 	assert.NoError(t, err)
 	assert.Equal(t, expectedMetaBlock, mb)
 }
@@ -275,8 +277,9 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkAfterMulti
 		}
 	}()
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	mb, err := esmbp.GetEpochStartMetaBlock(ctx)
+	cancel()
 	assert.NoError(t, err)
 	assert.Equal(t, expectedMetaBlock, mb)
 }
@@ -313,8 +316,9 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkAfterMulti
 		}
 	}()
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	mb, err := esmbp.GetEpochStartMetaBlock(ctx)
+	cancel()
 	assert.NoError(t, err)
 	assert.Equal(t, expectedMetaBlock, mb)
 }

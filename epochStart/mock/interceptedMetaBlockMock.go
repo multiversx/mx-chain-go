@@ -42,6 +42,7 @@ func (i *interceptedMetaBlockMock) Type() string {
 	return "type"
 }
 
+// String -
 func (i *interceptedMetaBlockMock) String() string {
 	return "metaBlock"
 }
