@@ -351,6 +351,7 @@ type IntermediateProcessorsContainerFactory interface {
 
 // VirtualMachinesContainer defines a virtual machine holder data type with basic functionality
 type VirtualMachinesContainer interface {
+	Close() error
 	Get(key []byte) (vmcommon.VMExecutionHandler, error)
 	Add(key []byte, val vmcommon.VMExecutionHandler) error
 	AddMultiple(keys [][]byte, vms []vmcommon.VMExecutionHandler) error

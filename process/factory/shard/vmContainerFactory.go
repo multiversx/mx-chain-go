@@ -2,6 +2,12 @@ package shard
 
 import (
 	arwen "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
+	ipcCommon "github.com/ElrondNetwork/arwen-wasm-vm/ipc/common"
+	ipcLogger "github.com/ElrondNetwork/arwen-wasm-vm/ipc/logger"
+	ipcMarshaling "github.com/ElrondNetwork/arwen-wasm-vm/ipc/marshaling"
+	ipcNodePart "github.com/ElrondNetwork/arwen-wasm-vm/ipc/nodepart"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
@@ -9,7 +15,13 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+var logVMContainerFactory = logger.GetOrCreate("vmContainerFactory")
+var logArwenDriver = logger.GetOrCreate("arwenDriver")
+var logArwenMain = logger.GetOrCreate("arwenDriver/arwenMain")
+var logDialogue = logger.GetOrCreate("arwenDriver/dialogue")
+
 type vmContainerFactory struct {
+	config             config.VirtualMachineConfig
 	blockChainHookImpl *hooks.BlockChainHookImpl
 	cryptoHook         vmcommon.CryptoHook
 	blockGasLimit      uint64
@@ -18,6 +30,7 @@ type vmContainerFactory struct {
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
 func NewVMContainerFactory(
+	config config.VirtualMachineConfig,
 	blockGasLimit uint64,
 	gasSchedule map[string]map[string]uint64,
 	argBlockChainHook hooks.ArgBlockChainHook,
@@ -33,6 +46,7 @@ func NewVMContainerFactory(
 	cryptoHook := hooks.NewVMCryptoHook()
 
 	return &vmContainerFactory{
+		config:             config,
 		blockChainHookImpl: blockChainHookImpl,
 		cryptoHook:         cryptoHook,
 		blockGasLimit:      blockGasLimit,
@@ -58,8 +72,49 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 }
 
 func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, error) {
-	arwenVM, err := arwen.NewArwenVM(vmf.blockChainHookImpl, vmf.cryptoHook, factory.ArwenVirtualMachine, vmf.blockGasLimit, vmf.gasSchedule)
+	if vmf.config.OutOfProcessEnabled {
+		return vmf.createOutOfProcessArwenVM()
+	}
+
+	return vmf.createInProcessArwenVM()
+}
+
+func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
+	logVMContainerFactory.Info("createOutOfProcessArwenVM", "config", vmf.config)
+
+	outOfProcessConfig := vmf.config.OutOfProcessConfig
+	mainLogLevel := ipcLogger.LogLevel(logArwenMain.GetLevel())
+	dialogueLogLevel := ipcLogger.LogLevel(logDialogue.GetLevel())
+	logsMarshalizer := ipcMarshaling.ParseKind(outOfProcessConfig.LogsMarshalizer)
+	messagesMarshalizer := ipcMarshaling.ParseKind(outOfProcessConfig.MessagesMarshalizer)
+	maxLoopTime := outOfProcessConfig.MaxLoopTime
+
+	logger.GetLogLevelPattern()
+
+	arwenVM, err := ipcNodePart.NewArwenDriver(
+		logArwenDriver,
+		logArwenMain,
+		logDialogue,
+		vmf.blockChainHookImpl,
+		ipcCommon.ArwenArguments{
+			VMHostArguments: ipcCommon.VMHostArguments{
+				VMType:        factory.ArwenVirtualMachine,
+				BlockGasLimit: vmf.blockGasLimit,
+				GasSchedule:   vmf.gasSchedule,
+			},
+			MainLogLevel:        mainLogLevel,
+			DialogueLogLevel:    dialogueLogLevel,
+			LogsMarshalizer:     logsMarshalizer,
+			MessagesMarshalizer: messagesMarshalizer,
+		},
+		ipcNodePart.Config{MaxLoopTime: maxLoopTime},
+	)
 	return arwenVM, err
+}
+
+func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
+	logVMContainerFactory.Info("createInProcessArwenVM")
+	return arwen.NewArwenVM(vmf.blockChainHookImpl, vmf.cryptoHook, factory.ArwenVirtualMachine, vmf.blockGasLimit, vmf.gasSchedule)
 }
 
 // BlockChainHookImpl returns the created blockChainHookImpl

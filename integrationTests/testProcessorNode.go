@@ -749,9 +749,22 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	}
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	gasSchedule := arwenConfig.MakeGasMap(1)
-	vmFactory, _ := shard.NewVMContainerFactory(maxGasLimitPerBlock, gasSchedule, argsHook)
+	vmFactory, _ := shard.NewVMContainerFactory(
+		config.VirtualMachineConfig{
+			OutOfProcessEnabled: true,
+			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+		},
+		maxGasLimitPerBlock,
+		gasSchedule,
+		argsHook,
+	)
 
-	tpn.VMContainer, _ = vmFactory.Create()
+	var err error
+	tpn.VMContainer, err = vmFactory.Create()
+	if err != nil {
+		panic(err)
+	}
+
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
 	createAndAddIeleVM(tpn.VMContainer, tpn.BlockchainHook)
 

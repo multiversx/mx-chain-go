@@ -32,6 +32,8 @@ script:
 - ERD_PACKAGE=termui
 - cd $TRAVIS_BUILD_DIR/cmd/$ERD_PACKAGE
 - go build -o "$TRAVIS_BUILD_DIR/build/$ERD_PACKAGE" -a -i -ldflags="-X main.appVersion=$APP_VER"
+- cd $TRAVIS_BUILD_DIR 
+- ARWEN_PATH=$TRAVIS_BUILD_DIR/build/arwen make arwen
 
 - GOOS=$(go env GOOS)
 - GOARCH=$(go env GOARCH)
