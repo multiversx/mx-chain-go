@@ -42,10 +42,13 @@ func sameValidators(list1 []Validator, list2 []Validator) bool {
 	}
 
 	for i, validator := range list1 {
-		if !bytes.Equal(validator.Address(), list2[i].Address()) {
+		if !bytes.Equal(validator.PubKey(), list2[i].PubKey()) {
 			return false
 		}
-		if !bytes.Equal(validator.PubKey(), list2[i].PubKey()) {
+		if validator.Index() != list2[i].Index() {
+			return false
+		}
+		if validator.Chances() != list2[i].Chances() {
 			return false
 		}
 	}
@@ -59,9 +62,6 @@ func validatorsEqualSerializableValidators(validators []Validator, sValidators [
 	}
 
 	for i, validator := range validators {
-		if !bytes.Equal(validator.Address(), sValidators[i].Address) {
-			return false
-		}
 		if !bytes.Equal(validator.PubKey(), sValidators[i].PubKey) {
 			return false
 		}
@@ -96,7 +96,7 @@ func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistry(t *testing.T) {
 	args := createArguments()
 	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
 
-	ncr := nodesCoordinator.nodesCoordinatorToRegistry()
+	ncr := nodesCoordinator.NodesCoordinatorToRegistry()
 	nc := nodesCoordinator.nodesConfig
 
 	assert.Equal(t, nodesCoordinator.currentEpoch, ncr.CurrentEpoch)
@@ -111,7 +111,7 @@ func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistry(t *testing.T) {
 func TestIndexHashedNodesCoordinator_registryToNodesCoordinator(t *testing.T) {
 	args := createArguments()
 	nodesCoordinator1, _ := NewIndexHashedNodesCoordinator(args)
-	ncr := nodesCoordinator1.nodesCoordinatorToRegistry()
+	ncr := nodesCoordinator1.NodesCoordinatorToRegistry()
 
 	args = createArguments()
 	nodesCoordinator2, _ := NewIndexHashedNodesCoordinator(args)
@@ -154,7 +154,7 @@ func TestIndexHashedNodesCoordinator_validatorArrayToSerializableValidatorArray(
 	validatorsMap := createDummyNodesMap(5, 2, "dummy")
 
 	for _, validatorsArray := range validatorsMap {
-		sValidators := validatorArrayToSerializableValidatorArray(validatorsArray)
+		sValidators := ValidatorArrayToSerializableValidatorArray(validatorsArray)
 		assert.True(t, validatorsEqualSerializableValidators(validatorsArray, sValidators))
 	}
 }
@@ -164,7 +164,7 @@ func TestIndexHashedNodesCoordinator_serializableValidatorsMapToValidatorsMap(t 
 	sValidatorsMap := make(map[string][]*SerializableValidator)
 
 	for k, validatorsArray := range validatorsMap {
-		sValidators := validatorArrayToSerializableValidatorArray(validatorsArray)
+		sValidators := ValidatorArrayToSerializableValidatorArray(validatorsArray)
 		sValidatorsMap[fmt.Sprint(k)] = sValidators
 	}
 
@@ -175,7 +175,7 @@ func TestIndexHashedNodesCoordinator_serializableValidatorArrayToValidatorArray(
 	validatorsMap := createDummyNodesMap(5, 2, "dummy")
 
 	for _, validatorsArray := range validatorsMap {
-		sValidators := validatorArrayToSerializableValidatorArray(validatorsArray)
+		sValidators := ValidatorArrayToSerializableValidatorArray(validatorsArray)
 		valArray, err := serializableValidatorArrayToValidatorArray(sValidators)
 		assert.Nil(t, err)
 		assert.True(t, sameValidators(validatorsArray, valArray))

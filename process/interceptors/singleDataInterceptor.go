@@ -14,6 +14,7 @@ type SingleDataInterceptor struct {
 	factory          process.InterceptedDataFactory
 	processor        process.InterceptorProcessor
 	throttler        process.InterceptorThrottler
+	whiteListHandler process.WhiteListHandler
 	antifloodHandler process.P2PAntifloodHandler
 }
 
@@ -24,6 +25,7 @@ func NewSingleDataInterceptor(
 	processor process.InterceptorProcessor,
 	throttler process.InterceptorThrottler,
 	antifloodHandler process.P2PAntifloodHandler,
+	whiteListHandler process.WhiteListHandler,
 ) (*SingleDataInterceptor, error) {
 	if len(topic) == 0 {
 		return nil, process.ErrEmptyTopic
@@ -40,6 +42,9 @@ func NewSingleDataInterceptor(
 	if check.IfNil(antifloodHandler) {
 		return nil, process.ErrNilAntifloodHandler
 	}
+	if check.IfNil(whiteListHandler) {
+		return nil, process.ErrNilWhiteListHandler
+	}
 
 	singleDataIntercept := &SingleDataInterceptor{
 		topic:            topic,
@@ -47,6 +52,7 @@ func NewSingleDataInterceptor(
 		processor:        processor,
 		throttler:        throttler,
 		antifloodHandler: antifloodHandler,
+		whiteListHandler: whiteListHandler,
 	}
 
 	return singleDataIntercept, nil
@@ -72,14 +78,21 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		return err
 	}
 
-	if !interceptedData.IsForCurrentShard() {
+	isForCurrentShard := interceptedData.IsForCurrentShard()
+	isWhiteListed := sdi.whiteListHandler.IsWhiteListed(interceptedData)
+	shouldProcess := isForCurrentShard || isWhiteListed
+	if !shouldProcess {
 		sdi.throttler.EndProcessing()
 		log.Trace("intercepted data is for other shards",
 			"pid", p2p.MessageOriginatorPid(message),
 			"seq no", p2p.MessageOriginatorSeq(message),
 			"topics", message.Topics(),
 			"hash", interceptedData.Hash(),
+			"is for current shard", isForCurrentShard,
+			"is white listed", isWhiteListed,
 		)
+		sdi.whiteListHandler.Remove([][]byte{interceptedData.Hash()})
+
 		return nil
 	}
 
@@ -90,7 +103,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		sdi.throttler.EndProcessing()
 	}()
 
-	go processInterceptedData(sdi.processor, interceptedData, wgProcess, message)
+	go processInterceptedData(sdi.processor, sdi.whiteListHandler, interceptedData, wgProcess, message)
 
 	return nil
 }

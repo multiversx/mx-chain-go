@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 const keyPrefix = "indexHashed_"
@@ -11,14 +13,15 @@ const keyPrefix = "indexHashed_"
 // SerializableValidator holds the minimal data required for marshalling and un-marshalling a validator
 type SerializableValidator struct {
 	PubKey  []byte `json:"pubKey"`
-	Address []byte `json:"address"`
 	Chances uint32 `json:"chances"`
+	Index   uint32 `json:"index"`
 }
 
 // EpochValidators holds one epoch configuration for a nodes coordinator
 type EpochValidators struct {
 	EligibleValidators map[string][]*SerializableValidator `json:"eligibleValidators"`
 	WaitingValidators  map[string][]*SerializableValidator `json:"waitingValidators"`
+	LeavingValidators  []*SerializableValidator            `json:"leavingValidators"`
 }
 
 // NodesCoordinatorRegistry holds the data that can be used to initialize a nodes coordinator
@@ -27,6 +30,7 @@ type NodesCoordinatorRegistry struct {
 	CurrentEpoch uint32                      `json:"currentEpoch"`
 }
 
+// TODO: add proto marshalizer for these package - replace all json marshalizers
 // LoadState loads the nodes coordinator state from the used boot storage
 func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	return ihgs.baseLoadState(key)
@@ -86,20 +90,21 @@ func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
 }
 
 func (ihgs *indexHashedNodesCoordinator) saveState(key []byte) error {
-	registry := ihgs.nodesCoordinatorToRegistry()
+	registry := ihgs.NodesCoordinatorToRegistry()
 	data, err := json.Marshal(registry)
 	if err != nil {
 		return err
 	}
 
-	ncInternalkey := append([]byte(keyPrefix), key...)
+	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), key...)
 
 	log.Debug("saving nodes coordinator config", "key", ncInternalkey)
 
 	return ihgs.bootStorer.Put(ncInternalkey, data)
 }
 
-func (ihgs *indexHashedNodesCoordinator) nodesCoordinatorToRegistry() *NodesCoordinatorRegistry {
+// NodesCoordinatorToRegistry will export the nodesCoordinator data to the registry
+func (ihgs *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoordinatorRegistry {
 	ihgs.mutNodesConfig.RLock()
 	defer ihgs.mutNodesConfig.RUnlock()
 
@@ -129,7 +134,6 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 		}
 
 		var nodesConfig *epochNodesConfig
-
 		nodesConfig, err = epochValidatorsToEpochNodesConfig(epochValidators)
 		if err != nil {
 			return nil, err
@@ -159,14 +163,23 @@ func epochNodesConfigToEpochValidators(config *epochNodesConfig) *EpochValidator
 	result := &EpochValidators{
 		EligibleValidators: make(map[string][]*SerializableValidator, len(config.eligibleMap)),
 		WaitingValidators:  make(map[string][]*SerializableValidator, len(config.waitingMap)),
+		LeavingValidators:  make([]*SerializableValidator, 0, len(config.leavingList)),
 	}
 
 	for k, v := range config.eligibleMap {
-		result.EligibleValidators[fmt.Sprint(k)] = validatorArrayToSerializableValidatorArray(v)
+		result.EligibleValidators[fmt.Sprint(k)] = ValidatorArrayToSerializableValidatorArray(v)
 	}
 
 	for k, v := range config.waitingMap {
-		result.WaitingValidators[fmt.Sprint(k)] = validatorArrayToSerializableValidatorArray(v)
+		result.WaitingValidators[fmt.Sprint(k)] = ValidatorArrayToSerializableValidatorArray(v)
+	}
+
+	for _, v := range config.leavingList {
+		result.LeavingValidators = append(result.LeavingValidators, &SerializableValidator{
+			PubKey:  v.PubKey(),
+			Chances: v.Chances(),
+			Index:   v.Index(),
+		})
 	}
 
 	return result
@@ -184,6 +197,15 @@ func epochValidatorsToEpochNodesConfig(config *EpochValidators) (*epochNodesConf
 	result.waitingMap, err = serializableValidatorsMapToValidatorsMap(config.WaitingValidators)
 	if err != nil {
 		return nil, err
+	}
+
+	result.leavingList = make([]Validator, 0, len(config.LeavingValidators))
+	for _, serializableValidator := range config.LeavingValidators {
+		validator, err := NewValidator(serializableValidator.PubKey, serializableValidator.Chances, serializableValidator.Index)
+		if err != nil {
+			return nil, err
+		}
+		result.leavingList = append(result.leavingList, validator)
 	}
 
 	return result, nil
@@ -210,14 +232,15 @@ func serializableValidatorsMapToValidatorsMap(
 	return result, nil
 }
 
-func validatorArrayToSerializableValidatorArray(validators []Validator) []*SerializableValidator {
+// ValidatorArrayToSerializableValidatorArray -
+func ValidatorArrayToSerializableValidatorArray(validators []Validator) []*SerializableValidator {
 	result := make([]*SerializableValidator, len(validators))
 
 	for i, v := range validators {
 		result[i] = &SerializableValidator{
 			PubKey:  v.PubKey(),
-			Address: v.Address(),
 			Chances: v.Chances(),
+			Index:   v.Index(),
 		}
 	}
 
@@ -229,11 +252,31 @@ func serializableValidatorArrayToValidatorArray(sValidators []*SerializableValid
 	var err error
 
 	for i, v := range sValidators {
-		result[i], err = NewValidator(v.PubKey, v.Address, v.Chances)
+		result[i], err = NewValidator(v.PubKey, v.Chances, v.Index)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return result, nil
+}
+
+// NodesInfoToValidators maps nodeInfo to validator interface
+func NodesInfoToValidators(nodesInfo map[uint32][]GenesisNodeInfoHandler) (map[uint32][]Validator, error) {
+	validatorsMap := make(map[uint32][]Validator)
+
+	for shId, nodeInfoList := range nodesInfo {
+		validators := make([]Validator, 0, len(nodeInfoList))
+		for index, nodeInfo := range nodeInfoList {
+			validator, err := NewValidator(nodeInfo.PubKey(), defaultSelectionChances, uint32(index))
+			if err != nil {
+				return nil, err
+			}
+
+			validators = append(validators, validator)
+		}
+		validatorsMap[shId] = validators
+	}
+
+	return validatorsMap, nil
 }

@@ -45,6 +45,19 @@ buildNode() {
   popd
 }
 
+buildArwen() {
+  echo "Building Arwen executable..."
+  pushd $ELRONDDIR
+  make arwen
+  echo "Arwen executable built."
+  popd
+
+  pushd $TESTNETDIR
+  cp $ARWEN_PATH ./node/arwen
+  echo "Arwen executable copied."
+  popd
+}
+
 buildSeednode() {
   echo "Building Seednode executable..."
   pushd $SEEDNODEDIR

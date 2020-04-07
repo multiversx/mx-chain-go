@@ -4,6 +4,7 @@ package heartbeat
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -18,6 +19,21 @@ import (
 )
 
 var log = logger.GetOrCreate("node/heartbeat")
+
+// ArgHeartbeatMonitor represents the arguments for the heartbeat monitor
+type ArgHeartbeatMonitor struct {
+	Marshalizer                 marshal.Marshalizer
+	MaxDurationPeerUnresponsive time.Duration
+	PubKeysMap                  map[uint32][]string
+	GenesisTime                 time.Time
+	MessageHandler              MessageHandler
+	Storer                      HeartbeatStorageHandler
+	PeerTypeProvider            PeerTypeProviderHandler
+	Timer                       Timer
+	AntifloodHandler            P2PAntifloodHandler
+	HardforkTrigger             HardforkTrigger
+	PeerBlackListHandler        BlackListHandler
+}
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
 type Monitor struct {
@@ -36,61 +52,61 @@ type Monitor struct {
 	storer                      HeartbeatStorageHandler
 	timer                       Timer
 	antifloodHandler            P2PAntifloodHandler
+	hardforkTrigger             HardforkTrigger
+	peerBlackListHandler        BlackListHandler
 }
 
 // NewMonitor returns a new monitor instance
-func NewMonitor(
-	marshalizer marshal.Marshalizer,
-	maxDurationPeerUnresponsive time.Duration,
-	pubKeysMap map[uint32][]string,
-	genesisTime time.Time,
-	messageHandler MessageHandler,
-	storer HeartbeatStorageHandler,
-	peerTypeProvider PeerTypeProviderHandler,
-	timer Timer,
-	antifloodHandler P2PAntifloodHandler,
-) (*Monitor, error) {
-	if check.IfNil(marshalizer) {
+func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
+	if check.IfNil(arg.Marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if check.IfNil(peerTypeProvider) {
+	if check.IfNil(arg.PeerTypeProvider) {
 		return nil, ErrNilPeerTypeProvider
 	}
-	if len(pubKeysMap) == 0 {
+	if len(arg.PubKeysMap) == 0 {
 		return nil, ErrEmptyPublicKeysMap
 	}
-	if check.IfNil(messageHandler) {
+	if check.IfNil(arg.MessageHandler) {
 		return nil, ErrNilMessageHandler
 	}
-	if check.IfNil(storer) {
+	if check.IfNil(arg.Storer) {
 		return nil, ErrNilHeartbeatStorer
 	}
-	if check.IfNil(timer) {
+	if check.IfNil(arg.Timer) {
 		return nil, ErrNilTimer
 	}
-	if check.IfNil(antifloodHandler) {
+	if check.IfNil(arg.AntifloodHandler) {
 		return nil, ErrNilAntifloodHandler
+	}
+	if check.IfNil(arg.HardforkTrigger) {
+		return nil, ErrNilHardforkTrigger
+	}
+	if check.IfNil(arg.PeerBlackListHandler) {
+		return nil, fmt.Errorf("%w in NewMonitor", ErrNilBlackListHandler)
 	}
 
 	mon := &Monitor{
-		marshalizer:                 marshalizer,
+		marshalizer:                 arg.Marshalizer,
 		heartbeatMessages:           make(map[string]*heartbeatMessageInfo),
-		peerTypeProvider:            peerTypeProvider,
-		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
+		peerTypeProvider:            arg.PeerTypeProvider,
+		maxDurationPeerUnresponsive: arg.MaxDurationPeerUnresponsive,
 		appStatusHandler:            &statusHandler.NilStatusHandler{},
-		genesisTime:                 genesisTime,
-		messageHandler:              messageHandler,
-		storer:                      storer,
-		timer:                       timer,
-		antifloodHandler:            antifloodHandler,
+		genesisTime:                 arg.GenesisTime,
+		messageHandler:              arg.MessageHandler,
+		storer:                      arg.Storer,
+		timer:                       arg.Timer,
+		antifloodHandler:            arg.AntifloodHandler,
+		hardforkTrigger:             arg.HardforkTrigger,
+		peerBlackListHandler:        arg.PeerBlackListHandler,
 	}
 
-	err := mon.storer.UpdateGenesisTime(genesisTime)
+	err := mon.storer.UpdateGenesisTime(arg.GenesisTime)
 	if err != nil {
 		return nil, err
 	}
 
-	err = mon.initializeHeartbeatMessagesInfo(pubKeysMap)
+	err = mon.initializeHeartbeatMessagesInfo(arg.PubKeysMap)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +220,7 @@ func (m *Monitor) loadHbmiFromStorer(pubKey string) (*heartbeatMessageInfo, erro
 
 // SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
 func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
+	if check.IfNil(ash) {
 		return ErrNilAppStatusHandler
 	}
 
@@ -215,7 +231,7 @@ func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
 // by the p2p subsystem each time a new heartbeat message arrives
 func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-	if message == nil || message.IsInterfaceNil() {
+	if check.IfNil(message) {
 		return ErrNilMessage
 	}
 	if message.Data() == nil {
@@ -234,6 +250,31 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 	hbRecv, err := m.messageHandler.CreateHeartbeatFromP2PMessage(message)
 	if err != nil {
 		return err
+	}
+
+	//TODO check if hardfork trigger can be set otherwise (not requiring a pk that will actually send the trigger
+	// whenever it wants)
+	isHardforkTrigger, err := m.hardforkTrigger.TriggerReceived(message.Data(), hbRecv.Payload, hbRecv.Pubkey)
+	if isHardforkTrigger {
+		return err
+	}
+
+	if !bytes.Equal(hbRecv.Pid, message.Peer().Bytes()) {
+		//this situation is so severe that we have to black list both the message originator and the connected peer
+		//that disseminated this message.
+		_ = m.peerBlackListHandler.Add(message.Peer().Pretty())
+		_ = m.peerBlackListHandler.Add(fromConnectedPeer.Pretty())
+
+		log.Debug("blacklisted due to inconsistent heartbeat message",
+			"message originator", p2p.PeerIdToShortString(message.Peer()),
+			"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
+		)
+
+		return fmt.Errorf("%w heartbeat pid %s, message pid %s",
+			ErrHeartbeatPidMismatch,
+			p2p.PeerIdToShortString(p2p.PeerID(hbRecv.Pid)),
+			p2p.PeerIdToShortString(message.Peer()),
+		)
 	}
 
 	//message is validated, process should be done async, method can return nil

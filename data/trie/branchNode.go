@@ -664,29 +664,29 @@ func (bn *branchNode) setDirty(dirty bool) {
 	bn.dirty = dirty
 }
 
-func (bn *branchNode) loadChildren(syncer *trieSyncer) error {
+func (bn *branchNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	missingChildren := make([][]byte, 0)
 	for i := range bn.EncodedChildren {
 		if len(bn.EncodedChildren[i]) == 0 {
 			continue
 		}
 
 		var child node
-		child, err = syncer.getNode(bn.EncodedChildren[i])
+		child, err = getNode(bn.EncodedChildren[i])
 		if err != nil {
-			return err
+			missingChildren = append(missingChildren, bn.EncodedChildren[i])
+			continue
 		}
 
 		bn.children[i] = child
 	}
 
-	syncer.interceptedNodes.Remove(bn.hash)
-
-	return nil
+	return missingChildren, nil
 }
 
 func (bn *branchNode) getAllLeaves(leaves map[string][]byte, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
