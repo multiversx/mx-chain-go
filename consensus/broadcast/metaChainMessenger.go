@@ -56,19 +56,19 @@ func checkMetaChainNilParameters(
 	shardCoordinator sharding.Coordinator,
 	singleSigner crypto.SingleSigner,
 ) error {
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return spos.ErrNilMarshalizer
 	}
-	if messenger == nil || messenger.IsInterfaceNil() {
+	if check.IfNil(messenger) {
 		return spos.ErrNilMessenger
 	}
-	if privateKey == nil || privateKey.IsInterfaceNil() {
+	if check.IfNil(privateKey) {
 		return spos.ErrNilPrivateKey
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return spos.ErrNilShardCoordinator
 	}
-	if singleSigner == nil || singleSigner.IsInterfaceNil() {
+	if check.IfNil(singleSigner) {
 		return spos.ErrNilSingleSigner
 	}
 
@@ -77,7 +77,7 @@ func checkMetaChainNilParameters(
 
 // BroadcastBlock will send on metachain blocks topic the header
 func (mcm *metaChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
-	if blockBody == nil || blockBody.IsInterfaceNil() {
+	if check.IfNil(blockBody) {
 		return spos.ErrNilBody
 	}
 
@@ -86,7 +86,7 @@ func (mcm *metaChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header
 		return err
 	}
 
-	if header == nil || header.IsInterfaceNil() {
+	if check.IfNil(header) {
 		return spos.ErrNilMetaHeader
 	}
 

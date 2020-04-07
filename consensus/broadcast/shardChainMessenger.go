@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -58,19 +59,19 @@ func checkShardChainNilParameters(
 	privateKey crypto.PrivateKey,
 	singleSigner crypto.SingleSigner,
 ) error {
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return spos.ErrNilMarshalizer
 	}
-	if messenger == nil || messenger.IsInterfaceNil() {
+	if check.IfNil(messenger) {
 		return spos.ErrNilMessenger
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return spos.ErrNilShardCoordinator
 	}
-	if privateKey == nil || privateKey.IsInterfaceNil() {
+	if check.IfNil(privateKey) {
 		return spos.ErrNilPrivateKey
 	}
-	if singleSigner == nil || singleSigner.IsInterfaceNil() {
+	if check.IfNil(singleSigner) {
 		return spos.ErrNilSingleSigner
 	}
 
@@ -79,7 +80,7 @@ func checkShardChainNilParameters(
 
 // BroadcastBlock will send on in-shard headers topic and on in-shard miniblocks topic the header and block body
 func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
-	if blockBody == nil || blockBody.IsInterfaceNil() {
+	if check.IfNil(blockBody) {
 		return spos.ErrNilBody
 	}
 
@@ -88,7 +89,7 @@ func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, heade
 		return err
 	}
 
-	if header == nil || header.IsInterfaceNil() {
+	if check.IfNil(header) {
 		return spos.ErrNilHeader
 	}
 
@@ -114,7 +115,7 @@ func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, heade
 
 // BroadcastHeader will send on in-shard headers topic the header
 func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error {
-	if header == nil || header.IsInterfaceNil() {
+	if check.IfNil(header) {
 		return spos.ErrNilHeader
 	}
 
