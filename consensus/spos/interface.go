@@ -69,6 +69,8 @@ type ConsensusService interface {
 	IsMessageWithBlockBodyAndHeader(consensus.MessageType) bool
 	//IsMessageWithBlockHeader returns if the current messageType is about block header
 	IsMessageWithBlockHeader(consensus.MessageType) bool
+	//IsMessageWithBlockBody returns if the current messageType is about block body
+	IsMessageWithBlockBody(msgType consensus.MessageType) bool
 	//IsMessageWithSignature returns if the current messageType is about signature
 	IsMessageWithSignature(consensus.MessageType) bool
 	//IsMessageTypeValid returns if the current messageType is valid
@@ -113,6 +115,12 @@ type WorkerHandler interface {
 	//SetAppStatusHandler sets the status handler object used to collect useful metrics about consensus state machine
 	SetAppStatusHandler(ash core.AppStatusHandler) error
 	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
+}
+
+// PoolAdder adds data in a key-value pool
+type PoolAdder interface {
+	Put(key []byte, value interface{}) (evicted bool)
 	IsInterfaceNil() bool
 }
 
