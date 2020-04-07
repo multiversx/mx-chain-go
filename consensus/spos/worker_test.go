@@ -28,32 +28,16 @@ var fromConnectedPeerId = p2p.PeerID("connected peer id")
 var blockHeaderHash = make([]byte, core.HashSizeInBytes)
 var invalidBlockHeaderHash = make([]byte, core.HashSizeInBytes+1)
 
-func createMockNetworkShardingCollector() *mock.NetworkShardingCollectorStub {
-	return &mock.NetworkShardingCollectorStub{
-		UpdatePeerIdPublicKeyCalled:  func(pid p2p.PeerID, pk []byte) {},
-		UpdatePublicKeyShardIdCalled: func(pk []byte, shardId uint32) {},
-		UpdatePeerIdShardIdCalled:    func(pid p2p.PeerID, shardId uint32) {},
-	}
-}
-
-func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
-	return &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-			return nil
-		},
-		CanProcessMessageOnTopicCalled: func(peer p2p.PeerID, topic string) error {
-			return nil
-		},
-	}
-}
-
-func initWorker() *spos.Worker {
+func createDefaultWorkerArgs() *spos.WorkerArgs {
 	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 			return nil
 		},
 		RevertAccountStateCalled: func(header data.HeaderHandler) {
+		},
+		DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
+			return nil
 		},
 	}
 	bootstrapperMock := &mock.BootstrapperMock{}
@@ -76,28 +60,57 @@ func initWorker() *spos.Worker {
 		},
 	}
 	syncTimerMock := &mock.SyncTimerMock{}
-
+	hasher := &mock.HasherMock{}
 	blsService, _ := bls.NewConsensusService()
+	poolAdder := &mock.CacherMock{}
 
-	sposWorker, _ := spos.NewWorker(
-		blsService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		createMockNetworkShardingCollector(),
-		createMockP2PAntifloodHandler(),
-	)
+	workerArgs := &spos.WorkerArgs{
+		ConsensusService:         blsService,
+		BlockChain:               blockchainMock,
+		BlockProcessor:           blockProcessor,
+		Bootstrapper:             bootstrapperMock,
+		BroadcastMessenger:       broadcastMessengerMock,
+		ConsensusState:           consensusState,
+		ForkDetector:             forkDetectorMock,
+		KeyGenerator:             keyGeneratorMock,
+		Marshalizer:              marshalizerMock,
+		Hasher:                   hasher,
+		Rounder:                  rounderMock,
+		ShardCoordinator:         shardCoordinatorMock,
+		SingleSigner:             singleSignerMock,
+		SyncTimer:                syncTimerMock,
+		HeaderSigVerifier:        &mock.HeaderSigVerifierStub{},
+		ChainID:                  chainID,
+		NetworkShardingCollector: createMockNetworkShardingCollector(),
+		AntifloodHandler:         createMockP2PAntifloodHandler(),
+		PoolAdder:                poolAdder,
+	}
+
+	return workerArgs
+}
+
+func createMockNetworkShardingCollector() *mock.NetworkShardingCollectorStub {
+	return &mock.NetworkShardingCollectorStub{
+		UpdatePeerIdPublicKeyCalled:  func(pid p2p.PeerID, pk []byte) {},
+		UpdatePublicKeyShardIdCalled: func(pk []byte, shardId uint32) {},
+		UpdatePeerIdShardIdCalled:    func(pid p2p.PeerID, shardId uint32) {},
+	}
+}
+
+func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
+	return &mock.P2PAntifloodHandlerStub{
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			return nil
+		},
+		CanProcessMessageOnTopicCalled: func(peer p2p.PeerID, topic string) error {
+			return nil
+		},
+	}
+}
+
+func initWorker() *spos.Worker {
+	workerArgs := createDefaultWorkerArgs()
+	sposWorker, _ := spos.NewWorker(workerArgs)
 
 	return sposWorker
 }
@@ -117,38 +130,9 @@ func initRounderMock() *mock.RounderMock {
 func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-
-	wrk, err := spos.NewWorker(
-		nil,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		createMockNetworkShardingCollector(),
-		createMockP2PAntifloodHandler(),
-	)
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.ConsensusService = nil
+	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilConsensusService, err)
@@ -156,39 +140,9 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
 	t.Parallel()
-
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	blsService, _ := bls.NewConsensusService()
-
-	wrk, err := spos.NewWorker(
-		blsService,
-		nil,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		createMockNetworkShardingCollector(),
-		createMockP2PAntifloodHandler(),
-	)
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.BlockChain = nil
+	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilBlockChain, err)
@@ -197,38 +151,9 @@ func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockchainMock := &mock.BlockChainMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	blsService, _ := bls.NewConsensusService()
-
-	wrk, err := spos.NewWorker(
-		blsService,
-		blockchainMock,
-		nil,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		createMockNetworkShardingCollector(),
-		createMockP2PAntifloodHandler(),
-	)
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.BlockProcessor = nil
+	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilBlockProcessor, err)
@@ -237,38 +162,9 @@ func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	blsService, _ := bls.NewConsensusService()
-
-	wrk, err := spos.NewWorker(
-		blsService,
-		blockchainMock,
-		blockProcessor,
-		nil,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		createMockNetworkShardingCollector(),
-		createMockP2PAntifloodHandler(),
-	)
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.Bootstrapper = nil
+	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilBootstrapper, err)
@@ -277,38 +173,9 @@ func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	blsService, _ := bls.NewConsensusService()
-
-	wrk, err := spos.NewWorker(
-		blsService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		nil,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		createMockNetworkShardingCollector(),
-		createMockP2PAntifloodHandler(),
-	)
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.BroadcastMessenger = nil
+	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilBroadcastMessenger, err)
@@ -316,38 +183,10 @@ func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 	t.Parallel()
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	blsService, _ := bls.NewConsensusService()
 
-	wrk, err := spos.NewWorker(
-		blsService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		nil,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		createMockNetworkShardingCollector(),
-		createMockP2PAntifloodHandler(),
-	)
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.ConsensusState = nil
+	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilConsensusState, err)
@@ -355,38 +194,10 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 	t.Parallel()
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	blsService, _ := bls.NewConsensusService()
 
-	wrk, err := spos.NewWorker(
-		blsService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		nil,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		createMockNetworkShardingCollector(),
-		createMockP2PAntifloodHandler(),
-	)
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.ForkDetector = nil
+	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilForkDetector, err)
@@ -394,38 +205,10 @@ func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 	t.Parallel()
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	blsService, _ := bls.NewConsensusService()
 
-	wrk, err := spos.NewWorker(
-		blsService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		nil,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		createMockNetworkShardingCollector(),
-		createMockP2PAntifloodHandler(),
-	)
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.KeyGenerator = nil
+	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilKeyGenerator, err)
@@ -433,77 +216,32 @@ func TestWorker_NewWorkerKeyGeneratorNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 	t.Parallel()
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	blsService, _ := bls.NewConsensusService()
 
-	wrk, err := spos.NewWorker(
-		blsService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		nil,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		createMockNetworkShardingCollector(),
-		createMockP2PAntifloodHandler(),
-	)
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.Marshalizer = nil
+	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilMarshalizer, err)
 }
 
+func TestWorker_NewWorkerHasherNilShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.Hasher = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilHasher, err)
+}
+
 func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 	t.Parallel()
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	blsService, _ := bls.NewConsensusService()
 
-	wrk, err := spos.NewWorker(
-		blsService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		nil,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		createMockNetworkShardingCollector(),
-		createMockP2PAntifloodHandler(),
-	)
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.Rounder = nil
+	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilRounder, err)
@@ -511,38 +249,10 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 	t.Parallel()
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	blsService, _ := bls.NewConsensusService()
 
-	wrk, err := spos.NewWorker(
-		blsService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		nil,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		createMockNetworkShardingCollector(),
-		createMockP2PAntifloodHandler(),
-	)
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.ShardCoordinator = nil
+	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilShardCoordinator, err)
@@ -550,38 +260,10 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 	t.Parallel()
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	blsService, _ := bls.NewConsensusService()
 
-	wrk, err := spos.NewWorker(
-		blsService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		nil,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		createMockNetworkShardingCollector(),
-		createMockP2PAntifloodHandler(),
-	)
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.SingleSigner = nil
+	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilSingleSigner, err)
@@ -589,38 +271,10 @@ func TestWorker_NewWorkerSingleSignerNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 	t.Parallel()
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	blsService, _ := bls.NewConsensusService()
 
-	wrk, err := spos.NewWorker(
-		blsService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		nil,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		createMockNetworkShardingCollector(),
-		createMockP2PAntifloodHandler(),
-	)
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.SyncTimer = nil
+	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
@@ -628,39 +282,10 @@ func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerEmptyChainIDShouldFail(t *testing.T) {
 	t.Parallel()
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	blsService, _ := bls.NewConsensusService()
 
-	wrk, err := spos.NewWorker(
-		blsService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		nil,
-		createMockNetworkShardingCollector(),
-		&mock.P2PAntifloodHandlerStub{},
-	)
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.ChainID = nil
+	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrInvalidChainID, err)
@@ -668,39 +293,10 @@ func TestWorker_NewWorkerEmptyChainIDShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerNilNetworkShardingCollectorShouldFail(t *testing.T) {
 	t.Parallel()
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	bnService, _ := bls.NewConsensusService()
 
-	wrk, err := spos.NewWorker(
-		bnService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		nil,
-		&mock.P2PAntifloodHandlerStub{},
-	)
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.NetworkShardingCollector = nil
+	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilNetworkShardingCollector, err)
@@ -709,80 +305,30 @@ func TestWorker_NewWorkerNilNetworkShardingCollectorShouldFail(t *testing.T) {
 func TestWorker_NewWorkerNilAntifloodHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	bnService, _ := bls.NewConsensusService()
-
-	wrk, err := spos.NewWorker(
-		bnService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		&mock.NetworkShardingCollectorStub{},
-		nil,
-	)
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.AntifloodHandler = nil
+	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilAntifloodHandler, err)
 }
 
+func TestWorker_NewWorkerPoolAdderNilShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.PoolAdder = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilPoolAdder, err)
+}
+
 func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	t.Parallel()
 
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	blsService, _ := bls.NewConsensusService()
-
-	wrk, err := spos.NewWorker(
-		blsService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		createMockNetworkShardingCollector(),
-		createMockP2PAntifloodHandler(),
-	)
+	workerArgs := createDefaultWorkerArgs()
+	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(wrk))
@@ -792,45 +338,16 @@ func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetected(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("flood detected")
+	workerArgs := createDefaultWorkerArgs()
 
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	bnService, _ := bls.NewConsensusService()
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 			return expectedErr
 		},
 	}
 
-	wrk, _ := spos.NewWorker(
-		bnService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		&mock.NetworkShardingCollectorStub{},
-		antifloodHandler,
-	)
+	workerArgs.AntifloodHandler = antifloodHandler
+	wrk, _ := spos.NewWorker(workerArgs)
 
 	msg := &mock.P2PMessageMock{DataField: []byte("aaa")}
 	err := wrk.ProcessReceivedMessage(msg, "peer")
@@ -841,20 +358,7 @@ func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testi
 	t.Parallel()
 
 	expectedErr := errors.New("flood detected")
-
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	keyGeneratorMock := &mock.KeyGenMock{}
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
-	blsService, _ := bls.NewConsensusService()
+	workerArgs := createDefaultWorkerArgs()
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 			return nil
@@ -864,25 +368,8 @@ func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testi
 		},
 	}
 
-	wrk, _ := spos.NewWorker(
-		blsService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		&mock.HeaderSigVerifierStub{},
-		chainID,
-		&mock.NetworkShardingCollectorStub{},
-		antifloodHandler,
-	)
+	workerArgs.AntifloodHandler = antifloodHandler
+	wrk, _ := spos.NewWorker(workerArgs)
 
 	msg := &mock.P2PMessageMock{DataField: []byte("aaa"), TopicsField: []string{"topic1"}}
 	err := wrk.ProcessReceivedMessage(msg, "peer")
@@ -1056,6 +543,9 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 		},
 		RevertAccountStateCalled: func(header data.HeaderHandler) {
 		},
+		DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
+			return nil
+		},
 	})
 	roundDuration := time.Millisecond * 1000
 	delay := time.Millisecond * 430
@@ -1142,7 +632,7 @@ func TestWorker_ProcessReceivedMessageTypeInvalidShouldErr(t *testing.T) {
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
 		[]byte("sig"),
-		int(666),
+		666,
 		0,
 		chainID,
 		nil,
@@ -1379,6 +869,9 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 				}
 			},
 			RevertAccountStateCalled: func(header data.HeaderHandler) {
+			},
+			DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
+				return nil
 			},
 		},
 	)
@@ -1978,62 +1471,15 @@ func TestWorker_SetAppStatusHandlerShouldWork(t *testing.T) {
 
 func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 	t.Parallel()
-	blockchainMock := &mock.BlockChainMock{}
-	blockProcessor := &mock.BlockProcessorMock{
-		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
-			return nil
-		},
-		RevertAccountStateCalled: func(header data.HeaderHandler) {
-		},
-	}
-	bootstrapperMock := &mock.BootstrapperMock{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
-	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
-	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
-		return nil
-	}
-	keyGeneratorMock, _, _ := mock.InitKeys()
-	marshalizerMock := mock.MarshalizerMock{}
-	rounderMock := initRounderMock()
-	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{
-		SignStub: func(private crypto.PrivateKey, msg []byte) ([]byte, error) {
-			return []byte("signed"), nil
-		},
-		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
-			return nil
-		},
-	}
-	syncTimerMock := &mock.SyncTimerMock{}
-	antiFloodHandler := &mock.P2PAntifloodHandlerStub{}
 
+	workerArgs := createDefaultWorkerArgs()
 	headerSigVerifier := &mock.HeaderSigVerifierStub{}
 	headerSigVerifier.VerifyRandSeedCaller = func(header data.HeaderHandler) error {
 		return process.ErrRandSeedDoesNotMatch
 	}
 
-	bnService, _ := bls.NewConsensusService()
-
-	wrk, _ := spos.NewWorker(
-		bnService,
-		blockchainMock,
-		blockProcessor,
-		bootstrapperMock,
-		broadcastMessengerMock,
-		consensusState,
-		forkDetectorMock,
-		keyGeneratorMock,
-		marshalizerMock,
-		rounderMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-		syncTimerMock,
-		headerSigVerifier,
-		chainID,
-		createMockNetworkShardingCollector(),
-		antiFloodHandler,
-	)
+	workerArgs.HeaderSigVerifier = headerSigVerifier
+	wrk, _ := spos.NewWorker(workerArgs)
 
 	hdr := &block.Header{}
 	hdr.Nonce = 1
