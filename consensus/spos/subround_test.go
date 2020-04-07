@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,8 +22,14 @@ func executeStoredMessages() {
 func createEligibleList(size int) []string {
 	eligibleList := make([]string, 0)
 	for i := 0; i < size; i++ {
-		eligibleList = append(eligibleList, string(i+65))
+		var value string
+		for j := 0; j < core.PublicKeySizeInBytes; j++ {
+			value += string(i + 65)
+		}
+
+		eligibleList = append(eligibleList, value)
 	}
+
 	return eligibleList
 }
 

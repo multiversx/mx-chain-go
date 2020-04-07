@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
@@ -40,7 +41,8 @@ func NewMultiSigner(nrConsens uint32) *BelNevMock {
 	multisigner.aggCom = []byte("agg commitment")
 	multisigner.commHash = []byte("commitment hash")
 	multisigner.commSecret = []byte("commitment secret")
-	multisigner.aggSig = []byte("aggregated signature")
+	multisigner.aggSig = make([]byte, core.SignatureSizeInBytes)
+	copy(multisigner.aggSig, []byte("aggregated signature"))
 
 	return multisigner
 }

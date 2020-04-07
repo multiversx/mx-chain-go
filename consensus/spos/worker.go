@@ -1,13 +1,10 @@
 package spos
 
 import (
-	"bytes"
-	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -312,130 +309,49 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		return err
 	}
 
-	cnsDta := &consensus.Message{}
-	err = wrk.marshalizer.Unmarshal(cnsDta, message.Data())
+	cnsMsg := &consensus.Message{}
+	err = wrk.marshalizer.Unmarshal(cnsMsg, message.Data())
 	if err != nil {
 		return err
 	}
 
-	if !bytes.Equal(cnsDta.ChainID, wrk.chainID) {
-		return fmt.Errorf("%w : received: %s, wanted: %s",
-			ErrInvalidChainID,
-			hex.EncodeToString(cnsDta.ChainID),
-			hex.EncodeToString(wrk.chainID))
-	}
-
-	msgType := consensus.MessageType(cnsDta.MsgType)
-	if !wrk.consensusService.IsMessageTypeValid(msgType) {
-		return fmt.Errorf("%w : received message type from consensus topic is invalid: %d",
-			ErrInvalidMessageType,
-			msgType)
-	}
-
-	if len(cnsDta.BlockHeaderHash) != core.HashSizeInBytes {
-		return fmt.Errorf("%w : received header hash from consensus topic has an invalid size: %d",
-			ErrInvalidHeaderHashSize,
-			len(cnsDta.BlockHeaderHash))
-	}
+	msgType := consensus.MessageType(cnsMsg.MsgType)
 
 	log.Trace("received message from consensus topic",
 		"msg type", wrk.consensusService.GetStringValue(msgType),
-		"from", core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
-		"header hash", cnsDta.BlockHeaderHash,
-		"round", cnsDta.RoundIndex,
+		"from", cnsMsg.PubKey,
+		"header hash", cnsMsg.BlockHeaderHash,
+		"round", cnsMsg.RoundIndex,
 		"size", len(message.Data()),
 	)
 
-	senderOK := wrk.consensusState.IsNodeInEligibleList(string(cnsDta.PubKey))
-	if !senderOK {
-		return fmt.Errorf("%w : node with public key %s is not in eligible list",
-			ErrSenderNotOk,
-			logger.DisplayByteSlice(cnsDta.PubKey))
+	err = wrk.checkConsensusMessageValidity(cnsMsg)
+	if err != nil {
+		return err
 	}
 
-	if wrk.consensusState.RoundIndex+1 < cnsDta.RoundIndex {
-		log.Trace("received message from consensus topic is for future round",
-			"msg type", wrk.consensusService.GetStringValue(msgType),
-			"from", core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
-			"header hash", cnsDta.BlockHeaderHash,
-			"msg round", cnsDta.RoundIndex,
-			"round", wrk.consensusState.RoundIndex,
-		)
-		return ErrMessageForFutureRound
-	}
+	go wrk.updateNetworkShardingVals(message, cnsMsg)
 
-	if wrk.consensusState.RoundIndex > cnsDta.RoundIndex {
-		log.Trace("received message from consensus topic is for past round",
-			"msg type", wrk.consensusService.GetStringValue(msgType),
-			"from", core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
-			"header hash", cnsDta.BlockHeaderHash,
-			"msg round", cnsDta.RoundIndex,
-			"round", wrk.consensusState.RoundIndex,
-		)
-		return ErrMessageForPastRound
-	}
-
-	sigVerifErr := wrk.checkSignature(cnsDta)
-	if sigVerifErr != nil {
-		return fmt.Errorf("%w : verify consensus data signature failed: %s",
-			ErrInvalidSignature,
-			sigVerifErr.Error())
-	}
-
-	go wrk.updateNetworkShardingVals(message, cnsDta)
-
+	isMessageWithBlockBody := wrk.consensusService.IsMessageWithBlockBody(msgType)
 	isMessageWithBlockHeader := wrk.consensusService.IsMessageWithBlockHeader(msgType)
 	isMessageWithBlockBodyAndHeader := wrk.consensusService.IsMessageWithBlockBodyAndHeader(msgType)
+
+	if isMessageWithBlockBody || isMessageWithBlockBodyAndHeader {
+		wrk.doJobOnMessageWithBlockBody(cnsMsg)
+	}
+
 	if isMessageWithBlockHeader || isMessageWithBlockBodyAndHeader {
-		headerHash := cnsDta.BlockHeaderHash
-		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.Header)
-		isHeaderInvalid := headerHash == nil || check.IfNil(header)
-		if isHeaderInvalid {
-			return fmt.Errorf("%w : received header from consensus topic is invalid",
-				ErrInvalidHeader)
-		}
-
-		log.Debug("received proposed block",
-			"from", core.GetTrimmedPk(core.ToHex(cnsDta.PubKey)),
-			"header hash", cnsDta.BlockHeaderHash,
-			"round", header.GetRound(),
-			"nonce", header.GetNonce(),
-			"prev hash", header.GetPrevHash(),
-			"nbTxs", header.GetTxCount(),
-			"val stats root hash", header.GetValidatorStatsRootHash(),
-		)
-
-		err = header.CheckChainID(wrk.chainID)
+		err = wrk.doJobOnMessageWithHeader(cnsMsg)
 		if err != nil {
-			return fmt.Errorf("%w : chain ID in received header from consensus topic is invalid",
-				err)
-		}
-
-		err = wrk.headerSigVerifier.VerifyRandSeed(header)
-		if err != nil {
-			return fmt.Errorf("%w : verify rand seed for received header from consensus topic failed",
-				err)
-		}
-
-		wrk.processReceivedHeaderMetric(cnsDta)
-
-		err = wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
-		if err != nil {
-			log.Debug("add received header from consensus topic to fork detector failed",
-				"error", err.Error())
-			//we should not return error here because the other peers connected to self might need this message
-			//to advance the consensus
+			return err
 		}
 	}
 
 	if wrk.consensusService.IsMessageWithSignature(msgType) {
-		wrk.mutDisplayHashConsensusMessage.Lock()
-		hash := string(cnsDta.BlockHeaderHash)
-		wrk.mapDisplayHashConsensusMessage[hash] = append(wrk.mapDisplayHashConsensusMessage[hash], cnsDta)
-		wrk.mutDisplayHashConsensusMessage.Unlock()
+		wrk.doJobOnMessageWithSignature(cnsMsg)
 	}
 
-	errNotCritical := wrk.checkSelfState(cnsDta)
+	errNotCritical := wrk.checkSelfState(cnsMsg)
 	if errNotCritical != nil {
 		log.Trace("checkSelfState", "error", errNotCritical.Error())
 		//in this case should return nil but do not process the message
@@ -443,9 +359,64 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		return nil
 	}
 
-	go wrk.executeReceivedMessages(cnsDta)
+	go wrk.executeReceivedMessages(cnsMsg)
 
 	return nil
+}
+
+func (wrk *Worker) doJobOnMessageWithBlockBody(cnsMsg *consensus.Message) {
+	//TODO: Add miniblocks from received block body into miniblocks pool
+}
+
+func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
+	headerHash := cnsMsg.BlockHeaderHash
+	header := wrk.blockProcessor.DecodeBlockHeader(cnsMsg.Header)
+	isHeaderInvalid := headerHash == nil || check.IfNil(header)
+	if isHeaderInvalid {
+		return fmt.Errorf("%w : received header from consensus topic is invalid",
+			ErrInvalidHeader)
+	}
+
+	log.Debug("received proposed block",
+		"from", core.GetTrimmedPk(core.ToHex(cnsMsg.PubKey)),
+		"header hash", cnsMsg.BlockHeaderHash,
+		"round", header.GetRound(),
+		"nonce", header.GetNonce(),
+		"prev hash", header.GetPrevHash(),
+		"nbTxs", header.GetTxCount(),
+		"val stats root hash", header.GetValidatorStatsRootHash())
+
+	err := header.CheckChainID(wrk.chainID)
+	if err != nil {
+		return fmt.Errorf("%w : verify chain ID for received header from consensus topic failed",
+			err)
+	}
+
+	err = wrk.headerSigVerifier.VerifyRandSeed(header)
+	if err != nil {
+		return fmt.Errorf("%w : verify rand seed for received header from consensus topic failed",
+			err)
+	}
+
+	wrk.processReceivedHeaderMetric(cnsMsg)
+
+	errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
+	if errNotCritical != nil {
+		log.Debug("add received header from consensus topic to fork detector failed",
+			"error", errNotCritical.Error())
+		//we should not return error here because the other peers connected to self might need this message
+		//to advance the consensus
+	}
+
+	return nil
+}
+
+func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message) {
+	wrk.mutDisplayHashConsensusMessage.Lock()
+	defer wrk.mutDisplayHashConsensusMessage.Unlock()
+
+	hash := string(cnsMsg.BlockHeaderHash)
+	wrk.mapDisplayHashConsensusMessage[hash] = append(wrk.mapDisplayHashConsensusMessage[hash], cnsMsg)
 }
 
 func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
