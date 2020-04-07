@@ -4,8 +4,6 @@ import (
 	"time"
 )
 
-const HardforkTriggerString = hardforkTriggerString
-
 func (m *Monitor) GetMessages() map[string]*heartbeatMessageInfo {
 	return m.heartbeatMessages
 }

@@ -262,7 +262,8 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 				return nil
 			},
 		},
-		HardforkTrigger: &mock.HardforkTriggerStub{},
+		HardforkTrigger:      &mock.HardforkTriggerStub{},
+		PeerBlackListHandler: &mock.BlackListHandlerStub{},
 	}
 
 	monitor, _ := heartbeat.NewMonitor(argMonitor)

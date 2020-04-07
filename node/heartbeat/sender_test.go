@@ -300,6 +300,7 @@ func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
 	genPubKeyClled := false
 	marshalCalled := false
 
+	dataPayload := []byte("payload")
 	arg := createMockArgHeartbeatSender()
 	arg.Topic = testTopic
 	arg.PeerMessenger = &mock.MessengerStub{
@@ -331,7 +332,7 @@ func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
 				pubkeyBytes, _ := pubKey.ToByteArray()
 				if bytes.Equal(hb.Signature, signature) &&
 					bytes.Equal(hb.Pubkey, pubkeyBytes) &&
-					bytes.Equal(hb.Payload, []byte(heartbeat.HardforkTriggerString)) {
+					bytes.Equal(hb.Payload, dataPayload) {
 
 					marshalCalled = true
 					return marshaledBuff, nil
@@ -344,6 +345,9 @@ func TestSender_SendHeartbeatAfterTriggerShouldWork(t *testing.T) {
 	arg.HardforkTrigger = &mock.HardforkTriggerStub{
 		RecordedTriggerMessageCalled: func() (i []byte, b bool) {
 			return nil, true
+		},
+		CreateDataCalled: func() []byte {
+			return dataPayload
 		},
 	}
 	sender, _ := heartbeat.NewSender(arg)

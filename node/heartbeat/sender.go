@@ -92,6 +92,7 @@ func (s *Sender) SendHeartbeat() error {
 		ShardID:         s.shardCoordinator.SelfId(),
 		VersionNumber:   s.versionNumber,
 		NodeDisplayName: s.nodeDisplayName,
+		Pid:             s.peerMessenger.ID().Bytes(),
 	}
 
 	triggerMessage, isHardforkTriggered := s.hardforkTrigger.RecordedTriggerMessage()
@@ -102,8 +103,7 @@ func (s *Sender) SendHeartbeat() error {
 			// so that will be spread in an epidemic manner
 			s.peerMessenger.Broadcast(s.topic, triggerMessage)
 		} else {
-			//we should initiate the payload message
-			hb.Payload = []byte(hardforkTriggerString)
+			hb.Payload = s.hardforkTrigger.CreateData()
 		}
 	}
 
