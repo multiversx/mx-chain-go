@@ -42,6 +42,7 @@ type ArgsNewEpochStartMetaSyncer struct {
 	BlockSigner       crypto.SingleSigner
 	ChainID           []byte
 	EconomicsData     *economics.EconomicsData
+	WhitelistHandler  process.WhiteListHandler
 }
 
 // thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
@@ -104,6 +105,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		processor,
 		disabled.NewThrottler(),
 		disabled.NewAntiFloodHandler(),
+		args.WhitelistHandler,
 	)
 	if err != nil {
 		return nil, err

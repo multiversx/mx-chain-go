@@ -323,12 +323,13 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		TxSignMarshalizer: e.txSignMarshalizer,
 		ShardCoordinator:  e.shardCoordinator,
 		Hasher:            e.hasher,
-		ChainID:           []byte(e.genesisNodesConfig.ChainID),
+		ChainID:           []byte(e.genesisNodesConfig.GetChainId()),
 		EconomicsData:     e.economicsData,
 		KeyGen:            e.keyGen,
 		BlockKeyGen:       e.blockKeyGen,
 		Signer:            e.singleSigner,
 		BlockSigner:       e.blockSingleSigner,
+		WhitelistHandler:  e.whiteListHandler,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
