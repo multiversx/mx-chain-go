@@ -22,7 +22,7 @@ type BlockProcessorMock struct {
 	DecodeBlockBodyCalled                   func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled                 func(dta []byte) data.HeaderHandler
 	AddLastNotarizedHdrCalled               func(shardId uint32, processedHdr data.HeaderHandler)
-	CreateNewHeaderCalled                   func(round uint64) data.HeaderHandler
+	CreateNewHeaderCalled                   func(round uint64, nonce uint64) data.HeaderHandler
 	PruneStateOnRollbackCalled              func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RestoreLastNotarizedHrdsToGenesisCalled func()
 	RevertStateToBlockCalled                func(header data.HeaderHandler) error
@@ -55,8 +55,8 @@ func (bpm *BlockProcessorMock) RevertAccountState(header data.HeaderHandler) {
 }
 
 // CreateNewHeader -
-func (bpm *BlockProcessorMock) CreateNewHeader(round uint64) data.HeaderHandler {
-	return bpm.CreateNewHeaderCalled(round)
+func (bpm *BlockProcessorMock) CreateNewHeader(round uint64, nonce uint64) data.HeaderHandler {
+	return bpm.CreateNewHeaderCalled(round, nonce)
 }
 
 // CreateBlock -

@@ -148,29 +148,18 @@ func (bpp *basePreProcess) saveTxsToStorage(
 
 func (bpp *basePreProcess) baseReceivedTransaction(
 	txHash []byte,
+	tx data.TransactionHandler,
 	forBlock *txsForBlock,
-	txPool dataRetriever.ShardedDataCacherNotifier,
-	blockType block.Type,
 ) bool {
-	searchFirst := blockType == block.InvalidBlock
 	forBlock.mutTxsForBlock.Lock()
-
 	if forBlock.missingTxs > 0 {
 		txInfoForHash := forBlock.txHashAndInfo[string(txHash)]
 		if txInfoForHash != nil && txInfoForHash.txShardInfo != nil &&
 			(txInfoForHash.tx == nil || txInfoForHash.tx.IsInterfaceNil()) {
-			tx, _ := process.GetTransactionHandlerFromPool(
-				txInfoForHash.senderShardID,
-				txInfoForHash.receiverShardID,
-				txHash,
-				txPool,
-				searchFirst)
-
-			if tx != nil {
-				forBlock.txHashAndInfo[string(txHash)].tx = tx
-				forBlock.missingTxs--
-			}
+			forBlock.txHashAndInfo[string(txHash)].tx = tx
+			forBlock.missingTxs--
 		}
+
 		missingTxs := forBlock.missingTxs
 		forBlock.mutTxsForBlock.Unlock()
 

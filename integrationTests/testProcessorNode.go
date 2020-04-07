@@ -1217,12 +1217,12 @@ func (tpn *TestProcessorNode) addHandlersForCounters() {
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.DataPool.Headers().RegisterHandler(hdrHandlers)
 	} else {
-		txHandler := func(key []byte) {
+		txHandler := func(key []byte, value interface{}) {
 			tx, _ := tpn.DataPool.Transactions().SearchFirstData(key)
 			tpn.ReceivedTransactions.Store(string(key), tx)
 			atomic.AddInt32(&tpn.CounterTxRecv, 1)
 		}
-		mbHandlers := func(key []byte) {
+		mbHandlers := func(key []byte, value interface{}) {
 			atomic.AddInt32(&tpn.CounterMbRecv, 1)
 		}
 
@@ -1261,11 +1261,9 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		return remainingTime > 0
 	}
 
-	blockHeader := tpn.BlockProcessor.CreateNewHeader(round)
+	blockHeader := tpn.BlockProcessor.CreateNewHeader(round, nonce)
 
 	blockHeader.SetShardID(tpn.ShardCoordinator.SelfId())
-	blockHeader.SetRound(round)
-	blockHeader.SetNonce(nonce)
 	blockHeader.SetPubKeysBitmap([]byte{1})
 
 	currHdr := tpn.BlockChain.GetCurrentBlockHeader()
