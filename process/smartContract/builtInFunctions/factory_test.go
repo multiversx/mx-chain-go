@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/stretchr/testify/assert"
 )
 
 func createMockArguments() ArgsCreateBuiltInFunctionContainer {
@@ -49,4 +51,20 @@ func fillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	t.Parallel()
 
+	args := createMockArguments()
+	args.GasMap = nil
+	container, err := CreateBuiltInFunctionContainer(args)
+	assert.NotNil(t, err)
+	assert.Nil(t, container)
+
+	args = createMockArguments()
+	args.MapDNSAddresses = nil
+	container, err = CreateBuiltInFunctionContainer(args)
+	assert.Equal(t, process.ErrNilDnsAddresses, err)
+	assert.Nil(t, container)
+
+	args = createMockArguments()
+	container, err = CreateBuiltInFunctionContainer(args)
+	assert.Nil(t, err)
+	assert.Equal(t, container.Len(), 3)
 }
