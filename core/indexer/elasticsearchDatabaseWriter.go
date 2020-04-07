@@ -3,6 +3,7 @@ package indexer
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -120,6 +121,7 @@ func (dw *databaseWriter) DoBulkRequest(buff *bytes.Buffer, index string) error 
 
 	if res.IsError() {
 		log.Warn("indexer", "error", res.String())
+		return fmt.Errorf("do bulk requrest %s", res.String())
 	}
 
 	return nil

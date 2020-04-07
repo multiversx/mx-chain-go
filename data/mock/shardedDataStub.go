@@ -6,7 +6,7 @@ import (
 
 // ShardedDataStub -
 type ShardedDataStub struct {
-	RegisterHandlerCalled         func(func(key []byte))
+	RegisterHandlerCalled         func(func(key []byte, value interface{}))
 	ShardDataStoreCalled          func(cacheId string) (c storage.Cacher)
 	AddDataCalled                 func(key []byte, data interface{}, cacheId string)
 	SearchFirstDataCalled         func(key []byte) (value interface{}, ok bool)
@@ -21,7 +21,7 @@ type ShardedDataStub struct {
 }
 
 // RegisterHandler -
-func (sd *ShardedDataStub) RegisterHandler(handler func(key []byte)) {
+func (sd *ShardedDataStub) RegisterHandler(handler func(key []byte, value interface{})) {
 	sd.RegisterHandlerCalled(handler)
 }
 

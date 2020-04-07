@@ -12,7 +12,7 @@ type TriggerHandler interface {
 	ForceEpochStart(round uint64) error
 	IsEpochStart() bool
 	Epoch() uint32
-	Update(round uint64)
+	Update(round uint64, nonce uint64)
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
 	GetSavedStateKey() []byte

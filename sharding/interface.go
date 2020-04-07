@@ -21,6 +21,7 @@ type Validator interface {
 	Address() []byte
 	Chances() uint32
 	SetChances(chances uint32)
+	Clone() (interface{}, error)
 }
 
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection

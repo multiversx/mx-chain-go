@@ -204,7 +204,7 @@ type BlockProcessor interface {
 	RevertAccountState(header data.HeaderHandler)
 	PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RevertStateToBlock(header data.HeaderHandler) error
-	CreateNewHeader(round uint64) data.HeaderHandler
+	CreateNewHeader(round uint64, nonce uint64) data.HeaderHandler
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)
@@ -371,7 +371,7 @@ type VirtualMachinesContainerFactory interface {
 
 // EpochStartTriggerHandler defines that actions which are needed by processor for start of epoch
 type EpochStartTriggerHandler interface {
-	Update(round uint64)
+	Update(round uint64, nonce uint64)
 	IsEpochStart() bool
 	Epoch() uint32
 	EpochStartRound() uint64
@@ -771,7 +771,7 @@ type RatingsStepHandler interface {
 
 // ValidatorInfoProcessorHandler defines the method needed for validatorInfoProcessing
 type ValidatorInfoProcessorHandler interface {
-	ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) error
+	ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) ([][]byte, error)
 	IsInterfaceNil() bool
 }
 

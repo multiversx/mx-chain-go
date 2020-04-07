@@ -541,7 +541,7 @@ func TestLeafNode_loadChildren(t *testing.T) {
 		nodesCacher.Put(node.hash, node)
 	}
 	syncer, _ := NewTrieSyncer(resolver, nodesCacher, tr, time.Second)
-	syncer.interceptedNodes.RegisterHandler(func(key []byte) {
+	syncer.interceptedNodes.RegisterHandler(func(key []byte, value interface{}) {
 		syncer.chRcvTrieNodes <- true
 	})
 

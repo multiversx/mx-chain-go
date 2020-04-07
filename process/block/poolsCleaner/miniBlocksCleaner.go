@@ -2,49 +2,44 @@ package poolsCleaner
 
 import (
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var log = logger.GetOrCreate("process/block/poolsCleaner")
 
-const percentAllowed = 0.8
+type mbInfo struct {
+	round           int64
+	senderShardID   uint32
+	receiverShardID uint32
+	mbType          block.Type
+}
 
-// miniBlocksPoolsCleaner represents a pools cleaner that check and clean miniblocks which should not be in pool anymore
+// miniBlocksPoolsCleaner represents a pools cleaner that checks and cleans miniblocks which should not be in pool anymore
 type miniBlocksPoolsCleaner struct {
-	blockTracker     BlockTracker
-	dataPool         dataRetriever.PoolsHolder
+	miniblocksPool   storage.Cacher
 	rounder          process.Rounder
 	shardCoordinator sharding.Coordinator
 
 	mutMapMiniBlocksRounds sync.RWMutex
-	mapMiniBlocksRounds    map[string]int64
+	mapMiniBlocksRounds    map[string]*mbInfo
 }
 
 // NewMiniBlocksPoolsCleaner will return a new miniblocks pools cleaner
 func NewMiniBlocksPoolsCleaner(
-	blockTracker BlockTracker,
-	dataPool dataRetriever.PoolsHolder,
+	miniblocksPool storage.Cacher,
 	rounder process.Rounder,
 	shardCoordinator sharding.Coordinator,
 ) (*miniBlocksPoolsCleaner, error) {
 
-	if check.IfNil(blockTracker) {
-		return nil, process.ErrNilBlockTracker
-	}
-	if check.IfNil(dataPool) {
-		return nil, process.ErrNilPoolsHolder
-	}
-	if check.IfNil(dataPool.MiniBlocks()) {
+	if check.IfNil(miniblocksPool) {
 		return nil, process.ErrNilMiniBlockPool
-	}
-	if check.IfNil(dataPool.Transactions()) {
-		return nil, process.ErrNilTransactionPool
 	}
 	if check.IfNil(rounder) {
 		return nil, process.ErrNilRounder
@@ -54,21 +49,36 @@ func NewMiniBlocksPoolsCleaner(
 	}
 
 	mbpc := miniBlocksPoolsCleaner{
-		blockTracker:     blockTracker,
-		dataPool:         dataPool,
+		miniblocksPool:   miniblocksPool,
 		rounder:          rounder,
 		shardCoordinator: shardCoordinator,
 	}
 
-	mbpc.mapMiniBlocksRounds = make(map[string]int64)
-	miniBlocksPool := mbpc.dataPool.MiniBlocks()
-	miniBlocksPool.RegisterHandler(mbpc.receivedMiniBlock)
+	mbpc.mapMiniBlocksRounds = make(map[string]*mbInfo)
+	mbpc.miniblocksPool.RegisterHandler(mbpc.receivedMiniBlock)
+
+	go mbpc.cleanMiniblocksPools()
 
 	return &mbpc, nil
 }
 
-func (mbpc *miniBlocksPoolsCleaner) receivedMiniBlock(key []byte) {
+func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPools() {
+	for {
+		time.Sleep(sleepTime)
+		numMiniblocksInMap := mbpc.cleanMiniblocksPoolsIfNeeded()
+		log.Debug("miniBlocksPoolsCleaner.cleanMiniblocksPools", "num miniblocks in map", numMiniblocksInMap)
+
+	}
+}
+
+func (mbpc *miniBlocksPoolsCleaner) receivedMiniBlock(key []byte, value interface{}) {
 	if key == nil {
+		return
+	}
+
+	miniBlock, ok := value.(*block.MiniBlock)
+	if !ok {
+		log.Warn("miniBlocksPoolsCleaner.receivedMiniBlock", "error", process.ErrWrongTypeAssertion)
 		return
 	}
 
@@ -78,76 +88,72 @@ func (mbpc *miniBlocksPoolsCleaner) receivedMiniBlock(key []byte) {
 	defer mbpc.mutMapMiniBlocksRounds.Unlock()
 
 	if _, ok := mbpc.mapMiniBlocksRounds[string(key)]; !ok {
-		mbpc.mapMiniBlocksRounds[string(key)] = mbpc.rounder.Index()
-	}
+		receivedMbInfo := &mbInfo{
+			round:           mbpc.rounder.Index(),
+			senderShardID:   miniBlock.SenderShardID,
+			receiverShardID: miniBlock.ReceiverShardID,
+			mbType:          miniBlock.Type,
+		}
 
-	mbpc.cleanPoolIfNeeded()
+		mbpc.mapMiniBlocksRounds[string(key)] = receivedMbInfo
+
+		log.Trace("miniblock has been added",
+			"hash", key,
+			"round", receivedMbInfo.round,
+			"sender", receivedMbInfo.senderShardID,
+			"receiver", receivedMbInfo.receiverShardID,
+			"type", receivedMbInfo.mbType)
+	}
 }
 
-func (mbpc *miniBlocksPoolsCleaner) cleanPoolIfNeeded() {
-	selfShard := mbpc.shardCoordinator.SelfId()
-	numPendingMiniBlocks := mbpc.blockTracker.GetNumPendingMiniBlocks(selfShard)
-	miniBlocksPool := mbpc.dataPool.MiniBlocks()
-	transactionsPool := mbpc.dataPool.Transactions()
-	percentUsed := float64(miniBlocksPool.Len()) / float64(miniBlocksPool.MaxSize())
+func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() int {
+	mbpc.mutMapMiniBlocksRounds.Lock()
+	defer mbpc.mutMapMiniBlocksRounds.Unlock()
 
-	for hash, round := range mbpc.mapMiniBlocksRounds {
-		value, ok := miniBlocksPool.Get([]byte(hash))
+	numMbsCleaned := 0
+
+	for hash, mbInfo := range mbpc.mapMiniBlocksRounds {
+		_, ok := mbpc.miniblocksPool.Get([]byte(hash))
 		if !ok {
 			log.Trace("miniblock not found in pool",
 				"hash", []byte(hash),
-				"round", round)
+				"round", mbInfo.round,
+				"sender", mbInfo.senderShardID,
+				"receiver", mbInfo.receiverShardID,
+				"type", mbInfo.mbType)
 			delete(mbpc.mapMiniBlocksRounds, hash)
 			continue
 		}
 
-		miniBlock, ok := value.(*block.MiniBlock)
-		if !ok {
-			log.Debug("cleanPoolIfNeeded", "error", process.ErrWrongTypeAssertion,
-				"hash", []byte(hash),
-				"round", round)
-			continue
-		}
-
-		if miniBlock.SenderShardID != selfShard {
-			if numPendingMiniBlocks > 0 && percentUsed < percentAllowed {
-				log.Trace("cleaning cross miniblock not yet allowed",
-					"hash", []byte(hash),
-					"round", round,
-					"num pending miniblocks", numPendingMiniBlocks,
-					"miniblocks pool percent used", percentUsed,
-					"type", miniBlock.Type,
-					"sender", miniBlock.SenderShardID,
-					"receiver", miniBlock.ReceiverShardID,
-					"num txs", len(miniBlock.TxHashes))
-				continue
-			}
-		}
-
-		roundDif := mbpc.rounder.Index() - round
+		roundDif := mbpc.rounder.Index() - mbInfo.round
 		if roundDif <= process.MaxRoundsToKeepUnprocessedMiniBlocks {
 			log.Trace("cleaning miniblock not yet allowed",
 				"hash", []byte(hash),
-				"round", round,
+				"round", mbInfo.round,
 				"round dif", roundDif,
-				"type", miniBlock.Type,
-				"sender", miniBlock.SenderShardID,
-				"receiver", miniBlock.ReceiverShardID,
-				"num txs", len(miniBlock.TxHashes))
+				"sender", mbInfo.senderShardID,
+				"receiver", mbInfo.receiverShardID,
+				"type", mbInfo.mbType)
+
 			continue
 		}
 
-		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
-		transactionsPool.RemoveSetOfDataFromPool(miniBlock.TxHashes, strCache)
-		miniBlocksPool.Remove([]byte(hash))
+		mbpc.miniblocksPool.Remove([]byte(hash))
 		delete(mbpc.mapMiniBlocksRounds, hash)
+		numMbsCleaned++
 
-		log.Debug("miniblock has been cleaned",
+		log.Trace("miniblock has been cleaned",
 			"hash", []byte(hash),
-			"round", round,
-			"type", miniBlock.Type,
-			"sender", miniBlock.SenderShardID,
-			"receiver", miniBlock.ReceiverShardID,
-			"num txs", len(miniBlock.TxHashes))
+			"round", mbInfo.round,
+			"sender", mbInfo.senderShardID,
+			"receiver", mbInfo.receiverShardID,
+			"type", mbInfo.mbType)
 	}
+
+	if numMbsCleaned > 0 {
+		log.Debug("miniBlocksPoolsCleaner.cleanMiniblocksPoolsIfNeeded",
+			"num mbs cleaned", numMbsCleaned)
+	}
+
+	return len(mbpc.mapMiniBlocksRounds)
 }

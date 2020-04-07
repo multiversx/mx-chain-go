@@ -268,6 +268,10 @@ const (
 	NodesCoordinatorOrder
 	// ConsensusOrder defines the order in which Consensus is notified of a start of epoch event
 	ConsensusOrder
+	// NetworkShardingOrder defines the order in which the network sharding subsystem is notified of a start of epoch event
+	NetworkShardingOrder
+	// IndexerOrder defines the order in which Indexer is notified of a start of epoch event
+	IndexerOrder
 )
 
 // NodeState specifies what type of state a node could have
@@ -302,3 +306,6 @@ const MetricP2PUnknownPeers = "erd_p2p_unknown_shard_peers"
 
 // MetricP2PNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
 const MetricP2PNumConnectedPeersClassification = "erd_p2p_num_connected_peers_classification"
+
+// HashSizeInBytes represents the size in bytes of a hash
+const HashSizeInBytes = 32

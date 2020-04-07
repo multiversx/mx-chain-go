@@ -547,9 +547,9 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
-	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes)
+	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes, nil)
 
-	saveRoundInfoInElastic(sp.core.Indexer(), sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
+	indexRoundInfo(sp.core.Indexer(), sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
 }
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools
@@ -1035,8 +1035,13 @@ func (sp *shardProcessor) cleanTxsPools() {
 }
 
 // CreateNewHeader creates a new header
-func (sp *shardProcessor) CreateNewHeader(_ uint64) data.HeaderHandler {
-	header := &block.Header{AccumulatedFees: big.NewInt(0)}
+func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) data.HeaderHandler {
+	header := &block.Header{
+		Nonce:           nonce,
+		Round:           round,
+		AccumulatedFees: big.NewInt(0),
+	}
+
 	return header
 }
 
