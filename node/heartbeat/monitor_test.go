@@ -503,7 +503,7 @@ func TestMonitor_ProcessReceivedMessageImpersonatedMessageShouldErr(t *testing.T
 	}
 
 	err := mon.ProcessReceivedMessage(message, fromConnectedPeerId)
-	assert.True(t, errors.Is(err, heartbeat.ErrHearbeatPidMismatch))
+	assert.True(t, errors.Is(err, heartbeat.ErrHeartbeatPidMismatch))
 	assert.True(t, originatorWasBlacklisted)
 	assert.True(t, connectedPeerWasBlacklisted)
 }

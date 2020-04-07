@@ -96,7 +96,7 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 	isTriggerEnabled := t.enabled && t.enabledAuthenticated
 	if !isTriggerEnabled {
 		//should not return error as to allow the message to get to other peers
-		return false, nil
+		return true, nil
 	}
 
 	if !bytes.Equal(pkBytes, t.triggerPubKey) {

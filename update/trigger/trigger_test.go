@@ -122,7 +122,7 @@ func TestTrigger_TriggerReceivedNotEnabledShouldRetNilButNotCall(t *testing.T) {
 
 	isHardfork, err := trig.TriggerReceived(nil, data, nil)
 	assert.Nil(t, err)
-	assert.False(t, isHardfork)
+	assert.True(t, isHardfork)
 
 	_, wasTriggered := trig.RecordedTriggerMessage()
 	assert.False(t, wasTriggered)
@@ -138,7 +138,7 @@ func TestTrigger_TriggerReceivedNotEnabledAuthenticatedShouldRetNilButNotCall(t 
 
 	isHardfork, err := trig.TriggerReceived(nil, data, nil)
 	assert.Nil(t, err)
-	assert.False(t, isHardfork)
+	assert.True(t, isHardfork)
 
 	_, wasTriggered := trig.RecordedTriggerMessage()
 	assert.False(t, wasTriggered)
