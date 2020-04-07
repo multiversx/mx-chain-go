@@ -123,7 +123,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 func (ts *trieSyncer) getNextNodes() error {
 	var currentNode node
 	var err error
-	nextNodes := make([]node, 0)
+	var nextNodes []node
 	missingNodes := make([][]byte, 0)
 	currentMissingNodes := make([][]byte, 0)
 

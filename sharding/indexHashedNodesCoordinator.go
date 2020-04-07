@@ -174,9 +174,7 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 	}
 
 	nodesConfig.leavingList = make([]Validator, 0, len(leaving))
-	for _, validator := range leaving {
-		nodesConfig.leavingList = append(nodesConfig.leavingList, validator)
-	}
+	nodesConfig.leavingList = append(nodesConfig.leavingList, leaving...)
 
 	nodesList := eligible[core.MetachainShardId]
 	if len(nodesList) < ihgs.metaConsensusGroupSize {
