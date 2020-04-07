@@ -176,6 +176,8 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 	irp.mutInterResultsForBlock.Lock()
 	defer irp.mutInterResultsForBlock.Unlock()
 
+	log.Trace("intermediateResultsProcessor.AddIntermediateTransactions()", "txs", len(txs))
+
 	for i := 0; i < len(txs); i++ {
 		addScr, ok := txs[i].(*smartContractResult.SmartContractResult)
 		if !ok {

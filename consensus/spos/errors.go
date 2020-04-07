@@ -79,6 +79,9 @@ var ErrNilDataToProcess = errors.New("nil data to process")
 // ErrNilWorker is raised when a valid Worker is expected but nil used
 var ErrNilWorker = errors.New("worker is nil")
 
+// ErrNilWorkerArgs signals that nil a workerArgs has been provided
+var ErrNilWorkerArgs = errors.New("worker args is nil")
+
 // ErrNilShardCoordinator is raised when a valid shard coordinator is expected but nil used
 var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
 
@@ -147,6 +150,9 @@ var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
 
 // ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
 var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
+
+// ErrNilPoolAdder signals that a nil pool adder has been provided
+var ErrNilPoolAdder = errors.New("nil pool adder")
 
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
