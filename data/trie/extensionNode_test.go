@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -835,27 +834,22 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 	_ = tr.root.setRootHash()
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := lrucache.NewCache(100)
-	resolver := &mock.TrieNodesResolverStub{
-		RequestDataFromHashCalled: func(hash []byte) error {
-			for i := range nodes {
-				node, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
-				nodesCacher.Put(node.hash, node)
-			}
-			return nil
-		},
+	for i := range nodes {
+		node, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
+		nodesCacher.Put(node.hash, node)
 	}
-	syncer, _ := NewTrieSyncer(resolver, nodesCacher, tr, time.Second)
-	syncer.interceptedNodes.RegisterHandler(func(key []byte, value interface{}) {
-		syncer.chRcvTrieNodes <- true
-	})
 
 	en := getCollapsedEn(t, tr.root)
 
-	err := en.loadChildren(syncer)
+	getNode := func(hash []byte) (node, error) {
+		cacheData, _ := nodesCacher.Get(hash)
+		return trieNode(cacheData)
+	}
+	_, err := en.loadChildren(getNode)
 	assert.Nil(t, err)
 	assert.NotNil(t, en.child)
 
-	assert.Equal(t, 3, nodesCacher.Len())
+	assert.Equal(t, 4, nodesCacher.Len())
 }
 
 func getCollapsedEn(t *testing.T, n node) *extensionNode {

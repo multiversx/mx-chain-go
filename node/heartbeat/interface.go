@@ -10,12 +10,20 @@ import (
 // PeerMessenger defines a subset of the p2p.Messenger interface
 type PeerMessenger interface {
 	Broadcast(topic string, buff []byte)
+	ID() p2p.PeerID
 	IsInterfaceNil() bool
 }
 
 // MessageHandler defines what a message processor for heartbeat should do
 type MessageHandler interface {
 	CreateHeartbeatFromP2PMessage(message p2p.MessageP2P) (*Heartbeat, error)
+	IsInterfaceNil() bool
+}
+
+// EligibleListProvider defines what an eligible list provider should do
+type EligibleListProvider interface {
+	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -56,5 +64,21 @@ type P2PAntifloodHandler interface {
 // PeerTypeProviderHandler defines what a component which computes the type of a peer should do
 type PeerTypeProviderHandler interface {
 	ComputeForPubKey(pubKey []byte) (core.PeerType, uint32, error)
+	IsInterfaceNil() bool
+}
+
+// HardforkTrigger defines the behavior of a hardfork trigger
+type HardforkTrigger interface {
+	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
+	RecordedTriggerMessage() ([]byte, bool)
+	CreateData() []byte
+	IsInterfaceNil() bool
+}
+
+// BlackListHandler can determine if a certain key is or not blacklisted
+type BlackListHandler interface {
+	Add(key string) error
+	Has(key string) bool
+	Sweep()
 	IsInterfaceNil() bool
 }

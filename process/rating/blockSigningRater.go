@@ -8,9 +8,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var log = logger.GetOrCreate("process/rating")
@@ -21,7 +19,6 @@ const (
 
 // BlockSigningRater defines the behaviour of a struct able to do ratings for validators
 type BlockSigningRater struct {
-	sharding.RatingReader
 	startRating             uint32
 	signedBlocksThreshold   float32
 	maxRating               uint32
@@ -72,7 +69,6 @@ func NewBlockSigningRater(ratingsData process.RatingsInfoHandler) (*BlockSigning
 		signedBlocksThreshold:   ratingsData.SignedBlocksThreshold(),
 		shardRatingsStepHandler: ratingsData.ShardChainRatingsStepHandler(),
 		metaRatingsStepHandler:  ratingsData.MetaChainRatingsStepHandler(),
-		RatingReader:            NewNilRatingReader(ratingsData.StartRating()),
 		ratingChances:           ratingChances,
 	}, nil
 }
@@ -138,18 +134,6 @@ func (bsr *BlockSigningRater) computeRating(ratingStep int32, currentRating uint
 	}
 
 	return uint32(newVal)
-}
-
-// GetRating returns the Rating for the specified public key
-func (bsr *BlockSigningRater) GetRating(pk string) uint32 {
-	return bsr.RatingReader.GetRating(pk)
-}
-
-// SetRatingReader sets the Reader that can read ratings
-func (bsr *BlockSigningRater) SetRatingReader(reader sharding.RatingReader) {
-	if !check.IfNil(reader) {
-		bsr.RatingReader = reader
-	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

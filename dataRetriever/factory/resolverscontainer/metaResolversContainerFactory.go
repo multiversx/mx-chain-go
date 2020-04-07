@@ -138,7 +138,11 @@ func (mrcf *metaResolversContainerFactory) generateShardHeaderResolvers() error 
 	return mrcf.container.AddMultiple(keys, resolversSlice)
 }
 
-func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(topic string, excludedTopic string, shardID uint32) (dataRetriever.Resolver, error) {
+func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
+	topic string,
+	excludedTopic string,
+	shardID uint32,
+) (dataRetriever.Resolver, error) {
 	hdrStorer := mrcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
 
 	resolverSender, err := mrcf.createOneResolverSender(topic, excludedTopic, shardID)
@@ -185,7 +189,10 @@ func (mrcf *metaResolversContainerFactory) generateMetaChainHeaderResolvers() er
 	return mrcf.container.Add(identifierHeader, resolver)
 }
 
-func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(identifier string, shardId uint32) (dataRetriever.Resolver, error) {
+func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(
+	identifier string,
+	shardId uint32,
+) (dataRetriever.Resolver, error) {
 	hdrStorer := mrcf.store.GetStorer(dataRetriever.MetaBlockUnit)
 
 	resolverSender, err := mrcf.createOneResolverSender(identifier, emptyExcludePeersOnTopic, shardId)
@@ -233,18 +240,9 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 
 		resolversSlice = append(resolversSlice, resolver)
 		keys = append(keys, identifierTrieNodes)
-
-		identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(i)
-		resolver, err = mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie)
-		if err != nil {
-			return err
-		}
-
-		resolversSlice = append(resolversSlice, resolver)
-		keys = append(keys, identifierTrieNodes)
 	}
 
-	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	resolver, err := mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie)
 	if err != nil {
 		return err
@@ -253,7 +251,7 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolversSlice = append(resolversSlice, resolver)
 	keys = append(keys, identifierTrieNodes)
 
-	identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	resolver, err = mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie)
 	if err != nil {
 		return err

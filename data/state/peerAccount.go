@@ -50,16 +50,6 @@ func (pa *peerAccount) SetBLSPublicKey(pubKey []byte) error {
 	return nil
 }
 
-// SetSchnorrPublicKey sets the account's public key, saving the old key before changing
-func (pa *peerAccount) SetSchnorrPublicKey(pubKey []byte) error {
-	if len(pubKey) < 1 {
-		return ErrNilSchnorrPublicKey
-	}
-
-	pa.SchnorrPublicKey = pubKey
-	return nil
-}
-
 // SetRewardAddress sets the account's reward address, saving the old address before changing
 func (pa *peerAccount) SetRewardAddress(address []byte) error {
 	if len(address) < 1 {
@@ -80,9 +70,9 @@ func (pa *peerAccount) SetStake(stake *big.Int) error {
 	return nil
 }
 
-// SetAccumulatedFees sets the account's accumulated fees
-func (pa *peerAccount) SetAccumulatedFees(fees *big.Int) {
-	pa.AccumulatedFees = big.NewInt(0).Set(fees)
+// AddToAccumulatedFees sets the account's accumulated fees
+func (pa *peerAccount) AddToAccumulatedFees(fees *big.Int) {
+	pa.AccumulatedFees.Add(pa.AccumulatedFees, fees)
 }
 
 // SetJailTime sets the account's jail time
@@ -143,6 +133,23 @@ func (pa *peerAccount) SetRating(rating uint32) {
 // SetTempRating sets the account's tempRating
 func (pa *peerAccount) SetTempRating(rating uint32) {
 	pa.TempRating = rating
+}
+
+// SetListAndIndex will update the peer's list (eligible, waiting) and the index inside it with journal
+func (pa *peerAccount) SetListAndIndex(shardID uint32, list string, index uint32) {
+	pa.CurrentShardId = shardID
+	pa.List = list
+	pa.IndexInList = index
+}
+
+// GetList returns the list the peer is in
+func (pa *peerAccount) GetList() string {
+	return pa.List
+}
+
+// GetIndex returns the index in list
+func (pa *peerAccount) GetIndex() uint32 {
+	return pa.IndexInList
 }
 
 // IsInterfaceNil return if there is no value under the interface

@@ -35,6 +35,9 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 // ErrNilMarshalizer signals that nil marshalizer has been provided
 var ErrNilMarshalizer = errors.New("nil marshalizer")
 
+// ErrNilTxSignMarshalizer signals that nil tx sign marshalizer has been provided
+var ErrNilTxSignMarshalizer = errors.New("nil tx sign marshalizer")
+
 // ErrNilStorage signals that nil storage has been provided
 var ErrNilStorage = errors.New("nil storage")
 
@@ -52,6 +55,9 @@ var ErrMetaHdrNotFound = errors.New("meta header not found")
 
 // ErrNilHasher signals that nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher")
+
+// ErrInvalidConsensusThreshold signals that an invalid consensus threshold has been provided
+var ErrInvalidConsensusThreshold = errors.New("invalid consensus threshold")
 
 // ErrNilHeaderValidator signals that nil header validator has been provided
 var ErrNilHeaderValidator = errors.New("nil header validator")
@@ -98,6 +104,24 @@ var ErrNilAddressConverter = errors.New("nil address converter")
 // ErrRewardMiniBlocksNumDoesNotMatch signals that number of created and received rewards miniblocks is not equal
 var ErrRewardMiniBlocksNumDoesNotMatch = errors.New("number of created and received rewards miniblocks missmatch")
 
+// ErrNilRewardsHandler signals that rewards handler is nil
+var ErrNilRewardsHandler = errors.New("rewards handler is nil")
+
+// ErrNilTotalAccumulatedFeesInEpoch signals that total accumulated fees in epoch is nil
+var ErrNilTotalAccumulatedFeesInEpoch = errors.New("total accumulated fees in epoch is nil")
+
+// ErrEndOfEpochEconomicsDataDoesNotMatch signals that end of epoch data does not match
+var ErrEndOfEpochEconomicsDataDoesNotMatch = errors.New("end of epoch economics data does not match")
+
+// ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
+var ErrNilRounder = errors.New("nil Rounder")
+
+// ErrNilNodesCoordinator signals that an operation has been attempted to or with a nil nodes coordinator
+var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
+
+// ErrNotEpochStartBlock signals that block is not of type epoch start
+var ErrNotEpochStartBlock = errors.New("not epoch start block")
+
 // ErrNilShardHeaderStorage signals that shard header storage is nil
 var ErrNilShardHeaderStorage = errors.New("nil shard header storage")
 
@@ -107,11 +131,68 @@ var ErrValidatorInfoMiniBlocksNumDoesNotMatch = errors.New("number of created an
 // ErrNilValidatorInfo signals that a nil value for the validatorInfo has been provided
 var ErrNilValidatorInfo = errors.New("validator info is nil")
 
-// ErrNilValidatorStatistics signals that a nil validator statistics has been provided
-var ErrNilValidatorStatistics = errors.New("nil validator statistics")
+// ErrNilMetaBlock signals that a nil metablock has been provided
+var ErrNilMetaBlock = errors.New("nil metablock")
 
 // ErrNilMiniBlockPool signals that a nil mini blocks pool was used
 var ErrNilMiniBlockPool = errors.New("nil mini block pool")
 
 // ErrNilStatusHandler signals that a nil status handler has been provided
 var ErrNilStatusHandler = errors.New("nil app status handler")
+
+// ErrEpochStartDataForShardNotFound signals that epoch start shard data was not found for current shard id
+var ErrEpochStartDataForShardNotFound = errors.New("epoch start data for current shard not found")
+
+// ErrMissingHeader signals that searched header is missing
+var ErrMissingHeader = errors.New("missing header")
+
+// ErrNilPathManager signals that a nil path manager has been provided
+var ErrNilPathManager = errors.New("nil path manager")
+
+// ErrNilMessenger signals that a nil messenger has been provided
+var ErrNilMessenger = errors.New("nil messenger")
+
+// ErrNilEconomicsData signals that a nil economics data handler has been provided
+var ErrNilEconomicsData = errors.New("nil economics data")
+
+// ErrNilPubKey signals that a nil public key has been provided
+var ErrNilPubKey = errors.New("nil public key")
+
+// ErrNilBlockKeyGen signals that a nil block key generator has been provided
+var ErrNilBlockKeyGen = errors.New("nil block key generator")
+
+// ErrNilKeyGen signals that a nil key generator has been provided
+var ErrNilKeyGen = errors.New("nil key generator")
+
+// ErrNilSingleSigner signals that a nil single signer has been provided
+var ErrNilSingleSigner = errors.New("nil single signer")
+
+// ErrNilBlockSingleSigner signals that a nil block single signer has been provided
+var ErrNilBlockSingleSigner = errors.New("nil block single signer")
+
+// ErrNilGenesisNodesConfig signals that a nil genesis nodes config has been provided
+var ErrNilGenesisNodesConfig = errors.New("nil genesis nodes config")
+
+// ErrNilRater signals that a nil rater has been provided
+var ErrNilRater = errors.New("nil rater")
+
+// ErrNilTriesContainer signals that a nil tries container has been provided
+var ErrNilTriesContainer = errors.New("nil tries container")
+
+// ErrNilTrieStorageManager signals that a nil trie storage managers map has been provided
+var ErrNilTrieStorageManager = errors.New("nil trie storage managers map")
+
+// ErrInvalidDefaultDBPath signals that an invalid default database path has been provided
+var ErrInvalidDefaultDBPath = errors.New("invalid default db path")
+
+// ErrInvalidDefaultEpochString signals that an invalid default epoch string has been provided
+var ErrInvalidDefaultEpochString = errors.New("invalid default epoch string")
+
+// ErrInvalidDefaultShardString signals that an invalid default shard string has been provided
+var ErrInvalidDefaultShardString = errors.New("invalid default shard string")
+
+// ErrInvalidWorkingDir signals that an invalid working directory has been provided
+var ErrInvalidWorkingDir = errors.New("invalid working directory")
+
+// ErrTimeoutWaitingForMetaBlock signals that a timeout event was raised while waiting for the epoch start meta block
+var ErrTimeoutWaitingForMetaBlock = errors.New("timeout while waiting for epoch start meta block")
