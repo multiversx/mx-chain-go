@@ -3,11 +3,14 @@ package containers
 import (
 	"fmt"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/container"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+var logVMContainer = logger.GetOrCreate("factory/containers/vmContainer")
 
 // virtualMachinesContainer is an VM holder organized by type
 type virtualMachinesContainer struct {
@@ -103,6 +106,29 @@ func (vmc *virtualMachinesContainer) Keys() [][]byte {
 	}
 
 	return keysBytes
+}
+
+// Close closes the items in the container (meaningful for Arwen out-of-process)
+func (vmc *virtualMachinesContainer) Close() error {
+	var withError bool
+
+	for _, item := range vmc.objects.Values() {
+		asCloser, ok := item.(interface{ Close() error })
+		if !ok {
+			continue
+		}
+
+		err := asCloser.Close()
+		if err != nil {
+			logVMContainer.Error("Cannot close item in container", "err", err)
+			withError = true
+		}
+	}
+
+	if withError {
+		return ErrCloseVMContainer
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
