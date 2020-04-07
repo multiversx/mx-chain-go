@@ -24,7 +24,7 @@ type Indexer interface {
 
 // databaseHandler is an interface used by elasticsearch component to prepare data to be saved on elasticseach server
 type databaseHandler interface {
-	SaveHeader(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string)
+	SaveHeader(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string, txsSize int)
 	SaveMiniblocks(header data.HeaderHandler, body *block.Body)
 	SaveTransactions(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardId uint32)
 	SaveRoundInfo(info RoundInfo)
