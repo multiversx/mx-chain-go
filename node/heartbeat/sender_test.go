@@ -212,33 +212,27 @@ func testSendHeartbeat(t *testing.T, pubKeyErr, signErr, marshalErr error) {
 	arg.PrivKey = &mock.PrivateKeyStub{
 		GeneratePublicHandler: func() crypto.PublicKey {
 			return pubKey
-	sender, _ := heartbeat.NewSender(
-		&mock.MessengerStub{
-			BroadcastCalled: func(topic string, buff []byte) {
-			},
-		},
-		&mock.SinglesignStub{
-			SignCalled: func(private crypto.PrivateKey, msg []byte) (i []byte, e error) {
-				expectedErr = signErr
-				return nil, signErr
-			},
-		},
-		&mock.PrivateKeyStub{
-			GeneratePublicHandler: func() crypto.PublicKey {
-				return pubKey
-			},
 		},
 	}
-	arg.Marshalizer = &mock.MarshalizerMock{
+	args := createMockArgHeartbeatSender()
+	args.PeerMessenger = &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
+		},
+	}
+
+	args.SingleSigner = &mock.SinglesignStub{
+		SignCalled: func(private crypto.PrivateKey, msg []byte) (i []byte, e error) {
+			expectedErr = signErr
+			return nil, signErr
+		},
+	}
+	args.Marshalizer = &mock.MarshalizerMock{
 		MarshalHandler: func(obj interface{}) (i []byte, e error) {
-			return nil, errExpected
-		&mock.MarshalizerMock{
-			MarshalHandler: func(obj interface{}) (i []byte, e error) {
-				expectedErr = marshalErr
-				return nil, marshalErr
-			},
+			expectedErr = marshalErr
+			return nil, marshalErr
 		},
 	}
+
 	sender, _ := heartbeat.NewSender(arg)
 
 	err := sender.SendHeartbeat()
