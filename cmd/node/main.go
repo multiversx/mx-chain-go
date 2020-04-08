@@ -25,6 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -749,6 +750,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 	}
 
+	chanStopNodeProcess := make(chan bool, 1)
 	nodesCoordinator, err := createNodesCoordinator(
 		genesisNodesConfig,
 		preferencesConfig.Preferences,
@@ -759,6 +761,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		rater,
 		dataComponents.Store.GetStorer(dataRetriever.BootstrapUnit),
 		nodesShuffler,
+		generalConfig.EpochStartConfig,
+		shardCoordinator.SelfId(),
+		chanStopNodeProcess,
 	)
 	if err != nil {
 		return err
@@ -935,6 +940,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		requestedItemsHandler,
 		epochStartNotifier,
 		whiteListHandler,
+		chanStopNodeProcess,
 	)
 	if err != nil {
 		return err
@@ -1025,8 +1031,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Info("application is now running")
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	<-sigs
-	log.Info("terminating at user's signal...")
+	select {
+	case <-sigs:
+		log.Info("terminating at user's signal...")
+	case <-chanStopNodeProcess:
+		log.Info("terminating at internal stop signal...")
+	}
 
 	log.Debug("closing all store units....")
 	err = dataComponents.Store.CloseAll()
@@ -1298,6 +1308,9 @@ func createNodesCoordinator(
 	ratingAndListIndexHandler sharding.PeerAccountListAndRatingHandler,
 	bootStorer storage.Storer,
 	nodeShuffler sharding.NodesShuffler,
+	epochConfig config.EpochStartConfig,
+	currentShardID uint32,
+	chanStopNodeProcess chan bool,
 ) (sharding.NodesCoordinator, error) {
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
 	if err != nil {
@@ -1329,6 +1342,28 @@ func createNodesCoordinator(
 		return nil, err
 	}
 
+	thresholdEpochDuration := epochConfig.ShuffledOutRestartThreshold
+	if !(thresholdEpochDuration >= 0.0 && thresholdEpochDuration <= 1.0) {
+		return nil, fmt.Errorf("invalid threshold for shuffled out handler")
+	}
+	maxDurationBeforeStopProcess := int64(nodesConfig.RoundDuration) * epochConfig.RoundsPerEpoch
+	maxDurationBeforeStopProcess = int64(thresholdEpochDuration * float64(maxDurationBeforeStopProcess))
+	intRandomizer := &random.ConcurrentSafeIntRandomizer{}
+	randDurationBeforeStop := intRandomizer.Intn(int(maxDurationBeforeStopProcess))
+	endOfProcessingHandler := func() error {
+		go func() {
+			time.Sleep(time.Duration(randDurationBeforeStop) * time.Millisecond)
+			fmt.Println(fmt.Sprintf("the application stops after waiting %d miliseconds because the node was "+
+				"shuffled out", randDurationBeforeStop))
+			chanStopNodeProcess <- true
+		}()
+		return nil
+	}
+	shuffledOutHandler, err := sharding.NewShuffledOutTrigger(pubKeyBytes, currentShardID, endOfProcessingHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: shardConsensusGroupSize,
 		MetaConsensusGroupSize:  metaConsensusGroupSize,
@@ -1343,6 +1378,7 @@ func createNodesCoordinator(
 		WaitingNodes:            waitingValidators,
 		SelfPublicKey:           pubKeyBytes,
 		ConsensusGroupCache:     consensusGroupCache,
+		ShuffledOutHandler:      shuffledOutHandler,
 	}
 
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -1442,6 +1478,7 @@ func createNode(
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
 	whiteListHandler process.WhiteListHandler,
+	chanStopNodeProcess chan bool,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -1548,6 +1585,7 @@ func createNode(
 		node.WithWhiteListHanlder(whiteListHandler),
 		node.WithSignatureSize(config.BLSPublicKey.SignatureLength),
 		node.WithPublicKeySize(config.BLSPublicKey.Length),
+		node.WithNodeStopChannel(chanStopNodeProcess),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
