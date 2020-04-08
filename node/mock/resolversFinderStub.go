@@ -15,6 +15,12 @@ type ResolversFinderStub struct {
 	MetaChainResolverCalled  func(baseTopic string) (dataRetriever.Resolver, error)
 	CrossShardResolverCalled func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error)
 	ResolverKeysCalled       func() string
+	MetaCrossShardResolverCalled func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error)
+}
+
+// MetaCrossShardResolver -
+func (rfs *ResolversFinderStub) MetaCrossShardResolver(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
+	return rfs.MetaCrossShardResolverCalled(baseTopic, crossShard)
 }
 
 // Get -

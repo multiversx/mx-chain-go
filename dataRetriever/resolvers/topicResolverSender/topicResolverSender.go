@@ -2,6 +2,7 @@ package topicResolverSender
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -38,6 +39,7 @@ type topicResolverSender struct {
 	outputAntiflooder  dataRetriever.P2PAntifloodHandler
 	numIntraShardPeers int
 	numCrossShardPeers int
+	mutNumPeersToQuery sync.RWMutex
 }
 
 // NewTopicResolverSender returns a new topic resolver instance
@@ -188,6 +190,22 @@ func fisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) [
 	}
 
 	return newIndexes
+}
+
+// SetNumPeersToQuery will set the number of intra shard and cross shard number of peers to query
+func (trs *topicResolverSender) SetNumPeersToQuery(intra int, cross int) {
+	trs.mutNumPeersToQuery.Lock()
+	trs.numIntraShardPeers = intra
+	trs.numCrossShardPeers = cross
+	trs.mutNumPeersToQuery.Unlock()
+}
+
+// GetNumPeersToQuery will return the number of intra shard and cross shard number of peer to query
+func (trs *topicResolverSender) GetNumPeersToQuery() (int, int) {
+	trs.mutNumPeersToQuery.RLock()
+	defer trs.mutNumPeersToQuery.RUnlock()
+
+	return trs.numIntraShardPeers, trs.numCrossShardPeers
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

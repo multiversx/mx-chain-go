@@ -3929,7 +3929,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 
 	hdrs, _, _ := sp.GetHighestHdrForOwnShardFromMetachain(processedHdrs)
 
-	assert.Nil(t, hdrs)
+	assert.Equal(t, 0, len(hdrs))
 }
 
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrStored(t *testing.T) {
@@ -4144,7 +4144,7 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 	hdr1 := &block.Header{Nonce: 0, Round: 0}
 	hdr2 := &block.Header{Nonce: 1, Round: 1}
 	finalHeaders = append(finalHeaders, hdr1, hdr2)
-	sp.UpdateStateStorage(finalHeaders)
+	sp.UpdateStateStorage(finalHeaders, &block.Header{})
 
 	assert.True(t, pruneTrieWasCalled)
 	assert.True(t, cancelPruneWasCalled)

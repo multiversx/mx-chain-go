@@ -30,8 +30,8 @@ func TestMetrics_IncrementCountAcceptedBlocks_KeyNotFoundShouldNotIncrement(t *t
 	nodesCoord := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 			return []sharding.Validator{
-				mock.NewValidatorMock([]byte("wrong-key1"), []byte("addr1")), // nodes coordinator default return for OwnPubKey()
-				mock.NewValidatorMock([]byte("wrong-key2"), []byte("addr2")),
+				mock.NewValidatorMock([]byte("wrong-key1")), // nodes coordinator default return for OwnPubKey()
+				mock.NewValidatorMock([]byte("wrong-key2")),
 			}, nil
 		},
 	}
@@ -53,8 +53,8 @@ func TestMetrics_IncrementCountAcceptedBlocks_IndexOutOfBoundsShouldNotIncrement
 	nodesCoord := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 			return []sharding.Validator{
-				mock.NewValidatorMock([]byte("key"), []byte("addr1")), // nodes coordinator default return for OwnPubKey()
-				mock.NewValidatorMock([]byte("wrong-key2"), []byte("addr2")),
+				mock.NewValidatorMock([]byte("key")), // nodes coordinator default return for OwnPubKey()
+				mock.NewValidatorMock([]byte("wrong-key2")),
 			}, nil
 		},
 	}
@@ -76,8 +76,8 @@ func TestMetrics_IncrementCountAcceptedBlocks_ShouldWork(t *testing.T) {
 	nodesCoord := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 			return []sharding.Validator{
-				mock.NewValidatorMock([]byte("key"), []byte("addr1")), // nodes coordinator default return for OwnPubKey()
-				mock.NewValidatorMock([]byte("another-key"), []byte("addr2")),
+				mock.NewValidatorMock([]byte("key")), // nodes coordinator default return for OwnPubKey()
+				mock.NewValidatorMock([]byte("another-key")),
 			}, nil
 		},
 	}
