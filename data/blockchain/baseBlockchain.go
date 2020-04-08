@@ -15,7 +15,6 @@ type baseBlockChain struct {
 	genesisHeaderHash      []byte
 	currentBlockHeader     data.HeaderHandler
 	currentBlockHeaderHash []byte
-	currentBlockBody       data.BodyHandler
 }
 
 // SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
