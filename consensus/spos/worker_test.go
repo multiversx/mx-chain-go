@@ -35,17 +35,6 @@ var signature = make([]byte, SignatureSize)
 var invalidSignature = make([]byte, SignatureSize+1)
 var publicKey = make([]byte, PublicKeySize)
 
-func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
-	return &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-			return nil
-		},
-		CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
-			return nil
-		},
-	}
-}
-
 func createDefaultWorkerArgs() *spos.WorkerArgs {
 	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{
@@ -122,7 +111,7 @@ func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 			return nil
 		},
-		CanProcessMessageOnTopicCalled: func(peer p2p.PeerID, topic string) error {
+		CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
 			return nil
 		},
 	}
