@@ -270,6 +270,16 @@ func (ef *ElrondNodeFacade) PprofEnabled() bool {
 	return ef.config.PprofEnabled
 }
 
+// EncodeAddressPubkey will encode the provided address public key bytes to string
+func (ef *ElrondNodeFacade) EncodeAddressPubkey(pk []byte) (string, error) {
+	return ef.node.EncodeAddressPubkey(pk)
+}
+
+// DecodeAddressPubkey will try to decode the provided address public key string
+func (ef *ElrondNodeFacade) DecodeAddressPubkey(pk string) ([]byte, error) {
+	return ef.node.DecodeAddressPubkey(pk)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ef *ElrondNodeFacade) IsInterfaceNil() bool {
 	return ef == nil

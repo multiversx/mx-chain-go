@@ -67,7 +67,7 @@ func TestNewInterceptedUnsignedTxDataFactory_NilAddrConverterShouldErr(t *testin
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.PubkeyConv = nil
+	arg.AddressPubkeyConv = nil
 
 	imh, err := NewInterceptedUnsignedTxDataFactory(arg)
 	assert.Nil(t, imh)

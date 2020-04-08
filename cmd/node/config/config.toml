@@ -289,16 +289,8 @@
     Length = 32
     Type = "hex"
 
-[BLSPubkeyConverter]
+[ValidatorPubkeyConverter]
     Length = 96
-    Type = "hex"
-
-[IndexerPubkeyConverter]
-    Length = 32
-    Type = "hex"
-
-[GenesisPubkeyConverter]
-    Length = 32
     Type = "hex"
 
 [Hasher]

@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"encoding/hex"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -122,6 +123,16 @@ func (nm *NodeMock) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
 // ValidatorStatisticsApi -
 func (nm *NodeMock) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
 	return nm.ValidatorStatisticsApiCalled()
+}
+
+// EncodeAddressPubkey -
+func (nm *NodeMock) EncodeAddressPubkey(pk []byte) (string, error) {
+	return hex.EncodeToString(pk), nil
+}
+
+// DecodeAddressPubkey -
+func (nm *NodeMock) DecodeAddressPubkey(pk string) ([]byte, error) {
+	return hex.DecodeString(pk)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

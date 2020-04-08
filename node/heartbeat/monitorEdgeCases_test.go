@@ -28,6 +28,7 @@ func createMonitor(
 		&mock.PeerTypeProviderStub{},
 		timer,
 		createMockP2PAntifloodHandler(),
+		mock.NewPubkeyConverterMock(32),
 	)
 
 	return mon

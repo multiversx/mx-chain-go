@@ -82,11 +82,11 @@ var TestVmMarshalizer = &marshal.JsonMarshalizer{}
 // TestTxSignMarshalizer represents the marshalizer used in vm communication
 var TestTxSignMarshalizer = &marshal.JsonMarshalizer{}
 
-// TestPubkeyConverter represents a plain public key converter
-var TestPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
+// TestAddressPubkeyConverter represents an address public key converter
+var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32)
 
-// TestPubkeyConverterBLS represents a public key converter from BLS public keys
-var TestPubkeyConverterBLS, _ = pubkeyConverter.NewHexPubkeyConverter(96)
+// TestValidatorPubkeyConverter represents an address public key converter
+var TestValidatorPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(96)
 
 // TestMultiSig represents a mock multisig
 var TestMultiSig = mock.NewMultiSigner(1)
@@ -328,7 +328,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		PeerAdapter:         tpn.PeerState,
-		PubkeyConv:          TestPubkeyConverterBLS,
+		PubkeyConv:          TestValidatorPubkeyConverter,
 		NodesCoordinator:    tpn.NodesCoordinator,
 		ShardCoordinator:    tpn.ShardCoordinator,
 		DataPool:            tpn.DataPool,
@@ -359,7 +359,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	rootHash, _ := tpn.ValidatorStatisticsProcessor.RootHash()
 	tpn.GenesisBlocks = CreateGenesisBlocks(
 		tpn.AccntState,
-		TestPubkeyConverter,
+		TestAddressPubkeyConverter,
 		&sharding.NodesSetup{},
 		tpn.ShardCoordinator,
 		tpn.Storage,
@@ -464,7 +464,7 @@ func CreateEconomicsData() *economics.EconomicsData {
 	return economicsData
 }
 
-// CreateEconomicsData creates a mock EconomicsData object
+// CreateRatingsData creates a mock RatingsData object
 func CreateRatingsData() *rating.RatingsData {
 	ratingsConfig := config.RatingsConfig{
 		ShardChain: config.ShardChain{
@@ -576,7 +576,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			MultiSigner:            TestMultiSig,
 			DataPool:               tpn.DataPool,
 			Accounts:               tpn.AccntState,
-			PubkeyConverter:        TestPubkeyConverter,
+			AddressPubkeyConverter: TestAddressPubkeyConverter,
 			SingleSigner:           tpn.OwnAccount.SingleSigner,
 			BlockSingleSigner:      tpn.OwnAccount.BlockSingleSigner,
 			KeyGen:                 tpn.OwnAccount.KeygenTxSign,
@@ -631,7 +631,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			BlockSingleSigner:      tpn.OwnAccount.BlockSingleSigner,
 			MultiSigner:            TestMultiSig,
 			DataPool:               tpn.DataPool,
-			PubkeyConverter:        TestPubkeyConverter,
+			AddressPubkeyConverter: TestAddressPubkeyConverter,
 			MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
 			TxFeeHandler:           tpn.EconomicsData,
 			BlackList:              tpn.BlackListHandler,
@@ -721,7 +721,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ShardCoordinator,
 		TestMarshalizer,
 		TestHasher,
-		TestPubkeyConverter,
+		TestAddressPubkeyConverter,
 		tpn.Storage,
 		tpn.DataPool,
 		tpn.EconomicsData.EconomicsData,
@@ -732,13 +732,13 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 
 	tpn.RewardsProcessor, _ = rewardTransaction.NewRewardTxProcessor(
 		tpn.AccntState,
-		TestPubkeyConverter,
+		TestAddressPubkeyConverter,
 		tpn.ShardCoordinator,
 	)
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         tpn.AccntState,
-		PubkeyConv:       TestPubkeyConverter,
+		PubkeyConv:       TestAddressPubkeyConverter,
 		StorageService:   tpn.Storage,
 		BlockChain:       tpn.BlockChain,
 		ShardCoordinator: tpn.ShardCoordinator,
@@ -759,7 +759,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
 	tpn.ArgsParser = vmcommon.NewAtArgumentParser()
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestPubkeyConverter, tpn.ShardCoordinator, tpn.AccntState)
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressPubkeyConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 
 	vm.FillGasMapInternal(gasSchedule, 1)
@@ -770,7 +770,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		Marshalizer:   TestMarshalizer,
 		AccountsDB:    tpn.AccntState,
 		TempAccounts:  vmFactory.BlockChainHookImpl(),
-		PubkeyConv:    TestPubkeyConverter,
+		PubkeyConv:    TestAddressPubkeyConverter,
 		Coordinator:   tpn.ShardCoordinator,
 		ScrForwarder:  tpn.ScrForwarder,
 		TxFeeHandler:  tpn.FeeAccumulator,
@@ -786,7 +786,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(
 		tpn.AccntState,
 		TestHasher,
-		TestPubkeyConverter,
+		TestAddressPubkeyConverter,
 		TestMarshalizer,
 		tpn.ShardCoordinator,
 		tpn.ScProcessor,
@@ -803,7 +803,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestMarshalizer,
 		TestHasher,
 		tpn.DataPool,
-		TestPubkeyConverter,
+		TestAddressPubkeyConverter,
 		tpn.AccntState,
 		tpn.RequestHandler,
 		tpn.TxProcessor,
@@ -836,7 +836,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.ShardCoordinator,
 		TestMarshalizer,
 		TestHasher,
-		TestPubkeyConverter,
+		TestAddressPubkeyConverter,
 		tpn.Storage,
 		tpn.DataPool,
 	)
@@ -846,7 +846,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         tpn.AccntState,
-		PubkeyConv:       TestPubkeyConverter,
+		PubkeyConv:       TestAddressPubkeyConverter,
 		StorageService:   tpn.Storage,
 		BlockChain:       tpn.BlockChain,
 		ShardCoordinator: tpn.ShardCoordinator,
@@ -863,7 +863,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.addMockVm(tpn.BlockchainHook)
 
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestPubkeyConverter, tpn.ShardCoordinator, tpn.AccntState)
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressPubkeyConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.ArgsParser = vmcommon.NewAtArgumentParser()
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
@@ -873,7 +873,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		Marshalizer:   TestMarshalizer,
 		AccountsDB:    tpn.AccntState,
 		TempAccounts:  vmFactory.BlockChainHookImpl(),
-		PubkeyConv:    TestPubkeyConverter,
+		PubkeyConv:    TestAddressPubkeyConverter,
 		Coordinator:   tpn.ShardCoordinator,
 		ScrForwarder:  tpn.ScrForwarder,
 		TxFeeHandler:  tpn.FeeAccumulator,
@@ -888,7 +888,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestHasher,
 		TestMarshalizer,
 		tpn.AccntState,
-		TestPubkeyConverter,
+		TestAddressPubkeyConverter,
 		tpn.ShardCoordinator,
 		tpn.ScProcessor,
 		txTypeHandler,
@@ -908,7 +908,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.EconomicsData.EconomicsData,
 		tpn.GasHandler,
 		tpn.BlockTracker,
-		TestPubkeyConverter,
+		TestAddressPubkeyConverter,
 		TestBlockSizeComputationHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
@@ -1046,7 +1046,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		miniBlockStorage := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
 		argsEpochRewards := metachain.ArgsNewRewardsCreator{
 			ShardCoordinator: tpn.ShardCoordinator,
-			PubkeyConverter:  TestPubkeyConverter,
+			PubkeyConverter:  TestAddressPubkeyConverter,
 			RewardsStorage:   rewardsStorage,
 			MiniBlockStorage: miniBlockStorage,
 			Hasher:           TestHasher,
@@ -1119,7 +1119,7 @@ func (tpn *TestProcessorNode) setGenesisBlock() {
 	tpn.BlockChain.SetGenesisHeaderHash(hash)
 	log.Info("set genesis",
 		"shard ID", tpn.ShardCoordinator.SelfId(),
-		"hash", core.ToHex(hash),
+		"hash", hex.EncodeToString(hash),
 	)
 }
 
@@ -1133,7 +1133,8 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithVmMarshalizer(TestVmMarshalizer),
 		node.WithTxSignMarshalizer(TestTxSignMarshalizer),
 		node.WithHasher(TestHasher),
-		node.WithPubkeyConverter(TestPubkeyConverter),
+		node.WithAddressPubkeyConverter(TestAddressPubkeyConverter),
+		node.WithValidatorPubkeyConverter(TestValidatorPubkeyConverter),
 		node.WithAccountsAdapter(tpn.AccntState),
 		node.WithKeyGen(tpn.OwnAccount.KeygenTxSign),
 		node.WithKeyGenForAccounts(TestKeyGenForAccounts),
@@ -1165,8 +1166,8 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 	tx, txHash, err := tpn.Node.CreateTransaction(
 		tx.Nonce,
 		tx.Value.String(),
-		hex.EncodeToString(tx.RcvAddr),
-		hex.EncodeToString(tx.SndAddr),
+		TestAddressPubkeyConverter.Encode(tx.RcvAddr),
+		TestAddressPubkeyConverter.Encode(tx.SndAddr),
 		tx.GasPrice,
 		tx.GasLimit,
 		tx.Data,

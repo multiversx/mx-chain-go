@@ -3,7 +3,6 @@ package heartbeat
 
 import (
 	"bytes"
-	"encoding/hex"
 	"sort"
 	"strings"
 	"sync"
@@ -12,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -36,6 +36,7 @@ type Monitor struct {
 	storer                      HeartbeatStorageHandler
 	timer                       Timer
 	antifloodHandler            P2PAntifloodHandler
+	validatorPubkeyConverter    state.PubkeyConverter
 }
 
 // NewMonitor returns a new monitor instance
@@ -49,6 +50,7 @@ func NewMonitor(
 	peerTypeProvider PeerTypeProviderHandler,
 	timer Timer,
 	antifloodHandler P2PAntifloodHandler,
+	validatorPubkeyConverter state.PubkeyConverter,
 ) (*Monitor, error) {
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
@@ -71,6 +73,9 @@ func NewMonitor(
 	if check.IfNil(antifloodHandler) {
 		return nil, ErrNilAntifloodHandler
 	}
+	if check.IfNil(validatorPubkeyConverter) {
+		return nil, ErrNilPubkeyConverter
+	}
 
 	mon := &Monitor{
 		marshalizer:                 marshalizer,
@@ -83,6 +88,7 @@ func NewMonitor(
 		storer:                      storer,
 		timer:                       timer,
 		antifloodHandler:            antifloodHandler,
+		validatorPubkeyConverter:    validatorPubkeyConverter,
 	}
 
 	err := mon.storer.UpdateGenesisTime(genesisTime)
@@ -344,7 +350,7 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	idx := 0
 	for k, v := range m.heartbeatMessages {
 		tmp := PubKeyHeartbeat{
-			HexPublicKey:    hex.EncodeToString([]byte(k)),
+			PublicKey:       m.validatorPubkeyConverter.Encode([]byte(k)),
 			TimeStamp:       v.timeStamp,
 			MaxInactiveTime: Duration{v.maxInactiveTime},
 			IsActive:        v.isActive,
@@ -362,7 +368,7 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	m.mutHeartbeatMessages.Unlock()
 
 	sort.Slice(status, func(i, j int) bool {
-		return strings.Compare(status[i].HexPublicKey, status[j].HexPublicKey) < 0
+		return strings.Compare(status[i].PublicKey, status[j].PublicKey) < 0
 	})
 
 	return status

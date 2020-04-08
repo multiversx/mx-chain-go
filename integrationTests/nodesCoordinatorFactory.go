@@ -33,8 +33,8 @@ type IndexHashedNodesCoordinatorFactory struct {
 // CreateNodesCoordinator -
 func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgIndexHashedNodesCoordinatorFactory) sharding.NodesCoordinator {
 
-	nodeKeys := arg.cp.Keys[arg.shardId][arg.keyIndex]
-	pubKeyBytes, _ := nodeKeys.Pk.ToByteArray()
+	keys := arg.cp.Keys[arg.shardId][arg.keyIndex]
+	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
 	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(arg.nodesPerShard), uint32(arg.nbMetaNodes), 0.2, false)
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
@@ -69,8 +69,8 @@ type IndexHashedNodesCoordinatorWithRaterFactory struct {
 func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinator(
 	arg ArgIndexHashedNodesCoordinatorFactory,
 ) sharding.NodesCoordinator {
-	nodeKeys := arg.cp.Keys[arg.shardId][arg.keyIndex]
-	pubKeyBytes, _ := nodeKeys.Pk.ToByteArray()
+	keys := arg.cp.Keys[arg.shardId][arg.keyIndex]
+	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
 	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(arg.nodesPerShard), uint32(arg.nbMetaNodes), 0.2, false)
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{

@@ -31,7 +31,7 @@ func NewInterceptedUnsignedTxDataFactory(argument *ArgInterceptedDataFactory) (*
 	if check.IfNil(argument.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(argument.PubkeyConv) {
+	if check.IfNil(argument.AddressPubkeyConv) {
 		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(argument.ShardCoordinator) {
@@ -41,7 +41,7 @@ func NewInterceptedUnsignedTxDataFactory(argument *ArgInterceptedDataFactory) (*
 	return &interceptedUnsignedTxDataFactory{
 		protoMarshalizer: argument.ProtoMarshalizer,
 		hasher:           argument.Hasher,
-		pubkeyConverter:  argument.PubkeyConv,
+		pubkeyConverter:  argument.AddressPubkeyConv,
 		shardCoordinator: argument.ShardCoordinator,
 	}, nil
 }

@@ -54,7 +54,7 @@ func (g *Genesis) processConfig() error {
 	var ok bool
 
 	for i := 0; i < len(g.InitialBalances); i++ {
-		g.InitialBalances[i].pubKey, err = g.pubkeyConverter.Bytes(g.InitialBalances[i].PubKey)
+		g.InitialBalances[i].pubKey, err = g.pubkeyConverter.Decode(g.InitialBalances[i].PubKey)
 		// decoder treats empty string as correct, it is not allowed to have empty string as public key
 		if g.InitialBalances[i].PubKey == "" || err != nil {
 			g.InitialBalances[i].pubKey = nil

@@ -23,7 +23,8 @@ import (
 func newTestElasticSearchDatabase(elasticsearchWriter databaseWriterHandler, arguments elasticSearchDatabaseArgs) *elasticSearchDatabase {
 	return &elasticSearchDatabase{
 		commonProcessor: &commonProcessor{
-			pubkeyConverter: mock.NewPubkeyConverterMock(32),
+			addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+			validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
 		},
 		dbWriter:    elasticsearchWriter,
 		marshalizer: arguments.marshalizer,
@@ -33,12 +34,13 @@ func newTestElasticSearchDatabase(elasticsearchWriter databaseWriterHandler, arg
 
 func createMockElasticsearchDatabaseArgs() elasticSearchDatabaseArgs {
 	return elasticSearchDatabaseArgs{
-		pubkeyConverter: mock.NewPubkeyConverterMock(32),
-		url:             "url",
-		userName:        "username",
-		password:        "password",
-		hasher:          &mock.HasherMock{},
-		marshalizer:     &mock.MarshalizerMock{},
+		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
+		url:                      "url",
+		userName:                 "username",
+		password:                 "password",
+		hasher:                   &mock.HasherMock{},
+		marshalizer:              &mock.MarshalizerMock{},
 	}
 }
 
@@ -188,7 +190,7 @@ func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
 	_ = logger.SetLogLevel("core/indexer:TRACE")
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
 	shardId := uint32(0)
-	valPubKeys := []string{"key1", "key2"}
+	valPubKeys := [][]byte{[]byte("key1"), []byte("key2")}
 	localErr := errors.New("localErr")
 	arguments := createMockElasticsearchDatabaseArgs()
 	dbWriter := &mock.DatabaseWriterStub{
@@ -209,7 +211,7 @@ func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
 
 func TestElasticsearch_saveShardValidatorsPubKeys(t *testing.T) {
 	shardId := uint32(0)
-	valPubKeys := []string{"key1", "key2"}
+	valPubKeys := [][]byte{[]byte("key1"), []byte("key2")}
 	arguments := createMockElasticsearchDatabaseArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoRequestCalled: func(req *esapi.IndexRequest) error {

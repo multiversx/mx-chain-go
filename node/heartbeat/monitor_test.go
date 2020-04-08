@@ -45,6 +45,7 @@ func TestNewMonitor_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
+		mock.NewPubkeyConverterMock(32),
 	)
 
 	assert.Nil(t, mon)
@@ -65,6 +66,7 @@ func TestNewMonitor_EmptyPublicKeyListShouldErr(t *testing.T) {
 		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
+		mock.NewPubkeyConverterMock(32),
 	)
 
 	assert.Nil(t, mon)
@@ -85,6 +87,7 @@ func TestNewMonitor_NilMessageHandlerShouldErr(t *testing.T) {
 		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
+		mock.NewPubkeyConverterMock(32),
 	)
 
 	assert.Nil(t, mon)
@@ -105,6 +108,7 @@ func TestNewMonitor_NilHeartbeatStorerShouldErr(t *testing.T) {
 		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
+		mock.NewPubkeyConverterMock(32),
 	)
 
 	assert.Nil(t, mon)
@@ -125,6 +129,7 @@ func TestNewMonitor_NilPeerTypeProviderShouldErr(t *testing.T) {
 		nil,
 		th,
 		createMockP2PAntifloodHandler(),
+		mock.NewPubkeyConverterMock(32),
 	)
 
 	assert.Nil(t, mon)
@@ -144,6 +149,7 @@ func TestNewMonitor_NilTimeHandlerShouldErr(t *testing.T) {
 		&mock.PeerTypeProviderStub{},
 		nil,
 		createMockP2PAntifloodHandler(),
+		mock.NewPubkeyConverterMock(32),
 	)
 
 	assert.Nil(t, mon)
@@ -164,6 +170,7 @@ func TestNewMonitor_NilAntifloodHandlerShouldErr(t *testing.T) {
 		&mock.PeerTypeProviderStub{},
 		th,
 		nil,
+		mock.NewPubkeyConverterMock(32),
 	)
 
 	assert.Nil(t, mon)
@@ -197,6 +204,7 @@ func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
+		mock.NewPubkeyConverterMock(32),
 	)
 
 	assert.Nil(t, err)
@@ -247,6 +255,7 @@ func TestNewMonitor_ShouldComputeShardId(t *testing.T) {
 		},
 		th,
 		createMockP2PAntifloodHandler(),
+		mock.NewPubkeyConverterMock(32),
 	)
 
 	assert.NotNil(t, mon)
@@ -302,6 +311,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
+		mock.NewPubkeyConverterMock(32),
 	)
 
 	hb := heartbeat.Heartbeat{
@@ -316,7 +326,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 
 	hbStatus := mon.GetHeartbeats()
 	assert.Equal(t, 1, len(hbStatus))
-	assert.Equal(t, hex.EncodeToString([]byte(pubKey)), hbStatus[0].HexPublicKey)
+	assert.Equal(t, hex.EncodeToString([]byte(pubKey)), hbStatus[0].PublicKey)
 }
 
 func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
@@ -362,6 +372,7 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
+		mock.NewPubkeyConverterMock(32),
 	)
 
 	hb := heartbeat.Heartbeat{
@@ -377,7 +388,7 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 	//there should be 2 heartbeats, because a new one should have been added with pk2
 	hbStatus := mon.GetHeartbeats()
 	assert.Equal(t, 2, len(hbStatus))
-	assert.Equal(t, hex.EncodeToString([]byte(pubKey)), hbStatus[0].HexPublicKey)
+	assert.Equal(t, hex.EncodeToString([]byte(pubKey)), hbStatus[0].PublicKey)
 }
 
 func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
@@ -426,6 +437,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
+		mock.NewPubkeyConverterMock(32),
 	)
 
 	// First send from pk1 from shard 0
@@ -498,6 +510,7 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 		&mock.PeerTypeProviderStub{},
 		th,
 		createMockP2PAntifloodHandler(),
+		mock.NewPubkeyConverterMock(32),
 	)
 
 	// First send from pk1

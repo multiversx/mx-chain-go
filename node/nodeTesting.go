@@ -130,7 +130,7 @@ func (n *Node) generateBulkTransactionsChecks(numOfTxs uint64) error {
 	if check.IfNil(n.txSingleSigner) {
 		return ErrNilSingleSig
 	}
-	if check.IfNil(n.pubkeyConverter) {
+	if check.IfNil(n.addressPubkeyConverter) {
 		return ErrNilPubkeyConverter
 	}
 	if check.IfNil(n.shardCoordinator) {
@@ -149,12 +149,12 @@ func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string, sk cryp
 		return 0, nil, nil, 0, err
 	}
 
-	senderAddress, err := n.pubkeyConverter.CreateAddressFromBytes(senderAddressBytes)
+	senderAddress, err := n.addressPubkeyConverter.CreateAddressFromBytes(senderAddressBytes)
 	if err != nil {
 		return 0, nil, nil, 0, err
 	}
 
-	receiverAddress, err := n.pubkeyConverter.CreateAddressFromString(receiverHex)
+	receiverAddress, err := n.addressPubkeyConverter.CreateAddressFromString(receiverHex)
 	if err != nil {
 		return 0, nil, nil, 0, errors.New("could not create receiver address from provided param: " + err.Error())
 	}
@@ -250,7 +250,7 @@ func (n *Node) generateAndSignTxBuffArray(
 
 //GenerateTransaction generates a new transaction with sender, receiver, amount and code
 func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *big.Int, transactionData string, privateKey crypto.PrivateKey) (*transaction.Transaction, error) {
-	if check.IfNil(n.pubkeyConverter) {
+	if check.IfNil(n.addressPubkeyConverter) {
 		return nil, ErrNilPubkeyConverter
 	}
 	if check.IfNil(n.accounts) {
@@ -260,11 +260,11 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 		return nil, errors.New("initialize PrivateKey first")
 	}
 
-	receiverAddress, err := n.pubkeyConverter.CreateAddressFromString(receiverHex)
+	receiverAddress, err := n.addressPubkeyConverter.CreateAddressFromString(receiverHex)
 	if err != nil {
 		return nil, errors.New("could not create receiver address from provided param")
 	}
-	senderAddress, err := n.pubkeyConverter.CreateAddressFromString(senderHex)
+	senderAddress, err := n.addressPubkeyConverter.CreateAddressFromString(senderHex)
 	if err != nil {
 		return nil, errors.New("could not create sender address from provided param")
 	}

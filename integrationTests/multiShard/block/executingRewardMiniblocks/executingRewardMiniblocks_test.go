@@ -326,7 +326,7 @@ func verifyRewardsForMetachain(
 	rewardValue := big.NewInt(0)
 
 	for metaAddr, numOfTimesRewarded := range mapRewardsForMeta {
-		addrContainer, _ := integrationTests.TestPubkeyConverter.CreateAddressFromBytes([]byte(metaAddr))
+		addrContainer, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes([]byte(metaAddr))
 		acc, err := nodes[0][0].AccntState.GetExistingAccount(addrContainer)
 		assert.Nil(t, err)
 
@@ -348,7 +348,7 @@ func verifyRewardsForShards(
 	feePerTxForLeader := float64(gasPrice) * float64(gasLimit) * getLeaderPercentage(nodesMap[0][0])
 
 	for address, nbRewards := range mapRewardsForAddress {
-		addrContainer, _ := integrationTests.TestPubkeyConverter.CreateAddressFromBytes([]byte(address))
+		addrContainer, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes([]byte(address))
 		shard := nodesMap[0][0].ShardCoordinator.ComputeId(addrContainer)
 
 		for _, shardNode := range nodesMap[shard] {

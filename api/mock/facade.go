@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"encoding/hex"
 	"errors"
 	"math/big"
 
@@ -31,6 +32,7 @@ type Facade struct {
 	StatusMetricsHandler              func() external.StatusMetricsHandler
 	ValidatorStatisticsHandler        func() (map[string]*state.ValidatorApiResponse, error)
 	ComputeTransactionGasLimitHandler func(tx *transaction.Transaction) (uint64, error)
+	NodeConfigCalled                  func() map[string]interface{}
 }
 
 // RestApiInterface -
@@ -146,6 +148,21 @@ func (f *Facade) StatusMetrics() external.StatusMetricsHandler {
 // ComputeTransactionGasLimit --
 func (f *Facade) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
 	return f.ComputeTransactionGasLimitHandler(tx)
+}
+
+// NodeConfig -
+func (f *Facade) NodeConfig() map[string]interface{} {
+	return f.NodeConfigCalled()
+}
+
+// EncodeAddressPubkey -
+func (f *Facade) EncodeAddressPubkey(pk []byte) (string, error) {
+	return hex.EncodeToString(pk), nil
+}
+
+// DecodeAddressPubkey -
+func (f *Facade) DecodeAddressPubkey(pk string) ([]byte, error) {
+	return hex.DecodeString(pk)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

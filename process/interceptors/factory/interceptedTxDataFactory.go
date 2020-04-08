@@ -42,7 +42,7 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if check.IfNil(argument.Signer) {
 		return nil, process.ErrNilSingleSigner
 	}
-	if check.IfNil(argument.PubkeyConv) {
+	if check.IfNil(argument.AddressPubkeyConv) {
 		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(argument.ShardCoordinator) {
@@ -58,7 +58,7 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 		hasher:           argument.Hasher,
 		keyGen:           argument.KeyGen,
 		singleSigner:     argument.Signer,
-		pubkeyConverter:  argument.PubkeyConv,
+		pubkeyConverter:  argument.AddressPubkeyConv,
 		shardCoordinator: argument.ShardCoordinator,
 		feeHandler:       argument.FeeHandler,
 	}, nil

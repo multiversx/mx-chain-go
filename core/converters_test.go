@@ -2,7 +2,6 @@ package core_test
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"strings"
@@ -13,17 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestToHexShouldReturnNil(t *testing.T) {
-	val := core.ToHex(nil)
-	assert.Equal(t, "<NIL>", val)
-}
-
-func TestToHexShouldWork(t *testing.T) {
-	buff := []byte("test")
-	val := core.ToHex(buff)
-	assert.Equal(t, hex.EncodeToString(buff), val)
-}
 
 func TestCalculateHash_NilMarshalizer(t *testing.T) {
 	t.Parallel()

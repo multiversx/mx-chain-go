@@ -70,3 +70,6 @@ var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector"
 
 // ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
 var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
+
+// ErrNilPubkeyConverter signals that a nil public key converter has been provided
+var ErrNilPubkeyConverter = errors.New("trying to use a nil pubkey converter")

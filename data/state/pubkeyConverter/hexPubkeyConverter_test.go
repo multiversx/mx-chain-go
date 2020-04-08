@@ -37,55 +37,54 @@ func TestNewHexPubkeyConverter_ShouldWork(t *testing.T) {
 	assert.Equal(t, addressLen, hpc.Len())
 }
 
-func TestHexPubkeyConverter_BytesShouldErr(t *testing.T) {
+func TestHexPubkeyConverter_DecodeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	addressLen := 4
 	hpc, _ := pubkeyConverter.NewHexPubkeyConverter(addressLen)
 
-	buff, err := hpc.Bytes("aaff")
+	buff, err := hpc.Decode("aaff")
 	assert.True(t, errors.Is(err, state.ErrWrongSize))
 	assert.Equal(t, 0, len(buff))
 
-	buff, err = hpc.Bytes("not a hex")
+	buff, err = hpc.Decode("not a hex")
 	assert.NotNil(t, err)
 	assert.Equal(t, 0, len(buff))
 }
 
-func TestHexPubkeyConverter_BytesShouldWork(t *testing.T) {
+func TestHexPubkeyConverter_DecodeShouldWork(t *testing.T) {
 	t.Parallel()
 
 	addressLen := 2
 	hpc, _ := pubkeyConverter.NewHexPubkeyConverter(addressLen)
 
-	buff, err := hpc.Bytes("aaff")
+	buff, err := hpc.Decode("aaff")
 
 	assert.Nil(t, err)
 	assert.Equal(t, []byte{170, 255}, buff)
 }
 
-func TestHexPubkeyConverter_StringShouldWork(t *testing.T) {
+func TestHexPubkeyConverter_EncodeShouldWork(t *testing.T) {
 	t.Parallel()
 
 	addressLen := 4
 	hpc, _ := pubkeyConverter.NewHexPubkeyConverter(addressLen)
 
-	str, err := hpc.String([]byte{170, 255})
-	assert.Nil(t, err)
+	str := hpc.Encode([]byte{170, 255})
 	assert.Equal(t, "aaff", str)
 }
 
-func TestHexPubkeyConverter_StringBytesShouldWork(t *testing.T) {
+func TestHexPubkeyConverter_EncodeDecodeShouldWork(t *testing.T) {
 	t.Parallel()
 
 	addressLen := 16
 	hpc, _ := pubkeyConverter.NewHexPubkeyConverter(addressLen)
 
 	value := "123456789012345678901234567890af"
-	buff, err := hpc.Bytes(value)
+	buff, err := hpc.Decode(value)
 	assert.Nil(t, err)
 
-	revoveredValue, _ := hpc.String(buff)
+	revoveredValue := hpc.Encode(buff)
 
 	assert.Equal(t, value, revoveredValue)
 }

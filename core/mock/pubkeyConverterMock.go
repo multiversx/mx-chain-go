@@ -18,19 +18,19 @@ func NewPubkeyConverterMock(addressLen int) *PubkeyConverterMock {
 	}
 }
 
-// Bytes -
-func (pcm *PubkeyConverterMock) Bytes(humanReadable string) ([]byte, error) {
+// Decode -
+func (pcm *PubkeyConverterMock) Decode(humanReadable string) ([]byte, error) {
 	return hex.DecodeString(humanReadable)
 }
 
-// String -
-func (pcm *PubkeyConverterMock) String(pkBytes []byte) (string, error) {
-	return hex.EncodeToString(pkBytes), nil
+// Encode -
+func (pcm *PubkeyConverterMock) Encode(pkBytes []byte) string {
+	return hex.EncodeToString(pkBytes)
 }
 
 // CreateAddressFromString -
 func (pcm *PubkeyConverterMock) CreateAddressFromString(humanReadable string) (state.AddressContainer, error) {
-	buff, err := pcm.Bytes(humanReadable)
+	buff, err := pcm.Decode(humanReadable)
 	if err != nil {
 		return nil, err
 	}

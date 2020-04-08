@@ -39,57 +39,56 @@ func TestNewBech32PubkeyConverter_ShouldWork(t *testing.T) {
 	assert.Equal(t, addressLen, bpc.Len())
 }
 
-func TestBech32PubkeyConverter_BytesInvalidStringShouldErr(t *testing.T) {
+func TestBech32PubkeyConverter_DecodeInvalidStringShouldErr(t *testing.T) {
 	t.Parallel()
 
 	addressLen := 32
 	bpc, _ := pubkeyConverter.NewBech32PubkeyConverter(addressLen)
 
-	str, err := bpc.Bytes("not a bech32 string")
+	str, err := bpc.Decode("not a bech32 string")
 
 	assert.Equal(t, 0, len(str))
 	assert.NotNil(t, err)
 }
 
-func TestBech32PubkeyConverter_BytesPrefixMismatchShouldErr(t *testing.T) {
+func TestBech32PubkeyConverter_DecodePrefixMismatchShouldErr(t *testing.T) {
 	t.Parallel()
 
 	addressLen := 32
 	bpc, _ := pubkeyConverter.NewBech32PubkeyConverter(addressLen)
 
-	str, err := bpc.Bytes("err1xyerxdp4xcmnswfsxyerxdp4xcmnswfsxyerxdp4xcmnswfsxyeqnyphvl")
+	str, err := bpc.Decode("err1xyerxdp4xcmnswfsxyerxdp4xcmnswfsxyerxdp4xcmnswfsxyeqnyphvl")
 
 	assert.Equal(t, 0, len(str))
 	assert.True(t, errors.Is(err, state.ErrInvalidErdAddress))
 }
 
-func TestBech32PubkeyConverter_BytesWrongSizeShouldErr(t *testing.T) {
+func TestBech32PubkeyConverter_DecodeWrongSizeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	addressLen := 32
 	bpc, _ := pubkeyConverter.NewBech32PubkeyConverter(addressLen)
 
-	str, err := bpc.Bytes("erd1xyerxdp4xcmnswfsxyeqqzq40r")
+	str, err := bpc.Decode("erd1xyerxdp4xcmnswfsxyeqqzq40r")
 
 	assert.Equal(t, 0, len(str))
 	assert.True(t, errors.Is(err, state.ErrWrongSize))
 }
 
-func TestBech32PubkeyConverter_StringBytesShouldWork(t *testing.T) {
+func TestBech32PubkeyConverter_EncodeDecodeShouldWork(t *testing.T) {
 	t.Parallel()
 
 	addressLen := 32
 	bpc, _ := pubkeyConverter.NewBech32PubkeyConverter(addressLen)
 
 	buff := []byte("12345678901234567890123456789012")
-	str, err := bpc.String(buff)
+	str := bpc.Encode(buff)
 
-	assert.Nil(t, err)
 	assert.Equal(t, 0, strings.Index(str, pubkeyConverter.Prefix))
 
 	fmt.Printf("generated address: %s\n", str)
 
-	recoveredBuff, err := bpc.Bytes(str)
+	recoveredBuff, err := bpc.Decode(str)
 
 	assert.Nil(t, err)
 	assert.Equal(t, buff, recoveredBuff)

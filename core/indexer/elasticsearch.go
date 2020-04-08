@@ -1,8 +1,6 @@
 package indexer
 
 import (
-	"encoding/hex"
-
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -23,14 +21,15 @@ type Options struct {
 
 //ElasticIndexerArgs is struct that is used to store all components that are needed to create a indexer
 type ElasticIndexerArgs struct {
-	Url              string
-	UserName         string
-	Password         string
-	ShardCoordinator sharding.Coordinator
-	Marshalizer      marshal.Marshalizer
-	Hasher           hashing.Hasher
-	Options          *Options
-	PubkeyConverter  state.PubkeyConverter
+	Url                      string
+	UserName                 string
+	Password                 string
+	ShardCoordinator         sharding.Coordinator
+	Marshalizer              marshal.Marshalizer
+	Hasher                   hashing.Hasher
+	Options                  *Options
+	AddressPubkeyConverter   state.PubkeyConverter
+	ValidatorPubkeyConverter state.PubkeyConverter
 }
 
 type elasticIndexer struct {
@@ -49,12 +48,13 @@ func NewElasticIndexer(arguments ElasticIndexerArgs) (Indexer, error) {
 	}
 
 	databaseArguments := elasticSearchDatabaseArgs{
-		pubkeyConverter: arguments.PubkeyConverter,
-		url:             arguments.Url,
-		userName:        arguments.UserName,
-		password:        arguments.Password,
-		marshalizer:     arguments.Marshalizer,
-		hasher:          arguments.Hasher,
+		addressPubkeyConverter:   arguments.AddressPubkeyConverter,
+		validatorPubkeyConverter: arguments.ValidatorPubkeyConverter,
+		url:                      arguments.Url,
+		userName:                 arguments.UserName,
+		password:                 arguments.Password,
+		marshalizer:              arguments.Marshalizer,
+		hasher:                   arguments.Hasher,
 	}
 	client, err := newElasticSearchDatabase(databaseArguments)
 	if err != nil {
@@ -118,14 +118,10 @@ func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
 
 //SaveValidatorsPubKeys will send all validators public keys to elastic search
 func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte) {
-	valPubKeys := make(map[uint32][]string)
 	for shardId, shardPubKeys := range validatorsPubKeys {
-		for _, pubKey := range shardPubKeys {
-			valPubKeys[shardId] = append(valPubKeys[shardId], hex.EncodeToString(pubKey))
-		}
-		go func(id uint32, publicKeys []string) {
+		go func(id uint32, publicKeys [][]byte) {
 			ei.database.SaveShardValidatorsPubKeys(id, publicKeys)
-		}(shardId, valPubKeys[shardId])
+		}(shardId, shardPubKeys)
 	}
 }
 

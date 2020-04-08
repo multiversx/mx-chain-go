@@ -354,14 +354,14 @@ func TestElrondNodeFacade_GetHeartbeats(t *testing.T) {
 		GetHeartbeatsHandler: func() []heartbeat.PubKeyHeartbeat {
 			return []heartbeat.PubKeyHeartbeat{
 				{
-					HexPublicKey:    "pk1",
+					PublicKey:       "pk1",
 					TimeStamp:       time.Now(),
 					MaxInactiveTime: heartbeat.Duration{Duration: 0},
 					IsActive:        true,
 					ReceivedShardID: uint32(0),
 				},
 				{
-					HexPublicKey:    "pk2",
+					PublicKey:       "pk2",
 					TimeStamp:       time.Now(),
 					MaxInactiveTime: heartbeat.Duration{Duration: 0},
 					IsActive:        true,
@@ -538,4 +538,18 @@ func TestElrondNodeFacade_CreateTransaction(t *testing.T) {
 	_, _, _ = ef.CreateTransaction(0, "0", "0", "0", 0, 0, []byte("0"), "0")
 
 	assert.True(t, nodeCreateTxWasCalled)
+}
+
+func TestElrondNodeFacade_EncodeDecodeAddressPubkey(t *testing.T) {
+	t.Parallel()
+
+	buff := []byte("abcdefg")
+	ef := createElrondNodeFacadeWithMockResolver(&mock.NodeMock{})
+	encoded, err := ef.EncodeAddressPubkey(buff)
+	assert.Nil(t, err)
+
+	recoveredBytes, err := ef.DecodeAddressPubkey(encoded)
+
+	assert.Nil(t, err)
+	assert.Equal(t, buff, recoveredBytes)
 }

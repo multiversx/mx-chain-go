@@ -23,12 +23,16 @@ import (
 )
 
 type commonProcessor struct {
-	pubkeyConverter state.PubkeyConverter
+	addressPubkeyConverter   state.PubkeyConverter
+	validatorPubkeyConverter state.PubkeyConverter
 }
 
 func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
-	if check.IfNil(arguments.PubkeyConverter) {
-		return ErrNilPubkeyConverter
+	if check.IfNil(arguments.AddressPubkeyConverter) {
+		return fmt.Errorf("%w when setting addressPubkeyConverter in indexer", ErrNilPubkeyConverter)
+	}
+	if check.IfNil(arguments.ValidatorPubkeyConverter) {
+		return fmt.Errorf("%w when setting validatorPubkeyConverter in indexer", ErrNilPubkeyConverter)
 	}
 	if arguments.Url == "" {
 		return core.ErrNilUrl
@@ -164,6 +168,8 @@ func (cm *commonProcessor) buildTransaction(
 		Nonce:         tx.Nonce,
 		Round:         header.GetRound(),
 		Value:         tx.Value.String(),
+		Receiver:      cm.addressPubkeyConverter.Encode(tx.RcvAddr),
+		Sender:        cm.addressPubkeyConverter.Encode(tx.SndAddr),
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      tx.GasPrice,
@@ -172,17 +178,6 @@ func (cm *commonProcessor) buildTransaction(
 		Signature:     hex.EncodeToString(tx.Signature),
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        txStatus,
-	}
-
-	var err error
-	indexedTx.Receiver, err = cm.pubkeyConverter.String(tx.RcvAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	indexedTx.Sender, err = cm.pubkeyConverter.String(tx.SndAddr)
-	if err != nil {
-		return nil, err
 	}
 
 	return indexedTx, nil
@@ -203,6 +198,8 @@ func (cm *commonProcessor) buildSmartContractResult(
 		Nonce:         scr.Nonce,
 		Round:         header.GetRound(),
 		Value:         scr.Value.String(),
+		Receiver:      cm.addressPubkeyConverter.Encode(scr.RcvAddr),
+		Sender:        cm.addressPubkeyConverter.Encode(scr.SndAddr),
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      scr.GasPrice,
@@ -211,17 +208,6 @@ func (cm *commonProcessor) buildSmartContractResult(
 		Signature:     "",
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        "Success",
-	}
-
-	var err error
-	indexedTx.Receiver, err = cm.pubkeyConverter.String(scr.RcvAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	indexedTx.Sender, err = cm.pubkeyConverter.String(scr.SndAddr)
-	if err != nil {
-		return nil, err
 	}
 
 	return indexedTx, nil
@@ -242,6 +228,7 @@ func (cm *commonProcessor) buildRewardTransaction(
 		Nonce:         0,
 		Round:         rTx.Round,
 		Value:         rTx.Value.String(),
+		Receiver:      cm.addressPubkeyConverter.Encode(rTx.RcvAddr),
 		Sender:        metachainTpsDocID,
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
@@ -251,12 +238,6 @@ func (cm *commonProcessor) buildRewardTransaction(
 		Signature:     "",
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        "Success",
-	}
-
-	var err error
-	indexedTx.Receiver, err = cm.pubkeyConverter.String(rTx.RcvAddr)
-	if err != nil {
-		return nil, err
 	}
 
 	return indexedTx, nil
@@ -277,6 +258,8 @@ func (cm *commonProcessor) buildReceiptTransaction(
 		Nonce:         rpt.GetNonce(),
 		Round:         header.GetRound(),
 		Value:         rpt.Value.String(),
+		Receiver:      cm.addressPubkeyConverter.Encode(rpt.GetRcvAddr()),
+		Sender:        cm.addressPubkeyConverter.Encode(rpt.GetSndAddr()),
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      0,
@@ -285,17 +268,6 @@ func (cm *commonProcessor) buildReceiptTransaction(
 		Signature:     "",
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        "Success",
-	}
-
-	var err error
-	indexedTx.Receiver, err = cm.pubkeyConverter.String(rpt.GetRcvAddr())
-	if err != nil {
-		return nil, err
-	}
-
-	indexedTx.Sender, err = cm.pubkeyConverter.String(rpt.GetSndAddr())
-	if err != nil {
-		return nil, err
 	}
 
 	return indexedTx, nil

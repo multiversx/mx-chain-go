@@ -1,6 +1,7 @@
 package interceptedBlocks
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -121,7 +122,7 @@ func (inHdr *InterceptedHeader) integrity() error {
 			"shardRound=%v, "+
 			"metaFinalityAttestingRound=%v ",
 			process.ErrEpochDoesNotMatch,
-			core.ToHex(inHdr.hash),
+			hex.EncodeToString(inHdr.hash),
 			inHdr.hdr.ShardID,
 			inHdr.epochStartTrigger.Epoch(),
 			inHdr.hdr.Epoch,

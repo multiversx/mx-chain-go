@@ -42,12 +42,10 @@ func NewMetaInterceptorsContainerFactory(
 		args.NodesCoordinator,
 		args.BlackList,
 		args.AntifloodHandler,
+		args.AddressPubkeyConverter,
 	)
 	if err != nil {
 		return nil, err
-	}
-	if check.IfNil(args.PubkeyConverter) {
-		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(args.SingleSigner) {
 		return nil, process.ErrNilSingleSigner
@@ -88,7 +86,7 @@ func NewMetaInterceptorsContainerFactory(
 		BlockKeyGen:       args.BlockKeyGen,
 		Signer:            args.SingleSigner,
 		BlockSigner:       args.BlockSingleSigner,
-		PubkeyConv:        args.PubkeyConverter,
+		AddressPubkeyConv: args.AddressPubkeyConverter,
 		FeeHandler:        args.TxFeeHandler,
 		HeaderSigVerifier: args.HeaderSigVerifier,
 		ChainID:           args.ChainID,
@@ -112,6 +110,7 @@ func NewMetaInterceptorsContainerFactory(
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
 		accounts:               args.Accounts,
 		antifloodHandler:       args.AntifloodHandler,
+		addressPubkeyConverter: args.AddressPubkeyConverter,
 	}
 
 	icf := &metaInterceptorsContainerFactory{

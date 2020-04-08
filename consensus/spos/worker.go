@@ -374,7 +374,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		}
 
 		log.Debug("received proposed block",
-			"from", core.GetTrimmedPk(core.ToHex(cnsDta.PubKey)),
+			"from", core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
 			"header hash", cnsDta.BlockHeaderHash,
 			"round", header.GetRound(),
 			"nonce", header.GetNonce(),
@@ -591,7 +591,7 @@ func (wrk *Worker) DisplayStatistics() {
 		)
 
 		for _, consensusMessage := range consensusMessages {
-			log.Trace(core.GetTrimmedPk(core.ToHex(consensusMessage.PubKey)))
+			log.Trace(core.GetTrimmedPk(hex.EncodeToString(consensusMessage.PubKey)))
 		}
 
 	}

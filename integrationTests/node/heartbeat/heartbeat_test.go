@@ -2,7 +2,6 @@ package heartbeat
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"testing"
@@ -116,9 +115,7 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 
 	assert.True(t, isPkActive(pkHeartBeats, secondPK))
 	expectedLen := 128
-	nodeName := pkHeartBeats[1].NodeDisplayName
-	actualLen := len(nodeName)
-	assert.Equal(t, expectedLen, actualLen)
+	assert.True(t, isMessageCorrectLen(pkHeartBeats, secondPK, expectedLen))
 }
 
 func prepareNodes(
@@ -170,7 +167,7 @@ func isMessageReceived(heartbeats []heartbeat.PubKeyHeartbeat, pk crypto.PublicK
 	pkBytes, _ := pk.ToByteArray()
 
 	for _, hb := range heartbeats {
-		isPkMatching := hb.HexPublicKey == hex.EncodeToString(pkBytes)
+		isPkMatching := hb.PublicKey == integrationTests.TestValidatorPubkeyConverter.Encode(pkBytes)
 		if isPkMatching {
 			return true
 		}
@@ -183,9 +180,22 @@ func isPkActive(heartbeats []heartbeat.PubKeyHeartbeat, pk crypto.PublicKey) boo
 	pkBytes, _ := pk.ToByteArray()
 
 	for _, hb := range heartbeats {
-		isPkMatchingAndActve := hb.HexPublicKey == hex.EncodeToString(pkBytes) && hb.IsActive
+		isPkMatchingAndActve := hb.PublicKey == integrationTests.TestValidatorPubkeyConverter.Encode(pkBytes) && hb.IsActive
 		if isPkMatchingAndActve {
 			return true
+		}
+	}
+
+	return false
+}
+
+func isMessageCorrectLen(heartbeats []heartbeat.PubKeyHeartbeat, pk crypto.PublicKey, expectedLen int) bool {
+	pkBytes, _ := pk.ToByteArray()
+
+	for _, hb := range heartbeats {
+		isPkMatching := hb.PublicKey == integrationTests.TestValidatorPubkeyConverter.Encode(pkBytes)
+		if isPkMatching {
+			return len(hb.NodeDisplayName) == expectedLen
 		}
 	}
 
@@ -258,6 +268,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 				return nil
 			},
 		},
+		integrationTests.TestValidatorPubkeyConverter,
 	)
 
 	return monitor

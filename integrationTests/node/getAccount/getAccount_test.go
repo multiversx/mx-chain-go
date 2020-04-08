@@ -1,7 +1,6 @@
 package getAccount
 
 import (
-	"encoding/hex"
 	"math/big"
 	"testing"
 
@@ -17,10 +16,11 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accDB),
-		node.WithPubkeyConverter(integrationTests.TestPubkeyConverter),
+		node.WithAddressPubkeyConverter(integrationTests.TestAddressPubkeyConverter),
 	)
 
-	recovAccnt, err := n.GetAccount(integrationTests.CreateRandomHexString(64))
+	encodedAddress := integrationTests.TestAddressPubkeyConverter.Encode(integrationTests.CreateRandomBytes(32))
+	recovAccnt, err := n.GetAccount(encodedAddress)
 
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(0), recovAccnt.GetNonce())
@@ -34,9 +34,8 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 
 	accDB, _, _ := integrationTests.CreateAccountsDB(0)
 
-	addressHex := integrationTests.CreateRandomHexString(64)
-	addressBytes, _ := hex.DecodeString(addressHex)
-	address, _ := integrationTests.TestPubkeyConverter.CreateAddressFromBytes(addressBytes)
+	addressBytes := integrationTests.CreateRandomBytes(32)
+	address, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(addressBytes)
 
 	nonce := uint64(2233)
 	account, _ := accDB.LoadAccount(address)
@@ -46,10 +45,11 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accDB),
-		node.WithPubkeyConverter(integrationTests.TestPubkeyConverter),
+		node.WithAddressPubkeyConverter(integrationTests.TestAddressPubkeyConverter),
 	)
 
-	recovAccnt, err := n.GetAccount(addressHex)
+	encodedAddress := integrationTests.TestAddressPubkeyConverter.Encode(addressBytes)
+	recovAccnt, err := n.GetAccount(encodedAddress)
 
 	assert.Nil(t, err)
 	assert.Equal(t, nonce, recovAccnt.GetNonce())

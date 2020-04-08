@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"sort"
 
@@ -289,7 +290,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		display.NewLineData(false, []string{
 			"",
 			"Pub keys bitmap",
-			core.ToHex(headerHandler.GetPubKeysBitmap())}),
+			hex.EncodeToString(headerHandler.GetPubKeysBitmap())}),
 		display.NewLineData(false, []string{
 			"",
 			"Signature",

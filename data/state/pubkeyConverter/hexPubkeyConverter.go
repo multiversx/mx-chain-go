@@ -28,8 +28,8 @@ func NewHexPubkeyConverter(addressLen int) (*hexPubkeyConverter, error) {
 	}, nil
 }
 
-// Bytes converts the provided public key string as hex decoded bytes
-func (ppc *hexPubkeyConverter) Bytes(humanReadable string) ([]byte, error) {
+// Decode converts the provided public key string as hex decoded bytes
+func (ppc *hexPubkeyConverter) Decode(humanReadable string) ([]byte, error) {
 	buff, err := hex.DecodeString(humanReadable)
 	if err != nil {
 		return nil, err
@@ -43,14 +43,14 @@ func (ppc *hexPubkeyConverter) Bytes(humanReadable string) ([]byte, error) {
 	return buff, nil
 }
 
-// String converts the provided bytes in a form that this converter can decode. In this case it will encode to hex
-func (ppc *hexPubkeyConverter) String(pkBytes []byte) (string, error) {
-	return hex.EncodeToString(pkBytes), nil
+// Encode converts the provided bytes in a form that this converter can decode. In this case it will encode to hex
+func (ppc *hexPubkeyConverter) Encode(pkBytes []byte) string {
+	return hex.EncodeToString(pkBytes)
 }
 
 // CreateAddressFromString creates an address container based on the provided string
 func (ppc *hexPubkeyConverter) CreateAddressFromString(humanReadable string) (state.AddressContainer, error) {
-	buff, err := ppc.Bytes(humanReadable)
+	buff, err := ppc.Decode(humanReadable)
 	if err != nil {
 		return nil, err
 	}

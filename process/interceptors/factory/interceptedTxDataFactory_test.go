@@ -79,7 +79,7 @@ func TestNewInterceptedTxDataFactory_NilAdrConvShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.PubkeyConv = nil
+	arg.AddressPubkeyConv = nil
 
 	imh, err := NewInterceptedTxDataFactory(arg)
 	assert.Nil(t, imh)

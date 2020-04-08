@@ -238,8 +238,8 @@ func createInitialNodes(validatorsMap map[uint32][]sharding.Validator, waitingMa
 	for _, pks := range validatorsMap {
 		for _, validator := range pks {
 			n := &sharding.InitialNode{
-				PubKey:   core.ToHex(validator.PubKey()),
-				Address:  core.ToHex(validator.Address()),
+				PubKey:   TestValidatorPubkeyConverter.Encode(validator.PubKey()),
+				Address:  TestAddressPubkeyConverter.Encode(validator.Address()),
 				NodeInfo: sharding.NodeInfo{},
 			}
 			initialNodes = append(initialNodes, n)
@@ -249,8 +249,8 @@ func createInitialNodes(validatorsMap map[uint32][]sharding.Validator, waitingMa
 	for _, pks := range waitingMap {
 		for _, validator := range pks {
 			n := &sharding.InitialNode{
-				PubKey:   core.ToHex(validator.PubKey()),
-				Address:  core.ToHex(validator.Address()),
+				PubKey:   TestValidatorPubkeyConverter.Encode(validator.PubKey()),
+				Address:  TestAddressPubkeyConverter.Encode(validator.Address()),
 				NodeInfo: sharding.NodeInfo{},
 			}
 			initialNodes = append(initialNodes, n)

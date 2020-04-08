@@ -33,14 +33,15 @@ func newTestMetaBlock() *block.MetaBlock {
 
 func NewElasticIndexerArguments() indexer.ElasticIndexerArgs {
 	return indexer.ElasticIndexerArgs{
-		Url:              "url",
-		UserName:         "user",
-		Password:         "password",
-		ShardCoordinator: &mock.ShardCoordinatorMock{},
-		Marshalizer:      &mock.MarshalizerMock{},
-		Hasher:           &mock.HasherMock{},
-		Options:          &indexer.Options{},
-		PubkeyConverter:  mock.NewPubkeyConverterMock(32),
+		Url:                      "url",
+		UserName:                 "user",
+		Password:                 "password",
+		ShardCoordinator:         &mock.ShardCoordinatorMock{},
+		Marshalizer:              &mock.MarshalizerMock{},
+		Hasher:                   &mock.HasherMock{},
+		Options:                  &indexer.Options{},
+		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
 	}
 }
 

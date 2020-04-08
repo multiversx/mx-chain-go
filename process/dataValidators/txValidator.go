@@ -1,7 +1,6 @@
 package dataValidators
 
 import (
-	"encoding/hex"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -14,6 +13,7 @@ import (
 type txValidator struct {
 	accounts             state.AccountsAdapter
 	shardCoordinator     sharding.Coordinator
+	pubkeyConverter      state.PubkeyConverter
 	maxNonceDeltaAllowed int
 }
 
@@ -22,6 +22,7 @@ func NewTxValidator(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	maxNonceDeltaAllowed int,
+	pubkeyConverter state.PubkeyConverter,
 ) (*txValidator, error) {
 
 	if check.IfNil(accounts) {
@@ -30,11 +31,15 @@ func NewTxValidator(
 	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if check.IfNil(pubkeyConverter) {
+		return nil, fmt.Errorf("%w in NewTxValidator", process.ErrNilPubkeyConverter)
+	}
 
 	return &txValidator{
 		accounts:             accounts,
 		shardCoordinator:     shardCoordinator,
 		maxNonceDeltaAllowed: maxNonceDeltaAllowed,
+		pubkeyConverter:      pubkeyConverter,
 	}, nil
 }
 
@@ -54,7 +59,7 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	if err != nil {
 		return fmt.Errorf("%w for address %s and shard %d",
 			process.ErrAddressNotInThisShard,
-			hex.EncodeToString(senderAddress.Bytes()),
+			txv.pubkeyConverter.Encode(senderAddress.Bytes()),
 			shardID,
 		)
 	}
@@ -76,7 +81,7 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	if !ok {
 		return fmt.Errorf("%w, account is not of type *state.Account, address: %s",
 			process.ErrWrongTypeAssertion,
-			hex.EncodeToString(senderAddress.Bytes()),
+			txv.pubkeyConverter.Encode(senderAddress.Bytes()),
 		)
 	}
 
@@ -85,7 +90,7 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	if accountBalance.Cmp(txFee) < 0 {
 		return fmt.Errorf("%w, for address: %s, wanted %v, have %v",
 			process.ErrInsufficientFunds,
-			hex.EncodeToString(senderAddress.Bytes()),
+			txv.pubkeyConverter.Encode(senderAddress.Bytes()),
 			txFee,
 			accountBalance,
 		)

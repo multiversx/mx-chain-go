@@ -5,8 +5,8 @@ import "github.com/ElrondNetwork/elrond-go/data/state"
 // PubkeyConverterStub -
 type PubkeyConverterStub struct {
 	LenCalled                     func() int
-	BytesCalled                   func(humanReadable string) ([]byte, error)
-	StringCalled                  func(pkBytes []byte) (string, error)
+	DecodeCalled                  func(humanReadable string) ([]byte, error)
+	EncodeCalled                  func(pkBytes []byte) string
 	CreateAddressFromStringCalled func(humanReadable string) (state.AddressContainer, error)
 	CreateAddressFromBytesCalled  func(pkBytes []byte) (state.AddressContainer, error)
 }
@@ -20,22 +20,22 @@ func (pcs *PubkeyConverterStub) Len() int {
 	return 0
 }
 
-// Bytes -
-func (pcs *PubkeyConverterStub) Bytes(humanReadable string) ([]byte, error) {
-	if pcs.BytesCalled != nil {
-		return pcs.BytesCalled(humanReadable)
+// Decode -
+func (pcs *PubkeyConverterStub) Decode(humanReadable string) ([]byte, error) {
+	if pcs.DecodeCalled != nil {
+		return pcs.DecodeCalled(humanReadable)
 	}
 
 	return make([]byte, 0), nil
 }
 
-// String -
-func (pcs *PubkeyConverterStub) String(pkBytes []byte) (string, error) {
-	if pcs.StringCalled != nil {
-		return pcs.StringCalled(pkBytes)
+// Encode -
+func (pcs *PubkeyConverterStub) Encode(pkBytes []byte) string {
+	if pcs.EncodeCalled != nil {
+		return pcs.EncodeCalled(pkBytes)
 	}
 
-	return "", nil
+	return ""
 }
 
 // CreateAddressFromString -

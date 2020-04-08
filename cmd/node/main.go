@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -498,18 +497,26 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		p2pConfig.Node.Port = uint32(ctx.GlobalUint(port.Name))
 	}
 
-	genesisPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.GenesisPubkeyConverter)
+	addressPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.AddressPubkeyConverter)
 	if err != nil {
-		return fmt.Errorf("%w for GenesisPubkeyConverter", err)
+		return fmt.Errorf("%w for AddressPubkeyConverter", err)
+	}
+	validatorPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.ValidatorPubkeyConverter)
+	if err != nil {
+		return fmt.Errorf("%w for AddressPubkeyConverter", err)
 	}
 
-	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(genesisFile.Name), genesisPubkeyConverter)
+	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(genesisFile.Name), addressPubkeyConverter)
 	if err != nil {
 		return err
 	}
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
 
-	nodesConfig, err := sharding.NewNodesSetup(ctx.GlobalString(nodesFile.Name))
+	nodesConfig, err := sharding.NewNodesSetup(
+		ctx.GlobalString(nodesFile.Name),
+		addressPubkeyConverter,
+		validatorPubkeyConverter,
+	)
 	if err != nil {
 		return err
 	}
@@ -540,8 +547,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	initialNodesSkPemFileName := ctx.GlobalString(initialNodesSkPemFile.Name)
-	keyGen, privKey, pubKey, err := factory.GetSigningParams(
+	cryptoParams, err := factory.GetSigningParams(
 		ctx,
+		validatorPubkeyConverter,
 		sk.Name,
 		skIndex.Name,
 		initialNodesSkPemFileName,
@@ -549,7 +557,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return fmt.Errorf("%w: consider regenerating your keys", err)
 	}
-	log.Debug("block sign pubkey", "hex", factory.GetPkEncoded(pubKey))
+
+	log.Debug("block sign pubkey", "value", cryptoParams.PublicKeyString)
 
 	if ctx.IsSet(destinationShardAsObserver.Name) {
 		preferencesConfig.Preferences.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
@@ -559,7 +568,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		preferencesConfig.Preferences.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
 	}
 
-	shardCoordinator, nodeType, err := createShardCoordinator(nodesConfig, pubKey, preferencesConfig.Preferences, log)
+	shardCoordinator, nodeType, err := createShardCoordinator(nodesConfig, cryptoParams.PublicKey, preferencesConfig.Preferences, log)
 	if err != nil {
 		return err
 	}
@@ -639,7 +648,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("initializing stats file")
-	err = initStatsFileMonitor(generalConfig, pubKey, log, workingDir, pathManager, shardId)
+	err = initStatsFileMonitor(generalConfig, cryptoParams.PublicKeyString, log, workingDir, pathManager, shardId)
 	if err != nil {
 		return err
 	}
@@ -661,7 +670,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("initializing metrics")
-	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, nodesConfig, version, economicsConfig)
+	metrics.InitMetrics(
+		coreComponents.StatusHandler,
+		cryptoParams.PublicKeyString,
+		nodeType,
+		shardCoordinator,
+		nodesConfig,
+		version,
+		economicsConfig,
+	)
 
 	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
 	if err != nil {
@@ -683,7 +700,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		nodesConfig,
 		preferencesConfig.Preferences,
 		epochStartNotifier,
-		pubKey,
+		cryptoParams.PublicKey,
 		coreComponents.Hasher,
 		rater,
 		dataComponents.Store.GetStorer(dataRetriever.BootstrapUnit),
@@ -716,8 +733,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig,
 		nodesConfig,
 		shardCoordinator,
-		keyGen,
-		privKey,
+		cryptoParams.KeyGenerator,
+		cryptoParams.PrivateKey,
 		log,
 	)
 	cryptoComponents, err := factory.CryptoComponentsFactory(cryptoArgs)
@@ -730,7 +747,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricMinGasPrice, economicsData.MinGasPrice())
 
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
-		"PkBlockSign", factory.GetPkEncoded(pubKey),
+		"PkBlockSign", cryptoParams.PublicKeyString,
 		"ShardId", shardId,
 		"TotalShards", shardCoordinator.NumberOfShards(),
 		"AppVersion", version,
@@ -775,11 +792,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	indexerPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.IndexerPubkeyConverter)
-	if err != nil {
-		return fmt.Errorf("%w for IndexerPubkeyConverter", err)
-	}
-
 	if externalConfig.ElasticSearchConnector.Enabled {
 		log.Trace("creating elastic search components")
 		dbIndexer, err = createElasticIndexer(
@@ -789,7 +801,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			shardCoordinator,
 			coreComponents.InternalMarshalizer,
 			coreComponents.Hasher,
-			indexerPubkeyConverter,
+			addressPubkeyConverter,
+			validatorPubkeyConverter,
 		)
 		if err != nil {
 			return err
@@ -838,6 +851,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.BlockSizeThrottleConfig.MinSizeInBytes,
 		generalConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
 		ratingsConfig.General.MaxRating,
+		validatorPubkeyConverter,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -857,9 +871,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		nodesConfig,
 		economicsData,
 		syncer,
-		keyGen,
-		privKey,
-		pubKey,
+		cryptoParams.KeyGenerator,
+		cryptoParams.PrivateKey,
+		cryptoParams.PublicKey,
 		shardCoordinator,
 		nodesCoordinator,
 		coreComponents,
@@ -1320,17 +1334,19 @@ func createElasticIndexer(
 	coordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	pubkeyConverter state.PubkeyConverter,
+	addressPubkeyConverter state.PubkeyConverter,
+	validatorPubkeyConverter state.PubkeyConverter,
 ) (indexer.Indexer, error) {
 	arguments := indexer.ElasticIndexerArgs{
-		Url:              url,
-		UserName:         elasticSearchConfig.Username,
-		Password:         elasticSearchConfig.Password,
-		ShardCoordinator: coordinator,
-		Marshalizer:      marshalizer,
-		Hasher:           hasher,
-		PubkeyConverter:  pubkeyConverter,
-		Options:          &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
+		Url:                      url,
+		UserName:                 elasticSearchConfig.Username,
+		Password:                 elasticSearchConfig.Password,
+		ShardCoordinator:         coordinator,
+		Marshalizer:              marshalizer,
+		Hasher:                   hasher,
+		AddressPubkeyConverter:   addressPubkeyConverter,
+		ValidatorPubkeyConverter: validatorPubkeyConverter,
+		Options:                  &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
 	}
 
 	var err error
@@ -1413,7 +1429,8 @@ func createNode(
 		node.WithTxSignMarshalizer(coreData.TxSignMarshalizer),
 		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
-		node.WithPubkeyConverter(state.AddressPubkeyConverter),
+		node.WithAddressPubkeyConverter(state.AddressPubkeyConverter),
+		node.WithValidatorPubkeyConverter(state.ValidatorPubkeyConverter),
 		node.WithAccountsAdapter(state.AccountsAdapter),
 		node.WithBlockChain(data.Blkc),
 		node.WithDataStore(data.Store),
@@ -1487,28 +1504,22 @@ func createNode(
 
 func initStatsFileMonitor(
 	config *config.Config,
-	pubKey crypto.PublicKey,
+	pubKeyString string,
 	log logger.Logger,
 	workingDir string,
 	pathManager storage.PathManagerHandler,
 	shardId string,
 ) error {
-
-	publicKey, err := pubKey.ToByteArray()
+	statsFile, err := core.CreateFile(core.GetTrimmedPk(pubKeyString), filepath.Join(workingDir, defaultStatsPath), "txt")
 	if err != nil {
 		return err
 	}
 
-	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
-
-	statsFile, err := core.CreateFile(hexPublicKey, filepath.Join(workingDir, defaultStatsPath), "txt")
-	if err != nil {
-		return err
-	}
 	err = startStatisticsMonitor(statsFile, config, log, pathManager, shardId)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

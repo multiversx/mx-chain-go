@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -20,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/state/pubkeyConverter"
 	transaction2 "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
@@ -1092,9 +1094,10 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
-	address1, _ := integrationTests.TestPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000000")
-	address2, _ := integrationTests.TestPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000001")
-	address3, _ := integrationTests.TestPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000002")
+	hexPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
+	address1, _ := hexPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000000")
+	address2, _ := hexPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000001")
+	address3, _ := hexPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000002")
 
 	newDefaultAccount(adb, address1)
 	newDefaultAccount(adb, address2)
@@ -1129,8 +1132,9 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
-	address1, _ := integrationTests.TestPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000000")
-	address2, _ := integrationTests.TestPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000001")
+	hexAddressPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
+	address1, _ := hexAddressPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000000")
+	address2, _ := hexAddressPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000001")
 
 	key1 := []byte("ABC")
 	key2 := []byte("ABD")
@@ -1547,7 +1551,7 @@ func testNodeStateCheckpointSnapshotAndPruning(
 	for i := range prunedRootHashes {
 		tr, err := stateTrie.Recreate(prunedRootHashes[i])
 		if err == nil {
-			fmt.Println(fmt.Sprintf("Should have been pruned: %s", core.ToHex(prunedRootHashes[i])))
+			fmt.Println(fmt.Sprintf("Should have been pruned: %s", hex.EncodeToString(prunedRootHashes[i])))
 		}
 		assert.Nil(t, tr)
 		assert.NotNil(t, err)
