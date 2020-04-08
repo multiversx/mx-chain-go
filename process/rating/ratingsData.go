@@ -10,6 +10,19 @@ import (
 
 const milisecondsInHour = 3600 * 1000
 
+type computeRatingStepArg struct {
+	shardSize                       uint32
+	consensusSize                   uint32
+	roundTimeMilis                  uint64
+	startRating                     uint32
+	maxRating                       uint32
+	hoursToMaxRatingFromStartRating uint32
+	proposerDecreaseFactor          float32
+	validatorDecreaseFactor         float32
+	consecutiveMissedBlocksPenalty  float32
+	proposerValidatorImportance     float32
+}
+
 // RatingsData will store information about ratingsComputation
 type RatingsData struct {
 	startRating           uint32
@@ -21,6 +34,7 @@ type RatingsData struct {
 	selectionChances      []process.SelectionChance
 }
 
+// RatingsDataArg contains information for the creation of the new ratingsData
 type RatingsDataArg struct {
 	Config                   config.RatingsConfig
 	ShardConsensusSize       uint32
@@ -46,34 +60,36 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 		})
 	}
 
-	shardRatingStep, err := computeRatingStep(
-		args.ShardMinNodes,
-		args.ShardConsensusSize,
-		args.RoundDurationMiliseconds,
-		ratingsConfig.General.StartRating,
-		ratingsConfig.General.MaxRating,
-		ratingsConfig.General.HoursToMaxRatingFromStartRating,
-		ratingsConfig.ShardChain.ProposerDecreaseFactor,
-		ratingsConfig.ShardChain.ValidatorDecreaseFactor,
-		ratingsConfig.ShardChain.ConsecutiveMissedBlocksPenalty,
-		ratingsConfig.ShardChain.ProposerValidatorImportance,
-	)
+	arg := computeRatingStepArg{
+		shardSize:                       args.ShardMinNodes,
+		consensusSize:                   args.ShardConsensusSize,
+		roundTimeMilis:                  args.RoundDurationMiliseconds,
+		startRating:                     ratingsConfig.General.StartRating,
+		maxRating:                       ratingsConfig.General.MaxRating,
+		hoursToMaxRatingFromStartRating: ratingsConfig.General.HoursToMaxRatingFromStartRating,
+		proposerDecreaseFactor:          ratingsConfig.ShardChain.ProposerDecreaseFactor,
+		validatorDecreaseFactor:         ratingsConfig.ShardChain.ValidatorDecreaseFactor,
+		consecutiveMissedBlocksPenalty:  ratingsConfig.ShardChain.ConsecutiveMissedBlocksPenalty,
+		proposerValidatorImportance:     ratingsConfig.ShardChain.ProposerValidatorImportance,
+	}
+	shardRatingStep, err := computeRatingStep(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	metaRatingStep, err := computeRatingStep(
-		args.MetaMinNodes,
-		args.MetaConsensusSize,
-		args.RoundDurationMiliseconds,
-		ratingsConfig.General.StartRating,
-		ratingsConfig.General.MaxRating,
-		ratingsConfig.General.HoursToMaxRatingFromStartRating,
-		ratingsConfig.MetaChain.ProposerDecreaseFactor,
-		ratingsConfig.MetaChain.ValidatorDecreaseFactor,
-		ratingsConfig.MetaChain.ConsecutiveMissedBlocksPenalty,
-		ratingsConfig.MetaChain.ProposerValidatorImportance,
-	)
+	arg = computeRatingStepArg{
+		shardSize:                       args.MetaMinNodes,
+		consensusSize:                   args.MetaConsensusSize,
+		roundTimeMilis:                  args.RoundDurationMiliseconds,
+		startRating:                     ratingsConfig.General.StartRating,
+		maxRating:                       ratingsConfig.General.MaxRating,
+		hoursToMaxRatingFromStartRating: ratingsConfig.General.HoursToMaxRatingFromStartRating,
+		proposerDecreaseFactor:          ratingsConfig.MetaChain.ProposerDecreaseFactor,
+		validatorDecreaseFactor:         ratingsConfig.MetaChain.ValidatorDecreaseFactor,
+		consecutiveMissedBlocksPenalty:  ratingsConfig.MetaChain.ConsecutiveMissedBlocksPenalty,
+		proposerValidatorImportance:     ratingsConfig.MetaChain.ProposerValidatorImportance,
+	}
+	metaRatingStep, err := computeRatingStep(arg)
 	if err != nil {
 		return nil, err
 	}
@@ -140,32 +156,23 @@ func verifyRatingsConfig(settings config.RatingsConfig) error {
 }
 
 func computeRatingStep(
-	shardSize uint32,
-	consensusSize uint32,
-	roundTimeMilis uint64,
-	startRating uint32,
-	maxRating uint32,
-	hoursToMaxRatingFromStartRating uint32,
-	proposerDecreaseFactor float32,
-	validatorDecreaseFactor float32,
-	consecutiveMissedBlocksPenalty float32,
-	proposerValidatorImportance float32,
+	arg computeRatingStepArg,
 ) (process.RatingsStepHandler, error) {
-	blocksProducedInHours := uint64(hoursToMaxRatingFromStartRating*milisecondsInHour) / roundTimeMilis
-	ratingDifference := maxRating - startRating
+	blocksProducedInHours := uint64(arg.hoursToMaxRatingFromStartRating*milisecondsInHour) / arg.roundTimeMilis
+	ratingDifference := arg.maxRating - arg.startRating
 
-	proposerProbability := float32(blocksProducedInHours) / float32(shardSize)
-	validatorProbability := proposerProbability * float32(consensusSize)
+	proposerProbability := float32(blocksProducedInHours) / float32(arg.shardSize)
+	validatorProbability := proposerProbability * float32(arg.consensusSize)
 
-	totalImportance := proposerValidatorImportance + 1
+	totalImportance := arg.proposerValidatorImportance + 1
 
-	ratingFromProposer := float32(ratingDifference) * (proposerValidatorImportance / totalImportance)
+	ratingFromProposer := float32(ratingDifference) * (arg.proposerValidatorImportance / totalImportance)
 	ratingFromValidator := float32(ratingDifference) * (1 / totalImportance)
 
 	proposerIncrease := ratingFromProposer / proposerProbability
 	validatorIncrease := ratingFromValidator / validatorProbability
-	proposerDecrease := proposerIncrease * proposerDecreaseFactor
-	validatorDecrease := validatorIncrease * validatorDecreaseFactor
+	proposerDecrease := proposerIncrease * arg.proposerDecreaseFactor
+	validatorDecrease := validatorIncrease * arg.validatorDecreaseFactor
 
 	if proposerIncrease > math.MaxInt32 {
 		return nil, fmt.Errorf("%w proposerIncrease overflowed %v", process.ErrOverflow, proposerIncrease)
@@ -191,7 +198,7 @@ func computeRatingStep(
 		proposerDecreaseRatingStep:     int32(proposerDecrease),
 		validatorIncreaseRatingStep:    int32(validatorIncrease),
 		validatorDecreaseRatingStep:    int32(validatorDecrease),
-		consecutiveMissedBlocksPenalty: consecutiveMissedBlocksPenalty}, nil
+		consecutiveMissedBlocksPenalty: arg.consecutiveMissedBlocksPenalty}, nil
 }
 
 // StartRating will return the start rating

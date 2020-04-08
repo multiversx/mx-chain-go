@@ -828,6 +828,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
 
+	//TODO: remove this in the future and add just a log debug
 	computedRatingsData := filepath.Join(statsFolder, "ratings.info")
 	computedRatingsDataStr := createStringFromRatingsData(ratingsData)
 	err = ioutil.WriteFile(computedRatingsData, []byte(computedRatingsDataStr), os.ModePerm)
