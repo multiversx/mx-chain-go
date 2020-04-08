@@ -37,14 +37,17 @@ func TestSaveKeyValue_ProcessBuiltinFunction(t *testing.T) {
 	_, _, err = coa.ProcessBuiltinFunction(nil, acc, nil)
 	require.Equal(t, process.ErrNilVmInput, err)
 
+	key := []byte("key")
+	value := []byte("value")
+	vmInput.Arguments = [][]byte{key, value}
+
 	_, _, err = coa.ProcessBuiltinFunction(nil, nil, vmInput)
 	require.Equal(t, process.ErrNilSCDestAccount, err)
 
-	newUserName := []byte("afafafafafafafafafafafafafafafaf")
-	vmInput.Arguments = [][]byte{newUserName}
 	_, _, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Nil(t, err)
 
+	vmInput.CallerAddr = []byte("other")
 	_, _, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
-	require.Equal(t, process.ErrUserNameChangeIsDisabled, err)
+	require.Equal(t, process.ErrOperationNotPermitted, err)
 }
