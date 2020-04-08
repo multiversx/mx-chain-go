@@ -328,33 +328,35 @@ func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
 	require.True(t, strings.Contains(output.String(), localError.Error()))
 }
 
-// Commented test works only if you have an elastic search server with address "http://localhost:9200"
-//func TestUpdateMiniBlock(t *testing.T) {
-//	args := elasticSearchDatabaseArgs{
-//		url: "http://localhost:9200",
-//		userName: "basic_auth_username",
-//		password: "basic_auth_password",
-//		marshalizer:&mock.MarshalizerMock{},
-//		hasher:&mock.HasherMock{},
-//	}
-//
-//	esDatabase, _ := newElasticSearchDatabase(args)
-//
-//	header1 := &dataBlock.Header{
-//		ShardID:0,
-//	}
-//	body1 := &dataBlock.Body{
-//		MiniBlocks: []*dataBlock.MiniBlock{
-//			{SenderShardID:0, ReceiverShardID: 1, TxHashes:[][]byte{[]byte("hash1")}},
-//		},
-//	}
-//
-//	header2 := &dataBlock.Header{
-//		ShardID:1,
-//	}
-//
-//	// insert
-//	esDatabase.SaveMiniblocks(header1, body1)
-//	// update
-//	esDatabase.SaveMiniblocks(header2, body1)
-//}
+func TestUpdateMiniBlock(t *testing.T) {
+	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
+
+	args := elasticSearchDatabaseArgs{
+		url:         "http://localhost:9200",
+		userName:    "basic_auth_username",
+		password:    "basic_auth_password",
+		marshalizer: &mock.MarshalizerMock{},
+		hasher:      &mock.HasherMock{},
+	}
+
+	esDatabase, _ := newElasticSearchDatabase(args)
+
+	header1 := &dataBlock.Header{
+		ShardID: 0,
+	}
+	body1 := &dataBlock.Body{
+		MiniBlocks: []*dataBlock.MiniBlock{
+			{SenderShardID: 1, ReceiverShardID: 0, TxHashes: [][]byte{[]byte("hash12")}},
+			{SenderShardID: 0, ReceiverShardID: 1, TxHashes: [][]byte{[]byte("hash1")}},
+		},
+	}
+
+	header2 := &dataBlock.Header{
+		ShardID: 1,
+	}
+
+	// insert
+	esDatabase.SaveMiniblocks(header1, body1)
+	// update
+	esDatabase.SaveMiniblocks(header2, body1)
+}
