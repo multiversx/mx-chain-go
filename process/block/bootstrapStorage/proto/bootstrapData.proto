@@ -16,8 +16,9 @@ message MiniBlocksInMeta {
 //BootstrapHeaderInfo is used to store information about a header
 message BootstrapHeaderInfo {
 	uint32 ShardId = 1;
-	uint64 Nonce   = 2;
-	bytes  Hash    = 3;
+	uint32 Epoch   = 2;
+	uint64 Nonce   = 3;
+	bytes  Hash    = 4;
 }
 
 //PendingMiniBlocksInfo is used to store information about the number of pending miniblocks

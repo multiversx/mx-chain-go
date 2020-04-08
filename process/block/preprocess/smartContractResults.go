@@ -275,8 +275,14 @@ func (scr *smartContractResults) SaveTxBlockToStorage(body *block.Body) error {
 
 // receivedSmartContractResult is a call back function which is called when a new smartContractResult
 // is added in the smartContractResult pool
-func (scr *smartContractResults) receivedSmartContractResult(txHash []byte) {
-	receivedAllMissing := scr.baseReceivedTransaction(txHash, &scr.scrForBlock, scr.scrPool, block.SmartContractResultBlock)
+func (scr *smartContractResults) receivedSmartContractResult(key []byte, value interface{}) {
+	tx, ok := value.(data.TransactionHandler)
+	if !ok {
+		log.Warn("smartContractResults.receivedSmartContractResult", "error", process.ErrWrongTypeAssertion)
+		return
+	}
+
+	receivedAllMissing := scr.baseReceivedTransaction(key, tx, &scr.scrForBlock)
 
 	if receivedAllMissing {
 		scr.chRcvAllScrs <- true
@@ -285,7 +291,7 @@ func (scr *smartContractResults) receivedSmartContractResult(txHash []byte) {
 
 // CreateBlockStarted cleans the local cache map for processed/created smartContractResults at this round
 func (scr *smartContractResults) CreateBlockStarted() {
-	_ = process.EmptyChannel(scr.chRcvAllScrs)
+	_ = core.EmptyChannel(scr.chRcvAllScrs)
 
 	scr.scrForBlock.mutTxsForBlock.Lock()
 	scr.scrForBlock.missingTxs = 0

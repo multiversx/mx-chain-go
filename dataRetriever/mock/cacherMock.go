@@ -101,7 +101,7 @@ func (cm *CacherMock) MaxSize() int {
 }
 
 // RegisterHandler -
-func (cm *CacherMock) RegisterHandler(func(key []byte)) {
+func (cm *CacherMock) RegisterHandler(func(key []byte, value interface{})) {
 	panic("implement me")
 }
 

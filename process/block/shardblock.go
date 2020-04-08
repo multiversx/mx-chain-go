@@ -547,9 +547,9 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
-	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes)
+	go sp.core.Indexer().SaveBlock(body, header, txPool, signersIndexes, nil)
 
-	saveRoundInfoInElastic(sp.core.Indexer(), sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
+	indexRoundInfo(sp.core.Indexer(), sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
 }
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools
@@ -748,7 +748,7 @@ func (sp *shardProcessor) CommitBlock(
 			return err
 		}
 
-		sp.epochStartTrigger.SetProcessed(header)
+		sp.epochStartTrigger.SetProcessed(header, bodyHandler)
 	}
 
 	marshalizedHeader, err := sp.marshalizer.Marshal(header)
@@ -817,7 +817,7 @@ func (sp *shardProcessor) CommitBlock(
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := sp.getLastSelfNotarizedHeaderByMetachain()
 	sp.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
-	sp.updateState(selfNotarizedHeaders)
+	sp.updateState(selfNotarizedHeaders, header)
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
 	log.Debug("highest final shard block",
@@ -826,11 +826,6 @@ func (sp *shardProcessor) CommitBlock(
 	)
 
 	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
-
-	err = sp.blockChain.SetCurrentBlockBody(body)
-	if err != nil {
-		return err
-	}
 
 	err = sp.blockChain.SetCurrentBlockHeader(header)
 	if err != nil {
@@ -856,6 +851,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: header.GetShardID(),
+		Epoch:   header.GetEpoch(),
 		Nonce:   header.GetNonce(),
 		Hash:    headerHash,
 	}
@@ -928,7 +924,9 @@ func (sp *shardProcessor) displayPoolsInfo() {
 	sp.displayMiniBlocksPool()
 }
 
-func (sp *shardProcessor) updateState(headers []data.HeaderHandler) {
+func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeader *block.Header) {
+	sp.snapShotEpochStartFromMeta(currentHeader)
+
 	for i := range headers {
 		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(headers[i].GetPrevHash(), sp.marshalizer, sp.store)
 		if errNotCritical != nil {
@@ -942,6 +940,38 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler) {
 			prevHeader.GetRootHash(),
 			sp.accountsDB[state.UserAccountsState],
 		)
+	}
+}
+
+func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
+	accounts := sp.accountsDB[state.UserAccountsState]
+	if !accounts.IsPruningEnabled() {
+		return
+	}
+
+	if header.IsStartOfEpochBlock() {
+		epochStartId := core.EpochStartIdentifier(header.GetEpoch())
+		metaBlock, err := process.GetMetaHeaderFromStorage([]byte(epochStartId), sp.marshalizer, sp.store)
+		if err != nil {
+			log.Warn("could not find epoch start metablock for", "epoch", header.GetEpoch(), "err", err)
+			return
+		}
+
+		for _, epochStartShData := range metaBlock.EpochStart.LastFinalizedHeaders {
+			if epochStartShData.ShardID != header.ShardID {
+				continue
+			}
+
+			rootHash := epochStartShData.RootHash
+			accounts.CancelPrune(rootHash, data.NewRoot)
+			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash)
+			accounts.SnapshotState(rootHash)
+
+			return
+		}
+
+		log.Warn("could not find epoch start shard data in metaBlock for", "epoch", header.GetEpoch(), "err", err)
+		return
 	}
 }
 
@@ -1035,8 +1065,13 @@ func (sp *shardProcessor) cleanTxsPools() {
 }
 
 // CreateNewHeader creates a new header
-func (sp *shardProcessor) CreateNewHeader(_ uint64) data.HeaderHandler {
-	header := &block.Header{AccumulatedFees: big.NewInt(0)}
+func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) data.HeaderHandler {
+	header := &block.Header{
+		Nonce:           nonce,
+		Round:           round,
+		AccumulatedFees: big.NewInt(0),
+	}
+
 	return header
 }
 
@@ -1053,11 +1088,7 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
 
-		hdrs, err := sp.getHighestHdrForShardFromMetachain(sp.shardCoordinator.SelfId(), hdr)
-		if err != nil {
-			return nil, nil, err
-		}
-
+		hdrs := sp.getHighestHdrForShardFromMetachain(sp.shardCoordinator.SelfId(), hdr)
 		ownShIdHdrs = append(ownShIdHdrs, hdrs...)
 	}
 
@@ -1072,11 +1103,9 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 	return ownShIdHdrs, ownShIdHdrsHashes, nil
 }
 
-func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr *block.MetaBlock) ([]data.HeaderHandler, error) {
+func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr *block.MetaBlock) []data.HeaderHandler {
 	ownShIdHdr := make([]data.HeaderHandler, 0, len(hdr.ShardInfo))
 
-	var errFound error
-	// search for own shard id in shardInfo from metaHeaders
 	for _, shardInfo := range hdr.ShardInfo {
 		if shardInfo.ShardID != shardId {
 			continue
@@ -1090,19 +1119,13 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 				"hash", shardInfo.HeaderHash,
 				"shard", shardInfo.ShardID,
 			)
-
-			errFound = err
 			continue
 		}
 
 		ownShIdHdr = append(ownShIdHdr, ownHdr)
 	}
 
-	if errFound != nil {
-		return nil, errFound
-	}
-
-	return data.TrimHeaderHandlerSlice(ownShIdHdr), nil
+	return data.TrimHeaderHandlerSlice(ownShIdHdr)
 }
 
 // getOrderedProcessedMetaBlocksFromHeader returns all the meta blocks fully processed
@@ -1342,7 +1365,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 }
 
 func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32, uint32) {
-	_ = process.EmptyChannel(sp.chRcvAllMetaHdrs)
+	_ = core.EmptyChannel(sp.chRcvAllMetaHdrs)
 
 	if len(shardHeader.MetaBlockHashes) == 0 {
 		return 0, 0

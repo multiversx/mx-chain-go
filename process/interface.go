@@ -94,8 +94,8 @@ type InterceptedData interface {
 
 // InterceptorProcessor further validates and saves received data
 type InterceptorProcessor interface {
-	Validate(data InterceptedData) error
-	Save(data InterceptedData) error
+	Validate(data InterceptedData, fromConnectedPeer p2p.PeerID) error
+	Save(data InterceptedData, fromConnectedPeer p2p.PeerID) error
 	SignalEndOfProcessing(data []InterceptedData)
 	IsInterfaceNil() bool
 }
@@ -204,7 +204,7 @@ type BlockProcessor interface {
 	RevertAccountState(header data.HeaderHandler)
 	PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RevertStateToBlock(header data.HeaderHandler) error
-	CreateNewHeader(round uint64) data.HeaderHandler
+	CreateNewHeader(round uint64, nonce uint64) data.HeaderHandler
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)
@@ -304,6 +304,7 @@ type InterceptorsContainer interface {
 	Replace(key string, val Interceptor) error
 	Remove(key string)
 	Len() int
+	Iterate(handler func(key string, interceptor Interceptor) bool)
 	IsInterfaceNil() bool
 }
 
@@ -371,11 +372,11 @@ type VirtualMachinesContainerFactory interface {
 
 // EpochStartTriggerHandler defines that actions which are needed by processor for start of epoch
 type EpochStartTriggerHandler interface {
-	Update(round uint64)
+	Update(round uint64, nonce uint64)
 	IsEpochStart() bool
 	Epoch() uint32
 	EpochStartRound() uint64
-	SetProcessed(header data.HeaderHandler)
+	SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	RevertStateToBlock(header data.HeaderHandler) error
 	EpochStartMetaHdrHash() []byte
 	GetSavedStateKey() []byte
@@ -442,6 +443,9 @@ type RequestHandler interface {
 	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)
 	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
 	RequestStartOfEpochMetaBlock(epoch uint32)
+	RequestInterval() time.Duration
+	SetNumPeersToQuery(key string, intra int, cross int) error
+	GetNumPeersToQuery(key string) (int, int, error)
 	IsInterfaceNil() bool
 }
 
@@ -690,6 +694,7 @@ type EpochStartRewardsCreator interface {
 	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
 	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
+	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler
 	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
 	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body)
 	RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body)
@@ -769,9 +774,9 @@ type RatingsStepHandler interface {
 	ConsecutiveMissedBlocksPenalty() float32
 }
 
-// ValidatorInfoProcessorHandler defines the method needed for validatorInfoProcessing
-type ValidatorInfoProcessorHandler interface {
-	ProcessMetaBlock(metaBlock *block.MetaBlock, metablockHash []byte) error
+// ValidatorInfoSyncer defines the method needed for validatorInfoProcessing
+type ValidatorInfoSyncer interface {
+	SyncMiniBlocks(metaBlock *block.MetaBlock) ([][]byte, data.BodyHandler, error)
 	IsInterfaceNil() bool
 }
 
@@ -782,5 +787,13 @@ type RatingChanceHandler interface {
 	//GetChancePercentage returns the percentage for the RatingChanceHandler
 	GetChancePercentage() uint32
 	//IsInterfaceNil verifies if the interface is nil
+	IsInterfaceNil() bool
+}
+
+// WhiteListHandler is the interface needed to add whitelisted data
+type WhiteListHandler interface {
+	Remove(keys [][]byte)
+	Add(keys [][]byte)
+	IsWhiteListed(interceptedData InterceptedData) bool
 	IsInterfaceNil() bool
 }

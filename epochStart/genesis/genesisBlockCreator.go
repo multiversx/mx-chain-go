@@ -6,8 +6,9 @@ import (
 	"math"
 	"math/big"
 	"sort"
+	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -43,7 +44,6 @@ func CreateShardGenesisBlockFromInitialBalances(
 	addrConv state.AddressConverter,
 	initialBalances map[string]*big.Int,
 	genesisTime uint64,
-	validatorStatsRootHash []byte,
 ) (data.HeaderHandler, error) {
 
 	if check.IfNil(accounts) {
@@ -70,17 +70,16 @@ func CreateShardGenesisBlockFromInitialBalances(
 	}
 
 	header := &block.Header{
-		Nonce:                  0,
-		ShardID:                shardCoordinator.SelfId(),
-		BlockBodyType:          block.StateBlock,
-		PubKeysBitmap:          []byte{1},
-		Signature:              rootHash,
-		RootHash:               rootHash,
-		PrevRandSeed:           rootHash,
-		RandSeed:               rootHash,
-		TimeStamp:              genesisTime,
-		ValidatorStatsRootHash: validatorStatsRootHash,
-		AccumulatedFees:        big.NewInt(0),
+		Nonce:           0,
+		ShardID:         shardCoordinator.SelfId(),
+		BlockBodyType:   block.StateBlock,
+		PubKeysBitmap:   []byte{1},
+		Signature:       rootHash,
+		RootHash:        rootHash,
+		PrevRandSeed:    rootHash,
+		RandSeed:        rootHash,
+		TimeStamp:       genesisTime,
+		AccumulatedFees: big.NewInt(0),
 	}
 
 	return header, err
@@ -165,7 +164,7 @@ func CreateMetaGenesisBlock(
 	}
 
 	eligible, waiting := args.NodesSetup.InitialNodesInfo()
-	allNodes := make(map[uint32][]*sharding.NodeInfo)
+	allNodes := make(map[uint32][]sharding.GenesisNodeInfoHandler)
 
 	for shard := range eligible {
 		allNodes[shard] = append(eligible[shard], waiting[shard]...)
@@ -341,13 +340,18 @@ func deploySystemSmartContracts(
 	addrConv state.AddressConverter,
 	accounts state.AccountsAdapter,
 ) error {
+	code := hex.EncodeToString([]byte("deploy"))
+	vmType := hex.EncodeToString(factory.SystemVirtualMachine)
+	codeMetadata := hex.EncodeToString((&vmcommon.CodeMetadata{}).ToBytes())
+	deployTxData := strings.Join([]string{code, vmType, codeMetadata}, "@")
+
 	tx := &transaction.Transaction{
 		Nonce:     0,
 		Value:     big.NewInt(0),
 		RcvAddr:   make([]byte, addrConv.AddressLen()),
 		GasPrice:  0,
 		GasLimit:  math.MaxUint64,
-		Data:      []byte(hex.EncodeToString([]byte("deploy")) + "@" + hex.EncodeToString(factory.SystemVirtualMachine)),
+		Data:      []byte(deployTxData),
 		Signature: nil,
 	}
 
@@ -384,7 +388,7 @@ func deploySystemSmartContracts(
 // setStakedData sets the initial staked values to the staking smart contract
 func setStakedData(
 	txProcessor process.TransactionProcessor,
-	initialNodeInfo map[uint32][]*sharding.NodeInfo,
+	initialNodeInfo map[uint32][]sharding.GenesisNodeInfoHandler,
 	stakeValue *big.Int,
 ) error {
 	// create staking smart contract state for genesis - update fixed stake value from all

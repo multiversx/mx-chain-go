@@ -8,7 +8,6 @@ import (
 // StorageBootstrapper is the main interface for bootstrap from storage execution engine
 type storageBootstrapperHandler interface {
 	getHeader(hash []byte) (data.HeaderHandler, error)
-	getBlockBody(header data.HeaderHandler) (data.BodyHandler, error)
 	applyCrossNotarizedHeaders(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) error
 	applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo)
 	applySelfNotarizedHeaders(selfNotarizedHeadersHashes [][]byte) ([]data.HeaderHandler, error)

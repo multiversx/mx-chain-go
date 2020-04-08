@@ -510,8 +510,14 @@ func (txs *transactions) SaveTxBlockToStorage(body *block.Body) error {
 
 // receivedTransaction is a call back function which is called when a new transaction
 // is added in the transaction pool
-func (txs *transactions) receivedTransaction(txHash []byte) {
-	receivedAllMissing := txs.baseReceivedTransaction(txHash, &txs.txsForCurrBlock, txs.txPool, txs.blockType)
+func (txs *transactions) receivedTransaction(key []byte, value interface{}) {
+	wrappedTx, ok := value.(*txcache.WrappedTransaction)
+	if !ok {
+		log.Warn("transactions.receivedTransaction", "error", process.ErrWrongTypeAssertion)
+		return
+	}
+
+	receivedAllMissing := txs.baseReceivedTransaction(key, wrappedTx.Tx, &txs.txsForCurrBlock)
 
 	if receivedAllMissing {
 		txs.chRcvAllTxs <- true
@@ -520,7 +526,7 @@ func (txs *transactions) receivedTransaction(txHash []byte) {
 
 // CreateBlockStarted cleans the local cache map for processed/created transactions at this round
 func (txs *transactions) CreateBlockStarted() {
-	_ = process.EmptyChannel(txs.chRcvAllTxs)
+	_ = core.EmptyChannel(txs.chRcvAllTxs)
 
 	txs.txsForCurrBlock.mutTxsForBlock.Lock()
 	txs.txsForCurrBlock.missingTxs = 0

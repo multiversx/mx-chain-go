@@ -14,8 +14,6 @@ type BlockChainMock struct {
 	SetCurrentBlockHeaderCalled     func(data.HeaderHandler) error
 	GetCurrentBlockHeaderHashCalled func() []byte
 	SetCurrentBlockHeaderHashCalled func([]byte)
-	GetCurrentBlockBodyCalled       func() data.BodyHandler
-	SetCurrentBlockBodyCalled       func(data.BodyHandler) error
 	GetLocalHeightCalled            func() int64
 	SetLocalHeightCalled            func(int64)
 	GetNetworkHeightCalled          func() int64
@@ -85,22 +83,6 @@ func (bc *BlockChainMock) SetCurrentBlockHeaderHash(hash []byte) {
 	if bc.SetCurrentBlockHeaderHashCalled != nil {
 		bc.SetCurrentBlockHeaderHashCalled(hash)
 	}
-}
-
-// GetCurrentBlockBody returns the tx block body pointer
-func (bc *BlockChainMock) GetCurrentBlockBody() data.BodyHandler {
-	if bc.GetCurrentBlockBodyCalled != nil {
-		return bc.GetCurrentBlockBodyCalled()
-	}
-	return nil
-}
-
-// SetCurrentBlockBody sets the tx block body pointer
-func (bc *BlockChainMock) SetCurrentBlockBody(body data.BodyHandler) error {
-	if bc.SetCurrentBlockBodyCalled != nil {
-		return bc.SetCurrentBlockBodyCalled(body)
-	}
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

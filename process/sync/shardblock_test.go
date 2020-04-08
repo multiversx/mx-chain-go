@@ -44,7 +44,7 @@ func createMockPools() *mock.PoolsHolderStub {
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
-			RegisterHandlerCalled: func(i func(key []byte)) {},
+			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 		}
 		return cs
 	}
@@ -393,7 +393,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 			wasCalled++
 		}
 
@@ -633,7 +633,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal([]byte("bbb"), key) && dataAvailable {
@@ -723,7 +723,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal([]byte("bbb"), key) {
@@ -800,7 +800,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal([]byte("bbb"), key) {
@@ -1347,15 +1347,6 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 		return nil
 	}
 
-	body := &block.Body{}
-	blkc.GetCurrentBlockBodyCalled = func() data.BodyHandler {
-		return body
-	}
-	blkc.SetCurrentBlockBodyCalled = func(handler data.BodyHandler) error {
-		body = prevTxBlockBody
-		return nil
-	}
-
 	hdrHash := make([]byte, 0)
 	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
 		return hdrHash
@@ -1435,7 +1426,6 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 	assert.True(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Equal(t, blkc.GetCurrentBlockHeader(), prevHdr)
-	assert.Equal(t, blkc.GetCurrentBlockBody(), prevTxBlockBody)
 	assert.Equal(t, blkc.GetCurrentBlockHeaderHash(), prevHdrHash)
 }
 
@@ -1494,15 +1484,6 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 	}
 	blkc.SetCurrentBlockHeaderCalled = func(handler data.HeaderHandler) error {
 		hdr = nil
-		return nil
-	}
-
-	body := &block.Body{}
-	blkc.GetCurrentBlockBodyCalled = func() data.BodyHandler {
-		return body
-	}
-	blkc.SetCurrentBlockBodyCalled = func(handler data.BodyHandler) error {
-		body = nil
 		return nil
 	}
 
@@ -1585,7 +1566,6 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 	assert.True(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Nil(t, blkc.GetCurrentBlockHeader())
-	assert.Nil(t, blkc.GetCurrentBlockBody())
 	assert.Nil(t, blkc.GetCurrentBlockHeaderHash())
 }
 
@@ -1772,7 +1752,7 @@ func TestShardBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {}
+		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {}
 
 		return cs
 	}
@@ -1811,7 +1791,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 
 		return cs

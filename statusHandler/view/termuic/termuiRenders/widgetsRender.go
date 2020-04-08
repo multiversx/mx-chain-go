@@ -190,13 +190,12 @@ func (wr *WidgetsRender) prepareChainInfo() {
 	numRows := 10
 	rows := make([][]string, numRows)
 
-	syncStatus := wr.presenter.GetIsSyncing()
-	syncingStr := fmt.Sprintf("undefined %d", syncStatus)
+	synchronizedRound := wr.presenter.GetSynchronizedRound()
+	currentRound := wr.presenter.GetCurrentRound()
 
-	remainingTimeMessage := ""
-	blocksPerSecondMessage := ""
-	switch syncStatus {
-	case 1:
+	var syncingStr, remainingTimeMessage, blocksPerSecondMessage string
+	switch {
+	case synchronizedRound < currentRound:
 		syncingStr = statusSyncing
 
 		remainingTime := wr.presenter.CalculateTimeToSynchronize()
@@ -204,7 +203,7 @@ func (wr *WidgetsRender) prepareChainInfo() {
 
 		blocksPerSecond := wr.presenter.CalculateSynchronizationSpeed()
 		blocksPerSecondMessage = fmt.Sprintf("%d blocks/sec", blocksPerSecond)
-	case 0:
+	default:
 		syncingStr = statusSynchronized
 	}
 	rows[0] = []string{fmt.Sprintf("Status: %s %s", syncingStr, blocksPerSecondMessage)}
@@ -239,8 +238,6 @@ func (wr *WidgetsRender) prepareChainInfo() {
 	rows[5] = []string{fmt.Sprintf("Current synchronized block nonce: %d / %d",
 		nonce, probableHighestNonce)}
 
-	synchronizedRound := wr.presenter.GetSynchronizedRound()
-	currentRound := wr.presenter.GetCurrentRound()
 	rows[6] = []string{fmt.Sprintf("Current consensus round: %d / %d",
 		synchronizedRound, currentRound)}
 

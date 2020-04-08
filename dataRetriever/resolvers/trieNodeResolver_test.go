@@ -273,3 +273,25 @@ func TestTrieNodeResolver_RequestDataFromHashShouldWork(t *testing.T) {
 		Value: buffRequested,
 	}, requested)
 }
+
+//------ NumPeersToQuery setter and getter
+
+func TestTrieNodeResolver_SetAndGetNumPeersToQuery(t *testing.T) {
+	t.Parallel()
+
+	expectedIntra := 5
+	expectedCross := 7
+
+	arg := createMockArgTrieNodeResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		GetNumPeersToQueryCalled: func() (int, int) {
+			return expectedIntra, expectedCross
+		},
+	}
+	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
+
+	tnRes.SetNumPeersToQuery(expectedIntra, expectedCross)
+	actualIntra, actualCross := tnRes.GetNumPeersToQuery()
+	assert.Equal(t, expectedIntra, actualIntra)
+	assert.Equal(t, expectedCross, actualCross)
+}

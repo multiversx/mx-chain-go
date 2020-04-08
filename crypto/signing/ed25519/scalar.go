@@ -44,11 +44,23 @@ func (es *ed25519Scalar) Clone() crypto.Scalar {
 
 // GetUnderlyingObj returns the object the implementation wraps
 func (es *ed25519Scalar) GetUnderlyingObj() interface{} {
+	err := isKeyValid(es.PrivateKey)
+	if err != nil {
+		log.Error("ed25519Scalar",
+			"message", "GetUnderlyingObj invalid private key construction")
+		return nil
+	}
+
 	return es.PrivateKey
 }
 
 // MarshalBinary encodes the receiver into a binary form and returns the result.
 func (es *ed25519Scalar) MarshalBinary() ([]byte, error) {
+	err := isKeyValid(es.PrivateKey)
+	if err != nil {
+		return nil, err
+	}
+
 	return es.PrivateKey, nil
 }
 
@@ -58,6 +70,11 @@ func (es *ed25519Scalar) UnmarshalBinary(s []byte) error {
 	case ed25519.SeedSize:
 		es.PrivateKey = ed25519.NewKeyFromSeed(s)
 	case ed25519.PrivateKeySize:
+		err := isKeyValid(s)
+		if err != nil {
+			return err
+		}
+
 		es.PrivateKey = s
 	default:
 		return crypto.ErrInvalidPrivateKey
@@ -169,4 +186,18 @@ func (es *ed25519Scalar) getPrivateKeyFromScalar(s crypto.Scalar) (ed25519.Priva
 	}
 
 	return privateKey, nil
+}
+
+func isKeyValid(key ed25519.PrivateKey) error {
+	if len(key) != ed25519.PrivateKeySize {
+		return crypto.ErrWrongPrivateKeySize
+	}
+
+	seed := key.Seed()
+	validationKey := ed25519.NewKeyFromSeed(seed)
+	if !bytes.Equal(key, validationKey) {
+		return crypto.ErrWrongPrivateKeyStructure
+	}
+
+	return nil
 }

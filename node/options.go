@@ -393,13 +393,13 @@ func WithEpochStartTrigger(epochStartTrigger epochStart.TriggerHandler) Option {
 	}
 }
 
-// WithEpochStartSubscriber sets up the epoch start subscriber
-func WithEpochStartSubscriber(epochStartSubscriber epochStart.EpochStartSubscriber) Option {
+// WithEpochStartEventNotifier sets up the notifier for the epoch start event
+func WithEpochStartEventNotifier(epochStartEventNotifier epochStart.RegistrationHandler) Option {
 	return func(n *Node) error {
-		if epochStartSubscriber == nil {
+		if epochStartEventNotifier == nil {
 			return ErrNilEpochStartTrigger
 		}
-		n.epochStartSubscriber = epochStartSubscriber
+		n.epochStartRegistrationHandler = epochStartEventNotifier
 		return nil
 	}
 }
@@ -424,13 +424,24 @@ func WithIndexer(indexer indexer.Indexer) Option {
 	}
 }
 
-// WithBlackListHandler sets up a black list handler for the Node
-func WithBlackListHandler(blackListHandler process.BlackListHandler) Option {
+// WithBlockBlackListHandler sets up a block black list handler for the Node
+func WithBlockBlackListHandler(blackListHandler process.BlackListHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(blackListHandler) {
-			return ErrNilBlackListHandler
+			return fmt.Errorf("%w for WithBlockBlackListHandler", ErrNilBlackListHandler)
 		}
-		n.blackListHandler = blackListHandler
+		n.blocksBlackListHandler = blackListHandler
+		return nil
+	}
+}
+
+// WithPeerBlackListHandler sets up a block black list handler for the Node
+func WithPeerBlackListHandler(blackListHandler process.BlackListHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(blackListHandler) {
+			return fmt.Errorf("%w for WithPeerBlackListHandler", ErrNilBlackListHandler)
+		}
+		n.peerBlackListHandler = blackListHandler
 		return nil
 	}
 }
@@ -567,6 +578,48 @@ func WithTxAccumulator(accumulator Accumulator) Option {
 
 		go n.sendFromTxAccumulator()
 
+		return nil
+	}
+}
+
+// WithHardforkTrigger sets up a hardfork trigger
+func WithHardforkTrigger(hardforkTrigger HardforkTrigger) Option {
+	return func(n *Node) error {
+		if check.IfNil(hardforkTrigger) {
+			return ErrNilHardforkTrigger
+		}
+
+		n.hardforkTrigger = hardforkTrigger
+
+		return nil
+	}
+}
+
+// WithWhiteListHanlder sets up a white list handler option
+func WithWhiteListHanlder(whiteListHandler process.WhiteListHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(whiteListHandler) {
+			return ErrNilWhiteListHandler
+		}
+
+		n.whiteListHandler = whiteListHandler
+
+		return nil
+	}
+}
+
+// WithSignatureSize sets up a signatureSize option for the Node
+func WithSignatureSize(signatureSize int) Option {
+	return func(n *Node) error {
+		n.signatureSize = signatureSize
+		return nil
+	}
+}
+
+// WithPublicKeySize sets up a publicKeySize option for the Node
+func WithPublicKeySize(publicKeySize int) Option {
+	return func(n *Node) error {
+		n.publicKeySize = publicKeySize
 		return nil
 	}
 }

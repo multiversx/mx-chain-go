@@ -1,6 +1,8 @@
 package sharding
 
 import (
+	"bytes"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
@@ -34,7 +36,7 @@ func displayValidatorsForRandomness(validators []Validator, randomness []byte) {
 		strValidators += "\n" + core.ToHex(v.PubKey())
 	}
 
-	log.Debug("selectValidators", "randomness", randomness, "validators", strValidators)
+	log.Trace("selectValidators", "randomness", randomness, "validators", strValidators)
 }
 
 func displayNodesConfiguration(
@@ -69,4 +71,24 @@ func displayNodesConfiguration(
 		pk := v.PubKey()
 		log.Debug("actually remaining", "pk", pk)
 	}
+}
+
+// ComputeActuallyLeaving returns the list of those nodes which are actually leaving
+func ComputeActuallyLeaving(leaving []Validator, stillRemaining []Validator) []Validator {
+	actualLeaving := make([]Validator, 0)
+	for _, shouldLeave := range leaving {
+		willRemain := false
+		for _, remains := range stillRemaining {
+			if bytes.Equal(shouldLeave.PubKey(), remains.PubKey()) {
+				willRemain = true
+				break
+			}
+		}
+
+		if !willRemain {
+			actualLeaving = append(actualLeaving, shouldLeave)
+		}
+	}
+
+	return actualLeaving
 }

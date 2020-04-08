@@ -12,10 +12,15 @@ type IndexerMock struct {
 }
 
 // SaveBlock -
-func (im *IndexerMock) SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler, _ []uint64) {
+func (im *IndexerMock) SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler, _ []uint64, _ []string) {
 	if im.SaveBlockCalled != nil {
 		im.SaveBlockCalled(body, header, txPool)
 	}
+}
+
+// SaveValidatorsRating --
+func (im *IndexerMock) SaveValidatorsRating(_ string, _ []indexer.ValidatorRatingInfo) {
+
 }
 
 // SaveMetaBlock -
@@ -32,7 +37,7 @@ func (im *IndexerMock) SaveRoundInfo(_ indexer.RoundInfo) {
 }
 
 // SaveValidatorsPubKeys -
-func (im *IndexerMock) SaveValidatorsPubKeys(_ map[uint32][][]byte) {
+func (im *IndexerMock) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 	panic("implement me")
 }
 
