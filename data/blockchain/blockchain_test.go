@@ -50,7 +50,6 @@ func TestBlockChain_SettersAndGetters(t *testing.T) {
 	genesis := &block.Header{
 		Nonce: 0,
 	}
-	body := &block.Body{}
 	hdrHash := []byte("hash")
 	genesisHash := []byte("genesis hash")
 
@@ -58,9 +57,6 @@ func TestBlockChain_SettersAndGetters(t *testing.T) {
 	bc.SetGenesisHeaderHash(genesisHash)
 
 	err := bc.SetGenesisHeader(genesis)
-	assert.Nil(t, err)
-
-	err = bc.SetCurrentBlockBody(body)
 	assert.Nil(t, err)
 
 	err = bc.SetCurrentBlockHeader(hdr)
@@ -74,9 +70,6 @@ func TestBlockChain_SettersAndGetters(t *testing.T) {
 
 	assert.Equal(t, hdrHash, bc.GetCurrentBlockHeaderHash())
 	assert.Equal(t, genesisHash, bc.GetGenesisHeaderHash())
-
-	assert.Equal(t, body, bc.GetCurrentBlockBody())
-	assert.False(t, body == bc.GetCurrentBlockBody())
 }
 
 func TestBlockChain_SettersAndGettersNilValues(t *testing.T) {
@@ -87,14 +80,10 @@ func TestBlockChain_SettersAndGettersNilValues(t *testing.T) {
 	err := bc.SetGenesisHeader(nil)
 	assert.Nil(t, err)
 
-	err = bc.SetCurrentBlockBody(nil)
-	assert.Nil(t, err)
-
 	err = bc.SetCurrentBlockHeader(nil)
 	assert.Nil(t, err)
 
 	assert.Nil(t, bc.GetGenesisHeader())
-	assert.Nil(t, bc.GetCurrentBlockBody())
 	assert.Nil(t, bc.GetCurrentBlockHeader())
 }
 
