@@ -372,8 +372,7 @@
     PeerStatePruningEnabled = true
 
 [BlockSizeThrottleConfig]
-    #TODO fix MinSizeInBytes when executing large cross-shard miniblocks
-    MinSizeInBytes = 943718 # 943718 is 90% from 1MB or 104857 is 10% from 1MB
+    MinSizeInBytes = 104857 # 943718 is 90% from 1MB or 104857 is 10% from 1MB
     MaxSizeInBytes = 943718 # 943718 is 90% from 1MB
 
 [VirtualMachineConfig]

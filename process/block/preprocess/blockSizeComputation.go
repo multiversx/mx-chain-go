@@ -28,7 +28,7 @@ func NewBlockSizeComputation(
 	marshalizer marshal.Marshalizer,
 	blockSizeThrottler BlockSizeThrottler,
 	maxSize uint32,
-	) (*blockSizeComputation, error) {
+) (*blockSizeComputation, error) {
 
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
@@ -130,7 +130,8 @@ func (bsc *blockSizeComputation) AddNumTxs(numTxs int) {
 	atomic.AddUint32(&bsc.numTxs, uint32(numTxs))
 }
 
-// IsMaxBlockSizeReached returns true if the provided number of
+// IsMaxBlockSizeReached returns true if the provided number of new miniblocks and txs go over
+// the maximum allowed block size
 func (bsc *blockSizeComputation) IsMaxBlockSizeReached(numNewMiniBlocks int, numNewTxs int) bool {
 	totalMiniBlocks := atomic.LoadUint32(&bsc.numMiniBlocks) + uint32(numNewMiniBlocks)
 	totalTxs := atomic.LoadUint32(&bsc.numTxs) + uint32(numNewTxs)
@@ -143,6 +144,22 @@ func (bsc *blockSizeComputation) isMaxBlockSizeReached(totalMiniBlocks uint32, t
 	txsSize := bsc.txSize * totalTxs
 
 	return miniblocksSize+txsSize > bsc.blockSizeThrottler.GetCurrentMaxSize()
+}
+
+// IsMaxBlockSizeReachedWithoutThrottle returns true if the provided number of new miniblocks and txs go over
+// the maximum allowed block size without throttle
+func (bsc *blockSizeComputation) IsMaxBlockSizeReachedWithoutThrottle(numNewMiniBlocks int, numNewTxs int) bool {
+	totalMiniBlocks := atomic.LoadUint32(&bsc.numMiniBlocks) + uint32(numNewMiniBlocks)
+	totalTxs := atomic.LoadUint32(&bsc.numTxs) + uint32(numNewTxs)
+
+	return bsc.isMaxBlockSizeReachedWithoutThrottle(totalMiniBlocks, totalTxs)
+}
+
+func (bsc *blockSizeComputation) isMaxBlockSizeReachedWithoutThrottle(totalMiniBlocks uint32, totalTxs uint32) bool {
+	miniblocksSize := bsc.miniblockSize * totalMiniBlocks
+	txsSize := bsc.txSize * totalTxs
+
+	return miniblocksSize+txsSize > bsc.maxSize
 }
 
 // MaxTransactionsInOneMiniblock returns the maximum transactions in a single miniblock
