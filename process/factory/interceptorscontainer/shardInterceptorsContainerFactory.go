@@ -5,7 +5,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -18,9 +17,8 @@ var _ process.InterceptorsContainerFactory = (*shardInterceptorsContainerFactory
 // shardInterceptorsContainerFactory will handle the creation the interceptors container for shards
 type shardInterceptorsContainerFactory struct {
 	*baseInterceptorsContainerFactory
-	keyGen          crypto.KeyGenerator
-	singleSigner    crypto.SingleSigner
-	pubkeyConverter state.PubkeyConverter
+	keyGen       crypto.KeyGenerator
+	singleSigner crypto.SingleSigner
 }
 
 // NewShardInterceptorsContainerFactory is responsible for creating a new interceptors factory object
