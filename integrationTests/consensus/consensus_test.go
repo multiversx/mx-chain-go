@@ -90,7 +90,6 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 		n.blkProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 			nCopy.blkProcessor.NrCommitBlockCalled++
 			_ = nCopy.blkc.SetCurrentBlockHeader(header)
-			_ = nCopy.blkc.SetCurrentBlockBody(body)
 
 			mutex.Lock()
 			nonceForRoundMap[header.GetRound()] = header.GetNonce()
