@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -534,22 +533,17 @@ func TestLeafNode_loadChildren(t *testing.T) {
 	tr := initTrie()
 	nodes, hashes := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := lrucache.NewCache(100)
-
-	resolver := &mock.TrieNodesResolverStub{}
 	for i := range nodes {
 		node, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
 		nodesCacher.Put(node.hash, node)
 	}
-	syncer, _ := NewTrieSyncer(resolver, nodesCacher, tr, time.Second)
-	syncer.interceptedNodes.RegisterHandler(func(key []byte, value interface{}) {
-		syncer.chRcvTrieNodes <- true
-	})
 
 	lnPosition := 5
 	ln := &leafNode{baseNode: &baseNode{hash: hashes[lnPosition]}}
-	err := ln.loadChildren(syncer)
+	missing, err := ln.loadChildren(nil)
 	assert.Nil(t, err)
-	assert.Equal(t, 5, nodesCacher.Len())
+	assert.Equal(t, 6, nodesCacher.Len())
+	assert.Equal(t, 0, len(missing))
 }
 
 //------- deepClone

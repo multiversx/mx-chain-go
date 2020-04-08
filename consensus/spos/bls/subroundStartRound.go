@@ -44,7 +44,7 @@ func NewSubroundStartRound(
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
 	srStartRound.Extend = extend
-	baseSubround.EpochStartSubscriber().RegisterHandler(&srStartRound)
+	baseSubround.EpochStartRegistrationHandler().RegisterHandler(&srStartRound)
 
 	return &srStartRound, nil
 }
@@ -224,7 +224,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 	shardId := sr.ShardCoordinator().SelfId()
 
-	nextConsensusGroup, _, err := sr.GetNextConsensusGroup(
+	nextConsensusGroup, err := sr.GetNextConsensusGroup(
 		randomSeed,
 		uint64(sr.RoundIndex),
 		shardId,
@@ -249,8 +249,8 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 // EpochStartPrepare wis called when an epoch start event is observed, but not yet confirmed/committed.
 // Some components may need to do initialisation on this event
-func (sr *subroundStartRound) EpochStartPrepare(metaHeader data.HeaderHandler) {
-	log.Trace(fmt.Sprintf("epoch %d start prepare in consensus", metaHeader.GetEpoch()))
+func (sr *subroundStartRound) EpochStartPrepare(metaHdr data.HeaderHandler, _ data.BodyHandler) {
+	log.Trace(fmt.Sprintf("epoch %d start prepare in consensus", metaHdr.GetEpoch()))
 }
 
 // EpochStartAction is called upon a start of epoch event.

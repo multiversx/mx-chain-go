@@ -26,7 +26,7 @@ var log = logger.GetOrCreate("p2p/antiflood/factory")
 func NewP2PAntiFloodAndBlackList(
 	config config.Config,
 	statusHandler core.AppStatusHandler,
-) (process.P2PAntifloodHandler, p2p.BlacklistHandler, error) {
+) (process.P2PAntifloodHandler, process.BlackListHandler, error) {
 	if check.IfNil(statusHandler) {
 		return nil, nil, p2p.ErrNilStatusHandler
 	}
@@ -40,7 +40,7 @@ func NewP2PAntiFloodAndBlackList(
 func initP2PAntiFloodAndBlackList(
 	mainConfig config.Config,
 	statusHandler core.AppStatusHandler,
-) (process.P2PAntifloodHandler, p2p.BlacklistHandler, error) {
+) (process.P2PAntifloodHandler, process.BlackListHandler, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(mainConfig.Antiflood.Cache)
 	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Size, cacheConfig.Shards)
 	if err != nil {

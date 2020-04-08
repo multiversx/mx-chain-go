@@ -5,10 +5,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-// EpochStartNotifier defines
+// EpochStartNotifier defines what a component which will handle registration to epoch start event should do
 type EpochStartNotifier interface {
-	RegisterHandler(handler epochStart.EpochStartHandler)
-	UnregisterHandler(handler epochStart.EpochStartHandler)
+	RegisterHandler(handler epochStart.ActionHandler)
+	UnregisterHandler(handler epochStart.ActionHandler)
 	IsInterfaceNil() bool
 }
 

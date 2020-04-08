@@ -495,12 +495,48 @@ func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
 	if err != nil {
 		return err
 	}
-	if newTrie == nil {
+	if check.IfNil(newTrie) {
 		return ErrNilTrie
 	}
 
 	adb.mainTrie = newTrie
 	return nil
+}
+
+// RecreateAllTries recreates all the tries from the accounts DB
+func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]data.Trie, error) {
+	recreatedTrie, err := adb.mainTrie.Recreate(rootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	leafs, err := recreatedTrie.GetAllLeaves()
+	if err != nil {
+		return nil, err
+	}
+
+	allTries := make(map[string]data.Trie)
+	allTries[string(rootHash)] = recreatedTrie
+
+	for _, leaf := range leafs {
+		account := &userAccount{}
+		err = adb.marshalizer.Unmarshal(account, leaf)
+		if err != nil {
+			log.Trace("this must be a leaf with code", "err", err)
+			continue
+		}
+
+		if len(account.RootHash) > 0 {
+			dataTrie, err := adb.mainTrie.Recreate(account.RootHash)
+			if err != nil {
+				return nil, err
+			}
+
+			allTries[string(account.RootHash)] = dataTrie
+		}
+	}
+
+	return allTries, nil
 }
 
 // Journalize adds a new object to entries list.
@@ -539,8 +575,34 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	defer adb.mutOp.Unlock()
 
 	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)
+	adb.mainTrie.EnterSnapshotMode()
 
-	adb.mainTrie.TakeSnapshot(rootHash)
+	go func() {
+		adb.mainTrie.TakeSnapshot(rootHash)
+		adb.snapshotUserAccountDataTrie(rootHash)
+		adb.mainTrie.ExitSnapshotMode()
+	}()
+}
+
+func (adb *AccountsDB) snapshotUserAccountDataTrie(rootHash []byte) {
+	leafs, err := adb.GetAllLeaves(rootHash)
+	if err != nil {
+		log.Error("incomplete snapshot as getAllLeaves error", "error", err)
+		return
+	}
+
+	for _, leaf := range leafs {
+		account := &userAccount{}
+		err = adb.marshalizer.Unmarshal(account, leaf)
+		if err != nil {
+			log.Trace("this must be a leaf with code", "err", err)
+			continue
+		}
+
+		if len(account.RootHash) > 0 {
+			adb.mainTrie.SetCheckpoint(account.RootHash)
+		}
+	}
 }
 
 // SetStateCheckpoint sets a checkpoint for the state trie
@@ -549,8 +611,13 @@ func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
 	defer adb.mutOp.Unlock()
 
 	log.Trace("accountsDB.SetStateCheckpoint", "root hash", rootHash)
+	adb.mainTrie.EnterSnapshotMode()
 
-	adb.mainTrie.SetCheckpoint(rootHash)
+	go func() {
+		adb.mainTrie.SetCheckpoint(rootHash)
+		adb.snapshotUserAccountDataTrie(rootHash)
+		adb.mainTrie.ExitSnapshotMode()
+	}()
 }
 
 // IsPruningEnabled returns true if state pruning is enabled

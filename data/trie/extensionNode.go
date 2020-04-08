@@ -524,12 +524,17 @@ func (en *extensionNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 		return nil
 	}
 
+	if en.child == nil {
+		log.Debug("extension node edge case", "encodedChild", en.EncodedChild, "dirty", en.isDirty())
+		return nil
+	}
+
 	err = en.child.getDirtyHashes(hashes)
 	if err != nil {
 		return err
 	}
-
 	hashes[hex.EncodeToString(en.getHash())] = struct{}{}
+
 	return nil
 }
 
@@ -567,25 +572,23 @@ func (en *extensionNode) setDirty(dirty bool) {
 	en.dirty = dirty
 }
 
-func (en *extensionNode) loadChildren(syncer *trieSyncer) error {
+func (en *extensionNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if en.EncodedChild == nil {
-		return ErrNilNode
+		return nil, ErrNilNode
 	}
 
-	child, err := syncer.getNode(en.EncodedChild)
+	child, err := getNode(en.EncodedChild)
 	if err != nil {
-		return err
+		return [][]byte{en.EncodedChild}, nil
 	}
 	en.child = child
 
-	syncer.interceptedNodes.Remove(en.hash)
-
-	return nil
+	return nil, nil
 }
 
 func (en *extensionNode) getAllLeaves(leaves map[string][]byte, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {

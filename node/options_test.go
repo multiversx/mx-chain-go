@@ -1012,16 +1012,6 @@ func TestWithTxStorageSize(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithBlackListHandler_NilBlackListHandler(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-	opt := WithBlackListHandler(nil)
-
-	err := opt(node)
-	assert.Equal(t, ErrNilBlackListHandler, err)
-}
-
 func TestWithEpochStartTrigger_NilEpoch(t *testing.T) {
 	t.Parallel()
 
@@ -1052,27 +1042,51 @@ func TestWithPubKey_NilPublicKey(t *testing.T) {
 	assert.Equal(t, ErrNilPublicKey, err)
 }
 
-func TestWithBlackListHandler_NilBlackListHandlerShouldErr(t *testing.T) {
+func TestWithBlockBlackListHandler_NilBlackListHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	opt := WithBlackListHandler(nil)
+	opt := WithBlockBlackListHandler(nil)
 	err := opt(node)
 
-	assert.Equal(t, ErrNilBlackListHandler, err)
+	assert.True(t, errors.Is(err, ErrNilBlackListHandler))
 }
 
-func TestWithBlackListHandler_OkHandlerShouldWork(t *testing.T) {
+func TestWithBlockBlackListHandler_OkHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
 	blackListHandler := &mock.BlackListHandlerStub{}
-	opt := WithBlackListHandler(blackListHandler)
+	opt := WithBlockBlackListHandler(blackListHandler)
 	err := opt(node)
 
-	assert.True(t, node.blackListHandler == blackListHandler)
+	assert.True(t, node.blocksBlackListHandler == blackListHandler)
+	assert.Nil(t, err)
+}
+
+func TestWithPeerBlackListHandler_NilBlackListHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithPeerBlackListHandler(nil)
+	err := opt(node)
+
+	assert.True(t, errors.Is(err, ErrNilBlackListHandler))
+}
+
+func TestWithPeerBlackListHandler_OkHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	blackListHandler := &mock.BlackListHandlerStub{}
+	opt := WithPeerBlackListHandler(blackListHandler)
+	err := opt(node)
+
+	assert.True(t, node.peerBlackListHandler == blackListHandler)
 	assert.Nil(t, err)
 }
 
@@ -1133,6 +1147,54 @@ func TestWithTxAccumulator_NilAccumulatorShouldErr(t *testing.T) {
 	err := opt(node)
 
 	assert.Equal(t, ErrNilTxAccumulator, err)
+}
+
+func TestWithHardforkTrigger_NilHardforkTriggerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithHardforkTrigger(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilHardforkTrigger, err)
+}
+
+func TestWithHardforkTrigger_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	hardforkTrigger := &mock.HardforkTriggerStub{}
+	opt := WithHardforkTrigger(hardforkTrigger)
+	err := opt(node)
+
+	assert.Nil(t, err)
+	assert.True(t, node.hardforkTrigger == hardforkTrigger)
+}
+
+func TestWithHardforkTrigger_NilWhiteListHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithWhiteListHanlder(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilWhiteListHandler, err)
+}
+
+func TestWithHardforkTrigger_WhiteListHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	whiteListHandler := &mock.WhiteListHandlerStub{}
+	opt := WithWhiteListHanlder(whiteListHandler)
+	err := opt(node)
+
+	assert.Nil(t, err)
+	assert.True(t, node.whiteListHandler == whiteListHandler)
 }
 
 func TestWithHashSize(t *testing.T) {

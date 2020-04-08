@@ -31,7 +31,7 @@ type ElasticIndexerArgs struct {
 	Password           string
 	Marshalizer        marshal.Marshalizer
 	Hasher             hashing.Hasher
-	EpochStartNotifier sharding.EpochStartSubscriber
+	EpochStartNotifier sharding.EpochStartEventNotifier
 	NodesCoordinator   sharding.NodesCoordinator
 	Options            *Options
 }
@@ -118,7 +118,7 @@ func (ei *elasticIndexer) SaveRoundInfo(roundInfo RoundInfo) {
 	ei.database.SaveRoundInfo(roundInfo)
 }
 
-func (ei *elasticIndexer) epochStartEventHandler() epochStart.EpochStartHandler {
+func (ei *elasticIndexer) epochStartEventHandler() epochStart.ActionHandler {
 	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
 		currentEpoch := hdr.GetEpoch()
 		validatorsPubKeys, err := ei.coordinator.GetAllEligibleValidatorsPublicKeys(currentEpoch)

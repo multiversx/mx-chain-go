@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -172,8 +171,6 @@ func TestShouldProcessMultipleERC20ContractsInSingleShard(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	_ = logger.SetLogLevel("*:DEBUG")
 
 	scCode, err := ioutil.ReadFile("./wrc20_arwen_01.wasm")
 	assert.Nil(t, err)

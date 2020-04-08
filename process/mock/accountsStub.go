@@ -25,6 +25,15 @@ type AccountsStub struct {
 	SetStateCheckpointCalled func(rootHash []byte)
 	IsPruningEnabledCalled   func() bool
 	GetAllLeavesCalled       func(rootHash []byte) (map[string][]byte, error)
+	RecreateAllTriesCalled      func(rootHash []byte) (map[string]data.Trie, error)
+}
+
+// RecreateAllTries -
+func (as *AccountsStub) RecreateAllTries(rootHash []byte) (map[string]data.Trie, error) {
+	if as.RecreateAllTriesCalled != nil {
+		return as.RecreateAllTriesCalled(rootHash)
+	}
+	return nil, nil
 }
 
 // LoadAccount -

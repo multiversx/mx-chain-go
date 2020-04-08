@@ -9,8 +9,14 @@ const EligibleList PeerType = "eligible"
 // WaitingList represents the list of peers who don't participate in consensus but will join the next epoch
 const WaitingList PeerType = "waiting"
 
+// LeavingList represents the list of peers who were taken out of eligible and waiting because of rating
+const LeavingList PeerType = "leaving"
+
 // ObserverList represents the list of peers who don't participate in consensus but will join the next epoch
 const ObserverList PeerType = "observer"
+
+// NewList -
+const NewList PeerType = "new"
 
 // UnVersionedAppString represents the default app version that indicate that the binary wasn't build by setting
 // the appVersion flag
@@ -306,3 +312,15 @@ const MetricP2PUnknownPeers = "erd_p2p_unknown_shard_peers"
 
 // MetricP2PNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
 const MetricP2PNumConnectedPeersClassification = "erd_p2p_num_connected_peers_classification"
+
+// HighestRoundFromBootStorage is the key for the highest round that is saved in storage
+const HighestRoundFromBootStorage = "highestRoundFromBootStorage"
+
+// TriggerRegistryKeyPrefix is the key prefix to save epoch start registry to storage
+const TriggerRegistryKeyPrefix = "epochStartTrigger_"
+
+// TriggerRegistryInitialKeyPrefix is the key prefix to save initial data to storage
+const TriggerRegistryInitialKeyPrefix = "initial_value_epoch_"
+
+// NodesCoordinatorRegistryKeyPrefix is the key prefix to save epoch start registry to storage
+const NodesCoordinatorRegistryKeyPrefix = "indexHashed_"

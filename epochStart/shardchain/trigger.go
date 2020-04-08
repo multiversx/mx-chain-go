@@ -38,11 +38,11 @@ type ArgsShardEpochStartTrigger struct {
 	HeaderValidator epochStart.HeaderValidator
 	Uint64Converter typeConverters.Uint64ByteSliceConverter
 
-	DataPool               dataRetriever.PoolsHolder
-	Storage                dataRetriever.StorageService
-	RequestHandler         epochStart.RequestHandler
-	EpochStartNotifier     epochStart.EpochStartNotifier
-	ValidatorInfoProcessor process.ValidatorInfoProcessorHandler
+	DataPool             dataRetriever.PoolsHolder
+	Storage              dataRetriever.StorageService
+	RequestHandler       epochStart.RequestHandler
+	EpochStartNotifier   epochStart.Notifier
+	PeerMiniBlocksSyncer process.ValidatorInfoSyncer
 
 	Epoch    uint32
 	Validity uint64
@@ -79,14 +79,14 @@ type trigger struct {
 	headerValidator epochStart.HeaderValidator
 
 	requestHandler     epochStart.RequestHandler
-	epochStartNotifier epochStart.EpochStartNotifier
+	epochStartNotifier epochStart.Notifier
 
 	epoch uint32
 
 	newEpochHdrReceived bool
 	isEpochStart        bool
 
-	validatorInfoProcessor process.ValidatorInfoProcessorHandler
+	peerMiniBlocksSyncer process.ValidatorInfoSyncer
 
 	appStatusHandler core.AppStatusHandler
 
@@ -125,7 +125,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if check.IfNil(args.DataPool.Headers()) {
 		return nil, epochStart.ErrNilMetaBlocksPool
 	}
-	if check.IfNil(args.ValidatorInfoProcessor) {
+	if check.IfNil(args.PeerMiniBlocksSyncer) {
 		return nil, epochStart.ErrNilValidatorInfoProcessor
 	}
 	if check.IfNil(args.Uint64Converter) {
@@ -155,10 +155,10 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		return nil, epochStart.ErrNilShardHeaderStorage
 	}
 
-	trigStateKey := fmt.Sprintf("initial_value_epoch%d", args.Epoch)
+	trigggerStateKey := core.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
 
 	t := &trigger{
-		triggerStateKey:             []byte(trigStateKey),
+		triggerStateKey:             []byte(trigggerStateKey),
 		epoch:                       args.Epoch,
 		currentRoundIndex:           0,
 		epochStartRound:             0,
@@ -186,7 +186,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		epochStartNotifier:          args.EpochStartNotifier,
 		epochStartMeta:              &block.MetaBlock{},
 		epochStartShardHeader:       &block.Header{},
-		validatorInfoProcessor:      args.ValidatorInfoProcessor,
+		peerMiniBlocksSyncer:        args.PeerMiniBlocksSyncer,
 		appStatusHandler:            &statusHandler.NilStatusHandler{},
 	}
 
@@ -506,14 +506,14 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 	}
 
 	if metaHdr.IsStartOfEpochBlock() {
-		missingMiniblocksHashes, err := t.validatorInfoProcessor.ProcessMetaBlock(metaHdr, []byte(hash))
+		missingMiniblocksHashes, blockBody, err := t.peerMiniBlocksSyncer.SyncMiniBlocks(metaHdr)
 		if err != nil {
 			t.addMissingMiniblocks(metaHdr.Epoch, missingMiniblocksHashes)
 			log.Warn("processMetablock failed", "error", err)
 			return false, 0
 		}
 
-		t.epochStartNotifier.NotifyAllPrepare(metaHdr)
+		t.epochStartNotifier.NotifyAllPrepare(metaHdr, blockBody)
 	}
 
 	isMetaHdrFinal, finalityAttestingRound := t.isMetaBlockFinal(hash, metaHdr)
@@ -694,7 +694,7 @@ func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (
 }
 
 // SetProcessed sets start of epoch to false and cleans underlying structure
-func (t *trigger) SetProcessed(header data.HeaderHandler) {
+func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
@@ -803,6 +803,14 @@ func (t *trigger) EpochStartMetaHdrHash() []byte {
 	defer t.mutTrigger.RUnlock()
 
 	return t.epochMetaBlockHash
+}
+
+// EpochStartMeta returns the epoch start announcing meta header
+func (t *trigger) EpochStartMeta() *block.MetaBlock {
+	t.mutTrigger.RLock()
+	defer t.mutTrigger.RUnlock()
+
+	return t.epochStartMeta
 }
 
 // GetSavedStateKey returns the last saved trigger state key

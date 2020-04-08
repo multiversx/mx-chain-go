@@ -1,13 +1,21 @@
 package atomic
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInt64_SetGet(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should not have panicked %v", r))
+		}
+	}()
+
 	var number Int64
 	var wg sync.WaitGroup
 
@@ -24,5 +32,4 @@ func TestInt64_SetGet(t *testing.T) {
 	}()
 
 	wg.Wait()
-	require.Equal(t, int64(1), number.Get())
 }

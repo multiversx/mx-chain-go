@@ -314,12 +314,12 @@ func TestLibp2pMessenger_CreateTopicOkValsShouldWork(t *testing.T) {
 	_ = mes.Close()
 }
 
-func TestLibp2pMessenger_CreateTopicTwiceShouldErr(t *testing.T) {
+func TestLibp2pMessenger_CreateTopicTwiceShouldNotErr(t *testing.T) {
 	mes := createMockMessenger()
 
 	_ = mes.CreateTopic("test", false)
 	err := mes.CreateTopic("test", false)
-	assert.Equal(t, p2p.ErrTopicAlreadyExists, err)
+	assert.Nil(t, err)
 
 	_ = mes.Close()
 }
