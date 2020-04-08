@@ -746,18 +746,32 @@ func (sc *scProcessor) createSCRsWhenError(
 	}
 
 	scr := &smartContractResult.SmartContractResult{
-		Nonce:   tx.GetNonce(),
-		Value:   tx.GetValue(),
-		RcvAddr: rcvAddress,
-		SndAddr: tx.GetRcvAddr(),
-		Code:    nil,
-		Data:    []byte("@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)),
-		TxHash:  txHash,
+		Nonce:      tx.GetNonce(),
+		Value:      tx.GetValue(),
+		RcvAddr:    rcvAddress,
+		SndAddr:    tx.GetRcvAddr(),
+		Code:       nil,
+		Data:       []byte("@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)),
+		PrevTxHash: txHash,
 	}
+	setOriginalTxHash(scr, txHash, tx)
 
 	resultedScrs := []data.TransactionHandler{scr}
 
 	return resultedScrs, nil
+}
+
+func setOriginalTxHash(
+	scr *smartContractResult.SmartContractResult,
+	txHash []byte,
+	tx data.TransactionHandler,
+) {
+	currSCR, isSCR := tx.(*smartContractResult.SmartContractResult)
+	if isSCR {
+		scr.OriginalTxHash = currSCR.OriginalTxHash
+	} else {
+		scr.OriginalTxHash = txHash
+	}
 }
 
 // reloadLocalAccount will reload from current account state the sender account
@@ -792,7 +806,8 @@ func (sc *scProcessor) createSmartContractResult(
 	result.Data = append(outAcc.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
 	result.GasLimit = outAcc.GasLimit
 	result.GasPrice = tx.GetGasPrice()
-	result.TxHash = txHash
+	result.PrevTxHash = txHash
+	setOriginalTxHash(result, txHash, tx)
 
 	return result
 }
@@ -828,9 +843,10 @@ func (sc *scProcessor) createSCRForSender(
 	scTx.RcvAddr = rcvAddress
 	scTx.SndAddr = tx.GetRcvAddr()
 	scTx.Nonce = tx.GetNonce() + 1
-	scTx.TxHash = txHash
+	scTx.PrevTxHash = txHash
 	scTx.GasLimit = gasRemaining
 	scTx.GasPrice = tx.GetGasPrice()
+	setOriginalTxHash(scTx, txHash, tx)
 
 	scTx.Data = []byte("@" + hex.EncodeToString([]byte(returnCode.String())))
 	for _, retData := range returnData {

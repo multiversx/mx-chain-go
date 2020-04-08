@@ -132,7 +132,7 @@ func (inUTx *InterceptedUnsignedTransaction) integrity() error {
 	if inUTx.uTx.Value.Sign() < 0 {
 		return process.ErrNegativeValue
 	}
-	if len(inUTx.uTx.TxHash) == 0 {
+	if len(inUTx.uTx.PrevTxHash) == 0 {
 		return process.ErrNilTxHash
 	}
 

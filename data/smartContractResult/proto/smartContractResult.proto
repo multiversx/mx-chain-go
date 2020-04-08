@@ -10,14 +10,15 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 // Transaction holds all the data needed for a value transfer or SC call
 message SmartContractResult  {
-	uint64   Nonce     = 1 [(gogoproto.jsontag) = "nonce"];
-	bytes    Value     = 2 [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	bytes    RcvAddr   = 3 [(gogoproto.jsontag) = "receiver"];
-	bytes    SndAddr   = 4 [(gogoproto.jsontag) = "sender"];
-	bytes    Code      = 5 [(gogoproto.jsontag) = "code,omitempty"];
-	bytes    Data      = 6 [(gogoproto.jsontag) = "data,omitempty"];
-	bytes    TxHash    = 7 [(gogoproto.jsontag) = "txHash"];
-	uint64   GasLimit  = 8 [(gogoproto.jsontag) = "gasLimit"];
-	uint64   GasPrice  = 9 [(gogoproto.jsontag) = "gasPrice"];
-    int64    CallType  = 10 [(gogoproto.jsontag)= "callType", (gogoproto.casttype) = "github.com/ElrondNetwork/elrond-vm-common.CallType"];
+	uint64   Nonce          = 1 [(gogoproto.jsontag) = "nonce"];
+	bytes    Value          = 2 [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes    RcvAddr        = 3 [(gogoproto.jsontag) = "receiver"];
+	bytes    SndAddr        = 4 [(gogoproto.jsontag) = "sender"];
+	bytes    Code           = 5 [(gogoproto.jsontag) = "code,omitempty"];
+	bytes    Data           = 6 [(gogoproto.jsontag) = "data,omitempty"];
+	bytes    PrevTxHash     = 7 [(gogoproto.jsontag) = "prevTxHash"];
+	bytes    OriginalTxHash = 8 [(gogoproto.jsontag) = "originalTxHash"];
+	uint64   GasLimit       = 9 [(gogoproto.jsontag) = "gasLimit"];
+	uint64   GasPrice       = 10 [(gogoproto.jsontag) = "gasPrice"];
+    int64    CallType  	    = 11 [(gogoproto.jsontag)= "callType", (gogoproto.casttype) = "github.com/ElrondNetwork/elrond-vm-common.CallType"];
 }
