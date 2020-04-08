@@ -78,10 +78,10 @@ func NewConsensusCore(
 	}
 
 	err := ValidateConsensusCore(consensusCore)
-
 	if err != nil {
 		return nil, err
 	}
+
 	return consensusCore, nil
 }
 
