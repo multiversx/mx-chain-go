@@ -4,6 +4,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
+const SignatureSize = 48
+
 // BelNevMock is used to mock belare neven multisignature scheme
 type BelNevMock struct {
 	aggSig      []byte
@@ -40,7 +42,8 @@ func NewMultiSigner(nrConsens uint32) *BelNevMock {
 	multisigner.aggCom = []byte("agg commitment")
 	multisigner.commHash = []byte("commitment hash")
 	multisigner.commSecret = []byte("commitment secret")
-	multisigner.aggSig = []byte("aggregated signature")
+	multisigner.aggSig = make([]byte, SignatureSize)
+	copy(multisigner.aggSig, []byte("aggregated signature"))
 
 	return multisigner
 }

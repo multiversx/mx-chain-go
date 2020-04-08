@@ -324,6 +324,3 @@ const TriggerRegistryInitialKeyPrefix = "initial_value_epoch_"
 
 // NodesCoordinatorRegistryKeyPrefix is the key prefix to save epoch start registry to storage
 const NodesCoordinatorRegistryKeyPrefix = "indexHashed_"
-
-// HashSizeInBytes represents the size in bytes of a hash
-const HashSizeInBytes = 32
