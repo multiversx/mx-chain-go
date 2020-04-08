@@ -76,6 +76,7 @@ import (
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -816,6 +817,19 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	txLogsProcessor := transactionLog.NewNilTxLogProcessor()
+	if args.coreComponents.config.TxLogsStorage.Enabled {
+		txLogsStorage := args.data.Store.GetStorer(dataRetriever.TxLogsUnit)
+		txLogsProcessor, err = transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
+			Storer:      txLogsStorage,
+			Marshalizer: args.coreData.InternalMarshalizer,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	blockProcessor, err := newBlockProcessor(
 		args,
 		requestHandler,
@@ -827,6 +841,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		headerValidator,
 		blockTracker,
 		pendingMiniBlocksHandler,
+		txLogsProcessor,
 	)
 	if err != nil {
 		return nil, err
@@ -1575,6 +1590,7 @@ func newBlockProcessor(
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
+	txLogProcessor process.TransactionLogProcessor,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1600,6 +1616,7 @@ func newBlockProcessor(
 			blockTracker,
 			processArgs.minSizeInBytes,
 			processArgs.maxSizeInBytes,
+			txLogProcessor,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1625,6 +1642,7 @@ func newBlockProcessor(
 			processArgs.gasSchedule,
 			processArgs.minSizeInBytes,
 			processArgs.maxSizeInBytes,
+			txLogProcessor,
 		)
 	}
 
@@ -1651,6 +1669,7 @@ func newShardBlockProcessor(
 	blockTracker process.BlockTracker,
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
+	txLogProcessor process.TransactionLogProcessor,
 ) (process.BlockProcessor, error) {
 	argsParser := vmcommon.NewAtArgumentParser()
 
@@ -1722,20 +1741,21 @@ func newShardBlockProcessor(
 	}
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:   vmContainer,
-		ArgsParser:    argsParser,
-		Hasher:        core.Hasher,
-		Marshalizer:   core.InternalMarshalizer,
-		AccountsDB:    stateComponents.AccountsAdapter,
-		TempAccounts:  vmFactory.BlockChainHookImpl(),
-		AdrConv:       stateComponents.AddressConverter,
-		Coordinator:   shardCoordinator,
-		ScrForwarder:  scForwarder,
-		TxFeeHandler:  txFeeHandler,
-		EconomicsFee:  economics,
-		TxTypeHandler: txTypeHandler,
-		GasHandler:    gasHandler,
-		GasMap:        gasSchedule,
+		VmContainer:     vmContainer,
+		ArgsParser:      argsParser,
+		Hasher:          core.Hasher,
+		Marshalizer:     core.InternalMarshalizer,
+		AccountsDB:      stateComponents.AccountsAdapter,
+		TempAccounts:    vmFactory.BlockChainHookImpl(),
+		AdrConv:         stateComponents.AddressConverter,
+		Coordinator:     shardCoordinator,
+		ScrForwarder:    scForwarder,
+		TxFeeHandler:    txFeeHandler,
+		EconomicsFee:    economics,
+		TxTypeHandler:   txTypeHandler,
+		GasHandler:      gasHandler,
+		GasMap:          gasSchedule,
+		TxLogsProcessor: txLogProcessor,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -1899,6 +1919,7 @@ func newMetaBlockProcessor(
 	gasSchedule map[string]map[string]uint64,
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
+	txLogProcessor process.TransactionLogProcessor,
 ) (process.BlockProcessor, error) {
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -1960,20 +1981,21 @@ func newMetaBlockProcessor(
 	}
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:   vmContainer,
-		ArgsParser:    argsParser,
-		Hasher:        core.Hasher,
-		Marshalizer:   core.InternalMarshalizer,
-		AccountsDB:    stateComponents.AccountsAdapter,
-		TempAccounts:  vmFactory.BlockChainHookImpl(),
-		AdrConv:       stateComponents.AddressConverter,
-		Coordinator:   shardCoordinator,
-		ScrForwarder:  scForwarder,
-		TxFeeHandler:  txFeeHandler,
-		EconomicsFee:  economicsData,
-		TxTypeHandler: txTypeHandler,
-		GasHandler:    gasHandler,
-		GasMap:        gasSchedule,
+		VmContainer:     vmContainer,
+		ArgsParser:      argsParser,
+		Hasher:          core.Hasher,
+		Marshalizer:     core.InternalMarshalizer,
+		AccountsDB:      stateComponents.AccountsAdapter,
+		TempAccounts:    vmFactory.BlockChainHookImpl(),
+		AdrConv:         stateComponents.AddressConverter,
+		Coordinator:     shardCoordinator,
+		ScrForwarder:    scForwarder,
+		TxFeeHandler:    txFeeHandler,
+		EconomicsFee:    economicsData,
+		TxTypeHandler:   txTypeHandler,
+		GasHandler:      gasHandler,
+		GasMap:          gasSchedule,
+		TxLogsProcessor: txLogProcessor,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
