@@ -24,7 +24,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	sk, pk := kg.GeneratePair()
 
 	pkBytes := make([]byte, 128)
-	pkBytes = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
+	pkBytes = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
 	address := make([]byte, 32)
 	address = []byte("afafafafafafafafafafafafafafafaf")
 

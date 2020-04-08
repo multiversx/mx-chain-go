@@ -3,7 +3,6 @@ package indexer
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math/big"
 	"reflect"
@@ -11,13 +10,12 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/stretchr/testify/assert"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/stretchr/testify/require"
@@ -43,7 +41,7 @@ func TestGetTransactionByType_SC(t *testing.T) {
 	mb := &block.MiniBlock{TxHashes: [][]byte{txHash}}
 	header := &block.Header{Nonce: 2}
 
-	resultTx, err := cp.getTransactionByType(smartContract, txHash, mbHash, blockHash, mb, header, "")
+	resultTx := cp.getTransactionByType(smartContract, txHash, mbHash, blockHash, mb, header, "")
 	expectedTx := &Transaction{
 		Hash:      hex.EncodeToString(txHash),
 		MBHash:    hex.EncodeToString(mbHash),
@@ -54,7 +52,6 @@ func TestGetTransactionByType_SC(t *testing.T) {
 	}
 
 	require.Equal(t, expectedTx, resultTx)
-	assert.Nil(t, err)
 }
 
 func TestGetTransactionByType_RewardTx(t *testing.T) {
@@ -72,7 +69,7 @@ func TestGetTransactionByType_RewardTx(t *testing.T) {
 	header := &block.Header{Nonce: 2}
 	status := "Success"
 
-	resultTx := getTransactionByType(rwdTx, txHash, mbHash, blockHash, mb, header, status)
+	resultTx := cp.getTransactionByType(rwdTx, txHash, mbHash, blockHash, mb, header, status)
 	expectedTx := &Transaction{
 		Hash:      hex.EncodeToString(txHash),
 		MBHash:    hex.EncodeToString(mbHash),
@@ -100,7 +97,7 @@ func TestGetTransactionByType_Receipt(t *testing.T) {
 	mb := &block.MiniBlock{TxHashes: [][]byte{txHash}}
 	header := &block.Header{Nonce: 2}
 
-	resultTx := getTransactionByType(receiptTest, txHash, mbHash, blockHash, mb, header, "")
+	resultTx := cp.getTransactionByType(receiptTest, txHash, mbHash, blockHash, mb, header, "")
 	expectedTx := &Transaction{
 		Hash:      hex.EncodeToString(txHash),
 		MBHash:    hex.EncodeToString(mbHash),
@@ -123,10 +120,9 @@ func TestGetTransactionByType_Nil(t *testing.T) {
 	mb := &block.MiniBlock{TxHashes: [][]byte{txHash}}
 	header := &block.Header{Nonce: 2}
 
-	resultTx := getTransactionByType(nil, txHash, mbHash, blockHash, mb, header, "")
+	resultTx := cp.getTransactionByType(nil, txHash, mbHash, blockHash, mb, header, "")
 
 	require.Nil(t, resultTx)
-	assert.True(t, errors.Is(err, ErrUnknownTransactionHandler))
 }
 
 func TestPrepareBufferMiniblocks(t *testing.T) {

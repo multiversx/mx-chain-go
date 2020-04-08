@@ -599,7 +599,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	genesisShardCoordinator, nodeType, err := createShardCoordinator(genesisNodesConfig, pubKey, preferencesConfig.Preferences, log)
+	genesisShardCoordinator, nodeType, err := createShardCoordinator(genesisNodesConfig, cryptoParams.PublicKey, preferencesConfig.Preferences, log)
 	if err != nil {
 		return err
 	}
@@ -611,8 +611,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig,
 		genesisNodesConfig,
 		genesisShardCoordinator,
-		keyGen,
-		privKey,
+		cryptoParams.KeyGenerator,
+		cryptoParams.PrivateKey,
 		log,
 	)
 	cryptoComponents, err := factory.CryptoComponentsFactory(cryptoArgs)
@@ -668,7 +668,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
-		PublicKey:                  pubKey,
+		PublicKey:                  cryptoParams.PublicKey,
 		Marshalizer:                coreComponents.InternalMarshalizer,
 		TxSignMarshalizer:          coreComponents.TxSignMarshalizer,
 		Hasher:                     coreComponents.Hasher,
@@ -692,6 +692,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		TrieStorageManagers:        coreComponents.TrieStorageManagers,
 		Uint64Converter:            coreComponents.Uint64ByteSliceConverter,
 		NodeShuffler:               nodesShuffler,
+		AddressPubkeyConverter:     addressPubkeyConverter,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -805,21 +806,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	log.Trace("creating crypto components")
-	cryptoArgs := factory.NewCryptoComponentsFactoryArgs(
-		ctx,
-		generalConfig,
-		nodesConfig,
-		shardCoordinator,
-		cryptoParams.KeyGenerator,
-		cryptoParams.PrivateKey,
-		log,
-	)
-	cryptoComponents, err := factory.CryptoComponentsFactory(cryptoArgs)
-	if err != nil {
-		return err
-	}
-
 	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricNodeDisplayName, preferencesConfig.Preferences.NodeDisplayName)
 	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricChainId, genesisNodesConfig.ChainID)
 	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricMinGasPrice, economicsData.MinGasPrice())
@@ -874,9 +860,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			coreComponents.Hasher,
 			nodesCoordinator,
 			epochStartNotifier,
-			shardCoordinator.SelfId(),
 			addressPubkeyConverter,
 			validatorPubkeyConverter,
+			shardCoordinator.SelfId(),
 		)
 		if err != nil {
 			return err
@@ -1431,17 +1417,17 @@ func createElasticIndexer(
 	shardId uint32,
 ) (indexer.Indexer, error) {
 	arguments := indexer.ElasticIndexerArgs{
-		Url:                	  url,
-		UserName:           	  elasticSearchConfig.Username,
-		Password:           	  elasticSearchConfig.Password,
-		Marshalizer:        	  marshalizer,
-		Hasher:             	  hasher,
-		Options:            	  &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
-		NodesCoordinator:   	  nodesCoordinator,
-		EpochStartNotifier: 	  startNotifier,
+		Url:                      url,
+		UserName:                 elasticSearchConfig.Username,
+		Password:                 elasticSearchConfig.Password,
+		Marshalizer:              marshalizer,
+		Hasher:                   hasher,
+		Options:                  &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
+		NodesCoordinator:         nodesCoordinator,
+		EpochStartNotifier:       startNotifier,
 		AddressPubkeyConverter:   addressPubkeyConverter,
 		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		ShardId:            	  shardId,
+		ShardId:                  shardId,
 	}
 
 	var err error
@@ -1521,7 +1507,7 @@ func createNode(
 	if err != nil {
 		return nil, err
 	}
-	triggerPubKeyBytes, err := hex.DecodeString(config.Hardfork.PublicKeyToListenFrom)
+	triggerPubKeyBytes, err := state.ValidatorPubkeyConverter.Decode(config.Hardfork.PublicKeyToListenFrom)
 	if err != nil {
 		return nil, fmt.Errorf("%w while decoding HardforkConfig.PublicKeyToListenFrom", err)
 	}

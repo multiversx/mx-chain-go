@@ -230,16 +230,18 @@ type TestProcessorNode struct {
 	ExportHandler update.ExportHandler
 }
 
+// CreatePkBytes creates numShards of public key bytes
 func CreatePkBytes(numShards uint32) map[uint32][]byte {
+	pk := []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
 	pksbytes := make(map[uint32][]byte, numShards+1)
 	for i := uint32(0); i < numShards; i++ {
 		pksbytes[i] = make([]byte, 128)
-		pksbytes[i] = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
+		pksbytes[i] = pk
 		pksbytes[i][0] = byte(i)
 	}
 
 	pksbytes[core.MetachainShardId] = make([]byte, 128)
-	pksbytes[core.MetachainShardId] = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
+	pksbytes[core.MetachainShardId] = pk
 	pksbytes[core.MetachainShardId][0] = byte(numShards)
 
 	return pksbytes

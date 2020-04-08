@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"encoding/hex"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -31,6 +32,16 @@ type NodeStub struct {
 	ValidatorStatisticsApiCalled                   func() (map[string]*state.ValidatorApiResponse, error)
 	DirectTriggerCalled                            func() error
 	IsSelfTriggerCalled                            func() bool
+}
+
+// EncodeAddressPubkey -
+func (ns *NodeStub) EncodeAddressPubkey(pk []byte) (string, error) {
+	return hex.EncodeToString(pk), nil
+}
+
+// DecodeAddressPubkey -
+func (ns *NodeStub) DecodeAddressPubkey(pk string) ([]byte, error) {
+	return hex.DecodeString(pk)
 }
 
 // Start -

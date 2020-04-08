@@ -207,7 +207,7 @@ func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
 	shardId := uint32(0)
 	epoch := uint32(0)
-	valPubKeys := []string{"key1", "key2"}
+	valPubKeys := [][]byte{[]byte("key1"), []byte("key2")}
 	localErr := errors.New("localErr")
 	arguments := createMockElasticsearchDatabaseArgs()
 	dbWriter := &mock.DatabaseWriterStub{
@@ -229,7 +229,7 @@ func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
 func TestElasticsearch_saveShardValidatorsPubKeys(t *testing.T) {
 	shardId := uint32(0)
 	epoch := uint32(0)
-	valPubKeys := []string{"key1", "key2"}
+	valPubKeys := [][]byte{[]byte("key1"), []byte("key2")}
 	arguments := createMockElasticsearchDatabaseArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoRequestCalled: func(req *esapi.IndexRequest) error {

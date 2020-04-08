@@ -244,7 +244,7 @@ func createHardForkExporter(
 			MultiSigner:            node.MultiSigner,
 			NodesCoordinator:       node.NodesCoordinator,
 			SingleSigner:           node.OwnAccount.SingleSigner,
-			AddrConverter:          integrationTests.TestAddressConverter,
+			AddressPubkeyConverter: integrationTests.TestAddressPubkeyConverter,
 			BlockKeyGen:            node.OwnAccount.KeygenBlockSign,
 			KeyGen:                 node.OwnAccount.KeygenTxSign,
 			BlockSigner:            node.OwnAccount.BlockSingleSigner,
@@ -305,8 +305,8 @@ func verifyIfAddedShardHeadersAreWithNewEpoch(
 		for _, shardInfo := range currentMetaHdr.ShardInfo {
 			value, err := node.DataPool.Headers().GetHeaderByHash(shardInfo.HeaderHash)
 			if err == nil {
-				header, ok := value.(data.HeaderHandler)
-				if !ok {
+				header, headerOk := value.(data.HeaderHandler)
+				if !headerOk {
 					assert.Fail(t, "wrong type in shard header pool")
 				}
 

@@ -33,6 +33,7 @@ type ArgHeartbeatMonitor struct {
 	AntifloodHandler            P2PAntifloodHandler
 	HardforkTrigger             HardforkTrigger
 	PeerBlackListHandler        BlackListHandler
+	ValidatorPubkeyConverter    state.PubkeyConverter
 }
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
@@ -86,7 +87,7 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 	if check.IfNil(arg.PeerBlackListHandler) {
 		return nil, fmt.Errorf("%w in NewMonitor", ErrNilBlackListHandler)
 	}
-	if check.IfNil(validatorPubkeyConverter) {
+	if check.IfNil(arg.ValidatorPubkeyConverter) {
 		return nil, ErrNilPubkeyConverter
 	}
 
@@ -103,7 +104,7 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		antifloodHandler:            arg.AntifloodHandler,
 		hardforkTrigger:             arg.HardforkTrigger,
 		peerBlackListHandler:        arg.PeerBlackListHandler,
-		validatorPubkeyConverter:    validatorPubkeyConverter,
+		validatorPubkeyConverter:    arg.ValidatorPubkeyConverter,
 	}
 
 	err := mon.storer.UpdateGenesisTime(arg.GenesisTime)

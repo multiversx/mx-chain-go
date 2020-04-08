@@ -91,6 +91,7 @@ type epochStartBootstrap struct {
 	trieStorageManagers        map[string]data.StorageManager
 	uint64Converter            typeConverters.Uint64ByteSliceConverter
 	nodeShuffler               sharding.NodesShuffler
+	addressPubkeyConverter     state.PubkeyConverter
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -147,6 +148,7 @@ type ArgsEpochStartBootstrap struct {
 	TrieStorageManagers        map[string]data.StorageManager
 	Uint64Converter            typeConverters.Uint64ByteSliceConverter
 	NodeShuffler               sharding.NodesShuffler
+	AddressPubkeyConverter     state.PubkeyConverter
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -181,6 +183,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		trieStorageManagers:        args.TrieStorageManagers,
 		uint64Converter:            args.Uint64Converter,
 		nodeShuffler:               args.NodeShuffler,
+		addressPubkeyConverter:     args.AddressPubkeyConverter,
 	}
 
 	return epochStartProvider, nil
@@ -330,6 +333,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		Signer:            e.singleSigner,
 		BlockSigner:       e.blockSingleSigner,
 		WhitelistHandler:  e.whiteListHandler,
+		AddressPubkeyConv: e.addressPubkeyConverter,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -356,6 +360,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		BlockKeyGen:       e.blockKeyGen,
 		WhiteListHandler:  e.whiteListHandler,
 		ChainID:           []byte(e.genesisNodesConfig.GetChainId()),
+		AddressPubkeyConv: e.addressPubkeyConverter,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)

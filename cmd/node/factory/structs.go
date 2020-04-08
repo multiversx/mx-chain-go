@@ -772,7 +772,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	_, err = poolsCleaner.NewCrossTxsPoolsCleaner(
-		args.state.AddressConverter,
+		args.state.AddressPubkeyConverter,
 		args.data.Datapool,
 		rounder,
 		args.shardCoordinator,
@@ -1398,7 +1398,6 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 			genesisBlock,
 			coreComponents,
 			dataComponents,
-			stateComponents.AddressPubkeyConverter,
 		)
 		if err != nil {
 			return nil, err

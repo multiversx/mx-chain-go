@@ -122,7 +122,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 	rwdAddrValidatorInfo := rc.computeValidatorInfoPerRewardAddress(validatorsInfo)
 
 	for address, rwdInfo := range rwdAddrValidatorInfo {
-		addrContainer, err := r.pubkeyConverter.CreateAddressFromBytes([]byte(address))
+		addrContainer, err := rc.pubkeyConverter.CreateAddressFromBytes([]byte(address))
 		if err != nil {
 			log.Warn("invalid reward address from validator info", "err", err, "provided address", address)
 			continue
@@ -227,9 +227,9 @@ func (rc *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 
 		numReceivedRewardsMBs++
 		createdMiniBlock := createdMiniBlocks[miniBlockHdr.ReceiverShardID]
-		createdMBHash, err := core.CalculateHash(rc.marshalizer, rc.hasher, createdMiniBlock)
-		if err != nil {
-			return err
+		createdMBHash, errComputeHash := core.CalculateHash(rc.marshalizer, rc.hasher, createdMiniBlock)
+		if errComputeHash != nil {
+			return errComputeHash
 		}
 
 		if !bytes.Equal(createdMBHash, miniBlockHdr.Hash) {

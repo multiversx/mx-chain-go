@@ -1,7 +1,6 @@
 package interceptedBlocks
 
 import (
-	"encoding/hex"
 	"fmt"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"

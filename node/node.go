@@ -985,7 +985,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		AntifloodHandler:            n.inputAntifloodHandler,
 		HardforkTrigger:             n.hardforkTrigger,
 		PeerBlackListHandler:        n.peerBlackListHandler,
-		n.validatorPubkeyConverter,
+		ValidatorPubkeyConverter:    n.validatorPubkeyConverter,
 	}
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(argMonitor)
 	if err != nil {

@@ -34,7 +34,7 @@ type ElasticIndexerArgs struct {
 	NodesCoordinator         sharding.NodesCoordinator
 	AddressPubkeyConverter   state.PubkeyConverter
 	ValidatorPubkeyConverter state.PubkeyConverter
-	Options            		 *Options
+	Options                  *Options
 }
 
 type elasticIndexer struct {
@@ -147,14 +147,10 @@ func (ei *elasticIndexer) SaveValidatorsRating(indexID string, validatorsRatingI
 
 //SaveValidatorsPubKeys will send all validators public keys to elasticsearch
 func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32) {
-	valPubKeys := make(map[uint32][]string)
 	for shardID, shardPubKeys := range validatorsPubKeys {
-		for _, pubKey := range shardPubKeys {
-			valPubKeys[shardID] = append(valPubKeys[shardID], hex.EncodeToString(pubKey))
-		}
-		go func(id, epochNumber uint32, publicKeys []string) {
+		go func(id, epochNumber uint32, publicKeys [][]byte) {
 			ei.database.SaveShardValidatorsPubKeys(id, epochNumber, publicKeys)
-		}(shardID, epoch, valPubKeys[shardID])
+		}(shardID, epoch, shardPubKeys)
 	}
 }
 

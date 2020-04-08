@@ -108,6 +108,7 @@ func TestTxValidator_NewValidatorNilWhiteListHandlerShouldErr(t *testing.T) {
 		adb,
 		shardCoordinator,
 		nil,
+		mock.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
 
@@ -115,7 +116,6 @@ func TestTxValidator_NewValidatorNilWhiteListHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilWhiteListHandler, err)
 }
 
-func TestTxValidator_NewValidatorShouldWork(t *testing.T) {
 func TestNewTxValidator_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -125,8 +125,9 @@ func TestNewTxValidator_NilPubkeyConverterShouldErr(t *testing.T) {
 	txValidator, err := dataValidators.NewTxValidator(
 		adb,
 		shardCoordinator,
-		maxNonceDeltaAllowed,
+		&mock.WhiteListHandlerStub{},
 		nil,
+		maxNonceDeltaAllowed,
 	)
 
 	assert.Nil(t, txValidator)
@@ -300,6 +301,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsButWhiteListedShouldReturnTru
 				return true
 			},
 		},
+		mock.NewPubkeyConverterMock(32),
 		maxNonceDeltaAllowed,
 	)
 
@@ -333,8 +335,8 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 		accDB,
 		shardCoordinator,
 		&mock.WhiteListHandlerStub{},
-		maxNonceDeltaAllowed,
 		mock.NewPubkeyConverterMock(32),
+		maxNonceDeltaAllowed,
 	)
 
 	addressMock := mock.NewAddressMock([]byte("address"))

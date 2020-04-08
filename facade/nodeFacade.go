@@ -271,13 +271,13 @@ func (nf *nodeFacade) IsSelfTrigger() bool {
 }
 
 // EncodeAddressPubkey will encode the provided address public key bytes to string
-func (ef *ElrondNodeFacade) EncodeAddressPubkey(pk []byte) (string, error) {
-	return ef.node.EncodeAddressPubkey(pk)
+func (nf *nodeFacade) EncodeAddressPubkey(pk []byte) (string, error) {
+	return nf.node.EncodeAddressPubkey(pk)
 }
 
 // DecodeAddressPubkey will try to decode the provided address public key string
-func (ef *ElrondNodeFacade) DecodeAddressPubkey(pk string) ([]byte, error) {
-	return ef.node.DecodeAddressPubkey(pk)
+func (nf *nodeFacade) DecodeAddressPubkey(pk string) ([]byte, error) {
+	return nf.node.DecodeAddressPubkey(pk)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

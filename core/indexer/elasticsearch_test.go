@@ -2,7 +2,6 @@ package indexer_test
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,14 +35,14 @@ func newTestMetaBlock() *block.MetaBlock {
 
 func NewElasticIndexerArguments() indexer.ElasticIndexerArgs {
 	return indexer.ElasticIndexerArgs{
-		Url:                	  "url",
-		UserName:           	  "user",
-		Password:           	  "password",
-		Marshalizer:        	  &mock.MarshalizerMock{},
-		Hasher:             	  &mock.HasherMock{},
-		Options:            	  &indexer.Options{},
-		NodesCoordinator:   	  &mock.NodesCoordinatorMock{},
-		EpochStartNotifier: 	  &mock.EpochStartNotifierStub{},
+		Url:                      "url",
+		UserName:                 "user",
+		Password:                 "password",
+		Marshalizer:              &mock.MarshalizerMock{},
+		Hasher:                   &mock.HasherMock{},
+		Options:                  &indexer.Options{},
+		NodesCoordinator:         &mock.NodesCoordinatorMock{},
+		EpochStartNotifier:       &mock.EpochStartNotifierStub{},
 		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
 	}

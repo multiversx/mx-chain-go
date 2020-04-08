@@ -161,8 +161,10 @@ func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(
 
 	miniblocksHashes := make([]string, 0)
 	for _, miniblock := range body.MiniBlocks {
-		mbHash, err := core.CalculateHash(esd.marshalizer, esd.hasher, miniblock)
-		if err != nil {
+		mbHash, errComputeHash := core.CalculateHash(esd.marshalizer, esd.hasher, miniblock)
+		if errComputeHash != nil {
+			log.Warn("internal error computing hash", "error", errComputeHash)
+
 			continue
 		}
 
@@ -261,9 +263,9 @@ func (esd *elasticSearchDatabase) buildTransactionBulks(
 				continue
 			}
 
-			currentTx, err := esd.commonProcessor.getTransactionByType(currentTxHandler, txHash, mbHash, blockHash, mb, header, mbTxStatus)
-			if err != nil {
-				log.Debug("indexer: elasticsearch found tx in pool but of wrong type", "error", err)
+			currentTx := esd.commonProcessor.getTransactionByType(currentTxHandler, txHash, mbHash, blockHash, mb, header, mbTxStatus)
+			if currentTx == nil {
+				log.Debug("indexer: elasticsearch found tx in pool but of wrong type")
 				continue
 			}
 
@@ -308,8 +310,10 @@ func (esd *elasticSearchDatabase) getMiniblocks(header data.HeaderHandler, body 
 
 	miniblocks := make([]*Miniblock, 0)
 	for _, miniblock := range body.MiniBlocks {
-		mbHash, err := core.CalculateHash(esd.marshalizer, esd.hasher, miniblock)
-		if err != nil {
+		mbHash, errComputeHash := core.CalculateHash(esd.marshalizer, esd.hasher, miniblock)
+		if errComputeHash != nil {
+			log.Warn("internal error computing hash", "error", errComputeHash)
+
 			continue
 		}
 
@@ -370,7 +374,7 @@ func (esd *elasticSearchDatabase) SaveRoundInfo(info RoundInfo) {
 }
 
 // SaveShardValidatorsPubKeys will prepare and save information about a shard validators public keys in elasticsearch server
-func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys []string) {
+func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) {
 	var buff bytes.Buffer
 
 	shardValPubKeys := ValidatorsPublicKeys{

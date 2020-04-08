@@ -141,7 +141,7 @@ func (cm *commonProcessor) getTransactionByType(
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 	txStatus string,
-) (*Transaction, error) {
+) *Transaction {
 	switch currentType := tx.(type) {
 	case *transaction.Transaction:
 		return cm.buildTransaction(currentType, txHash, mbHash, blockHash, mb, header, txStatus)
@@ -152,7 +152,7 @@ func (cm *commonProcessor) getTransactionByType(
 	case *receipt.Receipt:
 		return cm.buildReceiptTransaction(currentType, txHash, mbHash, blockHash, mb, header)
 	default:
-		return nil, fmt.Errorf("%w, type %v", ErrUnknownTransactionHandler, currentType)
+		return nil
 	}
 }
 
@@ -164,8 +164,8 @@ func (cm *commonProcessor) buildTransaction(
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 	txStatus string,
-) (*Transaction, error) {
-	indexedTx := &Transaction{
+) *Transaction {
+	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
 		MBHash:        hex.EncodeToString(mbHash),
 		BlockHash:     hex.EncodeToString(blockHash),
@@ -183,8 +183,6 @@ func (cm *commonProcessor) buildTransaction(
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        txStatus,
 	}
-
-	return indexedTx, nil
 }
 
 func (cm *commonProcessor) buildSmartContractResult(
@@ -194,8 +192,8 @@ func (cm *commonProcessor) buildSmartContractResult(
 	blockHash []byte,
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
-) (*Transaction, error) {
-	indexedTx := &Transaction{
+) *Transaction {
+	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
 		MBHash:        hex.EncodeToString(mbHash),
 		BlockHash:     hex.EncodeToString(blockHash),
@@ -213,8 +211,6 @@ func (cm *commonProcessor) buildSmartContractResult(
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        "Success",
 	}
-
-	return indexedTx, nil
 }
 
 func (cm *commonProcessor) buildRewardTransaction(

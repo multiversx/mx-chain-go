@@ -66,10 +66,11 @@ func createMockArgHeartbeatMonitor() heartbeat.ArgHeartbeatMonitor {
 				return "", 1, nil
 			},
 		},
-		Timer:                mock.NewMockTimer(),
-		AntifloodHandler:     createMockP2PAntifloodHandler(),
-		HardforkTrigger:      &mock.HardforkTriggerStub{},
-		PeerBlackListHandler: &mock.BlackListHandlerStub{},
+		Timer:                    mock.NewMockTimer(),
+		AntifloodHandler:         createMockP2PAntifloodHandler(),
+		HardforkTrigger:          &mock.HardforkTriggerStub{},
+		PeerBlackListHandler:     &mock.BlackListHandlerStub{},
+		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
 	}
 }
 
@@ -172,6 +173,17 @@ func TestNewMonitor_NilPeerBlackListHandlerShouldErr(t *testing.T) {
 
 	assert.Nil(t, mon)
 	assert.True(t, errors.Is(err, heartbeat.ErrNilBlackListHandler))
+}
+
+func TestNewMonitor_NilValidatorPubkeyConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatMonitor()
+	arg.ValidatorPubkeyConverter = nil
+	mon, err := heartbeat.NewMonitor(arg)
+
+	assert.Nil(t, mon)
+	assert.True(t, errors.Is(err, heartbeat.ErrNilPubkeyConverter))
 }
 
 func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {

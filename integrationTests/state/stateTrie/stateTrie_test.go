@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
