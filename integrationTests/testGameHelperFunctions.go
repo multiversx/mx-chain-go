@@ -52,7 +52,8 @@ func ScCallTxWithParams(
 // DeployScTx creates and sends a SC tx
 func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string, vmType []byte) {
 	fmt.Println("Deploying SC...")
-	data := scCode + "@" + hex.EncodeToString(vmType)
+	scCodeMetadataString := "0000"
+	data := scCode + "@" + hex.EncodeToString(vmType) + "@" + scCodeMetadataString
 	txDeploy := generateTx(
 		nodes[senderIdx].OwnAccount.SkTxSign,
 		nodes[senderIdx].OwnAccount.SingleSigner,

@@ -17,6 +17,7 @@ import (
 var agarioFile = "../../../agarioV3.hex"
 
 func TestDeployAgarioContract(t *testing.T) {
+	// TODO: Use from utils.go
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
 
@@ -36,7 +37,7 @@ func TestDeployAgarioContract(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode)+"@"+hex.EncodeToString(factory.IELEVirtualMachine),
+		iele.CreateDeployTxData(scCode),
 		testContext.TxProcessor,
 		testContext.Accounts,
 	)
@@ -71,7 +72,7 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode)+"@"+hex.EncodeToString(factory.IELEVirtualMachine),
+		iele.CreateDeployTxData(scCode),
 		testContext.TxProcessor,
 		testContext.Accounts,
 	)
@@ -130,7 +131,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode)+"@"+hex.EncodeToString(factory.IELEVirtualMachine),
+		iele.CreateDeployTxData(scCode),
 		testContext.TxProcessor,
 		testContext.Accounts,
 	)
@@ -219,7 +220,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode)+"@"+hex.EncodeToString(factory.IELEVirtualMachine),
+		iele.CreateDeployTxData(scCode),
 		testContext.TxProcessor,
 		testContext.Accounts,
 	)
@@ -352,7 +353,7 @@ func BenchmarkAgarioJoinGame(b *testing.B) {
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		string(scCode)+"@"+hex.EncodeToString(factory.IELEVirtualMachine),
+		iele.CreateDeployTxData(scCode),
 		testContext.TxProcessor,
 		testContext.Accounts,
 	)
