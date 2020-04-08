@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -28,7 +29,7 @@ func NewBlockSizeComputation(
 	marshalizer marshal.Marshalizer,
 	blockSizeThrottler BlockSizeThrottler,
 	maxSize uint32,
-	) (*blockSizeComputation, error) {
+) (*blockSizeComputation, error) {
 
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
@@ -51,22 +52,22 @@ func NewBlockSizeComputation(
 }
 
 func (bsc *blockSizeComputation) precomputeValues(marshalizer marshal.Marshalizer) error {
-	oneEmptyMiniblockSize, err := bsc.computeSize(marshalizer, bsc.generateDummyBlockbody(1, 0))
+	oneEmptyMiniblockSize, err := bsc.generateDummyBlockbodySize(marshalizer, 1, 0)
 	if err != nil {
 		return err
 	}
 
-	oneMiniblockSizeWithTenTxs, err := bsc.computeSize(marshalizer, bsc.generateDummyBlockbody(1, 10))
+	oneMiniblockSizeWithTenTxs, err := bsc.generateDummyBlockbodySize(marshalizer, 1, 10)
 	if err != nil {
 		return err
 	}
 
-	oneMiniblockSizeWithTwentyTxs, err := bsc.computeSize(marshalizer, bsc.generateDummyBlockbody(1, 20))
+	oneMiniblockSizeWithTwentyTxs, err := bsc.generateDummyBlockbodySize(marshalizer, 1, 20)
 	if err != nil {
 		return err
 	}
 
-	tenMiniblocksWithTenTxs, err := bsc.computeSize(marshalizer, bsc.generateDummyBlockbody(10, 10))
+	tenMiniblocksWithTenTxs, err := bsc.generateDummyBlockbodySize(marshalizer, 10, 10)
 	if err != nil {
 		return err
 	}
@@ -78,22 +79,26 @@ func (bsc *blockSizeComputation) precomputeValues(marshalizer marshal.Marshalize
 	return nil
 }
 
-func (bsc *blockSizeComputation) computeSize(marshalizer marshal.Marshalizer, object interface{}) (uint32, error) {
-	buff, err := marshalizer.Marshal(object)
+func (bsc *blockSizeComputation) generateDummyBlockbodySize(marshalizer marshal.Marshalizer, numMiniblocks int, numTxHashesPerMiniblock int) (uint32, error) {
+	b := &batch.Batch{}
+
+	for i := 0; i < numMiniblocks; i++ {
+		miniBlock := bsc.generateDummyMiniblock(numTxHashesPerMiniblock)
+
+		buff, err := marshalizer.Marshal(miniBlock)
+		if err != nil {
+			return 0, err
+		}
+
+		b.Data = append(b.Data, buff)
+	}
+
+	buff, err := marshalizer.Marshal(b)
 	if err != nil {
 		return 0, err
 	}
 
 	return uint32(len(buff)), nil
-}
-
-func (bsc *blockSizeComputation) generateDummyBlockbody(numMiniblocks int, numTxHashesPerMiniblock int) *block.Body {
-	miniBlocks := make([]*block.MiniBlock, numMiniblocks)
-	for i := 0; i < numMiniblocks; i++ {
-		miniBlocks[i] = bsc.generateDummyMiniblock(numTxHashesPerMiniblock)
-	}
-
-	return &block.Body{MiniBlocks: miniBlocks}
 }
 
 func (bsc *blockSizeComputation) generateDummyMiniblock(numTxHashes int) *block.MiniBlock {

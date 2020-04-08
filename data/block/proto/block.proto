@@ -71,10 +71,6 @@ message Header  {
 	bytes                    AccumulatedFees        = 21 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
-message Body {
-	repeated MiniBlock MiniBlocks = 1;
-}
-
 // BodyHeaderPair holds a body and header hash pair
 message BodyHeaderPair{
 	bytes Body   = 1;

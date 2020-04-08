@@ -41,11 +41,11 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	return nil
 }
 
-func checkTxBlockBodyArgument(arg *ArgInterceptedTxBlockBody) error {
+func checkMiniblockArgument(arg *ArgInterceptedMinblock) error {
 	if arg == nil {
 		return process.ErrNilArgumentStruct
 	}
-	if len(arg.TxBlockBodyBuff) == 0 {
+	if len(arg.MiniblockBuff) == 0 {
 		return process.ErrNilBuffer
 	}
 	if check.IfNil(arg.Marshalizer) {

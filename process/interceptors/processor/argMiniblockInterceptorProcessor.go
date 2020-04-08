@@ -1,14 +1,15 @@
-package interceptedBlocks
+package processor
 
 import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-// ArgInterceptedTxBlockBody is the argument for the intercepted transaction block body
-type ArgInterceptedTxBlockBody struct {
-	TxBlockBodyBuff  []byte
+// ArgMiniblockInterceptorProcessor is the argument for the interceptor processor used for miniblocks
+type ArgMiniblockInterceptorProcessor struct {
+	MiniblockCache   storage.Cacher
 	Marshalizer      marshal.Marshalizer
 	Hasher           hashing.Hasher
 	ShardCoordinator sharding.Coordinator
