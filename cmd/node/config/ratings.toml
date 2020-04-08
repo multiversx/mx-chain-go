@@ -13,6 +13,7 @@
     StartRating = 500000
     MaxRating = 1000000
     MinRating = 1
+    HoursToMaxRatingFromStartRating = 10
     SignedBlocksThreshold = 0.01
     SelectionChances = [
         { MaxThreshold = 0, ChancePercent = 5},
@@ -29,15 +30,13 @@
     ]
 
 [ShardChain.RatingSteps]
-    ProposerIncreaseRatingStep = 2315
-    ProposerDecreaseRatingStep = -9260
-    ValidatorIncreaseRatingStep = 37
-    ValidatorDecreaseRatingStep = -148
+    ProposerValidatorImportance = 1.0
+    ProposerDecreaseFactor = -4.0
+    ValidatorDecreaseFactor = -4.0
     ConsecutiveMissedBlocksPenalty = 1.10
 
 [MetaChain.RatingSteps]
-    ProposerIncreaseRatingStep = 2315
-    ProposerDecreaseRatingStep = -9260
-    ValidatorIncreaseRatingStep = 6
-    ValidatorDecreaseRatingStep = -24
+    ProposerValidatorImportance = 1.0
+    ProposerDecreaseFactor = -4.0
+    ValidatorDecreaseFactor = -4.0
     ConsecutiveMissedBlocksPenalty = 1.10
