@@ -85,8 +85,6 @@ type ChainHandler interface {
 	SetCurrentBlockHeader(bh HeaderHandler) error
 	GetCurrentBlockHeaderHash() []byte
 	SetCurrentBlockHeaderHash(hash []byte)
-	GetCurrentBlockBody() BodyHandler
-	SetCurrentBlockBody(body BodyHandler) error
 	IsInterfaceNil() bool
 	CreateNewHeader() HeaderHandler
 }
