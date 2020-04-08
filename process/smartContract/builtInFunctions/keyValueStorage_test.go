@@ -1,6 +1,7 @@
 package builtInFunctions
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -49,5 +50,5 @@ func TestSaveKeyValue_ProcessBuiltinFunction(t *testing.T) {
 
 	vmInput.CallerAddr = []byte("other")
 	_, _, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
-	require.Equal(t, process.ErrOperationNotPermitted, err)
+	require.True(t, errors.Is(err, process.ErrOperationNotPermitted))
 }

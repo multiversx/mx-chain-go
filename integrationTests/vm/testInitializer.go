@@ -619,6 +619,7 @@ func FillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["ClaimDeveloperRewards"] = value
 	gasMap["ChangeOwnerAddress"] = value
 	gasMap["SaveUserName"] = value
+	gasMap["SaveKeyValue"] = value
 
 	return gasMap
 }
