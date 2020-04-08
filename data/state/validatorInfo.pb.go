@@ -28,6 +28,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+// ValidatorInfo represents the data regarding a validator that is verified by the metaNodes
 type ValidatorInfo struct {
 	PublicKey                  []byte        `protobuf:"bytes,1,opt,name=PublicKey,proto3" json:"PublicKey,omitempty"`
 	ShardId                    uint32        `protobuf:"varint,2,opt,name=ShardId,proto3" json:"ShardId,omitempty"`
@@ -195,6 +196,7 @@ func (m *ValidatorInfo) GetTotalValidatorFailure() uint32 {
 	return 0
 }
 
+// ShardValidatorInfo represents the data regarding a validator that is stored in the PeerMiniblocks
 type ShardValidatorInfo struct {
 	PublicKey  []byte `protobuf:"bytes,1,opt,name=PublicKey,proto3" json:"PublicKey,omitempty"`
 	ShardId    uint32 `protobuf:"varint,2,opt,name=ShardId,proto3" json:"ShardId,omitempty"`

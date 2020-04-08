@@ -431,9 +431,6 @@ var ErrNilEpochHandler = errors.New("nil epoch handler")
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
 
-// ErrNotEnoughArgumentsToDeploy signals that there are not enough arguments to deploy the smart contract
-var ErrNotEnoughArgumentsToDeploy = errors.New("not enough arguments to deploy the smart contract")
-
 // ErrVMTypeLengthInvalid signals that vm type length is too long
 var ErrVMTypeLengthInvalid = errors.New("vm type length is too long")
 

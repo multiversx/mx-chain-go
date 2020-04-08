@@ -7,7 +7,8 @@ import (
 // ArgumentParserMock -
 type ArgumentParserMock struct {
 	ParseDataCalled                   func(data string) error
-	GetArgumentsCalled                func() ([][]byte, error)
+	GetConstructorArgumentsCalled     func() ([][]byte, error)
+	GetFunctionArgumentsCalled        func() ([][]byte, error)
 	GetCodeCalled                     func() ([]byte, error)
 	GetFunctionCalled                 func() (string, error)
 	GetSeparatorCalled                func() string
@@ -23,12 +24,20 @@ func (ap *ArgumentParserMock) ParseData(data string) error {
 	return ap.ParseDataCalled(data)
 }
 
-// GetArguments -
-func (ap *ArgumentParserMock) GetArguments() ([][]byte, error) {
-	if ap.GetArgumentsCalled == nil {
+// GetConstructorArguments -
+func (ap *ArgumentParserMock) GetConstructorArguments() ([][]byte, error) {
+	if ap.GetConstructorArgumentsCalled == nil {
 		return make([][]byte, 0), nil
 	}
-	return ap.GetArgumentsCalled()
+	return ap.GetConstructorArgumentsCalled()
+}
+
+// GetFunctionArguments -
+func (ap *ArgumentParserMock) GetFunctionArguments() ([][]byte, error) {
+	if ap.GetFunctionArgumentsCalled == nil {
+		return make([][]byte, 0), nil
+	}
+	return ap.GetFunctionArgumentsCalled()
 }
 
 // GetCode -
