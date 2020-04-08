@@ -38,8 +38,9 @@ type StorageConfig struct {
 
 // AddressConfig will map the json address configuration
 type AddressConfig struct {
-	Length int    `json:"length"`
-	Prefix string `json:"prefix"`
+	Length          int    `json:"length"`
+	Prefix          string `json:"prefix"`
+	SignatureLength int
 }
 
 // TypeConfig will map the json string type configuration

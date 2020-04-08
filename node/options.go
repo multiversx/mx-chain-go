@@ -608,6 +608,22 @@ func WithWhiteListHanlder(whiteListHandler process.WhiteListHandler) Option {
 	}
 }
 
+// WithSignatureSize sets up a signatureSize option for the Node
+func WithSignatureSize(signatureSize int) Option {
+	return func(n *Node) error {
+		n.signatureSize = signatureSize
+		return nil
+	}
+}
+
+// WithPublicKeySize sets up a publicKeySize option for the Node
+func WithPublicKeySize(publicKeySize int) Option {
+	return func(n *Node) error {
+		n.publicKeySize = publicKeySize
+		return nil
+	}
+}
+
 // WithNodeStopChannel sets up the channel which will handle closing the node
 func WithNodeStopChannel(channel chan bool) Option {
 	return func(n *Node) error {
