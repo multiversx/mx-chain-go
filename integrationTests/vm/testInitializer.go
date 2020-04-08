@@ -26,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -56,7 +57,7 @@ type VMTestContext struct {
 
 // Close -
 func (vmTestContext *VMTestContext) Close() {
-	vmTestContext.VMContainer.Close()
+	_ = vmTestContext.VMContainer.Close()
 }
 
 // GetLatestError -
@@ -67,6 +68,7 @@ func (vmTestContext *VMTestContext) GetLatestError() error {
 type accountFactory struct {
 }
 
+// CreateAccount -
 func (af *accountFactory) CreateAccount(address state.AddressContainer) (state.AccountHandler, error) {
 	return state.NewUserAccount(address)
 }
@@ -142,6 +144,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		ShardCoordinator: oneShardCoordinator,
 		Marshalizer:      testMarshalizer,
 		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -181,7 +184,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasMap: gasSchedule,
+		BuiltInFunctions: blockChainHook.GetBuiltInFunctions(),
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 
@@ -212,6 +215,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		ShardCoordinator: oneShardCoordinator,
 		Marshalizer:      testMarshalizer,
 		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
@@ -233,6 +237,18 @@ func CreateVMAndBlockchainHook(
 	accnts state.AccountsAdapter,
 	gasSchedule map[string]map[string]uint64,
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
+	actualGasSchedule := gasSchedule
+	if gasSchedule == nil {
+		actualGasSchedule = arwenConfig.MakeGasMap(1)
+		FillGasMapInternal(actualGasSchedule, 1)
+	}
+
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasMap:          actualGasSchedule,
+		MapDNSAddresses: make(map[string]struct{}),
+	}
+	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+
 	args := hooks.ArgBlockChainHook{
 		Accounts:         accnts,
 		AddrConv:         addrConv,
@@ -241,19 +257,13 @@ func CreateVMAndBlockchainHook(
 		ShardCoordinator: oneShardCoordinator,
 		Marshalizer:      testMarshalizer,
 		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions: builtInFuncs,
 	}
 
 	//Uncomment this to enable trace printing of the vm
 	//vm.SetTracePretty()
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-
-	actualGasSchedule := gasSchedule
-	if gasSchedule == nil {
-		actualGasSchedule = arwenConfig.MakeGasMap(1)
-		FillGasMapInternal(actualGasSchedule, 1)
-	}
-
 	vmFactory, err := shard.NewVMContainerFactory(
 		config.VirtualMachineConfig{
 			OutOfProcessEnabled: true,
@@ -312,7 +322,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasMap: gasSchedule,
+		BuiltInFunctions: blockChainHook.GetBuiltInFunctions(),
 	}
 
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
@@ -519,7 +529,9 @@ func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int
 // GetIntValueFromSC -
 func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
 	vmContainer, _ := CreateVMAndBlockchainHook(accnts, gasSchedule)
-	defer vmContainer.Close()
+	defer func() {
+		_ = vmContainer.Close()
+	}()
 
 	feeHandler := &mock.FeeHandlerStub{
 		MaxGasLimitPerBlockCalled: func() uint64 {
@@ -606,6 +618,7 @@ func FillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap := make(map[string]uint64)
 	gasMap["ClaimDeveloperRewards"] = value
 	gasMap["ChangeOwnerAddress"] = value
+	gasMap["SaveUserName"] = value
 
 	return gasMap
 }

@@ -50,6 +50,12 @@ func NewUserAccount(addressContainer AddressContainer) (*userAccount, error) {
 	}, nil
 }
 
+// SetUserName sets the users name
+func (a *userAccount) SetUserName(userName []byte) {
+	a.UserName = make([]byte, 0, len(userName))
+	a.UserName = append(a.UserName, userName...)
+}
+
 // AddToBalance adds new value to balance
 func (a *userAccount) AddToBalance(value *big.Int) error {
 	newBalance := big.NewInt(0).Add(a.Balance, value)

@@ -449,6 +449,10 @@ var ErrNilHdrValidator = errors.New("nil header validator")
 // ErrNilPendingMiniBlocksHandler signals that a nil pending miniblocks handler has been provided
 var ErrNilPendingMiniBlocksHandler = errors.New("nil pending miniblocks handler")
 
+// ErrMiniblockNotForCurrentShard signals that the current processing miniblock must not be
+// processed on the current shard
+var ErrMiniblockNotForCurrentShard = errors.New("miniblock is not addressed for current shard")
+
 // ErrNilTxsPoolsCleaner signals that a nil transactions pools cleaner has been provided
 var ErrNilTxsPoolsCleaner = errors.New("nil transactions pools cleaner")
 
@@ -626,6 +630,9 @@ var ErrNilMiniBlocksResolver = errors.New("nil miniblocks resolver")
 // ErrNilWhiteListHandler signals that white list handler is nil
 var ErrNilWhiteListHandler = errors.New("nil whitelist handler")
 
+// ErrNilInterceptedDataVerifier signals that intercepted data verifier is nil
+var ErrNilInterceptedDataVerifier = errors.New("nil intercepted data verifier")
+
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
 
@@ -733,3 +740,24 @@ var ErrInvalidMetaTransaction = errors.New("meta transaction is invalid")
 
 // ErrIncreaseStepLowerThanOne signals that an increase step lower than one has been provided
 var ErrIncreaseStepLowerThanOne = errors.New("increase step is lower than one")
+
+// ErrNilVmInput signals that provided vm input is nil
+var ErrNilVmInput = errors.New("nil vm input")
+
+// ErrNilDnsAddresses signals that nil dns addresses map was provided
+var ErrNilDnsAddresses = errors.New("nil dns addresses map")
+
+// ErrCallerIsNotTheDNSAddress signals that called address is not the DNS address
+var ErrCallerIsNotTheDNSAddress = errors.New("not a dns address")
+
+// ErrUserNameChangeIsDisabled signals the user name change is not allowed
+var ErrUserNameChangeIsDisabled = errors.New("user name change is disabled")
+
+// ErrDestinationNotInSelfShard signals that user is not in self shard
+var ErrDestinationNotInSelfShard = errors.New("destination is not in self shard")
+
+// ErrUserNameDoesNotMatch signals that user name does not match
+var ErrUserNameDoesNotMatch = errors.New("user name does not match")
+
+// ErrUserNameDoesNotMatchInCrossShardTx signals that user name does not match in case of cross shard tx
+var ErrUserNameDoesNotMatchInCrossShardTx = errors.New("user name does not match in destination shard")

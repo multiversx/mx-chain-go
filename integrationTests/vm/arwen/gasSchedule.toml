@@ -1,6 +1,7 @@
 [BuiltInCost]
     ChangeOwnerAddress    = 5000000
     ClaimDeveloperRewards = 5000000
+    SaveUserName          = 5000000
 
 [MetaChainSystemSCsCost]
     Stake               = 5000000

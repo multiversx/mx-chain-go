@@ -61,6 +61,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -808,6 +809,14 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ShardCoordinator,
 	)
 
+	gasSchedule := arwenConfig.MakeGasMap(1)
+	vm.FillGasMapInternal(gasSchedule, 1)
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasMap:          gasSchedule,
+		MapDNSAddresses: make(map[string]struct{}),
+	}
+	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         tpn.AccntState,
 		AddrConv:         TestAddressConverter,
@@ -816,9 +825,9 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		ShardCoordinator: tpn.ShardCoordinator,
 		Marshalizer:      TestMarshalizer,
 		Uint64Converter:  TestUint64Converter,
+		BuiltInFunctions: builtInFuncs,
 	}
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	gasSchedule := arwenConfig.MakeGasMap(1)
 	vmFactory, _ := shard.NewVMContainerFactory(
 		config.VirtualMachineConfig{
 			OutOfProcessEnabled: true,
@@ -847,22 +856,21 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 
-	vm.FillGasMapInternal(gasSchedule, 1)
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:   tpn.VMContainer,
-		ArgsParser:    tpn.ArgsParser,
-		Hasher:        TestHasher,
-		Marshalizer:   TestMarshalizer,
-		AccountsDB:    tpn.AccntState,
-		TempAccounts:  vmFactory.BlockChainHookImpl(),
-		AdrConv:       TestAddressConverter,
-		Coordinator:   tpn.ShardCoordinator,
-		ScrForwarder:  tpn.ScrForwarder,
-		TxFeeHandler:  tpn.FeeAccumulator,
-		EconomicsFee:  tpn.EconomicsData,
-		TxTypeHandler: txTypeHandler,
-		GasHandler:    tpn.GasHandler,
-		GasMap:        gasSchedule,
+		VmContainer:      tpn.VMContainer,
+		ArgsParser:       tpn.ArgsParser,
+		Hasher:           TestHasher,
+		Marshalizer:      TestMarshalizer,
+		AccountsDB:       tpn.AccntState,
+		TempAccounts:     vmFactory.BlockChainHookImpl(),
+		AdrConv:          TestAddressConverter,
+		Coordinator:      tpn.ShardCoordinator,
+		ScrForwarder:     tpn.ScrForwarder,
+		TxFeeHandler:     tpn.FeeAccumulator,
+		EconomicsFee:     tpn.EconomicsData,
+		TxTypeHandler:    txTypeHandler,
+		GasHandler:       tpn.GasHandler,
+		BuiltInFunctions: tpn.BlockchainHook.GetBuiltInFunctions(),
 	}
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(argsNewScProcessor)
 
@@ -937,6 +945,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ShardCoordinator: tpn.ShardCoordinator,
 		Marshalizer:      TestMarshalizer,
 		Uint64Converter:  TestUint64Converter,
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 	}
 	gasSchedule := make(map[string]map[string]uint64)
 	vm.FillGasMapInternal(gasSchedule, 1)
@@ -952,20 +961,20 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.ArgsParser = vmcommon.NewAtArgumentParser()
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:   tpn.VMContainer,
-		ArgsParser:    tpn.ArgsParser,
-		Hasher:        TestHasher,
-		Marshalizer:   TestMarshalizer,
-		AccountsDB:    tpn.AccntState,
-		TempAccounts:  vmFactory.BlockChainHookImpl(),
-		AdrConv:       TestAddressConverter,
-		Coordinator:   tpn.ShardCoordinator,
-		ScrForwarder:  tpn.ScrForwarder,
-		TxFeeHandler:  tpn.FeeAccumulator,
-		EconomicsFee:  tpn.EconomicsData,
-		TxTypeHandler: txTypeHandler,
-		GasHandler:    tpn.GasHandler,
-		GasMap:        gasSchedule,
+		VmContainer:      tpn.VMContainer,
+		ArgsParser:       tpn.ArgsParser,
+		Hasher:           TestHasher,
+		Marshalizer:      TestMarshalizer,
+		AccountsDB:       tpn.AccntState,
+		TempAccounts:     vmFactory.BlockChainHookImpl(),
+		AdrConv:          TestAddressConverter,
+		Coordinator:      tpn.ShardCoordinator,
+		ScrForwarder:     tpn.ScrForwarder,
+		TxFeeHandler:     tpn.FeeAccumulator,
+		EconomicsFee:     tpn.EconomicsData,
+		TxTypeHandler:    txTypeHandler,
+		GasHandler:       tpn.GasHandler,
+		BuiltInFunctions: tpn.BlockchainHook.GetBuiltInFunctions(),
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = scProcessor
