@@ -828,11 +828,6 @@ func (sp *shardProcessor) CommitBlock(
 
 	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
 
-	err = sp.blockChain.SetCurrentBlockBody(body)
-	if err != nil {
-		return err
-	}
-
 	err = sp.blockChain.SetCurrentBlockHeader(header)
 	if err != nil {
 		return err

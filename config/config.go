@@ -38,8 +38,9 @@ type StorageConfig struct {
 
 // PubkeyConfig will map the json public key configuration
 type PubkeyConfig struct {
-	Length int    `json:"length"`
-	Type   string `json:"type"`
+	Length          int    `json:"length"`
+	Type            string `json:"type"`
+	SignatureLength int
 }
 
 // TypeConfig will map the json string type configuration

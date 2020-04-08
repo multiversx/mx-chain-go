@@ -287,6 +287,18 @@ func TestWorker_IsMessageWithBlockBodyAndHeader(t *testing.T) {
 	assert.True(t, ret)
 }
 
+func TestWorker_IsMessageWithBlockBody(t *testing.T) {
+	t.Parallel()
+
+	service, _ := bls.NewConsensusService()
+
+	ret := service.IsMessageWithBlockBody(bls.MtBlockHeader)
+	assert.False(t, ret)
+
+	ret = service.IsMessageWithBlockBody(bls.MtBlockBody)
+	assert.True(t, ret)
+}
+
 func TestWorker_IsMessageWithBlockHeader(t *testing.T) {
 	t.Parallel()
 
@@ -304,10 +316,22 @@ func TestWorker_IsMessageWithSignature(t *testing.T) {
 
 	service, _ := bls.NewConsensusService()
 
-	ret := service.IsMessageWithSignature(bls.MtUnknown)
+	ret := service.IsMessageWithSignature(bls.MtBlockBodyAndHeader)
 	assert.False(t, ret)
 
 	ret = service.IsMessageWithSignature(bls.MtSignature)
+	assert.True(t, ret)
+}
+
+func TestWorker_IsMessageWithFinalInfo(t *testing.T) {
+	t.Parallel()
+
+	service, _ := bls.NewConsensusService()
+
+	ret := service.IsMessageWithFinalInfo(bls.MtSignature)
+	assert.False(t, ret)
+
+	ret = service.IsMessageWithFinalInfo(bls.MtBlockHeaderFinalInfo)
 	assert.True(t, ret)
 }
 
