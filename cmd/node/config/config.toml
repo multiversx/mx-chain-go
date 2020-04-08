@@ -296,10 +296,12 @@
 [Address]
     Length = 32
     Prefix = "0x"
+    SignatureLength = 0
 
 [BLSPublicKey]
     Length = 96
     Prefix = "0x"
+    SignatureLength = 48
 
 [Hasher]
    Type = "blake2b"
