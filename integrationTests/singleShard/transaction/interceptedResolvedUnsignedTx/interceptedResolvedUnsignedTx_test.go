@@ -30,8 +30,8 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
-	_ = nRequester.Node.Start()
-	_ = nResolver.Node.Start()
+	nRequester.Node.Start()
+	nResolver.Node.Start()
 	defer func() {
 		_ = nRequester.Node.Stop()
 		_ = nResolver.Node.Stop()
@@ -62,7 +62,7 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 	scrHash := integrationTests.TestHasher.Compute(string(scrBuff))
 
 	//step 2. wire up a received handler for requester
-	nRequester.DataPool.UnsignedTransactions().RegisterHandler(func(key []byte) {
+	nRequester.DataPool.UnsignedTransactions().RegisterHandler(func(key []byte, value interface{}) {
 		selfId := nRequester.ShardCoordinator.SelfId()
 		scrStored, _ := nRequester.DataPool.UnsignedTransactions().ShardDataStore(
 			process.ShardCacherIdentifier(selfId, selfId),

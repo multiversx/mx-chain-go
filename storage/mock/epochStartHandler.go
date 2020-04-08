@@ -7,20 +7,20 @@ import (
 
 // EpochStartNotifierStub -
 type EpochStartNotifierStub struct {
-	RegisterHandlerCalled   func(handler epochStart.EpochStartHandler)
-	UnregisterHandlerCalled func(handler epochStart.EpochStartHandler)
+	RegisterHandlerCalled   func(handler epochStart.ActionHandler)
+	UnregisterHandlerCalled func(handler epochStart.ActionHandler)
 	NotifyAllCalled         func(hdr data.HeaderHandler)
 }
 
 // RegisterHandler -
-func (esnm *EpochStartNotifierStub) RegisterHandler(handler epochStart.EpochStartHandler) {
+func (esnm *EpochStartNotifierStub) RegisterHandler(handler epochStart.ActionHandler) {
 	if esnm.RegisterHandlerCalled != nil {
 		esnm.RegisterHandlerCalled(handler)
 	}
 }
 
 // UnregisterHandler -
-func (esnm *EpochStartNotifierStub) UnregisterHandler(handler epochStart.EpochStartHandler) {
+func (esnm *EpochStartNotifierStub) UnregisterHandler(handler epochStart.ActionHandler) {
 	if esnm.UnregisterHandlerCalled != nil {
 		esnm.UnregisterHandlerCalled(handler)
 	}

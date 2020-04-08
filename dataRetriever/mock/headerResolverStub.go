@@ -15,6 +15,24 @@ type HeaderResolverStub struct {
 	RequestDataFromNonceCalled   func(nonce uint64, epoch uint32) error
 	RequestDataFromEpochCalled   func(identifier []byte) error
 	SetEpochHandlerCalled        func(epochHandler dataRetriever.EpochHandler) error
+	SetNumPeersToQueryCalled     func(intra int, cross int)
+	GetNumPeersToQueryCalled     func() (int, int)
+}
+
+// SetNumPeersToQuery -
+func (hrs *HeaderResolverStub) SetNumPeersToQuery(intra int, cross int) {
+	if hrs.SetNumPeersToQueryCalled != nil {
+		hrs.SetNumPeersToQueryCalled(intra, cross)
+	}
+}
+
+// GetNumPeersToQuery -
+func (hrs *HeaderResolverStub) GetNumPeersToQuery() (int, int) {
+	if hrs.GetNumPeersToQueryCalled != nil {
+		return hrs.GetNumPeersToQueryCalled()
+	}
+
+	return 2, 2
 }
 
 // RequestDataFromEpoch -

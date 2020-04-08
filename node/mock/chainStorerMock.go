@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ChainStorerMock is a mock implementation of the ChianStorer interface
+// ChainStorerMock is a mock implementation of the ChainStorer interface
 type ChainStorerMock struct {
 	AddStorerCalled func(key dataRetriever.UnitType, s storage.Storer)
 	GetStorerCalled func(unitType dataRetriever.UnitType) storage.Storer

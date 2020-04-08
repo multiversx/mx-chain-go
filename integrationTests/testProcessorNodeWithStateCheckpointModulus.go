@@ -27,9 +27,23 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	pkBytes = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
 	address := make([]byte, 32)
 	address = []byte("afafafafafafafafafafafafafafafaf")
+
+	nodesSetup := &mock.NodesSetupStub{
+		InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
+			oneMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+			oneMap[0] = append(oneMap[0], mock.NewNodeInfo(address, pkBytes, 0))
+			return oneMap, nil
+		},
+		InitialNodesInfoForShardCalled: func(shardId uint32) (handlers []sharding.GenesisNodeInfoHandler, handlers2 []sharding.GenesisNodeInfoHandler, err error) {
+			list := make([]sharding.GenesisNodeInfoHandler, 0)
+			list = append(list, mock.NewNodeInfo(address, pkBytes, 0))
+			return list, nil, nil
+		},
+	}
+
 	nodesCoordinator := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
-			v, _ := sharding.NewValidator(pkBytes, address, defaultChancesSelection)
+			v, _ := sharding.NewValidator(pkBytes, defaultChancesSelection, 1)
 			return []sharding.Validator{v}, nil
 		},
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
@@ -39,7 +53,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 			return keys, nil
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (sharding.Validator, uint32, error) {
-			validator, _ := sharding.NewValidator(publicKey, address, defaultChancesSelection)
+			validator, _ := sharding.NewValidator(publicKey, defaultChancesSelection, 1)
 			return validator, 0, nil
 		},
 	}
@@ -52,6 +66,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           ChainID,
 	}
+	tpn.NodesSetup = nodesSetup
 
 	tpn.NodeKeys = &TestKeyPair{
 		Sk: sk,

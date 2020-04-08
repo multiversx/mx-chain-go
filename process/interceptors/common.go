@@ -40,11 +40,18 @@ func preProcessMesage(
 
 func processInterceptedData(
 	processor process.InterceptorProcessor,
+	whiteListhandler process.WhiteListHandler,
 	data process.InterceptedData,
 	wgProcess *sync.WaitGroup,
 	msg p2p.MessageP2P,
 ) {
-	err := processor.Validate(data)
+	hash := data.Hash()
+	err := processor.Validate(data, msg.Peer())
+
+	defer func() {
+		whiteListhandler.Remove([][]byte{hash})
+		wgProcess.Done()
+	}()
 	if err != nil {
 		log.Trace("intercepted data is not valid",
 			"hash", data.Hash(),
@@ -54,11 +61,11 @@ func processInterceptedData(
 			"data", data.String(),
 			"error", err.Error(),
 		)
-		wgProcess.Done()
+
 		return
 	}
 
-	err = processor.Save(data)
+	err = processor.Save(data, msg.Peer())
 	if err != nil {
 		log.Trace("intercepted data can not be processed",
 			"hash", data.Hash(),
@@ -68,7 +75,7 @@ func processInterceptedData(
 			"data", data.String(),
 			"error", err.Error(),
 		)
-		wgProcess.Done()
+
 		return
 	}
 
@@ -79,6 +86,4 @@ func processInterceptedData(
 		"seq no", p2p.MessageOriginatorSeq(msg),
 		"data", data.String(),
 	)
-
-	wgProcess.Done()
 }

@@ -5,6 +5,6 @@ import (
 )
 
 // GetSyncer returns the current syncer
-func (ef *ElrondNodeFacade) GetSyncer() ntp.SyncTimer {
-	return ef.syncer
+func (nf *nodeFacade) GetSyncer() ntp.SyncTimer {
+	return nf.syncer
 }

@@ -32,8 +32,8 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
-	_ = nRequester.Node.Start()
-	_ = nResolver.Node.Start()
+	nRequester.Node.Start()
+	nResolver.Node.Start()
 
 	defer func() {
 		_ = nRequester.Node.Stop()
@@ -73,7 +73,7 @@ func TestNode_GenerateSendInterceptTxBlockBodyWithNetMessenger(t *testing.T) {
 	//Step 3. wire up a received handler
 	chanDone := make(chan bool)
 
-	nRequester.DataPool.MiniBlocks().RegisterHandler(func(key []byte) {
+	nRequester.DataPool.MiniBlocks().RegisterHandler(func(key []byte, value interface{}) {
 		txBlockBodyStored, _ := nRequester.DataPool.MiniBlocks().Get(key)
 
 		if reflect.DeepEqual(txBlockBodyStored, miniBlock) {

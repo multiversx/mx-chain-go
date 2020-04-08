@@ -89,9 +89,8 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
-	/////////----- wait for unbound period
-	unboundPeriod := 10
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, unboundPeriod, nonce, round, idxProposers)
+	/////////----- wait for unbond period
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, int(nodes[0].EconomicsData.UnBondPeriod()), nonce, round, idxProposers)
 
 	////////----- send unBond
 	for index, node := range nodes {
@@ -203,8 +202,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	/////////----- wait for unbound period
-	unboundPeriod := 10
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, unboundPeriod, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, int(nodes[0].EconomicsData.UnBondPeriod()), nonce, round, idxProposers)
 
 	////////----- send unBound
 	for index, node := range nodes {

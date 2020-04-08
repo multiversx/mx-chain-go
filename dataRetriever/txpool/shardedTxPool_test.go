@@ -155,7 +155,7 @@ func Test_AddData_CallsOnAddedHandlers(t *testing.T) {
 	pool := poolAsInterface.(*shardedTxPool)
 
 	numAdded := uint32(0)
-	pool.RegisterHandler(func(key []byte) {
+	pool.RegisterHandler(func(key []byte, value interface{}) {
 		atomic.AddUint32(&numAdded, 1)
 	})
 
@@ -262,7 +262,7 @@ func Test_RegisterHandler(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
-	pool.RegisterHandler(func(key []byte) {})
+	pool.RegisterHandler(func(key []byte, value interface{}) {})
 	require.Equal(t, 1, len(pool.onAddCallbacks))
 
 	pool.RegisterHandler(nil)
