@@ -122,6 +122,14 @@ type Cacher interface {
 	Get(key []byte) (value interface{}, ok bool)
 }
 
+// ShuffledOutHandler defines the methods needed for the computation of a shuffled out event
+type ShuffledOutHandler interface {
+	Process(newShardID uint32) error
+	RegisterHandler(handler func(newShardID uint32))
+	CurrentShardID() uint32
+	IsInterfaceNil() bool
+}
+
 // RandomSelector selects randomly a subset of elements from a set of data
 type RandomSelector interface {
 	Select(randSeed []byte, sampleSize uint32) ([]uint32, error)
