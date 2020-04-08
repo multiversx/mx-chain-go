@@ -179,7 +179,7 @@ func (host *vmContext) createContractCallInput(destination []byte, sender []byte
 		return nil, err
 	}
 
-	arguments, err := host.inputParser.GetArguments()
+	arguments, err := host.inputParser.GetFunctionArguments()
 	if err != nil {
 		return nil, err
 	}
