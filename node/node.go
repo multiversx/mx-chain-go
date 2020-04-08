@@ -127,6 +127,9 @@ type Node struct {
 
 	inputAntifloodHandler P2PAntifloodHandler
 	txAcumulator          Accumulator
+
+	signatureSize int
+	publicKeySize int
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -299,6 +302,8 @@ func (n *Node) StartConsensus() error {
 		NetworkShardingCollector: n.networkShardingCollector,
 		AntifloodHandler:         n.inputAntifloodHandler,
 		PoolAdder:                n.dataPool.MiniBlocks(),
+		SignatureSize:            n.signatureSize,
+		PublicKeySize:            n.publicKeySize,
 	}
 
 	worker, err := spos.NewWorker(workerArgs)

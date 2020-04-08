@@ -1053,11 +1053,6 @@ func (mp *metaProcessor) CommitBlock(
 	lastMetaBlock := mp.blockChain.GetCurrentBlockHeader()
 	mp.updateState(lastMetaBlock)
 
-	err = mp.blockChain.SetCurrentBlockBody(body)
-	if err != nil {
-		return err
-	}
-
 	err = mp.blockChain.SetCurrentBlockHeader(header)
 	if err != nil {
 		return err

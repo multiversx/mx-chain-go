@@ -9,7 +9,7 @@
 
    # StartInEpochEnabled represents that the fast bootstrap mechanism from the network is enabled if data is not
    # available in local disk
-   StartInEpochEnabled = false # TODO enable this after fixing syncing trie
+   StartInEpochEnabled = true
 
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
@@ -296,10 +296,12 @@
 [AddressPubkeyConverter]
     Length = 32
     Type = "bech32"
+    SignatureLength = 0
 
 [ValidatorPubkeyConverter]
     Length = 96
     Type = "hex"
+    SignatureLength = 48
 
 [Hasher]
    Type = "blake2b"
