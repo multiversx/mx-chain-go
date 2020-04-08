@@ -136,6 +136,7 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 
 // CreateTxProcessorWithOneSCExecutorMockVM -
 func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGas uint64) process.TransactionProcessor {
+	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	args := hooks.ArgBlockChainHook{
 		Accounts:         accnts,
 		AddrConv:         addrConv,
@@ -144,7 +145,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		ShardCoordinator: oneShardCoordinator,
 		Marshalizer:      testMarshalizer,
 		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
+		BuiltInFunctions: builtInFuncs,
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -155,15 +156,17 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 			return vm, nil
 		}}
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(
-		addrConv,
-		oneShardCoordinator,
-		accnts)
-
+	argsParser := vmcommon.NewAtArgumentParser()
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		AdrConv:          addrConv,
+		ShardCoordinator: oneShardCoordinator,
+		BuiltInFuncNames: builtInFuncs.Keys(),
+		ArgumentParser:   argsParser,
+	}
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	gasSchedule := make(map[string]map[string]uint64)
 	FillGasMapInternal(gasSchedule, 1)
 
-	argsParser := vmcommon.NewAtArgumentParser()
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:  vmContainer,
 		ArgsParser:   argsParser,
@@ -295,10 +298,13 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	blockChainHook *hooks.BlockChainHookImpl,
 ) (process.TransactionProcessor, process.SmartContractProcessor) {
 	argsParser := vmcommon.NewAtArgumentParser()
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(
-		addrConv,
-		oneShardCoordinator,
-		accnts)
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		AdrConv:          addrConv,
+		ShardCoordinator: oneShardCoordinator,
+		BuiltInFuncNames: blockChainHook.GetBuiltInFunctions().Keys(),
+		ArgumentParser:   argsParser,
+	}
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
 	gasSchedule := make(map[string]map[string]uint64)
 	FillGasMapInternal(gasSchedule, 1)

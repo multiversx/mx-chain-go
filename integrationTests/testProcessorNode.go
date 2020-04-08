@@ -844,7 +844,13 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
 	tpn.ArgsParser = vmcommon.NewAtArgumentParser()
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		AdrConv:          TestAddressConverter,
+		ShardCoordinator: tpn.ShardCoordinator,
+		BuiltInFuncNames: builtInFuncs.Keys(),
+		ArgumentParser:   tpn.ArgsParser,
+	}
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
@@ -928,6 +934,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
 	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
 
+	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         tpn.AccntState,
 		AddrConv:         TestAddressConverter,
@@ -936,7 +943,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ShardCoordinator: tpn.ShardCoordinator,
 		Marshalizer:      TestMarshalizer,
 		Uint64Converter:  TestUint64Converter,
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
+		BuiltInFunctions: builtInFuncs,
 	}
 	gasSchedule := make(map[string]map[string]uint64)
 	vm.FillGasMapInternal(gasSchedule, 1)
@@ -948,8 +955,14 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.addMockVm(tpn.BlockchainHook)
 
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.ArgsParser = vmcommon.NewAtArgumentParser()
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		AdrConv:          TestAddressConverter,
+		ShardCoordinator: tpn.ShardCoordinator,
+		BuiltInFuncNames: builtInFuncs.Keys(),
+		ArgumentParser:   tpn.ArgsParser,
+	}
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      tpn.VMContainer,

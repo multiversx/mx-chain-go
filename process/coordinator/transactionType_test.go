@@ -1,26 +1,32 @@
 package coordinator
 
 import (
-	"crypto/rand"
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
+
+func createMockArguments() ArgNewTxTypeHandler {
+	return ArgNewTxTypeHandler{
+		AdrConv:          &mock.AddressConverterMock{},
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+		BuiltInFuncNames: make(map[string]struct{}),
+		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+	}
+}
 
 func TestNewTxTypeHandler_NilAddrConv(t *testing.T) {
 	t.Parallel()
 
-	tth, err := NewTxTypeHandler(
-		nil,
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-	)
+	arg := createMockArguments()
+	arg.AdrConv = nil
+	tth, err := NewTxTypeHandler(arg)
 
 	assert.Nil(t, tth)
 	assert.Equal(t, process.ErrNilAddressConverter, err)
@@ -29,70 +35,52 @@ func TestNewTxTypeHandler_NilAddrConv(t *testing.T) {
 func TestNewTxTypeHandler_NilShardCoord(t *testing.T) {
 	t.Parallel()
 
-	tth, err := NewTxTypeHandler(
-		&mock.AddressConverterMock{},
-		nil,
-		&mock.AccountsStub{},
-	)
+	arg := createMockArguments()
+	arg.ShardCoordinator = nil
+	tth, err := NewTxTypeHandler(arg)
 
 	assert.Nil(t, tth)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
-func TestNewTxTypeHandler_NilAccounts(t *testing.T) {
+func TestNewTxTypeHandler_NilArgParser(t *testing.T) {
 	t.Parallel()
 
-	tth, err := NewTxTypeHandler(
-		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		nil,
-	)
+	arg := createMockArguments()
+	arg.ArgumentParser = nil
+	tth, err := NewTxTypeHandler(arg)
 
 	assert.Nil(t, tth)
-	assert.Equal(t, process.ErrNilAccountsAdapter, err)
+	assert.Equal(t, process.ErrNilArgumentParser, err)
+}
+
+func TestNewTxTypeHandler_NilBuiltInFuncs(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.BuiltInFuncNames = nil
+	tth, err := NewTxTypeHandler(arg)
+
+	assert.Nil(t, tth)
+	assert.Equal(t, process.ErrNilBuiltInFunction, err)
 }
 
 func TestNewTxTypeHandler_ValsOk(t *testing.T) {
 	t.Parallel()
 
-	tth, err := NewTxTypeHandler(
-		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-	)
+	arg := createMockArguments()
+	tth, err := NewTxTypeHandler(arg)
 
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
 	assert.False(t, tth.IsInterfaceNil())
 }
 
-func generateRandomByteSlice(size int) []byte {
-	buff := make([]byte, size)
-	_, _ = rand.Reader.Read(buff)
-
-	return buff
-}
-
-func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler) {
-	acntSrc, _ := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
-	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.Value)
-	totalFee := big.NewInt(0)
-	totalFee = totalFee.Mul(big.NewInt(int64(tx.GasLimit)), big.NewInt(int64(tx.GasPrice)))
-	acntSrc.Balance.Set(acntSrc.Balance.Add(acntSrc.Balance, totalFee))
-
-	acntDst, _ := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
-
-	return acntSrc, acntDst
-}
-
 func TestTxTypeHandler_ComputeTransactionTypeNil(t *testing.T) {
 	t.Parallel()
 
-	tth, err := NewTxTypeHandler(
-		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-	)
+	arg := createMockArguments()
+	tth, err := NewTxTypeHandler(arg)
 
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
@@ -104,11 +92,8 @@ func TestTxTypeHandler_ComputeTransactionTypeNil(t *testing.T) {
 func TestTxTypeHandler_ComputeTransactionTypeNilTx(t *testing.T) {
 	t.Parallel()
 
-	tth, err := NewTxTypeHandler(
-		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-	)
+	arg := createMockArguments()
+	tth, err := NewTxTypeHandler(arg)
 
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
@@ -127,11 +112,8 @@ func TestTxTypeHandler_ComputeTransactionTypeNilTx(t *testing.T) {
 func TestTxTypeHandler_ComputeTransactionTypeErrWrongTransaction(t *testing.T) {
 	t.Parallel()
 
-	tth, err := NewTxTypeHandler(
-		&mock.AddressConverterMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-	)
+	arg := createMockArguments()
+	tth, err := NewTxTypeHandler(arg)
 
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
@@ -150,11 +132,8 @@ func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
 	t.Parallel()
 
 	addressConverter := &mock.AddressConverterMock{}
-	tth, err := NewTxTypeHandler(
-		addressConverter,
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-	)
+	arg := createMockArguments()
+	tth, err := NewTxTypeHandler(arg)
 
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
@@ -181,18 +160,8 @@ func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
-	_, acntDst := createAccounts(tx)
-	acntDst.SetCode([]byte("code"))
-
-	addressConverter := &mock.AddressConverterMock{}
-	tth, err := NewTxTypeHandler(
-		addressConverter,
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{
-			LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-				return acntDst, nil
-			}},
-	)
+	arg := createMockArguments()
+	tth, err := NewTxTypeHandler(arg)
 
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
@@ -205,25 +174,22 @@ func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
 func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	t.Parallel()
 
-	addrConverter := &mock.AddressConverterMock{}
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
-	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
+	tx.SndAddr = []byte("000")
+	tx.RcvAddr = []byte("001")
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
-	_, acntDst := createAccounts(tx)
-
-	addressConverter := &mock.AddressConverterMock{}
-	tth, err := NewTxTypeHandler(
-		addressConverter,
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{
-			LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-				return acntDst, nil
-			}},
-	)
+	arg := createMockArguments()
+	arg.AdrConv = &mock.AddressConverterStub{
+		AddressLenHandler: func() int {
+			return len(tx.RcvAddr)
+		},
+		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
+			return mock.NewAddressMock(pubKey), nil
+		}}
+	tth, err := NewTxTypeHandler(arg)
 
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
@@ -233,26 +199,32 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	assert.Equal(t, process.MoveBalance, txType)
 }
 
-func TestTxTypeHandler_ComputeTransactionTypeRewardTx(t *testing.T) {
+func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunc(t *testing.T) {
 	t.Parallel()
 
-	addrConv := &mock.AddressConverterMock{}
-	tth, err := NewTxTypeHandler(
-		addrConv,
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.AccountsStub{},
-	)
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("000")
+	tx.RcvAddr = []byte("001")
+	tx.Data = []byte("builtIn")
+	tx.Value = big.NewInt(45)
+
+	arg := createMockArguments()
+	arg.AdrConv = &mock.AddressConverterStub{
+		AddressLenHandler: func() int {
+			return len(tx.RcvAddr)
+		},
+		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
+			return mock.NewAddressMock(pubKey), nil
+		}}
+	builtIn := "builtIn"
+	arg.BuiltInFuncNames[builtIn] = struct{}{}
+	tth, err := NewTxTypeHandler(arg)
 
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
 
-	tx := &rewardTx.RewardTx{RcvAddr: []byte("leader")}
 	txType, err := tth.ComputeTransactionType(tx)
-	assert.Equal(t, process.ErrWrongTransaction, err)
-	assert.Equal(t, process.InvalidTransaction, txType)
-
-	tx = &rewardTx.RewardTx{RcvAddr: generateRandomByteSlice(addrConv.AddressLen())}
-	txType, err = tth.ComputeTransactionType(tx)
 	assert.Nil(t, err)
-	assert.Equal(t, process.RewardTx, txType)
+	assert.Equal(t, process.SCInvoking, txType)
 }
