@@ -74,25 +74,6 @@ func (ssb *shardStorageBootstrapper) getHeader(hash []byte) (data.HeaderHandler,
 	return process.GetShardHeaderFromStorage(hash, ssb.marshalizer, ssb.store)
 }
 
-func (ssb *shardStorageBootstrapper) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	header, ok := headerHandler.(*block.Header)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	hashes := make([][]byte, len(header.MiniBlockHeaders))
-	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		hashes[i] = header.MiniBlockHeaders[i].Hash
-	}
-
-	miniBlocks, missingMiniBlocksHashes := ssb.miniBlocksResolver.GetMiniBlocks(hashes)
-	if len(missingMiniBlocksHashes) > 0 {
-		return nil, process.ErrMissingBody
-	}
-
-	return &block.Body{MiniBlocks: miniBlocks}, nil
-}
-
 func (ssb *shardStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) error {
 	for _, crossNotarizedHeader := range crossNotarizedHeaders {
 		if crossNotarizedHeader.ShardId != core.MetachainShardId {
@@ -184,7 +165,7 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHead
 	return selfNotarizedHeaders, nil
 }
 
-func (ssb *shardStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo) {
+func (ssb *shardStorageBootstrapper) applyNumPendingMiniBlocks(_ []bootstrapStorage.PendingMiniBlocksInfo) {
 }
 
 func checkShardStorageBootstrapperArgs(args ArgsShardStorageBootstrapper) error {
