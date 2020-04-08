@@ -89,7 +89,7 @@ var TestTxSignMarshalizer = &marshal.JsonMarshalizer{}
 var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32)
 
 // TestValidatorPubkeyConverter represents an address public key converter
-var TestValidatorPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(96)
+var TestValidatorPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(96)
 
 // TestMultiSig represents a mock multisig
 var TestMultiSig = mock.NewMultiSigner(1)

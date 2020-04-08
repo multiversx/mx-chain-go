@@ -39,6 +39,7 @@ type metaProcessor struct {
 	shardBlockFinality           uint32
 	chRcvAllHdrs                 chan bool
 	headersCounter               *headersCounter
+	txCounter                    *transactionCounter
 }
 
 // NewMetaProcessor creates a new metaProcessor object
