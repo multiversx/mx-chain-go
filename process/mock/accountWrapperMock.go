@@ -16,6 +16,7 @@ type AccountWrapMock struct {
 	tempRating        uint32
 	consecutiveMisses uint32
 	code              []byte
+	codeMetadata      []byte
 	codeHash          []byte
 	rootHash          []byte
 	address           state.AddressContainer
@@ -98,9 +99,24 @@ func (awm *AccountWrapMock) SetCodeHash(codeHash []byte) {
 	awm.codeHash = codeHash
 }
 
+// SetCode -
+func (awm *AccountWrapMock) SetCode(code []byte) {
+	awm.code = code
+}
+
 // GetCode -
 func (awm *AccountWrapMock) GetCode() []byte {
 	return awm.code
+}
+
+// SetCodeMetadata -
+func (awm *AccountWrapMock) SetCodeMetadata(codeMetadata []byte) {
+	awm.codeMetadata = codeMetadata
+}
+
+// GetCodeMetadata -
+func (awm *AccountWrapMock) GetCodeMetadata() []byte {
+	return awm.codeMetadata
 }
 
 // GetRootHash -
@@ -116,11 +132,6 @@ func (awm *AccountWrapMock) SetRootHash(rootHash []byte) {
 // AddressContainer -
 func (awm *AccountWrapMock) AddressContainer() state.AddressContainer {
 	return awm.address
-}
-
-// SetCode -
-func (awm *AccountWrapMock) SetCode(code []byte) {
-	awm.code = code
 }
 
 // DataTrie -

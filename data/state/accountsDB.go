@@ -1,11 +1,12 @@
 package state
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -103,31 +104,39 @@ func (adb *AccountsDB) SaveAccount(account AccountHandler) error {
 }
 
 func (adb *AccountsDB) saveCode(accountHandler baseAccountHandler) error {
-	//TODO enable code pruning
+	// TODO: enable code pruning
+
 	code := accountHandler.GetCode()
 	if len(code) == 0 {
 		return nil
 	}
 
 	codeHash := adb.hasher.Compute(string(code))
-	val, err := adb.mainTrie.Get(codeHash)
+	currentCodeHash := accountHandler.GetCodeHash()
+	noUpdateNeeded := bytes.Equal(codeHash, currentCodeHash)
+	if noUpdateNeeded {
+		return nil
+	}
+
+	codeFromTrie, err := adb.mainTrie.Get(codeHash)
 	if err != nil {
 		return err
 	}
-	if val != nil {
+
+	isCodeInTrie := len(codeFromTrie) > 0
+	if isCodeInTrie {
 		accountHandler.SetCodeHash(codeHash)
 		return nil
 	}
 
-	//append a journal entry as the code needs to be inserted in the trie
 	entry, err := NewJournalEntryCode(codeHash, adb.mainTrie)
 	if err != nil {
 		return err
 	}
+
 	adb.journalize(entry)
 
-	log.Trace("accountsDB.saveCode", "codeHash", codeHash)
-
+	log.Trace("accountsDB.saveCode(): mainTrie.Update()", "codeHash", codeHash, "codeLength", len(code))
 	err = adb.mainTrie.Update(codeHash, code)
 	if err != nil {
 		return err

@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
 type baseBlockChain struct {
@@ -16,7 +15,6 @@ type baseBlockChain struct {
 	genesisHeaderHash      []byte
 	currentBlockHeader     data.HeaderHandler
 	currentBlockHeaderHash []byte
-	currentBlockBody       data.BodyHandler
 }
 
 // SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
@@ -83,38 +81,4 @@ func (bbc *baseBlockChain) SetCurrentBlockHeaderHash(hash []byte) {
 	bbc.mut.Lock()
 	bbc.currentBlockHeaderHash = hash
 	bbc.mut.Unlock()
-}
-
-// GetCurrentBlockBody returns the tx block body pointer
-func (bbc *baseBlockChain) GetCurrentBlockBody() data.BodyHandler {
-	bbc.mut.RLock()
-	defer bbc.mut.RUnlock()
-
-	if check.IfNil(bbc.currentBlockBody) {
-		return nil
-	}
-
-	return bbc.currentBlockBody.Clone()
-}
-
-// SetCurrentBlockBody sets the tx block body pointer
-func (bbc *baseBlockChain) SetCurrentBlockBody(body data.BodyHandler) error {
-	if check.IfNil(body) {
-		bbc.mut.Lock()
-		bbc.currentBlockBody = nil
-		bbc.mut.Unlock()
-
-		return nil
-	}
-
-	blockBody, ok := body.(*block.Body)
-	if !ok {
-		return data.ErrInvalidBodyType
-	}
-
-	bbc.mut.Lock()
-	bbc.currentBlockBody = blockBody
-	bbc.mut.Unlock()
-
-	return nil
 }
