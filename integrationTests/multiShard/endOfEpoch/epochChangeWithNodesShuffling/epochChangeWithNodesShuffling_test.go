@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 )
@@ -15,8 +14,6 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	_ = logger.SetLogLevel("*:DEBUG")
 
 	nodesPerShard := 3
 	nbMetaNodes := 2

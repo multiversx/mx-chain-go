@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 )
 
@@ -30,7 +29,7 @@ type PeerTypeProvider struct {
 func NewPeerTypeProvider(
 	nodesCoordinator NodesCoordinator,
 	epochHandler EpochHandler,
-	epochStartNotifier EpochStartSubscriber,
+	epochStartNotifier EpochStartEventNotifier,
 ) (*PeerTypeProvider, error) {
 	if check.IfNil(nodesCoordinator) {
 		return nil, ErrNilNodesCoordinator
@@ -151,7 +150,7 @@ func (ptp *PeerTypeProvider) computeFromMaps(pubKey []byte) (core.PeerType, uint
 	return core.ObserverList, uint32(0), nil
 }
 
-func (ptp *PeerTypeProvider) epochStartEventHandler() epochStart.EpochStartHandler {
+func (ptp *PeerTypeProvider) epochStartEventHandler() EpochStartActionHandler {
 	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
 		err := ptp.populateCache(hdr.GetEpoch())
 		if err != nil {

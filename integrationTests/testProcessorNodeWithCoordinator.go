@@ -57,10 +57,16 @@ func CreateProcessorNodesWithNodesCoordinator(
 	cp := CreateCryptoParams(len(ncp[0]), len(ncp[core.MetachainShardId]), nbShards)
 	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, nbShards)
+	validatorsMapForNodesCoordinator, _ := sharding.NodesInfoToValidators(validatorsMap)
 
 	cpWaiting := CreateCryptoParams(1, 1, nbShards)
 	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, nbShards)
+	waitingMapForNodesCoordinator, _ := sharding.NodesInfoToValidators(waitingMap)
+
+	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
+		return validatorsMap, waitingMap
+	}}
 
 	ncp, numShards := createNodesCryptoParams(rewardsAddrsAssignments)
 
@@ -72,12 +78,13 @@ func CreateProcessorNodesWithNodesCoordinator(
 			argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 				ShardConsensusGroupSize: shardConsensusGroupSize,
 				MetaConsensusGroupSize:  metaConsensusGroupSize,
+				Marshalizer:             TestMarshalizer,
 				Hasher:                  TestHasher,
 				ShardIDAsObserver:       shardId,
 				NbShards:                numShards,
-				EligibleNodes:           validatorsMap,
-				WaitingNodes:            waitingMap,
-				SelfPublicKey:           v.Address(),
+				EligibleNodes:           validatorsMapForNodesCoordinator,
+				WaitingNodes:            waitingMapForNodesCoordinator,
+				SelfPublicKey:           v.PubKey(),
 				ConsensusGroupCache:     cache,
 				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 			}
@@ -94,6 +101,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				nodesCoordinator,
 				i,
 				ncp,
+				nodesSetup,
 			)
 		}
 		nodesMap[shardId] = nodesList
@@ -181,6 +189,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 	nodesCoordinator sharding.NodesCoordinator,
 	keyIndex int,
 	ncp map[uint32][]*nodeKeys,
+	nodesSetup sharding.GenesisNodesSetupHandler,
 ) *TestProcessorNode {
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
@@ -192,6 +201,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           ChainID,
+		NodesSetup:        nodesSetup,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{

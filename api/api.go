@@ -6,6 +6,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api/address"
+	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/logs"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/node"
@@ -110,6 +111,10 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 	validatorRoutes := ws.Group("/validator")
 	validatorRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	valStats.Routes(validatorRoutes)
+
+	hardforkRoutes := ws.Group("/hardfork")
+	hardforkRoutes.Use(middleware.WithElrondFacade(elrondFacade))
+	hardfork.Routes(hardforkRoutes)
 
 	apiHandler, ok := elrondFacade.(MainApiHandler)
 	if ok && apiHandler.PprofEnabled() {
