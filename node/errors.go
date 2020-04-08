@@ -159,3 +159,6 @@ var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
 
 // ErrNilWhiteListHandler signals that white list handler is nil
 var ErrNilWhiteListHandler = errors.New("nil whitelist handler")
+
+// ErrNilNodeStopChannel signals that a nil channel for node process stop has been provided
+var ErrNilNodeStopChannel = errors.New("nil node stop channel")
