@@ -275,8 +275,8 @@ func serializeBulkMiniBlocks(hdrShardID uint32, bulkMbs []*Miniblock) (insert, u
 
 		} else {
 			// update miniblock
-			meta := []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s" } } %s`, mb.Hash, "\n"))
-			serializedData := []byte(fmt.Sprintf(`{ "doc": { "receiverBlockHash" : "%s" } }`, mb.ReceiverBlockHash))
+			meta := []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s", "_type" : "%s"  } }%s`, mb.Hash, "_doc", "\n"))
+			serializedData := []byte(fmt.Sprintf(`{ "doc" : { "receiverBlockHash" : "%s" } }`, mb.ReceiverBlockHash))
 
 			update = prepareBufferMiniblocks(update, meta, serializedData)
 		}
