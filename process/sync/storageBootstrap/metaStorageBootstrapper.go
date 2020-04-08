@@ -82,10 +82,6 @@ func (msb *metaStorageBootstrapper) getHeader(hash []byte) (data.HeaderHandler, 
 	return process.GetMetaHeaderFromStorage(hash, msb.marshalizer, msb.store)
 }
 
-func (msb *metaStorageBootstrapper) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	return &block.Body{}, nil
-}
-
 func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte) {
 	log.Debug("cleanup notarized storage")
 
@@ -129,7 +125,7 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 	}
 }
 
-func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHeadersHashes [][]byte) ([]data.HeaderHandler, error) {
+func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(_ [][]byte) ([]data.HeaderHandler, error) {
 	selfNotarizedHeaders := make([]data.HeaderHandler, 0)
 	return selfNotarizedHeaders, nil
 }
