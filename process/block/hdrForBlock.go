@@ -35,6 +35,13 @@ func (hfb *hdrForBlock) resetMissingHdrs() {
 	hfb.mutHdrsForBlock.Unlock()
 }
 
+func (hfb *hdrForBlock) getHeaderInfo(hash string) (*hdrInfo, bool) {
+	hfb.mutHdrsForBlock.RLock()
+	defer hfb.mutHdrsForBlock.RUnlock()
+	info, ok := hfb.hdrHashAndInfo[hash]
+	return info, ok
+}
+
 func (hfb *hdrForBlock) getHdrHashMap() map[string]data.HeaderHandler {
 	m := make(map[string]data.HeaderHandler)
 

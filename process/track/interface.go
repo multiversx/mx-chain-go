@@ -41,5 +41,7 @@ type blockTrackerHandler interface {
 type blockBalancerHandler interface {
 	GetNumPendingMiniBlocks(shardID uint32) uint32
 	SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32)
+	GetLastShardProcessedMetaNonce(shardID uint32) uint64
+	SetLastShardProcessedMetaNonce(shardID uint32, nonce uint64)
 	IsInterfaceNil() bool
 }
