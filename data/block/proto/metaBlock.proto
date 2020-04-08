@@ -61,6 +61,7 @@ message ShardData {
 // EpochStartShardData hold the last finalized headers hash and state root hash
 message EpochStartShardData {
 	uint32                        ShardID                  = 1;
+	uint32                        Epoch                    = 9;
 	uint64                        Round                    = 7;
 	uint64                        Nonce                    = 8;
 	bytes                         HeaderHash               = 2;

@@ -172,6 +172,7 @@ func (e *epochStartData) createShardStartDataAndLastProcessedHeaders() (*block.E
 
 		finalHeader := block.EpochStartShardData{
 			ShardID:               lastCrossNotarizedHeaderForShard.GetShardID(),
+			Epoch:                 lastCrossNotarizedHeaderForShard.GetEpoch(),
 			Round:                 lastCrossNotarizedHeaderForShard.GetRound(),
 			Nonce:                 lastCrossNotarizedHeaderForShard.GetNonce(),
 			HeaderHash:            hdrHash,
