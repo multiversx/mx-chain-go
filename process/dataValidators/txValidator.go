@@ -13,6 +13,7 @@ import (
 type txValidator struct {
 	accounts             state.AccountsAdapter
 	shardCoordinator     sharding.Coordinator
+	whiteListHandler     process.WhiteListHandler
 	pubkeyConverter      state.PubkeyConverter
 	maxNonceDeltaAllowed int
 }
@@ -21,15 +22,18 @@ type txValidator struct {
 func NewTxValidator(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
-	maxNonceDeltaAllowed int,
+	whiteListHandler process.WhiteListHandler,
 	pubkeyConverter state.PubkeyConverter,
+	maxNonceDeltaAllowed int,
 ) (*txValidator, error) {
-
 	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
 	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
+	}
+	if check.IfNil(whiteListHandler) {
+		return nil, process.ErrNilWhiteListHandler
 	}
 	if check.IfNil(pubkeyConverter) {
 		return nil, fmt.Errorf("%w in NewTxValidator", process.ErrNilPubkeyConverter)
@@ -38,6 +42,7 @@ func NewTxValidator(
 	return &txValidator{
 		accounts:             accounts,
 		shardCoordinator:     shardCoordinator,
+		whiteListHandler:     whiteListHandler,
 		maxNonceDeltaAllowed: maxNonceDeltaAllowed,
 		pubkeyConverter:      pubkeyConverter,
 	}, nil
@@ -46,6 +51,13 @@ func NewTxValidator(
 // CheckTxValidity will filter transactions that needs to be added in pools
 func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler) error {
 	// TODO: Refactor, extract methods.
+
+	interceptedData, ok := interceptedTx.(process.InterceptedData)
+	if ok {
+		if txv.whiteListHandler.IsWhiteListed(interceptedData) {
+			return nil
+		}
+	}
 
 	shardID := txv.shardCoordinator.SelfId()
 	txShardID := interceptedTx.SenderShardId()
@@ -57,10 +69,11 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	senderAddress := interceptedTx.SenderAddress()
 	accountHandler, err := txv.accounts.GetExistingAccount(senderAddress)
 	if err != nil {
-		return fmt.Errorf("%w for address %s and shard %d",
-			process.ErrAddressNotInThisShard,
+		return fmt.Errorf("%w for address %s and shard %d, err: %s",
+			process.ErrAccountNotFound,
 			txv.pubkeyConverter.Encode(senderAddress.Bytes()),
 			shardID,
+			err.Error(),
 		)
 	}
 

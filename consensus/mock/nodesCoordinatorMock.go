@@ -1,14 +1,27 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+const defaultSelectionChances = 1
 
 // NodesCoordinatorMock -
 type NodesCoordinatorMock struct {
 	ComputeValidatorsGroupCalled        func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]sharding.Validator, error)
 	GetValidatorsPublicKeysCalled       func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetValidatorsRewardsAddressesCalled func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+}
+
+// GetChance -
+func (ncm *NodesCoordinatorMock) GetChance(uint32) uint32 {
+	return 1
+}
+
+// GetAllLeavingValidatorsPublicKeys -
+func (ncm *NodesCoordinatorMock) GetAllLeavingValidatorsPublicKeys(_ uint32) ([][]byte, error) {
+	return nil, nil
 }
 
 // ComputeConsensusGroup -
@@ -24,15 +37,15 @@ func (ncm *NodesCoordinatorMock) ComputeConsensusGroup(
 	}
 
 	list := []sharding.Validator{
-		NewValidatorMock([]byte("A"), []byte("AA")),
-		NewValidatorMock([]byte("B"), []byte("BB")),
-		NewValidatorMock([]byte("C"), []byte("CC")),
-		NewValidatorMock([]byte("D"), []byte("DD")),
-		NewValidatorMock([]byte("E"), []byte("EE")),
-		NewValidatorMock([]byte("F"), []byte("FF")),
-		NewValidatorMock([]byte("G"), []byte("GG")),
-		NewValidatorMock([]byte("H"), []byte("HH")),
-		NewValidatorMock([]byte("I"), []byte("II")),
+		NewValidator([]byte("A"), 1, defaultSelectionChances),
+		NewValidator([]byte("B"), 1, defaultSelectionChances),
+		NewValidator([]byte("C"), 1, defaultSelectionChances),
+		NewValidator([]byte("D"), 1, defaultSelectionChances),
+		NewValidator([]byte("E"), 1, defaultSelectionChances),
+		NewValidator([]byte("F"), 1, defaultSelectionChances),
+		NewValidator([]byte("G"), 1, defaultSelectionChances),
+		NewValidator([]byte("H"), 1, defaultSelectionChances),
+		NewValidator([]byte("I"), 1, defaultSelectionChances),
 	}
 
 	return list, nil
@@ -83,28 +96,14 @@ func (ncm *NodesCoordinatorMock) GetConsensusValidatorsPublicKeys(randomness []b
 	return pubKeys, nil
 }
 
-// GetConsensusValidatorsRewardsAddresses -
-func (ncm *NodesCoordinatorMock) GetConsensusValidatorsRewardsAddresses(
-	randomness []byte,
-	round uint64,
-	shardId uint32,
-	epoch uint32,
-) ([]string, error) {
-	if ncm.GetValidatorsPublicKeysCalled != nil {
-		return ncm.GetValidatorsRewardsAddressesCalled(randomness, round, shardId, epoch)
+// ValidatorsWeights -
+func (ncm *NodesCoordinatorMock) ValidatorsWeights(validators []sharding.Validator) ([]uint32, error) {
+	weights := make([]uint32, len(validators))
+	for i := range validators {
+		weights[i] = 1
 	}
 
-	validators, err := ncm.ComputeConsensusGroup(randomness, round, shardId, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	addresses := make([]string, 0)
-	for _, v := range validators {
-		addresses = append(addresses, string(v.Address()))
-	}
-
-	return addresses, nil
+	return weights, nil
 }
 
 // LoadState -
@@ -130,24 +129,9 @@ func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
 	panic("not implemented")
 }
 
-// SetNodesPerShards -
-func (ncm *NodesCoordinatorMock) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32) error {
-	return nil
-}
-
 // ComputeLeaving -
-func (ncm *NodesCoordinatorMock) ComputeLeaving([]sharding.Validator) []sharding.Validator {
-	return make([]sharding.Validator, 0)
-}
-
-// SetConsensusGroupSize -
-func (ncm *NodesCoordinatorMock) SetConsensusGroupSize(_ int) error {
-	panic("implement me")
-}
-
-// GetSelectedPublicKeys -
-func (ncm *NodesCoordinatorMock) GetSelectedPublicKeys(_ []byte, _ uint32, _ uint32) (publicKeys []string, err error) {
-	panic("implement me")
+func (ncm *NodesCoordinatorMock) ComputeLeaving([]*state.ShardValidatorInfo) ([]sharding.Validator, error) {
+	return make([]sharding.Validator, 0), nil
 }
 
 // GetValidatorWithPublicKey -

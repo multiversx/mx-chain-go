@@ -1,8 +1,10 @@
 package rewardTransaction
 
 import (
+	"fmt"
 	"math/big"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -161,6 +163,16 @@ func (inRTx *InterceptedRewardTransaction) IsForCurrentShard() bool {
 // Type returns the type of this intercepted data
 func (inRTx *InterceptedRewardTransaction) Type() string {
 	return "intercepted reward tx"
+}
+
+// String returns the reward's most important fields as string
+func (inRTx *InterceptedRewardTransaction) String() string {
+	return fmt.Sprintf("epoch=%d, round=%d, address=%s, value=%s",
+		inRTx.rTx.Epoch,
+		inRTx.rTx.Round,
+		logger.DisplayByteSlice(inRTx.rTx.RcvAddr),
+		inRTx.rTx.Value.String(),
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

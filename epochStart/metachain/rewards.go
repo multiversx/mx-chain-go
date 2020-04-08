@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -15,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -28,6 +30,7 @@ type ArgsNewRewardsCreator struct {
 	MiniBlockStorage storage.Storer
 	Hasher           hashing.Hasher
 	Marshalizer      marshal.Marshalizer
+	DataPool         dataRetriever.PoolsHolder
 }
 
 type rewardsCreator struct {
@@ -39,6 +42,7 @@ type rewardsCreator struct {
 
 	hasher      hashing.Hasher
 	marshalizer marshal.Marshalizer
+	dataPool    dataRetriever.PoolsHolder
 }
 
 type rewardInfoData struct {
@@ -70,13 +74,16 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 	if check.IfNil(args.MiniBlockStorage) {
 		return nil, epochStart.ErrNilStorage
 	}
+	if check.IfNil(args.DataPool) {
+		return nil, epochStart.ErrNilDataPoolsHolder
+	}
 
 	currTxsCache, err := dataPool.NewCurrentBlockPool()
 	if err != nil {
 		return nil, err
 	}
 
-	r := &rewardsCreator{
+	rc := &rewardsCreator{
 		currTxs:          currTxsCache,
 		shardCoordinator: args.ShardCoordinator,
 		pubkeyConverter:  args.PubkeyConverter,
@@ -84,22 +91,27 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 		hasher:           args.Hasher,
 		marshalizer:      args.Marshalizer,
 		miniBlockStorage: args.MiniBlockStorage,
+		dataPool:         args.DataPool,
 	}
 
-	return r, nil
+	return rc, nil
 }
 
 // CreateBlockStarted announces block creation started and cleans inside data
-func (r *rewardsCreator) clean() {
-	r.currTxs.Clean()
+func (rc *rewardsCreator) clean() {
+	rc.currTxs.Clean()
 }
 
 // CreateRewardsMiniBlocks creates the rewards miniblocks according to economics data and validator info
-func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
-	r.clean()
+func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
+	if check.IfNil(metaBlock) {
+		return nil, epochStart.ErrNilHeaderHandler
+	}
 
-	miniBlocks := make(block.MiniBlockSlice, r.shardCoordinator.NumberOfShards())
-	for i := uint32(0); i < r.shardCoordinator.NumberOfShards(); i++ {
+	rc.clean()
+
+	miniBlocks := make(block.MiniBlockSlice, rc.shardCoordinator.NumberOfShards())
+	for i := uint32(0); i < rc.shardCoordinator.NumberOfShards(); i++ {
 		miniBlocks[i] = &block.MiniBlock{}
 		miniBlocks[i].SenderShardID = core.MetachainShardId
 		miniBlocks[i].ReceiverShardID = i
@@ -107,34 +119,34 @@ func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 		miniBlocks[i].TxHashes = make([][]byte, 0)
 	}
 
-	rwdAddrValidatorInfo := r.computeValidatorInfoPerRewardAddress(validatorInfos)
+	rwdAddrValidatorInfo := rc.computeValidatorInfoPerRewardAddress(validatorsInfo)
 
 	for address, rwdInfo := range rwdAddrValidatorInfo {
-		addrContainer, err := r.pubkeyConverter.CreateAddressFromBytes([]byte(address))
+		addrContainer, err := rc.pubkeyConverter.CreateAddressFromBytes([]byte(address))
 		if err != nil {
 			log.Warn("invalid reward address from validator info", "err", err, "provided address", address)
 			continue
 		}
 
-		rwdTx, rwdTxHash, err := r.createRewardFromRwdInfo([]byte(address), rwdInfo, &metaBlock.EpochStart.Economics, metaBlock)
+		rwdTx, rwdTxHash, err := rc.createRewardFromRwdInfo([]byte(address), rwdInfo, &metaBlock.EpochStart.Economics, metaBlock)
 		if err != nil {
 			return nil, err
 		}
 
-		r.currTxs.AddTx(rwdTxHash, rwdTx)
+		rc.currTxs.AddTx(rwdTxHash, rwdTx)
 
-		shardId := r.shardCoordinator.ComputeId(addrContainer)
+		shardId := rc.shardCoordinator.ComputeId(addrContainer)
 		miniBlocks[shardId].TxHashes = append(miniBlocks[shardId].TxHashes, rwdTxHash)
 	}
 
-	for shId := uint32(0); shId < r.shardCoordinator.NumberOfShards(); shId++ {
+	for shId := uint32(0); shId < rc.shardCoordinator.NumberOfShards(); shId++ {
 		sort.Slice(miniBlocks[shId].TxHashes, func(i, j int) bool {
 			return bytes.Compare(miniBlocks[shId].TxHashes[i], miniBlocks[shId].TxHashes[j]) < 0
 		})
 	}
 
 	finalMiniBlocks := make(block.MiniBlockSlice, 0)
-	for i := uint32(0); i < r.shardCoordinator.NumberOfShards(); i++ {
+	for i := uint32(0); i < rc.shardCoordinator.NumberOfShards(); i++ {
 		if len(miniBlocks[i].TxHashes) > 0 {
 			finalMiniBlocks = append(finalMiniBlocks, miniBlocks[i])
 		}
@@ -143,14 +155,14 @@ func (r *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 	return finalMiniBlocks, nil
 }
 
-func (r *rewardsCreator) computeValidatorInfoPerRewardAddress(
-	validatorInfos map[uint32][]*state.ValidatorInfo,
+func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
+	validatorsInfo map[uint32][]*state.ValidatorInfo,
 ) map[string]*rewardInfoData {
 
 	rwdAddrValidatorInfo := make(map[string]*rewardInfoData)
 
-	for _, shardValidatorInfos := range validatorInfos {
-		for _, validatorInfo := range shardValidatorInfos {
+	for _, shardValidatorsInfo := range validatorsInfo {
+		for _, validatorInfo := range shardValidatorsInfo {
 			rwdInfo, ok := rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)]
 			if !ok {
 				rwdInfo = &rewardInfoData{
@@ -172,7 +184,7 @@ func (r *rewardsCreator) computeValidatorInfoPerRewardAddress(
 	return rwdAddrValidatorInfo
 }
 
-func (r *rewardsCreator) createRewardFromRwdInfo(
+func (rc *rewardsCreator) createRewardFromRwdInfo(
 	address []byte,
 	rwdInfo *rewardInfoData,
 	economicsData *block.Economics,
@@ -188,7 +200,7 @@ func (r *rewardsCreator) createRewardFromRwdInfo(
 	protocolRewardValue := big.NewInt(0).Mul(economicsData.RewardsPerBlockPerNode, big.NewInt(0).SetUint64(uint64(rwdInfo.NumSelectedInSuccessBlocks)))
 	rwdTx.Value.Add(rwdTx.Value, protocolRewardValue)
 
-	rwdTxHash, err := core.CalculateHash(r.marshalizer, r.hasher, rwdTx)
+	rwdTxHash, err := core.CalculateHash(rc.marshalizer, rc.hasher, rwdTx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -197,8 +209,12 @@ func (r *rewardsCreator) createRewardFromRwdInfo(
 }
 
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct
-func (r *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorInfos map[uint32][]*state.ValidatorInfo) error {
-	createdMiniBlocks, err := r.CreateRewardsMiniBlocks(metaBlock, validatorInfos)
+func (rc *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error {
+	if check.IfNil(metaBlock) {
+		return epochStart.ErrNilHeaderHandler
+	}
+
+	createdMiniBlocks, err := rc.CreateRewardsMiniBlocks(metaBlock, validatorsInfo)
 	if err != nil {
 		return err
 	}
@@ -211,9 +227,9 @@ func (r *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 
 		numReceivedRewardsMBs++
 		createdMiniBlock := createdMiniBlocks[miniBlockHdr.ReceiverShardID]
-		createdMBHash, err := core.CalculateHash(r.marshalizer, r.hasher, createdMiniBlock)
-		if err != nil {
-			return err
+		createdMBHash, errComputeHash := core.CalculateHash(rc.marshalizer, rc.hasher, createdMiniBlock)
+		if errComputeHash != nil {
+			return errComputeHash
 		}
 
 		if !bytes.Equal(createdMBHash, miniBlockHdr.Hash) {
@@ -230,7 +246,11 @@ func (r *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, val
 }
 
 // CreateMarshalizedData creates the marshalized data to be sent to shards
-func (r *rewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][]byte {
+func (rc *rewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][]byte {
+	if check.IfNil(body) {
+		return nil
+	}
+
 	txs := make(map[string][][]byte)
 
 	for _, miniBlock := range body.MiniBlocks {
@@ -238,93 +258,150 @@ func (r *rewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][]
 			continue
 		}
 
-		broadCastTopic := createBroadcastTopic(r.shardCoordinator, miniBlock.ReceiverShardID)
+		broadCastTopic := createBroadcastTopic(rc.shardCoordinator, miniBlock.ReceiverShardID)
 		if _, ok := txs[broadCastTopic]; !ok {
 			txs[broadCastTopic] = make([][]byte, 0, len(miniBlock.TxHashes))
 		}
 
 		for _, txHash := range miniBlock.TxHashes {
-			rwdTx, err := r.currTxs.GetTx(txHash)
+			rwdTx, err := rc.currTxs.GetTx(txHash)
 			if err != nil {
 				continue
 			}
 
-			marshaledData, err := r.marshalizer.Marshal(rwdTx)
+			marshalizedData, err := rc.marshalizer.Marshal(rwdTx)
 			if err != nil {
 				continue
 			}
 
-			txs[broadCastTopic] = append(txs[broadCastTopic], marshaledData)
+			txs[broadCastTopic] = append(txs[broadCastTopic], marshalizedData)
 		}
 	}
 
 	return txs
 }
 
-// SaveTxBlockToStorage saves created data to storage
-func (r *rewardsCreator) SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body) {
+// GetRewardsTxs will return rewards txs MUST be called before SaveTxBlockToStorage
+func (rc *rewardsCreator) GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler {
+	rewardsTxs := make(map[string]data.TransactionHandler)
 	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
 
 		for _, txHash := range miniBlock.TxHashes {
-			rwdTx, err := r.currTxs.GetTx(txHash)
+			rwTx, err := rc.currTxs.GetTx(txHash)
 			if err != nil {
 				continue
 			}
 
-			marshaledData, err := r.marshalizer.Marshal(rwdTx)
-			if err != nil {
-				continue
-			}
-
-			_ = r.rewardsStorage.Put(txHash, marshaledData)
-		}
-
-		for _, mbHeader := range metaBlock.MiniBlockHeaders {
-			if mbHeader.Type != block.RewardsBlock {
-				continue
-			}
-			if mbHeader.ReceiverShardID != miniBlock.ReceiverShardID {
-				continue
-			}
-
-			marshaledData, err := r.marshalizer.Marshal(miniBlock)
-			if err != nil {
-				continue
-			}
-
-			_ = r.miniBlockStorage.Put(mbHeader.Hash, marshaledData)
+			rewardsTxs[string(txHash)] = rwTx
 		}
 	}
-	r.clean()
+
+	return rewardsTxs
+}
+
+// SaveTxBlockToStorage saves created data to storage
+func (rc *rewardsCreator) SaveTxBlockToStorage(_ *block.MetaBlock, body *block.Body) {
+	if check.IfNil(body) {
+		return
+	}
+
+	for _, miniBlock := range body.MiniBlocks {
+		if miniBlock.Type != block.RewardsBlock {
+			continue
+		}
+
+		for _, txHash := range miniBlock.TxHashes {
+			rwdTx, err := rc.currTxs.GetTx(txHash)
+			if err != nil {
+				continue
+			}
+
+			marshalizedData, err := rc.marshalizer.Marshal(rwdTx)
+			if err != nil {
+				continue
+			}
+
+			_ = rc.rewardsStorage.Put(txHash, marshalizedData)
+		}
+
+		marshalizedData, err := rc.marshalizer.Marshal(miniBlock)
+		if err != nil {
+			continue
+		}
+
+		mbHash := rc.hasher.Compute(string(marshalizedData))
+		_ = rc.miniBlockStorage.Put(mbHash, marshalizedData)
+	}
+	rc.clean()
 }
 
 // DeleteTxsFromStorage deletes data from storage
-func (r *rewardsCreator) DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body) {
+func (rc *rewardsCreator) DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body) {
+	if check.IfNil(metaBlock) || check.IfNil(body) {
+		return
+	}
+
 	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
 
 		for _, txHash := range miniBlock.TxHashes {
-			_ = r.rewardsStorage.Remove(txHash)
+			_ = rc.rewardsStorage.Remove(txHash)
 		}
 	}
 
 	for _, mbHeader := range metaBlock.MiniBlockHeaders {
-		_ = r.miniBlockStorage.Remove(mbHeader.Hash)
+		if mbHeader.Type == block.RewardsBlock {
+			_ = rc.miniBlockStorage.Remove(mbHeader.Hash)
+		}
 	}
 }
 
 // IsInterfaceNil return true if underlying object is nil
-func (r *rewardsCreator) IsInterfaceNil() bool {
-	return r == nil
+func (rc *rewardsCreator) IsInterfaceNil() bool {
+	return rc == nil
 }
 
 func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32) string {
 	transactionTopic := factory.RewardsTransactionTopic +
 		shardC.CommunicationIdentifier(destShId)
 	return transactionTopic
+}
+
+// RemoveBlockDataFromPools removes block info from pools
+func (rc *rewardsCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body) {
+	if check.IfNil(metaBlock) || check.IfNil(body) {
+		return
+	}
+
+	transactionsPool := rc.dataPool.Transactions()
+	miniBlocksPool := rc.dataPool.MiniBlocks()
+
+	for _, miniBlock := range body.MiniBlocks {
+		if miniBlock.Type != block.RewardsBlock {
+			continue
+		}
+
+		strCache := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+		transactionsPool.RemoveSetOfDataFromPool(miniBlock.TxHashes, strCache)
+	}
+
+	for _, mbHeader := range metaBlock.MiniBlockHeaders {
+		if mbHeader.Type != block.RewardsBlock {
+			continue
+		}
+
+		miniBlocksPool.Remove(mbHeader.Hash)
+
+		log.Trace("RemoveBlockDataFromPools",
+			"hash", mbHeader.Hash,
+			"type", mbHeader.Type,
+			"sender", mbHeader.SenderShardID,
+			"receiver", mbHeader.ReceiverShardID,
+			"num txs", mbHeader.TxCount)
+	}
 }

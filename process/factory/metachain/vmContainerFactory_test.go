@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
@@ -92,6 +93,10 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	assert.Nil(t, err)
 
 	container, err := vmf.Create()
+	require.Nil(t, err)
+	require.NotNil(t, container)
+	defer container.Close()
+
 	assert.Nil(t, err)
 	assert.NotNil(t, container)
 

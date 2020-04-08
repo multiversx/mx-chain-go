@@ -2,8 +2,11 @@ package indexer
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
@@ -125,7 +129,7 @@ func TestElasticseachDatabaseSaveHeader_RequestError(t *testing.T) {
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveHeader(header, signerIndexes)
+	elasticDatabase.SaveHeader(header, signerIndexes, &dataBlock.Body{}, nil, 1)
 
 	defer func() {
 		_ = logger.RemoveLogObserver(output)
@@ -138,16 +142,28 @@ func TestElasticseachDatabaseSaveHeader_RequestError(t *testing.T) {
 func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 	header := &dataBlock.Header{Nonce: 1}
 	signerIndexes := []uint64{0, 1}
+
+	miniBlock := &dataBlock.MiniBlock{Type: dataBlock.TxBlock}
+	blockBody := &dataBlock.Body{
+		MiniBlocks: []*dataBlock.MiniBlock{
+			miniBlock,
+		},
+	}
+
 	arguments := createMockElasticsearchDatabaseArgs()
+
+	mbHash, _ := core.CalculateHash(arguments.marshalizer, arguments.hasher, miniBlock)
+	hexEncodedHash := hex.EncodeToString(mbHash)
+
 	dbWriter := &mock.DatabaseWriterStub{
 		DoRequestCalled: func(req *esapi.IndexRequest) error {
 			require.Equal(t, blockIndex, req.Index)
 
 			var block Block
-			blockBytes := make([]byte, 226)
-			_, _ = req.Body.Read(blockBytes)
+			blockBytes, _ := ioutil.ReadAll(req.Body)
 			_ = json.Unmarshal(blockBytes, &block)
 			require.Equal(t, header.Nonce, block.Nonce)
+			require.Equal(t, hexEncodedHash, block.MiniBlocksHashes[0])
 			require.Equal(t, signerIndexes, block.Validators)
 
 			return nil
@@ -155,7 +171,7 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveHeader(header, signerIndexes)
+	elasticDatabase.SaveHeader(header, signerIndexes, blockBody, nil, 1)
 }
 
 func TestElasticseachSaveTransactions(t *testing.T) {
@@ -190,6 +206,7 @@ func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
 	_ = logger.SetLogLevel("core/indexer:TRACE")
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
 	shardId := uint32(0)
+	epoch := uint32(0)
 	valPubKeys := [][]byte{[]byte("key1"), []byte("key2")}
 	localErr := errors.New("localErr")
 	arguments := createMockElasticsearchDatabaseArgs()
@@ -199,7 +216,7 @@ func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
 		},
 	}
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveShardValidatorsPubKeys(shardId, valPubKeys)
+	elasticDatabase.SaveShardValidatorsPubKeys(shardId, epoch, valPubKeys)
 
 	defer func() {
 		_ = logger.RemoveLogObserver(output)
@@ -211,17 +228,18 @@ func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
 
 func TestElasticsearch_saveShardValidatorsPubKeys(t *testing.T) {
 	shardId := uint32(0)
+	epoch := uint32(0)
 	valPubKeys := [][]byte{[]byte("key1"), []byte("key2")}
 	arguments := createMockElasticsearchDatabaseArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoRequestCalled: func(req *esapi.IndexRequest) error {
-			require.Equal(t, strconv.FormatUint(uint64(shardId), 10), req.DocumentID)
+			require.Equal(t, fmt.Sprintf("%d_%d", shardId, epoch), req.DocumentID)
 			return nil
 		},
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveShardValidatorsPubKeys(shardId, valPubKeys)
+	elasticDatabase.SaveShardValidatorsPubKeys(shardId, epoch, valPubKeys)
 }
 
 func TestElasticsearch_saveShardStatistics_reqError(t *testing.T) {

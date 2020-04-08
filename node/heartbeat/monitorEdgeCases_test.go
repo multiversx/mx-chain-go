@@ -18,18 +18,22 @@ func createMonitor(
 	maxDurationPeerUnresponsive time.Duration,
 	timer heartbeat.Timer,
 ) *heartbeat.Monitor {
-	mon, _ := heartbeat.NewMonitor(
-		&mock.MarshalizerFake{},
-		maxDurationPeerUnresponsive,
-		map[uint32][]string{0: {pkValidator}},
-		genesisTime,
-		&mock.MessageHandlerStub{},
-		storer,
-		&mock.PeerTypeProviderStub{},
-		timer,
-		createMockP2PAntifloodHandler(),
-		mock.NewPubkeyConverterMock(32),
-	)
+
+	arg := heartbeat.ArgHeartbeatMonitor{
+		Marshalizer:                 &mock.MarshalizerFake{},
+		MaxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
+		PubKeysMap:                  map[uint32][]string{0: {pkValidator}},
+		GenesisTime:                 genesisTime,
+		MessageHandler:              &mock.MessageHandlerStub{},
+		Storer:                      storer,
+		PeerTypeProvider:            &mock.PeerTypeProviderStub{},
+		Timer:                       timer,
+		AntifloodHandler:            createMockP2PAntifloodHandler(),
+		HardforkTrigger:             &mock.HardforkTriggerStub{},
+		PeerBlackListHandler:        &mock.BlackListHandlerStub{},
+		ValidatorPubkeyConverter:    mock.NewPubkeyConverterMock(32),
+	}
+	mon, _ := heartbeat.NewMonitor(arg)
 
 	return mon
 }

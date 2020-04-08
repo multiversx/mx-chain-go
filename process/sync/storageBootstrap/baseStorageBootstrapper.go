@@ -188,6 +188,10 @@ func (st *storageBootstrapper) getBootInfos(hdrInfo bootstrapStorage.BootstrapDa
 		"highest final block nonce", highestFinalBlockNonce,
 		"last round", lastRound)
 
+	if highestFinalBlockNonce == highestBlockNonce {
+		return bootInfos, nil
+	}
+
 	lowestNonce := core.MaxUint64(highestFinalBlockNonce-1, 1)
 	for highestBlockNonce > lowestNonce {
 		strHdrI, err := st.bootStorer.Get(lastRound)
@@ -221,6 +225,7 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 	for i := len(bootInfos) - 1; i >= 0; i-- {
 		log.Debug("apply header",
 			"shard", bootInfos[i].LastHeader.ShardId,
+			"epoch", bootInfos[i].LastHeader.Epoch,
 			"nonce", bootInfos[i].LastHeader.Nonce)
 
 		err = st.bootstrapper.applyCrossNotarizedHeaders(bootInfos[i].LastCrossNotarizedHeaders)

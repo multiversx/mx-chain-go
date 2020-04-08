@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -93,14 +94,30 @@ func (esd *elasticSearchDatabase) createIndexes() error {
 		return err
 	}
 
+	err = esd.dbWriter.CheckAndCreateIndex(ratingIndex, nil)
+	if err != nil {
+		return err
+	}
+
+	err = esd.dbWriter.CheckAndCreateIndex(miniblocksIndex, nil)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // SaveHeader will prepare and save information about a header in elasticsearch server
-func (esd *elasticSearchDatabase) SaveHeader(header data.HeaderHandler, signersIndexes []uint64) {
+func (esd *elasticSearchDatabase) SaveHeader(
+	header data.HeaderHandler,
+	signersIndexes []uint64,
+	body *block.Body,
+	notarizedHeadersHashes []string,
+	txsSize int,
+) {
 	var buff bytes.Buffer
 
-	serializedBlock, headerHash := esd.getSerializedElasticBlockAndHeaderHash(header, signersIndexes)
+	serializedBlock, headerHash := esd.getSerializedElasticBlockAndHeaderHash(header, signersIndexes, body, notarizedHeadersHashes, txsSize)
 
 	buff.Grow(len(serializedBlock))
 	_, err := buff.Write(serializedBlock)
@@ -122,27 +139,57 @@ func (esd *elasticSearchDatabase) SaveHeader(header data.HeaderHandler, signersI
 	}
 }
 
-func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(header data.HeaderHandler, signersIndexes []uint64) ([]byte, []byte) {
-	h, err := esd.marshalizer.Marshal(header)
+func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(
+	header data.HeaderHandler,
+	signersIndexes []uint64,
+	body *block.Body,
+	notarizedHeadersHashes []string,
+	sizeTxs int,
+) ([]byte, []byte) {
+	headerBytes, err := esd.marshalizer.Marshal(header)
 	if err != nil {
-		log.Debug("indexer: marshal", "error", "could not marshal header")
+		log.Debug("indexer: marshal header", "error", err)
+		return nil, nil
+	}
+	bodyBytes, err := esd.marshalizer.Marshal(body)
+	if err != nil {
+		log.Debug("indexer: marshal body", "error", err)
 		return nil, nil
 	}
 
-	headerHash := esd.hasher.Compute(string(h))
+	blockSizeInBytes := len(headerBytes) + len(bodyBytes)
+
+	miniblocksHashes := make([]string, 0)
+	for _, miniblock := range body.MiniBlocks {
+		mbHash, errComputeHash := core.CalculateHash(esd.marshalizer, esd.hasher, miniblock)
+		if errComputeHash != nil {
+			log.Warn("internal error computing hash", "error", errComputeHash)
+
+			continue
+		}
+
+		encodedMbHash := hex.EncodeToString(mbHash)
+		miniblocksHashes = append(miniblocksHashes, encodedMbHash)
+	}
+
+	headerHash := esd.hasher.Compute(string(headerBytes))
 	elasticBlock := Block{
-		Nonce:         header.GetNonce(),
-		Round:         header.GetRound(),
-		ShardID:       header.GetShardID(),
-		Hash:          hex.EncodeToString(headerHash),
-		Proposer:      signersIndexes[0],
-		Validators:    signersIndexes,
-		PubKeyBitmap:  hex.EncodeToString(header.GetPubKeysBitmap()),
-		Size:          int64(len(h)),
-		Timestamp:     time.Duration(header.GetTimeStamp()),
-		TxCount:       header.GetTxCount(),
-		StateRootHash: hex.EncodeToString(header.GetRootHash()),
-		PrevHash:      hex.EncodeToString(header.GetPrevHash()),
+		Nonce:                 header.GetNonce(),
+		Round:                 header.GetRound(),
+		Epoch:                 header.GetEpoch(),
+		ShardID:               header.GetShardID(),
+		Hash:                  hex.EncodeToString(headerHash),
+		MiniBlocksHashes:      miniblocksHashes,
+		NotarizedBlocksHashes: notarizedHeadersHashes,
+		Proposer:              signersIndexes[0],
+		Validators:            signersIndexes,
+		PubKeyBitmap:          hex.EncodeToString(header.GetPubKeysBitmap()),
+		Size:                  int64(blockSizeInBytes),
+		SizeTxs:               int64(sizeTxs),
+		Timestamp:             time.Duration(header.GetTimeStamp()),
+		TxCount:               header.GetTxCount(),
+		StateRootHash:         hex.EncodeToString(header.GetRootHash()),
+		PrevHash:              hex.EncodeToString(header.GetPrevHash()),
 	}
 
 	serializedBlock, err := json.Marshal(elasticBlock)
@@ -163,7 +210,11 @@ func (esd *elasticSearchDatabase) SaveTransactions(
 ) {
 	bulks := esd.buildTransactionBulks(body, header, txPool, selfShardId)
 	for _, bulk := range bulks {
-		buff := esd.serializeBulkTx(bulk)
+		buff := serializeBulkTxs(bulk)
+		if buff.Len() == 0 {
+			continue
+		}
+
 		err := esd.dbWriter.DoBulkRequest(&buff, txIndex)
 		if err != nil {
 			log.Warn("indexer", "error", "indexing bulk of transactions")
@@ -186,6 +237,10 @@ func (esd *elasticSearchDatabase) buildTransactionBulks(
 	blockHash := esd.hasher.Compute(string(blockMarshal))
 
 	for _, mb := range body.MiniBlocks {
+		if mb.Type == block.PeerBlock {
+			continue
+		}
+
 		mbMarshal, err := esd.marshalizer.Marshal(mb)
 		if err != nil {
 			log.Debug("indexer: marshal", "error", "could not marshal miniblock")
@@ -208,9 +263,9 @@ func (esd *elasticSearchDatabase) buildTransactionBulks(
 				continue
 			}
 
-			currentTx, err := esd.commonProcessor.getTransactionByType(currentTxHandler, txHash, mbHash, blockHash, mb, header, mbTxStatus)
-			if err != nil {
-				log.Debug("indexer: elasticsearch found tx in pool but of wrong type", "error", err)
+			currentTx := esd.commonProcessor.getTransactionByType(currentTxHandler, txHash, mbHash, blockHash, mb, header, mbTxStatus)
+			if currentTx == nil {
+				log.Debug("indexer: elasticsearch found tx in pool but of wrong type")
 				continue
 			}
 
@@ -221,32 +276,70 @@ func (esd *elasticSearchDatabase) buildTransactionBulks(
 	return bulks
 }
 
-func (esd *elasticSearchDatabase) serializeBulkTx(bulk []*Transaction) bytes.Buffer {
-	var buff bytes.Buffer
-	for _, tx := range bulk {
-		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
-		serializedTx, err := json.Marshal(tx)
-		if err != nil {
-			log.Debug("indexer: marshal",
-				"error", "could not serialize transaction, will skip indexing",
-				"tx hash", tx.Hash)
-			continue
-		}
-		// append a newline foreach element
-		serializedTx = append(serializedTx, "\n"...)
-
-		buff.Grow(len(meta) + len(serializedTx))
-		_, err = buff.Write(meta)
-		if err != nil {
-			log.Warn("elastic search: serialize bulk tx, write meta", "error", err.Error())
-		}
-		_, err = buff.Write(serializedTx)
-		if err != nil {
-			log.Warn("elastic search: serialize bulk tx, write serialized tx", "error", err.Error())
-		}
+// SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server
+func (esd *elasticSearchDatabase) SaveMiniblocks(header data.HeaderHandler, body *block.Body) {
+	miniblocks := esd.getMiniblocks(header, body)
+	if miniblocks == nil {
+		log.Warn("indexer: could not index miniblocks")
+		return
+	}
+	if len(miniblocks) == 0 {
+		return
 	}
 
-	return buff
+	buffInsert, buffUpdate := serializeBulkMiniBlocks(header.GetShardID(), miniblocks)
+	err := esd.dbWriter.DoBulkRequest(&buffInsert, miniblocksIndex)
+	if err != nil {
+		log.Warn("indexing bulk of miniblock insert ", "error", err.Error())
+	}
+
+	err = esd.dbWriter.DoBulkRequest(&buffUpdate, miniblocksIndex)
+	if err != nil {
+		log.Warn("indexing bulk of miniblock update ", "error", err.Error())
+	}
+}
+
+func (esd *elasticSearchDatabase) getMiniblocks(header data.HeaderHandler, body *block.Body) []*Miniblock {
+	headerHash, err := core.CalculateHash(esd.marshalizer, esd.hasher, header)
+	if err != nil {
+		log.Warn("indexer: could not calculate header hash", "error", err.Error())
+		return nil
+	}
+
+	encodedHeaderHash := hex.EncodeToString(headerHash)
+
+	miniblocks := make([]*Miniblock, 0)
+	for _, miniblock := range body.MiniBlocks {
+		mbHash, errComputeHash := core.CalculateHash(esd.marshalizer, esd.hasher, miniblock)
+		if errComputeHash != nil {
+			log.Warn("internal error computing hash", "error", errComputeHash)
+
+			continue
+		}
+
+		encodedMbHash := hex.EncodeToString(mbHash)
+
+		mb := &Miniblock{
+			Hash:            encodedMbHash,
+			SenderShardID:   miniblock.SenderShardID,
+			ReceiverShardID: miniblock.ReceiverShardID,
+			Type:            miniblock.Type.String(),
+		}
+
+		if mb.SenderShardID == header.GetShardID() {
+			mb.SenderBlockHash = encodedHeaderHash
+		} else {
+			mb.ReceiverBlockHash = encodedHeaderHash
+		}
+
+		if mb.SenderShardID == mb.ReceiverShardID {
+			mb.ReceiverBlockHash = encodedHeaderHash
+		}
+
+		miniblocks = append(miniblocks, mb)
+	}
+
+	return miniblocks
 }
 
 // SaveRoundInfo will prepare and save information about a round in elasticsearch server
@@ -281,7 +374,7 @@ func (esd *elasticSearchDatabase) SaveRoundInfo(info RoundInfo) {
 }
 
 // SaveShardValidatorsPubKeys will prepare and save information about a shard validators public keys in elasticsearch server
-func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardId uint32, shardValidatorsPubKeys [][]byte) {
+func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) {
 	var buff bytes.Buffer
 
 	shardValPubKeys := ValidatorsPublicKeys{
@@ -306,7 +399,7 @@ func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardId uint32, sha
 
 	req := &esapi.IndexRequest{
 		Index:      validatorsIndex,
-		DocumentID: strconv.FormatUint(uint64(shardId), 10),
+		DocumentID: fmt.Sprintf("%d_%d", shardID, epoch),
 		Body:       bytes.NewReader(buff.Bytes()),
 		Refresh:    "true",
 	}
@@ -314,6 +407,38 @@ func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardId uint32, sha
 	err = esd.dbWriter.DoRequest(req)
 	if err != nil {
 		log.Warn("indexer: can not index validators pubkey", "error", err.Error())
+		return
+	}
+}
+
+// SaveValidatorsRating will save validators rating
+func (esd *elasticSearchDatabase) SaveValidatorsRating(index string, validatorsRatingInfo []ValidatorRatingInfo) {
+	var buff bytes.Buffer
+
+	infosRating := ValidatorsRatingInfo{ValidatorsInfos: validatorsRatingInfo}
+
+	marshalizedInfoRating, err := json.Marshal(&infosRating)
+	if err != nil {
+		log.Debug("indexer: marshal", "error", "could not marshal validators rating")
+		return
+	}
+
+	buff.Grow(len(marshalizedInfoRating))
+	_, err = buff.Write(marshalizedInfoRating)
+	if err != nil {
+		log.Warn("elastic search: save validators rating, write", "error", err.Error())
+	}
+
+	req := &esapi.IndexRequest{
+		Index:      ratingIndex,
+		DocumentID: index,
+		Body:       bytes.NewReader(buff.Bytes()),
+		Refresh:    "true",
+	}
+
+	err = esd.dbWriter.DoRequest(req)
+	if err != nil {
+		log.Warn("indexer: can not index validators rating", "error", err.Error())
 		return
 	}
 }

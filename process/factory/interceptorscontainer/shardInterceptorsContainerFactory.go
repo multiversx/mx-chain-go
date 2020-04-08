@@ -43,6 +43,7 @@ func NewShardInterceptorsContainerFactory(
 		args.NodesCoordinator,
 		args.BlackList,
 		args.AntifloodHandler,
+		args.WhiteListHandler,
 		args.AddressPubkeyConverter,
 	)
 	if err != nil {
@@ -112,6 +113,7 @@ func NewShardInterceptorsContainerFactory(
 		blackList:              args.BlackList,
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
 		antifloodHandler:       args.AntifloodHandler,
+		whiteListHandler:       args.WhiteListHandler,
 		addressPubkeyConverter: args.AddressPubkeyConverter,
 	}
 
@@ -203,7 +205,16 @@ func (sicf *shardInterceptorsContainerFactory) generateTrieNodesInterceptors() e
 	keys = append(keys, identifierTrieNodes)
 	interceptorsSlice = append(interceptorsSlice, interceptor)
 
-	identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
+	interceptor, err = sicf.createOneTrieNodesInterceptor(identifierTrieNodes)
+	if err != nil {
+		return err
+	}
+
+	keys = append(keys, identifierTrieNodes)
+	interceptorsSlice = append(interceptorsSlice, interceptor)
+
+	identifierTrieNodes = factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	interceptor, err = sicf.createOneTrieNodesInterceptor(identifierTrieNodes)
 	if err != nil {
 		return err

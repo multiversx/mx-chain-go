@@ -69,7 +69,7 @@ type Cacher interface {
 	// MaxSize returns the maximum number of items which can be stored in the cache.
 	MaxSize() int
 	// RegisterHandler registers a new handler to be called when a new data is added
-	RegisterHandler(func(key []byte))
+	RegisterHandler(func(key []byte, value interface{}))
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -92,21 +92,21 @@ type BloomFilter interface {
 type Storer interface {
 	Put(key, data []byte) error
 	Get(key []byte) ([]byte, error)
-	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
 	Has(key []byte) error
-	HasInEpoch(key []byte, epoch uint32) error
 	SearchFirst(key []byte) ([]byte, error)
 	Remove(key []byte) error
 	ClearCache()
 	DestroyUnit() error
+	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
+	HasInEpoch(key []byte, epoch uint32) error
 	IsInterfaceNil() bool
 	Close() error
 }
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
-	RegisterHandler(handler epochStart.EpochStartHandler)
-	UnregisterHandler(handler epochStart.EpochStartHandler)
+	RegisterHandler(handler epochStart.ActionHandler)
+	UnregisterHandler(handler epochStart.ActionHandler)
 	NotifyAll(hdr data.HeaderHandler)
 	IsInterfaceNil() bool
 }

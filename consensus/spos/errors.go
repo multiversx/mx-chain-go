@@ -79,6 +79,9 @@ var ErrNilDataToProcess = errors.New("nil data to process")
 // ErrNilWorker is raised when a valid Worker is expected but nil used
 var ErrNilWorker = errors.New("worker is nil")
 
+// ErrNilWorkerArgs signals that nil a workerArgs has been provided
+var ErrNilWorkerArgs = errors.New("worker args is nil")
+
 // ErrNilShardCoordinator is raised when a valid shard coordinator is expected but nil used
 var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
 
@@ -108,6 +111,9 @@ var ErrSenderNotOk = errors.New("sender is invalid")
 
 // ErrMessageForPastRound is raised when message is for past round
 var ErrMessageForPastRound = errors.New("message is for past round")
+
+// ErrMessageForFutureRound is raised when message is for future round
+var ErrMessageForFutureRound = errors.New("message is for future round")
 
 // ErrInvalidSignature is raised when signature is invalid
 var ErrInvalidSignature = errors.New("signature is invalid")
@@ -145,6 +151,9 @@ var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
 // ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
 var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
 
+// ErrNilPoolAdder signals that a nil pool adder has been provided
+var ErrNilPoolAdder = errors.New("nil pool adder")
+
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
@@ -153,3 +162,9 @@ var ErrInvalidChainID = errors.New("invalid chain ID in consensus")
 
 // ErrNilNetworkShardingCollector defines the error for setting a nil network sharding collector
 var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
+
+// ErrInvalidMessageType signals that an invalid message type has been received from consensus topic
+var ErrInvalidMessageType = errors.New("invalid message type")
+
+// ErrInvalidHeaderHashSize signals that an invalid header hash size has been received from consensus topic
+var ErrInvalidHeaderHashSize = errors.New("invalid header hash size")

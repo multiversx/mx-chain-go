@@ -495,7 +495,7 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 	dataPool := &mock.PoolsHolderStub{}
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {
+			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 			},
 		}
 	}
@@ -535,19 +535,19 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 	dataPool := &mock.PoolsHolderStub{}
 	dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {
+			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 			},
 		}
 	}
 	dataPool.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {
+			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 			},
 		}
 	}
 	dataPool.RewardTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {
+			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 			},
 		}
 	}

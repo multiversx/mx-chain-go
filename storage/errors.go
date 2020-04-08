@@ -84,3 +84,6 @@ var ErrClosingPersisters = errors.New("cannot close all the persisters")
 
 // ErrCacheSizeIsLowerThanBatchSize signals that size of cache is lower than size of batch
 var ErrCacheSizeIsLowerThanBatchSize = errors.New("cache size is lower than batch size")
+
+// ErrBootstrapDataNotFoundInStorage signals that no BootstrapData was find in the storage
+var ErrBootstrapDataNotFoundInStorage = errors.New("didn't find any bootstrap data in storage")

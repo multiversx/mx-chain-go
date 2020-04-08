@@ -17,10 +17,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var log = logger.GetOrCreate("epochStart/metachain")
+
+const minimumNonceToStartEpoch = 4
 
 // ArgsNewMetaEpochStartTrigger defines struct needed to create a new start of epoch trigger
 type ArgsNewMetaEpochStartTrigger struct {
@@ -28,7 +31,7 @@ type ArgsNewMetaEpochStartTrigger struct {
 	Settings           *config.EpochStartConfig
 	Epoch              uint32
 	EpochStartRound    uint64
-	EpochStartNotifier epochStart.EpochStartNotifier
+	EpochStartNotifier epochStart.Notifier
 	Marshalizer        marshal.Marshalizer
 	Hasher             hashing.Hasher
 	Storage            dataRetriever.StorageService
@@ -48,11 +51,12 @@ type trigger struct {
 	triggerStateKey             []byte
 	epochStartTime              time.Time
 	mutTrigger                  sync.RWMutex
-	epochStartNotifier          epochStart.EpochStartNotifier
+	epochStartNotifier          epochStart.Notifier
 	metaHeaderStorage           storage.Storer
 	triggerStorage              storage.Storer
 	marshalizer                 marshal.Marshalizer
 	hasher                      hashing.Hasher
+	appStatusHandler            core.AppStatusHandler
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -95,10 +99,10 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		return nil, epochStart.ErrNilMetaBlockStorage
 	}
 
-	trigStateKey := fmt.Sprintf("initial_value_epoch%d", args.Epoch)
+	trigggerStateKey := core.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
 
-	trigger := &trigger{
-		triggerStateKey:             []byte(trigStateKey),
+	trig := &trigger{
+		triggerStateKey:             []byte(trigggerStateKey),
 		roundsPerEpoch:              uint64(args.Settings.RoundsPerEpoch),
 		epochStartTime:              args.GenesisTime,
 		currEpochStartRound:         args.EpochStartRound,
@@ -113,14 +117,15 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		marshalizer:                 args.Marshalizer,
 		hasher:                      args.Hasher,
 		epochStartMeta:              &block.MetaBlock{},
+		appStatusHandler:            &statusHandler.NilStatusHandler{},
 	}
 
-	err := trigger.saveState(trigger.triggerStateKey)
+	err := trig.saveState(trig.triggerStateKey)
 	if err != nil {
 		return nil, err
 	}
 
-	return trigger, nil
+	return trig, nil
 }
 
 // IsEpochStart return true if conditions are fulfilled for start of epoch
@@ -169,17 +174,20 @@ func (t *trigger) ForceEpochStart(round uint64) error {
 		t.epoch += 1
 	}
 
+	t.prevEpochStartRound = t.currEpochStartRound
 	t.currEpochStartRound = t.currentRound
 	t.isEpochStart = true
 	t.saveCurrentState(round)
 
 	log.Debug("trigger.ForceEpochStart", "isEpochStart", t.isEpochStart)
+	msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.currentRound)
+	log.Debug(display.Headline(msg, "", "#"))
 
 	return nil
 }
 
 // Update processes changes in the trigger
-func (t *trigger) Update(round uint64) {
+func (t *trigger) Update(round uint64, nonce uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
@@ -189,7 +197,10 @@ func (t *trigger) Update(round uint64) {
 		return
 	}
 
-	if t.currentRound > t.currEpochStartRound+t.roundsPerEpoch {
+	isZeroEpochEdgeCase := nonce < minimumNonceToStartEpoch
+	isEpochStart := t.currentRound > t.currEpochStartRound+t.roundsPerEpoch
+	shouldTriggerEpochStart := isEpochStart && !isZeroEpochEdgeCase
+	if shouldTriggerEpochStart {
 		t.epoch += 1
 		t.isEpochStart = true
 		t.prevEpochStartRound = t.currEpochStartRound
@@ -204,7 +215,7 @@ func (t *trigger) Update(round uint64) {
 }
 
 // SetProcessed sets start of epoch to false and cleans underlying structure
-func (t *trigger) SetProcessed(header data.HeaderHandler) {
+func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
@@ -221,11 +232,13 @@ func (t *trigger) SetProcessed(header data.HeaderHandler) {
 		log.Debug("SetProcessed marshal", "error", errNotCritical.Error())
 	}
 
+	t.appStatusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, metaBlock.Round)
+
 	metaHash := t.hasher.Compute(string(metaBuff))
 
 	t.currEpochStartRound = metaBlock.Round
 	t.epoch = metaBlock.Epoch
-	t.epochStartNotifier.NotifyAllPrepare(metaBlock)
+	t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
 	t.epochStartNotifier.NotifyAll(metaBlock)
 	t.isEpochStart = false
 	t.currentRound = metaBlock.Round
@@ -267,7 +280,7 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 
 	if header.IsStartOfEpochBlock() {
 		log.Debug("RevertStateToBlock with epoch start block called")
-		t.SetProcessed(header)
+		t.SetProcessed(header, nil)
 		return nil
 	}
 
@@ -295,6 +308,16 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	t.currentRound = header.GetRound()
 	t.mutTrigger.Unlock()
 
+	return nil
+}
+
+// SetAppStatusHandler will set the satus handler for the trigger
+func (t *trigger) SetAppStatusHandler(handler core.AppStatusHandler) error {
+	if check.IfNil(handler) {
+		return epochStart.ErrNilStatusHandler
+	}
+
+	t.appStatusHandler = handler
 	return nil
 }
 

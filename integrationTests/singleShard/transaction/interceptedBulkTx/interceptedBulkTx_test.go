@@ -30,13 +30,13 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	nodeAddr := "0"
 
 	n := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, nodeAddr)
-	_ = n.Node.Start()
+	n.Node.Start()
 
 	defer func() {
 		_ = n.Node.Stop()
 	}()
 
-	_ = n.Node.P2PBootstrap()
+	_ = n.Messenger.Bootstrap()
 
 	time.Sleep(stepDelay)
 
@@ -61,7 +61,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	transactions := make([]data.TransactionHandler, 0)
 
 	//wire up handler
-	n.DataPool.Transactions().RegisterHandler(func(key []byte) {
+	n.DataPool.Transactions().RegisterHandler(func(key []byte, value interface{}) {
 		mut.Lock()
 		defer mut.Unlock()
 

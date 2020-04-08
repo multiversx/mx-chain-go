@@ -18,9 +18,8 @@ type blockNotarizer struct {
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
 
-	mutNotarizedHeaders         sync.RWMutex
-	notarizedHeaders            map[uint32][]*HeaderInfo
-	maxNumHeadersToKeepPerShard int
+	mutNotarizedHeaders sync.RWMutex
+	notarizedHeaders    map[uint32][]*HeaderInfo
 }
 
 // NewBlockNotarizer creates a block notarizer object which implements blockNotarizerHandler interface
@@ -28,7 +27,6 @@ func NewBlockNotarizer(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	shardCoordinator sharding.Coordinator,
-	maxNumHeadersToKeepPerShard int,
 ) (*blockNotarizer, error) {
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
@@ -47,7 +45,6 @@ func NewBlockNotarizer(
 	}
 
 	bn.notarizedHeaders = make(map[uint32][]*HeaderInfo)
-	bn.maxNumHeadersToKeepPerShard = maxNumHeadersToKeepPerShard
 
 	return &bn, nil
 }
@@ -64,35 +61,10 @@ func (bn *blockNotarizer) AddNotarizedHeader(
 
 	bn.mutNotarizedHeaders.Lock()
 	bn.notarizedHeaders[shardID] = append(bn.notarizedHeaders[shardID], &HeaderInfo{Header: notarizedHeader, Hash: notarizedHeaderHash})
-	numNotarizedHeadersForShard := len(bn.notarizedHeaders[shardID])
-	if numNotarizedHeadersForShard > 1 {
-		sort.Slice(bn.notarizedHeaders[shardID], func(i, j int) bool {
-			return bn.notarizedHeaders[shardID][i].Header.GetNonce() < bn.notarizedHeaders[shardID][j].Header.GetNonce()
-		})
-	}
+	sort.Slice(bn.notarizedHeaders[shardID], func(i, j int) bool {
+		return bn.notarizedHeaders[shardID][i].Header.GetNonce() < bn.notarizedHeaders[shardID][j].Header.GetNonce()
+	})
 	bn.mutNotarizedHeaders.Unlock()
-
-	if numNotarizedHeadersForShard > bn.maxNumHeadersToKeepPerShard {
-		bn.cleanupWhenMaxCapacityIsReached(shardID)
-	}
-}
-
-func (bn *blockNotarizer) cleanupWhenMaxCapacityIsReached(shardID uint32) {
-	bn.mutNotarizedHeaders.Lock()
-	defer bn.mutNotarizedHeaders.Unlock()
-
-	notarizedHeadersCount := len(bn.notarizedHeaders[shardID])
-	if notarizedHeadersCount <= bn.maxNumHeadersToKeepPerShard {
-		return
-	}
-
-	if bn.shardCoordinator.SelfId() == shardID {
-		index := notarizedHeadersCount - int(float64(bn.maxNumHeadersToKeepPerShard)*percentToKeep)
-		bn.notarizedHeaders[shardID] = bn.notarizedHeaders[shardID][index:]
-	} else {
-		index := int(float64(bn.maxNumHeadersToKeepPerShard) * percentToKeep)
-		bn.notarizedHeaders[shardID] = bn.notarizedHeaders[shardID][:index]
-	}
 }
 
 // CleanupNotarizedHeadersBehindNonce cleanups notarized headers for a given shard behind a given nonce

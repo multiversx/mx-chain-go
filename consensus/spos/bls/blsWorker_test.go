@@ -334,3 +334,15 @@ func TestWorker_IsSubroundStartRound(t *testing.T) {
 	ret = service.IsSubroundStartRound(bls.SrStartRound)
 	assert.True(t, ret)
 }
+
+func TestWorker_IsMessageTypeValid(t *testing.T) {
+	t.Parallel()
+
+	service, _ := bls.NewConsensusService()
+
+	ret := service.IsMessageTypeValid(bls.MtBlockBody)
+	assert.True(t, ret)
+
+	ret = service.IsMessageTypeValid(666)
+	assert.False(t, ret)
+}

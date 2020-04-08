@@ -10,43 +10,26 @@ import (
 func TestValidator_NewValidatorShouldFailOnNilPublickKey(t *testing.T) {
 	t.Parallel()
 
-	validator, err := NewValidator(nil, []byte("addr1"))
+	v, err := NewValidator(nil, defaultSelectionChances, 1)
 
-	assert.Nil(t, validator)
+	assert.Nil(t, v)
 	assert.Equal(t, ErrNilPubKey, err)
-}
-
-func TestValidator_NewValidatorShouldFailOnNilAddress(t *testing.T) {
-	t.Parallel()
-
-	validator, err := NewValidator([]byte("pk1"), nil)
-
-	assert.Nil(t, validator)
-	assert.Equal(t, ErrNilAddress, err)
 }
 
 func TestValidator_NewValidatorShouldWork(t *testing.T) {
 	t.Parallel()
 
-	validator, err := NewValidator([]byte("pk1"), []byte("addr1"))
+	v, err := NewValidator([]byte("pk1"), defaultSelectionChances, 1)
 
-	assert.NotNil(t, validator)
+	assert.NotNil(t, v)
 	assert.Nil(t, err)
-	assert.False(t, check.IfNil(validator))
+	assert.False(t, check.IfNil(v))
 }
 
 func TestValidator_PubKeyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	validator, _ := NewValidator([]byte("pk1"), []byte("addr1"))
+	v, _ := NewValidator([]byte("pk1"), defaultSelectionChances, 1)
 
-	assert.Equal(t, []byte("pk1"), validator.PubKey())
-}
-
-func TestValidator_AddressShouldWork(t *testing.T) {
-	t.Parallel()
-
-	validator, _ := NewValidator([]byte("pk1"), []byte("addr1"))
-
-	assert.Equal(t, []byte("addr1"), validator.Address())
+	assert.Equal(t, []byte("pk1"), v.PubKey())
 }

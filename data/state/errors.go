@@ -92,6 +92,18 @@ var ErrInvalidAddressLength = errors.New("invalid address length")
 // transaction fee is covered by the current balance
 var ErrInsufficientFunds = errors.New("insufficient funds")
 
+// ErrNilStorageManager signals that nil storage manager has been provided
+var ErrNilStorageManager = errors.New("nil storage manager")
+
+// ErrNilRequestHandler signals that nil request handler has been provided
+var ErrNilRequestHandler = errors.New("nil request handler")
+
+// ErrInvalidWaitTime signals that invalid wait time has been provided
+var ErrInvalidWaitTime = errors.New("invalid wait time")
+
+// ErrNilCacher signals that nil cacher has been provided
+var ErrNilCacher = errors.New("nil cacher")
+
 // ErrSnapshotValueOutOfBounds signals that the snapshot value is out of bounds
 var ErrSnapshotValueOutOfBounds = errors.New("snapshot value out of bounds")
 

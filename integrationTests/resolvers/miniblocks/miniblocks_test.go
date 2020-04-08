@@ -24,7 +24,7 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingSameShard(t *testi
 
 	//setup header received event
 	nRequester.DataPool.MiniBlocks().RegisterHandler(
-		func(key []byte) {
+		func(key []byte, value interface{}) {
 			if bytes.Equal(key, hash) {
 				resolvers.Log.Info("received miniblock", "hash", key)
 				rm.Done()
@@ -57,7 +57,7 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingOtherShard(t *test
 
 	//setup header received event
 	nRequester.DataPool.MiniBlocks().RegisterHandler(
-		func(key []byte) {
+		func(key []byte, value interface{}) {
 			if bytes.Equal(key, hash) {
 				resolvers.Log.Info("received miniblock", "hash", key)
 				rm.Done()
@@ -89,7 +89,7 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingMeta(t *testing.T)
 
 	//setup header received event
 	nRequester.DataPool.MiniBlocks().RegisterHandler(
-		func(key []byte) {
+		func(key []byte, value interface{}) {
 			if bytes.Equal(key, hash) {
 				resolvers.Log.Info("received miniblock", "hash", key)
 				rm.Done()
@@ -121,7 +121,7 @@ func TestRequestResolveMiniblockByHashRequestingMetaResolvingShard(t *testing.T)
 
 	//setup header received event
 	nRequester.DataPool.MiniBlocks().RegisterHandler(
-		func(key []byte) {
+		func(key []byte, value interface{}) {
 			if bytes.Equal(key, hash) {
 				resolvers.Log.Info("received miniblock", "hash", key)
 				rm.Done()
@@ -153,7 +153,7 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingSameShard(t *t
 
 	//setup header received event
 	nRequester.DataPool.MiniBlocks().RegisterHandler(
-		func(key []byte) {
+		func(key []byte, value interface{}) {
 			if bytes.Equal(key, hash) {
 				resolvers.Log.Info("received miniblock", "hash", key)
 				rm.Done()
@@ -186,7 +186,7 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingOtherShard(t *
 
 	//setup header received event
 	nRequester.DataPool.MiniBlocks().RegisterHandler(
-		func(key []byte) {
+		func(key []byte, value interface{}) {
 			if bytes.Equal(key, hash) {
 				resolvers.Log.Info("received miniblock", "hash", key)
 				rm.Done()
@@ -218,7 +218,7 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingMeta(t *testin
 
 	//setup header received event
 	nRequester.DataPool.MiniBlocks().RegisterHandler(
-		func(key []byte) {
+		func(key []byte, value interface{}) {
 			if bytes.Equal(key, hash) {
 				resolvers.Log.Info("received miniblock", "hash", key)
 				rm.Done()
@@ -250,7 +250,7 @@ func TestRequestResolvePeerMiniblockByHashRequestingMetaResolvingShard(t *testin
 
 	//setup header received event
 	nRequester.DataPool.MiniBlocks().RegisterHandler(
-		func(key []byte) {
+		func(key []byte, value interface{}) {
 			if bytes.Equal(key, hash) {
 				resolvers.Log.Info("received miniblock", "hash", key)
 				rm.Done()

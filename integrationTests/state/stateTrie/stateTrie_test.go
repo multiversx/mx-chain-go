@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -1258,6 +1257,12 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	assert.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
+	rootHash, _ := shardNode.AccntState.RootHash()
+	if !bytes.Equal(rootHash, rootHashOfRollbackedBlock) {
+		err := shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
+		assert.True(t, errors.Is(err, trie.ErrHashNotFound))
+	}
+
 	nonces := []*uint64{new(uint64), new(uint64)}
 	atomic.AddUint64(nonces[0], 2)
 	atomic.AddUint64(nonces[1], 3)
@@ -1276,9 +1281,6 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(3), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	assert.Equal(t, uint64(4), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
-
-	err = shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
-	assert.True(t, errors.Is(err, trie.ErrHashNotFound))
 }
 
 func TestRollbackBlockWithSameRootHashAsPreviousAndCheckThatPruningIsNotDone(t *testing.T) {
@@ -1487,7 +1489,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 		)
 	}
 
-	numDelayRounds := uint32(4)
+	numDelayRounds := uint32(6)
 	for i := uint64(0); i < uint64(numDelayRounds); i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		time.Sleep(integrationTests.StepDelay)
@@ -1550,9 +1552,6 @@ func testNodeStateCheckpointSnapshotAndPruning(
 	assert.Equal(t, 5, len(prunedRootHashes))
 	for i := range prunedRootHashes {
 		tr, err := stateTrie.Recreate(prunedRootHashes[i])
-		if err == nil {
-			fmt.Println(fmt.Sprintf("Should have been pruned: %s", hex.EncodeToString(prunedRootHashes[i])))
-		}
 		assert.Nil(t, tr)
 		assert.NotNil(t, err)
 	}

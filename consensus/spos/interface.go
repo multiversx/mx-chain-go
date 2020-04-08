@@ -42,8 +42,8 @@ type ConsensusCoreHandler interface {
 	SyncTimer() ntp.SyncTimer
 	// NodesCoordinator gets the NodesCoordinator stored in the ConsensusCore
 	NodesCoordinator() sharding.NodesCoordinator
-	// EpochStartSubscriber gets the EpochStartSubscriber stored in the ConsensusCore
-	EpochStartSubscriber() epochStart.EpochStartSubscriber
+	// EpochStartRegistrationHandler gets the RegistrationHandler stored in the ConsensusCore
+	EpochStartRegistrationHandler() epochStart.RegistrationHandler
 	// PrivateKey returns the private key stored in the ConsensusStore used for randomness and leader's signature generation
 	PrivateKey() crypto.PrivateKey
 	// SingleSigner returns the single signer stored in the ConsensusStore used for randomness and leader's signature generation
@@ -69,8 +69,12 @@ type ConsensusService interface {
 	IsMessageWithBlockBodyAndHeader(consensus.MessageType) bool
 	//IsMessageWithBlockHeader returns if the current messageType is about block header
 	IsMessageWithBlockHeader(consensus.MessageType) bool
+	//IsMessageWithBlockBody returns if the current messageType is about block body
+	IsMessageWithBlockBody(msgType consensus.MessageType) bool
 	//IsMessageWithSignature returns if the current messageType is about signature
 	IsMessageWithSignature(consensus.MessageType) bool
+	//IsMessageTypeValid returns if the current messageType is valid
+	IsMessageTypeValid(consensus.MessageType) bool
 	//IsSubroundSignature returns if the current subround is about signature
 	IsSubroundSignature(int) bool
 	//IsSubroundStartRound returns if the current subround is about start round
@@ -111,6 +115,12 @@ type WorkerHandler interface {
 	//SetAppStatusHandler sets the status handler object used to collect useful metrics about consensus state machine
 	SetAppStatusHandler(ash core.AppStatusHandler) error
 	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
+}
+
+// PoolAdder adds data in a key-value pool
+type PoolAdder interface {
+	Put(key []byte, value interface{}) (evicted bool)
 	IsInterfaceNil() bool
 }
 
