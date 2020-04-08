@@ -5,6 +5,15 @@ package factory
 type disabledBlacklistHandler struct {
 }
 
+// Add does nothing
+func (nbh *disabledBlacklistHandler) Add(_ string) error {
+	return nil
+}
+
+// Sweep does nothing
+func (nbh *disabledBlacklistHandler) Sweep() {
+}
+
 // Has outputs false (all peers are white listed)
 func (nbh *disabledBlacklistHandler) Has(_ string) bool {
 	return false

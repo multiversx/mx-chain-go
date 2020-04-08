@@ -375,7 +375,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	isMessageWithBlockBody := wrk.consensusService.IsMessageWithBlockBody(msgType)
 	isMessageWithBlockHeader := wrk.consensusService.IsMessageWithBlockHeader(msgType)
 	isMessageWithBlockBodyAndHeader := wrk.consensusService.IsMessageWithBlockBodyAndHeader(msgType)
-	if isMessageWithBlockBody || isMessageWithBlockHeader {
+	if isMessageWithBlockBody || isMessageWithBlockBodyAndHeader {
 		wrk.addBlockToPool(cnsDta.GetBody())
 	}
 

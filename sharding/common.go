@@ -1,32 +1,10 @@
 package sharding
 
 import (
+	"bytes"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 )
-
-func cloneValidatorsMap(validatorsMap map[uint32][]Validator) (map[uint32][]Validator, error) {
-	var err error
-	resultMap := make(map[uint32][]Validator)
-	for shard, vList := range validatorsMap {
-		resultMap[shard], err = cloneValidatorsList(vList)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return resultMap, nil
-}
-
-func cloneValidatorsList(validatorsList []Validator) ([]Validator, error) {
-	resultList := make([]Validator, len(validatorsList))
-	for i, v := range validatorsList {
-		clone, err := v.Clone()
-		if err != nil {
-			return nil, err
-		}
-		resultList[i] = clone.(Validator)
-	}
-	return resultList, nil
-}
 
 func computeStartIndexAndNumAppearancesForValidator(expEligibleList []uint32, idx int64) (int64, int64) {
 	val := expEligibleList[idx]
@@ -93,4 +71,24 @@ func displayNodesConfiguration(
 		pk := v.PubKey()
 		log.Debug("actually remaining", "pk", pk)
 	}
+}
+
+// ComputeActuallyLeaving returns the list of those nodes which are actually leaving
+func ComputeActuallyLeaving(leaving []Validator, stillRemaining []Validator) []Validator {
+	actualLeaving := make([]Validator, 0)
+	for _, shouldLeave := range leaving {
+		willRemain := false
+		for _, remains := range stillRemaining {
+			if bytes.Equal(shouldLeave.PubKey(), remains.PubKey()) {
+				willRemain = true
+				break
+			}
+		}
+
+		if !willRemain {
+			actualLeaving = append(actualLeaving, shouldLeave)
+		}
+	}
+
+	return actualLeaving
 }

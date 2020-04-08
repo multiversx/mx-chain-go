@@ -137,6 +137,11 @@ type Messenger interface {
 	// specified topic.
 	RegisterMessageProcessor(topic string, handler MessageProcessor) error
 
+	// UnregisterAllMessageProcessors removes all the MessageProcessor set by the
+	// Messenger from the list of registered handlers for the messages on the
+	// given topic.
+	UnregisterAllMessageProcessors() error
+
 	// UnregisterMessageProcessor removes the MessageProcessor set by the
 	// Messenger from the list of registered handlers for the messages on the
 	// given topic.

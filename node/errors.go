@@ -67,9 +67,6 @@ var ErrNilNodesCoordinator = errors.New("trying to set nil nodes coordinator")
 // ErrNilUint64ByteSliceConverter signals that a nil uint64 <-> byte slice converter has been provided
 var ErrNilUint64ByteSliceConverter = errors.New("trying to set nil uint64 - byte slice converter")
 
-// ErrNilBalances signals that a nil list of initial balances has been provided
-var ErrNilBalances = errors.New("trying to set nil balances")
-
 // ErrNilSingleSig signals that a nil singlesig object has been provided
 var ErrNilSingleSig = errors.New("trying to set nil singlesig")
 
@@ -139,9 +136,6 @@ var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 // ErrNilValidatorStatistics signals that a nil validator statistics has been provided
 var ErrNilValidatorStatistics = errors.New("nil validator statistics")
 
-// ErrCannotConvertToPeerAccount signals that the given account cannot be converted to a peer account
-var ErrCannotConvertToPeerAccount = errors.New("cannot convert to peer account")
-
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID in Node")
 
@@ -159,3 +153,9 @@ var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
 
 // ErrNilTxAccumulator signals that a nil Accumulator instance has been provided
 var ErrNilTxAccumulator = errors.New("nil tx accumulator")
+
+// ErrNilHardforkTrigger signals that a nil hardfork trigger has been provided
+var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
+
+// ErrNilWhiteListHandler signals that white list handler is nil
+var ErrNilWhiteListHandler = errors.New("nil whitelist handler")

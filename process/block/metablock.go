@@ -496,6 +496,7 @@ func (mp *metaProcessor) indexBlock(
 	body data.BodyHandler,
 	lastMetaBlock data.HeaderHandler,
 	notarizedHeadersHashes []string,
+	rewardsTxs map[string]data.TransactionHandler,
 ) {
 	if mp.core == nil || mp.core.Indexer() == nil {
 		return
@@ -510,6 +511,9 @@ func (mp *metaProcessor) indexBlock(
 	scPool := mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
 
 	for hash, tx := range scPool {
+		txPool[hash] = tx
+	}
+	for hash, tx := range rewardsTxs {
 		txPool[hash] = tx
 	}
 
@@ -1003,6 +1007,8 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
+	rewardsTxs := mp.getRewardsTxs(header, body)
+
 	mp.commitEpochStart(header, body)
 
 	err = mp.saveLastNotarizedHeader(header)
@@ -1046,11 +1052,6 @@ func (mp *metaProcessor) CommitBlock(
 	lastMetaBlock := mp.blockChain.GetCurrentBlockHeader()
 	mp.updateState(lastMetaBlock)
 
-	err = mp.blockChain.SetCurrentBlockBody(body)
-	if err != nil {
-		return err
-	}
-
 	err = mp.blockChain.SetCurrentBlockHeader(header)
 	if err != nil {
 		return err
@@ -1066,7 +1067,7 @@ func (mp *metaProcessor) CommitBlock(
 		mp.core.TPSBenchmark().Update(header)
 	}
 
-	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes)
+	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
 
 	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
 
@@ -1086,6 +1087,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: header.GetShardID(),
+		Epoch:   header.GetEpoch(),
 		Nonce:   header.GetNonce(),
 		Hash:    headerHash,
 	}
@@ -1271,9 +1273,23 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 func (mp *metaProcessor) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
 }
 
+// getRewardsTxs must be called before method commitEpoch start because when commit is done rewards txs are removed from pool and saved in storage
+func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body) (rewardsTx map[string]data.TransactionHandler) {
+	if check.IfNil(mp.core) || check.IfNil(mp.core.Indexer()) {
+		return
+	}
+
+	if !header.IsStartOfEpochBlock() {
+		return
+	}
+
+	rewardsTx = mp.epochRewardsCreator.GetRewardsTxs(body)
+	return rewardsTx
+}
+
 func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
-		mp.epochStartTrigger.SetProcessed(header)
+		mp.epochStartTrigger.SetProcessed(header, body)
 
 		go mp.epochRewardsCreator.SaveTxBlockToStorage(header, body)
 		go mp.validatorInfoCreator.SaveValidatorInfoBlocksToStorage(header, body)
@@ -1603,7 +1619,7 @@ func (mp *metaProcessor) requestMissingFinalityAttestingShardHeaders() uint32 {
 }
 
 func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32) {
-	_ = process.EmptyChannel(mp.chRcvAllHdrs)
+	_ = core.EmptyChannel(mp.chRcvAllHdrs)
 
 	if len(metaBlock.ShardInfo) == 0 {
 		return 0, 0
@@ -1810,6 +1826,7 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 	metaHdr.TxCount += uint32(totalTxCount)
 
 	sw.Start("UpdatePeerState")
+	mp.addCurrentBlockHeaderToInternalMap()
 	metaHdr.ValidatorStatsRootHash, err = mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr, mp.hdrsForCurrBlock.getHdrHashMap())
 	sw.Stop("UpdatePeerState")
 	if err != nil {
@@ -1825,7 +1842,22 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 	return body, nil
 }
 
+func (mp *metaProcessor) addCurrentBlockHeaderToInternalMap() {
+	currentBlockHeader := mp.blockChain.GetCurrentBlockHeader()
+	currentBlockHeaderHash := mp.blockChain.GetCurrentBlockHeaderHash()
+
+	if check.IfNil(currentBlockHeader) {
+		currentBlockHeader = mp.blockChain.GetGenesisHeader()
+		currentBlockHeaderHash = mp.blockChain.GetGenesisHeaderHash()
+	}
+
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	mp.hdrsForCurrBlock.hdrHashAndInfo[string(currentBlockHeaderHash)] = &hdrInfo{false, currentBlockHeader}
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+}
+
 func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlock) error {
+	mp.addCurrentBlockHeaderToInternalMap()
 	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, mp.hdrsForCurrBlock.getHdrHashMap())
 	if err != nil {
 		return err

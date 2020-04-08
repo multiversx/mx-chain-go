@@ -1,6 +1,7 @@
 package networksharding_test
 
 import (
+	state "github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -10,8 +11,18 @@ type nodesCoordinatorStub struct {
 	GetValidatorWithPublicKeyCalled func(publicKey []byte, epoch uint32) (validator sharding.Validator, shardId uint32, err error)
 }
 
+// GetChance -
+func (ncm *nodesCoordinatorStub) GetChance(uint32) uint32 {
+	return 1
+}
+
+// GetAllLeavingValidatorsPublicKeys -
+func (ncs *nodesCoordinatorStub) GetAllLeavingValidatorsPublicKeys(_ uint32) ([][]byte, error) {
+	return nil, nil
+}
+
 // ComputeLeaving -
-func (ncs *nodesCoordinatorStub) ComputeLeaving(_ []sharding.Validator) []sharding.Validator {
+func (ncs *nodesCoordinatorStub) ComputeLeaving(_ []*state.ShardValidatorInfo) ([]sharding.Validator, error) {
 	panic("implement me")
 }
 
@@ -51,7 +62,7 @@ func (ncs *nodesCoordinatorStub) GetOwnPublicKey() []byte {
 }
 
 // SetNodesPerShards -
-func (ncs *nodesCoordinatorStub) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ uint32) error {
+func (ncs *nodesCoordinatorStub) SetNodesPerShards(_ map[uint32][]sharding.Validator, _ map[uint32][]sharding.Validator, _ []sharding.Validator, _ uint32) error {
 	panic("implement me")
 }
 

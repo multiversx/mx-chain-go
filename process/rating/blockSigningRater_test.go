@@ -82,65 +82,12 @@ func createDefaultRatingReader(ratingsMap map[string]uint32) *mock.RatingReaderM
 	return rrm
 }
 
-func setupRater(rd process.RatingsInfoHandler, pk string, initialRating uint32) *rating.BlockSigningRater {
-	bsr, _ := rating.NewBlockSigningRater(rd)
-	ratingPk := pk
-	ratingsMap := make(map[string]uint32)
-	ratingsMap[ratingPk] = initialRating
-	rrm := createDefaultRatingReader(ratingsMap)
-	bsr.SetRatingReader(rrm)
-
-	return bsr
-}
-
-func TestBlockSigningRater_GetRatingWithNotSetRatingReaderShouldReturnStartRating(t *testing.T) {
-	rd := createDefaultRatingsData()
-
-	bsr, _ := rating.NewBlockSigningRater(rd)
-	rrm := createDefaultRatingReader(make(map[string]uint32))
-	bsr.SetRatingReader(rrm)
-
-	rt := bsr.GetRating("test")
-
-	assert.Equal(t, rd.StartRating(), rt)
-}
-
-func TestBlockSigningRater_GetRatingWithUnknownPkShoudReturnStartRating(t *testing.T) {
-	rd := createDefaultRatingsData()
-	bsr, _ := rating.NewBlockSigningRater(rd)
-
-	rrm := createDefaultRatingReader(make(map[string]uint32))
-	bsr.SetRatingReader(rrm)
-
-	rt := bsr.GetRating("test")
-
-	assert.Equal(t, startRating, rt)
-}
-
-func TestBlockSigningRater_GetRatingWithKnownPkShoudReturnSetRating(t *testing.T) {
-	rd := createDefaultRatingsData()
-
-	bsr, _ := rating.NewBlockSigningRater(rd)
-
-	ratingPk := "test"
-	ratingValue := uint32(5)
-
-	ratingsMap := make(map[string]uint32)
-	ratingsMap[ratingPk] = ratingValue
-	rrd := createDefaultRatingReader(ratingsMap)
-	bsr.SetRatingReader(rrd)
-	rt := bsr.GetRating(ratingPk)
-
-	assert.Equal(t, ratingValue, rt)
-}
-
 func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposed(t *testing.T) {
-	pk := "test"
 	initialRatingValue := uint32(5)
 	rd := createDefaultRatingsData()
 	shardId := uint32(0)
 
-	bsr := setupRater(rd, pk, initialRatingValue)
+	bsr, _ := rating.NewBlockSigningRater(rd)
 	computedRating := bsr.ComputeIncreaseProposer(shardId, initialRatingValue)
 
 	expectedValue := uint32(int32(initialRatingValue) + proposerIncreaseRatingStep)
@@ -149,12 +96,11 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposed(t *testin
 }
 
 func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenValidator(t *testing.T) {
-	pk := "test"
 	initialRatingValue := uint32(5)
 	rd := createDefaultRatingsData()
 	shardId := uint32(0)
 
-	bsr := setupRater(rd, pk, initialRatingValue)
+	bsr, _ := rating.NewBlockSigningRater(rd)
 	computedRating := bsr.ComputeIncreaseValidator(shardId, initialRatingValue)
 
 	expectedValue := uint32(int32(initialRatingValue) + validatorIncreaseRatingStep)
@@ -163,12 +109,11 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenValidator(t *testi
 }
 
 func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenValidatorButNotAccepted(t *testing.T) {
-	pk := "test"
 	initialRatingValue := uint32(5)
 	rd := createDefaultRatingsData()
 	shardId := uint32(0)
 
-	bsr := setupRater(rd, pk, initialRatingValue)
+	bsr, _ := rating.NewBlockSigningRater(rd)
 	computedRating := bsr.ComputeDecreaseValidator(shardId, initialRatingValue)
 
 	expectedValue := uint32(int32(initialRatingValue) + validatorDecreaseRatingStep)
@@ -177,12 +122,11 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenValidatorButNotAcc
 }
 
 func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposerButNotAccepted(t *testing.T) {
-	pk := "test"
 	initialRatingValue := uint32(5)
 	rd := createDefaultRatingsData()
 	shardId := uint32(0)
 
-	bsr := setupRater(rd, pk, initialRatingValue)
+	bsr, _ := rating.NewBlockSigningRater(rd)
 	computedRating := bsr.ComputeDecreaseProposer(shardId, initialRatingValue, 0)
 
 	expectedValue := uint32(int32(initialRatingValue) + proposerDecreaseRatingStep)
@@ -191,12 +135,11 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposerButNotAcce
 }
 
 func TestBlockSigningRater_UpdateRatingsShouldNotIncreaseAboveMaxRating(t *testing.T) {
-	pk := "test"
 	initialRatingValue := maxRating - 1
 	rd := createDefaultRatingsData()
 	shardId := uint32(0)
 
-	bsr := setupRater(rd, pk, initialRatingValue)
+	bsr, _ := rating.NewBlockSigningRater(rd)
 	computedRating := bsr.ComputeIncreaseProposer(shardId, initialRatingValue)
 
 	expectedValue := maxRating
@@ -205,12 +148,11 @@ func TestBlockSigningRater_UpdateRatingsShouldNotIncreaseAboveMaxRating(t *testi
 }
 
 func TestBlockSigningRater_UpdateRatingsShouldNotDecreaseBelowMinRating(t *testing.T) {
-	pk := "test"
 	initialRatingValue := minRating + 1
 	rd := createDefaultRatingsData()
 	shardId := uint32(0)
 
-	bsr := setupRater(rd, pk, initialRatingValue)
+	bsr, _ := rating.NewBlockSigningRater(rd)
 	computedRating := bsr.ComputeDecreaseProposer(shardId, initialRatingValue, 0)
 
 	expectedValue := minRating
@@ -238,9 +180,6 @@ func TestBlockSigningRater_UpdateRatingsWithMultiplePeersShouldReturnRatings(t *
 	ratingsMap[pk2] = pk2Rating
 	ratingsMap[pk3] = pk3Rating
 	ratingsMap[pk4] = pk4Rating
-
-	rrm := createDefaultRatingReader(ratingsMap)
-	bsr.SetRatingReader(rrm)
 
 	pk1ComputedRating := bsr.ComputeIncreaseProposer(shardId, ratingsMap[pk1])
 	pk2ComputedRating := bsr.ComputeDecreaseProposer(shardId, ratingsMap[pk2], 0)
@@ -277,9 +216,6 @@ func TestBlockSigningRater_UpdateRatingsOnMetaWithMultiplePeersShouldReturnRatin
 	ratingsMap[pk2] = pk2Rating
 	ratingsMap[pk3] = pk3Rating
 	ratingsMap[pk4] = pk4Rating
-
-	rrm := createDefaultRatingReader(ratingsMap)
-	bsr.SetRatingReader(rrm)
 
 	pk1ComputedRating := bsr.ComputeIncreaseProposer(core.MetachainShardId, ratingsMap[pk1])
 	pk2ComputedRating := bsr.ComputeDecreaseProposer(core.MetachainShardId, ratingsMap[pk2], 0)
@@ -328,9 +264,7 @@ func TestBlockSigningRater_NewBlockSigningRaterWithZeroMinRatingShouldErr(t *tes
 	ratingsData := createDefaultRatingsData()
 	ratingsData.MinRatingProperty = 0
 
-	bsr, err := rating.NewBlockSigningRater(ratingsData)
-
-	assert.Nil(t, bsr)
+	_, err := rating.NewBlockSigningRater(ratingsData)
 	assert.Equal(t, process.ErrMinRatingSmallerThanOne, err)
 }
 

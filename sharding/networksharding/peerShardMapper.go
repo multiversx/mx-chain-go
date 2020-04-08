@@ -313,13 +313,13 @@ func (psm *PeerShardMapper) EpochStartAction(hdr data.HeaderHandler) {
 }
 
 // EpochStartPrepare is the method called whenever an action needs to be undertaken in respect to the epoch preparation change
-func (psm *PeerShardMapper) EpochStartPrepare(hdr data.HeaderHandler) {
-	if check.IfNil(hdr) {
+func (psm *PeerShardMapper) EpochStartPrepare(metaHdr data.HeaderHandler, _ data.BodyHandler) {
+	if check.IfNil(metaHdr) {
 		log.Warn("nil header on PeerShardMapper.EpochStartPrepare")
 		return
 	}
 
-	log.Trace("PeerShardMapper.EpochStartPrepare event", "epoch", hdr.GetEpoch())
+	log.Trace("PeerShardMapper.EpochStartPrepare event", "epoch", metaHdr.GetEpoch())
 }
 
 // NotifyOrder returns the notification order of this component

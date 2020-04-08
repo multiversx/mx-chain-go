@@ -628,10 +628,6 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		if err != nil {
 			return err
 		}
-		prevBlockBody, err := boot.blockBootstrapper.getBlockBody(prevHeader)
-		if err != nil {
-			return err
-		}
 
 		log.Debug("roll back to block",
 			"nonce", currHeader.GetNonce()-1,
@@ -647,7 +643,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			currBlockBody,
 			prevHeaderHash,
 			prevHeader,
-			prevBlockBody)
+		)
 
 		if err != nil {
 			return err
@@ -686,24 +682,23 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	currBlockBody data.BodyHandler,
 	prevHeaderHash []byte,
 	prevHeader data.HeaderHandler,
-	prevBlockBody data.BodyHandler,
 ) error {
 
 	var err error
 
 	defer func() {
 		if err != nil {
-			boot.restoreState(currHeaderHash, currHeader, currBlockBody)
+			boot.restoreState(currHeaderHash, currHeader)
 		}
 	}()
 
 	if currHeader.GetNonce() > 1 {
-		err = boot.setCurrentBlockInfo(prevHeaderHash, prevHeader, prevBlockBody)
+		err = boot.setCurrentBlockInfo(prevHeaderHash, prevHeader)
 		if err != nil {
 			return err
 		}
 	} else {
-		err = boot.setCurrentBlockInfo(nil, nil, nil)
+		err = boot.setCurrentBlockInfo(nil, nil)
 		if err != nil {
 			return err
 		}
@@ -778,7 +773,6 @@ func (boot *baseBootstrap) rollBackToNonceForced() {
 func (boot *baseBootstrap) restoreState(
 	currHeaderHash []byte,
 	currHeader data.HeaderHandler,
-	currBlockBody data.BodyHandler,
 ) {
 	log.Debug("revert state to header",
 		"nonce", currHeader.GetNonce(),
@@ -787,11 +781,6 @@ func (boot *baseBootstrap) restoreState(
 	err := boot.chainHandler.SetCurrentBlockHeader(currHeader)
 	if err != nil {
 		log.Debug("SetCurrentBlockHeader", "error", err.Error())
-	}
-
-	err = boot.chainHandler.SetCurrentBlockBody(currBlockBody)
-	if err != nil {
-		log.Debug("SetCurrentBlockBody", "error", err.Error())
 	}
 
 	boot.chainHandler.SetCurrentBlockHeaderHash(currHeaderHash)
@@ -805,15 +794,9 @@ func (boot *baseBootstrap) restoreState(
 func (boot *baseBootstrap) setCurrentBlockInfo(
 	headerHash []byte,
 	header data.HeaderHandler,
-	body data.BodyHandler,
 ) error {
 
 	err := boot.chainHandler.SetCurrentBlockHeader(header)
-	if err != nil {
-		return err
-	}
-
-	err = boot.chainHandler.SetCurrentBlockBody(body)
 	if err != nil {
 		return err
 	}
@@ -865,7 +848,7 @@ func (boot *baseBootstrap) requestMiniBlocksByHashes(hashes [][]byte) {
 func (boot *baseBootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (block.MiniBlockSlice, error) {
 	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
-		_ = process.EmptyChannel(boot.chRcvMiniBlocks)
+		_ = core.EmptyChannel(boot.chRcvMiniBlocks)
 		boot.requestMiniBlocksByHashes(missingMiniBlocksHashes)
 		err := boot.waitForMiniBlocks()
 		if err != nil {

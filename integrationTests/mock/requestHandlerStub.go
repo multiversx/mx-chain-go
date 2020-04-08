@@ -1,5 +1,7 @@
 package mock
 
+import "time"
+
 // RequestHandlerStub -
 type RequestHandlerStub struct {
 	RequestShardHeaderCalled           func(shardID uint32, hash []byte)
@@ -13,6 +15,31 @@ type RequestHandlerStub struct {
 	RequestMiniBlocksHandlerCalled     func(destShardID uint32, miniblocksHashes [][]byte)
 	RequestTrieNodesCalled             func(destShardID uint32, hash []byte, topic string)
 	RequestStartOfEpochMetaBlockCalled func(epoch uint32)
+	SetNumPeersToQueryCalled           func(key string, intra int, cross int) error
+	GetNumPeersToQueryCalled           func(key string) (int, int, error)
+}
+
+// SetNumPeersToQuery -
+func (rhs *RequestHandlerStub) SetNumPeersToQuery(key string, intra int, cross int) error {
+	if rhs.SetNumPeersToQueryCalled != nil {
+		return rhs.SetNumPeersToQueryCalled(key, intra, cross)
+	}
+
+	return nil
+}
+
+// GetNumPeersToQuery -
+func (rhs *RequestHandlerStub) GetNumPeersToQuery(key string) (int, int, error) {
+	if rhs.GetNumPeersToQueryCalled != nil {
+		return rhs.GetNumPeersToQueryCalled(key)
+	}
+
+	return 2, 2, nil
+}
+
+// RequestInterval -
+func (rhs *RequestHandlerStub) RequestInterval() time.Duration {
+	return time.Second
 }
 
 // RequestStartOfEpochMetaBlock -
@@ -24,7 +51,7 @@ func (rhs *RequestHandlerStub) RequestStartOfEpochMetaBlock(epoch uint32) {
 }
 
 // SetEpoch -
-func (rhs *RequestHandlerStub) SetEpoch(epoch uint32) {
+func (rhs *RequestHandlerStub) SetEpoch(_ uint32) {
 }
 
 // RequestShardHeader -
