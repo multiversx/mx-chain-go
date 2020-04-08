@@ -180,7 +180,7 @@ func TestAllRoutes_FacadeErrorsShouldErr(t *testing.T) {
 func TestAllRoutes_WhenBadAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	errExpected := errors.New("not a valid string")
+	errExpected := errors.New("not a valid address")
 	facade := mock.Facade{
 		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
 			return &vmcommon.VMOutput{}, nil

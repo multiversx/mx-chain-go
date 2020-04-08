@@ -19,7 +19,7 @@ type TxService interface {
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
-	EncodeAddressPubkey(pk []byte) string
+	EncodeAddressPubkey(pk []byte) (string, error)
 	IsInterfaceNil() bool
 }
 
@@ -189,21 +189,37 @@ func GetTransaction(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"transaction": txResponseFromTransaction(ef, tx)})
+	response, err := txResponseFromTransaction(ef, tx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"transaction": response})
 }
 
-func txResponseFromTransaction(ef TxService, tx *transaction.Transaction) TxResponse {
+func txResponseFromTransaction(ef TxService, tx *transaction.Transaction) (TxResponse, error) {
 	response := TxResponse{}
+	sender, err := ef.EncodeAddressPubkey(tx.SndAddr)
+	if err != nil {
+		return response, fmt.Errorf("%w for sender adddress", err)
+	}
+
+	receiver, err := ef.EncodeAddressPubkey(tx.RcvAddr)
+	if err != nil {
+		return response, fmt.Errorf("%w for sender adddress", err)
+	}
+
 	response.Nonce = tx.Nonce
-	response.Sender = ef.EncodeAddressPubkey(tx.SndAddr)
-	response.Receiver = ef.EncodeAddressPubkey(tx.RcvAddr)
+	response.Sender = sender
+	response.Receiver = receiver
 	response.Data = tx.Data
 	response.Signature = hex.EncodeToString(tx.Signature)
 	response.Value = tx.Value.String()
 	response.GasLimit = tx.GasLimit
 	response.GasPrice = tx.GasPrice
 
-	return response
+	return response, nil
 }
 
 // ComputeTransactionGasLimit returns how many gas units a transaction wil consume

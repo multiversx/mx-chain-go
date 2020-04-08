@@ -54,7 +54,7 @@ type NodeWrapper interface {
 	// ValidatorStatisticsApi return the statistics for all the validators
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
 
-	EncodeAddressPubkey(pk []byte) string
+	EncodeAddressPubkey(pk []byte) (string, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
 }
 

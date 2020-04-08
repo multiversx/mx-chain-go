@@ -235,6 +235,9 @@ func generateAndSave(index int, baseFilename string, genForBlockSigningSk crypto
 	}()
 
 	sk, pk, err := generateKeys(genForBlockSigningSk)
+	if err != nil {
+		return err
+	}
 
 	pkString := pubkeyConverter.Encode(pk)
 

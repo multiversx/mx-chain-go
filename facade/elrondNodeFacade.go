@@ -271,7 +271,7 @@ func (ef *ElrondNodeFacade) PprofEnabled() bool {
 }
 
 // EncodeAddressPubkey will encode the provided address public key bytes to string
-func (ef *ElrondNodeFacade) EncodeAddressPubkey(pk []byte) string {
+func (ef *ElrondNodeFacade) EncodeAddressPubkey(pk []byte) (string, error) {
 	return ef.node.EncodeAddressPubkey(pk)
 }
 

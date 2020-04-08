@@ -317,12 +317,12 @@ func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 	assert.Contains(t, err.Error(), "could not fetch sender address from provided param")
 }
 
-func createDummyHexAddress(chars int) string {
-	if chars < 1 {
+func createDummyHexAddress(hexChars int) string {
+	if hexChars < 1 {
 		return ""
 	}
 
-	buff := make([]byte, chars/2)
+	buff := make([]byte, hexChars/2)
 	_, _ = rand.Reader.Read(buff)
 
 	return hex.EncodeToString(buff)
@@ -2573,12 +2573,35 @@ func TestNode_EncodeDecodeAddressPubkey(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithAddressPubkeyConverter(mock.NewPubkeyConverterMock(32)),
 	)
-	encoded := n.EncodeAddressPubkey(buff)
+	encoded, err := n.EncodeAddressPubkey(buff)
+	assert.Nil(t, err)
 
 	recoveredBytes, err := n.DecodeAddressPubkey(encoded)
 
 	assert.Nil(t, err)
 	assert.Equal(t, buff, recoveredBytes)
+}
+
+func TestNode_EncodeDecodeAddressPubkeyWithNilCoberterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	buff := []byte("abcdefg")
+	n, _ := node.NewNode()
+	encoded, err := n.EncodeAddressPubkey(buff)
+
+	assert.Empty(t, encoded)
+	assert.True(t, errors.Is(err, node.ErrNilPubkeyConverter))
+}
+
+func TestNode_DecodeAddressPubkeyWithNilConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+
+	recoveredBytes, err := n.DecodeAddressPubkey("")
+
+	assert.True(t, errors.Is(err, node.ErrNilPubkeyConverter))
+	assert.Nil(t, recoveredBytes)
 }
 
 func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testing.T) {

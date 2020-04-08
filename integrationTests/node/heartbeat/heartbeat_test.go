@@ -115,7 +115,7 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 
 	assert.True(t, isPkActive(pkHeartBeats, secondPK))
 	expectedLen := 128
-	assert.True(t, isMessageLen(pkHeartBeats, secondPK, expectedLen))
+	assert.True(t, isMessageCorrectLen(pkHeartBeats, secondPK, expectedLen))
 }
 
 func prepareNodes(
@@ -189,7 +189,7 @@ func isPkActive(heartbeats []heartbeat.PubKeyHeartbeat, pk crypto.PublicKey) boo
 	return false
 }
 
-func isMessageLen(heartbeats []heartbeat.PubKeyHeartbeat, pk crypto.PublicKey, expectedLen int) bool {
+func isMessageCorrectLen(heartbeats []heartbeat.PubKeyHeartbeat, pk crypto.PublicKey, expectedLen int) bool {
 	pkBytes, _ := pk.ToByteArray()
 
 	for _, hb := range heartbeats {

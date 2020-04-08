@@ -156,8 +156,8 @@ func (f *Facade) NodeConfig() map[string]interface{} {
 }
 
 // EncodeAddressPubkey -
-func (f *Facade) EncodeAddressPubkey(pk []byte) string {
-	return hex.EncodeToString(pk)
+func (f *Facade) EncodeAddressPubkey(pk []byte) (string, error) {
+	return hex.EncodeToString(pk), nil
 }
 
 // DecodeAddressPubkey -

@@ -104,7 +104,7 @@ func doExecuteQuery(context *gin.Context) (*vmcommon.VMOutput, error) {
 func createSCQuery(fh FacadeHandler, request *VMValueRequest) (*process.SCQuery, error) {
 	decodedAddress, err := fh.DecodeAddressPubkey(request.ScAddress)
 	if err != nil {
-		return nil, fmt.Errorf("'%s' is not a valid string: %s", request.ScAddress, err.Error())
+		return nil, fmt.Errorf("'%s' is not a valid address: %s", request.ScAddress, err.Error())
 	}
 
 	arguments := make([][]byte, len(request.Args))

@@ -1068,12 +1068,20 @@ func (n *Node) getLatestValidators() (map[uint32][]*state.ValidatorInfo, map[str
 }
 
 // EncodeAddressPubkey will encode the provided address public key bytes to string
-func (n *Node) EncodeAddressPubkey(pk []byte) string {
-	return n.addressPubkeyConverter.Encode(pk)
+func (n *Node) EncodeAddressPubkey(pk []byte) (string, error) {
+	if n.addressPubkeyConverter == nil {
+		return "", fmt.Errorf("%w for addressPubkeyConverter", ErrNilPubkeyConverter)
+	}
+
+	return n.addressPubkeyConverter.Encode(pk), nil
 }
 
 // DecodeAddressPubkey will try to decode the provided address public key string
 func (n *Node) DecodeAddressPubkey(pk string) ([]byte, error) {
+	if n.addressPubkeyConverter == nil {
+		return nil, fmt.Errorf("%w for addressPubkeyConverter", ErrNilPubkeyConverter)
+	}
+
 	return n.addressPubkeyConverter.Decode(pk)
 }
 

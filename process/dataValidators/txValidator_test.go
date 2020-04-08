@@ -64,7 +64,7 @@ func getTxValidatorHandler(
 	}
 }
 
-func TestTxValidator_NewValidatorNilAccountsShouldErr(t *testing.T) {
+func TestNewTxValidator_NilAccountsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	shardCoordinator := createMockCoordinator("_", 0)
@@ -80,7 +80,7 @@ func TestTxValidator_NewValidatorNilAccountsShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
-func TestTxValidator_NewValidatorNilShardCoordinatorShouldErr(t *testing.T) {
+func TestNewTxValidator_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	adb := getAccAdapter(0, big.NewInt(0))
@@ -96,7 +96,24 @@ func TestTxValidator_NewValidatorNilShardCoordinatorShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
-func TestTxValidator_NewValidatorShouldWork(t *testing.T) {
+func TestNewTxValidator_NilPubkeyConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adb := getAccAdapter(0, big.NewInt(0))
+	maxNonceDeltaAllowed := 100
+	shardCoordinator := createMockCoordinator("_", 0)
+	txValidator, err := dataValidators.NewTxValidator(
+		adb,
+		shardCoordinator,
+		maxNonceDeltaAllowed,
+		nil,
+	)
+
+	assert.Nil(t, txValidator)
+	assert.True(t, errors.Is(err, process.ErrNilPubkeyConverter))
+}
+
+func TestNewTxValidator_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adb := getAccAdapter(0, big.NewInt(0))

@@ -545,7 +545,8 @@ func TestElrondNodeFacade_EncodeDecodeAddressPubkey(t *testing.T) {
 
 	buff := []byte("abcdefg")
 	ef := createElrondNodeFacadeWithMockResolver(&mock.NodeMock{})
-	encoded := ef.EncodeAddressPubkey(buff)
+	encoded, err := ef.EncodeAddressPubkey(buff)
+	assert.Nil(t, err)
 
 	recoveredBytes, err := ef.DecodeAddressPubkey(encoded)
 

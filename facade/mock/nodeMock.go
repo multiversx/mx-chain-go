@@ -126,8 +126,8 @@ func (nm *NodeMock) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResp
 }
 
 // EncodeAddressPubkey -
-func (nm *NodeMock) EncodeAddressPubkey(pk []byte) string {
-	return hex.EncodeToString(pk)
+func (nm *NodeMock) EncodeAddressPubkey(pk []byte) (string, error) {
+	return hex.EncodeToString(pk), nil
 }
 
 // DecodeAddressPubkey -
