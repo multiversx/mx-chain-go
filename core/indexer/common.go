@@ -258,12 +258,15 @@ func buildReceiptTransaction(
 	}
 }
 
-func serializeBulkMiniBlocks(hdrShardID uint32, bulkMbs []*Miniblock) (insert, update bytes.Buffer) {
+func serializeBulkMiniBlocks(hdrShardID uint32, bulkMbs []*Miniblock) bytes.Buffer {
+	var err error
+	var buff bytes.Buffer
 	for _, mb := range bulkMbs {
+		var meta, serializedData []byte
 		if hdrShardID == mb.SenderShardID {
 			//insert miniblock
-			meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, mb.Hash, "_doc", "\n"))
-			serializedData, err := json.Marshal(mb)
+			meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, mb.Hash, "_doc", "\n"))
+			serializedData, err = json.Marshal(mb)
 			if err != nil {
 				log.Debug("indexer: marshal",
 					"error", "could not serialize miniblock, will skip indexing",
@@ -271,18 +274,15 @@ func serializeBulkMiniBlocks(hdrShardID uint32, bulkMbs []*Miniblock) (insert, u
 				continue
 			}
 
-			insert = prepareBufferMiniblocks(insert, meta, serializedData)
-
 		} else {
 			// update miniblock
-			meta := []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s" } } %s`, mb.Hash, "\n"))
-			serializedData := []byte(fmt.Sprintf(`{ "doc": { "receiverBlockHash" : "%s" } }`, mb.ReceiverBlockHash))
-
-			update = prepareBufferMiniblocks(update, meta, serializedData)
+			meta = []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s", "_type" : "%s"  } }%s`, mb.Hash, "_doc", "\n"))
+			serializedData = []byte(fmt.Sprintf(`{ "doc" : { "receiverBlockHash" : "%s" } }`, mb.ReceiverBlockHash))
 		}
+		buff = prepareBufferMiniblocks(buff, meta, serializedData)
 	}
 
-	return
+	return buff
 }
 
 func prepareBufferMiniblocks(buff bytes.Buffer, meta, serializedData []byte) bytes.Buffer {
