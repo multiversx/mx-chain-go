@@ -78,7 +78,7 @@ func TestP2PAntiflood_CanNotIncrementFromConnectedPeerShouldError(t *testing.T) 
 	}
 	afm, _ := antiflood.NewP2PAntiflood(
 		&mock.FloodPreventerStub{
-			AccumulateGlobalCalled: func(identifier string, size uint64) error {
+			IncreaseLoadGlobalCalled: func(identifier string, size uint64) error {
 				if identifier != fromConnectedPeer.Pretty() {
 					assert.Fail(t, "should have been the connected peer")
 				}
@@ -104,14 +104,14 @@ func TestP2PAntiflood_CanNotIncrementMessageOriginatorShouldError(t *testing.T) 
 		PeerField: p2p.PeerID(messageOriginator),
 	}
 	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{
-		AccumulateGlobalCalled: func(identifier string, size uint64) error {
+		IncreaseLoadGlobalCalled: func(identifier string, size uint64) error {
 			if identifier != fromConnectedPeer.Pretty() {
 				return process.ErrSystemBusy
 			}
 
 			return nil
 		},
-		AccumulateCalled: func(identifier string, size uint64) error {
+		IncreaseLoadCalled: func(identifier string, size uint64) error {
 			if identifier == message.PeerField.Pretty() {
 				return process.ErrSystemBusy
 			}
@@ -136,10 +136,10 @@ func TestP2PAntiflood_ShouldWork(t *testing.T) {
 		PeerField: p2p.PeerID(messageOriginator),
 	}
 	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{
-		AccumulateGlobalCalled: func(identifier string, size uint64) error {
+		IncreaseLoadGlobalCalled: func(identifier string, size uint64) error {
 			return nil
 		},
-		AccumulateCalled: func(identifier string, size uint64) error {
+		IncreaseLoadCalled: func(identifier string, size uint64) error {
 			return nil
 		},
 	},

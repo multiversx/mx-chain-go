@@ -142,9 +142,9 @@ func TestNewQuotaFloodPreventer_NilListShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- Accumulate
+//------- IncreaseLoad
 
-func TestNewQuotaFloodPreventer_AccumulateIdentifierNotPresentPutQuotaAndReturnTrue(t *testing.T) {
+func TestNewQuotaFloodPreventer_IncreaseLoadIdentifierNotPresentPutQuotaAndReturnTrue(t *testing.T) {
 	t.Parallel()
 
 	putWasCalled := false
@@ -173,13 +173,13 @@ func TestNewQuotaFloodPreventer_AccumulateIdentifierNotPresentPutQuotaAndReturnT
 		minTotalSize*10,
 	)
 
-	err := qfp.Accumulate("identifier", size)
+	err := qfp.IncreaseLoad("identifier", size)
 
 	assert.Nil(t, err)
 	assert.True(t, putWasCalled)
 }
 
-func TestNewQuotaFloodPreventer_AccumulateNotQuotaSavedInCacheShouldPutQuotaAndReturnTrue(t *testing.T) {
+func TestNewQuotaFloodPreventer_IncreaseLoadNotQuotaSavedInCacheShouldPutQuotaAndReturnTrue(t *testing.T) {
 	t.Parallel()
 
 	putWasCalled := false
@@ -208,13 +208,13 @@ func TestNewQuotaFloodPreventer_AccumulateNotQuotaSavedInCacheShouldPutQuotaAndR
 		minTotalSize*10,
 	)
 
-	err := qfp.Accumulate("identifier", size)
+	err := qfp.IncreaseLoad("identifier", size)
 
 	assert.Nil(t, err)
 	assert.True(t, putWasCalled)
 }
 
-func TestNewQuotaFloodPreventer_AccumulateUnderMaxValuesShouldIncrementAndReturnTrue(t *testing.T) {
+func TestNewQuotaFloodPreventer_IncreaseLoadUnderMaxValuesShouldIncrementAndReturnTrue(t *testing.T) {
 	t.Parallel()
 
 	putWasCalled := false
@@ -249,13 +249,13 @@ func TestNewQuotaFloodPreventer_AccumulateUnderMaxValuesShouldIncrementAndReturn
 		minTotalSize*10,
 	)
 
-	err := qfp.Accumulate("identifier", size)
+	err := qfp.IncreaseLoad("identifier", size)
 
 	assert.Nil(t, err)
 	assert.True(t, putWasCalled)
 }
 
-func TestNewQuotaFloodPreventer_AccumulateGlobalWithResetShouldWork(t *testing.T) {
+func TestNewQuotaFloodPreventer_IncreaseLoadGlobalWithResetShouldWork(t *testing.T) {
 	t.Parallel()
 
 	numPutOperations := 0
@@ -304,10 +304,10 @@ func TestNewQuotaFloodPreventer_AccumulateGlobalWithResetShouldWork(t *testing.T
 		minTotalSize*10,
 	)
 
-	err := qfp.AccumulateGlobal(identifier, size)
+	err := qfp.IncreaseLoadGlobal(identifier, size)
 	assert.Nil(t, err)
 
-	err = qfp.AccumulateGlobal(identifier, size+1)
+	err = qfp.IncreaseLoadGlobal(identifier, size+1)
 	assert.Nil(t, err)
 
 	qfp.Reset()
@@ -316,9 +316,9 @@ func TestNewQuotaFloodPreventer_AccumulateGlobalWithResetShouldWork(t *testing.T
 	assert.True(t, addedGlobalQuotaCalled)
 }
 
-//------- Accumulate per peer
+//------- IncreaseLoad per peer
 
-func TestNewQuotaFloodPreventer_AccumulateOverMaxPeerNumMessagesShouldNotPutAndReturnFalse(t *testing.T) {
+func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerNumMessagesShouldNotPutAndReturnFalse(t *testing.T) {
 	t.Parallel()
 
 	existingMessages := uint32(minMessages + 11)
@@ -345,12 +345,12 @@ func TestNewQuotaFloodPreventer_AccumulateOverMaxPeerNumMessagesShouldNotPutAndR
 		minTotalSize*10,
 	)
 
-	err := qfp.Accumulate("identifier", minTotalSize)
+	err := qfp.IncreaseLoad("identifier", minTotalSize)
 
 	assert.Equal(t, process.ErrSystemBusy, err)
 }
 
-func TestNewQuotaFloodPreventer_AccumulateOverMaxPeerSizeShouldNotPutAndReturnFalse(t *testing.T) {
+func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerSizeShouldNotPutAndReturnFalse(t *testing.T) {
 	t.Parallel()
 
 	existingMessages := uint32(minMessages)
@@ -377,14 +377,14 @@ func TestNewQuotaFloodPreventer_AccumulateOverMaxPeerSizeShouldNotPutAndReturnFa
 		minTotalSize*10,
 	)
 
-	err := qfp.Accumulate("identifier", minTotalSize)
+	err := qfp.IncreaseLoad("identifier", minTotalSize)
 
 	assert.Equal(t, process.ErrSystemBusy, err)
 }
 
-//------- Accumulate globally
+//------- IncreaseLoad globally
 
-func TestNewQuotaFloodPreventer_AccumulateOverMaxNumMessagesShouldNotPutAndReturnFalse(t *testing.T) {
+func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxNumMessagesShouldNotPutAndReturnFalse(t *testing.T) {
 	t.Parallel()
 
 	globalMessages := uint32(minMessages + 11)
@@ -408,12 +408,12 @@ func TestNewQuotaFloodPreventer_AccumulateOverMaxNumMessagesShouldNotPutAndRetur
 	)
 	qfp.SetGlobalQuotaValues(globalMessages, globalSize)
 
-	err := qfp.Accumulate("identifier", minTotalSize)
+	err := qfp.IncreaseLoad("identifier", minTotalSize)
 
 	assert.Equal(t, process.ErrSystemBusy, err)
 }
 
-func TestNewQuotaFloodPreventer_AccumulateOverMaxSizeShouldNotPutAndReturnFalse(t *testing.T) {
+func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxSizeShouldNotPutAndReturnFalse(t *testing.T) {
 	t.Parallel()
 
 	globalMessages := uint32(minMessages)
@@ -437,12 +437,12 @@ func TestNewQuotaFloodPreventer_AccumulateOverMaxSizeShouldNotPutAndReturnFalse(
 	)
 	qfp.SetGlobalQuotaValues(globalMessages, globalSize)
 
-	err := qfp.Accumulate("identifier", minTotalSize)
+	err := qfp.IncreaseLoad("identifier", minTotalSize)
 
 	assert.Equal(t, process.ErrSystemBusy, err)
 }
 
-func TestCountersMap_AccumulateShouldWorkConcurrently(t *testing.T) {
+func TestCountersMap_IncreaseLoadShouldWorkConcurrently(t *testing.T) {
 	t.Parallel()
 
 	numIterations := 1000
@@ -458,7 +458,7 @@ func TestCountersMap_AccumulateShouldWorkConcurrently(t *testing.T) {
 	wg.Add(numIterations)
 	for i := 0; i < numIterations; i++ {
 		go func(idx int) {
-			err := qfp.Accumulate(fmt.Sprintf("%d", idx), minTotalSize)
+			err := qfp.IncreaseLoad(fmt.Sprintf("%d", idx), minTotalSize)
 			assert.Nil(t, err)
 			wg.Done()
 		}(i)
@@ -580,7 +580,7 @@ func TestCountersMap_IncrementAndResetShouldWorkConcurrently(t *testing.T) {
 	wg.Add(numIterations + numIterations/10)
 	for i := 0; i < numIterations; i++ {
 		go func(idx int) {
-			err := qfp.Accumulate(fmt.Sprintf("%d", idx), minTotalSize)
+			err := qfp.IncreaseLoad(fmt.Sprintf("%d", idx), minTotalSize)
 			assert.Nil(t, err)
 			wg.Done()
 		}(i)

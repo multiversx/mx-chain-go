@@ -43,7 +43,7 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 	}
 
 	//protect from directly connected peer
-	err := floodPreventer.AccumulateGlobal(fromConnectedPeer.Pretty(), uint64(len(message.Data())))
+	err := floodPreventer.IncreaseLoadGlobal(fromConnectedPeer.Pretty(), uint64(len(message.Data())))
 	if err != nil {
 		log.Trace("floodPreventer.AccumulateGlobal connected peer",
 			"error", err,
@@ -58,7 +58,7 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 
 	if fromConnectedPeer != message.Peer() {
 		//protect from the flooding messages that originate from the same source but come from different peers
-		err = floodPreventer.Accumulate(message.Peer().Pretty(), uint64(len(message.Data())))
+		err = floodPreventer.IncreaseLoad(message.Peer().Pretty(), uint64(len(message.Data())))
 		if err != nil {
 			log.Trace("floodPreventer.AccumulateGlobal originator",
 				"error", err,

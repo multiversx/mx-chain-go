@@ -649,8 +649,8 @@ type BlockTracker interface {
 // FloodPreventer defines the behavior of a component that is able to signal that too many events occurred
 // on a provided identifier between Reset calls
 type FloodPreventer interface {
-	AccumulateGlobal(identifier string, size uint64) error
-	Accumulate(identifier string, size uint64) error
+	IncreaseLoadGlobal(identifier string, size uint64) error
+	IncreaseLoad(identifier string, size uint64) error
 	Reset()
 	IsInterfaceNil() bool
 }
