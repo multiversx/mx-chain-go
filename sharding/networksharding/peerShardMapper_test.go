@@ -557,13 +557,14 @@ func TestPeerShardMapper_EpochStartPrepareShouldNotPanic(t *testing.T) {
 	}()
 
 	psm := createPeerShardMapper()
-	psm.EpochStartPrepare(nil)
+	psm.EpochStartPrepare(nil, nil)
 	psm.EpochStartPrepare(
 		&mock.HeaderHandlerStub{
 			GetEpochCaled: func() uint32 {
 				return 0
 			},
 		},
+		nil,
 	)
 }
 

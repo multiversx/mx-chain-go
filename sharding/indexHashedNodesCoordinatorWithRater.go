@@ -1,34 +1,34 @@
 package sharding
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 type indexHashedNodesCoordinatorWithRater struct {
 	*indexHashedNodesCoordinator
-	RatingReader
-	ChanceComputer
+	chanceComputer ChanceComputer
 }
 
 // NewIndexHashedNodesCoordinatorWithRater creates a new index hashed group selector
 func NewIndexHashedNodesCoordinatorWithRater(
 	indexNodesCoordinator *indexHashedNodesCoordinator,
-	rater RatingReaderWithChanceComputer,
+	chanceComputer ChanceComputer,
 ) (*indexHashedNodesCoordinatorWithRater, error) {
 	if check.IfNil(indexNodesCoordinator) {
 		return nil, ErrNilNodesCoordinator
 	}
-	if check.IfNil(rater) {
-		return nil, ErrNilRater
+	if check.IfNil(chanceComputer) {
+		return nil, ErrNilChanceComputer
 	}
 
 	ihncr := &indexHashedNodesCoordinatorWithRater{
 		indexHashedNodesCoordinator: indexNodesCoordinator,
-		RatingReader:                rater,
-		ChanceComputer:              rater,
+		chanceComputer:              chanceComputer,
 	}
 
-	ihncr.nodesPerShardSetter = ihncr
+	ihncr.nodesCoordinatorHelper = ihncr
 
 	ihncr.mutNodesConfig.Lock()
 	defer ihncr.mutNodesConfig.Unlock()
@@ -47,25 +47,28 @@ func NewIndexHashedNodesCoordinatorWithRater(
 		return nil, err
 	}
 
-	ihncr.epochStartSubscriber.UnregisterHandler(indexNodesCoordinator)
-	ihncr.epochStartSubscriber.RegisterHandler(ihncr)
+	ihncr.epochStartRegistrationHandler.UnregisterHandler(indexNodesCoordinator)
+	ihncr.epochStartRegistrationHandler.RegisterHandler(ihncr)
 	return ihncr, nil
 }
 
 // ComputeLeaving - computes the validators that have a threshold below the minimum rating
-func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeLeaving(allValidators []Validator) []Validator {
-	leavingValidators := make([]Validator, 0)
+func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeLeaving(allValidators []*state.ShardValidatorInfo) ([]Validator, error) {
+	leavingList := make([]Validator, 0)
 	minChances := ihgs.GetChance(0)
-	for _, val := range allValidators {
-		pk := val.PubKey()
-		rating := ihgs.GetRating(string(pk))
-		chances := ihgs.GetChance(rating)
-		if chances < minChances {
-			leavingValidators = append(leavingValidators, val)
+	for _, vInfo := range allValidators {
+		chances := ihgs.GetChance(vInfo.TempRating)
+		if chances < minChances || vInfo.List == string(core.LeavingList) {
+			val, err := NewValidator(vInfo.PublicKey, chances, vInfo.Index)
+			if err != nil {
+				return nil, err
+			}
+
+			leavingList = append(leavingList, val)
 		}
 	}
 
-	return leavingValidators
+	return leavingList, nil
 }
 
 //IsInterfaceNil verifies that the underlying value is nil
@@ -73,26 +76,21 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) IsInterfaceNil() bool {
 	return ihgs == nil
 }
 
+// GetChance returns the chance from an actual rating
+func (ihgs *indexHashedNodesCoordinatorWithRater) GetChance(rating uint32) uint32 {
+	return ihgs.chanceComputer.GetChance(rating)
+}
+
 // ValidatorsWeights returns the weights/chances for each given validator
 func (ihgs *indexHashedNodesCoordinatorWithRater) ValidatorsWeights(validators []Validator) ([]uint32, error) {
 	minChance := ihgs.GetChance(0)
 	weights := make([]uint32, len(validators))
 
-	loadingFromDisk := ihgs.loadingFromDisk.Load().(bool)
 	for i, validatorInShard := range validators {
-		pk := validatorInShard.PubKey()
-		if !loadingFromDisk {
-			rating := ihgs.GetRating(string(pk))
-			weights[i] = ihgs.GetChance(rating)
-			if weights[i] < minChance {
-				//default weight if all validators need to be selected
-				weights[i] = minChance
-			}
-			validators[i].SetChances(weights[i])
-			log.Debug("Computing chances for validator", "pk", pk, "rating", rating, "chances", weights[i])
-		} else {
-			weights[i] = validatorInShard.Chances()
-			log.Debug("Loading chances for validator", "pk", pk, "chances", weights[i])
+		weights[i] = validatorInShard.Chances()
+		if weights[i] < minChance {
+			//default weight if all validators need to be selected
+			weights[i] = minChance
 		}
 	}
 
