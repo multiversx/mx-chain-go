@@ -124,7 +124,7 @@ func stopNodes(advertiser p2p.Messenger, nodesMap map[uint32][]*integrationTests
 func startNodes(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
-			_ = n.Node.Start()
+			_ = n.Messenger.Bootstrap()
 		}
 	}
 }

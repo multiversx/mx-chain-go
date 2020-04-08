@@ -3227,7 +3227,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	err = sp.SaveLastNotarizedHeader(core.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
-	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
+	err = sp.UpdateCrossShardInfo(processedMetaHdrs)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), atomic.LoadUint32(&putCalledNr))
 
@@ -3248,7 +3248,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	err = sp.SaveLastNotarizedHeader(core.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
-	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
+	err = sp.UpdateCrossShardInfo(processedMetaHdrs)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), atomic.LoadUint32(&putCalledNr))
 
@@ -3273,7 +3273,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	err = sp.SaveLastNotarizedHeader(core.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
-	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
+	err = sp.UpdateCrossShardInfo(processedMetaHdrs)
 	wg.Wait()
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(4), atomic.LoadUint32(&putCalledNr))
@@ -3429,7 +3429,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 	err = sp.SaveLastNotarizedHeader(core.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
-	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
+	err = sp.UpdateCrossShardInfo(processedMetaHdrs)
 	wg.Wait()
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&putCalledNr))
@@ -3572,7 +3572,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 	err = sp.SaveLastNotarizedHeader(core.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
-	err = sp.RemoveProcessedMetaBlocksFromPool(processedMetaHdrs)
+	err = sp.UpdateCrossShardInfo(processedMetaHdrs)
 	wg.Wait()
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(4), atomic.LoadUint32(&putCalledNr))
@@ -3933,7 +3933,7 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 
 	hdrs, _, _ := sp.GetHighestHdrForOwnShardFromMetachain(processedHdrs)
 
-	assert.Nil(t, hdrs)
+	assert.Equal(t, 0, len(hdrs))
 }
 
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrStored(t *testing.T) {
@@ -4148,7 +4148,7 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 	hdr1 := &block.Header{Nonce: 0, Round: 0}
 	hdr2 := &block.Header{Nonce: 1, Round: 1}
 	finalHeaders = append(finalHeaders, hdr1, hdr2)
-	sp.UpdateStateStorage(finalHeaders)
+	sp.UpdateStateStorage(finalHeaders, &block.Header{})
 
 	assert.True(t, pruneTrieWasCalled)
 	assert.True(t, cancelPruneWasCalled)

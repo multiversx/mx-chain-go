@@ -2,8 +2,10 @@ package transaction
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -238,6 +240,16 @@ func (inTx *InterceptedTransaction) Fee() *big.Int {
 // Type returns the type of this intercepted data
 func (inTx *InterceptedTransaction) Type() string {
 	return "intercepted tx"
+}
+
+// String returns the transaction's most important fields as string
+func (inTx *InterceptedTransaction) String() string {
+	return fmt.Sprintf("sender=%s, nonce=%d, value=%s, recv=%s",
+		logger.DisplayByteSlice(inTx.tx.SndAddr),
+		inTx.tx.Nonce,
+		inTx.tx.Value.String(),
+		logger.DisplayByteSlice(inTx.tx.RcvAddr),
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

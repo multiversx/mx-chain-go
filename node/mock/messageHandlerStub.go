@@ -15,7 +15,7 @@ func (mhs *MessageHandlerStub) IsInterfaceNil() bool {
 	return false
 }
 
-// CreateHeartbeatFromP2pMessage -
+// CreateHeartbeatFromP2PMessage -
 func (mhs *MessageHandlerStub) CreateHeartbeatFromP2PMessage(message p2p.MessageP2P) (*heartbeat.Heartbeat, error) {
 	return mhs.CreateHeartbeatFromP2PMessageCalled(message)
 }

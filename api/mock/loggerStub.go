@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go-logger"
+import logger "github.com/ElrondNetwork/elrond-go-logger"
 
 // LoggerStub -
 type LoggerStub struct {
@@ -55,6 +55,11 @@ func (l *LoggerStub) SetLevel(logLevel logger.LogLevel) {
 	if l.SetLevelCalled != nil {
 		l.SetLevelCalled(logLevel)
 	}
+}
+
+// GetLevel -
+func (l *LoggerStub) GetLevel() logger.LogLevel {
+	return logger.LogNone
 }
 
 // IsInterfaceNil -

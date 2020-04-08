@@ -40,7 +40,7 @@ func initDataPoolWithDelayedKeys(delay time.Duration) *mock.PoolsHolderStub {
 	return &mock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte)) {},
+				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 					return &mock.CacherStub{
 						KeysCalled: func() [][]byte {
@@ -63,7 +63,7 @@ func initDataPoolWithFourTransactions() *mock.PoolsHolderStub {
 	return &mock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte)) {},
+				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 					return &mock.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {

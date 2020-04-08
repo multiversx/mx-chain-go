@@ -1,6 +1,7 @@
 package stateTrieSync
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -8,8 +9,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,8 +33,8 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
-	_ = nRequester.Node.Start()
-	_ = nResolver.Node.Start()
+	nRequester.Node.Start()
+	nResolver.Node.Start()
 	defer func() {
 		_ = nRequester.Node.Stop()
 		_ = nResolver.Node.Stop()
@@ -51,11 +55,24 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.Root()
-	trieNodesResolver, _ := nRequester.ResolverFinder.CrossShardResolver(factory.AccountTrieNodesTopic, core.MetachainShardId)
+	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(&mock.CacherStub{PutCalled: func(key []byte, value interface{}) (evicted bool) {
+		return false
+	}})
+	requestHandler, _ := requestHandlers.NewResolverRequestHandler(
+		nRequester.ResolverFinder,
+		&mock.RequestedItemsHandlerStub{},
+		whiteListHandler,
+		10000,
+		nRequester.ShardCoordinator.SelfId(),
+		time.Second,
+	)
 
-	waitTime := 5 * time.Second
-	trieSyncer, _ := trie.NewTrieSyncer(trieNodesResolver, nRequester.DataPool.TrieNodes(), requesterTrie, waitTime)
-	err = trieSyncer.StartSyncing(rootHash)
+	waitTime := 10 * time.Second
+	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, core.MetachainShardId, factory.AccountTrieNodesTopic)
+	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
+	defer cancel()
+
+	err = trieSyncer.StartSyncing(rootHash, ctx)
 	assert.Nil(t, err)
 
 	newRootHash, _ := requesterTrie.Root()

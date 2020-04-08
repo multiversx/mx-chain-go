@@ -7,6 +7,7 @@ option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
+// ValidatorInfo represents the data regarding a validator that is verified by the metaNodes
 message ValidatorInfo {
     bytes PublicKey = 1;
     uint32 ShardId = 2;
@@ -27,7 +28,11 @@ message ValidatorInfo {
     uint32 TotalValidatorFailure = 17;
 }
 
+// ShardValidatorInfo represents the data regarding a validator that is stored in the PeerMiniblocks
 message ShardValidatorInfo {
     bytes PublicKey = 1;
+    uint32 ShardId = 2;
+    string List = 3;
+    uint32 Index = 4;
     uint32 TempRating = 5;
 }

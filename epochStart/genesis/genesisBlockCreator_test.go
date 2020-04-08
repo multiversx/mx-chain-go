@@ -17,7 +17,6 @@ import (
 var val1 = big.NewInt(10)
 var val2 = big.NewInt(20)
 var rootHash = []byte("root hash")
-var validatorStatsRootHash = []byte("validator stats root hash")
 
 func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 	return mock.NewPubkeyConverterMock(32)
@@ -79,7 +78,6 @@ func TestCreateGenesisBlockFromInitialBalances_NilAccountsShouldErr(t *testing.T
 		createMockPubkeyConverter(),
 		make(map[string]*big.Int),
 		0,
-		validatorStatsRootHash,
 	)
 
 	assert.Nil(t, header)
@@ -95,7 +93,6 @@ func TestCreateGenesisBlockFromInitialBalances_NilShardCoordinatorShouldErr(t *t
 		createMockPubkeyConverter(),
 		make(map[string]*big.Int),
 		0,
-		validatorStatsRootHash,
 	)
 
 	assert.Nil(t, header)
@@ -111,7 +108,6 @@ func TestCreateGenesisBlockFromInitialBalances_NilAddressConverterShouldErr(t *t
 		nil,
 		make(map[string]*big.Int),
 		0,
-		validatorStatsRootHash,
 	)
 
 	assert.Nil(t, header)
@@ -127,7 +123,6 @@ func TestCreateGenesisBlockFromInitialBalances_NilBalanceMapShouldErr(t *testing
 		createMockPubkeyConverter(),
 		nil,
 		0,
-		validatorStatsRootHash,
 	)
 
 	assert.Nil(t, header)
@@ -149,7 +144,6 @@ func TestCreateGenesisBlockFromInitialBalances_AccountStateDirtyShouldErr(t *tes
 		createMockPubkeyConverter(),
 		make(map[string]*big.Int),
 		0,
-		validatorStatsRootHash,
 	)
 
 	assert.Nil(t, header)
@@ -180,7 +174,6 @@ func TestCreateGenesisBlockFromInitialBalances_TrieCommitFailsShouldRevert(t *te
 		createMockPubkeyConverter(),
 		balances,
 		0,
-		validatorStatsRootHash,
 	)
 
 	assert.Nil(t, header)
@@ -205,7 +198,6 @@ func TestCreateGenesisBlockFromInitialBalances_AccountsFailShouldErr(t *testing.
 		createMockPubkeyConverter(),
 		balances,
 		0,
-		validatorStatsRootHash,
 	)
 
 	assert.Nil(t, header)
@@ -223,21 +215,19 @@ func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
 		createMockPubkeyConverter(),
 		balances,
 		0,
-		validatorStatsRootHash,
 	)
 
 	assert.Equal(t,
 		&dataBlock.Header{
-			Nonce:                  0,
-			ShardID:                mock.NewOneShardCoordinatorMock().SelfId(),
-			BlockBodyType:          dataBlock.StateBlock,
-			PubKeysBitmap:          []byte{1},
-			Signature:              rootHash,
-			RootHash:               rootHash,
-			PrevRandSeed:           rootHash,
-			RandSeed:               rootHash,
-			ValidatorStatsRootHash: validatorStatsRootHash,
-			AccumulatedFees:        big.NewInt(0),
+			Nonce:           0,
+			ShardID:         mock.NewOneShardCoordinatorMock().SelfId(),
+			BlockBodyType:   dataBlock.StateBlock,
+			PubKeysBitmap:   []byte{1},
+			Signature:       rootHash,
+			RootHash:        rootHash,
+			PrevRandSeed:    rootHash,
+			RandSeed:        rootHash,
+			AccumulatedFees: big.NewInt(0),
 		},
 		header,
 	)

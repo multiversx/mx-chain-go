@@ -480,7 +480,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorHeaders := 1
 	numInterceptorMiniBlocks := noOfShards + 2
 	numInterceptorMetachainHeaders := 1
-	numInterceptorTrieNodes := 2
+	numInterceptorTrieNodes := 3
 	totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
 		numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes
 
@@ -514,5 +514,6 @@ func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactory
 		ValidityAttester:       &mock.ValidityAttesterStub{},
 		EpochStartTrigger:      &mock.EpochStartTriggerStub{},
 		AntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
+		WhiteListHandler:       &mock.WhiteListHandlerStub{},
 	}
 }

@@ -23,7 +23,7 @@ type shardedTxPool struct {
 	mutexBackingMap                  sync.RWMutex
 	backingMap                       map[string]*txPoolShard
 	mutexAddCallbacks                sync.RWMutex
-	onAddCallbacks                   []func(key []byte)
+	onAddCallbacks                   []func(key []byte, value interface{})
 	cacheConfigPrototype             txcache.CacheConfig
 	cacheConfigPrototypeForSelfShard txcache.CacheConfig
 	selfShardID                      uint32
@@ -66,7 +66,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		mutexBackingMap:                  sync.RWMutex{},
 		backingMap:                       make(map[string]*txPoolShard),
 		mutexAddCallbacks:                sync.RWMutex{},
-		onAddCallbacks:                   make([]func(key []byte), 0),
+		onAddCallbacks:                   make([]func(key []byte, value interface{}), 0),
 		cacheConfigPrototype:             cacheConfigPrototype,
 		cacheConfigPrototypeForSelfShard: cacheConfigPrototypeForSelfShard,
 		selfShardID:                      args.SelfShardID,
@@ -163,16 +163,16 @@ func (txPool *shardedTxPool) addTx(tx *txcache.WrappedTransaction, cacheID strin
 	cache := shard.Cache
 	_, added := cache.AddTx(tx)
 	if added {
-		txPool.onAdded(tx.TxHash)
+		txPool.onAdded(tx.TxHash, tx)
 	}
 }
 
-func (txPool *shardedTxPool) onAdded(txHash []byte) {
+func (txPool *shardedTxPool) onAdded(key []byte, value interface{}) {
 	txPool.mutexAddCallbacks.RLock()
 	defer txPool.mutexAddCallbacks.RUnlock()
 
 	for _, handler := range txPool.onAddCallbacks {
-		go handler(txHash)
+		go handler(key, value)
 	}
 }
 
@@ -273,7 +273,7 @@ func (txPool *shardedTxPool) CreateShardStore(_ string) {
 }
 
 // RegisterHandler registers a new handler to be called when a new transaction is added
-func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte)) {
+func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte, value interface{})) {
 	if handler == nil {
 		log.Error("attempt to register a nil handler")
 		return
@@ -284,7 +284,7 @@ func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte)) {
 	txPool.mutexAddCallbacks.Unlock()
 }
 
-// TotalCount returns the total number of transactions in the pool
+// GetCounts returns the total number of transactions in the pool
 func (txPool *shardedTxPool) GetCounts() counting.Counts {
 	txPool.mutexBackingMap.RLock()
 	defer txPool.mutexBackingMap.RUnlock()

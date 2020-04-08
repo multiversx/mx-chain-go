@@ -690,3 +690,25 @@ func TestHeaderResolver_SetEpochHandlerShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, eh == hdrRes.EpochHandler())
 }
+
+//------ NumPeersToQuery setter and getter
+
+func TestHeaderResolver_SetAndGetNumPeersToQuery(t *testing.T) {
+	t.Parallel()
+
+	expectedIntra := 5
+	expectedCross := 7
+
+	arg := createMockArgHeaderResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		GetNumPeersToQueryCalled: func() (int, int) {
+			return expectedIntra, expectedCross
+		},
+	}
+	hdrRes, _ := resolvers.NewHeaderResolver(arg)
+
+	hdrRes.SetNumPeersToQuery(expectedIntra, expectedCross)
+	actualIntra, actualCross := hdrRes.GetNumPeersToQuery()
+	assert.Equal(t, expectedIntra, actualIntra)
+	assert.Equal(t, expectedCross, actualCross)
+}

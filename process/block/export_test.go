@@ -33,11 +33,10 @@ func (bp *baseProcessor) CheckBlockValidity(
 
 func (bp *baseProcessor) RemoveHeadersBehindNonceFromPools(
 	shouldRemoveBlockBody bool,
-	headersPool dataRetriever.HeadersPool,
 	shardId uint32,
 	nonce uint64,
 ) {
-	bp.removeHeadersBehindNonceFromPools(shouldRemoveBlockBody, headersPool, shardId, nonce)
+	bp.removeHeadersBehindNonceFromPools(shouldRemoveBlockBody, shardId, nonce)
 }
 
 func (sp *shardProcessor) ReceivedMetaBlock(header data.HeaderHandler, metaBlockHash []byte) {
@@ -52,12 +51,12 @@ func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header *block.
 	return sp.getOrderedProcessedMetaBlocksFromHeader(header)
 }
 
-func (sp *shardProcessor) RemoveProcessedMetaBlocksFromPool(processedMetaHdrs []data.HeaderHandler) error {
-	return sp.removeProcessedMetaBlocksFromPool(processedMetaHdrs)
+func (sp *shardProcessor) UpdateCrossShardInfo(processedMetaHdrs []data.HeaderHandler) error {
+	return sp.updateCrossShardInfo(processedMetaHdrs)
 }
 
-func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler) {
-	sp.updateState(finalHeaders)
+func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler, currentHeader *block.Header) {
+	sp.updateState(finalHeaders, currentHeader)
 }
 
 func NewShardProcessorEmptyWith3shards(
@@ -100,9 +99,9 @@ func NewShardProcessorEmptyWith3shards(
 					return nil
 				},
 			},
-			BlockTracker: mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
-			DataPool:     tdp,
-			BlockChain:   blockChain,
+			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
+			DataPool:           tdp,
+			BlockChain:         blockChain,
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
 		},
 
@@ -114,10 +113,6 @@ func NewShardProcessorEmptyWith3shards(
 
 func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, uint32) {
 	return mp.requestShardHeaders(header)
-}
-
-func (mp *metaProcessor) RemoveBlockInfoFromPool(header *block.MetaBlock) error {
-	return mp.removeBlockInfoFromPool(header)
 }
 
 func (mp *metaProcessor) ReceivedShardHeader(header data.HeaderHandler, shardHeaderHash []byte) {

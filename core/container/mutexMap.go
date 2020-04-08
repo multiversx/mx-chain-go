@@ -72,3 +72,15 @@ func (mm *MutexMap) Keys() []interface{} {
 
 	return keys
 }
+
+// Values returns all stored values. The order is not guaranteed
+func (mm *MutexMap) Values() []interface{} {
+	mm.mut.RLock()
+	values := make([]interface{}, 0, len(mm.values))
+	for _, value := range mm.values {
+		values = append(values, value)
+	}
+	mm.mut.RUnlock()
+
+	return values
+}

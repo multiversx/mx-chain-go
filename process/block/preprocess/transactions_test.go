@@ -45,7 +45,7 @@ func initDataPool() *mock.PoolsHolderStub {
 	sdp := &mock.PoolsHolderStub{
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte)) {},
+				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 					return &mock.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -74,7 +74,7 @@ func initDataPool() *mock.PoolsHolderStub {
 		},
 		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte)) {},
+				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 					return &mock.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -103,7 +103,7 @@ func initDataPool() *mock.PoolsHolderStub {
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte)) {},
+				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 					return &mock.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -150,12 +150,12 @@ func initDataPool() *mock.PoolsHolderStub {
 					}
 					return nil, false
 				},
-				RegisterHandlerCalled: func(i func(key []byte)) {},
+				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
 			cs := &mock.CacherStub{}
-			cs.RegisterHandlerCalled = func(i func(key []byte)) {
+			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 			}
 			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
 				if bytes.Equal([]byte("bbb"), key) {
@@ -171,7 +171,7 @@ func initDataPool() *mock.PoolsHolderStub {
 
 				return nil, false
 			}
-			cs.RegisterHandlerCalled = func(i func(key []byte)) {}
+			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {}
 			cs.RemoveCalled = func(key []byte) {}
 			return cs
 		},
@@ -609,7 +609,7 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 				},
 			}
 		},
-		RegisterHandlerCalled: func(i func(key []byte)) {
+		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 		},
 	}
 
@@ -629,7 +629,7 @@ func TestTransactionPreprocessor_ReceivedTransactionShouldEraseRequested(t *test
 	txs.SetMissingTxs(3)
 
 	//received txHash2
-	txs.ReceivedTransaction(txHash2)
+	txs.ReceivedTransaction(txHash2, &txcache.WrappedTransaction{Tx: &transaction.Transaction{}})
 
 	assert.True(t, txs.IsTxHashRequested(txHash1))
 	assert.False(t, txs.IsTxHashRequested(txHash2))

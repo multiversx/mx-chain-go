@@ -33,7 +33,7 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 	rater, _ := rating.NewBlockSigningRater(integrationTests.CreateRatingsData())
 
 	coordinatorFactory := &integrationTests.IndexHashedNodesCoordinatorWithRaterFactory{
-		RaterHandler: rater,
+		PeerAccountListAndRatingHandler: rater,
 	}
 
 	// create map of shard - testNodeProcessors for metachain and shard chain

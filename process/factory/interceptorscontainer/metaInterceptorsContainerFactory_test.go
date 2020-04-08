@@ -426,7 +426,7 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numInterceptorsMiniBlocksForMetachain := noOfShards + 1 + 1
 	numInterceptorsUnsignedTxsForMetachain := noOfShards
 	numInterceptorsRewardsTxsForMetachain := noOfShards
-	numInterceptorsTrieNodes := (noOfShards + 1) * 2
+	numInterceptorsTrieNodes := noOfShards + 2
 	totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain + numInterceptorsTrieNodes +
 		numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain +
 		numInterceptorsRewardsTxsForMetachain
@@ -461,5 +461,6 @@ func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryAr
 		ValidityAttester:       &mock.ValidityAttesterStub{},
 		EpochStartTrigger:      &mock.EpochStartTriggerStub{},
 		AntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
+		WhiteListHandler:       &mock.WhiteListHandlerStub{},
 	}
 }

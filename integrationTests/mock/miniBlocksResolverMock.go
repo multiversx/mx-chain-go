@@ -12,6 +12,24 @@ type MiniBlocksResolverMock struct {
 	ProcessReceivedMessageCalled   func(message p2p.MessageP2P) error
 	GetMiniBlocksCalled            func(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	GetMiniBlocksFromPoolCalled    func(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
+	SetNumPeersToQueryCalled       func(intra int, cross int)
+	GetNumPeersToQueryCalled       func() (int, int)
+}
+
+// SetNumPeersToQuery -
+func (hrm *MiniBlocksResolverMock) SetNumPeersToQuery(intra int, cross int) {
+	if hrm.SetNumPeersToQueryCalled != nil {
+		hrm.SetNumPeersToQueryCalled(intra, cross)
+	}
+}
+
+// GetNumPeersToQuery -
+func (hrm *MiniBlocksResolverMock) GetNumPeersToQuery() (int, int) {
+	if hrm.GetNumPeersToQueryCalled != nil {
+		return hrm.GetNumPeersToQueryCalled()
+	}
+
+	return 2, 2
 }
 
 // RequestDataFromHash -

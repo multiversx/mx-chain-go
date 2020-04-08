@@ -25,6 +25,11 @@ func (dth *dataTriesHolder) Put(key []byte, tr data.Trie) {
 	dth.mutex.Unlock()
 }
 
+// Replace changes a trie pointer to the tries map
+func (dth *dataTriesHolder) Replace(key []byte, tr data.Trie) {
+	dth.Put(key, tr)
+}
+
 // Get returns the trie pointer that is stored in the map at the given key
 func (dth *dataTriesHolder) Get(key []byte) data.Trie {
 	dth.mutex.Lock()
@@ -39,11 +44,24 @@ func (dth *dataTriesHolder) GetAll() []data.Trie {
 	defer dth.mutex.Unlock()
 
 	tries := make([]data.Trie, 0)
-	for key := range dth.tries {
-		tries = append(tries, dth.tries[key])
+	for _, trie := range dth.tries {
+		tries = append(tries, trie)
 	}
 
 	return tries
+}
+
+// GetAllTries returns the tries with key value map
+func (dth *dataTriesHolder) GetAllTries() map[string]data.Trie {
+	dth.mutex.Lock()
+	defer dth.mutex.Unlock()
+
+	copyTries := make(map[string]data.Trie, len(dth.tries))
+	for key, trie := range dth.tries {
+		copyTries[key] = trie
+	}
+
+	return copyTries
 }
 
 // Reset clears the tries map
@@ -53,7 +71,7 @@ func (dth *dataTriesHolder) Reset() {
 	dth.mutex.Unlock()
 }
 
-// IsInterfaceNil returns true if underlying struct is nil
+// IsInterfaceNil returns true if underlying object is nil
 func (dth *dataTriesHolder) IsInterfaceNil() bool {
 	return dth == nil
 }

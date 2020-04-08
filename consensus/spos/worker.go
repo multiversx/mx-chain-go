@@ -7,12 +7,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -32,6 +34,7 @@ type Worker struct {
 	forkDetector       process.ForkDetector
 	keyGenerator       crypto.KeyGenerator
 	marshalizer        marshal.Marshalizer
+	hasher             hashing.Hasher
 	rounder            consensus.Rounder
 	shardCoordinator   sharding.Coordinator
 	singleSigner       crypto.SingleSigner
@@ -58,70 +61,62 @@ type Worker struct {
 	mutReceivedHeadersHandler sync.RWMutex
 
 	antifloodHandler consensus.P2PAntifloodHandler
+	poolAdder        PoolAdder
+}
+
+// WorkerArgs holds the consensus worker arguments
+type WorkerArgs struct {
+	ConsensusService         ConsensusService
+	BlockChain               data.ChainHandler
+	BlockProcessor           process.BlockProcessor
+	Bootstrapper             process.Bootstrapper
+	BroadcastMessenger       consensus.BroadcastMessenger
+	ConsensusState           *ConsensusState
+	ForkDetector             process.ForkDetector
+	KeyGenerator             crypto.KeyGenerator
+	Marshalizer              marshal.Marshalizer
+	Hasher                   hashing.Hasher
+	Rounder                  consensus.Rounder
+	ShardCoordinator         sharding.Coordinator
+	SingleSigner             crypto.SingleSigner
+	SyncTimer                ntp.SyncTimer
+	HeaderSigVerifier        RandSeedVerifier
+	ChainID                  []byte
+	NetworkShardingCollector consensus.NetworkShardingCollector
+	AntifloodHandler         consensus.P2PAntifloodHandler
+	PoolAdder                PoolAdder
 }
 
 // NewWorker creates a new Worker object
-func NewWorker(
-	consensusService ConsensusService,
-	blockChain data.ChainHandler,
-	blockProcessor process.BlockProcessor,
-	bootstrapper process.Bootstrapper,
-	broadcastMessenger consensus.BroadcastMessenger,
-	consensusState *ConsensusState,
-	forkDetector process.ForkDetector,
-	keyGenerator crypto.KeyGenerator,
-	marshalizer marshal.Marshalizer,
-	rounder consensus.Rounder,
-	shardCoordinator sharding.Coordinator,
-	singleSigner crypto.SingleSigner,
-	syncTimer ntp.SyncTimer,
-	headerSigVerifier RandSeedVerifier,
-	chainID []byte,
-	networkShardingCollector consensus.NetworkShardingCollector,
-	antifloodHandler consensus.P2PAntifloodHandler,
-) (*Worker, error) {
+func NewWorker(args *WorkerArgs) (*Worker, error) {
 	err := checkNewWorkerParams(
-		consensusService,
-		blockChain,
-		blockProcessor,
-		bootstrapper,
-		broadcastMessenger,
-		consensusState,
-		forkDetector,
-		keyGenerator,
-		marshalizer,
-		rounder,
-		shardCoordinator,
-		singleSigner,
-		syncTimer,
-		headerSigVerifier,
-		chainID,
-		networkShardingCollector,
-		antifloodHandler,
+		args,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	wrk := Worker{
-		consensusService:         consensusService,
-		blockChain:               blockChain,
-		blockProcessor:           blockProcessor,
-		bootstrapper:             bootstrapper,
-		broadcastMessenger:       broadcastMessenger,
-		consensusState:           consensusState,
-		forkDetector:             forkDetector,
-		keyGenerator:             keyGenerator,
-		marshalizer:              marshalizer,
-		rounder:                  rounder,
-		shardCoordinator:         shardCoordinator,
-		singleSigner:             singleSigner,
-		syncTimer:                syncTimer,
-		headerSigVerifier:        headerSigVerifier,
-		chainID:                  chainID,
+		consensusService:         args.ConsensusService,
+		blockChain:               args.BlockChain,
+		blockProcessor:           args.BlockProcessor,
+		bootstrapper:             args.Bootstrapper,
+		broadcastMessenger:       args.BroadcastMessenger,
+		consensusState:           args.ConsensusState,
+		forkDetector:             args.ForkDetector,
+		keyGenerator:             args.KeyGenerator,
+		marshalizer:              args.Marshalizer,
+		hasher:                   args.Hasher,
+		rounder:                  args.Rounder,
+		shardCoordinator:         args.ShardCoordinator,
+		singleSigner:             args.SingleSigner,
+		syncTimer:                args.SyncTimer,
+		headerSigVerifier:        args.HeaderSigVerifier,
+		chainID:                  args.ChainID,
 		appStatusHandler:         statusHandler.NewNilStatusHandler(),
-		networkShardingCollector: networkShardingCollector,
-		antifloodHandler:         antifloodHandler,
+		networkShardingCollector: args.NetworkShardingCollector,
+		antifloodHandler:         args.AntifloodHandler,
+		poolAdder:                args.PoolAdder,
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
@@ -132,7 +127,7 @@ func NewWorker(
 	wrk.initReceivedMessages()
 
 	// set the limit for the antiflood handler
-	topic := GetConsensusTopicIDFromShardCoordinator(shardCoordinator)
+	topic := GetConsensusTopicIDFromShardCoordinator(args.ShardCoordinator)
 	maxMessagesInARoundPerPeer := wrk.consensusService.GetMaxMessagesInARoundPerPeer()
 	wrk.antifloodHandler.SetMaxMessagesForTopic(topic, maxMessagesInARoundPerPeer)
 
@@ -144,74 +139,67 @@ func NewWorker(
 }
 
 func checkNewWorkerParams(
-	consensusService ConsensusService,
-	blockChain data.ChainHandler,
-	blockProcessor process.BlockProcessor,
-	bootstrapper process.Bootstrapper,
-	broadcastMessenger consensus.BroadcastMessenger,
-	consensusState *ConsensusState,
-	forkDetector process.ForkDetector,
-	keyGenerator crypto.KeyGenerator,
-	marshalizer marshal.Marshalizer,
-	rounder consensus.Rounder,
-	shardCoordinator sharding.Coordinator,
-	singleSigner crypto.SingleSigner,
-	syncTimer ntp.SyncTimer,
-	headerSigVerifier RandSeedVerifier,
-	chainID []byte,
-	networkShardingCollector consensus.NetworkShardingCollector,
-	antifloodHandler consensus.P2PAntifloodHandler,
+	args *WorkerArgs,
 ) error {
-	if check.IfNil(consensusService) {
+	if args == nil {
+		return ErrNilWorkerArgs
+	}
+	if check.IfNil(args.ConsensusService) {
 		return ErrNilConsensusService
 	}
-	if check.IfNil(blockChain) {
+	if check.IfNil(args.BlockChain) {
 		return ErrNilBlockChain
 	}
-	if check.IfNil(blockProcessor) {
+	if check.IfNil(args.BlockProcessor) {
 		return ErrNilBlockProcessor
 	}
-	if check.IfNil(bootstrapper) {
+	if check.IfNil(args.Bootstrapper) {
 		return ErrNilBootstrapper
 	}
-	if check.IfNil(broadcastMessenger) {
+	if check.IfNil(args.BroadcastMessenger) {
 		return ErrNilBroadcastMessenger
 	}
-	if consensusState == nil {
+	if args.ConsensusState == nil {
 		return ErrNilConsensusState
 	}
-	if check.IfNil(forkDetector) {
+	if check.IfNil(args.ForkDetector) {
 		return ErrNilForkDetector
 	}
-	if check.IfNil(keyGenerator) {
+	if check.IfNil(args.KeyGenerator) {
 		return ErrNilKeyGenerator
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return ErrNilMarshalizer
 	}
-	if check.IfNil(rounder) {
+	if check.IfNil(args.Hasher) {
+		return ErrNilHasher
+	}
+	if check.IfNil(args.Rounder) {
 		return ErrNilRounder
 	}
-	if check.IfNil(shardCoordinator) {
+	if check.IfNil(args.ShardCoordinator) {
 		return ErrNilShardCoordinator
 	}
-	if check.IfNil(singleSigner) {
+	if check.IfNil(args.SingleSigner) {
 		return ErrNilSingleSigner
 	}
-	if check.IfNil(syncTimer) {
+	if check.IfNil(args.SyncTimer) {
 		return ErrNilSyncTimer
 	}
-	if check.IfNil(headerSigVerifier) {
+	if check.IfNil(args.HeaderSigVerifier) {
 		return ErrNilHeaderSigVerifier
 	}
-	if len(chainID) == 0 {
+	if len(args.ChainID) == 0 {
 		return ErrInvalidChainID
 	}
-	if check.IfNil(networkShardingCollector) {
+	if check.IfNil(args.NetworkShardingCollector) {
 		return ErrNilNetworkShardingCollector
 	}
-	if check.IfNil(antifloodHandler) {
+	if check.IfNil(args.AntifloodHandler) {
 		return ErrNilAntifloodHandler
+	}
+	if check.IfNil(args.PoolAdder) {
+		return ErrNilPoolAdder
 	}
 
 	return nil
@@ -326,8 +314,19 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	}
 
 	msgType := consensus.MessageType(cnsDta.MsgType)
+	if !wrk.consensusService.IsMessageTypeValid(msgType) {
+		return fmt.Errorf("%w : received message type from consensus topic is invalid: %d",
+			ErrInvalidMessageType,
+			msgType)
+	}
 
-	log.Trace("received from consensus topic",
+	if len(cnsDta.BlockHeaderHash) != core.HashSizeInBytes {
+		return fmt.Errorf("%w : received header hash from consensus topic has an invalid size: %d",
+			ErrInvalidHeaderHashSize,
+			len(cnsDta.BlockHeaderHash))
+	}
+
+	log.Trace("received message from consensus topic",
 		"msg type", wrk.consensusService.GetStringValue(msgType),
 		"from", core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
 		"header hash", cnsDta.BlockHeaderHash,
@@ -342,8 +341,19 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 			logger.DisplayByteSlice(cnsDta.PubKey))
 	}
 
+	if wrk.consensusState.RoundIndex+1 < cnsDta.RoundIndex {
+		log.Trace("received message from consensus topic is for future round",
+			"msg type", wrk.consensusService.GetStringValue(msgType),
+			"from", core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
+			"header hash", cnsDta.BlockHeaderHash,
+			"msg round", cnsDta.RoundIndex,
+			"round", wrk.consensusState.RoundIndex,
+		)
+		return ErrMessageForFutureRound
+	}
+
 	if wrk.consensusState.RoundIndex > cnsDta.RoundIndex {
-		log.Trace("late received from consensus topic",
+		log.Trace("received message from consensus topic is for past round",
 			"msg type", wrk.consensusService.GetStringValue(msgType),
 			"from", core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey)),
 			"header hash", cnsDta.BlockHeaderHash,
@@ -362,8 +372,13 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 
 	go wrk.updateNetworkShardingVals(message, cnsDta)
 
+	isMessageWithBlockBody := wrk.consensusService.IsMessageWithBlockBody(msgType)
 	isMessageWithBlockHeader := wrk.consensusService.IsMessageWithBlockHeader(msgType)
 	isMessageWithBlockBodyAndHeader := wrk.consensusService.IsMessageWithBlockBodyAndHeader(msgType)
+	if isMessageWithBlockBody || isMessageWithBlockBodyAndHeader {
+		wrk.addBlockToPool(cnsDta.GetBody())
+	}
+
 	if isMessageWithBlockHeader || isMessageWithBlockBodyAndHeader {
 		headerHash := cnsDta.BlockHeaderHash
 		header := wrk.blockProcessor.DecodeBlockHeader(cnsDta.Header)
@@ -424,6 +439,22 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	go wrk.executeReceivedMessages(cnsDta)
 
 	return nil
+}
+
+func (wrk *Worker) addBlockToPool(bodyBytes []byte) {
+	bodyHandler := wrk.blockProcessor.DecodeBlockBody(bodyBytes)
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return
+	}
+
+	for _, miniblock := range body.MiniBlocks {
+		hash, err := core.CalculateHash(wrk.marshalizer, wrk.hasher, miniblock)
+		if err != nil {
+			return
+		}
+		wrk.poolAdder.Put(hash, miniblock)
+	}
 }
 
 func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {

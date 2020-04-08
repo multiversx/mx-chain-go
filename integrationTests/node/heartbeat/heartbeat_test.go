@@ -208,18 +208,22 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 	version := "v01"
-	sender, _ := heartbeat.NewSender(
-		messenger,
-		signer,
-		sk,
-		integrationTests.TestMarshalizer,
-		topic,
-		&sharding.OneShardCoordinator{},
-		&mock.PeerTypeProviderStub{},
-		&mock.AppStatusHandlerStub{},
-		version,
-		nodeName,
-	)
+
+	argSender := heartbeat.ArgHeartbeatSender{
+		PeerMessenger:    messenger,
+		SingleSigner:     signer,
+		PrivKey:          sk,
+		Marshalizer:      integrationTests.TestMarshalizer,
+		Topic:            topic,
+		ShardCoordinator: &sharding.OneShardCoordinator{},
+		PeerTypeProvider: &mock.PeerTypeProviderStub{},
+		StatusHandler:    &mock.AppStatusHandlerStub{},
+		VersionNumber:    version,
+		NodeDisplayName:  nodeName,
+		HardforkTrigger:  &mock.HardforkTriggerStub{},
+	}
+
+	sender, _ := heartbeat.NewSender(argSender)
 	return sender, pk
 }
 
@@ -238,13 +242,13 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 			UpdatePeerIdShardIdCalled:   func(pid p2p.PeerID, shardId uint32) {},
 		})
 
-	monitor, _ := heartbeat.NewMonitor(
-		integrationTests.TestMarshalizer,
-		maxDurationPeerUnresponsive,
-		map[uint32][]string{0: {""}},
-		time.Now(),
-		mp,
-		&mock.HeartbeatStorerStub{
+	argMonitor := heartbeat.ArgHeartbeatMonitor{
+		Marshalizer:                 integrationTests.TestMarshalizer,
+		MaxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
+		PubKeysMap:                  map[uint32][]string{0: {""}},
+		GenesisTime:                 time.Now(),
+		MessageHandler:              mp,
+		Storer: &mock.HeartbeatStorerStub{
 			UpdateGenesisTimeCalled: func(genesisTime time.Time) error {
 				return nil
 			},
@@ -261,15 +265,19 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 				return nil
 			},
 		},
-		&mock.PeerTypeProviderStub{},
-		&heartbeat.RealTimer{},
-		&mock.P2PAntifloodHandlerStub{
+		PeerTypeProvider: &mock.PeerTypeProviderStub{},
+		Timer:            &heartbeat.RealTimer{},
+		AntifloodHandler: &mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 				return nil
 			},
 		},
+		HardforkTrigger:      &mock.HardforkTriggerStub{},
+		PeerBlackListHandler: &mock.BlackListHandlerStub{},
 		integrationTests.TestValidatorPubkeyConverter,
-	)
+	}
+
+	monitor, _ := heartbeat.NewMonitor(argMonitor)
 
 	return monitor
 }

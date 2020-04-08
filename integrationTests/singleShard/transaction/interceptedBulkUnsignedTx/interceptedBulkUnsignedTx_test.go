@@ -36,13 +36,13 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 	nodeAddr := "0"
 
 	n := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, nodeAddr)
-	_ = n.Node.Start()
+	n.Node.Start()
 
 	defer func() {
 		_ = n.Node.Stop()
 	}()
 
-	_ = n.Node.P2PBootstrap()
+	_ = n.Messenger.Bootstrap()
 
 	time.Sleep(time.Second)
 
@@ -67,7 +67,7 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 	unsignedTransactions := make([]data.TransactionHandler, 0)
 
 	//wire up handler
-	n.DataPool.UnsignedTransactions().RegisterHandler(func(key []byte) {
+	n.DataPool.UnsignedTransactions().RegisterHandler(func(key []byte, value interface{}) {
 		mut.Lock()
 		defer mut.Unlock()
 

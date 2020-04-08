@@ -395,3 +395,25 @@ func TestBlockBodyResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	assert.Nil(t, gbbRes.RequestDataFromHash(buffRequested, 0))
 	assert.True(t, wasCalled)
 }
+
+//------ NumPeersToQuery setter and getter
+
+func TestGenericBlockBodyResolver_SetAndGetNumPeersToQuery(t *testing.T) {
+	t.Parallel()
+
+	expectedIntra := 5
+	expectedCross := 7
+
+	arg := createMockArgGenericBlockBodyResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		GetNumPeersToQueryCalled: func() (int, int) {
+			return expectedIntra, expectedCross
+		},
+	}
+	gbbRes, _ := resolvers.NewGenericBlockBodyResolver(arg)
+
+	gbbRes.SetNumPeersToQuery(expectedIntra, expectedCross)
+	actualIntra, actualCross := gbbRes.GetNumPeersToQuery()
+	assert.Equal(t, expectedIntra, actualIntra)
+	assert.Equal(t, expectedCross, actualCross)
+}

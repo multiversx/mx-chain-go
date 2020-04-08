@@ -18,5 +18,11 @@ func TestDisabledBlacklistHandler_ShouldNotPanic(t *testing.T) {
 	dbh := &disabledBlacklistHandler{}
 	assert.False(t, check.IfNil(dbh))
 
-	_ = dbh.Has("a")
+	val := dbh.Has("a")
+	assert.False(t, val)
+
+	err := dbh.Add("")
+	assert.Nil(t, err)
+
+	dbh.Sweep()
 }
