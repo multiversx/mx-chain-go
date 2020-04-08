@@ -46,24 +46,27 @@ type scProcessor struct {
 	txTypeHandler process.TxTypeHandler
 	gasHandler    process.GasHandler
 	gasCost       GasCost
+
+	txLogsProcessor process.TransactionLogProcessor
 }
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
 type ArgsNewSmartContractProcessor struct {
-	VmContainer   process.VirtualMachinesContainer
-	ArgsParser    process.ArgumentsParser
-	Hasher        hashing.Hasher
-	Marshalizer   marshal.Marshalizer
-	AccountsDB    state.AccountsAdapter
-	TempAccounts  process.TemporaryAccountsHandler
-	AdrConv       state.AddressConverter
-	Coordinator   sharding.Coordinator
-	ScrForwarder  process.IntermediateTransactionHandler
-	TxFeeHandler  process.TransactionFeeHandler
-	EconomicsFee  process.FeeHandler
-	TxTypeHandler process.TxTypeHandler
-	GasHandler    process.GasHandler
-	GasMap        map[string]map[string]uint64
+	VmContainer     process.VirtualMachinesContainer
+	ArgsParser      process.ArgumentsParser
+	Hasher          hashing.Hasher
+	Marshalizer     marshal.Marshalizer
+	AccountsDB      state.AccountsAdapter
+	TempAccounts    process.TemporaryAccountsHandler
+	AdrConv         state.AddressConverter
+	Coordinator     sharding.Coordinator
+	ScrForwarder    process.IntermediateTransactionHandler
+	TxFeeHandler    process.TransactionFeeHandler
+	EconomicsFee    process.FeeHandler
+	TxTypeHandler   process.TxTypeHandler
+	GasHandler      process.GasHandler
+	TxLogsProcessor process.TransactionLogProcessor
+	GasMap          map[string]map[string]uint64
 }
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
@@ -108,6 +111,9 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.GasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
+	if check.IfNil(args.TxLogsProcessor) {
+		return nil, process.ErrNilTxLogsProcessor
+	}
 
 	sc := &scProcessor{
 		vmContainer:      args.VmContainer,
@@ -123,6 +129,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		economicsFee:     args.EconomicsFee,
 		txTypeHandler:    args.TxTypeHandler,
 		gasHandler:       args.GasHandler,
+		txLogsProcessor:  args.TxLogsProcessor,
 	}
 
 	err := sc.createGasConfig(args.GasMap)
@@ -287,6 +294,12 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	err = sc.scrForwarder.AddIntermediateTransactions(results)
 	if err != nil {
 		log.Debug("AddIntermediateTransactions error", "error", err.Error())
+		return nil
+	}
+
+	err = sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
+	if err != nil {
+		log.Debug("txLogsProcessor.SaveLog() error", "error", err.Error())
 		return nil
 	}
 

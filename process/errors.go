@@ -740,3 +740,9 @@ var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")
 
 // ErrInvalidMetaTransaction signals that meta transaction is invalid
 var ErrInvalidMetaTransaction = errors.New("meta transaction is invalid")
+
+// ErrLogNotFound is the error returned when a transaction has no logs
+var ErrLogNotFound = errors.New("no logs for queried transaction")
+
+// ErrNilTxLogsProcessor is the error returned when a transaction has no logs
+var ErrNilTxLogsProcessor = errors.New("nil transaction logs processor")

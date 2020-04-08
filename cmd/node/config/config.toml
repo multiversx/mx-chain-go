@@ -104,6 +104,18 @@
         MaxBatchSize = 20000
         MaxOpenFiles = 10
 
+[TxLogsStorage]
+    Enabled = false
+    [TxLogsStorage.Cache]
+        Size = 1000
+        Type = "LRU"
+    [TxLogsStorage.DB]
+        FilePath = "Logs"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
         Size = 75000
