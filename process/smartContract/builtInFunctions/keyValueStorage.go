@@ -47,29 +47,22 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 
 	key := input.Arguments[0]
 	oldValue, _ := acntDst.DataTrieTracker().RetrieveValue(key)
-
 	if bytes.Equal(oldValue, value) {
 		return big.NewInt(0), useGas, nil
 	}
 
-	var zero []byte
-	if bytes.Equal(oldValue, zero) {
-		useGas += k.gasConfig.StorePerByte * length
-		if input.GasProvided < useGas {
-			return nil, input.GasProvided, process.ErrNotEnoughGas
-		}
-
-		return big.NewInt(0), useGas, nil
-	}
-	if bytes.Equal(value, zero) {
-		freeGas := metering.GasSchedule().BaseOperationCost.StorePerByte * uint64(len(oldValue))
-		metering.FreeGas(freeGas)
+	lengthChange := uint64(0)
+	lengthOldValue := uint64(len(oldValue))
+	if lengthOldValue < length {
+		lengthChange = length - lengthOldValue
 	}
 
-	useGas := metering.GasSchedule().BaseOperationCost.PersistPerByte * uint64(length)
-	metering.UseGas(useGas)
+	useGas += k.gasConfig.StorePerByte * lengthChange
+	if input.GasProvided < useGas {
+		return nil, input.GasProvided, process.ErrNotEnoughGas
+	}
 
-	return big.NewInt(0), 0, nil
+	return big.NewInt(0), useGas, nil
 }
 
 // IsInterfaceNil return true if underlying object in nil
