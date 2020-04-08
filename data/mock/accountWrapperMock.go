@@ -27,6 +27,15 @@ type AccountWrapMock struct {
 	SetCodeWithJournalCalled     func([]byte) error          `json:"-"`
 }
 
+// SetUserName -
+func (awm *AccountWrapMock) SetUserName(_ []byte) {
+}
+
+// GetUserName -
+func (awm *AccountWrapMock) GetUserName() []byte {
+	return nil
+}
+
 // AddToBalance -
 func (awm *AccountWrapMock) AddToBalance(_ *big.Int) error {
 	return nil
