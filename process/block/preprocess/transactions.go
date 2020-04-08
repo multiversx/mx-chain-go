@@ -1055,7 +1055,7 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 		return nil, err
 	}
 
-	if txs.blockSizeComputation.IsMaxBlockSizeReached(1, len(miniBlockTxs)) {
+	if txs.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlockTxs)) {
 		return nil, process.ErrMaxBlockSizeReached
 	}
 
