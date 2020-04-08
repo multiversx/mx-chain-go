@@ -65,6 +65,8 @@ type baseProcessor struct {
 
 	appStatusHandler       core.AppStatusHandler
 	stateCheckpointModulus uint
+	blockProcessor         blockProcessor
+	txCounter              *transactionCounter
 }
 
 type bootStorerDataArgs struct {
@@ -572,27 +574,26 @@ func (bp *baseProcessor) requestHeaderByShardAndNonce(targetShardID uint32, nonc
 }
 
 func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
-	headersPool := bp.dataPool.Headers()
+	bp.cleanupBlockTrackerPools(headerHandler)
+
 	noncesToFinal := bp.getNoncesToFinal(headerHandler)
 
 	bp.removeHeadersBehindNonceFromPools(
 		true,
-		headersPool,
 		bp.shardCoordinator.SelfId(),
 		bp.forkDetector.GetHighestFinalBlockNonce())
 
 	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
 		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
-			bp.cleanupPoolsForShard(shardID, headersPool, noncesToFinal)
+			bp.cleanupPoolsForShard(shardID, noncesToFinal)
 		}
 	} else {
-		bp.cleanupPoolsForShard(core.MetachainShardId, headersPool, noncesToFinal)
+		bp.cleanupPoolsForShard(core.MetachainShardId, noncesToFinal)
 	}
 }
 
 func (bp *baseProcessor) cleanupPoolsForShard(
 	shardID uint32,
-	headersPool dataRetriever.HeadersPool,
 	noncesToFinal uint64,
 ) {
 	crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToFinal)
@@ -606,7 +607,6 @@ func (bp *baseProcessor) cleanupPoolsForShard(
 
 	bp.removeHeadersBehindNonceFromPools(
 		false,
-		headersPool,
 		shardID,
 		crossNotarizedHeader.GetNonce(),
 	)
@@ -614,7 +614,6 @@ func (bp *baseProcessor) cleanupPoolsForShard(
 
 func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 	shouldRemoveBlockBody bool,
-	headersPool dataRetriever.HeadersPool,
 	shardId uint32,
 	nonce uint64,
 ) {
@@ -622,10 +621,7 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 		return
 	}
 
-	if check.IfNil(headersPool) {
-		return
-	}
-
+	headersPool := bp.dataPool.Headers()
 	nonces := headersPool.Nonces(shardId)
 	for _, nonceFromCache := range nonces {
 		if nonceFromCache >= nonce {
@@ -633,14 +629,15 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 		}
 
 		if shouldRemoveBlockBody {
-			bp.removeBlocksBody(nonceFromCache, shardId, headersPool)
+			bp.removeBlocksBody(nonceFromCache, shardId)
 		}
 
 		headersPool.RemoveHeaderByNonceAndShardId(nonceFromCache, shardId)
 	}
 }
 
-func (bp *baseProcessor) removeBlocksBody(nonce uint64, shardId uint32, headersPool dataRetriever.HeadersPool) {
+func (bp *baseProcessor) removeBlocksBody(nonce uint64, shardId uint32) {
+	headersPool := bp.dataPool.Headers()
 	headers, _, err := headersPool.GetHeadersByNonceAndShardId(nonce, shardId)
 	if err != nil {
 		return
@@ -666,6 +663,11 @@ func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandle
 	}
 
 	err = bp.txCoordinator.RemoveBlockDataFromPool(body)
+	if err != nil {
+		return err
+	}
+
+	err = bp.blockProcessor.removeStartOfEpochBlockDataFromPools(headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
@@ -937,7 +939,6 @@ func (bp *baseProcessor) updateStateStorage(
 	}
 
 	accounts.CancelPrune(rootHash, data.NewRoot)
-
 	if finalHeader.IsStartOfEpochBlock() {
 		log.Debug("trie snapshot", "rootHash", rootHash)
 		accounts.SnapshotState(rootHash)
@@ -1005,5 +1006,30 @@ func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader
 		return currHeader.GetValidatorStatsRootHash(), prevHeader.GetValidatorStatsRootHash()
 	default:
 		return []byte{}, []byte{}
+	}
+}
+
+func (bp *baseProcessor) displayMiniBlocksPool() {
+	miniBlocksPool := bp.dataPool.MiniBlocks()
+
+	for _, hash := range miniBlocksPool.Keys() {
+		value, ok := miniBlocksPool.Get(hash)
+		if !ok {
+			log.Debug("displayMiniBlocksPool: mini block not found", "hash", logger.DisplayByteSlice(hash))
+			continue
+		}
+
+		miniBlock, ok := value.(*block.MiniBlock)
+		if !ok {
+			log.Debug("displayMiniBlocksPool: wrong type assertion", "hash", logger.DisplayByteSlice(hash))
+			continue
+		}
+
+		log.Trace("mini block in pool",
+			"hash", logger.DisplayByteSlice(hash),
+			"type", miniBlock.Type,
+			"sender", miniBlock.SenderShardID,
+			"receiver", miniBlock.ReceiverShardID,
+			"num txs", len(miniBlock.TxHashes))
 	}
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
@@ -31,14 +32,17 @@ func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
 	if arguments.Password == "" {
 		return ErrEmptyPassword
 	}
-	if check.IfNil(arguments.ShardCoordinator) {
-		return core.ErrNilCoordinator
-	}
 	if check.IfNil(arguments.Marshalizer) {
 		return core.ErrNilMarshalizer
 	}
 	if check.IfNil(arguments.Hasher) {
 		return core.ErrNilHasher
+	}
+	if check.IfNil(arguments.NodesCoordinator) {
+		return core.ErrNilNodesCoordinator
+	}
+	if arguments.EpochStartNotifier == nil {
+		return core.ErrNilEpochStartNotifier
 	}
 
 	return nil
@@ -132,7 +136,7 @@ func getTransactionByType(
 	case *smartContractResult.SmartContractResult:
 		return buildSmartContractResult(currentType, txHash, mbHash, blockHash, mb, header)
 	case *rewardTx.RewardTx:
-		return buildRewardTransaction(currentType, txHash, mbHash, blockHash, mb, header)
+		return buildRewardTransaction(currentType, txHash, mbHash, blockHash, mb, header, txStatus)
 	case *receipt.Receipt:
 		return buildReceiptTransaction(currentType, txHash, mbHash, blockHash, mb, header)
 	default:
@@ -162,7 +166,7 @@ func buildTransaction(
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      tx.GasPrice,
 		GasLimit:      tx.GasLimit,
-		Data:          tx.Data,
+		Data:          string(tx.Data),
 		Signature:     hex.EncodeToString(tx.Signature),
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        txStatus,
@@ -190,7 +194,7 @@ func buildSmartContractResult(
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      scr.GasPrice,
 		GasLimit:      scr.GasPrice,
-		Data:          scr.Data,
+		Data:          string(scr.Data),
 		Signature:     "",
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        "Success",
@@ -204,6 +208,7 @@ func buildRewardTransaction(
 	blockHash []byte,
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
+	txStatus string,
 ) *Transaction {
 	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
@@ -213,15 +218,15 @@ func buildRewardTransaction(
 		Round:         rTx.Round,
 		Value:         rTx.Value.String(),
 		Receiver:      hex.EncodeToString(rTx.RcvAddr),
-		Sender:        metachainTpsDocID,
+		Sender:        fmt.Sprintf("%d", core.MetachainShardId),
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      0,
 		GasLimit:      0,
-		Data:          []byte(""),
+		Data:          "",
 		Signature:     "",
 		Timestamp:     time.Duration(header.GetTimeStamp()),
-		Status:        "Success",
+		Status:        txStatus,
 	}
 }
 
@@ -246,9 +251,99 @@ func buildReceiptTransaction(
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      0,
 		GasLimit:      0,
-		Data:          rpt.Data,
+		Data:          string(rpt.Data),
 		Signature:     "",
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        "Success",
 	}
+}
+
+func serializeBulkMiniBlocks(hdrShardID uint32, bulkMbs []*Miniblock) (insert, update bytes.Buffer) {
+	for _, mb := range bulkMbs {
+		if hdrShardID == mb.SenderShardID {
+			//insert miniblock
+			meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, mb.Hash, "_doc", "\n"))
+			serializedData, err := json.Marshal(mb)
+			if err != nil {
+				log.Debug("indexer: marshal",
+					"error", "could not serialize miniblock, will skip indexing",
+					"mb hash", mb.Hash)
+				continue
+			}
+
+			insert = prepareBufferMiniblocks(insert, meta, serializedData)
+
+		} else {
+			// update miniblock
+			meta := []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s" } } %s`, mb.Hash, "\n"))
+			serializedData := []byte(fmt.Sprintf(`{ "doc": { "receiverBlockHash" : "%s" } }`, mb.ReceiverBlockHash))
+
+			update = prepareBufferMiniblocks(update, meta, serializedData)
+		}
+	}
+
+	return
+}
+
+func prepareBufferMiniblocks(buff bytes.Buffer, meta, serializedData []byte) bytes.Buffer {
+	// append a newline for each element
+	serializedData = append(serializedData, "\n"...)
+	buff.Grow(len(meta) + len(serializedData))
+	_, err := buff.Write(meta)
+	if err != nil {
+		log.Warn("elastic search: serialize bulk miniblocks, write meta", "error", err.Error())
+	}
+	_, err = buff.Write(serializedData)
+	if err != nil {
+		log.Warn("elastic search: serialize bulk miniblocks, write serialized miniblock", "error", err.Error())
+	}
+
+	return buff
+}
+
+func serializeBulkTxs(bulk []*Transaction) bytes.Buffer {
+	var buff bytes.Buffer
+	for _, tx := range bulk {
+		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
+		serializedTx, err := json.Marshal(tx)
+		if err != nil {
+			log.Debug("indexer: marshal",
+				"error", "could not serialize transaction, will skip indexing",
+				"tx hash", tx.Hash)
+			continue
+		}
+		// append a newline for each element
+		serializedTx = append(serializedTx, "\n"...)
+
+		buff.Grow(len(meta) + len(serializedTx))
+		_, err = buff.Write(meta)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk tx, write meta", "error", err.Error())
+		}
+		_, err = buff.Write(serializedTx)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk tx, write serialized tx", "error", err.Error())
+		}
+	}
+
+	return buff
+}
+
+func computeSizeOfTxs(marshalizer marshal.Marshalizer, txs map[string]data.TransactionHandler) int {
+	if len(txs) == 0 {
+		return 0
+	}
+
+	txsSize := 0
+	for _, tx := range txs {
+		txBytes, err := marshalizer.Marshal(tx)
+		if err != nil {
+			log.Debug("indexer: marshal transaction", "error", err)
+			continue
+		}
+
+		txsSize += len(txBytes)
+	}
+
+	return txsSize
 }

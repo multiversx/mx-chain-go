@@ -63,3 +63,13 @@ benchmark-arwen:
 	go test -v -count=1 -test.bench 'Benchmark_VmDeployWithFibbonacciAndExecute' -test.run='noruns' ./integrationTests/vm/arwen
 	go test -v -count=1 -test.bench 'Benchmark_VmDeployWithCPUCalculateAndExecute' -test.run='noruns' ./integrationTests/vm/arwen
 	go test -v -count=1 -test.bench 'Benchmark_VmDeployWithStringConcatAndExecute' -test.run='noruns' ./integrationTests/vm/arwen
+
+arwen:
+ifndef ARWEN_PATH
+	$(error ARWEN_PATH is undefined)
+endif
+	go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@$(shell cat go.mod | grep arwen-wasm-vm | sed 's/.* //')
+	# The following commented line may be useful when referencing a non-released version, but a specific commit instead.
+	# go build -o ${ARWEN_PATH} $(shell go env GOPATH)/pkg/mod/github.com/!elrond!network/arwen-wasm-vm@$(shell cat go.mod | grep arwen | sed 's/.*arwen-wasm-vm //')/cmd/arwen
+	go build -o ${ARWEN_PATH} github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen
+	stat ${ARWEN_PATH}

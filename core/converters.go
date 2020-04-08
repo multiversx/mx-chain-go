@@ -122,3 +122,32 @@ func IsUnknownEpochIdentifier(identifier []byte) (bool, error) {
 
 	return false, nil
 }
+
+// CommunicationIdentifierBetweenShards is used to generate the identifier between shardID1 and shardID2
+// identifier is generated such as the first shard from identifier is always smaller or equal than the last
+func CommunicationIdentifierBetweenShards(shardId1 uint32, shardId2 uint32) string {
+	if shardId1 == AllShardId || shardId2 == AllShardId {
+		return ShardIdToString(AllShardId)
+	}
+
+	if shardId1 == shardId2 {
+		return ShardIdToString(shardId1)
+	}
+
+	if shardId1 < shardId2 {
+		return ShardIdToString(shardId1) + ShardIdToString(shardId2)
+	}
+
+	return ShardIdToString(shardId2) + ShardIdToString(shardId1)
+}
+
+// ShardIdToString returns the string according to the shard id
+func ShardIdToString(shardId uint32) string {
+	if shardId == MetachainShardId {
+		return "_META"
+	}
+	if shardId == AllShardId {
+		return "_ALL"
+	}
+	return fmt.Sprintf("_%d", shardId)
+}

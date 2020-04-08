@@ -540,3 +540,25 @@ func TestTxResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 		Value: buff,
 	}, requested)
 }
+
+//------ NumPeersToQuery setter and getter
+
+func TestTxResolver_SetAndGetNumPeersToQuery(t *testing.T) {
+	t.Parallel()
+
+	expectedIntra := 5
+	expectedCross := 7
+
+	arg := createMockArgTxResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		GetNumPeersToQueryCalled: func() (int, int) {
+			return expectedIntra, expectedCross
+		},
+	}
+	txRes, _ := resolvers.NewTxResolver(arg)
+
+	txRes.SetNumPeersToQuery(expectedIntra, expectedCross)
+	actualIntra, actualCross := txRes.GetNumPeersToQuery()
+	assert.Equal(t, expectedIntra, actualIntra)
+	assert.Equal(t, expectedCross, actualCross)
+}

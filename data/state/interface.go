@@ -61,16 +61,16 @@ type AccountHandler interface {
 type PeerAccountHandler interface {
 	GetBLSPublicKey() []byte
 	SetBLSPublicKey([]byte) error
-	GetSchnorrPublicKey() []byte
-	SetSchnorrPublicKey([]byte) error
 	GetRewardAddress() []byte
 	SetRewardAddress([]byte) error
 	GetStake() *big.Int
 	SetStake(*big.Int) error
 	GetAccumulatedFees() *big.Int
-	SetAccumulatedFees(*big.Int)
+	AddToAccumulatedFees(*big.Int)
 	GetJailTime() TimePeriod
 	SetJailTime(TimePeriod)
+	GetList() string
+	GetIndex() uint32
 	GetCurrentShardId() uint32
 	SetCurrentShardId(uint32)
 	GetNextShardId() uint32
@@ -87,11 +87,16 @@ type PeerAccountHandler interface {
 	IncreaseNumSelectedInSuccessBlocks()
 	GetLeaderSuccessRate() SignRate
 	GetValidatorSuccessRate() SignRate
+	GetTotalLeaderSuccessRate() SignRate
+	GetTotalValidatorSuccessRate() SignRate
+	SetListAndIndex(shardID uint32, list string, index uint32)
 	GetRating() uint32
 	SetRating(uint32)
 	GetTempRating() uint32
 	SetTempRating(uint32)
-	ResetAtNewEpoch() error
+	GetConsecutiveProposerMisses() uint32
+	SetConsecutiveProposerMisses(uint322 uint32)
+	ResetAtNewEpoch()
 	AccountHandler
 }
 
@@ -150,6 +155,7 @@ type AccountsAdapter interface {
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
 	GetAllLeaves(rootHash []byte) (map[string][]byte, error)
+	RecreateAllTries(rootHash []byte) (map[string]data.Trie, error)
 	IsInterfaceNil() bool
 }
 
@@ -162,6 +168,7 @@ type JournalEntry interface {
 // TriesHolder is used to store multiple tries
 type TriesHolder interface {
 	Put([]byte, data.Trie)
+	Replace(key []byte, tr data.Trie)
 	Get([]byte) data.Trie
 	GetAll() []data.Trie
 	Reset()

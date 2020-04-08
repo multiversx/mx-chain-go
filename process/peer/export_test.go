@@ -1,8 +1,6 @@
 package peer
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
@@ -15,11 +13,6 @@ func (vs *validatorStatistics) CheckForMissedBlocks(
 	epoch uint32,
 ) error {
 	return vs.checkForMissedBlocks(currentHeaderRound, previousHeaderRound, prevRandSeed, shardId, epoch)
-}
-
-// SaveInitialState -
-func (vs *validatorStatistics) SaveInitialState(stakeValue *big.Int, initialRating uint32, startEpoch uint32) error {
-	return vs.saveInitialState(stakeValue, initialRating, startEpoch)
 }
 
 // GetMatchingPrevShardData -

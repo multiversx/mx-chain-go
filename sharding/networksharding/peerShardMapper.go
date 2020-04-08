@@ -6,6 +6,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -32,8 +33,9 @@ type PeerShardMapper struct {
 
 	mutUpdatePeerIdPublicKey sync.Mutex
 
+	mutEpoch         sync.RWMutex
+	epoch            uint32
 	nodesCoordinator sharding.NodesCoordinator
-	epochHandler     sharding.EpochHandler
 }
 
 // NewPeerShardMapper creates a new peerShardMapper instance
@@ -42,7 +44,7 @@ func NewPeerShardMapper(
 	fallbackPkShard storage.Cacher,
 	fallbackPidShard storage.Cacher,
 	nodesCoordinator sharding.NodesCoordinator,
-	epochHandler sharding.EpochHandler,
+	epochStart uint32,
 ) (*PeerShardMapper, error) {
 
 	if check.IfNil(nodesCoordinator) {
@@ -57,9 +59,6 @@ func NewPeerShardMapper(
 	if check.IfNil(fallbackPidShard) {
 		return nil, sharding.ErrNilCacher
 	}
-	if check.IfNil(epochHandler) {
-		return nil, sharding.ErrNilEpochHandler
-	}
 
 	pkPeerId, err := lrucache.NewCache(peerIdPk.MaxSize())
 	if err != nil {
@@ -72,7 +71,7 @@ func NewPeerShardMapper(
 		fallbackPkShard:  fallbackPkShard,
 		fallbackPidShard: fallbackPidShard,
 		nodesCoordinator: nodesCoordinator,
-		epochHandler:     epochHandler,
+		epoch:            epochStart,
 	}, nil
 }
 
@@ -131,7 +130,11 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid p2p.PeerID) (*co
 		}, nil, false
 	}
 
-	_, shardId, err := psm.nodesCoordinator.GetValidatorWithPublicKey(pkBuff, psm.epochHandler.Epoch())
+	psm.mutEpoch.RLock()
+	epoch := psm.epoch
+	psm.mutEpoch.RUnlock()
+
+	_, shardId, err := psm.nodesCoordinator.GetValidatorWithPublicKey(pkBuff, epoch)
 	if err != nil {
 		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
@@ -276,6 +279,34 @@ func (psm *PeerShardMapper) UpdatePublicKeyShardId(pk []byte, shardId uint32) {
 // UpdatePeerIdShardId updates the fallback search map containing peer IDs and shard IDs
 func (psm *PeerShardMapper) UpdatePeerIdShardId(pid p2p.PeerID, shardId uint32) {
 	psm.fallbackPidShard.HasOrAdd([]byte(pid), shardId)
+}
+
+// EpochStartAction is the method called whenever an action needs to be undertaken in respect to the epoch change
+func (psm *PeerShardMapper) EpochStartAction(hdr data.HeaderHandler) {
+	if check.IfNil(hdr) {
+		log.Warn("nil header on PeerShardMapper.EpochStartAction")
+		return
+	}
+	log.Trace("PeerShardMapper.EpochStartAction event", "epoch", hdr.GetEpoch())
+
+	psm.mutEpoch.Lock()
+	psm.epoch = hdr.GetEpoch()
+	psm.mutEpoch.Unlock()
+}
+
+// EpochStartPrepare is the method called whenever an action needs to be undertaken in respect to the epoch preparation change
+func (psm *PeerShardMapper) EpochStartPrepare(metaHdr data.HeaderHandler, _ data.BodyHandler) {
+	if check.IfNil(metaHdr) {
+		log.Warn("nil header on PeerShardMapper.EpochStartPrepare")
+		return
+	}
+
+	log.Trace("PeerShardMapper.EpochStartPrepare event", "epoch", metaHdr.GetEpoch())
+}
+
+// NotifyOrder returns the notification order of this component
+func (psm *PeerShardMapper) NotifyOrder() uint32 {
+	return core.NetworkShardingOrder
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -344,6 +344,9 @@ var ErrNilUTxDataPool = errors.New("unsigned transactions pool is nil")
 // ErrNilRewardTxDataPool signals that the reward transactions pool is nil
 var ErrNilRewardTxDataPool = errors.New("reward transactions pool is nil")
 
+// ErrNilUnsignedTxDataPool signals that the unsigned transactions pool is nil
+var ErrNilUnsignedTxDataPool = errors.New("unsigned transactions pool is nil")
+
 // ErrNilUTxStorage signals that unsigned transaction storage is nil
 var ErrNilUTxStorage = errors.New("unsigned transactions storage is nil")
 
@@ -537,8 +540,11 @@ var ErrZeroMaxComputableRounds = errors.New("max computable rounds is zero")
 // ErrNilRater signals that nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 
-// ErrNilRatingReader signals that nil rating reader has been provided
-var ErrNilRatingReader = errors.New("nil rating reader")
+// ErrNilRatingReaderSetter signals that a nil rating reader setter has been provided
+var ErrNilRatingReaderSetter = errors.New("nil rating reader setter")
+
+// ErrNilListIndexUpdaterSetter signals that a nil list index updater has been provided
+var ErrNilListIndexUpdaterSetter = errors.New("nil list index updater setter")
 
 // ErrNilNetworkWatcher signals that a nil network watcher has been provided
 var ErrNilNetworkWatcher = errors.New("nil network watcher")
@@ -554,6 +560,15 @@ var ErrMinRatingSmallerThanOne = errors.New("min rating is smaller than one")
 
 // ErrStartRatingNotBetweenMinAndMax signals that the start rating is not between min and max rating
 var ErrStartRatingNotBetweenMinAndMax = errors.New("start rating is not between min and max rating")
+
+// ErrSignedBlocksThresholdNotBetweenZeroAndOne signals that the signed blocks threshold is not between 0 and 1
+var ErrSignedBlocksThresholdNotBetweenZeroAndOne = errors.New("signed blocks threshold is not between 0 and 1")
+
+// ErrConsecutiveMissedBlocksPenaltyLowerThanOne signals that the ConsecutiveMissedBlocksPenalty is lower than 1
+var ErrConsecutiveMissedBlocksPenaltyLowerThanOne = errors.New("consecutive missed blocks penalty lower than 1")
+
+// ErrDecreaseRatingsStepPositive signals that the decrease rating step has a positive value
+var ErrDecreaseRatingsStepPositive = errors.New("decrease rating step has a positive value")
 
 // ErrSCDeployFromSCRIsNotPermitted signals that operation is not permitted
 var ErrSCDeployFromSCRIsNotPermitted = errors.New("it is not permitted to deploy a smart contract from another smart contract cross shard")
@@ -615,6 +630,12 @@ var ErrNilHeaderHandler = errors.New("nil header handler")
 // ErrNilMiniBlocksResolver signals that a nil miniblocks resolver has been provided
 var ErrNilMiniBlocksResolver = errors.New("nil miniblocks resolver")
 
+// ErrNilWhiteListHandler signals that white list handler is nil
+var ErrNilWhiteListHandler = errors.New("nil whitelist handler")
+
+// ErrNilInterceptedDataVerifier signals that intercepted data verifier is nil
+var ErrNilInterceptedDataVerifier = errors.New("nil intercepted data verifier")
+
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
 
@@ -641,12 +662,6 @@ var ErrAccumulatedFeesInEpochDoNotMatch = errors.New("accumulated fees in epoch 
 
 // ErrNilRewardsHandler signals that rewards handler is nil
 var ErrNilRewardsHandler = errors.New("rewards handler is nil")
-
-// ErrNilTotalAccumulatedFeesInEpoch signals that total accumulated fees in epoch is nil
-var ErrNilTotalAccumulatedFeesInEpoch = errors.New("total accumulated fees in epoch is nil")
-
-// ErrEndOfEpochEconomicsDataDoesNotMatch signals that end of epoch data does not match
-var ErrEndOfEpochEconomicsDataDoesNotMatch = errors.New("end of epoch econimics data does not match")
 
 // ErrNilEpochEconomics signals that nil end of epoch econimics was provided
 var ErrNilEpochEconomics = errors.New("nil epoch economics")
@@ -711,8 +726,14 @@ var ErrNilBlockSizeComputationHandler = errors.New("nil block size computation h
 // ErrNilValidatorStatistics signals that a nil validator statistics has been provided
 var ErrNilValidatorStatistics = errors.New("nil validator statistics")
 
-// ErrAddressNotInThisShard signals that the provided address does not belong to current shard
-var ErrAddressNotInThisShard = errors.New("provided address does not belong to current shard")
+// ErrAccountNotFound signals that the account was not found for the provided address
+var ErrAccountNotFound = errors.New("account not found")
+
+// ErrMaxRatingZero signals that maxrating with a value of zero has been provided
+var ErrMaxRatingZero = errors.New("max rating is zero")
+
+// ErrNilValidatorInfos signals that a nil validator infos has been provided
+var ErrNilValidatorInfos = errors.New("nil validator infos")
 
 // ErrNilBlockSizeThrottler signals that block size throttler si nil
 var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")

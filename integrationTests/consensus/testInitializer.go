@@ -51,6 +51,8 @@ import (
 )
 
 const blsConsensusType = "bls"
+const signatureSize = 48
+const publicKeySize = 96
 
 var consensusChainID = []byte("consensus chain ID")
 
@@ -70,9 +72,10 @@ type keyPair struct {
 }
 
 type cryptoParams struct {
-	keyGen       crypto.KeyGenerator
-	keys         map[uint32][]*keyPair
-	singleSigner crypto.SingleSigner
+	keyGen         crypto.KeyGenerator
+	keys           map[uint32][]*keyPair
+	txSingleSigner crypto.SingleSigner
+	singleSigner   crypto.SingleSigner
 }
 
 func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]sharding.Validator {
@@ -81,8 +84,7 @@ func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]shard
 	for shardId, shardNodesPks := range pubKeysMap {
 		shardValidators := make([]sharding.Validator, 0)
 		for i := 0; i < len(shardNodesPks); i++ {
-			address := fmt.Sprintf("addr_%d_%d", shardId, i)
-			v, _ := sharding.NewValidator([]byte(shardNodesPks[i]), []byte(address))
+			v, _ := sharding.NewValidator([]byte(shardNodesPks[i]), 1, uint32(i))
 			shardValidators = append(shardValidators, v)
 		}
 		validatorsMap[shardId] = shardValidators
@@ -126,8 +128,8 @@ func displayAndStartNodes(nodes []*testNode) {
 			hex.EncodeToString(skBuff),
 			hex.EncodeToString(pkBuff),
 		)
-		_ = n.node.Start()
-		_ = n.node.P2PBootstrap()
+		n.node.Start()
+		_ = n.mesenger.Bootstrap()
 	}
 }
 
@@ -229,7 +231,8 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 
 func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *cryptoParams {
 	suite := mcl.NewSuiteBLS12()
-	singleSigner := &ed25519SingleSig.Ed25519Signer{}
+	txSingleSigner := &ed25519SingleSig.Ed25519Signer{}
+	singleSigner := &mclsinglesig.BlsSingleSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 
 	keysMap := make(map[uint32][]*keyPair)
@@ -252,9 +255,10 @@ func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *crypt
 	keysMap[core.MetachainShardId] = keyPairs
 
 	params := &cryptoParams{
-		keys:         keysMap,
-		keyGen:       keyGen,
-		singleSigner: singleSigner,
+		keys:           keysMap,
+		keyGen:         keyGen,
+		txSingleSigner: txSingleSigner,
+		singleSigner:   singleSigner,
 	}
 
 	return params
@@ -262,7 +266,7 @@ func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *crypt
 
 func createHasher(consensusType string) hashing.Hasher {
 	if consensusType == blsConsensusType {
-		return &blake2b.Blake2b{HashSize: 16}
+		return &blake2b.Blake2b{HashSize: 32}
 	}
 	return &blake2b.Blake2b{}
 }
@@ -279,7 +283,7 @@ func createConsensusOnlyNode(
 	pubKeys []crypto.PublicKey,
 	testKeyGen crypto.KeyGenerator,
 	consensusType string,
-	epochStartSubscriber epochStart.EpochStartSubscriber,
+	epochStartRegistrationHandler epochStart.RegistrationHandler,
 ) (
 	*node.Node,
 	p2p.Messenger,
@@ -297,7 +301,6 @@ func createConsensusOnlyNode(
 	blockProcessor := &mock.BlockProcessorMock{
 		ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 			_ = blockChain.SetCurrentBlockHeader(header)
-			_ = blockChain.SetCurrentBlockBody(body)
 			return nil
 		},
 		RevertAccountStateCalled: func(header data.HeaderHandler) {
@@ -310,15 +313,17 @@ func createConsensusOnlyNode(
 			mrsTxs := make(map[string][][]byte)
 			return mrsData, mrsTxs, nil
 		},
-		CreateNewHeaderCalled: func(round uint64) data.HeaderHandler {
-			return &dataBlock.Header{}
+		CreateNewHeaderCalled: func(round uint64, nonce uint64) data.HeaderHandler {
+			return &dataBlock.Header{
+				Round: round,
+				Nonce: nonce,
+			}
 		},
 	}
 
 	blockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		blockProcessor.NrCommitBlockCalled++
 		_ = blockChain.SetCurrentBlockHeader(header)
-		_ = blockChain.SetCurrentBlockBody(body)
 		return nil
 	}
 	blockProcessor.Marshalizer = testMarshalizer
@@ -429,9 +434,10 @@ func createConsensusOnlyNode(
 		node.WithDataStore(createTestStore()),
 		node.WithResolversFinder(resolverFinder),
 		node.WithConsensusType(consensusType),
-		node.WithBlackListHandler(&mock.BlackListHandlerStub{}),
+		node.WithBlockBlackListHandler(&mock.BlackListHandlerStub{}),
+		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithEpochStartTrigger(epochStartTrigger),
-		node.WithEpochStartSubscriber(epochStartSubscriber),
+		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
 		node.WithNetworkShardingCollector(mock.NewNetworkShardingCollectorMock()),
 		node.WithBootStorer(&mock.BoostrapStorerMock{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
@@ -441,6 +447,8 @@ func createConsensusOnlyNode(
 		node.WithUint64ByteSliceConverter(&mock.Uint64ByteSliceConverterMock{}),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
+		node.WithSignatureSize(signatureSize),
+		node.WithPublicKeySize(publicKeySize),
 	)
 
 	if err != nil {
@@ -479,16 +487,17 @@ func createNodes(
 
 		kp := cp.keys[0][i]
 		shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(1), uint32(0))
-		epochStartSubscriber := &mock.EpochStartNotifierStub{}
+		epochStartRegistrationHandler := &mock.EpochStartNotifierStub{}
 		bootStorer := integrationTests.CreateMemUnit()
 		consensusCache, _ := lrucache.NewCache(10000)
 
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: consensusSize,
 			MetaConsensusGroupSize:  1,
+			Marshalizer:             integrationTests.TestMarshalizer,
 			Hasher:                  createHasher(consensusType),
 			Shuffler:                nodeShuffler,
-			EpochStartSubscriber:    epochStartSubscriber,
+			EpochStartNotifier:      epochStartRegistrationHandler,
 			BootStorer:              bootStorer,
 			NbShards:                1,
 			EligibleNodes:           eligibleMap,
@@ -510,7 +519,7 @@ func createNodes(
 			pubKeys,
 			cp.keyGen,
 			consensusType,
-			epochStartSubscriber,
+			epochStartRegistrationHandler,
 		)
 
 		testNodeObject.node = n

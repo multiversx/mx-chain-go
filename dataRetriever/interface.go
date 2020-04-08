@@ -58,6 +58,8 @@ type ResolverThrottler interface {
 type Resolver interface {
 	RequestDataFromHash(hash []byte, epoch uint32) error
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	SetNumPeersToQuery(intra int, cross int)
+	GetNumPeersToQuery() (int, int)
 	IsInterfaceNil() bool
 }
 
@@ -83,6 +85,8 @@ type TopicResolverSender interface {
 	Send(buff []byte, peer p2p.PeerID) error
 	RequestTopic() string
 	TargetShardID() uint32
+	SetNumPeersToQuery(intra int, cross int)
+	GetNumPeersToQuery() (int, int)
 	IsInterfaceNil() bool
 }
 
@@ -104,6 +108,7 @@ type ResolversFinder interface {
 	IntraShardResolver(baseTopic string) (Resolver, error)
 	MetaChainResolver(baseTopic string) (Resolver, error)
 	CrossShardResolver(baseTopic string, crossShard uint32) (Resolver, error)
+	MetaCrossShardResolver(baseTopic string, crossShard uint32) (Resolver, error)
 }
 
 // ResolversContainerFactory defines the functionality to create a resolvers container
@@ -176,7 +181,7 @@ type DataRetriever interface {
 
 // Notifier defines a way to register funcs that get called when something useful happens
 type Notifier interface {
-	RegisterHandler(func(key []byte))
+	RegisterHandler(func(key []byte, value interface{}))
 	IsInterfaceNil() bool
 }
 
@@ -297,5 +302,12 @@ type RequestedItemsHandler interface {
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
 	CanProcessMessagesOnTopic(peer p2p.PeerID, topic string, numMessages uint32) error
+	IsInterfaceNil() bool
+}
+
+// WhiteListHandler is the interface needed to add whitelisted data
+type WhiteListHandler interface {
+	Remove(keys [][]byte)
+	Add(keys [][]byte)
 	IsInterfaceNil() bool
 }

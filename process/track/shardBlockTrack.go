@@ -28,12 +28,12 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 
 	maxNumHeadersToKeepPerShard := arguments.PoolsHolder.Headers().MaxSize()
 
-	crossNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator, maxNumHeadersToKeepPerShard)
+	crossNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
-	selfNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator, maxNumHeadersToKeepPerShard)
+	selfNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -169,4 +169,8 @@ func (sbt *shardBlockTrack) ComputeNumPendingMiniBlocks(headers []data.HeaderHan
 			"shard", shardID,
 			"num", sbt.blockBalancer.GetNumPendingMiniBlocks(shardID))
 	}
+
+	log.Debug("pending miniblocks",
+		"shard", core.AllShardId,
+		"num", sbt.blockBalancer.GetNumPendingMiniBlocks(core.AllShardId))
 }

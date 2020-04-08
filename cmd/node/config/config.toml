@@ -7,6 +7,10 @@
    # by the validator statistics processor
    MaxComputableRounds = 100
 
+   # StartInEpochEnabled represents that the fast bootstrap mechanism from the network is enabled if data is not
+   # available in local disk
+   StartInEpochEnabled = true
+
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
    Enabled = true
@@ -219,6 +223,10 @@
     Size = 50000
     Type = "LRU"
 
+[WhiteListPool]
+    Size = 100000
+    Type = "LRU"
+
 [UnsignedTransactionDataPool]
     Size = 75000
     Type = "LRU"
@@ -291,10 +299,12 @@
 [Address]
     Length = 32
     Prefix = "0x"
+    SignatureLength = 0
 
 [BLSPublicKey]
     Length = 96
     Prefix = "0x"
+    SignatureLength = 48
 
 [Hasher]
    Type = "blake2b"
@@ -302,8 +312,8 @@
 [MultisigHasher]
    Type = "blake2b"
 
-# The main marshalizer, used in internod communication
-# Type idenftifies the marshalizer
+# The main marshalizer, used in internodes communication
+# Type identifies the marshalizer
 # SizeCheckDelta the maximum allow drift between the input data buffer and
 #     the reencoded version (in percents).
 #     0 disables the feature.
@@ -311,11 +321,11 @@
    Type = "gogo protobuf"
    SizeCheckDelta = 0
 
-# The marshalizer used for smartcontracts data exchage
+# The marshalizer used for smartcontracts data exchange
 [VmMarshalizer]
    Type = "json"
 
-# The marshalizer used in transction signing
+# The marshalizer used in transaction signing
 [TxSignMarshalizer]
    Type = "json"
 
@@ -367,5 +377,18 @@
     PeerStatePruningEnabled = true
 
 [BlockSizeThrottleConfig]
+    #TODO fix MinSizeInBytes when executing large cross-shard miniblocks
     MinSizeInBytes = 943718 # 943718 is 90% from 1MB or 104857 is 10% from 1MB
     MaxSizeInBytes = 943718 # 943718 is 90% from 1MB
+
+[VirtualMachineConfig]
+    OutOfProcessEnabled = true
+    [VirtualMachineConfig.OutOfProcessConfig]
+        LogsMarshalizer = "json"
+        MessagesMarshalizer = "json"
+        MaxLoopTime = 1000
+
+[Hardfork]
+    EnableTrigger = true
+    EnableTriggerFromP2P = true
+    PublicKeyToListenFrom = "b5ea539180627040b2703cabde8ebece0ded59a0c9d2d4a8a73a299fb7bc11d36ac3d1a620501c230059cffa983a7419d192a50ca55ed8aa07254658dda27aba1e54f50fd7cfbb9e66ce1715d72f9c1b0b05272388f9825742161a211debff15"

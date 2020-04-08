@@ -472,7 +472,7 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 	_, found := netMes.topics[name]
 	if found {
 		netMes.mutTopics.Unlock()
-		return p2p.ErrTopicAlreadyExists
+		return nil
 	}
 
 	//TODO investigate if calling Subscribe on the pubsub impl does exactly the same thing as Topic.Subscribe
@@ -603,7 +603,28 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	return nil
 }
 
-// UnregisterMessageProcessor registers a message processes on a topic
+// UnregisterAllMessageProcessors will unregister all message processors for topics
+func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
+	netMes.mutTopics.Lock()
+	defer netMes.mutTopics.Unlock()
+
+	for topic, validator := range netMes.topics {
+		if validator == nil {
+			return p2p.ErrTopicValidatorOperationNotSupported
+		}
+
+		err := netMes.pb.UnregisterTopicValidator(topic)
+		if err != nil {
+			return err
+		}
+
+		netMes.topics[topic] = nil
+	}
+
+	return nil
+}
+
+// UnregisterMessageProcessor unregisters a message processes on a topic
 func (netMes *networkMessenger) UnregisterMessageProcessor(topic string) error {
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()

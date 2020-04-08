@@ -3,17 +3,16 @@ package mock
 // ValidatorMock -
 type ValidatorMock struct {
 	pubKey  []byte
-	address []byte
+	chances uint32
+	index   uint32
 
-	PubKeyCalled  func() []byte
-	AddressCalled func() []byte
+	PubKeyCalled func() []byte
 }
 
 // NewValidatorMock -
-func NewValidatorMock(pubkey []byte, address []byte) *ValidatorMock {
+func NewValidatorMock(pubkey []byte) *ValidatorMock {
 	return &ValidatorMock{
-		pubKey:  pubkey,
-		address: address,
+		pubKey: pubkey,
 	}
 }
 
@@ -25,10 +24,12 @@ func (vm *ValidatorMock) PubKey() []byte {
 	return vm.pubKey
 }
 
-// Address -
-func (vm *ValidatorMock) Address() []byte {
-	if vm.AddressCalled != nil {
-		return vm.AddressCalled()
-	}
-	return vm.address
+// Chances -
+func (vm *ValidatorMock) Chances() uint32 {
+	return vm.chances
+}
+
+// Chances -
+func (vm *ValidatorMock) Index() uint32 {
+	return vm.index
 }

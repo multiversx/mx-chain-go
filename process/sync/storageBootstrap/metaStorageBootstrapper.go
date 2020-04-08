@@ -14,7 +14,7 @@ type metaStorageBootstrapper struct {
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 }
 
-// NewMetaStorageBootstrapper is method used to create a nes storage bootstrapper
+// NewMetaStorageBootstrapper is method used to create a new storage bootstrapper
 func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaStorageBootstrapper, error) {
 	err := checkMetaStorageBootstrapperArgs(arguments)
 	if err != nil {
@@ -82,10 +82,6 @@ func (msb *metaStorageBootstrapper) getHeader(hash []byte) (data.HeaderHandler, 
 	return process.GetMetaHeaderFromStorage(hash, msb.marshalizer, msb.store)
 }
 
-func (msb *metaStorageBootstrapper) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	return &block.Body{}, nil
-}
-
 func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte) {
 	log.Debug("cleanup notarized storage")
 
@@ -111,7 +107,7 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 		}
 
 		log.Debug("removing shard header from ShardHdrNonceHashDataUnit storage",
-			"shradId", shardHeader.GetShardID(),
+			"shardId", shardHeader.GetShardID(),
 			"nonce", shardHeader.GetNonce(),
 			"hash", shardHeaderHash)
 
@@ -121,7 +117,7 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 		err = storer.Remove(nonceToByteSlice)
 		if err != nil {
 			log.Debug("shard header was not removed from ShardHdrNonceHashDataUnit storage",
-				"shradId", shardHeader.GetShardID(),
+				"shardId", shardHeader.GetShardID(),
 				"nonce", shardHeader.GetNonce(),
 				"hash", shardHeaderHash,
 				"error", err.Error())
@@ -129,7 +125,7 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 	}
 }
 
-func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHeadersHashes [][]byte) ([]data.HeaderHandler, error) {
+func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(_ [][]byte) ([]data.HeaderHandler, error) {
 	selfNotarizedHeaders := make([]data.HeaderHandler, 0)
 	return selfNotarizedHeaders, nil
 }

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -18,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
+func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -34,8 +33,8 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
-	_ = nRequester.Node.Start()
-	_ = nResolver.Node.Start()
+	nRequester.Node.Start()
+	nResolver.Node.Start()
 	defer func() {
 		_ = nRequester.Node.Stop()
 		_ = nResolver.Node.Stop()
@@ -50,8 +49,8 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 
 	buffPk1, _ := nRequester.OwnAccount.SkTxSign.GeneratePublic().ToByteArray()
 
-	valMinting := big.NewInt(100000)
-	integrationTests.CreateMintingForSenders([]*integrationTests.TestProcessorNode{nRequester}, 0, []crypto.PrivateKey{nRequester.OwnAccount.SkTxSign}, valMinting)
+	//minting the sender is no longer required as the requests are whitelisted
+
 	//Step 1. Generate a signed transaction
 	txData := "tx notarized data"
 	//TODO change here when gas limit will no longer be linear with the tx data length
@@ -71,14 +70,12 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 	tx.Signature, _ = signer.Sign(nRequester.OwnAccount.SkTxSign, txBuff)
 	signedTxBuff, _ := integrationTests.TestMarshalizer.Marshal(&tx)
 
-	fmt.Printf("Transaction: %#v\n%#v\n", tx, string(signedTxBuff))
-
 	chanDone := make(chan bool)
 
 	txHash := integrationTests.TestHasher.Compute(string(signedTxBuff))
 
 	//step 2. wire up a received handler for requester
-	nRequester.DataPool.Transactions().RegisterHandler(func(key []byte) {
+	nRequester.DataPool.Transactions().RegisterHandler(func(key []byte, value interface{}) {
 		txStored, _ := nRequester.DataPool.Transactions().ShardDataStore(
 			process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
 		).Get(key)
@@ -98,9 +95,8 @@ func TestNode_RequestInterceptTransactionWithMessenger(t *testing.T) {
 		process.ShardCacherIdentifier(nRequester.ShardCoordinator.SelfId(), nRequester.ShardCoordinator.SelfId()),
 	)
 
-	//Step 4. request tx
-	txResolver, _ := nRequester.ResolverFinder.IntraShardResolver(factory.TransactionTopic)
-	err = txResolver.RequestDataFromHash(txHash, 0)
+	//Step 4. request tx through request handler that will whitelist the hash
+	nRequester.RequestHandler.RequestTransaction(0, [][]byte{txHash})
 	assert.Nil(t, err)
 
 	select {
@@ -126,8 +122,8 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
-	_ = nRequester.Node.Start()
-	_ = nResolver.Node.Start()
+	nRequester.Node.Start()
+	nResolver.Node.Start()
 	defer func() {
 		_ = nRequester.Node.Stop()
 		_ = nResolver.Node.Stop()
@@ -152,14 +148,12 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 
 	marshaledTxBuff, _ := integrationTests.TestMarshalizer.Marshal(&tx)
 
-	fmt.Printf("Transaction: %v\n%v\n", tx, string(marshaledTxBuff))
-
 	chanDone := make(chan bool)
 
 	txHash := integrationTests.TestHasher.Compute(string(marshaledTxBuff))
 
 	//step 2. wire up a received handler for requester
-	nRequester.DataPool.RewardTransactions().RegisterHandler(func(key []byte) {
+	nRequester.DataPool.RewardTransactions().RegisterHandler(func(key []byte, value interface{}) {
 		rewardTxStored, _ := nRequester.DataPool.RewardTransactions().ShardDataStore(
 			process.ShardCacherIdentifier(core.MetachainShardId, nRequester.ShardCoordinator.SelfId()),
 		).Get(key)

@@ -1,6 +1,6 @@
 language: go
 
-go: 1.13
+go: "1.13"
 
 os:
 - linux
@@ -14,9 +14,10 @@ osx_image: xcode11.3
 
 before_script:
 - APP_VER=$(git describe --tags --long --dirty)
+- APP_VER_SHORT=$(git describe --tags)
 - GOOS=$(go env GOOS)
 - GOARCH=$(go env GOARCH)
-- ARCHIVE="elrond_""$APP_VER""_""$GOOS""_""$GOARCH"".tgz"
+- ARCHIVE="elrond_""$APP_VER_SHORT""_""$GOOS""_""$GOARCH"".tgz"
 
 script:
 - ERD_PACKAGE=node
@@ -25,6 +26,28 @@ script:
 - ERD_PACKAGE=keygenerator
 - cd $TRAVIS_BUILD_DIR/cmd/$ERD_PACKAGE
 - go build -o "$TRAVIS_BUILD_DIR/build/$ERD_PACKAGE" -a -i -ldflags="-X main.appVersion=$APP_VER"
+- ERD_PACKAGE=logviewer
+- cd $TRAVIS_BUILD_DIR/cmd/$ERD_PACKAGE
+- go build -o "$TRAVIS_BUILD_DIR/build/$ERD_PACKAGE" -a -i -ldflags="-X main.appVersion=$APP_VER"
+- ERD_PACKAGE=termui
+- cd $TRAVIS_BUILD_DIR/cmd/$ERD_PACKAGE
+- go build -o "$TRAVIS_BUILD_DIR/build/$ERD_PACKAGE" -a -i -ldflags="-X main.appVersion=$APP_VER"
+- cd $TRAVIS_BUILD_DIR 
+- ARWEN_PATH=$TRAVIS_BUILD_DIR/build/arwen make arwen
+
+- GOOS=$(go env GOOS)
+- GOARCH=$(go env GOARCH)
+- cd $TRAVIS_BUILD_DIR
+- ARWEN_VERSION=$(cat go.mod | grep arwen | sed 's/^.*arwen-wasm-vm *//')
+- if [[ "$GOOS" == linux && "$GOARCH" == amd64 ]]; then
+    cp -f $GOPATH/pkg/mod/github.com/\!elrond\!network/arwen-wasm-vm@$ARWEN_VERSION/wasmer/libwasmer_linux_amd64.so $TRAVIS_BUILD_DIR/build;
+  fi
+- if [[ "$GOOS" == linux && "$GOARCH" == arm64 ]]; then
+    cp -f $GOPATH/pkg/mod/github.com/\!elrond\!network/arwen-wasm-vm@$ARWEN_VERSION/wasmer/libwasmer_linux_arm64.so $TRAVIS_BUILD_DIR/build;
+  fi
+- if [[ "$GOOS" == darwin && "$GOARCH" == amd64 ]]; then
+    cp -f $GOPATH/pkg/mod/github.com/\!elrond\!network/arwen-wasm-vm@$ARWEN_VERSION/wasmer/libwasmer_darwin_amd64.dylib $TRAVIS_BUILD_DIR/build;
+  fi
 
 before_deploy:
 - cd "$TRAVIS_BUILD_DIR/build"

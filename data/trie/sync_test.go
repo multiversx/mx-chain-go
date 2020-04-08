@@ -1,6 +1,7 @@
 package trie_test
 
 import (
+	"context"
 	"io/ioutil"
 	"math/rand"
 	"strconv"
@@ -58,8 +59,8 @@ func TestTrieSyncer_StartSyncing(t *testing.T) {
 	nrRequests := 0
 	expectedRequests := 3
 
-	resolver := &mock.TrieNodesResolverStub{
-		RequestDataFromHashCalled: func(hash []byte) error {
+	resolver := &mock.RequestHandlerStub{
+		RequestTrieNodesCalled: func(shardId uint32, hash []byte, topic string) {
 			requestedNode := interceptedNodes[nodesIndex]
 			for i := nodesIndex; i < nodesIndex+nrNodesToSend; i++ {
 				interceptedNodesCacher.Put(interceptedNodes[i].Hash(), interceptedNodes[i])
@@ -69,16 +70,18 @@ func TestTrieSyncer_StartSyncing(t *testing.T) {
 			interceptedNodesCacher.Put(requestedNode.Hash(), requestedNode)
 			nodesIndex += nrNodesToSend
 			nrRequests++
-
-			return nil
 		},
 	}
 
 	rootHash, _ := syncTrie.Root()
-	sync, _ := trie.NewTrieSyncer(resolver, interceptedNodesCacher, tr, 10*time.Second)
+	sync, _ := trie.NewTrieSyncer(resolver, interceptedNodesCacher, tr, 0, "trie")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
-	_ = sync.StartSyncing(rootHash)
+	err := sync.StartSyncing(rootHash, ctx)
+
+	cancel()
 	newTrieRootHash, _ := tr.Root()
+	assert.Nil(t, err)
 	assert.Equal(t, rootHash, newTrieRootHash)
 	assert.Equal(t, expectedRequests, nrRequests)
 }

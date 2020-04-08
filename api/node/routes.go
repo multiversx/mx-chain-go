@@ -47,11 +47,25 @@ type shardStatisticsResponse struct {
 
 // Routes defines node related routes
 func Routes(router *gin.RouterGroup) {
+	router.GET("/epoch", EpochData)
 	router.GET("/heartbeatstatus", HeartbeatStatus)
 	router.GET("/statistics", Statistics)
 	router.GET("/status", StatusMetrics)
 	router.GET("/p2pstatus", P2pStatusMetrics)
 	// placeholder for custom routes
+}
+
+// EpochData returns data about current epoch
+func EpochData(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		return
+	}
+
+	epochMetrics := ef.StatusMetrics().EpochMetrics()
+
+	c.JSON(http.StatusOK, gin.H{"epochData": epochMetrics})
 }
 
 // HeartbeatStatus respond with the heartbeat status of the node

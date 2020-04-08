@@ -9,13 +9,14 @@ import (
 
 func Test_SOL_002(t *testing.T) {
 	context := arwen.SetupTestContext(t)
+	defer context.Close()
 
 	owner := &context.Owner
 	alice := &context.Alice
 	bob := &context.Bob
 	carol := &context.Carol
 
-	context.DeploySC("../testdata/erc20/0-0-2.wasm", "")
+	context.DeploySC("../testdata/erc20-solidity-002/0-0-2.wasm", "")
 
 	// Initial tokens and allowances
 	context.ExecuteSC(owner, "transfer(address,uint256)@"+alice.AddressHex()+"@"+arwen.FormatHexNumber(1000))
@@ -45,12 +46,13 @@ func Test_SOL_002(t *testing.T) {
 
 func Test_SOL_003(t *testing.T) {
 	context := arwen.SetupTestContext(t)
+	defer context.Close()
 
 	owner := &context.Owner
 	alice := &context.Alice
 	bob := &context.Bob
 
-	context.DeploySC("../testdata/erc20/0-0-3.wasm", "")
+	context.DeploySC("../testdata/erc20-solidity-003/0-0-3.wasm", "")
 
 	// Minting
 	context.ExecuteSC(owner, "transfer(address,uint256)@"+alice.AddressHex()+"@"+arwen.FormatHexNumber(1000))
@@ -71,35 +73,36 @@ func Test_SOL_003(t *testing.T) {
 
 func Test_C_001(t *testing.T) {
 	context := arwen.SetupTestContext(t)
+	defer context.Close()
 
 	owner := &context.Owner
 	alice := &context.Alice
 	bob := &context.Bob
 	carol := &context.Carol
 
-	context.DeploySC("../testdata/erc20/wrc20_arwen_03.wasm", arwen.FormatHexNumber(42000))
+	context.DeploySC("../testdata/erc20-c-03/wrc20_arwen.wasm", "00"+arwen.FormatHexNumber(42000))
 
 	// Assertion
 	assert.Equal(t, uint64(42000), context.QuerySCInt("totalSupply", [][]byte{}))
 	assert.Equal(t, uint64(42000), context.QuerySCInt("balanceOf", [][]byte{context.Owner.Address}))
 
 	// Minting
-	context.ExecuteSC(owner, "transferToken@"+alice.AddressHex()+"@"+arwen.FormatHexNumber(1000))
-	context.ExecuteSC(owner, "transferToken@"+bob.AddressHex()+"@"+arwen.FormatHexNumber(1000))
+	context.ExecuteSC(owner, "transferToken@"+alice.AddressHex()+"@00"+arwen.FormatHexNumber(1000))
+	context.ExecuteSC(owner, "transferToken@"+bob.AddressHex()+"@00"+arwen.FormatHexNumber(1000))
 
 	// Regular transfers
-	context.ExecuteSC(alice, "transferToken@"+bob.AddressHex()+"@"+arwen.FormatHexNumber(200))
-	context.ExecuteSC(bob, "transferToken@"+alice.AddressHex()+"@"+arwen.FormatHexNumber(400))
+	context.ExecuteSC(alice, "transferToken@"+bob.AddressHex()+"@00"+arwen.FormatHexNumber(200))
+	context.ExecuteSC(bob, "transferToken@"+alice.AddressHex()+"@00"+arwen.FormatHexNumber(400))
 
 	// Assertion
 	assert.Equal(t, uint64(1200), context.QuerySCInt("balanceOf", [][]byte{alice.Address}))
 	assert.Equal(t, uint64(800), context.QuerySCInt("balanceOf", [][]byte{bob.Address}))
 
 	// Approve and transfer
-	context.ExecuteSC(alice, "approve@"+bob.AddressHex()+"@"+arwen.FormatHexNumber(500))
-	context.ExecuteSC(bob, "approve@"+alice.AddressHex()+"@"+arwen.FormatHexNumber(500))
-	context.ExecuteSC(alice, "transferFrom@"+bob.AddressHex()+"@"+carol.AddressHex()+"@"+arwen.FormatHexNumber(25))
-	context.ExecuteSC(bob, "transferFrom@"+alice.AddressHex()+"@"+carol.AddressHex()+"@"+arwen.FormatHexNumber(25))
+	context.ExecuteSC(alice, "approve@"+bob.AddressHex()+"@00"+arwen.FormatHexNumber(500))
+	context.ExecuteSC(bob, "approve@"+alice.AddressHex()+"@00"+arwen.FormatHexNumber(500))
+	context.ExecuteSC(alice, "transferFrom@"+bob.AddressHex()+"@"+carol.AddressHex()+"@00"+arwen.FormatHexNumber(25))
+	context.ExecuteSC(bob, "transferFrom@"+alice.AddressHex()+"@"+carol.AddressHex()+"@00"+arwen.FormatHexNumber(25))
 
 	assert.Equal(t, uint64(1175), context.QuerySCInt("balanceOf", [][]byte{alice.Address}))
 	assert.Equal(t, uint64(775), context.QuerySCInt("balanceOf", [][]byte{bob.Address}))
