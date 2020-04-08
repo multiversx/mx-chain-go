@@ -91,7 +91,6 @@ func createDefaultWorkerArgs() *spos.WorkerArgs {
 		NetworkShardingCollector: createMockNetworkShardingCollector(),
 		AntifloodHandler:         createMockP2PAntifloodHandler(),
 		PoolAdder:                poolAdder,
-		HashSize:                 HashSize,
 		SignatureSize:            SignatureSize,
 		PublicKeySize:            PublicKeySize,
 	}

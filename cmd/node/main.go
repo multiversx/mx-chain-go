@@ -1545,9 +1545,8 @@ func createNode(
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithWhiteListHanlder(whiteListHandler),
-		node.WithHashSize(config.Consensus.HashSizeInBytes),
-		node.WithSignatureSize(config.Consensus.SignatureSizeInBytes),
-		node.WithPublicKeySize(config.Consensus.PublicKeySizeInBytes),
+		node.WithSignatureSize(config.BLSPublicKey.SignatureLength),
+		node.WithPublicKeySize(config.BLSPublicKey.Length),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

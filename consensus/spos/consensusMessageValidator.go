@@ -27,13 +27,13 @@ func (wrk *Worker) checkConsensusMessageValidity(cnsMsg *consensus.Message) erro
 			len(cnsMsg.BlockHeaderHash))
 	}
 
-	if len(cnsMsg.PubKey) != int(wrk.publicKeySize) {
+	if len(cnsMsg.PubKey) != wrk.publicKeySize {
 		return fmt.Errorf("%w : received public key from consensus topic has an invalid size: %d",
 			ErrInvalidPublicKeySize,
 			len(cnsMsg.PubKey))
 	}
 
-	if len(cnsMsg.Signature) != int(wrk.signatureSize) {
+	if len(cnsMsg.Signature) != wrk.signatureSize {
 		return fmt.Errorf("%w : received signature from consensus topic has an invalid size: %d",
 			ErrInvalidSignatureSize,
 			len(cnsMsg.Signature))
@@ -94,7 +94,7 @@ func (wrk *Worker) isBlockHeaderHashSizeValid(cnsMsg *consensus.Message) bool {
 		return cnsMsg.BlockHeaderHash == nil
 	}
 
-	return len(cnsMsg.BlockHeaderHash) == int(wrk.hashSize)
+	return len(cnsMsg.BlockHeaderHash) == wrk.hasher.Size()
 }
 
 func (wrk *Worker) checkConsensusMessageValidityForMessageType(cnsMsg *consensus.Message) error {
@@ -238,7 +238,7 @@ func (wrk *Worker) checkMessageWithSignatureValidity(cnsMsg *consensus.Message) 
 			logger.DisplayByteSlice(cnsMsg.PubKey))
 	}
 
-	if len(cnsMsg.SignatureShare) != int(wrk.signatureSize) {
+	if len(cnsMsg.SignatureShare) != wrk.signatureSize {
 		return fmt.Errorf("%w : received signature share from consensus topic has an invalid size: %d",
 			ErrInvalidSignatureSize,
 			len(cnsMsg.SignatureShare))
@@ -263,19 +263,19 @@ func (wrk *Worker) checkMessageWithFinalInfoValidity(cnsMsg *consensus.Message) 
 			logger.DisplayByteSlice(cnsMsg.PubKey))
 	}
 
-	if len(cnsMsg.PubKeysBitmap) != int(wrk.publicKeyBitmapSize) {
+	if len(cnsMsg.PubKeysBitmap) != wrk.publicKeyBitmapSize {
 		return fmt.Errorf("%w : received public key bitmap from consensus topic has an invalid size: %d",
 			ErrInvalidPublicKeyBitmapSize,
 			len(cnsMsg.PubKeysBitmap))
 	}
 
-	if len(cnsMsg.AggregateSignature) != int(wrk.signatureSize) {
+	if len(cnsMsg.AggregateSignature) != wrk.signatureSize {
 		return fmt.Errorf("%w : received aggregate signature from consensus topic has an invalid size: %d",
 			ErrInvalidSignatureSize,
 			len(cnsMsg.AggregateSignature))
 	}
 
-	if len(cnsMsg.LeaderSignature) != int(wrk.signatureSize) {
+	if len(cnsMsg.LeaderSignature) != wrk.signatureSize {
 		return fmt.Errorf("%w : received leader signature from consensus topic has an invalid size: %d",
 			ErrInvalidSignatureSize,
 			len(cnsMsg.LeaderSignature))

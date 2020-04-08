@@ -296,10 +296,12 @@
 [Address]
     Length = 32
     Prefix = "0x"
+    SignatureLength = 0
 
 [BLSPublicKey]
     Length = 96
     Prefix = "0x"
+    SignatureLength = 48
 
 [Hasher]
    Type = "blake2b"
@@ -358,9 +360,6 @@
 # When consensus type is "bls" the multisig hasher type should be "blake2b"
 [Consensus]
    Type = "bls"
-   HashSizeInBytes = 32
-   SignatureSizeInBytes = 48
-   PublicKeySizeInBytes = 96
 
 [NTPConfig]
    Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com", "time.windows.com"]

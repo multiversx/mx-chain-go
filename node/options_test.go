@@ -1197,23 +1197,11 @@ func TestWithHardforkTrigger_WhiteListHandlerShouldWork(t *testing.T) {
 	assert.True(t, node.whiteListHandler == whiteListHandler)
 }
 
-func TestWithHashSize(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-	hashSize := uint32(32)
-	opt := WithHashSize(hashSize)
-
-	err := opt(node)
-	assert.Equal(t, hashSize, node.hashSize)
-	assert.Nil(t, err)
-}
-
 func TestWithSignatureSize(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
-	signatureSize := uint32(48)
+	signatureSize := 48
 	opt := WithSignatureSize(signatureSize)
 
 	err := opt(node)
@@ -1225,7 +1213,7 @@ func TestWithPublicKeySize(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
-	publicKeySize := uint32(96)
+	publicKeySize := 96
 	opt := WithPublicKeySize(publicKeySize)
 
 	err := opt(node)

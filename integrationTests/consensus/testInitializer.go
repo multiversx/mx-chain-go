@@ -51,7 +51,6 @@ import (
 )
 
 const blsConsensusType = "bls"
-const hashSize = 32
 const signatureSize = 48
 const publicKeySize = 96
 
@@ -450,7 +449,6 @@ func createConsensusOnlyNode(
 		node.WithUint64ByteSliceConverter(&mock.Uint64ByteSliceConverterMock{}),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
-		node.WithHashSize(hashSize),
 		node.WithSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
 	)

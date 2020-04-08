@@ -608,16 +608,8 @@ func WithWhiteListHanlder(whiteListHandler process.WhiteListHandler) Option {
 	}
 }
 
-// WithHashSize sets up a hashSize option for the Node
-func WithHashSize(hashSize uint32) Option {
-	return func(n *Node) error {
-		n.hashSize = hashSize
-		return nil
-	}
-}
-
 // WithSignatureSize sets up a signatureSize option for the Node
-func WithSignatureSize(signatureSize uint32) Option {
+func WithSignatureSize(signatureSize int) Option {
 	return func(n *Node) error {
 		n.signatureSize = signatureSize
 		return nil
@@ -625,7 +617,7 @@ func WithSignatureSize(signatureSize uint32) Option {
 }
 
 // WithPublicKeySize sets up a publicKeySize option for the Node
-func WithPublicKeySize(publicKeySize uint32) Option {
+func WithPublicKeySize(publicKeySize int) Option {
 	return func(n *Node) error {
 		n.publicKeySize = publicKeySize
 		return nil

@@ -38,8 +38,9 @@ type StorageConfig struct {
 
 // AddressConfig will map the json address configuration
 type AddressConfig struct {
-	Length int    `json:"length"`
-	Prefix string `json:"prefix"`
+	Length          int    `json:"length"`
+	Prefix          string `json:"prefix"`
+	SignatureLength int
 }
 
 // TypeConfig will map the json string type configuration
@@ -78,14 +79,6 @@ type EpochStartConfig struct {
 type BlockSizeThrottleConfig struct {
 	MinSizeInBytes uint32
 	MaxSizeInBytes uint32
-}
-
-// ConsensusConfig will hold the configuration of consensus settings
-type ConsensusConfig struct {
-	Type                 string `json:"type"`
-	HashSizeInBytes      uint32
-	SignatureSizeInBytes uint32
-	PublicKeySizeInBytes uint32
 }
 
 // Config will hold the entire application configuration parameters
@@ -135,7 +128,7 @@ type Config struct {
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
-	Consensus       ConsensusConfig
+	Consensus       TypeConfig
 	StoragePruning  StoragePruningConfig
 
 	NTPConfig               NTPConfig
