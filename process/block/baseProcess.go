@@ -67,7 +67,6 @@ type baseProcessor struct {
 	appStatusHandler       core.AppStatusHandler
 	stateCheckpointModulus uint
 	blockProcessor         blockProcessor
-	txCounter              *transactionCounter
 }
 
 type bootStorerDataArgs struct {

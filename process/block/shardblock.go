@@ -32,6 +32,7 @@ type shardProcessor struct {
 	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker
 	core                serviceContainer.Core
 	txsPoolsCleaner     process.PoolsCleaner
+	txCounter           *transactionCounter
 
 	lowestNonceInSelfNotarizedHeaders uint64
 }

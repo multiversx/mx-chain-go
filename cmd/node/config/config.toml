@@ -295,7 +295,7 @@
 
 [AddressPubkeyConverter]
     Length = 32
-    Type = "hex"
+    Type = "bech32"
 
 [ValidatorPubkeyConverter]
     Length = 96
