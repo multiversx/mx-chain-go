@@ -1,10 +1,12 @@
 package epochStart
 
 import (
+	"context"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 )
 
 // TriggerHandler defines the functionalities for an start of epoch trigger
@@ -17,7 +19,7 @@ type TriggerHandler interface {
 	EpochStartMetaHdrHash() []byte
 	GetSavedStateKey() []byte
 	LoadState(key []byte) error
-	SetProcessed(header data.HeaderHandler)
+	SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	SetFinalityAttestingRound(round uint64)
 	EpochFinalityAttestingRound() uint64
 	RevertStateToBlock(header data.HeaderHandler) error
@@ -50,26 +52,29 @@ type RequestHandler interface {
 	RequestShardHeaderByNonce(shardId uint32, nonce uint64)
 	RequestStartOfEpochMetaBlock(epoch uint32)
 	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)
+	RequestInterval() time.Duration
+	SetNumPeersToQuery(key string, intra int, cross int) error
+	GetNumPeersToQuery(key string) (int, int, error)
 	IsInterfaceNil() bool
 }
 
-// EpochStartHandler defines the action taken on epoch start event
-type EpochStartHandler interface {
+// ActionHandler defines the action taken on epoch start event
+type ActionHandler interface {
 	EpochStartAction(hdr data.HeaderHandler)
-	EpochStartPrepare(hdr data.HeaderHandler)
+	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	NotifyOrder() uint32
 }
 
-// EpochStartSubscriber provides Register and Unregister functionality for the end of epoch events
-type EpochStartSubscriber interface {
-	RegisterHandler(handler EpochStartHandler)
-	UnregisterHandler(handler EpochStartHandler)
+// RegistrationHandler provides Register and Unregister functionality for the end of epoch events
+type RegistrationHandler interface {
+	RegisterHandler(handler ActionHandler)
+	UnregisterHandler(handler ActionHandler)
 }
 
-// EpochStartNotifier defines which actions should be done for handling new epoch's events
-type EpochStartNotifier interface {
+// Notifier defines which actions should be done for handling new epoch's events
+type Notifier interface {
 	NotifyAll(hdr data.HeaderHandler)
-	NotifyAllPrepare(hdr data.HeaderHandler)
+	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	IsInterfaceNil() bool
 }
 
@@ -78,5 +83,34 @@ type EpochStartNotifier interface {
 type ValidatorStatisticsProcessorHandler interface {
 	Process(info data.ShardValidatorInfoHandler) error
 	Commit() ([]byte, error)
+	IsInterfaceNil() bool
+}
+
+// HeadersByHashSyncer defines the methods to sync all missing headers by hash
+type HeadersByHashSyncer interface {
+	SyncMissingHeadersByHash(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error
+	GetHeaders() (map[string]data.HeaderHandler, error)
+	ClearFields()
+	IsInterfaceNil() bool
+}
+
+// PendingMiniBlocksSyncHandler defines the methods to sync all pending miniblocks
+type PendingMiniBlocksSyncHandler interface {
+	SyncPendingMiniBlocks(miniBlockHeaders []block.ShardMiniBlockHeader, ctx context.Context) error
+	GetMiniBlocks() (map[string]*block.MiniBlock, error)
+	ClearFields()
+	IsInterfaceNil() bool
+}
+
+// AccountsDBSyncer defines the methods for the accounts db syncer
+type AccountsDBSyncer interface {
+	GetSyncedTries() map[string]data.Trie
+	SyncAccounts(rootHash []byte) error
+	IsInterfaceNil() bool
+}
+
+// StartOfEpochMetaSyncer defines the methods to synchronize epoch start meta block from the network when nothing is known
+type StartOfEpochMetaSyncer interface {
+	SyncEpochStartMeta(waitTime time.Duration) (*block.MetaBlock, error)
 	IsInterfaceNil() bool
 }

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/stretchr/testify/assert"
@@ -210,38 +209,4 @@ func TestMultiShardCoordinator_CommunicationIdentifier(t *testing.T) {
 	selfId := uint32(0)
 	shard, _ := NewMultiShardCoordinator(2, selfId)
 	assert.Equal(t, fmt.Sprintf("_%d_%d", selfId, destId), shard.CommunicationIdentifier(destId))
-}
-
-func TestCommunicationIdentifierBetweenShards(t *testing.T) {
-	//print some shard identifiers and check that they match the current defined pattern
-
-	for shard1 := uint32(0); shard1 < 5; shard1++ {
-		for shard2 := uint32(0); shard2 < 5; shard2++ {
-			identifier := communicationIdentifierBetweenShards(shard1, shard2)
-			fmt.Printf("Shard1: %d, Shard2: %d, identifier: %s\n", shard1, shard2, identifier)
-
-			if shard1 == shard2 {
-				assert.Equal(t, fmt.Sprintf("_%d", shard1), identifier)
-				continue
-			}
-
-			if shard1 < shard2 {
-				assert.Equal(t, fmt.Sprintf("_%d_%d", shard1, shard2), identifier)
-				continue
-			}
-
-			assert.Equal(t, fmt.Sprintf("_%d_%d", shard2, shard1), identifier)
-		}
-	}
-}
-
-func TestCommunicationIdentifierBetweenShards_Metachain(t *testing.T) {
-	//print some shard identifiers and check that they match the current defined pattern
-
-	assert.Equal(t, "_0_META", communicationIdentifierBetweenShards(0, core.MetachainShardId))
-	assert.Equal(t, "_1_META", communicationIdentifierBetweenShards(core.MetachainShardId, 1))
-	assert.Equal(t, "_META", communicationIdentifierBetweenShards(
-		core.MetachainShardId,
-		core.MetachainShardId,
-	))
 }

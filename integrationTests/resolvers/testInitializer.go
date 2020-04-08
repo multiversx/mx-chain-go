@@ -28,8 +28,8 @@ func CreateResolverRequester(
 	nResolver := integrationTests.NewTestProcessorNode(numShards, resolverShardID, txSignShardId, advertiserAddress)
 	nRequester := integrationTests.NewTestProcessorNode(numShards, requesterShardID, txSignShardId, advertiserAddress)
 
-	_ = nRequester.Node.Start()
-	_ = nResolver.Node.Start()
+	nRequester.Node.Start()
+	nResolver.Node.Start()
 
 	time.Sleep(time.Second)
 	err := nRequester.Messenger.ConnectToPeer(integrationTests.GetConnectableAddress(nResolver.Messenger))
@@ -59,17 +59,16 @@ func CreateShardHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte
 			255,
 			255,
 		},
-		ValidatorStatsRootHash: nil,
-		MetaBlockHashes:        nil,
-		EpochStartMetaHash:     nil,
-		ReceiptsHash:           nil,
-		ChainID:                chainID,
-		MiniBlockHeaders:       make([]block.MiniBlockHeader, 0),
-		PeerChanges:            nil,
-		Epoch:                  2,
-		TxCount:                0,
-		ShardID:                0,
-		BlockBodyType:          block.TxBlock,
+		MetaBlockHashes:    nil,
+		EpochStartMetaHash: nil,
+		ReceiptsHash:       nil,
+		ChainID:            chainID,
+		MiniBlockHeaders:   make([]block.MiniBlockHeader, 0),
+		PeerChanges:        nil,
+		Epoch:              2,
+		TxCount:            0,
+		ShardID:            0,
+		BlockBodyType:      block.TxBlock,
 	}
 
 	hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, hdr)

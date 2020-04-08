@@ -7,6 +7,24 @@ type HashSliceResolverStub struct {
 	RequestDataFromHashCalled      func(hash []byte, epoch uint32) error
 	ProcessReceivedMessageCalled   func(message p2p.MessageP2P) error
 	RequestDataFromHashArrayCalled func(hashes [][]byte, epoch uint32) error
+	SetNumPeersToQueryCalled       func(intra int, cross int)
+	GetNumPeersToQueryCalled       func() (int, int)
+}
+
+// SetNumPeersToQuery -
+func (hsrs *HashSliceResolverStub) SetNumPeersToQuery(intra int, cross int) {
+	if hsrs.SetNumPeersToQueryCalled != nil {
+		hsrs.SetNumPeersToQueryCalled(intra, cross)
+	}
+}
+
+// GetNumPeersToQuery -
+func (hsrs *HashSliceResolverStub) GetNumPeersToQuery() (int, int) {
+	if hsrs.GetNumPeersToQueryCalled != nil {
+		return hsrs.GetNumPeersToQueryCalled()
+	}
+
+	return 2, 2
 }
 
 // RequestDataFromHash -

@@ -45,9 +45,9 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 				}
 			},
 		},
-		RequestHandler:         &mock.RequestHandlerStub{},
-		EpochStartNotifier:     &mock.EpochStartNotifierStub{},
-		ValidatorInfoProcessor: &mock.ValidatorInfoProcessorStub{},
+		RequestHandler:       &mock.RequestHandlerStub{},
+		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
+		PeerMiniBlocksSyncer: &mock.ValidatorInfoSyncerStub{},
 	}
 }
 
@@ -205,7 +205,7 @@ func TestNewEpochStartTrigger_NilValidatorInfoProcessorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockShardEpochStartTriggerArguments()
-	args.ValidatorInfoProcessor = nil
+	args.PeerMiniBlocksSyncer = nil
 	epochStartTrigger, err := NewEpochStartTrigger(args)
 
 	assert.Nil(t, epochStartTrigger)
@@ -498,7 +498,7 @@ func TestTrigger_RevertStateToBlockBehindEpochStart(t *testing.T) {
 		EpochStartMetaHash: []byte("metaHash"),
 		Epoch:              3,
 	}
-	et.SetProcessed(epochStartShHdr)
+	et.SetProcessed(epochStartShHdr, nil)
 
 	err := et.RevertStateToBlock(epochStartShHdr)
 	assert.Nil(t, err)
