@@ -21,23 +21,19 @@ func (wrk *Worker) checkConsensusMessageValidity(cnsMsg *consensus.Message) erro
 		return err
 	}
 
-	msgType := consensus.MessageType(cnsMsg.MsgType)
-
-	isBlockHeaderHashSizeInvalid := wrk.consensusService.IsMessageWithBlockBody(msgType) && cnsMsg.BlockHeaderHash != nil ||
-		!wrk.consensusService.IsMessageWithBlockBody(msgType) && len(cnsMsg.BlockHeaderHash) != core.HashSizeInBytes
-	if isBlockHeaderHashSizeInvalid {
+	if !wrk.isBlockHeaderHashSizeValid(cnsMsg) {
 		return fmt.Errorf("%w : received header hash from consensus topic has an invalid size: %d",
 			ErrInvalidHeaderHashSize,
 			len(cnsMsg.BlockHeaderHash))
 	}
 
-	if len(cnsMsg.PubKey) != core.PublicKeySizeInBytes {
+	if len(cnsMsg.PubKey) != int(wrk.publicKeySize) {
 		return fmt.Errorf("%w : received public key from consensus topic has an invalid size: %d",
 			ErrInvalidPublicKeySize,
 			len(cnsMsg.PubKey))
 	}
 
-	if len(cnsMsg.Signature) != core.SignatureSizeInBytes {
+	if len(cnsMsg.Signature) != int(wrk.signatureSize) {
 		return fmt.Errorf("%w : received signature from consensus topic has an invalid size: %d",
 			ErrInvalidSignatureSize,
 			len(cnsMsg.Signature))
@@ -50,6 +46,8 @@ func (wrk *Worker) checkConsensusMessageValidity(cnsMsg *consensus.Message) erro
 			logger.DisplayByteSlice(cnsMsg.PubKey))
 	}
 
+	msgType := consensus.MessageType(cnsMsg.MsgType)
+
 	if wrk.consensusState.RoundIndex+1 < cnsMsg.RoundIndex {
 		log.Trace("received message from consensus topic has a future round",
 			"msg type", wrk.consensusService.GetStringValue(msgType),
@@ -59,7 +57,9 @@ func (wrk *Worker) checkConsensusMessageValidity(cnsMsg *consensus.Message) erro
 			"round", wrk.consensusState.RoundIndex,
 		)
 
-		return ErrMessageForFutureRound
+		return fmt.Errorf("%w : received message from consensus topic has a future round: %d",
+			ErrMessageForFutureRound,
+			cnsMsg.RoundIndex)
 	}
 
 	if wrk.consensusState.RoundIndex > cnsMsg.RoundIndex {
@@ -71,7 +71,9 @@ func (wrk *Worker) checkConsensusMessageValidity(cnsMsg *consensus.Message) erro
 			"round", wrk.consensusState.RoundIndex,
 		)
 
-		return ErrMessageForPastRound
+		return fmt.Errorf("%w : received message from consensus topic has a past round: %d",
+			ErrMessageForPastRound,
+			cnsMsg.RoundIndex)
 	}
 
 	err = wrk.checkSignature(cnsMsg)
@@ -82,6 +84,17 @@ func (wrk *Worker) checkConsensusMessageValidity(cnsMsg *consensus.Message) erro
 	}
 
 	return nil
+}
+
+func (wrk *Worker) isBlockHeaderHashSizeValid(cnsMsg *consensus.Message) bool {
+	msgType := consensus.MessageType(cnsMsg.MsgType)
+	isMessageWithBlockBody := wrk.consensusService.IsMessageWithBlockBody(msgType)
+
+	if isMessageWithBlockBody {
+		return cnsMsg.BlockHeaderHash == nil
+	}
+
+	return len(cnsMsg.BlockHeaderHash) == int(wrk.hashSize)
 }
 
 func (wrk *Worker) checkConsensusMessageValidityForMessageType(cnsMsg *consensus.Message) error {
@@ -119,13 +132,15 @@ func (wrk *Worker) checkMessageWithBlockBodyAndHeaderValidity(cnsMsg *consensus.
 		cnsMsg.LeaderSignature != nil
 
 	if isMessageInvalid {
-		return fmt.Errorf("%w : received message from consensus topic is invalid: "+
-			"SignatureShare = %s PubKeysBitmap = %s AggregateSignature = %s LeaderSignature = %s",
+		log.Trace("received message from consensus topic is invalid",
+			"SignatureShare", cnsMsg.SignatureShare,
+			"PubKeysBitmap", cnsMsg.PubKeysBitmap,
+			"AggregateSignature", cnsMsg.AggregateSignature,
+			"LeaderSignature", cnsMsg.LeaderSignature)
+
+		return fmt.Errorf("%w : received message from public key: %s from consensus topic is invalid",
 			ErrInvalidMessage,
-			logger.DisplayByteSlice(cnsMsg.SignatureShare),
-			logger.DisplayByteSlice(cnsMsg.PubKeysBitmap),
-			logger.DisplayByteSlice(cnsMsg.AggregateSignature),
-			logger.DisplayByteSlice(cnsMsg.LeaderSignature))
+			logger.DisplayByteSlice(cnsMsg.PubKey))
 	}
 
 	if len(cnsMsg.Body) > core.MegabyteSize {
@@ -134,7 +149,8 @@ func (wrk *Worker) checkMessageWithBlockBodyAndHeaderValidity(cnsMsg *consensus.
 			len(cnsMsg.Body))
 	}
 
-	if cnsMsg.Header == nil || len(cnsMsg.Header) > core.MegabyteSize {
+	headerLen := len(cnsMsg.Header)
+	if headerLen == 0 || headerLen > core.MegabyteSize {
 		return fmt.Errorf("%w : received header from consensus topic has an invalid size: %d",
 			ErrInvalidHeaderSize,
 			len(cnsMsg.Header))
@@ -151,14 +167,16 @@ func (wrk *Worker) checkMessageWithBlockBodyValidity(cnsMsg *consensus.Message) 
 		cnsMsg.LeaderSignature != nil
 
 	if isMessageInvalid {
-		return fmt.Errorf("%w : received message from consensus topic is invalid: "+
-			"len(Header) = %d SignatureShare = %s PubKeysBitmap = %s AggregateSignature = %s LeaderSignature = %s",
+		log.Trace("received message from consensus topic is invalid",
+			"header len", len(cnsMsg.Header),
+			"SignatureShare", cnsMsg.SignatureShare,
+			"PubKeysBitmap", cnsMsg.PubKeysBitmap,
+			"AggregateSignature", cnsMsg.AggregateSignature,
+			"LeaderSignature", cnsMsg.LeaderSignature)
+
+		return fmt.Errorf("%w : received message from public key: %s from consensus topic is invalid",
 			ErrInvalidMessage,
-			len(cnsMsg.Header),
-			logger.DisplayByteSlice(cnsMsg.SignatureShare),
-			logger.DisplayByteSlice(cnsMsg.PubKeysBitmap),
-			logger.DisplayByteSlice(cnsMsg.AggregateSignature),
-			logger.DisplayByteSlice(cnsMsg.LeaderSignature))
+			logger.DisplayByteSlice(cnsMsg.PubKey))
 	}
 
 	if len(cnsMsg.Body) > core.MegabyteSize {
@@ -178,17 +196,20 @@ func (wrk *Worker) checkMessageWithBlockHeaderValidity(cnsMsg *consensus.Message
 		cnsMsg.LeaderSignature != nil
 
 	if isMessageInvalid {
-		return fmt.Errorf("%w : received message from consensus topic is invalid: "+
-			"len(Body) = %d SignatureShare = %s PubKeysBitmap = %s AggregateSignature = %s LeaderSignature = %s",
+		log.Trace("received message from consensus topic is invalid",
+			"body len", len(cnsMsg.Body),
+			"SignatureShare", cnsMsg.SignatureShare,
+			"PubKeysBitmap", cnsMsg.PubKeysBitmap,
+			"AggregateSignature", cnsMsg.AggregateSignature,
+			"LeaderSignature", cnsMsg.LeaderSignature)
+
+		return fmt.Errorf("%w : received message from public key: %s from consensus topic is invalid",
 			ErrInvalidMessage,
-			len(cnsMsg.Body),
-			logger.DisplayByteSlice(cnsMsg.SignatureShare),
-			logger.DisplayByteSlice(cnsMsg.PubKeysBitmap),
-			logger.DisplayByteSlice(cnsMsg.AggregateSignature),
-			logger.DisplayByteSlice(cnsMsg.LeaderSignature))
+			logger.DisplayByteSlice(cnsMsg.PubKey))
 	}
 
-	if cnsMsg.Header == nil || len(cnsMsg.Header) > core.MegabyteSize {
+	headerLen := len(cnsMsg.Header)
+	if headerLen == 0 || headerLen > core.MegabyteSize {
 		return fmt.Errorf("%w : received header from consensus topic has an invalid size: %d",
 			ErrInvalidHeaderSize,
 			len(cnsMsg.Header))
@@ -205,17 +226,19 @@ func (wrk *Worker) checkMessageWithSignatureValidity(cnsMsg *consensus.Message) 
 		cnsMsg.LeaderSignature != nil
 
 	if isMessageInvalid {
-		return fmt.Errorf("%w : received message from consensus topic is invalid: "+
-			"len(Body) = %d len(Header) = %d PubKeysBitmap = %s AggregateSignature = %s LeaderSignature = %s",
+		log.Trace("received message from consensus topic is invalid",
+			"body len", len(cnsMsg.Body),
+			"header len", len(cnsMsg.Header),
+			"PubKeysBitmap", cnsMsg.PubKeysBitmap,
+			"AggregateSignature", cnsMsg.AggregateSignature,
+			"LeaderSignature", cnsMsg.LeaderSignature)
+
+		return fmt.Errorf("%w : received message from public key: %s from consensus topic is invalid",
 			ErrInvalidMessage,
-			len(cnsMsg.Body),
-			len(cnsMsg.Header),
-			logger.DisplayByteSlice(cnsMsg.PubKeysBitmap),
-			logger.DisplayByteSlice(cnsMsg.AggregateSignature),
-			logger.DisplayByteSlice(cnsMsg.LeaderSignature))
+			logger.DisplayByteSlice(cnsMsg.PubKey))
 	}
 
-	if len(cnsMsg.SignatureShare) != core.SignatureSizeInBytes {
+	if len(cnsMsg.SignatureShare) != int(wrk.signatureSize) {
 		return fmt.Errorf("%w : received signature share from consensus topic has an invalid size: %d",
 			ErrInvalidSignatureSize,
 			len(cnsMsg.SignatureShare))
@@ -230,41 +253,33 @@ func (wrk *Worker) checkMessageWithFinalInfoValidity(cnsMsg *consensus.Message) 
 		cnsMsg.SignatureShare != nil
 
 	if isMessageInvalid {
-		return fmt.Errorf("%w : received message from consensus topic is invalid: "+
-			"len(Body) = %d len(Header) = %d SignatureShare = %s",
+		log.Trace("received message from consensus topic is invalid",
+			"body len", len(cnsMsg.Body),
+			"header len", len(cnsMsg.Header),
+			"SignatureShare", cnsMsg.SignatureShare)
+
+		return fmt.Errorf("%w : received message from public key: %s from consensus topic is invalid",
 			ErrInvalidMessage,
-			len(cnsMsg.Body),
-			len(cnsMsg.Header),
-			logger.DisplayByteSlice(cnsMsg.SignatureShare))
+			logger.DisplayByteSlice(cnsMsg.PubKey))
 	}
 
-	if len(cnsMsg.PubKeysBitmap) != wrk.getPubKeyBitmapSize() {
+	if len(cnsMsg.PubKeysBitmap) != int(wrk.publicKeyBitmapSize) {
 		return fmt.Errorf("%w : received public key bitmap from consensus topic has an invalid size: %d",
 			ErrInvalidPublicKeyBitmapSize,
 			len(cnsMsg.PubKeysBitmap))
 	}
 
-	if len(cnsMsg.AggregateSignature) != core.SignatureSizeInBytes {
+	if len(cnsMsg.AggregateSignature) != int(wrk.signatureSize) {
 		return fmt.Errorf("%w : received aggregate signature from consensus topic has an invalid size: %d",
 			ErrInvalidSignatureSize,
 			len(cnsMsg.AggregateSignature))
 	}
 
-	if len(cnsMsg.LeaderSignature) != core.SignatureSizeInBytes {
+	if len(cnsMsg.LeaderSignature) != int(wrk.signatureSize) {
 		return fmt.Errorf("%w : received leader signature from consensus topic has an invalid size: %d",
 			ErrInvalidSignatureSize,
 			len(cnsMsg.LeaderSignature))
 	}
 
 	return nil
-}
-
-func (wrk *Worker) getPubKeyBitmapSize() int {
-	sizeConsensus := wrk.consensusState.consensusGroupSize
-	bitmapSize := sizeConsensus / 8
-	if sizeConsensus%8 != 0 {
-		bitmapSize++
-	}
-
-	return bitmapSize
 }

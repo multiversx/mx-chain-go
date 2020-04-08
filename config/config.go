@@ -80,6 +80,14 @@ type BlockSizeThrottleConfig struct {
 	MaxSizeInBytes uint32
 }
 
+// ConsensusConfig will hold the configuration of consensus settings
+type ConsensusConfig struct {
+	Type                 string `json:"type"`
+	HashSizeInBytes      uint32
+	SignatureSizeInBytes uint32
+	PublicKeySizeInBytes uint32
+}
+
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage          StorageConfig
@@ -126,7 +134,7 @@ type Config struct {
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
-	Consensus       TypeConfig
+	Consensus       ConsensusConfig
 	StoragePruning  StoragePruningConfig
 
 	NTPConfig               NTPConfig

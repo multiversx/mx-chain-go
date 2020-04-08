@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +22,7 @@ func createEligibleList(size int) []string {
 	eligibleList := make([]string, 0)
 	for i := 0; i < size; i++ {
 		var value string
-		for j := 0; j < core.PublicKeySizeInBytes; j++ {
+		for j := 0; j < PublicKeySize; j++ {
 			value += string(i + 65)
 		}
 

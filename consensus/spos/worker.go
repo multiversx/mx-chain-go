@@ -59,6 +59,11 @@ type Worker struct {
 
 	antifloodHandler consensus.P2PAntifloodHandler
 	poolAdder        PoolAdder
+
+	hashSize            uint32
+	signatureSize       uint32
+	publicKeySize       uint32
+	publicKeyBitmapSize uint32
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -82,6 +87,9 @@ type WorkerArgs struct {
 	NetworkShardingCollector consensus.NetworkShardingCollector
 	AntifloodHandler         consensus.P2PAntifloodHandler
 	PoolAdder                PoolAdder
+	HashSize                 uint32
+	SignatureSize            uint32
+	PublicKeySize            uint32
 }
 
 // NewWorker creates a new Worker object
@@ -114,6 +122,9 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		networkShardingCollector: args.NetworkShardingCollector,
 		antifloodHandler:         args.AntifloodHandler,
 		poolAdder:                args.PoolAdder,
+		hashSize:                 args.HashSize,
+		signatureSize:            args.SignatureSize,
+		publicKeySize:            args.PublicKeySize,
 	}
 
 	wrk.executeMessageChannel = make(chan *consensus.Message)
@@ -131,6 +142,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 	go wrk.checkChannels()
 
 	wrk.mapDisplayHashConsensusMessage = make(map[string][]*consensus.Message)
+	wrk.publicKeyBitmapSize = wrk.getPublicKeyBitmapSize()
 
 	return &wrk, nil
 }
@@ -623,4 +635,14 @@ func (wrk *Worker) SetAppStatusHandler(ash core.AppStatusHandler) error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (wrk *Worker) IsInterfaceNil() bool {
 	return wrk == nil
+}
+
+func (wrk *Worker) getPublicKeyBitmapSize() uint32 {
+	sizeConsensus := uint32(wrk.consensusState.consensusGroupSize)
+	bitmapSize := sizeConsensus / 8
+	if sizeConsensus%8 != 0 {
+		bitmapSize++
+	}
+
+	return bitmapSize
 }

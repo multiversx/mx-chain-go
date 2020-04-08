@@ -25,11 +25,15 @@ const roundTimeDuration = 100 * time.Millisecond
 
 var fromConnectedPeerId = p2p.PeerID("connected peer id")
 
-var blockHeaderHash = make([]byte, core.HashSizeInBytes)
-var invalidBlockHeaderHash = make([]byte, core.HashSizeInBytes+1)
-var signature = make([]byte, core.SignatureSizeInBytes)
-var invalidSignature = make([]byte, core.SignatureSizeInBytes+1)
-var publicKey = make([]byte, core.PublicKeySizeInBytes)
+const HashSize = 32
+const SignatureSize = 48
+const PublicKeySize = 96
+
+var blockHeaderHash = make([]byte, HashSize)
+var invalidBlockHeaderHash = make([]byte, HashSize+1)
+var signature = make([]byte, SignatureSize)
+var invalidSignature = make([]byte, SignatureSize+1)
+var publicKey = make([]byte, PublicKeySize)
 
 func createDefaultWorkerArgs() *spos.WorkerArgs {
 	blockchainMock := &mock.BlockChainMock{}
@@ -87,6 +91,9 @@ func createDefaultWorkerArgs() *spos.WorkerArgs {
 		NetworkShardingCollector: createMockNetworkShardingCollector(),
 		AntifloodHandler:         createMockP2PAntifloodHandler(),
 		PoolAdder:                poolAdder,
+		HashSize:                 HashSize,
+		SignatureSize:            SignatureSize,
+		PublicKeySize:            PublicKeySize,
 	}
 
 	return workerArgs
@@ -702,7 +709,7 @@ func TestWorker_ProcessReceivedMessageForFutureRoundShouldErr(t *testing.T) {
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
-	assert.Equal(t, spos.ErrMessageForFutureRound, err)
+	assert.True(t, errors.Is(err, spos.ErrMessageForFutureRound))
 }
 
 func TestWorker_ProcessReceivedMessageForPastRoundShouldErr(t *testing.T) {
@@ -729,7 +736,7 @@ func TestWorker_ProcessReceivedMessageForPastRoundShouldErr(t *testing.T) {
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
-	assert.Equal(t, spos.ErrMessageForPastRound, err)
+	assert.True(t, errors.Is(err, spos.ErrMessageForPastRound))
 }
 
 func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {

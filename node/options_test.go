@@ -1134,3 +1134,39 @@ func TestWithTxAccumulator_NilAccumulatorShouldErr(t *testing.T) {
 
 	assert.Equal(t, ErrNilTxAccumulator, err)
 }
+
+func TestWithHashSize(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	hashSize := uint32(32)
+	opt := WithHashSize(hashSize)
+
+	err := opt(node)
+	assert.Equal(t, hashSize, node.hashSize)
+	assert.Nil(t, err)
+}
+
+func TestWithSignatureSize(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	signatureSize := uint32(48)
+	opt := WithSignatureSize(signatureSize)
+
+	err := opt(node)
+	assert.Equal(t, signatureSize, node.signatureSize)
+	assert.Nil(t, err)
+}
+
+func TestWithPublicKeySize(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	publicKeySize := uint32(96)
+	opt := WithPublicKeySize(publicKeySize)
+
+	err := opt(node)
+	assert.Equal(t, publicKeySize, node.publicKeySize)
+	assert.Nil(t, err)
+}

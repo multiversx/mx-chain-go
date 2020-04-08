@@ -1456,6 +1456,9 @@ func createNode(
 		node.WithRequestHandler(process.RequestHandler),
 		node.WithInputAntifloodHandler(network.InputAntifloodHandler),
 		node.WithTxAccumulator(txAccumulator),
+		node.WithHashSize(config.Consensus.HashSizeInBytes),
+		node.WithSignatureSize(config.Consensus.SignatureSizeInBytes),
+		node.WithPublicKeySize(config.Consensus.PublicKeySizeInBytes),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

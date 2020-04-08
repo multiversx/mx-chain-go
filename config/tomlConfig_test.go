@@ -31,7 +31,10 @@ func TestTomlParser(t *testing.T) {
 	hasherType := "hashFunc4"
 	multiSigHasherType := "hashFunc5"
 
-	consensusType := "bn"
+	consensusType := "bls"
+	hashSizeInBytes := uint32(32)
+	signatureSizeInBytes := uint32(48)
+	publicKeySizeInBytes := uint32(96)
 
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{
@@ -65,8 +68,11 @@ func TestTomlParser(t *testing.T) {
 		MultisigHasher: TypeConfig{
 			Type: multiSigHasherType,
 		},
-		Consensus: TypeConfig{
-			Type: consensusType,
+		Consensus: ConsensusConfig{
+			Type:                 consensusType,
+			HashSizeInBytes:      hashSizeInBytes,
+			SignatureSizeInBytes: signatureSizeInBytes,
+			PublicKeySizeInBytes: publicKeySizeInBytes,
 		},
 	}
 
@@ -104,6 +110,9 @@ func TestTomlParser(t *testing.T) {
 
 [Consensus]
 	Type = "` + consensusType + `"
+	HashSizeInBytes = ` + strconv.Itoa(int(hashSizeInBytes)) + `
+	SignatureSizeInBytes = ` + strconv.Itoa(int(signatureSizeInBytes)) + `
+	PublicKeySizeInBytes = ` + strconv.Itoa(int(publicKeySizeInBytes)) + `
 
 `
 	cfg := Config{}
