@@ -1347,15 +1347,6 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 		return nil
 	}
 
-	body := &block.Body{}
-	blkc.GetCurrentBlockBodyCalled = func() data.BodyHandler {
-		return body
-	}
-	blkc.SetCurrentBlockBodyCalled = func(handler data.BodyHandler) error {
-		body = prevTxBlockBody
-		return nil
-	}
-
 	hdrHash := make([]byte, 0)
 	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
 		return hdrHash
@@ -1435,7 +1426,6 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 	assert.True(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Equal(t, blkc.GetCurrentBlockHeader(), prevHdr)
-	assert.Equal(t, blkc.GetCurrentBlockBody(), prevTxBlockBody)
 	assert.Equal(t, blkc.GetCurrentBlockHeaderHash(), prevHdrHash)
 }
 
@@ -1494,15 +1484,6 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 	}
 	blkc.SetCurrentBlockHeaderCalled = func(handler data.HeaderHandler) error {
 		hdr = nil
-		return nil
-	}
-
-	body := &block.Body{}
-	blkc.GetCurrentBlockBodyCalled = func() data.BodyHandler {
-		return body
-	}
-	blkc.SetCurrentBlockBodyCalled = func(handler data.BodyHandler) error {
-		body = nil
 		return nil
 	}
 
@@ -1585,7 +1566,6 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 	assert.True(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Nil(t, blkc.GetCurrentBlockHeader())
-	assert.Nil(t, blkc.GetCurrentBlockBody())
 	assert.Nil(t, blkc.GetCurrentBlockHeaderHash())
 }
 
