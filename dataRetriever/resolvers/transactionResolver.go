@@ -10,7 +10,7 @@ import (
 )
 
 // maxBuffToSendBulkTransactions represents max buffer size to send in bytes
-var maxBuffToSendBulkTransactions = 2 << 17 //128KB
+var maxBuffToSendBulkTransactions = 1 << 18 //256KB
 
 // ArgTxResolver is the argument structure used to create new TxResolver instance
 type ArgTxResolver struct {
