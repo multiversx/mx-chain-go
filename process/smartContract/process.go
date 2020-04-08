@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -265,7 +265,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	}
 
 	var vm vmcommon.VMExecutionHandler
-	vm, err = sc.getVMFromRecvAddress(tx)
+	vm, err = findVMByTransaction(sc.vmContainer, tx)
 	if err != nil {
 		log.Debug("get vm from address error", "error", err.Error())
 		return nil
@@ -446,27 +446,6 @@ func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acnt
 	return nil
 }
 
-func (sc *scProcessor) getVMTypeFromArguments(vmType []byte) ([]byte, error) {
-	// first parsed argument after the code in case of vmDeploy is the actual vmType
-	vmAppendedType := make([]byte, core.VMTypeLen)
-	vmArgLen := len(vmType)
-	if vmArgLen > core.VMTypeLen {
-		return nil, process.ErrVMTypeLengthInvalid
-	}
-
-	copy(vmAppendedType[core.VMTypeLen-vmArgLen:], vmType)
-	return vmAppendedType, nil
-}
-
-func (sc *scProcessor) getVMFromRecvAddress(tx data.TransactionHandler) (vmcommon.VMExecutionHandler, error) {
-	vmType := core.GetVMType(tx.GetRcvAddr())
-	vm, err := sc.vmContainer.Get(vmType)
-	if err != nil {
-		return nil, err
-	}
-	return vm, nil
-}
-
 // DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(
 	tx data.TransactionHandler,
@@ -552,101 +531,6 @@ func (sc *scProcessor) DeploySmartContract(
 
 	log.Debug("SmartContract deployed")
 	return nil
-}
-
-func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler) (*vmcommon.ContractCallInput, error) {
-	vmInput, err := sc.createVMInput(tx)
-	if err != nil {
-		return nil, err
-	}
-
-	vmCallInput := &vmcommon.ContractCallInput{}
-	vmCallInput.VMInput = *vmInput
-	vmCallInput.Function, err = sc.argsParser.GetFunction()
-	if err != nil {
-		return nil, err
-	}
-
-	vmCallInput.RecipientAddr = tx.GetRcvAddr()
-
-	return vmCallInput, nil
-}
-
-func (sc *scProcessor) createVMDeployInput(
-	tx data.TransactionHandler,
-) (*vmcommon.ContractCreateInput, []byte, error) {
-	vmInput, err := sc.createVMInput(tx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if len(vmInput.Arguments) < 1 {
-		return nil, nil, process.ErrNotEnoughArgumentsToDeploy
-	}
-
-	vmType, err := sc.getVMTypeFromArguments(vmInput.Arguments[0])
-	if err != nil {
-		return nil, nil, err
-	}
-	// delete the first argument as it is the vmType
-	vmInput.Arguments = vmInput.Arguments[1:]
-
-	vmCreateInput := &vmcommon.ContractCreateInput{}
-	hexCode, err := sc.argsParser.GetCode()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	vmCreateInput.ContractCode, err = hex.DecodeString(string(hexCode))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	vmCreateInput.VMInput = *vmInput
-
-	return vmCreateInput, vmType, nil
-}
-
-func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMInput, error) {
-	var err error
-	vmInput := &vmcommon.VMInput{}
-	vmInput.CallType = determineCallType(tx)
-
-	dataToParse := tx.GetData()
-	if vmInput.CallType == vmcommon.AsynchronousCallBack {
-		dataToParse = append([]byte("callBack"), tx.GetData()...)
-	}
-
-	err = sc.argsParser.ParseData(string(dataToParse))
-	if err != nil {
-		return nil, err
-	}
-
-	vmInput.CallerAddr = tx.GetSndAddr()
-	vmInput.Arguments, err = sc.argsParser.GetArguments()
-	if err != nil {
-		return nil, err
-	}
-
-	vmInput.CallValue = new(big.Int).Set(tx.GetValue())
-	vmInput.GasPrice = tx.GetGasPrice()
-	moveBalanceGasConsume := sc.economicsFee.ComputeGasLimit(tx)
-
-	if tx.GetGasLimit() < moveBalanceGasConsume {
-		return nil, process.ErrNotEnoughGas
-	}
-
-	vmInput.GasProvided = tx.GetGasLimit() - moveBalanceGasConsume
-
-	return vmInput, nil
-}
-
-func determineCallType(tx data.TransactionHandler) vmcommon.CallType {
-	scr, isSCR := tx.(*smartContractResult.SmartContractResult)
-	if isSCR {
-		return scr.CallType
-	}
-	return vmcommon.DirectCall
 }
 
 // taking money from sender, as VM might not have access to him because of state sharding
@@ -745,11 +629,6 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	err = sc.deleteAccounts(vmOutput.DeletedAccounts)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = sc.processTouchedAccounts(vmOutput.TouchedAccounts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1002,32 +881,35 @@ func (sc *scProcessor) processSCOutputAccounts(
 }
 
 func (sc *scProcessor) updateSmartContractCode(
-	account state.UserAccountHandler,
-	outAcc *vmcommon.OutputAccount,
+	scAccount state.UserAccountHandler,
+	outputAccount *vmcommon.OutputAccount,
 	tx data.TransactionHandler,
 ) error {
-	if len(outAcc.Code) == 0 {
+	if len(outputAccount.Code) == 0 {
 		return nil
 	}
 
-	isDeployment := len(account.GetCode()) == 0
+	codeMetadata := vmcommon.CodeMetadataFromBytes(scAccount.GetCodeMetadata())
+
+	isDeployment := len(scAccount.GetCode()) == 0
 	if isDeployment {
-		account.SetOwnerAddress(tx.GetSndAddr())
-		account.SetCode(outAcc.Code)
-
-		log.Trace("created SC address", "address", hex.EncodeToString(outAcc.Address))
+		scAccount.SetOwnerAddress(tx.GetSndAddr())
+		scAccount.SetCodeMetadata(outputAccount.CodeMetadata)
+		scAccount.SetCode(outputAccount.Code)
+		log.Trace("updateSmartContractCode(): created", "address", outputAccount.Address)
 		return nil
 	}
 
-	// TODO: implement upgradable flag for smart contracts
-	isUpgradeEnabled := bytes.Equal(account.GetOwnerAddress(), tx.GetSndAddr())
-	if isUpgradeEnabled {
-		account.SetCode(outAcc.Code)
-
-		log.Trace("created SC address", "address", hex.EncodeToString(outAcc.Address))
+	isSenderOwner := bytes.Equal(scAccount.GetOwnerAddress(), tx.GetSndAddr())
+	isUpgrade := !isDeployment && isSenderOwner && codeMetadata.Upgradeable
+	if isUpgrade {
+		scAccount.SetCodeMetadata(outputAccount.CodeMetadata)
+		scAccount.SetCode(outputAccount.Code)
+		log.Trace("updateSmartContractCode(): upgraded", "address", outputAccount.Address)
 		return nil
 	}
 
+	log.Trace("updateSmartContractCode() nothing changed", "address", outputAccount.Address)
 	// TODO: change to return some error when IELE is updated. Currently IELE sends the code in output account even for normal SC RUN
 	return nil
 }
@@ -1050,11 +932,6 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 			return err
 		}
 	}
-	return nil
-}
-
-func (sc *scProcessor) processTouchedAccounts(_ [][]byte) error {
-	//TODO: implement
 	return nil
 }
 
@@ -1140,27 +1017,28 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 }
 
 func (sc *scProcessor) processSimpleSCR(
-	scr *smartContractResult.SmartContractResult,
+	scResult *smartContractResult.SmartContractResult,
 	dstAcc state.UserAccountHandler,
 ) error {
-	err := sc.updateSmartContractCode(dstAcc, &vmcommon.OutputAccount{Code: scr.Code, Address: scr.RcvAddr}, scr)
+	outputAccount := &vmcommon.OutputAccount{
+		Code:         scResult.Code,
+		CodeMetadata: scResult.CodeMetadata,
+		Address:      scResult.RcvAddr,
+	}
+
+	err := sc.updateSmartContractCode(dstAcc, outputAccount, scResult)
 	if err != nil {
 		return err
 	}
 
-	if scr.Value != nil {
-		err = dstAcc.AddToBalance(scr.Value)
-		if err != nil {
-			return err
-		}
-
-		err = sc.accounts.SaveAccount(dstAcc)
+	if scResult.Value != nil {
+		err = dstAcc.AddToBalance(scResult.Value)
 		if err != nil {
 			return err
 		}
 	}
 
-	return nil
+	return sc.accounts.SaveAccount(dstAcc)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

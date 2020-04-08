@@ -1,7 +1,6 @@
 package wasmer
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"testing"
@@ -10,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var ownerAddressBytes = []byte("12345678901234567890123456789012")
@@ -25,9 +24,9 @@ func TestAllowNonFloatingPointSC(t *testing.T) {
 
 	callInput := makeCallInput(scAddress, "doSomething", vmInput)
 	vmOutput, err := wasmvm.RunSmartContractCall(callInput)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
-	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 	fmt.Printf("VM Return Code: %s\n", vmOutput.ReturnCode)
 }
 
@@ -41,9 +40,9 @@ func TestDisallowFloatingPointSC(t *testing.T) {
 
 	callInput := makeCallInput(scAddress, "doSomething", vmInput)
 	vmOutput, err := wasmvm.RunSmartContractCall(callInput)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
-	assert.Equal(t, vmcommon.ContractInvalid, vmOutput.ReturnCode)
+	require.Equal(t, vmcommon.ContractInvalid, vmOutput.ReturnCode)
 	fmt.Printf("VM Return Code: %s\n", vmOutput.ReturnCode)
 }
 
@@ -61,10 +60,10 @@ func TestSCAbortExecution_DontAbort(t *testing.T) {
 
 	callInput := makeCallInput(scAddress, "testFunc", vmInput)
 	vmOutput, err := wasmvm.RunSmartContractCall(callInput)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	expectedBytes := []byte{100}
-	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 	assertReturnData(t, vmOutput, vmcommon.Ok, expectedBytes)
 }
 
@@ -80,11 +79,11 @@ func TestSCAbortExecution_Abort(t *testing.T) {
 
 	callInput := makeCallInput(scAddress, "testFunc", vmInput)
 	vmOutput, err := wasmvm.RunSmartContractCall(callInput)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
-	assert.Equal(t, 0, len(vmOutput.ReturnData))
+	require.Equal(t, 0, len(vmOutput.ReturnData))
 	assertReturnData(t, vmOutput, vmcommon.UserError, nil)
-	assert.Equal(t, "abort here", vmOutput.ReturnMessage)
+	require.Equal(t, "abort here", vmOutput.ReturnMessage)
 }
 
 func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []byte) {
@@ -105,10 +104,10 @@ func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []b
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		[]byte(scCode+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)),
+		arwen.CreateDeployTxData(scCode),
 	)
 	err := testContext.TxProcessor.ProcessTransaction(tx)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	wasmVM, _ := testContext.VMContainer.Get(factory.ArwenVirtualMachine)
 	return wasmVM, scAddressBytes
@@ -120,15 +119,15 @@ func assertReturnData(
 	expectedReturnCode vmcommon.ReturnCode,
 	expectedBytes []byte,
 ) {
-	assert.Equal(t, expectedReturnCode, vmOutput.ReturnCode, vmOutput.ReturnCode)
+	require.Equal(t, expectedReturnCode, vmOutput.ReturnCode, vmOutput.ReturnCode)
 	if len(vmOutput.ReturnData) == 0 {
-		assert.True(t, expectedBytes == nil)
+		require.True(t, expectedBytes == nil)
 		return
 	}
-	assert.Equal(t, 1, len(vmOutput.ReturnData))
+	require.Equal(t, 1, len(vmOutput.ReturnData))
 	returnedBytes := vmOutput.ReturnData[0]
 
-	assert.Equal(t, expectedBytes, returnedBytes)
+	require.Equal(t, expectedBytes, returnedBytes)
 }
 
 func makeCallInput(scAddress []byte, function string, vmInput vmcommon.VMInput) *vmcommon.ContractCallInput {
