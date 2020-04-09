@@ -248,7 +248,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	store := integrationTests.CreateMemUnit()
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, hasher, config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, hasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
 
 	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher)
 
@@ -309,7 +309,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(mu, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(mu, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ = state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -1016,7 +1016,7 @@ func createAccounts(
 	evictionWaitListSize := uint(100)
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -1088,9 +1088,14 @@ func BenchmarkTxExecution(b *testing.B) {
 func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	t.Parallel()
 
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, generalCfg)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -1125,9 +1130,14 @@ func newDefaultAccount(adb *state.AccountsDB, address state.AddressContainer) st
 func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	t.Parallel()
 
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, generalCfg)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -1263,6 +1273,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 
 	rootHash, _ := shardNode.AccntState.RootHash()
 	if !bytes.Equal(rootHash, rootHashOfRollbackedBlock) {
+		time.Sleep(time.Second)
 		err := shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
 		assert.True(t, errors.Is(err, trie.ErrHashNotFound))
 	}
