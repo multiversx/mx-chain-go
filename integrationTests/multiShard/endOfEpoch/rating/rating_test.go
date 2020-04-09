@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 	"sort"
+	"sync"
 	"testing"
 	"time"
 
@@ -14,7 +15,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
@@ -28,8 +32,8 @@ func TestComputeRating_Metachain(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	//_ = logger.SetDisplayByteSlice(logger.ToHexShort)
-	//
+	_ = logger.SetDisplayByteSlice(logger.ToHexShort)
+
 	//var fileForLogs *os.File
 	//fileForLogs, err := prepareLogFile("")
 	//
@@ -43,8 +47,9 @@ func TestComputeRating_Metachain(t *testing.T) {
 	//
 	//err = logger.RemoveLogObserver(os.Stdout)
 	//
-	//logger.SetLogLevel("*:DEBUG")
+	//logger.SetLogLevel("*:DEBUG;peer:TRACE")
 
+	epochsStandard := uint64(10)
 	datas := []struct {
 		consensusSize int
 		shardSize     int
@@ -53,20 +58,39 @@ func TestComputeRating_Metachain(t *testing.T) {
 		epochs        uint64
 		roundDuration uint64
 		rounds        uint64
-	}{{
-		consensusSize: 63,
-		shardSize:     400,
-		offlineNodes:  0,
-		epochs:        101,
-		roundDuration: 6,
-		rounds:        500,
-		waitingSize:   100,
-	},
+	}{
+		{
+			consensusSize: 63,
+			shardSize:     400,
+			offlineNodes:  0,
+			epochs:        epochsStandard,
+			roundDuration: 6,
+			rounds:        500,
+			waitingSize:   100,
+		},
 		{
 			consensusSize: 400,
 			shardSize:     400,
 			offlineNodes:  0,
-			epochs:        101,
+			epochs:        epochsStandard,
+			roundDuration: 6,
+			rounds:        500,
+			waitingSize:   100,
+		},
+		{
+			consensusSize: 63,
+			shardSize:     400,
+			offlineNodes:  1,
+			epochs:        epochsStandard,
+			roundDuration: 6,
+			rounds:        500,
+			waitingSize:   100,
+		},
+		{
+			consensusSize: 400,
+			shardSize:     400,
+			offlineNodes:  1,
+			epochs:        epochsStandard,
 			roundDuration: 6,
 			rounds:        500,
 			waitingSize:   100,
@@ -96,15 +120,6 @@ func TestComputeRating_Metachain(t *testing.T) {
 		_ = core.LoadTomlFile(ratingsConfig, fmt.Sprintf("./%vratings.toml", consensusGroupSize))
 		ratingsData, _ := rating.NewRatingsData(*ratingsConfig)
 		rater, _ := rating.NewBlockSigningRater(ratingsData)
-
-		randomness := atomic.Uint64{}
-
-		integrationTests.TestMultiSig = &mock.BelNevMock{
-			AggregateSigsMock: func(bitmap []byte) (bytes []byte, err error) {
-				randomness.Set(randomness.Get() + 1)
-				return integrationTests.TestHasher.Compute(fmt.Sprintf("%d_%d", time.Now().UnixNano(), randomness)), nil
-			},
-		}
 
 		coordinatorFactory := &integrationTests.IndexHashedNodesCoordinatorWithRaterFactory{
 			PeerAccountListAndRatingHandler: rater,
@@ -180,8 +195,8 @@ func TestComputeRating_Metachain(t *testing.T) {
 		os.Mkdir(folderName, os.ModePerm)
 
 		for i := uint64(0); i < nbBlocksToProduce; i++ {
-			bodies, headers, _ := integrationTests.SimulateAllShardsProposeBlock(round, nodesMap, offlineNodesPks)
-			integrationTests.SimulateSyncAllShardsWithRoundBlock(nodesMap, headers, bodies)
+			bodies, headers, _ := SimulateAllShardsProposeBlock(round, nodesMap, offlineNodesPks)
+			SimulateSyncAllShardsWithRoundBlock(nodesMap, headers, bodies)
 
 			if headers[core.MetachainShardId] != nil && headers[core.MetachainShardId].IsStartOfEpochBlock() {
 				metachainNode := nodesMap[core.MetachainShardId][0]
@@ -197,8 +212,9 @@ func TestComputeRating_Metachain(t *testing.T) {
 						currentMap[key] = append(currentMap[key], validator.TempRating)
 					}
 				}
-
-				writeRatingsForCurrentEpoch(folderName, uint64(headers[core.MetachainShardId].GetEpoch()), roundsPerEpoch, roundDurationSeconds, validatorRatings)
+				currEpoch := uint64(headers[core.MetachainShardId].GetEpoch())
+				writeRatingsForCurrentEpoch(folderName, currEpoch, roundsPerEpoch, roundDurationSeconds, validatorRatings)
+				writeValidatorInfos(folderName, currEpoch, validatorInfos)
 
 				time.Sleep(1 * time.Second)
 			}
@@ -213,61 +229,65 @@ func TestComputeRating_Metachain(t *testing.T) {
 		currentRootHash, _ := metaValidatoStatisticProcessor.RootHash()
 		validatorInfos, _ := metaValidatoStatisticProcessor.GetValidatorInfoForRootHash(currentRootHash)
 
-		f, _ := os.Create(fmt.Sprintf("%s/validatorInfos.csv", folderName))
-		defer f.Close()
-
-		headerCSV :=
-			"PublicKey," +
-				"ShardId," +
-				"List," +
-				"Index," +
-				"TempRating," +
-				"Rating," +
-				"RewardAddress," +
-				"LeaderSuccess," +
-				"LeaderFailure," +
-				"ValidatorSuccess," +
-				"ValidatorFailure," +
-				"NumSelectedInSuccessBlocks," +
-				"AccumulatedFees," +
-				"TotalLeaderSuccess," +
-				"TotalLeaderFailure," +
-				"TotalValidatorSuccess," +
-				"TotalValidatorFailure,"
-
-		f.WriteString(headerCSV + "\n")
-
-		for shardId, shardVis := range validatorInfos {
-			if shardId < 100 {
-				continue
-			}
-			for _, vi := range shardVis {
-				f.WriteString(fmt.Sprintf("%s,%v,%s,%v,%v,%v,%s,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v\n",
-					core.GetTrimmedPk(core.ToHex(vi.PublicKey)),
-					vi.ShardId,
-					vi.List,
-					vi.Index,
-					vi.TempRating,
-					vi.Rating,
-					core.GetTrimmedPk(core.ToHex(vi.RewardAddress)),
-					vi.LeaderSuccess,
-					vi.LeaderFailure,
-					vi.ValidatorSuccess,
-					vi.ValidatorFailure,
-					vi.NumSelectedInSuccessBlocks,
-					vi.AccumulatedFees,
-					vi.TotalLeaderSuccess,
-					vi.TotalLeaderFailure,
-					vi.TotalValidatorSuccess,
-					vi.TotalValidatorFailure,
-				))
-			}
-		}
+		writeValidatorInfos(folderName, epochs, validatorInfos)
 
 		fdata, _ := os.Create(fmt.Sprintf("%s/data.out", folderName))
 		defer fdata.Close()
 		fdata.WriteString(fmt.Sprintf("%#v\n", data))
 		fdata.WriteString(fmt.Sprintf("%#v]n", ratingsData))
+	}
+}
+
+func writeValidatorInfos(folderName string, epoch uint64, validatorInfos map[uint32][]*state.ValidatorInfo) {
+	f, _ := os.Create(fmt.Sprintf("%s/validatorInfos_%d.csv", folderName, epoch))
+	defer f.Close()
+
+	headerCSV :=
+		"PublicKey," +
+			"ShardId," +
+			"List," +
+			"Index," +
+			"TempRating," +
+			"Rating," +
+			"RewardAddress," +
+			"LeaderSuccess," +
+			"LeaderFailure," +
+			"ValidatorSuccess," +
+			"ValidatorFailure," +
+			"NumSelectedInSuccessBlocks," +
+			"AccumulatedFees," +
+			"TotalLeaderSuccess," +
+			"TotalLeaderFailure," +
+			"TotalValidatorSuccess," +
+			"TotalValidatorFailure,"
+
+	f.WriteString(headerCSV + "\n")
+
+	for shardId, shardVis := range validatorInfos {
+		if shardId < 100 {
+			continue
+		}
+		for _, vi := range shardVis {
+			f.WriteString(fmt.Sprintf("%s,%v,%s,%v,%v,%v,%s,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v\n",
+				core.GetTrimmedPk(core.ToHex(vi.PublicKey)),
+				vi.ShardId,
+				vi.List,
+				vi.Index,
+				vi.TempRating,
+				vi.Rating,
+				core.GetTrimmedPk(core.ToHex(vi.RewardAddress)),
+				vi.LeaderSuccess,
+				vi.LeaderFailure,
+				vi.ValidatorSuccess,
+				vi.ValidatorFailure,
+				vi.NumSelectedInSuccessBlocks,
+				vi.AccumulatedFees,
+				vi.TotalLeaderSuccess,
+				vi.TotalLeaderFailure,
+				vi.TotalValidatorSuccess,
+				vi.TotalValidatorFailure,
+			))
+		}
 	}
 }
 
@@ -401,7 +421,7 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 	expectedLastEpoch := uint32(nbBlocksToProduce / roundsPerEpoch)
 
 	for i := uint64(0); i < nbBlocksToProduce; i++ {
-		_, headers, _ := integrationTests.SimulateAllShardsProposeBlock(round, nodesMap, nil)
+		_, headers, _ := SimulateAllShardsProposeBlock(round, nodesMap, nil)
 
 		if headers[core.MetachainShardId].IsStartOfEpochBlock() {
 			_, _ = nodesMap[core.MetachainShardId][0].InterceptorsContainer.Get("")
@@ -477,4 +497,191 @@ func createOneNodePerShard(
 	}
 
 	return nodesMap
+}
+
+func createBlock(currentNode *integrationTests.TestProcessorNode,
+	i uint32,
+	round uint64,
+	bodyMap map[uint32]data.BodyHandler,
+	headerMap map[uint32]data.HeaderHandler,
+	newRandomness map[uint32][]byte,
+	mutex *sync.Mutex,
+	wg *sync.WaitGroup,
+	offlinePks [][]byte) {
+
+	defer wg.Done()
+
+	currentBlockHeader := currentNode.BlockChain.GetCurrentBlockHeader()
+	if check.IfNil(currentBlockHeader) {
+		currentBlockHeader = currentNode.BlockChain.GetGenesisHeader()
+	}
+
+	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
+	epoch := currentBlockHeader.GetEpoch()
+	prevRandomness := currentBlockHeader.GetRandSeed()
+
+	nodesCoordinator := currentNode.NodesCoordinator
+
+	pubKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(prevRandomness, round, i, epoch)
+
+	if err != nil {
+		fmt.Println("Error getting the validators public keys: ", err)
+	}
+
+	proposerKey := []byte(pubKeys[0])
+	for _, pk := range offlinePks {
+		if bytes.Equal(pk, proposerKey) {
+			return
+		}
+	}
+
+	// first node is block proposer
+	var body data.BodyHandler
+	var header data.HeaderHandler
+	for i := 0; i < 10; i++ {
+		body, header, _ = currentNode.ProposeBlock(round, currentBlockHeader.GetNonce()+1)
+		if body != nil && header != nil {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	pubKeysLen := len(pubKeys)
+	signersLen := pubKeysLen*2/3 + 1
+
+	missingSigs := 0
+	remainingPks := make(map[string]bool)
+
+	for i := 0; i < len(pubKeys); i++ {
+		found := false
+		for _, pk := range offlinePks {
+			if bytes.Equal(pk, []byte(pubKeys[i])) {
+				missingSigs++
+				found = true
+				break
+			}
+		}
+		if !found {
+			remainingPks[pubKeys[i]] = true
+		}
+
+	}
+
+	if pubKeysLen-missingSigs < signersLen {
+		return
+	}
+
+	header.SetPrevRandSeed(prevRandomness)
+	header = SimulateDoConsensusSigningOnBlock(header, pubKeys, remainingPks)
+
+	if header == nil {
+		return
+	}
+
+	mutex.Lock()
+	bodyMap[i] = body
+	headerMap[i] = header
+	//consensusNodesMap[i] = consensusNodes
+	newRandomness[i] = headerMap[i].GetRandSeed()
+	mutex.Unlock()
+
+	currentNode.CommitBlock(body, header)
+
+}
+
+// AllShardsProposeBlock simulates each shard selecting a consensus group and proposing/broadcasting/committing a block
+func SimulateAllShardsProposeBlock(
+	round uint64,
+	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
+	offlineNodesMap map[uint32][][]byte,
+) (
+	map[uint32]data.BodyHandler,
+	map[uint32]data.HeaderHandler,
+	map[uint32][]*integrationTests.TestProcessorNode,
+) {
+
+	bodyMap := make(map[uint32]data.BodyHandler)
+	headerMap := make(map[uint32]data.HeaderHandler)
+	consensusNodesMap := make(map[uint32][]*integrationTests.TestProcessorNode)
+	newRandomness := make(map[uint32][]byte)
+
+	wg := &sync.WaitGroup{}
+
+	wg.Add(len(nodesMap))
+	mutMaps := &sync.Mutex{}
+	// propose blocks
+	for i := range nodesMap {
+		currentNode := nodesMap[i][0]
+		offlineKeys := offlineNodesMap[i]
+		go createBlock(currentNode, i, round, bodyMap, headerMap, newRandomness, mutMaps, wg, offlineKeys)
+	}
+	wg.Wait()
+
+	time.Sleep(1 * time.Millisecond)
+
+	return bodyMap, headerMap, consensusNodesMap
+}
+
+// SyncAllShardsWithRoundBlock enforces all nodes in each shard synchronizing the block for the given round
+func SimulateSyncAllShardsWithRoundBlock(
+	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
+	headerMap map[uint32]data.HeaderHandler,
+	bodyMap map[uint32]data.BodyHandler,
+) {
+	for shard, nodeList := range nodesMap {
+		for _, node := range nodeList {
+			for _, header := range headerMap {
+				if header.GetShardID() == shard {
+					continue
+				}
+				marshalizedHeader, _ := integrationTests.TestMarshalizer.Marshal(header)
+				headerHash := integrationTests.TestHasher.Compute(string(marshalizedHeader))
+
+				if shard == core.MetachainShardId {
+					node.DataPool.Headers().AddHeader(headerHash, header)
+				} else {
+					if header.GetShardID() == core.MetachainShardId {
+						node.DataPool.Headers().AddHeader(headerHash, header)
+					}
+				}
+			}
+
+			for _, body := range bodyMap {
+				actualBody := body.(*block.Body)
+				for _, miniBlock := range actualBody.MiniBlocks {
+					marshalizedHeader, _ := integrationTests.TestMarshalizer.Marshal(miniBlock)
+					headerHash := integrationTests.TestHasher.Compute(string(marshalizedHeader))
+					node.DataPool.MiniBlocks().Put(headerHash, miniBlock)
+				}
+			}
+		}
+	}
+}
+
+// DoConsensusSigningOnBlock simulates a consensus aggregated signature on the provided block
+func SimulateDoConsensusSigningOnBlock(
+	blockHeader data.HeaderHandler,
+	pubKeys []string,
+	remainingKeys map[string]bool,
+) data.HeaderHandler {
+	pubKeysLen := len(pubKeys)
+	signersLen := pubKeysLen*2/3 + 1
+
+	// set bitmap for all consensus nodes signing
+	bitmap := make([]byte, pubKeysLen/8+1)
+	bitmap[signersLen/8] >>= uint8(8 - (signersLen % 8))
+
+	for i, pk := range pubKeys {
+		if remainingKeys[pk] {
+			bitmap[i/8] |= 1 << (uint16(i) % 8)
+		}
+	}
+
+	blockHeaderHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, blockHeader)
+
+	blockHeader.SetSignature(blockHeaderHash)
+	blockHeader.SetPubKeysBitmap(bitmap)
+	blockHeader.SetLeaderSignature([]byte("leader sign"))
+
+	return blockHeader
 }

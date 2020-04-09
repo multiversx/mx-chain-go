@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"sync"
 	"testing"
 	"time"
 
@@ -15,7 +14,6 @@ import (
 	mclmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
@@ -505,45 +503,6 @@ func DoConsensusSigningOnBlock(
 	return blockHeader
 }
 
-// DoConsensusSigningOnBlock simulates a consensus aggregated signature on the provided block
-func SimulateDoConsensusSigningOnBlock(
-	blockHeader data.HeaderHandler,
-	pubKeys []string,
-	proposer *TestProcessorNode,
-) data.HeaderHandler {
-	pubKeysLen := len(pubKeys)
-	signersLen := pubKeysLen*2/3 + 1
-	// set bitmap for all consensus nodes signing
-	bitmap := make([]byte, pubKeysLen/8+1)
-	for i := 0; i < signersLen/8+1; i++ {
-		bitmap[i] = 0xFF
-	}
-
-	bitmap[signersLen/8] >>= uint8(8 - (signersLen % 8))
-	blockHeader.SetPubKeysBitmap(bitmap)
-	// clear signature, as we need to compute it below
-	blockHeader.SetSignature(nil)
-	blockHeader.SetPubKeysBitmap(nil)
-	blockHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, blockHeader)
-
-	//var msig crypto.MultiSigner
-	msigProposer, _ := proposer.MultiSigner.Create(pubKeys, 0)
-	_, _ = msigProposer.CreateSignatureShare(blockHeaderHash, bitmap)
-
-	//for i := 1; i < len(pubKeys); i++ {
-	//	msig, _ = proposer.MultiSigner.Create(pubKeys, uint16(i))
-	//	sigShare, _ := msig.CreateSignatureShare(blockHeaderHash, bitmap)
-	//	_ = msigProposer.StoreSignatureShare(uint16(i), sigShare)
-	//}
-
-	sig, _ := msigProposer.AggregateSigs(bitmap)
-	blockHeader.SetSignature(sig)
-	blockHeader.SetPubKeysBitmap(bitmap)
-	blockHeader.SetLeaderSignature([]byte("leader sign"))
-
-	return blockHeader
-}
-
 // AllShardsProposeBlock simulates each shard selecting a consensus group and proposing/broadcasting/committing a block
 func AllShardsProposeBlock(
 	round uint64,
@@ -587,100 +546,6 @@ func AllShardsProposeBlock(
 	return body, header, consensusNodes
 }
 
-// AllShardsProposeBlock simulates each shard selecting a consensus group and proposing/broadcasting/committing a block
-func SimulateAllShardsProposeBlock(
-	round uint64,
-	nodesMap map[uint32][]*TestProcessorNode,
-	offlineNodesMap map[uint32][][]byte,
-) (
-	map[uint32]data.BodyHandler,
-	map[uint32]data.HeaderHandler,
-	map[uint32][]*TestProcessorNode,
-) {
-
-	bodyMap := make(map[uint32]data.BodyHandler)
-	headerMap := make(map[uint32]data.HeaderHandler)
-	consensusNodesMap := make(map[uint32][]*TestProcessorNode)
-	newRandomness := make(map[uint32][]byte)
-
-	wg := &sync.WaitGroup{}
-
-	wg.Add(len(nodesMap))
-	mutMaps := &sync.Mutex{}
-	// propose blocks
-	for i := range nodesMap {
-		currentNode := nodesMap[i][0]
-		offlineKeys := offlineNodesMap[i]
-		go createBlock(currentNode, i, round, bodyMap, headerMap, newRandomness, mutMaps, wg, offlineKeys)
-	}
-	wg.Wait()
-
-	time.Sleep(1 * time.Millisecond)
-
-	return bodyMap, headerMap, consensusNodesMap
-}
-
-func createBlock(currentNode *TestProcessorNode,
-	i uint32,
-	round uint64,
-	bodyMap map[uint32]data.BodyHandler,
-	headerMap map[uint32]data.HeaderHandler,
-	newRandomness map[uint32][]byte,
-	mutex *sync.Mutex,
-	wg *sync.WaitGroup,
-	offlinePks [][]byte) {
-
-	defer wg.Done()
-
-	currentBlockHeader := currentNode.BlockChain.GetCurrentBlockHeader()
-	if check.IfNil(currentBlockHeader) {
-		currentBlockHeader = currentNode.BlockChain.GetGenesisHeader()
-	}
-
-	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
-	epoch := currentBlockHeader.GetEpoch()
-	prevRandomness := currentBlockHeader.GetRandSeed()
-
-	nodesCoordinator := currentNode.NodesCoordinator
-
-	pubKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(prevRandomness, round, i, epoch)
-	if err != nil {
-		fmt.Println("Error getting the validators public keys: ", err)
-	}
-
-	proposerKey := []byte(pubKeys[0])
-	for _, pk := range offlinePks {
-		if bytes.Equal(pk, proposerKey) {
-			log.Info("Not proposed")
-			return
-		}
-	}
-
-	// first node is block proposer
-	var body data.BodyHandler
-	var header data.HeaderHandler
-	for i := 0; i < 10; i++ {
-		body, header, _ = currentNode.ProposeBlock(round, currentBlockHeader.GetNonce()+1)
-		if body != nil && header != nil {
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-
-	header.SetPrevRandSeed(prevRandomness)
-	header = SimulateDoConsensusSigningOnBlock(header, pubKeys, currentNode)
-
-	mutex.Lock()
-	bodyMap[i] = body
-	headerMap[i] = header
-	//consensusNodesMap[i] = consensusNodes
-	newRandomness[i] = headerMap[i].GetRandSeed()
-	mutex.Unlock()
-
-	currentNode.CommitBlock(body, header)
-
-}
-
 // SyncAllShardsWithRoundBlock enforces all nodes in each shard synchronizing the block for the given round
 func SyncAllShardsWithRoundBlock(
 	t *testing.T,
@@ -692,40 +557,4 @@ func SyncAllShardsWithRoundBlock(
 		SyncBlock(t, nodeList, []int{indexProposers[shard]}, round)
 	}
 	time.Sleep(2 * time.Second)
-}
-
-// SyncAllShardsWithRoundBlock enforces all nodes in each shard synchronizing the block for the given round
-func SimulateSyncAllShardsWithRoundBlock(
-	nodesMap map[uint32][]*TestProcessorNode,
-	headerMap map[uint32]data.HeaderHandler,
-	bodyMap map[uint32]data.BodyHandler,
-) {
-	for shard, nodeList := range nodesMap {
-		for _, node := range nodeList {
-			for _, header := range headerMap {
-				if header.GetShardID() == shard {
-					continue
-				}
-				marshalizedHeader, _ := TestMarshalizer.Marshal(header)
-				headerHash := TestHasher.Compute(string(marshalizedHeader))
-
-				if shard == core.MetachainShardId {
-					node.DataPool.Headers().AddHeader(headerHash, header)
-				} else {
-					if header.GetShardID() == core.MetachainShardId {
-						node.DataPool.Headers().AddHeader(headerHash, header)
-					}
-				}
-			}
-
-			for _, body := range bodyMap {
-				actualBody := body.(*block.Body)
-				for _, miniBlock := range actualBody.MiniBlocks {
-					marshalizedHeader, _ := TestMarshalizer.Marshal(miniBlock)
-					headerHash := TestHasher.Compute(string(marshalizedHeader))
-					node.DataPool.MiniBlocks().Put(headerHash, miniBlock)
-				}
-			}
-		}
-	}
 }
