@@ -31,7 +31,7 @@ func TestTomlParser(t *testing.T) {
 	hasherType := "hashFunc4"
 	multiSigHasherType := "hashFunc5"
 
-	consensusType := "bn"
+	consensusType := "bls"
 
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{

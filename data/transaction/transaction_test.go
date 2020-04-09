@@ -66,7 +66,7 @@ func TestTransaction_MarshalUnmarshalJsonShouldWork(t *testing.T) {
 	assert.Equal(t, tx, txRecovered)
 
 	buffAsString := string(buff)
-	assert.Contains(t, buffAsString, "\""+value.String()+"\"")
+	assert.Contains(t, buffAsString, value.String())
 }
 
 func TestTransaction_TrimsSlicePtr(t *testing.T) {

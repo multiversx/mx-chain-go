@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -279,7 +280,7 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldCallProcessIfError(t *testing.
 		&mock.AddressConverterMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{
-			ProcessIfErrorCalled: func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string) error {
+			ProcessIfErrorCalled: func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, snapshot int) error {
 				called = true
 				return nil
 			},
@@ -444,16 +445,18 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		return process.ErrNoVM
 	}
 	calledIfError := false
-	scProcessorMock.ProcessIfErrorCalled = func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string) error {
+	scProcessorMock.ProcessIfErrorCalled = func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, snapshot int) error {
 		calledIfError = true
 		return nil
 	}
 
-	computeType, _ := coordinator.NewTxTypeHandler(
-		&mock.AddressConverterMock{},
-		shardCoordinator,
-		adb,
-	)
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		AddressConverter: &mock.AddressConverterMock{},
+		ShardCoordinator: shardCoordinator,
+		BuiltInFuncNames: make(map[string]struct{}),
+		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+	}
+	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
 	execTx, _ := txproc.NewMetaTxProcessor(
 		&mock.HasherMock{},
