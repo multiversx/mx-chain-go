@@ -98,7 +98,12 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marsh := &marshal.GogoProtoMarshalizer{}
 	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marsh)
-	trieStorage, _ := trie.NewTrieStorageManager(store, marsh, testHasher, config.DBConfig{}, ewl)
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
+	trieStorage, _ := trie.NewTrieStorageManager(store, marsh, testHasher, config.DBConfig{}, ewl, generalCfg)
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher)
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})

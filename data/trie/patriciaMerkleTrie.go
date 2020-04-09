@@ -21,8 +21,6 @@ const (
 	branch
 )
 
-const maxSnapshots = 2
-
 var emptyTrieHash = make([]byte, 32)
 
 type patriciaMerkleTrie struct {
@@ -349,12 +347,22 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 
 // SetCheckpoint adds the current state of the trie to the snapshot database
 func (tr *patriciaMerkleTrie) SetCheckpoint(rootHash []byte) {
+	if bytes.Equal(rootHash, emptyTrieHash) {
+		log.Trace("should not snapshot empty trie")
+		return
+	}
+
 	tr.trieStorage.SetCheckpoint(rootHash)
 }
 
 // TakeSnapshot creates a new database in which the current state of the trie is saved.
 // If the maximum number of snapshots has been reached, the oldest snapshot is removed.
 func (tr *patriciaMerkleTrie) TakeSnapshot(rootHash []byte) {
+	if bytes.Equal(rootHash, emptyTrieHash) {
+		log.Trace("should not snapshot empty trie")
+		return
+	}
+
 	tr.trieStorage.TakeSnapshot(rootHash)
 }
 
