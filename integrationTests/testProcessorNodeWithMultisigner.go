@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
+	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
@@ -33,6 +34,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	initialNodeAddr string,
 	epochStartNotifier notifier.EpochStartNotifier,
 	nodesCoordinator sharding.NodesCoordinator,
+	ratingsData *rating.RatingsData,
 	cp *CryptoParams,
 	keyIndex int,
 	ownAccount *TestWalletAccount,
@@ -50,6 +52,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		HeaderSigVerifier: headerSigVerifier,
 		ChainID:           ChainID,
 		NodesSetup:        nodeSetup,
+		RatingsData:       ratingsData,
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
@@ -159,6 +162,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 				dataCache,
 				nodesCoordinatorFactory,
 				nodesSetup,
+				nil,
 			)
 		}
 
@@ -179,6 +183,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 				dataCache,
 				nodesCoordinatorFactory,
 				nodesSetup,
+				nil,
 			)
 		}
 
@@ -203,6 +208,7 @@ func CreateNode(
 	cache sharding.Cacher,
 	coordinatorFactory NodesCoordinatorFactory,
 	nodesSetup sharding.GenesisNodesSetupHandler,
+	ratingsData *rating.RatingsData,
 ) *TestProcessorNode {
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
@@ -232,6 +238,7 @@ func CreateNode(
 		seedAddress,
 		epochStartSubscriber,
 		nodesCoordinator,
+		ratingsData,
 		cp,
 		keyIndex,
 		nil,
@@ -304,6 +311,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 				seedAddress,
 				epochStartSubscriber,
 				nodesCoordinator,
+				nil,
 				cp,
 				i,
 				nil,
@@ -399,6 +407,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				seedAddress,
 				epochStartSubscriber,
 				nodesCoordinator,
+				nil,
 				cp,
 				i,
 				ownAccount,
@@ -581,8 +590,8 @@ func AllShardsProposeBlock(
 // AllShardsProposeBlock simulates each shard selecting a consensus group and proposing/broadcasting/committing a block
 func SimulateAllShardsProposeBlock(
 	round uint64,
-	nonce uint64,
 	nodesMap map[uint32][]*TestProcessorNode,
+	offlineNodesMap map[uint32][][]byte,
 ) (
 	map[uint32]data.BodyHandler,
 	map[uint32]data.HeaderHandler,
@@ -601,7 +610,8 @@ func SimulateAllShardsProposeBlock(
 	// propose blocks
 	for i := range nodesMap {
 		currentNode := nodesMap[i][0]
-		go createBlock(currentNode, i, round, nonce, bodyMap, headerMap, newRandomness, mutMaps, wg)
+		offlineKeys := offlineNodesMap[i]
+		go createBlock(currentNode, i, round, bodyMap, headerMap, newRandomness, mutMaps, wg, offlineKeys)
 	}
 	wg.Wait()
 
@@ -613,12 +623,15 @@ func SimulateAllShardsProposeBlock(
 func createBlock(currentNode *TestProcessorNode,
 	i uint32,
 	round uint64,
-	nonce uint64,
 	bodyMap map[uint32]data.BodyHandler,
 	headerMap map[uint32]data.HeaderHandler,
 	newRandomness map[uint32][]byte,
 	mutex *sync.Mutex,
-	wg *sync.WaitGroup) {
+	wg *sync.WaitGroup,
+	offlinePks [][]byte) {
+
+	defer wg.Done()
+
 	currentBlockHeader := currentNode.BlockChain.GetCurrentBlockHeader()
 	if check.IfNil(currentBlockHeader) {
 		currentBlockHeader = currentNode.BlockChain.GetGenesisHeader()
@@ -635,11 +648,19 @@ func createBlock(currentNode *TestProcessorNode,
 		fmt.Println("Error getting the validators public keys: ", err)
 	}
 
+	proposerKey := []byte(pubKeys[0])
+	for _, pk := range offlinePks {
+		if bytes.Equal(pk, proposerKey) {
+			log.Info("Not proposed")
+			return
+		}
+	}
+
 	// first node is block proposer
 	var body data.BodyHandler
 	var header data.HeaderHandler
 	for i := 0; i < 10; i++ {
-		body, header, _ = currentNode.ProposeBlock(round, nonce)
+		body, header, _ = currentNode.ProposeBlock(round, currentBlockHeader.GetNonce()+1)
 		if body != nil && header != nil {
 			break
 		}
@@ -658,7 +679,6 @@ func createBlock(currentNode *TestProcessorNode,
 
 	currentNode.CommitBlock(body, header)
 
-	wg.Done()
 }
 
 // SyncAllShardsWithRoundBlock enforces all nodes in each shard synchronizing the block for the given round
@@ -700,16 +720,10 @@ func SimulateSyncAllShardsWithRoundBlock(
 
 			for _, body := range bodyMap {
 				actualBody := body.(*block.Body)
-				for _, miniblocks := range actualBody.MiniBlocks {
-					if miniblocks.ReceiverShardID != shard ||
-						miniblocks.SenderShardID != shard ||
-						miniblocks.SenderShardID != core.AllShardId ||
-						miniblocks.ReceiverShardID != core.AllShardId {
-						continue
-					}
-					marshalizedHeader, _ := TestMarshalizer.Marshal(miniblocks)
+				for _, miniBlock := range actualBody.MiniBlocks {
+					marshalizedHeader, _ := TestMarshalizer.Marshal(miniBlock)
 					headerHash := TestHasher.Compute(string(marshalizedHeader))
-					node.DataPool.MiniBlocks().Put(headerHash, miniblocks)
+					node.DataPool.MiniBlocks().Put(headerHash, miniBlock)
 				}
 			}
 		}

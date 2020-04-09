@@ -1,6 +1,7 @@
 package rating
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -13,142 +14,261 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
-func TestComputeRating_SingleMetachainShard(t *testing.T) {
+func TestComputeRating_Metachain(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetDisplayByteSlice(logger.ToHexShort)
+	//_ = logger.SetDisplayByteSlice(logger.ToHexShort)
+	//
+	//var fileForLogs *os.File
+	//fileForLogs, err := prepareLogFile("")
+	//
+	//if err != nil {
+	//	fmt.Errorf("%w creating a log file", err)
+	//}
+	//
+	//defer func() {
+	//	_ = fileForLogs.Close()
+	//}()
+	//
+	//err = logger.RemoveLogObserver(os.Stdout)
+	//
+	//logger.SetLogLevel("*:DEBUG")
 
-	var fileForLogs *os.File
-	fileForLogs, err := prepareLogFile("")
-
-	if err != nil {
-		fmt.Errorf("%w creating a log file", err)
-	}
-
-	defer func() {
-		_ = fileForLogs.Close()
-	}()
-
-	err = logger.RemoveLogObserver(os.Stdout)
-
-	logger.SetLogLevel("*:DEBUG")
-
-	roundsPerEpoch := uint64(500)
-	epochs := uint64(50)
-	roundDurationSeconds := uint64(6)
-
-	nodesPerShard := 63
-	nbMetaNodes := 63
-	nbShards := 5
-	consensusGroupSize := 51
-	waintingListsSize := 7
-	maxGasLimitPerBlock := uint64(100000)
-
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
-	_ = advertiser.Bootstrap()
-
-	seedAddress := integrationTests.GetConnectableAddress(advertiser)
-
-	ratingsConfig := &config.RatingsConfig{}
-	_ = core.LoadTomlFile(ratingsConfig, "./ratings.toml")
-	ratingsData, _ := rating.NewRatingsData(*ratingsConfig)
-	rater, _ := rating.NewBlockSigningRater(ratingsData)
-
-	integrationTests.TestMultiSig = &mock.BelNevMock{
-		AggregateSigsMock: func(bitmap []byte) (bytes []byte, err error) {
-			return integrationTests.TestHasher.Compute(fmt.Sprintf("%d", time.Now().UnixNano())), nil
+	datas := []struct {
+		consensusSize int
+		shardSize     int
+		waitingSize   int
+		offlineNodes  int
+		epochs        uint64
+		roundDuration uint64
+		rounds        uint64
+	}{{
+		consensusSize: 63,
+		shardSize:     400,
+		offlineNodes:  0,
+		epochs:        101,
+		roundDuration: 6,
+		rounds:        500,
+		waitingSize:   100,
+	},
+		{
+			consensusSize: 400,
+			shardSize:     400,
+			offlineNodes:  0,
+			epochs:        101,
+			roundDuration: 6,
+			rounds:        500,
+			waitingSize:   100,
 		},
 	}
 
-	coordinatorFactory := &integrationTests.IndexHashedNodesCoordinatorWithRaterFactory{
-		RaterHandler: rater,
-	}
+	for _, data := range datas {
+		nodesPerShard := data.shardSize
+		nbMetaNodes := data.shardSize
+		nbShards := 1
+		consensusGroupSize := data.consensusSize
+		metaConsensusGroupSize := data.consensusSize
+		waitingListsSize := data.waitingSize
+		roundsPerEpoch := data.rounds
+		offlineNodesCurrent := data.offlineNodes
+		epochs := data.epochs
+		roundDurationSeconds := data.roundDuration
 
-	nodesMap := createOneNodePerShard(
-		nodesPerShard,
-		nbMetaNodes,
-		nbShards,
-		consensusGroupSize,
-		waintingListsSize,
-		seedAddress,
-		coordinatorFactory,
-	)
+		maxGasLimitPerBlock := uint64(100000)
 
-	gasPrice := uint64(10)
-	gasLimit := uint64(100)
+		advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+		_ = advertiser.Bootstrap()
 
-	defer func() {
-		_ = advertiser.Close()
-		for _, nodes := range nodesMap {
-			for _, n := range nodes {
-				_ = n.Node.Stop()
-			}
+		seedAddress := integrationTests.GetConnectableAddress(advertiser)
+
+		ratingsConfig := &config.RatingsConfig{}
+		_ = core.LoadTomlFile(ratingsConfig, fmt.Sprintf("./%vratings.toml", consensusGroupSize))
+		ratingsData, _ := rating.NewRatingsData(*ratingsConfig)
+		rater, _ := rating.NewBlockSigningRater(ratingsData)
+
+		randomness := atomic.Uint64{}
+
+		integrationTests.TestMultiSig = &mock.BelNevMock{
+			AggregateSigsMock: func(bitmap []byte) (bytes []byte, err error) {
+				randomness.Set(randomness.Get() + 1)
+				return integrationTests.TestHasher.Compute(fmt.Sprintf("%d_%d", time.Now().UnixNano(), randomness)), nil
+			},
 		}
-	}()
 
-	for _, nodes := range nodesMap {
-		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
-		nodes[0].Node.Start()
-		//integrationTests.DisplayAndStartNodes(nodes)
-		for _, node := range nodes {
-			node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		coordinatorFactory := &integrationTests.IndexHashedNodesCoordinatorWithRaterFactory{
+			PeerAccountListAndRatingHandler: rater,
 		}
-	}
 
-	round := uint64(1)
-	nonce := uint64(1)
+		nodesMap := createOneNodePerShard(
+			nodesPerShard,
+			nbMetaNodes,
+			nbShards,
+			consensusGroupSize,
+			metaConsensusGroupSize,
+			waitingListsSize,
+			seedAddress,
+			coordinatorFactory,
+			ratingsData,
+		)
 
-	nbBlocksToProduce := epochs * roundsPerEpoch
+		delete(nodesMap, 0)
 
-	validatorRatings := make(map[uint32]map[string][]uint32)
+		gasPrice := uint64(10)
+		gasLimit := uint64(100)
 
-	for i := uint32(0); i < uint32(nbShards); i++ {
-		validatorRatings[i] = make(map[string][]uint32)
-	}
-
-	validatorRatings[core.MetachainShardId] = make(map[string][]uint32)
-
-	folderName := fmt.Sprintf("%v_epochs%v_rounds%v", time.Now().Unix(), epochs, roundsPerEpoch)
-	os.Mkdir(folderName, os.ModePerm)
-
-	for i := uint64(0); i < nbBlocksToProduce; i++ {
-		bodies, headers, _ := integrationTests.SimulateAllShardsProposeBlock(round, nonce, nodesMap)
-		integrationTests.SimulateSyncAllShardsWithRoundBlock(nodesMap, headers, bodies)
-
-		if headers[core.MetachainShardId].IsStartOfEpochBlock() {
-			metachainNode := nodesMap[core.MetachainShardId][0]
-			_, _ = metachainNode.InterceptorsContainer.Get("")
-			metaValidatoStatisticProcessor := metachainNode.ValidatorStatisticsProcessor
-			currentRootHash, _ := metaValidatoStatisticProcessor.RootHash()
-			validatorInfos, _ := metaValidatoStatisticProcessor.GetValidatorInfoForRootHash(currentRootHash)
-
-			for shardId, v := range validatorInfos {
-				currentMap := validatorRatings[shardId]
-				for _, validator := range v {
-					key := fmt.Sprintf("%s", core.GetTrimmedPk(core.ToHex(validator.GetPublicKey())))
-					currentMap[key] = append(currentMap[key], validator.TempRating)
+		defer func() {
+			_ = advertiser.Close()
+			for _, nodes := range nodesMap {
+				for _, n := range nodes {
+					_ = n.Node.Stop()
 				}
 			}
+		}()
 
-			writeRatingsToCurrentEpoch(folderName, uint64(headers[core.MetachainShardId].GetEpoch()), roundsPerEpoch, roundDurationSeconds, validatorRatings)
-
-			time.Sleep(1 * time.Second)
+		for _, nodes := range nodesMap {
+			integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
+			nodes[0].Node.Start()
+			//integrationTests.DisplayAndStartNodes(nodes)
+			for _, node := range nodes {
+				node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+			}
 		}
-		round++
-		nonce++
 
+		offlineNodesPks := make(map[uint32][][]byte)
+		shardValidators, _ := nodesMap[core.MetachainShardId][0].NodesCoordinator.GetAllEligibleValidatorsPublicKeys(0)
+		shardWaiting, _ := nodesMap[core.MetachainShardId][0].NodesCoordinator.GetAllWaitingValidatorsPublicKeys(0)
+
+		for i := range shardValidators {
+			shardValidators[i] = append(shardValidators[i], shardWaiting[i]...)
+		}
+
+		for shardId, shardPks := range shardValidators {
+			sort.Slice(shardPks, func(i, j int) bool {
+				return bytes.Compare(shardPks[i], shardPks[j]) < 0
+			})
+
+			for i := 0; i < offlineNodesCurrent; i++ {
+				offlineNodesPks[shardId] = append(offlineNodesPks[shardId], shardPks[i])
+			}
+		}
+
+		round := uint64(1)
+		//nonce := uint64(1)
+
+		nbBlocksToProduce := epochs * roundsPerEpoch
+
+		validatorRatings := make(map[uint32]map[string][]uint32)
+
+		for i := uint32(0); i < uint32(nbShards); i++ {
+			validatorRatings[i] = make(map[string][]uint32)
+		}
+
+		validatorRatings[core.MetachainShardId] = make(map[string][]uint32)
+
+		folderName := fmt.Sprintf("%v_epochs%v_rounds%v", time.Now().Unix(), epochs, roundsPerEpoch)
+		os.Mkdir(folderName, os.ModePerm)
+
+		for i := uint64(0); i < nbBlocksToProduce; i++ {
+			bodies, headers, _ := integrationTests.SimulateAllShardsProposeBlock(round, nodesMap, offlineNodesPks)
+			integrationTests.SimulateSyncAllShardsWithRoundBlock(nodesMap, headers, bodies)
+
+			if headers[core.MetachainShardId] != nil && headers[core.MetachainShardId].IsStartOfEpochBlock() {
+				metachainNode := nodesMap[core.MetachainShardId][0]
+				_, _ = metachainNode.InterceptorsContainer.Get("")
+				metaValidatoStatisticProcessor := metachainNode.ValidatorStatisticsProcessor
+				currentRootHash, _ := metaValidatoStatisticProcessor.RootHash()
+				validatorInfos, _ := metaValidatoStatisticProcessor.GetValidatorInfoForRootHash(currentRootHash)
+
+				for shardId, v := range validatorInfos {
+					currentMap := validatorRatings[shardId]
+					for _, validator := range v {
+						key := fmt.Sprintf("%s", core.GetTrimmedPk(core.ToHex(validator.GetPublicKey())))
+						currentMap[key] = append(currentMap[key], validator.TempRating)
+					}
+				}
+
+				writeRatingsForCurrentEpoch(folderName, uint64(headers[core.MetachainShardId].GetEpoch()), roundsPerEpoch, roundDurationSeconds, validatorRatings)
+
+				time.Sleep(1 * time.Second)
+			}
+			round++
+		}
+
+		writeRatingsForCurrentEpoch(folderName, epochs, roundsPerEpoch, roundDurationSeconds, validatorRatings)
+
+		metachainNode := nodesMap[core.MetachainShardId][0]
+		_, _ = metachainNode.InterceptorsContainer.Get("")
+		metaValidatoStatisticProcessor := metachainNode.ValidatorStatisticsProcessor
+		currentRootHash, _ := metaValidatoStatisticProcessor.RootHash()
+		validatorInfos, _ := metaValidatoStatisticProcessor.GetValidatorInfoForRootHash(currentRootHash)
+
+		f, _ := os.Create(fmt.Sprintf("%s/validatorInfos.csv", folderName))
+		defer f.Close()
+
+		headerCSV :=
+			"PublicKey," +
+				"ShardId," +
+				"List," +
+				"Index," +
+				"TempRating," +
+				"Rating," +
+				"RewardAddress," +
+				"LeaderSuccess," +
+				"LeaderFailure," +
+				"ValidatorSuccess," +
+				"ValidatorFailure," +
+				"NumSelectedInSuccessBlocks," +
+				"AccumulatedFees," +
+				"TotalLeaderSuccess," +
+				"TotalLeaderFailure," +
+				"TotalValidatorSuccess," +
+				"TotalValidatorFailure,"
+
+		f.WriteString(headerCSV + "\n")
+
+		for shardId, shardVis := range validatorInfos {
+			if shardId < 100 {
+				continue
+			}
+			for _, vi := range shardVis {
+				f.WriteString(fmt.Sprintf("%s,%v,%s,%v,%v,%v,%s,%v,%v,%v,%v,%v,%v,%v,%v,%v,%v\n",
+					core.GetTrimmedPk(core.ToHex(vi.PublicKey)),
+					vi.ShardId,
+					vi.List,
+					vi.Index,
+					vi.TempRating,
+					vi.Rating,
+					core.GetTrimmedPk(core.ToHex(vi.RewardAddress)),
+					vi.LeaderSuccess,
+					vi.LeaderFailure,
+					vi.ValidatorSuccess,
+					vi.ValidatorFailure,
+					vi.NumSelectedInSuccessBlocks,
+					vi.AccumulatedFees,
+					vi.TotalLeaderSuccess,
+					vi.TotalLeaderFailure,
+					vi.TotalValidatorSuccess,
+					vi.TotalValidatorFailure,
+				))
+			}
+		}
+
+		fdata, _ := os.Create(fmt.Sprintf("%s/data.out", folderName))
+		defer fdata.Close()
+		fdata.WriteString(fmt.Sprintf("%#v\n", data))
+		fdata.WriteString(fmt.Sprintf("%#v]n", ratingsData))
 	}
-
-	writeRatingsToCurrentEpoch(folderName, epochs, roundsPerEpoch, roundDurationSeconds, validatorRatings)
 }
 
 func prepareLogFile(workingDir string) (*os.File, error) {
@@ -176,7 +296,7 @@ func prepareLogFile(workingDir string) (*os.File, error) {
 	return fileForLog, nil
 }
 
-func writeRatingsToCurrentEpoch(folderName string, currentEpoch uint64, roundsPerEpoch uint64, roundDurationSeconds uint64, validatorRatingsMap map[uint32]map[string][]uint32) {
+func writeRatingsForCurrentEpoch(folderName string, currentEpoch uint64, roundsPerEpoch uint64, roundDurationSeconds uint64, validatorRatingsMap map[uint32]map[string][]uint32) {
 	f, _ := os.Create(fmt.Sprintf("%s/%v.csv", folderName, currentEpoch))
 	defer f.Close()
 
@@ -187,7 +307,9 @@ func writeRatingsToCurrentEpoch(folderName string, currentEpoch uint64, roundsPe
 	f.WriteString(headerCSV + "\n")
 
 	for shardId, validatorRatings := range validatorRatingsMap {
-
+		if shardId < 100 {
+			continue
+		}
 		var keys []string
 		for k := range validatorRatings {
 			keys = append(keys, k)
@@ -202,7 +324,7 @@ func writeRatingsToCurrentEpoch(folderName string, currentEpoch uint64, roundsPe
 			prevValue := uint32(0)
 			for _, rt := range ratingPerEpoch {
 				cellValue := fmt.Sprintf("%d", rt)
-				if prevValue != 1000000 && (prevValue == rt || rt == 500000) {
+				if prevValue != 10000000 && (prevValue == rt || rt == 5000000) {
 					cellValue = "waiting"
 				}
 				csvRatings = fmt.Sprintf("%s,%s", csvRatings, cellValue)
@@ -224,6 +346,7 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 	nbMetaNodes := 400
 	nbShards := 1
 	consensusGroupSize := 63
+	metaConsensusGroupSize := 63
 	waintingListsSize := 100
 	maxGasLimitPerBlock := uint64(100000)
 
@@ -232,10 +355,11 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
-	rater, _ := rating.NewBlockSigningRater(integrationTests.CreateRatingsData())
+	ratingsData := integrationTests.CreateRatingsData()
+	rater, _ := rating.NewBlockSigningRater(ratingsData)
 
 	coordinatorFactory := &integrationTests.IndexHashedNodesCoordinatorWithRaterFactory{
-		RaterHandler: rater,
+		PeerAccountListAndRatingHandler: rater,
 	}
 
 	nodesMap := createOneNodePerShard(
@@ -243,9 +367,11 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 		nbMetaNodes,
 		nbShards,
 		consensusGroupSize,
+		metaConsensusGroupSize,
 		waintingListsSize,
 		seedAddress,
-		coordinatorFactory)
+		coordinatorFactory,
+		ratingsData)
 
 	gasPrice := uint64(10)
 	gasLimit := uint64(100)
@@ -275,25 +401,7 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 	expectedLastEpoch := uint32(nbBlocksToProduce / roundsPerEpoch)
 
 	for i := uint64(0); i < nbBlocksToProduce; i++ {
-		_, headers, _ := integrationTests.SimulateAllShardsProposeBlock(round, nonce, nodesMap)
-
-		//for shardId, validator := range nodesMap{
-		//
-		//	if shardId
-		//
-		//	err = tpn.BlockProcessor.ProcessBlock(
-		//		header,
-		//		body,
-		//		func() time.Duration {
-		//			return time.Second * 2
-		//		},
-		//	)
-		//	if err != nil {
-		//		return err
-		//	}
-		//
-		//	err = tpn.BlockProcessor.CommitBlock(header, body)
-		//}
+		_, headers, _ := integrationTests.SimulateAllShardsProposeBlock(round, nodesMap, nil)
 
 		if headers[core.MetachainShardId].IsStartOfEpochBlock() {
 			_, _ = nodesMap[core.MetachainShardId][0].InterceptorsContainer.Get("")
@@ -320,19 +428,27 @@ func createOneNodePerShard(
 	nbMetaNodes int,
 	nbShards int,
 	consensusGroupSize int,
+	metaConsensusGroupSize int,
 	nodesInWaitingListPerShard int,
 	seedAddress string,
 	coordinatorFactory *integrationTests.IndexHashedNodesCoordinatorWithRaterFactory,
+	ratingsData *rating.RatingsData,
 ) map[uint32][]*integrationTests.TestProcessorNode {
 	cp := integrationTests.CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
 	pubKeys := integrationTests.PubKeysMapFromKeysMap(cp.Keys)
 	validatorsMap := integrationTests.GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
+	validatorsMapForNodesCoordinator, _ := sharding.NodesInfoToValidators(validatorsMap)
 
 	cpWaiting := integrationTests.CreateCryptoParams(nodesInWaitingListPerShard, nodesInWaitingListPerShard, uint32(nbShards))
 	pubKeysWaiting := integrationTests.PubKeysMapFromKeysMap(cpWaiting.Keys)
 	waitingMap := integrationTests.GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
+	waitingMapForNodesCoordinator, _ := sharding.NodesInfoToValidators(waitingMap)
 
 	nodesMap := make(map[uint32][]*integrationTests.TestProcessorNode)
+
+	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
+		return validatorsMap, waitingMap
+	}}
 
 	for shardId := range validatorsMap {
 		nodesList := make([]*integrationTests.TestProcessorNode, 1)
@@ -343,16 +459,18 @@ func createOneNodePerShard(
 			nodesPerShard,
 			nbMetaNodes,
 			consensusGroupSize,
-			nbMetaNodes,
+			metaConsensusGroupSize,
 			shardId,
 			nbShards,
-			validatorsMap,
-			waitingMap,
+			validatorsMapForNodesCoordinator,
+			waitingMapForNodesCoordinator,
 			0,
 			seedAddress,
 			cp,
 			dataCache,
 			coordinatorFactory,
+			nodesSetup,
+			ratingsData,
 		)
 
 		nodesMap[shardId] = append(nodesList, nodesListWaiting...)

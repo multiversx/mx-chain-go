@@ -550,6 +550,8 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		case string(core.NewList):
 			newNodesList = append(newNodesList, validator)
 		}
+
+		log.Debug("Validator", "PK", validator.PubKey(), "chances", chance)
 	}
 
 	sort.Slice(leaving, func(i, j int) bool {
