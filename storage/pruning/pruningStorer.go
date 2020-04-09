@@ -18,6 +18,10 @@ import (
 
 var log = logger.GetOrCreate("storage/pruning")
 
+// maxNumEpochsToKeepIfAShardIsStuck represents the maximum number of epochs to be kept active if a shard remains stuck
+// and requires data from older epochs
+const maxNumEpochsToKeepIfAShardIsStuck = 5
+
 // persisterData structure is used so the persister and its path can be kept in the same place
 type persisterData struct {
 	persister storage.Persister
@@ -547,20 +551,19 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 
 	oldestEpochToKeep := computeOldestEpoch(metaBlock)
 	oldestEpochInCurrentSetting := ps.activePersisters[len(ps.activePersisters)-1].epoch
-	if oldestEpochToKeep > oldestEpochInCurrentSetting {
-		//err = ps.extendActivePersistersTo(oldestEpochToKeep)
-		//if err != nil {
-		//	return err
-		//}
-		oldestEpochToKeep = oldestEpochInCurrentSetting + 1
+	shouldKeepOlderEpochsIfShardIsStuck := epoch-oldestEpochToKeep < maxNumEpochsToKeepIfAShardIsStuck
+	if oldestEpochToKeep <= oldestEpochInCurrentSetting && shouldKeepOlderEpochsIfShardIsStuck {
+		err = ps.extendActivePersistersTo(oldestEpochToKeep)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = ps.closeAndDestroyPersisters(epoch)
+		if err != nil {
+			log.Warn("closing and destroying old persister", "error", err.Error())
+			return err
+		}
 	}
-
-	err = ps.closeAndDestroyPersisters(epoch, oldestEpochToKeep)
-	if err != nil {
-		log.Warn("closing and destroying old persister", "error", err.Error())
-		return err
-	}
-
 	return nil
 }
 
@@ -596,8 +599,9 @@ func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
 
 func (ps *PruningStorer) extendActivePersistersTo(epoch uint32) error {
 	currentOldestActivePersister := ps.activePersisters[len(ps.activePersisters)-1]
-	for e := currentOldestActivePersister.epoch; e >= epoch; e-- {
-		p, ok := ps.persistersMapByEpoch[e]
+	newestEpoch := currentOldestActivePersister.epoch
+	for e := int(newestEpoch); e >= int(epoch); e-- {
+		p, ok := ps.persistersMapByEpoch[uint32(e)]
 		if !ok {
 			return nil
 		}
@@ -607,60 +611,49 @@ func (ps *PruningStorer) extendActivePersistersTo(epoch uint32) error {
 			if err != nil {
 				return err
 			}
+			p.isClosed = false
+			ps.activePersisters = append(ps.activePersisters, p)
 		}
-
-		ps.activePersisters = append(ps.activePersisters, p)
 	}
 
 	return nil
 }
 
-func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32, oldest uint32) error {
+func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 	// activePersisters outside the numOfActivePersisters border have to he closed for both scenarios: full archive or not
 	if ps.numOfActivePersisters < uint32(len(ps.activePersisters)) {
-		persisterToClose := ps.activePersisters[ps.numOfActivePersisters]
-		if persisterToClose.epoch == oldest {
-			return nil
+		for idx := int(ps.numOfActivePersisters); idx < len(ps.activePersisters); idx++ {
+			persisterToClose := ps.activePersisters[idx]
+			err := persisterToClose.persister.Close()
+			if err != nil {
+				log.Error("error closing persister", "error", err.Error(), "id", ps.identifier)
+				return err
+			}
+			// remove it from the active persisters slice
+			ps.activePersisters = ps.activePersisters[:ps.numOfActivePersisters]
+			persisterToClose.isClosed = true
+			epochToClose := epoch - ps.numOfActivePersisters
+			ps.persistersMapByEpoch[epochToClose] = persisterToClose
 		}
-		err := persisterToClose.persister.Close()
-		if err != nil {
-			log.Error("error closing persister", "error", err.Error(), "id", ps.identifier)
-			return err
-		}
-		// remove it from the active persisters slice
-		ps.activePersisters = ps.activePersisters[:ps.numOfActivePersisters]
-		persisterToClose.isClosed = true
-		epochToClose := epoch - ps.numOfActivePersisters
-		ps.persistersMapByEpoch[epochToClose] = persisterToClose
 	}
 
-	recoveredPersister, ok := ps.persistersMapByEpoch[oldest]
-	if ok {
-		_, _ = ps.persisterFactory.Create(recoveredPersister.path)
-		ps.activePersisters = append(ps.activePersisters, recoveredPersister)
-		return nil
-	}
 	if !ps.fullArchive && uint32(len(ps.persistersMapByEpoch)) > ps.numOfEpochsToKeep {
-		epochToRemove := epoch - ps.numOfEpochsToKeep
-		persisterToDestroy, ok := ps.persistersMapByEpoch[epochToRemove]
-		if persisterToDestroy.epoch == oldest {
-			persisterToDestroy.isClosed = false
-			_, err := ps.persisterFactory.Create(persisterToDestroy.path)
+		idxToRemove := epoch - ps.numOfEpochsToKeep
+		for {
+			//epochToRemove := epoch - ps.numOfEpochsToKeep
+			persisterToDestroy, ok := ps.persistersMapByEpoch[idxToRemove]
+			if !ok {
+				break
+			}
+			delete(ps.persistersMapByEpoch, idxToRemove)
+
+			err := persisterToDestroy.persister.DestroyClosed()
 			if err != nil {
 				return err
 			}
-			ps.activePersisters = append(ps.activePersisters, persisterToDestroy)
+			removeDirectoryIfEmpty(persisterToDestroy.path)
+			idxToRemove--
 		}
-		if !ok {
-			return errors.New("persister to destroy not found")
-		}
-		delete(ps.persistersMapByEpoch, epochToRemove)
-
-		err := persisterToDestroy.persister.DestroyClosed()
-		if err != nil {
-			return err
-		}
-		removeDirectoryIfEmpty(persisterToDestroy.path)
 	}
 
 	return nil

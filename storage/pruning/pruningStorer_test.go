@@ -487,17 +487,14 @@ func TestPruningStorer_ChangeEpochWithKeepingFromOldestEpochInMetaBlock(t *testi
 	ps, _ := pruning.NewPruningStorer(args)
 	_ = ps.ChangeEpochSimple(1)
 	_ = ps.ChangeEpochSimple(2)
+	_ = ps.ChangeEpochSimple(3)
 
-	// now epoch 1 is not anymore in the active persisters slice. If we start a new epoch with a metablock which contain
-	// a header with an older epoch than the last in the slice, it should activate all epochs' persisters from that old one
-	// so after adding epoch 3, the slice will contain 2 and 3. but if the oldest epoch is 0, it should also append the
-	// persisters for epoch 0 and 1
 	metaBlock := &block.MetaBlock{
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{{Epoch: 1}},
 			Economics:            block.Economics{},
 		},
-		Epoch: 3,
+		Epoch: 4,
 	}
 
 	err := ps.ChangeEpoch(metaBlock)
@@ -505,6 +502,34 @@ func TestPruningStorer_ChangeEpochWithKeepingFromOldestEpochInMetaBlock(t *testi
 
 	epochs := ps.GetActivePersistersEpochs()
 	assert.Equal(t, 4, len(epochs))
+
+	metaBlock = &block.MetaBlock{
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{{Epoch: 1}},
+			Economics:            block.Economics{},
+		},
+		Epoch: 5,
+	}
+
+	err = ps.ChangeEpoch(metaBlock)
+	assert.NoError(t, err)
+
+	epochs = ps.GetActivePersistersEpochs()
+	assert.Equal(t, 5, len(epochs))
+
+	// the limit of 5 is exceeded, next epoch the num of active persisters will return to 2
+	metaBlock = &block.MetaBlock{
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{{Epoch: 1}},
+			Economics:            block.Economics{},
+		},
+		Epoch: 6,
+	}
+
+	err = ps.ChangeEpoch(metaBlock)
+	assert.NoError(t, err)
+
+	assert.Equal(t, 2, len(ps.GetActivePersistersEpochs()))
 }
 
 func TestPruningStorer_ChangeEpochWithExisting(t *testing.T) {
