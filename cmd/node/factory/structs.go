@@ -248,12 +248,13 @@ func createTries(
 
 	trieContainer := state.NewDataTriesHolder()
 	trieFactoryArgs := factory.TrieFactoryArgs{
-		EvictionWaitingListCfg: args.config.EvictionWaitingList,
-		SnapshotDbCfg:          args.config.TrieSnapshotDB,
-		Marshalizer:            marshalizer,
-		Hasher:                 hasher,
-		PathManager:            args.pathManager,
-		ShardId:                args.shardId,
+		EvictionWaitingListCfg:   args.config.EvictionWaitingList,
+		SnapshotDbCfg:            args.config.TrieSnapshotDB,
+		Marshalizer:              marshalizer,
+		Hasher:                   hasher,
+		PathManager:              args.pathManager,
+		ShardId:                  args.shardId,
+		TrieStorageManagerConfig: args.config.TrieStorageManagerConfig,
 	}
 	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
 	if err != nil {
