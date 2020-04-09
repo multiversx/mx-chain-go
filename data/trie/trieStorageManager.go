@@ -17,11 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
-const (
-	snapshotBufferLen = 100
-	pruningBufferLen  = 1000
-)
-
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
 type trieStorageManager struct {
 	db       data.DBWriteCacher
@@ -33,6 +28,7 @@ type trieStorageManager struct {
 	snapshotReq        chan snapshotsQueueEntry
 	pruningBuffer      atomicBuffer
 	snapshotInProgress uint32
+	maxSnapshots       uint8
 
 	dbEvictionWaitingList data.DBRemoveCacher
 	storageOperationMutex sync.RWMutex
@@ -50,6 +46,7 @@ func NewTrieStorageManager(
 	hasher hashing.Hasher,
 	snapshotDbCfg config.DBConfig,
 	ewl data.DBRemoveCacher,
+	generalConfig config.TrieStorageManagerConfig,
 ) (*trieStorageManager, error) {
 	if check.IfNil(db) {
 		return nil, ErrNilDatabase
@@ -74,11 +71,12 @@ func NewTrieStorageManager(
 		snapshots:             snapshots,
 		snapshotId:            snapshotId,
 		snapshotDbCfg:         snapshotDbCfg,
-		pruningBuffer:         newPruningBuffer(),
+		pruningBuffer:         newPruningBuffer(generalConfig.PruningBufferLen),
 		dbEvictionWaitingList: ewl,
-		snapshotReq:           make(chan snapshotsQueueEntry, snapshotBufferLen),
-		pruneReq:              make(chan []byte, pruningBufferLen),
+		snapshotReq:           make(chan snapshotsQueueEntry, generalConfig.SnapshotsBufferLen),
+		pruneReq:              make(chan []byte, generalConfig.PruningBufferLen),
 		snapshotInProgress:    0,
+		maxSnapshots:          generalConfig.MaxSnapshots,
 	}
 
 	go tsm.storageProcessLoop(marshalizer, hasher)
@@ -166,6 +164,8 @@ func (tsm *trieStorageManager) EnterSnapshotMode() {
 	defer tsm.storageOperationMutex.Unlock()
 
 	tsm.snapshotInProgress++
+
+	log.Trace("enter snapshot mode", "snapshots in progress", tsm.snapshotInProgress)
 }
 
 // ExitSnapshotMode sets the snapshot mode off
@@ -184,6 +184,8 @@ func (tsm *trieStorageManager) ExitSnapshotMode() {
 	if tsm.snapshotInProgress == 0 {
 		tsm.prune(tsm.pruningBuffer.removeAll())
 	}
+
+	log.Trace("exit snapshot mode", "snapshots in progress", tsm.snapshotInProgress)
 }
 
 // Prune removes the given hash from db
@@ -359,7 +361,7 @@ func (tsm *trieStorageManager) getSnapshotDb(newDb bool) data.DBWriteCacher {
 		return nil
 	}
 
-	if len(tsm.snapshots) > maxSnapshots {
+	if uint8(len(tsm.snapshots)) > tsm.maxSnapshots {
 		tsm.removeSnapshot()
 	}
 
