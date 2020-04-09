@@ -51,6 +51,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -1711,6 +1712,15 @@ func createApiResolver(
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
 
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasMap:          gasSchedule,
+		MapDNSAddresses: make(map[string]struct{}),
+	}
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	if err != nil {
+		return nil, err
+	}
+
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         accnts,
 		AddrConv:         addrConv,
@@ -1719,6 +1729,7 @@ func createApiResolver(
 		ShardCoordinator: shardCoordinator,
 		Marshalizer:      marshalizer,
 		Uint64Converter:  uint64Converter,
+		BuiltInFunctions: builtInFuncs,
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {

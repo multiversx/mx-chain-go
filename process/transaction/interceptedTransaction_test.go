@@ -294,10 +294,13 @@ func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 func TestNewInterceptedTransaction_AddrConvFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
+	marshalizer := &mock.MarshalizerMock{}
+	txData, _ := marshalizer.Marshal(&dataTransaction.Transaction{Value: big.NewInt(0)})
+
 	txi, err := transaction.NewInterceptedTransaction(
-		[]byte("{\"value\": \"0\"}"),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
+		txData,
+		marshalizer,
+		marshalizer,
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
 		&mock.SignerMock{},
