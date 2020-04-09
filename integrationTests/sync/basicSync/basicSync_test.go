@@ -15,6 +15,7 @@ import (
 )
 
 func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
+	// TODO: Take out when fixing TC
 	if os.Getenv("SKIPCI") != "" {
 		t.Skip("Skipping...")
 	}

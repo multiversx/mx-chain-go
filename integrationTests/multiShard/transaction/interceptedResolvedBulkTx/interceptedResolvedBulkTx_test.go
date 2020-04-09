@@ -187,6 +187,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 // Transactions requested by another shard (2 for example) will not store the received transactions
 // (interceptors will filter them out)
 func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAndRequestShouldWork(t *testing.T) {
+	// TODO: Take out when fixing TC
 	if os.Getenv("SKIPCI") != "" {
 		t.Skip("Skipping...")
 	}

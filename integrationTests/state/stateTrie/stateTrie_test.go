@@ -1189,6 +1189,7 @@ func collapseTrie(state state.UserAccountHandler, t *testing.T) {
 }
 
 func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T) {
+	// TODO: Take out when fixing TC
 	if os.Getenv("SKIPCI") != "" {
 		t.Skip("Skipping...")
 	}
