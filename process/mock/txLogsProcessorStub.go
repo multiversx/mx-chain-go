@@ -9,7 +9,6 @@ import (
 type TxLogsProcessorStub struct {
 	GetLogCalled func(txHash []byte) (data.LogHandler, error)
 	SaveLogCalled func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error
-	IsInterfaceNilCalled func() bool
 }
 
 // GetLog -
@@ -32,9 +31,5 @@ func(txls *TxLogsProcessorStub) SaveLog(txHash []byte, tx data.TransactionHandle
 
 // IsInterfaceNil -
 func(txls *TxLogsProcessorStub) IsInterfaceNil() bool {
-	if txls.IsInterfaceNilCalled != nil {
-		return txls.IsInterfaceNilCalled()
-	}
-
-	return false
+	return txls == nil
 }

@@ -105,7 +105,6 @@
         MaxOpenFiles = 10
 
 [TxLogsStorage]
-    Enabled = false
     [TxLogsStorage.Cache]
         Size = 1000
         Type = "LRU"

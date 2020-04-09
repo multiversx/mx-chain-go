@@ -130,7 +130,7 @@ type Config struct {
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
 	StoragePruning  StoragePruningConfig
-	TxLogsStorage   TransactionLogsConfig
+	TxLogsStorage   StorageConfig
 
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
@@ -138,12 +138,6 @@ type Config struct {
 	VirtualMachineConfig    VirtualMachineConfig
 
 	Hardfork HardforkConfig
-}
-
-// TransactionLogsConfig will hold the settings for transaction logs
-type TransactionLogsConfig struct {
-	Enabled bool
-	LogsStorage StorageConfig
 }
 
 // StoragePruningConfig will hold settings relates to storage pruning
