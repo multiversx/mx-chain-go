@@ -7,13 +7,10 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-// claimDeveloperRewardsFunctionName is a constant which defines the name for the claim developer rewards function
 const claimDeveloperRewardsFunctionName = "ClaimDeveloperRewards"
-
-// changeOwnerAddressFunctionName is a constant which defines the name for the change owner address function
 const changeOwnerAddressFunctionName = "ChangeOwnerAddress"
-
 const setUserName = "SetUserName"
+const saveKeyValue = "SaveKeyValue"
 
 // ArgsCreateBuiltInFunctionContainer -
 type ArgsCreateBuiltInFunctionContainer struct {
@@ -49,6 +46,12 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (pr
 		return nil, err
 	}
 	err = container.Add(setUserName, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	newFunc = NewSaveKeyValueStorageFunc(gasConfig.BaseOperationCost, gasConfig.BuiltInCost.SaveKeyValue)
+	err = container.Add(saveKeyValue, newFunc)
 	if err != nil {
 		return nil, err
 	}
