@@ -75,7 +75,7 @@ func (phs *PoolsHolderStub) RewardTransactions() dataRetriever.ShardedDataCacher
 
 // TrieNodes -
 func (phs *PoolsHolderStub) TrieNodes() storage.Cacher {
-	if phs.TransactionsCalled != nil {
+	if phs.TrieNodesCalled != nil {
 		return phs.TrieNodesCalled()
 	}
 	return nil
