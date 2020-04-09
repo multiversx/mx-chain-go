@@ -9,7 +9,7 @@
 
    # StartInEpochEnabled represents that the fast bootstrap mechanism from the network is enabled if data is not
    # available in local disk
-   StartInEpochEnabled = true
+   StartInEpochEnabled = false
 
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
