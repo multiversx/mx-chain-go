@@ -744,6 +744,13 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool) (block
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
+	if len(sortedTxs) == 0 {
+		log.Trace("no transaction found after computeSortedTxs",
+			"time [s]", elapsedTime,
+		)
+		return make(block.MiniBlockSlice, 0), nil
+	}
+
 	if !haveTime() {
 		log.Debug("time is up after computeSortedTxs",
 			"num txs", len(sortedTxs),
@@ -1030,9 +1037,6 @@ func (txs *transactions) computeSortedTxs(
 	if check.IfNil(txShardPool) {
 		return nil, process.ErrNilTxDataPool
 	}
-	if txShardPool.Len() == 0 {
-		return nil, process.ErrEmptyTxDataPool
-	}
 
 	sortedTransactionsProvider := createSortedTransactionsProvider(txs, txShardPool, strCache)
 	log.Debug("computeSortedTxs.GetSortedTransactions")
@@ -1055,7 +1059,7 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 		return nil, err
 	}
 
-	if txs.blockSizeComputation.IsMaxBlockSizeReached(1, len(miniBlockTxs)) {
+	if txs.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlockTxs)) {
 		return nil, process.ErrMaxBlockSizeReached
 	}
 

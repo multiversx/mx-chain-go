@@ -114,7 +114,15 @@ func TestBlockSizeComputation_Init(t *testing.T) {
 func TestBlockSizeComputation_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
 	t.Parallel()
 
-	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{}, &mock.BlockSizeThrottlerStub{}, maxSizeInBytes)
+	bsc, _ := preprocess.NewBlockSizeComputation(
+		&mock.ProtobufMarshalizerMock{},
+		&mock.BlockSizeThrottlerStub{
+			GetCurrentMaxSizeCalled: func() uint32 {
+				return maxSizeInBytes
+			},
+		},
+		maxSizeInBytes,
+	)
 
 	testData := []struct {
 		numNewMiniBlocks int
@@ -134,6 +142,41 @@ func TestBlockSizeComputation_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
 	for _, td := range testData {
 		t.Run(td.name, func(t *testing.T) {
 			assert.Equal(t, td.expected, bsc.IsMaxBlockSizeReached(td.numNewMiniBlocks, td.numNewTxs))
+		})
+	}
+}
+
+func TestBlockSizeComputation_IsMaxBlockSizeWithoutThrottleReachedShouldWork(t *testing.T) {
+	t.Parallel()
+
+	bsc, _ := preprocess.NewBlockSizeComputation(
+		&mock.ProtobufMarshalizerMock{},
+		&mock.BlockSizeThrottlerStub{
+			GetCurrentMaxSizeCalled: func() uint32 {
+				return 0
+			},
+		},
+		maxSizeInBytes,
+	)
+
+	testData := []struct {
+		numNewMiniBlocks int
+		numNewTxs        int
+		expected         bool
+		name             string
+	}{
+		{numNewMiniBlocks: 0, numNewTxs: 0, expected: false, name: "with miniblocks 0 and txs 0"},
+		{numNewMiniBlocks: 1000000, numNewTxs: 0, expected: true, name: "with miniblocks 1000000 and txs 0"},
+		{numNewMiniBlocks: 0, numNewTxs: 1000000, expected: true, name: "with miniblocks 0 and txs 1000000"},
+		{numNewMiniBlocks: 15, numNewTxs: 1000, expected: false, name: "with miniblocks 15 and txs 1000"},
+		{numNewMiniBlocks: 1, numNewTxs: 27756, expected: false, name: "with miniblocks 1 and txs 20077"},
+		{numNewMiniBlocks: 1, numNewTxs: 27757, expected: true, name: "with miniblocks 1 and txs 20078"},
+		{numNewMiniBlocks: 2, numNewTxs: 27756, expected: true, name: "with miniblocks 2 and txs 20077"},
+	}
+
+	for _, td := range testData {
+		t.Run(td.name, func(t *testing.T) {
+			assert.Equal(t, td.expected, bsc.IsMaxBlockSizeWithoutThrottleReached(td.numNewMiniBlocks, td.numNewTxs))
 		})
 	}
 }
