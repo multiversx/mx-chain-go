@@ -187,6 +187,7 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 }
 
 func TestConsensusBLSFullTest(t *testing.T) {
+	// TODO: Take out when fixing TC
 	if os.Getenv("SKIPCI") != "" {
 		t.Skip("Skipping...")
 	}
