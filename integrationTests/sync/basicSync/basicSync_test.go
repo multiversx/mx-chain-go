@@ -3,6 +3,7 @@ package basicSync
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -14,6 +15,10 @@ import (
 )
 
 func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
+	if os.Getenv("SKIPCI") != "" {
+		t.Skip("Skipping...")
+	}
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

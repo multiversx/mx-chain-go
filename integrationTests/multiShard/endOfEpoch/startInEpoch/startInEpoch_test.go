@@ -41,6 +41,10 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 }
 
 func TestStartInEpochForAMetaNodeInMultiShardedEnvironment(t *testing.T) {
+	if os.Getenv("SKIPCI") != "" {
+		t.Skip("Skipping...")
+	}
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

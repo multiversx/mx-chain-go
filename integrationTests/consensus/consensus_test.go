@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -186,6 +187,10 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 }
 
 func TestConsensusBLSFullTest(t *testing.T) {
+	if os.Getenv("SKIPCI") != "" {
+		t.Skip("Skipping...")
+	}
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

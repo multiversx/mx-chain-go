@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"os"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -186,6 +187,10 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 // Transactions requested by another shard (2 for example) will not store the received transactions
 // (interceptors will filter them out)
 func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAndRequestShouldWork(t *testing.T) {
+	if os.Getenv("SKIPCI") != "" {
+		t.Skip("Skipping...")
+	}
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"os"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -1188,6 +1189,10 @@ func collapseTrie(state state.UserAccountHandler, t *testing.T) {
 }
 
 func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T) {
+	if os.Getenv("SKIPCI") != "" {
+		t.Skip("Skipping...")
+	}
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
