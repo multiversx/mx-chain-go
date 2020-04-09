@@ -434,7 +434,7 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		return nil, err
 	}
 
-	if rtp.blockSizeComputation.IsMaxBlockSizeReached(1, len(miniBlockRewardTxs)) {
+	if rtp.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlockRewardTxs)) {
 		return nil, process.ErrMaxBlockSizeReached
 	}
 
