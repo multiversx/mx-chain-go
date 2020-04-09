@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -240,6 +241,7 @@ func saveGenesisMetaToStorage(
 func createProcessorsForMetaGenesisBlock(
 	args ArgsMetaGenesisBlockCreator,
 ) (process.TransactionProcessor, vm.SystemSCContainer, error) {
+	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         args.Accounts,
 		AddrConv:         args.AddrConv,
@@ -248,6 +250,7 @@ func createProcessorsForMetaGenesisBlock(
 		ShardCoordinator: args.ShardCoordinator,
 		Marshalizer:      args.Marshalizer,
 		Uint64Converter:  args.Uint64ByteSliceConverter,
+		BuiltInFunctions: builtInFuncs,
 	}
 
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics, &NilMessageSignVerifier{}, args.GasMap)
@@ -289,27 +292,33 @@ func createProcessorsForMetaGenesisBlock(
 		return nil, nil, err
 	}
 
-	txTypeHandler, err := coordinator.NewTxTypeHandler(args.AddrConv, args.ShardCoordinator, args.Accounts)
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		AddressConverter: args.AddrConv,
+		ShardCoordinator: args.ShardCoordinator,
+		BuiltInFuncNames: builtInFuncs.Keys(),
+		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+	}
+	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	genesisFeeHandler := NewGenesisFeeHandler()
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:   vmContainer,
-		ArgsParser:    argsParser,
-		Hasher:        args.Hasher,
-		Marshalizer:   args.Marshalizer,
-		AccountsDB:    args.Accounts,
-		TempAccounts:  virtualMachineFactory.BlockChainHookImpl(),
-		AdrConv:       args.AddrConv,
-		Coordinator:   args.ShardCoordinator,
-		ScrForwarder:  scForwarder,
-		TxFeeHandler:  genesisFeeHandler,
-		EconomicsFee:  genesisFeeHandler,
-		TxTypeHandler: txTypeHandler,
-		GasHandler:    gasHandler,
-		GasMap:        args.GasMap,
+		VmContainer:      vmContainer,
+		ArgsParser:       argsParser,
+		Hasher:           args.Hasher,
+		Marshalizer:      args.Marshalizer,
+		AccountsDB:       args.Accounts,
+		TempAccounts:     virtualMachineFactory.BlockChainHookImpl(),
+		AdrConv:          args.AddrConv,
+		Coordinator:      args.ShardCoordinator,
+		ScrForwarder:     scForwarder,
+		TxFeeHandler:     genesisFeeHandler,
+		EconomicsFee:     genesisFeeHandler,
+		TxTypeHandler:    txTypeHandler,
+		GasHandler:       gasHandler,
+		BuiltInFunctions: virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {

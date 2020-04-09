@@ -7,46 +7,48 @@ import (
 type pruningBuffer struct {
 	mutOp  sync.RWMutex
 	buffer map[string]struct{}
+	size   uint32
 }
 
-func newPruningBuffer() *pruningBuffer {
+func newPruningBuffer(pruningBufferLen uint32) *pruningBuffer {
 	return &pruningBuffer{
 		buffer: make(map[string]struct{}),
+		size:   pruningBufferLen,
 	}
 }
 
-func (sb *pruningBuffer) add(rootHash []byte) {
-	sb.mutOp.Lock()
-	defer sb.mutOp.Unlock()
+func (pb *pruningBuffer) add(rootHash []byte) {
+	pb.mutOp.Lock()
+	defer pb.mutOp.Unlock()
 
-	if len(sb.buffer) == pruningBufferLen {
+	if uint32(len(pb.buffer)) == pb.size {
 		log.Trace("pruning buffer is full", "rootHash", rootHash)
 		return
 	}
 
-	sb.buffer[string(rootHash)] = struct{}{}
+	pb.buffer[string(rootHash)] = struct{}{}
 	log.Trace("pruning buffer add", "rootHash", rootHash)
 }
 
-func (sb *pruningBuffer) remove(rootHash []byte) {
-	sb.mutOp.Lock()
-	defer sb.mutOp.Unlock()
+func (pb *pruningBuffer) remove(rootHash []byte) {
+	pb.mutOp.Lock()
+	defer pb.mutOp.Unlock()
 
-	delete(sb.buffer, string(rootHash))
+	delete(pb.buffer, string(rootHash))
 }
 
-func (sb *pruningBuffer) removeAll() map[string]struct{} {
-	sb.mutOp.Lock()
-	defer sb.mutOp.Unlock()
+func (pb *pruningBuffer) removeAll() map[string]struct{} {
+	pb.mutOp.Lock()
+	defer pb.mutOp.Unlock()
 
-	log.Trace("pruning buffer", "len", len(sb.buffer))
+	log.Trace("pruning buffer", "len", len(pb.buffer))
 
 	buffer := make(map[string]struct{})
-	for key := range sb.buffer {
+	for key := range pb.buffer {
 		buffer[key] = struct{}{}
 	}
 
-	sb.buffer = make(map[string]struct{})
+	pb.buffer = make(map[string]struct{})
 
 	return buffer
 }
