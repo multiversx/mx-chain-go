@@ -166,6 +166,8 @@ func (tsm *trieStorageManager) EnterSnapshotMode() {
 	defer tsm.storageOperationMutex.Unlock()
 
 	tsm.snapshotInProgress++
+
+	log.Trace("enter snapshot mode", "snapshots in progress", tsm.snapshotInProgress)
 }
 
 // ExitSnapshotMode sets the snapshot mode off
@@ -184,6 +186,8 @@ func (tsm *trieStorageManager) ExitSnapshotMode() {
 	if tsm.snapshotInProgress == 0 {
 		tsm.prune(tsm.pruningBuffer.removeAll())
 	}
+
+	log.Trace("exit snapshot mode", "snapshots in progress", tsm.snapshotInProgress)
 }
 
 // Prune removes the given hash from db
