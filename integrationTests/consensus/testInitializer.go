@@ -51,6 +51,8 @@ import (
 )
 
 const blsConsensusType = "bls"
+const signatureSize = 48
+const publicKeySize = 96
 
 var consensusChainID = []byte("consensus chain ID")
 
@@ -70,9 +72,10 @@ type keyPair struct {
 }
 
 type cryptoParams struct {
-	keyGen       crypto.KeyGenerator
-	keys         map[uint32][]*keyPair
-	singleSigner crypto.SingleSigner
+	keyGen         crypto.KeyGenerator
+	keys           map[uint32][]*keyPair
+	txSingleSigner crypto.SingleSigner
+	singleSigner   crypto.SingleSigner
 }
 
 func genValidatorsFromPubKeys(pubKeysMap map[uint32][]string) map[uint32][]sharding.Validator {
@@ -215,7 +218,12 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 		MaxBatchSize:      10000,
 		MaxOpenFiles:      10,
 	}
-	trieStorage, _ := trie.NewTrieStorageManager(store, marshalizer, hasher, cfg, ewl)
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
+	trieStorage, _ := trie.NewTrieStorageManager(store, marshalizer, hasher, cfg, ewl, generalCfg)
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, hasher)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, &mock.AccountsFactoryStub{
@@ -228,7 +236,8 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 
 func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *cryptoParams {
 	suite := mcl.NewSuiteBLS12()
-	singleSigner := &ed25519SingleSig.Ed25519Signer{}
+	txSingleSigner := &ed25519SingleSig.Ed25519Signer{}
+	singleSigner := &mclsinglesig.BlsSingleSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 
 	keysMap := make(map[uint32][]*keyPair)
@@ -251,9 +260,10 @@ func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *crypt
 	keysMap[core.MetachainShardId] = keyPairs
 
 	params := &cryptoParams{
-		keys:         keysMap,
-		keyGen:       keyGen,
-		singleSigner: singleSigner,
+		keys:           keysMap,
+		keyGen:         keyGen,
+		txSingleSigner: txSingleSigner,
+		singleSigner:   singleSigner,
 	}
 
 	return params
@@ -296,7 +306,6 @@ func createConsensusOnlyNode(
 	blockProcessor := &mock.BlockProcessorMock{
 		ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 			_ = blockChain.SetCurrentBlockHeader(header)
-			_ = blockChain.SetCurrentBlockBody(body)
 			return nil
 		},
 		RevertAccountStateCalled: func(header data.HeaderHandler) {
@@ -320,7 +329,6 @@ func createConsensusOnlyNode(
 	blockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		blockProcessor.NrCommitBlockCalled++
 		_ = blockChain.SetCurrentBlockHeader(header)
-		_ = blockChain.SetCurrentBlockBody(body)
 		return nil
 	}
 	blockProcessor.Marshalizer = testMarshalizer
@@ -444,6 +452,8 @@ func createConsensusOnlyNode(
 		node.WithUint64ByteSliceConverter(&mock.Uint64ByteSliceConverterMock{}),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
+		node.WithSignatureSize(signatureSize),
+		node.WithPublicKeySize(publicKeySize),
 	)
 
 	if err != nil {
@@ -499,6 +509,7 @@ func createNodes(
 			WaitingNodes:            waitingMap,
 			SelfPublicKey:           []byte(strconv.Itoa(i)),
 			ConsensusGroupCache:     consensusCache,
+			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		}
 		nodesCoordinator, _ := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

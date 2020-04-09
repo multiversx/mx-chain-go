@@ -285,6 +285,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			WaitingNodes:            make(map[uint32][]sharding.Validator),
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
 			ConsensusGroupCache:     consensusCache,
+			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -372,6 +373,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			WaitingNodes:            waitingMapForNodesCoordinator,
 			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
 			ConsensusGroupCache:     cache,
+			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

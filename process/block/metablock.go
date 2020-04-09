@@ -1041,7 +1041,7 @@ func (mp *metaProcessor) CommitBlock(
 	mp.blockTracker.AddSelfNotarizedHeader(mp.shardCoordinator.SelfId(), currentHeader, currentHeaderHash)
 
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := mp.getLastSelfNotarizedHeaderByShard(shardID)
+		lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := mp.getLastSelfNotarizedHeaderByShard(header, shardID)
 		mp.blockTracker.AddSelfNotarizedHeader(shardID, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 	}
 
@@ -1051,11 +1051,6 @@ func (mp *metaProcessor) CommitBlock(
 
 	lastMetaBlock := mp.blockChain.GetCurrentBlockHeader()
 	mp.updateState(lastMetaBlock)
-
-	err = mp.blockChain.SetCurrentBlockBody(body)
-	if err != nil {
-		return err
-	}
 
 	err = mp.blockChain.SetCurrentBlockHeader(header)
 	if err != nil {
@@ -1210,9 +1205,70 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 	)
 }
 
-func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(_ uint32) (data.HeaderHandler, []byte) {
-	//TODO: Implement mechanism to extract last meta header notarized by the given shard if this info will be needed later
-	return nil, nil
+func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
+	metaBlock *block.MetaBlock,
+	shardID uint32,
+) (data.HeaderHandler, []byte) {
+	lastNotarizedMetaHeader, lastNotarizedMetaHeaderHash, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardID)
+
+	if err != nil {
+		log.Warn("getLastSelfNotarizedHeaderByShard.GetLastSelfNotarizedHeader",
+			"shard", shardID,
+			"error", err.Error())
+		return nil, nil
+	}
+
+	maxNotarizedNonce := lastNotarizedMetaHeader.GetNonce()
+
+	for _, shardData := range metaBlock.ShardInfo {
+		if shardData.ShardID != shardID {
+			continue
+		}
+
+		mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+		headerInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)]
+		mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+		if !ok {
+			log.Debug("getLastSelfNotarizedHeaderByShard",
+				"error", process.ErrMissingHeader,
+				"hash", shardData.HeaderHash)
+			continue
+		}
+
+		shardHeader, ok := headerInfo.hdr.(*block.Header)
+		if !ok {
+			log.Debug("getLastSelfNotarizedHeaderByShard",
+				"error", process.ErrWrongTypeAssertion,
+				"hash", shardData.HeaderHash)
+			continue
+		}
+
+		for _, metaHash := range shardHeader.MetaBlockHashes {
+			metaHeader, err := process.GetMetaHeader(metaHash, mp.dataPool.Headers(), mp.marshalizer, mp.store)
+			if err != nil {
+				log.Trace("getLastSelfNotarizedHeaderByShard.GetMetaHeader", "error", err.Error())
+				continue
+			}
+
+			if metaHeader.Nonce > maxNotarizedNonce {
+				maxNotarizedNonce = metaHeader.Nonce
+				lastNotarizedMetaHeader = metaHeader
+				lastNotarizedMetaHeaderHash = metaHash
+			}
+		}
+	}
+
+	if lastNotarizedMetaHeader != nil {
+		log.Debug("last notarized meta header in shard",
+			"shard", shardID,
+			"epoch", lastNotarizedMetaHeader.GetEpoch(),
+			"round", lastNotarizedMetaHeader.GetRound(),
+			"nonce", lastNotarizedMetaHeader.GetNonce(),
+			"hash", lastNotarizedMetaHeaderHash,
+		)
+	}
+
+	return lastNotarizedMetaHeader, lastNotarizedMetaHeaderHash
 }
 
 // ApplyProcessedMiniBlocks will do nothing on meta processor
@@ -1646,6 +1702,11 @@ func (mp *metaProcessor) createShardInfo() ([]block.ShardData, error) {
 		shardData.PrevRandSeed = shardHdr.PrevRandSeed
 		shardData.PubKeysBitmap = shardHdr.PubKeysBitmap
 		shardData.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardData.ShardID)))
+		header, _, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardHdr.ShardID)
+		if err != nil {
+			return nil, err
+		}
+		shardData.LastIncludedMetaNonce = header.GetNonce()
 		shardData.AccumulatedFees = shardHdr.AccumulatedFees
 
 		if len(shardHdr.MiniBlockHeaders) > 0 {

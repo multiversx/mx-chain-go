@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -38,16 +37,6 @@ func NewSCQueryService(
 	}, nil
 }
 
-func (service *SCQueryService) getVMFromAddress(scAddress []byte) (vmcommon.VMExecutionHandler, error) {
-	vmType := core.GetVMType(scAddress)
-	vm, err := service.vmContainer.Get(vmType)
-	if err != nil {
-		return nil, err
-	}
-
-	return vm, nil
-}
-
 // ExecuteQuery returns the VMOutput resulted upon running the function on the smart contract
 func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
 	if query.ScAddress == nil {
@@ -64,7 +53,7 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 }
 
 func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, error) {
-	vm, err := service.getVMFromAddress(query.ScAddress)
+	vm, err := findVMByScAddress(service.vmContainer, query.ScAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +113,7 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 		return 0, err
 	}
 
-	arguments, err := argumentParser.GetArguments()
+	arguments, err := argumentParser.GetFunctionArguments()
 	if err != nil {
 		return 0, err
 	}
