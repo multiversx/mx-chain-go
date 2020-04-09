@@ -143,12 +143,20 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 	}
 }
 
-func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHeadersHashes [][]byte) ([]data.HeaderHandler, error) {
-	selfNotarizedHeaders := make([]data.HeaderHandler, 0, len(selfNotarizedHeadersHashes))
+func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(
+	bootstrapHeadersInfo []bootstrapStorage.BootstrapHeaderInfo,
+) ([]data.HeaderHandler, [][]byte, error) {
+
+	selfNotarizedHeadersHashes := make([][]byte, len(bootstrapHeadersInfo))
+	for index, selfNotarizedHeader := range bootstrapHeadersInfo {
+		selfNotarizedHeadersHashes[index] = selfNotarizedHeader.Hash
+	}
+
+	selfNotarizedHeaders := make([]data.HeaderHandler, len(selfNotarizedHeadersHashes))
 	for _, selfNotarizedHeaderHash := range selfNotarizedHeadersHashes {
 		selfNotarizedHeader, err := ssb.getHeader(selfNotarizedHeaderHash)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		selfNotarizedHeaders = append(selfNotarizedHeaders, selfNotarizedHeader)
@@ -162,7 +170,7 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHead
 		ssb.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, selfNotarizedHeader, selfNotarizedHeaderHash)
 	}
 
-	return selfNotarizedHeaders, nil
+	return selfNotarizedHeaders, selfNotarizedHeadersHashes, nil
 }
 
 func (ssb *shardStorageBootstrapper) applyNumPendingMiniBlocks(_ []bootstrapStorage.PendingMiniBlocksInfo) {

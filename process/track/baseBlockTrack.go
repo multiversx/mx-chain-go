@@ -516,16 +516,21 @@ func (bbt *baseBlockTrack) GetTrackedHeadersWithNonce(shardID uint32, nonce uint
 
 // IsShardStuck returns true if the given shard is stuck
 func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
+	if bbt.shardCoordinator.SelfId() == core.MetachainShardId {
+		return false
+	}
+
 	numPendingMiniBlocks := bbt.blockBalancer.GetNumPendingMiniBlocks(shardID)
-	shardProcessedMetaNonce := bbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID)
+	lastShardProcessedMetaNonce := bbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID)
 
 	isMetaDifferenceTooLarge := false
-	if shardID != core.MetachainShardId {
+	shouldCheckLastMetaNonceProcessed := shardID != core.MetachainShardId && lastShardProcessedMetaNonce > 0
+	if shouldCheckLastMetaNonceProcessed {
 		metaHeaders, _ := bbt.GetTrackedHeaders(core.MetachainShardId)
 		numMetaHeaders := len(metaHeaders)
 		if numMetaHeaders > 0 {
 			lastMetaHeader := metaHeaders[numMetaHeaders-1]
-			metaDiff := lastMetaHeader.GetNonce() - shardProcessedMetaNonce
+			metaDiff := lastMetaHeader.GetNonce() - lastShardProcessedMetaNonce
 			isMetaDifferenceTooLarge = metaDiff > process.MaxMetaNoncesBehind
 		}
 	}
