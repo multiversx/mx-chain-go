@@ -244,6 +244,9 @@ func getGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
+		GeneralSettings: config.GeneralSettingsConfig{
+			StartInEpochEnabled: true,
+		},
 	}
 }
 

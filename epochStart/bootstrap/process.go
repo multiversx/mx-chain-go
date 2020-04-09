@@ -370,6 +370,9 @@ func (e *epochStartBootstrap) createSyncers() error {
 		RequestHandler: e.requestHandler,
 	}
 	e.miniBlocksSyncer, err = sync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+	if err != nil {
+		return err
+	}
 
 	syncMissingHeadersArgs := sync.ArgsNewMissingHeadersByHashSyncer{
 		Storage:        disabled.CreateMemUnit(),
@@ -378,6 +381,9 @@ func (e *epochStartBootstrap) createSyncers() error {
 		RequestHandler: e.requestHandler,
 	}
 	e.headersSyncer, err = sync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
