@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// metaBlockTrack
+// shardBlockTrack
 
 func (sbt *shardBlockTrack) GetNumPendingMiniBlocks(shardID uint32) uint32 {
 	return sbt.blockBalancer.GetNumPendingMiniBlocks(shardID)

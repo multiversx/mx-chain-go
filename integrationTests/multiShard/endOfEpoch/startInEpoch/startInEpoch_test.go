@@ -431,18 +431,6 @@ func getGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		MiniBlockHeadersStorage: config.StorageConfig{
-			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
-			},
-			DB: config.DBConfig{
-				FilePath:          "MiniBlockHeaders",
-				Type:              string(storageUnit.LvlDBSerial),
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
 		ShardHdrNonceHashStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
 				Size: 10000, Type: "LRU", Shards: 1,

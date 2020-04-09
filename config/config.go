@@ -85,7 +85,6 @@ type BlockSizeThrottleConfig struct {
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage          StorageConfig
-	MiniBlockHeadersStorage    StorageConfig
 	PeerBlockBodyStorage       StorageConfig
 	BlockHeaderStorage         StorageConfig
 	TxStorage                  StorageConfig
