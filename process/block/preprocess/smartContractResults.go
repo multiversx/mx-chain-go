@@ -449,7 +449,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		return nil, err
 	}
 
-	if scr.blockSizeComputation.IsMaxBlockSizeReached(1, len(miniBlockScrs)) {
+	if scr.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlockScrs)) {
 		return nil, process.ErrMaxBlockSizeReached
 	}
 
