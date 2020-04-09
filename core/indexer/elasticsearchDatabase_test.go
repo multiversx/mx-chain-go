@@ -123,7 +123,7 @@ func TestElasticseachDatabaseSaveHeader_RequestError(t *testing.T) {
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveHeader(header, signerIndexes, &dataBlock.Body{}, nil)
+	elasticDatabase.SaveHeader(header, signerIndexes, &dataBlock.Body{}, nil, 1)
 
 	defer func() {
 		_ = logger.RemoveLogObserver(output)
@@ -165,7 +165,7 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 	}
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
-	elasticDatabase.SaveHeader(header, signerIndexes, blockBody, nil)
+	elasticDatabase.SaveHeader(header, signerIndexes, blockBody, nil, 1)
 }
 
 func TestElasticseachSaveTransactions(t *testing.T) {
@@ -326,4 +326,37 @@ func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
 	}()
 
 	require.True(t, strings.Contains(output.String(), localError.Error()))
+}
+
+func TestUpdateMiniBlock(t *testing.T) {
+	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
+
+	args := elasticSearchDatabaseArgs{
+		url:         "http://localhost:9200",
+		userName:    "basic_auth_username",
+		password:    "basic_auth_password",
+		marshalizer: &mock.MarshalizerMock{},
+		hasher:      &mock.HasherMock{},
+	}
+
+	esDatabase, _ := newElasticSearchDatabase(args)
+
+	header1 := &dataBlock.Header{
+		ShardID: 0,
+	}
+	body1 := &dataBlock.Body{
+		MiniBlocks: []*dataBlock.MiniBlock{
+			{SenderShardID: 1, ReceiverShardID: 0, TxHashes: [][]byte{[]byte("hash12")}},
+			{SenderShardID: 0, ReceiverShardID: 1, TxHashes: [][]byte{[]byte("hash1")}},
+		},
+	}
+
+	header2 := &dataBlock.Header{
+		ShardID: 1,
+	}
+
+	// insert
+	esDatabase.SaveMiniblocks(header1, body1)
+	// update
+	esDatabase.SaveMiniblocks(header2, body1)
 }

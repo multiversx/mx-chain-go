@@ -141,7 +141,7 @@ type TransactionCoordinator interface {
 type SmartContractProcessor interface {
 	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) error
 	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) error
-	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string) error
+	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, snapshot int) error
 	IsInterfaceNil() bool
 }
 
@@ -406,6 +406,7 @@ type PendingMiniBlocksHandler interface {
 type BlockChainHookHandler interface {
 	TemporaryAccountsHandler
 	SetCurrentHeader(hdr data.HeaderHandler)
+	GetBuiltInFunctions() BuiltInFunctionContainer
 }
 
 // Interceptor defines what a data interceptor should do
@@ -451,8 +452,12 @@ type RequestHandler interface {
 
 // ArgumentsParser defines the functionality to parse transaction data into arguments and code for smart contracts
 type ArgumentsParser interface {
-	GetArguments() ([][]byte, error)
+	GetFunctionArguments() ([][]byte, error)
+	GetConstructorArguments() ([][]byte, error)
 	GetCode() ([]byte, error)
+	GetCodeDecoded() ([]byte, error)
+	GetVMType() ([]byte, error)
+	GetCodeMetadata() (vmcommon.CodeMetadata, error)
 	GetFunction() (string, error)
 	ParseData(data string) error
 
@@ -690,6 +695,7 @@ type EpochStartRewardsCreator interface {
 	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
 	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
+	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler
 	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
 	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body)
 	RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body)
@@ -722,12 +728,18 @@ type MiniBlocksResolver interface {
 
 // BuiltinFunction defines the methods for the built-in protocol smart contract functions
 type BuiltinFunction interface {
-	ProcessBuiltinFunction(
-		tx data.TransactionHandler,
-		acntSnd, acntDst state.UserAccountHandler,
-		vmInput *vmcommon.ContractCallInput,
-	) (*big.Int, error)
-	GasUsed() uint64
+	ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, uint64, error)
+	IsInterfaceNil() bool
+}
+
+// BuiltInFunctionContainer defines the methods for the built-in protocol container
+type BuiltInFunctionContainer interface {
+	Get(key string) (BuiltinFunction, error)
+	Add(key string, function BuiltinFunction) error
+	Replace(key string, function BuiltinFunction) error
+	Remove(key string)
+	Len() int
+	Keys() map[string]struct{}
 	IsInterfaceNil() bool
 }
 

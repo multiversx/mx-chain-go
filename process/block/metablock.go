@@ -496,6 +496,7 @@ func (mp *metaProcessor) indexBlock(
 	body data.BodyHandler,
 	lastMetaBlock data.HeaderHandler,
 	notarizedHeadersHashes []string,
+	rewardsTxs map[string]data.TransactionHandler,
 ) {
 	if mp.core == nil || mp.core.Indexer() == nil {
 		return
@@ -510,6 +511,9 @@ func (mp *metaProcessor) indexBlock(
 	scPool := mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
 
 	for hash, tx := range scPool {
+		txPool[hash] = tx
+	}
+	for hash, tx := range rewardsTxs {
 		txPool[hash] = tx
 	}
 
@@ -1003,6 +1007,8 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
+	rewardsTxs := mp.getRewardsTxs(header, body)
+
 	mp.commitEpochStart(header, body)
 
 	err = mp.saveLastNotarizedHeader(header)
@@ -1046,11 +1052,6 @@ func (mp *metaProcessor) CommitBlock(
 	lastMetaBlock := mp.blockChain.GetCurrentBlockHeader()
 	mp.updateState(lastMetaBlock)
 
-	err = mp.blockChain.SetCurrentBlockBody(body)
-	if err != nil {
-		return err
-	}
-
 	err = mp.blockChain.SetCurrentBlockHeader(header)
 	if err != nil {
 		return err
@@ -1066,7 +1067,7 @@ func (mp *metaProcessor) CommitBlock(
 		mp.core.TPSBenchmark().Update(header)
 	}
 
-	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes)
+	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
 
 	saveMetachainCommitBlockMetrics(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator)
 
@@ -1211,6 +1212,20 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(_ uint32) (data.Heade
 
 // ApplyProcessedMiniBlocks will do nothing on meta processor
 func (mp *metaProcessor) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
+}
+
+// getRewardsTxs must be called before method commitEpoch start because when commit is done rewards txs are removed from pool and saved in storage
+func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body) (rewardsTx map[string]data.TransactionHandler) {
+	if check.IfNil(mp.core) || check.IfNil(mp.core.Indexer()) {
+		return
+	}
+
+	if !header.IsStartOfEpochBlock() {
+		return
+	}
+
+	rewardsTx = mp.epochRewardsCreator.GetRewardsTxs(body)
+	return rewardsTx
 }
 
 func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.Body) {

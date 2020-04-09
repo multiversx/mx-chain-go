@@ -79,6 +79,9 @@ var ErrNilDataToProcess = errors.New("nil data to process")
 // ErrNilWorker is raised when a valid Worker is expected but nil used
 var ErrNilWorker = errors.New("worker is nil")
 
+// ErrNilWorkerArgs signals that nil a workerArgs has been provided
+var ErrNilWorkerArgs = errors.New("worker args is nil")
+
 // ErrNilShardCoordinator is raised when a valid shard coordinator is expected but nil used
 var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
 
@@ -103,8 +106,8 @@ var ErrNilChannel = errors.New("channel is nil")
 // ErrRoundCanceled is raised when round is canceled
 var ErrRoundCanceled = errors.New("round is canceled")
 
-// ErrSenderNotOk is raised when sender is invalid
-var ErrSenderNotOk = errors.New("sender is invalid")
+// ErrNodeIsNotInEligibleList is raised when a node is not in eligible list
+var ErrNodeIsNotInEligibleList = errors.New("node is not in eligible list")
 
 // ErrMessageForPastRound is raised when message is for past round
 var ErrMessageForPastRound = errors.New("message is for past round")
@@ -148,6 +151,9 @@ var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
 // ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
 var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
 
+// ErrNilPoolAdder signals that a nil pool adder has been provided
+var ErrNilPoolAdder = errors.New("nil pool adder")
+
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
@@ -162,3 +168,21 @@ var ErrInvalidMessageType = errors.New("invalid message type")
 
 // ErrInvalidHeaderHashSize signals that an invalid header hash size has been received from consensus topic
 var ErrInvalidHeaderHashSize = errors.New("invalid header hash size")
+
+// ErrInvalidBodySize signals that an invalid body size has been received from consensus topic
+var ErrInvalidBodySize = errors.New("invalid body size")
+
+// ErrInvalidHeaderSize signals that an invalid header size has been received from consensus topic
+var ErrInvalidHeaderSize = errors.New("invalid header size")
+
+// ErrInvalidPublicKeySize signals that an invalid public key size has been received from consensus topic
+var ErrInvalidPublicKeySize = errors.New("invalid public key size")
+
+// ErrInvalidSignatureSize signals that an invalid signature size has been received from consensus topic
+var ErrInvalidSignatureSize = errors.New("invalid signature size")
+
+// ErrInvalidMessage signals that an invalid message has been received from consensus topic
+var ErrInvalidMessage = errors.New("invalid message")
+
+// ErrInvalidPublicKeyBitmapSize signals that an invalid public key bitmap size has been received from consensus topic
+var ErrInvalidPublicKeyBitmapSize = errors.New("invalid public key bitmap size")

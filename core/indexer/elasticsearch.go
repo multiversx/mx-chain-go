@@ -40,6 +40,7 @@ type elasticIndexer struct {
 	database     databaseHandler
 	options      *Options
 	coordinator  sharding.NodesCoordinator
+	marshalizer  marshal.Marshalizer
 	isNilIndexer bool
 }
 
@@ -67,6 +68,7 @@ func NewElasticIndexer(arguments ElasticIndexerArgs) (Indexer, error) {
 		database:     client,
 		options:      arguments.Options,
 		coordinator:  arguments.NodesCoordinator,
+		marshalizer:  arguments.Marshalizer,
 		isNilIndexer: false,
 	}
 
@@ -96,7 +98,8 @@ func (ei *elasticIndexer) SaveBlock(
 		return
 	}
 
-	go ei.database.SaveHeader(headerHandler, signersIndexes, body, notarizedHeadersHashes)
+	txsSizeInBytes := computeSizeOfTxs(ei.marshalizer, txPool)
+	go ei.database.SaveHeader(headerHandler, signersIndexes, body, notarizedHeadersHashes, txsSizeInBytes)
 
 	if len(body.MiniBlocks) == 0 {
 		log.Debug("indexer", "error", ErrNoMiniblocks.Error())

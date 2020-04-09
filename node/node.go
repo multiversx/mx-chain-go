@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -126,6 +126,11 @@ type Node struct {
 
 	inputAntifloodHandler P2PAntifloodHandler
 	txAcumulator          Accumulator
+
+	signatureSize int
+	publicKeySize int
+
+	chanStopNodeProcess chan bool
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -278,25 +283,31 @@ func (n *Node) StartConsensus() error {
 		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.internalMarshalizer, n.sizeCheckDelta)
 	}
 
-	worker, err := spos.NewWorker(
-		consensusService,
-		n.blkc,
-		n.blockProcessor,
-		bootstrapper,
-		broadcastMessenger,
-		consensusState,
-		n.forkDetector,
-		n.keyGen,
-		netInputMarshalizer,
-		n.rounder,
-		n.shardCoordinator,
-		n.singleSigner,
-		n.syncTimer,
-		n.headerSigVerifier,
-		n.chainID,
-		n.networkShardingCollector,
-		n.inputAntifloodHandler,
-	)
+	workerArgs := &spos.WorkerArgs{
+		ConsensusService:         consensusService,
+		BlockChain:               n.blkc,
+		BlockProcessor:           n.blockProcessor,
+		Bootstrapper:             bootstrapper,
+		BroadcastMessenger:       broadcastMessenger,
+		ConsensusState:           consensusState,
+		ForkDetector:             n.forkDetector,
+		KeyGenerator:             n.keyGen,
+		Marshalizer:              netInputMarshalizer,
+		Hasher:                   n.hasher,
+		Rounder:                  n.rounder,
+		ShardCoordinator:         n.shardCoordinator,
+		SingleSigner:             n.singleSigner,
+		SyncTimer:                n.syncTimer,
+		HeaderSigVerifier:        n.headerSigVerifier,
+		ChainID:                  n.chainID,
+		NetworkShardingCollector: n.networkShardingCollector,
+		AntifloodHandler:         n.inputAntifloodHandler,
+		PoolAdder:                n.dataPool.MiniBlocks(),
+		SignatureSize:            n.signatureSize,
+		PublicKeySize:            n.publicKeySize,
+	}
+
+	worker, err := spos.NewWorker(workerArgs)
 	if err != nil {
 		return err
 	}

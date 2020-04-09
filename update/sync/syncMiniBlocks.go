@@ -24,7 +24,6 @@ type pendingMiniBlocks struct {
 	chReceivedAll           chan bool
 	marshalizer             marshal.Marshalizer
 	stopSyncing             bool
-	epochToSync             uint32
 	syncedAll               bool
 	requestHandler          process.RequestHandler
 	waitTimeBetweenRequests time.Duration
@@ -186,14 +185,14 @@ func (p *pendingMiniBlocks) computePendingMiniBlocksFromUnFinished(
 
 	firstUnFinishedNonce := firstPendingMeta.GetNonce()
 	for nonce := firstUnFinishedNonce + 1; nonce <= epochStartNonce; nonce++ {
-		metaHash, ok := nonceToHash[nonce]
-		if !ok {
+		metaHash, exists := nonceToHash[nonce]
+		if !exists {
 			return nil, update.ErrWrongUnfinishedMetaHdrsMap
 		}
 
 		log.Debug("unFinished access")
-		meta, ok := unFinished[metaHash]
-		if !ok {
+		meta, exists := unFinished[metaHash]
+		if !exists {
 			return nil, update.ErrWrongUnfinishedMetaHdrsMap
 		}
 

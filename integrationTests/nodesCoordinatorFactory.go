@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -51,6 +52,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		SelfPublicKey:           pubKeyBytes,
 		ConsensusGroupCache:     arg.consensusGroupCache,
 		BootStorer:              arg.bootStorer,
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
@@ -88,6 +90,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		SelfPublicKey:           pubKeyBytes,
 		ConsensusGroupCache:     arg.consensusGroupCache,
 		BootStorer:              arg.bootStorer,
+		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 	}
 
 	baseCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
