@@ -189,3 +189,8 @@ type SigVerifier interface {
 	Verify(message []byte, sig []byte, pk []byte) error
 	IsInterfaceNil() bool
 }
+
+// PendingTxProcessor defines the methods to process transactions after import
+type PendingTxProcessor interface {
+	IsInterfaceNil() bool
+}

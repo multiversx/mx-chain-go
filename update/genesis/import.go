@@ -36,13 +36,16 @@ type ArgsNewStateImport struct {
 }
 
 type stateImport struct {
-	reader            update.MultiFileReader
-	genesisHeaders    map[uint32]data.HeaderHandler
-	transactions      map[string]data.TransactionHandler
-	miniBlocks        map[string]*block.MiniBlock
-	importedMetaBlock *block.MetaBlock
-	tries             map[uint32]data.Trie
-	newRootHashes     map[uint32][]byte
+	reader             update.MultiFileReader
+	genesisHeaders     map[uint32]data.HeaderHandler
+	transactions       map[string]data.TransactionHandler
+	miniBlocks         map[string]*block.MiniBlock
+	importedMetaBlock  *block.MetaBlock
+	tries              map[uint32]data.Trie
+	accountDBsMap      map[uint32]state.AccountsAdapter
+	validatorDB        state.AccountsAdapter
+	newRootHashes      map[uint32][]byte
+	validatorsRootHash []byte
 
 	hasher              hashing.Hasher
 	marshalizer         marshal.Marshalizer
@@ -53,6 +56,7 @@ type stateImport struct {
 	storageConfig       config.StorageConfig
 }
 
+// TODO: think about the state of validators - epochs.
 // NewStateImport creates an importer which reads all the files for a new start
 func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 	if check.IfNil(args.Reader) {
@@ -78,6 +82,7 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 		newRootHashes:     make(map[uint32][]byte),
 		hasher:            args.Hasher,
 		marshalizer:       args.Marshalizer,
+		accountDBsMap:     make(map[uint32]state.AccountsAdapter),
 	}
 
 	return st, nil
@@ -357,10 +362,27 @@ func (si *stateImport) importState(fileName string, trieKey string) error {
 		return fmt.Errorf("%w fileName: %s", err, fileName)
 	}
 
-	_, err = accountsDB.Commit()
+	return si.saveRootHash(accountsDB, accType, shId)
+}
+
+func (si *stateImport) saveRootHash(accountsDB state.AccountsAdapter, accType Type, shardID uint32) error {
+	rootHash, err := accountsDB.Commit()
 	if err != nil {
 		return err
 	}
+
+	if si.shardID == shardID {
+		accountsDB.SnapshotState(rootHash)
+	}
+
+	if accType == ValidatorAccount {
+		si.validatorsRootHash = rootHash
+		si.validatorDB = accountsDB
+		return nil
+	}
+
+	si.accountDBsMap[shardID] = accountsDB
+	si.newRootHashes[shardID] = rootHash
 
 	return nil
 }
