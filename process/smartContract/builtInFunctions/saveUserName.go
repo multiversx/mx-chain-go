@@ -35,7 +35,10 @@ func NewSaveUserNameFunc(
 }
 
 // ProcessBuiltinFunction sets the username to the account if it is allowed
-func (s *saveUserName) ProcessBuiltinFunction(_, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, uint64, error) {
+func (s *saveUserName) ProcessBuiltinFunction(
+	_, acntDst state.UserAccountHandler,
+	vmInput *vmcommon.ContractCallInput,
+) (*big.Int, uint64, error) {
 	if vmInput == nil {
 		return big.NewInt(0), 0, process.ErrNilVmInput
 	}
@@ -63,11 +66,6 @@ func (s *saveUserName) ProcessBuiltinFunction(_, acntDst state.UserAccountHandle
 	acntDst.SetUserName(vmInput.Arguments[0])
 
 	return big.NewInt(0), s.gasCost, nil
-}
-
-// GasUsed returns the used gas from the built-in function
-func (s *saveUserName) GasUsed() uint64 {
-	return s.gasCost
 }
 
 // IsInterfaceNil returns true if underlying object in nil

@@ -62,6 +62,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
@@ -1795,7 +1796,13 @@ func createApiResolver(
 		return nil, err
 	}
 
-	txTypeHandler, err := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accnts)
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		AddressConverter: addrConv,
+		ShardCoordinator: shardCoordinator,
+		BuiltInFuncNames: builtInFuncs.Keys(),
+		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+	}
+	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
 		return nil, err
 	}
