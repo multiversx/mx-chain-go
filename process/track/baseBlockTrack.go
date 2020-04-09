@@ -522,10 +522,10 @@ func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
 
 	isMetaDifferenceTooLarge := false
 	if shardID != core.MetachainShardId {
-		lastMetaHeader, _, err := bbt.GetLastCrossNotarizedHeader(core.MetachainShardId)
-		if err != nil {
-			log.Error("IsShardStuck", "error", err.Error())
-		} else {
+		metaHeaders, _ := bbt.GetTrackedHeaders(core.MetachainShardId)
+		numMetaHeaders := len(metaHeaders)
+		if numMetaHeaders > 0 {
+			lastMetaHeader := metaHeaders[numMetaHeaders-1]
 			metaDiff := lastMetaHeader.GetNonce() - shardProcessedMetaNonce
 			isMetaDifferenceTooLarge = metaDiff > process.MaxMetaNoncesBehind
 		}
