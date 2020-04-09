@@ -1462,23 +1462,9 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 	assert.Equal(t, true, wasBroadcast.Load())
 }
 
-func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
-	t.Parallel()
-
-	elements := getHeartbeats(t)
-	assert.Equal(t, 3, len(elements))
-}
-
 func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *testing.T) {
 	t.Parallel()
 
-	elements := getHeartbeats(t)
-	for _, status := range elements {
-		assert.Equal(t, string(core.EligibleList), status.PeerType)
-	}
-}
-
-func getHeartbeats(t *testing.T) []heartbeat.PubKeyHeartbeat {
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{
 			MarshalHandler: func(obj interface{}) (bytes []byte, e error) {
@@ -1573,7 +1559,12 @@ func getHeartbeats(t *testing.T) []heartbeat.PubKeyHeartbeat {
 	)
 	assert.Nil(t, err)
 
-	return n.HeartbeatMonitor().GetHeartbeats()
+	elements := n.HeartbeatMonitor().GetHeartbeats()
+
+	assert.Equal(t, 3, len(elements))
+	for _, status := range elements {
+		assert.Equal(t, string(core.EligibleList), status.PeerType)
+	}
 }
 
 func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *testing.T) {

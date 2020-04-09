@@ -140,10 +140,6 @@ func getExpandedEligibleList(num int) []uint32 {
 	for i := 1; i <= num; i++ {
 		randBigInt, _ := rand.Int(rand.Reader, big.NewInt(5))
 		randRat := int(randBigInt.Uint64()) + 8
-		pubkey := make([]byte, 32)
-		_, _ = rand.Read(pubkey)
-		address := make([]byte, 32)
-		_, _ = rand.Read(address)
 		for j := 0; j < randRat; j++ {
 			sliceToRet = append(sliceToRet, uint32(i))
 		}
