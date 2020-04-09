@@ -100,11 +100,11 @@ type baseBootstrap struct {
 	bootStorer           process.BootStorer
 	storageBootstrapper  process.BootstrapperFromStorage
 
-	chRcvMiniBlocks    chan bool
-	mutRcvMiniBlocks   sync.Mutex
-	miniBlocksResolver process.MiniBlocksResolver
-	poolsHolder        dataRetriever.PoolsHolder
-	mutRequestHeaders  sync.Mutex
+	chRcvMiniBlocks      chan bool
+	mutRcvMiniBlocks     sync.Mutex
+	miniBlocksDataGetter process.MiniBlockDataGetter
+	poolsHolder          dataRetriever.PoolsHolder
+	mutRequestHeaders    sync.Mutex
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -415,8 +415,8 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.BootStorer) {
 		return process.ErrNilBootStorer
 	}
-	if check.IfNil(arguments.MiniBlocksResolver) {
-		return process.ErrNilMiniBlocksResolver
+	if check.IfNil(arguments.MiniblocksGetter) {
+		return process.ErrNilMiniBlocksGetter
 	}
 
 	return nil
@@ -846,7 +846,7 @@ func (boot *baseBootstrap) requestMiniBlocksByHashes(hashes [][]byte) {
 // that will be added. The block executor should decide by parsing the header block body type value
 // what kind of block body received.
 func (boot *baseBootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (block.MiniBlockSlice, error) {
-	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(hashes)
+	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksDataGetter.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
 		_ = core.EmptyChannel(boot.chRcvMiniBlocks)
 		boot.requestMiniBlocksByHashes(missingMiniBlocksHashes)
@@ -855,7 +855,7 @@ func (boot *baseBootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (bl
 			return nil, err
 		}
 
-		receivedMiniBlocks, unreceivedMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(missingMiniBlocksHashes)
+		receivedMiniBlocks, unreceivedMiniBlocksHashes := boot.miniBlocksDataGetter.GetMiniBlocksFromPool(missingMiniBlocksHashes)
 		if len(unreceivedMiniBlocksHashes) > 0 {
 			return nil, process.ErrMissingBody
 		}

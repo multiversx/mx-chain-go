@@ -37,26 +37,26 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	}
 
 	base := &baseBootstrap{
-		chainHandler:        arguments.ChainHandler,
-		blockProcessor:      arguments.BlockProcessor,
-		store:               arguments.Store,
-		headers:             arguments.PoolsHolder.Headers(),
-		rounder:             arguments.Rounder,
-		waitTime:            arguments.WaitTime,
-		hasher:              arguments.Hasher,
-		marshalizer:         arguments.Marshalizer,
-		forkDetector:        arguments.ForkDetector,
-		requestHandler:      arguments.RequestHandler,
-		shardCoordinator:    arguments.ShardCoordinator,
-		accounts:            arguments.Accounts,
-		blackListHandler:    arguments.BlackListHandler,
-		networkWatcher:      arguments.NetworkWatcher,
-		bootStorer:          arguments.BootStorer,
-		storageBootstrapper: arguments.StorageBootstrapper,
-		epochHandler:        arguments.EpochHandler,
-		miniBlocksResolver:  arguments.MiniBlocksResolver,
-		uint64Converter:     arguments.Uint64Converter,
-		poolsHolder:         arguments.PoolsHolder,
+		chainHandler:         arguments.ChainHandler,
+		blockProcessor:       arguments.BlockProcessor,
+		store:                arguments.Store,
+		headers:              arguments.PoolsHolder.Headers(),
+		rounder:              arguments.Rounder,
+		waitTime:             arguments.WaitTime,
+		hasher:               arguments.Hasher,
+		marshalizer:          arguments.Marshalizer,
+		forkDetector:         arguments.ForkDetector,
+		requestHandler:       arguments.RequestHandler,
+		shardCoordinator:     arguments.ShardCoordinator,
+		accounts:             arguments.Accounts,
+		blackListHandler:     arguments.BlackListHandler,
+		networkWatcher:       arguments.NetworkWatcher,
+		bootStorer:           arguments.BootStorer,
+		storageBootstrapper:  arguments.StorageBootstrapper,
+		epochHandler:         arguments.EpochHandler,
+		miniBlocksDataGetter: arguments.MiniblocksGetter,
+		uint64Converter:      arguments.Uint64Converter,
+		poolsHolder:          arguments.PoolsHolder,
 	}
 
 	boot := MetaBootstrap{
@@ -89,7 +89,7 @@ func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.
 		hashes[i] = header.MiniBlockHeaders[i].Hash
 	}
 
-	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocks(hashes)
+	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksDataGetter.GetMiniBlocks(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
 		return nil, process.ErrMissingBody
 	}
@@ -302,7 +302,7 @@ func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerH
 		hashes = append(hashes, header.MiniBlockHeaders[i].Hash)
 	}
 
-	_, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(hashes)
+	_, missingMiniBlocksHashes := boot.miniBlocksDataGetter.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
 		log.Trace("requesting in advance mini blocks",
 			"num miniblocks", len(missingMiniBlocksHashes),

@@ -269,7 +269,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolMarshalizerFailShouldRetN
 
 	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
-	assert.Equal(t, errExpected, err)
+	assert.True(t, errors.Is(err, errExpected))
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
@@ -357,7 +357,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testi
 
 	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
-	assert.Equal(t, errExpected, err)
+	assert.True(t, errors.Is(err, errExpected))
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
@@ -478,7 +478,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnly
 
 	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 	assert.True(t, splitSliceWasCalled)
 	assert.True(t, sendWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)

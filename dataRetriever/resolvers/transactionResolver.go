@@ -1,6 +1,9 @@
 package resolvers
 
 import (
+	"fmt"
+
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -93,7 +96,7 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConn
 		var buff []byte
 		buff, err = txRes.resolveTxRequestByHash(rd.Value)
 		if err != nil {
-			return err
+			return fmt.Errorf("%w for hash %s", err, logger.DisplayByteSlice(rd.Value))
 		}
 		return txRes.Send(buff, message.Peer())
 	case dataRetriever.HashArrayType:
@@ -143,9 +146,9 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.
 
 	txsBuffSlice := make([][]byte, 0, len(hashes))
 	for _, hash := range hashes {
-		var tx []byte
-		tx, err = txRes.fetchTxAsByteSlice(hash)
-		if err != nil {
+		tx, errFetch := txRes.fetchTxAsByteSlice(hash)
+		if errFetch != nil {
+			err = fmt.Errorf("%w for hash %s", errFetch, logger.DisplayByteSlice(hash))
 			//it might happen to error on a tx (maybe it is missing) but should continue
 			// as to send back as many as it can
 			log.Trace("fetchTxAsByteSlice missing",
@@ -156,19 +159,19 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.
 		txsBuffSlice = append(txsBuffSlice, tx)
 	}
 
-	buffsToSend, err := txRes.dataPacker.PackDataInChunks(txsBuffSlice, maxBuffToSendBulkTransactions)
-	if err != nil {
-		return err
+	buffsToSend, errPack := txRes.dataPacker.PackDataInChunks(txsBuffSlice, maxBuffToSendBulkTransactions)
+	if errPack != nil {
+		return errPack
 	}
 
 	for _, buff := range buffsToSend {
-		err = txRes.Send(buff, pid)
-		if err != nil {
-			return err
+		errSend := txRes.Send(buff, pid)
+		if errSend != nil {
+			return errSend
 		}
 	}
 
-	return nil
+	return err
 }
 
 // RequestDataFromHash requests a transaction from other peers having input the tx hash

@@ -7,12 +7,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
 type shardStorageBootstrapper struct {
 	*storageBootstrapper
-	miniBlocksResolver dataRetriever.MiniBlocksResolver
 }
 
 // NewShardStorageBootstrapper is method used to create a new storage bootstrapper
@@ -38,19 +36,8 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 		bootstrapRoundIndex: arguments.BootstrapRoundIndex,
 	}
 
-	miniBlocksResolver, err := arguments.ResolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
-	if err != nil {
-		return nil, err
-	}
-
-	miniBlocksRes, ok := miniBlocksResolver.(dataRetriever.MiniBlocksResolver)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
 	boot := shardStorageBootstrapper{
 		storageBootstrapper: base,
-		miniBlocksResolver:  miniBlocksRes,
 	}
 
 	base.bootstrapper = &boot

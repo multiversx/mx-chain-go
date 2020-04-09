@@ -26,6 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/getters"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -99,6 +100,7 @@ type Node struct {
 	store            dataRetriever.StorageService
 	shardCoordinator sharding.Coordinator
 	nodesCoordinator sharding.NodesCoordinator
+	miniblocksGetter process.MiniBlockDataGetter
 
 	networkShardingCollector NetworkShardingCollector
 
@@ -417,6 +419,13 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandl
 
 //TODO move this func in structs.go
 func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	miniblocksGetter, err := n.createMiniblocksGetter()
+	if err != nil {
+		return nil, err
+	}
+
+	n.miniblocksGetter = miniblocksGetter
+
 	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
 		return n.createShardBootstrapper(rounder)
 	}
@@ -430,7 +439,6 @@ func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapp
 
 func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
-		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
 		ForkDetector:        n.forkDetector,
 		BlockProcessor:      n.blockProcessor,
@@ -454,19 +462,6 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		return nil, err
 	}
 
-	resolver, err := n.resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
-	if err != nil {
-		keys := n.resolversFinder.ResolverKeys()
-		log.Warn("existing resolvers", "resolvers", keys)
-
-		return nil, err
-	}
-
-	miniBlocksResolver, ok := resolver.(process.MiniBlocksResolver)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
 		PoolsHolder:         n.dataPool,
 		Store:               n.store,
@@ -485,7 +480,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		BootStorer:          n.bootStorer,
 		StorageBootstrapper: shardStorageBootstrapper,
 		EpochHandler:        n.epochStartTrigger,
-		MiniBlocksResolver:  miniBlocksResolver,
+		MiniblocksGetter:    n.miniblocksGetter,
 		Uint64Converter:     n.uint64ByteSliceConverter,
 	}
 
@@ -503,7 +498,6 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 
 func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
-		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
 		ForkDetector:        n.forkDetector,
 		BlockProcessor:      n.blockProcessor,
@@ -528,19 +522,6 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		return nil, err
 	}
 
-	resolver, err := n.resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
-	if err != nil {
-		keys := n.resolversFinder.ResolverKeys()
-		log.Warn("existing resolvers", "resolvers", keys)
-
-		return nil, err
-	}
-
-	miniBlocksResolver, ok := resolver.(process.MiniBlocksResolver)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
 		PoolsHolder:         n.dataPool,
 		Store:               n.store,
@@ -559,7 +540,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		BootStorer:          n.bootStorer,
 		StorageBootstrapper: metaStorageBootstrapper,
 		EpochHandler:        n.epochStartTrigger,
-		MiniBlocksResolver:  miniBlocksResolver,
+		MiniblocksGetter:    n.miniblocksGetter,
 		Uint64Converter:     n.uint64ByteSliceConverter,
 	}
 
@@ -574,6 +555,23 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 	}
 
 	return bootstrap, nil
+}
+
+func (n *Node) createMiniblocksGetter() (process.MiniBlockDataGetter, error) {
+	if check.IfNil(n.dataPool) {
+		return nil, process.ErrNilPoolsHolder
+	}
+	if check.IfNil(n.store) {
+		return nil, process.ErrNilStorage
+	}
+
+	arg := getters.ArgMiniBlockDataGetter{
+		MiniBlockPool:    n.dataPool.MiniBlocks(),
+		MiniBlockStorage: n.store.GetStorer(dataRetriever.MiniBlockUnit),
+		Marshalizer:      n.internalMarshalizer,
+	}
+
+	return getters.NewMiniBlockDataGetter(arg)
 }
 
 // createConsensusState method creates a consensusState object

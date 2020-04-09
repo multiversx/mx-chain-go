@@ -628,18 +628,18 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMiniBlocksInterceptors
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
-	argProcessor := &processor.ArgTxBodyInterceptorProcessor{
+	argProcessor := &processor.ArgMiniblockInterceptorProcessor{
 		MiniblockCache:   ficf.dataPool.MiniBlocks(),
 		Marshalizer:      ficf.marshalizer,
 		Hasher:           ficf.hasher,
 		ShardCoordinator: ficf.shardCoordinator,
 	}
-	txBlockBodyProcessor, err := processor.NewTxBodyInterceptorProcessor(argProcessor)
+	txBlockBodyProcessor, err := processor.NewMiniblockInterceptorProcessor(argProcessor)
 	if err != nil {
 		return nil, err
 	}
 
-	txFactory, err := interceptorFactory.NewInterceptedTxBlockBodyDataFactory(ficf.argInterceptorFactory)
+	txFactory, err := interceptorFactory.NewInterceptedMiniblockDataFactory(ficf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}

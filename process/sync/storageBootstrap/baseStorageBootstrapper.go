@@ -31,7 +31,6 @@ type ArgsBaseStorageBootstrapper struct {
 	ShardCoordinator    sharding.Coordinator
 	NodesCoordinator    sharding.NodesCoordinator
 	EpochStartTrigger   process.EpochStartTriggerHandler
-	ResolversFinder     dataRetriever.ResolversFinder
 	BlockTracker        process.BlockTracker
 }
 
@@ -367,9 +366,6 @@ func checkBaseStorageBootrstrapperArguments(args ArgsBaseStorageBootstrapper) er
 	}
 	if check.IfNil(args.EpochStartTrigger) {
 		return process.ErrNilEpochStartTrigger
-	}
-	if check.IfNil(args.ResolversFinder) {
-		return dataRetriever.ErrNilResolverFinder
 	}
 	if check.IfNil(args.BlockTracker) {
 		return process.ErrNilBlockTracker

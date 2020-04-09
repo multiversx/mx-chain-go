@@ -12,7 +12,7 @@ func (boot *ShardBootstrap) RequestHeaderWithNonce(nonce uint64) {
 }
 
 func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-	return boot.miniBlocksResolver.GetMiniBlocks(hashes)
+	return boot.miniBlocksDataGetter.GetMiniBlocks(hashes)
 }
 
 func (boot *MetaBootstrap) ReceivedHeaders(header data.HeaderHandler, key []byte) {

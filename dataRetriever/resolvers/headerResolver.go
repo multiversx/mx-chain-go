@@ -133,6 +133,7 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 	if err != nil {
 		return err
 	}
+
 	if buff == nil {
 		log.Trace("missing data",
 			"data", rd)
@@ -207,11 +208,8 @@ func (hdrRes *HeaderResolver) resolveHeaderFromHash(rd *dataRetriever.RequestDat
 	}
 
 	buff, err := hdrRes.marshalizer.Marshal(value)
-	if err != nil {
-		return nil, err
-	}
 
-	return buff, nil
+	return buff, err
 }
 
 // resolveHeaderFromEpoch resolves a header using its key based on epoch

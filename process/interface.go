@@ -719,8 +719,8 @@ type ValidityAttester interface {
 	IsInterfaceNil() bool
 }
 
-// MiniBlocksResolver defines what a mini blocks resolver should do
-type MiniBlocksResolver interface {
+// MiniBlockDataGetter defines what a miniblock data getter should do
+type MiniBlockDataGetter interface {
 	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	IsInterfaceNil() bool

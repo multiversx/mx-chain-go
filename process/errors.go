@@ -446,10 +446,6 @@ var ErrNilHdrValidator = errors.New("nil header validator")
 // ErrNilPendingMiniBlocksHandler signals that a nil pending miniblocks handler has been provided
 var ErrNilPendingMiniBlocksHandler = errors.New("nil pending miniblocks handler")
 
-// ErrMiniblockNotForCurrentShard signals that the current processing miniblock must not be
-// processed on the current shard
-var ErrMiniblockNotForCurrentShard = errors.New("miniblock is not addressed for current shard")
-
 // ErrNilTxsPoolsCleaner signals that a nil transactions pools cleaner has been provided
 var ErrNilTxsPoolsCleaner = errors.New("nil transactions pools cleaner")
 
@@ -537,12 +533,6 @@ var ErrZeroMaxComputableRounds = errors.New("max computable rounds is zero")
 // ErrNilRater signals that nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 
-// ErrNilRatingReaderSetter signals that a nil rating reader setter has been provided
-var ErrNilRatingReaderSetter = errors.New("nil rating reader setter")
-
-// ErrNilListIndexUpdaterSetter signals that a nil list index updater has been provided
-var ErrNilListIndexUpdaterSetter = errors.New("nil list index updater setter")
-
 // ErrNilNetworkWatcher signals that a nil network watcher has been provided
 var ErrNilNetworkWatcher = errors.New("nil network watcher")
 
@@ -624,14 +614,11 @@ var ErrNilValidityAttester = errors.New("nil validity attester")
 // ErrNilHeaderHandler signals that a nil header handler has been provided
 var ErrNilHeaderHandler = errors.New("nil header handler")
 
-// ErrNilMiniBlocksResolver signals that a nil miniblocks resolver has been provided
-var ErrNilMiniBlocksResolver = errors.New("nil miniblocks resolver")
+// ErrNilMiniBlocksGetter signals that a nil miniblocks resolver has been provided
+var ErrNilMiniBlocksGetter = errors.New("nil miniblocks getter")
 
 // ErrNilWhiteListHandler signals that white list handler is nil
 var ErrNilWhiteListHandler = errors.New("nil whitelist handler")
-
-// ErrNilInterceptedDataVerifier signals that intercepted data verifier is nil
-var ErrNilInterceptedDataVerifier = errors.New("nil intercepted data verifier")
 
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
