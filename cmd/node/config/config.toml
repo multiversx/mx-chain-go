@@ -225,7 +225,8 @@
 
 [WhiteListPool]
     Size = 100000
-    Type = "LRU"
+    Type = "FIFOSharded"
+    Shards = 10
 
 [UnsignedTransactionDataPool]
     Size = 75000
