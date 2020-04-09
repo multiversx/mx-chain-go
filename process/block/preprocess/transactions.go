@@ -922,7 +922,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 
 			err = txs.accounts.RevertToSnapshot(snapshot)
 			if err != nil {
-				log.Debug("revert to snapshot", "error", err.Error())
+				log.Warn("revert to snapshot", "error", err.Error())
 			}
 
 			txs.gasHandler.RemoveGasConsumed([][]byte{txHash})

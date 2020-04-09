@@ -737,3 +737,24 @@ var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")
 
 // ErrInvalidMetaTransaction signals that meta transaction is invalid
 var ErrInvalidMetaTransaction = errors.New("meta transaction is invalid")
+
+// ErrNilVmInput signals that provided vm input is nil
+var ErrNilVmInput = errors.New("nil vm input")
+
+// ErrNilDnsAddresses signals that nil dns addresses map was provided
+var ErrNilDnsAddresses = errors.New("nil dns addresses map")
+
+// ErrCallerIsNotTheDNSAddress signals that called address is not the DNS address
+var ErrCallerIsNotTheDNSAddress = errors.New("not a dns address")
+
+// ErrUserNameChangeIsDisabled signals the user name change is not allowed
+var ErrUserNameChangeIsDisabled = errors.New("user name change is disabled")
+
+// ErrDestinationNotInSelfShard signals that user is not in self shard
+var ErrDestinationNotInSelfShard = errors.New("destination is not in self shard")
+
+// ErrUserNameDoesNotMatch signals that user name does not match
+var ErrUserNameDoesNotMatch = errors.New("user name does not match")
+
+// ErrUserNameDoesNotMatchInCrossShardTx signals that user name does not match in case of cross shard tx
+var ErrUserNameDoesNotMatchInCrossShardTx = errors.New("user name does not match in destination shard")
