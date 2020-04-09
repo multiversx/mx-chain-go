@@ -261,7 +261,7 @@ func indexValidatorsRating(
 		for _, validatorInfo := range validatorInfosInShard {
 			validatorsInfos = append(validatorsInfos, indexer.ValidatorRatingInfo{
 				PublicKey: hex.EncodeToString(validatorInfo.PublicKey),
-				Rating:    float32(validatorInfo.Rating) * 100 / 1000000,
+				Rating:    float32(validatorInfo.Rating) * 100 / 10000000,
 			})
 
 		}

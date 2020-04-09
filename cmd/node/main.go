@@ -633,7 +633,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating ratings data components")
-	ratingsData, err := rating.NewRatingsData(ratingsConfig)
+
+	ratingDataArgs := rating.RatingsDataArg{
+		Config:                   ratingsConfig,
+		ShardConsensusSize:       genesisNodesConfig.ConsensusGroupSize,
+		MetaConsensusSize:        genesisNodesConfig.MetaChainConsensusGroupSize,
+		ShardMinNodes:            genesisNodesConfig.MinNodesPerShard,
+		MetaMinNodes:             genesisNodesConfig.MetaChainMinNodes,
+		RoundDurationMiliseconds: genesisNodesConfig.RoundDuration,
+	}
+	ratingsData, err := rating.NewRatingsData(ratingDataArgs)
 	if err != nil {
 		return err
 	}
@@ -824,6 +833,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	statsFile := filepath.Join(statsFolder, "session.info")
 	err = ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), os.ModePerm)
+	log.LogIfError(err)
+
+	//TODO: remove this in the future and add just a log debug
+	computedRatingsData := filepath.Join(statsFolder, "ratings.info")
+	computedRatingsDataStr := createStringFromRatingsData(ratingsData)
+	err = ioutil.WriteFile(computedRatingsData, []byte(computedRatingsDataStr), os.ModePerm)
 	log.LogIfError(err)
 
 	log.Trace("creating tps benchmark components")
@@ -1062,6 +1077,32 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.LogIfError(err)
 
 	return nil
+}
+
+func createStringFromRatingsData(ratingsData *rating.RatingsData) string {
+	metaChainStepHandler := ratingsData.MetaChainRatingsStepHandler()
+	shardChainHandler := ratingsData.ShardChainRatingsStepHandler()
+	computedRatingsDataStr := fmt.Sprintf(
+		"meta:\n"+
+			"ProposerIncrease=%v\n"+
+			"ProposerDecrease=%v\n"+
+			"ValidatorIncrease=%v\n"+
+			"ValidatorDecrease=%v\n\n"+
+			"shard:\n"+
+			"ProposerIncrease=%v\n"+
+			"ProposerDecrease=%v\n"+
+			"ValidatorIncrease=%v\n"+
+			"ValidatorDecrease=%v",
+		metaChainStepHandler.ProposerIncreaseRatingStep(),
+		metaChainStepHandler.ProposerDecreaseRatingStep(),
+		metaChainStepHandler.ValidatorIncreaseRatingStep(),
+		metaChainStepHandler.ValidatorDecreaseRatingStep(),
+		shardChainHandler.ProposerIncreaseRatingStep(),
+		shardChainHandler.ProposerDecreaseRatingStep(),
+		shardChainHandler.ValidatorIncreaseRatingStep(),
+		shardChainHandler.ValidatorDecreaseRatingStep(),
+	)
+	return computedRatingsDataStr
 }
 
 func cleanupStorageIfNecessary(workingDir string, ctx *cli.Context, log logger.Logger) error {
