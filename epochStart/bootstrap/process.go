@@ -123,6 +123,12 @@ type baseDataInStorage struct {
 
 // ArgsEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
 type ArgsEpochStartBootstrap struct {
+	DestinationShardAsObserver uint32
+	WorkingDir                 string
+	DefaultDBPath              string
+	DefaultEpochString         string
+	DefaultShardString         string
+	TrieStorageManagers        map[string]data.StorageManager
 	PublicKey                  crypto.PublicKey
 	Marshalizer                marshal.Marshalizer
 	TxSignMarshalizer          marshal.Marshalizer
@@ -137,14 +143,8 @@ type ArgsEpochStartBootstrap struct {
 	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
 	GenesisShardCoordinator    sharding.Coordinator
 	PathManager                storage.PathManagerHandler
-	WorkingDir                 string
-	DefaultDBPath              string
-	DefaultEpochString         string
-	DefaultShardString         string
 	Rater                      sharding.ChanceComputer
-	DestinationShardAsObserver uint32
 	TrieContainer              state.TriesHolder
-	TrieStorageManagers        map[string]data.StorageManager
 	Uint64Converter            typeConverters.Uint64ByteSliceConverter
 	NodeShuffler               sharding.NodesShuffler
 }

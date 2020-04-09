@@ -12,8 +12,6 @@ type AccountWrapMock struct {
 	MockValue         int
 	dataTrie          data.Trie
 	nonce             uint64
-	rating            uint32
-	tempRating        uint32
 	consecutiveMisses uint32
 	code              []byte
 	codeMetadata      []byte
@@ -165,7 +163,7 @@ func (awm *AccountWrapMock) GetConsecutiveProposerMisses() uint32 {
 	return awm.consecutiveMisses
 }
 
-// SetConsecutiveProposerMissesWithJournal -
+// SetConsecutiveProposerMisses -
 func (awm *AccountWrapMock) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
 	awm.consecutiveMisses = consecutiveMisses
 }
