@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -129,18 +130,8 @@ func (ctpc *crossTxsPoolsCleaner) receivedRewardTx(key []byte, value interface{}
 
 	log.Trace("crossTxsPoolsCleaner.receivedRewardTx", "hash", key)
 
-	tx, ok := value.(data.TransactionHandler)
-	if !ok {
-		log.Warn("crossTxsPoolsCleaner.receivedRewardTx", "error", process.ErrWrongTypeAssertion)
-		return
-	}
-
-	senderShardID, receiverShardID, err := ctpc.computeSenderAndReceiverShards(tx)
-	if err != nil {
-		log.Debug("crossTxsPoolsCleaner.receivedRewardTx", "error", err.Error())
-		return
-	}
-
+	senderShardID := core.MetachainShardId
+	receiverShardID := ctpc.shardCoordinator.SelfId()
 	ctpc.processReceivedTx(key, senderShardID, receiverShardID, rewardTx)
 }
 

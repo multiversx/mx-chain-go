@@ -1826,6 +1826,7 @@ func newShardBlockProcessor(
 		interimProcContainer,
 		gasHandler,
 		txFeeHandler,
+		blockSizeComputationHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -2051,6 +2052,7 @@ func newMetaBlockProcessor(
 		interimProcContainer,
 		gasHandler,
 		txFeeHandler,
+		blockSizeComputationHandler,
 	)
 	if err != nil {
 		return nil, err
