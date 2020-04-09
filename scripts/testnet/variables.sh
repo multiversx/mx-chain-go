@@ -3,9 +3,13 @@
 # Path to elrond-go. Determined automatically. Do not change.
 export ELRONDDIR=$(dirname $(dirname $ELRONDTESTNETSCRIPTSDIR))
 
-# Use private repositories or not, i.e. elrond-txgen-go and elrond-proxy-go.
-# These repositories require extra permissions to read.
-export PRIVATE_REPOS=0
+# Enable the Elrond Proxy. Note that this is a private repository
+# (elrond-proxy-go).
+export USE_PROXY=1
+
+# Enable the Elrond Transaction Generator. Note that this is a private
+# repository (elrond-txgen-go).
+export USE_TXGEN=0
 
 # Path where the testnet will be instantiated. This folder is assumed to not
 # exist, but it doesn't matter if it already does. It will be created if not,
@@ -65,8 +69,10 @@ export TOTAL_NODECOUNT=$total_node_count
 
 # Okay as defaults, change if needed.
 export MINT_VALUE="1000000000000000000000000000"
+
 # ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
 export ALWAYS_NEW_CHAINID=1
+
 # ALWAYS_UPDATE_CONFIGS will re-generate configs (toml + json) each time ./start.sh
 # Set this variable to 0 when testing bootstram from storage or other edge cases where you do not want a fresh new config
 # each time.

@@ -20,11 +20,14 @@ updateSeednodeConfig
 copyNodeConfig
 updateNodeConfig
 
-if [ $PRIVATE_REPOS -eq 1 ]; then
-  prepareFolders_PrivateRepos
-
+if [ $USE_PROXY -eq 1 ]; then
+  prepareFolders_Proxy
   copyProxyConfig
   updateProxyConfig
+fi
+
+if [ $USE_TXGEN -eq 1 ]; then
+	prepareFolders_TxGen
   copyTxGenConfig
   updateTxGenConfig
 fi

@@ -13,7 +13,7 @@ source "$ELRONDTESTNETSCRIPTSDIR/include/tools.sh"
 
 prepareFolders
 
-# Phase 1: build Seednode and Node executables
+# Phase 1: build Seednode, Node and Arwen executables
 buildSeednode
 buildNode
 buildArwen
@@ -46,24 +46,31 @@ showTerminalSession "elrond-nodes"
 echo "Waiting for the Nodes to start ($NODE_DELAY s)..."
 sleep $NODE_DELAY
 
-if [ $PRIVATE_REPOS -eq 1 ]; then
-  # Phase 5: build the Proxy and TxGen
-  prepareFolders_PrivateRepos
+# Phase 5: build the Proxy and TxGen
+if [ $USE_PROXY -eq 1 ]; then
+  prepareFolders_Proxy
   buildProxy
+fi
+if [ $USE_TXGEN -eq 1 ]; then
+	prepareFolders_TxGen
   buildTxGen
+fi
 
-  # Phase 6: start the Proxy
+# Phase 6: start the Proxy
+if [ $USE_PROXY -eq 1 ]; then
   startProxy
   echo "Waiting for the Proxy to start ($PROXY_DELAY s)..."
   sleep $PROXY_DELAY
+fi
 
-  # Phase 7: start the TxGen, with or without regenerating the accounts
-  if [ -n "$TXGEN_REGENERATE_ACCOUNTS" ]
-  then
-    echo "Starting TxGen with account generation..."
-    startTxGen_NewAccounts
-  else
-    echo "Starting TxGen with existing accounts..."
-    startTxGen_ExistingAccounts
-  fi
+# Phase 7: start the TxGen, with or without regenerating the accounts
+if [ $USE_TXGEN -eq 1 ]; then
+	if [ -n "$TXGEN_REGENERATE_ACCOUNTS" ]
+	then
+		echo "Starting TxGen with account generation..."
+		startTxGen_NewAccounts
+	else
+		echo "Starting TxGen with existing accounts..."
+		startTxGen_ExistingAccounts
+	fi
 fi
