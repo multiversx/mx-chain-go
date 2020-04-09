@@ -1728,7 +1728,7 @@ func newShardBlockProcessor(
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		AdrConv:          stateComponents.AddressConverter,
+		AddressConverter: stateComponents.AddressConverter,
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),
@@ -1974,7 +1974,7 @@ func newMetaBlockProcessor(
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		AdrConv:          stateComponents.AddressConverter,
+		AddressConverter: stateComponents.AddressConverter,
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),

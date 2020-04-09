@@ -20,7 +20,7 @@ type txTypeHandler struct {
 
 // ArgNewTxTypeHandler defines the arguments needed to create a new tx type handler
 type ArgNewTxTypeHandler struct {
-	AdrConv          state.AddressConverter
+	AddressConverter state.AddressConverter
 	ShardCoordinator sharding.Coordinator
 	BuiltInFuncNames map[string]struct{}
 	ArgumentParser   process.ArgumentsParser
@@ -30,7 +30,7 @@ type ArgNewTxTypeHandler struct {
 func NewTxTypeHandler(
 	args ArgNewTxTypeHandler,
 ) (*txTypeHandler, error) {
-	if check.IfNil(args.AdrConv) {
+	if check.IfNil(args.AddressConverter) {
 		return nil, process.ErrNilAddressConverter
 	}
 	if check.IfNil(args.ShardCoordinator) {
@@ -44,7 +44,7 @@ func NewTxTypeHandler(
 	}
 
 	tc := &txTypeHandler{
-		adrConv:          args.AdrConv,
+		adrConv:          args.AddressConverter,
 		shardCoordinator: args.ShardCoordinator,
 		argumentParser:   args.ArgumentParser,
 		builtInFuncNames: args.BuiltInFuncNames,

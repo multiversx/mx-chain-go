@@ -66,6 +66,8 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 		return nil, input.GasProvided, process.ErrNotEnoughGas
 	}
 
+	acntDst.DataTrieTracker().SaveKeyValue(key, value)
+
 	return big.NewInt(0), useGas, nil
 }
 

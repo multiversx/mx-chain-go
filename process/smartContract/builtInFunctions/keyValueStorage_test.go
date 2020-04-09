@@ -1,6 +1,7 @@
 package builtInFunctions
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -47,6 +48,8 @@ func TestSaveKeyValue_ProcessBuiltinFunction(t *testing.T) {
 
 	_, _, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Nil(t, err)
+	retrievedValue, _ := acc.DataTrieTracker().RetrieveValue(key)
+	require.True(t, bytes.Equal(retrievedValue, value))
 
 	vmInput.CallerAddr = []byte("other")
 	_, _, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)

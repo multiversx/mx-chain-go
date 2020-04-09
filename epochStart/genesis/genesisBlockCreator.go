@@ -293,7 +293,7 @@ func createProcessorsForMetaGenesisBlock(
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		AdrConv:          args.AddrConv,
+		AddressConverter: args.AddrConv,
 		ShardCoordinator: args.ShardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),

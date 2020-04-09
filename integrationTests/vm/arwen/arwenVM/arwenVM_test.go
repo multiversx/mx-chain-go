@@ -563,7 +563,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
 	accnts := vm.CreateInMemoryShardAccountsDB()
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		AdrConv:          addrConv,
+		AddressConverter: addrConv,
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),

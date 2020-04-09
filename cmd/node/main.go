@@ -1756,7 +1756,7 @@ func createApiResolver(
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		AdrConv:          addrConv,
+		AddressConverter: addrConv,
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),

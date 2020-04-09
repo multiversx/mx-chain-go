@@ -158,7 +158,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		}}
 	argsParser := vmcommon.NewAtArgumentParser()
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		AdrConv:          addrConv,
+		AddressConverter: addrConv,
 		ShardCoordinator: oneShardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   argsParser,
@@ -299,7 +299,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 ) (process.TransactionProcessor, process.SmartContractProcessor) {
 	argsParser := vmcommon.NewAtArgumentParser()
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		AdrConv:          addrConv,
+		AddressConverter: addrConv,
 		ShardCoordinator: oneShardCoordinator,
 		BuiltInFuncNames: blockChainHook.GetBuiltInFunctions().Keys(),
 		ArgumentParser:   argsParser,

@@ -451,7 +451,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		AdrConv:          &mock.AddressConverterMock{},
+		AddressConverter: &mock.AddressConverterMock{},
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),

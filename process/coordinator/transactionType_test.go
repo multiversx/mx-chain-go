@@ -14,7 +14,7 @@ import (
 
 func createMockArguments() ArgNewTxTypeHandler {
 	return ArgNewTxTypeHandler{
-		AdrConv:          &mock.AddressConverterMock{},
+		AddressConverter: &mock.AddressConverterMock{},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),
@@ -25,7 +25,7 @@ func TestNewTxTypeHandler_NilAddrConv(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArguments()
-	arg.AdrConv = nil
+	arg.AddressConverter = nil
 	tth, err := NewTxTypeHandler(arg)
 
 	assert.Nil(t, tth)
@@ -182,7 +182,7 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.AdrConv = &mock.AddressConverterStub{
+	arg.AddressConverter = &mock.AddressConverterStub{
 		AddressLenHandler: func() int {
 			return len(tx.RcvAddr)
 		},
@@ -210,7 +210,7 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunc(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.AdrConv = &mock.AddressConverterStub{
+	arg.AddressConverter = &mock.AddressConverterStub{
 		AddressLenHandler: func() int {
 			return len(tx.RcvAddr)
 		},
