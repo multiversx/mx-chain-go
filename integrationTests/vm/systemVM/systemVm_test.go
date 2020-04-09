@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
@@ -112,7 +111,6 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("process:TRACE")
 	numOfShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 2
