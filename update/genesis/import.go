@@ -4,24 +4,35 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"path"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
+	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // ArgsNewStateImport is the arguments structure to create a new state importer
 type ArgsNewStateImport struct {
-	Reader      update.MultiFileReader
-	Hasher      hashing.Hasher
-	Marshalizer marshal.Marshalizer
+	Reader              update.MultiFileReader
+	Hasher              hashing.Hasher
+	Marshalizer         marshal.Marshalizer
+	TriesContainer      state.TriesHolder
+	TrieStorageManagers map[string]data.StorageManager
+	ShardID             uint32
+	StorageConfig       config.StorageConfig
 }
 
 type stateImport struct {
@@ -30,10 +41,16 @@ type stateImport struct {
 	transactions      map[string]data.TransactionHandler
 	miniBlocks        map[string]*block.MiniBlock
 	importedMetaBlock *block.MetaBlock
-	tries             map[string]data.Trie
+	tries             map[uint32]data.Trie
+	newRootHashes     map[uint32][]byte
 
-	hasher      hashing.Hasher
-	marshalizer marshal.Marshalizer
+	hasher              hashing.Hasher
+	marshalizer         marshal.Marshalizer
+	storage             dataRetriever.StorageService
+	triesContainer      state.TriesHolder
+	trieStorageManagers map[string]data.StorageManager
+	shardID             uint32
+	storageConfig       config.StorageConfig
 }
 
 // NewStateImport creates an importer which reads all the files for a new start
@@ -47,6 +64,9 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, update.ErrNilMarshalizer
 	}
+	if check.IfNil(args.TriesContainer) {
+		return nil, update.ErrNilStorage
+	}
 
 	st := &stateImport{
 		reader:            args.Reader,
@@ -54,7 +74,8 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 		transactions:      make(map[string]data.TransactionHandler),
 		miniBlocks:        make(map[string]*block.MiniBlock),
 		importedMetaBlock: &block.MetaBlock{},
-		tries:             make(map[string]data.Trie),
+		tries:             make(map[uint32]data.Trie),
+		newRootHashes:     make(map[uint32][]byte),
 		hasher:            args.Hasher,
 		marshalizer:       args.Marshalizer,
 	}
@@ -211,8 +232,57 @@ func newAccountCreator(accType Type) (state.AccountFactory, error) {
 	return nil, update.ErrUnknownType
 }
 
+func getTrieContainerID(accType Type) []byte {
+	switch accType {
+	case UserAccount:
+		return []byte(trieFactory.UserAccountTrie)
+	case ValidatorAccount:
+		return []byte(trieFactory.PeerAccountTrie)
+	}
+
+	return nil
+}
+
+func (si *stateImport) getTrie(shardID uint32, accType Type) (data.Trie, error) {
+	if shardID == si.shardID {
+		accountsDBType := getTrieContainerID(accType)
+		trieForShard := si.triesContainer.Get(accountsDBType)
+		return trieForShard, nil
+	}
+
+	trieForShard, ok := si.tries[shardID]
+	if ok {
+		return trieForShard, nil
+	}
+
+	dbConfig := storageFactory.GetDBFromConfig(si.storageConfig.DB)
+	dbConfig.FilePath = path.Join(si.storageConfig.DB.FilePath, core.GetShardIdString(shardID))
+	storageForShard, err := storageUnit.NewStorageUnitFromConf(
+		storageFactory.GetCacherFromConfig(si.storageConfig.Cache),
+		dbConfig,
+		storageFactory.GetBloomFromConfig(si.storageConfig.Bloom),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(storageForShard)
+	if err != nil {
+		return nil, err
+	}
+
+	trieForShard, err = trie.NewTrie(trieStorage, si.marshalizer, si.hasher)
+	if err != nil {
+		return nil, err
+	}
+
+	si.tries[shardID] = trieForShard
+
+	return trieForShard, nil
+}
+
 func (si *stateImport) importState(fileName string, trieKey string) error {
-	accType, _, err := GetTrieTypeAndShId(trieKey)
+	accType, shId, err := GetTrieTypeAndShId(trieKey)
 	if err != nil {
 		return err
 	}
@@ -222,7 +292,12 @@ func (si *stateImport) importState(fileName string, trieKey string) error {
 		return err
 	}
 
-	accountsDB, err := state.NewAccountsDB(si.tries[trieKey], si.hasher, si.marshalizer, accountFactory)
+	currentTrie, err := si.getTrie(shId, accType)
+	if err != nil {
+		return err
+	}
+
+	accountsDB, err := state.NewAccountsDB(currentTrie, si.hasher, si.marshalizer, accountFactory)
 	if err != nil {
 		return err
 	}
@@ -280,6 +355,11 @@ func (si *stateImport) importState(fileName string, trieKey string) error {
 
 	if err != update.ErrEndOfFile {
 		return fmt.Errorf("%w fileName: %s", err, fileName)
+	}
+
+	_, err = accountsDB.Commit()
+	if err != nil {
+		return err
 	}
 
 	return nil
