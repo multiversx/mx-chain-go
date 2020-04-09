@@ -1267,6 +1267,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 
 	rootHash, _ := shardNode.AccntState.RootHash()
 	if !bytes.Equal(rootHash, rootHashOfRollbackedBlock) {
+		time.Sleep(time.Second)
 		err := shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
 		assert.True(t, errors.Is(err, trie.ErrHashNotFound))
 	}
