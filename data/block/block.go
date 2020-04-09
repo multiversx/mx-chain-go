@@ -14,12 +14,6 @@ import (
 //  necessarily representing a full block body
 type MiniBlockSlice []*MiniBlock
 
-// Body represents a collection of miniblocks
-// TODO merge Body and MiniBlockSlice structures
-type Body struct {
-	MiniBlocks []*MiniBlock
-}
-
 // SetNonce sets header nonce
 func (h *Header) SetNonce(n uint64) {
 	h.Nonce = n
