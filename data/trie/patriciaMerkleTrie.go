@@ -21,8 +21,6 @@ const (
 	branch
 )
 
-const maxSnapshots = 2
-
 var emptyTrieHash = make([]byte, 32)
 
 type patriciaMerkleTrie struct {

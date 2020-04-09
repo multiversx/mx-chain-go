@@ -45,18 +45,6 @@ func (tsm *trieStorageManagerWithoutPruning) MarkForEviction([]byte, data.Modifi
 	return nil
 }
 
-// Clone returns a new instance of trieStorageManagerWithoutPruning
-func (tsm *trieStorageManagerWithoutPruning) Clone() data.StorageManager {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
-	return &trieStorageManagerWithoutPruning{
-		&trieStorageManager{
-			db: tsm.db,
-		},
-	}
-}
-
 // IsPruningEnabled returns false if the trie pruning is disabled
 func (tsm *trieStorageManagerWithoutPruning) IsPruningEnabled() bool {
 	return false
