@@ -319,7 +319,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	}
 }
 
-// checkProcessorNilParameters will check the imput parameters for nil values
+// checkProcessorNilParameters will check the input parameters for nil values
 func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 
 	for key := range arguments.AccountsDB {
