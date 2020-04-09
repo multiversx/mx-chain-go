@@ -64,17 +64,14 @@ func (a *accountsAdapter) RecreateTrie(_ []byte) error {
 
 // CancelPrune -
 func (a *accountsAdapter) CancelPrune(_ []byte, _ data.TriePruningIdentifier) {
-	return
 }
 
 // SnapshotState -
 func (a *accountsAdapter) SnapshotState(_ []byte) {
-	return
 }
 
 // SetStateCheckpoint -
 func (a *accountsAdapter) SetStateCheckpoint(_ []byte) {
-	return
 }
 
 // IsPruningEnabled -

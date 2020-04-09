@@ -25,7 +25,6 @@ type syncHeadersByHash struct {
 	chReceivedAll           chan bool
 	marshalizer             marshal.Marshalizer
 	stopSyncing             bool
-	epochToSync             uint32
 	syncedAll               bool
 	requestHandler          process.RequestHandler
 	waitTimeBetweenRequests time.Duration

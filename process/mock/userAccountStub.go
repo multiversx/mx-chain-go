@@ -7,9 +7,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+var _ state.UserAccountHandler = (*UserAccountStub)(nil)
+
 // UserAccountStub -
 type UserAccountStub struct {
 	AddToBalanceCalled func(value *big.Int) error
+}
+
+// SetUserName -
+func (u *UserAccountStub) SetUserName(_ []byte) {
+}
+
+// GetUserName -
+func (u *UserAccountStub) GetUserName() []byte {
+	return nil
 }
 
 // AddToBalance -
@@ -81,6 +92,15 @@ func (u *UserAccountStub) SetCode(_ []byte) {
 
 // GetCode -
 func (u *UserAccountStub) GetCode() []byte {
+	return nil
+}
+
+// SetCodeMetadata -
+func (u *UserAccountStub) SetCodeMetadata(codeMetadata []byte) {
+}
+
+// GetCodeMetadata -
+func (u *UserAccountStub) GetCodeMetadata() []byte {
 	return nil
 }
 

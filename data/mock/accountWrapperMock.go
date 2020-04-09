@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+var _ state.UserAccountHandler = (*AccountWrapMock)(nil)
+
 // AccountWrapMock -
 type AccountWrapMock struct {
 	AccountWrapMockData
@@ -15,6 +17,7 @@ type AccountWrapMock struct {
 	nonce             uint64
 	code              []byte
 	CodeHash          []byte
+	CodeMetadata      []byte
 	RootHash          []byte
 	address           state.AddressContainer
 	trackableDataTrie state.DataTrieTracker
@@ -22,6 +25,15 @@ type AccountWrapMock struct {
 	SetNonceWithJournalCalled    func(nonce uint64) error    `json:"-"`
 	SetCodeHashWithJournalCalled func(codeHash []byte) error `json:"-"`
 	SetCodeWithJournalCalled     func([]byte) error          `json:"-"`
+}
+
+// SetUserName -
+func (awm *AccountWrapMock) SetUserName(_ []byte) {
+}
+
+// GetUserName -
+func (awm *AccountWrapMock) GetUserName() []byte {
+	return nil
 }
 
 // AddToBalance -
@@ -92,9 +104,24 @@ func (awm *AccountWrapMock) SetCodeHash(codeHash []byte) {
 	awm.CodeHash = codeHash
 }
 
+// SetCode -
+func (awm *AccountWrapMock) SetCode(code []byte) {
+	awm.code = code
+}
+
 // GetCode -
 func (awm *AccountWrapMock) GetCode() []byte {
 	return awm.code
+}
+
+// SetCodeMetadata -
+func (awm *AccountWrapMock) SetCodeMetadata(codeMetadata []byte) {
+	awm.CodeMetadata = codeMetadata
+}
+
+// GetCodeMetadata -
+func (awm *AccountWrapMock) GetCodeMetadata() []byte {
+	return awm.CodeMetadata
 }
 
 // GetRootHash -
@@ -110,11 +137,6 @@ func (awm *AccountWrapMock) SetRootHash(rootHash []byte) {
 // AddressContainer -
 func (awm *AccountWrapMock) AddressContainer() state.AddressContainer {
 	return awm.address
-}
-
-// SetCode -
-func (awm *AccountWrapMock) SetCode(code []byte) {
-	awm.code = code
 }
 
 // DataTrie -

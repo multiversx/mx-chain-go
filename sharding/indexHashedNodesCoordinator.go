@@ -63,6 +63,7 @@ type indexHashedNodesCoordinator struct {
 	consensusGroupCacher          Cacher
 	shardIDAsObserver             uint32
 	loadingFromDisk               atomic.Value
+	shuffledOutHandler      ShuffledOutHandler
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -98,6 +99,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		metaConsensusGroupSize:        arguments.MetaConsensusGroupSize,
 		consensusGroupCacher:          arguments.ConsensusGroupCache,
 		shardIDAsObserver:             arguments.ShardIDAsObserver,
+		shuffledOutHandler:      arguments.ShuffledOutHandler,
 	}
 
 	ihgs.loadingFromDisk.Store(false)
@@ -147,6 +149,9 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	if check.IfNil(arguments.Marshalizer) {
 		return ErrNilMarshalizer
 	}
+	if check.IfNil(arguments.ShuffledOutHandler) {
+		return ErrNilShuffledOutHandler
+	}
 
 	return nil
 }
@@ -174,9 +179,7 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 	}
 
 	nodesConfig.leavingList = make([]Validator, 0, len(leaving))
-	for _, validator := range leaving {
-		nodesConfig.leavingList = append(nodesConfig.leavingList, validator)
-	}
+	nodesConfig.leavingList = append(nodesConfig.leavingList, leaving...)
 
 	nodesList := eligible[core.MetachainShardId]
 	if len(nodesList) < ihgs.metaConsensusGroupSize {
@@ -204,10 +207,13 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 		return err
 	}
 
+
+	shardIDForSelfPublicKey := ihgs.computeShardForSelfPublicKey(nodesConfig)
+	nodesConfig.shardID = shardIDForSelfPublicKey
 	ihgs.nodesConfig[epoch] = nodesConfig
 	ihgs.numTotalEligible = numTotalEligible
 
-	return nil
+	return ihgs.shuffledOutHandler.Process(shardIDForSelfPublicKey)
 }
 
 // ComputeLeaving - computes leaving validators

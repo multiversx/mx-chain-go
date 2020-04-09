@@ -50,7 +50,6 @@ func TestMetaChain_SettersAndGetters(t *testing.T) {
 	genesis := &block.MetaBlock{
 		Nonce: 0,
 	}
-	body := &block.Body{}
 	hdrHash := []byte("hash")
 	genesisHash := []byte("genesis hash")
 
@@ -58,9 +57,6 @@ func TestMetaChain_SettersAndGetters(t *testing.T) {
 	mc.SetGenesisHeaderHash(genesisHash)
 
 	err := mc.SetGenesisHeader(genesis)
-	assert.Nil(t, err)
-
-	err = mc.SetCurrentBlockBody(body)
 	assert.Nil(t, err)
 
 	err = mc.SetCurrentBlockHeader(hdr)
@@ -74,9 +70,6 @@ func TestMetaChain_SettersAndGetters(t *testing.T) {
 
 	assert.Equal(t, hdrHash, mc.GetCurrentBlockHeaderHash())
 	assert.Equal(t, genesisHash, mc.GetGenesisHeaderHash())
-
-	assert.Equal(t, body, mc.GetCurrentBlockBody())
-	assert.False(t, body == mc.GetCurrentBlockBody())
 }
 
 func TestMetaChain_SettersAndGettersNilValues(t *testing.T) {
@@ -87,14 +80,10 @@ func TestMetaChain_SettersAndGettersNilValues(t *testing.T) {
 	err := mc.SetGenesisHeader(nil)
 	assert.Nil(t, err)
 
-	err = mc.SetCurrentBlockBody(nil)
-	assert.Nil(t, err)
-
 	err = mc.SetCurrentBlockHeader(nil)
 	assert.Nil(t, err)
 
 	assert.Nil(t, mc.GetGenesisHeader())
-	assert.Nil(t, mc.GetCurrentBlockBody())
 	assert.Nil(t, mc.GetCurrentBlockHeader())
 }
 

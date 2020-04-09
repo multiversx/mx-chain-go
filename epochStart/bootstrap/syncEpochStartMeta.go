@@ -19,13 +19,12 @@ import (
 )
 
 type epochStartMetaSyncer struct {
-	requestHandler                 RequestHandler
-	messenger                      Messenger
-	epochStartMetaBlockInterceptor EpochStartInterceptor
-	marshalizer                    marshal.Marshalizer
-	hasher                         hashing.Hasher
-	singleDataInterceptor          process.Interceptor
-	metaBlockProcessor             *epochStartMetaBlockProcessor
+	requestHandler        RequestHandler
+	messenger             Messenger
+	marshalizer           marshal.Marshalizer
+	hasher                hashing.Hasher
+	singleDataInterceptor process.Interceptor
+	metaBlockProcessor    *epochStartMetaBlockProcessor
 }
 
 // ArgsNewEpochStartMetaSyncer -

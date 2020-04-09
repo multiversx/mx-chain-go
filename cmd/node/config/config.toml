@@ -9,7 +9,7 @@
 
    # StartInEpochEnabled represents that the fast bootstrap mechanism from the network is enabled if data is not
    # available in local disk
-   StartInEpochEnabled = false # TODO enable this after fixing syncing trie
+   StartInEpochEnabled = true
 
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
@@ -296,10 +296,12 @@
 [Address]
     Length = 32
     Prefix = "0x"
+    SignatureLength = 0
 
 [BLSPublicKey]
     Length = 96
     Prefix = "0x"
+    SignatureLength = 48
 
 [Hasher]
    Type = "blake2b"
@@ -328,6 +330,9 @@
 [EpochStartConfig]
     MinRoundsBetweenEpochs = 50
     RoundsPerEpoch         = 50
+    # ShuffledOutRestartThreshold represents the maximum duration of an epoch (in percentage) after a node which
+    # has been shuffled out has to restart its process in order to start in a new shard
+    ShuffledOutRestartThreshold = 0.25
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
