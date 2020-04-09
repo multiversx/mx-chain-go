@@ -530,6 +530,7 @@ func putDeploySCToDataPool(
 ) []byte {
 	scCode, _ := ioutil.ReadFile(fileName)
 	scCodeString := hex.EncodeToString(scCode)
+	scCodeMetadataString := "0000"
 
 	blockChainHook := nodes[0].BlockchainHook
 
@@ -542,7 +543,7 @@ func putDeploySCToDataPool(
 		SndAddr:  pubkey,
 		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),
 		GasLimit: nodes[0].EconomicsData.MaxGasLimitPerBlock() - 1,
-		Data:     []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)),
+		Data:     []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString),
 	}
 	txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)
 

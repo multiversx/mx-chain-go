@@ -25,8 +25,15 @@ const roundTimeDuration = 100 * time.Millisecond
 
 var fromConnectedPeerId = p2p.PeerID("connected peer id")
 
-var blockHeaderHash = make([]byte, core.HashSizeInBytes)
-var invalidBlockHeaderHash = make([]byte, core.HashSizeInBytes+1)
+const HashSize = 32
+const SignatureSize = 48
+const PublicKeySize = 96
+
+var blockHeaderHash = make([]byte, HashSize)
+var invalidBlockHeaderHash = make([]byte, HashSize+1)
+var signature = make([]byte, SignatureSize)
+var invalidSignature = make([]byte, SignatureSize+1)
+var publicKey = make([]byte, PublicKeySize)
 
 func createDefaultWorkerArgs() *spos.WorkerArgs {
 	blockchainMock := &mock.BlockChainMock{}
@@ -84,6 +91,8 @@ func createDefaultWorkerArgs() *spos.WorkerArgs {
 		NetworkShardingCollector: createMockNetworkShardingCollector(),
 		AntifloodHandler:         createMockP2PAntifloodHandler(),
 		PoolAdder:                poolAdder,
+		SignatureSize:            SignatureSize,
+		PublicKeySize:            PublicKeySize,
 	}
 
 	return workerArgs
@@ -465,12 +474,12 @@ func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		blockHeaderHash,
+		nil,
 		nil,
 		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
-		[]byte("sig"),
+		signature,
 		int(bls.MtBlockBody),
 		0,
 		chainID,
@@ -511,12 +520,12 @@ func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		blockHeaderHash,
+		nil,
 		nil,
 		blkStr,
 		nil,
-		[]byte("X"),
-		[]byte("sig"),
+		publicKey,
+		signature,
 		int(bls.MtBlockBody),
 		0,
 		chainID,
@@ -529,7 +538,7 @@ func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
-	assert.True(t, errors.Is(err, spos.ErrSenderNotOk))
+	assert.True(t, errors.Is(err, spos.ErrNodeIsNotInEligibleList))
 }
 
 func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *testing.T) {
@@ -561,13 +570,14 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 	})
 	hdr := &block.Header{ChainID: chainID}
 	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, mock.HasherMock{}, hdr)
+	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
 		nil,
 		nil,
-		nil,
-		[]byte("A"),
-		[]byte("sig"),
+		hdrStr,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		signature,
 		int(bls.MtBlockHeader),
 		0,
 		chainID,
@@ -680,12 +690,12 @@ func TestWorker_ProcessReceivedMessageForFutureRoundShouldErr(t *testing.T) {
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		blockHeaderHash,
+		nil,
 		nil,
 		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
-		[]byte("sig"),
+		signature,
 		int(bls.MtBlockBody),
 		2,
 		chainID,
@@ -698,7 +708,7 @@ func TestWorker_ProcessReceivedMessageForFutureRoundShouldErr(t *testing.T) {
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
-	assert.Equal(t, spos.ErrMessageForFutureRound, err)
+	assert.True(t, errors.Is(err, spos.ErrMessageForFutureRound))
 }
 
 func TestWorker_ProcessReceivedMessageForPastRoundShouldErr(t *testing.T) {
@@ -707,12 +717,12 @@ func TestWorker_ProcessReceivedMessageForPastRoundShouldErr(t *testing.T) {
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		blockHeaderHash,
+		nil,
 		nil,
 		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
-		[]byte("sig"),
+		signature,
 		int(bls.MtBlockBody),
 		-1,
 		chainID,
@@ -725,7 +735,7 @@ func TestWorker_ProcessReceivedMessageForPastRoundShouldErr(t *testing.T) {
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
-	assert.Equal(t, spos.ErrMessageForPastRound, err)
+	assert.True(t, errors.Is(err, spos.ErrMessageForPastRound))
 }
 
 func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
@@ -734,12 +744,12 @@ func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		blockHeaderHash,
+		nil,
 		nil,
 		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
-		nil,
+		invalidSignature,
 		int(bls.MtBlockBody),
 		0,
 		chainID,
@@ -752,7 +762,7 @@ func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 	time.Sleep(time.Second)
 
 	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
-	assert.True(t, errors.Is(err, spos.ErrInvalidSignature))
+	assert.True(t, errors.Is(err, spos.ErrInvalidSignatureSize))
 }
 
 func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNotProcess(t *testing.T) {
@@ -761,12 +771,12 @@ func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNo
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		blockHeaderHash,
+		nil,
 		nil,
 		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().SelfPubKey()),
-		[]byte("sig"),
+		signature,
 		int(bls.MtBlockBody),
 		0,
 		chainID,
@@ -789,12 +799,12 @@ func TestWorker_ProcessReceivedMessageWhenRoundIsCanceledShouldRetNilAndNotProce
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
-		blockHeaderHash,
+		nil,
 		nil,
 		blkStr,
 		nil,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
-		[]byte("sig"),
+		signature,
 		int(bls.MtBlockBody),
 		0,
 		chainID,
@@ -878,13 +888,14 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 
 	hdr := &block.Header{ChainID: chainID}
 	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, mock.HasherMock{}, hdr)
+	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
 		nil,
 		nil,
-		nil,
+		hdrStr,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
-		[]byte("sig"),
+		signature,
 		int(bls.MtBlockHeader),
 		0,
 		chainID,
@@ -1492,7 +1503,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 		nil,
 		hdrStr,
 		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
-		[]byte("sig"),
+		signature,
 		int(bls.MtBlockHeader),
 		0,
 		chainID,

@@ -68,8 +68,9 @@ arwen:
 ifndef ARWEN_PATH
 	$(error ARWEN_PATH is undefined)
 endif
+	# When referencing a non-release version, add the commit hash, like this:
+	#go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@...
+	# When referencing a released version, use this instead:
 	go get github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen@$(shell cat go.mod | grep arwen-wasm-vm | sed 's/.* //')
-	# The following commented line may be useful when referencing a non-released version, but a specific commit instead.
-	# go build -o ${ARWEN_PATH} $(shell go env GOPATH)/pkg/mod/github.com/!elrond!network/arwen-wasm-vm@$(shell cat go.mod | grep arwen | sed 's/.*arwen-wasm-vm //')/cmd/arwen
 	go build -o ${ARWEN_PATH} github.com/ElrondNetwork/arwen-wasm-vm/cmd/arwen
 	stat ${ARWEN_PATH}
