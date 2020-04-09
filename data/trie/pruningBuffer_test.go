@@ -7,7 +7,7 @@ import (
 )
 
 func defaultPruningBuffer() *pruningBuffer {
-	sb := newPruningBuffer()
+	sb := newPruningBuffer(100)
 	sb.add([]byte("0"))
 	sb.add([]byte("1"))
 
@@ -15,7 +15,7 @@ func defaultPruningBuffer() *pruningBuffer {
 }
 
 func TestPruningBuffer_NewPruningBuffer(t *testing.T) {
-	assert.NotNil(t, newPruningBuffer())
+	assert.NotNil(t, newPruningBuffer(100))
 }
 
 func TestSnapshotsBuffer_Add(t *testing.T) {
