@@ -1,13 +1,15 @@
 package iele
 
 import (
+	"encoding/hex"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/stretchr/testify/assert"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
 // DeployContract -
@@ -21,7 +23,7 @@ func DeployContract(
 	scCode string,
 	txProc process.TransactionProcessor,
 	accnts state.AccountsAdapter,
-) {
+) error {
 
 	//contract creation tx
 	tx := vm.CreateTx(
@@ -36,8 +38,19 @@ func DeployContract(
 	)
 
 	err := txProc.ProcessTransaction(tx)
-	assert.Nil(tb, err)
+	if err != nil {
+		return err
+	}
 
 	_, err = accnts.Commit()
-	assert.Nil(tb, err)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CreateDeployTxData -
+func CreateDeployTxData(scCode []byte) string {
+	return strings.Join([]string{string(scCode), hex.EncodeToString(factory.IELEVirtualMachine), "0000"}, "@")
 }

@@ -21,8 +21,14 @@ func executeStoredMessages() {
 func createEligibleList(size int) []string {
 	eligibleList := make([]string, 0)
 	for i := 0; i < size; i++ {
-		eligibleList = append(eligibleList, string(i+65))
+		var value string
+		for j := 0; j < PublicKeySize; j++ {
+			value += string(i + 65)
+		}
+
+		eligibleList = append(eligibleList, value)
 	}
+
 	return eligibleList
 }
 

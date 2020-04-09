@@ -23,7 +23,7 @@ func createTxsMap() map[string]data.TransactionHandler {
 	tx := &transaction.Transaction{Nonce: 1, Value: big.NewInt(100), SndAddr: []byte("snd"), RcvAddr: []byte("rcv")}
 	rtx := &rewardTx.RewardTx{Round: 1, Value: big.NewInt(100), RcvAddr: []byte("rcv"), Epoch: 1}
 	smrTx := &smartContractResult.SmartContractResult{
-		Nonce: 1, SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(100), TxHash: []byte("hash"),
+		Nonce: 1, SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(100), PrevTxHash: []byte("hash"),
 		GasLimit: 1, GasPrice: 100,
 	}
 

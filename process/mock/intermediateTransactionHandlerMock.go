@@ -15,6 +15,7 @@ type IntermediateTransactionHandlerMock struct {
 	CreateMarshalizedDataCalled              func(txHashes [][]byte) ([][]byte, error)
 	GetAllCurrentFinishedTxsCalled           func() map[string]data.TransactionHandler
 	RemoveProcessedResultsForCalled          func(txHashes [][]byte)
+	intermediateTransactions                 []data.TransactionHandler
 }
 
 // RemoveProcessedResultsFor -
@@ -35,9 +36,15 @@ func (ith *IntermediateTransactionHandlerMock) CreateMarshalizedData(txHashes []
 // AddIntermediateTransactions -
 func (ith *IntermediateTransactionHandlerMock) AddIntermediateTransactions(txs []data.TransactionHandler) error {
 	if ith.AddIntermediateTransactionsCalled == nil {
+		ith.intermediateTransactions = append(ith.intermediateTransactions, txs...)
 		return nil
 	}
 	return ith.AddIntermediateTransactionsCalled(txs)
+}
+
+// GetIntermediateTransactions -
+func (ith *IntermediateTransactionHandlerMock) GetIntermediateTransactions() []data.TransactionHandler {
+	return ith.intermediateTransactions
 }
 
 // CreateAllInterMiniBlocks -

@@ -48,12 +48,12 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 
 	//Step 1. Generate an unsigned transaction
 	scr := &smartContractResult.SmartContractResult{
-		Nonce:   0,
-		Value:   big.NewInt(0),
-		RcvAddr: integrationTests.TestHasher.Compute("receiver"),
-		SndAddr: buffPk1,
-		Data:    []byte("tx notarized data"),
-		TxHash:  []byte("tx hash"),
+		Nonce:      0,
+		Value:      big.NewInt(0),
+		RcvAddr:    integrationTests.TestHasher.Compute("receiver"),
+		SndAddr:    buffPk1,
+		Data:       []byte("tx notarized data"),
+		PrevTxHash: []byte("tx hash"),
 	}
 
 	scrBuff, _ := integrationTests.TestMarshalizer.Marshal(scr)

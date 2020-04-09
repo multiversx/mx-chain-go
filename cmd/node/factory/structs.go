@@ -70,6 +70,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
 	"github.com/ElrondNetwork/elrond-go/process/scToProtocol"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
@@ -1653,6 +1654,15 @@ func newShardBlockProcessor(
 ) (process.BlockProcessor, error) {
 	argsParser := vmcommon.NewAtArgumentParser()
 
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasMap:          gasSchedule,
+		MapDNSAddresses: make(map[string]struct{}),
+	}
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	if err != nil {
+		return nil, err
+	}
+
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         stateComponents.AccountsAdapter,
 		AddrConv:         stateComponents.AddressConverter,
@@ -1661,6 +1671,7 @@ func newShardBlockProcessor(
 		ShardCoordinator: shardCoordinator,
 		Marshalizer:      core.InternalMarshalizer,
 		Uint64Converter:  core.Uint64ByteSliceConverter,
+		BuiltInFunctions: builtInFuncs,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(config.VirtualMachineConfig, economics.MaxGasLimitPerBlock(), gasSchedule, argsHook)
 	if err != nil {
@@ -1721,20 +1732,20 @@ func newShardBlockProcessor(
 	}
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:   vmContainer,
-		ArgsParser:    argsParser,
-		Hasher:        core.Hasher,
-		Marshalizer:   core.InternalMarshalizer,
-		AccountsDB:    stateComponents.AccountsAdapter,
-		TempAccounts:  vmFactory.BlockChainHookImpl(),
-		AdrConv:       stateComponents.AddressConverter,
-		Coordinator:   shardCoordinator,
-		ScrForwarder:  scForwarder,
-		TxFeeHandler:  txFeeHandler,
-		EconomicsFee:  economics,
-		TxTypeHandler: txTypeHandler,
-		GasHandler:    gasHandler,
-		GasMap:        gasSchedule,
+		VmContainer:      vmContainer,
+		ArgsParser:       argsParser,
+		Hasher:           core.Hasher,
+		Marshalizer:      core.InternalMarshalizer,
+		AccountsDB:       stateComponents.AccountsAdapter,
+		TempAccounts:     vmFactory.BlockChainHookImpl(),
+		AdrConv:          stateComponents.AddressConverter,
+		Coordinator:      shardCoordinator,
+		ScrForwarder:     scForwarder,
+		TxFeeHandler:     txFeeHandler,
+		EconomicsFee:     economics,
+		TxTypeHandler:    txTypeHandler,
+		GasHandler:       gasHandler,
+		BuiltInFunctions: vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -1908,6 +1919,7 @@ func newMetaBlockProcessor(
 		ShardCoordinator: shardCoordinator,
 		Marshalizer:      core.InternalMarshalizer,
 		Uint64Converter:  core.Uint64ByteSliceConverter,
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(), // no built-in functions for meta.
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(argsHook, economicsData, messageSignVerifier, gasSchedule)
 	if err != nil {
@@ -1959,20 +1971,20 @@ func newMetaBlockProcessor(
 	}
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:   vmContainer,
-		ArgsParser:    argsParser,
-		Hasher:        core.Hasher,
-		Marshalizer:   core.InternalMarshalizer,
-		AccountsDB:    stateComponents.AccountsAdapter,
-		TempAccounts:  vmFactory.BlockChainHookImpl(),
-		AdrConv:       stateComponents.AddressConverter,
-		Coordinator:   shardCoordinator,
-		ScrForwarder:  scForwarder,
-		TxFeeHandler:  txFeeHandler,
-		EconomicsFee:  economicsData,
-		TxTypeHandler: txTypeHandler,
-		GasHandler:    gasHandler,
-		GasMap:        gasSchedule,
+		VmContainer:      vmContainer,
+		ArgsParser:       argsParser,
+		Hasher:           core.Hasher,
+		Marshalizer:      core.InternalMarshalizer,
+		AccountsDB:       stateComponents.AccountsAdapter,
+		TempAccounts:     vmFactory.BlockChainHookImpl(),
+		AdrConv:          stateComponents.AddressConverter,
+		Coordinator:      shardCoordinator,
+		ScrForwarder:     scForwarder,
+		TxFeeHandler:     txFeeHandler,
+		EconomicsFee:     economicsData,
+		TxTypeHandler:    txTypeHandler,
+		GasHandler:       gasHandler,
+		BuiltInFunctions: vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {

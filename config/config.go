@@ -38,8 +38,9 @@ type StorageConfig struct {
 
 // AddressConfig will map the json address configuration
 type AddressConfig struct {
-	Length int    `json:"length"`
-	Prefix string `json:"prefix"`
+	Length          int    `json:"length"`
+	Prefix          string `json:"prefix"`
+	SignatureLength int
 }
 
 // TypeConfig will map the json string type configuration
@@ -70,8 +71,9 @@ type EvictionWaitingListConfig struct {
 
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
-	MinRoundsBetweenEpochs int64
-	RoundsPerEpoch         int64
+	MinRoundsBetweenEpochs      int64
+	RoundsPerEpoch              int64
+	ShuffledOutRestartThreshold float64
 }
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle
