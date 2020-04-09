@@ -59,17 +59,6 @@ func TestTrieStorageManagerWithoutPruning_MarkForEvictionShouldNotPanic(t *testi
 	assert.Nil(t, err)
 }
 
-func TestTrieStorageManagerWithoutPruning_Clone(t *testing.T) {
-	t.Parallel()
-
-	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
-
-	newTs := ts.Clone()
-	newTs, _ = newTs.(*trieStorageManagerWithoutPruning)
-	assert.True(t, ts != newTs)
-	assert.NotNil(t, newTs.Database())
-}
-
 func TestTrieStorageManagerWithoutPruning_IsPruningEnabled(t *testing.T) {
 	t.Parallel()
 

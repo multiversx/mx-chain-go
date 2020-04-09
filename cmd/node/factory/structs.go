@@ -248,12 +248,13 @@ func createTries(
 
 	trieContainer := state.NewDataTriesHolder()
 	trieFactoryArgs := factory.TrieFactoryArgs{
-		EvictionWaitingListCfg: args.config.EvictionWaitingList,
-		SnapshotDbCfg:          args.config.TrieSnapshotDB,
-		Marshalizer:            marshalizer,
-		Hasher:                 hasher,
-		PathManager:            args.pathManager,
-		ShardId:                args.shardId,
+		EvictionWaitingListCfg:   args.config.EvictionWaitingList,
+		SnapshotDbCfg:            args.config.TrieSnapshotDB,
+		Marshalizer:              marshalizer,
+		Hasher:                   hasher,
+		PathManager:              args.pathManager,
+		ShardId:                  args.shardId,
+		TrieStorageManagerConfig: args.config.TrieStorageManagerConfig,
 	}
 	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
 	if err != nil {
@@ -1727,7 +1728,13 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressConverter, shardCoordinator, stateComponents.AccountsAdapter)
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		AddressConverter: stateComponents.AddressConverter,
+		ShardCoordinator: shardCoordinator,
+		BuiltInFuncNames: builtInFuncs.Keys(),
+		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+	}
+	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -1827,6 +1834,7 @@ func newShardBlockProcessor(
 		interimProcContainer,
 		gasHandler,
 		txFeeHandler,
+		blockSizeComputationHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1912,6 +1920,7 @@ func newMetaBlockProcessor(
 	maxSizeInBytes uint32,
 ) (process.BlockProcessor, error) {
 
+	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         stateComponents.AccountsAdapter,
 		AddrConv:         stateComponents.AddressConverter,
@@ -1920,7 +1929,7 @@ func newMetaBlockProcessor(
 		ShardCoordinator: shardCoordinator,
 		Marshalizer:      core.InternalMarshalizer,
 		Uint64Converter:  core.Uint64ByteSliceConverter,
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(), // no built-in functions for meta.
+		BuiltInFunctions: builtInFuncs, // no built-in functions for meta.
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(argsHook, economicsData, messageSignVerifier, gasSchedule)
 	if err != nil {
@@ -1966,7 +1975,13 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressConverter, shardCoordinator, stateComponents.AccountsAdapter)
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		AddressConverter: stateComponents.AddressConverter,
+		ShardCoordinator: shardCoordinator,
+		BuiltInFuncNames: builtInFuncs.Keys(),
+		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+	}
+	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -2052,6 +2067,7 @@ func newMetaBlockProcessor(
 		interimProcContainer,
 		gasHandler,
 		txFeeHandler,
+		blockSizeComputationHandler,
 	)
 	if err != nil {
 		return nil, err
