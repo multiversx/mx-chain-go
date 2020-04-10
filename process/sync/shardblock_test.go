@@ -183,7 +183,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		BootStorer:          &mock.BoostrapStorerMock{},
 		StorageBootstrapper: &mock.StorageBootstrapperMock{},
 		EpochHandler:        &mock.EpochStartTriggerStub{},
-		MiniBlocksResolver:  &mock.MiniBlocksResolverMock{},
+		MiniblocksProvider:  &mock.MiniBlocksProviderStub{},
 		Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
 	}
 
@@ -1153,7 +1153,7 @@ func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 
 	blk := make(block.MiniBlockSlice, 0)
 	args.Rounder = initRounder()
-	args.MiniBlocksResolver = &mock.MiniBlocksResolverMock{
+	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 			return blk, nil
 		},
@@ -1586,7 +1586,7 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 	args.ChainHandler = blkc
-	args.MiniBlocksResolver = &mock.MiniBlocksResolverMock{
+	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 			for _, hash := range hashes {
 				if bytes.Equal(hash, mbh) {
@@ -1649,7 +1649,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 	})
 	args.ChainHandler = blkc
 	args.Store = createFullStore()
-	args.MiniBlocksResolver = &mock.MiniBlocksResolverMock{
+	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 			for _, hash := range hashes {
 				if bytes.Equal(hash, mbh) {
@@ -1836,7 +1836,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 			requestDataWasCalled = true
 		},
 	}
-	args.MiniBlocksResolver = &mock.MiniBlocksResolverMock{
+	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 			return make(block.MiniBlockSlice, 0), [][]byte{[]byte("hash")}
 		},
