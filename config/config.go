@@ -71,8 +71,9 @@ type EvictionWaitingListConfig struct {
 
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
-	MinRoundsBetweenEpochs int64
-	RoundsPerEpoch         int64
+	MinRoundsBetweenEpochs      int64
+	RoundsPerEpoch              int64
+	ShuffledOutRestartThreshold float64
 }
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle
@@ -97,12 +98,13 @@ type Config struct {
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 
-	AccountsTrieStorage     StorageConfig
-	PeerAccountsTrieStorage StorageConfig
-	TrieSnapshotDB          DBConfig
-	EvictionWaitingList     EvictionWaitingListConfig
-	StateTriesConfig        StateTriesConfig
-	BadBlocksCache          CacheConfig
+	AccountsTrieStorage      StorageConfig
+	PeerAccountsTrieStorage  StorageConfig
+	TrieSnapshotDB           DBConfig
+	EvictionWaitingList      EvictionWaitingListConfig
+	StateTriesConfig         StateTriesConfig
+	TrieStorageManagerConfig TrieStorageManagerConfig
+	BadBlocksCache           CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
@@ -181,6 +183,13 @@ type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
+}
+
+// TrieStorageManagerConfig will hold config information about trie storage manager
+type TrieStorageManagerConfig struct {
+	PruningBufferLen   uint32
+	SnapshotsBufferLen uint32
+	MaxSnapshots       uint8
 }
 
 // WebServerAntifloodConfig will hold the anti-lflooding parameters for the web server

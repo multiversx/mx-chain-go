@@ -46,9 +46,14 @@ func TestTrieSyncer_StartSyncing(t *testing.T) {
 		MaxBatchSize:      1,
 		MaxOpenFiles:      10,
 	}
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
 
 	evictionWaitingList, _ := mock.NewEvictionWaitingList(100, memorydb.New(), marshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(db, marshalizer, hasher, cfg, evictionWaitingList)
+	trieStorage, _ := trie.NewTrieStorageManager(db, marshalizer, hasher, cfg, evictionWaitingList, generalCfg)
 	tr, _ := trie.NewTrie(trieStorage, marshalizer, hasher)
 
 	syncTrie := initTrie()

@@ -437,6 +437,9 @@ var ErrVMTypeLengthInvalid = errors.New("vm type length is too long")
 // ErrOverallBalanceChangeFromSC signals that all sumed balance changes are not zero
 var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wrong")
 
+// ErrOverflow signals that an overflow occured
+var ErrOverflow = errors.New("type overflow occured")
+
 // ErrNilTxValidator signals that a nil tx validator has been provided
 var ErrNilTxValidator = errors.New("nil transaction validator")
 
@@ -537,12 +540,6 @@ var ErrZeroMaxComputableRounds = errors.New("max computable rounds is zero")
 // ErrNilRater signals that nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 
-// ErrNilRatingReaderSetter signals that a nil rating reader setter has been provided
-var ErrNilRatingReaderSetter = errors.New("nil rating reader setter")
-
-// ErrNilListIndexUpdaterSetter signals that a nil list index updater has been provided
-var ErrNilListIndexUpdaterSetter = errors.New("nil list index updater setter")
-
 // ErrNilNetworkWatcher signals that a nil network watcher has been provided
 var ErrNilNetworkWatcher = errors.New("nil network watcher")
 
@@ -564,8 +561,11 @@ var ErrSignedBlocksThresholdNotBetweenZeroAndOne = errors.New("signed blocks thr
 // ErrConsecutiveMissedBlocksPenaltyLowerThanOne signals that the ConsecutiveMissedBlocksPenalty is lower than 1
 var ErrConsecutiveMissedBlocksPenaltyLowerThanOne = errors.New("consecutive missed blocks penalty lower than 1")
 
-// ErrDecreaseRatingsStepPositive signals that the decrease rating step has a positive value
-var ErrDecreaseRatingsStepPositive = errors.New("decrease rating step has a positive value")
+// ErrDecreaseRatingsStepMoreThanMinusOne signals that the decrease rating step has a vale greater than -1
+var ErrDecreaseRatingsStepMoreThanMinusOne = errors.New("decrease rating step has a value greater than -1")
+
+// ErrHoursToMaxRatingFromStartRatingZero signals that the number of hours to reach max rating step is zero
+var ErrHoursToMaxRatingFromStartRatingZero = errors.New("hours to reach max rating is zero")
 
 // ErrSCDeployFromSCRIsNotPermitted signals that operation is not permitted
 var ErrSCDeployFromSCRIsNotPermitted = errors.New("it is not permitted to deploy a smart contract from another smart contract cross shard")
@@ -743,3 +743,27 @@ var ErrLogNotFound = errors.New("no logs for queried transaction")
 
 // ErrNilTxLogsProcessor is the error returned when a transaction has no logs
 var ErrNilTxLogsProcessor = errors.New("nil transaction logs processor")
+
+// ErrIncreaseStepLowerThanOne signals that an increase step lower than one has been provided
+var ErrIncreaseStepLowerThanOne = errors.New("increase step is lower than one")
+
+// ErrNilVmInput signals that provided vm input is nil
+var ErrNilVmInput = errors.New("nil vm input")
+
+// ErrNilDnsAddresses signals that nil dns addresses map was provided
+var ErrNilDnsAddresses = errors.New("nil dns addresses map")
+
+// ErrCallerIsNotTheDNSAddress signals that called address is not the DNS address
+var ErrCallerIsNotTheDNSAddress = errors.New("not a dns address")
+
+// ErrUserNameChangeIsDisabled signals the user name change is not allowed
+var ErrUserNameChangeIsDisabled = errors.New("user name change is disabled")
+
+// ErrDestinationNotInSelfShard signals that user is not in self shard
+var ErrDestinationNotInSelfShard = errors.New("destination is not in self shard")
+
+// ErrUserNameDoesNotMatch signals that user name does not match
+var ErrUserNameDoesNotMatch = errors.New("user name does not match")
+
+// ErrUserNameDoesNotMatchInCrossShardTx signals that user name does not match in case of cross shard tx
+var ErrUserNameDoesNotMatchInCrossShardTx = errors.New("user name does not match in destination shard")

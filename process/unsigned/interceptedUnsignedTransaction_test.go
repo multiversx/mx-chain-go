@@ -172,12 +172,12 @@ func TestNewInterceptedUnsignedTransaction_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
-		Nonce:   1,
-		Value:   big.NewInt(2),
-		Data:    []byte("data"),
-		RcvAddr: recvAddress,
-		SndAddr: senderAddress,
-		TxHash:  []byte("TX"),
+		Nonce:      1,
+		Value:      big.NewInt(2),
+		Data:       []byte("data"),
+		RcvAddr:    recvAddress,
+		SndAddr:    senderAddress,
+		PrevTxHash: []byte("TX"),
 	}
 	txi, err := createInterceptedScrFromPlainScr(tx)
 
@@ -191,12 +191,12 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilTxHashShouldErr(t *testi
 	t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
-		Nonce:   1,
-		Value:   big.NewInt(2),
-		Data:    []byte("data"),
-		RcvAddr: recvAddress,
-		SndAddr: senderAddress,
-		TxHash:  nil,
+		Nonce:      1,
+		Value:      big.NewInt(2),
+		Data:       []byte("data"),
+		RcvAddr:    recvAddress,
+		SndAddr:    senderAddress,
+		PrevTxHash: nil,
 	}
 	txi, _ := createInterceptedScrFromPlainScr(tx)
 
@@ -209,12 +209,12 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilSenderAddressShouldErr(t
 	t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
-		Nonce:   1,
-		Value:   big.NewInt(2),
-		Data:    []byte("data"),
-		RcvAddr: recvAddress,
-		SndAddr: nil,
-		TxHash:  []byte("TX"),
+		Nonce:      1,
+		Value:      big.NewInt(2),
+		Data:       []byte("data"),
+		RcvAddr:    recvAddress,
+		SndAddr:    nil,
+		PrevTxHash: []byte("TX"),
 	}
 	txi, _ := createInterceptedScrFromPlainScr(tx)
 
@@ -227,12 +227,12 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilRecvAddressShouldErr(t *
 	t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
-		Nonce:   1,
-		Value:   big.NewInt(2),
-		Data:    []byte("data"),
-		RcvAddr: nil,
-		SndAddr: senderAddress,
-		TxHash:  []byte("TX"),
+		Nonce:      1,
+		Value:      big.NewInt(2),
+		Data:       []byte("data"),
+		RcvAddr:    nil,
+		SndAddr:    senderAddress,
+		PrevTxHash: []byte("TX"),
 	}
 	txi, _ := createInterceptedScrFromPlainScr(tx)
 
@@ -245,12 +245,12 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilValueShouldErr(t *testin
 	t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
-		Nonce:   1,
-		Value:   nil,
-		Data:    []byte("data"),
-		RcvAddr: recvAddress,
-		SndAddr: senderAddress,
-		TxHash:  []byte("TX"),
+		Nonce:      1,
+		Value:      nil,
+		Data:       []byte("data"),
+		RcvAddr:    recvAddress,
+		SndAddr:    senderAddress,
+		PrevTxHash: []byte("TX"),
 	}
 	txi, _ := createInterceptedScrFromPlainScr(tx)
 
@@ -263,12 +263,12 @@ func TestInterceptedUnsignedTransaction_CheckValidityNilNegativeValueShouldErr(t
 	t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
-		Nonce:   1,
-		Value:   big.NewInt(-2),
-		Data:    []byte("data"),
-		RcvAddr: recvAddress,
-		SndAddr: senderAddress,
-		TxHash:  []byte("TX"),
+		Nonce:      1,
+		Value:      big.NewInt(-2),
+		Data:       []byte("data"),
+		RcvAddr:    recvAddress,
+		SndAddr:    senderAddress,
+		PrevTxHash: []byte("TX"),
 	}
 	txi, _ := createInterceptedScrFromPlainScr(tx)
 
@@ -281,12 +281,12 @@ func TestInterceptedUnsignedTransaction_CheckValidityInvalidSenderShouldErr(t *t
 	t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
-		Nonce:   1,
-		Value:   big.NewInt(2),
-		Data:    []byte("data"),
-		RcvAddr: recvAddress,
-		SndAddr: []byte(""),
-		TxHash:  []byte("TX"),
+		Nonce:      1,
+		Value:      big.NewInt(2),
+		Data:       []byte("data"),
+		RcvAddr:    recvAddress,
+		SndAddr:    []byte(""),
+		PrevTxHash: []byte("TX"),
 	}
 	txi, _ := createInterceptedScrFromPlainScr(tx)
 
@@ -299,12 +299,12 @@ func TestInterceptedUnsignedTransaction_CheckValidityShouldWork(t *testing.T) {
 	t.Parallel()
 
 	tx := &smartContractResult.SmartContractResult{
-		Nonce:   1,
-		Value:   big.NewInt(2),
-		Data:    []byte("data"),
-		RcvAddr: recvAddress,
-		SndAddr: senderAddress,
-		TxHash:  []byte("TX"),
+		Nonce:      1,
+		Value:      big.NewInt(2),
+		Data:       []byte("data"),
+		RcvAddr:    recvAddress,
+		SndAddr:    senderAddress,
+		PrevTxHash: []byte("TX"),
 	}
 	txi, _ := createInterceptedScrFromPlainScr(tx)
 
@@ -320,12 +320,12 @@ func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 
 	nonce := uint64(45)
 	tx := &smartContractResult.SmartContractResult{
-		Nonce:   nonce,
-		Value:   big.NewInt(2),
-		Data:    []byte("data"),
-		RcvAddr: recvAddress,
-		SndAddr: senderAddress,
-		TxHash:  []byte("TX"),
+		Nonce:      nonce,
+		Value:      big.NewInt(2),
+		Data:       []byte("data"),
+		RcvAddr:    recvAddress,
+		SndAddr:    senderAddress,
+		PrevTxHash: []byte("TX"),
 	}
 	txi, _ := createInterceptedScrFromPlainScr(tx)
 

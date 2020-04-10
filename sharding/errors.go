@@ -114,3 +114,12 @@ var ErrNilBlockBody = errors.New("nil block body")
 
 // ErrNilValidator signals that a nil validator was provided
 var ErrNilValidator = errors.New("nil validator")
+
+// ErrNilShuffledOutHandler signals that a nil shuffled out handler has been provided
+var ErrNilShuffledOutHandler = errors.New("nil shuffled out handler")
+
+// ErrNilOwnPublicKey signals that a nil own public key has been provided
+var ErrNilOwnPublicKey = errors.New("nil own public key")
+
+// ErrNilEndOfProcessingHandler signals that a nil end of processing handler has been provided
+var ErrNilEndOfProcessingHandler = errors.New("nil end of processing handler")
