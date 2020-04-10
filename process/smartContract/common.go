@@ -7,6 +7,11 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+// GetBuiltinFunctions gets the list of built-in functions
+func GetBuiltinFunctions() []string {
+	return []string{claimDeveloperRewardsFunctionName, changeOwnerAddressFunctionName}
+}
+
 func findVMByTransaction(container process.VirtualMachinesContainer, tx data.TransactionHandler) (vmcommon.VMExecutionHandler, error) {
 	scAddress := tx.GetRcvAddr()
 	return findVMByScAddress(container, scAddress)

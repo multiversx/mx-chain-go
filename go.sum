@@ -5,6 +5,10 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.12 h1:X4YBgQ+lbXjDg8wjvS85YVKAhtzNLVE/vdZ7TJ6HIgc=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.12/go.mod h1:CS44WfT34U28kUs8gaLBmdr3/o14WiMMrlxLt77RUB4=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.13-0.20200403194311-178f291c1492 h1:pwo33EJPudZeOfFjI4oQOVAKqG27V2IgR/qOLjDwCUg=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.13-0.20200403194311-178f291c1492/go.mod h1:CS44WfT34U28kUs8gaLBmdr3/o14WiMMrlxLt77RUB4=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.13-0.20200406202925-466354fb249f h1:VDh2/I/ofhv8ZroBtJ1YIbb5hxDN9aSbh4Yns5EDmck=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.13-0.20200406202925-466354fb249f/go.mod h1:CS44WfT34U28kUs8gaLBmdr3/o14WiMMrlxLt77RUB4=
 github.com/ElrondNetwork/big-int-util v0.0.5 h1:e/9kK++9ZH/SdIYqLSUPRFYrDZmDWDgff3/7SCydq5I=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/concurrent-map v0.1.2 h1:mr2sVF2IPDsJO8DNGzCUiNQOJcadHuIRVZn+QFnCBlE=

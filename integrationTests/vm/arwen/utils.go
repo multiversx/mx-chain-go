@@ -149,13 +149,13 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 		return err
 	}
 
-	err = context.GetLatestError()
+	owner.Nonce++
+	_, err = context.Accounts.Commit()
 	if err != nil {
 		return err
 	}
 
-	owner.Nonce++
-	_, err = context.Accounts.Commit()
+	err = context.GetLatestError()
 	if err != nil {
 		return err
 	}
@@ -189,13 +189,13 @@ func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) 
 		return err
 	}
 
-	err = context.GetLatestError()
+	owner.Nonce++
+	_, err = context.Accounts.Commit()
 	if err != nil {
 		return err
 	}
 
-	owner.Nonce++
-	_, err = context.Accounts.Commit()
+	err = context.GetLatestError()
 	if err != nil {
 		return err
 	}
@@ -211,7 +211,6 @@ func GetSCCode(fileName string) string {
 	}
 
 	codeEncoded := hex.EncodeToString(code)
-
 	return codeEncoded
 }
 
@@ -240,14 +239,14 @@ func (context *TestContext) executeSCWithValue(sender *testParticipant, txData s
 	if err != nil {
 		return err
 	}
-	err = context.GetLatestError()
+
+	sender.Nonce++
+	_, err = context.Accounts.Commit()
 	if err != nil {
 		return err
 	}
 
-	sender.Nonce++
-
-	_, err = context.Accounts.Commit()
+	err = context.GetLatestError()
 	if err != nil {
 		return err
 	}
