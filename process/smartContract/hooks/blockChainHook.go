@@ -449,7 +449,7 @@ func (bh *BlockChainHookImpl) GetBuiltInFunctions() process.BuiltInFunctionConta
 
 // GetBuiltinFunctionNames returns the built in function names
 func (bh *BlockChainHookImpl) GetBuiltinFunctionNames() vmcommon.FunctionNames {
-	return make(vmcommon.FunctionNames)
+	return bh.builtInFunctions.Keys()
 }
 
 func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte {

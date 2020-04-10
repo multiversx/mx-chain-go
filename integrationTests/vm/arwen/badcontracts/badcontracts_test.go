@@ -30,16 +30,16 @@ func Test_Bad_C_NoPanic(t *testing.T) {
 	err = context.ExecuteSC(&context.Owner, "badWriteLog2")
 	require.Equal(t, fmt.Errorf("execution failed"), err)
 	err = context.ExecuteSC(&context.Owner, "badWriteLog3")
-	require.Equal(t, fmt.Errorf("execution failed"), err)
+	require.Nil(t, err)
 	err = context.ExecuteSC(&context.Owner, "badWriteLog4")
 	require.Equal(t, fmt.Errorf("execution failed"), err)
 
 	err = context.ExecuteSC(&context.Owner, "badGetBlockHash1")
-	require.Equal(t, fmt.Errorf("execution failed"), err)
+	require.Nil(t, err)
 	err = context.ExecuteSC(&context.Owner, "badGetBlockHash2")
 	require.Nil(t, err)
 	err = context.ExecuteSC(&context.Owner, "badGetBlockHash3")
-	require.Equal(t, fmt.Errorf("execution failed"), err)
+	require.Nil(t, err)
 
 	err = context.ExecuteSC(&context.Owner, "badRecursive")
 	require.Equal(t, fmt.Errorf("execution failed"), err)
@@ -62,7 +62,7 @@ func Test_Corrupt_NoPanic(t *testing.T) {
 	err := context.DeploySC("../testdata/bad_corrupt.wasm", "")
 	require.Equal(t, fmt.Errorf("contract invalid"), err)
 	err = context.ExecuteSC(&context.Owner, "thisDoesNotExist")
-	require.Equal(t, fmt.Errorf("contract invalid"), err)
+	require.Equal(t, fmt.Errorf("contract not found"), err)
 }
 
 func Test_NoMemoryDeclaration_NoPanic(t *testing.T) {
@@ -72,7 +72,7 @@ func Test_NoMemoryDeclaration_NoPanic(t *testing.T) {
 	err := context.DeploySC("../testdata/bad-nomemory/nomemory.wasm", "")
 	require.Equal(t, fmt.Errorf("contract invalid"), err)
 	err = context.ExecuteSC(&context.Owner, "memoryFault")
-	require.Equal(t, fmt.Errorf("contract invalid"), err)
+	require.Equal(t, fmt.Errorf("contract not found"), err)
 }
 
 func Test_BadFunctionNames_NoPanic(t *testing.T) {
