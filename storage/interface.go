@@ -102,6 +102,12 @@ type Storer interface {
 	Close() error
 }
 
+// StorerWithPutInEpoch is an extended storer with the ability to set the epoch which will be used for put operations
+type StorerWithPutInEpoch interface {
+	Storer
+	SetEpochForPutOperation(epoch uint32)
+}
+
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
 	RegisterHandler(handler epochStart.ActionHandler)

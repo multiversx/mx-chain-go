@@ -712,6 +712,7 @@ func (sp *shardProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
+	sp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
 
 	var err error
 	defer func() {

@@ -43,6 +43,7 @@ type PruningStorer struct {
 	persisterFactory      DbFactoryHandler
 	numOfEpochsToKeep     uint32
 	numOfActivePersisters uint32
+	epochForPutOperation  uint32
 	identifier            string
 	fullArchive           bool
 	pruningEnabled        bool
@@ -122,6 +123,7 @@ func initPruningStorer(
 		persistersMapByEpoch:  persistersMapByEpoch,
 		cacher:                cache,
 		bloomFilter:           nil,
+		epochForPutOperation:  args.StartingEpoch,
 		pathManager:           args.PathManager,
 		dbPath:                args.DbPath,
 		numOfEpochsToKeep:     args.NumOfEpochsToKeep,
@@ -200,7 +202,15 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 
 	ps.cacher.Put(key, data)
 
-	err := ps.activePersisters[0].persister.Put(key, data)
+	var persisterToUse *persisterData
+	persisterInSetEpoch, ok := ps.persistersMapByEpoch[ps.epochForPutOperation]
+	if ok && !persisterInSetEpoch.isClosed {
+		persisterToUse = persisterInSetEpoch
+	} else {
+		persisterToUse = ps.activePersisters[0]
+	}
+
+	err := persisterToUse.persister.Put(key, data)
 	if err != nil {
 		ps.cacher.Remove(key)
 		return err
@@ -421,6 +431,11 @@ func (ps *PruningStorer) HasInEpoch(key []byte, epoch uint32) error {
 	}
 
 	return storage.ErrKeyNotFound
+}
+
+// SetEpochForPutOperation will set the epoch to be used when using the put operation
+func (ps *PruningStorer) SetEpochForPutOperation(epoch uint32) {
+	ps.epochForPutOperation = epoch
 }
 
 // Remove removes the data associated to the given key from both cache and persistence medium

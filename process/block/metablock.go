@@ -955,6 +955,7 @@ func (mp *metaProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
+	mp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
 
 	var err error
 	defer func() {
