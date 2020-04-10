@@ -877,6 +877,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TxTypeHandler:    txTypeHandler,
 		GasHandler:       tpn.GasHandler,
 		BuiltInFunctions: tpn.BlockchainHook.GetBuiltInFunctions(),
+		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 	}
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(argsNewScProcessor)
 
@@ -989,6 +990,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TxTypeHandler:    txTypeHandler,
 		GasHandler:       tpn.GasHandler,
 		BuiltInFunctions: tpn.BlockchainHook.GetBuiltInFunctions(),
+		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = scProcessor
