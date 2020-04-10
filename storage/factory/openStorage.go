@@ -59,10 +59,8 @@ func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits,
 	return o, nil
 }
 
-// OpenStorageUnits opens the defined storage units from the disk if they exists
-func (o *openStorageUnits) OpenStorageUnits(
-	storageUnits []string,
-) ([]storage.Storer, error) {
+// OpenStorageUnits will open bootstrap storage unit
+func (o *openStorageUnits) OpenStorageUnits() (storage.Storer, error) {
 	parentDir, lastEpoch, err := getParentDirAndLastEpoch(
 		o.workingDir,
 		o.chainID,
@@ -72,6 +70,7 @@ func (o *openStorageUnits) OpenStorageUnits(
 		return nil, err
 	}
 
+	// TODO: refactor this - as it works with bootstrap storage unit only
 	persisterFactory := NewPersisterFactory(o.generalConfig.BootstrapStorage.DB)
 	pathWithoutShard := filepath.Join(
 		parentDir,
@@ -87,40 +86,35 @@ func (o *openStorageUnits) OpenStorageUnits(
 		return nil, err
 	}
 
-	openedStorers := make([]storage.Storer, 0)
-	for _, filePath := range storageUnits {
-		persisterPath := filepath.Join(
-			pathWithoutShard,
-			fmt.Sprintf("%s_%s", o.defaultShardString, mostRecentShard),
-			filePath,
-		)
+	persisterPath := filepath.Join(
+		pathWithoutShard,
+		fmt.Sprintf("%s_%s", o.defaultShardString, mostRecentShard),
+		o.generalConfig.BootstrapStorage.DB.FilePath,
+	)
 
-		persister, errCreate := persisterFactory.Create(persisterPath)
-		if errCreate != nil {
-			return nil, errCreate
-		}
-
-		defer func() {
-			if err != nil {
-				errClose := persister.Close()
-				log.LogIfError(errClose)
-			}
-		}()
-
-		cacher, errCache := lrucache.NewCache(10)
-		if errCache != nil {
-			return nil, errCache
-		}
-
-		storer, errStorageUnit := storageUnit.NewStorageUnit(cacher, persister)
-		if errStorageUnit != nil {
-			return nil, errStorageUnit
-		}
-
-		openedStorers = append(openedStorers, storer)
+	persister, errCreate := persisterFactory.Create(persisterPath)
+	if errCreate != nil {
+		return nil, errCreate
 	}
 
-	return openedStorers, nil
+	defer func() {
+		if err != nil {
+			errClose := persister.Close()
+			log.LogIfError(errClose)
+		}
+	}()
+
+	cacher, errCache := lrucache.NewCache(10)
+	if errCache != nil {
+		return nil, errCache
+	}
+
+	storer, errStorageUnit := storageUnit.NewStorageUnit(cacher, persister)
+	if errStorageUnit != nil {
+		return nil, errStorageUnit
+	}
+
+	return storer, nil
 }
 
 func (o *openStorageUnits) getMostUpToDateDirectory(

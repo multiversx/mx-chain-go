@@ -56,21 +56,17 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	unitsToOpen := []string{e.generalConfig.BootstrapStorage.DB.FilePath, e.generalConfig.MetaBlockStorage.DB.FilePath}
-
-	storageUnits, err := openStorageHandler.OpenStorageUnits(unitsToOpen)
+	storer, err := openStorageHandler.OpenStorageUnits()
 	defer func() {
-		for _, storer := range storageUnits {
-			errClose := storer.Close()
-			log.LogIfError(errClose)
-		}
+		errClose := storer.Close()
+		log.LogIfError(errClose)
 	}()
 
-	if err != nil || len(storageUnits) != len(unitsToOpen) {
+	if err != nil {
 		return Parameters{}, err
 	}
 
-	_, e.nodesConfig, err = e.getLastBootstrapData(storageUnits[0])
+	_, e.nodesConfig, err = e.getLastBootstrapData(storer)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -80,7 +76,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	e.epochStartMeta, err = e.getEpochStartMetaFromStorage(storageUnits[1])
+	e.epochStartMeta, err = e.getEpochStartMetaFromStorage(storer)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -181,9 +177,9 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 	}
 
 	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), bootstrapData.NodesCoordinatorConfigKey...)
-	data, err := storer.SearchFirst(ncInternalkey)
+	data, err := storer.Get(ncInternalkey)
 	if err != nil {
-		log.Debug("this should not error - bootstrapData - NodesCoordinatorRegistryKey - getLastBootstrapData", "error", err)
+		log.Debug("getLastBootstrapData", "key", ncInternalkey, "error", err)
 		return nil, nil, err
 	}
 
@@ -198,7 +194,7 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 
 func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer) (*block.MetaBlock, error) {
 	epochIdentifier := core.EpochStartIdentifier(e.baseData.lastEpoch)
-	data, err := storer.SearchFirst([]byte(epochIdentifier))
+	data, err := storer.Get([]byte(epochIdentifier))
 	if err != nil {
 		log.Debug("getEpochStartMetaFromStorage", "key", epochIdentifier, "error", err)
 		return nil, err
