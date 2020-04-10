@@ -7,12 +7,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
 type shardStorageBootstrapper struct {
 	*storageBootstrapper
-	miniBlocksResolver dataRetriever.MiniBlocksResolver
 }
 
 // NewShardStorageBootstrapper is method used to create a new storage bootstrapper
@@ -38,19 +36,8 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 		bootstrapRoundIndex: arguments.BootstrapRoundIndex,
 	}
 
-	miniBlocksResolver, err := arguments.ResolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
-	if err != nil {
-		return nil, err
-	}
-
-	miniBlocksRes, ok := miniBlocksResolver.(dataRetriever.MiniBlocksResolver)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
 	boot := shardStorageBootstrapper{
 		storageBootstrapper: base,
-		miniBlocksResolver:  miniBlocksRes,
 	}
 
 	base.bootstrapper = &boot
@@ -143,15 +130,23 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 	}
 }
 
-func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHeadersHashes [][]byte) ([]data.HeaderHandler, error) {
-	selfNotarizedHeaders := make([]data.HeaderHandler, 0, len(selfNotarizedHeadersHashes))
-	for _, selfNotarizedHeaderHash := range selfNotarizedHeadersHashes {
+func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(
+	bootstrapHeadersInfo []bootstrapStorage.BootstrapHeaderInfo,
+) ([]data.HeaderHandler, [][]byte, error) {
+
+	selfNotarizedHeadersHashes := make([][]byte, len(bootstrapHeadersInfo))
+	for index, selfNotarizedHeader := range bootstrapHeadersInfo {
+		selfNotarizedHeadersHashes[index] = selfNotarizedHeader.Hash
+	}
+
+	selfNotarizedHeaders := make([]data.HeaderHandler, len(selfNotarizedHeadersHashes))
+	for index, selfNotarizedHeaderHash := range selfNotarizedHeadersHashes {
 		selfNotarizedHeader, err := ssb.getHeader(selfNotarizedHeaderHash)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		selfNotarizedHeaders = append(selfNotarizedHeaders, selfNotarizedHeader)
+		selfNotarizedHeaders[index] = selfNotarizedHeader
 
 		log.Debug("added self notarized header in block tracker",
 			"shard", core.MetachainShardId,
@@ -162,7 +157,7 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHead
 		ssb.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, selfNotarizedHeader, selfNotarizedHeaderHash)
 	}
 
-	return selfNotarizedHeaders, nil
+	return selfNotarizedHeaders, selfNotarizedHeadersHashes, nil
 }
 
 func (ssb *shardStorageBootstrapper) applyNumPendingMiniBlocks(_ []bootstrapStorage.PendingMiniBlocksInfo) {

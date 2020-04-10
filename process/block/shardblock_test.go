@@ -517,6 +517,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			},
 		},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 
@@ -739,6 +740,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 			},
 		},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2258,6 +2260,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2368,6 +2371,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2450,6 +2454,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2525,6 +2530,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2774,6 +2780,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2888,7 +2895,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockHeader(t *testing.
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
 
-func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.T) {
+func TestBlockProcessor_RestoreBlockIntoPoolsShouldWorkNilTxBlockBody(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
 
@@ -2897,8 +2904,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	err := sp.RestoreBlockIntoPools(&block.Header{}, nil)
-	assert.NotNil(t, err)
-	assert.Equal(t, err, process.ErrNilTxBlockBody)
+	assert.Nil(t, err)
 }
 
 func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
@@ -2956,6 +2962,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 

@@ -95,7 +95,6 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 	}
 
 	mbt.blockProcessor = blockProcessorObject
-
 	mbt.headers = make(map[uint32]map[uint64][]*HeaderInfo)
 	mbt.headersPool.RegisterHandler(mbt.receivedHeader)
 
@@ -181,6 +180,6 @@ func (mbt *metaBlockTrack) ComputeLongestSelfChain() (data.HeaderHandler, []byte
 	return lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, headers, hashes
 }
 
-// ComputeNumPendingMiniBlocks computes the number of pending miniblocks from a given slice of headers
-func (mbt *metaBlockTrack) ComputeNumPendingMiniBlocks(_ []data.HeaderHandler) {
+// ComputeCrossInfo computes cross info from a given slice of headers
+func (mbt *metaBlockTrack) ComputeCrossInfo(_ []data.HeaderHandler) {
 }

@@ -102,7 +102,7 @@ type baseBootstrap struct {
 
 	chRcvMiniBlocks    chan bool
 	mutRcvMiniBlocks   sync.Mutex
-	miniBlocksResolver process.MiniBlocksResolver
+	miniBlocksProvider process.MiniBlockProvider
 	poolsHolder        dataRetriever.PoolsHolder
 	mutRequestHeaders  sync.Mutex
 }
@@ -415,8 +415,8 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.BootStorer) {
 		return process.ErrNilBootStorer
 	}
-	if check.IfNil(arguments.MiniBlocksResolver) {
-		return process.ErrNilMiniBlocksResolver
+	if check.IfNil(arguments.MiniblocksProvider) {
+		return process.ErrNilMiniBlocksProvider
 	}
 
 	return nil
@@ -619,10 +619,6 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			return ErrRollBackBehindForkNonce
 		}
 
-		currBlockBody, err := boot.blockBootstrapper.getBlockBody(currHeader)
-		if err != nil {
-			return err
-		}
 		prevHeaderHash := currHeader.GetPrevHash()
 		prevHeader, err := boot.blockBootstrapper.getPrevHeader(currHeader, boot.headerStore)
 		if err != nil {
@@ -640,7 +636,6 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		err = boot.rollBackOneBlock(
 			currHeaderHash,
 			currHeader,
-			currBlockBody,
 			prevHeaderHash,
 			prevHeader,
 		)
@@ -679,7 +674,6 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 func (boot *baseBootstrap) rollBackOneBlock(
 	currHeaderHash []byte,
 	currHeader data.HeaderHandler,
-	currBlockBody data.BodyHandler,
 	prevHeaderHash []byte,
 	prevHeader data.HeaderHandler,
 ) error {
@@ -709,6 +703,11 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		return err
 	}
 	boot.blockProcessor.PruneStateOnRollback(currHeader, prevHeader)
+
+	currBlockBody, errNotCritical := boot.blockBootstrapper.getBlockBody(currHeader)
+	if errNotCritical != nil {
+		log.Debug("rollBackOneBlock getBlockBody error", "error", errNotCritical)
+	}
 
 	err = boot.blockProcessor.RestoreBlockIntoPools(currHeader, currBlockBody)
 	if err != nil {
@@ -846,7 +845,7 @@ func (boot *baseBootstrap) requestMiniBlocksByHashes(hashes [][]byte) {
 // that will be added. The block executor should decide by parsing the header block body type value
 // what kind of block body received.
 func (boot *baseBootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (block.MiniBlockSlice, error) {
-	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(hashes)
+	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
 		_ = core.EmptyChannel(boot.chRcvMiniBlocks)
 		boot.requestMiniBlocksByHashes(missingMiniBlocksHashes)
@@ -855,7 +854,7 @@ func (boot *baseBootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (bl
 			return nil, err
 		}
 
-		receivedMiniBlocks, unreceivedMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(missingMiniBlocksHashes)
+		receivedMiniBlocks, unreceivedMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(missingMiniBlocksHashes)
 		if len(unreceivedMiniBlocksHashes) > 0 {
 			return nil, process.ErrMissingBody
 		}

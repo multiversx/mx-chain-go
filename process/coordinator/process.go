@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -42,9 +43,10 @@ type transactionCoordinator struct {
 	mutRequestedTxs sync.RWMutex
 	requestedTxs    map[block.Type]int
 
-	onRequestMiniBlock func(shardId uint32, mbHash []byte)
-	gasHandler         process.GasHandler
-	feeHandler         process.TransactionFeeHandler
+	onRequestMiniBlock   func(shardId uint32, mbHash []byte)
+	gasHandler           process.GasHandler
+	feeHandler           process.TransactionFeeHandler
+	blockSizeComputation preprocess.BlockSizeComputationHandler
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -59,6 +61,7 @@ func NewTransactionCoordinator(
 	interProcessors process.IntermediateProcessorContainer,
 	gasHandler process.GasHandler,
 	feeHandler process.TransactionFeeHandler,
+	blockSizeComputation preprocess.BlockSizeComputationHandler,
 ) (*transactionCoordinator, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -91,14 +94,18 @@ func NewTransactionCoordinator(
 	if check.IfNil(feeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
+	if check.IfNil(blockSizeComputation) {
+		return nil, process.ErrNilBlockSizeComputationHandler
+	}
 
 	tc := &transactionCoordinator{
-		shardCoordinator: shardCoordinator,
-		accounts:         accounts,
-		gasHandler:       gasHandler,
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		feeHandler:       feeHandler,
+		shardCoordinator:     shardCoordinator,
+		accounts:             accounts,
+		gasHandler:           gasHandler,
+		hasher:               hasher,
+		marshalizer:          marshalizer,
+		feeHandler:           feeHandler,
+		blockSizeComputation: blockSizeComputation,
 	}
 
 	tc.miniBlockPool = miniBlockPool
@@ -503,6 +510,14 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	crossMiniBlockHashes := hdr.GetMiniBlockHeadersWithDst(tc.shardCoordinator.SelfId())
 	for key, senderShardId := range crossMiniBlockHashes {
 		if !haveTime() {
+			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
+				"stop creating", "time is out")
+			break
+		}
+
+		if tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
+			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
+				"stop creating", "max block size has been reached")
 			break
 		}
 

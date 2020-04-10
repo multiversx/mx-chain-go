@@ -25,7 +25,7 @@ var errNtpMock = errors.New("NTP Mock generic error")
 var queryMock4Call = 0
 var mutex = sync.Mutex{}
 
-func queryMock1(options ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
+func queryMock1(options ntp2.NTPOptions, _ int) (*ntp.Response, error) {
 	fmt.Printf("Hosts: %s\n", options.Hosts)
 
 	if failNtpMock1 {
@@ -35,7 +35,7 @@ func queryMock1(options ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
 	return responseMock1, nil
 }
 
-func queryMock2(options ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
+func queryMock2(options ntp2.NTPOptions, _ int) (*ntp.Response, error) {
 	fmt.Printf("Hosts: %s\n", options.Hosts)
 
 	if failNtpMock2 {
@@ -45,7 +45,7 @@ func queryMock2(options ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
 	return responseMock2, nil
 }
 
-func queryMock3(options ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
+func queryMock3(options ntp2.NTPOptions, _ int) (*ntp.Response, error) {
 	fmt.Printf("Hosts: %s\n", options.Hosts)
 
 	if failNtpMock3 {
@@ -55,7 +55,7 @@ func queryMock3(options ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
 	return responseMock3, nil
 }
 
-func queryMock4(options ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
+func queryMock4(options ntp2.NTPOptions, _ int) (*ntp.Response, error) {
 	fmt.Printf("Hosts: %s\n", options.Hosts)
 
 	mutex.Lock()
@@ -65,7 +65,7 @@ func queryMock4(options ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
 	return nil, errNtpMock
 }
 
-func queryMock5(options ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
+func queryMock5(_ ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
 	switch hostIndex {
 	case 0:
 		return nil, errNtpMock
@@ -74,7 +74,7 @@ func queryMock5(options ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
 	}
 }
 
-func queryMock6(options ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
+func queryMock6(_ ntp2.NTPOptions, hostIndex int) (*ntp.Response, error) {
 	switch hostIndex {
 	case 0:
 		return &ntp.Response{ClockOffset: time.Second}, nil
@@ -158,6 +158,8 @@ func TestCallQueryShouldErrIndexOutOfBounds(t *testing.T) {
 }
 
 func TestCallQueryShouldWork(t *testing.T) {
+	//TODO fix this test
+	t.Skip("rework this test as to not rely on the internet connection")
 	t.Parallel()
 
 	ntpConfig := ntp2.NewNTPGoogleConfig()
@@ -189,7 +191,7 @@ func TestSyncShouldNotUpdateClockOffset(t *testing.T) {
 	st.SetClockOffset(time.Millisecond)
 	st.Sync()
 
-	assert.Equal(t, time.Duration(time.Millisecond), st.ClockOffset())
+	assert.Equal(t, time.Millisecond, st.ClockOffset())
 }
 
 func TestGetClockOffsetsWithoutEdges(t *testing.T) {
@@ -197,7 +199,7 @@ func TestGetClockOffsetsWithoutEdges(t *testing.T) {
 
 	st := ntp2.NewSyncTime(config.NTPConfig{SyncPeriodSeconds: 1}, nil)
 
-	clockOffsets := []time.Duration{}
+	clockOffsets := make([]time.Duration, 0)
 	clockOffsetsWithoutEdges := st.GetClockOffsetsWithoutEdges(clockOffsets)
 	require.Equal(t, 0, len(clockOffsetsWithoutEdges))
 
@@ -241,7 +243,7 @@ func TestGetHarmonicMean(t *testing.T) {
 
 	st := ntp2.NewSyncTime(config.NTPConfig{SyncPeriodSeconds: 1}, nil)
 
-	clockOffsets := []time.Duration{}
+	clockOffsets := make([]time.Duration, 0)
 	harmonicMean := st.GetHarmonicMean(clockOffsets)
 	assert.Equal(t, time.Duration(0), harmonicMean)
 

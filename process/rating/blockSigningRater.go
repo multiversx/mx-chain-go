@@ -108,15 +108,15 @@ func verifyRatingsData(ratingsData process.RatingsInfoHandler) error {
 			process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne,
 			ratingsData.ShardChainRatingsStepHandler().ConsecutiveMissedBlocksPenalty())
 	}
-	if ratingsData.ShardChainRatingsStepHandler().ProposerDecreaseRatingStep() > 0 || ratingsData.ShardChainRatingsStepHandler().ValidatorDecreaseRatingStep() > 0 {
+	if ratingsData.ShardChainRatingsStepHandler().ProposerDecreaseRatingStep() > -1 || ratingsData.ShardChainRatingsStepHandler().ValidatorDecreaseRatingStep() > -1 {
 		return fmt.Errorf("%w: shardChain decrease steps - proposer: %v, validator: %v",
-			process.ErrDecreaseRatingsStepPositive,
+			process.ErrDecreaseRatingsStepMoreThanMinusOne,
 			ratingsData.ShardChainRatingsStepHandler().ProposerDecreaseRatingStep(),
 			ratingsData.ShardChainRatingsStepHandler().ValidatorDecreaseRatingStep())
 	}
-	if ratingsData.MetaChainRatingsStepHandler().ProposerDecreaseRatingStep() > 0 || ratingsData.MetaChainRatingsStepHandler().ValidatorDecreaseRatingStep() > 0 {
+	if ratingsData.MetaChainRatingsStepHandler().ProposerDecreaseRatingStep() > -1 || ratingsData.MetaChainRatingsStepHandler().ValidatorDecreaseRatingStep() > -1 {
 		return fmt.Errorf("%w: metachain decrease steps - proposer: %v, validator: %v",
-			process.ErrDecreaseRatingsStepPositive,
+			process.ErrDecreaseRatingsStepMoreThanMinusOne,
 			ratingsData.MetaChainRatingsStepHandler().ProposerDecreaseRatingStep(),
 			ratingsData.MetaChainRatingsStepHandler().ValidatorDecreaseRatingStep())
 	}

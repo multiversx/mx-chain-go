@@ -202,15 +202,16 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(topic string
 		return nil, err
 	}
 
-	arg := resolvers.ArgGenericBlockBodyResolver{
+	arg := resolvers.ArgMiniblockResolver{
 		SenderResolver:   resolverSender,
 		MiniBlockPool:    brcf.dataPools.MiniBlocks(),
 		MiniBlockStorage: miniBlocksStorer,
 		Marshalizer:      brcf.marshalizer,
 		AntifloodHandler: brcf.inputAntifloodHandler,
 		Throttler:        brcf.throttler,
+		DataPacker:       brcf.dataPacker,
 	}
-	txBlkResolver, err := resolvers.NewGenericBlockBodyResolver(arg)
+	txBlkResolver, err := resolvers.NewMiniblockResolver(arg)
 	if err != nil {
 		return nil, err
 	}
