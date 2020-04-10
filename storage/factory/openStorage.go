@@ -12,6 +12,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -137,10 +138,13 @@ func (o *openStorageUnits) getMostUpToDateDirectory(
 			o.generalConfig.BootstrapStorage.DB.FilePath,
 		)
 
-		bootstrapData, _, errGet := getBootstrapDataForPersisterPath(persisterFactory, persisterPath, o.marshalizer)
+		bootstrapData, storer, errGet := getBootstrapDataForPersisterPath(persisterFactory, persisterPath, o.marshalizer)
 		if errGet != nil {
 			continue
 		}
+
+		errClose := storer.Close()
+		log.LogIfError(errClose)
 
 		if bootstrapData.LastRound > highestRoundInStoredShards {
 			highestRoundInStoredShards = bootstrapData.LastRound
@@ -277,14 +281,22 @@ func getLastEpochAndRoundFromStorage(
 	highestRoundInStoredShards := int64(0)
 	epochStartRound := uint64(0)
 
+	var storer storage.Storer
+	var errGet error
+	var bootstrapData *bootstrapStorage.BootstrapData
 	for _, shardIdStr := range shardIdsStr {
+		if !check.IfNil(storer) {
+			errClose := storer.Close()
+			log.LogIfError(errClose)
+		}
+
 		persisterPath := filepath.Join(
 			pathWithoutShard,
 			fmt.Sprintf("%s_%s", defaultShardString, shardIdStr),
 			config.BootstrapStorage.DB.FilePath,
 		)
 
-		bootstrapData, storer, errGet := getBootstrapDataForPersisterPath(persisterFactory, persisterPath, marshalizer)
+		bootstrapData, storer, errGet = getBootstrapDataForPersisterPath(persisterFactory, persisterPath, marshalizer)
 		if errGet != nil {
 			continue
 		}
@@ -305,6 +317,11 @@ func getLastEpochAndRoundFromStorage(
 			mostRecentBootstrapData = bootstrapData
 			mostRecentShard = shardIdStr
 		}
+	}
+
+	if !check.IfNil(storer) {
+		errClose := storer.Close()
+		log.LogIfError(errClose)
 	}
 
 	if mostRecentBootstrapData == nil {
@@ -365,17 +382,22 @@ func getBootstrapDataForPersisterPath(
 		return nil, nil, err
 	}
 
-	defer func() {
-		errClose := persister.Close()
-		log.LogIfError(errClose)
-	}()
-
 	cacher, err := lrucache.NewCache(10)
 	if err != nil {
+		errClose := persister.Close()
+		log.LogIfError(errClose)
 		return nil, nil, err
 	}
 
-	storer, err := storageUnit.NewStorageUnit(cacher, persister)
+	var storer storage.Storer
+	defer func() {
+		if err != nil {
+			errClose := storer.Close()
+			log.LogIfError(errClose)
+		}
+	}()
+
+	storer, err = storageUnit.NewStorageUnit(cacher, persister)
 	if err != nil {
 		return nil, nil, err
 	}
