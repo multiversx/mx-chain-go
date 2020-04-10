@@ -17,6 +17,7 @@ import (
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -531,7 +532,7 @@ func TestTxProcessor_CheckTxValuesHigherNonceShouldErr(t *testing.T) {
 
 	acnt1.Nonce = 6
 
-	err = execTx.CheckTxValues(&transaction.Transaction{Nonce: 7}, acnt1)
+	err = execTx.CheckTxValues(&transaction.Transaction{Nonce: 7}, acnt1, nil)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -546,7 +547,7 @@ func TestTxProcessor_CheckTxValuesLowerNonceShouldErr(t *testing.T) {
 
 	acnt1.Nonce = 6
 
-	err = execTx.CheckTxValues(&transaction.Transaction{Nonce: 5}, acnt1)
+	err = execTx.CheckTxValues(&transaction.Transaction{Nonce: 5}, acnt1, nil)
 	assert.Equal(t, process.ErrLowerNonceInTransaction, err)
 }
 
@@ -561,7 +562,7 @@ func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
 
 	acnt1.Balance = big.NewInt(67)
 
-	err = execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(68)}, acnt1)
+	err = execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(68)}, acnt1, nil)
 	assert.Equal(t, process.ErrInsufficientFunds, err)
 }
 
@@ -576,7 +577,7 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 
 	acnt1.Balance = big.NewInt(67)
 
-	err = execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(67)}, acnt1)
+	err = execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(67)}, acnt1, nil)
 	assert.Nil(t, err)
 }
 
@@ -1213,11 +1214,13 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		return process.ErrNoVM
 	}
 
-	computeType, _ := coordinator.NewTxTypeHandler(
-		createMockPubkeyConverter(),
-		shardCoordinator,
-		adb,
-	)
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		PubkeyConverter:  mock.NewPubkeyConverterMock(32),
+		ShardCoordinator: shardCoordinator,
+		BuiltInFuncNames: make(map[string]struct{}),
+		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+	}
+	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
 	execTx, _ := txproc.NewTxProcessor(
 		adb,

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -21,6 +22,7 @@ type baseTxProcessor struct {
 	economicsFee     process.FeeHandler
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
+	scProcessor      process.SmartContractProcessor
 }
 
 func (txProc *baseTxProcessor) getAccounts(
@@ -122,9 +124,13 @@ func (txProc *baseTxProcessor) getAddresses(
 	return adrSrc, adrDst, nil
 }
 
-func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
+func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSnd, acntDst state.UserAccountHandler) error {
+	err := txProc.checkUserNames(tx, acntSnd, acntDst)
+	if err != nil {
+		return err
+	}
+
 	if check.IfNil(acntSnd) {
-		// transaction was already done at sender shard
 		return nil
 	}
 
@@ -135,7 +141,7 @@ func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSn
 		return process.ErrLowerNonceInTransaction
 	}
 
-	err := txProc.economicsFee.CheckValidityTxValues(tx)
+	err = txProc.economicsFee.CheckValidityTxValues(tx)
 	if err != nil {
 		return err
 	}
@@ -160,6 +166,40 @@ func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSn
 
 	if stAcc.GetBalance().Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
+	}
+
+	return nil
+}
+
+func (txProc *baseTxProcessor) checkUserNames(tx *transaction.Transaction, acntSnd, acntDst state.UserAccountHandler) error {
+	isUserNameWrong := len(tx.SndUserName) > 0 &&
+		!check.IfNil(acntSnd) && !bytes.Equal(tx.SndUserName, acntSnd.GetUserName())
+	if isUserNameWrong {
+		return process.ErrUserNameDoesNotMatch
+	}
+
+	isUserNameWrong = len(tx.RcvUserName) > 0 &&
+		!check.IfNil(acntDst) && !bytes.Equal(tx.RcvUserName, acntDst.GetUserName())
+	if isUserNameWrong {
+		if check.IfNil(acntSnd) {
+			return process.ErrUserNameDoesNotMatchInCrossShardTx
+		}
+		return process.ErrUserNameDoesNotMatch
+	}
+
+	return nil
+}
+
+func (txProc *baseTxProcessor) processIfTxErrorCrossShard(tx *transaction.Transaction, errorString string) error {
+	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+	if err != nil {
+		return err
+	}
+
+	snapshot := txProc.accounts.JournalLen()
+	err = txProc.scProcessor.ProcessIfError(nil, txHash, tx, errorString, snapshot)
+	if err != nil {
+		return err
 	}
 
 	return nil

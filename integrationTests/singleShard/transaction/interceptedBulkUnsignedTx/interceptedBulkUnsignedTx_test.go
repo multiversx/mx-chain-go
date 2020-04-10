@@ -136,11 +136,11 @@ func generateAndSendBulkSmartContractResults(
 	unsigedTxs := make([][]byte, 0)
 	for nonce := startingNonce; nonce < startingNonce+uint64(noOfUnsignedTx); nonce++ {
 		uTx := &smartContractResult.SmartContractResult{
-			Nonce:   nonce,
-			TxHash:  []byte("tx hash"),
-			SndAddr: sender,
-			RcvAddr: dest,
-			Value:   big.NewInt(0),
+			Nonce:      nonce,
+			PrevTxHash: []byte("tx hash"),
+			SndAddr:    sender,
+			RcvAddr:    dest,
+			Value:      big.NewInt(0),
 		}
 		buff := make([]byte, 8)
 		binary.BigEndian.PutUint64(buff, nonce)

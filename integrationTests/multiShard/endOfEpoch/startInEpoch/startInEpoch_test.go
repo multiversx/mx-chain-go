@@ -295,12 +295,13 @@ func createTries(
 
 	trieContainer := state.NewDataTriesHolder()
 	trieFactoryArgs := triesFactory.TrieFactoryArgs{
-		EvictionWaitingListCfg: config.EvictionWaitingList,
-		SnapshotDbCfg:          config.TrieSnapshotDB,
-		Marshalizer:            marshalizer,
-		Hasher:                 hasher,
-		PathManager:            pathManager,
-		ShardId:                core.GetShardIdString(shardId),
+		EvictionWaitingListCfg:   config.EvictionWaitingList,
+		SnapshotDbCfg:            config.TrieSnapshotDB,
+		Marshalizer:              marshalizer,
+		Hasher:                   hasher,
+		PathManager:              pathManager,
+		ShardId:                  core.GetShardIdString(shardId),
+		TrieStorageManagerConfig: config.TrieStorageManagerConfig,
 	}
 	trieFactory, err := triesFactory.NewTrieFactory(trieFactoryArgs)
 	if err != nil {
@@ -385,6 +386,16 @@ func getGeneralConfig() config.Config {
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
 			},
+		},
+		StateTriesConfig: config.StateTriesConfig{
+			CheckpointRoundsModulus:     100,
+			AccountsStatePruningEnabled: false,
+			PeerStatePruningEnabled:     false,
+		},
+		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
+			PruningBufferLen:   1000,
+			SnapshotsBufferLen: 10,
+			MaxSnapshots:       2,
 		},
 		TxDataPool: config.CacheConfig{
 			Size: 10000, Type: "LRU", Shards: 1,

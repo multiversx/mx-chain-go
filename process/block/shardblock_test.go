@@ -521,6 +521,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			},
 		},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 
@@ -743,6 +744,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 			},
 		},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2262,6 +2264,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2372,6 +2375,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2454,6 +2458,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2529,6 +2534,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2778,6 +2784,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2960,6 +2967,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 
