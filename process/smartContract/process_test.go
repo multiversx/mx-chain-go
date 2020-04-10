@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
@@ -36,35 +37,7 @@ func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, stat
 	return acntSrc, acntDst
 }
 
-func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
-	gasMap[core.BaseOperationCost] = FillGasMapBaseOperationCosts(value)
-	gasMap[core.BuiltInCost] = FillGasMapBuiltInCosts(value)
-
-	return gasMap
-}
-
-func FillGasMapBaseOperationCosts(value uint64) map[string]uint64 {
-	gasMap := make(map[string]uint64)
-	gasMap["StorePerByte"] = value
-	gasMap["DataCopyPerByte"] = value
-	gasMap["ReleasePerByte"] = value
-	gasMap["PersistPerByte"] = value
-	gasMap["CompilePerByte"] = value
-
-	return gasMap
-}
-
-func FillGasMapBuiltInCosts(value uint64) map[string]uint64 {
-	gasMap := make(map[string]uint64)
-	gasMap["ClaimDeveloperRewards"] = value
-	gasMap["ChangeOwnerAddress"] = value
-
-	return gasMap
-}
-
 func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
-	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule = FillGasMapInternal(gasSchedule, 1)
 	return ArgsNewSmartContractProcessor{
 		VmContainer:     &mock.VMContainerMock{},
 		ArgsParser:      &mock.ArgumentParserMock{},
@@ -86,7 +59,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasMap: gasSchedule,
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 	}
 }
 
