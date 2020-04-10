@@ -233,13 +233,9 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			return err
 		}
 
-		selfNotarizedHeadersHashes := make([][]byte, len(bootInfos[i].LastSelfNotarizedHeaders))
-		for index, selfNotarizedHeader := range bootInfos[i].LastSelfNotarizedHeaders {
-			selfNotarizedHeadersHashes[index] = selfNotarizedHeader.Hash
-		}
-
 		var selfNotarizedHeaders []data.HeaderHandler
-		selfNotarizedHeaders, err = st.bootstrapper.applySelfNotarizedHeaders(selfNotarizedHeadersHashes)
+		var selfNotarizedHeadersHashes [][]byte
+		selfNotarizedHeaders, selfNotarizedHeadersHashes, err = st.bootstrapper.applySelfNotarizedHeaders(bootInfos[i].LastSelfNotarizedHeaders)
 		if err != nil {
 			log.Debug("cannot apply self notarized headers", "error", err.Error())
 			return err

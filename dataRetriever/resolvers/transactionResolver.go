@@ -117,7 +117,10 @@ func (txRes *TxResolver) resolveTxRequestByHash(hash []byte, pid p2p.PeerID) err
 		return err
 	}
 
-	buff, err := txRes.marshalizer.Marshal(&batch.Batch{Data: [][]byte{tx}})
+	b := &batch.Batch{
+		Data: [][]byte{tx},
+	}
+	buff, err := txRes.marshalizer.Marshal(b)
 	if err != nil {
 		return err
 	}
@@ -149,8 +152,7 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.
 	for _, hash := range hashes {
 		tx, errTemp := txRes.fetchTxAsByteSlice(hash)
 		if errTemp != nil {
-			errFetch = errTemp
-			errFetch = fmt.Errorf("%w for hash %s", errFetch, logger.DisplayByteSlice(hash))
+			errFetch = fmt.Errorf("%w for hash %s", errTemp, logger.DisplayByteSlice(hash))
 			//it might happen to error on a tx (maybe it is missing) but should continue
 			// as to send back as many as it can
 			log.Trace("fetchTxAsByteSlice missing",
@@ -193,7 +195,10 @@ func (txRes *TxResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
 
 // RequestDataFromHashArray requests a list of tx hashes from other peers
 func (txRes *TxResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
-	buffHashes, err := txRes.marshalizer.Marshal(&batch.Batch{Data: hashes})
+	b := &batch.Batch{
+		Data: hashes,
+	}
+	buffHashes, err := txRes.marshalizer.Marshal(b)
 	if err != nil {
 		return err
 	}

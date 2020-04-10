@@ -1087,6 +1087,7 @@ func (mp *metaProcessor) CommitBlock(
 	args := bootStorerDataArgs{
 		headerInfo:                 headerInfo,
 		round:                      header.Round,
+		lastSelfNotarizedHeaders:   mp.getLastSelfNotarizedHeaders(),
 		nodesCoordinatorConfigKey:  nodesCoordinatorKey,
 		epochStartTriggerConfigKey: epochStartKey,
 		pendingMiniBlocks:          mp.getPendingMiniBlocks(),
