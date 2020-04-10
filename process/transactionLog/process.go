@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -17,12 +18,12 @@ var log = logger.GetOrCreate("process/transactionLog")
 
 // ArgTxLogProcessor defines the arguments needed for transaction logs processor
 type ArgTxLogProcessor struct {
-	Storer storage.Storer
+	Storer      storage.Storer
 	Marshalizer marshal.Marshalizer
 }
 
 type txLogProcessor struct {
-	storer storage.Storer
+	storer      storage.Storer
 	marshalizer marshal.Marshalizer
 }
 
@@ -37,7 +38,7 @@ func NewTxLogProcessor(args ArgTxLogProcessor) (process.TransactionLogProcessor,
 	}
 
 	return &txLogProcessor{
-		storer: args.Storer,
+		storer:      args.Storer,
 		marshalizer: args.Marshalizer,
 	}, nil
 }
@@ -78,7 +79,7 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 	}
 
 	txLog := &transaction.Log{
-		Address: tx.GetRcvAddr(),
+		Address: getLogAddressByTx(tx),
 	}
 
 	for _, logEntry := range logEntries {
@@ -98,8 +99,16 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 	return tlp.storer.Put(txHash, buff)
 }
 
+// For SC deployment transactions, we use the sender address
+func getLogAddressByTx(tx data.TransactionHandler) []byte {
+	if core.IsEmptyAddress(tx.GetRcvAddr()) {
+		return tx.GetSndAddr()
+	}
+
+	return tx.GetRcvAddr()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (tlp *txLogProcessor) IsInterfaceNil() bool {
 	return tlp == nil
 }
-

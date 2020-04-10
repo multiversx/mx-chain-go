@@ -23,14 +23,19 @@ func IsSmartContractAddress(rcvAddress []byte) bool {
 		return false
 	}
 
-	isEmptyAddress := bytes.Equal(rcvAddress, make([]byte, len(rcvAddress)))
-	if isEmptyAddress {
+	if IsEmptyAddress(rcvAddress) {
 		return true
 	}
 
 	numOfZeros := NumInitCharactersForScAddress - VMTypeLen
 	isSCAddress := bytes.Equal(rcvAddress[:numOfZeros], make([]byte, numOfZeros))
 	return isSCAddress
+}
+
+// IsEmptyAddress returns whether an address is empty
+func IsEmptyAddress(address []byte) bool {
+	isEmptyAddress := bytes.Equal(address, make([]byte, len(address)))
+	return isEmptyAddress
 }
 
 // IsMetachainIdentifier verifies if the identifier is of type metachain
