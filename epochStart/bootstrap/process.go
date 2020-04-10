@@ -39,7 +39,8 @@ import (
 
 var log = logger.GetOrCreate("epochStart/bootstrap")
 
-const timeToWait = 10 * time.Second
+const timeToWait = time.Minute
+const trieSyncWaitTime = 5 * time.Minute
 const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
@@ -396,7 +397,7 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string
 		shardIds = append(shardIds, core.MetachainShardId)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), timeToWait)
 	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
@@ -576,7 +577,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), timeToWait)
 	err = e.miniBlocksSyncer.SyncPendingMiniBlocks(epochStartData.PendingMiniBlockHeaders, ctx)
 	cancel()
 	if err != nil {
@@ -599,7 +600,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	}
 
 	e.headersSyncer.ClearFields()
-	ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel = context.WithTimeout(context.Background(), timeToWait)
 	err = e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
@@ -668,7 +669,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			Marshalizer:        e.marshalizer,
 			TrieStorageManager: e.trieStorageManagers[factory.UserAccountTrie],
 			RequestHandler:     e.requestHandler,
-			WaitTime:           time.Minute,
+			WaitTime:           trieSyncWaitTime,
 			Cacher:             e.dataPool.TrieNodes(),
 		},
 		ShardId: e.shardCoordinator.SelfId(),
@@ -728,7 +729,7 @@ func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 			Marshalizer:        e.marshalizer,
 			TrieStorageManager: e.trieStorageManagers[factory.PeerAccountTrie],
 			RequestHandler:     e.requestHandler,
-			WaitTime:           time.Minute,
+			WaitTime:           trieSyncWaitTime,
 			Cacher:             e.dataPool.TrieNodes(),
 		},
 	}
