@@ -207,6 +207,8 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	if err != nil {
 		return err
 	}
+
+	log.Trace("print trie", "trie", tr.String())
 	return nil
 }
 
