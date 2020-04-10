@@ -122,8 +122,7 @@ func (btm *BlockTrackerMock) InitNotarizedHeaders(startHeaders map[uint32]data.H
 	btm.mutSelfNotarizedHeaders.Lock()
 	btm.selfNotarizedHeaders = make(map[uint32][]*headerInfo)
 
-	for _, startHeader := range selfStartHeaders {
-		shardID := startHeader.GetShardID()
+	for shardID, startHeader := range selfStartHeaders {
 		btm.selfNotarizedHeaders[shardID] = append(btm.selfNotarizedHeaders[shardID], &headerInfo{header: startHeader, hash: nil})
 	}
 	btm.mutSelfNotarizedHeaders.Unlock()

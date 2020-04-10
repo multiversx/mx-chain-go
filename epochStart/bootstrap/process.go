@@ -692,12 +692,13 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 
 func (e *epochStartBootstrap) createTriesForNewShardId(shardId uint32) error {
 	trieFactoryArgs := factory.TrieFactoryArgs{
-		EvictionWaitingListCfg: e.generalConfig.EvictionWaitingList,
-		SnapshotDbCfg:          e.generalConfig.TrieSnapshotDB,
-		Marshalizer:            e.marshalizer,
-		Hasher:                 e.hasher,
-		PathManager:            e.pathManager,
-		ShardId:                core.GetShardIdString(shardId),
+		EvictionWaitingListCfg:   e.generalConfig.EvictionWaitingList,
+		SnapshotDbCfg:            e.generalConfig.TrieSnapshotDB,
+		Marshalizer:              e.marshalizer,
+		Hasher:                   e.hasher,
+		PathManager:              e.pathManager,
+		ShardId:                  core.GetShardIdString(shardId),
+		TrieStorageManagerConfig: e.generalConfig.TrieStorageManagerConfig,
 	}
 	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
 	if err != nil {
