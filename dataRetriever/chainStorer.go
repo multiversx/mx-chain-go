@@ -92,6 +92,7 @@ func (bc *ChainStorer) SetEpochForPutOperation(epoch uint32) {
 
 		storerWithPutInEpoch.SetEpochForPutOperation(epoch)
 	}
+	bc.lock.Unlock()
 }
 
 // GetAll gets all the elements with keys in the keys array, from the selected storage unit
