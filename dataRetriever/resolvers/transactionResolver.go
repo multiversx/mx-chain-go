@@ -150,7 +150,7 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.
 		tx, errTemp := txRes.fetchTxAsByteSlice(hash)
 		if errTemp != nil {
 			errFetch = errTemp
-			err = fmt.Errorf("%w for hash %s", errFetch, logger.DisplayByteSlice(hash))
+			errFetch = fmt.Errorf("%w for hash %s", errFetch, logger.DisplayByteSlice(hash))
 			//it might happen to error on a tx (maybe it is missing) but should continue
 			// as to send back as many as it can
 			log.Trace("fetchTxAsByteSlice missing",
