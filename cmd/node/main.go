@@ -909,7 +909,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		economicsData,
 		genesisNodesConfig,
 		gasSchedule,
-		syncer,
+		rounder,
 		shardCoordinator,
 		nodesCoordinator,
 		dataComponents,

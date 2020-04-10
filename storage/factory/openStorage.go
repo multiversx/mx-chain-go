@@ -290,14 +290,14 @@ func getLastEpochAndRoundFromStorage(
 		}
 
 		if bootstrapData.LastRound > highestRoundInStoredShards {
-			shardID := uint32(0)
-			var err error
-			shardID, err = convertShardIDToUint32(shardIdStr)
+			shardID, err := convertShardIDToUint32(shardIdStr)
 			if err != nil {
+				log.Debug("could not convert shard id to uint32", "err", err)
 				continue
 			}
 			epochStartRound, err = loadEpochStartRound(shardID, bootstrapData.EpochStartTriggerConfigKey, storer)
 			if err != nil {
+				log.Debug("could not load epoch start round", "err", err)
 				continue
 			}
 
