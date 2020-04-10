@@ -14,8 +14,6 @@ import (
 
 type metaChainMessenger struct {
 	*commonMessenger
-	marshalizer marshal.Marshalizer
-	messenger   consensus.P2PMessenger
 }
 
 // NewMetaChainMessenger creates a new metaChainMessenger object
@@ -42,8 +40,6 @@ func NewMetaChainMessenger(
 
 	mcm := &metaChainMessenger{
 		commonMessenger: cm,
-		marshalizer:     marshalizer,
-		messenger:       messenger,
 	}
 
 	return mcm, nil
@@ -122,6 +118,12 @@ func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error 
 
 	go mcm.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
 
+	return nil
+}
+
+// SetDataForDelayBroadcast - not used for metachain nodes
+func (mcm *metaChainMessenger) SetDataForDelayBroadcast(_ []byte, _ map[uint32][]byte, _ map[string][][]byte) error {
+	log.Warn("SetDataForDelayBroadcast not implemented for metachain")
 	return nil
 }
 

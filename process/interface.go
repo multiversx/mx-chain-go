@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -617,6 +617,12 @@ type RequestBlockBodyHandler interface {
 type InterceptedHeaderSigVerifier interface {
 	VerifyRandSeedAndLeaderSignature(header data.HeaderHandler) error
 	VerifySignature(header data.HeaderHandler) error
+	IsInterfaceNil() bool
+}
+
+// BlockNotificationHandler handles notifications for received blocks
+type BlockNotificationHandler interface {
+	BlockReceived(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	IsInterfaceNil() bool
 }
 

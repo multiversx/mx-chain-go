@@ -66,6 +66,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
 		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
 		blockBalancer:                 blockBalancerInstance,
+		whitelistHandler:              arguments.WhitelistHandler,
 	}
 
 	bbt.maxNumHeadersToKeepPerShard = maxNumHeadersToKeepPerShard

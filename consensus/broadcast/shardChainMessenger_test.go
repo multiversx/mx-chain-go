@@ -17,13 +17,14 @@ func TestShardChainMessenger_NewShardChainMessengerNilMarshalizerShouldFail(t *t
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-
+	headersSubscriber := &mock.HeadersCacherStub{}
 	scm, err := broadcast.NewShardChainMessenger(
 		nil,
 		messengerMock,
 		privateKeyMock,
 		shardCoordinatorMock,
 		singleSignerMock,
+		headersSubscriber,
 	)
 
 	assert.Nil(t, scm)

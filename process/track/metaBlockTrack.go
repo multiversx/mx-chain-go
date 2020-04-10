@@ -65,6 +65,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
 		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
 		blockBalancer:                 blockBalancerInstance,
+		whitelistHandler:              arguments.WhitelistHandler,
 	}
 
 	bbt.maxNumHeadersToKeepPerShard = maxNumHeadersToKeepPerShard

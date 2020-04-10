@@ -41,6 +41,7 @@ type baseBlockTrack struct {
 	crossNotarizedHeadersNotifier blockNotifierHandler
 	selfNotarizedHeadersNotifier  blockNotifierHandler
 	blockBalancer                 blockBalancerHandler
+	whitelistHandler              process.WhiteListHandler
 
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
@@ -99,6 +100,8 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 		log.Trace("received meta block is out of range", "nonce", headerHandler.GetNonce())
 		return
 	}
+
+	bbt.doWhitelistIfNeeded(metaBlock)
 
 	bbt.addHeader(metaBlock, metaBlockHash)
 	bbt.blockProcessor.ProcessReceivedHeader(metaBlock)
@@ -617,4 +620,9 @@ func (bbt *baseBlockTrack) initNotarizedHeaders(startHeaders map[uint32]data.Hea
 	}
 
 	return nil
+}
+
+func (bbt *baseBlockTrack) doWhitelistIfNeeded(metablock *block.MetaBlock) {
+	//	shardID := bbt.shardCoordinator.SelfId()
+
 }

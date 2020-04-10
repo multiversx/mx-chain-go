@@ -9,7 +9,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
@@ -1525,6 +1525,7 @@ func newBlockTracker(
 		ShardCoordinator: processArgs.shardCoordinator,
 		Store:            processArgs.data.Store,
 		StartHeaders:     genesisBlocks,
+		WhitelistHandler: processArgs.whiteListHandler,
 	}
 
 	if processArgs.shardCoordinator.SelfId() < processArgs.shardCoordinator.NumberOfShards() {

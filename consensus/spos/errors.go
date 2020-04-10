@@ -64,6 +64,9 @@ var ErrNilBootstrapper = errors.New("bootstrapper is nil")
 // ErrNilBroadcastMessenger is raised when a valid broadcast messenger is expected but nil used
 var ErrNilBroadcastMessenger = errors.New("broadcast messenger is nil")
 
+// ErrNilHeadersSubscriber is raised when a valid headers subscriber is expected but nil is provided
+var ErrNilHeadersSubscriber = errors.New("headers subscriber is nil")
+
 // ErrInvalidKey is raised when an invalid key is used with a map
 var ErrInvalidKey = errors.New("map key is invalid")
 
@@ -138,6 +141,9 @@ var ErrNilBody = errors.New("body is nil")
 
 // ErrNilMetaHeader is raised when an expected meta header is nil
 var ErrNilMetaHeader = errors.New("meta header is nil")
+
+// ErrInvalidMetaHeader is raised when an invalid meta header was provided
+var ErrInvalidMetaHeader = errors.New("meta header is invalid")
 
 // ErrNilForkDetector is raised when a valid fork detector is expected but nil used
 var ErrNilForkDetector = errors.New("fork detector is nil")

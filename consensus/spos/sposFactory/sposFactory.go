@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -59,10 +60,11 @@ func GetBroadcastMessenger(
 	shardCoordinator sharding.Coordinator,
 	privateKey crypto.PrivateKey,
 	singleSigner crypto.SingleSigner,
+	headersSubscriber dataRetriever.HeadersPoolSubscriber,
 ) (consensus.BroadcastMessenger, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return broadcast.NewShardChainMessenger(marshalizer, messenger, privateKey, shardCoordinator, singleSigner)
+		return broadcast.NewShardChainMessenger(marshalizer, messenger, privateKey, shardCoordinator, singleSigner, headersSubscriber)
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {

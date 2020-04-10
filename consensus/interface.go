@@ -60,6 +60,7 @@ type BroadcastMessenger interface {
 	BroadcastMiniBlocks(map[uint32][]byte) error
 	BroadcastTransactions(map[string][][]byte) error
 	BroadcastConsensusMessage(*Message) error
+	SetDataForDelayBroadcast(headerHash []byte, miniBlocks map[uint32][]byte, transactions map[string][][]byte) error
 	IsInterfaceNil() bool
 }
 

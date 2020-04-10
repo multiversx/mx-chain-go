@@ -233,6 +233,12 @@ type HeadersPool interface {
 	GetNumHeaders(shardId uint32) int
 }
 
+// HeadersPoolSubscriber can subscribe for notifications when a new block header is added to the headers pool
+type HeadersPoolSubscriber interface {
+	RegisterHandler(handler func(headerHandler data.HeaderHandler, headerHash []byte))
+	IsInterfaceNil() bool
+}
+
 // TransactionCacher defines the methods for the local cacher, info for current round
 type TransactionCacher interface {
 	Clean()
