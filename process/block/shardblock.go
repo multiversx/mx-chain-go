@@ -32,7 +32,6 @@ type shardProcessor struct {
 	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker
 	core                serviceContainer.Core
 	txsPoolsCleaner     process.PoolsCleaner
-	txCounter           *transactionCounter
 
 	lowestNonceInSelfNotarizedHeaders uint64
 }
@@ -558,14 +557,6 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	if check.IfNil(headerHandler) {
 		return process.ErrNilBlockHeader
 	}
-	if check.IfNil(bodyHandler) {
-		return process.ErrNilTxBlockBody
-	}
-
-	body, ok := bodyHandler.(*block.Body)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
 
 	header, ok := headerHandler.(*block.Header)
 	if !ok {
@@ -578,12 +569,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		return err
 	}
 
-	restoredTxNr, errNotCritical := sp.txCoordinator.RestoreBlockDataFromStorage(body)
-	if errNotCritical != nil {
-		log.Debug("RestoreBlockDataFromStorage", "error", errNotCritical.Error())
-	}
-
-	go sp.txCounter.subtractRestoredTxs(restoredTxNr)
+	sp.restoreBlockBody(bodyHandler)
 
 	sp.blockTracker.RemoveLastNotarizedHeaders()
 

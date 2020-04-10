@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
@@ -246,15 +245,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		ShardCoordinator:    shardC,
 		NodesCoordinator:    &mock.NodesCoordinatorMock{},
 		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
-		ResolversFinder: &mock.ResolversFinderStub{
-			IntraShardResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-				return &mock.MiniBlocksResolverMock{
-					GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-						return nil, nil
-					},
-				}, nil
-			},
-		},
 		BlockTracker: &mock.BlockTrackerStub{
 			RestoreToGenesisCalled: func() {},
 		},
@@ -437,18 +427,6 @@ func getGeneralConfig() config.Config {
 			},
 			DB: config.DBConfig{
 				FilePath:          "MiniBlocks",
-				Type:              string(storageUnit.LvlDBSerial),
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
-		MiniBlockHeadersStorage: config.StorageConfig{
-			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
-			},
-			DB: config.DBConfig{
-				FilePath:          "MiniBlockHeaders",
 				Type:              string(storageUnit.LvlDBSerial),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,

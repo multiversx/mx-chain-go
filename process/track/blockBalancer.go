@@ -37,9 +37,10 @@ func (bb *blockBalancer) SetNumPendingMiniBlocks(shardID uint32, numPendingMiniB
 // GetLastShardProcessedMetaNonce returns the last processed meta nonce for given shard
 func (bb *blockBalancer) GetLastShardProcessedMetaNonce(shardID uint32) uint64 {
 	bb.mutBalancerData.RLock()
-	defer bb.mutBalancerData.RUnlock()
+	lastProcessedMetaNonce := bb.lastProcessedMetaNonce[shardID]
+	bb.mutBalancerData.RUnlock()
 
-	return bb.lastProcessedMetaNonce[shardID]
+	return lastProcessedMetaNonce
 }
 
 // SetLastShardProcessedMetaNonce sets the last processed meta nonce for given shard

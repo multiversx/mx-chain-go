@@ -17,11 +17,10 @@ type BlockTrackerStub struct {
 	ComputeLongestShardsChainsFromLastNotarizedCalled func() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
 	DisplayTrackedHeadersCalled                       func()
 	GetCrossNotarizedHeaderCalled                     func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
-	GetFinalHeaderCalled                              func(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeaderCalled                 func(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeadersForAllShardsCalled    func() (map[uint32]data.HeaderHandler, error)
 	GetLastSelfNotarizedHeaderCalled                  func(shardID uint32) (data.HeaderHandler, []byte, error)
-	GetNumPendingMiniBlocksCalled                     func(shardID uint32) uint32
+	GetSelfNotarizedHeaderCalled                      func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
 	GetTrackedHeadersCalled                           func(shardID uint32) ([]data.HeaderHandler, [][]byte)
 	GetTrackedHeadersForAllShardsCalled               func() map[uint32][]data.HeaderHandler
 	GetTrackedHeadersWithNonceCalled                  func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
@@ -125,15 +124,6 @@ func (bts *BlockTrackerStub) GetCrossNotarizedHeader(shardID uint32, offset uint
 	return nil, nil, nil
 }
 
-// GetFinalHeader -
-func (bts *BlockTrackerStub) GetFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
-	if bts.GetFinalHeaderCalled != nil {
-		return bts.GetFinalHeaderCalled(shardID)
-	}
-
-	return nil, nil, nil
-}
-
 // GetLastCrossNotarizedHeader -
 func (bts *BlockTrackerStub) GetLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
 	if bts.GetLastCrossNotarizedHeaderCalled != nil {
@@ -161,13 +151,13 @@ func (bts *BlockTrackerStub) GetLastSelfNotarizedHeader(shardID uint32) (data.He
 	return nil, nil, nil
 }
 
-// GetNumPendingMiniBlocks -
-func (bts *BlockTrackerStub) GetNumPendingMiniBlocks(shardID uint32) uint32 {
-	if bts.GetNumPendingMiniBlocksCalled != nil {
-		return bts.GetNumPendingMiniBlocksCalled(shardID)
+// GetSelfNotarizedHeader -
+func (bts *BlockTrackerStub) GetSelfNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+	if bts.GetSelfNotarizedHeaderCalled != nil {
+		return bts.GetSelfNotarizedHeaderCalled(shardID, offset)
 	}
 
-	return 0
+	return nil, nil, nil
 }
 
 // GetTrackedHeaders -
