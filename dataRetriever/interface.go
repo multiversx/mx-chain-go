@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -73,8 +72,6 @@ type HeaderResolver interface {
 type MiniBlocksResolver interface {
 	Resolver
 	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
-	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
-	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 }
 
 // TopicResolverSender defines what sending operations are allowed for a topic resolver

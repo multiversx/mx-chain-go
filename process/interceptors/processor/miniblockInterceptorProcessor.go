@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -16,16 +15,16 @@ import (
 
 var log = logger.GetOrCreate("process/interceptors/processor")
 
-// TxBodyInterceptorProcessor is the processor used when intercepting miniblocks grouped in a block.TxBlockBody structure
-type TxBodyInterceptorProcessor struct {
+// MiniblockInterceptorProcessor is the processor used when intercepting miniblocks
+type MiniblockInterceptorProcessor struct {
 	miniblockCache   storage.Cacher
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
 	shardCoordinator sharding.Coordinator
 }
 
-// NewTxBodyInterceptorProcessor creates a new TxBodyInterceptorProcessor instance
-func NewTxBodyInterceptorProcessor(argument *ArgTxBodyInterceptorProcessor) (*TxBodyInterceptorProcessor, error) {
+// NewMiniblockInterceptorProcessor creates a new MiniblockInterceptorProcessor instance
+func NewMiniblockInterceptorProcessor(argument *ArgMiniblockInterceptorProcessor) (*MiniblockInterceptorProcessor, error) {
 	if argument == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
@@ -42,7 +41,7 @@ func NewTxBodyInterceptorProcessor(argument *ArgTxBodyInterceptorProcessor) (*Tx
 		return nil, process.ErrNilShardCoordinator
 	}
 
-	return &TxBodyInterceptorProcessor{
+	return &MiniblockInterceptorProcessor{
 		miniblockCache:   argument.MiniblockCache,
 		marshalizer:      argument.Marshalizer,
 		hasher:           argument.Hasher,
@@ -54,54 +53,34 @@ func NewTxBodyInterceptorProcessor(argument *ArgTxBodyInterceptorProcessor) (*Tx
 // It returns nil as a body might consist of multiple miniblocks
 // Since some might be valid and others not, we rather do the checking when
 // we iterate the slice for processing as it is optimal to do so
-func (tbip *TxBodyInterceptorProcessor) Validate(_ process.InterceptedData, _ p2p.PeerID) error {
+func (mip *MiniblockInterceptorProcessor) Validate(_ process.InterceptedData, _ p2p.PeerID) error {
 	return nil
 }
 
 // Save will save the received miniblocks inside the miniblock cacher after a new validation round
 // that will be done on each miniblock
-func (tbip *TxBodyInterceptorProcessor) Save(data process.InterceptedData, _ p2p.PeerID) error {
-	interceptedTxBody, ok := data.(*interceptedBlocks.InterceptedTxBlockBody)
+func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ p2p.PeerID) error {
+	interceptedMiniblock, ok := data.(*interceptedBlocks.InterceptedMiniblock)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	for _, miniblock := range interceptedTxBody.TxBlockBody().MiniBlocks {
-		err := tbip.processMiniblock(miniblock)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (tbip *TxBodyInterceptorProcessor) processMiniblock(miniblock *block.MiniBlock) error {
-	err := tbip.checkMiniblock(miniblock)
-	if err != nil {
-		log.Trace("TxBodyInterceptorProcessor checkMiniblock", "error", err.Error())
-		return nil
-	}
-
-	hash, err := core.CalculateHash(tbip.marshalizer, tbip.hasher, miniblock)
+	miniblock := interceptedMiniblock.Miniblock()
+	hash, err := core.CalculateHash(mip.marshalizer, mip.hasher, miniblock)
 	if err != nil {
 		return err
 	}
 
-	tbip.miniblockCache.HasOrAdd(hash, miniblock)
+	mip.miniblockCache.HasOrAdd(hash, miniblock)
 
-	return nil
-}
-
-func (tbip *TxBodyInterceptorProcessor) checkMiniblock(_ *block.MiniBlock) error {
 	return nil
 }
 
 // SignalEndOfProcessing signals the end of processing
-func (tbip *TxBodyInterceptorProcessor) SignalEndOfProcessing(_ []process.InterceptedData) {
+func (mip *MiniblockInterceptorProcessor) SignalEndOfProcessing(_ []process.InterceptedData) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (tbip *TxBodyInterceptorProcessor) IsInterfaceNil() bool {
-	return tbip == nil
+func (mip *MiniblockInterceptorProcessor) IsInterfaceNil() bool {
+	return mip == nil
 }

@@ -39,7 +39,11 @@ func (phs *PoolsHolderStub) Transactions() dataRetriever.ShardedDataCacherNotifi
 
 // MiniBlocks -
 func (phs *PoolsHolderStub) MiniBlocks() storage.Cacher {
-	return phs.MiniBlocksCalled()
+	if phs.MiniBlocksCalled != nil {
+		return phs.MiniBlocksCalled()
+	}
+
+	return &CacherStub{}
 }
 
 // UnsignedTransactions -

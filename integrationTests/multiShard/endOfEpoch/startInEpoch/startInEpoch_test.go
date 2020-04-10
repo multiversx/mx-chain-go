@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
@@ -248,15 +247,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		ShardCoordinator:    shardC,
 		NodesCoordinator:    &mock.NodesCoordinatorMock{},
 		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
-		ResolversFinder: &mock.ResolversFinderStub{
-			IntraShardResolverCalled: func(baseTopic string) (dataRetriever.Resolver, error) {
-				return &mock.MiniBlocksResolverMock{
-					GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-						return nil, nil
-					},
-				}, nil
-			},
-		},
 		BlockTracker: &mock.BlockTrackerStub{
 			RestoreToGenesisCalled: func() {},
 		},
