@@ -42,6 +42,8 @@ var log = logger.GetOrCreate("epochStart/bootstrap")
 const timeToWait = 10 * time.Second
 const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
+const gracePeriodInPercentage = float64(0.25)
+const roundGracePeriod = 25
 
 // Parameters defines the DTO for the result produced by the bootstrap component
 type Parameters struct {
@@ -91,6 +93,7 @@ type epochStartBootstrap struct {
 	trieStorageManagers        map[string]data.StorageManager
 	uint64Converter            typeConverters.Uint64ByteSliceConverter
 	nodeShuffler               sharding.NodesShuffler
+	rounder                    epochStart.Rounder
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -110,7 +113,6 @@ type epochStartBootstrap struct {
 	userAccountTries   map[string]data.Trie
 	peerAccountTries   map[string]data.Trie
 	baseData           baseDataInStorage
-	computedEpoch      uint32
 }
 
 type baseDataInStorage struct {
@@ -148,6 +150,7 @@ type ArgsEpochStartBootstrap struct {
 	TrieStorageManagers        map[string]data.StorageManager
 	Uint64Converter            typeConverters.Uint64ByteSliceConverter
 	NodeShuffler               sharding.NodesShuffler
+	Rounder                    epochStart.Rounder
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -182,14 +185,10 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		trieStorageManagers:        args.TrieStorageManagers,
 		uint64Converter:            args.Uint64Converter,
 		nodeShuffler:               args.NodeShuffler,
+		rounder:                    args.Rounder,
 	}
 
 	return epochStartProvider, nil
-}
-
-func (e *epochStartBootstrap) computedDurationOfEpoch() time.Duration {
-	return time.Duration(e.genesisNodesConfig.GetRoundDuration()*
-		uint64(e.generalConfig.EpochStartConfig.RoundsPerEpoch)) * time.Millisecond
 }
 
 func (e *epochStartBootstrap) isStartInEpochZero() bool {
@@ -199,10 +198,8 @@ func (e *epochStartBootstrap) isStartInEpochZero() bool {
 		return true
 	}
 
-	configuredDurationOfEpoch := startTime.Add(e.computedDurationOfEpoch())
-	isEpochZero := time.Since(configuredDurationOfEpoch) < 0
-
-	return isEpochZero
+	currentRound := e.rounder.Index()
+	return float64(currentRound) < float64(e.generalConfig.EpochStartConfig.RoundsPerEpoch)*gracePeriodInPercentage
 }
 
 func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
@@ -212,18 +209,6 @@ func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
 		NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
 	}
 	return parameters, nil
-}
-
-func (e *epochStartBootstrap) computeMostProbableEpoch() {
-	startTime := time.Unix(e.genesisNodesConfig.GetStartTime(), 0)
-	elapsedTime := time.Since(startTime)
-
-	timeForOneEpoch := e.computedDurationOfEpoch()
-
-	elaspedTimeInSeconds := uint64(elapsedTime.Seconds())
-	timeForOneEpochInSeconds := uint64(timeForOneEpoch.Seconds())
-
-	e.computedEpoch = uint32(elaspedTimeInSeconds / timeForOneEpochInSeconds)
 }
 
 // Bootstrap runs the fast bootstrap method from the network or local storage
@@ -255,12 +240,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return e.prepareEpochZero()
 	}
 
-	e.computeMostProbableEpoch()
-	e.initializeFromLocalStorage()
-
-	// TODO: make a better decision according to lastRound, lastEpoch
-	log.Debug("base Data from local storage ", "lastEpoch", e.baseData.lastEpoch, "computedEpoch", e.computedEpoch, "exists", e.baseData.storageExists)
-	isCurrentEpochSaved := (e.baseData.lastEpoch+1 >= e.computedEpoch) && e.baseData.storageExists
+	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
 	if isCurrentEpochSaved {
 		parameters, err := e.prepareEpochFromStorage()
 		if err == nil {
@@ -285,6 +265,21 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	return e.requestAndProcessing()
+}
+
+func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
+	e.initializeFromLocalStorage()
+	if !e.baseData.storageExists {
+		return false
+	}
+
+	computedRound := e.rounder.Index()
+	if computedRound-e.baseData.lastRound < roundGracePeriod {
+		return true
+	}
+
+	roundsSinceEpochStart := computedRound - int64(e.baseData.epochStartRound)
+	return float64(roundsSinceEpochStart) < float64(e.generalConfig.EpochStartConfig.RoundsPerEpoch)*gracePeriodInPercentage
 }
 
 func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
