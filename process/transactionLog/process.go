@@ -59,7 +59,7 @@ func (tlp *txLogProcessor) GetLog(txHash []byte) (data.LogHandler, error) {
 }
 
 // SaveLog takes the VM logs and saves them into the correct format in storage
-func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error {
+func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, logEntries []*vmcommon.LogEntry) error {
 	if len(txHash) == 0 {
 		return process.ErrNilTxHash
 	}
@@ -68,10 +68,10 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, vm
 		return process.ErrNilTransaction
 	}
 
-	if len(vmLogs) == 0 {
+	if len(logEntries) == 0 {
 		log.Debug("txLogProcessor.SaveLog()",
 			"txHash", hex.EncodeToString(txHash),
-			"message", "no vmLogs provided",
+			"message", "no logEntries provided",
 		)
 
 		return nil
@@ -81,11 +81,14 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, vm
 		Address: tx.GetRcvAddr(),
 	}
 
-	events := make([]*transaction.Event, len(vmLogs))
-	for i, vmLog := range vmLogs {
-		events[i] = tlp.computeEvent(vmLog)
+	for _, logEntry := range logEntries {
+		txLog.Events = append(txLog.Events, &transaction.Event{
+			Identifier: logEntry.Identifier,
+			Address:    logEntry.Address,
+			Topics:     logEntry.Topics,
+			Data:       logEntry.Data,
+		})
 	}
-	txLog.Events = events
 
 	buff, err := tlp.marshalizer.Marshal(txLog)
 	if err != nil {
@@ -93,26 +96,6 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, vm
 	}
 
 	return tlp.storer.Put(txHash, buff)
-}
-
-func (tlp *txLogProcessor) computeEvent(vmLog *vmcommon.LogEntry) *transaction.Event {
-	event := &transaction.Event {
-		Address: vmLog.Address,
-		Data: vmLog.Data,
-	}
-
-	topicsLen := len(vmLog.Topics)
-	if topicsLen == 0 {
-		return event
-	}
-	event.Identifier = vmLog.Topics[0]
-
-	if topicsLen == 1 {
-		return event
-	}
-	event.Topics = vmLog.Topics[1:]
-
-	return event
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

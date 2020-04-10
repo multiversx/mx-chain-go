@@ -128,25 +128,6 @@ func TestTxLogProcessor_SaveLogsCallsPutWithMarshalBuff(t *testing.T) {
 	require.Equal(t, buffExpected, buffActual)
 }
 
-func TestTxLogProcessor_ComputeEventSavesFirstTopicAsIdentifier(t *testing.T) {
-	identifier := []byte("identifier")
-	txLogProcessor := transactionLog.NewPlainLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer:      &mock.StorerStub{},
-		Marshalizer: &mock.MarshalizerStub{},
-	})
-
-	log := &vmcommon.LogEntry{
-		Address: []byte("first log"),
-		Topics: [][]byte{
-			identifier,
-			[]byte("first actual topic"),
-		},
-	}
-	computedEvent := txLogProcessor.ComputeEvent(log)
-
-	require.Equal(t, identifier, computedEvent.GetIdentifier())
-}
-
 func TestTxLogProcessor_GetLogErrNotFound(t *testing.T) {
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
 		Storer:      &mock.StorerStub{

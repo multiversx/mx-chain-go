@@ -819,19 +819,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	txLogsProcessor := transactionLog.NewNilTxLogProcessor()
-	if args.coreComponents.config.TxLogsStorage.Enabled {
-		txLogsStorage := args.data.Store.GetStorer(dataRetriever.TxLogsUnit)
-		txLogsProcessor, err = transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-			Storer:      txLogsStorage,
-			Marshalizer: args.coreData.InternalMarshalizer,
-		})
-
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	blockProcessor, err := newBlockProcessor(
 		args,
 		requestHandler,
@@ -843,7 +830,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		headerValidator,
 		blockTracker,
 		pendingMiniBlocksHandler,
-		txLogsProcessor,
 	)
 	if err != nil {
 		return nil, err
@@ -1592,7 +1578,6 @@ func newBlockProcessor(
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
-	txLogProcessor process.TransactionLogProcessor,
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
@@ -1618,7 +1603,6 @@ func newBlockProcessor(
 			blockTracker,
 			processArgs.minSizeInBytes,
 			processArgs.maxSizeInBytes,
-			txLogProcessor,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1644,7 +1628,6 @@ func newBlockProcessor(
 			processArgs.gasSchedule,
 			processArgs.minSizeInBytes,
 			processArgs.maxSizeInBytes,
-			txLogProcessor,
 		)
 	}
 
@@ -1671,7 +1654,6 @@ func newShardBlockProcessor(
 	blockTracker process.BlockTracker,
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
-	txLogProcessor process.TransactionLogProcessor,
 ) (process.BlockProcessor, error) {
 	argsParser := vmcommon.NewAtArgumentParser()
 
@@ -1758,6 +1740,15 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
+	txLogsStorage := data.Store.GetStorer(dataRetriever.TxLogsUnit)
+	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
+		Storer:      txLogsStorage,
+		Marshalizer: core.InternalMarshalizer,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
 		ArgsParser:       argsParser,
@@ -1773,7 +1764,7 @@ func newShardBlockProcessor(
 		TxTypeHandler:    txTypeHandler,
 		GasHandler:       gasHandler,
 		BuiltInFunctions: vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
-		TxLogsProcessor:  txLogProcessor,
+		TxLogsProcessor:  txLogsProcessor,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -1938,7 +1929,6 @@ func newMetaBlockProcessor(
 	gasSchedule map[string]map[string]uint64,
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
-	txLogProcessor process.TransactionLogProcessor,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -2007,6 +1997,15 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	txLogsStorage := data.Store.GetStorer(dataRetriever.TxLogsUnit)
+	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
+		Storer:      txLogsStorage,
+		Marshalizer: core.InternalMarshalizer,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
 		ArgsParser:       argsParser,
@@ -2022,7 +2021,7 @@ func newMetaBlockProcessor(
 		TxTypeHandler:    txTypeHandler,
 		GasHandler:       gasHandler,
 		BuiltInFunctions: vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
-		TxLogsProcessor:  txLogProcessor,
+		TxLogsProcessor:  txLogsProcessor,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {

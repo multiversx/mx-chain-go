@@ -109,17 +109,16 @@ type TransactionHandler interface {
 
 // LogHandler defines the type for a log resulted from executing a transaction or smart contract call
 type LogHandler interface {
-	IsInterfaceNil() bool
-
 	// GetAddress returns the address of the sc that was originally called by the user
 	GetAddress() []byte
+	// GetLogEvents returns the events from a transaction log entry
 	GetLogEvents() []EventHandler
+
+	IsInterfaceNil() bool
 }
 
 // EventHandler defines the type for an event resulted from a smart contract call contained in a log
 type EventHandler interface {
-	IsInterfaceNil() bool
-
 	// GetAddress returns the address of the contract that generated this event
 	//  - in sc calling another sc situation this will differ from the
 	//    LogHandler's GetAddress, whereas in the single sc situation
@@ -134,6 +133,8 @@ type EventHandler interface {
 	// GetData returns the rest of the event data, which will not be indexed, so storing
 	//  information here should be cheaper
 	GetData() []byte
+
+	IsInterfaceNil() bool
 }
 
 //Trie is an interface for Merkle Trees implementations

@@ -477,7 +477,7 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestScProcessor_ExecuteSmartContractTransactionSaveLogsIsCalled(t *testing.T) {
+func TestScProcessor_ExecuteSmartContractTransactionSaveLogCalled(t *testing.T) {
 	t.Parallel()
 
 	slCalled := false
@@ -496,8 +496,8 @@ func TestScProcessor_ExecuteSmartContractTransactionSaveLogsIsCalled(t *testing.
 		},
 	}
 	sc, err := NewSmartContractProcessor(arguments)
-	assert.NotNil(t, sc)
-	assert.Nil(t, err)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -512,8 +512,8 @@ func TestScProcessor_ExecuteSmartContractTransactionSaveLogsIsCalled(t *testing.
 	}
 
 	acntDst.SetCode([]byte("code"))
-	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
-	assert.True(t, slCalled)
+	_ = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	require.True(t, slCalled)
 }
 
 func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {

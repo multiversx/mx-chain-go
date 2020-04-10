@@ -187,7 +187,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, bootstrapUnit)
 
-	txLogsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.TxLogsStorage.LogsStorage)
+	txLogsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.TxLogsStorage)
 	txLogsUnit, err = pruning.NewPruningStorer(txLogsUnitArgs)
 	if err != nil {
 		return nil, err
@@ -339,7 +339,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, bootstrapUnit)
 
-	txLogsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.TxLogsStorage.LogsStorage)
+	txLogsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.TxLogsStorage)
 	txLogsUnit, err = pruning.NewPruningStorer(txLogsUnitArgs)
 	if err != nil {
 		return nil, err

@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,7 +17,7 @@ func TestLog_SettersAndGetters(t *testing.T) {
 	}
 
 	require.False(t, check.IfNil(log))
-	assert.Equal(t, address, log.GetAddress())
+	require.Equal(t, address, log.GetAddress())
 }
 
 func TestLog_GetEvents(t *testing.T) {
@@ -38,5 +37,5 @@ func TestLog_GetEvents(t *testing.T) {
 
 	logEvents := log.GetLogEvents()
 	require.Equal(t, len(events), len(logEvents))
-	assert.Equal(t, evIdentifier, logEvents[0].GetIdentifier())
+	require.Equal(t, evIdentifier, logEvents[0].GetIdentifier())
 }
