@@ -81,11 +81,14 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 		Address: tx.GetRcvAddr(),
 	}
 
-	events := make([]*transaction.Event, len(logEntries))
-	for i, vmLog := range logEntries {
-		events[i] = tlp.computeEvent(vmLog)
+	for _, logEntry := range logEntries {
+		txLog.Events = append(txLog.Events, &transaction.Event{
+			Identifier: logEntry.Identifier,
+			Address:    logEntry.Address,
+			Topics:     logEntry.Topics,
+			Data:       logEntry.Data,
+		})
 	}
-	txLog.Events = events
 
 	buff, err := tlp.marshalizer.Marshal(txLog)
 	if err != nil {
@@ -93,26 +96,6 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 	}
 
 	return tlp.storer.Put(txHash, buff)
-}
-
-func (tlp *txLogProcessor) computeEvent(logEntry *vmcommon.LogEntry) *transaction.Event {
-	event := &transaction.Event {
-		Address: logEntry.Address,
-		Data:    logEntry.Data,
-	}
-
-	topicsLen := len(logEntry.Topics)
-	if topicsLen == 0 {
-		return event
-	}
-	event.Identifier = logEntry.Topics[0]
-
-	if topicsLen == 1 {
-		return event
-	}
-	event.Topics = logEntry.Topics[1:]
-
-	return event
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
