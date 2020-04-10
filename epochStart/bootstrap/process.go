@@ -247,6 +247,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		if err == nil {
 			return parameters, nil
 		}
+		log.Debug("could not start from storage - will try sync for start in epoch", "error", err)
 	}
 
 	err = e.prepareComponentsToSyncFromNetwork()
@@ -275,11 +276,14 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 	}
 
 	computedRound := e.rounder.Index()
+	log.Debug("computed round", "round", computedRound, "lastRound", e.baseData.lastRound)
 	if computedRound-e.baseData.lastRound < roundGracePeriod {
 		return true
 	}
 
 	roundsSinceEpochStart := computedRound - int64(e.baseData.epochStartRound)
+	log.Debug("epoch start round", "round", e.baseData.epochStartRound, "roundsSinceEpochStart", roundsSinceEpochStart)
+
 	return float64(roundsSinceEpochStart) < float64(e.generalConfig.EpochStartConfig.RoundsPerEpoch)*gracePeriodInPercentage
 }
 

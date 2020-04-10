@@ -36,7 +36,8 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 		log.Debug("got last data from storage",
 			"epoch", e.baseData.lastEpoch,
 			"last round", e.baseData.lastRound,
-			"last shard ID", e.baseData.shardId)
+			"last shard ID", e.baseData.shardId,
+			"epoch start Round", e.baseData.epochStartRound)
 	}
 }
 
@@ -93,6 +94,8 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		}
 		return parameters, nil
 	}
+
+	log.Debug("prepareEpochFromStorage for shuffled out")
 
 	err = e.createSyncers()
 	if err != nil {
@@ -177,7 +180,8 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 		return nil, nil, err
 	}
 
-	data, err := storer.Get(bootstrapData.NodesCoordinatorConfigKey)
+	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), bootstrapData.NodesCoordinatorConfigKey...)
+	data, err := storer.Get(ncInternalkey)
 	if err != nil {
 		return nil, nil, err
 	}
