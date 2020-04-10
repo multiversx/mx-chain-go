@@ -546,7 +546,6 @@ type processComponentsFactoryArgs struct {
 	economicsData             *economics.EconomicsData
 	nodesConfig               *sharding.NodesSetup
 	gasSchedule               map[string]map[string]uint64
-	syncer                    ntp.SyncTimer
 	rounder                   consensus.Rounder
 	shardCoordinator          sharding.Coordinator
 	nodesCoordinator          sharding.NodesCoordinator
