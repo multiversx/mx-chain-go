@@ -107,7 +107,6 @@ type Node struct {
 	consensusTopic string
 	consensusType  string
 
-	isRunning                bool
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
@@ -137,9 +136,6 @@ type Node struct {
 
 // ApplyOptions can set up different configurable options of a Node instance
 func (n *Node) ApplyOptions(opts ...Option) error {
-	if n.IsRunning() {
-		return errors.New("cannot apply options while node is running")
-	}
 	for _, opt := range opts {
 		err := opt(n)
 		if err != nil {
@@ -169,27 +165,6 @@ func NewNode(opts ...Option) (*Node, error) {
 // GetAppStatusHandler will return the current status handler
 func (n *Node) GetAppStatusHandler() core.AppStatusHandler {
 	return n.appStatusHandler
-}
-
-// IsRunning will return the current state of the node
-func (n *Node) IsRunning() bool {
-	return n.isRunning
-}
-
-// TODO: delete useles IsRunning, Start and Stop - too many usages in tests for this PR.
-
-// Start will set up the Node state as running
-func (n *Node) Start() {
-	n.isRunning = true
-}
-
-// Stop closes the messenger and undos everything done in Start
-func (n *Node) Stop() error {
-	if !n.IsRunning() {
-		return nil
-	}
-
-	return nil
 }
 
 // CreateShardedStores instantiate sharded cachers for Transactions and Headers

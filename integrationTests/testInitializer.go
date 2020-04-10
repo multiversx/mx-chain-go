@@ -1021,7 +1021,6 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 			hex.EncodeToString(skTxBuff),
 			hex.EncodeToString(pkTxBuff),
 		)
-		n.Node.Start()
 		_ = n.Messenger.Bootstrap()
 	}
 

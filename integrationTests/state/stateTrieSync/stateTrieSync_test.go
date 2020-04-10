@@ -33,11 +33,9 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
-	nRequester.Node.Start()
-	nResolver.Node.Start()
 	defer func() {
-		_ = nRequester.Node.Stop()
-		_ = nResolver.Node.Stop()
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
 	}()
 
 	time.Sleep(time.Second)
