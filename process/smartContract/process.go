@@ -243,9 +243,9 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	err = sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
-	if err != nil {
-		log.Debug("txLogsProcessor.SaveLog() error", "error", err.Error())
+	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
+	if ignorableError != nil {
+		log.Debug("txLogsProcessor.SaveLog() error", "error", ignorableError.Error())
 	}
 
 	newDeveloperReward := core.GetPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
