@@ -7,10 +7,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// metaBlockTrack
+// shardBlockTrack
+
+func (sbt *shardBlockTrack) SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32) {
+	sbt.blockBalancer.SetNumPendingMiniBlocks(shardID, numPendingMiniBlocks)
+}
 
 func (sbt *shardBlockTrack) GetNumPendingMiniBlocks(shardID uint32) uint32 {
 	return sbt.blockBalancer.GetNumPendingMiniBlocks(shardID)
+}
+
+func (sbt *shardBlockTrack) SetLastShardProcessedMetaNonce(shardID uint32, nonce uint64) {
+	sbt.blockBalancer.SetLastShardProcessedMetaNonce(shardID, nonce)
+}
+
+func (sbt *shardBlockTrack) GetLastShardProcessedMetaNonce(shardID uint32) uint64 {
+	return sbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID)
 }
 
 // baseBlockTrack
