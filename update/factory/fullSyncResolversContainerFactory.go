@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	factoryDataRetriever "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -148,9 +149,12 @@ func (rcf *resolversContainerFactory) checkIfResolverExists(topic string) bool {
 }
 
 func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, trieId string) (dataRetriever.Resolver, error) {
-	excludePeersFromTopic := core.ConsensusTopic + rcf.shardCoordinator.CommunicationIdentifier(rcf.shardCoordinator.SelfId())
-
-	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(rcf.messenger, baseTopic, rcf.intraShardTopic, excludePeersFromTopic)
+	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(
+		rcf.messenger,
+		baseTopic,
+		rcf.intraShardTopic,
+		factoryDataRetriever.EmptyExcludePeersOnTopic,
+	)
 	if err != nil {
 		return nil, err
 	}

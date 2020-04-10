@@ -15,7 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const emptyExcludePeersOnTopic = ""
+// EmptyExcludePeersOnTopic is an empty topic
+const EmptyExcludePeersOnTopic = ""
 const defaultTargetShardID = uint32(0)
 
 //TODO extract these in config
@@ -183,7 +184,7 @@ func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
 	keys[noOfShards] = identifierMiniBlocks
 
 	identifierAllShardMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.AllShardId)
-	allShardMiniblocksResolver, err := brcf.createMiniBlocksResolver(identifierAllShardMiniBlocks, emptyExcludePeersOnTopic)
+	allShardMiniblocksResolver, err := brcf.createMiniBlocksResolver(identifierAllShardMiniBlocks, EmptyExcludePeersOnTopic)
 	if err != nil {
 		return err
 	}
@@ -256,7 +257,7 @@ func (brcf *baseResolversContainerFactory) createOneResolverSender(
 }
 
 func (brcf *baseResolversContainerFactory) createTrieNodesResolver(topic string, trieId string) (dataRetriever.Resolver, error) {
-	resolverSender, err := brcf.createOneResolverSender(topic, emptyExcludePeersOnTopic, defaultTargetShardID)
+	resolverSender, err := brcf.createOneResolverSender(topic, EmptyExcludePeersOnTopic, defaultTargetShardID)
 	if err != nil {
 		return nil, err
 	}
