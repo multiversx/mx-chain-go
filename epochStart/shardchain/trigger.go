@@ -433,7 +433,11 @@ func (t *trigger) updateTriggerFromMeta() {
 			err = t.metaHdrStorage.Put([]byte(epochStartIdentifier), metaBuff)
 			if err != nil {
 				log.Debug("updateTriggerMeta put into metaHdrStorage", "error", err.Error())
-				continue
+			}
+
+			err = t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
+			if err != nil {
+				log.Debug("updateTriggerMeta put into triggerStorage", "error", err.Error())
 			}
 		}
 	}

@@ -15,8 +15,7 @@ import (
 )
 
 func (e *epochStartBootstrap) initializeFromLocalStorage() {
-	var errNotCritical error
-	e.baseData.lastEpoch, e.baseData.shardId, e.baseData.lastRound, errNotCritical = storageFactory.FindLatestDataFromStorage(
+	latestData, errNotCritical := storageFactory.FindLatestDataFromStorage(
 		e.generalConfig,
 		e.marshalizer,
 		e.workingDir,
@@ -30,10 +29,15 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
 	} else {
 		e.baseData.storageExists = true
+		e.baseData.lastEpoch = latestData.Epoch
+		e.baseData.shardId = latestData.ShardID
+		e.baseData.lastRound = latestData.LastRound
+		e.baseData.epochStartRound = latestData.EpochStartRound
 		log.Debug("got last data from storage",
 			"epoch", e.baseData.lastEpoch,
 			"last round", e.baseData.lastRound,
-			"last shard ID", e.baseData.shardId)
+			"last shard ID", e.baseData.shardId,
+			"epoch start Round", e.baseData.epochStartRound)
 	}
 }
 
@@ -52,21 +56,17 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	unitsToOpen := []string{e.generalConfig.BootstrapStorage.DB.FilePath, e.generalConfig.MetaBlockStorage.DB.FilePath}
-
-	storageUnits, err := openStorageHandler.OpenStorageUnits(unitsToOpen)
+	storer, err := openStorageHandler.OpenStorageUnits()
 	defer func() {
-		for _, storer := range storageUnits {
-			errClose := storer.Close()
-			log.LogIfError(errClose)
-		}
+		errClose := storer.Close()
+		log.LogIfError(errClose)
 	}()
 
-	if err != nil || len(storageUnits) != len(unitsToOpen) {
+	if err != nil {
 		return Parameters{}, err
 	}
 
-	_, e.nodesConfig, err = e.getLastBootstrapData(storageUnits[0])
+	_, e.nodesConfig, err = e.getLastBootstrapData(storer)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -76,7 +76,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	e.epochStartMeta, err = e.getEpochStartMetaFromStorage(storageUnits[1])
+	e.epochStartMeta, err = e.getEpochStartMetaFromStorage(storer)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -90,6 +90,8 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		}
 		return parameters, nil
 	}
+
+	log.Debug("prepareEpochFromStorage for shuffled out")
 
 	err = e.createSyncers()
 	if err != nil {
@@ -174,8 +176,10 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 		return nil, nil, err
 	}
 
-	data, err := storer.Get(bootstrapData.NodesCoordinatorConfigKey)
+	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), bootstrapData.NodesCoordinatorConfigKey...)
+	data, err := storer.Get(ncInternalkey)
 	if err != nil {
+		log.Debug("getLastBootstrapData", "key", ncInternalkey, "error", err)
 		return nil, nil, err
 	}
 
@@ -192,6 +196,7 @@ func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer
 	epochIdentifier := core.EpochStartIdentifier(e.baseData.lastEpoch)
 	data, err := storer.Get([]byte(epochIdentifier))
 	if err != nil {
+		log.Debug("getEpochStartMetaFromStorage", "key", epochIdentifier, "error", err)
 		return nil, err
 	}
 
