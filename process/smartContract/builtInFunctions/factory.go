@@ -12,11 +12,6 @@ const changeOwnerAddressFunctionName = "ChangeOwnerAddress"
 const setUserName = "SetUserName"
 const saveKeyValue = "SaveKeyValue"
 
-// GetBuiltinFunctionNames gets the list of built-in functions
-func GetBuiltinFunctionNames() []string {
-	return []string{claimDeveloperRewardsFunctionName, changeOwnerAddressFunctionName}
-}
-
 // ArgsCreateBuiltInFunctionContainer -
 type ArgsCreateBuiltInFunctionContainer struct {
 	GasMap               map[string]map[string]uint64

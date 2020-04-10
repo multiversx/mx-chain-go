@@ -1,7 +1,8 @@
 package shard
 
 import (
-	arwen "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
+	arwen "github.com/ElrondNetwork/arwen-wasm-vm/arwen"
+	arwenHost "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
 	ipcCommon "github.com/ElrondNetwork/arwen-wasm-vm/ipc/common"
 	ipcLogger "github.com/ElrondNetwork/arwen-wasm-vm/ipc/logger"
 	ipcMarshaling "github.com/ElrondNetwork/arwen-wasm-vm/ipc/marshaling"
@@ -11,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -27,7 +27,7 @@ type vmContainerFactory struct {
 	cryptoHook         vmcommon.CryptoHook
 	blockGasLimit      uint64
 	gasSchedule        map[string]map[string]uint64
-	builtinFunctions   []string
+	builtinFunctions   vmcommon.FunctionNames
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -47,7 +47,7 @@ func NewVMContainerFactory(
 	}
 
 	cryptoHook := hooks.NewVMCryptoHook()
-	builtinFunctions := builtInFunctions.GetBuiltinFunctionNames()
+	builtinFunctions := blockChainHookImpl.GetBuiltinFunctionNames()
 
 	return &vmContainerFactory{
 		config:             config,
@@ -102,11 +102,11 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 		logDialogue,
 		vmf.blockChainHookImpl,
 		ipcCommon.ArwenArguments{
-			VMHostArguments: ipcCommon.VMHostArguments{
-				VMType:                    factory.ArwenVirtualMachine,
-				BlockGasLimit:             vmf.blockGasLimit,
-				GasSchedule:               vmf.gasSchedule,
-				ProtocolReservedFunctions: vmf.builtinFunctions,
+			VMHostParameters: arwen.VMHostParameters{
+				VMType:                   factory.ArwenVirtualMachine,
+				BlockGasLimit:            vmf.blockGasLimit,
+				GasSchedule:              vmf.gasSchedule,
+				ProtocolBuiltinFunctions: vmf.builtinFunctions,
 			},
 			MainLogLevel:        mainLogLevel,
 			DialogueLogLevel:    dialogueLogLevel,
@@ -120,13 +120,15 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 
 func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
 	logVMContainerFactory.Info("createInProcessArwenVM")
-	return arwen.NewArwenVM(
+	return arwenHost.NewArwenVM(
 		vmf.blockChainHookImpl,
 		vmf.cryptoHook,
-		factory.ArwenVirtualMachine,
-		vmf.blockGasLimit,
-		vmf.gasSchedule,
-		vmf.builtinFunctions,
+		&arwen.VMHostParameters{
+			VMType:                   factory.ArwenVirtualMachine,
+			BlockGasLimit:            vmf.blockGasLimit,
+			GasSchedule:              vmf.gasSchedule,
+			ProtocolBuiltinFunctions: vmf.builtinFunctions,
+		},
 	)
 }
 
