@@ -7,8 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-// ArgTxBodyInterceptorProcessor is the argument for the interceptor processor used for tx block body
-type ArgTxBodyInterceptorProcessor struct {
+// ArgMiniblockInterceptorProcessor is the argument for the interceptor processor used for miniblocks
+type ArgMiniblockInterceptorProcessor struct {
 	MiniblockCache   storage.Cacher
 	Marshalizer      marshal.Marshalizer
 	Hasher           hashing.Hasher
