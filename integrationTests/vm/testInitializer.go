@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -334,6 +335,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		BuiltInFunctions: blockChainHook.GetBuiltInFunctions(),
+		TxLogsProcessor:  transactionLog.NewNilTxLogProcessor(),
 	}
 
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)

@@ -80,6 +80,11 @@ func SetupTestContext(t *testing.T) TestContext {
 	})
 	context.VMContainer = vmContainer
 
+	require.NotNil(t, context.TxProcessor)
+	require.NotNil(t, context.ScProcessor)
+	require.NotNil(t, context.QueryService)
+	require.NotNil(t, context.VMContainer)
+
 	return context
 }
 
