@@ -523,27 +523,26 @@ func CreateRatingsData() *rating.RatingsData {
 	ratingsConfig := config.RatingsConfig{
 		ShardChain: config.ShardChain{
 			RatingSteps: config.RatingSteps{
-				ProposerIncreaseRatingStep:     1929,
-				ProposerDecreaseRatingStep:     -3858,
-				ValidatorIncreaseRatingStep:    31,
-				ValidatorDecreaseRatingStep:    -61,
+				ProposerValidatorImportance:    1,
+				ProposerDecreaseFactor:         -4,
+				ValidatorDecreaseFactor:        -4,
 				ConsecutiveMissedBlocksPenalty: 1.1,
 			},
 		},
 		MetaChain: config.MetaChain{
 			RatingSteps: config.RatingSteps{
-				ProposerIncreaseRatingStep:     2500,
-				ProposerDecreaseRatingStep:     -5000,
-				ValidatorIncreaseRatingStep:    35,
-				ValidatorDecreaseRatingStep:    -70,
+				ProposerValidatorImportance:    1,
+				ProposerDecreaseFactor:         -4,
+				ValidatorDecreaseFactor:        -4,
 				ConsecutiveMissedBlocksPenalty: 1.1,
 			},
 		},
 		General: config.General{
-			StartRating:           500000,
-			MaxRating:             1000000,
-			MinRating:             1,
-			SignedBlocksThreshold: 0.025,
+			StartRating:                     500000,
+			MaxRating:                       1000000,
+			MinRating:                       1,
+			HoursToMaxRatingFromStartRating: 50,
+			SignedBlocksThreshold:           0.025,
 			SelectionChances: []*config.SelectionChance{
 				{
 					MaxThreshold:  0,
@@ -592,7 +591,17 @@ func CreateRatingsData() *rating.RatingsData {
 			},
 		},
 	}
-	ratingsData, _ := rating.NewRatingsData(ratingsConfig)
+
+	ratingDataArgs := rating.RatingsDataArg{
+		Config:                   ratingsConfig,
+		ShardConsensusSize:       63,
+		MetaConsensusSize:        400,
+		ShardMinNodes:            400,
+		MetaMinNodes:             400,
+		RoundDurationMiliseconds: 6000,
+	}
+
+	ratingsData, _ := rating.NewRatingsData(ratingDataArgs)
 	return ratingsData
 }
 
@@ -846,7 +855,13 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
 	tpn.ArgsParser = vmcommon.NewAtArgumentParser()
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		AddressConverter: TestAddressConverter,
+		ShardCoordinator: tpn.ShardCoordinator,
+		BuiltInFuncNames: builtInFuncs.Keys(),
+		ArgumentParser:   tpn.ArgsParser,
+	}
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
@@ -931,6 +946,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
 	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
 
+	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         tpn.AccntState,
 		AddrConv:         TestAddressConverter,
@@ -939,7 +955,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ShardCoordinator: tpn.ShardCoordinator,
 		Marshalizer:      TestMarshalizer,
 		Uint64Converter:  TestUint64Converter,
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
+		BuiltInFunctions: builtInFuncs,
 	}
 	gasSchedule := make(map[string]map[string]uint64)
 	vm.FillGasMapInternal(gasSchedule, 1)
@@ -951,8 +967,14 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.addMockVm(tpn.BlockchainHook)
 
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(TestAddressConverter, tpn.ShardCoordinator, tpn.AccntState)
 	tpn.ArgsParser = vmcommon.NewAtArgumentParser()
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		AddressConverter: TestAddressConverter,
+		ShardCoordinator: tpn.ShardCoordinator,
+		BuiltInFuncNames: builtInFuncs.Keys(),
+		ArgumentParser:   tpn.ArgsParser,
+	}
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      tpn.VMContainer,

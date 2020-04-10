@@ -20,7 +20,10 @@ func NewClaimDeveloperRewardsFunc(gasCost uint64) *claimDeveloperRewards {
 }
 
 // ProcessBuiltinFunction processes the protocol built-in smart contract function
-func (c *claimDeveloperRewards) ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, uint64, error) {
+func (c *claimDeveloperRewards) ProcessBuiltinFunction(
+	acntSnd, acntDst state.UserAccountHandler,
+	vmInput *vmcommon.ContractCallInput,
+) (*big.Int, uint64, error) {
 	if vmInput == nil {
 		return nil, 0, process.ErrNilVmInput
 	}
@@ -50,11 +53,6 @@ func (c *claimDeveloperRewards) ProcessBuiltinFunction(acntSnd, acntDst state.Us
 	}
 
 	return value, c.gasCost, nil
-}
-
-// GasUsed returns the gas used for processing the change
-func (c *claimDeveloperRewards) GasUsed() uint64 {
-	return c.gasCost
 }
 
 // IsInterfaceNil returns true if underlying object is nil
