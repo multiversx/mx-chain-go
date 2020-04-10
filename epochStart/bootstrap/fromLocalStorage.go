@@ -15,8 +15,7 @@ import (
 )
 
 func (e *epochStartBootstrap) initializeFromLocalStorage() {
-	var errNotCritical error
-	e.baseData.lastEpoch, e.baseData.shardId, e.baseData.lastRound, errNotCritical = storageFactory.FindLatestDataFromStorage(
+	latestData, errNotCritical := storageFactory.FindLatestDataFromStorage(
 		e.generalConfig,
 		e.marshalizer,
 		e.workingDir,
@@ -30,6 +29,10 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
 	} else {
 		e.baseData.storageExists = true
+		e.baseData.lastEpoch = latestData.Epoch
+		e.baseData.shardId = latestData.ShardID
+		e.baseData.lastRound = latestData.LastRound
+		e.baseData.epochStartRound = latestData.EpochStartRound
 		log.Debug("got last data from storage",
 			"epoch", e.baseData.lastEpoch,
 			"last round", e.baseData.lastRound,

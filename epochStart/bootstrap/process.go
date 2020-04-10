@@ -114,11 +114,12 @@ type epochStartBootstrap struct {
 }
 
 type baseDataInStorage struct {
-	shardId        uint32
-	numberOfShards uint32
-	lastRound      int64
-	lastEpoch      uint32
-	storageExists  bool
+	shardId         uint32
+	numberOfShards  uint32
+	lastRound       int64
+	lastEpoch       uint32
+	epochStartRound uint64
+	storageExists   bool
 }
 
 // ArgsEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
@@ -258,6 +259,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	e.initializeFromLocalStorage()
 
 	// TODO: make a better decision according to lastRound, lastEpoch
+	log.Debug("base Data from local storage ", "lastEpoch", e.baseData.lastEpoch, "computedEpoch", e.computedEpoch, "exists", e.baseData.storageExists)
 	isCurrentEpochSaved := (e.baseData.lastEpoch+1 >= e.computedEpoch) && e.baseData.storageExists
 	if isCurrentEpochSaved {
 		parameters, err := e.prepareEpochFromStorage()
