@@ -153,13 +153,13 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(
 	}
 
 	selfNotarizedHeaders := make([]data.HeaderHandler, len(selfNotarizedHeadersHashes))
-	for _, selfNotarizedHeaderHash := range selfNotarizedHeadersHashes {
+	for index, selfNotarizedHeaderHash := range selfNotarizedHeadersHashes {
 		selfNotarizedHeader, err := ssb.getHeader(selfNotarizedHeaderHash)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		selfNotarizedHeaders = append(selfNotarizedHeaders, selfNotarizedHeader)
+		selfNotarizedHeaders[index] = selfNotarizedHeader
 
 		log.Debug("added self notarized header in block tracker",
 			"shard", core.MetachainShardId,

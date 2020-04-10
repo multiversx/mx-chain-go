@@ -750,7 +750,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 }
 
 func (bp *baseProcessor) getLastCrossNotarizedHeaders() []bootstrapStorage.BootstrapHeaderInfo {
-	lastCrossNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
+	lastCrossNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, bp.shardCoordinator.NumberOfShards()+1)
 
 	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
 		bootstrapHeaderInfo := bp.getLastCrossNotarizedHeadersForShard(shardID)
@@ -768,7 +768,7 @@ func (bp *baseProcessor) getLastCrossNotarizedHeaders() []bootstrapStorage.Boots
 		return nil
 	}
 
-	return lastCrossNotarizedHeaders
+	return trimSliceBootstrapHeaderInfo(lastCrossNotarizedHeaders)
 }
 
 func (bp *baseProcessor) getLastCrossNotarizedHeadersForShard(shardID uint32) *bootstrapStorage.BootstrapHeaderInfo {
@@ -794,7 +794,7 @@ func (bp *baseProcessor) getLastCrossNotarizedHeadersForShard(shardID uint32) *b
 }
 
 func (bp *baseProcessor) getLastSelfNotarizedHeaders() []bootstrapStorage.BootstrapHeaderInfo {
-	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
+	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, bp.shardCoordinator.NumberOfShards()+1)
 
 	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
 		bootstrapHeaderInfo := bp.getLastSelfNotarizedHeadersForShard(shardID)
@@ -812,7 +812,7 @@ func (bp *baseProcessor) getLastSelfNotarizedHeaders() []bootstrapStorage.Bootst
 		return nil
 	}
 
-	return lastSelfNotarizedHeaders
+	return trimSliceBootstrapHeaderInfo(lastSelfNotarizedHeaders)
 }
 
 func (bp *baseProcessor) getLastSelfNotarizedHeadersForShard(shardID uint32) *bootstrapStorage.BootstrapHeaderInfo {
@@ -1068,4 +1068,14 @@ func (bp *baseProcessor) displayMiniBlocksPool() {
 			"receiver", miniBlock.ReceiverShardID,
 			"num txs", len(miniBlock.TxHashes))
 	}
+}
+
+// trimSliceBootstrapHeaderInfo creates a copy of the provided slice without the excess capacity
+func trimSliceBootstrapHeaderInfo(in []bootstrapStorage.BootstrapHeaderInfo) []bootstrapStorage.BootstrapHeaderInfo {
+	if len(in) == 0 {
+		return []bootstrapStorage.BootstrapHeaderInfo{}
+	}
+	ret := make([]bootstrapStorage.BootstrapHeaderInfo, len(in))
+	copy(ret, in)
+	return ret
 }
