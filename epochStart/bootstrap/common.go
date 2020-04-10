@@ -70,6 +70,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if len(args.WorkingDir) == 0 {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidWorkingDir)
 	}
+	if check.IfNil(args.Rounder) {
+		return epochStart.ErrNilRounder
+	}
 
 	return nil
 }
