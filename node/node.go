@@ -130,6 +130,8 @@ type Node struct {
 
 	signatureSize int
 	publicKeySize int
+
+	chanStopNodeProcess chan bool
 }
 
 // ApplyOptions can set up different configurable options of a Node instance

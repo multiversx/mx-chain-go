@@ -275,6 +275,7 @@ func CreateNodesWithTestP2PNodes(
 			WaitingNodes:            make(map[uint32][]sharding.Validator),
 			Epoch:                   0,
 			EpochStartNotifier:      &mock.EpochStartNotifierStub{},
+			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -315,6 +316,7 @@ func CreateNodesWithTestP2PNodes(
 				WaitingNodes:            make(map[uint32][]sharding.Validator),
 				Epoch:                   0,
 				EpochStartNotifier:      &mock.EpochStartNotifierStub{},
+				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 			}
 			nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)

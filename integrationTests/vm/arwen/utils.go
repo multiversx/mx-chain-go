@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/big"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -17,8 +18,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
+
+// VMTypeHex -
+const VMTypeHex = "0500"
+
+// DummyCodeMetadataHex -
+const DummyCodeMetadataHex = "0100"
 
 // TestContext -
 type TestContext struct {
@@ -31,11 +39,13 @@ type TestContext struct {
 	Bob   testParticipant
 	Carol testParticipant
 
-	ScAddress    []byte
-	Accounts     *state.AccountsDB
-	TxProcessor  process.TransactionProcessor
-	QueryService external.SCQueryService
-	VMContainer  process.VirtualMachinesContainer
+	ScAddress      []byte
+	ScCodeMetadata vmcommon.CodeMetadata
+	Accounts       *state.AccountsDB
+	TxProcessor    process.TransactionProcessor
+	ScProcessor    process.SmartContractProcessor
+	QueryService   external.SCQueryService
+	VMContainer    process.VirtualMachinesContainer
 }
 
 type testParticipant struct {
@@ -61,7 +71,7 @@ func SetupTestContext(t *testing.T) TestContext {
 	require.Nil(t, err)
 
 	vmContainer, blockChainHook := vm.CreateVMAndBlockchainHook(context.Accounts, gasSchedule)
-	context.TxProcessor = vm.CreateTxProcessorWithOneSCExecutorWithVMs(context.Accounts, vmContainer, blockChainHook)
+	context.TxProcessor, context.ScProcessor = vm.CreateTxProcessorWithOneSCExecutorWithVMs(context.Accounts, vmContainer, blockChainHook)
 	context.ScAddress, _ = blockChainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.ArwenVirtualMachine)
 	context.QueryService, _ = smartContract.NewSCQueryService(vmContainer, &mock.FeeHandlerStub{
 		MaxGasLimitPerBlockCalled: func() uint64 {
@@ -110,17 +120,16 @@ func (context *TestContext) initAccounts() {
 
 func (context *TestContext) createAccount(participant *testParticipant) {
 	_, err := vm.CreateAccount(context.Accounts, participant.Address, participant.Nonce, participant.Balance)
-	if err != nil {
-		require.FailNow(context.T, err.Error())
-	}
+	require.Nil(context.T, err)
 }
 
 // DeploySC -
-func (context *TestContext) DeploySC(wasmPath string, parametersString string) {
-	smartContractCode := GetSCCode(wasmPath)
+func (context *TestContext) DeploySC(wasmPath string, parametersString string) error {
+	scCode := GetSCCode(wasmPath)
 	owner := &context.Owner
 
-	txData := smartContractCode + "@" + hex.EncodeToString(factory.ArwenVirtualMachine)
+	codeMetadataHex := hex.EncodeToString(context.ScCodeMetadata.ToBytes())
+	txData := strings.Join([]string{scCode, VMTypeHex, codeMetadataHex}, "@")
 	if parametersString != "" {
 		txData = txData + "@" + parametersString
 	}
@@ -137,15 +146,61 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) {
 
 	err := context.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
-		require.FailNow(context.T, err.Error())
+		return err
+	}
+
+	err = context.GetLatestError()
+	if err != nil {
+		return err
 	}
 
 	owner.Nonce++
-
 	_, err = context.Accounts.Commit()
 	if err != nil {
-		require.FailNow(context.T, err.Error())
+		return err
 	}
+
+	return nil
+}
+
+// UpgradeSC -
+func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) error {
+	scCode := GetSCCode(wasmPath)
+	owner := &context.Owner
+
+	codeMetadataHex := hex.EncodeToString(context.ScCodeMetadata.ToBytes())
+	txData := strings.Join([]string{"upgradeContract", scCode, codeMetadataHex}, "@")
+	if parametersString != "" {
+		txData = txData + "@" + parametersString
+	}
+
+	tx := &transaction.Transaction{
+		Nonce:    owner.Nonce,
+		Value:    big.NewInt(0),
+		RcvAddr:  context.ScAddress,
+		SndAddr:  owner.Address,
+		GasPrice: 1,
+		GasLimit: math.MaxInt32,
+		Data:     []byte(txData),
+	}
+
+	err := context.TxProcessor.ProcessTransaction(tx)
+	if err != nil {
+		return err
+	}
+
+	err = context.GetLatestError()
+	if err != nil {
+		return err
+	}
+
+	owner.Nonce++
+	_, err = context.Accounts.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // GetSCCode -
@@ -160,12 +215,17 @@ func GetSCCode(fileName string) string {
 	return codeEncoded
 }
 
-// ExecuteSC -
-func (context *TestContext) ExecuteSC(sender *testParticipant, txData string) {
-	context.executeSCWithValue(sender, txData, big.NewInt(0))
+// CreateDeployTxData -
+func CreateDeployTxData(scCode string) string {
+	return strings.Join([]string{scCode, VMTypeHex, DummyCodeMetadataHex}, "@")
 }
 
-func (context *TestContext) executeSCWithValue(sender *testParticipant, txData string, value *big.Int) {
+// ExecuteSC -
+func (context *TestContext) ExecuteSC(sender *testParticipant, txData string) error {
+	return context.executeSCWithValue(sender, txData, big.NewInt(0))
+}
+
+func (context *TestContext) executeSCWithValue(sender *testParticipant, txData string, value *big.Int) error {
 	tx := &transaction.Transaction{
 		Nonce:    sender.Nonce,
 		Value:    new(big.Int).Set(value),
@@ -178,15 +238,21 @@ func (context *TestContext) executeSCWithValue(sender *testParticipant, txData s
 
 	err := context.TxProcessor.ProcessTransaction(tx)
 	if err != nil {
-		require.FailNow(context.T, err.Error())
+		return err
+	}
+	err = context.GetLatestError()
+	if err != nil {
+		return err
 	}
 
 	sender.Nonce++
 
 	_, err = context.Accounts.Commit()
 	if err != nil {
-		require.FailNow(context.T, err.Error())
+		return err
 	}
+
+	return nil
 }
 
 // QuerySCInt -
@@ -197,6 +263,18 @@ func (context *TestContext) QuerySCInt(function string, args [][]byte) uint64 {
 	return result
 }
 
+// QuerySCString -
+func (context *TestContext) QuerySCString(function string, args [][]byte) string {
+	bytes := context.querySC(function, args)
+	return string(bytes)
+}
+
+// QuerySCBytes -
+func (context *TestContext) QuerySCBytes(function string, args [][]byte) []byte {
+	bytes := context.querySC(function, args)
+	return bytes
+}
+
 func (context *TestContext) querySC(function string, args [][]byte) []byte {
 	query := process.SCQuery{
 		ScAddress: context.ScAddress,
@@ -205,13 +283,15 @@ func (context *TestContext) querySC(function string, args [][]byte) []byte {
 	}
 
 	vmOutput, err := context.QueryService.ExecuteQuery(&query)
-	if err != nil {
-		require.FailNow(context.T, err.Error())
-		return []byte{}
-	}
+	require.Nil(context.T, err)
 
 	firstResult := vmOutput.ReturnData[0]
 	return firstResult
+}
+
+// GetLatestError -
+func (context *TestContext) GetLatestError() error {
+	return smartContract.GetLatestTestError(context.ScProcessor)
 }
 
 // FormatHexNumber -

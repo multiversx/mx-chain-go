@@ -22,4 +22,5 @@ type ArgNodesCoordinator struct {
 	SelfPublicKey           []byte
 	Epoch                   uint32
 	ConsensusGroupCache     Cacher
+	ShuffledOutHandler      ShuffledOutHandler
 }

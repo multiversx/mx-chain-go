@@ -19,7 +19,6 @@ import (
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
 	*baseTxProcessor
-	scProcessor      process.SmartContractProcessor
 	txFeeHandler     process.TransactionFeeHandler
 	txTypeHandler    process.TxTypeHandler
 	receiptForwarder process.IntermediateTransactionHandler
@@ -82,11 +81,11 @@ func NewTxProcessor(
 		economicsFee:     economicsFee,
 		hasher:           hasher,
 		marshalizer:      marshalizer,
+		scProcessor:      scProcessor,
 	}
 
 	return &txProcessor{
 		baseTxProcessor:  baseTxProcess,
-		scProcessor:      scProcessor,
 		txFeeHandler:     txFeeHandler,
 		txTypeHandler:    txTypeHandler,
 		receiptForwarder: receiptForwarder,
@@ -105,7 +104,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 		return err
 	}
 
-	acntSnd, err := txProc.getAccountFromAddress(adrSrc)
+	acntSnd, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
 	if err != nil {
 		return err
 	}
@@ -117,13 +116,21 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 		txProc.pubkeyConv,
 	)
 
-	err = txProc.checkTxValues(tx, acntSnd)
+	err = txProc.checkTxValues(tx, acntSnd, acntDst)
 	if err != nil {
 		if errors.Is(err, process.ErrInsufficientFunds) {
 			receiptErr := txProc.executingFailedTransaction(tx, acntSnd, err)
 			if receiptErr != nil {
 				return receiptErr
 			}
+		}
+
+		if errors.Is(err, process.ErrUserNameDoesNotMatchInCrossShardTx) {
+			errProcessIfErr := txProc.processIfTxErrorCrossShard(tx, err.Error())
+			if errProcessIfErr != nil {
+				return errProcessIfErr
+			}
+			return nil
 		}
 		return err
 	}

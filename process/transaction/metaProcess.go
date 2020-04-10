@@ -1,6 +1,8 @@
 package transaction
 
 import (
+	"errors"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -15,7 +17,6 @@ import (
 type metaTxProcessor struct {
 	*baseTxProcessor
 	txTypeHandler process.TxTypeHandler
-	scProcessor   process.SmartContractProcessor
 }
 
 // NewMetaTxProcessor creates a new txProcessor engine
@@ -56,11 +57,11 @@ func NewMetaTxProcessor(
 		economicsFee:     economicsFee,
 		hasher:           hasher,
 		marshalizer:      marshalizer,
+		scProcessor:      scProcessor,
 	}
 
 	return &metaTxProcessor{
 		baseTxProcessor: baseTxProcess,
-		scProcessor:     scProcessor,
 		txTypeHandler:   txTypeHandler,
 	}, nil
 }
@@ -76,7 +77,12 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) e
 		return err
 	}
 
-	acntSnd, err := txProc.getAccountFromAddress(adrSrc)
+	acntSnd, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
+	if err != nil {
+		return err
+	}
+
+	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
 	if err != nil {
 		return err
 	}
@@ -88,8 +94,16 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) e
 		txProc.pubkeyConv,
 	)
 
-	err = txProc.checkTxValues(tx, acntSnd)
+	err = txProc.checkTxValues(tx, acntSnd, acntDst)
 	if err != nil {
+		if errors.Is(err, process.ErrUserNameDoesNotMatchInCrossShardTx) {
+			errProcessIfErr := txProc.processIfTxErrorCrossShard(tx, err.Error())
+			if errProcessIfErr != nil {
+				return errProcessIfErr
+			}
+			return nil
+		}
+
 		return err
 	}
 
@@ -105,11 +119,8 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) e
 		return txProc.processSCInvoking(tx, adrSrc, adrDst)
 	}
 
-	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
-	if err != nil {
-		return err
-	}
-	err = txProc.scProcessor.ProcessIfError(acntSnd, txHash, tx, process.ErrWrongTransaction.Error())
+	snapshot := txProc.accounts.JournalLen()
+	err = txProc.scProcessor.ProcessIfError(acntSnd, txHash, tx, process.ErrWrongTransaction.Error(), snapshot)
 	if err != nil {
 		return err
 	}

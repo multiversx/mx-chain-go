@@ -28,8 +28,8 @@ func IsSmartContractAddress(rcvAddress []byte) bool {
 		return true
 	}
 
-	isSCAddress := bytes.Equal(rcvAddress[:(NumInitCharactersForScAddress-VMTypeLen)],
-		make([]byte, NumInitCharactersForScAddress-VMTypeLen))
+	numOfZeros := NumInitCharactersForScAddress - VMTypeLen
+	isSCAddress := bytes.Equal(rcvAddress[:numOfZeros], make([]byte, numOfZeros))
 	return isSCAddress
 }
 
@@ -66,13 +66,4 @@ func IsSmartContractOnMetachain(identifier []byte, rcvAddress []byte) bool {
 	isOnMetaChainSCAddress := bytes.Equal(leftSide,
 		make([]byte, numInitCharactersForOnMetachainSC))
 	return isOnMetaChainSCAddress
-}
-
-// GetVMType will return the vm type
-func GetVMType(rcvAddress []byte) []byte {
-	if len(rcvAddress) < NumInitCharactersForScAddress {
-		return nil
-	}
-
-	return rcvAddress[NumInitCharactersForScAddress-VMTypeLen : NumInitCharactersForScAddress]
 }

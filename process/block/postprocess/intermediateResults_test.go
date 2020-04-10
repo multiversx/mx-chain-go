@@ -300,11 +300,11 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 
 	txHash := []byte("txHash")
 	txs := make([]data.TransactionHandler, 0)
-	txs = append(txs, &smartContractResult.SmartContractResult{TxHash: txHash, Nonce: 0})
-	txs = append(txs, &smartContractResult.SmartContractResult{TxHash: txHash, Nonce: 1})
-	txs = append(txs, &smartContractResult.SmartContractResult{TxHash: txHash, Nonce: 2})
-	txs = append(txs, &smartContractResult.SmartContractResult{TxHash: txHash, Nonce: 3})
-	txs = append(txs, &smartContractResult.SmartContractResult{TxHash: txHash, Nonce: 4})
+	txs = append(txs, &smartContractResult.SmartContractResult{PrevTxHash: txHash, Nonce: 0})
+	txs = append(txs, &smartContractResult.SmartContractResult{PrevTxHash: txHash, Nonce: 1})
+	txs = append(txs, &smartContractResult.SmartContractResult{PrevTxHash: txHash, Nonce: 2})
+	txs = append(txs, &smartContractResult.SmartContractResult{PrevTxHash: txHash, Nonce: 3})
+	txs = append(txs, &smartContractResult.SmartContractResult{PrevTxHash: txHash, Nonce: 4})
 
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
