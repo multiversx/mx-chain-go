@@ -52,7 +52,7 @@ if [ $USE_PROXY -eq 1 ]; then
   buildProxy
 fi
 if [ $USE_TXGEN -eq 1 ]; then
-	prepareFolders_TxGen
+  prepareFolders_TxGen
   buildTxGen
 fi
 
@@ -65,12 +65,12 @@ fi
 
 # Phase 7: start the TxGen, with or without regenerating the accounts
 if [ $USE_TXGEN -eq 1 ]; then
-	if [ -n "$TXGEN_REGENERATE_ACCOUNTS" ]
-	then
-		echo "Starting TxGen with account generation..."
-		startTxGen_NewAccounts
-	else
-		echo "Starting TxGen with existing accounts..."
-		startTxGen_ExistingAccounts
-	fi
+  if [ -n "$TXGEN_REGENERATE_ACCOUNTS" ]
+  then
+    echo "Starting TxGen with account generation..."
+    startTxGen_NewAccounts
+  else
+    echo "Starting TxGen with existing accounts..."
+    startTxGen_ExistingAccounts
+  fi
 fi

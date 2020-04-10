@@ -27,7 +27,7 @@ if [ $USE_PROXY -eq 1 ]; then
 fi
 
 if [ $USE_TXGEN -eq 1 ]; then
-	prepareFolders_TxGen
+  prepareFolders_TxGen
   copyTxGenConfig
   updateTxGenConfig
 fi
