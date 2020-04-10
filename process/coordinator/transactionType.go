@@ -44,7 +44,7 @@ func NewTxTypeHandler(
 	}
 
 	tc := &txTypeHandler{
-		pubkeyConv:       args.AddressConverter,
+		pubkeyConv:       args.PubkeyConverter,
 		shardCoordinator: args.ShardCoordinator,
 		argumentParser:   args.ArgumentParser,
 		builtInFuncNames: args.BuiltInFuncNames,

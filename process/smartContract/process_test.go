@@ -302,7 +302,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateEmptyByteSlice(createMockPubkeyConverter.Len())
+	tx.RcvAddr = generateEmptyByteSlice(createMockPubkeyConverter().Len())
 	tx.Data = []byte("abba@0500@0000")
 	tx.Value = big.NewInt(0)
 	acntSrc, _ := createAccounts(tx)
@@ -581,6 +581,7 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 
 	input, vmType, err := sc.createVMDeployInput(tx)
 	require.NotNil(t, input)
+	require.Nil(t, err)
 	require.Equal(t, vmcommon.DirectCall, input.CallType)
 	require.True(t, bytes.Equal(expectedVMType, vmType))
 	require.Equal(t, expectedCodeMetadata.ToBytes(), input.ContractCodeMetadata)

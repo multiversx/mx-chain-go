@@ -185,11 +185,11 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.AddressConverter = &mock.AddressConverterStub{
-		AddressLenHandler: func() int {
+	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
+		CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
 			return mock.NewAddressMock(pubKey), nil
 		}}
 	tth, err := NewTxTypeHandler(arg)
@@ -213,11 +213,11 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunc(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.AddressConverter = &mock.AddressConverterStub{
-		AddressLenHandler: func() int {
+	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
+		CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
 			return mock.NewAddressMock(pubKey), nil
 		}}
 	builtIn := "builtIn"

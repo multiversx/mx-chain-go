@@ -400,12 +400,12 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 func (bh *BlockChainHookImpl) getUserAccounts(
 	input *vmcommon.ContractCallInput,
 ) (state.UserAccountHandler, state.UserAccountHandler, error) {
-	sndAddr, err := bh.addrConv.CreateAddressFromPublicKeyBytes(input.CallerAddr)
+	sndAddr, err := bh.pubkeyConv.CreateAddressFromBytes(input.CallerAddr)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	dstAddr, err := bh.addrConv.CreateAddressFromPublicKeyBytes(input.RecipientAddr)
+	dstAddr, err := bh.pubkeyConv.CreateAddressFromBytes(input.RecipientAddr)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -969,7 +969,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.FeeAccumulator, _ = postprocess.NewFeeAccumulator()
 	tpn.ArgsParser = vmcommon.NewAtArgumentParser()
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		AddressConverter: TestAddressConverter,
+		PubkeyConverter:  TestAddressPubkeyConverter,
 		ShardCoordinator: tpn.ShardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   tpn.ArgsParser,

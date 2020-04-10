@@ -1215,7 +1215,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		AddressConverter: &mock.AddressConverterMock{},
+		PubkeyConverter:  mock.NewPubkeyConverterMock(32),
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),
