@@ -24,8 +24,8 @@ func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 	return arg
 }
 
-func createDefaultMiniblockArgument() *ArgInterceptedMinblock {
-	arg := &ArgInterceptedMinblock{
+func createDefaultMiniblockArgument() *ArgInterceptedMiniblock {
+	arg := &ArgInterceptedMiniblock{
 		Hasher:           mock.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		MiniblockBuff:    []byte("test buffer"),

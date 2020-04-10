@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createDefaultMiniblockArgument() *interceptedBlocks.ArgInterceptedMinblock {
-	arg := &interceptedBlocks.ArgInterceptedMinblock{
+func createDefaultMiniblockArgument() *interceptedBlocks.ArgInterceptedMiniblock {
+	arg := &interceptedBlocks.ArgInterceptedMiniblock{
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 		Hasher:           testHasher,
 		Marshalizer:      testMarshalizer,

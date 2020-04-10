@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/getters"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -230,7 +230,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		BootStorer:          tpn.BootstrapStorer,
 		StorageBootstrapper: tpn.StorageBootstrapper,
 		EpochHandler:        tpn.EpochStartTrigger,
-		MiniblocksGetter:    tpn.MiniblocksGetter,
+		MiniblocksProvider:  tpn.MiniblocksProvider,
 		Uint64Converter:     TestUint64Converter,
 	}
 
@@ -267,7 +267,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		BootStorer:          tpn.BootstrapStorer,
 		StorageBootstrapper: tpn.StorageBootstrapper,
 		EpochHandler:        tpn.EpochStartTrigger,
-		MiniblocksGetter:    tpn.MiniblocksGetter,
+		MiniblocksProvider:  tpn.MiniblocksProvider,
 		Uint64Converter:     TestUint64Converter,
 	}
 
@@ -287,7 +287,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 }
 
 func (tpn *TestProcessorNode) initBootstrapper() {
-	tpn.createMiniblocksGetter()
+	tpn.createMiniblocksProvider()
 
 	if tpn.ShardCoordinator.SelfId() < tpn.ShardCoordinator.NumberOfShards() {
 		tpn.Bootstrapper, _ = tpn.createShardBootstrapper()
@@ -296,15 +296,15 @@ func (tpn *TestProcessorNode) initBootstrapper() {
 	}
 }
 
-func (tpn *TestProcessorNode) createMiniblocksGetter() {
-	arg := getters.ArgMiniBlockDataGetter{
+func (tpn *TestProcessorNode) createMiniblocksProvider() {
+	arg := provider.ArgMiniBlockProvider{
 		MiniBlockPool:    tpn.DataPool.MiniBlocks(),
 		MiniBlockStorage: tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit),
 		Marshalizer:      TestMarshalizer,
 	}
 
-	miniblockGetter, err := getters.NewMiniBlockDataGetter(arg)
+	miniblockGetter, err := provider.NewMiniBlockProvider(arg)
 	log.LogIfError(err)
 
-	tpn.MiniblocksGetter = miniblockGetter
+	tpn.MiniblocksProvider = miniblockGetter
 }

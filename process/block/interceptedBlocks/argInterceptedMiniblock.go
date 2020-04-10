@@ -6,8 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// ArgInterceptedMinblock is the argument for the intercepted miniblock
-type ArgInterceptedMinblock struct {
+// ArgInterceptedMiniblock is the argument for the intercepted miniblock
+type ArgInterceptedMiniblock struct {
 	MiniblockBuff    []byte
 	Marshalizer      marshal.Marshalizer
 	Hasher           hashing.Hasher

@@ -34,7 +34,7 @@ type ArgBaseBootstrapper struct {
 	BootStorer          process.BootStorer
 	StorageBootstrapper process.BootstrapperFromStorage
 	EpochHandler        dataRetriever.EpochHandler
-	MiniblocksGetter    process.MiniBlockDataGetter
+	MiniblocksProvider  process.MiniBlockProvider
 	Uint64Converter     typeConverters.Uint64ByteSliceConverter
 }
 

@@ -197,7 +197,7 @@ type TestProcessorNode struct {
 	ForkDetector             process.ForkDetector
 	BlockProcessor           process.BlockProcessor
 	BroadcastMessenger       consensus.BroadcastMessenger
-	MiniblocksGetter         process.MiniBlockDataGetter
+	MiniblocksProvider       process.MiniBlockProvider
 	Bootstrapper             TestBootstrapper
 	Rounder                  *mock.RounderMock
 	BootstrapStorer          *mock.BoostrapStorerMock
@@ -232,7 +232,7 @@ type TestProcessorNode struct {
 	ExportHandler update.ExportHandler
 }
 
-// CreatePkBytes creates 'numShards` public key-like byte slices
+// CreatePkBytes creates 'numShards' public key-like byte slices
 func CreatePkBytes(numShards uint32) map[uint32][]byte {
 	pksbytes := make(map[uint32][]byte, numShards+1)
 	for i := uint32(0); i < numShards; i++ {

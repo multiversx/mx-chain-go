@@ -1,6 +1,9 @@
 package resolvers
 
 import (
+	"fmt"
+
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -21,6 +24,7 @@ type ArgMiniblockResolver struct {
 }
 
 // miniblockResolver is a wrapper over Resolver that is specialized in resolving miniblocks requests
+// TODO extract common functionality between this and transactionResolver
 type miniblockResolver struct {
 	dataRetriever.TopicResolverSender
 	messageProcessor
@@ -87,44 +91,41 @@ func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, f
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		var buff []byte
-		buff, err = mbRes.resolveMbRequestByHash(rd.Value)
-		if err != nil {
-			return err
-		}
-		return mbRes.Send(buff, message.Peer())
+		err = mbRes.resolveMbRequestByHash(rd.Value, message.Peer())
 	case dataRetriever.HashArrayType:
-		return mbRes.resolveMbRequestByHashArray(rd.Value, message.Peer())
+		err = mbRes.resolveMbRequestByHashArray(rd.Value, message.Peer())
 	default:
-		return dataRetriever.ErrRequestTypeNotImplemented
+		err = dataRetriever.ErrRequestTypeNotImplemented
 	}
+
+	if err != nil {
+		err = fmt.Errorf("%w for hash %s", err, logger.DisplayByteSlice(rd.Value))
+	}
+
+	return err
 }
 
-func (mbRes *miniblockResolver) resolveMbRequestByHash(hash []byte) ([]byte, error) {
+func (mbRes *miniblockResolver) resolveMbRequestByHash(hash []byte, pid p2p.PeerID) error {
 	mb, err := mbRes.fetchMbAsByteSlice(hash)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	buffToSend, err := mbRes.marshalizer.Marshal(&batch.Batch{Data: [][]byte{mb}})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return buffToSend, nil
+	return mbRes.Send(buffToSend, pid)
 }
 
 func (mbRes *miniblockResolver) fetchMbAsByteSlice(hash []byte) ([]byte, error) {
 	value, ok := mbRes.miniBlockPool.Peek(hash)
 	if ok {
-		txBuff, err := mbRes.marshalizer.Marshal(value)
-		if err != nil {
-			return nil, err
-		}
-		return txBuff, nil
+		return mbRes.marshalizer.Marshal(value)
 	}
 
-	return mbRes.miniBlockStorage.SearchFirst(hash)
+	return mbRes.miniBlockStorage.Get(hash)
 }
 
 func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid p2p.PeerID) error {
@@ -135,20 +136,24 @@ func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid p
 	}
 	hashes := b.Data
 
+	var errFetch error
+	errorsFound := 0
 	mbsBuffSlice := make([][]byte, 0, len(hashes))
 	for _, hash := range hashes {
-		mb, errFetch := mbRes.fetchMbAsByteSlice(hash)
-		if errFetch != nil {
-			err = errFetch
-			log.Trace("fetchTxAsByteSlice missing",
-				"error", err.Error(),
+		mb, errTemp := mbRes.fetchMbAsByteSlice(hash)
+		if errTemp != nil {
+			errFetch = errTemp
+			log.Trace("fetchMbAsByteSlice missing",
+				"error", errFetch.Error(),
 				"hash", hash)
+			errorsFound++
+
 			continue
 		}
 		mbsBuffSlice = append(mbsBuffSlice, mb)
 	}
 
-	buffsToSend, errPack := mbRes.dataPacker.PackDataInChunks(mbsBuffSlice, maxBuffToSendBulkTransactions)
+	buffsToSend, errPack := mbRes.dataPacker.PackDataInChunks(mbsBuffSlice, maxBuffToSendBulkMiniblocks)
 	if errPack != nil {
 		return errPack
 	}
@@ -160,7 +165,11 @@ func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid p
 		}
 	}
 
-	return err
+	if errFetch != nil {
+		errFetch = fmt.Errorf("resolveMbRequestByHashArray last error %w from %d encountered errors", errFetch, errorsFound)
+	}
+
+	return errFetch
 }
 
 // RequestDataFromHash requests a block body from other peers having input the block body hash
@@ -174,7 +183,10 @@ func (mbRes *miniblockResolver) RequestDataFromHash(hash []byte, epoch uint32) e
 
 // RequestDataFromHashArray requests a block body from other peers having input the block body hash
 func (mbRes *miniblockResolver) RequestDataFromHashArray(hashes [][]byte, _ uint32) error {
-	hash, err := mbRes.marshalizer.Marshal(&batch.Batch{Data: hashes})
+	b := &batch.Batch{
+		Data: hashes,
+	}
+	hash, err := mbRes.marshalizer.Marshal(b)
 
 	if err != nil {
 		return err

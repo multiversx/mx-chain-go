@@ -140,9 +140,6 @@ var ErrNilMessenger = errors.New("nil Messenger")
 // ErrNilTxDataPool signals that a nil transaction pool has been provided
 var ErrNilTxDataPool = errors.New("nil transaction data pool")
 
-// ErrEmptyTxDataPool signals that a empty transaction pool has been provided
-var ErrEmptyTxDataPool = errors.New("empty transaction data pool")
-
 // ErrNilHeadersDataPool signals that a nil headers pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
 
@@ -620,8 +617,8 @@ var ErrNilValidityAttester = errors.New("nil validity attester")
 // ErrNilHeaderHandler signals that a nil header handler has been provided
 var ErrNilHeaderHandler = errors.New("nil header handler")
 
-// ErrNilMiniBlocksGetter signals that a nil miniblocks resolver has been provided
-var ErrNilMiniBlocksGetter = errors.New("nil miniblocks getter")
+// ErrNilMiniBlocksProvider signals that a nil miniblocks data provider has been passed over
+var ErrNilMiniBlocksProvider = errors.New("nil miniblocks provider")
 
 // ErrNilWhiteListHandler signals that white list handler is nil
 var ErrNilWhiteListHandler = errors.New("nil whitelist handler")

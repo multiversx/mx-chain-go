@@ -168,7 +168,7 @@ func TestTxResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
 
 	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
-	assert.Equal(t, dataRetriever.ErrRequestTypeNotImplemented, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrRequestTypeNotImplemented))
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }

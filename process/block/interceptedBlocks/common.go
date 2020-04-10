@@ -41,7 +41,7 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	return nil
 }
 
-func checkMiniblockArgument(arg *ArgInterceptedMinblock) error {
+func checkMiniblockArgument(arg *ArgInterceptedMiniblock) error {
 	if arg == nil {
 		return process.ErrNilArgumentStruct
 	}

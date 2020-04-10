@@ -207,9 +207,7 @@ func (hdrRes *HeaderResolver) resolveHeaderFromHash(rd *dataRetriever.RequestDat
 		//  return hdrRes.hdrStorage.GetFromEpoch(rd.Value, rd.Epoch)
 	}
 
-	buff, err := hdrRes.marshalizer.Marshal(value)
-
-	return buff, err
+	return hdrRes.marshalizer.Marshal(value)
 }
 
 // resolveHeaderFromEpoch resolves a header using its key based on epoch

@@ -26,7 +26,7 @@ func createMockMiniblockArgument() *processor.ArgMiniblockInterceptorProcessor {
 }
 
 func createInteceptedMiniblock(miniblock *block.MiniBlock) *interceptedBlocks.InterceptedMiniblock {
-	arg := &interceptedBlocks.ArgInterceptedMinblock{
+	arg := &interceptedBlocks.ArgInterceptedMiniblock{
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 		Hasher:           testHasher,
 		Marshalizer:      testMarshalizer,

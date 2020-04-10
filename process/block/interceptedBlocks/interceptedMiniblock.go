@@ -22,7 +22,7 @@ type InterceptedMiniblock struct {
 }
 
 // NewInterceptedMiniblock creates a new instance of InterceptedMiniblock struct
-func NewInterceptedMiniblock(arg *ArgInterceptedMinblock) (*InterceptedMiniblock, error) {
+func NewInterceptedMiniblock(arg *ArgInterceptedMiniblock) (*InterceptedMiniblock, error) {
 	err := checkMiniblockArgument(arg)
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func (inMb *InterceptedMiniblock) processFields(mbBuff []byte) {
 func (inMb *InterceptedMiniblock) processIsForCurrentShard() {
 	isForCurrentShardRecv := inMb.miniblock.ReceiverShardID == inMb.shardCoordinator.SelfId()
 	isForCurrentShardSender := inMb.miniblock.SenderShardID == inMb.shardCoordinator.SelfId()
-	isForAllShards := inMb.miniblock.ReceiverShardID == core.AllShardId || inMb.miniblock.SenderShardID == core.AllShardId
+	isForAllShards := inMb.miniblock.ReceiverShardID == core.AllShardId
 
 	inMb.isForCurrentShard = isForCurrentShardRecv || isForCurrentShardSender || isForAllShards
 }
@@ -99,7 +99,7 @@ func (inMb *InterceptedMiniblock) integrity() error {
 	}
 
 	senderNotCurrentShard := miniblock.SenderShardID >= inMb.shardCoordinator.NumberOfShards() &&
-		(miniblock.SenderShardID != core.MetachainShardId && miniblock.SenderShardID != core.AllShardId)
+		miniblock.SenderShardID != core.MetachainShardId
 	if senderNotCurrentShard {
 		return process.ErrInvalidShardId
 	}
@@ -120,7 +120,7 @@ func (inMb *InterceptedMiniblock) Type() string {
 
 // String returns the transactions body's most important fields as string
 func (inMb *InterceptedMiniblock) String() string {
-	return fmt.Sprintf("miniblock type=%s, numTxs=%d, sender shardid=%d, recv shardid=%d, ",
+	return fmt.Sprintf("miniblock type=%s, numTxs=%d, sender shardid=%d, recv shardid=%d",
 		inMb.miniblock.Type.String(),
 		inMb.miniblock.TxHashes,
 		inMb.miniblock.SenderShardID,

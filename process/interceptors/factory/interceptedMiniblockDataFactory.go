@@ -39,7 +39,7 @@ func NewInterceptedMiniblockDataFactory(argument *ArgInterceptedDataFactory) (*i
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 func (imfd *interceptedMiniblockDataFactory) Create(buff []byte) (process.InterceptedData, error) {
-	arg := &interceptedBlocks.ArgInterceptedMinblock{
+	arg := &interceptedBlocks.ArgInterceptedMiniblock{
 		MiniblockBuff:    buff,
 		Marshalizer:      imfd.marshalizer,
 		Hasher:           imfd.hasher,
