@@ -18,12 +18,13 @@ import (
 )
 
 type trieCreator struct {
-	evictionWaitingListCfg config.EvictionWaitingListConfig
-	snapshotDbCfg          config.DBConfig
-	marshalizer            marshal.Marshalizer
-	hasher                 hashing.Hasher
-	pathManager            storage.PathManagerHandler
-	shardId                string
+	evictionWaitingListCfg   config.EvictionWaitingListConfig
+	snapshotDbCfg            config.DBConfig
+	marshalizer              marshal.Marshalizer
+	hasher                   hashing.Hasher
+	pathManager              storage.PathManagerHandler
+	shardId                  string
+	trieStorageManagerConfig config.TrieStorageManagerConfig
 }
 
 var log = logger.GetOrCreate("trie")
@@ -43,12 +44,13 @@ func NewTrieFactory(
 	}
 
 	return &trieCreator{
-		evictionWaitingListCfg: args.EvictionWaitingListCfg,
-		snapshotDbCfg:          args.SnapshotDbCfg,
-		marshalizer:            args.Marshalizer,
-		hasher:                 args.Hasher,
-		pathManager:            args.PathManager,
-		shardId:                args.ShardId,
+		evictionWaitingListCfg:   args.EvictionWaitingListCfg,
+		snapshotDbCfg:            args.SnapshotDbCfg,
+		marshalizer:              args.Marshalizer,
+		hasher:                   args.Hasher,
+		pathManager:              args.PathManager,
+		shardId:                  args.ShardId,
+		trieStorageManagerConfig: args.TrieStorageManagerConfig,
 	}, nil
 }
 
@@ -107,7 +109,14 @@ func (tc *trieCreator) Create(trieStorageCfg config.StorageConfig, pruningEnable
 		MaxOpenFiles:      tc.snapshotDbCfg.MaxOpenFiles,
 	}
 
-	trieStorage, err := trie.NewTrieStorageManager(accountsTrieStorage, tc.marshalizer, tc.hasher, snapshotDbCfg, ewl)
+	trieStorage, err := trie.NewTrieStorageManager(
+		accountsTrieStorage,
+		tc.marshalizer,
+		tc.hasher,
+		snapshotDbCfg,
+		ewl,
+		tc.trieStorageManagerConfig,
+	)
 	if err != nil {
 		return nil, nil, err
 	}

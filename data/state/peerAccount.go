@@ -170,7 +170,6 @@ func (pa *peerAccount) ResetAtNewEpoch() {
 	pa.ValidatorSuccessRate.NumSuccess = 0
 	pa.ValidatorSuccessRate.NumFailure = 0
 	pa.NumSelectedInSuccessBlocks = 0
-	pa.ConsecutiveProposerMisses = 0
 }
 
 //IncreaseNonce adds the given value to the current nonce

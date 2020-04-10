@@ -21,7 +21,10 @@ func NewChangeOwnerAddressFunc(gasCost uint64) *changeOwnerAddress {
 }
 
 // ProcessBuiltinFunction processes simple protocol built-in function
-func (c *changeOwnerAddress) ProcessBuiltinFunction(_, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, uint64, error) {
+func (c *changeOwnerAddress) ProcessBuiltinFunction(
+	_, acntDst state.UserAccountHandler,
+	vmInput *vmcommon.ContractCallInput,
+) (*big.Int, uint64, error) {
 	if vmInput == nil {
 		return nil, 0, process.ErrNilVmInput
 	}
@@ -48,11 +51,6 @@ func (c *changeOwnerAddress) ProcessBuiltinFunction(_, acntDst state.UserAccount
 	}
 
 	return big.NewInt(0), c.gasCost, nil
-}
-
-// GasUsed returns the gas used for processing the change
-func (c *changeOwnerAddress) GasUsed() uint64 {
-	return c.gasCost
 }
 
 // IsInterfaceNil returns true if underlying object in nil

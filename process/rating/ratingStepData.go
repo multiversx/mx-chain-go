@@ -1,7 +1,6 @@
 package rating
 
 import (
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -15,13 +14,19 @@ type RatingStep struct {
 }
 
 // NewRatingsData creates a new RatingsData instance
-func NewRatingStepData(steps config.RatingSteps) process.RatingsStepHandler {
+func NewRatingStepData(
+	proposerIncreaseRatingStep int32,
+	proposerDecreaseRatingStep int32,
+	validatorIncreaseRatingStep int32,
+	validatorDecreaseRatingStep int32,
+	consecutiveMissedBlocksPenalty float32,
+) process.RatingsStepHandler {
 	return &RatingStep{
-		proposerIncreaseRatingStep:     steps.ProposerIncreaseRatingStep,
-		proposerDecreaseRatingStep:     steps.ProposerDecreaseRatingStep,
-		validatorIncreaseRatingStep:    steps.ValidatorIncreaseRatingStep,
-		validatorDecreaseRatingStep:    steps.ValidatorDecreaseRatingStep,
-		consecutiveMissedBlocksPenalty: steps.ConsecutiveMissedBlocksPenalty,
+		proposerIncreaseRatingStep:     proposerIncreaseRatingStep,
+		proposerDecreaseRatingStep:     proposerDecreaseRatingStep,
+		validatorIncreaseRatingStep:    validatorIncreaseRatingStep,
+		validatorDecreaseRatingStep:    validatorDecreaseRatingStep,
+		consecutiveMissedBlocksPenalty: consecutiveMissedBlocksPenalty,
 	}
 }
 
