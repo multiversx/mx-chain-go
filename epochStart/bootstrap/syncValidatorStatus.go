@@ -97,6 +97,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		WaitingNodes:            waitingValidators,
 		SelfPublicKey:           args.PubKey,
 		ConsensusGroupCache:     consensusGroupCache,
+		ShuffledOutHandler:      disabled.NewShuffledOutHandler(),
 	}
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {

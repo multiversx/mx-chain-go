@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
@@ -246,7 +247,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	store := integrationTests.CreateMemUnit()
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, hasher, config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, hasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
 
 	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher)
 
@@ -307,7 +308,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(mu, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(mu, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ = state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -571,59 +572,59 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	//Step 1. create accounts objects
 	adb, _, _ := integrationTests.CreateAccountsDB(0)
 	rootHash, err := adb.RootHash()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - empty: %v\n", hrEmpty)
 
 	//Step 2. create 2 new accounts
 	state1, err := adb.LoadAccount(adr1)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	state1.(state.UserAccountHandler).SetCode(code)
 	_ = adb.SaveAccount(state1)
 
 	snapshotCreated1 := adb.JournalLen()
 	rootHash, err = adb.RootHash()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	hrCreated1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 
 	state2, err := adb.LoadAccount(adr2)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	state2.(state.UserAccountHandler).SetCode(code)
 	_ = adb.SaveAccount(state2)
 
 	snapshotCreated2 := adb.JournalLen()
 	rootHash, err = adb.RootHash()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
 
 	//Test 2.1. test that hashes and snapshots ID are different
-	assert.NotEqual(t, snapshotCreated2, snapshotCreated1)
-	assert.NotEqual(t, hrCreated1, hrCreated2)
+	require.NotEqual(t, snapshotCreated2, snapshotCreated1)
+	require.NotEqual(t, hrCreated1, hrCreated2)
 
 	//Step 3. Revert second account
 	err = adb.RevertToSnapshot(snapshotCreated1)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	//Test 3.1. current root hash shall match created root hash hrCreated1
 	rootHash, err = adb.RootHash()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	hrCrt := base64.StdEncoding.EncodeToString(rootHash)
-	assert.Equal(t, hrCreated1, hrCrt)
+	require.Equal(t, hrCreated1, hrCrt)
 	fmt.Printf("State root - reverted last account: %v\n", hrCrt)
 
 	//Step 4. Revert first account
 	err = adb.RevertToSnapshot(0)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	//Test 4.1. current root hash shall match empty root hash
 	rootHash, err = adb.RootHash()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	hrCrt = base64.StdEncoding.EncodeToString(rootHash)
-	assert.Equal(t, hrEmpty, hrCrt)
+	require.Equal(t, hrEmpty, hrCrt)
 	fmt.Printf("State root - reverted first account: %v\n", hrCrt)
 }
 
@@ -1014,7 +1015,7 @@ func createAccounts(
 	evictionWaitListSize := uint(100)
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -1086,9 +1087,14 @@ func BenchmarkTxExecution(b *testing.B) {
 func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	t.Parallel()
 
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, generalCfg)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -1123,9 +1129,14 @@ func newDefaultAccount(adb *state.AccountsDB, address state.AddressContainer) st
 func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	t.Parallel()
 
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, generalCfg)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -1256,6 +1267,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 
 	rootHash, _ := shardNode.AccntState.RootHash()
 	if !bytes.Equal(rootHash, rootHashOfRollbackedBlock) {
+		time.Sleep(time.Second)
 		err := shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
 		assert.True(t, errors.Is(err, trie.ErrHashNotFound))
 	}

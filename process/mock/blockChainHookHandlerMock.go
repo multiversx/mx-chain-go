@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // BlockChainHookHandlerMock -
@@ -13,6 +14,11 @@ type BlockChainHookHandlerMock struct {
 	CleanTempAccountsCalled func()
 	TempAccountCalled       func(address []byte) state.AccountHandler
 	SetCurrentHeaderCalled  func(hdr data.HeaderHandler)
+}
+
+// GetBuiltInFunctions -
+func (e *BlockChainHookHandlerMock) GetBuiltInFunctions() process.BuiltInFunctionContainer {
+	return nil
 }
 
 // AddTempAccount -

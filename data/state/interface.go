@@ -105,6 +105,8 @@ type PeerAccountHandler interface {
 type UserAccountHandler interface {
 	SetCode(code []byte)
 	GetCode() []byte
+	SetCodeMetadata(codeMetadata []byte)
+	GetCodeMetadata() []byte
 	SetCodeHash([]byte)
 	GetCodeHash() []byte
 	SetRootHash([]byte)
@@ -121,6 +123,8 @@ type UserAccountHandler interface {
 	ChangeOwnerAddress([]byte, []byte) error
 	SetOwnerAddress([]byte)
 	GetOwnerAddress() []byte
+	SetUserName(userName []byte)
+	GetUserName() []byte
 	AccountHandler
 }
 
@@ -181,6 +185,8 @@ type baseAccountHandler interface {
 	GetNonce() uint64
 	SetCode(code []byte)
 	GetCode() []byte
+	SetCodeMetadata(codeMetadata []byte)
+	GetCodeMetadata() []byte
 	SetCodeHash([]byte)
 	GetCodeHash() []byte
 	SetRootHash([]byte)
