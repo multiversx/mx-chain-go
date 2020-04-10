@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -47,7 +47,7 @@ func NewVMContainerFactory(
 	}
 
 	cryptoHook := hooks.NewVMCryptoHook()
-	builtinFunctions := smartContract.GetBuiltinFunctions()
+	builtinFunctions := builtInFunctions.GetBuiltinFunctionNames()
 
 	return &vmContainerFactory{
 		config:             config,
