@@ -194,6 +194,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		BuiltInFunctions: blockChainHook.GetBuiltInFunctions(),
+		TxLogsProcessor:  transactionLog.NewNilTxLogProcessor(),
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 
