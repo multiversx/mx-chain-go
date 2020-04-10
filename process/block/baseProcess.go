@@ -1033,3 +1033,23 @@ func (bp *baseProcessor) displayMiniBlocksPool() {
 			"num txs", len(miniBlock.TxHashes))
 	}
 }
+
+func (bp *baseProcessor) restoreBlockBody(bodyHandler data.BodyHandler) {
+	if check.IfNil(bodyHandler) {
+		log.Debug("restoreMiniblocks nil bodyHandler")
+		return
+	}
+
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		log.Debug("restoreMiniblocks wrong type assertion for bodyHandler")
+		return
+	}
+
+	restoredTxNr, errNotCritical := bp.txCoordinator.RestoreBlockDataFromStorage(body)
+	if errNotCritical != nil {
+		log.Debug("restoreBlockBody RestoreBlockDataFromStorage", "error", errNotCritical.Error())
+	}
+
+	go bp.txCounter.subtractRestoredTxs(restoredTxNr)
+}

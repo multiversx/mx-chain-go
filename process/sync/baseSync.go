@@ -619,10 +619,6 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			return ErrRollBackBehindForkNonce
 		}
 
-		currBlockBody, err := boot.blockBootstrapper.getBlockBody(currHeader)
-		if err != nil {
-			return err
-		}
 		prevHeaderHash := currHeader.GetPrevHash()
 		prevHeader, err := boot.blockBootstrapper.getPrevHeader(currHeader, boot.headerStore)
 		if err != nil {
@@ -640,7 +636,6 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		err = boot.rollBackOneBlock(
 			currHeaderHash,
 			currHeader,
-			currBlockBody,
 			prevHeaderHash,
 			prevHeader,
 		)
@@ -679,7 +674,6 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 func (boot *baseBootstrap) rollBackOneBlock(
 	currHeaderHash []byte,
 	currHeader data.HeaderHandler,
-	currBlockBody data.BodyHandler,
 	prevHeaderHash []byte,
 	prevHeader data.HeaderHandler,
 ) error {
@@ -709,6 +703,11 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		return err
 	}
 	boot.blockProcessor.PruneStateOnRollback(currHeader, prevHeader)
+
+	currBlockBody, errNotCritical := boot.blockBootstrapper.getBlockBody(currHeader)
+	if errNotCritical != nil {
+		log.Debug("rollBackOneBlock getBlockBody error", "error", errNotCritical)
+	}
 
 	err = boot.blockProcessor.RestoreBlockIntoPools(currHeader, currBlockBody)
 	if err != nil {
