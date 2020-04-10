@@ -111,7 +111,10 @@ func (mbRes *miniblockResolver) resolveMbRequestByHash(hash []byte, pid p2p.Peer
 		return err
 	}
 
-	buffToSend, err := mbRes.marshalizer.Marshal(&batch.Batch{Data: [][]byte{mb}})
+	b := &batch.Batch{
+		Data: [][]byte{mb},
+	}
+	buffToSend, err := mbRes.marshalizer.Marshal(b)
 	if err != nil {
 		return err
 	}
@@ -142,7 +145,7 @@ func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid p
 	for _, hash := range hashes {
 		mb, errTemp := mbRes.fetchMbAsByteSlice(hash)
 		if errTemp != nil {
-			errFetch = errTemp
+			errFetch = fmt.Errorf("%w for hash %s", errTemp, logger.DisplayByteSlice(hash))
 			log.Trace("fetchMbAsByteSlice missing",
 				"error", errFetch.Error(),
 				"hash", hash)
