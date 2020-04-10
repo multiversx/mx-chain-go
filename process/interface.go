@@ -634,11 +634,10 @@ type BlockTracker interface {
 	ComputeLongestShardsChainsFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
 	DisplayTrackedHeaders()
 	GetCrossNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
-	GetFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeadersForAllShards() (map[uint32]data.HeaderHandler, error)
 	GetLastSelfNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
-	GetNumPendingMiniBlocks(shardID uint32) uint32
+	GetSelfNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
 	GetTrackedHeaders(shardID uint32) ([]data.HeaderHandler, [][]byte)
 	GetTrackedHeadersForAllShards() map[uint32][]data.HeaderHandler
 	GetTrackedHeadersWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
