@@ -99,6 +99,28 @@ type metaInfo struct {
 	hash string
 }
 
+type metaInfloSlice []*metaInfo
+
+// Len will return the length of the metaInfoList
+func (m metaInfloSlice) Len() int { return len(m) }
+
+// Swap will interchange the objects on input indexes
+func (m metaInfloSlice) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
+
+// Less will return true if object on index i should appear before object in index j
+// Sorting of headers should be by epoch, by nonce and by hash in ascending order
+// this will ensure that in case of equality for epoch, the metaHdr with higher nonce will
+// be processed last - that is  the correct one - as it finalizes the previous nonce
+func (m metaInfloSlice) Less(i, j int) bool {
+	if m[i].hdr.Epoch == m[j].hdr.Epoch {
+		if m[i].hdr.Nonce == m[j].hdr.Nonce {
+			return m[i].hash < m[j].hash
+		}
+		return m[i].hdr.Nonce < m[j].hdr.Nonce
+	}
+	return m[i].hdr.Epoch < m[j].hdr.Epoch
+}
+
 // NewEpochStartTrigger creates a trigger to signal start of epoch
 func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if args == nil {
@@ -390,7 +412,7 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 
 // call only if mutex is locked before
 func (t *trigger) updateTriggerFromMeta() {
-	sortedMetaInfo := make([]*metaInfo, 0, len(t.mapEpochStartHdrs))
+	sortedMetaInfo := make(metaInfloSlice, 0, len(t.mapEpochStartHdrs))
 	for hash, hdr := range t.mapEpochStartHdrs {
 		currMetaInfo := &metaInfo{
 			hdr:  hdr,
@@ -399,9 +421,7 @@ func (t *trigger) updateTriggerFromMeta() {
 		sortedMetaInfo = append(sortedMetaInfo, currMetaInfo)
 	}
 
-	sort.Slice(sortedMetaInfo, func(i, j int) bool {
-		return sortedMetaInfo[i].hdr.Epoch < sortedMetaInfo[j].hdr.Epoch
-	})
+	sort.Sort(sortedMetaInfo)
 
 	for _, currMetaInfo := range sortedMetaInfo {
 		canActivateEpochStart, finalityAttestingRound := t.checkIfTriggerCanBeActivated(currMetaInfo.hash, currMetaInfo.hdr)
@@ -509,16 +529,14 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr *block.MetaB
 		return false, 0
 	}
 
-	if metaHdr.IsStartOfEpochBlock() {
-		missingMiniblocksHashes, blockBody, err := t.peerMiniBlocksSyncer.SyncMiniBlocks(metaHdr)
-		if err != nil {
-			t.addMissingMiniblocks(metaHdr.Epoch, missingMiniblocksHashes)
-			log.Warn("processMetablock failed", "error", err)
-			return false, 0
-		}
-
-		t.epochStartNotifier.NotifyAllPrepare(metaHdr, blockBody)
+	missingMiniblocksHashes, blockBody, err := t.peerMiniBlocksSyncer.SyncMiniBlocks(metaHdr)
+	if err != nil {
+		t.addMissingMiniblocks(metaHdr.Epoch, missingMiniblocksHashes)
+		log.Warn("processMetablock failed", "error", err)
+		return false, 0
 	}
+
+	t.epochStartNotifier.NotifyAllPrepare(metaHdr, blockBody)
 
 	isMetaHdrFinal, finalityAttestingRound := t.isMetaBlockFinal(hash, metaHdr)
 	return isMetaHdrFinal, finalityAttestingRound
