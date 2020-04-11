@@ -39,9 +39,12 @@ import (
 
 var log = logger.GetOrCreate("epochStart/bootstrap")
 
-const timeToWait = 10 * time.Second
+const timeToWait = time.Minute
+const trieSyncWaitTime = 5 * time.Minute
 const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
+const gracePeriodInPercentage = float64(0.25)
+const roundGracePeriod = 25
 
 // Parameters defines the DTO for the result produced by the bootstrap component
 type Parameters struct {
@@ -91,6 +94,7 @@ type epochStartBootstrap struct {
 	trieStorageManagers        map[string]data.StorageManager
 	uint64Converter            typeConverters.Uint64ByteSliceConverter
 	nodeShuffler               sharding.NodesShuffler
+	rounder                    epochStart.Rounder
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -110,15 +114,15 @@ type epochStartBootstrap struct {
 	userAccountTries   map[string]data.Trie
 	peerAccountTries   map[string]data.Trie
 	baseData           baseDataInStorage
-	computedEpoch      uint32
 }
 
 type baseDataInStorage struct {
-	shardId        uint32
-	numberOfShards uint32
-	lastRound      int64
-	lastEpoch      uint32
-	storageExists  bool
+	shardId         uint32
+	numberOfShards  uint32
+	lastRound       int64
+	lastEpoch       uint32
+	epochStartRound uint64
+	storageExists   bool
 }
 
 // ArgsEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
@@ -147,6 +151,7 @@ type ArgsEpochStartBootstrap struct {
 	TrieStorageManagers        map[string]data.StorageManager
 	Uint64Converter            typeConverters.Uint64ByteSliceConverter
 	NodeShuffler               sharding.NodesShuffler
+	Rounder                    epochStart.Rounder
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -181,14 +186,10 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		trieStorageManagers:        args.TrieStorageManagers,
 		uint64Converter:            args.Uint64Converter,
 		nodeShuffler:               args.NodeShuffler,
+		rounder:                    args.Rounder,
 	}
 
 	return epochStartProvider, nil
-}
-
-func (e *epochStartBootstrap) computedDurationOfEpoch() time.Duration {
-	return time.Duration(e.genesisNodesConfig.GetRoundDuration()*
-		uint64(e.generalConfig.EpochStartConfig.RoundsPerEpoch)) * time.Millisecond
 }
 
 func (e *epochStartBootstrap) isStartInEpochZero() bool {
@@ -198,10 +199,10 @@ func (e *epochStartBootstrap) isStartInEpochZero() bool {
 		return true
 	}
 
-	configuredDurationOfEpoch := startTime.Add(e.computedDurationOfEpoch())
-	isEpochZero := time.Since(configuredDurationOfEpoch) < 0
-
-	return isEpochZero
+	currentRound := e.rounder.Index()
+	epochEndPlusGracePeriod := float64(e.generalConfig.EpochStartConfig.RoundsPerEpoch) * (gracePeriodInPercentage + 1.0)
+	log.Debug("current round ", "round", currentRound, "epochEndRound", epochEndPlusGracePeriod)
+	return float64(currentRound) < epochEndPlusGracePeriod
 }
 
 func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
@@ -211,18 +212,6 @@ func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
 		NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
 	}
 	return parameters, nil
-}
-
-func (e *epochStartBootstrap) computeMostProbableEpoch() {
-	startTime := time.Unix(e.genesisNodesConfig.GetStartTime(), 0)
-	elapsedTime := time.Since(startTime)
-
-	timeForOneEpoch := e.computedDurationOfEpoch()
-
-	elaspedTimeInSeconds := uint64(elapsedTime.Seconds())
-	timeForOneEpochInSeconds := uint64(timeForOneEpoch.Seconds())
-
-	e.computedEpoch = uint32(elaspedTimeInSeconds / timeForOneEpochInSeconds)
 }
 
 // Bootstrap runs the fast bootstrap method from the network or local storage
@@ -254,16 +243,13 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return e.prepareEpochZero()
 	}
 
-	e.computeMostProbableEpoch()
-	e.initializeFromLocalStorage()
-
-	// TODO: make a better decision according to lastRound, lastEpoch
-	isCurrentEpochSaved := (e.baseData.lastEpoch+1 >= e.computedEpoch) && e.baseData.storageExists
+	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
 	if isCurrentEpochSaved {
 		parameters, err := e.prepareEpochFromStorage()
 		if err == nil {
 			return parameters, nil
 		}
+		log.Debug("could not start from storage - will try sync for start in epoch", "error", err)
 	}
 
 	err = e.prepareComponentsToSyncFromNetwork()
@@ -283,6 +269,24 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	return e.requestAndProcessing()
+}
+
+func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
+	e.initializeFromLocalStorage()
+	if !e.baseData.storageExists {
+		return false
+	}
+
+	computedRound := e.rounder.Index()
+	log.Debug("computed round", "round", computedRound, "lastRound", e.baseData.lastRound)
+	if computedRound-e.baseData.lastRound < roundGracePeriod {
+		return true
+	}
+
+	roundsSinceEpochStart := computedRound - int64(e.baseData.epochStartRound)
+	log.Debug("epoch start round", "round", e.baseData.epochStartRound, "roundsSinceEpochStart", roundsSinceEpochStart)
+	epochEndPlusGracePeriod := float64(e.generalConfig.EpochStartConfig.RoundsPerEpoch) * (gracePeriodInPercentage + 1.0)
+	return float64(roundsSinceEpochStart) < epochEndPlusGracePeriod
 }
 
 func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
@@ -402,7 +406,7 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string
 		shardIds = append(shardIds, core.MetachainShardId)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), timeToWait)
 	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
@@ -582,7 +586,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), timeToWait)
 	err = e.miniBlocksSyncer.SyncPendingMiniBlocks(epochStartData.PendingMiniBlockHeaders, ctx)
 	cancel()
 	if err != nil {
@@ -605,7 +609,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	}
 
 	e.headersSyncer.ClearFields()
-	ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel = context.WithTimeout(context.Background(), timeToWait)
 	err = e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
@@ -674,7 +678,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			Marshalizer:        e.marshalizer,
 			TrieStorageManager: e.trieStorageManagers[factory.UserAccountTrie],
 			RequestHandler:     e.requestHandler,
-			WaitTime:           time.Minute,
+			WaitTime:           trieSyncWaitTime,
 			Cacher:             e.dataPool.TrieNodes(),
 		},
 		ShardId: e.shardCoordinator.SelfId(),
@@ -734,7 +738,7 @@ func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 			Marshalizer:        e.marshalizer,
 			TrieStorageManager: e.trieStorageManagers[factory.PeerAccountTrie],
 			RequestHandler:     e.requestHandler,
-			WaitTime:           time.Minute,
+			WaitTime:           trieSyncWaitTime,
 			Cacher:             e.dataPool.TrieNodes(),
 		},
 	}

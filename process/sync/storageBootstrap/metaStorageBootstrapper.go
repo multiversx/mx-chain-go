@@ -125,9 +125,26 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 	}
 }
 
-func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(_ [][]byte) ([]data.HeaderHandler, error) {
-	selfNotarizedHeaders := make([]data.HeaderHandler, 0)
-	return selfNotarizedHeaders, nil
+func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(
+	bootstrapHeadersInfo []bootstrapStorage.BootstrapHeaderInfo,
+) ([]data.HeaderHandler, [][]byte, error) {
+
+	for _, bootstrapHeaderInfo := range bootstrapHeadersInfo {
+		selfNotarizedHeader, err := msb.getHeader(bootstrapHeaderInfo.Hash)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		log.Debug("added self notarized header in block tracker",
+			"shard", bootstrapHeaderInfo.ShardId,
+			"round", selfNotarizedHeader.GetRound(),
+			"nonce", selfNotarizedHeader.GetNonce(),
+			"hash", bootstrapHeaderInfo.Hash)
+
+		msb.blockTracker.AddSelfNotarizedHeader(bootstrapHeaderInfo.ShardId, selfNotarizedHeader, bootstrapHeaderInfo.Hash)
+	}
+
+	return make([]data.HeaderHandler, 0), make([][]byte, 0), nil
 }
 
 func (msb *metaStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocksInfo []bootstrapStorage.PendingMiniBlocksInfo) {

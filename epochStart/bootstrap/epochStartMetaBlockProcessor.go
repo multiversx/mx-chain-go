@@ -74,9 +74,10 @@ func NewEpochStartMetaBlockProcessor(
 
 	processor.waitForEnoughNumConnectedPeers(messenger)
 	percentage := float64(consensusPercentage) / 100.0
-	log.Debug("consensus percentage for epoch start meta block ", "value (%)", consensusPercentage)
 	peerCountTarget := int(percentage * float64(len(messenger.ConnectedPeers())))
 	processor.peerCountTarget = peerCountTarget
+
+	log.Debug("consensus percentage for epoch start meta block ", "value (%)", consensusPercentage, "peerCountTarget", peerCountTarget)
 	return processor, nil
 }
 
