@@ -944,8 +944,6 @@ func (mp *metaProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
-	mp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
-
 	var err error
 	defer func() {
 		if err != nil {
@@ -957,6 +955,8 @@ func (mp *metaProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
+
+	mp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
 
 	log.Debug("started committing block",
 		"epoch", headerHandler.GetEpoch(),
