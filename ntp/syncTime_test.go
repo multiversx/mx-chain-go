@@ -158,6 +158,8 @@ func TestCallQueryShouldErrIndexOutOfBounds(t *testing.T) {
 }
 
 func TestCallQueryShouldWork(t *testing.T) {
+	//TODO fix this test
+	t.Skip("rework this test as to not rely on the internet connection")
 	t.Parallel()
 
 	ntpConfig := ntp2.NewNTPGoogleConfig()
@@ -197,7 +199,7 @@ func TestGetClockOffsetsWithoutEdges(t *testing.T) {
 
 	st := ntp2.NewSyncTime(config.NTPConfig{SyncPeriodSeconds: 1}, nil)
 
-	var clockOffsets []time.Duration
+	clockOffsets := make([]time.Duration, 0)
 	clockOffsetsWithoutEdges := st.GetClockOffsetsWithoutEdges(clockOffsets)
 	require.Equal(t, 0, len(clockOffsetsWithoutEdges))
 
@@ -241,7 +243,7 @@ func TestGetHarmonicMean(t *testing.T) {
 
 	st := ntp2.NewSyncTime(config.NTPConfig{SyncPeriodSeconds: 1}, nil)
 
-	var clockOffsets []time.Duration
+	clockOffsets := make([]time.Duration, 0)
 	harmonicMean := st.GetHarmonicMean(clockOffsets)
 	assert.Equal(t, time.Duration(0), harmonicMean)
 
