@@ -81,13 +81,14 @@ type baseBootstrap struct {
 
 	forkInfo *process.ForkInfo
 
-	mutRcvHdrNonce        sync.RWMutex
-	mutRcvHdrHash         sync.RWMutex
-	syncStateListeners    []func(bool)
-	mutSyncStateListeners sync.RWMutex
-	uint64Converter       typeConverters.Uint64ByteSliceConverter
-	requestsWithTimeout   uint32
-	syncWithErrors        uint32
+	mutRcvHdrNonce           sync.RWMutex
+	mutRcvHdrHash            sync.RWMutex
+	syncStateListeners       []func(bool)
+	mutSyncStateListeners    sync.RWMutex
+	uint64Converter          typeConverters.Uint64ByteSliceConverter
+	requestsWithTimeout      uint32
+	mapNonceSyncedWithErrors map[uint64]uint32
+	mutNonceSyncedWithErrors sync.Mutex
 
 	requestMiniBlocks func(headerHandler data.HeaderHandler)
 
@@ -464,8 +465,6 @@ func (boot *baseBootstrap) syncBlocks() {
 }
 
 func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler, err error) {
-	boot.syncWithErrors++
-
 	if err == process.ErrTimeIsOut {
 		boot.requestsWithTimeout++
 	}
@@ -486,7 +485,21 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 		}
 	}
 
-	allowedSyncWithErrorsLimitReached := boot.syncWithErrors >= process.MaxSyncWithErrorsAllowed
+	boot.resetProbableHighestNonceIfNeeded(headerHandler)
+}
+
+func (boot *baseBootstrap) resetProbableHighestNonceIfNeeded(headerHandler data.HeaderHandler) {
+	if check.IfNil(headerHandler) {
+		return
+	}
+
+	boot.mutNonceSyncedWithErrors.Lock()
+	boot.mapNonceSyncedWithErrors[headerHandler.GetNonce()]++
+	nonceSyncedWithErrors := boot.mapNonceSyncedWithErrors[headerHandler.GetNonce()]
+	boot.mutNonceSyncedWithErrors.Unlock()
+
+	allowedSyncWithErrorsLimitReached := nonceSyncedWithErrors >= process.MaxSyncWithErrorsAllowed
+	isInProperRound := process.IsInProperRound(boot.rounder.Index())
 	if allowedSyncWithErrorsLimitReached && isInProperRound {
 		boot.forkDetector.ResetProbableHighestNonce()
 		boot.removeHeadersWithNonceFromPool(boot.getNonceForNextBlock())
@@ -588,10 +601,30 @@ func (boot *baseBootstrap) syncBlock() error {
 		"nonce", hdr.GetNonce(),
 	)
 
-	boot.syncWithErrors = 0
+	boot.resetNonceSyncedWithErrors(hdr.GetNonce())
+	boot.cleanNoncesSyncedWithErrorsBehindFinal()
 	boot.requestsWithTimeout = 0
 
 	return nil
+}
+
+func (boot *baseBootstrap) resetNonceSyncedWithErrors(nonce uint64) {
+	boot.mutNonceSyncedWithErrors.Lock()
+	defer boot.mutNonceSyncedWithErrors.Unlock()
+
+	boot.mapNonceSyncedWithErrors[nonce] = 0
+}
+
+func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
+	boot.mutNonceSyncedWithErrors.Lock()
+	defer boot.mutNonceSyncedWithErrors.Unlock()
+
+	finalNonce := boot.forkDetector.GetHighestFinalBlockNonce()
+	for nonce := range boot.mapNonceSyncedWithErrors {
+		if nonce < finalNonce {
+			delete(boot.mapNonceSyncedWithErrors, nonce)
+		}
+	}
 }
 
 // rollBack decides if rollBackOneBlock must be called
@@ -895,6 +928,7 @@ func (boot *baseBootstrap) init() {
 
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}
+	boot.mapNonceSyncedWithErrors = make(map[uint64]uint32)
 }
 
 func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
