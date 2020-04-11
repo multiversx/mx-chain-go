@@ -99,19 +99,19 @@ type metaInfo struct {
 	hash string
 }
 
-type metaInfloSlice []*metaInfo
+type metaInfoSlice []*metaInfo
 
-// Len will return the length of the metaInfoList
-func (m metaInfloSlice) Len() int { return len(m) }
+// Len will return the length of the metaInfoSlice
+func (m metaInfoSlice) Len() int { return len(m) }
 
 // Swap will interchange the objects on input indexes
-func (m metaInfloSlice) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
+func (m metaInfoSlice) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 
 // Less will return true if object on index i should appear before object in index j
 // Sorting of headers should be by epoch, by nonce and by hash in ascending order
 // this will ensure that in case of equality for epoch, the metaHdr with higher nonce will
 // be processed last - that is  the correct one - as it finalizes the previous nonce
-func (m metaInfloSlice) Less(i, j int) bool {
+func (m metaInfoSlice) Less(i, j int) bool {
 	if m[i].hdr.Epoch == m[j].hdr.Epoch {
 		if m[i].hdr.Nonce == m[j].hdr.Nonce {
 			return m[i].hash < m[j].hash
@@ -412,7 +412,7 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 
 // call only if mutex is locked before
 func (t *trigger) updateTriggerFromMeta() {
-	sortedMetaInfo := make(metaInfloSlice, 0, len(t.mapEpochStartHdrs))
+	sortedMetaInfo := make(metaInfoSlice, 0, len(t.mapEpochStartHdrs))
 	for hash, hdr := range t.mapEpochStartHdrs {
 		currMetaInfo := &metaInfo{
 			hdr:  hdr,
