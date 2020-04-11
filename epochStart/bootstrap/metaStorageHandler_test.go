@@ -1,13 +1,13 @@
 package bootstrap
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
 	"os"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -16,7 +16,7 @@ import (
 
 func TestNewMetaStorageHandler_InvalidConfigErr(t *testing.T) {
 	gCfg := config.Config{}
-	coordinator := &mock.CoordinatorStub{}
+	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
@@ -28,8 +28,12 @@ func TestNewMetaStorageHandler_InvalidConfigErr(t *testing.T) {
 }
 
 func TestNewMetaStorageHandler_CreateForMetaErr(t *testing.T) {
+	defer func() {
+		_ = os.RemoveAll("./Epoch_0")
+	}()
+
 	gCfg := getGeneralConfig()
-	coordinator := &mock.CoordinatorStub{}
+	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
@@ -38,8 +42,6 @@ func TestNewMetaStorageHandler_CreateForMetaErr(t *testing.T) {
 	mtStrHandler, err := NewMetaStorageHandler(gCfg, coordinator, pathManager, marshalizer, hasher, 1, uit64Cvt)
 	assert.False(t, check.IfNil(mtStrHandler))
 	assert.Nil(t, err)
-
-	_ = os.RemoveAll("./Epoch_0")
 }
 
 func TestMetaStorageHandler_saveLastHeader(t *testing.T) {
@@ -48,7 +50,7 @@ func TestMetaStorageHandler_saveLastHeader(t *testing.T) {
 	}()
 
 	gCfg := getGeneralConfig()
-	coordinator := &mock.CoordinatorStub{}
+	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
@@ -74,7 +76,7 @@ func TestMetaStorageHandler_saveLastCrossNotarizedHeaders(t *testing.T) {
 	}()
 
 	gCfg := getGeneralConfig()
-	coordinator := &mock.CoordinatorStub{}
+	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
@@ -106,7 +108,7 @@ func TestMetaStorageHandler_saveTriggerRegistry(t *testing.T) {
 	}()
 
 	gCfg := getGeneralConfig()
-	coordinator := &mock.CoordinatorStub{}
+	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
@@ -129,7 +131,7 @@ func TestMetaStorageHandler_saveDataToStorage(t *testing.T) {
 	}()
 
 	gCfg := getGeneralConfig()
-	coordinator := &mock.CoordinatorStub{}
+	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}

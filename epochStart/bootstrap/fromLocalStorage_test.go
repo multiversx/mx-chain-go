@@ -81,3 +81,68 @@ func TestGetLastBootstrapData(t *testing.T) {
 	assert.Equal(t, &bootstrapData, bootData)
 	assert.Equal(t, &nodesConfigRegistry, nodesRegistry)
 }
+
+func TestCheckIfShuffledOut_ValidatorIsInWaitingList(t *testing.T) {
+	args := createMockEpochStartBootstrapArgs()
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.initializeFromLocalStorage()
+	epochStartProvider.baseData.lastEpoch = 0
+
+	publicKey := []byte("pubKey")
+	nodesConfig := &sharding.NodesCoordinatorRegistry{
+		CurrentEpoch: 1,
+		EpochsConfig: map[string]*sharding.EpochValidators{
+			"0": {
+				WaitingValidators: map[string][]*sharding.SerializableValidator{
+					"0": {{PubKey: publicKey, Chances: 0, Index: 0}},
+				},
+			},
+		},
+	}
+
+	result := epochStartProvider.checkIfShuffledOut(publicKey, nodesConfig)
+	assert.False(t, result)
+}
+
+func TestCheckIfShuffledOut_ValidatorIsInEligibleList(t *testing.T) {
+	args := createMockEpochStartBootstrapArgs()
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.initializeFromLocalStorage()
+	epochStartProvider.baseData.lastEpoch = 0
+
+	publicKey := []byte("pubKey")
+	nodesConfig := &sharding.NodesCoordinatorRegistry{
+		CurrentEpoch: 1,
+		EpochsConfig: map[string]*sharding.EpochValidators{
+			"0": {
+				EligibleValidators: map[string][]*sharding.SerializableValidator{
+					"0": {{PubKey: publicKey, Chances: 0, Index: 0}},
+				},
+			},
+		},
+	}
+
+	result := epochStartProvider.checkIfShuffledOut(publicKey, nodesConfig)
+	assert.False(t, result)
+}
+
+func TestCheckIfShuffledOut_ValidatorNotInEligibleOrWaiting(t *testing.T) {
+	args := createMockEpochStartBootstrapArgs()
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.initializeFromLocalStorage()
+	epochStartProvider.baseData.lastEpoch = 0
+
+	publicKey := []byte("pubKey")
+	nodesConfig := &sharding.NodesCoordinatorRegistry{
+		CurrentEpoch: 1,
+		EpochsConfig: map[string]*sharding.EpochValidators{
+			"0": {
+				EligibleValidators: map[string][]*sharding.SerializableValidator{},
+				WaitingValidators:  map[string][]*sharding.SerializableValidator{},
+			},
+		},
+	}
+
+	result := epochStartProvider.checkIfShuffledOut(publicKey, nodesConfig)
+	assert.True(t, result)
+}

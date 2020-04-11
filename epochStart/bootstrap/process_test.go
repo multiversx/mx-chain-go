@@ -20,6 +20,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createPkBytes(numShards uint32) map[uint32][]byte {
+	pksbytes := make(map[uint32][]byte, numShards+1)
+	for i := uint32(0); i < numShards; i++ {
+		pksbytes[i] = make([]byte, 128)
+		pksbytes[i] = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
+		pksbytes[i][0] = byte(i)
+	}
+
+	pksbytes[core.MetachainShardId] = make([]byte, 128)
+	pksbytes[core.MetachainShardId] = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
+	pksbytes[core.MetachainShardId][0] = byte(numShards)
+
+	return pksbytes
+}
+
 func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 	return ArgsEpochStartBootstrap{
 		PublicKey:                  &mock.PublicKeyStub{},
@@ -53,6 +68,7 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 		},
 		Uint64Converter: &mock.Uint64ByteSliceConverterMock{},
 		NodeShuffler:    &mock.NodeShufflerMock{},
+		Rounder:         &mock.RounderStub{},
 	}
 }
 
@@ -64,30 +80,6 @@ func TestNewEpochStartBootstrap(t *testing.T) {
 	epochStartProvider, err := NewEpochStartBootstrap(args)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(epochStartProvider))
-}
-
-func TestComputedDurationOfEpoch(t *testing.T) {
-	t.Parallel()
-
-	roundsPerEpoch := int64(100)
-	roundDuration := uint64(6)
-	args := createMockEpochStartBootstrapArgs()
-	args.GenesisNodesConfig = &mock.NodesSetupStub{
-		GetRoundDurationCalled: func() uint64 {
-			return roundDuration
-		},
-	}
-	args.GeneralConfig = config.Config{
-		EpochStartConfig: config.EpochStartConfig{
-			RoundsPerEpoch: roundsPerEpoch,
-		},
-	}
-
-	epochStartProvider, _ := NewEpochStartBootstrap(args)
-
-	expectedDuration := time.Duration(roundDuration*uint64(roundsPerEpoch)) * time.Millisecond
-	resultDuration := epochStartProvider.computedDurationOfEpoch()
-	assert.Equal(t, expectedDuration, resultDuration)
 }
 
 func TestIsStartInEpochZero(t *testing.T) {
@@ -106,7 +98,7 @@ func TestIsStartInEpochZero(t *testing.T) {
 	assert.False(t, result)
 }
 
-func TestEpochStartBootstrap_BootstrapStartInEpochNotEnable(t *testing.T) {
+func TestEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T) {
 	args := createMockEpochStartBootstrapArgs()
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
@@ -320,21 +312,6 @@ func TestRequestAndProcessForShard(t *testing.T) {
 	epochStartProvider.epochStartMeta = metaBlock
 	err := epochStartProvider.requestAndProcessForShard()
 	assert.Equal(t, state.ErrNilRequestHandler, err)
-}
-
-func createPkBytes(numShards uint32) map[uint32][]byte {
-	pksbytes := make(map[uint32][]byte, numShards+1)
-	for i := uint32(0); i < numShards; i++ {
-		pksbytes[i] = make([]byte, 128)
-		pksbytes[i] = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
-		pksbytes[i][0] = byte(i)
-	}
-
-	pksbytes[core.MetachainShardId] = make([]byte, 128)
-	pksbytes[core.MetachainShardId] = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
-	pksbytes[core.MetachainShardId][0] = byte(numShards)
-
-	return pksbytes
 }
 
 func getNodesConfigMock(numOfShards uint32) sharding.GenesisNodesSetupHandler {

@@ -18,7 +18,7 @@ func TestNewShardStorageHandler_ShouldWork(t *testing.T) {
 	}()
 
 	gCfg := getGeneralConfig()
-	coordinator := &mock.CoordinatorStub{}
+	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
@@ -35,7 +35,7 @@ func TestShardStorageHandler_SaveDataToStorageShardDataNotFound(t *testing.T) {
 	}()
 
 	gCfg := getGeneralConfig()
-	coordinator := &mock.CoordinatorStub{}
+	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
@@ -59,7 +59,7 @@ func TestShardStorageHandler_SaveDataToStorageMissingHeader(t *testing.T) {
 	}()
 
 	gCfg := getGeneralConfig()
-	coordinator := &mock.CoordinatorStub{}
+	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}
@@ -90,7 +90,7 @@ func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
 	}()
 
 	gCfg := getGeneralConfig()
-	coordinator := &mock.CoordinatorStub{}
+	coordinator := &mock.ShardCoordinatorStub{}
 	pathManager := &mock.PathManagerStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &mock.HasherMock{}

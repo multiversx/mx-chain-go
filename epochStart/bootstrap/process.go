@@ -389,7 +389,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		return err
 	}
 
-	return err
+	return nil
 }
 
 func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string]data.HeaderHandler, error) {

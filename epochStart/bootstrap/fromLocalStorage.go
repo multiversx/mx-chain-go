@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -58,6 +59,10 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 
 	storer, err := openStorageHandler.OpenStorageUnits()
 	defer func() {
+		if check.IfNil(storer) {
+			return
+		}
+
 		errClose := storer.Close()
 		log.LogIfError(errClose)
 	}()
