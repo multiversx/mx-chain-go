@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
@@ -68,7 +67,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	)
 
 	waitTime := 10 * time.Second
-	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, core.MetachainShardId, factory.AccountTrieNodesTopic)
+	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, shardID, factory.AccountTrieNodesTopic)
 	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
 	defer cancel()
 
