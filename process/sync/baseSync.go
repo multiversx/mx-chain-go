@@ -601,18 +601,10 @@ func (boot *baseBootstrap) syncBlock() error {
 		"nonce", hdr.GetNonce(),
 	)
 
-	boot.resetNonceSyncedWithErrors(hdr.GetNonce())
 	boot.cleanNoncesSyncedWithErrorsBehindFinal()
 	boot.requestsWithTimeout = 0
 
 	return nil
-}
-
-func (boot *baseBootstrap) resetNonceSyncedWithErrors(nonce uint64) {
-	boot.mutNonceSyncedWithErrors.Lock()
-	defer boot.mutNonceSyncedWithErrors.Unlock()
-
-	boot.mapNonceSyncedWithErrors[nonce] = 0
 }
 
 func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
