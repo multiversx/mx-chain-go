@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -28,11 +27,6 @@ func NewWhiteListDataVerifier(cacher storage.Cacher) (*whiteListDataVerifier, er
 func (w *whiteListDataVerifier) IsWhiteListed(interceptedData process.InterceptedData) bool {
 	if check.IfNil(interceptedData) {
 		return false
-	}
-
-	// TODO(iulian): refactor generic block body resolver and intercepted data and delete the next condition
-	if _, ok := interceptedData.(*interceptedBlocks.InterceptedTxBlockBody); ok {
-		return true
 	}
 
 	return w.cache.Has(interceptedData.Hash())

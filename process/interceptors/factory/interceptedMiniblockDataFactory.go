@@ -9,21 +9,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-type interceptedTxBlockBodyDataFactory struct {
+type interceptedMiniblockDataFactory struct {
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
 	shardCoordinator sharding.Coordinator
 }
 
-// NewInterceptedTxBlockBodyDataFactory creates an instance of interceptedTxBlockBodyDataFactory
-func NewInterceptedTxBlockBodyDataFactory(argument *ArgInterceptedDataFactory) (*interceptedTxBlockBodyDataFactory, error) {
+// NewInterceptedMiniblockDataFactory creates an instance of interceptedMiniblockDataFactory
+func NewInterceptedMiniblockDataFactory(argument *ArgInterceptedDataFactory) (*interceptedMiniblockDataFactory, error) {
 	if argument == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
 	if check.IfNil(argument.ProtoMarshalizer) {
-		return nil, process.ErrNilMarshalizer
-	}
-	if check.IfNil(argument.TxSignMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(argument.Hasher) {
@@ -33,7 +30,7 @@ func NewInterceptedTxBlockBodyDataFactory(argument *ArgInterceptedDataFactory) (
 		return nil, process.ErrNilShardCoordinator
 	}
 
-	return &interceptedTxBlockBodyDataFactory{
+	return &interceptedMiniblockDataFactory{
 		marshalizer:      argument.ProtoMarshalizer,
 		hasher:           argument.Hasher,
 		shardCoordinator: argument.ShardCoordinator,
@@ -41,18 +38,18 @@ func NewInterceptedTxBlockBodyDataFactory(argument *ArgInterceptedDataFactory) (
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (itbbdf *interceptedTxBlockBodyDataFactory) Create(buff []byte) (process.InterceptedData, error) {
-	arg := &interceptedBlocks.ArgInterceptedTxBlockBody{
-		TxBlockBodyBuff:  buff,
-		Marshalizer:      itbbdf.marshalizer,
-		Hasher:           itbbdf.hasher,
-		ShardCoordinator: itbbdf.shardCoordinator,
+func (imfd *interceptedMiniblockDataFactory) Create(buff []byte) (process.InterceptedData, error) {
+	arg := &interceptedBlocks.ArgInterceptedMiniblock{
+		MiniblockBuff:    buff,
+		Marshalizer:      imfd.marshalizer,
+		Hasher:           imfd.hasher,
+		ShardCoordinator: imfd.shardCoordinator,
 	}
 
-	return interceptedBlocks.NewInterceptedTxBlockBody(arg)
+	return interceptedBlocks.NewInterceptedMiniblock(arg)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (itbbdf *interceptedTxBlockBodyDataFactory) IsInterfaceNil() bool {
-	return itbbdf == nil
+func (imfd *interceptedMiniblockDataFactory) IsInterfaceNil() bool {
+	return imfd == nil
 }
