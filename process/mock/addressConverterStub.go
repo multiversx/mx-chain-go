@@ -35,7 +35,10 @@ func (acs *AddressConverterStub) PrepareAddressBytes(addressBytes []byte) ([]byt
 
 // AddressLen -
 func (acs AddressConverterStub) AddressLen() int {
-	return acs.AddressLenHandler()
+	if acs.AddressLenHandler != nil {
+		return acs.AddressLenHandler()
+	}
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

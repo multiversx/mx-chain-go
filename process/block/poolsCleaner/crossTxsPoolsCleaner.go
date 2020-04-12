@@ -123,7 +123,7 @@ func (ctpc *crossTxsPoolsCleaner) receivedBlockTx(key []byte, value interface{})
 	ctpc.processReceivedTx(key, wrappedTx.SenderShardID, wrappedTx.ReceiverShardID, blockTx)
 }
 
-func (ctpc *crossTxsPoolsCleaner) receivedRewardTx(key []byte, value interface{}) {
+func (ctpc *crossTxsPoolsCleaner) receivedRewardTx(key []byte, _ interface{}) {
 	if key == nil {
 		return
 	}
