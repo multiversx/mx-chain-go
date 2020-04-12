@@ -119,10 +119,10 @@ func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 	currMetaBlock *block.MetaBlock,
 	prevMetaBlock *block.MetaBlock,
 ) (*sharding.NodesCoordinatorRegistry, uint32, error) {
-	if !currMetaBlock.IsStartOfEpochBlock() {
+	if currMetaBlock.GetNonce() > 1 && !currMetaBlock.IsStartOfEpochBlock() {
 		return nil, 0, epochStart.ErrNotEpochStartBlock
 	}
-	if !prevMetaBlock.IsStartOfEpochBlock() {
+	if prevMetaBlock.GetNonce() > 1 && !prevMetaBlock.IsStartOfEpochBlock() {
 		return nil, 0, epochStart.ErrNotEpochStartBlock
 	}
 

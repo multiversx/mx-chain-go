@@ -1237,7 +1237,7 @@ func TestWithNodeStopChannel_OkNodeStopChannelShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	ch := make(chan bool, 1)
+	ch := make(chan string, 1)
 	opt := WithNodeStopChannel(ch)
 	err := opt(node)
 

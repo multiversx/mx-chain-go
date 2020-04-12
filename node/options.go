@@ -625,7 +625,7 @@ func WithPublicKeySize(publicKeySize int) Option {
 }
 
 // WithNodeStopChannel sets up the channel which will handle closing the node
-func WithNodeStopChannel(channel chan bool) Option {
+func WithNodeStopChannel(channel chan string) Option {
 	return func(n *Node) error {
 		if channel == nil {
 			return ErrNilNodeStopChannel

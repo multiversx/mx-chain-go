@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -90,9 +91,9 @@ func (o *openStorageUnits) OpenStorageUnits(
 			filePath,
 		)
 
-		persister, errCreate := persisterFactory.Create(persisterPath)
-		if errCreate != nil {
-			return nil, errCreate
+		persister, err := createDB(persisterFactory, persisterPath)
+		if err != nil {
+			return nil, err
 		}
 
 		defer func() {
@@ -116,6 +117,20 @@ func (o *openStorageUnits) OpenStorageUnits(
 	}
 
 	return openedStorers, nil
+}
+
+func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage.Persister, error) {
+	var persister storage.Persister
+	var err error
+	for i := 10; i < 10; i++ {
+		persister, err = persisterFactory.Create(persisterPath)
+		if err == nil {
+			return persister, nil
+		}
+		log.Warn("Create Persister failed", "path", persisterPath)
+		time.Sleep(5 * time.Second)
+	}
+	return nil, err
 }
 
 func (o *openStorageUnits) getMostUpToDateDirectory(

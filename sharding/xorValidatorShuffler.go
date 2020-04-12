@@ -103,12 +103,7 @@ func (rxs *randXORShuffler) UpdateNodeLists(args ArgsUpdateNodes) (map[uint32][]
 		waitingAfterReshard[shard] = vList
 	}
 
-	// TODO: remove the conditional and the else branch when reinitialization of node in new shard is implemented
-	if rxs.shuffleBetweenShards {
-		return shuffleNodesInterShards(eligibleAfterReshard, waitingAfterReshard, leavingNodes, args.NewNodes, args.Rand)
-	}
-
-	return shuffleNodesIntraShards(eligibleAfterReshard, waitingAfterReshard, leavingNodes, args.NewNodes, args.Rand)
+	return shuffleNodesInterShards(eligibleAfterReshard, waitingAfterReshard, leavingNodes, args.NewNodes, args.Rand)
 }
 
 // IsInterfaceNil verifies if the underlying object is nil
@@ -137,34 +132,6 @@ func shuffleNodesInterShards(
 	moveNodesToMap(eligible, waiting)
 	distributeValidators(newNodes, waiting, randomness, newNbShards+1)
 	distributeValidators(shuffledOutNodes, waiting, randomness, newNbShards+1)
-
-	return eligible, waiting, leaving
-}
-
-// shuffleNodesIntraShards shuffles nodes only between the waiting list and eligible list of a shard, not between
-// different shards
-func shuffleNodesIntraShards(
-	eligible map[uint32][]Validator,
-	waiting map[uint32][]Validator,
-	leaving []Validator,
-	newNodes []Validator,
-	randomness []byte,
-) (map[uint32][]Validator, map[uint32][]Validator, []Validator) {
-	shuffledOutMap := make(map[uint32][]Validator)
-	newNbShards := uint32(len(eligible))
-
-	for shard, validators := range eligible {
-		shuffledOutMap[shard], eligible[shard], leaving = shuffleOutShard(
-			validators,
-			len(waiting[shard]),
-			leaving,
-			randomness,
-		)
-	}
-
-	moveNodesToMap(eligible, waiting)
-	distributeValidators(newNodes, waiting, randomness, newNbShards+1)
-	moveNodesToMap(waiting, shuffledOutMap)
 
 	return eligible, waiting, leaving
 }

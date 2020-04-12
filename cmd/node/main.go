@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime"
@@ -320,6 +321,12 @@ VERSION:
 		Value: uint64(2),
 	}
 
+	startInEpoch = cli.BoolFlag{
+		Name: "start-in-epoch",
+		Usage: "Boolean option for enabling a node the fast bootstrap mechanism from the network is enabled if " +
+			"data is not available in local disk.",
+	}
+
 	rm *statistics.ResourceMonitor
 )
 
@@ -382,6 +389,7 @@ func main() {
 		isNodefullArchive,
 		numEpochsToSave,
 		numActivePersisters,
+		startInEpoch,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -413,6 +421,8 @@ func getSuite(config *config.Config) (crypto.Suite, error) {
 func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("startNode called")
 	workingDir := getWorkingDir(ctx, log)
+
+	time.Sleep(2 * time.Second)
 
 	var err error
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
@@ -520,6 +530,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	go syncer.StartSync()
 
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
+
+	if ctx.IsSet(startInEpoch.Name) {
+		log.Debug("start in epoch is enabled")
+		generalConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
+	}
 
 	//TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded) timestamp
 	if genesisNodesConfig.StartTime == 0 {
@@ -760,7 +775,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 	}
 
-	chanStopNodeProcess := make(chan bool, 1)
+	chanStopNodeProcess := make(chan string, 1)
 	nodesCoordinator, err := createNodesCoordinator(
 		genesisNodesConfig,
 		preferencesConfig.Preferences,
@@ -1047,11 +1062,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Info("application is now running")
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	sig := ""
 	select {
 	case <-sigs:
 		log.Info("terminating at user's signal...")
-	case <-chanStopNodeProcess:
-		log.Info("terminating at internal stop signal...")
+	case sig = <-chanStopNodeProcess:
+		log.Info(fmt.Sprintf("terminating at internal stop signal... reason: %s", sig))
 	}
 
 	log.Debug("closing all store units....")
@@ -1076,7 +1092,41 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = networkComponents.NetMessenger.Close()
 	log.LogIfError(err)
 
+	handleAppClose(log, sig)
+
 	return nil
+}
+
+func handleAppClose(log logger.Logger, sig string) {
+	switch sig {
+	case core.ShuffledOut:
+		{
+			newStartInEpoch(log, sig)
+		}
+	}
+}
+
+func newStartInEpoch(log logger.Logger, sig string) {
+	cwd, err := os.Getwd()
+
+	nodeApp := os.Args[0]
+	args := os.Args
+	args = append(args, "-start-in-epoch")
+
+	log.Debug(cwd)
+	log.Debug(fmt.Sprintf("%v", sig))
+	log.Debug("app", "nodeApp", nodeApp)
+	log.Debug("args", "args", args)
+
+	cmd := exec.Command(nodeApp)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	cmd.Args = args
+	err = cmd.Start()
+	if err != nil {
+		log.LogIfError(err)
+	}
 }
 
 func createStringFromRatingsData(ratingsData *rating.RatingsData) string {
@@ -1352,7 +1402,7 @@ func createNodesCoordinator(
 	nodeShuffler sharding.NodesShuffler,
 	epochConfig config.EpochStartConfig,
 	currentShardID uint32,
-	chanStopNodeProcess chan bool,
+	chanStopNodeProcess chan string,
 ) (sharding.NodesCoordinator, error) {
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
 	if err != nil {
@@ -1392,12 +1442,12 @@ func createNodesCoordinator(
 	maxDurationBeforeStopProcess = int64(thresholdEpochDuration * float64(maxDurationBeforeStopProcess))
 	intRandomizer := &random.ConcurrentSafeIntRandomizer{}
 	randDurationBeforeStop := intRandomizer.Intn(int(maxDurationBeforeStopProcess))
-	endOfProcessingHandler := func() error {
+	endOfProcessingHandler := func(reason string) error {
 		go func() {
 			time.Sleep(time.Duration(randDurationBeforeStop) * time.Millisecond)
 			fmt.Println(fmt.Sprintf("the application stops after waiting %d miliseconds because the node was "+
 				"shuffled out", randDurationBeforeStop))
-			chanStopNodeProcess <- true
+			chanStopNodeProcess <- reason
 		}()
 		return nil
 	}
@@ -1520,7 +1570,7 @@ func createNode(
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
 	whiteListHandler process.WhiteListHandler,
-	chanStopNodeProcess chan bool,
+	chanStopNodeProcess chan string,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
