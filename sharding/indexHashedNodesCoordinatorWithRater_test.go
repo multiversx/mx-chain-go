@@ -179,11 +179,11 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 
 	//generate 400 validators
 	for i := uint32(0); i < shardSize; i++ {
-		list = append(list, mock.NewValidatorMock([]byte(fmt.Sprintf("pk%v", i)), []byte(fmt.Sprintf("addr%v", i)), defaultSelectionChances))
+		list = append(list, mock.NewValidatorMock([]byte(fmt.Sprintf("pk%v", i)), 1, defaultSelectionChances))
 	}
 	listMeta := []Validator{
-		mock.NewValidatorMock([]byte("pkMeta1"), []byte("addrMeta1"), defaultSelectionChances),
-		mock.NewValidatorMock([]byte("pkMeta2"), []byte("addrMeta2"), defaultSelectionChances),
+		mock.NewValidatorMock([]byte("pkMeta1"), 1, defaultSelectionChances),
+		mock.NewValidatorMock([]byte("pkMeta2"), 1, defaultSelectionChances),
 	}
 
 	consensusAppearances := make(map[string]uint64)
@@ -206,7 +206,7 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 		MetaConsensusGroupSize:  1,
 		Hasher:                  &mock.HasherMock{},
 		Shuffler:                nodeShuffler,
-		EpochStartSubscriber:    epochStartSubscriber,
+		EpochStartNotifier:      epochStartSubscriber,
 		BootStorer:              bootStorer,
 		NbShards:                1,
 		EligibleNodes:           eligibleMap,
@@ -219,7 +219,7 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 	hasher := sha256.Sha256{}
 	for i := uint64(0); i < numRounds; i++ {
 		randomness := hasher.Compute(fmt.Sprintf("%v%v", i, time.Millisecond))
-		consensusGroup, _ := ihgs.ComputeConsensusGroup((randomness), uint64(0), 0, 0)
+		consensusGroup, _ := ihgs.ComputeConsensusGroup(randomness, uint64(0), 0, 0)
 		leaderAppearances[string(consensusGroup[0].PubKey())]++
 		for _, v := range consensusGroup {
 			consensusAppearances[string(v.PubKey())]++

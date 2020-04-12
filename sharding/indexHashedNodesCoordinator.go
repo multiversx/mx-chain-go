@@ -63,7 +63,7 @@ type indexHashedNodesCoordinator struct {
 	consensusGroupCacher          Cacher
 	shardIDAsObserver             uint32
 	loadingFromDisk               atomic.Value
-	shuffledOutHandler      ShuffledOutHandler
+	shuffledOutHandler            ShuffledOutHandler
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -99,7 +99,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		metaConsensusGroupSize:        arguments.MetaConsensusGroupSize,
 		consensusGroupCacher:          arguments.ConsensusGroupCache,
 		shardIDAsObserver:             arguments.ShardIDAsObserver,
-		shuffledOutHandler:      arguments.ShuffledOutHandler,
+		shuffledOutHandler:            arguments.ShuffledOutHandler,
 	}
 
 	ihgs.loadingFromDisk.Store(false)
@@ -206,7 +206,6 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 	if err != nil {
 		return err
 	}
-
 
 	shardIDForSelfPublicKey := ihgs.computeShardForSelfPublicKey(nodesConfig)
 	nodesConfig.shardID = shardIDForSelfPublicKey
@@ -558,8 +557,6 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		case string(core.NewList):
 			newNodesList = append(newNodesList, validator)
 		}
-
-		log.Debug("Validator", "PK", validator.PubKey(), "chances", chance)
 	}
 
 	sort.Slice(leaving, func(i, j int) bool {
