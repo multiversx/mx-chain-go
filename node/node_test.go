@@ -987,7 +987,7 @@ func TestNode_ConsensusTopicValidatorAlreadySet(t *testing.T) {
 	)
 
 	err := n.CreateConsensusTopic(messageProc)
-	require.Equal(t, node.ErrValidatorAlreadySet, err)
+	require.Nil(t, err)
 }
 
 func TestNode_ConsensusTopicCreateTopicError(t *testing.T) {

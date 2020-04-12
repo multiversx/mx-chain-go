@@ -167,8 +167,8 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 		Randomizer:         rcf.intRandomizer,
 		TargetShardId:      defaultTargetShardID,
 		OutputAntiflooder:  rcf.outputAntifloodHandler,
-		NumCrossShardPeers: 0,
-		NumIntraShardPeers: numIntraShardPeers + numCrossShardPeers,
+		NumCrossShardPeers: numCrossShardPeers,
+		NumIntraShardPeers: numIntraShardPeers,
 	}
 	resolverSender, err := topicResolverSender.NewTopicResolverSender(arg)
 	if err != nil {

@@ -466,6 +466,11 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		}
 	}
 
+	err = e.messenger.CreateTopic(core.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
+	if err != nil {
+		return Parameters{}, err
+	}
+
 	if e.shardCoordinator.SelfId() == core.MetachainShardId {
 		err = e.requestAndProcessForMeta()
 		if err != nil {
