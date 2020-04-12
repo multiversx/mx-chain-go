@@ -96,7 +96,6 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 	}
 
 	sbt.blockProcessor = blockProcessorObject
-
 	sbt.headers = make(map[uint32]map[uint64][]*HeaderInfo)
 	sbt.headersPool.RegisterHandler(sbt.receivedHeader)
 
@@ -147,8 +146,8 @@ func (sbt *shardBlockTrack) ComputeLongestSelfChain() (data.HeaderHandler, []byt
 	return lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, headers, hashes
 }
 
-// ComputeNumPendingMiniBlocks computes the number of pending miniblocks from a given slice of metablocks
-func (sbt *shardBlockTrack) ComputeNumPendingMiniBlocks(headers []data.HeaderHandler) {
+// ComputeCrossInfo computes the cross info from a given slice of metablocks
+func (sbt *shardBlockTrack) ComputeCrossInfo(headers []data.HeaderHandler) {
 	lenHeaders := len(headers)
 	if lenHeaders == 0 {
 		return
@@ -156,21 +155,19 @@ func (sbt *shardBlockTrack) ComputeNumPendingMiniBlocks(headers []data.HeaderHan
 
 	metaBlock, ok := headers[lenHeaders-1].(*block.MetaBlock)
 	if !ok {
-		log.Debug("ComputeNumPendingMiniBlocks", "error", process.ErrWrongTypeAssertion)
+		log.Debug("ComputeCrossInfo", "error", process.ErrWrongTypeAssertion)
 		return
 	}
 
 	for _, shardInfo := range metaBlock.ShardInfo {
 		sbt.blockBalancer.SetNumPendingMiniBlocks(shardInfo.ShardID, shardInfo.NumPendingMiniBlocks)
+		sbt.blockBalancer.SetLastShardProcessedMetaNonce(shardInfo.ShardID, shardInfo.LastIncludedMetaNonce)
 	}
 
 	for shardID := uint32(0); shardID < sbt.shardCoordinator.NumberOfShards(); shardID++ {
-		log.Debug("pending miniblocks",
+		log.Debug("cross info",
 			"shard", shardID,
-			"num", sbt.blockBalancer.GetNumPendingMiniBlocks(shardID))
+			"pending miniblocks", sbt.blockBalancer.GetNumPendingMiniBlocks(shardID),
+			"last meta nonce processed", sbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID))
 	}
-
-	log.Debug("pending miniblocks",
-		"shard", core.AllShardId,
-		"num", sbt.blockBalancer.GetNumPendingMiniBlocks(core.AllShardId))
 }

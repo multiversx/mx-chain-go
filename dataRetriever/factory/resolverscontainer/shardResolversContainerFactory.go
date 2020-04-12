@@ -122,7 +122,7 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	hdrStorer := srcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
-	resolverSender, err := srcf.createOneResolverSender(identifierHdr, emptyExcludePeersOnTopic, shardC.SelfId())
+	resolverSender, err := srcf.createOneResolverSender(identifierHdr, EmptyExcludePeersOnTopic, shardC.SelfId())
 	if err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 	identifierHdr := factory.MetachainBlocksTopic
 	hdrStorer := srcf.store.GetStorer(dataRetriever.MetaBlockUnit)
 
-	resolverSender, err := srcf.createOneResolverSender(identifierHdr, emptyExcludePeersOnTopic, core.MetachainShardId)
+	resolverSender, err := srcf.createOneResolverSender(identifierHdr, EmptyExcludePeersOnTopic, core.MetachainShardId)
 	if err != nil {
 		return err
 	}

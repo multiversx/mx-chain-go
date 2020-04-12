@@ -2895,7 +2895,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockHeader(t *testing.
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
 
-func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.T) {
+func TestBlockProcessor_RestoreBlockIntoPoolsShouldWorkNilTxBlockBody(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
 
@@ -2904,8 +2904,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	err := sp.RestoreBlockIntoPools(&block.Header{}, nil)
-	assert.NotNil(t, err)
-	assert.Equal(t, err, process.ErrNilTxBlockBody)
+	assert.Nil(t, err)
 }
 
 func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {

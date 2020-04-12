@@ -140,9 +140,6 @@ var ErrNilMessenger = errors.New("nil Messenger")
 // ErrNilTxDataPool signals that a nil transaction pool has been provided
 var ErrNilTxDataPool = errors.New("nil transaction data pool")
 
-// ErrEmptyTxDataPool signals that a empty transaction pool has been provided
-var ErrEmptyTxDataPool = errors.New("empty transaction data pool")
-
 // ErrNilHeadersDataPool signals that a nil headers pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
 
@@ -437,6 +434,9 @@ var ErrVMTypeLengthInvalid = errors.New("vm type length is too long")
 // ErrOverallBalanceChangeFromSC signals that all sumed balance changes are not zero
 var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wrong")
 
+// ErrOverflow signals that an overflow occured
+var ErrOverflow = errors.New("type overflow occured")
+
 // ErrNilTxValidator signals that a nil tx validator has been provided
 var ErrNilTxValidator = errors.New("nil transaction validator")
 
@@ -445,10 +445,6 @@ var ErrNilHdrValidator = errors.New("nil header validator")
 
 // ErrNilPendingMiniBlocksHandler signals that a nil pending miniblocks handler has been provided
 var ErrNilPendingMiniBlocksHandler = errors.New("nil pending miniblocks handler")
-
-// ErrMiniblockNotForCurrentShard signals that the current processing miniblock must not be
-// processed on the current shard
-var ErrMiniblockNotForCurrentShard = errors.New("miniblock is not addressed for current shard")
 
 // ErrNilTxsPoolsCleaner signals that a nil transactions pools cleaner has been provided
 var ErrNilTxsPoolsCleaner = errors.New("nil transactions pools cleaner")
@@ -537,12 +533,6 @@ var ErrZeroMaxComputableRounds = errors.New("max computable rounds is zero")
 // ErrNilRater signals that nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 
-// ErrNilRatingReaderSetter signals that a nil rating reader setter has been provided
-var ErrNilRatingReaderSetter = errors.New("nil rating reader setter")
-
-// ErrNilListIndexUpdaterSetter signals that a nil list index updater has been provided
-var ErrNilListIndexUpdaterSetter = errors.New("nil list index updater setter")
-
 // ErrNilNetworkWatcher signals that a nil network watcher has been provided
 var ErrNilNetworkWatcher = errors.New("nil network watcher")
 
@@ -564,8 +554,11 @@ var ErrSignedBlocksThresholdNotBetweenZeroAndOne = errors.New("signed blocks thr
 // ErrConsecutiveMissedBlocksPenaltyLowerThanOne signals that the ConsecutiveMissedBlocksPenalty is lower than 1
 var ErrConsecutiveMissedBlocksPenaltyLowerThanOne = errors.New("consecutive missed blocks penalty lower than 1")
 
-// ErrDecreaseRatingsStepPositive signals that the decrease rating step has a positive value
-var ErrDecreaseRatingsStepPositive = errors.New("decrease rating step has a positive value")
+// ErrDecreaseRatingsStepMoreThanMinusOne signals that the decrease rating step has a vale greater than -1
+var ErrDecreaseRatingsStepMoreThanMinusOne = errors.New("decrease rating step has a value greater than -1")
+
+// ErrHoursToMaxRatingFromStartRatingZero signals that the number of hours to reach max rating step is zero
+var ErrHoursToMaxRatingFromStartRatingZero = errors.New("hours to reach max rating is zero")
 
 // ErrSCDeployFromSCRIsNotPermitted signals that operation is not permitted
 var ErrSCDeployFromSCRIsNotPermitted = errors.New("it is not permitted to deploy a smart contract from another smart contract cross shard")
@@ -624,14 +617,11 @@ var ErrNilValidityAttester = errors.New("nil validity attester")
 // ErrNilHeaderHandler signals that a nil header handler has been provided
 var ErrNilHeaderHandler = errors.New("nil header handler")
 
-// ErrNilMiniBlocksResolver signals that a nil miniblocks resolver has been provided
-var ErrNilMiniBlocksResolver = errors.New("nil miniblocks resolver")
+// ErrNilMiniBlocksProvider signals that a nil miniblocks data provider has been passed over
+var ErrNilMiniBlocksProvider = errors.New("nil miniblocks provider")
 
 // ErrNilWhiteListHandler signals that white list handler is nil
 var ErrNilWhiteListHandler = errors.New("nil whitelist handler")
-
-// ErrNilInterceptedDataVerifier signals that intercepted data verifier is nil
-var ErrNilInterceptedDataVerifier = errors.New("nil intercepted data verifier")
 
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
@@ -737,6 +727,9 @@ var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")
 
 // ErrInvalidMetaTransaction signals that meta transaction is invalid
 var ErrInvalidMetaTransaction = errors.New("meta transaction is invalid")
+
+// ErrIncreaseStepLowerThanOne signals that an increase step lower than one has been provided
+var ErrIncreaseStepLowerThanOne = errors.New("increase step is lower than one")
 
 // ErrNilVmInput signals that provided vm input is nil
 var ErrNilVmInput = errors.New("nil vm input")
