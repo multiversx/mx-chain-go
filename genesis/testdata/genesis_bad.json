@@ -1,0 +1,12 @@
+[
+  {
+    "address": "not-an-address",
+    "supply": "1",
+    "balance": "1",
+    "stakingbalance": "0",
+    "delegation": {
+      "address": "",
+      "balance": "0"
+    }
+  }
+]
