@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -100,6 +100,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
+	whitelistHandler := &mock.WhiteListHandlerStub{}
 
 	arguments := track.ArgShardTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
@@ -111,6 +112,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 			ShardCoordinator: shardCoordinatorMock,
 			Store:            initStore(),
 			StartHeaders:     genesisBlocks,
+			WhitelistHandler: whitelistHandler,
 		},
 		PoolsHolder: mock.NewPoolsHolderMock(),
 	}
