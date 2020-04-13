@@ -2,8 +2,8 @@ package metachain
 
 import (
 	"bytes"
+	"crypto/rand"
 	"errors"
-	"math/rand"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -165,7 +165,7 @@ func TestVerifyEpochStartDataForMetablock_DataDoesNotMatch(t *testing.T) {
 	arguments.Hasher = &mock.HasherStub{
 		ComputeCalled: func(s string) []byte {
 			token := make([]byte, 4)
-			rand.Read(token)
+			_, _ = rand.Read(token)
 			return token
 		},
 	}
