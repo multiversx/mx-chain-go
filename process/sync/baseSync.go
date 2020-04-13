@@ -88,7 +88,7 @@ type baseBootstrap struct {
 	uint64Converter          typeConverters.Uint64ByteSliceConverter
 	requestsWithTimeout      uint32
 	mapNonceSyncedWithErrors map[uint64]uint32
-	mutNonceSyncedWithErrors sync.Mutex
+	mutNonceSyncedWithErrors sync.RWMutex
 
 	requestMiniBlocks func(headerHandler data.HeaderHandler)
 

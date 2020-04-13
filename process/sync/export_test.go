@@ -197,3 +197,33 @@ func (boot *baseBootstrap) SetNodeStateCalculated(state bool) {
 func (boot *baseBootstrap) ComputeNodeState() {
 	boot.computeNodeState()
 }
+
+func (boot *baseBootstrap) ResetProbableHighestNonceIfNeeded(headerHandler data.HeaderHandler) {
+	boot.resetProbableHighestNonceIfNeeded(headerHandler)
+}
+
+func (boot *baseBootstrap) SetNonceSyncedWithErrors(nonce uint64, value uint32) {
+	boot.mutNonceSyncedWithErrors.Lock()
+	boot.mapNonceSyncedWithErrors[nonce] = value
+	boot.mutNonceSyncedWithErrors.Unlock()
+}
+
+func (boot *baseBootstrap) GetNonceSyncedWithErrors(nonce uint64) uint32 {
+	boot.mutNonceSyncedWithErrors.RLock()
+	nonceSyncedWithErrors := boot.mapNonceSyncedWithErrors[nonce]
+	boot.mutNonceSyncedWithErrors.RUnlock()
+
+	return nonceSyncedWithErrors
+}
+
+func (boot *baseBootstrap) GetMapNonceSyncedWithErrorsLen() int {
+	boot.mutNonceSyncedWithErrors.RLock()
+	mapNonceSyncedWithErrorsLen := len(boot.mapNonceSyncedWithErrors)
+	boot.mutNonceSyncedWithErrors.RUnlock()
+
+	return mapNonceSyncedWithErrorsLen
+}
+
+func (boot *baseBootstrap) CleanNoncesSyncedWithErrorsBehindFinal() {
+	boot.cleanNoncesSyncedWithErrorsBehindFinal()
+}
