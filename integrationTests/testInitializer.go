@@ -1464,16 +1464,13 @@ func requestMissingTransactions(n *TestProcessorNode, shardResolver uint32, need
 }
 
 // CreateRequesterDataPool creates a datapool with a mock txPool
-func CreateRequesterDataPool(t *testing.T, recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int, selfShardID uint32) dataRetriever.PoolsHolder {
-
+func CreateRequesterDataPool(recvTxs map[int]map[string]struct{}, mutRecvTxs *sync.Mutex, nodeIndex int, selfShardID uint32) dataRetriever.PoolsHolder {
 	//not allowed to request data from the same shard
 	return CreateTestDataPool(&mock.ShardedDataStub{
 		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-			assert.Fail(t, "same-shard requesters should not be queried")
 			return nil, false
 		},
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-			assert.Fail(t, "same-shard requesters should not be queried")
 			return nil
 		},
 		AddDataCalled: func(key []byte, data interface{}, cacheId string) {

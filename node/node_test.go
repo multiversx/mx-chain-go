@@ -875,6 +875,9 @@ func TestNode_ConsensusTopicValidatorAlreadySet(t *testing.T) {
 			HasTopicValidatorCalled: func(name string) bool {
 				return true
 			},
+			HasTopicCalled: func(name string) bool {
+				return true
+			},
 		}),
 	)
 
@@ -1354,87 +1357,6 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 	assert.Equal(t, true, wasBroadcast.Load())
 }
 
-func TestNode_StartHeartbeatShouldWorkAndHaveAllPublicKeys(t *testing.T) {
-	t.Parallel()
-
-	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{
-			MarshalHandler: func(obj interface{}) (bytes []byte, e error) {
-				return make([]byte, 0), nil
-			}}, testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithSingleSigner(&mock.SinglesignMock{}),
-		node.WithKeyGen(&mock.KeyGenMock{}),
-		node.WithMessenger(&mock.MessengerStub{
-			HasTopicValidatorCalled: func(name string) bool {
-				return false
-			},
-			HasTopicCalled: func(name string) bool {
-				return false
-			},
-			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
-				return nil
-			},
-			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
-				return nil
-			},
-			BroadcastCalled: func(topic string, buff []byte) {
-			},
-		}),
-		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1", "pk2"}, 1: {"pk3"}}),
-		node.WithPrivKey(&mock.PrivateKeyStub{
-			GeneratePublicHandler: func() crypto.PublicKey {
-				return &mock.PublicKeyMock{
-					ToByteArrayHandler: func() (i []byte, e error) {
-						return []byte("pk1"), nil
-					},
-				}
-			},
-		}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithDataStore(&mock.ChainStorerMock{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return mock.NewStorerMock()
-			},
-		}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
-		node.WithNetworkShardingCollector(
-			&mock.NetworkShardingCollectorStub{
-				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
-			}),
-		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
-				return map[uint32][]*state.ValidatorInfo{
-					0: {
-						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
-					},
-					1: {
-						{PublicKey: []byte("pk3")},
-					},
-				}, nil
-			},
-		}),
-		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
-	)
-
-	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 1,
-		MaxTimeToWaitBetweenBroadcastsInSec: 2,
-		DurationInSecToConsiderUnresponsive: 3,
-		Enabled:                             true,
-	}, "v0.1",
-		"undefined",
-	)
-	assert.Nil(t, err)
-
-	elements := n.HeartbeatMonitor().GetHeartbeats()
-	assert.Equal(t, 3, len(elements))
-}
-
 func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *testing.T) {
 	t.Parallel()
 
@@ -1506,6 +1428,18 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 				}, nil
 			},
 		}),
+		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+				return map[uint32][]*state.ValidatorInfo{
+					0: {
+						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+					},
+					1: {
+						{PublicKey: []byte("pk3")},
+					},
+				}, nil
+			},
+		}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
 	)
@@ -1521,6 +1455,8 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 	assert.Nil(t, err)
 
 	elements := n.HeartbeatMonitor().GetHeartbeats()
+
+	assert.Equal(t, 3, len(elements))
 	for _, status := range elements {
 		assert.Equal(t, string(core.EligibleList), status.PeerType)
 	}

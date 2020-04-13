@@ -198,7 +198,7 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	resolver, err := srcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie)
+	resolver, err := srcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie, 0, numIntraShardPeers+numCrossShardPeers)
 	if err != nil {
 		return err
 	}
@@ -207,7 +207,7 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	keys = append(keys, identifierTrieNodes)
 
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	resolver, err = srcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie)
+	resolver, err = srcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie, numCrossShardPeers, numIntraShardPeers)
 	if err != nil {
 		return err
 	}
@@ -216,7 +216,7 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	keys = append(keys, identifierTrieNodes)
 
 	identifierTrieNodes = factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	resolver, err = srcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie)
+	resolver, err = srcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie, numCrossShardPeers, numIntraShardPeers)
 	if err != nil {
 		return err
 	}

@@ -127,6 +127,12 @@ type baseDataInStorage struct {
 
 // ArgsEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
 type ArgsEpochStartBootstrap struct {
+	DestinationShardAsObserver uint32
+	WorkingDir                 string
+	DefaultDBPath              string
+	DefaultEpochString         string
+	DefaultShardString         string
+	TrieStorageManagers        map[string]data.StorageManager
 	PublicKey                  crypto.PublicKey
 	Marshalizer                marshal.Marshalizer
 	TxSignMarshalizer          marshal.Marshalizer
@@ -141,14 +147,8 @@ type ArgsEpochStartBootstrap struct {
 	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
 	GenesisShardCoordinator    sharding.Coordinator
 	PathManager                storage.PathManagerHandler
-	WorkingDir                 string
-	DefaultDBPath              string
-	DefaultEpochString         string
-	DefaultShardString         string
 	Rater                      sharding.ChanceComputer
-	DestinationShardAsObserver uint32
 	TrieContainer              state.TriesHolder
-	TrieStorageManagers        map[string]data.StorageManager
 	Uint64Converter            typeConverters.Uint64ByteSliceConverter
 	NodeShuffler               sharding.NodesShuffler
 	Rounder                    epochStart.Rounder
@@ -229,8 +229,9 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	defer func() {
+		log.Debug("unregistering all message processor")
 		errMessenger := e.messenger.UnregisterAllMessageProcessors()
-		log.LogIfError(errMessenger, "error on unregistering message processor")
+		log.LogIfError(errMessenger)
 	}()
 
 	var err error
@@ -268,7 +269,12 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	return e.requestAndProcessing()
+	params, err := e.requestAndProcessing()
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	return params, nil
 }
 
 func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
@@ -464,6 +470,11 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		if err != nil {
 			return Parameters{}, err
 		}
+	}
+
+	err = e.messenger.CreateTopic(core.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
+	if err != nil {
+		return Parameters{}, err
 	}
 
 	if e.shardCoordinator.SelfId() == core.MetachainShardId {
