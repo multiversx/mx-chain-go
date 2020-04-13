@@ -31,7 +31,6 @@ type ArgsBaseStorageBootstrapper struct {
 	ShardCoordinator    sharding.Coordinator
 	NodesCoordinator    sharding.NodesCoordinator
 	EpochStartTrigger   process.EpochStartTriggerHandler
-	ResolversFinder     dataRetriever.ResolversFinder
 	BlockTracker        process.BlockTracker
 }
 
@@ -234,13 +233,9 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			return err
 		}
 
-		selfNotarizedHeadersHashes := make([][]byte, len(bootInfos[i].LastSelfNotarizedHeaders))
-		for index, selfNotarizedHeader := range bootInfos[i].LastSelfNotarizedHeaders {
-			selfNotarizedHeadersHashes[index] = selfNotarizedHeader.Hash
-		}
-
 		var selfNotarizedHeaders []data.HeaderHandler
-		selfNotarizedHeaders, err = st.bootstrapper.applySelfNotarizedHeaders(selfNotarizedHeadersHashes)
+		var selfNotarizedHeadersHashes [][]byte
+		selfNotarizedHeaders, selfNotarizedHeadersHashes, err = st.bootstrapper.applySelfNotarizedHeaders(bootInfos[i].LastSelfNotarizedHeaders)
 		if err != nil {
 			log.Debug("cannot apply self notarized headers", "error", err.Error())
 			return err
@@ -367,9 +362,6 @@ func checkBaseStorageBootrstrapperArguments(args ArgsBaseStorageBootstrapper) er
 	}
 	if check.IfNil(args.EpochStartTrigger) {
 		return process.ErrNilEpochStartTrigger
-	}
-	if check.IfNil(args.ResolversFinder) {
-		return dataRetriever.ErrNilResolverFinder
 	}
 	if check.IfNil(args.BlockTracker) {
 		return process.ErrNilBlockTracker
