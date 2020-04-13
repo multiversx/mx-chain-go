@@ -194,7 +194,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		mapHashHdr:                  make(map[string]*block.MetaBlock),
 		mapNonceHashes:              make(map[uint64][]string),
 		mapEpochStartHdrs:           make(map[string]*block.MetaBlock),
-		mapFinalizedEpochs:          make(map[uint32]struct{}, 0),
+		mapFinalizedEpochs:          make(map[uint32]struct{}),
 		headersPool:                 args.DataPool.Headers(),
 		miniBlocksPool:              args.DataPool.MiniBlocks(),
 		metaHdrStorage:              metaHdrStorage,
@@ -754,7 +754,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	t.mapHashHdr = make(map[string]*block.MetaBlock)
 	t.mapNonceHashes = make(map[uint64][]string)
 	t.mapEpochStartHdrs = make(map[string]*block.MetaBlock)
-	t.mapFinalizedEpochs = make(map[uint32]struct{}, 0)
+	t.mapFinalizedEpochs = make(map[uint32]struct{})
 
 	t.saveCurrentState(header.GetRound())
 
