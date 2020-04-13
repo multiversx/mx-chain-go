@@ -611,8 +611,8 @@ func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
 	defer netMes.mutTopics.Unlock()
 
 	for topic, validator := range netMes.topics {
-		if validator == nil {
-			return p2p.ErrTopicValidatorOperationNotSupported
+		if check.IfNil(validator) {
+			continue
 		}
 
 		err := netMes.pb.UnregisterTopicValidator(topic)
@@ -622,7 +622,6 @@ func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
 
 		netMes.topics[topic] = nil
 	}
-
 	return nil
 }
 
