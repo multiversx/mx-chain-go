@@ -422,12 +422,16 @@ func TestShardChainMessenger_HeaderReceivedForRegisteredDelayedDataShouldBroadca
 	err := scm.SetDataForDelayBroadcast(headerHash, miniBlocksMarshalled, transactions)
 	assert.Nil(t, err)
 	time.Sleep(10 * time.Millisecond)
+	mutData.Lock()
 	assert.False(t, wasCalled)
+	mutData.Unlock()
 
 	scm.HeaderReceived(metaBlock, []byte("meta hash"))
 	time.Sleep(10 * time.Millisecond)
+	mutData.Lock()
 	assert.True(t, wasCalled)
 	assert.Contains(t, broadcastBuffer, miniBlocksMarshalled[1])
+	mutData.Unlock()
 }
 
 func TestShardChainMessenger_HeaderReceivedForNotRegisteredDelayedDataShouldNotBroadcast(t *testing.T) {
@@ -455,15 +459,19 @@ func TestShardChainMessenger_HeaderReceivedForNotRegisteredDelayedDataShouldNotB
 	err := scm.SetDataForDelayBroadcast(headerHash, miniBlocksMarshalled, transactions)
 	assert.Nil(t, err)
 	time.Sleep(10 * time.Millisecond)
+	mutData.Lock()
 	assert.False(t, wasCalled)
+	mutData.Unlock()
 
 	var expectedSent [][]byte
 	expectedSent = append(expectedSent, miniBlocksMarshalled[1])
 
 	scm.HeaderReceived(metaBlock, []byte("meta hash"))
 	time.Sleep(10 * time.Millisecond)
+	mutData.Lock()
 	assert.False(t, wasCalled)
 	assert.False(t, isIncluded(expectedSent, broadcastBuffer))
+	mutData.Unlock()
 }
 
 func TestShardChainMessenger_HeaderReceivedForNextRegisteredDelayedDataShouldBroadcastBoth(t *testing.T) {
@@ -489,13 +497,17 @@ func TestShardChainMessenger_HeaderReceivedForNextRegisteredDelayedDataShouldBro
 	err := scm.SetDataForDelayBroadcast(headerHash, miniBlocksMarshalled, transactions)
 	assert.Nil(t, err)
 	time.Sleep(10 * time.Millisecond)
+	mutData.Lock()
 	assert.False(t, wasCalled)
+	mutData.Unlock()
 
 	headerHash2, miniBlocksMarshalled2, transactions2 := createDelayData("2")
 	err = scm.SetDataForDelayBroadcast(headerHash2, miniBlocksMarshalled2, transactions2)
 	assert.Nil(t, err)
 	time.Sleep(10 * time.Millisecond)
+	mutData.Lock()
 	assert.False(t, wasCalled)
+	mutData.Unlock()
 
 	metaBlock := createMetaBlock()
 	metaBlock.ShardInfo[0].HeaderHash = headerHash2
@@ -506,6 +518,8 @@ func TestShardChainMessenger_HeaderReceivedForNextRegisteredDelayedDataShouldBro
 
 	scm.HeaderReceived(metaBlock, []byte("meta hash"))
 	time.Sleep(10 * time.Millisecond)
+	mutData.Lock()
 	assert.True(t, wasCalled)
 	assert.True(t, isIncluded(expectedSent, broadcastBuffer))
+	mutData.Unlock()
 }
