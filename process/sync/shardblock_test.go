@@ -1881,7 +1881,7 @@ func TestShardBootstrap_ResetProbableHighestNonceIfNeededShouldNotBeDoneWhenAreN
 	args.ForkDetector = forkDetectorMock
 
 	bs, _ := sync.NewShardBootstrap(args)
-	bs.SetNonceSyncedWithErrors(2, 8)
+	bs.SetNumSyncedWithErrorsForNonce(2, 8)
 	bs.ResetProbableHighestNonceIfNeeded(&block.Header{Nonce: 2})
 
 	assert.False(t, wasCalled)
@@ -1905,7 +1905,7 @@ func TestShardBootstrap_ResetProbableHighestNonceIfNeededShouldNotBeDoneWhenIsNo
 	args.Rounder = rounderMock
 
 	bs, _ := sync.NewShardBootstrap(args)
-	bs.SetNonceSyncedWithErrors(2, 9)
+	bs.SetNumSyncedWithErrorsForNonce(2, 9)
 	bs.ResetProbableHighestNonceIfNeeded(&block.Header{Nonce: 2})
 
 	assert.False(t, wasCalled)
@@ -1925,7 +1925,7 @@ func TestShardBootstrap_ResetProbableHighestNonceIfNeededShouldBeDone(t *testing
 	args.ForkDetector = forkDetectorMock
 
 	bs, _ := sync.NewShardBootstrap(args)
-	bs.SetNonceSyncedWithErrors(2, 9)
+	bs.SetNumSyncedWithErrorsForNonce(2, 9)
 	bs.ResetProbableHighestNonceIfNeeded(&block.Header{Nonce: 2})
 
 	assert.True(t, wasCalled)
@@ -1943,14 +1943,14 @@ func TestShardBootstrap_CleanNoncesSyncedWithErrorsBehindFinalShouldWork(t *test
 	args.ForkDetector = forkDetectorMock
 
 	bs, _ := sync.NewShardBootstrap(args)
-	bs.SetNonceSyncedWithErrors(1, 7)
-	bs.SetNonceSyncedWithErrors(2, 8)
-	bs.SetNonceSyncedWithErrors(3, 9)
+	bs.SetNumSyncedWithErrorsForNonce(1, 7)
+	bs.SetNumSyncedWithErrorsForNonce(2, 8)
+	bs.SetNumSyncedWithErrorsForNonce(3, 9)
 
 	assert.Equal(t, 3, bs.GetMapNonceSyncedWithErrorsLen())
 
 	bs.CleanNoncesSyncedWithErrorsBehindFinal()
 
 	assert.Equal(t, 1, bs.GetMapNonceSyncedWithErrorsLen())
-	assert.Equal(t, uint32(9), bs.GetNonceSyncedWithErrors(3))
+	assert.Equal(t, uint32(9), bs.GetNumSyncedWithErrorsForNonce(3))
 }

@@ -202,18 +202,18 @@ func (boot *baseBootstrap) ResetProbableHighestNonceIfNeeded(headerHandler data.
 	boot.resetProbableHighestNonceIfNeeded(headerHandler)
 }
 
-func (boot *baseBootstrap) SetNonceSyncedWithErrors(nonce uint64, value uint32) {
+func (boot *baseBootstrap) SetNumSyncedWithErrorsForNonce(nonce uint64, numSyncedWithErrors uint32) {
 	boot.mutNonceSyncedWithErrors.Lock()
-	boot.mapNonceSyncedWithErrors[nonce] = value
+	boot.mapNonceSyncedWithErrors[nonce] = numSyncedWithErrors
 	boot.mutNonceSyncedWithErrors.Unlock()
 }
 
-func (boot *baseBootstrap) GetNonceSyncedWithErrors(nonce uint64) uint32 {
+func (boot *baseBootstrap) GetNumSyncedWithErrorsForNonce(nonce uint64) uint32 {
 	boot.mutNonceSyncedWithErrors.RLock()
-	nonceSyncedWithErrors := boot.mapNonceSyncedWithErrors[nonce]
+	numSyncedWithErrors := boot.mapNonceSyncedWithErrors[nonce]
 	boot.mutNonceSyncedWithErrors.RUnlock()
 
-	return nonceSyncedWithErrors
+	return numSyncedWithErrors
 }
 
 func (boot *baseBootstrap) GetMapNonceSyncedWithErrorsLen() int {
