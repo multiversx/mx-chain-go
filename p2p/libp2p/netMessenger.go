@@ -472,7 +472,7 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 	_, found := netMes.topics[name]
 	if found {
 		netMes.mutTopics.Unlock()
-		return p2p.ErrTopicAlreadyExists
+		return nil
 	}
 
 	//TODO investigate if calling Subscribe on the pubsub impl does exactly the same thing as Topic.Subscribe
@@ -578,12 +578,14 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	err := netMes.pb.RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
 		wrappedMsg, err := NewMessage(message)
 		if err != nil {
-			log.Trace("p2p validator - new message", "error", err.Error(), "topics", message.TopicIDs)
+			//TODO revert here log.Trace
+			log.Debug("p2p validator - new message", "error", err.Error(), "topics", message.TopicIDs)
 			return false
 		}
 		err = handler.ProcessReceivedMessage(wrappedMsg, p2p.PeerID(pid))
 		if err != nil {
-			log.Trace("p2p validator",
+			//TODO revert here log.Trace
+			log.Debug("p2p validator",
 				"error", err.Error(),
 				"topics", message.TopicIDs,
 				"pid", p2p.MessageOriginatorPid(wrappedMsg),
@@ -603,7 +605,28 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 	return nil
 }
 
-// UnregisterMessageProcessor registers a message processes on a topic
+// UnregisterAllMessageProcessors will unregister all message processors for topics
+func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
+	netMes.mutTopics.Lock()
+	defer netMes.mutTopics.Unlock()
+
+	for topic, validator := range netMes.topics {
+		if validator == nil {
+			return p2p.ErrTopicValidatorOperationNotSupported
+		}
+
+		err := netMes.pb.UnregisterTopicValidator(topic)
+		if err != nil {
+			return err
+		}
+
+		netMes.topics[topic] = nil
+	}
+
+	return nil
+}
+
+// UnregisterMessageProcessor unregisters a message processes on a topic
 func (netMes *networkMessenger) UnregisterMessageProcessor(topic string) error {
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
@@ -646,7 +669,8 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P, fro
 	go func(msg p2p.MessageP2P) {
 		err := processor.ProcessReceivedMessage(msg, fromConnectedPeer)
 		if err != nil {
-			log.Trace("p2p validator",
+			//TODO revert here log.Trace
+			log.Debug("p2p validator",
 				"error", err.Error(),
 				"topics", msg.Topics(),
 				"pid", p2p.MessageOriginatorPid(msg),

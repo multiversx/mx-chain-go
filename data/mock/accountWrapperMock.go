@@ -8,20 +8,32 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+var _ state.UserAccountHandler = (*AccountWrapMock)(nil)
+
 // AccountWrapMock -
 type AccountWrapMock struct {
 	AccountWrapMockData
 	dataTrie          data.Trie
 	nonce             uint64
 	code              []byte
-	codeHash          []byte
-	rootHash          []byte
+	CodeHash          []byte
+	CodeMetadata      []byte
+	RootHash          []byte
 	address           state.AddressContainer
 	trackableDataTrie state.DataTrieTracker
 
 	SetNonceWithJournalCalled    func(nonce uint64) error    `json:"-"`
 	SetCodeHashWithJournalCalled func(codeHash []byte) error `json:"-"`
 	SetCodeWithJournalCalled     func([]byte) error          `json:"-"`
+}
+
+// SetUserName -
+func (awm *AccountWrapMock) SetUserName(_ []byte) {
+}
+
+// GetUserName -
+func (awm *AccountWrapMock) GetUserName() []byte {
+	return nil
 }
 
 // AddToBalance -
@@ -84,12 +96,17 @@ func (awm *AccountWrapMock) IsInterfaceNil() bool {
 
 // GetCodeHash -
 func (awm *AccountWrapMock) GetCodeHash() []byte {
-	return awm.codeHash
+	return awm.CodeHash
 }
 
 // SetCodeHash -
 func (awm *AccountWrapMock) SetCodeHash(codeHash []byte) {
-	awm.codeHash = codeHash
+	awm.CodeHash = codeHash
+}
+
+// SetCode -
+func (awm *AccountWrapMock) SetCode(code []byte) {
+	awm.code = code
 }
 
 // GetCode -
@@ -97,24 +114,29 @@ func (awm *AccountWrapMock) GetCode() []byte {
 	return awm.code
 }
 
+// SetCodeMetadata -
+func (awm *AccountWrapMock) SetCodeMetadata(codeMetadata []byte) {
+	awm.CodeMetadata = codeMetadata
+}
+
+// GetCodeMetadata -
+func (awm *AccountWrapMock) GetCodeMetadata() []byte {
+	return awm.CodeMetadata
+}
+
 // GetRootHash -
 func (awm *AccountWrapMock) GetRootHash() []byte {
-	return awm.rootHash
+	return awm.RootHash
 }
 
 // SetRootHash -
 func (awm *AccountWrapMock) SetRootHash(rootHash []byte) {
-	awm.rootHash = rootHash
+	awm.RootHash = rootHash
 }
 
 // AddressContainer -
 func (awm *AccountWrapMock) AddressContainer() state.AddressContainer {
 	return awm.address
-}
-
-// SetCode -
-func (awm *AccountWrapMock) SetCode(code []byte) {
-	awm.code = code
 }
 
 // DataTrie -

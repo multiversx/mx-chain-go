@@ -1,7 +1,6 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -10,36 +9,42 @@ type MiniBlocksResolverStub struct {
 	RequestDataFromHashCalled      func(hash []byte, epoch uint32) error
 	RequestDataFromHashArrayCalled func(hashes [][]byte, epoch uint32) error
 	ProcessReceivedMessageCalled   func(message p2p.MessageP2P) error
-	GetMiniBlocksCalled            func(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
-	GetMiniBlocksFromPoolCalled    func(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
+	SetNumPeersToQueryCalled       func(intra int, cross int)
+	GetNumPeersToQueryCalled       func() (int, int)
+}
+
+// SetNumPeersToQuery -
+func (mbrs *MiniBlocksResolverStub) SetNumPeersToQuery(intra int, cross int) {
+	if mbrs.SetNumPeersToQueryCalled != nil {
+		mbrs.SetNumPeersToQueryCalled(intra, cross)
+	}
+}
+
+// GetNumPeersToQuery -
+func (mbrs *MiniBlocksResolverStub) GetNumPeersToQuery() (int, int) {
+	if mbrs.GetNumPeersToQueryCalled != nil {
+		return mbrs.GetNumPeersToQueryCalled()
+	}
+
+	return 2, 2
 }
 
 // RequestDataFromHash -
-func (hrm *MiniBlocksResolverStub) RequestDataFromHash(hash []byte, epoch uint32) error {
-	return hrm.RequestDataFromHashCalled(hash, epoch)
+func (mbrs *MiniBlocksResolverStub) RequestDataFromHash(hash []byte, epoch uint32) error {
+	return mbrs.RequestDataFromHashCalled(hash, epoch)
 }
 
 // RequestDataFromHashArray -
-func (hrm *MiniBlocksResolverStub) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
-	return hrm.RequestDataFromHashArrayCalled(hashes, epoch)
+func (mbrs *MiniBlocksResolverStub) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
+	return mbrs.RequestDataFromHashArrayCalled(hashes, epoch)
 }
 
 // ProcessReceivedMessage -
-func (hrm *MiniBlocksResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
-	return hrm.ProcessReceivedMessageCalled(message)
-}
-
-// GetMiniBlocks -
-func (hrm *MiniBlocksResolverStub) GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-	return hrm.GetMiniBlocksCalled(hashes)
-}
-
-// GetMiniBlocksFromPool -
-func (hrm *MiniBlocksResolverStub) GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-	return hrm.GetMiniBlocksFromPoolCalled(hashes)
+func (mbrs *MiniBlocksResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
+	return mbrs.ProcessReceivedMessageCalled(message)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (hrm *MiniBlocksResolverStub) IsInterfaceNil() bool {
-	return hrm == nil
+func (mbrs *MiniBlocksResolverStub) IsInterfaceNil() bool {
+	return mbrs == nil
 }

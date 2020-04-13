@@ -1,7 +1,6 @@
 package wasmer
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"testing"
@@ -9,14 +8,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/stretchr/testify/assert"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/stretchr/testify/require"
 )
 
 var ownerAddressBytes = []byte("12345678901234567890123456789012")
 
 func TestAllowNonFloatingPointSC(t *testing.T) {
-	wasmvm, scAddress := deploy(t, "floating_point/non_fp.wasm")
+	wasmvm, scAddress := deploy(t, "../testdata/floating_point/non_fp.wasm")
+	defer closeVM(wasmvm)
 
 	arguments := make([][]byte, 0)
 	vmInput := defaultVMInput(arguments)
@@ -24,14 +24,15 @@ func TestAllowNonFloatingPointSC(t *testing.T) {
 
 	callInput := makeCallInput(scAddress, "doSomething", vmInput)
 	vmOutput, err := wasmvm.RunSmartContractCall(callInput)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
-	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 	fmt.Printf("VM Return Code: %s\n", vmOutput.ReturnCode)
 }
 
 func TestDisallowFloatingPointSC(t *testing.T) {
-	wasmvm, scAddress := deploy(t, "floating_point/fp.wasm")
+	wasmvm, scAddress := deploy(t, "../testdata/floating_point/fp.wasm")
+	defer closeVM(wasmvm)
 
 	arguments := make([][]byte, 0)
 	vmInput := defaultVMInput(arguments)
@@ -39,14 +40,15 @@ func TestDisallowFloatingPointSC(t *testing.T) {
 
 	callInput := makeCallInput(scAddress, "doSomething", vmInput)
 	vmOutput, err := wasmvm.RunSmartContractCall(callInput)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
-	assert.Equal(t, vmcommon.ContractInvalid, vmOutput.ReturnCode)
+	require.Equal(t, vmcommon.ContractInvalid, vmOutput.ReturnCode)
 	fmt.Printf("VM Return Code: %s\n", vmOutput.ReturnCode)
 }
 
 func TestSCAbortExecution_DontAbort(t *testing.T) {
-	wasmvm, scAddress := deploy(t, "misc/test_abort.wasm")
+	wasmvm, scAddress := deploy(t, "../testdata/misc/test_abort.wasm")
+	defer closeVM(wasmvm)
 
 	// Run testFunc with argument 0, which will not abort execution, leading to a
 	// call to int64finish(100).
@@ -58,15 +60,16 @@ func TestSCAbortExecution_DontAbort(t *testing.T) {
 
 	callInput := makeCallInput(scAddress, "testFunc", vmInput)
 	vmOutput, err := wasmvm.RunSmartContractCall(callInput)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	expectedBytes := []byte{100}
-	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 	assertReturnData(t, vmOutput, vmcommon.Ok, expectedBytes)
 }
 
 func TestSCAbortExecution_Abort(t *testing.T) {
-	wasmvm, scAddress := deploy(t, "misc/test_abort.wasm")
+	wasmvm, scAddress := deploy(t, "../testdata/misc/test_abort.wasm")
+	defer closeVM(wasmvm)
 
 	arguments := make([][]byte, 0)
 	arguments = append(arguments, []byte{0x01})
@@ -76,11 +79,11 @@ func TestSCAbortExecution_Abort(t *testing.T) {
 
 	callInput := makeCallInput(scAddress, "testFunc", vmInput)
 	vmOutput, err := wasmvm.RunSmartContractCall(callInput)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
-	assert.Equal(t, 0, len(vmOutput.ReturnData))
+	require.Equal(t, 0, len(vmOutput.ReturnData))
 	assertReturnData(t, vmOutput, vmcommon.UserError, nil)
-	assert.Equal(t, "abort here", vmOutput.ReturnMessage)
+	require.Equal(t, "abort here", vmOutput.ReturnMessage)
 }
 
 func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []byte) {
@@ -90,13 +93,10 @@ func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []b
 	gasPrice := uint64(1)
 	gasLimit := uint64(0xffffffffffffffff)
 
-	scCode, err := arwen.GetBytecode(wasmFilename)
-	assert.Nil(t, err)
+	scCode := arwen.GetSCCode(wasmFilename)
 
-	txProc, accnts, blockChainHook := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance)
-	scAddressBytes, _ := blockChainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
-
-	scCodeString := hex.EncodeToString(scCode)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(ownerNonce, ownerAddressBytes, ownerBalance)
+	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
 	tx := vm.CreateDeployTx(
 		ownerAddressBytes,
@@ -104,14 +104,12 @@ func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []b
 		big.NewInt(0),
 		gasPrice,
 		gasLimit,
-		[]byte(scCodeString+"@"+hex.EncodeToString(factory.ArwenVirtualMachine)),
+		arwen.CreateDeployTxData(scCode),
 	)
-	err = txProc.ProcessTransaction(tx)
-	assert.Nil(t, err)
+	err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, err)
 
-	vmContainer, blockChainHook := vm.CreateVMAndBlockchainHook(accnts, nil)
-	wasmVM, _ := vmContainer.Get(factory.ArwenVirtualMachine)
-
+	wasmVM, _ := testContext.VMContainer.Get(factory.ArwenVirtualMachine)
 	return wasmVM, scAddressBytes
 }
 
@@ -121,15 +119,15 @@ func assertReturnData(
 	expectedReturnCode vmcommon.ReturnCode,
 	expectedBytes []byte,
 ) {
-	assert.Equal(t, expectedReturnCode, vmOutput.ReturnCode, vmOutput.ReturnCode)
+	require.Equal(t, expectedReturnCode, vmOutput.ReturnCode, vmOutput.ReturnCode)
 	if len(vmOutput.ReturnData) == 0 {
-		assert.True(t, expectedBytes == nil)
+		require.True(t, expectedBytes == nil)
 		return
 	}
-	assert.Equal(t, 1, len(vmOutput.ReturnData))
+	require.Equal(t, 1, len(vmOutput.ReturnData))
 	returnedBytes := vmOutput.ReturnData[0]
 
-	assert.Equal(t, expectedBytes, returnedBytes)
+	require.Equal(t, expectedBytes, returnedBytes)
 }
 
 func makeCallInput(scAddress []byte, function string, vmInput vmcommon.VMInput) *vmcommon.ContractCallInput {
@@ -148,5 +146,11 @@ func defaultVMInput(arguments [][]byte) vmcommon.VMInput {
 		GasProvided: uint64(0xffffffffffffffff),
 		Arguments:   arguments,
 		CallType:    vmcommon.DirectCall,
+	}
+}
+
+func closeVM(wasmvm vmcommon.VMExecutionHandler) {
+	if asCloser, ok := wasmvm.(interface{ Close() error }); ok {
+		asCloser.Close()
 	}
 }

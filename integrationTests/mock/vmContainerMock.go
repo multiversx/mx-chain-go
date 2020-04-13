@@ -69,6 +69,11 @@ func (vmc *VMContainerMock) Keys() [][]byte {
 	return vmc.KeysCalled()
 }
 
+// Close -
+func (V *VMContainerMock) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (vmc *VMContainerMock) IsInterfaceNil() bool {
 	return vmc == nil

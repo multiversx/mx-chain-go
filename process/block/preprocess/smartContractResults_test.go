@@ -423,7 +423,7 @@ func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) 
 				},
 			}
 		},
-		RegisterHandlerCalled: func(i func(key []byte)) {
+		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 		},
 	}
 
@@ -456,7 +456,7 @@ func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) 
 	txs.SetMissingScr(3)
 
 	//received txHash2
-	txs.receivedSmartContractResult(txHash2)
+	txs.receivedSmartContractResult(txHash2, &smartContractResult.SmartContractResult{})
 
 	assert.True(t, txs.IsScrHashRequested(txHash1))
 	assert.False(t, txs.IsScrHashRequested(txHash2))
@@ -787,7 +787,7 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {},
+			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &mock.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -896,7 +896,7 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 	shardedDataStub := &mock.ShardedDataStub{
 		AddDataCalled: func(key []byte, data interface{}, cacheId string) {
 		},
-		RegisterHandlerCalled: func(i func(key []byte)) {
+		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 		},
 	}
 

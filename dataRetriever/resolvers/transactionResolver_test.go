@@ -168,7 +168,7 @@ func TestTxResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
 
 	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
-	assert.Equal(t, dataRetriever.ErrRequestTypeNotImplemented, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrRequestTypeNotImplemented))
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
@@ -269,7 +269,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolMarshalizerFailShouldRetN
 
 	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
-	assert.Equal(t, errExpected, err)
+	assert.True(t, errors.Is(err, errExpected))
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
@@ -357,7 +357,7 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxStorageCheckRetError(t *testi
 
 	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
-	assert.Equal(t, errExpected, err)
+	assert.True(t, errors.Is(err, errExpected))
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled)
 }
@@ -478,7 +478,7 @@ func TestTxResolver_ProcessReceivedMessageRequestedTwoSmallTransactionsFoundOnly
 
 	err := txRes.ProcessReceivedMessage(msg, connectedPeerId)
 
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 	assert.True(t, splitSliceWasCalled)
 	assert.True(t, sendWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled)
@@ -539,4 +539,26 @@ func TestTxResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 		Type:  dataRetriever.HashArrayType,
 		Value: buff,
 	}, requested)
+}
+
+//------ NumPeersToQuery setter and getter
+
+func TestTxResolver_SetAndGetNumPeersToQuery(t *testing.T) {
+	t.Parallel()
+
+	expectedIntra := 5
+	expectedCross := 7
+
+	arg := createMockArgTxResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		GetNumPeersToQueryCalled: func() (int, int) {
+			return expectedIntra, expectedCross
+		},
+	}
+	txRes, _ := resolvers.NewTxResolver(arg)
+
+	txRes.SetNumPeersToQuery(expectedIntra, expectedCross)
+	actualIntra, actualCross := txRes.GetNumPeersToQuery()
+	assert.Equal(t, expectedIntra, actualIntra)
+	assert.Equal(t, expectedCross, actualCross)
 }

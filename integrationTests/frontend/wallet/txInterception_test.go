@@ -72,7 +72,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	err := node.SetAccountNonce(uint64(0))
 	assert.Nil(t, err)
 
-	node.DataPool.Transactions().RegisterHandler(func(key []byte) {
+	node.DataPool.Transactions().RegisterHandler(func(key []byte, value interface{}) {
 		assert.Equal(t, txHexHash, hex.EncodeToString(key))
 
 		dataRecovered, _ := node.DataPool.Transactions().SearchFirstData(key)
@@ -112,7 +112,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 		Data:      frontendData,
 		Signature: signatureBytes,
 	}
-	tx.SetValue(new(big.Int).Set(frontendValue))
+	tx.Value = big.NewInt(0).Set(frontendValue)
 	txHexHash, err = node.SendTransaction(tx)
 
 	assert.Nil(t, err)

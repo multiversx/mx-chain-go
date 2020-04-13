@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -31,12 +30,10 @@ const (
 	MetaHdrNonceHashDataUnit UnitType = 7
 	// HeartbeatUnit is the heartbeat storage unit identifier
 	HeartbeatUnit UnitType = 8
-	// MiniBlockHeaderUnit is the miniblock header data unit identifier
-	MiniBlockHeaderUnit UnitType = 9
 	// BootstrapUnit is the bootstrap storage unit identifier
-	BootstrapUnit UnitType = 10
+	BootstrapUnit UnitType = 9
 	//StatusMetricsUnit is the status metrics storage unit identifier
-	StatusMetricsUnit UnitType = 11
+	StatusMetricsUnit UnitType = 10
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -58,6 +55,8 @@ type ResolverThrottler interface {
 type Resolver interface {
 	RequestDataFromHash(hash []byte, epoch uint32) error
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	SetNumPeersToQuery(intra int, cross int)
+	GetNumPeersToQuery() (int, int)
 	IsInterfaceNil() bool
 }
 
@@ -73,8 +72,6 @@ type HeaderResolver interface {
 type MiniBlocksResolver interface {
 	Resolver
 	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
-	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
-	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 }
 
 // TopicResolverSender defines what sending operations are allowed for a topic resolver
@@ -83,6 +80,8 @@ type TopicResolverSender interface {
 	Send(buff []byte, peer p2p.PeerID) error
 	RequestTopic() string
 	TargetShardID() uint32
+	SetNumPeersToQuery(intra int, cross int)
+	GetNumPeersToQuery() (int, int)
 	IsInterfaceNil() bool
 }
 
@@ -104,6 +103,7 @@ type ResolversFinder interface {
 	IntraShardResolver(baseTopic string) (Resolver, error)
 	MetaChainResolver(baseTopic string) (Resolver, error)
 	CrossShardResolver(baseTopic string, crossShard uint32) (Resolver, error)
+	MetaCrossShardResolver(baseTopic string, crossShard uint32) (Resolver, error)
 }
 
 // ResolversContainerFactory defines the functionality to create a resolvers container
@@ -176,7 +176,7 @@ type DataRetriever interface {
 
 // Notifier defines a way to register funcs that get called when something useful happens
 type Notifier interface {
-	RegisterHandler(func(key []byte))
+	RegisterHandler(func(key []byte, value interface{}))
 	IsInterfaceNil() bool
 }
 
@@ -297,5 +297,12 @@ type RequestedItemsHandler interface {
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
 	CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error
+	IsInterfaceNil() bool
+}
+
+// WhiteListHandler is the interface needed to add whitelisted data
+type WhiteListHandler interface {
+	Remove(keys [][]byte)
+	Add(keys [][]byte)
 	IsInterfaceNil() bool
 }

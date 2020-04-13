@@ -140,9 +140,6 @@ var ErrNilMessenger = errors.New("nil Messenger")
 // ErrNilTxDataPool signals that a nil transaction pool has been provided
 var ErrNilTxDataPool = errors.New("nil transaction data pool")
 
-// ErrEmptyTxDataPool signals that a empty transaction pool has been provided
-var ErrEmptyTxDataPool = errors.New("empty transaction data pool")
-
 // ErrNilHeadersDataPool signals that a nil headers pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
 
@@ -320,9 +317,6 @@ var ErrNilSCDestAccount = errors.New("nil destination SC account")
 // ErrWrongNonceInVMOutput signals that nonce in vm output is wrong
 var ErrWrongNonceInVMOutput = errors.New("nonce invalid from SC run")
 
-// ErrWrongNonceInStakingData signals that nonce in staking data is wrong
-var ErrWrongNonceInStakingData = errors.New("nonce invalid ")
-
 // ErrNilVMOutput signals that vmoutput is nil
 var ErrNilVMOutput = errors.New("nil vm output")
 
@@ -346,6 +340,9 @@ var ErrNilUTxDataPool = errors.New("unsigned transactions pool is nil")
 
 // ErrNilRewardTxDataPool signals that the reward transactions pool is nil
 var ErrNilRewardTxDataPool = errors.New("reward transactions pool is nil")
+
+// ErrNilUnsignedTxDataPool signals that the unsigned transactions pool is nil
+var ErrNilUnsignedTxDataPool = errors.New("unsigned transactions pool is nil")
 
 // ErrNilUTxStorage signals that unsigned transaction storage is nil
 var ErrNilUTxStorage = errors.New("unsigned transactions storage is nil")
@@ -431,14 +428,14 @@ var ErrNilEpochHandler = errors.New("nil epoch handler")
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
 
-// ErrNotEnoughArgumentsToDeploy signals that there are not enough arguments to deploy the smart contract
-var ErrNotEnoughArgumentsToDeploy = errors.New("not enough arguments to deploy the smart contract")
-
 // ErrVMTypeLengthInvalid signals that vm type length is too long
 var ErrVMTypeLengthInvalid = errors.New("vm type length is too long")
 
 // ErrOverallBalanceChangeFromSC signals that all sumed balance changes are not zero
 var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wrong")
+
+// ErrOverflow signals that an overflow occured
+var ErrOverflow = errors.New("type overflow occured")
 
 // ErrNilTxValidator signals that a nil tx validator has been provided
 var ErrNilTxValidator = errors.New("nil transaction validator")
@@ -448,10 +445,6 @@ var ErrNilHdrValidator = errors.New("nil header validator")
 
 // ErrNilPendingMiniBlocksHandler signals that a nil pending miniblocks handler has been provided
 var ErrNilPendingMiniBlocksHandler = errors.New("nil pending miniblocks handler")
-
-// ErrMiniblockNotForCurrentShard signals that the current processing miniblock must not be
-// processed on the current shard
-var ErrMiniblockNotForCurrentShard = errors.New("miniblock is not addressed for current shard")
 
 // ErrNilTxsPoolsCleaner signals that a nil transactions pools cleaner has been provided
 var ErrNilTxsPoolsCleaner = errors.New("nil transactions pools cleaner")
@@ -540,9 +533,6 @@ var ErrZeroMaxComputableRounds = errors.New("max computable rounds is zero")
 // ErrNilRater signals that nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 
-// ErrNilRatingReader signals that nil rating reader has been provided
-var ErrNilRatingReader = errors.New("nil rating reader")
-
 // ErrNilNetworkWatcher signals that a nil network watcher has been provided
 var ErrNilNetworkWatcher = errors.New("nil network watcher")
 
@@ -557,6 +547,18 @@ var ErrMinRatingSmallerThanOne = errors.New("min rating is smaller than one")
 
 // ErrStartRatingNotBetweenMinAndMax signals that the start rating is not between min and max rating
 var ErrStartRatingNotBetweenMinAndMax = errors.New("start rating is not between min and max rating")
+
+// ErrSignedBlocksThresholdNotBetweenZeroAndOne signals that the signed blocks threshold is not between 0 and 1
+var ErrSignedBlocksThresholdNotBetweenZeroAndOne = errors.New("signed blocks threshold is not between 0 and 1")
+
+// ErrConsecutiveMissedBlocksPenaltyLowerThanOne signals that the ConsecutiveMissedBlocksPenalty is lower than 1
+var ErrConsecutiveMissedBlocksPenaltyLowerThanOne = errors.New("consecutive missed blocks penalty lower than 1")
+
+// ErrDecreaseRatingsStepMoreThanMinusOne signals that the decrease rating step has a vale greater than -1
+var ErrDecreaseRatingsStepMoreThanMinusOne = errors.New("decrease rating step has a value greater than -1")
+
+// ErrHoursToMaxRatingFromStartRatingZero signals that the number of hours to reach max rating step is zero
+var ErrHoursToMaxRatingFromStartRatingZero = errors.New("hours to reach max rating is zero")
 
 // ErrSCDeployFromSCRIsNotPermitted signals that operation is not permitted
 var ErrSCDeployFromSCRIsNotPermitted = errors.New("it is not permitted to deploy a smart contract from another smart contract cross shard")
@@ -615,8 +617,11 @@ var ErrNilValidityAttester = errors.New("nil validity attester")
 // ErrNilHeaderHandler signals that a nil header handler has been provided
 var ErrNilHeaderHandler = errors.New("nil header handler")
 
-// ErrNilMiniBlocksResolver signals that a nil miniblocks resolver has been provided
-var ErrNilMiniBlocksResolver = errors.New("nil miniblocks resolver")
+// ErrNilMiniBlocksProvider signals that a nil miniblocks data provider has been passed over
+var ErrNilMiniBlocksProvider = errors.New("nil miniblocks provider")
+
+// ErrNilWhiteListHandler signals that white list handler is nil
+var ErrNilWhiteListHandler = errors.New("nil whitelist handler")
 
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
@@ -644,12 +649,6 @@ var ErrAccumulatedFeesInEpochDoNotMatch = errors.New("accumulated fees in epoch 
 
 // ErrNilRewardsHandler signals that rewards handler is nil
 var ErrNilRewardsHandler = errors.New("rewards handler is nil")
-
-// ErrNilTotalAccumulatedFeesInEpoch signals that total accumulated fees in epoch is nil
-var ErrNilTotalAccumulatedFeesInEpoch = errors.New("total accumulated fees in epoch is nil")
-
-// ErrEndOfEpochEconomicsDataDoesNotMatch signals that end of epoch data does not match
-var ErrEndOfEpochEconomicsDataDoesNotMatch = errors.New("end of epoch econimics data does not match")
 
 // ErrNilEpochEconomics signals that nil end of epoch econimics was provided
 var ErrNilEpochEconomics = errors.New("nil epoch economics")
@@ -714,11 +713,41 @@ var ErrNilBlockSizeComputationHandler = errors.New("nil block size computation h
 // ErrNilValidatorStatistics signals that a nil validator statistics has been provided
 var ErrNilValidatorStatistics = errors.New("nil validator statistics")
 
-// ErrAddressNotInThisShard signals that the provided address does not belong to current shard
-var ErrAddressNotInThisShard = errors.New("provided address does not belong to current shard")
+// ErrAccountNotFound signals that the account was not found for the provided address
+var ErrAccountNotFound = errors.New("account not found")
+
+// ErrMaxRatingZero signals that maxrating with a value of zero has been provided
+var ErrMaxRatingZero = errors.New("max rating is zero")
+
+// ErrNilValidatorInfos signals that a nil validator infos has been provided
+var ErrNilValidatorInfos = errors.New("nil validator infos")
 
 // ErrNilBlockSizeThrottler signals that block size throttler si nil
 var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")
 
 // ErrInvalidMetaTransaction signals that meta transaction is invalid
 var ErrInvalidMetaTransaction = errors.New("meta transaction is invalid")
+
+// ErrIncreaseStepLowerThanOne signals that an increase step lower than one has been provided
+var ErrIncreaseStepLowerThanOne = errors.New("increase step is lower than one")
+
+// ErrNilVmInput signals that provided vm input is nil
+var ErrNilVmInput = errors.New("nil vm input")
+
+// ErrNilDnsAddresses signals that nil dns addresses map was provided
+var ErrNilDnsAddresses = errors.New("nil dns addresses map")
+
+// ErrCallerIsNotTheDNSAddress signals that called address is not the DNS address
+var ErrCallerIsNotTheDNSAddress = errors.New("not a dns address")
+
+// ErrUserNameChangeIsDisabled signals the user name change is not allowed
+var ErrUserNameChangeIsDisabled = errors.New("user name change is disabled")
+
+// ErrDestinationNotInSelfShard signals that user is not in self shard
+var ErrDestinationNotInSelfShard = errors.New("destination is not in self shard")
+
+// ErrUserNameDoesNotMatch signals that user name does not match
+var ErrUserNameDoesNotMatch = errors.New("user name does not match")
+
+// ErrUserNameDoesNotMatchInCrossShardTx signals that user name does not match in case of cross shard tx
+var ErrUserNameDoesNotMatchInCrossShardTx = errors.New("user name does not match in destination shard")

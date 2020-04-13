@@ -178,12 +178,16 @@ func (scr *smartContractResults) RestoreTxBlockIntoPools(
 			scr.scrPool.AddData([]byte(txHash), &tx, strCache)
 		}
 
-		miniBlockHash, err := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
-		if err != nil {
-			return scrRestored, err
-		}
+		//TODO: Should be analyzed if restoring into pool only cross-shard miniblocks with destination in self shard,
+		//would create problems or not
+		if miniBlock.SenderShardID != scr.shardCoordinator.SelfId() {
+			miniBlockHash, err := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
+			if err != nil {
+				return scrRestored, err
+			}
 
-		miniBlockPool.Put(miniBlockHash, miniBlock)
+			miniBlockPool.Put(miniBlockHash, miniBlock)
+		}
 
 		scrRestored += len(miniBlock.TxHashes)
 	}
@@ -271,8 +275,14 @@ func (scr *smartContractResults) SaveTxBlockToStorage(body *block.Body) error {
 
 // receivedSmartContractResult is a call back function which is called when a new smartContractResult
 // is added in the smartContractResult pool
-func (scr *smartContractResults) receivedSmartContractResult(txHash []byte) {
-	receivedAllMissing := scr.baseReceivedTransaction(txHash, &scr.scrForBlock, scr.scrPool, block.SmartContractResultBlock)
+func (scr *smartContractResults) receivedSmartContractResult(key []byte, value interface{}) {
+	tx, ok := value.(data.TransactionHandler)
+	if !ok {
+		log.Warn("smartContractResults.receivedSmartContractResult", "error", process.ErrWrongTypeAssertion)
+		return
+	}
+
+	receivedAllMissing := scr.baseReceivedTransaction(key, tx, &scr.scrForBlock)
 
 	if receivedAllMissing {
 		scr.chRcvAllScrs <- true
@@ -281,7 +291,7 @@ func (scr *smartContractResults) receivedSmartContractResult(txHash []byte) {
 
 // CreateBlockStarted cleans the local cache map for processed/created smartContractResults at this round
 func (scr *smartContractResults) CreateBlockStarted() {
-	_ = process.EmptyChannel(scr.chRcvAllScrs)
+	_ = core.EmptyChannel(scr.chRcvAllScrs)
 
 	scr.scrForBlock.mutTxsForBlock.Lock()
 	scr.scrForBlock.missingTxs = 0
@@ -439,7 +449,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		return nil, err
 	}
 
-	if scr.blockSizeComputation.IsMaxBlockSizeReached(1, len(miniBlockScrs)) {
+	if scr.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlockScrs)) {
 		return nil, process.ErrMaxBlockSizeReached
 	}
 

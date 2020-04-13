@@ -16,9 +16,6 @@ var ErrNilValue = errors.New("nil value")
 // ErrTxNotFoundInBlockPool signals the value is nil
 var ErrTxNotFoundInBlockPool = errors.New("cannot find tx in current block pool")
 
-// ErrEmptyMiniBlockSlice signals that an operation has been attempted with an empty mini block slice
-var ErrEmptyMiniBlockSlice = errors.New("empty mini block slice")
-
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
@@ -65,11 +62,11 @@ var ErrInvalidNonceByteSlice = errors.New("invalid nonce byte slice")
 // ErrResolveTypeUnknown signals that an unknown resolve type was provided
 var ErrResolveTypeUnknown = errors.New("unknown resolve type")
 
-// ErrNilBlockBodyPool signals that a nil block body pool has been provided
-var ErrNilBlockBodyPool = errors.New("nil block body pool")
+// ErrNilMiniblocksPool signals that a nil miniblocks pool has been provided
+var ErrNilMiniblocksPool = errors.New("nil miniblocks pool")
 
-// ErrNilBlockBodyStorage signals that a nil block body storage has been provided
-var ErrNilBlockBodyStorage = errors.New("nil block body storage")
+// ErrNilMiniblocksStorage signals that a nil miniblocks storage has been provided
+var ErrNilMiniblocksStorage = errors.New("nil miniblocks storage")
 
 // ErrNilDataPoolHolder signals that the data pool holder is nil
 var ErrNilDataPoolHolder = errors.New("nil data pool holder")
@@ -88,12 +85,6 @@ var ErrNilUint64ByteSliceConverter = errors.New("nil byte slice converter")
 
 // ErrNilResolverContainer signals that a nil resolver container was provided
 var ErrNilResolverContainer = errors.New("nil resolver container")
-
-// ErrUnmarshalMBHashes signals the value is nil
-var ErrUnmarshalMBHashes = errors.New("could not unmarshal miniblock hashes")
-
-// ErrInvalidRequestType signals that a request on a topic sends an invalid type
-var ErrInvalidRequestType = errors.New("invalid request type")
 
 // ErrWrongTypeInContainer signals that a wrong type of object was found in container
 var ErrWrongTypeInContainer = errors.New("wrong type of object inside container")
@@ -175,3 +166,9 @@ var ErrEmptyString = errors.New("empty string")
 
 // ErrInvalidValue signals that an invalid value has been provided
 var ErrInvalidValue = errors.New("invalid value")
+
+// ErrNilWhiteListHandler signals that white list handler is nil
+var ErrNilWhiteListHandler = errors.New("nil white list handler")
+
+// ErrRequestIntervalTooSmall signals that request interval is too small
+var ErrRequestIntervalTooSmall = errors.New("request interval is too small")

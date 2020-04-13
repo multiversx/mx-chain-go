@@ -105,3 +105,9 @@ var ErrGeneratingPubFromPriv = errors.New("unable to generate PublicKey from pro
 
 // ErrNotImplemented signals that a method is not implemented for an interface implementation
 var ErrNotImplemented = errors.New("not implemented")
+
+// ErrWrongPrivateKeySize signals that the length of the provided private key is not the expected one
+var ErrWrongPrivateKeySize = errors.New("wrong private key size")
+
+// ErrWrongPrivateKeyStructure signals that the structure of the private key is incorrect
+var ErrWrongPrivateKeyStructure = errors.New("wrong private key structure")

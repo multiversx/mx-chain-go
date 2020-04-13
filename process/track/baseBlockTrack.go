@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -19,8 +19,6 @@ import (
 )
 
 var log = logger.GetOrCreate("process/track")
-
-const percentToKeep = 0.8
 
 // HeaderInfo holds the information about a header
 type HeaderInfo struct {
@@ -170,33 +168,6 @@ func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
 	}
 
 	headersForShard[nonce] = append(headersForShard[nonce], &HeaderInfo{Hash: hash, Header: header})
-	numHeadersForShard := len(headersForShard)
-	bbt.mutHeaders.Unlock()
-
-	if numHeadersForShard > bbt.maxNumHeadersToKeepPerShard {
-		bbt.cleanupWhenMaxCapacityIsReached(shardID)
-	}
-}
-
-func (bbt *baseBlockTrack) cleanupWhenMaxCapacityIsReached(shardID uint32) {
-	headers, _ := bbt.GetTrackedHeaders(shardID)
-	trackedHeadersCount := len(headers)
-	if trackedHeadersCount <= bbt.maxNumHeadersToKeepPerShard {
-		return
-	}
-
-	bbt.mutHeaders.Lock()
-	if shardID == bbt.shardCoordinator.SelfId() {
-		index := trackedHeadersCount - int(float64(bbt.maxNumHeadersToKeepPerShard)*percentToKeep)
-		for i := 0; i < index; i++ {
-			delete(bbt.headers[shardID], headers[i].GetNonce())
-		}
-	} else {
-		index := int(float64(bbt.maxNumHeadersToKeepPerShard) * percentToKeep)
-		for i := trackedHeadersCount - 1; i >= index; i-- {
-			delete(bbt.headers[shardID], headers[i].GetNonce())
-		}
-	}
 	bbt.mutHeaders.Unlock()
 }
 
@@ -383,7 +354,7 @@ func (bbt *baseBlockTrack) CheckBlockAgainstFinal(headerHandler data.HeaderHandl
 		return process.ErrNilHeaderHandler
 	}
 
-	finalHeader, _, err := bbt.GetFinalHeader(headerHandler.GetShardID())
+	finalHeader, _, err := bbt.getFinalHeader(headerHandler.GetShardID())
 	if err != nil {
 		return fmt.Errorf("%w: header shard: %d, header round: %d, header nonce: %d",
 			err,
@@ -423,8 +394,7 @@ func (bbt *baseBlockTrack) CheckBlockAgainstFinal(headerHandler data.HeaderHandl
 	return nil
 }
 
-// GetFinalHeader returns final header for a given shard
-func (bbt *baseBlockTrack) GetFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
+func (bbt *baseBlockTrack) getFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
 	if shardID != bbt.shardCoordinator.SelfId() {
 		return bbt.crossNotarizer.GetFirstNotarizedHeader(shardID)
 	}
@@ -457,6 +427,11 @@ func (bbt *baseBlockTrack) GetLastCrossNotarizedHeadersForAllShards() (map[uint3
 // GetLastSelfNotarizedHeader returns last self notarized header for a given shard
 func (bbt *baseBlockTrack) GetLastSelfNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
 	return bbt.selfNotarizer.GetLastNotarizedHeader(shardID)
+}
+
+// GetSelfNotarizedHeader returns a self notarized header for a given shard with a given offset, behind last self notarized header
+func (bbt *baseBlockTrack) GetSelfNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+	return bbt.selfNotarizer.GetNotarizedHeader(shardID, offset)
 }
 
 // GetTrackedHeaders returns tracked headers for a given shard
@@ -541,8 +516,26 @@ func (bbt *baseBlockTrack) GetTrackedHeadersWithNonce(shardID uint32, nonce uint
 
 // IsShardStuck returns true if the given shard is stuck
 func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
+	if bbt.shardCoordinator.SelfId() == core.MetachainShardId {
+		return false
+	}
+
 	numPendingMiniBlocks := bbt.blockBalancer.GetNumPendingMiniBlocks(shardID)
-	isShardStuck := numPendingMiniBlocks >= process.MaxNumPendingMiniBlocks
+	lastShardProcessedMetaNonce := bbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID)
+
+	isMetaDifferenceTooLarge := false
+	shouldCheckLastMetaNonceProcessed := shardID != core.MetachainShardId && lastShardProcessedMetaNonce > 0
+	if shouldCheckLastMetaNonceProcessed {
+		metaHeaders, _ := bbt.GetTrackedHeaders(core.MetachainShardId)
+		numMetaHeaders := len(metaHeaders)
+		if numMetaHeaders > 0 {
+			lastMetaHeader := metaHeaders[numMetaHeaders-1]
+			metaDiff := lastMetaHeader.GetNonce() - lastShardProcessedMetaNonce
+			isMetaDifferenceTooLarge = metaDiff > process.MaxMetaNoncesBehind
+		}
+	}
+
+	isShardStuck := numPendingMiniBlocks >= process.MaxNumPendingMiniBlocks || isMetaDifferenceTooLarge
 	return isShardStuck
 }
 

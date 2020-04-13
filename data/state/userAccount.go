@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
+var _ UserAccountHandler = (*userAccount)(nil)
+
 // Account is the struct used in serialization/deserialization
 type userAccount struct {
 	*baseAccount
@@ -15,6 +17,17 @@ type userAccount struct {
 }
 
 var zero = big.NewInt(0)
+
+// NewEmptyUserAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
+func NewEmptyUserAccount() *userAccount {
+	return &userAccount{
+		baseAccount: &baseAccount{},
+		UserAccountData: UserAccountData{
+			DeveloperReward: big.NewInt(0),
+			Balance:         big.NewInt(0),
+		},
+	}
+}
 
 // NewUserAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
 func NewUserAccount(addressContainer AddressContainer) (*userAccount, error) {
@@ -35,6 +48,12 @@ func NewUserAccount(addressContainer AddressContainer) (*userAccount, error) {
 			Address:         addressBytes,
 		},
 	}, nil
+}
+
+// SetUserName sets the users name
+func (a *userAccount) SetUserName(userName []byte) {
+	a.UserName = make([]byte, 0, len(userName))
+	a.UserName = append(a.UserName, userName...)
 }
 
 // AddToBalance adds new value to balance
@@ -118,6 +137,11 @@ func (a *userAccount) SetCodeHash(codeHash []byte) {
 // SetRootHash sets the root hash associated with the account
 func (a *userAccount) SetRootHash(roothash []byte) {
 	a.RootHash = roothash
+}
+
+// SetCodeMetadata sets the code metadata
+func (a *userAccount) SetCodeMetadata(codeMetadata []byte) {
+	a.CodeMetadata = codeMetadata
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

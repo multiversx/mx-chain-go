@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
@@ -80,6 +80,8 @@ const (
 	// ValidatorAccount identifies an account holding stake, crypto public keys, assigned shard, rating
 	ValidatorAccount Type = 1
 )
+
+const defaultChancesSelection = 1
 
 // GetConnectableAddress returns a non circuit, non windows default connectable address for provided messenger
 func GetConnectableAddress(mes p2p.Messenger) string {
@@ -307,8 +309,8 @@ func CreateMemUnit() storage.Storer {
 	return unit
 }
 
-// CreateShardStore creates a storage service for shard nodes
-func CreateShardStore(numOfShards uint32) dataRetriever.StorageService {
+// CreateStore creates a storage service for shard nodes
+func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
@@ -321,31 +323,11 @@ func CreateShardStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.HeartbeatUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
 		store.AddStorer(hdrNonceHashDataUnit, CreateMemUnit())
-	}
-
-	return store
-}
-
-// CreateMetaStore creates a storage service for meta nodes
-func CreateMetaStore(coordinator sharding.Coordinator) dataRetriever.StorageService {
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.MetaBlockUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.BlockHeaderUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.HeartbeatUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.BootstrapUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.StatusMetricsUnit, CreateMemUnit())
-
-	for i := uint32(0); i < coordinator.NumberOfShards(); i++ {
-		store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit+dataRetriever.UnitType(i), CreateMemUnit())
 	}
 
 	return store
@@ -365,7 +347,12 @@ func CreateAccountsDB(accountType Type) (*state.AccountsDB, data.Trie, storage.S
 		MaxBatchSize:      10000,
 		MaxOpenFiles:      10,
 	}
-	trieStorage, _ := trie.NewTrieStorageManager(store, TestMarshalizer, TestHasher, cfg, ewl)
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
+	trieStorage, _ := trie.NewTrieStorageManager(store, TestMarshalizer, TestHasher, cfg, ewl, generalCfg)
 
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
 
@@ -541,8 +528,6 @@ func CreateGenesisMetaBlock(
 			core.MetachainShardId,
 		)
 
-		newStore := CreateMetaStore(newShardCoordinator)
-
 		newDataPool := CreateTestDataPool(nil, shardCoordinator.SelfId())
 
 		newBlkc := blockchain.NewMetaChain()
@@ -550,7 +535,6 @@ func CreateGenesisMetaBlock(
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
-		argsMetaGenesis.Store = newStore
 		argsMetaGenesis.Blkc = newBlkc
 		argsMetaGenesis.DataPool = newDataPool
 	}
@@ -739,7 +723,12 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() data.Trie {
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), TestMarshalizer, TestHasher, config.DBConfig{}, ewl)
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
+	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), TestMarshalizer, TestHasher, config.DBConfig{}, ewl, generalCfg)
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
 	return tr
 }
@@ -793,19 +782,6 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 			player.Balance = big.NewInt(0).Set(value)
 		}
 	}
-}
-
-// WaitOperationToBeDone will trigger nrOfRounds propose-sync cycles
-func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
-	for i := 0; i < nrOfRounds; i++ {
-		UpdateRound(nodes, round)
-		ProposeBlock(nodes, idxProposers, round, nonce)
-		SyncBlock(t, nodes, idxProposers, round)
-		round = IncrementAndPrintRound(round)
-		nonce++
-	}
-
-	return nonce, round
 }
 
 // IncrementAndPrintRound increments the given variable, and prints the message for the beginning of the round
@@ -987,7 +963,6 @@ func CreateNodes(
 	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
 			n := NewTestProcessorNode(uint32(numOfShards), shardId, shardId, serviceID)
-
 			nodes[idx] = n
 			idx++
 		}
@@ -1034,16 +1009,20 @@ func CreateNodesWithCustomStateCheckpointModulus(
 // DisplayAndStartNodes prints each nodes shard ID, sk and pk, and then starts the node
 func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 	for _, n := range nodes {
-		skBuff, _ := n.OwnAccount.SkTxSign.ToByteArray()
-		pkBuff, _ := n.OwnAccount.PkTxSign.ToByteArray()
+		skTxBuff, _ := n.OwnAccount.SkTxSign.ToByteArray()
+		pkTxBuff, _ := n.OwnAccount.PkTxSign.ToByteArray()
+		pkNode := n.NodesCoordinator.GetOwnPublicKey()
 
-		fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
+		fmt.Printf("Shard ID: %v, pkNode: %s\n",
 			n.ShardCoordinator.SelfId(),
-			hex.EncodeToString(skBuff),
-			hex.EncodeToString(pkBuff),
+			hex.EncodeToString(pkNode))
+
+		fmt.Printf("skTx: %s, pkTx: %s\n",
+			hex.EncodeToString(skTxBuff),
+			hex.EncodeToString(pkTxBuff),
 		)
-		_ = n.Node.Start()
-		_ = n.Node.P2PBootstrap()
+		n.Node.Start()
+		_ = n.Messenger.Bootstrap()
 	}
 
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
@@ -1510,7 +1489,7 @@ func CreateRequesterDataPool(t *testing.T, recvTxs map[int]map[string]struct{}, 
 
 			txMap[string(key)] = struct{}{}
 		},
-		RegisterHandlerCalled: func(i func(key []byte)) {
+		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 		},
 	}, selfShardID)
 }
@@ -1701,19 +1680,13 @@ func PubKeysMapFromKeysMap(keyPairMap map[uint32][]*TestKeyPair) map[uint32][]st
 }
 
 // GenValidatorsFromPubKeys generates a map of validators per shard out of public keys map
-func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, nbShards uint32) map[uint32][]sharding.Validator {
-	validatorsMap := make(map[uint32][]sharding.Validator)
+func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, _ uint32) map[uint32][]sharding.GenesisNodeInfoHandler {
+	validatorsMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
 
 	for shardId, shardNodesPks := range pubKeysMap {
-		var shardValidators []sharding.Validator
-		shardCoordinator, _ := sharding.NewMultiShardCoordinator(nbShards, shardId)
+		var shardValidators []sharding.GenesisNodeInfoHandler
 		for i := 0; i < len(shardNodesPks); i++ {
-			_, pk, _ := GenerateSkAndPkInShard(shardCoordinator, shardId)
-			address, err := pk.ToByteArray()
-			if err != nil {
-				return nil
-			}
-			v, _ := sharding.NewValidator([]byte(shardNodesPks[i]), address)
+			v := mock.NewNodeInfo([]byte(shardNodesPks[i][:32]), []byte(shardNodesPks[i]), shardId)
 			shardValidators = append(shardValidators, v)
 		}
 		validatorsMap[shardId] = shardValidators
@@ -1942,4 +1915,13 @@ func createTxPool(selfShardID uint32) (dataRetriever.ShardedDataCacherNotifier, 
 			SelfShardID:    selfShardID,
 		},
 	)
+}
+
+// WaitOperationToBeDone -
+func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds int, nonce, round uint64, idxProposers []int) (uint64, uint64) {
+	for i := 0; i < nrOfRounds; i++ {
+		round, nonce = ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+	}
+
+	return nonce, round
 }

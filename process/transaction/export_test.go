@@ -18,8 +18,8 @@ func (txProc *txProcessor) GetAccounts(adrSrc, adrDst state.AddressContainer,
 	return txProc.getAccounts(adrSrc, adrDst)
 }
 
-func (txProc *txProcessor) CheckTxValues(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
-	return txProc.checkTxValues(tx, acntSnd)
+func (txProc *txProcessor) CheckTxValues(tx *transaction.Transaction, acntSnd, acntDst state.UserAccountHandler) error {
+	return txProc.checkTxValues(tx, acntSnd, acntDst)
 }
 
 func (txProc *txProcessor) MoveBalances(acntSrc, acntDst state.UserAccountHandler, value *big.Int) error {

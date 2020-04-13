@@ -100,7 +100,12 @@ func (hc *headersCounter) createDisplayableMetaHeader(
 			"MetaBlock"}),
 	}
 
-	lines := displayHeader(header)
+	var lines []*display.LineData
+	if header.IsStartOfEpochBlock() {
+		lines = displayEpochStartMetaBlock(header)
+	} else {
+		lines = displayHeader(header)
+	}
 
 	metaLines := make([]*display.LineData, 0, len(lines)+len(metaLinesHeader))
 	metaLines = append(metaLines, metaLinesHeader...)
@@ -195,4 +200,87 @@ func (hc *headersCounter) getNumShardMBHeadersTotalProcessed() uint64 {
 	defer hc.shardMBHeaderCounterMutex.Unlock()
 
 	return hc.shardMBHeadersTotalProcessed
+}
+
+func displayEpochStartMetaBlock(block *block.MetaBlock) []*display.LineData {
+	lines := displayHeader(block)
+	economicsLines := displayEconomicsData(block.EpochStart.Economics)
+	lines = append(lines, economicsLines...)
+
+	for _, shardData := range block.EpochStart.LastFinalizedHeaders {
+		shardDataLines := displayEpochStartShardData(shardData)
+		lines = append(lines, shardDataLines...)
+	}
+
+	return lines
+}
+
+func displayEpochStartShardData(shardData block.EpochStartShardData) []*display.LineData {
+	lines := []*display.LineData{
+		display.NewLineData(false, []string{
+			fmt.Sprintf("EpochStartShardData - Shard %d", shardData.ShardID),
+			"Round",
+			fmt.Sprintf("%d", shardData.Round)}),
+		display.NewLineData(false, []string{
+			"",
+			"Nonce",
+			fmt.Sprintf("%d", shardData.Nonce)}),
+		display.NewLineData(false, []string{
+			"",
+			"FirstPendingMetaBlock",
+			logger.DisplayByteSlice(shardData.FirstPendingMetaBlock)}),
+		display.NewLineData(false, []string{
+			"",
+			"LastFinishedMetaBlock",
+			logger.DisplayByteSlice(shardData.LastFinishedMetaBlock)}),
+		display.NewLineData(false, []string{
+			"",
+			"HeaderHash",
+			logger.DisplayByteSlice(shardData.HeaderHash)}),
+		display.NewLineData(false, []string{
+			"",
+			"RootHash",
+			logger.DisplayByteSlice(shardData.RootHash)}),
+		display.NewLineData(false, []string{
+			"",
+			"PendingMiniBlockHeaders count",
+			fmt.Sprintf("%d", len(shardData.PendingMiniBlockHeaders))}),
+	}
+
+	lines[len(lines)-1].HorizontalRuleAfter = true
+
+	return lines
+}
+
+func displayEconomicsData(economics block.Economics) []*display.LineData {
+	return []*display.LineData{
+		display.NewLineData(false, []string{
+			"Epoch Start - Economics",
+			"PrevEpochStartHash",
+			logger.DisplayByteSlice(economics.PrevEpochStartHash)}),
+		display.NewLineData(false, []string{
+			"",
+			"NodePrice",
+			economics.NodePrice.String()}),
+		display.NewLineData(false, []string{
+			"",
+			"RewardsPerBlockPerNode",
+			economics.RewardsPerBlockPerNode.String()}),
+		display.NewLineData(false, []string{
+			"",
+			"TotalSupply",
+			economics.TotalSupply.String()}),
+		display.NewLineData(false, []string{
+			"",
+			"TotalNewlyMinted",
+			economics.TotalNewlyMinted.String()}),
+		display.NewLineData(false, []string{
+			"",
+			"TotalToDistribute",
+			economics.TotalToDistribute.String()}),
+		display.NewLineData(true, []string{
+			"",
+			"PrevEpochStartRound",
+			fmt.Sprintf("%d", economics.PrevEpochStartRound)}),
+	}
 }

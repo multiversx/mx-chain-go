@@ -35,8 +35,12 @@ func (h *Header) SetRootHash(rHash []byte) {
 }
 
 // SetValidatorStatsRootHash set's the root hash for the validator statistics trie
-func (h *Header) SetValidatorStatsRootHash(rHash []byte) {
-	h.ValidatorStatsRootHash = rHash
+func (h *Header) SetValidatorStatsRootHash(_ []byte) {
+}
+
+// GetValidatorStatsRootHash set's the root hash for the validator statistics trie
+func (h *Header) GetValidatorStatsRootHash() []byte {
+	return []byte{}
 }
 
 // SetPrevHash sets prev hash

@@ -18,7 +18,6 @@ type EconomicsData struct {
 	minGasLimit              uint64
 	genesisNodePrice         *big.Int
 	unBondPeriod             uint64
-	ratingsData              *RatingsData
 	developerPercentage      float64
 	genesisTotalSupply       *big.Int
 	minInflation             float64
@@ -45,11 +44,6 @@ func NewEconomicsData(economics *config.EconomicsConfig) (*EconomicsData, error)
 		return nil, err
 	}
 
-	rd, err := NewRatingsData(economics.RatingSettings)
-	if err != nil {
-		return nil, err
-	}
-
 	if data.maxGasLimitPerBlock < data.minGasLimit {
 		return nil, process.ErrInvalidMaxGasLimitPerBlock
 	}
@@ -63,7 +57,6 @@ func NewEconomicsData(economics *config.EconomicsConfig) (*EconomicsData, error)
 		unBondPeriod:             data.unBondPeriod,
 		gasPerDataByte:           data.gasPerDataByte,
 		dataLimitForBaseCalc:     data.dataLimitForBaseCalc,
-		ratingsData:              rd,
 		developerPercentage:      economics.RewardsSettings.DeveloperPercentage,
 		minInflation:             economics.GlobalSettings.MinimumInflation,
 		maxInflation:             economics.GlobalSettings.MaximumInflation,
@@ -331,9 +324,4 @@ func (ed *EconomicsData) StakeEnableNonce() uint64 {
 // IsInterfaceNil returns true if there is no value under the interface
 func (ed *EconomicsData) IsInterfaceNil() bool {
 	return ed == nil
-}
-
-// RatingsData will return the ratingsDataObject
-func (ed *EconomicsData) RatingsData() *RatingsData {
-	return ed.ratingsData
 }

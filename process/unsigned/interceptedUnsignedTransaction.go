@@ -1,8 +1,10 @@
 package unsigned
 
 import (
+	"fmt"
 	"math/big"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -130,7 +132,7 @@ func (inUTx *InterceptedUnsignedTransaction) integrity() error {
 	if inUTx.uTx.Value.Sign() < 0 {
 		return process.ErrNegativeValue
 	}
-	if len(inUTx.uTx.TxHash) == 0 {
+	if len(inUTx.uTx.PrevTxHash) == 0 {
 		return process.ErrNilTxHash
 	}
 
@@ -180,6 +182,16 @@ func (inUTx *InterceptedUnsignedTransaction) Hash() []byte {
 // Type returns the type of this intercepted data
 func (inUTx *InterceptedUnsignedTransaction) Type() string {
 	return "intercepted unsigned tx"
+}
+
+// String returns the unsigned transaction's most important fields as string
+func (inUTx *InterceptedUnsignedTransaction) String() string {
+	return fmt.Sprintf("sender=%s, nonce=%d, value=%s, recv=%s",
+		logger.DisplayByteSlice(inUTx.uTx.SndAddr),
+		inUTx.uTx.Nonce,
+		inUTx.uTx.Value.String(),
+		logger.DisplayByteSlice(inUTx.uTx.RcvAddr),
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

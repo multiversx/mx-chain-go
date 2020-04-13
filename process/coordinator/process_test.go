@@ -50,7 +50,7 @@ func createShardedDataChacherNotifier(
 ) func() dataRetriever.ShardedDataCacherNotifier {
 	return func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {},
+			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &mock.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -116,12 +116,12 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 					}
 					return nil, false
 				},
-				RegisterHandlerCalled: func(i func(key []byte)) {},
+				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
 			cs := &mock.CacherStub{}
-			cs.RegisterHandlerCalled = func(i func(key []byte)) {
+			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 			}
 			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
 				if bytes.Equal([]byte("bbb"), key) {
@@ -137,7 +137,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 
 				return nil, false
 			}
-			cs.RegisterHandlerCalled = func(i func(key []byte)) {}
+			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {}
 			cs.RemoveCalled = func(key []byte) {}
 			cs.PutCalled = func(key []byte, value interface{}) (evicted bool) {
 				return false
@@ -207,6 +207,7 @@ func TestNewTransactionCoordinator_NilHasher(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -227,6 +228,7 @@ func TestNewTransactionCoordinator_NilMarshalizer(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -247,6 +249,7 @@ func TestNewTransactionCoordinator_NilShardCoordinator(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -267,6 +270,7 @@ func TestNewTransactionCoordinator_NilAccountsStub(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -287,6 +291,7 @@ func TestNewTransactionCoordinator_NilDataPool(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -307,6 +312,7 @@ func TestNewTransactionCoordinator_NilRequestHandler(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -327,6 +333,7 @@ func TestNewTransactionCoordinator_NilPreProcessor(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -347,6 +354,7 @@ func TestNewTransactionCoordinator_NilInterProcessor(t *testing.T) {
 		nil,
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -367,10 +375,53 @@ func TestNewTransactionCoordinator_NilGasHandler(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		nil,
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, tc)
 	assert.Equal(t, process.ErrNilGasHandler, err)
+}
+
+func TestNewTransactionCoordinator_NilFeeAcumulator(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderMock().MiniBlocks(),
+		&mock.RequestHandlerStub{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+		nil,
+		&mock.BlockSizeComputationStub{},
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
+
+func TestNewTransactionCoordinator_NilBlockSizeComputation(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderMock().MiniBlocks(),
+		&mock.RequestHandlerStub{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		nil,
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
 }
 
 func TestNewTransactionCoordinator_OK(t *testing.T) {
@@ -387,6 +438,7 @@ func TestNewTransactionCoordinator_OK(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 
 	assert.Nil(t, err)
@@ -408,6 +460,7 @@ func TestTransactionCoordinator_SeparateBody(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -568,6 +621,7 @@ func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 			},
 		},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -596,6 +650,7 @@ func TestTransactionCoordinator_CreateMarshalizedDataNilBody(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -638,6 +693,7 @@ func TestTransactionCoordinator_CreateMarshalizedData(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -661,6 +717,7 @@ func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T)
 		interimContainer,
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -715,6 +772,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -766,6 +824,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNo
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -795,6 +854,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -874,6 +934,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 			},
 		},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -960,6 +1021,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 			},
 		},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -991,7 +1053,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 	t.Parallel()
 
 	shardedCacheMock := &mock.ShardedDataStub{
-		RegisterHandlerCalled: func(i func(key []byte)) {},
+		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 		ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 			return &mock.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -1063,6 +1125,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1089,6 +1152,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *t
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1120,6 +1184,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 			},
 		},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1153,6 +1218,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1198,6 +1264,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1268,6 +1335,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1332,6 +1400,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1392,6 +1461,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 			},
 		},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1437,6 +1507,7 @@ func TestTransactionCoordinator_RequestBlockTransactionsNilBody(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1467,6 +1538,7 @@ func TestTransactionCoordinator_RequestBlockTransactionsRequestOne(t *testing.T)
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1504,6 +1576,7 @@ func TestTransactionCoordinator_IsDataPreparedForProcessing(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1531,6 +1604,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1571,6 +1645,7 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1618,6 +1693,7 @@ func TestTransactionCoordinator_RemoveBlockDataFromPool(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1684,6 +1760,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1731,6 +1808,7 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1815,6 +1893,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1958,6 +2037,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 			},
 		},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2095,6 +2175,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 			},
 		},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2139,6 +2220,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		container,
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2203,6 +2285,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		container,
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2224,7 +2307,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 
 	tdp.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {},
+			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &mock.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -2296,6 +2379,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorageSaveIntermediateTxsErrors(
 		},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2342,6 +2426,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *t
 		},
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2374,6 +2459,7 @@ func TestTransactionCoordinator_PreprocessorsHasToBeOrderedRewardsAreLast(t *tes
 		createInterimProcessorContainer(),
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)

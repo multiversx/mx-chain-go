@@ -43,9 +43,14 @@ func getDefaultTrieParameters() (data.StorageManager, marshal.Marshalizer, hashi
 		MaxBatchSize:      1,
 		MaxOpenFiles:      10,
 	}
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
 
 	evictionWaitingList, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
-	trieStorageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hasher, cfg, evictionWaitingList)
+	trieStorageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hasher, cfg, evictionWaitingList, generalCfg)
 
 	return trieStorageManager, marshalizer, hasher
 }

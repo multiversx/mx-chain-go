@@ -1,7 +1,9 @@
 package sharding
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
 // Coordinator defines what a shard state coordinator should hold
@@ -18,12 +20,13 @@ type Coordinator interface {
 // or block proposer
 type Validator interface {
 	PubKey() []byte
-	Address() []byte
+	Chances() uint32
+	Index() uint32
 }
 
 // NodesCoordinator defines the behaviour of a struct able to do validator group selection
 type NodesCoordinator interface {
-	NodesPerShardSetter
+	NodesCoordinatorHelper
 	PublicKeysSelector
 	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte, epoch uint32) (validator Validator, shardId uint32, err error)
@@ -36,14 +39,26 @@ type NodesCoordinator interface {
 	IsInterfaceNil() bool
 }
 
+// EpochStartEventNotifier provides Register and Unregister functionality for the end of epoch events
+type EpochStartEventNotifier interface {
+	RegisterHandler(handler epochStart.ActionHandler)
+	UnregisterHandler(handler epochStart.ActionHandler)
+}
+
 // PublicKeysSelector allows retrieval of eligible validators public keys
 type PublicKeysSelector interface {
 	GetValidatorsIndexes(publicKeys []string, epoch uint32) ([]uint64, error)
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetAllLeavingValidatorsPublicKeys(epoch uint32) ([][]byte, error)
 	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
-	GetConsensusValidatorsRewardsAddresses(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetOwnPublicKey() []byte
+}
+
+// EpochHandler defines what a component which handles current epoch should be able to do
+type EpochHandler interface {
+	Epoch() uint32
+	IsInterfaceNil() bool
 }
 
 // ArgsUpdateNodes holds the parameters required by the shuffler to generate a new nodes configuration
@@ -63,40 +78,31 @@ type NodesShuffler interface {
 	IsInterfaceNil() bool
 }
 
-// NodesPerShardSetter provides polymorphism functionality for nodesCoordinator
-type NodesPerShardSetter interface {
-	SetNodesPerShards(
-		eligible map[uint32][]Validator,
-		waiting map[uint32][]Validator,
-		epoch uint32,
-	) error
-	ComputeLeaving(allValidators []Validator) []Validator
+// NodesCoordinatorHelper provides polymorphism functionality for nodesCoordinator
+type NodesCoordinatorHelper interface {
+	ValidatorsWeights(validators []Validator) ([]uint32, error)
+	ComputeLeaving(allValidators []*state.ShardValidatorInfo) ([]Validator, error)
+	GetChance(uint32) uint32
 }
 
-//RaterHandler provides Rating Computation Capabilites for the Nodes Coordinator and ValidatorStatistics
-type RaterHandler interface {
-	RatingReader
+//PeerAccountListAndRatingHandler provides Rating Computation Capabilites for the Nodes Coordinator and ValidatorStatistics
+type PeerAccountListAndRatingHandler interface {
 	//GetChance returns the chances for the the rating
 	GetChance(uint32) uint32
 	//GetStartRating gets the start rating values
 	GetStartRating() uint32
+	//GetSignedBlocksThreshold gets the threshold for the minimum signed blocks
+	GetSignedBlocksThreshold() float32
 	//ComputeIncreaseProposer computes the new rating for the increaseLeader
-	ComputeIncreaseProposer(val uint32) uint32
+	ComputeIncreaseProposer(shardId uint32, currentRating uint32) uint32
 	//ComputeDecreaseProposer computes the new rating for the decreaseLeader
-	ComputeDecreaseProposer(val uint32) uint32
+	ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32) uint32
+	//RevertIncreaseValidator computes the new rating if a revert for increaseProposer should be done
+	RevertIncreaseValidator(shardId uint32, currentRating uint32, nrReverts uint32) uint32
 	//ComputeIncreaseValidator computes the new rating for the increaseValidator
-	ComputeIncreaseValidator(val uint32) uint32
+	ComputeIncreaseValidator(shardId uint32, currentRating uint32) uint32
 	//ComputeDecreaseValidator computes the new rating for the decreaseValidator
-	ComputeDecreaseValidator(val uint32) uint32
-}
-
-//RatingReader provides rating reading capabilities for the ratingHandler
-type RatingReader interface {
-	//GetRating gets the rating for the public key
-	GetRating(string) uint32
-	//UpdateRatingFromTempRating sets the rating to the value of the tempRating for the public keys
-	UpdateRatingFromTempRating([]string) error
-	//IsInterfaceNil verifies if the interface is nil
+	ComputeDecreaseValidator(shardId uint32, currentRating uint32) uint32
 	IsInterfaceNil() bool
 }
 
@@ -104,20 +110,6 @@ type RatingReader interface {
 type ChanceComputer interface {
 	//GetChance returns the chances for the the rating
 	GetChance(uint32) uint32
-	//IsInterfaceNil verifies if the interface is nil
-	IsInterfaceNil() bool
-}
-
-//RatingReaderWithChanceComputer provides chance computation capabilities with Rater
-type RatingReaderWithChanceComputer interface {
-	RatingReader
-	GetChance(uint32) uint32
-}
-
-//RatingReaderSetter provides the capabilities to set a RatingReader
-type RatingReaderSetter interface {
-	//SetRatingReader sets the rating
-	SetRatingReader(RatingReader)
 	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }
@@ -130,18 +122,44 @@ type Cacher interface {
 	Get(key []byte) (value interface{}, ok bool)
 }
 
-//RatingChance provides the methods needed for the computation of chances from the Rating
-type RatingChance interface {
-	//GetMaxThreshold returns the threshold until this ChancePercentage holds
-	GetMaxThreshold() uint32
-	//GetChancePercentage returns the percentage for the RatingChance
-	GetChancePercentage() uint32
-	//IsInterfaceNil verifies if the interface is nil
+// ShuffledOutHandler defines the methods needed for the computation of a shuffled out event
+type ShuffledOutHandler interface {
+	Process(newShardID uint32) error
+	RegisterHandler(handler func(newShardID uint32))
+	CurrentShardID() uint32
 	IsInterfaceNil() bool
 }
 
-// EpochHandler defines a struct able to output current epoch
-type EpochHandler interface {
-	Epoch() uint32
+// RandomSelector selects randomly a subset of elements from a set of data
+type RandomSelector interface {
+	Select(randSeed []byte, sampleSize uint32) ([]uint32, error)
+	IsInterfaceNil() bool
+}
+
+// EpochStartActionHandler defines the action taken on epoch start event
+type EpochStartActionHandler interface {
+	EpochStartAction(hdr data.HeaderHandler)
+	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	NotifyOrder() uint32
+}
+
+// GenesisNodesSetupHandler returns the genesis nodes info
+type GenesisNodesSetupHandler interface {
+	InitialNodesInfoForShard(shardId uint32) ([]GenesisNodeInfoHandler, []GenesisNodeInfoHandler, error)
+	InitialNodesInfo() (map[uint32][]GenesisNodeInfoHandler, map[uint32][]GenesisNodeInfoHandler)
+	GetStartTime() int64
+	GetRoundDuration() uint64
+	GetChainId() string
+	GetShardConsensusGroupSize() uint32
+	GetMetaConsensusGroupSize() uint32
+	NumberOfShards() uint32
+	IsInterfaceNil() bool
+}
+
+// GenesisNodeInfoHandler defines the public methods for the genesis nodes info
+type GenesisNodeInfoHandler interface {
+	AssignedShard() uint32
+	Address() []byte
+	PubKey() []byte
 	IsInterfaceNil() bool
 }

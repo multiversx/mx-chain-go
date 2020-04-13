@@ -83,6 +83,10 @@ const MinForkRound = uint64(0)
 // MaxNumPendingMiniBlocks defines the maximum number of pending miniblocks, after which a shard could be considered stuck
 const MaxNumPendingMiniBlocks = 100
 
+// MaxMetaNoncesBehind defines the maximum difference between the current metablock nonce and the processed metablock
+// nonce before a shard is considered stuck
+const MaxMetaNoncesBehind = 8
+
 // MaxRoundsWithoutNewBlockReceived defines the maximum rounds to wait for a new block to be received,
 // before a special action to be applied
 const MaxRoundsWithoutNewBlockReceived = 10
@@ -95,3 +99,9 @@ const MaxShardHeadersAllowedInOneMetaBlock = 100
 
 // MaxNumOfTxsToSelect defines the maximum number of transactions that should be selected from the cache
 const MaxNumOfTxsToSelect = 30000
+
+// MaxRoundsToKeepUnprocessedMiniBlocks defines the maximum number of rounds for which unprocessed miniblocks are kept in pool
+const MaxRoundsToKeepUnprocessedMiniBlocks = 100
+
+// MaxRoundsToKeepUnprocessedTransactions defines the maximum number of rounds for which unprocessed transactions are kept in pool
+const MaxRoundsToKeepUnprocessedTransactions = 100

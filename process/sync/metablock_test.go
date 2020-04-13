@@ -63,7 +63,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		BootStorer:          &mock.BoostrapStorerMock{},
 		StorageBootstrapper: &mock.StorageBootstrapperMock{},
 		EpochHandler:        &mock.EpochStartTriggerStub{},
-		MiniBlocksResolver:  &mock.MiniBlocksResolverMock{},
+		MiniblocksProvider:  &mock.MiniBlocksProviderStub{},
 		Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
 	}
 
@@ -493,7 +493,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 			HasOrAddCalled: func(key []byte, value interface{}) (ok, evicted bool) {
 				return false, false
 			},
-			RegisterHandlerCalled: func(func(key []byte)) {},
+			RegisterHandlerCalled: func(func(key []byte, value interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
@@ -1116,15 +1116,6 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 		return nil
 	}
 
-	body := &block.Body{}
-	blkc.GetCurrentBlockBodyCalled = func() data.BodyHandler {
-		return body
-	}
-	blkc.SetCurrentBlockBodyCalled = func(handler data.BodyHandler) error {
-		body = prevTxBlockBody
-		return nil
-	}
-
 	hdrHash := make([]byte, 0)
 	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
 		return hdrHash
@@ -1205,7 +1196,6 @@ func TestMetaBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *te
 	assert.True(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Equal(t, blkc.GetCurrentBlockHeader(), prevHdr)
-	assert.Equal(t, blkc.GetCurrentBlockBody(), prevTxBlockBody)
 	assert.Equal(t, blkc.GetCurrentBlockHeaderHash(), prevHdrHash)
 }
 

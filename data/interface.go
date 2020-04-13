@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -84,8 +85,6 @@ type ChainHandler interface {
 	SetCurrentBlockHeader(bh HeaderHandler) error
 	GetCurrentBlockHeaderHash() []byte
 	SetCurrentBlockHeaderHash(hash []byte)
-	GetCurrentBlockBody() BodyHandler
-	SetCurrentBlockBody(body BodyHandler) error
 	IsInterfaceNil() bool
 	CreateNewHeader() HeaderHandler
 }
@@ -127,6 +126,8 @@ type Trie interface {
 	GetSerializedNodes([]byte, uint64) ([][]byte, error)
 	GetAllLeaves() (map[string][]byte, error)
 	IsPruningEnabled() bool
+	EnterSnapshotMode()
+	ExitSnapshotMode()
 	IsInterfaceNil() bool
 	ClosePersister() error
 }
@@ -150,7 +151,8 @@ type DBRemoveCacher interface {
 
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
-	StartSyncing(rootHash []byte) error
+	StartSyncing(rootHash []byte, ctx context.Context) error
+	Trie() Trie
 	IsInterfaceNil() bool
 }
 
@@ -164,12 +166,14 @@ type StorageManager interface {
 	MarkForEviction([]byte, ModifiedHashes) error
 	GetDbThatContainsHash([]byte) DBWriteCacher
 	IsPruningEnabled() bool
+	EnterSnapshotMode()
+	ExitSnapshotMode()
 	IsInterfaceNil() bool
 }
 
 // TrieFactory creates new tries
 type TrieFactory interface {
-	Create(config.StorageConfig, bool) (Trie, error)
+	Create(config.StorageConfig, bool) (StorageManager, Trie, error)
 	IsInterfaceNil() bool
 }
 
@@ -181,6 +185,14 @@ type ValidatorInfoHandler interface {
 	GetIndex() uint32
 	GetTempRating() uint32
 	GetRating() uint32
+	String() string
+	IsInterfaceNil() bool
+}
+
+// ShardValidatorInfoHandler is used to store multiple validatorInfo properties required in shards
+type ShardValidatorInfoHandler interface {
+	GetPublicKey() []byte
+	GetTempRating() uint32
 	String() string
 	IsInterfaceNil() bool
 }

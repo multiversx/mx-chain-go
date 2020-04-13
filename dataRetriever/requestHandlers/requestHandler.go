@@ -2,6 +2,7 @@ package requestHandlers
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -16,19 +17,24 @@ type resolverRequestHandler struct {
 	resolversFinder       dataRetriever.ResolversFinder
 	requestedItemsHandler dataRetriever.RequestedItemsHandler
 	epoch                 uint32
+	whiteList             dataRetriever.WhiteListHandler
 	shardID               uint32
 	maxTxsToRequest       int
 	sweepTime             time.Time
+	requestInterval       time.Duration
+	mutSweepTime          sync.Mutex
 }
 
 var log = logger.GetOrCreate("dataretriever/requesthandlers")
 
-// NewShardResolverRequestHandler creates a requestHandler interface implementation with request functions
-func NewShardResolverRequestHandler(
+// NewResolverRequestHandler creates a requestHandler interface implementation with request functions
+func NewResolverRequestHandler(
 	finder dataRetriever.ResolversFinder,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
+	whiteList dataRetriever.WhiteListHandler,
 	maxTxsToRequest int,
 	shardID uint32,
+	requestInterval time.Duration,
 ) (*resolverRequestHandler, error) {
 
 	if check.IfNil(finder) {
@@ -39,6 +45,12 @@ func NewShardResolverRequestHandler(
 	}
 	if maxTxsToRequest < 1 {
 		return nil, dataRetriever.ErrInvalidMaxTxRequest
+	}
+	if check.IfNil(whiteList) {
+		return nil, dataRetriever.ErrNilWhiteListHandler
+	}
+	if requestInterval < time.Millisecond {
+		return nil, fmt.Errorf("%w:request interval is smaller than a millisecond", dataRetriever.ErrRequestIntervalTooSmall)
 	}
 
 	rrh := &resolverRequestHandler{
@@ -47,37 +59,11 @@ func NewShardResolverRequestHandler(
 		epoch:                 uint32(0), // will be updated after creation of the request handler
 		shardID:               shardID,
 		maxTxsToRequest:       maxTxsToRequest,
+		whiteList:             whiteList,
+		requestInterval:       requestInterval,
 	}
 
 	rrh.sweepTime = time.Now()
-
-	return rrh, nil
-}
-
-// NewMetaResolverRequestHandler creates a requestHandler interface implementation with request functions
-func NewMetaResolverRequestHandler(
-	finder dataRetriever.ResolversFinder,
-	requestedItemsHandler dataRetriever.RequestedItemsHandler,
-	maxTxsToRequest int,
-) (*resolverRequestHandler, error) {
-
-	if check.IfNil(finder) {
-		return nil, dataRetriever.ErrNilResolverFinder
-	}
-	if check.IfNil(requestedItemsHandler) {
-		return nil, dataRetriever.ErrNilRequestedItemsHandler
-	}
-	if maxTxsToRequest < 1 {
-		return nil, dataRetriever.ErrInvalidMaxTxRequest
-	}
-
-	rrh := &resolverRequestHandler{
-		resolversFinder:       finder,
-		requestedItemsHandler: requestedItemsHandler,
-		epoch:                 uint32(0), // will be updated after creation of the request handler
-		shardID:               core.MetachainShardId,
-		maxTxsToRequest:       maxTxsToRequest,
-	}
 
 	return rrh, nil
 }
@@ -118,6 +104,10 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 		return
 	}
 
+	for _, txHash := range hashes {
+		log.Trace("requestByHashes", "hash", txHash)
+	}
+
 	go func() {
 		dataSplit := &partitioning.DataSplit{}
 		var sliceBatches [][][]byte
@@ -143,6 +133,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 		}
 	}()
 
+	rrh.whiteList.Add(hashes)
 	for _, hash := range unrequestedHashes {
 		rrh.addRequestedItem(hash)
 	}
@@ -337,33 +328,21 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 
 // RequestTrieNodes method asks for trie nodes from the connected peers
 func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hash []byte, topic string) {
-	rrh.requestByHash(destShardID, hash, topic)
-}
-
-func (rrh *resolverRequestHandler) requestByHash(destShardID uint32, hash []byte, baseTopic string) {
 	if !rrh.testIfRequestIsNeeded(hash) {
 		return
 	}
 
 	log.Debug("requesting trie from network",
-		"topic", baseTopic,
+		"topic", topic,
 		"shard", destShardID,
 		"hash", hash,
 	)
 
-	var resolver dataRetriever.Resolver
-	var err error
-
-	if destShardID == core.MetachainShardId {
-		resolver, err = rrh.resolversFinder.MetaChainResolver(baseTopic)
-	} else {
-		resolver, err = rrh.resolversFinder.CrossShardResolver(baseTopic, destShardID)
-	}
-
+	resolver, err := rrh.resolversFinder.MetaCrossShardResolver(topic, destShardID)
 	if err != nil {
 		log.Error("requestByHash.Resolver",
 			"error", err.Error(),
-			"topic", baseTopic,
+			"topic", topic,
 			"shard", destShardID,
 		)
 		return
@@ -433,7 +412,9 @@ func (rrh *resolverRequestHandler) addRequestedItem(key []byte) {
 		log.Trace("addRequestedItem",
 			"error", err.Error(),
 			"key", key)
+		return
 	}
+	rrh.whiteList.Add([][]byte{key})
 }
 
 func (rrh *resolverRequestHandler) getShardHeaderResolver(shardID uint32) (dataRetriever.HeaderResolver, error) {
@@ -532,6 +513,11 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 	rrh.addRequestedItem([]byte(epochStartIdentifier))
 }
 
+// RequestInterval returns the request interval between sending the same request
+func (rrh *resolverRequestHandler) RequestInterval() time.Duration {
+	return rrh.requestInterval
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (rrh *resolverRequestHandler) IsInterfaceNil() bool {
 	return rrh == nil
@@ -552,10 +538,37 @@ func (rrh *resolverRequestHandler) getUnrequestedHashes(hashes [][]byte) [][]byt
 }
 
 func (rrh *resolverRequestHandler) sweepIfNeeded() {
-	if time.Since(rrh.sweepTime) <= time.Second {
+	rrh.mutSweepTime.Lock()
+	defer rrh.mutSweepTime.Unlock()
+
+	if time.Since(rrh.sweepTime) <= rrh.requestInterval {
 		return
 	}
 
 	rrh.sweepTime = time.Now()
 	rrh.requestedItemsHandler.Sweep()
+}
+
+// SetNumPeersToQuery will set the number of intra shard and cross shard number of peers to query
+// for a given resolver
+func (rrh *resolverRequestHandler) SetNumPeersToQuery(key string, intra int, cross int) error {
+	resolver, err := rrh.resolversFinder.Get(key)
+	if err != nil {
+		return err
+	}
+
+	resolver.SetNumPeersToQuery(intra, cross)
+	return nil
+}
+
+// GetNumPeersToQuery will return the number of intra shard and cross shard number of peers to query
+// for a given resolver
+func (rrh *resolverRequestHandler) GetNumPeersToQuery(key string) (int, int, error) {
+	resolver, err := rrh.resolversFinder.Get(key)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	intra, cross := resolver.GetNumPeersToQuery()
+	return intra, cross, nil
 }

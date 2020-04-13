@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -60,8 +59,13 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager, *mock.EvictionWai
 		MaxBatchSize:      1,
 		MaxOpenFiles:      10,
 	}
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
 
-	trieStorage, _ := NewTrieStorageManager(db, marsh, hsh, cfg, evictionWaitList)
+	trieStorage, _ := NewTrieStorageManager(db, marsh, hsh, cfg, evictionWaitList, generalCfg)
 	tr := &patriciaMerkleTrie{
 		trieStorage: trieStorage,
 		marshalizer: marsh,
@@ -180,8 +184,8 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	cfg := config.DBConfig{}
 	db := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshAndHasher()
-	trieStorage1, _ := NewTrieStorageManager(db, marsh, hsh, cfg, &mock.EvictionWaitingList{})
-	trieStorage2, _ := NewTrieStorageManager(db, marsh, hsh, cfg, &mock.EvictionWaitingList{})
+	trieStorage1, _ := NewTrieStorageManager(db, marsh, hsh, cfg, &mock.EvictionWaitingList{}, config.TrieStorageManagerConfig{})
+	trieStorage2, _ := NewTrieStorageManager(db, marsh, hsh, cfg, &mock.EvictionWaitingList{}, config.TrieStorageManagerConfig{})
 
 	tr1, _ := NewTrie(trieStorage1, marsh, hsh)
 	tr2, _ := NewTrie(trieStorage2, marsh, hsh)
@@ -1047,32 +1051,27 @@ func TestBranchNode_loadChildren(t *testing.T) {
 	_ = tr.root.setRootHash()
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := lrucache.NewCache(100)
-
-	resolver := &mock.TrieNodesResolverStub{
-		RequestDataFromHashCalled: func(hash []byte) error {
-			for i := range nodes {
-				node, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
-				nodesCacher.Put(node.hash, node)
-			}
-			return nil
-		},
+	for i := range nodes {
+		node, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
+		nodesCacher.Put(node.hash, node)
 	}
-	syncer, _ := NewTrieSyncer(resolver, nodesCacher, tr, time.Second)
-	syncer.interceptedNodes.RegisterHandler(func(key []byte) {
-		syncer.chRcvTrieNodes <- true
-	})
 
 	firstChildIndex := 5
 	secondChildIndex := 7
 
 	bn := getCollapsedBn(t, tr.root)
 
-	err := bn.loadChildren(syncer)
+	getNode := func(hash []byte) (node, error) {
+		cacheData, _ := nodesCacher.Get(hash)
+		return trieNode(cacheData)
+	}
+
+	missing, err := bn.loadChildren(getNode)
 	assert.Nil(t, err)
 	assert.NotNil(t, bn.children[firstChildIndex])
 	assert.NotNil(t, bn.children[secondChildIndex])
-
-	assert.Equal(t, 5, nodesCacher.Len())
+	assert.Equal(t, 0, len(missing))
+	assert.Equal(t, 6, nodesCacher.Len())
 }
 
 func getCollapsedBn(t *testing.T, n node) *branchNode {

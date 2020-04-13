@@ -7,12 +7,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const PercentToKeep = percentToKeep
+// shardBlockTrack
 
-// metaBlockTrack
+func (sbt *shardBlockTrack) SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32) {
+	sbt.blockBalancer.SetNumPendingMiniBlocks(shardID, numPendingMiniBlocks)
+}
 
 func (sbt *shardBlockTrack) GetNumPendingMiniBlocks(shardID uint32) uint32 {
 	return sbt.blockBalancer.GetNumPendingMiniBlocks(shardID)
+}
+
+func (sbt *shardBlockTrack) SetLastShardProcessedMetaNonce(shardID uint32, nonce uint64) {
+	sbt.blockBalancer.SetLastShardProcessedMetaNonce(shardID, nonce)
+}
+
+func (sbt *shardBlockTrack) GetLastShardProcessedMetaNonce(shardID uint32) uint64 {
+	return sbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID)
 }
 
 // baseBlockTrack
@@ -65,10 +75,6 @@ func (bbt *baseBlockTrack) AppendTrackedHeader(headerHandler data.HeaderHandler)
 	bbt.mutHeaders.Unlock()
 }
 
-func (bbt *baseBlockTrack) CleanupWhenMaxCapacityIsReached(shardID uint32) {
-	bbt.cleanupWhenMaxCapacityIsReached(shardID)
-}
-
 func (bbt *baseBlockTrack) CleanupTrackedHeadersBehindNonce(shardID uint32, nonce uint64) {
 	bbt.cleanupTrackedHeadersBehindNonce(shardID, nonce)
 }
@@ -115,10 +121,6 @@ func (bn *blockNotarizer) AppendNotarizedHeader(headerHandler data.HeaderHandler
 	bn.mutNotarizedHeaders.Unlock()
 }
 
-func (bn *blockNotarizer) CleanupWhenMaxCapacityIsReached(shardID uint32) {
-	bn.cleanupWhenMaxCapacityIsReached(shardID)
-}
-
 func (bn *blockNotarizer) GetNotarizedHeaders() map[uint32][]*HeaderInfo {
 	bn.mutNotarizedHeaders.RLock()
 	notarizedHeaders := bn.notarizedHeaders
@@ -137,10 +139,6 @@ func (bn *blockNotarizer) GetNotarizedHeaderWithIndex(shardID uint32, index int)
 
 func (bn *blockNotarizer) LastNotarizedHeaderInfo(shardID uint32) *HeaderInfo {
 	return bn.lastNotarizedHeaderInfo(shardID)
-}
-
-func (bn *blockNotarizer) GetMaxNumHeadersToKeepPerShard() int {
-	return bn.maxNumHeadersToKeepPerShard
 }
 
 // blockProcessor

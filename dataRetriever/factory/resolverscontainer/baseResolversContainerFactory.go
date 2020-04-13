@@ -15,10 +15,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const emptyExcludePeersOnTopic = ""
+// EmptyExcludePeersOnTopic is an empty topic
+const EmptyExcludePeersOnTopic = ""
 const defaultTargetShardID = uint32(0)
+
+//TODO extract these in config
 const numCrossShardPeers = 2
-const numIntraShardPeers = 2
+const numIntraShardPeers = 1
 
 type baseResolversContainerFactory struct {
 	container                dataRetriever.ResolversContainer
@@ -181,7 +184,7 @@ func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
 	keys[noOfShards] = identifierMiniBlocks
 
 	identifierAllShardMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.AllShardId)
-	allShardMiniblocksResolver, err := brcf.createMiniBlocksResolver(identifierAllShardMiniBlocks, emptyExcludePeersOnTopic)
+	allShardMiniblocksResolver, err := brcf.createMiniBlocksResolver(identifierAllShardMiniBlocks, EmptyExcludePeersOnTopic)
 	if err != nil {
 		return err
 	}
@@ -200,15 +203,16 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(topic string
 		return nil, err
 	}
 
-	arg := resolvers.ArgGenericBlockBodyResolver{
+	arg := resolvers.ArgMiniblockResolver{
 		SenderResolver:   resolverSender,
 		MiniBlockPool:    brcf.dataPools.MiniBlocks(),
 		MiniBlockStorage: miniBlocksStorer,
 		Marshalizer:      brcf.marshalizer,
 		AntifloodHandler: brcf.inputAntifloodHandler,
 		Throttler:        brcf.throttler,
+		DataPacker:       brcf.dataPacker,
 	}
-	txBlkResolver, err := resolvers.NewGenericBlockBodyResolver(arg)
+	txBlkResolver, err := resolvers.NewMiniblockResolver(arg)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +258,7 @@ func (brcf *baseResolversContainerFactory) createOneResolverSender(
 }
 
 func (brcf *baseResolversContainerFactory) createTrieNodesResolver(topic string, trieId string) (dataRetriever.Resolver, error) {
-	resolverSender, err := brcf.createOneResolverSender(topic, emptyExcludePeersOnTopic, defaultTargetShardID)
+	resolverSender, err := brcf.createOneResolverSender(topic, EmptyExcludePeersOnTopic, defaultTargetShardID)
 	if err != nil {
 		return nil, err
 	}

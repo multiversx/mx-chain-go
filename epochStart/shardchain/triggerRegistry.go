@@ -3,10 +3,9 @@ package shardchain
 import (
 	"encoding/json"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
-
-const keyPrefix = "epochStartTrigger_"
 
 // TriggerRegistry holds the data required to correctly initialize the trigger when booting from saved state
 type TriggerRegistry struct {
@@ -22,7 +21,7 @@ type TriggerRegistry struct {
 
 // LoadState loads into trigger the saved state
 func (t *trigger) LoadState(key []byte) error {
-	trigInternalKey := append([]byte(keyPrefix), key...)
+	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), key...)
 	log.Debug("getting start of epoch trigger state", "key", trigInternalKey)
 
 	data, err := t.triggerStorage.Get(trigInternalKey)
@@ -64,12 +63,13 @@ func (t *trigger) saveState(key []byte) error {
 	registry.EpochFinalityAttestingRound = t.epochFinalityAttestingRound
 	registry.EpochStartShardHeader = t.epochStartShardHeader
 
+	//TODO: change to protoMarshalizer
 	data, err := json.Marshal(registry)
 	if err != nil {
 		return err
 	}
 
-	trigInternalKey := append([]byte(keyPrefix), key...)
+	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), key...)
 	log.Debug("saving start of epoch trigger state", "key", trigInternalKey)
 
 	return t.triggerStorage.Put(trigInternalKey, data)

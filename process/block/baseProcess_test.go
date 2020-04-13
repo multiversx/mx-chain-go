@@ -56,7 +56,7 @@ func createShardedDataChacherNotifier(
 ) func() dataRetriever.ShardedDataCacherNotifier {
 	return func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {},
+			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &mock.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -127,13 +127,13 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 					}
 					return nil, false
 				},
-				RegisterHandlerCalled: func(i func(key []byte)) {},
+				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 				RemoveCalled:          func(key []byte) {},
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
 			cs := &mock.CacherStub{}
-			cs.RegisterHandlerCalled = func(i func(key []byte)) {
+			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 			}
 			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
 				if bytes.Equal([]byte("bbb"), key) {
@@ -149,13 +149,16 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 
 				return nil, false
 			}
-			cs.RegisterHandlerCalled = func(i func(key []byte)) {}
+			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {}
 			cs.RemoveCalled = func(key []byte) {}
 			cs.LenCalled = func() int {
 				return 0
 			}
 			cs.MaxSizeCalled = func() int {
 				return 300
+			}
+			cs.KeysCalled = func() [][]byte {
+				return nil
 			}
 			return cs
 		},
@@ -437,19 +440,39 @@ func TestBaseProcessor_RemoveHeadersBehindNonceFromPools(t *testing.T) {
 			return nil
 		},
 	}
-	bp, _ := blproc.NewShardProcessor(arguments)
 
-	headersPool := &mock.HeadersCacherStub{
-		NoncesCalled: func(shardId uint32) []uint64 {
+	dataPool := initDataPool([]byte(""))
+	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+		cs := &mock.HeadersCacherStub{}
+		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
+		}
+		cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, err error) {
+			return nil, err
+		}
+		cs.RemoveHeaderByHashCalled = func(key []byte) {
+		}
+		cs.LenCalled = func() int {
+			return 0
+		}
+		cs.MaxSizeCalled = func() int {
+			return 1000
+		}
+		cs.NoncesCalled = func(shardId uint32) []uint64 {
 			return []uint64{1, 2, 3}
-		},
-		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+		}
+		cs.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
 			hdrs := make([]data.HeaderHandler, 0)
 			hdrs = append(hdrs, &block.Header{Nonce: 2})
 			return hdrs, nil, nil
-		},
+		}
+
+		return cs
 	}
-	bp.RemoveHeadersBehindNonceFromPools(true, headersPool, 0, 4)
+
+	arguments.DataPool = dataPool
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	bp.RemoveHeadersBehindNonceFromPools(true, 0, 4)
 
 	assert.True(t, removeFromDataPoolWasCalled)
 }

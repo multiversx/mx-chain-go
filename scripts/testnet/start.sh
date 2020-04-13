@@ -16,16 +16,21 @@ prepareFolders
 # Phase 1: build Seednode and Node executables
 buildSeednode
 buildNode
+buildArwen
 
 
 # Phase 2: generate configuration
-copyConfig
+if [ $ALWAYS_UPDATE_CONFIGS -eq 1 ]; then
+  copyConfig
+fi
 
 copySeednodeConfig
 updateSeednodeConfig
 
-copyNodeConfig
-updateNodeConfig
+if [ $ALWAYS_UPDATE_CONFIGS -eq 1 ]; then
+  copyNodeConfig
+  updateNodeConfig
+fi
 
 
 # Phase 3: start the Seednode

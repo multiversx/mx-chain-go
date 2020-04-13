@@ -674,6 +674,7 @@ func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrat
 func putDeploySCToDataPool(fileName string, pubkey []byte, nonce uint64, transferOnDeploy *big.Int, initArgs string, nodes []*integrationTests.TestProcessorNode) []byte {
 	scCode, _ := ioutil.ReadFile(fileName)
 	scCodeString := hex.EncodeToString(scCode)
+	scCodeMetadataString := "0000"
 
 	blockChainHook := nodes[0].BlockchainHook
 
@@ -686,7 +687,7 @@ func putDeploySCToDataPool(fileName string, pubkey []byte, nonce uint64, transfe
 		SndAddr:  pubkey,
 		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),
 		GasLimit: nodes[0].EconomicsData.MaxGasLimitPerBlock() - 1,
-		Data:     []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + initArgs),
+		Data:     []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString),
 	}
 	txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)
 

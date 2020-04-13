@@ -21,8 +21,6 @@ const (
 	branch
 )
 
-const maxSnapshots = 2
-
 var emptyTrieHash = make([]byte, 32)
 
 type patriciaMerkleTrie struct {
@@ -349,12 +347,22 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 
 // SetCheckpoint adds the current state of the trie to the snapshot database
 func (tr *patriciaMerkleTrie) SetCheckpoint(rootHash []byte) {
+	if bytes.Equal(rootHash, emptyTrieHash) {
+		log.Trace("should not snapshot empty trie")
+		return
+	}
+
 	tr.trieStorage.SetCheckpoint(rootHash)
 }
 
 // TakeSnapshot creates a new database in which the current state of the trie is saved.
 // If the maximum number of snapshots has been reached, the oldest snapshot is removed.
 func (tr *patriciaMerkleTrie) TakeSnapshot(rootHash []byte) {
+	if bytes.Equal(rootHash, emptyTrieHash) {
+		log.Trace("should not snapshot empty trie")
+		return
+	}
+
 	tr.trieStorage.TakeSnapshot(rootHash)
 }
 
@@ -394,6 +402,16 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte) (data.Trie, error)
 	}
 
 	return newTr, nil
+}
+
+// EnterSnapshotMode sets the snapshot mode on
+func (tr *patriciaMerkleTrie) EnterSnapshotMode() {
+	tr.trieStorage.EnterSnapshotMode()
+}
+
+// ExitSnapshotMode sets the snapshot mode off
+func (tr *patriciaMerkleTrie) ExitSnapshotMode() {
+	tr.trieStorage.ExitSnapshotMode()
 }
 
 // GetSerializedNodes returns a batch of serialized nodes from the trie, starting from the given hash
@@ -445,6 +463,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 // GetAllLeaves iterates the trie and returns a map that contains all leafNodes information
 func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
+	//TODO: save those leafs into a levelDB struct (cache and storage) and at processing time to get from that structure.
 	if tr.root == nil {
 		return map[string][]byte{}, nil
 	}

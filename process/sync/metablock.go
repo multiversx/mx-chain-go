@@ -54,7 +54,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		bootStorer:          arguments.BootStorer,
 		storageBootstrapper: arguments.StorageBootstrapper,
 		epochHandler:        arguments.EpochHandler,
-		miniBlocksResolver:  arguments.MiniBlocksResolver,
+		miniBlocksProvider:  arguments.MiniblocksProvider,
 		uint64Converter:     arguments.Uint64Converter,
 		poolsHolder:         arguments.PoolsHolder,
 	}
@@ -89,7 +89,7 @@ func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.
 		hashes[i] = header.MiniBlockHeaders[i].Hash
 	}
 
-	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocks(hashes)
+	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocks(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
 		return nil, process.ErrMissingBody
 	}
@@ -171,7 +171,7 @@ func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 		nonce,
 		boot.headers)
 	if err != nil {
-		_ = process.EmptyChannel(boot.chRcvHdrNonce)
+		_ = core.EmptyChannel(boot.chRcvHdrNonce)
 		boot.requestHeaderWithNonce(nonce)
 		err = boot.waitForHeaderNonce()
 		if err != nil {
@@ -194,7 +194,7 @@ func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 func (boot *MetaBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (data.HeaderHandler, error) {
 	hdr, err := process.GetMetaHeader(hash, boot.headers, boot.marshalizer, boot.store)
 	if err != nil {
-		_ = process.EmptyChannel(boot.chRcvHdrHash)
+		_ = core.EmptyChannel(boot.chRcvHdrHash)
 		boot.requestHeaderWithHash(hash)
 		err = boot.waitForHeaderHash()
 		if err != nil {
@@ -302,7 +302,7 @@ func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerH
 		hashes = append(hashes, header.MiniBlockHeaders[i].Hash)
 	}
 
-	_, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(hashes)
+	_, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
 		log.Trace("requesting in advance mini blocks",
 			"num miniblocks", len(missingMiniBlocksHashes),

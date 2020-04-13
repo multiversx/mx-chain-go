@@ -2,6 +2,7 @@ package sharding
 
 import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -9,9 +10,10 @@ import (
 type ArgNodesCoordinator struct {
 	ShardConsensusGroupSize int
 	MetaConsensusGroupSize  int
+	Marshalizer             marshal.Marshalizer
 	Hasher                  hashing.Hasher
 	Shuffler                NodesShuffler
-	EpochStartSubscriber    EpochStartSubscriber
+	EpochStartNotifier      EpochStartEventNotifier
 	BootStorer              storage.Storer
 	ShardIDAsObserver       uint32
 	NbShards                uint32
@@ -20,4 +22,5 @@ type ArgNodesCoordinator struct {
 	SelfPublicKey           []byte
 	Epoch                   uint32
 	ConsensusGroupCache     Cacher
+	ShuffledOutHandler      ShuffledOutHandler
 }

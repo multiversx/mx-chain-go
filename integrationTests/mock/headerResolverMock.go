@@ -12,6 +12,24 @@ type HeaderResolverMock struct {
 	RequestDataFromNonceCalled   func(nonce uint64, epoch uint32) error
 	RequestDataFromEpochCalled   func(identifier []byte) error
 	SetEpochHandlerCalled        func(epochHandler dataRetriever.EpochHandler) error
+	SetNumPeersToQueryCalled     func(intra int, cross int)
+	GetNumPeersToQueryCalled     func() (int, int)
+}
+
+// SetNumPeersToQuery -
+func (hrm *HeaderResolverMock) SetNumPeersToQuery(intra int, cross int) {
+	if hrm.SetNumPeersToQueryCalled != nil {
+		hrm.SetNumPeersToQueryCalled(intra, cross)
+	}
+}
+
+// GetNumPeersToQuery -
+func (hrm *HeaderResolverMock) GetNumPeersToQuery() (int, int) {
+	if hrm.GetNumPeersToQueryCalled != nil {
+		return hrm.GetNumPeersToQueryCalled()
+	}
+
+	return 2, 2
 }
 
 // RequestDataFromEpoch -

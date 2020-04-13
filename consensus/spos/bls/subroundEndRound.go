@@ -161,9 +161,9 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	sr.createAndBroadcastHeaderFinalInfo()
 
 	// broadcast block body and header
-	err = sr.BroadcastMessenger().BroadcastBlock(sr.Body, sr.Header)
+	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header)
 	if err != nil {
-		log.Debug("doEndRoundJob.BroadcastBlock", "error", err.Error())
+		log.Debug("doEndRoundJob.BroadcastHeader", "error", err.Error())
 	}
 
 	startTime := time.Now()
@@ -181,7 +181,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	sr.displayStatistics()
 
-	log.Debug("step 3: Body and Header have been committed and broadcast")
+	log.Debug("step 3: Body and Header have been committed and header has been broadcast")
 
 	err = sr.broadcastMiniBlocksAndTransactions()
 	if err != nil {

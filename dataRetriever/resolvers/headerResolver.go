@@ -133,6 +133,7 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 	if err != nil {
 		return err
 	}
+
 	if buff == nil {
 		log.Trace("missing data",
 			"data", rd)
@@ -206,12 +207,7 @@ func (hdrRes *HeaderResolver) resolveHeaderFromHash(rd *dataRetriever.RequestDat
 		//  return hdrRes.hdrStorage.GetFromEpoch(rd.Value, rd.Epoch)
 	}
 
-	buff, err := hdrRes.marshalizer.Marshal(value)
-	if err != nil {
-		return nil, err
-	}
-
-	return buff, nil
+	return hdrRes.marshalizer.Marshal(value)
 }
 
 // resolveHeaderFromEpoch resolves a header using its key based on epoch
@@ -254,6 +250,16 @@ func (hdrRes *HeaderResolver) RequestDataFromEpoch(identifier []byte) error {
 		Type:  dataRetriever.EpochType,
 		Value: identifier,
 	})
+}
+
+// SetNumPeersToQuery will set the number of intra shard and cross shard number of peer to query
+func (hdrRes *HeaderResolver) SetNumPeersToQuery(intra int, cross int) {
+	hdrRes.TopicResolverSender.SetNumPeersToQuery(intra, cross)
+}
+
+// GetNumPeersToQuery will return the number of intra shard and cross shard number of peer to query
+func (hdrRes *HeaderResolver) GetNumPeersToQuery() (int, int) {
+	return hdrRes.TopicResolverSender.GetNumPeersToQuery()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

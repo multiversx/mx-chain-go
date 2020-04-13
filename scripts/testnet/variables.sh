@@ -47,12 +47,12 @@ export NODE_DELAY=10
 # Shard structure
 export SHARDCOUNT=2
 export SHARD_VALIDATORCOUNT=3
-export SHARD_OBSERVERCOUNT=2
+export SHARD_OBSERVERCOUNT=1
 export SHARD_CONSENSUS_SIZE=3
 
 # Metashard structure
 export META_VALIDATORCOUNT=3
-export META_OBSERVERCOUNT=2
+export META_OBSERVERCOUNT=1
 export META_CONSENSUS_SIZE=3
 
 # Leave unchanged.
@@ -65,7 +65,12 @@ export TOTAL_NODECOUNT=$total_node_count
 
 # Okay as defaults, change if needed.
 export MINT_VALUE="1000000000000000000000000000"
-export ALWAYS_NEW_CHAINID=0
+# ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
+export ALWAYS_NEW_CHAINID=1
+# ALWAYS_UPDATE_CONFIGS will re-generate configs (toml + json) each time ./start.sh
+# Set this variable to 0 when testing bootstram from storage or other edge cases where you do not want a fresh new config
+# each time.
+export ALWAYS_UPDATE_CONFIGS=1
 
 # Ports used by the Nodes
 export PORT_SEEDNODE="9999"

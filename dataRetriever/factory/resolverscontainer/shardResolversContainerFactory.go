@@ -122,7 +122,7 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	hdrStorer := srcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
-	resolverSender, err := srcf.createOneResolverSender(identifierHdr, emptyExcludePeersOnTopic, shardC.SelfId())
+	resolverSender, err := srcf.createOneResolverSender(identifierHdr, EmptyExcludePeersOnTopic, shardC.SelfId())
 	if err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 	identifierHdr := factory.MetachainBlocksTopic
 	hdrStorer := srcf.store.GetStorer(dataRetriever.MetaBlockUnit)
 
-	resolverSender, err := srcf.createOneResolverSender(identifierHdr, emptyExcludePeersOnTopic, core.MetachainShardId)
+	resolverSender, err := srcf.createOneResolverSender(identifierHdr, EmptyExcludePeersOnTopic, core.MetachainShardId)
 	if err != nil {
 		return err
 	}
@@ -206,8 +206,17 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolversSlice = append(resolversSlice, resolver)
 	keys = append(keys, identifierTrieNodes)
 
-	identifierTrieNodes = factory.ValidatorTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	resolver, err = srcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie)
+	if err != nil {
+		return err
+	}
+
+	resolversSlice = append(resolversSlice, resolver)
+	keys = append(keys, identifierTrieNodes)
+
+	identifierTrieNodes = factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
+	resolver, err = srcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie)
 	if err != nil {
 		return err
 	}

@@ -44,7 +44,7 @@ func createMockPools() *mock.PoolsHolderStub {
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
-			RegisterHandlerCalled: func(i func(key []byte)) {},
+			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 		}
 		return cs
 	}
@@ -183,7 +183,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		BootStorer:          &mock.BoostrapStorerMock{},
 		StorageBootstrapper: &mock.StorageBootstrapperMock{},
 		EpochHandler:        &mock.EpochStartTriggerStub{},
-		MiniBlocksResolver:  &mock.MiniBlocksResolverMock{},
+		MiniblocksProvider:  &mock.MiniBlocksProviderStub{},
 		Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
 	}
 
@@ -393,7 +393,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 			wasCalled++
 		}
 
@@ -633,7 +633,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal([]byte("bbb"), key) && dataAvailable {
@@ -723,7 +723,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal([]byte("bbb"), key) {
@@ -800,7 +800,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
 			if bytes.Equal([]byte("bbb"), key) {
@@ -1153,7 +1153,7 @@ func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 
 	blk := make(block.MiniBlockSlice, 0)
 	args.Rounder = initRounder()
-	args.MiniBlocksResolver = &mock.MiniBlocksResolverMock{
+	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 			return blk, nil
 		},
@@ -1347,15 +1347,6 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 		return nil
 	}
 
-	body := &block.Body{}
-	blkc.GetCurrentBlockBodyCalled = func() data.BodyHandler {
-		return body
-	}
-	blkc.SetCurrentBlockBodyCalled = func(handler data.BodyHandler) error {
-		body = prevTxBlockBody
-		return nil
-	}
-
 	hdrHash := make([]byte, 0)
 	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
 		return hdrHash
@@ -1435,7 +1426,6 @@ func TestBootstrap_RollBackIsEmptyCallRollBackOneBlockOkValsShouldWork(t *testin
 	assert.True(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Equal(t, blkc.GetCurrentBlockHeader(), prevHdr)
-	assert.Equal(t, blkc.GetCurrentBlockBody(), prevTxBlockBody)
 	assert.Equal(t, blkc.GetCurrentBlockHeaderHash(), prevHdrHash)
 }
 
@@ -1494,15 +1484,6 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 	}
 	blkc.SetCurrentBlockHeaderCalled = func(handler data.HeaderHandler) error {
 		hdr = nil
-		return nil
-	}
-
-	body := &block.Body{}
-	blkc.GetCurrentBlockBodyCalled = func() data.BodyHandler {
-		return body
-	}
-	blkc.SetCurrentBlockBodyCalled = func(handler data.BodyHandler) error {
-		body = nil
 		return nil
 	}
 
@@ -1585,7 +1566,6 @@ func TestBootstrap_RollbackIsEmptyCallRollBackOneBlockToGenesisShouldWork(t *tes
 	assert.True(t, remFlags.flagHdrRemovedFromStorage)
 	assert.True(t, remFlags.flagHdrRemovedFromForkDetector)
 	assert.Nil(t, blkc.GetCurrentBlockHeader())
-	assert.Nil(t, blkc.GetCurrentBlockBody())
 	assert.Nil(t, blkc.GetCurrentBlockHeaderHash())
 }
 
@@ -1606,7 +1586,7 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 	args.ChainHandler = blkc
-	args.MiniBlocksResolver = &mock.MiniBlocksResolverMock{
+	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 			for _, hash := range hashes {
 				if bytes.Equal(hash, mbh) {
@@ -1669,7 +1649,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 	})
 	args.ChainHandler = blkc
 	args.Store = createFullStore()
-	args.MiniBlocksResolver = &mock.MiniBlocksResolverMock{
+	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 			for _, hash := range hashes {
 				if bytes.Equal(hash, mbh) {
@@ -1772,7 +1752,7 @@ func TestShardBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {}
+		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {}
 
 		return cs
 	}
@@ -1811,7 +1791,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		cs := &mock.CacherStub{}
-		cs.RegisterHandlerCalled = func(i func(key []byte)) {
+		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 
 		return cs
@@ -1856,7 +1836,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 			requestDataWasCalled = true
 		},
 	}
-	args.MiniBlocksResolver = &mock.MiniBlocksResolverMock{
+	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 			return make(block.MiniBlockSlice, 0), [][]byte{[]byte("hash")}
 		},
