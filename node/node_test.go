@@ -983,6 +983,9 @@ func TestNode_ConsensusTopicValidatorAlreadySet(t *testing.T) {
 			HasTopicValidatorCalled: func(name string) bool {
 				return true
 			},
+			HasTopicCalled: func(name string) bool {
+				return true
+			},
 		}),
 	)
 
