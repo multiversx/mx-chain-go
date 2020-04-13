@@ -61,8 +61,8 @@ type frontendTransaction struct {
 	Value            string `json:"value"`
 	Receiver         string `json:"receiver"`
 	Sender           string `json:"sender"`
-	SenderUsername   []byte `json:"senderusername,omitempty"`
-	ReceiverUsername []byte `json:"receiverusername,omitempty"`
+	SenderUsername   []byte `json:"senderUsername,omitempty"`
+	ReceiverUsername []byte `json:"receiverUsername,omitempty"`
 	GasPrice         uint64 `json:"gasPrice"`
 	GasLimit         uint64 `json:"gasLimit"`
 	Data             []byte `json:"data,omitempty"`
