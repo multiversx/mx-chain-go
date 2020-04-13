@@ -575,18 +575,6 @@ func (wrk *Worker) Extend(subroundId int) {
 	}
 }
 
-func (wrk *Worker) broadcastLastCommittedHeader() {
-	header := wrk.blockChain.GetCurrentBlockHeader()
-	if check.IfNil(header) {
-		return
-	}
-
-	err := wrk.broadcastMessenger.BroadcastHeader(header)
-	if err != nil {
-		log.Debug("BroadcastHeader", "error", err.Error())
-	}
-}
-
 // DisplayStatistics logs the consensus messages split on proposed headers
 func (wrk *Worker) DisplayStatistics() {
 	wrk.mutDisplayHashConsensusMessage.Lock()

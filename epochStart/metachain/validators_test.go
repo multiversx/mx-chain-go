@@ -438,71 +438,14 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoBlocksToStorage(t *testing.T
 }
 
 func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlocksFromStorage(t *testing.T) {
-	validatorInfo := createMockValidatorInfo()
-	arguments := createMockEpochValidatorInfoCreatorsArguments()
-	arguments.MiniBlockStorage = mock.NewStorerMock()
-
-	vic, _ := NewValidatorInfoCreator(arguments)
-	miniblocks := createValidatorInfoMiniBlocks(validatorInfo, arguments)
-	miniblockHeaders := make([]block.MiniBlockHeader, 0)
-
-	hasher := arguments.Hasher
-	marshalizer := arguments.Marshalizer
-	storage := arguments.MiniBlockStorage
-
-	for _, mb := range miniblocks {
-		mMb, _ := marshalizer.Marshal(mb)
-		hash := hasher.Compute(string(mMb))
-		mbHeader := block.MiniBlockHeader{
-			Hash:            hash,
-			SenderShardID:   mb.SenderShardID,
-			ReceiverShardID: mb.ReceiverShardID,
-			TxCount:         uint32(len(mb.TxHashes)),
-			Type:            block.PeerBlock,
-		}
-		miniblockHeaders = append(miniblockHeaders, mbHeader)
-		_ = storage.Put(hash, mMb)
-	}
-
-	meta := &block.MetaBlock{
-		Nonce:                  0,
-		Round:                  0,
-		TimeStamp:              0,
-		ShardInfo:              nil,
-		Signature:              nil,
-		LeaderSignature:        nil,
-		PubKeysBitmap:          nil,
-		PrevHash:               nil,
-		PrevRandSeed:           nil,
-		RandSeed:               nil,
-		RootHash:               nil,
-		ValidatorStatsRootHash: nil,
-		MiniBlockHeaders:       miniblockHeaders,
-		ReceiptsHash:           nil,
-		EpochStart:             block.EpochStart{},
-		ChainID:                nil,
-		Epoch:                  0,
-		TxCount:                0,
-		AccumulatedFees:        nil,
-		AccumulatedFeesInEpoch: nil,
-	}
-
-	for _, mbHeader := range meta.MiniBlockHeaders {
-		mb, err := storage.Get(mbHeader.Hash)
-		require.NotNil(t, mb)
-		require.Nil(t, err)
-	}
-
-	vic.DeleteValidatorInfoBlocksFromStorage(meta)
-
-	for _, mbHeader := range meta.MiniBlockHeaders {
-		mb, err := storage.Get(mbHeader.Hash)
-		require.Nil(t, mb)
-		require.NotNil(t, err)
-	}
+	testDeleteValidatorInfoBlock(t, block.PeerBlock, false)
 }
 
 func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlocksFromStorageDoesDeleteOnlyPeerBlocks(t *testing.T) {
+	testDeleteValidatorInfoBlock(t, block.TxBlock, true)
+}
+
+func testDeleteValidatorInfoBlock(t *testing.T, blockType block.Type, shouldExist bool) {
 	validatorInfo := createMockValidatorInfo()
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	arguments.MiniBlockStorage = mock.NewStorerMock()
@@ -513,7 +456,7 @@ func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlocksFromStorageDoesDelet
 
 	hasher := arguments.Hasher
 	marshalizer := arguments.Marshalizer
-	storage := arguments.MiniBlockStorage
+	mbStorage := arguments.MiniBlockStorage
 
 	for _, mb := range miniblocks {
 		mMb, _ := marshalizer.Marshal(mb)
@@ -523,10 +466,10 @@ func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlocksFromStorageDoesDelet
 			SenderShardID:   mb.SenderShardID,
 			ReceiverShardID: mb.ReceiverShardID,
 			TxCount:         uint32(len(mb.TxHashes)),
-			Type:            block.TxBlock,
+			Type:            blockType,
 		}
 		miniblockHeaders = append(miniblockHeaders, mbHeader)
-		_ = storage.Put(hash, mMb)
+		_ = mbStorage.Put(hash, mMb)
 	}
 
 	meta := &block.MetaBlock{
@@ -553,7 +496,7 @@ func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlocksFromStorageDoesDelet
 	}
 
 	for _, mbHeader := range meta.MiniBlockHeaders {
-		mb, err := storage.Get(mbHeader.Hash)
+		mb, err := mbStorage.Get(mbHeader.Hash)
 		require.NotNil(t, mb)
 		require.Nil(t, err)
 	}
@@ -561,9 +504,14 @@ func TestEpochValidatorInfoCreator_DeleteValidatorInfoBlocksFromStorageDoesDelet
 	vic.DeleteValidatorInfoBlocksFromStorage(meta)
 
 	for _, mbHeader := range meta.MiniBlockHeaders {
-		mb, err := storage.Get(mbHeader.Hash)
-		require.NotNil(t, mb)
-		require.Nil(t, err)
+		mb, err := mbStorage.Get(mbHeader.Hash)
+		if shouldExist {
+			require.NotNil(t, mb)
+			require.Nil(t, err)
+		} else {
+			require.Nil(t, mb)
+			require.NotNil(t, err)
+		}
 	}
 }
 
