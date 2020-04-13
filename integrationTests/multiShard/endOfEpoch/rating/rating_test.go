@@ -100,6 +100,8 @@ func computeRatings(testData testData) {
 		ratingsData,
 	)
 
+	delete(nodesMap, 0)
+
 	gasPrice := uint64(10)
 	gasLimit := uint64(100)
 
@@ -139,7 +141,11 @@ func computeRatings(testData testData) {
 	folderName := fmt.Sprintf("%v_epochs%v_rounds%v", time.Now().Unix(), epochs, roundsPerEpoch)
 	_ = os.Mkdir(folderName, os.ModePerm)
 
+	writeOutputComputed(testData, folderName, ratingsData)
+
+	startTime := time.Now().Unix()
 	for i := 0; i < nbBlocksToProduce; i++ {
+
 		bodies, headers, _ := SimulateAllShardsProposeBlock(round, nodesMap, offlineNodesPks)
 		SimulateSyncAllShardsWithRoundBlock(nodesMap, headers, bodies)
 
@@ -153,8 +159,14 @@ func computeRatings(testData testData) {
 					currentMap[key] = append(currentMap[key], validator.TempRating)
 				}
 			}
+
+			endtime := time.Now().Unix()
+			neededTime := endtime - startTime
+			fmt.Println(fmt.Sprintf("Time for epoch %v seconds", neededTime))
+			startTime = endtime
+
 			currEpoch := uint64(headers[core.MetachainShardId].GetEpoch())
-			writeRatingsForCurrentEpoch(folderName, int(currEpoch), roundsPerEpoch, roundDurationSeconds, validatorRatings)
+			writeRatingsForCurrentEpoch(folderName, int(currEpoch), roundsPerEpoch, roundDurationSeconds, validatorRatings, neededTime)
 			writeValidatorInfos(folderName, int(currEpoch), validatorInfos)
 
 			time.Sleep(1 * time.Second)
@@ -164,17 +176,85 @@ func computeRatings(testData testData) {
 
 	validatorInfos := getValidatorInfos(nodesMap)
 	writeValidatorInfos(folderName, epochs, validatorInfos)
-	writeRatingsForCurrentEpoch(folderName, epochs, roundsPerEpoch, roundDurationSeconds, validatorRatings)
+	writeRatingsForCurrentEpoch(folderName, epochs, roundsPerEpoch, roundDurationSeconds, validatorRatings, 0)
+}
 
-	computedRatingsData := filepath.Join(folderName, "ratings.info")
+func writeOutputComputed(testData testData, folderName string, ratingsData *rating.RatingsData) {
+	computedRatingsData := filepath.Join(folderName, "computed_ratings.info")
 	computedRatingsDataStr := createStringFromRatingsData(ratingsData)
 	_ = ioutil.WriteFile(computedRatingsData, []byte(computedRatingsDataStr), os.ModePerm)
 
-	outData, _ := os.Create(fmt.Sprintf("%s/testData.out", folderName))
+	outData, _ := os.Create(fmt.Sprintf("%s/data_%v_%v_%v_%v_%v.out",
+		folderName,
+		testData.epochs,
+		testData.roundsPerEpoch,
+		testData.shardSize,
+		testData.consensusSize,
+		testData.offlineNodes))
 	defer func() {
 		_ = outData.Close()
 	}()
 	_, _ = outData.WriteString(fmt.Sprintf("%#v\n", testData))
+}
+
+func createTestData() []testData {
+	epochsStandard := 50
+	rounds := 600
+	shardSize := 400
+	waitingSize := 100
+	roundDuration := 6
+	numShards := 1
+	datas := []testData{
+		{
+			consensusSize:     63,
+			shardSize:         shardSize,
+			metaConsensusSize: 63,
+			metaShardSize:     shardSize,
+			waitingSize:       waitingSize,
+			offlineNodes:      0,
+			epochs:            epochsStandard,
+			roundDuration:     roundDuration,
+			roundsPerEpoch:    rounds,
+			numShards:         numShards,
+		},
+		{
+			consensusSize:     shardSize,
+			shardSize:         shardSize,
+			metaConsensusSize: shardSize,
+			metaShardSize:     shardSize,
+			waitingSize:       waitingSize,
+			offlineNodes:      0,
+			epochs:            epochsStandard,
+			roundDuration:     roundDuration,
+			roundsPerEpoch:    rounds,
+			numShards:         numShards,
+		},
+		{
+			numShards:         numShards,
+			consensusSize:     63,
+			shardSize:         shardSize,
+			metaConsensusSize: 63,
+			metaShardSize:     shardSize,
+			offlineNodes:      1,
+			epochs:            epochsStandard,
+			roundDuration:     roundDuration,
+			roundsPerEpoch:    rounds,
+			waitingSize:       waitingSize,
+		},
+		{
+			numShards:         numShards,
+			consensusSize:     shardSize,
+			shardSize:         shardSize,
+			metaConsensusSize: shardSize,
+			metaShardSize:     shardSize,
+			offlineNodes:      1,
+			epochs:            epochsStandard,
+			roundDuration:     roundDuration,
+			roundsPerEpoch:    rounds,
+			waitingSize:       waitingSize,
+		},
+	}
+	return datas
 }
 
 func getValidatorInfos(nodesMap map[uint32][]*integrationTests.TestProcessorNode) map[uint32][]*state.ValidatorInfo {
@@ -204,66 +284,6 @@ func setOfflineNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode, 
 		}
 	}
 	return offlineNodesPks
-}
-
-func createTestData() []testData {
-	epochsStandard := 15
-	rounds := 600
-	shardSize := 400
-	waitingSize := 100
-	roundDuration := 6
-	numShards := 1
-	datas := []testData{
-		{
-			consensusSize:     63,
-			shardSize:         shardSize,
-			metaConsensusSize: shardSize,
-			metaShardSize:     shardSize,
-			waitingSize:       waitingSize,
-			offlineNodes:      0,
-			epochs:            epochsStandard,
-			roundDuration:     roundDuration,
-			roundsPerEpoch:    rounds,
-			numShards:         numShards,
-		},
-		{
-			consensusSize:     shardSize,
-			shardSize:         shardSize,
-			metaConsensusSize: shardSize,
-			metaShardSize:     shardSize,
-			waitingSize:       waitingSize,
-			offlineNodes:      0,
-			epochs:            epochsStandard,
-			roundDuration:     roundDuration,
-			roundsPerEpoch:    rounds,
-			numShards:         numShards,
-		},
-		{
-			numShards:         numShards,
-			consensusSize:     63,
-			shardSize:         shardSize,
-			metaConsensusSize: shardSize,
-			metaShardSize:     shardSize,
-			offlineNodes:      1,
-			epochs:            epochsStandard,
-			roundDuration:     roundDuration,
-			roundsPerEpoch:    rounds,
-			waitingSize:       waitingSize,
-		},
-		{
-			numShards:         numShards,
-			consensusSize:     shardSize,
-			shardSize:         shardSize,
-			metaConsensusSize: shardSize,
-			metaShardSize:     shardSize,
-			offlineNodes:      1,
-			epochs:            epochsStandard,
-			roundDuration:     roundDuration,
-			roundsPerEpoch:    rounds,
-			waitingSize:       waitingSize,
-		},
-	}
-	return datas
 }
 
 func writeValidatorInfos(folderName string, epoch int, validatorInfos map[uint32][]*state.ValidatorInfo) {
@@ -321,8 +341,14 @@ func writeValidatorInfos(folderName string, epoch int, validatorInfos map[uint32
 	}
 }
 
-func writeRatingsForCurrentEpoch(folderName string, currentEpoch int, roundsPerEpoch int, roundDurationSeconds int, validatorRatingsMap map[uint32]map[string][]uint32) {
-	f, _ := os.Create(fmt.Sprintf("%s/ratings_%v.csv", folderName, currentEpoch))
+func writeRatingsForCurrentEpoch(
+	folderName string,
+	currentEpoch int,
+	roundsPerEpoch int,
+	roundDurationSeconds int,
+	validatorRatingsMap map[uint32]map[string][]uint32,
+	neededTime int64) {
+	f, _ := os.Create(fmt.Sprintf("%s/ratings_%v_neededSeconds_%v.csv", folderName, currentEpoch, neededTime))
 	defer func() {
 		_ = f.Close()
 	}()
