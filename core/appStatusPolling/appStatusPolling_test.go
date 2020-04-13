@@ -71,7 +71,7 @@ func TestAppStatusPolling_Poll_TestNumOfConnectedAddressesCalled(t *testing.T) {
 
 	select {
 	case <-chDone:
-	case <-time.After(time.Duration(pollingDuration*2) * time.Second):
+	case <-time.After(pollingDuration * 2 * time.Second):
 		assert.Fail(t, "timeout calling SetInt64Value")
 	}
 }
