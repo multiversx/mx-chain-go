@@ -11,7 +11,7 @@ import (
 )
 
 type interceptedRewardTxDataFactory struct {
-	marshalizer      marshal.Marshalizer
+	protoMarshalizer marshal.Marshalizer
 	hasher           hashing.Hasher
 	addrConverter    state.AddressConverter
 	shardCoordinator sharding.Coordinator
@@ -39,7 +39,7 @@ func NewInterceptedRewardTxDataFactory(argument *ArgInterceptedDataFactory) (*in
 	}
 
 	return &interceptedRewardTxDataFactory{
-		marshalizer:      argument.ProtoMarshalizer,
+		protoMarshalizer: argument.ProtoMarshalizer,
 		hasher:           argument.Hasher,
 		addrConverter:    argument.AddrConv,
 		shardCoordinator: argument.ShardCoordinator,
@@ -50,7 +50,7 @@ func NewInterceptedRewardTxDataFactory(argument *ArgInterceptedDataFactory) (*in
 func (irtdf *interceptedRewardTxDataFactory) Create(buff []byte) (process.InterceptedData, error) {
 	return rewardTransaction.NewInterceptedRewardTransaction(
 		buff,
-		irtdf.marshalizer,
+		irtdf.protoMarshalizer,
 		irtdf.hasher,
 		irtdf.addrConverter,
 		irtdf.shardCoordinator,

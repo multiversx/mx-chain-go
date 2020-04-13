@@ -13,23 +13,23 @@ const gracePeriodUpperBound = 7
 
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
-	items                 *list.List
-	mutex                 sync.RWMutex
-	copyBatchIndex        *list.Element
-	copyPreviousNonce     uint64
 	copyDetectedGap       bool
+	copyPreviousNonce     uint64
+	sender                string
+	items                 *list.List
+	copyBatchIndex        *list.Element
+	cacheConfig           *CacheConfig
+	scoreChunk            *maps.MapChunk
+	mutex                 sync.RWMutex
+	scoreChangeInProgress atomic.Flag
+	accountNonceKnown     atomic.Flag
+	sweepable             atomic.Flag
+	lastComputedScore     atomic.Uint32
+	accountNonce          atomic.Uint64
 	totalBytes            atomic.Counter
 	totalGas              atomic.Counter
 	totalFee              atomic.Counter
-	sender                string
-	scoreChunk            *maps.MapChunk
-	scoreChangeInProgress atomic.Flag
-	lastComputedScore     atomic.Uint32
-	cacheConfig           *CacheConfig
-	accountNonce          atomic.Uint64
-	accountNonceKnown     atomic.Flag
 	numFailedSelections   atomic.Counter
-	sweepable             atomic.Flag
 }
 
 // newTxListForSender creates a new (sorted) list of transactions
