@@ -459,6 +459,24 @@ func TestLibp2pMessenger_UnregisterTopicValidatorShouldWork(t *testing.T) {
 	_ = mes.Close()
 }
 
+func TestLibp2pMessenger_UnregisterAllTopicValidatorShouldWork(t *testing.T) {
+	mes := createMockMessenger()
+	_ = mes.CreateTopic("test", false)
+	//registration
+	_ = mes.CreateTopic("test1", false)
+	_ = mes.RegisterMessageProcessor("test1", &mock.MessageProcessorStub{})
+	_ = mes.CreateTopic("test2", false)
+	_ = mes.RegisterMessageProcessor("test2", &mock.MessageProcessorStub{})
+	//unregistration
+	err := mes.UnregisterAllMessageProcessors()
+	assert.Nil(t, err)
+	err = mes.RegisterMessageProcessor("test1", &mock.MessageProcessorStub{})
+	assert.Nil(t, err)
+	err = mes.RegisterMessageProcessor("test2", &mock.MessageProcessorStub{})
+	assert.Nil(t, err)
+	_ = mes.Close()
+}
+
 func TestLibp2pMessenger_BroadcastDataLargeMessageShouldNotCallSend(t *testing.T) {
 	//TODO remove skip when external library is concurrent safe
 	if testing.Short() {
