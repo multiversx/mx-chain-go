@@ -1103,7 +1103,7 @@ func CreateAndSendTransaction(
 		GasLimit: MinTxGasLimit*100 + uint64(len(txData)),
 	}
 
-	txBuff, _ := TestTxSignMarshalizer.Marshal(tx)
+	txBuff, _ := tx.GetFataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	_, err := node.SendTransaction(tx)
@@ -1131,7 +1131,7 @@ func CreateAndSendTransactionWithGasLimit(
 		GasLimit: gasLimit,
 	}
 
-	txBuff, _ := TestTxSignMarshalizer.Marshal(tx)
+	txBuff, _ := tx.GetFataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	_, _ = node.SendTransaction(tx)
@@ -1168,7 +1168,7 @@ func GenerateTransferTx(
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
 	}
-	txBuff, _ := TestTxSignMarshalizer.Marshal(&tx)
+	txBuff, _ := tx.GetFataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
 	signer := &ed25519SingleSig.Ed25519Signer{}
 	tx.Signature, _ = signer.Sign(senderPrivateKey, txBuff)
 
@@ -1189,7 +1189,7 @@ func generateTx(
 		GasLimit: args.gasLimit,
 		Data:     []byte(args.data),
 	}
-	txBuff, _ := TestTxSignMarshalizer.Marshal(tx)
+	txBuff, _ := tx.GetFataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
 	tx.Signature, _ = signer.Sign(skSign, txBuff)
 
 	return tx

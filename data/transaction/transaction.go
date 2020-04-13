@@ -2,15 +2,15 @@
 package transaction
 
 import (
-	"encoding/json"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 var _ = data.TransactionHandler(&Transaction{})
 
-// IsInterfaceNil verifies if underlying object is nil
+// IsInterfaceNil vesorrifies if underlying object is nil
 func (tx *Transaction) IsInterfaceNil() bool {
 	return tx == nil
 }
@@ -55,63 +55,40 @@ func TrimSliceHandler(in []data.TransactionHandler) []data.TransactionHandler {
 	return ret
 }
 
-type jsonTransaction struct {
-	Nonce       uint64 `json:"nonce"`
-	Value       string `json:"value"`
-	RcvAddr     []byte `json:"receiver"`
-	RcvUserName []byte `json:"rcvUserName,omitempty"`
-	SndAddr     []byte `json:"sender"`
-	SndUserName []byte `json:"sndUserName,omitempty"`
-	GasPrice    uint64 `json:"gasPrice,omitempty"`
-	GasLimit    uint64 `json:"gasLimit,omitempty"`
-	Data        []byte `json:"data,omitempty"`
-	Signature   []byte `json:"signature,omitempty"`
+// frontendTransaction represents the DTO used in transaction signing/validation.
+type frontendTransaction struct {
+	Nonce            uint64 `json:"nonce"`
+	Value            string `json:"value"`
+	Receiver         string `json:"receiver"`
+	Sender           string `json:"sender"`
+	SenderUsername   []byte `json:"senderusername,omitempty"`
+	ReceiverUsername []byte `json:"receiverusername,omitempty"`
+	GasPrice         uint64 `json:"gasPrice"`
+	GasLimit         uint64 `json:"gasLimit"`
+	Data             []byte `json:"data,omitempty"`
+	Signature        string `json:"signature,omitempty"`
 }
 
-// MarshalJSON converts the Transaction data type into its corresponding equivalent in byte slice.
-// Note that Value data type is converted in a string
-func (tx *Transaction) MarshalJSON() ([]byte, error) {
-	valAsString := "nil"
-	if tx.Value != nil {
-		valAsString = tx.Value.String()
+// GetFataForSigning returns the serialized transaction having the
+func (tx *Transaction) GetFataForSigning(encoder Encoder, marshalizer Marshalizer) ([]byte, error) {
+	if check.IfNil(encoder) {
+		return nil, ErrNilEncoder
+	}
+	if check.IfNil(marshalizer) {
+		return nil, ErrNilMarshalizer
 	}
 
-	jsonTx := &jsonTransaction{
-		Nonce:       tx.Nonce,
-		Value:       valAsString,
-		RcvAddr:     tx.RcvAddr,
-		RcvUserName: tx.RcvUserName,
-		SndAddr:     tx.SndAddr,
-		SndUserName: tx.SndUserName,
-		GasPrice:    tx.GasPrice,
-		GasLimit:    tx.GasLimit,
-		Data:        tx.Data,
-		Signature:   tx.Signature,
-	}
-	return json.Marshal(jsonTx)
-}
-
-// UnmarshalJSON converts the provided bytes into a Transaction data type.
-func (tx *Transaction) UnmarshalJSON(dataBuff []byte) error {
-	aux := &jsonTransaction{}
-	if err := json.Unmarshal(dataBuff, &aux); err != nil {
-		return err
-	}
-	tx.Nonce = aux.Nonce
-	tx.RcvAddr = aux.RcvAddr
-	tx.RcvUserName = aux.RcvUserName
-	tx.SndAddr = aux.SndAddr
-	tx.SndUserName = aux.SndUserName
-	tx.GasPrice = aux.GasPrice
-	tx.GasLimit = aux.GasLimit
-	tx.Data = aux.Data
-	tx.Signature = aux.Signature
-
-	var ok bool
-	tx.Value, ok = big.NewInt(0).SetString(aux.Value, 10)
-	if !ok {
-		tx.Value = nil
+	ftx := &frontendTransaction{
+		Nonce:            tx.Nonce,
+		Value:            tx.Value.String(),
+		Receiver:         encoder.Encode(tx.RcvAddr),
+		Sender:           encoder.Encode(tx.SndAddr),
+		GasPrice:         tx.GasPrice,
+		GasLimit:         tx.GasLimit,
+		SenderUsername:   tx.SndUserName,
+		ReceiverUsername: tx.RcvUserName,
+		Data:             tx.Data,
 	}
 
-	return nil
+	return marshalizer.Marshal(ftx)
 }
