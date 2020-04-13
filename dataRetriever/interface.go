@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -31,14 +30,12 @@ const (
 	MetaHdrNonceHashDataUnit UnitType = 7
 	// HeartbeatUnit is the heartbeat storage unit identifier
 	HeartbeatUnit UnitType = 8
-	// MiniBlockHeaderUnit is the miniblock header data unit identifier
-	MiniBlockHeaderUnit UnitType = 9
 	// BootstrapUnit is the bootstrap storage unit identifier
-	BootstrapUnit UnitType = 10
-	// StatusMetricsUnit is the status metrics storage unit identifier
-	StatusMetricsUnit UnitType = 11
+	BootstrapUnit UnitType = 9
+	//StatusMetricsUnit is the status metrics storage unit identifier
+	StatusMetricsUnit UnitType = 10
 	// TxLogsUnit is the status metrics storage unit identifier
-	TxLogsUnit UnitType = 12
+	TxLogsUnit UnitType = 11
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -77,8 +74,6 @@ type HeaderResolver interface {
 type MiniBlocksResolver interface {
 	Resolver
 	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
-	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
-	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 }
 
 // TopicResolverSender defines what sending operations are allowed for a topic resolver

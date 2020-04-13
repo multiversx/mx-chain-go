@@ -641,11 +641,10 @@ type BlockTracker interface {
 	ComputeLongestShardsChainsFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
 	DisplayTrackedHeaders()
 	GetCrossNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
-	GetFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeadersForAllShards() (map[uint32]data.HeaderHandler, error)
 	GetLastSelfNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
-	GetNumPendingMiniBlocks(shardID uint32) uint32
+	GetSelfNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
 	GetTrackedHeaders(shardID uint32) ([]data.HeaderHandler, [][]byte)
 	GetTrackedHeadersForAllShards() map[uint32][]data.HeaderHandler
 	GetTrackedHeadersWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
@@ -726,8 +725,8 @@ type ValidityAttester interface {
 	IsInterfaceNil() bool
 }
 
-// MiniBlocksResolver defines what a mini blocks resolver should do
-type MiniBlocksResolver interface {
+// MiniBlockProvider defines what a miniblock data provider should do
+type MiniBlockProvider interface {
 	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	IsInterfaceNil() bool

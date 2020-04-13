@@ -222,7 +222,6 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	var miniBlockUnit *pruning.PruningStorer
 	var unsignedTxUnit *pruning.PruningStorer
 	var rewardTxUnit *pruning.PruningStorer
-	var miniBlockHeadersUnit *pruning.PruningStorer
 	var shardHdrHashNonceUnits []*pruning.PruningStorer
 	var bootstrapUnit *pruning.PruningStorer
 	var txLogsUnit *pruning.PruningStorer
@@ -325,13 +324,6 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, miniBlockUnit)
 
-	miniBlockHeadersUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.MiniBlockHeadersStorage)
-	miniBlockHeadersUnit, err = pruning.NewPruningStorer(miniBlockHeadersUnitArgs)
-	if err != nil {
-		return nil, err
-	}
-	successfullyCreatedStorers = append(successfullyCreatedStorers, miniBlockHeadersUnit)
-
 	bootstrapUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.BootstrapStorage)
 	bootstrapUnit, err = pruning.NewPruningStorer(bootstrapUnitArgs)
 	if err != nil {
@@ -354,7 +346,6 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, unsignedTxUnit)
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
 	store.AddStorer(dataRetriever.RewardTransactionUnit, rewardTxUnit)
-	store.AddStorer(dataRetriever.MiniBlockHeaderUnit, miniBlockHeadersUnit)
 	for i := uint32(0); i < psf.shardCoordinator.NumberOfShards(); i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
 		store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnits[i])
