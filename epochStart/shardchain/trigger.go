@@ -60,10 +60,11 @@ type trigger struct {
 	epochStartShardHeader       *block.Header
 	epochStartMeta              *block.MetaBlock
 
-	mutTrigger        sync.RWMutex
-	mapHashHdr        map[string]*block.MetaBlock
-	mapNonceHashes    map[uint64][]string
-	mapEpochStartHdrs map[string]*block.MetaBlock
+	mutTrigger         sync.RWMutex
+	mapHashHdr         map[string]*block.MetaBlock
+	mapNonceHashes     map[uint64][]string
+	mapEpochStartHdrs  map[string]*block.MetaBlock
+	mapFinalizedEpochs map[uint32]struct{}
 
 	headersPool         dataRetriever.HeadersPool
 	miniBlocksPool      storage.Cacher
@@ -193,6 +194,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		mapHashHdr:                  make(map[string]*block.MetaBlock),
 		mapNonceHashes:              make(map[uint64][]string),
 		mapEpochStartHdrs:           make(map[string]*block.MetaBlock),
+		mapFinalizedEpochs:          make(map[uint32]struct{}, 0),
 		headersPool:                 args.DataPool.Headers(),
 		miniBlocksPool:              args.DataPool.MiniBlocks(),
 		metaHdrStorage:              metaHdrStorage,
@@ -414,6 +416,10 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 func (t *trigger) updateTriggerFromMeta() {
 	sortedMetaInfo := make(metaInfoSlice, 0, len(t.mapEpochStartHdrs))
 	for hash, hdr := range t.mapEpochStartHdrs {
+		if _, ok := t.mapFinalizedEpochs[hdr.Epoch]; ok {
+			continue
+		}
+
 		currMetaInfo := &metaInfo{
 			hdr:  hdr,
 			hash: hash,
@@ -424,6 +430,10 @@ func (t *trigger) updateTriggerFromMeta() {
 	sort.Sort(sortedMetaInfo)
 
 	for _, currMetaInfo := range sortedMetaInfo {
+		if _, ok := t.mapFinalizedEpochs[currMetaInfo.hdr.Epoch]; ok {
+			continue
+		}
+
 		canActivateEpochStart, finalityAttestingRound := t.checkIfTriggerCanBeActivated(currMetaInfo.hash, currMetaInfo.hdr)
 		if canActivateEpochStart && t.epoch < currMetaInfo.hdr.Epoch {
 			t.epoch = currMetaInfo.hdr.Epoch
@@ -443,6 +453,8 @@ func (t *trigger) updateTriggerFromMeta() {
 
 		// save all final-valid epoch start blocks
 		if canActivateEpochStart {
+			t.mapFinalizedEpochs[currMetaInfo.hdr.Epoch] = struct{}{}
+
 			metaBuff, err := t.marshalizer.Marshal(currMetaInfo.hdr)
 			if err != nil {
 				log.Debug("updateTriggerFromMeta marshal", "error", err.Error())
@@ -742,6 +754,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	t.mapHashHdr = make(map[string]*block.MetaBlock)
 	t.mapNonceHashes = make(map[uint64][]string)
 	t.mapEpochStartHdrs = make(map[string]*block.MetaBlock)
+	t.mapFinalizedEpochs = make(map[uint32]struct{}, 0)
 
 	t.saveCurrentState(header.GetRound())
 
