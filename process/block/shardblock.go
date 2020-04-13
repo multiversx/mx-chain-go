@@ -273,6 +273,10 @@ func (sp *shardProcessor) ProcessBlock(
 }
 
 func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, haveTime func() time.Duration) error {
+	if sp.epochStartTrigger.Epoch() >= header.GetEpoch() {
+		return nil
+	}
+
 	haveMissingMetaHeaders := header.IsStartOfEpochBlock() && !sp.epochStartTrigger.IsEpochStart()
 	if !haveMissingMetaHeaders {
 		return nil
