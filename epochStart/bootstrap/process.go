@@ -229,6 +229,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	defer func() {
+		log.Debug("unregistering all message processor")
 		errMessenger := e.messenger.UnregisterAllMessageProcessors()
 		log.LogIfError(errMessenger, "error on unregistering message processor")
 	}()
@@ -268,7 +269,12 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	return e.requestAndProcessing()
+	params, err := e.requestAndProcessing()
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	return params, nil
 }
 
 func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {

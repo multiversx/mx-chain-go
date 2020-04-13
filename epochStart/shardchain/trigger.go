@@ -454,6 +454,9 @@ func (t *trigger) updateTriggerFromMeta() {
 		// save all final-valid epoch start blocks
 		if canActivateEpochStart {
 			t.mapFinalizedEpochs[currMetaInfo.hdr.Epoch] = struct{}{}
+			epochStartIdentifier := core.EpochStartIdentifier(currMetaInfo.hdr.Epoch)
+
+			log.Debug("saving epoch start meta with", "key", epochStartIdentifier)
 
 			metaBuff, err := t.marshalizer.Marshal(currMetaInfo.hdr)
 			if err != nil {
@@ -461,7 +464,6 @@ func (t *trigger) updateTriggerFromMeta() {
 				continue
 			}
 
-			epochStartIdentifier := core.EpochStartIdentifier(currMetaInfo.hdr.Epoch)
 			err = t.metaHdrStorage.Put([]byte(epochStartIdentifier), metaBuff)
 			if err != nil {
 				log.Debug("updateTriggerMeta put into metaHdrStorage", "error", err.Error())
