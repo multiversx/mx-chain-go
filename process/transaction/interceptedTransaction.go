@@ -177,7 +177,7 @@ func (inTx *InterceptedTransaction) integrity() error {
 
 // verifySig checks if the tx is correctly signed
 func (inTx *InterceptedTransaction) verifySig() error {
-	buffCopiedTx, err := inTx.tx.GetFataForSigning(inTx.pubkeyConv, inTx.signMarshalizer)
+	buffCopiedTx, err := inTx.tx.GetDataForSigning(inTx.pubkeyConv, inTx.signMarshalizer)
 	if err != nil {
 		return err
 	}

@@ -10,7 +10,7 @@ import (
 
 var _ = data.TransactionHandler(&Transaction{})
 
-// IsInterfaceNil vesorrifies if underlying object is nil
+// IsInterfaceNil verifies if underlying object is nil
 func (tx *Transaction) IsInterfaceNil() bool {
 	return tx == nil
 }
@@ -69,8 +69,8 @@ type frontendTransaction struct {
 	Signature        string `json:"signature,omitempty"`
 }
 
-// GetFataForSigning returns the serialized transaction having the
-func (tx *Transaction) GetFataForSigning(encoder Encoder, marshalizer Marshalizer) ([]byte, error) {
+// GetDataForSigning returns the serialized transaction having an empty signature field
+func (tx *Transaction) GetDataForSigning(encoder Encoder, marshalizer Marshalizer) ([]byte, error) {
 	if check.IfNil(encoder) {
 		return nil, ErrNilEncoder
 	}

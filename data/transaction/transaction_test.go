@@ -131,36 +131,36 @@ func TestTransaction_TrimsSliceHandler(t *testing.T) {
 	assert.Equal(t, 2, cap(input))
 }
 
-func TestTransaction_GetFataForSigningNilPubkeyConverterShouldErr(t *testing.T) {
+func TestTransaction_GetDataForSigningNilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tx := &transaction.Transaction{}
 
-	buff, err := tx.GetFataForSigning(nil, &mock.MarshalizerStub{})
+	buff, err := tx.GetDataForSigning(nil, &mock.MarshalizerStub{})
 
 	assert.Nil(t, buff)
 	assert.Equal(t, transaction.ErrNilEncoder, err)
 }
 
-func TestTransaction_GetFataForSigningNilMarshalizerShouldErr(t *testing.T) {
+func TestTransaction_GetDataForSigningNilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tx := &transaction.Transaction{}
 
-	buff, err := tx.GetFataForSigning(&mock.PubkeyConverterStub{}, nil)
+	buff, err := tx.GetDataForSigning(&mock.PubkeyConverterStub{}, nil)
 
 	assert.Nil(t, buff)
 	assert.Equal(t, transaction.ErrNilMarshalizer, err)
 }
 
-func TestTransaction_GetFataForSigningMarshalizerErrShouldErr(t *testing.T) {
+func TestTransaction_GetDataForSigningMarshalizerErrShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tx := &transaction.Transaction{}
 
 	numEncodeCalled := 0
 	expectedErr := errors.New("expected error")
-	buff, err := tx.GetFataForSigning(
+	buff, err := tx.GetDataForSigning(
 		&mock.PubkeyConverterStub{
 			EncodeCalled: func(pkBytes []byte) string {
 				numEncodeCalled++
@@ -179,14 +179,14 @@ func TestTransaction_GetFataForSigningMarshalizerErrShouldErr(t *testing.T) {
 	assert.Equal(t, 2, numEncodeCalled)
 }
 
-func TestTransaction_GetFataForSigningShouldWork(t *testing.T) {
+func TestTransaction_GetDataForSigningShouldWork(t *testing.T) {
 	t.Parallel()
 
 	tx := &transaction.Transaction{}
 
 	numEncodeCalled := 0
 	marshalizerWasCalled := false
-	buff, err := tx.GetFataForSigning(
+	buff, err := tx.GetDataForSigning(
 		&mock.PubkeyConverterStub{
 			EncodeCalled: func(pkBytes []byte) string {
 				numEncodeCalled++

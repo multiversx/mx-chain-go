@@ -208,7 +208,7 @@ func (n *Node) generateAndSignSingleTx(
 		Data:     []byte(dataField),
 	}
 
-	marshalizedTx, err := tx.GetFataForSigning(n.addressPubkeyConverter, n.txSignMarshalizer)
+	marshalizedTx, err := tx.GetDataForSigning(n.addressPubkeyConverter, n.txSignMarshalizer)
 	if err != nil {
 		return nil, nil, errors.New("could not marshal transaction")
 	}
