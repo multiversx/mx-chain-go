@@ -31,7 +31,10 @@ func (ms *MessengerStub) ID() p2p.PeerID {
 
 // RegisterMessageProcessor -
 func (ms *MessengerStub) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
-	return ms.RegisterMessageProcessorCalled(topic, handler)
+	if ms.RegisterMessageProcessorCalled != nil {
+		return ms.RegisterMessageProcessorCalled(topic, handler)
+	}
+	return nil
 }
 
 // Broadcast -

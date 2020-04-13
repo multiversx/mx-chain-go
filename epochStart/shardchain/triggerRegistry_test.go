@@ -42,6 +42,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.appStatusHandler = t.appStatusHandler
 	rt.miniBlocksPool = t.miniBlocksPool
 	rt.mapMissingMiniblocks = t.mapMissingMiniblocks
+	rt.mapFinalizedEpochs = t.mapFinalizedEpochs
 	return rt
 }
 
