@@ -45,23 +45,23 @@ type epochNodesConfig struct {
 }
 
 type indexHashedNodesCoordinator struct {
+	shardIDAsObserver             uint32
+	currentEpoch                  uint32
+	shardConsensusGroupSize       int
+	metaConsensusGroupSize        int
+	numTotalEligible              uint64
+	selfPubKey                    []byte
+	savedStateKey                 []byte
 	marshalizer                   marshal.Marshalizer
 	hasher                        hashing.Hasher
 	shuffler                      NodesShuffler
 	epochStartRegistrationHandler EpochStartEventNotifier
 	bootStorer                    storage.Storer
-	selfPubKey                    []byte
 	nodesConfig                   map[uint32]*epochNodesConfig
 	mutNodesConfig                sync.RWMutex
-	currentEpoch                  uint32
-	savedStateKey                 []byte
 	mutSavedStateKey              sync.RWMutex
-	numTotalEligible              uint64
-	shardConsensusGroupSize       int
-	metaConsensusGroupSize        int
 	nodesCoordinatorHelper        NodesCoordinatorHelper
 	consensusGroupCacher          Cacher
-	shardIDAsObserver             uint32
 	loadingFromDisk               atomic.Value
 	shuffledOutHandler            ShuffledOutHandler
 }

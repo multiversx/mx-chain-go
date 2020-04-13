@@ -42,9 +42,9 @@ func GetNewMockRater() *RaterMock {
 	raterMock.ComputeIncreaseProposerCalled = func(shardId uint32, rating uint32) uint32 {
 		var ratingStep int32
 		if shardId == core.MetachainShardId {
-			ratingStep = int32(raterMock.MetaIncreaseProposer)
+			ratingStep = raterMock.MetaIncreaseProposer
 		} else {
-			ratingStep = int32(raterMock.IncreaseProposer)
+			ratingStep = raterMock.IncreaseProposer
 		}
 		return raterMock.computeRating(rating, ratingStep)
 	}

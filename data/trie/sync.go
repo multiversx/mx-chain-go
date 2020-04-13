@@ -13,23 +13,19 @@ import (
 )
 
 type trieSyncer struct {
-	trie      *patriciaMerkleTrie
-	rootFound bool
-	rootHash  []byte
-
-	requestHandler          RequestHandler
-	interceptedNodes        storage.Cacher
+	rootFound               bool
 	shardId                 uint32
 	topic                   string
+	chanReceivedNew         chan bool
+	rootHash                []byte
+	nodeHashes              map[string]struct{}
+	receivedNodes           map[string]node
 	waitTimeBetweenRequests time.Duration
-
-	nodeHashes      map[string]struct{}
-	nodeHashesMutex sync.Mutex
-
-	receivedNodes      map[string]node
-	receivedNodesMutex sync.Mutex
-
-	chanReceivedNew chan bool
+	trie                    *patriciaMerkleTrie
+	requestHandler          RequestHandler
+	interceptedNodes        storage.Cacher
+	nodeHashesMutex         sync.Mutex
+	receivedNodesMutex      sync.Mutex
 }
 
 // NewTrieSyncer creates a new instance of trieSyncer

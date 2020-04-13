@@ -575,12 +575,10 @@ func TestBlockSigningRater_ComputeDecreaseProposer(t *testing.T) {
 
 		consecutiveMisses = 0
 		ratingBelowMinRating := bsr.ComputeDecreaseProposer(shardId, ratingsData.MinRating()-1, consecutiveMisses)
-		decreaseStep = float64(proposerDecrease[shardId]) * math.Pow(float64(penalty[shardId]), float64(consecutiveMisses))
 		require.Equal(t, ratingsData.MinRating(), ratingBelowMinRating)
 
 		consecutiveMisses = 1
 		ratingBelowMinRating = bsr.ComputeDecreaseProposer(shardId, ratingsData.MinRating()-1, consecutiveMisses)
-		decreaseStep = float64(proposerDecrease[shardId]) * math.Pow(float64(penalty[shardId]), float64(consecutiveMisses))
 		require.Equal(t, ratingsData.MinRating(), ratingBelowMinRating)
 	}
 }
@@ -625,12 +623,10 @@ func TestBlockSigningRater_ComputeDecreaseProposerWithOverFlow(t *testing.T) {
 
 	consecutiveMisses = 10
 	tenMisses := bsr.ComputeDecreaseProposer(0, ratingsData.StartRating(), consecutiveMisses)
-	decreaseStep = float64(proposerDecreaseRatingStep) * math.Pow(float64(consecutiveMissedBlocksPenalty), float64(consecutiveMisses))
 	assert.Equal(t, ratingsData.MinRating(), tenMisses)
 
 	consecutiveMisses = 100
 	maxMisses := bsr.ComputeDecreaseProposer(0, ratingsData.StartRating(), consecutiveMisses)
-	decreaseStep = float64(proposerDecreaseRatingStep) * math.Pow(float64(consecutiveMissedBlocksPenalty), float64(consecutiveMisses))
 	assert.Equal(t, ratingsData.MinRating(), maxMisses)
 }
 

@@ -213,6 +213,38 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldTimeOut(t *tes
 	assert.Equal(t, epochStart.ErrTimeoutWaitingForMetaBlock, err)
 }
 
+func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldReturnMostReceivedAfterTimeOut(t *testing.T) {
+	t.Parallel()
+
+	esmbp, _ := bootstrap.NewEpochStartMetaBlockProcessor(
+		&mock.MessengerStub{
+			ConnectedPeersCalled: func() []p2p.PeerID {
+				return []p2p.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
+			},
+		},
+		&mock.RequestHandlerStub{},
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		99,
+	)
+
+	expectedMetaBlock := &block.MetaBlock{
+		Nonce:      10,
+		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{Round: 1}}},
+	}
+	intData := mock.NewInterceptedMetaBlockMock(expectedMetaBlock, []byte("hash"))
+
+	for i := 0; i < bootstrap.MinNumOfPeersToConsiderBlockValid; i++ {
+		_ = esmbp.Save(intData, p2p.PeerID(fmt.Sprintf("peer_%d", i)))
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	mb, err := esmbp.GetEpochStartMetaBlock(ctx)
+	cancel()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedMetaBlock, mb)
+}
+
 func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstTry(t *testing.T) {
 	t.Parallel()
 
