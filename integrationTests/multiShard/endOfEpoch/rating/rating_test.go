@@ -143,7 +143,7 @@ func computeRatings(testData testData) {
 			for shardId, v := range validatorInfos {
 				currentMap := validatorRatings[shardId]
 				for _, validator := range v {
-					key := fmt.Sprintf("%s", core.GetTrimmedPk(core.ToHex(validator.GetPublicKey())))
+					key := core.GetTrimmedPk(core.ToHex(validator.GetPublicKey()))
 					currentMap[key] = append(currentMap[key], validator.TempRating)
 				}
 			}
