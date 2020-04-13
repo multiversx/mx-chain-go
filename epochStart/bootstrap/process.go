@@ -229,8 +229,9 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	defer func() {
+		log.Debug("unregistering all message processor")
 		errMessenger := e.messenger.UnregisterAllMessageProcessors()
-		log.LogIfError(errMessenger, "error on unregistering message processor")
+		log.LogIfError(errMessenger)
 	}()
 
 	var err error
@@ -268,7 +269,12 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	return e.requestAndProcessing()
+	params, err := e.requestAndProcessing()
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	return params, nil
 }
 
 func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
@@ -464,6 +470,11 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		if err != nil {
 			return Parameters{}, err
 		}
+	}
+
+	err = e.messenger.CreateTopic(core.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
+	if err != nil {
+		return Parameters{}, err
 	}
 
 	if e.shardCoordinator.SelfId() == core.MetachainShardId {
