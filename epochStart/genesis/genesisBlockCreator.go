@@ -372,9 +372,7 @@ func deploySystemSmartContracts(
 	}
 
 	systemSCAddresses := make([][]byte, 0)
-	for _, key := range systemSCs.Keys() {
-		systemSCAddresses = append(systemSCAddresses, key)
-	}
+	systemSCAddresses = append(systemSCAddresses, systemSCs.Keys()...)
 
 	sort.Slice(systemSCAddresses, func(i, j int) bool {
 		return bytes.Compare(systemSCAddresses[i], systemSCAddresses[j]) < 0

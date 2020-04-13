@@ -1515,12 +1515,12 @@ func newBlockTracker(
 		ShardCoordinator: processArgs.shardCoordinator,
 		Store:            processArgs.data.Store,
 		StartHeaders:     genesisBlocks,
+		PoolsHolder:      processArgs.data.Datapool,
 	}
 
 	if processArgs.shardCoordinator.SelfId() < processArgs.shardCoordinator.NumberOfShards() {
 		arguments := track.ArgShardTracker{
 			ArgBaseTracker: argBaseTracker,
-			PoolsHolder:    processArgs.data.Datapool,
 		}
 
 		return track.NewShardBlockTrack(arguments)
@@ -1529,7 +1529,6 @@ func newBlockTracker(
 	if processArgs.shardCoordinator.SelfId() == core.MetachainShardId {
 		arguments := track.ArgMetaTracker{
 			ArgBaseTracker: argBaseTracker,
-			PoolsHolder:    processArgs.data.Datapool,
 		}
 
 		return track.NewMetaBlockTrack(arguments)

@@ -414,7 +414,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Node.Stop()
+				_ = n.Messenger.Close()
 			}
 		}
 	}()

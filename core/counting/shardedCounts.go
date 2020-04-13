@@ -12,7 +12,6 @@ var _ Counts = (*ShardedCounts)(nil)
 // This implementation is concurrently safe
 type ShardedCounts struct {
 	mutex   sync.RWMutex
-	total   int64
 	byShard map[string]int64
 }
 
@@ -49,12 +48,12 @@ func (counts *ShardedCounts) GetTotal() int64 {
 func (counts *ShardedCounts) String() string {
 	var builder strings.Builder
 
-	fmt.Fprintf(&builder, "Total:%d; ", counts.GetTotal())
+	_, _ = fmt.Fprintf(&builder, "Total:%d; ", counts.GetTotal())
 
 	counts.mutex.RLock()
 
 	for shardName, count := range counts.byShard {
-		fmt.Fprintf(&builder, "[%s]=%d; ", shardName, count)
+		_, _ = fmt.Fprintf(&builder, "[%s]=%d; ", shardName, count)
 	}
 
 	counts.mutex.RUnlock()
