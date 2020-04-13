@@ -201,6 +201,7 @@ func (e *epochStartMetaBlockProcessor) getMostReceivedMetaBlock() (*block.MetaBl
 	maxLength := minNumOfPeersToConsiderBlockValid - 1
 	for hash, entry := range e.mapMetaBlocksFromPeers {
 		if len(entry) > maxLength {
+			maxLength = len(entry)
 			mostReceivedHash = hash
 		}
 	}
