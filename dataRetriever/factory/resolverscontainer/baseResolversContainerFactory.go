@@ -267,13 +267,18 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 	return resolverSender, nil
 }
 
-func (brcf *baseResolversContainerFactory) createTrieNodesResolver(topic string, trieId string) (dataRetriever.Resolver, error) {
+func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
+	topic string,
+	trieId string,
+	numCrossShard int,
+	numIntraShard int,
+) (dataRetriever.Resolver, error) {
 	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(
 		topic,
 		EmptyExcludePeersOnTopic,
 		defaultTargetShardID,
-		0,
-		numIntraShardPeers+numCrossShardPeers,
+		numCrossShard,
+		numIntraShard,
 	)
 	if err != nil {
 		return nil, err

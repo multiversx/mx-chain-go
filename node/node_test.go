@@ -983,11 +983,14 @@ func TestNode_ConsensusTopicValidatorAlreadySet(t *testing.T) {
 			HasTopicValidatorCalled: func(name string) bool {
 				return true
 			},
+			HasTopicCalled: func(name string) bool {
+				return true
+			},
 		}),
 	)
 
 	err := n.CreateConsensusTopic(messageProc)
-	require.Nil(t, err)
+	require.Equal(t, node.ErrValidatorAlreadySet, err)
 }
 
 func TestNode_ConsensusTopicCreateTopicError(t *testing.T) {

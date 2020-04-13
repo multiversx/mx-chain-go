@@ -616,15 +616,15 @@ func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor) error
 	}
 
 	n.consensusTopic = core.ConsensusTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId())
-	if n.messenger.HasTopicValidator(n.consensusTopic) {
-		return n.messenger.RegisterMessageProcessor(n.consensusTopic, messageProcessor)
-	}
-
 	if !n.messenger.HasTopic(n.consensusTopic) {
 		err := n.messenger.CreateTopic(n.consensusTopic, true)
 		if err != nil {
 			return err
 		}
+	}
+
+	if n.messenger.HasTopicValidator(n.consensusTopic) {
+		return ErrValidatorAlreadySet
 	}
 
 	return n.messenger.RegisterMessageProcessor(n.consensusTopic, messageProcessor)
