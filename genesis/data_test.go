@@ -53,7 +53,7 @@ func createBalanceDelegationGenesisEntry() InitialBalance {
 		Balance: "1000000000000000000000",
 		Delegation: &DelegationData{
 			Address: "erd1kg6cgxkjxx4yn6uad38szh24hfjs4460xdlgj3wh7pstm7lw8gcs4npsz7",
-			Balance: "500000000000000000000",
+			Value:   "500000000000000000000",
 		},
 	}
 }
@@ -65,7 +65,7 @@ func createDelegationGenesisEntry() InitialBalance {
 		Balance: "0",
 		Delegation: &DelegationData{
 			Address: "erd1kg6cgxkjxx4yn6uad38szh24hfjs4460xdlgj3wh7pstm7lw8gcs4npsz7",
-			Balance: "500000000000000000000",
+			Value:   "500000000000000000000",
 		},
 	}
 }

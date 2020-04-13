@@ -4,10 +4,10 @@ import "math/big"
 
 // DelegationData specify the delegation address and the balance provided
 type DelegationData struct {
-	Address string `json:"address,omitempty"`
-	Balance string `json:"balance,omitempty"`
+	Address string `json:"address"`
+	Value   string `json:"value"`
 	address []byte
-	balance *big.Int
+	value   *big.Int
 }
 
 // InitialBalance provides information about one entry in the genesis file

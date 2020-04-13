@@ -6,7 +6,7 @@
     "stakingbalance": "0",
     "delegation": {
       "address": "",
-      "balance": "0"
+      "value":   "0"
     }
   }
 ]

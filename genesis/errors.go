@@ -26,8 +26,8 @@ var ErrInvalidBalanceString = errors.New("invalid balance string")
 // ErrInvalidStakingBalanceString signals that the staking balance string is not a valid number
 var ErrInvalidStakingBalanceString = errors.New("invalid staking balance string")
 
-// ErrInvalidDelegationBalanceString signals that the delegation balance string is not a valid number
-var ErrInvalidDelegationBalanceString = errors.New("invalid delegation balance string")
+// ErrInvalidDelegationValueString signals that the delegation balance string is not a valid number
+var ErrInvalidDelegationValueString = errors.New("invalid delegation value string")
 
 // ErrEmptyDelegationAddress signals that the delegation address is empty
 var ErrEmptyDelegationAddress = errors.New("empty delegation address")
@@ -44,8 +44,8 @@ var ErrInvalidBalance = errors.New("invalid balance")
 // ErrInvalidStakingBalance signals that the staking balance field is invalid
 var ErrInvalidStakingBalance = errors.New("invalid staking balance")
 
-// ErrInvalidDelegationBalance signals that the delegation balance field is invalid
-var ErrInvalidDelegationBalance = errors.New("invalid delegation balance")
+// ErrInvalidDelegationValue signals that the delegation value field is invalid
+var ErrInvalidDelegationValue = errors.New("invalid delegation value")
 
 // ErrSupplyMismatch signals that the supply value provided is not valid when summing the other fields
 var ErrSupplyMismatch = errors.New("supply value mismatch")

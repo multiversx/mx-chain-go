@@ -22,7 +22,7 @@ func createMockInitialBalance() *genesis.InitialBalance {
 		StakingBalance: "2",
 		Delegation: &genesis.DelegationData{
 			Address: "0002",
-			Balance: "2",
+			Value:   "2",
 		},
 	}
 }
@@ -35,7 +35,7 @@ func createSimpleInitialBalance(address string, balance int64) *genesis.InitialB
 		StakingBalance: "0",
 		Delegation: &genesis.DelegationData{
 			Address: "",
-			Balance: "0",
+			Value:   "0",
 		},
 	}
 }
@@ -48,7 +48,7 @@ func createDelegatedInitialBalance(address string, delegated string, delegatedBa
 		StakingBalance: "0",
 		Delegation: &genesis.DelegationData{
 			Address: delegated,
-			Balance: big.NewInt(delegatedBalance).String(),
+			Value:   big.NewInt(delegatedBalance).String(),
 		},
 	}
 }
@@ -61,7 +61,7 @@ func createStakedInitialBalance(address string, stakedBalance int64) *genesis.In
 		StakingBalance: big.NewInt(stakedBalance).String(),
 		Delegation: &genesis.DelegationData{
 			Address: "",
-			Balance: "0",
+			Value:   "0",
 		},
 	}
 }
@@ -107,7 +107,7 @@ func TestNewGenesis_ShouldWork(t *testing.T) {
 
 	g, err := genesis.NewGenesis("testdata/genesis_ok.json", big.NewInt(30))
 
-	assert.NotNil(t, g)
+	require.NotNil(t, g)
 	assert.Nil(t, err)
 	assert.Equal(t, 6, len(g.InitialBalances()))
 }
@@ -179,17 +179,17 @@ func TestGenesis_ProcessInvalidStakingBalanceStringShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, genesis.ErrInvalidStakingBalanceString))
 }
 
-func TestGenesis_ProcessInvalidDelegationBalanceStringShouldErr(t *testing.T) {
+func TestGenesis_ProcessInvalidDelegationValueStringShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
 	ib := createMockInitialBalance()
-	ib.Delegation.Balance = "not-a-number"
+	ib.Delegation.Value = "not-a-number"
 	g.SetInitialBalances([]*genesis.InitialBalance{ib})
 
 	err := g.Process()
 
-	assert.True(t, errors.Is(err, genesis.ErrInvalidDelegationBalanceString))
+	assert.True(t, errors.Is(err, genesis.ErrInvalidDelegationValueString))
 }
 
 func TestGenesis_ProcessEmptyDelegationAddressButWithBalanceShouldErr(t *testing.T) {
@@ -259,16 +259,16 @@ func TestGenesis_ProcessInvalidStakingBalanceShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, genesis.ErrInvalidStakingBalance))
 }
 
-func TestGenesis_ProcessInvalidDelegationBalanceShouldErr(t *testing.T) {
+func TestGenesis_ProcessInvalidDelegationValueShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
 	ib := createMockInitialBalance()
-	ib.Delegation.Balance = "-1"
+	ib.Delegation.Value = "-1"
 	g.SetInitialBalances([]*genesis.InitialBalance{ib})
 
 	err := g.Process()
-	assert.True(t, errors.Is(err, genesis.ErrInvalidDelegationBalance))
+	assert.True(t, errors.Is(err, genesis.ErrInvalidDelegationValue))
 }
 
 func TestGenesis_ProcessSupplyMismatchShouldErr(t *testing.T) {

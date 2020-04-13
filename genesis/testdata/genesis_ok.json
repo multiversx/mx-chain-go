@@ -6,7 +6,7 @@
     "stakingbalance": "0",
     "delegation": {
       "address": "",
-      "balance": "0"
+      "value":   "0"
     }
   },
   {
@@ -16,7 +16,7 @@
     "stakingbalance": "3",
     "delegation": {
       "address": "",
-      "balance": "0"
+      "value":   "0"
     }
   },
   {
@@ -26,7 +26,7 @@
     "stakingbalance": "5",
     "delegation": {
       "address": "",
-      "balance": "0"
+      "value":   "0"
     }
   },
   {
@@ -36,7 +36,7 @@
     "stakingbalance": "0",
     "delegation": {
       "address": "0005",
-      "balance": "3"
+      "value":   "3"
     }
   },
   {
@@ -46,7 +46,7 @@
     "stakingbalance": "2",
     "delegation": {
       "address": "0007",
-      "balance": "3"
+      "value":   "3"
     }
   },
   {
@@ -56,7 +56,7 @@
     "stakingbalance": "2",
     "delegation": {
       "address": "0009",
-      "balance": "2"
+      "value":   "2"
     }
   }
 ]

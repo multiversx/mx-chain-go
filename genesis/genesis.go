@@ -132,16 +132,16 @@ func (g *Genesis) tryParseDelegationElement(initialBalance *InitialBalance) erro
 	var err error
 	delegationData := initialBalance.Delegation
 
-	delegationData.balance, ok = big.NewInt(0).SetString(delegationData.Balance, decodeBase)
+	delegationData.value, ok = big.NewInt(0).SetString(delegationData.Value, decodeBase)
 	if !ok {
 		return fmt.Errorf("%w for '%s', address %s",
-			ErrInvalidDelegationBalanceString,
-			delegationData.Balance,
+			ErrInvalidDelegationValueString,
+			delegationData.Value,
 			delegationData.Address,
 		)
 	}
 
-	if big.NewInt(0).Cmp(delegationData.balance) == 0 {
+	if big.NewInt(0).Cmp(delegationData.value) == 0 {
 		return nil
 	}
 
@@ -195,10 +195,10 @@ func (g *Genesis) checkInitialBalance(initialBalance *InitialBalance) error {
 		)
 	}
 
-	if big.NewInt(0).Cmp(initialBalance.Delegation.balance) > 0 {
+	if big.NewInt(0).Cmp(initialBalance.Delegation.value) > 0 {
 		return fmt.Errorf("%w for '%s', address %s",
-			ErrInvalidDelegationBalance,
-			initialBalance.Delegation.balance,
+			ErrInvalidDelegationValue,
+			initialBalance.Delegation.value,
 			initialBalance.Address,
 		)
 	}
@@ -206,7 +206,7 @@ func (g *Genesis) checkInitialBalance(initialBalance *InitialBalance) error {
 	sum := big.NewInt(0)
 	sum.Add(sum, initialBalance.balance)
 	sum.Add(sum, initialBalance.stakingBalance)
-	sum.Add(sum, initialBalance.Delegation.balance)
+	sum.Add(sum, initialBalance.Delegation.value)
 
 	isSupplyCorrect := big.NewInt(0).Cmp(initialBalance.supply) < 0 && initialBalance.supply.Cmp(sum) == 0
 	if !isSupplyCorrect {
@@ -254,7 +254,7 @@ func (g *Genesis) DelegatedUpon(address string) *big.Int {
 	delegated := big.NewInt(0)
 	for _, ib := range g.initialBalances {
 		if ib.Delegation.Address == address {
-			delegated.Add(delegated, ib.Delegation.balance)
+			delegated.Add(delegated, ib.Delegation.value)
 		}
 	}
 
