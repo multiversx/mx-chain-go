@@ -377,6 +377,7 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 	log.Debug("received proposed block",
 		"from", core.GetTrimmedPk(core.ToHex(cnsMsg.PubKey)),
 		"header hash", cnsMsg.BlockHeaderHash,
+		"epoch", header.GetEpoch(),
 		"round", header.GetRound(),
 		"nonce", header.GetNonce(),
 		"prev hash", header.GetPrevHash(),
