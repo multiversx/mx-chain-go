@@ -671,7 +671,14 @@ func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrat
 	return 0, errors.New("no such node in list")
 }
 
-func putDeploySCToDataPool(fileName string, pubkey []byte, nonce uint64, transferOnDeploy *big.Int, initArgs string, nodes []*integrationTests.TestProcessorNode) []byte {
+func putDeploySCToDataPool(
+	fileName string,
+	pubkey []byte,
+	nonce uint64,
+	transferOnDeploy *big.Int,
+	initArgs string,
+	nodes []*integrationTests.TestProcessorNode,
+) []byte {
 	scCode, _ := ioutil.ReadFile(fileName)
 	scCodeString := hex.EncodeToString(scCode)
 	scCodeMetadataString := "0000"
