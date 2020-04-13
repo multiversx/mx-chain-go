@@ -559,9 +559,9 @@ func getGeneralConfig() config.Config {
 		},
 		TxLogsStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Type:   "LRU",
-				Size:   1000,
-				Shards: 1,
+				Type:        "LRU",
+				Size:        1000,
+				Shards:      1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "Logs",
