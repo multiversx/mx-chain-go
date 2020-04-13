@@ -39,9 +39,7 @@ type testData struct {
 }
 
 func TestComputeRating_Metachain(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
+	t.Skip("this should be only activated for computing the outputs")
 
 	datas := createTestData()
 
@@ -105,18 +103,8 @@ func computeRatings(testData testData) {
 	gasPrice := uint64(10)
 	gasLimit := uint64(100)
 
-	defer func() {
-		_ = advertiser.Close()
-		for _, nodes := range nodesMap {
-			for _, n := range nodes {
-				_ = n.Node.Stop()
-			}
-		}
-	}()
-
 	for _, nodes := range nodesMap {
 		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
-		nodes[0].Node.Start()
 		//integrationTests.DisplayAndStartNodes(nodes)
 		for _, node := range nodes {
 			node.EpochStartTrigger.SetRoundsPerEpoch(uint64(roundsPerEpoch))
