@@ -557,5 +557,19 @@ func getGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
+		TxLogsStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Type:        "LRU",
+				Size:        1000,
+				Shards:      1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "Logs",
+				Type:              string(storageUnit.LvlDBSerial),
+				BatchDelaySeconds: 2,
+				MaxBatchSize:      100,
+				MaxOpenFiles:      10,
+			},
+		},
 	}
 }
