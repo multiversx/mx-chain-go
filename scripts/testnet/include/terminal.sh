@@ -62,20 +62,13 @@ setWorkdirForNextCommands() {
 runCommandInTerminal() {
   local command_to_run=$1
   local keepopen=$2
-  local splitwindow=$3
 
-  if [ -n "$splitwindow" ]
-  then
-    splitwindow="-"$splitwindow
-  fi
-
-  
   if [ $USETMUX -eq 1 ]
   then
     local pane_to_use=${TMUX_SESSION_PANES[$CURRENT_TMUX_SESSION]}
     if [ $pane_to_use -gt 1 ]
     then
-      tmux split-window $splitwindow -t $CURRENT_TMUX_SESSION:0
+      tmux split-window -t $CURRENT_TMUX_SESSION:0
       tmux select-layout -t $CURRENT_TMUX_SESSION:0 $CURRENT_TMUX_LAYOUT
       let TMUX_SESSION_PANES[$CURRENT_TMUX_SESSION]=${TMUX_SESSION_PANES[$CURRENT_TMUX_SESSION]}+1
     fi
@@ -122,9 +115,21 @@ executeCommandInTerminalEmulator() {
 }
 
 stopProcessByPort() {
+  sendSignalToProcessByPort $1 2
+}
+
+pauseProcessByPort() {
+  sendSignalToProcessByPort $1 19
+}
+
+resumeProcessByPort() {
+  sendSignalToProcessByPort $1 18
+}
+
+sendSignalToProcessByPort() {
   local port=$1
   local pid=$(lsof -t -i:$port)
-  local signal=2  # SIGINT, identical to CTRL+C
+  local signal=$2
 
   if [ -n "$pid" ]
   then

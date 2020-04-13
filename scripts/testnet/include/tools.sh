@@ -9,6 +9,14 @@ startProxy() {
   runCommandInTerminal "./proxy" $1 v
 }
 
+pauseProxy() {
+  pauseProcessByPort $PORT_PROXY
+}
+
+resumeProxy() {
+  resumeProcessByPort $PORT_PROXY
+}
+
 stopProxy() {
   stopProcessByPort $PORT_PROXY
 }
@@ -41,6 +49,14 @@ startTxGen_ExistingAccounts() {
   fi
 
   runCommandInTerminal "./txgen $mode |& tee stdout.txt" $1
+}
+
+pauseTxGen() {
+  pauseProcessByPort $PORT_TXGEN
+}
+
+resumeTxGen() {
+  resumeProcessByPort $PORT_TXGEN
 }
 
 stopTxGen() {
