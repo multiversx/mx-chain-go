@@ -6,9 +6,11 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -45,7 +47,7 @@ func TestCheckMessageWithFinalInfoValidity_InvalidPubKeyBitmap(t *testing.T) {
 	assert.True(t, errors.Is(err, spos.ErrInvalidPublicKeyBitmapSize))
 }
 
-func TestCheckMessageWithFinalInfoValidity_InvalidSignatureSize(t *testing.T) {
+func TestCheckMessageWithFinalInfoValidity_InvalidAggregateSignatureSize(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs()
@@ -104,7 +106,7 @@ func TestCheckMessageWithSignatureValidity_InvalidSignatureShareSize(t *testing.
 	assert.True(t, errors.Is(err, spos.ErrInvalidSignatureSize))
 }
 
-func TestCheckMessageWithSignatureValidity_ShouldWork(t *testing.T) {
+func TestCheckMessageWithSignatureValidity_SignatureShareShouldWork(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs()
@@ -139,6 +141,31 @@ func TestCheckMessageWithBlockHeaderValidity_InvalidHeaderSize(t *testing.T) {
 	assert.True(t, errors.Is(err, spos.ErrInvalidHeaderSize))
 }
 
+func TestCheckMessageWithBlockHeaderValidity_HeaderToBig(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs()
+	wrk, _ := spos.NewWorker(workerArgs)
+
+	headerBytes := make([]byte, core.MegabyteSize+1)
+	_, _ = rand.Read(headerBytes)
+	cnsMsg := &consensus.Message{Header: headerBytes}
+	err := wrk.CheckMessageWithBlockHeaderValidity(cnsMsg)
+	assert.True(t, errors.Is(err, spos.ErrInvalidHeaderSize))
+}
+
+func TestCheckMessageWithBlockHeaderValidity_HeaderSizeZero(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs()
+	wrk, _ := spos.NewWorker(workerArgs)
+
+	headerBytes := make([]byte, 0)
+	cnsMsg := &consensus.Message{Header: headerBytes}
+	err := wrk.CheckMessageWithBlockHeaderValidity(cnsMsg)
+	assert.True(t, errors.Is(err, spos.ErrInvalidHeaderSize))
+}
+
 func TestCheckMessageWithBlockHeaderValidity_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -156,7 +183,9 @@ func TestCheckMessageWithBlockBodyValidity_InvalidMessage(t *testing.T) {
 	workerArgs := createDefaultWorkerArgs()
 	wrk, _ := spos.NewWorker(workerArgs)
 
-	cnsMsg := &consensus.Message{Header: []byte("header")}
+	headerBytes := make([]byte, 100)
+	_, _ = rand.Read(headerBytes)
+	cnsMsg := &consensus.Message{Header: headerBytes}
 	err := wrk.CheckMessageWithBlockBodyValidity(cnsMsg)
 	assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
 }
@@ -303,7 +332,7 @@ func TestCheckConsensusMessageValidityForMessageType_MessageUnknownInvalid(t *te
 	assert.True(t, errors.Is(err, spos.ErrInvalidMessageType))
 }
 
-func TestSsBlockHeaderHashSizeValid_NotValid(t *testing.T) {
+func TestIsBlockHeaderHashSizeValid_NotValid(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs()
@@ -314,7 +343,7 @@ func TestSsBlockHeaderHashSizeValid_NotValid(t *testing.T) {
 	assert.False(t, result)
 }
 
-func TestSsBlockHeaderHashSizeValid(t *testing.T) {
+func TestIsBlockHeaderHashSizeValid(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs()
@@ -452,4 +481,57 @@ func TestCheckConsensusMessageValidity_ErrMessageForPastRound(t *testing.T) {
 	}
 	err := wrk.CheckConsensusMessageValidity(cnsMsg)
 	assert.True(t, errors.Is(err, spos.ErrMessageForPastRound))
+}
+
+func TestCheckConsensusMessageValidity_InvalidSignature(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("local error")
+	signer := &mock.SingleSignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return localErr
+		},
+	}
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.SingleSigner = signer
+	workerArgs.ConsensusState.RoundIndex = 10
+	wrk, _ := spos.NewWorker(workerArgs)
+
+	headerBytes := make([]byte, 100)
+	_, _ = rand.Read(headerBytes)
+	headerHash := make([]byte, workerArgs.Hasher.Size())
+	_, _ = rand.Read(headerHash)
+	pubKey := []byte(workerArgs.ConsensusState.ConsensusGroup()[0])
+	signature := make([]byte, SignatureSize)
+	_, _ = rand.Read(signature)
+
+	cnsMsg := &consensus.Message{
+		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
+		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: signature, RoundIndex: 10,
+	}
+	err := wrk.CheckConsensusMessageValidity(cnsMsg)
+	assert.True(t, errors.Is(err, spos.ErrInvalidSignature))
+}
+
+func TestCheckConsensusMessageValidity_Ok(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.ConsensusState.RoundIndex = 10
+	wrk, _ := spos.NewWorker(workerArgs)
+
+	headerBytes := make([]byte, 100)
+	_, _ = rand.Read(headerBytes)
+	headerHash := make([]byte, workerArgs.Hasher.Size())
+	_, _ = rand.Read(headerHash)
+	pubKey := []byte(workerArgs.ConsensusState.ConsensusGroup()[0])
+	signature := make([]byte, SignatureSize)
+	_, _ = rand.Read(signature)
+
+	cnsMsg := &consensus.Message{
+		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
+		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: signature, RoundIndex: 10,
+	}
+	err := wrk.CheckConsensusMessageValidity(cnsMsg)
+	assert.Nil(t, err)
 }
