@@ -694,7 +694,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 		shardInfoErr = vs.checkForMissedBlocks(
 			h.Round,
 			prevShardData.Round,
-			prevShardData.PrevRandSeed,
+			prevShardData.RandSeed,
 			h.ShardID,
 			epoch,
 		)
