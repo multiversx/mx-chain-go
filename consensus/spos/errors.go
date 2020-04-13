@@ -136,6 +136,9 @@ var ErrNilBlsSingleSigner = errors.New("BLS single signer should not be nil")
 // ErrNilHeader is raised when an expected header is nil
 var ErrNilHeader = errors.New("header is nil")
 
+// ErrNilHeaderHash is raised when a nil header hash is provided
+var ErrNilHeaderHash = errors.New("header hash is nil")
+
 // ErrNilBody is raised when an expected body is nil
 var ErrNilBody = errors.New("body is nil")
 
@@ -192,3 +195,6 @@ var ErrInvalidMessage = errors.New("invalid message")
 
 // ErrInvalidPublicKeyBitmapSize signals that an invalid public key bitmap size has been received from consensus topic
 var ErrInvalidPublicKeyBitmapSize = errors.New("invalid public key bitmap size")
+
+// ErrInvalidCacheSize signals an invalid size provided for cache
+var ErrInvalidCacheSize = errors.New("invalid cache size")

@@ -40,7 +40,13 @@ func (bmm *BroadcastMessengerMock) SetDataForDelayBroadcast(
 	if bmm.SetDataForDelayBroadcastCalled != nil {
 		return bmm.SetDataForDelayBroadcastCalled(headerHash, miniBlocks, transactions)
 	}
-	return nil
+
+	err := bmm.BroadcastMiniBlocks(miniBlocks)
+	if err != nil {
+		return err
+	}
+
+	return bmm.BroadcastTransactions(transactions)
 }
 
 // BroadcastTransactions -

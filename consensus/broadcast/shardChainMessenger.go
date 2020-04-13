@@ -4,20 +4,14 @@ import (
 	"bytes"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
-
-const maxSizeCacheDelayedBroadcast = 5
 
 type delayedBroadcastData struct {
 	headerHash   []byte
@@ -29,36 +23,40 @@ type shardChainMessenger struct {
 	*commonMessenger
 	headersSubscriber      dataRetriever.HeadersPoolSubscriber
 	delayedBroadcastData   []*delayedBroadcastData
+	maxDelayCacheSize      uint32
 	mutHeadersForBroadcast sync.Mutex
+}
+
+// ShardChainMessengerArgs holds the arguments for creating a shardChainMessenger instance
+type ShardChainMessengerArgs struct {
+	CommonMessengerArgs
+	HeadersSubscriber dataRetriever.HeadersPoolSubscriber
+	MaxDelayCacheSize uint32
 }
 
 // NewShardChainMessenger creates a new shardChainMessenger object
 func NewShardChainMessenger(
-	marshalizer marshal.Marshalizer,
-	messenger consensus.P2PMessenger,
-	privateKey crypto.PrivateKey,
-	shardCoordinator sharding.Coordinator,
-	singleSigner crypto.SingleSigner,
-	headersSubscriber dataRetriever.HeadersPoolSubscriber,
+	args ShardChainMessengerArgs,
 ) (*shardChainMessenger, error) {
 
-	err := checkShardChainNilParameters(marshalizer, messenger, shardCoordinator, privateKey, singleSigner, headersSubscriber)
+	err := checkShardChainNilParameters(args)
 	if err != nil {
 		return nil, err
 	}
 
 	cm := &commonMessenger{
-		marshalizer:      marshalizer,
-		messenger:        messenger,
-		privateKey:       privateKey,
-		shardCoordinator: shardCoordinator,
-		singleSigner:     singleSigner,
+		marshalizer:      args.Marshalizer,
+		messenger:        args.Messenger,
+		privateKey:       args.PrivateKey,
+		shardCoordinator: args.ShardCoordinator,
+		singleSigner:     args.SingleSigner,
 	}
 
 	scm := &shardChainMessenger{
 		commonMessenger:        cm,
-		headersSubscriber:      headersSubscriber,
-		delayedBroadcastData:   make([]*delayedBroadcastData, maxSizeCacheDelayedBroadcast),
+		headersSubscriber:      args.HeadersSubscriber,
+		delayedBroadcastData:   make([]*delayedBroadcastData, 0),
+		maxDelayCacheSize:      args.MaxDelayCacheSize,
 		mutHeadersForBroadcast: sync.Mutex{},
 	}
 
@@ -67,30 +65,17 @@ func NewShardChainMessenger(
 }
 
 func checkShardChainNilParameters(
-	marshalizer marshal.Marshalizer,
-	messenger consensus.P2PMessenger,
-	shardCoordinator sharding.Coordinator,
-	privateKey crypto.PrivateKey,
-	singleSigner crypto.SingleSigner,
-	headersSubscriber dataRetriever.HeadersPoolSubscriber,
+	args ShardChainMessengerArgs,
 ) error {
-	if check.IfNil(marshalizer) {
-		return spos.ErrNilMarshalizer
+	err := checkCommonMessengerNilParameters(args.CommonMessengerArgs)
+	if err != nil {
+		return err
 	}
-	if check.IfNil(messenger) {
-		return spos.ErrNilMessenger
-	}
-	if check.IfNil(shardCoordinator) {
-		return spos.ErrNilShardCoordinator
-	}
-	if check.IfNil(privateKey) {
-		return spos.ErrNilPrivateKey
-	}
-	if check.IfNil(singleSigner) {
-		return spos.ErrNilSingleSigner
-	}
-	if check.IfNil(headersSubscriber) {
+	if check.IfNil(args.HeadersSubscriber) {
 		return spos.ErrNilHeadersSubscriber
+	}
+	if args.MaxDelayCacheSize == 0 {
+		return spos.ErrInvalidCacheSize
 	}
 
 	return nil
@@ -148,6 +133,37 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error
 	return nil
 }
 
+// SetDataForDelayBroadcast sets the miniblocks and transactions to be broadcast with delay
+func (scm *shardChainMessenger) SetDataForDelayBroadcast(
+	headerHash []byte,
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+) error {
+	if len(headerHash) == 0 {
+		return spos.ErrNilHeaderHash
+	}
+	if len(miniBlocks) == 0 {
+		return nil
+	}
+
+	scm.mutHeadersForBroadcast.Lock()
+	defer scm.mutHeadersForBroadcast.Unlock()
+
+	broadcastData := &delayedBroadcastData{
+		headerHash:   headerHash,
+		miniblocks:   miniBlocks,
+		transactions: transactions,
+	}
+
+	scm.delayedBroadcastData = append(scm.delayedBroadcastData, broadcastData)
+	if len(scm.delayedBroadcastData) > int(scm.maxDelayCacheSize) {
+		scm.broadcastDelayedData(scm.delayedBroadcastData[:1])
+		scm.delayedBroadcastData = scm.delayedBroadcastData[1:]
+	}
+
+	return nil
+}
+
 func (scm *shardChainMessenger) headerReceived(headerHandler data.HeaderHandler, _ []byte) {
 	scm.mutHeadersForBroadcast.Lock()
 	defer scm.mutHeadersForBroadcast.Unlock()
@@ -171,36 +187,12 @@ func (scm *shardChainMessenger) headerReceived(headerHandler data.HeaderHandler,
 	for i := len(scm.delayedBroadcastData) - 1; i >= 0; i-- {
 		for _, headerHash := range headerHashes {
 			if bytes.Equal(scm.delayedBroadcastData[i].headerHash, headerHash) {
-				scm.broadcastDelayedData(scm.delayedBroadcastData[:i])
+				scm.broadcastDelayedData(scm.delayedBroadcastData[:i+1])
 				scm.delayedBroadcastData = scm.delayedBroadcastData[i+1:]
 				return
 			}
 		}
 	}
-}
-
-// SetDataForDelayBroadcast sets the miniblocks and transactions to be broadcast with delay
-func (scm *shardChainMessenger) SetDataForDelayBroadcast(
-	headerHash []byte,
-	miniBlocks map[uint32][]byte,
-	transactions map[string][][]byte,
-) error {
-	scm.mutHeadersForBroadcast.Lock()
-	defer scm.mutHeadersForBroadcast.Unlock()
-
-	broadcastData := &delayedBroadcastData{
-		headerHash:   headerHash,
-		miniblocks:   miniBlocks,
-		transactions: transactions,
-	}
-
-	scm.delayedBroadcastData = append(scm.delayedBroadcastData, broadcastData)
-	if len(scm.delayedBroadcastData) > maxSizeCacheDelayedBroadcast {
-		scm.broadcastDelayedData(scm.delayedBroadcastData[:1])
-		scm.delayedBroadcastData = scm.delayedBroadcastData[1:]
-	}
-
-	return nil
 }
 
 func (scm *shardChainMessenger) broadcastDelayedData(broadcastData []*delayedBroadcastData) {
