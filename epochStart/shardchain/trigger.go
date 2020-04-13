@@ -454,26 +454,32 @@ func (t *trigger) updateTriggerFromMeta() {
 		// save all final-valid epoch start blocks
 		if canActivateEpochStart {
 			t.mapFinalizedEpochs[currMetaInfo.hdr.Epoch] = struct{}{}
-			epochStartIdentifier := core.EpochStartIdentifier(currMetaInfo.hdr.Epoch)
-
-			log.Debug("saving epoch start meta with", "key", epochStartIdentifier)
-
-			metaBuff, err := t.marshalizer.Marshal(currMetaInfo.hdr)
-			if err != nil {
-				log.Debug("updateTriggerFromMeta marshal", "error", err.Error())
-				continue
-			}
-
-			err = t.metaHdrStorage.Put([]byte(epochStartIdentifier), metaBuff)
-			if err != nil {
-				log.Debug("updateTriggerMeta put into metaHdrStorage", "error", err.Error())
-			}
-
-			err = t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
-			if err != nil {
-				log.Debug("updateTriggerMeta put into triggerStorage", "error", err.Error())
-			}
+			t.saveEpochStartMeta(currMetaInfo.hdr)
 		}
+	}
+}
+
+func (t *trigger) saveEpochStartMeta(metaHdr *block.MetaBlock) {
+	if check.IfNil(metaHdr) {
+		return
+	}
+
+	epochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch)
+
+	metaBuff, err := t.marshalizer.Marshal(metaHdr)
+	if err != nil {
+		log.Debug("updateTriggerFromMeta marshal", "error", err.Error())
+		return
+	}
+
+	err = t.metaHdrStorage.Put([]byte(epochStartIdentifier), metaBuff)
+	if err != nil {
+		log.Debug("updateTriggerMeta put into metaHdrStorage", "error", err.Error())
+	}
+
+	err = t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
+	if err != nil {
+		log.Debug("updateTriggerMeta put into triggerStorage", "error", err.Error())
 	}
 }
 
@@ -750,6 +756,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	t.newEpochHdrReceived = false
 	t.epochMetaBlockHash = shardHdr.EpochStartMetaHash
 	t.epochStartShardHeader = shardHdr
+	currEpochStartMeta := t.mapEpochStartHdrs[string(t.epochMetaBlockHash)]
 
 	t.epochStartNotifier.NotifyAll(shardHdr)
 
@@ -765,15 +772,15 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	shardHdrBuff, errNotCritical := t.marshalizer.Marshal(shardHdr)
 	if errNotCritical != nil {
 		log.Warn("SetProcessed marshal error", "error", errNotCritical)
-		return
 	}
 
 	epochStartIdentifier := core.EpochStartIdentifier(shardHdr.Epoch)
 	errNotCritical = t.shardHdrStorage.Put([]byte(epochStartIdentifier), shardHdrBuff)
 	if errNotCritical != nil {
 		log.Warn("SetProcessed put to shard header storage error", "error", errNotCritical)
-		return
 	}
+
+	t.saveEpochStartMeta(currEpochStartMeta)
 }
 
 // RevertStateToBlock will revert the state of the trigger to the current block

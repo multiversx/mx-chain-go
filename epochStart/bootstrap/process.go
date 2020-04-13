@@ -231,7 +231,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	defer func() {
 		log.Debug("unregistering all message processor")
 		errMessenger := e.messenger.UnregisterAllMessageProcessors()
-		log.LogIfError(errMessenger, "error on unregistering message processor")
+		log.LogIfError(errMessenger)
 	}()
 
 	var err error
