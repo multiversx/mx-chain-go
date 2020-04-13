@@ -154,8 +154,7 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 	headerHash := hdrInfo.LastHeader.Hash
 	headerFromStorage, err := st.bootstrapper.getHeader(headerHash)
 	if err != nil {
-		log.Debug("cannot get header ", "nonce", hdrInfo.LastHeader.Nonce,
-			"error", err.Error())
+		log.Debug("cannot get header ", "nonce", hdrInfo.LastHeader.Nonce, "error", err.Error())
 		return err
 	}
 
@@ -167,8 +166,7 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 
 	err = st.applyBlock(headerFromStorage, headerHash)
 	if err != nil {
-		log.Debug("cannot apply block for header ", "nonce", headerFromStorage.GetNonce(),
-			"error", err.Error())
+		log.Debug("cannot apply block for header ", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
 		return err
 	}
 
@@ -229,21 +227,20 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 
 		err = st.bootstrapper.applyCrossNotarizedHeaders(bootInfos[i].LastCrossNotarizedHeaders)
 		if err != nil {
-			log.Debug("cannot apply cross notarized headers", "error", err.Error())
-			return err
+			log.Warn("cannot apply cross notarized headers", "error", err.Error())
 		}
 
 		var selfNotarizedHeaders []data.HeaderHandler
 		var selfNotarizedHeadersHashes [][]byte
 		selfNotarizedHeaders, selfNotarizedHeadersHashes, err = st.bootstrapper.applySelfNotarizedHeaders(bootInfos[i].LastSelfNotarizedHeaders)
 		if err != nil {
-			log.Debug("cannot apply self notarized headers", "error", err.Error())
-			return err
+			log.Warn("cannot apply self notarized headers", "error", err.Error())
 		}
 
 		var header data.HeaderHandler
 		header, err = st.bootstrapper.getHeader(bootInfos[i].LastHeader.Hash)
 		if err != nil {
+			log.Debug("cannot get header", "hash", bootInfos[i].LastHeader.Hash, "error", err.Error())
 			return err
 		}
 
@@ -255,7 +252,7 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 
 		err = st.forkDetector.AddHeader(header, bootInfos[i].LastHeader.Hash, process.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 		if err != nil {
-			return err
+			log.Warn("cannot add header to fork detector", "error", err.Error())
 		}
 
 		if i > 0 {

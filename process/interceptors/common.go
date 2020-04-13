@@ -53,8 +53,7 @@ func processInterceptedData(
 		wgProcess.Done()
 	}()
 	if err != nil {
-		//TODO revert here log.Trace
-		log.Debug("intercepted data is not valid",
+		log.Trace("intercepted data is not valid",
 			"hash", data.Hash(),
 			"type", data.Type(),
 			"pid", p2p.MessageOriginatorPid(msg),
@@ -68,8 +67,7 @@ func processInterceptedData(
 
 	err = processor.Save(data, msg.Peer())
 	if err != nil {
-		//TODO revert here log.Trace
-		log.Debug("intercepted data can not be processed",
+		log.Trace("intercepted data can not be processed",
 			"hash", data.Hash(),
 			"type", data.Type(),
 			"pid", p2p.MessageOriginatorPid(msg),
