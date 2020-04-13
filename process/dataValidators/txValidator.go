@@ -72,8 +72,6 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 		)
 	}
 
-	return nil
-
 	accountNonce := accountHandler.GetNonce()
 	txNonce := interceptedTx.Nonce()
 	lowerNonceInTx := txNonce < accountNonce
@@ -86,6 +84,8 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 			veryHighNonceInTx,
 		)
 	}
+
+	return nil
 
 	account, ok := accountHandler.(state.UserAccountHandler)
 	if !ok {
