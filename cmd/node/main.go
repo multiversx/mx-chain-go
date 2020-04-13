@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -62,6 +63,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
 )
@@ -632,7 +634,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating ratings data components")
-	ratingsData, err := rating.NewRatingsData(ratingsConfig)
+
+	ratingDataArgs := rating.RatingsDataArg{
+		Config:                   ratingsConfig,
+		ShardConsensusSize:       genesisNodesConfig.ConsensusGroupSize,
+		MetaConsensusSize:        genesisNodesConfig.MetaChainConsensusGroupSize,
+		ShardMinNodes:            genesisNodesConfig.MinNodesPerShard,
+		MetaMinNodes:             genesisNodesConfig.MetaChainMinNodes,
+		RoundDurationMiliseconds: genesisNodesConfig.RoundDuration,
+	}
+	ratingsData, err := rating.NewRatingsData(ratingDataArgs)
 	if err != nil {
 		return err
 	}
@@ -650,6 +661,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	)
 
 	destShardIdAsObserver, err := processDestinationShardAsObserver(preferencesConfig.Preferences)
+	if err != nil {
+		return err
+	}
+
+	rounder, err := round.NewRound(
+		time.Unix(genesisNodesConfig.StartTime, 0),
+		syncer.CurrentTime(),
+		time.Millisecond*time.Duration(genesisNodesConfig.RoundDuration),
+		syncer)
 	if err != nil {
 		return err
 	}
@@ -679,6 +699,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		TrieStorageManagers:        coreComponents.TrieStorageManagers,
 		Uint64Converter:            coreComponents.Uint64ByteSliceConverter,
 		NodeShuffler:               nodesShuffler,
+		Rounder:                    rounder,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -825,6 +846,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
 
+	//TODO: remove this in the future and add just a log debug
+	computedRatingsData := filepath.Join(statsFolder, "ratings.info")
+	computedRatingsDataStr := createStringFromRatingsData(ratingsData)
+	err = ioutil.WriteFile(computedRatingsData, []byte(computedRatingsDataStr), os.ModePerm)
+	log.LogIfError(err)
+
 	log.Trace("creating tps benchmark components")
 	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisNodesConfig.RoundDuration/1000)
 	if err != nil {
@@ -882,7 +909,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		economicsData,
 		genesisNodesConfig,
 		gasSchedule,
-		syncer,
+		rounder,
 		shardCoordinator,
 		nodesCoordinator,
 		dataComponents,
@@ -1061,6 +1088,32 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.LogIfError(err)
 
 	return nil
+}
+
+func createStringFromRatingsData(ratingsData *rating.RatingsData) string {
+	metaChainStepHandler := ratingsData.MetaChainRatingsStepHandler()
+	shardChainHandler := ratingsData.ShardChainRatingsStepHandler()
+	computedRatingsDataStr := fmt.Sprintf(
+		"meta:\n"+
+			"ProposerIncrease=%v\n"+
+			"ProposerDecrease=%v\n"+
+			"ValidatorIncrease=%v\n"+
+			"ValidatorDecrease=%v\n\n"+
+			"shard:\n"+
+			"ProposerIncrease=%v\n"+
+			"ProposerDecrease=%v\n"+
+			"ValidatorIncrease=%v\n"+
+			"ValidatorDecrease=%v",
+		metaChainStepHandler.ProposerIncreaseRatingStep(),
+		metaChainStepHandler.ProposerDecreaseRatingStep(),
+		metaChainStepHandler.ValidatorIncreaseRatingStep(),
+		metaChainStepHandler.ValidatorDecreaseRatingStep(),
+		shardChainHandler.ProposerIncreaseRatingStep(),
+		shardChainHandler.ProposerDecreaseRatingStep(),
+		shardChainHandler.ValidatorIncreaseRatingStep(),
+		shardChainHandler.ValidatorDecreaseRatingStep(),
+	)
+	return computedRatingsDataStr
 }
 
 func cleanupStorageIfNecessary(workingDir string, ctx *cli.Context, log logger.Logger) error {
@@ -1754,7 +1807,13 @@ func createApiResolver(
 		return nil, err
 	}
 
-	txTypeHandler, err := coordinator.NewTxTypeHandler(addrConv, shardCoordinator, accnts)
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		AddressConverter: addrConv,
+		ShardCoordinator: shardCoordinator,
+		BuiltInFuncNames: builtInFuncs.Keys(),
+		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+	}
+	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
 		return nil, err
 	}

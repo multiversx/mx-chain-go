@@ -545,16 +545,8 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	if check.IfNil(headerHandler) {
 		return process.ErrNilMetaBlockHeader
 	}
-	if check.IfNil(bodyHandler) {
-		return process.ErrNilTxBlockBody
-	}
 
 	metaBlock, ok := headerHandler.(*block.MetaBlock)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -593,10 +585,7 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		mp.headersCounter.subtractRestoredMBHeaders(len(shardHeader.MiniBlockHeaders))
 	}
 
-	_, errNotCritical := mp.txCoordinator.RestoreBlockDataFromStorage(body)
-	if errNotCritical != nil {
-		log.Debug("RestoreBlockDataFromStorage", "error", errNotCritical.Error())
-	}
+	mp.restoreBlockBody(bodyHandler)
 
 	mp.blockTracker.RemoveLastNotarizedHeaders()
 
@@ -1098,6 +1087,7 @@ func (mp *metaProcessor) CommitBlock(
 	args := bootStorerDataArgs{
 		headerInfo:                 headerInfo,
 		round:                      header.Round,
+		lastSelfNotarizedHeaders:   mp.getLastSelfNotarizedHeaders(),
 		nodesCoordinatorConfigKey:  nodesCoordinatorKey,
 		epochStartTriggerConfigKey: epochStartKey,
 		pendingMiniBlocks:          mp.getPendingMiniBlocks(),
@@ -1209,14 +1199,16 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 	metaBlock *block.MetaBlock,
 	shardID uint32,
 ) (data.HeaderHandler, []byte) {
-	maxNotarizedNonce := uint64(0)
 	lastNotarizedMetaHeader, lastNotarizedMetaHeaderHash, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardID)
+
 	if err != nil {
 		log.Warn("getLastSelfNotarizedHeaderByShard.GetLastSelfNotarizedHeader",
 			"shard", shardID,
 			"error", err.Error())
 		return nil, nil
 	}
+
+	maxNotarizedNonce := lastNotarizedMetaHeader.GetNonce()
 
 	for _, shardData := range metaBlock.ShardInfo {
 		if shardData.ShardID != shardID {

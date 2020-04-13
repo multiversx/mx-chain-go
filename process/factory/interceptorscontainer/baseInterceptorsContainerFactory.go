@@ -353,26 +353,27 @@ func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() e
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
-	argProcessor := &processor.ArgTxBodyInterceptorProcessor{
+	argProcessor := &processor.ArgMiniblockInterceptorProcessor{
 		MiniblockCache:   bicf.dataPool.MiniBlocks(),
 		Marshalizer:      bicf.marshalizer,
 		Hasher:           bicf.hasher,
 		ShardCoordinator: bicf.shardCoordinator,
 	}
-	txBlockBodyProcessor, err := processor.NewTxBodyInterceptorProcessor(argProcessor)
+	miniblockProcessor, err := processor.NewMiniblockInterceptorProcessor(argProcessor)
 	if err != nil {
 		return nil, err
 	}
 
-	txFactory, err := interceptorFactory.NewInterceptedTxBlockBodyDataFactory(bicf.argInterceptorFactory)
+	miniblockFactory, err := interceptorFactory.NewInterceptedMiniblockDataFactory(bicf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	interceptor, err := interceptors.NewSingleDataInterceptor(
+	interceptor, err := interceptors.NewMultiDataInterceptor(
 		topic,
-		txFactory,
-		txBlockBodyProcessor,
+		bicf.marshalizer,
+		miniblockFactory,
+		miniblockProcessor,
 		bicf.globalThrottler,
 		bicf.antifloodHandler,
 		bicf.whiteListHandler,

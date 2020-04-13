@@ -67,21 +67,6 @@ func createDefaultRatingsData() *mock.RatingsInfoMock {
 	return ratingsData
 }
 
-func createDefaultRatingReader(ratingsMap map[string]uint32) *mock.RatingReaderMock {
-	rrm := &mock.RatingReaderMock{
-		RatingsMap: ratingsMap,
-		GetRatingCalled: func(s string) uint32 {
-			value, ok := ratingsMap[s]
-			if !ok {
-				return startRating
-			}
-			return value
-		},
-	}
-
-	return rrm
-}
-
 func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposed(t *testing.T) {
 	initialRatingValue := uint32(5)
 	rd := createDefaultRatingsData()
@@ -478,38 +463,38 @@ func TestBlockSigningRater_GetChancesForSetRatingShouldReturnCorrectRating(t *te
 func TestBlockSigningRater_PositiveDecreaseRatingStep(t *testing.T) {
 	rd := createDefaultRatingsData()
 	ratingStep := createRatingStepMock()
-	ratingStep.ProposerDecreaseRatingStepProperty = 7
+	ratingStep.ProposerDecreaseRatingStepProperty = 0
 	rd.MetaRatingsStepDataProperty = ratingStep
 	bsr, err := rating.NewBlockSigningRater(rd)
 	require.Nil(t, bsr)
-	require.True(t, errors.Is(err, process.ErrDecreaseRatingsStepPositive))
+	require.True(t, errors.Is(err, process.ErrDecreaseRatingsStepMoreThanMinusOne))
 	require.True(t, strings.Contains(err.Error(), "meta"))
 
 	rd = createDefaultRatingsData()
 	ratingStep = createRatingStepMock()
-	ratingStep.ValidatorDecreaseRatingStepProperty = 7
+	ratingStep.ValidatorDecreaseRatingStepProperty = 0
 	rd.MetaRatingsStepDataProperty = ratingStep
 	bsr, err = rating.NewBlockSigningRater(rd)
 	require.Nil(t, bsr)
-	require.True(t, errors.Is(err, process.ErrDecreaseRatingsStepPositive))
+	require.True(t, errors.Is(err, process.ErrDecreaseRatingsStepMoreThanMinusOne))
 	require.True(t, strings.Contains(err.Error(), "meta"))
 
 	rd = createDefaultRatingsData()
 	ratingStep = createRatingStepMock()
-	ratingStep.ProposerDecreaseRatingStepProperty = 7
+	ratingStep.ProposerDecreaseRatingStepProperty = 0
 	rd.ShardRatingsStepDataProperty = ratingStep
 	bsr, err = rating.NewBlockSigningRater(rd)
 	require.Nil(t, bsr)
-	require.True(t, errors.Is(err, process.ErrDecreaseRatingsStepPositive))
+	require.True(t, errors.Is(err, process.ErrDecreaseRatingsStepMoreThanMinusOne))
 	require.True(t, strings.Contains(err.Error(), "shard"))
 
 	rd = createDefaultRatingsData()
 	ratingStep = createRatingStepMock()
-	ratingStep.ValidatorDecreaseRatingStepProperty = 7
+	ratingStep.ValidatorDecreaseRatingStepProperty = 0
 	rd.ShardRatingsStepDataProperty = ratingStep
 	bsr, err = rating.NewBlockSigningRater(rd)
 	require.Nil(t, bsr)
-	require.True(t, errors.Is(err, process.ErrDecreaseRatingsStepPositive))
+	require.True(t, errors.Is(err, process.ErrDecreaseRatingsStepMoreThanMinusOne))
 	require.True(t, strings.Contains(err.Error(), "shard"))
 }
 

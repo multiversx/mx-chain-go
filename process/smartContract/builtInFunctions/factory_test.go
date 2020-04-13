@@ -44,6 +44,7 @@ func fillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["ClaimDeveloperRewards"] = value
 	gasMap["ChangeOwnerAddress"] = value
 	gasMap["SaveUserName"] = value
+	gasMap["SaveKeyValue"] = value
 
 	return gasMap
 }
@@ -66,5 +67,5 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	args = createMockArguments()
 	container, err = CreateBuiltInFunctionContainer(args)
 	assert.Nil(t, err)
-	assert.Equal(t, container.Len(), 3)
+	assert.Equal(t, container.Len(), 4)
 }

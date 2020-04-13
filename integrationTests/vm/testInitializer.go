@@ -98,7 +98,12 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marsh := &marshal.GogoProtoMarshalizer{}
 	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marsh)
-	trieStorage, _ := trie.NewTrieStorageManager(store, marsh, testHasher, config.DBConfig{}, ewl)
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
+	trieStorage, _ := trie.NewTrieStorageManager(store, marsh, testHasher, config.DBConfig{}, ewl, generalCfg)
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher)
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
@@ -136,6 +141,7 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 
 // CreateTxProcessorWithOneSCExecutorMockVM -
 func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGas uint64) process.TransactionProcessor {
+	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	args := hooks.ArgBlockChainHook{
 		Accounts:         accnts,
 		AddrConv:         addrConv,
@@ -144,7 +150,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		ShardCoordinator: oneShardCoordinator,
 		Marshalizer:      testMarshalizer,
 		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
+		BuiltInFunctions: builtInFuncs,
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -155,15 +161,17 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 			return vm, nil
 		}}
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(
-		addrConv,
-		oneShardCoordinator,
-		accnts)
-
+	argsParser := vmcommon.NewAtArgumentParser()
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		AddressConverter: addrConv,
+		ShardCoordinator: oneShardCoordinator,
+		BuiltInFuncNames: builtInFuncs.Keys(),
+		ArgumentParser:   argsParser,
+	}
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	gasSchedule := make(map[string]map[string]uint64)
 	FillGasMapInternal(gasSchedule, 1)
 
-	argsParser := vmcommon.NewAtArgumentParser()
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:  vmContainer,
 		ArgsParser:   argsParser,
@@ -295,10 +303,13 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	blockChainHook *hooks.BlockChainHookImpl,
 ) (process.TransactionProcessor, process.SmartContractProcessor) {
 	argsParser := vmcommon.NewAtArgumentParser()
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(
-		addrConv,
-		oneShardCoordinator,
-		accnts)
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		AddressConverter: addrConv,
+		ShardCoordinator: oneShardCoordinator,
+		BuiltInFuncNames: blockChainHook.GetBuiltInFunctions().Keys(),
+		ArgumentParser:   argsParser,
+	}
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
 	gasSchedule := make(map[string]map[string]uint64)
 	FillGasMapInternal(gasSchedule, 1)
@@ -619,6 +630,7 @@ func FillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["ClaimDeveloperRewards"] = value
 	gasMap["ChangeOwnerAddress"] = value
 	gasMap["SaveUserName"] = value
+	gasMap["SaveKeyValue"] = value
 
 	return gasMap
 }

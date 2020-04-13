@@ -12,7 +12,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -50,7 +49,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	factoryMarshalizer "github.com/ElrondNetwork/elrond-go/marshal/factory"
-	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -248,12 +246,13 @@ func createTries(
 
 	trieContainer := state.NewDataTriesHolder()
 	trieFactoryArgs := factory.TrieFactoryArgs{
-		EvictionWaitingListCfg: args.config.EvictionWaitingList,
-		SnapshotDbCfg:          args.config.TrieSnapshotDB,
-		Marshalizer:            marshalizer,
-		Hasher:                 hasher,
-		PathManager:            args.pathManager,
-		ShardId:                args.shardId,
+		EvictionWaitingListCfg:   args.config.EvictionWaitingList,
+		SnapshotDbCfg:            args.config.TrieSnapshotDB,
+		Marshalizer:              marshalizer,
+		Hasher:                   hasher,
+		PathManager:              args.pathManager,
+		ShardId:                  args.shardId,
+		TrieStorageManagerConfig: args.config.TrieStorageManagerConfig,
 	}
 	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
 	if err != nil {
@@ -546,7 +545,7 @@ type processComponentsFactoryArgs struct {
 	economicsData             *economics.EconomicsData
 	nodesConfig               *sharding.NodesSetup
 	gasSchedule               map[string]map[string]uint64
-	syncer                    ntp.SyncTimer
+	rounder                   consensus.Rounder
 	shardCoordinator          sharding.Coordinator
 	nodesCoordinator          sharding.NodesCoordinator
 	data                      *Data
@@ -577,7 +576,7 @@ func NewProcessComponentsFactoryArgs(
 	economicsData *economics.EconomicsData,
 	nodesConfig *sharding.NodesSetup,
 	gasSchedule map[string]map[string]uint64,
-	syncer ntp.SyncTimer,
+	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
@@ -606,7 +605,7 @@ func NewProcessComponentsFactoryArgs(
 		economicsData:             economicsData,
 		nodesConfig:               nodesConfig,
 		gasSchedule:               gasSchedule,
-		syncer:                    syncer,
+		rounder:                   rounder,
 		shardCoordinator:          shardCoordinator,
 		nodesCoordinator:          nodesCoordinator,
 		data:                      data,
@@ -642,15 +641,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		KeyGen:            args.crypto.BlockSignKeyGen,
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
-	if err != nil {
-		return nil, err
-	}
-
-	rounder, err := round.NewRound(
-		time.Unix(args.nodesConfig.StartTime, 0),
-		args.syncer.CurrentTime(),
-		time.Millisecond*time.Duration(args.nodesConfig.RoundDuration),
-		args.syncer)
 	if err != nil {
 		return nil, err
 	}
@@ -747,7 +737,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args,
 		headerValidator,
 		requestHandler,
-		rounder,
+		args.rounder,
 		genesisBlocks,
 	)
 	if err != nil {
@@ -756,7 +746,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 
 	_, err = poolsCleaner.NewMiniBlocksPoolsCleaner(
 		args.data.Datapool.MiniBlocks(),
-		rounder,
+		args.rounder,
 		args.shardCoordinator,
 	)
 	if err != nil {
@@ -766,7 +756,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	_, err = poolsCleaner.NewCrossTxsPoolsCleaner(
 		args.state.AddressConverter,
 		args.data.Datapool,
-		rounder,
+		args.rounder,
 		args.shardCoordinator,
 	)
 	if err != nil {
@@ -807,7 +797,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	forkDetector, err := newForkDetector(
-		rounder,
+		args.rounder,
 		args.shardCoordinator,
 		blackListHandler,
 		blockTracker,
@@ -821,7 +811,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args,
 		requestHandler,
 		forkDetector,
-		rounder,
 		epochStartTrigger,
 		bootStorer,
 		validatorStatisticsProcessor,
@@ -836,7 +825,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	return &Process{
 		InterceptorsContainer:    interceptorsContainer,
 		ResolversFinder:          resolversFinder,
-		Rounder:                  rounder,
+		Rounder:                  args.rounder,
 		ForkDetector:             forkDetector,
 		BlockProcessor:           blockProcessor,
 		EpochStartTrigger:        epochStartTrigger,
@@ -1570,7 +1559,6 @@ func newBlockProcessor(
 	processArgs *processComponentsFactoryArgs,
 	requestHandler process.RequestHandler,
 	forkDetector process.ForkDetector,
-	rounder consensus.Rounder,
 	epochStartTrigger epochStart.TriggerHandler,
 	bootStorer process.BootStorer,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
@@ -1593,7 +1581,7 @@ func newBlockProcessor(
 			forkDetector,
 			processArgs.coreServiceContainer,
 			processArgs.economicsData,
-			rounder,
+			processArgs.rounder,
 			epochStartTrigger,
 			bootStorer,
 			processArgs.gasSchedule,
@@ -1616,7 +1604,7 @@ func newBlockProcessor(
 			processArgs.coreServiceContainer,
 			processArgs.economicsData,
 			validatorStatisticsProcessor,
-			rounder,
+			processArgs.rounder,
 			epochStartTrigger,
 			bootStorer,
 			headerValidator,
@@ -1728,7 +1716,13 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressConverter, shardCoordinator, stateComponents.AccountsAdapter)
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		AddressConverter: stateComponents.AddressConverter,
+		ShardCoordinator: shardCoordinator,
+		BuiltInFuncNames: builtInFuncs.Keys(),
+		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+	}
+	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -1828,6 +1822,7 @@ func newShardBlockProcessor(
 		interimProcContainer,
 		gasHandler,
 		txFeeHandler,
+		blockSizeComputationHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1913,6 +1908,7 @@ func newMetaBlockProcessor(
 	maxSizeInBytes uint32,
 ) (process.BlockProcessor, error) {
 
+	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         stateComponents.AccountsAdapter,
 		AddrConv:         stateComponents.AddressConverter,
@@ -1921,7 +1917,7 @@ func newMetaBlockProcessor(
 		ShardCoordinator: shardCoordinator,
 		Marshalizer:      core.InternalMarshalizer,
 		Uint64Converter:  core.Uint64ByteSliceConverter,
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(), // no built-in functions for meta.
+		BuiltInFunctions: builtInFuncs, // no built-in functions for meta.
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(argsHook, economicsData, messageSignVerifier, gasSchedule)
 	if err != nil {
@@ -1967,7 +1963,13 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	txTypeHandler, err := coordinator.NewTxTypeHandler(stateComponents.AddressConverter, shardCoordinator, stateComponents.AccountsAdapter)
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		AddressConverter: stateComponents.AddressConverter,
+		ShardCoordinator: shardCoordinator,
+		BuiltInFuncNames: builtInFuncs.Keys(),
+		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+	}
+	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -2053,6 +2055,7 @@ func newMetaBlockProcessor(
 		interimProcContainer,
 		gasHandler,
 		txFeeHandler,
+		blockSizeComputationHandler,
 	)
 	if err != nil {
 		return nil, err

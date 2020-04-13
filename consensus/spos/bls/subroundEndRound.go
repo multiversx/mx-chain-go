@@ -181,7 +181,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	sr.displayStatistics()
 
-	log.Debug("step 3: Body and Header have been committed header has been broadcast")
+	log.Debug("step 3: Body and Header have been committed and header has been broadcast")
 
 	err = sr.broadcastMiniBlocksAndTransactions()
 	if err != nil {
