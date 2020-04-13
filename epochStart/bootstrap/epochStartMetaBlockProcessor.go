@@ -196,8 +196,7 @@ func (e *epochStartMetaBlockProcessor) getMostReceivedMetaBlock() (*block.MetaBl
 	e.mutReceivedMetaBlocks.RLock()
 	defer e.mutReceivedMetaBlocks.RUnlock()
 
-	const hashNotAvailable = "N/A"
-	mostReceivedHash := hashNotAvailable
+	var mostReceivedHash string
 	maxLength := minNumOfPeersToConsiderBlockValid - 1
 	for hash, entry := range e.mapMetaBlocksFromPeers {
 		if len(entry) > maxLength {
@@ -206,7 +205,7 @@ func (e *epochStartMetaBlockProcessor) getMostReceivedMetaBlock() (*block.MetaBl
 		}
 	}
 
-	if mostReceivedHash == hashNotAvailable {
+	if len(mostReceivedHash) == 0 {
 		return nil, epochStart.ErrTimeoutWaitingForMetaBlock
 	}
 
