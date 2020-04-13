@@ -248,3 +248,5 @@ func (e *epochStartMetaBlockProcessor) GetMapMetaBlock() map[string]*block.MetaB
 const DurationBetweenChecksForEpochStartMetaBlock = durationBetweenChecks
 
 const DurationBetweenReRequest = durationBetweenReRequests
+
+const MinNumOfPeersToConsiderBlockValid = minNumOfPeersToConsiderBlockValid
