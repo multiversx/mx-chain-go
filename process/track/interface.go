@@ -32,7 +32,7 @@ type blockProcessorHandler interface {
 
 type blockTrackerHandler interface {
 	GetSelfHeaders(headerHandler data.HeaderHandler) []*HeaderInfo
-	ComputeNumPendingMiniBlocks(headers []data.HeaderHandler)
+	ComputeCrossInfo(headers []data.HeaderHandler)
 	ComputeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte)
 	SortHeadersFromNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 	IsInterfaceNil() bool

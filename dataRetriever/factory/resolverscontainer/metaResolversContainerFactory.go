@@ -124,7 +124,7 @@ func (mrcf *metaResolversContainerFactory) generateShardHeaderResolvers() error 
 	//wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierHeader := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(idx)
-		excludePeersFromTopic := emptyExcludePeersOnTopic
+		excludePeersFromTopic := EmptyExcludePeersOnTopic
 
 		resolver, err := mrcf.createShardHeaderResolver(identifierHeader, excludePeersFromTopic, idx)
 		if err != nil {
@@ -195,7 +195,7 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(
 ) (dataRetriever.Resolver, error) {
 	hdrStorer := mrcf.store.GetStorer(dataRetriever.MetaBlockUnit)
 
-	resolverSender, err := mrcf.createOneResolverSender(identifier, emptyExcludePeersOnTopic, shardId)
+	resolverSender, err := mrcf.createOneResolverSender(identifier, EmptyExcludePeersOnTopic, shardId)
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +278,7 @@ func (mrcf *metaResolversContainerFactory) generateRewardsResolvers(
 	//wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierTx := topic + shardC.CommunicationIdentifier(idx)
-		excludePeersFromTopic := emptyExcludePeersOnTopic
+		excludePeersFromTopic := EmptyExcludePeersOnTopic
 
 		resolver, err := mrcf.createTxResolver(identifierTx, excludePeersFromTopic, unit, dataPool)
 		if err != nil {
