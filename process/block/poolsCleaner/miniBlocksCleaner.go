@@ -87,7 +87,7 @@ func (mbpc *miniBlocksPoolsCleaner) receivedMiniBlock(key []byte, value interfac
 	mbpc.mutMapMiniBlocksRounds.Lock()
 	defer mbpc.mutMapMiniBlocksRounds.Unlock()
 
-	if _, ok := mbpc.mapMiniBlocksRounds[string(key)]; !ok {
+	if _, found := mbpc.mapMiniBlocksRounds[string(key)]; !found {
 		receivedMbInfo := &mbInfo{
 			round:           mbpc.rounder.Index(),
 			senderShardID:   miniBlock.SenderShardID,
@@ -112,28 +112,28 @@ func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() int {
 
 	numMbsCleaned := 0
 
-	for hash, mbInfo := range mbpc.mapMiniBlocksRounds {
+	for hash, mbi := range mbpc.mapMiniBlocksRounds {
 		_, ok := mbpc.miniblocksPool.Get([]byte(hash))
 		if !ok {
 			log.Trace("miniblock not found in pool",
 				"hash", []byte(hash),
-				"round", mbInfo.round,
-				"sender", mbInfo.senderShardID,
-				"receiver", mbInfo.receiverShardID,
-				"type", mbInfo.mbType)
+				"round", mbi.round,
+				"sender", mbi.senderShardID,
+				"receiver", mbi.receiverShardID,
+				"type", mbi.mbType)
 			delete(mbpc.mapMiniBlocksRounds, hash)
 			continue
 		}
 
-		roundDif := mbpc.rounder.Index() - mbInfo.round
+		roundDif := mbpc.rounder.Index() - mbi.round
 		if roundDif <= process.MaxRoundsToKeepUnprocessedMiniBlocks {
 			log.Trace("cleaning miniblock not yet allowed",
 				"hash", []byte(hash),
-				"round", mbInfo.round,
+				"round", mbi.round,
 				"round dif", roundDif,
-				"sender", mbInfo.senderShardID,
-				"receiver", mbInfo.receiverShardID,
-				"type", mbInfo.mbType)
+				"sender", mbi.senderShardID,
+				"receiver", mbi.receiverShardID,
+				"type", mbi.mbType)
 
 			continue
 		}
@@ -144,10 +144,10 @@ func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() int {
 
 		log.Trace("miniblock has been cleaned",
 			"hash", []byte(hash),
-			"round", mbInfo.round,
-			"sender", mbInfo.senderShardID,
-			"receiver", mbInfo.receiverShardID,
-			"type", mbInfo.mbType)
+			"round", mbi.round,
+			"sender", mbi.senderShardID,
+			"receiver", mbi.receiverShardID,
+			"type", mbi.mbType)
 	}
 
 	if numMbsCleaned > 0 {

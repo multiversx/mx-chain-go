@@ -5,9 +5,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -36,6 +38,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	KeyGen            crypto.KeyGenerator
 	BlockKeyGen       crypto.KeyGenerator
 	WhiteListHandler  update.WhiteListHandler
+	AddressPubkeyConv state.PubkeyConverter
 	ChainID           []byte
 }
 
@@ -47,12 +50,8 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	antiFloodHandler := disabled.NewAntiFloodHandler()
 	multiSigner := disabled.NewMultiSigner()
 	accountsAdapter := disabled.NewAccountsAdapter()
-	addressConverter, err := addressConverters.NewPlainAddressConverter(
-		args.Config.Address.Length,
-		args.Config.Address.Prefix,
-	)
-	if err != nil {
-		return nil, err
+	if check.IfNil(args.AddressPubkeyConv) {
+		return nil, epochStart.ErrNilPubkeyConverter
 	}
 	blackListHandler := timecache.NewTimeCache(timeSpanForBadHeaders)
 	feeHandler := genesis.NewGenesisFeeHandler()
@@ -72,7 +71,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		MultiSigner:            multiSigner,
 		DataPool:               args.DataPool,
 		Accounts:               accountsAdapter,
-		AddrConverter:          addressConverter,
+		AddressPubkeyConverter: args.AddressPubkeyConv,
 		SingleSigner:           args.SingleSigner,
 		BlockSingleSigner:      args.BlockSingleSigner,
 		KeyGen:                 args.KeyGen,

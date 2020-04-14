@@ -197,11 +197,11 @@ func TestNewMetaInterceptorsContainerFactory_NilAddrConvShouldErr(t *testing.T) 
 	t.Parallel()
 
 	args := getArgumentsMeta()
-	args.AddrConverter = nil
+	args.AddressPubkeyConverter = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestNewMetaInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) {
@@ -447,7 +447,7 @@ func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryAr
 		MultiSigner:            mock.NewMultiSigner(),
 		DataPool:               createMetaDataPools(),
 		Accounts:               &mock.AccountsStub{},
-		AddrConverter:          &mock.AddressConverterMock{},
+		AddressPubkeyConverter: mock.NewPubkeyConverterMock(32),
 		SingleSigner:           &mock.SignerMock{},
 		BlockSingleSigner:      &mock.SignerMock{},
 		KeyGen:                 &mock.SingleSignKeyGenMock{},

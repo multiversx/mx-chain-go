@@ -25,7 +25,7 @@ var log = logger.GetOrCreate("process/smartcontract")
 type scProcessor struct {
 	accounts         state.AccountsAdapter
 	tempAccounts     process.TemporaryAccountsHandler
-	adrConv          state.AddressConverter
+	pubkeyConv       state.PubkeyConverter
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
@@ -50,7 +50,7 @@ type ArgsNewSmartContractProcessor struct {
 	Marshalizer      marshal.Marshalizer
 	AccountsDB       state.AccountsAdapter
 	TempAccounts     process.TemporaryAccountsHandler
-	AdrConv          state.AddressConverter
+	PubkeyConv       state.PubkeyConverter
 	Coordinator      sharding.Coordinator
 	ScrForwarder     process.IntermediateTransactionHandler
 	TxFeeHandler     process.TransactionFeeHandler
@@ -81,8 +81,8 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.TempAccounts) {
 		return nil, process.ErrNilTemporaryAccountsHandler
 	}
-	if check.IfNil(args.AdrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(args.PubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(args.Coordinator) {
 		return nil, process.ErrNilShardCoordinator
@@ -116,7 +116,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		marshalizer:      args.Marshalizer,
 		accounts:         args.AccountsDB,
 		tempAccounts:     args.TempAccounts,
-		adrConv:          args.AdrConv,
+		pubkeyConv:       args.PubkeyConv,
 		shardCoordinator: args.Coordinator,
 		scrForwarder:     args.ScrForwarder,
 		txFeeHandler:     args.TxFeeHandler,
@@ -135,7 +135,7 @@ func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
 		return process.ErrNilTransaction
 	}
 
-	recvAddressIsInvalid := sc.adrConv.AddressLen() != len(tx.GetRcvAddr())
+	recvAddressIsInvalid := sc.pubkeyConv.Len() != len(tx.GetRcvAddr())
 	if recvAddressIsInvalid {
 		return process.ErrWrongTransaction
 	}
@@ -144,7 +144,7 @@ func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
 }
 
 func (sc *scProcessor) isDestAddressEmpty(tx data.TransactionHandler) bool {
-	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, sc.adrConv.AddressLen()))
+	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, sc.pubkeyConv.Len()))
 	return isEmptyAddress
 }
 
@@ -861,7 +861,7 @@ func (sc *scProcessor) updateSmartContractCode(
 		scAccount.SetOwnerAddress(tx.GetSndAddr())
 		scAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		scAccount.SetCode(outputAccount.Code)
-		log.Trace("updateSmartContractCode(): created", "address", outputAccount.Address)
+		log.Trace("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address))
 		return nil
 	}
 
@@ -870,7 +870,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	if isUpgrade {
 		scAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		scAccount.SetCode(outputAccount.Code)
-		log.Trace("updateSmartContractCode(): upgraded", "address", outputAccount.Address)
+		log.Trace("updateSmartContractCode(): upgraded", "address", sc.pubkeyConv.Encode(outputAccount.Address))
 		return nil
 	}
 
@@ -901,7 +901,7 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 }
 
 func (sc *scProcessor) getAccountFromAddress(address []byte) (state.UserAccountHandler, error) {
-	adrSrc, err := sc.adrConv.CreateAddressFromPublicKeyBytes(address)
+	adrSrc, err := sc.pubkeyConv.CreateAddressFromBytes(address)
 	if err != nil {
 		return nil, err
 	}
@@ -959,7 +959,12 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		return nil
 	}
 
-	process.DisplayProcessTxDetails("ProcessSmartContractResult: receiver account details", dstAcc, scr)
+	process.DisplayProcessTxDetails(
+		"ProcessSmartContractResult: receiver account details",
+		dstAcc,
+		scr,
+		sc.pubkeyConv,
+	)
 
 	txType, err := sc.txTypeHandler.ComputeTransactionType(scr)
 	if err != nil {
