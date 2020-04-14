@@ -16,7 +16,6 @@ import (
 
 // Facade is the mock implementation of a node router handler
 type Facade struct {
-	Running                           bool
 	ShouldErrorStart                  bool
 	ShouldErrorStop                   bool
 	TpsBenchmarkHandler               func() *statistics.TpsBenchmark
@@ -50,33 +49,11 @@ func (f *Facade) PprofEnabled() bool {
 	return false
 }
 
-// IsNodeRunning is the mock implementation of a handler's IsNodeRunning method
-func (f *Facade) IsNodeRunning() bool {
-	return f.Running
-}
-
-// StartNode is the mock implementation of a handler's StartNode method
-func (f *Facade) StartNode() error {
-	if f.ShouldErrorStart {
-		return errors.New("error")
-	}
-	return nil
-}
-
 // TpsBenchmark is the mock implementation for retreiving the TpsBenchmark
 func (f *Facade) TpsBenchmark() *statistics.TpsBenchmark {
 	if f.TpsBenchmarkHandler != nil {
 		return f.TpsBenchmarkHandler()
 	}
-	return nil
-}
-
-// StopNode is the mock implementation of a handler's StopNode method
-func (f *Facade) StopNode() error {
-	if f.ShouldErrorStop {
-		return errors.New("error")
-	}
-	f.Running = false
 	return nil
 }
 
@@ -93,12 +70,6 @@ func (f *Facade) GetBalance(address string) (*big.Int, error) {
 // GetAccount is the mock implementation of a handler's GetAccount method
 func (f *Facade) GetAccount(address string) (state.UserAccountHandler, error) {
 	return f.GetAccountHandler(address)
-}
-
-// GenerateTransaction is the mock implementation of a handler's GenerateTransaction method
-func (f *Facade) GenerateTransaction(sender string, receiver string, value *big.Int,
-	code string) (*transaction.Transaction, error) {
-	return f.GenerateTransactionHandler(sender, receiver, value, code)
 }
 
 // CreateTransaction is  mock implementation of a handler's CreateTransaction method

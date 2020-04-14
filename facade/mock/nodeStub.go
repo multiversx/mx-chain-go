@@ -12,9 +12,6 @@ import (
 // NodeStub -
 type NodeStub struct {
 	AddressHandler             func() (string, error)
-	StartHandler               func()
-	StopHandler                func() error
-	IsRunningHandler           func() bool
 	ConnectToAddressesHandler  func([]string) error
 	StartConsensusHandler      func() error
 	GetBalanceHandler          func(address string) (*big.Int, error)
@@ -42,16 +39,6 @@ func (ns *NodeStub) EncodeAddressPubkey(pk []byte) (string, error) {
 // DecodeAddressPubkey -
 func (ns *NodeStub) DecodeAddressPubkey(pk string) ([]byte, error) {
 	return hex.DecodeString(pk)
-}
-
-// Start -
-func (ns *NodeStub) Start() {
-	ns.StartHandler()
-}
-
-// IsRunning -
-func (ns *NodeStub) IsRunning() bool {
-	return ns.IsRunningHandler()
 }
 
 // StartConsensus -

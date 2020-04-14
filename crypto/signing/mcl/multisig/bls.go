@@ -16,8 +16,8 @@ const hasherOutputSize = 16
 
 // BlsMultiSigner provides an implements of the crypto.LowLevelSignerBLS interface
 type BlsMultiSigner struct {
-	Hasher hashing.Hasher
 	singlesig.BlsSingleSigner
+	Hasher hashing.Hasher
 }
 
 // SignShare produces a BLS signature share (single BLS signature) over a given message

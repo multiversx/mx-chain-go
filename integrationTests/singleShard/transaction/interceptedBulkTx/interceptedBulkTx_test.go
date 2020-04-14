@@ -30,10 +30,9 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	nodeAddr := "0"
 
 	n := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, nodeAddr)
-	n.Node.Start()
 
 	defer func() {
-		_ = n.Node.Stop()
+		_ = n.Messenger.Close()
 	}()
 
 	_ = n.Messenger.Bootstrap()

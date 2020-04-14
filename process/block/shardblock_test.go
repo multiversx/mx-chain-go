@@ -3031,7 +3031,7 @@ func TestShardProcessor_DecodeBlockBody(t *testing.T) {
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
 	arguments.Marshalizer = marshalizerMock
-	sp, err := blproc.NewShardProcessor(arguments)
+	sp, _ := blproc.NewShardProcessor(arguments)
 	body := &block.Body{}
 	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{ReceiverShardID: 69})
 	message, err := marshalizerMock.Marshal(body)

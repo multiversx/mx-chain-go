@@ -54,7 +54,7 @@ func TestSCCallingIntraShard(t *testing.T) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -138,7 +138,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -240,7 +240,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -360,7 +360,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -458,7 +458,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 

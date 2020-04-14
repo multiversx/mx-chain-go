@@ -13,12 +13,6 @@ import (
 
 //NodeHandler contains all functions that a node should contain.
 type NodeHandler interface {
-	// Start will create a new messenger and and set up the Node state as running
-	Start()
-
-	//IsRunning returns if the underlying node is running
-	IsRunning() bool
-
 	// StartConsensus will start the consesus service for the current node
 	StartConsensus() error
 

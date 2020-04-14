@@ -46,7 +46,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -124,7 +124,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -210,7 +210,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -285,7 +285,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	}
 }
 
-func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *testing.T) {
+func TestNode_InMultiShardEnvRequestTxsShouldRequireFromTheOtherShardAndSameShard(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -301,7 +301,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -309,7 +309,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireOnlyFromTheOtherShard(t *tes
 	recvTxs := make(map[int]map[string]struct{})
 	mutRecvTxs := sync.Mutex{}
 	for i := 0; i < nodesPerShard; i++ {
-		dPool := integrationTests.CreateRequesterDataPool(t, recvTxs, &mutRecvTxs, i, 0)
+		dPool := integrationTests.CreateRequesterDataPool(recvTxs, &mutRecvTxs, i, 0)
 
 		tn := integrationTests.NewTestProcessorNodeWithCustomDataPool(
 			uint32(maxShards),
