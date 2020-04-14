@@ -18,9 +18,9 @@ import (
 )
 
 type intermediateResultsProcessor struct {
-	adrConv   state.AddressConverter
-	blockType block.Type
-	currTxs   dataRetriever.TransactionCacher
+	pubkeyConv state.PubkeyConverter
+	blockType  block.Type
+	currTxs    dataRetriever.TransactionCacher
 
 	*basePostProcessor
 }
@@ -30,7 +30,7 @@ func NewIntermediateResultsProcessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	coordinator sharding.Coordinator,
-	adrConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 	store dataRetriever.StorageService,
 	blockType block.Type,
 	currTxs dataRetriever.TransactionCacher,
@@ -44,8 +44,8 @@ func NewIntermediateResultsProcessor(
 	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNil(adrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(store) {
 		return nil, process.ErrNilStorage
@@ -65,7 +65,7 @@ func NewIntermediateResultsProcessor(
 
 	irp := &intermediateResultsProcessor{
 		basePostProcessor: base,
-		adrConv:           adrConv,
+		pubkeyConv:        pubkeyConv,
 		blockType:         blockType,
 		currTxs:           currTxs,
 	}
@@ -206,11 +206,11 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 }
 
 func (irp *intermediateResultsProcessor) getShardIdsFromAddresses(sndAddr []byte, rcvAddr []byte) (uint32, uint32, error) {
-	adrSrc, err := irp.adrConv.CreateAddressFromPublicKeyBytes(sndAddr)
+	adrSrc, err := irp.pubkeyConv.CreateAddressFromBytes(sndAddr)
 	if err != nil {
 		return irp.shardCoordinator.NumberOfShards(), irp.shardCoordinator.NumberOfShards(), err
 	}
-	adrDst, err := irp.adrConv.CreateAddressFromPublicKeyBytes(rcvAddr)
+	adrDst, err := irp.pubkeyConv.CreateAddressFromBytes(rcvAddr)
 	if err != nil {
 		return irp.shardCoordinator.NumberOfShards(), irp.shardCoordinator.NumberOfShards(), err
 	}
@@ -218,12 +218,12 @@ func (irp *intermediateResultsProcessor) getShardIdsFromAddresses(sndAddr []byte
 	shardForSrc := irp.shardCoordinator.ComputeId(adrSrc)
 	shardForDst := irp.shardCoordinator.ComputeId(adrDst)
 
-	isEmptyAddress := bytes.Equal(sndAddr, make([]byte, irp.adrConv.AddressLen()))
+	isEmptyAddress := bytes.Equal(sndAddr, make([]byte, irp.pubkeyConv.Len()))
 	if isEmptyAddress {
 		shardForSrc = irp.shardCoordinator.SelfId()
 	}
 
-	isEmptyAddress = bytes.Equal(rcvAddr, make([]byte, irp.adrConv.AddressLen()))
+	isEmptyAddress = bytes.Equal(rcvAddr, make([]byte, irp.pubkeyConv.Len()))
 	if isEmptyAddress {
 		shardForDst = irp.shardCoordinator.SelfId()
 	}

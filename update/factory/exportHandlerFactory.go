@@ -52,7 +52,7 @@ type ArgsExporter struct {
 	MultiSigner              crypto.MultiSigner
 	NodesCoordinator         sharding.NodesCoordinator
 	SingleSigner             crypto.SingleSigner
-	AddrConverter            state.AddressConverter
+	AddressPubkeyConverter   state.PubkeyConverter
 	BlockKeyGen              crypto.KeyGenerator
 	KeyGen                   crypto.KeyGenerator
 	BlockSigner              crypto.SingleSigner
@@ -89,7 +89,7 @@ type exportHandlerFactory struct {
 	blockKeyGen              crypto.KeyGenerator
 	keyGen                   crypto.KeyGenerator
 	blockSigner              crypto.SingleSigner
-	addrConv                 state.AddressConverter
+	addressPubkeyConverter   state.PubkeyConverter
 	headerSigVerifier        process.InterceptedHeaderSigVerifier
 	chainID                  []byte
 	validityAttester         process.ValidityAttester
@@ -148,8 +148,8 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.SingleSigner) {
 		return nil, update.ErrNilSingleSigner
 	}
-	if check.IfNil(args.AddrConverter) {
-		return nil, update.ErrNilAddressConverter
+	if check.IfNil(args.AddressPubkeyConverter) {
+		return nil, update.ErrNilPubkeyConverter
 	}
 	if check.IfNil(args.BlockKeyGen) {
 		return nil, update.ErrNilBlockKeyGen
@@ -198,7 +198,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		multiSigner:              args.MultiSigner,
 		nodesCoordinator:         args.NodesCoordinator,
 		singleSigner:             args.SingleSigner,
-		addrConv:                 args.AddrConverter,
+		addressPubkeyConverter:   args.AddressPubkeyConverter,
 		blockKeyGen:              args.BlockKeyGen,
 		keyGen:                   args.KeyGen,
 		blockSigner:              args.BlockSigner,
@@ -400,7 +400,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		BlockSingleSigner:      e.blockSigner,
 		MultiSigner:            e.multiSigner,
 		DataPool:               e.dataPool,
-		AddrConverter:          e.addrConv,
+		AddressPubkeyConverter: e.addressPubkeyConverter,
 		MaxTxNonceDeltaAllowed: math.MaxInt32,
 		TxFeeHandler:           epochStartGenesis.NewGenesisFeeHandler(),
 		BlackList:              timecache.NewTimeCache(time.Second),

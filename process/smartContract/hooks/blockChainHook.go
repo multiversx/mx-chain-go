@@ -25,7 +25,7 @@ var log = logger.GetOrCreate("process/smartContract/blockChainHook")
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
 	Accounts         state.AccountsAdapter
-	AddrConv         state.AddressConverter
+	PubkeyConv       state.PubkeyConverter
 	StorageService   dataRetriever.StorageService
 	BlockChain       data.ChainHandler
 	ShardCoordinator sharding.Coordinator
@@ -37,7 +37,7 @@ type ArgBlockChainHook struct {
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
 type BlockChainHookImpl struct {
 	accounts         state.AccountsAdapter
-	addrConv         state.AddressConverter
+	pubkeyConv       state.PubkeyConverter
 	storageService   dataRetriever.StorageService
 	blockChain       data.ChainHandler
 	shardCoordinator sharding.Coordinator
@@ -63,7 +63,7 @@ func NewBlockChainHookImpl(
 
 	blockChainHookImpl := &BlockChainHookImpl{
 		accounts:         args.Accounts,
-		addrConv:         args.AddrConv,
+		pubkeyConv:       args.PubkeyConv,
 		storageService:   args.StorageService,
 		blockChain:       args.BlockChain,
 		shardCoordinator: args.ShardCoordinator,
@@ -82,8 +82,8 @@ func checkForNil(args ArgBlockChainHook) error {
 	if check.IfNil(args.Accounts) {
 		return process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(args.AddrConv) {
-		return process.ErrNilAddressConverter
+	if check.IfNil(args.PubkeyConv) {
+		return process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(args.StorageService) {
 		return process.ErrNilStorage
@@ -342,7 +342,7 @@ func (bh *BlockChainHookImpl) CurrentEpoch() uint32 {
 // Prefix mask is applied for first 8 bytes 0, and for bytes 9-10 - VM type
 // Suffix mask is applied - last 2 bytes are for the shard ID - mask is applied as suffix mask
 func (bh *BlockChainHookImpl) NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
-	addressLength := bh.addrConv.AddressLen()
+	addressLength := bh.pubkeyConv.Len()
 	if len(creatorAddress) != addressLength {
 		return nil, ErrAddressLengthNotCorrect
 	}
@@ -400,12 +400,12 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 func (bh *BlockChainHookImpl) getUserAccounts(
 	input *vmcommon.ContractCallInput,
 ) (state.UserAccountHandler, state.UserAccountHandler, error) {
-	sndAddr, err := bh.addrConv.CreateAddressFromPublicKeyBytes(input.CallerAddr)
+	sndAddr, err := bh.pubkeyConv.CreateAddressFromBytes(input.CallerAddr)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	dstAddr, err := bh.addrConv.CreateAddressFromPublicKeyBytes(input.RecipientAddr)
+	dstAddr, err := bh.pubkeyConv.CreateAddressFromBytes(input.RecipientAddr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -447,6 +447,11 @@ func (bh *BlockChainHookImpl) GetBuiltInFunctions() process.BuiltInFunctionConta
 	return bh.builtInFunctions
 }
 
+// GetBuiltinFunctionNames returns the built in function names
+func (bh *BlockChainHookImpl) GetBuiltinFunctionNames() vmcommon.FunctionNames {
+	return bh.builtInFunctions.Keys()
+}
+
 func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte {
 	buffNonce := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buffNonce, creatorNonce)
@@ -473,7 +478,7 @@ func (bh *BlockChainHookImpl) getAccountFromAddressBytes(address []byte) (state.
 		return tempAcc, nil
 	}
 
-	addr, err := bh.addrConv.CreateAddressFromPublicKeyBytes(address)
+	addr, err := bh.pubkeyConv.CreateAddressFromBytes(address)
 	if err != nil {
 		return nil, err
 	}

@@ -18,7 +18,7 @@ import (
 type baseTxProcessor struct {
 	accounts         state.AccountsAdapter
 	shardCoordinator sharding.Coordinator
-	adrConv          state.AddressConverter
+	pubkeyConv       state.PubkeyConverter
 	economicsFee     process.FeeHandler
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
@@ -111,12 +111,12 @@ func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc state.AddressContain
 func (txProc *baseTxProcessor) getAddresses(
 	tx *transaction.Transaction,
 ) (state.AddressContainer, state.AddressContainer, error) {
-	adrSrc, err := txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.SndAddr)
+	adrSrc, err := txProc.pubkeyConv.CreateAddressFromBytes(tx.SndAddr)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	adrDst, err := txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.RcvAddr)
+	adrDst, err := txProc.pubkeyConv.CreateAddressFromBytes(tx.RcvAddr)
 	if err != nil {
 		return nil, nil, err
 	}
