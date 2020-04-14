@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/elastic/go-elasticsearch/v7"
@@ -20,15 +21,18 @@ import (
 
 // elasticSearchDatabaseArgs is struct that is used to store all parameters that are needed to create a elasticsearch database
 type elasticSearchDatabaseArgs struct {
-	url         string
-	userName    string
-	password    string
-	marshalizer marshal.Marshalizer
-	hasher      hashing.Hasher
+	url                      string
+	userName                 string
+	password                 string
+	marshalizer              marshal.Marshalizer
+	hasher                   hashing.Hasher
+	addressPubkeyConverter   state.PubkeyConverter
+	validatorPubkeyConverter state.PubkeyConverter
 }
 
 // elasticSearchDatabase object it contains business logic built over databaseWriterHandler glue code wrapper
 type elasticSearchDatabase struct {
+	*commonProcessor
 	dbWriter    databaseWriterHandler
 	marshalizer marshal.Marshalizer
 	hasher      hashing.Hasher
@@ -50,6 +54,10 @@ func newElasticSearchDatabase(arguments elasticSearchDatabaseArgs) (*elasticSear
 		dbWriter:    es,
 		marshalizer: arguments.marshalizer,
 		hasher:      arguments.hasher,
+	}
+	esdb.commonProcessor = &commonProcessor{
+		addressPubkeyConverter:   arguments.addressPubkeyConverter,
+		validatorPubkeyConverter: arguments.validatorPubkeyConverter,
 	}
 
 	err = esdb.createIndexes()
@@ -153,8 +161,10 @@ func (esd *elasticSearchDatabase) getSerializedElasticBlockAndHeaderHash(
 
 	miniblocksHashes := make([]string, 0)
 	for _, miniblock := range body.MiniBlocks {
-		mbHash, err := core.CalculateHash(esd.marshalizer, esd.hasher, miniblock)
-		if err != nil {
+		mbHash, errComputeHash := core.CalculateHash(esd.marshalizer, esd.hasher, miniblock)
+		if errComputeHash != nil {
+			log.Warn("internal error computing hash", "error", errComputeHash)
+
 			continue
 		}
 
@@ -253,7 +263,7 @@ func (esd *elasticSearchDatabase) buildTransactionBulks(
 				continue
 			}
 
-			currentTx := getTransactionByType(currentTxHandler, txHash, mbHash, blockHash, mb, header, mbTxStatus)
+			currentTx := esd.commonProcessor.getTransactionByType(currentTxHandler, txHash, mbHash, blockHash, mb, header, mbTxStatus)
 			if currentTx == nil {
 				log.Debug("indexer: elasticsearch found tx in pool but of wrong type")
 				continue
@@ -295,8 +305,10 @@ func (esd *elasticSearchDatabase) getMiniblocks(header data.HeaderHandler, body 
 
 	miniblocks := make([]*Miniblock, 0)
 	for _, miniblock := range body.MiniBlocks {
-		mbHash, err := core.CalculateHash(esd.marshalizer, esd.hasher, miniblock)
-		if err != nil {
+		mbHash, errComputeHash := core.CalculateHash(esd.marshalizer, esd.hasher, miniblock)
+		if errComputeHash != nil {
+			log.Warn("internal error computing hash", "error", errComputeHash)
+
 			continue
 		}
 
@@ -357,10 +369,17 @@ func (esd *elasticSearchDatabase) SaveRoundInfo(info RoundInfo) {
 }
 
 // SaveShardValidatorsPubKeys will prepare and save information about a shard validators public keys in elasticsearch server
-func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys []string) {
+func (esd *elasticSearchDatabase) SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) {
 	var buff bytes.Buffer
 
-	shardValPubKeys := ValidatorsPublicKeys{PublicKeys: shardValidatorsPubKeys}
+	shardValPubKeys := ValidatorsPublicKeys{
+		PublicKeys: make([]string, 0, len(shardValidatorsPubKeys)),
+	}
+	for _, validatorPk := range shardValidatorsPubKeys {
+		strValidatorPk := esd.validatorPubkeyConverter.Encode(validatorPk)
+		shardValPubKeys.PublicKeys = append(shardValPubKeys.PublicKeys, strValidatorPk)
+	}
+
 	marshalizedValidatorPubKeys, err := json.Marshal(shardValPubKeys)
 	if err != nil {
 		log.Debug("indexer: marshal", "error", "could not marshal validators public keys")

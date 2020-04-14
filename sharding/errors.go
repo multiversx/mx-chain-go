@@ -34,8 +34,8 @@ var ErrPublicKeyNotFoundInGenesis = errors.New("public key is not valid, it is m
 // ErrNilShardCoordinator signals that a nil shard coordinator has been provided
 var ErrNilShardCoordinator = errors.New("trying to set nil shard coordinator")
 
-// ErrNilAddressConverter signals that a nil address converter has been provided
-var ErrNilAddressConverter = errors.New("trying to set nil address converter")
+// ErrNilPubkeyConverter signals that a nil public key converter has been provided
+var ErrNilPubkeyConverter = errors.New("trying to set nil pubkey converter")
 
 // ErrCouldNotParsePubKey signals that a given public key could not be parsed
 var ErrCouldNotParsePubKey = errors.New("could not parse node's public key")

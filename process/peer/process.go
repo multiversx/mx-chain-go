@@ -2,6 +2,7 @@ package peer
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
@@ -40,7 +41,7 @@ type ArgValidatorStatisticsProcessor struct {
 	ShardCoordinator    sharding.Coordinator
 	DataPool            DataPool
 	StorageService      dataRetriever.StorageService
-	AdrConv             state.AddressConverter
+	PubkeyConv          state.PubkeyConverter
 	PeerAdapter         state.AccountsAdapter
 	Rater               sharding.PeerAccountListAndRatingHandler
 	RewardsHandler      process.RewardsHandler
@@ -55,7 +56,7 @@ type validatorStatistics struct {
 	storageService          dataRetriever.StorageService
 	nodesCoordinator        sharding.NodesCoordinator
 	shardCoordinator        sharding.Coordinator
-	adrConv                 state.AddressConverter
+	pubkeyConv              state.PubkeyConverter
 	peerAdapter             state.AccountsAdapter
 	rater                   sharding.PeerAccountListAndRatingHandler
 	rewardsHandler          process.RewardsHandler
@@ -70,8 +71,8 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if check.IfNil(arguments.PeerAdapter) {
 		return nil, process.ErrNilPeerAccountsAdapter
 	}
-	if check.IfNil(arguments.AdrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(arguments.PubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(arguments.DataPool) {
 		return nil, process.ErrNilDataPoolHolder
@@ -106,7 +107,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 
 	vs := &validatorStatistics{
 		peerAdapter:          arguments.PeerAdapter,
-		adrConv:              arguments.AdrConv,
+		pubkeyConv:           arguments.PubkeyConv,
 		nodesCoordinator:     arguments.NodesCoordinator,
 		shardCoordinator:     arguments.ShardCoordinator,
 		dataPool:             arguments.DataPool,
@@ -227,7 +228,7 @@ func (vs *validatorStatistics) saveInitialState(
 		return err
 	}
 
-	log.Trace("committed peer adapter", "root hash", core.ToHex(hash))
+	log.Trace("committed peer adapter", "root hash", hex.EncodeToString(hash))
 
 	return nil
 }
@@ -525,7 +526,7 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 
 	for _, validators := range vInfos {
 		for _, validator := range validators {
-			addrContainer, err := vs.adrConv.CreateAddressFromPublicKeyBytes(validator.GetPublicKey())
+			addrContainer, err := vs.pubkeyConv.CreateAddressFromBytes(validator.GetPublicKey())
 			if err != nil {
 				return err
 			}
@@ -814,7 +815,7 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 
 // GetPeerAccount will return a PeerAccountHandler for a given address
 func (vs *validatorStatistics) GetPeerAccount(address []byte) (state.PeerAccountHandler, error) {
-	addressContainer, err := vs.adrConv.CreateAddressFromPublicKeyBytes(address)
+	addressContainer, err := vs.pubkeyConv.CreateAddressFromBytes(address)
 	if err != nil {
 		return nil, err
 	}

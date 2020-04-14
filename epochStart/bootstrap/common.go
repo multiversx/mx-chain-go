@@ -61,6 +61,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if len(args.DefaultDBPath) == 0 {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidDefaultDBPath)
 	}
+	if check.IfNil(args.AddressPubkeyConverter) {
+		return fmt.Errorf("%w: %s", epochStart.ErrNilPubkeyConverter, baseErrorMessage)
+	}
 	if len(args.DefaultEpochString) == 0 {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidDefaultEpochString)
 	}
