@@ -3,7 +3,6 @@ package txRouting
 import (
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
@@ -154,7 +153,7 @@ func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey, nonce uint6
 		Data:      []byte(""),
 		Signature: nil,
 	}
-	marshalizedTxBeforeSigning, _ := json.Marshal(tx)
+	marshalizedTxBeforeSigning, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
 	signer := ed25519SingleSig.Ed25519Signer{}
 
 	signature, _ := signer.Sign(sender, marshalizedTxBeforeSigning)
