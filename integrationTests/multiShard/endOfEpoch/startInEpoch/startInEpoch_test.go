@@ -318,6 +318,7 @@ func createTries(
 	return trieStorageManagers, trieContainer, nil
 }
 
+// TODO: We should remove this type of configs hidden in tests
 func getGeneralConfig() config.Config {
 	return config.Config{
 		GeneralSettings: config.GeneralSettingsConfig{
