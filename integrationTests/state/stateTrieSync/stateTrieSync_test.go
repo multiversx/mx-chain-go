@@ -3,6 +3,7 @@ package stateTrieSync
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -47,9 +48,9 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	time.Sleep(integrationTests.SyncDelay)
 
 	resolverTrie := nResolver.TrieContainer.Get([]byte(factory2.UserAccountTrie))
-	_ = resolverTrie.Update([]byte("doe"), []byte("reindeer"))
-	_ = resolverTrie.Update([]byte("dog"), []byte("puppy"))
-	_ = resolverTrie.Update([]byte("dogglesworth"), []byte("cat"))
+	for i := 0; i < 100; i++ {
+		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+	}
 	_ = resolverTrie.Commit()
 	rootHash, _ := resolverTrie.Root()
 
@@ -78,4 +79,6 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	newRootHash, _ := requesterTrie.Root()
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
+	_, err = requesterTrie.GetAllLeaves()
+	assert.Nil(t, requesterTrie)
 }
