@@ -473,7 +473,9 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 }
 
 func (tpn *TestProcessorNode) initRatingsData() {
-	tpn.RatingsData = CreateRatingsData()
+	if tpn.RatingsData == nil {
+		tpn.RatingsData = CreateRatingsData()
+	}
 }
 
 // CreateEconomicsData creates a mock EconomicsData object
