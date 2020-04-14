@@ -31,7 +31,7 @@ type syncValidatorStatus struct {
 	memDB              storage.Storer
 }
 
-// ArgsNewSyncValidatorStatus
+// ArgsNewSyncValidatorStatus holds the arguments needed for creating a new validator status process component
 type ArgsNewSyncValidatorStatus struct {
 	DataPool           dataRetriever.PoolsHolder
 	Marshalizer        marshal.Marshalizer
