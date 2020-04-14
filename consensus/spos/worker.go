@@ -1,6 +1,7 @@
 package spos
 
 import (
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
@@ -375,7 +376,7 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 	}
 
 	log.Debug("received proposed block",
-		"from", core.GetTrimmedPk(core.ToHex(cnsMsg.PubKey)),
+		"from", core.GetTrimmedPk(hex.EncodeToString(cnsMsg.PubKey)),
 		"header hash", cnsMsg.BlockHeaderHash,
 		"epoch", header.GetEpoch(),
 		"round", header.GetRound(),
@@ -586,7 +587,7 @@ func (wrk *Worker) DisplayStatistics() {
 		)
 
 		for _, consensusMessage := range consensusMessages {
-			log.Trace(core.GetTrimmedPk(core.ToHex(consensusMessage.PubKey)))
+			log.Trace(core.GetTrimmedPk(hex.EncodeToString(consensusMessage.PubKey)))
 		}
 
 	}

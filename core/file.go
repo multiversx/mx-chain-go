@@ -126,14 +126,14 @@ func CreateFile(prefix string, subfolder string, fileExtension string) (*os.File
 }
 
 // LoadSkPkFromPemFile loads the secret key and existing public key bytes stored in the file
-func LoadSkPkFromPemFile(relativePath string, skIndex int) ([]byte, []byte, error) {
+func LoadSkPkFromPemFile(relativePath string, skIndex int) ([]byte, string, error) {
 	if skIndex < 0 {
-		return nil, nil, ErrInvalidIndex
+		return nil, "", ErrInvalidIndex
 	}
 
 	file, err := OpenFile(relativePath)
 	if err != nil {
-		return nil, nil, err
+		return nil, "", err
 	}
 
 	defer func() {
@@ -143,10 +143,10 @@ func LoadSkPkFromPemFile(relativePath string, skIndex int) ([]byte, []byte, erro
 
 	buff, err := ioutil.ReadAll(file)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w while reading %s file", err, relativePath)
+		return nil, "", fmt.Errorf("%w while reading %s file", err, relativePath)
 	}
 	if len(buff) == 0 {
-		return nil, nil, fmt.Errorf("%w while reading %s file", ErrEmptyFile, relativePath)
+		return nil, "", fmt.Errorf("%w while reading %s file", ErrEmptyFile, relativePath)
 	}
 
 	var blkRecovered *pem.Block
@@ -154,29 +154,28 @@ func LoadSkPkFromPemFile(relativePath string, skIndex int) ([]byte, []byte, erro
 	for i := 0; i <= skIndex; i++ {
 		if len(buff) == 0 {
 			//less private keys present in the file than required
-			return nil, nil, fmt.Errorf("%w while reading %s file, invalid index %d", ErrInvalidIndex, relativePath, i)
+			return nil, "", fmt.Errorf("%w while reading %s file, invalid index %d", ErrInvalidIndex, relativePath, i)
 		}
 
 		blkRecovered, buff = pem.Decode(buff)
 		if blkRecovered == nil {
-			return nil, nil, fmt.Errorf("%w while reading %s file, error decoding", ErrPemFileIsInvalid, relativePath)
+			return nil, "", fmt.Errorf("%w while reading %s file, error decoding", ErrPemFileIsInvalid, relativePath)
 		}
 	}
 
 	if blkRecovered == nil {
-		return nil, nil, ErrNilPemBLock
+		return nil, "", ErrNilPemBLock
 	}
 
 	blockType := blkRecovered.Type
 	header := "PRIVATE KEY for "
 	if strings.Index(blockType, header) != 0 {
-		return nil, nil, fmt.Errorf("%w missing '%s' in block type", ErrPemFileIsInvalid, header)
+		return nil, "", fmt.Errorf("%w missing '%s' in block type", ErrPemFileIsInvalid, header)
 	}
 
-	blockTypeBuff := []byte(blockType)
-	blockTypeBuff = blockTypeBuff[len(header):]
+	blockTypeString := blockType[len(header):]
 
-	return blkRecovered.Bytes, blockTypeBuff, nil
+	return blkRecovered.Bytes, blockTypeString, nil
 }
 
 // SaveSkToPemFile saves secret key bytes in the file
