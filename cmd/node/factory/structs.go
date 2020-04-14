@@ -9,7 +9,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -75,6 +75,7 @@ import (
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -1725,6 +1726,15 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
+	txLogsStorage := data.Store.GetStorer(dataRetriever.TxLogsUnit)
+	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
+		Storer:      txLogsStorage,
+		Marshalizer: core.InternalMarshalizer,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
 		ArgsParser:       argsParser,
@@ -1740,6 +1750,7 @@ func newShardBlockProcessor(
 		TxTypeHandler:    txTypeHandler,
 		GasHandler:       gasHandler,
 		BuiltInFunctions: vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
+		TxLogsProcessor:  txLogsProcessor,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -1972,6 +1983,15 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	txLogsStorage := data.Store.GetStorer(dataRetriever.TxLogsUnit)
+	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
+		Storer:      txLogsStorage,
+		Marshalizer: core.InternalMarshalizer,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
 		ArgsParser:       argsParser,
@@ -1987,6 +2007,7 @@ func newMetaBlockProcessor(
 		TxTypeHandler:    txTypeHandler,
 		GasHandler:       gasHandler,
 		BuiltInFunctions: vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
+		TxLogsProcessor:  txLogsProcessor,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
