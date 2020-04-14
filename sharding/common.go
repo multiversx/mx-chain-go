@@ -2,6 +2,7 @@ package sharding
 
 import (
 	"bytes"
+	"encoding/hex"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 )
@@ -33,7 +34,7 @@ func displayValidatorsForRandomness(validators []Validator, randomness []byte) {
 	strValidators := ""
 
 	for _, v := range validators {
-		strValidators += "\n" + core.ToHex(v.PubKey())
+		strValidators += "\n" + hex.EncodeToString(v.PubKey())
 	}
 
 	log.Trace("selectValidators", "randomness", randomness, "validators", strValidators)

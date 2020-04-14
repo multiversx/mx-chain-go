@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math"
 	"strconv"
@@ -23,15 +22,6 @@ func ConvertBytes(bytes uint64) string {
 		return fmt.Sprintf("%.2f MB", float64(bytes)/1024.0/1024.0)
 	}
 	return fmt.Sprintf("%.2f GB", float64(bytes)/1024.0/1024.0/1024.0)
-}
-
-// ToHex encodes the given buff to hex
-// This should be used only for display purposes!
-func ToHex(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-	return hex.EncodeToString(buff)
 }
 
 // CalculateHash marshalizes the interface and calculates its hash
