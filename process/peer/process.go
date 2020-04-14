@@ -327,7 +327,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 	if err != nil {
 		return nil, err
 	}
-	leaderPK := core.GetTrimmedPk(core.ToHex(consensusGroup[0].PubKey()))
+	leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
 	log.Trace("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
 	err = vs.updateValidatorInfo(consensusGroup, previousHeader.GetPubKeysBitmap(), previousHeader.GetAccumulatedFees(), previousHeader.GetShardID())
 	if err != nil {
@@ -592,7 +592,7 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 
 		swInner.Start("GetPeerAccount")
 		leaderPeerAcc, err := vs.GetPeerAccount(consensusGroup[0].PubKey())
-		leaderPK := core.GetTrimmedPk(core.ToHex(consensusGroup[0].PubKey()))
+		leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
 		log.Trace("Decreasing for leader", "leader", leaderPK, "round", i)
 		swInner.Stop("GetPeerAccount")
 		if err != nil {
