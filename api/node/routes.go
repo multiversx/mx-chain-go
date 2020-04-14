@@ -13,8 +13,6 @@ import (
 
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
-	IsNodeRunning() bool
-	StartNode() error
 	GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	TpsBenchmark() *statistics.TpsBenchmark
 	StatusMetrics() external.StatusMetricsHandler

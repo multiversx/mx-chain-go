@@ -216,6 +216,13 @@ func (sp *shardProcessor) ProcessBlock(
 		go sp.checkAndRequestIfMetaHeadersMissing(header.Round)
 	}()
 
+	if header.IsStartOfEpochBlock() {
+		err = sp.checkEpochCorrectnessCrossChain()
+		if err != nil {
+			return err
+		}
+	}
+
 	err = sp.checkEpochCorrectness(header)
 	if err != nil {
 		return err
@@ -229,13 +236,6 @@ func (sp *shardProcessor) ProcessBlock(
 	err = sp.verifyCrossShardMiniBlockDstMe(header)
 	if err != nil {
 		return err
-	}
-
-	if header.IsStartOfEpochBlock() {
-		err = sp.checkEpochCorrectnessCrossChain()
-		if err != nil {
-			return err
-		}
 	}
 
 	defer func() {

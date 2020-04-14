@@ -39,11 +39,10 @@ func TestNode_GenerateSendInterceptHeaderByNonceWithNetMessenger(t *testing.T) {
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
-	nRequester.Node.Start()
-	nResolver.Node.Start()
+
 	defer func() {
-		_ = nRequester.Node.Stop()
-		_ = nResolver.Node.Stop()
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
 	}()
 
 	//connect messengers together
@@ -98,11 +97,10 @@ func TestNode_InterceptedHeaderWithWrongChainIDShouldBeDiscarded(t *testing.T) {
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
-	nRequester.Node.Start()
-	nResolver.Node.Start()
+
 	defer func() {
-		_ = nRequester.Node.Stop()
-		_ = nResolver.Node.Stop()
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
 	}()
 
 	//connect messengers together
