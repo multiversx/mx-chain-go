@@ -776,6 +776,78 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 		EpochCalled: func() uint32 {
 			return 5
 		},
+		MetaEpochCalled: func() uint32 {
+			return 5
+		},
+		IsEpochStartCalled: func() bool {
+			return true
+		},
+		EpochFinalityAttestingRoundCalled: func() uint64 {
+			return 100
+		},
+	}
+
+	randSeed := []byte("randseed")
+	arguments.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Epoch:    2,
+				RandSeed: randSeed,
+			}
+		},
+	}
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+	rootHash, _ := arguments.AccountsDB[state.UserAccountsState].RootHash()
+	epochStartHash := []byte("epochStartHash")
+	header := &block.Header{
+		Round:              10,
+		Nonce:              1,
+		Epoch:              3,
+		RandSeed:           randSeed,
+		PrevRandSeed:       randSeed,
+		EpochStartMetaHash: epochStartHash,
+		RootHash:           rootHash,
+		AccumulatedFees:    big.NewInt(0),
+	}
+
+	blk := &block.Body{}
+	err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	assert.True(t, errors.Is(err, process.ErrMissingHeader))
+
+	metaHdr := &block.MetaBlock{}
+	metaHdrData, _ := arguments.Marshalizer.Marshal(metaHdr)
+	_ = arguments.Store.Put(dataRetriever.MetaBlockUnit, []byte(core.EpochStartIdentifier(header.Epoch)), metaHdrData)
+
+	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
+
+	hasher.ComputeCalled = func(s string) []byte {
+		if bytes.Equal([]byte(s), metaHdrData) {
+			return epochStartHash
+		}
+		return nil
+	}
+
+	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	assert.Nil(t, err)
+}
+
+func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMatchForOldEpoch(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArgumentsMultiShard()
+	hasher := &mock.HasherStub{ComputeCalled: func(s string) []byte {
+		return nil
+	}}
+	arguments.Hasher = hasher
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+		EpochCalled: func() uint32 {
+			return 5
+		},
+		MetaEpochCalled: func() uint32 {
+			return 6
+		},
 		IsEpochStartCalled: func() bool {
 			return true
 		},
