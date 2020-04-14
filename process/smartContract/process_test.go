@@ -130,7 +130,7 @@ func TestNewSmartContractProcessorNilAdrConv(t *testing.T) {
 	sc, err := NewSmartContractProcessor(arguments)
 
 	require.Nil(t, sc)
-	require.Equal(t, process.ErrNilAddressConverter, err)
+	require.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestNewSmartContractProcessorNilShardCoordinator(t *testing.T) {
