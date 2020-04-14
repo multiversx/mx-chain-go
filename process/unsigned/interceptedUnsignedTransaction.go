@@ -20,7 +20,7 @@ type InterceptedUnsignedTransaction struct {
 	uTx               *smartContractResult.SmartContractResult
 	marshalizer       marshal.Marshalizer
 	hasher            hashing.Hasher
-	addrConv          state.AddressConverter
+	pubkeyConv        state.PubkeyConverter
 	coordinator       sharding.Coordinator
 	hash              []byte
 	rcvShard          uint32
@@ -34,7 +34,7 @@ func NewInterceptedUnsignedTransaction(
 	uTxBuff []byte,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	addrConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 	coordinator sharding.Coordinator,
 ) (*InterceptedUnsignedTransaction, error) {
 	if uTxBuff == nil {
@@ -46,8 +46,8 @@ func NewInterceptedUnsignedTransaction(
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(addrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
@@ -62,7 +62,7 @@ func NewInterceptedUnsignedTransaction(
 		uTx:         uTx,
 		marshalizer: marshalizer,
 		hasher:      hasher,
-		addrConv:    addrConv,
+		pubkeyConv:  pubkeyConv,
 		coordinator: coordinator,
 	}
 
@@ -98,12 +98,12 @@ func (inUTx *InterceptedUnsignedTransaction) processFields(uTxBuffWithSig []byte
 	inUTx.hash = inUTx.hasher.Compute(string(uTxBuffWithSig))
 
 	var err error
-	inUTx.sndAddr, err = inUTx.addrConv.CreateAddressFromPublicKeyBytes(inUTx.uTx.SndAddr)
+	inUTx.sndAddr, err = inUTx.pubkeyConv.CreateAddressFromBytes(inUTx.uTx.SndAddr)
 	if err != nil {
 		return process.ErrInvalidSndAddr
 	}
 
-	rcvAddr, err := inUTx.addrConv.CreateAddressFromPublicKeyBytes(inUTx.uTx.RcvAddr)
+	rcvAddr, err := inUTx.pubkeyConv.CreateAddressFromBytes(inUTx.uTx.RcvAddr)
 	if err != nil {
 		return process.ErrInvalidRcvAddr
 	}

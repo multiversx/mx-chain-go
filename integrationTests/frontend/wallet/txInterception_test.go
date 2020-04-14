@@ -2,7 +2,6 @@ package wallet
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -14,23 +13,37 @@ import (
 
 const mintingValue = "100000000"
 
-func TestInterceptedTxFromFrontendLargeValue(t *testing.T) {
+func TestInterceptedTxWhithoutDataField(t *testing.T) {
 	value := big.NewInt(0)
-	value.SetString("777", 10)
-
-	fmt.Println(value.Text(10))
-	fmt.Println(value.Text(16))
+	value.SetString("999", 10)
 
 	testInterceptedTxFromFrontendGeneratedParams(
 		t,
 		0,
 		value,
-		"53669be65aac358a6add8e8a8b1251bb994dc1e4a0cc885956f5ecd53396f0d8",
-		"2d7aa683fbb37eafc2426bfe63e1c20aa5872ee4627c51b6789f41bfb8d31fdb",
-		"a18a6c6647d10a579acd7e39258f38cee4cd36998ae12edf4e884066231b00e18d792cc14ece72d3ac6fb26281c5419b1ec9736291d1c9fbb312ee2a730c8103",
+		"erd1t2cct2ahdna5n2q3ljzj4tgn6fnqqrncs967pekunl7cuscqxymsgm388y",
+		"erd14t6l0x27w4d4354sqfm40wuv9p0r49uzl9598eka290x9kws2nvqlkc36j",
+		"7a98196903b09ef70cb182462a83b38ecbba819ec93e82b1d7bf29556a40afbcf739d1e2ddc8ca615a8ab1ebde1e6feafb809249c772d5cfa61562afb5d86f01",
 		10,
 		100000,
-		[]byte("a@b@c!!$%^<>#!"),
+		[]byte(""),
+	)
+}
+
+func TestInterceptedTxWhithDataField(t *testing.T) {
+	value := big.NewInt(0)
+	value.SetString("999", 10)
+
+	testInterceptedTxFromFrontendGeneratedParams(
+		t,
+		0,
+		value,
+		"erd1t2cct2ahdna5n2q3ljzj4tgn6fnqqrncs967pekunl7cuscqxymsgm388y",
+		"erd14t6l0x27w4d4354sqfm40wuv9p0r49uzl9598eka290x9kws2nvqlkc36j",
+		"9b5dc11f0b8da13bd0e6590ba79f9bc4635464cc7a1d5f33493d5a4a91015bac6e523c88917f17f94eb4133f5df791a3bb432d927f45ce1c8fd015fc5cc02705",
+		10,
+		100000,
+		[]byte("!!!!!"),
 	)
 }
 
@@ -40,9 +53,9 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	t *testing.T,
 	frontendNonce uint64,
 	frontendValue *big.Int,
-	frontendReceiverHex string,
-	frontendSenderHex string,
-	frontendSignature string,
+	frontendReceiver string,
+	frontendSender string,
+	frontendSignatureHex string,
 	frontendGasPrice uint64,
 	frontendGasLimit uint64,
 	frontendData []byte,
@@ -84,22 +97,22 @@ func testInterceptedTxFromFrontendGeneratedParams(
 		assert.Equal(t, frontendNonce, txRecovered.Nonce)
 		assert.Equal(t, frontendValue, txRecovered.Value)
 
-		sender, _ := hex.DecodeString(frontendSenderHex)
+		sender, _ := integrationTests.TestAddressPubkeyConverter.Decode(frontendSender)
 		assert.Equal(t, sender, txRecovered.SndAddr)
 
-		receiver, _ := hex.DecodeString(frontendReceiverHex)
+		receiver, _ := integrationTests.TestAddressPubkeyConverter.Decode(frontendReceiver)
 		assert.Equal(t, receiver, txRecovered.RcvAddr)
 
-		sig, _ := hex.DecodeString(frontendSignature)
+		sig, _ := hex.DecodeString(frontendSignatureHex)
 		assert.Equal(t, sig, txRecovered.Signature)
-		assert.Equal(t, frontendData, txRecovered.Data)
+		assert.Equal(t, len(frontendData), len(txRecovered.Data))
 
 		chDone <- struct{}{}
 	})
 
-	rcvAddrBytes, _ := hex.DecodeString(frontendReceiverHex)
-	sndAddrBytes, _ := hex.DecodeString(frontendSenderHex)
-	signatureBytes, _ := hex.DecodeString(frontendSignature)
+	rcvAddrBytes, _ := integrationTests.TestAddressPubkeyConverter.Decode(frontendReceiver)
+	sndAddrBytes, _ := integrationTests.TestAddressPubkeyConverter.Decode(frontendSender)
+	signatureBytes, _ := hex.DecodeString(frontendSignatureHex)
 
 	integrationTests.MintAddress(node.AccntState, sndAddrBytes, valMinting)
 
