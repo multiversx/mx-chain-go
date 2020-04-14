@@ -91,7 +91,7 @@ import (
 
 const (
 	// MaxTxsToRequest specifies the maximum number of txs to request
-	MaxTxsToRequest = 100
+	MaxTxsToRequest = 1000
 )
 
 //TODO remove this
