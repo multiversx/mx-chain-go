@@ -935,7 +935,7 @@ func newEpochStartTrigger(
 		argEpochStart := &metachainEpochStart.ArgsNewMetaEpochStartTrigger{
 			GenesisTime:        time.Unix(args.nodesConfig.StartTime, 0),
 			Settings:           args.epochStart,
-			Epoch:              0,
+			Epoch:              args.epoch,
 			EpochStartNotifier: args.epochStartNotifier,
 			Storage:            args.data.Store,
 			Marshalizer:        args.coreData.InternalMarshalizer,

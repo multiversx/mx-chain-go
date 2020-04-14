@@ -221,7 +221,7 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 	ihgs.nodesConfig[epoch] = nodesConfig
 	ihgs.numTotalEligible = numTotalEligible
 
-	return ihgs.shuffledOutHandler.Process(nodesConfig.shardID)
+	return nil
 }
 
 // ComputeLeaving - computes leaving validators
@@ -620,7 +620,14 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 			}
 		}
 	}
+
+	nodesConfig := ihgs.nodesConfig[newEpoch]
 	ihgs.mutNodesConfig.Unlock()
+
+	err = ihgs.shuffledOutHandler.Process(nodesConfig.shardID)
+	if err != nil {
+		log.Warn("Shuffle out process failed", "err", err)
+	}
 }
 
 // NotifyOrder returns the notification order for a start of epoch event

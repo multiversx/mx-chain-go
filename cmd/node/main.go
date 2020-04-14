@@ -1120,19 +1120,18 @@ func handleAppClose(log logger.Logger, endProcessArgument endProcess.EndProcessA
 	switch endProcessArgument.Reason {
 	case core.ShuffledOut:
 		{
-			newStartInEpoch(log, endProcessArgument.Reason)
+			newStartInEpoch(log)
 		}
 	}
 }
 
-func newStartInEpoch(log logger.Logger, sig string) {
-	cwd, err := os.Getwd()
+func newStartInEpoch(log logger.Logger) {
+	cwd, err := os.Executable()
 
 	nodeApp := os.Args[0]
-	args := os.Args
+	args := os.Args[1:]
 	args = append(args, "-start-in-epoch")
 
-	log.Debug(cwd)
 	log.Debug("app", "nodeApp", nodeApp)
 	log.Debug("args", "args", args)
 
@@ -1141,6 +1140,7 @@ func newStartInEpoch(log logger.Logger, sig string) {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	cmd.Args = args
+	cmd.Dir = cwd
 	err = cmd.Start()
 	if err != nil {
 		log.LogIfError(err)
