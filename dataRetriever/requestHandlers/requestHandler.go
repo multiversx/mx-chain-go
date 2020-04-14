@@ -14,12 +14,12 @@ import (
 )
 
 type resolverRequestHandler struct {
-	resolversFinder       dataRetriever.ResolversFinder
-	requestedItemsHandler dataRetriever.RequestedItemsHandler
 	epoch                 uint32
-	whiteList             dataRetriever.WhiteListHandler
 	shardID               uint32
 	maxTxsToRequest       int
+	resolversFinder       dataRetriever.ResolversFinder
+	requestedItemsHandler dataRetriever.RequestedItemsHandler
+	whiteList             dataRetriever.WhiteListHandler
 	sweepTime             time.Time
 	requestInterval       time.Duration
 	mutSweepTime          sync.Mutex

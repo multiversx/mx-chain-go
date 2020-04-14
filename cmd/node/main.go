@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
@@ -625,6 +626,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
+	log.Info(fmt.Sprintf("waiting %d seconds for network discovery...", secondsToWaitForP2PBootstrap))
 	time.Sleep(secondsToWaitForP2PBootstrap * time.Second)
 
 	log.Trace("creating economics data components")
@@ -665,6 +667,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	rounder, err := round.NewRound(
+		time.Unix(genesisNodesConfig.StartTime, 0),
+		syncer.CurrentTime(),
+		time.Millisecond*time.Duration(genesisNodesConfig.RoundDuration),
+		syncer)
+	if err != nil {
+		return err
+	}
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  pubKey,
 		Marshalizer:                coreComponents.InternalMarshalizer,
@@ -690,6 +701,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		TrieStorageManagers:        coreComponents.TrieStorageManagers,
 		Uint64Converter:            coreComponents.Uint64ByteSliceConverter,
 		NodeShuffler:               nodesShuffler,
+		Rounder:                    rounder,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -899,7 +911,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		economicsData,
 		genesisNodesConfig,
 		gasSchedule,
-		syncer,
+		rounder,
 		shardCoordinator,
 		nodesCoordinator,
 		dataComponents,
@@ -1069,9 +1081,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		err = rm.Close()
 		log.LogIfError(err)
 	}
-
-	err = networkComponents.NetMessenger.Close()
-	log.LogIfError(err)
 
 	log.Info("closing network connections...")
 	err = networkComponents.NetMessenger.Close()

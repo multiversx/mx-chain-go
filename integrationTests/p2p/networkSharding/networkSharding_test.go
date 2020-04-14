@@ -116,7 +116,7 @@ func stopNodes(advertiser p2p.Messenger, nodesMap map[uint32][]*integrationTests
 	_ = advertiser.Close()
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}
 }

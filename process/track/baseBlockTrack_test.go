@@ -111,8 +111,8 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 			ShardCoordinator: shardCoordinatorMock,
 			Store:            initStore(),
 			StartHeaders:     genesisBlocks,
+			PoolsHolder:      mock.NewPoolsHolderMock(),
 		},
-		PoolsHolder: mock.NewPoolsHolderMock(),
 	}
 
 	return arguments
@@ -138,8 +138,8 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 			ShardCoordinator: shardCoordinatorMock,
 			Store:            initStore(),
 			StartHeaders:     genesisBlocks,
+			PoolsHolder:      mock.NewPoolsHolderMock(),
 		},
-		PoolsHolder: mock.NewPoolsHolderMock(),
 	}
 
 	return arguments

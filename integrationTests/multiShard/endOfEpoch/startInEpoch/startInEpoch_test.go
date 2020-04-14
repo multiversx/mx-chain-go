@@ -78,7 +78,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -177,6 +177,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 	nodeToJoinLate.Messenger = messenger
 
+	rounder := &mock.RounderMock{IndexField: int64(round)}
+
 	trieStorageManager, triesHolder, _ := createTries(getGeneralConfig(), integrationTests.TestMarshalizer, integrationTests.TestHasher, 0, &mock.PathManagerStub{})
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  nodeToJoinLate.NodeKeys.Pk,
@@ -203,6 +205,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		TrieStorageManagers:        trieStorageManager,
 		Uint64Converter:            uint64Converter,
 		NodeShuffler:               &mock.NodeShufflerMock{},
+		Rounder:                    rounder,
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)

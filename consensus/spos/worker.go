@@ -377,6 +377,7 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 	log.Debug("received proposed block",
 		"from", core.GetTrimmedPk(core.ToHex(cnsMsg.PubKey)),
 		"header hash", cnsMsg.BlockHeaderHash,
+		"epoch", header.GetEpoch(),
 		"round", header.GetRound(),
 		"nonce", header.GetNonce(),
 		"prev hash", header.GetPrevHash(),
@@ -571,18 +572,6 @@ func (wrk *Worker) Extend(subroundId int) {
 		wrk.consensusService.IsSubroundSignature(subroundId)
 	if shouldBroadcastLastCommittedHeader {
 		//TODO: Should be analyzed if call of wrk.broadcastLastCommittedHeader() is still necessary
-	}
-}
-
-func (wrk *Worker) broadcastLastCommittedHeader() {
-	header := wrk.blockChain.GetCurrentBlockHeader()
-	if check.IfNil(header) {
-		return
-	}
-
-	err := wrk.broadcastMessenger.BroadcastHeader(header)
-	if err != nil {
-		log.Debug("BroadcastHeader", "error", err.Error())
 	}
 }
 
