@@ -36,7 +36,7 @@ func createMetaBlock() *block.MetaBlock {
 		Nonce: 0,
 		Round: 0,
 		ShardInfo: []block.ShardData{
-			block.ShardData{
+			{
 				HeaderHash: []byte("shard0 headerHash"),
 				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
 					{

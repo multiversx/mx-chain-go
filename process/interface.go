@@ -620,12 +620,6 @@ type InterceptedHeaderSigVerifier interface {
 	IsInterfaceNil() bool
 }
 
-// BlockNotificationHandler handles notifications for received blocks
-type BlockNotificationHandler interface {
-	BlockReceived(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
-	IsInterfaceNil() bool
-}
-
 // BlockTracker defines the functionality for node to track the blocks which are received from network
 type BlockTracker interface {
 	AddCrossNotarizedHeader(shradID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)

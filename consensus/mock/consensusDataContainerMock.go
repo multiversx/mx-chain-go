@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -17,7 +16,7 @@ import (
 type ConsensusCoreMock struct {
 	blockChain             data.ChainHandler
 	blockProcessor         process.BlockProcessor
-	headersSubscriber      dataRetriever.HeadersPoolSubscriber
+	headersSubscriber      consensus.HeadersPoolSubscriber
 	bootstrapper           process.Bootstrapper
 	broadcastMessenger     consensus.BroadcastMessenger
 	chronologyHandler      consensus.ChronologyHandler
@@ -49,8 +48,8 @@ func (ccm *ConsensusCoreMock) BlockProcessor() process.BlockProcessor {
 	return ccm.blockProcessor
 }
 
-// BlockTracker -
-func (ccm *ConsensusCoreMock) HeadersPoolSubscriber() dataRetriever.HeadersPoolSubscriber {
+// HeadersPoolSubscriber -
+func (ccm *ConsensusCoreMock) HeadersPoolSubscriber() consensus.HeadersPoolSubscriber {
 	return ccm.headersSubscriber
 }
 

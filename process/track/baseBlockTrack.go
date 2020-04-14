@@ -686,8 +686,8 @@ func (bbt *baseBlockTrack) initNotarizedHeaders(startHeaders map[uint32]data.Hea
 }
 
 func (bbt *baseBlockTrack) doWhitelistIfNeeded(metablock *block.MetaBlock) {
-	shardID := bbt.shardCoordinator.SelfId()
-	if shardID == core.MetachainShardId {
+	selfShardID := bbt.shardCoordinator.SelfId()
+	if selfShardID == core.MetachainShardId {
 		return
 	}
 	if metablock == nil {
@@ -697,9 +697,10 @@ func (bbt *baseBlockTrack) doWhitelistIfNeeded(metablock *block.MetaBlock) {
 	miniblocks := metablock.GetMiniBlockHeaders()
 	keys := make([][]byte, 0)
 	for _, miniblock := range miniblocks {
-		receiverInShard := miniblock.GetReceiverShardID() == shardID
-		senderCross := miniblock.GetSenderShardID() != shardID
-		if receiverInShard && senderCross {
+		senderShard := miniblock.GetReceiverShardID()
+		receiverIsSelfShard := senderShard == selfShardID || senderShard == core.AllShardId
+		senderIsCrossShard := miniblock.GetSenderShardID() != selfShardID
+		if receiverIsSelfShard && senderIsCrossShard {
 			keys = append(keys, miniblock.Hash)
 		}
 	}

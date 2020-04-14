@@ -370,7 +370,13 @@ func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {
 	}
 
 	if sr.ShardCoordinator().SelfId() != core.MetachainShardId {
-		return sr.BroadcastMessenger().SetDataForDelayBroadcast(sr.GetData(), miniBlocks, transactions)
+		var headerHash []byte
+		headerHash, err = core.CalculateHash(sr.Marshalizer(), sr.Hasher(), sr.Header)
+		if err != nil {
+			return err
+		}
+
+		return sr.BroadcastMessenger().SetDataForDelayBroadcast(headerHash, miniBlocks, transactions)
 	}
 
 	err = sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)

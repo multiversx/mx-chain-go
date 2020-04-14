@@ -88,3 +88,9 @@ type P2PAntifloodHandler interface {
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
 	IsInterfaceNil() bool
 }
+
+// HeadersPoolSubscriber can subscribe for notifications when a new block header is added to the headers pool
+type HeadersPoolSubscriber interface {
+	RegisterHandler(handler func(headerHandler data.HeaderHandler, headerHash []byte))
+	IsInterfaceNil() bool
+}
