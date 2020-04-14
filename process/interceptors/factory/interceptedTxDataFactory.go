@@ -17,7 +17,7 @@ type interceptedTxDataFactory struct {
 	hasher           hashing.Hasher
 	keyGen           crypto.KeyGenerator
 	singleSigner     crypto.SingleSigner
-	addrConverter    state.AddressConverter
+	pubkeyConverter  state.PubkeyConverter
 	shardCoordinator sharding.Coordinator
 	feeHandler       process.FeeHandler
 }
@@ -42,8 +42,8 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if check.IfNil(argument.Signer) {
 		return nil, process.ErrNilSingleSigner
 	}
-	if check.IfNil(argument.AddrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(argument.AddressPubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(argument.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
@@ -58,7 +58,7 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 		hasher:           argument.Hasher,
 		keyGen:           argument.KeyGen,
 		singleSigner:     argument.Signer,
-		addrConverter:    argument.AddrConv,
+		pubkeyConverter:  argument.AddressPubkeyConv,
 		shardCoordinator: argument.ShardCoordinator,
 		feeHandler:       argument.FeeHandler,
 	}, nil
@@ -73,7 +73,7 @@ func (itdf *interceptedTxDataFactory) Create(buff []byte) (process.InterceptedDa
 		itdf.hasher,
 		itdf.keyGen,
 		itdf.singleSigner,
-		itdf.addrConverter,
+		itdf.pubkeyConverter,
 		itdf.shardCoordinator,
 		itdf.feeHandler,
 	)

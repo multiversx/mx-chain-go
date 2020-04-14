@@ -25,6 +25,10 @@ func generateEmptyByteSlice(size int) []byte {
 	return buff
 }
 
+func createMockPubkeyConverter() *mock.PubkeyConverterMock {
+	return mock.NewPubkeyConverterMock(32)
+}
+
 func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler) {
 	acntSrc, _ := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
 	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.Value)
@@ -45,7 +49,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		Marshalizer:     &mock.MarshalizerMock{},
 		AccountsDB:      &mock.AccountsStub{},
 		TempAccounts:    &mock.TemporaryAccountsHandlerMock{},
-		AdrConv:         &mock.AddressConverterMock{},
+		PubkeyConv:      createMockPubkeyConverter(),
 		Coordinator:     mock.NewMultiShardsCoordinatorMock(5),
 		ScrForwarder:    &mock.IntermediateTransactionHandlerMock{},
 		TxFeeHandler:    &mock.FeeAccumulatorStub{},
@@ -122,11 +126,11 @@ func TestNewSmartContractProcessorNilAdrConv(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.AdrConv = nil
+	arguments.PubkeyConv = nil
 	sc, err := NewSmartContractProcessor(arguments)
 
 	require.Nil(t, sc)
-	require.Equal(t, process.ErrNilAddressConverter, err)
+	require.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestNewSmartContractProcessorNilShardCoordinator(t *testing.T) {
@@ -198,11 +202,8 @@ func TestNewSmartContractProcessor(t *testing.T) {
 func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	t.Parallel()
 
-	addrConverter := &mock.AddressConverterMock{}
-
 	argParser := &mock.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.AdrConv = addrConverter
 	arguments.VmContainer = &mock.VMContainerMock{}
 	arguments.ArgsParser = argParser
 	sc, err := NewSmartContractProcessor(arguments)
@@ -212,7 +213,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
+	tx.RcvAddr = generateEmptyByteSlice(createMockPubkeyConverter().Len())
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
@@ -229,11 +230,9 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	t.Parallel()
 
-	addrConverter := &mock.AddressConverterMock{}
 	vmContainer := &mock.VMContainerMock{}
 	argParser := vmcommon.NewAtArgumentParser()
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.AdrConv = addrConverter
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
 	sc, err := NewSmartContractProcessor(arguments)
@@ -243,7 +242,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
+	tx.RcvAddr = generateEmptyByteSlice(createMockPubkeyConverter().Len())
 	tx.Data = []byte("abba@0500@0000")
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
@@ -290,12 +289,10 @@ func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 func TestScProcessor_DeploySmartContract(t *testing.T) {
 	t.Parallel()
 
-	addrConverter := &mock.AddressConverterMock{}
 	vm := &mock.VMContainerMock{}
 	argParser := vmcommon.NewAtArgumentParser()
 	accntState := &mock.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.AdrConv = addrConverter
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accntState
@@ -306,7 +303,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateEmptyByteSlice(addrConverter.AddressLen())
+	tx.RcvAddr = generateEmptyByteSlice(createMockPubkeyConverter().Len())
 	tx.Data = []byte("abba@0500@0000")
 	tx.Value = big.NewInt(0)
 	acntSrc, _ := createAccounts(tx)
@@ -624,6 +621,7 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 
 	input, vmType, err := sc.createVMDeployInput(tx)
 	require.NotNil(t, input)
+	require.Nil(t, err)
 	require.Equal(t, vmcommon.DirectCall, input.CallType)
 	require.True(t, bytes.Equal(expectedVMType, vmType))
 	require.Equal(t, expectedCodeMetadata.ToBytes(), input.ContractCodeMetadata)
@@ -851,7 +849,6 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 		return nil, state.ErrAccNotFound
 	}
 
-	addrConv := &mock.AddressConverterMock{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
 		return shardCoordinator.SelfId()
@@ -864,7 +861,6 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
 	arguments.Coordinator = shardCoordinator
-	arguments.AdrConv = addrConv
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -877,8 +873,12 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 func TestScProcessor_GetAccountFromAddrFaildAddressConv(t *testing.T) {
 	t.Parallel()
 
-	addrConv := &mock.AddressConverterMock{}
-	addrConv.Fail = true
+	expectedErr := errors.New("expected error")
+	pubkeyConv := &mock.PubkeyConverterStub{
+		CreateAddressFromBytesCalled: func(pkBytes []byte) (container state.AddressContainer, err error) {
+			return nil, expectedErr
+		},
+	}
 
 	accountsDB := &mock.AccountsStub{}
 	getCalled := 0
@@ -899,7 +899,7 @@ func TestScProcessor_GetAccountFromAddrFaildAddressConv(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
 	arguments.Coordinator = shardCoordinator
-	arguments.AdrConv = addrConv
+	arguments.PubkeyConv = pubkeyConv
 	arguments.TxLogsProcessor = &mock.TxLogsProcessorStub{}
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
@@ -914,8 +914,6 @@ func TestScProcessor_GetAccountFromAddrFaildAddressConv(t *testing.T) {
 func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 	t.Parallel()
 
-	addrConv := &mock.AddressConverterMock{}
-
 	accountsDB := &mock.AccountsStub{}
 	getCalled := 0
 	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -935,7 +933,6 @@ func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
 	arguments.Coordinator = shardCoordinator
-	arguments.AdrConv = addrConv
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -948,8 +945,6 @@ func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 
 func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 	t.Parallel()
-
-	addrConv := &mock.AddressConverterMock{}
 
 	accountsDB := &mock.AccountsStub{}
 	getCalled := 0
@@ -970,7 +965,6 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
 	arguments.Coordinator = shardCoordinator
-	arguments.AdrConv = addrConv
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -983,8 +977,6 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 
 func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 	t.Parallel()
-
-	addrConv := &mock.AddressConverterMock{}
 
 	accountsDB := &mock.AccountsStub{}
 	getCalled := 0
@@ -1006,7 +998,6 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
 	arguments.Coordinator = shardCoordinator
-	arguments.AdrConv = addrConv
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1019,7 +1010,6 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 
 func TestScProcessor_DeleteAccountsFailedAtRemove(t *testing.T) {
 	t.Parallel()
-	addrConv := &mock.AddressConverterMock{}
 
 	accountsDB := &mock.AccountsStub{}
 	removeCalled := 0
@@ -1043,7 +1033,6 @@ func TestScProcessor_DeleteAccountsFailedAtRemove(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
 	arguments.Coordinator = shardCoordinator
-	arguments.AdrConv = addrConv
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1057,7 +1046,6 @@ func TestScProcessor_DeleteAccountsFailedAtRemove(t *testing.T) {
 
 func TestScProcessor_DeleteAccountsNotInShard(t *testing.T) {
 	t.Parallel()
-	addrConv := &mock.AddressConverterMock{}
 
 	accountsDB := &mock.AccountsStub{}
 	removeCalled := 0
@@ -1080,7 +1068,6 @@ func TestScProcessor_DeleteAccountsNotInShard(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
 	arguments.Coordinator = shardCoordinator
-	arguments.AdrConv = addrConv
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1096,7 +1083,6 @@ func TestScProcessor_DeleteAccountsNotInShard(t *testing.T) {
 func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 	t.Parallel()
 
-	addrConv := &mock.AddressConverterMock{}
 	accountsDB := &mock.AccountsStub{}
 	removeCalled := 0
 	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -1122,7 +1108,6 @@ func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
 	arguments.Coordinator = shardCoordinator
-	arguments.AdrConv = addrConv
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)

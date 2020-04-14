@@ -1234,9 +1234,9 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 		}
 
 		for _, metaHash := range shardHeader.MetaBlockHashes {
-			metaHeader, err := process.GetMetaHeader(metaHash, mp.dataPool.Headers(), mp.marshalizer, mp.store)
-			if err != nil {
-				log.Trace("getLastSelfNotarizedHeaderByShard.GetMetaHeader", "error", err.Error())
+			metaHeader, errGet := process.GetMetaHeader(metaHash, mp.dataPool.Headers(), mp.marshalizer, mp.store)
+			if errGet != nil {
+				log.Trace("getLastSelfNotarizedHeaderByShard.GetMetaHeader", "error", errGet.Error())
 				continue
 			}
 

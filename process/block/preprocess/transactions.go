@@ -43,7 +43,7 @@ type transactions struct {
 	mutOrderedTxs        sync.RWMutex
 	blockTracker         BlockTracker
 	blockType            block.Type
-	addressConverter     state.AddressConverter
+	pubkeyConverter      state.PubkeyConverter
 	accountsInfo         map[string]*txShardInfo
 	mutAccountsInfo      sync.RWMutex
 	emptyAddress         []byte
@@ -63,7 +63,7 @@ func NewTransactionPreprocessor(
 	gasHandler process.GasHandler,
 	blockTracker BlockTracker,
 	blockType block.Type,
-	addressConverter state.AddressConverter,
+	pubkeyConverter state.PubkeyConverter,
 	blockSizeComputation BlockSizeComputationHandler,
 ) (*transactions, error) {
 
@@ -100,8 +100,8 @@ func NewTransactionPreprocessor(
 	if check.IfNil(blockTracker) {
 		return nil, process.ErrNilBlockTracker
 	}
-	if check.IfNil(addressConverter) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(blockSizeComputation) {
 		return nil, process.ErrNilBlockSizeComputationHandler
@@ -125,7 +125,7 @@ func NewTransactionPreprocessor(
 		accounts:             accounts,
 		blockTracker:         blockTracker,
 		blockType:            blockType,
-		addressConverter:     addressConverter,
+		pubkeyConverter:      pubkeyConverter,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
@@ -136,7 +136,7 @@ func NewTransactionPreprocessor(
 	txs.orderedTxHashes = make(map[string][][]byte)
 	txs.accountsInfo = make(map[string]*txShardInfo)
 
-	txs.emptyAddress = make([]byte, txs.addressConverter.AddressLen())
+	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
 
 	return &txs, nil
 }
@@ -352,7 +352,7 @@ func (txs *transactions) getShardFromAddress(address []byte) (uint32, error) {
 		return txs.shardCoordinator.SelfId(), nil
 	}
 
-	addressContainer, err := txs.addressConverter.CreateAddressFromPublicKeyBytes(address)
+	addressContainer, err := txs.pubkeyConverter.CreateAddressFromBytes(address)
 	if err != nil {
 		return 0, err
 	}
@@ -393,7 +393,7 @@ func (txs *transactions) processTxsToMe(
 		senderShardID := txsToMe[index].SenderShardID
 		receiverShardID := txsToMe[index].ReceiverShardID
 
-		err := txs.processAndRemoveBadTransaction(
+		err = txs.processAndRemoveBadTransaction(
 			txHash,
 			tx,
 			senderShardID,
@@ -645,7 +645,7 @@ func (txs *transactions) notifyTransactionProviderIfNeeded() {
 }
 
 func (txs *transactions) getAccountForAddress(address []byte) (state.AccountHandler, error) {
-	addressContainer, err := txs.addressConverter.CreateAddressFromPublicKeyBytes(address)
+	addressContainer, err := txs.pubkeyConverter.CreateAddressFromBytes(address)
 	if err != nil {
 		return nil, err
 	}

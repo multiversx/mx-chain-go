@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -16,16 +17,36 @@ import (
 
 func TestNewValidatorsProvider_WithNilValidatorStatisticsShouldErr(t *testing.T) {
 	maxRating := uint32(10)
-	vp, err := NewValidatorsProvider(nil, maxRating)
+	vp, err := NewValidatorsProvider(
+		nil,
+		maxRating,
+		mock.NewPubkeyConverterMock(32),
+	)
 	assert.Equal(t, process.ErrNilValidatorStatistics, err)
 	assert.Nil(t, vp)
 }
 
 func TestNewValidatorsProvider_WithMaxRatingZeroShouldErr(t *testing.T) {
 	maxRating := uint32(0)
-	vp, err := NewValidatorsProvider(&mock.ValidatorStatisticsProcessorStub{}, maxRating)
+	vp, err := NewValidatorsProvider(
+		&mock.ValidatorStatisticsProcessorStub{},
+		maxRating,
+		mock.NewPubkeyConverterMock(32),
+	)
 	assert.Equal(t, process.ErrMaxRatingZero, err)
 	assert.Nil(t, vp)
+}
+
+func TestNewValidatorsProvider_WithNilValidatorPubkeyConverterShouldErr(t *testing.T) {
+	maxRating := uint32(10)
+	vp, err := NewValidatorsProvider(
+		&mock.ValidatorStatisticsProcessorStub{},
+		maxRating,
+		nil,
+	)
+
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
+	assert.True(t, check.IfNil(vp))
 }
 
 func TestValidatorsProvider_GetLatestValidatorsSecondHashDoesNotExist(t *testing.T) {
@@ -53,7 +74,11 @@ func TestValidatorsProvider_GetLatestValidatorsSecondHashDoesNotExist(t *testing
 	}
 
 	maxRating := uint32(100)
-	vp, _ := NewValidatorsProvider(vs, maxRating)
+	vp, _ := NewValidatorsProvider(
+		vs,
+		maxRating,
+		mock.NewPubkeyConverterMock(32),
+	)
 	vinfos := vp.GetLatestValidators()
 	assert.NotNil(t, vinfos)
 	assert.Equal(t, 1, len(vinfos))
@@ -106,7 +131,11 @@ func createMockValidatorInfo() *state.ValidatorInfo {
 func TestValidatorsProvider_ShouldWork(t *testing.T) {
 	vs := &mock.ValidatorStatisticsProcessorStub{}
 	maxRating := uint32(7)
-	vp, err := NewValidatorsProvider(vs, maxRating)
+	vp, err := NewValidatorsProvider(
+		vs,
+		maxRating,
+		mock.NewPubkeyConverterMock(32),
+	)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, vp)

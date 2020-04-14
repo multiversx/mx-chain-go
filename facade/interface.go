@@ -46,6 +46,9 @@ type NodeHandler interface {
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
 	DirectTrigger() error
 	IsSelfTrigger() bool
+
+	EncodeAddressPubkey(pk []byte) (string, error)
+	DecodeAddressPubkey(pk string) ([]byte, error)
 }
 
 // ApiResolver defines a structure capable of resolving REST API requests

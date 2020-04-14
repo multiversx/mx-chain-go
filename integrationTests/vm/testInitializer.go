@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	"github.com/ElrondNetwork/elrond-go/data/state/pubkeyConverter"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
@@ -42,7 +42,7 @@ import (
 var testMarshalizer = &marshal.GogoProtoMarshalizer{}
 var testHasher = sha256.Sha256{}
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
-var addrConv, _ = addressConverters.NewPlainAddressConverter(32, "0x")
+var pubkeyConv, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 var log = logger.GetOrCreate("integrationtests")
 
@@ -113,7 +113,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 
 // CreateAccount -
 func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, balance *big.Int) ([]byte, error) {
-	address, err := addrConv.CreateAddressFromPublicKeyBytes(pubKey)
+	address, err := pubkeyConv.CreateAddressFromBytes(pubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	args := hooks.ArgBlockChainHook{
 		Accounts:         accnts,
-		AddrConv:         addrConv,
+		PubkeyConv:       pubkeyConv,
 		StorageService:   &mock.ChainStorerMock{},
 		BlockChain:       &mock.BlockChainMock{},
 		ShardCoordinator: oneShardCoordinator,
@@ -163,7 +163,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		}}
 	argsParser := vmcommon.NewAtArgumentParser()
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		AddressConverter: addrConv,
+		PubkeyConverter: pubkeyConv,
 		ShardCoordinator: oneShardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   argsParser,
@@ -179,7 +179,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		Marshalizer:  testMarshalizer,
 		AccountsDB:   accnts,
 		TempAccounts: blockChainHook,
-		AdrConv:      addrConv,
+		PubkeyConv:   pubkeyConv,
 		Coordinator:  oneShardCoordinator,
 		ScrForwarder: &mock.IntermediateTransactionHandlerMock{},
 		TxFeeHandler: &mock.UnsignedTxHandlerMock{},
@@ -200,7 +200,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 	txProcessor, _ := transaction.NewTxProcessor(
 		accnts,
 		testHasher,
-		addrConv,
+		pubkeyConv,
 		testMarshalizer,
 		oneShardCoordinator,
 		scProcessor,
@@ -218,7 +218,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutionHandler {
 	args := hooks.ArgBlockChainHook{
 		Accounts:         accnts,
-		AddrConv:         addrConv,
+		PubkeyConv:       pubkeyConv,
 		StorageService:   &mock.ChainStorerMock{},
 		BlockChain:       &mock.BlockChainMock{},
 		ShardCoordinator: oneShardCoordinator,
@@ -260,7 +260,7 @@ func CreateVMAndBlockchainHook(
 
 	args := hooks.ArgBlockChainHook{
 		Accounts:         accnts,
-		AddrConv:         addrConv,
+		PubkeyConv:       pubkeyConv,
 		StorageService:   &mock.ChainStorerMock{},
 		BlockChain:       &mock.BlockChainMock{},
 		ShardCoordinator: oneShardCoordinator,
@@ -305,7 +305,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 ) (process.TransactionProcessor, process.SmartContractProcessor) {
 	argsParser := vmcommon.NewAtArgumentParser()
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		AddressConverter: addrConv,
+		PubkeyConverter: pubkeyConv,
 		ShardCoordinator: oneShardCoordinator,
 		BuiltInFuncNames: blockChainHook.GetBuiltInFunctions().Keys(),
 		ArgumentParser:   argsParser,
@@ -321,7 +321,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		Marshalizer:  testMarshalizer,
 		AccountsDB:   accnts,
 		TempAccounts: blockChainHook,
-		AdrConv:      addrConv,
+		PubkeyConv:   pubkeyConv,
 		Coordinator:  oneShardCoordinator,
 		ScrForwarder: &mock.IntermediateTransactionHandlerMock{},
 		TxFeeHandler: &mock.UnsignedTxHandlerMock{},
@@ -343,7 +343,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	txProcessor, _ := transaction.NewTxProcessor(
 		accnts,
 		testHasher,
-		addrConv,
+		pubkeyConv,
 		testMarshalizer,
 		oneShardCoordinator,
 		scProcessor,
@@ -368,7 +368,7 @@ func TestDeployedContractContents(
 ) {
 
 	scCodeBytes, _ := hex.DecodeString(scCode)
-	destinationAddress, _ := addrConv.CreateAddressFromPublicKeyBytes(destinationAddressBytes)
+	destinationAddress, _ := pubkeyConv.CreateAddressFromBytes(destinationAddressBytes)
 	destinationRecovAccount, _ := accnts.GetExistingAccount(destinationAddress)
 	destinationRecovShardAccount, ok := destinationRecovAccount.(state.UserAccountHandler)
 
@@ -396,7 +396,7 @@ func TestDeployedContractContents(
 
 // AccountExists -
 func AccountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
-	address, _ := addrConv.CreateAddressFromPublicKeyBytes(addressBytes)
+	address, _ := pubkeyConv.CreateAddressFromBytes(addressBytes)
 	accnt, _ := accnts.GetExistingAccount(address)
 
 	return accnt != nil
@@ -506,7 +506,7 @@ func TestAccount(
 	expectedBalance *big.Int,
 ) *big.Int {
 
-	senderAddress, _ := addrConv.CreateAddressFromPublicKeyBytes(senderAddressBytes)
+	senderAddress, _ := pubkeyConv.CreateAddressFromBytes(senderAddressBytes)
 	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddress)
 	senderRecovShardAccount := senderRecovAccount.(state.UserAccountHandler)
 
@@ -532,7 +532,7 @@ func ComputeExpectedBalance(
 
 // GetAccountsBalance -
 func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int {
-	address, _ := addrConv.CreateAddressFromPublicKeyBytes(addrBytes)
+	address, _ := pubkeyConv.CreateAddressFromBytes(addrBytes)
 	accnt, _ := accnts.GetExistingAccount(address)
 	shardAccnt, _ := accnt.(state.UserAccountHandler)
 

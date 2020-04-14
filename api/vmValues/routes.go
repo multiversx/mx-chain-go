@@ -14,6 +14,7 @@ import (
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
 	ExecuteSCQuery(*process.SCQuery) (*vmcommon.VMOutput, error)
+	DecodeAddressPubkey(pk string) ([]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -87,7 +88,7 @@ func doExecuteQuery(context *gin.Context) (*vmcommon.VMOutput, error) {
 		return nil, errors.ErrInvalidJSONRequest
 	}
 
-	command, err := createSCQuery(&request)
+	command, err := createSCQuery(facade, &request)
 	if err != nil {
 		return nil, err
 	}
@@ -100,10 +101,10 @@ func doExecuteQuery(context *gin.Context) (*vmcommon.VMOutput, error) {
 	return vmOutput, nil
 }
 
-func createSCQuery(request *VMValueRequest) (*process.SCQuery, error) {
-	decodedAddress, err := hex.DecodeString(request.ScAddress)
+func createSCQuery(fh FacadeHandler, request *VMValueRequest) (*process.SCQuery, error) {
+	decodedAddress, err := fh.DecodeAddressPubkey(request.ScAddress)
 	if err != nil {
-		return nil, fmt.Errorf("'%s' is not a valid hex string: %s", request.ScAddress, err.Error())
+		return nil, fmt.Errorf("'%s' is not a valid address: %s", request.ScAddress, err.Error())
 	}
 
 	arguments := make([][]byte, len(request.Args))

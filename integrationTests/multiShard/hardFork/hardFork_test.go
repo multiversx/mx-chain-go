@@ -244,7 +244,7 @@ func createHardForkExporter(
 			MultiSigner:            node.MultiSigner,
 			NodesCoordinator:       node.NodesCoordinator,
 			SingleSigner:           node.OwnAccount.SingleSigner,
-			AddrConverter:          integrationTests.TestAddressConverter,
+			AddressPubkeyConverter: integrationTests.TestAddressPubkeyConverter,
 			BlockKeyGen:            node.OwnAccount.KeygenBlockSign,
 			KeyGen:                 node.OwnAccount.KeygenTxSign,
 			BlockSigner:            node.OwnAccount.BlockSingleSigner,
