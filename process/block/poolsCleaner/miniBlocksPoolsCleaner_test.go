@@ -84,7 +84,7 @@ func TestCleanMiniblocksPoolsIfNeeded_MiniblockNotInPoolShouldBeRemovedFromMap(t
 	assert.Equal(t, 0, result)
 }
 
-func TestCleanMiniblocksPoolsIfNeeded_RoundDiffToShouldMiniblockShouldRemainInMap(t *testing.T) {
+func TestCleanMiniblocksPoolsIfNeeded_RoundDiffTooSmallMiniblockShouldRemainInMap(t *testing.T) {
 	t.Parallel()
 
 	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(&mock.CacherStub{

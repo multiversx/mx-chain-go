@@ -183,7 +183,7 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 
 	arg := createMockArguments()
 	arg.AddressConverter = &mock.AddressConverterStub{
-		AddressLenHandler: func() int {
+		AddressLenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
 		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
@@ -211,7 +211,7 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunc(t *testing.T) {
 
 	arg := createMockArguments()
 	arg.AddressConverter = &mock.AddressConverterStub{
-		AddressLenHandler: func() int {
+		AddressLenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
 		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {

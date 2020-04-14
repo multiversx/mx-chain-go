@@ -160,7 +160,7 @@ func TestGetShardFromAddress(t *testing.T) {
 	expectedErr := errors.New("error")
 	testAddr := []byte("addr")
 	addrConverter := &mock.AddressConverterStub{
-		AddressLenHandler: func() int {
+		AddressLenCalled: func() int {
 			return addrLen
 		},
 		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
@@ -302,7 +302,7 @@ func TestCleanCrossTxsPoolsIfNeeded_CannotFindTxInPoolShouldBeRemovedFromMap(t *
 	assert.Equal(t, 0, numTxsInMap)
 }
 
-func TestCleanCrossTxsPoolsIfNeeded_RoundDiffToSmallShouldNotBeRemoved(t *testing.T) {
+func TestCleanCrossTxsPoolsIfNeeded_RoundDiffTooSmallShouldNotBeRemoved(t *testing.T) {
 	t.Parallel()
 
 	sndAddr := []byte("sndAddr")
@@ -340,7 +340,7 @@ func TestCleanCrossTxsPoolsIfNeeded_RoundDiffToSmallShouldNotBeRemoved(t *testin
 	assert.Equal(t, 1, numTxsInMap)
 }
 
-func TestCleanCrossTxsPoolsIfNeeded_RoundDiffToBigShouldBeRemoved(t *testing.T) {
+func TestCleanCrossTxsPoolsIfNeeded_RoundDiffTooBigShouldBeRemoved(t *testing.T) {
 	t.Parallel()
 
 	rounder := &mock.RoundStub{IndexCalled: func() int64 {
