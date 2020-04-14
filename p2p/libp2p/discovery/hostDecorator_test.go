@@ -30,15 +30,14 @@ func TestDecoratorConstructor(t *testing.T) {
 	cpsAvg := uint32((hardCPSLimitLow + hardCPSLimitHigh) / 2)
 
 	testTbl := []struct {
-		h   host.Host
-		ctx context.Context
-		cps uint32
-		to  time.Duration
-
 		expDecNil bool
 		expErrNil bool
+		cps       uint32
 		expCps    int
 		name      string
+		h         host.Host
+		ctx       context.Context
+		to        time.Duration
 	}{
 		{h: nil, ctx: nil, cps: 0, to: 0, expDecNil: true, expErrNil: false, expCps: 0, name: "All zero"},
 		{h: nil, ctx: ctx, cps: 0, to: time.Second, expDecNil: true, expErrNil: false, expCps: 0, name: "Nil Host"},

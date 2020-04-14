@@ -15,7 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const emptyExcludePeersOnTopic = ""
+// EmptyExcludePeersOnTopic is an empty topic
+const EmptyExcludePeersOnTopic = ""
 const defaultTargetShardID = uint32(0)
 
 //TODO extract these in config
@@ -183,7 +184,7 @@ func (brcf *baseResolversContainerFactory) generateMiniBlocksResolvers() error {
 	keys[noOfShards] = identifierMiniBlocks
 
 	identifierAllShardMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.AllShardId)
-	allShardMiniblocksResolver, err := brcf.createMiniBlocksResolver(identifierAllShardMiniBlocks, emptyExcludePeersOnTopic)
+	allShardMiniblocksResolver, err := brcf.createMiniBlocksResolver(identifierAllShardMiniBlocks, EmptyExcludePeersOnTopic)
 	if err != nil {
 		return err
 	}
@@ -202,15 +203,16 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(topic string
 		return nil, err
 	}
 
-	arg := resolvers.ArgGenericBlockBodyResolver{
+	arg := resolvers.ArgMiniblockResolver{
 		SenderResolver:   resolverSender,
 		MiniBlockPool:    brcf.dataPools.MiniBlocks(),
 		MiniBlockStorage: miniBlocksStorer,
 		Marshalizer:      brcf.marshalizer,
 		AntifloodHandler: brcf.inputAntifloodHandler,
 		Throttler:        brcf.throttler,
+		DataPacker:       brcf.dataPacker,
 	}
-	txBlkResolver, err := resolvers.NewGenericBlockBodyResolver(arg)
+	txBlkResolver, err := resolvers.NewMiniblockResolver(arg)
 	if err != nil {
 		return nil, err
 	}
@@ -228,6 +230,16 @@ func (brcf *baseResolversContainerFactory) createOneResolverSender(
 	excludedTopic string,
 	targetShardId uint32,
 ) (dataRetriever.TopicResolverSender, error) {
+	return brcf.createOneResolverSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardId, numCrossShardPeers, numIntraShardPeers)
+}
+
+func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedNumRequests(
+	topic string,
+	excludedTopic string,
+	targetShardId uint32,
+	numCrossShard int,
+	numIntraShard int,
+) (dataRetriever.TopicResolverSender, error) {
 
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(brcf.messenger, topic, brcf.intraShardTopic, excludedTopic)
 	if err != nil {
@@ -242,8 +254,8 @@ func (brcf *baseResolversContainerFactory) createOneResolverSender(
 		Randomizer:         brcf.intRandomizer,
 		TargetShardId:      targetShardId,
 		OutputAntiflooder:  brcf.outputAntifloodHandler,
-		NumCrossShardPeers: numCrossShardPeers,
-		NumIntraShardPeers: numIntraShardPeers,
+		NumCrossShardPeers: numCrossShard,
+		NumIntraShardPeers: numIntraShard,
 	}
 	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
 	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units
@@ -255,21 +267,32 @@ func (brcf *baseResolversContainerFactory) createOneResolverSender(
 	return resolverSender, nil
 }
 
-func (brcf *baseResolversContainerFactory) createTrieNodesResolver(topic string, trieId string) (dataRetriever.Resolver, error) {
-	resolverSender, err := brcf.createOneResolverSender(topic, emptyExcludePeersOnTopic, defaultTargetShardID)
+func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
+	topic string,
+	trieId string,
+	numCrossShard int,
+	numIntraShard int,
+) (dataRetriever.Resolver, error) {
+	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(
+		topic,
+		EmptyExcludePeersOnTopic,
+		defaultTargetShardID,
+		numCrossShard,
+		numIntraShard,
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	trie := brcf.triesContainer.Get([]byte(trieId))
-	arg := resolvers.ArgTrieNodeResolver{
+	argTrie := resolvers.ArgTrieNodeResolver{
 		SenderResolver:   resolverSender,
 		TrieDataGetter:   trie,
 		Marshalizer:      brcf.marshalizer,
 		AntifloodHandler: brcf.inputAntifloodHandler,
 		Throttler:        brcf.throttler,
 	}
-	resolver, err := resolvers.NewTrieNodeResolver(arg)
+	resolver, err := resolvers.NewTrieNodeResolver(argTrie)
 	if err != nil {
 		return nil, err
 	}

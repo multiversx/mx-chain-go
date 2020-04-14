@@ -85,7 +85,6 @@ type BlockSizeThrottleConfig struct {
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage          StorageConfig
-	MiniBlockHeadersStorage    StorageConfig
 	PeerBlockBodyStorage       StorageConfig
 	BlockHeaderStorage         StorageConfig
 	TxStorage                  StorageConfig
@@ -228,12 +227,12 @@ type TxAccumulatorConfig struct {
 type AntifloodConfig struct {
 	Enabled                   bool
 	NumConcurrentResolverJobs int32
+	PeerMaxMessagesPerSecond  uint32
+	MaxMessagesPerSecond      uint32
+	PeerMaxTotalSizePerSecond uint64
+	MaxTotalSizePerSecond     uint64
 	Cache                     CacheConfig
 	BlackList                 BlackListConfig
-	PeerMaxMessagesPerSecond  uint32
-	PeerMaxTotalSizePerSecond uint64
-	MaxMessagesPerSecond      uint32
-	MaxTotalSizePerSecond     uint64
 	WebServer                 WebServerAntifloodConfig
 	Topic                     TopicAntifloodConfig
 	TxAccumulator             TxAccumulatorConfig

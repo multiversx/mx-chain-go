@@ -15,12 +15,12 @@ import (
 )
 
 type config struct {
-	address            string
-	logLevel           string
 	logWithCorrelation bool
 	logWithLoggerName  bool
-	interval           int
 	useWss             bool
+	interval           int
+	address            string
+	logLevel           string
 }
 
 var (

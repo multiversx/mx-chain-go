@@ -21,6 +21,7 @@ const durationBetweenChecks = 200 * time.Millisecond
 const durationBetweenReRequests = 1 * time.Second
 const durationBetweenCheckingNumConnectedPeers = 500 * time.Millisecond
 const minNumConnectedPeers = 6
+const minNumOfPeersToConsiderBlockValid = 3
 
 var _ process.InterceptorProcessor = (*epochStartMetaBlockProcessor)(nil)
 
@@ -74,9 +75,10 @@ func NewEpochStartMetaBlockProcessor(
 
 	processor.waitForEnoughNumConnectedPeers(messenger)
 	percentage := float64(consensusPercentage) / 100.0
-	log.Debug("consensus percentage for epoch start meta block ", "value (%)", consensusPercentage)
 	peerCountTarget := int(percentage * float64(len(messenger.ConnectedPeers())))
 	processor.peerCountTarget = peerCountTarget
+
+	log.Debug("consensus percentage for epoch start meta block ", "value (%)", consensusPercentage, "peerCountTarget", peerCountTarget)
 	return processor, nil
 }
 
@@ -176,7 +178,7 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 		case <-e.chanConsensusReached:
 			return e.metaBlock, nil
 		case <-ctx.Done():
-			return nil, epochStart.ErrTimeoutWaitingForMetaBlock
+			return e.getMostReceivedMetaBlock()
 		case <-chanRequests:
 			err = e.requestMetaBlock()
 			if err != nil {
@@ -188,6 +190,26 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 			chanCheckMaps = time.After(durationBetweenChecks)
 		}
 	}
+}
+
+func (e *epochStartMetaBlockProcessor) getMostReceivedMetaBlock() (*block.MetaBlock, error) {
+	e.mutReceivedMetaBlocks.RLock()
+	defer e.mutReceivedMetaBlocks.RUnlock()
+
+	var mostReceivedHash string
+	maxLength := minNumOfPeersToConsiderBlockValid - 1
+	for hash, entry := range e.mapMetaBlocksFromPeers {
+		if len(entry) > maxLength {
+			maxLength = len(entry)
+			mostReceivedHash = hash
+		}
+	}
+
+	if len(mostReceivedHash) == 0 {
+		return nil, epochStart.ErrTimeoutWaitingForMetaBlock
+	}
+
+	return e.mapReceivedMetaBlocks[mostReceivedHash], nil
 }
 
 func (e *epochStartMetaBlockProcessor) requestMetaBlock() error {
@@ -206,6 +228,7 @@ func (e *epochStartMetaBlockProcessor) requestMetaBlock() error {
 func (e *epochStartMetaBlockProcessor) checkMaps() {
 	e.mutReceivedMetaBlocks.RLock()
 	defer e.mutReceivedMetaBlocks.RUnlock()
+
 	for hash, peersList := range e.mapMetaBlocksFromPeers {
 		log.Debug("metablock from peers", "num peers", len(peersList), "target", e.peerCountTarget, "hash", []byte(hash))
 		found := e.processEntry(peersList, hash)

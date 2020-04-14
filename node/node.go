@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -95,18 +96,18 @@ type Node struct {
 	multiSigner       crypto.MultiSigner
 	forkDetector      process.ForkDetector
 
-	blkc             data.ChainHandler
-	dataPool         dataRetriever.PoolsHolder
-	store            dataRetriever.StorageService
-	shardCoordinator sharding.Coordinator
-	nodesCoordinator sharding.NodesCoordinator
+	blkc               data.ChainHandler
+	dataPool           dataRetriever.PoolsHolder
+	store              dataRetriever.StorageService
+	shardCoordinator   sharding.Coordinator
+	nodesCoordinator   sharding.NodesCoordinator
+	miniblocksProvider process.MiniBlockProvider
 
 	networkShardingCollector NetworkShardingCollector
 
 	consensusTopic string
 	consensusType  string
 
-	isRunning                bool
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
@@ -136,9 +137,6 @@ type Node struct {
 
 // ApplyOptions can set up different configurable options of a Node instance
 func (n *Node) ApplyOptions(opts ...Option) error {
-	if n.IsRunning() {
-		return errors.New("cannot apply options while node is running")
-	}
 	for _, opt := range opts {
 		err := opt(n)
 		if err != nil {
@@ -168,27 +166,6 @@ func NewNode(opts ...Option) (*Node, error) {
 // GetAppStatusHandler will return the current status handler
 func (n *Node) GetAppStatusHandler() core.AppStatusHandler {
 	return n.appStatusHandler
-}
-
-// IsRunning will return the current state of the node
-func (n *Node) IsRunning() bool {
-	return n.isRunning
-}
-
-// TODO: delete useles IsRunning, Start and Stop - too many usages in tests for this PR.
-
-// Start will set up the Node state as running
-func (n *Node) Start() {
-	n.isRunning = true
-}
-
-// Stop closes the messenger and undos everything done in Start
-func (n *Node) Stop() error {
-	if !n.IsRunning() {
-		return nil
-	}
-
-	return nil
 }
 
 // CreateShardedStores instantiate sharded cachers for Transactions and Headers
@@ -418,6 +395,13 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandl
 
 //TODO move this func in structs.go
 func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
+	miniblocksProvider, err := n.createMiniblocksProvider()
+	if err != nil {
+		return nil, err
+	}
+
+	n.miniblocksProvider = miniblocksProvider
+
 	if n.shardCoordinator.SelfId() < n.shardCoordinator.NumberOfShards() {
 		return n.createShardBootstrapper(rounder)
 	}
@@ -431,7 +415,6 @@ func (n *Node) createBootstrapper(rounder consensus.Rounder) (process.Bootstrapp
 
 func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
-		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
 		ForkDetector:        n.forkDetector,
 		BlockProcessor:      n.blockProcessor,
@@ -455,19 +438,6 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		return nil, err
 	}
 
-	resolver, err := n.resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
-	if err != nil {
-		keys := n.resolversFinder.ResolverKeys()
-		log.Warn("existing resolvers", "resolvers", keys)
-
-		return nil, err
-	}
-
-	miniBlocksResolver, ok := resolver.(process.MiniBlocksResolver)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
 		PoolsHolder:         n.dataPool,
 		Store:               n.store,
@@ -486,7 +456,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		BootStorer:          n.bootStorer,
 		StorageBootstrapper: shardStorageBootstrapper,
 		EpochHandler:        n.epochStartTrigger,
-		MiniBlocksResolver:  miniBlocksResolver,
+		MiniblocksProvider:  n.miniblocksProvider,
 		Uint64Converter:     n.uint64ByteSliceConverter,
 	}
 
@@ -504,7 +474,6 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 
 func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.Bootstrapper, error) {
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
-		ResolversFinder:     n.resolversFinder,
 		BootStorer:          n.bootStorer,
 		ForkDetector:        n.forkDetector,
 		BlockProcessor:      n.blockProcessor,
@@ -529,19 +498,6 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		return nil, err
 	}
 
-	resolver, err := n.resolversFinder.IntraShardResolver(factory.MiniBlocksTopic)
-	if err != nil {
-		keys := n.resolversFinder.ResolverKeys()
-		log.Warn("existing resolvers", "resolvers", keys)
-
-		return nil, err
-	}
-
-	miniBlocksResolver, ok := resolver.(process.MiniBlocksResolver)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
 		PoolsHolder:         n.dataPool,
 		Store:               n.store,
@@ -560,7 +516,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		BootStorer:          n.bootStorer,
 		StorageBootstrapper: metaStorageBootstrapper,
 		EpochHandler:        n.epochStartTrigger,
-		MiniBlocksResolver:  miniBlocksResolver,
+		MiniblocksProvider:  n.miniblocksProvider,
 		Uint64Converter:     n.uint64ByteSliceConverter,
 	}
 
@@ -575,6 +531,23 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 	}
 
 	return bootstrap, nil
+}
+
+func (n *Node) createMiniblocksProvider() (process.MiniBlockProvider, error) {
+	if check.IfNil(n.dataPool) {
+		return nil, process.ErrNilPoolsHolder
+	}
+	if check.IfNil(n.store) {
+		return nil, process.ErrNilStorage
+	}
+
+	arg := provider.ArgMiniBlockProvider{
+		MiniBlockPool:    n.dataPool.MiniBlocks(),
+		MiniBlockStorage: n.store.GetStorer(dataRetriever.MiniBlockUnit),
+		Marshalizer:      n.internalMarshalizer,
+	}
+
+	return provider.NewMiniBlockProvider(arg)
 }
 
 // createConsensusState method creates a consensusState object
@@ -619,15 +592,15 @@ func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor) error
 	}
 
 	n.consensusTopic = core.ConsensusTopic + n.shardCoordinator.CommunicationIdentifier(n.shardCoordinator.SelfId())
-	if n.messenger.HasTopicValidator(n.consensusTopic) {
-		return ErrValidatorAlreadySet
-	}
-
 	if !n.messenger.HasTopic(n.consensusTopic) {
 		err := n.messenger.CreateTopic(n.consensusTopic, true)
 		if err != nil {
 			return err
 		}
+	}
+
+	if n.messenger.HasTopicValidator(n.consensusTopic) {
+		return ErrValidatorAlreadySet
 	}
 
 	return n.messenger.RegisterMessageProcessor(n.consensusTopic, messageProcessor)

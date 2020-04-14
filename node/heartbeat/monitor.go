@@ -42,7 +42,6 @@ type Monitor struct {
 	peerTypeProvider            PeerTypeProviderHandler
 	mutHeartbeatMessages        sync.RWMutex
 	heartbeatMessages           map[string]*heartbeatMessageInfo
-	mutPubKeysMap               sync.RWMutex
 	pubKeysMap                  map[uint32][]string
 	mutFullPeersSlice           sync.RWMutex
 	fullPeersSlice              [][]byte
