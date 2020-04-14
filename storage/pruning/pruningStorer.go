@@ -2,8 +2,8 @@ package pruning
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
+	"math"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -21,6 +21,10 @@ var log = logger.GetOrCreate("storage/pruning")
 // maxNumEpochsToKeepIfAShardIsStuck represents the maximum number of epochs to be kept active if a shard remains stuck
 // and requires data from older epochs
 const maxNumEpochsToKeepIfAShardIsStuck = 5
+
+// epochForDefaultEpochPrepareHdr represents the default epoch number for the meta block which is saved on EpochPrepareAction
+// it is useful for checking if any metablock of this kind is received
+const epochForDefaultEpochPrepareHdr = math.MaxUint32 - 7
 
 // persisterData structure is used so the persister and its path can be kept in the same place
 type persisterData struct {
@@ -124,7 +128,7 @@ func initPruningStorer(
 		shardCoordinator:      args.ShardCoordinator,
 		persistersMapByEpoch:  persistersMapByEpoch,
 		cacher:                cache,
-		epochPrepareHdr:       &block.MetaBlock{},
+		epochPrepareHdr:       &block.MetaBlock{Epoch: epochForDefaultEpochPrepareHdr},
 		bloomFilter:           nil,
 		epochForPutOperation:  args.StartingEpoch,
 		pathManager:           args.PathManager,
@@ -539,15 +543,6 @@ func (ps *PruningStorer) saveHeaderForEpochStartPrepare(header data.HeaderHandle
 // changeEpoch will handle creating a new persister and removing of the older ones
 func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 	epoch := header.GetEpoch()
-	metaBlock, mbOk := header.(*block.MetaBlock)
-	if !mbOk {
-		ps.mutEpochPrepareHdr.RLock()
-		if ps.epochPrepareHdr != nil {
-			metaBlock = ps.epochPrepareHdr
-		} else {
-			return storage.ErrWrongTypeAssertion
-		}
-	}
 	log.Debug("PruningStorer - change epoch", "unit", ps.identifier, "epoch", epoch)
 	// if pruning is not enabled, don't create new persisters, but use the same one instead
 	if !ps.pruningEnabled {
@@ -593,22 +588,50 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 		return err
 	}
 
+	wasExtended := ps.extendSavedEpochsIfNeeded(header)
+	if wasExtended {
+		return nil
+	}
+
+	err = ps.closeAndDestroyPersisters(epoch)
+	if err != nil {
+		log.Warn("closing and destroying old persister", "error", err.Error())
+		return err
+	}
+	return nil
+}
+
+func (ps *PruningStorer) extendSavedEpochsIfNeeded(header data.HeaderHandler) bool {
+	epoch := header.GetEpoch()
+	metaBlock, mbOk := header.(*block.MetaBlock)
+	if !mbOk {
+		ps.mutEpochPrepareHdr.RLock()
+		epochPrepareHdr := ps.epochPrepareHdr
+		ps.mutEpochPrepareHdr.RUnlock()
+		if epochPrepareHdr != nil {
+			metaBlock = epochPrepareHdr
+		} else {
+			return false
+		}
+	}
+	shouldExtend := metaBlock.Epoch != epochForDefaultEpochPrepareHdr
+	if !shouldExtend {
+		return false
+	}
 	oldestEpochToKeep := computeOldestEpoch(metaBlock)
 	oldestEpochInCurrentSetting := ps.activePersisters[len(ps.activePersisters)-1].epoch
 	shouldKeepOlderEpochsIfShardIsStuck := epoch-oldestEpochToKeep < maxNumEpochsToKeepIfAShardIsStuck
 	if oldestEpochToKeep <= oldestEpochInCurrentSetting && shouldKeepOlderEpochsIfShardIsStuck {
-		err = ps.extendActivePersistersTo(oldestEpochToKeep)
+		err := ps.extendActivePersistersTo(oldestEpochToKeep)
 		if err != nil {
-			return err
+			log.Warn("PruningStorer - extend epochs", "error", err)
+			return false
 		}
-	} else {
-		err = ps.closeAndDestroyPersisters(epoch)
-		if err != nil {
-			log.Warn("closing and destroying old persister", "error", err.Error())
-			return err
-		}
+
+		return true
 	}
-	return nil
+
+	return false
 }
 
 func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
@@ -644,7 +667,10 @@ func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
 func (ps *PruningStorer) extendActivePersistersTo(epoch uint32) error {
 	currentOldestActivePersister := ps.activePersisters[len(ps.activePersisters)-1]
 	newestEpoch := currentOldestActivePersister.epoch
-	for e := int(newestEpoch); e >= int(epoch); e-- {
+	log.Debug("PruningStorer - extend stored epochs due to a stuck shard",
+		"from epoch", newestEpoch,
+		"to epoch", epoch)
+	for e := int(newestEpoch) - 1; e >= int(epoch); e-- {
 		p, ok := ps.persistersMapByEpoch[uint32(e)]
 		if !ok {
 			return nil

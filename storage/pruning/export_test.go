@@ -14,7 +14,7 @@ func (ps *PruningStorer) PrepareChangeEpoch(metaBlock *block.MetaBlock) error {
 }
 
 func (ps *PruningStorer) ChangeEpochSimple(epochNum uint32) error {
-	return ps.changeEpoch(&block.MetaBlock{Epoch: epochNum})
+	return ps.changeEpoch(&block.Header{Epoch: epochNum})
 }
 
 func (ps *PruningStorer) ChangeEpochWithExisting(epoch uint32) error {
