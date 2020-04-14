@@ -324,99 +324,23 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldErr(t *te
 func TestMultiDataInterceptor_ProcessReceivedMessageNotValidShouldErrAndNotProcess(t *testing.T) {
 	t.Parallel()
 
-	buffData := [][]byte{[]byte("buff1"), []byte("buff2")}
-
-	marshalizer := &mock.MarshalizerMock{}
-	checkCalledNum := int32(0)
-	processCalledNum := int32(0)
-	throttler := createMockThrottler()
 	errExpected := errors.New("expected err")
-	interceptedData := &mock.InterceptedDataStub{
-		CheckValidityCalled: func() error {
-			return errExpected
-		},
-		IsForCurrentShardCalled: func() bool {
-			return true
-		},
-	}
-	mdi, _ := interceptors.NewMultiDataInterceptor(
-		testTopic,
-		marshalizer,
-		&mock.InterceptedDataFactoryStub{
-			CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
-				return interceptedData, nil
-			},
-		},
-		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
-		throttler,
-		&mock.P2PAntifloodHandlerStub{},
-		&mock.WhiteListHandlerStub{},
-	)
-
-	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
-	msg := &mock.P2PMessageMock{
-		DataField: dataField,
-	}
-	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
-
-	time.Sleep(time.Second)
-
-	assert.Equal(t, errExpected, err)
-	assert.Equal(t, int32(0), atomic.LoadInt32(&checkCalledNum))
-	assert.Equal(t, int32(0), atomic.LoadInt32(&processCalledNum))
-	assert.Equal(t, int32(1), throttler.StartProcessingCount())
-	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	testProcessReceiveMessageMultiData(t, true, errExpected, 0)
 }
 
 func TestMultiDataInterceptor_ProcessReceivedMessageIsAddressedToOtherShardShouldRetNilAndNotProcess(t *testing.T) {
 	t.Parallel()
 
-	buffData := [][]byte{[]byte("buff1"), []byte("buff2")}
-
-	marshalizer := &mock.MarshalizerMock{}
-	checkCalledNum := int32(0)
-	processCalledNum := int32(0)
-	throttler := createMockThrottler()
-	interceptedData := &mock.InterceptedDataStub{
-		CheckValidityCalled: func() error {
-			return nil
-		},
-		IsForCurrentShardCalled: func() bool {
-			return false
-		},
-	}
-	mdi, _ := interceptors.NewMultiDataInterceptor(
-		testTopic,
-		marshalizer,
-		&mock.InterceptedDataFactoryStub{
-			CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
-				return interceptedData, nil
-			},
-		},
-		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
-		throttler,
-		&mock.P2PAntifloodHandlerStub{},
-		&mock.WhiteListHandlerStub{},
-	)
-
-	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
-	msg := &mock.P2PMessageMock{
-		DataField: dataField,
-	}
-	err := mdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
-
-	time.Sleep(time.Second)
-
-	assert.Nil(t, err)
-	assert.Equal(t, int32(0), atomic.LoadInt32(&checkCalledNum))
-	assert.Equal(t, int32(0), atomic.LoadInt32(&processCalledNum))
-	assert.Equal(t, int32(1), throttler.StartProcessingCount())
-	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	testProcessReceiveMessageMultiData(t, false, nil, 0)
 }
 
 func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *testing.T) {
 	t.Parallel()
 
+	testProcessReceiveMessageMultiData(t, true, nil, 2)
+}
+
+func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, expectedErr error, calledNum int) {
 	buffData := [][]byte{[]byte("buff1"), []byte("buff2")}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -425,10 +349,10 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 	throttler := createMockThrottler()
 	interceptedData := &mock.InterceptedDataStub{
 		CheckValidityCalled: func() error {
-			return nil
+			return expectedErr
 		},
 		IsForCurrentShardCalled: func() bool {
-			return true
+			return isForCurrentShard
 		},
 	}
 	mdi, _ := interceptors.NewMultiDataInterceptor(
@@ -453,9 +377,9 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 
 	time.Sleep(time.Second)
 
-	assert.Nil(t, err)
-	assert.Equal(t, int32(2), atomic.LoadInt32(&checkCalledNum))
-	assert.Equal(t, int32(2), atomic.LoadInt32(&processCalledNum))
+	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, int32(calledNum), atomic.LoadInt32(&checkCalledNum))
+	assert.Equal(t, int32(calledNum), atomic.LoadInt32(&processCalledNum))
 	assert.Equal(t, int32(1), throttler.StartProcessingCount())
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 }

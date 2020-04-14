@@ -84,8 +84,6 @@ func TestHeartbeatStatus_FailsWithoutFacade(t *testing.T) {
 func TestHeartbeatstatus_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{}
-	facade.Running = true
 	ws := startNodeServerWrongFacade()
 	req, _ := http.NewRequest("GET", "/node/heartbeatstatus", nil)
 	resp := httptest.NewRecorder()

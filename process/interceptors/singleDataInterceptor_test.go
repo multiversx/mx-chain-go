@@ -206,100 +206,32 @@ func TestSingleDataInterceptor_ProcessReceivedMessageFactoryCreationErrorShouldE
 func TestSingleDataInterceptor_ProcessReceivedMessageIsNotValidShouldNotCallProcess(t *testing.T) {
 	t.Parallel()
 
-	checkCalledNum := int32(0)
-	processCalledNum := int32(0)
-	errExpected := errors.New("expected err")
-	throttler := createMockThrottler()
-	interceptedData := &mock.InterceptedDataStub{
-		CheckValidityCalled: func() error {
-			return errExpected
-		},
-		IsForCurrentShardCalled: func() bool {
-			return true
-		},
-	}
-
-	sdi, _ := interceptors.NewSingleDataInterceptor(
-		testTopic,
-		&mock.InterceptedDataFactoryStub{
-			CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
-				return interceptedData, nil
-			},
-		},
-		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
-		throttler,
-		&mock.P2PAntifloodHandlerStub{},
-		&mock.WhiteListHandlerStub{},
-	)
-
-	msg := &mock.P2PMessageMock{
-		DataField: []byte("data to be processed"),
-	}
-	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
-
-	time.Sleep(time.Second)
-
-	assert.Equal(t, errExpected, err)
-	assert.Equal(t, int32(0), atomic.LoadInt32(&checkCalledNum))
-	assert.Equal(t, int32(0), atomic.LoadInt32(&processCalledNum))
-	assert.Equal(t, int32(1), throttler.StartProcessingCount())
-	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	errExpected := errors.New("expected error")
+	testProcessReceiveMessage(t, true, errExpected, 0)
 }
 
 func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldNotCallProcess(t *testing.T) {
 	t.Parallel()
 
-	checkCalledNum := int32(0)
-	processCalledNum := int32(0)
-	throttler := createMockThrottler()
-	interceptedData := &mock.InterceptedDataStub{
-		CheckValidityCalled: func() error {
-			return nil
-		},
-		IsForCurrentShardCalled: func() bool {
-			return false
-		},
-	}
-
-	sdi, _ := interceptors.NewSingleDataInterceptor(
-		testTopic,
-		&mock.InterceptedDataFactoryStub{
-			CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
-				return interceptedData, nil
-			},
-		},
-		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
-		throttler,
-		&mock.P2PAntifloodHandlerStub{},
-		&mock.WhiteListHandlerStub{},
-	)
-
-	msg := &mock.P2PMessageMock{
-		DataField: []byte("data to be processed"),
-	}
-	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
-
-	time.Sleep(time.Second)
-
-	assert.Nil(t, err)
-	assert.Equal(t, int32(0), atomic.LoadInt32(&checkCalledNum))
-	assert.Equal(t, int32(0), atomic.LoadInt32(&processCalledNum))
-	assert.Equal(t, int32(1), throttler.StartProcessingCount())
-	assert.Equal(t, int32(1), throttler.EndProcessingCount())
+	testProcessReceiveMessage(t, false, nil, 0)
 }
 
 func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
 	t.Parallel()
 
+	testProcessReceiveMessage(t, true, nil, 1)
+}
+
+func testProcessReceiveMessage(t *testing.T, isForCurrentShard bool, validityErr error, calledNum int) {
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
 	interceptedData := &mock.InterceptedDataStub{
 		CheckValidityCalled: func() error {
-			return nil
+			return validityErr
 		},
 		IsForCurrentShardCalled: func() bool {
-			return true
+			return isForCurrentShard
 		},
 	}
 
@@ -323,9 +255,9 @@ func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	assert.Nil(t, err)
-	assert.Equal(t, int32(1), atomic.LoadInt32(&checkCalledNum))
-	assert.Equal(t, int32(1), atomic.LoadInt32(&processCalledNum))
+	assert.Equal(t, validityErr, err)
+	assert.Equal(t, int32(calledNum), atomic.LoadInt32(&checkCalledNum))
+	assert.Equal(t, int32(calledNum), atomic.LoadInt32(&processCalledNum))
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 }

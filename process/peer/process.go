@@ -894,16 +894,6 @@ func (vs *validatorStatistics) IsInterfaceNil() bool {
 	return vs == nil
 }
 
-func (vs *validatorStatistics) getRating(s string) uint32 {
-	peer, err := vs.GetPeerAccount([]byte(s))
-	if err != nil {
-		log.Debug("error getting peer account", "error", err, "key", s)
-		return vs.rater.GetStartRating()
-	}
-
-	return peer.GetRating()
-}
-
 func (vs *validatorStatistics) getTempRating(s string) uint32 {
 	peer, err := vs.GetPeerAccount([]byte(s))
 

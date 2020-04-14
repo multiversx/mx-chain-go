@@ -41,65 +41,49 @@ func feeHandlerMock() *mock.FeeHandlerStub {
 	}
 }
 
-func initDataPool() *mock.PoolsHolderStub {
-	sdp := &mock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
-				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-					return &mock.CacherStub{
-						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							if reflect.DeepEqual(key, []byte("tx1_hash")) {
-								return &transaction.Transaction{Nonce: 10}, true
-							}
-							return nil, false
-						},
-						KeysCalled: func() [][]byte {
-							return [][]byte{[]byte("key1"), []byte("key2")}
-						},
-						LenCalled: func() int {
-							return 0
-						},
-					}
-				},
-				AddDataCalled:                 func(key []byte, data interface{}, cacheId string) {},
-				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
-				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+func shardedDataCacherNotifier() dataRetriever.ShardedDataCacherNotifier {
+	return &mock.ShardedDataStub{
+		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
+		ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+			return &mock.CacherStub{
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &smartContractResult.SmartContractResult{Nonce: 10}, true
+					}
+					if reflect.DeepEqual(key, []byte("tx2_hash")) {
 						return &transaction.Transaction{Nonce: 10}, true
 					}
 					return nil, false
 				},
+				KeysCalled: func() [][]byte {
+					return [][]byte{[]byte("key1"), []byte("key2")}
+				},
+				LenCalled: func() int {
+					return 0
+				},
 			}
 		},
-		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
-				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-					return &mock.CacherStub{
-						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							if reflect.DeepEqual(key, []byte("tx1_hash")) {
-								return &smartContractResult.SmartContractResult{Nonce: 10}, true
-							}
-							return nil, false
-						},
-						KeysCalled: func() [][]byte {
-							return [][]byte{[]byte("key1"), []byte("key2")}
-						},
-						LenCalled: func() int {
-							return 0
-						},
-					}
-				},
-				AddDataCalled:                 func(key []byte, data interface{}, cacheId string) {},
-				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
-				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, []byte("tx1_hash")) {
-						return &smartContractResult.SmartContractResult{Nonce: 10}, true
-					}
-					return nil, false
-				},
+		AddDataCalled:                 func(key []byte, data interface{}, cacheId string) {},
+		RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
+		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+			if reflect.DeepEqual(key, []byte("tx1_hash")) {
+				return &smartContractResult.SmartContractResult{Nonce: 10}, true
 			}
+			if reflect.DeepEqual(key, []byte("tx2_hash")) {
+				return &transaction.Transaction{Nonce: 10}, true
+			}
+			return nil, false
+		},
+	}
+}
+
+func initDataPool() *mock.PoolsHolderStub {
+	sdp := &mock.PoolsHolderStub{
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return shardedDataCacherNotifier()
+		},
+		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return shardedDataCacherNotifier()
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{
@@ -556,7 +540,7 @@ func TestTxsPreProcessor_GetTransactionFromPool(t *testing.T) {
 	t.Parallel()
 	dataPool := initDataPool()
 	txs := createGoodPreprocessor(dataPool)
-	txHash := []byte("tx1_hash")
+	txHash := []byte("tx2_hash")
 	tx, _ := process.GetTransactionHandlerFromPool(1, 1, txHash, dataPool.Transactions(), false)
 	assert.NotNil(t, txs)
 	assert.NotNil(t, tx)

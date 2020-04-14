@@ -446,6 +446,7 @@ func TestBlsMultiSigner_ScalarMulSigNilSuiteShouldErr(t *testing.T) {
 	}
 
 	scalarBytes, err := hex.DecodeString(scalarBytesHexStr)
+	require.Nil(t, err)
 	sigPointG1, err := sigBytesToPointG1(sig)
 	require.Nil(t, err)
 	res, err := bmsSigner.ScalarMulSig(nil, scalarBytes, sigPointG1)
@@ -697,6 +698,7 @@ func Test_ScalarMulPkOK(t *testing.T) {
 	}
 
 	nb, err := hex.Decode(scalarBytes, []byte(scalarHexStr))
+	require.Nil(t, err)
 	require.Equal(t, 32, nb)
 
 	point, err := multisig.ScalarMulPk(suite, scalarBytes, pk.Point())

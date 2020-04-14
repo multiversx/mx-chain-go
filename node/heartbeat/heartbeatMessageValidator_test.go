@@ -1,7 +1,7 @@
 package heartbeat
 
 import (
-	"math/rand"
+	"crypto/rand"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -12,9 +12,9 @@ func TestTrimLengths(t *testing.T) {
 	token1 := make([]byte, maxSizeInBytes+2)
 	token2 := make([]byte, maxSizeInBytes+2)
 	token3 := make([]byte, maxSizeInBytes+2)
-	rand.Read(token1)
-	rand.Read(token2)
-	rand.Read(token3)
+	_, _ = rand.Read(token1)
+	_, _ = rand.Read(token2)
+	_, _ = rand.Read(token3)
 
 	heartBeat := &Heartbeat{
 		Payload:         token1,

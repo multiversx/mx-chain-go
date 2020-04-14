@@ -46,7 +46,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -76,7 +76,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	checkAccountsAfterStaking(t, nodes, initialVal)
+	checkAccountsAfterStaking(t, nodes)
 
 	/////////------ send unStake tx
 	for index, node := range nodes {
@@ -103,7 +103,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
-	verifyUnbound(t, nodes, initialVal)
+	verifyUnbound(t, nodes)
 }
 
 func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatistics(t *testing.T) {
@@ -148,7 +148,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -185,7 +185,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	consumedBalance := big.NewInt(0).Add(big.NewInt(int64(len(txData))), big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit))
 	consumedBalance.Mul(consumedBalance, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 
-	checkAccountsAfterStaking(t, nodes, initialVal)
+	checkAccountsAfterStaking(t, nodes)
 
 	/////////------ send unStake tx
 	for index, node := range nodes {
@@ -218,7 +218,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
-	verifyUnbound(t, nodes, initialVal)
+	verifyUnbound(t, nodes)
 }
 
 func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrationTests.TestProcessorNode) (int, error) {
@@ -231,7 +231,7 @@ func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrat
 	return 0, errors.New("no such node in list")
 }
 
-func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode, _ *big.Int) {
+func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
 	expectedValue := big.NewInt(0).SetUint64(9999954880)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
@@ -246,7 +246,7 @@ func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode, _ 
 	}
 }
 
-func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProcessorNode, _ *big.Int) {
+func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
 	expectedValue := big.NewInt(0).SetUint64(9499982750)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
