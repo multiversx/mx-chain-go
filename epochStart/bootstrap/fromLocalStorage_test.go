@@ -29,9 +29,12 @@ func TestGetEpochStartMetaFromStorage(t *testing.T) {
 	epochStartProvider.initializeFromLocalStorage()
 
 	meta := &block.MetaBlock{Nonce: 1}
+	metaBytes, _ := json.Marshal(meta)
 	storer := &mock.StorerStub{
 		GetCalled: func(key []byte) (bytes []byte, err error) {
-			metaBytes, _ := json.Marshal(meta)
+			return metaBytes, nil
+		},
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
 			return metaBytes, nil
 		},
 	}
@@ -70,9 +73,12 @@ func TestGetLastBootstrapData(t *testing.T) {
 				bootstrapDataBytes, _ := json.Marshal(bootstrapData)
 				return bootstrapDataBytes, nil
 			default:
-				nodesConfigRegistryBytes, _ := json.Marshal(nodesConfigRegistry)
-				return nodesConfigRegistryBytes, nil
+				return nil, nil
 			}
+		},
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			nodesConfigRegistryBytes, _ := json.Marshal(nodesConfigRegistry)
+			return nodesConfigRegistryBytes, nil
 		},
 	}
 
