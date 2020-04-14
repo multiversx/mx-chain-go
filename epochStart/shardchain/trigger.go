@@ -778,7 +778,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	t.newEpochHdrReceived = false
 	t.epochMetaBlockHash = shardHdr.EpochStartMetaHash
 	t.epochStartShardHeader = shardHdr
-	finishedEpochStartMetas := t.getAllFinishedStartOfEpochMetaHdrs()
+	finishedStartOfEpochMetaHdrs := t.getAllFinishedStartOfEpochMetaHdrs()
 
 	t.epochStartNotifier.NotifyAll(shardHdr)
 
@@ -803,7 +803,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	}
 
 	// save finished start of epoch meta hdrs to current storage
-	for _, metaHdr := range finishedEpochStartMetas {
+	for _, metaHdr := range finishedStartOfEpochMetaHdrs {
 		t.saveEpochStartMeta(metaHdr)
 	}
 }
