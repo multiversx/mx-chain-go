@@ -13,11 +13,11 @@ import (
 var log = logger.GetOrCreate("process/throttle/antiflood/blacklist")
 
 type p2pBlackListProcessor struct {
+	thresholdNumReceivedFlood  uint32
+	numFloodingRounds          uint32
+	thresholdSizeReceivedFlood uint64
 	cacher                     storage.Cacher
 	blacklistHandler           process.BlackListHandler
-	thresholdNumReceivedFlood  uint32
-	thresholdSizeReceivedFlood uint64
-	numFloodingRounds          uint32
 }
 
 // NewP2PBlackListProcessor creates a new instance of p2pQuotaBlacklistProcessor able to determine

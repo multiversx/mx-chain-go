@@ -2,7 +2,6 @@ package track
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -19,56 +18,10 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		return nil, err
 	}
 
-	if check.IfNil(arguments.PoolsHolder) {
-		return nil, process.ErrNilPoolsHolder
-	}
-	if check.IfNil(arguments.PoolsHolder.Headers()) {
-		return nil, process.ErrNilHeadersDataPool
-	}
-
-	maxNumHeadersToKeepPerShard := arguments.PoolsHolder.Headers().MaxSize()
-
-	crossNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator)
+	bbt, err := createBaseBlockTrack(arguments.ArgBaseTracker)
 	if err != nil {
 		return nil, err
 	}
-
-	selfNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator)
-	if err != nil {
-		return nil, err
-	}
-
-	crossNotarizedHeadersNotifier, err := NewBlockNotifier()
-	if err != nil {
-		return nil, err
-	}
-
-	selfNotarizedHeadersNotifier, err := NewBlockNotifier()
-	if err != nil {
-		return nil, err
-	}
-
-	blockBalancerInstance, err := NewBlockBalancer()
-	if err != nil {
-		return nil, err
-	}
-
-	bbt := &baseBlockTrack{
-		hasher:                        arguments.Hasher,
-		headerValidator:               arguments.HeaderValidator,
-		marshalizer:                   arguments.Marshalizer,
-		rounder:                       arguments.Rounder,
-		shardCoordinator:              arguments.ShardCoordinator,
-		headersPool:                   arguments.PoolsHolder.Headers(),
-		store:                         arguments.Store,
-		crossNotarizer:                crossNotarizer,
-		selfNotarizer:                 selfNotarizer,
-		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
-		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
-		blockBalancer:                 blockBalancerInstance,
-	}
-
-	bbt.maxNumHeadersToKeepPerShard = maxNumHeadersToKeepPerShard
 
 	err = bbt.initNotarizedHeaders(arguments.StartHeaders)
 	if err != nil {
@@ -84,9 +37,9 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		RequestHandler:                arguments.RequestHandler,
 		ShardCoordinator:              arguments.ShardCoordinator,
 		BlockTracker:                  &sbt,
-		CrossNotarizer:                crossNotarizer,
-		CrossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
-		SelfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+		CrossNotarizer:                bbt.crossNotarizer,
+		CrossNotarizedHeadersNotifier: bbt.crossNotarizedHeadersNotifier,
+		SelfNotarizedHeadersNotifier:  bbt.selfNotarizedHeadersNotifier,
 		Rounder:                       arguments.Rounder,
 	}
 
@@ -146,8 +99,8 @@ func (sbt *shardBlockTrack) ComputeLongestSelfChain() (data.HeaderHandler, []byt
 	return lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, headers, hashes
 }
 
-// ComputeNumPendingMiniBlocks computes the number of pending miniblocks from a given slice of metablocks
-func (sbt *shardBlockTrack) ComputeNumPendingMiniBlocks(headers []data.HeaderHandler) {
+// ComputeCrossInfo computes the cross info from a given slice of metablocks
+func (sbt *shardBlockTrack) ComputeCrossInfo(headers []data.HeaderHandler) {
 	lenHeaders := len(headers)
 	if lenHeaders == 0 {
 		return
@@ -155,7 +108,7 @@ func (sbt *shardBlockTrack) ComputeNumPendingMiniBlocks(headers []data.HeaderHan
 
 	metaBlock, ok := headers[lenHeaders-1].(*block.MetaBlock)
 	if !ok {
-		log.Debug("ComputeNumPendingMiniBlocks", "error", process.ErrWrongTypeAssertion)
+		log.Debug("ComputeCrossInfo", "error", process.ErrWrongTypeAssertion)
 		return
 	}
 
@@ -165,12 +118,9 @@ func (sbt *shardBlockTrack) ComputeNumPendingMiniBlocks(headers []data.HeaderHan
 	}
 
 	for shardID := uint32(0); shardID < sbt.shardCoordinator.NumberOfShards(); shardID++ {
-		log.Debug("pending miniblocks",
+		log.Debug("cross info",
 			"shard", shardID,
-			"num", sbt.blockBalancer.GetNumPendingMiniBlocks(shardID))
+			"pending miniblocks", sbt.blockBalancer.GetNumPendingMiniBlocks(shardID),
+			"last meta nonce processed", sbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID))
 	}
-
-	log.Debug("pending miniblocks",
-		"shard", core.AllShardId,
-		"num", sbt.blockBalancer.GetNumPendingMiniBlocks(core.AllShardId))
 }

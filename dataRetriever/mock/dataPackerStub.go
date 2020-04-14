@@ -7,7 +7,11 @@ type DataPackerStub struct {
 
 // PackDataInChunks -
 func (dps *DataPackerStub) PackDataInChunks(data [][]byte, limit int) ([][]byte, error) {
-	return dps.PackDataInChunksCalled(data, limit)
+	if dps.PackDataInChunksCalled != nil {
+		return dps.PackDataInChunksCalled(data, limit)
+	}
+
+	return data, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

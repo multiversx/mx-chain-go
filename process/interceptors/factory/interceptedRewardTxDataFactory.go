@@ -11,9 +11,9 @@ import (
 )
 
 type interceptedRewardTxDataFactory struct {
-	marshalizer      marshal.Marshalizer
+	protoMarshalizer marshal.Marshalizer
 	hasher           hashing.Hasher
-	addrConverter    state.AddressConverter
+	pubkeyConverter  state.PubkeyConverter
 	shardCoordinator sharding.Coordinator
 }
 
@@ -31,17 +31,17 @@ func NewInterceptedRewardTxDataFactory(argument *ArgInterceptedDataFactory) (*in
 	if check.IfNil(argument.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(argument.AddrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(argument.AddressPubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(argument.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
 
 	return &interceptedRewardTxDataFactory{
-		marshalizer:      argument.ProtoMarshalizer,
+		protoMarshalizer: argument.ProtoMarshalizer,
 		hasher:           argument.Hasher,
-		addrConverter:    argument.AddrConv,
+		pubkeyConverter:  argument.AddressPubkeyConv,
 		shardCoordinator: argument.ShardCoordinator,
 	}, nil
 }
@@ -50,9 +50,9 @@ func NewInterceptedRewardTxDataFactory(argument *ArgInterceptedDataFactory) (*in
 func (irtdf *interceptedRewardTxDataFactory) Create(buff []byte) (process.InterceptedData, error) {
 	return rewardTransaction.NewInterceptedRewardTransaction(
 		buff,
-		irtdf.marshalizer,
+		irtdf.protoMarshalizer,
 		irtdf.hasher,
-		irtdf.addrConverter,
+		irtdf.pubkeyConverter,
 		irtdf.shardCoordinator,
 	)
 }

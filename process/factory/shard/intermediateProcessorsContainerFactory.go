@@ -18,7 +18,7 @@ type intermediateProcessorsContainerFactory struct {
 	shardCoordinator sharding.Coordinator
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
-	addrConverter    state.AddressConverter
+	pubkeyConverter  state.PubkeyConverter
 	store            dataRetriever.StorageService
 	poolsHolder      dataRetriever.PoolsHolder
 	economics        *economics.EconomicsData
@@ -29,7 +29,7 @@ func NewIntermediateProcessorsContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	addrConverter state.AddressConverter,
+	pubkeyConverter state.PubkeyConverter,
 	store dataRetriever.StorageService,
 	poolsHolder dataRetriever.PoolsHolder,
 	economics *economics.EconomicsData,
@@ -44,8 +44,8 @@ func NewIntermediateProcessorsContainerFactory(
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(addrConverter) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(store) {
 		return nil, process.ErrNilStorage
@@ -58,7 +58,7 @@ func NewIntermediateProcessorsContainerFactory(
 		shardCoordinator: shardCoordinator,
 		marshalizer:      marshalizer,
 		hasher:           hasher,
-		addrConverter:    addrConverter,
+		pubkeyConverter:  pubkeyConverter,
 		store:            store,
 		poolsHolder:      poolsHolder,
 		economics:        economics,
@@ -107,7 +107,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 		ppcm.hasher,
 		ppcm.marshalizer,
 		ppcm.shardCoordinator,
-		ppcm.addrConverter,
+		ppcm.pubkeyConverter,
 		ppcm.store,
 		block.SmartContractResultBlock,
 		ppcm.poolsHolder.CurrentBlockTxs(),

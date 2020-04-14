@@ -8,9 +8,9 @@ import (
 // MultipleShardsCoordinatorMock -
 type MultipleShardsCoordinatorMock struct {
 	NoShards        uint32
+	CurrentShard    uint32
 	ComputeIdCalled func(address state.AddressContainer) uint32
 	SelfIDCalled    func() uint32
-	CurrentShard    uint32
 }
 
 // NewMultiShardsCoordinatorMock -
@@ -41,12 +41,12 @@ func (scm *MultipleShardsCoordinatorMock) SelfId() uint32 {
 }
 
 // SetSelfId -
-func (scm *MultipleShardsCoordinatorMock) SetSelfId(shardId uint32) error {
+func (scm *MultipleShardsCoordinatorMock) SetSelfId(_ uint32) error {
 	return nil
 }
 
 // SameShard -
-func (scm *MultipleShardsCoordinatorMock) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
+func (scm *MultipleShardsCoordinatorMock) SameShard(_, _ state.AddressContainer) bool {
 	return true
 }
 

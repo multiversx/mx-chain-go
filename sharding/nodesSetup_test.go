@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,7 +52,10 @@ func createAndAssignNodes(ns NodesSetup, noOfInitialNodes int) *NodesSetup {
 }
 
 func createNodesSetupOneShardOneNodeWithOneMeta() *NodesSetup {
-	ns := &NodesSetup{}
+	ns := &NodesSetup{
+		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+	}
 	ns.ConsensusGroupSize = 1
 	ns.MinNodesPerShard = 1
 	ns.MetaChainConsensusGroupSize = 1
@@ -101,7 +105,10 @@ func initNodesConfig(ns *NodesSetup, noOfInitialNodes int) bool {
 
 func createNodesSetupTwoShardTwoNodesWithOneMeta() *NodesSetup {
 	noOfInitialNodes := 6
-	ns := &NodesSetup{}
+	ns := &NodesSetup{
+		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+	}
 	ns.ConsensusGroupSize = 1
 	ns.MinNodesPerShard = 2
 	ns.MetaChainConsensusGroupSize = 1
@@ -116,7 +123,10 @@ func createNodesSetupTwoShardTwoNodesWithOneMeta() *NodesSetup {
 
 func createNodesSetupTwoShard5NodesWithMeta() *NodesSetup {
 	noOfInitialNodes := 5
-	ns := &NodesSetup{}
+	ns := &NodesSetup{
+		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+	}
 	ns.ConsensusGroupSize = 1
 	ns.MinNodesPerShard = 2
 	ns.MetaChainConsensusGroupSize = 1
@@ -131,7 +141,10 @@ func createNodesSetupTwoShard5NodesWithMeta() *NodesSetup {
 
 func createNodesSetupTwoShard6NodesMeta() *NodesSetup {
 	noOfInitialNodes := 6
-	ns := &NodesSetup{}
+	ns := &NodesSetup{
+		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+	}
 	ns.ConsensusGroupSize = 1
 	ns.MinNodesPerShard = 2
 	ns.MetaChainMinNodes = 2
@@ -145,21 +158,39 @@ func createNodesSetupTwoShard6NodesMeta() *NodesSetup {
 }
 
 func TestNodesSetup_NewNodesSetupWrongFile(t *testing.T) {
-	ns, err := NewNodesSetup("")
+	t.Parallel()
+
+	ns, err := NewNodesSetup(
+		"",
+		mock.NewPubkeyConverterMock(32),
+		mock.NewPubkeyConverterMock(96),
+	)
 
 	assert.Nil(t, ns)
 	assert.NotNil(t, err)
 }
 
 func TestNodesSetup_NewNodesSetupWrongDataInFile(t *testing.T) {
-	ns, err := NewNodesSetup("mock/invalidNodesSetupMock.json")
+	t.Parallel()
+
+	ns, err := NewNodesSetup(
+		"mock/invalidNodesSetupMock.json",
+		mock.NewPubkeyConverterMock(32),
+		mock.NewPubkeyConverterMock(96),
+	)
 
 	assert.Nil(t, ns)
 	assert.Equal(t, ErrNegativeOrZeroConsensusGroupSize, err)
 }
 
 func TestNodesSetup_NewNodesShouldWork(t *testing.T) {
-	ns, err := NewNodesSetup("mock/nodesSetupMock.json")
+	t.Parallel()
+
+	ns, err := NewNodesSetup(
+		"mock/nodesSetupMock.json",
+		mock.NewPubkeyConverterMock(32),
+		mock.NewPubkeyConverterMock(96),
+	)
 
 	assert.NotNil(t, ns)
 	assert.Nil(t, err)
@@ -167,6 +198,8 @@ func TestNodesSetup_NewNodesShouldWork(t *testing.T) {
 }
 
 func TestNodesSetup_InitialNodesPubKeysFromNil(t *testing.T) {
+	t.Parallel()
+
 	ns := NodesSetup{}
 	eligible, waiting := ns.InitialNodesInfo()
 
@@ -176,8 +209,13 @@ func TestNodesSetup_InitialNodesPubKeysFromNil(t *testing.T) {
 }
 
 func TestNodesSetup_ProcessConfigNodesWithIncompleteDataShouldErr(t *testing.T) {
+	t.Parallel()
+
 	noOfInitialNodes := 2
-	ns := NodesSetup{}
+	ns := NodesSetup{
+		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+	}
 
 	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
 
@@ -194,10 +232,14 @@ func TestNodesSetup_ProcessConfigNodesWithIncompleteDataShouldErr(t *testing.T) 
 }
 
 func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeShouldErr(t *testing.T) {
+	t.Parallel()
+
 	noOfInitialNodes := 2
 	ns := NodesSetup{
-		ConsensusGroupSize: 0,
-		MinNodesPerShard:   0,
+		ConsensusGroupSize:       0,
+		MinNodesPerShard:         0,
+		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
 	}
 
 	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
@@ -215,12 +257,16 @@ func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeShouldErr(t *testing.T
 }
 
 func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeShouldErr(t *testing.T) {
+	t.Parallel()
+
 	noOfInitialNodes := 2
 	ns := NodesSetup{
 		ConsensusGroupSize:          1,
 		MinNodesPerShard:            1,
 		MetaChainConsensusGroupSize: 0,
 		MetaChainMinNodes:           0,
+		addressPubkeyConverter:      mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter:    mock.NewPubkeyConverterMock(96),
 	}
 
 	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
@@ -238,10 +284,14 @@ func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeShouldErr(t *testi
 }
 
 func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeLargerThanNumOfNodesShouldErr(t *testing.T) {
+	t.Parallel()
+
 	noOfInitialNodes := 2
 	ns := NodesSetup{
-		ConsensusGroupSize: 2,
-		MinNodesPerShard:   0,
+		ConsensusGroupSize:       2,
+		MinNodesPerShard:         0,
+		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
 	}
 
 	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
@@ -259,12 +309,16 @@ func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeLargerThanNumOfNodesSh
 }
 
 func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeLargerThanNumOfNodesShouldErr(t *testing.T) {
+	t.Parallel()
+
 	noOfInitialNodes := 2
 	ns := NodesSetup{
 		ConsensusGroupSize:          1,
 		MinNodesPerShard:            1,
 		MetaChainConsensusGroupSize: 1,
 		MetaChainMinNodes:           0,
+		addressPubkeyConverter:      mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter:    mock.NewPubkeyConverterMock(96),
 	}
 
 	ns.InitialNodes = make([]*InitialNode, 2)
@@ -282,10 +336,14 @@ func TestNodesSetup_ProcessConfigInvalidMetaConsensusGroupSizeLargerThanNumOfNod
 }
 
 func TestNodesSetup_ProcessConfigInvalidMinNodesPerShardShouldErr(t *testing.T) {
+	t.Parallel()
+
 	noOfInitialNodes := 2
 	ns := NodesSetup{
-		ConsensusGroupSize: 2,
-		MinNodesPerShard:   0,
+		ConsensusGroupSize:       2,
+		MinNodesPerShard:         0,
+		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
 	}
 
 	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
@@ -303,12 +361,16 @@ func TestNodesSetup_ProcessConfigInvalidMinNodesPerShardShouldErr(t *testing.T) 
 }
 
 func TestNodesSetup_ProcessConfigInvalidMetaMinNodesPerShardShouldErr(t *testing.T) {
+	t.Parallel()
+
 	noOfInitialNodes := 1
 	ns := NodesSetup{
 		ConsensusGroupSize:          1,
 		MinNodesPerShard:            1,
 		MetaChainConsensusGroupSize: 1,
 		MetaChainMinNodes:           0,
+		addressPubkeyConverter:      mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter:    mock.NewPubkeyConverterMock(96),
 	}
 
 	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
@@ -326,10 +388,14 @@ func TestNodesSetup_ProcessConfigInvalidMetaMinNodesPerShardShouldErr(t *testing
 }
 
 func TestNodesSetup_ProcessConfigInvalidNumOfNodesSmallerThanMinNodesPerShardShouldErr(t *testing.T) {
+	t.Parallel()
+
 	noOfInitialNodes := 2
 	ns := NodesSetup{
-		ConsensusGroupSize: 2,
-		MinNodesPerShard:   3,
+		ConsensusGroupSize:       2,
+		MinNodesPerShard:         3,
+		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
 	}
 
 	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
@@ -347,13 +413,16 @@ func TestNodesSetup_ProcessConfigInvalidNumOfNodesSmallerThanMinNodesPerShardSho
 }
 
 func TestNodesSetup_ProcessConfigInvalidMetaNumOfNodesSmallerThanMinNodesPerShardShouldErr(t *testing.T) {
+	t.Parallel()
+
 	noOfInitialNodes := 3
 	ns := NodesSetup{
-		ConsensusGroupSize: 1,
-		MinNodesPerShard:   1,
-
+		ConsensusGroupSize:          1,
+		MinNodesPerShard:            1,
 		MetaChainConsensusGroupSize: 2,
 		MetaChainMinNodes:           3,
+		addressPubkeyConverter:      mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter:    mock.NewPubkeyConverterMock(96),
 	}
 
 	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
@@ -371,7 +440,12 @@ func TestNodesSetup_ProcessConfigInvalidMetaNumOfNodesSmallerThanMinNodesPerShar
 }
 
 func TestNodesSetup_InitialNodesPubKeysForShardNil(t *testing.T) {
-	ns := NodesSetup{}
+	t.Parallel()
+
+	ns := NodesSetup{
+		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+	}
 	eligible, waiting, err := ns.InitialNodesInfoForShard(0)
 
 	assert.NotNil(t, ns)
@@ -381,6 +455,8 @@ func TestNodesSetup_InitialNodesPubKeysForShardNil(t *testing.T) {
 }
 
 func TestNodesSetup_InitialNodesPubKeysWithHysteresis(t *testing.T) {
+	t.Parallel()
+
 	ns := &NodesSetup{
 		ConsensusGroupSize:          63,
 		MinNodesPerShard:            400,
@@ -388,6 +464,8 @@ func TestNodesSetup_InitialNodesPubKeysWithHysteresis(t *testing.T) {
 		MetaChainMinNodes:           400,
 		Hysteresis:                  0.2,
 		Adaptivity:                  false,
+		addressPubkeyConverter:      mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter:    mock.NewPubkeyConverterMock(96),
 	}
 
 	ns = createAndAssignNodes(*ns, 3000)
@@ -414,6 +492,8 @@ func TestNodesSetup_InitialNodesPubKeysWithHysteresis(t *testing.T) {
 }
 
 func TestNodesSetup_InitialNodesPubKeysForShardWrongShard(t *testing.T) {
+	t.Parallel()
+
 	ns := createNodesSetupOneShardOneNodeWithOneMeta()
 	eligible, waiting, err := ns.InitialNodesInfoForShard(1)
 
@@ -424,6 +504,8 @@ func TestNodesSetup_InitialNodesPubKeysForShardWrongShard(t *testing.T) {
 }
 
 func TestNodesSetup_InitialNodesPubKeysForShardGood(t *testing.T) {
+	t.Parallel()
+
 	ns := createNodesSetupTwoShardTwoNodesWithOneMeta()
 	eligible, waiting, err := ns.InitialNodesInfoForShard(1)
 
@@ -434,6 +516,8 @@ func TestNodesSetup_InitialNodesPubKeysForShardGood(t *testing.T) {
 }
 
 func TestNodesSetup_InitialNodesPubKeysForShardGoodMeta(t *testing.T) {
+	t.Parallel()
+
 	ns := createNodesSetupTwoShard6NodesMeta()
 	metaId := core.MetachainShardId
 	eligible, waiting, err := ns.InitialNodesInfoForShard(metaId)
@@ -445,6 +529,8 @@ func TestNodesSetup_InitialNodesPubKeysForShardGoodMeta(t *testing.T) {
 }
 
 func TestNodesSetup_PublicKeyNotGood(t *testing.T) {
+	t.Parallel()
+
 	ns := createNodesSetupTwoShard6NodesMeta()
 
 	_, err := ns.GetShardIDForPubKey([]byte(pubKeys[0]))
@@ -454,6 +540,8 @@ func TestNodesSetup_PublicKeyNotGood(t *testing.T) {
 }
 
 func TestNodesSetup_PublicKeyGood(t *testing.T) {
+	t.Parallel()
+
 	ns := createNodesSetupTwoShard5NodesWithMeta()
 	publicKey, _ := hex.DecodeString(pubKeys[2])
 
@@ -465,6 +553,8 @@ func TestNodesSetup_PublicKeyGood(t *testing.T) {
 }
 
 func TestNodesSetup_ShardPublicKeyGoodMeta(t *testing.T) {
+	t.Parallel()
+
 	ns := createNodesSetupTwoShard6NodesMeta()
 	publicKey, _ := hex.DecodeString(pubKeys[2])
 
@@ -476,6 +566,8 @@ func TestNodesSetup_ShardPublicKeyGoodMeta(t *testing.T) {
 }
 
 func TestNodesSetup_MetaPublicKeyGoodMeta(t *testing.T) {
+	t.Parallel()
+
 	ns := createNodesSetupTwoShard6NodesMeta()
 	metaId := core.MetachainShardId
 	publicKey, _ := hex.DecodeString(pubKeys[0])

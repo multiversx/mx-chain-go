@@ -66,10 +66,11 @@ func createMockArgHeartbeatMonitor() heartbeat.ArgHeartbeatMonitor {
 				return "", 1, nil
 			},
 		},
-		Timer:                mock.NewMockTimer(),
-		AntifloodHandler:     createMockP2PAntifloodHandler(),
-		HardforkTrigger:      &mock.HardforkTriggerStub{},
-		PeerBlackListHandler: &mock.BlackListHandlerStub{},
+		Timer:                    mock.NewMockTimer(),
+		AntifloodHandler:         createMockP2PAntifloodHandler(),
+		HardforkTrigger:          &mock.HardforkTriggerStub{},
+		PeerBlackListHandler:     &mock.BlackListHandlerStub{},
+		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
 	}
 }
 
@@ -174,6 +175,17 @@ func TestNewMonitor_NilPeerBlackListHandlerShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, heartbeat.ErrNilBlackListHandler))
 }
 
+func TestNewMonitor_NilValidatorPubkeyConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatMonitor()
+	arg.ValidatorPubkeyConverter = nil
+	mon, err := heartbeat.NewMonitor(arg)
+
+	assert.Nil(t, mon)
+	assert.True(t, errors.Is(err, heartbeat.ErrNilPubkeyConverter))
+}
+
 func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
 	t.Parallel()
 
@@ -246,7 +258,7 @@ func TestMonitor_ProcessReceivedMessageShouldWork(t *testing.T) {
 
 	hbStatus := mon.GetHeartbeats()
 	assert.Equal(t, 1, len(hbStatus))
-	assert.Equal(t, hex.EncodeToString([]byte(pubKey)), hbStatus[0].HexPublicKey)
+	assert.Equal(t, hex.EncodeToString([]byte(pubKey)), hbStatus[0].PublicKey)
 }
 
 func TestMonitor_ProcessReceivedMessageProcessTriggerErrorShouldErr(t *testing.T) {
@@ -324,7 +336,7 @@ func TestMonitor_ProcessReceivedMessageWithNewPublicKey(t *testing.T) {
 	//there should be 2 heartbeats, because a new one should have been added with pk2
 	hbStatus := mon.GetHeartbeats()
 	assert.Equal(t, 2, len(hbStatus))
-	assert.Equal(t, hex.EncodeToString([]byte(pubKey)), hbStatus[0].HexPublicKey)
+	assert.Equal(t, hex.EncodeToString([]byte(pubKey)), hbStatus[0].PublicKey)
 }
 
 func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
@@ -380,6 +392,7 @@ func TestMonitor_ProcessReceivedMessageWithNewShardID(t *testing.T) {
 	}
 
 	buffToSend, err = json.Marshal(hb)
+	assert.Nil(t, err)
 
 	err = mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, fromConnectedPeerId)
 	assert.Nil(t, err)

@@ -5,7 +5,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -18,9 +17,8 @@ var _ process.InterceptorsContainerFactory = (*shardInterceptorsContainerFactory
 // shardInterceptorsContainerFactory will handle the creation the interceptors container for shards
 type shardInterceptorsContainerFactory struct {
 	*baseInterceptorsContainerFactory
-	keyGen        crypto.KeyGenerator
-	singleSigner  crypto.SingleSigner
-	addrConverter state.AddressConverter
+	keyGen       crypto.KeyGenerator
+	singleSigner crypto.SingleSigner
 }
 
 // NewShardInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -44,6 +42,7 @@ func NewShardInterceptorsContainerFactory(
 		args.BlackList,
 		args.AntifloodHandler,
 		args.WhiteListHandler,
+		args.AddressPubkeyConverter,
 	)
 	if err != nil {
 		return nil, err
@@ -54,9 +53,6 @@ func NewShardInterceptorsContainerFactory(
 	}
 	if check.IfNil(args.SingleSigner) {
 		return nil, process.ErrNilSingleSigner
-	}
-	if check.IfNil(args.AddrConverter) {
-		return nil, process.ErrNilAddressConverter
 	}
 	if check.IfNil(args.TxFeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
@@ -91,7 +87,7 @@ func NewShardInterceptorsContainerFactory(
 		BlockKeyGen:       args.BlockSignKeyGen,
 		Signer:            args.SingleSigner,
 		BlockSigner:       args.BlockSingleSigner,
-		AddrConv:          args.AddrConverter,
+		AddressPubkeyConv: args.AddressPubkeyConverter,
 		FeeHandler:        args.TxFeeHandler,
 		HeaderSigVerifier: args.HeaderSigVerifier,
 		ChainID:           args.ChainID,
@@ -116,13 +112,13 @@ func NewShardInterceptorsContainerFactory(
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
 		antifloodHandler:       args.AntifloodHandler,
 		whiteListHandler:       args.WhiteListHandler,
+		addressPubkeyConverter: args.AddressPubkeyConverter,
 	}
 
 	icf := &shardInterceptorsContainerFactory{
 		baseInterceptorsContainerFactory: base,
 		keyGen:                           args.KeyGen,
 		singleSigner:                     args.SingleSigner,
-		addrConverter:                    args.AddrConverter,
 	}
 
 	icf.globalThrottler, err = throttler.NewNumGoRoutinesThrottler(numGoRoutines)

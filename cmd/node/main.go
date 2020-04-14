@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -21,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -32,6 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -130,7 +131,7 @@ VERSION:
 			"economics configurations such as minimum gas price for a transactions and so on.",
 		Value: "./config/economics.toml",
 	}
-	// configurationEconomicsFile defines a flag for the path to the economics toml configuration file
+	// configurationEconomicsFile defines a flag for the path to the ratings toml configuration file
 	configurationRatingsFile = cli.StringFlag{
 		Name:  "config-ratings",
 		Usage: "The ratings configuration file to load",
@@ -504,13 +505,26 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		p2pConfig.Node.Port = uint32(ctx.GlobalUint(port.Name))
 	}
 
-	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(genesisFile.Name))
+	addressPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.AddressPubkeyConverter)
+	if err != nil {
+		return fmt.Errorf("%w for AddressPubkeyConverter", err)
+	}
+	validatorPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.ValidatorPubkeyConverter)
+	if err != nil {
+		return fmt.Errorf("%w for AddressPubkeyConverter", err)
+	}
+
+	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(genesisFile.Name), addressPubkeyConverter)
 	if err != nil {
 		return err
 	}
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
 
-	genesisNodesConfig, err := sharding.NewNodesSetup(ctx.GlobalString(nodesFile.Name))
+	genesisNodesConfig, err := sharding.NewNodesSetup(
+		ctx.GlobalString(nodesFile.Name),
+		addressPubkeyConverter,
+		validatorPubkeyConverter,
+	)
 	if err != nil {
 		return err
 	}
@@ -541,8 +555,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	initialNodesSkPemFileName := ctx.GlobalString(initialNodesSkPemFile.Name)
-	keyGen, privKey, pubKey, err := factory.GetSigningParams(
+	cryptoParams, err := factory.GetSigningParams(
 		ctx,
+		validatorPubkeyConverter,
 		sk.Name,
 		skIndex.Name,
 		initialNodesSkPemFileName,
@@ -550,7 +565,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return fmt.Errorf("%w: consider regenerating your keys", err)
 	}
-	log.Debug("block sign pubkey", "hex", factory.GetPkEncoded(pubKey))
+
+	log.Debug("block sign pubkey", "value", cryptoParams.PublicKeyString)
 
 	if ctx.IsSet(destinationShardAsObserver.Name) {
 		preferencesConfig.Preferences.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
@@ -587,7 +603,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	genesisShardCoordinator, nodeType, err := createShardCoordinator(genesisNodesConfig, pubKey, preferencesConfig.Preferences, log)
+	genesisShardCoordinator, nodeType, err := createShardCoordinator(genesisNodesConfig, cryptoParams.PublicKey, preferencesConfig.Preferences, log)
 	if err != nil {
 		return err
 	}
@@ -599,8 +615,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig,
 		genesisNodesConfig,
 		genesisShardCoordinator,
-		keyGen,
-		privKey,
+		cryptoParams.KeyGenerator,
+		cryptoParams.PrivateKey,
 		log,
 	)
 	cryptoComponents, err := factory.CryptoComponentsFactory(cryptoArgs)
@@ -624,6 +640,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
+	log.Info(fmt.Sprintf("waiting %d seconds for network discovery...", secondsToWaitForP2PBootstrap))
 	time.Sleep(secondsToWaitForP2PBootstrap * time.Second)
 
 	log.Trace("creating economics data components")
@@ -633,7 +650,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating ratings data components")
-	ratingsData, err := rating.NewRatingsData(ratingsConfig)
+
+	ratingDataArgs := rating.RatingsDataArg{
+		Config:                   ratingsConfig,
+		ShardConsensusSize:       genesisNodesConfig.ConsensusGroupSize,
+		MetaConsensusSize:        genesisNodesConfig.MetaChainConsensusGroupSize,
+		ShardMinNodes:            genesisNodesConfig.MinNodesPerShard,
+		MetaMinNodes:             genesisNodesConfig.MetaChainMinNodes,
+		RoundDurationMiliseconds: genesisNodesConfig.RoundDuration,
+	}
+	ratingsData, err := rating.NewRatingsData(ratingDataArgs)
 	if err != nil {
 		return err
 	}
@@ -655,8 +681,17 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	rounder, err := round.NewRound(
+		time.Unix(genesisNodesConfig.StartTime, 0),
+		syncer.CurrentTime(),
+		time.Millisecond*time.Duration(genesisNodesConfig.RoundDuration),
+		syncer)
+	if err != nil {
+		return err
+	}
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
-		PublicKey:                  pubKey,
+		PublicKey:                  cryptoParams.PublicKey,
 		Marshalizer:                coreComponents.InternalMarshalizer,
 		TxSignMarshalizer:          coreComponents.TxSignMarshalizer,
 		Hasher:                     coreComponents.Hasher,
@@ -680,6 +715,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		TrieStorageManagers:        coreComponents.TrieStorageManagers,
 		Uint64Converter:            coreComponents.Uint64ByteSliceConverter,
 		NodeShuffler:               nodesShuffler,
+		Rounder:                    rounder,
+		AddressPubkeyConverter:     addressPubkeyConverter,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -711,7 +748,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	logger.SetCorrelationShard(shardIdString)
 
 	log.Trace("initializing stats file")
-	err = initStatsFileMonitor(generalConfig, pubKey, log, workingDir, pathManager, shardId)
+	err = initStatsFileMonitor(generalConfig, cryptoParams.PublicKeyString, log, workingDir, pathManager, shardId)
 	if err != nil {
 		return err
 	}
@@ -733,7 +770,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("initializing metrics")
-	metrics.InitMetrics(coreComponents.StatusHandler, pubKey, nodeType, shardCoordinator, genesisNodesConfig, version, economicsConfig, generalConfig.EpochStartConfig.RoundsPerEpoch)
+	metrics.InitMetrics(
+		coreComponents.StatusHandler,
+		cryptoParams.PublicKeyString,
+		nodeType,
+		shardCoordinator,
+		genesisNodesConfig,
+		version,
+		economicsConfig,
+		generalConfig.EpochStartConfig.RoundsPerEpoch,
+	)
 
 	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
 	if err != nil {
@@ -756,7 +802,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		genesisNodesConfig,
 		preferencesConfig.Preferences,
 		epochStartNotifier,
-		pubKey,
+		cryptoParams.PublicKey,
 		coreComponents.InternalMarshalizer,
 		coreComponents.Hasher,
 		rater,
@@ -793,7 +839,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricMinGasPrice, economicsData.MinGasPrice())
 
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
-		"PkBlockSign", factory.GetPkEncoded(pubKey),
+		"PkBlockSign", cryptoParams.PublicKeyString,
 		"ShardId", shardId,
 		"TotalShards", shardCoordinator.NumberOfShards(),
 		"AppVersion", version,
@@ -826,6 +872,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
 
+	//TODO: remove this in the future and add just a log debug
+	computedRatingsData := filepath.Join(statsFolder, "ratings.info")
+	computedRatingsDataStr := createStringFromRatingsData(ratingsData)
+	err = ioutil.WriteFile(computedRatingsData, []byte(computedRatingsDataStr), os.ModePerm)
+	log.LogIfError(err)
+
 	log.Trace("creating tps benchmark components")
 	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisNodesConfig.RoundDuration/1000)
 	if err != nil {
@@ -842,6 +894,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			coreComponents.Hasher,
 			nodesCoordinator,
 			epochStartNotifier,
+			addressPubkeyConverter,
+			validatorPubkeyConverter,
 			shardCoordinator.SelfId(),
 		)
 		if err != nil {
@@ -883,7 +937,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		economicsData,
 		genesisNodesConfig,
 		gasSchedule,
-		syncer,
+		rounder,
 		shardCoordinator,
 		nodesCoordinator,
 		dataComponents,
@@ -905,6 +959,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.BlockSizeThrottleConfig.MinSizeInBytes,
 		generalConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
 		ratingsConfig.General.MaxRating,
+		validatorPubkeyConverter,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -924,9 +979,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		genesisNodesConfig,
 		economicsData,
 		syncer,
-		keyGen,
-		privKey,
-		pubKey,
+		cryptoParams.KeyGenerator,
+		cryptoParams.PrivateKey,
+		cryptoParams.PublicKey,
 		shardCoordinator,
 		nodesCoordinator,
 		coreComponents,
@@ -964,7 +1019,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	apiResolver, err := createApiResolver(
 		generalConfig,
 		stateComponents.AccountsAdapter,
-		stateComponents.AddressConverter,
+		stateComponents.AddressPubkeyConverter,
 		dataComponents.Store,
 		dataComponents.Blkc,
 		coreComponents.InternalMarshalizer,
@@ -1054,14 +1109,37 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.LogIfError(err)
 	}
 
-	err = networkComponents.NetMessenger.Close()
-	log.LogIfError(err)
-
 	log.Info("closing network connections...")
 	err = networkComponents.NetMessenger.Close()
 	log.LogIfError(err)
 
 	return nil
+}
+
+func createStringFromRatingsData(ratingsData *rating.RatingsData) string {
+	metaChainStepHandler := ratingsData.MetaChainRatingsStepHandler()
+	shardChainHandler := ratingsData.ShardChainRatingsStepHandler()
+	computedRatingsDataStr := fmt.Sprintf(
+		"meta:\n"+
+			"ProposerIncrease=%v\n"+
+			"ProposerDecrease=%v\n"+
+			"ValidatorIncrease=%v\n"+
+			"ValidatorDecrease=%v\n\n"+
+			"shard:\n"+
+			"ProposerIncrease=%v\n"+
+			"ProposerDecrease=%v\n"+
+			"ValidatorIncrease=%v\n"+
+			"ValidatorDecrease=%v",
+		metaChainStepHandler.ProposerIncreaseRatingStep(),
+		metaChainStepHandler.ProposerDecreaseRatingStep(),
+		metaChainStepHandler.ValidatorIncreaseRatingStep(),
+		metaChainStepHandler.ValidatorDecreaseRatingStep(),
+		shardChainHandler.ProposerIncreaseRatingStep(),
+		shardChainHandler.ProposerDecreaseRatingStep(),
+		shardChainHandler.ValidatorIncreaseRatingStep(),
+		shardChainHandler.ValidatorDecreaseRatingStep(),
+	)
+	return computedRatingsDataStr
 }
 
 func cleanupStorageIfNecessary(workingDir string, ctx *cli.Context, log logger.Logger) error {
@@ -1422,18 +1500,22 @@ func createElasticIndexer(
 	hasher hashing.Hasher,
 	nodesCoordinator sharding.NodesCoordinator,
 	startNotifier notifier.EpochStartNotifier,
+	addressPubkeyConverter state.PubkeyConverter,
+	validatorPubkeyConverter state.PubkeyConverter,
 	shardId uint32,
 ) (indexer.Indexer, error) {
 	arguments := indexer.ElasticIndexerArgs{
-		Url:                url,
-		UserName:           elasticSearchConfig.Username,
-		Password:           elasticSearchConfig.Password,
-		Marshalizer:        marshalizer,
-		Hasher:             hasher,
-		Options:            &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
-		NodesCoordinator:   nodesCoordinator,
-		EpochStartNotifier: startNotifier,
-		ShardId:            shardId,
+		Url:                      url,
+		UserName:                 elasticSearchConfig.Username,
+		Password:                 elasticSearchConfig.Password,
+		Marshalizer:              marshalizer,
+		Hasher:                   hasher,
+		Options:                  &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
+		NodesCoordinator:         nodesCoordinator,
+		EpochStartNotifier:       startNotifier,
+		AddressPubkeyConverter:   addressPubkeyConverter,
+		ValidatorPubkeyConverter: validatorPubkeyConverter,
+		ShardId:                  shardId,
 	}
 
 	var err error
@@ -1514,7 +1596,7 @@ func createNode(
 	if err != nil {
 		return nil, err
 	}
-	triggerPubKeyBytes, err := hex.DecodeString(config.Hardfork.PublicKeyToListenFrom)
+	triggerPubKeyBytes, err := state.ValidatorPubkeyConverter.Decode(config.Hardfork.PublicKeyToListenFrom)
 	if err != nil {
 		return nil, fmt.Errorf("%w while decoding HardforkConfig.PublicKeyToListenFrom", err)
 	}
@@ -1539,7 +1621,8 @@ func createNode(
 		node.WithTxSignMarshalizer(coreData.TxSignMarshalizer),
 		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
-		node.WithAddressConverter(state.AddressConverter),
+		node.WithAddressPubkeyConverter(state.AddressPubkeyConverter),
+		node.WithValidatorPubkeyConverter(state.ValidatorPubkeyConverter),
 		node.WithAccountsAdapter(state.AccountsAdapter),
 		node.WithBlockChain(data.Blkc),
 		node.WithDataStore(data.Store),
@@ -1584,8 +1667,8 @@ func createNode(
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithWhiteListHanlder(whiteListHandler),
-		node.WithSignatureSize(config.BLSPublicKey.SignatureLength),
-		node.WithPublicKeySize(config.BLSPublicKey.Length),
+		node.WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
+		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		node.WithNodeStopChannel(chanStopNodeProcess),
 	)
 	if err != nil {
@@ -1619,28 +1702,22 @@ func createNode(
 
 func initStatsFileMonitor(
 	config *config.Config,
-	pubKey crypto.PublicKey,
+	pubKeyString string,
 	log logger.Logger,
 	workingDir string,
 	pathManager storage.PathManagerHandler,
 	shardId string,
 ) error {
-
-	publicKey, err := pubKey.ToByteArray()
+	statsFile, err := core.CreateFile(core.GetTrimmedPk(pubKeyString), filepath.Join(workingDir, defaultStatsPath), "txt")
 	if err != nil {
 		return err
 	}
 
-	hexPublicKey := core.GetTrimmedPk(hex.EncodeToString(publicKey))
-
-	statsFile, err := core.CreateFile(hexPublicKey, filepath.Join(workingDir, defaultStatsPath), "txt")
-	if err != nil {
-		return err
-	}
 	err = startStatisticsMonitor(statsFile, config, log, pathManager, shardId)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -1699,7 +1776,7 @@ func startStatisticsMonitor(
 func createApiResolver(
 	config *config.Config,
 	accnts state.AccountsAdapter,
-	addrConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 	storageService dataRetriever.StorageService,
 	blockChain data.ChainHandler,
 	marshalizer marshal.Marshalizer,
@@ -1724,7 +1801,7 @@ func createApiResolver(
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         accnts,
-		AddrConv:         addrConv,
+		PubkeyConv:       pubkeyConv,
 		StorageService:   storageService,
 		BlockChain:       blockChain,
 		ShardCoordinator: shardCoordinator,
@@ -1756,7 +1833,7 @@ func createApiResolver(
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		AddressConverter: addrConv,
+		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),

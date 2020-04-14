@@ -14,22 +14,26 @@ import (
 
 func createMockArguments() ArgNewTxTypeHandler {
 	return ArgNewTxTypeHandler{
-		AddressConverter: &mock.AddressConverterMock{},
+		PubkeyConverter:  createMockPubkeyConverter(),
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),
 	}
 }
 
+func createMockPubkeyConverter() *mock.PubkeyConverterMock {
+	return mock.NewPubkeyConverterMock(32)
+}
+
 func TestNewTxTypeHandler_NilAddrConv(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArguments()
-	arg.AddressConverter = nil
+	arg.PubkeyConverter = nil
 	tth, err := NewTxTypeHandler(arg)
 
 	assert.Nil(t, tth)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestNewTxTypeHandler_NilShardCoord(t *testing.T) {
@@ -131,7 +135,6 @@ func TestTxTypeHandler_ComputeTransactionTypeErrWrongTransaction(t *testing.T) {
 func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
 	t.Parallel()
 
-	addressConverter := &mock.AddressConverterMock{}
 	arg := createMockArguments()
 	tth, err := NewTxTypeHandler(arg)
 
@@ -141,7 +144,7 @@ func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = make([]byte, addressConverter.AddressLen())
+	tx.RcvAddr = make([]byte, createMockPubkeyConverter().Len())
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
@@ -182,11 +185,11 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.AddressConverter = &mock.AddressConverterStub{
-		AddressLenHandler: func() int {
+	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
+		CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
 			return mock.NewAddressMock(pubKey), nil
 		}}
 	tth, err := NewTxTypeHandler(arg)
@@ -210,11 +213,11 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunc(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.AddressConverter = &mock.AddressConverterStub{
-		AddressLenHandler: func() int {
+	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
+		CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
 			return mock.NewAddressMock(pubKey), nil
 		}}
 	builtIn := "builtIn"

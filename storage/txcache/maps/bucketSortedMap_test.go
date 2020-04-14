@@ -10,10 +10,10 @@ import (
 )
 
 type dummyItem struct {
-	key                   string
-	score                 atomic.Uint32
-	chunk                 *MapChunk
 	scoreChangeInProgress atomic.Flag
+	score                 atomic.Uint32
+	key                   string
+	chunk                 *MapChunk
 }
 
 func newDummyItem(key string) *dummyItem {
