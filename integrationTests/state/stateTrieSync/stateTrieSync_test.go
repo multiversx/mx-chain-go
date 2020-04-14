@@ -80,5 +80,5 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
 	_, err = requesterTrie.GetAllLeaves()
-	assert.Nil(t, requesterTrie)
+	assert.Nil(t, err)
 }
