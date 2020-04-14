@@ -25,7 +25,7 @@ type InterceptedTransaction struct {
 	hasher            hashing.Hasher
 	keyGen            crypto.KeyGenerator
 	singleSigner      crypto.SingleSigner
-	addrConv          state.AddressConverter
+	pubkeyConv        state.PubkeyConverter
 	coordinator       sharding.Coordinator
 	hash              []byte
 	rcvShard          uint32
@@ -43,7 +43,7 @@ func NewInterceptedTransaction(
 	hasher hashing.Hasher,
 	keyGen crypto.KeyGenerator,
 	signer crypto.SingleSigner,
-	addrConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 	coordinator sharding.Coordinator,
 	feeHandler process.FeeHandler,
 ) (*InterceptedTransaction, error) {
@@ -66,8 +66,8 @@ func NewInterceptedTransaction(
 	if check.IfNil(signer) {
 		return nil, process.ErrNilSingleSigner
 	}
-	if check.IfNil(addrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
@@ -87,7 +87,7 @@ func NewInterceptedTransaction(
 		signMarshalizer:  signMarshalizer,
 		hasher:           hasher,
 		singleSigner:     signer,
-		addrConv:         addrConv,
+		pubkeyConv:       pubkeyConv,
 		keyGen:           keyGen,
 		coordinator:      coordinator,
 		feeHandler:       feeHandler,
@@ -130,12 +130,12 @@ func (inTx *InterceptedTransaction) processFields(txBuff []byte) error {
 	inTx.hash = inTx.hasher.Compute(string(txBuff))
 
 	var err error
-	inTx.sndAddr, err = inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.tx.SndAddr)
+	inTx.sndAddr, err = inTx.pubkeyConv.CreateAddressFromBytes(inTx.tx.SndAddr)
 	if err != nil {
 		return process.ErrInvalidSndAddr
 	}
 
-	rcvAddr, err := inTx.addrConv.CreateAddressFromPublicKeyBytes(inTx.tx.RcvAddr)
+	rcvAddr, err := inTx.pubkeyConv.CreateAddressFromBytes(inTx.tx.RcvAddr)
 	if err != nil {
 		return process.ErrInvalidRcvAddr
 	}
@@ -177,9 +177,7 @@ func (inTx *InterceptedTransaction) integrity() error {
 
 // verifySig checks if the tx is correctly signed
 func (inTx *InterceptedTransaction) verifySig() error {
-	copiedTx := *inTx.tx
-	copiedTx.Signature = nil
-	buffCopiedTx, err := inTx.signMarshalizer.Marshal(&copiedTx)
+	buffCopiedTx, err := inTx.tx.GetDataForSigning(inTx.pubkeyConv, inTx.signMarshalizer)
 	if err != nil {
 		return err
 	}

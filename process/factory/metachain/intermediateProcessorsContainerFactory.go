@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -16,7 +17,7 @@ type intermediateProcessorsContainerFactory struct {
 	shardCoordinator sharding.Coordinator
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
-	addrConverter    state.AddressConverter
+	pubkeyConverter  state.PubkeyConverter
 	store            dataRetriever.StorageService
 	poolsHolder      dataRetriever.PoolsHolder
 }
@@ -26,27 +27,27 @@ func NewIntermediateProcessorsContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	addrConverter state.AddressConverter,
+	pubkeyConverter state.PubkeyConverter,
 	store dataRetriever.StorageService,
 	poolsHolder dataRetriever.PoolsHolder,
 ) (*intermediateProcessorsContainerFactory, error) {
 
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if addrConverter == nil || addrConverter.IsInterfaceNil() {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
 	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, process.ErrNilStorage
 	}
-	if poolsHolder == nil || poolsHolder.IsInterfaceNil() {
+	if check.IfNil(poolsHolder) {
 		return nil, process.ErrNilPoolsHolder
 	}
 
@@ -54,7 +55,7 @@ func NewIntermediateProcessorsContainerFactory(
 		shardCoordinator: shardCoordinator,
 		marshalizer:      marshalizer,
 		hasher:           hasher,
-		addrConverter:    addrConverter,
+		pubkeyConverter:  pubkeyConverter,
 		poolsHolder:      poolsHolder,
 		store:            store,
 	}, nil
@@ -82,7 +83,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 		ppcm.hasher,
 		ppcm.marshalizer,
 		ppcm.shardCoordinator,
-		ppcm.addrConverter,
+		ppcm.pubkeyConverter,
 		ppcm.store,
 		block.SmartContractResultBlock,
 		ppcm.poolsHolder.CurrentBlockTxs(),

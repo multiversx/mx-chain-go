@@ -110,7 +110,7 @@ func TestLoadSkPkFromPemFile_InvalidSkIndexShouldErr(t *testing.T) {
 	dataSk, dataPk, err := core.LoadSkPkFromPemFile("testFile5", -1)
 
 	assert.Nil(t, dataSk)
-	assert.Nil(t, dataPk)
+	assert.Empty(t, "", dataPk)
 	assert.Equal(t, core.ErrInvalidIndex, err)
 }
 
@@ -120,7 +120,7 @@ func TestLoadSkPkFromPemFile_NoExistingFileShouldErr(t *testing.T) {
 	dataSk, dataPk, err := core.LoadSkPkFromPemFile("testFile6", 0)
 
 	assert.Nil(t, dataSk)
-	assert.Nil(t, dataPk)
+	assert.Empty(t, dataPk)
 	assert.Error(t, err)
 }
 
@@ -136,7 +136,7 @@ func TestLoadSkPkFromPemFile_EmptyFileShouldErr(t *testing.T) {
 	}
 
 	assert.Nil(t, dataSk)
-	assert.Nil(t, dataPk)
+	assert.Empty(t, dataPk)
 	assert.True(t, errors.Is(err, core.ErrEmptyFile))
 }
 
@@ -148,11 +148,11 @@ func TestLoadSkPkFromPemFile_ShouldPass(t *testing.T) {
 	assert.Nil(t, err)
 
 	skBytes := []byte{10, 20, 30, 40, 50, 60}
-	pkBytes := []byte{65, 66, 67, 68}
+	pkString := "ABCD"
 
-	_, _ = file.WriteString("-----BEGIN PRIVATE KEY for ABCD-----\n")
+	_, _ = file.WriteString("-----BEGIN PRIVATE KEY for " + pkString + "-----\n")
 	_, _ = file.WriteString("ChQeKDI8\n")
-	_, _ = file.WriteString("-----END PRIVATE KEY for ABCD-----")
+	_, _ = file.WriteString("-----END PRIVATE KEY for " + pkString + "-----")
 
 	dataSk, dataPk, err := core.LoadSkPkFromPemFile(fileName, 0)
 	if _, errF := os.Stat(fileName); errF == nil {
@@ -160,7 +160,7 @@ func TestLoadSkPkFromPemFile_ShouldPass(t *testing.T) {
 	}
 
 	assert.Equal(t, dataSk, skBytes)
-	assert.Equal(t, dataPk, pkBytes)
+	assert.Equal(t, dataPk, pkString)
 	assert.Nil(t, err)
 }
 
@@ -181,7 +181,7 @@ func TestLoadSkPkFromPemFile_IncorrectHeaderShoukldErr(t *testing.T) {
 	}
 
 	assert.Nil(t, dataSk)
-	assert.Nil(t, dataPk)
+	assert.Empty(t, dataPk)
 	assert.True(t, errors.Is(err, core.ErrPemFileIsInvalid))
 }
 
@@ -200,7 +200,7 @@ func TestLoadSkPkFromPemFile_InvalidPemFileShouldErr(t *testing.T) {
 	}
 
 	assert.Nil(t, dataSk)
-	assert.Nil(t, dataPk)
+	assert.Empty(t, dataPk)
 	assert.True(t, errors.Is(err, core.ErrPemFileIsInvalid))
 }
 
@@ -221,7 +221,7 @@ func TestLoadSkPkFromPemFile_InvalidIndexShouldErr(t *testing.T) {
 	}
 
 	assert.Nil(t, dataSk)
-	assert.Nil(t, dataPk)
+	assert.Empty(t, dataPk)
 	assert.True(t, errors.Is(err, core.ErrInvalidIndex))
 }
 

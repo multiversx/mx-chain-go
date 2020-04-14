@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -19,7 +18,7 @@ const millisecondsInSecond = 1000
 // InitMetrics will init metrics for status handler
 func InitMetrics(
 	appStatusHandler core.AppStatusHandler,
-	pubKey crypto.PublicKey,
+	pubkeyStr string,
 	nodeType core.NodeType,
 	shardCoordinator sharding.Coordinator,
 	nodesConfig *sharding.NodesSetup,
@@ -33,7 +32,7 @@ func InitMetrics(
 	initUint := uint64(0)
 	initString := ""
 
-	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, factory.GetPkEncoded(pubKey))
+	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, pubkeyStr)
 	appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
 	appStatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
 	appStatusHandler.SetUInt64Value(core.MetricRoundTime, roundDuration/millisecondsInSecond)

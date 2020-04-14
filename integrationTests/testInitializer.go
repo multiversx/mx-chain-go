@@ -451,7 +451,7 @@ func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 // CreateGenesisBlocks creates empty genesis blocks for all known shards, including metachain
 func CreateGenesisBlocks(
 	accounts state.AccountsAdapter,
-	addrConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 	nodesSetup *sharding.NodesSetup,
 	shardCoordinator sharding.Coordinator,
 	store dataRetriever.StorageService,
@@ -471,7 +471,7 @@ func CreateGenesisBlocks(
 
 	genesisBlocks[core.MetachainShardId] = CreateGenesisMetaBlock(
 		accounts,
-		addrConv,
+		pubkeyConv,
 		nodesSetup,
 		shardCoordinator,
 		store,
@@ -490,7 +490,7 @@ func CreateGenesisBlocks(
 // CreateGenesisMetaBlock creates a new mock meta genesis block
 func CreateGenesisMetaBlock(
 	accounts state.AccountsAdapter,
-	addrConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 	nodesSetup *sharding.NodesSetup,
 	shardCoordinator sharding.Coordinator,
 	store dataRetriever.StorageService,
@@ -508,7 +508,7 @@ func CreateGenesisMetaBlock(
 	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
 		GenesisTime:              0,
 		Accounts:                 accounts,
-		AddrConv:                 addrConv,
+		PubkeyConv:               pubkeyConv,
 		NodesSetup:               nodesSetup,
 		ShardCoordinator:         shardCoordinator,
 		Store:                    store,
@@ -549,14 +549,14 @@ func CreateGenesisMetaBlock(
 }
 
 // CreateAddressFromAddrBytes creates an address container object from address bytes provided
-func CreateAddressFromAddrBytes(addressBytes []byte) state.AddressContainer {
-	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(addressBytes)
+func CreateAddressFromAddrBytes(pubkeyBytes []byte) state.AddressContainer {
+	addr, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(pubkeyBytes)
 	return addr
 }
 
 // CreateRandomAddress creates a random byte array with fixed size
 func CreateRandomAddress() state.AddressContainer {
-	addr, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexString(64))
+	addr, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(CreateRandomBytes(32))
 	return addr
 }
 
@@ -571,7 +571,7 @@ func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.I
 
 // CreateAccount creates a new account and returns the address
 func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int) state.AddressContainer {
-	address, _ := TestAddressConverter.CreateAddressFromHex(CreateRandomHexString(64))
+	address, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(CreateRandomBytes(32))
 	account, _ := accnts.LoadAccount(address)
 	account.(state.UserAccountHandler).IncreaseNonce(nonce)
 	_ = account.(state.UserAccountHandler).AddToBalance(balance)
@@ -615,16 +615,12 @@ func PrintShardAccount(accnt state.UserAccountHandler, tag string) {
 	fmt.Println(str)
 }
 
-// CreateRandomHexString returns a string encoded in hex with the given size
-func CreateRandomHexString(chars int) string {
-	if chars < 1 {
-		return ""
-	}
-
-	buff := make([]byte, chars/2)
+// CreateRandomBytes returns a random byte slice with the given size
+func CreateRandomBytes(chars int) []byte {
+	buff := make([]byte, chars)
 	_, _ = rand.Reader.Read(buff)
 
-	return hex.EncodeToString(buff)
+	return buff
 }
 
 // GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
@@ -693,7 +689,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 	txProcessor, _ := txProc.NewTxProcessor(
 		accnts,
 		TestHasher,
-		TestAddressConverter,
+		TestAddressPubkeyConverter,
 		TestMarshalizer,
 		shardCoordinator,
 		&mock.SCProcessorMock{},
@@ -1015,11 +1011,11 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 
 		fmt.Printf("Shard ID: %v, pkNode: %s\n",
 			n.ShardCoordinator.SelfId(),
-			hex.EncodeToString(pkNode))
+			TestValidatorPubkeyConverter.Encode(pkNode))
 
 		fmt.Printf("skTx: %s, pkTx: %s\n",
 			hex.EncodeToString(skTxBuff),
-			hex.EncodeToString(pkTxBuff),
+			TestAddressPubkeyConverter.Encode(pkTxBuff),
 		)
 		_ = n.Messenger.Bootstrap()
 	}
@@ -1106,7 +1102,7 @@ func CreateAndSendTransaction(
 		GasLimit: MinTxGasLimit*100 + uint64(len(txData)),
 	}
 
-	txBuff, _ := TestTxSignMarshalizer.Marshal(tx)
+	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	_, err := node.SendTransaction(tx)
@@ -1134,7 +1130,7 @@ func CreateAndSendTransactionWithGasLimit(
 		GasLimit: gasLimit,
 	}
 
-	txBuff, _ := TestTxSignMarshalizer.Marshal(tx)
+	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	_, _ = node.SendTransaction(tx)
@@ -1171,7 +1167,7 @@ func GenerateTransferTx(
 		GasLimit: gasLimit,
 		GasPrice: gasPrice,
 	}
-	txBuff, _ := TestTxSignMarshalizer.Marshal(&tx)
+	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
 	signer := &ed25519SingleSig.Ed25519Signer{}
 	tx.Signature, _ = signer.Sign(senderPrivateKey, txBuff)
 
@@ -1192,7 +1188,7 @@ func generateTx(
 		GasLimit: args.gasLimit,
 		Data:     []byte(args.data),
 	}
-	txBuff, _ := TestTxSignMarshalizer.Marshal(tx)
+	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
 	tx.Signature, _ = signer.Sign(skSign, txBuff)
 
 	return tx
@@ -1206,7 +1202,7 @@ func skToPk(sk crypto.PrivateKey) []byte {
 // TestPublicKeyHasBalance checks if the account corresponding to the given public key has the expected balance
 func TestPublicKeyHasBalance(t *testing.T, n *TestProcessorNode, pk crypto.PublicKey, expectedBalance *big.Int) {
 	pkBuff, _ := pk.ToByteArray()
-	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
+	addr, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(pkBuff)
 	account, _ := n.AccntState.GetExistingAccount(addr)
 	assert.Equal(t, expectedBalance, account.(state.UserAccountHandler).GetBalance())
 }
@@ -1214,7 +1210,7 @@ func TestPublicKeyHasBalance(t *testing.T, n *TestProcessorNode, pk crypto.Publi
 // TestPrivateKeyHasBalance checks if the private key has the expected balance
 func TestPrivateKeyHasBalance(t *testing.T, n *TestProcessorNode, sk crypto.PrivateKey, expectedBalance *big.Int) {
 	pkBuff, _ := sk.GeneratePublic().ToByteArray()
-	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
+	addr, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(pkBuff)
 	account, _ := n.AccntState.GetExistingAccount(addr)
 	assert.Equal(t, expectedBalance, account.(state.UserAccountHandler).GetBalance())
 }
@@ -1293,7 +1289,7 @@ func GenerateSkAndPkInShard(
 
 	for {
 		pkBytes, _ := pk.ToByteArray()
-		addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBytes)
+		addr, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(pkBytes)
 		if coordinator.ComputeId(addr) == shardId {
 			break
 		}
@@ -1368,7 +1364,7 @@ func CreateMintingForSenders(
 
 		for _, sk := range sendersPrivateKeys {
 			pkBuff, _ := sk.GeneratePublic().ToByteArray()
-			adr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBuff)
+			adr, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(pkBuff)
 			account, _ := n.AccntState.LoadAccount(adr)
 			_ = account.(state.UserAccountHandler).AddToBalance(value)
 			_ = n.AccntState.SaveAccount(account)
@@ -1419,7 +1415,7 @@ func CreateAccountForNodes(nodes []*TestProcessorNode) {
 
 // CreateAccountForNode creates an account for the given node
 func CreateAccountForNode(node *TestProcessorNode) {
-	addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(node.OwnAccount.PkTxSignBytes)
+	addr, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(node.OwnAccount.PkTxSignBytes)
 	acc, _ := node.AccntState.LoadAccount(addr)
 	_ = node.AccntState.SaveAccount(acc)
 	_, _ = node.AccntState.Commit()
@@ -1528,7 +1524,7 @@ func generateValidTx(
 	pkRecvBuff, _ := pkRecv.ToByteArray()
 
 	accnts, _, _ := CreateAccountsDB(UserAccount)
-	addrSender, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkSenderBuff)
+	addrSender, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(pkSenderBuff)
 	acc, _ := accnts.LoadAccount(addrSender)
 	_ = accnts.SaveAccount(acc)
 	_, _ = accnts.Commit()
@@ -1539,7 +1535,8 @@ func generateValidTx(
 		node.WithVmMarshalizer(TestVmMarshalizer),
 		node.WithTxSignMarshalizer(TestTxSignMarshalizer),
 		node.WithHasher(TestHasher),
-		node.WithAddressConverter(TestAddressConverter),
+		node.WithAddressPubkeyConverter(TestAddressPubkeyConverter),
+		node.WithValidatorPubkeyConverter(TestValidatorPubkeyConverter),
 		node.WithKeyGen(signing.NewKeyGenerator(ed25519.NewEd25519())),
 		node.WithTxSingleSigner(&ed25519SingleSig.Ed25519Signer{}),
 		node.WithAccountsAdapter(accnts),
@@ -1547,8 +1544,8 @@ func generateValidTx(
 	)
 
 	tx, err := mockNode.GenerateTransaction(
-		hex.EncodeToString(pkSenderBuff),
-		hex.EncodeToString(pkRecvBuff),
+		TestAddressPubkeyConverter.Encode(pkSenderBuff),
+		TestAddressPubkeyConverter.Encode(pkRecvBuff),
 		big.NewInt(1),
 		"",
 		skSender,

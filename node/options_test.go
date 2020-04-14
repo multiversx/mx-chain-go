@@ -171,29 +171,55 @@ func TestWithAccountsAdapter_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithAddressConverter_NilConverterShouldErr(t *testing.T) {
+func TestWithAddressPubkeyConverter_NilConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	opt := WithAddressConverter(nil)
+	opt := WithAddressPubkeyConverter(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.addrConverter)
-	assert.Equal(t, ErrNilAddressConverter, err)
+	assert.Nil(t, node.addressPubkeyConverter)
+	assert.True(t, errors.Is(err, ErrNilPubkeyConverter))
 }
 
-func TestWithAddressConverter_ShouldWork(t *testing.T) {
+func TestWithAddressPubkeyConverter_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	converter := &mock.AddressConverterStub{}
+	converter := &mock.PubkeyConverterStub{}
 
-	opt := WithAddressConverter(converter)
+	opt := WithAddressPubkeyConverter(converter)
 	err := opt(node)
 
-	assert.True(t, node.addrConverter == converter)
+	assert.True(t, node.addressPubkeyConverter == converter)
+	assert.Nil(t, err)
+}
+
+func TestWithValidatorPubkeyConverter_NilConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithValidatorPubkeyConverter(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.validatorPubkeyConverter)
+	assert.True(t, errors.Is(err, ErrNilPubkeyConverter))
+}
+
+func TestWithValidatorPubkeyConverter_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	converter := &mock.PubkeyConverterStub{}
+
+	opt := WithValidatorPubkeyConverter(converter)
+	err := opt(node)
+
+	assert.True(t, node.validatorPubkeyConverter == converter)
 	assert.Nil(t, err)
 }
 

@@ -1,7 +1,6 @@
 package pruning
 
 import (
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -9,7 +8,7 @@ import (
 // StorerArgs will hold the arguments needed for PruningStorer
 type StorerArgs struct {
 	Identifier            string
-	ShardCoordinator      sharding.Coordinator
+	ShardCoordinator      storage.ShardCoordinator
 	CacheConf             storageUnit.CacheConfig
 	PathManager           storage.PathManagerHandler
 	DbPath                string
