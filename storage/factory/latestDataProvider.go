@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -10,15 +9,10 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
-	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 var _ storage.LatestStorageDataProviderHandler = (*latestDataProvider)(nil)
@@ -53,15 +47,16 @@ type latestDataProvider struct {
 // NewLatestDataProvider returns a new instance of latestDataProvider
 func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, error) {
 	return &latestDataProvider{
-		generalConfig:      args.GeneralConfig,
-		marshalizer:        args.Marshalizer,
-		hasher:             args.Hasher,
-		workingDir:         args.WorkingDir,
-		chainID:            args.ChainID,
-		directoryReader:    args.DirectoryReader,
-		defaultShardString: args.DefaultShardString,
-		defaultEpochString: args.DefaultEpochString,
-		defaultDBPath:      args.DefaultDBPath,
+		generalConfig:         args.GeneralConfig,
+		marshalizer:           args.Marshalizer,
+		hasher:                args.Hasher,
+		workingDir:            args.WorkingDir,
+		chainID:               args.ChainID,
+		directoryReader:       args.DirectoryReader,
+		defaultShardString:    args.DefaultShardString,
+		defaultEpochString:    args.DefaultEpochString,
+		defaultDBPath:         args.DefaultDBPath,
+		bootstrapDataProvider: args.BootstrapDataProvider,
 	}, nil
 }
 
@@ -140,7 +135,7 @@ func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string,
 			if err != nil {
 				continue
 			}
-			epochStartRound, err = ldp.LoadEpochStartRound(shardID, bootstrapData.EpochStartTriggerConfigKey, storer)
+			epochStartRound, err = loadEpochStartRound(shardID, bootstrapData.EpochStartTriggerConfigKey, storer)
 			if err != nil {
 				continue
 			}
@@ -167,44 +162,6 @@ func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string,
 	}
 
 	return lastestData, nil
-}
-
-func (ldp *latestDataProvider) getBootstrapDataForPersisterPath(
-	persisterFactory *PersisterFactory,
-	persisterPath string,
-) (*bootstrapStorage.BootstrapData, storage.Storer, error) {
-	persister, err := persisterFactory.Create(persisterPath)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	defer func() {
-		errClose := persister.Close()
-		log.LogIfError(errClose)
-	}()
-
-	cacher, err := lrucache.NewCache(10)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	storer, err := storageUnit.NewStorageUnit(cacher, persister)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	bootStorer, err := bootstrapStorage.NewBootstrapStorer(ldp.marshalizer, storer)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	highestRound := bootStorer.GetHighestRound()
-	bootstrapData, err := bootStorer.Get(highestRound)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return &bootstrapData, storer, nil
 }
 
 // GetLastEpochFromDirNames returns the last epoch found in storage directory
@@ -262,37 +219,6 @@ func (ldp *latestDataProvider) GetShardsFromDirectory(path string) ([]string, er
 	}
 
 	return shardIDs, nil
-}
-
-// LoadEpochStartRound will return the epoch start round from the bootstrap unit
-func (ldp *latestDataProvider) LoadEpochStartRound(
-	shardID uint32,
-	key []byte,
-	storer storage.Storer,
-) (uint64, error) {
-	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), key...)
-	data, err := storer.Get(trigInternalKey)
-	if err != nil {
-		return 0, err
-	}
-
-	if shardID == core.MetachainShardId {
-		state := &metachain.TriggerRegistry{}
-		err = json.Unmarshal(data, state)
-		if err != nil {
-			return 0, err
-		}
-
-		return state.CurrEpochStartRound, nil
-	}
-
-	state := &shardchain.TriggerRegistry{}
-	err = json.Unmarshal(data, state)
-	if err != nil {
-		return 0, err
-	}
-
-	return state.EpochStartRound, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

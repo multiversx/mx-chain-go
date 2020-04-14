@@ -95,14 +95,14 @@ func (o *openStorageUnits) GetMostRecentBootstrapStorageUnit() (storage.Storer, 
 		}
 	}()
 
-	cacher, errCache := lrucache.NewCache(10)
-	if errCache != nil {
-		return nil, errCache
+	cacher, err := lrucache.NewCache(10)
+	if err != nil {
+		return nil, err
 	}
 
-	storer, errStorageUnit := storageUnit.NewStorageUnit(cacher, persister)
-	if errStorageUnit != nil {
-		return nil, errStorageUnit
+	storer, err := storageUnit.NewStorageUnit(cacher, persister)
+	if err != nil {
+		return nil, err
 	}
 
 	return storer, nil
