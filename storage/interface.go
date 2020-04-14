@@ -2,6 +2,7 @@ package storage
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
@@ -114,5 +115,15 @@ type EpochStartNotifier interface {
 type PathManagerHandler interface {
 	PathForEpoch(shardId string, epoch uint32, identifier string) string
 	PathForStatic(shardId string, identifier string) string
+	IsInterfaceNil() bool
+}
+
+// ShardCoordinator defines what a shard state coordinator should hold
+type ShardCoordinator interface {
+	NumberOfShards() uint32
+	ComputeId(address state.AddressContainer) uint32
+	SelfId() uint32
+	SameShard(firstAddress, secondAddress state.AddressContainer) bool
+	CommunicationIdentifier(destShardID uint32) string
 	IsInterfaceNil() bool
 }
