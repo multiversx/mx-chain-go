@@ -333,7 +333,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 		return nil, err
 	}
 
-	rootHash, err := vs.peerAdapter.Commit()
+	rootHash, err := vs.peerAdapter.RootHash()
 	vs.displayRatings(header.GetEpoch())
 	if err != nil {
 		return nil, err
