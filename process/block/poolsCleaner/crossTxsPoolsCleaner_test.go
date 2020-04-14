@@ -22,14 +22,14 @@ func TestNewCrossTxsPoolsCleaner_NilAddrConverterErr(t *testing.T) {
 		nil, &mock.PoolsHolderMock{}, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
 	)
 	assert.Nil(t, crossTxCleaner)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestNewCrossTxsPoolsCleaner_NilDataPoolHolderErr(t *testing.T) {
 	t.Parallel()
 
 	crossTxCleaner, err := NewCrossTxsPoolsCleaner(
-		&mock.AddressConverterStub{}, nil, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		&mock.PubkeyConverterStub{}, nil, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
 	)
 	assert.Nil(t, crossTxCleaner)
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
@@ -44,7 +44,7 @@ func TestNewCrossTxsPoolsCleaner_NilTxsPoolErr(t *testing.T) {
 		},
 	}
 	crossTxCleaner, err := NewCrossTxsPoolsCleaner(
-		&mock.AddressConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
 	)
 	assert.Nil(t, crossTxCleaner)
 	assert.Equal(t, process.ErrNilTransactionPool, err)
@@ -62,7 +62,7 @@ func TestNewCrossTxsPoolsCleaner_NilRewardTxsPoolErr(t *testing.T) {
 		},
 	}
 	crossTxCleaner, err := NewCrossTxsPoolsCleaner(
-		&mock.AddressConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
 	)
 	assert.Nil(t, crossTxCleaner)
 	assert.Equal(t, process.ErrNilRewardTxDataPool, err)
@@ -83,7 +83,7 @@ func TestNewCrossTxsPoolsCleaner_NilUnsignedTxsPoolErr(t *testing.T) {
 		},
 	}
 	crossTxCleaner, err := NewCrossTxsPoolsCleaner(
-		&mock.AddressConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
 	)
 	assert.Nil(t, crossTxCleaner)
 	assert.Equal(t, process.ErrNilUnsignedTxDataPool, err)
@@ -104,7 +104,7 @@ func TestNewCrossTxsPoolsCleaner_NilRounderErr(t *testing.T) {
 		},
 	}
 	crossTxCleaner, err := NewCrossTxsPoolsCleaner(
-		&mock.AddressConverterStub{}, dataPool, nil, mock.NewMultipleShardsCoordinatorMock(),
+		&mock.PubkeyConverterStub{}, dataPool, nil, mock.NewMultipleShardsCoordinatorMock(),
 	)
 	assert.Nil(t, crossTxCleaner)
 	assert.Equal(t, process.ErrNilRounder, err)
@@ -125,7 +125,7 @@ func TestNewCrossTxsPoolsCleaner_NilShardCoordinatorErr(t *testing.T) {
 		},
 	}
 	crossTxCleaner, err := NewCrossTxsPoolsCleaner(
-		&mock.AddressConverterStub{}, dataPool, &mock.RounderMock{}, nil,
+		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, nil,
 	)
 	assert.Nil(t, crossTxCleaner)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -147,7 +147,7 @@ func TestNewCrossTxsPoolsCleaner_ShouldWork(t *testing.T) {
 	}
 
 	crossTxCleaner, err := NewCrossTxsPoolsCleaner(
-		&mock.AddressConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
+		&mock.PubkeyConverterStub{}, dataPool, &mock.RounderMock{}, mock.NewMultipleShardsCoordinatorMock(),
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, crossTxCleaner)
@@ -159,11 +159,11 @@ func TestGetShardFromAddress(t *testing.T) {
 	addrLen := 64
 	expectedErr := errors.New("error")
 	testAddr := []byte("addr")
-	addrConverter := &mock.AddressConverterStub{
-		AddressLenCalled: func() int {
+	addrConverter := &mock.PubkeyConverterStub{
+		LenCalled: func() int {
 			return addrLen
 		},
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
+		CreateAddressFromBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
 			if bytes.Equal(pubKey, testAddr) {
 				return nil, expectedErr
 			}
@@ -196,7 +196,7 @@ func TestReceivedBlockTx_ShouldBeAddedInMapCrossTxsRounds(t *testing.T) {
 	t.Parallel()
 
 	crossTxCleaner, _ := NewCrossTxsPoolsCleaner(
-		&mock.AddressConverterStub{}, &mock.PoolsHolderStub{
+		&mock.PubkeyConverterStub{}, &mock.PoolsHolderStub{
 			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -220,7 +220,7 @@ func TestReceivedRewardTx_ShouldBeAddedInMapCrossTxsRounds(t *testing.T) {
 	t.Parallel()
 
 	crossTxCleaner, _ := NewCrossTxsPoolsCleaner(
-		&mock.AddressConverterStub{}, &mock.PoolsHolderStub{
+		&mock.PubkeyConverterStub{}, &mock.PoolsHolderStub{
 			RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -241,8 +241,8 @@ func TestReceivedUnsignedTx_ShouldBeAddedInMapCrossTxsRounds(t *testing.T) {
 
 	sndAddr := []byte("sndAddr")
 	crossTxCleaner, _ := NewCrossTxsPoolsCleaner(
-		&mock.AddressConverterStub{
-			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
 				return nil, nil
 			},
 		}, &mock.PoolsHolderStub{
@@ -273,8 +273,8 @@ func TestCleanCrossTxsPoolsIfNeeded_CannotFindTxInPoolShouldBeRemovedFromMap(t *
 
 	sndAddr := []byte("sndAddr")
 	crossTxCleaner, _ := NewCrossTxsPoolsCleaner(
-		&mock.AddressConverterStub{
-			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
 				return nil, nil
 			},
 		}, &mock.PoolsHolderStub{
@@ -307,8 +307,8 @@ func TestCleanCrossTxsPoolsIfNeeded_RoundDiffTooSmallShouldNotBeRemoved(t *testi
 
 	sndAddr := []byte("sndAddr")
 	crossTxCleaner, _ := NewCrossTxsPoolsCleaner(
-		&mock.AddressConverterStub{
-			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
 				return nil, nil
 			},
 		}, &mock.PoolsHolderStub{
@@ -349,8 +349,8 @@ func TestCleanCrossTxsPoolsIfNeeded_RoundDiffTooBigShouldBeRemoved(t *testing.T)
 	called := false
 	sndAddr := []byte("sndAddr")
 	crossTxCleaner, _ := NewCrossTxsPoolsCleaner(
-		&mock.AddressConverterStub{
-			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
 				return nil, nil
 			},
 		}, &mock.PoolsHolderStub{
