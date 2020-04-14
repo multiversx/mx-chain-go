@@ -459,6 +459,24 @@ func TestLibp2pMessenger_UnregisterTopicValidatorShouldWork(t *testing.T) {
 	_ = mes.Close()
 }
 
+func TestLibp2pMessenger_UnregisterAllTopicValidatorShouldWork(t *testing.T) {
+	mes := createMockMessenger()
+	_ = mes.CreateTopic("test", false)
+	//registration
+	_ = mes.CreateTopic("test1", false)
+	_ = mes.RegisterMessageProcessor("test1", &mock.MessageProcessorStub{})
+	_ = mes.CreateTopic("test2", false)
+	_ = mes.RegisterMessageProcessor("test2", &mock.MessageProcessorStub{})
+	//unregistration
+	err := mes.UnregisterAllMessageProcessors()
+	assert.Nil(t, err)
+	err = mes.RegisterMessageProcessor("test1", &mock.MessageProcessorStub{})
+	assert.Nil(t, err)
+	err = mes.RegisterMessageProcessor("test2", &mock.MessageProcessorStub{})
+	assert.Nil(t, err)
+	_ = mes.Close()
+}
+
 func TestLibp2pMessenger_BroadcastDataLargeMessageShouldNotCallSend(t *testing.T) {
 	//TODO remove skip when external library is concurrent safe
 	if testing.Short() {
@@ -570,47 +588,6 @@ func TestLibp2pMessenger_BroadcastDataBetween2PeersWithLargeMsgShouldWork(t *tes
 	}
 
 	msg := make([]byte, libp2p.MaxSendBuffSize)
-
-	_, mes1, mes2 := createMockNetworkOf2()
-
-	adr2 := mes2.Addresses()[0]
-
-	fmt.Printf("Connecting to %s...\n", adr2)
-
-	_ = mes1.ConnectToPeer(adr2)
-
-	wg := &sync.WaitGroup{}
-	chanDone := make(chan bool)
-	wg.Add(2)
-
-	go func() {
-		wg.Wait()
-		chanDone <- true
-	}()
-
-	prepareMessengerForMatchDataReceive(mes1, msg, wg)
-	prepareMessengerForMatchDataReceive(mes2, msg, wg)
-
-	fmt.Println("Delaying as to allow peers to announce themselves on the opened topic...")
-	time.Sleep(time.Second)
-
-	fmt.Printf("sending message from %s...\n", mes1.ID().Pretty())
-
-	mes1.Broadcast("test", msg)
-
-	waitDoneWithTimeout(t, chanDone, timeoutWaitResponses)
-
-	_ = mes1.Close()
-	_ = mes2.Close()
-}
-
-func TestLibp2pMessenger_BroadcastDataOnTopicPipeBetween2PeersShouldWork(t *testing.T) {
-	//TODO remove skip when external library is concurrent safe
-	if testing.Short() {
-		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
-	}
-
-	msg := []byte("test message")
 
 	_, mes1, mes2 := createMockNetworkOf2()
 
