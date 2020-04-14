@@ -73,7 +73,9 @@ func (cs *CacherStub) MaxSize() int {
 
 // RegisterHandler -
 func (cs *CacherStub) RegisterHandler(handler func(key []byte, value interface{})) {
-	cs.RegisterHandlerCalled(handler)
+	if cs.RegisterHandlerCalled != nil {
+		cs.RegisterHandlerCalled(handler)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

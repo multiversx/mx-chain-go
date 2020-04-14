@@ -55,7 +55,7 @@ func TestSCCallingIntraShard(t *testing.T) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -139,7 +139,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -241,7 +241,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -361,7 +361,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -459,7 +459,7 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -494,8 +494,8 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 
 	time.Sleep(time.Second)
 	// verify system smart contract has the value
-	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() != core.MetachainShardId {
 			continue
 		}
 		scQuery := &process.SCQuery{
@@ -503,7 +503,7 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 			FuncName:  "isStaked",
 			Arguments: [][]byte{stakerBLSKey},
 		}
-		vmOutput, _ := node.SCQueryService.ExecuteQuery(scQuery)
+		vmOutput, _ := n.SCQueryService.ExecuteQuery(scQuery)
 
 		assert.NotNil(t, vmOutput)
 		if vmOutput != nil {

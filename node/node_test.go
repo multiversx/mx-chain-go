@@ -42,12 +42,6 @@ import (
 
 var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
 
-func logError(err error) {
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-}
-
 func getAccAdapter(balance *big.Int) *mock.AccountsStub {
 	accDB := &mock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -104,11 +98,6 @@ func TestNewNode(t *testing.T) {
 	assert.False(t, check.IfNil(n))
 }
 
-func TestNewNode_NotRunning(t *testing.T) {
-	n, _ := node.NewNode()
-	assert.False(t, n.IsRunning())
-}
-
 func TestNewNode_NilOptionShouldError(t *testing.T) {
 	_, err := node.NewNode(node.WithAccountsAdapter(nil))
 	assert.NotNil(t, err)
@@ -118,98 +107,6 @@ func TestNewNode_ApplyNilOptionShouldError(t *testing.T) {
 	n, _ := node.NewNode()
 	err := n.ApplyOptions(node.WithAccountsAdapter(nil))
 	assert.NotNil(t, err)
-}
-
-func TestStart_CorrectParams(t *testing.T) {
-	messenger := getMessenger()
-	n, _ := node.NewNode(
-		node.WithMessenger(messenger),
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-	)
-	n.Start()
-	defer func() { _ = n.Stop() }()
-	assert.True(t, n.IsRunning())
-}
-
-func TestStart_CannotApplyOptions(t *testing.T) {
-
-	messenger := getMessenger()
-	n, _ := node.NewNode(
-		node.WithMessenger(messenger),
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithHasher(getHasher()),
-		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-	)
-	n.Start()
-	defer func() { _ = n.Stop() }()
-
-	err := n.ApplyOptions(node.WithDataPool(&mock.PoolsHolderStub{}))
-	require.Error(t, err)
-}
-
-func TestStart_CorrectParamsApplyingOptions(t *testing.T) {
-
-	n, _ := node.NewNode()
-	messenger := getMessenger()
-	err := n.ApplyOptions(
-		node.WithMessenger(messenger),
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressConverter(&mock.AddressConverterStub{}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-	)
-
-	logError(err)
-
-	n.Start()
-	defer func() { _ = n.Stop() }()
-	assert.True(t, n.IsRunning())
-}
-
-func TestApplyOptions_NodeStarted(t *testing.T) {
-
-	messenger := getMessenger()
-	n, _ := node.NewNode(
-		node.WithMessenger(messenger),
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-	)
-	n.Start()
-	defer func() { _ = n.Stop() }()
-
-	assert.True(t, n.IsRunning())
-}
-
-func TestStop_NotStartedYet(t *testing.T) {
-
-	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-	)
-
-	err := n.Stop()
-	assert.Nil(t, err)
-	assert.False(t, n.IsRunning())
-}
-
-func TestStop(t *testing.T) {
-	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-	)
-	n.Start()
-
-	err := n.Stop()
-	assert.Nil(t, err)
 }
 
 func TestGetBalance_NoAddrConverterShouldError(t *testing.T) {
@@ -739,8 +636,7 @@ func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
-	n.Start()
-	defer func() { _ = n.Stop() }()
+
 	err := n.CreateShardedStores()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "nil shard coordinator")
@@ -759,8 +655,7 @@ func TestCreateShardedStores_NilDataPoolShouldError(t *testing.T) {
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
-	n.Start()
-	defer func() { _ = n.Stop() }()
+
 	err := n.CreateShardedStores()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "nil data pool")
@@ -787,8 +682,7 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
-	n.Start()
-	defer func() { _ = n.Stop() }()
+
 	err := n.CreateShardedStores()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "nil transaction sharded data store")
@@ -816,8 +710,7 @@ func TestCreateShardedStores_NilHeaderDataPoolShouldError(t *testing.T) {
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
-	n.Start()
-	defer func() { _ = n.Stop() }()
+
 	err := n.CreateShardedStores()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "nil header sharded data store")
@@ -852,8 +745,7 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 		node.WithAddressConverter(&mock.AddressConverterStub{}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
 	)
-	n.Start()
-	defer func() { _ = n.Stop() }()
+
 	err := n.CreateShardedStores()
 	assert.Nil(t, err)
 

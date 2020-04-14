@@ -391,8 +391,11 @@ func (e *epochStartBootstrap) createSyncers() error {
 		RequestHandler: e.requestHandler,
 	}
 	e.headersSyncer, err = sync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
+	if err != nil {
+		return err
+	}
 
-	return err
+	return nil
 }
 
 func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string]data.HeaderHandler, error) {

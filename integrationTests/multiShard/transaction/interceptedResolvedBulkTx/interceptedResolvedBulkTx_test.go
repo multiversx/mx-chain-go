@@ -47,7 +47,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -125,7 +125,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -211,7 +211,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -302,7 +302,7 @@ func TestNode_InMultiShardEnvRequestTxsShouldRequireFromTheOtherShardAndSameShar
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
