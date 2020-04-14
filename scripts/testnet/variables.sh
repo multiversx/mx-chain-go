@@ -44,6 +44,10 @@ export LOGLEVEL="*:DEBUG"
 export SEEDNODE_DELAY=5
 export NODE_DELAY=10
 
+#types of keys to generate
+export TX_SIGN_FORMAT="bech32"
+export BLOCK_SIGN_FORMAT="hex"
+
 # Shard structure
 export SHARDCOUNT=2
 export SHARD_VALIDATORCOUNT=3

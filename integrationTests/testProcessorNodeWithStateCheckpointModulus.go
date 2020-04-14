@@ -24,7 +24,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	sk, pk := kg.GeneratePair()
 
 	pkBytes := make([]byte, 128)
-	pkBytes = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
+	pkBytes = []byte("afafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafaf")
 	address := make([]byte, 32)
 	address = []byte("afafafafafafafafafafafafafafafaf")
 
@@ -89,7 +89,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	rootHash, _ := tpn.ValidatorStatisticsProcessor.RootHash()
 	tpn.GenesisBlocks = CreateGenesisBlocks(
 		tpn.AccntState,
-		TestAddressConverter,
+		TestAddressPubkeyConverter,
 		&sharding.NodesSetup{},
 		tpn.ShardCoordinator,
 		tpn.Storage,
@@ -116,7 +116,6 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData)
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
 

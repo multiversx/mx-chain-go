@@ -6,6 +6,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -20,7 +21,7 @@ type InterceptedRewardTransaction struct {
 	rTx               *rewardTx.RewardTx
 	marshalizer       marshal.Marshalizer
 	hasher            hashing.Hasher
-	addrConv          state.AddressConverter
+	pubkeyConv        state.PubkeyConverter
 	coordinator       sharding.Coordinator
 	hash              []byte
 	rcvShard          uint32
@@ -33,22 +34,22 @@ func NewInterceptedRewardTransaction(
 	rewardTxBuff []byte,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	addrConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 	coordinator sharding.Coordinator,
 ) (*InterceptedRewardTransaction, error) {
 	if rewardTxBuff == nil {
 		return nil, process.ErrNilBuffer
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if addrConv == nil || addrConv.IsInterfaceNil() {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
-	if coordinator == nil || coordinator.IsInterfaceNil() {
+	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
 
@@ -62,7 +63,7 @@ func NewInterceptedRewardTransaction(
 		rTx:         rTx,
 		marshalizer: marshalizer,
 		hasher:      hasher,
-		addrConv:    addrConv,
+		pubkeyConv:  pubkeyConv,
 		coordinator: coordinator,
 	}
 
@@ -77,7 +78,7 @@ func NewInterceptedRewardTransaction(
 func (inRTx *InterceptedRewardTransaction) processFields(rewardTxBuff []byte) error {
 	inRTx.hash = inRTx.hasher.Compute(string(rewardTxBuff))
 
-	rcvAddr, err := inRTx.addrConv.CreateAddressFromPublicKeyBytes(inRTx.rTx.RcvAddr)
+	rcvAddr, err := inRTx.pubkeyConv.CreateAddressFromBytes(inRTx.rTx.RcvAddr)
 	if err != nil {
 		return process.ErrInvalidRcvAddr
 	}

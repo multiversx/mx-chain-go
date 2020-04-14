@@ -21,3 +21,6 @@ var ErrEmptyUserName = errors.New("user name is empty")
 
 //ErrEmptyPassword signals that password for elastic search is empty
 var ErrEmptyPassword = errors.New("password is empty")
+
+// ErrNilPubkeyConverter signals that an operation has been attempted to or with a nil public key converter implementation
+var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
