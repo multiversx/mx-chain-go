@@ -1145,6 +1145,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			BlockTracker:      tpn.BlockTracker,
 			ShardCoordinator:  tpn.ShardCoordinator,
 			EpochStartTrigger: tpn.EpochStartTrigger,
+			RequestHandler:    tpn.RequestHandler,
 		}
 		epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartData)
 
