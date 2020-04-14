@@ -502,7 +502,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 			FuncName:  "isStaked",
 			Arguments: [][]byte{stakerBLSKey},
 		}
-		vmOutput, _ := node.SCQueryService.ExecuteQuery(scQuery)
+		vmOutput, _ := n.SCQueryService.ExecuteQuery(scQuery)
 
 		assert.NotNil(t, vmOutput)
 		if vmOutput != nil {

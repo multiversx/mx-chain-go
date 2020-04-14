@@ -18,18 +18,17 @@ type RequestHandlerStub struct {
 }
 
 // SetEpoch -
-func (rhs *RequestHandlerStub) SetEpoch(epoch uint32) {
+func (rhs *RequestHandlerStub) SetEpoch(_ uint32) {
 	panic("implement me")
 }
 
 // RequestMiniBlock -
-func (rhs *RequestHandlerStub) RequestMiniBlock(destShardID uint32, miniblockHash []byte) {
+func (rhs *RequestHandlerStub) RequestMiniBlock(_ uint32, _ []byte) {
 	panic("implement me")
 }
 
 // RequestTrieNodes -
-func (rhs *RequestHandlerStub) RequestTrieNodes(destShardID uint32, hash []byte, topic string) {
-	panic("implement me")
+func (rhs *RequestHandlerStub) RequestTrieNodes(_ uint32, _ []byte, _ string) {
 }
 
 // SetNumPeersToQuery -

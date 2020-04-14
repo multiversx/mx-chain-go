@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("process/smartcontract")
@@ -38,6 +38,8 @@ type scProcessor struct {
 	economicsFee  process.FeeHandler
 	txTypeHandler process.TxTypeHandler
 	gasHandler    process.GasHandler
+
+	txLogsProcessor process.TransactionLogProcessor
 }
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
@@ -56,6 +58,7 @@ type ArgsNewSmartContractProcessor struct {
 	TxTypeHandler    process.TxTypeHandler
 	GasHandler       process.GasHandler
 	BuiltInFunctions process.BuiltInFunctionContainer
+	TxLogsProcessor  process.TransactionLogProcessor
 }
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
@@ -102,6 +105,9 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.BuiltInFunctions) {
 		return nil, process.ErrNilBuiltInFunction
 	}
+	if check.IfNil(args.TxLogsProcessor) {
+		return nil, process.ErrNilTxLogsProcessor
+	}
 
 	sc := &scProcessor{
 		vmContainer:      args.VmContainer,
@@ -118,6 +124,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		txTypeHandler:    args.TxTypeHandler,
 		gasHandler:       args.GasHandler,
 		builtInFunctions: args.BuiltInFunctions,
+		txLogsProcessor:  args.TxLogsProcessor,
 	}
 
 	return sc, nil
@@ -234,6 +241,11 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	if err != nil {
 		log.Debug("AddIntermediateTransactions error", "error", err.Error())
 		return nil
+	}
+
+	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
+	if ignorableError != nil {
+		log.Debug("txLogsProcessor.SaveLog() error", "error", ignorableError.Error())
 	}
 
 	newDeveloperReward := core.GetPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())

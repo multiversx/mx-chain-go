@@ -131,6 +131,7 @@ type Config struct {
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
 	StoragePruning  StoragePruningConfig
+	TxLogsStorage   StorageConfig
 
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
