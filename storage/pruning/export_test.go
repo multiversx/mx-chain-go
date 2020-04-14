@@ -1,9 +1,16 @@
 package pruning
 
-import "github.com/ElrondNetwork/elrond-go/data/block"
+import (
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+)
 
-func (ps *PruningStorer) ChangeEpoch(metaBlock *block.MetaBlock) error {
-	return ps.changeEpoch(metaBlock)
+func (ps *PruningStorer) ChangeEpoch(hdr data.HeaderHandler) error {
+	return ps.changeEpoch(hdr)
+}
+
+func (ps *PruningStorer) PrepareChangeEpoch(metaBlock *block.MetaBlock) error {
+	return ps.saveHeaderForEpochStartPrepare(metaBlock)
 }
 
 func (ps *PruningStorer) ChangeEpochSimple(epochNum uint32) error {

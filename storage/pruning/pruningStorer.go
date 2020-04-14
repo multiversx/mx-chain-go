@@ -1,7 +1,6 @@
 package pruning
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
@@ -41,6 +40,8 @@ type PruningStorer struct {
 	pathManager           storage.PathManagerHandler
 	dbPath                string
 	persisterFactory      DbFactoryHandler
+	mutEpochPrepareHdr    sync.RWMutex
+	epochPrepareHdr       *block.MetaBlock
 	numOfEpochsToKeep     uint32
 	numOfActivePersisters uint32
 	epochForPutOperation  uint32
@@ -122,6 +123,7 @@ func initPruningStorer(
 		shardCoordinator:      args.ShardCoordinator,
 		persistersMapByEpoch:  persistersMapByEpoch,
 		cacher:                cache,
+		epochPrepareHdr:       &block.MetaBlock{},
 		bloomFilter:           nil,
 		epochForPutOperation:  args.StartingEpoch,
 		pathManager:           args.PathManager,
@@ -188,7 +190,7 @@ func initPersistersInEpoch(
 			}
 		} else {
 			persisters = append(persisters, p)
-			log.Debug("appended a pruning active persister")
+			log.Debug("appended a pruning active persister", "epoch", epoch, "identifier", args.Identifier)
 		}
 	}
 
@@ -502,23 +504,49 @@ func (ps *PruningStorer) DestroyUnit() error {
 
 // registerHandler will register a new function to the epoch start notifier
 func (ps *PruningStorer) registerHandler(handler EpochStartNotifier) {
-	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
-		err := ps.changeEpoch(hdr)
-		if err != nil {
-			log.Warn("change epoch in storer", "error", err.Error())
-		}
-	}, func(hdr data.HeaderHandler) {}, core.StorerOrder)
+	subscribeHandler := notifier.NewHandlerForEpochStart(
+		func(hdr data.HeaderHandler) {
+			err := ps.changeEpoch(hdr)
+			if err != nil {
+				log.Warn("change epoch in storer", "error", err.Error())
+			}
+		},
+		func(metaHdr data.HeaderHandler) {
+			err := ps.saveHeaderForEpochStartPrepare(metaHdr)
+			if err != nil {
+				log.Warn("prepare epoch change in storer", "error", err.Error())
+			}
+		},
+		core.StorerOrder)
 
 	handler.RegisterHandler(subscribeHandler)
 }
 
+func (ps *PruningStorer) saveHeaderForEpochStartPrepare(header data.HeaderHandler) error {
+	ps.mutEpochPrepareHdr.Lock()
+	defer ps.mutEpochPrepareHdr.Unlock()
+
+	var ok bool
+	ps.epochPrepareHdr, ok = header.(*block.MetaBlock)
+	if !ok {
+		return storage.ErrWrongTypeAssertion
+	}
+
+	return nil
+}
+
 // changeEpoch will handle creating a new persister and removing of the older ones
 func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
+	epoch := header.GetEpoch()
 	metaBlock, mbOk := header.(*block.MetaBlock)
 	if !mbOk {
-		return errors.New("pruning storer - change epoch: wrong type assertion")
+		ps.mutEpochPrepareHdr.RLock()
+		if ps.epochPrepareHdr != nil {
+			metaBlock = ps.epochPrepareHdr
+		} else {
+			return storage.ErrWrongTypeAssertion
+		}
 	}
-	epoch := metaBlock.GetEpoch()
 	log.Debug("PruningStorer - change epoch", "unit", ps.identifier, "epoch", epoch)
 	// if pruning is not enabled, don't create new persisters, but use the same one instead
 	if !ps.pruningEnabled {

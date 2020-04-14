@@ -603,6 +603,49 @@ func TestPruningStorer_ChangeEpochWithKeepingFromOldestEpochInMetaBlock(t *testi
 	assert.Equal(t, 2, len(ps.GetActivePersistersEpochs()))
 }
 
+func TestPruningStorer_ChangeEpochShouldUseMetaBlockFromEpochPrepare(t *testing.T) {
+	t.Parallel()
+
+	persistersByPath := make(map[string]storage.Persister)
+	persistersByPath["Epoch_0"] = memorydb.New()
+	args := getDefaultArgs()
+	args.DbPath = "Epoch_0"
+	args.PersisterFactory = &mock.PersisterFactoryStub{
+		// simulate an opening of an existing database from the file path by saving activePersisters in a map based on their path
+		CreateCalled: func(path string) (storage.Persister, error) {
+			if _, ok := persistersByPath[path]; ok {
+				return persistersByPath[path], nil
+			}
+			newPers := memorydb.New()
+			persistersByPath[path] = newPers
+
+			return newPers, nil
+		},
+	}
+	args.NumOfActivePersisters = 2
+	args.NumOfEpochsToKeep = 4
+
+	ps, _ := pruning.NewPruningStorer(args)
+	_ = ps.ChangeEpochSimple(1)
+	_ = ps.ChangeEpochSimple(2)
+	_ = ps.ChangeEpochSimple(3)
+	assert.Equal(t, 2, len(ps.GetActivePersistersEpochs()))
+
+	metaBlock := &block.MetaBlock{
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{{Epoch: 2}},
+			Economics:            block.Economics{},
+		},
+		Epoch: 7,
+	}
+
+	err := ps.PrepareChangeEpoch(metaBlock)
+	assert.NoError(t, err)
+
+	_ = ps.ChangeEpoch(&block.Header{Epoch: 4})
+	assert.Equal(t, 3, len(ps.GetActivePersistersEpochs()))
+}
+
 func TestPruningStorer_ChangeEpochWithExisting(t *testing.T) {
 	t.Parallel()
 
