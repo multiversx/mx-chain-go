@@ -552,7 +552,7 @@ func getGeneralConfig() config.Config {
 			DB: config.DBConfig{
 				FilePath:          "BootstrapData",
 				Type:              string(storageUnit.LvlDBSerial),
-				BatchDelaySeconds: 30,
+				BatchDelaySeconds: 1,
 				MaxBatchSize:      6,
 				MaxOpenFiles:      10,
 			},
