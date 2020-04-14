@@ -247,6 +247,17 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return e.prepareEpochZero()
 	}
 
+	e.dataPool, err = factoryDataPool.NewDataPoolFromConfig(
+		factoryDataPool.ArgsDataPool{
+			Config:           &e.generalConfig,
+			EconomicsData:    e.economicsData,
+			ShardCoordinator: e.shardCoordinator,
+		},
+	)
+	if err != nil {
+		return Parameters{}, err
+	}
+
 	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
 	if isCurrentEpochSaved {
 		parameters, err := e.prepareEpochFromStorage()
@@ -309,17 +320,6 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	e.whiteListHandler, err = interceptors.NewWhiteListDataVerifier(whiteListCache)
-	if err != nil {
-		return err
-	}
-
-	e.dataPool, err = factoryDataPool.NewDataPoolFromConfig(
-		factoryDataPool.ArgsDataPool{
-			Config:           &e.generalConfig,
-			EconomicsData:    e.economicsData,
-			ShardCoordinator: e.shardCoordinator,
-		},
-	)
 	if err != nil {
 		return err
 	}
