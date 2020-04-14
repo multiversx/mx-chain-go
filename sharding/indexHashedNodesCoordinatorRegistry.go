@@ -33,11 +33,13 @@ type NodesCoordinatorRegistry struct {
 // TODO: add proto marshalizer for these package - replace all json marshalizers
 // LoadState loads the nodes coordinator state from the used boot storage
 func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
+	log.Info("Loading ihgs state for key", "key", key)
 	return ihgs.baseLoadState(key)
 }
 
 // LoadState loads the nodes coordinator state from the used boot storage
 func (ihgs *indexHashedNodesCoordinatorWithRater) LoadState(key []byte) error {
+	log.Info("Loading ihgs with rater state for key", "key", key)
 	return ihgs.baseLoadState(key)
 }
 
@@ -146,6 +148,7 @@ func (ihgs *indexHashedNodesCoordinator) registryToNodesCoordinator(
 
 		// shards without metachain shard
 		nodesConfig.nbShards = nbShards - 1
+		log.Info("from registry")
 		nodesConfig.shardID = ihgs.computeShardForSelfPublicKey(nodesConfig)
 		epoch32 := uint32(epoch)
 		result[epoch32] = nodesConfig

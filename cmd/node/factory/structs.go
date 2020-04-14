@@ -569,6 +569,7 @@ type processComponentsFactoryArgs struct {
 	minSizeInBytes            uint32
 	maxSizeInBytes            uint32
 	maxRating                 uint32
+	epoch                     uint32
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -600,6 +601,7 @@ func NewProcessComponentsFactoryArgs(
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
 	maxRating uint32,
+	epoch uint32,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -629,6 +631,7 @@ func NewProcessComponentsFactoryArgs(
 		minSizeInBytes:            minSizeInBytes,
 		maxSizeInBytes:            maxSizeInBytes,
 		maxRating:                 maxRating,
+		epoch:                     epoch,
 	}
 }
 
@@ -922,7 +925,7 @@ func newEpochStartTrigger(
 			DataPool:             args.data.Datapool,
 			Storage:              args.data.Store,
 			RequestHandler:       requestHandler,
-			Epoch:                0,
+			Epoch:                args.epoch,
 			EpochStartNotifier:   args.epochStartNotifier,
 			Validity:             process.MetaBlockValidity,
 			Finality:             process.BlockFinality,

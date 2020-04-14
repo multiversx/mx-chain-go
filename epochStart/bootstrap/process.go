@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -48,6 +49,7 @@ type Parameters struct {
 	Epoch       uint32
 	SelfShardId uint32
 	NumOfShards uint32
+	NodesConfig *sharding.NodesCoordinatorRegistry
 }
 
 // ComponentsNeededForBootstrap holds the components which need to be initialized from network
@@ -453,7 +455,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	log.Debug("requestAndProcessing before newMultiShardCoordinator")
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
 	if err != nil {
-		return Parameters{}, err
+		return Parameters{}, fmt.Errorf("%w numberOfShards=%v shardId=%v", err, e.baseData.numberOfShards, e.baseData.shardId)
 	}
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
 
@@ -480,7 +482,9 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		Epoch:       e.baseData.lastEpoch,
 		SelfShardId: e.baseData.shardId,
 		NumOfShards: e.baseData.numberOfShards,
+		NodesConfig: e.nodesConfig,
 	}
+
 	return parameters, nil
 }
 

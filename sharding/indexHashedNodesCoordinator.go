@@ -63,7 +63,7 @@ type indexHashedNodesCoordinator struct {
 	consensusGroupCacher          Cacher
 	shardIDAsObserver             uint32
 	loadingFromDisk               atomic.Value
-	shuffledOutHandler      ShuffledOutHandler
+	shuffledOutHandler            ShuffledOutHandler
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -99,7 +99,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		metaConsensusGroupSize:        arguments.MetaConsensusGroupSize,
 		consensusGroupCacher:          arguments.ConsensusGroupCache,
 		shardIDAsObserver:             arguments.ShardIDAsObserver,
-		shuffledOutHandler:      arguments.ShuffledOutHandler,
+		shuffledOutHandler:            arguments.ShuffledOutHandler,
 	}
 
 	ihgs.loadingFromDisk.Store(false)
@@ -115,6 +115,13 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		log.Error("saving initial nodes coordinator config failed",
 			"error", err.Error())
 	}
+	currentNodesConfig := ihgs.nodesConfig[arguments.Epoch]
+	displayNodesConfiguration(
+		currentNodesConfig.eligibleMap,
+		currentNodesConfig.waitingMap,
+		currentNodesConfig.leavingList,
+		make([]Validator, 0),
+		currentNodesConfig.nbShards)
 
 	ihgs.epochStartRegistrationHandler.RegisterHandler(ihgs)
 
@@ -168,6 +175,7 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if !ok {
+		log.Warn("Did not find nodesConfig", "epoch", epoch)
 		nodesConfig = &epochNodesConfig{}
 	}
 
@@ -201,19 +209,19 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 	nodesConfig.eligibleMap = eligible
 	nodesConfig.waitingMap = waiting
 	nodesConfig.publicKeyToValidatorMap = ihgs.createPublicKeyToValidatorMap(eligible, waiting)
+	log.Info("from nodesCoordinator")
 	nodesConfig.shardID = ihgs.computeShardForSelfPublicKey(nodesConfig)
 	nodesConfig.selectors, err = ihgs.createSelectors(nodesConfig)
 	if err != nil {
 		return err
 	}
 
+	log.Warn("Computed shardId", "shardId", nodesConfig.shardID)
 
-	shardIDForSelfPublicKey := ihgs.computeShardForSelfPublicKey(nodesConfig)
-	nodesConfig.shardID = shardIDForSelfPublicKey
 	ihgs.nodesConfig[epoch] = nodesConfig
 	ihgs.numTotalEligible = numTotalEligible
 
-	return ihgs.shuffledOutHandler.Process(shardIDForSelfPublicKey)
+	return ihgs.shuffledOutHandler.Process(nodesConfig.shardID)
 }
 
 // ComputeLeaving - computes leaving validators
@@ -720,7 +728,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 	selfShard := ihgs.shardIDAsObserver
 	epNodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
 	if ok {
-		log.Trace("computeShardForSelfPublicKey found existing config",
+		log.Debug("computeShardForSelfPublicKey found existing config",
 			"shard", epNodesConfig.shardID,
 		)
 		selfShard = epNodesConfig.shardID
@@ -729,9 +737,10 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 	for shard, validators := range nodesConfig.eligibleMap {
 		for _, v := range validators {
 			if bytes.Equal(v.PubKey(), pubKey) {
-				log.Trace("computeShardForSelfPublicKey found validator in eligible",
+				log.Debug("computeShardForSelfPublicKey found validator in eligible",
+					"epoch", ihgs.currentEpoch,
 					"shard", shard,
-					"validator PK", v,
+					"validator PK", v.PubKey(),
 				)
 
 				return shard
@@ -742,9 +751,10 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 	for shard, validators := range nodesConfig.waitingMap {
 		for _, v := range validators {
 			if bytes.Equal(v.PubKey(), pubKey) {
-				log.Trace("computeShardForSelfPublicKey found validator in waiting",
+				log.Debug("computeShardForSelfPublicKey found validator in waiting",
+					"epoch", ihgs.currentEpoch,
 					"shard", shard,
-					"validator PK", v,
+					"validator PK", v.PubKey(),
 				)
 
 				return shard
@@ -752,7 +762,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 		}
 	}
 
-	log.Trace("computeShardForSelfPublicKey returned default",
+	log.Debug("computeShardForSelfPublicKey returned default",
 		"shard", selfShard,
 	)
 	return selfShard

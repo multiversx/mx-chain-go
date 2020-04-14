@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 )
 
 type shuffledOutTrigger struct {
@@ -12,11 +13,16 @@ type shuffledOutTrigger struct {
 	currentShardID    uint32
 	handlers          []func(newShardID uint32)
 	mutHandlers       sync.RWMutex
-	endProcessHandler func(_ string) error
+	endProcessHandler func(argument endProcess.EndProcessArgument) error
 }
 
 // NewShuffledOutTrigger returns a new instance of shuffledOutTrigger
-func NewShuffledOutTrigger(ownPubKey []byte, currentShardID uint32, endProcessHandler func(_ string) error) (*shuffledOutTrigger, error) {
+func NewShuffledOutTrigger(
+	ownPubKey []byte,
+	currentShardID uint32,
+	endProcessHandler func(argument endProcess.EndProcessArgument) error,
+) (*shuffledOutTrigger, error) {
+
 	if ownPubKey == nil {
 		return nil, ErrNilOwnPublicKey
 	}
@@ -37,10 +43,13 @@ func (sot *shuffledOutTrigger) Process(newShardID uint32) error {
 		return nil
 	}
 
+	description := fmt.Sprintf("validator will be moved from: %d to %d", sot.currentShardID, newShardID)
 	sot.currentShardID = newShardID
 	sot.notifyAllHandlers(newShardID)
-	log.Debug(fmt.Sprintf("validator will be moved from: %d to %d", sot.currentShardID, newShardID))
-	return sot.endProcessHandler(core.ShuffledOut)
+	return sot.endProcessHandler(endProcess.EndProcessArgument{
+		Reason:      core.ShuffledOut,
+		Description: description,
+	})
 }
 
 func (sot *shuffledOutTrigger) notifyAllHandlers(newShardID uint32) {

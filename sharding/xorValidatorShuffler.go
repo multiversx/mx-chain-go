@@ -130,8 +130,8 @@ func shuffleNodesInterShards(
 		randomness,
 	)
 	moveNodesToMap(eligible, waiting)
-	distributeValidators(newNodes, waiting, randomness, newNbShards+1)
-	distributeValidators(shuffledOutNodes, waiting, randomness, newNbShards+1)
+	distributeValidators(newNodes, waiting, randomness, newNbShards)
+	distributeValidators(shuffledOutNodes, waiting, randomness, newNbShards)
 
 	return eligible, waiting, leaving
 }
@@ -369,6 +369,7 @@ func distributeValidators(
 		if shardId == nbShardsPlusMeta-1 {
 			shardId = core.MetachainShardId
 		}
+		log.Debug("Redistributing validator to other shards", "pk", v.PubKey(), "new shardId", shardId)
 		destLists[shardId] = append(destLists[shardId], v)
 	}
 }

@@ -136,6 +136,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		Epoch:       e.baseData.lastEpoch,
 		SelfShardId: e.shardCoordinator.SelfId(),
 		NumOfShards: e.shardCoordinator.NumberOfShards(),
+		NodesConfig: e.nodesConfig,
 	}
 	return parameters, nil
 }

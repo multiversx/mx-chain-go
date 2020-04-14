@@ -32,6 +32,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -774,8 +775,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if ctx.IsSet(numActivePersisters.Name) {
 		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 	}
-
-	chanStopNodeProcess := make(chan string, 1)
+	log.Info("Bootstrap", "epoch", bootstrapParameters.Epoch)
+	log.Info("nodesConfig is", "not nil", bootstrapParameters.NodesConfig != nil)
+	if bootstrapParameters.NodesConfig != nil {
+		log.Info("the epoch from nodesConfig is", "epoch", bootstrapParameters.NodesConfig.CurrentEpoch)
+	}
+	chanStopNodeProcess := make(chan endProcess.EndProcessArgument, 1)
 	nodesCoordinator, err := createNodesCoordinator(
 		genesisNodesConfig,
 		preferencesConfig.Preferences,
@@ -789,6 +794,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.EpochStartConfig,
 		shardCoordinator.SelfId(),
 		chanStopNodeProcess,
+		bootstrapParameters,
 	)
 	if err != nil {
 		return err
@@ -935,6 +941,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.BlockSizeThrottleConfig.MinSizeInBytes,
 		generalConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
 		ratingsConfig.General.MaxRating,
+		bootstrapParameters.Epoch,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1062,12 +1069,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Info("application is now running")
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	sig := ""
+	var sig endProcess.EndProcessArgument
 	select {
 	case <-sigs:
 		log.Info("terminating at user's signal...")
 	case sig = <-chanStopNodeProcess:
-		log.Info(fmt.Sprintf("terminating at internal stop signal... reason: %s", sig))
+		log.Info(fmt.Sprintf("terminating at internal stop signal... reason: %s", sig.Reason))
 	}
 
 	log.Debug("closing all store units....")
@@ -1097,11 +1104,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	return nil
 }
 
-func handleAppClose(log logger.Logger, sig string) {
-	switch sig {
+func handleAppClose(log logger.Logger, endProcessArgument endProcess.EndProcessArgument) {
+	log.Debug(fmt.Sprintf("Restarting because %s. Details: %s",
+		endProcessArgument.Reason,
+		endProcessArgument.Description))
+	switch endProcessArgument.Reason {
 	case core.ShuffledOut:
 		{
-			newStartInEpoch(log, sig)
+			newStartInEpoch(log, endProcessArgument.Reason)
 		}
 	}
 }
@@ -1114,7 +1124,6 @@ func newStartInEpoch(log logger.Logger, sig string) {
 	args = append(args, "-start-in-epoch")
 
 	log.Debug(cwd)
-	log.Debug(fmt.Sprintf("%v", sig))
 	log.Debug("app", "nodeApp", nodeApp)
 	log.Debug("args", "args", args)
 
@@ -1402,7 +1411,8 @@ func createNodesCoordinator(
 	nodeShuffler sharding.NodesShuffler,
 	epochConfig config.EpochStartConfig,
 	currentShardID uint32,
-	chanStopNodeProcess chan string,
+	chanStopNodeProcess chan endProcess.EndProcessArgument,
+	parameters bootstrap.Parameters,
 ) (sharding.NodesCoordinator, error) {
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
 	if err != nil {
@@ -1423,6 +1433,22 @@ func createNodesCoordinator(
 	if errWaitingValidators != nil {
 		return nil, errWaitingValidators
 	}
+	currentEpoch := uint32(0)
+	if parameters.NodesConfig != nil {
+		nodeRegistry := parameters.NodesConfig
+		currentEpoch = parameters.Epoch
+		eligibles := nodeRegistry.EpochsConfig[fmt.Sprintf("%d", currentEpoch)].EligibleValidators
+		eligibleValidators, err = serializableValidatorsToValidators(eligibles)
+		if err != nil {
+			return nil, err
+		}
+
+		waitings := nodeRegistry.EpochsConfig[fmt.Sprintf("%d", currentEpoch)].WaitingValidators
+		waitingValidators, err = serializableValidatorsToValidators(waitings)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	pubKeyBytes, err := pubKey.ToByteArray()
 	if err != nil {
@@ -1442,12 +1468,12 @@ func createNodesCoordinator(
 	maxDurationBeforeStopProcess = int64(thresholdEpochDuration * float64(maxDurationBeforeStopProcess))
 	intRandomizer := &random.ConcurrentSafeIntRandomizer{}
 	randDurationBeforeStop := intRandomizer.Intn(int(maxDurationBeforeStopProcess))
-	endOfProcessingHandler := func(reason string) error {
+	endOfProcessingHandler := func(argument endProcess.EndProcessArgument) error {
 		go func() {
 			time.Sleep(time.Duration(randDurationBeforeStop) * time.Millisecond)
 			fmt.Println(fmt.Sprintf("the application stops after waiting %d miliseconds because the node was "+
 				"shuffled out", randDurationBeforeStop))
-			chanStopNodeProcess <- reason
+			chanStopNodeProcess <- argument
 		}()
 		return nil
 	}
@@ -1471,6 +1497,7 @@ func createNodesCoordinator(
 		SelfPublicKey:           pubKeyBytes,
 		ConsensusGroupCache:     consensusGroupCache,
 		ShuffledOutHandler:      shuffledOutHandler,
+		Epoch:                   currentEpoch,
 	}
 
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -1484,6 +1511,35 @@ func createNodesCoordinator(
 	}
 
 	return nodesCoordinator, nil
+}
+
+func serializableValidatorsToValidators(nodeRegistryValidators map[string][]*sharding.SerializableValidator) (map[uint32][]sharding.Validator, error) {
+	validators := make(map[uint32][]sharding.Validator)
+	for shardId, shardValidators := range nodeRegistryValidators {
+		newValidators, err2 := serializableShardValidatorListToValidatorList(shardValidators)
+		if err2 != nil {
+			return nil, err2
+		}
+		shardIdInt, err := strconv.ParseUint(shardId, 10, 32)
+		if err != nil {
+			return nil, err
+		}
+		validators[uint32(shardIdInt)] = newValidators
+	}
+
+	return validators, nil
+}
+
+func serializableShardValidatorListToValidatorList(shardValidators []*sharding.SerializableValidator) ([]sharding.Validator, error) {
+	newValidators := make([]sharding.Validator, len(shardValidators))
+	for i, validator := range shardValidators {
+		v, err := sharding.NewValidator(validator.PubKey, validator.Chances, validator.Index)
+		if err != nil {
+			return nil, err
+		}
+		newValidators[i] = v
+	}
+	return newValidators, nil
 }
 
 func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (uint32, error) {
@@ -1570,7 +1626,7 @@ func createNode(
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
 	whiteListHandler process.WhiteListHandler,
-	chanStopNodeProcess chan string,
+	chanStopNodeProcess chan endProcess.EndProcessArgument,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
