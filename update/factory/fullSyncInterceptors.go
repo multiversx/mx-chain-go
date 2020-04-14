@@ -633,6 +633,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor
 		Marshalizer:      ficf.marshalizer,
 		Hasher:           ficf.hasher,
 		ShardCoordinator: ficf.shardCoordinator,
+		WhiteListHandler: ficf.whiteListHandler,
 	}
 	txBlockBodyProcessor, err := processor.NewMiniblockInterceptorProcessor(argProcessor)
 	if err != nil {

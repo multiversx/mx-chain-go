@@ -358,6 +358,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 		Marshalizer:      bicf.marshalizer,
 		Hasher:           bicf.hasher,
 		ShardCoordinator: bicf.shardCoordinator,
+		WhiteListHandler: bicf.whiteListHandler,
 	}
 	miniblockProcessor, err := processor.NewMiniblockInterceptorProcessor(argProcessor)
 	if err != nil {

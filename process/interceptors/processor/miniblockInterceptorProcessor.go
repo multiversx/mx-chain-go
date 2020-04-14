@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -21,6 +22,7 @@ type MiniblockInterceptorProcessor struct {
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
 	shardCoordinator sharding.Coordinator
+	whiteListHandler process.WhiteListHandler
 }
 
 // NewMiniblockInterceptorProcessor creates a new MiniblockInterceptorProcessor instance
@@ -40,12 +42,16 @@ func NewMiniblockInterceptorProcessor(argument *ArgMiniblockInterceptorProcessor
 	if check.IfNil(argument.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if check.IfNil(argument.WhiteListHandler) {
+		return nil, process.ErrNilWhiteListHandler
+	}
 
 	return &MiniblockInterceptorProcessor{
 		miniblockCache:   argument.MiniblockCache,
 		marshalizer:      argument.Marshalizer,
 		hasher:           argument.Hasher,
 		shardCoordinator: argument.ShardCoordinator,
+		whiteListHandler: argument.WhiteListHandler,
 	}, nil
 }
 
@@ -71,9 +77,24 @@ func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ p
 		return err
 	}
 
+	isCrossShardForMe := mip.isMbCrossShardForMe(miniblock)
+	isWhiteListed := mip.whiteListHandler.IsWhiteListed(data)
+	if isCrossShardForMe && !isWhiteListed {
+		log.Debug("miniblock interceptor processor : cross shard miniblock for me",
+			"message", "not whitelisted will not be added in pool")
+		return nil
+	}
+
 	mip.miniblockCache.HasOrAdd(hash, miniblock)
 
 	return nil
+}
+
+func (mip *MiniblockInterceptorProcessor) isMbCrossShardForMe(miniblock *block.MiniBlock) bool {
+	isCrossShard := miniblock.SenderShardID != mip.shardCoordinator.SelfId()
+	isForMe := miniblock.ReceiverShardID == mip.shardCoordinator.SelfId() || miniblock.ReceiverShardID == core.AllShardId
+
+	return isCrossShard && isForMe
 }
 
 // SignalEndOfProcessing signals the end of processing
