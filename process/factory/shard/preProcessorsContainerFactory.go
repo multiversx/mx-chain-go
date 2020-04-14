@@ -30,6 +30,7 @@ type preProcessorsContainerFactory struct {
 	gasHandler           process.GasHandler
 	blockTracker         preprocess.BlockTracker
 	blockSizeComputation preprocess.BlockSizeComputationHandler
+	balanceComputation   preprocess.BalanceComputationHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -50,6 +51,7 @@ func NewPreProcessorsContainerFactory(
 	gasHandler process.GasHandler,
 	blockTracker preprocess.BlockTracker,
 	blockSizeComputation preprocess.BlockSizeComputationHandler,
+	balanceComputation preprocess.BalanceComputationHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -100,6 +102,9 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(blockSizeComputation) {
 		return nil, process.ErrNilBlockSizeComputationHandler
 	}
+	if check.IfNil(balanceComputation) {
+		return nil, process.ErrNilBalanceComputationHandler
+	}
 
 	return &preProcessorsContainerFactory{
 		shardCoordinator:     shardCoordinator,
@@ -118,6 +123,7 @@ func NewPreProcessorsContainerFactory(
 		gasHandler:           gasHandler,
 		blockTracker:         blockTracker,
 		blockSizeComputation: blockSizeComputation,
+		balanceComputation:   balanceComputation,
 	}, nil
 }
 
@@ -184,6 +190,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		block.TxBlock,
 		ppcm.addressConverter,
 		ppcm.blockSizeComputation,
+		ppcm.balanceComputation,
 	)
 
 	return txPreprocessor, err
@@ -201,7 +208,9 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.requestHandler.RequestUnsignedTransactions,
 		ppcm.gasHandler,
 		ppcm.economicsFee,
+		ppcm.addressConverter,
 		ppcm.blockSizeComputation,
+		ppcm.balanceComputation,
 	)
 
 	return scrPreprocessor, err
@@ -215,9 +224,12 @@ func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 		ppcm.marshalizer,
 		ppcm.rewardsTxProcessor,
 		ppcm.shardCoordinator,
+		ppcm.accounts,
 		ppcm.requestHandler.RequestRewardTransactions,
 		ppcm.gasHandler,
+		ppcm.addressConverter,
 		ppcm.blockSizeComputation,
+		ppcm.balanceComputation,
 	)
 
 	return rewardTxPreprocessor, err

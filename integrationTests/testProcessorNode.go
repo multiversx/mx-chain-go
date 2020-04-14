@@ -107,6 +107,9 @@ var TestBlockSizeThrottler = &mock.BlockSizeThrottlerStub{}
 // TestBlockSizeComputation represents a block size computation handler
 var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer, TestBlockSizeThrottler, uint32(core.MegabyteSize*90/100))
 
+// TestBalanceComputationHandler represents a balance computation handler
+var TestBalanceComputationHandler, _ = preprocess.NewBalanceComputation()
+
 // MinTxGasPrice defines minimum gas price required by a transaction
 var MinTxGasPrice = uint64(10)
 
@@ -917,6 +920,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.GasHandler,
 		tpn.BlockTracker,
 		TestBlockSizeComputationHandler,
+		TestBalanceComputationHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -932,6 +936,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.GasHandler,
 		tpn.FeeAccumulator,
 		TestBlockSizeComputationHandler,
+		TestBalanceComputationHandler,
 	)
 }
 
@@ -1022,6 +1027,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.BlockTracker,
 		TestAddressConverter,
 		TestBlockSizeComputationHandler,
+		TestBalanceComputationHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1037,6 +1043,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.GasHandler,
 		tpn.FeeAccumulator,
 		TestBlockSizeComputationHandler,
+		TestBalanceComputationHandler,
 	)
 }
 

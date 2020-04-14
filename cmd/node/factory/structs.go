@@ -1782,6 +1782,11 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
+	balanceComputationHandler, err := preprocess.NewBalanceComputation()
+	if err != nil {
+		return nil, err
+	}
+
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
 		data.Store,
@@ -1799,6 +1804,7 @@ func newShardBlockProcessor(
 		gasHandler,
 		blockTracker,
 		blockSizeComputationHandler,
+		balanceComputationHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1821,6 +1827,7 @@ func newShardBlockProcessor(
 		gasHandler,
 		txFeeHandler,
 		blockSizeComputationHandler,
+		balanceComputationHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -2017,6 +2024,11 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	balanceComputationHandler, err := preprocess.NewBalanceComputation()
+	if err != nil {
+		return nil, err
+	}
+
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
 		shardCoordinator,
 		data.Store,
@@ -2032,6 +2044,7 @@ func newMetaBlockProcessor(
 		blockTracker,
 		stateComponents.AddressConverter,
 		blockSizeComputationHandler,
+		balanceComputationHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -2054,6 +2067,7 @@ func newMetaBlockProcessor(
 		gasHandler,
 		txFeeHandler,
 		blockSizeComputationHandler,
+		balanceComputationHandler,
 	)
 	if err != nil {
 		return nil, err

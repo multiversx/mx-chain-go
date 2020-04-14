@@ -26,7 +26,6 @@ type smartContractResults struct {
 	scrPool                      dataRetriever.ShardedDataCacherNotifier
 	storage                      dataRetriever.StorageService
 	scrProcessor                 process.SmartContractResultProcessor
-	accounts                     state.AccountsAdapter
 }
 
 // NewSmartContractResultPreprocessor creates a new smartContractResult preprocessor object
@@ -41,7 +40,9 @@ func NewSmartContractResultPreprocessor(
 	onRequestSmartContractResult func(shardID uint32, txHashes [][]byte),
 	gasHandler process.GasHandler,
 	economicsFee process.FeeHandler,
+	addressConverter state.AddressConverter,
 	blockSizeComputation BlockSizeComputationHandler,
+	balanceComputation BalanceComputationHandler,
 ) (*smartContractResults, error) {
 
 	if check.IfNil(hasher) {
@@ -74,8 +75,14 @@ func NewSmartContractResultPreprocessor(
 	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
+	if check.IfNil(addressConverter) {
+		return nil, process.ErrNilAddressConverter
+	}
 	if check.IfNil(blockSizeComputation) {
 		return nil, process.ErrNilBlockSizeComputationHandler
+	}
+	if check.IfNil(balanceComputation) {
+		return nil, process.ErrNilBalanceComputationHandler
 	}
 
 	bpp := &basePreProcess{
@@ -85,6 +92,9 @@ func NewSmartContractResultPreprocessor(
 		gasHandler:           gasHandler,
 		economicsFee:         economicsFee,
 		blockSizeComputation: blockSizeComputation,
+		balanceComputation:   balanceComputation,
+		accounts:             accounts,
+		addressConverter:     addressConverter,
 	}
 
 	scr := &smartContractResults{
@@ -93,7 +103,6 @@ func NewSmartContractResultPreprocessor(
 		scrPool:                      scrDataPool,
 		onRequestSmartContractResult: onRequestSmartContractResult,
 		scrProcessor:                 scrProcessor,
-		accounts:                     accounts,
 	}
 
 	scr.chRcvAllScrs = make(chan bool)
@@ -236,6 +245,8 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			if !ok {
 				return process.ErrWrongTypeAssertion
 			}
+
+			scr.setInitialBalanceForAddress(currScr.GetRcvAddr())
 
 			err := scr.scrProcessor.ProcessSmartContractResult(currScr)
 			if err != nil {
@@ -495,6 +506,8 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			err = process.ErrTimeIsOut
 			return processedTxHashes, err
 		}
+
+		scr.setInitialBalanceForAddress(miniBlockScrs[index].GetRcvAddr())
 
 		err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[index])
 		if err != nil {

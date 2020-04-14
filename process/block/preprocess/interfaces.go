@@ -1,6 +1,8 @@
 package preprocess
 
 import (
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
@@ -31,5 +33,17 @@ type BlockSizeComputationHandler interface {
 // block to its peers which should be received in a limited time frame
 type BlockSizeThrottler interface {
 	GetCurrentMaxSize() uint32
+	IsInterfaceNil() bool
+}
+
+// BalanceComputationHandler defines the functionality for addresses balances computation
+type BalanceComputationHandler interface {
+	Init()
+	SetBalanceToAddress(address []byte, value *big.Int)
+	GetBalanceOfAddress(address []byte) (*big.Int, error)
+	AddBalanceToAddress(address []byte, value *big.Int) bool
+	SubBalanceFromAddress(address []byte, value *big.Int) (bool, bool)
+	HasAddressBalanceSet(address []byte) bool
+	IsBalanceInAddress(address []byte, value *big.Int) bool
 	IsInterfaceNil() bool
 }
