@@ -2,7 +2,6 @@ package mock
 
 import (
 	"encoding/hex"
-	"errors"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/statistics"

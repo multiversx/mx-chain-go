@@ -12,14 +12,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPrepareEpochFromStorage(t *testing.T) {
 	args := createMockEpochStartBootstrapArgs()
-	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	require.Nil(t, err)
 	epochStartProvider.initializeFromLocalStorage()
 
-	_, err := epochStartProvider.prepareEpochFromStorage()
+	_, err = epochStartProvider.prepareEpochFromStorage()
 	assert.Error(t, err)
 }
 
