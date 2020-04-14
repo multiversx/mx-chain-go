@@ -120,34 +120,14 @@ func BenchmarkMarshal(b *testing.B) {
 
 func BenchmarkUnarshal(b *testing.B) {
 
-	hdr := &Header{}
-	mb := &MiniBlock{}
-	tx := &Transaction{}
-
-	gmsr := &marshal.GogoProtoMarshalizer{}
-	jmsr := &marshal.JsonMarshalizer{}
-
-	benchData := []struct {
-		name string
-		obj  dataGenerator
-		msr  marshal.Marshalizer
-	}{
-		{name: "HdrGogo", obj: hdr, msr: gmsr},
-		{name: "HdrJSON", obj: hdr, msr: jmsr},
-		{name: "MbGogo", obj: mb, msr: gmsr},
-		{name: "MbJSON", obj: mb, msr: jmsr},
-		{name: "TxGogo", obj: tx, msr: gmsr},
-		{name: "TxJSON", obj: tx, msr: jmsr},
-	}
-	for _, bd := range benchData {
-		b.Run(bd.name, func(sb *testing.B) {
-			benchUnmarshal(sb, bd.msr, bd.obj, false)
-		})
-	}
+	benchmarkUnarshal(b, false)
 }
 
 func BenchmarkUnarshalValidate(b *testing.B) {
+	benchmarkUnarshal(b, true)
+}
 
+func benchmarkUnarshal(b *testing.B, validate bool) {
 	hdr := &Header{}
 	mb := &MiniBlock{}
 	tx := &Transaction{}
@@ -169,7 +149,7 @@ func BenchmarkUnarshalValidate(b *testing.B) {
 	}
 	for _, bd := range benchData {
 		b.Run(bd.name, func(sb *testing.B) {
-			benchUnmarshal(sb, bd.msr, bd.obj, true)
+			benchUnmarshal(sb, bd.msr, bd.obj, validate)
 		})
 	}
 }

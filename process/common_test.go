@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -1204,12 +1205,11 @@ func TestGetShardHeaderFromStorageWithNonceShouldErrUnmarshalWithoutSuccess(t *t
 	assert.Equal(t, process.ErrUnmarshalWithoutSuccess, err)
 }
 
-func TestGetShardHeaderFromStorageWithNonceShouldWork(t *testing.T) {
-	nonce := uint64(1)
-	shardId := uint32(0)
-	hash := []byte("X")
+func initDefaultStorageServiceAndConverter(nonce uint64, hash []byte, hdr *block.Header) (
+	dataRetriever.StorageService,
+	typeConverters.Uint64ByteSliceConverter,
+) {
 	nonceToByte := []byte("1")
-	hdr := &block.Header{Nonce: nonce}
 	marshalizer := &mock.MarshalizerMock{}
 	marshHdr, _ := marshalizer.Marshal(hdr)
 	storageService := &mock.ChainStorerMock{
@@ -1237,7 +1237,18 @@ func TestGetShardHeaderFromStorageWithNonceShouldWork(t *testing.T) {
 		},
 	}
 
-	header, headerHash, err := process.GetShardHeaderFromStorageWithNonce(
+	return storageService, uint64Converter
+}
+
+func TestGetHeaderFromStorageWithNonceShouldWorkForShard(t *testing.T) {
+	nonce := uint64(1)
+	shardId := uint32(0)
+	hash := []byte("X")
+	hdr := &block.Header{Nonce: nonce}
+	marshalizer := &mock.MarshalizerMock{}
+
+	storageService, uint64Converter := initDefaultStorageServiceAndConverter(nonce, hash, hdr)
+	header, headerHash, err := process.GetHeaderFromStorageWithNonce(
 		nonce,
 		shardId,
 		storageService,
@@ -1247,42 +1258,18 @@ func TestGetShardHeaderFromStorageWithNonceShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, hash, headerHash)
 	assert.Equal(t, hdr, header)
+
 }
 
-func TestGetHeaderFromStorageWithNonceShouldWorkForShard(t *testing.T) {
+func TestGetShardHeaderFromStorageWithNonceShouldWorkForShard(t *testing.T) {
 	nonce := uint64(1)
 	shardId := uint32(0)
 	hash := []byte("X")
-	nonceToByte := []byte("1")
 	hdr := &block.Header{Nonce: nonce}
 	marshalizer := &mock.MarshalizerMock{}
-	marshHdr, _ := marshalizer.Marshal(hdr)
-	storageService := &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return &mock.StorerStub{
-				GetCalled: func(key []byte) ([]byte, error) {
-					if bytes.Equal(key, nonceToByte) {
-						return hash, nil
-					}
-					if bytes.Equal(key, hash) {
-						return marshHdr, nil
-					}
-					return nil, errors.New("error")
-				},
-			}
-		},
-	}
-	uint64Converter := &mock.Uint64ByteSliceConverterMock{
-		ToByteSliceCalled: func(n uint64) []byte {
-			if n == nonce {
-				return nonceToByte
-			}
 
-			return nil
-		},
-	}
-
-	header, headerHash, err := process.GetHeaderFromStorageWithNonce(
+	storageService, uint64Converter := initDefaultStorageServiceAndConverter(nonce, hash, hdr)
+	header, headerHash, err := process.GetShardHeaderFromStorageWithNonce(
 		nonce,
 		shardId,
 		storageService,

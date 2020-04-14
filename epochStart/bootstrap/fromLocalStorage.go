@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -58,6 +59,10 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 
 	storer, err := openStorageHandler.OpenStorageUnits()
 	defer func() {
+		if check.IfNil(storer) {
+			return
+		}
+
 		errClose := storer.Close()
 		log.LogIfError(errClose)
 	}()
@@ -122,6 +127,11 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		}
 	}
 
+	err = e.messenger.CreateTopic(core.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
+	if err != nil {
+		return Parameters{}, err
+	}
+
 	if e.shardCoordinator.SelfId() == core.MetachainShardId {
 		err = e.requestAndProcessForMeta()
 		if err != nil {
@@ -177,7 +187,7 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 	}
 
 	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), bootstrapData.NodesCoordinatorConfigKey...)
-	data, err := storer.Get(ncInternalkey)
+	data, err := storer.SearchFirst(ncInternalkey)
 	if err != nil {
 		log.Debug("getLastBootstrapData", "key", ncInternalkey, "error", err)
 		return nil, nil, err
@@ -194,7 +204,7 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 
 func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer) (*block.MetaBlock, error) {
 	epochIdentifier := core.EpochStartIdentifier(e.baseData.lastEpoch)
-	data, err := storer.Get([]byte(epochIdentifier))
+	data, err := storer.SearchFirst([]byte(epochIdentifier))
 	if err != nil {
 		log.Debug("getEpochStartMetaFromStorage", "key", epochIdentifier, "error", err)
 		return nil, err

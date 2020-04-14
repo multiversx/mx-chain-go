@@ -790,38 +790,16 @@ func TestRequestHeadersIfNeeded_ShouldRequestIfLongestChainHasNotAdvanced(t *tes
 func TestRequestHeadersIfNothingNewIsReceived_ShouldNotRequestIfHighestRoundFromReceivedHeadersIsNearToChronologyRound(t *testing.T) {
 	t.Parallel()
 
-	blockProcessorArguments := CreateBlockProcessorMockArguments()
-
-	called := false
-	blockProcessorArguments.RequestHandler = &mock.RequestHandlerStub{
-		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
-			called = true
-		},
-		RequestShardHeaderByNonceCalled: func(shardId uint32, nonce uint64) {
-			called = true
-		},
-	}
-
-	blockProcessorArguments.Rounder = &mock.RounderMock{
-		RoundIndex: process.MaxRoundsWithoutNewBlockReceived + 3,
-	}
-
-	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
-
-	lastNotarizedHeader := &block2.Header{Nonce: 1, Round: 1}
-	sortedReceivedHeaders := []data.HeaderHandler{&block2.Header{Nonce: 3, Round: 3}}
-	longestChainHeaders := []data.HeaderHandler{&block2.Header{Nonce: 2, Round: 2}}
-	latestValidHeader := bp.GetLatestValidHeader(lastNotarizedHeader, longestChainHeaders)
-	highestRound := bp.GetHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
-	bp.RequestHeadersIfNothingNewIsReceived(lastNotarizedHeader.GetNonce(), latestValidHeader, highestRound)
-	time.Sleep(50 * time.Millisecond)
-
-	assert.False(t, called)
+	testRequestHeaders(t, 3, 3, 3)
 }
 
 func TestRequestHeadersIfNothingNewIsReceived_ShouldNotRequestIfLastNotarizedHeaderNonceIsFarFromLatestValidHeaderNonce(t *testing.T) {
 	t.Parallel()
 
+	testRequestHeaders(t, 14, 13, 13)
+}
+
+func testRequestHeaders(t *testing.T, roundIndex uint64, round uint64, nonce uint64) {
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
 	called := false
@@ -835,14 +813,14 @@ func TestRequestHeadersIfNothingNewIsReceived_ShouldNotRequestIfLastNotarizedHea
 	}
 
 	blockProcessorArguments.Rounder = &mock.RounderMock{
-		RoundIndex: process.MaxRoundsWithoutNewBlockReceived + 14,
+		RoundIndex: process.MaxRoundsWithoutNewBlockReceived + int64(roundIndex),
 	}
 
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 
 	lastNotarizedHeader := &block2.Header{Nonce: 1, Round: 1}
-	sortedReceivedHeaders := []data.HeaderHandler{&block2.Header{Nonce: 13, Round: 13}}
-	longestChainHeaders := []data.HeaderHandler{&block2.Header{Nonce: 12, Round: 12}}
+	sortedReceivedHeaders := []data.HeaderHandler{&block2.Header{Nonce: nonce, Round: round}}
+	longestChainHeaders := []data.HeaderHandler{&block2.Header{Nonce: nonce - 1, Round: round - 1}}
 	latestValidHeader := bp.GetLatestValidHeader(lastNotarizedHeader, longestChainHeaders)
 	highestRound := bp.GetHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
 	bp.RequestHeadersIfNothingNewIsReceived(lastNotarizedHeader.GetNonce(), latestValidHeader, highestRound)
