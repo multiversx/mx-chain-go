@@ -441,7 +441,6 @@ func (tpn *TestProcessorNode) initTestNode() {
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData)
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
 }
@@ -882,6 +881,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TxTypeHandler:    txTypeHandler,
 		GasHandler:       tpn.GasHandler,
 		BuiltInFunctions: tpn.BlockchainHook.GetBuiltInFunctions(),
+		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 	}
 	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(argsNewScProcessor)
 
@@ -994,6 +994,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TxTypeHandler:    txTypeHandler,
 		GasHandler:       tpn.GasHandler,
 		BuiltInFunctions: tpn.BlockchainHook.GetBuiltInFunctions(),
+		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = scProcessor

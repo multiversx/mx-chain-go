@@ -20,9 +20,8 @@ import (
 )
 
 type cfg struct {
-	numKeys   int
-	keyType   string
-	keyFormat string
+	numKeys int
+	keyType string
 }
 
 const keysFolderPattern = "node-%d"
@@ -62,14 +61,6 @@ VERSION:
 		Destination: &argsConfig.keyType,
 	}
 
-	// keyFormat defines a flag for setting the format for the keys to generate
-	keyFormat = cli.StringFlag{
-		Name:        "key-format",
-		Usage:       "Defines the key format. Available options: hex and bech32",
-		Value:       "hex",
-		Destination: &argsConfig.keyFormat,
-	}
-
 	argsConfig = &cfg{}
 
 	initialBalancesSkFileName = "initialBalancesSk.pem"
@@ -93,7 +84,6 @@ func main() {
 	app.Flags = []cli.Flag{
 		numKeys,
 		keyType,
-		keyFormat,
 	}
 
 	app.Action = func(_ *cli.Context) error {
@@ -108,12 +98,15 @@ func main() {
 	}
 }
 
-func generateFolder(index int) (string, error) {
-	workingDir, err := os.Getwd()
+func generateFolder(index int, numKeys int) (string, error) {
+	absPath, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
-	absPath := filepath.Join(workingDir, fmt.Sprintf(keysFolderPattern, index))
+
+	if numKeys > 1 {
+		absPath = filepath.Join(absPath, fmt.Sprintf(keysFolderPattern, index))
+	}
 
 	log.Info("generating files in", "folder", absPath)
 
@@ -152,7 +145,7 @@ func backupFileIfExists(filename string) {
 
 func generateAllFiles() error {
 	for i := 0; i < argsConfig.numKeys; i++ {
-		err := generateOneSetOfFiles(i)
+		err := generateOneSetOfFiles(i, argsConfig.numKeys)
 		if err != nil {
 			return err
 		}
@@ -161,29 +154,29 @@ func generateAllFiles() error {
 	return nil
 }
 
-func generateOneSetOfFiles(index int) error {
+func generateOneSetOfFiles(index int, numKeys int) error {
 	switch argsConfig.keyType {
 	case "block":
-		return generateBlockKey(index)
+		return generateBlockKey(index, numKeys)
 	case "tx":
-		return generateTxKey(index)
+		return generateTxKey(index, numKeys)
 	case "both":
-		err := generateBlockKey(index)
+		err := generateBlockKey(index, numKeys)
 		if err != nil {
 			return err
 		}
 
-		return generateTxKey(index)
+		return generateTxKey(index, numKeys)
 	default:
 		return fmt.Errorf("unknown key type %s", argsConfig.keyType)
 	}
 }
 
-func generateBlockKey(index int) error {
+func generateBlockKey(index int, numKeys int) error {
 	pubkeyConverter, err := factory.NewPubkeyConverter(
 		config.PubkeyConfig{
 			Length: blsPubkeyLen,
-			Type:   argsConfig.keyFormat,
+			Type:   factory.HexFormat,
 		},
 	)
 	if err != nil {
@@ -192,14 +185,14 @@ func generateBlockKey(index int) error {
 
 	genForBlockSigningSk := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 
-	return generateAndSave(index, initialNodesSkFileName, genForBlockSigningSk, pubkeyConverter)
+	return generateAndSave(index, numKeys, initialNodesSkFileName, genForBlockSigningSk, pubkeyConverter)
 }
 
-func generateTxKey(index int) error {
+func generateTxKey(index int, numKeys int) error {
 	pubkeyConverter, err := factory.NewPubkeyConverter(
 		config.PubkeyConfig{
 			Length: txSignPubkeyLen,
-			Type:   argsConfig.keyFormat,
+			Type:   factory.Bech32Format,
 		},
 	)
 	if err != nil {
@@ -208,11 +201,11 @@ func generateTxKey(index int) error {
 
 	genForBlockSigningSk := signing.NewKeyGenerator(ed25519.NewEd25519())
 
-	return generateAndSave(index, initialBalancesSkFileName, genForBlockSigningSk, pubkeyConverter)
+	return generateAndSave(index, numKeys, initialBalancesSkFileName, genForBlockSigningSk, pubkeyConverter)
 }
 
-func generateAndSave(index int, baseFilename string, genForBlockSigningSk crypto.KeyGenerator, pubkeyConverter state.PubkeyConverter) error {
-	folder, err := generateFolder(index)
+func generateAndSave(index int, numKeys int, baseFilename string, genForBlockSigningSk crypto.KeyGenerator, pubkeyConverter state.PubkeyConverter) error {
+	folder, err := generateFolder(index, numKeys)
 	if err != nil {
 		return err
 	}
