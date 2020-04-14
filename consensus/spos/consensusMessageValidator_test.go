@@ -106,7 +106,7 @@ func TestCheckMessageWithSignatureValidity_InvalidSignatureShareSize(t *testing.
 	assert.True(t, errors.Is(err, spos.ErrInvalidSignatureSize))
 }
 
-func TestCheckMessageWithSignatureValidity_SignatureShareShouldWork(t *testing.T) {
+func TestCheckMessageWithSignatureShareValidity_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs()
@@ -141,7 +141,7 @@ func TestCheckMessageWithBlockHeaderValidity_InvalidHeaderSize(t *testing.T) {
 	assert.True(t, errors.Is(err, spos.ErrInvalidHeaderSize))
 }
 
-func TestCheckMessageWithBlockHeaderValidity_HeaderToBig(t *testing.T) {
+func TestCheckMessageWithBlockHeaderValidity_HeaderTooBig(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs()
