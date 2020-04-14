@@ -19,42 +19,66 @@ type PoolsHolderStub struct {
 
 // CurrentBlockTxs -
 func (phs *PoolsHolderStub) CurrentBlockTxs() dataRetriever.TransactionCacher {
-	return phs.CurrBlockTxsCalled()
+	if phs.CurrBlockTxsCalled != nil {
+		return phs.CurrBlockTxsCalled()
+	}
+	return nil
 }
 
 // Headers -
 func (phs *PoolsHolderStub) Headers() dataRetriever.HeadersPool {
-	return phs.HeadersCalled()
+	if phs.HeadersCalled != nil {
+		return phs.HeadersCalled()
+	}
+	return nil
 }
 
 // PeerChangesBlocks -
 func (phs *PoolsHolderStub) PeerChangesBlocks() storage.Cacher {
-	return phs.PeerChangesBlocksCalled()
+	if phs.PeerChangesBlocksCalled != nil {
+		return phs.PeerChangesBlocksCalled()
+	}
+	return nil
 }
 
 // Transactions -
 func (phs *PoolsHolderStub) Transactions() dataRetriever.ShardedDataCacherNotifier {
-	return phs.TransactionsCalled()
+	if phs.TransactionsCalled != nil {
+		return phs.TransactionsCalled()
+	}
+	return nil
 }
 
 // MiniBlocks -
 func (phs *PoolsHolderStub) MiniBlocks() storage.Cacher {
-	return phs.MiniBlocksCalled()
+	if phs.MiniBlocksCalled != nil {
+		return phs.MiniBlocksCalled()
+	}
+	return nil
 }
 
 // UnsignedTransactions -
 func (phs *PoolsHolderStub) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
-	return phs.UnsignedTransactionsCalled()
+	if phs.UnsignedTransactionsCalled != nil {
+		return phs.UnsignedTransactionsCalled()
+	}
+	return nil
 }
 
 // RewardTransactions -
 func (phs *PoolsHolderStub) RewardTransactions() dataRetriever.ShardedDataCacherNotifier {
-	return phs.RewardTransactionsCalled()
+	if phs.RewardTransactionsCalled != nil {
+		return phs.RewardTransactionsCalled()
+	}
+	return nil
 }
 
 // TrieNodes -
 func (phs *PoolsHolderStub) TrieNodes() storage.Cacher {
-	return phs.TrieNodesCalled()
+	if phs.TrieNodesCalled != nil {
+		return phs.TrieNodesCalled()
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
