@@ -193,6 +193,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		BuiltInFunctions: blockChainHook.GetBuiltInFunctions(),
+		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 
@@ -334,6 +335,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		BuiltInFunctions: blockChainHook.GetBuiltInFunctions(),
+		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 	}
 
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
