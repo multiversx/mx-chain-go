@@ -95,6 +95,7 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
 		blockBalancer:                 blockBalancerInstance,
 		maxNumHeadersToKeepPerShard:   maxNumHeadersToKeepPerShard,
+		whitelistHandler:              arguments.WhitelistHandler,
 	}
 
 	return bbt, nil
