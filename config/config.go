@@ -227,12 +227,12 @@ type TxAccumulatorConfig struct {
 type AntifloodConfig struct {
 	Enabled                   bool
 	NumConcurrentResolverJobs int32
+	PeerMaxMessagesPerSecond  uint32
+	MaxMessagesPerSecond      uint32
+	PeerMaxTotalSizePerSecond uint64
+	MaxTotalSizePerSecond     uint64
 	Cache                     CacheConfig
 	BlackList                 BlackListConfig
-	PeerMaxMessagesPerSecond  uint32
-	PeerMaxTotalSizePerSecond uint64
-	MaxMessagesPerSecond      uint32
-	MaxTotalSizePerSecond     uint64
 	WebServer                 WebServerAntifloodConfig
 	Topic                     TopicAntifloodConfig
 	TxAccumulator             TxAccumulatorConfig

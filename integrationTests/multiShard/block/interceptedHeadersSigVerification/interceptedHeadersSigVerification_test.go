@@ -53,7 +53,7 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Node.Stop()
+				_ = n.Messenger.Close()
 			}
 		}
 	}()
@@ -122,7 +122,7 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Node.Stop()
+				_ = n.Messenger.Close()
 			}
 		}
 	}()
@@ -203,7 +203,7 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Node.Stop()
+				_ = n.Messenger.Close()
 			}
 		}
 	}()
@@ -278,7 +278,7 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Node.Stop()
+				_ = n.Messenger.Close()
 			}
 		}
 	}()

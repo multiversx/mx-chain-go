@@ -13,10 +13,9 @@ import (
 // MessageProcessor -
 type MessageProcessor struct {
 	numMessagesProcessed  uint32
+	numMessagesReceived   uint32
 	sizeMessagesProcessed uint64
-
-	numMessagesReceived  uint32
-	sizeMessagesReceived uint64
+	sizeMessagesReceived  uint64
 
 	mutMessages    sync.Mutex
 	messages       map[p2p.PeerID][]p2p.MessageP2P

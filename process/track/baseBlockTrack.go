@@ -48,6 +48,58 @@ type baseBlockTrack struct {
 	maxNumHeadersToKeepPerShard int
 }
 
+func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
+	err := checkTrackerNilParameters(arguments)
+	if err != nil {
+		return nil, err
+	}
+
+	maxNumHeadersToKeepPerShard := arguments.PoolsHolder.Headers().MaxSize()
+
+	crossNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	selfNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	crossNotarizedHeadersNotifier, err := NewBlockNotifier()
+	if err != nil {
+		return nil, err
+	}
+
+	selfNotarizedHeadersNotifier, err := NewBlockNotifier()
+	if err != nil {
+		return nil, err
+	}
+
+	blockBalancerInstance, err := NewBlockBalancer()
+	if err != nil {
+		return nil, err
+	}
+
+	bbt := &baseBlockTrack{
+		hasher:                        arguments.Hasher,
+		headerValidator:               arguments.HeaderValidator,
+		marshalizer:                   arguments.Marshalizer,
+		rounder:                       arguments.Rounder,
+		shardCoordinator:              arguments.ShardCoordinator,
+		headersPool:                   arguments.PoolsHolder.Headers(),
+		store:                         arguments.Store,
+		crossNotarizer:                crossNotarizer,
+		selfNotarizer:                 selfNotarizer,
+		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
+		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+		blockBalancer:                 blockBalancerInstance,
+		maxNumHeadersToKeepPerShard:   maxNumHeadersToKeepPerShard,
+	}
+
+	return bbt, nil
+}
+
 func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
 	if headerHandler.GetShardID() == core.MetachainShardId {
 		bbt.receivedMetaBlock(headerHandler, headerHash)
@@ -601,6 +653,12 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	}
 	if check.IfNil(arguments.Store) {
 		return process.ErrNilStorage
+	}
+	if check.IfNil(arguments.PoolsHolder) {
+		return process.ErrNilPoolsHolder
+	}
+	if check.IfNil(arguments.PoolsHolder.Headers()) {
+		return process.ErrNilHeadersDataPool
 	}
 
 	return nil

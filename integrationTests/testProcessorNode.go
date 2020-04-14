@@ -725,6 +725,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 func (tpn *TestProcessorNode) initResolvers() {
 	dataPacker, _ := partitioning.NewSimpleDataPacker(TestMarshalizer)
 
+	_ = tpn.Messenger.CreateTopic(core.ConsensusTopic+tpn.ShardCoordinator.CommunicationIdentifier(tpn.ShardCoordinator.SelfId()), true)
+
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
 		ShardCoordinator:           tpn.ShardCoordinator,
 		Messenger:                  tpn.Messenger,
@@ -1642,20 +1644,19 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 		ShardCoordinator: tpn.ShardCoordinator,
 		Store:            tpn.Storage,
 		StartHeaders:     tpn.GenesisBlocks,
+		PoolsHolder:      tpn.DataPool,
 		WhitelistHandler: tpn.WhiteListHandler,
 	}
 
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
 		arguments := track.ArgShardTracker{
 			ArgBaseTracker: argBaseTracker,
-			PoolsHolder:    tpn.DataPool,
 		}
 
 		tpn.BlockTracker, _ = track.NewShardBlockTrack(arguments)
 	} else {
 		arguments := track.ArgMetaTracker{
 			ArgBaseTracker: argBaseTracker,
-			PoolsHolder:    tpn.DataPool,
 		}
 
 		tpn.BlockTracker, _ = track.NewMetaBlockTrack(arguments)

@@ -10,8 +10,8 @@ import (
 
 type quota struct {
 	numReceivedMessages   uint32
-	sizeReceivedMessages  uint64
 	numProcessedMessages  uint32
+	sizeReceivedMessages  uint64
 	sizeProcessedMessages uint64
 }
 
