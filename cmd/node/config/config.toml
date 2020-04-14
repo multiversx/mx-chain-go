@@ -249,10 +249,15 @@
 [Antiflood]
     Enabled = true
     NumConcurrentResolverJobs = 50
-    PeerMaxMessagesPerSecond = 75
-    PeerMaxTotalSizePerSecond = 2097152
-    MaxMessagesPerSecond = 400
-    MaxTotalSizePerSecond = 4194304
+    [Antiflood.NetworkMaxInput]
+        MessagesPerSecond = 400
+        TotalSizePerSecond = 4194304
+    [Antiflood.PeerMaxInput]
+        MessagesPerSecond = 400
+        TotalSizePerSecond = 4194304
+    [Antiflood.PeerMaxOutput]
+        MessagesPerSecond = 200
+        TotalSizePerSecond = 2097152
     [Antiflood.Cache]
         Size = 5000
         Type = "LRU"
@@ -260,13 +265,10 @@
         DefaultMaxMessagesPerSec = 10000
         MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 10 },
                        { Topic = "shardBlocks*", NumMessagesPerSec = 20 },
-                       { Topic = "metachainBlocks", NumMessagesPerSec = 20 },
-                       { Topic = "transactions*", NumMessagesPerSec = 5000 },
-                       { Topic = "unsignedTransactions*", NumMessagesPerSec = 5000 },
-                       { Topic = "rewardsTransactions*", NumMessagesPerSec = 5000 }]
+                       { Topic = "metachainBlocks", NumMessagesPerSec = 20 }]
     [Antiflood.BlackList]
-        ThresholdNumMessagesPerSecond = 150
-        ThresholdSizePerSecond = 4194304
+        ThresholdNumMessagesPerSecond = 600
+        ThresholdSizePerSecond = 6291456
         NumFloodingRounds = 10
         PeerBanDurationInSeconds = 300
     [Antiflood.WebServer]

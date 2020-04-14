@@ -577,6 +577,7 @@ func WithTxAccumulator(accumulator Accumulator) Option {
 		n.txAcumulator = accumulator
 
 		go n.sendFromTxAccumulator()
+		go n.printTxSentCounter(numSecondsBetweenPrints, stepWaitTime)
 
 		return nil
 	}

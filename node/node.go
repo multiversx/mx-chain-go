@@ -48,6 +48,8 @@ import (
 const SendTransactionsPipe = "send transactions pipe"
 
 var log = logger.GetOrCreate("node")
+var numSecondsBetweenPrints = 20
+var stepWaitTime = time.Second
 
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
@@ -127,6 +129,7 @@ type Node struct {
 
 	inputAntifloodHandler P2PAntifloodHandler
 	txAcumulator          Accumulator
+	txSentCounter         uint32
 
 	signatureSize int
 	publicKeySize int
@@ -647,7 +650,38 @@ func (n *Node) sendFromTxAccumulator() {
 			txs = append(txs, tx)
 		}
 
+		atomic.AddUint32(&n.txSentCounter, uint32(len(txs)))
+
 		n.sendBulkTransactions(txs)
+	}
+}
+
+func (n *Node) printTxSentCounter(numSeconds int, waitTime time.Duration) {
+	maxTxCounter := uint32(0)
+	totalTxCounter := uint64(0)
+	counterSeconds := 0
+
+	for {
+		time.Sleep(waitTime)
+
+		txSent := atomic.SwapUint32(&n.txSentCounter, 0)
+		if txSent > maxTxCounter {
+			maxTxCounter = txSent
+		}
+		totalTxCounter += uint64(txSent)
+
+		counterSeconds++
+		if counterSeconds > numSeconds {
+			counterSeconds = 0
+
+			if maxTxCounter > 0 {
+				log.Info("sent transactions on network",
+					"max/sec", maxTxCounter,
+					"total", totalTxCounter,
+				)
+			}
+			maxTxCounter = 0
+		}
 	}
 }
 

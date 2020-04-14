@@ -27,8 +27,8 @@ func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandl
 		return nil, err
 	}
 
-	peerMaxMessagesPerSecond := mainConfig.Antiflood.PeerMaxMessagesPerSecond
-	peerMaxTotalSizePerSecond := mainConfig.Antiflood.PeerMaxTotalSizePerSecond
+	peerMaxMessagesPerSecond := mainConfig.Antiflood.PeerMaxOutput.MessagesPerSecond
+	peerMaxTotalSizePerSecond := mainConfig.Antiflood.PeerMaxOutput.TotalSizePerSecond
 	floodPreventer, err := floodPreventers.NewQuotaFloodPreventer(
 		antifloodCache,
 		make([]floodPreventers.QuotaStatusHandler, 0),

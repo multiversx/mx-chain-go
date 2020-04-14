@@ -52,10 +52,10 @@ func initP2PAntiFloodAndBlackList(
 		return nil, nil, err
 	}
 
-	peerMaxMessagesPerSecond := mainConfig.Antiflood.PeerMaxMessagesPerSecond
-	peerMaxTotalSizePerSecond := mainConfig.Antiflood.PeerMaxTotalSizePerSecond
-	maxMessagesPerSecond := mainConfig.Antiflood.MaxMessagesPerSecond
-	maxTotalSizePerSecond := mainConfig.Antiflood.MaxTotalSizePerSecond
+	peerMaxMessagesPerSecond := mainConfig.Antiflood.PeerMaxInput.MessagesPerSecond
+	peerMaxTotalSizePerSecond := mainConfig.Antiflood.PeerMaxInput.TotalSizePerSecond
+	maxMessagesPerSecond := mainConfig.Antiflood.NetworkMaxInput.MessagesPerSecond
+	maxTotalSizePerSecond := mainConfig.Antiflood.NetworkMaxInput.TotalSizePerSecond
 
 	quotaProcessor, err := p2pQuota.NewP2PQuotaProcessor(statusHandler)
 	if err != nil {
