@@ -39,16 +39,17 @@ func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, stat
 
 func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 	return ArgsNewSmartContractProcessor{
-		VmContainer:  &mock.VMContainerMock{},
-		ArgsParser:   &mock.ArgumentParserMock{},
-		Hasher:       &mock.HasherMock{},
-		Marshalizer:  &mock.MarshalizerMock{},
-		AccountsDB:   &mock.AccountsStub{},
-		TempAccounts: &mock.TemporaryAccountsHandlerMock{},
-		AdrConv:      &mock.AddressConverterMock{},
-		Coordinator:  mock.NewMultiShardsCoordinatorMock(5),
-		ScrForwarder: &mock.IntermediateTransactionHandlerMock{},
-		TxFeeHandler: &mock.FeeAccumulatorStub{},
+		VmContainer:     &mock.VMContainerMock{},
+		ArgsParser:      &mock.ArgumentParserMock{},
+		Hasher:          &mock.HasherMock{},
+		Marshalizer:     &mock.MarshalizerMock{},
+		AccountsDB:      &mock.AccountsStub{},
+		TempAccounts:    &mock.TemporaryAccountsHandlerMock{},
+		AdrConv:         &mock.AddressConverterMock{},
+		Coordinator:     mock.NewMultiShardsCoordinatorMock(5),
+		ScrForwarder:    &mock.IntermediateTransactionHandlerMock{},
+		TxFeeHandler:    &mock.FeeAccumulatorStub{},
+		TxLogsProcessor: &mock.TxLogsProcessorStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.0
@@ -475,6 +476,45 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 	require.Nil(t, err)
 }
 
+func TestScProcessor_ExecuteSmartContractTransactionSaveLogCalled(t *testing.T) {
+	t.Parallel()
+
+	slCalled := false
+
+	vm := &mock.VMContainerMock{}
+	argParser := &mock.ArgumentParserMock{}
+	accntState := &mock.AccountsStub{}
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.VmContainer = vm
+	arguments.ArgsParser = argParser
+	arguments.AccountsDB = accntState
+	arguments.TxLogsProcessor = &mock.TxLogsProcessorStub{
+		SaveLogCalled: func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error {
+			slCalled = true
+			return nil
+		},
+	}
+	sc, err := NewSmartContractProcessor(arguments)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST0000000")
+	tx.Data = []byte("data")
+	tx.Value = big.NewInt(0)
+	acntSrc, acntDst := createAccounts(tx)
+
+	accntState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		return acntSrc, nil
+	}
+
+	acntDst.SetCode([]byte("code"))
+	_ = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+	require.True(t, slCalled)
+}
+
 func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
 	t.Parallel()
 
@@ -860,6 +900,7 @@ func TestScProcessor_GetAccountFromAddrFaildAddressConv(t *testing.T) {
 	arguments.AccountsDB = accountsDB
 	arguments.Coordinator = shardCoordinator
 	arguments.AdrConv = addrConv
+	arguments.TxLogsProcessor = &mock.TxLogsProcessorStub{}
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
