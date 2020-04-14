@@ -1,6 +1,8 @@
 package pruning
 
 import (
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -10,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -32,7 +33,7 @@ type persisterData struct {
 // PruningStorer represents a storer which creates a new persister for each epoch and removes older activePersisters
 type PruningStorer struct {
 	lock                  sync.RWMutex
-	shardCoordinator      sharding.Coordinator
+	shardCoordinator      storage.ShardCoordinator
 	activePersisters      []*persisterData
 	persistersMapByEpoch  map[uint32]*persisterData
 	cacher                storage.Cacher
@@ -253,7 +254,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 		}
 		if !found {
 			return nil, fmt.Errorf("key %s not found in %s",
-				core.ToHex(key), ps.identifier)
+				hex.EncodeToString(key), ps.identifier)
 		}
 	}
 
@@ -293,7 +294,7 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 	pd, exists := ps.persistersMapByEpoch[epoch]
 	if !exists {
 		return nil, fmt.Errorf("key %s not found in %s",
-			core.ToHex(key), ps.identifier)
+			hex.EncodeToString(key), ps.identifier)
 	}
 
 	if !pd.isClosed {
@@ -331,7 +332,7 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 		"error", err.Error())
 
 	return nil, fmt.Errorf("key %s not found in %s",
-		core.ToHex(key), ps.identifier)
+		hex.EncodeToString(key), ps.identifier)
 
 }
 
@@ -357,7 +358,7 @@ func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 	return nil, fmt.Errorf("%w - SearchFirst, unit = %s, key = %s, num active persisters = %d",
 		storage.ErrKeyNotFound,
 		ps.identifier,
-		core.ToHex(key),
+		hex.EncodeToString(key),
 		len(ps.activePersisters),
 	)
 }

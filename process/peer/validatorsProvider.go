@@ -1,7 +1,6 @@
 package peer
 
 import (
-	"encoding/hex"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -15,13 +14,21 @@ type validatorsProvider struct {
 	cachedMap           map[string]*state.ValidatorApiResponse
 	validatorStatistics process.ValidatorStatisticsProcessor
 	maxRating           uint32
+	pubkeyConverter     state.PubkeyConverter
 }
 
 // NewValidatorsProvider instantiates a new validatorsProvider structure responsible of keeping account of
 //  the latest information about the validators
-func NewValidatorsProvider(validatorStatisticsProcessor process.ValidatorStatisticsProcessor, maxRating uint32) (*validatorsProvider, error) {
+func NewValidatorsProvider(
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
+	maxRating uint32,
+	pubkeyConverter state.PubkeyConverter,
+) (*validatorsProvider, error) {
 	if check.IfNil(validatorStatisticsProcessor) {
 		return nil, process.ErrNilValidatorStatistics
+	}
+	if check.IfNil(pubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if maxRating == 0 {
 		return nil, process.ErrMaxRatingZero
@@ -32,6 +39,7 @@ func NewValidatorsProvider(validatorStatisticsProcessor process.ValidatorStatist
 		cachedMap:           make(map[string]*state.ValidatorApiResponse),
 		maxRating:           maxRating,
 		validatorStatistics: validatorStatisticsProcessor,
+		pubkeyConverter:     pubkeyConverter,
 	}
 
 	return validatorsProvider, nil
@@ -55,7 +63,7 @@ func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorA
 	mapToReturn := make(map[string]*state.ValidatorApiResponse)
 	for _, validatorInfosInShard := range validators {
 		for _, validatorInfo := range validatorInfosInShard {
-			strKey := hex.EncodeToString(validatorInfo.PublicKey)
+			strKey := vp.pubkeyConverter.Encode(validatorInfo.PublicKey)
 			mapToReturn[strKey] = &state.ValidatorApiResponse{
 				NumLeaderSuccess:         validatorInfo.LeaderSuccess,
 				NumLeaderFailure:         validatorInfo.LeaderFailure,

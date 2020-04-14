@@ -16,8 +16,8 @@ var ErrNilHasher = errors.New("trying to set nil hasher")
 // ErrNilAccountsAdapter signals that a nil accounts adapter has been provided
 var ErrNilAccountsAdapter = errors.New("trying to set nil accounts adapter")
 
-// ErrNilAddressConverter signals that a nil address converter has been provided
-var ErrNilAddressConverter = errors.New("trying to set nil address converter")
+// ErrNilPubkeyConverter signals that a nil public key converter has been provided
+var ErrNilPubkeyConverter = errors.New("trying to use a nil pubkey converter")
 
 // ErrNilBlockchain signals that a nil blockchain structure has been provided
 var ErrNilBlockchain = errors.New("nil blockchain")

@@ -35,7 +35,7 @@ type txInfo struct {
 
 // crossTxsPoolsCleaner represents a pools cleaner that checks and cleans cross txs which should not be in pool anymore
 type crossTxsPoolsCleaner struct {
-	addressConverter         state.AddressConverter
+	addressPubkeyConverter   state.PubkeyConverter
 	blockTransactionsPool    dataRetriever.ShardedDataCacherNotifier
 	rewardTransactionsPool   dataRetriever.ShardedDataCacherNotifier
 	unsignedTransactionsPool dataRetriever.ShardedDataCacherNotifier
@@ -49,14 +49,14 @@ type crossTxsPoolsCleaner struct {
 
 // NewCrossTxsPoolsCleaner will return a new cross txs pools cleaner
 func NewCrossTxsPoolsCleaner(
-	addressConverter state.AddressConverter,
+	addressPubkeyConverter state.PubkeyConverter,
 	dataPool dataRetriever.PoolsHolder,
 	rounder process.Rounder,
 	shardCoordinator sharding.Coordinator,
 ) (*crossTxsPoolsCleaner, error) {
 
-	if check.IfNil(addressConverter) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(addressPubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(dataPool) {
 		return nil, process.ErrNilPoolsHolder
@@ -78,7 +78,7 @@ func NewCrossTxsPoolsCleaner(
 	}
 
 	ctpc := crossTxsPoolsCleaner{
-		addressConverter:         addressConverter,
+		addressPubkeyConverter:   addressPubkeyConverter,
 		blockTransactionsPool:    dataPool.Transactions(),
 		rewardTransactionsPool:   dataPool.RewardTransactions(),
 		unsignedTransactionsPool: dataPool.UnsignedTransactions(),
@@ -92,7 +92,7 @@ func NewCrossTxsPoolsCleaner(
 	ctpc.rewardTransactionsPool.RegisterHandler(ctpc.receivedRewardTx)
 	ctpc.unsignedTransactionsPool.RegisterHandler(ctpc.receivedUnsignedTx)
 
-	ctpc.emptyAddress = make([]byte, ctpc.addressConverter.AddressLen())
+	ctpc.emptyAddress = make([]byte, ctpc.addressPubkeyConverter.Len())
 
 	go ctpc.cleanCrossTxsPools()
 
@@ -298,7 +298,7 @@ func (ctpc *crossTxsPoolsCleaner) getShardFromAddress(address []byte) (uint32, e
 		return ctpc.shardCoordinator.SelfId(), nil
 	}
 
-	addressContainer, err := ctpc.addressConverter.CreateAddressFromPublicKeyBytes(address)
+	addressContainer, err := ctpc.addressPubkeyConverter.CreateAddressFromBytes(address)
 	if err != nil {
 		return 0, err
 	}

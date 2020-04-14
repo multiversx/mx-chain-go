@@ -299,14 +299,14 @@
     Path = "logs"
     StackTraceDepth = 2
 
-[Address]
+[AddressPubkeyConverter]
     Length = 32
-    Prefix = "0x"
+    Type = "bech32"
     SignatureLength = 0
 
-[BLSPublicKey]
+[ValidatorPubkeyConverter]
     Length = 96
-    Prefix = "0x"
+    Type = "hex"
     SignatureLength = 48
 
 [Hasher]
