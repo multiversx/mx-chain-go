@@ -22,7 +22,7 @@ import (
 
 func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 	return ArgStakingToPeer{
-		AdrConv:          &mock.AddressConverterMock{},
+		PubkeyConv:       mock.NewPubkeyConverterMock(32),
 		Hasher:           &mock.HasherMock{},
 		ProtoMarshalizer: &mock.MarshalizerStub{},
 		VmMarshalizer:    &mock.MarshalizerStub{},
@@ -37,7 +37,7 @@ func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 func createBlockBody() *block.Body {
 	return &block.Body{
 		MiniBlocks: []*block.MiniBlock{
-			&block.MiniBlock{
+			{
 				TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2")},
 				ReceiverShardID: 0,
 				SenderShardID:   core.MetachainShardId,
@@ -51,11 +51,11 @@ func TestNewStakingToPeerNilAddrConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockArgumentsNewStakingToPeer()
-	arguments.AdrConv = nil
+	arguments.PubkeyConv = nil
 
 	stp, err := NewStakingToPeer(arguments)
 	assert.Nil(t, stp)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestNewStakingToPeerNilHasherShouldErr(t *testing.T) {

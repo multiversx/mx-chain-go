@@ -36,10 +36,10 @@ type StorageConfig struct {
 	Bloom BloomFilterConfig `json:"bloom"`
 }
 
-// AddressConfig will map the json address configuration
-type AddressConfig struct {
+// PubkeyConfig will map the json public key configuration
+type PubkeyConfig struct {
 	Length          int    `json:"length"`
-	Prefix          string `json:"prefix"`
+	Type            string `json:"type"`
 	SignatureLength int
 }
 
@@ -113,8 +113,8 @@ type Config struct {
 	TrieNodesDataPool           CacheConfig
 	WhiteListPool               CacheConfig
 	EpochStartConfig            EpochStartConfig
-	Address                     AddressConfig
-	BLSPublicKey                AddressConfig
+	AddressPubkeyConverter      PubkeyConfig
+	ValidatorPubkeyConverter    PubkeyConfig
 	Hasher                      TypeConfig
 	MultisigHasher              TypeConfig
 	Marshalizer                 MarshalizerConfig
@@ -131,6 +131,7 @@ type Config struct {
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
 	StoragePruning  StoragePruningConfig
+	TxLogsStorage   StorageConfig
 
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig

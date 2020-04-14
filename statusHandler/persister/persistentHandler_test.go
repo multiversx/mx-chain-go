@@ -7,7 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,7 +20,7 @@ func TestNewPersistentStatusHandler_NilMarshalizerShouldErr(t *testing.T) {
 	persistentHandler, err := NewPersistentStatusHandler(nil, uit64Converter)
 
 	assert.Nil(t, persistentHandler)
-	assert.Equal(t, process.ErrNilMarshalizer, err)
+	assert.Equal(t, statusHandler.ErrNilMarshalizer, err)
 }
 
 func TestNewPersistentStatusHandler_NilConverter(t *testing.T) {
@@ -30,7 +30,7 @@ func TestNewPersistentStatusHandler_NilConverter(t *testing.T) {
 	persistentHandler, err := NewPersistentStatusHandler(marshalizer, nil)
 
 	assert.Nil(t, persistentHandler)
-	assert.Equal(t, process.ErrNilUint64Converter, err)
+	assert.Equal(t, statusHandler.ErrNilUint64Converter, err)
 }
 
 func TestNewPersistentStatusHandler(t *testing.T) {
@@ -52,7 +52,7 @@ func TestPersistentStatusHandler_SetStorageNilStorageShouldErr(t *testing.T) {
 	persistentHandler, _ := NewPersistentStatusHandler(marshalizer, uit64Converter)
 
 	err := persistentHandler.SetStorage(nil)
-	assert.Equal(t, process.ErrNilStorage, err)
+	assert.Equal(t, statusHandler.ErrNilStorage, err)
 }
 
 func TestPersistentStatusHandler_SetStorage(t *testing.T) {

@@ -13,8 +13,8 @@ var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 // ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
 var ErrNilHasher = errors.New("nil Hasher")
 
-// ErrNilAddressConverter signals that an operation has been attempted to or with a nil AddressConverter implementation
-var ErrNilAddressConverter = errors.New("nil AddressConverter")
+// ErrNilPubkeyConverter signals that an operation has been attempted to or with a nil public key converter implementation
+var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
 
 // ErrNilGasSchedule signals that an operation has been attempted with a nil gas schedule
 var ErrNilGasSchedule = errors.New("nil GasSchedule")
@@ -727,6 +727,12 @@ var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")
 
 // ErrInvalidMetaTransaction signals that meta transaction is invalid
 var ErrInvalidMetaTransaction = errors.New("meta transaction is invalid")
+
+// ErrLogNotFound is the error returned when a transaction has no logs
+var ErrLogNotFound = errors.New("no logs for queried transaction")
+
+// ErrNilTxLogsProcessor is the error returned when a transaction has no logs
+var ErrNilTxLogsProcessor = errors.New("nil transaction logs processor")
 
 // ErrIncreaseStepLowerThanOne signals that an increase step lower than one has been provided
 var ErrIncreaseStepLowerThanOne = errors.New("increase step is lower than one")

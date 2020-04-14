@@ -19,7 +19,7 @@ type preProcessorsContainerFactory struct {
 	marshalizer          marshal.Marshalizer
 	hasher               hashing.Hasher
 	dataPool             dataRetriever.PoolsHolder
-	addressConverter     state.AddressConverter
+	pubkeyConverter      state.PubkeyConverter
 	txProcessor          process.TransactionProcessor
 	scProcessor          process.SmartContractProcessor
 	scResultProcessor    process.SmartContractResultProcessor
@@ -40,7 +40,7 @@ func NewPreProcessorsContainerFactory(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	dataPool dataRetriever.PoolsHolder,
-	addressConverter state.AddressConverter,
+	pubkeyConverter state.PubkeyConverter,
 	accounts state.AccountsAdapter,
 	requestHandler process.RequestHandler,
 	txProcessor process.TransactionProcessor,
@@ -69,8 +69,8 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(dataPool) {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if check.IfNil(addressConverter) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(txProcessor) {
 		return nil, process.ErrNilTxProcessor
@@ -112,7 +112,7 @@ func NewPreProcessorsContainerFactory(
 		marshalizer:          marshalizer,
 		hasher:               hasher,
 		dataPool:             dataPool,
-		addressConverter:     addressConverter,
+		pubkeyConverter:      pubkeyConverter,
 		txProcessor:          txProcessor,
 		accounts:             accounts,
 		scProcessor:          scProcessor,
@@ -188,7 +188,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.gasHandler,
 		ppcm.blockTracker,
 		block.TxBlock,
-		ppcm.addressConverter,
+		ppcm.pubkeyConverter,
 		ppcm.blockSizeComputation,
 		ppcm.balanceComputation,
 	)

@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/metrics"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -33,10 +33,10 @@ func NewPersistentStatusHandler(
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) (*PersistentStatusHandler, error) {
 	if check.IfNil(marshalizer) {
-		return nil, process.ErrNilMarshalizer
+		return nil, statusHandler.ErrNilMarshalizer
 	}
 	if check.IfNil(uint64ByteSliceConverter) {
-		return nil, process.ErrNilUint64Converter
+		return nil, statusHandler.ErrNilUint64Converter
 	}
 
 	psh := new(PersistentStatusHandler)
@@ -73,7 +73,7 @@ func (psh *PersistentStatusHandler) initMap() {
 // SetStorage will set storage for persistent status handler
 func (psh *PersistentStatusHandler) SetStorage(store storage.Storer) error {
 	if check.IfNil(store) {
-		return process.ErrNilStorage
+		return statusHandler.ErrNilStorage
 	}
 
 	psh.store = store

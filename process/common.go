@@ -602,6 +602,7 @@ func DisplayProcessTxDetails(
 	message string,
 	accountHandler state.AccountHandler,
 	txHandler data.TransactionHandler,
+	addressPubkeyConverter state.PubkeyConverter,
 ) {
 	if !check.IfNil(accountHandler) {
 		account, ok := accountHandler.(state.UserAccountHandler)
@@ -620,7 +621,7 @@ func DisplayProcessTxDetails(
 			"gas limit", txHandler.GetGasLimit(),
 			"gas price", txHandler.GetGasPrice(),
 			"data", hex.EncodeToString(txHandler.GetData()),
-			"sender", hex.EncodeToString(txHandler.GetSndAddr()),
-			"receiver", hex.EncodeToString(txHandler.GetRcvAddr()))
+			"sender", addressPubkeyConverter.Encode(txHandler.GetSndAddr()),
+			"receiver", addressPubkeyConverter.Encode(txHandler.GetRcvAddr()))
 	}
 }

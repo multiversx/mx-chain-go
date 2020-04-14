@@ -522,7 +522,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		initDataPool([]byte("tx_hash0")),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
@@ -550,7 +550,7 @@ func createInterimProcessorContainer() process.IntermediateProcessorContainer {
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		initStore(),
 		initDataPool([]byte("test_hash1")),
 		economicsData,
@@ -572,7 +572,7 @@ func createPreProcessorContainerWithDataPool(
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		dataPool,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
@@ -931,7 +931,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		tdp,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
@@ -1024,7 +1024,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		tdp,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -1140,7 +1140,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 				return shardedCacheMock
 			},
 		},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
@@ -1786,7 +1786,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		dataPool,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		accounts,
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
@@ -1930,7 +1930,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		dataPool,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		accounts,
 		requestHandler,
 		&mock.TxProcessorMock{
@@ -2047,7 +2047,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		marshalizer,
 		hasher,
 		dataPool,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		accounts,
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
@@ -2189,7 +2189,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		marshalizer,
 		hasher,
 		dataPool,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		accounts,
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
@@ -2269,12 +2269,11 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 	txHash := []byte("txHash")
 	tdp := initDataPool(txHash)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
-	adrConv := &mock.AddressConverterMock{}
 	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		adrConv,
+		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		tdp,
 		economicsData,
@@ -2335,12 +2334,11 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 	txHash := []byte("txHash")
 	tdp := initDataPool(txHash)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
-	adrConv := &mock.AddressConverterMock{}
 	interFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		adrConv,
+		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		tdp,
 		economicsData,

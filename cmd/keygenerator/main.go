@@ -4,16 +4,29 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/urfave/cli"
 )
+
+type cfg struct {
+	numKeys int
+	keyType string
+}
+
+const keysFolderPattern = "node-%d"
+const blsPubkeyLen = 96
+const txSignPubkeyLen = 32
 
 var (
 	fileGenHelpTemplate = `NAME:
@@ -32,15 +45,35 @@ VERSION:
    {{end}}
 `
 
-	initialBalancesSkFileName = "./initialBalancesSk.pem"
-	initialNodesSkFileName    = "./initialNodesSk.pem"
+	// numKeys defines a flag for setting how many keys should generate
+	numKeys = cli.IntFlag{
+		Name:        "num-keys",
+		Usage:       "How many keys should generate. Example: 1",
+		Value:       1,
+		Destination: &argsConfig.numKeys,
+	}
+
+	// keyType defines a flag for setting what keys should generate
+	keyType = cli.StringFlag{
+		Name:        "key-type",
+		Usage:       "What king of keys should generate. Available options: block, tx, both",
+		Value:       "both",
+		Destination: &argsConfig.keyType,
+	}
+
+	argsConfig = &cfg{}
+
+	initialBalancesSkFileName = "initialBalancesSk.pem"
+	initialNodesSkFileName    = "initialNodesSk.pem"
+
+	log = logger.GetOrCreate("keygenerator")
 )
 
 func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = fileGenHelpTemplate
 	app.Name = "Key generation Tool"
-	app.Version = "v0.0.1"
+	app.Version = "v1.0.0"
 	app.Usage = "This binary will generate a initialBalancesSk.pem and initialNodesSk.pem, each containing one private key"
 	app.Authors = []cli.Author{
 		{
@@ -48,16 +81,56 @@ func main() {
 			Email: "contact@elrond.com",
 		},
 	}
+	app.Flags = []cli.Flag{
+		numKeys,
+		keyType,
+	}
 
 	app.Action = func(_ *cli.Context) error {
-		return generateFiles()
+		return generateAllFiles()
 	}
 
 	err := app.Run(os.Args)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Error("error generating files", "error", err)
+
 		os.Exit(1)
 	}
+}
+
+func generateFolder(index int, numKeys int) (string, error) {
+	absPath, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	if numKeys > 1 {
+		absPath = filepath.Join(absPath, fmt.Sprintf(keysFolderPattern, index))
+	}
+
+	log.Info("generating files in", "folder", absPath)
+
+	err = os.MkdirAll(absPath, os.ModePerm)
+	if err != nil {
+		return "", err
+	}
+
+	return absPath, nil
+}
+
+func generateKeys(keyGen crypto.KeyGenerator) ([]byte, []byte, error) {
+	sk, pk := keyGen.GeneratePair()
+	skBytes, err := sk.ToByteArray()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pkBytes, err := pk.ToByteArray()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return skBytes, pkBytes, nil
 }
 
 func backupFileIfExists(filename string) {
@@ -70,112 +143,96 @@ func backupFileIfExists(filename string) {
 	_ = os.Rename(filename, filename+"."+fmt.Sprintf("%d", time.Now().Unix()))
 }
 
-func generateFiles() error {
-	var initialBalancesSkFile, initialNodesSkFile *os.File
-
-	defer func() {
-		if initialBalancesSkFile != nil {
-			err := initialBalancesSkFile.Close()
-			if err != nil {
-				fmt.Println(err.Error())
-			}
+func generateAllFiles() error {
+	for i := 0; i < argsConfig.numKeys; i++ {
+		err := generateOneSetOfFiles(i, argsConfig.numKeys)
+		if err != nil {
+			return err
 		}
-
-		if initialNodesSkFile != nil {
-			err := initialNodesSkFile.Close()
-			if err != nil {
-				fmt.Println(err.Error())
-			}
-		}
-	}()
-
-	backupFileIfExists(initialBalancesSkFileName)
-	err := os.Remove(initialBalancesSkFileName)
-	if err != nil && !os.IsNotExist(err) {
-		return err
 	}
-
-	initialBalancesSkFile, err = os.OpenFile(initialBalancesSkFileName, os.O_CREATE|os.O_WRONLY, core.FileModeUserReadWrite)
-	if err != nil {
-		return err
-	}
-
-	backupFileIfExists(initialNodesSkFileName)
-	err = os.Remove(initialNodesSkFileName)
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-
-	initialNodesSkFile, err = os.OpenFile(initialNodesSkFileName, os.O_CREATE|os.O_WRONLY, core.FileModeUserReadWrite)
-	if err != nil {
-		return err
-	}
-
-	genForBalanceSk := signing.NewKeyGenerator(ed25519.NewEd25519())
-	genForBlockSigningSk := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
-
-	pkHexBalance, skHex, err := getIdentifierAndPrivateKey(genForBalanceSk)
-	if err != nil {
-		return err
-	}
-
-	err = core.SaveSkToPemFile(initialBalancesSkFile, pkHexBalance, skHex)
-	if err != nil {
-		return err
-	}
-
-	pkHexBlockSigning, skHex, err := getIdentifierAndPrivateKey(genForBlockSigningSk)
-	if err != nil {
-		return err
-	}
-
-	err = core.SaveSkToPemFile(initialNodesSkFile, pkHexBlockSigning, skHex)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Files generated successfully.")
-	fmt.Printf("\tpublic key for balance:\t%s\n", pkHexBalance)
-
-	ac, err := addressConverters.NewPlainAddressConverter(32, "")
-	if err != nil {
-		fmt.Println("For some peculiar reason I could not generate an addressConverter because ", err)
-		return nil
-	}
-
-	adr, err := ac.CreateAddressFromHex(pkHexBalance)
-	if err != nil {
-		fmt.Println("The plot thickens: I could not covert the hex representation to an address because ", err)
-	}
-
-	bech32, err := ac.ConvertToBech32(adr)
-	if err != nil {
-		fmt.Println("Could not display address in Bech32 format because ", err)
-	} else {
-		fmt.Printf("\tpublic key for balance - in bech32 format:\t%s\n", bech32)
-	}
-	fmt.Printf("\tpublic key for block signing:\t%s\n", pkHexBlockSigning)
-	//the block signing PK would result in a bech32 string greater than the standard imposed 90
-	//char limit so we can't bech32 encode it, but signing key is anyway longer (128bytes vs 32bytes)
-	//and can't be mistaken for a txid as it is the case with the balance one
 
 	return nil
 }
 
-func getIdentifierAndPrivateKey(keyGen crypto.KeyGenerator) (string, []byte, error) {
-	sk, pk := keyGen.GeneratePair()
-	skBytes, err := sk.ToByteArray()
+func generateOneSetOfFiles(index int, numKeys int) error {
+	switch argsConfig.keyType {
+	case "block":
+		return generateBlockKey(index, numKeys)
+	case "tx":
+		return generateTxKey(index, numKeys)
+	case "both":
+		err := generateBlockKey(index, numKeys)
+		if err != nil {
+			return err
+		}
+
+		return generateTxKey(index, numKeys)
+	default:
+		return fmt.Errorf("unknown key type %s", argsConfig.keyType)
+	}
+}
+
+func generateBlockKey(index int, numKeys int) error {
+	pubkeyConverter, err := factory.NewPubkeyConverter(
+		config.PubkeyConfig{
+			Length: blsPubkeyLen,
+			Type:   factory.HexFormat,
+		},
+	)
 	if err != nil {
-		return "", nil, err
+		return err
 	}
 
-	pkBytes, err := pk.ToByteArray()
+	genForBlockSigningSk := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+
+	return generateAndSave(index, numKeys, initialNodesSkFileName, genForBlockSigningSk, pubkeyConverter)
+}
+
+func generateTxKey(index int, numKeys int) error {
+	pubkeyConverter, err := factory.NewPubkeyConverter(
+		config.PubkeyConfig{
+			Length: txSignPubkeyLen,
+			Type:   factory.Bech32Format,
+		},
+	)
 	if err != nil {
-		return "", nil, err
+		return err
 	}
 
-	skHex := []byte(hex.EncodeToString(skBytes))
-	pkHex := hex.EncodeToString(pkBytes)
+	genForBlockSigningSk := signing.NewKeyGenerator(ed25519.NewEd25519())
 
-	return pkHex, skHex, nil
+	return generateAndSave(index, numKeys, initialBalancesSkFileName, genForBlockSigningSk, pubkeyConverter)
+}
+
+func generateAndSave(index int, numKeys int, baseFilename string, genForBlockSigningSk crypto.KeyGenerator, pubkeyConverter state.PubkeyConverter) error {
+	folder, err := generateFolder(index, numKeys)
+	if err != nil {
+		return err
+	}
+
+	filename := filepath.Join(folder, baseFilename)
+	backupFileIfExists(filename)
+
+	err = os.Remove(filename)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, core.FileModeUserReadWrite)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		_ = file.Close()
+	}()
+
+	sk, pk, err := generateKeys(genForBlockSigningSk)
+	if err != nil {
+		return err
+	}
+
+	pkString := pubkeyConverter.Encode(pk)
+
+	return core.SaveSkToPemFile(file, pkString, []byte(hex.EncodeToString(sk)))
 }

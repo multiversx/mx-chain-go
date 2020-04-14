@@ -19,13 +19,13 @@ const (
 // HashLength defines how many bytes are used in a hash
 const HashLength = 32
 
-// AddressConverter is used to convert to/from AddressContainer
-type AddressConverter interface {
-	AddressLen() int
-	CreateAddressFromPublicKeyBytes(pubKey []byte) (AddressContainer, error)
-	ConvertToHex(addressContainer AddressContainer) (string, error)
-	CreateAddressFromHex(hexAddress string) (AddressContainer, error)
-	PrepareAddressBytes(addressBytes []byte) ([]byte, error)
+// PubkeyConverter can convert public key bytes to/from a human readable form
+type PubkeyConverter interface {
+	Len() int
+	Decode(humanReadable string) ([]byte, error)
+	Encode(pkBytes []byte) string
+	CreateAddressFromString(humanReadable string) (AddressContainer, error)
+	CreateAddressFromBytes(pkBytes []byte) (AddressContainer, error)
 	IsInterfaceNil() bool
 }
 

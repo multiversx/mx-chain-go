@@ -9,6 +9,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createMockPubkeyConverter() *mock.PubkeyConverterMock {
+	return mock.NewPubkeyConverterMock(32)
+}
+
 func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 	t.Parallel()
 
@@ -18,7 +22,7 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -45,7 +49,7 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -72,7 +76,7 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		nil,
 		&mock.HasherMock{},
 		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -99,7 +103,7 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&mock.MarshalizerMock{},
 		nil,
 		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -126,7 +130,7 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		nil,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -167,7 +171,7 @@ func TestNewPreProcessorsContainerFactory_NilAddrConv(t *testing.T) {
 		&mock.BalanceComputationStub{},
 	)
 
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 	assert.Nil(t, ppcm)
 }
 
@@ -180,7 +184,7 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		nil,
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -207,7 +211,7 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		nil,
@@ -234,7 +238,7 @@ func TestNewPreProcessorsContainerFactory_NilSCProcessor(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -261,7 +265,7 @@ func TestNewPreProcessorsContainerFactory_NilSCR(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -288,7 +292,7 @@ func TestNewPreProcessorsContainerFactory_NilRewardTxProcessor(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -315,7 +319,7 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		nil,
 		&mock.TxProcessorMock{},
@@ -342,7 +346,7 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -369,7 +373,7 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -396,7 +400,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -423,7 +427,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *test
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -477,7 +481,7 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -509,7 +513,7 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		dataPool,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -550,7 +554,7 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		dataPool,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -600,7 +604,7 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		dataPool,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},

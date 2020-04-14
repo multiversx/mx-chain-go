@@ -22,7 +22,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 				return &mock.AccountWrapMock{}, nil
 			},
 		},
-		AddrConv:         mock.NewAddressConverterFake(32, ""),
+		PubkeyConv:       mock.NewPubkeyConverterMock(32),
 		StorageService:   &mock.ChainStorerMock{},
 		BlockChain:       &mock.BlockChainMock{},
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
