@@ -324,3 +324,14 @@ const TriggerRegistryInitialKeyPrefix = "initial_value_epoch_"
 
 // NodesCoordinatorRegistryKeyPrefix is the key prefix to save epoch start registry to storage
 const NodesCoordinatorRegistryKeyPrefix = "indexHashed_"
+
+const (
+	// BuiltInFunctionClaimDeveloperRewards is a built-in function
+	BuiltInFunctionClaimDeveloperRewards = "ClaimDeveloperRewards"
+	// BuiltInFunctionChangeOwnerAddress is a built-in function
+	BuiltInFunctionChangeOwnerAddress = "ChangeOwnerAddress"
+	// BuiltInFunctionSetUserName is a built-in function
+	BuiltInFunctionSetUserName = "SetUserName"
+	// BuiltInFunctionSaveKeyValue is a built-in function
+	BuiltInFunctionSaveKeyValue = "SaveKeyValue"
+)

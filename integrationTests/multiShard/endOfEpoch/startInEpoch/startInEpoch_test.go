@@ -318,6 +318,7 @@ func createTries(
 	return trieStorageManagers, trieContainer, nil
 }
 
+// TODO: We should remove this type of configs hidden in tests
 func getGeneralConfig() config.Config {
 	return config.Config{
 		GeneralSettings: config.GeneralSettingsConfig{
@@ -552,8 +553,22 @@ func getGeneralConfig() config.Config {
 			DB: config.DBConfig{
 				FilePath:          "BootstrapData",
 				Type:              string(storageUnit.LvlDBSerial),
-				BatchDelaySeconds: 30,
+				BatchDelaySeconds: 1,
 				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		TxLogsStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Type:        "LRU",
+				Size:        1000,
+				Shards:      1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "Logs",
+				Type:              string(storageUnit.LvlDBSerial),
+				BatchDelaySeconds: 2,
+				MaxBatchSize:      100,
 				MaxOpenFiles:      10,
 			},
 		},
