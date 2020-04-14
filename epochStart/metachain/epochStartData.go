@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -22,6 +23,7 @@ type epochStartData struct {
 	blockTracker      process.BlockTracker
 	shardCoordinator  sharding.Coordinator
 	epochStartTrigger process.EpochStartTriggerHandler
+	requestHandler    epochStart.RequestHandler
 }
 
 // ArgsNewEpochStartData defines the input parameters for epoch start data creator
@@ -33,6 +35,7 @@ type ArgsNewEpochStartData struct {
 	BlockTracker      process.BlockTracker
 	ShardCoordinator  sharding.Coordinator
 	EpochStartTrigger process.EpochStartTriggerHandler
+	RequestHandler    epochStart.RequestHandler
 }
 
 // NewEpochStartData creates a new epoch start creator
@@ -55,6 +58,9 @@ func NewEpochStartData(args ArgsNewEpochStartData) (*epochStartData, error) {
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if check.IfNil(args.RequestHandler) {
+		return nil, process.ErrNilRequestHandler
+	}
 
 	e := &epochStartData{
 		marshalizer:       args.Marshalizer,
@@ -64,6 +70,7 @@ func NewEpochStartData(args ArgsNewEpochStartData) (*epochStartData, error) {
 		blockTracker:      args.BlockTracker,
 		shardCoordinator:  args.ShardCoordinator,
 		epochStartTrigger: args.EpochStartTrigger,
+		requestHandler:    args.RequestHandler,
 	}
 
 	return e, nil
@@ -197,6 +204,7 @@ func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr *
 	for currentHdr := shardHdr; currentHdr.GetNonce() > 0 && currentHdr.GetEpoch() == shardHdr.GetEpoch(); {
 		prevShardHdr, err := process.GetShardHeader(currentHdr.GetPrevHash(), e.dataPool.Headers(), e.marshalizer, e.store)
 		if err != nil {
+			go e.requestHandler.RequestShardHeader(currentHdr.ShardID, currentHdr.GetPrevHash())
 			return nil, nil, nil, err
 		}
 
@@ -297,6 +305,7 @@ func (e *epochStartData) computePendingMiniBlockList(
 
 		metaHdr, err := e.getMetaBlockByHash(shardData.FirstPendingMetaBlock)
 		if err != nil {
+			go e.requestHandler.RequestMetaHeader(shardData.FirstPendingMetaBlock)
 			return nil, err
 		}
 

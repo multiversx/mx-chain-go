@@ -382,6 +382,7 @@ type EpochStartTriggerHandler interface {
 	Update(round uint64, nonce uint64)
 	IsEpochStart() bool
 	Epoch() uint32
+	MetaEpoch() uint32
 	EpochStartRound() uint64
 	SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	RevertStateToBlock(header data.HeaderHandler) error

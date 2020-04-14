@@ -2119,6 +2119,7 @@ func newMetaBlockProcessor(
 		BlockTracker:      blockTracker,
 		ShardCoordinator:  shardCoordinator,
 		EpochStartTrigger: epochStartTrigger,
+		RequestHandler:    requestHandler,
 	}
 	epochStartDataCreator, err := metachainEpochStart.NewEpochStartData(argsEpochStartData)
 	if err != nil {
