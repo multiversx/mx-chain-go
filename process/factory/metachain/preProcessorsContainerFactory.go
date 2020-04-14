@@ -176,7 +176,7 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.requestHandler.RequestUnsignedTransactions,
 		ppcm.gasHandler,
 		ppcm.economicsFee,
-		ppcm.addressConverter,
+		ppcm.pubkeyConverter,
 		ppcm.blockSizeComputation,
 		ppcm.balanceComputation,
 	)

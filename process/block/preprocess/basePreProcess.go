@@ -50,7 +50,7 @@ type basePreProcess struct {
 	blockSizeComputation BlockSizeComputationHandler
 	balanceComputation   BalanceComputationHandler
 	accounts             state.AccountsAdapter
-	addressConverter     state.AddressConverter
+	pubkeyConverter      state.PubkeyConverter
 }
 
 func (bpp *basePreProcess) removeDataFromPools(
@@ -328,7 +328,7 @@ func (bpp *basePreProcess) setInitialBalanceForAddress(address []byte) {
 }
 
 func (bpp *basePreProcess) getBalanceForAddress(address []byte) (*big.Int, error) {
-	addressContainer, err := bpp.addressConverter.CreateAddressFromPublicKeyBytes(address)
+	addressContainer, err := bpp.pubkeyConverter.CreateAddressFromBytes(address)
 	if err != nil {
 		return nil, err
 	}

@@ -40,7 +40,7 @@ func NewSmartContractResultPreprocessor(
 	onRequestSmartContractResult func(shardID uint32, txHashes [][]byte),
 	gasHandler process.GasHandler,
 	economicsFee process.FeeHandler,
-	addressConverter state.AddressConverter,
+	pubkeyConverter state.PubkeyConverter,
 	blockSizeComputation BlockSizeComputationHandler,
 	balanceComputation BalanceComputationHandler,
 ) (*smartContractResults, error) {
@@ -75,8 +75,8 @@ func NewSmartContractResultPreprocessor(
 	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(addressConverter) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(blockSizeComputation) {
 		return nil, process.ErrNilBlockSizeComputationHandler
@@ -94,7 +94,7 @@ func NewSmartContractResultPreprocessor(
 		blockSizeComputation: blockSizeComputation,
 		balanceComputation:   balanceComputation,
 		accounts:             accounts,
-		addressConverter:     addressConverter,
+		pubkeyConverter:      pubkeyConverter,
 	}
 
 	scr := &smartContractResults{

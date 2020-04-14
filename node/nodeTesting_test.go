@@ -93,7 +93,7 @@ func TestGenerateAndSendBulkTransactions_NilShardCoordinatorShouldErr(t *testing
 	assert.Equal(t, node.ErrNilShardCoordinator, err)
 }
 
-func TestGenerateAndSendBulkTransactions_NilAddressConverterShouldErr(t *testing.T) {
+func TestGenerateAndSendBulkTransactions_NilPubkeyConverterShouldErr(t *testing.T) {
 	marshalizer := &mock.MarshalizerFake{}
 	accAdapter := getAccAdapter(big.NewInt(0))
 	keyGen := &mock.KeyGenMock{}

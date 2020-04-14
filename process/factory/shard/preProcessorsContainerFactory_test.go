@@ -454,7 +454,7 @@ func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testin
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		mock.NewPoolsHolderMock(),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},

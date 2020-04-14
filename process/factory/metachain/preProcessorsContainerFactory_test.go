@@ -282,7 +282,7 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 	assert.Nil(t, ppcm)
 }
 
-func TestNewPreProcessorsContainerFactory_NilAddressConverter(t *testing.T) {
+func TestNewPreProcessorsContainerFactory_NilPubkeyConverter(t *testing.T) {
 	t.Parallel()
 
 	ppcm, err := metachain.NewPreProcessorsContainerFactory(
@@ -346,7 +346,7 @@ func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testin
 		&mock.FeeHandlerStub{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 		nil,
 	)

@@ -468,7 +468,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockTracker(t *testing.T)
 	assert.Equal(t, process.ErrNilBlockTracker, err)
 }
 
-func TestTxsPreprocessor_NewTransactionPreprocessorNilAddressConverter(t *testing.T) {
+func TestTxsPreprocessor_NewTransactionPreprocessorNilPubkeyConverter(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -540,7 +540,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBalanceComputationHandler(
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 		nil,
 	)

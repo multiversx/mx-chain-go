@@ -213,7 +213,7 @@ func TestNewInterceptedTransaction_NilSignerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilSingleSigner, err)
 }
 
-func TestNewInterceptedTransaction_NilAddressConverterShouldErr(t *testing.T) {
+func TestNewInterceptedTransaction_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txi, err := transaction.NewInterceptedTransaction(

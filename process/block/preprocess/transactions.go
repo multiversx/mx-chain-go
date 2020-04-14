@@ -42,7 +42,6 @@ type transactions struct {
 	mutOrderedTxs        sync.RWMutex
 	blockTracker         BlockTracker
 	blockType            block.Type
-	pubkeyConverter      state.PubkeyConverter
 	accountsInfo         map[string]*txShardInfo
 	mutAccountsInfo      sync.RWMutex
 	emptyAddress         []byte
@@ -119,7 +118,7 @@ func NewTransactionPreprocessor(
 		blockSizeComputation: blockSizeComputation,
 		balanceComputation:   balanceComputation,
 		accounts:             accounts,
-		addressConverter:     addressConverter,
+		pubkeyConverter:      pubkeyConverter,
 	}
 
 	txs := transactions{
@@ -130,7 +129,6 @@ func NewTransactionPreprocessor(
 		txProcessor:          txProcessor,
 		blockTracker:         blockTracker,
 		blockType:            blockType,
-		pubkeyConverter:      pubkeyConverter,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)

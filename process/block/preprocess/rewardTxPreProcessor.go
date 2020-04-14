@@ -39,7 +39,7 @@ func NewRewardTxPreprocessor(
 	accounts state.AccountsAdapter,
 	onRequestRewardTransaction func(shardID uint32, txHashes [][]byte),
 	gasHandler process.GasHandler,
-	addressConverter state.AddressConverter,
+	pubkeyConverter state.PubkeyConverter,
 	blockSizeComputation BlockSizeComputationHandler,
 	balanceComputation BalanceComputationHandler,
 ) (*rewardTxPreprocessor, error) {
@@ -71,8 +71,8 @@ func NewRewardTxPreprocessor(
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
-	if check.IfNil(addressConverter) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(blockSizeComputation) {
 		return nil, process.ErrNilBlockSizeComputationHandler
@@ -89,7 +89,7 @@ func NewRewardTxPreprocessor(
 		blockSizeComputation: blockSizeComputation,
 		balanceComputation:   balanceComputation,
 		accounts:             accounts,
-		addressConverter:     addressConverter,
+		pubkeyConverter:      pubkeyConverter,
 	}
 
 	rtp := &rewardTxPreprocessor{

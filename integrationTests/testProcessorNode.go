@@ -1131,9 +1131,9 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
-		blsKeyedAddressConverter, _ := pubkeyConverter.NewHexPubkeyConverter(128)
+		blsKeyedPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(128)
 		argsStakingToPeer := scToProtocol.ArgStakingToPeer{
-			PubkeyConv:       blsKeyedAddressConverter,
+			PubkeyConv:       blsKeyedPubkeyConverter,
 			Hasher:           TestHasher,
 			ProtoMarshalizer: TestMarshalizer,
 			VmMarshalizer:    TestVmMarshalizer,
