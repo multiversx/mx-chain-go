@@ -49,7 +49,6 @@ const SendTransactionsPipe = "send transactions pipe"
 
 var log = logger.GetOrCreate("node")
 var numSecondsBetweenPrints = 20
-var stepWaitTime = time.Second
 
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
@@ -657,13 +656,17 @@ func (n *Node) sendFromTxAccumulator() {
 	}
 }
 
-func (n *Node) printTxSentCounter(numSeconds int, waitTime time.Duration) {
+// printTxSentCounter prints the peak transaction counter from a time frame of about 'numSecondsBetweenPrints' seconds
+// if this peak value is 0 (no transaction was sent through the REST API interface), the print will not be done
+// the peak counter resets after each print. There is also a total number of transactions sent to p2p
+// TODO make this function testable. Refactor if necessary.
+func (n *Node) printTxSentCounter() {
 	maxTxCounter := uint32(0)
 	totalTxCounter := uint64(0)
 	counterSeconds := 0
 
 	for {
-		time.Sleep(waitTime)
+		time.Sleep(time.Second)
 
 		txSent := atomic.SwapUint32(&n.txSentCounter, 0)
 		if txSent > maxTxCounter {
@@ -672,7 +675,7 @@ func (n *Node) printTxSentCounter(numSeconds int, waitTime time.Duration) {
 		totalTxCounter += uint64(txSent)
 
 		counterSeconds++
-		if counterSeconds > numSeconds {
+		if counterSeconds > numSecondsBetweenPrints {
 			counterSeconds = 0
 
 			if maxTxCounter > 0 {
