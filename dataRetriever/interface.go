@@ -34,6 +34,8 @@ const (
 	BootstrapUnit UnitType = 9
 	//StatusMetricsUnit is the status metrics storage unit identifier
 	StatusMetricsUnit UnitType = 10
+	// TxLogsUnit is the status metrics storage unit identifier
+	TxLogsUnit UnitType = 11
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100

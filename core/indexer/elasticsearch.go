@@ -1,14 +1,13 @@
 package indexer
 
 import (
-	"encoding/hex"
-
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -25,15 +24,17 @@ type Options struct {
 
 //ElasticIndexerArgs is struct that is used to store all components that are needed to create a indexer
 type ElasticIndexerArgs struct {
-	ShardId            uint32
-	Url                string
-	UserName           string
-	Password           string
-	Marshalizer        marshal.Marshalizer
-	Hasher             hashing.Hasher
-	EpochStartNotifier sharding.EpochStartEventNotifier
-	NodesCoordinator   sharding.NodesCoordinator
-	Options            *Options
+	ShardId                  uint32
+	Url                      string
+	UserName                 string
+	Password                 string
+	Marshalizer              marshal.Marshalizer
+	Hasher                   hashing.Hasher
+	EpochStartNotifier       sharding.EpochStartEventNotifier
+	NodesCoordinator         sharding.NodesCoordinator
+	AddressPubkeyConverter   state.PubkeyConverter
+	ValidatorPubkeyConverter state.PubkeyConverter
+	Options                  *Options
 }
 
 type elasticIndexer struct {
@@ -53,11 +54,13 @@ func NewElasticIndexer(arguments ElasticIndexerArgs) (Indexer, error) {
 	}
 
 	databaseArguments := elasticSearchDatabaseArgs{
-		url:         arguments.Url,
-		userName:    arguments.UserName,
-		password:    arguments.Password,
-		marshalizer: arguments.Marshalizer,
-		hasher:      arguments.Hasher,
+		addressPubkeyConverter:   arguments.AddressPubkeyConverter,
+		validatorPubkeyConverter: arguments.ValidatorPubkeyConverter,
+		url:                      arguments.Url,
+		userName:                 arguments.UserName,
+		password:                 arguments.Password,
+		marshalizer:              arguments.Marshalizer,
+		hasher:                   arguments.Hasher,
 	}
 	client, err := newElasticSearchDatabase(databaseArguments)
 	if err != nil {
@@ -144,14 +147,10 @@ func (ei *elasticIndexer) SaveValidatorsRating(indexID string, validatorsRatingI
 
 //SaveValidatorsPubKeys will send all validators public keys to elasticsearch
 func (ei *elasticIndexer) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32) {
-	valPubKeys := make(map[uint32][]string)
 	for shardID, shardPubKeys := range validatorsPubKeys {
-		for _, pubKey := range shardPubKeys {
-			valPubKeys[shardID] = append(valPubKeys[shardID], hex.EncodeToString(pubKey))
-		}
-		go func(id, epochNumber uint32, publicKeys []string) {
+		go func(id, epochNumber uint32, publicKeys [][]byte) {
 			ei.database.SaveShardValidatorsPubKeys(id, epochNumber, publicKeys)
-		}(shardID, epoch, valPubKeys[shardID])
+		}(shardID, epoch, shardPubKeys)
 	}
 }
 

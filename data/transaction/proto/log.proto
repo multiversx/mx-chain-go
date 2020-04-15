@@ -1,0 +1,23 @@
+// This file holds the data structures related with the transaction logs functionality
+syntax = "proto3";
+
+package proto;
+
+option go_package = "transaction";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// Event holds all the data needed for an event structure
+message Event {
+    bytes Address          = 1 [(gogoproto.jsontag) = "address"];
+    bytes Identifier       = 2 [(gogoproto.jsontag) = "identifier"];
+    repeated bytes Topics  = 3 [(gogoproto.jsontag) = "topics"];
+    bytes Data             = 4 [(gogoproto.jsontag) = "data"];
+}
+
+// Log holds all the data needed for a log structure
+message Log {
+    bytes Address         = 1 [(gogoproto.jsontag) = "address"];
+    repeated Event Events = 2 [(gogoproto.jsontag) = "events"];
+}

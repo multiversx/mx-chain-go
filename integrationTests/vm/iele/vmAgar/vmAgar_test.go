@@ -30,7 +30,7 @@ func TestDeployAgarioContract(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
-	iele.DeployContract(
+	_ = iele.DeployContract(
 		t,
 		senderAddressBytes,
 		senderNonce,
@@ -65,7 +65,7 @@ func TestAgarioContractTopUpShouldWork(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
-	iele.DeployContract(
+	_ = iele.DeployContract(
 		t,
 		senderAddressBytes,
 		senderNonce,
@@ -124,7 +124,7 @@ func TestAgarioContractTopUpAnfWithdrawShouldWork(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
-	iele.DeployContract(
+	_ = iele.DeployContract(
 		t,
 		senderAddressBytes,
 		senderNonce,
@@ -213,7 +213,7 @@ func TestAgarioContractJoinGameReward(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
-	iele.DeployContract(
+	_ = iele.DeployContract(
 		t,
 		senderAddressBytes,
 		senderNonce,
@@ -346,7 +346,7 @@ func BenchmarkAgarioJoinGame(b *testing.B) {
 	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
-	iele.DeployContract(
+	_ = iele.DeployContract(
 		b,
 		senderAddressBytes,
 		senderNonce,

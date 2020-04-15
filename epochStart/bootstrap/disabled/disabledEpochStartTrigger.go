@@ -30,6 +30,11 @@ func (e *epochStartTrigger) Epoch() uint32 {
 	return 0
 }
 
+// MetaEpoch -
+func (e *epochStartTrigger) MetaEpoch() uint32 {
+	return 0
+}
+
 // EpochStartRound -
 func (e *epochStartTrigger) EpochStartRound() uint64 {
 	return 0

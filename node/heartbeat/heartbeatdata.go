@@ -15,7 +15,7 @@ type Duration struct {
 
 // PubKeyHeartbeat returns the heartbeat status for a public key
 type PubKeyHeartbeat struct {
-	HexPublicKey    string    `json:"hexPublicKey"`
+	PublicKey       string    `json:"publicKey"`
 	TimeStamp       time.Time `json:"timeStamp"`
 	MaxInactiveTime Duration  `json:"maxInactiveTime"`
 	IsActive        bool      `json:"isActive"`

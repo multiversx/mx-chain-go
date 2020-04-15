@@ -9,13 +9,13 @@ import (
 
 // TriggerRegistry holds the data required to correctly initialize the trigger when booting from saved state
 type TriggerRegistry struct {
+	IsEpochStart                bool
+	NewEpochHeaderReceived      bool
 	Epoch                       uint32
 	CurrentRoundIndex           int64
 	EpochStartRound             uint64
-	EpochMetaBlockHash          []byte
-	IsEpochStart                bool
-	NewEpochHeaderReceived      bool
 	EpochFinalityAttestingRound uint64
+	EpochMetaBlockHash          []byte
 	EpochStartShardHeader       *block.Header
 }
 
@@ -38,6 +38,7 @@ func (t *trigger) LoadState(key []byte) error {
 	t.mutTrigger.Lock()
 	t.triggerStateKey = key
 	t.epoch = state.Epoch
+	t.metaEpoch = state.Epoch
 	t.currentRoundIndex = state.CurrentRoundIndex
 	t.epochStartRound = state.EpochStartRound
 	t.epochMetaBlockHash = state.EpochMetaBlockHash

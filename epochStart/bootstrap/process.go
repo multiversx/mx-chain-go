@@ -95,6 +95,7 @@ type epochStartBootstrap struct {
 	uint64Converter            typeConverters.Uint64ByteSliceConverter
 	nodeShuffler               sharding.NodesShuffler
 	rounder                    epochStart.Rounder
+	addressPubkeyConverter     state.PubkeyConverter
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -129,6 +130,12 @@ type baseDataInStorage struct {
 
 // ArgsEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
 type ArgsEpochStartBootstrap struct {
+	DestinationShardAsObserver uint32
+	WorkingDir                 string
+	DefaultDBPath              string
+	DefaultEpochString         string
+	DefaultShardString         string
+	TrieStorageManagers        map[string]data.StorageManager
 	PublicKey                  crypto.PublicKey
 	Marshalizer                marshal.Marshalizer
 	TxSignMarshalizer          marshal.Marshalizer
@@ -150,12 +157,11 @@ type ArgsEpochStartBootstrap struct {
 	DefaultEpochString         string
 	DefaultShardString         string
 	Rater                      sharding.ChanceComputer
-	DestinationShardAsObserver uint32
 	TrieContainer              state.TriesHolder
-	TrieStorageManagers        map[string]data.StorageManager
 	Uint64Converter            typeConverters.Uint64ByteSliceConverter
 	NodeShuffler               sharding.NodesShuffler
 	Rounder                    epochStart.Rounder
+	AddressPubkeyConverter     state.PubkeyConverter
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -193,6 +199,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		rounder:                    args.Rounder,
 		storageOpenerHandler:       args.StorageUnitOpener,
 		latestStorageDataProvider:  args.LatestStorageDataProvider,
+		addressPubkeyConverter:     args.AddressPubkeyConverter,
 	}
 
 	return epochStartProvider, nil
@@ -235,8 +242,9 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	defer func() {
+		log.Debug("unregistering all message processor")
 		errMessenger := e.messenger.UnregisterAllMessageProcessors()
-		log.LogIfError(errMessenger, "error on unregistering message processor")
+		log.LogIfError(errMessenger)
 	}()
 
 	var err error
@@ -274,7 +282,12 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	return e.requestAndProcessing()
+	params, err := e.requestAndProcessing()
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	return params, nil
 }
 
 func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
@@ -340,6 +353,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		Signer:            e.singleSigner,
 		BlockSigner:       e.blockSingleSigner,
 		WhitelistHandler:  e.whiteListHandler,
+		AddressPubkeyConv: e.addressPubkeyConverter,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -366,6 +380,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		BlockKeyGen:       e.blockKeyGen,
 		WhiteListHandler:  e.whiteListHandler,
 		ChainID:           []byte(e.genesisNodesConfig.GetChainId()),
+		AddressPubkeyConv: e.addressPubkeyConverter,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
@@ -391,8 +406,11 @@ func (e *epochStartBootstrap) createSyncers() error {
 		RequestHandler: e.requestHandler,
 	}
 	e.headersSyncer, err = sync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
+	if err != nil {
+		return err
+	}
 
-	return err
+	return nil
 }
 
 func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string]data.HeaderHandler, error) {
@@ -470,6 +488,11 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		if err != nil {
 			return Parameters{}, err
 		}
+	}
+
+	err = e.messenger.CreateTopic(core.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
+	if err != nil {
+		return Parameters{}, err
 	}
 
 	if e.shardCoordinator.SelfId() == core.MetachainShardId {

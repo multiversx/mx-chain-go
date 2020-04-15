@@ -2,6 +2,7 @@ package transaction_test
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 	"testing"
 
@@ -21,7 +22,7 @@ func createMetaTxProcessor() process.TransactionProcessor {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
@@ -40,7 +41,7 @@ func TestNewMetaTxProcessor_NilAccountsShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		nil,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
@@ -65,7 +66,7 @@ func TestNewMetaTxProcessor_NilAddressConverterMockShouldErr(t *testing.T) {
 		createFreeTxFeeHandler(),
 	)
 
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 	assert.Nil(t, txProc)
 }
 
@@ -76,7 +77,7 @@ func TestNewMetaTxProcessor_NilShardCoordinatorMockShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		nil,
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
@@ -94,7 +95,7 @@ func TestNewMetaTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		nil,
 		&mock.TxTypeHandlerMock{},
@@ -112,7 +113,7 @@ func TestNewMetaTxProcessor_NilTxTypeHandlerShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		nil,
@@ -130,7 +131,7 @@ func TestNewMetaTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
@@ -148,7 +149,7 @@ func TestNewMetaTxProcessor_OkValsShouldWork(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
@@ -173,20 +174,20 @@ func TestMetaTxProcessor_ProcessTransactionNilTxShouldErr(t *testing.T) {
 func TestMetaTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T) {
 	t.Parallel()
 
-	addressConv := &mock.AddressConverterMock{}
-
+	expectedErr := errors.New("expected error")
 	execTx, _ := txproc.NewMetaTxProcessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsStub{},
-		addressConv,
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pkBytes []byte) (container state.AddressContainer, err error) {
+				return nil, expectedErr
+			}},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
 		createFreeTxFeeHandler(),
 	)
-
-	addressConv.Fail = true
 
 	err := execTx.ProcessTransaction(&transaction.Transaction{})
 	assert.NotNil(t, err)
@@ -201,7 +202,7 @@ func TestMetaTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testi
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		adb,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
@@ -239,7 +240,7 @@ func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		adb,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
 		&mock.TxTypeHandlerMock{},
@@ -277,7 +278,7 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldCallProcessIfError(t *testing.
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		adb,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{
 			ProcessIfErrorCalled: func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, snapshot int) error {
@@ -298,12 +299,11 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	t.Parallel()
 
 	saveAccountCalled := 0
-	addrConverter := &mock.AddressConverterMock{}
 
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
 	tx.Value = big.NewInt(45)
 	tx.GasPrice = 1
 	tx.GasLimit = 1
@@ -334,7 +334,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		adb,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		scProcessorMock,
 		&mock.TxTypeHandlerMock{
@@ -355,12 +355,11 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 	t.Parallel()
 
 	saveAccountCalled := 0
-	addrConverter := &mock.AddressConverterMock{}
 
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
 	tx.Value = big.NewInt(45)
 
 	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
@@ -388,7 +387,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		adb,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		scProcessorMock,
 		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
@@ -409,12 +408,11 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	saveAccountCalled := 0
-	addrConverter := &mock.AddressConverterMock{}
 
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
 	tx.Value = big.NewInt(45)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
@@ -451,7 +449,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		AddressConverter: &mock.AddressConverterMock{},
+		PubkeyConverter:  createMockPubkeyConverter(),
 		ShardCoordinator: shardCoordinator,
 		BuiltInFuncNames: make(map[string]struct{}),
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),
@@ -462,7 +460,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		adb,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		shardCoordinator,
 		scProcessorMock,
 		computeType,
