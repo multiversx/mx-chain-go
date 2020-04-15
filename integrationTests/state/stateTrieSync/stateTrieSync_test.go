@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
@@ -17,6 +18,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/stretchr/testify/assert"
 )
+
+var log = logger.GetOrCreate("stateTrieSyncTest")
 
 func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	if testing.Short() {
@@ -48,7 +51,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	time.Sleep(integrationTests.SyncDelay)
 
 	resolverTrie := nResolver.TrieContainer.Get([]byte(factory2.UserAccountTrie))
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 1600; i++ {
 		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
 
@@ -69,6 +72,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		10*time.Millisecond,
 	)
 
+	_ = logger.SetLogLevel(":DEBUG")
 	waitTime := 100 * time.Second
 	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, shardID, factory.AccountTrieNodesTopic)
 	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
@@ -80,6 +84,9 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	newRootHash, _ := requesterTrie.Root()
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
+
+	log.Trace("trie", requesterTrie.String())
+
 	_, err = requesterTrie.GetAllLeaves()
 	assert.Nil(t, err)
 }

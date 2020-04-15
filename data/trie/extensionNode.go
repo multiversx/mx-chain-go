@@ -463,7 +463,7 @@ func (en *extensionNode) print(writer io.Writer, index int, db data.DBWriteCache
 
 	err := resolveIfCollapsed(en, 0, db)
 	if err != nil {
-		log.Debug("print trie err", "error", err, "hash", en.EncodedChild)
+		log.Debug("extension node: print trie err", "error", err, "hash", en.EncodedChild)
 	}
 
 	key := ""

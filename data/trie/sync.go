@@ -133,6 +133,7 @@ func (ts *trieSyncer) getNextNodes() (bool, error) {
 
 			if !ts.rootFound && bytes.Equal([]byte(nodeHash), ts.rootHash) {
 				ts.trie.root = currentNode
+				ts.rootFound = true
 			}
 
 			currentMissingNodes, nextNodes, err = currentNode.loadChildren(ts.getNode)

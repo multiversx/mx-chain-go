@@ -543,7 +543,7 @@ func (bn *branchNode) print(writer io.Writer, index int, db data.DBWriteCacher) 
 	for i := 0; i < len(bn.children); i++ {
 		err := resolveIfCollapsed(bn, byte(i), db)
 		if err != nil {
-			log.Debug("print trie err", "error", err, "hash", bn.EncodedChildren[i])
+			log.Debug("branch node: print trie err", "error", err, "hash", bn.EncodedChildren[i])
 		}
 
 		if bn.children[i] == nil {
