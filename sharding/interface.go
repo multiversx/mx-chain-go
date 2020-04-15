@@ -57,7 +57,7 @@ type PublicKeysSelector interface {
 
 // EpochHandler defines what a component which handles current epoch should be able to do
 type EpochHandler interface {
-	Epoch() uint32
+	MetaEpoch() uint32
 	IsInterfaceNil() bool
 }
 

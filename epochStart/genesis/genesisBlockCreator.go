@@ -402,8 +402,12 @@ func setStakedData(
 ) error {
 	// create staking smart contract state for genesis - update fixed stake value from all
 	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
-	for i := range initialNodeInfo {
-		nodeInfoList := initialNodeInfo[i]
+	for i := 0; i < len(initialNodeInfo); i++ {
+		shardID := uint32(i)
+		if i == len(initialNodeInfo)-1 {
+			shardID = core.MetachainShardId
+		}
+		nodeInfoList := initialNodeInfo[shardID]
 		for _, nodeInfo := range nodeInfoList {
 			tx := &transaction.Transaction{
 				Nonce:     0,

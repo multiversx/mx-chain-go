@@ -473,7 +473,9 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 }
 
 func (tpn *TestProcessorNode) initRatingsData() {
-	tpn.RatingsData = CreateRatingsData()
+	if tpn.RatingsData == nil {
+		tpn.RatingsData = CreateRatingsData()
+	}
 }
 
 // CreateEconomicsData creates a mock EconomicsData object
@@ -1144,6 +1146,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			BlockTracker:      tpn.BlockTracker,
 			ShardCoordinator:  tpn.ShardCoordinator,
 			EpochStartTrigger: tpn.EpochStartTrigger,
+			RequestHandler:    tpn.RequestHandler,
 		}
 		epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartData)
 
