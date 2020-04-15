@@ -2,7 +2,6 @@ package leveldb
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
@@ -15,7 +14,7 @@ func openLevelDB(path string, options *opt.Options) (*leveldb.DB, error) {
 		return db, nil
 	}
 
-	if reflect.TypeOf(errOpen) == reflect.TypeOf(&errors.ErrCorrupted{}) {
+	if errors.IsCorrupted(errOpen) {
 		var errRecover error
 		log.Warn("corrupted DB file",
 			"path", path,
