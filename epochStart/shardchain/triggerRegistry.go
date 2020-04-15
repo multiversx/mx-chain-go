@@ -38,6 +38,7 @@ func (t *trigger) LoadState(key []byte) error {
 	t.mutTrigger.Lock()
 	t.triggerStateKey = key
 	t.epoch = state.Epoch
+	t.metaEpoch = state.Epoch
 	t.currentRoundIndex = state.CurrentRoundIndex
 	t.epochStartRound = state.EpochStartRound
 	t.epochMetaBlockHash = state.EpochMetaBlockHash
