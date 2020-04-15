@@ -10,6 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
+var _ dataRetriever.ResolversContainer = (*resolversContainer)(nil)
+
 // resolversContainer is a resolvers holder organized by type
 type resolversContainer struct {
 	objects *container.MutexMap

@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ consensus.BroadcastMessenger = (*shardChainMessenger)(nil)
+
 type shardChainMessenger struct {
 	*commonMessenger
 	marshalizer      marshal.Marshalizer

@@ -12,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ consensus.BroadcastMessenger = (*metaChainMessenger)(nil)
+
 type metaChainMessenger struct {
 	*commonMessenger
 	marshalizer marshal.Marshalizer

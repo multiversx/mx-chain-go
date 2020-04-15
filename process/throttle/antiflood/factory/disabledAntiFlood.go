@@ -1,8 +1,11 @@
 package factory
 
 import (
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
+
+var _ consensus.P2PAntifloodHandler = (*disabledAntiFlood)(nil)
 
 type disabledAntiFlood struct {
 }

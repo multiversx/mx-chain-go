@@ -7,6 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ dataRetriever.ResolversFinder = (*resolversFinder)(nil)
+
 // resolversFinder is an implementation of process.ResolverContainer meant to be used
 // wherever a resolver fetch is required
 type resolversFinder struct {

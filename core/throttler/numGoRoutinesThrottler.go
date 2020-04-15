@@ -4,7 +4,10 @@ import (
 	"sync/atomic"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
+
+var _ dataRetriever.ResolverThrottler = (*NumGoRoutinesThrottler)(nil)
 
 // NumGoRoutinesThrottler can limit the number of go routines launched
 type NumGoRoutinesThrottler struct {

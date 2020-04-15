@@ -11,6 +11,8 @@ import (
 
 var log = logger.GetOrCreate("process/throttle/antiflood")
 
+var _ process.P2PAntifloodHandler = (*p2pAntiflood)(nil)
+
 type p2pAntiflood struct {
 	process.FloodPreventer
 	process.TopicFloodPreventer

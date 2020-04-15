@@ -23,6 +23,8 @@ import (
 
 var log = logger.GetOrCreate("epochStart/metachain")
 
+var _ dataRetriever.EpochHandler = (*trigger)(nil)
+
 const minimumNonceToStartEpoch = 4
 
 // ArgsNewMetaEpochStartTrigger defines struct needed to create a new start of epoch trigger

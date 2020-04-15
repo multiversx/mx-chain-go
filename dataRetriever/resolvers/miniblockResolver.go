@@ -12,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ dataRetriever.MiniBlocksResolver = (*miniblockResolver)(nil)
+
 // ArgMiniblockResolver is the argument structure used to create a new miniblockResolver instance
 type ArgMiniblockResolver struct {
 	SenderResolver   dataRetriever.TopicResolverSender

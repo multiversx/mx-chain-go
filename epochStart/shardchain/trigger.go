@@ -27,6 +27,8 @@ import (
 
 var log = logger.GetOrCreate("epochStart/shardchain")
 
+var _ dataRetriever.EpochHandler = (*trigger)(nil)
+
 // sleepTime defines the time in milliseconds between each iteration made in requestMissingMiniblocks method
 const sleepTime = 1 * time.Second
 
