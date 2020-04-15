@@ -525,7 +525,6 @@ func (en *extensionNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 	}
 
 	if en.child == nil {
-		log.Debug("extension node edge case", "encodedChild", en.EncodedChild, "dirty", en.isDirty())
 		return nil
 	}
 
