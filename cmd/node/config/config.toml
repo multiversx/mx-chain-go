@@ -371,7 +371,7 @@
    Type = "bls"
 
 [NTPConfig]
-   Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com", "time.windows.com"]
+   Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com"]
    Port = 123
    TimeoutMilliseconds = 100
    SyncPeriodSeconds = 3600

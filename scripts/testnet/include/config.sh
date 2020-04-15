@@ -23,12 +23,8 @@ copyConfig() {
 
   cp ./filegen/genesis.json ./node/config
   cp ./filegen/nodesSetup.json ./node/config
-  cp ./filegen/initialBalancesPkPlain.txt ./node/config
-  cp ./filegen/initialBalancesSk.pem ./node/config
-  cp ./filegen/initialBalancesSkPlain.txt ./node/config
-  cp ./filegen/initialNodesPkPlain.txt ./node/config
-  cp ./filegen/initialNodesSk.pem ./node/config
-  cp ./filegen/initialNodesSkPlain.txt ./node/config
+  cp ./filegen/validatorKey.pem ./node/config
+  cp ./filegen/walletKey.pem ./node/config
   echo "Configuration files copied from the configuration generator to the working directories of the executables."
   popd
 }
