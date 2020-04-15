@@ -117,7 +117,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 	var currentNode node
 	var err error
 	var nextNodes []node
-	missingNodes := make(map[string]struct{}, 0)
+	missingNodes := make(map[string]struct{})
 	currentMissingNodes := make([][]byte, 0)
 	checkedNodes := make(map[string]struct{})
 
