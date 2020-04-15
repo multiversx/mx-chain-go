@@ -60,7 +60,7 @@ func NewTrieSyncer(
 		receivedNodes:           make(map[string]node),
 		topic:                   topic,
 		shardId:                 shardId,
-		waitTimeBetweenRequests: requestHandler.RequestInterval(),
+		waitTimeBetweenRequests: time.Second,
 	}
 	ts.interceptedNodes.RegisterHandler(ts.trieNodeIntercepted)
 
@@ -85,7 +85,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 	ts.rootHash = rootHash
 
 	for {
-		shouldRetryAfterRequest, err := ts.getNextNodes()
+		shouldRetryAfterRequest, err := ts.checkIfSynced()
 		if err != nil {
 			return err
 		}
@@ -100,16 +100,16 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 			return nil
 		}
 
-		time.Sleep(ts.waitTimeBetweenRequests)
-
 		select {
+		case <-time.After(ts.waitTimeBetweenRequests):
+			continue
 		case <-ctx.Done():
 			return ErrTimeIsOut
 		}
 	}
 }
 
-func (ts *trieSyncer) getNextNodes() (bool, error) {
+func (ts *trieSyncer) checkIfSynced() (bool, error) {
 	var currentNode node
 	var err error
 	var nextNodes []node
