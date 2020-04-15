@@ -66,7 +66,7 @@ func NewElasticIndexer(arguments ElasticIndexerArgs) (Indexer, error) {
 	}
 	client, err := newElasticSearchDatabase(databaseArguments)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create indexer %w", err)
+		return nil, fmt.Errorf("cannot create indexer: %w", err)
 	}
 
 	indexer := &elasticIndexer{
