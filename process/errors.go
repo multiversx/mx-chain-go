@@ -760,6 +760,3 @@ var ErrUserNameDoesNotMatchInCrossShardTx = errors.New("user name does not match
 
 // ErrNilBalanceComputationHandler signals that a nil balance computation handler has been provided
 var ErrNilBalanceComputationHandler = errors.New("nil balance computation handler")
-
-// ErrAddressHasNoBalanceSet signals that given address has no balance set
-var ErrAddressHasNoBalanceSet = errors.New("address has no balance set")

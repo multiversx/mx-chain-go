@@ -40,9 +40,8 @@ type BlockSizeThrottler interface {
 type BalanceComputationHandler interface {
 	Init()
 	SetBalanceToAddress(address []byte, value *big.Int)
-	GetBalanceOfAddress(address []byte) (*big.Int, error)
 	AddBalanceToAddress(address []byte, value *big.Int) bool
-	SubBalanceFromAddress(address []byte, value *big.Int) (bool, bool)
+	SubBalanceFromAddress(address []byte, value *big.Int) bool
 	HasAddressBalanceSet(address []byte) bool
 	IsBalanceInAddress(address []byte, value *big.Int) bool
 	IsInterfaceNil() bool

@@ -3,8 +3,6 @@ package preprocess
 import (
 	"math/big"
 	"sync"
-
-	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type balanceComputation struct {
@@ -33,49 +31,32 @@ func (bc *balanceComputation) SetBalanceToAddress(address []byte, value *big.Int
 	bc.mutAddressBalance.Unlock()
 }
 
-// GetBalanceOfAddress method gets balance of an address
-func (bc *balanceComputation) GetBalanceOfAddress(address []byte) (*big.Int, error) {
-	bc.mutAddressBalance.RLock()
-	defer bc.mutAddressBalance.RUnlock()
-
-	currValue, ok := bc.mapAddressBalance[string(address)]
-	if !ok {
-		return nil, process.ErrAddressHasNoBalanceSet
-	}
-
-	return big.NewInt(0).Set(currValue), nil
-}
-
 // AddBalanceToAddress method adds balance to an address
 func (bc *balanceComputation) AddBalanceToAddress(address []byte, value *big.Int) bool {
 	bc.mutAddressBalance.Lock()
 	defer bc.mutAddressBalance.Unlock()
 
-	addedWithSuccess := false
 	if currValue, ok := bc.mapAddressBalance[string(address)]; ok {
 		currValue.Add(currValue, value)
-		addedWithSuccess = true
+		return true
 	}
 
-	return addedWithSuccess
+	return false
 }
 
 // SubBalanceFromAddress method subtracts balance from an address
-func (bc *balanceComputation) SubBalanceFromAddress(address []byte, value *big.Int) (bool, bool) {
+func (bc *balanceComputation) SubBalanceFromAddress(address []byte, value *big.Int) bool {
 	bc.mutAddressBalance.Lock()
 	defer bc.mutAddressBalance.Unlock()
 
-	subtractedWithSuccess := false
-	addressExists := false
 	if currValue, ok := bc.mapAddressBalance[string(address)]; ok {
-		addressExists = true
 		if currValue.Cmp(value) >= 0 {
 			currValue.Sub(currValue, value)
-			subtractedWithSuccess = true
+			return true
 		}
 	}
 
-	return addressExists, subtractedWithSuccess
+	return false
 }
 
 // HasAddressBalanceSet method returns if address has balance set or not

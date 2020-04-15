@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/stretchr/testify/assert"
 )
@@ -52,16 +51,15 @@ func TestNewBalanceComputation_SetAndGetBalanceShouldWork(t *testing.T) {
 	value2 := big.NewInt(20)
 
 	bc.SetBalanceToAddress(address1, value1)
-	balance, _ := bc.GetBalanceOfAddress(address1)
+	balance := bc.GetBalanceOfAddress(address1)
 	assert.Equal(t, value1, balance)
 
 	bc.SetBalanceToAddress(address1, value2)
-	balance, _ = bc.GetBalanceOfAddress(address1)
+	balance = bc.GetBalanceOfAddress(address1)
 	assert.Equal(t, value2, balance)
 
-	balance, err := bc.GetBalanceOfAddress(address2)
+	balance = bc.GetBalanceOfAddress(address2)
 	assert.Nil(t, balance)
-	assert.Equal(t, process.ErrAddressHasNoBalanceSet, err)
 }
 
 func TestNewBalanceComputation_AddBalanceToAddressShouldWork(t *testing.T) {
@@ -79,8 +77,8 @@ func TestNewBalanceComputation_AddBalanceToAddressShouldWork(t *testing.T) {
 
 	addedWithSuccess1 := bc.AddBalanceToAddress(address1, value2)
 	addedWithSuccess2 := bc.AddBalanceToAddress(address2, value2)
-	balance1, _ := bc.GetBalanceOfAddress(address1)
-	balance2, _ := bc.GetBalanceOfAddress(address2)
+	balance1 := bc.GetBalanceOfAddress(address1)
+	balance2 := bc.GetBalanceOfAddress(address2)
 
 	assert.True(t, addedWithSuccess1)
 	assert.False(t, addedWithSuccess2)
@@ -102,22 +100,19 @@ func TestNewBalanceComputation_SubBalanceFromAddressShouldWork(t *testing.T) {
 
 	bc.SetBalanceToAddress(address1, value1)
 
-	addressExists, subtractedWithSuccess := bc.SubBalanceFromAddress(address2, value2)
-	assert.False(t, addressExists)
+	subtractedWithSuccess := bc.SubBalanceFromAddress(address2, value2)
 	assert.False(t, subtractedWithSuccess)
-	balance, _ := bc.GetBalanceOfAddress(address1)
+	balance := bc.GetBalanceOfAddress(address1)
 	assert.Equal(t, value1, balance)
 
-	addressExists, subtractedWithSuccess = bc.SubBalanceFromAddress(address1, value2)
-	assert.True(t, addressExists)
+	subtractedWithSuccess = bc.SubBalanceFromAddress(address1, value2)
 	assert.False(t, subtractedWithSuccess)
-	balance, _ = bc.GetBalanceOfAddress(address1)
+	balance = bc.GetBalanceOfAddress(address1)
 	assert.Equal(t, value1, balance)
 
-	addressExists, subtractedWithSuccess = bc.SubBalanceFromAddress(address1, value3)
-	assert.True(t, addressExists)
+	subtractedWithSuccess = bc.SubBalanceFromAddress(address1, value3)
 	assert.True(t, subtractedWithSuccess)
-	balance, _ = bc.GetBalanceOfAddress(address1)
+	balance = bc.GetBalanceOfAddress(address1)
 	assert.Equal(t, result, balance)
 }
 

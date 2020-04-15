@@ -246,7 +246,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 				return process.ErrWrongTypeAssertion
 			}
 
-			scr.setInitialBalanceForAddress(currScr.GetRcvAddr())
+			scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
 
 			err := scr.scrProcessor.ProcessSmartContractResult(currScr)
 			if err != nil {
@@ -507,7 +507,7 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			return processedTxHashes, err
 		}
 
-		scr.setInitialBalanceForAddress(miniBlockScrs[index].GetRcvAddr())
+		scr.saveAccountBalanceForAddress(miniBlockScrs[index].GetRcvAddr())
 
 		err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[index])
 		if err != nil {

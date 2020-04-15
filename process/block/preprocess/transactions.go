@@ -396,7 +396,7 @@ func (txs *transactions) processTxsToMe(
 		senderShardID := txsToMe[index].SenderShardID
 		receiverShardID := txsToMe[index].ReceiverShardID
 
-		txs.setInitialBalanceForAddress(tx.GetRcvAddr())
+		txs.saveAccountBalanceForAddress(tx.GetRcvAddr())
 
 		err = txs.processAndRemoveBadTransaction(
 			txHash,
@@ -874,8 +874,10 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 			}
 		}
 
+		txTotalCost := txs.getTxTotalCost(tx)
+
 		if txs.balanceComputation.HasAddressBalanceSet(tx.GetSndAddr()) {
-			isBalanceInAddress := txs.balanceComputation.IsBalanceInAddress(tx.GetSndAddr(), tx.GetValue())
+			isBalanceInAddress := txs.balanceComputation.IsBalanceInAddress(tx.GetSndAddr(), txTotalCost)
 			if !isBalanceInAddress {
 				numTxsWithInitialBalanceConsumed++
 				continue
@@ -967,11 +969,11 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		}
 
 		if txs.balanceComputation.HasAddressBalanceSet(tx.GetSndAddr()) {
-			_, ok := txs.balanceComputation.SubBalanceFromAddress(tx.GetSndAddr(), tx.GetValue())
+			ok = txs.balanceComputation.SubBalanceFromAddress(tx.GetSndAddr(), txTotalCost)
 			if !ok {
 				log.Error("createAndProcessMiniBlocksFromMe.SubBalanceFromAddress",
 					"sender address", tx.GetSndAddr(),
-					"value", tx.GetValue(),
+					"tx total cost", txTotalCost,
 					"err", process.ErrInsufficientFunds)
 			}
 		}
@@ -1126,7 +1128,7 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 			return processedTxHashes, err
 		}
 
-		txs.setInitialBalanceForAddress(miniBlockTxs[index].GetRcvAddr())
+		txs.saveAccountBalanceForAddress(miniBlockTxs[index].GetRcvAddr())
 
 		err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index])
 		if err != nil {
