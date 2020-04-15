@@ -221,7 +221,7 @@ func TestNewRewardTxPreprocessor_NilGasHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilGasHandler, err)
 }
 
-func TestNewRewardTxPreprocessor_NilAddressCoverterShouldErr(t *testing.T) {
+func TestNewRewardTxPreprocessor_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
