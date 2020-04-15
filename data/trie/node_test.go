@@ -657,8 +657,8 @@ func TestPatriciaMerkleTrie_RecreateFromSnapshotSavesStateToMainDb(t *testing.T)
 
 	rootHash, _ := tr.Root()
 	tr.TakeSnapshot(rootHash)
+	time.Sleep(snapshotDelay)
 	tr.Prune(rootHash, data.NewRoot)
-	time.Sleep(pruningDelay)
 
 	val, err := tsm.db.Get(rootHash)
 	assert.Nil(t, val)

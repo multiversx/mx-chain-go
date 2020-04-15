@@ -131,7 +131,7 @@ VERSION:
 			"economics configurations such as minimum gas price for a transactions and so on.",
 		Value: "./config/economics.toml",
 	}
-	// configurationEconomicsFile defines a flag for the path to the economics toml configuration file
+	// configurationEconomicsFile defines a flag for the path to the ratings toml configuration file
 	configurationRatingsFile = cli.StringFlag{
 		Name:  "config-ratings",
 		Usage: "The ratings configuration file to load",
@@ -720,16 +720,22 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
-		log.Error("could not create bootsrapper", "err", err)
+		log.Error("could not create bootstrap", "err", err)
 		return err
 	}
+
 	bootstrapParameters, err := bootstrapper.Bootstrap()
 	if err != nil {
-		log.Error("boostrap return error", "error", err)
+		log.Error("bootstrap return error", "error", err)
 		return err
 	}
 
 	log.Info("bootstrap parameters", "shardId", bootstrapParameters.SelfShardId, "epoch", bootstrapParameters.Epoch, "numShards", bootstrapParameters.NumOfShards)
+
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(bootstrapParameters.NumOfShards, bootstrapParameters.SelfShardId)
+	if err != nil {
+		return err
+	}
 
 	currentEpoch := bootstrapParameters.Epoch
 	storerEpoch := currentEpoch
@@ -737,11 +743,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0
 		// and it should be Epoch_ALL or something similar
 		storerEpoch = 0
-	}
-
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(bootstrapParameters.NumOfShards, bootstrapParameters.SelfShardId)
-	if err != nil {
-		return err
 	}
 
 	var shardIdString = core.GetShardIdString(shardCoordinator.SelfId())
