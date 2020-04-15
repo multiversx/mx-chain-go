@@ -723,25 +723,31 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Error("could not create bootsrapper", "err", err)
 		return err
 	}
+
+	shardCoordinator := genesisShardCoordinator
+	currentEpoch := uint32(0)
+	storerEpoch := currentEpoch
+
 	bootstrapParameters, err := bootstrapper.Bootstrap()
 	if err != nil {
 		log.Error("boostrap return error", "error", err)
-		return err
+		log.Error("will start from genesis")
+	} else {
+		log.Info("bootstrap parameters", "shardId", bootstrapParameters.SelfShardId, "epoch", bootstrapParameters.Epoch, "numShards", bootstrapParameters.NumOfShards)
+
+		currentEpoch = bootstrapParameters.Epoch
+		storerEpoch = currentEpoch
+
+		shardCoordinator, err = sharding.NewMultiShardCoordinator(bootstrapParameters.NumOfShards, bootstrapParameters.SelfShardId)
+		if err != nil {
+			return err
+		}
 	}
 
-	log.Info("bootstrap parameters", "shardId", bootstrapParameters.SelfShardId, "epoch", bootstrapParameters.Epoch, "numShards", bootstrapParameters.NumOfShards)
-
-	currentEpoch := bootstrapParameters.Epoch
-	storerEpoch := currentEpoch
 	if !generalConfig.StoragePruning.Enabled {
 		// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0
 		// and it should be Epoch_ALL or something similar
 		storerEpoch = 0
-	}
-
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(bootstrapParameters.NumOfShards, bootstrapParameters.SelfShardId)
-	if err != nil {
-		return err
 	}
 
 	var shardIdString = core.GetShardIdString(shardCoordinator.SelfId())
