@@ -24,6 +24,7 @@ import (
 var log = logger.GetOrCreate("epochStart/metachain")
 
 var _ dataRetriever.EpochHandler = (*trigger)(nil)
+var _ epochStart.TriggerHandler = (*trigger)(nil)
 
 const minimumNonceToStartEpoch = 4
 

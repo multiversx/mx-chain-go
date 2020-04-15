@@ -11,7 +11,7 @@ import (
 
 var log = logger.GetOrCreate("dataretriever/shardeddata")
 
-var _ dataRetriever.Notifier = (*shardedData)(nil)
+var _ dataRetriever.ShardedDataCacherNotifier = (*shardedData)(nil)
 
 // shardedData holds the list of data organised by destination shard
 //

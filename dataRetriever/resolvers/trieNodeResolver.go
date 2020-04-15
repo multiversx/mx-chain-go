@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
+var _ dataRetriever.Resolver = (*TrieNodeResolver)(nil)
+
 // maxBuffToSendTrieNodes represents max buffer size to send in bytes
 var maxBuffToSendTrieNodes = uint64(2 << 17) //128KB
 

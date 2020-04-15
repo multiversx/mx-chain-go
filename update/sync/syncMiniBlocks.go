@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+var _ update.EpochStartPendingMiniBlocksSyncHandler = (*pendingMiniBlocks)(nil)
+
 type pendingMiniBlocks struct {
 	mutPendingMb            sync.Mutex
 	mapMiniBlocks           map[string]*block.MiniBlock

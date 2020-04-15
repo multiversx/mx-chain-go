@@ -10,8 +10,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
+
+var _ epochStart.RequestHandler = (*resolverRequestHandler)(nil)
+
+var log = logger.GetOrCreate("dataretriever/requesthandlers")
 
 type resolverRequestHandler struct {
 	epoch                 uint32
@@ -24,8 +29,6 @@ type resolverRequestHandler struct {
 	requestInterval       time.Duration
 	mutSweepTime          sync.Mutex
 }
-
-var log = logger.GetOrCreate("dataretriever/requesthandlers")
 
 // NewResolverRequestHandler creates a requestHandler interface implementation with request functions
 func NewResolverRequestHandler(
