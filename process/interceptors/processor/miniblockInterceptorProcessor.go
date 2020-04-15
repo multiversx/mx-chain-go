@@ -77,9 +77,7 @@ func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ p
 		return err
 	}
 
-	isCrossShardForMe := mip.isMbCrossShardForMe(miniblock)
-	isWhiteListed := mip.whiteListHandler.IsWhiteListed(data)
-	if isCrossShardForMe && !isWhiteListed {
+	if mip.isMbCrossShard(miniblock) && !mip.whiteListHandler.IsWhiteListed(data) {
 		log.Debug("miniblock interceptor processor : cross shard miniblock for me",
 			"message", "not whitelisted will not be added in pool")
 		return nil
@@ -90,11 +88,8 @@ func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ p
 	return nil
 }
 
-func (mip *MiniblockInterceptorProcessor) isMbCrossShardForMe(miniblock *block.MiniBlock) bool {
-	isCrossShard := miniblock.SenderShardID != mip.shardCoordinator.SelfId()
-	isForMe := miniblock.ReceiverShardID == mip.shardCoordinator.SelfId() || miniblock.ReceiverShardID == core.AllShardId
-
-	return isCrossShard && isForMe
+func (mip *MiniblockInterceptorProcessor) isMbCrossShard(miniblock *block.MiniBlock) bool {
+	return miniblock.SenderShardID != mip.shardCoordinator.SelfId()
 }
 
 // SignalEndOfProcessing signals the end of processing
