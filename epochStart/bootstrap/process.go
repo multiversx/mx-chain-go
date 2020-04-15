@@ -204,7 +204,7 @@ func (e *epochStartBootstrap) isStartInEpochZero() bool {
 
 	currentRound := e.rounder.Index()
 	epochEndPlusGracePeriod := float64(e.generalConfig.EpochStartConfig.RoundsPerEpoch) * (gracePeriodInPercentage + 1.0)
-	log.Debug("current round ", "round", currentRound, "epochEndRound", epochEndPlusGracePeriod)
+	log.Debug("IsStartInEpochZero", "currentRound", currentRound, "epochEndRound", epochEndPlusGracePeriod)
 	return float64(currentRound) < epochEndPlusGracePeriod
 }
 
