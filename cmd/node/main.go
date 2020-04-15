@@ -720,13 +720,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
-		log.Error("could not create bootsrapper", "err", err)
+		log.Error("could not create bootstrap", "err", err)
 		return err
 	}
 
 	bootstrapParameters, err := bootstrapper.Bootstrap()
 	if err != nil {
-		log.Error("boostrap return error", "error", err)
+		log.Error("bootstrap return error", "error", err)
 		return err
 	}
 
