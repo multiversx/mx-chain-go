@@ -144,6 +144,7 @@ func (ts *trieSyncer) getNextNodes() (bool, error) {
 
 			if len(currentMissingNodes) > 0 {
 				missingNodes = append(missingNodes, currentMissingNodes...)
+				nextNodes = append(nextNodes, currentNode)
 				tmpNewElement := ts.addNew(nextNodes)
 				shouldRetryAfterRequest = shouldRetryAfterRequest || tmpNewElement
 				continue
@@ -158,8 +159,7 @@ func (ts *trieSyncer) getNextNodes() (bool, error) {
 			tmpNewElement := ts.addNew(nextNodes)
 			newElement = newElement || tmpNewElement
 
-			delete(ts.nodeHashes, nodeHash)
-			ts.deleteFromReceived(nodeHash)
+			ts.deleteResolved(nodeHash)
 		}
 		ts.nodeHashesMutex.Unlock()
 	}
@@ -173,10 +173,11 @@ func (ts *trieSyncer) getNextNodes() (bool, error) {
 	return shouldRetryAfterRequest, nil
 }
 
-func (ts *trieSyncer) deleteFromReceived(nodeHash string) {
+func (ts *trieSyncer) deleteResolved(nodeHash string) {
 	ts.receivedNodesMutex.Lock()
 	delete(ts.receivedNodes, nodeHash)
 	ts.receivedNodesMutex.Unlock()
+	delete(ts.nodeHashes, nodeHash)
 }
 
 // adds new elements to needed hash map, lock ts.nodeHashesMutex before calling
@@ -202,17 +203,16 @@ func (ts *trieSyncer) Trie() data.Trie {
 }
 
 func (ts *trieSyncer) getNode(hash []byte) (node, error) {
-	n, ok := ts.interceptedNodes.Get(hash)
-	if ok {
-		return trieNode(n)
-	}
-
 	ts.receivedNodesMutex.Lock()
 	node, ok := ts.receivedNodes[string(hash)]
 	ts.receivedNodesMutex.Unlock()
-
 	if ok {
 		return node, nil
+	}
+
+	n, ok := ts.interceptedNodes.Get(hash)
+	if ok {
+		return trieNode(n)
 	}
 
 	return nil, ErrNodeNotFound

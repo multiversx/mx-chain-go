@@ -51,12 +51,15 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	time.Sleep(integrationTests.SyncDelay)
 
 	resolverTrie := nResolver.TrieContainer.Get([]byte(factory2.UserAccountTrie))
-	for i := 0; i < 1600; i++ {
+	for i := 0; i < 3000; i++ {
 		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
 
 	_ = resolverTrie.Commit()
 	rootHash, _ := resolverTrie.Root()
+
+	_, err = resolverTrie.GetAllLeaves()
+	assert.Nil(t, err)
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.Root()
@@ -72,7 +75,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		10*time.Millisecond,
 	)
 
-	_ = logger.SetLogLevel(":DEBUG")
+	//_ = logger.SetLogLevel(":DEBUG")
 	waitTime := 100 * time.Second
 	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, shardID, factory.AccountTrieNodesTopic)
 	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
@@ -85,7 +88,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
 
-	log.Trace("trie", requesterTrie.String())
+	//log.Trace("trie", requesterTrie.String())
 
 	_, err = requesterTrie.GetAllLeaves()
 	assert.Nil(t, err)
