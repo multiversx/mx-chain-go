@@ -100,9 +100,9 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 			return nil
 		}
 
+		time.Sleep(ts.waitTimeBetweenRequests)
+
 		select {
-		case <-time.After(ts.waitTimeBetweenRequests):
-			continue
 		case <-ctx.Done():
 			return ErrTimeIsOut
 		}
@@ -119,10 +119,10 @@ func (ts *trieSyncer) getNextNodes() (bool, error) {
 	newElement := true
 	shouldRetryAfterRequest := false
 
+	ts.nodeHashesMutex.Lock()
 	for newElement {
 		newElement = false
 
-		ts.nodeHashesMutex.Lock()
 		for nodeHash := range ts.nodeHashes {
 			currentMissingNodes = currentMissingNodes[:0]
 
@@ -161,10 +161,8 @@ func (ts *trieSyncer) getNextNodes() (bool, error) {
 
 			ts.deleteResolved(nodeHash)
 		}
-		ts.nodeHashesMutex.Unlock()
 	}
 
-	ts.nodeHashesMutex.Lock()
 	for _, missingNode := range missingNodes {
 		ts.nodeHashes[string(missingNode)] = false
 	}
