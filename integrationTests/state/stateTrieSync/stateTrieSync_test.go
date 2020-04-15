@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
@@ -75,7 +74,6 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
 	defer cancel()
 
-	_ = logger.SetLogLevel("*:DEBUG")
 	err = trieSyncer.StartSyncing(rootHash, ctx)
 	assert.Nil(t, err)
 

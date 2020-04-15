@@ -16,7 +16,7 @@ type trieSyncer struct {
 	shardId                 uint32
 	topic                   string
 	rootHash                []byte
-	nodeHashes              map[string]struct{}
+	nodeHashes              map[string]bool
 	receivedNodes           map[string]node
 	waitTimeBetweenRequests time.Duration
 	trie                    *patriciaMerkleTrie
@@ -56,7 +56,7 @@ func NewTrieSyncer(
 		requestHandler:          requestHandler,
 		interceptedNodes:        interceptedNodes,
 		trie:                    pmt,
-		nodeHashes:              make(map[string]struct{}),
+		nodeHashes:              make(map[string]bool),
 		receivedNodes:           make(map[string]node),
 		topic:                   topic,
 		shardId:                 shardId,
@@ -77,8 +77,8 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 	}
 
 	ts.nodeHashesMutex.Lock()
-	ts.nodeHashes = make(map[string]struct{})
-	ts.nodeHashes[string(rootHash)] = struct{}{}
+	ts.nodeHashes = make(map[string]bool)
+	ts.nodeHashes[string(rootHash)] = false
 	ts.nodeHashesMutex.Unlock()
 
 	ts.rootFound = false
@@ -165,7 +165,7 @@ func (ts *trieSyncer) getNextNodes() (bool, error) {
 
 	ts.nodeHashesMutex.Lock()
 	for _, missingNode := range missingNodes {
-		ts.nodeHashes[string(missingNode)] = struct{}{}
+		ts.nodeHashes[string(missingNode)] = false
 	}
 	ts.nodeHashesMutex.Unlock()
 
@@ -185,7 +185,7 @@ func (ts *trieSyncer) addNew(nextNodes []node) bool {
 	for _, nextNode := range nextNodes {
 		nextHash := string(nextNode.getHash())
 		if _, ok := ts.nodeHashes[nextHash]; !ok {
-			ts.nodeHashes[nextHash] = struct{}{}
+			ts.nodeHashes[nextHash] = true
 			newElement = true
 		}
 		ts.receivedNodes[nextHash] = nextNode
@@ -228,13 +228,15 @@ func trieNode(data interface{}) (node, error) {
 
 func (ts *trieSyncer) requestNodes() uint32 {
 	ts.nodeHashesMutex.Lock()
-	numRequested := uint32(len(ts.nodeHashes))
-	for hash := range ts.nodeHashes {
-		ts.requestHandler.RequestTrieNodes(ts.shardId, []byte(hash), ts.topic)
+	numUnResolvedNodes := uint32(len(ts.nodeHashes))
+	for hash, found := range ts.nodeHashes {
+		if !found {
+			ts.requestHandler.RequestTrieNodes(ts.shardId, []byte(hash), ts.topic)
+		}
 	}
 	ts.nodeHashesMutex.Unlock()
 
-	return numRequested
+	return numUnResolvedNodes
 }
 
 func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
