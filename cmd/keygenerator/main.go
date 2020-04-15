@@ -63,8 +63,8 @@ VERSION:
 
 	argsConfig = &cfg{}
 
-	initialBalancesSkFileName = "walletKey.pem"
-	initialNodesSkFileName    = "validatorKey.pem"
+	walletKeyFileName    = "walletKey.pem"
+	validatorKeyFileName = "validatorKey.pem"
 
 	log = logger.GetOrCreate("keygenerator")
 )
@@ -185,7 +185,7 @@ func generateBlockKey(index int, numKeys int) error {
 
 	genForBlockSigningSk := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 
-	return generateAndSave(index, numKeys, initialNodesSkFileName, genForBlockSigningSk, pubkeyConverter)
+	return generateAndSave(index, numKeys, validatorKeyFileName, genForBlockSigningSk, pubkeyConverter)
 }
 
 func generateTxKey(index int, numKeys int) error {
@@ -201,7 +201,7 @@ func generateTxKey(index int, numKeys int) error {
 
 	genForBlockSigningSk := signing.NewKeyGenerator(ed25519.NewEd25519())
 
-	return generateAndSave(index, numKeys, initialBalancesSkFileName, genForBlockSigningSk, pubkeyConverter)
+	return generateAndSave(index, numKeys, walletKeyFileName, genForBlockSigningSk, pubkeyConverter)
 }
 
 func generateAndSave(index int, numKeys int, baseFilename string, genForBlockSigningSk crypto.KeyGenerator, pubkeyConverter state.PubkeyConverter) error {
