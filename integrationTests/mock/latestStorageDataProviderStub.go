@@ -8,6 +8,7 @@ import (
 type LatestStorageDataProviderStub struct {
 	GetCalled                      func() (storage.LatestDataFromStorage, error)
 	GetParentDirAndLastEpochCalled func() (string, uint32, error)
+	GetShardsFromDirectoryCalled   func(path string) ([]string, error)
 }
 
 // GetParentDirAndLastEpoch -
@@ -26,4 +27,18 @@ func (l *LatestStorageDataProviderStub) Get() (storage.LatestDataFromStorage, er
 	}
 
 	return storage.LatestDataFromStorage{}, nil
+}
+
+// GetShardsFromDirectory --
+func (l *LatestStorageDataProviderStub) GetShardsFromDirectory(path string) ([]string, error) {
+	if l.GetShardsFromDirectoryCalled != nil {
+		return l.GetShardsFromDirectoryCalled(path)
+	}
+
+	return nil, nil
+}
+
+// IsInterfaceNil --
+func (l *LatestStorageDataProviderStub) IsInterfaceNil() bool {
+	return l == nil
 }
