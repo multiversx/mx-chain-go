@@ -4217,6 +4217,9 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochStorageErro
 		EpochCalled: func() uint32 {
 			return 1
 		},
+		MetaEpochCalled: func() uint32 {
+			return 1
+		},
 	}
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -4246,6 +4249,9 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback1Bl
 			return 10
 		},
 		EpochCalled: func() uint32 {
+			return 1
+		},
+		MetaEpochCalled: func() uint32 {
 			return 1
 		},
 	}
@@ -4296,6 +4302,9 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Bl
 			return 10
 		},
 		EpochCalled: func() uint32 {
+			return 1
+		},
+		MetaEpochCalled: func() uint32 {
 			return 1
 		},
 	}
