@@ -1596,6 +1596,10 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithLargeValidatorFa
 	assert.Equal(t, rater.MinRating, vi[0][0].TempRating)
 }
 
+func TestValidatorsProvider_PeerAccou(t *testing.T) {
+
+}
+
 func createMockValidatorInfo(shardId uint32, tempRating uint32, validatorSuccess uint32, validatorFailure uint32) *state.ValidatorInfo {
 	return &state.ValidatorInfo{
 		PublicKey:                  nil,
