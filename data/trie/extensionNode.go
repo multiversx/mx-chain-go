@@ -463,7 +463,7 @@ func (en *extensionNode) print(writer io.Writer, index int, db data.DBWriteCache
 
 	err := resolveIfCollapsed(en, 0, db)
 	if err != nil {
-		log.Debug("print trie err", "error", en.EncodedChild)
+		log.Debug("print trie err", "error", err, "hash", en.EncodedChild)
 	}
 
 	key := ""
@@ -525,7 +525,7 @@ func (en *extensionNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 	}
 
 	if en.child == nil {
-		log.Debug("extension node edge case", "encodedChild", en.EncodedChild, "dirty", en.isDirty())
+		log.Warn("should not happen")
 		return nil
 	}
 
