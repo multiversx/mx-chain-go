@@ -26,7 +26,7 @@ type trieSyncer struct {
 	trie                    *patriciaMerkleTrie
 	requestHandler          RequestHandler
 	interceptedNodes        storage.Cacher
-	mutOperation            sync.Mutex
+	mutOperation            sync.RWMutex
 }
 
 const maxNewMissingAddedPerTurn = 10
@@ -94,8 +94,8 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 			return err
 		}
 
-		numRequested := ts.requestNodes()
-		if !shouldRetryAfterRequest && numRequested == 0 {
+		numUnResolved := ts.requestNodes()
+		if !shouldRetryAfterRequest && numUnResolved == 0 {
 			err := ts.trie.Commit()
 			if err != nil {
 				return err
@@ -239,14 +239,14 @@ func trieNode(data interface{}) (node, error) {
 }
 
 func (ts *trieSyncer) requestNodes() uint32 {
-	ts.mutOperation.Lock()
+	ts.mutOperation.RLock()
 	numUnResolvedNodes := uint32(len(ts.nodesForTrie))
 	for hash, nodeInfo := range ts.nodesForTrie {
 		if !nodeInfo.received {
 			ts.requestHandler.RequestTrieNodes(ts.shardId, []byte(hash), ts.topic)
 		}
 	}
-	ts.mutOperation.Unlock()
+	ts.mutOperation.RUnlock()
 
 	return numUnResolvedNodes
 }
