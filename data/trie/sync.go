@@ -85,13 +85,13 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 	ts.rootHash = rootHash
 
 	for {
-		err := ts.getNextNodes()
+		shouldRetryAfterRequest, err := ts.getNextNodes()
 		if err != nil {
 			return err
 		}
 
 		numRequested := ts.requestNodes()
-		if numRequested == 0 {
+		if !shouldRetryAfterRequest && numRequested == 0 {
 			err := ts.trie.Commit()
 			if err != nil {
 				return err
@@ -109,7 +109,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 	}
 }
 
-func (ts *trieSyncer) getNextNodes() error {
+func (ts *trieSyncer) getNextNodes() (bool, error) {
 	var currentNode node
 	var err error
 	var nextNodes []node
@@ -117,6 +117,7 @@ func (ts *trieSyncer) getNextNodes() error {
 	currentMissingNodes := make([][]byte, 0)
 
 	newElement := true
+	shouldRetryAfterRequest := false
 
 	for newElement {
 		newElement = false
@@ -137,27 +138,27 @@ func (ts *trieSyncer) getNextNodes() error {
 			currentMissingNodes, nextNodes, err = currentNode.loadChildren(ts.getNode)
 			if err != nil {
 				ts.nodeHashesMutex.Unlock()
-				return err
+				return false, err
 			}
 
 			if len(currentMissingNodes) > 0 {
 				missingNodes = append(missingNodes, currentMissingNodes...)
 				tmpNewElement := ts.addNew(nextNodes)
-				newElement = newElement || tmpNewElement
+				shouldRetryAfterRequest = shouldRetryAfterRequest || tmpNewElement
 				continue
 			}
-
-			delete(ts.nodeHashes, nodeHash)
-			ts.deleteFromReceived(nodeHash)
 
 			nextNodes, err = currentNode.getChildren(ts.trie.Database())
 			if err != nil {
 				ts.nodeHashesMutex.Unlock()
-				return err
+				return false, err
 			}
 
 			tmpNewElement := ts.addNew(nextNodes)
 			newElement = newElement || tmpNewElement
+
+			delete(ts.nodeHashes, nodeHash)
+			ts.deleteFromReceived(nodeHash)
 		}
 		ts.nodeHashesMutex.Unlock()
 	}
@@ -168,7 +169,7 @@ func (ts *trieSyncer) getNextNodes() error {
 	}
 	ts.nodeHashesMutex.Unlock()
 
-	return nil
+	return shouldRetryAfterRequest, nil
 }
 
 func (ts *trieSyncer) deleteFromReceived(nodeHash string) {
@@ -180,13 +181,16 @@ func (ts *trieSyncer) deleteFromReceived(nodeHash string) {
 // adds new elements to needed hash map, lock ts.nodeHashesMutex before calling
 func (ts *trieSyncer) addNew(nextNodes []node) bool {
 	newElement := false
+	ts.receivedNodesMutex.Lock()
 	for _, nextNode := range nextNodes {
 		nextHash := string(nextNode.getHash())
 		if _, ok := ts.nodeHashes[nextHash]; !ok {
 			ts.nodeHashes[nextHash] = struct{}{}
 			newElement = true
 		}
+		ts.receivedNodes[nextHash] = nextNode
 	}
+	ts.receivedNodesMutex.Unlock()
 
 	return newElement
 }

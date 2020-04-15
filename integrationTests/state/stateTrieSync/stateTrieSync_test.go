@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
@@ -66,14 +67,15 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		whiteListHandler,
 		10000,
 		nRequester.ShardCoordinator.SelfId(),
-		time.Second,
+		10*time.Millisecond,
 	)
 
-	waitTime := 10 * time.Second
+	waitTime := 100 * time.Second
 	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, shardID, factory.AccountTrieNodesTopic)
 	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
 	defer cancel()
 
+	_ = logger.SetLogLevel("*:DEBUG")
 	err = trieSyncer.StartSyncing(rootHash, ctx)
 	assert.Nil(t, err)
 
