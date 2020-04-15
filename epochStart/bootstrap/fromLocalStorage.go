@@ -161,13 +161,13 @@ func (e *epochStartBootstrap) checkIfShuffledOut(
 	epochIDasString := fmt.Sprint(e.baseData.lastEpoch)
 	epochConfig := nodesConfig.EpochsConfig[epochIDasString]
 
-	newShardId, isWaitingForShard := checkIfIsValidatorForEpoch(pubKey, epochConfig.WaitingValidators)
+	newShardId, isWaitingForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.WaitingValidators)
 	if isWaitingForShard {
 		isShuffledOut := newShardId != e.baseData.shardId
 		return newShardId, isShuffledOut
 	}
 
-	newShardId, isEligibleForShard := checkIfIsValidatorForEpoch(pubKey, epochConfig.WaitingValidators)
+	newShardId, isEligibleForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.EligibleValidators)
 	if isEligibleForShard {
 		isShuffledOut := newShardId != e.baseData.shardId
 		return newShardId, isShuffledOut
@@ -176,7 +176,7 @@ func (e *epochStartBootstrap) checkIfShuffledOut(
 	return e.baseData.shardId, false
 }
 
-func checkIfIsValidatorForEpoch(
+func checkIfPubkeyIsInMap(
 	pubKey []byte,
 	allShardList map[string][]*sharding.SerializableValidator,
 ) (uint32, bool) {
