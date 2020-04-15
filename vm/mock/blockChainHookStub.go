@@ -1,28 +1,34 @@
 package mock
 
-import "math/big"
+import (
+	"math/big"
+
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+)
 
 // BlockChainHookStub -
 type BlockChainHookStub struct {
-	AccountExtistsCalled    func(address []byte) (bool, error)
-	NewAddressCalled        func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
-	GetBalanceCalled        func(address []byte) (*big.Int, error)
-	GetNonceCalled          func(address []byte) (uint64, error)
-	GetStorageDataCalled    func(accountsAddress []byte, index []byte) ([]byte, error)
-	IsCodeEmptyCalled       func(address []byte) (bool, error)
-	GetCodeCalled           func(address []byte) ([]byte, error)
-	GetBlockHashCalled      func(nonce uint64) ([]byte, error)
-	LastNonceCalled         func() uint64
-	LastRoundCalled         func() uint64
-	LastTimeStampCalled     func() uint64
-	LastRandomSeedCalled    func() []byte
-	LastEpochCalled         func() uint32
-	GetStateRootHashCalled  func() []byte
-	CurrentNonceCalled      func() uint64
-	CurrentRoundCalled      func() uint64
-	CurrentTimeStampCalled  func() uint64
-	CurrentRandomSeedCalled func() []byte
-	CurrentEpochCalled      func() uint32
+	AccountExtistsCalled          func(address []byte) (bool, error)
+	NewAddressCalled              func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
+	GetBalanceCalled              func(address []byte) (*big.Int, error)
+	GetNonceCalled                func(address []byte) (uint64, error)
+	GetStorageDataCalled          func(accountsAddress []byte, index []byte) ([]byte, error)
+	IsCodeEmptyCalled             func(address []byte) (bool, error)
+	GetCodeCalled                 func(address []byte) ([]byte, error)
+	GetBlockHashCalled            func(nonce uint64) ([]byte, error)
+	LastNonceCalled               func() uint64
+	LastRoundCalled               func() uint64
+	LastTimeStampCalled           func() uint64
+	LastRandomSeedCalled          func() []byte
+	LastEpochCalled               func() uint32
+	GetStateRootHashCalled        func() []byte
+	CurrentNonceCalled            func() uint64
+	CurrentRoundCalled            func() uint64
+	CurrentTimeStampCalled        func() uint64
+	CurrentRandomSeedCalled       func() []byte
+	CurrentEpochCalled            func() uint32
+	ProcessBuiltInFunctionCalled  func(input *vmcommon.ContractCallInput) (*big.Int, uint64, error)
+	GetBuiltinFunctionNamesCalled func() vmcommon.FunctionNames
 }
 
 // AccountExists -
@@ -175,4 +181,21 @@ func (b *BlockChainHookStub) CurrentEpoch() uint32 {
 		return b.CurrentEpochCalled()
 	}
 	return 0
+}
+
+// ProcessBuiltInFunction -
+func (b *BlockChainHookStub) ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*big.Int, uint64, error) {
+	if b.ProcessBuiltInFunctionCalled != nil {
+		return b.ProcessBuiltInFunction(input)
+	}
+	return nil, 0, nil
+}
+
+// GetBuiltinFunctionNames -
+func (b *BlockChainHookStub) GetBuiltinFunctionNames() vmcommon.FunctionNames {
+	if b.GetBuiltinFunctionNamesCalled != nil {
+		return b.GetBuiltinFunctionNamesCalled()
+	}
+
+	return make(vmcommon.FunctionNames)
 }

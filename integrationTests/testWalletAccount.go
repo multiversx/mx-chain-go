@@ -66,7 +66,7 @@ func (twa *TestWalletAccount) initCrypto(coordinator sharding.Coordinator, shard
 	twa.PkTxSignBytes, _ = pk.ToByteArray()
 	twa.KeygenTxSign = keyGen
 	twa.KeygenBlockSign = &mock.KeyGenMock{}
-	twa.Address, _ = TestAddressConverter.CreateAddressFromPublicKeyBytes(twa.PkTxSignBytes)
+	twa.Address, _ = TestAddressPubkeyConverter.CreateAddressFromBytes(twa.PkTxSignBytes)
 }
 
 // LoadTxSignSkBytes alters the already generated sk/pk pair
@@ -77,5 +77,5 @@ func (twa *TestWalletAccount) LoadTxSignSkBytes(skBytes []byte) {
 	twa.SkTxSign = newSk
 	twa.PkTxSign = newPk
 	twa.PkTxSignBytes, _ = newPk.ToByteArray()
-	twa.Address, _ = TestAddressConverter.CreateAddressFromPublicKeyBytes(twa.PkTxSignBytes)
+	twa.Address, _ = TestAddressPubkeyConverter.CreateAddressFromBytes(twa.PkTxSignBytes)
 }

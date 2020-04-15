@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
+// TODO: We should remove this type of configs hidden in tests
 func getGeneralConfig() config.Config {
 	return config.Config{
 		EpochStartConfig: config.EpochStartConfig{
@@ -234,6 +235,20 @@ func getGeneralConfig() config.Config {
 		},
 		GeneralSettings: config.GeneralSettingsConfig{
 			StartInEpochEnabled: true,
+		},
+		TxLogsStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Type:        "LRU",
+				Size:        1000,
+				Shards:      1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "Logs",
+				Type:              string(storageUnit.LvlDBSerial),
+				BatchDelaySeconds: 2,
+				MaxBatchSize:      100,
+				MaxOpenFiles:      10,
+			},
 		},
 	}
 }

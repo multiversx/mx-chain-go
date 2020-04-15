@@ -42,12 +42,8 @@ func createMockSigner() crypto.SingleSigner {
 	}
 }
 
-func createMockAddressConverter() state.AddressConverter {
-	return &mock.AddressConverterStub{
-		CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-			return mock.NewAddressMock(pubKey), nil
-		},
-	}
+func createMockPubkeyConverter() state.PubkeyConverter {
+	return mock.NewPubkeyConverterMock(32)
 }
 
 func createMockFeeHandler() process.FeeHandler {
@@ -66,7 +62,7 @@ func createMockArgument() *ArgInterceptedDataFactory {
 		BlockKeyGen:       createMockKeyGen(),
 		Signer:            createMockSigner(),
 		BlockSigner:       createMockSigner(),
-		AddrConv:          createMockAddressConverter(),
+		AddressPubkeyConv: createMockPubkeyConverter(),
 		FeeHandler:        createMockFeeHandler(),
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           []byte("chain ID"),

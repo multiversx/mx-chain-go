@@ -66,9 +66,10 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 			triesFactory.UserAccountTrie: &mock.StorageManagerStub{},
 			triesFactory.PeerAccountTrie: &mock.StorageManagerStub{},
 		},
-		Uint64Converter: &mock.Uint64ByteSliceConverterMock{},
-		NodeShuffler:    &mock.NodeShufflerMock{},
-		Rounder:         &mock.RounderStub{},
+		Uint64Converter:        &mock.Uint64ByteSliceConverterMock{},
+		NodeShuffler:           &mock.NodeShufflerMock{},
+		Rounder:                &mock.RounderStub{},
+		AddressPubkeyConverter: &mock.PubkeyConverterMock{},
 	}
 }
 
