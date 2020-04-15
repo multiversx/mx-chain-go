@@ -2,16 +2,22 @@ package leveldb
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 func openLevelDB(path string, options *opt.Options) (*leveldb.DB, error) {
 	db, errOpen := leveldb.OpenFile(path, options)
-	if errOpen != nil {
+	if errOpen == nil {
+		return db, nil
+	}
+
+	if reflect.TypeOf(errOpen) == reflect.TypeOf(&errors.ErrCorrupted{}) {
 		var errRecover error
-		log.Warn("error opening DB file",
+		log.Warn("corrupted DB file",
 			"path", path,
 			"error", errOpen,
 		)
@@ -26,7 +32,9 @@ func openLevelDB(path string, options *opt.Options) (*leveldb.DB, error) {
 		log.Info("DB file recovered",
 			"path", path,
 		)
+
+		return db, nil
 	}
 
-	return db, nil
+	return nil, errOpen
 }
