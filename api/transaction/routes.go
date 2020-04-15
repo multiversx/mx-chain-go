@@ -13,12 +13,13 @@ import (
 
 // TxService interface defines methods that can be used from `elrondFacade` context variable
 type TxService interface {
-	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
+	CreateTransaction(nonce uint64, value string, receiver string, sender string, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
+	EncodeAddressPubkey(pk []byte) (string, error)
 	IsInterfaceNil() bool
 }
 
@@ -188,21 +189,37 @@ func GetTransaction(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"transaction": txResponseFromTransaction(tx)})
+	response, err := txResponseFromTransaction(ef, tx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"transaction": response})
 }
 
-func txResponseFromTransaction(tx *transaction.Transaction) TxResponse {
+func txResponseFromTransaction(ef TxService, tx *transaction.Transaction) (TxResponse, error) {
 	response := TxResponse{}
+	sender, err := ef.EncodeAddressPubkey(tx.SndAddr)
+	if err != nil {
+		return response, fmt.Errorf("%w for sender adddress", err)
+	}
+
+	receiver, err := ef.EncodeAddressPubkey(tx.RcvAddr)
+	if err != nil {
+		return response, fmt.Errorf("%w for sender adddress", err)
+	}
+
 	response.Nonce = tx.Nonce
-	response.Sender = hex.EncodeToString(tx.SndAddr)
-	response.Receiver = hex.EncodeToString(tx.RcvAddr)
+	response.Sender = sender
+	response.Receiver = receiver
 	response.Data = tx.Data
 	response.Signature = hex.EncodeToString(tx.Signature)
 	response.Value = tx.Value.String()
 	response.GasLimit = tx.GasLimit
 	response.GasPrice = tx.GasPrice
 
-	return response
+	return response, nil
 }
 
 // ComputeTransactionGasLimit returns how many gas units a transaction wil consume

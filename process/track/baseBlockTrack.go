@@ -47,6 +47,58 @@ type baseBlockTrack struct {
 	maxNumHeadersToKeepPerShard int
 }
 
+func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
+	err := checkTrackerNilParameters(arguments)
+	if err != nil {
+		return nil, err
+	}
+
+	maxNumHeadersToKeepPerShard := arguments.PoolsHolder.Headers().MaxSize()
+
+	crossNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	selfNotarizer, err := NewBlockNotarizer(arguments.Hasher, arguments.Marshalizer, arguments.ShardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	crossNotarizedHeadersNotifier, err := NewBlockNotifier()
+	if err != nil {
+		return nil, err
+	}
+
+	selfNotarizedHeadersNotifier, err := NewBlockNotifier()
+	if err != nil {
+		return nil, err
+	}
+
+	blockBalancerInstance, err := NewBlockBalancer()
+	if err != nil {
+		return nil, err
+	}
+
+	bbt := &baseBlockTrack{
+		hasher:                        arguments.Hasher,
+		headerValidator:               arguments.HeaderValidator,
+		marshalizer:                   arguments.Marshalizer,
+		rounder:                       arguments.Rounder,
+		shardCoordinator:              arguments.ShardCoordinator,
+		headersPool:                   arguments.PoolsHolder.Headers(),
+		store:                         arguments.Store,
+		crossNotarizer:                crossNotarizer,
+		selfNotarizer:                 selfNotarizer,
+		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
+		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
+		blockBalancer:                 blockBalancerInstance,
+		maxNumHeadersToKeepPerShard:   maxNumHeadersToKeepPerShard,
+	}
+
+	return bbt, nil
+}
+
 func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
 	if headerHandler.GetShardID() == core.MetachainShardId {
 		bbt.receivedMetaBlock(headerHandler, headerHash)
@@ -354,7 +406,7 @@ func (bbt *baseBlockTrack) CheckBlockAgainstFinal(headerHandler data.HeaderHandl
 		return process.ErrNilHeaderHandler
 	}
 
-	finalHeader, _, err := bbt.GetFinalHeader(headerHandler.GetShardID())
+	finalHeader, _, err := bbt.getFinalHeader(headerHandler.GetShardID())
 	if err != nil {
 		return fmt.Errorf("%w: header shard: %d, header round: %d, header nonce: %d",
 			err,
@@ -394,8 +446,7 @@ func (bbt *baseBlockTrack) CheckBlockAgainstFinal(headerHandler data.HeaderHandl
 	return nil
 }
 
-// GetFinalHeader returns final header for a given shard
-func (bbt *baseBlockTrack) GetFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
+func (bbt *baseBlockTrack) getFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
 	if shardID != bbt.shardCoordinator.SelfId() {
 		return bbt.crossNotarizer.GetFirstNotarizedHeader(shardID)
 	}
@@ -430,9 +481,9 @@ func (bbt *baseBlockTrack) GetLastSelfNotarizedHeader(shardID uint32) (data.Head
 	return bbt.selfNotarizer.GetLastNotarizedHeader(shardID)
 }
 
-// GetNumPendingMiniBlocks returns the number of pending miniblocks for a given shard
-func (bbt *baseBlockTrack) GetNumPendingMiniBlocks(shardID uint32) uint32 {
-	return bbt.blockBalancer.GetNumPendingMiniBlocks(shardID)
+// GetSelfNotarizedHeader returns a self notarized header for a given shard with a given offset, behind last self notarized header
+func (bbt *baseBlockTrack) GetSelfNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+	return bbt.selfNotarizer.GetNotarizedHeader(shardID, offset)
 }
 
 // GetTrackedHeaders returns tracked headers for a given shard
@@ -463,7 +514,6 @@ func (bbt *baseBlockTrack) SortHeadersFromNonce(shardID uint32, nonce uint64) ([
 	}
 
 	sortedHeadersInfo := make([]*HeaderInfo, 0)
-
 	for headersNonce, headersInfo := range headersForShard {
 		if headersNonce < nonce {
 			continue
@@ -517,16 +567,21 @@ func (bbt *baseBlockTrack) GetTrackedHeadersWithNonce(shardID uint32, nonce uint
 
 // IsShardStuck returns true if the given shard is stuck
 func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
+	if bbt.shardCoordinator.SelfId() == core.MetachainShardId {
+		return false
+	}
+
 	numPendingMiniBlocks := bbt.blockBalancer.GetNumPendingMiniBlocks(shardID)
-	shardProcessedMetaNonce := bbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID)
+	lastShardProcessedMetaNonce := bbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID)
 
 	isMetaDifferenceTooLarge := false
-	if shardID != core.MetachainShardId {
+	shouldCheckLastMetaNonceProcessed := shardID != core.MetachainShardId && lastShardProcessedMetaNonce > 0
+	if shouldCheckLastMetaNonceProcessed {
 		metaHeaders, _ := bbt.GetTrackedHeaders(core.MetachainShardId)
 		numMetaHeaders := len(metaHeaders)
 		if numMetaHeaders > 0 {
 			lastMetaHeader := metaHeaders[numMetaHeaders-1]
-			metaDiff := lastMetaHeader.GetNonce() - shardProcessedMetaNonce
+			metaDiff := lastMetaHeader.GetNonce() - lastShardProcessedMetaNonce
 			isMetaDifferenceTooLarge = metaDiff > process.MaxMetaNoncesBehind
 		}
 	}
@@ -594,6 +649,12 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	}
 	if check.IfNil(arguments.Store) {
 		return process.ErrNilStorage
+	}
+	if check.IfNil(arguments.PoolsHolder) {
+		return process.ErrNilPoolsHolder
+	}
+	if check.IfNil(arguments.PoolsHolder.Headers()) {
+		return process.ErrNilHeadersDataPool
 	}
 
 	return nil

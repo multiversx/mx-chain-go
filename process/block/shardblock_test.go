@@ -41,6 +41,10 @@ import (
 
 const MaxGasLimitPerBlock = uint64(100000)
 
+func createMockPubkeyConverter() *mock.PubkeyConverterMock {
+	return mock.NewPubkeyConverterMock(32)
+}
+
 func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
@@ -468,7 +472,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		marshalizer,
 		hasher,
 		tdp,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		accounts,
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
@@ -690,7 +694,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		marshalizer,
 		hasher,
 		tdp,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		accounts,
 		&mock.RequestHandlerStub{},
 		tpm,
@@ -2235,7 +2239,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		marshalizer,
 		&mock.HasherMock{},
 		tdp,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		initAccountsMock(),
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -2346,7 +2350,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		tdp,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		initAccountsMock(),
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -2734,7 +2738,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		marshalizer,
 		hasher,
 		datapool,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		accntAdapter,
 		&mock.RequestHandlerStub{},
 		txProcessorMock,
@@ -2895,7 +2899,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockHeader(t *testing.
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
 
-func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.T) {
+func TestBlockProcessor_RestoreBlockIntoPoolsShouldWorkNilTxBlockBody(t *testing.T) {
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
 
@@ -2904,8 +2908,7 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilTxBlockBody(t *testing.
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	err := sp.RestoreBlockIntoPools(&block.Header{}, nil)
-	assert.NotNil(t, err)
-	assert.Equal(t, err, process.ErrNilTxBlockBody)
+	assert.Nil(t, err)
 }
 
 func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
@@ -2938,7 +2941,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		marshalizerMock,
 		hasherMock,
 		datapool,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		initAccountsMock(),
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{},
@@ -3028,7 +3031,7 @@ func TestShardProcessor_DecodeBlockBody(t *testing.T) {
 	arguments := CreateMockArgumentsMultiShard()
 	arguments.DataPool = tdp
 	arguments.Marshalizer = marshalizerMock
-	sp, err := blproc.NewShardProcessor(arguments)
+	sp, _ := blproc.NewShardProcessor(arguments)
 	body := &block.Body{}
 	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{ReceiverShardID: 69})
 	message, err := marshalizerMock.Marshal(body)
@@ -4214,6 +4217,9 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochStorageErro
 		EpochCalled: func() uint32 {
 			return 1
 		},
+		MetaEpochCalled: func() uint32 {
+			return 1
+		},
 	}
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -4243,6 +4249,9 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback1Bl
 			return 10
 		},
 		EpochCalled: func() uint32 {
+			return 1
+		},
+		MetaEpochCalled: func() uint32 {
 			return 1
 		},
 	}
@@ -4293,6 +4302,9 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Bl
 			return 10
 		},
 		EpochCalled: func() uint32 {
+			return 1
+		},
+		MetaEpochCalled: func() uint32 {
 			return 1
 		},
 	}

@@ -33,11 +33,9 @@ func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T)
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
-	nRequester.Node.Start()
-	nResolver.Node.Start()
 	defer func() {
-		_ = nRequester.Node.Stop()
-		_ = nResolver.Node.Stop()
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
 	}()
 
 	//connect messengers together
@@ -65,7 +63,7 @@ func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T)
 		GasPrice: integrationTests.MinTxGasPrice,
 	}
 
-	txBuff, _ := integrationTests.TestTxSignMarshalizer.Marshal(&tx)
+	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
 	signer := &ed25519SingleSig.Ed25519Signer{}
 	tx.Signature, _ = signer.Sign(nRequester.OwnAccount.SkTxSign, txBuff)
 	signedTxBuff, _ := integrationTests.TestMarshalizer.Marshal(&tx)
@@ -122,11 +120,9 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
-	nRequester.Node.Start()
-	nResolver.Node.Start()
 	defer func() {
-		_ = nRequester.Node.Stop()
-		_ = nResolver.Node.Stop()
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
 	}()
 
 	//connect messengers together

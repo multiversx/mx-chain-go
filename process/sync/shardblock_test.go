@@ -183,7 +183,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		BootStorer:          &mock.BoostrapStorerMock{},
 		StorageBootstrapper: &mock.StorageBootstrapperMock{},
 		EpochHandler:        &mock.EpochStartTriggerStub{},
-		MiniBlocksResolver:  &mock.MiniBlocksResolverMock{},
+		MiniblocksProvider:  &mock.MiniBlocksProviderStub{},
 		Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
 	}
 
@@ -1153,7 +1153,7 @@ func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 
 	blk := make(block.MiniBlockSlice, 0)
 	args.Rounder = initRounder()
-	args.MiniBlocksResolver = &mock.MiniBlocksResolverMock{
+	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 			return blk, nil
 		},
@@ -1586,7 +1586,7 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 	args.ChainHandler = blkc
-	args.MiniBlocksResolver = &mock.MiniBlocksResolverMock{
+	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 			for _, hash := range hashes {
 				if bytes.Equal(hash, mbh) {
@@ -1649,7 +1649,7 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 	})
 	args.ChainHandler = blkc
 	args.Store = createFullStore()
-	args.MiniBlocksResolver = &mock.MiniBlocksResolverMock{
+	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 			for _, hash := range hashes {
 				if bytes.Equal(hash, mbh) {
@@ -1836,7 +1836,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 			requestDataWasCalled = true
 		},
 	}
-	args.MiniBlocksResolver = &mock.MiniBlocksResolverMock{
+	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
 			return make(block.MiniBlockSlice, 0), [][]byte{[]byte("hash")}
 		},
@@ -1846,4 +1846,111 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 	bs.RequestMiniBlocksFromHeaderWithNonceIfMissing(hdr)
 
 	assert.True(t, requestDataWasCalled)
+}
+
+func TestShardBootstrap_ResetProbableHighestNonceIfNeededShouldNotBeDoneWhenHeaderIsNil(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+
+	wasCalled := false
+	forkDetectorMock := &mock.ForkDetectorMock{
+		ResetProbableHighestNonceCalled: func() {
+			wasCalled = true
+		},
+	}
+	args.ForkDetector = forkDetectorMock
+
+	bs, _ := sync.NewShardBootstrap(args)
+	bs.ResetProbableHighestNonceIfNeeded(nil)
+
+	assert.False(t, wasCalled)
+}
+
+func TestShardBootstrap_ResetProbableHighestNonceIfNeededShouldNotBeDoneWhenAreNotEnoughErrorsPerNonce(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+
+	wasCalled := false
+	forkDetectorMock := &mock.ForkDetectorMock{
+		ResetProbableHighestNonceCalled: func() {
+			wasCalled = true
+		},
+	}
+	args.ForkDetector = forkDetectorMock
+
+	bs, _ := sync.NewShardBootstrap(args)
+	bs.SetNumSyncedWithErrorsForNonce(2, 8)
+	bs.ResetProbableHighestNonceIfNeeded(&block.Header{Nonce: 2})
+
+	assert.False(t, wasCalled)
+}
+
+func TestShardBootstrap_ResetProbableHighestNonceIfNeededShouldNotBeDoneWhenIsNotInProperRound(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+
+	wasCalled := false
+	forkDetectorMock := &mock.ForkDetectorMock{
+		ResetProbableHighestNonceCalled: func() {
+			wasCalled = true
+		},
+	}
+	args.ForkDetector = forkDetectorMock
+
+	rounderMock := &mock.RounderMock{}
+	rounderMock.RoundIndex = 1
+	args.Rounder = rounderMock
+
+	bs, _ := sync.NewShardBootstrap(args)
+	bs.SetNumSyncedWithErrorsForNonce(2, 9)
+	bs.ResetProbableHighestNonceIfNeeded(&block.Header{Nonce: 2})
+
+	assert.False(t, wasCalled)
+}
+
+func TestShardBootstrap_ResetProbableHighestNonceIfNeededShouldBeDone(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+
+	wasCalled := false
+	forkDetectorMock := &mock.ForkDetectorMock{
+		ResetProbableHighestNonceCalled: func() {
+			wasCalled = true
+		},
+	}
+	args.ForkDetector = forkDetectorMock
+
+	bs, _ := sync.NewShardBootstrap(args)
+	bs.SetNumSyncedWithErrorsForNonce(2, 9)
+	bs.ResetProbableHighestNonceIfNeeded(&block.Header{Nonce: 2})
+
+	assert.True(t, wasCalled)
+}
+
+func TestShardBootstrap_CleanNoncesSyncedWithErrorsBehindFinalShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	forkDetectorMock := &mock.ForkDetectorMock{
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return 3
+		},
+	}
+	args.ForkDetector = forkDetectorMock
+
+	bs, _ := sync.NewShardBootstrap(args)
+	bs.SetNumSyncedWithErrorsForNonce(1, 7)
+	bs.SetNumSyncedWithErrorsForNonce(2, 8)
+	bs.SetNumSyncedWithErrorsForNonce(3, 9)
+
+	assert.Equal(t, 3, bs.GetMapNonceSyncedWithErrorsLen())
+
+	bs.CleanNoncesSyncedWithErrorsBehindFinal()
+
+	assert.Equal(t, 1, bs.GetMapNonceSyncedWithErrorsLen())
+	assert.Equal(t, uint32(9), bs.GetNumSyncedWithErrorsForNonce(3))
 }

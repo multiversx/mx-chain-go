@@ -45,7 +45,7 @@ func NewPeerTypeProvider(
 		mutCache:         sync.RWMutex{},
 	}
 
-	err := ptp.populateCache(epochHandler.Epoch())
+	err := ptp.populateCache(epochHandler.MetaEpoch())
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (ptp *PeerTypeProvider) ComputeForPubKey(pubKey []byte) (core.PeerType, uin
 }
 
 func (ptp *PeerTypeProvider) computeFromMaps(pubKey []byte) (core.PeerType, uint32, error) {
-	nodesMapEligible, err := ptp.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(ptp.epochHandler.Epoch())
+	nodesMapEligible, err := ptp.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(ptp.epochHandler.MetaEpoch())
 	if err != nil {
 		return "", 0, err
 	}
@@ -126,7 +126,7 @@ func (ptp *PeerTypeProvider) computeFromMaps(pubKey []byte) (core.PeerType, uint
 		}
 	}
 
-	nodesMapWaiting, err := ptp.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(ptp.epochHandler.Epoch())
+	nodesMapWaiting, err := ptp.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(ptp.epochHandler.MetaEpoch())
 	if err != nil {
 		return "", 0, err
 	}

@@ -4,9 +4,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -42,6 +44,7 @@ type ArgsNewEpochStartMetaSyncer struct {
 	ChainID           []byte
 	EconomicsData     *economics.EconomicsData
 	WhitelistHandler  process.WhiteListHandler
+	AddressPubkeyConv state.PubkeyConverter
 }
 
 // thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
@@ -50,6 +53,10 @@ const thresholdForConsideringMetaBlockCorrect = 67
 
 // NewEpochStartMetaSyncer will return a new instance of epochStartMetaSyncer
 func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaSyncer, error) {
+	if check.IfNil(args.AddressPubkeyConv) {
+		return nil, epochStart.ErrNilPubkeyConverter
+	}
+
 	e := &epochStartMetaSyncer{
 		requestHandler: args.RequestHandler,
 		messenger:      args.Messenger,
@@ -69,11 +76,6 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	}
 	e.metaBlockProcessor = processor
 
-	addrConv, err := addressConverters.NewPlainAddressConverter(32, "")
-	if err != nil {
-		return nil, err
-	}
-
 	argsInterceptedDataFactory := interceptorsFactory.ArgInterceptedDataFactory{
 		ProtoMarshalizer:  args.Marshalizer,
 		TxSignMarshalizer: args.TxSignMarshalizer,
@@ -85,7 +87,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		BlockKeyGen:       args.BlockKeyGen,
 		Signer:            args.Signer,
 		BlockSigner:       args.BlockSigner,
-		AddrConv:          addrConv,
+		AddressPubkeyConv: args.AddressPubkeyConv,
 		FeeHandler:        args.EconomicsData,
 		HeaderSigVerifier: disabled.NewHeaderSigVerifier(),
 		ChainID:           args.ChainID,
@@ -114,7 +116,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 }
 
 // SyncEpochStartMeta syncs the latest epoch start metablock
-func (e *epochStartMetaSyncer) SyncEpochStartMeta(_ time.Duration) (*block.MetaBlock, error) {
+func (e *epochStartMetaSyncer) SyncEpochStartMeta(timeToWait time.Duration) (*block.MetaBlock, error) {
 	err := e.initTopicForEpochStartMetaBlockInterceptor()
 	if err != nil {
 		return nil, err
@@ -123,7 +125,7 @@ func (e *epochStartMetaSyncer) SyncEpochStartMeta(_ time.Duration) (*block.MetaB
 		e.resetTopicsAndInterceptors()
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), timeToWait)
 	mb, errConsensusNotReached := e.metaBlockProcessor.GetEpochStartMetaBlock(ctx)
 	cancel()
 

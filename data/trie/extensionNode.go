@@ -525,7 +525,6 @@ func (en *extensionNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 	}
 
 	if en.child == nil {
-		log.Warn("should not happen")
 		return nil
 	}
 

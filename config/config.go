@@ -36,10 +36,10 @@ type StorageConfig struct {
 	Bloom BloomFilterConfig `json:"bloom"`
 }
 
-// AddressConfig will map the json address configuration
-type AddressConfig struct {
+// PubkeyConfig will map the json public key configuration
+type PubkeyConfig struct {
 	Length          int    `json:"length"`
-	Prefix          string `json:"prefix"`
+	Type            string `json:"type"`
 	SignatureLength int
 }
 
@@ -85,7 +85,6 @@ type BlockSizeThrottleConfig struct {
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage          StorageConfig
-	MiniBlockHeadersStorage    StorageConfig
 	PeerBlockBodyStorage       StorageConfig
 	BlockHeaderStorage         StorageConfig
 	TxStorage                  StorageConfig
@@ -114,8 +113,8 @@ type Config struct {
 	TrieNodesDataPool           CacheConfig
 	WhiteListPool               CacheConfig
 	EpochStartConfig            EpochStartConfig
-	Address                     AddressConfig
-	BLSPublicKey                AddressConfig
+	AddressPubkeyConverter      PubkeyConfig
+	ValidatorPubkeyConverter    PubkeyConfig
 	Hasher                      TypeConfig
 	MultisigHasher              TypeConfig
 	Marshalizer                 MarshalizerConfig
@@ -132,6 +131,7 @@ type Config struct {
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
 	StoragePruning  StoragePruningConfig
+	TxLogsStorage   StorageConfig
 
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
@@ -228,12 +228,12 @@ type TxAccumulatorConfig struct {
 type AntifloodConfig struct {
 	Enabled                   bool
 	NumConcurrentResolverJobs int32
+	PeerMaxMessagesPerSecond  uint32
+	MaxMessagesPerSecond      uint32
+	PeerMaxTotalSizePerSecond uint64
+	MaxTotalSizePerSecond     uint64
 	Cache                     CacheConfig
 	BlackList                 BlackListConfig
-	PeerMaxMessagesPerSecond  uint32
-	PeerMaxTotalSizePerSecond uint64
-	MaxMessagesPerSecond      uint32
-	MaxTotalSizePerSecond     uint64
 	WebServer                 WebServerAntifloodConfig
 	Topic                     TopicAntifloodConfig
 	TxAccumulator             TxAccumulatorConfig

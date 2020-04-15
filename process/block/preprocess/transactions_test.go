@@ -41,65 +41,49 @@ func feeHandlerMock() *mock.FeeHandlerStub {
 	}
 }
 
-func initDataPool() *mock.PoolsHolderStub {
-	sdp := &mock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
-				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-					return &mock.CacherStub{
-						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							if reflect.DeepEqual(key, []byte("tx1_hash")) {
-								return &transaction.Transaction{Nonce: 10}, true
-							}
-							return nil, false
-						},
-						KeysCalled: func() [][]byte {
-							return [][]byte{[]byte("key1"), []byte("key2")}
-						},
-						LenCalled: func() int {
-							return 0
-						},
-					}
-				},
-				AddDataCalled:                 func(key []byte, data interface{}, cacheId string) {},
-				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
-				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+func shardedDataCacherNotifier() dataRetriever.ShardedDataCacherNotifier {
+	return &mock.ShardedDataStub{
+		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
+		ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+			return &mock.CacherStub{
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
+						return &smartContractResult.SmartContractResult{Nonce: 10}, true
+					}
+					if reflect.DeepEqual(key, []byte("tx2_hash")) {
 						return &transaction.Transaction{Nonce: 10}, true
 					}
 					return nil, false
 				},
+				KeysCalled: func() [][]byte {
+					return [][]byte{[]byte("key1"), []byte("key2")}
+				},
+				LenCalled: func() int {
+					return 0
+				},
 			}
 		},
-		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
-				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-					return &mock.CacherStub{
-						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							if reflect.DeepEqual(key, []byte("tx1_hash")) {
-								return &smartContractResult.SmartContractResult{Nonce: 10}, true
-							}
-							return nil, false
-						},
-						KeysCalled: func() [][]byte {
-							return [][]byte{[]byte("key1"), []byte("key2")}
-						},
-						LenCalled: func() int {
-							return 0
-						},
-					}
-				},
-				AddDataCalled:                 func(key []byte, data interface{}, cacheId string) {},
-				RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
-				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, []byte("tx1_hash")) {
-						return &smartContractResult.SmartContractResult{Nonce: 10}, true
-					}
-					return nil, false
-				},
+		AddDataCalled:                 func(key []byte, data interface{}, cacheId string) {},
+		RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
+		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+			if reflect.DeepEqual(key, []byte("tx1_hash")) {
+				return &smartContractResult.SmartContractResult{Nonce: 10}, true
 			}
+			if reflect.DeepEqual(key, []byte("tx2_hash")) {
+				return &transaction.Transaction{Nonce: 10}, true
+			}
+			return nil, false
+		},
+	}
+}
+
+func initDataPool() *mock.PoolsHolderStub {
+	sdp := &mock.PoolsHolderStub{
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return shardedDataCacherNotifier()
+		},
+		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return shardedDataCacherNotifier()
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &mock.ShardedDataStub{
@@ -185,6 +169,10 @@ func initDataPool() *mock.PoolsHolderStub {
 	return sdp
 }
 
+func createMockPubkeyConverter() *mock.PubkeyConverterMock {
+	return mock.NewPubkeyConverterMock(32)
+}
+
 func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
 	t.Parallel()
 
@@ -202,7 +190,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 	)
 
@@ -228,7 +216,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilStore(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 	)
 
@@ -254,7 +242,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilHasher(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 	)
 
@@ -280,7 +268,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMarsalizer(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 	)
 
@@ -306,7 +294,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxProce(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 	)
 
@@ -332,7 +320,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilShardCoord(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 	)
 
@@ -358,7 +346,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilAccounts(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 	)
 
@@ -383,7 +371,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) 
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 	)
 
@@ -409,7 +397,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilFeeHandler(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 	)
 
@@ -435,7 +423,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilGasHandler(t *testing.T) {
 		nil,
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 	)
 
@@ -461,7 +449,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockTracker(t *testing.T)
 		&mock.GasHandlerMock{},
 		nil,
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 	)
 
@@ -492,7 +480,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilAddressConverter(t *testin
 	)
 
 	assert.Nil(t, txs)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockSizeComputationHandler(t *testing.T) {
@@ -513,7 +501,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockSizeComputationHandle
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		nil,
 	)
 
@@ -539,7 +527,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorOkValsShouldWork(t *testing.T
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 	)
 
@@ -552,7 +540,7 @@ func TestTxsPreProcessor_GetTransactionFromPool(t *testing.T) {
 	t.Parallel()
 	dataPool := initDataPool()
 	txs := createGoodPreprocessor(dataPool)
-	txHash := []byte("tx1_hash")
+	txHash := []byte("tx2_hash")
 	tx, _ := process.GetTransactionHandlerFromPool(1, 1, txHash, dataPool.Transactions(), false)
 	assert.NotNil(t, txs)
 	assert.NotNil(t, tx)
@@ -760,7 +748,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 	)
 	assert.NotNil(t, txs)
@@ -829,7 +817,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 	)
 	assert.NotNil(t, txs)
@@ -908,7 +896,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 	)
 	assert.NotNil(t, txs)
@@ -1051,7 +1039,7 @@ func createGoodPreprocessor(dataPool dataRetriever.PoolsHolder) *transactions {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 	)
 
@@ -1095,7 +1083,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		block.TxBlock,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
 	)
 
@@ -1103,7 +1091,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 	txHash, _ := core.CalculateHash(preprocessor.marshalizer, preprocessor.hasher, tx)
 	body := block.Body{
 		MiniBlocks: []*block.MiniBlock{
-			&block.MiniBlock{
+			{
 				TxHashes:        [][]byte{txHash},
 				SenderShardID:   1,
 				ReceiverShardID: 0,
@@ -1121,7 +1109,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 	assert.Equal(t, uint32(1), senderShardID)
 	assert.Equal(t, uint32(0), receiverShardID)
 
-	preprocessor.ProcessTxsToMe(&body, haveTime)
+	_ = preprocessor.ProcessTxsToMe(&body, haveTime)
 
 	_, senderShardID, receiverShardID = preprocessor.GetTxInfoForCurrentBlock(txHash)
 	assert.Equal(t, uint32(2), senderShardID)

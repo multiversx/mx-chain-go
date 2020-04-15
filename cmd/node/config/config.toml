@@ -38,17 +38,6 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
-[MiniBlockHeadersStorage]
-    [MiniBlockHeadersStorage.Cache]
-        Size = 300
-        Type = "LRU"
-    [MiniBlockHeadersStorage.DB]
-        FilePath = "MiniBlockHeaders"
-        Type = "LvlDBSerial"
-        BatchDelaySeconds = 2
-        MaxBatchSize = 100
-        MaxOpenFiles = 10
-
 [PeerBlockBodyStorage]
     [PeerBlockBodyStorage.Cache]
         Size = 1000
@@ -102,6 +91,17 @@
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
+        MaxOpenFiles = 10
+
+[TxLogsStorage]
+    [TxLogsStorage.Cache]
+        Size = 1000
+        Type = "LRU"
+    [TxLogsStorage.DB]
+        FilePath = "Logs"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
         MaxOpenFiles = 10
 
 [UnsignedTransactionStorage]
@@ -299,14 +299,14 @@
     Path = "logs"
     StackTraceDepth = 2
 
-[Address]
+[AddressPubkeyConverter]
     Length = 32
-    Prefix = "0x"
+    Type = "bech32"
     SignatureLength = 0
 
-[BLSPublicKey]
+[ValidatorPubkeyConverter]
     Length = 96
-    Prefix = "0x"
+    Type = "hex"
     SignatureLength = 48
 
 [Hasher]

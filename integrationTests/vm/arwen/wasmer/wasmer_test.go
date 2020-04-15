@@ -42,7 +42,7 @@ func TestDisallowFloatingPointSC(t *testing.T) {
 	vmOutput, err := wasmvm.RunSmartContractCall(callInput)
 	require.Nil(t, err)
 
-	require.Equal(t, vmcommon.ContractInvalid, vmOutput.ReturnCode)
+	require.Equal(t, vmcommon.ContractNotFound, vmOutput.ReturnCode)
 	fmt.Printf("VM Return Code: %s\n", vmOutput.ReturnCode)
 }
 

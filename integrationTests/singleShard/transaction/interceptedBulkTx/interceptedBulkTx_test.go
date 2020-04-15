@@ -30,10 +30,9 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	nodeAddr := "0"
 
 	n := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, nodeAddr)
-	n.Node.Start()
 
 	defer func() {
-		_ = n.Node.Stop()
+		_ = n.Messenger.Close()
 	}()
 
 	_ = n.Messenger.Bootstrap()
@@ -86,8 +85,9 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	mintingValue := big.NewInt(100000)
 	integrationTests.CreateMintingForSenders([]*integrationTests.TestProcessorNode{n}, shardId, senderPrivateKeys, mintingValue)
 
+	receiver := integrationTests.TestAddressPubkeyConverter.Encode(integrationTests.CreateRandomBytes(32))
 	err := n.Node.GenerateAndSendBulkTransactions(
-		integrationTests.CreateRandomHexString(64),
+		receiver,
 		big.NewInt(1),
 		uint64(noOfTx),
 		n.OwnAccount.SkTxSign,

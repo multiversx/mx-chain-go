@@ -156,7 +156,7 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.node.Stop()
+			_ = n.mesenger.Close()
 		}
 	}()
 
@@ -204,7 +204,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.node.Stop()
+			_ = n.mesenger.Close()
 		}
 	}()
 

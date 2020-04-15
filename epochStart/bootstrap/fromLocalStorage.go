@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -15,8 +17,7 @@ import (
 )
 
 func (e *epochStartBootstrap) initializeFromLocalStorage() {
-	var errNotCritical error
-	e.baseData.lastEpoch, e.baseData.shardId, e.baseData.lastRound, errNotCritical = storageFactory.FindLatestDataFromStorage(
+	latestData, errNotCritical := storageFactory.FindLatestDataFromStorage(
 		e.generalConfig,
 		e.marshalizer,
 		e.workingDir,
@@ -30,10 +31,15 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
 	} else {
 		e.baseData.storageExists = true
+		e.baseData.lastEpoch = latestData.Epoch
+		e.baseData.shardId = latestData.ShardID
+		e.baseData.lastRound = latestData.LastRound
+		e.baseData.epochStartRound = latestData.EpochStartRound
 		log.Debug("got last data from storage",
 			"epoch", e.baseData.lastEpoch,
 			"last round", e.baseData.lastRound,
-			"last shard ID", e.baseData.shardId)
+			"last shard ID", e.baseData.shardId,
+			"epoch start Round", e.baseData.epochStartRound)
 	}
 }
 
@@ -52,21 +58,21 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	unitsToOpen := []string{e.generalConfig.BootstrapStorage.DB.FilePath, e.generalConfig.MetaBlockStorage.DB.FilePath}
-
-	storageUnits, err := openStorageHandler.OpenStorageUnits(unitsToOpen)
+	storer, err := openStorageHandler.OpenStorageUnits()
 	defer func() {
-		for _, storer := range storageUnits {
-			errClose := storer.Close()
-			log.LogIfError(errClose)
+		if check.IfNil(storer) {
+			return
 		}
+
+		errClose := storer.Close()
+		log.LogIfError(errClose)
 	}()
 
-	if err != nil || len(storageUnits) != len(unitsToOpen) {
+	if err != nil {
 		return Parameters{}, err
 	}
 
-	_, e.nodesConfig, err = e.getLastBootstrapData(storageUnits[0])
+	_, e.nodesConfig, err = e.getLastBootstrapData(storer)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -76,13 +82,14 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	e.epochStartMeta, err = e.getEpochStartMetaFromStorage(storageUnits[1])
+	e.epochStartMeta, err = e.getEpochStartMetaFromStorage(storer)
 	if err != nil {
 		return Parameters{}, err
 	}
 	e.baseData.numberOfShards = uint32(len(e.epochStartMeta.EpochStart.LastFinalizedHeaders))
 
-	if !e.checkIfShuffledOut(pubKey, e.nodesConfig) {
+	newShardId, isShuffledOut := e.checkIfShuffledOut(pubKey, e.nodesConfig)
+	if !isShuffledOut {
 		parameters := Parameters{
 			Epoch:       e.baseData.lastEpoch,
 			SelfShardId: e.baseData.shardId,
@@ -91,6 +98,8 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return parameters, nil
 	}
 
+	log.Debug("prepareEpochFromStorage for shuffled out", "initial shard id", e.baseData.shardId, "new shard id", newShardId)
+	e.baseData.shardId = newShardId
 	err = e.createSyncers()
 	if err != nil {
 		return Parameters{}, err
@@ -120,6 +129,11 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		}
 	}
 
+	err = e.messenger.CreateTopic(core.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
+	if err != nil {
+		return Parameters{}, err
+	}
+
 	if e.shardCoordinator.SelfId() == core.MetachainShardId {
 		err = e.requestAndProcessForMeta()
 		if err != nil {
@@ -143,23 +157,54 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 func (e *epochStartBootstrap) checkIfShuffledOut(
 	pubKey []byte,
 	nodesConfig *sharding.NodesCoordinatorRegistry,
+) (uint32, bool) {
+	epochIDasString := fmt.Sprint(e.baseData.lastEpoch)
+	epochConfig := nodesConfig.EpochsConfig[epochIDasString]
+
+	newShardId, isWaitingForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.WaitingValidators)
+	if isWaitingForShard {
+		isShuffledOut := newShardId != e.baseData.shardId
+		return newShardId, isShuffledOut
+	}
+
+	newShardId, isEligibleForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.EligibleValidators)
+	if isEligibleForShard {
+		isShuffledOut := newShardId != e.baseData.shardId
+		return newShardId, isShuffledOut
+	}
+
+	return e.baseData.shardId, false
+}
+
+func checkIfPubkeyIsInMap(
+	pubKey []byte,
+	allShardList map[string][]*sharding.SerializableValidator,
+) (uint32, bool) {
+	for shardIdStr, validatorList := range allShardList {
+		isValidatorInList := checkIfValidatorIsInList(pubKey, validatorList)
+		if isValidatorInList {
+			shardId, err := strconv.ParseInt(shardIdStr, 10, 64)
+			if err != nil {
+				log.Error("checkIfIsValidatorForEpoch parsing string to int error should not happen", "err", err)
+				return 0, false
+			}
+
+			return uint32(shardId), true
+		}
+	}
+	return 0, false
+}
+
+func checkIfValidatorIsInList(
+	pubKey []byte,
+	validatorList []*sharding.SerializableValidator,
 ) bool {
-	epochConfig := nodesConfig.EpochsConfig[fmt.Sprint(e.baseData.lastEpoch)]
-	shardIdForConfig := fmt.Sprint(e.baseData.shardId)
-
-	for _, validator := range epochConfig.WaitingValidators[shardIdForConfig] {
+	for _, validator := range validatorList {
 		if bytes.Equal(pubKey, validator.PubKey) {
-			return false
+			return true
 		}
 	}
-
-	for _, validator := range epochConfig.EligibleValidators[shardIdForConfig] {
-		if bytes.Equal(pubKey, validator.PubKey) {
-			return false
-		}
-	}
-
-	return true
+	return false
 }
 
 func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*bootstrapStorage.BootstrapData, *sharding.NodesCoordinatorRegistry, error) {
@@ -174,8 +219,10 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 		return nil, nil, err
 	}
 
-	data, err := storer.Get(bootstrapData.NodesCoordinatorConfigKey)
+	ncInternalkey := append([]byte(core.NodesCoordinatorRegistryKeyPrefix), bootstrapData.NodesCoordinatorConfigKey...)
+	data, err := storer.SearchFirst(ncInternalkey)
 	if err != nil {
+		log.Debug("getLastBootstrapData", "key", ncInternalkey, "error", err)
 		return nil, nil, err
 	}
 
@@ -190,8 +237,9 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 
 func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer) (*block.MetaBlock, error) {
 	epochIdentifier := core.EpochStartIdentifier(e.baseData.lastEpoch)
-	data, err := storer.Get([]byte(epochIdentifier))
+	data, err := storer.SearchFirst([]byte(epochIdentifier))
 	if err != nil {
+		log.Debug("getEpochStartMetaFromStorage", "key", epochIdentifier, "error", err)
 		return nil, err
 	}
 

@@ -108,61 +108,6 @@ func TestNewNodeFacade_WithValidNodeShouldReturnNotNil(t *testing.T) {
 
 //------- Methods
 
-func TestNodeFacade_StartNodeWithNodeNotNullShouldNotReturnError(t *testing.T) {
-	t.Parallel()
-
-	started := false
-	node := &mock.NodeStub{
-		StartHandler: func() {
-			started = true
-		},
-		IsRunningHandler: func() bool {
-			return started
-		},
-		StartConsensusHandler: func() error {
-			return nil
-		},
-	}
-
-	arg := createMockArguments()
-	arg.Node = node
-	nf, _ := NewNodeFacade(arg)
-
-	err := nf.StartNode()
-	assert.Nil(t, err)
-
-	isRunning := nf.IsNodeRunning()
-	assert.True(t, isRunning)
-}
-
-func TestNodeFacade_StartNodeWithErrorOnStartConsensusShouldReturnError(t *testing.T) {
-	t.Parallel()
-
-	started := false
-	node := &mock.NodeStub{
-		StartHandler: func() {
-			started = true
-		},
-		IsRunningHandler: func() bool {
-			return started
-		},
-		StartConsensusHandler: func() error {
-			started = false
-			return fmt.Errorf("error on StartConsensus")
-		},
-	}
-
-	arg := createMockArguments()
-	arg.Node = node
-	nf, _ := NewNodeFacade(arg)
-
-	err := nf.StartNode()
-	assert.NotNil(t, err)
-
-	isRunning := nf.IsNodeRunning()
-	assert.False(t, isRunning)
-}
-
 func TestNodeFacade_GetBalanceWithValidAddressShouldReturnBalance(t *testing.T) {
 	t.Parallel()
 
@@ -347,14 +292,14 @@ func TestNodeFacade_GetHeartbeats(t *testing.T) {
 		GetHeartbeatsHandler: func() []heartbeat.PubKeyHeartbeat {
 			return []heartbeat.PubKeyHeartbeat{
 				{
-					HexPublicKey:    "pk1",
+					PublicKey:       "pk1",
 					TimeStamp:       time.Now(),
 					MaxInactiveTime: heartbeat.Duration{Duration: 0},
 					IsActive:        true,
 					ReceivedShardID: uint32(0),
 				},
 				{
-					HexPublicKey:    "pk2",
+					PublicKey:       "pk2",
 					TimeStamp:       time.Now(),
 					MaxInactiveTime: heartbeat.Duration{Duration: 0},
 					IsActive:        true,
@@ -515,7 +460,7 @@ func TestNodeFacade_CreateTransaction(t *testing.T) {
 	assert.True(t, nodeCreateTxWasCalled)
 }
 
-func TestNodeFacade_TriggerHardfork(t *testing.T) {
+func TestNodeFacade_Trigger(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
@@ -530,7 +475,7 @@ func TestNodeFacade_TriggerHardfork(t *testing.T) {
 	}
 	nf, _ := NewNodeFacade(arg)
 
-	err := nf.TriggerHardfork()
+	err := nf.Trigger()
 
 	assert.True(t, wasCalled)
 	assert.Equal(t, expectedErr, err)
@@ -553,4 +498,19 @@ func TestNodeFacade_IsSelfTrigger(t *testing.T) {
 
 	assert.True(t, wasCalled)
 	assert.True(t, isSelf)
+}
+
+func TestNodeFacade_EncodeDecodeAddressPubkey(t *testing.T) {
+	t.Parallel()
+
+	buff := []byte("abcdefg")
+	arg := createMockArguments()
+	nf, _ := NewNodeFacade(arg)
+	encoded, err := nf.EncodeAddressPubkey(buff)
+	assert.Nil(t, err)
+
+	recoveredBytes, err := nf.DecodeAddressPubkey(encoded)
+
+	assert.Nil(t, err)
+	assert.Equal(t, buff, recoveredBytes)
 }
