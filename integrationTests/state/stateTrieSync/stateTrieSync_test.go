@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
@@ -52,7 +51,6 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
-	_ = logger.SetLogLevel("*:TRACE")
 
 	_ = resolverTrie.Commit()
 	rootHash, _ := resolverTrie.Root()
