@@ -353,6 +353,8 @@ func main() {
 	_ = logger.SetDisplayByteSlice(logger.ToHexShort)
 	log := logger.GetOrCreate("main")
 
+	time.Sleep(2 * time.Second)
+
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
@@ -1152,12 +1154,15 @@ func handleAppClose(log logger.Logger, endProcessArgument endProcess.EndProcessA
 }
 
 func newStartInEpoch(log logger.Logger) {
-	cwd, err := os.Executable()
-
+	exPath, err := os.Executable()
+	if err != nil {
+		log.LogIfError(err)
+	}
 	nodeApp := os.Args[0]
-	args := os.Args[1:]
+	args := os.Args
 	args = append(args, "-start-in-epoch")
 
+	log.Debug("Executable", "exPath", exPath)
 	log.Debug("app", "nodeApp", nodeApp)
 	log.Debug("args", "args", args)
 
@@ -1166,7 +1171,7 @@ func newStartInEpoch(log logger.Logger) {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	cmd.Args = args
-	cmd.Dir = cwd
+	cmd.Dir = filepath.Dir(exPath)
 	err = cmd.Start()
 	if err != nil {
 		log.LogIfError(err)
