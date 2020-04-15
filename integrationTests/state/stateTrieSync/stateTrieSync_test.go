@@ -78,6 +78,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
 	defer cancel()
 
+	//_ = logger.SetLogLevel("*:DEBUG")
 	err = trieSyncer.StartSyncing(rootHash, ctx)
 	assert.Nil(t, err)
 
