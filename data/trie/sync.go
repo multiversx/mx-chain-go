@@ -22,9 +22,10 @@ type trieSyncer struct {
 	trie                    *patriciaMerkleTrie
 	requestHandler          RequestHandler
 	interceptedNodes        storage.Cacher
-	nodeHashesMutex         sync.Mutex
-	receivedNodesMutex      sync.Mutex
+	mutOperation            sync.Mutex
 }
+
+const maxNumMissingNodes = 10
 
 // NewTrieSyncer creates a new instance of trieSyncer
 func NewTrieSyncer(
@@ -76,10 +77,10 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 		return ErrNilContext
 	}
 
-	ts.nodeHashesMutex.Lock()
+	ts.mutOperation.Lock()
 	ts.nodeHashes = make(map[string]bool)
 	ts.nodeHashes[string(rootHash)] = false
-	ts.nodeHashesMutex.Unlock()
+	ts.mutOperation.Unlock()
 
 	ts.rootFound = false
 	ts.rootHash = rootHash
@@ -119,7 +120,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 	newElement := true
 	shouldRetryAfterRequest := false
 
-	ts.nodeHashesMutex.Lock()
+	ts.mutOperation.Lock()
 	for newElement {
 		newElement = false
 
@@ -138,7 +139,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 
 			currentMissingNodes, nextNodes, err = currentNode.loadChildren(ts.getNode)
 			if err != nil {
-				ts.nodeHashesMutex.Unlock()
+				ts.mutOperation.Unlock()
 				return false, err
 			}
 
@@ -147,12 +148,18 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 				nextNodes = append(nextNodes, currentNode)
 				tmpNewElement := ts.addNew(nextNodes)
 				shouldRetryAfterRequest = shouldRetryAfterRequest || tmpNewElement
+
+				if len(missingNodes) >= maxNumMissingNodes {
+					newElement = false
+					continue
+				}
+
 				continue
 			}
 
 			nextNodes, err = currentNode.getChildren(ts.trie.Database())
 			if err != nil {
-				ts.nodeHashesMutex.Unlock()
+				ts.mutOperation.Unlock()
 				return false, err
 			}
 
@@ -166,22 +173,19 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 	for _, missingNode := range missingNodes {
 		ts.nodeHashes[string(missingNode)] = false
 	}
-	ts.nodeHashesMutex.Unlock()
+	ts.mutOperation.Unlock()
 
 	return shouldRetryAfterRequest, nil
 }
 
 func (ts *trieSyncer) deleteResolved(nodeHash string) {
-	ts.receivedNodesMutex.Lock()
 	delete(ts.receivedNodes, nodeHash)
-	ts.receivedNodesMutex.Unlock()
 	delete(ts.nodeHashes, nodeHash)
 }
 
 // adds new elements to needed hash map, lock ts.nodeHashesMutex before calling
 func (ts *trieSyncer) addNew(nextNodes []node) bool {
 	newElement := false
-	ts.receivedNodesMutex.Lock()
 	for _, nextNode := range nextNodes {
 		nextHash := string(nextNode.getHash())
 		if _, ok := ts.nodeHashes[nextHash]; !ok {
@@ -190,7 +194,6 @@ func (ts *trieSyncer) addNew(nextNodes []node) bool {
 		}
 		ts.receivedNodes[nextHash] = nextNode
 	}
-	ts.receivedNodesMutex.Unlock()
 
 	return newElement
 }
@@ -201,9 +204,7 @@ func (ts *trieSyncer) Trie() data.Trie {
 }
 
 func (ts *trieSyncer) getNode(hash []byte) (node, error) {
-	ts.receivedNodesMutex.Lock()
 	node, ok := ts.receivedNodes[string(hash)]
-	ts.receivedNodesMutex.Unlock()
 	if ok {
 		return node, nil
 	}
@@ -226,21 +227,22 @@ func trieNode(data interface{}) (node, error) {
 }
 
 func (ts *trieSyncer) requestNodes() uint32 {
-	ts.nodeHashesMutex.Lock()
+	ts.mutOperation.Lock()
 	numUnResolvedNodes := uint32(len(ts.nodeHashes))
 	for hash, found := range ts.nodeHashes {
 		if !found {
 			ts.requestHandler.RequestTrieNodes(ts.shardId, []byte(hash), ts.topic)
 		}
 	}
-	ts.nodeHashesMutex.Unlock()
+	ts.mutOperation.Unlock()
 
 	return numUnResolvedNodes
 }
 
 func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
-	ts.nodeHashesMutex.Lock()
-	defer ts.nodeHashesMutex.Unlock()
+	ts.mutOperation.Lock()
+	defer ts.mutOperation.Unlock()
+
 	_, ok := ts.nodeHashes[string(hash)]
 	if !ok {
 		return
@@ -252,10 +254,7 @@ func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
 	}
 
 	ts.nodeHashes[string(hash)] = true
-
-	ts.receivedNodesMutex.Lock()
 	ts.receivedNodes[string(hash)] = node
-	ts.receivedNodesMutex.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

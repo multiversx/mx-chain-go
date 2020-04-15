@@ -48,7 +48,8 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	time.Sleep(integrationTests.SyncDelay)
 
 	resolverTrie := nResolver.TrieContainer.Get([]byte(factory2.UserAccountTrie))
-	for i := 0; i < 10000; i++ {
+	//we have tested even with the 50000 value and found out that it worked in a reasonable amount of time ~21 seconds
+	for i := 0; i < 2000; i++ {
 		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
 
