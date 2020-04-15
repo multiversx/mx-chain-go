@@ -240,8 +240,8 @@ func (ts *trieSyncer) requestNodes() uint32 {
 
 func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
 	ts.nodeHashesMutex.Lock()
+	defer ts.nodeHashesMutex.Unlock()
 	_, ok := ts.nodeHashes[string(hash)]
-	ts.nodeHashesMutex.Unlock()
 	if !ok {
 		return
 	}
@@ -250,6 +250,8 @@ func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
 	if err != nil {
 		return
 	}
+
+	ts.nodeHashes[string(hash)] = true
 
 	ts.receivedNodesMutex.Lock()
 	ts.receivedNodes[string(hash)] = node
