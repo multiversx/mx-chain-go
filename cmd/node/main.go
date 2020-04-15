@@ -1154,7 +1154,7 @@ func handleAppClose(log logger.Logger, endProcessArgument endProcess.EndProcessA
 }
 
 func newStartInEpoch(log logger.Logger) {
-	exPath, err := os.Executable()
+	wd, err := os.Getwd()
 	if err != nil {
 		log.LogIfError(err)
 	}
@@ -1162,7 +1162,7 @@ func newStartInEpoch(log logger.Logger) {
 	args := os.Args
 	args = append(args, "-start-in-epoch")
 
-	log.Debug("Executable", "exPath", exPath)
+	log.Debug("Executable", "working dir", wd)
 	log.Debug("app", "nodeApp", nodeApp)
 	log.Debug("args", "args", args)
 
@@ -1171,7 +1171,7 @@ func newStartInEpoch(log logger.Logger) {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	cmd.Args = args
-	cmd.Dir = filepath.Dir(exPath)
+	cmd.Dir = wd
 	err = cmd.Start()
 	if err != nil {
 		log.LogIfError(err)
