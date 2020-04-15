@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
+	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
@@ -31,6 +32,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	initialNodeAddr string,
 	epochStartNotifier notifier.EpochStartNotifier,
 	nodesCoordinator sharding.NodesCoordinator,
+	ratingsData *rating.RatingsData,
 	cp *CryptoParams,
 	keyIndex int,
 	ownAccount *TestWalletAccount,
@@ -48,6 +50,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 		HeaderSigVerifier: headerSigVerifier,
 		ChainID:           ChainID,
 		NodesSetup:        nodeSetup,
+		RatingsData:       ratingsData,
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
@@ -142,7 +145,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 
 		for i := range validatorList {
 			dataCache, _ := lrucache.NewCache(10000)
-			nodesList[i] = createNode(
+			nodesList[i] = CreateNode(
 				nodesPerShard,
 				nbMetaNodes,
 				shardConsensusGroupSize,
@@ -157,12 +160,13 @@ func CreateNodesWithNodesCoordinatorFactory(
 				dataCache,
 				nodesCoordinatorFactory,
 				nodesSetup,
+				nil,
 			)
 		}
 
 		for i := range waitingMap[shardId] {
 			dataCache, _ := lrucache.NewCache(10000)
-			nodesListWaiting[i] = createNode(
+			nodesListWaiting[i] = CreateNode(
 				nodesPerShard,
 				nbMetaNodes,
 				shardConsensusGroupSize,
@@ -177,6 +181,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 				dataCache,
 				nodesCoordinatorFactory,
 				nodesSetup,
+				nil,
 			)
 		}
 
@@ -186,7 +191,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 	return nodesMap
 }
 
-func createNode(
+func CreateNode(
 	nodesPerShard int,
 	nbMetaNodes int,
 	shardConsensusGroupSize int,
@@ -201,6 +206,7 @@ func createNode(
 	cache sharding.Cacher,
 	coordinatorFactory NodesCoordinatorFactory,
 	nodesSetup sharding.GenesisNodesSetupHandler,
+	ratingsData *rating.RatingsData,
 ) *TestProcessorNode {
 
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
@@ -230,6 +236,7 @@ func createNode(
 		seedAddress,
 		epochStartSubscriber,
 		nodesCoordinator,
+		ratingsData,
 		cp,
 		keyIndex,
 		nil,
@@ -303,6 +310,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 				seedAddress,
 				epochStartSubscriber,
 				nodesCoordinator,
+				nil,
 				cp,
 				i,
 				nil,
@@ -399,6 +407,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				seedAddress,
 				epochStartSubscriber,
 				nodesCoordinator,
+				nil,
 				cp,
 				i,
 				ownAccount,
