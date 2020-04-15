@@ -108,8 +108,9 @@ func TestCheckIfShuffledOut_ValidatorIsInWaitingList(t *testing.T) {
 		},
 	}
 
-	result := epochStartProvider.checkIfShuffledOut(publicKey, nodesConfig)
+	shardId, result := epochStartProvider.checkIfShuffledOut(publicKey, nodesConfig)
 	assert.False(t, result)
+	assert.Equal(t, shardId, epochStartProvider.baseData.shardId)
 }
 
 func TestCheckIfShuffledOut_ValidatorIsInEligibleList(t *testing.T) {
@@ -130,8 +131,9 @@ func TestCheckIfShuffledOut_ValidatorIsInEligibleList(t *testing.T) {
 		},
 	}
 
-	result := epochStartProvider.checkIfShuffledOut(publicKey, nodesConfig)
+	shardId, result := epochStartProvider.checkIfShuffledOut(publicKey, nodesConfig)
 	assert.False(t, result)
+	assert.Equal(t, shardId, epochStartProvider.baseData.shardId)
 }
 
 func TestCheckIfShuffledOut_ValidatorNotInEligibleOrWaiting(t *testing.T) {
@@ -151,6 +153,7 @@ func TestCheckIfShuffledOut_ValidatorNotInEligibleOrWaiting(t *testing.T) {
 		},
 	}
 
-	result := epochStartProvider.checkIfShuffledOut(publicKey, nodesConfig)
-	assert.True(t, result)
+	shardId, result := epochStartProvider.checkIfShuffledOut(publicKey, nodesConfig)
+	assert.False(t, result)
+	assert.Equal(t, epochStartProvider.baseData.shardId, shardId)
 }
