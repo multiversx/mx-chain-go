@@ -54,6 +54,7 @@ func TestDB_CorruptdeDBShouldRecover(t *testing.T) {
 	}
 
 	valRecovered, err := dbRecovered.Get(key)
+	assert.Nil(t, err)
 	_ = dbRecovered.Close()
 
 	assert.Equal(t, val, valRecovered)
