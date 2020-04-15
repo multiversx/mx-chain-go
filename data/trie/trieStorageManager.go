@@ -19,8 +19,7 @@ import (
 
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
 type trieStorageManager struct {
-	db       data.DBWriteCacher
-	pruneReq chan []byte
+	db data.DBWriteCacher
 
 	snapshots          []storage.Persister
 	snapshotId         int
@@ -74,7 +73,6 @@ func NewTrieStorageManager(
 		pruningBuffer:         newPruningBuffer(generalConfig.PruningBufferLen),
 		dbEvictionWaitingList: ewl,
 		snapshotReq:           make(chan snapshotsQueueEntry, generalConfig.SnapshotsBufferLen),
-		pruneReq:              make(chan []byte, generalConfig.PruningBufferLen),
 		snapshotInProgress:    0,
 		maxSnapshots:          generalConfig.MaxSnapshots,
 	}
@@ -88,16 +86,6 @@ func (tsm *trieStorageManager) storageProcessLoop(msh marshal.Marshalizer, hsh h
 		select {
 		case snapshot := <-tsm.snapshotReq:
 			tsm.takeSnapshot(snapshot, msh, hsh)
-		default:
-			select {
-			case snapshot := <-tsm.snapshotReq:
-				tsm.takeSnapshot(snapshot, msh, hsh)
-			case rootHash := <-tsm.pruneReq:
-				err := tsm.removeFromDb(rootHash)
-				if err != nil {
-					log.Error("trie storage manager remove from db", "error", err, "rootHash", hex.EncodeToString(rootHash))
-				}
-			}
 		}
 	}
 }
@@ -206,12 +194,11 @@ func (tsm *trieStorageManager) Prune(rootHash []byte) {
 }
 
 func (tsm *trieStorageManager) prune(oldHashes map[string]struct{}) {
-	for key := range oldHashes {
-		select {
-		case tsm.pruneReq <- []byte(key):
-			log.Trace("root hash will be pruned", "rootHash", []byte(key))
-		default:
-			log.Trace("pruning buffer is full, hash won't be removed", "hash", []byte(key))
+	for hash := range oldHashes {
+		rootHash := []byte(hash)
+		err := tsm.removeFromDb(rootHash)
+		if err != nil {
+			log.Error("trie storage manager remove from db", "error", err, "rootHash", hex.EncodeToString(rootHash))
 		}
 	}
 }

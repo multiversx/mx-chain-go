@@ -108,8 +108,9 @@ func TestCheckIfShuffledOut_ValidatorIsInWaitingList(t *testing.T) {
 		},
 	}
 
-	result := epochStartProvider.checkIfShuffledOut(publicKey, nodesConfig)
+	shardId, result := epochStartProvider.checkIfShuffledOut(publicKey, nodesConfig)
 	assert.False(t, result)
+	assert.Equal(t, shardId, epochStartProvider.baseData.shardId)
 }
 
 func TestCheckIfShuffledOut_ValidatorIsInEligibleList(t *testing.T) {
@@ -130,8 +131,33 @@ func TestCheckIfShuffledOut_ValidatorIsInEligibleList(t *testing.T) {
 		},
 	}
 
-	result := epochStartProvider.checkIfShuffledOut(publicKey, nodesConfig)
+	shardId, result := epochStartProvider.checkIfShuffledOut(publicKey, nodesConfig)
 	assert.False(t, result)
+	assert.Equal(t, shardId, epochStartProvider.baseData.shardId)
+}
+
+func TestCheckIfShuffledOut_ValidatorIsShuffledToEligibleList(t *testing.T) {
+	args := createMockEpochStartBootstrapArgs()
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.initializeFromLocalStorage()
+	epochStartProvider.baseData.lastEpoch = 0
+	epochStartProvider.baseData.shardId = 1
+
+	publicKey := []byte("pubKey")
+	nodesConfig := &sharding.NodesCoordinatorRegistry{
+		CurrentEpoch: 1,
+		EpochsConfig: map[string]*sharding.EpochValidators{
+			"0": {
+				EligibleValidators: map[string][]*sharding.SerializableValidator{
+					"0": {{PubKey: publicKey, Chances: 0, Index: 0}},
+				},
+			},
+		},
+	}
+
+	shardId, result := epochStartProvider.checkIfShuffledOut(publicKey, nodesConfig)
+	assert.True(t, result)
+	assert.NotEqual(t, shardId, epochStartProvider.baseData.shardId)
 }
 
 func TestCheckIfShuffledOut_ValidatorNotInEligibleOrWaiting(t *testing.T) {
@@ -151,6 +177,7 @@ func TestCheckIfShuffledOut_ValidatorNotInEligibleOrWaiting(t *testing.T) {
 		},
 	}
 
-	result := epochStartProvider.checkIfShuffledOut(publicKey, nodesConfig)
-	assert.True(t, result)
+	shardId, result := epochStartProvider.checkIfShuffledOut(publicKey, nodesConfig)
+	assert.False(t, result)
+	assert.Equal(t, epochStartProvider.baseData.shardId, shardId)
 }
