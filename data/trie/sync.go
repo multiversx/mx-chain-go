@@ -141,7 +141,7 @@ func (ts *trieSyncer) getNextNodes() error {
 				ts.trie.root = currentNode
 			}
 
-			currentMissingNodes, err = currentNode.loadChildren(ts.getNode)
+			currentMissingNodes, nextNodes, err = currentNode.loadChildren(ts.getNode)
 			if err != nil {
 				ts.nodeHashesMutex.Unlock()
 				return err
@@ -149,6 +149,8 @@ func (ts *trieSyncer) getNextNodes() error {
 
 			if len(currentMissingNodes) > 0 {
 				missingNodes = append(missingNodes, currentMissingNodes...)
+				tmpNewElement := ts.addNew(nextNodes)
+				newElement = newElement || tmpNewElement
 				continue
 			}
 

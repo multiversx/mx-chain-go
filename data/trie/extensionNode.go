@@ -571,23 +571,23 @@ func (en *extensionNode) setDirty(dirty bool) {
 	en.dirty = dirty
 }
 
-func (en *extensionNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte, error) {
+func (en *extensionNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte, []node, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if en.EncodedChild == nil {
-		return nil, ErrNilNode
+		return nil, nil, ErrNilNode
 	}
 
 	child, err := getNode(en.EncodedChild)
 	if err != nil {
-		return [][]byte{en.EncodedChild}, nil
+		return [][]byte{en.EncodedChild}, nil, nil
 	}
 	en.child = child
 
-	return nil, nil
+	return nil, []node{child}, nil
 }
 
 func (en *extensionNode) getAllLeaves(leaves map[string][]byte, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {

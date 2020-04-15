@@ -49,7 +49,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	time.Sleep(integrationTests.SyncDelay)
 
 	resolverTrie := nResolver.TrieContainer.Get([]byte(factory2.UserAccountTrie))
-	for i := 0; i < 150; i++ {
+	for i := 0; i < 1000; i++ {
 		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
 	_ = logger.SetLogLevel("*:TRACE")
