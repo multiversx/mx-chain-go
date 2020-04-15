@@ -18,7 +18,7 @@ type TxPoolsCleaner struct {
 	accounts         state.AccountsAdapter
 	shardCoordinator sharding.Coordinator
 	dataPool         dataRetriever.PoolsHolder
-	addrConverter    state.AddressConverter
+	pubkeyConverter  state.PubkeyConverter
 	numRemovedTxs    uint64
 	canDoClean       chan struct{}
 	economicsFee     process.FeeHandler
@@ -29,7 +29,7 @@ func NewTxsPoolsCleaner(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	dataPool dataRetriever.PoolsHolder,
-	addrConverter state.AddressConverter,
+	pubkeyConverter state.PubkeyConverter,
 	economicsFee process.FeeHandler,
 ) (*TxPoolsCleaner, error) {
 	if check.IfNil(accounts) {
@@ -46,8 +46,8 @@ func NewTxsPoolsCleaner(
 	if check.IfNil(transactionPool) {
 		return nil, process.ErrNilTransactionPool
 	}
-	if check.IfNil(addrConverter) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
@@ -59,7 +59,7 @@ func NewTxsPoolsCleaner(
 		accounts:         accounts,
 		shardCoordinator: shardCoordinator,
 		dataPool:         dataPool,
-		addrConverter:    addrConverter,
+		pubkeyConverter:  pubkeyConverter,
 		numRemovedTxs:    0,
 		canDoClean:       canDoClean,
 		economicsFee:     economicsFee,
@@ -127,7 +127,7 @@ func (tpc *TxPoolsCleaner) cleanDataStore(txsPool storage.Cacher, haveTime func(
 		}
 
 		sndAddr := tx.GetSndAddr()
-		addr, err := tpc.addrConverter.CreateAddressFromPublicKeyBytes(sndAddr)
+		addr, err := tpc.pubkeyConverter.CreateAddressFromBytes(sndAddr)
 		if err != nil {
 			txsPool.Remove(key)
 			atomic.AddUint64(&tpc.numRemovedTxs, 1)

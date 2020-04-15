@@ -128,8 +128,8 @@ var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
 // ErrNilSingleSigner signals that nil single signer was provided
 var ErrNilSingleSigner = errors.New("nil single signer")
 
-// ErrNilAddressConverter signals that nil address converter was provided
-var ErrNilAddressConverter = errors.New("nil address converter")
+// ErrNilPubkeyConverter signals that a nil public key converter was provided
+var ErrNilPubkeyConverter = errors.New("nil public key converter")
 
 // ErrNilBlockKeyGen signals that nil block key gen was provided
 var ErrNilBlockKeyGen = errors.New("nil block key gen")
@@ -154,9 +154,6 @@ var ErrNilStorageManager = errors.New("nil trie storage manager")
 
 // ErrNilAccountsDBSyncContainer signals that nil accounts sync container was provided
 var ErrNilAccountsDBSyncContainer = errors.New("nil accounts db sync container")
-
-// ErrNilValidatorInfoProcessor signals that nil validator info was provided
-var ErrNilValidatorInfoProcessor = errors.New("nil validator info processor")
 
 // ErrTimeIsOut signals that time is out
 var ErrTimeIsOut = errors.New("time is out")

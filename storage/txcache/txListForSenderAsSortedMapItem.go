@@ -99,7 +99,7 @@ func (listForSender *txListForSender) GetScoreChunk() *maps.MapChunk {
 	return listForSender.scoreChunk
 }
 
-// GetScoreChunk returns the score chunk the sender is currently in
+// SetScoreChunk returns the score chunk the sender is currently in
 func (listForSender *txListForSender) SetScoreChunk(scoreChunk *maps.MapChunk) {
 	listForSender.scoreChunk = scoreChunk
 }

@@ -1,7 +1,8 @@
 package multisig
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
+	"encoding/hex"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
@@ -15,8 +16,8 @@ const hasherOutputSize = 16
 
 // BlsMultiSigner provides an implements of the crypto.LowLevelSignerBLS interface
 type BlsMultiSigner struct {
-	Hasher hashing.Hasher
 	singlesig.BlsSingleSigner
+	Hasher hashing.Hasher
 }
 
 // SignShare produces a BLS signature share (single BLS signature) over a given message
@@ -250,7 +251,7 @@ func (bms *BlsMultiSigner) scalarMulSig(suite crypto.Suite, scalarBytes []byte, 
 		return nil, crypto.ErrInvalidScalar
 	}
 
-	err := sc.Scalar.SetString(core.ToHex(scalarBytes), 16)
+	err := sc.Scalar.SetString(hex.EncodeToString(scalarBytes), 16)
 	if err != nil {
 		return nil, crypto.ErrInvalidScalar
 	}
@@ -358,7 +359,7 @@ func createScalar(suite crypto.Suite, scalarBytes []byte) (crypto.Scalar, error)
 	scalar := suite.CreateScalar()
 	sc, _ := scalar.(*mcl.Scalar)
 
-	err := sc.Scalar.SetString(core.ToHex(scalarBytes), 16)
+	err := sc.Scalar.SetString(hex.EncodeToString(scalarBytes), 16)
 	if err != nil {
 		return nil, err
 	}

@@ -44,6 +44,10 @@ func createDataPools() dataRetriever.PoolsHolder {
 	return pools
 }
 
+func createMockPubkeyConverter() *mock.PubkeyConverterMock {
+	return mock.NewPubkeyConverterMock(32)
+}
+
 func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 	t.Parallel()
 
@@ -52,7 +56,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
 		&economics.EconomicsData{},
@@ -70,7 +74,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) 
 		mock.NewMultiShardsCoordinatorMock(3),
 		nil,
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
 		&economics.EconomicsData{},
@@ -88,7 +92,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilHasher(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.MarshalizerMock{},
 		nil,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
 		&economics.EconomicsData{},
@@ -113,7 +117,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
 	)
 
 	assert.Nil(t, ipcf)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
@@ -124,7 +128,7 @@ func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		nil,
 		dPool,
 		&economics.EconomicsData{},
@@ -142,7 +146,7 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
 		&economics.EconomicsData{},
@@ -161,7 +165,7 @@ func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
 		mock.NewMultiShardsCoordinatorMock(3),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
 		&economics.EconomicsData{},

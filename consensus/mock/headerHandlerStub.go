@@ -60,7 +60,7 @@ func (hhs *HeaderHandlerStub) GetNonce() uint64 {
 
 // GetEpoch -
 func (hhs *HeaderHandlerStub) GetEpoch() uint32 {
-	panic("implement me")
+	return 0
 }
 
 // GetRound -

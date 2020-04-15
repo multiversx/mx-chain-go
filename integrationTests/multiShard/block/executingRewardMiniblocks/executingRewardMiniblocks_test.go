@@ -63,7 +63,7 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Node.Stop()
+				_ = n.Messenger.Close()
 			}
 		}
 	}()
@@ -150,7 +150,7 @@ func TestExecuteBlocksWithTransactionsWhichReachedGasLimitAndCheckRewards(t *tes
 		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Node.Stop()
+				_ = n.Messenger.Close()
 			}
 		}
 	}()
@@ -223,7 +223,7 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Node.Stop()
+				_ = n.Messenger.Close()
 			}
 		}
 	}()
@@ -326,7 +326,7 @@ func verifyRewardsForMetachain(
 	rewardValue := big.NewInt(0)
 
 	for metaAddr, numOfTimesRewarded := range mapRewardsForMeta {
-		addrContainer, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes([]byte(metaAddr))
+		addrContainer, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes([]byte(metaAddr))
 		acc, err := nodes[0][0].AccntState.GetExistingAccount(addrContainer)
 		assert.Nil(t, err)
 
@@ -348,7 +348,7 @@ func verifyRewardsForShards(
 	feePerTxForLeader := float64(gasPrice) * float64(gasLimit) * getLeaderPercentage(nodesMap[0][0])
 
 	for address, nbRewards := range mapRewardsForAddress {
-		addrContainer, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes([]byte(address))
+		addrContainer, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes([]byte(address))
 		shard := nodesMap[0][0].ShardCoordinator.ComputeId(addrContainer)
 
 		for _, shardNode := range nodesMap[shard] {

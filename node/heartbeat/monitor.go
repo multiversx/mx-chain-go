@@ -3,7 +3,6 @@ package heartbeat
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"sort"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -33,6 +33,7 @@ type ArgHeartbeatMonitor struct {
 	AntifloodHandler            P2PAntifloodHandler
 	HardforkTrigger             HardforkTrigger
 	PeerBlackListHandler        BlackListHandler
+	ValidatorPubkeyConverter    state.PubkeyConverter
 }
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
@@ -42,7 +43,6 @@ type Monitor struct {
 	peerTypeProvider            PeerTypeProviderHandler
 	mutHeartbeatMessages        sync.RWMutex
 	heartbeatMessages           map[string]*heartbeatMessageInfo
-	mutPubKeysMap               sync.RWMutex
 	pubKeysMap                  map[uint32][]string
 	mutFullPeersSlice           sync.RWMutex
 	fullPeersSlice              [][]byte
@@ -54,6 +54,7 @@ type Monitor struct {
 	antifloodHandler            P2PAntifloodHandler
 	hardforkTrigger             HardforkTrigger
 	peerBlackListHandler        BlackListHandler
+	validatorPubkeyConverter    state.PubkeyConverter
 }
 
 // NewMonitor returns a new monitor instance
@@ -85,6 +86,9 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 	if check.IfNil(arg.PeerBlackListHandler) {
 		return nil, fmt.Errorf("%w in NewMonitor", ErrNilBlackListHandler)
 	}
+	if check.IfNil(arg.ValidatorPubkeyConverter) {
+		return nil, ErrNilPubkeyConverter
+	}
 
 	mon := &Monitor{
 		marshalizer:                 arg.Marshalizer,
@@ -99,6 +103,7 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		antifloodHandler:            arg.AntifloodHandler,
 		hardforkTrigger:             arg.HardforkTrigger,
 		peerBlackListHandler:        arg.PeerBlackListHandler,
+		validatorPubkeyConverter:    arg.ValidatorPubkeyConverter,
 	}
 
 	err := mon.storer.UpdateGenesisTime(arg.GenesisTime)
@@ -385,7 +390,7 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	idx := 0
 	for k, v := range m.heartbeatMessages {
 		tmp := PubKeyHeartbeat{
-			HexPublicKey:    hex.EncodeToString([]byte(k)),
+			PublicKey:       m.validatorPubkeyConverter.Encode([]byte(k)),
 			TimeStamp:       v.timeStamp,
 			MaxInactiveTime: Duration{v.maxInactiveTime},
 			IsActive:        v.isActive,
@@ -403,7 +408,7 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	m.mutHeartbeatMessages.Unlock()
 
 	sort.Slice(status, func(i, j int) bool {
-		return strings.Compare(status[i].HexPublicKey, status[j].HexPublicKey) < 0
+		return strings.Compare(status[i].PublicKey, status[j].PublicKey) < 0
 	})
 
 	return status

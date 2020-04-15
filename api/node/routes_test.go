@@ -84,8 +84,6 @@ func TestHeartbeatStatus_FailsWithoutFacade(t *testing.T) {
 func TestHeartbeatstatus_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{}
-	facade.Running = true
 	ws := startNodeServerWrongFacade()
 	req, _ := http.NewRequest("GET", "/node/heartbeatstatus", nil)
 	resp := httptest.NewRecorder()
@@ -124,7 +122,7 @@ func TestHeartbeatstatus(t *testing.T) {
 
 	hbStatus := []heartbeat.PubKeyHeartbeat{
 		{
-			HexPublicKey:    "pk1",
+			PublicKey:       "pk1",
 			TimeStamp:       time.Now(),
 			MaxInactiveTime: heartbeat.Duration{Duration: 0},
 			IsActive:        true,
