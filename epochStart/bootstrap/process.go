@@ -152,10 +152,6 @@ type ArgsEpochStartBootstrap struct {
 	PathManager                storage.PathManagerHandler
 	StorageUnitOpener          storage.UnitOpenerHandler
 	LatestStorageDataProvider  storage.LatestStorageDataProviderHandler
-	WorkingDir                 string
-	DefaultDBPath              string
-	DefaultEpochString         string
-	DefaultShardString         string
 	Rater                      sharding.ChanceComputer
 	TrieContainer              state.TriesHolder
 	Uint64Converter            typeConverters.Uint64ByteSliceConverter

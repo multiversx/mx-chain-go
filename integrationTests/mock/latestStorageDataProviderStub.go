@@ -1,10 +1,12 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/storage/factory"
+import (
+	"github.com/ElrondNetwork/elrond-go/storage"
+)
 
 // LatestStorageDataProviderStub -
 type LatestStorageDataProviderStub struct {
-	GetCalled                      func() (factory.LatestDataFromStorage, error)
+	GetCalled                      func() (storage.LatestDataFromStorage, error)
 	GetParentDirAndLastEpochCalled func() (string, uint32, error)
 }
 
@@ -18,10 +20,10 @@ func (l *LatestStorageDataProviderStub) GetParentDirAndLastEpoch() (string, uint
 }
 
 // Get -
-func (l *LatestStorageDataProviderStub) Get() (factory.LatestDataFromStorage, error) {
+func (l *LatestStorageDataProviderStub) Get() (storage.LatestDataFromStorage, error) {
 	if l.GetCalled != nil {
 		return l.GetCalled()
 	}
 
-	return factory.LatestDataFromStorage{}, nil
+	return storage.LatestDataFromStorage{}, nil
 }
