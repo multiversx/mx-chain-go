@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -204,7 +205,7 @@ func (e *epochStartBootstrap) isStartInEpochZero() bool {
 
 	currentRound := e.rounder.Index()
 	epochEndPlusGracePeriod := float64(e.generalConfig.EpochStartConfig.RoundsPerEpoch) * (gracePeriodInPercentage + 1.0)
-	log.Debug("current round ", "round", currentRound, "epochEndRound", epochEndPlusGracePeriod)
+	log.Debug("IsStartInEpochZero", "currentRound", currentRound, "epochEndRound", epochEndPlusGracePeriod)
 	return float64(currentRound) < epochEndPlusGracePeriod
 }
 
@@ -247,6 +248,17 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return e.prepareEpochZero()
 	}
 
+	e.dataPool, err = factoryDataPool.NewDataPoolFromConfig(
+		factoryDataPool.ArgsDataPool{
+			Config:           &e.generalConfig,
+			EconomicsData:    e.economicsData,
+			ShardCoordinator: e.shardCoordinator,
+		},
+	)
+	if err != nil {
+		return Parameters{}, err
+	}
+
 	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
 	if isCurrentEpochSaved {
 		parameters, err := e.prepareEpochFromStorage()
@@ -263,9 +275,19 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 	e.epochStartMeta, err = e.epochStartMetaBlockSyncer.SyncEpochStartMeta(timeToWait)
 	if err != nil {
+		// node should try to start from what he has in DB if not epoch start metablock is received in time
+		if errors.Is(err, epochStart.ErrTimeoutWaitingForMetaBlock) {
+			parameters := Parameters{
+				Epoch:       e.baseData.lastEpoch,
+				SelfShardId: e.baseData.shardId,
+				NumOfShards: e.baseData.numberOfShards,
+			}
+			return parameters, nil
+		}
+
 		return Parameters{}, err
 	}
-	log.Debug("start in epoch boostrap: got epoch start meta header", "epoch", e.epochStartMeta.Epoch, "nonce", e.epochStartMeta.Nonce)
+	log.Debug("start in epoch bootstrap: got epoch start meta header", "epoch", e.epochStartMeta.Epoch, "nonce", e.epochStartMeta.Nonce)
 
 	err = e.createSyncers()
 	if err != nil {
@@ -309,17 +331,6 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	e.whiteListHandler, err = interceptors.NewWhiteListDataVerifier(whiteListCache)
-	if err != nil {
-		return err
-	}
-
-	e.dataPool, err = factoryDataPool.NewDataPoolFromConfig(
-		factoryDataPool.ArgsDataPool{
-			Config:           &e.generalConfig,
-			EconomicsData:    e.economicsData,
-			ShardCoordinator: e.shardCoordinator,
-		},
-	)
 	if err != nil {
 		return err
 	}
