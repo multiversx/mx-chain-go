@@ -1,7 +1,7 @@
 package processor
 
 import (
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -78,8 +78,14 @@ func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ p
 	}
 
 	if mip.isMbCrossShard(miniblock) && !mip.whiteListHandler.IsWhiteListed(data) {
-		log.Debug("miniblock interceptor processor : cross shard miniblock for me",
-			"message", "not whitelisted will not be added in pool")
+		log.Debug(
+			"miniblock interceptor processor : cross shard miniblock for me",
+			"message", "not whitelisted will not be added in pool",
+			"type", miniblock.Type,
+			"sender", miniblock.SenderShardID,
+			"receiver", miniblock.ReceiverShardID,
+			"hash", hash,
+		)
 		return nil
 	}
 

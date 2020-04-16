@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/resolvers"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -76,6 +77,7 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingOtherShard(t *test
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, shardIdResolver)
 	resolvers.Log.LogIfError(err)
+	nRequester.WhiteListHandler.Add([][]byte{hash})
 	err = resolver.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
@@ -148,6 +150,7 @@ func TestRequestResolveMiniblockByHashRequestingMetaResolvingShard(t *testing.T)
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
 	resolvers.Log.LogIfError(err)
+	nRequester.WhiteListHandler.Add([][]byte{hash})
 	err = resolver.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
@@ -184,6 +187,7 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingSameShard(t *t
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
 	resolvers.Log.LogIfError(err)
+	nRequester.WhiteListHandler.Add([][]byte{hash})
 	err = resolver.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
@@ -221,6 +225,7 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingOtherShard(t *
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
 	resolvers.Log.LogIfError(err)
+	nRequester.WhiteListHandler.Add([][]byte{hash})
 	err = resolver.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
@@ -293,6 +298,7 @@ func TestRequestResolvePeerMiniblockByHashRequestingMetaResolvingShard(t *testin
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
 	resolvers.Log.LogIfError(err)
+	nRequester.WhiteListHandler.Add([][]byte{hash})
 	err = resolver.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 

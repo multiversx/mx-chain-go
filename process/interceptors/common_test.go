@@ -142,11 +142,6 @@ func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *tes
 	removedWasCalled := false
 	processInterceptedData(
 		processor,
-		&mock.WhiteListHandlerStub{
-			RemoveCalled: func(keys [][]byte) {
-				removedWasCalled = true
-			},
-		},
 		&mock.InterceptedDataStub{},
 		wg,
 		&mock.P2PMessageMock{},
@@ -186,11 +181,6 @@ func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T
 	removedWasCalled := false
 	processInterceptedData(
 		processor,
-		&mock.WhiteListHandlerStub{
-			RemoveCalled: func(keys [][]byte) {
-				removedWasCalled = true
-			},
-		},
 		&mock.InterceptedDataStub{},
 		wg,
 		&mock.P2PMessageMock{},
@@ -230,11 +220,6 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 	removedWasCalled := false
 	processInterceptedData(
 		processor,
-		&mock.WhiteListHandlerStub{
-			RemoveCalled: func(keys [][]byte) {
-				removedWasCalled = true
-			},
-		},
 		&mock.InterceptedDataStub{},
 		wg,
 		&mock.P2PMessageMock{},

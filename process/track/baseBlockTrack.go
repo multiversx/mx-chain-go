@@ -694,14 +694,21 @@ func (bbt *baseBlockTrack) doWhitelistIfNeeded(metablock *block.MetaBlock) {
 		return
 	}
 
-	miniblocks := metablock.GetMiniBlockHeaders()
+	miniblocksHdrs := metablock.GetMiniBlockHeaders()
 	keys := make([][]byte, 0)
-	for _, miniblock := range miniblocks {
-		receiverShard := miniblock.GetReceiverShardID()
+	for _, miniblockHdr := range miniblocksHdrs {
+		receiverShard := miniblockHdr.GetReceiverShardID()
 		receiverIsSelfShard := receiverShard == selfShardID || receiverShard == core.AllShardId
-		senderIsCrossShard := miniblock.GetSenderShardID() != selfShardID
+		senderIsCrossShard := miniblockHdr.GetSenderShardID() != selfShardID
 		if receiverIsSelfShard && senderIsCrossShard {
-			keys = append(keys, miniblock.Hash)
+			keys = append(keys, miniblockHdr.Hash)
+			log.Debug(
+				"doWhitelistIfNeeded cross miniblock",
+				"type", miniblockHdr.Type,
+				"sender", miniblockHdr.SenderShardID,
+				"receiver", miniblockHdr.ReceiverShardID,
+				"hash", miniblockHdr.Hash,
+			)
 		}
 	}
 
