@@ -13,8 +13,8 @@ var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 // ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
 var ErrNilHasher = errors.New("nil Hasher")
 
-// ErrNilAddressConverter signals that an operation has been attempted to or with a nil AddressConverter implementation
-var ErrNilAddressConverter = errors.New("nil AddressConverter")
+// ErrNilPubkeyConverter signals that an operation has been attempted to or with a nil public key converter implementation
+var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
 
 // ErrNilGasSchedule signals that an operation has been attempted with a nil gas schedule
 var ErrNilGasSchedule = errors.New("nil GasSchedule")

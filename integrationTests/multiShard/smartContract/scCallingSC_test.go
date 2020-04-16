@@ -179,7 +179,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 		nonce++
 	}
 
-	address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(firstSCAddress)
+	address, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(firstSCAddress)
 	shId := nodes[0].ShardCoordinator.ComputeId(address)
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() != shId {
@@ -281,7 +281,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 		nonce++
 	}
 
-	address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(firstSCAddress)
+	address, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(firstSCAddress)
 	shId := nodes[0].ShardCoordinator.ComputeId(address)
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() != shId {
@@ -323,7 +323,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 }
 
 func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) state.UserAccountHandler {
-	addrCont, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(address)
+	addrCont, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(address)
 	sndrAcc, _ := accState.GetExistingAccount(addrCont)
 
 	sndAccSt, _ := sndrAcc.(state.UserAccountHandler)
@@ -402,7 +402,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	// verify how many times was shard 0 and shard 1 called
-	address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(firstSCAddress)
+	address, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(firstSCAddress)
 	shId := nodes[0].ShardCoordinator.ComputeId(address)
 	for index, node := range nodes {
 		if node.ShardCoordinator.SelfId() != shId {
@@ -698,7 +698,7 @@ func putDeploySCToDataPool(
 	}
 	txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)
 
-	address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(pubkey)
+	address, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(pubkey)
 	shId := nodes[0].ShardCoordinator.ComputeId(address)
 
 	for _, node := range nodes {
@@ -717,7 +717,7 @@ func mintPubKey(
 	initialVal *big.Int,
 	nodes []*integrationTests.TestProcessorNode,
 ) {
-	address, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(pubkey)
+	address, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(pubkey)
 	shId := nodes[0].ShardCoordinator.ComputeId(address)
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() != shId {

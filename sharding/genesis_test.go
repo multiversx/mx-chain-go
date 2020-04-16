@@ -1,6 +1,7 @@
 package sharding
 
 import (
+	"errors"
 	"math/big"
 	"testing"
 
@@ -9,7 +10,9 @@ import (
 )
 
 func createGenesisOneShardOneNode() *Genesis {
-	genesis := &Genesis{}
+	genesis := &Genesis{
+		pubkeyConverter: createMockPubkeyConverter(),
+	}
 	genesis.InitialBalances = make([]*InitialBalance, 1)
 	genesis.InitialBalances[0] = &InitialBalance{}
 	genesis.InitialBalances[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
@@ -24,7 +27,9 @@ func createGenesisOneShardOneNode() *Genesis {
 }
 
 func createGenesisTwoShardTwoNodes() *Genesis {
-	genesis := &Genesis{}
+	genesis := &Genesis{
+		pubkeyConverter: createMockPubkeyConverter(),
+	}
 	genesis.InitialBalances = make([]*InitialBalance, 4)
 	genesis.InitialBalances[0] = &InitialBalance{}
 	genesis.InitialBalances[1] = &InitialBalance{}
@@ -50,7 +55,9 @@ func createGenesisTwoShardTwoNodes() *Genesis {
 }
 
 func createGenesisTwoShard6NodesMeta() *Genesis {
-	genesis := &Genesis{}
+	genesis := &Genesis{
+		pubkeyConverter: createMockPubkeyConverter(),
+	}
 	genesis.InitialBalances = make([]*InitialBalance, 6)
 	genesis.InitialBalances[0] = &InitialBalance{}
 	genesis.InitialBalances[1] = &InitialBalance{}
@@ -81,29 +88,35 @@ func createGenesisTwoShard6NodesMeta() *Genesis {
 	return genesis
 }
 
+func createMockPubkeyConverter() *mock.PubkeyConverterMock {
+	return mock.NewPubkeyConverterMock(32)
+}
+
 func TestGenesis_NewGenesisConfigWrongFile(t *testing.T) {
-	genesis, err := NewGenesisConfig("")
+	genesis, err := NewGenesisConfig("", createMockPubkeyConverter())
 
 	assert.Nil(t, genesis)
 	assert.NotNil(t, err)
 }
 
 func TestNodes_NewGenesisConfigWrongDataInFile(t *testing.T) {
-	genesis, err := NewGenesisConfig("mock/invalidGenesisMock.json")
+	genesis, err := NewGenesisConfig("mock/invalidGenesisMock.json", createMockPubkeyConverter())
 
 	assert.Nil(t, genesis)
-	assert.Equal(t, ErrCouldNotParsePubKey, err)
+	assert.True(t, errors.Is(err, ErrCouldNotParsePubKey))
 }
 
 func TestNodes_NewGenesisShouldWork(t *testing.T) {
-	genesis, err := NewGenesisConfig("mock/genesisMock.json")
+	genesis, err := NewGenesisConfig("mock/genesisMock.json", createMockPubkeyConverter())
 
 	assert.NotNil(t, genesis)
 	assert.Nil(t, err)
 }
 
 func TestGenesis_ProcessConfigGenesisWithIncompleteDataShouldErr(t *testing.T) {
-	genesis := Genesis{}
+	genesis := Genesis{
+		pubkeyConverter: createMockPubkeyConverter(),
+	}
 
 	genesis.InitialBalances = make([]*InitialBalance, 2)
 	genesis.InitialBalances[0] = &InitialBalance{}
@@ -114,11 +127,13 @@ func TestGenesis_ProcessConfigGenesisWithIncompleteDataShouldErr(t *testing.T) {
 	err := genesis.processConfig()
 
 	assert.NotNil(t, genesis)
-	assert.Equal(t, ErrCouldNotParsePubKey, err)
+	assert.True(t, errors.Is(err, ErrCouldNotParsePubKey))
 }
 
 func TestGenesis_GenesisWithIncompleteBalance(t *testing.T) {
-	genesis := Genesis{}
+	genesis := Genesis{
+		pubkeyConverter: createMockPubkeyConverter(),
+	}
 
 	genesis.InitialBalances = make([]*InitialBalance, 1)
 	genesis.InitialBalances[0] = &InitialBalance{}
@@ -128,9 +143,8 @@ func TestGenesis_GenesisWithIncompleteBalance(t *testing.T) {
 	_ = genesis.processConfig()
 
 	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(1, 0)
-	adrConv := mock.NewAddressConverterFake(32, "")
 
-	inBal, err := genesis.InitialNodesBalances(shardCoordinator, adrConv)
+	inBal, err := genesis.InitialNodesBalances(shardCoordinator)
 
 	assert.NotNil(t, genesis)
 	assert.Nil(t, err)
@@ -140,10 +154,11 @@ func TestGenesis_GenesisWithIncompleteBalance(t *testing.T) {
 }
 
 func TestGenesis_InitialNodesBalancesNil(t *testing.T) {
-	genesis := Genesis{}
+	genesis := Genesis{
+		pubkeyConverter: createMockPubkeyConverter(),
+	}
 	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(1, 0)
-	adrConv := mock.NewAddressConverterFake(32, "")
-	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, adrConv)
+	inBalance, err := genesis.InitialNodesBalances(shardCoordinator)
 
 	assert.NotNil(t, genesis)
 	assert.Equal(t, 0, len(inBalance))
@@ -152,29 +167,17 @@ func TestGenesis_InitialNodesBalancesNil(t *testing.T) {
 
 func TestGenesis_InitialNodesBalancesNilShardCoordinatorShouldErr(t *testing.T) {
 	genesis := createGenesisOneShardOneNode()
-	adrConv := mock.NewAddressConverterFake(32, "")
-	inBalance, err := genesis.InitialNodesBalances(nil, adrConv)
+	inBalance, err := genesis.InitialNodesBalances(nil)
 
 	assert.NotNil(t, genesis)
 	assert.Nil(t, inBalance)
 	assert.Equal(t, ErrNilShardCoordinator, err)
 }
 
-func TestGenesis_InitialNodesBalancesNilAddrConverterShouldErr(t *testing.T) {
-	genesis := createGenesisOneShardOneNode()
-	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(1, 0)
-	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, nil)
-
-	assert.NotNil(t, genesis)
-	assert.Nil(t, inBalance)
-	assert.Equal(t, ErrNilAddressConverter, err)
-}
-
 func TestGenesis_InitialNodesBalancesGood(t *testing.T) {
 	genesis := createGenesisTwoShardTwoNodes()
 	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(2, 1)
-	adrConv := mock.NewAddressConverterFake(32, "")
-	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, adrConv)
+	inBalance, err := genesis.InitialNodesBalances(shardCoordinator)
 
 	assert.NotNil(t, genesis)
 	assert.Equal(t, 2, len(inBalance))
@@ -184,8 +187,7 @@ func TestGenesis_InitialNodesBalancesGood(t *testing.T) {
 func TestGenesis_Initial5NodesBalancesGood(t *testing.T) {
 	genesis := createGenesisTwoShard6NodesMeta()
 	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(2, 1)
-	adrConv := mock.NewAddressConverterFake(32, "")
-	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, adrConv)
+	inBalance, err := genesis.InitialNodesBalances(shardCoordinator)
 
 	assert.NotNil(t, genesis)
 	assert.Equal(t, 3, len(inBalance))

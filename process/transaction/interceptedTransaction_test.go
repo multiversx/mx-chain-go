@@ -25,6 +25,10 @@ var senderAddress = []byte("sender")
 var recvAddress = []byte("receiver")
 var sigOk = []byte("signature")
 
+func createMockPubkeyConverter() *mock.PubkeyConverterMock {
+	return mock.NewPubkeyConverterMock(32)
+}
+
 func createDummySigner() crypto.SingleSigner {
 	return &mock.SignerMock{
 		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
@@ -83,8 +87,8 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 		mock.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.AddressConverterStub{
-			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
 				return mock.NewAddressMock(pubKey), nil
 			},
 		},
@@ -105,7 +109,7 @@ func TestNewInterceptedTransaction_NilBufferShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
 		&mock.SignerMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 	)
@@ -124,7 +128,7 @@ func TestNewInterceptedTransaction_NilMarshalizerShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
 		&mock.SignerMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 	)
@@ -143,7 +147,7 @@ func TestNewInterceptedTransaction_NilSignMarshalizerShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
 		&mock.SignerMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 	)
@@ -162,7 +166,7 @@ func TestNewInterceptedTransaction_NilHasherShouldErr(t *testing.T) {
 		nil,
 		&mock.SingleSignKeyGenMock{},
 		&mock.SignerMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 	)
@@ -181,7 +185,7 @@ func TestNewInterceptedTransaction_NilKeyGenShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		nil,
 		&mock.SignerMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 	)
@@ -200,7 +204,7 @@ func TestNewInterceptedTransaction_NilSignerShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
 		nil,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 	)
@@ -225,7 +229,7 @@ func TestNewInterceptedTransaction_NilAddressConverterShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, txi)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestNewInterceptedTransaction_NilCoordinatorShouldErr(t *testing.T) {
@@ -238,7 +242,7 @@ func TestNewInterceptedTransaction_NilCoordinatorShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
 		&mock.SignerMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		nil,
 		&mock.FeeHandlerStub{},
 	)
@@ -257,7 +261,7 @@ func TestNewInterceptedTransaction_NilFeeHandlerShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
 		&mock.SignerMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		nil,
 	)
@@ -282,7 +286,7 @@ func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
 		&mock.SignerMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		&mock.FeeHandlerStub{},
 	)
@@ -304,8 +308,8 @@ func TestNewInterceptedTransaction_AddrConvFailsShouldErr(t *testing.T) {
 		mock.HasherMock{},
 		&mock.SingleSignKeyGenMock{},
 		&mock.SignerMock{},
-		&mock.AddressConverterStub{
-			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
 				return nil, errors.New("expected error")
 			},
 		},
@@ -592,8 +596,8 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 		mock.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.AddressConverterStub{
-			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
 				return mock.NewAddressMock(pubKey), nil
 			},
 		},

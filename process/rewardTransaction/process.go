@@ -10,21 +10,21 @@ import (
 
 type rewardTxProcessor struct {
 	accounts         state.AccountsAdapter
-	adrConv          state.AddressConverter
+	pubkeyConv       state.PubkeyConverter
 	shardCoordinator sharding.Coordinator
 }
 
 // NewRewardTxProcessor creates a rewardTxProcessor instance
 func NewRewardTxProcessor(
 	accountsDB state.AccountsAdapter,
-	adrConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 	coordinator sharding.Coordinator,
 ) (*rewardTxProcessor, error) {
 	if check.IfNil(accountsDB) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(adrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
@@ -32,13 +32,13 @@ func NewRewardTxProcessor(
 
 	return &rewardTxProcessor{
 		accounts:         accountsDB,
-		adrConv:          adrConv,
+		pubkeyConv:       pubkeyConv,
 		shardCoordinator: coordinator,
 	}, nil
 }
 
 func (rtp *rewardTxProcessor) getAccountFromAddress(address []byte) (state.UserAccountHandler, error) {
-	addr, err := rtp.adrConv.CreateAddressFromPublicKeyBytes(address)
+	addr, err := rtp.pubkeyConv.CreateAddressFromBytes(address)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,12 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 		return nil
 	}
 
-	process.DisplayProcessTxDetails("ProcessRewardTransaction: receiver account details", accHandler, rTx)
+	process.DisplayProcessTxDetails(
+		"ProcessRewardTransaction: receiver account details",
+		accHandler,
+		rTx,
+		rtp.pubkeyConv,
+	)
 
 	err = accHandler.AddToBalance(rTx.Value)
 	if err != nil {

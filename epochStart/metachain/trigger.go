@@ -381,6 +381,14 @@ func (t *trigger) Epoch() uint32 {
 	return t.epoch
 }
 
+// MetaEpoch return the current epoch
+func (t *trigger) MetaEpoch() uint32 {
+	t.mutTrigger.RLock()
+	defer t.mutTrigger.RUnlock()
+
+	return t.epoch
+}
+
 // RequestEpochStartIfNeeded request the needed epoch start block if metablock with new epoch was received
 func (t *trigger) RequestEpochStartIfNeeded(_ data.HeaderHandler) {
 }

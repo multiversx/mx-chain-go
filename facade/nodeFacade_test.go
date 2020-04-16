@@ -292,14 +292,14 @@ func TestNodeFacade_GetHeartbeats(t *testing.T) {
 		GetHeartbeatsHandler: func() []heartbeat.PubKeyHeartbeat {
 			return []heartbeat.PubKeyHeartbeat{
 				{
-					HexPublicKey:    "pk1",
+					PublicKey:       "pk1",
 					TimeStamp:       time.Now(),
 					MaxInactiveTime: heartbeat.Duration{Duration: 0},
 					IsActive:        true,
 					ReceivedShardID: uint32(0),
 				},
 				{
-					HexPublicKey:    "pk2",
+					PublicKey:       "pk2",
 					TimeStamp:       time.Now(),
 					MaxInactiveTime: heartbeat.Duration{Duration: 0},
 					IsActive:        true,
@@ -498,4 +498,19 @@ func TestNodeFacade_IsSelfTrigger(t *testing.T) {
 
 	assert.True(t, wasCalled)
 	assert.True(t, isSelf)
+}
+
+func TestNodeFacade_EncodeDecodeAddressPubkey(t *testing.T) {
+	t.Parallel()
+
+	buff := []byte("abcdefg")
+	arg := createMockArguments()
+	nf, _ := NewNodeFacade(arg)
+	encoded, err := nf.EncodeAddressPubkey(buff)
+	assert.Nil(t, err)
+
+	recoveredBytes, err := nf.DecodeAddressPubkey(encoded)
+
+	assert.Nil(t, err)
+	assert.Equal(t, buff, recoveredBytes)
 }
