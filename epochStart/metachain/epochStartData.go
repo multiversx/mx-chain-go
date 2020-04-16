@@ -208,7 +208,7 @@ func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr *
 		if err != nil {
 			go e.requestHandler.RequestShardHeader(currentHdr.ShardID, currentHdr.GetPrevHash())
 			if e.epochStartTrigger.Epoch()-currentHdr.GetEpoch() > maxEpochDifference {
-				log.Warn("shard remained in too old epoch", "shardID", currentHdr.ShardID, "shard Epoch", currentHdr.Epoch, "meta Epoch", e.epochStartTrigger.Epoch())
+				log.Warn("shard remained in an epoch that is too old", "shardID", currentHdr.ShardID, "shard Epoch", currentHdr.Epoch, "meta Epoch", e.epochStartTrigger.Epoch())
 				break
 			}
 			return nil, nil, nil, err
