@@ -5,12 +5,12 @@ import (
 
 	cmap "github.com/ElrondNetwork/concurrent-map"
 	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var log = logger.GetOrCreate("storage/fifocache")
+var _ storage.Cacher = (*FIFOShardedCache)(nil)
 
-var _ dataRetriever.Notifier = (*FIFOShardedCache)(nil)
+var log = logger.GetOrCreate("storage/fifocache")
 
 // FIFOShardedCache implements a First In First Out eviction cache
 type FIFOShardedCache struct {

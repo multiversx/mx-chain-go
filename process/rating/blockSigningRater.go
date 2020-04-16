@@ -9,7 +9,10 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var _ sharding.PeerAccountListAndRatingHandler = (*BlockSigningRater)(nil)
 
 var log = logger.GetOrCreate("process/rating")
 

@@ -6,6 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+var _ NodesCoordinatorHelper = (*indexHashedNodesCoordinatorWithRater)(nil)
+
 type indexHashedNodesCoordinatorWithRater struct {
 	*indexHashedNodesCoordinator
 	chanceComputer ChanceComputer

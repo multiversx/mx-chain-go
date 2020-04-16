@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ storage.PathManagerHandler = (*PathManager)(nil)
+
 // PathManager will handle creation of paths for storers
 type PathManager struct {
 	pruningPathTemplate string

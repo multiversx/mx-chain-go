@@ -12,6 +12,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
+var _ storage.Persister = (*DB)(nil)
+
 // read + write + execute for owner only
 const rwxOwner = 0700
 

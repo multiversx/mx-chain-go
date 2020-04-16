@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
+var _ storage.Storer = (*PruningStorer)(nil)
+
 var log = logger.GetOrCreate("storage/pruning")
 
 // persisterData structure is used so the persister and its path can be kept in the same place

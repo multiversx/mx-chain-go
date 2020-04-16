@@ -12,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ data.TrieSyncer = (*trieSyncer)(nil)
+
 type trieSyncer struct {
 	rootFound               bool
 	shardId                 uint32

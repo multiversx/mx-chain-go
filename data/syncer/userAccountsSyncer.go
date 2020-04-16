@@ -11,9 +11,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
-var log = logger.GetOrCreate("syncer")
-
 var _ epochStart.AccountsDBSyncer = (*userAccountsSyncer)(nil)
+
+var log = logger.GetOrCreate("syncer")
 
 type userAccountsSyncer struct {
 	*baseAccountsSyncer

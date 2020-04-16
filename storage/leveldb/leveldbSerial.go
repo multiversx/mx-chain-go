@@ -12,6 +12,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
+var _ storage.Persister = (*SerialDB)(nil)
+
 // SerialDB holds a pointer to the leveldb database and the path to where it is stored.
 type SerialDB struct {
 	db                *leveldb.DB

@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+var _ Coordinator = (*multiShardCoordinator)(nil)
+
 // multiShardCoordinator struct defines the functionality for handling transaction dispatching to
 // the corresponding shards. The number of shards is currently passed as a constructor
 // parameter and later it should be calculated by this structure

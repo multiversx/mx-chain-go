@@ -2,6 +2,8 @@ package sharding
 
 import "sync"
 
+var _ ShuffledOutHandler = (*shuffledOutTrigger)(nil)
+
 type shuffledOutTrigger struct {
 	ownPubKey         []byte
 	currentShardID    uint32

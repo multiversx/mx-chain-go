@@ -9,6 +9,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+var _ GenesisNodesSetupHandler = (*NodesSetup)(nil)
+var _ GenesisNodeInfoHandler = (*NodeInfo)(nil)
+
 // InitialNode holds data from json
 type InitialNode struct {
 	PubKey  string `json:"pubkey"`
@@ -60,11 +63,11 @@ type NodesSetup struct {
 	Hysteresis float32 `json:"hysteresis"`
 	Adaptivity bool    `json:"adaptivity"`
 
-	nrOfShards         		 uint32
-	nrOfNodes          		 uint32
-	nrOfMetaChainNodes 	     uint32
-	eligible           		 map[uint32][]GenesisNodeInfoHandler
-	waiting            		 map[uint32][]GenesisNodeInfoHandler
+	nrOfShards               uint32
+	nrOfNodes                uint32
+	nrOfMetaChainNodes       uint32
+	eligible                 map[uint32][]GenesisNodeInfoHandler
+	waiting                  map[uint32][]GenesisNodeInfoHandler
 	validatorPubkeyConverter state.PubkeyConverter
 	addressPubkeyConverter   state.PubkeyConverter
 }
