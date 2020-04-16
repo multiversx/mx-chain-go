@@ -47,7 +47,7 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 		OpenFilesCacheCapacity: maxOpenFiles,
 	}
 
-	db, err := leveldb.OpenFile(path, options)
+	db, err := openLevelDB(path, options)
 	if err != nil {
 		return nil, err
 	}
