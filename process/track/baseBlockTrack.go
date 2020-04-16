@@ -693,23 +693,40 @@ func (bbt *baseBlockTrack) doWhitelistIfNeeded(metablock *block.MetaBlock) {
 		return
 	}
 
-	miniblocksHdrs := metablock.GetMiniBlockHeaders()
+	miniBlockHdrs := metablock.GetMiniBlockHeaders()
 	keys := make([][]byte, 0)
-	for _, miniblockHdr := range miniblocksHdrs {
-		receiverShard := miniblockHdr.GetReceiverShardID()
-		receiverIsSelfShard := receiverShard == selfShardID || receiverShard == core.AllShardId
-		senderIsCrossShard := miniblockHdr.GetSenderShardID() != selfShardID
-		if receiverIsSelfShard && senderIsCrossShard {
-			keys = append(keys, miniblockHdr.Hash)
-			log.Debug(
-				"doWhitelistIfNeeded cross miniblock",
-				"type", miniblockHdr.Type,
-				"sender", miniblockHdr.SenderShardID,
-				"receiver", miniblockHdr.ReceiverShardID,
-				"hash", miniblockHdr.Hash,
-			)
+
+	crossMbKeysMeta := getCrossShardMiniblockKeys(miniBlockHdrs, selfShardID)
+	if len(crossMbKeysMeta) > 0 {
+		keys = append(keys, crossMbKeysMeta...)
+	}
+
+	for _, shardData := range metablock.ShardInfo {
+		crossMbKeysShard := getCrossShardMiniblockKeys(shardData.ShardMiniBlockHeaders, selfShardID)
+		if len(crossMbKeysShard) > 0 {
+			keys = append(keys, crossMbKeysShard...)
 		}
 	}
 
 	bbt.whitelistHandler.Add(keys)
+}
+
+func getCrossShardMiniblockKeys(miniBlockHdrs []block.MiniBlockHeader, selfShardID uint32) [][]byte {
+	keys := make([][]byte, 0)
+	for _, miniBlockHdr := range miniBlockHdrs {
+		receiverShard := miniBlockHdr.GetReceiverShardID()
+		receiverIsSelfShard := receiverShard == selfShardID || receiverShard == core.AllShardId
+		senderIsCrossShard := miniBlockHdr.GetSenderShardID() != selfShardID
+		if receiverIsSelfShard && senderIsCrossShard {
+			keys = append(keys, miniBlockHdr.Hash)
+			log.Debug(
+				"getCrossShardMiniblockKeys",
+				"type", miniBlockHdr.GetType(),
+				"sender", miniBlockHdr.GetSenderShardID(),
+				"receiver", miniBlockHdr.GetReceiverShardID(),
+				"hash", miniBlockHdr.GetHash(),
+			)
+		}
+	}
+	return keys
 }

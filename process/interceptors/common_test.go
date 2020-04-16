@@ -139,7 +139,6 @@ func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *tes
 		chDone <- struct{}{}
 	}()
 
-	removedWasCalled := false
 	processInterceptedData(
 		processor,
 		&mock.InterceptedDataStub{},
@@ -147,7 +146,6 @@ func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *tes
 		&mock.P2PMessageMock{},
 	)
 
-	assert.True(t, removedWasCalled)
 	select {
 	case <-chDone:
 		assert.False(t, processCalled)
@@ -178,7 +176,6 @@ func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T
 		chDone <- struct{}{}
 	}()
 
-	removedWasCalled := false
 	processInterceptedData(
 		processor,
 		&mock.InterceptedDataStub{},
@@ -186,7 +183,6 @@ func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T
 		&mock.P2PMessageMock{},
 	)
 
-	assert.True(t, removedWasCalled)
 	select {
 	case <-chDone:
 		assert.True(t, processCalled)
@@ -217,7 +213,6 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 		chDone <- struct{}{}
 	}()
 
-	removedWasCalled := false
 	processInterceptedData(
 		processor,
 		&mock.InterceptedDataStub{},
@@ -225,7 +220,6 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 		&mock.P2PMessageMock{},
 	)
 
-	assert.True(t, removedWasCalled)
 	select {
 	case <-chDone:
 		assert.True(t, processCalled)

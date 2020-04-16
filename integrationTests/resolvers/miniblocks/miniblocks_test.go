@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"testing"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/resolvers"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
