@@ -31,13 +31,13 @@ func TestNewBalanceComputation_InitShouldWork(t *testing.T) {
 	bc.SetBalanceToAddress(address1, value1)
 	bc.SetBalanceToAddress(address2, value2)
 
-	assert.True(t, bc.HasAddressBalanceSet(address1))
-	assert.True(t, bc.HasAddressBalanceSet(address2))
+	assert.True(t, bc.IsAddressSet(address1))
+	assert.True(t, bc.IsAddressSet(address2))
 
 	bc.Init()
 
-	assert.False(t, bc.HasAddressBalanceSet(address1))
-	assert.False(t, bc.HasAddressBalanceSet(address2))
+	assert.False(t, bc.IsAddressSet(address1))
+	assert.False(t, bc.IsAddressSet(address2))
 }
 
 func TestNewBalanceComputation_SetAndGetBalanceShouldWork(t *testing.T) {
@@ -116,7 +116,7 @@ func TestNewBalanceComputation_SubBalanceFromAddressShouldWork(t *testing.T) {
 	assert.Equal(t, result, balance)
 }
 
-func TestNewBalanceComputation_HasAddressBalanceSetShouldWork(t *testing.T) {
+func TestNewBalanceComputation_IsAddressSetShouldWork(t *testing.T) {
 	t.Parallel()
 
 	bc, _ := preprocess.NewBalanceComputation()
@@ -125,11 +125,11 @@ func TestNewBalanceComputation_HasAddressBalanceSetShouldWork(t *testing.T) {
 	address2 := []byte("address2")
 	bc.SetBalanceToAddress(address1, big.NewInt(0))
 
-	assert.True(t, bc.HasAddressBalanceSet(address1))
-	assert.False(t, bc.HasAddressBalanceSet(address2))
+	assert.True(t, bc.IsAddressSet(address1))
+	assert.False(t, bc.IsAddressSet(address2))
 }
 
-func TestNewBalanceComputation_IsBalanceInAddressShouldWork(t *testing.T) {
+func TestNewBalanceComputation_AddressHasEnoughBalanceShouldWork(t *testing.T) {
 	t.Parallel()
 
 	bc, _ := preprocess.NewBalanceComputation()
@@ -139,7 +139,7 @@ func TestNewBalanceComputation_IsBalanceInAddressShouldWork(t *testing.T) {
 	address2 := []byte("address2")
 	bc.SetBalanceToAddress(address1, value)
 
-	assert.False(t, bc.IsBalanceInAddress(address2, big.NewInt(0)))
-	assert.False(t, bc.IsBalanceInAddress(address1, big.NewInt(6)))
-	assert.True(t, bc.IsBalanceInAddress(address1, big.NewInt(5)))
+	assert.False(t, bc.AddressHasEnoughBalance(address2, big.NewInt(0)))
+	assert.False(t, bc.AddressHasEnoughBalance(address1, big.NewInt(6)))
+	assert.True(t, bc.AddressHasEnoughBalance(address1, big.NewInt(5)))
 }

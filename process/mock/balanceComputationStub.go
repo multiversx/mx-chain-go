@@ -6,12 +6,12 @@ import (
 
 // BalanceComputationStub -
 type BalanceComputationStub struct {
-	InitCalled                  func()
-	SetBalanceToAddressCalled   func(address []byte, value *big.Int)
-	AddBalanceToAddressCalled   func(address []byte, value *big.Int) bool
-	SubBalanceFromAddressCalled func(address []byte, value *big.Int) bool
-	HasAddressBalanceSetCalled  func(address []byte) bool
-	IsBalanceInAddressCalled    func(address []byte, value *big.Int) bool
+	InitCalled                    func()
+	SetBalanceToAddressCalled     func(address []byte, value *big.Int)
+	AddBalanceToAddressCalled     func(address []byte, value *big.Int) bool
+	SubBalanceFromAddressCalled   func(address []byte, value *big.Int) bool
+	IsAddressSetCalled            func(address []byte) bool
+	AddressHasEnoughBalanceCalled func(address []byte, value *big.Int) bool
 }
 
 // Init -
@@ -46,19 +46,19 @@ func (bcs *BalanceComputationStub) SubBalanceFromAddress(address []byte, value *
 	return true
 }
 
-// HasAddressBalanceSet -
-func (bcs *BalanceComputationStub) HasAddressBalanceSet(address []byte) bool {
-	if bcs.HasAddressBalanceSetCalled != nil {
-		return bcs.HasAddressBalanceSetCalled(address)
+// IsAddressSet -
+func (bcs *BalanceComputationStub) IsAddressSet(address []byte) bool {
+	if bcs.IsAddressSetCalled != nil {
+		return bcs.IsAddressSetCalled(address)
 	}
 
 	return false
 }
 
-// IsBalanceInAddress -
-func (bcs *BalanceComputationStub) IsBalanceInAddress(address []byte, value *big.Int) bool {
-	if bcs.IsBalanceInAddressCalled != nil {
-		return bcs.IsBalanceInAddressCalled(address, value)
+// AddressHasEnoughBalance -
+func (bcs *BalanceComputationStub) AddressHasEnoughBalance(address []byte, value *big.Int) bool {
+	if bcs.AddressHasEnoughBalanceCalled != nil {
+		return bcs.AddressHasEnoughBalanceCalled(address, value)
 	}
 
 	return true

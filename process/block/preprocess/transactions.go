@@ -874,11 +874,11 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 			}
 		}
 
-		txTotalCost := txs.getTxTotalCost(tx)
+		txMaxTotalCost := txs.getTxMaxTotalCost(tx)
 
-		if txs.balanceComputation.HasAddressBalanceSet(tx.GetSndAddr()) {
-			isBalanceInAddress := txs.balanceComputation.IsBalanceInAddress(tx.GetSndAddr(), txTotalCost)
-			if !isBalanceInAddress {
+		if txs.balanceComputation.IsAddressSet(tx.GetSndAddr()) {
+			addressHasEnoughBalance := txs.balanceComputation.AddressHasEnoughBalance(tx.GetSndAddr(), txMaxTotalCost)
+			if !addressHasEnoughBalance {
 				numTxsWithInitialBalanceConsumed++
 				continue
 			}
@@ -968,12 +968,12 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 			continue
 		}
 
-		if txs.balanceComputation.HasAddressBalanceSet(tx.GetSndAddr()) {
-			ok = txs.balanceComputation.SubBalanceFromAddress(tx.GetSndAddr(), txTotalCost)
+		if txs.balanceComputation.IsAddressSet(tx.GetSndAddr()) {
+			ok = txs.balanceComputation.SubBalanceFromAddress(tx.GetSndAddr(), txMaxTotalCost)
 			if !ok {
 				log.Error("createAndProcessMiniBlocksFromMe.SubBalanceFromAddress",
 					"sender address", tx.GetSndAddr(),
-					"tx total cost", txTotalCost,
+					"tx max total cost", txMaxTotalCost,
 					"err", process.ErrInsufficientFunds)
 			}
 		}

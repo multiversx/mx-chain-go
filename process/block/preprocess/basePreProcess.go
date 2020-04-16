@@ -314,13 +314,12 @@ func (bpp *basePreProcess) computeGasConsumedByTx(
 }
 
 func (bpp *basePreProcess) saveAccountBalanceForAddress(address []byte) {
-	if bpp.balanceComputation.HasAddressBalanceSet(address) {
+	if bpp.balanceComputation.IsAddressSet(address) {
 		return
 	}
 
 	balance, err := bpp.getBalanceForAddress(address)
 	if err != nil {
-		//TODO: Analyze if it is better to call return here
 		balance = big.NewInt(0)
 	}
 
@@ -346,7 +345,7 @@ func (bpp *basePreProcess) getBalanceForAddress(address []byte) (*big.Int, error
 	return account.GetBalance(), nil
 }
 
-func (bpp *basePreProcess) getTxTotalCost(txHandler data.TransactionHandler) *big.Int {
+func (bpp *basePreProcess) getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
 	cost := big.NewInt(0)
 	cost.Mul(big.NewInt(0).SetUint64(txHandler.GetGasPrice()), big.NewInt(0).SetUint64(txHandler.GetGasLimit()))
 

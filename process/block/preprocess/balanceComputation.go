@@ -59,8 +59,8 @@ func (bc *balanceComputation) SubBalanceFromAddress(address []byte, value *big.I
 	return false
 }
 
-// HasAddressBalanceSet method returns if address has balance set or not
-func (bc *balanceComputation) HasAddressBalanceSet(address []byte) bool {
+// IsAddressSet method returns if address is set
+func (bc *balanceComputation) IsAddressSet(address []byte) bool {
 	bc.mutAddressBalance.RLock()
 	defer bc.mutAddressBalance.RUnlock()
 
@@ -68,8 +68,8 @@ func (bc *balanceComputation) HasAddressBalanceSet(address []byte) bool {
 	return ok
 }
 
-// IsBalanceInAddress method returns if in given address is at least given balance
-func (bc *balanceComputation) IsBalanceInAddress(address []byte, value *big.Int) bool {
+// AddressHasEnoughBalance method returns if given address has enough balance in
+func (bc *balanceComputation) AddressHasEnoughBalance(address []byte, value *big.Int) bool {
 	bc.mutAddressBalance.RLock()
 	defer bc.mutAddressBalance.RUnlock()
 
