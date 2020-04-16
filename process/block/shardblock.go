@@ -218,11 +218,9 @@ func (sp *shardProcessor) ProcessBlock(
 		go sp.checkAndRequestIfMetaHeadersMissing(header.Round)
 	}()
 
-	if header.IsStartOfEpochBlock() {
-		err = sp.checkEpochCorrectnessCrossChain()
-		if err != nil {
-			return err
-		}
+	err = sp.checkEpochCorrectnessCrossChain()
+	if err != nil {
+		return err
 	}
 
 	err = sp.checkEpochCorrectness(header)
@@ -736,12 +734,12 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	if header.IsStartOfEpochBlock() {
-		err = sp.checkEpochCorrectnessCrossChain()
-		if err != nil {
-			return err
-		}
+	err = sp.checkEpochCorrectnessCrossChain()
+	if err != nil {
+		return err
+	}
 
+	if header.IsStartOfEpochBlock() {
 		sp.epochStartTrigger.SetProcessed(header, bodyHandler)
 	}
 
@@ -974,12 +972,25 @@ func (sp *shardProcessor) checkEpochCorrectnessCrossChain() error {
 	if check.IfNil(currentHeader) {
 		return nil
 	}
+	if sp.epochStartTrigger.EpochStartRound() >= sp.epochStartTrigger.EpochFinalityAttestingRound() {
+		return nil
+	}
+
+	lastSelfNotarizedHeader, _ := sp.getLastSelfNotarizedHeaderByMetachain()
+	lastFinalizedRound := uint64(0)
+	if !check.IfNil(lastSelfNotarizedHeader) {
+		lastFinalizedRound = lastSelfNotarizedHeader.GetRound()
+	}
 
 	shouldRevertChain := false
 	nonce := currentHeader.GetNonce()
 	shouldEnterNewEpochRound := sp.epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod
 
 	for round := currentHeader.GetRound(); round > shouldEnterNewEpochRound && currentHeader.GetEpoch() < sp.epochStartTrigger.MetaEpoch(); round = currentHeader.GetRound() {
+		if round <= lastFinalizedRound {
+			break
+		}
+
 		shouldRevertChain = true
 		prevHeader, err := process.GetShardHeaderFromStorage(
 			currentHeader.GetPrevHash(),

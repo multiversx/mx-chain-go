@@ -395,7 +395,7 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 		return
 	}
 
-	if t.isEpochStart && headerHandler.GetEpoch() == t.epoch {
+	if t.isEpochStart && headerHandler.GetEpoch() == t.metaEpoch {
 		t.setLowerEpochFinalityAttestingRoundIfNeeded(metaHdr)
 		return
 	}
