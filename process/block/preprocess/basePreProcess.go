@@ -233,9 +233,16 @@ func (bpp *basePreProcess) setMissingTxsForShard(
 	txHashes [][]byte,
 	forBlock *txsForBlock,
 ) {
-	txShardInfoToSet := &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
+	txShardInfoToSet := &txShardInfo{
+		senderShardID:   senderShardID,
+		receiverShardID: receiverShardID,
+	}
+
 	for _, txHash := range txHashes {
-		forBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfoToSet}
+		forBlock.txHashAndInfo[string(txHash)] = &txInfo{
+			tx:          nil,
+			txShardInfo: txShardInfoToSet,
+		}
 	}
 }
 
