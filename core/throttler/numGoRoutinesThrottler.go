@@ -5,9 +5,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 var _ dataRetriever.ResolverThrottler = (*NumGoRoutinesThrottler)(nil)
+var _ process.InterceptorThrottler = (*NumGoRoutinesThrottler)(nil)
 
 // NumGoRoutinesThrottler can limit the number of go routines launched
 type NumGoRoutinesThrottler struct {

@@ -6,13 +6,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-var _ epochStart.HeaderValidator = (*headerValidator)(nil)
+var _ process.HeaderConstructionValidator = (*headerValidator)(nil)
 
 // ArgsHeaderValidator are the arguments needed to create a new header validator
 type ArgsHeaderValidator struct {

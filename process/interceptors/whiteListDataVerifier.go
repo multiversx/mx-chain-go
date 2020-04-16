@@ -4,12 +4,11 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var _ dataRetriever.WhiteListHandler = (*whiteListDataVerifier)(nil)
+var _ process.WhiteListHandler = (*whiteListDataVerifier)(nil)
 
 type whiteListDataVerifier struct {
 	cache storage.Cacher

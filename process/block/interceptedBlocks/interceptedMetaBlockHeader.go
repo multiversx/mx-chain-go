@@ -11,6 +11,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.HdrValidatorHandler = (*InterceptedMetaHeader)(nil)
+var _ process.InterceptedData = (*InterceptedMetaHeader)(nil)
+
 // InterceptedMetaHeader represents the wrapper over the meta block header struct
 type InterceptedMetaHeader struct {
 	hdr               *block.MetaBlock

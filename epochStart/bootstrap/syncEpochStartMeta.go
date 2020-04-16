@@ -20,6 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ epochStart.StartOfEpochMetaSyncer = (*epochStartMetaSyncer)(nil)
+
 type epochStartMetaSyncer struct {
 	requestHandler        RequestHandler
 	messenger             Messenger

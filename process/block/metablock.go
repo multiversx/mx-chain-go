@@ -23,6 +23,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
+var _ process.BlockProcessor = (*metaProcessor)(nil)
+
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor

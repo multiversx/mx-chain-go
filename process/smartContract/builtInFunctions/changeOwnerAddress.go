@@ -11,6 +11,8 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+var _ process.BuiltinFunction = (*changeOwnerAddress)(nil)
+
 type changeOwnerAddress struct {
 	gasCost uint64
 }

@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.ValidatorsProvider = (*validatorsProvider)(nil)
+
 // validatorsProvider is the main interface for validators' provider
 type validatorsProvider struct {
 	mutCachedMap        sync.Mutex

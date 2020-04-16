@@ -6,8 +6,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+var _ process.MiniBlockProvider = (*miniBlockProvider)(nil)
 
 var log = logger.GetOrCreate("dataretriever/getters")
 

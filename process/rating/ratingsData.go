@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.RatingsInfoHandler = (*RatingsData)(nil)
+
 const milisecondsInHour = 3600 * 1000
 
 type computeRatingStepArg struct {

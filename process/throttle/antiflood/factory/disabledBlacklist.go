@@ -1,8 +1,12 @@
 package factory
 
-import "github.com/ElrondNetwork/elrond-go/dataRetriever"
+import (
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/process"
+)
 
 var _ dataRetriever.RequestedItemsHandler = (*disabledBlacklistHandler)(nil)
+var _ process.BlackListHandler = (*disabledBlacklistHandler)(nil)
 
 // disabledBlacklistHandler is a mock implementation of BlacklistHandler that does not manage black listed keys
 // (all keys [peers] are whitelisted)

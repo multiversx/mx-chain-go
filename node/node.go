@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
@@ -48,6 +49,8 @@ import (
 const SendTransactionsPipe = "send transactions pipe"
 
 var log = logger.GetOrCreate("node")
+
+var _ facade.NodeHandler = (*Node)(nil)
 
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.

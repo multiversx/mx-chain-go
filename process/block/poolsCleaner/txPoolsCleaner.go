@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ process.PoolsCleaner = (*TxPoolsCleaner)(nil)
+
 // TxPoolsCleaner represents a pools cleaner that check if a transaction should be in pool
 type TxPoolsCleaner struct {
 	accounts         state.AccountsAdapter

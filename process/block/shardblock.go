@@ -21,6 +21,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
+var _ process.BlockProcessor = (*shardProcessor)(nil)
+
 const maxCleanTime = time.Second
 
 // shardProcessor implements shardProcessor interface and actually it tries to execute block

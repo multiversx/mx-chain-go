@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.EpochStartDataCreator = (*epochStartData)(nil)
+
 type epochStartData struct {
 	marshalizer       marshal.Marshalizer
 	hasher            hashing.Hasher

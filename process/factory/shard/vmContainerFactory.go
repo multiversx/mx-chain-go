@@ -16,6 +16,8 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
+
 var logVMContainerFactory = logger.GetOrCreate("vmContainerFactory")
 var logArwenDriver = logger.GetOrCreate("arwenDriver")
 var logArwenMain = logger.GetOrCreate("arwenDriver/arwenMain")

@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ process.InterceptorProcessor = (*MiniblockInterceptorProcessor)(nil)
+
 var log = logger.GetOrCreate("process/interceptors/processor")
 
 // MiniblockInterceptorProcessor is the processor used when intercepting miniblocks

@@ -7,10 +7,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
 var log = logger.GetOrCreate("syncer")
+
+var _ epochStart.AccountsDBSyncer = (*userAccountsSyncer)(nil)
 
 type userAccountsSyncer struct {
 	*baseAccountsSyncer

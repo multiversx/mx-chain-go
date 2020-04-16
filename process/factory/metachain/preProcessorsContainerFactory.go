@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.PreProcessorsContainerFactory = (*preProcessorsContainerFactory)(nil)
+
 type preProcessorsContainerFactory struct {
 	shardCoordinator     sharding.Coordinator
 	store                dataRetriever.StorageService

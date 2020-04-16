@@ -14,6 +14,8 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
+
 type vmContainerFactory struct {
 	blockChainHookImpl *hooks.BlockChainHookImpl
 	cryptoHook         vmcommon.CryptoHook

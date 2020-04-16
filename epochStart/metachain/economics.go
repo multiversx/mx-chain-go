@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.EndOfEpochEconomics = (*economics)(nil)
+
 const numberOfDaysInYear = 365.0
 const numberOfSecondsInDay = 86400
 

@@ -9,6 +9,8 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+var _ process.BuiltinFunction = (*saveUserName)(nil)
+
 const userNameHashLength = 32
 
 type saveUserName struct {
