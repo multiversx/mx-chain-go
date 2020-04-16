@@ -227,18 +227,27 @@ func (bpp *basePreProcess) computeExistingAndRequestMissing(
 	return bpp.requestMissingTxsForShard(missingTxsForShard, onRequestTxs)
 }
 
+// this method should be called only under the mutex protection: forBlock.mutTxsForBlock
 func (bpp *basePreProcess) setMissingTxsForShard(
 	senderShardID uint32,
 	receiverShardID uint32,
 	txHashes [][]byte,
 	forBlock *txsForBlock,
 ) {
-	txShardInfoToSet := &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
+	txShardInfoToSet := &txShardInfo{
+		senderShardID:   senderShardID,
+		receiverShardID: receiverShardID,
+	}
+
 	for _, txHash := range txHashes {
-		forBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfoToSet}
+		forBlock.txHashAndInfo[string(txHash)] = &txInfo{
+			tx:          nil,
+			txShardInfo: txShardInfoToSet,
+		}
 	}
 }
 
+// this method should be called only under the mutex protection: forBlock.mutTxsForBlock
 func (bpp *basePreProcess) requestMissingTxsForShard(
 	missingTxsForShard map[uint32][][]byte,
 	onRequestTxs func(shardID uint32, txHashes [][]byte),
