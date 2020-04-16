@@ -427,12 +427,12 @@ func TestCheckConsensusMessageValidity_NodeIsNotEligible(t *testing.T) {
 	_, _ = rand.Read(headerHash)
 	pubKey := make([]byte, PublicKeySize)
 	_, _ = rand.Read(pubKey)
-	signature := make([]byte, SignatureSize)
-	_, _ = rand.Read(signature)
+	sig := make([]byte, SignatureSize)
+	_, _ = rand.Read(sig)
 
 	cnsMsg := &consensus.Message{
 		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
-		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: signature,
+		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: sig,
 	}
 	err := wrk.CheckConsensusMessageValidity(cnsMsg)
 	assert.True(t, errors.Is(err, spos.ErrNodeIsNotInEligibleList))
@@ -449,12 +449,12 @@ func TestCheckConsensusMessageValidity_ErrMessageForFutureRound(t *testing.T) {
 	headerHash := make([]byte, workerArgs.Hasher.Size())
 	_, _ = rand.Read(headerHash)
 	pubKey := []byte(workerArgs.ConsensusState.ConsensusGroup()[0])
-	signature := make([]byte, SignatureSize)
-	_, _ = rand.Read(signature)
+	sig := make([]byte, SignatureSize)
+	_, _ = rand.Read(sig)
 
 	cnsMsg := &consensus.Message{
 		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
-		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: signature, RoundIndex: 10,
+		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
 	}
 	err := wrk.CheckConsensusMessageValidity(cnsMsg)
 	assert.True(t, errors.Is(err, spos.ErrMessageForFutureRound))
@@ -472,12 +472,12 @@ func TestCheckConsensusMessageValidity_ErrMessageForPastRound(t *testing.T) {
 	headerHash := make([]byte, workerArgs.Hasher.Size())
 	_, _ = rand.Read(headerHash)
 	pubKey := []byte(workerArgs.ConsensusState.ConsensusGroup()[0])
-	signature := make([]byte, SignatureSize)
-	_, _ = rand.Read(signature)
+	sig := make([]byte, SignatureSize)
+	_, _ = rand.Read(sig)
 
 	cnsMsg := &consensus.Message{
 		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
-		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: signature, RoundIndex: 10,
+		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
 	}
 	err := wrk.CheckConsensusMessageValidity(cnsMsg)
 	assert.True(t, errors.Is(err, spos.ErrMessageForPastRound))
@@ -502,12 +502,12 @@ func TestCheckConsensusMessageValidity_InvalidSignature(t *testing.T) {
 	headerHash := make([]byte, workerArgs.Hasher.Size())
 	_, _ = rand.Read(headerHash)
 	pubKey := []byte(workerArgs.ConsensusState.ConsensusGroup()[0])
-	signature := make([]byte, SignatureSize)
-	_, _ = rand.Read(signature)
+	sig := make([]byte, SignatureSize)
+	_, _ = rand.Read(sig)
 
 	cnsMsg := &consensus.Message{
 		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
-		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: signature, RoundIndex: 10,
+		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
 	}
 	err := wrk.CheckConsensusMessageValidity(cnsMsg)
 	assert.True(t, errors.Is(err, spos.ErrInvalidSignature))
@@ -525,12 +525,12 @@ func TestCheckConsensusMessageValidity_Ok(t *testing.T) {
 	headerHash := make([]byte, workerArgs.Hasher.Size())
 	_, _ = rand.Read(headerHash)
 	pubKey := []byte(workerArgs.ConsensusState.ConsensusGroup()[0])
-	signature := make([]byte, SignatureSize)
-	_, _ = rand.Read(signature)
+	sig := make([]byte, SignatureSize)
+	_, _ = rand.Read(sig)
 
 	cnsMsg := &consensus.Message{
 		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
-		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: signature, RoundIndex: 10,
+		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
 	}
 	err := wrk.CheckConsensusMessageValidity(cnsMsg)
 	assert.Nil(t, err)
