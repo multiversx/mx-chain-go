@@ -258,7 +258,7 @@
     Type = "LRU"
 
 [Antiflood]
-    Enabled = true
+    Enabled = false
     NumConcurrentResolverJobs = 10
     PeerMaxMessagesPerSecond = 75
     PeerMaxTotalSizePerSecond = 2097152
