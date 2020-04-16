@@ -622,7 +622,7 @@ func (ps *PruningStorer) extendSavedEpochsIfNeeded(header data.HeaderHandler) bo
 	oldestEpochInCurrentSetting := ps.activePersisters[len(ps.activePersisters)-1].epoch
 	shouldKeepOlderEpochsIfShardIsStuck := epoch-oldestEpochToKeep < maxNumEpochsToKeepIfAShardIsStuck
 	if oldestEpochToKeep <= oldestEpochInCurrentSetting && shouldKeepOlderEpochsIfShardIsStuck {
-		err := ps.extendActivePersistersTo(oldestEpochToKeep)
+		err := ps.extendActivePersisters(oldestEpochToKeep, oldestEpochInCurrentSetting)
 		if err != nil {
 			log.Warn("PruningStorer - extend epochs", "error", err)
 			return false
@@ -664,13 +664,10 @@ func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
 	return nil
 }
 
-func (ps *PruningStorer) extendActivePersistersTo(epoch uint32) error {
-	currentOldestActivePersister := ps.activePersisters[len(ps.activePersisters)-1]
-	newestEpoch := currentOldestActivePersister.epoch
-	log.Debug("PruningStorer - extend stored epochs due to a stuck shard",
-		"from epoch", newestEpoch,
-		"to epoch", epoch)
-	for e := int(newestEpoch) - 1; e >= int(epoch); e-- {
+func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
+	count := 0
+	for e := int(to); e >= int(from); e-- {
+		count++
 		p, ok := ps.persistersMapByEpoch[uint32(e)]
 		if !ok {
 			return nil
@@ -684,6 +681,11 @@ func (ps *PruningStorer) extendActivePersistersTo(epoch uint32) error {
 			p.isClosed = false
 			ps.activePersisters = append(ps.activePersisters, p)
 		}
+	}
+	if count > 0 {
+		log.Info("PruningStorer - extend stored epochs due to a stuck shard",
+			"from epoch", from,
+			"to epoch", to)
 	}
 
 	return nil
