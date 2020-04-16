@@ -367,7 +367,27 @@ func (t *trigger) SetAppStatusHandler(handler core.AppStatusHandler) error {
 	return nil
 }
 
-func (t *trigger) setLowerEpochFinalityAttestingRoundIfNeeded(metaHdr *block.MetaBlock) {
+func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
+	metaHdr *block.MetaBlock,
+) {
+	hash := t.mapFinalizedEpochs[metaHdr.Epoch]
+	epochStartMetaHdr := t.mapEpochStartHdrs[hash]
+	if check.IfNil(epochStartMetaHdr) {
+		return
+	}
+
+	isHeaderOnTopOfFinalityAttestingRound := metaHdr.Nonce == epochStartMetaHdr.Nonce+2
+	if isHeaderOnTopOfFinalityAttestingRound {
+		metaHdrWithFinalityAttestingRound, err := t.getHeaderWithNonceAndHash(epochStartMetaHdr.Nonce+1, metaHdr.PrevHash)
+		if err != nil {
+			log.Debug("searched metaHeader was not found")
+			return
+		}
+
+		t.epochFinalityAttestingRound = metaHdrWithFinalityAttestingRound.Round
+		return
+	}
+
 	if metaHdr.GetRound() >= t.epochFinalityAttestingRound {
 		return
 	}
@@ -390,8 +410,8 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 		return
 	}
 
-	if t.isEpochStart && headerHandler.GetEpoch() == t.metaEpoch {
-		t.setLowerEpochFinalityAttestingRoundIfNeeded(metaHdr)
+	if _, ok := t.mapFinalizedEpochs[metaHdr.Epoch]; ok {
+		t.changeEpochFinalityAttestingRoundIfNeeded(metaHdr)
 		return
 	}
 	if !t.newEpochHdrReceived && !metaHdr.IsStartOfEpochBlock() {
@@ -524,17 +544,28 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr *block.MetaBlock) (bool, ui
 			continue
 		}
 
-		neededHdr, err := t.getHeaderWithNonceAndPrevHash(nonce, currHash)
+		neededHdrs, err := t.getHeaderWithNonceAndPrevHash(nonce, currHash)
 		if err != nil {
 			continue
 		}
 
-		err = t.headerValidator.IsHeaderConstructionValid(neededHdr, currHdr)
-		if err != nil {
+		lowestRound := uint64(math.MaxUint64)
+		var lowestHdr *block.MetaBlock
+		for _, neededHdr := range neededHdrs {
+			err = t.headerValidator.IsHeaderConstructionValid(neededHdr, currHdr)
+			if err != nil {
+				continue
+			}
+			if lowestRound > neededHdr.Round {
+				lowestRound = neededHdr.Round
+				lowestHdr = neededHdr
+			}
+		}
+		if check.IfNil(lowestHdr) {
 			continue
 		}
 
-		currHdr = neededHdr
+		currHdr = lowestHdr
 
 		finalityAttestingRound = currHdr.GetRound()
 		nextBlocksVerified += 1
@@ -713,15 +744,15 @@ func (t *trigger) getHeaderWithNonceAndPrevHashFromCache(nonce uint64, prevHash 
 }
 
 // call only if mutex is locked before
-func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (*block.MetaBlock, error) {
+func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) ([]*block.MetaBlock, error) {
 	metaHdr := t.getHeaderWithNonceAndPrevHashFromMaps(nonce, prevHash)
 	if metaHdr != nil {
-		return metaHdr, nil
+		return []*block.MetaBlock{metaHdr}, nil
 	}
 
 	metaHdr = t.getHeaderWithNonceAndPrevHashFromCache(nonce, prevHash)
 	if metaHdr != nil {
-		return metaHdr, nil
+		return []*block.MetaBlock{metaHdr}, nil
 	}
 
 	nonceToByteSlice := t.uint64Converter.ToByteSlice(nonce)
@@ -741,7 +772,20 @@ func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (
 		return nil, marshal.ErrUnmarshallingBadSize
 	}
 
-	return t.getHeaderWithNonceAndHash(nonce, b.Data[0])
+	metaHdrs := make([]*block.MetaBlock, 0)
+	for _, hash := range b.Data {
+		metaHdr, err = t.getHeaderWithNonceAndHash(nonce, hash)
+		if err != nil {
+			continue
+		}
+		metaHdrs = append(metaHdrs, metaHdr)
+	}
+
+	if len(metaHdrs) == 0 {
+		return nil, epochStart.ErrMetaHdrNotFound
+	}
+
+	return metaHdrs, nil
 }
 
 func (t *trigger) getAllFinishedStartOfEpochMetaHdrs() []*block.MetaBlock {
