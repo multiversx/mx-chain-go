@@ -6,7 +6,7 @@ import (
 
 // RoundStub -
 type RoundStub struct {
-	IndexCalled         func() int32
+	IndexCalled         func() int64
 	TimeDurationCalled  func() time.Duration
 	TimeStampCalled     func() time.Time
 	UpdateRoundCalled   func(time.Time, time.Time)
@@ -14,7 +14,7 @@ type RoundStub struct {
 }
 
 // Index -
-func (rnds *RoundStub) Index() int32 {
+func (rnds *RoundStub) Index() int64 {
 	return rnds.IndexCalled()
 }
 
@@ -36,4 +36,9 @@ func (rnds *RoundStub) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp ti
 // RemainingTime -
 func (rnds *RoundStub) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
 	return rnds.RemainingTimeCalled(startTime, maxTime)
+}
+
+// IsInterfaceNil --
+func (rnds *RoundStub) IsInterfaceNil() bool {
+	return rnds == nil
 }
