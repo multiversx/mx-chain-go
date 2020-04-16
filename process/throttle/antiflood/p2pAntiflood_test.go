@@ -161,7 +161,7 @@ func TestP2pAntiflood_CanProcessMessagesOnTopicCanNotAccumulateShouldError(t *te
 	afm, _ := antiflood.NewP2PAntiflood(
 		&mock.FloodPreventerStub{},
 		&mock.TopicAntiFloodStub{
-			AccumulateCalled: func(identifier string, topic string, numMessages uint32) error {
+			IncreaseLoadCalled: func(identifier string, topic string, numMessages uint32) error {
 				if identifier == identifierCall.Pretty() && topic == topicCall && numMessages == numMessagesCall {
 					return process.ErrSystemBusy
 				}
@@ -185,7 +185,7 @@ func TestP2pAntiflood_CanProcessMessagesOnTopicCanAccumulateShouldWork(t *testin
 	afm, _ := antiflood.NewP2PAntiflood(
 		&mock.FloodPreventerStub{},
 		&mock.TopicAntiFloodStub{
-			AccumulateCalled: func(identifier string, topic string, numMessages uint32) error {
+			IncreaseLoadCalled: func(identifier string, topic string, numMessages uint32) error {
 				if identifier == identifierCall.Pretty() && topic == topicCall && numMessages == numMessagesCall {
 					return nil
 				}

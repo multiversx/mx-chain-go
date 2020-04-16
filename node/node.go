@@ -692,6 +692,9 @@ func (n *Node) printTxSentCounter() {
 // sendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
 func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
 	transactionsByShards := make(map[uint32][][]byte)
+	log.Trace("node.sendBulkTransactions sending txs",
+		"num", len(txs),
+	)
 
 	for _, tx := range txs {
 		senderShardId, err := n.getSenderShardId(tx)
@@ -701,6 +704,9 @@ func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
 
 		marshalizedTx, err := n.internalMarshalizer.Marshal(tx)
 		if err != nil {
+			log.Warn("node.sendBulkTransactions",
+				"marshalizer error", err,
+			)
 			continue
 		}
 
@@ -803,13 +809,17 @@ func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardI
 	atomic.AddInt32(&n.currentSendingGoRoutines, int32(len(packets)))
 	for _, buff := range packets {
 		go func(bufferToSend []byte) {
+			log.Trace("node.sendBulkTransactionsFromShard",
+				"topic", identifier,
+				"size", len(bufferToSend),
+			)
 			err = n.messenger.BroadcastOnChannelBlocking(
 				SendTransactionsPipe,
 				identifier,
 				bufferToSend,
 			)
 			if err != nil {
-				log.Debug("BroadcastOnChannelBlocking", "error", err.Error())
+				log.Debug("node.BroadcastOnChannelBlocking", "error", err.Error())
 			}
 
 			atomic.AddInt32(&n.currentSendingGoRoutines, -1)

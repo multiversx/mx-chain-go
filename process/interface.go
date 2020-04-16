@@ -670,8 +670,9 @@ type FloodPreventer interface {
 // TopicFloodPreventer defines the behavior of a component that is able to signal that too many events occurred
 // on a provided identifier between Reset calls, on a given topic
 type TopicFloodPreventer interface {
-	Accumulate(identifier string, topic string, numMessages uint32) error
+	IncreaseLoad(identifier string, topic string, numMessages uint32) error
 	ResetForTopic(topic string)
+	ResetForNotRegisteredTopics()
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
 	IsInterfaceNil() bool
 }

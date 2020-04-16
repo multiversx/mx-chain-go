@@ -10,13 +10,17 @@ func NewNilTopicFloodPreventer() *nilTopicFloodPreventer {
 	return &nilTopicFloodPreventer{}
 }
 
-// Accumulate will always return nil
-func (ntfp *nilTopicFloodPreventer) Accumulate(_ string, _ string, _ uint32) error {
+// IncreaseLoad will always return nil
+func (ntfp *nilTopicFloodPreventer) IncreaseLoad(_ string, _ string, _ uint32) error {
 	return nil
 }
 
 // ResetForTopic does nothing
 func (ntfp *nilTopicFloodPreventer) ResetForTopic(_ string) {
+}
+
+// ResetForNotRegisteredTopics does nothing
+func (ntfp *nilTopicFloodPreventer) ResetForNotRegisteredTopics() {
 }
 
 // SetMaxMessagesForTopic does nothing

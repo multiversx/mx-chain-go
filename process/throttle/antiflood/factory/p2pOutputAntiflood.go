@@ -35,7 +35,7 @@ func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandl
 		peerMaxMessagesPerSecond,
 		peerMaxTotalSizePerSecond,
 		math.MaxUint32,
-		math.MaxUint32,
+		math.MaxUint64,
 	)
 	if err != nil {
 		return nil, err

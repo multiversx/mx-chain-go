@@ -31,5 +31,5 @@ func TestNilTopicFloodPreventer_FunctionsShouldNotPanic(t *testing.T) {
 
 	ntfp.ResetForTopic("")
 	ntfp.SetMaxMessagesForTopic("", 0)
-	assert.Nil(t, ntfp.Accumulate("", "", math.MaxUint32))
+	assert.Nil(t, ntfp.IncreaseLoad("", "", math.MaxUint32))
 }

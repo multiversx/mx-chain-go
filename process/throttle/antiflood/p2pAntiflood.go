@@ -82,7 +82,7 @@ func (af *p2pAntiflood) CanProcessMessagesOnTopic(peer p2p.PeerID, topic string,
 		return p2p.ErrNilTopicFloodPreventer
 	}
 
-	err := topicFloodPreventer.Accumulate(peer.Pretty(), topic, numMessages)
+	err := topicFloodPreventer.IncreaseLoad(peer.Pretty(), topic, numMessages)
 	if err != nil {
 		log.Trace("topicFloodPreventer.Accumulate peer",
 			"error", err,

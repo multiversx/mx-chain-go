@@ -142,6 +142,7 @@ func startResettingFloodPreventers(
 			for _, topicMaxMsg := range localTopicMaxMessages {
 				topicFloodPreventer.ResetForTopic(topicMaxMsg.Topic)
 			}
+			topicFloodPreventer.ResetForNotRegisteredTopics()
 		}
 	}()
 }
