@@ -1,6 +1,8 @@
 package indexer
 
 import (
+	"fmt"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -64,7 +66,7 @@ func NewElasticIndexer(arguments ElasticIndexerArgs) (Indexer, error) {
 	}
 	client, err := newElasticSearchDatabase(databaseArguments)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot create indexer: %w", err)
 	}
 
 	indexer := &elasticIndexer{
