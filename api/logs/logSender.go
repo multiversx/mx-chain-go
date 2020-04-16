@@ -106,6 +106,7 @@ func (ls *logSender) waitForProfile() error {
 		return err
 	}
 
+	logger.NotifyProfileChange()
 	return nil
 }
 
