@@ -518,7 +518,6 @@ func (bbt *baseBlockTrack) SortHeadersFromNonce(shardID uint32, nonce uint64) ([
 	}
 
 	sortedHeadersInfo := make([]*HeaderInfo, 0)
-
 	for headersNonce, headersInfo := range headersForShard {
 		if headersNonce < nonce {
 			continue
