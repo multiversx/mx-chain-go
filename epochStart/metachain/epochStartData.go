@@ -26,6 +26,8 @@ type epochStartData struct {
 	requestHandler    epochStart.RequestHandler
 }
 
+const maxEpochDifference = 2
+
 // ArgsNewEpochStartData defines the input parameters for epoch start data creator
 type ArgsNewEpochStartData struct {
 	Marshalizer       marshal.Marshalizer
@@ -205,6 +207,10 @@ func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr *
 		prevShardHdr, err := process.GetShardHeader(currentHdr.GetPrevHash(), e.dataPool.Headers(), e.marshalizer, e.store)
 		if err != nil {
 			go e.requestHandler.RequestShardHeader(currentHdr.ShardID, currentHdr.GetPrevHash())
+			if e.epochStartTrigger.Epoch()-currentHdr.GetEpoch() > maxEpochDifference {
+				log.Warn("shard remained in too old epoch", "shardID", currentHdr.ShardID, "shard Epoch", currentHdr.Epoch, "meta Epoch", e.epochStartTrigger.Epoch())
+				break
+			}
 			return nil, nil, nil, err
 		}
 
@@ -245,7 +251,7 @@ func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr *
 		currentHdr = prevShardHdr
 	}
 
-	lastMetaHash, lastFinalizedMetaHash, err := e.getShardDataFromEpochStartData(shardHdr.Epoch, shardHdr.ShardID, lastMetaHash)
+	lastMetaHash, lastFinalizedMetaHash, err := e.getShardDataFromEpochStartData(shardHdr.ShardID, lastMetaHash)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -254,13 +260,16 @@ func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr *
 }
 
 func (e *epochStartData) getShardDataFromEpochStartData(
-	epoch uint32,
 	shId uint32,
 	lastMetaHash []byte,
 ) ([]byte, []byte, error) {
+	prevEpoch := uint32(0)
+	if e.epochStartTrigger.Epoch() > 0 {
+		prevEpoch = e.epochStartTrigger.Epoch() - 1
+	}
 
-	epochStartIdentifier := core.EpochStartIdentifier(epoch)
-	if epoch == 0 {
+	epochStartIdentifier := core.EpochStartIdentifier(prevEpoch)
+	if prevEpoch == 0 {
 		return lastMetaHash, []byte(epochStartIdentifier), nil
 	}
 
@@ -293,6 +302,14 @@ func (e *epochStartData) computePendingMiniBlockList(
 	allShardHdrList [][]*block.Header,
 ) ([]block.ShardMiniBlockHeader, error) {
 
+	prevEpoch := uint32(0)
+	if e.epochStartTrigger.Epoch() > 0 {
+		prevEpoch = e.epochStartTrigger.Epoch() - 1
+	}
+
+	epochStartIdentifier := core.EpochStartIdentifier(prevEpoch)
+	previousEpochStartMeta, _ := process.GetMetaHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
+
 	allPending := make([]block.ShardMiniBlockHeader, 0)
 	for shId, shardData := range startData.LastFinalizedHeaders {
 		if shardData.Nonce == 0 {
@@ -300,6 +317,12 @@ func (e *epochStartData) computePendingMiniBlockList(
 			continue
 		}
 		if len(shardData.FirstPendingMetaBlock) == 0 {
+			continue
+		}
+
+		lastEpochShardData := getFirstPendingMetaBlockForShard(previousEpochStartMeta, uint32(shId))
+		if bytes.Equal(lastEpochShardData.FirstPendingMetaBlock, shardData.FirstPendingMetaBlock) {
+			allPending = append(allPending, lastEpochShardData.PendingMiniBlockHeaders...)
 			continue
 		}
 
@@ -315,6 +338,22 @@ func (e *epochStartData) computePendingMiniBlockList(
 	}
 
 	return allPending, nil
+}
+
+func getFirstPendingMetaBlockForShard(epochStartMetaHdr *block.MetaBlock, shardID uint32) block.EpochStartShardData {
+	if check.IfNil(epochStartMetaHdr) {
+		return block.EpochStartShardData{}
+	}
+
+	for _, epochStartData := range epochStartMetaHdr.EpochStart.LastFinalizedHeaders {
+		if epochStartData.ShardID != shardID {
+			continue
+		}
+
+		return epochStartData
+	}
+
+	return block.EpochStartShardData{}
 }
 
 func (e *epochStartData) computeStillPending(
