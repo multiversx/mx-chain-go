@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/big"
 	"sort"
 	"sync"
 	"time"
@@ -826,6 +827,8 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 
 	mapMiniBlocks[core.MetachainShardId] = txs.createEmptyMiniBlock(txs.shardCoordinator.SelfId(), core.MetachainShardId, block.TxBlock)
 
+	var txMaxTotalCost *big.Int
+
 	for index := range sortedTxs {
 		if !haveTime() {
 			log.Debug("time is out in createAndProcessMiniBlocksFromMe")
@@ -874,9 +877,8 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 			}
 		}
 
-		txMaxTotalCost := txs.getTxMaxTotalCost(tx)
-
 		if txs.balanceComputation.IsAddressSet(tx.GetSndAddr()) {
+			txMaxTotalCost = txs.getTxMaxTotalCost(tx)
 			addressHasEnoughBalance := txs.balanceComputation.AddressHasEnoughBalance(tx.GetSndAddr(), txMaxTotalCost)
 			if !addressHasEnoughBalance {
 				numTxsWithInitialBalanceConsumed++
