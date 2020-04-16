@@ -155,3 +155,35 @@ func (rcns *RoundConsensus) EligibleList() map[string]struct{} {
 func (wrk *Worker) AppStatusHandler() core.AppStatusHandler {
 	return wrk.appStatusHandler
 }
+
+func (wrk *Worker) CheckConsensusMessageValidity(cnsMsg *consensus.Message) error {
+	return wrk.checkConsensusMessageValidity(cnsMsg)
+}
+
+func (wrk *Worker) CheckMessageWithFinalInfoValidity(cnsMsg *consensus.Message) error {
+	return wrk.checkMessageWithFinalInfoValidity(cnsMsg)
+}
+
+func (wrk *Worker) CheckMessageWithSignatureValidity(cnsMsg *consensus.Message) error {
+	return wrk.checkMessageWithSignatureValidity(cnsMsg)
+}
+
+func (wrk *Worker) CheckMessageWithBlockHeaderValidity(cnsMsg *consensus.Message) error {
+	return wrk.checkMessageWithBlockHeaderValidity(cnsMsg)
+}
+
+func (wrk *Worker) CheckMessageWithBlockBodyValidity(cnsMsg *consensus.Message) error {
+	return wrk.checkMessageWithBlockBodyValidity(cnsMsg)
+}
+
+func (wrk *Worker) CheckMessageWithBlockBodyAndHeaderValidity(cnsMsg *consensus.Message) error {
+	return wrk.checkMessageWithBlockBodyAndHeaderValidity(cnsMsg)
+}
+
+func (wrk *Worker) CheckConsensusMessageValidityForMessageType(cnsMsg *consensus.Message) error {
+	return wrk.checkConsensusMessageValidityForMessageType(cnsMsg)
+}
+
+func (wrk *Worker) IsBlockHeaderHashSizeValid(cnsMsg *consensus.Message) bool {
+	return wrk.isBlockHeaderHashSizeValid(cnsMsg)
+}
