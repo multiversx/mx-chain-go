@@ -410,7 +410,8 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 		return
 	}
 
-	if _, ok := t.mapFinalizedEpochs[metaHdr.Epoch]; ok {
+	_, ok = t.mapFinalizedEpochs[metaHdr.Epoch]
+	if t.metaEpoch == headerHandler.GetEpoch() && ok {
 		t.changeEpochFinalityAttestingRoundIfNeeded(metaHdr)
 		return
 	}
