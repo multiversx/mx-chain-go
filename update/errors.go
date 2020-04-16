@@ -175,3 +175,12 @@ var ErrNilAntiFloodHandler = errors.New("nil anti flood handler")
 
 // ErrIncorrectHardforkMessage signals that the hardfork message is incorrectly formatted
 var ErrIncorrectHardforkMessage = errors.New("incorrect hardfork message")
+
+// ErrNilRwdTxProcessor signals that nil reward transaction processor has been provided
+var ErrNilRwdTxProcessor = errors.New("nil reward transaction processor")
+
+// ErrNilSCRProcessor signals that nil smart contract result processor has been provided
+var ErrNilSCRProcessor = errors.New("nil smart contract result processor")
+
+// ErrNilTxProcessor signals that nil transaction processor has been provided
+var ErrNilTxProcessor = errors.New("nil transaction processor")
