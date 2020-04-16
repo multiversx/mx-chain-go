@@ -6,10 +6,10 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -31,11 +31,10 @@ type BlockTrackerMock struct {
 	ComputeLongestShardsChainsFromLastNotarizedCalled func() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
 	DisplayTrackedHeadersCalled                       func()
 	GetCrossNotarizedHeaderCalled                     func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
-	GetFinalHeaderCalled                              func(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeaderCalled                 func(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeadersForAllShardsCalled    func() (map[uint32]data.HeaderHandler, error)
 	GetLastSelfNotarizedHeaderCalled                  func(shardID uint32) (data.HeaderHandler, []byte, error)
-	GetNumPendingMiniBlocksCalled                     func(shardID uint32) uint32
+	GetSelfNotarizedHeaderCalled                      func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
 	GetTrackedHeadersCalled                           func(shardID uint32) ([]data.HeaderHandler, [][]byte)
 	GetTrackedHeadersForAllShardsCalled               func() map[uint32][]data.HeaderHandler
 	GetTrackedHeadersWithNonceCalled                  func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
@@ -122,8 +121,7 @@ func (btm *BlockTrackerMock) InitNotarizedHeaders(startHeaders map[uint32]data.H
 	btm.mutSelfNotarizedHeaders.Lock()
 	btm.selfNotarizedHeaders = make(map[uint32][]*headerInfo)
 
-	for _, startHeader := range selfStartHeaders {
-		shardID := startHeader.GetShardID()
+	for shardID, startHeader := range selfStartHeaders {
 		btm.selfNotarizedHeaders[shardID] = append(btm.selfNotarizedHeaders[shardID], &headerInfo{header: startHeader, hash: nil})
 	}
 	btm.mutSelfNotarizedHeaders.Unlock()
@@ -279,16 +277,22 @@ func (btm *BlockTrackerMock) GetCrossNotarizedHeader(shardID uint32, offset uint
 		return btm.GetCrossNotarizedHeaderCalled(shardID, offset)
 	}
 
-	return nil, nil, nil
-}
+	btm.mutCrossNotarizedHeaders.RLock()
+	defer btm.mutCrossNotarizedHeaders.RUnlock()
 
-// GetFinalHeader -
-func (btm *BlockTrackerMock) GetFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
-	if btm.GetFinalHeaderCalled != nil {
-		return btm.GetFinalHeaderCalled(shardID)
+	headersInfo := btm.crossNotarizedHeaders[shardID]
+	if headersInfo == nil {
+		return nil, nil, process.ErrNotarizedHeadersSliceForShardIsNil
 	}
 
-	return nil, nil, nil
+	notarizedHeadersCount := uint64(len(headersInfo))
+	if notarizedHeadersCount <= offset {
+		return nil, nil, track.ErrNotarizedHeaderOffsetIsOutOfBound
+	}
+
+	hdrInfo := headersInfo[notarizedHeadersCount-offset-1]
+
+	return hdrInfo.header, hdrInfo.hash, nil
 }
 
 // GetLastCrossNotarizedHeader -
@@ -368,13 +372,28 @@ func (btm *BlockTrackerMock) lastSelfNotarizedHdrForShard(shardID uint32) *heade
 	return nil
 }
 
-// GetNumPendingMiniBlocks -
-func (btm *BlockTrackerMock) GetNumPendingMiniBlocks(shardID uint32) uint32 {
-	if btm.GetNumPendingMiniBlocksCalled != nil {
-		return btm.GetNumPendingMiniBlocksCalled(shardID)
+// GetSelfNotarizedHeader -
+func (btm *BlockTrackerMock) GetSelfNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+	if btm.GetSelfNotarizedHeaderCalled != nil {
+		return btm.GetSelfNotarizedHeaderCalled(shardID, offset)
 	}
 
-	return 0
+	btm.mutSelfNotarizedHeaders.RLock()
+	defer btm.mutSelfNotarizedHeaders.RUnlock()
+
+	headersInfo := btm.selfNotarizedHeaders[shardID]
+	if headersInfo == nil {
+		return nil, nil, process.ErrNotarizedHeadersSliceForShardIsNil
+	}
+
+	notarizedHeadersCount := uint64(len(headersInfo))
+	if notarizedHeadersCount <= offset {
+		return nil, nil, track.ErrNotarizedHeaderOffsetIsOutOfBound
+	}
+
+	hdrInfo := headersInfo[notarizedHeadersCount-offset-1]
+
+	return hdrInfo.header, hdrInfo.hash, nil
 }
 
 // GetTrackedHeaders -

@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
@@ -42,7 +43,7 @@ var log = logger.GetOrCreate("core/genesis")
 func CreateShardGenesisBlockFromInitialBalances(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
-	addrConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 	initialBalances map[string]*big.Int,
 	genesisTime uint64,
 ) (data.HeaderHandler, error) {
@@ -50,8 +51,8 @@ func CreateShardGenesisBlockFromInitialBalances(
 	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(addrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if initialBalances == nil {
 		return nil, process.ErrNilValue
@@ -63,7 +64,7 @@ func CreateShardGenesisBlockFromInitialBalances(
 	rootHash, err := setBalancesToTrie(
 		accounts,
 		shardCoordinator,
-		addrConv,
+		pubkeyConv,
 		initialBalances,
 	)
 	if err != nil {
@@ -90,7 +91,7 @@ func CreateShardGenesisBlockFromInitialBalances(
 type ArgsMetaGenesisBlockCreator struct {
 	GenesisTime              uint64
 	Accounts                 state.AccountsAdapter
-	AddrConv                 state.AddressConverter
+	PubkeyConv               state.PubkeyConverter
 	NodesSetup               *sharding.NodesSetup
 	Economics                *economics.EconomicsData
 	ShardCoordinator         sharding.Coordinator
@@ -113,8 +114,8 @@ func CreateMetaGenesisBlock(
 	if check.IfNil(args.Accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(args.AddrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(args.PubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if args.NodesSetup == nil {
 		return nil, process.ErrNilNodesSetup
@@ -152,7 +153,7 @@ func CreateMetaGenesisBlock(
 	err = deploySystemSmartContracts(
 		txProcessor,
 		systemSmartContracts,
-		args.AddrConv,
+		args.PubkeyConv,
 		args.Accounts,
 	)
 	if err != nil {
@@ -241,15 +242,16 @@ func saveGenesisMetaToStorage(
 func createProcessorsForMetaGenesisBlock(
 	args ArgsMetaGenesisBlockCreator,
 ) (process.TransactionProcessor, vm.SystemSCContainer, error) {
+	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         args.Accounts,
-		AddrConv:         args.AddrConv,
+		PubkeyConv:       args.PubkeyConv,
 		StorageService:   args.Store,
 		BlockChain:       args.Blkc,
 		ShardCoordinator: args.ShardCoordinator,
 		Marshalizer:      args.Marshalizer,
 		Uint64Converter:  args.Uint64ByteSliceConverter,
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
+		BuiltInFunctions: builtInFuncs,
 	}
 
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics, &NilMessageSignVerifier{}, args.GasMap)
@@ -268,7 +270,7 @@ func createProcessorsForMetaGenesisBlock(
 		args.ShardCoordinator,
 		args.Marshalizer,
 		args.Hasher,
-		args.AddrConv,
+		args.PubkeyConv,
 		args.Store,
 		args.DataPool,
 	)
@@ -291,7 +293,13 @@ func createProcessorsForMetaGenesisBlock(
 		return nil, nil, err
 	}
 
-	txTypeHandler, err := coordinator.NewTxTypeHandler(args.AddrConv, args.ShardCoordinator, args.Accounts)
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		PubkeyConverter:  args.PubkeyConv,
+		ShardCoordinator: args.ShardCoordinator,
+		BuiltInFuncNames: builtInFuncs.Keys(),
+		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+	}
+	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -304,7 +312,7 @@ func createProcessorsForMetaGenesisBlock(
 		Marshalizer:      args.Marshalizer,
 		AccountsDB:       args.Accounts,
 		TempAccounts:     virtualMachineFactory.BlockChainHookImpl(),
-		AdrConv:          args.AddrConv,
+		PubkeyConv:       args.PubkeyConv,
 		Coordinator:      args.ShardCoordinator,
 		ScrForwarder:     scForwarder,
 		TxFeeHandler:     genesisFeeHandler,
@@ -312,6 +320,7 @@ func createProcessorsForMetaGenesisBlock(
 		TxTypeHandler:    txTypeHandler,
 		GasHandler:       gasHandler,
 		BuiltInFunctions: virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
+		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
@@ -322,7 +331,7 @@ func createProcessorsForMetaGenesisBlock(
 		args.Hasher,
 		args.Marshalizer,
 		args.Accounts,
-		args.AddrConv,
+		args.PubkeyConv,
 		args.ShardCoordinator,
 		scProcessor,
 		txTypeHandler,
@@ -339,7 +348,7 @@ func createProcessorsForMetaGenesisBlock(
 func deploySystemSmartContracts(
 	txProcessor process.TransactionProcessor,
 	systemSCs vm.SystemSCContainer,
-	addrConv state.AddressConverter,
+	pukeyConv state.PubkeyConverter,
 	accounts state.AccountsAdapter,
 ) error {
 	code := hex.EncodeToString([]byte("deploy"))
@@ -350,7 +359,7 @@ func deploySystemSmartContracts(
 	tx := &transaction.Transaction{
 		Nonce:     0,
 		Value:     big.NewInt(0),
-		RcvAddr:   make([]byte, addrConv.AddressLen()),
+		RcvAddr:   make([]byte, pukeyConv.Len()),
 		GasPrice:  0,
 		GasLimit:  math.MaxUint64,
 		Data:      []byte(deployTxData),
@@ -363,9 +372,7 @@ func deploySystemSmartContracts(
 	}
 
 	systemSCAddresses := make([][]byte, 0)
-	for _, key := range systemSCs.Keys() {
-		systemSCAddresses = append(systemSCAddresses, key)
-	}
+	systemSCAddresses = append(systemSCAddresses, systemSCs.Keys()...)
 
 	sort.Slice(systemSCAddresses, func(i, j int) bool {
 		return bytes.Compare(systemSCAddresses[i], systemSCAddresses[j]) < 0
@@ -395,8 +402,12 @@ func setStakedData(
 ) error {
 	// create staking smart contract state for genesis - update fixed stake value from all
 	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
-	for i := range initialNodeInfo {
-		nodeInfoList := initialNodeInfo[i]
+	for i := 0; i < len(initialNodeInfo); i++ {
+		shardID := uint32(i)
+		if i == len(initialNodeInfo)-1 {
+			shardID = core.MetachainShardId
+		}
+		nodeInfoList := initialNodeInfo[shardID]
 		for _, nodeInfo := range nodeInfoList {
 			tx := &transaction.Transaction{
 				Nonce:     0,
@@ -423,7 +434,7 @@ func setStakedData(
 func setBalancesToTrie(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
-	addrConv state.AddressConverter,
+	pukeyConv state.PubkeyConverter,
 	initialBalances map[string]*big.Int,
 ) (rootHash []byte, err error) {
 
@@ -432,7 +443,7 @@ func setBalancesToTrie(
 	}
 
 	for i, v := range initialBalances {
-		err = setBalanceToTrie(accounts, shardCoordinator, addrConv, []byte(i), v)
+		err = setBalanceToTrie(accounts, shardCoordinator, pukeyConv, []byte(i), v)
 
 		if err != nil {
 			return nil, err
@@ -455,18 +466,16 @@ func setBalancesToTrie(
 func setBalanceToTrie(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
-	addrConv state.AddressConverter,
+	pukeyConv state.PubkeyConverter,
 	addr []byte,
 	balance *big.Int,
 ) error {
 
-	addrContainer, err := addrConv.CreateAddressFromPublicKeyBytes(addr)
+	addrContainer, err := pukeyConv.CreateAddressFromBytes(addr)
 	if err != nil {
 		return err
 	}
-	if addrContainer == nil || addrContainer.IsInterfaceNil() {
-		return process.ErrNilAddressContainer
-	}
+
 	if shardCoordinator.ComputeId(addrContainer) != shardCoordinator.SelfId() {
 		return process.ErrMintAddressNotInThisShard
 	}

@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("process/smartcontract")
@@ -25,7 +25,7 @@ var log = logger.GetOrCreate("process/smartcontract")
 type scProcessor struct {
 	accounts         state.AccountsAdapter
 	tempAccounts     process.TemporaryAccountsHandler
-	adrConv          state.AddressConverter
+	pubkeyConv       state.PubkeyConverter
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
@@ -38,6 +38,8 @@ type scProcessor struct {
 	economicsFee  process.FeeHandler
 	txTypeHandler process.TxTypeHandler
 	gasHandler    process.GasHandler
+
+	txLogsProcessor process.TransactionLogProcessor
 }
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
@@ -48,7 +50,7 @@ type ArgsNewSmartContractProcessor struct {
 	Marshalizer      marshal.Marshalizer
 	AccountsDB       state.AccountsAdapter
 	TempAccounts     process.TemporaryAccountsHandler
-	AdrConv          state.AddressConverter
+	PubkeyConv       state.PubkeyConverter
 	Coordinator      sharding.Coordinator
 	ScrForwarder     process.IntermediateTransactionHandler
 	TxFeeHandler     process.TransactionFeeHandler
@@ -56,6 +58,7 @@ type ArgsNewSmartContractProcessor struct {
 	TxTypeHandler    process.TxTypeHandler
 	GasHandler       process.GasHandler
 	BuiltInFunctions process.BuiltInFunctionContainer
+	TxLogsProcessor  process.TransactionLogProcessor
 }
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
@@ -78,8 +81,8 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.TempAccounts) {
 		return nil, process.ErrNilTemporaryAccountsHandler
 	}
-	if check.IfNil(args.AdrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(args.PubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(args.Coordinator) {
 		return nil, process.ErrNilShardCoordinator
@@ -102,6 +105,9 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.BuiltInFunctions) {
 		return nil, process.ErrNilBuiltInFunction
 	}
+	if check.IfNil(args.TxLogsProcessor) {
+		return nil, process.ErrNilTxLogsProcessor
+	}
 
 	sc := &scProcessor{
 		vmContainer:      args.VmContainer,
@@ -110,7 +116,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		marshalizer:      args.Marshalizer,
 		accounts:         args.AccountsDB,
 		tempAccounts:     args.TempAccounts,
-		adrConv:          args.AdrConv,
+		pubkeyConv:       args.PubkeyConv,
 		shardCoordinator: args.Coordinator,
 		scrForwarder:     args.ScrForwarder,
 		txFeeHandler:     args.TxFeeHandler,
@@ -118,6 +124,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		txTypeHandler:    args.TxTypeHandler,
 		gasHandler:       args.GasHandler,
 		builtInFunctions: args.BuiltInFunctions,
+		txLogsProcessor:  args.TxLogsProcessor,
 	}
 
 	return sc, nil
@@ -128,7 +135,7 @@ func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
 		return process.ErrNilTransaction
 	}
 
-	recvAddressIsInvalid := sc.adrConv.AddressLen() != len(tx.GetRcvAddr())
+	recvAddressIsInvalid := sc.pubkeyConv.Len() != len(tx.GetRcvAddr())
 	if recvAddressIsInvalid {
 		return process.ErrWrongTransaction
 	}
@@ -137,7 +144,7 @@ func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
 }
 
 func (sc *scProcessor) isDestAddressEmpty(tx data.TransactionHandler) bool {
-	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, sc.adrConv.AddressLen()))
+	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, sc.pubkeyConv.Len()))
 	return isEmptyAddress
 }
 
@@ -234,6 +241,11 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	if err != nil {
 		log.Debug("AddIntermediateTransactions error", "error", err.Error())
 		return nil
+	}
+
+	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
+	if ignorableError != nil {
+		log.Debug("txLogsProcessor.SaveLog() error", "error", ignorableError.Error())
 	}
 
 	newDeveloperReward := core.GetPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
@@ -849,7 +861,7 @@ func (sc *scProcessor) updateSmartContractCode(
 		scAccount.SetOwnerAddress(tx.GetSndAddr())
 		scAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		scAccount.SetCode(outputAccount.Code)
-		log.Trace("updateSmartContractCode(): created", "address", outputAccount.Address)
+		log.Trace("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address))
 		return nil
 	}
 
@@ -858,7 +870,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	if isUpgrade {
 		scAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		scAccount.SetCode(outputAccount.Code)
-		log.Trace("updateSmartContractCode(): upgraded", "address", outputAccount.Address)
+		log.Trace("updateSmartContractCode(): upgraded", "address", sc.pubkeyConv.Encode(outputAccount.Address))
 		return nil
 	}
 
@@ -889,7 +901,7 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 }
 
 func (sc *scProcessor) getAccountFromAddress(address []byte) (state.UserAccountHandler, error) {
-	adrSrc, err := sc.adrConv.CreateAddressFromPublicKeyBytes(address)
+	adrSrc, err := sc.pubkeyConv.CreateAddressFromBytes(address)
 	if err != nil {
 		return nil, err
 	}
@@ -947,7 +959,12 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		return nil
 	}
 
-	process.DisplayProcessTxDetails("ProcessSmartContractResult: receiver account details", dstAcc, scr)
+	process.DisplayProcessTxDetails(
+		"ProcessSmartContractResult: receiver account details",
+		dstAcc,
+		scr,
+		sc.pubkeyConv,
+	)
 
 	txType, err := sc.txTypeHandler.ComputeTransactionType(scr)
 	if err != nil {

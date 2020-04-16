@@ -7,10 +7,10 @@ import (
 
 // BlockTrackerHandlerMock -
 type BlockTrackerHandlerMock struct {
-	GetSelfHeadersCalled              func(headerHandler data.HeaderHandler) []*track.HeaderInfo
-	ComputeNumPendingMiniBlocksCalled func(headers []data.HeaderHandler)
-	ComputeLongestSelfChainCalled     func() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte)
-	SortHeadersFromNonceCalled        func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
+	GetSelfHeadersCalled          func(headerHandler data.HeaderHandler) []*track.HeaderInfo
+	ComputeCrossInfoCalled        func(headers []data.HeaderHandler)
+	ComputeLongestSelfChainCalled func() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte)
+	SortHeadersFromNonceCalled    func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 }
 
 // GetSelfHeaders -
@@ -22,10 +22,10 @@ func (bthm *BlockTrackerHandlerMock) GetSelfHeaders(headerHandler data.HeaderHan
 	return nil
 }
 
-// ComputeNumPendingMiniBlocks -
-func (bthm *BlockTrackerHandlerMock) ComputeNumPendingMiniBlocks(headers []data.HeaderHandler) {
-	if bthm.ComputeNumPendingMiniBlocksCalled != nil {
-		bthm.ComputeNumPendingMiniBlocksCalled(headers)
+// ComputeCrossInfo -
+func (bthm *BlockTrackerHandlerMock) ComputeCrossInfo(headers []data.HeaderHandler) {
+	if bthm.ComputeCrossInfoCalled != nil {
+		bthm.ComputeCrossInfoCalled(headers)
 	}
 }
 

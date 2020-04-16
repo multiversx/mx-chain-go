@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/state/addressConverters"
+	"github.com/ElrondNetwork/elrond-go/data/state/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -559,12 +560,15 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	testMarshalizer := &marshal.JsonMarshalizer{}
 	testHasher := sha256.Sha256{}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	addrConv, _ := addressConverters.NewPlainAddressConverter(32, "0x")
+	pubkeyConv, _ := pubkeyConverter.NewHexPubkeyConverter(32)
 	accnts := vm.CreateInMemoryShardAccountsDB()
-	txTypeHandler, _ := coordinator.NewTxTypeHandler(
-		addrConv,
-		shardCoordinator,
-		accnts)
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		PubkeyConverter:  pubkeyConv,
+		ShardCoordinator: shardCoordinator,
+		BuiltInFuncNames: make(map[string]struct{}),
+		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+	}
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	feeHandler := &mock.FeeHandlerStub{
 		ComputeFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(10)
@@ -580,7 +584,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	txProc, _ := processTransaction.NewTxProcessor(
 		accnts,
 		testHasher,
-		addrConv,
+		pubkeyConv,
 		testMarshalizer,
 		shardCoordinator,
 		&mock.SCProcessorMock{},

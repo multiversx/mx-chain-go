@@ -42,7 +42,7 @@ type fullSyncInterceptorsContainerFactory struct {
 	maxTxNonceDeltaAllowed int
 	keyGen                 crypto.KeyGenerator
 	singleSigner           crypto.SingleSigner
-	addrConverter          state.AddressConverter
+	addressPubkeyConv      state.PubkeyConverter
 	whiteListHandler       update.WhiteListHandler
 	antifloodHandler       process.P2PAntifloodHandler
 }
@@ -63,7 +63,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	BlockSingleSigner      crypto.SingleSigner
 	MultiSigner            crypto.MultiSigner
 	DataPool               dataRetriever.PoolsHolder
-	AddrConverter          state.AddressConverter
+	AddressPubkeyConverter state.PubkeyConverter
 	MaxTxNonceDeltaAllowed int
 	TxFeeHandler           process.FeeHandler
 	BlackList              process.BlackListHandler
@@ -106,8 +106,8 @@ func NewFullSyncInterceptorsContainerFactory(
 	if check.IfNil(args.SingleSigner) {
 		return nil, process.ErrNilSingleSigner
 	}
-	if check.IfNil(args.AddrConverter) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(args.AddressPubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(args.TxFeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
@@ -151,7 +151,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		BlockKeyGen:       args.BlockSignKeyGen,
 		Signer:            args.SingleSigner,
 		BlockSigner:       args.BlockSingleSigner,
-		AddrConv:          args.AddrConverter,
+		AddressPubkeyConv: args.AddressPubkeyConverter,
 		FeeHandler:        args.TxFeeHandler,
 		HeaderSigVerifier: args.HeaderSigVerifier,
 		ChainID:           args.ChainID,
@@ -175,7 +175,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
 		keyGen:                 args.KeyGen,
 		singleSigner:           args.SingleSigner,
-		addrConverter:          args.AddrConverter,
+		addressPubkeyConv:      args.AddressPubkeyConverter,
 		whiteListHandler:       args.WhiteListHandler,
 		antifloodHandler:       args.AntifloodHandler,
 	}
@@ -484,6 +484,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 		ficf.accounts,
 		ficf.shardCoordinator,
 		ficf.whiteListHandler,
+		ficf.addressPubkeyConv,
 		ficf.maxTxNonceDeltaAllowed,
 	)
 	if err != nil {
@@ -628,18 +629,18 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMiniBlocksInterceptors
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
-	argProcessor := &processor.ArgTxBodyInterceptorProcessor{
+	argProcessor := &processor.ArgMiniblockInterceptorProcessor{
 		MiniblockCache:   ficf.dataPool.MiniBlocks(),
 		Marshalizer:      ficf.marshalizer,
 		Hasher:           ficf.hasher,
 		ShardCoordinator: ficf.shardCoordinator,
 	}
-	txBlockBodyProcessor, err := processor.NewTxBodyInterceptorProcessor(argProcessor)
+	txBlockBodyProcessor, err := processor.NewMiniblockInterceptorProcessor(argProcessor)
 	if err != nil {
 		return nil, err
 	}
 
-	txFactory, err := interceptorFactory.NewInterceptedTxBlockBodyDataFactory(ficf.argInterceptorFactory)
+	txFactory, err := interceptorFactory.NewInterceptedMiniblockDataFactory(ficf.argInterceptorFactory)
 	if err != nil {
 		return nil, err
 	}

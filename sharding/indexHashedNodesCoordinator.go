@@ -45,25 +45,25 @@ type epochNodesConfig struct {
 }
 
 type indexHashedNodesCoordinator struct {
+	shardIDAsObserver             uint32
+	currentEpoch                  uint32
+	shardConsensusGroupSize       int
+	metaConsensusGroupSize        int
+	numTotalEligible              uint64
+	selfPubKey                    []byte
+	savedStateKey                 []byte
 	marshalizer                   marshal.Marshalizer
 	hasher                        hashing.Hasher
 	shuffler                      NodesShuffler
 	epochStartRegistrationHandler EpochStartEventNotifier
 	bootStorer                    storage.Storer
-	selfPubKey                    []byte
 	nodesConfig                   map[uint32]*epochNodesConfig
 	mutNodesConfig                sync.RWMutex
-	currentEpoch                  uint32
-	savedStateKey                 []byte
 	mutSavedStateKey              sync.RWMutex
-	numTotalEligible              uint64
-	shardConsensusGroupSize       int
-	metaConsensusGroupSize        int
 	nodesCoordinatorHelper        NodesCoordinatorHelper
 	consensusGroupCacher          Cacher
-	shardIDAsObserver             uint32
 	loadingFromDisk               atomic.Value
-	shuffledOutHandler      ShuffledOutHandler
+	shuffledOutHandler            ShuffledOutHandler
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -99,7 +99,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		metaConsensusGroupSize:        arguments.MetaConsensusGroupSize,
 		consensusGroupCacher:          arguments.ConsensusGroupCache,
 		shardIDAsObserver:             arguments.ShardIDAsObserver,
-		shuffledOutHandler:      arguments.ShuffledOutHandler,
+		shuffledOutHandler:            arguments.ShuffledOutHandler,
 	}
 
 	ihgs.loadingFromDisk.Store(false)
@@ -206,7 +206,6 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 	if err != nil {
 		return err
 	}
-
 
 	shardIDForSelfPublicKey := ihgs.computeShardForSelfPublicKey(nodesConfig)
 	nodesConfig.shardID = shardIDForSelfPublicKey

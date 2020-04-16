@@ -73,7 +73,7 @@ func (bp *blockProcessor) doJobOnReceivedHeader(shardID uint32) {
 func (bp *blockProcessor) doJobOnReceivedCrossNotarizedHeader(shardID uint32) {
 	_, _, crossNotarizedHeaders, crossNotarizedHeadersHashes := bp.computeLongestChainFromLastCrossNotarized(shardID)
 	selfNotarizedHeaders, selfNotarizedHeadersHashes := bp.computeSelfNotarizedHeaders(crossNotarizedHeaders)
-	bp.blockTracker.ComputeNumPendingMiniBlocks(crossNotarizedHeaders)
+	bp.blockTracker.ComputeCrossInfo(crossNotarizedHeaders)
 
 	if len(crossNotarizedHeaders) > 0 {
 		bp.crossNotarizedHeadersNotifier.CallHandlers(shardID, crossNotarizedHeaders, crossNotarizedHeadersHashes)

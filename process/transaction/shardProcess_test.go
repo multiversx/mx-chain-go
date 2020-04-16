@@ -17,6 +17,7 @@ import (
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -62,7 +63,7 @@ func createTxProcessor() txproc.TxProcessor {
 	txProc, _ := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
@@ -84,7 +85,7 @@ func TestNewTxProcessor_NilAccountsShouldErr(t *testing.T) {
 	txProc, err := txproc.NewTxProcessor(
 		nil,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
@@ -105,7 +106,7 @@ func TestNewTxProcessor_NilHasherShouldErr(t *testing.T) {
 	txProc, err := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
 		nil,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
@@ -137,7 +138,7 @@ func TestNewTxProcessor_NilAddressConverterMockShouldErr(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 	)
 
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 	assert.Nil(t, txProc)
 }
 
@@ -147,7 +148,7 @@ func TestNewTxProcessor_NilMarshalizerMockShouldErr(t *testing.T) {
 	txProc, err := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		nil,
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
@@ -168,7 +169,7 @@ func TestNewTxProcessor_NilShardCoordinatorMockShouldErr(t *testing.T) {
 	txProc, err := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		nil,
 		&mock.SCProcessorMock{},
@@ -189,7 +190,7 @@ func TestNewTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
 	txProc, err := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		nil,
@@ -210,7 +211,7 @@ func TestNewTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 	txProc, err := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
@@ -231,7 +232,7 @@ func TestNewTxProcessor_OkValsShouldWork(t *testing.T) {
 	txProc, err := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
@@ -251,12 +252,15 @@ func TestNewTxProcessor_OkValsShouldWork(t *testing.T) {
 func TestTxProcessor_GetAddressErrAddressConvShouldErr(t *testing.T) {
 	t.Parallel()
 
-	addressConv := &mock.AddressConverterMock{}
-
+	expectedErr := errors.New("expected error")
 	execTx, _ := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
 		mock.HasherMock{},
-		addressConv,
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pkBytes []byte) (container state.AddressContainer, err error) {
+				return nil, expectedErr
+			},
+		},
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
@@ -266,8 +270,6 @@ func TestTxProcessor_GetAddressErrAddressConvShouldErr(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
-
-	addressConv.Fail = true
 
 	tx := transaction.Transaction{}
 
@@ -300,7 +302,7 @@ func TestTxProcessor_GetAccountsShouldErrNilAddressContainer(t *testing.T) {
 	execTx, _ := txproc.NewTxProcessor(
 		adb,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
@@ -329,7 +331,7 @@ func TestTxProcessor_GetAccountsMalfunctionAccountsShouldErr(t *testing.T) {
 	execTx, _ := txproc.NewTxProcessor(
 		adb,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
@@ -375,7 +377,7 @@ func TestTxProcessor_GetAccountsOkValsSrcShouldWork(t *testing.T) {
 	execTx, _ := txproc.NewTxProcessor(
 		&adb,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		&mock.SCProcessorMock{},
@@ -430,7 +432,7 @@ func TestTxProcessor_GetAccountsOkValsDsthouldWork(t *testing.T) {
 	execTx, _ := txproc.NewTxProcessor(
 		&adb,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		&mock.SCProcessorMock{},
@@ -470,7 +472,7 @@ func TestTxProcessor_GetAccountsOkValsShouldWork(t *testing.T) {
 	execTx, _ := txproc.NewTxProcessor(
 		adb,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
@@ -501,7 +503,7 @@ func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
 	execTx, _ := txproc.NewTxProcessor(
 		adb,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
@@ -675,12 +677,15 @@ func TestTxProcessor_ProcessTransactionNilTxShouldErr(t *testing.T) {
 func TestTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T) {
 	t.Parallel()
 
-	addressConv := &mock.AddressConverterMock{}
-
+	expectedErr := errors.New("expected error")
 	execTx, _ := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
 		mock.HasherMock{},
-		addressConv,
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pkBytes []byte) (container state.AddressContainer, err error) {
+				return nil, expectedErr
+			},
+		},
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
@@ -690,8 +695,6 @@ func TestTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T) {
 		&mock.IntermediateTransactionHandlerMock{},
 		&mock.IntermediateTransactionHandlerMock{},
 	)
-
-	addressConv.Fail = true
 
 	err := execTx.ProcessTransaction(&transaction.Transaction{})
 	assert.NotNil(t, err)
@@ -705,7 +708,7 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 	execTx, _ := txproc.NewTxProcessor(
 		adb,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
@@ -746,7 +749,7 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	execTx, _ := txproc.NewTxProcessor(
 		adb,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
@@ -764,14 +767,24 @@ func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing.T) {
 	t.Parallel()
 
+	testProcessCheck(t, 1, big.NewInt(45))
+}
+
+func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *testing.T) {
+	t.Parallel()
+
+	testProcessCheck(t, 0, big.NewInt(0))
+}
+
+func testProcessCheck(t *testing.T, nonce uint64, value *big.Int) {
 	saveAccountCalled := 0
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	tx := transaction.Transaction{}
-	tx.Nonce = 1
+	tx.Nonce = nonce
 	tx.SndAddr = []byte("SRC")
 	tx.RcvAddr = []byte("DST")
-	tx.Value = big.NewInt(45)
+	tx.Value = value
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
 		if bytes.Equal(container.Bytes(), tx.SndAddr) {
@@ -795,7 +808,7 @@ func TestTxProcessor_ProcessCheckShouldPassWhenAdrSrcIsNotInNodeShard(t *testing
 	execTx, _ := txproc.NewTxProcessor(
 		adb,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		&mock.SCProcessorMock{},
@@ -836,7 +849,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 	execTx, _ := txproc.NewTxProcessor(
 		adb,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
@@ -850,106 +863,6 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 	err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, saveAccountCalled)
-}
-
-func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *testing.T) {
-	t.Parallel()
-
-	saveAccountCalled := 0
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
-
-	tx := transaction.Transaction{}
-	tx.Nonce = 0
-	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DST")
-	tx.Value = big.NewInt(0)
-
-	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
-		if bytes.Equal(container.Bytes(), tx.SndAddr) {
-			return 1
-		}
-
-		return 0
-	}
-
-	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
-	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
-	assert.Nil(t, err)
-
-	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-	adb.SaveAccountCalled = func(account state.AccountHandler) error {
-		saveAccountCalled++
-		return nil
-	}
-
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		&mock.AddressConverterMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
-
-	err = execTx.ProcessTransaction(&tx)
-	assert.Nil(t, err)
-	assert.Equal(t, 1, saveAccountCalled)
-}
-
-func TestTxProcessor_ProcessIncreaseNonceShouldPassWhenAdrSrcIsNotInNodeShard(t *testing.T) {
-	t.Parallel()
-
-	saveAccountCalled := 0
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
-
-	tx := transaction.Transaction{}
-	tx.Nonce = 0
-	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DST")
-	tx.Value = big.NewInt(0)
-
-	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
-		if bytes.Equal(container.Bytes(), tx.SndAddr) {
-			return 1
-		}
-
-		return 0
-	}
-
-	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
-	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
-	assert.Nil(t, err)
-
-	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-	adb.SaveAccountCalled = func(account state.AccountHandler) error {
-		saveAccountCalled++
-		return nil
-	}
-
-	execTx, _ := txproc.NewTxProcessor(
-		adb,
-		mock.HasherMock{},
-		&mock.AddressConverterMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-		&mock.SCProcessorMock{},
-		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{},
-		feeHandlerMock(),
-		&mock.IntermediateTransactionHandlerMock{},
-		&mock.IntermediateTransactionHandlerMock{},
-	)
-
-	err = execTx.ProcessTransaction(&tx)
-	assert.Nil(t, err)
-	assert.Equal(t, 1, saveAccountCalled)
 }
 
 func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
@@ -981,7 +894,7 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	execTx, _ := txproc.NewTxProcessor(
 		adb,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
@@ -1039,7 +952,7 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 	execTx, _ := txproc.NewTxProcessor(
 		adb,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		&mock.SCProcessorMock{},
@@ -1062,12 +975,10 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	t.Parallel()
 
 	saveAccountCalled := 0
-	addrConverter := &mock.AddressConverterMock{}
-
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
 	tx.Value = big.NewInt(45)
 	tx.GasPrice = 1
 	tx.GasLimit = 1
@@ -1098,7 +1009,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	execTx, _ := txproc.NewTxProcessor(
 		adb,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		scProcessorMock,
@@ -1123,12 +1034,11 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 	t.Parallel()
 
 	saveAccountCalled := 0
-	addrConverter := &mock.AddressConverterMock{}
 
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
 	tx.Value = big.NewInt(45)
 
 	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
@@ -1155,7 +1065,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 	execTx, _ := txproc.NewTxProcessor(
 		adb,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewOneShardCoordinatorMock(),
 		scProcessorMock,
@@ -1180,12 +1090,10 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	saveAccountCalled := 0
-	addrConverter := &mock.AddressConverterMock{}
-
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
 	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = generateRandomByteSlice(addrConverter.AddressLen())
+	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
 	tx.Value = big.NewInt(45)
 
 	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
@@ -1216,16 +1124,18 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 		return process.ErrNoVM
 	}
 
-	computeType, _ := coordinator.NewTxTypeHandler(
-		&mock.AddressConverterMock{},
-		shardCoordinator,
-		adb,
-	)
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		PubkeyConverter:  mock.NewPubkeyConverterMock(32),
+		ShardCoordinator: shardCoordinator,
+		BuiltInFuncNames: make(map[string]struct{}),
+		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+	}
+	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
 	execTx, _ := txproc.NewTxProcessor(
 		adb,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		shardCoordinator,
 		scProcessorMock,
@@ -1250,7 +1160,7 @@ func TestTxProcessor_ProcessTxFeeIntraShard(t *testing.T) {
 	execTx, _ := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(2),
 		&mock.SCProcessorMock{},
@@ -1290,7 +1200,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 	execTx, _ := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(2),
 		&mock.SCProcessorMock{},
@@ -1352,7 +1262,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
 	execTx, _ := txproc.NewTxProcessor(
 		&mock.AccountsStub{},
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(2),
 		&mock.SCProcessorMock{},
@@ -1409,7 +1319,7 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 	execTx, _ := txproc.NewTxProcessor(
 		adb,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.MarshalizerMock{},
 		shardC,
 		scProcessorMock,

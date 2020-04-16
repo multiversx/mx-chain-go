@@ -8,11 +8,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -213,16 +212,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 }
 
 func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error) {
-	resolver, err := tpn.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
-	if err != nil {
-		return nil, err
-	}
-
-	miniBlocksResolver, ok := resolver.(process.MiniBlocksResolver)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
 		PoolsHolder:         tpn.DataPool,
 		Store:               tpn.Storage,
@@ -241,7 +230,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		BootStorer:          tpn.BootstrapStorer,
 		StorageBootstrapper: tpn.StorageBootstrapper,
 		EpochHandler:        tpn.EpochStartTrigger,
-		MiniBlocksResolver:  miniBlocksResolver,
+		MiniblocksProvider:  tpn.MiniblocksProvider,
 		Uint64Converter:     TestUint64Converter,
 	}
 
@@ -260,16 +249,6 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 }
 
 func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, error) {
-	resolver, err := tpn.ResolverFinder.IntraShardResolver(factory.MiniBlocksTopic)
-	if err != nil {
-		return nil, err
-	}
-
-	miniBlocksResolver, ok := resolver.(process.MiniBlocksResolver)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
 		PoolsHolder:         tpn.DataPool,
 		Store:               tpn.Storage,
@@ -288,7 +267,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		BootStorer:          tpn.BootstrapStorer,
 		StorageBootstrapper: tpn.StorageBootstrapper,
 		EpochHandler:        tpn.EpochStartTrigger,
-		MiniBlocksResolver:  miniBlocksResolver,
+		MiniblocksProvider:  tpn.MiniblocksProvider,
 		Uint64Converter:     TestUint64Converter,
 	}
 
@@ -308,9 +287,24 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 }
 
 func (tpn *TestProcessorNode) initBootstrapper() {
+	tpn.createMiniblocksProvider()
+
 	if tpn.ShardCoordinator.SelfId() < tpn.ShardCoordinator.NumberOfShards() {
 		tpn.Bootstrapper, _ = tpn.createShardBootstrapper()
 	} else {
 		tpn.Bootstrapper, _ = tpn.createMetaChainBootstrapper()
 	}
+}
+
+func (tpn *TestProcessorNode) createMiniblocksProvider() {
+	arg := provider.ArgMiniBlockProvider{
+		MiniBlockPool:    tpn.DataPool.MiniBlocks(),
+		MiniBlockStorage: tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit),
+		Marshalizer:      TestMarshalizer,
+	}
+
+	miniblockGetter, err := provider.NewMiniBlockProvider(arg)
+	log.LogIfError(err)
+
+	tpn.MiniblocksProvider = miniblockGetter
 }

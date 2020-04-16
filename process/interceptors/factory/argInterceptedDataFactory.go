@@ -22,7 +22,7 @@ type ArgInterceptedDataFactory struct {
 	BlockKeyGen       crypto.KeyGenerator
 	Signer            crypto.SingleSigner
 	BlockSigner       crypto.SingleSigner
-	AddrConv          state.AddressConverter
+	AddressPubkeyConv state.PubkeyConverter
 	FeeHandler        process.FeeHandler
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
 	ChainID           []byte

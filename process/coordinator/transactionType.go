@@ -6,38 +6,48 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type txTypeHandler struct {
-	adrConv          state.AddressConverter
+	pubkeyConv       state.PubkeyConverter
 	shardCoordinator sharding.Coordinator
-	accounts         state.AccountsAdapter
+	builtInFuncNames map[string]struct{}
+	argumentParser   process.ArgumentsParser
+}
+
+// ArgNewTxTypeHandler defines the arguments needed to create a new tx type handler
+type ArgNewTxTypeHandler struct {
+	PubkeyConverter  state.PubkeyConverter
+	ShardCoordinator sharding.Coordinator
+	BuiltInFuncNames map[string]struct{}
+	ArgumentParser   process.ArgumentsParser
 }
 
 // NewTxTypeHandler creates a transaction type handler
 func NewTxTypeHandler(
-	adrConv state.AddressConverter,
-	shardCoordinator sharding.Coordinator,
-	accounts state.AccountsAdapter,
+	args ArgNewTxTypeHandler,
 ) (*txTypeHandler, error) {
-	if check.IfNil(adrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(args.PubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
 	}
-	if check.IfNil(shardCoordinator) {
+	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNil(accounts) {
-		return nil, process.ErrNilAccountsAdapter
+	if check.IfNil(args.ArgumentParser) {
+		return nil, process.ErrNilArgumentParser
+	}
+	if args.BuiltInFuncNames == nil {
+		return nil, process.ErrNilBuiltInFunction
 	}
 
 	tc := &txTypeHandler{
-		adrConv:          adrConv,
-		shardCoordinator: shardCoordinator,
-		accounts:         accounts,
+		pubkeyConv:       args.PubkeyConverter,
+		shardCoordinator: args.ShardCoordinator,
+		argumentParser:   args.ArgumentParser,
+		builtInFuncNames: args.BuiltInFuncNames,
 	}
 
 	return tc, nil
@@ -50,11 +60,6 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.InvalidTransaction, err
 	}
 
-	_, isRewardTx := tx.(*rewardTx.RewardTx)
-	if isRewardTx {
-		return process.RewardTx, nil
-	}
-
 	isEmptyAddress := tth.isDestAddressEmpty(tx)
 	if isEmptyAddress {
 		if len(tx.GetData()) > 0 {
@@ -63,45 +68,59 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.InvalidTransaction, process.ErrWrongTransaction
 	}
 
-	acntDst, err := tth.getAccountFromAddress(tx.GetRcvAddr())
+	isDestInSelfShard, err := tth.isDestAddressInSelfShard(tx.GetRcvAddr())
 	if err != nil {
 		return process.InvalidTransaction, err
 	}
 
-	if check.IfNil(acntDst) {
+	if !isDestInSelfShard || len(tx.GetData()) == 0 {
 		return process.MoveBalance, nil
 	}
 
-	if len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRcvAddr()) {
+	if core.IsSmartContractAddress(tx.GetRcvAddr()) || tth.isBuiltInFunctionCall(tx.GetData()) {
 		return process.SCInvoking, nil
 	}
 
 	return process.MoveBalance, nil
 }
 
+func (tth *txTypeHandler) isBuiltInFunctionCall(txData []byte) bool {
+	if len(tth.builtInFuncNames) == 0 {
+		return false
+	}
+
+	err := tth.argumentParser.ParseData(string(txData))
+	if err != nil {
+		return false
+	}
+
+	function, err := tth.argumentParser.GetFunction()
+	if err != nil {
+		return false
+	}
+
+	_, ok := tth.builtInFuncNames[function]
+	return ok
+}
+
 func (tth *txTypeHandler) isDestAddressEmpty(tx data.TransactionHandler) bool {
-	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, tth.adrConv.AddressLen()))
+	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, tth.pubkeyConv.Len()))
 	return isEmptyAddress
 }
 
-func (tth *txTypeHandler) getAccountFromAddress(address []byte) (state.AccountHandler, error) {
-	adrSrc, err := tth.adrConv.CreateAddressFromPublicKeyBytes(address)
+func (tth *txTypeHandler) isDestAddressInSelfShard(address []byte) (bool, error) {
+	adrSrc, err := tth.pubkeyConv.CreateAddressFromBytes(address)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
 	shardForCurrentNode := tth.shardCoordinator.SelfId()
 	shardForSrc := tth.shardCoordinator.ComputeId(adrSrc)
 	if shardForCurrentNode != shardForSrc {
-		return nil, nil
+		return false, nil
 	}
 
-	acnt, err := tth.accounts.LoadAccount(adrSrc)
-	if err != nil {
-		return nil, err
-	}
-
-	return acnt, nil
+	return true, nil
 }
 
 func (tth *txTypeHandler) checkTxValidity(tx data.TransactionHandler) error {
@@ -109,7 +128,7 @@ func (tth *txTypeHandler) checkTxValidity(tx data.TransactionHandler) error {
 		return process.ErrNilTransaction
 	}
 
-	recvAddressIsInvalid := tth.adrConv.AddressLen() != len(tx.GetRcvAddr())
+	recvAddressIsInvalid := tth.pubkeyConv.Len() != len(tx.GetRcvAddr())
 	if recvAddressIsInvalid {
 		return process.ErrWrongTransaction
 	}

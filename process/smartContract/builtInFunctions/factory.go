@@ -7,14 +7,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-// claimDeveloperRewardsFunctionName is a constant which defines the name for the claim developer rewards function
-const claimDeveloperRewardsFunctionName = "ClaimDeveloperRewards"
-
-// changeOwnerAddressFunctionName is a constant which defines the name for the change owner address function
-const changeOwnerAddressFunctionName = "ChangeOwnerAddress"
-
-const setUserName = "SetUserName"
-
 // ArgsCreateBuiltInFunctionContainer -
 type ArgsCreateBuiltInFunctionContainer struct {
 	GasMap               map[string]map[string]uint64
@@ -33,13 +25,13 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (pr
 
 	var newFunc process.BuiltinFunction
 	newFunc = NewClaimDeveloperRewardsFunc(gasConfig.BuiltInCost.ClaimDeveloperRewards)
-	err = container.Add(claimDeveloperRewardsFunctionName, newFunc)
+	err = container.Add(core.BuiltInFunctionClaimDeveloperRewards, newFunc)
 	if err != nil {
 		return nil, err
 	}
 
 	newFunc = NewChangeOwnerAddressFunc(gasConfig.BuiltInCost.ChangeOwnerAddress)
-	err = container.Add(changeOwnerAddressFunctionName, newFunc)
+	err = container.Add(core.BuiltInFunctionChangeOwnerAddress, newFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +40,13 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (pr
 	if err != nil {
 		return nil, err
 	}
-	err = container.Add(setUserName, newFunc)
+	err = container.Add(core.BuiltInFunctionSetUserName, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	newFunc = NewSaveKeyValueStorageFunc(gasConfig.BaseOperationCost, gasConfig.BuiltInCost.SaveKeyValue)
+	err = container.Add(core.BuiltInFunctionSaveKeyValue, newFunc)
 	if err != nil {
 		return nil, err
 	}

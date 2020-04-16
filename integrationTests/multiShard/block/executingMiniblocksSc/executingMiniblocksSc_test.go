@@ -414,7 +414,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 		_ = advertiser.Close()
 		for _, nodes := range nodesMap {
 			for _, n := range nodes {
-				_ = n.Node.Stop()
+				_ = n.Messenger.Close()
 			}
 		}
 	}()
@@ -442,7 +442,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	txNonce := uint64(0)
 	owner := senders[0][0]
 	ownerPk, _ := owner.GeneratePublic().ToByteArray()
-	ownerAddr, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(ownerPk)
+	ownerAddr, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(ownerPk)
 	integrationTests.ScCallTxWithParams(
 		nodeShard0,
 		owner,

@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/state/pubkeyConverter"
 	transaction2 "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
@@ -247,7 +248,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	store := integrationTests.CreateMemUnit()
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, hasher, config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, hasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
 
 	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher)
 
@@ -308,7 +309,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(mu, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(mu, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ = state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -1015,7 +1016,7 @@ func createAccounts(
 	evictionWaitListSize := uint(100)
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
@@ -1087,15 +1088,21 @@ func BenchmarkTxExecution(b *testing.B) {
 func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	t.Parallel()
 
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, generalCfg)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
-	address1, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000000")
-	address2, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000001")
-	address3, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000002")
+	hexPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
+	address1, _ := hexPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000000")
+	address2, _ := hexPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000001")
+	address3, _ := hexPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000002")
 
 	newDefaultAccount(adb, address1)
 	newDefaultAccount(adb, address2)
@@ -1124,14 +1131,20 @@ func newDefaultAccount(adb *state.AccountsDB, address state.AddressContainer) st
 func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	t.Parallel()
 
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
-	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl)
+	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, generalCfg)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
-	address1, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000000")
-	address2, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000001")
+	hexAddressPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
+	address1, _ := hexAddressPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000000")
+	address2, _ := hexAddressPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000001")
 
 	key1 := []byte("ABC")
 	key2 := []byte("ABD")
@@ -1257,6 +1270,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 
 	rootHash, _ := shardNode.AccntState.RootHash()
 	if !bytes.Equal(rootHash, rootHashOfRollbackedBlock) {
+		time.Sleep(time.Second)
 		err := shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
 		assert.True(t, errors.Is(err, trie.ErrHashNotFound))
 	}
@@ -1445,7 +1459,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 

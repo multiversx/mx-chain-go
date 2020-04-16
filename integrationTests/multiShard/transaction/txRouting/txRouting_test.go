@@ -3,7 +3,6 @@ package txRouting
 import (
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
@@ -43,7 +42,7 @@ func TestRoutingOfTransactionsInShards(t *testing.T) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -121,8 +120,8 @@ func checkTransactionsInPoolAreForTheNode(t *testing.T, n *integrationTests.Test
 		senderBuff := tx.SndAddr
 		recvBuff := tx.RcvAddr
 
-		sender, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(senderBuff)
-		recv, _ := integrationTests.TestAddressConverter.CreateAddressFromPublicKeyBytes(recvBuff)
+		sender, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(senderBuff)
+		recv, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(recvBuff)
 
 		senderShardId := n.ShardCoordinator.ComputeId(sender)
 		recvShardId := n.ShardCoordinator.ComputeId(recv)
@@ -154,7 +153,7 @@ func generateTx(sender crypto.PrivateKey, receiver crypto.PublicKey, nonce uint6
 		Data:      []byte(""),
 		Signature: nil,
 	}
-	marshalizedTxBeforeSigning, _ := json.Marshal(tx)
+	marshalizedTxBeforeSigning, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
 	signer := ed25519SingleSig.Ed25519Signer{}
 
 	signature, _ := signer.Sign(sender, marshalizedTxBeforeSigning)
