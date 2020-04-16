@@ -305,36 +305,12 @@ func (scr *smartContractResults) RequestBlockTransactions(body *block.Body) int 
 		return 0
 	}
 
-	requestedSCResults := 0
-	missingSCResultsForShards := scr.computeMissingAndExistingSCResultsForShards(body)
-
-	scr.scrForBlock.mutTxsForBlock.Lock()
-	for senderShardID, mbsTxHashes := range missingSCResultsForShards {
-		for _, mbTxHashes := range mbsTxHashes {
-			scr.setMissingSCResultsForShard(senderShardID, mbTxHashes)
-		}
-	}
-	scr.scrForBlock.mutTxsForBlock.Unlock()
-
-	for senderShardID, mbsTxHashes := range missingSCResultsForShards {
-		for _, mbTxHashes := range mbsTxHashes {
-			requestedSCResults += len(mbTxHashes.txHashes)
-			scr.onRequestSmartContractResult(senderShardID, mbTxHashes.txHashes)
-		}
-	}
-
-	return requestedSCResults
+	return scr.computeExistingAndRequestMissingSCResultsForShards(body)
 }
 
-func (scr *smartContractResults) setMissingSCResultsForShard(senderShardID uint32, mbTxHashes *txsHashesInfo) {
-	txShardInfoToSet := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbTxHashes.receiverShardID}
-	for _, txHash := range mbTxHashes.txHashes {
-		scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfoToSet}
-	}
-}
-
-// computeMissingAndExistingSCResultsForShards calculates what smartContractResults are available and what are missing from block.Body
-func (scr *smartContractResults) computeMissingAndExistingSCResultsForShards(body *block.Body) map[uint32][]*txsHashesInfo {
+// computeExistingAndRequestMissingSCResultsForShards calculates what smartContractResults are available and requests
+// what are missing from block.Body
+func (scr *smartContractResults) computeExistingAndRequestMissingSCResultsForShards(body *block.Body) int {
 	scrTxs := block.Body{}
 	for _, mb := range body.MiniBlocks {
 		if mb.Type != block.SmartContractResultBlock {
@@ -347,14 +323,16 @@ func (scr *smartContractResults) computeMissingAndExistingSCResultsForShards(bod
 		scrTxs.MiniBlocks = append(scrTxs.MiniBlocks, mb)
 	}
 
-	missingTxsForShard := scr.computeExistingAndMissing(
+	numMissingTxsForShard := scr.computeExistingAndRequestMissing(
 		&scrTxs,
 		&scr.scrForBlock,
 		scr.chRcvAllScrs,
 		scr.isMiniBlockCorrect,
-		scr.scrPool)
+		scr.scrPool,
+		scr.onRequestSmartContractResult,
+	)
 
-	return missingTxsForShard
+	return numMissingTxsForShard
 }
 
 // RequestTransactionsForMiniBlock requests missing smartContractResults for a certain miniblock

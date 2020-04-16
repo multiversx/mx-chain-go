@@ -551,44 +551,22 @@ func (txs *transactions) RequestBlockTransactions(body *block.Body) int {
 		return 0
 	}
 
-	requestedTxs := 0
-	missingTxsForShards := txs.computeMissingAndExistingTxsForShards(body)
-
-	txs.txsForCurrBlock.mutTxsForBlock.Lock()
-	for senderShardID, mbsTxHashes := range missingTxsForShards {
-		for _, mbTxHashes := range mbsTxHashes {
-			txs.setMissingTxsForShard(senderShardID, mbTxHashes)
-		}
-	}
-	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
-
-	for senderShardID, mbsTxHashes := range missingTxsForShards {
-		for _, mbTxHashes := range mbsTxHashes {
-			requestedTxs += len(mbTxHashes.txHashes)
-			txs.onRequestTransaction(senderShardID, mbTxHashes.txHashes)
-		}
-	}
-
-	return requestedTxs
+	return txs.computeExistingAndRequestMissingTxsForShards(body)
 }
 
-func (txs *transactions) setMissingTxsForShard(senderShardID uint32, mbTxHashes *txsHashesInfo) {
-	txShardInfoToSet := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbTxHashes.receiverShardID}
-	for _, txHash := range mbTxHashes.txHashes {
-		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfoToSet}
-	}
-}
-
-// computeMissingAndExistingTxsForShards calculates what transactions are available and what are missing from block.Body
-func (txs *transactions) computeMissingAndExistingTxsForShards(body *block.Body) map[uint32][]*txsHashesInfo {
-	missingTxsForShard := txs.computeExistingAndMissing(
+// computeExistingAndRequestMissingTxsForShards calculates what transactions are available and requests
+// what are missing from block.Body
+func (txs *transactions) computeExistingAndRequestMissingTxsForShards(body *block.Body) int {
+	numMissingTxsForShard := txs.computeExistingAndRequestMissing(
 		body,
 		&txs.txsForCurrBlock,
 		txs.chRcvAllTxs,
 		txs.isMiniBlockCorrect,
-		txs.txPool)
+		txs.txPool,
+		txs.onRequestTransaction,
+	)
 
-	return missingTxsForShard
+	return numMissingTxsForShard
 }
 
 // processAndRemoveBadTransactions processed transactions, if txs are with error it removes them from pool
