@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -376,9 +375,9 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 		return
 	}
 
-	isHeaderOnTopOfFinalityAttestingRound := metaHdr.Nonce == epochStartMetaHdr.Nonce+2
+	isHeaderOnTopOfFinalityAttestingRound := metaHdr.Nonce == epochStartMetaHdr.Nonce+t.finality+1
 	if isHeaderOnTopOfFinalityAttestingRound {
-		metaHdrWithFinalityAttestingRound, err := t.getHeaderWithNonceAndHash(epochStartMetaHdr.Nonce+1, metaHdr.PrevHash)
+		metaHdrWithFinalityAttestingRound, err := t.getHeaderWithNonceAndHash(epochStartMetaHdr.Nonce+t.finality, metaHdr.PrevHash)
 		if err != nil {
 			log.Debug("searched metaHeader was not found")
 			return
@@ -545,28 +544,12 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr *block.MetaBlock) (bool, ui
 			continue
 		}
 
-		neededHdrs, err := t.getHeaderWithNonceAndPrevHash(nonce, currHash)
+		neededHdr, err := t.getHeaderWithNonceAndPrevHash(nonce, currHash)
 		if err != nil {
 			continue
 		}
 
-		lowestRound := uint64(math.MaxUint64)
-		var lowestHdr *block.MetaBlock
-		for _, neededHdr := range neededHdrs {
-			err = t.headerValidator.IsHeaderConstructionValid(neededHdr, currHdr)
-			if err != nil {
-				continue
-			}
-			if lowestRound > neededHdr.Round {
-				lowestRound = neededHdr.Round
-				lowestHdr = neededHdr
-			}
-		}
-		if check.IfNil(lowestHdr) {
-			continue
-		}
-
-		currHdr = lowestHdr
+		currHdr = neededHdr
 
 		finalityAttestingRound = currHdr.GetRound()
 		nextBlocksVerified += 1
@@ -745,48 +728,18 @@ func (t *trigger) getHeaderWithNonceAndPrevHashFromCache(nonce uint64, prevHash 
 }
 
 // call only if mutex is locked before
-func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) ([]*block.MetaBlock, error) {
+func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (*block.MetaBlock, error) {
 	metaHdr := t.getHeaderWithNonceAndPrevHashFromMaps(nonce, prevHash)
 	if metaHdr != nil {
-		return []*block.MetaBlock{metaHdr}, nil
+		return metaHdr, nil
 	}
 
 	metaHdr = t.getHeaderWithNonceAndPrevHashFromCache(nonce, prevHash)
 	if metaHdr != nil {
-		return []*block.MetaBlock{metaHdr}, nil
+		return metaHdr, nil
 	}
 
-	nonceToByteSlice := t.uint64Converter.ToByteSlice(nonce)
-	dataHdr, err := t.metaNonceHdrStorage.Get(nonceToByteSlice)
-	if err != nil || len(dataHdr) == 0 {
-		go t.requestHandler.RequestMetaHeaderByNonce(nonce)
-		return nil, err
-	}
-
-	b := batch.Batch{}
-	err = t.marshalizer.Unmarshal(&b, dataHdr)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(b.Data) != 1 {
-		return nil, marshal.ErrUnmarshallingBadSize
-	}
-
-	metaHdrs := make([]*block.MetaBlock, 0)
-	for _, hash := range b.Data {
-		metaHdr, err = t.getHeaderWithNonceAndHash(nonce, hash)
-		if err != nil {
-			continue
-		}
-		metaHdrs = append(metaHdrs, metaHdr)
-	}
-
-	if len(metaHdrs) == 0 {
-		return nil, epochStart.ErrMetaHdrNotFound
-	}
-
-	return metaHdrs, nil
+	return nil, epochStart.ErrMetaHdrNotFound
 }
 
 func (t *trigger) getAllFinishedStartOfEpochMetaHdrs() []*block.MetaBlock {
