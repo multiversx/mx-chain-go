@@ -172,7 +172,10 @@ func TestGetShardFromAddress(t *testing.T) {
 	}
 	expectedShard := uint32(2)
 	crossTxCleaner, _ := NewCrossTxsPoolsCleaner(
-		addrConverter, &mock.PoolsHolderStub{}, &mock.RounderMock{}, &mock.CoordinatorStub{
+		addrConverter,
+		&mock.PoolsHolderStub{},
+		&mock.RounderMock{},
+		&mock.CoordinatorStub{
 			ComputeIdCalled: func(address state.AddressContainer) uint32 {
 				return expectedShard
 			},
@@ -196,7 +199,8 @@ func TestReceivedBlockTx_ShouldBeAddedInMapCrossTxsRounds(t *testing.T) {
 	t.Parallel()
 
 	crossTxCleaner, _ := NewCrossTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{}, &mock.PoolsHolderStub{
+		&mock.PubkeyConverterStub{},
+		&mock.PoolsHolderStub{
 			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -204,7 +208,9 @@ func TestReceivedBlockTx_ShouldBeAddedInMapCrossTxsRounds(t *testing.T) {
 					},
 				}
 			},
-		}, &mock.RounderMock{}, &mock.CoordinatorStub{},
+		},
+		&mock.RounderMock{},
+		&mock.CoordinatorStub{},
 	)
 
 	txWrap := &txcache.WrappedTransaction{
@@ -220,7 +226,8 @@ func TestReceivedRewardTx_ShouldBeAddedInMapCrossTxsRounds(t *testing.T) {
 	t.Parallel()
 
 	crossTxCleaner, _ := NewCrossTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{}, &mock.PoolsHolderStub{
+		&mock.PubkeyConverterStub{},
+		&mock.PoolsHolderStub{
 			RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -228,7 +235,9 @@ func TestReceivedRewardTx_ShouldBeAddedInMapCrossTxsRounds(t *testing.T) {
 					},
 				}
 			},
-		}, &mock.RounderMock{}, &mock.CoordinatorStub{},
+		},
+		&mock.RounderMock{},
+		&mock.CoordinatorStub{},
 	)
 
 	txKey := []byte("key")
@@ -245,7 +254,8 @@ func TestReceivedUnsignedTx_ShouldBeAddedInMapCrossTxsRounds(t *testing.T) {
 			CreateAddressFromBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
 				return nil, nil
 			},
-		}, &mock.PoolsHolderStub{
+		},
+		&mock.PoolsHolderStub{
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -253,7 +263,9 @@ func TestReceivedUnsignedTx_ShouldBeAddedInMapCrossTxsRounds(t *testing.T) {
 					},
 				}
 			},
-		}, &mock.RounderMock{}, &mock.CoordinatorStub{
+		},
+		&mock.RounderMock{},
+		&mock.CoordinatorStub{
 			ComputeIdCalled: func(address state.AddressContainer) uint32 {
 				return 2
 			},
@@ -277,7 +289,8 @@ func TestCleanCrossTxsPoolsIfNeeded_CannotFindTxInPoolShouldBeRemovedFromMap(t *
 			CreateAddressFromBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
 				return nil, nil
 			},
-		}, &mock.PoolsHolderStub{
+		},
+		&mock.PoolsHolderStub{
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -285,7 +298,9 @@ func TestCleanCrossTxsPoolsIfNeeded_CannotFindTxInPoolShouldBeRemovedFromMap(t *
 					},
 				}
 			},
-		}, &mock.RounderMock{}, &mock.CoordinatorStub{
+		},
+		&mock.RounderMock{},
+		&mock.CoordinatorStub{
 			ComputeIdCalled: func(address state.AddressContainer) uint32 {
 				return 2
 			},
@@ -311,7 +326,8 @@ func TestCleanCrossTxsPoolsIfNeeded_RoundDiffTooSmallShouldNotBeRemoved(t *testi
 			CreateAddressFromBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
 				return nil, nil
 			},
-		}, &mock.PoolsHolderStub{
+		},
+		&mock.PoolsHolderStub{
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -323,7 +339,9 @@ func TestCleanCrossTxsPoolsIfNeeded_RoundDiffTooSmallShouldNotBeRemoved(t *testi
 					},
 				}
 			},
-		}, &mock.RounderMock{}, &mock.CoordinatorStub{
+		},
+		&mock.RounderMock{},
+		&mock.CoordinatorStub{
 			ComputeIdCalled: func(address state.AddressContainer) uint32 {
 				return 2
 			},
@@ -353,7 +371,8 @@ func TestCleanCrossTxsPoolsIfNeeded_RoundDiffTooBigShouldBeRemoved(t *testing.T)
 			CreateAddressFromBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
 				return nil, nil
 			},
-		}, &mock.PoolsHolderStub{
+		},
+		&mock.PoolsHolderStub{
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
@@ -368,7 +387,9 @@ func TestCleanCrossTxsPoolsIfNeeded_RoundDiffTooBigShouldBeRemoved(t *testing.T)
 					},
 				}
 			},
-		}, rounder, &mock.CoordinatorStub{
+		},
+		rounder,
+		&mock.CoordinatorStub{
 			ComputeIdCalled: func(address state.AddressContainer) uint32 {
 				return 2
 			},

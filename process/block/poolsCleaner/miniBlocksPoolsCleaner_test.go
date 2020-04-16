@@ -70,11 +70,15 @@ func TestReceivedMiniBlock_ShouldBeAddedInMap(t *testing.T) {
 func TestCleanMiniblocksPoolsIfNeeded_MiniblockNotInPoolShouldBeRemovedFromMap(t *testing.T) {
 	t.Parallel()
 
-	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(&mock.CacherStub{
-		GetCalled: func(key []byte) (value interface{}, ok bool) {
-			return nil, false
+	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(
+		&mock.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				return nil, false
+			},
 		},
-	}, &mock.RounderMock{}, &mock.CoordinatorStub{})
+		&mock.RounderMock{},
+		&mock.CoordinatorStub{},
+	)
 
 	key := []byte("mbKey")
 	miniblock := &block.MiniBlock{}
@@ -87,11 +91,15 @@ func TestCleanMiniblocksPoolsIfNeeded_MiniblockNotInPoolShouldBeRemovedFromMap(t
 func TestCleanMiniblocksPoolsIfNeeded_RoundDiffTooSmallMiniblockShouldRemainInMap(t *testing.T) {
 	t.Parallel()
 
-	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(&mock.CacherStub{
-		GetCalled: func(key []byte) (value interface{}, ok bool) {
-			return nil, true
+	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(
+		&mock.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				return nil, true
+			},
 		},
-	}, &mock.RounderMock{}, &mock.CoordinatorStub{})
+		&mock.RounderMock{},
+		&mock.CoordinatorStub{},
+	)
 
 	key := []byte("mbKey")
 	miniblock := &block.MiniBlock{}
@@ -110,14 +118,18 @@ func TestCleanMiniblocksPoolsIfNeeded_MbShouldBeRemovedFromPoolAndMap(t *testing
 			return 0
 		},
 	}
-	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(&mock.CacherStub{
-		GetCalled: func(key []byte) (value interface{}, ok bool) {
-			return nil, true
+	miniblockCleaner, _ := NewMiniBlocksPoolsCleaner(
+		&mock.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				return nil, true
+			},
+			RemoveCalled: func(key []byte) {
+				called = true
+			},
 		},
-		RemoveCalled: func(key []byte) {
-			called = true
-		},
-	}, rounder, &mock.CoordinatorStub{})
+		rounder,
+		&mock.CoordinatorStub{},
+	)
 
 	key := []byte("mbKey")
 	miniblock := &block.MiniBlock{}
