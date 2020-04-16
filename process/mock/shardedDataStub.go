@@ -22,7 +22,9 @@ type ShardedDataStub struct {
 
 // RegisterHandler -
 func (sd *ShardedDataStub) RegisterHandler(handler func(key []byte, value interface{})) {
-	sd.RegisterHandlerCalled(handler)
+	if sd.RegisterHandlerCalled != nil {
+		sd.RegisterHandlerCalled(handler)
+	}
 }
 
 // ShardDataStore -
