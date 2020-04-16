@@ -45,7 +45,7 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		OpenFilesCacheCapacity: maxOpenFiles,
 	}
 
-	db, err := leveldb.OpenFile(path, options)
+	db, err := openLevelDB(path, options)
 	if err != nil {
 		return nil, err
 	}
