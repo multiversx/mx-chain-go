@@ -456,6 +456,10 @@ func (txs *transactions) processTxsFromMe(
 		return err
 	}
 
+	if !haveTime() {
+		return process.ErrTimeIsOut
+	}
+
 	receivedMiniBlocks := make(block.MiniBlockSlice, 0)
 	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type == block.InvalidBlock {
