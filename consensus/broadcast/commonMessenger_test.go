@@ -15,7 +15,7 @@ import (
 func newTestBlockBody() *block.Body {
 	return &block.Body{
 		MiniBlocks: []*block.MiniBlock{
-			&block.MiniBlock{
+			{
 				TxHashes:        [][]byte{[]byte("txh1"), []byte("txh2")},
 				ReceiverShardID: 0,
 				SenderShardID:   0,

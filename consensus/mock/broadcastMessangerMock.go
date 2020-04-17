@@ -9,6 +9,7 @@ import (
 type BroadcastMessengerMock struct {
 	BroadcastBlockCalled            func(data.BodyHandler, data.HeaderHandler) error
 	BroadcastHeaderCalled           func(data.HeaderHandler) error
+	SetDataForDelayBroadcastCalled  func([]byte, map[uint32][]byte, map[string][][]byte) error
 	BroadcastMiniBlocksCalled       func(map[uint32][]byte) error
 	BroadcastTransactionsCalled     func(map[string][][]byte) error
 	BroadcastConsensusMessageCalled func(*consensus.Message) error
@@ -28,6 +29,24 @@ func (bmm *BroadcastMessengerMock) BroadcastMiniBlocks(miniBlocks map[uint32][]b
 		return bmm.BroadcastMiniBlocksCalled(miniBlocks)
 	}
 	return nil
+}
+
+// SetDataForDelayBroadcast -
+func (bmm *BroadcastMessengerMock) SetDataForDelayBroadcast(
+	headerHash []byte,
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+) error {
+	if bmm.SetDataForDelayBroadcastCalled != nil {
+		return bmm.SetDataForDelayBroadcastCalled(headerHash, miniBlocks, transactions)
+	}
+
+	err := bmm.BroadcastMiniBlocks(miniBlocks)
+	if err != nil {
+		return err
+	}
+
+	return bmm.BroadcastTransactions(transactions)
 }
 
 // BroadcastTransactions -
