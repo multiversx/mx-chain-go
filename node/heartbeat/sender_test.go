@@ -3,6 +3,7 @@ package heartbeat_test
 import (
 	"bytes"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -125,6 +126,17 @@ func TestNewSender_NilHardforkTriggerShouldErr(t *testing.T) {
 
 	assert.Nil(t, sender)
 	assert.Equal(t, heartbeat.ErrNilHardforkTrigger, err)
+}
+
+func TestNewSender_PropertyTooLongShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatSender()
+	arg.VersionNumber = strings.Repeat("a", heartbeat.MaxSizeInBytes+1)
+	sender, err := heartbeat.NewSender(arg)
+
+	assert.Nil(t, sender)
+	assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
 }
 
 func TestNewSender_ShouldWork(t *testing.T) {

@@ -94,6 +94,23 @@ func TestBech32PubkeyConverter_EncodeDecodeShouldWork(t *testing.T) {
 	assert.Equal(t, buff, recoveredBuff)
 }
 
+func TestBech32PubkeyConverter_EncodeWrongLengthShouldReturnEmpty(t *testing.T) {
+	addressLen := 32
+	bpc, _ := pubkeyConverter.NewBech32PubkeyConverter(addressLen)
+
+	buff := []byte("12345678901234567890")
+	str := bpc.Encode(buff)
+	assert.Equal(t, "", str)
+
+	buff = []byte{}
+	str = bpc.Encode(buff)
+	assert.Equal(t, "", str)
+
+	buff = []byte("1234567890123456789012345678901234567890")
+	str = bpc.Encode(buff)
+	assert.Equal(t, "", str)
+}
+
 func TestBech32PubkeyConverter_CreateAddressFromBytesInvalidSizeShouldErr(t *testing.T) {
 	t.Parallel()
 
