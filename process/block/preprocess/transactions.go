@@ -167,6 +167,14 @@ func (txs *transactions) IsDataPrepared(requestedTxs int, haveTime func() time.D
 		txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 		log.Debug("received missing txs",
 			"num txs", requestedTxs-missingTxs)
+
+		if missingTxs > 0 {
+			numTxsFoundInPool := txs.computeMissedTxsFoundInPool(&txs.txsForCurrBlock, txs.txPool)
+			if numTxsFoundInPool > 0 {
+				log.Warn("computeMissedTxsFoundInPool", "num txs", numTxsFoundInPool)
+			}
+		}
+
 		if err != nil {
 			return err
 		}

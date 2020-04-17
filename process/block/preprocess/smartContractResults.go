@@ -134,6 +134,14 @@ func (scr *smartContractResults) IsDataPrepared(requestedScrs int, haveTime func
 		scr.scrForBlock.mutTxsForBlock.Unlock()
 		log.Debug("received missing scrs",
 			"num scrs", requestedScrs-missingScrs)
+
+		if missingScrs > 0 {
+			numTxsFoundInPool := scr.computeMissedTxsFoundInPool(&scr.scrForBlock, scr.scrPool)
+			if numTxsFoundInPool > 0 {
+				log.Warn("computeMissedTxsFoundInPool", "num scr txs", numTxsFoundInPool)
+			}
+		}
+
 		if err != nil {
 			return err
 		}

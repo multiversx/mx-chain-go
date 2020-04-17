@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -25,11 +26,6 @@ type txShardInfo struct {
 type txInfo struct {
 	tx data.TransactionHandler
 	*txShardInfo
-}
-
-type txsHashesInfo struct {
-	txHashes        [][]byte
-	receiverShardID uint32
 }
 
 type txsForBlock struct {
@@ -187,6 +183,9 @@ func (bpp *basePreProcess) computeExistingAndRequestMissing(
 	forBlock.mutTxsForBlock.Lock()
 	defer forBlock.mutTxsForBlock.Unlock()
 
+	var tx data.TransactionHandler
+	var err error
+
 	missingTxsForShard := make(map[uint32][][]byte, bpp.shardCoordinator.NumberOfShards())
 	txHashes := make([][]byte, 0)
 	for i := 0; i < len(body.MiniBlocks); i++ {
@@ -199,12 +198,34 @@ func (bpp *basePreProcess) computeExistingAndRequestMissing(
 		searchFirst := miniBlock.Type == block.InvalidBlock
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
 			txHash := miniBlock.TxHashes[j]
-			tx, err := process.GetTransactionHandlerFromPool(
+			tx, err = process.GetTransactionHandlerFromPool(
 				miniBlock.SenderShardID,
 				miniBlock.ReceiverShardID,
 				txHash,
 				txPool,
 				searchFirst)
+
+			if err != nil && !searchFirst {
+				tx, err = process.GetTransactionHandlerFromPool(
+					miniBlock.SenderShardID,
+					miniBlock.ReceiverShardID,
+					txHash,
+					txPool,
+					!searchFirst)
+
+				if err == nil {
+					log.Warn("tx found only with SearchFirstData",
+						"hash", txHash,
+						"type", miniBlock.Type,
+						"sender shard", miniBlock.SenderShardID,
+						"receiver shard", miniBlock.ReceiverShardID,
+						"nonce", tx.GetNonce(),
+						"sender address", logger.DisplayByteSlice(tx.GetSndAddr()),
+						"receiver address", logger.DisplayByteSlice(tx.GetRcvAddr()),
+						"value", tx.GetValue(),
+					)
+				}
+			}
 
 			if err != nil {
 				txHashes = append(txHashes, txHash)
@@ -250,6 +271,39 @@ func (bpp *basePreProcess) setMissingTxsForShard(
 			txShardInfo: txShardInfoToSet,
 		}
 	}
+}
+
+func (bpp *basePreProcess) computeMissedTxsFoundInPool(
+	forBlock *txsForBlock,
+	txPool dataRetriever.ShardedDataCacherNotifier,
+) int {
+	numTxsFoundInPool := 0
+	for txHash, txInfo := range forBlock.txHashAndInfo {
+		if txInfo.tx == nil {
+			tx, _ := process.GetTransactionHandlerFromPool(
+				txInfo.senderShardID,
+				txInfo.receiverShardID,
+				[]byte(txHash),
+				txPool,
+				true)
+
+			if !check.IfNil(tx) {
+				log.Trace("missed tx found in pool",
+					"hash", txHash,
+					"sender shard", txInfo.senderShardID,
+					"receiver shard", txInfo.receiverShardID,
+					"nonce", tx.GetNonce(),
+					"sender address", logger.DisplayByteSlice(tx.GetSndAddr()),
+					"receiver address", logger.DisplayByteSlice(tx.GetRcvAddr()),
+					"value", tx.GetValue(),
+				)
+
+				numTxsFoundInPool++
+			}
+		}
+	}
+
+	return numTxsFoundInPool
 }
 
 // this method should be called only under the mutex protection: forBlock.mutTxsForBlock

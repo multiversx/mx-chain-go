@@ -129,6 +129,14 @@ func (rtp *rewardTxPreprocessor) IsDataPrepared(requestedRewardTxs int, haveTime
 		rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
 		log.Debug("received reward txs",
 			"num reward txs", requestedRewardTxs-missingRewardTxs)
+
+		if missingRewardTxs > 0 {
+			numTxsFoundInPool := rtp.computeMissedTxsFoundInPool(&rtp.rewardTxsForBlock, rtp.rewardTxPool)
+			if numTxsFoundInPool > 0 {
+				log.Warn("computeMissedTxsFoundInPool", "num reward txs", numTxsFoundInPool)
+			}
+		}
+
 		if err != nil {
 			return err
 		}

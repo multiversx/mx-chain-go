@@ -258,8 +258,8 @@
     Type = "LRU"
 
 [Antiflood]
-    Enabled = true
-    NumConcurrentResolverJobs = 50
+    Enabled = false
+    NumConcurrentResolverJobs = 10000
     [Antiflood.NetworkMaxInput]
         MessagesPerSecond = 400
         TotalSizePerSecond = 4194304
