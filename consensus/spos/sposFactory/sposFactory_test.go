@@ -3,12 +3,11 @@ package sposFactory_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-
-	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,7 +24,7 @@ func TestGetConsensusCoreFactory_InvalidTypeShouldErr(t *testing.T) {
 func TestGetConsensusCoreFactory_BlsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	csf, err := sposFactory.GetConsensusCoreFactory(factory.BlsConsensusType)
+	csf, err := sposFactory.GetConsensusCoreFactory(consensus.BlsConsensusType)
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(csf))
@@ -35,7 +34,7 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 	t.Parallel()
 
 	worker := &mock.SposWorkerMock{}
-	consensusType := factory.BlsConsensusType
+	consensusType := consensus.BlsConsensusType
 	statusHandler := &mock.AppStatusHandlerMock{}
 	chainID := []byte("chain-id")
 	indexer := &mock.IndexerMock{}
@@ -58,7 +57,7 @@ func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 
 	consensusCore := mock.InitConsensusCore()
 	worker := &mock.SposWorkerMock{}
-	consensusType := factory.BlsConsensusType
+	consensusType := consensus.BlsConsensusType
 	chainID := []byte("chain-id")
 	indexer := &mock.IndexerMock{}
 	sf, err := sposFactory.GetSubroundsFactory(
@@ -80,7 +79,7 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 
 	consensusCore := mock.InitConsensusCore()
 	worker := &mock.SposWorkerMock{}
-	consensusType := factory.BlsConsensusType
+	consensusType := consensus.BlsConsensusType
 	statusHandler := &mock.AppStatusHandlerMock{}
 	chainID := []byte("chain-id")
 	indexer := &mock.IndexerMock{}

@@ -2,19 +2,19 @@ package mock
 
 // FloodPreventerStub -
 type FloodPreventerStub struct {
-	AccumulateGlobalCalled func(identifier string, size uint64) bool
-	AccumulateCalled       func(identifier string, size uint64) bool
-	ResetCalled            func()
+	IncreaseLoadGlobalCalled func(identifier string, size uint64) error
+	IncreaseLoadCalled       func(identifier string, size uint64) error
+	ResetCalled              func()
 }
 
-// AccumulateGlobal -
-func (fps *FloodPreventerStub) AccumulateGlobal(identifier string, size uint64) bool {
-	return fps.AccumulateGlobalCalled(identifier, size)
+// IncreaseLoadGlobal -
+func (fps *FloodPreventerStub) IncreaseLoadGlobal(identifier string, size uint64) error {
+	return fps.IncreaseLoadGlobalCalled(identifier, size)
 }
 
-// Accumulate -
-func (fps *FloodPreventerStub) Accumulate(identifier string, size uint64) bool {
-	return fps.AccumulateCalled(identifier, size)
+// IncreaseLoad -
+func (fps *FloodPreventerStub) IncreaseLoad(identifier string, size uint64) error {
+	return fps.IncreaseLoadCalled(identifier, size)
 }
 
 // Reset -

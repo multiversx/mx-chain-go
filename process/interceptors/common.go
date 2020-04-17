@@ -25,7 +25,7 @@ func preProcessMesage(
 	if err != nil {
 		return err
 	}
-	err = antifloodHandler.CanProcessMessageOnTopic(fromConnectedPeer, topic)
+	err = antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, topic, 1)
 	if err != nil {
 		return err
 	}
