@@ -73,7 +73,7 @@ func TestNewIntermediateResultsProcessor_NilShardCoordinator(t *testing.T) {
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
-func TestNewIntermediateResultsProcessor_NilAddressConverter(t *testing.T) {
+func TestNewIntermediateResultsProcessor_NilPubkeyConverter(t *testing.T) {
 	t.Parallel()
 
 	irp, err := NewIntermediateResultsProcessor(

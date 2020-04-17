@@ -67,7 +67,6 @@ func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPools() {
 		time.Sleep(sleepTime)
 		numMiniblocksInMap := mbpc.cleanMiniblocksPoolsIfNeeded()
 		log.Debug("miniBlocksPoolsCleaner.cleanMiniblocksPools", "num miniblocks in map", numMiniblocksInMap)
-
 	}
 }
 

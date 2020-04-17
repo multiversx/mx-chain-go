@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
 	"github.com/stretchr/testify/assert"
@@ -75,20 +76,21 @@ func TestP2PAntiflood_CanNotIncrementFromConnectedPeerShouldError(t *testing.T) 
 		DataField: []byte("data"),
 		FromField: messageOriginator,
 	}
-	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{
-		AccumulateGlobalCalled: func(identifier string, size uint64) bool {
-			if identifier != fromConnectedPeer.Pretty() {
-				assert.Fail(t, "should have been the connected peer")
-			}
+	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.FloodPreventerStub{
+			IncreaseLoadGlobalCalled: func(identifier string, size uint64) error {
+				if identifier != fromConnectedPeer.Pretty() {
+					assert.Fail(t, "should have been the connected peer")
+				}
 
-			return false
+				return process.ErrSystemBusy
+			},
 		},
-	},
 		&mock.TopicAntiFloodStub{},
 	)
 
 	err := afm.CanProcessMessage(message, fromConnectedPeer)
-	assert.True(t, errors.Is(err, p2p.ErrSystemBusy))
+	assert.True(t, errors.Is(err, process.ErrSystemBusy))
 }
 
 func TestP2PAntiflood_CanNotIncrementMessageOriginatorShouldError(t *testing.T) {
@@ -102,18 +104,26 @@ func TestP2PAntiflood_CanNotIncrementMessageOriginatorShouldError(t *testing.T) 
 		PeerField: p2p.PeerID(messageOriginator),
 	}
 	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{
-		AccumulateGlobalCalled: func(identifier string, size uint64) bool {
-			return identifier == fromConnectedPeer.Pretty()
+		IncreaseLoadGlobalCalled: func(identifier string, size uint64) error {
+			if identifier != fromConnectedPeer.Pretty() {
+				return process.ErrSystemBusy
+			}
+
+			return nil
 		},
-		AccumulateCalled: func(identifier string, size uint64) bool {
-			return identifier != message.PeerField.Pretty()
+		IncreaseLoadCalled: func(identifier string, size uint64) error {
+			if identifier == message.PeerField.Pretty() {
+				return process.ErrSystemBusy
+			}
+
+			return nil
 		},
 	},
 		&mock.TopicAntiFloodStub{},
 	)
 
 	err := afm.CanProcessMessage(message, fromConnectedPeer)
-	assert.True(t, errors.Is(err, p2p.ErrSystemBusy))
+	assert.True(t, errors.Is(err, process.ErrSystemBusy))
 }
 
 func TestP2PAntiflood_ShouldWork(t *testing.T) {
@@ -126,16 +136,66 @@ func TestP2PAntiflood_ShouldWork(t *testing.T) {
 		PeerField: p2p.PeerID(messageOriginator),
 	}
 	afm, _ := antiflood.NewP2PAntiflood(&mock.FloodPreventerStub{
-		AccumulateGlobalCalled: func(identifier string, size uint64) bool {
-			return true
+		IncreaseLoadGlobalCalled: func(identifier string, size uint64) error {
+			return nil
 		},
-		AccumulateCalled: func(identifier string, size uint64) bool {
-			return true
+		IncreaseLoadCalled: func(identifier string, size uint64) error {
+			return nil
 		},
 	},
 		&mock.TopicAntiFloodStub{},
 	)
 
 	err := afm.CanProcessMessage(message, fromConnectedPeer)
+	assert.Nil(t, err)
+}
+
+//------- CanProcessMessagesOnTopic
+
+func TestP2pAntiflood_CanProcessMessagesOnTopicCanNotAccumulateShouldError(t *testing.T) {
+	t.Parallel()
+
+	numMessagesCall := uint32(78)
+	topicCall := "topic"
+	identifierCall := p2p.PeerID("id")
+	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.FloodPreventerStub{},
+		&mock.TopicAntiFloodStub{
+			IncreaseLoadCalled: func(identifier string, topic string, numMessages uint32) error {
+				if identifier == identifierCall.Pretty() && topic == topicCall && numMessages == numMessagesCall {
+					return process.ErrSystemBusy
+				}
+
+				return nil
+			},
+		},
+	)
+
+	err := afm.CanProcessMessagesOnTopic(identifierCall, topicCall, numMessagesCall)
+
+	assert.True(t, errors.Is(err, process.ErrSystemBusy))
+}
+
+func TestP2pAntiflood_CanProcessMessagesOnTopicCanAccumulateShouldWork(t *testing.T) {
+	t.Parallel()
+
+	numMessagesCall := uint32(78)
+	topicCall := "topic"
+	identifierCall := p2p.PeerID("id")
+	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.FloodPreventerStub{},
+		&mock.TopicAntiFloodStub{
+			IncreaseLoadCalled: func(identifier string, topic string, numMessages uint32) error {
+				if identifier == identifierCall.Pretty() && topic == topicCall && numMessages == numMessagesCall {
+					return nil
+				}
+
+				return process.ErrSystemBusy
+			},
+		},
+	)
+
+	err := afm.CanProcessMessagesOnTopic(identifierCall, topicCall, numMessagesCall)
+
 	assert.Nil(t, err)
 }

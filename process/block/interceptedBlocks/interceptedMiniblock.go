@@ -122,7 +122,7 @@ func (inMb *InterceptedMiniblock) Type() string {
 func (inMb *InterceptedMiniblock) String() string {
 	return fmt.Sprintf("miniblock type=%s, numTxs=%d, sender shardid=%d, recv shardid=%d",
 		inMb.miniblock.Type.String(),
-		inMb.miniblock.TxHashes,
+		len(inMb.miniblock.TxHashes),
 		inMb.miniblock.SenderShardID,
 		inMb.miniblock.ReceiverShardID,
 	)
