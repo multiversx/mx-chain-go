@@ -494,13 +494,6 @@ type BlockSizeThrottler interface {
 	IsInterfaceNil() bool
 }
 
-// PoolsCleaner define the functionality that is needed for a pools cleaner
-type PoolsCleaner interface {
-	Clean(duration time.Duration) (bool, error)
-	NumRemovedTxs() uint64
-	IsInterfaceNil() bool
-}
-
 // RewardsHandler will return information about rewards
 type RewardsHandler interface {
 	LeaderPercentage() float64
