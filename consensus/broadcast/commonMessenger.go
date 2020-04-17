@@ -1,9 +1,11 @@
 package broadcast
 
 import (
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -19,6 +21,37 @@ type commonMessenger struct {
 	privateKey       crypto.PrivateKey
 	shardCoordinator sharding.Coordinator
 	singleSigner     crypto.SingleSigner
+}
+
+// CommonMessengerArgs holds the arguments for creating commonMessenger instance
+type CommonMessengerArgs struct {
+	Marshalizer      marshal.Marshalizer
+	Messenger        consensus.P2PMessenger
+	PrivateKey       crypto.PrivateKey
+	ShardCoordinator sharding.Coordinator
+	SingleSigner     crypto.SingleSigner
+}
+
+func checkCommonMessengerNilParameters(
+	args CommonMessengerArgs,
+) error {
+	if check.IfNil(args.Marshalizer) {
+		return spos.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Messenger) {
+		return spos.ErrNilMessenger
+	}
+	if check.IfNil(args.PrivateKey) {
+		return spos.ErrNilPrivateKey
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return spos.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.SingleSigner) {
+		return spos.ErrNilSingleSigner
+	}
+
+	return nil
 }
 
 // BroadcastConsensusMessage will send on consensus topic the consensus message

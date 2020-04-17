@@ -25,7 +25,10 @@ func (coordinator *CoordinatorStub) ComputeId(address state.AddressContainer) ui
 
 // SelfId -
 func (coordinator *CoordinatorStub) SelfId() uint32 {
-	return coordinator.SelfIdCalled()
+	if coordinator.SelfIdCalled != nil {
+		return coordinator.SelfIdCalled()
+	}
+	return 0
 }
 
 // SameShard -

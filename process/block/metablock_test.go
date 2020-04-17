@@ -102,8 +102,8 @@ func createMetaBlockHeader() *block.MetaBlock {
 		AccumulatedFees:        big.NewInt(0),
 	}
 
-	shardMiniBlockHeaders := make([]block.ShardMiniBlockHeader, 0)
-	shardMiniBlockHeader := block.ShardMiniBlockHeader{
+	shardMiniBlockHeaders := make([]block.MiniBlockHeader, 0)
+	shardMiniBlockHeader := block.MiniBlockHeader{
 		Hash:            []byte("mb_hash1"),
 		ReceiverShardID: 0,
 		SenderShardID:   0,
@@ -2234,11 +2234,11 @@ func TestMetaProcessor_ProcessBlockWrongHeaderShouldErr(t *testing.T) {
 		ShardInfo: []block.ShardData{
 			{
 				ShardID:               0,
-				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: []byte("hash1")}},
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash1")}},
 			},
 			{
 				ShardID:               1,
-				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: []byte("hash2")}},
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash2")}},
 			},
 		},
 	}
@@ -2282,12 +2282,12 @@ func TestMetaProcessor_ProcessBlockNoShardHeadersReceivedShouldErr(t *testing.T)
 		ShardInfo: []block.ShardData{
 			{
 				ShardID:               0,
-				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: []byte("hashTx"), TxCount: 1}},
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hashTx"), TxCount: 1}},
 				TxCount:               1,
 			},
 			{
 				ShardID:               0,
-				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: hash2, TxCount: 1}},
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{{Hash: hash2, TxCount: 1}},
 				TxCount:               1,
 			},
 		},
@@ -2376,12 +2376,12 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 			{
 				HeaderHash:            hdrHash1Bytes,
 				ShardID:               0,
-				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: hash1, TxCount: 1}},
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{{Hash: hash1, TxCount: 1}},
 				TxCount:               1,
 			},
 			{
 				ShardID:               0,
-				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: hash2, TxCount: 1}},
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{{Hash: hash2, TxCount: 1}},
 				TxCount:               1,
 			},
 		},

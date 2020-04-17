@@ -102,7 +102,7 @@ func TestNewInterceptedUnsignedTransaction_NilHasherShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
-func TestNewInterceptedUnsignedTransaction_NilAddressConverterShouldErr(t *testing.T) {
+func TestNewInterceptedUnsignedTransaction_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txi, err := unsigned.NewInterceptedUnsignedTransaction(
