@@ -67,6 +67,10 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 	if check.IfNil(arg.HardforkTrigger) {
 		return nil, ErrNilHardforkTrigger
 	}
+	err := VerifyHeartbeatProperyLen("application version string", []byte(arg.VersionNumber))
+	if err != nil {
+		return nil, err
+	}
 
 	sender := &Sender{
 		peerMessenger:    arg.PeerMessenger,

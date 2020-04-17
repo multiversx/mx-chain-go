@@ -543,7 +543,7 @@ func (bn *branchNode) print(writer io.Writer, index int, db data.DBWriteCacher) 
 	for i := 0; i < len(bn.children); i++ {
 		err := resolveIfCollapsed(bn, byte(i), db)
 		if err != nil {
-			log.Debug("print trie err", "error", bn.EncodedChildren[i])
+			log.Debug("branch node: print trie err", "error", err, "hash", bn.EncodedChildren[i])
 		}
 
 		if bn.children[i] == nil {
@@ -664,12 +664,13 @@ func (bn *branchNode) setDirty(dirty bool) {
 	bn.dirty = dirty
 }
 
-func (bn *branchNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte, error) {
+func (bn *branchNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte, []node, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
+	existingChildren := make([]node, 0)
 	missingChildren := make([][]byte, 0)
 	for i := range bn.EncodedChildren {
 		if len(bn.EncodedChildren[i]) == 0 {
@@ -683,10 +684,11 @@ func (bn *branchNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte
 			continue
 		}
 
+		existingChildren = append(existingChildren, child)
 		bn.children[i] = child
 	}
 
-	return missingChildren, nil
+	return missingChildren, existingChildren, nil
 }
 
 func (bn *branchNode) getAllLeaves(leaves map[string][]byte, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {

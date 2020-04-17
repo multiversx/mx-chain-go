@@ -210,6 +210,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
