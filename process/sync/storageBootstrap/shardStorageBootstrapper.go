@@ -63,6 +63,10 @@ func (ssb *shardStorageBootstrapper) getHeader(hash []byte) (data.HeaderHandler,
 	return process.GetShardHeaderFromStorage(hash, ssb.marshalizer, ssb.store)
 }
 
+func (ssb *shardStorageBootstrapper) getHeaderWithNonce(nonce uint64, shardID uint32) (data.HeaderHandler, []byte, error) {
+	return process.GetShardHeaderFromStorageWithNonce(nonce, shardID, ssb.store, ssb.uint64Converter, ssb.marshalizer)
+}
+
 func (ssb *shardStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) error {
 	for _, crossNotarizedHeader := range crossNotarizedHeaders {
 		if crossNotarizedHeader.ShardId != core.MetachainShardId {
