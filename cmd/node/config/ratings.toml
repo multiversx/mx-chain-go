@@ -13,7 +13,7 @@
     StartRating = 5000001
     MaxRating = 10000000
     MinRating = 1
-    HoursToMaxRatingFromStartRating = 72
+    HoursToMaxRatingFromStartRating = 1
     SignedBlocksThreshold = 0.01
     SelectionChances = [
         { MaxThreshold = 0, ChancePercent = 5},
@@ -33,10 +33,10 @@
     ProposerValidatorImportance = 1.0
     ProposerDecreaseFactor = -4.0
     ValidatorDecreaseFactor = -4.0
-    ConsecutiveMissedBlocksPenalty = 1.10
+    ConsecutiveMissedBlocksPenalty = 2.10
 
 [MetaChain.RatingSteps]
     ProposerValidatorImportance = 1.0
     ProposerDecreaseFactor = -4.0
     ValidatorDecreaseFactor = -4.0
-    ConsecutiveMissedBlocksPenalty = 1.10
+    ConsecutiveMissedBlocksPenalty = 2.10
