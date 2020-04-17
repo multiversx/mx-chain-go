@@ -129,7 +129,7 @@ func TestNewValidatorStatisticsProcessor_NilPeerAdaptersShouldErr(t *testing.T) 
 	assert.Equal(t, process.ErrNilPeerAccountsAdapter, err)
 }
 
-func TestNewValidatorStatisticsProcessor_NilAddressConverterShouldErr(t *testing.T) {
+func TestNewValidatorStatisticsProcessor_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockArguments()
@@ -248,7 +248,7 @@ func TestNewValidatorStatisticsProcessor(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestValidatorStatisticsProcessor_SaveInitialStateErrOnWrongAddressConverter(t *testing.T) {
+func TestValidatorStatisticsProcessor_SaveInitialStateErrOnWrongPubkeyConverter(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("hex address error")

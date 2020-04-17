@@ -208,6 +208,7 @@ func TestNewTransactionCoordinator_NilHasher(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -229,6 +230,7 @@ func TestNewTransactionCoordinator_NilMarshalizer(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -250,6 +252,7 @@ func TestNewTransactionCoordinator_NilShardCoordinator(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -271,6 +274,7 @@ func TestNewTransactionCoordinator_NilAccountsStub(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -292,6 +296,7 @@ func TestNewTransactionCoordinator_NilDataPool(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -313,6 +318,7 @@ func TestNewTransactionCoordinator_NilRequestHandler(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -334,6 +340,7 @@ func TestNewTransactionCoordinator_NilPreProcessor(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -355,6 +362,7 @@ func TestNewTransactionCoordinator_NilInterProcessor(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -376,6 +384,7 @@ func TestNewTransactionCoordinator_NilGasHandler(t *testing.T) {
 		nil,
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -397,6 +406,7 @@ func TestNewTransactionCoordinator_NilFeeAcumulator(t *testing.T) {
 		&mock.GasHandlerMock{},
 		nil,
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -418,10 +428,33 @@ func TestNewTransactionCoordinator_NilBlockSizeComputation(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		nil,
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
 	assert.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
+}
+
+func TestNewTransactionCoordinator_NilBalanceComputation(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderMock().MiniBlocks(),
+		&mock.RequestHandlerStub{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		nil,
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
 }
 
 func TestNewTransactionCoordinator_OK(t *testing.T) {
@@ -439,6 +472,7 @@ func TestNewTransactionCoordinator_OK(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, err)
@@ -461,6 +495,7 @@ func TestTransactionCoordinator_SeparateBody(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -502,6 +537,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -593,6 +629,7 @@ func createPreProcessorContainerWithDataPool(
 		},
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -622,6 +659,7 @@ func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 		},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -651,6 +689,7 @@ func TestTransactionCoordinator_CreateMarshalizedDataNilBody(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -694,6 +733,7 @@ func TestTransactionCoordinator_CreateMarshalizedData(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -718,6 +758,7 @@ func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T)
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -773,6 +814,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -825,6 +867,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNo
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -855,6 +898,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -916,6 +960,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		},
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -935,6 +980,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1003,6 +1049,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		},
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1022,6 +1069,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1111,6 +1159,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		},
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1126,6 +1175,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1153,6 +1203,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *t
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1185,6 +1236,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 		},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1219,6 +1271,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1265,6 +1318,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1336,6 +1390,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1401,6 +1456,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1462,6 +1518,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 		},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1508,6 +1565,7 @@ func TestTransactionCoordinator_RequestBlockTransactionsNilBody(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1539,6 +1597,7 @@ func TestTransactionCoordinator_RequestBlockTransactionsRequestOne(t *testing.T)
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1577,6 +1636,7 @@ func TestTransactionCoordinator_IsDataPreparedForProcessing(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1605,6 +1665,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1646,6 +1707,7 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1694,6 +1756,7 @@ func TestTransactionCoordinator_RemoveBlockDataFromPool(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1746,6 +1809,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		},
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1761,6 +1825,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1809,6 +1874,7 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1879,6 +1945,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1894,6 +1961,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2019,6 +2087,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		},
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -2038,6 +2107,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2153,6 +2223,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		},
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -2176,6 +2247,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2220,6 +2292,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2284,6 +2357,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2378,6 +2452,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorageSaveIntermediateTxsErrors(
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2425,6 +2500,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *t
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2458,6 +2534,7 @@ func TestTransactionCoordinator_PreprocessorsHasToBeOrderedRewardsAreLast(t *tes
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)

@@ -47,7 +47,7 @@ func TestNewBlockChainHookImpl_NilAccountsAdapterShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
-func TestNewBlockChainHookImpl_NilAddressConverterShouldErr(t *testing.T) {
+func TestNewBlockChainHookImpl_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
