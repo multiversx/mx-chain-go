@@ -300,7 +300,7 @@ func (e *epochStartData) getShardDataFromEpochStartData(
 func (e *epochStartData) computePendingMiniBlockList(
 	startData *block.EpochStart,
 	allShardHdrList [][]*block.Header,
-) ([]block.ShardMiniBlockHeader, error) {
+) ([]block.MiniBlockHeader, error) {
 
 	prevEpoch := uint32(0)
 	if e.epochStartTrigger.Epoch() > 0 {
@@ -310,7 +310,7 @@ func (e *epochStartData) computePendingMiniBlockList(
 	epochStartIdentifier := core.EpochStartIdentifier(prevEpoch)
 	previousEpochStartMeta, _ := process.GetMetaHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
 
-	allPending := make([]block.ShardMiniBlockHeader, 0)
+	allPending := make([]block.MiniBlockHeader, 0)
 	for shId, shardData := range startData.LastFinalizedHeaders {
 		if shardData.Nonce == 0 {
 			//shard has only the genesis block
@@ -358,10 +358,10 @@ func getFirstPendingMetaBlockForShard(epochStartMetaHdr *block.MetaBlock, shardI
 
 func (e *epochStartData) computeStillPending(
 	shardHdrs []*block.Header,
-	miniBlockHeaders map[string]block.ShardMiniBlockHeader,
-) []block.ShardMiniBlockHeader {
+	miniBlockHeaders map[string]block.MiniBlockHeader,
+) []block.MiniBlockHeader {
 
-	pendingMiniBlocks := make([]block.ShardMiniBlockHeader, 0)
+	pendingMiniBlocks := make([]block.MiniBlockHeader, 0)
 
 	for _, shardHdr := range shardHdrs {
 		for _, mbHeader := range shardHdr.MiniBlockHeaders {
@@ -380,8 +380,8 @@ func (e *epochStartData) computeStillPending(
 	return pendingMiniBlocks
 }
 
-func getAllMiniBlocksWithDst(m *block.MetaBlock, destId uint32) map[string]block.ShardMiniBlockHeader {
-	hashDst := make(map[string]block.ShardMiniBlockHeader)
+func getAllMiniBlocksWithDst(m *block.MetaBlock, destId uint32) map[string]block.MiniBlockHeader {
+	hashDst := make(map[string]block.MiniBlockHeader)
 	for i := 0; i < len(m.ShardInfo); i++ {
 		if m.ShardInfo[i].ShardID == destId {
 			continue
@@ -396,13 +396,7 @@ func getAllMiniBlocksWithDst(m *block.MetaBlock, destId uint32) map[string]block
 
 	for _, val := range m.MiniBlockHeaders {
 		if val.ReceiverShardID == destId && val.SenderShardID != destId {
-			shardMiniBlockHdr := block.ShardMiniBlockHeader{
-				Hash:            val.Hash,
-				ReceiverShardID: val.ReceiverShardID,
-				SenderShardID:   val.SenderShardID,
-				TxCount:         val.TxCount,
-			}
-			hashDst[string(val.Hash)] = shardMiniBlockHdr
+			hashDst[string(val.Hash)] = val
 		}
 	}
 
