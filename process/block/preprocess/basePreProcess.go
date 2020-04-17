@@ -255,7 +255,7 @@ func (bpp *basePreProcess) requestMissingTxsForShard(
 	requestedTxs := 0
 	for shardID, txHashes := range missingTxsForShard {
 		requestedTxs += len(txHashes)
-		onRequestTxs(shardID, txHashes)
+		go onRequestTxs(shardID, txHashes)
 	}
 
 	return requestedTxs
