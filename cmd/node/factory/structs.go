@@ -1529,6 +1529,7 @@ func newBlockTracker(
 		Store:            processArgs.data.Store,
 		StartHeaders:     genesisBlocks,
 		PoolsHolder:      processArgs.data.Datapool,
+		WhitelistHandler: processArgs.whiteListHandler,
 	}
 
 	if processArgs.shardCoordinator.SelfId() < processArgs.shardCoordinator.NumberOfShards() {

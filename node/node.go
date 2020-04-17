@@ -250,7 +250,9 @@ func (n *Node) StartConsensus() error {
 		n.messenger,
 		n.shardCoordinator,
 		n.privKey,
-		n.singleSigner)
+		n.singleSigner,
+		n.dataPool.Headers(),
+	)
 
 	if err != nil {
 		return err
