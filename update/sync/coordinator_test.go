@@ -27,7 +27,7 @@ func createHeaderSyncHandler(retErr bool) update.HeaderSyncHandler {
 				{
 					ShardID:                 0,
 					RootHash:                []byte("shardDataRootHash"),
-					PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{{Hash: []byte("hash")}},
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hash")}},
 					FirstPendingMetaBlock:   []byte("firstPending"),
 				},
 			},

@@ -438,6 +438,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.SingleSigner,
+		tpn.DataPool.Headers(),
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
@@ -1647,6 +1648,7 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 		Store:            tpn.Storage,
 		StartHeaders:     tpn.GenesisBlocks,
 		PoolsHolder:      tpn.DataPool,
+		WhitelistHandler: tpn.WhiteListHandler,
 	}
 
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {

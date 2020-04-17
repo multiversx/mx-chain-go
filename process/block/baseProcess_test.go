@@ -205,7 +205,7 @@ func createDummyMetaBlock(destShardId uint32, senderShardId uint32, miniBlockHas
 		ShardInfo: []block.ShardData{
 			{
 				ShardID:               senderShardId,
-				ShardMiniBlockHeaders: make([]block.ShardMiniBlockHeader, len(miniBlockHashes)),
+				ShardMiniBlockHeaders: make([]block.MiniBlockHeader, len(miniBlockHashes)),
 			},
 		},
 	}
