@@ -1360,7 +1360,7 @@ func loadExternalConfig(filepath string) (*config.ExternalConfig, error) {
 	cfg := &config.ExternalConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot load external config: %w", err)
 	}
 
 	return cfg, nil

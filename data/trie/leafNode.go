@@ -335,8 +335,8 @@ func (ln *leafNode) setDirty(dirty bool) {
 	ln.dirty = dirty
 }
 
-func (ln *leafNode) loadChildren(_ func([]byte) (node, error)) ([][]byte, error) {
-	return nil, nil
+func (ln *leafNode) loadChildren(_ func([]byte) (node, error)) ([][]byte, []node, error) {
+	return nil, nil, nil
 }
 
 func (ln *leafNode) getAllLeaves(leaves map[string][]byte, key []byte, _ data.DBWriteCacher, _ marshal.Marshalizer) error {
