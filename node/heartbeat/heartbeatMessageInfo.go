@@ -163,6 +163,17 @@ func (hbmi *heartbeatMessageInfo) HeartbeatReceived(
 	hbmi.isActive = true
 }
 
+func (hbmi *heartbeatMessageInfo) UpdateShardAndPeerType(
+	computedShardID uint32,
+	peerType string,
+) {
+	hbmi.updateMutex.Lock()
+	defer hbmi.updateMutex.Unlock()
+
+	hbmi.computedShardID = computedShardID
+	hbmi.peerType = peerType
+}
+
 func (hbmi *heartbeatMessageInfo) updateMaxInactiveTimeDuration(currentTime time.Time) {
 	crtDuration := currentTime.Sub(hbmi.timeStamp)
 	crtDuration = maxDuration(0, crtDuration)

@@ -392,15 +392,9 @@ func (m *Monitor) computeInactiveHeartbeatMessages() {
 
 		peerType, shardId := m.computePeerTypeAndShardID([]byte(key))
 		if v.peerType != peerType || v.computedShardID != shardId {
-			hbmi, err := newHeartbeatMessageInfo(v.maxDurationPeerUnresponsive, peerType, v.genesisTime, m.timer)
-			if err == nil {
-				inactiveHbChangedMap[key] = hbmi
-			}
+			v.UpdateShardAndPeerType(shardId, peerType)
+			inactiveHbChangedMap[key] = v
 		}
-	}
-
-	for key, v := range inactiveHbChangedMap {
-		m.heartbeatMessages[key] = v
 	}
 
 	m.mutHeartbeatMessages.Unlock()

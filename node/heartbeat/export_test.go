@@ -70,6 +70,18 @@ func (hbmi *heartbeatMessageInfo) GetTotalDownTime() time.Duration {
 	return hbmi.totalDownTime
 }
 
+func (hbmi *heartbeatMessageInfo) GetComputedShardId() uint32 {
+	return hbmi.computedShardID
+}
+
+func (hbmi *heartbeatMessageInfo) GetPeerType() string {
+	return hbmi.peerType
+}
+
+func (hbmi *heartbeatMessageInfo) GetTotalDownTime() time.Duration {
+	return hbmi.totalDownTime
+}
+
 func VerifyLengths(hbmi *Heartbeat) error {
 	return verifyLengths(hbmi)
 }
