@@ -14,54 +14,54 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createMockInitialBalance() *genesis.InitialBalance {
-	return &genesis.InitialBalance{
-		Address:        "0001",
-		Supply:         "5",
-		Balance:        "1",
-		StakingBalance: "2",
+func createMockInitialAccount() *genesis.InitialAccount {
+	return &genesis.InitialAccount{
+		Address:      "0001",
+		Supply:       big.NewInt(5),
+		Balance:      big.NewInt(1),
+		StakingValue: big.NewInt(2),
 		Delegation: &genesis.DelegationData{
 			Address: "0002",
-			Value:   "2",
+			Value:   big.NewInt(2),
 		},
 	}
 }
 
-func createSimpleInitialBalance(address string, balance int64) *genesis.InitialBalance {
-	return &genesis.InitialBalance{
-		Address:        address,
-		Supply:         big.NewInt(balance).String(),
-		Balance:        big.NewInt(balance).String(),
-		StakingBalance: "0",
+func createSimpleInitialAccount(address string, balance int64) *genesis.InitialAccount {
+	return &genesis.InitialAccount{
+		Address:      address,
+		Supply:       big.NewInt(balance),
+		Balance:      big.NewInt(balance),
+		StakingValue: big.NewInt(0),
 		Delegation: &genesis.DelegationData{
 			Address: "",
-			Value:   "0",
+			Value:   big.NewInt(0),
 		},
 	}
 }
 
-func createDelegatedInitialBalance(address string, delegated string, delegatedBalance int64) *genesis.InitialBalance {
-	return &genesis.InitialBalance{
-		Address:        address,
-		Supply:         big.NewInt(delegatedBalance).String(),
-		Balance:        "0",
-		StakingBalance: "0",
+func createDelegatedInitialAccount(address string, delegated string, delegatedBalance int64) *genesis.InitialAccount {
+	return &genesis.InitialAccount{
+		Address:      address,
+		Supply:       big.NewInt(delegatedBalance),
+		Balance:      big.NewInt(0),
+		StakingValue: big.NewInt(0),
 		Delegation: &genesis.DelegationData{
 			Address: delegated,
-			Value:   big.NewInt(delegatedBalance).String(),
+			Value:   big.NewInt(delegatedBalance),
 		},
 	}
 }
 
-func createStakedInitialBalance(address string, stakedBalance int64) *genesis.InitialBalance {
-	return &genesis.InitialBalance{
-		Address:        address,
-		Supply:         big.NewInt(stakedBalance).String(),
-		Balance:        "0",
-		StakingBalance: big.NewInt(stakedBalance).String(),
+func createStakedInitialAccount(address string, stakedBalance int64) *genesis.InitialAccount {
+	return &genesis.InitialAccount{
+		Address:      address,
+		Supply:       big.NewInt(stakedBalance),
+		Balance:      big.NewInt(0),
+		StakingValue: big.NewInt(stakedBalance),
 		Delegation: &genesis.DelegationData{
 			Address: "",
-			Value:   "0",
+			Value:   big.NewInt(0),
 		},
 	}
 }
@@ -109,7 +109,7 @@ func TestNewGenesis_ShouldWork(t *testing.T) {
 
 	require.NotNil(t, g)
 	assert.Nil(t, err)
-	assert.Equal(t, 6, len(g.InitialBalances()))
+	assert.Equal(t, 6, len(g.InitialAccounts()))
 }
 
 //------- process
@@ -118,9 +118,9 @@ func TestGenesis_ProcessEmptyAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
-	ib := createMockInitialBalance()
+	ib := createMockInitialAccount()
 	ib.Address = ""
-	g.SetInitialBalances([]*genesis.InitialBalance{ib})
+	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
 
 	err := g.Process()
 
@@ -131,74 +131,22 @@ func TestGenesis_ProcessInvalidAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
-	ib := createMockInitialBalance()
+	ib := createMockInitialAccount()
 	ib.Address = "invalid address"
-	g.SetInitialBalances([]*genesis.InitialBalance{ib})
+	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
 
 	err := g.Process()
 
 	assert.True(t, errors.Is(err, genesis.ErrInvalidAddress))
 }
 
-func TestGenesis_ProcessInvalidSupplyStringShouldErr(t *testing.T) {
-	t.Parallel()
-
-	g := &genesis.Genesis{}
-	ib := createMockInitialBalance()
-	ib.Supply = "not-a-number"
-	g.SetInitialBalances([]*genesis.InitialBalance{ib})
-
-	err := g.Process()
-
-	assert.True(t, errors.Is(err, genesis.ErrInvalidSupplyString))
-}
-
-func TestGenesis_ProcessInvalidBalanceStringShouldErr(t *testing.T) {
-	t.Parallel()
-
-	g := &genesis.Genesis{}
-	ib := createMockInitialBalance()
-	ib.Balance = "not-a-number"
-	g.SetInitialBalances([]*genesis.InitialBalance{ib})
-
-	err := g.Process()
-
-	assert.True(t, errors.Is(err, genesis.ErrInvalidBalanceString))
-}
-
-func TestGenesis_ProcessInvalidStakingBalanceStringShouldErr(t *testing.T) {
-	t.Parallel()
-
-	g := &genesis.Genesis{}
-	ib := createMockInitialBalance()
-	ib.StakingBalance = "not-a-number"
-	g.SetInitialBalances([]*genesis.InitialBalance{ib})
-
-	err := g.Process()
-
-	assert.True(t, errors.Is(err, genesis.ErrInvalidStakingBalanceString))
-}
-
-func TestGenesis_ProcessInvalidDelegationValueStringShouldErr(t *testing.T) {
-	t.Parallel()
-
-	g := &genesis.Genesis{}
-	ib := createMockInitialBalance()
-	ib.Delegation.Value = "not-a-number"
-	g.SetInitialBalances([]*genesis.InitialBalance{ib})
-
-	err := g.Process()
-
-	assert.True(t, errors.Is(err, genesis.ErrInvalidDelegationValueString))
-}
-
 func TestGenesis_ProcessEmptyDelegationAddressButWithBalanceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
-	ib := createMockInitialBalance()
+	ib := createMockInitialAccount()
 	ib.Delegation.Address = ""
-	g.SetInitialBalances([]*genesis.InitialBalance{ib})
+	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
 
 	err := g.Process()
 
@@ -209,9 +157,9 @@ func TestGenesis_ProcessInvalidDelegationAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
-	ib := createMockInitialBalance()
+	ib := createMockInitialAccount()
 	ib.Delegation.Address = "invalid address"
-	g.SetInitialBalances([]*genesis.InitialBalance{ib})
+	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
 
 	err := g.Process()
 
@@ -222,14 +170,14 @@ func TestGenesis_ProcessInvalidSupplyShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
-	ib := createMockInitialBalance()
-	ib.Supply = "-1"
-	g.SetInitialBalances([]*genesis.InitialBalance{ib})
+	ib := createMockInitialAccount()
+	ib.Supply = big.NewInt(-1)
+	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
 
 	err := g.Process()
 	assert.True(t, errors.Is(err, genesis.ErrInvalidSupply))
 
-	ib.Supply = "0"
+	ib.Supply = big.NewInt(0)
 
 	err = g.Process()
 	assert.True(t, errors.Is(err, genesis.ErrInvalidSupply))
@@ -239,9 +187,9 @@ func TestGenesis_ProcessInvalidBalanceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
-	ib := createMockInitialBalance()
-	ib.Balance = "-1"
-	g.SetInitialBalances([]*genesis.InitialBalance{ib})
+	ib := createMockInitialAccount()
+	ib.Balance = big.NewInt(-1)
+	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
 
 	err := g.Process()
 	assert.True(t, errors.Is(err, genesis.ErrInvalidBalance))
@@ -251,9 +199,9 @@ func TestGenesis_ProcessInvalidStakingBalanceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
-	ib := createMockInitialBalance()
-	ib.StakingBalance = "-1"
-	g.SetInitialBalances([]*genesis.InitialBalance{ib})
+	ib := createMockInitialAccount()
+	ib.StakingValue = big.NewInt(-1)
+	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
 
 	err := g.Process()
 	assert.True(t, errors.Is(err, genesis.ErrInvalidStakingBalance))
@@ -263,9 +211,9 @@ func TestGenesis_ProcessInvalidDelegationValueShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
-	ib := createMockInitialBalance()
-	ib.Delegation.Value = "-1"
-	g.SetInitialBalances([]*genesis.InitialBalance{ib})
+	ib := createMockInitialAccount()
+	ib.Delegation.Value = big.NewInt(-1)
+	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
 
 	err := g.Process()
 	assert.True(t, errors.Is(err, genesis.ErrInvalidDelegationValue))
@@ -275,9 +223,9 @@ func TestGenesis_ProcessSupplyMismatchShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
-	ib := createMockInitialBalance()
-	ib.Supply = "4"
-	g.SetInitialBalances([]*genesis.InitialBalance{ib})
+	ib := createMockInitialAccount()
+	ib.Supply = big.NewInt(4)
+	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
 
 	err := g.Process()
 	assert.True(t, errors.Is(err, genesis.ErrSupplyMismatch))
@@ -287,9 +235,9 @@ func TestGenesis_ProcessDuplicatesShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
-	ib1 := createMockInitialBalance()
-	ib2 := createMockInitialBalance()
-	g.SetInitialBalances([]*genesis.InitialBalance{ib1, ib2})
+	ib1 := createMockInitialAccount()
+	ib2 := createMockInitialAccount()
+	g.SetInitialAccounts([]*genesis.InitialAccount{ib1, ib2})
 
 	err := g.Process()
 	assert.True(t, errors.Is(err, genesis.ErrDuplicateAddress))
@@ -299,8 +247,8 @@ func TestGenesis_ProcessEntireSupplyMismatchShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
-	ib := createMockInitialBalance()
-	g.SetInitialBalances([]*genesis.InitialBalance{ib})
+	ib := createMockInitialAccount()
+	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
 	g.SetEntireSupply(big.NewInt(4))
 
 	err := g.Process()
@@ -312,9 +260,9 @@ func TestGenesis_AddressIsSmartContractShouldErr(t *testing.T) {
 
 	addr := strings.Repeat("0", (core.NumInitCharactersForScAddress+1)*2)
 	g := &genesis.Genesis{}
-	ib := createMockInitialBalance()
+	ib := createMockInitialAccount()
 	ib.Address = addr
-	g.SetInitialBalances([]*genesis.InitialBalance{ib})
+	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
 	g.SetEntireSupply(big.NewInt(4))
 
 	err := g.Process()
@@ -325,8 +273,8 @@ func TestGenesis_ProcessShouldWork(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
-	ib := createMockInitialBalance()
-	g.SetInitialBalances([]*genesis.InitialBalance{ib})
+	ib := createMockInitialAccount()
+	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
 	g.SetEntireSupply(big.NewInt(5))
 
 	err := g.Process()
@@ -342,9 +290,9 @@ func TestGenesis_StakedUpon(t *testing.T) {
 	stakedUpon := int64(78)
 
 	g := &genesis.Genesis{}
-	ib := createStakedInitialBalance(addr, stakedUpon)
+	ib := createStakedInitialAccount(addr, stakedUpon)
 	g.SetEntireSupply(big.NewInt(stakedUpon))
-	g.SetInitialBalances([]*genesis.InitialBalance{ib})
+	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
 
 	err := g.Process()
 	require.Nil(t, err)
@@ -364,12 +312,12 @@ func TestGenesis_DelegatedUpon(t *testing.T) {
 	delegatedUpon := int64(78)
 
 	g := &genesis.Genesis{}
-	ib1 := createDelegatedInitialBalance("0001", addr1, delegatedUpon)
-	ib2 := createDelegatedInitialBalance("0002", addr1, delegatedUpon)
-	ib3 := createDelegatedInitialBalance("0003", addr2, delegatedUpon)
+	ib1 := createDelegatedInitialAccount("0001", addr1, delegatedUpon)
+	ib2 := createDelegatedInitialAccount("0002", addr1, delegatedUpon)
+	ib3 := createDelegatedInitialAccount("0003", addr2, delegatedUpon)
 
 	g.SetEntireSupply(big.NewInt(3 * delegatedUpon))
-	g.SetInitialBalances([]*genesis.InitialBalance{ib1, ib2, ib3})
+	g.SetInitialAccounts([]*genesis.InitialAccount{ib1, ib2, ib3})
 
 	err := g.Process()
 	require.Nil(t, err)
@@ -384,13 +332,13 @@ func TestGenesis_DelegatedUpon(t *testing.T) {
 	assert.Equal(t, big.NewInt(0), computedDelegatedUpon)
 }
 
-//------- InitialBalancesSplitOnAddresses
+//------- InitialAccountsSplitOnAddressesShards
 
-func TestGenesis_InitialBalancesSplitOnAddressesNilShardCoordinatorShouldErr(t *testing.T) {
+func TestGenesis_InitialAccountsSplitOnAddressesShardsNilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
-	ibs, err := g.InitialBalancesSplitOnAddresses(
+	ibs, err := g.InitialAccountsSplitOnAddressesShards(
 		nil,
 		&mock.AddressConverterMock{},
 	)
@@ -399,11 +347,11 @@ func TestGenesis_InitialBalancesSplitOnAddressesNilShardCoordinatorShouldErr(t *
 	assert.Equal(t, genesis.ErrNilShardCoordinator, err)
 }
 
-func TestGenesis_InitialBalancesSplitOnAddressesNilAddressConverterShouldErr(t *testing.T) {
+func TestGenesis_InitialAccountsSplitOnAddressesShardsNilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
-	ibs, err := g.InitialBalancesSplitOnAddresses(
+	ibs, err := g.InitialAccountsSplitOnAddressesShards(
 		&mock.ShardCoordinatorMock{},
 		nil,
 	)
@@ -412,21 +360,21 @@ func TestGenesis_InitialBalancesSplitOnAddressesNilAddressConverterShouldErr(t *
 	assert.Equal(t, genesis.ErrNilAddressConverter, err)
 }
 
-func TestGenesis_InitialBalancesSplitOnAddressesAddressConvertFailsShouldErr(t *testing.T) {
+func TestGenesis_InitialAccountsSplitOnAddressesShardsShardsAddressConvertFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
 	balance := int64(1)
-	ibs := []*genesis.InitialBalance{
-		createSimpleInitialBalance("0001", balance),
+	ibs := []*genesis.InitialAccount{
+		createSimpleInitialAccount("0001", balance),
 	}
 	g.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
-	g.SetInitialBalances(ibs)
+	g.SetInitialAccounts(ibs)
 	err := g.Process()
 	require.Nil(t, err)
 
 	expectedErr := errors.New("expected error")
-	ibsSplit, err := g.InitialBalancesSplitOnAddresses(
+	ibsSplit, err := g.InitialAccountsSplitOnAddressesShards(
 		&mock.ShardCoordinatorMock{},
 		&mock.AddressConverterStub{
 			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
@@ -439,20 +387,20 @@ func TestGenesis_InitialBalancesSplitOnAddressesAddressConvertFailsShouldErr(t *
 	assert.Nil(t, ibsSplit)
 }
 
-func TestGenesis_InitialBalancesSplitOnAddresses(t *testing.T) {
+func TestGenesis_InitialAccountsSplitOnAddressesShards(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
 	balance := int64(1)
-	ibs := []*genesis.InitialBalance{
-		createSimpleInitialBalance("0001", balance),
-		createSimpleInitialBalance("0002", balance),
-		createSimpleInitialBalance("0000", balance),
-		createSimpleInitialBalance("0101", balance),
+	ibs := []*genesis.InitialAccount{
+		createSimpleInitialAccount("0001", balance),
+		createSimpleInitialAccount("0002", balance),
+		createSimpleInitialAccount("0000", balance),
+		createSimpleInitialAccount("0101", balance),
 	}
 
 	g.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
-	g.SetInitialBalances(ibs)
+	g.SetInitialAccounts(ibs)
 	err := g.Process()
 	require.Nil(t, err)
 
@@ -460,7 +408,7 @@ func TestGenesis_InitialBalancesSplitOnAddresses(t *testing.T) {
 		NumOfShards: 3,
 		SelfShardId: 0,
 	}
-	ibsSplit, err := g.InitialBalancesSplitOnAddresses(
+	ibsSplit, err := g.InitialAccountsSplitOnAddressesShards(
 		threeSharder,
 		&mock.AddressConverterMock{},
 	)
@@ -470,13 +418,13 @@ func TestGenesis_InitialBalancesSplitOnAddresses(t *testing.T) {
 	assert.Equal(t, 2, len(ibsSplit[1]))
 }
 
-//------- InitialBalancesSplitOnDelegationAddresses
+//------- InitialAccountsSplitOnDelegationAddressesShards
 
-func TestGenesis_InitialBalancesSplitOnDelegationAddressesNilShardCoordinatorShouldErr(t *testing.T) {
+func TestGenesis_InitialAccountsSplitOnDelegationAddressesShardsNilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
-	ibs, err := g.InitialBalancesSplitOnDelegationAddresses(
+	ibs, err := g.InitialAccountsSplitOnDelegationAddressesShards(
 		nil,
 		&mock.AddressConverterMock{},
 	)
@@ -485,11 +433,11 @@ func TestGenesis_InitialBalancesSplitOnDelegationAddressesNilShardCoordinatorSho
 	assert.Equal(t, genesis.ErrNilShardCoordinator, err)
 }
 
-func TestGenesis_InitialBalancesSplitOnDelegationAddressesNilAddressConverterShouldErr(t *testing.T) {
+func TestGenesis_InitialAccountsSplitOnDelegationAddressesShardsShardsNilAddressConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
-	ibs, err := g.InitialBalancesSplitOnDelegationAddresses(
+	ibs, err := g.InitialAccountsSplitOnDelegationAddressesShards(
 		&mock.ShardCoordinatorMock{},
 		nil,
 	)
@@ -498,21 +446,21 @@ func TestGenesis_InitialBalancesSplitOnDelegationAddressesNilAddressConverterSho
 	assert.Equal(t, genesis.ErrNilAddressConverter, err)
 }
 
-func TestGenesis_InitialBalancesSplitOnDelegationAddressesAddressConvertFailsShouldErr(t *testing.T) {
+func TestGenesis_InitialAccountsSplitOnDelegationAddressesShardsShardsAddressConvertFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
 	balance := int64(1)
-	ibs := []*genesis.InitialBalance{
-		createDelegatedInitialBalance("0001", "0002", balance),
+	ibs := []*genesis.InitialAccount{
+		createDelegatedInitialAccount("0001", "0002", balance),
 	}
 	g.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
-	g.SetInitialBalances(ibs)
+	g.SetInitialAccounts(ibs)
 	err := g.Process()
 	require.Nil(t, err)
 
 	expectedErr := errors.New("expected error")
-	ibsSplit, err := g.InitialBalancesSplitOnDelegationAddresses(
+	ibsSplit, err := g.InitialAccountsSplitOnDelegationAddressesShards(
 		&mock.ShardCoordinatorMock{},
 		&mock.AddressConverterStub{
 			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
@@ -525,21 +473,21 @@ func TestGenesis_InitialBalancesSplitOnDelegationAddressesAddressConvertFailsSho
 	assert.Nil(t, ibsSplit)
 }
 
-func TestGenesis_InitialBalancesSplitOnDelegation(t *testing.T) {
+func TestGenesis_InitialAccountsSplitOnDelegationAddressesShards(t *testing.T) {
 	t.Parallel()
 
 	g := &genesis.Genesis{}
 	balance := int64(1)
-	ibs := []*genesis.InitialBalance{
-		createSimpleInitialBalance("0001", balance),
-		createDelegatedInitialBalance("0101", "0001", balance),
-		createDelegatedInitialBalance("0201", "0000", balance),
-		createDelegatedInitialBalance("0301", "0002", balance),
-		createDelegatedInitialBalance("0401", "0101", balance),
+	ibs := []*genesis.InitialAccount{
+		createSimpleInitialAccount("0001", balance),
+		createDelegatedInitialAccount("0101", "0001", balance),
+		createDelegatedInitialAccount("0201", "0000", balance),
+		createDelegatedInitialAccount("0301", "0002", balance),
+		createDelegatedInitialAccount("0401", "0101", balance),
 	}
 
 	g.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
-	g.SetInitialBalances(ibs)
+	g.SetInitialAccounts(ibs)
 	err := g.Process()
 	require.Nil(t, err)
 
@@ -547,7 +495,7 @@ func TestGenesis_InitialBalancesSplitOnDelegation(t *testing.T) {
 		NumOfShards: 3,
 		SelfShardId: 0,
 	}
-	ibsSplit, err := g.InitialBalancesSplitOnDelegationAddresses(
+	ibsSplit, err := g.InitialAccountsSplitOnDelegationAddressesShards(
 		threeSharder,
 		&mock.AddressConverterMock{},
 	)

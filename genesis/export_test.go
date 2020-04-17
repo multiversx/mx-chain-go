@@ -2,12 +2,12 @@ package genesis
 
 import "math/big"
 
-func (g *Genesis) InitialBalances() []*InitialBalance {
-	return g.initialBalances
+func (g *Genesis) InitialAccounts() []*InitialAccount {
+	return g.initialAccounts
 }
 
-func (g *Genesis) SetInitialBalances(initialBalances []*InitialBalance) {
-	g.initialBalances = initialBalances
+func (g *Genesis) SetInitialAccounts(initialAccounts []*InitialAccount) {
+	g.initialAccounts = initialAccounts
 }
 
 func (g *Genesis) SetEntireSupply(entireSupply *big.Int) {

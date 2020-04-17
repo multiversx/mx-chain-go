@@ -15,7 +15,7 @@ const decodeBase = 10
 
 // Genesis hold data for decoded data from json file
 type Genesis struct {
-	initialBalances []*InitialBalance
+	initialAccounts []*InitialAccount
 	entireSupply    *big.Int
 }
 
@@ -32,14 +32,14 @@ func NewGenesis(
 		return nil, ErrInvalidEntireSupply
 	}
 
-	initialBalances := make([]*InitialBalance, 0)
-	err := core.LoadJsonFile(&initialBalances, genesisFilePath)
+	initialAccounts := make([]*InitialAccount, 0)
+	err := core.LoadJsonFile(&initialAccounts, genesisFilePath)
 	if err != nil {
 		return nil, err
 	}
 
 	genesis := &Genesis{
-		initialBalances: initialBalances,
+		initialAccounts: initialAccounts,
 		entireSupply:    entireSupply,
 	}
 
@@ -53,18 +53,18 @@ func NewGenesis(
 
 func (g *Genesis) process() error {
 	totalSupply := big.NewInt(0)
-	for _, initialBalance := range g.initialBalances {
-		err := g.tryParseElement(initialBalance)
+	for _, initialAccount := range g.initialAccounts {
+		err := g.parseElement(initialAccount)
 		if err != nil {
 			return err
 		}
 
-		err = g.checkInitialBalance(initialBalance)
+		err = g.checkInitialAccount(initialAccount)
 		if err != nil {
 			return err
 		}
 
-		totalSupply.Add(totalSupply, initialBalance.supply)
+		totalSupply.Add(totalSupply, initialAccount.Supply)
 	}
 
 	err := g.checkForDuplicates()
@@ -83,71 +83,33 @@ func (g *Genesis) process() error {
 	return nil
 }
 
-func (g *Genesis) tryParseElement(initialBalance *InitialBalance) error {
-	var ok bool
+func (g *Genesis) parseElement(initialAccount *InitialAccount) error {
 	var err error
 
-	if len(initialBalance.Address) == 0 {
+	if len(initialAccount.Address) == 0 {
 		return ErrEmptyAddress
 	}
 	//TODO change here (use Decode method) when merging with feat/bech32 branch
-	initialBalance.address, err = hex.DecodeString(initialBalance.Address)
+	initialAccount.address, err = hex.DecodeString(initialAccount.Address)
 	if err != nil {
 		return fmt.Errorf("%w for `%s`",
-			ErrInvalidAddress, initialBalance.Address)
+			ErrInvalidAddress, initialAccount.Address)
 	}
 
-	initialBalance.supply, ok = big.NewInt(0).SetString(initialBalance.Supply, decodeBase)
-	if !ok {
-		return fmt.Errorf("%w for '%s', address %s",
-			ErrInvalidSupplyString,
-			initialBalance.Supply,
-			initialBalance.Address,
-		)
-	}
-
-	initialBalance.balance, ok = big.NewInt(0).SetString(initialBalance.Balance, decodeBase)
-	if !ok {
-		return fmt.Errorf("%w for '%s', address %s",
-			ErrInvalidBalanceString,
-			initialBalance.Balance,
-			initialBalance.Address,
-		)
-	}
-
-	initialBalance.stakingBalance, ok = big.NewInt(0).SetString(initialBalance.StakingBalance, decodeBase)
-	if !ok {
-		return fmt.Errorf("%w for '%s', address %s",
-			ErrInvalidStakingBalanceString,
-			initialBalance.StakingBalance,
-			initialBalance.Address,
-		)
-	}
-
-	return g.tryParseDelegationElement(initialBalance)
+	return g.parseDelegationElement(initialAccount)
 }
 
-func (g *Genesis) tryParseDelegationElement(initialBalance *InitialBalance) error {
-	var ok bool
+func (g *Genesis) parseDelegationElement(initialAccount *InitialAccount) error {
 	var err error
-	delegationData := initialBalance.Delegation
+	delegationData := initialAccount.Delegation
 
-	delegationData.value, ok = big.NewInt(0).SetString(delegationData.Value, decodeBase)
-	if !ok {
-		return fmt.Errorf("%w for '%s', address %s",
-			ErrInvalidDelegationValueString,
-			delegationData.Value,
-			delegationData.Address,
-		)
-	}
-
-	if big.NewInt(0).Cmp(delegationData.value) == 0 {
+	if big.NewInt(0).Cmp(delegationData.Value) == 0 {
 		return nil
 	}
 
 	if len(delegationData.Address) == 0 {
 		return fmt.Errorf("%w for address '%s'",
-			ErrEmptyDelegationAddress, initialBalance.Address)
+			ErrEmptyDelegationAddress, initialAccount.Address)
 	}
 	//TODO change here (use Decode method) when merging with feat/bech32 branch
 	delegationData.address, err = hex.DecodeString(delegationData.Address)
@@ -155,65 +117,65 @@ func (g *Genesis) tryParseDelegationElement(initialBalance *InitialBalance) erro
 		return fmt.Errorf("%w for `%s`, address %s",
 			ErrInvalidDelegationAddress,
 			delegationData.Address,
-			initialBalance.Address,
+			initialAccount.Address,
 		)
 	}
 
 	return nil
 }
 
-func (g *Genesis) checkInitialBalance(initialBalance *InitialBalance) error {
-	isSmartContract := core.IsSmartContractAddress(initialBalance.address)
+func (g *Genesis) checkInitialAccount(initialAccount *InitialAccount) error {
+	isSmartContract := core.IsSmartContractAddress(initialAccount.address)
 	if isSmartContract {
 		return fmt.Errorf("%w for address %s",
 			ErrAddressIsSmartContract,
-			initialBalance.Address,
+			initialAccount.Address,
 		)
 	}
 
-	if big.NewInt(0).Cmp(initialBalance.supply) >= 0 {
+	if big.NewInt(0).Cmp(initialAccount.Supply) >= 0 {
 		return fmt.Errorf("%w for '%s', address %s",
 			ErrInvalidSupply,
-			initialBalance.Supply,
-			initialBalance.Address,
+			initialAccount.Supply,
+			initialAccount.Address,
 		)
 	}
 
-	if big.NewInt(0).Cmp(initialBalance.balance) > 0 {
+	if big.NewInt(0).Cmp(initialAccount.Balance) > 0 {
 		return fmt.Errorf("%w for '%s', address %s",
 			ErrInvalidBalance,
-			initialBalance.Balance,
-			initialBalance.Address,
+			initialAccount.Balance,
+			initialAccount.Address,
 		)
 	}
 
-	if big.NewInt(0).Cmp(initialBalance.stakingBalance) > 0 {
+	if big.NewInt(0).Cmp(initialAccount.StakingValue) > 0 {
 		return fmt.Errorf("%w for '%s', address %s",
 			ErrInvalidStakingBalance,
-			initialBalance.Balance,
-			initialBalance.Address,
+			initialAccount.Balance,
+			initialAccount.Address,
 		)
 	}
 
-	if big.NewInt(0).Cmp(initialBalance.Delegation.value) > 0 {
+	if big.NewInt(0).Cmp(initialAccount.Delegation.Value) > 0 {
 		return fmt.Errorf("%w for '%s', address %s",
 			ErrInvalidDelegationValue,
-			initialBalance.Delegation.value,
-			initialBalance.Address,
+			initialAccount.Delegation.Value,
+			initialAccount.Address,
 		)
 	}
 
 	sum := big.NewInt(0)
-	sum.Add(sum, initialBalance.balance)
-	sum.Add(sum, initialBalance.stakingBalance)
-	sum.Add(sum, initialBalance.Delegation.value)
+	sum.Add(sum, initialAccount.Balance)
+	sum.Add(sum, initialAccount.StakingValue)
+	sum.Add(sum, initialAccount.Delegation.Value)
 
-	isSupplyCorrect := big.NewInt(0).Cmp(initialBalance.supply) < 0 && initialBalance.supply.Cmp(sum) == 0
+	isSupplyCorrect := big.NewInt(0).Cmp(initialAccount.Supply) < 0 && initialAccount.Supply.Cmp(sum) == 0
 	if !isSupplyCorrect {
 		return fmt.Errorf("%w for address %s, provided %s, computed %s",
 			ErrSupplyMismatch,
-			initialBalance.Address,
-			initialBalance.supply.String(),
+			initialAccount.Address,
+			initialAccount.Supply.String(),
 			sum.String(),
 		)
 	}
@@ -222,10 +184,10 @@ func (g *Genesis) checkInitialBalance(initialBalance *InitialBalance) error {
 }
 
 func (g *Genesis) checkForDuplicates() error {
-	for idx1 := 0; idx1 < len(g.initialBalances); idx1++ {
-		ib1 := g.initialBalances[idx1]
-		for idx2 := idx1 + 1; idx2 < len(g.initialBalances); idx2++ {
-			ib2 := g.initialBalances[idx2]
+	for idx1 := 0; idx1 < len(g.initialAccounts); idx1++ {
+		ib1 := g.initialAccounts[idx1]
+		for idx2 := idx1 + 1; idx2 < len(g.initialAccounts); idx2++ {
+			ib2 := g.initialAccounts[idx2]
 			if ib1.Address == ib2.Address {
 				return fmt.Errorf("%w found for '%s'",
 					ErrDuplicateAddress,
@@ -240,9 +202,9 @@ func (g *Genesis) checkForDuplicates() error {
 
 // StakedUpon returns the value that was staked upon the provided address
 func (g *Genesis) StakedUpon(address string) *big.Int {
-	for _, ib := range g.initialBalances {
+	for _, ib := range g.initialAccounts {
 		if ib.Address == address {
-			return big.NewInt(0).Set(ib.stakingBalance)
+			return big.NewInt(0).Set(ib.StakingValue)
 		}
 	}
 
@@ -252,20 +214,20 @@ func (g *Genesis) StakedUpon(address string) *big.Int {
 // DelegatedUpon returns the value that was delegated upon the provided address
 func (g *Genesis) DelegatedUpon(address string) *big.Int {
 	delegated := big.NewInt(0)
-	for _, ib := range g.initialBalances {
+	for _, ib := range g.initialAccounts {
 		if ib.Delegation.Address == address {
-			delegated.Add(delegated, ib.Delegation.value)
+			delegated.Add(delegated, ib.Delegation.Value)
 		}
 	}
 
 	return delegated
 }
 
-// InitialBalancesSplitOnAddresses gets the initial balances of the nodes split on the addresses's shards
-func (g *Genesis) InitialBalancesSplitOnAddresses(
+// InitialAccountsSplitOnAddressesShards gets the initial accounts of the nodes split on the addresses's shards
+func (g *Genesis) InitialAccountsSplitOnAddressesShards(
 	shardCoordinator sharding.Coordinator,
 	adrConv state.AddressConverter,
-) (map[uint32][]*InitialBalance, error) {
+) (map[uint32][]*InitialAccount, error) {
 
 	if check.IfNil(shardCoordinator) {
 		return nil, ErrNilShardCoordinator
@@ -274,25 +236,25 @@ func (g *Genesis) InitialBalancesSplitOnAddresses(
 		return nil, ErrNilAddressConverter
 	}
 
-	var balances = make(map[uint32][]*InitialBalance)
-	for _, in := range g.initialBalances {
+	var addresses = make(map[uint32][]*InitialAccount)
+	for _, in := range g.initialAccounts {
 		address, err := adrConv.CreateAddressFromPublicKeyBytes(in.address)
 		if err != nil {
 			return nil, err
 		}
 		shardID := shardCoordinator.ComputeId(address)
 
-		balances[shardID] = append(balances[shardID], in)
+		addresses[shardID] = append(addresses[shardID], in)
 	}
 
-	return balances, nil
+	return addresses, nil
 }
 
-// InitialBalancesSplitOnDelegationAddresses gets the initial balances of the nodes split on the addresses's shards
-func (g *Genesis) InitialBalancesSplitOnDelegationAddresses(
+// InitialAccountsSplitOnDelegationAddressesShards gets the initial accounts of the nodes split on the addresses's shards
+func (g *Genesis) InitialAccountsSplitOnDelegationAddressesShards(
 	shardCoordinator sharding.Coordinator,
 	adrConv state.AddressConverter,
-) (map[uint32][]*InitialBalance, error) {
+) (map[uint32][]*InitialAccount, error) {
 
 	if check.IfNil(shardCoordinator) {
 		return nil, ErrNilShardCoordinator
@@ -301,8 +263,8 @@ func (g *Genesis) InitialBalancesSplitOnDelegationAddresses(
 		return nil, ErrNilAddressConverter
 	}
 
-	var balances = make(map[uint32][]*InitialBalance)
-	for _, in := range g.initialBalances {
+	var addresses = make(map[uint32][]*InitialAccount)
+	for _, in := range g.initialAccounts {
 		if len(in.Delegation.address) == 0 {
 			continue
 		}
@@ -313,8 +275,8 @@ func (g *Genesis) InitialBalancesSplitOnDelegationAddresses(
 		}
 		shardID := shardCoordinator.ComputeId(delegationAddress)
 
-		balances[shardID] = append(balances[shardID], in)
+		addresses[shardID] = append(addresses[shardID], in)
 	}
 
-	return balances, nil
+	return addresses, nil
 }
