@@ -40,16 +40,13 @@ func preProcessMesage(
 
 func processInterceptedData(
 	processor process.InterceptorProcessor,
-	whiteListhandler process.WhiteListHandler,
 	data process.InterceptedData,
 	wgProcess *sync.WaitGroup,
 	msg p2p.MessageP2P,
 ) {
-	hash := data.Hash()
 	err := processor.Validate(data, msg.Peer())
 
 	defer func() {
-		whiteListhandler.Remove([][]byte{hash})
 		wgProcess.Done()
 	}()
 	if err != nil {

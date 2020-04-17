@@ -1526,6 +1526,7 @@ func newBlockTracker(
 		Store:            processArgs.data.Store,
 		StartHeaders:     genesisBlocks,
 		PoolsHolder:      processArgs.data.Datapool,
+		WhitelistHandler: processArgs.whiteListHandler,
 	}
 
 	if processArgs.shardCoordinator.SelfId() < processArgs.shardCoordinator.NumberOfShards() {
@@ -1803,6 +1804,11 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
+	balanceComputationHandler, err := preprocess.NewBalanceComputation()
+	if err != nil {
+		return nil, err
+	}
+
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
 		data.Store,
@@ -1820,6 +1826,7 @@ func newShardBlockProcessor(
 		gasHandler,
 		blockTracker,
 		blockSizeComputationHandler,
+		balanceComputationHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1842,6 +1849,7 @@ func newShardBlockProcessor(
 		gasHandler,
 		txFeeHandler,
 		blockSizeComputationHandler,
+		balanceComputationHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -2048,6 +2056,11 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	balanceComputationHandler, err := preprocess.NewBalanceComputation()
+	if err != nil {
+		return nil, err
+	}
+
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
 		shardCoordinator,
 		data.Store,
@@ -2063,6 +2076,7 @@ func newMetaBlockProcessor(
 		blockTracker,
 		stateComponents.AddressPubkeyConverter,
 		blockSizeComputationHandler,
+		balanceComputationHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -2085,6 +2099,7 @@ func newMetaBlockProcessor(
 		gasHandler,
 		txFeeHandler,
 		blockSizeComputationHandler,
+		balanceComputationHandler,
 	)
 	if err != nil {
 		return nil, err

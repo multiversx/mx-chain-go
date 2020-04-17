@@ -3,7 +3,7 @@ package interceptors
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -129,12 +129,11 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 				"is for this shard", isForCurrentShard,
 				"is white listed", isWhiteListed,
 			)
-			mdi.whiteListHandler.Remove([][]byte{interceptedData.Hash()})
 			wgProcess.Done()
 			continue
 		}
 
-		go processInterceptedData(mdi.processor, mdi.whiteListHandler, interceptedData, wgProcess, message)
+		go processInterceptedData(mdi.processor, interceptedData, wgProcess, message)
 	}
 
 	return lastErrEncountered

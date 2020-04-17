@@ -125,12 +125,14 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 	}
 	privateKey := &mock.PrivateKeyMock{}
 	singleSigner := &mock.SingleSignerMock{}
+	headersSubscriber := &mock.HeadersCacherStub{}
 	bm, err := sposFactory.GetBroadcastMessenger(
 		marshalizer,
 		messenger,
 		shardCoord,
 		privateKey,
 		singleSigner,
+		headersSubscriber,
 	)
 
 	assert.Nil(t, err)
@@ -148,12 +150,14 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 	}
 	privateKey := &mock.PrivateKeyMock{}
 	singleSigner := &mock.SingleSignerMock{}
+	headersSubscriber := &mock.HeadersCacherStub{}
 	bm, err := sposFactory.GetBroadcastMessenger(
 		marshalizer,
 		messenger,
 		shardCoord,
 		privateKey,
 		singleSigner,
+		headersSubscriber,
 	)
 
 	assert.Nil(t, err)
@@ -167,12 +171,14 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 	shardCoord.SelfIDCalled = func() uint32 {
 		return 37
 	}
+	headersSubscriber := &mock.HeadersCacherStub{}
 	bm, err := sposFactory.GetBroadcastMessenger(
 		nil,
 		nil,
 		shardCoord,
 		nil,
 		nil,
+		headersSubscriber,
 	)
 
 	assert.Nil(t, bm)

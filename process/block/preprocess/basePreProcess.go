@@ -1,6 +1,7 @@
 package preprocess
 
 import (
+	"math/big"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -8,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -46,6 +48,9 @@ type basePreProcess struct {
 	gasHandler           process.GasHandler
 	economicsFee         process.FeeHandler
 	blockSizeComputation BlockSizeComputationHandler
+	balanceComputation   BalanceComputationHandler
+	accounts             state.AccountsAdapter
+	pubkeyConverter      state.PubkeyConverter
 }
 
 func (bpp *basePreProcess) removeDataFromPools(
@@ -306,4 +311,47 @@ func (bpp *basePreProcess) computeGasConsumedByTx(
 	}
 
 	return txGasLimitInSenderShard, txGasLimitInReceiverShard, nil
+}
+
+func (bpp *basePreProcess) saveAccountBalanceForAddress(address []byte) {
+	if bpp.balanceComputation.IsAddressSet(address) {
+		return
+	}
+
+	balance, err := bpp.getBalanceForAddress(address)
+	if err != nil {
+		balance = big.NewInt(0)
+	}
+
+	bpp.balanceComputation.SetBalanceToAddress(address, balance)
+}
+
+func (bpp *basePreProcess) getBalanceForAddress(address []byte) (*big.Int, error) {
+	addressContainer, err := bpp.pubkeyConverter.CreateAddressFromBytes(address)
+	if err != nil {
+		return nil, err
+	}
+
+	accountHandler, err := bpp.accounts.GetExistingAccount(addressContainer)
+	if err != nil {
+		return nil, err
+	}
+
+	account, ok := accountHandler.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return account.GetBalance(), nil
+}
+
+func (bpp *basePreProcess) getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
+	cost := big.NewInt(0)
+	cost.Mul(big.NewInt(0).SetUint64(txHandler.GetGasPrice()), big.NewInt(0).SetUint64(txHandler.GetGasLimit()))
+
+	if txHandler.GetValue() != nil {
+		cost.Add(cost, txHandler.GetValue())
+	}
+
+	return cost
 }

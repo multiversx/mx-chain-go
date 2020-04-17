@@ -46,7 +46,6 @@ func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 	return mock.NewPubkeyConverterMock(32)
 }
 
-
 func getAccAdapter(balance *big.Int) *mock.AccountsStub {
 	accDB := &mock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
@@ -2086,7 +2085,7 @@ func TestNode_GetAccountWithNilAccountsAdapterShouldErr(t *testing.T) {
 	assert.Equal(t, node.ErrNilAccountsAdapter, err)
 }
 
-func TestNode_GetAccountWithNilAddressConverterShouldErr(t *testing.T) {
+func TestNode_GetAccountWithNilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	accDB := &mock.AccountsStub{
@@ -2105,7 +2104,7 @@ func TestNode_GetAccountWithNilAddressConverterShouldErr(t *testing.T) {
 	assert.Equal(t, node.ErrNilPubkeyConverter, err)
 }
 
-func TestNode_GetAccountAddressConverterFailsShouldErr(t *testing.T) {
+func TestNode_GetAccountPubkeyConverterFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	accDB := &mock.AccountsStub{

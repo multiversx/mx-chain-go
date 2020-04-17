@@ -52,7 +52,7 @@ func TestNewMetaTxProcessor_NilAccountsShouldErr(t *testing.T) {
 	assert.Nil(t, txProc)
 }
 
-func TestNewMetaTxProcessor_NilAddressConverterMockShouldErr(t *testing.T) {
+func TestNewMetaTxProcessor_NilPubkeyConverterMockShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txProc, err := txproc.NewMetaTxProcessor(
