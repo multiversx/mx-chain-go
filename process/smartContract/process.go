@@ -21,6 +21,7 @@ import (
 )
 
 var log = logger.GetOrCreate("process/smartcontract")
+var gasLog = logger.GetOrCreate("gasLog")
 
 type scProcessor struct {
 	accounts         state.AccountsAdapter
@@ -225,6 +226,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vm.RunSmartContractCall(vmInput)
+	gasLog.Info("RunSmartContractCall", "tx", txHash, "GasProvided", vmInput.GasProvided, "GasRemaining", vmOutput.GasRemaining, "GasRefund", vmOutput.GasRefund, "retCode", vmOutput.ReturnCode, "data", string(tx.GetData()))
 	if err != nil {
 		log.Debug("run smart contract call error", "error", err.Error())
 		return nil
