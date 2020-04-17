@@ -228,15 +228,21 @@ type TxAccumulatorConfig struct {
 type AntifloodConfig struct {
 	Enabled                   bool
 	NumConcurrentResolverJobs int32
-	PeerMaxMessagesPerSecond  uint32
-	MaxMessagesPerSecond      uint32
-	PeerMaxTotalSizePerSecond uint64
-	MaxTotalSizePerSecond     uint64
+	NetworkMaxInput           AntifloodLimitsConfig
+	PeerMaxInput              AntifloodLimitsConfig
+	PeerMaxOutput             AntifloodLimitsConfig
 	Cache                     CacheConfig
 	BlackList                 BlackListConfig
 	WebServer                 WebServerAntifloodConfig
 	Topic                     TopicAntifloodConfig
 	TxAccumulator             TxAccumulatorConfig
+}
+
+// AntifloodLimitsConfig will hold the maximum antiflood limits in both number of messages and total
+// size of the messages
+type AntifloodLimitsConfig struct {
+	MessagesPerSecond  uint32
+	TotalSizePerSecond uint64
 }
 
 // VirtualMachineConfig holds configuration for the Virtual Machine(s)

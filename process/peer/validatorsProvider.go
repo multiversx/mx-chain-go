@@ -73,6 +73,7 @@ func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorA
 				TotalNumLeaderFailure:    validatorInfo.TotalLeaderFailure,
 				TotalNumValidatorSuccess: validatorInfo.TotalValidatorSuccess,
 				TotalNumValidatorFailure: validatorInfo.TotalValidatorFailure,
+				RatingModifier:           validatorInfo.RatingModifier,
 				Rating:                   float32(validatorInfo.Rating) * 100 / float32(vp.maxRating),
 				TempRating:               float32(validatorInfo.TempRating) * 100 / float32(vp.maxRating),
 			}
