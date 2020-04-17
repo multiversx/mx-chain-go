@@ -1,6 +1,7 @@
 package sharding
 
 import (
+	"bytes"
 	"sort"
 	"sync"
 
@@ -292,7 +293,7 @@ func removeValidatorsFromList(
 		}
 
 		for index, val := range resultedList {
-			if val == valToRemove {
+			if bytes.Equal(val.PubKey(), valToRemove.PubKey()) {
 				resultedList = removeValidatorFromList(resultedList, index)
 				removed = append(removed, val)
 				break

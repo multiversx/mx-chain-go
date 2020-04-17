@@ -3,6 +3,7 @@ package sharding
 import (
 	"bytes"
 	"crypto/rand"
+	"fmt"
 	"reflect"
 	"sort"
 	"testing"
@@ -790,6 +791,51 @@ func TestRandXORShuffler_UpdateNodeListsNoReSharding(t *testing.T) {
 	allNewWaiting := getValidatorsInMap(waiting)
 
 	assert.Equal(t, len(allPrevEligible)+len(allPrevWaiting), len(allNewEligible)+len(allNewWaiting))
+}
+
+func TestRandXORShuffler_UpdateNodeListsWithLeavingFromEligible(t *testing.T) {
+	t.Parallel()
+
+	shuffler := NewXorValidatorsShuffler(
+		10,
+		10,
+		0.2,
+		false,
+	)
+
+	shuffler.shuffleBetweenShards = false
+
+	eligiblePerShard := int(shuffler.nodesShard)
+	waitingPerShard := 2
+	nbShards := uint32(0)
+	randomness := generateRandomByteArray(32)
+
+	leavingNodes := make([]Validator, 0)
+	newNodes := make([]Validator, 0)
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	leavingNodes = []Validator{
+		eligibleMap[core.MetachainShardId][0],
+		eligibleMap[core.MetachainShardId][1],
+	}
+
+	args := ArgsUpdateNodes{
+		Eligible: eligibleMap,
+		Waiting:  waitingMap,
+		NewNodes: newNodes,
+		Leaving:  leavingNodes,
+		Rand:     randomness,
+	}
+
+	eligible, waiting, leaving := shuffler.UpdateNodeLists(args)
+
+	allNewEligible := getValidatorsInMap(eligible)
+	allNewWaiting := getValidatorsInMap(waiting)
+
+	fmt.Sprintf("%v %v %v", len(allNewEligible), len(allNewWaiting), len(leaving))
+
 }
 
 func TestRandXORShuffler_UpdateNodeListsNoReShardingIntraShardShuffling(t *testing.T) {
