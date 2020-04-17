@@ -504,6 +504,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		},
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := factory.Create()
 
@@ -522,6 +523,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 
@@ -722,6 +724,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		},
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := factory.Create()
 
@@ -745,6 +748,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2250,6 +2254,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2265,6 +2270,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2361,6 +2367,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2376,6 +2383,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2459,6 +2467,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2535,6 +2544,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	arguments := CreateMockArgumentsMultiShard()
@@ -2770,6 +2780,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		},
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2785,6 +2796,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 
@@ -2952,6 +2964,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2967,6 +2980,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&mock.GasHandlerMock{},
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 

@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -35,9 +36,12 @@ func NewRewardTxPreprocessor(
 	marshalizer marshal.Marshalizer,
 	rewardProcessor process.RewardTransactionProcessor,
 	shardCoordinator sharding.Coordinator,
+	accounts state.AccountsAdapter,
 	onRequestRewardTransaction func(shardID uint32, txHashes [][]byte),
 	gasHandler process.GasHandler,
+	pubkeyConverter state.PubkeyConverter,
 	blockSizeComputation BlockSizeComputationHandler,
+	balanceComputation BalanceComputationHandler,
 ) (*rewardTxPreprocessor, error) {
 
 	if check.IfNil(hasher) {
@@ -58,14 +62,23 @@ func NewRewardTxPreprocessor(
 	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if check.IfNil(accounts) {
+		return nil, process.ErrNilAccountsAdapter
+	}
 	if onRequestRewardTransaction == nil {
 		return nil, process.ErrNilRequestHandler
 	}
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
+	if check.IfNil(pubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
+	}
 	if check.IfNil(blockSizeComputation) {
 		return nil, process.ErrNilBlockSizeComputationHandler
+	}
+	if check.IfNil(balanceComputation) {
+		return nil, process.ErrNilBalanceComputationHandler
 	}
 
 	bpp := &basePreProcess{
@@ -74,6 +87,9 @@ func NewRewardTxPreprocessor(
 		shardCoordinator:     shardCoordinator,
 		gasHandler:           gasHandler,
 		blockSizeComputation: blockSizeComputation,
+		balanceComputation:   balanceComputation,
+		accounts:             accounts,
+		pubkeyConverter:      pubkeyConverter,
 	}
 
 	rtp := &rewardTxPreprocessor{
@@ -212,6 +228,8 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			if !ok {
 				return process.ErrWrongTypeAssertion
 			}
+
+			rtp.saveAccountBalanceForAddress(rTx.GetRcvAddr())
 
 			err := rtp.rewardsProcessor.ProcessRewardTransaction(rTx)
 			if err != nil {
@@ -443,6 +461,8 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		if !haveTime() {
 			return processedTxHashes, process.ErrTimeIsOut
 		}
+
+		rtp.saveAccountBalanceForAddress(miniBlockRewardTxs[index].GetRcvAddr())
 
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[index])
 		if err != nil {
