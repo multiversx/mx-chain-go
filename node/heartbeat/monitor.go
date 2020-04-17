@@ -381,9 +381,36 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 	m.appStatusHandler.SetUInt64Value(core.MetricConnectedNodes, uint64(counterConnectedNodes))
 }
 
+func (m *Monitor) computeInactiveHeartbeatMessages() {
+	m.mutHeartbeatMessages.Lock()
+	inactiveHbChangedMap := make(map[string]*heartbeatMessageInfo)
+	for key, v := range m.heartbeatMessages {
+		isActive := v.GetIsActive()
+		if isActive {
+			continue
+		}
+
+		peerType, shardId := m.computePeerTypeAndShardID([]byte(key))
+		if v.peerType != peerType || v.computedShardID != shardId {
+			hbmi, err := newHeartbeatMessageInfo(v.maxDurationPeerUnresponsive, peerType, v.genesisTime, m.timer)
+			if err == nil {
+				inactiveHbChangedMap[key] = hbmi
+			}
+		}
+	}
+
+	for key, v := range inactiveHbChangedMap {
+		m.heartbeatMessages[key] = v
+	}
+
+	m.mutHeartbeatMessages.Unlock()
+	go m.SaveMultipleHeartbeatMessageInfos(inactiveHbChangedMap)
+}
+
 // GetHeartbeats returns the heartbeat status
 func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	m.computeAllHeartbeatMessages()
+	m.computeInactiveHeartbeatMessages()
 
 	m.mutHeartbeatMessages.Lock()
 	status := make([]PubKeyHeartbeat, len(m.heartbeatMessages))
