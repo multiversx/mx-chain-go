@@ -84,7 +84,7 @@ func (bn *branchNode) setHasher(hasher hashing.Hasher) {
 func (bn *branchNode) getCollapsed() (node, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getCollapsed error %w", err)
 	}
 	if bn.isCollapsed() {
 		return bn, nil
@@ -113,7 +113,7 @@ func (bn *branchNode) getCollapsed() (node, error) {
 func (bn *branchNode) setHash() error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return err
+		return fmt.Errorf("setHash error %w", err)
 	}
 	if bn.getHash() != nil {
 		return nil
@@ -138,7 +138,7 @@ func (bn *branchNode) setHash() error {
 func (bn *branchNode) setRootHash() error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return err
+		return fmt.Errorf("setRootHash error %w", err)
 	}
 	if bn.getHash() != nil {
 		return nil
@@ -182,7 +182,7 @@ func (bn *branchNode) setHashConcurrent(wg *sync.WaitGroup, c chan error) {
 	defer wg.Done()
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		c <- err
+		c <- fmt.Errorf("setHashConcurrent error %w", err)
 		return
 	}
 	if bn.getHash() != nil {
@@ -209,7 +209,7 @@ func (bn *branchNode) setHashConcurrent(wg *sync.WaitGroup, c chan error) {
 func (bn *branchNode) hashChildren() error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return err
+		return fmt.Errorf("hashChildren error %w", err)
 	}
 	for i := 0; i < nrOfChildren; i++ {
 		if bn.children[i] != nil {
@@ -225,7 +225,7 @@ func (bn *branchNode) hashChildren() error {
 func (bn *branchNode) hashNode() ([]byte, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("hashNode error %w", err)
 	}
 	for i := range bn.EncodedChildren {
 		if bn.children[i] != nil {
@@ -244,7 +244,7 @@ func (bn *branchNode) commit(force bool, level byte, originDb data.DBWriteCacher
 	level++
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return err
+		return fmt.Errorf("commit error %w", err)
 	}
 
 	shouldNotCommit := !bn.dirty && !force
@@ -290,7 +290,7 @@ func (bn *branchNode) commit(force bool, level byte, originDb data.DBWriteCacher
 func (bn *branchNode) getEncodedNode() ([]byte, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getEncodedNode error %w", err)
 	}
 	marshaledNode, err := bn.marsh.Marshal(bn)
 	if err != nil {
@@ -303,7 +303,7 @@ func (bn *branchNode) getEncodedNode() ([]byte, error) {
 func (bn *branchNode) resolveCollapsed(pos byte, db data.DBWriteCacher) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return err
+		return fmt.Errorf("resolveCollapsed error %w", err)
 	}
 	if childPosOutOfRange(pos) {
 		return ErrChildPosOutOfRange
@@ -336,7 +336,7 @@ func (bn *branchNode) isPosCollapsed(pos int) bool {
 func (bn *branchNode) tryGet(key []byte, db data.DBWriteCacher) (value []byte, err error) {
 	err = bn.isEmptyOrNil()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("tryGet error %w", err)
 	}
 	if len(key) == 0 {
 		return nil, nil
@@ -360,7 +360,7 @@ func (bn *branchNode) tryGet(key []byte, db data.DBWriteCacher) (value []byte, e
 func (bn *branchNode) getNext(key []byte, db data.DBWriteCacher) (node, []byte, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("getNext error %w", err)
 	}
 	if len(key) == 0 {
 		return nil, nil, ErrValueTooShort
@@ -385,7 +385,7 @@ func (bn *branchNode) insert(n *leafNode, db data.DBWriteCacher) (bool, node, []
 	emptyHashes := make([][]byte, 0)
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return false, nil, emptyHashes, err
+		return false, nil, emptyHashes, fmt.Errorf("insert error %w", err)
 	}
 	if len(n.Key) == 0 {
 		return false, nil, emptyHashes, ErrValueTooShort
@@ -442,7 +442,7 @@ func (bn *branchNode) delete(key []byte, db data.DBWriteCacher) (bool, node, [][
 	emptyHashes := make([][]byte, 0)
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return false, nil, emptyHashes, err
+		return false, nil, emptyHashes, fmt.Errorf("delete error %w", err)
 	}
 	if len(key) == 0 {
 		return false, nil, emptyHashes, ErrValueTooShort
@@ -523,14 +523,14 @@ func (bn *branchNode) clone() *branchNode {
 
 func (bn *branchNode) isEmptyOrNil() error {
 	if bn == nil {
-		return ErrNilNode
+		return ErrNilBranchNode
 	}
 	for i := range bn.children {
 		if bn.children[i] != nil || len(bn.EncodedChildren[i]) != 0 {
 			return nil
 		}
 	}
-	return ErrEmptyNode
+	return ErrEmptyBranchNode
 }
 
 func (bn *branchNode) print(writer io.Writer, index int, db data.DBWriteCacher) {
@@ -603,7 +603,7 @@ func (bn *branchNode) deepClone() node {
 func (bn *branchNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return err
+		return fmt.Errorf("getDirtyHashes error %w", err)
 	}
 
 	if !bn.isDirty() {
@@ -628,7 +628,7 @@ func (bn *branchNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 func (bn *branchNode) getChildren(db data.DBWriteCacher) ([]node, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getChildren error %w", err)
 	}
 
 	nextNodes := make([]node, 0)
@@ -667,7 +667,7 @@ func (bn *branchNode) setDirty(dirty bool) {
 func (bn *branchNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte, []node, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("loadChildren error %w", err)
 	}
 
 	existingChildren := make([]node, 0)
@@ -694,7 +694,7 @@ func (bn *branchNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte
 func (bn *branchNode) getAllLeaves(leaves map[string][]byte, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return err
+		return fmt.Errorf("getAllLeaves error %w", err)
 	}
 
 	for i := range bn.children {

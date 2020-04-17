@@ -2,6 +2,7 @@ package trie
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -76,7 +77,7 @@ func TestExtensionNode_getCollapsedEmptyNode(t *testing.T) {
 	en := &extensionNode{}
 
 	collapsed, err := en.getCollapsed()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
 	assert.Nil(t, collapsed)
 }
 
@@ -86,7 +87,7 @@ func TestExtensionNode_getCollapsedNilNode(t *testing.T) {
 	var en *extensionNode
 
 	collapsed, err := en.getCollapsed()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 	assert.Nil(t, collapsed)
 }
 
@@ -117,7 +118,7 @@ func TestExtensionNode_setHashEmptyNode(t *testing.T) {
 	en := &extensionNode{baseNode: &baseNode{}}
 
 	err := en.setHash()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
 	assert.Nil(t, en.hash)
 }
 
@@ -127,7 +128,7 @@ func TestExtensionNode_setHashNilNode(t *testing.T) {
 	var en *extensionNode
 
 	err := en.setHash()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 	assert.Nil(t, en)
 }
 
@@ -171,7 +172,7 @@ func TestExtensionNode_hashChildrenEmptyNode(t *testing.T) {
 	en := &extensionNode{}
 
 	err := en.hashChildren()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
 }
 
 func TestExtensionNode_hashChildrenNilNode(t *testing.T) {
@@ -180,7 +181,7 @@ func TestExtensionNode_hashChildrenNilNode(t *testing.T) {
 	var en *extensionNode
 
 	err := en.hashChildren()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 }
 
 func TestExtensionNode_hashChildrenCollapsedNode(t *testing.T) {
@@ -212,7 +213,7 @@ func TestExtensionNode_hashNodeEmptyNode(t *testing.T) {
 	en := &extensionNode{}
 
 	hash, err := en.hashNode()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
 	assert.Nil(t, hash)
 }
 
@@ -222,7 +223,7 @@ func TestExtensionNode_hashNodeNilNode(t *testing.T) {
 	var en *extensionNode
 
 	hash, err := en.hashNode()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 	assert.Nil(t, hash)
 }
 
@@ -251,7 +252,7 @@ func TestExtensionNode_commitEmptyNode(t *testing.T) {
 	en := &extensionNode{}
 
 	err := en.commit(false, 0, nil, nil)
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
 }
 
 func TestExtensionNode_commitNilNode(t *testing.T) {
@@ -260,7 +261,7 @@ func TestExtensionNode_commitNilNode(t *testing.T) {
 	var en *extensionNode
 
 	err := en.commit(false, 0, nil, nil)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 }
 
 func TestExtensionNode_commitCollapsedNode(t *testing.T) {
@@ -302,7 +303,7 @@ func TestExtensionNode_getEncodedNodeEmpty(t *testing.T) {
 	en := &extensionNode{}
 
 	encNode, err := en.getEncodedNode()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
 	assert.Nil(t, encNode)
 }
 
@@ -312,7 +313,7 @@ func TestExtensionNode_getEncodedNodeNil(t *testing.T) {
 	var en *extensionNode
 
 	encNode, err := en.getEncodedNode()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 	assert.Nil(t, encNode)
 }
 
@@ -340,7 +341,7 @@ func TestExtensionNode_resolveCollapsedEmptyNode(t *testing.T) {
 	en := &extensionNode{}
 
 	err := en.resolveCollapsed(0, nil)
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
 }
 
 func TestExtensionNode_resolveCollapsedNilNode(t *testing.T) {
@@ -349,7 +350,7 @@ func TestExtensionNode_resolveCollapsedNilNode(t *testing.T) {
 	var en *extensionNode
 
 	err := en.resolveCollapsed(2, nil)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 }
 
 func TestExtensionNode_isCollapsed(t *testing.T) {
@@ -428,7 +429,7 @@ func TestExtensionNode_tryGetEmptyNode(t *testing.T) {
 	key := []byte("dog")
 
 	val, err := en.tryGet(key, nil)
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
 	assert.Nil(t, val)
 }
 
@@ -439,7 +440,7 @@ func TestExtensionNode_tryGetNilNode(t *testing.T) {
 	key := []byte("dog")
 
 	val, err := en.tryGet(key, nil)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 	assert.Nil(t, val)
 }
 
@@ -584,7 +585,7 @@ func TestExtensionNode_insertInNilNode(t *testing.T) {
 
 	dirty, newNode, _, err := en.insert(&leafNode{}, nil)
 	assert.False(t, dirty)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 	assert.Nil(t, newNode)
 }
 
@@ -652,7 +653,7 @@ func TestExtendedNode_deleteEmptyNode(t *testing.T) {
 
 	dirty, newNode, _, err := en.delete([]byte("dog"), nil)
 	assert.False(t, dirty)
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
 	assert.Nil(t, newNode)
 }
 
@@ -663,7 +664,7 @@ func TestExtensionNode_deleteNilNode(t *testing.T) {
 
 	dirty, newNode, _, err := en.delete([]byte("dog"), nil)
 	assert.False(t, dirty)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 	assert.Nil(t, newNode)
 }
 
@@ -730,10 +731,10 @@ func TestExtensionNode_isEmptyOrNil(t *testing.T) {
 	t.Parallel()
 
 	en := &extensionNode{}
-	assert.Equal(t, ErrEmptyNode, en.isEmptyOrNil())
+	assert.Equal(t, ErrEmptyExtensionNode, en.isEmptyOrNil())
 
 	en = nil
-	assert.Equal(t, ErrNilNode, en.isEmptyOrNil())
+	assert.Equal(t, ErrNilExtensionNode, en.isEmptyOrNil())
 }
 
 //------- deepClone
