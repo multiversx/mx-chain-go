@@ -4,6 +4,8 @@ import (
 	"time"
 )
 
+const MaxSizeInBytes = maxSizeInBytes
+
 func (m *Monitor) GetMessages() map[string]*heartbeatMessageInfo {
 	return m.heartbeatMessages
 }

@@ -68,7 +68,7 @@ func (bpc *bech32PubkeyConverter) Decode(humanReadable string) ([]byte, error) {
 	}
 
 	if len(decodedBytes) != bpc.len {
-		return nil, fmt.Errorf("%w when converting to address, expected length %d, received %d",
+		return nil, fmt.Errorf("%w when decoding address, expected length %d, received %d",
 			state.ErrWrongSize, bpc.len, len(decodedBytes))
 	}
 
@@ -77,6 +77,14 @@ func (bpc *bech32PubkeyConverter) Decode(humanReadable string) ([]byte, error) {
 
 // Encode converts the provided bytes in a bech32 form
 func (bpc *bech32PubkeyConverter) Encode(pkBytes []byte) string {
+	if len(pkBytes) != bpc.len {
+		log.Warn("bech32PubkeyConverter.Encode PkBytesLength",
+			"hex buff", hex.EncodeToString(pkBytes),
+			"error", state.ErrWrongSize,
+		)
+		return ""
+	}
+
 	//since the errors generated here are usually because of a bad config, they will be treated here
 	conv, err := bech32.ConvertBits(pkBytes, bech32Config.fromBits, bech32Config.toBits, bech32Config.pad)
 	if err != nil {
