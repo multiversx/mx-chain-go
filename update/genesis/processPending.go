@@ -128,6 +128,7 @@ func (p *pendingProcessor) processSingleTransaction(info *txInfo) error {
 	return nil
 }
 
+// RootHash returns the roothash of the accounts
 func (p *pendingProcessor) RootHash() ([]byte, error) {
 	return p.accounts.RootHash()
 }

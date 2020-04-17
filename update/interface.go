@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -104,7 +105,22 @@ type ExportHandler interface {
 // ImportHandler defines the methods to import the full state of the blockchain
 type ImportHandler interface {
 	ImportAll() error
-	GetAllGenesisBlocks() map[uint32]data.HeaderHandler
+	GetValidatorAccountsDB() state.AccountsAdapter
+	GetMiniBlocks() map[string]*block.MiniBlock
+	GetHardForkMetaBlock() *block.MetaBlock
+	GetTransactions() map[string]data.TransactionHandler
+	GetAccountsDBForShard(shardID uint32) state.AccountsAdapter
+	IsInterfaceNil() bool
+}
+
+// HardForkImportProcessHandler defines the methods to process after hardfork
+type HardForkImportProcessHandler interface {
+	IsInterfaceNil() bool
+}
+
+// PendingTransactionProcessor defines the methods to process a transaction destination me
+type PendingTransactionProcessor interface {
+	ProcessTransactionsDstMe(mapTxs map[string]data.TransactionHandler) error
 	IsInterfaceNil() bool
 }
 

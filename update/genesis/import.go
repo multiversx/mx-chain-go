@@ -387,19 +387,29 @@ func (si *stateImport) saveRootHash(accountsDB state.AccountsAdapter, accType Ty
 	return nil
 }
 
-// ProcessTransactions processes all the pending transactions at the current moment
-func (si *stateImport) ProcessTransactions() error {
-	return nil
+// GetAccountsDBForShard returns the accounts DB for a specific shard
+func (si *stateImport) GetAccountsDBForShard(shardID uint32) state.AccountsAdapter {
+	return si.accountDBsMap[shardID]
 }
 
-// CreateGenesisBlocks creates the genesis blocks for all shards with the data which is imported
-func (si *stateImport) CreateGenesisBlocks() error {
-	return nil
+// GetTransactions returns all pending imported transactions
+func (si *stateImport) GetTransactions() map[string]data.TransactionHandler {
+	return si.transactions
 }
 
-// GetAllGenesisBlocks returns the created genesis blocks
-func (si *stateImport) GetAllGenesisBlocks() map[uint32]data.HeaderHandler {
-	return si.genesisHeaders
+// GetHardForkMetaBlock returns the hardFork metablock
+func (si *stateImport) GetHardForkMetaBlock() *block.MetaBlock {
+	return si.importedMetaBlock
+}
+
+// GetMiniBlocks returns all imported pending miniblocks
+func (si *stateImport) GetMiniBlocks() map[string]*block.MiniBlock {
+	return si.miniBlocks
+}
+
+// GetValidatorAccountsDB returns the imported validator accounts DB
+func (si *stateImport) GetValidatorAccountsDB() state.AccountsAdapter {
+	return si.validatorDB
 }
 
 // IsInterfaceNil returns true if underlying object is nil
