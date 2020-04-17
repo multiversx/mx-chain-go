@@ -112,6 +112,7 @@ func removeFromWaiting(waitingNodes map[uint32][]Validator, leavingNodes []Valid
 		leavingNodes, _ = removeValidatorsFromList(leavingNodes, removedNodes, len(removedNodes))
 		waitingNodes[shard] = vList
 	}
+
 	return waitingNodes, leavingNodes
 }
 
@@ -132,7 +133,7 @@ func shuffleNodesInterShards(
 	var shuffledOutNodes []Validator
 	newNbShards := uint32(len(eligible))
 
-	stillRemainingInLeaving := make([]Validator, 0)
+	stillRemainingInLeaving := make([]Validator, len(leaving))
 	stillRemainingInLeaving = append(leaving, stillRemainingInLeaving...)
 
 	waiting, stillRemainingInLeaving = removeFromWaiting(waiting, stillRemainingInLeaving)
@@ -161,9 +162,10 @@ func shuffleNodesIntraShards(
 	newNodes []Validator,
 	randomness []byte,
 ) (map[uint32][]Validator, map[uint32][]Validator, []Validator) {
+
 	shuffledOutMap := make(map[uint32][]Validator)
 	newNbShards := uint32(len(eligible))
-	stillRemainingInLeaving := make([]Validator, 0)
+	stillRemainingInLeaving := make([]Validator, len(leaving))
 	stillRemainingInLeaving = append(leaving, stillRemainingInLeaving...)
 
 	waiting, stillRemainingInLeaving = removeFromWaiting(waiting, stillRemainingInLeaving)
@@ -262,13 +264,14 @@ func shuffleOutShard(
 	}
 
 	validators, removed = removeValidatorsFromList(validators, leaving, validatorsToSelect)
-	remainingInLeaving, _ := removeValidatorsFromList(leaving, removed, len(removed))
+	stillRemainingInLeaving, _ := removeValidatorsFromList(leaving, removed, len(removed))
 
 	validatorsToSelect -= len(removed)
 	shardShuffledEligible := shuffleList(validators, randomness)
 	shardShuffledOut := shardShuffledEligible[:validatorsToSelect]
 	remainingEligible := shardShuffledEligible[validatorsToSelect:]
-	return shardShuffledOut, remainingEligible, remainingInLeaving
+
+	return shardShuffledOut, remainingEligible, stillRemainingInLeaving
 }
 
 // shuffleList returns a shuffled list of validators.
