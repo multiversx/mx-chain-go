@@ -1387,12 +1387,18 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header *bl
 
 		if err != nil {
 			sp.hdrsForCurrBlock.missingHdrs++
-			sp.hdrsForCurrBlock.hdrHashAndInfo[string(header.MetaBlockHashes[i])] = &hdrInfo{hdr: nil, usedInBlock: true}
+			sp.hdrsForCurrBlock.hdrHashAndInfo[string(header.MetaBlockHashes[i])] = &hdrInfo{
+				hdr:         nil,
+				usedInBlock: true,
+			}
 			go sp.requestHandler.RequestMetaHeader(header.MetaBlockHashes[i])
 			continue
 		}
 
-		sp.hdrsForCurrBlock.hdrHashAndInfo[string(header.MetaBlockHashes[i])] = &hdrInfo{hdr: hdr, usedInBlock: true}
+		sp.hdrsForCurrBlock.hdrHashAndInfo[string(header.MetaBlockHashes[i])] = &hdrInfo{
+			hdr:         hdr,
+			usedInBlock: true,
+		}
 
 		if hdr.Nonce > sp.hdrsForCurrBlock.highestHdrNonce[core.MetachainShardId] {
 			sp.hdrsForCurrBlock.highestHdrNonce[core.MetachainShardId] = hdr.Nonce
