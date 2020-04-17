@@ -69,7 +69,7 @@ func TestPreProcessMessage_AntifloodTopicCanNotProcessShouldErr(t *testing.T) {
 	}
 	expectedErr := errors.New("expected error")
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageOnTopicCalled: func(peer p2p.PeerID, topic string) error {
+		CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
 			return expectedErr
 		},
 	}
@@ -139,20 +139,13 @@ func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *tes
 		chDone <- struct{}{}
 	}()
 
-	removedWasCalled := false
 	processInterceptedData(
 		processor,
-		&mock.WhiteListHandlerStub{
-			RemoveCalled: func(keys [][]byte) {
-				removedWasCalled = true
-			},
-		},
 		&mock.InterceptedDataStub{},
 		wg,
 		&mock.P2PMessageMock{},
 	)
 
-	assert.True(t, removedWasCalled)
 	select {
 	case <-chDone:
 		assert.False(t, processCalled)
@@ -183,20 +176,13 @@ func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T
 		chDone <- struct{}{}
 	}()
 
-	removedWasCalled := false
 	processInterceptedData(
 		processor,
-		&mock.WhiteListHandlerStub{
-			RemoveCalled: func(keys [][]byte) {
-				removedWasCalled = true
-			},
-		},
 		&mock.InterceptedDataStub{},
 		wg,
 		&mock.P2PMessageMock{},
 	)
 
-	assert.True(t, removedWasCalled)
 	select {
 	case <-chDone:
 		assert.True(t, processCalled)
@@ -227,20 +213,13 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 		chDone <- struct{}{}
 	}()
 
-	removedWasCalled := false
 	processInterceptedData(
 		processor,
-		&mock.WhiteListHandlerStub{
-			RemoveCalled: func(keys [][]byte) {
-				removedWasCalled = true
-			},
-		},
 		&mock.InterceptedDataStub{},
 		wg,
 		&mock.P2PMessageMock{},
 	)
 
-	assert.True(t, removedWasCalled)
 	select {
 	case <-chDone:
 		assert.True(t, processCalled)

@@ -1,6 +1,7 @@
 package preprocess
 
 import (
+	"math/big"
 	"sync/atomic"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -133,4 +134,16 @@ func (txs *transactions) GetTxInfoForCurrentBlock(txHash []byte) (data.Transacti
 	}
 
 	return txInfo.tx, txInfo.senderShardID, txInfo.receiverShardID
+}
+
+func (bc *balanceComputation) GetBalanceOfAddress(address []byte) *big.Int {
+	bc.mutAddressBalance.RLock()
+	defer bc.mutAddressBalance.RUnlock()
+
+	currValue, ok := bc.mapAddressBalance[string(address)]
+	if !ok {
+		return nil
+	}
+
+	return big.NewInt(0).Set(currValue)
 }

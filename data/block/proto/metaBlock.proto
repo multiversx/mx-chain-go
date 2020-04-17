@@ -34,18 +34,10 @@ message PeerData {
 	bytes      ValueChange = 5 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
-// ShardMiniBlockHeader holds data for one shard miniblock header
-message ShardMiniBlockHeader {
-	bytes  Hash            = 1;
-	uint32 ReceiverShardID = 2;
-	uint32 SenderShardID   = 3;
-	uint32 TxCount         = 4;
-}
-
 // ShardData holds the block information sent by the shards to the metachain
 message ShardData {
 	bytes                  HeaderHash            = 2;
-	repeated ShardMiniBlockHeader ShardMiniBlockHeaders = 3 [(gogoproto.nullable) = false];
+	repeated MiniBlockHeader ShardMiniBlockHeaders    = 3 [(gogoproto.nullable) = false];
 	bytes                  PrevRandSeed          = 4;
 	bytes                  PubKeysBitmap         = 5;
 	bytes                  Signature             = 6;
@@ -68,7 +60,7 @@ message EpochStartShardData {
 	bytes                         RootHash                 = 3;
 	bytes                         FirstPendingMetaBlock    = 4;
 	bytes                         LastFinishedMetaBlock    = 5;
-	repeated ShardMiniBlockHeader PendingMiniBlockHeaders  = 6 [(gogoproto.nullable) = false];
+	repeated MiniBlockHeader PendingMiniBlockHeaders  = 6 [(gogoproto.nullable) = false];
 }
 
 // Economics holds the block information for total supply and rewards

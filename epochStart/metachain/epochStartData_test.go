@@ -344,14 +344,14 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 	metaHdrStorage := arguments.Store.GetStorer(dataRetriever.MetaBlockUnit)
 	meta1 := &block.MetaBlock{Nonce: 100}
 
-	var hdrs []block.ShardMiniBlockHeader
-	hdrs = append(hdrs, block.ShardMiniBlockHeader{
+	var hdrs []block.MiniBlockHeader
+	hdrs = append(hdrs, block.MiniBlockHeader{
 		Hash:            hash1,
 		ReceiverShardID: 0,
 		SenderShardID:   1,
 		TxCount:         2,
 	})
-	hdrs = append(hdrs, block.ShardMiniBlockHeader{
+	hdrs = append(hdrs, block.MiniBlockHeader{
 		Hash:            mbHash1,
 		ReceiverShardID: 0,
 		SenderShardID:   1,

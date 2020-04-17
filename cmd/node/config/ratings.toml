@@ -10,10 +10,10 @@
 
 
 [General]
-    StartRating = 5000000
+    StartRating = 5000001
     MaxRating = 10000000
     MinRating = 1
-    HoursToMaxRatingFromStartRating = 10
+    HoursToMaxRatingFromStartRating = 72
     SignedBlocksThreshold = 0.01
     SelectionChances = [
         { MaxThreshold = 0, ChancePercent = 5},
