@@ -16,6 +16,7 @@ import (
 type ConsensusCoreMock struct {
 	blockChain             data.ChainHandler
 	blockProcessor         process.BlockProcessor
+	headersSubscriber      consensus.HeadersPoolSubscriber
 	bootstrapper           process.Bootstrapper
 	broadcastMessenger     consensus.BroadcastMessenger
 	chronologyHandler      consensus.ChronologyHandler
@@ -45,6 +46,11 @@ func (ccm *ConsensusCoreMock) Blockchain() data.ChainHandler {
 // BlockProcessor -
 func (ccm *ConsensusCoreMock) BlockProcessor() process.BlockProcessor {
 	return ccm.blockProcessor
+}
+
+// HeadersPoolSubscriber -
+func (ccm *ConsensusCoreMock) HeadersPoolSubscriber() consensus.HeadersPoolSubscriber {
+	return ccm.headersSubscriber
 }
 
 // BootStrapper -
@@ -97,7 +103,7 @@ func (ccm *ConsensusCoreMock) NodesCoordinator() sharding.NodesCoordinator {
 	return ccm.validatorGroupSelector
 }
 
-// RegistrationHandler -
+// EpochStartRegistrationHandler -
 func (ccm *ConsensusCoreMock) EpochStartRegistrationHandler() epochStart.RegistrationHandler {
 	return ccm.epochStartNotifier
 }

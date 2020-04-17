@@ -1066,7 +1066,7 @@ func TestBranchNode_loadChildren(t *testing.T) {
 		return trieNode(cacheData)
 	}
 
-	missing, err := bn.loadChildren(getNode)
+	missing, _, err := bn.loadChildren(getNode)
 	assert.Nil(t, err)
 	assert.NotNil(t, bn.children[firstChildIndex])
 	assert.NotNil(t, bn.children[secondChildIndex])

@@ -22,6 +22,7 @@ func createMockMiniblockArgument() *processor.ArgMiniblockInterceptorProcessor {
 		Marshalizer:      testMarshalizer,
 		Hasher:           testHasher,
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+		WhiteListHandler: &mock.WhiteListHandlerStub{},
 	}
 }
 
@@ -246,6 +247,63 @@ func TestMiniblockInterceptorProcessor_SaveMiniblocksMarshalizerFailShouldNotAdd
 	inTxBlkBdy := createInteceptedMiniblock(miniblock)
 
 	err := tbip.Save(inTxBlkBdy, "")
-
 	assert.Equal(t, errExpected, err)
+}
+
+func TestMiniblockInterceptorProcessor_SaveMiniblockCrossShardForMeNotWhiteListedShouldNotAdd(t *testing.T) {
+	t.Parallel()
+
+	miniblock := &block.MiniBlock{
+		TxHashes:        make([][]byte, 0),
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		Type:            0,
+	}
+
+	arg := createMockMiniblockArgument()
+	whiteListHandler := arg.WhiteListHandler.(*mock.WhiteListHandlerStub)
+	whiteListHandler.IsWhiteListedCalled = func(interceptedData process.InterceptedData) bool {
+		return false
+	}
+
+	cacher := arg.MiniblockCache.(*mock.CacherStub)
+	cacher.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
+		assert.Fail(t, "hasOrAdd should have not been called")
+		return
+	}
+	tbip, _ := processor.NewMiniblockInterceptorProcessor(arg)
+	inTxBlkBdy := createInteceptedMiniblock(miniblock)
+
+	err := tbip.Save(inTxBlkBdy, "")
+	assert.Nil(t, err)
+}
+
+func TestMiniblockInterceptorProcessor_SaveMiniblockCrossShardForMeWhiteListedShouldBeAddInPool(t *testing.T) {
+	t.Parallel()
+
+	miniblock := &block.MiniBlock{
+		TxHashes:        make([][]byte, 0),
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		Type:            0,
+	}
+
+	arg := createMockMiniblockArgument()
+	whiteListHandler := arg.WhiteListHandler.(*mock.WhiteListHandlerStub)
+	whiteListHandler.IsWhiteListedCalled = func(interceptedData process.InterceptedData) bool {
+		return true
+	}
+
+	addedInPool := false
+	cacher := arg.MiniblockCache.(*mock.CacherStub)
+	cacher.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
+		addedInPool = true
+		return
+	}
+	tbip, _ := processor.NewMiniblockInterceptorProcessor(arg)
+	inTxBlkBdy := createInteceptedMiniblock(miniblock)
+
+	err := tbip.Save(inTxBlkBdy, "")
+	assert.Nil(t, err)
+	assert.True(t, addedInPool)
 }

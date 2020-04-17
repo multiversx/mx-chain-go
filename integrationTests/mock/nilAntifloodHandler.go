@@ -20,8 +20,8 @@ func (nah *NilAntifloodHandler) CanProcessMessage(_ p2p.MessageP2P, _ p2p.PeerID
 	return nil
 }
 
-// CanProcessMessageOnTopic will always return nil, allowing messages to go to interceptors
-func (nah *NilAntifloodHandler) CanProcessMessageOnTopic(_ p2p.PeerID, _ string) error {
+// CanProcessMessagesOnTopic will always return nil, allowing messages to go to interceptors
+func (nah *NilAntifloodHandler) CanProcessMessagesOnTopic(_ p2p.PeerID, _ string, _ uint32) error {
 	return nil
 }
 

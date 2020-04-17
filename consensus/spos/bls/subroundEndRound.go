@@ -369,17 +369,22 @@ func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {
 		return err
 	}
 
+	if sr.ShardCoordinator().SelfId() != core.MetachainShardId {
+		var headerHash []byte
+		headerHash, err = core.CalculateHash(sr.Marshalizer(), sr.Hasher(), sr.Header)
+		if err != nil {
+			return err
+		}
+
+		return sr.BroadcastMessenger().SetDataForDelayBroadcast(headerHash, miniBlocks, transactions)
+	}
+
 	err = sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)
 	if err != nil {
 		return err
 	}
 
-	err = sr.BroadcastMessenger().BroadcastTransactions(transactions)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return sr.BroadcastMessenger().BroadcastTransactions(transactions)
 }
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved
@@ -444,7 +449,6 @@ func (sr *subroundEndRound) isOutOfTime() bool {
 			"subround", sr.Name())
 
 		sr.RoundCanceled = true
-
 		return true
 	}
 
