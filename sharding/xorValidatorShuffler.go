@@ -133,7 +133,7 @@ func shuffleNodesInterShards(
 	var shuffledOutNodes []Validator
 	newNbShards := uint32(len(eligible))
 
-	stillRemainingInLeaving := make([]Validator, 0)
+	stillRemainingInLeaving := make([]Validator, 0, len(leaving))
 	stillRemainingInLeaving = append(stillRemainingInLeaving, leaving...)
 
 	waiting, stillRemainingInLeaving = removeFromWaiting(waiting, stillRemainingInLeaving)
@@ -165,7 +165,7 @@ func shuffleNodesIntraShards(
 
 	shuffledOutMap := make(map[uint32][]Validator)
 	newNbShards := uint32(len(eligible))
-	stillRemainingInLeaving := make([]Validator, 0)
+	stillRemainingInLeaving := make([]Validator, 0, len(leaving))
 	stillRemainingInLeaving = append(stillRemainingInLeaving, leaving...)
 
 	waiting, stillRemainingInLeaving = removeFromWaiting(waiting, stillRemainingInLeaving)
