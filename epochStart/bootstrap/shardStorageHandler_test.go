@@ -129,13 +129,13 @@ func TestGetAllMiniBlocksWithDst(t *testing.T) {
 
 	hash1 := []byte("hash1")
 	hash2 := []byte("hash2")
-	shardMiniBlockHeader := block.ShardMiniBlockHeader{SenderShardID: 1, Hash: hash1}
+	shardMiniBlockHeader := block.MiniBlockHeader{SenderShardID: 1, Hash: hash1}
 	miniBlockHeader := block.MiniBlockHeader{SenderShardID: 1, Hash: hash2}
 	metablock := &block.MetaBlock{
 		ShardInfo: []block.ShardData{
 			{
 				ShardID: 1,
-				ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
 					shardMiniBlockHeader,
 					{SenderShardID: 0},
 				},

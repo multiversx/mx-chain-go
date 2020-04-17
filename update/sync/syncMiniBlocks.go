@@ -80,7 +80,7 @@ func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(epochStart *block.Meta
 		return update.ErrWrongUnfinishedMetaHdrsMap
 	}
 
-	listPendingMiniBlocks := make([]block.ShardMiniBlockHeader, 0)
+	listPendingMiniBlocks := make([]block.MiniBlockHeader, 0)
 	nonceToHashMap := p.createNonceToHashMap(unFinished)
 
 	for _, shardData := range epochStart.EpochStart.LastFinalizedHeaders {
@@ -96,11 +96,11 @@ func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(epochStart *block.Meta
 }
 
 // SyncPendingMiniBlocks will sync the miniblocks for the given epoch start meta block
-func (p *pendingMiniBlocks) SyncPendingMiniBlocks(miniBlockHeaders []block.ShardMiniBlockHeader, ctx context.Context) error {
+func (p *pendingMiniBlocks) SyncPendingMiniBlocks(miniBlockHeaders []block.MiniBlockHeader, ctx context.Context) error {
 	return p.syncMiniBlocks(miniBlockHeaders, ctx)
 }
 
-func (p *pendingMiniBlocks) syncMiniBlocks(listPendingMiniBlocks []block.ShardMiniBlockHeader, ctx context.Context) error {
+func (p *pendingMiniBlocks) syncMiniBlocks(listPendingMiniBlocks []block.MiniBlockHeader, ctx context.Context) error {
 	_ = core.EmptyChannel(p.chReceivedAll)
 
 	mapHashesToRequest := make(map[string]uint32)
@@ -174,8 +174,8 @@ func (p *pendingMiniBlocks) computePendingMiniBlocksFromUnFinished(
 	unFinished map[string]*block.MetaBlock,
 	nonceToHash map[uint64]string,
 	epochStartNonce uint64,
-) ([]block.ShardMiniBlockHeader, error) {
-	pending := make([]block.ShardMiniBlockHeader, 0)
+) ([]block.MiniBlockHeader, error) {
+	pending := make([]block.MiniBlockHeader, 0)
 	pending = append(pending, shardData.PendingMiniBlockHeaders...)
 
 	firstPendingMeta, ok := unFinished[string(shardData.FirstPendingMetaBlock)]
@@ -203,8 +203,8 @@ func (p *pendingMiniBlocks) computePendingMiniBlocksFromUnFinished(
 	return pending, nil
 }
 
-func getAllMiniBlocksWithDst(m *block.MetaBlock, destId uint32) []block.ShardMiniBlockHeader {
-	mbHdrs := make([]block.ShardMiniBlockHeader, 0)
+func getAllMiniBlocksWithDst(m *block.MetaBlock, destId uint32) []block.MiniBlockHeader {
+	mbHdrs := make([]block.MiniBlockHeader, 0)
 	for i := 0; i < len(m.ShardInfo); i++ {
 		if m.ShardInfo[i].ShardID == destId {
 			continue
@@ -219,13 +219,7 @@ func getAllMiniBlocksWithDst(m *block.MetaBlock, destId uint32) []block.ShardMin
 
 	for _, val := range m.MiniBlockHeaders {
 		if val.ReceiverShardID == destId && val.SenderShardID != destId {
-			shardMiniBlockHdr := block.ShardMiniBlockHeader{
-				Hash:            val.Hash,
-				ReceiverShardID: val.ReceiverShardID,
-				SenderShardID:   val.SenderShardID,
-				TxCount:         val.TxCount,
-			}
-			mbHdrs = append(mbHdrs, shardMiniBlockHdr)
+			mbHdrs = append(mbHdrs, val)
 		}
 	}
 

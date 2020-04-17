@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/big"
 	"sort"
 	"sync"
 	"time"
@@ -37,13 +38,11 @@ type transactions struct {
 	txPool               dataRetriever.ShardedDataCacherNotifier
 	storage              dataRetriever.StorageService
 	txProcessor          process.TransactionProcessor
-	accounts             state.AccountsAdapter
 	orderedTxs           map[string][]data.TransactionHandler
 	orderedTxHashes      map[string][][]byte
 	mutOrderedTxs        sync.RWMutex
 	blockTracker         BlockTracker
 	blockType            block.Type
-	pubkeyConverter      state.PubkeyConverter
 	accountsInfo         map[string]*txShardInfo
 	mutAccountsInfo      sync.RWMutex
 	emptyAddress         []byte
@@ -65,6 +64,7 @@ func NewTransactionPreprocessor(
 	blockType block.Type,
 	pubkeyConverter state.PubkeyConverter,
 	blockSizeComputation BlockSizeComputationHandler,
+	balanceComputation BalanceComputationHandler,
 ) (*transactions, error) {
 
 	if check.IfNil(hasher) {
@@ -106,6 +106,9 @@ func NewTransactionPreprocessor(
 	if check.IfNil(blockSizeComputation) {
 		return nil, process.ErrNilBlockSizeComputationHandler
 	}
+	if check.IfNil(balanceComputation) {
+		return nil, process.ErrNilBalanceComputationHandler
+	}
 
 	bpp := basePreProcess{
 		hasher:               hasher,
@@ -114,6 +117,9 @@ func NewTransactionPreprocessor(
 		gasHandler:           gasHandler,
 		economicsFee:         economicsFee,
 		blockSizeComputation: blockSizeComputation,
+		balanceComputation:   balanceComputation,
+		accounts:             accounts,
+		pubkeyConverter:      pubkeyConverter,
 	}
 
 	txs := transactions{
@@ -122,10 +128,8 @@ func NewTransactionPreprocessor(
 		txPool:               txDataPool,
 		onRequestTransaction: onRequestTransaction,
 		txProcessor:          txProcessor,
-		accounts:             accounts,
 		blockTracker:         blockTracker,
 		blockType:            blockType,
-		pubkeyConverter:      pubkeyConverter,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
@@ -393,6 +397,8 @@ func (txs *transactions) processTxsToMe(
 		senderShardID := txsToMe[index].SenderShardID
 		receiverShardID := txsToMe[index].ReceiverShardID
 
+		txs.saveAccountBalanceForAddress(tx.GetRcvAddr())
+
 		err = txs.processAndRemoveBadTransaction(
 			txHash,
 			tx,
@@ -448,6 +454,10 @@ func (txs *transactions) processTxsFromMe(
 	)
 	if err != nil {
 		return err
+	}
+
+	if !haveTime() {
+		return process.ErrTimeIsOut
 	}
 
 	receivedMiniBlocks := make(block.MiniBlockSlice, 0)
@@ -541,8 +551,6 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.mutAccountsInfo.Lock()
 	txs.accountsInfo = make(map[string]*txShardInfo)
 	txs.mutAccountsInfo.Unlock()
-
-	txs.blockSizeComputation.Init()
 }
 
 // RequestBlockTransactions request for transactions if missing from a block.Body
@@ -551,44 +559,22 @@ func (txs *transactions) RequestBlockTransactions(body *block.Body) int {
 		return 0
 	}
 
-	requestedTxs := 0
-	missingTxsForShards := txs.computeMissingAndExistingTxsForShards(body)
-
-	txs.txsForCurrBlock.mutTxsForBlock.Lock()
-	for senderShardID, mbsTxHashes := range missingTxsForShards {
-		for _, mbTxHashes := range mbsTxHashes {
-			txs.setMissingTxsForShard(senderShardID, mbTxHashes)
-		}
-	}
-	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
-
-	for senderShardID, mbsTxHashes := range missingTxsForShards {
-		for _, mbTxHashes := range mbsTxHashes {
-			requestedTxs += len(mbTxHashes.txHashes)
-			txs.onRequestTransaction(senderShardID, mbTxHashes.txHashes)
-		}
-	}
-
-	return requestedTxs
+	return txs.computeExistingAndRequestMissingTxsForShards(body)
 }
 
-func (txs *transactions) setMissingTxsForShard(senderShardID uint32, mbTxHashes *txsHashesInfo) {
-	txShardInfoToSet := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbTxHashes.receiverShardID}
-	for _, txHash := range mbTxHashes.txHashes {
-		txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfoToSet}
-	}
-}
-
-// computeMissingAndExistingTxsForShards calculates what transactions are available and what are missing from block.Body
-func (txs *transactions) computeMissingAndExistingTxsForShards(body *block.Body) map[uint32][]*txsHashesInfo {
-	missingTxsForShard := txs.computeExistingAndMissing(
+// computeExistingAndRequestMissingTxsForShards calculates what transactions are available and requests
+// what are missing from block.Body
+func (txs *transactions) computeExistingAndRequestMissingTxsForShards(body *block.Body) int {
+	numMissingTxsForShard := txs.computeExistingAndRequestMissing(
 		body,
 		&txs.txsForCurrBlock,
 		txs.chRcvAllTxs,
 		txs.isMiniBlockCorrect,
-		txs.txPool)
+		txs.txPool,
+		txs.onRequestTransaction,
+	)
 
-	return missingTxsForShard
+	return numMissingTxsForShard
 }
 
 // processAndRemoveBadTransactions processed transactions, if txs are with error it removes them from pool
@@ -650,7 +636,7 @@ func (txs *transactions) getAccountForAddress(address []byte) (state.AccountHand
 		return nil, err
 	}
 
-	account, err := txs.accounts.LoadAccount(addressContainer)
+	account, err := txs.accounts.GetExistingAccount(addressContainer)
 	if err != nil {
 		return nil, err
 	}
@@ -798,6 +784,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	numTxsBad := 0
 	numTxsSkipped := 0
 	numTxsFailed := 0
+	numTxsWithInitialBalanceConsumed := 0
 
 	totalTimeUsedForProcesss := time.Duration(0)
 	totalTimeUsedForComputeGasConsumed := time.Duration(0)
@@ -866,6 +853,20 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		if len(senderAddressToSkip) > 0 {
 			if bytes.Equal(senderAddressToSkip, tx.GetSndAddr()) {
 				numTxsSkipped++
+				continue
+			}
+		}
+
+		txMaxTotalCost := big.NewInt(0)
+		isAddressSet := txs.balanceComputation.IsAddressSet(tx.GetSndAddr())
+		if isAddressSet {
+			txMaxTotalCost = txs.getTxMaxTotalCost(tx)
+		}
+
+		if isAddressSet {
+			addressHasEnoughBalance := txs.balanceComputation.AddressHasEnoughBalance(tx.GetSndAddr(), txMaxTotalCost)
+			if !addressHasEnoughBalance {
+				numTxsWithInitialBalanceConsumed++
 				continue
 			}
 		}
@@ -954,6 +955,16 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 			continue
 		}
 
+		if isAddressSet {
+			ok = txs.balanceComputation.SubBalanceFromAddress(tx.GetSndAddr(), txMaxTotalCost)
+			if !ok {
+				log.Error("createAndProcessMiniBlocksFromMe.SubBalanceFromAddress",
+					"sender address", tx.GetSndAddr(),
+					"tx max total cost", txMaxTotalCost,
+					"err", process.ErrInsufficientFunds)
+			}
+		}
+
 		if len(miniBlock.TxHashes) == 0 {
 			txs.blockSizeComputation.AddNumMiniBlocks(1)
 		}
@@ -985,6 +996,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		"num txs bad", numTxsBad,
 		"num txs failed", numTxsFailed,
 		"num txs skipped", numTxsSkipped,
+		"num txs with initial balance consumed", numTxsWithInitialBalanceConsumed,
 		"used time for computeGasConsumed", totalTimeUsedForComputeGasConsumed,
 		"used time for processAndRemoveBadTransaction", totalTimeUsedForProcesss)
 
@@ -1102,6 +1114,8 @@ func (txs *transactions) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime f
 			err = process.ErrTimeIsOut
 			return processedTxHashes, err
 		}
+
+		txs.saveAccountBalanceForAddress(miniBlockTxs[index].GetRcvAddr())
 
 		err = txs.txProcessor.ProcessTransaction(miniBlockTxs[index])
 		if err != nil {

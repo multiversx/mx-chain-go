@@ -11,110 +11,72 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMetaChainMessenger_NewMetaChainMessengerNilMarshalizerShouldFail(t *testing.T) {
+func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
+	marshalizerMock := &mock.MarshalizerMock{}
 	messengerMock := &mock.MessengerStub{}
 	privateKeyMock := &mock.PrivateKeyMock{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
 
-	mcm, err := broadcast.NewMetaChainMessenger(
-		nil,
-		messengerMock,
-		privateKeyMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-	)
+	return broadcast.MetaChainMessengerArgs{
+		CommonMessengerArgs: broadcast.CommonMessengerArgs{
+			Marshalizer:      marshalizerMock,
+			Messenger:        messengerMock,
+			PrivateKey:       privateKeyMock,
+			ShardCoordinator: shardCoordinatorMock,
+			SingleSigner:     singleSignerMock,
+		},
+	}
+}
+
+func TestMetaChainMessenger_NewMetaChainMessengerNilMarshalizerShouldFail(t *testing.T) {
+	args := createDefaultMetaChainArgs()
+	args.Marshalizer = nil
+	mcm, err := broadcast.NewMetaChainMessenger(args)
 
 	assert.Nil(t, mcm)
 	assert.Equal(t, spos.ErrNilMarshalizer, err)
 }
 
 func TestMetaChainMessenger_NewMetaChainMessengerNilMessengerShouldFail(t *testing.T) {
-	marshalizerMock := &mock.MarshalizerMock{}
-	privateKeyMock := &mock.PrivateKeyMock{}
-	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-
-	mcm, err := broadcast.NewMetaChainMessenger(
-		marshalizerMock,
-		nil,
-		privateKeyMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-	)
+	args := createDefaultMetaChainArgs()
+	args.Messenger = nil
+	mcm, err := broadcast.NewMetaChainMessenger(args)
 
 	assert.Nil(t, mcm)
 	assert.Equal(t, spos.ErrNilMessenger, err)
 }
 
 func TestMetaChainMessenger_NewMetaChainMessengerNilPrivateKeyShouldFail(t *testing.T) {
-	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
-	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-
-	mcm, err := broadcast.NewMetaChainMessenger(
-		marshalizerMock,
-		messengerMock,
-		nil,
-		shardCoordinatorMock,
-		singleSignerMock,
-	)
+	args := createDefaultMetaChainArgs()
+	args.PrivateKey = nil
+	mcm, err := broadcast.NewMetaChainMessenger(args)
 
 	assert.Nil(t, mcm)
 	assert.Equal(t, spos.ErrNilPrivateKey, err)
 }
 
 func TestMetaChainMessenger_NewMetaChainMessengerNilShardCoordinatorShouldFail(t *testing.T) {
-	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
-	privateKeyMock := &mock.PrivateKeyMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-
-	mcm, err := broadcast.NewMetaChainMessenger(
-		marshalizerMock,
-		messengerMock,
-		privateKeyMock,
-		nil,
-		singleSignerMock,
-	)
+	args := createDefaultMetaChainArgs()
+	args.ShardCoordinator = nil
+	mcm, err := broadcast.NewMetaChainMessenger(args)
 
 	assert.Nil(t, mcm)
 	assert.Equal(t, spos.ErrNilShardCoordinator, err)
 }
 
 func TestMetaChainMessenger_NewMetaChainMessengerNilSingleSignerShouldFail(t *testing.T) {
-	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
-	privateKeyMock := &mock.PrivateKeyMock{}
-	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-
-	mcm, err := broadcast.NewMetaChainMessenger(
-		marshalizerMock,
-		messengerMock,
-		privateKeyMock,
-		shardCoordinatorMock,
-		nil,
-	)
+	args := createDefaultMetaChainArgs()
+	args.SingleSigner = nil
+	mcm, err := broadcast.NewMetaChainMessenger(args)
 
 	assert.Nil(t, mcm)
 	assert.Equal(t, spos.ErrNilSingleSigner, err)
 }
 
 func TestMetaChainMessenger_NewMetaChainMessengerShouldWork(t *testing.T) {
-	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
-	privateKeyMock := &mock.PrivateKeyMock{}
-	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-
-	mcm, err := broadcast.NewMetaChainMessenger(
-		marshalizerMock,
-		messengerMock,
-		privateKeyMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-	)
+	args := createDefaultMetaChainArgs()
+	mcm, err := broadcast.NewMetaChainMessenger(args)
 
 	assert.NotNil(t, mcm)
 	assert.Equal(t, nil, err)
@@ -122,118 +84,57 @@ func TestMetaChainMessenger_NewMetaChainMessengerShouldWork(t *testing.T) {
 }
 
 func TestMetaChainMessenger_BroadcastBlockShouldErrNilMetaHeader(t *testing.T) {
-	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
-	privateKeyMock := &mock.PrivateKeyMock{}
-	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-
-	mcm, _ := broadcast.NewMetaChainMessenger(
-		marshalizerMock,
-		messengerMock,
-		privateKeyMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-	)
+	args := createDefaultMetaChainArgs()
+	mcm, _ := broadcast.NewMetaChainMessenger(args)
 
 	err := mcm.BroadcastBlock(newTestBlockBody(), nil)
 	assert.Equal(t, spos.ErrNilMetaHeader, err)
 }
 
 func TestMetaChainMessenger_BroadcastBlockShouldErrMockMarshalizer(t *testing.T) {
-	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
-	privateKeyMock := &mock.PrivateKeyMock{}
-	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-	marshalizerMock.Fail = true
-
-	mcm, _ := broadcast.NewMetaChainMessenger(
-		marshalizerMock,
-		messengerMock,
-		privateKeyMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-	)
+	marshalizer := &mock.MarshalizerMock{
+		Fail: true,
+	}
+	args := createDefaultMetaChainArgs()
+	args.Marshalizer = marshalizer
+	mcm, _ := broadcast.NewMetaChainMessenger(args)
 
 	err := mcm.BroadcastBlock(newTestBlockBody(), &block.MetaBlock{})
 	assert.Equal(t, mock.ErrMockMarshalizer, err)
 }
 
 func TestMetaChainMessenger_BroadcastBlockShouldWork(t *testing.T) {
-	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{
+	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 		},
 	}
-	privateKeyMock := &mock.PrivateKeyMock{}
-	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-
-	mcm, _ := broadcast.NewMetaChainMessenger(
-		marshalizerMock,
-		messengerMock,
-		privateKeyMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-	)
+	args := createDefaultMetaChainArgs()
+	args.Messenger = messenger
+	mcm, _ := broadcast.NewMetaChainMessenger(args)
 
 	err := mcm.BroadcastBlock(newTestBlockBody(), &block.MetaBlock{})
 	assert.Nil(t, err)
 }
 
 func TestMetaChainMessenger_BroadcastMiniBlocksShouldWork(t *testing.T) {
-	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
-	privateKeyMock := &mock.PrivateKeyMock{}
-	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-
-	mcm, _ := broadcast.NewMetaChainMessenger(
-		marshalizerMock,
-		messengerMock,
-		privateKeyMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-	)
+	args := createDefaultMetaChainArgs()
+	mcm, _ := broadcast.NewMetaChainMessenger(args)
 
 	err := mcm.BroadcastMiniBlocks(nil)
 	assert.Nil(t, err)
 }
 
 func TestMetaChainMessenger_BroadcastTransactionsShouldWork(t *testing.T) {
-	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
-	privateKeyMock := &mock.PrivateKeyMock{}
-	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-
-	mcm, _ := broadcast.NewMetaChainMessenger(
-		marshalizerMock,
-		messengerMock,
-		privateKeyMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-	)
+	args := createDefaultMetaChainArgs()
+	mcm, _ := broadcast.NewMetaChainMessenger(args)
 
 	err := mcm.BroadcastTransactions(nil)
 	assert.Nil(t, err)
 }
 
 func TestMetaChainMessenger_BroadcastHeaderNilHeaderShouldErr(t *testing.T) {
-	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{}
-	privateKeyMock := &mock.PrivateKeyMock{}
-	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-
-	mcm, _ := broadcast.NewMetaChainMessenger(
-		marshalizerMock,
-		messengerMock,
-		privateKeyMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-	)
+	args := createDefaultMetaChainArgs()
+	mcm, _ := broadcast.NewMetaChainMessenger(args)
 
 	err := mcm.BroadcastHeader(nil)
 	assert.Equal(t, spos.ErrNilHeader, err)
@@ -242,23 +143,14 @@ func TestMetaChainMessenger_BroadcastHeaderNilHeaderShouldErr(t *testing.T) {
 func TestMetaChainMessenger_BroadcastHeaderOkHeaderShouldWork(t *testing.T) {
 	channelCalled := make(chan bool)
 
-	marshalizerMock := &mock.MarshalizerMock{}
-	messengerMock := &mock.MessengerStub{
+	messenger := &mock.MessengerStub{
 		BroadcastCalled: func(topic string, buff []byte) {
 			channelCalled <- true
 		},
 	}
-	privateKeyMock := &mock.PrivateKeyMock{}
-	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
-	singleSignerMock := &mock.SingleSignerMock{}
-
-	mcm, _ := broadcast.NewMetaChainMessenger(
-		marshalizerMock,
-		messengerMock,
-		privateKeyMock,
-		shardCoordinatorMock,
-		singleSignerMock,
-	)
+	args := createDefaultMetaChainArgs()
+	args.Messenger = messenger
+	mcm, _ := broadcast.NewMetaChainMessenger(args)
 
 	hdr := block.Header{
 		Nonce: 10,

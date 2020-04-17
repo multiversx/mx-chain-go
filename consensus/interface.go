@@ -7,6 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
+// BlsConsensusType specifies the signature scheme used in the consensus
+const BlsConsensusType = "bls"
+
 // Rounder defines the actions which should be handled by a round implementation
 type Rounder interface {
 	Index() int64
@@ -60,6 +63,7 @@ type BroadcastMessenger interface {
 	BroadcastMiniBlocks(map[uint32][]byte) error
 	BroadcastTransactions(map[string][][]byte) error
 	BroadcastConsensusMessage(*Message) error
+	SetDataForDelayBroadcast(headerHash []byte, miniBlocks map[uint32][]byte, transactions map[string][][]byte) error
 	IsInterfaceNil() bool
 }
 
@@ -82,8 +86,14 @@ type NetworkShardingCollector interface {
 // p2p messages
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
-	CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error
+	CanProcessMessagesOnTopic(peer p2p.PeerID, topic string, numMessages uint32) error
 	ResetForTopic(topic string)
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
+	IsInterfaceNil() bool
+}
+
+// HeadersPoolSubscriber can subscribe for notifications when a new block header is added to the headers pool
+type HeadersPoolSubscriber interface {
+	RegisterHandler(handler func(headerHandler data.HeaderHandler, headerHash []byte))
 	IsInterfaceNil() bool
 }
