@@ -1,5 +1,3 @@
-source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
-
 # Determine which terminal emulator is available 
 # (currently, one of "konsole", "gnome-terminal" or "none").
 # TMUX support is in development.

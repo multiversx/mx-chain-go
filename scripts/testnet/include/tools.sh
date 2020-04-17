@@ -1,4 +1,3 @@
-source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 source "$ELRONDTESTNETSCRIPTSDIR/include/terminal.sh"
 
 startProxy() {

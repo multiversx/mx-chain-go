@@ -1,5 +1,3 @@
-source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
-
 prepareFolders() {
   [ -d $TESTNETDIR ] || mkdir -p $TESTNETDIR
   cd $TESTNETDIR

@@ -51,14 +51,6 @@ export META_VALIDATORCOUNT=3
 export META_OBSERVERCOUNT=1
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
-# Leave unchanged.
-let "total_observer_count = $SHARD_OBSERVERCOUNT * $SHARDCOUNT + $META_OBSERVERCOUNT"
-export TOTAL_OBSERVERCOUNT=$total_observer_count
-
-# Leave unchanged.
-let "total_node_count = $SHARD_VALIDATORCOUNT * $SHARDCOUNT + $META_VALIDATORCOUNT + $TOTAL_OBSERVERCOUNT"
-export TOTAL_NODECOUNT=$total_node_count
-
 # Okay as defaults, change if needed.
 export MINT_VALUE="1000000000000000000000000000"
 
@@ -141,4 +133,12 @@ LOCAL_OVERRIDES="$ELRONDTESTNETSCRIPTSDIR/local.sh"
 if [ -f "$LOCAL_OVERRIDES" ]; then
   source "$ELRONDTESTNETSCRIPTSDIR/local.sh"
 fi
+
+# Leave unchanged.
+let "total_observer_count = $SHARD_OBSERVERCOUNT * $SHARDCOUNT + $META_OBSERVERCOUNT"
+export TOTAL_OBSERVERCOUNT=$total_observer_count
+
+# Leave unchanged.
+let "total_node_count = $SHARD_VALIDATORCOUNT * $SHARDCOUNT + $META_VALIDATORCOUNT + $TOTAL_OBSERVERCOUNT"
+export TOTAL_NODECOUNT=$total_node_count
 
