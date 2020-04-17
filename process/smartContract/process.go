@@ -468,6 +468,7 @@ func (sc *scProcessor) DeploySmartContract(
 	}
 
 	vmOutput, err := vm.RunSmartContractCreate(vmInput)
+	gasLog.Info("RunSmartContractCreate", "tx", txHash, "GasProvided", vmInput.GasProvided, "GasRemaining", vmOutput.GasRemaining, "GasRefund", vmOutput.GasRefund, "retCode", vmOutput.ReturnCode, "data", string(tx.GetData()))
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
 		return nil
