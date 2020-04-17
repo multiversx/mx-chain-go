@@ -7,6 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
+// BlsConsensusType specifies the signature scheme used in the consensus
+const BlsConsensusType = "bls"
+
 // Rounder defines the actions which should be handled by a round implementation
 type Rounder interface {
 	Index() int64
@@ -83,7 +86,7 @@ type NetworkShardingCollector interface {
 // p2p messages
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
-	CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error
+	CanProcessMessagesOnTopic(peer p2p.PeerID, topic string, numMessages uint32) error
 	ResetForTopic(topic string)
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
 	IsInterfaceNil() bool

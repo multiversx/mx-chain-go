@@ -84,9 +84,15 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		return err
 	}
 	multiDataBuff := b.Data
-	if len(multiDataBuff) == 0 {
+	lenMultiData := len(multiDataBuff)
+	if lenMultiData == 0 {
 		mdi.throttler.EndProcessing()
 		return process.ErrNoDataInMessage
+	}
+
+	err = mdi.antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, mdi.topic, uint32(lenMultiData))
+	if err != nil {
+		return err
 	}
 
 	interceptedMultiData := make([]process.InterceptedData, 0)
