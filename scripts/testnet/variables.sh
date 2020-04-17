@@ -32,18 +32,6 @@ export SEEDNODE="$SEEDNODEDIR/seednode"   # Leave unchanged.
 # blank to not adjust niceness.
 export NODE_NICENESS=10
 
-# Use tmux or not. If set to 1, only 2 terminal windows will be opened, and
-# tmux will be used to display the running executables using split windows.
-# Recommended. Tmux needs to be installed.
-export USETMUX=1
-
-# Start Nodes with TermUI or not. Looks good with TermUI, but if you want full
-# info and saved logs, set this to 0. TermUI can't save logs.
-export NODETERMUI=1
-
-# Log level for the logger in the Node.
-export LOGLEVEL="*:DEBUG"
-
 # Delays after running executables.
 export SEEDNODE_DELAY=5
 export NODE_DELAY=10
@@ -92,25 +80,31 @@ export PORT_ORIGIN_VALIDATOR_REST="9500"
 # Address of the Seednode. Will be written to the p2p.toml file of the Nodes
 export P2P_SEEDNODE_ADDRESS="/ip4/127.0.0.1/tcp/$PORT_SEEDNODE/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk"
 
+
+# UI configuration profiles
+
+# Use tmux or not. If set to 1, only 2 terminal windows will be opened, and
+# tmux will be used to display the running executables using split windows.
+# Recommended. Tmux needs to be installed.
+export USETMUX=1
+
+# Start Nodes with TermUI or not. Looks good with TermUI, but if you want full
+# info and saved logs, set this to 0. TermUI can't save logs.
+export NODETERMUI=1
+
+# Log level for the logger in the Node.
+export LOGLEVEL="*:INFO"
+
+
 if [ "$TESTNETMODE" == "debug" ]; then
   NODETERMUI=0
-  USETMUX=1
   LOGLEVEL="*:DEBUG"
 fi
 
 if [ "$TESTNETMODE" == "trace" ]; then
   NODETERMUI=0
-  USETMUX=1
   LOGLEVEL="*:TRACE"
 fi
-
-if [ "$TESTNETMODE" == "ui" ]; then
-  NODETERMUI=1
-  USETMUX=1
-  LOGLEVEL="*:DEBUG"
-fi
-
-
 
 ########################################################################
 # Proxy configuration (WARNING: elrond-proxy-go is a private repository)
@@ -139,6 +133,12 @@ export NUMACCOUNTS="250"
 # Whether txgen should regenerate its accounts when starting, or not.
 # Recommended value is 1, but 0 is useful to run the txgen a second time, to
 # continue a testing session on the same accounts.
-export TXGEN_REGENERATE_ACCOUNTS=1
-export TXGEN_ERC20_MODE=1
+export TXGEN_REGENERATE_ACCOUNTS=0
+export TXGEN_ERC20_MODE=0
+
+# Load local overrides, .gitignored
+LOCAL_OVERRIDES="$ELRONDTESTNETSCRIPTSDIR/local.sh"
+if [ -f "$LOCAL_OVERRIDES" ]; then
+  source "$ELRONDTESTNETSCRIPTSDIR/local.sh"
+fi
 

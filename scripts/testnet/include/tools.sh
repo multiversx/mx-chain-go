@@ -3,7 +3,7 @@ source "$ELRONDTESTNETSCRIPTSDIR/include/terminal.sh"
 
 startProxy() {
   setTerminalSession "elrond-tools"
-  setTerminalLayout "even-horizontal"
+  setTerminalLayout "even-vertical"
 
   setWorkdirForNextCommands "$TESTNETDIR/proxy"
   runCommandInTerminal "./proxy" $1 v
@@ -23,7 +23,7 @@ stopProxy() {
 
 startTxGen_NewAccounts() {
   setTerminalSession "elrond-tools"
-  setTerminalLayout "even-horizontal"
+  setTerminalLayout "even-vertical"
 
   setWorkdirForNextCommands "$TESTNETDIR/txgen" v
 
@@ -38,7 +38,7 @@ startTxGen_NewAccounts() {
 
 startTxGen_ExistingAccounts() {
   setTerminalSession "elrond-tools"
-  setTerminalLayout "even-horizontal"
+  setTerminalLayout "even-vertical"
 
   setWorkdirForNextCommands "$TESTNETDIR/txgen" v
 
