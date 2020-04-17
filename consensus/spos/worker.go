@@ -302,7 +302,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	}
 
 	topic := GetConsensusTopicIDFromShardCoordinator(wrk.shardCoordinator)
-	err = wrk.antifloodHandler.CanProcessMessageOnTopic(message.Peer(), topic)
+	err = wrk.antifloodHandler.CanProcessMessagesOnTopic(message.Peer(), topic, 1)
 	if err != nil {
 		return err
 	}

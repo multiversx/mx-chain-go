@@ -121,7 +121,7 @@ func TestNewTxProcessor_NilHasherShouldErr(t *testing.T) {
 	assert.Nil(t, txProc)
 }
 
-func TestNewTxProcessor_NilAddressConverterMockShouldErr(t *testing.T) {
+func TestNewTxProcessor_NilPubkeyConverterMockShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txProc, err := txproc.NewTxProcessor(
