@@ -117,6 +117,12 @@ func (sbt *shardBlockTrack) ComputeCrossInfo(headers []data.HeaderHandler) {
 		sbt.blockBalancer.SetLastShardProcessedMetaNonce(shardInfo.ShardID, shardInfo.LastIncludedMetaNonce)
 	}
 
+	log.Debug("compute cross info from meta block",
+		"epoch", metaBlock.Epoch,
+		"round", metaBlock.Round,
+		"nonce", metaBlock.Nonce,
+	)
+
 	for shardID := uint32(0); shardID < sbt.shardCoordinator.NumberOfShards(); shardID++ {
 		log.Debug("cross info",
 			"shard", shardID,
