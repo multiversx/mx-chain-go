@@ -50,10 +50,14 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 				Size:   10,
 				Shards: 2,
 			},
-			PeerMaxMessagesPerSecond:  10,
-			PeerMaxTotalSizePerSecond: 10,
-			MaxMessagesPerSecond:      10,
-			MaxTotalSizePerSecond:     10,
+			PeerMaxInput: config.AntifloodLimitsConfig{
+				MessagesPerSecond:  10,
+				TotalSizePerSecond: 10,
+			},
+			NetworkMaxInput: config.AntifloodLimitsConfig{
+				MessagesPerSecond:  10,
+				TotalSizePerSecond: 10,
+			},
 			Topic: config.TopicAntifloodConfig{
 				DefaultMaxMessagesPerSec: 10,
 			},

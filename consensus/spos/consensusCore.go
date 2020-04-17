@@ -30,7 +30,7 @@ type ConsensusCore struct {
 	nodesCoordinator              sharding.NodesCoordinator
 	syncTimer                     ntp.SyncTimer
 	epochStartRegistrationHandler epochStart.RegistrationHandler
-	antifloodHandler     		  consensus.P2PAntifloodHandler
+	antifloodHandler              consensus.P2PAntifloodHandler
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -50,14 +50,13 @@ type ConsensusCoreArgs struct {
 	NodesCoordinator              sharding.NodesCoordinator
 	SyncTimer                     ntp.SyncTimer
 	EpochStartRegistrationHandler epochStart.RegistrationHandler
-	AntifloodHandler     		  consensus.P2PAntifloodHandler
+	AntifloodHandler              consensus.P2PAntifloodHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
 func NewConsensusCore(
 	args *ConsensusCoreArgs,
 ) (*ConsensusCore, error) {
-
 	consensusCore := &ConsensusCore{
 		blockChain:                    args.BlockChain,
 		blockProcessor:                args.BlockProcessor,
@@ -74,7 +73,7 @@ func NewConsensusCore(
 		nodesCoordinator:              args.NodesCoordinator,
 		syncTimer:                     args.SyncTimer,
 		epochStartRegistrationHandler: args.EpochStartRegistrationHandler,
-		antifloodHandler:     		   args.AntifloodHandler,
+		antifloodHandler:              args.AntifloodHandler,
 	}
 
 	err := ValidateConsensusCore(consensusCore)

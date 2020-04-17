@@ -107,6 +107,9 @@ var TestBlockSizeThrottler = &mock.BlockSizeThrottlerStub{}
 // TestBlockSizeComputation represents a block size computation handler
 var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer, TestBlockSizeThrottler, uint32(core.MegabyteSize*90/100))
 
+// TestBalanceComputationHandler represents a balance computation handler
+var TestBalanceComputationHandler, _ = preprocess.NewBalanceComputation()
+
 // MinTxGasPrice defines minimum gas price required by a transaction
 var MinTxGasPrice = uint64(10)
 
@@ -438,6 +441,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.SingleSigner,
+		tpn.DataPool.Headers(),
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
@@ -920,6 +924,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.GasHandler,
 		tpn.BlockTracker,
 		TestBlockSizeComputationHandler,
+		TestBalanceComputationHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -935,6 +940,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.GasHandler,
 		tpn.FeeAccumulator,
 		TestBlockSizeComputationHandler,
+		TestBalanceComputationHandler,
 	)
 }
 
@@ -1026,6 +1032,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.BlockTracker,
 		TestAddressPubkeyConverter,
 		TestBlockSizeComputationHandler,
+		TestBalanceComputationHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1041,6 +1048,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.GasHandler,
 		tpn.FeeAccumulator,
 		TestBlockSizeComputationHandler,
+		TestBalanceComputationHandler,
 	)
 }
 
@@ -1124,9 +1132,9 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
-		blsKeyedAddressConverter, _ := pubkeyConverter.NewHexPubkeyConverter(128)
+		blsKeyedPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(128)
 		argsStakingToPeer := scToProtocol.ArgStakingToPeer{
-			PubkeyConv:       blsKeyedAddressConverter,
+			PubkeyConv:       blsKeyedPubkeyConverter,
 			Hasher:           TestHasher,
 			ProtoMarshalizer: TestMarshalizer,
 			VmMarshalizer:    TestVmMarshalizer,
@@ -1647,6 +1655,7 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 		Store:            tpn.Storage,
 		StartHeaders:     tpn.GenesisBlocks,
 		PoolsHolder:      tpn.DataPool,
+		WhitelistHandler: tpn.WhiteListHandler,
 	}
 
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {

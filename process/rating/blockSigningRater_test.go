@@ -450,7 +450,13 @@ func TestBlockSigningRater_GetChancesForStartRatingdReturnStartRatingChance(t *t
 
 func TestBlockSigningRater_GetChancesForSetRatingShouldReturnCorrectRating(t *testing.T) {
 	rd := createDefaultRatingsData()
-
+	rd.SelectionChancesProperty = []process.SelectionChance{
+		&rating.SelectionChance{MaxThreshold: 0, ChancePercent: 50},
+		&rating.SelectionChance{MaxThreshold: 10, ChancePercent: 0},
+		&rating.SelectionChance{MaxThreshold: 25, ChancePercent: 90},
+		&rating.SelectionChance{MaxThreshold: 75, ChancePercent: 100},
+		&rating.SelectionChance{MaxThreshold: 100, ChancePercent: 110},
+	}
 	bsr, _ := rating.NewBlockSigningRater(rd)
 
 	ratingValue := uint32(80)
@@ -458,6 +464,26 @@ func TestBlockSigningRater_GetChancesForSetRatingShouldReturnCorrectRating(t *te
 
 	chancesFor80 := uint32(110)
 	assert.Equal(t, chancesFor80, chances)
+}
+
+func TestBlockSigningRater_GetChancesForSetRatingShouldReturnCorrectRatingForThresholdValue(t *testing.T) {
+	rd := createDefaultRatingsData()
+
+	rd.SelectionChancesProperty = []process.SelectionChance{
+		&rating.SelectionChance{MaxThreshold: 0, ChancePercent: 50},
+		&rating.SelectionChance{MaxThreshold: 10, ChancePercent: 0},
+		&rating.SelectionChance{MaxThreshold: 25, ChancePercent: 90},
+		&rating.SelectionChance{MaxThreshold: 75, ChancePercent: 100},
+		&rating.SelectionChance{MaxThreshold: 100, ChancePercent: 110},
+	}
+
+	bsr, _ := rating.NewBlockSigningRater(rd)
+
+	ratingValue := uint32(75)
+	chances := bsr.GetChance(ratingValue)
+
+	chancesFor75 := uint32(100)
+	assert.Equal(t, chancesFor75, chances)
 }
 
 func TestBlockSigningRater_PositiveDecreaseRatingStep(t *testing.T) {

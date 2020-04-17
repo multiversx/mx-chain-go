@@ -1687,11 +1687,11 @@ func (mp *metaProcessor) createShardInfo() ([]block.ShardData, error) {
 		shardData.AccumulatedFees = shardHdr.AccumulatedFees
 
 		if len(shardHdr.MiniBlockHeaders) > 0 {
-			shardData.ShardMiniBlockHeaders = make([]block.ShardMiniBlockHeader, 0, len(shardHdr.MiniBlockHeaders))
+			shardData.ShardMiniBlockHeaders = make([]block.MiniBlockHeader, 0, len(shardHdr.MiniBlockHeaders))
 		}
 
 		for i := 0; i < len(shardHdr.MiniBlockHeaders); i++ {
-			shardMiniBlockHeader := block.ShardMiniBlockHeader{}
+			shardMiniBlockHeader := block.MiniBlockHeader{}
 			shardMiniBlockHeader.SenderShardID = shardHdr.MiniBlockHeaders[i].SenderShardID
 			shardMiniBlockHeader.ReceiverShardID = shardHdr.MiniBlockHeaders[i].ReceiverShardID
 			shardMiniBlockHeader.Hash = shardHdr.MiniBlockHeaders[i].Hash
