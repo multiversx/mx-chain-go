@@ -28,16 +28,16 @@ func TestNewTopicFloodPreventer_OkValsShouldWork(t *testing.T) {
 	assert.False(t, tfp.IsInterfaceNil())
 }
 
-func TestTopicFloodPreventer_AccumulateOnceShouldWork(t *testing.T) {
+func TestTopicFloodPreventer_IncreaseLoadOnceShouldWork(t *testing.T) {
 	t.Parallel()
 
 	tfp, _ := floodPreventers.NewTopicFloodPreventer(10)
 
-	ok := tfp.Accumulate("ion", "topic_1")
-	assert.True(t, ok)
+	err := tfp.IncreaseLoad("pid", "topic_1", 1)
+	assert.Nil(t, err)
 }
 
-func TestTopicFloodPreventer_AccumulateShouldReturnFalseIfNumberIsExceeded(t *testing.T) {
+func TestTopicFloodPreventer_IncreaseLoadShouldReturnFalseIfNumberIsExceeded(t *testing.T) {
 	t.Parallel()
 
 	defaultMaxMessages := uint32(2)
@@ -48,18 +48,18 @@ func TestTopicFloodPreventer_AccumulateShouldReturnFalseIfNumberIsExceeded(t *te
 	id := "identifier"
 	topic := "topic_1"
 	// call Accumulate 2 times so this will return true
-	ok := tfp.Accumulate(id, topic)
-	assert.True(t, ok)
+	err := tfp.IncreaseLoad(id, topic, 1)
+	assert.Nil(t, err)
 
-	ok = tfp.Accumulate(id, topic)
-	assert.True(t, ok)
+	err = tfp.IncreaseLoad(id, topic, 1)
+	assert.Nil(t, err)
 
 	// this time, it should fail
-	ok = tfp.Accumulate(id, topic)
-	assert.False(t, ok)
+	err = tfp.IncreaseLoad(id, topic, 1)
+	assert.Equal(t, process.ErrSystemBusy, err)
 }
 
-func TestTopicFloodPreventer_AccumulateShouldReturnFalseIfNumberIsExceededUsingCustomLimitForTopic(t *testing.T) {
+func TestTopicFloodPreventer_IncreaseLoadShouldReturnFalseIfNumberIsExceededUsingCustomLimitForTopic(t *testing.T) {
 	t.Parallel()
 
 	defaultMaxMessages := uint32(2)
@@ -71,20 +71,50 @@ func TestTopicFloodPreventer_AccumulateShouldReturnFalseIfNumberIsExceededUsingC
 
 	// set the limit for the topic, so it should use the custom value instead of the default
 	tfp.SetMaxMessagesForTopic(topic, customMaxMessages)
-	// call Accumulate 2 times so this will return true
-	ok := tfp.Accumulate(id, topic)
-	assert.True(t, ok)
+	// call Accumulate 2 times so this will return nil
+	err := tfp.IncreaseLoad(id, topic, 1)
+	assert.Nil(t, err)
 
-	ok = tfp.Accumulate(id, topic)
-	assert.True(t, ok)
+	err = tfp.IncreaseLoad(id, topic, 1)
+	assert.Nil(t, err)
 
 	// this time, it should still pass because the max number of messages for the given topic was rewritten
-	ok = tfp.Accumulate(id, topic)
-	assert.True(t, ok)
+	err = tfp.IncreaseLoad(id, topic, 1)
+	assert.Nil(t, err)
 
-	// now the custom value is reached, so the Accumulate should return false
-	ok = tfp.Accumulate(id, topic)
-	assert.False(t, ok)
+	// now the custom value is reached, so the Accumulate should return error
+	err = tfp.IncreaseLoad(id, topic, 1)
+	assert.Equal(t, process.ErrSystemBusy, err)
+}
+
+func TestTopicFloodPreventer_IncreaseLoadShouldReturnFalseIfNumberIsExceededWithNumMessages(t *testing.T) {
+	t.Parallel()
+
+	defaultMaxMessages := uint32(20)
+	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
+
+	id := "identifier"
+	topic := "topic_1"
+
+	err := tfp.IncreaseLoad(id, topic, defaultMaxMessages-1)
+	assert.Nil(t, err)
+
+	tfp.ResetForTopic(topic)
+
+	err = tfp.IncreaseLoad(id, topic, defaultMaxMessages)
+	assert.Nil(t, err)
+
+	tfp.ResetForTopic(topic)
+
+	err = tfp.IncreaseLoad(id, topic, defaultMaxMessages+1)
+	assert.Equal(t, process.ErrSystemBusy, err)
+
+	tfp.ResetForTopic(topic)
+
+	err = tfp.IncreaseLoad(id, topic, 5)
+	assert.Nil(t, err)
+	err = tfp.IncreaseLoad(id, topic, defaultMaxMessages-4)
+	assert.Equal(t, process.ErrSystemBusy, err)
 }
 
 func TestTopicFloodPreventer_ResetForTopic(t *testing.T) {
@@ -96,17 +126,17 @@ func TestTopicFloodPreventer_ResetForTopic(t *testing.T) {
 	id := "identifier"
 	topic := "topic_1"
 
-	// call Accumulate 2 times. it should work
-	ok := tfp.Accumulate(id, topic)
-	assert.True(t, ok)
+	// call IncreaseLoad 2 times. it should work
+	err := tfp.IncreaseLoad(id, topic, 1)
+	assert.Nil(t, err)
 
-	ok = tfp.Accumulate(id, topic)
-	assert.True(t, ok)
+	err = tfp.IncreaseLoad(id, topic, 1)
+	assert.Nil(t, err)
 
 	assert.Equal(t, uint32(2), tfp.CountForTopicAndIdentifier(topic, id))
 
-	// now call Reset so we should be able to call Accumulate again with result true
-	// If the Reset wouldn't have been called, then the method would have returned false
+	// now call Reset so we should be able to call Accumulate again with result nil
+	// If the Reset wouldn't have been called, then the method would have errored
 	tfp.ResetForTopic(topic)
 
 	assert.Equal(t, uint32(0), tfp.CountForTopicAndIdentifier(topic, id))
@@ -123,10 +153,10 @@ func TestTopicFloodPreventer_ResetForTopicWithBadWildcardNothingShouldHappen(t *
 	topic2 := "topic_2"
 
 	// call Accumulate 2 times. it should work
-	ok := tfp.Accumulate(id, topic1)
-	assert.True(t, ok)
-	ok = tfp.Accumulate(id, topic2)
-	assert.True(t, ok)
+	err := tfp.IncreaseLoad(id, topic1, 1)
+	assert.Nil(t, err)
+	err = tfp.IncreaseLoad(id, topic2, 1)
+	assert.Nil(t, err)
 
 	// check the values
 	assert.Equal(t, uint32(1), tfp.CountForTopicAndIdentifier(topic1, id))
@@ -157,11 +187,11 @@ func TestTopicFloodPreventer_ResetForTopicWithOkWildcardShouldReset(t *testing.T
 	topic1 := "topic_1"
 	topic2 := "topic_2"
 
-	// call Accumulate for both topics. it should work
-	ok := tfp.Accumulate(id, topic1)
-	assert.True(t, ok)
-	ok = tfp.Accumulate(id, topic2)
-	assert.True(t, ok)
+	// call IncreaseLoad for both topics. it should work
+	err := tfp.IncreaseLoad(id, topic1, 1)
+	assert.Nil(t, err)
+	err = tfp.IncreaseLoad(id, topic2, 1)
+	assert.Nil(t, err)
 
 	// check the values
 	assert.Equal(t, uint32(1), tfp.CountForTopicAndIdentifier(topic1, id))
@@ -220,4 +250,64 @@ func TestTopicFloodPreventer_MaxMessagesOnWildcardTopicCachesTheValue(t *testing
 	_, ok = maxMessagesMap[headersTopic]
 
 	assert.True(t, ok)
+}
+
+func TestTopicFloodPreventer_ResetForNotRegisteredTopics(t *testing.T) {
+	t.Parallel()
+
+	defaultMaxMessages := uint32(2)
+	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
+
+	identifier := "pid"
+	headersTopic := "headers"
+	headersMaxMessages := uint32(100)
+	tfp.SetMaxMessagesForTopic(headersTopic, headersMaxMessages)
+
+	unregisteredTopic := "unregistered topic"
+
+	err := tfp.IncreaseLoad(identifier, headersTopic, defaultMaxMessages)
+	assert.Nil(t, err)
+
+	err = tfp.IncreaseLoad(identifier, unregisteredTopic, defaultMaxMessages)
+	assert.Nil(t, err)
+
+	tfp.ResetForNotRegisteredTopics()
+
+	//registered topic should not have been reset
+	assert.Equal(t, defaultMaxMessages, tfp.CountForTopicAndIdentifier(headersTopic, identifier))
+	//unregistered topic should have been reset
+	assert.Equal(t, uint32(0), tfp.CountForTopicAndIdentifier(unregisteredTopic, identifier))
+
+	err = tfp.IncreaseLoad(identifier, unregisteredTopic, defaultMaxMessages)
+	assert.Nil(t, err)
+}
+
+func TestTopicFloodPreventer_ResetForNotRegisteredTopicsWithWildcardShuldWork(t *testing.T) {
+	t.Parallel()
+
+	defaultMaxMessages := uint32(2)
+	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
+
+	identifier := "pid"
+	headersTopic := "headers"
+	headersMaxMessages := uint32(100)
+	tfp.SetMaxMessagesForTopic(headersTopic+floodPreventers.WildcardCharacter, headersMaxMessages)
+
+	unregisteredTopic := "unregistered topic"
+
+	err := tfp.IncreaseLoad(identifier, headersTopic, defaultMaxMessages)
+	assert.Nil(t, err)
+
+	err = tfp.IncreaseLoad(identifier, unregisteredTopic, defaultMaxMessages)
+	assert.Nil(t, err)
+
+	tfp.ResetForNotRegisteredTopics()
+
+	//registered topic should not have been reset
+	assert.Equal(t, defaultMaxMessages, tfp.CountForTopicAndIdentifier(headersTopic, identifier))
+	//unregistered topic should have been reset
+	assert.Equal(t, uint32(0), tfp.CountForTopicAndIdentifier(unregisteredTopic, identifier))
+
+	err = tfp.IncreaseLoad(identifier, unregisteredTopic, defaultMaxMessages)
+	assert.Nil(t, err)
 }

@@ -88,9 +88,6 @@ func GetNewMockRater() *RaterMock {
 	raterMock.GetChancesCalled = func(val uint32) uint32 {
 		return raterMock.Chance
 	}
-	raterMock.GetChancesCalled = func(val uint32) uint32 {
-		return raterMock.Chance
-	}
 	return raterMock
 }
 

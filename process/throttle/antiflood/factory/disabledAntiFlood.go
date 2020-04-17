@@ -23,8 +23,8 @@ func (daf *disabledAntiFlood) CanProcessMessage(_ p2p.MessageP2P, _ p2p.PeerID) 
 	return nil
 }
 
-// CanProcessMessageOnTopic will always return nil
-func (daf *disabledAntiFlood) CanProcessMessageOnTopic(_ p2p.PeerID, _ string) error {
+// CanProcessMessagesOnTopic will always return nil
+func (daf *disabledAntiFlood) CanProcessMessagesOnTopic(_ p2p.PeerID, _ string, _ uint32) error {
 	return nil
 }
 

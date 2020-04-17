@@ -11,7 +11,7 @@ import (
 var _ dataRetriever.Resolver = (*TrieNodeResolver)(nil)
 
 // maxBuffToSendTrieNodes represents max buffer size to send in bytes
-var maxBuffToSendTrieNodes = uint64(2 << 17) //128KB
+var maxBuffToSendTrieNodes = uint64(1 << 18) //256KB
 
 // ArgTrieNodeResolver is the argument structure used to create new TrieNodeResolver instance
 type ArgTrieNodeResolver struct {

@@ -129,7 +129,7 @@ func TestSyncEpochStartMetaHeader_MetaBlockInStorage(t *testing.T) {
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{ShardID: 0, RootHash: []byte("shardDataRootHash"),
-					PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{
 						{Hash: []byte("hash")},
 					},
 				},
@@ -224,7 +224,7 @@ func TestSyncEpochStartMetaHeader_ReceiveHeaderOk(t *testing.T) {
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{ShardID: 0, RootHash: []byte("shardDataRootHash"),
-					PendingMiniBlockHeaders: []block.ShardMiniBlockHeader{
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{
 						{Hash: []byte("hash")},
 					},
 				},

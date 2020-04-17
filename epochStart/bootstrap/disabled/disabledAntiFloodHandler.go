@@ -15,13 +15,13 @@ func NewAntiFloodHandler() *antiFloodHandler {
 	return &antiFloodHandler{}
 }
 
-// CanProcessMessage return nil regardless of the input
+// CanProcessMessage returns nil regardless of the input
 func (a *antiFloodHandler) CanProcessMessage(_ p2p.MessageP2P, _ p2p.PeerID) error {
 	return nil
 }
 
-// CanProcessMessageOnTopic return nil regardless of the input
-func (a *antiFloodHandler) CanProcessMessageOnTopic(_ p2p.PeerID, _ string) error {
+// CanProcessMessagesOnTopic returns nil regardless of the input
+func (a *antiFloodHandler) CanProcessMessagesOnTopic(_ p2p.PeerID, _ string, _ uint32) error {
 	return nil
 }
 

@@ -81,30 +81,43 @@ func NewPeerShardMapper(
 // GetPeerInfo returns the corresponding shard ID of a given peer ID.
 // It also returns the type of provided peer
 func (psm *PeerShardMapper) GetPeerInfo(pid p2p.PeerID) core.P2PPeerInfo {
-	pInfo, pk, ok := psm.getPeerInfoWithNodesCoordinator(pid)
+	var pInfo *core.P2PPeerInfo
+	var pk []byte
+	var ok bool
+
+	defer func() {
+		if pInfo != nil {
+			log.Trace("PeerShardMapper.GetPeerInfo",
+				"peer type", pInfo.PeerType.String(),
+				"pid", p2p.PeerIdToShortString(pid),
+				"pk", pk,
+			)
+		}
+	}()
+
+	pInfo, pk, ok = psm.getPeerInfoWithNodesCoordinator(pid)
 	if ok {
-		return pInfo
+		return *pInfo
 	}
 
 	shardId, ok := psm.getShardIDSearchingPkInFallbackCache(pk)
 	if ok {
-		return core.P2PPeerInfo{
+		pInfo = &core.P2PPeerInfo{
 			PeerType: core.ObserverdPeer,
 			ShardID:  shardId,
 		}
-	}
 
-	return psm.getPeerInfoSearchingPidInFallbackCache(pid)
+		return *pInfo
+	}
+	pInfo = psm.getPeerInfoSearchingPidInFallbackCache(pid)
+
+	return *pInfo
 }
 
-func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid p2p.PeerID) (core.P2PPeerInfo, []byte, bool) {
+func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid p2p.PeerID) (*core.P2PPeerInfo, []byte, bool) {
 	pkObj, ok := psm.peerIdPk.Get([]byte(pid))
 	if !ok {
-		log.Trace("unknown peer",
-			"pid", p2p.PeerIdToShortString(pid),
-		)
-
-		return core.P2PPeerInfo{
+		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
 			ShardID:  0,
 		}, nil, false
@@ -114,7 +127,7 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid p2p.PeerID) (cor
 	if !ok {
 		log.Warn("PeerShardMapper.getShardIDWithNodesCoordinator: the contained element should have been of type []byte")
 
-		return core.P2PPeerInfo{
+		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
 			ShardID:  0,
 		}, nil, false
@@ -126,25 +139,13 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid p2p.PeerID) (cor
 
 	_, shardId, err := psm.nodesCoordinator.GetValidatorWithPublicKey(pkBuff, epoch)
 	if err != nil {
-		log.Trace("unknown peer",
-			"pid", p2p.PeerIdToShortString(pid),
-			"pk", pkBuff,
-			"error", err,
-		)
-
-		return core.P2PPeerInfo{
+		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
 			ShardID:  0,
 		}, pkBuff, false
 	}
 
-	log.Trace("peer",
-		"pid", p2p.PeerIdToShortString(pid),
-		"pk", pkBuff,
-		"shard ID", shardId,
-	)
-
-	return core.P2PPeerInfo{
+	return &core.P2PPeerInfo{
 		PeerType: core.ValidatorPeer,
 		ShardID:  shardId,
 	}, pkBuff, true
@@ -154,17 +155,11 @@ func (psm *PeerShardMapper) getShardIDSearchingPkInFallbackCache(pkBuff []byte) 
 	defaultShardId := uint32(0)
 
 	if len(pkBuff) == 0 {
-		log.Trace("unknown peer pk is nil")
-
 		return defaultShardId, false
 	}
 
 	shardObj, ok := psm.fallbackPkShard.Get(pkBuff)
 	if !ok {
-		log.Trace("unknown peer",
-			"pk", pkBuff,
-		)
-
 		return defaultShardId, false
 	}
 
@@ -175,22 +170,13 @@ func (psm *PeerShardMapper) getShardIDSearchingPkInFallbackCache(pkBuff []byte) 
 		return defaultShardId, false
 	}
 
-	log.Trace("peer",
-		"pk", pkBuff,
-		"shard ID", shardId,
-	)
-
 	return shard, true
 }
 
-func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid p2p.PeerID) core.P2PPeerInfo {
+func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid p2p.PeerID) *core.P2PPeerInfo {
 	shardObj, ok := psm.fallbackPidShard.Get([]byte(pid))
 	if !ok {
-		log.Trace("unknown peer",
-			"pid", pid,
-		)
-
-		return core.P2PPeerInfo{
+		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
 			ShardID:  0,
 		}
@@ -200,18 +186,13 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid p2p.PeerI
 	if !ok {
 		log.Warn("PeerShardMapper.getShardIDSearchingPidInFallbackCache: the contained element should have been of type uint32")
 
-		return core.P2PPeerInfo{
+		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
 			ShardID:  0,
 		}
 	}
 
-	log.Trace("peer",
-		"pid", pid,
-		"shard ID", shard,
-	)
-
-	return core.P2PPeerInfo{
+	return &core.P2PPeerInfo{
 		PeerType: core.ObserverdPeer,
 		ShardID:  shard,
 	}
@@ -239,6 +220,7 @@ func (psm *PeerShardMapper) UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte) {
 	pq, ok := objPidsQueue.(*pidQueue)
 	if !ok {
 		log.Warn("PeerShardMapper.UpdatePeerIdPublicKey: the contained element should have been of type pidQueue")
+
 		return
 	}
 
