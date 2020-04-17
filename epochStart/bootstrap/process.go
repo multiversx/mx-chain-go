@@ -41,7 +41,7 @@ import (
 var log = logger.GetOrCreate("epochStart/bootstrap")
 
 const timeToWait = time.Minute
-const trieSyncWaitTime = 5 * time.Minute
+const trieSyncWaitTime = 10 * time.Minute
 const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
