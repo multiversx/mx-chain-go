@@ -3,11 +3,14 @@ package dataValidators
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var log = logger.GetOrCreate("process/dataValidators")
 
 // txValidator represents a tx handler validator that doesn't check the validity of provided txHandler
 type txValidator struct {
@@ -76,6 +79,16 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 			err.Error(),
 		)
 	}
+
+	//TODO: Remove next if section
+	if interceptedTx.Nonce() > accountHandler.GetNonce()+uint64(txv.maxNonceDeltaAllowed) {
+		log.Warn("veryHighNonceInTx",
+			"account nonce", accountHandler.GetNonce(),
+			"intercepted tx nonce", interceptedTx.Nonce())
+	}
+
+	//TODO: Remove next return
+	return nil
 
 	accountNonce := accountHandler.GetNonce()
 	txNonce := interceptedTx.Nonce()
