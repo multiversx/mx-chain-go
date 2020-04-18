@@ -303,6 +303,7 @@ func Test_promoteWaitingToEligible(t *testing.T) {
 }
 
 func Test_removeValidatorFromListFirst(t *testing.T) {
+	t.Skip()
 	t.Parallel()
 
 	validators := generateValidatorList(30)
@@ -332,6 +333,7 @@ func Test_removeValidatorFromListLast(t *testing.T) {
 }
 
 func Test_removeValidatorFromListMiddle(t *testing.T) {
+	t.Skip()
 	t.Parallel()
 
 	validators := generateValidatorList(30)
