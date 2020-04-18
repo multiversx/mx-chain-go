@@ -807,9 +807,9 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 
 	senderAddressToSkip := []byte("")
 
-	defer func() {
-		go txs.notifyTransactionProviderIfNeeded()
-	}()
+	//defer func() {
+	//	go txs.notifyTransactionProviderIfNeeded()
+	//}()
 
 	for shardID := uint32(0); shardID < txs.shardCoordinator.NumberOfShards(); shardID++ {
 		mapMiniBlocks[shardID] = txs.createEmptyMiniBlock(txs.shardCoordinator.SelfId(), shardID, block.TxBlock)
