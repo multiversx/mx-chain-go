@@ -335,8 +335,7 @@ func removeValidatorFromList(validatorList []Validator, index int) []Validator {
 		return validatorList
 	}
 
-	validatorList[index] = validatorList[len(validatorList)-1]
-	return validatorList[:len(validatorList)-1]
+	return append(validatorList[:index], validatorList[index+1:]...)
 }
 
 // xorBytes XORs two byte arrays up to the shortest length of the two, and returns the resulted XORed bytes.
