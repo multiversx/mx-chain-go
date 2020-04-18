@@ -279,7 +279,7 @@ func (bpp *basePreProcess) computeMissedTxsFoundInPool(
 ) int {
 	numTxsFoundInPool := 0
 	for txHash, txInfo := range forBlock.txHashAndInfo {
-		if txInfo.tx == nil {
+		if check.IfNil(txInfo.tx) {
 			tx, _ := process.GetTransactionHandlerFromPool(
 				txInfo.senderShardID,
 				txInfo.receiverShardID,
