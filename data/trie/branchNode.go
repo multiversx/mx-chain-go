@@ -484,11 +484,6 @@ func (bn *branchNode) delete(key []byte, db data.DBWriteCacher) (bool, node, [][
 			return false, nil, emptyHashes, err
 		}
 
-		err = resolveIfCollapsed(bn.children[pos], 0, db)
-		if err != nil {
-			return false, nil, emptyHashes, err
-		}
-
 		newNode, err = bn.children[pos].reduceNode(pos)
 		if err != nil {
 			return false, nil, emptyHashes, err
