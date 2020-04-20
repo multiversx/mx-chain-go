@@ -193,3 +193,6 @@ var ErrNilTxCoordinator = errors.New("nil tx coordinator")
 
 // ErrNilPendingTxProcessor signals that nil pending tx processor has been provided
 var ErrNilPendingTxProcessor = errors.New("nil pending tx processor")
+
+// ErrNilHardForkBlockProcessor signals that nil hard fork block processor has been provided
+var ErrNilHardForkBlockProcessor = errors.New("nil hard fork block processor")
