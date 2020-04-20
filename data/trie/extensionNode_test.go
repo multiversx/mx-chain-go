@@ -717,6 +717,21 @@ func TestExtensionNode_reduceNode(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestExtensionNode_reduceNodeCollapsedNode(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	_ = tr.Commit()
+	rootHash, _ := tr.Root()
+	collapsedTrie, _ := tr.Recreate(rootHash)
+
+	err := collapsedTrie.Delete([]byte("doe"))
+	assert.Nil(t, err)
+
+	err = collapsedTrie.Commit()
+	assert.Nil(t, err)
+}
+
 func TestExtensionNode_clone(t *testing.T) {
 	t.Parallel()
 
