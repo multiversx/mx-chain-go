@@ -1,7 +1,7 @@
 package txcache
 
 import (
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
@@ -24,7 +24,7 @@ func (cache *TxCache) monitorTxRemoval() {
 }
 
 func (cache *TxCache) monitorEvictionStart() *core.StopWatch {
-	log.Trace("TxCache: eviction started", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
+	log.Debug("TxCache: eviction started", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
 	cache.displaySendersHistogram()
 	sw := core.NewStopWatch()
 	sw.Start("eviction")
@@ -36,13 +36,13 @@ func (cache *TxCache) monitorEvictionEnd(stopWatch *core.StopWatch) {
 	duration := stopWatch.GetMeasurement("eviction")
 	numTxAdded := cache.numTxAddedDuringEviction.Reset()
 	numTxRemoved := cache.numTxRemovedDuringEviction.Reset()
-	log.Trace("TxCache: eviction ended", "name", cache.name, "duration", duration, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders(), "numTxAddedDuringEviction", numTxAdded, "numTxRemovedDuringEviction", numTxRemoved)
+	log.Debug("TxCache: eviction ended", "name", cache.name, "duration", duration, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders(), "numTxAddedDuringEviction", numTxAdded, "numTxRemovedDuringEviction", numTxRemoved)
 	cache.evictionJournal.display()
 	cache.displaySendersHistogram()
 }
 
 func (cache *TxCache) monitorSelectionStart() *core.StopWatch {
-	log.Trace("TxCache: selection started", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
+	log.Debug("TxCache: selection started", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
 	cache.displaySendersHistogram()
 	sw := core.NewStopWatch()
 	sw.Start("selection")
@@ -54,7 +54,7 @@ func (cache *TxCache) monitorSelectionEnd(selection []*WrappedTransaction, stopW
 	duration := stopWatch.GetMeasurement("selection")
 	numTxAdded := cache.numTxAddedBetweenSelections.Reset()
 	numTxRemoved := cache.numTxRemovedBetweenSelections.Reset()
-	log.Trace("TxCache: selection ended", "name", cache.name, "duration", duration, "numTxSelected", len(selection), "numTxAddedBetweenSelections", numTxAdded, "numTxRemovedBetweenSelections", numTxRemoved)
+	log.Debug("TxCache: selection ended", "name", cache.name, "duration", duration, "numTxSelected", len(selection), "numTxAddedBetweenSelections", numTxAdded, "numTxRemovedBetweenSelections", numTxRemoved)
 	cache.displaySendersHistogram()
 
 	go cache.diagnose()
@@ -62,7 +62,7 @@ func (cache *TxCache) monitorSelectionEnd(selection []*WrappedTransaction, stopW
 
 func (cache *TxCache) displaySendersHistogram() {
 	txListBySenderMap := cache.txListBySender.backingMap
-	log.Trace("TxCache.sendersHistogram:", "chunks", txListBySenderMap.ChunksCounts(), "scoreChunks", txListBySenderMap.ScoreChunksCounts())
+	log.Debug("TxCache.sendersHistogram:", "chunks", txListBySenderMap.ChunksCounts(), "scoreChunks", txListBySenderMap.ScoreChunksCounts())
 }
 
 func (cache *TxCache) onRemoveTxInconsistency(txHash []byte) {
@@ -88,8 +88,8 @@ type evictionJournal struct {
 }
 
 func (journal *evictionJournal) display() {
-	log.Trace("Eviction.pass1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
-	log.Trace("Eviction.pass2:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders, "steps", journal.passTwoNumSteps)
+	log.Debug("Eviction.pass1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
+	log.Debug("Eviction.pass2:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders, "steps", journal.passTwoNumSteps)
 }
 
 func (cache *TxCache) diagnose() {

@@ -130,6 +130,8 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 	st.blkExecutor.ApplyProcessedMiniBlocks(processedMiniBlocks)
 
+	st.cleanupStorageForHigherNonceIfExist()
+
 	for i := 0; i < len(storageHeadersInfo)-1; i++ {
 		st.cleanupStorage(storageHeadersInfo[i].LastHeader)
 		st.bootstrapper.cleanupNotarizedStorage(storageHeadersInfo[i].LastHeader.Hash)
@@ -143,6 +145,37 @@ func (st *storageBootstrapper) loadBlocks() error {
 	st.highestNonce = headerInfo.LastHeader.Nonce
 
 	return nil
+}
+
+func (st *storageBootstrapper) cleanupStorageForHigherNonceIfExist() {
+	round := st.bootStorer.GetHighestRound()
+	bootstrapData, err := st.bootStorer.Get(round)
+	if err != nil {
+		log.Debug("cleanupStorageForHigherNonceIfExist.Get",
+			"round", round,
+			"error", err.Error())
+		return
+	}
+
+	highestBlockNonce := bootstrapData.LastHeader.GetNonce()
+	header, hash, err := st.bootstrapper.getHeaderWithNonce(highestBlockNonce+1, st.shardCoordinator.SelfId())
+	if err != nil {
+		log.Trace("cleanupStorageForHigherNonceIfExist.getHeaderWithNonce",
+			"shard", st.shardCoordinator.SelfId(),
+			"nonce", highestBlockNonce+1,
+			"error", err)
+		return
+	}
+
+	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
+		ShardId: header.GetShardID(),
+		Epoch:   header.GetEpoch(),
+		Nonce:   header.GetNonce(),
+		Hash:    hash,
+	}
+
+	st.cleanupStorage(headerInfo)
+	st.bootstrapper.cleanupNotarizedStorage(headerInfo.Hash)
 }
 
 // GetHighestBlockNonce will return nonce of last block loaded from storage
