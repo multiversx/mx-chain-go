@@ -1,4 +1,4 @@
-package factory
+package process
 
 import "github.com/ElrondNetwork/elrond-go/update"
 

@@ -1,10 +1,12 @@
-package genesis
+package process
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -71,7 +73,7 @@ func NewPendingTransactionProcessor(args ArgsPendingTransactionProcessor) (*pend
 }
 
 // ProcessTransactionsDstMe processes all the transactions in which destination is the current shard
-func (p *pendingProcessor) ProcessTransactionsDstMe(mapTxs map[string]data.TransactionHandler) error {
+func (p *pendingProcessor) ProcessTransactionsDstMe(mapTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
 	sortedTxs := make([]*txInfo, 0, len(mapTxs))
 	for hash, tx := range mapTxs {
 		sortedTxs = append(sortedTxs, &txInfo{
@@ -84,48 +86,93 @@ func (p *pendingProcessor) ProcessTransactionsDstMe(mapTxs map[string]data.Trans
 		return sortedTxs[i].hash < sortedTxs[j].hash
 	})
 
+	mapMiniBlocks := make(map[string]*block.MiniBlock)
 	for _, info := range sortedTxs {
-		address, err := p.pubKeyConv.CreateAddressFromBytes(info.tx.GetRcvAddr())
+		rcvAddress, err := p.pubKeyConv.CreateAddressFromBytes(info.tx.GetRcvAddr())
 		if err != nil {
 			continue
 		}
 
-		dstShardID := p.shardCoordinator.ComputeId(address)
+		sndAddress, err := p.pubKeyConv.CreateAddressFromBytes(info.tx.GetSndAddr())
+		if err != nil {
+			continue
+		}
+
+		sndShardId := p.shardCoordinator.ComputeId(sndAddress)
+
+		dstShardID := p.shardCoordinator.ComputeId(rcvAddress)
 		if dstShardID != p.shardCoordinator.SelfId() {
 			continue
 		}
 
-		err = p.processSingleTransaction(info)
+		blockType, err := p.processSingleTransaction(info)
 		if err != nil {
 			continue
 		}
+
+		localID := fmt.Sprint("%d%d%d", sndShardId, dstShardID, blockType)
+		mb, ok := mapMiniBlocks[localID]
+		if !ok {
+			mb = &block.MiniBlock{
+				TxHashes:        make([][]byte, 0),
+				ReceiverShardID: dstShardID,
+				SenderShardID:   sndShardId,
+				Type:            blockType,
+			}
+		}
+
+		mb.TxHashes = append(mb.TxHashes, []byte(info.hash))
 	}
 
 	_, err := p.accounts.Commit()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	miniBlocks := make(block.MiniBlockSlice, 0, len(mapMiniBlocks))
+	for _, mb := range mapMiniBlocks {
+		miniBlocks = append(miniBlocks, mb)
+	}
+
+	sort.Slice(miniBlocks, func(i, j int) bool {
+		if miniBlocks[i].SenderShardID == miniBlocks[j].SenderShardID {
+			return miniBlocks[i].Type < miniBlocks[j].Type
+		}
+		return miniBlocks[i].SenderShardID < miniBlocks[j].SenderShardID
+	})
+
+	return miniBlocks, nil
 }
 
-func (p *pendingProcessor) processSingleTransaction(info *txInfo) error {
+func (p *pendingProcessor) processSingleTransaction(info *txInfo) (block.Type, error) {
 	rwdTx, ok := info.tx.(*rewardTx.RewardTx)
 	if ok {
-		return p.rwdTxProcessor.ProcessRewardTransaction(rwdTx)
+		err := p.rwdTxProcessor.ProcessRewardTransaction(rwdTx)
+		if err != nil {
+			return 0, err
+		}
+		return block.RewardsBlock, nil
 	}
 
 	scrTx, ok := info.tx.(*smartContractResult.SmartContractResult)
 	if ok {
-		return p.scrTxProcessor.ProcessSmartContractResult(scrTx)
+		err := p.scrTxProcessor.ProcessSmartContractResult(scrTx)
+		if err != nil {
+			return 0, err
+		}
+		return block.SmartContractResultBlock, nil
 	}
 
 	tx, ok := info.tx.(*transaction.Transaction)
 	if ok {
-		return p.txProcessor.ProcessTransaction(tx)
+		err := p.txProcessor.ProcessTransaction(tx)
+		if err != nil {
+			return 0, err
+		}
+		return block.TxBlock, nil
 	}
 
-	return nil
+	return block.InvalidBlock, nil
 }
 
 // RootHash returns the roothash of the accounts

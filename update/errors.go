@@ -184,3 +184,12 @@ var ErrNilSCRProcessor = errors.New("nil smart contract result processor")
 
 // ErrNilTxProcessor signals that nil transaction processor has been provided
 var ErrNilTxProcessor = errors.New("nil transaction processor")
+
+// ErrNilImportHandler signals that nil import handler has been provided
+var ErrNilImportHandler = errors.New("nil import handler")
+
+// ErrNilTxCoordinator signals that nil tx coordinator has been provided
+var ErrNilTxCoordinator = errors.New("nil tx coordinator")
+
+// ErrNilPendingTxProcessor signals that nil pending tx processor has been provided
+var ErrNilPendingTxProcessor = errors.New("nil pending tx processor")

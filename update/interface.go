@@ -120,7 +120,8 @@ type HardForkImportProcessHandler interface {
 
 // PendingTransactionProcessor defines the methods to process a transaction destination me
 type PendingTransactionProcessor interface {
-	ProcessTransactionsDstMe(mapTxs map[string]data.TransactionHandler) error
+	ProcessTransactionsDstMe(mapTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error)
+	RootHash() ([]byte, error)
 	IsInterfaceNil() bool
 }
 

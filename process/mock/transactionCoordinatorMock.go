@@ -24,10 +24,19 @@ type TransactionCoordinatorMock struct {
 		processedMiniBlocksHashes map[string]struct{},
 
 		haveTime func() bool) (block.MiniBlockSlice, uint32, bool, error)
-	CreateMbsAndProcessTransactionsFromMeCalled func( haveTime func() bool) block.MiniBlockSlice
+	CreateMbsAndProcessTransactionsFromMeCalled func(haveTime func() bool) block.MiniBlockSlice
 	CreateMarshalizedDataCalled                 func(body *block.Body) map[string][][]byte
 	GetAllCurrentUsedTxsCalled                  func(blockType block.Type) map[string]data.TransactionHandler
 	VerifyCreatedBlockTransactionsCalled        func(hdr data.HeaderHandler, body *block.Body) error
+	CreatePostProcessMiniBlocksCalled           func() block.MiniBlockSlice
+}
+
+// CreatePostProcessMiniBlocks -
+func (tcm *TransactionCoordinatorMock) CreatePostProcessMiniBlocks() block.MiniBlockSlice {
+	if tcm.CreatePostProcessMiniBlocksCalled != nil {
+		return tcm.CreatePostProcessMiniBlocksCalled()
+	}
+	return nil
 }
 
 // CreateReceiptsHash -
