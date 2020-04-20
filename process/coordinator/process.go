@@ -47,6 +47,7 @@ type transactionCoordinator struct {
 	gasHandler           process.GasHandler
 	feeHandler           process.TransactionFeeHandler
 	blockSizeComputation preprocess.BlockSizeComputationHandler
+	balanceComputation   preprocess.BalanceComputationHandler
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -62,6 +63,7 @@ func NewTransactionCoordinator(
 	gasHandler process.GasHandler,
 	feeHandler process.TransactionFeeHandler,
 	blockSizeComputation preprocess.BlockSizeComputationHandler,
+	balanceComputation preprocess.BalanceComputationHandler,
 ) (*transactionCoordinator, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -97,6 +99,9 @@ func NewTransactionCoordinator(
 	if check.IfNil(blockSizeComputation) {
 		return nil, process.ErrNilBlockSizeComputationHandler
 	}
+	if check.IfNil(balanceComputation) {
+		return nil, process.ErrNilBalanceComputationHandler
+	}
 
 	tc := &transactionCoordinator{
 		shardCoordinator:     shardCoordinator,
@@ -106,6 +111,7 @@ func NewTransactionCoordinator(
 		marshalizer:          marshalizer,
 		feeHandler:           feeHandler,
 		blockSizeComputation: blockSizeComputation,
+		balanceComputation:   balanceComputation,
 	}
 
 	tc.miniBlockPool = miniBlockPool
@@ -617,6 +623,8 @@ func (tc *transactionCoordinator) CreatePostProcessMiniBlocks() block.MiniBlockS
 // CreateBlockStarted initializes necessary data for preprocessors at block create or block process
 func (tc *transactionCoordinator) CreateBlockStarted() {
 	tc.gasHandler.Init()
+	tc.blockSizeComputation.Init()
+	tc.balanceComputation.Init()
 
 	tc.mutPreProcessor.RLock()
 	for _, value := range tc.txPreProcessors {

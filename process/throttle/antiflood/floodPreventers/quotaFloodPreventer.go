@@ -91,58 +91,58 @@ func NewQuotaFloodPreventer(
 	}, nil
 }
 
-// AccumulateGlobal tries to increment the counter values held at "identifier" position
+// IncreaseLoadGlobal tries to increment the counter values held at "identifier" position
 // It returns true if it had succeeded incrementing (existing counter value is lower or equal with provided maxOperations)
 // We need the mutOperation here as the get and put should be done atomically.
 // Otherwise we might yield a slightly higher number of false valid increments
 // This method also checks the global sum quota and increment its values
-func (qfp *quotaFloodPreventer) AccumulateGlobal(identifier string, size uint64) bool {
+func (qfp *quotaFloodPreventer) IncreaseLoadGlobal(identifier string, size uint64) error {
 	qfp.mutOperation.Lock()
 
 	qfp.globalQuota.numReceivedMessages++
 	qfp.globalQuota.sizeReceivedMessages += size
 
-	isQuotaNotReached := qfp.accumulate(identifier, size)
-	if isQuotaNotReached {
+	err := qfp.increaseLoad(identifier, size)
+	if err == nil {
 		qfp.globalQuota.numProcessedMessages++
 		qfp.globalQuota.sizeProcessedMessages += size
 	}
 	qfp.mutOperation.Unlock()
 
-	return isQuotaNotReached
+	return err
 }
 
-// Accumulate tries to increment the counter values held at "identifier" position
+// IncreaseLoad tries to increment the counter values held at "identifier" position
 // It returns true if it had succeeded incrementing (existing counter value is lower or equal with provided maxOperations)
 // We need the mutOperation here as the get and put should be done atomically.
 // Otherwise we might yield a slightly higher number of false valid increments
 // This method also checks the global sum quota but does not increment its values
-func (qfp *quotaFloodPreventer) Accumulate(identifier string, size uint64) bool {
+func (qfp *quotaFloodPreventer) IncreaseLoad(identifier string, size uint64) error {
 	qfp.mutOperation.Lock()
 	defer qfp.mutOperation.Unlock()
 
-	return qfp.accumulate(identifier, size)
+	return qfp.increaseLoad(identifier, size)
 }
 
-func (qfp *quotaFloodPreventer) accumulate(identifier string, size uint64) bool {
+func (qfp *quotaFloodPreventer) increaseLoad(identifier string, size uint64) error {
 	isGlobalQuotaReached := qfp.globalQuota.numReceivedMessages > qfp.maxMessages ||
 		qfp.globalQuota.sizeReceivedMessages > qfp.maxSize
 	if isGlobalQuotaReached {
-		return false
+		return process.ErrSystemBusy
 	}
 
 	valueQuota, ok := qfp.cacher.Get([]byte(identifier))
 	if !ok {
 		qfp.putDefaultQuota(identifier, size)
 
-		return true
+		return nil
 	}
 
 	q, isQuota := valueQuota.(*quota)
 	if !isQuota {
 		qfp.putDefaultQuota(identifier, size)
 
-		return true
+		return nil
 	}
 
 	q.numReceivedMessages++
@@ -151,14 +151,14 @@ func (qfp *quotaFloodPreventer) accumulate(identifier string, size uint64) bool 
 	isPeerQuotaReached := q.numReceivedMessages > qfp.maxMessagesPerPeer ||
 		q.sizeReceivedMessages > qfp.maxSizePerPeer
 	if isPeerQuotaReached {
-		return false
+		return process.ErrSystemBusy
 	}
 
 	q.numProcessedMessages++
 	q.sizeProcessedMessages += size
 	qfp.cacher.Put([]byte(identifier), q)
 
-	return true
+	return nil
 }
 
 func (qfp *quotaFloodPreventer) putDefaultQuota(identifier string, size uint64) {

@@ -99,7 +99,7 @@ func TestCreateGenesisBlockFromInitialBalances_NilShardCoordinatorShouldErr(t *t
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
-func TestCreateGenesisBlockFromInitialBalances_NilAddressConverterShouldErr(t *testing.T) {
+func TestCreateGenesisBlockFromInitialBalances_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(

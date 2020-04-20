@@ -192,6 +192,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -218,6 +219,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilStore(t *testing.T) {
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -244,6 +246,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilHasher(t *testing.T) {
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -270,6 +273,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilMarsalizer(t *testing.T) {
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -296,6 +300,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilTxProce(t *testing.T) {
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -322,6 +327,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilShardCoord(t *testing.T) {
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -348,6 +354,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilAccounts(t *testing.T) {
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -373,6 +380,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilRequestFunc(t *testing.T) 
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -399,6 +407,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilFeeHandler(t *testing.T) {
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -425,6 +434,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilGasHandler(t *testing.T) {
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -451,13 +461,14 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockTracker(t *testing.T)
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilBlockTracker, err)
 }
 
-func TestTxsPreprocessor_NewTransactionPreprocessorNilAddressConverter(t *testing.T) {
+func TestTxsPreprocessor_NewTransactionPreprocessorNilPubkeyConverter(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -477,6 +488,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilAddressConverter(t *testin
 		block.TxBlock,
 		nil,
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
@@ -503,10 +515,38 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilBlockSizeComputationHandle
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		nil,
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
+}
+
+func TestTxsPreprocessor_NewTransactionPreprocessorNilBalanceComputationHandler(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	txs, err := NewTransactionPreprocessor(
+		tdp.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+		feeHandlerMock(),
+		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
+		block.TxBlock,
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		nil,
+	)
+
+	assert.Nil(t, txs)
+	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
 }
 
 func TestTxsPreprocessor_NewTransactionPreprocessorOkValsShouldWork(t *testing.T) {
@@ -529,6 +569,7 @@ func TestTxsPreprocessor_NewTransactionPreprocessorOkValsShouldWork(t *testing.T
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, err)
@@ -750,6 +791,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.NotNil(t, txs)
 
@@ -819,6 +861,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.NotNil(t, txs)
 
@@ -898,6 +941,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.NotNil(t, txs)
 
@@ -1041,6 +1085,7 @@ func createGoodPreprocessor(dataPool dataRetriever.PoolsHolder) *transactions {
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	return preprocessor
@@ -1085,6 +1130,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 		block.TxBlock,
 		createMockPubkeyConverter(),
 		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	tx := transaction.Transaction{SndAddr: []byte("2"), RcvAddr: []byte("0")}

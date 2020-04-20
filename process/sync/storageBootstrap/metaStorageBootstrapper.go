@@ -82,6 +82,10 @@ func (msb *metaStorageBootstrapper) getHeader(hash []byte) (data.HeaderHandler, 
 	return process.GetMetaHeaderFromStorage(hash, msb.marshalizer, msb.store)
 }
 
+func (msb *metaStorageBootstrapper) getHeaderWithNonce(nonce uint64, _ uint32) (data.HeaderHandler, []byte, error) {
+	return process.GetMetaHeaderFromStorageWithNonce(nonce, msb.store, msb.uint64Converter, msb.marshalizer)
+}
+
 func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte) {
 	log.Debug("cleanup notarized storage")
 

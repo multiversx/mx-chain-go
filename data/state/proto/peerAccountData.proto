@@ -33,10 +33,11 @@ message ValidatorApiResponse {
     uint32 NumValidatorSuccess = 4 [(gogoproto.jsontag) = "numValidatorSuccess"];
     uint32 NumValidatorFailure = 5 [(gogoproto.jsontag) = "numValidatorFailure"];
     float Rating = 6 [(gogoproto.jsontag) = "rating"];
-    uint32 TotalNumLeaderSuccess = 7 [(gogoproto.jsontag) = "totalNumLeaderSuccess"];
-    uint32 TotalNumLeaderFailure = 8 [(gogoproto.jsontag) = "totalNumLeaderFailure"];
-    uint32 TotalNumValidatorSuccess = 9 [(gogoproto.jsontag) = "totalNumValidatorSuccess"];
-    uint32 TotalNumValidatorFailure = 10 [(gogoproto.jsontag) = "totalNumValidatorFailure"];
+    float RatingModifier = 7 [(gogoproto.jsontag) = "ratingModifier"];
+    uint32 TotalNumLeaderSuccess = 8 [(gogoproto.jsontag) = "totalNumLeaderSuccess"];
+    uint32 TotalNumLeaderFailure = 9 [(gogoproto.jsontag) = "totalNumLeaderFailure"];
+    uint32 TotalNumValidatorSuccess = 10 [(gogoproto.jsontag) = "totalNumValidatorSuccess"];
+    uint32 TotalNumValidatorFailure = 11 [(gogoproto.jsontag) = "totalNumValidatorFailure"];
 }
 
 // PeerAccountData represents the data that defines the PeerAccount

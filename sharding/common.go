@@ -74,22 +74,22 @@ func displayNodesConfiguration(
 	}
 }
 
-// ComputeActuallyLeaving returns the list of those nodes which are actually leaving
-func ComputeActuallyLeaving(leaving []Validator, stillRemaining []Validator) []Validator {
-	actualLeaving := make([]Validator, 0)
-	for _, shouldLeave := range leaving {
-		willRemain := false
-		for _, remains := range stillRemaining {
-			if bytes.Equal(shouldLeave.PubKey(), remains.PubKey()) {
-				willRemain = true
+// ComputeActuallyRemaining returns the list of those nodes which are actually remaining
+func ComputeActuallyRemaining(allLeaving []Validator, actuallyRemoved []Validator) []Validator {
+	actualRemaining := make([]Validator, 0)
+	for _, shouldStay := range allLeaving {
+		removed := false
+		for _, removedNode := range actuallyRemoved {
+			if bytes.Equal(shouldStay.PubKey(), removedNode.PubKey()) {
+				removed = true
 				break
 			}
 		}
 
-		if !willRemain {
-			actualLeaving = append(actualLeaving, shouldLeave)
+		if !removed {
+			actualRemaining = append(actualRemaining, shouldStay)
 		}
 	}
 
-	return actualLeaving
+	return actualRemaining
 }

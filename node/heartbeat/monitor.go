@@ -247,7 +247,7 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 	if err != nil {
 		return err
 	}
-	err = m.antifloodHandler.CanProcessMessageOnTopic(fromConnectedPeer, core.HeartbeatTopic)
+	err = m.antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, core.HeartbeatTopic, 1)
 	if err != nil {
 		return err
 	}
