@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 )
 
@@ -29,6 +30,7 @@ type NodeStub struct {
 	ValidatorStatisticsApiCalled                   func() (map[string]*state.ValidatorApiResponse, error)
 	DirectTriggerCalled                            func() error
 	IsSelfTriggerCalled                            func() bool
+	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 }
 
 // EncodeAddressPubkey -
@@ -96,6 +98,15 @@ func (ns *NodeStub) DirectTrigger() error {
 // IsSelfTrigger -
 func (ns *NodeStub) IsSelfTrigger() bool {
 	return ns.IsSelfTriggerCalled()
+}
+
+// GetQueryHandler -
+func (ns *NodeStub) GetQueryHandler(name string) (debug.QueryHandler, error) {
+	if ns.GetQueryHandlerCalled != nil {
+		return ns.GetQueryHandlerCalled(name)
+	}
+
+	return nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

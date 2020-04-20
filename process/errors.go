@@ -446,12 +446,6 @@ var ErrNilHdrValidator = errors.New("nil header validator")
 // ErrNilPendingMiniBlocksHandler signals that a nil pending miniblocks handler has been provided
 var ErrNilPendingMiniBlocksHandler = errors.New("nil pending miniblocks handler")
 
-// ErrNilTxsPoolsCleaner signals that a nil transactions pools cleaner has been provided
-var ErrNilTxsPoolsCleaner = errors.New("nil transactions pools cleaner")
-
-// ErrZeroMaxCleanTime signals that cleaning time for pools is less or equal with 0
-var ErrZeroMaxCleanTime = errors.New("cleaning time is equal or less than zero")
-
 // ErrNilEconomicsFeeHandler signals that fee handler is nil
 var ErrNilEconomicsFeeHandler = errors.New("nil economics fee handler")
 
@@ -760,3 +754,6 @@ var ErrUserNameDoesNotMatchInCrossShardTx = errors.New("user name does not match
 
 // ErrNilBalanceComputationHandler signals that a nil balance computation handler has been provided
 var ErrNilBalanceComputationHandler = errors.New("nil balance computation handler")
+
+// ErrNilInterceptedDebugHandler signals that a nil intercepted debug handler has been provided
+var ErrNilInterceptedDebugHandler = errors.New("nil intercepted debug handler")
