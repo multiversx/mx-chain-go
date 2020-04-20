@@ -25,7 +25,7 @@ func preProcessMesage(
 	if err != nil {
 		return err
 	}
-	err = antifloodHandler.CanProcessMessageOnTopic(fromConnectedPeer, topic)
+	err = antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, topic, 1)
 	if err != nil {
 		return err
 	}
@@ -40,21 +40,17 @@ func preProcessMesage(
 
 func processInterceptedData(
 	processor process.InterceptorProcessor,
-	whiteListhandler process.WhiteListHandler,
 	data process.InterceptedData,
 	wgProcess *sync.WaitGroup,
 	msg p2p.MessageP2P,
 ) {
-	hash := data.Hash()
 	err := processor.Validate(data, msg.Peer())
 
 	defer func() {
-		whiteListhandler.Remove([][]byte{hash})
 		wgProcess.Done()
 	}()
 	if err != nil {
-		//TODO revert here log.Trace
-		log.Debug("intercepted data is not valid",
+		log.Trace("intercepted data is not valid",
 			"hash", data.Hash(),
 			"type", data.Type(),
 			"pid", p2p.MessageOriginatorPid(msg),
@@ -68,8 +64,7 @@ func processInterceptedData(
 
 	err = processor.Save(data, msg.Peer())
 	if err != nil {
-		//TODO revert here log.Trace
-		log.Debug("intercepted data can not be processed",
+		log.Trace("intercepted data can not be processed",
 			"hash", data.Hash(),
 			"type", data.Type(),
 			"pid", p2p.MessageOriginatorPid(msg),

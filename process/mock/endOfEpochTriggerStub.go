@@ -10,6 +10,7 @@ type EpochStartTriggerStub struct {
 	ForceEpochStartCalled             func(round uint64) error
 	IsEpochStartCalled                func() bool
 	EpochCalled                       func() uint32
+	MetaEpochCalled                   func() uint32
 	ReceivedHeaderCalled              func(handler data.HeaderHandler)
 	UpdateCalled                      func(round uint64, nonce uint64)
 	ProcessedCalled                   func(header data.HeaderHandler)
@@ -116,11 +117,12 @@ func (e *EpochStartTriggerStub) Epoch() uint32 {
 	return 0
 }
 
-// ReceivedHeader -
-func (e *EpochStartTriggerStub) ReceivedHeader(header data.HeaderHandler) {
-	if e.ReceivedHeaderCalled != nil {
-		e.ReceivedHeaderCalled(header)
+// MetaEpoch -
+func (e *EpochStartTriggerStub) MetaEpoch() uint32 {
+	if e.MetaEpochCalled != nil {
+		return e.MetaEpochCalled()
 	}
+	return 0
 }
 
 // IsInterfaceNil -

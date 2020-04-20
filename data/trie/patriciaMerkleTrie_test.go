@@ -453,8 +453,8 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 	rootHash, _ := tr.Root()
 
 	tr.TakeSnapshot(rootHash)
-	tr.Prune(rootHash, data.NewRoot)
 	time.Sleep(time.Second)
+	tr.Prune(rootHash, data.NewRoot)
 
 	maxBuffToSend := uint64(500)
 	expectedNodes := 6

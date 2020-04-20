@@ -14,6 +14,7 @@ type TriggerHandler interface {
 	ForceEpochStart(round uint64) error
 	IsEpochStart() bool
 	Epoch() uint32
+	MetaEpoch() uint32
 	Update(round uint64, nonce uint64)
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
@@ -96,7 +97,7 @@ type HeadersByHashSyncer interface {
 
 // PendingMiniBlocksSyncHandler defines the methods to sync all pending miniblocks
 type PendingMiniBlocksSyncHandler interface {
-	SyncPendingMiniBlocks(miniBlockHeaders []block.ShardMiniBlockHeader, ctx context.Context) error
+	SyncPendingMiniBlocks(miniBlockHeaders []block.MiniBlockHeader, ctx context.Context) error
 	GetMiniBlocks() (map[string]*block.MiniBlock, error)
 	ClearFields()
 	IsInterfaceNil() bool

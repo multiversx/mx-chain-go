@@ -19,7 +19,7 @@ type preProcessorsContainerFactory struct {
 	marshalizer          marshal.Marshalizer
 	hasher               hashing.Hasher
 	dataPool             dataRetriever.PoolsHolder
-	addressConverter     state.AddressConverter
+	pubkeyConverter      state.PubkeyConverter
 	txProcessor          process.TransactionProcessor
 	scProcessor          process.SmartContractProcessor
 	scResultProcessor    process.SmartContractResultProcessor
@@ -30,6 +30,7 @@ type preProcessorsContainerFactory struct {
 	gasHandler           process.GasHandler
 	blockTracker         preprocess.BlockTracker
 	blockSizeComputation preprocess.BlockSizeComputationHandler
+	balanceComputation   preprocess.BalanceComputationHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -39,7 +40,7 @@ func NewPreProcessorsContainerFactory(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	dataPool dataRetriever.PoolsHolder,
-	addressConverter state.AddressConverter,
+	pubkeyConverter state.PubkeyConverter,
 	accounts state.AccountsAdapter,
 	requestHandler process.RequestHandler,
 	txProcessor process.TransactionProcessor,
@@ -50,6 +51,7 @@ func NewPreProcessorsContainerFactory(
 	gasHandler process.GasHandler,
 	blockTracker preprocess.BlockTracker,
 	blockSizeComputation preprocess.BlockSizeComputationHandler,
+	balanceComputation preprocess.BalanceComputationHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -67,8 +69,8 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(dataPool) {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if check.IfNil(addressConverter) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(txProcessor) {
 		return nil, process.ErrNilTxProcessor
@@ -100,6 +102,9 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(blockSizeComputation) {
 		return nil, process.ErrNilBlockSizeComputationHandler
 	}
+	if check.IfNil(balanceComputation) {
+		return nil, process.ErrNilBalanceComputationHandler
+	}
 
 	return &preProcessorsContainerFactory{
 		shardCoordinator:     shardCoordinator,
@@ -107,7 +112,7 @@ func NewPreProcessorsContainerFactory(
 		marshalizer:          marshalizer,
 		hasher:               hasher,
 		dataPool:             dataPool,
-		addressConverter:     addressConverter,
+		pubkeyConverter:      pubkeyConverter,
 		txProcessor:          txProcessor,
 		accounts:             accounts,
 		scProcessor:          scProcessor,
@@ -118,6 +123,7 @@ func NewPreProcessorsContainerFactory(
 		gasHandler:           gasHandler,
 		blockTracker:         blockTracker,
 		blockSizeComputation: blockSizeComputation,
+		balanceComputation:   balanceComputation,
 	}, nil
 }
 
@@ -182,8 +188,9 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.gasHandler,
 		ppcm.blockTracker,
 		block.TxBlock,
-		ppcm.addressConverter,
+		ppcm.pubkeyConverter,
 		ppcm.blockSizeComputation,
+		ppcm.balanceComputation,
 	)
 
 	return txPreprocessor, err
@@ -201,7 +208,9 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.requestHandler.RequestUnsignedTransactions,
 		ppcm.gasHandler,
 		ppcm.economicsFee,
+		ppcm.pubkeyConverter,
 		ppcm.blockSizeComputation,
+		ppcm.balanceComputation,
 	)
 
 	return scrPreprocessor, err
@@ -215,9 +224,12 @@ func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 		ppcm.marshalizer,
 		ppcm.rewardsTxProcessor,
 		ppcm.shardCoordinator,
+		ppcm.accounts,
 		ppcm.requestHandler.RequestRewardTransactions,
 		ppcm.gasHandler,
+		ppcm.pubkeyConverter,
 		ppcm.blockSizeComputation,
+		ppcm.balanceComputation,
 	)
 
 	return rewardTxPreprocessor, err

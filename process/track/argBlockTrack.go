@@ -20,18 +20,18 @@ type ArgBaseTracker struct {
 	ShardCoordinator sharding.Coordinator
 	Store            dataRetriever.StorageService
 	StartHeaders     map[uint32]data.HeaderHandler
+	PoolsHolder      dataRetriever.PoolsHolder
+	WhitelistHandler process.WhiteListHandler
 }
 
 // ArgShardTracker holds all dependencies required by the process data factory in order to create
 // new instances of shard block tracker
 type ArgShardTracker struct {
 	ArgBaseTracker
-	PoolsHolder dataRetriever.PoolsHolder
 }
 
 // ArgMetaTracker holds all dependencies required by the process data factory in order to create
 // new instances of meta block tracker
 type ArgMetaTracker struct {
 	ArgBaseTracker
-	PoolsHolder dataRetriever.PoolsHolder
 }

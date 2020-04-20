@@ -17,6 +17,10 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingSameShard(t *testi
 	rm := resolvers.NewReceiverMonitor(t)
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardId, shardId)
+	defer func() {
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
+	}()
 	miniblock, hash := resolvers.CreateMiniblock(shardId, shardId)
 
 	//add miniblock in pool
@@ -50,6 +54,10 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingOtherShard(t *test
 	shardIdResolver := uint32(0)
 	shardIdRequester := uint32(1)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardIdResolver, shardIdRequester)
+	defer func() {
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
+	}()
 	miniblock, hash := resolvers.CreateMiniblock(shardIdResolver, shardIdRequester)
 
 	//add miniblock in pool
@@ -68,6 +76,7 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingOtherShard(t *test
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, shardIdResolver)
 	resolvers.Log.LogIfError(err)
+	nRequester.WhiteListHandler.Add([][]byte{hash})
 	err = resolver.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
@@ -82,6 +91,10 @@ func TestRequestResolveMiniblockByHashRequestingShardResolvingMeta(t *testing.T)
 	rm := resolvers.NewReceiverMonitor(t)
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(core.MetachainShardId, shardId)
+	defer func() {
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
+	}()
 	miniblock, hash := resolvers.CreateMiniblock(shardId, shardId)
 
 	//add miniblock in pool
@@ -114,6 +127,10 @@ func TestRequestResolveMiniblockByHashRequestingMetaResolvingShard(t *testing.T)
 	rm := resolvers.NewReceiverMonitor(t)
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardId, core.MetachainShardId)
+	defer func() {
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
+	}()
 	miniblock, hash := resolvers.CreateMiniblock(shardId, core.MetachainShardId)
 
 	//add miniblock in pool
@@ -132,6 +149,7 @@ func TestRequestResolveMiniblockByHashRequestingMetaResolvingShard(t *testing.T)
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, shardId)
 	resolvers.Log.LogIfError(err)
+	nRequester.WhiteListHandler.Add([][]byte{hash})
 	err = resolver.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
@@ -146,6 +164,10 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingSameShard(t *t
 	rm := resolvers.NewReceiverMonitor(t)
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardId, shardId)
+	defer func() {
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
+	}()
 	miniblock, hash := resolvers.CreateMiniblock(core.MetachainShardId, core.AllShardId)
 
 	//add miniblock in pool
@@ -164,6 +186,7 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingSameShard(t *t
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
 	resolvers.Log.LogIfError(err)
+	nRequester.WhiteListHandler.Add([][]byte{hash})
 	err = resolver.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
@@ -179,6 +202,10 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingOtherShard(t *
 	shardIdResolver := uint32(0)
 	shardIdRequester := uint32(1)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardIdResolver, shardIdRequester)
+	defer func() {
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
+	}()
 	miniblock, hash := resolvers.CreateMiniblock(shardIdResolver, core.AllShardId)
 
 	//add miniblock in pool
@@ -197,6 +224,7 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingOtherShard(t *
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
 	resolvers.Log.LogIfError(err)
+	nRequester.WhiteListHandler.Add([][]byte{hash})
 	err = resolver.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
@@ -211,6 +239,10 @@ func TestRequestResolvePeerMiniblockByHashRequestingShardResolvingMeta(t *testin
 	rm := resolvers.NewReceiverMonitor(t)
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(core.MetachainShardId, shardId)
+	defer func() {
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
+	}()
 	miniblock, hash := resolvers.CreateMiniblock(shardId, core.AllShardId)
 
 	//add miniblock in pool
@@ -243,6 +275,10 @@ func TestRequestResolvePeerMiniblockByHashRequestingMetaResolvingShard(t *testin
 	rm := resolvers.NewReceiverMonitor(t)
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardId, core.MetachainShardId)
+	defer func() {
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
+	}()
 	miniblock, hash := resolvers.CreateMiniblock(shardId, core.AllShardId)
 
 	//add miniblock in pool
@@ -261,6 +297,7 @@ func TestRequestResolvePeerMiniblockByHashRequestingMetaResolvingShard(t *testin
 	//request by hash should work
 	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.MiniBlocksTopic, core.AllShardId)
 	resolvers.Log.LogIfError(err)
+	nRequester.WhiteListHandler.Add([][]byte{hash})
 	err = resolver.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 

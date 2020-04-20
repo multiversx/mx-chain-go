@@ -45,25 +45,25 @@ type epochNodesConfig struct {
 }
 
 type indexHashedNodesCoordinator struct {
+	shardIDAsObserver             uint32
+	currentEpoch                  uint32
+	shardConsensusGroupSize       int
+	metaConsensusGroupSize        int
+	numTotalEligible              uint64
+	selfPubKey                    []byte
+	savedStateKey                 []byte
 	marshalizer                   marshal.Marshalizer
 	hasher                        hashing.Hasher
 	shuffler                      NodesShuffler
 	epochStartRegistrationHandler EpochStartEventNotifier
 	bootStorer                    storage.Storer
-	selfPubKey                    []byte
 	nodesConfig                   map[uint32]*epochNodesConfig
 	mutNodesConfig                sync.RWMutex
-	currentEpoch                  uint32
-	savedStateKey                 []byte
 	mutSavedStateKey              sync.RWMutex
-	numTotalEligible              uint64
-	shardConsensusGroupSize       int
-	metaConsensusGroupSize        int
 	nodesCoordinatorHelper        NodesCoordinatorHelper
 	consensusGroupCacher          Cacher
-	shardIDAsObserver             uint32
 	loadingFromDisk               atomic.Value
-	shuffledOutHandler      ShuffledOutHandler
+	shuffledOutHandler            ShuffledOutHandler
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -99,7 +99,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		metaConsensusGroupSize:        arguments.MetaConsensusGroupSize,
 		consensusGroupCacher:          arguments.ConsensusGroupCache,
 		shardIDAsObserver:             arguments.ShardIDAsObserver,
-		shuffledOutHandler:      arguments.ShuffledOutHandler,
+		shuffledOutHandler:            arguments.ShuffledOutHandler,
 	}
 
 	ihgs.loadingFromDisk.Store(false)
@@ -206,7 +206,6 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 	if err != nil {
 		return err
 	}
-
 
 	shardIDForSelfPublicKey := ihgs.computeShardForSelfPublicKey(nodesConfig)
 	nodesConfig.shardID = shardIDForSelfPublicKey
@@ -505,10 +504,10 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		NbShards: newNodesConfig.nbShards,
 	}
 
-	eligibleMap, waitingMap, stillRemaining := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
+	eligibleMap, waitingMap, leaving := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
 
-	actualLeaving := ComputeActuallyLeaving(newNodesConfig.leavingList, stillRemaining)
-	err = ihgs.setNodesPerShards(eligibleMap, waitingMap, actualLeaving, newEpoch)
+	actualRemaining := ComputeActuallyRemaining(newNodesConfig.leavingList, leaving)
+	err = ihgs.setNodesPerShards(eligibleMap, waitingMap, leaving, newEpoch)
 	if err != nil {
 		log.Error("set nodes per shard failed", "error", err.Error())
 	}
@@ -518,7 +517,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		log.Error("saving nodes coordinator config failed", "error", err.Error())
 	}
 
-	displayNodesConfiguration(eligibleMap, waitingMap, newNodesConfig.leavingList, stillRemaining, newNodesConfig.nbShards)
+	displayNodesConfiguration(eligibleMap, waitingMap, newNodesConfig.leavingList, actualRemaining, newNodesConfig.nbShards)
 
 	ihgs.mutSavedStateKey.Lock()
 	ihgs.savedStateKey = randomness

@@ -12,7 +12,7 @@ import (
 )
 
 type txTypeHandler struct {
-	adrConv          state.AddressConverter
+	pubkeyConv       state.PubkeyConverter
 	shardCoordinator sharding.Coordinator
 	builtInFuncNames map[string]struct{}
 	argumentParser   process.ArgumentsParser
@@ -20,7 +20,7 @@ type txTypeHandler struct {
 
 // ArgNewTxTypeHandler defines the arguments needed to create a new tx type handler
 type ArgNewTxTypeHandler struct {
-	AddressConverter state.AddressConverter
+	PubkeyConverter  state.PubkeyConverter
 	ShardCoordinator sharding.Coordinator
 	BuiltInFuncNames map[string]struct{}
 	ArgumentParser   process.ArgumentsParser
@@ -30,8 +30,8 @@ type ArgNewTxTypeHandler struct {
 func NewTxTypeHandler(
 	args ArgNewTxTypeHandler,
 ) (*txTypeHandler, error) {
-	if check.IfNil(args.AddressConverter) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(args.PubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
@@ -44,7 +44,7 @@ func NewTxTypeHandler(
 	}
 
 	tc := &txTypeHandler{
-		adrConv:          args.AddressConverter,
+		pubkeyConv:       args.PubkeyConverter,
 		shardCoordinator: args.ShardCoordinator,
 		argumentParser:   args.ArgumentParser,
 		builtInFuncNames: args.BuiltInFuncNames,
@@ -104,12 +104,12 @@ func (tth *txTypeHandler) isBuiltInFunctionCall(txData []byte) bool {
 }
 
 func (tth *txTypeHandler) isDestAddressEmpty(tx data.TransactionHandler) bool {
-	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, tth.adrConv.AddressLen()))
+	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, tth.pubkeyConv.Len()))
 	return isEmptyAddress
 }
 
 func (tth *txTypeHandler) isDestAddressInSelfShard(address []byte) (bool, error) {
-	adrSrc, err := tth.adrConv.CreateAddressFromPublicKeyBytes(address)
+	adrSrc, err := tth.pubkeyConv.CreateAddressFromBytes(address)
 	if err != nil {
 		return false, err
 	}
@@ -128,7 +128,7 @@ func (tth *txTypeHandler) checkTxValidity(tx data.TransactionHandler) error {
 		return process.ErrNilTransaction
 	}
 
-	recvAddressIsInvalid := tth.adrConv.AddressLen() != len(tx.GetRcvAddr())
+	recvAddressIsInvalid := tth.pubkeyConv.Len() != len(tx.GetRcvAddr())
 	if recvAddressIsInvalid {
 		return process.ErrWrongTransaction
 	}

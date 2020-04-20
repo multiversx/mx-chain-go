@@ -26,8 +26,9 @@ type preProcessorsContainerFactory struct {
 	economicsFee         process.FeeHandler
 	gasHandler           process.GasHandler
 	blockTracker         preprocess.BlockTracker
-	addressConverter     state.AddressConverter
+	pubkeyConverter      state.PubkeyConverter
 	blockSizeComputation preprocess.BlockSizeComputationHandler
+	balanceComputation   preprocess.BalanceComputationHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -44,8 +45,9 @@ func NewPreProcessorsContainerFactory(
 	economicsFee process.FeeHandler,
 	gasHandler process.GasHandler,
 	blockTracker preprocess.BlockTracker,
-	addressConverter state.AddressConverter,
+	pubkeyConverter state.PubkeyConverter,
 	blockSizeComputation preprocess.BlockSizeComputationHandler,
+	balanceComputation preprocess.BalanceComputationHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -84,11 +86,14 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(blockTracker) {
 		return nil, process.ErrNilBlockTracker
 	}
-	if check.IfNil(addressConverter) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(blockSizeComputation) {
 		return nil, process.ErrNilBlockSizeComputationHandler
+	}
+	if check.IfNil(balanceComputation) {
+		return nil, process.ErrNilBalanceComputationHandler
 	}
 
 	return &preProcessorsContainerFactory{
@@ -104,8 +109,9 @@ func NewPreProcessorsContainerFactory(
 		scResultProcessor:    scResultProcessor,
 		gasHandler:           gasHandler,
 		blockTracker:         blockTracker,
-		addressConverter:     addressConverter,
+		pubkeyConverter:      pubkeyConverter,
 		blockSizeComputation: blockSizeComputation,
+		balanceComputation:   balanceComputation,
 	}, nil
 }
 
@@ -150,8 +156,9 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		ppcm.gasHandler,
 		ppcm.blockTracker,
 		block.TxBlock,
-		ppcm.addressConverter,
+		ppcm.pubkeyConverter,
 		ppcm.blockSizeComputation,
+		ppcm.balanceComputation,
 	)
 
 	return txPreprocessor, err
@@ -169,7 +176,9 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.requestHandler.RequestUnsignedTransactions,
 		ppcm.gasHandler,
 		ppcm.economicsFee,
+		ppcm.pubkeyConverter,
 		ppcm.blockSizeComputation,
+		ppcm.balanceComputation,
 	)
 
 	return scrPreprocessor, err

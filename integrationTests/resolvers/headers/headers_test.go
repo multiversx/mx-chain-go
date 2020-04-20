@@ -23,6 +23,10 @@ func TestRequestResolveShardHeadersByHashRequestingShardResolvingShard(t *testin
 	rm := resolvers.NewReceiverMonitor(t)
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardId, shardId)
+	defer func() {
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
+	}()
 	headerNonce := uint64(0)
 	header, hash := resolvers.CreateShardHeader(headerNonce, integrationTests.ChainID)
 
@@ -56,6 +60,10 @@ func TestRequestResolveShardHeadersByHashRequestingMetaResolvingShard(t *testing
 	rm := resolvers.NewReceiverMonitor(t)
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardId, core.MetachainShardId)
+	defer func() {
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
+	}()
 	headerNonce := uint64(0)
 	header, hash := resolvers.CreateShardHeader(headerNonce, integrationTests.ChainID)
 
@@ -89,6 +97,10 @@ func TestRequestResolveShardHeadersByHashRequestingShardResolvingMeta(t *testing
 	rm := resolvers.NewReceiverMonitor(t)
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(core.MetachainShardId, shardId)
+	defer func() {
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
+	}()
 	headerNonce := uint64(0)
 	header, hash := resolvers.CreateShardHeader(headerNonce, integrationTests.ChainID)
 
@@ -124,6 +136,10 @@ func TestRequestResolveShardHeadersByNonceRequestingShardResolvingShard(t *testi
 	rm := resolvers.NewReceiverMonitor(t)
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardId, shardId)
+	defer func() {
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
+	}()
 	headerNonce := uint64(0)
 	header, hash := resolvers.CreateShardHeader(headerNonce, integrationTests.ChainID)
 
@@ -159,6 +175,10 @@ func TestRequestResolveShardHeadersByNonceRequestingMetaResolvingShard(t *testin
 	rm := resolvers.NewReceiverMonitor(t)
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardId, core.MetachainShardId)
+	defer func() {
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
+	}()
 	headerNonce := uint64(0)
 	header, hash := resolvers.CreateShardHeader(headerNonce, integrationTests.ChainID)
 
@@ -194,6 +214,10 @@ func TestRequestResolveShardHeadersByNonceRequestingShardResolvingMeta(t *testin
 	rm := resolvers.NewReceiverMonitor(t)
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(core.MetachainShardId, shardId)
+	defer func() {
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
+	}()
 	headerNonce := uint64(0)
 	header, hash := resolvers.CreateShardHeader(headerNonce, integrationTests.ChainID)
 

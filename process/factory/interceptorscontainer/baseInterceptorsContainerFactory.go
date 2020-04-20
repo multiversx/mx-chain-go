@@ -37,6 +37,7 @@ type baseInterceptorsContainerFactory struct {
 	maxTxNonceDeltaAllowed int
 	antifloodHandler       process.P2PAntifloodHandler
 	whiteListHandler       process.WhiteListHandler
+	addressPubkeyConverter state.PubkeyConverter
 }
 
 func checkBaseParams(
@@ -53,6 +54,7 @@ func checkBaseParams(
 	blackList process.BlackListHandler,
 	antifloodHandler process.P2PAntifloodHandler,
 	whiteListhandler process.WhiteListHandler,
+	addressPubkeyConverter state.PubkeyConverter,
 ) error {
 	if check.IfNil(shardCoordinator) {
 		return process.ErrNilShardCoordinator
@@ -89,6 +91,9 @@ func checkBaseParams(
 	}
 	if check.IfNil(whiteListhandler) {
 		return process.ErrNilWhiteListHandler
+	}
+	if check.IfNil(addressPubkeyConverter) {
+		return process.ErrNilPubkeyConverter
 	}
 
 	return nil
@@ -149,6 +154,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 		bicf.accounts,
 		bicf.shardCoordinator,
 		bicf.whiteListHandler,
+		bicf.addressPubkeyConverter,
 		bicf.maxTxNonceDeltaAllowed,
 	)
 	if err != nil {
@@ -358,6 +364,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 		Marshalizer:      bicf.marshalizer,
 		Hasher:           bicf.hasher,
 		ShardCoordinator: bicf.shardCoordinator,
+		WhiteListHandler: bicf.whiteListHandler,
 	}
 	miniblockProcessor, err := processor.NewMiniblockInterceptorProcessor(argProcessor)
 	if err != nil {

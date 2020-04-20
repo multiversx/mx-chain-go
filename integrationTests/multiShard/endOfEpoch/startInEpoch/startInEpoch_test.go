@@ -78,7 +78,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
@@ -206,6 +206,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		Uint64Converter:            uint64Converter,
 		NodeShuffler:               &mock.NodeShufflerMock{},
 		Rounder:                    rounder,
+		AddressPubkeyConverter:     integrationTests.TestAddressPubkeyConverter,
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
@@ -318,6 +319,7 @@ func createTries(
 	return trieStorageManagers, trieContainer, nil
 }
 
+// TODO: We should remove this type of configs hidden in tests
 func getGeneralConfig() config.Config {
 	return config.Config{
 		GeneralSettings: config.GeneralSettingsConfig{
@@ -552,8 +554,22 @@ func getGeneralConfig() config.Config {
 			DB: config.DBConfig{
 				FilePath:          "BootstrapData",
 				Type:              string(storageUnit.LvlDBSerial),
-				BatchDelaySeconds: 30,
+				BatchDelaySeconds: 1,
 				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		TxLogsStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Type:        "LRU",
+				Size:        1000,
+				Shards:      1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "Logs",
+				Type:              string(storageUnit.LvlDBSerial),
+				BatchDelaySeconds: 2,
+				MaxBatchSize:      100,
 				MaxOpenFiles:      10,
 			},
 		},

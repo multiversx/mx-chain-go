@@ -845,7 +845,7 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 		cacheData, _ := nodesCacher.Get(hash)
 		return trieNode(cacheData)
 	}
-	_, err := en.loadChildren(getNode)
+	_, _, err := en.loadChildren(getNode)
 	assert.Nil(t, err)
 	assert.NotNil(t, en.child)
 

@@ -7,7 +7,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api"
+	"github.com/ElrondNetwork/elrond-go/api/address"
+	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
+	"github.com/ElrondNetwork/elrond-go/api/node"
+	transactionApi "github.com/ElrondNetwork/elrond-go/api/transaction"
+	"github.com/ElrondNetwork/elrond-go/api/validator"
+	"github.com/ElrondNetwork/elrond-go/api/vmValues"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -26,6 +32,13 @@ const DefaultRestInterface = "localhost:8080"
 // DefaultRestPortOff is the default value that should be passed if it is desired
 //  to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
+
+var _ = address.FacadeHandler(&nodeFacade{})
+var _ = hardfork.TriggerHardforkHandler(&nodeFacade{})
+var _ = node.FacadeHandler(&nodeFacade{})
+var _ = transactionApi.TxService(&nodeFacade{})
+var _ = validator.ValidatorsStatisticsApiHandler(&nodeFacade{})
+var _ = vmValues.FacadeHandler(&nodeFacade{})
 
 var log = logger.GetOrCreate("facade")
 
@@ -98,18 +111,12 @@ func (nf *nodeFacade) TpsBenchmark() *statistics.TpsBenchmark {
 
 // StartNode starts the underlying node
 func (nf *nodeFacade) StartNode() error {
-	nf.node.Start()
 	return nf.node.StartConsensus()
 }
 
 // StartBackgroundServices starts all background services needed for the correct functionality of the node
 func (nf *nodeFacade) StartBackgroundServices() {
 	go nf.startRest()
-}
-
-// IsNodeRunning gets if the underlying node is running
-func (nf *nodeFacade) IsNodeRunning() bool {
-	return nf.node.IsRunning()
 }
 
 // RestAPIServerDebugMode return true is debug mode for Rest API is enabled
@@ -260,14 +267,24 @@ func (nf *nodeFacade) PprofEnabled() bool {
 	return nf.config.PprofEnabled
 }
 
-// TriggerHardfork will trigger a hardfork event
-func (nf *nodeFacade) TriggerHardfork() error {
+// Trigger will trigger a hardfork event
+func (nf *nodeFacade) Trigger() error {
 	return nf.node.DirectTrigger()
 }
 
 // IsSelfTrigger returns true if the self public key is the same with the registered public key
 func (nf *nodeFacade) IsSelfTrigger() bool {
 	return nf.node.IsSelfTrigger()
+}
+
+// EncodeAddressPubkey will encode the provided address public key bytes to string
+func (nf *nodeFacade) EncodeAddressPubkey(pk []byte) (string, error) {
+	return nf.node.EncodeAddressPubkey(pk)
+}
+
+// DecodeAddressPubkey will try to decode the provided address public key string
+func (nf *nodeFacade) DecodeAddressPubkey(pk string) ([]byte, error) {
+	return nf.node.DecodeAddressPubkey(pk)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

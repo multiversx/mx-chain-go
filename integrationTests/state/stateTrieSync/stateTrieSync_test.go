@@ -3,6 +3,7 @@ package stateTrieSync
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -30,14 +31,14 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 
 	fmt.Println("Requester:	")
 	nRequester := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, requesterNodeAddr)
+	_ = nRequester.Messenger.CreateTopic(core.ConsensusTopic+nRequester.ShardCoordinator.CommunicationIdentifier(nRequester.ShardCoordinator.SelfId()), true)
 
 	fmt.Println("Resolver:")
 	nResolver := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, resolverNodeAddr)
-	nRequester.Node.Start()
-	nResolver.Node.Start()
+	_ = nResolver.Messenger.CreateTopic(core.ConsensusTopic+nResolver.ShardCoordinator.CommunicationIdentifier(nResolver.ShardCoordinator.SelfId()), true)
 	defer func() {
-		_ = nRequester.Node.Stop()
-		_ = nResolver.Node.Stop()
+		_ = nRequester.Messenger.Close()
+		_ = nResolver.Messenger.Close()
 	}()
 
 	time.Sleep(time.Second)
@@ -47,11 +48,16 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	time.Sleep(integrationTests.SyncDelay)
 
 	resolverTrie := nResolver.TrieContainer.Get([]byte(factory2.UserAccountTrie))
-	_ = resolverTrie.Update([]byte("doe"), []byte("reindeer"))
-	_ = resolverTrie.Update([]byte("dog"), []byte("puppy"))
-	_ = resolverTrie.Update([]byte("dogglesworth"), []byte("cat"))
+	//we have tested even with the 50000 value and found out that it worked in a reasonable amount of time ~21 seconds
+	for i := 0; i < 2000; i++ {
+		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
+	}
+
 	_ = resolverTrie.Commit()
 	rootHash, _ := resolverTrie.Root()
+
+	_, err = resolverTrie.GetAllLeaves()
+	assert.Nil(t, err)
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.Root()
@@ -67,15 +73,19 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		time.Second,
 	)
 
-	waitTime := 10 * time.Second
-	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, core.MetachainShardId, factory.AccountTrieNodesTopic)
+	waitTime := 100 * time.Second
+	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, shardID, factory.AccountTrieNodesTopic)
 	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
 	defer cancel()
 
+	//_ = logger.SetLogLevel("*:DEBUG")
 	err = trieSyncer.StartSyncing(rootHash, ctx)
 	assert.Nil(t, err)
 
 	newRootHash, _ := requesterTrie.Root()
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
+
+	_, err = requesterTrie.GetAllLeaves()
+	assert.Nil(t, err)
 }

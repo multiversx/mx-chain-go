@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -35,9 +36,12 @@ func NewRewardTxPreprocessor(
 	marshalizer marshal.Marshalizer,
 	rewardProcessor process.RewardTransactionProcessor,
 	shardCoordinator sharding.Coordinator,
+	accounts state.AccountsAdapter,
 	onRequestRewardTransaction func(shardID uint32, txHashes [][]byte),
 	gasHandler process.GasHandler,
+	pubkeyConverter state.PubkeyConverter,
 	blockSizeComputation BlockSizeComputationHandler,
+	balanceComputation BalanceComputationHandler,
 ) (*rewardTxPreprocessor, error) {
 
 	if check.IfNil(hasher) {
@@ -58,14 +62,23 @@ func NewRewardTxPreprocessor(
 	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if check.IfNil(accounts) {
+		return nil, process.ErrNilAccountsAdapter
+	}
 	if onRequestRewardTransaction == nil {
 		return nil, process.ErrNilRequestHandler
 	}
 	if check.IfNil(gasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
+	if check.IfNil(pubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
+	}
 	if check.IfNil(blockSizeComputation) {
 		return nil, process.ErrNilBlockSizeComputationHandler
+	}
+	if check.IfNil(balanceComputation) {
+		return nil, process.ErrNilBalanceComputationHandler
 	}
 
 	bpp := &basePreProcess{
@@ -74,6 +87,9 @@ func NewRewardTxPreprocessor(
 		shardCoordinator:     shardCoordinator,
 		gasHandler:           gasHandler,
 		blockSizeComputation: blockSizeComputation,
+		balanceComputation:   balanceComputation,
+		accounts:             accounts,
+		pubkeyConverter:      pubkeyConverter,
 	}
 
 	rtp := &rewardTxPreprocessor{
@@ -213,6 +229,8 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 				return process.ErrWrongTypeAssertion
 			}
 
+			rtp.saveAccountBalanceForAddress(rTx.GetRcvAddr())
+
 			err := rtp.rewardsProcessor.ProcessRewardTransaction(rTx)
 			if err != nil {
 				return err
@@ -280,37 +298,12 @@ func (rtp *rewardTxPreprocessor) RequestBlockTransactions(body *block.Body) int 
 		return 0
 	}
 
-	requestedRewardTxs := 0
-	missingRewardTxsForShards := rtp.computeMissingAndExistingRewardTxsForShards(body)
-
-	rtp.rewardTxsForBlock.mutTxsForBlock.Lock()
-	for senderShardID, rewardTxHashes := range missingRewardTxsForShards {
-		for _, txHash := range rewardTxHashes {
-			rtp.setMissingTxsForShard(senderShardID, txHash)
-		}
-	}
-	rtp.rewardTxsForBlock.mutTxsForBlock.Unlock()
-
-	for senderShardID, mbsRewardTxHashes := range missingRewardTxsForShards {
-		for _, mbRewardTxHashes := range mbsRewardTxHashes {
-			requestedRewardTxs += len(mbRewardTxHashes.txHashes)
-			rtp.onRequestRewardTx(senderShardID, mbRewardTxHashes.txHashes)
-		}
-	}
-
-	return requestedRewardTxs
+	return rtp.computeExistingAndRequestMissingRewardTxsForShards(body)
 }
 
-func (rtp *rewardTxPreprocessor) setMissingTxsForShard(senderShardID uint32, mbTxHashes *txsHashesInfo) {
-	txShardData := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbTxHashes.receiverShardID}
-	for _, txHash := range mbTxHashes.txHashes {
-		rtp.rewardTxsForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardData}
-	}
-}
-
-// computeMissingAndExistingRewardTxsForShards calculates what reward transactions are available and what are missing
-// from block.Body
-func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(body *block.Body) map[uint32][]*txsHashesInfo {
+// computeExistingAndRequestMissingRewardTxsForShards calculates what reward transactions are available and requests
+// what are missing from block.Body
+func (rtp *rewardTxPreprocessor) computeExistingAndRequestMissingRewardTxsForShards(body *block.Body) int {
 	rewardTxs := block.Body{}
 	for _, mb := range body.MiniBlocks {
 		if mb.Type != block.RewardsBlock {
@@ -323,15 +316,16 @@ func (rtp *rewardTxPreprocessor) computeMissingAndExistingRewardTxsForShards(bod
 		rewardTxs.MiniBlocks = append(rewardTxs.MiniBlocks, mb)
 	}
 
-	missingTxsForShards := rtp.computeExistingAndMissing(
+	numMissingTxsForShards := rtp.computeExistingAndRequestMissing(
 		&rewardTxs,
 		&rtp.rewardTxsForBlock,
 		rtp.chReceivedAllRewardTxs,
 		rtp.isMiniBlockCorrect,
 		rtp.rewardTxPool,
+		rtp.onRequestRewardTx,
 	)
 
-	return missingTxsForShards
+	return numMissingTxsForShards
 }
 
 // RequestTransactionsForMiniBlock requests missing reward transactions for a certain miniblock
@@ -443,6 +437,8 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 		if !haveTime() {
 			return processedTxHashes, process.ErrTimeIsOut
 		}
+
+		rtp.saveAccountBalanceForAddress(miniBlockRewardTxs[index].GetRcvAddr())
 
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[index])
 		if err != nil {

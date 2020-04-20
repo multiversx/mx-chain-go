@@ -330,31 +330,36 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 	return bootstrapKey, nil
 }
 
-func getAllMiniBlocksWithDst(metaBlock *block.MetaBlock, destId uint32) map[string]block.ShardMiniBlockHeader {
-	hashDst := make(map[string]block.ShardMiniBlockHeader)
+func getAllMiniBlocksWithDst(metaBlock *block.MetaBlock, destId uint32) map[string]block.MiniBlockHeader {
+	hashDst := make(map[string]block.MiniBlockHeader)
 	for i := 0; i < len(metaBlock.ShardInfo); i++ {
 		if metaBlock.ShardInfo[i].ShardID == destId {
 			continue
 		}
 
 		for _, val := range metaBlock.ShardInfo[i].ShardMiniBlockHeaders {
-			if val.ReceiverShardID == destId && val.SenderShardID != destId {
-				hashDst[string(val.Hash)] = val
+			isCrossShardDestMe := val.ReceiverShardID == destId && val.SenderShardID != destId
+			if !isCrossShardDestMe {
+				continue
 			}
+
+			hashDst[string(val.Hash)] = val
 		}
 	}
 
 	for _, val := range metaBlock.MiniBlockHeaders {
 		isCrossShardDestMe := val.ReceiverShardID == destId && val.SenderShardID != destId
-		if isCrossShardDestMe {
-			shardMiniBlockHdr := block.ShardMiniBlockHeader{
-				Hash:            val.Hash,
-				ReceiverShardID: val.ReceiverShardID,
-				SenderShardID:   val.SenderShardID,
-				TxCount:         val.TxCount,
-			}
-			hashDst[string(val.Hash)] = shardMiniBlockHdr
+		if !isCrossShardDestMe {
+			continue
 		}
+
+		shardMiniBlockHdr := block.MiniBlockHeader{
+			Hash:            val.Hash,
+			ReceiverShardID: val.ReceiverShardID,
+			SenderShardID:   val.SenderShardID,
+			TxCount:         val.TxCount,
+		}
+		hashDst[string(val.Hash)] = shardMiniBlockHdr
 	}
 
 	return hashDst

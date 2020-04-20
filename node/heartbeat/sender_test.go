@@ -3,6 +3,7 @@ package heartbeat_test
 import (
 	"bytes"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -127,6 +128,17 @@ func TestNewSender_NilHardforkTriggerShouldErr(t *testing.T) {
 	assert.Equal(t, heartbeat.ErrNilHardforkTrigger, err)
 }
 
+func TestNewSender_PropertyTooLongShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatSender()
+	arg.VersionNumber = strings.Repeat("a", heartbeat.MaxSizeInBytes+1)
+	sender, err := heartbeat.NewSender(arg)
+
+	assert.Nil(t, sender)
+	assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
+}
+
 func TestNewSender_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -143,60 +155,29 @@ func TestSender_SendHeartbeatGeneratePublicKeyErrShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected error")
-	pubKey := &mock.PublicKeyMock{
-		ToByteArrayHandler: func() (i []byte, e error) {
-			return nil, errExpected
-		},
-	}
-
-	arg := createMockArgHeartbeatSender()
-	arg.PrivKey = &mock.PrivateKeyStub{
-		GeneratePublicHandler: func() crypto.PublicKey {
-			return pubKey
-		},
-	}
-	sender, _ := heartbeat.NewSender(arg)
-
-	err := sender.SendHeartbeat()
-
-	assert.Equal(t, errExpected, err)
+	testSendHeartbeat(t, errExpected, nil, nil)
 }
 
 func TestSender_SendHeartbeatSignErrShouldErr(t *testing.T) {
 	t.Parallel()
 
 	errExpected := errors.New("expected error")
-	pubKey := &mock.PublicKeyMock{
-		ToByteArrayHandler: func() (i []byte, e error) {
-			return nil, nil
-		},
-	}
-
-	arg := createMockArgHeartbeatSender()
-	arg.SingleSigner = &mock.SinglesignStub{
-		SignCalled: func(private crypto.PrivateKey, msg []byte) (i []byte, e error) {
-			return nil, errExpected
-		},
-	}
-	arg.PrivKey = &mock.PrivateKeyStub{
-		GeneratePublicHandler: func() crypto.PublicKey {
-			return pubKey
-		},
-	}
-	sender, _ := heartbeat.NewSender(arg)
-
-	err := sender.SendHeartbeat()
-
-	assert.Equal(t, errExpected, err)
+	testSendHeartbeat(t, nil, errExpected, nil)
 }
 
 func TestSender_SendHeartbeatMarshalizerErrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	errExpected := errors.New("expected error")
+	expectedErr := errors.New("err")
+	testSendHeartbeat(t, nil, nil, expectedErr)
+}
+
+func testSendHeartbeat(t *testing.T, pubKeyErr, signErr, marshalErr error) {
+	var expectedErr error
 	pubKey := &mock.PublicKeyMock{
 		ToByteArrayHandler: func() (i []byte, e error) {
-			return nil, nil
+			expectedErr = pubKeyErr
+			return nil, pubKeyErr
 		},
 	}
 
@@ -206,16 +187,30 @@ func TestSender_SendHeartbeatMarshalizerErrShouldErr(t *testing.T) {
 			return pubKey
 		},
 	}
-	arg.Marshalizer = &mock.MarshalizerMock{
-		MarshalHandler: func(obj interface{}) (i []byte, e error) {
-			return nil, errExpected
+	args := createMockArgHeartbeatSender()
+	args.PeerMessenger = &mock.MessengerStub{
+		BroadcastCalled: func(topic string, buff []byte) {
 		},
 	}
+
+	args.SingleSigner = &mock.SinglesignStub{
+		SignCalled: func(private crypto.PrivateKey, msg []byte) (i []byte, e error) {
+			expectedErr = signErr
+			return nil, signErr
+		},
+	}
+	args.Marshalizer = &mock.MarshalizerMock{
+		MarshalHandler: func(obj interface{}) (i []byte, e error) {
+			expectedErr = marshalErr
+			return nil, marshalErr
+		},
+	}
+
 	sender, _ := heartbeat.NewSender(arg)
 
 	err := sender.SendHeartbeat()
 
-	assert.Equal(t, errExpected, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestSender_SendHeartbeatShouldWork(t *testing.T) {

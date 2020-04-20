@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -40,7 +41,7 @@ import (
 var log = logger.GetOrCreate("epochStart/bootstrap")
 
 const timeToWait = time.Minute
-const trieSyncWaitTime = 5 * time.Minute
+const trieSyncWaitTime = 10 * time.Minute
 const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
@@ -95,6 +96,7 @@ type epochStartBootstrap struct {
 	uint64Converter            typeConverters.Uint64ByteSliceConverter
 	nodeShuffler               sharding.NodesShuffler
 	rounder                    epochStart.Rounder
+	addressPubkeyConverter     state.PubkeyConverter
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -127,6 +129,12 @@ type baseDataInStorage struct {
 
 // ArgsEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
 type ArgsEpochStartBootstrap struct {
+	DestinationShardAsObserver uint32
+	WorkingDir                 string
+	DefaultDBPath              string
+	DefaultEpochString         string
+	DefaultShardString         string
+	TrieStorageManagers        map[string]data.StorageManager
 	PublicKey                  crypto.PublicKey
 	Marshalizer                marshal.Marshalizer
 	TxSignMarshalizer          marshal.Marshalizer
@@ -141,17 +149,12 @@ type ArgsEpochStartBootstrap struct {
 	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
 	GenesisShardCoordinator    sharding.Coordinator
 	PathManager                storage.PathManagerHandler
-	WorkingDir                 string
-	DefaultDBPath              string
-	DefaultEpochString         string
-	DefaultShardString         string
 	Rater                      sharding.ChanceComputer
-	DestinationShardAsObserver uint32
 	TrieContainer              state.TriesHolder
-	TrieStorageManagers        map[string]data.StorageManager
 	Uint64Converter            typeConverters.Uint64ByteSliceConverter
 	NodeShuffler               sharding.NodesShuffler
 	Rounder                    epochStart.Rounder
+	AddressPubkeyConverter     state.PubkeyConverter
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -187,6 +190,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		uint64Converter:            args.Uint64Converter,
 		nodeShuffler:               args.NodeShuffler,
 		rounder:                    args.Rounder,
+		addressPubkeyConverter:     args.AddressPubkeyConverter,
 	}
 
 	return epochStartProvider, nil
@@ -201,7 +205,7 @@ func (e *epochStartBootstrap) isStartInEpochZero() bool {
 
 	currentRound := e.rounder.Index()
 	epochEndPlusGracePeriod := float64(e.generalConfig.EpochStartConfig.RoundsPerEpoch) * (gracePeriodInPercentage + 1.0)
-	log.Debug("current round ", "round", currentRound, "epochEndRound", epochEndPlusGracePeriod)
+	log.Debug("IsStartInEpochZero", "currentRound", currentRound, "epochEndRound", epochEndPlusGracePeriod)
 	return float64(currentRound) < epochEndPlusGracePeriod
 }
 
@@ -229,8 +233,9 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	defer func() {
+		log.Debug("unregistering all message processor")
 		errMessenger := e.messenger.UnregisterAllMessageProcessors()
-		log.LogIfError(errMessenger, "error on unregistering message processor")
+		log.LogIfError(errMessenger)
 	}()
 
 	var err error
@@ -241,6 +246,17 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 	if e.isStartInEpochZero() {
 		return e.prepareEpochZero()
+	}
+
+	e.dataPool, err = factoryDataPool.NewDataPoolFromConfig(
+		factoryDataPool.ArgsDataPool{
+			Config:           &e.generalConfig,
+			EconomicsData:    e.economicsData,
+			ShardCoordinator: e.shardCoordinator,
+		},
+	)
+	if err != nil {
+		return Parameters{}, err
 	}
 
 	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
@@ -259,16 +275,31 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 	e.epochStartMeta, err = e.epochStartMetaBlockSyncer.SyncEpochStartMeta(timeToWait)
 	if err != nil {
+		// node should try to start from what he has in DB if not epoch start metablock is received in time
+		if errors.Is(err, epochStart.ErrTimeoutWaitingForMetaBlock) {
+			parameters := Parameters{
+				Epoch:       e.baseData.lastEpoch,
+				SelfShardId: e.baseData.shardId,
+				NumOfShards: e.baseData.numberOfShards,
+			}
+			return parameters, nil
+		}
+
 		return Parameters{}, err
 	}
-	log.Debug("start in epoch boostrap: got epoch start meta header", "epoch", e.epochStartMeta.Epoch, "nonce", e.epochStartMeta.Nonce)
+	log.Debug("start in epoch bootstrap: got epoch start meta header", "epoch", e.epochStartMeta.Epoch, "nonce", e.epochStartMeta.Nonce)
 
 	err = e.createSyncers()
 	if err != nil {
 		return Parameters{}, err
 	}
 
-	return e.requestAndProcessing()
+	params, err := e.requestAndProcessing()
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	return params, nil
 }
 
 func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
@@ -304,17 +335,6 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
-	e.dataPool, err = factoryDataPool.NewDataPoolFromConfig(
-		factoryDataPool.ArgsDataPool{
-			Config:           &e.generalConfig,
-			EconomicsData:    e.economicsData,
-			ShardCoordinator: e.shardCoordinator,
-		},
-	)
-	if err != nil {
-		return err
-	}
-
 	err = e.createRequestHandler()
 	if err != nil {
 		return err
@@ -334,6 +354,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		Signer:            e.singleSigner,
 		BlockSigner:       e.blockSingleSigner,
 		WhitelistHandler:  e.whiteListHandler,
+		AddressPubkeyConv: e.addressPubkeyConverter,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -360,6 +381,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		BlockKeyGen:       e.blockKeyGen,
 		WhiteListHandler:  e.whiteListHandler,
 		ChainID:           []byte(e.genesisNodesConfig.GetChainId()),
+		AddressPubkeyConv: e.addressPubkeyConverter,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
@@ -385,8 +407,11 @@ func (e *epochStartBootstrap) createSyncers() error {
 		RequestHandler: e.requestHandler,
 	}
 	e.headersSyncer, err = sync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
+	if err != nil {
+		return err
+	}
 
-	return err
+	return nil
 }
 
 func (e *epochStartBootstrap) syncHeadersFrom(meta *block.MetaBlock) (map[string]data.HeaderHandler, error) {
@@ -464,6 +489,11 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		if err != nil {
 			return Parameters{}, err
 		}
+	}
+
+	err = e.messenger.CreateTopic(core.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
+	if err != nil {
+		return Parameters{}, err
 	}
 
 	if e.shardCoordinator.SelfId() == core.MetachainShardId {

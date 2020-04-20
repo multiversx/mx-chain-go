@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/state/pubkeyConverter"
 	transaction2 "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
@@ -1098,9 +1099,10 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
-	address1, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000000")
-	address2, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000001")
-	address3, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000002")
+	hexPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
+	address1, _ := hexPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000000")
+	address2, _ := hexPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000001")
+	address3, _ := hexPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000002")
 
 	newDefaultAccount(adb, address1)
 	newDefaultAccount(adb, address2)
@@ -1140,8 +1142,9 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
-	address1, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000000")
-	address2, _ := integrationTests.TestAddressConverter.CreateAddressFromHex("0000000000000000000000000000000000000000000000000000000000000001")
+	hexAddressPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
+	address1, _ := hexAddressPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000000")
+	address2, _ := hexAddressPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000001")
 
 	key1 := []byte("ABC")
 	key2 := []byte("ABD")
@@ -1456,7 +1459,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 

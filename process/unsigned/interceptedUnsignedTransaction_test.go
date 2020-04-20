@@ -42,13 +42,17 @@ func createInterceptedScrFromPlainScr(scr *smartContractResult.SmartContractResu
 		txBuff,
 		marshalizer,
 		mock.HasherMock{},
-		&mock.AddressConverterStub{
-			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
 				return mock.NewAddressMock(pubKey), nil
 			},
 		},
 		shardCoordinator,
 	)
+}
+
+func createMockPubkeyConverter() *mock.PubkeyConverterMock {
+	return mock.NewPubkeyConverterMock(32)
 }
 
 //------- NewInterceptedUnsignedTransaction
@@ -60,7 +64,7 @@ func TestNewInterceptedUnsignedTransaction_NilBufferShouldErr(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 	)
 
@@ -75,7 +79,7 @@ func TestNewInterceptedUnsignedTransaction_NilMarshalizerShouldErr(t *testing.T)
 		make([]byte, 0),
 		nil,
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 	)
 
@@ -90,7 +94,7 @@ func TestNewInterceptedUnsignedTransaction_NilHasherShouldErr(t *testing.T) {
 		make([]byte, 0),
 		&mock.MarshalizerMock{},
 		nil,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 	)
 
@@ -98,7 +102,7 @@ func TestNewInterceptedUnsignedTransaction_NilHasherShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
-func TestNewInterceptedUnsignedTransaction_NilAddressConverterShouldErr(t *testing.T) {
+func TestNewInterceptedUnsignedTransaction_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txi, err := unsigned.NewInterceptedUnsignedTransaction(
@@ -110,7 +114,7 @@ func TestNewInterceptedUnsignedTransaction_NilAddressConverterShouldErr(t *testi
 	)
 
 	assert.Nil(t, txi)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestNewInterceptedUnsignedTransaction_NilCoordinatorShouldErr(t *testing.T) {
@@ -120,7 +124,7 @@ func TestNewInterceptedUnsignedTransaction_NilCoordinatorShouldErr(t *testing.T)
 		make([]byte, 0),
 		&mock.MarshalizerMock{},
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		nil,
 	)
 
@@ -141,7 +145,7 @@ func TestNewInterceptedUnsignedTransaction_UnmarshalingTxFailsShouldErr(t *testi
 			},
 		},
 		mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 	)
 
@@ -156,8 +160,8 @@ func TestNewInterceptedUnsignedTransaction_AddrConvFailsShouldErr(t *testing.T) 
 		[]byte("{}"),
 		&mock.MarshalizerMock{},
 		mock.HasherMock{},
-		&mock.AddressConverterStub{
-			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
 				return nil, errors.New("expected error")
 			},
 		},

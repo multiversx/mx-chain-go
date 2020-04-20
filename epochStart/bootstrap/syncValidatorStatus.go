@@ -31,7 +31,7 @@ type syncValidatorStatus struct {
 	memDB              storage.Storer
 }
 
-// ArgsNewSyncValidatorStatus
+// ArgsNewSyncValidatorStatus holds the arguments needed for creating a new validator status process component
 type ArgsNewSyncValidatorStatus struct {
 	DataPool           dataRetriever.PoolsHolder
 	Marshalizer        marshal.Marshalizer
@@ -160,14 +160,14 @@ func (s *syncValidatorStatus) processValidatorChangesFor(metaBlock *block.MetaBl
 	return nil
 }
 
-func findPeerMiniBlockHeaders(metaBlock *block.MetaBlock) []block.ShardMiniBlockHeader {
-	shardMBHeaders := make([]block.ShardMiniBlockHeader, 0)
+func findPeerMiniBlockHeaders(metaBlock *block.MetaBlock) []block.MiniBlockHeader {
+	shardMBHeaders := make([]block.MiniBlockHeader, 0)
 	for _, mbHeader := range metaBlock.MiniBlockHeaders {
 		if mbHeader.Type != block.PeerBlock {
 			continue
 		}
 
-		shardMBHdr := block.ShardMiniBlockHeader{
+		shardMBHdr := block.MiniBlockHeader{
 			Hash:            mbHeader.Hash,
 			ReceiverShardID: mbHeader.ReceiverShardID,
 			SenderShardID:   core.MetachainShardId,

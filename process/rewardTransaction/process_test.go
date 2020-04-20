@@ -18,7 +18,7 @@ func TestNewRewardTxProcessor_NilAccountsDbShouldErr(t *testing.T) {
 
 	rtp, err := rewardTransaction.NewRewardTxProcessor(
 		nil,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 	)
 
@@ -26,7 +26,7 @@ func TestNewRewardTxProcessor_NilAccountsDbShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
-func TestNewRewardTxProcessor_NilAddressConverterShouldErr(t *testing.T) {
+func TestNewRewardTxProcessor_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	rtp, err := rewardTransaction.NewRewardTxProcessor(
@@ -36,7 +36,7 @@ func TestNewRewardTxProcessor_NilAddressConverterShouldErr(t *testing.T) {
 	)
 
 	assert.Nil(t, rtp)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestNewRewardTxProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
@@ -44,7 +44,7 @@ func TestNewRewardTxProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 
 	rtp, err := rewardTransaction.NewRewardTxProcessor(
 		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		nil,
 	)
 
@@ -57,7 +57,7 @@ func TestNewRewardTxProcessor_OkValsShouldWork(t *testing.T) {
 
 	rtp, err := rewardTransaction.NewRewardTxProcessor(
 		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 	)
 
@@ -71,7 +71,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionNilTxShouldErr(t *testing.T) 
 
 	rtp, _ := rewardTransaction.NewRewardTxProcessor(
 		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 	)
 
@@ -84,7 +84,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionNilTxValueShouldErr(t *testin
 
 	rtp, _ := rewardTransaction.NewRewardTxProcessor(
 		&mock.AccountsStub{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 	)
 
@@ -99,8 +99,8 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotCreateAddressShouldErr(
 	expectedErr := errors.New("cannot create address")
 	rtp, _ := rewardTransaction.NewRewardTxProcessor(
 		&mock.AccountsStub{},
-		&mock.AddressConverterStub{
-			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
 				return nil, expectedErr
 			},
 		},
@@ -133,7 +133,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionAddressNotInNodesShardShouldN
 				return nil, nil
 			},
 		},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		shardCoord,
 	)
 
@@ -160,7 +160,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotGetAccountShouldErr(t *
 				return nil, expectedErr
 			},
 		},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 	)
 
@@ -186,7 +186,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionWrongTypeAssertionAccountHold
 
 	rtp, _ := rewardTransaction.NewRewardTxProcessor(
 		accountsDb,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 	)
 
@@ -218,7 +218,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 
 	rtp, _ := rewardTransaction.NewRewardTxProcessor(
 		accountsDb,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3),
 	)
 

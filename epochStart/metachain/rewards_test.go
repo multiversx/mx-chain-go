@@ -27,16 +27,16 @@ func TestNewEpochStartRewardsCreator_NilShardCoordinator(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilShardCoordinator, err)
 }
 
-func TestNewEpochStartRewardsCreator_NilAddressConverter(t *testing.T) {
+func TestNewEpochStartRewardsCreator_NilPubkeyConverter(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
-	args.AddrConverter = nil
+	args.PubkeyConverter = nil
 
 	rwd, err := NewEpochStartRewardsCreator(args)
 
 	assert.True(t, check.IfNil(rwd))
-	assert.Equal(t, epochStart.ErrNilAddressConverter, err)
+	assert.Equal(t, epochStart.ErrNilPubkeyConverter, err)
 }
 
 func TestNewEpochStartRewardsCreator_NilRewardsStorage(t *testing.T) {
@@ -411,7 +411,7 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 func getRewardsArguments() ArgsNewRewardsCreator {
 	return ArgsNewRewardsCreator{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
-		AddrConverter:    &mock.AddressConverterMock{},
+		PubkeyConverter:  mock.NewPubkeyConverterMock(32),
 		RewardsStorage:   &mock.StorerStub{},
 		MiniBlockStorage: &mock.StorerStub{},
 		Hasher:           &mock.HasherMock{},

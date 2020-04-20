@@ -13,6 +13,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt := &trigger{}
 
 	rt.epoch = t.epoch
+	rt.metaEpoch = t.epoch
 	rt.currentRoundIndex = t.currentRoundIndex
 	rt.epochStartRound = t.epochStartRound
 	rt.epochMetaBlockHash = t.epochMetaBlockHash
@@ -42,6 +43,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.appStatusHandler = t.appStatusHandler
 	rt.miniBlocksPool = t.miniBlocksPool
 	rt.mapMissingMiniblocks = t.mapMissingMiniblocks
+	rt.mapFinalizedEpochs = t.mapFinalizedEpochs
 	return rt
 }
 
@@ -65,6 +67,7 @@ func TestTrigger_LoadStateAfterSave(t *testing.T) {
 	key := []byte("key")
 	epochStartTrigger1.triggerStateKey = key
 	epochStartTrigger1.epoch = 10
+	epochStartTrigger1.metaEpoch = 10
 	epochStartTrigger1.currentRoundIndex = 800
 	epochStartTrigger1.epochStartRound = 650
 	epochStartTrigger1.epochMetaBlockHash = []byte("meta block hash")

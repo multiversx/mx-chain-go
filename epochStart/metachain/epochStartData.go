@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -22,7 +23,10 @@ type epochStartData struct {
 	blockTracker      process.BlockTracker
 	shardCoordinator  sharding.Coordinator
 	epochStartTrigger process.EpochStartTriggerHandler
+	requestHandler    epochStart.RequestHandler
 }
+
+const maxEpochDifference = 2
 
 // ArgsNewEpochStartData defines the input parameters for epoch start data creator
 type ArgsNewEpochStartData struct {
@@ -33,6 +37,7 @@ type ArgsNewEpochStartData struct {
 	BlockTracker      process.BlockTracker
 	ShardCoordinator  sharding.Coordinator
 	EpochStartTrigger process.EpochStartTriggerHandler
+	RequestHandler    epochStart.RequestHandler
 }
 
 // NewEpochStartData creates a new epoch start creator
@@ -55,6 +60,9 @@ func NewEpochStartData(args ArgsNewEpochStartData) (*epochStartData, error) {
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
+	if check.IfNil(args.RequestHandler) {
+		return nil, process.ErrNilRequestHandler
+	}
 
 	e := &epochStartData{
 		marshalizer:       args.Marshalizer,
@@ -64,6 +72,7 @@ func NewEpochStartData(args ArgsNewEpochStartData) (*epochStartData, error) {
 		blockTracker:      args.BlockTracker,
 		shardCoordinator:  args.ShardCoordinator,
 		epochStartTrigger: args.EpochStartTrigger,
+		requestHandler:    args.RequestHandler,
 	}
 
 	return e, nil
@@ -197,6 +206,11 @@ func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr *
 	for currentHdr := shardHdr; currentHdr.GetNonce() > 0 && currentHdr.GetEpoch() == shardHdr.GetEpoch(); {
 		prevShardHdr, err := process.GetShardHeader(currentHdr.GetPrevHash(), e.dataPool.Headers(), e.marshalizer, e.store)
 		if err != nil {
+			go e.requestHandler.RequestShardHeader(currentHdr.ShardID, currentHdr.GetPrevHash())
+			if e.epochStartTrigger.Epoch()-currentHdr.GetEpoch() > maxEpochDifference {
+				log.Warn("shard remained in an epoch that is too old", "shardID", currentHdr.ShardID, "shard Epoch", currentHdr.Epoch, "meta Epoch", e.epochStartTrigger.Epoch())
+				break
+			}
 			return nil, nil, nil, err
 		}
 
@@ -237,7 +251,7 @@ func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr *
 		currentHdr = prevShardHdr
 	}
 
-	lastMetaHash, lastFinalizedMetaHash, err := e.getShardDataFromEpochStartData(shardHdr.Epoch, shardHdr.ShardID, lastMetaHash)
+	lastMetaHash, lastFinalizedMetaHash, err := e.getShardDataFromEpochStartData(shardHdr.ShardID, lastMetaHash)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -246,13 +260,16 @@ func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr *
 }
 
 func (e *epochStartData) getShardDataFromEpochStartData(
-	epoch uint32,
 	shId uint32,
 	lastMetaHash []byte,
 ) ([]byte, []byte, error) {
+	prevEpoch := uint32(0)
+	if e.epochStartTrigger.Epoch() > 0 {
+		prevEpoch = e.epochStartTrigger.Epoch() - 1
+	}
 
-	epochStartIdentifier := core.EpochStartIdentifier(epoch)
-	if epoch == 0 {
+	epochStartIdentifier := core.EpochStartIdentifier(prevEpoch)
+	if prevEpoch == 0 {
 		return lastMetaHash, []byte(epochStartIdentifier), nil
 	}
 
@@ -283,9 +300,17 @@ func (e *epochStartData) getShardDataFromEpochStartData(
 func (e *epochStartData) computePendingMiniBlockList(
 	startData *block.EpochStart,
 	allShardHdrList [][]*block.Header,
-) ([]block.ShardMiniBlockHeader, error) {
+) ([]block.MiniBlockHeader, error) {
 
-	allPending := make([]block.ShardMiniBlockHeader, 0)
+	prevEpoch := uint32(0)
+	if e.epochStartTrigger.Epoch() > 0 {
+		prevEpoch = e.epochStartTrigger.Epoch() - 1
+	}
+
+	epochStartIdentifier := core.EpochStartIdentifier(prevEpoch)
+	previousEpochStartMeta, _ := process.GetMetaHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
+
+	allPending := make([]block.MiniBlockHeader, 0)
 	for shId, shardData := range startData.LastFinalizedHeaders {
 		if shardData.Nonce == 0 {
 			//shard has only the genesis block
@@ -295,8 +320,15 @@ func (e *epochStartData) computePendingMiniBlockList(
 			continue
 		}
 
+		lastEpochShardData := getFirstPendingMetaBlockForShard(previousEpochStartMeta, uint32(shId))
+		if bytes.Equal(lastEpochShardData.FirstPendingMetaBlock, shardData.FirstPendingMetaBlock) {
+			allPending = append(allPending, lastEpochShardData.PendingMiniBlockHeaders...)
+			continue
+		}
+
 		metaHdr, err := e.getMetaBlockByHash(shardData.FirstPendingMetaBlock)
 		if err != nil {
+			go e.requestHandler.RequestMetaHeader(shardData.FirstPendingMetaBlock)
 			return nil, err
 		}
 
@@ -308,12 +340,28 @@ func (e *epochStartData) computePendingMiniBlockList(
 	return allPending, nil
 }
 
+func getFirstPendingMetaBlockForShard(epochStartMetaHdr *block.MetaBlock, shardID uint32) block.EpochStartShardData {
+	if check.IfNil(epochStartMetaHdr) {
+		return block.EpochStartShardData{}
+	}
+
+	for _, epochStartData := range epochStartMetaHdr.EpochStart.LastFinalizedHeaders {
+		if epochStartData.ShardID != shardID {
+			continue
+		}
+
+		return epochStartData
+	}
+
+	return block.EpochStartShardData{}
+}
+
 func (e *epochStartData) computeStillPending(
 	shardHdrs []*block.Header,
-	miniBlockHeaders map[string]block.ShardMiniBlockHeader,
-) []block.ShardMiniBlockHeader {
+	miniBlockHeaders map[string]block.MiniBlockHeader,
+) []block.MiniBlockHeader {
 
-	pendingMiniBlocks := make([]block.ShardMiniBlockHeader, 0)
+	pendingMiniBlocks := make([]block.MiniBlockHeader, 0)
 
 	for _, shardHdr := range shardHdrs {
 		for _, mbHeader := range shardHdr.MiniBlockHeaders {
@@ -332,8 +380,8 @@ func (e *epochStartData) computeStillPending(
 	return pendingMiniBlocks
 }
 
-func getAllMiniBlocksWithDst(m *block.MetaBlock, destId uint32) map[string]block.ShardMiniBlockHeader {
-	hashDst := make(map[string]block.ShardMiniBlockHeader)
+func getAllMiniBlocksWithDst(m *block.MetaBlock, destId uint32) map[string]block.MiniBlockHeader {
+	hashDst := make(map[string]block.MiniBlockHeader)
 	for i := 0; i < len(m.ShardInfo); i++ {
 		if m.ShardInfo[i].ShardID == destId {
 			continue
@@ -348,13 +396,7 @@ func getAllMiniBlocksWithDst(m *block.MetaBlock, destId uint32) map[string]block
 
 	for _, val := range m.MiniBlockHeaders {
 		if val.ReceiverShardID == destId && val.SenderShardID != destId {
-			shardMiniBlockHdr := block.ShardMiniBlockHeader{
-				Hash:            val.Hash,
-				ReceiverShardID: val.ReceiverShardID,
-				SenderShardID:   val.SenderShardID,
-				TxCount:         val.TxCount,
-			}
-			hashDst[string(val.Hash)] = shardMiniBlockHdr
+			hashDst[string(val.Hash)] = val
 		}
 	}
 
