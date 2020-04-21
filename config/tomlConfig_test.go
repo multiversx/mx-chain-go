@@ -209,65 +209,47 @@ func TestTomlExternalParser(t *testing.T) {
 }
 
 func TestAPIRoutesToml(t *testing.T) {
+	package0 := "testPackage0"
+	route0 := "testRoute0"
+	route1 := "testRoute1"
+
+	package1 := "testPackage1"
+	route2 := "testRoute2"
+
+	expectedCfg := ApiRoutesConfig{
+		APIPackages: map[string]APIPackageConfig{
+			package0: {
+				Routes: []RouteConfig{
+					{Name: route0, Open: true},
+					{Name: route1, Open: true},
+				},
+			},
+			package1: {
+				Routes: []RouteConfig{
+					{Name: route2, Open: false},
+				},
+			},
+		},
+	}
+
 	testString := `
      # API routes configuration
 [APIPackages]
 
-[APIPackages.node]
+[APIPackages.` + package0 + `]
 	Routes = [
-        # /node/status will return all metrics stored inside a node
-        { Name = "/node/status", Open = true },
+        # test comment
+        { Name = "` + route0 + `", Open = true },
 
-        # /node/heartbeatstatus will return all heartbeats messages from the nodes in the network
-        { Name = "/node/heartbeatstatus", Open = true },
-
-        # /node/epoch will return data about the current epoch
-        { Name = "/node/epoch", Open = true },
-
-        # /node/statistics will return statistics about the chain, such as the peak TPS
-        { Name = "/node/statistics", Open = true },
-
-        # /node/p2pstatus will return the metrics related to p2p
-        { Name = "/node/p2pstatus", Open = true }
+        # test comment
+        { Name = "` + route1 + `", Open = true },
 	]
 
-[APIPackages.address]
+[APIPackages.` + package1 + `]
 	Routes = [
-         # /address/:address will return data about a given account
-        { Name = "/address/:address", Open = true },
-
-         # /address/:address/balance will return the balance of a given account
-         { Name = "/address/:address/balance", Open = true }
-	]
-
-[APIPackages.hardfork]
-	Routes = [
-         # /hardfork will receive a trigger request from the client and propagate it for processing
-        { Name = "/hardfork", Open = true }
-	]
-
-[APIPackages.validator]
-	Routes = [
-         # /validator/statistics will return a list of validators statistics for all validators
-        { Name = "/validator/statistics", Open = true }
-	]
-
-[APIPackages.transaction]
-	Routes = [
-         # /transaction/send will receive a single transaction in JSON format and will propagate it through the network
-         # if it's fields are valid. It will return the hash of the transaction
-        { Name = "/transaction/send", Open = true },
-
-         # /transaction/send-multiple will receive an array of transactions in JSON format and will propagate through
-         # the network those whose field are valid. It will return the number of valid transactions propagated
-         { Name = "/transaction/send-multiple", Open = true },
-
-         # /transaction/cost will receive a single transaction in JSON format and will return the estimated cost of it
-         { Name = "/transaction/cost", Open = true },
-
-         # /transaction/cost will receive a single transaction in JSON format and will return the estimated cost of it
-         { Name = "/transaction/cost", Open = true }
-	]
+         # test comment
+        { Name = "` + route2 + `", Open = false }
+    ]
  `
 
 	cfg := ApiRoutesConfig{}
@@ -275,4 +257,5 @@ func TestAPIRoutesToml(t *testing.T) {
 	err := toml.Unmarshal([]byte(testString), &cfg)
 
 	assert.Nil(t, err)
+	assert.Equal(t, expectedCfg, cfg)
 }
