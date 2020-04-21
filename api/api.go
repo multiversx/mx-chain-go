@@ -124,14 +124,14 @@ func registerRoutes(ws *gin.Engine, routesConfig config.ApiRoutesConfig, elrondF
 
 	validatorRoutes := ws.Group("/validator")
 	validatorRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	wrappedValidatorsRouter, err := wrapper.NewRouterWrapper("validators", validatorRoutes, routesConfig)
+	wrappedValidatorsRouter, err := wrapper.NewRouterWrapper("validator", validatorRoutes, routesConfig)
 	if err == nil {
 		valStats.Routes(wrappedValidatorsRouter)
 	}
 
 	hardforkRoutes := ws.Group("/hardfork")
 	hardforkRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	wrappedHardforkRouter, err := wrapper.NewRouterWrapper("validators", validatorRoutes, routesConfig)
+	wrappedHardforkRouter, err := wrapper.NewRouterWrapper("hardfork", hardforkRoutes, routesConfig)
 	if err == nil {
 		hardfork.Routes(wrappedHardforkRouter)
 	}
