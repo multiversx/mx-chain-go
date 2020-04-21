@@ -16,7 +16,15 @@ import (
 
 var log = logger.GetOrCreate("vm/systemsmartcontracts")
 
-const OwnerKey = "owner"
+const ownerKey = "owner"
+const nodesConfigKey = "nodesConfig"
+
+type StakingNodesConfig struct {
+	MinNumNodes   uint32
+	StakedNodes   uint32
+	UnStakedNodes uint32
+	JailedNodes   uint32
+}
 
 type stakingSC struct {
 	eei                      vm.SystemEI
@@ -32,6 +40,7 @@ type stakingSC struct {
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
 type ArgsNewStakingSmartContract struct {
+	MinNumNodes              uint32
 	MinStakeValue            *big.Int
 	UnBondPeriod             uint64
 	Eei                      vm.SystemEI
@@ -258,6 +267,7 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 			stakedData.StakeValue,
 		)
 		stakedData.JailedRound = math.MaxUint64
+		stakedData.UnJailedNonce = r.eei.BlockChainHook().CurrentNonce()
 
 		err = r.saveStakingData(argument, stakedData)
 		if err != nil {
@@ -277,6 +287,8 @@ func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedData, error) {
 		RewardAddress: nil,
 		StakeValue:    big.NewInt(0),
 		JailedRound:   math.MaxUint64,
+		UnJailedNonce: 0,
+		JailedNonce:   0,
 	}
 
 	data := r.eei.GetStorage(key)
@@ -321,6 +333,7 @@ func (r *stakingSC) jail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		}
 
 		stakedData.JailedRound = r.eei.BlockChainHook().CurrentRound()
+		stakedData.JailedNonce = r.eei.BlockChainHook().CurrentNonce()
 		err = r.saveStakingData(argument, stakedData)
 		if err != nil {
 			return vmcommon.UserError
@@ -347,13 +360,13 @@ func (r *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	ownerAddress := r.eei.GetStorage([]byte(OwnerKey))
+	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
 	if ownerAddress != nil {
 		log.Debug("smart contract was already initialized")
 		return vmcommon.UserError
 	}
 
-	r.eei.SetStorage([]byte(OwnerKey), args.CallerAddr)
+	r.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
 	r.eei.SetStorage(args.CallerAddr, big.NewInt(0).Bytes())
 
 	epoch := r.eei.BlockChainHook().CurrentEpoch()
@@ -544,7 +557,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 }
 
 func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	ownerAddress := r.eei.GetStorage([]byte(OwnerKey))
+	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
 	if !bytes.Equal(ownerAddress, args.CallerAddr) {
 		log.Debug("slash function called by not the owners address")
 		return vmcommon.UserError

@@ -297,7 +297,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.scToProtocol.UpdateProtocol(body, header.Round)
+	err = mp.scToProtocol.UpdateProtocol(body, header.Nonce)
 	if err != nil {
 		return err
 	}
@@ -364,7 +364,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.scToProtocol.UpdateProtocol(body, header.Round)
+	err = mp.scToProtocol.UpdateProtocol(body, header.Nonce)
 	if err != nil {
 		return err
 	}
@@ -737,7 +737,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock *block.MetaBlock, haveTime fu
 		return nil, err
 	}
 
-	err = mp.scToProtocol.UpdateProtocol(miniBlocks, metaBlock.GetRound())
+	err = mp.scToProtocol.UpdateProtocol(miniBlocks, metaBlock.Nonce)
 	if err != nil {
 		return nil, err
 	}

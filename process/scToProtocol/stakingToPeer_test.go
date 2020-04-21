@@ -1,6 +1,7 @@
 package scToProtocol
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"math/big"
@@ -543,7 +544,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{})
 		peerAccount.Stake = big.NewInt(100)
 		peerAccount.BLSPublicKey = []byte(address)
-		peerAccount.UnStakedNonce = 1
+		peerAccount.IndexInList = 1
 		return peerAccount, nil
 	}
 
@@ -571,4 +572,58 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 	blockBody := createBlockBody()
 	err := stakingToPeer.UpdateProtocol(blockBody, 0)
 	assert.Equal(t, testError, err)
+}
+
+func TestStakingToPeer_UpdatePeerState(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsNewStakingToPeer()
+	stakingToPeer, _ := NewStakingToPeer(arguments)
+
+	stakingData := systemSmartContracts.StakedData{
+		RegisterNonce: 0,
+		Staked:        false,
+		UnStakedNonce: 0,
+		UnStakedEpoch: 0,
+		RewardAddress: []byte("rwd"),
+		StakeValue:    big.NewInt(0),
+		JailedRound:   0,
+		JailedNonce:   0,
+		UnJailedNonce: 0,
+	}
+	var peerAccount state.PeerAccountHandler
+	peerAccount = state.NewEmptyPeerAccount()
+	blsPubKey := []byte("key")
+	nonce := uint64(1)
+	err := stakingToPeer.updatePeerState(stakingData, peerAccount, blsPubKey, nonce)
+	assert.Nil(t, err)
+	assert.True(t, bytes.Equal(blsPubKey, peerAccount.GetBLSPublicKey()))
+	assert.True(t, bytes.Equal(stakingData.RewardAddress, peerAccount.GetRewardAddress()))
+	assert.Equal(t, 0, len(peerAccount.GetList()))
+
+	stakingData.RegisterNonce = 10
+	_ = stakingToPeer.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.RegisterNonce)
+	assert.Equal(t, string(core.NewList), peerAccount.GetList())
+
+	stakingData.UnStakedNonce = 11
+	_ = stakingToPeer.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.UnStakedNonce)
+	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
+
+	peerAccount.SetListAndIndex(0, string(core.EligibleList), 5)
+	stakingData.JailedNonce = 12
+	_ = stakingToPeer.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.JailedNonce)
+	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
+
+	// it is still jailed - no change allowed
+	stakingData.RegisterNonce = 13
+	_ = stakingToPeer.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.RegisterNonce)
+	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
+
+	stakingData.UnJailedNonce = 14
+	_ = stakingToPeer.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.UnJailedNonce)
+	assert.Equal(t, string(core.NewList), peerAccount.GetList())
+
+	stakingData.UnStakedNonce = 15
+	_ = stakingToPeer.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.UnStakedNonce)
+	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
 }

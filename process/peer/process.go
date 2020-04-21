@@ -392,7 +392,7 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 			return nil, err
 		}
 
-		currentShardId := peerAccount.GetCurrentShardId()
+		currentShardId := peerAccount.GetShardId()
 		validatorInfoData := vs.peerAccountToValidatorInfo(peerAccount)
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
 	}
@@ -407,7 +407,7 @@ func (vs *validatorStatistics) peerAccountToValidatorInfo(peerAccount state.Peer
 
 	return &state.ValidatorInfo{
 		PublicKey:                  peerAccount.GetBLSPublicKey(),
-		ShardId:                    peerAccount.GetCurrentShardId(),
+		ShardId:                    peerAccount.GetShardId(),
 		List:                       peerAccount.GetList(),
 		Index:                      peerAccount.GetIndex(),
 		TempRating:                 peerAccount.GetTempRating(),
@@ -767,7 +767,6 @@ func (vs *validatorStatistics) savePeerAccountData(
 		return err
 	}
 
-	peerAccount.SetCurrentShardId(shardID)
 	peerAccount.SetRating(startRating)
 	peerAccount.SetTempRating(startRating)
 	peerAccount.SetListAndIndex(shardID, string(peerType), index)

@@ -75,31 +75,6 @@ func (pa *peerAccount) AddToAccumulatedFees(fees *big.Int) {
 	pa.AccumulatedFees.Add(pa.AccumulatedFees, fees)
 }
 
-// SetJailTime sets the account's jail time
-func (pa *peerAccount) SetJailTime(jailTime TimePeriod) {
-	pa.JailTime = jailTime
-}
-
-// SetCurrentShardId sets the account's shard id
-func (pa *peerAccount) SetCurrentShardId(shId uint32) {
-	pa.CurrentShardId = shId
-}
-
-// SetNextShardId sets the account's shard id
-func (pa *peerAccount) SetNextShardId(shId uint32) {
-	pa.NextShardId = shId
-}
-
-// SetNodeInWaitingList sets the account's nodes status whether in waiting list
-func (pa *peerAccount) SetNodeInWaitingList(nodeInWaitingList bool) {
-	pa.NodeInWaitingList = nodeInWaitingList
-}
-
-// SetUnStakedNonce sets the account's shard id
-func (pa *peerAccount) SetUnStakedNonce(nonce uint64) {
-	pa.UnStakedNonce = nonce
-}
-
 // IncreaseLeaderSuccessRate increases the account's number of successful signing
 func (pa *peerAccount) IncreaseLeaderSuccessRate(value uint32) {
 	pa.LeaderSuccessRate.NumSuccess += value
@@ -137,7 +112,7 @@ func (pa *peerAccount) SetTempRating(rating uint32) {
 
 // SetListAndIndex will update the peer's list (eligible, waiting) and the index inside it with journal
 func (pa *peerAccount) SetListAndIndex(shardID uint32, list string, index uint32) {
-	pa.CurrentShardId = shardID
+	pa.ShardId = shardID
 	pa.List = list
 	pa.IndexInList = index
 }
@@ -172,11 +147,6 @@ func (pa *peerAccount) ResetAtNewEpoch() {
 	pa.NumSelectedInSuccessBlocks = 0
 }
 
-//IncreaseNonce adds the given value to the current nonce
-func (pa *peerAccount) IncreaseNonce(val uint64) {
-	pa.Nonce = pa.Nonce + val
-}
-
 // GetConsecutiveProposerMisses gets the current consecutive proposer misses
 func (pa *peerAccount) GetConsecutiveProposerMisses() uint32 {
 	return pa.ConsecutiveProposerMisses
@@ -185,4 +155,9 @@ func (pa *peerAccount) GetConsecutiveProposerMisses() uint32 {
 // SetConsecutiveProposerMisses sets the account's consecutive misses as proposer
 func (pa *peerAccount) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
 	pa.ConsecutiveProposerMisses = consecutiveMisses
+}
+
+//IncreaseNonce adds the given value to the current nonce
+func (pa *peerAccount) IncreaseNonce(value uint64) {
+	pa.Nonce = pa.Nonce + value
 }

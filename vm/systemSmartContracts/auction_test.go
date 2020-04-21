@@ -489,7 +489,7 @@ func TestAuctionStakingSC_ExecuteInit(t *testing.T) {
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
-	ownerAddr := stakingSmartContract.eei.GetStorage([]byte(OwnerKey))
+	ownerAddr := stakingSmartContract.eei.GetStorage([]byte(ownerKey))
 	assert.Equal(t, arguments.CallerAddr, ownerAddr)
 
 	ownerBalanceBytes := stakingSmartContract.eei.GetStorage(arguments.CallerAddr)
@@ -848,7 +848,7 @@ func TestAuctionStakingSC_ExecuteUnBoundValidatorNotUnStakeShouldErr(t *testing.
 	eei := &mock.SystemEIStub{}
 	eei.GetStorageCalled = func(key []byte) []byte {
 		switch {
-		case bytes.Equal(key, []byte(OwnerKey)):
+		case bytes.Equal(key, []byte(ownerKey)):
 			return []byte("data")
 		default:
 			registrationDataMarshalized, _ := json.Marshal(&StakedData{UnStakedNonce: 0})
@@ -928,7 +928,7 @@ func TestAuctionStakingSC_ExecuteUnBondBeforePeriodEnds(t *testing.T) {
 		&mock.ArgumentParserMock{})
 
 	eei.SetSCAddress([]byte("addr"))
-	eei.SetStorage([]byte(OwnerKey), []byte("data"))
+	eei.SetStorage([]byte(ownerKey), []byte("data"))
 	eei.SetStorage(blsPubKey.Bytes(), marshalizedRegData)
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
@@ -968,7 +968,7 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 
 	scAddress := []byte("owner")
 	eei.SetSCAddress(scAddress)
-	eei.SetStorage([]byte(OwnerKey), scAddress)
+	eei.SetStorage([]byte(ownerKey), scAddress)
 
 	args := createMockArgumentsForAuction()
 	args.Eei = eei

@@ -77,54 +77,9 @@ func (p *PeerAccountHandlerMock) AddToAccumulatedFees(val *big.Int) {
 	}
 }
 
-// GetJailTime -
-func (p *PeerAccountHandlerMock) GetJailTime() state.TimePeriod {
-	return state.TimePeriod{}
-}
-
-// SetJailTime -
-func (p *PeerAccountHandlerMock) SetJailTime(state.TimePeriod) {
-
-}
-
 // GetCurrentShardId -
-func (p *PeerAccountHandlerMock) GetCurrentShardId() uint32 {
+func (p *PeerAccountHandlerMock) GetShardId() uint32 {
 	return 0
-}
-
-// SetCurrentShardId -
-func (p *PeerAccountHandlerMock) SetCurrentShardId(uint32) {
-
-}
-
-// GetNextShardId -
-func (p *PeerAccountHandlerMock) GetNextShardId() uint32 {
-	return 0
-}
-
-// SetNextShardId -
-func (p *PeerAccountHandlerMock) SetNextShardId(uint32) {
-
-}
-
-// GetNodeInWaitingList -
-func (p *PeerAccountHandlerMock) GetNodeInWaitingList() bool {
-	return false
-}
-
-// SetNodeInWaitingList -
-func (p *PeerAccountHandlerMock) SetNodeInWaitingList(bool) {
-
-}
-
-// GetUnStakedNonce -
-func (p *PeerAccountHandlerMock) GetUnStakedNonce() uint64 {
-	return 0
-}
-
-// SetUnStakedNonce -
-func (p *PeerAccountHandlerMock) SetUnStakedNonce(uint64) {
-
 }
 
 // IncreaseLeaderSuccessRate -
@@ -239,7 +194,7 @@ func (p *PeerAccountHandlerMock) GetCode() []byte {
 }
 
 // SetCodeHash -
-func (p *PeerAccountHandlerMock) SetCodeHash([]byte) {
+func (p *PeerAccountHandlerMock) SetCodeHash(_ []byte) {
 
 }
 

@@ -125,7 +125,7 @@ func TestStakingSC_ExecuteInit(t *testing.T) {
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
-	ownerAddr := stakingSmartContract.eei.GetStorage([]byte(OwnerKey))
+	ownerAddr := stakingSmartContract.eei.GetStorage([]byte(ownerKey))
 	assert.Equal(t, arguments.CallerAddr, ownerAddr)
 
 	ownerBalanceBytes := stakingSmartContract.eei.GetStorage(arguments.CallerAddr)
@@ -459,7 +459,7 @@ func TestStakingSC_ExecuteUnBoundValidatorNotUnStakeShouldErr(t *testing.T) {
 	eei := &mock.SystemEIStub{}
 	eei.GetStorageCalled = func(key []byte) []byte {
 		switch {
-		case bytes.Equal(key, []byte(OwnerKey)):
+		case bytes.Equal(key, []byte(ownerKey)):
 			return []byte("data")
 		default:
 			registrationDataMarshalized, _ := json.Marshal(&StakedData{UnStakedNonce: 0})
@@ -505,7 +505,7 @@ func TestStakingSC_ExecuteFinalizeUnBoundBeforePeriodEnds(t *testing.T) {
 		},
 	}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 	eei.SetSCAddress([]byte("addr"))
-	eei.SetStorage([]byte(OwnerKey), []byte("data"))
+	eei.SetStorage([]byte(ownerKey), []byte("data"))
 	eei.SetStorage(blsPubKey.Bytes(), marshalizedRegData)
 	args := createMockStakingScArguments()
 	args.MinStakeValue = stakeValue
@@ -544,7 +544,7 @@ func TestStakingSC_ExecuteUnBound(t *testing.T) {
 	}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{})
 	scAddress := []byte("owner")
 	eei.SetSCAddress(scAddress)
-	eei.SetStorage([]byte(OwnerKey), scAddress)
+	eei.SetStorage([]byte(ownerKey), scAddress)
 
 	args := createMockStakingScArguments()
 	args.MinStakeValue = stakeValue
@@ -632,7 +632,7 @@ func TestStakingSC_ExecuteSlashNotStake(t *testing.T) {
 	eei := &mock.SystemEIStub{}
 	eei.GetStorageCalled = func(key []byte) []byte {
 		switch {
-		case bytes.Equal(key, []byte(OwnerKey)):
+		case bytes.Equal(key, []byte(ownerKey)):
 			return []byte("data")
 		default:
 			registrationDataMarshalized, _ := json.Marshal(&StakedData{StakeValue: big.NewInt(100)})
@@ -661,7 +661,7 @@ func TestStakingSC_ExecuteSlashStaked(t *testing.T) {
 	eei := &mock.SystemEIStub{}
 	eei.GetStorageCalled = func(key []byte) []byte {
 		switch {
-		case bytes.Equal(key, []byte(OwnerKey)):
+		case bytes.Equal(key, []byte(ownerKey)):
 			return []byte("data")
 		default:
 			registrationDataMarshalized, _ := json.Marshal(&StakedData{StakeValue: big.NewInt(100), Staked: true, RewardAddress: []byte("reward")})
@@ -699,7 +699,7 @@ func TestStakingSC_ExecuteUnStakeAndUnBoundStake(t *testing.T) {
 	eei.SetSCAddress([]byte(smartcontractAddress))
 
 	ownerAddress := "ownerAddress"
-	eei.SetStorage([]byte(OwnerKey), []byte(ownerAddress))
+	eei.SetStorage([]byte(ownerKey), []byte(ownerAddress))
 
 	args := createMockStakingScArguments()
 	args.MinStakeValue = stakeValue
@@ -814,7 +814,7 @@ func TestStakingSc_ExecuteSlashTwoTime(t *testing.T) {
 	arguments.CallerAddr = []byte("data")
 	marshalizedStakedData, _ := json.Marshal(&stakedRegistrationData)
 	stakingSmartContract.eei.SetStorage(arguments.CallerAddr, marshalizedStakedData)
-	stakingSmartContract.eei.SetStorage([]byte(OwnerKey), arguments.CallerAddr)
+	stakingSmartContract.eei.SetStorage([]byte(ownerKey), arguments.CallerAddr)
 
 	slashValue := big.NewInt(70)
 	arguments.Arguments = [][]byte{arguments.CallerAddr, slashValue.Bytes()}

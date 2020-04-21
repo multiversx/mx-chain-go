@@ -124,7 +124,7 @@ func (stp *stakingToPeer) getPeerAccount(key []byte) (state.PeerAccountHandler, 
 }
 
 // UpdateProtocol applies changes from staking smart contract to peer state and creates the actual peer changes
-func (stp *stakingToPeer) UpdateProtocol(body *block.Body, _ uint64) error {
+func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 	affectedStates, err := stp.getAllModifiedStates(body)
 	if err != nil {
 		return err
@@ -177,12 +177,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, _ uint64) error {
 			return err
 		}
 
-		err = stp.updatePeerState(stakingData, peerAcc, blsPubKey)
-		if err != nil {
-			return err
-		}
-
-		err = stp.peerState.SaveAccount(peerAcc)
+		err = stp.updatePeerState(stakingData, peerAcc, blsPubKey, nonce)
 		if err != nil {
 			return err
 		}
@@ -195,29 +190,56 @@ func (stp *stakingToPeer) updatePeerState(
 	stakingData systemSmartContracts.StakedData,
 	account state.PeerAccountHandler,
 	blsPubKey []byte,
+	nonce uint64,
 ) error {
 
-	err := account.SetRewardAddress(stakingData.RewardAddress)
+	var err error
+	if !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
+		err = account.SetRewardAddress(stakingData.RewardAddress)
+		if err != nil {
+			return err
+		}
+	}
+
+	if !bytes.Equal(account.GetBLSPublicKey(), blsPubKey) {
+		err = account.SetBLSPublicKey(blsPubKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	if account.GetStake().Cmp(stakingData.StakeValue) != 0 {
+		err = account.SetStake(stakingData.StakeValue)
+		if err != nil {
+			return err
+		}
+	}
+
+	isValidator := account.GetList() == string(core.EligibleList) || account.GetList() == string(core.WaitingList)
+	isJailed := stakingData.JailedNonce >= stakingData.UnJailedNonce && stakingData.JailedNonce > 0
+
+	if !isJailed {
+		if stakingData.RegisterNonce == nonce && !isValidator {
+			account.SetListAndIndex(0, string(core.NewList), uint32(stakingData.RegisterNonce))
+		}
+
+		if stakingData.UnStakedNonce == nonce && account.GetList() != string(core.InactiveList) {
+			account.SetListAndIndex(0, string(core.LeavingList), uint32(stakingData.UnStakedNonce))
+		}
+	}
+
+	if stakingData.UnJailedNonce == nonce && !isValidator {
+		account.SetListAndIndex(0, string(core.NewList), uint32(stakingData.UnStakedNonce))
+	}
+
+	if stakingData.JailedNonce == nonce && account.GetList() != string(core.InactiveList) {
+		account.SetListAndIndex(0, string(core.LeavingList), uint32(stakingData.UnStakedNonce))
+	}
+
+	err = stp.peerState.SaveAccount(account)
 	if err != nil {
 		return err
 	}
-
-	err = account.SetBLSPublicKey(blsPubKey)
-	if err != nil {
-		return err
-	}
-
-	err = account.SetStake(stakingData.StakeValue)
-	if err != nil {
-		return err
-	}
-
-	if stakingData.RegisterNonce != account.GetNonce() {
-		nonceDifference := stakingData.RegisterNonce - account.GetNonce()
-		account.IncreaseNonce(nonceDifference)
-		account.SetNodeInWaitingList(true)
-	}
-	account.SetUnStakedNonce(stakingData.UnStakedNonce)
 
 	return nil
 }

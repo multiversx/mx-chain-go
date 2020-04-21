@@ -29,102 +29,6 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-// TimeStamp is a moment defined by epoch and round
-type TimeStamp struct {
-	Epoch uint64 `protobuf:"varint,1,opt,name=Epoch,proto3" json:"Epoch,omitempty"`
-	Round uint64 `protobuf:"varint,2,opt,name=Round,proto3" json:"Round,omitempty"`
-}
-
-func (m *TimeStamp) Reset()      { *m = TimeStamp{} }
-func (*TimeStamp) ProtoMessage() {}
-func (*TimeStamp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_26bd0314afcce126, []int{0}
-}
-func (m *TimeStamp) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *TimeStamp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *TimeStamp) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TimeStamp.Merge(m, src)
-}
-func (m *TimeStamp) XXX_Size() int {
-	return m.Size()
-}
-func (m *TimeStamp) XXX_DiscardUnknown() {
-	xxx_messageInfo_TimeStamp.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TimeStamp proto.InternalMessageInfo
-
-func (m *TimeStamp) GetEpoch() uint64 {
-	if m != nil {
-		return m.Epoch
-	}
-	return 0
-}
-
-func (m *TimeStamp) GetRound() uint64 {
-	if m != nil {
-		return m.Round
-	}
-	return 0
-}
-
-// TimePeriod holds start and end time
-type TimePeriod struct {
-	StartTime TimeStamp `protobuf:"bytes,1,opt,name=StartTime,proto3" json:"StartTime"`
-	EndTime   TimeStamp `protobuf:"bytes,2,opt,name=EndTime,proto3" json:"EndTime"`
-}
-
-func (m *TimePeriod) Reset()      { *m = TimePeriod{} }
-func (*TimePeriod) ProtoMessage() {}
-func (*TimePeriod) Descriptor() ([]byte, []int) {
-	return fileDescriptor_26bd0314afcce126, []int{1}
-}
-func (m *TimePeriod) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *TimePeriod) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *TimePeriod) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TimePeriod.Merge(m, src)
-}
-func (m *TimePeriod) XXX_Size() int {
-	return m.Size()
-}
-func (m *TimePeriod) XXX_DiscardUnknown() {
-	xxx_messageInfo_TimePeriod.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TimePeriod proto.InternalMessageInfo
-
-func (m *TimePeriod) GetStartTime() TimeStamp {
-	if m != nil {
-		return m.StartTime
-	}
-	return TimeStamp{}
-}
-
-func (m *TimePeriod) GetEndTime() TimeStamp {
-	if m != nil {
-		return m.EndTime
-	}
-	return TimeStamp{}
-}
-
 // SignRate is used to keep the number of success and failed signings
 type SignRate struct {
 	NumSuccess uint32 `protobuf:"varint,1,opt,name=NumSuccess,proto3" json:"NumSuccess,omitempty"`
@@ -134,7 +38,7 @@ type SignRate struct {
 func (m *SignRate) Reset()      { *m = SignRate{} }
 func (*SignRate) ProtoMessage() {}
 func (*SignRate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_26bd0314afcce126, []int{2}
+	return fileDescriptor_26bd0314afcce126, []int{0}
 }
 func (m *SignRate) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -191,7 +95,7 @@ type ValidatorApiResponse struct {
 func (m *ValidatorApiResponse) Reset()      { *m = ValidatorApiResponse{} }
 func (*ValidatorApiResponse) ProtoMessage() {}
 func (*ValidatorApiResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_26bd0314afcce126, []int{3}
+	return fileDescriptor_26bd0314afcce126, []int{1}
 }
 func (m *ValidatorApiResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -298,30 +202,25 @@ type PeerAccountData struct {
 	BLSPublicKey               []byte        `protobuf:"bytes,1,opt,name=BLSPublicKey,proto3" json:"BLSPublicKey,omitempty"`
 	RewardAddress              []byte        `protobuf:"bytes,2,opt,name=RewardAddress,proto3" json:"RewardAddress,omitempty"`
 	Stake                      *math_big.Int `protobuf:"bytes,3,opt,name=Stake,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"Stake,omitempty"`
-	JailTime                   TimePeriod    `protobuf:"bytes,4,opt,name=JailTime,proto3" json:"JailTime"`
-	PastJailTimes              []TimePeriod  `protobuf:"bytes,5,rep,name=PastJailTimes,proto3" json:"PastJailTimes"`
-	CurrentShardId             uint32        `protobuf:"varint,6,opt,name=CurrentShardId,proto3" json:"CurrentShardId,omitempty"`
-	NextShardId                uint32        `protobuf:"varint,7,opt,name=NextShardId,proto3" json:"NextShardId,omitempty"`
-	NodeInWaitingList          bool          `protobuf:"varint,8,opt,name=NodeInWaitingList,proto3" json:"NodeInWaitingList,omitempty"`
-	UnStakedNonce              uint64        `protobuf:"varint,9,opt,name=UnStakedNonce,proto3" json:"UnStakedNonce,omitempty"`
-	ValidatorSuccessRate       SignRate      `protobuf:"bytes,10,opt,name=ValidatorSuccessRate,proto3" json:"ValidatorSuccessRate"`
-	LeaderSuccessRate          SignRate      `protobuf:"bytes,11,opt,name=LeaderSuccessRate,proto3" json:"LeaderSuccessRate"`
-	Rating                     uint32        `protobuf:"varint,12,opt,name=Rating,proto3" json:"Rating,omitempty"`
-	Nonce                      uint64        `protobuf:"varint,13,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
-	TempRating                 uint32        `protobuf:"varint,14,opt,name=TempRating,proto3" json:"TempRating,omitempty"`
-	AccumulatedFees            *math_big.Int `protobuf:"bytes,15,opt,name=AccumulatedFees,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"AccumulatedFees,omitempty"`
-	NumSelectedInSuccessBlocks uint32        `protobuf:"varint,16,opt,name=NumSelectedInSuccessBlocks,proto3" json:"NumSelectedInSuccessBlocks,omitempty"`
-	IndexInList                uint32        `protobuf:"varint,17,opt,name=IndexInList,proto3" json:"IndexInList,omitempty"`
-	List                       string        `protobuf:"bytes,18,opt,name=List,proto3" json:"List,omitempty"`
-	ConsecutiveProposerMisses  uint32        `protobuf:"varint,19,opt,name=ConsecutiveProposerMisses,proto3" json:"ConsecutiveProposerMisses,omitempty"`
-	TotalValidatorSuccessRate  SignRate      `protobuf:"bytes,20,opt,name=TotalValidatorSuccessRate,proto3" json:"TotalValidatorSuccessRate"`
-	TotalLeaderSuccessRate     SignRate      `protobuf:"bytes,21,opt,name=TotalLeaderSuccessRate,proto3" json:"TotalLeaderSuccessRate"`
+	ShardId                    uint32        `protobuf:"varint,4,opt,name=ShardId,proto3" json:"ShardId,omitempty"`
+	ValidatorSuccessRate       SignRate      `protobuf:"bytes,5,opt,name=ValidatorSuccessRate,proto3" json:"ValidatorSuccessRate"`
+	LeaderSuccessRate          SignRate      `protobuf:"bytes,6,opt,name=LeaderSuccessRate,proto3" json:"LeaderSuccessRate"`
+	Rating                     uint32        `protobuf:"varint,7,opt,name=Rating,proto3" json:"Rating,omitempty"`
+	TempRating                 uint32        `protobuf:"varint,8,opt,name=TempRating,proto3" json:"TempRating,omitempty"`
+	AccumulatedFees            *math_big.Int `protobuf:"bytes,9,opt,name=AccumulatedFees,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"AccumulatedFees,omitempty"`
+	NumSelectedInSuccessBlocks uint32        `protobuf:"varint,10,opt,name=NumSelectedInSuccessBlocks,proto3" json:"NumSelectedInSuccessBlocks,omitempty"`
+	IndexInList                uint32        `protobuf:"varint,11,opt,name=IndexInList,proto3" json:"IndexInList,omitempty"`
+	List                       string        `protobuf:"bytes,12,opt,name=List,proto3" json:"List,omitempty"`
+	ConsecutiveProposerMisses  uint32        `protobuf:"varint,13,opt,name=ConsecutiveProposerMisses,proto3" json:"ConsecutiveProposerMisses,omitempty"`
+	TotalValidatorSuccessRate  SignRate      `protobuf:"bytes,14,opt,name=TotalValidatorSuccessRate,proto3" json:"TotalValidatorSuccessRate"`
+	TotalLeaderSuccessRate     SignRate      `protobuf:"bytes,15,opt,name=TotalLeaderSuccessRate,proto3" json:"TotalLeaderSuccessRate"`
+	Nonce                      uint64        `protobuf:"varint,16,opt,name=Nonce,proto3" json:"Nonce,omitempty"`
 }
 
 func (m *PeerAccountData) Reset()      { *m = PeerAccountData{} }
 func (*PeerAccountData) ProtoMessage() {}
 func (*PeerAccountData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_26bd0314afcce126, []int{4}
+	return fileDescriptor_26bd0314afcce126, []int{2}
 }
 func (m *PeerAccountData) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -367,44 +266,9 @@ func (m *PeerAccountData) GetStake() *math_big.Int {
 	return nil
 }
 
-func (m *PeerAccountData) GetJailTime() TimePeriod {
+func (m *PeerAccountData) GetShardId() uint32 {
 	if m != nil {
-		return m.JailTime
-	}
-	return TimePeriod{}
-}
-
-func (m *PeerAccountData) GetPastJailTimes() []TimePeriod {
-	if m != nil {
-		return m.PastJailTimes
-	}
-	return nil
-}
-
-func (m *PeerAccountData) GetCurrentShardId() uint32 {
-	if m != nil {
-		return m.CurrentShardId
-	}
-	return 0
-}
-
-func (m *PeerAccountData) GetNextShardId() uint32 {
-	if m != nil {
-		return m.NextShardId
-	}
-	return 0
-}
-
-func (m *PeerAccountData) GetNodeInWaitingList() bool {
-	if m != nil {
-		return m.NodeInWaitingList
-	}
-	return false
-}
-
-func (m *PeerAccountData) GetUnStakedNonce() uint64 {
-	if m != nil {
-		return m.UnStakedNonce
+		return m.ShardId
 	}
 	return 0
 }
@@ -426,13 +290,6 @@ func (m *PeerAccountData) GetLeaderSuccessRate() SignRate {
 func (m *PeerAccountData) GetRating() uint32 {
 	if m != nil {
 		return m.Rating
-	}
-	return 0
-}
-
-func (m *PeerAccountData) GetNonce() uint64 {
-	if m != nil {
-		return m.Nonce
 	}
 	return 0
 }
@@ -493,9 +350,14 @@ func (m *PeerAccountData) GetTotalLeaderSuccessRate() SignRate {
 	return SignRate{}
 }
 
+func (m *PeerAccountData) GetNonce() uint64 {
+	if m != nil {
+		return m.Nonce
+	}
+	return 0
+}
+
 func init() {
-	proto.RegisterType((*TimeStamp)(nil), "proto.TimeStamp")
-	proto.RegisterType((*TimePeriod)(nil), "proto.TimePeriod")
 	proto.RegisterType((*SignRate)(nil), "proto.SignRate")
 	proto.RegisterType((*ValidatorApiResponse)(nil), "proto.ValidatorApiResponse")
 	proto.RegisterType((*PeerAccountData)(nil), "proto.PeerAccountData")
@@ -504,122 +366,58 @@ func init() {
 func init() { proto.RegisterFile("peerAccountData.proto", fileDescriptor_26bd0314afcce126) }
 
 var fileDescriptor_26bd0314afcce126 = []byte{
-	// 940 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x55, 0xcb, 0x6e, 0x22, 0x47,
-	0x14, 0xa5, 0x3d, 0x80, 0xf1, 0xe5, 0x61, 0xbb, 0x8c, 0x27, 0x78, 0x14, 0x35, 0x16, 0x8a, 0xa2,
-	0x59, 0x64, 0x20, 0x9a, 0x89, 0x14, 0x29, 0x6f, 0x70, 0x3c, 0x12, 0x13, 0x9b, 0xa0, 0xc2, 0x79,
-	0x28, 0x59, 0x15, 0x5d, 0x35, 0xb8, 0x64, 0xa8, 0x42, 0xd5, 0xd5, 0x99, 0xc9, 0x2e, 0x9f, 0x90,
-	0x55, 0xbe, 0x21, 0xca, 0x97, 0xcc, 0xd2, 0x4b, 0xaf, 0x48, 0x8c, 0x37, 0x11, 0x2b, 0xe7, 0x0f,
-	0xa2, 0xae, 0xa6, 0x09, 0x4d, 0x37, 0xac, 0xb2, 0xea, 0xae, 0x7b, 0xcf, 0x39, 0x75, 0x6f, 0xf5,
-	0xad, 0xd3, 0x70, 0x38, 0x66, 0x4c, 0x35, 0x1d, 0x47, 0x7a, 0x42, 0x7f, 0x49, 0x34, 0xa9, 0x8f,
-	0x95, 0xd4, 0x12, 0x65, 0xcc, 0xe3, 0xd1, 0x93, 0x01, 0xd7, 0x97, 0x5e, 0xbf, 0xee, 0xc8, 0x51,
-	0x63, 0x20, 0x07, 0xb2, 0x61, 0xc2, 0x7d, 0xef, 0xa5, 0x59, 0x99, 0x85, 0x79, 0x0b, 0x58, 0xb5,
-	0x0f, 0x61, 0xe7, 0x82, 0x8f, 0x58, 0x4f, 0x93, 0xd1, 0x18, 0x95, 0x21, 0x73, 0x3a, 0x96, 0xce,
-	0x65, 0xc5, 0x3a, 0xb6, 0x1e, 0xa7, 0x71, 0xb0, 0xf0, 0xa3, 0x58, 0x7a, 0x82, 0x56, 0xb6, 0x82,
-	0xa8, 0x59, 0xd4, 0x34, 0x80, 0x4f, 0xec, 0x32, 0xc5, 0x25, 0x45, 0x1f, 0xc0, 0x4e, 0x4f, 0x13,
-	0xa5, 0xfd, 0x90, 0x61, 0xe7, 0x9f, 0xee, 0x05, 0x3b, 0xd4, 0x17, 0xf2, 0xad, 0xf4, 0x9b, 0x49,
-	0x35, 0x85, 0xff, 0x03, 0xa2, 0xf7, 0x61, 0xfb, 0x54, 0x50, 0xc3, 0xd9, 0xda, 0xc8, 0x09, 0x61,
-	0xb5, 0x17, 0x90, 0xeb, 0xf1, 0x81, 0xc0, 0x44, 0x33, 0x64, 0x03, 0x74, 0xbc, 0x51, 0xcf, 0x73,
-	0x1c, 0xe6, 0xba, 0x66, 0xd3, 0x22, 0x5e, 0x8a, 0xcc, 0xf3, 0xcf, 0x09, 0x1f, 0x7a, 0x2a, 0xd8,
-	0x20, 0xc8, 0xcf, 0x23, 0xb5, 0xdf, 0xb2, 0x50, 0xfe, 0x96, 0x0c, 0x39, 0x25, 0x5a, 0xaa, 0xe6,
-	0x98, 0x63, 0xe6, 0x8e, 0xa5, 0x70, 0x19, 0xaa, 0x03, 0x5c, 0xb0, 0xd1, 0x18, 0x13, 0xcd, 0xc5,
-	0xc0, 0x08, 0x6f, 0xb5, 0x4a, 0xb3, 0x49, 0x15, 0xf4, 0x22, 0x8a, 0x97, 0x10, 0xe8, 0x0b, 0xd8,
-	0xeb, 0x78, 0xa3, 0x33, 0x46, 0x28, 0x53, 0x61, 0x39, 0x66, 0xbb, 0x56, 0x79, 0x36, 0xa9, 0xee,
-	0x89, 0x95, 0x1c, 0x8e, 0xa1, 0x23, 0x0a, 0x61, 0xc1, 0x0f, 0x12, 0x14, 0xe6, 0x39, 0x1c, 0x43,
-	0xa3, 0x36, 0x1c, 0x74, 0xbc, 0xd1, 0xa2, 0x9d, 0xb0, 0x8c, 0xb4, 0x11, 0x79, 0x6b, 0x36, 0xa9,
-	0x1e, 0x88, 0x78, 0x1a, 0x27, 0x71, 0x56, 0xa5, 0xc2, 0x7a, 0x32, 0xc9, 0x52, 0x61, 0x49, 0x49,
-	0x1c, 0x54, 0x83, 0xec, 0xfc, 0x14, 0xb3, 0xe6, 0x14, 0x61, 0x36, 0xa9, 0x66, 0x55, 0x70, 0x82,
-	0xf3, 0x0c, 0xfa, 0x08, 0x4a, 0xc1, 0xdb, 0xb9, 0xa4, 0xfc, 0x25, 0x67, 0xaa, 0xb2, 0x6d, 0xb0,
-	0x68, 0x36, 0xa9, 0x96, 0x54, 0x24, 0x83, 0x57, 0x90, 0xe8, 0x6b, 0x38, 0xbc, 0x90, 0x9a, 0x0c,
-	0x63, 0xc7, 0x9f, 0x33, 0xc5, 0x1e, 0xcd, 0x26, 0xd5, 0x43, 0x9d, 0x04, 0xc0, 0xc9, 0xbc, 0xb8,
-	0x60, 0xd8, 0xfd, 0xce, 0x3a, 0xc1, 0xb0, 0xff, 0x64, 0x1e, 0xfa, 0x1e, 0x2a, 0x61, 0x22, 0xf6,
-	0x71, 0xc0, 0x68, 0xbe, 0x3d, 0x9b, 0x54, 0x2b, 0x7a, 0x0d, 0x06, 0xaf, 0x65, 0x27, 0x2a, 0x87,
-	0xd5, 0xe6, 0x37, 0x28, 0x87, 0x05, 0xaf, 0x65, 0xd7, 0xfe, 0xc9, 0xc1, 0x6e, 0x37, 0xea, 0x31,
-	0xa8, 0x06, 0x85, 0xd6, 0x59, 0xaf, 0xeb, 0xf5, 0x87, 0xdc, 0xf9, 0x8a, 0xfd, 0x6c, 0x6e, 0x45,
-	0x01, 0x47, 0x62, 0xe8, 0x1d, 0x28, 0x62, 0xf6, 0x8a, 0x28, 0xda, 0xa4, 0x54, 0x85, 0x97, 0xa0,
-	0x80, 0xa3, 0x41, 0xf4, 0x23, 0x64, 0x7a, 0x9a, 0x5c, 0x05, 0x03, 0x5e, 0x68, 0x9d, 0xfe, 0xf1,
-	0x67, 0xb5, 0x39, 0x22, 0xfa, 0xb2, 0xd1, 0xe7, 0x83, 0x7a, 0x5b, 0xe8, 0x8f, 0x97, 0x0c, 0xec,
-	0x74, 0xa8, 0xa4, 0xa0, 0x1d, 0xa6, 0x5f, 0x49, 0x75, 0xd5, 0x60, 0x66, 0xf5, 0x64, 0x20, 0x1b,
-	0xd4, 0xb7, 0xbd, 0x16, 0x1f, 0xb4, 0x85, 0x3e, 0x21, 0xae, 0x66, 0x0a, 0x07, 0x9a, 0xe8, 0x19,
-	0xe4, 0x5e, 0x10, 0x3e, 0x34, 0x96, 0x92, 0x36, 0x96, 0xb2, 0xbf, 0x64, 0x29, 0x81, 0x59, 0xcd,
-	0x3d, 0x65, 0x01, 0x44, 0x9f, 0x42, 0xb1, 0x4b, 0x5c, 0x1d, 0xae, 0xdd, 0x4a, 0xe6, 0xf8, 0xc1,
-	0x26, 0x66, 0x14, 0x8d, 0xde, 0x85, 0xd2, 0x89, 0xa7, 0x14, 0x13, 0xba, 0x77, 0x49, 0x14, 0x6d,
-	0x53, 0x33, 0xec, 0x45, 0xbc, 0x12, 0x45, 0xc7, 0x90, 0xef, 0xb0, 0xd7, 0x0b, 0xd0, 0xb6, 0x01,
-	0x2d, 0x87, 0xd0, 0x7b, 0xb0, 0xdf, 0x91, 0x94, 0xb5, 0xc5, 0x77, 0x84, 0xfb, 0x73, 0x7e, 0xc6,
-	0x5d, 0x6d, 0x46, 0x39, 0x87, 0xe3, 0x09, 0xff, 0xb8, 0xbf, 0x11, 0xa6, 0x6d, 0xda, 0x91, 0xc2,
-	0x09, 0x66, 0x34, 0x8d, 0xa3, 0x41, 0xd4, 0x5e, 0x32, 0xb9, 0x70, 0xa8, 0x88, 0x66, 0x66, 0xf8,
-	0xf2, 0x4f, 0x77, 0xe7, 0x3d, 0x86, 0xa6, 0x3a, 0xef, 0x30, 0x91, 0x82, 0x4e, 0x60, 0x3f, 0x7a,
-	0x89, 0x7c, 0x9d, 0xfc, 0x26, 0x9d, 0x38, 0x1e, 0x3d, 0x5c, 0x58, 0x42, 0xc1, 0x1c, 0x40, 0x68,
-	0x03, 0x65, 0xc8, 0x04, 0x5d, 0x14, 0x83, 0xbf, 0x4c, 0x50, 0xbd, 0x1d, 0xb1, 0xe2, 0x52, 0xe0,
-	0xe1, 0x4b, 0xd6, 0x2b, 0x61, 0xb7, 0xe9, 0x38, 0xde, 0xc8, 0x1b, 0x12, 0xcd, 0xe8, 0x73, 0xc6,
-	0xdc, 0xca, 0xee, 0xff, 0x39, 0x56, 0xab, 0xea, 0xe8, 0x33, 0x78, 0xe4, 0xff, 0x62, 0xd8, 0x90,
-	0x39, 0x9a, 0xd1, 0xb6, 0x98, 0xb7, 0xd6, 0x1a, 0x4a, 0xe7, 0xca, 0xad, 0xec, 0x99, 0x02, 0x37,
-	0x20, 0xfc, 0x21, 0x68, 0x0b, 0xca, 0x5e, 0xb7, 0x85, 0xf9, 0xb8, 0xfb, 0xc1, 0x10, 0x2c, 0x85,
-	0x10, 0x82, 0xb4, 0x49, 0xa1, 0x63, 0xeb, 0xf1, 0x0e, 0x36, 0xef, 0xe8, 0x13, 0x38, 0x3a, 0xf1,
-	0x7f, 0x4d, 0x8e, 0xa7, 0xf9, 0x4f, 0xac, 0xab, 0xe4, 0x58, 0xba, 0x4c, 0x9d, 0x73, 0xd7, 0x65,
-	0x6e, 0xe5, 0xc0, 0x68, 0xac, 0x07, 0xa0, 0x1e, 0x1c, 0x99, 0xbb, 0x9e, 0x38, 0x07, 0xe5, 0x4d,
-	0xdf, 0x6f, 0x3d, 0x0f, 0x9d, 0xc3, 0x43, 0x93, 0x8c, 0x4f, 0xc4, 0xe1, 0x26, 0xc5, 0x35, 0xa4,
-	0xd6, 0xe7, 0xd7, 0xb7, 0x76, 0xea, 0xe6, 0xd6, 0x4e, 0xdd, 0xdf, 0xda, 0xd6, 0x2f, 0x53, 0xdb,
-	0xfa, 0x7d, 0x6a, 0x5b, 0x6f, 0xa6, 0xb6, 0x75, 0x3d, 0xb5, 0xad, 0x9b, 0xa9, 0x6d, 0xfd, 0x35,
-	0xb5, 0xad, 0xbf, 0xa7, 0x76, 0xea, 0x7e, 0x6a, 0x5b, 0xbf, 0xde, 0xd9, 0xa9, 0xeb, 0x3b, 0x3b,
-	0x75, 0x73, 0x67, 0xa7, 0x7e, 0xc8, 0xb8, 0x9a, 0x68, 0xd6, 0xcf, 0x9a, 0xed, 0x9e, 0xfd, 0x1b,
-	0x00, 0x00, 0xff, 0xff, 0x72, 0x34, 0x06, 0x40, 0x1e, 0x09, 0x00, 0x00,
+	// 773 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x54, 0x4d, 0x6f, 0xd3, 0x4a,
+	0x14, 0x8d, 0xfb, 0x92, 0xb4, 0x9d, 0xa6, 0x49, 0xdf, 0xf4, 0xe3, 0xb9, 0xd5, 0xd3, 0x38, 0x8a,
+	0xde, 0xa2, 0x9b, 0x26, 0xd2, 0x63, 0x07, 0x08, 0x88, 0x4b, 0x2b, 0x19, 0xda, 0x50, 0x4d, 0x2a,
+	0x84, 0x60, 0x35, 0xb1, 0xa7, 0xae, 0x55, 0xc7, 0x13, 0x8d, 0xc7, 0x14, 0x76, 0xfc, 0x04, 0x56,
+	0xfc, 0x06, 0xc4, 0x2f, 0xe9, 0xb2, 0xcb, 0xae, 0x0c, 0x75, 0x37, 0x28, 0xab, 0x6e, 0xd9, 0xa1,
+	0x8c, 0xe3, 0x28, 0x89, 0x9d, 0xac, 0x58, 0xc5, 0x73, 0xef, 0x39, 0x27, 0x67, 0xee, 0xdc, 0x7b,
+	0xc1, 0x66, 0x8f, 0x52, 0xde, 0x34, 0x4d, 0x16, 0x78, 0xe2, 0x39, 0x11, 0xa4, 0xde, 0xe3, 0x4c,
+	0x30, 0x58, 0x90, 0x3f, 0x3b, 0x7b, 0xb6, 0x23, 0xce, 0x83, 0x4e, 0xdd, 0x64, 0xdd, 0x86, 0xcd,
+	0x6c, 0xd6, 0x90, 0xe1, 0x4e, 0x70, 0x26, 0x4f, 0xf2, 0x20, 0xbf, 0x62, 0x56, 0xed, 0x05, 0x58,
+	0x6a, 0x3b, 0xb6, 0x87, 0x89, 0xa0, 0x10, 0x01, 0xd0, 0x0a, 0xba, 0xed, 0xc0, 0x34, 0xa9, 0xef,
+	0xab, 0x4a, 0x55, 0xd9, 0x5d, 0xc5, 0x63, 0x91, 0x61, 0xfe, 0x90, 0x38, 0x6e, 0xc0, 0xa9, 0xba,
+	0x30, 0xca, 0x0f, 0x23, 0xb5, 0x2f, 0x45, 0xb0, 0xf1, 0x9a, 0xb8, 0x8e, 0x45, 0x04, 0xe3, 0xcd,
+	0x9e, 0x83, 0xa9, 0xdf, 0x63, 0x9e, 0x4f, 0x61, 0x1d, 0x80, 0x53, 0xda, 0xed, 0x61, 0x22, 0x1c,
+	0xcf, 0x96, 0xc2, 0x0b, 0x7a, 0xb9, 0x1f, 0x6a, 0x40, 0x8c, 0xa2, 0x78, 0x0c, 0x01, 0x9f, 0x81,
+	0xb5, 0x56, 0xd0, 0x3d, 0xa2, 0xc4, 0xa2, 0x3c, 0xb1, 0x23, 0xff, 0x4e, 0xdf, 0xe8, 0x87, 0xda,
+	0x9a, 0x37, 0x95, 0xc3, 0x29, 0xf4, 0x84, 0x42, 0x62, 0xf8, 0xaf, 0x0c, 0x85, 0x61, 0x0e, 0xa7,
+	0xd0, 0xd0, 0x00, 0xeb, 0xad, 0xa0, 0x3b, 0xba, 0x4e, 0x62, 0x23, 0x2f, 0x45, 0xfe, 0xe9, 0x87,
+	0xda, 0xba, 0x97, 0x4e, 0xe3, 0x2c, 0xce, 0xb4, 0x54, 0xe2, 0xa7, 0x90, 0x2d, 0x95, 0x58, 0xca,
+	0xe2, 0xc0, 0x1a, 0x28, 0x0e, 0xab, 0x58, 0x94, 0x55, 0x04, 0xfd, 0x50, 0x2b, 0xf2, 0xb8, 0x82,
+	0xc3, 0x0c, 0x7c, 0x08, 0xca, 0xf1, 0xd7, 0x31, 0xb3, 0x9c, 0x33, 0x87, 0x72, 0x75, 0x51, 0x62,
+	0x61, 0x3f, 0xd4, 0xca, 0x7c, 0x22, 0x83, 0xa7, 0x90, 0xf0, 0x15, 0xd8, 0x3c, 0x65, 0x82, 0xb8,
+	0xa9, 0xf2, 0x2f, 0x49, 0xb3, 0xdb, 0xfd, 0x50, 0xdb, 0x14, 0x59, 0x00, 0x9c, 0xcd, 0x4b, 0x0b,
+	0x26, 0xb7, 0x5f, 0x9e, 0x25, 0x98, 0xdc, 0x3f, 0x9b, 0x07, 0xdf, 0x00, 0x35, 0x49, 0xa4, 0x1e,
+	0x07, 0x48, 0xcd, 0x7f, 0xfb, 0xa1, 0xa6, 0x8a, 0x19, 0x18, 0x3c, 0x93, 0x9d, 0xa9, 0x9c, 0xb8,
+	0x5d, 0x99, 0xa3, 0x9c, 0x18, 0x9e, 0xc9, 0xae, 0xfd, 0x2a, 0x82, 0xca, 0xc9, 0xe4, 0xd0, 0xc2,
+	0x1a, 0x28, 0xe9, 0x47, 0xed, 0x93, 0xa0, 0xe3, 0x3a, 0xe6, 0x4b, 0xfa, 0x51, 0x4e, 0x45, 0x09,
+	0x4f, 0xc4, 0xe0, 0x7f, 0x60, 0x15, 0xd3, 0x4b, 0xc2, 0xad, 0xa6, 0x65, 0xf1, 0x64, 0x08, 0x4a,
+	0x78, 0x32, 0x08, 0xdf, 0x81, 0x42, 0x5b, 0x90, 0x8b, 0xb8, 0xc1, 0x4b, 0xfa, 0xc1, 0xb7, 0xef,
+	0x5a, 0xb3, 0x4b, 0xc4, 0x79, 0xa3, 0xe3, 0xd8, 0x75, 0xc3, 0x13, 0x8f, 0xc6, 0x36, 0xc2, 0x81,
+	0xcb, 0x99, 0x67, 0xb5, 0xa8, 0xb8, 0x64, 0xfc, 0xa2, 0x41, 0xe5, 0x69, 0xcf, 0x66, 0x0d, 0x6b,
+	0xb0, 0x47, 0x74, 0xc7, 0x36, 0x3c, 0xb1, 0x4f, 0x7c, 0x41, 0x39, 0x8e, 0x35, 0xa1, 0x0a, 0x16,
+	0xdb, 0xe7, 0x84, 0x5b, 0x86, 0x15, 0xb7, 0x3e, 0x4e, 0x8e, 0xd0, 0x18, 0x1b, 0xf6, 0xa4, 0xb8,
+	0x44, 0xc4, 0x6d, 0xbd, 0xf2, 0x7f, 0x25, 0xde, 0x2f, 0xf5, 0x64, 0xb9, 0xe8, 0xf9, 0xab, 0x50,
+	0xcb, 0xe1, 0x4c, 0x0a, 0xdc, 0x07, 0x7f, 0x4f, 0x36, 0xd3, 0x40, 0xa7, 0x38, 0x4f, 0x27, 0x8d,
+	0x87, 0x5b, 0xa3, 0xd1, 0x58, 0x94, 0x46, 0x93, 0x71, 0x40, 0x13, 0xcb, 0x67, 0x29, 0xde, 0x5a,
+	0x63, 0xcb, 0x86, 0x81, 0x4a, 0xd3, 0x34, 0x83, 0x6e, 0xe0, 0x12, 0x41, 0xad, 0x43, 0x4a, 0x7d,
+	0xd9, 0x9b, 0x7f, 0xac, 0x90, 0xd3, 0xea, 0xf0, 0x09, 0xd8, 0x19, 0x2c, 0x55, 0xea, 0x52, 0x53,
+	0x50, 0xcb, 0xf0, 0x86, 0x97, 0xd0, 0x5d, 0x66, 0x5e, 0x0c, 0x7b, 0x18, 0xcf, 0x41, 0xc0, 0x2a,
+	0x58, 0x31, 0x3c, 0x8b, 0x7e, 0x30, 0xbc, 0x23, 0xc7, 0x17, 0x71, 0x6b, 0xe2, 0xf1, 0x10, 0x84,
+	0x20, 0x2f, 0x53, 0xa5, 0xaa, 0xb2, 0xbb, 0x8c, 0xe5, 0x37, 0x7c, 0x0c, 0xb6, 0xf7, 0x07, 0xcb,
+	0xd8, 0x0c, 0x84, 0xf3, 0x9e, 0x9e, 0x70, 0xd6, 0x63, 0x3e, 0xe5, 0xc7, 0x8e, 0xef, 0x53, 0x5f,
+	0x5d, 0x95, 0x1a, 0xb3, 0x01, 0xb0, 0x0d, 0xb6, 0x65, 0x77, 0x67, 0xbe, 0x78, 0x79, 0xde, 0x4b,
+	0xcd, 0xe6, 0xc1, 0x63, 0xb0, 0x25, 0x93, 0xe9, 0xb7, 0xaf, 0xcc, 0x53, 0x9c, 0x41, 0x82, 0x1b,
+	0xa0, 0xd0, 0x62, 0x9e, 0x49, 0xd5, 0xb5, 0xaa, 0xb2, 0x9b, 0xc7, 0xf1, 0x41, 0x7f, 0x7a, 0x7d,
+	0x8b, 0x72, 0x37, 0xb7, 0x28, 0x77, 0x7f, 0x8b, 0x94, 0x4f, 0x11, 0x52, 0xbe, 0x46, 0x48, 0xb9,
+	0x8a, 0x90, 0x72, 0x1d, 0x21, 0xe5, 0x26, 0x42, 0xca, 0x8f, 0x08, 0x29, 0x3f, 0x23, 0x94, 0xbb,
+	0x8f, 0x90, 0xf2, 0xf9, 0x0e, 0xe5, 0xae, 0xef, 0x50, 0xee, 0xe6, 0x0e, 0xe5, 0xde, 0x16, 0x7c,
+	0x41, 0x04, 0xed, 0x14, 0xa5, 0x89, 0x07, 0xbf, 0x03, 0x00, 0x00, 0xff, 0xff, 0xd7, 0x6a, 0x04,
+	0x6a, 0x77, 0x07, 0x00, 0x00,
 }
 
-func (this *TimeStamp) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*TimeStamp)
-	if !ok {
-		that2, ok := that.(TimeStamp)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if this.Epoch != that1.Epoch {
-		return false
-	}
-	if this.Round != that1.Round {
-		return false
-	}
-	return true
-}
-func (this *TimePeriod) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*TimePeriod)
-	if !ok {
-		that2, ok := that.(TimePeriod)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if !this.StartTime.Equal(&that1.StartTime) {
-		return false
-	}
-	if !this.EndTime.Equal(&that1.EndTime) {
-		return false
-	}
-	return true
-}
 func (this *SignRate) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
@@ -732,27 +530,7 @@ func (this *PeerAccountData) Equal(that interface{}) bool {
 			return false
 		}
 	}
-	if !this.JailTime.Equal(&that1.JailTime) {
-		return false
-	}
-	if len(this.PastJailTimes) != len(that1.PastJailTimes) {
-		return false
-	}
-	for i := range this.PastJailTimes {
-		if !this.PastJailTimes[i].Equal(&that1.PastJailTimes[i]) {
-			return false
-		}
-	}
-	if this.CurrentShardId != that1.CurrentShardId {
-		return false
-	}
-	if this.NextShardId != that1.NextShardId {
-		return false
-	}
-	if this.NodeInWaitingList != that1.NodeInWaitingList {
-		return false
-	}
-	if this.UnStakedNonce != that1.UnStakedNonce {
+	if this.ShardId != that1.ShardId {
 		return false
 	}
 	if !this.ValidatorSuccessRate.Equal(&that1.ValidatorSuccessRate) {
@@ -762,9 +540,6 @@ func (this *PeerAccountData) Equal(that interface{}) bool {
 		return false
 	}
 	if this.Rating != that1.Rating {
-		return false
-	}
-	if this.Nonce != that1.Nonce {
 		return false
 	}
 	if this.TempRating != that1.TempRating {
@@ -794,29 +569,10 @@ func (this *PeerAccountData) Equal(that interface{}) bool {
 	if !this.TotalLeaderSuccessRate.Equal(&that1.TotalLeaderSuccessRate) {
 		return false
 	}
+	if this.Nonce != that1.Nonce {
+		return false
+	}
 	return true
-}
-func (this *TimeStamp) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 6)
-	s = append(s, "&state.TimeStamp{")
-	s = append(s, "Epoch: "+fmt.Sprintf("%#v", this.Epoch)+",\n")
-	s = append(s, "Round: "+fmt.Sprintf("%#v", this.Round)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *TimePeriod) GoString() string {
-	if this == nil {
-		return "nil"
-	}
-	s := make([]string, 0, 6)
-	s = append(s, "&state.TimePeriod{")
-	s = append(s, "StartTime: "+strings.Replace(this.StartTime.GoString(), `&`, ``, 1)+",\n")
-	s = append(s, "EndTime: "+strings.Replace(this.EndTime.GoString(), `&`, ``, 1)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
 }
 func (this *SignRate) GoString() string {
 	if this == nil {
@@ -853,27 +609,15 @@ func (this *PeerAccountData) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 25)
+	s := make([]string, 0, 20)
 	s = append(s, "&state.PeerAccountData{")
 	s = append(s, "BLSPublicKey: "+fmt.Sprintf("%#v", this.BLSPublicKey)+",\n")
 	s = append(s, "RewardAddress: "+fmt.Sprintf("%#v", this.RewardAddress)+",\n")
 	s = append(s, "Stake: "+fmt.Sprintf("%#v", this.Stake)+",\n")
-	s = append(s, "JailTime: "+strings.Replace(this.JailTime.GoString(), `&`, ``, 1)+",\n")
-	if this.PastJailTimes != nil {
-		vs := make([]TimePeriod, len(this.PastJailTimes))
-		for i := range vs {
-			vs[i] = this.PastJailTimes[i]
-		}
-		s = append(s, "PastJailTimes: "+fmt.Sprintf("%#v", vs)+",\n")
-	}
-	s = append(s, "CurrentShardId: "+fmt.Sprintf("%#v", this.CurrentShardId)+",\n")
-	s = append(s, "NextShardId: "+fmt.Sprintf("%#v", this.NextShardId)+",\n")
-	s = append(s, "NodeInWaitingList: "+fmt.Sprintf("%#v", this.NodeInWaitingList)+",\n")
-	s = append(s, "UnStakedNonce: "+fmt.Sprintf("%#v", this.UnStakedNonce)+",\n")
+	s = append(s, "ShardId: "+fmt.Sprintf("%#v", this.ShardId)+",\n")
 	s = append(s, "ValidatorSuccessRate: "+strings.Replace(this.ValidatorSuccessRate.GoString(), `&`, ``, 1)+",\n")
 	s = append(s, "LeaderSuccessRate: "+strings.Replace(this.LeaderSuccessRate.GoString(), `&`, ``, 1)+",\n")
 	s = append(s, "Rating: "+fmt.Sprintf("%#v", this.Rating)+",\n")
-	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
 	s = append(s, "TempRating: "+fmt.Sprintf("%#v", this.TempRating)+",\n")
 	s = append(s, "AccumulatedFees: "+fmt.Sprintf("%#v", this.AccumulatedFees)+",\n")
 	s = append(s, "NumSelectedInSuccessBlocks: "+fmt.Sprintf("%#v", this.NumSelectedInSuccessBlocks)+",\n")
@@ -882,6 +626,7 @@ func (this *PeerAccountData) GoString() string {
 	s = append(s, "ConsecutiveProposerMisses: "+fmt.Sprintf("%#v", this.ConsecutiveProposerMisses)+",\n")
 	s = append(s, "TotalValidatorSuccessRate: "+strings.Replace(this.TotalValidatorSuccessRate.GoString(), `&`, ``, 1)+",\n")
 	s = append(s, "TotalLeaderSuccessRate: "+strings.Replace(this.TotalLeaderSuccessRate.GoString(), `&`, ``, 1)+",\n")
+	s = append(s, "Nonce: "+fmt.Sprintf("%#v", this.Nonce)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -893,82 +638,6 @@ func valueToGoStringPeerAccountData(v interface{}, typ string) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("func(v %v) *%v { return &v } ( %#v )", typ, typ, pv)
 }
-func (m *TimeStamp) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *TimeStamp) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *TimeStamp) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.Round != 0 {
-		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.Round))
-		i--
-		dAtA[i] = 0x10
-	}
-	if m.Epoch != 0 {
-		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.Epoch))
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *TimePeriod) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *TimePeriod) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *TimePeriod) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	{
-		size, err := m.EndTime.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x12
-	{
-		size, err := m.StartTime.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0xa
-	return len(dAtA) - i, nil
-}
-
 func (m *SignRate) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -1103,6 +772,13 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.Nonce != 0 {
+		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.Nonce))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
 	{
 		size, err := m.TotalLeaderSuccessRate.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -1112,9 +788,7 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xaa
+	dAtA[i] = 0x7a
 	{
 		size, err := m.TotalValidatorSuccessRate.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -1124,38 +798,28 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0x1
-	i--
-	dAtA[i] = 0xa2
+	dAtA[i] = 0x72
 	if m.ConsecutiveProposerMisses != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.ConsecutiveProposerMisses))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x98
+		dAtA[i] = 0x68
 	}
 	if len(m.List) > 0 {
 		i -= len(m.List)
 		copy(dAtA[i:], m.List)
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(len(m.List)))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x92
+		dAtA[i] = 0x62
 	}
 	if m.IndexInList != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.IndexInList))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x88
+		dAtA[i] = 0x58
 	}
 	if m.NumSelectedInSuccessBlocks != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.NumSelectedInSuccessBlocks))
 		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0x80
+		dAtA[i] = 0x50
 	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
@@ -1167,21 +831,16 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0x7a
+	dAtA[i] = 0x4a
 	if m.TempRating != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.TempRating))
 		i--
-		dAtA[i] = 0x70
-	}
-	if m.Nonce != 0 {
-		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.Nonce))
-		i--
-		dAtA[i] = 0x68
+		dAtA[i] = 0x40
 	}
 	if m.Rating != 0 {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.Rating))
 		i--
-		dAtA[i] = 0x60
+		dAtA[i] = 0x38
 	}
 	{
 		size, err := m.LeaderSuccessRate.MarshalToSizedBuffer(dAtA[:i])
@@ -1192,7 +851,7 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0x5a
+	dAtA[i] = 0x32
 	{
 		size, err := m.ValidatorSuccessRate.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -1202,56 +861,12 @@ func (m *PeerAccountData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0x52
-	if m.UnStakedNonce != 0 {
-		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.UnStakedNonce))
+	dAtA[i] = 0x2a
+	if m.ShardId != 0 {
+		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.ShardId))
 		i--
-		dAtA[i] = 0x48
+		dAtA[i] = 0x20
 	}
-	if m.NodeInWaitingList {
-		i--
-		if m.NodeInWaitingList {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i--
-		dAtA[i] = 0x40
-	}
-	if m.NextShardId != 0 {
-		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.NextShardId))
-		i--
-		dAtA[i] = 0x38
-	}
-	if m.CurrentShardId != 0 {
-		i = encodeVarintPeerAccountData(dAtA, i, uint64(m.CurrentShardId))
-		i--
-		dAtA[i] = 0x30
-	}
-	if len(m.PastJailTimes) > 0 {
-		for iNdEx := len(m.PastJailTimes) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.PastJailTimes[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x2a
-		}
-	}
-	{
-		size, err := m.JailTime.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = encodeVarintPeerAccountData(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x22
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
 		size := __caster.Size(m.Stake)
@@ -1291,34 +906,6 @@ func encodeVarintPeerAccountData(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *TimeStamp) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.Epoch != 0 {
-		n += 1 + sovPeerAccountData(uint64(m.Epoch))
-	}
-	if m.Round != 0 {
-		n += 1 + sovPeerAccountData(uint64(m.Round))
-	}
-	return n
-}
-
-func (m *TimePeriod) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = m.StartTime.Size()
-	n += 1 + l + sovPeerAccountData(uint64(l))
-	l = m.EndTime.Size()
-	n += 1 + l + sovPeerAccountData(uint64(l))
-	return n
-}
-
 func (m *SignRate) Size() (n int) {
 	if m == nil {
 		return 0
@@ -1395,25 +982,8 @@ func (m *PeerAccountData) Size() (n int) {
 		l = __caster.Size(m.Stake)
 		n += 1 + l + sovPeerAccountData(uint64(l))
 	}
-	l = m.JailTime.Size()
-	n += 1 + l + sovPeerAccountData(uint64(l))
-	if len(m.PastJailTimes) > 0 {
-		for _, e := range m.PastJailTimes {
-			l = e.Size()
-			n += 1 + l + sovPeerAccountData(uint64(l))
-		}
-	}
-	if m.CurrentShardId != 0 {
-		n += 1 + sovPeerAccountData(uint64(m.CurrentShardId))
-	}
-	if m.NextShardId != 0 {
-		n += 1 + sovPeerAccountData(uint64(m.NextShardId))
-	}
-	if m.NodeInWaitingList {
-		n += 2
-	}
-	if m.UnStakedNonce != 0 {
-		n += 1 + sovPeerAccountData(uint64(m.UnStakedNonce))
+	if m.ShardId != 0 {
+		n += 1 + sovPeerAccountData(uint64(m.ShardId))
 	}
 	l = m.ValidatorSuccessRate.Size()
 	n += 1 + l + sovPeerAccountData(uint64(l))
@@ -1421,9 +991,6 @@ func (m *PeerAccountData) Size() (n int) {
 	n += 1 + l + sovPeerAccountData(uint64(l))
 	if m.Rating != 0 {
 		n += 1 + sovPeerAccountData(uint64(m.Rating))
-	}
-	if m.Nonce != 0 {
-		n += 1 + sovPeerAccountData(uint64(m.Nonce))
 	}
 	if m.TempRating != 0 {
 		n += 1 + sovPeerAccountData(uint64(m.TempRating))
@@ -1434,22 +1001,25 @@ func (m *PeerAccountData) Size() (n int) {
 		n += 1 + l + sovPeerAccountData(uint64(l))
 	}
 	if m.NumSelectedInSuccessBlocks != 0 {
-		n += 2 + sovPeerAccountData(uint64(m.NumSelectedInSuccessBlocks))
+		n += 1 + sovPeerAccountData(uint64(m.NumSelectedInSuccessBlocks))
 	}
 	if m.IndexInList != 0 {
-		n += 2 + sovPeerAccountData(uint64(m.IndexInList))
+		n += 1 + sovPeerAccountData(uint64(m.IndexInList))
 	}
 	l = len(m.List)
 	if l > 0 {
-		n += 2 + l + sovPeerAccountData(uint64(l))
+		n += 1 + l + sovPeerAccountData(uint64(l))
 	}
 	if m.ConsecutiveProposerMisses != 0 {
-		n += 2 + sovPeerAccountData(uint64(m.ConsecutiveProposerMisses))
+		n += 1 + sovPeerAccountData(uint64(m.ConsecutiveProposerMisses))
 	}
 	l = m.TotalValidatorSuccessRate.Size()
-	n += 2 + l + sovPeerAccountData(uint64(l))
+	n += 1 + l + sovPeerAccountData(uint64(l))
 	l = m.TotalLeaderSuccessRate.Size()
-	n += 2 + l + sovPeerAccountData(uint64(l))
+	n += 1 + l + sovPeerAccountData(uint64(l))
+	if m.Nonce != 0 {
+		n += 2 + sovPeerAccountData(uint64(m.Nonce))
+	}
 	return n
 }
 
@@ -1458,28 +1028,6 @@ func sovPeerAccountData(x uint64) (n int) {
 }
 func sozPeerAccountData(x uint64) (n int) {
 	return sovPeerAccountData(uint64((x << 1) ^ uint64((int64(x) >> 63))))
-}
-func (this *TimeStamp) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&TimeStamp{`,
-		`Epoch:` + fmt.Sprintf("%v", this.Epoch) + `,`,
-		`Round:` + fmt.Sprintf("%v", this.Round) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *TimePeriod) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&TimePeriod{`,
-		`StartTime:` + strings.Replace(strings.Replace(this.StartTime.String(), "TimeStamp", "TimeStamp", 1), `&`, ``, 1) + `,`,
-		`EndTime:` + strings.Replace(strings.Replace(this.EndTime.String(), "TimeStamp", "TimeStamp", 1), `&`, ``, 1) + `,`,
-		`}`,
-	}, "")
-	return s
 }
 func (this *SignRate) String() string {
 	if this == nil {
@@ -1516,25 +1064,14 @@ func (this *PeerAccountData) String() string {
 	if this == nil {
 		return "nil"
 	}
-	repeatedStringForPastJailTimes := "[]TimePeriod{"
-	for _, f := range this.PastJailTimes {
-		repeatedStringForPastJailTimes += strings.Replace(strings.Replace(f.String(), "TimePeriod", "TimePeriod", 1), `&`, ``, 1) + ","
-	}
-	repeatedStringForPastJailTimes += "}"
 	s := strings.Join([]string{`&PeerAccountData{`,
 		`BLSPublicKey:` + fmt.Sprintf("%v", this.BLSPublicKey) + `,`,
 		`RewardAddress:` + fmt.Sprintf("%v", this.RewardAddress) + `,`,
 		`Stake:` + fmt.Sprintf("%v", this.Stake) + `,`,
-		`JailTime:` + strings.Replace(strings.Replace(this.JailTime.String(), "TimePeriod", "TimePeriod", 1), `&`, ``, 1) + `,`,
-		`PastJailTimes:` + repeatedStringForPastJailTimes + `,`,
-		`CurrentShardId:` + fmt.Sprintf("%v", this.CurrentShardId) + `,`,
-		`NextShardId:` + fmt.Sprintf("%v", this.NextShardId) + `,`,
-		`NodeInWaitingList:` + fmt.Sprintf("%v", this.NodeInWaitingList) + `,`,
-		`UnStakedNonce:` + fmt.Sprintf("%v", this.UnStakedNonce) + `,`,
+		`ShardId:` + fmt.Sprintf("%v", this.ShardId) + `,`,
 		`ValidatorSuccessRate:` + strings.Replace(strings.Replace(this.ValidatorSuccessRate.String(), "SignRate", "SignRate", 1), `&`, ``, 1) + `,`,
 		`LeaderSuccessRate:` + strings.Replace(strings.Replace(this.LeaderSuccessRate.String(), "SignRate", "SignRate", 1), `&`, ``, 1) + `,`,
 		`Rating:` + fmt.Sprintf("%v", this.Rating) + `,`,
-		`Nonce:` + fmt.Sprintf("%v", this.Nonce) + `,`,
 		`TempRating:` + fmt.Sprintf("%v", this.TempRating) + `,`,
 		`AccumulatedFees:` + fmt.Sprintf("%v", this.AccumulatedFees) + `,`,
 		`NumSelectedInSuccessBlocks:` + fmt.Sprintf("%v", this.NumSelectedInSuccessBlocks) + `,`,
@@ -1543,6 +1080,7 @@ func (this *PeerAccountData) String() string {
 		`ConsecutiveProposerMisses:` + fmt.Sprintf("%v", this.ConsecutiveProposerMisses) + `,`,
 		`TotalValidatorSuccessRate:` + strings.Replace(strings.Replace(this.TotalValidatorSuccessRate.String(), "SignRate", "SignRate", 1), `&`, ``, 1) + `,`,
 		`TotalLeaderSuccessRate:` + strings.Replace(strings.Replace(this.TotalLeaderSuccessRate.String(), "SignRate", "SignRate", 1), `&`, ``, 1) + `,`,
+		`Nonce:` + fmt.Sprintf("%v", this.Nonce) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1554,216 +1092,6 @@ func valueToStringPeerAccountData(v interface{}) string {
 	}
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("*%v", pv)
-}
-func (m *TimeStamp) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowPeerAccountData
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: TimeStamp: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: TimeStamp: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Epoch", wireType)
-			}
-			m.Epoch = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Epoch |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Round", wireType)
-			}
-			m.Round = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Round |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipPeerAccountData(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *TimePeriod) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowPeerAccountData
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: TimePeriod: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: TimePeriod: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field StartTime", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.StartTime.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EndTime", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.EndTime.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipPeerAccountData(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
 }
 func (m *SignRate) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
@@ -2230,10 +1558,10 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 			}
 			iNdEx = postIndex
 		case 4:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field JailTime", wireType)
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ShardId", wireType)
 			}
-			var msglen int
+			m.ShardId = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowPeerAccountData
@@ -2243,137 +1571,12 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= int(b&0x7F) << shift
+				m.ShardId |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if msglen < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.JailTime.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PastJailTimes", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthPeerAccountData
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PastJailTimes = append(m.PastJailTimes, TimePeriod{})
-			if err := m.PastJailTimes[len(m.PastJailTimes)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 6:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field CurrentShardId", wireType)
-			}
-			m.CurrentShardId = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.CurrentShardId |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 7:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NextShardId", wireType)
-			}
-			m.NextShardId = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.NextShardId |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 8:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NodeInWaitingList", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.NodeInWaitingList = bool(v != 0)
-		case 9:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field UnStakedNonce", wireType)
-			}
-			m.UnStakedNonce = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.UnStakedNonce |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 10:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ValidatorSuccessRate", wireType)
 			}
@@ -2406,7 +1609,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 11:
+		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field LeaderSuccessRate", wireType)
 			}
@@ -2439,7 +1642,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 12:
+		case 7:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Rating", wireType)
 			}
@@ -2458,26 +1661,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 13:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Nonce", wireType)
-			}
-			m.Nonce = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPeerAccountData
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Nonce |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 14:
+		case 8:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TempRating", wireType)
 			}
@@ -2496,7 +1680,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 15:
+		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field AccumulatedFees", wireType)
 			}
@@ -2534,7 +1718,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
-		case 16:
+		case 10:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field NumSelectedInSuccessBlocks", wireType)
 			}
@@ -2553,7 +1737,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 17:
+		case 11:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field IndexInList", wireType)
 			}
@@ -2572,7 +1756,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 18:
+		case 12:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field List", wireType)
 			}
@@ -2604,7 +1788,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 			}
 			m.List = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 19:
+		case 13:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ConsecutiveProposerMisses", wireType)
 			}
@@ -2623,7 +1807,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 20:
+		case 14:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TotalValidatorSuccessRate", wireType)
 			}
@@ -2656,7 +1840,7 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 21:
+		case 15:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field TotalLeaderSuccessRate", wireType)
 			}
@@ -2689,6 +1873,25 @@ func (m *PeerAccountData) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Nonce", wireType)
+			}
+			m.Nonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowPeerAccountData
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Nonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipPeerAccountData(dAtA[iNdEx:])

@@ -1617,13 +1617,13 @@ func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
 	arguments.Rater = newRater
 
 	pad := state.PeerAccountData{
-		BLSPublicKey:   []byte("blsKey"),
-		CurrentShardId: 7,
-		List:           "List",
-		IndexInList:    2,
-		TempRating:     51,
-		Rating:         70,
-		RewardAddress:  []byte("rewardAddress"),
+		BLSPublicKey:  []byte("blsKey"),
+		ShardId:       7,
+		List:          "List",
+		IndexInList:   2,
+		TempRating:    51,
+		Rating:        70,
+		RewardAddress: []byte("rewardAddress"),
 		LeaderSuccessRate: state.SignRate{
 			NumSuccess: 1,
 			NumFailure: 2,
@@ -1653,7 +1653,7 @@ func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
 	ratingModifier := float32(chancesForRating) / float32(chancesForStartRating)
 
 	assert.Equal(t, peerAccount.GetBLSPublicKey(), vs.PublicKey)
-	assert.Equal(t, peerAccount.GetCurrentShardId(), vs.ShardId)
+	assert.Equal(t, peerAccount.GetShardId(), vs.ShardId)
 	assert.Equal(t, peerAccount.GetList(), vs.List)
 	assert.Equal(t, peerAccount.GetIndex(), vs.Index)
 	assert.Equal(t, peerAccount.GetTempRating(), vs.TempRating)
@@ -1692,7 +1692,7 @@ func createMockValidatorInfo(shardId uint32, tempRating uint32, validatorSuccess
 }
 
 func compare(t *testing.T, peerAccount state.PeerAccountHandler, validatorInfo *state.ValidatorInfo) {
-	assert.Equal(t, peerAccount.GetCurrentShardId(), validatorInfo.ShardId)
+	assert.Equal(t, peerAccount.GetShardId(), validatorInfo.ShardId)
 	assert.Equal(t, peerAccount.GetRating(), validatorInfo.Rating)
 	assert.Equal(t, peerAccount.GetTempRating(), validatorInfo.TempRating)
 	assert.Equal(t, peerAccount.GetBLSPublicKey(), validatorInfo.PublicKey)
@@ -1719,20 +1719,6 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		RewardAddress:   []byte("reward0"),
 		Stake:           big.NewInt(10),
 		AccumulatedFees: big.NewInt(11),
-		JailTime: state.TimePeriod{
-			StartTime: state.TimeStamp{Epoch: 1, Round: 10},
-			EndTime:   state.TimeStamp{Epoch: 2, Round: 2},
-		},
-		PastJailTimes: []state.TimePeriod{
-			{
-				StartTime: state.TimeStamp{Epoch: 1, Round: 1},
-				EndTime:   state.TimeStamp{Epoch: 1, Round: 2},
-			},
-		},
-		CurrentShardId:    0,
-		NextShardId:       1,
-		NodeInWaitingList: false,
-		UnStakedNonce:     7,
 		ValidatorSuccessRate: state.SignRate{
 			NumSuccess: 1,
 			NumFailure: 2,
@@ -1762,20 +1748,6 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		RewardAddress:   []byte("rewardM"),
 		Stake:           big.NewInt(110),
 		AccumulatedFees: big.NewInt(111),
-		JailTime: state.TimePeriod{
-			StartTime: state.TimeStamp{Epoch: 11, Round: 101},
-			EndTime:   state.TimeStamp{Epoch: 21, Round: 21},
-		},
-		PastJailTimes: []state.TimePeriod{
-			{
-				StartTime: state.TimeStamp{Epoch: 11, Round: 11},
-				EndTime:   state.TimeStamp{Epoch: 11, Round: 12},
-			},
-		},
-		CurrentShardId:    core.MetachainShardId,
-		NextShardId:       1,
-		NodeInWaitingList: true,
-		UnStakedNonce:     2,
 		ValidatorSuccessRate: state.SignRate{
 			NumSuccess: 11,
 			NumFailure: 21,
@@ -1788,6 +1760,7 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		Rating:                     511,
 		TempRating:                 611,
 		Nonce:                      8,
+		ShardId:                    core.MetachainShardId,
 	}
 	return pa0, paMeta
 }

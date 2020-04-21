@@ -13,6 +13,8 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+const minArgsLenToChangeValidatorKey = 4
+
 // AuctionData represents what is saved for each validator / bid
 type AuctionData struct {
 	RewardAddress   []byte   `json:"RewardAddress"`
@@ -205,8 +207,6 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 	return vmcommon.Ok
 }
 
-const minArgsLenToChangeValidatorKey = 4
-
 func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	// list of arguments are NumNodes, (OldKey, NewKey, SignedMessage) X NumNodes
 	if len(args.Arguments) < minArgsLenToChangeValidatorKey {
@@ -300,7 +300,7 @@ func (s *stakingAuctionSC) get(args *vmcommon.ContractCallInput) vmcommon.Return
 }
 
 func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	ownerAddress := s.eei.GetStorage([]byte(OwnerKey))
+	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
 	if !bytes.Equal(ownerAddress, args.CallerAddr) {
 		log.Debug("setConfig function was not called by the owner address")
 		return vmcommon.UserError
@@ -380,13 +380,13 @@ func (s *stakingAuctionSC) getConfig(epoch uint32) AuctionConfig {
 }
 
 func (s *stakingAuctionSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	ownerAddress := s.eei.GetStorage([]byte(OwnerKey))
+	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
 	if ownerAddress != nil {
 		log.Error("smart contract was already initialized")
 		return vmcommon.UserError
 	}
 
-	s.eei.SetStorage([]byte(OwnerKey), args.CallerAddr)
+	s.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
 
 	return vmcommon.Ok
 }
