@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	valStats "github.com/ElrondNetwork/elrond-go/api/validator"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gin-contrib/cors"
@@ -63,7 +64,7 @@ func (gev *ginErrorWriter) Write(p []byte) (n int, err error) {
 }
 
 // Start will boot up the api and appropriate routes, handlers and validators
-func Start(elrondFacade MainApiHandler, processors ...MiddlewareProcessor) error {
+func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, processors ...MiddlewareProcessor) error {
 	var ws *gin.Engine
 	if !elrondFacade.RestAPIServerDebugMode() {
 		gin.DefaultWriter = &ginWriter{}
@@ -86,35 +87,35 @@ func Start(elrondFacade MainApiHandler, processors ...MiddlewareProcessor) error
 		return err
 	}
 
-	registerRoutes(ws, elrondFacade)
+	registerRoutes(ws, routesConfig, elrondFacade)
 
 	return ws.Run(elrondFacade.RestApiInterface())
 }
 
-func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
+func registerRoutes(ws *gin.Engine, routesConfig config.ApiRoutesConfig, elrondFacade middleware.ElrondHandler) {
 	nodeRoutes := ws.Group("/node")
 	nodeRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	node.Routes(nodeRoutes)
+	node.Routes(nodeRoutes, routesConfig)
 
 	addressRoutes := ws.Group("/address")
 	addressRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	address.Routes(addressRoutes)
+	address.Routes(addressRoutes, routesConfig)
 
 	txRoutes := ws.Group("/transaction")
 	txRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	transaction.Routes(txRoutes)
+	transaction.Routes(txRoutes, routesConfig)
 
 	vmValuesRoutes := ws.Group("/vm-values")
 	vmValuesRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	vmValues.Routes(vmValuesRoutes)
+	vmValues.Routes(vmValuesRoutes, routesConfig)
 
 	validatorRoutes := ws.Group("/validator")
 	validatorRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	valStats.Routes(validatorRoutes)
+	valStats.Routes(validatorRoutes, routesConfig)
 
 	hardforkRoutes := ws.Group("/hardfork")
 	hardforkRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	hardfork.Routes(hardforkRoutes)
+	hardfork.Routes(hardforkRoutes, routesConfig)
 
 	apiHandler, ok := elrondFacade.(MainApiHandler)
 	if ok && apiHandler.PprofEnabled() {

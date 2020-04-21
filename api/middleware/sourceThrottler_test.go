@@ -30,7 +30,7 @@ func startNodeServerSourceThrottler(handler address.FacadeHandler, maxConnection
 	if handler != nil {
 		addressRoutes.Use(middleware.WithElrondFacade(handler))
 	}
-	address.Routes(addressRoutes)
+	address.Routes(addressRoutes, getRoutesConfig())
 	return ws, sourceThrottler
 }
 

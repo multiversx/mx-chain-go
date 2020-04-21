@@ -15,6 +15,7 @@ import (
 	errors2 "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	mock2 "github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/gin-contrib/cors"
@@ -263,7 +264,7 @@ func startNodeServer(handler address.FacadeHandler) *gin.Engine {
 	if handler != nil {
 		addressRoutes.Use(middleware.WithElrondFacade(handler))
 	}
-	address.Routes(addressRoutes)
+	address.Routes(addressRoutes, getRoutesConfig())
 	return ws
 }
 
@@ -274,6 +275,19 @@ func startNodeServerWrongFacade() *gin.Engine {
 		c.Set("elrondFacade", mock.WrongFacade{})
 	})
 	addressRoute := ws.Group("/address")
-	address.Routes(addressRoute)
+	address.Routes(addressRoute, getRoutesConfig())
 	return ws
+}
+
+func getRoutesConfig() config.ApiRoutesConfig {
+	return config.ApiRoutesConfig{
+		APIPackages: map[string]config.APIPackageConfig{
+			"address": {
+				[]config.RouteConfig{
+					{Name: ":address", Open: true},
+					{Name: ":address/balance", Open: true},
+				},
+			},
+		},
+	}
 }

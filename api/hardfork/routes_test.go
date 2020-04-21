@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -42,7 +43,7 @@ func startNodeServer(handler hardfork.TriggerHardforkHandler) *gin.Engine {
 	if handler != nil {
 		hardforkRoute.Use(middleware.WithElrondFacade(handler))
 	}
-	hardfork.Routes(hardforkRoute)
+	hardfork.Routes(hardforkRoute, getRoutesConfig())
 	return ws
 }
 
@@ -53,7 +54,7 @@ func startNodeServerWrongFacade() *gin.Engine {
 		c.Set("elrondFacade", mock.WrongFacade{})
 	})
 	hardforkRoute := ws.Group("/hardfork")
-	hardfork.Routes(hardforkRoute)
+	hardfork.Routes(hardforkRoute, getRoutesConfig())
 	return ws
 }
 
@@ -144,4 +145,16 @@ func TestTrigger_BroadcastShouldWork(t *testing.T) {
 
 	assert.Equal(t, resp.Code, http.StatusOK)
 	assert.Equal(t, hardfork.ExecBroadcastTrigger, triggerResponse.Status)
+}
+
+func getRoutesConfig() config.ApiRoutesConfig {
+	return config.ApiRoutesConfig{
+		APIPackages: map[string]config.APIPackageConfig{
+			"hardfork": {
+				[]config.RouteConfig{
+					{Name: "trigger", Open: true},
+				},
+			},
+		},
+	}
 }

@@ -54,6 +54,7 @@ type ArgNodeFacade struct {
 	RestAPIServerDebugMode bool
 	WsAntifloodConfig      config.WebServerAntifloodConfig
 	FacadeConfig           config.FacadeConfig
+	ApiRoutesConfig        config.ApiRoutesConfig
 }
 
 // nodeFacade represents a facade for grouping the functionality for the node
@@ -65,6 +66,7 @@ type nodeFacade struct {
 	config                 config.FacadeConfig
 	restAPIServerDebugMode bool
 	wsAntifloodConfig      config.WebServerAntifloodConfig
+	apiRoutesConfig        config.ApiRoutesConfig
 }
 
 // NewNodeFacade creates a new Facade with a NodeWrapper
@@ -74,6 +76,9 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	}
 	if check.IfNil(arg.ApiResolver) {
 		return nil, ErrNilApiResolver
+	}
+	if len(arg.ApiRoutesConfig.APIPackages) == 0 {
+		return nil, ErrNoApiRoutesConfig
 	}
 	if arg.WsAntifloodConfig.SimultaneousRequests == 0 {
 		return nil, fmt.Errorf("%w, SimultaneousRequests should not be 0", ErrInvalidValue)
@@ -91,6 +96,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		restAPIServerDebugMode: arg.RestAPIServerDebugMode,
 		wsAntifloodConfig:      arg.WsAntifloodConfig,
 		config:                 arg.FacadeConfig,
+		apiRoutesConfig:        arg.ApiRoutesConfig,
 	}, nil
 }
 
@@ -158,7 +164,7 @@ func (nf *nodeFacade) startRest() {
 			"SameSourceResetIntervalInSec", nf.wsAntifloodConfig.SameSourceResetIntervalInSec,
 		)
 
-		err = api.Start(nf, limiters...)
+		err = api.Start(nf, nf.apiRoutesConfig, limiters...)
 		if err != nil {
 			log.Error("could not start webserver",
 				"error", err.Error(),

@@ -132,6 +132,13 @@ VERSION:
 			"economics configurations such as minimum gas price for a transactions and so on.",
 		Value: "./config/economics.toml",
 	}
+	// configurationApiFile defines a flag for the path to the api routes toml configuration file
+	configurationApiFile = cli.StringFlag{
+		Name: "config-api",
+		Usage: "The `" + filePathPlaceholder + "` for the api configuration file. This TOML file contains " +
+			"all available routes for Rest API and options to enable or disable them.",
+		Value: "./config/api.toml",
+	}
 	// configurationEconomicsFile defines a flag for the path to the ratings toml configuration file
 	configurationRatingsFile = cli.StringFlag{
 		Name:  "config-ratings",
@@ -355,6 +362,7 @@ func main() {
 		genesisFile,
 		nodesFile,
 		configurationFile,
+		configurationApiFile,
 		configurationEconomicsFile,
 		configurationRatingsFile,
 		configurationPreferencesFile,
@@ -466,6 +474,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 	log.Debug("config", "file", configurationFileName)
+
+	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
+	apiRoutesConfig, err := loadApiConfig(configurationApiFileName)
+	if err != nil {
+		return err
+	}
+	log.Debug("config", "file", configurationApiFileName)
 
 	configurationEconomicsFileName := ctx.GlobalString(configurationEconomicsFile.Name)
 	economicsConfig, err := loadEconomicsConfig(configurationEconomicsFileName)
@@ -1066,6 +1081,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			RestApiInterface: ctx.GlobalString(restApiInterface.Name),
 			PprofEnabled:     ctx.GlobalBool(profileMode.Name),
 		},
+		ApiRoutesConfig: *apiRoutesConfig,
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)
@@ -1278,6 +1294,16 @@ func enableGopsIfNeeded(ctx *cli.Context, log logger.Logger) {
 
 func loadMainConfig(filepath string) (*config.Config, error) {
 	cfg := &config.Config{}
+	err := core.LoadTomlFile(cfg, filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+func loadApiConfig(filepath string) (*config.ApiRoutesConfig, error) {
+	cfg := &config.ApiRoutesConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
 		return nil, err

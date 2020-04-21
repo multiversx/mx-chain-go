@@ -3,7 +3,9 @@ package validator
 import (
 	"net/http"
 
+	"github.com/ElrondNetwork/elrond-go/api/configparser"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/gin-gonic/gin"
 )
@@ -15,8 +17,14 @@ type ValidatorsStatisticsApiHandler interface {
 }
 
 // Routes defines validators' related routes
-func Routes(router *gin.RouterGroup) {
-	router.GET("/statistics", Statistics)
+func Routes(router *gin.RouterGroup, routesConfig config.ApiRoutesConfig) {
+	validatorRoutesConfig, ok := routesConfig.APIPackages["validator"]
+	if !ok {
+		return
+	}
+	if configparser.CheckEndpoint("statistics", validatorRoutesConfig) {
+		router.GET("/statistics", Statistics)
+	}
 }
 
 // Statistics will return the validation statistics for all validators

@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/node"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -317,6 +318,22 @@ func startNodeServerWithFacade(facade interface{}) *gin.Engine {
 	}
 
 	nodeRoutes := ws.Group("/node")
-	node.Routes(nodeRoutes)
+	node.Routes(nodeRoutes, getRoutesConfig())
 	return ws
+}
+
+func getRoutesConfig() config.ApiRoutesConfig {
+	return config.ApiRoutesConfig{
+		APIPackages: map[string]config.APIPackageConfig{
+			"node": {
+				[]config.RouteConfig{
+					{Name: "status", Open: true},
+					{Name: "statistics", Open: true},
+					{Name: "heartbeatstatus", Open: true},
+					{Name: "p2pstatus", Open: true},
+					{Name: "epoch", Open: true},
+				},
+			},
+		},
+	}
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/validator"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -110,7 +111,7 @@ func startNodeServer(handler validator.ValidatorsStatisticsApiHandler) *gin.Engi
 	if handler != nil {
 		validatorRoute.Use(middleware.WithElrondFacade(handler))
 	}
-	validator.Routes(validatorRoute)
+	validator.Routes(validatorRoute, getRoutesConfig())
 	return ws
 }
 
@@ -121,6 +122,18 @@ func startNodeServerWrongFacade() *gin.Engine {
 		c.Set("elrondFacade", mock.WrongFacade{})
 	})
 	validatorRoute := ws.Group("/validator")
-	validator.Routes(validatorRoute)
+	validator.Routes(validatorRoute, getRoutesConfig())
 	return ws
+}
+
+func getRoutesConfig() config.ApiRoutesConfig {
+	return config.ApiRoutesConfig{
+		APIPackages: map[string]config.APIPackageConfig{
+			"validator": {
+				[]config.RouteConfig{
+					{Name: "statistics", Open: true},
+				},
+			},
+		},
+	}
 }

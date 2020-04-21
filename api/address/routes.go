@@ -6,7 +6,9 @@ import (
 	"math/big"
 	"net/http"
 
+	"github.com/ElrondNetwork/elrond-go/api/configparser"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/gin-gonic/gin"
 )
@@ -28,9 +30,17 @@ type accountResponse struct {
 }
 
 // Routes defines address related routes
-func Routes(router *gin.RouterGroup) {
-	router.GET("/:address", GetAccount)
-	router.GET("/:address/balance", GetBalance)
+func Routes(router *gin.RouterGroup, routesConfig config.ApiRoutesConfig) {
+	addresRoutes, ok := routesConfig.APIPackages["address"]
+	if !ok {
+		return
+	}
+	if configparser.CheckEndpoint(":address", addresRoutes) {
+		router.GET("/:address", GetAccount)
+	}
+	if configparser.CheckEndpoint(":address/balance", addresRoutes) {
+		router.GET("/:address/balance", GetBalance)
+	}
 }
 
 // GetAccount returns an accountResponse containing information

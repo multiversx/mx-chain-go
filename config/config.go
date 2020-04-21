@@ -264,3 +264,19 @@ type HardforkConfig struct {
 	EnableTriggerFromP2P  bool
 	PublicKeyToListenFrom string
 }
+
+// ApiRoutesConfig holds the configuration related to Rest API routes
+type ApiRoutesConfig struct {
+	APIPackages map[string]APIPackageConfig
+}
+
+// APIPackageConfig holds the configuration for the routes of each package
+type APIPackageConfig struct {
+	Routes []RouteConfig
+}
+
+// RouteConfig holds the configuration for a single route
+type RouteConfig struct {
+	Name string
+	Open bool
+}
