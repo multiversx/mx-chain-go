@@ -102,18 +102,26 @@ func (rxs *randXORShuffler) UpdateNodeLists(args ArgsUpdateNodes) (map[uint32][]
 }
 
 func removeFromWaiting(waitingNodes map[uint32][]Validator, leavingNodes []Validator) (map[uint32][]Validator, []Validator) {
-	for shard, vList := range waitingNodes {
-		nbToRemove := len(vList)
-		if len(leavingNodes) < nbToRemove {
-			nbToRemove = len(leavingNodes)
-		}
-
-		vList, removedNodes := removeValidatorsFromList(vList, leavingNodes, nbToRemove)
-		leavingNodes, _ = removeValidatorsFromList(leavingNodes, removedNodes, len(removedNodes))
-		waitingNodes[shard] = vList
+	for shard := uint32(0); shard < uint32(len(waitingNodes)-1); shard++ {
+		leavingNodes = computeLeaving(waitingNodes, leavingNodes, shard)
 	}
 
+	leavingNodes = computeLeaving(waitingNodes, leavingNodes, core.MetachainShardId)
+
 	return waitingNodes, leavingNodes
+}
+
+func computeLeaving(waitingNodes map[uint32][]Validator, leavingNodes []Validator, shard uint32) []Validator {
+	vList := waitingNodes[shard]
+	nbToRemove := len(vList)
+	if len(leavingNodes) < nbToRemove {
+		nbToRemove = len(leavingNodes)
+	}
+
+	vList, removedNodes := removeValidatorsFromList(vList, leavingNodes, nbToRemove)
+	leavingNodes, _ = removeValidatorsFromList(leavingNodes, removedNodes, len(removedNodes))
+	waitingNodes[shard] = vList
+	return leavingNodes
 }
 
 // IsInterfaceNil verifies if the underlying object is nil
@@ -145,8 +153,8 @@ func shuffleNodesInterShards(
 		randomness,
 	)
 	moveNodesToMap(eligible, waiting)
-	distributeValidators(newNodes, waiting, randomness, newNbShards+1)
-	distributeValidators(shuffledOutNodes, waiting, randomness, newNbShards+1)
+	distributeValidators(newNodes, waiting, randomness, newNbShards)
+	distributeValidators(shuffledOutNodes, waiting, randomness, newNbShards)
 
 	actualLeaving, _ := removeValidatorsFromList(leaving, stillRemainingInLeaving, len(stillRemainingInLeaving))
 
@@ -170,7 +178,8 @@ func shuffleNodesIntraShards(
 
 	waiting, stillRemainingInLeaving = removeFromWaiting(waiting, stillRemainingInLeaving)
 
-	for shard, validators := range eligible {
+	for shard := uint32(0); shard < uint32(len(eligible)-1); shard++ {
+		validators := eligible[shard]
 		shuffledOutMap[shard], eligible[shard], stillRemainingInLeaving = shuffleOutShard(
 			validators,
 			len(waiting[shard]),
@@ -179,8 +188,17 @@ func shuffleNodesIntraShards(
 		)
 	}
 
+	shard := core.MetachainShardId
+	validators := eligible[shard]
+	shuffledOutMap[shard], eligible[shard], stillRemainingInLeaving = shuffleOutShard(
+		validators,
+		len(waiting[shard]),
+		stillRemainingInLeaving,
+		randomness,
+	)
+
 	moveNodesToMap(eligible, waiting)
-	distributeValidators(newNodes, waiting, randomness, newNbShards+1)
+	distributeValidators(newNodes, waiting, randomness, newNbShards)
 	moveNodesToMap(waiting, shuffledOutMap)
 
 	actualLeaving, _ := removeValidatorsFromList(leaving, stillRemainingInLeaving, len(stillRemainingInLeaving))
@@ -240,12 +258,20 @@ func shuffleOutNodes(
 	newEligible := make(map[uint32][]Validator)
 	var shardShuffledOut []Validator
 
-	for shard, validators := range eligible {
+	for shard := uint32(0); shard < uint32(len(eligible)-1); shard++ {
+		validators := eligible[shard]
 		shardShuffledOut, validators, leaving = shuffleOutShard(validators, len(waiting[shard]), leaving, randomness)
 		shuffledOut = append(shuffledOut, shardShuffledOut...)
 
 		newEligible[shard], _ = removeValidatorsFromList(validators, shardShuffledOut, len(shardShuffledOut))
 	}
+
+	shard := core.MetachainShardId
+	validators := eligible[shard]
+	shardShuffledOut, validators, leaving = shuffleOutShard(validators, len(waiting[shard]), leaving, randomness)
+	shuffledOut = append(shuffledOut, shardShuffledOut...)
+
+	newEligible[shard], _ = removeValidatorsFromList(validators, shardShuffledOut, len(shardShuffledOut))
 
 	return shuffledOut, newEligible, leaving
 }
@@ -335,7 +361,8 @@ func removeValidatorFromList(validatorList []Validator, index int) []Validator {
 		return validatorList
 	}
 
-	return append(validatorList[:index], validatorList[index+1:]...)
+	validatorList[index] = validatorList[len(validatorList)-1]
+	return validatorList[:len(validatorList)-1]
 }
 
 // xorBytes XORs two byte arrays up to the shortest length of the two, and returns the resulted XORed bytes.

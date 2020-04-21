@@ -3,6 +3,7 @@ package sharding
 import (
 	"bytes"
 	"crypto/rand"
+	mathRand "math/rand"
 	"reflect"
 	"sort"
 	"testing"
@@ -303,7 +304,6 @@ func Test_promoteWaitingToEligible(t *testing.T) {
 }
 
 func Test_removeValidatorFromListFirst(t *testing.T) {
-	t.Skip()
 	t.Parallel()
 
 	validators := generateValidatorList(30)
@@ -333,7 +333,6 @@ func Test_removeValidatorFromListLast(t *testing.T) {
 }
 
 func Test_removeValidatorFromListMiddle(t *testing.T) {
-	t.Skip()
 	t.Parallel()
 
 	validators := generateValidatorList(30)
@@ -823,7 +822,7 @@ func TestRandXORShuffler_UpdateNodeListsWithLeavingRemovesFromEligible(t *testin
 	allNewEligible := getValidatorsInMap(eligible)
 	allNewWaiting := getValidatorsInMap(waiting)
 
-	allNewEligibleMap := listToMap(allNewEligible)
+	allNewEligibleMap := listToValidatorMap(allNewEligible)
 
 	for _, leavingValidator := range leaving {
 		assert.Nil(t, allNewEligibleMap[string(leavingValidator.PubKey())])
@@ -864,7 +863,7 @@ func TestRandXORShuffler_UpdateNodeListsWithLeavingRemovesFromWaiting(t *testing
 	allNewEligible := getValidatorsInMap(eligible)
 	allNewWaiting := getValidatorsInMap(waiting)
 
-	allNewWaitingMap := listToMap(allNewWaiting)
+	allNewWaitingMap := listToValidatorMap(allNewWaiting)
 
 	for _, leavingValidator := range leaving {
 		assert.Nil(t, allNewWaitingMap[string(leavingValidator.PubKey())])
@@ -904,9 +903,9 @@ func TestRandXORShuffler_UpdateNodeListsWithNonExistentLeavingDoesNotRemove(t *t
 	eligible, waiting, leaving := shuffler.UpdateNodeLists(args)
 
 	allNewEligible := getValidatorsInMap(eligible)
-	allNewEligibleMap := listToMap(allNewEligible)
+	allNewEligibleMap := listToValidatorMap(allNewEligible)
 	allNewWaiting := getValidatorsInMap(waiting)
-	allNewWaitingMap := listToMap(allNewWaiting)
+	allNewWaitingMap := listToValidatorMap(allNewWaiting)
 
 	for _, leavingValidator := range leaving {
 		assert.Nil(t, allNewEligibleMap[string(leavingValidator.PubKey())])
@@ -917,6 +916,61 @@ func TestRandXORShuffler_UpdateNodeListsWithNonExistentLeavingDoesNotRemove(t *t
 
 	for i := range leaving {
 		assert.Equal(t, args.Leaving[i], leaving[i])
+	}
+}
+
+func TestRandXORShuffler_UpdateNodeListsWithRangeOnMaps(t *testing.T) {
+	t.Parallel()
+	shuffleBetweenShards := []bool{true, false}
+
+	for _, shuffle := range shuffleBetweenShards {
+		eligiblePerShard := 100
+		eligibleMeta := 100
+		shuffler := NewXorValidatorsShuffler(
+			uint32(eligiblePerShard),
+			uint32(eligibleMeta),
+			0.2,
+			false,
+		)
+		shuffler.shuffleBetweenShards = shuffle
+
+		waitingPerShard := 20
+		numShards := 2
+
+		numLeaving := (waitingPerShard + waitingPerShard/2) * (numShards + 1)
+
+		args := createShufflerArgs(eligiblePerShard, waitingPerShard, uint32(numShards))
+
+		allValidators := make([]Validator, 0)
+
+		for _, shardValidators := range args.Eligible {
+			allValidators = append(allValidators, shardValidators...)
+		}
+
+		for _, shardValidators := range args.Waiting {
+			allValidators = append(allValidators, shardValidators...)
+		}
+
+		leavingValidators := make([]Validator, numLeaving)
+
+		for i := 0; i < numLeaving; i++ {
+			randIndex := mathRand.Intn(len(allValidators))
+			leavingValidators[i] = allValidators[randIndex]
+			allValidators = removeValidatorFromList(allValidators, randIndex)
+		}
+
+		args.Leaving = leavingValidators
+
+		initialEligible, initialWaiting, initialLeaving := shuffler.UpdateNodeLists(args)
+
+		for i := 0; i < 100; i++ {
+			newArgs := copyArgs(args)
+			eligible, waiting, leaving := shuffler.UpdateNodeLists(newArgs)
+
+			assert.True(t, areMapsEqual(initialEligible, eligible))
+			assert.True(t, areMapsEqual(initialWaiting, waiting))
+			assert.True(t, areListsEqual(initialLeaving, leaving))
+		}
 	}
 }
 
@@ -954,7 +1008,7 @@ func TestRandXORShuffler_UpdateNodeListsNoReShardingIntraShardShuffling(t *testi
 	assert.Equal(t, len(allPrevEligible)+len(allPrevWaiting), len(allNewEligible)+len(allNewWaiting))
 }
 
-func listToMap(validators []Validator) map[string]Validator {
+func listToValidatorMap(validators []Validator) map[string]Validator {
 	validatorMap := make(map[string]Validator)
 
 	for _, v := range validators {
@@ -981,4 +1035,53 @@ func createShufflerArgs(eligiblePerShard int, waitingPerShard int, nbShards uint
 		Rand:     randomness,
 	}
 	return args
+}
+
+func areMapsEqual(firstMap map[uint32][]Validator, secondMap map[uint32][]Validator) bool {
+	if len(firstMap) != len(secondMap) {
+		return false
+	}
+
+	for shardId := range firstMap {
+		if !areListsEqual(firstMap[shardId], secondMap[shardId]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func areListsEqual(firstList []Validator, secondList []Validator) bool {
+	if len(firstList) != len(secondList) {
+		return false
+	}
+
+	for i := 0; i < len(firstList); i++ {
+		if !bytes.Equal(firstList[i].PubKey(), secondList[i].PubKey()) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func copyArgs(args ArgsUpdateNodes) ArgsUpdateNodes {
+	newArg := ArgsUpdateNodes{
+		Eligible: copyMap(args.Eligible),
+		Waiting:  copyMap(args.Waiting),
+		NewNodes: append(make([]Validator, 0), args.NewNodes...),
+		Leaving:  append(make([]Validator, 0), args.Leaving...),
+		Rand:     args.Rand,
+		NbShards: args.NbShards,
+	}
+
+	return newArg
+}
+
+func copyMap(initialMap map[uint32][]Validator) map[uint32][]Validator {
+	newMap := make(map[uint32][]Validator)
+	for shardId, shardValidators := range initialMap {
+		newMap[shardId] = shardValidators
+	}
+	return newMap
 }
