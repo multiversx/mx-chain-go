@@ -559,6 +559,7 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		}
 	}
 
+	// TODO: add deterministic sort if index is equal
 	sort.Slice(leaving, func(i, j int) bool {
 		return leaving[i].Index() > leaving[j].Index()
 	})

@@ -200,9 +200,14 @@ func (r *stakingSC) removeFromJailedNodes() {
 	r.setConfig(config)
 }
 
-func (r *stakingSC) canUnStakeOrUnBond() bool {
+func (r *stakingSC) canUnStake() bool {
 	config := r.getConfig()
 	return config.StakedNodes-config.JailedNodes-config.MinNumNodes > 0
+}
+
+func (r *stakingSC) canUnBond() bool {
+	config := r.getConfig()
+	return config.StakedNodes-config.JailedNodes-config.MinNumNodes >= 0
 }
 
 func (r *stakingSC) calculateStakeAfterBleed(startRound uint64, endRound uint64, stake *big.Int) *big.Int {
@@ -576,7 +581,7 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		log.Error("unStake is not possible for jailed nodes")
 		return vmcommon.UserError
 	}
-	if !r.canUnStakeOrUnBond() {
+	if !r.canUnStake() {
 		log.Error("unStake is not possible as too many left")
 		return vmcommon.UserError
 	}
@@ -631,7 +636,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		log.Error("unBond is not possible for jailed nodes")
 		return vmcommon.UserError
 	}
-	if !r.canUnStakeOrUnBond() {
+	if !r.canUnBond() {
 		log.Error("unBond is not possible as too many left")
 		return vmcommon.UserError
 	}

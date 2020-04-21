@@ -223,10 +223,16 @@ func TestStakingToPeer_UpdateProtocolWrongAccountShouldErr(t *testing.T) {
 		}, nil
 	}
 
+	arguments := createMockArgumentsNewStakingToPeer()
+	offset := make([]byte, 0, arguments.PubkeyConv.Len())
+	for i := 0; i < arguments.PubkeyConv.Len(); i++ {
+		offset = append(offset, 99)
+	}
+
 	argParser := &mock.ArgumentParserMock{}
 	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
-			{Offset: []byte("aabbcc"), Data: []byte("data1")},
+			{Offset: offset, Data: []byte("data1")},
 		}, nil
 	}
 
@@ -235,7 +241,6 @@ func TestStakingToPeer_UpdateProtocolWrongAccountShouldErr(t *testing.T) {
 		return &mock.AccountWrapMock{}, nil
 	}
 
-	arguments := createMockArgumentsNewStakingToPeer()
 	arguments.ArgParser = argParser
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState

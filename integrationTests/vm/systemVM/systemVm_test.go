@@ -77,6 +77,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 		integrationTests.CreateAndSendTransaction(node, nodePrice, factory.AuctionSCAddress, txData)
 	}
 
+	// need to add enough stakers in order to make it possible to call unstake and unbond
 	for index, validator := range validators {
 		pubKey := generateUniqueKey(index + len(nodes) + 1)
 		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("msg"))
@@ -90,6 +91,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	time.Sleep(time.Second)
 
+	// TODO: check why 2 nodes staking consumes a smaller amount of gas
 	checkAccountsAfterStaking(t, nodes)
 
 	/////////------ send unStake tx
@@ -173,6 +175,13 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
+	minNumNodes := nodes[0].EconomicsData.NumNodes()
+	validators := make([]*integrationTests.TestWalletAccount, minNumNodes)
+	for i := 0; i < int(minNumNodes); i++ {
+		validators[i] = integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
+	}
+	integrationTests.MintAllPlayers(nodes, validators, initialVal)
+
 	verifyInitialBalance(t, nodes, initialVal)
 
 	round := uint64(0)
@@ -181,12 +190,20 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	nonce++
 
 	///////////------- send stake tx and check sender's balance
+	nodePrice := big.NewInt(0).Set(nodes[0].EconomicsData.GenesisNodePrice())
 	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
 	var txData string
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("msg"))
-		integrationTests.CreateAndSendTransaction(node, node.EconomicsData.GenesisNodePrice(), factory.AuctionSCAddress, txData)
+		integrationTests.CreateAndSendTransaction(node, nodePrice, factory.AuctionSCAddress, txData)
+	}
+
+	// need to add enough stakers in order to make it possible to call unstake and unbond
+	for index, validator := range validators {
+		pubKey := generateUniqueKey(index + len(nodes) + 1)
+		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("msg"))
+		createAndSendTx(nodes[0], validator, nodePrice, factory.AuctionSCAddress, []byte(txData))
 	}
 
 	time.Sleep(time.Second)
@@ -321,7 +338,7 @@ func createAndSendTx(
 		GasLimit: node.EconomicsData.GetMinGasLimit()*uint64(100) + uint64(len(txData)),
 	}
 
-	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
+	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
 	tx.Signature, _ = player.SingleSigner.Sign(player.SkTxSign, txBuff)
 
 	_, _ = node.SendTransaction(tx)

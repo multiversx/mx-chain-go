@@ -21,7 +21,7 @@
     UnBondPeriod = "10000"
     MinStepValue = "10000000000000000000000"
     TotalSupply = "20000000000000000000000000000" #20BIL ERD
-    NumNodes = 1000
+    NumNodes = 50 #TODO: take out this from here - num nodes should be taked from NodesSetup
     AuctionEnableNonce = "100000000000"
     StakeEnableNonce = "100"
     NumRoundsWithoutBleed = "100"
