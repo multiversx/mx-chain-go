@@ -1,6 +1,7 @@
 package genesis_test
 
 import (
+	"encoding/hex"
 	"errors"
 	"math/big"
 	"strings"
@@ -23,6 +24,17 @@ func createMockInitialAccount() *genesis.InitialAccount {
 		Delegation: &genesis.DelegationData{
 			Address: "0002",
 			Value:   big.NewInt(2),
+		},
+	}
+}
+
+func createMockHexPubkeyConverter() *mock.PubkeyConverterStub {
+	return &mock.PubkeyConverterStub{
+		DecodeCalled: func(humanReadable string) ([]byte, error) {
+			return hex.DecodeString(humanReadable)
+		},
+		CreateAddressFromBytesCalled: func(pkBytes []byte) (state.AddressContainer, error) {
+			return mock.NewAddressMock(pkBytes), nil
 		},
 	}
 }
@@ -69,7 +81,11 @@ func createStakedInitialAccount(address string, stakedBalance int64) *genesis.In
 func TestNewGenesis_NilEntireBalanceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g, err := genesis.NewGenesis("./testdata/genesis_ok.json", nil)
+	g, err := genesis.NewGenesis(
+		"./testdata/genesis_ok.json",
+		nil,
+		createMockHexPubkeyConverter(),
+	)
 
 	assert.Nil(t, g)
 	assert.True(t, errors.Is(err, genesis.ErrNilEntireSupply))
@@ -78,7 +94,11 @@ func TestNewGenesis_NilEntireBalanceShouldErr(t *testing.T) {
 func TestNewGenesis_ZeroEntireBalanceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g, err := genesis.NewGenesis("./testdata/genesis_ok.json", big.NewInt(0))
+	g, err := genesis.NewGenesis(
+		"./testdata/genesis_ok.json",
+		big.NewInt(0),
+		createMockHexPubkeyConverter(),
+	)
 
 	assert.Nil(t, g)
 	assert.True(t, errors.Is(err, genesis.ErrInvalidEntireSupply))
@@ -87,16 +107,37 @@ func TestNewGenesis_ZeroEntireBalanceShouldErr(t *testing.T) {
 func TestNewGenesis_BadFilenameShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g, err := genesis.NewGenesis("inexistent file", big.NewInt(1))
+	g, err := genesis.NewGenesis(
+		"inexistent file",
+		big.NewInt(1),
+		createMockHexPubkeyConverter(),
+	)
 
 	assert.Nil(t, g)
 	assert.NotNil(t, err)
 }
 
+func TestNewGenesis_NilPubkeyConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	g, err := genesis.NewGenesis(
+		"inexistent file",
+		big.NewInt(1),
+		nil,
+	)
+
+	assert.Nil(t, g)
+	assert.Equal(t, genesis.ErrNilPubkeyConverter, err)
+}
+
 func TestNewGenesis_BadJsonShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g, err := genesis.NewGenesis("testdata/genesis_bad.json", big.NewInt(1))
+	g, err := genesis.NewGenesis(
+		"testdata/genesis_bad.json",
+		big.NewInt(1),
+		createMockHexPubkeyConverter(),
+	)
 
 	assert.Nil(t, g)
 	assert.True(t, errors.Is(err, genesis.ErrInvalidAddress))
@@ -105,7 +146,11 @@ func TestNewGenesis_BadJsonShouldErr(t *testing.T) {
 func TestNewGenesis_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	g, err := genesis.NewGenesis("testdata/genesis_ok.json", big.NewInt(30))
+	g, err := genesis.NewGenesis(
+		"testdata/genesis_ok.json",
+		big.NewInt(30),
+		createMockHexPubkeyConverter(),
+	)
 
 	require.NotNil(t, g)
 	assert.Nil(t, err)
@@ -117,7 +162,7 @@ func TestNewGenesis_ShouldWork(t *testing.T) {
 func TestGenesis_ProcessEmptyAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Address = ""
 	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
@@ -130,7 +175,7 @@ func TestGenesis_ProcessEmptyAddressShouldErr(t *testing.T) {
 func TestGenesis_ProcessInvalidAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Address = "invalid address"
 	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
@@ -143,7 +188,7 @@ func TestGenesis_ProcessInvalidAddressShouldErr(t *testing.T) {
 func TestGenesis_ProcessEmptyDelegationAddressButWithBalanceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Delegation.Address = ""
 	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
@@ -156,7 +201,7 @@ func TestGenesis_ProcessEmptyDelegationAddressButWithBalanceShouldErr(t *testing
 func TestGenesis_ProcessInvalidDelegationAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Delegation.Address = "invalid address"
 	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
@@ -169,7 +214,7 @@ func TestGenesis_ProcessInvalidDelegationAddressShouldErr(t *testing.T) {
 func TestGenesis_ProcessInvalidSupplyShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Supply = big.NewInt(-1)
 	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
@@ -186,7 +231,7 @@ func TestGenesis_ProcessInvalidSupplyShouldErr(t *testing.T) {
 func TestGenesis_ProcessInvalidBalanceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Balance = big.NewInt(-1)
 	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
@@ -198,7 +243,7 @@ func TestGenesis_ProcessInvalidBalanceShouldErr(t *testing.T) {
 func TestGenesis_ProcessInvalidStakingBalanceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.StakingValue = big.NewInt(-1)
 	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
@@ -210,7 +255,7 @@ func TestGenesis_ProcessInvalidStakingBalanceShouldErr(t *testing.T) {
 func TestGenesis_ProcessInvalidDelegationValueShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Delegation.Value = big.NewInt(-1)
 	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
@@ -222,7 +267,7 @@ func TestGenesis_ProcessInvalidDelegationValueShouldErr(t *testing.T) {
 func TestGenesis_ProcessSupplyMismatchShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Supply = big.NewInt(4)
 	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
@@ -234,7 +279,7 @@ func TestGenesis_ProcessSupplyMismatchShouldErr(t *testing.T) {
 func TestGenesis_ProcessDuplicatesShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	ib1 := createMockInitialAccount()
 	ib2 := createMockInitialAccount()
 	g.SetInitialAccounts([]*genesis.InitialAccount{ib1, ib2})
@@ -246,7 +291,7 @@ func TestGenesis_ProcessDuplicatesShouldErr(t *testing.T) {
 func TestGenesis_ProcessEntireSupplyMismatchShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
 	g.SetEntireSupply(big.NewInt(4))
@@ -259,7 +304,7 @@ func TestGenesis_AddressIsSmartContractShouldErr(t *testing.T) {
 	t.Parallel()
 
 	addr := strings.Repeat("0", (core.NumInitCharactersForScAddress+1)*2)
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Address = addr
 	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
@@ -272,7 +317,7 @@ func TestGenesis_AddressIsSmartContractShouldErr(t *testing.T) {
 func TestGenesis_ProcessShouldWork(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
 	g.SetEntireSupply(big.NewInt(5))
@@ -289,7 +334,7 @@ func TestGenesis_StakedUpon(t *testing.T) {
 	addr := "0001"
 	stakedUpon := int64(78)
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	ib := createStakedInitialAccount(addr, stakedUpon)
 	g.SetEntireSupply(big.NewInt(stakedUpon))
 	g.SetInitialAccounts([]*genesis.InitialAccount{ib})
@@ -311,7 +356,7 @@ func TestGenesis_DelegatedUpon(t *testing.T) {
 	addr2 := "2000"
 	delegatedUpon := int64(78)
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	ib1 := createDelegatedInitialAccount("0001", addr1, delegatedUpon)
 	ib2 := createDelegatedInitialAccount("0002", addr1, delegatedUpon)
 	ib3 := createDelegatedInitialAccount("0003", addr2, delegatedUpon)
@@ -337,33 +382,26 @@ func TestGenesis_DelegatedUpon(t *testing.T) {
 func TestGenesis_InitialAccountsSplitOnAddressesShardsNilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	ibs, err := g.InitialAccountsSplitOnAddressesShards(
 		nil,
-		&mock.PubkeyConverterStub{},
 	)
 
 	assert.Nil(t, ibs)
 	assert.Equal(t, genesis.ErrNilShardCoordinator, err)
 }
 
-func TestGenesis_InitialAccountsSplitOnAddressesShardsNilAddressConverterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	g := &genesis.Genesis{}
-	ibs, err := g.InitialAccountsSplitOnAddressesShards(
-		&mock.ShardCoordinatorMock{},
-		nil,
-	)
-
-	assert.Nil(t, ibs)
-	assert.Equal(t, genesis.ErrNilPubkeyConverter, err)
-}
-
 func TestGenesis_InitialAccountsSplitOnAddressesShardsShardsAddressConvertFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
+	expectedErr := errors.New("expected error")
+	g := genesis.NewTestGenesis(
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
+				return nil, expectedErr
+			},
+		},
+	)
 	balance := int64(1)
 	ibs := []*genesis.InitialAccount{
 		createSimpleInitialAccount("0001", balance),
@@ -373,14 +411,8 @@ func TestGenesis_InitialAccountsSplitOnAddressesShardsShardsAddressConvertFailsS
 	err := g.Process()
 	require.Nil(t, err)
 
-	expectedErr := errors.New("expected error")
 	ibsSplit, err := g.InitialAccountsSplitOnAddressesShards(
 		&mock.ShardCoordinatorMock{},
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
-				return nil, expectedErr
-			},
-		},
 	)
 
 	assert.Equal(t, expectedErr, err)
@@ -390,7 +422,7 @@ func TestGenesis_InitialAccountsSplitOnAddressesShardsShardsAddressConvertFailsS
 func TestGenesis_InitialAccountsSplitOnAddressesShards(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	balance := int64(1)
 	ibs := []*genesis.InitialAccount{
 		createSimpleInitialAccount("0001", balance),
@@ -410,11 +442,6 @@ func TestGenesis_InitialAccountsSplitOnAddressesShards(t *testing.T) {
 	}
 	ibsSplit, err := g.InitialAccountsSplitOnAddressesShards(
 		threeSharder,
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pkBytes []byte) (state.AddressContainer, error) {
-				return mock.NewAddressMock(pkBytes), nil
-			},
-		},
 	)
 
 	assert.Nil(t, err)
@@ -427,33 +454,26 @@ func TestGenesis_InitialAccountsSplitOnAddressesShards(t *testing.T) {
 func TestGenesis_InitialAccountsSplitOnDelegationAddressesShardsNilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	ibs, err := g.InitialAccountsSplitOnDelegationAddressesShards(
 		nil,
-		&mock.PubkeyConverterStub{},
 	)
 
 	assert.Nil(t, ibs)
 	assert.Equal(t, genesis.ErrNilShardCoordinator, err)
 }
 
-func TestGenesis_InitialAccountsSplitOnDelegationAddressesShardsShardsNilAddressConverterShouldErr(t *testing.T) {
+func TestGenesis_InitialAccountsSplitOnDelegationAddressesShardsPubkeyConverterFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
-	ibs, err := g.InitialAccountsSplitOnDelegationAddressesShards(
-		&mock.ShardCoordinatorMock{},
-		nil,
+	expectedErr := errors.New("expected error")
+	g := genesis.NewTestGenesis(
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
+				return nil, expectedErr
+			},
+		},
 	)
-
-	assert.Nil(t, ibs)
-	assert.Equal(t, genesis.ErrNilPubkeyConverter, err)
-}
-
-func TestGenesis_InitialAccountsSplitOnDelegationAddressesShardsShardsAddressConvertFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	g := &genesis.Genesis{}
 	balance := int64(1)
 	ibs := []*genesis.InitialAccount{
 		createDelegatedInitialAccount("0001", "0002", balance),
@@ -463,14 +483,8 @@ func TestGenesis_InitialAccountsSplitOnDelegationAddressesShardsShardsAddressCon
 	err := g.Process()
 	require.Nil(t, err)
 
-	expectedErr := errors.New("expected error")
 	ibsSplit, err := g.InitialAccountsSplitOnDelegationAddressesShards(
 		&mock.ShardCoordinatorMock{},
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
-				return nil, expectedErr
-			},
-		},
 	)
 
 	assert.Equal(t, expectedErr, err)
@@ -480,7 +494,7 @@ func TestGenesis_InitialAccountsSplitOnDelegationAddressesShardsShardsAddressCon
 func TestGenesis_InitialAccountsSplitOnDelegationAddressesShards(t *testing.T) {
 	t.Parallel()
 
-	g := &genesis.Genesis{}
+	g := genesis.NewTestGenesis(createMockHexPubkeyConverter())
 	balance := int64(1)
 	ibs := []*genesis.InitialAccount{
 		createSimpleInitialAccount("0001", balance),
@@ -501,11 +515,6 @@ func TestGenesis_InitialAccountsSplitOnDelegationAddressesShards(t *testing.T) {
 	}
 	ibsSplit, err := g.InitialAccountsSplitOnDelegationAddressesShards(
 		threeSharder,
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pkBytes []byte) (state.AddressContainer, error) {
-				return mock.NewAddressMock(pkBytes), nil
-			},
-		},
 	)
 
 	assert.Nil(t, err)

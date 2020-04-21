@@ -1,7 +1,6 @@
 package genesis
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -17,12 +16,14 @@ const decodeBase = 10
 type Genesis struct {
 	initialAccounts []*InitialAccount
 	entireSupply    *big.Int
+	pubkeyConverter state.PubkeyConverter
 }
 
 // NewGenesis creates a new decoded genesis structure from json config file
 func NewGenesis(
 	genesisFilePath string,
 	entireSupply *big.Int,
+	pubkeyConverter state.PubkeyConverter,
 ) (*Genesis, error) {
 
 	if entireSupply == nil {
@@ -30,6 +31,9 @@ func NewGenesis(
 	}
 	if big.NewInt(0).Cmp(entireSupply) >= 0 {
 		return nil, ErrInvalidEntireSupply
+	}
+	if check.IfNil(pubkeyConverter) {
+		return nil, ErrNilPubkeyConverter
 	}
 
 	initialAccounts := make([]*InitialAccount, 0)
@@ -41,6 +45,7 @@ func NewGenesis(
 	genesis := &Genesis{
 		initialAccounts: initialAccounts,
 		entireSupply:    entireSupply,
+		pubkeyConverter: pubkeyConverter,
 	}
 
 	err = genesis.process()
@@ -89,8 +94,7 @@ func (g *Genesis) parseElement(initialAccount *InitialAccount) error {
 	if len(initialAccount.Address) == 0 {
 		return ErrEmptyAddress
 	}
-	//TODO change here (use Decode method) when merging with feat/bech32 branch
-	initialAccount.address, err = hex.DecodeString(initialAccount.Address)
+	initialAccount.address, err = g.pubkeyConverter.Decode(initialAccount.Address)
 	if err != nil {
 		return fmt.Errorf("%w for `%s`",
 			ErrInvalidAddress, initialAccount.Address)
@@ -111,8 +115,7 @@ func (g *Genesis) parseDelegationElement(initialAccount *InitialAccount) error {
 		return fmt.Errorf("%w for address '%s'",
 			ErrEmptyDelegationAddress, initialAccount.Address)
 	}
-	//TODO change here (use Decode method) when merging with feat/bech32 branch
-	delegationData.address, err = hex.DecodeString(delegationData.Address)
+	delegationData.address, err = g.pubkeyConverter.Decode(delegationData.Address)
 	if err != nil {
 		return fmt.Errorf("%w for `%s`, address %s",
 			ErrInvalidDelegationAddress,
@@ -226,19 +229,15 @@ func (g *Genesis) DelegatedUpon(address string) *big.Int {
 // InitialAccountsSplitOnAddressesShards gets the initial accounts of the nodes split on the addresses's shards
 func (g *Genesis) InitialAccountsSplitOnAddressesShards(
 	shardCoordinator sharding.Coordinator,
-	pubkeyConv state.PubkeyConverter,
 ) (map[uint32][]*InitialAccount, error) {
 
 	if check.IfNil(shardCoordinator) {
 		return nil, ErrNilShardCoordinator
 	}
-	if check.IfNil(pubkeyConv) {
-		return nil, ErrNilPubkeyConverter
-	}
 
 	var addresses = make(map[uint32][]*InitialAccount)
 	for _, in := range g.initialAccounts {
-		address, err := pubkeyConv.CreateAddressFromBytes(in.address)
+		address, err := g.pubkeyConverter.CreateAddressFromBytes(in.address)
 		if err != nil {
 			return nil, err
 		}
@@ -253,23 +252,19 @@ func (g *Genesis) InitialAccountsSplitOnAddressesShards(
 // InitialAccountsSplitOnDelegationAddressesShards gets the initial accounts of the nodes split on the addresses's shards
 func (g *Genesis) InitialAccountsSplitOnDelegationAddressesShards(
 	shardCoordinator sharding.Coordinator,
-	pubkeyConv state.PubkeyConverter,
 ) (map[uint32][]*InitialAccount, error) {
 
 	if check.IfNil(shardCoordinator) {
 		return nil, ErrNilShardCoordinator
 	}
-	if check.IfNil(pubkeyConv) {
-		return nil, ErrNilPubkeyConverter
-	}
 
 	var addresses = make(map[uint32][]*InitialAccount)
 	for _, in := range g.initialAccounts {
-		if len(in.Delegation.address) == 0 {
+		if len(in.Delegation.Address) == 0 {
 			continue
 		}
 
-		delegationAddress, err := pubkeyConv.CreateAddressFromBytes(in.Delegation.address)
+		delegationAddress, err := g.pubkeyConverter.CreateAddressFromBytes(in.Delegation.address)
 		if err != nil {
 			return nil, err
 		}
