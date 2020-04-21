@@ -197,6 +197,8 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 		value := element.Value.(*WrappedTransaction)
 		txNonce := value.Tx.GetNonce()
 
+		// TODO: if txNonce < knownNonce, ignore tx (it was already selected before, but not yet removed)
+
 		if previousNonce > 0 && txNonce > previousNonce+1 {
 			listForSender.copyDetectedGap = true
 			break

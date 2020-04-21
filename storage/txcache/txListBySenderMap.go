@@ -128,6 +128,17 @@ func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {
 	return listsSnapshot
 }
 
+func (txMap *txListBySenderMap) getSnapshotDescending() []*txListForSender {
+	itemsSnapshot := txMap.backingMap.GetSnapshotDescending()
+	listsSnapshot := make([]*txListForSender, len(itemsSnapshot))
+
+	for i, item := range itemsSnapshot {
+		listsSnapshot[i] = item.(*txListForSender)
+	}
+
+	return listsSnapshot
+}
+
 // ForEachSender is an iterator callback
 type ForEachSender func(key string, value *txListForSender)
 

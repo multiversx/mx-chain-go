@@ -79,6 +79,17 @@ func (cache *TxCache) shouldContinueEvictingSenders() bool {
 	return cache.areThereTooManyTxs() || cache.areThereTooManySenders() || cache.areThereTooManyBytes()
 }
 
+func (cache *TxCache) isHighLoad() bool {
+	// TODO: Improve condition
+	const highLoadPerCapacity = 0.75
+	numTxs := cache.CountTx()
+	numBytes := cache.NumBytes()
+	manyTxs := numTxs > int64(float32(cache.config.CountThreshold)*highLoadPerCapacity)
+	manyBytes := numBytes > int64(float32(cache.config.NumBytesThreshold)*highLoadPerCapacity)
+
+	return manyTxs || manyBytes
+}
+
 // evictHighNonceTransactions removes transactions from the cache
 // For senders with many transactions (> "LargeNumOfTxsForASender"), evict "NumTxsToEvictFromASender" transactions
 // Also makes sure that there's no sender with 0 transactions

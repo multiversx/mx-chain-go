@@ -3,6 +3,7 @@ package txcache
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 )
@@ -81,10 +82,12 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 	resultFillIndex := 0
 	resultIsFull := false
 
+	snapshotOfSenders := cache.getSendersEligibleForSelection()
+
 	for pass := 0; !resultIsFull; pass++ {
 		copiedInThisPass := 0
 
-		cache.forEachSenderDescending(func(key string, txList *txListForSender) {
+		for _, txList := range snapshotOfSenders {
 			batchSizeWithScoreCoefficient := batchSizePerSender * int(txList.getLastComputedScore()+1)
 			// Reset happens on first pass only
 			isFirstBatch := pass == 0
@@ -93,7 +96,7 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 			resultFillIndex += copied
 			copiedInThisPass += copied
 			resultIsFull = resultFillIndex == numRequested
-		})
+		}
 
 		nothingCopiedThisPass := copiedInThisPass == 0
 
@@ -106,6 +109,20 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 	result = result[:resultFillIndex]
 	cache.monitorSelectionEnd(result, stopWatch)
 	return result
+}
+
+func (cache *TxCache) getSendersEligibleForSelection() []*txListForSender {
+	const eligiblePercentageForHighLoad = 0.75
+	snapshotOfSenders := cache.txListBySender.getSnapshotDescending()
+
+	isHighLoad := cache.isHighLoad()
+	if isHighLoad {
+		endIndex := int(float32(len(snapshotOfSenders))*eligiblePercentageForHighLoad) + 1
+		endIndex = core.MinInt(endIndex, len(snapshotOfSenders))
+		snapshotOfSenders = snapshotOfSenders[:endIndex]
+	}
+
+	return snapshotOfSenders
 }
 
 // RemoveTxByHash removes tx by hash
