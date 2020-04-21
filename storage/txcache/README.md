@@ -82,6 +82,8 @@ Notation:
  - `txCount`: number of transactions
  - `txSize`: size of transactions, in kB (1000 bytes)
 
+#### Approximate sorting and score buckets
+
 ### Eviction
 
 ### Concurrency and snapshots
