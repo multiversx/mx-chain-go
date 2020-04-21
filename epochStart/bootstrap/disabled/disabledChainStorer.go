@@ -59,6 +59,10 @@ func (c *chainStorer) GetStorer(unitType dataRetriever.UnitType) storage.Storer 
 	return store
 }
 
+// SetEpochForPutOperation won't do anything
+func (c *chainStorer) SetEpochForPutOperation(epoch uint32) {
+}
+
 // Has returns true if the key is found in the selected Unit or false otherwise
 // It can return an error if the provided unit type is not supported or if the
 // underlying implementation of the storage unit reports an error.

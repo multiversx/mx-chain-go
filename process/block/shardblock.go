@@ -697,7 +697,6 @@ func (sp *shardProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
-
 	var err error
 	defer func() {
 		if err != nil {
@@ -709,6 +708,8 @@ func (sp *shardProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
+
+	sp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
 
 	log.Debug("started committing block",
 		"epoch", headerHandler.GetEpoch(),
