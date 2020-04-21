@@ -18,15 +18,15 @@ var _ dataRetriever.ShardedDataCacherNotifier = (*shardedTxPool)(nil)
 
 var log = logger.GetOrCreate("txpool")
 
-// shardedTxPool holds transaction caches organised by destination shard
+// shardedTxPool holds transaction caches organised by source shard
 type shardedTxPool struct {
-	mutexBackingMap                  sync.RWMutex
-	backingMap                       map[string]*txPoolShard
-	mutexAddCallbacks                sync.RWMutex
-	onAddCallbacks                   []func(key []byte, value interface{})
-	cacheConfigPrototype             txcache.CacheConfig
-	cacheConfigPrototypeForSelfShard txcache.CacheConfig
-	selfShardID                      uint32
+	mutexBackingMap                 sync.RWMutex
+	backingMap                      map[string]*txPoolShard
+	mutexAddCallbacks               sync.RWMutex
+	onAddCallbacks                  []func(key []byte, value interface{})
+	cacheConfigPrototype            txcache.CacheConfig
+	cacheConfigPrototypeForSenderMe txcache.CacheConfig
+	selfShardID                     uint32
 }
 
 type txPoolShard struct {
@@ -58,18 +58,18 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		MinGasPriceMicroErd:        uint32(args.MinGasPrice / oneTrilion),
 	}
 
-	cacheConfigPrototypeForSelfShard := cacheConfigPrototype
-	cacheConfigPrototypeForSelfShard.CountThreshold *= args.NumberOfShards
-	cacheConfigPrototypeForSelfShard.NumBytesThreshold *= args.NumberOfShards
+	cacheConfigPrototypeForSenderMe := cacheConfigPrototype
+	cacheConfigPrototypeForSenderMe.CountThreshold *= args.NumberOfShards
+	cacheConfigPrototypeForSenderMe.NumBytesThreshold *= args.NumberOfShards
 
 	shardedTxPoolObject := &shardedTxPool{
-		mutexBackingMap:                  sync.RWMutex{},
-		backingMap:                       make(map[string]*txPoolShard),
-		mutexAddCallbacks:                sync.RWMutex{},
-		onAddCallbacks:                   make([]func(key []byte, value interface{}), 0),
-		cacheConfigPrototype:             cacheConfigPrototype,
-		cacheConfigPrototypeForSelfShard: cacheConfigPrototypeForSelfShard,
-		selfShardID:                      args.SelfShardID,
+		mutexBackingMap:                 sync.RWMutex{},
+		backingMap:                      make(map[string]*txPoolShard),
+		mutexAddCallbacks:               sync.RWMutex{},
+		onAddCallbacks:                  make([]func(key []byte, value interface{}), 0),
+		cacheConfigPrototype:            cacheConfigPrototype,
+		cacheConfigPrototypeForSenderMe: cacheConfigPrototypeForSenderMe,
+		selfShardID:                     args.SelfShardID,
 	}
 
 	return shardedTxPoolObject, nil
@@ -124,9 +124,9 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 func (txPool *shardedTxPool) getCacheConfig(cacheID string) txcache.CacheConfig {
 	var cacheConfig txcache.CacheConfig
 
-	isForSelfShard := process.IsShardCacherIdentifierIntraShard(cacheID, txPool.selfShardID)
-	if isForSelfShard {
-		cacheConfig = txPool.cacheConfigPrototypeForSelfShard
+	isForSenderMe := process.IsShardCacherIdentifierUnionForShard(cacheID, txPool.selfShardID)
+	if isForSenderMe {
+		cacheConfig = txPool.cacheConfigPrototypeForSenderMe
 	} else {
 		cacheConfig = txPool.cacheConfigPrototype
 	}
