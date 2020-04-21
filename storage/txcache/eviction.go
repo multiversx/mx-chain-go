@@ -81,11 +81,13 @@ func (cache *TxCache) shouldContinueEvictingSenders() bool {
 
 func (cache *TxCache) isHighLoad() bool {
 	// TODO: Improve condition
-	const highLoadPerCapacity = 0.75
+	const highLoadPerCapacity = 0.5
 	numTxs := cache.CountTx()
 	numBytes := cache.NumBytes()
-	manyTxs := numTxs > int64(float32(cache.config.CountThreshold)*highLoadPerCapacity)
-	manyBytes := numBytes > int64(float32(cache.config.NumBytesThreshold)*highLoadPerCapacity)
+	manyTxsThreshold := int64(float32(cache.config.CountThreshold) * highLoadPerCapacity)
+	manyBytesThreshold := int64(float32(cache.config.NumBytesThreshold) * highLoadPerCapacity)
+	manyTxs := numTxs > manyTxsThreshold
+	manyBytes := numBytes > manyBytesThreshold
 
 	return manyTxs || manyBytes
 }

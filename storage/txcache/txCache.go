@@ -119,6 +119,8 @@ func (cache *TxCache) getSendersEligibleForSelection() []*txListForSender {
 	if isHighLoad {
 		endIndex := int(float32(len(snapshotOfSenders))*eligiblePercentageForHighLoad) + 1
 		endIndex = core.MinInt(endIndex, len(snapshotOfSenders))
+		log.Info("TxCache.getSendersEligibleForSelection(), high load", "len(senders)", len(snapshotOfSenders), "len(eligible)", endIndex)
+
 		snapshotOfSenders = snapshotOfSenders[:endIndex]
 	}
 

@@ -125,6 +125,9 @@ func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {
 		listsSnapshot[i] = item.(*txListForSender)
 	}
 
+	// TODO: Perhaps further sort by rawScore, to better deal with many senders in a bucket
+	// TODO: heuristics, only if histogram is narrow
+
 	return listsSnapshot
 }
 
@@ -135,6 +138,9 @@ func (txMap *txListBySenderMap) getSnapshotDescending() []*txListForSender {
 	for i, item := range itemsSnapshot {
 		listsSnapshot[i] = item.(*txListForSender)
 	}
+
+	// TODO: Perhaps further sort by rawScore, to better deal with many senders in a bucket
+	// TODO: heuristics, only if histogram is narrow
 
 	return listsSnapshot
 }
