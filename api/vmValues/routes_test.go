@@ -14,6 +14,7 @@ import (
 
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -286,7 +287,8 @@ func startNodeServer(handler interface{}) *gin.Engine {
 		c.Set("elrondFacade", handler)
 		c.Next()
 	})
-	Routes(getValuesRoute, getRoutesConfig())
+	vmValuesRoute, _ := wrapper.NewRouterWrapper("vm-values", getValuesRoute, getRoutesConfig())
+	Routes(vmValuesRoute)
 
 	return ws
 }
@@ -330,10 +332,10 @@ func getRoutesConfig() config.ApiRoutesConfig {
 		APIPackages: map[string]config.APIPackageConfig{
 			"vm-values": {
 				[]config.RouteConfig{
-					{Name: "hex", Open: true},
-					{Name: "string", Open: true},
-					{Name: "int", Open: true},
-					{Name: "query", Open: true},
+					{Name: "/hex", Open: true},
+					{Name: "/string", Open: true},
+					{Name: "/int", Open: true},
+					{Name: "/query", Open: true},
 				},
 			},
 		},

@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -39,11 +40,12 @@ type TriggerResponse struct {
 func startNodeServer(handler hardfork.TriggerHardforkHandler) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
-	hardforkRoute := ws.Group("/hardfork")
+	ginHardforkRoute := ws.Group("/hardfork")
 	if handler != nil {
-		hardforkRoute.Use(middleware.WithElrondFacade(handler))
+		ginHardforkRoute.Use(middleware.WithElrondFacade(handler))
 	}
-	hardfork.Routes(hardforkRoute, getRoutesConfig())
+	hardForkRoute, _ := wrapper.NewRouterWrapper("hardfork", ginHardforkRoute, getRoutesConfig())
+	hardfork.Routes(hardForkRoute)
 	return ws
 }
 
@@ -53,8 +55,9 @@ func startNodeServerWrongFacade() *gin.Engine {
 	ws.Use(func(c *gin.Context) {
 		c.Set("elrondFacade", mock.WrongFacade{})
 	})
-	hardforkRoute := ws.Group("/hardfork")
-	hardfork.Routes(hardforkRoute, getRoutesConfig())
+	ginHardforkRoute := ws.Group("/hardfork")
+	hardForkRoute, _ := wrapper.NewRouterWrapper("hardfork", ginHardforkRoute, getRoutesConfig())
+	hardfork.Routes(hardForkRoute)
 	return ws
 }
 
@@ -152,7 +155,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 		APIPackages: map[string]config.APIPackageConfig{
 			"hardfork": {
 				[]config.RouteConfig{
-					{Name: "trigger", Open: true},
+					{Name: "/trigger", Open: true},
 				},
 			},
 		},

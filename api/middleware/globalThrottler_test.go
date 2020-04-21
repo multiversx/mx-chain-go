@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/gin-contrib/cors"
@@ -29,11 +30,12 @@ func startNodeServerGlobalThrottler(handler address.FacadeHandler, maxConnection
 	ws.Use(cors.Default())
 	globalThrottler, _ := middleware.NewGlobalThrottler(maxConnections)
 	ws.Use(globalThrottler.MiddlewareHandlerFunc())
-	addressRoutes := ws.Group("/address")
+	ginAddressRoutes := ws.Group("/address")
 	if handler != nil {
-		addressRoutes.Use(middleware.WithElrondFacade(handler))
+		ginAddressRoutes.Use(middleware.WithElrondFacade(handler))
 	}
-	address.Routes(addressRoutes, getRoutesConfig())
+	addressRoutes, _ := wrapper.NewRouterWrapper("address", ginAddressRoutes, getRoutesConfig())
+	address.Routes(addressRoutes)
 	return ws
 }
 
@@ -130,8 +132,8 @@ func getRoutesConfig() config.ApiRoutesConfig {
 		APIPackages: map[string]config.APIPackageConfig{
 			"address": {
 				[]config.RouteConfig{
-					{Name: ":address", Open: true},
-					{Name: ":address/balance", Open: true},
+					{Name: "/:address", Open: true},
+					{Name: "/:address/balance", Open: true},
 				},
 			},
 		},

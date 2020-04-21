@@ -4,9 +4,8 @@ import (
 	"math/big"
 	"net/http"
 
-	"github.com/ElrondNetwork/elrond-go/api/configparser"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
@@ -46,26 +45,12 @@ type shardStatisticsResponse struct {
 }
 
 // Routes defines node related routes
-func Routes(router *gin.RouterGroup, routesConfig config.ApiRoutesConfig) {
-	nodeRoutesConfig, ok := routesConfig.APIPackages["node"]
-	if !ok {
-		return
-	}
-	if configparser.CheckEndpoint("epoch", nodeRoutesConfig) {
-		router.GET("/epoch", EpochData)
-	}
-	if configparser.CheckEndpoint("heartbeatstatus", nodeRoutesConfig) {
-		router.GET("/heartbeatstatus", HeartbeatStatus)
-	}
-	if configparser.CheckEndpoint("statistics", nodeRoutesConfig) {
-		router.GET("/statistics", Statistics)
-	}
-	if configparser.CheckEndpoint("status", nodeRoutesConfig) {
-		router.GET("/status", StatusMetrics)
-	}
-	if configparser.CheckEndpoint("p2pstatus", nodeRoutesConfig) {
-		router.GET("/p2pstatus", P2pStatusMetrics)
-	}
+func Routes(router *wrapper.RouterWrapper) {
+	router.RegisterHandler(http.MethodGet, "/epoch", EpochData)
+	router.RegisterHandler(http.MethodGet, "/heartbeatstatus", HeartbeatStatus)
+	router.RegisterHandler(http.MethodGet, "/statistics", Statistics)
+	router.RegisterHandler(http.MethodGet, "/status", StatusMetrics)
+	router.RegisterHandler(http.MethodGet, "/p2pstatus", P2pStatusMetrics)
 	// placeholder for custom routes
 }
 

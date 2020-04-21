@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
 	tr "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/gin-contrib/cors"
@@ -361,11 +362,12 @@ func logError(err error) {
 func startNodeServer(handler transaction.TxService) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
-	transactionRoute := ws.Group("/transaction")
+	ginTransactionRoute := ws.Group("/transaction")
 	if handler != nil {
-		transactionRoute.Use(middleware.WithElrondFacade(handler))
+		ginTransactionRoute.Use(middleware.WithElrondFacade(handler))
 	}
-	transaction.Routes(transactionRoute, getRoutesConfig())
+	transactionRoute, _ := wrapper.NewRouterWrapper("transaction", ginTransactionRoute, getRoutesConfig())
+	transaction.Routes(transactionRoute)
 	return ws
 }
 
@@ -375,8 +377,9 @@ func startNodeServerWrongFacade() *gin.Engine {
 	ws.Use(func(c *gin.Context) {
 		c.Set("elrondFacade", mock.WrongFacade{})
 	})
-	transactionRoute := ws.Group("/transaction")
-	transaction.Routes(transactionRoute, getRoutesConfig())
+	ginTransactionRoute := ws.Group("/transaction")
+	transactionRoute, _ := wrapper.NewRouterWrapper("transaction", ginTransactionRoute, getRoutesConfig())
+	transaction.Routes(transactionRoute)
 	return ws
 }
 
@@ -385,10 +388,10 @@ func getRoutesConfig() config.ApiRoutesConfig {
 		APIPackages: map[string]config.APIPackageConfig{
 			"transaction": {
 				[]config.RouteConfig{
-					{Name: "send", Open: true},
-					{Name: "send-multiple", Open: true},
-					{Name: "cost", Open: true},
-					{Name: ":txhash", Open: true},
+					{Name: "/send", Open: true},
+					{Name: "/send-multiple", Open: true},
+					{Name: "/cost", Open: true},
+					{Name: "/:txhash", Open: true},
 				},
 			},
 		},

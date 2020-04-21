@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/address"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -26,11 +27,12 @@ func startNodeServerSourceThrottler(handler address.FacadeHandler, maxConnection
 	ws.Use(cors.Default())
 	sourceThrottler, _ := middleware.NewSourceThrottler(maxConnections)
 	ws.Use(sourceThrottler.MiddlewareHandlerFunc())
-	addressRoutes := ws.Group("/address")
+	ginAddressRoutes := ws.Group("/address")
 	if handler != nil {
-		addressRoutes.Use(middleware.WithElrondFacade(handler))
+		ginAddressRoutes.Use(middleware.WithElrondFacade(handler))
 	}
-	address.Routes(addressRoutes, getRoutesConfig())
+	addressRoutes, _ := wrapper.NewRouterWrapper("address", ginAddressRoutes, getRoutesConfig())
+	address.Routes(addressRoutes)
 	return ws, sourceThrottler
 }
 

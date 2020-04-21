@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ElrondNetwork/elrond-go/api/configparser"
 	"github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/gin-gonic/gin"
@@ -28,23 +27,11 @@ type VMValueRequest struct {
 }
 
 // Routes defines address related routes
-func Routes(router *gin.RouterGroup, routesConfig config.ApiRoutesConfig) {
-	vmValuesRoutes, ok := routesConfig.APIPackages["vm-values"]
-	if !ok {
-		return
-	}
-	if configparser.CheckEndpoint("hex", vmValuesRoutes) {
-		router.POST("/hex", getHex)
-	}
-	if configparser.CheckEndpoint("string", vmValuesRoutes) {
-		router.POST("/string", getString)
-	}
-	if configparser.CheckEndpoint("int", vmValuesRoutes) {
-		router.POST("/int", getInt)
-	}
-	if configparser.CheckEndpoint("query", vmValuesRoutes) {
-		router.POST("/query", executeQuery)
-	}
+func Routes(router *wrapper.RouterWrapper) {
+	router.RegisterHandler(http.MethodPost, "/hex", getHex)
+	router.RegisterHandler(http.MethodPost, "/string", getString)
+	router.RegisterHandler(http.MethodPost, "/int", getInt)
+	router.RegisterHandler(http.MethodPost, "/query", executeQuery)
 }
 
 // getHex returns the data as bytes, hex-encoded

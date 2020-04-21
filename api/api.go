@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	valStats "github.com/ElrondNetwork/elrond-go/api/validator"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -95,27 +96,45 @@ func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, pro
 func registerRoutes(ws *gin.Engine, routesConfig config.ApiRoutesConfig, elrondFacade middleware.ElrondHandler) {
 	nodeRoutes := ws.Group("/node")
 	nodeRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	node.Routes(nodeRoutes, routesConfig)
+	wrappedNodeRouter, err := wrapper.NewRouterWrapper("node", nodeRoutes, routesConfig)
+	if err == nil {
+		node.Routes(wrappedNodeRouter)
+	}
 
 	addressRoutes := ws.Group("/address")
 	addressRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	address.Routes(addressRoutes, routesConfig)
+	wrappedAddressRouter, err := wrapper.NewRouterWrapper("address", addressRoutes, routesConfig)
+	if err == nil {
+		address.Routes(wrappedAddressRouter)
+	}
 
 	txRoutes := ws.Group("/transaction")
 	txRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	transaction.Routes(txRoutes, routesConfig)
+	wrappedTransactionRouter, err := wrapper.NewRouterWrapper("transaction", txRoutes, routesConfig)
+	if err == nil {
+		transaction.Routes(wrappedTransactionRouter)
+	}
 
 	vmValuesRoutes := ws.Group("/vm-values")
 	vmValuesRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	vmValues.Routes(vmValuesRoutes, routesConfig)
+	wrappedVmValuesRouter, err := wrapper.NewRouterWrapper("vm-values", vmValuesRoutes, routesConfig)
+	if err == nil {
+		vmValues.Routes(wrappedVmValuesRouter)
+	}
 
 	validatorRoutes := ws.Group("/validator")
 	validatorRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	valStats.Routes(validatorRoutes, routesConfig)
+	wrappedValidatorsRouter, err := wrapper.NewRouterWrapper("validators", validatorRoutes, routesConfig)
+	if err == nil {
+		valStats.Routes(wrappedValidatorsRouter)
+	}
 
 	hardforkRoutes := ws.Group("/hardfork")
 	hardforkRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	hardfork.Routes(hardforkRoutes, routesConfig)
+	wrappedHardforkRouter, err := wrapper.NewRouterWrapper("validators", validatorRoutes, routesConfig)
+	if err == nil {
+		hardfork.Routes(wrappedHardforkRouter)
+	}
 
 	apiHandler, ok := elrondFacade.(MainApiHandler)
 	if ok && apiHandler.PprofEnabled() {
