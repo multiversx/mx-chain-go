@@ -87,3 +87,6 @@ var ErrCacheSizeIsLowerThanBatchSize = errors.New("cache size is lower than batc
 
 // ErrBootstrapDataNotFoundInStorage signals that no BootstrapData was find in the storage
 var ErrBootstrapDataNotFoundInStorage = errors.New("didn't find any bootstrap data in storage")
+
+// ErrWrongTypeAssertion is thrown when a wrong type assertion is spotted
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")

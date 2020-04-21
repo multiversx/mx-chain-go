@@ -81,6 +81,20 @@ func (bc *ChainStorer) Put(unitType UnitType, key []byte, value []byte) error {
 	return storer.Put(key, value)
 }
 
+// SetEpochForPutOperation will set the epoch to be used in all persisters for the put operation
+func (bc *ChainStorer) SetEpochForPutOperation(epoch uint32) {
+	bc.lock.Lock()
+	for _, storer := range bc.chain {
+		storerWithPutInEpoch, ok := storer.(storage.StorerWithPutInEpoch)
+		if !ok {
+			continue
+		}
+
+		storerWithPutInEpoch.SetEpochForPutOperation(epoch)
+	}
+	bc.lock.Unlock()
+}
+
 // GetAll gets all the elements with keys in the keys array, from the selected storage unit
 // It can report an error if the provided unit type is not supported, if there is a missing
 // key in the unit, or if the underlying implementation of the storage unit reports an error.
