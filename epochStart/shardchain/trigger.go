@@ -248,7 +248,7 @@ func (t *trigger) requestMissingMiniblocks() {
 			continue
 		}
 
-		missingMiniblocks := make([][]byte, len(t.mapMissingMiniblocks))
+		missingMiniblocks := make([][]byte, 0, len(t.mapMissingMiniblocks))
 		for hash := range t.mapMissingMiniblocks {
 			missingMiniblocks = append(missingMiniblocks, []byte(hash))
 			log.Debug("trigger.requestMissingMiniblocks", "hash", []byte(hash))
@@ -590,7 +590,7 @@ func (t *trigger) addMissingMiniblocks(epoch uint32, missingMiniblocksHashes [][
 	t.mutMissingMiniblocks.Lock()
 	defer t.mutMissingMiniblocks.Unlock()
 
-	for hash := range missingMiniblocksHashes {
+	for _, hash := range missingMiniblocksHashes {
 		t.mapMissingMiniblocks[string(hash)] = epoch
 		log.Debug("trigger.addMissingMiniblocks", "epoch", epoch, "hash", hash)
 	}
