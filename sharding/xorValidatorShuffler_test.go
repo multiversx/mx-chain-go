@@ -97,7 +97,8 @@ func testDistributeValidators(
 ) {
 	totalResultingValidators := make([]Validator, 0)
 	totalLen := 0
-	for _, valList := range resultedMap {
+	for shard := range initialMap {
+		valList := resultedMap[shard]
 		totalResultingValidators = append(totalResultingValidators, valList...)
 		totalLen += len(valList)
 	}
@@ -549,33 +550,35 @@ func Test_shuffleListConsistentShuffling(t *testing.T) {
 func Test_distributeValidatorsEqualNumber(t *testing.T) {
 	t.Parallel()
 
+	nbShards := uint32(2)
 	randomness := generateRandomByteArray(32)
 	nodesPerShard := 30
 	newNodesPerShard := 10
-	validatorsMap := generateValidatorMap(nodesPerShard, 2)
+	validatorsMap := generateValidatorMap(nodesPerShard, nbShards)
 	validatorsCopy := copyValidatorMap(validatorsMap)
 
 	nbLists := len(validatorsMap)
 	validatorsToDistribute := generateValidatorList(nbLists * newNodesPerShard)
-	distributeValidators(validatorsToDistribute, validatorsMap, randomness, uint32(newNodesPerShard+1))
+	distributeValidators(validatorsToDistribute, validatorsMap, randomness, nbShards+1)
 	testDistributeValidators(t, validatorsCopy, validatorsMap, validatorsToDistribute)
 }
 
 func Test_distributeValidatorsEqualNumberConsistent(t *testing.T) {
 	t.Parallel()
 
+	nbShards := uint32(2)
 	randomness := generateRandomByteArray(32)
 	nodesPerShard := 30
 	newNodesPerShard := 10
-	validatorsMap := generateValidatorMap(nodesPerShard, 2)
+	validatorsMap := generateValidatorMap(nodesPerShard, nbShards)
 	validatorsCopy := copyValidatorMap(validatorsMap)
 
 	nbLists := len(validatorsMap)
 	validatorsToDistribute := generateValidatorList(nbLists * newNodesPerShard)
-	distributeValidators(validatorsToDistribute, validatorsMap, randomness, uint32(newNodesPerShard+1))
+	distributeValidators(validatorsToDistribute, validatorsMap, randomness, nbShards+1)
 	testDistributeValidators(t, validatorsCopy, validatorsMap, validatorsToDistribute)
 
-	distributeValidators(validatorsToDistribute, validatorsCopy, randomness, uint32(newNodesPerShard+1))
+	distributeValidators(validatorsToDistribute, validatorsCopy, randomness, nbShards+1)
 	for i := range validatorsCopy {
 		assert.Equal(t, validatorsMap[i], validatorsCopy[i])
 	}
