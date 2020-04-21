@@ -226,7 +226,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	var vmOutput *vmcommon.VMOutput
 	vmOutput, err = vm.RunSmartContractCall(vmInput)
-	gasLog.Info("RunSmartContractCall", "tx", txHash, "GasProvided", vmInput.GasProvided, "GasRemaining", vmOutput.GasRemaining, "GasRefund", vmOutput.GasRefund, "retCode", vmOutput.ReturnCode, "data", string(tx.GetData()))
+	gasLog.Trace("RunSmartContractCall", "tx", txHash, "GasProvided", vmInput.GasProvided, "GasRemaining", vmOutput.GasRemaining, "GasRefund", vmOutput.GasRefund, "retCode", vmOutput.ReturnCode, "data", string(tx.GetData()))
 	if err != nil {
 		log.Debug("run smart contract call error", "error", err.Error())
 		return nil
@@ -468,7 +468,7 @@ func (sc *scProcessor) DeploySmartContract(
 	}
 
 	vmOutput, err := vm.RunSmartContractCreate(vmInput)
-	gasLog.Info("RunSmartContractCreate", "tx", txHash, "GasProvided", vmInput.GasProvided, "GasRemaining", vmOutput.GasRemaining, "GasRefund", vmOutput.GasRefund, "retCode", vmOutput.ReturnCode, "data", string(tx.GetData()))
+	gasLog.Trace("RunSmartContractCreate", "tx", txHash, "GasProvided", vmInput.GasProvided, "GasRemaining", vmOutput.GasRemaining, "GasRefund", vmOutput.GasRefund, "retCode", vmOutput.ReturnCode, "data", string(tx.GetData()))
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
 		return nil
