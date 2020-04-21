@@ -32,7 +32,6 @@ type shardProcessor struct {
 
 	processedMiniBlocks *processedMb.ProcessedMiniBlockTracker
 	core                serviceContainer.Core
-	txsPoolsCleaner     process.PoolsCleaner
 
 	lowestNonceInSelfNotarizedHeaders uint64
 }
@@ -79,14 +78,9 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		feeHandler:             arguments.FeeHandler,
 	}
 
-	if check.IfNil(arguments.TxsPoolsCleaner) {
-		return nil, process.ErrNilTxsPoolsCleaner
-	}
-
 	sp := shardProcessor{
-		core:            arguments.Core,
-		baseProcessor:   base,
-		txsPoolsCleaner: arguments.TxsPoolsCleaner,
+		core:          arguments.Core,
+		baseProcessor: base,
 	}
 
 	sp.txCounter = NewTransactionCounter()
@@ -866,8 +860,6 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.prepareDataForBootStorer(args)
 
-	go sp.cleanTxsPools()
-
 	// write data to log
 	go sp.txCounter.displayLogInfo(
 		header,
@@ -1056,16 +1048,6 @@ func (sp *shardProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs 
 // ApplyProcessedMiniBlocks will apply processed mini blocks
 func (sp *shardProcessor) ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker) {
 	sp.processedMiniBlocks = processedMiniBlocks
-}
-
-func (sp *shardProcessor) cleanTxsPools() {
-	_, err := sp.txsPoolsCleaner.Clean(maxCleanTime)
-	if err != nil {
-		log.Debug("txsPoolsCleaner.Clean", "error", err.Error())
-	}
-	log.Debug("cleaned txs pool",
-		"num txs removed", sp.txsPoolsCleaner.NumRemovedTxs(),
-	)
 }
 
 // CreateNewHeader creates a new header

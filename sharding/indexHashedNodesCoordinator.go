@@ -507,10 +507,10 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		NbShards: newNodesConfig.nbShards,
 	}
 
-	eligibleMap, waitingMap, stillRemaining := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
+	eligibleMap, waitingMap, leaving := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
 
-	actualLeaving := ComputeActuallyLeaving(newNodesConfig.leavingList, stillRemaining)
-	err = ihgs.setNodesPerShards(eligibleMap, waitingMap, actualLeaving, newEpoch)
+	actualRemaining := ComputeActuallyRemaining(newNodesConfig.leavingList, leaving)
+	err = ihgs.setNodesPerShards(eligibleMap, waitingMap, leaving, newEpoch)
 	if err != nil {
 		log.Error("set nodes per shard failed", "error", err.Error())
 	}
@@ -520,7 +520,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		log.Error("saving nodes coordinator config failed", "error", err.Error())
 	}
 
-	displayNodesConfiguration(eligibleMap, waitingMap, newNodesConfig.leavingList, stillRemaining, newNodesConfig.nbShards)
+	displayNodesConfiguration(eligibleMap, waitingMap, newNodesConfig.leavingList, actualRemaining, newNodesConfig.nbShards)
 
 	ihgs.mutSavedStateKey.Lock()
 	ihgs.savedStateKey = randomness

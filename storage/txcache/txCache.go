@@ -28,7 +28,7 @@ type TxCache struct {
 
 // NewTxCache creates a new transaction cache
 func NewTxCache(config CacheConfig) *TxCache {
-	log.Trace("NewTxCache", "config", config)
+	log.Debug("NewTxCache", "config", config)
 
 	// Note: for simplicity, we use the same "numChunksHint" for both internal concurrent maps
 	numChunksHint := config.NumChunksHint

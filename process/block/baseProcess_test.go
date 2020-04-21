@@ -307,7 +307,6 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			BlockChain:         blockchain.NewBlockChain(),
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
 		},
-		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
 
 	return arguments

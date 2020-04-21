@@ -59,6 +59,11 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeLeaving(allValidators [
 	leavingList := make([]Validator, 0)
 	minChances := ihgs.GetChance(0)
 	for _, vInfo := range allValidators {
+		if vInfo.List == string(core.InactiveList) {
+			log.Debug("inactive validator", "pk", vInfo.GetPublicKey())
+			continue
+		}
+
 		chances := ihgs.GetChance(vInfo.TempRating)
 		if chances < minChances || vInfo.List == string(core.LeavingList) {
 			val, err := NewValidator(vInfo.PublicKey, chances, vInfo.Index)

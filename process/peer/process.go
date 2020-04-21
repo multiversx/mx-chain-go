@@ -158,7 +158,7 @@ func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) error {
 		return err
 	}
 
-	err = vs.saveUpdatesForList(nodesList, 0, core.LeavingList)
+	err = vs.saveUpdatesForList(nodesList, 0, core.InactiveList)
 	if err != nil {
 		return err
 	}
