@@ -91,7 +91,6 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 			"is for current shard", isForCurrentShard,
 			"is white listed", isWhiteListed,
 		)
-		sdi.whiteListHandler.Remove([][]byte{interceptedData.Hash()})
 
 		return nil
 	}
@@ -103,7 +102,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		sdi.throttler.EndProcessing()
 	}()
 
-	go processInterceptedData(sdi.processor, sdi.whiteListHandler, interceptedData, wgProcess, message)
+	go processInterceptedData(sdi.processor, interceptedData, wgProcess, message)
 
 	return nil
 }

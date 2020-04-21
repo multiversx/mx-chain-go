@@ -2,6 +2,7 @@ package floodPreventers
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -30,5 +31,5 @@ func TestNilTopicFloodPreventer_FunctionsShouldNotPanic(t *testing.T) {
 
 	ntfp.ResetForTopic("")
 	ntfp.SetMaxMessagesForTopic("", 0)
-	assert.True(t, ntfp.Accumulate("", ""))
+	assert.Nil(t, ntfp.IncreaseLoad("", "", math.MaxUint32))
 }

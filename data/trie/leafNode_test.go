@@ -540,7 +540,7 @@ func TestLeafNode_loadChildren(t *testing.T) {
 
 	lnPosition := 5
 	ln := &leafNode{baseNode: &baseNode{hash: hashes[lnPosition]}}
-	missing, err := ln.loadChildren(nil)
+	missing, _, err := ln.loadChildren(nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 6, nodesCacher.Len())
 	assert.Equal(t, 0, len(missing))

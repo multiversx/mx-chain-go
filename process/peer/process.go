@@ -156,7 +156,7 @@ func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) error {
 		return err
 	}
 
-	err = vs.saveUpdatesForList(nodesList, 0, core.LeavingList)
+	err = vs.saveUpdatesForList(nodesList, 0, core.InactiveList)
 	if err != nil {
 		return err
 	}
@@ -401,6 +401,10 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 }
 
 func (vs *validatorStatistics) peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
+	chance := vs.rater.GetChance(peerAccount.GetRating())
+	startRatingChance := vs.rater.GetChance(vs.rater.GetStartRating())
+	ratingModifier := float32(chance) / float32(startRatingChance)
+
 	return &state.ValidatorInfo{
 		PublicKey:                  peerAccount.GetBLSPublicKey(),
 		ShardId:                    peerAccount.GetCurrentShardId(),
@@ -408,6 +412,7 @@ func (vs *validatorStatistics) peerAccountToValidatorInfo(peerAccount state.Peer
 		Index:                      peerAccount.GetIndex(),
 		TempRating:                 peerAccount.GetTempRating(),
 		Rating:                     peerAccount.GetRating(),
+		RatingModifier:             ratingModifier,
 		RewardAddress:              peerAccount.GetRewardAddress(),
 		LeaderSuccess:              peerAccount.GetLeaderSuccessRate().NumSuccess,
 		LeaderFailure:              peerAccount.GetLeaderSuccessRate().NumFailure,

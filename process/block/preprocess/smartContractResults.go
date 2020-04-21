@@ -26,7 +26,6 @@ type smartContractResults struct {
 	scrPool                      dataRetriever.ShardedDataCacherNotifier
 	storage                      dataRetriever.StorageService
 	scrProcessor                 process.SmartContractResultProcessor
-	accounts                     state.AccountsAdapter
 }
 
 // NewSmartContractResultPreprocessor creates a new smartContractResult preprocessor object
@@ -41,7 +40,9 @@ func NewSmartContractResultPreprocessor(
 	onRequestSmartContractResult func(shardID uint32, txHashes [][]byte),
 	gasHandler process.GasHandler,
 	economicsFee process.FeeHandler,
+	pubkeyConverter state.PubkeyConverter,
 	blockSizeComputation BlockSizeComputationHandler,
+	balanceComputation BalanceComputationHandler,
 ) (*smartContractResults, error) {
 
 	if check.IfNil(hasher) {
@@ -74,8 +75,14 @@ func NewSmartContractResultPreprocessor(
 	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
+	if check.IfNil(pubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
+	}
 	if check.IfNil(blockSizeComputation) {
 		return nil, process.ErrNilBlockSizeComputationHandler
+	}
+	if check.IfNil(balanceComputation) {
+		return nil, process.ErrNilBalanceComputationHandler
 	}
 
 	bpp := &basePreProcess{
@@ -85,6 +92,9 @@ func NewSmartContractResultPreprocessor(
 		gasHandler:           gasHandler,
 		economicsFee:         economicsFee,
 		blockSizeComputation: blockSizeComputation,
+		balanceComputation:   balanceComputation,
+		accounts:             accounts,
+		pubkeyConverter:      pubkeyConverter,
 	}
 
 	scr := &smartContractResults{
@@ -93,7 +103,6 @@ func NewSmartContractResultPreprocessor(
 		scrPool:                      scrDataPool,
 		onRequestSmartContractResult: onRequestSmartContractResult,
 		scrProcessor:                 scrProcessor,
-		accounts:                     accounts,
 	}
 
 	scr.chRcvAllScrs = make(chan bool)
@@ -237,6 +246,8 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 				return process.ErrWrongTypeAssertion
 			}
 
+			scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
+
 			err := scr.scrProcessor.ProcessSmartContractResult(currScr)
 			if err != nil {
 				return err
@@ -305,36 +316,12 @@ func (scr *smartContractResults) RequestBlockTransactions(body *block.Body) int 
 		return 0
 	}
 
-	requestedSCResults := 0
-	missingSCResultsForShards := scr.computeMissingAndExistingSCResultsForShards(body)
-
-	scr.scrForBlock.mutTxsForBlock.Lock()
-	for senderShardID, mbsTxHashes := range missingSCResultsForShards {
-		for _, mbTxHashes := range mbsTxHashes {
-			scr.setMissingSCResultsForShard(senderShardID, mbTxHashes)
-		}
-	}
-	scr.scrForBlock.mutTxsForBlock.Unlock()
-
-	for senderShardID, mbsTxHashes := range missingSCResultsForShards {
-		for _, mbTxHashes := range mbsTxHashes {
-			requestedSCResults += len(mbTxHashes.txHashes)
-			scr.onRequestSmartContractResult(senderShardID, mbTxHashes.txHashes)
-		}
-	}
-
-	return requestedSCResults
+	return scr.computeExistingAndRequestMissingSCResultsForShards(body)
 }
 
-func (scr *smartContractResults) setMissingSCResultsForShard(senderShardID uint32, mbTxHashes *txsHashesInfo) {
-	txShardInfoToSet := &txShardInfo{senderShardID: senderShardID, receiverShardID: mbTxHashes.receiverShardID}
-	for _, txHash := range mbTxHashes.txHashes {
-		scr.scrForBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: nil, txShardInfo: txShardInfoToSet}
-	}
-}
-
-// computeMissingAndExistingSCResultsForShards calculates what smartContractResults are available and what are missing from block.Body
-func (scr *smartContractResults) computeMissingAndExistingSCResultsForShards(body *block.Body) map[uint32][]*txsHashesInfo {
+// computeExistingAndRequestMissingSCResultsForShards calculates what smartContractResults are available and requests
+// what are missing from block.Body
+func (scr *smartContractResults) computeExistingAndRequestMissingSCResultsForShards(body *block.Body) int {
 	scrTxs := block.Body{}
 	for _, mb := range body.MiniBlocks {
 		if mb.Type != block.SmartContractResultBlock {
@@ -347,14 +334,16 @@ func (scr *smartContractResults) computeMissingAndExistingSCResultsForShards(bod
 		scrTxs.MiniBlocks = append(scrTxs.MiniBlocks, mb)
 	}
 
-	missingTxsForShard := scr.computeExistingAndMissing(
+	numMissingTxsForShard := scr.computeExistingAndRequestMissing(
 		&scrTxs,
 		&scr.scrForBlock,
 		scr.chRcvAllScrs,
 		scr.isMiniBlockCorrect,
-		scr.scrPool)
+		scr.scrPool,
+		scr.onRequestSmartContractResult,
+	)
 
-	return missingTxsForShard
+	return numMissingTxsForShard
 }
 
 // RequestTransactionsForMiniBlock requests missing smartContractResults for a certain miniblock
@@ -495,6 +484,8 @@ func (scr *smartContractResults) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 			err = process.ErrTimeIsOut
 			return processedTxHashes, err
 		}
+
+		scr.saveAccountBalanceForAddress(miniBlockScrs[index].GetRcvAddr())
 
 		err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[index])
 		if err != nil {

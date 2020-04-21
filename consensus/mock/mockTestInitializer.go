@@ -129,10 +129,12 @@ func InitConsensusCore() *ConsensusCoreMock {
 	validatorGroupSelector := &NodesCoordinatorMock{}
 	epochStartSubscriber := &EpochStartNotifierStub{}
 	antifloodHandler := &P2PAntifloodHandlerStub{}
+	headerPoolSubscriber := &HeadersCacherStub{}
 
 	container := &ConsensusCoreMock{
 		blockChain,
 		blockProcessorMock,
+		headerPoolSubscriber,
 		bootstrapperMock,
 		broadcastMessengerMock,
 		chronologyHandlerMock,

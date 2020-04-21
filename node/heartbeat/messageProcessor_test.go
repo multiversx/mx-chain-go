@@ -411,7 +411,7 @@ func TestNewMessageProcessor_CreateHeartbeatFromP2PMessageWithTooLongLengthsShou
 	ret, err := mon.CreateHeartbeatFromP2PMessage(message)
 
 	assert.Nil(t, ret)
-	assert.Equal(t, heartbeat.ErrPropertyTooLong, err)
+	assert.True(t, errors.Is(err, heartbeat.ErrPropertyTooLong))
 }
 
 func TestNewMessageProcessor_CreateHeartbeatFromP2pNilMessageShouldErr(t *testing.T) {

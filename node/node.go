@@ -49,6 +49,7 @@ import (
 const SendTransactionsPipe = "send transactions pipe"
 
 var log = logger.GetOrCreate("node")
+var numSecondsBetweenPrints = 20
 
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
@@ -129,6 +130,7 @@ type Node struct {
 
 	inputAntifloodHandler P2PAntifloodHandler
 	txAcumulator          Accumulator
+	txSentCounter         uint32
 
 	signatureSize int
 	publicKeySize int
@@ -251,7 +253,9 @@ func (n *Node) StartConsensus() error {
 		n.messenger,
 		n.shardCoordinator,
 		n.privKey,
-		n.singleSigner)
+		n.singleSigner,
+		n.dataPool.Headers(),
+	)
 
 	if err != nil {
 		return err
@@ -649,13 +653,51 @@ func (n *Node) sendFromTxAccumulator() {
 			txs = append(txs, tx)
 		}
 
+		atomic.AddUint32(&n.txSentCounter, uint32(len(txs)))
+
 		n.sendBulkTransactions(txs)
+	}
+}
+
+// printTxSentCounter prints the peak transaction counter from a time frame of about 'numSecondsBetweenPrints' seconds
+// if this peak value is 0 (no transaction was sent through the REST API interface), the print will not be done
+// the peak counter resets after each print. There is also a total number of transactions sent to p2p
+// TODO make this function testable. Refactor if necessary.
+func (n *Node) printTxSentCounter() {
+	maxTxCounter := uint32(0)
+	totalTxCounter := uint64(0)
+	counterSeconds := 0
+
+	for {
+		time.Sleep(time.Second)
+
+		txSent := atomic.SwapUint32(&n.txSentCounter, 0)
+		if txSent > maxTxCounter {
+			maxTxCounter = txSent
+		}
+		totalTxCounter += uint64(txSent)
+
+		counterSeconds++
+		if counterSeconds > numSecondsBetweenPrints {
+			counterSeconds = 0
+
+			if maxTxCounter > 0 {
+				log.Info("sent transactions on network",
+					"max/sec", maxTxCounter,
+					"total", totalTxCounter,
+				)
+			}
+			maxTxCounter = 0
+		}
 	}
 }
 
 // sendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
 func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
 	transactionsByShards := make(map[uint32][][]byte)
+	log.Trace("node.sendBulkTransactions sending txs",
+		"num", len(txs),
+	)
 
 	for _, tx := range txs {
 		senderShardId, err := n.getSenderShardId(tx)
@@ -665,6 +707,9 @@ func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
 
 		marshalizedTx, err := n.internalMarshalizer.Marshal(tx)
 		if err != nil {
+			log.Warn("node.sendBulkTransactions",
+				"marshalizer error", err,
+			)
 			continue
 		}
 
@@ -767,13 +812,17 @@ func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardI
 	atomic.AddInt32(&n.currentSendingGoRoutines, int32(len(packets)))
 	for _, buff := range packets {
 		go func(bufferToSend []byte) {
+			log.Trace("node.sendBulkTransactionsFromShard",
+				"topic", identifier,
+				"size", len(bufferToSend),
+			)
 			err = n.messenger.BroadcastOnChannelBlocking(
 				SendTransactionsPipe,
 				identifier,
 				bufferToSend,
 			)
 			if err != nil {
-				log.Debug("BroadcastOnChannelBlocking", "error", err.Error())
+				log.Debug("node.BroadcastOnChannelBlocking", "error", err.Error())
 			}
 
 			atomic.AddInt32(&n.currentSendingGoRoutines, -1)

@@ -10,7 +10,7 @@
 
 
 [General]
-    StartRating = 5000000
+    StartRating = 5000001
     MaxRating = 10000000
     MinRating = 1
     HoursToMaxRatingFromStartRating = 72

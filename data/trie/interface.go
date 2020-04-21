@@ -37,7 +37,7 @@ type node interface {
 	getChildren(db data.DBWriteCacher) ([]node, error)
 	isValid() bool
 	setDirty(bool)
-	loadChildren(func([]byte) (node, error)) ([][]byte, error)
+	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
 	getAllLeaves(map[string][]byte, []byte, data.DBWriteCacher, marshal.Marshalizer) error
 
 	getMarshalizer() marshal.Marshalizer
