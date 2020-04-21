@@ -56,6 +56,8 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		cache.doEviction()
 	}
 
+	// TODO: Perhaps ignore for sweepable senders?
+
 	ok = true
 	added = cache.txByHash.addTx(tx)
 	if added {
