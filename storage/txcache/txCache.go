@@ -96,6 +96,8 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 			resultFillIndex += copied
 			copiedInThisPass += copied
 			resultIsFull = resultFillIndex == numRequested
+
+			// TODO: break early if result is full
 		}
 
 		nothingCopiedThisPass := copiedInThisPass == 0
