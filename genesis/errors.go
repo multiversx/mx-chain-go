@@ -59,5 +59,5 @@ var ErrAddressIsSmartContract = errors.New("address is a smart contract")
 // ErrNilShardCoordinator signals that the provided shard coordinator is nil
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
-// ErrNilAddressConverter signals that the provided address converter is nil
-var ErrNilAddressConverter = errors.New("nil address converter")
+// ErrNilPubkeyConverter signals that the provided public key converter is nil
+var ErrNilPubkeyConverter = errors.New("nil pubkey converter")

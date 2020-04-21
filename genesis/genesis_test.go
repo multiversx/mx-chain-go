@@ -340,7 +340,7 @@ func TestGenesis_InitialAccountsSplitOnAddressesShardsNilShardCoordinatorShouldE
 	g := &genesis.Genesis{}
 	ibs, err := g.InitialAccountsSplitOnAddressesShards(
 		nil,
-		&mock.AddressConverterMock{},
+		&mock.PubkeyConverterStub{},
 	)
 
 	assert.Nil(t, ibs)
@@ -357,7 +357,7 @@ func TestGenesis_InitialAccountsSplitOnAddressesShardsNilAddressConverterShouldE
 	)
 
 	assert.Nil(t, ibs)
-	assert.Equal(t, genesis.ErrNilAddressConverter, err)
+	assert.Equal(t, genesis.ErrNilPubkeyConverter, err)
 }
 
 func TestGenesis_InitialAccountsSplitOnAddressesShardsShardsAddressConvertFailsShouldErr(t *testing.T) {
@@ -376,8 +376,8 @@ func TestGenesis_InitialAccountsSplitOnAddressesShardsShardsAddressConvertFailsS
 	expectedErr := errors.New("expected error")
 	ibsSplit, err := g.InitialAccountsSplitOnAddressesShards(
 		&mock.ShardCoordinatorMock{},
-		&mock.AddressConverterStub{
-			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
 				return nil, expectedErr
 			},
 		},
@@ -410,7 +410,11 @@ func TestGenesis_InitialAccountsSplitOnAddressesShards(t *testing.T) {
 	}
 	ibsSplit, err := g.InitialAccountsSplitOnAddressesShards(
 		threeSharder,
-		&mock.AddressConverterMock{},
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pkBytes []byte) (state.AddressContainer, error) {
+				return mock.NewAddressMock(pkBytes), nil
+			},
+		},
 	)
 
 	assert.Nil(t, err)
@@ -426,7 +430,7 @@ func TestGenesis_InitialAccountsSplitOnDelegationAddressesShardsNilShardCoordina
 	g := &genesis.Genesis{}
 	ibs, err := g.InitialAccountsSplitOnDelegationAddressesShards(
 		nil,
-		&mock.AddressConverterMock{},
+		&mock.PubkeyConverterStub{},
 	)
 
 	assert.Nil(t, ibs)
@@ -443,7 +447,7 @@ func TestGenesis_InitialAccountsSplitOnDelegationAddressesShardsShardsNilAddress
 	)
 
 	assert.Nil(t, ibs)
-	assert.Equal(t, genesis.ErrNilAddressConverter, err)
+	assert.Equal(t, genesis.ErrNilPubkeyConverter, err)
 }
 
 func TestGenesis_InitialAccountsSplitOnDelegationAddressesShardsShardsAddressConvertFailsShouldErr(t *testing.T) {
@@ -462,8 +466,8 @@ func TestGenesis_InitialAccountsSplitOnDelegationAddressesShardsShardsAddressCon
 	expectedErr := errors.New("expected error")
 	ibsSplit, err := g.InitialAccountsSplitOnDelegationAddressesShards(
 		&mock.ShardCoordinatorMock{},
-		&mock.AddressConverterStub{
-			CreateAddressFromPublicKeyBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
 				return nil, expectedErr
 			},
 		},
@@ -497,7 +501,11 @@ func TestGenesis_InitialAccountsSplitOnDelegationAddressesShards(t *testing.T) {
 	}
 	ibsSplit, err := g.InitialAccountsSplitOnDelegationAddressesShards(
 		threeSharder,
-		&mock.AddressConverterMock{},
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pkBytes []byte) (state.AddressContainer, error) {
+				return mock.NewAddressMock(pkBytes), nil
+			},
+		},
 	)
 
 	assert.Nil(t, err)

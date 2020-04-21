@@ -226,19 +226,19 @@ func (g *Genesis) DelegatedUpon(address string) *big.Int {
 // InitialAccountsSplitOnAddressesShards gets the initial accounts of the nodes split on the addresses's shards
 func (g *Genesis) InitialAccountsSplitOnAddressesShards(
 	shardCoordinator sharding.Coordinator,
-	adrConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 ) (map[uint32][]*InitialAccount, error) {
 
 	if check.IfNil(shardCoordinator) {
 		return nil, ErrNilShardCoordinator
 	}
-	if check.IfNil(adrConv) {
-		return nil, ErrNilAddressConverter
+	if check.IfNil(pubkeyConv) {
+		return nil, ErrNilPubkeyConverter
 	}
 
 	var addresses = make(map[uint32][]*InitialAccount)
 	for _, in := range g.initialAccounts {
-		address, err := adrConv.CreateAddressFromPublicKeyBytes(in.address)
+		address, err := pubkeyConv.CreateAddressFromBytes(in.address)
 		if err != nil {
 			return nil, err
 		}
@@ -253,14 +253,14 @@ func (g *Genesis) InitialAccountsSplitOnAddressesShards(
 // InitialAccountsSplitOnDelegationAddressesShards gets the initial accounts of the nodes split on the addresses's shards
 func (g *Genesis) InitialAccountsSplitOnDelegationAddressesShards(
 	shardCoordinator sharding.Coordinator,
-	adrConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 ) (map[uint32][]*InitialAccount, error) {
 
 	if check.IfNil(shardCoordinator) {
 		return nil, ErrNilShardCoordinator
 	}
-	if check.IfNil(adrConv) {
-		return nil, ErrNilAddressConverter
+	if check.IfNil(pubkeyConv) {
+		return nil, ErrNilPubkeyConverter
 	}
 
 	var addresses = make(map[uint32][]*InitialAccount)
@@ -269,7 +269,7 @@ func (g *Genesis) InitialAccountsSplitOnDelegationAddressesShards(
 			continue
 		}
 
-		delegationAddress, err := adrConv.CreateAddressFromPublicKeyBytes(in.Delegation.address)
+		delegationAddress, err := pubkeyConv.CreateAddressFromBytes(in.Delegation.address)
 		if err != nil {
 			return nil, err
 		}
