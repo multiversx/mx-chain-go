@@ -496,15 +496,18 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	}
 
 	shufflerArgs := ArgsUpdateNodes{
-		Eligible: newNodesConfig.eligibleMap,
-		Waiting:  newNodesConfig.waitingMap,
+		Eligible: toOrderedSlice(newNodesConfig.eligibleMap, newNodesConfig.nbShards),
+		Waiting:  toOrderedSlice(newNodesConfig.waitingMap, newNodesConfig.nbShards),
 		NewNodes: newNodesConfig.newList,
 		Leaving:  newNodesConfig.leavingList,
 		Rand:     randomness,
 		NbShards: newNodesConfig.nbShards,
 	}
 
-	eligibleMap, waitingMap, leaving := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
+	eligibleLists, waitingLists, leaving := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
+
+	eligibleMap := toMap(eligibleLists, newNodesConfig.nbShards)
+	waitingMap := toMap(waitingLists, newNodesConfig.nbShards)
 
 	actualRemaining := ComputeActuallyRemaining(newNodesConfig.leavingList, leaving)
 	err = ihgs.setNodesPerShards(eligibleMap, waitingMap, leaving, newEpoch)
@@ -881,4 +884,37 @@ func createValidatorInfoFromBody(
 	}
 
 	return allValidatorInfo, nil
+}
+
+func toOrderedSlice(validatorMap map[uint32][]Validator, numShardsPlusMeta uint32) [][]Validator {
+	slicedLists := make([][]Validator, numShardsPlusMeta)
+	for shardId, list := range validatorMap {
+		if shardId < numShardsPlusMeta-1 {
+			slicedLists[shardId] = list
+			continue
+		}
+
+		slicedLists[numShardsPlusMeta-1] = list
+	}
+
+	return slicedLists
+}
+
+func toMap(slicedLists [][]Validator, numShardsPlusMeta uint32) map[uint32][]Validator {
+	validatorsMap := make(map[uint32][]Validator)
+
+	for shardId := uint32(0); shardId < numShardsPlusMeta; shardId++ {
+		validatorsList := slicedLists[shardId]
+		if validatorsList == nil {
+			continue
+		}
+		if shardId < numShardsPlusMeta-1 {
+			validatorsMap[shardId] = validatorsList
+			continue
+		}
+
+		validatorsMap[core.MetachainShardId] = validatorsList
+	}
+
+	return validatorsMap
 }

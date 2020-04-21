@@ -63,8 +63,8 @@ type EpochHandler interface {
 
 // ArgsUpdateNodes holds the parameters required by the shuffler to generate a new nodes configuration
 type ArgsUpdateNodes struct {
-	Eligible map[uint32][]Validator
-	Waiting  map[uint32][]Validator
+	Eligible [][]Validator
+	Waiting  [][]Validator
 	NewNodes []Validator
 	Leaving  []Validator
 	Rand     []byte
@@ -74,7 +74,7 @@ type ArgsUpdateNodes struct {
 // NodesShuffler provides shuffling functionality for nodes
 type NodesShuffler interface {
 	UpdateParams(numNodesShard uint32, numNodesMeta uint32, hysteresis float32, adaptivity bool)
-	UpdateNodeLists(args ArgsUpdateNodes) (map[uint32][]Validator, map[uint32][]Validator, []Validator)
+	UpdateNodeLists(args ArgsUpdateNodes) ([][]Validator, [][]Validator, []Validator)
 	IsInterfaceNil() bool
 }
 
