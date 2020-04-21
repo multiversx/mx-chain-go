@@ -836,11 +836,26 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 		return nil
 	}
 
-	prevEpochStartIdentifier := core.EpochStartIdentifier(t.epochStartShardHeader.Epoch - 1)
-	shardHdrBuff, err := t.shardHdrStorage.SearchFirst([]byte(prevEpochStartIdentifier))
-	if err != nil {
-		log.Warn("RevertStateToBlock get header from storage error", "err", err)
-		return err
+	shardHdrBuff := make([]byte, 0)
+	epoch := t.epochStartShardHeader.Epoch - 1
+	for ; epoch > 0; epoch-- {
+		prevEpochStartIdentifier := core.EpochStartIdentifier(epoch)
+		shardHdrBuff, err = t.shardHdrStorage.SearchFirst([]byte(prevEpochStartIdentifier))
+		if err != nil {
+			log.Debug("RevertStateToBlock get header from storage error", "err", err)
+			continue
+		}
+
+		break
+	}
+
+	if epoch == 0 {
+		t.epochStartShardHeader = &block.Header{}
+		t.isEpochStart = true
+		t.newEpochHdrReceived = true
+		log.Debug("trigger.RevertStateToBlock", "isEpochStart", t.isEpochStart)
+
+		return nil
 	}
 
 	shardHdr := &block.Header{}
