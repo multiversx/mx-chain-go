@@ -1855,17 +1855,6 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	txPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
-		stateComponents.AccountsAdapter,
-		shardCoordinator,
-		data.Datapool,
-		stateComponents.AddressPubkeyConverter,
-		economics,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = stateComponents.AccountsAdapter
 
@@ -1895,7 +1884,6 @@ func newShardBlockProcessor(
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
-		TxsPoolsCleaner:  txPoolsCleaner,
 	}
 
 	blockProcessor, err := block.NewShardProcessor(arguments)
