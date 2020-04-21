@@ -81,6 +81,10 @@ func (bc *ChainStorerStub) GetAll(unitType dataRetriever.UnitType, keys [][]byte
 	return nil, nil
 }
 
+// SetEpochForPutOperation won't do anything
+func (bc *ChainStorerStub) SetEpochForPutOperation(epoch uint32) {
+}
+
 // Destroy removes the underlying files/resources used by the storage service
 func (bc *ChainStorerStub) Destroy() error {
 	if bc.DestroyCalled != nil {
