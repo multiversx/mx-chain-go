@@ -56,6 +56,32 @@ In each *selection pass*, a sender may contribute transactions. The contribution
  1. Once the *initial nonce gap* is resolved, the `failedSelection` tag is removed
  1. If, when contributing transactions, a *nonce gap* (called a *middle nonce gap*) is encountered, the sender is blocked any contribution in the current selection
 
- ### Score of senders
+### Score of senders
 
- ### Eviction
+The score for a sender is defined as follows:
+
+
+```
+
+                           (PPUAvg / PPUMin)^3
+ rawScore = ------------------------------------------------
+            [ln(txCount^2 + 1) + 1] * [ln(txSize^2 + 1) + 1]
+
+                              1
+ asymptoticScore = [(------------------) - 0.5] * 2
+                     1 + exp(-rawScore)
+
+```
+
+For `asymptoticScore`, the [logistic function](https://en.wikipedia.org/wiki/Logistic_function) is used.
+
+Notation:
+
+ - `PPUAvg`: average gas points (fee) per processing unit, in micro ERD
+ - `PPUMin`: minimum gas points (fee) per processing unit (given by economics.toml), in micro ERD
+ - `txCount`: number of transactions
+ - `txSize`: size of transactions, in kB (1000 bytes)
+
+### Eviction
+
+### Concurrency and snapshots
