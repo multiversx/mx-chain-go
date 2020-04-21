@@ -84,6 +84,7 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 	scContainer := NewSystemSCContainer()
 
 	argsStaking := systemSmartContracts.ArgsNewStakingSmartContract{
+		MinNumNodes:              scf.validatorSettings.NumNodes(),
 		MinStakeValue:            scf.validatorSettings.GenesisNodePrice(),
 		UnBondPeriod:             scf.validatorSettings.UnBondPeriod(),
 		Eei:                      scf.systemEI,

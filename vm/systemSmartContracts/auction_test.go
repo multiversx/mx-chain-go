@@ -765,7 +765,6 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 	argsStaking.Eei = eei
 	argsStaking.UnBondPeriod = args.ValidatorSettings.UnBondPeriod()
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
-
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
 		return stakingSC, nil
 	}})
@@ -809,6 +808,7 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 	marshaledStakedData, _ := json.Marshal(stakedData)
 	eei.SetSCAddress(args.StakingSCAddress)
 	eei.SetStorage(arguments.Arguments[0], marshaledStakedData)
+	stakingSC.setConfig(&StakingNodesConfig{MinNumNodes: 5, StakedNodes: 10})
 	eei.SetSCAddress(args.AuctionSCAddress)
 
 	retCode := stakingSmartContract.Execute(arguments)
@@ -989,6 +989,7 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 	argsStaking.Eei = eei
 	argsStaking.UnBondPeriod = args.ValidatorSettings.UnBondPeriod()
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
+
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
 		return stakingSC, nil
 	}})
@@ -1003,6 +1004,7 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 
 	eei.SetSCAddress(args.StakingSCAddress)
 	eei.SetStorage(arguments.Arguments[0], marshalizedStakedData)
+	stakingSC.setConfig(&StakingNodesConfig{MinNumNodes: 5, StakedNodes: 10})
 	eei.SetSCAddress(args.AuctionSCAddress)
 
 	auctionData := AuctionData{
@@ -1104,6 +1106,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 	marshalizedExpectedRegData, _ := json.Marshal(&stakedRegistrationData)
 	eei.SetSCAddress(args.StakingSCAddress)
 	eei.SetStorage(arguments.Arguments[0], marshalizedExpectedRegData)
+	stakingSC.setConfig(&StakingNodesConfig{MinNumNodes: 5, StakedNodes: 10})
 
 	auctionData := AuctionData{
 		RewardAddress:   arguments.CallerAddr,
