@@ -110,7 +110,7 @@ func (p *pendingProcessor) ProcessTransactionsDstMe(mapTxs map[string]data.Trans
 			continue
 		}
 
-		localID := fmt.Sprint("%d%d%d", sndShardId, dstShardID, blockType)
+		localID := fmt.Sprintf("%d%d%d", sndShardId, dstShardID, blockType)
 		mb, ok := mapMiniBlocks[localID]
 		if !ok {
 			mb = &block.MiniBlock{

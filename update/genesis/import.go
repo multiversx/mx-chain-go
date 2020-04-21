@@ -26,13 +26,11 @@ import (
 
 // ArgsNewStateImport is the arguments structure to create a new state importer
 type ArgsNewStateImport struct {
-	Reader              update.MultiFileReader
-	Hasher              hashing.Hasher
-	Marshalizer         marshal.Marshalizer
-	TriesContainer      state.TriesHolder
-	TrieStorageManagers map[string]data.StorageManager
-	ShardID             uint32
-	StorageConfig       config.StorageConfig
+	Reader        update.MultiFileReader
+	Hasher        hashing.Hasher
+	Marshalizer   marshal.Marshalizer
+	ShardID       uint32
+	StorageConfig config.StorageConfig
 }
 
 type stateImport struct {
@@ -67,9 +65,6 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, update.ErrNilMarshalizer
-	}
-	if check.IfNil(args.TriesContainer) {
-		return nil, update.ErrNilStorage
 	}
 
 	st := &stateImport{
