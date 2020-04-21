@@ -338,3 +338,9 @@ const (
 
 // ShuffledOut signals that a restart is pending because the node was shuffled out
 const ShuffledOut = "shuffledOut"
+
+// MaxRetriesToCreateDB represents the maximum number of times to try to create DB if it failed
+const MaxRetriesToCreateDB = 10
+
+// SleepTimeBetweenCreateDBRetries representes the number of seconds to sleep between DB creates
+const SleepTimeBetweenCreateDBRetries = 5

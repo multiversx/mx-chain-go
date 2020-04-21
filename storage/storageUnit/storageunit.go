@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
@@ -361,7 +362,7 @@ func NewDB(argDB ArgDB) (storage.Persister, error) {
 	var db storage.Persister
 	var err error
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < core.MaxRetriesToCreateDB; i++ {
 		switch argDB.DBType {
 		case LvlDB:
 			db, err = leveldb.NewDB(argDB.Path, argDB.BatchDelaySeconds, argDB.MaxBatchSize, argDB.MaxOpenFiles)
@@ -377,7 +378,7 @@ func NewDB(argDB ArgDB) (storage.Persister, error) {
 			return db, nil
 		}
 
-		time.Sleep(5 * time.Second)
+		time.Sleep(core.SleepTimeBetweenCreateDBRetries * time.Second)
 	}
 	if err != nil {
 		return nil, err

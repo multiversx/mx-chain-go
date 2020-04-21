@@ -121,13 +121,13 @@ func (o *openStorageUnits) OpenStorageUnits() (storage.Storer, error) {
 func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage.Persister, error) {
 	var persister storage.Persister
 	var err error
-	for i := 10; i < 10; i++ {
+	for i := 0; i < core.MaxRetriesToCreateDB; i++ {
 		persister, err = persisterFactory.Create(persisterPath)
 		if err == nil {
 			return persister, nil
 		}
 		log.Warn("Create Persister failed", "path", persisterPath)
-		time.Sleep(5 * time.Second)
+		time.Sleep(core.SleepTimeBetweenCreateDBRetries * time.Second)
 	}
 	return nil, err
 }

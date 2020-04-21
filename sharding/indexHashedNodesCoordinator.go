@@ -735,7 +735,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 	selfShard := ihgs.shardIDAsObserver
 	epNodesConfig, ok := ihgs.nodesConfig[ihgs.currentEpoch]
 	if ok {
-		log.Debug("computeShardForSelfPublicKey found existing config",
+		log.Trace("computeShardForSelfPublicKey found existing config",
 			"shard", epNodesConfig.shardID,
 		)
 		selfShard = epNodesConfig.shardID
@@ -744,7 +744,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 	for shard, validators := range nodesConfig.eligibleMap {
 		for _, v := range validators {
 			if bytes.Equal(v.PubKey(), pubKey) {
-				log.Debug("computeShardForSelfPublicKey found validator in eligible",
+				log.Trace("computeShardForSelfPublicKey found validator in eligible",
 					"epoch", ihgs.currentEpoch,
 					"shard", shard,
 					"validator PK", v.PubKey(),
@@ -758,7 +758,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 	for shard, validators := range nodesConfig.waitingMap {
 		for _, v := range validators {
 			if bytes.Equal(v.PubKey(), pubKey) {
-				log.Debug("computeShardForSelfPublicKey found validator in waiting",
+				log.Trace("computeShardForSelfPublicKey found validator in waiting",
 					"epoch", ihgs.currentEpoch,
 					"shard", shard,
 					"validator PK", v.PubKey(),
@@ -769,7 +769,7 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 		}
 	}
 
-	log.Debug("computeShardForSelfPublicKey returned default",
+	log.Trace("computeShardForSelfPublicKey returned default",
 		"shard", selfShard,
 	)
 	return selfShard
