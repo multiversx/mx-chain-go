@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
