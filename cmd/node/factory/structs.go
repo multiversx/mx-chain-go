@@ -1625,6 +1625,7 @@ func newBlockProcessor(
 			processArgs.gasSchedule,
 			processArgs.minSizeInBytes,
 			processArgs.maxSizeInBytes,
+			processArgs.rater,
 		)
 	}
 
@@ -1921,6 +1922,7 @@ func newMetaBlockProcessor(
 	gasSchedule map[string]map[string]uint64,
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
+	rater sharding.PeerAccountListAndRatingHandler,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -2108,6 +2110,7 @@ func newMetaBlockProcessor(
 		ArgParser:        argsParser,
 		CurrTxs:          data.Datapool.CurrentBlockTxs(),
 		ScQuery:          scDataGetter,
+		Rater:            rater,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {

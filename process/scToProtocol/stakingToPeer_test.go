@@ -32,6 +32,7 @@ func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 		ArgParser:        &mock.ArgumentParserMock{},
 		CurrTxs:          &mock.TxForCurrentBlockStub{},
 		ScQuery:          &mock.ScQueryStub{},
+		Rater:            &mock.RaterMock{},
 	}
 }
 

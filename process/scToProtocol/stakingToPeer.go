@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -33,6 +34,7 @@ type ArgStakingToPeer struct {
 	ArgParser process.ArgumentsParser
 	CurrTxs   dataRetriever.TransactionCacher
 	ScQuery   external.SCQueryService
+	Rater     sharding.PeerAccountListAndRatingHandler
 }
 
 // stakingToPeer defines the component which will translate changes from staking SC state
@@ -48,6 +50,7 @@ type stakingToPeer struct {
 	argParser process.ArgumentsParser
 	currTxs   dataRetriever.TransactionCacher
 	scQuery   external.SCQueryService
+	rater     sharding.PeerAccountListAndRatingHandler
 }
 
 // NewStakingToPeer creates the component which moves from staking sc state to peer state
@@ -67,6 +70,7 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 		argParser:        args.ArgParser,
 		currTxs:          args.CurrTxs,
 		scQuery:          args.ScQuery,
+		rater:            args.Rater,
 	}
 
 	return st, nil
@@ -99,6 +103,9 @@ func checkIfNil(args ArgStakingToPeer) error {
 	}
 	if check.IfNil(args.ScQuery) {
 		return process.ErrNilSCDataGetter
+	}
+	if check.IfNil(args.Rater) {
+		return process.ErrNilRater
 	}
 
 	return nil
@@ -230,6 +237,7 @@ func (stp *stakingToPeer) updatePeerState(
 
 	if stakingData.UnJailedNonce == nonce && !isValidator {
 		account.SetListAndIndex(0, string(core.NewList), uint32(stakingData.UnStakedNonce))
+		account.SetTempRating(stp.rater.GetStartRating())
 	}
 
 	if stakingData.JailedNonce == nonce && account.GetList() != string(core.InactiveList) {
