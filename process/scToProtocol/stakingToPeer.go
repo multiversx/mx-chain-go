@@ -47,10 +47,11 @@ type stakingToPeer struct {
 	peerState        state.AccountsAdapter
 	baseState        state.AccountsAdapter
 
-	argParser process.ArgumentsParser
-	currTxs   dataRetriever.TransactionCacher
-	scQuery   external.SCQueryService
-	rater     sharding.PeerAccountListAndRatingHandler
+	argParser    process.ArgumentsParser
+	currTxs      dataRetriever.TransactionCacher
+	scQuery      external.SCQueryService
+	startRating  uint32
+	unJailRating uint32
 }
 
 // NewStakingToPeer creates the component which moves from staking sc state to peer state
@@ -70,7 +71,8 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 		argParser:        args.ArgParser,
 		currTxs:          args.CurrTxs,
 		scQuery:          args.ScQuery,
-		rater:            args.Rater,
+		startRating:      args.Rater.GetStartRating(),
+		unJailRating:     args.Rater.GetStartRating(),
 	}
 
 	return st, nil
@@ -138,6 +140,10 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 	}
 
 	for _, key := range affectedStates {
+		if len(key) != stp.pubkeyConv.Len() {
+			continue
+		}
+
 		blsPubKey := []byte(key)
 		var peerAcc state.PeerAccountHandler
 		peerAcc, err = stp.getPeerAccount(blsPubKey)
@@ -228,6 +234,7 @@ func (stp *stakingToPeer) updatePeerState(
 	if !isJailed {
 		if stakingData.RegisterNonce == nonce && !isValidator {
 			account.SetListAndIndex(0, string(core.NewList), uint32(stakingData.RegisterNonce))
+			account.SetTempRating(stp.startRating)
 		}
 
 		if stakingData.UnStakedNonce == nonce && account.GetList() != string(core.InactiveList) {
@@ -237,7 +244,7 @@ func (stp *stakingToPeer) updatePeerState(
 
 	if stakingData.UnJailedNonce == nonce && !isValidator {
 		account.SetListAndIndex(0, string(core.NewList), uint32(stakingData.UnStakedNonce))
-		account.SetTempRating(stp.rater.GetStartRating())
+		account.SetTempRating(stp.unJailRating)
 	}
 
 	if stakingData.JailedNonce == nonce && account.GetList() != string(core.InactiveList) {

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/stretchr/testify/assert"
@@ -54,6 +55,13 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	integrationTests.MintAllNodes(nodes, initialVal)
 	verifyInitialBalance(t, nodes, initialVal)
 
+	minNumNodes := nodes[0].EconomicsData.NumNodes()
+	validators := make([]*integrationTests.TestWalletAccount, minNumNodes)
+	for i := 0; i < int(minNumNodes); i++ {
+		validators[i] = integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
+	}
+	integrationTests.MintAllPlayers(nodes, validators, initialVal)
+
 	round := uint64(0)
 	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
@@ -67,6 +75,12 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 		pubKey := generateUniqueKey(index)
 		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("msg"))
 		integrationTests.CreateAndSendTransaction(node, nodePrice, factory.AuctionSCAddress, txData)
+	}
+
+	for index, validator := range validators {
+		pubKey := generateUniqueKey(index + len(nodes) + 1)
+		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("msg"))
+		createAndSendTx(nodes[0], validator, nodePrice, factory.AuctionSCAddress, []byte(txData))
 	}
 
 	time.Sleep(time.Second)
@@ -288,4 +302,28 @@ func generateUniqueKey(identifier int) string {
 	neededLength := 256
 	uniqueIdentifier := fmt.Sprintf("%d", identifier)
 	return strings.Repeat("0", neededLength-len(uniqueIdentifier)) + uniqueIdentifier
+}
+
+func createAndSendTx(
+	node *integrationTests.TestProcessorNode,
+	player *integrationTests.TestWalletAccount,
+	txValue *big.Int,
+	rcvAddress []byte,
+	txData []byte,
+) {
+	tx := &transaction.Transaction{
+		Nonce:    player.Nonce,
+		Value:    txValue,
+		SndAddr:  player.Address.Bytes(),
+		RcvAddr:  rcvAddress,
+		Data:     txData,
+		GasPrice: node.EconomicsData.GetMinGasPrice(),
+		GasLimit: node.EconomicsData.GetMinGasLimit()*uint64(100) + uint64(len(txData)),
+	}
+
+	txBuff, _ := integrationTests.TestMarshalizer.Marshal(tx)
+	tx.Signature, _ = player.SingleSigner.Sign(player.SkTxSign, txBuff)
+
+	_, _ = node.SendTransaction(tx)
+	player.Nonce++
 }

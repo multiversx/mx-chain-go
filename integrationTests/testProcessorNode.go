@@ -511,7 +511,7 @@ func CreateEconomicsData() *economics.EconomicsData {
 				UnBondPeriod:             "5",
 				TotalSupply:              "200000000000",
 				MinStepValue:             "100000",
-				NumNodes:                 1000,
+				NumNodes:                 10,
 				AuctionEnableNonce:       "100000",
 				StakeEnableNonce:         "0",
 				NumRoundsWithoutBleed:    "1000",

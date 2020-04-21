@@ -632,7 +632,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 	if !r.canUnStakeOrUnBond() {
-		log.Error("unStake is not possible as too many left")
+		log.Error("unBond is not possible as too many left")
 		return vmcommon.UserError
 	}
 
