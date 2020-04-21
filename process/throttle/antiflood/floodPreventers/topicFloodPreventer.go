@@ -20,6 +20,7 @@ var log = logger.GetOrCreate("process/throttle/antiflood")
 type topicFloodPreventer struct {
 	mutTopicMaxMessages       *sync.RWMutex
 	topicMaxMessages          map[string]uint32
+	registeredTopics          map[string]struct{}
 	counterMap                map[string]map[string]uint32
 	defaultMaxMessagesPerPeer uint32
 }
@@ -41,13 +42,14 @@ func NewTopicFloodPreventer(
 		mutTopicMaxMessages:       &sync.RWMutex{},
 		topicMaxMessages:          make(map[string]uint32),
 		counterMap:                make(map[string]map[string]uint32),
+		registeredTopics:          make(map[string]struct{}),
 		defaultMaxMessagesPerPeer: maxMessagesPerPeer,
 	}, nil
 }
 
-// Accumulate tries to increment the counter values held at "identifier" position for the given topic
+// IncreaseLoad tries to increment the counter values held at "identifier" position for the given topic
 // It returns true if it had succeeded incrementing (existing counter value is lower than provided maxMessagesPerPeer)
-func (tfp *topicFloodPreventer) Accumulate(identifier string, topic string) bool {
+func (tfp *topicFloodPreventer) IncreaseLoad(identifier string, topic string, numMessages uint32) error {
 	tfp.mutTopicMaxMessages.Lock()
 	defer tfp.mutTopicMaxMessages.Unlock()
 
@@ -57,16 +59,14 @@ func (tfp *topicFloodPreventer) Accumulate(identifier string, topic string) bool
 	}
 
 	_, ok = tfp.counterMap[topic][identifier]
-	if !ok {
-		tfp.counterMap[topic][identifier] = 1
-		return true
-	}
-
-	// if this was already in the map, just increment it
-	tfp.counterMap[topic][identifier]++
+	tfp.counterMap[topic][identifier] += numMessages
 
 	limitExceeded := tfp.counterMap[topic][identifier] > tfp.maxMessagesForTopic(topic)
-	return !limitExceeded
+	if limitExceeded {
+		return process.ErrSystemBusy
+	}
+
+	return nil
 }
 
 // SetMaxMessagesForTopic will update the maximum number of messages that can be received from a peer in a topic
@@ -74,6 +74,7 @@ func (tfp *topicFloodPreventer) SetMaxMessagesForTopic(topic string, numMessages
 	log.Debug("SetMaxMessagesForTopic", "topic", topic, "num messages", numMessages)
 	tfp.mutTopicMaxMessages.Lock()
 	tfp.topicMaxMessages[topic] = numMessages
+	tfp.registeredTopics[topic] = struct{}{}
 	tfp.mutTopicMaxMessages.Unlock()
 }
 
@@ -86,6 +87,40 @@ func (tfp *topicFloodPreventer) ResetForTopic(topic string) {
 		tfp.resetTopicWithWildCard(topic)
 	}
 	tfp.counterMap[topic] = make(map[string]uint32)
+}
+
+// ResetForNotRegisteredTopics resets all topic counters that were not registered
+// This will prevent some unregistered topics counters to overflow and thus, causing the stopping of messages flow
+func (tfp *topicFloodPreventer) ResetForNotRegisteredTopics() {
+	tfp.mutTopicMaxMessages.Lock()
+	defer tfp.mutTopicMaxMessages.Unlock()
+
+	for topic := range tfp.counterMap {
+		if tfp.isRegisteredTopic(topic) {
+			continue
+		}
+
+		tfp.counterMap[topic] = make(map[string]uint32)
+	}
+}
+
+func (tfp *topicFloodPreventer) isRegisteredTopic(searchedTopic string) bool {
+	for topic := range tfp.registeredTopics {
+		if strings.Contains(topic, WildcardCharacter) {
+			topicWithoutWildcard := strings.Replace(topic, WildcardCharacter, "", 1)
+			if strings.Contains(searchedTopic, topicWithoutWildcard) {
+				return true
+			}
+
+			continue
+		}
+
+		if searchedTopic == topic {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (tfp *topicFloodPreventer) resetTopicWithWildCard(topic string) {

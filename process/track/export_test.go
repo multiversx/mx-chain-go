@@ -3,6 +3,7 @@ package track
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -101,6 +102,10 @@ func (bbt *baseBlockTrack) SetShardCoordinator(coordinator sharding.Coordinator)
 
 func NewBaseBlockTrack() *baseBlockTrack {
 	return &baseBlockTrack{}
+}
+
+func (bbt *baseBlockTrack) DoWhitelistIfNeeded(metaBlock *block.MetaBlock) {
+	bbt.doWhitelistIfNeeded(metaBlock)
 }
 
 // blockNotifier

@@ -90,11 +90,6 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 		)
 	}
 
-	//TODO: remove next line after the implementation for processing "txs from me" would be modified
-	// to take into consideration only the initial balances of the receiver addresses accounts,
-	// without the possible increased amount comming after processing "txs dest me" in the same block
-	return nil
-
 	account, ok := accountHandler.(state.UserAccountHandler)
 	if !ok {
 		return fmt.Errorf("%w, account is not of type *state.Account, address: %s",

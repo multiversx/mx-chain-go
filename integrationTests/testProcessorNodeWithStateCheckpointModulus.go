@@ -112,6 +112,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.SingleSigner,
+		tpn.DataPool.Headers(),
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
