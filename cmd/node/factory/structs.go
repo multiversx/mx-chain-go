@@ -255,7 +255,6 @@ func createTries(
 		Marshalizer:              marshalizer,
 		Hasher:                   hasher,
 		PathManager:              args.pathManager,
-		ShardId:                  args.shardId,
 		TrieStorageManagerConfig: args.config.TrieStorageManagerConfig,
 	}
 	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
@@ -264,14 +263,22 @@ func createTries(
 	}
 
 	trieStorageManagers := make(map[string]data.StorageManager)
-	userStorageManager, userAccountTrie, err := trieFactory.Create(args.config.AccountsTrieStorage, args.config.StateTriesConfig.AccountsStatePruningEnabled)
+	userStorageManager, userAccountTrie, err := trieFactory.Create(
+		args.config.AccountsTrieStorage,
+		args.shardId,
+		args.config.StateTriesConfig.AccountsStatePruningEnabled,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 	trieContainer.Put([]byte(factory.UserAccountTrie), userAccountTrie)
 	trieStorageManagers[factory.UserAccountTrie] = userStorageManager
 
-	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(args.config.PeerAccountsTrieStorage, args.config.StateTriesConfig.PeerStatePruningEnabled)
+	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(
+		args.config.PeerAccountsTrieStorage,
+		args.shardId,
+		args.config.StateTriesConfig.PeerStatePruningEnabled,
+	)
 	if err != nil {
 		return nil, nil, err
 	}

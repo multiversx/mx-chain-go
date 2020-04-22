@@ -592,7 +592,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 		}
 	}
 
-	interMBs := tc.processAddedInterimTransactions()
+	interMBs := tc.CreatePostProcessMiniBlocks()
 	if len(interMBs) > 0 {
 		miniBlocks = append(miniBlocks, interMBs...)
 	}
@@ -600,7 +600,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	return miniBlocks
 }
 
-func (tc *transactionCoordinator) processAddedInterimTransactions() block.MiniBlockSlice {
+// CreatePostProcessMiniBlocks returns all the post processed miniblocks
+func (tc *transactionCoordinator) CreatePostProcessMiniBlocks() block.MiniBlockSlice {
 	miniBlocks := make(block.MiniBlockSlice, 0)
 
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
