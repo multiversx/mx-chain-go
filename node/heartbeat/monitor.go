@@ -493,10 +493,13 @@ func (m *Monitor) StartValidatorProcessing() {
 		refreshInterval := time.Duration(m.hbmiRefreshInterval) * time.Second
 
 		for {
-			m.computeAllHeartbeatMessages()
-			m.computeInactiveHeartbeatMessages()
-
+			m.refreshHbmi()
 			time.Sleep(refreshInterval)
 		}
 	}()
+}
+
+func (m *Monitor) refreshHbmi() {
+	m.computeAllHeartbeatMessages()
+	m.computeInactiveHeartbeatMessages()
 }

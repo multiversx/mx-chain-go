@@ -71,7 +71,7 @@ func createMockArgHeartbeatMonitor() heartbeat.ArgHeartbeatMonitor {
 		HardforkTrigger:          &mock.HardforkTriggerStub{},
 		PeerBlackListHandler:     &mock.BlackListHandlerStub{},
 		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
-		HbmiRefreshInterval:      60,
+		HbmiRefreshInterval:      1,
 	}
 }
 

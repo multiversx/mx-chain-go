@@ -75,11 +75,6 @@ func (hbmi *heartbeatMessageInfo) GetTotalUpTime() time.Duration {
 	return hbmi.totalUpTime
 }
 
-// GetTotalDownTime -
-func (hbmi *heartbeatMessageInfo) GetTotalDownTime() time.Duration {
-	return hbmi.totalDownTime
-}
-
 // GetComputedShardId -
 func (hbmi *heartbeatMessageInfo) GetComputedShardId() uint32 {
 	return hbmi.computedShardID
@@ -103,4 +98,9 @@ func VerifyLengths(hbmi *Heartbeat) error {
 // GetMaxSizeInBytes -
 func GetMaxSizeInBytes() int {
 	return maxSizeInBytes
+}
+
+// RefreshHbmi -
+func (mon *Monitor) RefreshHbmi() {
+	mon.refreshHbmi()
 }

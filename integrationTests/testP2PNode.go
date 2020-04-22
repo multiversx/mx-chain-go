@@ -158,6 +158,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		MinTimeToWaitBetweenBroadcastsInSec: 4,
 		MaxTimeToWaitBetweenBroadcastsInSec: 6,
 		DurationInSecToConsiderUnresponsive: 60,
+		HbmiRefreshInterval:                 5,
 	}
 	err = tP2pNode.Node.StartHeartbeat(hbConfig, "test", "")
 	if err != nil {

@@ -275,6 +275,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 		HardforkTrigger:          &mock.HardforkTriggerStub{},
 		PeerBlackListHandler:     &mock.BlackListHandlerStub{},
 		ValidatorPubkeyConverter: integrationTests.TestValidatorPubkeyConverter,
+		HbmiRefreshInterval:      1,
 	}
 
 	monitor, _ := heartbeat.NewMonitor(argMonitor)

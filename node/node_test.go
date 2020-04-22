@@ -1255,6 +1255,7 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
+		HbmiRefreshInterval:                 1,
 	}, "v0.1",
 		"undefined",
 	)
@@ -1342,6 +1343,7 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
+		HbmiRefreshInterval:                 1,
 	}, "v0.1",
 		"undefined",
 	)
@@ -1444,6 +1446,7 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
+		HbmiRefreshInterval:                 1,
 	}, "v0.1",
 		"undefined",
 	)
@@ -1538,6 +1541,7 @@ func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *tes
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
+		HbmiRefreshInterval:                 1,
 	}, "v0.1",
 		"undefined",
 	)
