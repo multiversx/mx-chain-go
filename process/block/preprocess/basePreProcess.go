@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -17,8 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
-
-const initialTxHashesSliceLen = 10
 
 type txShardInfo struct {
 	senderShardID   uint32
@@ -156,7 +153,10 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 	tx data.TransactionHandler,
 	forBlock *txsForBlock,
 ) bool {
+
 	forBlock.mutTxsForBlock.Lock()
+	defer forBlock.mutTxsForBlock.Unlock()
+
 	if forBlock.missingTxs > 0 {
 		txInfoForHash := forBlock.txHashAndInfo[string(txHash)]
 		if txInfoForHash != nil && txInfoForHash.txShardInfo != nil &&
@@ -165,31 +165,30 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 			forBlock.missingTxs--
 		}
 
-		missingTxs := forBlock.missingTxs
-		forBlock.mutTxsForBlock.Unlock()
-
-		return missingTxs == 0
+		return forBlock.missingTxs == 0
 	}
-	forBlock.mutTxsForBlock.Unlock()
 
 	return false
 }
 
-func (bpp *basePreProcess) computeExistingAndMissing(
+func (bpp *basePreProcess) computeExistingAndRequestMissing(
 	body *block.Body,
 	forBlock *txsForBlock,
 	_ chan bool,
 	isMiniBlockCorrect func(block.Type) bool,
 	txPool dataRetriever.ShardedDataCacherNotifier,
-) map[uint32][]*txsHashesInfo {
+	onRequestTxs func(shardID uint32, txHashes [][]byte),
+) int {
 
 	if check.IfNil(body) {
-		return make(map[uint32][]*txsHashesInfo)
+		return 0
 	}
 
-	missingTxsForShard := make(map[uint32][]*txsHashesInfo, bpp.shardCoordinator.NumberOfShards())
-	txHashes := make([][]byte, 0, initialTxHashesSliceLen)
 	forBlock.mutTxsForBlock.Lock()
+	defer forBlock.mutTxsForBlock.Unlock()
+
+	missingTxsForShard := make(map[uint32][][]byte, bpp.shardCoordinator.NumberOfShards())
+	txHashes := make([][]byte, 0)
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 		if !isMiniBlockCorrect(miniBlock.Type) {
@@ -223,17 +222,48 @@ func (bpp *basePreProcess) computeExistingAndMissing(
 		}
 
 		if len(txHashes) > 0 {
-			tmp := &txsHashesInfo{
-				txHashes:        sliceUtil.TrimSliceSliceByte(txHashes),
-				receiverShardID: miniBlock.ReceiverShardID,
-			}
-			missingTxsForShard[miniBlock.SenderShardID] = append(missingTxsForShard[miniBlock.SenderShardID], tmp)
+			bpp.setMissingTxsForShard(miniBlock.SenderShardID, miniBlock.ReceiverShardID, txHashes, forBlock)
+			missingTxsForShard[miniBlock.SenderShardID] = append(missingTxsForShard[miniBlock.SenderShardID], txHashes...)
 		}
+
 		txHashes = txHashes[:0]
 	}
-	forBlock.mutTxsForBlock.Unlock()
 
-	return missingTxsForShard
+	return bpp.requestMissingTxsForShard(missingTxsForShard, onRequestTxs)
+}
+
+// this method should be called only under the mutex protection: forBlock.mutTxsForBlock
+func (bpp *basePreProcess) setMissingTxsForShard(
+	senderShardID uint32,
+	receiverShardID uint32,
+	txHashes [][]byte,
+	forBlock *txsForBlock,
+) {
+	txShardInfoToSet := &txShardInfo{
+		senderShardID:   senderShardID,
+		receiverShardID: receiverShardID,
+	}
+
+	for _, txHash := range txHashes {
+		forBlock.txHashAndInfo[string(txHash)] = &txInfo{
+			tx:          nil,
+			txShardInfo: txShardInfoToSet,
+		}
+	}
+}
+
+// this method should be called only under the mutex protection: forBlock.mutTxsForBlock
+func (bpp *basePreProcess) requestMissingTxsForShard(
+	missingTxsForShard map[uint32][][]byte,
+	onRequestTxs func(shardID uint32, txHashes [][]byte),
+) int {
+	requestedTxs := 0
+	for shardID, txHashes := range missingTxsForShard {
+		requestedTxs += len(txHashes)
+		go onRequestTxs(shardID, txHashes)
+	}
+
+	return requestedTxs
 }
 
 func (bpp *basePreProcess) computeGasConsumed(
