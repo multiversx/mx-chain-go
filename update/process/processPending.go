@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -15,6 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
+
+var log = logger.GetOrCreate("update/process/")
 
 // ArgsPendingTransactionProcessor defines the arguments structure
 type ArgsPendingTransactionProcessor struct {
@@ -90,15 +94,18 @@ func (p *pendingProcessor) ProcessTransactionsDstMe(mapTxs map[string]data.Trans
 	for _, info := range sortedTxs {
 		rcvAddress, err := p.pubKeyConv.CreateAddressFromBytes(info.tx.GetRcvAddr())
 		if err != nil {
+			log.Debug("could not react receiver address from tx", "err", err, "rcvAddr", info.tx.GetRcvAddr())
 			continue
 		}
-
-		sndAddress, err := p.pubKeyConv.CreateAddressFromBytes(info.tx.GetSndAddr())
-		if err != nil {
-			continue
+		sndShardId := core.MetachainShardId
+		if len(info.tx.GetSndAddr()) > 0 {
+			sndAddress, err := p.pubKeyConv.CreateAddressFromBytes(info.tx.GetSndAddr())
+			if err != nil {
+				log.Debug("could not react sender address from tx", "err", err, "rcvAddr", info.tx.GetSndAddr())
+				continue
+			}
+			sndShardId = p.shardCoordinator.ComputeId(sndAddress)
 		}
-
-		sndShardId := p.shardCoordinator.ComputeId(sndAddress)
 
 		dstShardID := p.shardCoordinator.ComputeId(rcvAddress)
 		if dstShardID != p.shardCoordinator.SelfId() {
@@ -107,10 +114,11 @@ func (p *pendingProcessor) ProcessTransactionsDstMe(mapTxs map[string]data.Trans
 
 		blockType, err := p.processSingleTransaction(info)
 		if err != nil {
+			log.Debug("could not process transaction", "err", err)
 			continue
 		}
 
-		localID := fmt.Sprintf("%d%d%d", sndShardId, dstShardID, blockType)
+		localID := fmt.Sprintf("%d_%d_%d", sndShardId, dstShardID, blockType)
 		mb, ok := mapMiniBlocks[localID]
 		if !ok {
 			mb = &block.MiniBlock{

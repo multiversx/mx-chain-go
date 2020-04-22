@@ -196,3 +196,6 @@ var ErrNilPendingTxProcessor = errors.New("nil pending tx processor")
 
 // ErrNilHardForkBlockProcessor signals that nil hard fork block processor has been provided
 var ErrNilHardForkBlockProcessor = errors.New("nil hard fork block processor")
+
+// ErrNilTrieFactory signals that nil trie factory has been provided
+var ErrNilTrieFactory = errors.New("nil trie factory")

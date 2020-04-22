@@ -112,10 +112,10 @@ func TestNewStateImport(t *testing.T) {
 		args    ArgsNewStateImport
 		exError error
 	}{
-		{name: "NilReader", args: ArgsNewStateImport{Reader: nil, Marshalizer: &mock.MarshalizerMock{}, Hasher: &mock.HasherStub{}}, exError: update.ErrNilMultiFileReader},
-		{name: "NilMarshalizer", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: nil, Hasher: &mock.HasherStub{}}, exError: update.ErrNilMarshalizer},
-		{name: "NilHasher", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: &mock.MarshalizerMock{}, Hasher: nil}, exError: update.ErrNilHasher},
-		{name: "Ok", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: &mock.MarshalizerMock{}, Hasher: &mock.HasherStub{}}, exError: nil},
+		{name: "NilReader", args: ArgsNewStateImport{Reader: nil, Marshalizer: &mock.MarshalizerMock{}, Hasher: &mock.HasherStub{}, TrieFactory: &mock.TrieFactoryStub{}}, exError: update.ErrNilMultiFileReader},
+		{name: "NilMarshalizer", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: nil, Hasher: &mock.HasherStub{}, TrieFactory: &mock.TrieFactoryStub{}}, exError: update.ErrNilMarshalizer},
+		{name: "NilHasher", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: &mock.MarshalizerMock{}, Hasher: nil, TrieFactory: &mock.TrieFactoryStub{}}, exError: update.ErrNilHasher},
+		{name: "Ok", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: &mock.MarshalizerMock{}, Hasher: &mock.HasherStub{}, TrieFactory: &mock.TrieFactoryStub{}}, exError: nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -145,6 +145,7 @@ func TestImportAll(t *testing.T) {
 		Reader:      reader,
 		Hasher:      &mock.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
+		TrieFactory: &mock.TrieFactoryStub{},
 	}
 
 	importState, _ := NewStateImport(args)

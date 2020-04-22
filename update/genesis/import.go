@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"path"
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -14,13 +13,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
@@ -31,6 +27,7 @@ type ArgsNewStateImport struct {
 	Marshalizer   marshal.Marshalizer
 	ShardID       uint32
 	StorageConfig config.StorageConfig
+	TrieFactory   data.TrieFactory
 }
 
 type stateImport struct {
@@ -52,6 +49,7 @@ type stateImport struct {
 	trieStorageManagers map[string]data.StorageManager
 	shardID             uint32
 	storageConfig       config.StorageConfig
+	trieFactory         data.TrieFactory
 }
 
 // TODO: think about the state of validators - epochs.
@@ -66,6 +64,9 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, update.ErrNilMarshalizer
 	}
+	if check.IfNil(args.TrieFactory) {
+		return nil, update.ErrNilTrieFactory
+	}
 
 	st := &stateImport{
 		reader:            args.Reader,
@@ -78,6 +79,7 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 		hasher:            args.Hasher,
 		marshalizer:       args.Marshalizer,
 		accountDBsMap:     make(map[uint32]state.AccountsAdapter),
+		trieFactory:       args.TrieFactory,
 	}
 
 	return st, nil
@@ -255,23 +257,8 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (data.Trie, error) 
 		return trieForShard, nil
 	}
 
-	dbConfig := storageFactory.GetDBFromConfig(si.storageConfig.DB)
-	dbConfig.FilePath = path.Join(si.storageConfig.DB.FilePath, core.GetShardIdString(shardID))
-	storageForShard, err := storageUnit.NewStorageUnitFromConf(
-		storageFactory.GetCacherFromConfig(si.storageConfig.Cache),
-		dbConfig,
-		storageFactory.GetBloomFromConfig(si.storageConfig.Bloom),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(storageForShard)
-	if err != nil {
-		return nil, err
-	}
-
-	trieForShard, err = trie.NewTrie(trieStorage, si.marshalizer, si.hasher)
+	var err error
+	_, trieForShard, err = si.trieFactory.Create(si.storageConfig, core.ShardIdToString(shardID), false)
 	if err != nil {
 		return nil, err
 	}

@@ -293,7 +293,6 @@ func createTries(
 		Marshalizer:              marshalizer,
 		Hasher:                   hasher,
 		PathManager:              pathManager,
-		ShardId:                  core.GetShardIdString(shardId),
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig,
 	}
 	trieFactory, err := triesFactory.NewTrieFactory(trieFactoryArgs)
@@ -302,14 +301,22 @@ func createTries(
 	}
 
 	trieStorageManagers := make(map[string]data.StorageManager)
-	userStorageManager, userAccountTrie, err := trieFactory.Create(config.AccountsTrieStorage, config.StateTriesConfig.AccountsStatePruningEnabled)
+	userStorageManager, userAccountTrie, err := trieFactory.Create(
+		config.AccountsTrieStorage,
+		core.GetShardIdString(shardId),
+		config.StateTriesConfig.AccountsStatePruningEnabled,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 	trieContainer.Put([]byte(triesFactory.UserAccountTrie), userAccountTrie)
 	trieStorageManagers[triesFactory.UserAccountTrie] = userStorageManager
 
-	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(config.PeerAccountsTrieStorage, config.StateTriesConfig.PeerStatePruningEnabled)
+	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(
+		config.PeerAccountsTrieStorage,
+		core.GetShardIdString(shardId),
+		config.StateTriesConfig.PeerStatePruningEnabled,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -561,9 +568,9 @@ func getGeneralConfig() config.Config {
 		},
 		TxLogsStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
-				Type:        "LRU",
-				Size:        1000,
-				Shards:      1,
+				Type:   "LRU",
+				Size:   1000,
+				Shards: 1,
 			},
 			DB: config.DBConfig{
 				FilePath:          "Logs",
