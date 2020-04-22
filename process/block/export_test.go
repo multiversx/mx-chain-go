@@ -104,8 +104,6 @@ func NewShardProcessorEmptyWith3shards(
 			BlockChain:         blockChain,
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
 		},
-
-		TxsPoolsCleaner: &mock.TxPoolsCleanerMock{},
 	}
 	shardProc, err := NewShardProcessor(arguments)
 	return shardProc, err
