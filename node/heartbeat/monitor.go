@@ -127,7 +127,7 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		log.Debug("heartbeat can't load public keys from storage", "error", err.Error())
 	}
 
-	mon.StartValidatorProcessing()
+	mon.startValidatorProcessing()
 
 	return mon, nil
 }
@@ -494,8 +494,8 @@ func (m *Monitor) convertFromExportedStruct(hbDTO HeartbeatDTO, maxDuration time
 	return hbmi
 }
 
-// StartValidatorProcessing will start the updating of the information about the nodes
-func (m *Monitor) StartValidatorProcessing() {
+// startValidatorProcessing will start the updating of the information about the nodes
+func (m *Monitor) startValidatorProcessing() {
 	go func() {
 		refreshInterval := time.Duration(m.hbmiRefreshInterval) * time.Second
 
