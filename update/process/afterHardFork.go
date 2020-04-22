@@ -2,6 +2,7 @@ package process
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -37,16 +38,16 @@ func NewAfterHardForkBlockCreation(args ArgsAfterHardFork) (*afterHardFork, erro
 	if args.MapBlockProcessors == nil {
 		return nil, update.ErrNilHardForkBlockProcessor
 	}
-	if args.ImportHandler != nil {
+	if check.IfNil(args.ImportHandler) {
 		return nil, update.ErrNilImportHandler
 	}
-	if args.Hasher != nil {
+	if check.IfNil(args.Hasher) {
 		return nil, update.ErrNilHasher
 	}
-	if args.Marshalizer != nil {
+	if check.IfNil(args.Marshalizer) {
 		return nil, update.ErrNilMarshalizer
 	}
-	if args.ShardCoordinator != nil {
+	if check.IfNil(args.ShardCoordinator) {
 		return nil, update.ErrNilShardCoordinator
 	}
 
