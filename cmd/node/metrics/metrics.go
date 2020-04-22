@@ -27,6 +27,7 @@ func InitMetrics(
 	roundsPerEpoch int64,
 ) {
 	shardId := uint64(shardCoordinator.SelfId())
+	numOfShards := uint64(shardCoordinator.NumberOfShards())
 	roundDuration := nodesConfig.RoundDuration
 	isSyncing := uint64(1)
 	initUint := uint64(0)
@@ -34,6 +35,7 @@ func InitMetrics(
 
 	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, pubkeyStr)
 	appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
+	appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetacahin, numOfShards)
 	appStatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
 	appStatusHandler.SetUInt64Value(core.MetricRoundTime, roundDuration/millisecondsInSecond)
 	appStatusHandler.SetStringValue(core.MetricAppVersion, version)
@@ -105,6 +107,7 @@ func StartStatusPolling(
 	pollingInterval time.Duration,
 	networkComponents *factory.Network,
 	processComponents *factory.Process,
+	shardCoordinator sharding.Coordinator,
 ) error {
 
 	if ash == nil {
@@ -122,6 +125,11 @@ func StartStatusPolling(
 	}
 
 	err = registerPollProbableHighestNonce(appStatusPollingHandler, processComponents)
+	if err != nil {
+		return err
+	}
+
+	err = registerShardsInformation(appStatusPollingHandler, shardCoordinator)
 	if err != nil {
 		return err
 	}
@@ -144,6 +152,27 @@ func registerPollConnectedPeers(
 	err := appStatusPollingHandler.RegisterPollingFunc(p2pMetricsHandlerFunc)
 	if err != nil {
 		return errors.New("cannot register handler func for num of connected peers")
+	}
+
+	return nil
+}
+
+func registerShardsInformation(
+	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
+	coordinator sharding.Coordinator,
+) error {
+
+	computeShardsInfo := func(appStatusHandler core.AppStatusHandler) {
+		shardId := uint64(coordinator.SelfId())
+		numOfShards := uint64(coordinator.NumberOfShards())
+
+		appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
+		appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetacahin, numOfShards)
+	}
+
+	err := appStatusPollingHandler.RegisterPollingFunc(computeShardsInfo)
+	if err != nil {
+		return fmt.Errorf("%w, cannot register handler func for shards information", err)
 	}
 
 	return nil
