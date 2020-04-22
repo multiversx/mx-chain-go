@@ -1,15 +1,11 @@
 package factory
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
-	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
-	"github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
@@ -65,48 +61,6 @@ func TestGetBloomFromConfig(t *testing.T) {
 		HashFunc: []storageUnit.HasherType{storageUnit.HasherType(cfg.HashFunc[0])},
 		Size:     cfg.Size,
 	}, storageBloomConfig)
-}
-
-func TestLoadEpochStartRoundShard(t *testing.T) {
-	t.Parallel()
-
-	key := []byte("123")
-	shardID := uint32(0)
-	startRound := uint64(100)
-	state := &shardchain.TriggerRegistry{
-		EpochStartRound: startRound,
-	}
-	storer := &mock.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
-			stateBytes, _ := json.Marshal(state)
-			return stateBytes, nil
-		},
-	}
-
-	round, err := loadEpochStartRound(shardID, key, storer)
-	assert.NoError(t, err)
-	assert.Equal(t, startRound, round)
-}
-
-func TestLoadEpochStartRoundMetachain(t *testing.T) {
-	t.Parallel()
-
-	key := []byte("123")
-	shardID := core.MetachainShardId
-	startRound := uint64(1000)
-	state := &metachain.TriggerRegistry{
-		CurrEpochStartRound: startRound,
-	}
-	storer := &mock.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
-			stateBytes, _ := json.Marshal(state)
-			return stateBytes, nil
-		},
-	}
-
-	round, err := loadEpochStartRound(shardID, key, storer)
-	assert.NoError(t, err)
-	assert.Equal(t, startRound, round)
 }
 
 func TestConvertShardIDToUint32(t *testing.T) {

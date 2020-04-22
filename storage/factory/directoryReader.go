@@ -15,18 +15,9 @@ func NewDirectoryReader() *directoryReader {
 
 // ListFilesAsString will return all files' names from a directory in a slice
 func (dr *directoryReader) ListFilesAsString(directoryPath string) ([]string, error) {
-	files, err := dr.loadContent(directoryPath)
+	_, filesNames, err := dr.listDirectoriesAndFilesAsString(directoryPath)
 	if err != nil {
 		return nil, err
-	}
-
-	filesNames := make([]string, 0)
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-
-		filesNames = append(filesNames, file.Name())
 	}
 
 	if len(filesNames) == 0 {
@@ -38,18 +29,9 @@ func (dr *directoryReader) ListFilesAsString(directoryPath string) ([]string, er
 
 // ListDirectoriesAsString will return all directories' names in the directory as a string slice
 func (dr *directoryReader) ListDirectoriesAsString(directoryPath string) ([]string, error) {
-	files, err := dr.loadContent(directoryPath)
+	directoriesNames, _, err := dr.listDirectoriesAndFilesAsString(directoryPath)
 	if err != nil {
 		return nil, err
-	}
-
-	directoriesNames := make([]string, 0)
-	for _, file := range files {
-		if !file.IsDir() {
-			continue
-		}
-
-		directoriesNames = append(directoriesNames, file.Name())
 	}
 
 	if len(directoriesNames) == 0 {
@@ -61,21 +43,37 @@ func (dr *directoryReader) ListDirectoriesAsString(directoryPath string) ([]stri
 
 // ListAllAsString will return all files and directories names from the directory as a string slice
 func (dr *directoryReader) ListAllAsString(directoryPath string) ([]string, error) {
-	files, err := dr.loadContent(directoryPath)
+	directories, files, err := dr.listDirectoriesAndFilesAsString(directoryPath)
 	if err != nil {
 		return nil, err
 	}
 
-	filesNames := make([]string, 0)
-	for _, file := range files {
-		filesNames = append(filesNames, file.Name())
-	}
-
+	filesNames := append(directories, files...)
 	if len(filesNames) == 0 {
 		return nil, errors.New("no file or directory in provided directory")
 	}
 
 	return filesNames, nil
+}
+
+func (dr *directoryReader) listDirectoriesAndFilesAsString(directoryPath string) ([]string, []string, error) {
+	files, err := dr.loadContent(directoryPath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	directoriesNames := make([]string, 0)
+	filesNames := make([]string, 0)
+	for _, file := range files {
+		if file.IsDir() {
+			directoriesNames = append(directoriesNames, file.Name())
+			continue
+		}
+
+		filesNames = append(filesNames, file.Name())
+	}
+
+	return directoriesNames, filesNames, nil
 }
 
 func (dr *directoryReader) loadContent(path string) ([]os.FileInfo, error) {
@@ -85,6 +83,10 @@ func (dr *directoryReader) loadContent(path string) ([]os.FileInfo, error) {
 	}
 
 	files, err := f.Readdir(allFiles)
+	if err != nil {
+		return nil, err
+	}
+
 	err = f.Close()
 	if err != nil {
 		return nil, err

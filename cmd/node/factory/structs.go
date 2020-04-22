@@ -2443,3 +2443,52 @@ func getSkPk(
 
 	return skBytes, pkBytes, nil
 }
+
+// CreateUnitOpener will create a new unit opener handler
+func CreateUnitOpener(
+	internalMarshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	generalConfig config.Config,
+	chainID string,
+	workingDir string,
+	defaultDBPath string,
+	defaultEpochString string,
+	defaultShardString string,
+) (storage.UnitOpenerHandler, error) {
+	bootstrapDataProvider, err := storageFactory.NewBootstrapDataProvider(internalMarshalizer)
+	if err != nil {
+		return nil, err
+	}
+	directoryReader := storageFactory.NewDirectoryReader()
+
+	latestStorageDataArgs := storageFactory.ArgsLatestDataProvider{
+		GeneralConfig:         generalConfig,
+		Marshalizer:           internalMarshalizer,
+		Hasher:                hasher,
+		BootstrapDataProvider: bootstrapDataProvider,
+		DirectoryReader:       directoryReader,
+		WorkingDir:            workingDir,
+		ChainID:               chainID,
+		DefaultDBPath:         defaultDBPath,
+		DefaultEpochString:    defaultEpochString,
+		DefaultShardString:    defaultShardString,
+	}
+	latestDataFromStorageProvider, err := storageFactory.NewLatestDataProvider(latestStorageDataArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	argsStorageUnitOpener := storageFactory.ArgsNewOpenStorageUnits{
+		GeneralConfig:             generalConfig,
+		Marshalizer:               internalMarshalizer,
+		BootstrapDataProvider:     bootstrapDataProvider,
+		LatestStorageDataProvider: latestDataFromStorageProvider,
+		WorkingDir:                workingDir,
+		ChainID:                   chainID,
+		DefaultDBPath:             defaultDBPath,
+		DefaultEpochString:        defaultEpochString,
+		DefaultShardString:        defaultShardString,
+	}
+
+	return storageFactory.NewStorageUnitOpenHandler(argsStorageUnitOpener)
+}

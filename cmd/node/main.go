@@ -58,7 +58,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -692,44 +691,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	bootstrapDataProvider, err := storageFactory.NewBootstrapDataProvider(coreComponents.InternalMarshalizer)
-	if err != nil {
-		return err
-	}
-	directoryReader := storageFactory.NewDirectoryReader()
-
-	latestStorageDataArgs := storageFactory.ArgsLatestDataProvider{
-		GeneralConfig:         *generalConfig,
-		Marshalizer:           coreComponents.InternalMarshalizer,
-		Hasher:                coreComponents.Hasher,
-		BootstrapDataProvider: bootstrapDataProvider,
-		DirectoryReader:       directoryReader,
-		WorkingDir:            workingDir,
-		ChainID:               genesisNodesConfig.ChainID,
-		DefaultDBPath:         defaultDBPath,
-		DefaultEpochString:    defaultEpochString,
-		DefaultShardString:    defaultShardString,
-	}
-	latestDataFromStorageProvider, err := storageFactory.NewLatestDataProvider(latestStorageDataArgs)
-	if err != nil {
-		return err
-	}
-
-	argsStorageUnitOpener := storageFactory.ArgsNewOpenStorageUnits{
-		GeneralConfig:             *generalConfig,
-		Marshalizer:               coreComponents.InternalMarshalizer,
-		BootstrapDataProvider:     bootstrapDataProvider,
-		LatestStorageDataProvider: latestDataFromStorageProvider,
-		WorkingDir:                workingDir,
-		ChainID:                   genesisNodesConfig.ChainID,
-		DefaultDBPath:             defaultDBPath,
-		DefaultEpochString:        defaultEpochString,
-		DefaultShardString:        defaultShardString,
-	}
-	unitOpener, err := storageFactory.NewStorageUnitOpenHandler(argsStorageUnitOpener)
-	if err != nil {
-		return err
-	}
+	unitOpener, err := factory.CreateUnitOpener(
+		coreComponents.InternalMarshalizer,
+		coreComponents.Hasher,
+		*generalConfig,
+		genesisNodesConfig.ChainID,
+		workingDir,
+		defaultDBPath,
+		defaultEpochString,
+		defaultShardString,
+	)
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  cryptoParams.PublicKey,

@@ -2,14 +2,14 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/storage"
 
-// LatestStorageDataProviderStub --
+// LatestStorageDataProviderStub -
 type LatestStorageDataProviderStub struct {
 	GetParentDirAndLastEpochCalled func() (string, uint32, error)
 	GetCalled                      func() (storage.LatestDataFromStorage, error)
 	GetShardsFromDirectoryCalled   func(path string) ([]string, error)
 }
 
-// GetParentDirAndLastEpoch --
+// GetParentDirAndLastEpoch -
 func (lsdps *LatestStorageDataProviderStub) GetParentDirAndLastEpoch() (string, uint32, error) {
 	if lsdps.GetParentDirAndLastEpochCalled != nil {
 		return lsdps.GetParentDirAndLastEpochCalled()
@@ -18,7 +18,7 @@ func (lsdps *LatestStorageDataProviderStub) GetParentDirAndLastEpoch() (string, 
 	return "", 0, nil
 }
 
-// Get --
+// Get -
 func (lsdps *LatestStorageDataProviderStub) Get() (storage.LatestDataFromStorage, error) {
 	if lsdps.GetCalled != nil {
 		return lsdps.GetCalled()
@@ -27,7 +27,7 @@ func (lsdps *LatestStorageDataProviderStub) Get() (storage.LatestDataFromStorage
 	return storage.LatestDataFromStorage{}, nil
 }
 
-// GetShardsFromDirectory --
+// GetShardsFromDirectory -
 func (lsdps *LatestStorageDataProviderStub) GetShardsFromDirectory(path string) ([]string, error) {
 	if lsdps.GetShardsFromDirectoryCalled != nil {
 		return lsdps.GetShardsFromDirectoryCalled(path)
@@ -36,7 +36,7 @@ func (lsdps *LatestStorageDataProviderStub) GetShardsFromDirectory(path string) 
 	return nil, nil
 }
 
-// IsInterfaceNil --
+// IsInterfaceNil -
 func (lsdps *LatestStorageDataProviderStub) IsInterfaceNil() bool {
 	return lsdps == nil
 }

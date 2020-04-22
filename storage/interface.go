@@ -124,6 +124,7 @@ type PathManagerHandler interface {
 	IsInterfaceNil() bool
 }
 
+// PersisterFactory defines which actions should be done for creating a persister
 type PersisterFactory interface {
 	Create(path string) (Persister, error)
 	IsInterfaceNil() bool
@@ -159,7 +160,6 @@ type LatestDataFromStorage struct {
 	EpochStartRound uint64
 }
 
-
 // ShardCoordinator defines what a shard state coordinator should hold
 type ShardCoordinator interface {
 	NumberOfShards() uint32
@@ -169,4 +169,3 @@ type ShardCoordinator interface {
 	CommunicationIdentifier(destShardID uint32) string
 	IsInterfaceNil() bool
 }
-

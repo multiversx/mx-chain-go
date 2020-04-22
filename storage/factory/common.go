@@ -1,14 +1,10 @@
 package factory
 
 import (
-	"encoding/json"
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
-	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -48,37 +44,6 @@ func GetBloomFromConfig(cfg config.BloomFilterConfig) storageUnit.BloomConfig {
 		Size:     cfg.Size,
 		HashFunc: hashFuncs,
 	}
-}
-
-// loadEpochStartRound will return the epoch start round from the bootstrap unit
-func loadEpochStartRound(
-	shardID uint32,
-	key []byte,
-	storer storage.Storer,
-) (uint64, error) {
-	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), key...)
-	data, err := storer.Get(trigInternalKey)
-	if err != nil {
-		return 0, err
-	}
-
-	if shardID == core.MetachainShardId {
-		state := &metachain.TriggerRegistry{}
-		err = json.Unmarshal(data, state)
-		if err != nil {
-			return 0, err
-		}
-
-		return state.CurrEpochStartRound, nil
-	}
-
-	state := &shardchain.TriggerRegistry{}
-	err = json.Unmarshal(data, state)
-	if err != nil {
-		return 0, err
-	}
-
-	return state.EpochStartRound, nil
 }
 
 func convertShardIDToUint32(shardIDStr string) (uint32, error) {

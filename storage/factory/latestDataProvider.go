@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -9,6 +10,9 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
+	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -135,7 +139,7 @@ func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string,
 			if err != nil {
 				continue
 			}
-			epochStartRound, err = loadEpochStartRound(shardID, bootstrapData.EpochStartTriggerConfigKey, storer)
+			epochStartRound, err = ldp.loadEpochStartRound(shardID, bootstrapData.EpochStartTriggerConfigKey, storer)
 			if err != nil {
 				continue
 			}
@@ -164,6 +168,37 @@ func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string,
 	return lastestData, nil
 }
 
+// loadEpochStartRound will return the epoch start round from the bootstrap unit
+func (ldp *latestDataProvider) loadEpochStartRound(
+	shardID uint32,
+	key []byte,
+	storer storage.Storer,
+) (uint64, error) {
+	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), key...)
+	data, err := storer.Get(trigInternalKey)
+	if err != nil {
+		return 0, err
+	}
+
+	if shardID == core.MetachainShardId {
+		state := &metachain.TriggerRegistry{}
+		err = json.Unmarshal(data, state)
+		if err != nil {
+			return 0, err
+		}
+
+		return state.CurrEpochStartRound, nil
+	}
+
+	state := &shardchain.TriggerRegistry{}
+	err = json.Unmarshal(data, state)
+	if err != nil {
+		return 0, err
+	}
+
+	return state.EpochStartRound, nil
+}
+
 // GetLastEpochFromDirNames returns the last epoch found in storage directory
 func (ldp *latestDataProvider) GetLastEpochFromDirNames(epochDirs []string) (uint32, error) {
 	if len(epochDirs) == 0 {
@@ -190,7 +225,7 @@ func (ldp *latestDataProvider) GetLastEpochFromDirNames(epochDirs []string) (uin
 	return epochsInDirName[0], nil
 }
 
-// GetShardsFromDirectory -
+// GetShardsFromDirectory will return names of shards as string from a provided directory
 func (ldp *latestDataProvider) GetShardsFromDirectory(path string) ([]string, error) {
 	shardIDs := make([]string, 0)
 	directoriesNames, err := ldp.directoryReader.ListDirectoriesAsString(path)

@@ -37,7 +37,6 @@ type openStorageUnits struct {
 }
 
 // NewStorageUnitOpenHandler creates an openStorageUnits component
-// TODO refactor this and unit tests
 func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits, error) {
 	o := &openStorageUnits{
 		generalConfig:             args.GeneralConfig,
