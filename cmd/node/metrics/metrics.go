@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -25,7 +26,20 @@ func InitMetrics(
 	version string,
 	economicsConfig *config.EconomicsConfig,
 	roundsPerEpoch int64,
-) {
+) error {
+	if check.IfNil(appStatusHandler) {
+		return fmt.Errorf("nil AppStatusHandler when initializing metrics")
+	}
+	if check.IfNil(shardCoordinator) {
+		return fmt.Errorf("nil shard coordinator when initializing metrics")
+	}
+	if nodesConfig == nil {
+		return fmt.Errorf("nil nodes config when initializing metrics")
+	}
+	if economicsConfig == nil {
+		return fmt.Errorf("nil economics config when initializing metrics")
+	}
+
 	shardId := uint64(shardCoordinator.SelfId())
 	numOfShards := uint64(shardCoordinator.NumberOfShards())
 	roundDuration := nodesConfig.RoundDuration
@@ -89,6 +103,8 @@ func InitMetrics(
 
 	appStatusHandler.SetUInt64Value(core.MetricNumValidators, uint64(numValidators))
 	appStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, uint64(consensusGroupSize))
+
+	return nil
 }
 
 // SaveUint64Metric will save a uint64 metric in status handler
@@ -109,9 +125,17 @@ func StartStatusPolling(
 	processComponents *factory.Process,
 	shardCoordinator sharding.Coordinator,
 ) error {
-
 	if ash == nil {
 		return errors.New("nil AppStatusHandler")
+	}
+	if networkComponents == nil {
+		return errors.New("nil networkComponents")
+	}
+	if processComponents == nil {
+		return errors.New("nil processComponents")
+	}
+	if check.IfNil(shardCoordinator) {
+		return errors.New("nil shard coordinator")
 	}
 
 	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(ash, pollingInterval)
