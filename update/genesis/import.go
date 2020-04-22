@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -22,12 +21,13 @@ import (
 
 // ArgsNewStateImport is the arguments structure to create a new state importer
 type ArgsNewStateImport struct {
-	Reader        update.MultiFileReader
-	Hasher        hashing.Hasher
-	Marshalizer   marshal.Marshalizer
-	ShardID       uint32
-	StorageConfig config.StorageConfig
-	TrieFactory   data.TrieFactory
+	Reader         update.MultiFileReader
+	Hasher         hashing.Hasher
+	Marshalizer    marshal.Marshalizer
+	ShardID        uint32
+	StorageConfig  config.StorageConfig
+	TrieFactory    data.TrieFactory
+	TriesContainer state.TriesHolder
 }
 
 type stateImport struct {
@@ -42,14 +42,12 @@ type stateImport struct {
 	newRootHashes      map[uint32][]byte
 	validatorsRootHash []byte
 
-	hasher              hashing.Hasher
-	marshalizer         marshal.Marshalizer
-	storage             dataRetriever.StorageService
-	triesContainer      state.TriesHolder
-	trieStorageManagers map[string]data.StorageManager
-	shardID             uint32
-	storageConfig       config.StorageConfig
-	trieFactory         data.TrieFactory
+	hasher         hashing.Hasher
+	marshalizer    marshal.Marshalizer
+	triesContainer state.TriesHolder
+	shardID        uint32
+	storageConfig  config.StorageConfig
+	trieFactory    data.TrieFactory
 }
 
 // TODO: think about the state of validators - epochs.
@@ -80,6 +78,9 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 		marshalizer:       args.Marshalizer,
 		accountDBsMap:     make(map[uint32]state.AccountsAdapter),
 		trieFactory:       args.TrieFactory,
+		storageConfig:     args.StorageConfig,
+		shardID:           args.ShardID,
+		triesContainer:    args.TriesContainer,
 	}
 
 	return st, nil
@@ -257,8 +258,7 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (data.Trie, error) 
 		return trieForShard, nil
 	}
 
-	var err error
-	_, trieForShard, err = si.trieFactory.Create(si.storageConfig, core.ShardIdToString(shardID), false)
+	_, trieForShard, err := si.trieFactory.Create(si.storageConfig, core.ShardIdToString(shardID), false)
 	if err != nil {
 		return nil, err
 	}

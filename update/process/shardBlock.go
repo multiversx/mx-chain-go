@@ -53,9 +53,6 @@ func NewShardBlockCreatorAfterHardFork(args ArgsNewShardBlockCreatorAfterHardFor
 	if check.IfNil(args.PendingTxProcessor) {
 		return nil, update.ErrNilPendingTxProcessor
 	}
-	if check.IfNil(args.ImportHandler) {
-		return nil, update.ErrNilImportHandler
-	}
 
 	return &shardBlockCreator{
 		shardCoordinator:   args.ShardCoordinator,

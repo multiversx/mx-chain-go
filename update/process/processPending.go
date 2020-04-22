@@ -28,7 +28,6 @@ type ArgsPendingTransactionProcessor struct {
 	ScrTxProcessor   process.SmartContractResultProcessor
 	PubKeyConv       state.PubkeyConverter
 	ShardCoordinator sharding.Coordinator
-	TxCoordinator    process.TransactionCoordinator
 }
 
 type pendingProcessor struct {

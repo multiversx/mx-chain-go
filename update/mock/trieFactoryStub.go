@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
+// TrieFactoryStub -
 type TrieFactoryStub struct {
 	CreateCalled func(config config.StorageConfig, s string, b bool) (data.StorageManager, data.Trie, error)
 }

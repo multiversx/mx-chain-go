@@ -34,7 +34,7 @@ type afterHardFork struct {
 
 // NewAfterHardForkBlockCreation creates the after hard fork block creator process handler
 func NewAfterHardForkBlockCreation(args ArgsAfterHardFork) (*afterHardFork, error) {
-	if args.MapBlockProcessors != nil {
+	if args.MapBlockProcessors == nil {
 		return nil, update.ErrNilHardForkBlockProcessor
 	}
 	if args.ImportHandler != nil {

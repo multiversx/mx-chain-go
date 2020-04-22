@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
-// ArgsNewMetaBlockCreatorAfterHardfork -
+// ArgsNewMetaBlockCreatorAfterHardfork defines the arguments structure for new metablock creator after hardfork
 type ArgsNewMetaBlockCreatorAfterHardfork struct {
 	ImportHandler    update.ImportHandler
 	Marshalizer      marshal.Marshalizer
@@ -28,7 +28,7 @@ type metaBlockCreator struct {
 	shardCoordinator sharding.Coordinator
 }
 
-// NewMetaBlockCreatorAfterHardfork create the after hardfork metablock creator
+// NewMetaBlockCreatorAfterHardfork creates the after hardfork metablock creator
 func NewMetaBlockCreatorAfterHardfork(args ArgsNewMetaBlockCreatorAfterHardfork) (*metaBlockCreator, error) {
 	if check.IfNil(args.ImportHandler) {
 		return nil, update.ErrNilImportHandler
@@ -72,7 +72,7 @@ func (m *metaBlockCreator) CreateNewBlock(
 	if check.IfNil(accounts) {
 		return nil, nil, update.ErrNilAccounts
 	}
-	rootHash, err := m.importHandler.GetAccountsDBForShard(core.MetachainShardId).RootHash()
+	rootHash, err := accounts.RootHash()
 	if err != nil {
 		return nil, nil, err
 	}

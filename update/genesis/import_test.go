@@ -6,11 +6,13 @@ import (
 	"os"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -112,10 +114,10 @@ func TestNewStateImport(t *testing.T) {
 		args    ArgsNewStateImport
 		exError error
 	}{
-		{name: "NilReader", args: ArgsNewStateImport{Reader: nil, Marshalizer: &mock.MarshalizerMock{}, Hasher: &mock.HasherStub{}, TrieFactory: &mock.TrieFactoryStub{}}, exError: update.ErrNilMultiFileReader},
-		{name: "NilMarshalizer", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: nil, Hasher: &mock.HasherStub{}, TrieFactory: &mock.TrieFactoryStub{}}, exError: update.ErrNilMarshalizer},
-		{name: "NilHasher", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: &mock.MarshalizerMock{}, Hasher: nil, TrieFactory: &mock.TrieFactoryStub{}}, exError: update.ErrNilHasher},
-		{name: "Ok", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: &mock.MarshalizerMock{}, Hasher: &mock.HasherStub{}, TrieFactory: &mock.TrieFactoryStub{}}, exError: nil},
+		{name: "NilReader", args: ArgsNewStateImport{Reader: nil, Marshalizer: &mock.MarshalizerMock{}, Hasher: &mock.HasherStub{}, TrieFactory: &mock.TrieFactoryStub{}, TriesContainer: state.NewDataTriesHolder()}, exError: update.ErrNilMultiFileReader},
+		{name: "NilMarshalizer", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: nil, Hasher: &mock.HasherStub{}, TrieFactory: &mock.TrieFactoryStub{}, TriesContainer: state.NewDataTriesHolder()}, exError: update.ErrNilMarshalizer},
+		{name: "NilHasher", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: &mock.MarshalizerMock{}, Hasher: nil, TrieFactory: &mock.TrieFactoryStub{}, TriesContainer: state.NewDataTriesHolder()}, exError: update.ErrNilHasher},
+		{name: "Ok", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: &mock.MarshalizerMock{}, Hasher: &mock.HasherStub{}, TrieFactory: &mock.TrieFactoryStub{}, TriesContainer: state.NewDataTriesHolder()}, exError: nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -142,10 +144,13 @@ func TestImportAll(t *testing.T) {
 	}
 	reader, _ := files.NewMultiFileReader(argsReader)
 	args := ArgsNewStateImport{
-		Reader:      reader,
-		Hasher:      &mock.HasherMock{},
-		Marshalizer: &mock.MarshalizerMock{},
-		TrieFactory: &mock.TrieFactoryStub{},
+		Reader:         reader,
+		Hasher:         &mock.HasherMock{},
+		Marshalizer:    &mock.MarshalizerMock{},
+		TrieFactory:    &mock.TrieFactoryStub{},
+		ShardID:        0,
+		StorageConfig:  config.StorageConfig{},
+		TriesContainer: state.NewDataTriesHolder(),
 	}
 
 	importState, _ := NewStateImport(args)
