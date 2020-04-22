@@ -1043,6 +1043,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		statusPollingInterval,
 		networkComponents,
 		processComponents,
+		shardCoordinator,
 	)
 	if err != nil {
 		return err
