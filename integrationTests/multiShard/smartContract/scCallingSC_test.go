@@ -554,7 +554,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.Node.Stop()
+			_ = n.Messenger.Close()
 		}
 	}()
 
