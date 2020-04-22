@@ -927,7 +927,20 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-	whiteListHandler, err := interceptors.NewWhiteListDataVerifier(whiteListCache)
+	whiteListRequest, err := interceptors.NewWhiteListDataVerifier(whiteListCache)
+	if err != nil {
+		return err
+	}
+
+	whiteListCacheVerified, err := storageUnit.NewCache(
+		storageUnit.CacheType(generalConfig.WhiteListVerified.Type),
+		generalConfig.WhiteListVerified.Size,
+		generalConfig.WhiteListVerified.Shards,
+	)
+	if err != nil {
+		return err
+	}
+	whiteListVerified, err := interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
 	if err != nil {
 		return err
 	}
@@ -949,7 +962,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		networkComponents,
 		coreServiceContainer,
 		requestedItemsHandler,
-		whiteListHandler,
+		whiteListRequest,
 		epochStartNotifier,
 		&generalConfig.EpochStartConfig,
 		currentEpoch,
@@ -997,7 +1010,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer,
 		requestedItemsHandler,
 		epochStartNotifier,
-		whiteListHandler,
+		whiteListRequest,
+		whiteListVerified,
 		chanStopNodeProcess,
 	)
 	if err != nil {
@@ -1562,7 +1576,8 @@ func createNode(
 	indexer indexer.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
-	whiteListHandler process.WhiteListHandler,
+	whiteListRequest process.WhiteListHandler,
+	whiteListVerified process.WhiteListHandler,
 	chanStopNodeProcess chan bool,
 ) (*node.Node, error) {
 	var err error
@@ -1668,7 +1683,8 @@ func createNode(
 		node.WithInputAntifloodHandler(network.InputAntifloodHandler),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(hardforkTrigger),
-		node.WithWhiteListHanlder(whiteListHandler),
+		node.WithWhiteListHanlder(whiteListRequest),
+		node.WithWhiteListHanlderVerified(whiteListVerified),
 		node.WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		node.WithNodeStopChannel(chanStopNodeProcess),

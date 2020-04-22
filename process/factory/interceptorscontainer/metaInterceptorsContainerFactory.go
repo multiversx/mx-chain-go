@@ -43,6 +43,7 @@ func NewMetaInterceptorsContainerFactory(
 		args.BlackList,
 		args.AntifloodHandler,
 		args.WhiteListHandler,
+		args.WhiteListVerified,
 		args.AddressPubkeyConverter,
 	)
 	if err != nil {
@@ -93,6 +94,7 @@ func NewMetaInterceptorsContainerFactory(
 		ChainID:           args.ChainID,
 		ValidityAttester:  args.ValidityAttester,
 		EpochStartTrigger: args.EpochStartTrigger,
+		WhitelistVerified: args.WhiteListVerified,
 	}
 
 	container := containers.NewInterceptorsContainer()
@@ -112,6 +114,7 @@ func NewMetaInterceptorsContainerFactory(
 		accounts:               args.Accounts,
 		antifloodHandler:       args.AntifloodHandler,
 		whiteListHandler:       args.WhiteListHandler,
+		whiteListVerified:      args.WhiteListVerified,
 		addressPubkeyConverter: args.AddressPubkeyConverter,
 	}
 
@@ -220,6 +223,7 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 		micf.globalThrottler,
 		micf.antifloodHandler,
 		micf.whiteListHandler,
+		micf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err

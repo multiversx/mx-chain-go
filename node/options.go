@@ -614,7 +614,20 @@ func WithWhiteListHanlder(whiteListHandler process.WhiteListHandler) Option {
 			return ErrNilWhiteListHandler
 		}
 
-		n.whiteListHandler = whiteListHandler
+		n.whiteListRequest = whiteListHandler
+
+		return nil
+	}
+}
+
+// WithWhiteListHanlderVerified sets up a white list handler option
+func WithWhiteListHanlderVerified(whiteListHandler process.WhiteListHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(whiteListHandler) {
+			return ErrNilWhiteListHandler
+		}
+
+		n.whiteListVerified = whiteListHandler
 
 		return nil
 	}

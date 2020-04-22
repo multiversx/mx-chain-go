@@ -1220,7 +1220,7 @@ func TestWithHardforkTrigger_WhiteListHandlerShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, err)
-	assert.True(t, node.whiteListHandler == whiteListHandler)
+	assert.True(t, node.whiteListRequest == whiteListHandler)
 }
 
 func TestWithSignatureSize(t *testing.T) {

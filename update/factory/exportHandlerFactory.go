@@ -48,6 +48,7 @@ type ArgsExporter struct {
 	ExportTriesStorageConfig config.StorageConfig
 	ExportStateStorageConfig config.StorageConfig
 	WhiteListHandler         process.WhiteListHandler
+	WhiteListVerified        process.WhiteListHandler
 	InterceptorsContainer    process.InterceptorsContainer
 	MultiSigner              crypto.MultiSigner
 	NodesCoordinator         sharding.NodesCoordinator
@@ -79,6 +80,7 @@ type exportHandlerFactory struct {
 	exportTriesStorageConfig config.StorageConfig
 	exportStateStorageConfig config.StorageConfig
 	whiteListHandler         process.WhiteListHandler
+	whiteListVerified        process.WhiteListHandler
 	interceptorsContainer    process.InterceptorsContainer
 	existingResolvers        dataRetriever.ResolversContainer
 	epochStartTrigger        epochStart.TriggerHandler
@@ -131,6 +133,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		return nil, update.ErrNilAccounts
 	}
 	if check.IfNil(args.WhiteListHandler) {
+		return nil, update.ErrNilWhiteListHandler
+	}
+	if check.IfNil(args.WhiteListVerified) {
 		return nil, update.ErrNilWhiteListHandler
 	}
 	if check.IfNil(args.InterceptorsContainer) {
@@ -193,6 +198,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		exportStateStorageConfig: args.ExportStateStorageConfig,
 		interceptorsContainer:    args.InterceptorsContainer,
 		whiteListHandler:         args.WhiteListHandler,
+		whiteListVerified:        args.WhiteListVerified,
 		existingResolvers:        args.ExistingResolvers,
 		accounts:                 args.ActiveAccountsDBs[state.UserAccountsState],
 		multiSigner:              args.MultiSigner,
@@ -410,6 +416,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		ValidityAttester:       e.validityAttester,
 		EpochStartTrigger:      e.epochStartTrigger,
 		WhiteListHandler:       e.whiteListHandler,
+		WhiteListVerified:      e.whiteListVerified,
 		InterceptorsContainer:  e.interceptorsContainer,
 		AntifloodHandler:       e.inputAntifloodHandler,
 	}

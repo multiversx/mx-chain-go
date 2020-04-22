@@ -31,6 +31,7 @@ func TestNewMultiDataInterceptor_EmptyTopicShouldErr(t *testing.T) {
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, mdi)
@@ -47,6 +48,7 @@ func TestNewMultiDataInterceptor_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 		&mock.WhiteListHandlerStub{},
 	)
 
@@ -65,6 +67,7 @@ func TestNewMultiDataInterceptor_NilInterceptedDataFactoryShouldErr(t *testing.T
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, mdi)
@@ -81,6 +84,7 @@ func TestNewMultiDataInterceptor_NilInterceptedDataProcessorShouldErr(t *testing
 		nil,
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 		&mock.WhiteListHandlerStub{},
 	)
 
@@ -99,6 +103,7 @@ func TestNewMultiDataInterceptor_NilInterceptorThrottlerShouldErr(t *testing.T) 
 		nil,
 		&mock.P2PAntifloodHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	assert.Nil(t, mdi)
@@ -115,6 +120,7 @@ func TestNewMultiDataInterceptor_NilAntifloodHandlerShouldErr(t *testing.T) {
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
 		nil,
+		&mock.WhiteListHandlerStub{},
 		&mock.WhiteListHandlerStub{},
 	)
 
@@ -133,6 +139,25 @@ func TestNewMultiDataInterceptor_NilWhiteListHandlerShouldErr(t *testing.T) {
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
 		nil,
+		&mock.WhiteListHandlerStub{},
+	)
+
+	assert.Nil(t, mdi)
+	assert.Equal(t, process.ErrNilWhiteListHandler, err)
+}
+
+func TestNewMultiDataInterceptor_NilWhiteListVerifiedShouldErr(t *testing.T) {
+	t.Parallel()
+
+	mdi, err := interceptors.NewMultiDataInterceptor(
+		testTopic,
+		&mock.MarshalizerMock{},
+		&mock.InterceptedDataFactoryStub{},
+		&mock.InterceptorProcessorStub{},
+		&mock.InterceptorThrottlerStub{},
+		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, mdi)
@@ -150,6 +175,7 @@ func TestNewMultiDataInterceptor(t *testing.T) {
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 		&mock.WhiteListHandlerStub{},
 	)
 
@@ -170,6 +196,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testi
 		&mock.InterceptorProcessorStub{},
 		&mock.InterceptorThrottlerStub{},
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 		&mock.WhiteListHandlerStub{},
 	)
 
@@ -193,6 +220,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalFailsShouldErr(t *t
 		&mock.InterceptorProcessorStub{},
 		createMockThrottler(),
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 		&mock.WhiteListHandlerStub{},
 	)
 
@@ -218,6 +246,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageUnmarshalReturnsEmptySliceSh
 		&mock.InterceptorProcessorStub{},
 		createMockThrottler(),
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 		&mock.WhiteListHandlerStub{},
 	)
 
@@ -250,6 +279,7 @@ func TestMultiDataInterceptor_ProcessReceivedCreateFailsShouldErr(t *testing.T) 
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		throttler,
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 		&mock.WhiteListHandlerStub{},
 	)
 
@@ -303,6 +333,7 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldErr(t *te
 		createMockInterceptorStub(&checkCalledNum, &processCalledNum),
 		throttler,
 		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 		&mock.WhiteListHandlerStub{},
 	)
 
@@ -367,6 +398,7 @@ func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, ex
 		throttler,
 		&mock.P2PAntifloodHandlerStub{},
 		&mock.WhiteListHandlerStub{},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
@@ -417,6 +449,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageWhitelistedShouldRetNil(t *t
 				return true
 			},
 		},
+		&mock.WhiteListHandlerStub{},
 	)
 
 	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})

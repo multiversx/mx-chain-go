@@ -36,6 +36,7 @@ type ShardInterceptorsContainerFactoryArgs struct {
 	ValidityAttester       process.ValidityAttester
 	EpochStartTrigger      process.EpochStartTriggerHandler
 	WhiteListHandler       process.WhiteListHandler
+	WhiteListVerified      process.WhiteListHandler
 	AntifloodHandler       process.P2PAntifloodHandler
 }
 
@@ -65,5 +66,6 @@ type MetaInterceptorsContainerFactoryArgs struct {
 	ValidityAttester       process.ValidityAttester
 	EpochStartTrigger      process.EpochStartTriggerHandler
 	WhiteListHandler       process.WhiteListHandler
+	WhiteListVerified      process.WhiteListHandler
 	AntifloodHandler       process.P2PAntifloodHandler
 }

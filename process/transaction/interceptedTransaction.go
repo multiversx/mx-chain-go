@@ -33,6 +33,7 @@ type InterceptedTransaction struct {
 	isForCurrentShard bool
 	sndAddr           state.AddressContainer
 	feeHandler        process.FeeHandler
+	whitelistVerified process.WhiteListHandler
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -46,6 +47,7 @@ func NewInterceptedTransaction(
 	pubkeyConv state.PubkeyConverter,
 	coordinator sharding.Coordinator,
 	feeHandler process.FeeHandler,
+	whitelistVerified process.WhiteListHandler,
 ) (*InterceptedTransaction, error) {
 
 	if txBuff == nil {
@@ -72,8 +74,11 @@ func NewInterceptedTransaction(
 	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if feeHandler == nil || coordinator.IsInterfaceNil() {
+	if check.IfNil(feeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(whitelistVerified) {
+		return nil, process.ErrNilWhiteListHandler
 	}
 
 	tx, err := createTx(protoMarshalizer, txBuff)
@@ -82,15 +87,16 @@ func NewInterceptedTransaction(
 	}
 
 	inTx := &InterceptedTransaction{
-		tx:               tx,
-		protoMarshalizer: protoMarshalizer,
-		signMarshalizer:  signMarshalizer,
-		hasher:           hasher,
-		singleSigner:     signer,
-		pubkeyConv:       pubkeyConv,
-		keyGen:           keyGen,
-		coordinator:      coordinator,
-		feeHandler:       feeHandler,
+		tx:                tx,
+		protoMarshalizer:  protoMarshalizer,
+		signMarshalizer:   signMarshalizer,
+		hasher:            hasher,
+		singleSigner:      signer,
+		pubkeyConv:        pubkeyConv,
+		keyGen:            keyGen,
+		coordinator:       coordinator,
+		feeHandler:        feeHandler,
+		whitelistVerified: whitelistVerified,
 	}
 
 	err = inTx.processFields(txBuff)
@@ -118,9 +124,12 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 		return err
 	}
 
-	err = inTx.verifySig()
-	if err != nil {
-		return err
+	whiteListedVerified := inTx.whitelistVerified.IsWhiteListed(inTx)
+	if !whiteListedVerified {
+		err = inTx.verifySig()
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -191,6 +200,8 @@ func (inTx *InterceptedTransaction) verifySig() error {
 	if err != nil {
 		return err
 	}
+
+	inTx.whitelistVerified.Add([][]byte{inTx.Hash()})
 
 	return nil
 }

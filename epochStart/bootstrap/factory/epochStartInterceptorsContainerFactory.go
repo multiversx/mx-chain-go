@@ -38,6 +38,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	KeyGen            crypto.KeyGenerator
 	BlockKeyGen       crypto.KeyGenerator
 	WhiteListHandler  update.WhiteListHandler
+	WhiteListVerified update.WhiteListHandler
 	AddressPubkeyConv state.PubkeyConverter
 	ChainID           []byte
 }
@@ -85,6 +86,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		ValidityAttester:       validityAttester,
 		EpochStartTrigger:      epochStartTrigger,
 		WhiteListHandler:       args.WhiteListHandler,
+		WhiteListVerified:      args.WhiteListVerified,
 		AntifloodHandler:       antiFloodHandler,
 	}
 

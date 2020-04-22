@@ -107,6 +107,7 @@ type epochStartBootstrap struct {
 	epochStartMetaBlockSyncer epochStart.StartOfEpochMetaSyncer
 	nodesConfigHandler        StartOfEpochNodesConfigHandler
 	whiteListHandler          update.WhiteListHandler
+	whitelistVerified         update.WhiteListHandler
 
 	// gathered data
 	epochStartMeta     *block.MetaBlock
@@ -335,6 +336,17 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
+	whiteListCacheVerified, err := storageUnit.NewCache(
+		storageUnit.CacheType(e.generalConfig.WhiteListVerified.Type),
+		e.generalConfig.WhiteListVerified.Size,
+		e.generalConfig.WhiteListVerified.Shards,
+	)
+	if err != nil {
+		return err
+	}
+
+	e.whitelistVerified, err = interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
+
 	err = e.createRequestHandler()
 	if err != nil {
 		return err
@@ -354,6 +366,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		Signer:            e.singleSigner,
 		BlockSigner:       e.blockSingleSigner,
 		WhitelistHandler:  e.whiteListHandler,
+		WhitelistVerified: e.whitelistVerified,
 		AddressPubkeyConv: e.addressPubkeyConverter,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
@@ -380,6 +393,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		KeyGen:            e.keyGen,
 		BlockKeyGen:       e.blockKeyGen,
 		WhiteListHandler:  e.whiteListHandler,
+		WhiteListVerified: e.whitelistVerified,
 		ChainID:           []byte(e.genesisNodesConfig.GetChainId()),
 		AddressPubkeyConv: e.addressPubkeyConverter,
 	}

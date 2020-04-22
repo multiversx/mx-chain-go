@@ -24,6 +24,7 @@ type ArgInterceptedDataFactory struct {
 	BlockSigner       crypto.SingleSigner
 	AddressPubkeyConv state.PubkeyConverter
 	FeeHandler        process.FeeHandler
+	WhitelistVerified process.WhiteListHandler
 	HeaderSigVerifier process.InterceptedHeaderSigVerifier
 	ChainID           []byte
 	ValidityAttester  process.ValidityAttester

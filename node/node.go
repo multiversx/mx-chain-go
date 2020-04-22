@@ -86,7 +86,8 @@ type Node struct {
 	validatorStatistics           process.ValidatorStatisticsProcessor
 	hardforkTrigger               HardforkTrigger
 	validatorsProvider            process.ValidatorsProvider
-	whiteListHandler              process.WhiteListHandler
+	whiteListRequest              process.WhiteListHandler
+	whiteListVerified             process.WhiteListHandler
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -752,7 +753,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	txValidator, err := dataValidators.NewTxValidator(
 		n.accounts,
 		n.shardCoordinator,
-		n.whiteListHandler,
+		n.whiteListRequest,
 		n.addressPubkeyConverter,
 		core.MaxTxNonceDeltaAllowed,
 	)
@@ -775,6 +776,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		n.addressPubkeyConverter,
 		n.shardCoordinator,
 		n.feeHandler,
+		n.whiteListVerified,
 	)
 	if err != nil {
 		return err

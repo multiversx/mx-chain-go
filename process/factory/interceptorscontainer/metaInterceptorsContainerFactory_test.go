@@ -416,7 +416,7 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	container, err := icf.Create()
 
@@ -462,5 +462,6 @@ func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryAr
 		EpochStartTrigger:      &mock.EpochStartTriggerStub{},
 		AntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
 		WhiteListHandler:       &mock.WhiteListHandlerStub{},
+		WhiteListVerified:      &mock.WhiteListHandlerStub{},
 	}
 }

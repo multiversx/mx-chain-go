@@ -207,6 +207,7 @@ type TestProcessorNode struct {
 	StorageBootstrapper      *mock.StorageBootstrapperMock
 	RequestedItemsHandler    dataRetriever.RequestedItemsHandler
 	WhiteListHandler         process.WhiteListHandler
+	WhiteListVerified        process.WhiteListHandler
 	NetworkShardingCollector consensus.NetworkShardingCollector
 
 	EpochStartTrigger  TestEpochStartTrigger
@@ -454,6 +455,10 @@ func (tpn *TestProcessorNode) initDataPools() {
 	cacherCfg := storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache, Shards: 1}
 	cache, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	tpn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(cache)
+
+	cacherVerifiedCfg := storageUnit.CacheConfig{Size: 5000, Type: storageUnit.LRUCache, Shards: 1}
+	cacheVerified, _ := storageUnit.NewCache(cacherVerifiedCfg.Type, cacherVerifiedCfg.Size, cacherVerifiedCfg.Shards)
+	tpn.WhiteListVerified, _ = interceptors.NewWhiteListDataVerifier(cacheVerified)
 }
 
 func (tpn *TestProcessorNode) initStorage() {
@@ -659,6 +664,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ValidityAttester:       tpn.BlockTracker,
 			EpochStartTrigger:      tpn.EpochStartTrigger,
 			WhiteListHandler:       tpn.WhiteListHandler,
+			WhiteListVerified:      tpn.WhiteListVerified,
 			AntifloodHandler:       &mock.NilAntifloodHandler{},
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
@@ -716,6 +722,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ValidityAttester:       tpn.BlockTracker,
 			EpochStartTrigger:      tpn.EpochStartTrigger,
 			WhiteListHandler:       tpn.WhiteListHandler,
+			WhiteListVerified:      tpn.WhiteListVerified,
 			AntifloodHandler:       &mock.NilAntifloodHandler{},
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)

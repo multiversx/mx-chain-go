@@ -431,6 +431,8 @@ func TestShardInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 			return nil
 		},
 	}
+	args.WhiteListVerified = &mock.WhiteListHandlerStub{}
+
 	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
 	container, err := icf.Create()
@@ -515,5 +517,6 @@ func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactory
 		EpochStartTrigger:      &mock.EpochStartTriggerStub{},
 		AntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
 		WhiteListHandler:       &mock.WhiteListHandlerStub{},
+		WhiteListVerified:      &mock.WhiteListHandlerStub{},
 	}
 }

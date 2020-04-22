@@ -44,6 +44,7 @@ type fullSyncInterceptorsContainerFactory struct {
 	singleSigner           crypto.SingleSigner
 	addressPubkeyConv      state.PubkeyConverter
 	whiteListHandler       update.WhiteListHandler
+	whiteListVerified      update.WhiteListHandler
 	antifloodHandler       process.P2PAntifloodHandler
 }
 
@@ -73,6 +74,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	ValidityAttester       process.ValidityAttester
 	EpochStartTrigger      process.EpochStartTriggerHandler
 	WhiteListHandler       update.WhiteListHandler
+	WhiteListVerified      update.WhiteListHandler
 	InterceptorsContainer  process.InterceptorsContainer
 	AntifloodHandler       process.P2PAntifloodHandler
 }
@@ -95,6 +97,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		args.MultiSigner,
 		args.NodesCoordinator,
 		args.BlackList,
+		args.WhiteListVerified,
 	)
 	if err != nil {
 		return nil, err
@@ -157,6 +160,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		ChainID:           args.ChainID,
 		ValidityAttester:  args.ValidityAttester,
 		EpochStartTrigger: args.EpochStartTrigger,
+		WhitelistVerified: args.WhiteListVerified,
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{
@@ -177,6 +181,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		singleSigner:           args.SingleSigner,
 		addressPubkeyConv:      args.AddressPubkeyConverter,
 		whiteListHandler:       args.WhiteListHandler,
+		whiteListVerified:      args.WhiteListVerified,
 		antifloodHandler:       args.AntifloodHandler,
 	}
 
@@ -239,6 +244,7 @@ func checkBaseParams(
 	multiSigner crypto.MultiSigner,
 	nodesCoordinator sharding.NodesCoordinator,
 	blackList process.BlackListHandler,
+	whiteListVerified update.WhiteListHandler,
 ) error {
 	if check.IfNil(shardCoordinator) {
 		return process.ErrNilShardCoordinator
@@ -269,6 +275,9 @@ func checkBaseParams(
 	}
 	if check.IfNil(blackList) {
 		return process.ErrNilBlackListHandler
+	}
+	if check.IfNil(whiteListVerified) {
+		return process.ErrNilWhiteListHandler
 	}
 
 	return nil
@@ -336,6 +345,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneShardHeaderIntercepto
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
 		ficf.whiteListHandler,
+		ficf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err
@@ -513,6 +523,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
 		ficf.whiteListHandler,
+		ficf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err
@@ -549,6 +560,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
 		ficf.whiteListHandler,
+		ficf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err
@@ -585,6 +597,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(t
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
 		ficf.whiteListHandler,
+		ficf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err
@@ -653,6 +666,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
 		ficf.whiteListHandler,
+		ficf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err
@@ -695,6 +709,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
 		ficf.whiteListHandler,
+		ficf.whiteListVerified,
 	)
 	if err != nil {
 		return err
@@ -727,6 +742,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTrieNodesInterceptor(
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
 		ficf.whiteListHandler,
+		ficf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err
