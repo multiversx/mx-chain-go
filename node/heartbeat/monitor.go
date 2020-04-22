@@ -34,6 +34,7 @@ type ArgHeartbeatMonitor struct {
 	HardforkTrigger             HardforkTrigger
 	PeerBlackListHandler        BlackListHandler
 	ValidatorPubkeyConverter    state.PubkeyConverter
+	HbmiRefreshInterval         uint32
 }
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
@@ -55,6 +56,7 @@ type Monitor struct {
 	hardforkTrigger             HardforkTrigger
 	peerBlackListHandler        BlackListHandler
 	validatorPubkeyConverter    state.PubkeyConverter
+	hbmiRefreshInterval         uint32
 }
 
 // NewMonitor returns a new monitor instance
@@ -89,7 +91,9 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 	if check.IfNil(arg.ValidatorPubkeyConverter) {
 		return nil, ErrNilPubkeyConverter
 	}
-
+	if arg.HbmiRefreshInterval == 0 {
+		return nil, ErrZeroHbmiRefreshInterval
+	}
 	mon := &Monitor{
 		marshalizer:                 arg.Marshalizer,
 		heartbeatMessages:           make(map[string]*heartbeatMessageInfo),
@@ -104,6 +108,7 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		hardforkTrigger:             arg.HardforkTrigger,
 		peerBlackListHandler:        arg.PeerBlackListHandler,
 		validatorPubkeyConverter:    arg.ValidatorPubkeyConverter,
+		hbmiRefreshInterval:         arg.HbmiRefreshInterval,
 	}
 
 	err := mon.storer.UpdateGenesisTime(arg.GenesisTime)
@@ -120,6 +125,8 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 	if err != nil {
 		log.Debug("heartbeat can't load public keys from storage", "error", err.Error())
 	}
+
+	mon.StartValidatorProcessing()
 
 	return mon, nil
 }
@@ -403,9 +410,6 @@ func (m *Monitor) computeInactiveHeartbeatMessages() {
 
 // GetHeartbeats returns the heartbeat status
 func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
-	m.computeAllHeartbeatMessages()
-	m.computeInactiveHeartbeatMessages()
-
 	m.mutHeartbeatMessages.Lock()
 	status := make([]PubKeyHeartbeat, len(m.heartbeatMessages))
 	idx := 0
@@ -481,4 +485,18 @@ func (m *Monitor) convertFromExportedStruct(hbDTO HeartbeatDTO, maxDuration time
 	hbmi.genesisTime = time.Unix(0, hbDTO.GenesisTime)
 
 	return hbmi
+}
+
+// StartValidatorProcessing will start the updating of the information about the nodes
+func (m *Monitor) StartValidatorProcessing() {
+	go func() {
+		refreshInterval := time.Duration(m.hbmiRefreshInterval) * time.Second
+
+		for {
+			m.computeAllHeartbeatMessages()
+			m.computeInactiveHeartbeatMessages()
+
+			time.Sleep(refreshInterval)
+		}
+	}()
 }

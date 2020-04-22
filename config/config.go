@@ -161,6 +161,7 @@ type HeartbeatConfig struct {
 	MinTimeToWaitBetweenBroadcastsInSec int
 	MaxTimeToWaitBetweenBroadcastsInSec int
 	DurationInSecToConsiderUnresponsive int
+	HbmiRefreshInterval                 uint32
 	HeartbeatStorage                    StorageConfig
 }
 

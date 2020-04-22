@@ -1015,6 +1015,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		HardforkTrigger:             n.hardforkTrigger,
 		PeerBlackListHandler:        n.peerBlackListHandler,
 		ValidatorPubkeyConverter:    n.validatorPubkeyConverter,
+		HbmiRefreshInterval:         hbConfig.HbmiRefreshInterval,
 	}
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(argMonitor)
 	if err != nil {

@@ -71,6 +71,7 @@ func createMockArgHeartbeatMonitor() heartbeat.ArgHeartbeatMonitor {
 		HardforkTrigger:          &mock.HardforkTriggerStub{},
 		PeerBlackListHandler:     &mock.BlackListHandlerStub{},
 		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+		HbmiRefreshInterval:      60,
 	}
 }
 
@@ -184,6 +185,17 @@ func TestNewMonitor_NilValidatorPubkeyConverterShouldErr(t *testing.T) {
 
 	assert.Nil(t, mon)
 	assert.True(t, errors.Is(err, heartbeat.ErrNilPubkeyConverter))
+}
+
+func TestNewMonitor_ZeroHbmiRefreshIntervalShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatMonitor()
+	arg.HbmiRefreshInterval = 0
+	mon, err := heartbeat.NewMonitor(arg)
+
+	assert.Nil(t, mon)
+	assert.True(t, errors.Is(err, heartbeat.ErrZeroHbmiRefreshInterval))
 }
 
 func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
