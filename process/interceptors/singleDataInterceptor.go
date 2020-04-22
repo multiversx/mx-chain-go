@@ -15,7 +15,6 @@ type SingleDataInterceptor struct {
 	processor          process.InterceptorProcessor
 	throttler          process.InterceptorThrottler
 	whiteListRequested process.WhiteListHandler
-	whiteListVerified  process.WhiteListHandler
 	antifloodHandler   process.P2PAntifloodHandler
 }
 
@@ -27,7 +26,6 @@ func NewSingleDataInterceptor(
 	throttler process.InterceptorThrottler,
 	antifloodHandler process.P2PAntifloodHandler,
 	whiteListRequested process.WhiteListHandler,
-	whiteListVerified process.WhiteListHandler,
 ) (*SingleDataInterceptor, error) {
 	if len(topic) == 0 {
 		return nil, process.ErrEmptyTopic
@@ -44,9 +42,6 @@ func NewSingleDataInterceptor(
 	if check.IfNil(antifloodHandler) {
 		return nil, process.ErrNilAntifloodHandler
 	}
-	if check.IfNil(whiteListVerified) {
-		return nil, process.ErrNilWhiteListHandler
-	}
 	if check.IfNil(whiteListRequested) {
 		return nil, process.ErrNilWhiteListHandler
 	}
@@ -58,7 +53,6 @@ func NewSingleDataInterceptor(
 		throttler:          throttler,
 		antifloodHandler:   antifloodHandler,
 		whiteListRequested: whiteListRequested,
-		whiteListVerified:  whiteListVerified,
 	}
 
 	return singleDataIntercept, nil
@@ -78,13 +72,10 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		return err
 	}
 
-	isWhiteListedVerified := sdi.whiteListVerified.IsWhiteListed(interceptedData)
-	if !isWhiteListedVerified {
-		err = interceptedData.CheckValidity()
-		if err != nil {
-			sdi.throttler.EndProcessing()
-			return err
-		}
+	err = interceptedData.CheckValidity()
+	if err != nil {
+		sdi.throttler.EndProcessing()
+		return err
 	}
 
 	isForCurrentShard := interceptedData.IsForCurrentShard()

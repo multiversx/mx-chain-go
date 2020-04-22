@@ -620,8 +620,8 @@ func WithWhiteListHanlder(whiteListHandler process.WhiteListHandler) Option {
 	}
 }
 
-// WithWhiteListHanlderVerified sets up a white list handler option
-func WithWhiteListHanlderVerified(whiteListHandler process.WhiteListHandler) Option {
+// WithWhiteListHandlerVerified sets up a white list handler option
+func WithWhiteListHandlerVerified(whiteListHandler process.WhiteListHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(whiteListHandler) {
 			return ErrNilWhiteListHandler

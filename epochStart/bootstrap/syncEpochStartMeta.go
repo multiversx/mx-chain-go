@@ -44,7 +44,6 @@ type ArgsNewEpochStartMetaSyncer struct {
 	ChainID           []byte
 	EconomicsData     *economics.EconomicsData
 	WhitelistHandler  process.WhiteListHandler
-	WhitelistVerified process.WhiteListHandler
 	AddressPubkeyConv state.PubkeyConverter
 }
 
@@ -94,7 +93,6 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		ChainID:           args.ChainID,
 		ValidityAttester:  disabled.NewValidityAttester(),
 		EpochStartTrigger: disabled.NewEpochStartTrigger(),
-		WhitelistVerified: args.WhitelistVerified,
 	}
 
 	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedDataFactory)
@@ -109,7 +107,6 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		disabled.NewThrottler(),
 		disabled.NewAntiFloodHandler(),
 		args.WhitelistHandler,
-		args.WhitelistVerified,
 	)
 	if err != nil {
 		return nil, err

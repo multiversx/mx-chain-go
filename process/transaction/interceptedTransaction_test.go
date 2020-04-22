@@ -11,9 +11,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var errSingleSignKeyGenMock = errors.New("errSingleSignKeyGenMock")
@@ -713,6 +715,32 @@ func TestInterceptedTransaction_FeeCallsTxFeeHandler(t *testing.T) {
 	assert.True(t, computeFeeCalled)
 }
 
+func TestInterceptedTransaction_WhitelistVerifiedShouldNotVerifySig(t *testing.T) {
+	tx := &dataTransaction.Transaction{
+		Nonce:     0,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+	}
+
+	computeFeeCalled := false
+	txFeeHandler := createFreeTxFeeHandler()
+	txi, _ := createInterceptedTxFromPlainTx(tx, txFeeHandler)
+	txFeeHandler.ComputeFeeCalled = func(tx process.TransactionWithFeeHandler) *big.Int {
+		computeFeeCalled = true
+
+		return big.NewInt(0)
+	}
+
+	_ = txi.Fee()
+
+	assert.True(t, computeFeeCalled)
+}
+
 func TestInterceptedTransaction_GetSenderAddress(t *testing.T) {
 	t.Parallel()
 
@@ -727,10 +755,56 @@ func TestInterceptedTransaction_GetSenderAddress(t *testing.T) {
 		Signature: sigOk,
 	}
 
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	var sigVerified bool
+	signer := &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			sigVerified = true
+			return nil
+		},
+	}
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, err := marshalizer.Marshal(tx)
+	require.Nil(t, err)
 
-	result := txi.SenderAddress()
-	assert.NotNil(t, result)
+	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
+	shardCoordinator.CurrentShard = 6
+	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+		return shardCoordinator.CurrentShard
+	}
+
+	cache := mock.NewCacherMock()
+	whiteListVerified, err := interceptors.NewWhiteListDataVerifier(cache)
+	require.Nil(t, err)
+
+	txi, err := transaction.NewInterceptedTransaction(
+		txBuff,
+		marshalizer,
+		marshalizer,
+		mock.HasherMock{},
+		createKeyGenMock(),
+		signer,
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
+				return mock.NewAddressMock(pubKey), nil
+			},
+		},
+		shardCoordinator,
+		createFreeTxFeeHandler(),
+		whiteListVerified,
+	)
+	require.Nil(t, err)
+
+	// first check should verify sig
+	sigVerified = false
+	err = txi.CheckValidity()
+	require.Nil(t, err)
+	require.True(t, sigVerified)
+
+	//second check should find txi in whitelist and should not verify sig
+	sigVerified = false
+	err = txi.CheckValidity()
+	require.Nil(t, err)
+	require.False(t, sigVerified)
 }
 
 //------- IsInterfaceNil

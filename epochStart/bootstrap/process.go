@@ -366,7 +366,6 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		Signer:            e.singleSigner,
 		BlockSigner:       e.blockSingleSigner,
 		WhitelistHandler:  e.whiteListHandler,
-		WhitelistVerified: e.whitelistVerified,
 		AddressPubkeyConv: e.addressPubkeyConverter,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)

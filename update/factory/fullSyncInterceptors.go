@@ -345,7 +345,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneShardHeaderIntercepto
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
 		ficf.whiteListHandler,
-		ficf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err
@@ -523,7 +522,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
 		ficf.whiteListHandler,
-		ficf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err
@@ -560,7 +558,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
 		ficf.whiteListHandler,
-		ficf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err
@@ -597,7 +594,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(t
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
 		ficf.whiteListHandler,
-		ficf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err
@@ -666,7 +662,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
 		ficf.whiteListHandler,
-		ficf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err
@@ -709,7 +704,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
 		ficf.whiteListHandler,
-		ficf.whiteListVerified,
 	)
 	if err != nil {
 		return err
@@ -742,7 +736,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTrieNodesInterceptor(
 		ficf.globalThrottler,
 		ficf.antifloodHandler,
 		ficf.whiteListHandler,
-		ficf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err

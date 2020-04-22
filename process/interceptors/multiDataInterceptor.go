@@ -15,14 +15,13 @@ var log = logger.GetOrCreate("process/interceptors")
 
 // MultiDataInterceptor is used for intercepting packed multi data
 type MultiDataInterceptor struct {
-	topic             string
-	marshalizer       marshal.Marshalizer
-	factory           process.InterceptedDataFactory
-	processor         process.InterceptorProcessor
-	throttler         process.InterceptorThrottler
-	whiteListRequest  process.WhiteListHandler
-	whiteListVerified process.WhiteListHandler
-	antifloodHandler  process.P2PAntifloodHandler
+	topic            string
+	marshalizer      marshal.Marshalizer
+	factory          process.InterceptedDataFactory
+	processor        process.InterceptorProcessor
+	throttler        process.InterceptorThrottler
+	whiteListRequest process.WhiteListHandler
+	antifloodHandler process.P2PAntifloodHandler
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
@@ -34,7 +33,6 @@ func NewMultiDataInterceptor(
 	throttler process.InterceptorThrottler,
 	antifloodHandler process.P2PAntifloodHandler,
 	whiteListRequest process.WhiteListHandler,
-	whiteListVerified process.WhiteListHandler,
 ) (*MultiDataInterceptor, error) {
 	if len(topic) == 0 {
 		return nil, process.ErrEmptyTopic
@@ -57,19 +55,15 @@ func NewMultiDataInterceptor(
 	if check.IfNil(whiteListRequest) {
 		return nil, process.ErrNilWhiteListHandler
 	}
-	if check.IfNil(whiteListVerified) {
-		return nil, process.ErrNilWhiteListHandler
-	}
 
 	multiDataIntercept := &MultiDataInterceptor{
-		topic:             topic,
-		marshalizer:       marshalizer,
-		factory:           factory,
-		processor:         processor,
-		throttler:         throttler,
-		whiteListRequest:  whiteListRequest,
-		whiteListVerified: whiteListVerified,
-		antifloodHandler:  antifloodHandler,
+		topic:            topic,
+		marshalizer:      marshalizer,
+		factory:          factory,
+		processor:        processor,
+		throttler:        throttler,
+		whiteListRequest: whiteListRequest,
+		antifloodHandler: antifloodHandler,
 	}
 
 	return multiDataIntercept, nil
@@ -151,13 +145,11 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte) (process.Inter
 		return nil, err
 	}
 
-	isWhiteListedVerified := mdi.whiteListVerified.IsWhiteListed(interceptedData)
-	if !isWhiteListedVerified {
-		err = interceptedData.CheckValidity()
-		if err != nil {
-			return nil, err
-		}
+	err = interceptedData.CheckValidity()
+	if err != nil {
+		return nil, err
 	}
+
 	return interceptedData, nil
 }
 

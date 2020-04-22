@@ -1685,7 +1685,7 @@ func createNode(
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithWhiteListHanlder(whiteListRequest),
-		node.WithWhiteListHanlderVerified(whiteListVerified),
+		node.WithWhiteListHandlerVerified(whiteListVerified),
 		node.WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		node.WithNodeStopChannel(chanStopNodeProcess),

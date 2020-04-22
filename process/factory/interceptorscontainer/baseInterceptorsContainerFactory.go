@@ -188,7 +188,6 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 		bicf.globalThrottler,
 		bicf.antifloodHandler,
 		bicf.whiteListHandler,
-		bicf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err
@@ -226,7 +225,6 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 		bicf.globalThrottler,
 		bicf.antifloodHandler,
 		bicf.whiteListHandler,
-		bicf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err
@@ -264,7 +262,6 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 		bicf.globalThrottler,
 		bicf.antifloodHandler,
 		bicf.whiteListHandler,
-		bicf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err
@@ -310,7 +307,6 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 		bicf.globalThrottler,
 		bicf.antifloodHandler,
 		bicf.whiteListHandler,
-		bicf.whiteListVerified,
 	)
 	if err != nil {
 		return err
@@ -393,7 +389,6 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 		bicf.globalThrottler,
 		bicf.antifloodHandler,
 		bicf.whiteListHandler,
-		bicf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err
@@ -436,7 +431,6 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 		bicf.globalThrottler,
 		bicf.antifloodHandler,
 		bicf.whiteListHandler,
-		bicf.whiteListVerified,
 	)
 	if err != nil {
 		return err
@@ -469,7 +463,6 @@ func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topi
 		bicf.globalThrottler,
 		bicf.antifloodHandler,
 		bicf.whiteListHandler,
-		bicf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err

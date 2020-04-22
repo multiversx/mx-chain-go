@@ -223,7 +223,6 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 		micf.globalThrottler,
 		micf.antifloodHandler,
 		micf.whiteListHandler,
-		micf.whiteListVerified,
 	)
 	if err != nil {
 		return nil, err
