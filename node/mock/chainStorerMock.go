@@ -83,6 +83,10 @@ func (bc *ChainStorerMock) GetAll(unitType dataRetriever.UnitType, keys [][]byte
 	return nil, nil
 }
 
+// SetEpochForPutOperation won't do anything
+func (bc *ChainStorerMock) SetEpochForPutOperation(epoch uint32) {
+}
+
 // Destroy removes the underlying files/resources used by the storage service
 func (bc *ChainStorerMock) Destroy() error {
 	if bc.DestroyCalled != nil {
