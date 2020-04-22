@@ -6,10 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
-func (g *Genesis) InitialAccounts() []*InitialAccount {
-	return g.initialAccounts
-}
-
 func (g *Genesis) SetInitialAccounts(initialAccounts []*InitialAccount) {
 	g.initialAccounts = initialAccounts
 }

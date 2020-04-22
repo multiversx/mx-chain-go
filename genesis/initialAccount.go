@@ -13,7 +13,7 @@ type InitialAccount struct {
 	Balance      *big.Int        `json:"balance"`
 	StakingValue *big.Int        `json:"stakingvalue"`
 	Delegation   *DelegationData `json:"delegation"`
-	address      []byte
+	AddressBytes []byte          `json:"-"`
 }
 
 // MarshalJSON is the function called when trying to serialize the object using the JSON marshaler

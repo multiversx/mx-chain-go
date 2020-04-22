@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
@@ -87,7 +88,7 @@ func TestNewGenesis_NilEntireBalanceShouldErr(t *testing.T) {
 		createMockHexPubkeyConverter(),
 	)
 
-	assert.Nil(t, g)
+	assert.True(t, check.IfNil(g))
 	assert.True(t, errors.Is(err, genesis.ErrNilEntireSupply))
 }
 
@@ -100,7 +101,7 @@ func TestNewGenesis_ZeroEntireBalanceShouldErr(t *testing.T) {
 		createMockHexPubkeyConverter(),
 	)
 
-	assert.Nil(t, g)
+	assert.True(t, check.IfNil(g))
 	assert.True(t, errors.Is(err, genesis.ErrInvalidEntireSupply))
 }
 
@@ -113,7 +114,7 @@ func TestNewGenesis_BadFilenameShouldErr(t *testing.T) {
 		createMockHexPubkeyConverter(),
 	)
 
-	assert.Nil(t, g)
+	assert.True(t, check.IfNil(g))
 	assert.NotNil(t, err)
 }
 
@@ -126,7 +127,7 @@ func TestNewGenesis_NilPubkeyConverterShouldErr(t *testing.T) {
 		nil,
 	)
 
-	assert.Nil(t, g)
+	assert.True(t, check.IfNil(g))
 	assert.Equal(t, genesis.ErrNilPubkeyConverter, err)
 }
 
@@ -139,7 +140,7 @@ func TestNewGenesis_BadJsonShouldErr(t *testing.T) {
 		createMockHexPubkeyConverter(),
 	)
 
-	assert.Nil(t, g)
+	assert.True(t, check.IfNil(g))
 	assert.True(t, errors.Is(err, genesis.ErrInvalidAddress))
 }
 
@@ -152,7 +153,7 @@ func TestNewGenesis_ShouldWork(t *testing.T) {
 		createMockHexPubkeyConverter(),
 	)
 
-	require.NotNil(t, g)
+	assert.False(t, check.IfNil(g))
 	assert.Nil(t, err)
 	assert.Equal(t, 6, len(g.InitialAccounts()))
 }

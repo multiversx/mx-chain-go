@@ -1,0 +1,22 @@
+[
+  {
+    "address": "0001",
+    "supply": "5000",
+    "balance": "5000",
+    "stakingvalue": "0",
+    "delegation": {
+      "address": "",
+      "value":   "0"
+    }
+  },
+  {
+    "address": "0002",
+    "supply": "5000",
+    "balance": "2000",
+    "stakingvalue": "3000",
+    "delegation": {
+      "address": "",
+      "value":   "0"
+    }
+  }
+]

@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math/big"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -29,7 +28,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
@@ -39,9 +37,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
+	"github.com/ElrondNetwork/elrond-go/genesis"
+	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	factoryHasher "github.com/ElrondNetwork/elrond-go/hashing/factory"
@@ -80,7 +79,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -145,7 +143,7 @@ type State struct {
 	ValidatorPubkeyConverter state.PubkeyConverter
 	PeerAccounts             state.AccountsAdapter
 	AccountsAdapter          state.AccountsAdapter
-	InBalanceForShard        map[string]*big.Int
+	AccountsForShard         []*genesis.InitialAccount
 }
 
 // Data struct holds the data components of the Elrond protocol
@@ -285,7 +283,7 @@ func createTries(
 
 type stateComponentsFactoryArgs struct {
 	config           *config.Config
-	genesisConfig    *sharding.Genesis
+	genesisParser    *genesis.Genesis
 	shardCoordinator sharding.Coordinator
 	core             *Core
 	pathManager      storage.PathManagerHandler
@@ -294,14 +292,14 @@ type stateComponentsFactoryArgs struct {
 // NewStateComponentsFactoryArgs initializes the arguments necessary for creating the state components
 func NewStateComponentsFactoryArgs(
 	config *config.Config,
-	genesisConfig *sharding.Genesis,
+	genesisParser *genesis.Genesis,
 	shardCoordinator sharding.Coordinator,
 	core *Core,
 	pathManager storage.PathManagerHandler,
 ) *stateComponentsFactoryArgs {
 	return &stateComponentsFactoryArgs{
 		config:           config,
-		genesisConfig:    genesisConfig,
+		genesisParser:    genesisParser,
 		shardCoordinator: shardCoordinator,
 		core:             core,
 		pathManager:      pathManager,
@@ -327,7 +325,7 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	inBalanceForShard, err := args.genesisConfig.InitialNodesBalances(args.shardCoordinator)
+	accountsForShard, err := args.genesisParser.InitialAccountsSplitOnAddressesShards(args.shardCoordinator)
 	if err != nil {
 		return nil, errors.New("initial balances could not be processed " + err.Error())
 	}
@@ -344,7 +342,7 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		AddressPubkeyConverter:   processPubkeyConverter,
 		ValidatorPubkeyConverter: validatorPubkeyConverter,
 		AccountsAdapter:          accountsAdapter,
-		InBalanceForShard:        inBalanceForShard,
+		AccountsForShard:         accountsForShard[args.shardCoordinator.SelfId()],
 	}, nil
 }
 
@@ -541,7 +539,7 @@ func NetworkComponentsFactory(
 
 type processComponentsFactoryArgs struct {
 	coreComponents            *coreComponentsFactoryArgs
-	genesisConfig             *sharding.Genesis
+	genesisParser             *genesis.Genesis
 	economicsData             *economics.EconomicsData
 	nodesConfig               *sharding.NodesSetup
 	gasSchedule               map[string]map[string]uint64
@@ -573,7 +571,7 @@ type processComponentsFactoryArgs struct {
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
 func NewProcessComponentsFactoryArgs(
 	coreComponents *coreComponentsFactoryArgs,
-	genesisConfig *sharding.Genesis,
+	genesisParser *genesis.Genesis,
 	economicsData *economics.EconomicsData,
 	nodesConfig *sharding.NodesSetup,
 	gasSchedule map[string]map[string]uint64,
@@ -603,7 +601,7 @@ func NewProcessComponentsFactoryArgs(
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
-		genesisConfig:             genesisConfig,
+		genesisParser:             genesisParser,
 		economicsData:             economicsData,
 		nodesConfig:               nodesConfig,
 		gasSchedule:               gasSchedule,
@@ -1340,63 +1338,21 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	dataComponents := args.data
 	shardCoordinator := args.shardCoordinator
 	nodesSetup := args.nodesConfig
-	genesisConfig := args.genesisConfig
+	genesisParser := args.genesisParser
 	economicsData := args.economicsData
-
-	genesisBlocks := make(map[uint32]data.HeaderHandler)
 
 	validatorStatsRootHash, err := stateComponents.PeerAccounts.RootHash()
 	if err != nil {
 		return nil, err
 	}
 
-	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		var newShardCoordinator sharding.Coordinator
-		var accountsAdapter state.AccountsAdapter
-
-		isCurrentShard := shardId == shardCoordinator.SelfId()
-		if isCurrentShard && args.startEpochNum == 0 {
-			accountsAdapter = stateComponents.AccountsAdapter
-			newShardCoordinator = shardCoordinator
-		} else {
-			newShardCoordinator, accountsAdapter, err = createInMemoryShardCoordinatorAndAccount(
-				coreComponents,
-				shardCoordinator.NumberOfShards(),
-				shardId,
-			)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		var genesisBlock data.HeaderHandler
-		genesisBlock, err = createGenesisBlockAndApplyInitialBalances(
-			accountsAdapter,
-			newShardCoordinator,
-			stateComponents.AddressPubkeyConverter,
-			genesisConfig,
-			uint64(nodesSetup.StartTime),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		genesisBlocks[shardId] = genesisBlock
-		err = saveGenesisBlock(
-			genesisBlock,
-			coreComponents,
-			dataComponents,
-		)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
+	arg := genesisProcess.ArgsGenesisBlockCreator{
 		GenesisTime:              uint64(nodesSetup.StartTime),
+		StartEpochNum:            args.startEpochNum,
 		Accounts:                 stateComponents.AccountsAdapter,
 		PubkeyConv:               stateComponents.AddressPubkeyConverter,
-		NodesSetup:               nodesSetup,
+		InitialNodesSetup:        nodesSetup,
+		Economics:                economicsData,
 		ShardCoordinator:         shardCoordinator,
 		Store:                    dataComponents.Store,
 		Blkc:                     dataComponents.Blkc,
@@ -1404,108 +1360,17 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		Hasher:                   coreComponents.Hasher,
 		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter,
 		DataPool:                 dataComponents.Datapool,
-		Economics:                economicsData,
+		GenesisParser:            genesisParser,
 		ValidatorStatsRootHash:   validatorStatsRootHash,
 		GasMap:                   args.gasSchedule,
 	}
 
-	if shardCoordinator.SelfId() != core.MetachainShardId || args.startEpochNum > 0 {
-		var newShardCoordinator sharding.Coordinator
-		var newAccounts state.AccountsAdapter
-		newShardCoordinator, newAccounts, err = createInMemoryShardCoordinatorAndAccount(
-			coreComponents,
-			shardCoordinator.NumberOfShards(),
-			core.MetachainShardId,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		newBlockChain := blockchain.NewMetaChain()
-		argsMetaGenesis.ShardCoordinator = newShardCoordinator
-		argsMetaGenesis.Accounts = newAccounts
-		argsMetaGenesis.Blkc = newBlockChain
-	}
-
-	genesisBlock, err := genesis.CreateMetaGenesisBlock(
-		argsMetaGenesis,
-	)
+	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debug("MetaGenesisBlock created",
-		"roothash", genesisBlock.GetRootHash(),
-		"validatorStatsRootHash", genesisBlock.GetValidatorStatsRootHash(),
-	)
-
-	genesisBlocks[core.MetachainShardId] = genesisBlock
-	err = saveGenesisBlock(genesisBlock, coreComponents, dataComponents)
-	if err != nil {
-		return nil, err
-	}
-
-	return genesisBlocks, nil
-}
-
-func saveGenesisBlock(header data.HeaderHandler, coreComponents *Core, dataComponents *Data) error {
-	blockBuff, err := coreComponents.InternalMarshalizer.Marshal(header)
-	if err != nil {
-		return err
-	}
-
-	hash := coreComponents.Hasher.Compute(string(blockBuff))
-	unitType := dataRetriever.BlockHeaderUnit
-	if header.GetShardID() == core.MetachainShardId {
-		unitType = dataRetriever.MetaBlockUnit
-	}
-
-	return dataComponents.Store.Put(unitType, hash, blockBuff)
-}
-
-func createGenesisBlockAndApplyInitialBalances(
-	accounts state.AccountsAdapter,
-	shardCoordinator sharding.Coordinator,
-	pubkeyConverter state.PubkeyConverter,
-	genesisConfig *sharding.Genesis,
-	startTime uint64,
-) (data.HeaderHandler, error) {
-
-	initialBalances, err := genesisConfig.InitialNodesBalances(shardCoordinator)
-	if err != nil {
-		return nil, err
-	}
-
-	return genesis.CreateShardGenesisBlockFromInitialBalances(
-		accounts,
-		shardCoordinator,
-		pubkeyConverter,
-		initialBalances,
-		startTime,
-	)
-}
-
-func createInMemoryShardCoordinatorAndAccount(
-	coreComponents *Core,
-	numOfShards uint32,
-	shardId uint32,
-) (sharding.Coordinator, state.AccountsAdapter, error) {
-
-	newShardCoordinator, err := sharding.NewMultiShardCoordinator(numOfShards, shardId)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	accounts, err := generateInMemoryAccountsAdapter(
-		factoryState.NewAccountCreator(),
-		coreComponents.Hasher,
-		coreComponents.InternalMarshalizer,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return newShardCoordinator, accounts, nil
+	return gbc.CreateGenesisBlocks()
 }
 
 func newBlockTracker(
@@ -2328,45 +2193,6 @@ func createNetworkShardingCollector(
 
 func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
 	return storageUnit.NewCache(storageUnit.CacheType(cacheConfig.Type), cacheConfig.Size, cacheConfig.Shards)
-}
-
-func generateInMemoryAccountsAdapter(
-	accountFactory state.AccountFactory,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-) (state.AccountsAdapter, error) {
-	trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
-	if err != nil {
-		return nil, err
-	}
-
-	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher)
-	if err != nil {
-		return nil, err
-	}
-
-	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	return adb, nil
-}
-
-func createMemUnit() storage.Storer {
-	cache, err := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-	if err != nil {
-		log.Error("error creating cache for mem unit " + err.Error())
-		return nil
-	}
-
-	unit, err := storageUnit.NewStorageUnit(cache, memorydb.New())
-	if err != nil {
-		log.Error("error creating unit " + err.Error())
-		return nil
-	}
-
-	return unit
 }
 
 // GetSigningParams returns a key generator, a private key, and a public key

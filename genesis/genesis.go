@@ -94,7 +94,7 @@ func (g *Genesis) parseElement(initialAccount *InitialAccount) error {
 	if len(initialAccount.Address) == 0 {
 		return ErrEmptyAddress
 	}
-	initialAccount.address, err = g.pubkeyConverter.Decode(initialAccount.Address)
+	initialAccount.AddressBytes, err = g.pubkeyConverter.Decode(initialAccount.Address)
 	if err != nil {
 		return fmt.Errorf("%w for `%s`",
 			ErrInvalidAddress, initialAccount.Address)
@@ -128,7 +128,7 @@ func (g *Genesis) parseDelegationElement(initialAccount *InitialAccount) error {
 }
 
 func (g *Genesis) checkInitialAccount(initialAccount *InitialAccount) error {
-	isSmartContract := core.IsSmartContractAddress(initialAccount.address)
+	isSmartContract := core.IsSmartContractAddress(initialAccount.AddressBytes)
 	if isSmartContract {
 		return fmt.Errorf("%w for address %s",
 			ErrAddressIsSmartContract,
@@ -226,6 +226,11 @@ func (g *Genesis) DelegatedUpon(address string) *big.Int {
 	return delegated
 }
 
+// InitialAccounts return the initial accounts contained by this parser
+func (g *Genesis) InitialAccounts() []*InitialAccount {
+	return g.initialAccounts
+}
+
 // InitialAccountsSplitOnAddressesShards gets the initial accounts of the nodes split on the addresses's shards
 func (g *Genesis) InitialAccountsSplitOnAddressesShards(
 	shardCoordinator sharding.Coordinator,
@@ -237,7 +242,7 @@ func (g *Genesis) InitialAccountsSplitOnAddressesShards(
 
 	var addresses = make(map[uint32][]*InitialAccount)
 	for _, in := range g.initialAccounts {
-		address, err := g.pubkeyConverter.CreateAddressFromBytes(in.address)
+		address, err := g.pubkeyConverter.CreateAddressFromBytes(in.AddressBytes)
 		if err != nil {
 			return nil, err
 		}
@@ -274,4 +279,9 @@ func (g *Genesis) InitialAccountsSplitOnDelegationAddressesShards(
 	}
 
 	return addresses, nil
+}
+
+// IsInterfaceNil returns if underlying object is true
+func (g *Genesis) IsInterfaceNil() bool {
+	return g == nil
 }

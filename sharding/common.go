@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/hex"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 )
+
+var log = logger.GetOrCreate("sharding")
 
 func computeStartIndexAndNumAppearancesForValidator(expEligibleList []uint32, idx int64) (int64, int64) {
 	val := expEligibleList[idx]

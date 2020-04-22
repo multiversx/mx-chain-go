@@ -61,3 +61,6 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
 // ErrNilPubkeyConverter signals that the provided public key converter is nil
 var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
+
+// ErrNilGenesisParser signals that the provided genesis parser is nil
+var ErrNilGenesisParser = errors.New("nil genesis parser")
