@@ -36,7 +36,7 @@ func (p *PeerAccountHandlerMock) GetList() string {
 	return ""
 }
 
-// GetIndex -
+// GetIndexInList -
 func (p *PeerAccountHandlerMock) GetIndexInList() uint32 {
 	return 0
 }
