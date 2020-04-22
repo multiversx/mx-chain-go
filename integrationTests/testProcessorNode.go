@@ -347,6 +347,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           ChainID,
+		NodesSetup:        &mock.NodesSetupStub{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -419,7 +420,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.GenesisBlocks = CreateGenesisBlocks(
 		tpn.AccntState,
 		TestAddressPubkeyConverter,
-		&sharding.NodesSetup{},
+		tpn.NodesSetup,
 		tpn.ShardCoordinator,
 		tpn.Storage,
 		tpn.BlockChain,
