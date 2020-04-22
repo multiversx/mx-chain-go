@@ -432,13 +432,9 @@ func (en *extensionNode) delete(key []byte, db data.DBWriteCacher) (bool, node, 
 
 func (en *extensionNode) reduceNode(pos int) (node, error) {
 	k := append([]byte{byte(pos)}, en.Key...)
+	en.Key = k
 
-	newEn, err := newExtensionNode(k, en.child, en.marsh, en.hasher)
-	if err != nil {
-		return nil, err
-	}
-
-	return newEn, nil
+	return en, nil
 }
 
 func (en *extensionNode) clone() *extensionNode {
