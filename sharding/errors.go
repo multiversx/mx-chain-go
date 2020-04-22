@@ -112,9 +112,6 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 // ErrNilBlockBody signals that block body is nil
 var ErrNilBlockBody = errors.New("nil block body")
 
-// ErrNilValidator signals that a nil validator was provided
-var ErrNilValidator = errors.New("nil validator")
-
 // ErrNilShuffledOutHandler signals that a nil shuffled out handler has been provided
 var ErrNilShuffledOutHandler = errors.New("nil shuffled out handler")
 
@@ -123,3 +120,6 @@ var ErrNilOwnPublicKey = errors.New("nil own public key")
 
 // ErrNilEndOfProcessingHandler signals that a nil end of processing handler has been provided
 var ErrNilEndOfProcessingHandler = errors.New("nil end of processing handler")
+
+// ErrNilDestinationForDistribute signals that a nil value was provided for destination of distributedNodes
+var ErrNilDestinationForDistribute = errors.New("nil destination list for distributeNodes")
