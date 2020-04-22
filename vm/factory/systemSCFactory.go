@@ -9,18 +9,20 @@ import (
 )
 
 type systemSCFactory struct {
-	systemEI          vm.ContextHandler
-	validatorSettings vm.ValidatorSettingsHandler
-	sigVerifier       vm.MessageSignVerifier
-	gasCost           vm.GasCost
+	systemEI            vm.ContextHandler
+	validatorSettings   vm.ValidatorSettingsHandler
+	nodesConfigProvider vm.NodesConfigProvider
+	sigVerifier         vm.MessageSignVerifier
+	gasCost             vm.GasCost
 }
 
 // ArgsNewSystemSCFactory defines the arguments struct needed to create the system SCs
 type ArgsNewSystemSCFactory struct {
-	SystemEI          vm.ContextHandler
-	ValidatorSettings vm.ValidatorSettingsHandler
-	SigVerifier       vm.MessageSignVerifier
-	GasMap            map[string]map[string]uint64
+	SystemEI            vm.ContextHandler
+	ValidatorSettings   vm.ValidatorSettingsHandler
+	NodesConfigProvider vm.NodesConfigProvider
+	SigVerifier         vm.MessageSignVerifier
+	GasMap              map[string]map[string]uint64
 }
 
 // NewSystemSCFactory creates a factory which will instantiate the system smart contracts
@@ -34,11 +36,16 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 	if check.IfNil(args.SigVerifier) {
 		return nil, vm.ErrNilMessageSignVerifier
 	}
+	if check.IfNil(args.NodesConfigProvider) {
+		return nil, vm.ErrNilNodesConfigProvider
+	}
 
 	scf := &systemSCFactory{
-		systemEI:          args.SystemEI,
-		validatorSettings: args.ValidatorSettings,
-		sigVerifier:       args.SigVerifier}
+		systemEI:            args.SystemEI,
+		validatorSettings:   args.ValidatorSettings,
+		sigVerifier:         args.SigVerifier,
+		nodesConfigProvider: args.NodesConfigProvider,
+	}
 
 	err := scf.createGasConfig(args.GasMap)
 	if err != nil {
@@ -84,7 +91,7 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 	scContainer := NewSystemSCContainer()
 
 	argsStaking := systemSmartContracts.ArgsNewStakingSmartContract{
-		MinNumNodes:              scf.validatorSettings.NumNodes(),
+		MinNumNodes:              scf.nodesConfigProvider.MinNumberOfNodes(),
 		MinStakeValue:            scf.validatorSettings.GenesisNodePrice(),
 		UnBondPeriod:             scf.validatorSettings.UnBondPeriod(),
 		Eei:                      scf.systemEI,
@@ -106,12 +113,13 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 	}
 
 	args := systemSmartContracts.ArgsStakingAuctionSmartContract{
-		Eei:               scf.systemEI,
-		SigVerifier:       scf.sigVerifier,
-		ValidatorSettings: scf.validatorSettings,
-		StakingSCAddress:  StakingSCAddress,
-		AuctionSCAddress:  AuctionSCAddress,
-		GasCost:           scf.gasCost,
+		Eei:                 scf.systemEI,
+		SigVerifier:         scf.sigVerifier,
+		NodesConfigProvider: scf.nodesConfigProvider,
+		ValidatorSettings:   scf.validatorSettings,
+		StakingSCAddress:    StakingSCAddress,
+		AuctionSCAddress:    AuctionSCAddress,
+		GasCost:             scf.gasCost,
 	}
 	auction, err := systemSmartContracts.NewStakingAuctionSmartContract(args)
 	if err != nil {

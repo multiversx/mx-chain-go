@@ -12,6 +12,15 @@ type NodesSetupStub struct {
 	GetShardConsensusGroupSizeCalled func() uint32
 	GetMetaConsensusGroupSizeCalled  func() uint32
 	NumberOfShardsCalled             func() uint32
+	MinNumberOfNodesCalled           func() uint32
+}
+
+// MinNumberOfNodes -
+func (n *NodesSetupStub) MinNumberOfNodes() uint32 {
+	if n.MinNumberOfNodesCalled != nil {
+		return n.MinNumberOfNodesCalled()
+	}
+	return 1
 }
 
 // GetStartTime -

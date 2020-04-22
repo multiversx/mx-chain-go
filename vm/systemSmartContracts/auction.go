@@ -50,12 +50,13 @@ type stakingAuctionSC struct {
 
 // ArgsStakingAuctionSmartContract is the arguments structure to create a new StakingAuctionSmartContract
 type ArgsStakingAuctionSmartContract struct {
-	ValidatorSettings vm.ValidatorSettingsHandler
-	Eei               vm.SystemEI
-	SigVerifier       vm.MessageSignVerifier
-	StakingSCAddress  []byte
-	AuctionSCAddress  []byte
-	GasCost           vm.GasCost
+	NodesConfigProvider vm.NodesConfigProvider
+	ValidatorSettings   vm.ValidatorSettingsHandler
+	Eei                 vm.SystemEI
+	SigVerifier         vm.MessageSignVerifier
+	StakingSCAddress    []byte
+	AuctionSCAddress    []byte
+	GasCost             vm.GasCost
 }
 
 // NewStakingAuctionSmartContract creates an auction smart contract
@@ -80,10 +81,17 @@ func NewStakingAuctionSmartContract(
 	if len(args.AuctionSCAddress) == 0 {
 		return nil, vm.ErrNilAuctionSmartContractAddress
 	}
+	if check.IfNil(args.NodesConfigProvider) {
+		return nil, vm.ErrNilNodesConfigProvider
+	}
+	if args.NodesConfigProvider.MinNumberOfNodes() < 1 {
+		return nil, vm.ErrInvalidMinNumberOfNodes
+	}
 
+	// TODO: max numNodes as well when enabling auction
 	baseConfig := AuctionConfig{
 		MinStakeValue: big.NewInt(0).Set(args.ValidatorSettings.GenesisNodePrice()),
-		NumNodes:      args.ValidatorSettings.NumNodes(),
+		NumNodes:      args.NodesConfigProvider.MinNumberOfNodes(),
 		TotalSupply:   big.NewInt(0).Set(args.ValidatorSettings.TotalSupply()),
 		MinStep:       big.NewInt(0).Set(args.ValidatorSettings.MinStepValue()),
 		NodePrice:     big.NewInt(0).Set(args.ValidatorSettings.GenesisNodePrice()),
@@ -775,7 +783,7 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		}
 		// returns what value is still under the selected bls key
 		vmOutput, err := s.executeOnStakingSC([]byte("unBond@" + hex.EncodeToString(blsKey)))
-		isError := err != nil || vmOutput.ReturnCode != vmcommon.Ok
+		isError := err != nil || vmOutput == nil || vmOutput.ReturnCode != vmcommon.Ok
 		if isError {
 			continue
 		}

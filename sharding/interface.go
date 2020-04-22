@@ -153,6 +153,7 @@ type GenesisNodesSetupHandler interface {
 	GetShardConsensusGroupSize() uint32
 	GetMetaConsensusGroupSize() uint32
 	NumberOfShards() uint32
+	MinNumberOfNodes() uint32
 	IsInterfaceNil() bool
 }
 

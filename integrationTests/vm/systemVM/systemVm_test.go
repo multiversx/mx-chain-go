@@ -55,7 +55,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	integrationTests.MintAllNodes(nodes, initialVal)
 	verifyInitialBalance(t, nodes, initialVal)
 
-	minNumNodes := nodes[0].EconomicsData.NumNodes()
+	minNumNodes := nodes[0].NodesSetup.MinNumberOfNodes()
 	validators := make([]*integrationTests.TestWalletAccount, minNumNodes)
 	for i := 0; i < int(minNumNodes); i++ {
 		validators[i] = integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
@@ -175,7 +175,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
-	minNumNodes := nodes[0].EconomicsData.NumNodes()
+	minNumNodes := nodes[0].NodesSetup.MinNumberOfNodes()
 	validators := make([]*integrationTests.TestWalletAccount, minNumNodes)
 	for i := 0; i < int(minNumNodes); i++ {
 		validators[i] = integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)

@@ -65,7 +65,6 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				UnBondPeriod:             "5",
 				TotalSupply:              "200000000000",
 				MinStepValue:             "100000",
-				NumNodes:                 1000,
 				AuctionEnableNonce:       "100000",
 				StakeEnableNonce:         "100000",
 				NumRoundsWithoutBleed:    "1000",

@@ -254,7 +254,13 @@ func createProcessorsForMetaGenesisBlock(
 		BuiltInFunctions: builtInFuncs,
 	}
 
-	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics, &NilMessageSignVerifier{}, args.GasMap)
+	virtualMachineFactory, err := metachain.NewVMContainerFactory(
+		argsHook,
+		args.Economics,
+		&NilMessageSignVerifier{},
+		args.GasMap,
+		args.NodesSetup,
+	)
 	if err != nil {
 		return nil, nil, err
 	}

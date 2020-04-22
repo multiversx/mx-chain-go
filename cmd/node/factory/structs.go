@@ -1626,6 +1626,7 @@ func newBlockProcessor(
 			processArgs.minSizeInBytes,
 			processArgs.maxSizeInBytes,
 			processArgs.rater,
+			processArgs.nodesConfig,
 		)
 	}
 
@@ -1923,6 +1924,7 @@ func newMetaBlockProcessor(
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
 	rater sharding.PeerAccountListAndRatingHandler,
+	nodesSetup sharding.GenesisNodesSetupHandler,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -1936,7 +1938,13 @@ func newMetaBlockProcessor(
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 		BuiltInFunctions: builtInFuncs, // no built-in functions for meta.
 	}
-	vmFactory, err := metachain.NewVMContainerFactory(argsHook, economicsData, messageSignVerifier, gasSchedule)
+	vmFactory, err := metachain.NewVMContainerFactory(
+		argsHook,
+		economicsData,
+		messageSignVerifier,
+		gasSchedule,
+		nodesSetup,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -2133,13 +2141,13 @@ func newMetaBlockProcessor(
 	}
 
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
-		Marshalizer:      core.InternalMarshalizer,
-		Hasher:           core.Hasher,
-		Store:            data.Store,
-		ShardCoordinator: shardCoordinator,
-		NodesCoordinator: nodesCoordinator,
-		RewardsHandler:   economicsData,
-		RoundTime:        rounder,
+		Marshalizer:         core.InternalMarshalizer,
+		Hasher:              core.Hasher,
+		Store:               data.Store,
+		ShardCoordinator:    shardCoordinator,
+		NodesConfigProvider: nodesCoordinator,
+		RewardsHandler:      economicsData,
+		RoundTime:           rounder,
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {

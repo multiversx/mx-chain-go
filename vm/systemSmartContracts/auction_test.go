@@ -20,11 +20,12 @@ import (
 
 func createMockArgumentsForAuction() ArgsStakingAuctionSmartContract {
 	args := ArgsStakingAuctionSmartContract{
-		ValidatorSettings: &mock.ValidatorSettingsStub{},
-		Eei:               &mock.SystemEIStub{},
-		SigVerifier:       &mock.MessageSignVerifierMock{},
-		AuctionSCAddress:  []byte("auction"),
-		StakingSCAddress:  []byte("staking"),
+		ValidatorSettings:   &mock.ValidatorSettingsStub{},
+		Eei:                 &mock.SystemEIStub{},
+		SigVerifier:         &mock.MessageSignVerifierMock{},
+		AuctionSCAddress:    []byte("auction"),
+		StakingSCAddress:    []byte("staking"),
+		NodesConfigProvider: &mock.NodesConfigProviderStub{},
 	}
 
 	return args
@@ -149,7 +150,7 @@ func TestAuctionSC_calculateNodePrice_Case2(t *testing.T) {
 
 	expectedNodePrice := big.NewInt(20000000)
 	args := createMockArgumentsForAuction()
-	args.ValidatorSettings = &mock.ValidatorSettingsStub{NumNodesCalled: func() uint32 {
+	args.NodesConfigProvider = &mock.NodesConfigProviderStub{MinNumberOfNodesCalled: func() uint32 {
 		return 5
 	}}
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
@@ -171,7 +172,7 @@ func TestAuctionSC_calculateNodePrice_Case3(t *testing.T) {
 
 	expectedNodePrice := big.NewInt(12500000)
 	args := createMockArgumentsForAuction()
-	args.ValidatorSettings = &mock.ValidatorSettingsStub{NumNodesCalled: func() uint32 {
+	args.NodesConfigProvider = &mock.NodesConfigProviderStub{MinNumberOfNodesCalled: func() uint32 {
 		return 5
 	}}
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
@@ -211,7 +212,7 @@ func TestAuctionSC_selection_StakeGetAllocatedSeats(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForAuction()
-	args.ValidatorSettings = &mock.ValidatorSettingsStub{NumNodesCalled: func() uint32 {
+	args.NodesConfigProvider = &mock.NodesConfigProviderStub{MinNumberOfNodesCalled: func() uint32 {
 		return 5
 	}}
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
