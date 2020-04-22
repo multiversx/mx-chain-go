@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"sort"
 	"sync"
-
-	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 // TODO: Decide if transaction load statistics will be used for limiting the number of shards
@@ -138,7 +136,6 @@ func shuffleNodesInterShards(
 	randomness []byte,
 ) ResUpdateNodes {
 	var shuffledOutNodes []Validator
-	newNbShards := uint32(len(eligible))
 
 	stillRemainingInLeaving := make([]Validator, len(leaving))
 	copy(stillRemainingInLeaving, leaving)
@@ -152,8 +149,16 @@ func shuffleNodesInterShards(
 		randomness,
 	)
 	moveNodesToMap(eligible, waiting)
-	distributeValidators(newNodes, waiting, randomness, newNbShards)
-	distributeValidators(shuffledOutNodes, waiting, randomness, newNbShards)
+
+	err := distributeValidators(newNodes, waiting, randomness)
+	if err != nil {
+		log.Warn("distributeValidators newNodes failed", "error", err)
+	}
+
+	err = distributeValidators(shuffledOutNodes, waiting, randomness)
+	if err != nil {
+		log.Warn("distributeValidators shuffledOutNodes failed", "error", err)
+	}
 
 	actualLeaving, _ := removeValidatorsFromList(leaving, stillRemainingInLeaving, len(stillRemainingInLeaving))
 
@@ -176,7 +181,6 @@ func shuffleNodesIntraShards(
 ) ResUpdateNodes {
 
 	shuffledOutMap := make(map[uint32][]Validator)
-	newNbShards := uint32(len(eligible))
 	stillRemainingInLeaving := make([]Validator, len(leaving))
 	copy(stillRemainingInLeaving, leaving)
 
@@ -194,7 +198,10 @@ func shuffleNodesIntraShards(
 	}
 
 	moveNodesToMap(eligible, waiting)
-	distributeValidators(newNodes, waiting, randomness, newNbShards)
+	err := distributeValidators(newNodes, waiting, randomness)
+	if err != nil {
+		log.Warn("distributeValidators newNodes failed", "error", err)
+	}
 	moveNodesToMap(waiting, shuffledOutMap)
 
 	actualLeaving, _ := removeValidatorsFromList(leaving, stillRemainingInLeaving, len(stillRemainingInLeaving))
@@ -424,27 +431,24 @@ func moveNodesToMap(destination map[uint32][]Validator, source map[uint32][]Vali
 }
 
 // distributeNewNodes distributes a list of validators to the given validators map
-func distributeValidators(
-	validators []Validator,
-	destLists map[uint32][]Validator,
-	randomness []byte,
-	nbShardsPlusMeta uint32,
-) {
+func distributeValidators(validators []Validator, destLists map[uint32][]Validator, randomness []byte) error {
+	if len(destLists) == 0 {
+		return ErrNilDestinationForDistribute
+	}
+
 	// if there was a split or a merge, eligible map should already have a different nb of keys (shards)
 	shuffledValidators := shuffleList(validators, randomness)
 	var shardId uint32
 
-	if len(destLists) == 0 {
-		destLists = make(map[uint32][]Validator)
-	}
+	sortedShardIds := sortKeys(destLists)
+	destLength := uint32(len(sortedShardIds))
 
 	for i, v := range shuffledValidators {
-		shardId = uint32(i) % nbShardsPlusMeta
-		if shardId == nbShardsPlusMeta-1 {
-			shardId = core.MetachainShardId
-		}
+		shardId = sortedShardIds[uint32(i)%destLength]
 		destLists[shardId] = append(destLists[shardId], v)
 	}
+
+	return nil
 }
 
 func sortKeys(nodes map[uint32][]Validator) []uint32 {
