@@ -3,6 +3,7 @@ package trie
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -82,7 +83,7 @@ func TestLeafNode_setHashEmptyNode(t *testing.T) {
 	ln := &leafNode{baseNode: &baseNode{}}
 
 	err := ln.setHash()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 	assert.Nil(t, ln.hash)
 }
 
@@ -92,7 +93,7 @@ func TestLeafNode_setHashNilNode(t *testing.T) {
 	var ln *leafNode
 
 	err := ln.setHash()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, ln)
 }
 
@@ -131,7 +132,7 @@ func TestLeafNode_hashNodeEmptyNode(t *testing.T) {
 	ln := &leafNode{}
 
 	hash, err := ln.hashNode()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 	assert.Nil(t, hash)
 }
 
@@ -141,7 +142,7 @@ func TestLeafNode_hashNodeNilNode(t *testing.T) {
 	var ln *leafNode
 
 	hash, err := ln.hashNode()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, hash)
 }
 
@@ -169,7 +170,7 @@ func TestLeafNode_commitEmptyNode(t *testing.T) {
 	ln := &leafNode{}
 
 	err := ln.commit(false, 0, nil, nil)
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 }
 
 func TestLeafNode_commitNilNode(t *testing.T) {
@@ -178,7 +179,7 @@ func TestLeafNode_commitNilNode(t *testing.T) {
 	var ln *leafNode
 
 	err := ln.commit(false, 0, nil, nil)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilLeafNode))
 }
 
 func TestLeafNode_getEncodedNode(t *testing.T) {
@@ -199,7 +200,7 @@ func TestLeafNode_getEncodedNodeEmpty(t *testing.T) {
 	ln := &leafNode{}
 
 	encNode, err := ln.getEncodedNode()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 	assert.Nil(t, encNode)
 }
 
@@ -209,7 +210,7 @@ func TestLeafNode_getEncodedNodeNil(t *testing.T) {
 	var ln *leafNode
 
 	encNode, err := ln.getEncodedNode()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, encNode)
 }
 
@@ -257,7 +258,7 @@ func TestLeafNode_tryGetEmptyNode(t *testing.T) {
 
 	key := []byte("dog")
 	val, err := ln.tryGet(key, nil)
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 	assert.Nil(t, val)
 }
 
@@ -268,7 +269,7 @@ func TestLeafNode_tryGetNilNode(t *testing.T) {
 	key := []byte("dog")
 
 	val, err := ln.tryGet(key, nil)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, val)
 }
 
@@ -305,7 +306,7 @@ func TestLeafNode_getNextNilNode(t *testing.T) {
 	node, key, err := ln.getNext(key, nil)
 	assert.Nil(t, node)
 	assert.Nil(t, key)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilLeafNode))
 }
 
 func TestLeafNode_insertAtSameKey(t *testing.T) {
@@ -408,7 +409,7 @@ func TestLeafNode_insertInNilNode(t *testing.T) {
 
 	dirty, newNode, _, err := ln.insert(&leafNode{}, nil)
 	assert.False(t, dirty)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, newNode)
 }
 
@@ -491,10 +492,10 @@ func TestLeafNode_isEmptyOrNil(t *testing.T) {
 	t.Parallel()
 
 	ln := &leafNode{}
-	assert.Equal(t, ErrEmptyNode, ln.isEmptyOrNil())
+	assert.Equal(t, ErrEmptyLeafNode, ln.isEmptyOrNil())
 
 	ln = nil
-	assert.Equal(t, ErrNilNode, ln.isEmptyOrNil())
+	assert.Equal(t, ErrNilLeafNode, ln.isEmptyOrNil())
 }
 
 func TestLeafNode_getChildren(t *testing.T) {
