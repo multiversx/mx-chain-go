@@ -68,8 +68,10 @@ type PeerAccountHandler interface {
 	GetAccumulatedFees() *big.Int
 	AddToAccumulatedFees(*big.Int)
 	GetList() string
-	GetIndex() uint32
+	GetIndexInList() uint32
 	GetShardId() uint32
+	SetUnStakedEpoch(epoch uint32)
+	GetUnStakedEpoch() uint32
 	IncreaseLeaderSuccessRate(uint32)
 	DecreaseLeaderSuccessRate(uint32)
 	IncreaseValidatorSuccessRate(uint32)

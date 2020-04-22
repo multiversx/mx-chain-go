@@ -117,19 +117,9 @@ func (pa *peerAccount) SetListAndIndex(shardID uint32, list string, index uint32
 	pa.IndexInList = index
 }
 
-// GetList returns the list the peer is in
-func (pa *peerAccount) GetList() string {
-	return pa.List
-}
-
-// GetIndex returns the index in list
-func (pa *peerAccount) GetIndex() uint32 {
-	return pa.IndexInList
-}
-
-// IsInterfaceNil return if there is no value under the interface
-func (pa *peerAccount) IsInterfaceNil() bool {
-	return pa == nil
+// SetUnStakedEpoch updates the unstaked epoch for the validator
+func (pa *peerAccount) SetUnStakedEpoch(epoch uint32) {
+	pa.UnStakedEpoch = epoch
 }
 
 // ResetAtNewEpoch will reset a set of values after changing epoch
@@ -147,11 +137,6 @@ func (pa *peerAccount) ResetAtNewEpoch() {
 	pa.NumSelectedInSuccessBlocks = 0
 }
 
-// GetConsecutiveProposerMisses gets the current consecutive proposer misses
-func (pa *peerAccount) GetConsecutiveProposerMisses() uint32 {
-	return pa.ConsecutiveProposerMisses
-}
-
 // SetConsecutiveProposerMisses sets the account's consecutive misses as proposer
 func (pa *peerAccount) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
 	pa.ConsecutiveProposerMisses = consecutiveMisses
@@ -160,4 +145,9 @@ func (pa *peerAccount) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
 //IncreaseNonce adds the given value to the current nonce
 func (pa *peerAccount) IncreaseNonce(value uint64) {
 	pa.Nonce = pa.Nonce + value
+}
+
+// IsInterfaceNil return if there is no value under the interface
+func (pa *peerAccount) IsInterfaceNil() bool {
+	return pa == nil
 }

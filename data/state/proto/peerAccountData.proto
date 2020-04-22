@@ -46,4 +46,5 @@ message PeerAccountData {
     SignRate TotalValidatorSuccessRate = 14 [(gogoproto.nullable) = false];
     SignRate TotalLeaderSuccessRate = 15 [(gogoproto.nullable) = false];
     uint64 Nonce = 16;
+    uint32 UnStakedEpoch = 17;
 }

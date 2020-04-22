@@ -400,6 +400,20 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	return validators, nil
 }
 
+func getActualList(peerAccount state.PeerAccountHandler) string {
+	savedList := peerAccount.GetList()
+	if peerAccount.GetUnStakedEpoch() == 0 {
+		return savedList
+	}
+
+	isValidator := savedList == string(core.WaitingList) || savedList == string(core.EligibleList)
+	if isValidator {
+		return string(core.LeavingList)
+	}
+
+	return savedList
+}
+
 func (vs *validatorStatistics) peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
 	chance := vs.rater.GetChance(peerAccount.GetRating())
 	startRatingChance := vs.rater.GetChance(vs.rater.GetStartRating())
@@ -408,8 +422,8 @@ func (vs *validatorStatistics) peerAccountToValidatorInfo(peerAccount state.Peer
 	return &state.ValidatorInfo{
 		PublicKey:                  peerAccount.GetBLSPublicKey(),
 		ShardId:                    peerAccount.GetShardId(),
-		List:                       peerAccount.GetList(),
-		Index:                      peerAccount.GetIndex(),
+		List:                       getActualList(peerAccount),
+		Index:                      peerAccount.GetIndexInList(),
 		TempRating:                 peerAccount.GetTempRating(),
 		Rating:                     peerAccount.GetRating(),
 		RatingModifier:             ratingModifier,

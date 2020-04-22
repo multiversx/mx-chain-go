@@ -22,13 +22,22 @@ type PeerAccountHandlerMock struct {
 	SetListAndIndexCalled              func(shardID uint32, list string, index uint32)
 }
 
+// GetUnStakedEpoch -
+func (p *PeerAccountHandlerMock) GetUnStakedEpoch() uint32 {
+	return 0
+}
+
+// SetUnStakedEpoch -
+func (p *PeerAccountHandlerMock) SetUnStakedEpoch(_ uint32) {
+}
+
 // GetList -
 func (p *PeerAccountHandlerMock) GetList() string {
 	return ""
 }
 
 // GetIndex -
-func (p *PeerAccountHandlerMock) GetIndex() uint32 {
+func (p *PeerAccountHandlerMock) GetIndexInList() uint32 {
 	return 0
 }
 

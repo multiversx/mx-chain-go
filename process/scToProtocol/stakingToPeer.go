@@ -235,10 +235,12 @@ func (stp *stakingToPeer) updatePeerState(
 		if stakingData.RegisterNonce == nonce && !isValidator {
 			account.SetListAndIndex(account.GetShardId(), string(core.NewList), uint32(stakingData.RegisterNonce))
 			account.SetTempRating(stp.startRating)
+			account.SetUnStakedEpoch(0)
 		}
 
 		if stakingData.UnStakedNonce == nonce && account.GetList() != string(core.InactiveList) {
 			account.SetListAndIndex(account.GetShardId(), string(core.LeavingList), uint32(stakingData.UnStakedNonce))
+			account.SetUnStakedEpoch(stakingData.UnStakedEpoch)
 		}
 	}
 
