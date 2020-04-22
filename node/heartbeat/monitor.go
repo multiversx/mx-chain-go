@@ -43,6 +43,7 @@ type Monitor struct {
 	marshalizer                 marshal.Marshalizer
 	peerTypeProvider            PeerTypeProviderHandler
 	mutHeartbeatMessages        sync.RWMutex
+	mutAppStatusHandler         sync.Mutex
 	heartbeatMessages           map[string]*heartbeatMessageInfo
 	pubKeysMap                  map[uint32][]string
 	mutFullPeersSlice           sync.RWMutex
@@ -236,7 +237,9 @@ func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 		return ErrNilAppStatusHandler
 	}
 
+	m.mutAppStatusHandler.Lock()
 	m.appStatusHandler = ash
+	m.mutAppStatusHandler.Unlock()
 	return nil
 }
 
@@ -384,8 +387,10 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 	m.mutHeartbeatMessages.Unlock()
 	go m.SaveMultipleHeartbeatMessageInfos(hbChangedStateToInactiveMap)
 
+	m.mutAppStatusHandler.Lock()
 	m.appStatusHandler.SetUInt64Value(core.MetricLiveValidatorNodes, uint64(counterActiveValidators))
 	m.appStatusHandler.SetUInt64Value(core.MetricConnectedNodes, uint64(counterConnectedNodes))
+	m.mutAppStatusHandler.Unlock()
 }
 
 func (m *Monitor) computeInactiveHeartbeatMessages() {
@@ -414,6 +419,7 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	status := make([]PubKeyHeartbeat, len(m.heartbeatMessages))
 	idx := 0
 	for k, v := range m.heartbeatMessages {
+		v.updateMutex.Lock()
 		tmp := PubKeyHeartbeat{
 			PublicKey:       m.validatorPubkeyConverter.Encode([]byte(k)),
 			TimeStamp:       v.timeStamp,
@@ -427,6 +433,7 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 			NodeDisplayName: v.nodeDisplayName,
 			PeerType:        v.peerType,
 		}
+		v.updateMutex.Unlock()
 		status[idx] = tmp
 		idx++
 	}
