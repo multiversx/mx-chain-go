@@ -8,6 +8,7 @@ else
   KEEPOPEN=0
 fi
 
+source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 source "$ELRONDTESTNETSCRIPTSDIR/include/nodes.sh"
 source "$ELRONDTESTNETSCRIPTSDIR/include/tools.sh"
 
