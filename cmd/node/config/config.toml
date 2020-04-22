@@ -384,7 +384,7 @@
 
 [StateTriesConfig]
     CheckpointRoundsModulus = 100
-    AccountsStatePruningEnabled = true
+    AccountsStatePruningEnabled = false
     PeerStatePruningEnabled = true
 
 [BlockSizeThrottleConfig]
