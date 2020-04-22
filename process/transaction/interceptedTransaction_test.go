@@ -715,7 +715,9 @@ func TestInterceptedTransaction_FeeCallsTxFeeHandler(t *testing.T) {
 	assert.True(t, computeFeeCalled)
 }
 
-func TestInterceptedTransaction_WhitelistVerifiedShouldNotVerifySig(t *testing.T) {
+func TestInterceptedTransaction_GetSenderAddress(t *testing.T) {
+	t.Parallel()
+
 	tx := &dataTransaction.Transaction{
 		Nonce:     0,
 		Value:     big.NewInt(2),
@@ -727,21 +729,12 @@ func TestInterceptedTransaction_WhitelistVerifiedShouldNotVerifySig(t *testing.T
 		Signature: sigOk,
 	}
 
-	computeFeeCalled := false
-	txFeeHandler := createFreeTxFeeHandler()
-	txi, _ := createInterceptedTxFromPlainTx(tx, txFeeHandler)
-	txFeeHandler.ComputeFeeCalled = func(tx process.TransactionWithFeeHandler) *big.Int {
-		computeFeeCalled = true
-
-		return big.NewInt(0)
-	}
-
-	_ = txi.Fee()
-
-	assert.True(t, computeFeeCalled)
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler())
+	result := txi.SenderAddress()
+	assert.NotNil(t, result)
 }
 
-func TestInterceptedTransaction_GetSenderAddress(t *testing.T) {
+func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testing.T) {
 	t.Parallel()
 
 	tx := &dataTransaction.Transaction{
