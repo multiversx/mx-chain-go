@@ -200,14 +200,17 @@ func (r *stakingSC) removeFromJailedNodes() {
 	r.setConfig(config)
 }
 
-func (r *stakingSC) canUnStake() bool {
+func (r *stakingSC) numSpareNodes() int64 {
 	config := r.getConfig()
-	return config.StakedNodes-config.JailedNodes-config.MinNumNodes > 0
+	return config.StakedNodes - config.JailedNodes - config.MinNumNodes
+}
+
+func (r *stakingSC) canUnStake() bool {
+	return r.numSpareNodes() > 0
 }
 
 func (r *stakingSC) canUnBond() bool {
-	config := r.getConfig()
-	return config.StakedNodes-config.JailedNodes-config.MinNumNodes >= 0
+	return r.numSpareNodes() >= 0
 }
 
 func (r *stakingSC) calculateStakeAfterBleed(startRound uint64, endRound uint64, stake *big.Int) *big.Int {

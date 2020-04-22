@@ -77,7 +77,7 @@ func (p *PeerAccountHandlerMock) AddToAccumulatedFees(val *big.Int) {
 	}
 }
 
-// GetCurrentShardId -
+// GetShardId -
 func (p *PeerAccountHandlerMock) GetShardId() uint32 {
 	return 0
 }
@@ -229,24 +229,24 @@ func (p *PeerAccountHandlerMock) DataTrieTracker() state.DataTrieTracker {
 }
 
 // GetConsecutiveProposerMisses -
-func (pahm *PeerAccountHandlerMock) GetConsecutiveProposerMisses() uint32 {
-	if pahm.GetConsecutiveProposerMissesCalled != nil {
-		return pahm.GetConsecutiveProposerMissesCalled()
+func (p *PeerAccountHandlerMock) GetConsecutiveProposerMisses() uint32 {
+	if p.GetConsecutiveProposerMissesCalled != nil {
+		return p.GetConsecutiveProposerMissesCalled()
 	}
 	return 0
 }
 
 // SetConsecutiveProposerMissesWithJournal -
-func (pahm *PeerAccountHandlerMock) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
-	if pahm.SetConsecutiveProposerMissesCalled != nil {
-		pahm.SetConsecutiveProposerMissesCalled(consecutiveMisses)
+func (p *PeerAccountHandlerMock) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
+	if p.SetConsecutiveProposerMissesCalled != nil {
+		p.SetConsecutiveProposerMissesCalled(consecutiveMisses)
 	}
 }
 
 // SetListAndIndex -
-func (pahm *PeerAccountHandlerMock) SetListAndIndex(shardID uint32, list string, index uint32) {
-	if pahm.SetListAndIndexCalled != nil {
-		pahm.SetListAndIndexCalled(shardID, list, index)
+func (p *PeerAccountHandlerMock) SetListAndIndex(shardID uint32, list string, index uint32) {
+	if p.SetListAndIndexCalled != nil {
+		p.SetListAndIndexCalled(shardID, list, index)
 	}
 }
 

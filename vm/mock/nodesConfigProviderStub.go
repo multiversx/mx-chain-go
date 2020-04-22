@@ -1,5 +1,6 @@
 package mock
 
+// NodesConfigProviderStub -
 type NodesConfigProviderStub struct {
 	MinNumberOfNodesCalled func() uint32
 }

@@ -233,22 +233,22 @@ func (stp *stakingToPeer) updatePeerState(
 
 	if !isJailed {
 		if stakingData.RegisterNonce == nonce && !isValidator {
-			account.SetListAndIndex(0, string(core.NewList), uint32(stakingData.RegisterNonce))
+			account.SetListAndIndex(account.GetShardId(), string(core.NewList), uint32(stakingData.RegisterNonce))
 			account.SetTempRating(stp.startRating)
 		}
 
 		if stakingData.UnStakedNonce == nonce && account.GetList() != string(core.InactiveList) {
-			account.SetListAndIndex(0, string(core.LeavingList), uint32(stakingData.UnStakedNonce))
+			account.SetListAndIndex(account.GetShardId(), string(core.LeavingList), uint32(stakingData.UnStakedNonce))
 		}
 	}
 
 	if stakingData.UnJailedNonce == nonce && !isValidator {
-		account.SetListAndIndex(0, string(core.NewList), uint32(stakingData.UnStakedNonce))
+		account.SetListAndIndex(account.GetShardId(), string(core.NewList), uint32(stakingData.UnJailedNonce))
 		account.SetTempRating(stp.unJailRating)
 	}
 
 	if stakingData.JailedNonce == nonce && account.GetList() != string(core.InactiveList) {
-		account.SetListAndIndex(0, string(core.LeavingList), uint32(stakingData.UnStakedNonce))
+		account.SetListAndIndex(account.GetShardId(), string(core.LeavingList), uint32(stakingData.JailedNonce))
 	}
 
 	err = stp.peerState.SaveAccount(account)
