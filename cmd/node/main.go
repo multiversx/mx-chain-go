@@ -963,6 +963,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		coreServiceContainer,
 		requestedItemsHandler,
 		whiteListRequest,
+		whiteListVerified,
 		epochStartNotifier,
 		&generalConfig.EpochStartConfig,
 		currentEpoch,
