@@ -90,3 +90,6 @@ var ErrBootstrapDataNotFoundInStorage = errors.New("didn't find any bootstrap da
 
 // ErrNilMarshalizer signals that a nil marshalizer has been provided
 var ErrNilMarshalizer = errors.New("nil marshalizer")
+
+// ErrWrongTypeAssertion is thrown when a wrong type assertion is spotted
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
