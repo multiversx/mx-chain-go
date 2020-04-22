@@ -244,7 +244,7 @@ func TestProcessDebugInterceptedData_ShouldWork(t *testing.T) {
 		EnabledCalled: func() bool {
 			return true
 		},
-		ProcessedHashCalled: func(topic string, hash []byte, err error) {
+		LogProcessedHashCalled: func(topic string, hash []byte, err error) {
 			numCalled++
 		},
 	}
@@ -277,7 +277,7 @@ func TestReceivedDebugInterceptedData_ShouldWork(t *testing.T) {
 		EnabledCalled: func() bool {
 			return true
 		},
-		ReceivedHashCalled: func(topic string, hash []byte) {
+		LogReceivedHashCalled: func(topic string, hash []byte) {
 			numCalled++
 		},
 	}

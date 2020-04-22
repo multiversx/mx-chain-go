@@ -99,8 +99,7 @@ func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, f
 	}
 
 	if err != nil {
-		processDebugMissingData(
-			mbRes.ResolverDebugHandler(),
+		mbRes.ResolverDebugHandler().LogFailedToResolveData(
 			mbRes.topic,
 			rd.Value,
 			err,

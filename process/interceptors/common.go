@@ -102,7 +102,7 @@ func processDebugInterceptedData(
 
 	identifiers := interceptedData.Identifiers()
 	for _, identifier := range identifiers {
-		debugHandler.ProcessedHash(topic, identifier, err)
+		debugHandler.LogProcessedHash(topic, identifier, err)
 	}
 }
 
@@ -117,6 +117,6 @@ func receivedDebugInterceptedData(
 
 	identifiers := interceptedData.Identifiers()
 	for _, identifier := range identifiers {
-		debugHandler.ReceivedHash(topic, identifier)
+		debugHandler.LogReceivedHash(topic, identifier)
 	}
 }

@@ -1140,6 +1140,9 @@ func (n *Node) AddQueryHandler(name string, handler debug.QueryHandler) error {
 	if check.IfNil(handler) {
 		return ErrNilQueryHandler
 	}
+	if len(name) == 0 {
+		return ErrEmptyQueryHandlerName
+	}
 
 	n.mutQueryHandlers.Lock()
 	defer n.mutQueryHandlers.Unlock()

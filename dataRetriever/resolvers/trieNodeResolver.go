@@ -78,8 +78,7 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fr
 		var serializedNodes [][]byte
 		serializedNodes, err = tnRes.trieDataGetter.GetSerializedNodes(rd.Value, maxBuffToSendTrieNodes)
 		if err != nil {
-			processDebugMissingData(
-				tnRes.ResolverDebugHandler(),
+			tnRes.ResolverDebugHandler().LogFailedToResolveData(
 				tnRes.topic,
 				rd.Value,
 				err,

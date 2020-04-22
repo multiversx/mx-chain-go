@@ -131,8 +131,7 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 		return dataRetriever.ErrResolveTypeUnknown
 	}
 	if err != nil {
-		processDebugMissingData(
-			hdrRes.ResolverDebugHandler(),
+		hdrRes.ResolverDebugHandler().LogFailedToResolveData(
 			hdrRes.topic,
 			rd.Value,
 			err,
@@ -141,8 +140,7 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 	}
 
 	if buff == nil {
-		processDebugMissingData(
-			hdrRes.ResolverDebugHandler(),
+		hdrRes.ResolverDebugHandler().LogFailedToResolveData(
 			hdrRes.topic,
 			rd.Value,
 			dataRetriever.ErrMissingData,

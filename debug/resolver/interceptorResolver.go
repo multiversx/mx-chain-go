@@ -19,6 +19,7 @@ const resolveEvent = "resolve"
 const minIntervalInSeconds = 1
 const minThresholdResolve = 1
 const minThresholdRequests = 1
+const minDebugLineExpiration = 1
 const newLineChar = "\n"
 
 var log = logger.GetOrCreate("debug/resolver")
@@ -100,8 +101,8 @@ func (ir *interceptorResolver) parseConfig(config config.InterceptorResolverDebu
 	if config.NumResolveFailureThreshold < minThresholdResolve {
 		return fmt.Errorf("%w for NumResolveFailureThreshold, minimum is %d", debug.ErrInvalidValue, minThresholdResolve)
 	}
-	if config.DebugLineExpiration <= 0 {
-		return fmt.Errorf("%w for DebugLineExpiration, minimum is 1", debug.ErrInvalidValue)
+	if config.DebugLineExpiration < minDebugLineExpiration {
+		return fmt.Errorf("%w for DebugLineExpiration, minimum is %d", debug.ErrInvalidValue, minDebugLineExpiration)
 	}
 
 	ir.intervalAutoPrint = time.Second * time.Duration(config.IntervalAutoPrintInSeconds)
@@ -167,8 +168,8 @@ func (ir *interceptorResolver) getStringEvents(maxNumPrints int) []string {
 	return ir.query(acceptEvent, maxNumPrints)
 }
 
-// RequestedData is called whenever a hash has been requested
-func (ir *interceptorResolver) RequestedData(topic string, hash []byte, numReqIntra int, numReqCross int) {
+// LogRequestedData is called whenever a hash has been requested
+func (ir *interceptorResolver) LogRequestedData(topic string, hash []byte, numReqIntra int, numReqCross int) {
 	identifier := ir.computeIdentifier(requestEvent, topic, hash)
 
 	ir.mutCriticalArea.Lock()
@@ -201,8 +202,8 @@ func (ir *interceptorResolver) RequestedData(topic string, hash []byte, numReqIn
 	ir.cache.Put(identifier, req)
 }
 
-// ReceivedHash is called whenever a request hash has been received
-func (ir *interceptorResolver) ReceivedHash(topic string, hash []byte) {
+// LogReceivedHash is called whenever a request hash has been received
+func (ir *interceptorResolver) LogReceivedHash(topic string, hash []byte) {
 	identifier := ir.computeIdentifier(requestEvent, topic, hash)
 
 	ir.mutCriticalArea.Lock()
@@ -222,8 +223,8 @@ func (ir *interceptorResolver) ReceivedHash(topic string, hash []byte) {
 	ir.cache.Put(identifier, req)
 }
 
-// ProcessedHash is called whenever a request hash has been processed
-func (ir *interceptorResolver) ProcessedHash(topic string, hash []byte, err error) {
+// LogProcessedHash is called whenever a request hash has been processed
+func (ir *interceptorResolver) LogProcessedHash(topic string, hash []byte, err error) {
 	identifier := ir.computeIdentifier(requestEvent, topic, hash)
 
 	ir.mutCriticalArea.Lock()
@@ -307,8 +308,8 @@ func (ir *interceptorResolver) query(acceptEvent func(ev *event) bool, maxNumPri
 	return events
 }
 
-// FailedToResolveData adds a record stating that the resolver was unable to process the data
-func (ir *interceptorResolver) FailedToResolveData(topic string, hash []byte, err error) {
+// LogFailedToResolveData adds a record stating that the resolver was unable to process the data
+func (ir *interceptorResolver) LogFailedToResolveData(topic string, hash []byte, err error) {
 	identifier := ir.computeIdentifier(resolveEvent, topic, hash)
 
 	ir.mutCriticalArea.Lock()

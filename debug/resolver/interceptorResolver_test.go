@@ -123,9 +123,9 @@ func TestNewInterceptorResolver_AutoprintShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- RequestedData
+//------- LogRequestedData
 
-func TestInterceptorResolver_RequestedDataWithFiveIdentifiersShouldWork(t *testing.T) {
+func TestInterceptorResolver_LogRequestedDataWithFiveIdentifiersShouldWork(t *testing.T) {
 	t.Parallel()
 
 	ir, _ := NewInterceptorResolver(createWorkableConfig())
@@ -133,7 +133,7 @@ func TestInterceptorResolver_RequestedDataWithFiveIdentifiersShouldWork(t *testi
 	foundMap := make(map[string]struct{})
 	for i := 0; i < numIdentifiers; i++ {
 		newTopic := fmt.Sprintf("topic%d", i)
-		ir.RequestedData(newTopic, hash, numIntra, numCross)
+		ir.LogRequestedData(newTopic, hash, numIntra, numCross)
 		foundMap[newTopic] = struct{}{}
 	}
 
@@ -151,11 +151,11 @@ func TestInterceptorResolver_RequestedDataWithFiveIdentifiersShouldWork(t *testi
 	assert.Equal(t, 0, len(foundMap))
 }
 
-func TestInterceptorResolver_RequestedDataSameIdentifierShouldAddRequested(t *testing.T) {
+func TestInterceptorResolver_LogRequestedDataSameIdentifierShouldAddRequested(t *testing.T) {
 	t.Parallel()
 
 	ir, _ := NewInterceptorResolver(createWorkableConfig())
-	ir.RequestedData(topic, hash, numIntra, numCross)
+	ir.LogRequestedData(topic, hash, numIntra, numCross)
 	events := ir.Events()
 	require.Equal(t, 1, len(events))
 	expected := &event{
@@ -168,7 +168,7 @@ func TestInterceptorResolver_RequestedDataSameIdentifierShouldAddRequested(t *te
 
 	assert.Equal(t, expected, events[0])
 
-	ir.RequestedData(topic, hash, numIntra, numCross)
+	ir.LogRequestedData(topic, hash, numIntra, numCross)
 	events = ir.Events()
 	require.Equal(t, 1, len(events))
 	expected = &event{
@@ -183,39 +183,39 @@ func TestInterceptorResolver_RequestedDataSameIdentifierShouldAddRequested(t *te
 	fmt.Println(ir.Query("*"))
 }
 
-//------- ProcessedHash
+//------- LogProcessedHash
 
-func TestInterceptorResolver_ProcessedHashNotFoundShouldNotAdd(t *testing.T) {
+func TestInterceptorResolver_LogProcessedHashNotFoundShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
 	ir, _ := NewInterceptorResolver(createWorkableConfig())
 
-	ir.ProcessedHash(topic, hash, nil)
+	ir.LogProcessedHash(topic, hash, nil)
 
 	require.Equal(t, 0, len(ir.Events()))
 }
 
-func TestInterceptorResolver_ProcessedHashExistingNoErrorShouldRemove(t *testing.T) {
+func TestInterceptorResolver_LogProcessedHashExistingNoErrorShouldRemove(t *testing.T) {
 	t.Parallel()
 
 	ir, _ := NewInterceptorResolver(createWorkableConfig())
-	ir.RequestedData(topic, hash, numIntra, numCross)
+	ir.LogRequestedData(topic, hash, numIntra, numCross)
 	require.Equal(t, 1, len(ir.Events()))
 
-	ir.ProcessedHash(topic, hash, nil)
+	ir.LogProcessedHash(topic, hash, nil)
 
 	require.Equal(t, 0, len(ir.Events()))
 }
 
-func TestInterceptorResolver_ProcessedHashExistingWithErrorShouldIncrementProcessed(t *testing.T) {
+func TestInterceptorResolver_LogProcessedHashExistingWithErrorShouldIncrementProcessed(t *testing.T) {
 	t.Parallel()
 
 	ir, _ := NewInterceptorResolver(createWorkableConfig())
-	ir.RequestedData(topic, hash, numIntra, numCross)
+	ir.LogRequestedData(topic, hash, numIntra, numCross)
 	require.Equal(t, 1, len(ir.Events()))
 
 	err := errors.New("expected err")
-	ir.ProcessedHash(topic, hash, err)
+	ir.LogProcessedHash(topic, hash, err)
 
 	requests := ir.Events()
 	require.Equal(t, 1, len(requests))
@@ -235,26 +235,26 @@ func TestInterceptorResolver_ProcessedHashExistingWithErrorShouldIncrementProces
 	fmt.Println(ir.Query("*"))
 }
 
-//------- ReceivedHash
+//------- LogReceivedHash
 
-func TestInterceptorResolver_ReceivedHashNotFoundShouldNotAdd(t *testing.T) {
+func TestInterceptorResolver_LogReceivedHashNotFoundShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
 	ir, _ := NewInterceptorResolver(createWorkableConfig())
 
-	ir.ReceivedHash(topic, hash)
+	ir.LogReceivedHash(topic, hash)
 
 	require.Equal(t, 0, len(ir.Events()))
 }
 
-func TestInterceptorResolver_ReceiveddHashExistingShouldIncrementReceived(t *testing.T) {
+func TestInterceptorResolver_LogReceiveddHashExistingShouldIncrementReceived(t *testing.T) {
 	t.Parallel()
 
 	ir, _ := NewInterceptorResolver(createWorkableConfig())
-	ir.RequestedData(topic, hash, numIntra, numCross)
+	ir.LogRequestedData(topic, hash, numIntra, numCross)
 	require.Equal(t, 1, len(ir.Events()))
 
-	ir.ReceivedHash(topic, hash)
+	ir.LogReceivedHash(topic, hash)
 
 	requests := ir.Events()
 	require.Equal(t, 1, len(requests))
@@ -273,13 +273,13 @@ func TestInterceptorResolver_ReceiveddHashExistingShouldIncrementReceived(t *tes
 	assert.Equal(t, expected, requests[0])
 }
 
-//------- FailedToResolveData
+//------- LogFailedToResolveData
 
-func TestInterceptorResolver_FailedToResolveDataShouldWork(t *testing.T) {
+func TestInterceptorResolver_LogFailedToResolveDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	ir, _ := NewInterceptorResolver(createWorkableConfig())
-	ir.FailedToResolveData(topic, hash, nil)
+	ir.LogFailedToResolveData(topic, hash, nil)
 
 	require.Equal(t, 1, len(ir.Events()))
 	expected := &event{
@@ -294,7 +294,7 @@ func TestInterceptorResolver_FailedToResolveDataShouldWork(t *testing.T) {
 	}
 	assert.Equal(t, expected, ir.Events()[0])
 
-	ir.FailedToResolveData(topic, hash, nil)
+	ir.LogFailedToResolveData(topic, hash, nil)
 	require.Equal(t, 1, len(ir.Events()))
 	expected = &event{
 		eventType:    resolveEvent,
@@ -309,15 +309,15 @@ func TestInterceptorResolver_FailedToResolveDataShouldWork(t *testing.T) {
 	assert.Equal(t, expected, ir.Events()[0])
 }
 
-func TestInterceptorResolver_FailedToResolveDataAndRequestedDataShouldWork(t *testing.T) {
+func TestInterceptorResolver_LogFailedToResolveDataAndRequestedDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	ir, _ := NewInterceptorResolver(createWorkableConfig())
-	ir.FailedToResolveData(topic, hash, nil)
+	ir.LogFailedToResolveData(topic, hash, nil)
 
 	assert.Equal(t, 1, len(ir.Events()))
 
-	ir.RequestedData(topic, hash, numIntra, numCross)
+	ir.LogRequestedData(topic, hash, numIntra, numCross)
 
 	assert.Equal(t, 2, len(ir.Events()))
 	fmt.Println(ir.Query("*"))
@@ -331,8 +331,8 @@ func TestInterceptorResolver_Query(t *testing.T) {
 	topic1 := "topic1"
 	topic2 := "aaaa"
 	ir, _ := NewInterceptorResolver(createWorkableConfig())
-	ir.RequestedData(topic1, hash, numIntra, numCross)
-	ir.RequestedData(topic2, hash, numIntra, numCross)
+	ir.LogRequestedData(topic1, hash, numIntra, numCross)
+	ir.LogRequestedData(topic2, hash, numIntra, numCross)
 
 	assert.Equal(t, 0, len(ir.Query("not a topic")))
 	assert.Equal(t, 1, len(ir.Query(topic1)))
@@ -354,10 +354,10 @@ func TestInterceptorResolver_GetStringEventsShouldWork(t *testing.T) {
 	ir, _ := NewInterceptorResolver(createWorkableConfig())
 	assert.Equal(t, 0, len(ir.getStringEvents(100)))
 
-	ir.FailedToResolveData(topic, hash, nil)
-	ir.FailedToResolveData(topic, hash, nil)
+	ir.LogFailedToResolveData(topic, hash, nil)
+	ir.LogFailedToResolveData(topic, hash, nil)
 
-	ir.RequestedData(topic, hash, 1, 1)
+	ir.LogRequestedData(topic, hash, 1, 1)
 
 	assert.Equal(t, 2, len(ir.getStringEvents(100)))
 }
@@ -379,8 +379,8 @@ func TestInterceptorResolver_NumPrintsShouldWork(t *testing.T) {
 		atomic.AddUint32(&numPrintCalls, 1)
 	}
 
-	ir.FailedToResolveData(topic, hash, nil)
-	ir.FailedToResolveData(topic, hash, nil)
+	ir.LogFailedToResolveData(topic, hash, nil)
+	ir.LogFailedToResolveData(topic, hash, nil)
 
 	time.Sleep(time.Second * 5)
 

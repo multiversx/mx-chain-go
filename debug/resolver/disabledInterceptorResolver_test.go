@@ -14,9 +14,9 @@ func TestDisabledInterceptorResolver(t *testing.T) {
 	assert.False(t, check.IfNil(dir))
 
 	assert.False(t, dir.Enabled())
-	dir.ReceivedHash("", nil)
-	dir.ProcessedHash("", nil, nil)
-	dir.RequestedData("", nil, 0, 0)
-	dir.FailedToResolveData("", nil, nil)
+	dir.LogReceivedHash("", nil)
+	dir.LogProcessedHash("", nil, nil)
+	dir.LogRequestedData("", nil, 0, 0)
+	dir.LogFailedToResolveData("", nil, nil)
 	assert.Equal(t, 0, len(dir.Query("*")))
 }

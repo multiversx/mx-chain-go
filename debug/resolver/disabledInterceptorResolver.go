@@ -8,16 +8,16 @@ func NewDisabledInterceptorResolver() *disabledInterceptorResolver {
 	return &disabledInterceptorResolver{}
 }
 
-// RequestedData dos nothing
-func (dir *disabledInterceptorResolver) RequestedData(_ string, _ []byte, _ int, _ int) {
+// LogRequestedData dos nothing
+func (dir *disabledInterceptorResolver) LogRequestedData(_ string, _ []byte, _ int, _ int) {
 }
 
-// ReceivedHash does nothing
-func (dir *disabledInterceptorResolver) ReceivedHash(_ string, _ []byte) {
+// LogReceivedHash does nothing
+func (dir *disabledInterceptorResolver) LogReceivedHash(_ string, _ []byte) {
 }
 
-// ProcessedHash does nothing
-func (dir *disabledInterceptorResolver) ProcessedHash(_ string, _ []byte, _ error) {
+// LogProcessedHash does nothing
+func (dir *disabledInterceptorResolver) LogProcessedHash(_ string, _ []byte, _ error) {
 }
 
 // Enabled returns if this implementation should process data or not. Always false to optimize the caller
@@ -30,8 +30,8 @@ func (dir *disabledInterceptorResolver) Query(_ string) []string {
 	return make([]string, 0)
 }
 
-// FailedToResolveData does nothing
-func (dir *disabledInterceptorResolver) FailedToResolveData(_ string, _ []byte, _ error) {
+// LogFailedToResolveData does nothing
+func (dir *disabledInterceptorResolver) LogFailedToResolveData(_ string, _ []byte, _ error) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

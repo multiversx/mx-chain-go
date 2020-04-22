@@ -2,22 +2,22 @@ package mock
 
 // InterceptedDebugHandlerStub -
 type InterceptedDebugHandlerStub struct {
-	ReceivedHashCalled  func(topic string, hash []byte)
-	ProcessedHashCalled func(topic string, hash []byte, err error)
-	EnabledCalled       func() bool
+	LogReceivedHashCalled  func(topic string, hash []byte)
+	LogProcessedHashCalled func(topic string, hash []byte, err error)
+	EnabledCalled          func() bool
 }
 
-// ReceivedHash -
-func (idhs *InterceptedDebugHandlerStub) ReceivedHash(topic string, hash []byte) {
-	if idhs.ReceivedHashCalled != nil {
-		idhs.ReceivedHashCalled(topic, hash)
+// LogReceivedHash -
+func (idhs *InterceptedDebugHandlerStub) LogReceivedHash(topic string, hash []byte) {
+	if idhs.LogReceivedHashCalled != nil {
+		idhs.LogReceivedHashCalled(topic, hash)
 	}
 }
 
-// ProcessedHash -
-func (idhs *InterceptedDebugHandlerStub) ProcessedHash(topic string, hash []byte, err error) {
-	if idhs.ProcessedHashCalled != nil {
-		idhs.ProcessedHashCalled(topic, hash, err)
+// LogProcessedHash -
+func (idhs *InterceptedDebugHandlerStub) LogProcessedHash(topic string, hash []byte, err error) {
+	if idhs.LogProcessedHashCalled != nil {
+		idhs.LogProcessedHashCalled(topic, hash, err)
 	}
 }
 

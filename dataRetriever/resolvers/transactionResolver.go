@@ -136,8 +136,7 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte) ([]byte, error) {
 
 	buff, err := txRes.txStorage.SearchFirst(hash)
 	if err != nil {
-		processDebugMissingData(
-			txRes.ResolverDebugHandler(),
+		txRes.ResolverDebugHandler().LogFailedToResolveData(
 			txRes.topic,
 			hash,
 			err,

@@ -168,3 +168,6 @@ var ErrNilQueryHandler = errors.New("nil query handler")
 
 // ErrQueryHandlerAlreadyExists signals that the query handler is already registered
 var ErrQueryHandlerAlreadyExists = errors.New("query handler already exists")
+
+// ErrEmptyQueryHandlerName signals that an empty string can not be used to be used in the query handler container
+var ErrEmptyQueryHandlerName = errors.New("empty query handler name")

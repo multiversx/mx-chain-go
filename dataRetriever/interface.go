@@ -352,8 +352,8 @@ type WhiteListHandler interface {
 
 // ResolverDebugHandler defines an interface for debugging the reqested-resolved data
 type ResolverDebugHandler interface {
-	RequestedData(topic string, hash []byte, numReqIntra int, numReqCross int)
-	FailedToResolveData(topic string, hash []byte, err error)
+	LogRequestedData(topic string, hash []byte, numReqIntra int, numReqCross int)
+	LogFailedToResolveData(topic string, hash []byte, err error)
 	Enabled() bool
 	IsInterfaceNil() bool
 }

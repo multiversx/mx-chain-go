@@ -126,7 +126,7 @@ func (trs *topicResolverSender) callDebugHandler(originalHashes [][]byte, numSen
 	}
 
 	for _, hash := range originalHashes {
-		trs.resolverDebugHandler.RequestedData(trs.topicName, hash, numSentIntra, numSentCross)
+		trs.resolverDebugHandler.LogRequestedData(trs.topicName, hash, numSentIntra, numSentCross)
 	}
 }
 
