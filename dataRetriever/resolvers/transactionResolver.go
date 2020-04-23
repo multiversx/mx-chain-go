@@ -134,7 +134,16 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte) ([]byte, error) {
 		return txRes.marshalizer.Marshal(value)
 	}
 
-	return txRes.txStorage.SearchFirst(hash)
+	buff, err := txRes.txStorage.SearchFirst(hash)
+	if err != nil {
+		txRes.ResolverDebugHandler().LogFailedToResolveData(
+			txRes.topic,
+			hash,
+			err,
+		)
+	}
+
+	return buff, err
 }
 
 func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.PeerID) error {
@@ -186,11 +195,14 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid p2p.
 
 // RequestDataFromHash requests a transaction from other peers having input the tx hash
 func (txRes *TxResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
-	return txRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.HashType,
-		Value: hash,
-		Epoch: epoch,
-	})
+	return txRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashType,
+			Value: hash,
+			Epoch: epoch,
+		},
+		[][]byte{hash},
+	)
 }
 
 // RequestDataFromHashArray requests a list of tx hashes from other peers
@@ -203,11 +215,14 @@ func (txRes *TxResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32)
 		return err
 	}
 
-	return txRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.HashArrayType,
-		Value: buffHashes,
-		Epoch: epoch,
-	})
+	return txRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashArrayType,
+			Value: buffHashes,
+			Epoch: epoch,
+		},
+		hashes,
+	)
 }
 
 // SetNumPeersToQuery will set the number of intra shard and cross shard number of peer to query
@@ -215,9 +230,14 @@ func (txRes *TxResolver) SetNumPeersToQuery(intra int, cross int) {
 	txRes.TopicResolverSender.SetNumPeersToQuery(intra, cross)
 }
 
-// GetNumPeersToQuery will return the number of intra shard and cross shard number of peer to query
-func (txRes *TxResolver) GetNumPeersToQuery() (int, int) {
-	return txRes.TopicResolverSender.GetNumPeersToQuery()
+// NumPeersToQuery will return the number of intra shard and cross shard number of peer to query
+func (txRes *TxResolver) NumPeersToQuery() (int, int) {
+	return txRes.TopicResolverSender.NumPeersToQuery()
+}
+
+// SetResolverDebugHandler will set a resolver debug handler
+func (txRes *TxResolver) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
+	return txRes.TopicResolverSender.SetResolverDebugHandler(handler)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

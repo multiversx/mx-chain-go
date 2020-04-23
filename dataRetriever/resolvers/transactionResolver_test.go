@@ -493,7 +493,7 @@ func TestTxResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	requested := &dataRetriever.RequestData{}
 
 	res := &mock.TopicResolverSenderStub{}
-	res.SendOnRequestTopicCalled = func(rd *dataRetriever.RequestData) error {
+	res.SendOnRequestTopicCalled = func(rd *dataRetriever.RequestData, hashes [][]byte) error {
 		requested = rd
 		return nil
 	}
@@ -519,7 +519,7 @@ func TestTxResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 	requested := &dataRetriever.RequestData{}
 
 	res := &mock.TopicResolverSenderStub{}
-	res.SendOnRequestTopicCalled = func(rd *dataRetriever.RequestData) error {
+	res.SendOnRequestTopicCalled = func(rd *dataRetriever.RequestData, hashes [][]byte) error {
 		requested = rd
 		return nil
 	}
@@ -558,7 +558,7 @@ func TestTxResolver_SetAndGetNumPeersToQuery(t *testing.T) {
 	txRes, _ := resolvers.NewTxResolver(arg)
 
 	txRes.SetNumPeersToQuery(expectedIntra, expectedCross)
-	actualIntra, actualCross := txRes.GetNumPeersToQuery()
+	actualIntra, actualCross := txRes.NumPeersToQuery()
 	assert.Equal(t, expectedIntra, actualIntra)
 	assert.Equal(t, expectedCross, actualCross)
 }

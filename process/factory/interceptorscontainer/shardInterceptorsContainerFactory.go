@@ -43,6 +43,7 @@ func NewShardInterceptorsContainerFactory(
 		args.AntifloodHandler,
 		args.WhiteListHandler,
 		args.AddressPubkeyConverter,
+		args.NonceConverter,
 	)
 	if err != nil {
 		return nil, err
@@ -93,6 +94,7 @@ func NewShardInterceptorsContainerFactory(
 		ChainID:           args.ChainID,
 		ValidityAttester:  args.ValidityAttester,
 		EpochStartTrigger: args.EpochStartTrigger,
+		NonceConverter:    args.NonceConverter,
 	}
 
 	container := containers.NewInterceptorsContainer()
