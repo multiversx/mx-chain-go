@@ -71,11 +71,12 @@ var P2pBootstrapDelay = 5 * time.Second
 
 var log = logger.GetOrCreate("integrationtests")
 
-var shuffleBetweenShards = false
-
-var adaptivity = false
-
-var hysteresis = float32(0.2)
+// shuffler constants
+const (
+	shuffleBetweenShards = false
+	adaptivity           = false
+	hysteresis           = float32(0.2)
+)
 
 // Type defines account types to save in accounts trie
 type Type uint8
