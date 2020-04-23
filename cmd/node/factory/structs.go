@@ -763,7 +763,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	_, err = poolsCleaner.NewCrossTxsPoolsCleaner(
+	_, err = poolsCleaner.NewTxsPoolsCleaner(
 		args.state.AddressPubkeyConverter,
 		args.data.Datapool,
 		args.rounder,
