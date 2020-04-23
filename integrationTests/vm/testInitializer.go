@@ -96,7 +96,25 @@ func CreateMemUnit() storage.Storer {
 // CreateInMemoryShardAccountsDB -
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marsh := &marshal.GogoProtoMarshalizer{}
-	store := CreateMemUnit()
+	store, _ := storageUnit.NewStorageUnitFromConf(
+		storageUnit.CacheConfig{
+			Type:        storageUnit.LRUCache,
+			Size:        100,
+			SizeInBytes: 1024,
+			Shards:      1,
+		},
+		storageUnit.DBConfig{
+			FilePath:          "TrieStorage",
+			Type:              "LvlDBSerial",
+			BatchDelaySeconds: 2,
+			MaxBatchSize:      100,
+			MaxOpenFiles:      10,
+		},
+		storageUnit.BloomConfig{
+			Size:     0,
+			HashFunc: nil,
+		},
+	)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), marsh)
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:   1000,
@@ -109,7 +127,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 		testHasher,
 		config.DBConfig{
 			FilePath:          "TrieStorage",
-			Type:              "MemoryDB",
+			Type:              "LvlDBSerial",
 			BatchDelaySeconds: 30,
 			MaxBatchSize:      6,
 			MaxOpenFiles:      10,

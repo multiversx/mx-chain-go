@@ -704,6 +704,7 @@ func TestAndCatchTrieError(t *testing.T) {
 
 	accumulateAddress := createTestAddresses(1)[0]
 
+	_ = logger.SetLogLevel("process/smartcontract:TRACE,process/smartContract/blockChainHook:TRACE")
 	// ERC20 Minting
 	erc20value := big.NewInt(100)
 	for _, testAddress := range testAddresses {
