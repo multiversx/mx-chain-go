@@ -248,7 +248,7 @@ func TestNode_resolveIfCollapsedNilNode(t *testing.T) {
 	var node *extensionNode
 
 	err := resolveIfCollapsed(node, 0, nil)
-	assert.Equal(t, ErrNilNode, err)
+	assert.Equal(t, ErrNilExtensionNode, err)
 }
 
 func TestNode_concat(t *testing.T) {
@@ -281,7 +281,7 @@ func TestNode_hasValidHashNilNode(t *testing.T) {
 
 	var node *branchNode
 	ok, err := hasValidHash(node)
-	assert.Equal(t, ErrNilNode, err)
+	assert.Equal(t, ErrNilBranchNode, err)
 	assert.False(t, ok)
 }
 
