@@ -4,7 +4,6 @@ import (
 	arwen "github.com/ElrondNetwork/arwen-wasm-vm/arwen"
 	arwenHost "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
 	ipcCommon "github.com/ElrondNetwork/arwen-wasm-vm/ipc/common"
-	ipcLogger "github.com/ElrondNetwork/arwen-wasm-vm/ipc/logger"
 	ipcMarshaling "github.com/ElrondNetwork/arwen-wasm-vm/ipc/marshaling"
 	ipcNodePart "github.com/ElrondNetwork/arwen-wasm-vm/ipc/nodepart"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -19,9 +18,6 @@ import (
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 
 var logVMContainerFactory = logger.GetOrCreate("vmContainerFactory")
-var logArwenDriver = logger.GetOrCreate("arwenDriver")
-var logArwenMain = logger.GetOrCreate("arwenDriver/arwenMain")
-var logDialogue = logger.GetOrCreate("arwenDriver/dialogue")
 
 type vmContainerFactory struct {
 	config             config.VirtualMachineConfig
@@ -90,8 +86,6 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 	logVMContainerFactory.Info("createOutOfProcessArwenVM", "config", vmf.config)
 
 	outOfProcessConfig := vmf.config.OutOfProcessConfig
-	mainLogLevel := ipcLogger.LogLevel(logArwenMain.GetLevel())
-	dialogueLogLevel := ipcLogger.LogLevel(logDialogue.GetLevel())
 	logsMarshalizer := ipcMarshaling.ParseKind(outOfProcessConfig.LogsMarshalizer)
 	messagesMarshalizer := ipcMarshaling.ParseKind(outOfProcessConfig.MessagesMarshalizer)
 	maxLoopTime := outOfProcessConfig.MaxLoopTime
@@ -99,9 +93,6 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 	logger.GetLogLevelPattern()
 
 	arwenVM, err := ipcNodePart.NewArwenDriver(
-		logArwenDriver,
-		logArwenMain,
-		logDialogue,
 		vmf.blockChainHookImpl,
 		ipcCommon.ArwenArguments{
 			VMHostParameters: arwen.VMHostParameters{
@@ -110,8 +101,6 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 				GasSchedule:              vmf.gasSchedule,
 				ProtocolBuiltinFunctions: vmf.builtinFunctions,
 			},
-			MainLogLevel:        mainLogLevel,
-			DialogueLogLevel:    dialogueLogLevel,
 			LogsMarshalizer:     logsMarshalizer,
 			MessagesMarshalizer: messagesMarshalizer,
 		},
