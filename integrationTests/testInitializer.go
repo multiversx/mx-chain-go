@@ -43,7 +43,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -56,6 +55,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -503,7 +503,7 @@ func CreateGenesisMetaBlock(
 	rootHash []byte,
 ) data.HeaderHandler {
 	gasSchedule := make(map[string]map[string]uint64)
-	vm.FillGasMapInternal(gasSchedule, 1)
+	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	argsMetaGenesis := genesisProcess.ArgsGenesisBlockCreator{
 		GenesisTime:              0,

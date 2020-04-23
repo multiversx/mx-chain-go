@@ -4,13 +4,14 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis/parser"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,7 +51,8 @@ func createMockArgument() ArgsGenesisBlockCreator {
 		},
 	}
 
-	arg.GasMap, _ = core.LoadGasScheduleConfig("testdata/gasSchedule.toml")
+	arg.GasMap = arwenConfig.MakeGasMap(1)
+	defaults.FillGasMapInternal(arg.GasMap, 1)
 
 	ted := &economics.TestEconomicsData{
 		EconomicsData: &economics.EconomicsData{},
