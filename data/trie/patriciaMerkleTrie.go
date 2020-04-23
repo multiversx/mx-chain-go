@@ -316,8 +316,7 @@ func (tr *patriciaMerkleTrie) Prune(rootHash []byte, identifier data.TriePruning
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	rootHash = append(rootHash, byte(identifier))
-	tr.trieStorage.Prune(rootHash)
+	tr.trieStorage.Prune(rootHash, identifier)
 }
 
 // CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
