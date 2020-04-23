@@ -71,10 +71,18 @@ type ArgsUpdateNodes struct {
 	NbShards uint32
 }
 
+// ResUpdateNodes holds the result of the UpdateNodes method
+type ResUpdateNodes struct {
+	Eligible       map[uint32][]Validator
+	Waiting        map[uint32][]Validator
+	Leaving        []Validator
+	StillRemaining []Validator
+}
+
 // NodesShuffler provides shuffling functionality for nodes
 type NodesShuffler interface {
 	UpdateParams(numNodesShard uint32, numNodesMeta uint32, hysteresis float32, adaptivity bool)
-	UpdateNodeLists(args ArgsUpdateNodes) (map[uint32][]Validator, map[uint32][]Validator, []Validator)
+	UpdateNodeLists(args ArgsUpdateNodes) ResUpdateNodes
 	IsInterfaceNil() bool
 }
 

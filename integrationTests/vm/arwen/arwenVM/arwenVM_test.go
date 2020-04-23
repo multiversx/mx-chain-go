@@ -8,7 +8,9 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -24,6 +26,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var log = logger.GetOrCreate("arwenVMtest")
 
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderAddressBytes := []byte("12345678901234567890123456789012")
@@ -656,4 +660,122 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 
 	_, err = accnts.Commit()
 	assert.Nil(t, err)
+}
+
+func TestAndCatchTrieError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	ownerAddressBytes := []byte("12345678901234567890123456789011")
+	ownerNonce := uint64(11)
+	ownerBalance := big.NewInt(10000000000000)
+	gasPrice := uint64(1)
+	gasLimit := uint64(10000000000)
+
+	scCode := arwen.GetSCCode("../testdata/erc20-c-03/wrc20_arwen.wasm")
+
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, nil)
+	defer testContext.Close()
+
+	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
+
+	initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
+	tx := vm.CreateDeployTx(
+		ownerAddressBytes,
+		ownerNonce,
+		big.NewInt(0),
+		gasPrice,
+		gasLimit,
+		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
+	)
+
+	err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, err)
+	require.Nil(t, testContext.GetLatestError())
+	ownerNonce++
+
+	numAccounts := 100
+	testAddresses := createTestAddresses(uint64(numAccounts))
+	// ERD Minting
+	for _, testAddress := range testAddresses {
+		_, _ = vm.CreateAccount(testContext.Accounts, testAddress, 0, big.NewInt(1000000))
+	}
+
+	accumulateAddress := createTestAddresses(1)[0]
+
+	// ERC20 Minting
+	erc20value := big.NewInt(100)
+	for _, testAddress := range testAddresses {
+		tx = vm.CreateTransferTokenTx(ownerNonce, erc20value, scAddress, ownerAddressBytes, testAddress)
+		ownerNonce++
+
+		err = testContext.TxProcessor.ProcessTransaction(tx)
+		require.Nil(t, err)
+		require.Nil(t, testContext.GetLatestError())
+	}
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(t, err)
+
+	receiverAddresses := createTestAddresses(uint64(numAccounts))
+
+	transferNonce := uint64(0)
+	// Transfer among each person revert and retry
+	for i := 0; i < 51; i++ {
+		rootHash, _ := testContext.Accounts.RootHash()
+
+		for index, testAddress := range testAddresses {
+			tx = vm.CreateTransferTokenTx(transferNonce, erc20value, scAddress, testAddress, receiverAddresses[index])
+
+			snapShot := testContext.Accounts.JournalLen()
+			_ = testContext.TxProcessor.ProcessTransaction(tx)
+			require.Nil(t, testContext.GetLatestError())
+
+			if index%5 == 0 {
+				err := testContext.Accounts.RevertToSnapshot(snapShot)
+				if err != nil {
+					log.Warn("revert to snapshot", "error", err.Error())
+				}
+			}
+		}
+
+		tx = vm.CreateTransferTokenTx(ownerNonce, erc20value, scAddress, ownerAddressBytes, accumulateAddress)
+
+		newRootHash, err := testContext.Accounts.Commit()
+		require.Nil(t, err)
+
+		for index, testAddress := range receiverAddresses {
+			if index%5 == 0 {
+				continue
+			}
+
+			tx = vm.CreateTransferTokenTx(transferNonce, erc20value, scAddress, testAddress, testAddresses[index])
+
+			snapShot := testContext.Accounts.JournalLen()
+			_ = testContext.TxProcessor.ProcessTransaction(tx)
+			require.Nil(t, testContext.GetLatestError())
+
+			if index%5 == 0 {
+				err := testContext.Accounts.RevertToSnapshot(snapShot)
+				if err != nil {
+					log.Warn("revert to snapshot", "error", err.Error())
+				}
+			}
+		}
+
+		extraNewRootHash, _ := testContext.Accounts.Commit()
+		require.Nil(t, err)
+		log.Info("finished a set - commit and recreate trie", "index", i)
+		if i%10 == 5 {
+			testContext.Accounts.PruneTrie(extraNewRootHash, data.NewRoot)
+			_ = testContext.Accounts.RecreateTrie(rootHash)
+			continue
+		}
+
+		ownerNonce++
+		transferNonce++
+		testContext.Accounts.PruneTrie(rootHash, data.OldRoot)
+		testContext.Accounts.PruneTrie(newRootHash, data.OldRoot)
+	}
 }
