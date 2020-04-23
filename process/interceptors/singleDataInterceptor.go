@@ -11,12 +11,13 @@ import (
 
 // SingleDataInterceptor is used for intercepting packed multi data
 type SingleDataInterceptor struct {
-	topic              string
-	factory            process.InterceptedDataFactory
-	processor          process.InterceptorProcessor
-	throttler          process.InterceptorThrottler
-	whiteListRequested process.WhiteListHandler
-	antifloodHandler   process.P2PAntifloodHandlermutInterceptedDebugHandler sync.RWMutex
+	topic                      string
+	factory                    process.InterceptedDataFactory
+	processor                  process.InterceptorProcessor
+	throttler                  process.InterceptorThrottler
+	whiteListRequested         process.WhiteListHandler
+	antifloodHandler           process.P2PAntifloodHandler
+	mutInterceptedDebugHandler sync.RWMutex
 	interceptedDebugHandler    process.InterceptedDebugHandler
 }
 
