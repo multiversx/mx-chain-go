@@ -405,13 +405,11 @@ func getActualList(peerAccount state.PeerAccountHandler) string {
 	if peerAccount.GetUnStakedEpoch() == 0 {
 		return savedList
 	}
-
-	isValidator := savedList == string(core.WaitingList) || savedList == string(core.EligibleList)
-	if isValidator {
-		return string(core.LeavingList)
+	if savedList == string(core.InactiveList) {
+		return savedList
 	}
 
-	return savedList
+	return string(core.LeavingList)
 }
 
 func (vs *validatorStatistics) peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {

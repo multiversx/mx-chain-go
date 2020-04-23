@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -31,10 +30,10 @@ type ArgStakingToPeer struct {
 	PeerState        state.AccountsAdapter
 	BaseState        state.AccountsAdapter
 
-	ArgParser process.ArgumentsParser
-	CurrTxs   dataRetriever.TransactionCacher
-	ScQuery   external.SCQueryService
-	Rater     sharding.PeerAccountListAndRatingHandler
+	ArgParser   process.ArgumentsParser
+	CurrTxs     dataRetriever.TransactionCacher
+	ScQuery     external.SCQueryService
+	RatingsData process.RatingsInfoHandler
 }
 
 // stakingToPeer defines the component which will translate changes from staking SC state
@@ -52,6 +51,7 @@ type stakingToPeer struct {
 	scQuery      external.SCQueryService
 	startRating  uint32
 	unJailRating uint32
+	jailRating   uint32
 }
 
 // NewStakingToPeer creates the component which moves from staking sc state to peer state
@@ -71,8 +71,9 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 		argParser:        args.ArgParser,
 		currTxs:          args.CurrTxs,
 		scQuery:          args.ScQuery,
-		startRating:      args.Rater.GetStartRating(),
-		unJailRating:     args.Rater.GetStartRating(),
+		startRating:      args.RatingsData.StartRating(),
+		unJailRating:     args.RatingsData.StartRating(),
+		jailRating:       args.RatingsData.MinRating(),
 	}
 
 	return st, nil
@@ -106,8 +107,8 @@ func checkIfNil(args ArgStakingToPeer) error {
 	if check.IfNil(args.ScQuery) {
 		return process.ErrNilSCDataGetter
 	}
-	if check.IfNil(args.Rater) {
-		return process.ErrNilRater
+	if check.IfNil(args.RatingsData) {
+		return process.ErrNilRatingsInfoHandler
 	}
 
 	return nil
@@ -244,13 +245,19 @@ func (stp *stakingToPeer) updatePeerState(
 		}
 	}
 
-	if stakingData.UnJailedNonce == nonce && !isValidator {
-		account.SetListAndIndex(account.GetShardId(), string(core.NewList), uint32(stakingData.UnJailedNonce))
-		account.SetTempRating(stp.unJailRating)
+	if stakingData.UnJailedNonce == nonce {
+		if account.GetTempRating() < stp.unJailRating {
+			account.SetTempRating(stp.unJailRating)
+		}
+
+		if !isValidator && account.GetUnStakedEpoch() == 0 {
+			account.SetListAndIndex(account.GetShardId(), string(core.NewList), uint32(stakingData.UnJailedNonce))
+		}
 	}
 
 	if stakingData.JailedNonce == nonce && account.GetList() != string(core.InactiveList) {
 		account.SetListAndIndex(account.GetShardId(), string(core.LeavingList), uint32(stakingData.JailedNonce))
+		account.SetTempRating(stp.jailRating)
 	}
 
 	err = stp.peerState.SaveAccount(account)

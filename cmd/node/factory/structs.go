@@ -559,6 +559,7 @@ type processComponentsFactoryArgs struct {
 	epochStartNotifier        EpochStartNotifier
 	epochStart                *config.EpochStartConfig
 	rater                     sharding.PeerAccountListAndRatingHandler
+	ratingsData               process.RatingsInfoHandler
 	startEpochNum             uint32
 	sizeCheckDelta            uint32
 	stateCheckpointModulus    uint
@@ -600,6 +601,7 @@ func NewProcessComponentsFactoryArgs(
 	maxSizeInBytes uint32,
 	maxRating uint32,
 	validatorPubkeyConverter state.PubkeyConverter,
+	ratingsData process.RatingsInfoHandler,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -622,6 +624,7 @@ func NewProcessComponentsFactoryArgs(
 		epochStart:                epochStart,
 		startEpochNum:             startEpochNum,
 		rater:                     rater,
+		ratingsData:               ratingsData,
 		sizeCheckDelta:            sizeCheckDelta,
 		stateCheckpointModulus:    stateCheckpointModulus,
 		maxComputableRounds:       maxComputableRounds,
@@ -1625,7 +1628,7 @@ func newBlockProcessor(
 			processArgs.gasSchedule,
 			processArgs.minSizeInBytes,
 			processArgs.maxSizeInBytes,
-			processArgs.rater,
+			processArgs.ratingsData,
 			processArgs.nodesConfig,
 		)
 	}
@@ -1923,7 +1926,7 @@ func newMetaBlockProcessor(
 	gasSchedule map[string]map[string]uint64,
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
-	rater sharding.PeerAccountListAndRatingHandler,
+	ratingsData process.RatingsInfoHandler,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 ) (process.BlockProcessor, error) {
 
@@ -2118,7 +2121,7 @@ func newMetaBlockProcessor(
 		ArgParser:        argsParser,
 		CurrTxs:          data.Datapool.CurrentBlockTxs(),
 		ScQuery:          scDataGetter,
-		Rater:            rater,
+		RatingsData:      ratingsData,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {
