@@ -195,23 +195,35 @@ const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 // MetricNumTimesInForkChoice is the metric that counts how many time a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
 
-//MetricHighestFinalBlockInShard is the metric that stores the highest nonce block notarized by metachain for current shard
+// MetricHighestFinalBlockInShard is the metric that stores the highest nonce block notarized by metachain for current shard
 const MetricHighestFinalBlockInShard = "erd_highest_notarized_block_by_metachain_for_current_shard"
 
-//MetricLatestTagSoftwareVersion is the metric that stores the latest tag software version
+// MetricLatestTagSoftwareVersion is the metric that stores the latest tag software version
 const MetricLatestTagSoftwareVersion = "erd_latest_tag_software_version"
 
-//MetricCountConsensusAcceptedBlocks is the metric for monitoring number of blocks accepted when the node was in consensus group
+// MetricCountConsensusAcceptedBlocks is the metric for monitoring number of blocks accepted when the node was in consensus group
 const MetricCountConsensusAcceptedBlocks = "erd_count_consensus_accepted_blocks"
 
-//MetricRewardsValue is the metric that stores rewards value
+// MetricRewardsValue is the metric that stores rewards value
 const MetricRewardsValue = "erd_rewards_value"
 
-//MetricNodeDisplayName is the metric that stores the name of the node
+// MetricNodeDisplayName is the metric that stores the name of the node
 const MetricNodeDisplayName = "erd_node_display_name"
 
-//MetricConsensusGroupSize is the metric for consensus group size
+// MetricConsensusGroupSize is the metric for consensus group size for the current shard/meta
 const MetricConsensusGroupSize = "erd_metric_consensus_group_size"
+
+// MetricShardConsensusGroupSize is the metric for the shard consensus group size
+const MetricShardConsensusGroupSize = "erd_metric_shard_consensus_group_size"
+
+// MetricMetaConsensusGroupSize is the metric for the metachain consensus group size
+const MetricMetaConsensusGroupSize = "erd_metric_shard_consensus_group_size"
+
+// MetricNumNodesPerShard is the metric which holds the number of nodes in a shard
+const MetricNumNodesPerShard = "erd_metric_num_nodes_in_shard"
+
+// MetricNumMetachainNodes is the metric which holds the number of nodes in metachain
+const MetricNumMetachainNodes = "erd_metric_num_metachain_nodes"
 
 //MetricNumValidators is the metric for the number of validators
 const MetricNumValidators = "erd_metric_num_validators"
@@ -252,8 +264,20 @@ const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
 // MetricMinGasPrice is the metric that specifies min gas price
 const MetricMinGasPrice = "erd_min_gas_price"
 
+// MetricMinGasLimit is the metric that specifies the minimum gas limit
+const MetricMinGasLimit = "erd_min_gas_limit"
+
+// MetricGasPerDataByte is the metric that specifies the required gas for a data byte
+const MetricGasPerDataByte = "erd_gas_per_data_byte"
+
 // MetricChainId is the metric that specifies current chain id
 const MetricChainId = "erd_chain_id"
+
+// MetricStartTime is the metric that specifies the genesis start time
+const MetricStartTime = "erd_start_time"
+
+// MetricRoundDuration is the metric that specifies the round duration in milliseconds
+const MetricRoundDuration = "erd_round_duration"
 
 // MetachainShardId will be used to identify a shard ID as metachain
 const MetachainShardId = uint32(0xFFFFFFFF)

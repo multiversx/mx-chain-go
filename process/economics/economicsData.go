@@ -217,6 +217,16 @@ func (ed *EconomicsData) MinGasPrice() uint64 {
 	return ed.minGasPrice
 }
 
+// MinGasLimit will return min gas limit
+func (ed *EconomicsData) MinGasLimit() uint64 {
+	return ed.minGasLimit
+}
+
+// GasPerDataByte will return the gas required for a data byte
+func (ed *EconomicsData) GasPerDataByte() uint64 {
+	return ed.gasPerDataByte
+}
+
 // ComputeFee computes the provided transaction's fee
 func (ed *EconomicsData) ComputeFee(tx process.TransactionWithFeeHandler) *big.Int {
 	gasPrice := big.NewInt(0).SetUint64(tx.GetGasPrice())
