@@ -412,6 +412,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		WhiteListHandler:       e.whiteListHandler,
 		InterceptorsContainer:  e.interceptorsContainer,
 		AntifloodHandler:       e.inputAntifloodHandler,
+		NonceConverter:         e.uint64Converter,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {

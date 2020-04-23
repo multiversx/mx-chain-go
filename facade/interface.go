@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -49,6 +50,8 @@ type NodeHandler interface {
 
 	EncodeAddressPubkey(pk []byte) (string, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
+
+	GetQueryHandler(name string) (debug.QueryHandler, error)
 }
 
 // ApiResolver defines a structure capable of resolving REST API requests

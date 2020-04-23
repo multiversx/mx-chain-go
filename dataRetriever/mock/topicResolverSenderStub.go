@@ -1,17 +1,19 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // TopicResolverSenderStub -
 type TopicResolverSenderStub struct {
-	SendOnRequestTopicCalled func(rd *dataRetriever.RequestData) error
+	SendOnRequestTopicCalled func(rd *dataRetriever.RequestData, originalHashes [][]byte) error
 	SendCalled               func(buff []byte, peer p2p.PeerID) error
 	TargetShardIDCalled      func() uint32
 	SetNumPeersToQueryCalled func(intra int, cross int)
 	GetNumPeersToQueryCalled func() (int, int)
+	debugHandler             dataRetriever.ResolverDebugHandler
 }
 
 // SetNumPeersToQuery -
@@ -21,8 +23,8 @@ func (trss *TopicResolverSenderStub) SetNumPeersToQuery(intra int, cross int) {
 	}
 }
 
-// GetNumPeersToQuery -
-func (trss *TopicResolverSenderStub) GetNumPeersToQuery() (int, int) {
+// NumPeersToQuery -
+func (trss *TopicResolverSenderStub) NumPeersToQuery() (int, int) {
 	if trss.GetNumPeersToQueryCalled != nil {
 		return trss.GetNumPeersToQueryCalled()
 	}
@@ -36,9 +38,9 @@ func (trss *TopicResolverSenderStub) RequestTopic() string {
 }
 
 // SendOnRequestTopic -
-func (trss *TopicResolverSenderStub) SendOnRequestTopic(rd *dataRetriever.RequestData) error {
+func (trss *TopicResolverSenderStub) SendOnRequestTopic(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
 	if trss.SendOnRequestTopicCalled != nil {
-		return trss.SendOnRequestTopicCalled(rd)
+		return trss.SendOnRequestTopicCalled(rd, originalHashes)
 	}
 
 	return nil
@@ -60,6 +62,22 @@ func (trss *TopicResolverSenderStub) TargetShardID() uint32 {
 	}
 
 	return 0
+}
+
+// ResolverDebugHandler -
+func (trss *TopicResolverSenderStub) ResolverDebugHandler() dataRetriever.ResolverDebugHandler {
+	if check.IfNil(trss.debugHandler) {
+		return &ResolverDebugHandler{}
+	}
+
+	return trss.debugHandler
+}
+
+// SetResolverDebugHandler -
+func (trss *TopicResolverSenderStub) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
+	trss.debugHandler = handler
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
