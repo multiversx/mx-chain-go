@@ -634,15 +634,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 			}
 		}
 	}
-
-	nodesConfig := ihgs.nodesConfig[newEpoch]
 	ihgs.mutNodesConfig.Unlock()
-
-	// TODO: do shuffleOut only when the current start of epoch block was notarized by meta.
-	err = ihgs.shuffledOutHandler.Process(nodesConfig.shardID)
-	if err != nil {
-		log.Warn("Shuffle out process failed", "err", err)
-	}
 }
 
 // NotifyOrder returns the notification order for a start of epoch event
@@ -671,6 +663,18 @@ func (ihgs *indexHashedNodesCoordinator) ShardIdForEpoch(epoch uint32) (uint32, 
 	}
 
 	return nodesConfig.shardID, nil
+}
+
+// ShuffleOutForEpoch verifies if the shards changed in the new epoch and calls the shuffleOutHandler
+func (ihgs *indexHashedNodesCoordinator) ShuffleOutForEpoch(epoch uint32) {
+	ihgs.mutNodesConfig.Lock()
+	nodesConfig := ihgs.nodesConfig[epoch]
+	ihgs.mutNodesConfig.Unlock()
+
+	err := ihgs.shuffledOutHandler.Process(nodesConfig.shardID)
+	if err != nil {
+		log.Warn("Shuffle out process failed", "err", err)
+	}
 }
 
 // GetConsensusWhitelistedNodes return the whitelisted nodes allowed to send consensus messages, for each of the shards

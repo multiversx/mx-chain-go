@@ -20,8 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
-const maxCleanTime = time.Second
-
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
@@ -915,10 +913,14 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			log.Debug("could not get shard header from storage")
 			return
 		}
+		currentHeader := headers[i]
+		if headers[i].IsStartOfEpochBlock() {
+			sp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
+		}
 
 		sp.updateStateStorage(
-			headers[i],
-			headers[i].GetRootHash(),
+			currentHeader,
+			currentHeader.GetRootHash(),
 			prevHeader.GetRootHash(),
 			sp.accountsDB[state.UserAccountsState],
 		)
