@@ -31,6 +31,23 @@ type validatorWithShardID struct {
 	shardID   uint32
 }
 
+type validatorList []Validator
+
+// Len will return the length of the validatorList
+func (v validatorList) Len() int { return len(v) }
+
+// Swap will interchange the objects on input indexes
+func (v validatorList) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
+
+// Less will return true if object on index i should appear before object in index j
+// Sorting of validators should be by index and public key
+func (v validatorList) Less(i, j int) bool {
+	if v[i].Index() == v[j].Index() {
+		return bytes.Compare(v[i].PubKey(), v[j].PubKey()) > 0
+	}
+	return v[i].Index() > v[j].Index()
+}
+
 // TODO: add a parameter for shardID  when acting as observer
 type epochNodesConfig struct {
 	nbShards                uint32
@@ -81,6 +98,8 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		eligibleMap: make(map[uint32][]Validator),
 		waitingMap:  make(map[uint32][]Validator),
 		selectors:   make(map[uint32]RandomSelector),
+		leavingList: make([]Validator, 0),
+		newList:     make([]Validator, 0),
 	}
 
 	savedKey := arguments.Hasher.Compute(string(arguments.SelfPublicKey))
@@ -571,24 +590,13 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		}
 	}
 
-	sort.Slice(leaving, func(i, j int) bool {
-		return leaving[i].Index() > leaving[j].Index()
-	})
-
-	sort.Slice(newNodesList, func(i, j int) bool {
-		return newNodesList[i].Index() > newNodesList[j].Index()
-	})
-
+	sort.Sort(validatorList(leaving))
+	sort.Sort(validatorList(newNodesList))
 	for _, eligibleList := range eligibleMap {
-		sort.Slice(eligibleList, func(i, j int) bool {
-			return eligibleList[i].Index() > eligibleList[j].Index()
-		})
+		sort.Sort(validatorList(eligibleList))
 	}
-
 	for _, waitingList := range waitingMap {
-		sort.Slice(waitingList, func(i, j int) bool {
-			return waitingList[i].Index() > waitingList[j].Index()
-		})
+		sort.Sort(validatorList(waitingList))
 	}
 
 	newNodesConfig := &epochNodesConfig{

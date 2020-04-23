@@ -8,6 +8,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -74,6 +75,9 @@ func NewBlockSigningRater(ratingsData process.RatingsInfoHandler) (*BlockSigning
 }
 
 func verifyRatingsData(ratingsData process.RatingsInfoHandler) error {
+	if check.IfNil(ratingsData) {
+		return process.ErrNilRatingsInfoHandler
+	}
 	if ratingsData.MinRating() < 1 {
 		return process.ErrMinRatingSmallerThanOne
 	}
