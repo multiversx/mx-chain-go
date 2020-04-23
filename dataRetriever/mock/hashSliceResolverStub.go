@@ -1,6 +1,9 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/p2p"
+import (
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+)
 
 // HashSliceResolverStub -
 type HashSliceResolverStub struct {
@@ -8,7 +11,8 @@ type HashSliceResolverStub struct {
 	ProcessReceivedMessageCalled   func(message p2p.MessageP2P) error
 	RequestDataFromHashArrayCalled func(hashes [][]byte, epoch uint32) error
 	SetNumPeersToQueryCalled       func(intra int, cross int)
-	GetNumPeersToQueryCalled       func() (int, int)
+	NumPeersToQueryCalled          func() (int, int)
+	SetResolverDebugHandlerCalled  func(handler dataRetriever.ResolverDebugHandler) error
 }
 
 // SetNumPeersToQuery -
@@ -18,10 +22,10 @@ func (hsrs *HashSliceResolverStub) SetNumPeersToQuery(intra int, cross int) {
 	}
 }
 
-// GetNumPeersToQuery -
-func (hsrs *HashSliceResolverStub) GetNumPeersToQuery() (int, int) {
-	if hsrs.GetNumPeersToQueryCalled != nil {
-		return hsrs.GetNumPeersToQueryCalled()
+// NumPeersToQuery -
+func (hsrs *HashSliceResolverStub) NumPeersToQuery() (int, int) {
+	if hsrs.NumPeersToQueryCalled != nil {
+		return hsrs.NumPeersToQueryCalled()
 	}
 
 	return 2, 2
@@ -52,6 +56,15 @@ func (hsrs *HashSliceResolverStub) RequestDataFromHashArray(hashes [][]byte, epo
 	}
 
 	return errNotImplemented
+}
+
+// SetResolverDebugHandler -
+func (hsrs *HashSliceResolverStub) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
+	if hsrs.SetResolverDebugHandlerCalled != nil {
+		return hsrs.SetResolverDebugHandlerCalled(handler)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

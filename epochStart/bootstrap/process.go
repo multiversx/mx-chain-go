@@ -361,6 +361,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		BlockSigner:       e.blockSingleSigner,
 		WhitelistHandler:  e.whiteListHandler,
 		AddressPubkeyConv: e.addressPubkeyConverter,
+		NonceConverter:    e.uint64Converter,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -388,6 +389,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		WhiteListHandler:  e.whiteListHandler,
 		ChainID:           []byte(e.genesisNodesConfig.GetChainId()),
 		AddressPubkeyConv: e.addressPubkeyConverter,
+		NonceConverter:    e.uint64Converter,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
