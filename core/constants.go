@@ -1,5 +1,7 @@
 package core
 
+import "time"
+
 // PeerType represents the type of a peer
 type PeerType string
 
@@ -348,5 +350,5 @@ const ShuffledOut = "shuffledOut"
 // MaxRetriesToCreateDB represents the maximum number of times to try to create DB if it failed
 const MaxRetriesToCreateDB = 10
 
-// SleepTimeBetweenCreateDBRetries representes the number of seconds to sleep between DB creates
-const SleepTimeBetweenCreateDBRetries = 5
+// SleepTimeBetweenCreateDBRetries represents the number of seconds to sleep between DB creates
+const SleepTimeBetweenCreateDBRetries = 5 * time.Second

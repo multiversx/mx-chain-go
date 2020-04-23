@@ -326,8 +326,8 @@ VERSION:
 
 	startInEpoch = cli.BoolFlag{
 		Name: "start-in-epoch",
-		Usage: "Boolean option for enabling a node the fast bootstrap mechanism from the network is enabled if " +
-			"data is not available in local disk.",
+		Usage: "Boolean option for enabling a node the fast bootstrap mechanism from the network." +
+			"Should be enabled if data is not available in local disk.",
 	}
 
 	rm *statistics.ResourceMonitor
@@ -819,7 +819,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 	}
 	log.Info("Bootstrap", "epoch", bootstrapParameters.Epoch)
-	log.Info("nodesConfig is", "not nil", bootstrapParameters.NodesConfig != nil)
 	if bootstrapParameters.NodesConfig != nil {
 		log.Info("the epoch from nodesConfig is", "epoch", bootstrapParameters.NodesConfig.CurrentEpoch)
 	}
@@ -1123,7 +1122,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	case <-sigs:
 		log.Info("terminating at user's signal...")
 	case sig = <-chanStopNodeProcess:
-		log.Info(fmt.Sprintf("terminating at internal stop signal... reason: %s", sig.Reason))
+		log.Info("terminating at internal stop signal", "reason", sig.Reason)
 	}
 
 	log.Debug("closing all store units....")
@@ -1151,9 +1150,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 }
 
 func handleAppClose(log logger.Logger, endProcessArgument endProcess.EndProcessArgument) {
-	log.Debug(fmt.Sprintf("Restarting because %s. Details: %s",
+	log.Debug(
+		"restarting node",
+		"reason",
 		endProcessArgument.Reason,
-		endProcessArgument.Description))
+		"description",
+		endProcessArgument.Description)
 	switch endProcessArgument.Reason {
 	case core.ShuffledOut:
 		{
@@ -1171,9 +1173,7 @@ func newStartInEpoch(log logger.Logger) {
 	args := os.Args
 	args = append(args, "-start-in-epoch")
 
-	log.Debug("Executable", "working dir", wd)
-	log.Debug("app", "nodeApp", nodeApp)
-	log.Debug("args", "args", args)
+	log.Debug("startInEpoch", "working dir", wd, "nodeApp", nodeApp, "args", args)
 
 	cmd := exec.Command(nodeApp)
 	cmd.Stdout = os.Stdout
@@ -1565,9 +1565,9 @@ func createNodesCoordinator(
 func serializableValidatorsToValidators(nodeRegistryValidators map[string][]*sharding.SerializableValidator) (map[uint32][]sharding.Validator, error) {
 	validators := make(map[uint32][]sharding.Validator)
 	for shardId, shardValidators := range nodeRegistryValidators {
-		newValidators, err2 := serializableShardValidatorListToValidatorList(shardValidators)
-		if err2 != nil {
-			return nil, err2
+		newValidators, err := serializableShardValidatorListToValidatorList(shardValidators)
+		if err != nil {
+			return nil, err
 		}
 		shardIdInt, err := strconv.ParseUint(shardId, 10, 32)
 		if err != nil {

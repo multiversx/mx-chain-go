@@ -344,7 +344,9 @@
     # ShuffledOutRestartThreshold represents the maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard
     ShuffledOutRestartThreshold = 0.25
-    ShuffleBetweenShards = false
+
+    # ShuffleBetweenShards enables the shuffling of validators between shards at the end of epoch
+    ShuffleBetweenShards = true
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
