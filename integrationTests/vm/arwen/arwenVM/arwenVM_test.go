@@ -695,7 +695,7 @@ func TestAndCatchTrieError(t *testing.T) {
 	require.Nil(t, testContext.GetLatestError())
 	ownerNonce++
 
-	numAccounts := 100
+	numAccounts := 500
 	testAddresses := createTestAddresses(uint64(numAccounts))
 	// ERD Minting
 	for _, testAddress := range testAddresses {
@@ -704,7 +704,7 @@ func TestAndCatchTrieError(t *testing.T) {
 
 	accumulateAddress := createTestAddresses(1)[0]
 
-	_ = logger.SetLogLevel("process/smartcontract:TRACE,process/smartContract/blockChainHook:TRACE")
+	//_ = logger.SetLogLevel("process/smartcontract:TRACE,process/smartContract/blockChainHook:TRACE")
 	// ERC20 Minting
 	erc20value := big.NewInt(100)
 	for _, testAddress := range testAddresses {

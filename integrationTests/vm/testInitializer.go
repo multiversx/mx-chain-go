@@ -98,16 +98,14 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	marsh := &marshal.GogoProtoMarshalizer{}
 	store, _ := storageUnit.NewStorageUnitFromConf(
 		storageUnit.CacheConfig{
-			Type:        storageUnit.LRUCache,
-			Size:        100,
-			SizeInBytes: 1024,
-			Shards:      1,
+			Type: storageUnit.LRUCache,
+			Size: 75,
 		},
 		storageUnit.DBConfig{
 			FilePath:          "TrieStorage",
 			Type:              "LvlDBSerial",
 			BatchDelaySeconds: 2,
-			MaxBatchSize:      100,
+			MaxBatchSize:      45,
 			MaxOpenFiles:      10,
 		},
 		storageUnit.BloomConfig{
