@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -25,8 +26,22 @@ func InitMetrics(
 	version string,
 	economicsConfig *config.EconomicsConfig,
 	roundsPerEpoch int64,
-) {
+) error {
+	if check.IfNil(appStatusHandler) {
+		return fmt.Errorf("nil AppStatusHandler when initializing metrics")
+	}
+	if check.IfNil(shardCoordinator) {
+		return fmt.Errorf("nil shard coordinator when initializing metrics")
+	}
+	if nodesConfig == nil {
+		return fmt.Errorf("nil nodes config when initializing metrics")
+	}
+	if economicsConfig == nil {
+		return fmt.Errorf("nil economics config when initializing metrics")
+	}
+
 	shardId := uint64(shardCoordinator.SelfId())
+	numOfShards := uint64(shardCoordinator.NumberOfShards())
 	roundDuration := nodesConfig.RoundDuration
 	isSyncing := uint64(1)
 	initUint := uint64(0)
@@ -34,6 +49,7 @@ func InitMetrics(
 
 	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, pubkeyStr)
 	appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
+	appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetacahin, numOfShards)
 	appStatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
 	appStatusHandler.SetUInt64Value(core.MetricRoundTime, roundDuration/millisecondsInSecond)
 	appStatusHandler.SetStringValue(core.MetricAppVersion, version)
@@ -87,6 +103,8 @@ func InitMetrics(
 
 	appStatusHandler.SetUInt64Value(core.MetricNumValidators, uint64(numValidators))
 	appStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, uint64(consensusGroupSize))
+
+	return nil
 }
 
 // SaveUint64Metric will save a uint64 metric in status handler
@@ -105,10 +123,19 @@ func StartStatusPolling(
 	pollingInterval time.Duration,
 	networkComponents *factory.Network,
 	processComponents *factory.Process,
+	shardCoordinator sharding.Coordinator,
 ) error {
-
 	if ash == nil {
 		return errors.New("nil AppStatusHandler")
+	}
+	if networkComponents == nil {
+		return errors.New("nil networkComponents")
+	}
+	if processComponents == nil {
+		return errors.New("nil processComponents")
+	}
+	if check.IfNil(shardCoordinator) {
+		return errors.New("nil shard coordinator")
 	}
 
 	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(ash, pollingInterval)
@@ -122,6 +149,11 @@ func StartStatusPolling(
 	}
 
 	err = registerPollProbableHighestNonce(appStatusPollingHandler, processComponents)
+	if err != nil {
+		return err
+	}
+
+	err = registerShardsInformation(appStatusPollingHandler, shardCoordinator)
 	if err != nil {
 		return err
 	}
@@ -144,6 +176,27 @@ func registerPollConnectedPeers(
 	err := appStatusPollingHandler.RegisterPollingFunc(p2pMetricsHandlerFunc)
 	if err != nil {
 		return errors.New("cannot register handler func for num of connected peers")
+	}
+
+	return nil
+}
+
+func registerShardsInformation(
+	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
+	coordinator sharding.Coordinator,
+) error {
+
+	computeShardsInfo := func(appStatusHandler core.AppStatusHandler) {
+		shardId := uint64(coordinator.SelfId())
+		numOfShards := uint64(coordinator.NumberOfShards())
+
+		appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
+		appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetacahin, numOfShards)
+	}
+
+	err := appStatusPollingHandler.RegisterPollingFunc(computeShardsInfo)
+	if err != nil {
+		return fmt.Errorf("%w, cannot register handler func for shards information", err)
 	}
 
 	return nil

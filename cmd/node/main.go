@@ -789,7 +789,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("initializing metrics")
-	metrics.InitMetrics(
+	err = metrics.InitMetrics(
 		coreComponents.StatusHandler,
 		cryptoParams.PublicKeyString,
 		nodeType,
@@ -799,6 +799,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		economicsConfig,
 		generalConfig.EpochStartConfig.RoundsPerEpoch,
 	)
+	if err != nil {
+		return err
+	}
 
 	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
 	if err != nil {
@@ -1066,6 +1069,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		statusPollingInterval,
 		networkComponents,
 		processComponents,
+		shardCoordinator,
 	)
 	if err != nil {
 		return err
