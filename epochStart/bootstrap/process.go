@@ -336,7 +336,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
-	e.whitelistVerified, err = interceptors.NewDisabledWhiteListDataVerifier(nil)
+	e.whitelistVerified, err = interceptors.NewDisabledWhiteListDataVerifier()
 	if err != nil {
 		return err
 	}

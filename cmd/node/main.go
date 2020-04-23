@@ -1900,5 +1900,5 @@ func createWhiteListVerified(generalConfig *config.Config, nodeType core.NodeTyp
 		return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
 	}
 
-	return interceptors.NewDisabledWhiteListDataVerifier(nil)
+	return interceptors.NewDisabledWhiteListDataVerifier()
 }
