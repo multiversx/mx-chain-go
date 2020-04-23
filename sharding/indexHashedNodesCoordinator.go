@@ -117,13 +117,14 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	}
 	log.Info("new nodes config is set for epoch", "epoch", arguments.Epoch)
 	currentNodesConfig := ihgs.nodesConfig[arguments.Epoch]
-	displayNodesConfiguration(
-		currentNodesConfig.eligibleMap,
-		currentNodesConfig.waitingMap,
-		currentNodesConfig.leavingList,
-		make([]Validator, 0),
-		currentNodesConfig.nbShards)
-
+	if currentNodesConfig != nil {
+		displayNodesConfiguration(
+			currentNodesConfig.eligibleMap,
+			currentNodesConfig.waitingMap,
+			currentNodesConfig.leavingList,
+			make([]Validator, 0),
+			currentNodesConfig.nbShards)
+	}
 	ihgs.epochStartRegistrationHandler.RegisterHandler(ihgs)
 
 	return ihgs, nil
@@ -217,7 +218,6 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 		return err
 	}
 
-	log.Warn("Computed shardId", "shardId", nodesConfig.shardID)
 	ihgs.nodesConfig[epoch] = nodesConfig
 	ihgs.numTotalEligible = numTotalEligible
 

@@ -28,8 +28,9 @@ func NewXorValidatorsShuffler(
 	nodesMeta uint32,
 	hysteresis float32,
 	adaptivity bool,
+	shuffleBetweenShards bool,
 ) *randXORShuffler {
-	rxs := &randXORShuffler{}
+	rxs := &randXORShuffler{shuffleBetweenShards: shuffleBetweenShards}
 
 	rxs.UpdateParams(nodesShard, nodesMeta, hysteresis, adaptivity)
 
@@ -93,7 +94,12 @@ func (rxs *randXORShuffler) UpdateNodeLists(args ArgsUpdateNodes) (map[uint32][]
 		eligibleAfterReshard, waitingAfterReshard = rxs.mergeShards(args.Eligible, args.Waiting, newNbShards)
 	}
 
-	return shuffleNodesInterShards(eligibleAfterReshard, waitingAfterReshard, leavingNodes, args.NewNodes, args.Rand)
+	// TODO: remove the conditional and the else branch when reinitialization of node in new shard is implemented
+	if rxs.shuffleBetweenShards {
+		return shuffleNodesInterShards(eligibleAfterReshard, waitingAfterReshard, leavingNodes, args.NewNodes, args.Rand)
+	}
+
+	return shuffleNodesIntraShards(eligibleAfterReshard, waitingAfterReshard, leavingNodes, args.NewNodes, args.Rand)
 }
 
 func removeFromWaiting(waitingNodes map[uint32][]Validator, leavingNodes []Validator) (map[uint32][]Validator, []Validator) {
