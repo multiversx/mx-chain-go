@@ -755,5 +755,8 @@ var ErrUserNameDoesNotMatchInCrossShardTx = errors.New("user name does not match
 // ErrNilBalanceComputationHandler signals that a nil balance computation handler has been provided
 var ErrNilBalanceComputationHandler = errors.New("nil balance computation handler")
 
+// ErrNilRatingsInfoHandler signals that nil ratings info handler has been provided
+var ErrNilRatingsInfoHandler = errors.New("nil ratings info handler")
+
 // ErrNilInterceptedDebugHandler signals that a nil intercepted debug handler has been provided
 var ErrNilInterceptedDebugHandler = errors.New("nil intercepted debug handler")
