@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	syncGo "sync"
 	"sync/atomic"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -135,6 +137,9 @@ type Node struct {
 	publicKeySize int
 
 	chanStopNodeProcess chan bool
+
+	mutQueryHandlers syncGo.RWMutex
+	queryHandlers    map[string]debug.QueryHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -154,6 +159,7 @@ func NewNode(opts ...Option) (*Node, error) {
 		ctx:                      context.Background(),
 		currentSendingGoRoutines: 0,
 		appStatusHandler:         statusHandler.NewNilStatusHandler(),
+		queryHandlers:            make(map[string]debug.QueryHandler),
 	}
 	for _, opt := range opts {
 		err := opt(node)
@@ -1129,6 +1135,41 @@ func (n *Node) DecodeAddressPubkey(pk string) ([]byte, error) {
 	}
 
 	return n.addressPubkeyConverter.Decode(pk)
+}
+
+// AddQueryHandler adds a query handler in cache
+func (n *Node) AddQueryHandler(name string, handler debug.QueryHandler) error {
+	if check.IfNil(handler) {
+		return ErrNilQueryHandler
+	}
+	if len(name) == 0 {
+		return ErrEmptyQueryHandlerName
+	}
+
+	n.mutQueryHandlers.Lock()
+	defer n.mutQueryHandlers.Unlock()
+
+	_, ok := n.queryHandlers[name]
+	if ok {
+		return fmt.Errorf("%w with name %s", ErrQueryHandlerAlreadyExists, name)
+	}
+
+	n.queryHandlers[name] = handler
+
+	return nil
+}
+
+// GetQueryHandler returns the query handler if existing
+func (n *Node) GetQueryHandler(name string) (debug.QueryHandler, error) {
+	n.mutQueryHandlers.RLock()
+	defer n.mutQueryHandlers.RUnlock()
+
+	qh, ok := n.queryHandlers[name]
+	if !ok || check.IfNil(qh) {
+		return nil, fmt.Errorf("%w for name %s", ErrNilQueryHandler, name)
+	}
+
+	return qh, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

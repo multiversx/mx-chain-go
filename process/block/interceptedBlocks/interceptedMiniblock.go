@@ -128,6 +128,11 @@ func (inMb *InterceptedMiniblock) String() string {
 	)
 }
 
+// Identifiers returns the identifiers used in requests
+func (inMb *InterceptedMiniblock) Identifiers() [][]byte {
+	return [][]byte{inMb.hash}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inMb *InterceptedMiniblock) IsInterfaceNil() bool {
 	return inMb == nil

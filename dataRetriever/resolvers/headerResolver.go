@@ -131,10 +131,21 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 		return dataRetriever.ErrResolveTypeUnknown
 	}
 	if err != nil {
+		hdrRes.ResolverDebugHandler().LogFailedToResolveData(
+			hdrRes.topic,
+			rd.Value,
+			err,
+		)
 		return err
 	}
 
 	if buff == nil {
+		hdrRes.ResolverDebugHandler().LogFailedToResolveData(
+			hdrRes.topic,
+			rd.Value,
+			dataRetriever.ErrMissingData,
+		)
+
 		log.Trace("missing data",
 			"data", rd)
 		return nil
@@ -228,28 +239,37 @@ func (hdrRes *HeaderResolver) resolveHeaderFromEpoch(key []byte) ([]byte, error)
 
 // RequestDataFromHash requests a header from other peers having input the hdr hash
 func (hdrRes *HeaderResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
-	return hdrRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.HashType,
-		Value: hash,
-		Epoch: epoch,
-	})
+	return hdrRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashType,
+			Value: hash,
+			Epoch: epoch,
+		},
+		[][]byte{hash},
+	)
 }
 
 // RequestDataFromNonce requests a header from other peers having input the hdr nonce
 func (hdrRes *HeaderResolver) RequestDataFromNonce(nonce uint64, epoch uint32) error {
-	return hdrRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.NonceType,
-		Value: hdrRes.nonceConverter.ToByteSlice(nonce),
-		Epoch: epoch,
-	})
+	return hdrRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.NonceType,
+			Value: hdrRes.nonceConverter.ToByteSlice(nonce),
+			Epoch: epoch,
+		},
+		[][]byte{hdrRes.nonceConverter.ToByteSlice(nonce)},
+	)
 }
 
 // RequestDataFromEpoch requests a header from other peers having input the epoch
 func (hdrRes *HeaderResolver) RequestDataFromEpoch(identifier []byte) error {
-	return hdrRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.EpochType,
-		Value: identifier,
-	})
+	return hdrRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.EpochType,
+			Value: identifier,
+		},
+		[][]byte{identifier},
+	)
 }
 
 // SetNumPeersToQuery will set the number of intra shard and cross shard number of peer to query
@@ -257,9 +277,14 @@ func (hdrRes *HeaderResolver) SetNumPeersToQuery(intra int, cross int) {
 	hdrRes.TopicResolverSender.SetNumPeersToQuery(intra, cross)
 }
 
-// GetNumPeersToQuery will return the number of intra shard and cross shard number of peer to query
-func (hdrRes *HeaderResolver) GetNumPeersToQuery() (int, int) {
-	return hdrRes.TopicResolverSender.GetNumPeersToQuery()
+// NumPeersToQuery will return the number of intra shard and cross shard number of peer to query
+func (hdrRes *HeaderResolver) NumPeersToQuery() (int, int) {
+	return hdrRes.TopicResolverSender.NumPeersToQuery()
+}
+
+// SetResolverDebugHandler will set a resolver debug handler
+func (hdrRes *HeaderResolver) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
+	return hdrRes.TopicResolverSender.SetResolverDebugHandler(handler)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

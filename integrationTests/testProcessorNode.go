@@ -42,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
+	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
@@ -660,6 +661,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			EpochStartTrigger:      tpn.EpochStartTrigger,
 			WhiteListHandler:       tpn.WhiteListHandler,
 			AntifloodHandler:       &mock.NilAntifloodHandler{},
+			NonceConverter:         TestUint64Converter,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
@@ -717,6 +719,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			EpochStartTrigger:      tpn.EpochStartTrigger,
 			WhiteListHandler:       tpn.WhiteListHandler,
 			AntifloodHandler:       &mock.NilAntifloodHandler{},
+			NonceConverter:         TestUint64Converter,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 
@@ -1299,6 +1302,22 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithDataPool(tpn.DataPool),
 		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
+	)
+	log.LogIfError(err)
+
+	err = nodeDebugFactory.CreateInterceptedDebugHandler(
+		tpn.Node,
+		tpn.InterceptorsContainer,
+		tpn.ResolverFinder,
+		config.InterceptorResolverDebugConfig{
+			Enabled:                    true,
+			CacheSize:                  1000,
+			EnablePrint:                true,
+			IntervalAutoPrintInSeconds: 1,
+			NumRequestsThreshold:       1,
+			NumResolveFailureThreshold: 1,
+			DebugLineExpiration:        1000,
+		},
 	)
 	log.LogIfError(err)
 }
