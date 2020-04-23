@@ -92,7 +92,7 @@ type ArgsMetaGenesisBlockCreator struct {
 	GenesisTime              uint64
 	Accounts                 state.AccountsAdapter
 	PubkeyConv               state.PubkeyConverter
-	NodesSetup               *sharding.NodesSetup
+	NodesSetup               sharding.GenesisNodesSetupHandler
 	Economics                *economics.EconomicsData
 	ShardCoordinator         sharding.Coordinator
 	Store                    dataRetriever.StorageService
@@ -117,7 +117,7 @@ func CreateMetaGenesisBlock(
 	if check.IfNil(args.PubkeyConv) {
 		return nil, process.ErrNilPubkeyConverter
 	}
-	if args.NodesSetup == nil {
+	if check.IfNil(args.NodesSetup) {
 		return nil, process.ErrNilNodesSetup
 	}
 	if args.Economics == nil {
@@ -254,7 +254,13 @@ func createProcessorsForMetaGenesisBlock(
 		BuiltInFunctions: builtInFuncs,
 	}
 
-	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsHook, args.Economics, &NilMessageSignVerifier{}, args.GasMap)
+	virtualMachineFactory, err := metachain.NewVMContainerFactory(
+		argsHook,
+		args.Economics,
+		&NilMessageSignVerifier{},
+		args.GasMap,
+		args.NodesSetup,
+	)
 	if err != nil {
 		return nil, nil, err
 	}

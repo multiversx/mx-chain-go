@@ -347,6 +347,7 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           ChainID,
+		NodesSetup:        &mock.NodesSetupStub{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -419,7 +420,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.GenesisBlocks = CreateGenesisBlocks(
 		tpn.AccntState,
 		TestAddressPubkeyConverter,
-		&sharding.NodesSetup{},
+		tpn.NodesSetup,
 		tpn.ShardCoordinator,
 		tpn.Storage,
 		tpn.BlockChain,
@@ -511,7 +512,6 @@ func CreateEconomicsData() *economics.EconomicsData {
 				UnBondPeriod:             "5",
 				TotalSupply:              "200000000000",
 				MinStepValue:             "100000",
-				NumNodes:                 1000,
 				AuctionEnableNonce:       "100000",
 				StakeEnableNonce:         "0",
 				NumRoundsWithoutBleed:    "1000",
@@ -970,7 +970,13 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	}
 	gasSchedule := make(map[string]map[string]uint64)
 	vm.FillGasMapInternal(gasSchedule, 1)
-	vmFactory, _ := metaProcess.NewVMContainerFactory(argsHook, tpn.EconomicsData.EconomicsData, &genesis.NilMessageSignVerifier{}, gasSchedule)
+	vmFactory, _ := metaProcess.NewVMContainerFactory(
+		argsHook,
+		tpn.EconomicsData.EconomicsData,
+		&genesis.NilMessageSignVerifier{},
+		gasSchedule,
+		tpn.NodesSetup,
+	)
 
 	tpn.VMContainer, _ = vmFactory.Create()
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
@@ -1143,6 +1149,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ArgParser:        tpn.ArgsParser,
 			CurrTxs:          tpn.DataPool.CurrentBlockTxs(),
 			ScQuery:          tpn.SCQueryService,
+			RatingsData:      tpn.RatingsData,
 		}
 		scToProtocolInstance, _ := scToProtocol.NewStakingToPeer(argsStakingToPeer)
 
@@ -1159,13 +1166,13 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartData)
 
 		argsEpochEconomics := metachain.ArgsNewEpochEconomics{
-			Marshalizer:      TestMarshalizer,
-			Hasher:           TestHasher,
-			Store:            tpn.Storage,
-			ShardCoordinator: tpn.ShardCoordinator,
-			NodesCoordinator: tpn.NodesCoordinator,
-			RewardsHandler:   tpn.EconomicsData,
-			RoundTime:        tpn.Rounder,
+			Marshalizer:         TestMarshalizer,
+			Hasher:              TestHasher,
+			Store:               tpn.Storage,
+			ShardCoordinator:    tpn.ShardCoordinator,
+			NodesConfigProvider: tpn.NodesCoordinator,
+			RewardsHandler:      tpn.EconomicsData,
+			RoundTime:           tpn.Rounder,
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
