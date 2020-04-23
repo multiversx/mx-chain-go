@@ -111,7 +111,9 @@ func (s *SerialDB) Put(key, val []byte) error {
 		return storage.ErrSerialDBIsClosed
 	}
 
+	s.mutBatch.RLock()
 	err := s.batch.Put(key, val)
+	s.mutBatch.RUnlock()
 	if err != nil {
 		return err
 	}
@@ -125,7 +127,10 @@ func (s *SerialDB) Get(key []byte) ([]byte, error) {
 		return nil, storage.ErrSerialDBIsClosed
 	}
 
+	s.mutBatch.RLock()
 	data := s.batch.Get(key)
+	s.mutBatch.RUnlock()
+
 	if data != nil {
 		if bytes.Equal(data, []byte(removed)) {
 			return nil, storage.ErrKeyNotFound
@@ -159,7 +164,10 @@ func (s *SerialDB) Has(key []byte) error {
 		return storage.ErrSerialDBIsClosed
 	}
 
+	s.mutBatch.RLock()
 	data := s.batch.Get(key)
+	s.mutBatch.RUnlock()
+
 	if data != nil {
 		if bytes.Equal(data, []byte(removed)) {
 			return storage.ErrKeyNotFound
