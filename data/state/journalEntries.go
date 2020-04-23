@@ -120,6 +120,8 @@ func (jedtu *journalEntryDataTrieUpdates) Revert() (AccountHandler, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		log.Debug("revert data trie update", "key", key, "value", jedtu.trieUpdates[key])
 	}
 
 	rootHash, err := jedtu.account.DataTrie().Root()

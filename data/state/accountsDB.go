@@ -155,6 +155,7 @@ func (adb *AccountsDB) loadDataTrie(accountHandler baseAccountHandler) error {
 
 	dataTrie := adb.dataTries.Get(accountHandler.AddressContainer().Bytes())
 	if dataTrie != nil {
+		log.Debug("load data trie from triesHolder", "key", accountHandler.AddressContainer().Bytes())
 		accountHandler.SetDataTrie(dataTrie)
 		return nil
 	}
@@ -456,6 +457,8 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 
 		oldHashes = append(oldHashes, oldTrieHashes...)
 	}
+
+	log.Debug("reset data tries")
 	adb.dataTries.Reset()
 
 	//Step 2. commit main trie
