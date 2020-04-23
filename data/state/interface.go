@@ -67,18 +67,11 @@ type PeerAccountHandler interface {
 	SetStake(*big.Int) error
 	GetAccumulatedFees() *big.Int
 	AddToAccumulatedFees(*big.Int)
-	GetJailTime() TimePeriod
-	SetJailTime(TimePeriod)
 	GetList() string
-	GetIndex() uint32
-	GetCurrentShardId() uint32
-	SetCurrentShardId(uint32)
-	GetNextShardId() uint32
-	SetNextShardId(uint32)
-	GetNodeInWaitingList() bool
-	SetNodeInWaitingList(bool)
-	GetUnStakedNonce() uint64
-	SetUnStakedNonce(uint64)
+	GetIndexInList() uint32
+	GetShardId() uint32
+	SetUnStakedEpoch(epoch uint32)
+	GetUnStakedEpoch() uint32
 	IncreaseLeaderSuccessRate(uint32)
 	DecreaseLeaderSuccessRate(uint32)
 	IncreaseValidatorSuccessRate(uint32)

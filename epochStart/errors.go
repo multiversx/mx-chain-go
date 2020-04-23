@@ -116,8 +116,8 @@ var ErrEndOfEpochEconomicsDataDoesNotMatch = errors.New("end of epoch economics 
 // ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
 var ErrNilRounder = errors.New("nil Rounder")
 
-// ErrNilNodesCoordinator signals that an operation has been attempted to or with a nil nodes coordinator
-var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
+// ErrNilNodesConfigProvider signals that an operation has been attempted to or with a nil nodes config provider
+var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
 
 // ErrNotEpochStartBlock signals that block is not of type epoch start
 var ErrNotEpochStartBlock = errors.New("not epoch start block")

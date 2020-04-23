@@ -22,13 +22,22 @@ type PeerAccountHandlerMock struct {
 	SetListAndIndexCalled              func(shardID uint32, list string, index uint32)
 }
 
+// GetUnStakedEpoch -
+func (p *PeerAccountHandlerMock) GetUnStakedEpoch() uint32 {
+	return 0
+}
+
+// SetUnStakedEpoch -
+func (p *PeerAccountHandlerMock) SetUnStakedEpoch(_ uint32) {
+}
+
 // GetList -
 func (p *PeerAccountHandlerMock) GetList() string {
 	return ""
 }
 
-// GetIndex -
-func (p *PeerAccountHandlerMock) GetIndex() uint32 {
+// GetIndexInList -
+func (p *PeerAccountHandlerMock) GetIndexInList() uint32 {
 	return 0
 }
 
@@ -77,54 +86,9 @@ func (p *PeerAccountHandlerMock) AddToAccumulatedFees(val *big.Int) {
 	}
 }
 
-// GetJailTime -
-func (p *PeerAccountHandlerMock) GetJailTime() state.TimePeriod {
-	return state.TimePeriod{}
-}
-
-// SetJailTime -
-func (p *PeerAccountHandlerMock) SetJailTime(state.TimePeriod) {
-
-}
-
-// GetCurrentShardId -
-func (p *PeerAccountHandlerMock) GetCurrentShardId() uint32 {
+// GetShardId -
+func (p *PeerAccountHandlerMock) GetShardId() uint32 {
 	return 0
-}
-
-// SetCurrentShardId -
-func (p *PeerAccountHandlerMock) SetCurrentShardId(uint32) {
-
-}
-
-// GetNextShardId -
-func (p *PeerAccountHandlerMock) GetNextShardId() uint32 {
-	return 0
-}
-
-// SetNextShardId -
-func (p *PeerAccountHandlerMock) SetNextShardId(uint32) {
-
-}
-
-// GetNodeInWaitingList -
-func (p *PeerAccountHandlerMock) GetNodeInWaitingList() bool {
-	return false
-}
-
-// SetNodeInWaitingList -
-func (p *PeerAccountHandlerMock) SetNodeInWaitingList(bool) {
-
-}
-
-// GetUnStakedNonce -
-func (p *PeerAccountHandlerMock) GetUnStakedNonce() uint64 {
-	return 0
-}
-
-// SetUnStakedNonce -
-func (p *PeerAccountHandlerMock) SetUnStakedNonce(uint64) {
-
 }
 
 // IncreaseLeaderSuccessRate -
@@ -239,7 +203,7 @@ func (p *PeerAccountHandlerMock) GetCode() []byte {
 }
 
 // SetCodeHash -
-func (p *PeerAccountHandlerMock) SetCodeHash([]byte) {
+func (p *PeerAccountHandlerMock) SetCodeHash(_ []byte) {
 
 }
 
@@ -274,24 +238,24 @@ func (p *PeerAccountHandlerMock) DataTrieTracker() state.DataTrieTracker {
 }
 
 // GetConsecutiveProposerMisses -
-func (pahm *PeerAccountHandlerMock) GetConsecutiveProposerMisses() uint32 {
-	if pahm.GetConsecutiveProposerMissesCalled != nil {
-		return pahm.GetConsecutiveProposerMissesCalled()
+func (p *PeerAccountHandlerMock) GetConsecutiveProposerMisses() uint32 {
+	if p.GetConsecutiveProposerMissesCalled != nil {
+		return p.GetConsecutiveProposerMissesCalled()
 	}
 	return 0
 }
 
 // SetConsecutiveProposerMissesWithJournal -
-func (pahm *PeerAccountHandlerMock) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
-	if pahm.SetConsecutiveProposerMissesCalled != nil {
-		pahm.SetConsecutiveProposerMissesCalled(consecutiveMisses)
+func (p *PeerAccountHandlerMock) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
+	if p.SetConsecutiveProposerMissesCalled != nil {
+		p.SetConsecutiveProposerMissesCalled(consecutiveMisses)
 	}
 }
 
 // SetListAndIndex -
-func (pahm *PeerAccountHandlerMock) SetListAndIndex(shardID uint32, list string, index uint32) {
-	if pahm.SetListAndIndexCalled != nil {
-		pahm.SetListAndIndexCalled(shardID, list, index)
+func (p *PeerAccountHandlerMock) SetListAndIndex(shardID uint32, list string, index uint32) {
+	if p.SetListAndIndexCalled != nil {
+		p.SetListAndIndexCalled(shardID, list, index)
 	}
 }
 
