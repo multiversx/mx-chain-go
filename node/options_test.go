@@ -1264,7 +1264,7 @@ func TestWithNodeStopChannel_OkNodeStopChannelShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	ch := make(chan endProcess.EndProcessArgument, 1)
+	ch := make(chan endProcess.ArgEndProcess, 1)
 	opt := WithNodeStopChannel(ch)
 	err := opt(node)
 

@@ -11,7 +11,7 @@ import (
 func TestNewShuffledOutTrigger_NilOwnPublicKeyShouldErr(t *testing.T) {
 	t.Parallel()
 
-	endProcessHandler := func(_ endProcess.EndProcessArgument) error {
+	endProcessHandler := func(_ endProcess.ArgEndProcess) error {
 		return nil
 	}
 
@@ -31,7 +31,7 @@ func TestNewShuffledOutTrigger_NilEndOfProcessingHandlerShouldErr(t *testing.T) 
 func TestNewShuffledOutTrigger_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	handler := func(_ endProcess.EndProcessArgument) error {
+	handler := func(_ endProcess.ArgEndProcess) error {
 		return nil
 	}
 
@@ -45,7 +45,7 @@ func TestShuffledOutTrigger_Process_SameShardIDShouldReturn(t *testing.T) {
 
 	endProcessHandlerWasCalled := false
 
-	endProcessHandler := func(_ endProcess.EndProcessArgument) error {
+	endProcessHandler := func(_ endProcess.ArgEndProcess) error {
 		endProcessHandlerWasCalled = true
 		return nil
 	}
@@ -64,7 +64,7 @@ func TestShuffledOutTrigger_Process_DifferentShardIDShouldCallEndProcessHandler(
 
 	endProcessHandlerWasCalled := false
 
-	endProcessHandler := func(_ endProcess.EndProcessArgument) error {
+	endProcessHandler := func(_ endProcess.ArgEndProcess) error {
 		endProcessHandlerWasCalled = true
 		return nil
 	}
@@ -85,7 +85,7 @@ func TestShuffledOutTrigger_DifferentShardIDShouldCallRegisteredHandlers(t *test
 
 	handler1WasCalled, handler2WasCalled := false, false
 
-	endProcessHandler := func(_ endProcess.EndProcessArgument) error {
+	endProcessHandler := func(_ endProcess.ArgEndProcess) error {
 		return nil
 	}
 	shardID := uint32(1)

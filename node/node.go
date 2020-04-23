@@ -135,7 +135,7 @@ type Node struct {
 	signatureSize int
 	publicKeySize int
 
-	chanStopNodeProcess chan endProcess.EndProcessArgument
+	chanStopNodeProcess chan endProcess.ArgEndProcess
 }
 
 // ApplyOptions can set up different configurable options of a Node instance

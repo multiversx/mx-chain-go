@@ -638,7 +638,7 @@ func WithPublicKeySize(publicKeySize int) Option {
 }
 
 // WithNodeStopChannel sets up the channel which will handle closing the node
-func WithNodeStopChannel(channel chan endProcess.EndProcessArgument) Option {
+func WithNodeStopChannel(channel chan endProcess.ArgEndProcess) Option {
 	return func(n *Node) error {
 		if channel == nil {
 			return ErrNilNodeStopChannel

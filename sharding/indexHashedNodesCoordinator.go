@@ -136,14 +136,17 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	}
 	log.Info("new nodes config is set for epoch", "epoch", arguments.Epoch)
 	currentNodesConfig := ihgs.nodesConfig[arguments.Epoch]
-	if currentNodesConfig != nil {
-		displayNodesConfiguration(
-			currentNodesConfig.eligibleMap,
-			currentNodesConfig.waitingMap,
-			currentNodesConfig.leavingList,
-			make([]Validator, 0),
-			currentNodesConfig.nbShards)
+	if currentNodesConfig == nil {
+		return nil, ErrEpochNodesConfigDoesNotExist
 	}
+
+	displayNodesConfiguration(
+		currentNodesConfig.eligibleMap,
+		currentNodesConfig.waitingMap,
+		currentNodesConfig.leavingList,
+		make([]Validator, 0),
+		currentNodesConfig.nbShards)
+
 	ihgs.epochStartRegistrationHandler.RegisterHandler(ihgs)
 
 	return ihgs, nil

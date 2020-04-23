@@ -13,14 +13,14 @@ type shuffledOutTrigger struct {
 	currentShardID    uint32
 	handlers          []func(newShardID uint32)
 	mutHandlers       sync.RWMutex
-	endProcessHandler func(argument endProcess.EndProcessArgument) error
+	endProcessHandler func(argument endProcess.ArgEndProcess) error
 }
 
 // NewShuffledOutTrigger returns a new instance of shuffledOutTrigger
 func NewShuffledOutTrigger(
 	ownPubKey []byte,
 	currentShardID uint32,
-	endProcessHandler func(argument endProcess.EndProcessArgument) error,
+	endProcessHandler func(argument endProcess.ArgEndProcess) error,
 ) (*shuffledOutTrigger, error) {
 
 	if ownPubKey == nil {
@@ -46,7 +46,7 @@ func (sot *shuffledOutTrigger) Process(newShardID uint32) error {
 	description := fmt.Sprintf("validator will be moved from: %d to %d", sot.currentShardID, newShardID)
 	sot.currentShardID = newShardID
 	sot.notifyAllHandlers(newShardID)
-	return sot.endProcessHandler(endProcess.EndProcessArgument{
+	return sot.endProcessHandler(endProcess.ArgEndProcess{
 		Reason:      core.ShuffledOut,
 		Description: description,
 	})

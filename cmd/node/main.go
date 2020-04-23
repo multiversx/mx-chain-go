@@ -354,8 +354,6 @@ func main() {
 	_ = logger.SetDisplayByteSlice(logger.ToHexShort)
 	log := logger.GetOrCreate("main")
 
-	time.Sleep(2 * time.Second)
-
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "Elrond Node CLI App"
@@ -550,6 +548,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if ctx.IsSet(startInEpoch.Name) {
 		log.Debug("start in epoch is enabled")
 		generalConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
+		if generalConfig.GeneralSettings.StartInEpochEnabled {
+			delayedStartInterval := 2 * time.Second
+			time.Sleep(delayedStartInterval)
+		}
 	}
 
 	//TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded) timestamp
@@ -822,7 +824,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if bootstrapParameters.NodesConfig != nil {
 		log.Info("the epoch from nodesConfig is", "epoch", bootstrapParameters.NodesConfig.CurrentEpoch)
 	}
-	chanStopNodeProcess := make(chan endProcess.EndProcessArgument, 1)
+	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
 	nodesCoordinator, err := createNodesCoordinator(
 		genesisNodesConfig,
 		preferencesConfig.Preferences,
@@ -1117,7 +1119,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Info("application is now running")
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	var sig endProcess.EndProcessArgument
+	var sig endProcess.ArgEndProcess
 	select {
 	case <-sigs:
 		log.Info("terminating at user's signal...")
@@ -1149,18 +1151,17 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	return nil
 }
 
-func handleAppClose(log logger.Logger, endProcessArgument endProcess.EndProcessArgument) {
+func handleAppClose(log logger.Logger, endProcessArgument endProcess.ArgEndProcess) {
 	log.Debug(
 		"restarting node",
 		"reason",
 		endProcessArgument.Reason,
 		"description",
-		endProcessArgument.Description)
+		endProcessArgument.Description,
+	)
 	switch endProcessArgument.Reason {
 	case core.ShuffledOut:
-		{
-			newStartInEpoch(log)
-		}
+		newStartInEpoch(log)
 	}
 }
 
@@ -1460,7 +1461,7 @@ func createNodesCoordinator(
 	nodeShuffler sharding.NodesShuffler,
 	epochConfig config.EpochStartConfig,
 	currentShardID uint32,
-	chanStopNodeProcess chan endProcess.EndProcessArgument,
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	parameters bootstrap.Parameters,
 ) (sharding.NodesCoordinator, error) {
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
@@ -1487,13 +1488,13 @@ func createNodesCoordinator(
 		nodeRegistry := parameters.NodesConfig
 		currentEpoch = parameters.Epoch
 		eligibles := nodeRegistry.EpochsConfig[fmt.Sprintf("%d", currentEpoch)].EligibleValidators
-		eligibleValidators, err = serializableValidatorsToValidators(eligibles)
+		eligibleValidators, err = sharding.SerializableValidatorsToValidators(eligibles)
 		if err != nil {
 			return nil, err
 		}
 
 		waitings := nodeRegistry.EpochsConfig[fmt.Sprintf("%d", currentEpoch)].WaitingValidators
-		waitingValidators, err = serializableValidatorsToValidators(waitings)
+		waitingValidators, err = sharding.SerializableValidatorsToValidators(waitings)
 		if err != nil {
 			return nil, err
 		}
@@ -1517,7 +1518,7 @@ func createNodesCoordinator(
 	maxDurationBeforeStopProcess = int64(thresholdEpochDuration * float64(maxDurationBeforeStopProcess))
 	intRandomizer := &random.ConcurrentSafeIntRandomizer{}
 	randDurationBeforeStop := intRandomizer.Intn(int(maxDurationBeforeStopProcess))
-	endOfProcessingHandler := func(argument endProcess.EndProcessArgument) error {
+	endOfProcessingHandler := func(argument endProcess.ArgEndProcess) error {
 		go func() {
 			time.Sleep(time.Duration(randDurationBeforeStop) * time.Millisecond)
 			fmt.Println(fmt.Sprintf("the application stops after waiting %d miliseconds because the node was "+
@@ -1560,35 +1561,6 @@ func createNodesCoordinator(
 	}
 
 	return nodesCoordinator, nil
-}
-
-func serializableValidatorsToValidators(nodeRegistryValidators map[string][]*sharding.SerializableValidator) (map[uint32][]sharding.Validator, error) {
-	validators := make(map[uint32][]sharding.Validator)
-	for shardId, shardValidators := range nodeRegistryValidators {
-		newValidators, err := serializableShardValidatorListToValidatorList(shardValidators)
-		if err != nil {
-			return nil, err
-		}
-		shardIdInt, err := strconv.ParseUint(shardId, 10, 32)
-		if err != nil {
-			return nil, err
-		}
-		validators[uint32(shardIdInt)] = newValidators
-	}
-
-	return validators, nil
-}
-
-func serializableShardValidatorListToValidatorList(shardValidators []*sharding.SerializableValidator) ([]sharding.Validator, error) {
-	newValidators := make([]sharding.Validator, len(shardValidators))
-	for i, validator := range shardValidators {
-		v, err := sharding.NewValidator(validator.PubKey, validator.Chances, validator.Index)
-		if err != nil {
-			return nil, err
-		}
-		newValidators[i] = v
-	}
-	return newValidators, nil
 }
 
 func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (uint32, error) {
@@ -1679,7 +1651,7 @@ func createNode(
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
 	whiteListHandler process.WhiteListHandler,
-	chanStopNodeProcess chan endProcess.EndProcessArgument,
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
