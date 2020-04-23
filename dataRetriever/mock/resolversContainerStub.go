@@ -12,6 +12,7 @@ type ResolversContainerStub struct {
 	RemoveCalled       func(key string)
 	LenCalled          func() int
 	ResolverKeysCalled func() string
+	IterateCalled      func(handler func(key string, resolver dataRetriever.Resolver) bool)
 }
 
 // Get -
@@ -51,6 +52,13 @@ func (rcs *ResolversContainerStub) ResolverKeys() string {
 	}
 
 	return ""
+}
+
+// Iterate -
+func (rcs *ResolversContainerStub) Iterate(handler func(key string, resolver dataRetriever.Resolver) bool) {
+	if rcs.IterateCalled != nil {
+		rcs.IterateCalled(handler)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

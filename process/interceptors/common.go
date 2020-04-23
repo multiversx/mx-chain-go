@@ -40,7 +40,9 @@ func preProcessMesage(
 
 func processInterceptedData(
 	processor process.InterceptorProcessor,
+	handler process.InterceptedDebugHandler,
 	data process.InterceptedData,
+	topic string,
 	wgProcess *sync.WaitGroup,
 	msg p2p.MessageP2P,
 ) {
@@ -58,6 +60,7 @@ func processInterceptedData(
 			"data", data.String(),
 			"error", err.Error(),
 		)
+		processDebugInterceptedData(handler, data, topic, err)
 
 		return
 	}
@@ -72,6 +75,7 @@ func processInterceptedData(
 			"data", data.String(),
 			"error", err.Error(),
 		)
+		processDebugInterceptedData(handler, data, topic, err)
 
 		return
 	}
@@ -83,4 +87,24 @@ func processInterceptedData(
 		"seq no", p2p.MessageOriginatorSeq(msg),
 		"data", data.String(),
 	)
+	processDebugInterceptedData(handler, data, topic, err)
+}
+
+func processDebugInterceptedData(
+	debugHandler process.InterceptedDebugHandler,
+	interceptedData process.InterceptedData,
+	topic string,
+	err error,
+) {
+	identifiers := interceptedData.Identifiers()
+	debugHandler.LogProcessedHashes(topic, identifiers, err)
+}
+
+func receivedDebugInterceptedData(
+	debugHandler process.InterceptedDebugHandler,
+	interceptedData process.InterceptedData,
+	topic string,
+) {
+	identifiers := interceptedData.Identifiers()
+	debugHandler.LogReceivedHashes(topic, identifiers)
 }

@@ -2539,3 +2539,64 @@ func TestNode_IsSelfTrigger(t *testing.T) {
 	assert.True(t, isSelf)
 	assert.True(t, wasCalled)
 }
+
+//------- Query handlers
+
+func TestNode_AddQueryHandlerNilHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+
+	err := n.AddQueryHandler("handler", nil)
+
+	assert.True(t, errors.Is(err, node.ErrNilQueryHandler))
+}
+
+func TestNode_AddQueryHandlerEmptyNameShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+
+	err := n.AddQueryHandler("", &mock.QueryHandlerStub{})
+
+	assert.True(t, errors.Is(err, node.ErrEmptyQueryHandlerName))
+}
+
+func TestNode_AddQueryHandlerExistsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+
+	err := n.AddQueryHandler("handler", &mock.QueryHandlerStub{})
+	assert.Nil(t, err)
+
+	err = n.AddQueryHandler("handler", &mock.QueryHandlerStub{})
+
+	assert.True(t, errors.Is(err, node.ErrQueryHandlerAlreadyExists))
+}
+
+func TestNode_GetQueryHandlerNotExistsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+
+	qh, err := n.GetQueryHandler("handler")
+
+	assert.True(t, check.IfNil(qh))
+	assert.True(t, errors.Is(err, node.ErrNilQueryHandler))
+}
+
+func TestNode_GetQueryHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+
+	qh := &mock.QueryHandlerStub{}
+	handler := "handler"
+	_ = n.AddQueryHandler(handler, &mock.QueryHandlerStub{})
+
+	qhRecovered, err := n.GetQueryHandler(handler)
+
+	assert.Equal(t, qhRecovered, qh)
+	assert.Nil(t, err)
+}

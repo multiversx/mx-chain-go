@@ -403,3 +403,13 @@
     EnableTrigger = true
     EnableTriggerFromP2P = true
     PublicKeyToListenFrom = "b5ea539180627040b2703cabde8ebece0ded59a0c9d2d4a8a73a299fb7bc11d36ac3d1a620501c230059cffa983a7419d192a50ca55ed8aa07254658dda27aba1e54f50fd7cfbb9e66ce1715d72f9c1b0b05272388f9825742161a211debff15"
+
+[Debug]
+    [Debug.InterceptorResolver]
+        Enabled = true
+        CacheSize = 10000
+        EnablePrint	= true
+        IntervalAutoPrintInSeconds = 20
+        NumRequestsThreshold = 9
+        NumResolveFailureThreshold = 3
+        DebugLineExpiration = 10 #Will remove the debug line after a `DebugLineExpiration` number of prints
