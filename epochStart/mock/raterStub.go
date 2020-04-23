@@ -20,7 +20,10 @@ func (rm *RaterStub) GetRating(pk string) uint32 {
 
 // GetStartRating -
 func (rm *RaterStub) GetStartRating() uint32 {
-	return rm.GetStartRatingCalled()
+	if rm.GetStartRatingCalled != nil {
+		return rm.GetStartRatingCalled()
+	}
+	return 10
 }
 
 // GetSignedBlocksThreshold -

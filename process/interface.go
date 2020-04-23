@@ -771,6 +771,7 @@ type RatingsInfoHandler interface {
 	MetaChainRatingsStepHandler() RatingsStepHandler
 	ShardChainRatingsStepHandler() RatingsStepHandler
 	SelectionChances() []SelectionChance
+	IsInterfaceNil() bool
 }
 
 // RatingsStepHandler defines the information needed for the rating computation on shards or meta

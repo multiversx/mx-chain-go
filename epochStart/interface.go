@@ -115,3 +115,9 @@ type StartOfEpochMetaSyncer interface {
 	SyncEpochStartMeta(waitTime time.Duration) (*block.MetaBlock, error)
 	IsInterfaceNil() bool
 }
+
+// NodesConfigProvider will provide the necessary information for start in epoch economics block creation
+type NodesConfigProvider interface {
+	GetNumTotalEligible() uint64
+	IsInterfaceNil() bool
+}
