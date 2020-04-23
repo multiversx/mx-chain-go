@@ -1207,6 +1207,7 @@ func newShardInterceptorContainerFactory(
 		EpochStartTrigger:      epochStartTrigger,
 		WhiteListHandler:       whiteListHandler,
 		AntifloodHandler:       network.InputAntifloodHandler,
+		NonceConverter:         dataCore.Uint64ByteSliceConverter,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1258,6 +1259,7 @@ func newMetaInterceptorContainerFactory(
 		EpochStartTrigger:      epochStartTrigger,
 		WhiteListHandler:       whiteListHandler,
 		AntifloodHandler:       network.InputAntifloodHandler,
+		NonceConverter:         dataCore.Uint64ByteSliceConverter,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {

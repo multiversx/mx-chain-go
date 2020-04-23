@@ -7,13 +7,14 @@ import (
 
 // HeaderResolverStub -
 type HeaderResolverStub struct {
-	RequestDataFromHashCalled    func(hash []byte, epoch uint32) error
-	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
-	RequestDataFromNonceCalled   func(nonce uint64, epoch uint32) error
-	RequestDataFromEpochCalled   func(identifier []byte) error
-	SetEpochHandlerCalled        func(epochHandler dataRetriever.EpochHandler) error
-	SetNumPeersToQueryCalled     func(intra int, cross int)
-	GetNumPeersToQueryCalled     func() (int, int)
+	RequestDataFromHashCalled     func(hash []byte, epoch uint32) error
+	ProcessReceivedMessageCalled  func(message p2p.MessageP2P) error
+	RequestDataFromNonceCalled    func(nonce uint64, epoch uint32) error
+	RequestDataFromEpochCalled    func(identifier []byte) error
+	SetEpochHandlerCalled         func(epochHandler dataRetriever.EpochHandler) error
+	SetNumPeersToQueryCalled      func(intra int, cross int)
+	NumPeersToQueryCalled         func() (int, int)
+	SetResolverDebugHandlerCalled func(handler dataRetriever.ResolverDebugHandler) error
 }
 
 // SetNumPeersToQuery -
@@ -23,10 +24,10 @@ func (hrs *HeaderResolverStub) SetNumPeersToQuery(intra int, cross int) {
 	}
 }
 
-// GetNumPeersToQuery -
-func (hrs *HeaderResolverStub) GetNumPeersToQuery() (int, int) {
-	if hrs.GetNumPeersToQueryCalled != nil {
-		return hrs.GetNumPeersToQueryCalled()
+// NumPeersToQuery -
+func (hrs *HeaderResolverStub) NumPeersToQuery() (int, int) {
+	if hrs.NumPeersToQueryCalled != nil {
+		return hrs.NumPeersToQueryCalled()
 	}
 
 	return 2, 2
@@ -70,6 +71,15 @@ func (hrs *HeaderResolverStub) RequestDataFromNonce(nonce uint64, epoch uint32) 
 		return nil
 	}
 	return hrs.RequestDataFromNonceCalled(nonce, epoch)
+}
+
+// SetResolverDebugHandler -
+func (hrs *HeaderResolverStub) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
+	if hrs.SetResolverDebugHandlerCalled != nil {
+		return hrs.SetResolverDebugHandlerCalled(handler)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
