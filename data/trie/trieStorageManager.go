@@ -169,10 +169,6 @@ func (tsm *trieStorageManager) ExitSnapshotMode() {
 		tsm.snapshotInProgress--
 	}
 
-	if tsm.snapshotInProgress == 0 {
-		tsm.prune(tsm.pruningBuffer.removeAll())
-	}
-
 	log.Trace("exit snapshot mode", "snapshots in progress", tsm.snapshotInProgress)
 }
 
