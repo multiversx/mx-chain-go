@@ -241,11 +241,8 @@ func TestProcessDebugInterceptedData_ShouldWork(t *testing.T) {
 
 	numCalled := 0
 	dh := &mock.InterceptedDebugHandlerStub{
-		EnabledCalled: func() bool {
-			return true
-		},
-		LogProcessedHashCalled: func(topic string, hash []byte, err error) {
-			numCalled++
+		LogProcessedHashesCalled: func(topic string, hashes [][]byte, err error) {
+			numCalled += len(hashes)
 		},
 	}
 
@@ -258,15 +255,6 @@ func TestProcessDebugInterceptedData_ShouldWork(t *testing.T) {
 
 	processDebugInterceptedData(dh, ids, "", nil)
 	assert.Equal(t, numCalls, numCalled)
-
-	//disabled should not call
-	dh.EnabledCalled = func() bool {
-		return false
-	}
-	numCalled = 0
-
-	processDebugInterceptedData(dh, ids, "", nil)
-	assert.Equal(t, 0, numCalled)
 }
 
 func TestReceivedDebugInterceptedData_ShouldWork(t *testing.T) {
@@ -274,11 +262,8 @@ func TestReceivedDebugInterceptedData_ShouldWork(t *testing.T) {
 
 	numCalled := 0
 	dh := &mock.InterceptedDebugHandlerStub{
-		EnabledCalled: func() bool {
-			return true
-		},
-		LogReceivedHashCalled: func(topic string, hash []byte) {
-			numCalled++
+		LogReceivedHashesCalled: func(topic string, hashes [][]byte) {
+			numCalled += len(hashes)
 		},
 	}
 
@@ -291,13 +276,4 @@ func TestReceivedDebugInterceptedData_ShouldWork(t *testing.T) {
 
 	receivedDebugInterceptedData(dh, ids, "")
 	assert.Equal(t, numCalls, numCalled)
-
-	//disabled should not call
-	dh.EnabledCalled = func() bool {
-		return false
-	}
-	numCalled = 0
-
-	receivedDebugInterceptedData(dh, ids, "")
-	assert.Equal(t, 0, numCalled)
 }

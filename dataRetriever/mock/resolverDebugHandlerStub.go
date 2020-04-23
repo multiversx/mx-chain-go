@@ -2,15 +2,15 @@ package mock
 
 // ResolverDebugHandler -
 type ResolverDebugHandler struct {
-	LogRequestedDataCalled       func(topic string, hash []byte, numReqIntra int, numReqCross int)
+	LogRequestedDataCalled       func(topic string, hash [][]byte, numReqIntra int, numReqCross int)
 	LogFailedToResolveDataCalled func(topic string, hash []byte, err error)
 	EnabledCalled                func() bool
 }
 
 // LogRequestedData -
-func (rdh *ResolverDebugHandler) LogRequestedData(topic string, hash []byte, numReqIntra int, numReqCross int) {
+func (rdh *ResolverDebugHandler) LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int) {
 	if rdh.LogRequestedDataCalled != nil {
-		rdh.LogRequestedDataCalled(topic, hash, numReqIntra, numReqCross)
+		rdh.LogRequestedDataCalled(topic, hashes, numReqIntra, numReqCross)
 	}
 }
 
@@ -19,15 +19,6 @@ func (rdh *ResolverDebugHandler) LogFailedToResolveData(topic string, hash []byt
 	if rdh.LogFailedToResolveDataCalled != nil {
 		rdh.LogFailedToResolveDataCalled(topic, hash, err)
 	}
-}
-
-// Enabled -
-func (rdh *ResolverDebugHandler) Enabled() bool {
-	if rdh.EnabledCalled != nil {
-		return rdh.EnabledCalled()
-	}
-
-	return false
 }
 
 // IsInterfaceNil -

@@ -181,10 +181,5 @@ func QueryDebug(c *gin.Context) {
 		return
 	}
 
-	if !qh.Enabled() {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: name %s", errors.ErrQueryDisabled.Error(), gtx.Name)})
-		return
-	}
-
 	c.JSON(http.StatusOK, gin.H{"result": qh.Query(gtx.Search)})
 }

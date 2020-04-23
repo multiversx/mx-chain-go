@@ -9,20 +9,15 @@ func NewDisabledInterceptorResolver() *disabledInterceptorResolver {
 }
 
 // LogRequestedData dos nothing
-func (dir *disabledInterceptorResolver) LogRequestedData(_ string, _ []byte, _ int, _ int) {
+func (dir *disabledInterceptorResolver) LogRequestedData(_ string, _ [][]byte, _ int, _ int) {
 }
 
-// LogReceivedHash does nothing
-func (dir *disabledInterceptorResolver) LogReceivedHash(_ string, _ []byte) {
+// LogReceivedHashes does nothing
+func (dir *disabledInterceptorResolver) LogReceivedHashes(_ string, _ [][]byte) {
 }
 
-// LogProcessedHash does nothing
-func (dir *disabledInterceptorResolver) LogProcessedHash(_ string, _ []byte, _ error) {
-}
-
-// Enabled returns if this implementation should process data or not. Always false to optimize the caller
-func (dir *disabledInterceptorResolver) Enabled() bool {
-	return false
+// LogProcessedHashes does nothing
+func (dir *disabledInterceptorResolver) LogProcessedHashes(_ string, _ [][]byte, _ error) {
 }
 
 // Query returns an empty slice

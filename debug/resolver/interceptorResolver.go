@@ -81,15 +81,15 @@ func NewInterceptorResolver(config config.InterceptorResolverDebugConfig) (*inte
 	}
 
 	ir.printEventHandler = ir.printEvent
-	if config.EnableAutoPrint {
-		go ir.autoPrint()
+	if config.EnablePrint {
+		go ir.printContinously()
 	}
 
 	return ir, nil
 }
 
 func (ir *interceptorResolver) parseConfig(config config.InterceptorResolverDebugConfig) error {
-	if !config.EnableAutoPrint {
+	if !config.EnablePrint {
 		return nil
 	}
 	if config.IntervalAutoPrintInSeconds < minIntervalInSeconds {
@@ -113,7 +113,7 @@ func (ir *interceptorResolver) parseConfig(config config.InterceptorResolverDebu
 	return nil
 }
 
-func (ir *interceptorResolver) autoPrint() {
+func (ir *interceptorResolver) printContinously() {
 	for {
 		time.Sleep(ir.intervalAutoPrint)
 
@@ -168,8 +168,14 @@ func (ir *interceptorResolver) getStringEvents(maxNumPrints int) []string {
 	return ir.query(acceptEvent, maxNumPrints)
 }
 
-// LogRequestedData is called whenever a hash has been requested
-func (ir *interceptorResolver) LogRequestedData(topic string, hash []byte, numReqIntra int, numReqCross int) {
+// LogRequestedData is called whenever hashes have been requested
+func (ir *interceptorResolver) LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int) {
+	for _, hash := range hashes {
+		ir.logRequestedData(topic, hash, numReqIntra, numReqCross)
+	}
+}
+
+func (ir *interceptorResolver) logRequestedData(topic string, hash []byte, numReqIntra int, numReqCross int) {
 	identifier := ir.computeIdentifier(requestEvent, topic, hash)
 
 	ir.mutCriticalArea.Lock()
@@ -202,8 +208,14 @@ func (ir *interceptorResolver) LogRequestedData(topic string, hash []byte, numRe
 	ir.cache.Put(identifier, req)
 }
 
-// LogReceivedHash is called whenever a request hash has been received
-func (ir *interceptorResolver) LogReceivedHash(topic string, hash []byte) {
+// LogReceivedHashes is called whenever request hashes have been received
+func (ir *interceptorResolver) LogReceivedHashes(topic string, hashes [][]byte) {
+	for _, hash := range hashes {
+		ir.logReceivedHash(topic, hash)
+	}
+}
+
+func (ir *interceptorResolver) logReceivedHash(topic string, hash []byte) {
 	identifier := ir.computeIdentifier(requestEvent, topic, hash)
 
 	ir.mutCriticalArea.Lock()
@@ -223,8 +235,14 @@ func (ir *interceptorResolver) LogReceivedHash(topic string, hash []byte) {
 	ir.cache.Put(identifier, req)
 }
 
-// LogProcessedHash is called whenever a request hash has been processed
-func (ir *interceptorResolver) LogProcessedHash(topic string, hash []byte, err error) {
+// LogProcessedHashes is called whenever request hashes have been processed
+func (ir *interceptorResolver) LogProcessedHashes(topic string, hashes [][]byte, err error) {
+	for _, hash := range hashes {
+		ir.logProcessedHash(topic, hash, err)
+	}
+}
+
+func (ir *interceptorResolver) logProcessedHash(topic string, hash []byte, err error) {
 	identifier := ir.computeIdentifier(requestEvent, topic, hash)
 
 	ir.mutCriticalArea.Lock()
@@ -249,11 +267,6 @@ func (ir *interceptorResolver) LogProcessedHash(topic string, hash []byte, err e
 	}
 
 	ir.cache.Remove(identifier)
-}
-
-// Enabled returns if this implementation should process data or not. Always true
-func (ir *interceptorResolver) Enabled() bool {
-	return true
 }
 
 func (ir *interceptorResolver) computeIdentifier(eventType string, topic string, hash []byte) []byte {

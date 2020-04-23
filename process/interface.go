@@ -810,8 +810,7 @@ type WhiteListHandler interface {
 
 // InterceptedDebugHandler defines an interface for debugging the intercepted data
 type InterceptedDebugHandler interface {
-	LogReceivedHash(topic string, hash []byte)
-	LogProcessedHash(topic string, hash []byte, err error)
-	Enabled() bool
+	LogReceivedHashes(topic string, hashes [][]byte)
+	LogProcessedHashes(topic string, hashes [][]byte, err error)
 	IsInterfaceNil() bool
 }

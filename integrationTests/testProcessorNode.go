@@ -1305,7 +1305,7 @@ func (tpn *TestProcessorNode) initNode() {
 		config.InterceptorResolverDebugConfig{
 			Enabled:                    true,
 			CacheSize:                  1000,
-			EnableAutoPrint:            true,
+			EnablePrint:                true,
 			IntervalAutoPrintInSeconds: 1,
 			NumRequestsThreshold:       1,
 			NumResolveFailureThreshold: 1,

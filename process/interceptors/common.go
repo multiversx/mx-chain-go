@@ -96,14 +96,8 @@ func processDebugInterceptedData(
 	topic string,
 	err error,
 ) {
-	if !debugHandler.Enabled() {
-		return
-	}
-
 	identifiers := interceptedData.Identifiers()
-	for _, identifier := range identifiers {
-		debugHandler.LogProcessedHash(topic, identifier, err)
-	}
+	debugHandler.LogProcessedHashes(topic, identifiers, err)
 }
 
 func receivedDebugInterceptedData(
@@ -111,12 +105,6 @@ func receivedDebugInterceptedData(
 	interceptedData process.InterceptedData,
 	topic string,
 ) {
-	if !debugHandler.Enabled() {
-		return
-	}
-
 	identifiers := interceptedData.Identifiers()
-	for _, identifier := range identifiers {
-		debugHandler.LogReceivedHash(topic, identifier)
-	}
+	debugHandler.LogReceivedHashes(topic, identifiers)
 }

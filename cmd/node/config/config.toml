@@ -407,7 +407,7 @@
     [Debug.InterceptorResolver]
         Enabled = true
         CacheSize = 10000
-        EnableAutoPrint	= true
+        EnablePrint	= true
         IntervalAutoPrintInSeconds = 20
         NumRequestsThreshold = 9
         NumResolveFailureThreshold = 3

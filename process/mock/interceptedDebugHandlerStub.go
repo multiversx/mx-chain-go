@@ -2,32 +2,22 @@ package mock
 
 // InterceptedDebugHandlerStub -
 type InterceptedDebugHandlerStub struct {
-	LogReceivedHashCalled  func(topic string, hash []byte)
-	LogProcessedHashCalled func(topic string, hash []byte, err error)
-	EnabledCalled          func() bool
+	LogReceivedHashesCalled  func(topic string, hashes [][]byte)
+	LogProcessedHashesCalled func(topic string, hashes [][]byte, err error)
 }
 
-// LogReceivedHash -
-func (idhs *InterceptedDebugHandlerStub) LogReceivedHash(topic string, hash []byte) {
-	if idhs.LogReceivedHashCalled != nil {
-		idhs.LogReceivedHashCalled(topic, hash)
+// LogReceivedHashes -
+func (idhs *InterceptedDebugHandlerStub) LogReceivedHashes(topic string, hashes [][]byte) {
+	if idhs.LogReceivedHashesCalled != nil {
+		idhs.LogReceivedHashesCalled(topic, hashes)
 	}
 }
 
-// LogProcessedHash -
-func (idhs *InterceptedDebugHandlerStub) LogProcessedHash(topic string, hash []byte, err error) {
-	if idhs.LogProcessedHashCalled != nil {
-		idhs.LogProcessedHashCalled(topic, hash, err)
+// LogProcessedHashes -
+func (idhs *InterceptedDebugHandlerStub) LogProcessedHashes(topic string, hashes [][]byte, err error) {
+	if idhs.LogProcessedHashesCalled != nil {
+		idhs.LogProcessedHashesCalled(topic, hashes, err)
 	}
-}
-
-// Enabled -
-func (idhs *InterceptedDebugHandlerStub) Enabled() bool {
-	if idhs.EnabledCalled != nil {
-		return idhs.EnabledCalled()
-	}
-
-	return false
 }
 
 // IsInterfaceNil -

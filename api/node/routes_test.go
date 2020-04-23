@@ -306,35 +306,6 @@ func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
 	assert.Contains(t, queryResponse.Error, expectedErr.Error())
 }
 
-func TestQueryDebug_GetQueryDisabledShouldErr(t *testing.T) {
-	t.Parallel()
-
-	facade := &mock.Facade{
-		GetQueryHandlerCalled: func(name string) (handler debug.QueryHandler, err error) {
-			return &mock.QueryHandlerStub{
-					EnabledCalled: func() bool {
-						return false
-					},
-				},
-				nil
-		},
-	}
-
-	qdr := &node.QueryDebugRequest{}
-	jsonStr, _ := json.Marshal(qdr)
-
-	ws := startNodeServerWithFacade(facade)
-	req, _ := http.NewRequest("POST", "/node/debug", bytes.NewBuffer(jsonStr))
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	queryResponse := &GeneralResponse{}
-	loadResponse(resp.Body, queryResponse)
-
-	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Contains(t, queryResponse.Error, errors.ErrQueryDisabled.Error())
-}
-
 func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -343,9 +314,6 @@ func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
 	facade := &mock.Facade{
 		GetQueryHandlerCalled: func(name string) (handler debug.QueryHandler, err error) {
 			return &mock.QueryHandlerStub{
-					EnabledCalled: func() bool {
-						return true
-					},
 					QueryCalled: func(search string) []string {
 						return []string{str1, str2}
 					},

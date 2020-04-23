@@ -120,14 +120,7 @@ func (trs *topicResolverSender) callDebugHandler(originalHashes [][]byte, numSen
 	trs.mutResolverDebugHandler.RLock()
 	defer trs.mutResolverDebugHandler.RUnlock()
 
-	if !trs.resolverDebugHandler.Enabled() {
-		//this check prevents a useless range when using a mock implementation
-		return
-	}
-
-	for _, hash := range originalHashes {
-		trs.resolverDebugHandler.LogRequestedData(trs.topicName, hash, numSentIntra, numSentCross)
-	}
+	trs.resolverDebugHandler.LogRequestedData(trs.topicName, originalHashes, numSentIntra, numSentCross)
 }
 
 func createIndexList(listLength int) []int {

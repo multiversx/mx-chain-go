@@ -2,17 +2,7 @@ package mock
 
 // QueryHandlerStub -
 type QueryHandlerStub struct {
-	EnabledCalled func() bool
-	QueryCalled   func(search string) []string
-}
-
-// Enabled -
-func (qhs *QueryHandlerStub) Enabled() bool {
-	if qhs.EnabledCalled != nil {
-		return qhs.EnabledCalled()
-	}
-
-	return false
+	QueryCalled func(search string) []string
 }
 
 // Query -
