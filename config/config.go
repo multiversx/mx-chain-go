@@ -157,12 +157,13 @@ type ResourceStatsConfig struct {
 
 // HeartbeatConfig will hold all heartbeat settings
 type HeartbeatConfig struct {
-	Enabled                             bool
-	MinTimeToWaitBetweenBroadcastsInSec int
-	MaxTimeToWaitBetweenBroadcastsInSec int
-	DurationInSecToConsiderUnresponsive int
-	HbmiRefreshInterval                 uint32
-	HeartbeatStorage                    StorageConfig
+	Enabled                              bool
+	MinTimeToWaitBetweenBroadcastsInSec  int
+	MaxTimeToWaitBetweenBroadcastsInSec  int
+	DurationInSecToConsiderUnresponsive  int
+	HbmiRefreshIntervalInSec             uint32
+	HideInactiveValidatorIntervalInHours uint32
+	HeartbeatStorage                     StorageConfig
 }
 
 // GeneralSettingsConfig will hold the general settings for a node

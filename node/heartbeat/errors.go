@@ -83,5 +83,9 @@ var ErrNilBlackListHandler = errors.New("nil black list handler")
 // ErrNilPubkeyConverter signals that a nil public key converter has been provided
 var ErrNilPubkeyConverter = errors.New("trying to use a nil pubkey converter")
 
-// ErrZeroHbmiRefreshInterval signals that a zero value was provided for the HbmiRefreshInterval
-var ErrZeroHbmiRefreshInterval = errors.New("zero hbmiRefreshInterval")
+// ErrZeroHbmiRefreshIntervalInSec signals that a zero value was provided for the HbmiRefreshIntervalInSec
+var ErrZeroHbmiRefreshIntervalInSec = errors.New("zero hbmiRefreshInterval")
+
+// ErrZeroHideInactiveValidatorIntervalInHours signals that a zero value
+// was provided for the ErrZeroHideInactiveValidatorIntervalInHours
+var ErrZeroHideInactiveValidatorIntervalInHours = errors.New("zero hideInactiveValidatorIntervalInHours")

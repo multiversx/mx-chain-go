@@ -1003,19 +1003,20 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	}
 
 	argMonitor := heartbeat.ArgHeartbeatMonitor{
-		Marshalizer:                 netInputMarshalizer,
-		MaxDurationPeerUnresponsive: time.Second * time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
-		PubKeysMap:                  pubKeysMap,
-		GenesisTime:                 n.genesisTime,
-		MessageHandler:              heartBeatMsgProcessor,
-		Storer:                      heartbeatStorer,
-		PeerTypeProvider:            peerTypeProvider,
-		Timer:                       timer,
-		AntifloodHandler:            n.inputAntifloodHandler,
-		HardforkTrigger:             n.hardforkTrigger,
-		PeerBlackListHandler:        n.peerBlackListHandler,
-		ValidatorPubkeyConverter:    n.validatorPubkeyConverter,
-		HbmiRefreshInterval:         hbConfig.HbmiRefreshInterval,
+		Marshalizer:                          netInputMarshalizer,
+		MaxDurationPeerUnresponsive:          time.Second * time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
+		PubKeysMap:                           pubKeysMap,
+		GenesisTime:                          n.genesisTime,
+		MessageHandler:                       heartBeatMsgProcessor,
+		Storer:                               heartbeatStorer,
+		PeerTypeProvider:                     peerTypeProvider,
+		Timer:                                timer,
+		AntifloodHandler:                     n.inputAntifloodHandler,
+		HardforkTrigger:                      n.hardforkTrigger,
+		PeerBlackListHandler:                 n.peerBlackListHandler,
+		ValidatorPubkeyConverter:             n.validatorPubkeyConverter,
+		HbmiRefreshIntervalInSec:             hbConfig.HbmiRefreshIntervalInSec,
+		HideInactiveValidatorIntervalInHours: hbConfig.HideInactiveValidatorIntervalInHours,
 	}
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(argMonitor)
 	if err != nil {

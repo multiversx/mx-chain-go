@@ -22,42 +22,44 @@ var log = logger.GetOrCreate("node/heartbeat")
 
 // ArgHeartbeatMonitor represents the arguments for the heartbeat monitor
 type ArgHeartbeatMonitor struct {
-	Marshalizer                 marshal.Marshalizer
-	MaxDurationPeerUnresponsive time.Duration
-	PubKeysMap                  map[uint32][]string
-	GenesisTime                 time.Time
-	MessageHandler              MessageHandler
-	Storer                      HeartbeatStorageHandler
-	PeerTypeProvider            PeerTypeProviderHandler
-	Timer                       Timer
-	AntifloodHandler            P2PAntifloodHandler
-	HardforkTrigger             HardforkTrigger
-	PeerBlackListHandler        BlackListHandler
-	ValidatorPubkeyConverter    state.PubkeyConverter
-	HbmiRefreshInterval         uint32
+	Marshalizer                          marshal.Marshalizer
+	MaxDurationPeerUnresponsive          time.Duration
+	PubKeysMap                           map[uint32][]string
+	GenesisTime                          time.Time
+	MessageHandler                       MessageHandler
+	Storer                               HeartbeatStorageHandler
+	PeerTypeProvider                     PeerTypeProviderHandler
+	Timer                                Timer
+	AntifloodHandler                     P2PAntifloodHandler
+	HardforkTrigger                      HardforkTrigger
+	PeerBlackListHandler                 BlackListHandler
+	ValidatorPubkeyConverter             state.PubkeyConverter
+	HbmiRefreshIntervalInSec             uint32
+	HideInactiveValidatorIntervalInHours uint32
 }
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
 type Monitor struct {
-	maxDurationPeerUnresponsive time.Duration
-	marshalizer                 marshal.Marshalizer
-	peerTypeProvider            PeerTypeProviderHandler
-	mutHeartbeatMessages        sync.RWMutex
-	mutAppStatusHandler         sync.Mutex
-	heartbeatMessages           map[string]*heartbeatMessageInfo
-	pubKeysMap                  map[uint32][]string
-	mutFullPeersSlice           sync.RWMutex
-	fullPeersSlice              [][]byte
-	appStatusHandler            core.AppStatusHandler
-	genesisTime                 time.Time
-	messageHandler              MessageHandler
-	storer                      HeartbeatStorageHandler
-	timer                       Timer
-	antifloodHandler            P2PAntifloodHandler
-	hardforkTrigger             HardforkTrigger
-	peerBlackListHandler        BlackListHandler
-	validatorPubkeyConverter    state.PubkeyConverter
-	hbmiRefreshInterval         uint32
+	maxDurationPeerUnresponsive          time.Duration
+	marshalizer                          marshal.Marshalizer
+	peerTypeProvider                     PeerTypeProviderHandler
+	mutHeartbeatMessages                 sync.RWMutex
+	mutAppStatusHandler                  sync.RWMutex
+	heartbeatMessages                    map[string]*heartbeatMessageInfo
+	pubKeysMap                           map[uint32][]string
+	mutFullPeersSlice                    sync.RWMutex
+	fullPeersSlice                       [][]byte
+	appStatusHandler                     core.AppStatusHandler
+	genesisTime                          time.Time
+	messageHandler                       MessageHandler
+	storer                               HeartbeatStorageHandler
+	timer                                Timer
+	antifloodHandler                     P2PAntifloodHandler
+	hardforkTrigger                      HardforkTrigger
+	peerBlackListHandler                 BlackListHandler
+	validatorPubkeyConverter             state.PubkeyConverter
+	hbmiRefreshIntervalInSec             uint32
+	hideInactiveValidatorIntervalInHours uint32
 }
 
 // NewMonitor returns a new monitor instance
@@ -92,24 +94,29 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 	if check.IfNil(arg.ValidatorPubkeyConverter) {
 		return nil, ErrNilPubkeyConverter
 	}
-	if arg.HbmiRefreshInterval == 0 {
-		return nil, ErrZeroHbmiRefreshInterval
+	if arg.HbmiRefreshIntervalInSec == 0 {
+		return nil, ErrZeroHbmiRefreshIntervalInSec
 	}
+	if arg.HideInactiveValidatorIntervalInHours == 0 {
+		return nil, ErrZeroHideInactiveValidatorIntervalInHours
+	}
+
 	mon := &Monitor{
-		marshalizer:                 arg.Marshalizer,
-		heartbeatMessages:           make(map[string]*heartbeatMessageInfo),
-		peerTypeProvider:            arg.PeerTypeProvider,
-		maxDurationPeerUnresponsive: arg.MaxDurationPeerUnresponsive,
-		appStatusHandler:            &statusHandler.NilStatusHandler{},
-		genesisTime:                 arg.GenesisTime,
-		messageHandler:              arg.MessageHandler,
-		storer:                      arg.Storer,
-		timer:                       arg.Timer,
-		antifloodHandler:            arg.AntifloodHandler,
-		hardforkTrigger:             arg.HardforkTrigger,
-		peerBlackListHandler:        arg.PeerBlackListHandler,
-		validatorPubkeyConverter:    arg.ValidatorPubkeyConverter,
-		hbmiRefreshInterval:         arg.HbmiRefreshInterval,
+		marshalizer:                          arg.Marshalizer,
+		heartbeatMessages:                    make(map[string]*heartbeatMessageInfo),
+		peerTypeProvider:                     arg.PeerTypeProvider,
+		maxDurationPeerUnresponsive:          arg.MaxDurationPeerUnresponsive,
+		appStatusHandler:                     &statusHandler.NilStatusHandler{},
+		genesisTime:                          arg.GenesisTime,
+		messageHandler:                       arg.MessageHandler,
+		storer:                               arg.Storer,
+		timer:                                arg.Timer,
+		antifloodHandler:                     arg.AntifloodHandler,
+		hardforkTrigger:                      arg.HardforkTrigger,
+		peerBlackListHandler:                 arg.PeerBlackListHandler,
+		validatorPubkeyConverter:             arg.ValidatorPubkeyConverter,
+		hbmiRefreshIntervalInSec:             arg.HbmiRefreshIntervalInSec,
+		hideInactiveValidatorIntervalInHours: arg.HideInactiveValidatorIntervalInHours,
 	}
 
 	err := mon.storer.UpdateGenesisTime(arg.GenesisTime)
@@ -237,9 +244,9 @@ func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
 		return ErrNilAppStatusHandler
 	}
 
-	m.mutAppStatusHandler.Lock()
+	m.mutAppStatusHandler.RLock()
 	m.appStatusHandler = ash
-	m.mutAppStatusHandler.Unlock()
+	m.mutAppStatusHandler.RUnlock()
 	return nil
 }
 
@@ -416,10 +423,12 @@ func (m *Monitor) computeInactiveHeartbeatMessages() {
 // GetHeartbeats returns the heartbeat status
 func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	m.mutHeartbeatMessages.Lock()
-	status := make([]PubKeyHeartbeat, len(m.heartbeatMessages))
-	idx := 0
+	status := make([]PubKeyHeartbeat, 0, len(m.heartbeatMessages))
 	for k, v := range m.heartbeatMessages {
-		v.updateMutex.Lock()
+		if m.shouldSkipValidator(v) {
+			continue
+		}
+
 		tmp := PubKeyHeartbeat{
 			PublicKey:       m.validatorPubkeyConverter.Encode([]byte(k)),
 			TimeStamp:       v.timeStamp,
@@ -433,9 +442,7 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 			NodeDisplayName: v.nodeDisplayName,
 			PeerType:        v.peerType,
 		}
-		v.updateMutex.Unlock()
-		status[idx] = tmp
-		idx++
+		status = append(status, tmp)
 	}
 	m.mutHeartbeatMessages.Unlock()
 
@@ -444,6 +451,20 @@ func (m *Monitor) GetHeartbeats() []PubKeyHeartbeat {
 	})
 
 	return status
+}
+
+func (m *Monitor) shouldSkipValidator(v *heartbeatMessageInfo) bool {
+	isInactiveObserver := !v.GetIsActive() &&
+		(v.peerType != string(core.EligibleList) &&
+			v.peerType != string(core.WaitingList))
+	if isInactiveObserver {
+		lastInactiveInterval := m.timer.Now().Sub(v.timeStamp)
+		if lastInactiveInterval.Hours() > float64(m.hideInactiveValidatorIntervalInHours) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -497,7 +518,7 @@ func (m *Monitor) convertFromExportedStruct(hbDTO HeartbeatDTO, maxDuration time
 // startValidatorProcessing will start the updating of the information about the nodes
 func (m *Monitor) startValidatorProcessing() {
 	go func() {
-		refreshInterval := time.Duration(m.hbmiRefreshInterval) * time.Second
+		refreshInterval := time.Duration(m.hbmiRefreshIntervalInSec) * time.Second
 
 		for {
 			m.refreshHbmi()
