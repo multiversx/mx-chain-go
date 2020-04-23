@@ -19,15 +19,12 @@ type TransactionCoordinatorMock struct {
 	RemoveBlockDataFromPoolCalled                        func(body *block.Body) error
 	ProcessBlockTransactionCalled                        func(body *block.Body, haveTime func() time.Duration) error
 	CreateBlockStartedCalled                             func()
-	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler,
-		processedMiniBlocksHashes map[string]struct{},
-
-		haveTime func() bool,
-	) (block.MiniBlockSlice, uint32, bool, error)
-	CreateMbsAndProcessTransactionsFromMeCalled func(haveTime func() bool) block.MiniBlockSlice
-	CreateMarshalizedDataCalled                 func(body *block.Body) map[string][][]byte
-	GetAllCurrentUsedTxsCalled                  func(blockType block.Type) map[string]data.TransactionHandler
-	VerifyCreatedBlockTransactionsCalled        func(hdr data.HeaderHandler, body *block.Body) error
+	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (block.MiniBlockSlice, uint32, bool, error)
+	CreateMbsAndProcessTransactionsFromMeCalled          func(haveTime func() bool) block.MiniBlockSlice
+	CreateMarshalizedDataCalled                          func(body *block.Body) map[string][][]byte
+	CreateMarshalizedDataForSelfShardCalled              func(body *block.Body) map[string][][]byte
+	GetAllCurrentUsedTxsCalled                           func(blockType block.Type) map[string]data.TransactionHandler
+	VerifyCreatedBlockTransactionsCalled                 func(hdr data.HeaderHandler, body *block.Body) error
 }
 
 // CreateReceiptsHash -
@@ -146,6 +143,15 @@ func (tcm *TransactionCoordinatorMock) CreateMarshalizedData(body *block.Body) m
 	}
 
 	return tcm.CreateMarshalizedDataCalled(body)
+}
+
+// CreateMarshalizedDataForSelfShard -
+func (tcm *TransactionCoordinatorMock) CreateMarshalizedDataForSelfShard(body *block.Body) map[string][][]byte {
+	if tcm.CreateMarshalizedDataForSelfShardCalled == nil {
+		return make(map[string][][]byte)
+	}
+
+	return tcm.CreateMarshalizedDataForSelfShardCalled(body)
 }
 
 // GetAllCurrentUsedTxs -

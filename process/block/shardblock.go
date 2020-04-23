@@ -1742,6 +1742,26 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	return mrsData, mrsTxs, nil
 }
 
+// MarshalizedDataToBroadcastInSelfShard prepares underlying data into a marshalized object according to destination
+func (sp *shardProcessor) MarshalizedDataToBroadcastInSelfShard(
+	_ data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+) (map[string][][]byte, error) {
+
+	if check.IfNil(bodyHandler) {
+		return nil, process.ErrNilMiniBlocks
+	}
+
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	mrsTxs := sp.txCoordinator.CreateMarshalizedDataForSelfShard(body)
+
+	return mrsTxs, nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sp *shardProcessor) IsInterfaceNil() bool {
 	return sp == nil

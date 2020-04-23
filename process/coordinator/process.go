@@ -699,44 +699,66 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 			continue
 		}
 
-		broadcastTopic, err := createBroadcastTopic(tc.shardCoordinator, miniblock.ReceiverShardID, miniblock.Type)
-		if err != nil {
-			log.Trace("createBroadcastTopic", "error", err.Error())
-			continue
-		}
-
-		preproc := tc.getPreProcessor(miniblock.Type)
-		if !check.IfNil(preproc) {
-
-			dataMarshalizer, ok := preproc.(process.DataMarshalizer)
-			if ok {
-				//preproc supports marshalizing items
-				tc.appendMarshalizedItems(
-					dataMarshalizer,
-					miniblock.TxHashes,
-					mrsTxs,
-					broadcastTopic,
-				)
-			}
-		}
-
-		interimProc := tc.getInterimProcessor(miniblock.Type)
-		if !check.IfNil(interimProc) {
-
-			dataMarshalizer, ok := interimProc.(process.DataMarshalizer)
-			if ok {
-				//interimProc supports marshalizing items
-				tc.appendMarshalizedItems(
-					dataMarshalizer,
-					miniblock.TxHashes,
-					mrsTxs,
-					broadcastTopic,
-				)
-			}
-		}
+		tc.createMarshalizedData(miniblock, mrsTxs, miniblock.ReceiverShardID)
 	}
 
 	return mrsTxs
+}
+
+// CreateMarshalizedDataForSelfShard creates marshalized data for broadcasting in self shard
+func (tc *transactionCoordinator) CreateMarshalizedDataForSelfShard(body *block.Body) map[string][][]byte {
+	mrsTxs := make(map[string][][]byte)
+
+	if check.IfNil(body) {
+		return mrsTxs
+	}
+
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniblock := body.MiniBlocks[i]
+		tc.createMarshalizedData(miniblock, mrsTxs, tc.shardCoordinator.SelfId())
+	}
+
+	return mrsTxs
+}
+
+func (tc *transactionCoordinator) createMarshalizedData(
+	miniblock *block.MiniBlock,
+	mrsTxs map[string][][]byte,
+	shardID uint32,
+) {
+	broadcastTopic, err := createBroadcastTopic(tc.shardCoordinator, shardID, miniblock.Type)
+	if err != nil {
+		log.Trace("createBroadcastTopic", "error", err.Error())
+		return
+	}
+
+	preproc := tc.getPreProcessor(miniblock.Type)
+	if !check.IfNil(preproc) {
+		dataMarshalizer, ok := preproc.(process.DataMarshalizer)
+		if ok {
+			//preproc supports marshalizing items
+			tc.appendMarshalizedItems(
+				dataMarshalizer,
+				miniblock.TxHashes,
+				mrsTxs,
+				broadcastTopic,
+			)
+		}
+	}
+
+	interimProc := tc.getInterimProcessor(miniblock.Type)
+	if !check.IfNil(interimProc) {
+		dataMarshalizer, ok := interimProc.(process.DataMarshalizer)
+		if ok {
+			//interimProc supports marshalizing items
+			tc.appendMarshalizedItems(
+				dataMarshalizer,
+				miniblock.TxHashes,
+				mrsTxs,
+				broadcastTopic,
+			)
+		}
+	}
 }
 
 func (tc *transactionCoordinator) appendMarshalizedItems(

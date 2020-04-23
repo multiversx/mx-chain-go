@@ -1934,6 +1934,31 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	return mrsData, mrsTxs, nil
 }
 
+// MarshalizedDataToBroadcastInSelfShard prepares underlying data into a marshalized object according to destination
+func (mp *metaProcessor) MarshalizedDataToBroadcastInSelfShard(
+	hdr data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+) (map[string][][]byte, error) {
+	if check.IfNil(hdr) {
+		return nil, process.ErrNilMetaBlockHeader
+	}
+	if check.IfNil(bodyHandler) {
+		return nil, process.ErrNilMiniBlocks
+	}
+
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	mrsTxs := make(map[string][][]byte)
+	if !hdr.IsStartOfEpochBlock() {
+		mrsTxs = mp.txCoordinator.CreateMarshalizedDataForSelfShard(body)
+	}
+
+	return mrsTxs, nil
+}
+
 func getTxCount(shardInfo []block.ShardData) uint32 {
 	txs := uint32(0)
 	for i := 0; i < len(shardInfo); i++ {

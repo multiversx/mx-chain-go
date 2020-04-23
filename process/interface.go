@@ -121,15 +121,11 @@ type TransactionCoordinator interface {
 	ProcessBlockTransaction(body *block.Body, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(
-		header data.HeaderHandler,
-		processedMiniBlocksHashes map[string]struct{},
-
-		haveTime func() bool,
-	) (block.MiniBlockSlice, uint32, bool, error)
+	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, haveTime func() bool) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool) block.MiniBlockSlice
 
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
+	CreateMarshalizedDataForSelfShard(body *block.Body) map[string][][]byte
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
 
 	CreateReceiptsHash() ([]byte, error)
@@ -209,6 +205,7 @@ type BlockProcessor interface {
 	CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
+	MarshalizedDataToBroadcastInSelfShard(header data.HeaderHandler, body data.BodyHandler) (map[string][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)

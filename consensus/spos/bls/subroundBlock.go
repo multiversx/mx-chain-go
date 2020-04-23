@@ -92,6 +92,11 @@ func (sr *subroundBlock) doBlockJob() bool {
 		return false
 	}
 
+	errNotCritical := sr.broadcastTransactionsInSelfShard(body, header)
+	if errNotCritical != nil {
+		log.Debug("doBlockJob.broadcastTransactionsInSelfShard", "error", err.Error())
+	}
+
 	sentWithSuccess := sr.sendBlock(body, header)
 	if !sentWithSuccess {
 		return false
@@ -104,6 +109,15 @@ func (sr *subroundBlock) doBlockJob() bool {
 	}
 
 	return true
+}
+
+func (sr *subroundBlock) broadcastTransactionsInSelfShard(body data.BodyHandler, header data.HeaderHandler) error {
+	transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcastInSelfShard(header, body)
+	if err != nil {
+		return err
+	}
+
+	return sr.BroadcastMessenger().BroadcastTransactions(transactions)
 }
 
 func (sr *subroundBlock) sendBlock(body data.BodyHandler, header data.HeaderHandler) bool {
