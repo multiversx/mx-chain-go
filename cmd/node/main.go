@@ -46,6 +46,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
+	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -1787,6 +1788,17 @@ func createNode(
 			return nil, errors.New("error creating meta-node: " + err.Error())
 		}
 	}
+
+	err = nodeDebugFactory.CreateInterceptedDebugHandler(
+		nd,
+		process.InterceptorsContainer,
+		process.ResolversFinder,
+		config.Debug.InterceptorResolver,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	return nd, nil
 }
 

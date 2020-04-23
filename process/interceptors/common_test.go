@@ -141,7 +141,9 @@ func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *tes
 
 	processInterceptedData(
 		processor,
+		&mock.InterceptedDebugHandlerStub{},
 		&mock.InterceptedDataStub{},
+		"topic",
 		wg,
 		&mock.P2PMessageMock{},
 	)
@@ -178,7 +180,9 @@ func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T
 
 	processInterceptedData(
 		processor,
+		&mock.InterceptedDebugHandlerStub{},
 		&mock.InterceptedDataStub{},
+		"topic",
 		wg,
 		&mock.P2PMessageMock{},
 	)
@@ -215,7 +219,9 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 
 	processInterceptedData(
 		processor,
+		&mock.InterceptedDebugHandlerStub{},
 		&mock.InterceptedDataStub{},
+		"topic",
 		wg,
 		&mock.P2PMessageMock{},
 	)
@@ -226,4 +232,48 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 	case <-time.After(time.Second):
 		assert.Fail(t, "timeout while waiting for wait group object to be finished")
 	}
+}
+
+//------- debug
+
+func TestProcessDebugInterceptedData_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	numCalled := 0
+	dh := &mock.InterceptedDebugHandlerStub{
+		LogProcessedHashesCalled: func(topic string, hashes [][]byte, err error) {
+			numCalled += len(hashes)
+		},
+	}
+
+	numCalls := 40
+	ids := &mock.InterceptedDataStub{
+		IdentifiersCalled: func() [][]byte {
+			return make([][]byte, numCalls)
+		},
+	}
+
+	processDebugInterceptedData(dh, ids, "", nil)
+	assert.Equal(t, numCalls, numCalled)
+}
+
+func TestReceivedDebugInterceptedData_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	numCalled := 0
+	dh := &mock.InterceptedDebugHandlerStub{
+		LogReceivedHashesCalled: func(topic string, hashes [][]byte) {
+			numCalled += len(hashes)
+		},
+	}
+
+	numCalls := 40
+	ids := &mock.InterceptedDataStub{
+		IdentifiersCalled: func() [][]byte {
+			return make([][]byte, numCalls)
+		},
+	}
+
+	receivedDebugInterceptedData(dh, ids, "")
+	assert.Equal(t, numCalls, numCalled)
 }

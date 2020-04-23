@@ -172,3 +172,9 @@ var ErrNilWhiteListHandler = errors.New("nil white list handler")
 
 // ErrRequestIntervalTooSmall signals that request interval is too small
 var ErrRequestIntervalTooSmall = errors.New("request interval is too small")
+
+// ErrNilResolverDebugHandler signals that a nil resolver debug handler has been provided
+var ErrNilResolverDebugHandler = errors.New("nil resolver debug handler")
+
+// ErrMissingData signals that the required data is missing
+var ErrMissingData = errors.New("missing data")

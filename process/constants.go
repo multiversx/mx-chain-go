@@ -101,7 +101,7 @@ const MaxShardHeadersAllowedInOneMetaBlock = 100
 const MaxNumOfTxsToSelect = 30000
 
 // MaxRoundsToKeepUnprocessedMiniBlocks defines the maximum number of rounds for which unprocessed miniblocks are kept in pool
-const MaxRoundsToKeepUnprocessedMiniBlocks = 100
+const MaxRoundsToKeepUnprocessedMiniBlocks = 50
 
 // MaxRoundsToKeepUnprocessedTransactions defines the maximum number of rounds for which unprocessed transactions are kept in pool
-const MaxRoundsToKeepUnprocessedTransactions = 100
+const MaxRoundsToKeepUnprocessedTransactions = 50
