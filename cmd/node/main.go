@@ -965,6 +965,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
 		ratingsConfig.General.MaxRating,
 		validatorPubkeyConverter,
+		ratingsData,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1034,6 +1035,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		gasSchedule,
 		economicsData,
 		cryptoComponents.MessageSignVerifier,
+		genesisNodesConfig,
 	)
 	if err != nil {
 		return err
@@ -1792,6 +1794,7 @@ func createApiResolver(
 	gasSchedule map[string]map[string]uint64,
 	economics *economics.EconomicsData,
 	messageSigVerifier vm.MessageSignVerifier,
+	nodesSetup sharding.GenesisNodesSetupHandler,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -1817,7 +1820,13 @@ func createApiResolver(
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics, messageSigVerifier, gasSchedule)
+		vmFactory, err = metachain.NewVMContainerFactory(
+			argsHook,
+			economics,
+			messageSigVerifier,
+			gasSchedule,
+			nodesSetup,
+		)
 		if err != nil {
 			return nil, err
 		}
