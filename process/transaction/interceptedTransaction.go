@@ -263,6 +263,11 @@ func (inTx *InterceptedTransaction) String() string {
 	)
 }
 
+// Identifiers returns the identifiers used in requests
+func (inTx *InterceptedTransaction) Identifiers() [][]byte {
+	return [][]byte{inTx.hash}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inTx *InterceptedTransaction) IsInterfaceNil() bool {
 	return inTx == nil

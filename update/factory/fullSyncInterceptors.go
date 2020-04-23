@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -77,6 +78,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	WhiteListVerified      update.WhiteListHandler
 	InterceptorsContainer  process.InterceptorsContainer
 	AntifloodHandler       process.P2PAntifloodHandler
+	NonceConverter         typeConverters.Uint64ByteSliceConverter
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -97,6 +99,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		args.MultiSigner,
 		args.NodesCoordinator,
 		args.BlackList,
+		args.NonceConverter,
 		args.WhiteListVerified,
 	)
 	if err != nil {
@@ -160,6 +163,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		ChainID:           args.ChainID,
 		ValidityAttester:  args.ValidityAttester,
 		EpochStartTrigger: args.EpochStartTrigger,
+		NonceConverter:    args.NonceConverter,
 		WhiteListVerified: args.WhiteListVerified,
 	}
 
@@ -244,6 +248,7 @@ func checkBaseParams(
 	multiSigner crypto.MultiSigner,
 	nodesCoordinator sharding.NodesCoordinator,
 	blackList process.BlackListHandler,
+	nonceConverter typeConverters.Uint64ByteSliceConverter,
 	whiteListVerified update.WhiteListHandler,
 ) error {
 	if check.IfNil(shardCoordinator) {
@@ -275,6 +280,9 @@ func checkBaseParams(
 	}
 	if check.IfNil(blackList) {
 		return process.ErrNilBlackListHandler
+	}
+	if check.IfNil(nonceConverter) {
+		return process.ErrNilUint64Converter
 	}
 	if check.IfNil(whiteListVerified) {
 		return process.ErrNilWhiteListHandler

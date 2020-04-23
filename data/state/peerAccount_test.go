@@ -106,55 +106,6 @@ func TestPeerAccount_SetAndGetAccumulatedFees(t *testing.T) {
 	assert.Equal(t, fees, acc.GetAccumulatedFees())
 }
 
-func TestPeerAccount_SetAndGetJailTime(t *testing.T) {
-	t.Parallel()
-
-	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
-	jailTime := state.TimePeriod{}
-
-	acc.SetJailTime(jailTime)
-	assert.Equal(t, jailTime, acc.GetJailTime())
-}
-
-func TestPeerAccount_SetAndGetCurrentShardId(t *testing.T) {
-	t.Parallel()
-
-	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
-	shId := uint32(5)
-
-	acc.SetCurrentShardId(shId)
-	assert.Equal(t, shId, acc.GetCurrentShardId())
-}
-
-func TestPeerAccount_SetAndGetNextShardId(t *testing.T) {
-	t.Parallel()
-
-	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
-	shId := uint32(5)
-
-	acc.SetNextShardId(shId)
-	assert.Equal(t, shId, acc.GetNextShardId())
-}
-
-func TestPeerAccount_SetAndGetNodeInWaitingList(t *testing.T) {
-	t.Parallel()
-
-	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
-
-	acc.SetNodeInWaitingList(true)
-	assert.True(t, acc.GetNodeInWaitingList())
-}
-
-func TestPeerAccount_SetAndGetUnStakedNonce(t *testing.T) {
-	t.Parallel()
-
-	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
-	nonce := uint64(15)
-
-	acc.SetUnStakedNonce(nonce)
-	assert.Equal(t, nonce, acc.GetUnStakedNonce())
-}
-
 func TestPeerAccount_SetAndGetLeaderSuccessRate(t *testing.T) {
 	t.Parallel()
 

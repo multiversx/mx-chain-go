@@ -30,6 +30,7 @@ func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		ChainID:           []byte("chain ID"),
 		ValidityAttester:  &mock.ValidityAttesterStub{},
 		EpochStartTrigger: &mock.EpochStartTriggerStub{},
+		NonceConverter:    mock.NewNonceHashConverterMock(),
 	}
 
 	hdr := createMockShardHeader()

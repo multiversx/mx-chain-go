@@ -1,11 +1,13 @@
 package node
 
 import (
+	"fmt"
 	"math/big"
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/gin-gonic/gin"
@@ -16,7 +18,14 @@ type FacadeHandler interface {
 	GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
 	TpsBenchmark() *statistics.TpsBenchmark
 	StatusMetrics() external.StatusMetricsHandler
+	GetQueryHandler(name string) (debug.QueryHandler, error)
 	IsInterfaceNil() bool
+}
+
+// QueryDebugRequest represents the structure on which user input for querying a debug info will validate against
+type QueryDebugRequest struct {
+	Name   string `form:"name" json:"name"`
+	Search string `form:"search" json:"search"`
 }
 
 type statisticsResponse struct {
@@ -50,6 +59,7 @@ func Routes(router *gin.RouterGroup) {
 	router.GET("/statistics", Statistics)
 	router.GET("/status", StatusMetrics)
 	router.GET("/p2pstatus", P2pStatusMetrics)
+	router.POST("/debug", QueryDebug)
 	// placeholder for custom routes
 }
 
@@ -148,4 +158,28 @@ func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResp
 	}
 
 	return sr
+}
+
+// QueryDebug returns the debug information after the query has been interpreted
+func QueryDebug(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		return
+	}
+
+	var gtx = QueryDebugRequest{}
+	err := c.ShouldBindJSON(&gtx)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
+		return
+	}
+
+	qh, err := ef.GetQueryHandler(gtx.Name)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrQueryError.Error(), err.Error())})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"result": qh.Query(gtx.Search)})
 }

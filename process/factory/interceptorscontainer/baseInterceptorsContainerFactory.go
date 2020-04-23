@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -39,6 +40,7 @@ type baseInterceptorsContainerFactory struct {
 	whiteListHandler       process.WhiteListHandler
 	whiteListVerified      process.WhiteListHandler
 	addressPubkeyConverter state.PubkeyConverter
+	nonceConverter         typeConverters.Uint64ByteSliceConverter
 }
 
 func checkBaseParams(
@@ -57,6 +59,7 @@ func checkBaseParams(
 	whiteListHandler process.WhiteListHandler,
 	whiteListVerified process.WhiteListHandler,
 	addressPubkeyConverter state.PubkeyConverter,
+	nonceConverter typeConverters.Uint64ByteSliceConverter,
 ) error {
 	if check.IfNil(shardCoordinator) {
 		return process.ErrNilShardCoordinator
@@ -99,6 +102,9 @@ func checkBaseParams(
 	}
 	if check.IfNil(addressPubkeyConverter) {
 		return process.ErrNilPubkeyConverter
+	}
+	if check.IfNil(nonceConverter) {
+		return process.ErrNilUint64Converter
 	}
 
 	return nil

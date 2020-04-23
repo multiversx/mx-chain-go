@@ -279,6 +279,17 @@ func TestNewShardInterceptorsContainerFactory_EmptyEpochStartTriggerShouldErr(t 
 	assert.Equal(t, process.ErrNilEpochStartTrigger, err)
 }
 
+func TestNewShardInterceptorsContainerFactory_NilNonceConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsShard()
+	args.NonceConverter = nil
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilUint64Converter, err)
+}
+
 func TestNewShardInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -289,6 +300,7 @@ func TestNewShardInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, icf.IsInterfaceNil())
 }
+
 func TestNewShardInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.T) {
 	t.Parallel()
 
@@ -517,6 +529,7 @@ func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactory
 		EpochStartTrigger:      &mock.EpochStartTriggerStub{},
 		AntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
 		WhiteListHandler:       &mock.WhiteListHandlerStub{},
+		NonceConverter:         mock.NewNonceHashConverterMock(),
 		WhiteListVerified:      &mock.WhiteListHandlerStub{},
 	}
 }

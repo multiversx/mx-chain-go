@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -45,6 +46,7 @@ type ArgsNewEpochStartMetaSyncer struct {
 	EconomicsData     *economics.EconomicsData
 	WhitelistHandler  process.WhiteListHandler
 	AddressPubkeyConv state.PubkeyConverter
+	NonceConverter    typeConverters.Uint64ByteSliceConverter
 }
 
 // thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
@@ -93,6 +95,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		ChainID:           args.ChainID,
 		ValidityAttester:  disabled.NewValidityAttester(),
 		EpochStartTrigger: disabled.NewEpochStartTrigger(),
+		NonceConverter:    args.NonceConverter,
 	}
 
 	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedDataFactory)
