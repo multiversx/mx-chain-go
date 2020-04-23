@@ -177,13 +177,18 @@ func (tsm *trieStorageManager) ExitSnapshotMode() {
 }
 
 // Prune removes the given hash from db
-func (tsm *trieStorageManager) Prune(rootHash []byte) {
+func (tsm *trieStorageManager) Prune(rootHash []byte, identifier data.TriePruningIdentifier) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
 	log.Trace("trie storage manager prune", "root", rootHash)
+	rootHash = append(rootHash, byte(identifier))
 
 	if tsm.snapshotInProgress > 0 {
+		if identifier == data.NewRoot {
+			return
+		}
+
 		tsm.pruningBuffer.add(rootHash)
 		return
 	}
