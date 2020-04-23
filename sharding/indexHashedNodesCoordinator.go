@@ -638,6 +638,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler
 	nodesConfig := ihgs.nodesConfig[newEpoch]
 	ihgs.mutNodesConfig.Unlock()
 
+	// TODO: do shuffleOut only when the current start of epoch block was notarized by meta.
 	err = ihgs.shuffledOutHandler.Process(nodesConfig.shardID)
 	if err != nil {
 		log.Warn("Shuffle out process failed", "err", err)
