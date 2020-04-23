@@ -94,7 +94,7 @@ func NewMetaInterceptorsContainerFactory(
 		ChainID:           args.ChainID,
 		ValidityAttester:  args.ValidityAttester,
 		EpochStartTrigger: args.EpochStartTrigger,
-		WhitelistVerified: args.WhiteListVerified,
+		WhiteListVerified: args.WhiteListVerified,
 	}
 
 	container := containers.NewInterceptorsContainer()

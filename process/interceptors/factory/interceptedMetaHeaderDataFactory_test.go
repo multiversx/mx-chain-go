@@ -68,7 +68,7 @@ func createMockArgument() *ArgInterceptedDataFactory {
 		ChainID:           []byte("chain ID"),
 		ValidityAttester:  &mock.ValidityAttesterStub{},
 		EpochStartTrigger: &mock.EpochStartTriggerStub{},
-		WhitelistVerified: &mock.WhiteListHandlerStub{},
+		WhiteListVerified: &mock.WhiteListHandlerStub{},
 	}
 }
 

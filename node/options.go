@@ -607,8 +607,8 @@ func WithHardforkTrigger(hardforkTrigger HardforkTrigger) Option {
 	}
 }
 
-// WithWhiteListHanlder sets up a white list handler option
-func WithWhiteListHanlder(whiteListHandler process.WhiteListHandler) Option {
+// WithWhiteListHandler sets up a white list handler option
+func WithWhiteListHandler(whiteListHandler process.WhiteListHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(whiteListHandler) {
 			return ErrNilWhiteListHandler

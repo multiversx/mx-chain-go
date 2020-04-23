@@ -336,16 +336,10 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
-	whiteListCacheVerified, err := storageUnit.NewCache(
-		storageUnit.CacheType(e.generalConfig.WhiteListVerified.Type),
-		e.generalConfig.WhiteListVerified.Size,
-		e.generalConfig.WhiteListVerified.Shards,
-	)
+	e.whitelistVerified, err = interceptors.NewDisabledWhiteListDataVerifier(nil)
 	if err != nil {
 		return err
 	}
-
-	e.whitelistVerified, err = interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
 
 	err = e.createRequestHandler()
 	if err != nil {

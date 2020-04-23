@@ -54,7 +54,7 @@ func checkBaseParams(
 	nodesCoordinator sharding.NodesCoordinator,
 	blackList process.BlackListHandler,
 	antifloodHandler process.P2PAntifloodHandler,
-	whiteListhandler process.WhiteListHandler,
+	whiteListHandler process.WhiteListHandler,
 	whiteListVerified process.WhiteListHandler,
 	addressPubkeyConverter state.PubkeyConverter,
 ) error {
@@ -91,7 +91,7 @@ func checkBaseParams(
 	if check.IfNil(antifloodHandler) {
 		return process.ErrNilAntifloodHandler
 	}
-	if check.IfNil(whiteListhandler) {
+	if check.IfNil(whiteListHandler) {
 		return process.ErrNilWhiteListHandler
 	}
 	if check.IfNil(whiteListVerified) {

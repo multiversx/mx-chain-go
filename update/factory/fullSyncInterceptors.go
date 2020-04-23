@@ -160,7 +160,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		ChainID:           args.ChainID,
 		ValidityAttester:  args.ValidityAttester,
 		EpochStartTrigger: args.EpochStartTrigger,
-		WhitelistVerified: args.WhiteListVerified,
+		WhiteListVerified: args.WhiteListVerified,
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{

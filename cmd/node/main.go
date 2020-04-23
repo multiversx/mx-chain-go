@@ -935,15 +935,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	whiteListCacheVerified, err := storageUnit.NewCache(
-		storageUnit.CacheType(generalConfig.WhiteListVerified.Type),
-		generalConfig.WhiteListVerified.Size,
-		generalConfig.WhiteListVerified.Shards,
-	)
-	if err != nil {
-		return err
-	}
-	whiteListVerified, err := interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
+	whiteListVerified, err := createWhiteListVerified(generalConfig, nodeType)
 	if err != nil {
 		return err
 	}
@@ -1688,7 +1680,7 @@ func createNode(
 		node.WithInputAntifloodHandler(network.InputAntifloodHandler),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(hardforkTrigger),
-		node.WithWhiteListHanlder(whiteListRequest),
+		node.WithWhiteListHandler(whiteListRequest),
 		node.WithWhiteListHandlerVerified(whiteListVerified),
 		node.WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
@@ -1872,4 +1864,20 @@ func createApiResolver(
 	}
 
 	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler)
+}
+
+func createWhiteListVerified(generalConfig *config.Config, nodeType core.NodeType) (process.WhiteListHandler, error) {
+	if nodeType != core.NodeTypeObserver {
+		whiteListCacheVerified, err := storageUnit.NewCache(
+			storageUnit.CacheType(generalConfig.WhiteListVerified.Type),
+			generalConfig.WhiteListVerified.Size,
+			generalConfig.WhiteListVerified.Shards,
+		)
+		if err != nil {
+			return nil, err
+		}
+		return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
+	}
+
+	return interceptors.NewDisabledWhiteListDataVerifier(nil)
 }

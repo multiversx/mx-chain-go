@@ -52,7 +52,7 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if check.IfNil(argument.FeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(argument.WhitelistVerified) {
+	if check.IfNil(argument.WhiteListVerified) {
 		return nil, process.ErrNilWhiteListHandler
 	}
 
@@ -65,7 +65,7 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 		pubkeyConverter:   argument.AddressPubkeyConv,
 		shardCoordinator:  argument.ShardCoordinator,
 		feeHandler:        argument.FeeHandler,
-		whitelistVerified: argument.WhitelistVerified,
+		whitelistVerified: argument.WhiteListVerified,
 	}, nil
 }
 

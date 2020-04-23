@@ -130,6 +130,8 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 		if err != nil {
 			return err
 		}
+	} else {
+		inTx.whitelistVerified.Remove([][]byte{inTx.Hash()})
 	}
 
 	return nil
