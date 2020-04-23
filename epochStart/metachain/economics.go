@@ -19,24 +19,24 @@ const numberOfDaysInYear = 365.0
 const numberOfSecondsInDay = 86400
 
 type economics struct {
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	store            dataRetriever.StorageService
-	shardCoordinator sharding.Coordinator
-	nodesCoordinator sharding.NodesCoordinator
-	rewardsHandler   process.RewardsHandler
-	roundTime        process.RoundTimeDurationHandler
+	marshalizer         marshal.Marshalizer
+	hasher              hashing.Hasher
+	store               dataRetriever.StorageService
+	shardCoordinator    sharding.Coordinator
+	nodesConfigProvider epochStart.NodesConfigProvider
+	rewardsHandler      process.RewardsHandler
+	roundTime           process.RoundTimeDurationHandler
 }
 
 // ArgsNewEpochEconomics is the argument for the economics constructor
 type ArgsNewEpochEconomics struct {
-	Marshalizer      marshal.Marshalizer
-	Hasher           hashing.Hasher
-	Store            dataRetriever.StorageService
-	ShardCoordinator sharding.Coordinator
-	NodesCoordinator sharding.NodesCoordinator
-	RewardsHandler   process.RewardsHandler
-	RoundTime        process.RoundTimeDurationHandler
+	Marshalizer         marshal.Marshalizer
+	Hasher              hashing.Hasher
+	Store               dataRetriever.StorageService
+	ShardCoordinator    sharding.Coordinator
+	NodesConfigProvider epochStart.NodesConfigProvider
+	RewardsHandler      process.RewardsHandler
+	RoundTime           process.RoundTimeDurationHandler
 }
 
 // NewEndOfEpochEconomicsDataCreator creates a new end of epoch economics data creator object
@@ -53,8 +53,8 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, epochStart.ErrNilShardCoordinator
 	}
-	if check.IfNil(args.NodesCoordinator) {
-		return nil, epochStart.ErrNilNodesCoordinator
+	if check.IfNil(args.NodesConfigProvider) {
+		return nil, epochStart.ErrNilNodesConfigProvider
 	}
 	if check.IfNil(args.RewardsHandler) {
 		return nil, epochStart.ErrNilRewardsHandler
@@ -64,13 +64,13 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 	}
 
 	e := &economics{
-		marshalizer:      args.Marshalizer,
-		hasher:           args.Hasher,
-		store:            args.Store,
-		shardCoordinator: args.ShardCoordinator,
-		nodesCoordinator: args.NodesCoordinator,
-		rewardsHandler:   args.RewardsHandler,
-		roundTime:        args.RoundTime,
+		marshalizer:         args.Marshalizer,
+		hasher:              args.Hasher,
+		store:               args.Store,
+		shardCoordinator:    args.ShardCoordinator,
+		nodesConfigProvider: args.NodesConfigProvider,
+		rewardsHandler:      args.RewardsHandler,
+		roundTime:           args.RoundTime,
 	}
 	return e, nil
 }
@@ -140,7 +140,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 
 // compute rewards per node per block
 func (e *economics) computeRewardsPerValidatorPerBlock(rwdPerBlock *big.Int) *big.Int {
-	numOfNodes := core.MaxUint64(1, e.nodesCoordinator.GetNumTotalEligible())
+	numOfNodes := core.MaxUint64(1, e.nodesConfigProvider.GetNumTotalEligible())
 	return big.NewInt(0).Div(rwdPerBlock, big.NewInt(0).SetUint64(numOfNodes))
 }
 

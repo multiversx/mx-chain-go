@@ -16,7 +16,15 @@ import (
 
 var log = logger.GetOrCreate("vm/systemsmartcontracts")
 
-const OwnerKey = "owner"
+const ownerKey = "owner"
+const nodesConfigKey = "nodesConfig"
+
+// StakingNodesConfig is the structure which is saved in the storage of the contract to monitor the nodes leaving and registering
+type StakingNodesConfig struct {
+	MinNumNodes int64
+	StakedNodes int64
+	JailedNodes int64
+}
 
 type stakingSC struct {
 	eei                      vm.SystemEI
@@ -28,10 +36,12 @@ type stakingSC struct {
 	bleedPercentagePerRound  float64
 	maximumPercentageToBleed float64
 	gasCost                  vm.GasCost
+	minNumNodes              int64
 }
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
 type ArgsNewStakingSmartContract struct {
+	MinNumNodes              uint32
 	MinStakeValue            *big.Int
 	UnBondPeriod             uint64
 	Eei                      vm.SystemEI
@@ -73,6 +83,7 @@ func NewStakingSmartContract(
 		bleedPercentagePerRound:  args.BleedPercentagePerRound,
 		maximumPercentageToBleed: args.MaximumPercentageToBleed,
 		gasCost:                  args.GasCost,
+		minNumNodes:              int64(args.MinNumNodes),
 	}
 	return reg, nil
 }
@@ -125,6 +136,81 @@ func getPercentageOfValue(value *big.Int, percentage float64) *big.Int {
 	result, _ := z.Int(op)
 
 	return result
+}
+
+func (r *stakingSC) getConfig() *StakingNodesConfig {
+	config := &StakingNodesConfig{
+		MinNumNodes: r.minNumNodes,
+	}
+	configData := r.eei.GetStorage([]byte(nodesConfigKey))
+	if len(configData) == 0 {
+		return config
+	}
+
+	err := json.Unmarshal(configData, config)
+	if err != nil {
+		log.Warn("unmarshal error on getConfig function, returning baseConfig",
+			"error", err.Error(),
+		)
+		return &StakingNodesConfig{
+			MinNumNodes: r.minNumNodes,
+		}
+	}
+
+	return config
+}
+
+func (r *stakingSC) setConfig(config *StakingNodesConfig) {
+	configData, err := json.Marshal(config)
+	if err != nil {
+		log.Warn("marshal error on setConfig function",
+			"error", err.Error(),
+		)
+		return
+	}
+
+	r.eei.SetStorage([]byte(nodesConfigKey), configData)
+}
+
+func (r *stakingSC) addToStakedNodes() {
+	config := r.getConfig()
+	config.StakedNodes++
+	r.setConfig(config)
+}
+
+func (r *stakingSC) removeFromStakedNodes() {
+	config := r.getConfig()
+	if config.StakedNodes > 0 {
+		config.StakedNodes--
+	}
+	r.setConfig(config)
+}
+
+func (r *stakingSC) addToJailedNodes() {
+	config := r.getConfig()
+	config.JailedNodes++
+	r.setConfig(config)
+}
+
+func (r *stakingSC) removeFromJailedNodes() {
+	config := r.getConfig()
+	if config.JailedNodes > 0 {
+		config.JailedNodes--
+	}
+	r.setConfig(config)
+}
+
+func (r *stakingSC) numSpareNodes() int64 {
+	config := r.getConfig()
+	return config.StakedNodes - config.JailedNodes - config.MinNumNodes
+}
+
+func (r *stakingSC) canUnStake() bool {
+	return r.numSpareNodes() > 0
+}
+
+func (r *stakingSC) canUnBond() bool {
+	return r.numSpareNodes() >= 0
 }
 
 func (r *stakingSC) calculateStakeAfterBleed(startRound uint64, endRound uint64, stake *big.Int) *big.Int {
@@ -252,12 +338,17 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 			return vmcommon.OutOfGas
 		}
 
+		if stakedData.UnJailedNonce <= stakedData.JailedNonce {
+			r.removeFromJailedNodes()
+		}
+
 		stakedData.StakeValue = r.calculateStakeAfterBleed(
 			stakedData.JailedRound,
 			r.eei.BlockChainHook().CurrentRound(),
 			stakedData.StakeValue,
 		)
 		stakedData.JailedRound = math.MaxUint64
+		stakedData.UnJailedNonce = r.eei.BlockChainHook().CurrentNonce()
 
 		err = r.saveStakingData(argument, stakedData)
 		if err != nil {
@@ -277,6 +368,8 @@ func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedData, error) {
 		RewardAddress: nil,
 		StakeValue:    big.NewInt(0),
 		JailedRound:   math.MaxUint64,
+		UnJailedNonce: 0,
+		JailedNonce:   0,
 	}
 
 	data := r.eei.GetStorage(key)
@@ -320,7 +413,12 @@ func (r *stakingSC) jail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 			return vmcommon.UserError
 		}
 
+		if stakedData.UnJailedNonce <= stakedData.JailedNonce {
+			r.addToJailedNodes()
+		}
+
 		stakedData.JailedRound = r.eei.BlockChainHook().CurrentRound()
+		stakedData.JailedNonce = r.eei.BlockChainHook().CurrentNonce()
 		err = r.saveStakingData(argument, stakedData)
 		if err != nil {
 			return vmcommon.UserError
@@ -347,19 +445,22 @@ func (r *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	ownerAddress := r.eei.GetStorage([]byte(OwnerKey))
+	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
 	if ownerAddress != nil {
 		log.Debug("smart contract was already initialized")
 		return vmcommon.UserError
 	}
 
-	r.eei.SetStorage([]byte(OwnerKey), args.CallerAddr)
+	r.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
 	r.eei.SetStorage(args.CallerAddr, big.NewInt(0).Bytes())
 
 	epoch := r.eei.BlockChainHook().CurrentEpoch()
 	epochData := fmt.Sprintf("epoch_%d", epoch)
 
 	r.eei.SetStorage([]byte(epochData), r.minStakeValue.Bytes())
+
+	config := &StakingNodesConfig{MinNumNodes: r.minNumNodes}
+	r.setConfig(config)
 
 	return vmcommon.Ok
 }
@@ -432,6 +533,9 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 	}
 
 	if !onlyRegister {
+		if !registrationData.Staked {
+			r.addToStakedNodes()
+		}
 		registrationData.Staked = true
 	}
 
@@ -480,12 +584,17 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		log.Error("unStake is not possible for jailed nodes")
 		return vmcommon.UserError
 	}
+	if !r.canUnStake() {
+		log.Error("unStake is not possible as too many left")
+		return vmcommon.UserError
+	}
 
 	err = r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.UnStake)
 	if err != nil {
 		return vmcommon.OutOfGas
 	}
 
+	r.removeFromStakedNodes()
 	registrationData.Staked = false
 	registrationData.UnStakedEpoch = r.eei.BlockChainHook().CurrentEpoch()
 	registrationData.UnStakedNonce = r.eei.BlockChainHook().CurrentNonce()
@@ -530,6 +639,10 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		log.Error("unBond is not possible for jailed nodes")
 		return vmcommon.UserError
 	}
+	if !r.canUnBond() {
+		log.Error("unBond is not possible as too many left")
+		return vmcommon.UserError
+	}
 
 	err = r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.UnBond)
 	if err != nil {
@@ -544,7 +657,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 }
 
 func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	ownerAddress := r.eei.GetStorage([]byte(OwnerKey))
+	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
 	if !bytes.Equal(ownerAddress, args.CallerAddr) {
 		log.Debug("slash function called by not the owners address")
 		return vmcommon.UserError
@@ -567,10 +680,15 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
+	if registrationData.UnJailedNonce >= registrationData.JailedNonce {
+		r.addToJailedNodes()
+	}
+
 	stakedValue := big.NewInt(0).Set(registrationData.StakeValue)
 	slashValue := big.NewInt(0).SetBytes(args.Arguments[1])
 	registrationData.StakeValue = registrationData.StakeValue.Sub(stakedValue, slashValue)
 	registrationData.JailedRound = r.eei.BlockChainHook().CurrentRound()
+	registrationData.JailedNonce = r.eei.BlockChainHook().CurrentNonce()
 
 	err = r.saveStakingData(args.Arguments[0], registrationData)
 	if err != nil {

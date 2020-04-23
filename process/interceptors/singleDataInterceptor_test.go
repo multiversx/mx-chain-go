@@ -308,6 +308,46 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWhitelistedShouldWork(t *te
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 }
 
+//------- debug
+
+func TestSingleDataInterceptor_SetInterceptedDebugHandlerNilShouldErr(t *testing.T) {
+	t.Parallel()
+
+	factory := &mock.InterceptedDataFactoryStub{}
+	sdi, _ := interceptors.NewSingleDataInterceptor(
+		testTopic,
+		factory,
+		&mock.InterceptorProcessorStub{},
+		&mock.InterceptorThrottlerStub{},
+		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+	)
+
+	err := sdi.SetInterceptedDebugHandler(nil)
+
+	assert.Equal(t, process.ErrNilInterceptedDebugHandler, err)
+}
+
+func TestSingleDataInterceptor_SetInterceptedDebugHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	factory := &mock.InterceptedDataFactoryStub{}
+	sdi, _ := interceptors.NewSingleDataInterceptor(
+		testTopic,
+		factory,
+		&mock.InterceptorProcessorStub{},
+		&mock.InterceptorThrottlerStub{},
+		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+	)
+
+	debugger := &mock.InterceptedDebugHandlerStub{}
+	err := sdi.SetInterceptedDebugHandler(debugger)
+
+	assert.Nil(t, err)
+	assert.True(t, debugger == sdi.InterceptedDebugHandler()) //pointer testing
+}
+
 //------- IsInterfaceNil
 
 func TestSingleDataInterceptor_IsInterfaceNil(t *testing.T) {
