@@ -2,6 +2,7 @@ package trie
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"reflect"
@@ -143,7 +144,7 @@ func TestBranchNode_getCollapsedEmptyNode(t *testing.T) {
 	bn := emptyDirtyBranchNode()
 
 	collapsed, err := bn.getCollapsed()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 	assert.Nil(t, collapsed)
 }
 
@@ -153,7 +154,7 @@ func TestBranchNode_getCollapsedNilNode(t *testing.T) {
 	var bn *branchNode
 
 	collapsed, err := bn.getCollapsed()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, collapsed)
 }
 
@@ -220,7 +221,7 @@ func TestBranchNode_setHashEmptyNode(t *testing.T) {
 	bn := emptyDirtyBranchNode()
 
 	err := bn.setHash()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 	assert.Nil(t, bn.hash)
 }
 
@@ -230,7 +231,7 @@ func TestBranchNode_setHashNilNode(t *testing.T) {
 	var bn *branchNode
 
 	err := bn.setHash()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, bn)
 }
 
@@ -282,7 +283,7 @@ func TestBranchNode_hashChildrenEmptyNode(t *testing.T) {
 	bn := emptyDirtyBranchNode()
 
 	err := bn.hashChildren()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 }
 
 func TestBranchNode_hashChildrenNilNode(t *testing.T) {
@@ -291,7 +292,7 @@ func TestBranchNode_hashChildrenNilNode(t *testing.T) {
 	var bn *branchNode
 
 	err := bn.hashChildren()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 }
 
 func TestBranchNode_hashChildrenCollapsedNode(t *testing.T) {
@@ -323,7 +324,7 @@ func TestBranchNode_hashNodeEmptyNode(t *testing.T) {
 	bn := emptyDirtyBranchNode()
 
 	hash, err := bn.hashNode()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 	assert.Nil(t, hash)
 }
 
@@ -333,7 +334,7 @@ func TestBranchNode_hashNodeNilNode(t *testing.T) {
 	var bn *branchNode
 
 	hash, err := bn.hashNode()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, hash)
 }
 
@@ -363,7 +364,7 @@ func TestBranchNode_commitEmptyNode(t *testing.T) {
 	bn := emptyDirtyBranchNode()
 
 	err := bn.commit(false, 0, nil, nil)
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 }
 
 func TestBranchNode_commitNilNode(t *testing.T) {
@@ -372,7 +373,7 @@ func TestBranchNode_commitNilNode(t *testing.T) {
 	var bn *branchNode
 
 	err := bn.commit(false, 0, nil, nil)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 }
 
 func TestBranchNode_getEncodedNode(t *testing.T) {
@@ -394,7 +395,7 @@ func TestBranchNode_getEncodedNodeEmpty(t *testing.T) {
 	bn := emptyDirtyBranchNode()
 
 	encNode, err := bn.getEncodedNode()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 	assert.Nil(t, encNode)
 }
 
@@ -404,7 +405,7 @@ func TestBranchNode_getEncodedNodeNil(t *testing.T) {
 	var bn *branchNode
 
 	encNode, err := bn.getEncodedNode()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, encNode)
 }
 
@@ -432,7 +433,7 @@ func TestBranchNode_resolveCollapsedEmptyNode(t *testing.T) {
 	bn := emptyDirtyBranchNode()
 
 	err := bn.resolveCollapsed(2, nil)
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 }
 
 func TestBranchNode_resolveCollapsedENilNode(t *testing.T) {
@@ -441,7 +442,7 @@ func TestBranchNode_resolveCollapsedENilNode(t *testing.T) {
 	var bn *branchNode
 
 	err := bn.resolveCollapsed(2, nil)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 }
 
 func TestBranchNode_resolveCollapsedPosOutOfRange(t *testing.T) {
@@ -535,7 +536,7 @@ func TestBranchNode_tryGetEmptyNode(t *testing.T) {
 	key := append([]byte{childPos}, []byte("dog")...)
 
 	val, err := bn.tryGet(key, nil)
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 	assert.Nil(t, val)
 }
 
@@ -547,7 +548,7 @@ func TestBranchNode_tryGetNilNode(t *testing.T) {
 	key := append([]byte{childPos}, []byte("dog")...)
 
 	val, err := bn.tryGet(key, nil)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, val)
 }
 
@@ -728,7 +729,7 @@ func TestBranchNode_insertInNilNode(t *testing.T) {
 
 	dirty, newBn, _, err := bn.insert(&leafNode{}, nil)
 	assert.False(t, dirty)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, newBn)
 }
 
@@ -796,7 +797,7 @@ func TestBranchNode_deleteEmptyNode(t *testing.T) {
 
 	dirty, newBn, _, err := bn.delete(key, nil)
 	assert.False(t, dirty)
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 	assert.Nil(t, newBn)
 }
 
@@ -809,7 +810,7 @@ func TestBranchNode_deleteNilNode(t *testing.T) {
 
 	dirty, newBn, _, err := bn.delete(key, nil)
 	assert.False(t, dirty)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, newBn)
 }
 
@@ -918,10 +919,10 @@ func TestBranchNode_isEmptyOrNil(t *testing.T) {
 	t.Parallel()
 
 	bn := emptyDirtyBranchNode()
-	assert.Equal(t, ErrEmptyNode, bn.isEmptyOrNil())
+	assert.Equal(t, ErrEmptyBranchNode, bn.isEmptyOrNil())
 
 	bn = nil
-	assert.Equal(t, ErrNilNode, bn.isEmptyOrNil())
+	assert.Equal(t, ErrNilBranchNode, bn.isEmptyOrNil())
 }
 
 func TestReduceBranchNodeWithExtensionNodeChildShouldWork(t *testing.T) {
