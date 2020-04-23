@@ -907,20 +907,19 @@ func (sp *shardProcessor) displayPoolsInfo() {
 func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeader *block.Header) {
 	sp.snapShotEpochStartFromMeta(currentHeader)
 
-	for i := range headers {
-		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(headers[i].GetPrevHash(), sp.marshalizer, sp.store)
+	for _, hdr := range headers {
+		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(hdr.GetPrevHash(), sp.marshalizer, sp.store)
 		if errNotCritical != nil {
 			log.Debug("could not get shard header from storage")
 			return
 		}
-		currentHeader := headers[i]
-		if headers[i].IsStartOfEpochBlock() {
-			sp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
+		if hdr.IsStartOfEpochBlock() {
+			sp.nodesCoordinator.ShuffleOutForEpoch(hdr.GetEpoch())
 		}
 
 		sp.updateStateStorage(
-			currentHeader,
-			currentHeader.GetRootHash(),
+			hdr,
+			hdr.GetRootHash(),
 			prevHeader.GetRootHash(),
 			sp.accountsDB[state.UserAccountsState],
 		)
