@@ -28,7 +28,6 @@ type EconomicsData struct {
 	maxInflation             float64
 	minStep                  *big.Int
 	unJailPrice              *big.Int
-	numNodes                 uint32
 	auctionEnableNonce       uint64
 	stakeEnableNonce         uint64
 	numRoundsWithoutBleed    uint64
@@ -66,7 +65,6 @@ func NewEconomicsData(economics *config.EconomicsConfig) (*EconomicsData, error)
 		maxInflation:             economics.GlobalSettings.MaximumInflation,
 		genesisTotalSupply:       data.genesisTotalSupply,
 		minStep:                  data.minStep,
-		numNodes:                 data.numNodes,
 		auctionEnableNonce:       data.auctionEnableNonce,
 		stakeEnableNonce:         data.stakeEnableNonce,
 		numRoundsWithoutBleed:    data.numRoundsWithoutBleed,
@@ -169,7 +167,6 @@ func convertValues(economics *config.EconomicsConfig) (*EconomicsData, error) {
 		dataLimitForBaseCalc:     dataLimitForBaseCalc,
 		genesisTotalSupply:       genesisTotalSupply,
 		minStep:                  minStepValue,
-		numNodes:                 economics.ValidatorSettings.NumNodes,
 		auctionEnableNonce:       auctionEnableNonce,
 		stakeEnableNonce:         stakeEnableNonce,
 		numRoundsWithoutBleed:    numRoundsWithoutBleed,
@@ -308,11 +305,6 @@ func (ed *EconomicsData) UnJailValue() *big.Int {
 // TotalSupply returns the total supply of the protocol
 func (ed *EconomicsData) TotalSupply() *big.Int {
 	return ed.genesisTotalSupply
-}
-
-// NumNodes returns the total node number for current setting
-func (ed *EconomicsData) NumNodes() uint32 {
-	return ed.numNodes
 }
 
 // AuctionEnableNonce returns the nonce from which the auction process is enabled

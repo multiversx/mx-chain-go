@@ -21,13 +21,13 @@ func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 
 	argsNewEpochEconomics := ArgsNewEpochEconomics{
-		Hasher:           &mock.HasherMock{},
-		Marshalizer:      &mock.MarshalizerMock{},
-		Store:            createMetaStore(),
-		ShardCoordinator: shardCoordinator,
-		NodesCoordinator: &mock.NodesCoordinatorStub{},
-		RewardsHandler:   &mock.RewardsHandlerStub{},
-		RoundTime:        &mock.RoundTimeDurationHandler{},
+		Hasher:              &mock.HasherMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		Store:               createMetaStore(),
+		ShardCoordinator:    shardCoordinator,
+		NodesConfigProvider: &mock.NodesCoordinatorStub{},
+		RewardsHandler:      &mock.RewardsHandlerStub{},
+		RoundTime:           &mock.RoundTimeDurationHandler{},
 	}
 	return argsNewEpochEconomics
 }
@@ -69,11 +69,11 @@ func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilNodesdCoordinator(t 
 	t.Parallel()
 
 	arguments := createMockEpochEconomicsArguments()
-	arguments.NodesCoordinator = nil
+	arguments.NodesConfigProvider = nil
 
 	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
 	require.Nil(t, esd)
-	require.Equal(t, epochStart.ErrNilNodesCoordinator, err)
+	require.Equal(t, epochStart.ErrNilNodesConfigProvider, err)
 }
 
 func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilRewardsHandler(t *testing.T) {
@@ -145,11 +145,11 @@ func TestNewEndOfEpochEconomicsDataCreator_NilNodesCoordinator(t *testing.T) {
 	t.Parallel()
 
 	args := getArguments()
-	args.NodesCoordinator = nil
+	args.NodesConfigProvider = nil
 	eoeedc, err := NewEndOfEpochEconomicsDataCreator(args)
 
 	assert.True(t, check.IfNil(eoeedc))
-	assert.Equal(t, epochStart.ErrNilNodesCoordinator, err)
+	assert.Equal(t, epochStart.ErrNilNodesConfigProvider, err)
 }
 
 func TestNewEndOfEpochEconomicsDataCreator_NilRewardsHandler(t *testing.T) {
@@ -358,12 +358,12 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 
 func getArguments() ArgsNewEpochEconomics {
 	return ArgsNewEpochEconomics{
-		Marshalizer:      &mock.MarshalizerMock{},
-		Hasher:           mock.HasherMock{},
-		Store:            &mock.ChainStorerStub{},
-		ShardCoordinator: mock.NewMultipleShardsCoordinatorMock(),
-		NodesCoordinator: &mock.NodesCoordinatorStub{},
-		RewardsHandler:   &mock.RewardsHandlerStub{},
-		RoundTime:        &mock.RoundTimeDurationHandler{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		Hasher:              mock.HasherMock{},
+		Store:               &mock.ChainStorerStub{},
+		ShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
+		NodesConfigProvider: &mock.NodesCoordinatorStub{},
+		RewardsHandler:      &mock.RewardsHandlerStub{},
+		RoundTime:           &mock.RoundTimeDurationHandler{},
 	}
 }

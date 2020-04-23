@@ -284,6 +284,11 @@ func (ns *NodesSetup) NumberOfShards() uint32 {
 	return ns.nrOfShards
 }
 
+// MinNumberOfNodes returns the minimum number of nodes
+func (ns *NodesSetup) MinNumberOfNodes() uint32 {
+	return ns.nrOfShards*ns.MinNodesPerShard + ns.MetaChainMinNodes
+}
+
 // GetShardIDForPubKey returns the allocated shard ID from public key
 func (ns *NodesSetup) GetShardIDForPubKey(pubKey []byte) (uint32, error) {
 	for _, in := range ns.InitialNodes {

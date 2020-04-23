@@ -13,6 +13,8 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+const minArgsLenToChangeValidatorKey = 4
+
 // AuctionData represents what is saved for each validator / bid
 type AuctionData struct {
 	RewardAddress   []byte   `json:"RewardAddress"`
@@ -48,12 +50,13 @@ type stakingAuctionSC struct {
 
 // ArgsStakingAuctionSmartContract is the arguments structure to create a new StakingAuctionSmartContract
 type ArgsStakingAuctionSmartContract struct {
-	ValidatorSettings vm.ValidatorSettingsHandler
-	Eei               vm.SystemEI
-	SigVerifier       vm.MessageSignVerifier
-	StakingSCAddress  []byte
-	AuctionSCAddress  []byte
-	GasCost           vm.GasCost
+	NodesConfigProvider vm.NodesConfigProvider
+	ValidatorSettings   vm.ValidatorSettingsHandler
+	Eei                 vm.SystemEI
+	SigVerifier         vm.MessageSignVerifier
+	StakingSCAddress    []byte
+	AuctionSCAddress    []byte
+	GasCost             vm.GasCost
 }
 
 // NewStakingAuctionSmartContract creates an auction smart contract
@@ -78,10 +81,17 @@ func NewStakingAuctionSmartContract(
 	if len(args.AuctionSCAddress) == 0 {
 		return nil, vm.ErrNilAuctionSmartContractAddress
 	}
+	if check.IfNil(args.NodesConfigProvider) {
+		return nil, vm.ErrNilNodesConfigProvider
+	}
+	if args.NodesConfigProvider.MinNumberOfNodes() < 1 {
+		return nil, vm.ErrInvalidMinNumberOfNodes
+	}
 
+	// TODO: max numNodes as well when enabling auction
 	baseConfig := AuctionConfig{
 		MinStakeValue: big.NewInt(0).Set(args.ValidatorSettings.GenesisNodePrice()),
-		NumNodes:      args.ValidatorSettings.NumNodes(),
+		NumNodes:      args.NodesConfigProvider.MinNumberOfNodes(),
 		TotalSupply:   big.NewInt(0).Set(args.ValidatorSettings.TotalSupply()),
 		MinStep:       big.NewInt(0).Set(args.ValidatorSettings.MinStepValue()),
 		NodePrice:     big.NewInt(0).Set(args.ValidatorSettings.GenesisNodePrice()),
@@ -205,8 +215,6 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 	return vmcommon.Ok
 }
 
-const minArgsLenToChangeValidatorKey = 4
-
 func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	// list of arguments are NumNodes, (OldKey, NewKey, SignedMessage) X NumNodes
 	if len(args.Arguments) < minArgsLenToChangeValidatorKey {
@@ -300,7 +308,7 @@ func (s *stakingAuctionSC) get(args *vmcommon.ContractCallInput) vmcommon.Return
 }
 
 func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	ownerAddress := s.eei.GetStorage([]byte(OwnerKey))
+	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
 	if !bytes.Equal(ownerAddress, args.CallerAddr) {
 		log.Debug("setConfig function was not called by the owner address")
 		return vmcommon.UserError
@@ -380,13 +388,13 @@ func (s *stakingAuctionSC) getConfig(epoch uint32) AuctionConfig {
 }
 
 func (s *stakingAuctionSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	ownerAddress := s.eei.GetStorage([]byte(OwnerKey))
+	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
 	if ownerAddress != nil {
 		log.Error("smart contract was already initialized")
 		return vmcommon.UserError
 	}
 
-	s.eei.SetStorage([]byte(OwnerKey), args.CallerAddr)
+	s.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
 
 	return vmcommon.Ok
 }
@@ -775,7 +783,7 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		}
 		// returns what value is still under the selected bls key
 		vmOutput, err := s.executeOnStakingSC([]byte("unBond@" + hex.EncodeToString(blsKey)))
-		isError := err != nil || vmOutput.ReturnCode != vmcommon.Ok
+		isError := err != nil || vmOutput == nil || vmOutput.ReturnCode != vmcommon.Ok
 		if isError {
 			continue
 		}
