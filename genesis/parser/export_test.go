@@ -1,12 +1,13 @@
-package genesis
+package parser
 
 import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 )
 
-func (g *Genesis) SetInitialAccounts(initialAccounts []*InitialAccount) {
+func (g *Genesis) SetInitialAccounts(initialAccounts []*genesis.InitialAccount) {
 	g.initialAccounts = initialAccounts
 }
 
@@ -25,6 +26,6 @@ func (g *Genesis) SetPukeyConverter(pubkeyConverter state.PubkeyConverter) {
 func NewTestGenesis(pubkeyConverter state.PubkeyConverter) *Genesis {
 	return &Genesis{
 		pubkeyConverter: pubkeyConverter,
-		initialAccounts: make([]*InitialAccount, 0),
+		initialAccounts: make([]*genesis.InitialAccount, 0),
 	}
 }

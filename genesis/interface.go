@@ -1,14 +1,13 @@
-package process
+package genesis
 
 import (
-	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // GenesisParser contains the parsed genesis json file and has some functionality regarding processed data
 type GenesisParser interface {
-	InitialAccountsSplitOnAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]*genesis.InitialAccount, error)
-	InitialAccountsSplitOnDelegationAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]*genesis.InitialAccount, error)
+	InitialAccountsSplitOnAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]*InitialAccount, error)
+	InitialAccountsSplitOnDelegationAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]*InitialAccount, error)
 	IsInterfaceNil() bool
 }
 

@@ -6,11 +6,13 @@ import (
 	"math/big"
 )
 
+const decodeBase = 10
+
 // DelegationData specify the delegation address and the balance provided
 type DelegationData struct {
-	Address string   `json:"address"`
-	Value   *big.Int `json:"value"`
-	address []byte
+	Address      string   `json:"address"`
+	Value        *big.Int `json:"value"`
+	AddressBytes []byte   `json:"-"`
 }
 
 // MarshalJSON is the function called when trying to serialize the object using the JSON marshaler

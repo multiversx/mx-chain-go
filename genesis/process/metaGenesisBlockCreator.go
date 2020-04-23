@@ -204,7 +204,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (process.T
 		TxTypeHandler:    txTypeHandler,
 		GasHandler:       gasHandler,
 		BuiltInFunctions: virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
-		TxLogsProcessor:  &disabled.DisabledTxLogProcessor{},
+		TxLogsProcessor:  arg.TxLogsProcessor,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
@@ -261,8 +261,8 @@ func deploySystemSmartContracts(
 		return bytes.Compare(systemSCAddresses[i], systemSCAddresses[j]) < 0
 	})
 
-	for _, key := range systemSCAddresses {
-		tx.SndAddr = key
+	for _, address := range systemSCAddresses {
+		tx.SndAddr = address
 		err := txProcessor.ProcessTransaction(tx)
 		if err != nil {
 			return err

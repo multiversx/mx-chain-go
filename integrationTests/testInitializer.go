@@ -520,6 +520,7 @@ func CreateGenesisMetaBlock(
 		Economics:                economics,
 		ValidatorStatsRootHash:   rootHash,
 		GasMap:                   gasSchedule,
+		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

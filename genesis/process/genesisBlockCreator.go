@@ -68,13 +68,16 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 		return process.ErrNilUint64Converter
 	}
 	if check.IfNil(arg.DataPool) {
-		return process.ErrNilMetaBlocksPool
+		return process.ErrNilPoolsHolder
 	}
 	if check.IfNil(arg.GenesisParser) {
 		return genesis.ErrNilGenesisParser
 	}
 	if arg.GasMap == nil {
 		return process.ErrNilGasSchedule
+	}
+	if check.IfNil(arg.TxLogsProcessor) {
+		return process.ErrNilTxLogsProcessor
 	}
 
 	return nil
@@ -87,24 +90,24 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	var genesisBlock data.HeaderHandler
 	var newArgument ArgsGenesisBlockCreator
 
-	for shardId := uint32(0); shardId < gbc.arg.ShardCoordinator.NumberOfShards(); shardId++ {
-		newArgument, err = gbc.getNewArgForShard(shardId)
+	for shardID := uint32(0); shardID < gbc.arg.ShardCoordinator.NumberOfShards(); shardID++ {
+		newArgument, err = gbc.getNewArgForShard(shardID)
 		if err != nil {
 			return nil, fmt.Errorf("'%w' while creating new argument for shard %d",
-				err, shardId)
+				err, shardID)
 		}
 
 		genesisBlock, err = gbc.shardCreatorHandler(newArgument)
 		if err != nil {
 			return nil, fmt.Errorf("'%w' while generating genesis block for shard %d",
-				err, shardId)
+				err, shardID)
 		}
 
-		genesisBlocks[shardId] = genesisBlock
+		genesisBlocks[shardID] = genesisBlock
 		err = gbc.saveGenesisBlock(genesisBlock)
 		if err != nil {
 			return nil, fmt.Errorf("'%w' while saving genesis block for shard %d",
-				err, shardId)
+				err, shardID)
 		}
 	}
 
@@ -128,31 +131,33 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	return genesisBlocks, nil
 }
 
-func (gbc *genesisBlockCreator) getNewArgForShard(shardId uint32) (ArgsGenesisBlockCreator, error) {
+func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBlockCreator, error) {
 	var err error
+
+	isCurrentShard := shardID == gbc.arg.ShardCoordinator.SelfId()
+	shouldRecreate := !isCurrentShard || gbc.arg.StartEpochNum != 0
+	if !shouldRecreate {
+		return gbc.arg, nil
+	}
+
 	newArgument := gbc.arg //copy the arguments
+	newArgument.Accounts, err = createInMemoryAccountAdapter(
+		newArgument.Marshalizer,
+		newArgument.Hasher,
+		factoryState.NewAccountCreator(),
+	)
+	if err != nil {
+		return ArgsGenesisBlockCreator{}, fmt.Errorf("'%w' while generating an in-memory accounts adapter for shard %d",
+			err, shardID)
+	}
 
-	isCurrentShard := shardId == gbc.arg.ShardCoordinator.SelfId()
-	shouldRecreate := !isCurrentShard || newArgument.StartEpochNum != 0
-	if shouldRecreate {
-		newArgument.Accounts, err = createInMemoryAccountAdapter(
-			newArgument.Marshalizer,
-			newArgument.Hasher,
-			factoryState.NewAccountCreator(),
-		)
-		if err != nil {
-			return ArgsGenesisBlockCreator{}, fmt.Errorf("'%w' while generating an in-memory accounts adapter for shard %d",
-				err, shardId)
-		}
-
-		newArgument.ShardCoordinator, err = sharding.NewMultiShardCoordinator(
-			newArgument.ShardCoordinator.NumberOfShards(),
-			shardId,
-		)
-		if err != nil {
-			return ArgsGenesisBlockCreator{}, fmt.Errorf("'%w' while generating an temporary shard coordinator for shard %d",
-				err, shardId)
-		}
+	newArgument.ShardCoordinator, err = sharding.NewMultiShardCoordinator(
+		newArgument.ShardCoordinator.NumberOfShards(),
+		shardID,
+	)
+	if err != nil {
+		return ArgsGenesisBlockCreator{}, fmt.Errorf("'%w' while generating an temporary shard coordinator for shard %d",
+			err, shardID)
 	}
 
 	return newArgument, err

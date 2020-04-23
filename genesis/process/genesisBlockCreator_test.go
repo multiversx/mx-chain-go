@@ -7,8 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
+	"github.com/ElrondNetwork/elrond-go/genesis/parser"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
@@ -27,6 +27,7 @@ func createMockArgument() ArgsGenesisBlockCreator {
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
 		DataPool:                 mock.NewPoolsHolderMock(),
 		ValidatorStatsRootHash:   make([]byte, 0),
+		TxLogsProcessor:          &mock.TxLogProcessorMock{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -66,7 +67,7 @@ func createMockArgument() ArgsGenesisBlockCreator {
 		},
 	}
 
-	arg.GenesisParser, _ = genesis.NewGenesis(
+	arg.GenesisParser, _ = parser.NewGenesis(
 		"testdata/genesis.json",
 		arg.Economics.TotalSupply(),
 		arg.PubkeyConv,

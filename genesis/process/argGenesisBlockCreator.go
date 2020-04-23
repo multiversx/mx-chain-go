@@ -5,8 +5,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -17,8 +19,8 @@ type ArgsGenesisBlockCreator struct {
 	StartEpochNum            uint32
 	Accounts                 state.AccountsAdapter
 	PubkeyConv               state.PubkeyConverter
-	InitialNodesSetup        InitialNodesHandler
-	Economics                *economics.EconomicsData
+	InitialNodesSetup        genesis.InitialNodesHandler
+	Economics                *economics.EconomicsData //TODO refactor and use an interface
 	ShardCoordinator         sharding.Coordinator
 	Store                    dataRetriever.StorageService
 	Blkc                     data.ChainHandler
@@ -26,7 +28,8 @@ type ArgsGenesisBlockCreator struct {
 	Hasher                   hashing.Hasher
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	DataPool                 dataRetriever.PoolsHolder
-	GenesisParser            GenesisParser
+	GenesisParser            genesis.GenesisParser
 	ValidatorStatsRootHash   []byte
 	GasMap                   map[string]map[string]uint64
+	TxLogsProcessor          process.TransactionLogProcessor
 }

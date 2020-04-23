@@ -41,7 +41,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
-	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/parser"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -523,7 +523,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
 			economicsConfig.GlobalSettings.TotalSupply)
 	}
-	genesisParser, err := genesis.NewGenesis(
+	genesisParser, err := parser.NewGenesis(
 		ctx.GlobalString(genesisFile.Name),
 		totalSupply,
 		addressPubkeyConverter,

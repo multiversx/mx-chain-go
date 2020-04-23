@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/parser"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +34,7 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 
 	genesisFile := "genesisEdgeCase.json"
 
-	genesisBalances, err := genesis.NewGenesis(genesisFile, big.NewInt(6000000000), integrationTests.TestAddressPubkeyConverter)
+	genesisBalances, err := parser.NewGenesis(genesisFile, big.NewInt(6000000000), integrationTests.TestAddressPubkeyConverter)
 	assert.Nil(t, err)
 
 	fmt.Printf("Loaded %d entries...\n", len(genesisBalances.InitialAccounts()))
