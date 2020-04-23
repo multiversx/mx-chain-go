@@ -127,7 +127,7 @@ func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage
 			return persister, nil
 		}
 		log.Warn("Create Persister failed", "path", persisterPath)
-		time.Sleep(core.SleepTimeBetweenCreateDBRetries * time.Second)
+		time.Sleep(core.SleepTimeBetweenCreateDBRetries)
 	}
 	return nil, err
 }

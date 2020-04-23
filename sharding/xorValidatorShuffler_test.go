@@ -951,7 +951,6 @@ func TestRandXORShuffler_UpdateNodeListsWithRangeOnMaps(t *testing.T) {
 			adaptivity,
 			shuffle,
 		)
-		shuffler.shuffleBetweenShards = shuffle
 
 		waitingPerShard := 20
 		numShards := 2

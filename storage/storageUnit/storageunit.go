@@ -378,7 +378,7 @@ func NewDB(argDB ArgDB) (storage.Persister, error) {
 			return db, nil
 		}
 
-		time.Sleep(core.SleepTimeBetweenCreateDBRetries * time.Second)
+		time.Sleep(core.SleepTimeBetweenCreateDBRetries)
 	}
 	if err != nil {
 		return nil, err

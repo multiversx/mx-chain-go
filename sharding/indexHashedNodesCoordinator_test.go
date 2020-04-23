@@ -532,13 +532,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 	nodesPerShard := uint32(400)
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
-	nodeShuffler := NewXorValidatorsShuffler(
-		nodesPerShard,
-		nodesPerShard,
-		hysteresis,
-		adaptivity,
-		shuffleBetweenShards,
-	)
+	nodeShuffler := NewXorValidatorsShuffler(nodesPerShard, nodesPerShard, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
