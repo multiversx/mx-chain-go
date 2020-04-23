@@ -27,7 +27,7 @@ func TestNewEpochStartRewardsCreator_NilShardCoordinator(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilShardCoordinator, err)
 }
 
-func TestNewEpochStartRewardsCreator_NilAddressConverter(t *testing.T) {
+func TestNewEpochStartRewardsCreator_NilPubkeyConverter(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()

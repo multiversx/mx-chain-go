@@ -82,6 +82,10 @@ func (csm *ChainStorerMock) GetAll(unitType dataRetriever.UnitType, keys [][]byt
 	return nil, nil
 }
 
+// SetEpochForPutOperation won't do anything
+func (csm *ChainStorerMock) SetEpochForPutOperation(epoch uint32) {
+}
+
 // Destroy removes the underlying files/resources used by the storage service
 func (csm *ChainStorerMock) Destroy() error {
 	if csm.DestroyCalled != nil {

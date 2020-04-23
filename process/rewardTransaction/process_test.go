@@ -26,7 +26,7 @@ func TestNewRewardTxProcessor_NilAccountsDbShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
-func TestNewRewardTxProcessor_NilAddressConverterShouldErr(t *testing.T) {
+func TestNewRewardTxProcessor_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	rtp, err := rewardTransaction.NewRewardTxProcessor(

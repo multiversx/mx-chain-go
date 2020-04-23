@@ -263,6 +263,8 @@ type StorageService interface {
 	Get(unitType UnitType, key []byte) ([]byte, error)
 	// Put stores the key, value pair in the selected storage unit
 	Put(unitType UnitType, key []byte, value []byte) error
+	// SetEpochForPutOperation will set the epoch which will be used for the put operation
+	SetEpochForPutOperation(epoch uint32)
 	// GetAll gets all the elements with keys in the keys array, from the selected storage unit
 	// If there is a missing key in the unit, it returns an error
 	GetAll(unitType UnitType, keys [][]byte) (map[string][]byte, error)
@@ -298,7 +300,7 @@ type RequestedItemsHandler interface {
 // p2p messages
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
-	CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error
+	CanProcessMessagesOnTopic(peer p2p.PeerID, topic string, numMessages uint32) error
 	IsInterfaceNil() bool
 }
 

@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
@@ -404,7 +405,7 @@ func main() {
 
 func getSuite(config *config.Config) (crypto.Suite, error) {
 	switch config.Consensus.Type {
-	case factory.BlsConsensusType:
+	case consensus.BlsConsensusType:
 		return mcl.NewSuiteBLS12(), nil
 	default:
 		return nil, errors.New("no consensus provided in config file")
@@ -771,7 +772,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("initializing metrics")
-	metrics.InitMetrics(
+	err = metrics.InitMetrics(
 		coreComponents.StatusHandler,
 		cryptoParams.PublicKeyString,
 		nodeType,
@@ -781,6 +782,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		economicsConfig,
 		generalConfig.EpochStartConfig.RoundsPerEpoch,
 	)
+	if err != nil {
+		return err
+	}
 
 	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
 	if err != nil {
@@ -1042,6 +1046,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		statusPollingInterval,
 		networkComponents,
 		processComponents,
+		shardCoordinator,
 	)
 	if err != nil {
 		return err

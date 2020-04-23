@@ -116,6 +116,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.SingleSigner,
+		tpn.DataPool.Headers(),
 	)
 	tpn.initBootstrapper()
 	tpn.setGenesisBlock()
@@ -200,7 +201,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		arguments := block.ArgShardProcessor{
 			ArgBaseProcessor: argumentsBase,
-			TxsPoolsCleaner:  &mock.TxPoolsCleanerMock{},
 		}
 
 		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)

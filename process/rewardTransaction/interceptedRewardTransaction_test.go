@@ -62,7 +62,7 @@ func TestNewInterceptedRewardTransaction_NilHasherShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
-func TestNewInterceptedRewardTransaction_NilAddressConverterShouldErr(t *testing.T) {
+func TestNewInterceptedRewardTransaction_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txBuff := []byte("tx")

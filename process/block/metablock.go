@@ -944,7 +944,6 @@ func (mp *metaProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
-
 	var err error
 	defer func() {
 		if err != nil {
@@ -956,6 +955,8 @@ func (mp *metaProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
+
+	mp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
 
 	log.Debug("started committing block",
 		"epoch", headerHandler.GetEpoch(),
@@ -1595,6 +1596,7 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 // requestMissingFinalityAttestingShardHeaders requests the headers needed to accept the current selected headers for
 // processing the current block. It requests the shardBlockFinality headers greater than the highest shard header,
 // for each shard, related to the block which should be processed
+// this method should be called only under the mutex protection: hdrsForCurrBlock.mutHdrsForBlock
 func (mp *metaProcessor) requestMissingFinalityAttestingShardHeaders() uint32 {
 	missingFinalityAttestingShardHeaders := uint32(0)
 
@@ -1617,31 +1619,13 @@ func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32
 		return 0, 0
 	}
 
-	missingHeaderHashes := mp.computeMissingAndExistingShardHeaders(metaBlock)
-
-	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
-	for shardId, shardHeaderHashes := range missingHeaderHashes {
-		for _, hash := range shardHeaderHashes {
-			mp.hdrsForCurrBlock.hdrHashAndInfo[string(hash)] = &hdrInfo{hdr: nil, usedInBlock: true}
-			go mp.requestHandler.RequestShardHeader(shardId, hash)
-		}
-	}
-
-	if mp.hdrsForCurrBlock.missingHdrs == 0 {
-		mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders()
-	}
-
-	requestedHdrs := mp.hdrsForCurrBlock.missingHdrs
-	requestedFinalityAttestingHdrs := mp.hdrsForCurrBlock.missingFinalityAttestingHdrs
-	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
-
-	return requestedHdrs, requestedFinalityAttestingHdrs
+	return mp.computeExistingAndRequestMissingShardHeaders(metaBlock)
 }
 
-func (mp *metaProcessor) computeMissingAndExistingShardHeaders(metaBlock *block.MetaBlock) map[uint32][][]byte {
-	missingHeadersHashes := make(map[uint32][][]byte)
-
+func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32) {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+
 	for i := 0; i < len(metaBlock.ShardInfo); i++ {
 		shardData := metaBlock.ShardInfo[i]
 		hdr, err := process.GetShardHeaderFromPool(
@@ -1649,20 +1633,30 @@ func (mp *metaProcessor) computeMissingAndExistingShardHeaders(metaBlock *block.
 			mp.dataPool.Headers())
 
 		if err != nil {
-			missingHeadersHashes[shardData.ShardID] = append(missingHeadersHashes[shardData.ShardID], shardData.HeaderHash)
 			mp.hdrsForCurrBlock.missingHdrs++
+			mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)] = &hdrInfo{
+				hdr:         nil,
+				usedInBlock: true,
+			}
+			go mp.requestHandler.RequestShardHeader(shardData.ShardID, shardData.HeaderHash)
 			continue
 		}
 
-		mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)] = &hdrInfo{hdr: hdr, usedInBlock: true}
+		mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)] = &hdrInfo{
+			hdr:         hdr,
+			usedInBlock: true,
+		}
 
 		if hdr.Nonce > mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] {
 			mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] = hdr.Nonce
 		}
 	}
-	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	return missingHeadersHashes
+	if mp.hdrsForCurrBlock.missingHdrs == 0 {
+		mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders()
+	}
+
+	return mp.hdrsForCurrBlock.missingHdrs, mp.hdrsForCurrBlock.missingFinalityAttestingHdrs
 }
 
 func (mp *metaProcessor) createShardInfo() ([]block.ShardData, error) {
@@ -1700,11 +1694,11 @@ func (mp *metaProcessor) createShardInfo() ([]block.ShardData, error) {
 		shardData.AccumulatedFees = shardHdr.AccumulatedFees
 
 		if len(shardHdr.MiniBlockHeaders) > 0 {
-			shardData.ShardMiniBlockHeaders = make([]block.ShardMiniBlockHeader, 0, len(shardHdr.MiniBlockHeaders))
+			shardData.ShardMiniBlockHeaders = make([]block.MiniBlockHeader, 0, len(shardHdr.MiniBlockHeaders))
 		}
 
 		for i := 0; i < len(shardHdr.MiniBlockHeaders); i++ {
-			shardMiniBlockHeader := block.ShardMiniBlockHeader{}
+			shardMiniBlockHeader := block.MiniBlockHeader{}
 			shardMiniBlockHeader.SenderShardID = shardHdr.MiniBlockHeaders[i].SenderShardID
 			shardMiniBlockHeader.ReceiverShardID = shardHdr.MiniBlockHeaders[i].ReceiverShardID
 			shardMiniBlockHeader.Hash = shardHdr.MiniBlockHeaders[i].Hash
