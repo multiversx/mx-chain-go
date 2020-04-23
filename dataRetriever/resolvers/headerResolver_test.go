@@ -214,7 +214,7 @@ func TestHeaderResolver_RequestDataFromEpoch(t *testing.T) {
 	called := false
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData) error {
+		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, hashes [][]byte) error {
 			called = true
 			return nil
 		},
@@ -631,7 +631,7 @@ func TestHeaderResolver_RequestDataFromNonceShouldWork(t *testing.T) {
 
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData) error {
+		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, hashes [][]byte) error {
 			if bytes.Equal(rd.Value, buffToExpect) {
 				wasRequested = true
 			}
@@ -651,7 +651,7 @@ func TestHeaderResolverBase_RequestDataFromHashShouldWork(t *testing.T) {
 	wasRequested := false
 	arg := createMockArgHeaderResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData) error {
+		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, hashes [][]byte) error {
 			if bytes.Equal(rd.Value, buffRequested) {
 				wasRequested = true
 			}
@@ -708,7 +708,7 @@ func TestHeaderResolver_SetAndGetNumPeersToQuery(t *testing.T) {
 	hdrRes, _ := resolvers.NewHeaderResolver(arg)
 
 	hdrRes.SetNumPeersToQuery(expectedIntra, expectedCross)
-	actualIntra, actualCross := hdrRes.GetNumPeersToQuery()
+	actualIntra, actualCross := hdrRes.NumPeersToQuery()
 	assert.Equal(t, expectedIntra, actualIntra)
 	assert.Equal(t, expectedCross, actualCross)
 }

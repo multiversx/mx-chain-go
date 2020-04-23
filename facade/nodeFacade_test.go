@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/facade/mock"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
@@ -513,4 +514,25 @@ func TestNodeFacade_EncodeDecodeAddressPubkey(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, buff, recoveredBytes)
+}
+
+func TestElrondNodeFacade_GetQueryHandler(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	arg := createMockArguments()
+	arg.Node = &mock.NodeStub{
+		GetQueryHandlerCalled: func(name string) (handler debug.QueryHandler, err error) {
+			wasCalled = true
+
+			return nil, nil
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	qh, err := nf.GetQueryHandler("")
+
+	assert.Nil(t, qh)
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
 }

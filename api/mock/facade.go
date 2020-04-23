@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -31,6 +32,7 @@ type Facade struct {
 	ValidatorStatisticsHandler        func() (map[string]*state.ValidatorApiResponse, error)
 	ComputeTransactionGasLimitHandler func(tx *transaction.Transaction) (uint64, error)
 	NodeConfigCalled                  func() map[string]interface{}
+	GetQueryHandlerCalled             func(name string) (debug.QueryHandler, error)
 }
 
 // RestApiInterface -
@@ -133,6 +135,11 @@ func (f *Facade) EncodeAddressPubkey(pk []byte) (string, error) {
 // DecodeAddressPubkey -
 func (f *Facade) DecodeAddressPubkey(pk string) ([]byte, error) {
 	return hex.DecodeString(pk)
+}
+
+// GetQueryHandler -
+func (f *Facade) GetQueryHandler(name string) (debug.QueryHandler, error) {
+	return f.GetQueryHandlerCalled(name)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
