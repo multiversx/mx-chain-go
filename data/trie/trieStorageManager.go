@@ -186,6 +186,8 @@ func (tsm *trieStorageManager) Prune(rootHash []byte, identifier data.TriePrunin
 
 	if tsm.snapshotInProgress > 0 {
 		if identifier == data.NewRoot {
+			// TODO refactor pruning mechanism so that pruning will be done on rollback
+			// even if there is a snapshot in progress
 			return
 		}
 
