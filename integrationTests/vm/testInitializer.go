@@ -99,7 +99,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	store, _ := storageUnit.NewStorageUnitFromConf(
 		storageUnit.CacheConfig{
 			Type: storageUnit.LRUCache,
-			Size: 75,
+			Size: 45,
 		},
 		storageUnit.DBConfig{
 			FilePath:          "TrieStorage",

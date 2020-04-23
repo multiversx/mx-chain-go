@@ -695,8 +695,9 @@ func TestAndCatchTrieError(t *testing.T) {
 	require.Nil(t, testContext.GetLatestError())
 	ownerNonce++
 
-	numAccounts := 500
+	numAccounts := 1000
 	testAddresses := createTestAddresses(uint64(numAccounts))
+	receiverAddresses := createTestAddresses(uint64(numAccounts))
 	// ERD Minting
 	for _, testAddress := range testAddresses {
 		_, _ = vm.CreateAccount(testContext.Accounts, testAddress, 0, big.NewInt(1000000))
@@ -718,8 +719,6 @@ func TestAndCatchTrieError(t *testing.T) {
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
-
-	receiverAddresses := createTestAddresses(uint64(numAccounts))
 
 	transferNonce := uint64(0)
 	// Transfer among each person revert and retry
