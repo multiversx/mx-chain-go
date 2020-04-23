@@ -19,7 +19,7 @@ var expectedArray = []byte{0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF}
 const (
 	shuffleBetweenShards = false
 	adaptivity           = false
-	hysteresis           = float32(0)
+	hysteresis           = float32(0.2)
 )
 
 func generateRandomByteArray(size int) []byte {
@@ -181,13 +181,13 @@ func testShuffledOut(
 }
 
 func createXorShufflerInter() *randXORShuffler {
-	shuffler := NewXorValidatorsShuffler(100, 100, 0.2, adaptivity, true)
+	shuffler := NewXorValidatorsShuffler(100, 100, hysteresis, adaptivity, true)
 
 	return shuffler
 }
 
 func createXorShufflerIntraShards() *randXORShuffler {
-	shuffler := NewXorValidatorsShuffler(100, 100, 0.2, adaptivity, shuffleBetweenShards)
+	shuffler := NewXorValidatorsShuffler(100, 100, hysteresis, adaptivity, shuffleBetweenShards)
 
 	return shuffler
 }
@@ -718,7 +718,7 @@ func Test_shuffleOutNodesWithLeavingMoreThanWaiting(t *testing.T) {
 func TestNewXorValidatorsShuffler(t *testing.T) {
 	t.Parallel()
 
-	shuffler := NewXorValidatorsShuffler(100, 100, 0.2, adaptivity, shuffleBetweenShards)
+	shuffler := NewXorValidatorsShuffler(100, 100, hysteresis, adaptivity, shuffleBetweenShards)
 
 	assert.NotNil(t, shuffler)
 }
@@ -835,7 +835,13 @@ func TestRandXORShuffler_UpdateNodeListsWithLeavingRemovesFromEligible(t *testin
 	eligiblePerShard := 10
 	eligibleMeta := 10
 
-	shuffler := NewXorValidatorsShuffler(uint32(eligiblePerShard), uint32(eligibleMeta), 0.2, adaptivity, shuffleBetweenShards)
+	shuffler := NewXorValidatorsShuffler(
+		uint32(eligiblePerShard),
+		uint32(eligibleMeta),
+		hysteresis,
+		adaptivity,
+		shuffleBetweenShards,
+	)
 
 	waitingPerShard := 2
 	nbShards := 0
@@ -870,7 +876,13 @@ func TestRandXORShuffler_UpdateNodeListsWithLeavingRemovesFromWaiting(t *testing
 	eligiblePerShard := 10
 	eligibleMeta := 10
 
-	shuffler := NewXorValidatorsShuffler(uint32(eligiblePerShard), uint32(eligibleMeta), 0.2, adaptivity, shuffleBetweenShards)
+	shuffler := NewXorValidatorsShuffler(
+		uint32(eligiblePerShard),
+		uint32(eligibleMeta),
+		hysteresis,
+		adaptivity,
+		shuffleBetweenShards,
+	)
 
 	waitingPerShard := 2
 	nbShards := 0
@@ -901,7 +913,7 @@ func TestRandXORShuffler_UpdateNodeListsWithLeavingRemovesFromWaiting(t *testing
 func TestRandXORShuffler_UpdateNodeListsWithNonExistentLeavingDoesNotRemove(t *testing.T) {
 	t.Parallel()
 
-	shuffler := NewXorValidatorsShuffler(10, 10, 0.2, adaptivity, shuffleBetweenShards)
+	shuffler := NewXorValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
 
 	eligiblePerShard := int(shuffler.nodesShard)
 	waitingPerShard := 2
@@ -947,7 +959,7 @@ func TestRandXORShuffler_UpdateNodeListsWithRangeOnMaps(t *testing.T) {
 		shuffler := NewXorValidatorsShuffler(
 			uint32(eligiblePerShard),
 			uint32(eligibleMeta),
-			0.2,
+			hysteresis,
 			adaptivity,
 			shuffle,
 		)
