@@ -459,7 +459,7 @@ func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 func CreateGenesisBlocks(
 	accounts state.AccountsAdapter,
 	pubkeyConv state.PubkeyConverter,
-	nodesSetup *sharding.NodesSetup,
+	nodesSetup sharding.GenesisNodesSetupHandler,
 	shardCoordinator sharding.Coordinator,
 	store dataRetriever.StorageService,
 	blkc data.ChainHandler,
@@ -498,7 +498,7 @@ func CreateGenesisBlocks(
 func CreateGenesisMetaBlock(
 	accounts state.AccountsAdapter,
 	pubkeyConv state.PubkeyConverter,
-	nodesSetup *sharding.NodesSetup,
+	nodesSetup sharding.GenesisNodesSetupHandler,
 	shardCoordinator sharding.Coordinator,
 	store dataRetriever.StorageService,
 	blkc data.ChainHandler,

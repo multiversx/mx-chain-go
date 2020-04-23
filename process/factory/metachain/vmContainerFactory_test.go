@@ -42,6 +42,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 		&economics.EconomicsData{},
 		&mock.MessageSignVerifierMock{},
 		gasSchedule,
+		&mock.NodesConfigProviderStub{},
 	)
 
 	assert.NotNil(t, vmf)
@@ -74,7 +75,6 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				UnBondPeriod:             "1000",
 				TotalSupply:              "200000000000",
 				MinStepValue:             "100000",
-				NumNodes:                 1000,
 				AuctionEnableNonce:       "0",
 				StakeEnableNonce:         "0",
 				NumRoundsWithoutBleed:    "1000",
@@ -90,6 +90,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		economicsData,
 		&mock.MessageSignVerifierMock{},
 		makeGasSchedule(),
+		&mock.NodesConfigProviderStub{},
 	)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
@@ -97,7 +98,9 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	container, err := vmf.Create()
 	require.Nil(t, err)
 	require.NotNil(t, container)
-	defer container.Close()
+	defer func() {
+		_ = container.Close()
+	}()
 
 	assert.Nil(t, err)
 	assert.NotNil(t, container)

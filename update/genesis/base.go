@@ -102,7 +102,7 @@ func GetTrieTypeAndShId(key string) (Type, uint32, error) {
 		return UserAccount, 0, update.ErrUnknownType
 	}
 
-	accTypeInt64, err := strconv.ParseInt(splitString[1], 10, 0)
+	accTypeInt64, err := strconv.ParseInt(splitString[2], 10, 0)
 	if err != nil {
 		return UserAccount, 0, err
 	}
@@ -226,7 +226,7 @@ func CreateTrieIdentifier(shID uint32, accountType Type) string {
 
 // AddRootHashToIdentifier adds the roothash to the current identifier
 func AddRootHashToIdentifier(identifier string, hash string) string {
-	return identifier + atSep + hash
+	return identifier + atSep + hex.EncodeToString([]byte(hash))
 }
 
 // CreateMiniBlockKey returns a miniblock key

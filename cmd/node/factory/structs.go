@@ -559,6 +559,7 @@ type processComponentsFactoryArgs struct {
 	epochStartNotifier        EpochStartNotifier
 	epochStart                *config.EpochStartConfig
 	rater                     sharding.PeerAccountListAndRatingHandler
+	ratingsData               process.RatingsInfoHandler
 	startEpochNum             uint32
 	sizeCheckDelta            uint32
 	stateCheckpointModulus    uint
@@ -601,6 +602,7 @@ func NewProcessComponentsFactoryArgs(
 	maxSizeInBytes uint32,
 	maxRating uint32,
 	validatorPubkeyConverter state.PubkeyConverter,
+	ratingsData process.RatingsInfoHandler,
 	epoch uint32,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
@@ -624,6 +626,7 @@ func NewProcessComponentsFactoryArgs(
 		epochStart:                epochStart,
 		startEpochNum:             startEpochNum,
 		rater:                     rater,
+		ratingsData:               ratingsData,
 		sizeCheckDelta:            sizeCheckDelta,
 		stateCheckpointModulus:    stateCheckpointModulus,
 		maxComputableRounds:       maxComputableRounds,
@@ -1628,6 +1631,8 @@ func newBlockProcessor(
 			processArgs.gasSchedule,
 			processArgs.minSizeInBytes,
 			processArgs.maxSizeInBytes,
+			processArgs.ratingsData,
+			processArgs.nodesConfig,
 		)
 	}
 
@@ -1924,6 +1929,8 @@ func newMetaBlockProcessor(
 	gasSchedule map[string]map[string]uint64,
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
+	ratingsData process.RatingsInfoHandler,
+	nodesSetup sharding.GenesisNodesSetupHandler,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -1937,7 +1944,13 @@ func newMetaBlockProcessor(
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 		BuiltInFunctions: builtInFuncs, // no built-in functions for meta.
 	}
-	vmFactory, err := metachain.NewVMContainerFactory(argsHook, economicsData, messageSignVerifier, gasSchedule)
+	vmFactory, err := metachain.NewVMContainerFactory(
+		argsHook,
+		economicsData,
+		messageSignVerifier,
+		gasSchedule,
+		nodesSetup,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -2111,6 +2124,7 @@ func newMetaBlockProcessor(
 		ArgParser:        argsParser,
 		CurrTxs:          data.Datapool.CurrentBlockTxs(),
 		ScQuery:          scDataGetter,
+		RatingsData:      ratingsData,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {
@@ -2133,13 +2147,13 @@ func newMetaBlockProcessor(
 	}
 
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
-		Marshalizer:      core.InternalMarshalizer,
-		Hasher:           core.Hasher,
-		Store:            data.Store,
-		ShardCoordinator: shardCoordinator,
-		NodesCoordinator: nodesCoordinator,
-		RewardsHandler:   economicsData,
-		RoundTime:        rounder,
+		Marshalizer:         core.InternalMarshalizer,
+		Hasher:              core.Hasher,
+		Store:               data.Store,
+		ShardCoordinator:    shardCoordinator,
+		NodesConfigProvider: nodesCoordinator,
+		RewardsHandler:      economicsData,
+		RoundTime:           rounder,
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
