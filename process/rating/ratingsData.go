@@ -235,3 +235,8 @@ func (rd *RatingsData) MetaChainRatingsStepHandler() process.RatingsStepHandler 
 func (rd *RatingsData) ShardChainRatingsStepHandler() process.RatingsStepHandler {
 	return rd.shardRatingsStepData
 }
+
+// IsInterfaceNil returns true if underlying object is nil
+func (rd *RatingsData) IsInterfaceNil() bool {
+	return rd == nil
+}

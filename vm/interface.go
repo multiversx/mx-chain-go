@@ -70,7 +70,6 @@ type ValidatorSettingsHandler interface {
 	MinStepValue() *big.Int
 	UnJailValue() *big.Int
 	TotalSupply() *big.Int
-	NumNodes() uint32
 	AuctionEnableNonce() uint64
 	StakeEnableNonce() uint64
 	NumRoundsWithoutBleed() uint64
@@ -84,5 +83,11 @@ type ArgumentsParser interface {
 	GetFunctionArguments() ([][]byte, error)
 	GetFunction() (string, error)
 	ParseData(data string) error
+	IsInterfaceNil() bool
+}
+
+// NodesConfigProvider defines the functionality which is needed for nodes config in system smart contracts
+type NodesConfigProvider interface {
+	MinNumberOfNodes() uint32
 	IsInterfaceNil() bool
 }

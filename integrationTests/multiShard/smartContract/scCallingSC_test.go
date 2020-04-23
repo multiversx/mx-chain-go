@@ -1,6 +1,7 @@
 package smartContract
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"errors"
@@ -76,9 +77,9 @@ func TestSCCallingIntraShard(t *testing.T) {
 	mintPubKey(secondSCOwner, initialVal, nodes)
 
 	// deploy the smart contracts
-	firstSCAddress := putDeploySCToDataPool("./testdata/first/first.wasm", firstSCOwner, 0, big.NewInt(50), nodes)
+	firstSCAddress := putDeploySCToDataPool("./testdata/first/first.wasm", firstSCOwner, 0, big.NewInt(50), "", nodes)
 	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
-	secondSCAddress := putDeploySCToDataPool("./testdata/second/second.wasm", secondSCOwner, 0, big.NewInt(50), nodes)
+	secondSCAddress := putDeploySCToDataPool("./testdata/second/second.wasm", secondSCOwner, 0, big.NewInt(50), "", nodes)
 	//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
 
 	// Run two rounds, so the two SmartContracts get deployed.
@@ -148,7 +149,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	firstSCOwner := nodes[0].OwnAccount.Address.Bytes()
 
 	// deploy the smart contracts
-	firstSCAddress := putDeploySCToDataPool("./testdata/counter.wasm", firstSCOwner, 0, big.NewInt(50), nodes)
+	firstSCAddress := putDeploySCToDataPool("./testdata/counter.wasm", firstSCOwner, 0, big.NewInt(50), "", nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -250,7 +251,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	firstSCOwner := nodes[0].OwnAccount.Address.Bytes()
 
 	// deploy the smart contracts
-	firstSCAddress := putDeploySCToDataPool("./testdata/counter.wasm", firstSCOwner, 0, big.NewInt(50), nodes)
+	firstSCAddress := putDeploySCToDataPool("./testdata/counter.wasm", firstSCOwner, 0, big.NewInt(50), "", nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -382,9 +383,9 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	mintPubKey(secondSCOwner, initialVal, nodes)
 
 	// deploy the smart contracts
-	firstSCAddress := putDeploySCToDataPool("./testdata/first/first.wasm", firstSCOwner, 0, big.NewInt(50), nodes)
+	firstSCAddress := putDeploySCToDataPool("./testdata/first/first.wasm", firstSCOwner, 0, big.NewInt(50), "", nodes)
 	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
-	secondSCAddress := putDeploySCToDataPool("./testdata/second/second.wasm", secondSCOwner, 0, big.NewInt(50), nodes)
+	secondSCAddress := putDeploySCToDataPool("./testdata/second/second.wasm", secondSCOwner, 0, big.NewInt(50), "", nodes)
 	//00000000000000000500017cc09151c48b99e2a1522fb70a5118ad4cb26c3031
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
@@ -416,7 +417,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	}
 }
 
-func TestSCCallingInCrossShardDelegation(t *testing.T) {
+func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -477,7 +478,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	mintPubKey(delegateSCOwner, initialVal, nodes)
 
 	// deploy the smart contracts
-	delegateSCAddress := putDeploySCToDataPool("./testdata/delegate/delegate.wasm", delegateSCOwner, 0, big.NewInt(50), nodes)
+	delegateSCAddress := putDeploySCToDataPool("./testdata/delegate-mock/delegate.wasm", delegateSCOwner, 0, big.NewInt(50), "", nodes)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
@@ -511,6 +512,155 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	}
 }
 
+func TestSCCallingInCrossShardDelegation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 2
+	nodesPerShard := 3
+	numMetachainNodes := 3
+	shardConsensusGroupSize := 2
+	metaConsensusGroupSize := 2
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
+		nodesPerShard,
+		numMetachainNodes,
+		numOfShards,
+		shardConsensusGroupSize,
+		metaConsensusGroupSize,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	nodes := make([]*integrationTests.TestProcessorNode, 0)
+	idxProposers := make([]int, numOfShards+1)
+
+	for _, nds := range nodesMap {
+		nodes = append(nodes, nds...)
+	}
+
+	for _, nds := range nodesMap {
+		idx, err := getNodeIndex(nodes, nds[0])
+		assert.Nil(t, err)
+
+		idxProposers = append(idxProposers, idx)
+	}
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(1000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	// mint smart contract holders
+	shardNode := findAnyShardNode(nodes)
+	delegateSCOwner := shardNode.OwnAccount.Address.Bytes()
+	totalStake := shardNode.EconomicsData.GenesisNodePrice()
+	node_share_per_10000 := 3000
+	stakerBLSKey, _ := hex.DecodeString(strings.Repeat("a", 128*2))
+	stakerBLSSignature, _ := hex.DecodeString(strings.Repeat("c", 32*2))
+
+	// deploy the delegation smart contract
+	delegateSCAddress := putDeploySCToDataPool(
+		"./testdata/delegate/delegation.wasm", delegateSCOwner, 0, big.NewInt(0),
+		fmt.Sprintf("@%x@%x@%s", totalStake, node_share_per_10000, hex.EncodeToString(factory2.AuctionSCAddress)),
+		nodes)
+	shardNode.OwnAccount.Nonce++
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+
+	// set BLS keys in the contract
+	setBlsTxData := "setBlsKeys@1@" + hex.EncodeToString(stakerBLSKey)
+	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, setBlsTxData)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+
+	// stake some coin!
+	// here the node account fills all the required stake
+	stakeTxData := "stake"
+	integrationTests.CreateAndSendTransaction(shardNode, totalStake, delegateSCAddress, stakeTxData)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+
+	// activate the delegation, this involves a call async to auction
+	activateTxData := "activate@" + hex.EncodeToString(stakerBLSSignature)
+	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, activateTxData)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+
+	time.Sleep(time.Second)
+
+	nrRoundsToPropagateMultiShard := 10
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+
+	time.Sleep(time.Second)
+
+	// check that delegation contract was correctly initialized by querying for total stake
+	scQuery1 := &process.SCQuery{
+		ScAddress: delegateSCAddress,
+		FuncName:  "getTotalStake",
+		Arguments: [][]byte{},
+	}
+	vmOutput1, _ := shardNode.SCQueryService.ExecuteQuery(scQuery1)
+	assert.NotNil(t, vmOutput1)
+	assert.Equal(t, len(vmOutput1.ReturnData), 1)
+	assert.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput1.ReturnData[0])) == 0)
+
+	// check that BLS keys were correctly set to contract
+	scQuery2 := &process.SCQuery{
+		ScAddress: delegateSCAddress,
+		FuncName:  "getBlsKeys",
+		Arguments: [][]byte{},
+	}
+	vmOutput2, _ := shardNode.SCQueryService.ExecuteQuery(scQuery2)
+	assert.NotNil(t, vmOutput2)
+	assert.Equal(t, len(vmOutput2.ReturnData), 1)
+	assert.True(t, bytes.Equal(stakerBLSKey, vmOutput2.ReturnData[0]))
+
+	// check that the staking transaction worked
+	scQuery3 := &process.SCQuery{
+		ScAddress: delegateSCAddress,
+		FuncName:  "getUnfilledStake",
+		Arguments: [][]byte{},
+	}
+	vmOutput3, _ := shardNode.SCQueryService.ExecuteQuery(scQuery3)
+	assert.NotNil(t, vmOutput3)
+	assert.Equal(t, len(vmOutput3.ReturnData), 1)
+	assert.True(t, len(vmOutput3.ReturnData[0]) == 0) // unfilled stake == 0
+
+	// check that the staking system smart contract has the value
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
+			continue
+		}
+		scQuery := &process.SCQuery{
+			ScAddress: factory2.StakingSCAddress,
+			FuncName:  "isStaked",
+			Arguments: [][]byte{stakerBLSKey},
+		}
+		vmOutput, _ := node.SCQueryService.ExecuteQuery(scQuery)
+
+		assert.NotNil(t, vmOutput)
+		if vmOutput != nil {
+			assert.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
+		}
+	}
+}
+
 func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrationTests.TestProcessorNode) (int, error) {
 	for i := range nodeList {
 		if node == nodeList[i] {
@@ -526,6 +676,7 @@ func putDeploySCToDataPool(
 	pubkey []byte,
 	nonce uint64,
 	transferOnDeploy *big.Int,
+	initArgs string,
 	nodes []*integrationTests.TestProcessorNode,
 ) []byte {
 	scCode, _ := ioutil.ReadFile(fileName)
@@ -543,7 +694,7 @@ func putDeploySCToDataPool(
 		SndAddr:  pubkey,
 		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),
 		GasLimit: nodes[0].EconomicsData.MaxGasLimitPerBlock() - 1,
-		Data:     []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString),
+		Data:     []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString + initArgs),
 	}
 	txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)
 
@@ -574,4 +725,13 @@ func mintPubKey(
 		}
 		integrationTests.MintAddress(node.AccntState, pubkey, initialVal)
 	}
+}
+
+func findAnyShardNode(nodes []*integrationTests.TestProcessorNode) *integrationTests.TestProcessorNode {
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
+			return node
+		}
+	}
+	panic("no shard nodes found in test")
 }

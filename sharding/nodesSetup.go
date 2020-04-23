@@ -60,11 +60,11 @@ type NodesSetup struct {
 	Hysteresis float32 `json:"hysteresis"`
 	Adaptivity bool    `json:"adaptivity"`
 
-	nrOfShards         		 uint32
-	nrOfNodes          		 uint32
-	nrOfMetaChainNodes 	     uint32
-	eligible           		 map[uint32][]GenesisNodeInfoHandler
-	waiting            		 map[uint32][]GenesisNodeInfoHandler
+	nrOfShards               uint32
+	nrOfNodes                uint32
+	nrOfMetaChainNodes       uint32
+	eligible                 map[uint32][]GenesisNodeInfoHandler
+	waiting                  map[uint32][]GenesisNodeInfoHandler
 	validatorPubkeyConverter state.PubkeyConverter
 	addressPubkeyConverter   state.PubkeyConverter
 }
@@ -279,6 +279,11 @@ func (ns *NodesSetup) InitialNodesInfoForShard(shardId uint32) ([]GenesisNodeInf
 // NumberOfShards returns the calculated number of shards
 func (ns *NodesSetup) NumberOfShards() uint32 {
 	return ns.nrOfShards
+}
+
+// MinNumberOfNodes returns the minimum number of nodes
+func (ns *NodesSetup) MinNumberOfNodes() uint32 {
+	return ns.nrOfShards*ns.MinNodesPerShard + ns.MetaChainMinNodes
 }
 
 // GetShardIDForPubKey returns the allocated shard ID from public key
