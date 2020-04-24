@@ -177,6 +177,12 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
+	err = sc.saveAccounts(acntSnd, acntDst)
+	if err != nil {
+		log.Debug("saveAccounts error", "error", err)
+		return err
+	}
+
 	snapshot := sc.accounts.JournalLen()
 	defer func() {
 		if err != nil {
@@ -226,7 +232,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	err = sc.saveAccounts(acntSnd, acntDst)
 	if err != nil {
-		return err
+		log.Debug("saveAccounts error", "error", err)
+		return nil
 	}
 
 	var consumedFee *big.Int
@@ -421,6 +428,12 @@ func (sc *scProcessor) DeploySmartContract(
 
 	err = sc.processSCPayment(tx, acntSnd)
 	if err != nil {
+		return err
+	}
+
+	err = sc.saveAccounts(acntSnd, nil)
+	if err != nil {
+		log.Debug("saveAccounts error", "error", err)
 		return err
 	}
 

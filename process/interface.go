@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -89,6 +89,7 @@ type InterceptedData interface {
 	IsInterfaceNil() bool
 	Hash() []byte
 	Type() string
+	Identifiers() [][]byte
 	String() string
 }
 
@@ -421,6 +422,7 @@ type BlockChainHookHandler interface {
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	SetInterceptedDebugHandler(handler InterceptedDebugHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -491,13 +493,6 @@ type BlockSizeThrottler interface {
 	Add(round uint64, size uint32)
 	Succeed(round uint64)
 	ComputeCurrentMaxSize()
-	IsInterfaceNil() bool
-}
-
-// PoolsCleaner define the functionality that is needed for a pools cleaner
-type PoolsCleaner interface {
-	Clean(duration time.Duration) (bool, error)
-	NumRemovedTxs() uint64
 	IsInterfaceNil() bool
 }
 
@@ -661,8 +656,8 @@ type BlockTracker interface {
 // FloodPreventer defines the behavior of a component that is able to signal that too many events occurred
 // on a provided identifier between Reset calls
 type FloodPreventer interface {
-	AccumulateGlobal(identifier string, size uint64) bool
-	Accumulate(identifier string, size uint64) bool
+	IncreaseLoadGlobal(identifier string, size uint64) error
+	IncreaseLoad(identifier string, size uint64) error
 	Reset()
 	IsInterfaceNil() bool
 }
@@ -670,8 +665,9 @@ type FloodPreventer interface {
 // TopicFloodPreventer defines the behavior of a component that is able to signal that too many events occurred
 // on a provided identifier between Reset calls, on a given topic
 type TopicFloodPreventer interface {
-	Accumulate(identifier string, topic string) bool
+	IncreaseLoad(identifier string, topic string, numMessages uint32) error
 	ResetForTopic(topic string)
+	ResetForNotRegisteredTopics()
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
 	IsInterfaceNil() bool
 }
@@ -680,7 +676,7 @@ type TopicFloodPreventer interface {
 // p2p messages
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
-	CanProcessMessageOnTopic(peer p2p.PeerID, topic string) error
+	CanProcessMessagesOnTopic(peer p2p.PeerID, topic string, numMessages uint32) error
 	IsInterfaceNil() bool
 }
 
@@ -777,6 +773,7 @@ type RatingsInfoHandler interface {
 	MetaChainRatingsStepHandler() RatingsStepHandler
 	ShardChainRatingsStepHandler() RatingsStepHandler
 	SelectionChances() []SelectionChance
+	IsInterfaceNil() bool
 }
 
 // RatingsStepHandler defines the information needed for the rating computation on shards or meta
@@ -809,5 +806,12 @@ type WhiteListHandler interface {
 	Remove(keys [][]byte)
 	Add(keys [][]byte)
 	IsWhiteListed(interceptedData InterceptedData) bool
+	IsInterfaceNil() bool
+}
+
+// InterceptedDebugHandler defines an interface for debugging the intercepted data
+type InterceptedDebugHandler interface {
+	LogReceivedHashes(topic string, hashes [][]byte)
+	LogProcessedHashes(topic string, hashes [][]byte, err error)
 	IsInterfaceNil() bool
 }

@@ -65,7 +65,6 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				UnBondPeriod:             "5",
 				TotalSupply:              "200000000000",
 				MinStepValue:             "100000",
-				NumNodes:                 1000,
 				AuctionEnableNonce:       "100000",
 				StakeEnableNonce:         "100000",
 				NumRoundsWithoutBleed:    "1000",
@@ -129,7 +128,7 @@ func TestNewValidatorStatisticsProcessor_NilPeerAdaptersShouldErr(t *testing.T) 
 	assert.Equal(t, process.ErrNilPeerAccountsAdapter, err)
 }
 
-func TestNewValidatorStatisticsProcessor_NilAddressConverterShouldErr(t *testing.T) {
+func TestNewValidatorStatisticsProcessor_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockArguments()
@@ -248,7 +247,7 @@ func TestNewValidatorStatisticsProcessor(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestValidatorStatisticsProcessor_SaveInitialStateErrOnWrongAddressConverter(t *testing.T) {
+func TestValidatorStatisticsProcessor_SaveInitialStateErrOnWrongPubkeyConverter(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("hex address error")
@@ -1305,7 +1304,7 @@ func getAccountsMock() *mock.AccountsStub {
 
 func TestValidatorStatistics_RootHashWithErrShouldReturnNil(t *testing.T) {
 	hash := []byte("nonExistingRootHash")
-	expectedErr := errors.New("Invalid rootHash")
+	expectedErr := errors.New("invalid rootHash")
 
 	arguments := createMockArguments()
 
@@ -1596,6 +1595,83 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithLargeValidatorFa
 	assert.Equal(t, rater.MinRating, vi[0][0].TempRating)
 }
 
+func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
+
+	startRating := uint32(50)
+	rating := uint32(70)
+	chancesForStartRating := uint32(20)
+	chancesForRating := uint32(22)
+	newRater := createMockRater()
+	newRater.GetChancesCalled = func(val uint32) uint32 {
+		if val == startRating {
+			return chancesForStartRating
+		}
+		if val == rating {
+			return chancesForRating
+		}
+		return uint32(0)
+	}
+
+	arguments := createMockArguments()
+	arguments.Rater = newRater
+
+	pad := state.PeerAccountData{
+		BLSPublicKey:  []byte("blsKey"),
+		ShardId:       7,
+		List:          "List",
+		IndexInList:   2,
+		TempRating:    51,
+		Rating:        70,
+		RewardAddress: []byte("rewardAddress"),
+		LeaderSuccessRate: state.SignRate{
+			NumSuccess: 1,
+			NumFailure: 2,
+		},
+		ValidatorSuccessRate: state.SignRate{
+			NumSuccess: 3,
+			NumFailure: 4,
+		},
+		TotalLeaderSuccessRate: state.SignRate{
+			NumSuccess: 5,
+			NumFailure: 6,
+		},
+		TotalValidatorSuccessRate: state.SignRate{
+			NumSuccess: 7,
+			NumFailure: 8,
+		},
+		NumSelectedInSuccessBlocks: 3,
+		AccumulatedFees:            big.NewInt(70),
+	}
+
+	peerAccount := state.NewEmptyPeerAccount()
+	peerAccount.PeerAccountData = pad
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+	vs := validatorStatistics.PeerAccountToValidatorInfo(peerAccount)
+
+	ratingModifier := float32(chancesForRating) / float32(chancesForStartRating)
+
+	assert.Equal(t, peerAccount.GetBLSPublicKey(), vs.PublicKey)
+	assert.Equal(t, peerAccount.GetShardId(), vs.ShardId)
+	assert.Equal(t, peerAccount.GetList(), vs.List)
+	assert.Equal(t, peerAccount.GetIndexInList(), vs.Index)
+	assert.Equal(t, peerAccount.GetTempRating(), vs.TempRating)
+	assert.Equal(t, peerAccount.GetRating(), vs.Rating)
+	assert.Equal(t, ratingModifier, vs.RatingModifier)
+	assert.Equal(t, peerAccount.GetRewardAddress(), vs.RewardAddress)
+	assert.Equal(t, peerAccount.GetLeaderSuccessRate().NumSuccess, vs.LeaderSuccess)
+	assert.Equal(t, peerAccount.GetLeaderSuccessRate().NumFailure, vs.LeaderFailure)
+	assert.Equal(t, peerAccount.GetValidatorSuccessRate().NumSuccess, vs.ValidatorSuccess)
+	assert.Equal(t, peerAccount.GetValidatorSuccessRate().NumFailure, vs.ValidatorFailure)
+	assert.Equal(t, peerAccount.GetTotalLeaderSuccessRate().NumSuccess, vs.TotalLeaderSuccess)
+	assert.Equal(t, peerAccount.GetTotalLeaderSuccessRate().NumFailure, vs.TotalLeaderFailure)
+	assert.Equal(t, peerAccount.GetTotalValidatorSuccessRate().NumSuccess, vs.TotalValidatorSuccess)
+	assert.Equal(t, peerAccount.GetTotalValidatorSuccessRate().NumFailure, vs.TotalValidatorFailure)
+	assert.Equal(t, peerAccount.GetNumSelectedInSuccessBlocks(), vs.NumSelectedInSuccessBlocks)
+	assert.Equal(t, big.NewInt(0).Set(peerAccount.GetAccumulatedFees()), vs.AccumulatedFees)
+
+}
+
 func createMockValidatorInfo(shardId uint32, tempRating uint32, validatorSuccess uint32, validatorFailure uint32) *state.ValidatorInfo {
 	return &state.ValidatorInfo{
 		PublicKey:                  nil,
@@ -1615,7 +1691,7 @@ func createMockValidatorInfo(shardId uint32, tempRating uint32, validatorSuccess
 }
 
 func compare(t *testing.T, peerAccount state.PeerAccountHandler, validatorInfo *state.ValidatorInfo) {
-	assert.Equal(t, peerAccount.GetCurrentShardId(), validatorInfo.ShardId)
+	assert.Equal(t, peerAccount.GetShardId(), validatorInfo.ShardId)
 	assert.Equal(t, peerAccount.GetRating(), validatorInfo.Rating)
 	assert.Equal(t, peerAccount.GetTempRating(), validatorInfo.TempRating)
 	assert.Equal(t, peerAccount.GetBLSPublicKey(), validatorInfo.PublicKey)
@@ -1628,7 +1704,7 @@ func compare(t *testing.T, peerAccount state.PeerAccountHandler, validatorInfo *
 	assert.Equal(t, peerAccount.GetTotalLeaderSuccessRate().NumFailure, validatorInfo.TotalLeaderFailure)
 	assert.Equal(t, peerAccount.GetTotalLeaderSuccessRate().NumSuccess, validatorInfo.TotalLeaderSuccess)
 	assert.Equal(t, peerAccount.GetList(), validatorInfo.List)
-	assert.Equal(t, peerAccount.GetIndex(), validatorInfo.Index)
+	assert.Equal(t, peerAccount.GetIndexInList(), validatorInfo.Index)
 	assert.Equal(t, peerAccount.GetRewardAddress(), validatorInfo.RewardAddress)
 	assert.Equal(t, peerAccount.GetAccumulatedFees(), validatorInfo.AccumulatedFees)
 	assert.Equal(t, peerAccount.GetNumSelectedInSuccessBlocks(), validatorInfo.NumSelectedInSuccessBlocks)
@@ -1642,20 +1718,6 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		RewardAddress:   []byte("reward0"),
 		Stake:           big.NewInt(10),
 		AccumulatedFees: big.NewInt(11),
-		JailTime: state.TimePeriod{
-			StartTime: state.TimeStamp{Epoch: 1, Round: 10},
-			EndTime:   state.TimeStamp{Epoch: 2, Round: 2},
-		},
-		PastJailTimes: []state.TimePeriod{
-			{
-				StartTime: state.TimeStamp{Epoch: 1, Round: 1},
-				EndTime:   state.TimeStamp{Epoch: 1, Round: 2},
-			},
-		},
-		CurrentShardId:    0,
-		NextShardId:       1,
-		NodeInWaitingList: false,
-		UnStakedNonce:     7,
 		ValidatorSuccessRate: state.SignRate{
 			NumSuccess: 1,
 			NumFailure: 2,
@@ -1685,20 +1747,6 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		RewardAddress:   []byte("rewardM"),
 		Stake:           big.NewInt(110),
 		AccumulatedFees: big.NewInt(111),
-		JailTime: state.TimePeriod{
-			StartTime: state.TimeStamp{Epoch: 11, Round: 101},
-			EndTime:   state.TimeStamp{Epoch: 21, Round: 21},
-		},
-		PastJailTimes: []state.TimePeriod{
-			{
-				StartTime: state.TimeStamp{Epoch: 11, Round: 11},
-				EndTime:   state.TimeStamp{Epoch: 11, Round: 12},
-			},
-		},
-		CurrentShardId:    core.MetachainShardId,
-		NextShardId:       1,
-		NodeInWaitingList: true,
-		UnStakedNonce:     2,
 		ValidatorSuccessRate: state.SignRate{
 			NumSuccess: 11,
 			NumFailure: 21,
@@ -1711,6 +1759,7 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 		Rating:                     511,
 		TempRating:                 611,
 		Nonce:                      8,
+		ShardId:                    core.MetachainShardId,
 	}
 	return pa0, paMeta
 }

@@ -3,9 +3,10 @@ package interceptors
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
+	"github.com/ElrondNetwork/elrond-go/debug/resolver"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -15,13 +16,15 @@ var log = logger.GetOrCreate("process/interceptors")
 
 // MultiDataInterceptor is used for intercepting packed multi data
 type MultiDataInterceptor struct {
-	topic            string
-	marshalizer      marshal.Marshalizer
-	factory          process.InterceptedDataFactory
-	processor        process.InterceptorProcessor
-	throttler        process.InterceptorThrottler
-	whiteListHandler process.WhiteListHandler
-	antifloodHandler process.P2PAntifloodHandler
+	topic                      string
+	marshalizer                marshal.Marshalizer
+	factory                    process.InterceptedDataFactory
+	processor                  process.InterceptorProcessor
+	throttler                  process.InterceptorThrottler
+	whiteListHandler           process.WhiteListHandler
+	antifloodHandler           process.P2PAntifloodHandler
+	mutInterceptedDebugHandler sync.RWMutex
+	interceptedDebugHandler    process.InterceptedDebugHandler
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
@@ -65,6 +68,7 @@ func NewMultiDataInterceptor(
 		whiteListHandler: whiteListHandler,
 		antifloodHandler: antifloodHandler,
 	}
+	multiDataIntercept.interceptedDebugHandler = resolver.NewDisabledInterceptorResolver()
 
 	return multiDataIntercept, nil
 }
@@ -84,9 +88,15 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		return err
 	}
 	multiDataBuff := b.Data
-	if len(multiDataBuff) == 0 {
+	lenMultiData := len(multiDataBuff)
+	if lenMultiData == 0 {
 		mdi.throttler.EndProcessing()
 		return process.ErrNoDataInMessage
+	}
+
+	err = mdi.antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, mdi.topic, uint32(lenMultiData))
+	if err != nil {
+		return err
 	}
 
 	interceptedMultiData := make([]process.InterceptedData, 0)
@@ -123,12 +133,18 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 				"is for this shard", isForCurrentShard,
 				"is white listed", isWhiteListed,
 			)
-			mdi.whiteListHandler.Remove([][]byte{interceptedData.Hash()})
 			wgProcess.Done()
 			continue
 		}
 
-		go processInterceptedData(mdi.processor, mdi.whiteListHandler, interceptedData, wgProcess, message)
+		go processInterceptedData(
+			mdi.processor,
+			mdi.interceptedDebugHandler,
+			interceptedData,
+			mdi.topic,
+			wgProcess,
+			message,
+		)
 	}
 
 	return lastErrEncountered
@@ -140,12 +156,28 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte) (process.Inter
 		return nil, err
 	}
 
+	receivedDebugInterceptedData(mdi.interceptedDebugHandler, interceptedData, mdi.topic)
+
 	err = interceptedData.CheckValidity()
 	if err != nil {
+		processDebugInterceptedData(mdi.interceptedDebugHandler, interceptedData, mdi.topic, err)
 		return nil, err
 	}
 
 	return interceptedData, nil
+}
+
+// SetInterceptedDebugHandler will set a new intercepted debug handler
+func (mdi *MultiDataInterceptor) SetInterceptedDebugHandler(handler process.InterceptedDebugHandler) error {
+	if check.IfNil(handler) {
+		return process.ErrNilInterceptedDebugHandler
+	}
+
+	mdi.mutInterceptedDebugHandler.Lock()
+	mdi.interceptedDebugHandler = handler
+	mdi.mutInterceptedDebugHandler.Unlock()
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

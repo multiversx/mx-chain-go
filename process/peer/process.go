@@ -156,7 +156,7 @@ func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) error {
 		return err
 	}
 
-	err = vs.saveUpdatesForList(nodesList, 0, core.LeavingList)
+	err = vs.saveUpdatesForList(nodesList, 0, core.InactiveList)
 	if err != nil {
 		return err
 	}
@@ -392,7 +392,7 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 			return nil, err
 		}
 
-		currentShardId := peerAccount.GetCurrentShardId()
+		currentShardId := peerAccount.GetShardId()
 		validatorInfoData := vs.peerAccountToValidatorInfo(peerAccount)
 		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
 	}
@@ -400,14 +400,31 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	return validators, nil
 }
 
+func getActualList(peerAccount state.PeerAccountHandler) string {
+	savedList := peerAccount.GetList()
+	if peerAccount.GetUnStakedEpoch() == 0 {
+		return savedList
+	}
+	if savedList == string(core.InactiveList) {
+		return savedList
+	}
+
+	return string(core.LeavingList)
+}
+
 func (vs *validatorStatistics) peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
+	chance := vs.rater.GetChance(peerAccount.GetRating())
+	startRatingChance := vs.rater.GetChance(vs.rater.GetStartRating())
+	ratingModifier := float32(chance) / float32(startRatingChance)
+
 	return &state.ValidatorInfo{
 		PublicKey:                  peerAccount.GetBLSPublicKey(),
-		ShardId:                    peerAccount.GetCurrentShardId(),
-		List:                       peerAccount.GetList(),
-		Index:                      peerAccount.GetIndex(),
+		ShardId:                    peerAccount.GetShardId(),
+		List:                       getActualList(peerAccount),
+		Index:                      peerAccount.GetIndexInList(),
 		TempRating:                 peerAccount.GetTempRating(),
 		Rating:                     peerAccount.GetRating(),
+		RatingModifier:             ratingModifier,
 		RewardAddress:              peerAccount.GetRewardAddress(),
 		LeaderSuccess:              peerAccount.GetLeaderSuccessRate().NumSuccess,
 		LeaderFailure:              peerAccount.GetLeaderSuccessRate().NumFailure,
@@ -762,7 +779,6 @@ func (vs *validatorStatistics) savePeerAccountData(
 		return err
 	}
 
-	peerAccount.SetCurrentShardId(shardID)
 	peerAccount.SetRating(startRating)
 	peerAccount.SetTempRating(startRating)
 	peerAccount.SetListAndIndex(shardID, string(peerType), index)

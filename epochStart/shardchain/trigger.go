@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -249,7 +248,7 @@ func (t *trigger) requestMissingMiniblocks() {
 			continue
 		}
 
-		missingMiniblocks := make([][]byte, len(t.mapMissingMiniblocks))
+		missingMiniblocks := make([][]byte, 0, len(t.mapMissingMiniblocks))
 		for hash := range t.mapMissingMiniblocks {
 			missingMiniblocks = append(missingMiniblocks, []byte(hash))
 			log.Debug("trigger.requestMissingMiniblocks", "hash", []byte(hash))
@@ -367,7 +366,27 @@ func (t *trigger) SetAppStatusHandler(handler core.AppStatusHandler) error {
 	return nil
 }
 
-func (t *trigger) setLowerEpochFinalityAttestingRoundIfNeeded(metaHdr *block.MetaBlock) {
+func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
+	metaHdr *block.MetaBlock,
+) {
+	hash := t.mapFinalizedEpochs[metaHdr.Epoch]
+	epochStartMetaHdr := t.mapEpochStartHdrs[hash]
+	if check.IfNil(epochStartMetaHdr) {
+		return
+	}
+
+	isHeaderOnTopOfFinalityAttestingRound := metaHdr.Nonce == epochStartMetaHdr.Nonce+t.finality+1
+	if isHeaderOnTopOfFinalityAttestingRound {
+		metaHdrWithFinalityAttestingRound, err := t.getHeaderWithNonceAndHash(epochStartMetaHdr.Nonce+t.finality, metaHdr.PrevHash)
+		if err != nil {
+			log.Debug("searched metaHeader was not found")
+			return
+		}
+
+		t.epochFinalityAttestingRound = metaHdrWithFinalityAttestingRound.Round
+		return
+	}
+
 	if metaHdr.GetRound() >= t.epochFinalityAttestingRound {
 		return
 	}
@@ -390,8 +409,9 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 		return
 	}
 
-	if t.isEpochStart && headerHandler.GetEpoch() == t.metaEpoch {
-		t.setLowerEpochFinalityAttestingRoundIfNeeded(metaHdr)
+	_, ok = t.mapFinalizedEpochs[metaHdr.Epoch]
+	if t.metaEpoch == headerHandler.GetEpoch() && ok {
+		t.changeEpochFinalityAttestingRoundIfNeeded(metaHdr)
 		return
 	}
 	if !t.newEpochHdrReceived && !metaHdr.IsStartOfEpochBlock() {
@@ -529,11 +549,6 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr *block.MetaBlock) (bool, ui
 			continue
 		}
 
-		err = t.headerValidator.IsHeaderConstructionValid(neededHdr, currHdr)
-		if err != nil {
-			continue
-		}
-
 		currHdr = neededHdr
 
 		finalityAttestingRound = currHdr.GetRound()
@@ -575,7 +590,7 @@ func (t *trigger) addMissingMiniblocks(epoch uint32, missingMiniblocksHashes [][
 	t.mutMissingMiniblocks.Lock()
 	defer t.mutMissingMiniblocks.Unlock()
 
-	for hash := range missingMiniblocksHashes {
+	for _, hash := range missingMiniblocksHashes {
 		t.mapMissingMiniblocks[string(hash)] = epoch
 		log.Debug("trigger.addMissingMiniblocks", "epoch", epoch, "hash", hash)
 	}
@@ -724,24 +739,7 @@ func (t *trigger) getHeaderWithNonceAndPrevHash(nonce uint64, prevHash []byte) (
 		return metaHdr, nil
 	}
 
-	nonceToByteSlice := t.uint64Converter.ToByteSlice(nonce)
-	dataHdr, err := t.metaNonceHdrStorage.Get(nonceToByteSlice)
-	if err != nil || len(dataHdr) == 0 {
-		go t.requestHandler.RequestMetaHeaderByNonce(nonce)
-		return nil, err
-	}
-
-	b := batch.Batch{}
-	err = t.marshalizer.Unmarshal(&b, dataHdr)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(b.Data) != 1 {
-		return nil, marshal.ErrUnmarshallingBadSize
-	}
-
-	return t.getHeaderWithNonceAndHash(nonce, b.Data[0])
+	return nil, epochStart.ErrMetaHdrNotFound
 }
 
 func (t *trigger) getAllFinishedStartOfEpochMetaHdrs() []*block.MetaBlock {
@@ -838,11 +836,26 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 		return nil
 	}
 
-	prevEpochStartIdentifier := core.EpochStartIdentifier(t.epochStartShardHeader.Epoch - 1)
-	shardHdrBuff, err := t.shardHdrStorage.SearchFirst([]byte(prevEpochStartIdentifier))
-	if err != nil {
-		log.Warn("RevertStateToBlock get header from storage error", "err", err)
-		return err
+	shardHdrBuff := make([]byte, 0)
+	epoch := t.epochStartShardHeader.Epoch - 1
+	for ; epoch > 0; epoch-- {
+		prevEpochStartIdentifier := core.EpochStartIdentifier(epoch)
+		shardHdrBuff, err = t.shardHdrStorage.SearchFirst([]byte(prevEpochStartIdentifier))
+		if err != nil {
+			log.Debug("RevertStateToBlock get header from storage error", "err", err)
+			continue
+		}
+
+		break
+	}
+
+	if epoch == 0 {
+		t.epochStartShardHeader = &block.Header{}
+		t.isEpochStart = true
+		t.newEpochHdrReceived = true
+		log.Debug("trigger.RevertStateToBlock", "isEpochStart", t.isEpochStart)
+
+		return nil
 	}
 
 	shardHdr := &block.Header{}

@@ -90,7 +90,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn.GenesisBlocks = CreateGenesisBlocks(
 		tpn.AccntState,
 		TestAddressPubkeyConverter,
-		&sharding.NodesSetup{},
+		tpn.NodesSetup,
 		tpn.ShardCoordinator,
 		tpn.Storage,
 		tpn.BlockChain,
@@ -112,6 +112,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.SkTxSign,
 		tpn.OwnAccount.SingleSigner,
+		tpn.DataPool.Headers(),
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()

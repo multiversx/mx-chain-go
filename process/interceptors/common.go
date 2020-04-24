@@ -25,7 +25,7 @@ func preProcessMesage(
 	if err != nil {
 		return err
 	}
-	err = antifloodHandler.CanProcessMessageOnTopic(fromConnectedPeer, topic)
+	err = antifloodHandler.CanProcessMessagesOnTopic(fromConnectedPeer, topic, 1)
 	if err != nil {
 		return err
 	}
@@ -40,16 +40,15 @@ func preProcessMesage(
 
 func processInterceptedData(
 	processor process.InterceptorProcessor,
-	whiteListhandler process.WhiteListHandler,
+	handler process.InterceptedDebugHandler,
 	data process.InterceptedData,
+	topic string,
 	wgProcess *sync.WaitGroup,
 	msg p2p.MessageP2P,
 ) {
-	hash := data.Hash()
 	err := processor.Validate(data, msg.Peer())
 
 	defer func() {
-		whiteListhandler.Remove([][]byte{hash})
 		wgProcess.Done()
 	}()
 	if err != nil {
@@ -61,6 +60,7 @@ func processInterceptedData(
 			"data", data.String(),
 			"error", err.Error(),
 		)
+		processDebugInterceptedData(handler, data, topic, err)
 
 		return
 	}
@@ -75,6 +75,7 @@ func processInterceptedData(
 			"data", data.String(),
 			"error", err.Error(),
 		)
+		processDebugInterceptedData(handler, data, topic, err)
 
 		return
 	}
@@ -86,4 +87,24 @@ func processInterceptedData(
 		"seq no", p2p.MessageOriginatorSeq(msg),
 		"data", data.String(),
 	)
+	processDebugInterceptedData(handler, data, topic, err)
+}
+
+func processDebugInterceptedData(
+	debugHandler process.InterceptedDebugHandler,
+	interceptedData process.InterceptedData,
+	topic string,
+	err error,
+) {
+	identifiers := interceptedData.Identifiers()
+	debugHandler.LogProcessedHashes(topic, identifiers, err)
+}
+
+func receivedDebugInterceptedData(
+	debugHandler process.InterceptedDebugHandler,
+	interceptedData process.InterceptedData,
+	topic string,
+) {
+	identifiers := interceptedData.Identifiers()
+	debugHandler.LogReceivedHashes(topic, identifiers)
 }

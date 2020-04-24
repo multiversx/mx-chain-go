@@ -25,9 +25,6 @@ var ErrValidation = errors.New("validation error")
 // ErrTxGenerationFailed signals an error generating a transaction
 var ErrTxGenerationFailed = errors.New("transaction generation failed")
 
-// ErrInvalidSignatureHex signals a wrong hex value was provided for the signature
-var ErrInvalidSignatureHex = errors.New("invalid signature, could not decode hex value")
-
 // ErrValidationEmptyTxHash signals an empty tx hash was provided
 var ErrValidationEmptyTxHash = errors.New("TxHash is empty")
 
@@ -36,3 +33,9 @@ var ErrGetTransaction = errors.New("transaction getting failed")
 
 // ErrTxNotFound signals an error happened trying to fetch a transaction
 var ErrTxNotFound = errors.New("transaction was not found")
+
+// ErrQueryError signals a general query error
+var ErrQueryError = errors.New("query error")
+
+// ErrQueryDisabled signals that the query is disabled
+var ErrQueryDisabled = errors.New("query disabled")

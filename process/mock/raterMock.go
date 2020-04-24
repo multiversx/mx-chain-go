@@ -88,9 +88,6 @@ func GetNewMockRater() *RaterMock {
 	raterMock.GetChancesCalled = func(val uint32) uint32 {
 		return raterMock.Chance
 	}
-	raterMock.GetChancesCalled = func(val uint32) uint32 {
-		return raterMock.Chance
-	}
 	return raterMock
 }
 
@@ -113,7 +110,10 @@ func (rm *RaterMock) GetRating(pk string) uint32 {
 
 // GetStartRating -
 func (rm *RaterMock) GetStartRating() uint32 {
-	return rm.GetStartRatingCalled()
+	if rm.GetStartRatingCalled != nil {
+		return rm.GetStartRatingCalled()
+	}
+	return 10
 }
 
 // GetSignedBlocksThreshold -

@@ -4,18 +4,21 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/debug/resolver"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // SingleDataInterceptor is used for intercepting packed multi data
 type SingleDataInterceptor struct {
-	topic            string
-	factory          process.InterceptedDataFactory
-	processor        process.InterceptorProcessor
-	throttler        process.InterceptorThrottler
-	whiteListHandler process.WhiteListHandler
-	antifloodHandler process.P2PAntifloodHandler
+	topic                      string
+	factory                    process.InterceptedDataFactory
+	processor                  process.InterceptorProcessor
+	throttler                  process.InterceptorThrottler
+	whiteListHandler           process.WhiteListHandler
+	antifloodHandler           process.P2PAntifloodHandler
+	mutInterceptedDebugHandler sync.RWMutex
+	interceptedDebugHandler    process.InterceptedDebugHandler
 }
 
 // NewSingleDataInterceptor hooks a new interceptor for single data
@@ -54,6 +57,7 @@ func NewSingleDataInterceptor(
 		antifloodHandler: antifloodHandler,
 		whiteListHandler: whiteListHandler,
 	}
+	singleDataIntercept.interceptedDebugHandler = resolver.NewDisabledInterceptorResolver()
 
 	return singleDataIntercept, nil
 }
@@ -61,6 +65,9 @@ func NewSingleDataInterceptor(
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+	sdi.mutInterceptedDebugHandler.RLock()
+	defer sdi.mutInterceptedDebugHandler.RUnlock()
+
 	err := preProcessMesage(sdi.throttler, sdi.antifloodHandler, message, fromConnectedPeer, sdi.topic)
 	if err != nil {
 		return err
@@ -72,9 +79,13 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		return err
 	}
 
+	receivedDebugInterceptedData(sdi.interceptedDebugHandler, interceptedData, sdi.topic)
+
 	err = interceptedData.CheckValidity()
 	if err != nil {
 		sdi.throttler.EndProcessing()
+		processDebugInterceptedData(sdi.interceptedDebugHandler, interceptedData, sdi.topic, err)
+
 		return err
 	}
 
@@ -91,7 +102,6 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 			"is for current shard", isForCurrentShard,
 			"is white listed", isWhiteListed,
 		)
-		sdi.whiteListHandler.Remove([][]byte{interceptedData.Hash()})
 
 		return nil
 	}
@@ -103,7 +113,27 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		sdi.throttler.EndProcessing()
 	}()
 
-	go processInterceptedData(sdi.processor, sdi.whiteListHandler, interceptedData, wgProcess, message)
+	go processInterceptedData(
+		sdi.processor,
+		sdi.interceptedDebugHandler,
+		interceptedData,
+		sdi.topic,
+		wgProcess,
+		message,
+	)
+
+	return nil
+}
+
+// SetInterceptedDebugHandler will set a new intercepted debug handler
+func (sdi *SingleDataInterceptor) SetInterceptedDebugHandler(handler process.InterceptedDebugHandler) error {
+	if check.IfNil(handler) {
+		return process.ErrNilInterceptedDebugHandler
+	}
+
+	sdi.mutInterceptedDebugHandler.Lock()
+	sdi.interceptedDebugHandler = handler
+	sdi.mutInterceptedDebugHandler.Unlock()
 
 	return nil
 }

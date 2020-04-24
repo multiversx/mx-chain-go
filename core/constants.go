@@ -12,6 +12,9 @@ const WaitingList PeerType = "waiting"
 // LeavingList represents the list of peers who were taken out of eligible and waiting because of rating
 const LeavingList PeerType = "leaving"
 
+// InactiveList represents the list of peers who were taken out because they were leaving
+const InactiveList PeerType = "inactive"
+
 // ObserverList represents the list of peers who don't participate in consensus but will join the next epoch
 const ObserverList PeerType = "observer"
 
@@ -43,7 +46,7 @@ const MaxTxNonceDeltaAllowed = 30000
 
 // MaxBulkTransactionSize specifies the maximum size of one bulk with txs which can be send over the network
 //TODO convert this const into a var and read it from config when this code moves to another binary
-const MaxBulkTransactionSize = 2 << 17 //128KB bulks
+const MaxBulkTransactionSize = 1 << 18 //256KB bulks
 
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
@@ -86,6 +89,9 @@ const MetricPublicKeyBlockSign = "erd_public_key_block_sign"
 
 // MetricShardId is the metric for monitoring shard id of a node
 const MetricShardId = "erd_shard_id"
+
+// MetricNumShardsWithoutMetacahin is the metric for monitoring the number of shards (excluding meta)
+const MetricNumShardsWithoutMetacahin = "erd_num_shards_without_meta"
 
 // MetricTxPoolLoad is the metric for monitoring number of transactions from pool of a node
 const MetricTxPoolLoad = "erd_tx_pool_load"

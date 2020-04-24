@@ -122,10 +122,15 @@ func (inMb *InterceptedMiniblock) Type() string {
 func (inMb *InterceptedMiniblock) String() string {
 	return fmt.Sprintf("miniblock type=%s, numTxs=%d, sender shardid=%d, recv shardid=%d",
 		inMb.miniblock.Type.String(),
-		inMb.miniblock.TxHashes,
+		len(inMb.miniblock.TxHashes),
 		inMb.miniblock.SenderShardID,
 		inMb.miniblock.ReceiverShardID,
 	)
+}
+
+// Identifiers returns the identifiers used in requests
+func (inMb *InterceptedMiniblock) Identifiers() [][]byte {
+	return [][]byte{inMb.hash}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

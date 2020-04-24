@@ -7,9 +7,6 @@ import (
 // ErrNilContext signals that a nil context was provided
 var ErrNilContext = errors.New("nil context")
 
-// ErrInvalidPort signals that an invalid port was provided
-var ErrInvalidPort = errors.New("invalid port provided")
-
 // ErrNilMockNet signals that a nil mocknet was provided. Should occur only in testing!!!
 var ErrNilMockNet = errors.New("nil mocknet provided")
 
@@ -119,17 +116,8 @@ var ErrNilFloodPreventer = errors.New("nil flood preventer")
 // ErrNilTopicFloodPreventer signals that a nil topic flood preventer has been provided
 var ErrNilTopicFloodPreventer = errors.New("nil topic flood preventer")
 
-// ErrSystemBusy signals that the system is busy
-var ErrSystemBusy = errors.New("system busy")
-
 // ErrNilPeerBlacklistHandler signals that a nil peer black list handler was provided
 var ErrNilPeerBlacklistHandler = errors.New("nil peer black list handler")
-
-// ErrPeerBlacklisted signals that a peer is blacklisted
-var ErrPeerBlacklisted = errors.New("peer is blacklisted")
-
-// ErrNilConfigVariable signals that a nil config variable has been provided
-var ErrNilConfigVariable = errors.New("nil config variable")
 
 // ErrNilStatusHandler signals that a nil status handler has been provided
 var ErrNilStatusHandler = errors.New("nil status handler")

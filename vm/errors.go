@@ -94,3 +94,9 @@ var ErrInvalidJailAccessAddress = errors.New("invalid jailing access address")
 
 // ErrNotEnoughGas signals that there is not enough gas for execution
 var ErrNotEnoughGas = errors.New("not enough gas")
+
+// ErrNilNodesConfigProvider signals that an operation has been attempted to or with a nil nodes config provider
+var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
+
+// ErrInvalidMinNumberOfNodes signals that provided minimum number of nodes is invalid
+var ErrInvalidMinNumberOfNodes = errors.New("invalid min number of nodes")

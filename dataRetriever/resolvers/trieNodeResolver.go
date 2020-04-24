@@ -9,7 +9,7 @@ import (
 )
 
 // maxBuffToSendTrieNodes represents max buffer size to send in bytes
-var maxBuffToSendTrieNodes = uint64(2 << 17) //128KB
+var maxBuffToSendTrieNodes = uint64(1 << 18) //256KB
 
 // ArgTrieNodeResolver is the argument structure used to create new TrieNodeResolver instance
 type ArgTrieNodeResolver struct {
@@ -78,6 +78,12 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fr
 		var serializedNodes [][]byte
 		serializedNodes, err = tnRes.trieDataGetter.GetSerializedNodes(rd.Value, maxBuffToSendTrieNodes)
 		if err != nil {
+			tnRes.ResolverDebugHandler().LogFailedToResolveData(
+				tnRes.topic,
+				rd.Value,
+				err,
+			)
+
 			return err
 		}
 
@@ -95,10 +101,13 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fr
 
 // RequestDataFromHash requests trie nodes from other peers having input a trie node hash
 func (tnRes *TrieNodeResolver) RequestDataFromHash(hash []byte, _ uint32) error {
-	return tnRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.HashType,
-		Value: hash,
-	})
+	return tnRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashType,
+			Value: hash,
+		},
+		[][]byte{hash},
+	)
 }
 
 // RequestDataFromHashArray requests trie nodes from other peers having input multiple trie node hashes
@@ -123,9 +132,14 @@ func (tnRes *TrieNodeResolver) SetNumPeersToQuery(intra int, cross int) {
 	tnRes.TopicResolverSender.SetNumPeersToQuery(intra, cross)
 }
 
-// GetNumPeersToQuery will return the number of intra shard and cross shard number of peer to query
-func (tnRes *TrieNodeResolver) GetNumPeersToQuery() (int, int) {
-	return tnRes.TopicResolverSender.GetNumPeersToQuery()
+// NumPeersToQuery will return the number of intra shard and cross shard number of peer to query
+func (tnRes *TrieNodeResolver) NumPeersToQuery() (int, int) {
+	return tnRes.TopicResolverSender.NumPeersToQuery()
+}
+
+// SetResolverDebugHandler will set a resolver debug handler
+func (tnRes *TrieNodeResolver) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
+	return tnRes.TopicResolverSender.SetResolverDebugHandler(handler)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

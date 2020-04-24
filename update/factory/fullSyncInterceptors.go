@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -75,6 +76,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	WhiteListHandler       update.WhiteListHandler
 	InterceptorsContainer  process.InterceptorsContainer
 	AntifloodHandler       process.P2PAntifloodHandler
+	NonceConverter         typeConverters.Uint64ByteSliceConverter
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -95,6 +97,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		args.MultiSigner,
 		args.NodesCoordinator,
 		args.BlackList,
+		args.NonceConverter,
 	)
 	if err != nil {
 		return nil, err
@@ -157,6 +160,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		ChainID:           args.ChainID,
 		ValidityAttester:  args.ValidityAttester,
 		EpochStartTrigger: args.EpochStartTrigger,
+		NonceConverter:    args.NonceConverter,
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{
@@ -239,6 +243,7 @@ func checkBaseParams(
 	multiSigner crypto.MultiSigner,
 	nodesCoordinator sharding.NodesCoordinator,
 	blackList process.BlackListHandler,
+	nonceConverter typeConverters.Uint64ByteSliceConverter,
 ) error {
 	if check.IfNil(shardCoordinator) {
 		return process.ErrNilShardCoordinator
@@ -269,6 +274,9 @@ func checkBaseParams(
 	}
 	if check.IfNil(blackList) {
 		return process.ErrNilBlackListHandler
+	}
+	if check.IfNil(nonceConverter) {
+		return process.ErrNilUint64Converter
 	}
 
 	return nil
@@ -634,6 +642,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor
 		Marshalizer:      ficf.marshalizer,
 		Hasher:           ficf.hasher,
 		ShardCoordinator: ficf.shardCoordinator,
+		WhiteListHandler: ficf.whiteListHandler,
 	}
 	txBlockBodyProcessor, err := processor.NewMiniblockInterceptorProcessor(argProcessor)
 	if err != nil {

@@ -508,5 +508,98 @@ func TestTrigger_RevertStateToBlockBehindEpochStart(t *testing.T) {
 	err = et.RevertStateToBlock(prevHdr)
 	assert.Nil(t, err)
 	assert.True(t, et.IsEpochStart())
+}
 
+func TestTrigger_RevertStateToBlockBehindEpochStartNoBlockInAnEpoch(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+
+	prevEpochHdr := &block.Header{Round: 20, Epoch: 1}
+	prevEpochHdrBuff, _ := args.Marshalizer.Marshal(prevEpochHdr)
+
+	epochStartKey := core.EpochStartIdentifier(prevEpochHdr.Epoch)
+
+	args.Storage = &mock.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) (bytes []byte, err error) {
+					return []byte("hash"), nil
+				},
+				PutCalled: func(key, data []byte) error {
+					return nil
+				},
+				SearchFirstCalled: func(key []byte) ([]byte, error) {
+					if bytes.Equal(key, []byte(epochStartKey)) {
+						return prevEpochHdrBuff, nil
+					}
+					return nil, epochStart.ErrMissingHeader
+				},
+				RemoveCalled: func(key []byte) error {
+					return nil
+				},
+			}
+		},
+	}
+	et, _ := NewEpochStartTrigger(args)
+
+	prevHdr := &block.Header{Round: 29, Epoch: 2}
+	prevHash, _ := core.CalculateHash(et.marshalizer, et.hasher, prevHdr)
+
+	epochStartShHdr := &block.Header{
+		Nonce:              30,
+		PrevHash:           prevHash,
+		Round:              30,
+		EpochStartMetaHash: []byte("metaHash"),
+		Epoch:              3,
+	}
+	et.SetProcessed(epochStartShHdr, nil)
+
+	err := et.RevertStateToBlock(epochStartShHdr)
+	assert.Nil(t, err)
+	assert.Equal(t, et.epoch, epochStartShHdr.Epoch)
+	assert.False(t, et.IsEpochStart())
+
+	err = et.RevertStateToBlock(prevHdr)
+	assert.Nil(t, err)
+	assert.True(t, et.IsEpochStart())
+	assert.Equal(t, et.epochStartShardHeader.Epoch, prevEpochHdr.Epoch)
+}
+
+func TestTrigger_ReceivedHeaderChangeEpochFinalityAttestingRound(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	args.Validity = 1
+	args.Finality = 1
+	epochStartTrigger, _ := NewEpochStartTrigger(args)
+
+	oldEpHeader := &block.MetaBlock{Nonce: 99, Round: 99, Epoch: 0}
+	oldHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, oldEpHeader)
+
+	hash := []byte("hash")
+	header := &block.MetaBlock{Nonce: 100, Round: 100, Epoch: 1, PrevHash: oldHash}
+	header.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardID: 0, RootHash: hash, HeaderHash: hash}}
+
+	epochStartHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, header)
+	epochStartTrigger.receivedMetaBlock(header, epochStartHash)
+	epochStartTrigger.receivedMetaBlock(oldEpHeader, oldHash)
+
+	header102 := &block.MetaBlock{Nonce: 101, Round: 102, Epoch: 1, PrevHash: epochStartHash}
+	hash102, _ := core.CalculateHash(args.Marshalizer, args.Hasher, header102)
+	epochStartTrigger.receivedMetaBlock(header102, hash102)
+
+	assert.True(t, epochStartTrigger.IsEpochStart())
+	assert.Equal(t, uint64(102), epochStartTrigger.EpochFinalityAttestingRound())
+
+	header = &block.MetaBlock{Nonce: 101, Round: 101, Epoch: 1, PrevHash: epochStartHash}
+	currHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, header)
+	epochStartTrigger.receivedMetaBlock(header, currHash)
+
+	assert.Equal(t, uint64(101), epochStartTrigger.EpochFinalityAttestingRound())
+
+	header103 := &block.MetaBlock{Nonce: 102, Round: 103, Epoch: 1, PrevHash: hash102}
+	hash103, _ := core.CalculateHash(args.Marshalizer, args.Hasher, header102)
+	epochStartTrigger.receivedMetaBlock(header103, hash103)
+	assert.Equal(t, uint64(102), epochStartTrigger.EpochFinalityAttestingRound())
 }

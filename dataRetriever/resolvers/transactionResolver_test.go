@@ -130,7 +130,7 @@ func TestTxResolver_ProcessReceivedMessageCanProcessMessageErrorsShouldErr(t *te
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 			return expectedErr
 		},
-		CanProcessMessageOnTopicCalled: func(peer p2p.PeerID, topic string) error {
+		CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
 			return nil
 		},
 	}
@@ -493,7 +493,7 @@ func TestTxResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	requested := &dataRetriever.RequestData{}
 
 	res := &mock.TopicResolverSenderStub{}
-	res.SendOnRequestTopicCalled = func(rd *dataRetriever.RequestData) error {
+	res.SendOnRequestTopicCalled = func(rd *dataRetriever.RequestData, hashes [][]byte) error {
 		requested = rd
 		return nil
 	}
@@ -519,7 +519,7 @@ func TestTxResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 	requested := &dataRetriever.RequestData{}
 
 	res := &mock.TopicResolverSenderStub{}
-	res.SendOnRequestTopicCalled = func(rd *dataRetriever.RequestData) error {
+	res.SendOnRequestTopicCalled = func(rd *dataRetriever.RequestData, hashes [][]byte) error {
 		requested = rd
 		return nil
 	}
@@ -558,7 +558,7 @@ func TestTxResolver_SetAndGetNumPeersToQuery(t *testing.T) {
 	txRes, _ := resolvers.NewTxResolver(arg)
 
 	txRes.SetNumPeersToQuery(expectedIntra, expectedCross)
-	actualIntra, actualCross := txRes.GetNumPeersToQuery()
+	actualIntra, actualCross := txRes.NumPeersToQuery()
 	assert.Equal(t, expectedIntra, actualIntra)
 	assert.Equal(t, expectedCross, actualCross)
 }

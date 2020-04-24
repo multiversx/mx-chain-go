@@ -588,6 +588,6 @@ func (rrh *resolverRequestHandler) GetNumPeersToQuery(key string) (int, int, err
 		return 0, 0, err
 	}
 
-	intra, cross := resolver.GetNumPeersToQuery()
+	intra, cross := resolver.NumPeersToQuery()
 	return intra, cross, nil
 }

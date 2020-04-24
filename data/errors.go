@@ -19,9 +19,6 @@ var ErrNilBlockBody = errors.New("nil block body")
 // ErrMiniBlockEmpty signals that mini block is empty
 var ErrMiniBlockEmpty = errors.New("mini block is empty")
 
-// ErrNilAddressConverter signals that nil address converter was provided
-var ErrNilAddressConverter = errors.New("nil address converter")
-
 // ErrNilShardCoordinator signals that nil shard coordinator was provided
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 

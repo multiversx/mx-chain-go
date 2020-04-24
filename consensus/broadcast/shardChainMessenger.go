@@ -1,78 +1,81 @@
 package broadcast
 
 import (
+	"bytes"
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+type delayedBroadcastData struct {
+	headerHash   []byte
+	miniblocks   map[uint32][]byte
+	transactions map[string][][]byte
+}
 
 type shardChainMessenger struct {
 	*commonMessenger
-	marshalizer      marshal.Marshalizer
-	messenger        consensus.P2PMessenger
-	shardCoordinator sharding.Coordinator
+	headersSubscriber    consensus.HeadersPoolSubscriber
+	delayedBroadcastData []*delayedBroadcastData
+	maxDelayCacheSize    uint32
+	mutDataForBroadcast  sync.Mutex
+}
+
+// ShardChainMessengerArgs holds the arguments for creating a shardChainMessenger instance
+type ShardChainMessengerArgs struct {
+	CommonMessengerArgs
+	HeadersSubscriber consensus.HeadersPoolSubscriber
+	MaxDelayCacheSize uint32
 }
 
 // NewShardChainMessenger creates a new shardChainMessenger object
 func NewShardChainMessenger(
-	marshalizer marshal.Marshalizer,
-	messenger consensus.P2PMessenger,
-	privateKey crypto.PrivateKey,
-	shardCoordinator sharding.Coordinator,
-	singleSigner crypto.SingleSigner,
+	args ShardChainMessengerArgs,
 ) (*shardChainMessenger, error) {
 
-	err := checkShardChainNilParameters(marshalizer, messenger, shardCoordinator, privateKey, singleSigner)
+	err := checkShardChainNilParameters(args)
 	if err != nil {
 		return nil, err
 	}
 
 	cm := &commonMessenger{
-		marshalizer:      marshalizer,
-		messenger:        messenger,
-		privateKey:       privateKey,
-		shardCoordinator: shardCoordinator,
-		singleSigner:     singleSigner,
+		marshalizer:      args.Marshalizer,
+		messenger:        args.Messenger,
+		privateKey:       args.PrivateKey,
+		shardCoordinator: args.ShardCoordinator,
+		singleSigner:     args.SingleSigner,
 	}
 
 	scm := &shardChainMessenger{
-		commonMessenger:  cm,
-		marshalizer:      marshalizer,
-		messenger:        messenger,
-		shardCoordinator: shardCoordinator,
+		commonMessenger:      cm,
+		headersSubscriber:    args.HeadersSubscriber,
+		delayedBroadcastData: make([]*delayedBroadcastData, 0),
+		maxDelayCacheSize:    args.MaxDelayCacheSize,
+		mutDataForBroadcast:  sync.Mutex{},
 	}
 
+	scm.headersSubscriber.RegisterHandler(scm.headerReceived)
 	return scm, nil
 }
 
 func checkShardChainNilParameters(
-	marshalizer marshal.Marshalizer,
-	messenger consensus.P2PMessenger,
-	shardCoordinator sharding.Coordinator,
-	privateKey crypto.PrivateKey,
-	singleSigner crypto.SingleSigner,
+	args ShardChainMessengerArgs,
 ) error {
-	if check.IfNil(marshalizer) {
-		return spos.ErrNilMarshalizer
+	err := checkCommonMessengerNilParameters(args.CommonMessengerArgs)
+	if err != nil {
+		return err
 	}
-	if check.IfNil(messenger) {
-		return spos.ErrNilMessenger
+	if check.IfNil(args.HeadersSubscriber) {
+		return spos.ErrNilHeadersSubscriber
 	}
-	if check.IfNil(shardCoordinator) {
-		return spos.ErrNilShardCoordinator
-	}
-	if check.IfNil(privateKey) {
-		return spos.ErrNilPrivateKey
-	}
-	if check.IfNil(singleSigner) {
-		return spos.ErrNilSingleSigner
+	if args.MaxDelayCacheSize == 0 {
+		return spos.ErrInvalidCacheSize
 	}
 
 	return nil
@@ -128,6 +131,98 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler) error
 	go scm.messenger.Broadcast(factory.ShardBlocksTopic+shardIdentifier, msgHeader)
 
 	return nil
+}
+
+// SetDataForDelayBroadcast sets the miniblocks and transactions to be broadcast with delay
+func (scm *shardChainMessenger) SetDataForDelayBroadcast(
+	headerHash []byte,
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+) error {
+	if len(headerHash) == 0 {
+		return spos.ErrNilHeaderHash
+	}
+	if len(miniBlocks) == 0 {
+		return nil
+	}
+
+	scm.mutDataForBroadcast.Lock()
+	defer scm.mutDataForBroadcast.Unlock()
+
+	broadcastData := &delayedBroadcastData{
+		headerHash:   headerHash,
+		miniblocks:   miniBlocks,
+		transactions: transactions,
+	}
+
+	scm.delayedBroadcastData = append(scm.delayedBroadcastData, broadcastData)
+	if len(scm.delayedBroadcastData) > int(scm.maxDelayCacheSize) {
+		scm.broadcastDelayedData(scm.delayedBroadcastData[:1])
+		scm.delayedBroadcastData = scm.delayedBroadcastData[1:]
+	}
+
+	return nil
+}
+
+func (scm *shardChainMessenger) headerReceived(headerHandler data.HeaderHandler, _ []byte) {
+	scm.mutDataForBroadcast.Lock()
+	defer scm.mutDataForBroadcast.Unlock()
+
+	if len(scm.delayedBroadcastData) == 0 {
+		return
+	}
+	if headerHandler.GetShardID() != core.MetachainShardId {
+		return
+	}
+
+	headerHashes, err := getShardHeaderHashesFromMetachainBlock(headerHandler, scm.shardCoordinator.SelfId())
+	if err != nil {
+		log.Error("notifier headerReceived", "error", err.Error())
+		return
+	}
+	if len(headerHashes) == 0 {
+		return
+	}
+
+	for i := len(scm.delayedBroadcastData) - 1; i >= 0; i-- {
+		for _, headerHash := range headerHashes {
+			if bytes.Equal(scm.delayedBroadcastData[i].headerHash, headerHash) {
+				scm.broadcastDelayedData(scm.delayedBroadcastData[:i+1])
+				scm.delayedBroadcastData = scm.delayedBroadcastData[i+1:]
+				return
+			}
+		}
+	}
+}
+
+func (scm *shardChainMessenger) broadcastDelayedData(broadcastData []*delayedBroadcastData) {
+	for _, bData := range broadcastData {
+		err := scm.BroadcastMiniBlocks(bData.miniblocks)
+		if err != nil {
+			log.Error("broadcastDelayedData miniblocks", "error", err.Error())
+		}
+
+		err = scm.BroadcastTransactions(bData.transactions)
+		if err != nil {
+			log.Error("broadcastDelayedData transactions", "error", err.Error())
+		}
+	}
+}
+
+func getShardHeaderHashesFromMetachainBlock(headerHandler data.HeaderHandler, shardID uint32) ([][]byte, error) {
+	metaHeader, ok := headerHandler.(*block.MetaBlock)
+	if !ok {
+		return nil, spos.ErrInvalidMetaHeader
+	}
+
+	shardHeaderHashes := make([][]byte, 0)
+	shardsInfo := metaHeader.GetShardInfo()
+	for _, shardInfo := range shardsInfo {
+		if shardInfo.ShardID == shardID {
+			shardHeaderHashes = append(shardHeaderHashes, shardInfo.HeaderHash)
+		}
+	}
+	return shardHeaderHashes, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

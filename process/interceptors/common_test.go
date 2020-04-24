@@ -69,7 +69,7 @@ func TestPreProcessMessage_AntifloodTopicCanNotProcessShouldErr(t *testing.T) {
 	}
 	expectedErr := errors.New("expected error")
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{
-		CanProcessMessageOnTopicCalled: func(peer p2p.PeerID, topic string) error {
+		CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
 			return expectedErr
 		},
 	}
@@ -139,20 +139,15 @@ func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *tes
 		chDone <- struct{}{}
 	}()
 
-	removedWasCalled := false
 	processInterceptedData(
 		processor,
-		&mock.WhiteListHandlerStub{
-			RemoveCalled: func(keys [][]byte) {
-				removedWasCalled = true
-			},
-		},
+		&mock.InterceptedDebugHandlerStub{},
 		&mock.InterceptedDataStub{},
+		"topic",
 		wg,
 		&mock.P2PMessageMock{},
 	)
 
-	assert.True(t, removedWasCalled)
 	select {
 	case <-chDone:
 		assert.False(t, processCalled)
@@ -183,20 +178,15 @@ func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T
 		chDone <- struct{}{}
 	}()
 
-	removedWasCalled := false
 	processInterceptedData(
 		processor,
-		&mock.WhiteListHandlerStub{
-			RemoveCalled: func(keys [][]byte) {
-				removedWasCalled = true
-			},
-		},
+		&mock.InterceptedDebugHandlerStub{},
 		&mock.InterceptedDataStub{},
+		"topic",
 		wg,
 		&mock.P2PMessageMock{},
 	)
 
-	assert.True(t, removedWasCalled)
 	select {
 	case <-chDone:
 		assert.True(t, processCalled)
@@ -227,24 +217,63 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 		chDone <- struct{}{}
 	}()
 
-	removedWasCalled := false
 	processInterceptedData(
 		processor,
-		&mock.WhiteListHandlerStub{
-			RemoveCalled: func(keys [][]byte) {
-				removedWasCalled = true
-			},
-		},
+		&mock.InterceptedDebugHandlerStub{},
 		&mock.InterceptedDataStub{},
+		"topic",
 		wg,
 		&mock.P2PMessageMock{},
 	)
 
-	assert.True(t, removedWasCalled)
 	select {
 	case <-chDone:
 		assert.True(t, processCalled)
 	case <-time.After(time.Second):
 		assert.Fail(t, "timeout while waiting for wait group object to be finished")
 	}
+}
+
+//------- debug
+
+func TestProcessDebugInterceptedData_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	numCalled := 0
+	dh := &mock.InterceptedDebugHandlerStub{
+		LogProcessedHashesCalled: func(topic string, hashes [][]byte, err error) {
+			numCalled += len(hashes)
+		},
+	}
+
+	numCalls := 40
+	ids := &mock.InterceptedDataStub{
+		IdentifiersCalled: func() [][]byte {
+			return make([][]byte, numCalls)
+		},
+	}
+
+	processDebugInterceptedData(dh, ids, "", nil)
+	assert.Equal(t, numCalls, numCalled)
+}
+
+func TestReceivedDebugInterceptedData_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	numCalled := 0
+	dh := &mock.InterceptedDebugHandlerStub{
+		LogReceivedHashesCalled: func(topic string, hashes [][]byte) {
+			numCalled += len(hashes)
+		},
+	}
+
+	numCalls := 40
+	ids := &mock.InterceptedDataStub{
+		IdentifiersCalled: func() [][]byte {
+			return make([][]byte, numCalls)
+		},
+	}
+
+	receivedDebugInterceptedData(dh, ids, "")
+	assert.Equal(t, numCalls, numCalled)
 }
