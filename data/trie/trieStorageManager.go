@@ -169,21 +169,24 @@ func (tsm *trieStorageManager) ExitSnapshotMode() {
 		tsm.snapshotInProgress--
 	}
 
-	if tsm.snapshotInProgress == 0 {
-		tsm.prune(tsm.pruningBuffer.removeAll())
-	}
-
 	log.Trace("exit snapshot mode", "snapshots in progress", tsm.snapshotInProgress)
 }
 
 // Prune removes the given hash from db
-func (tsm *trieStorageManager) Prune(rootHash []byte) {
+func (tsm *trieStorageManager) Prune(rootHash []byte, identifier data.TriePruningIdentifier) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
 	log.Trace("trie storage manager prune", "root", rootHash)
+	rootHash = append(rootHash, byte(identifier))
 
 	if tsm.snapshotInProgress > 0 {
+		if identifier == data.NewRoot {
+			// TODO refactor pruning mechanism so that pruning will be done on rollback
+			// even if there is a snapshot in progress
+			return
+		}
+
 		tsm.pruningBuffer.add(rootHash)
 		return
 	}
