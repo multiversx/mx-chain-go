@@ -99,13 +99,13 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 	store, _ := storageUnit.NewStorageUnitFromConf(
 		storageUnit.CacheConfig{
 			Type: storageUnit.LRUCache,
-			Size: 45,
+			Size: 100,
 		},
 		storageUnit.DBConfig{
 			FilePath:          "TrieStorage",
 			Type:              "LvlDBSerial",
 			BatchDelaySeconds: 2,
-			MaxBatchSize:      45,
+			MaxBatchSize:      100,
 			MaxOpenFiles:      10,
 		},
 		storageUnit.BloomConfig{

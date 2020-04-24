@@ -696,8 +696,9 @@ func TestAndCatchTrieError(t *testing.T) {
 	ownerNonce++
 
 	numAccounts := 1000
-	testAddresses := createTestAddresses(uint64(numAccounts))
-	receiverAddresses := createTestAddresses(uint64(numAccounts))
+	allAddresses := createTestAddresses(uint64(numAccounts * 2))
+	testAddresses := allAddresses[:numAccounts]
+	receiverAddresses := allAddresses[numAccounts:]
 	// ERD Minting
 	for _, testAddress := range testAddresses {
 		_, _ = vm.CreateAccount(testContext.Accounts, testAddress, 0, big.NewInt(1000000))
@@ -767,9 +768,11 @@ func TestAndCatchTrieError(t *testing.T) {
 		extraNewRootHash, _ := testContext.Accounts.Commit()
 		require.Nil(t, err)
 		log.Info("finished a set - commit and recreate trie", "index", i)
-		if i%10 == 5 {
-			testContext.Accounts.PruneTrie(extraNewRootHash, data.NewRoot)
+		if i%5 == 0 {
 			_ = testContext.Accounts.RecreateTrie(rootHash)
+
+			testContext.Accounts.CancelPrune(rootHash, data.OldRoot)
+			testContext.Accounts.PruneTrie(extraNewRootHash, data.NewRoot)
 			continue
 		}
 
