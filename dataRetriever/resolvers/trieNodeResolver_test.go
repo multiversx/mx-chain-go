@@ -168,13 +168,13 @@ func TestTrieNodeResolver_ProcessReceivedMessageShouldGetFromTrieAndSend(t *test
 	returnedEncNodes := [][]byte{[]byte("node1"), []byte("node2")}
 
 	tr := &mock.TrieStub{
-		GetSerializedNodesCalled: func(hash []byte, maxSize uint64) ([][]byte, error) {
+		GetSerializedNodesCalled: func(hash []byte, maxSize uint64) ([][]byte, uint64, error) {
 			if bytes.Equal([]byte("node1"), hash) {
 				getSerializedNodesWasCalled = true
-				return returnedEncNodes, nil
+				return returnedEncNodes, 0, nil
 			}
 
-			return nil, errors.New("wrong hash")
+			return nil, 0, errors.New("wrong hash")
 		},
 	}
 
@@ -233,8 +233,8 @@ func TestTrieNodeResolver_ProcessReceivedMessageTrieErrorsShouldErr(t *testing.T
 	expectedErr := errors.New("expected err")
 	arg := createMockArgTrieNodeResolver()
 	arg.TrieDataGetter = &mock.TrieStub{
-		GetSerializedNodesCalled: func(_ []byte, _ uint64) ([][]byte, error) {
-			return nil, expectedErr
+		GetSerializedNodesCalled: func(_ []byte, _ uint64) ([][]byte, uint64, error) {
+			return nil, 0, expectedErr
 		},
 	}
 	tnRes, _ := resolvers.NewTrieNodeResolver(arg)

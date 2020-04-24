@@ -415,7 +415,7 @@ func (tr *patriciaMerkleTrie) ExitSnapshotMode() {
 }
 
 // GetSerializedNodes returns a batch of serialized nodes from the trie, starting from the given hash
-func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend uint64) ([][]byte, error) {
+func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend uint64) ([][]byte, uint64, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
@@ -423,17 +423,17 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 	newTr, err := tr.recreateFromDb(rootHash)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	it, err := NewIterator(newTr)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	encNode, err := it.MarshalizedNode()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	nodes := make([][]byte, 0)
@@ -443,22 +443,23 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 	for it.HasNext() {
 		err = it.Next()
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
 		encNode, err = it.MarshalizedNode()
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
 		if size+uint64(len(encNode)) > maxBuffToSend {
-			return nodes, nil
+			return nodes, 0, nil
 		}
 		nodes = append(nodes, encNode)
 		size += uint64(len(encNode))
 	}
 
-	return nodes, nil
+	remainingSpace := maxBuffToSend - size
+	return nodes, remainingSpace, nil
 }
 
 // GetAllLeaves iterates the trie and returns a map that contains all leafNodes information

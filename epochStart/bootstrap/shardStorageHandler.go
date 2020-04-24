@@ -255,6 +255,10 @@ func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(meta *block.MetaBl
 		Hash:    shardData.LastFinishedMetaBlock,
 	})
 
+	if len(shardData.PendingMiniBlockHeaders) > 0 {
+		return crossNotarizedHdrs, nil
+	}
+
 	neededHdr, ok = headers[string(shardData.FirstPendingMetaBlock)]
 	if !ok {
 		return nil, epochStart.ErrMissingHeader
@@ -286,7 +290,7 @@ func (ssh *shardStorageHandler) saveLastHeader(shardHeader *block.Header) (boots
 	}
 
 	bootstrapHdrInfo := bootstrapStorage.BootstrapHeaderInfo{
-		ShardId: core.MetachainShardId,
+		ShardId: shardHeader.ShardID,
 		Epoch:   shardHeader.Epoch,
 		Nonce:   shardHeader.Nonce,
 		Hash:    lastHeaderHash,
