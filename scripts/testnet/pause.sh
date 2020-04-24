@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Pause the testnet, by sending SIGSTOP to all the processes of the testnet
+# (seednode, observers, validators, proxy, txgen)
+
 export ELRONDTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 if [ "$1" == "keep" ]; then
