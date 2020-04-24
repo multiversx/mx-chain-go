@@ -79,16 +79,17 @@ type Node struct {
 	addressPubkeyConverter        state.PubkeyConverter
 	validatorPubkeyConverter      state.PubkeyConverter
 	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
-	interceptorsContainer         process.InterceptorsContainer
-	resolversFinder               dataRetriever.ResolversFinder
-	peerBlackListHandler          process.BlackListHandler
-	heartbeatMonitor              *heartbeat.Monitor
-	heartbeatSender               *heartbeat.Sender
-	appStatusHandler              core.AppStatusHandler
-	validatorStatistics           process.ValidatorStatisticsProcessor
-	hardforkTrigger               HardforkTrigger
-	validatorsProvider            process.ValidatorsProvider
-	whiteListHandler              process.WhiteListHandler
+	interceptorsContainer  process.InterceptorsContainer
+	resolversFinder        dataRetriever.ResolversFinder
+	peerBlackListHandler   process.BlackListHandler
+	heartbeatMonitor       *heartbeat.Monitor
+	heartbeatSender        *heartbeat.Sender
+	appStatusHandler       core.AppStatusHandler
+	validatorStatistics    process.ValidatorStatisticsProcessor
+	hardforkTrigger        HardforkTrigger
+	validatorsProvider     process.ValidatorsProvider
+	whiteListRequest       process.WhiteListHandler
+	whiteListerVerifiedTxs process.WhiteListHandler
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -758,7 +759,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	txValidator, err := dataValidators.NewTxValidator(
 		n.accounts,
 		n.shardCoordinator,
-		n.whiteListHandler,
+		n.whiteListRequest,
 		n.addressPubkeyConverter,
 		core.MaxTxNonceDeltaAllowed,
 	)
@@ -781,6 +782,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		n.addressPubkeyConverter,
 		n.shardCoordinator,
 		n.feeHandler,
+		n.whiteListerVerifiedTxs,
 	)
 	if err != nil {
 		return err
