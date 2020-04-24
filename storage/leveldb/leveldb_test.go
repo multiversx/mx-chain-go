@@ -90,8 +90,8 @@ func TestDB_GetErrorAfterPutBeforeTimeout(t *testing.T) {
 	err := ldb.Put(key, val)
 	assert.Nil(t, err)
 	v, err := ldb.Get(key)
-	assert.Nil(t, v)
-	assert.Equal(t, storage.ErrKeyNotFound, err)
+	assert.Equal(t, val, v)
+	assert.Nil(t, err)
 }
 
 func TestDB_GetOKAfterPutWithTimeout(t *testing.T) {

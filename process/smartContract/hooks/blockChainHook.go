@@ -176,7 +176,7 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 	}
 
 	value, err := userAcc.DataTrieTracker().RetrieveValue(index)
-	log.Trace("GetStorageData ", "address", accountAddress, "key", index, "value", value, "error", err)
+	log.Trace("GetStorageData ", "address", accountAddress, "rootHash", userAcc.GetRootHash(), "key", index, "value", value, "error", err)
 	return value, err
 }
 

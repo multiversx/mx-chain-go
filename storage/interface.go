@@ -32,6 +32,8 @@ type Persister interface {
 type Batcher interface {
 	// Put inserts one entry - key, value pair - into the batch
 	Put(key []byte, val []byte) error
+	// Get returns the value from the batch
+	Get(key []byte) []byte
 	// Delete deletes the batch
 	Delete(key []byte) error
 	// Reset clears the contents of the batch
