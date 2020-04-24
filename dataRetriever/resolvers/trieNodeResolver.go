@@ -94,7 +94,7 @@ func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message 
 	remainingSpace := maxBuffToSendTrieNodes
 	nodes := make([][]byte, 0, maxBuffToSendTrieNodes)
 	for _, hash := range hashes {
-		nextNodes, err := tnRes.getSubTrie(hash, remainingSpace)
+		nextNodes, remainingSpace, err := tnRes.getSubTrie(hash, remainingSpace)
 		if err != nil {
 			continue
 		}
@@ -102,10 +102,6 @@ func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message 
 		nodes = append(nodes, nextNodes...)
 
 		lenNextNodes := uint64(len(nextNodes))
-		if remainingSpace >= lenNextNodes {
-			remainingSpace -= uint64(len(nextNodes))
-		}
-
 		if lenNextNodes == 0 || remainingSpace == 0 {
 			break
 		}
@@ -115,7 +111,7 @@ func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message 
 }
 
 func (tnRes *TrieNodeResolver) resolveOneHash(hash []byte, message p2p.MessageP2P) error {
-	nodes, err := tnRes.getSubTrie(hash, maxBuffToSendTrieNodes)
+	nodes, _, err := tnRes.getSubTrie(hash, maxBuffToSendTrieNodes)
 	if err != nil {
 		return err
 	}
@@ -123,8 +119,8 @@ func (tnRes *TrieNodeResolver) resolveOneHash(hash []byte, message p2p.MessageP2
 	return tnRes.sendResponse(nodes, message)
 }
 
-func (tnRes *TrieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([][]byte, error) {
-	serializedNodes, err := tnRes.trieDataGetter.GetSerializedNodes(hash, remainingSpace)
+func (tnRes *TrieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([][]byte, uint64, error) {
+	serializedNodes, remainingSpace, err := tnRes.trieDataGetter.GetSerializedNodes(hash, remainingSpace)
 	if err != nil {
 		tnRes.ResolverDebugHandler().LogFailedToResolveData(
 			tnRes.topic,
@@ -132,10 +128,10 @@ func (tnRes *TrieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([
 			err,
 		)
 
-		return nil, err
+		return nil, remainingSpace, err
 	}
 
-	return serializedNodes, nil
+	return serializedNodes, remainingSpace, nil
 }
 
 func (tnRes *TrieNodeResolver) sendResponse(serializedNodes [][]byte, message p2p.MessageP2P) error {

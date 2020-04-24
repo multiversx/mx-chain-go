@@ -110,7 +110,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 
 	go rrh.requestHashesWithDataSplit(unrequestedHashes, txResolver)
 
-	rrh.addRequestedItem(unrequestedHashes)
+	rrh.addRequestedItems(unrequestedHashes)
 }
 
 func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
@@ -182,7 +182,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 		return
 	}
 
-	rrh.addRequestedItem([][]byte{miniblockHash})
+	rrh.addRequestedItems([][]byte{miniblockHash})
 }
 
 // RequestMiniBlocks method asks for miniblocks from the connected peers
@@ -223,7 +223,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 		return
 	}
 
-	rrh.addRequestedItem(unrequestedHashes)
+	rrh.addRequestedItems(unrequestedHashes)
 }
 
 // RequestShardHeader method asks for shard header from the connected peers
@@ -256,7 +256,7 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 		return
 	}
 
-	rrh.addRequestedItem([][]byte{hash})
+	rrh.addRequestedItems([][]byte{hash})
 }
 
 // RequestMetaHeader method asks for meta header from the connected peers
@@ -288,7 +288,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 		return
 	}
 
-	rrh.addRequestedItem([][]byte{hash})
+	rrh.addRequestedItems([][]byte{hash})
 }
 
 // RequestShardHeaderByNonce method asks for shard header from the connected peers by nonce
@@ -322,7 +322,7 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 		return
 	}
 
-	rrh.addRequestedItem([][]byte{key})
+	rrh.addRequestedItems([][]byte{key})
 }
 
 // RequestTrieNodes method asks for trie nodes from the connected peers
@@ -359,7 +359,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 
 	go rrh.requestHashesWithDataSplit(unrequestedHashes, trieResolver)
 
-	rrh.addRequestedItem(unrequestedHashes)
+	rrh.addRequestedItems(unrequestedHashes)
 }
 
 // RequestMetaHeaderByNonce method asks for meta header from the connected peers by nonce
@@ -391,7 +391,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 		return
 	}
 
-	rrh.addRequestedItem([][]byte{key})
+	rrh.addRequestedItems([][]byte{key})
 }
 
 func (rrh *resolverRequestHandler) testIfRequestIsNeeded(key []byte) bool {
@@ -406,11 +406,11 @@ func (rrh *resolverRequestHandler) testIfRequestIsNeeded(key []byte) bool {
 	return true
 }
 
-func (rrh *resolverRequestHandler) addRequestedItem(keys [][]byte) {
+func (rrh *resolverRequestHandler) addRequestedItems(keys [][]byte) {
 	for _, key := range keys {
 		err := rrh.requestedItemsHandler.Add(string(key))
 		if err != nil {
-			log.Trace("addRequestedItem",
+			log.Trace("addRequestedItems",
 				"error", err.Error(),
 				"key", key)
 			return
@@ -513,7 +513,7 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 		return
 	}
 
-	rrh.addRequestedItem([][]byte{epochStartIdentifier})
+	rrh.addRequestedItems([][]byte{epochStartIdentifier})
 }
 
 // RequestInterval returns the request interval between sending the same request

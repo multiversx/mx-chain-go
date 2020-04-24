@@ -329,7 +329,7 @@ type DataPacker interface {
 
 // TrieDataGetter returns requested data from the trie
 type TrieDataGetter interface {
-	GetSerializedNodes([]byte, uint64) ([][]byte, error)
+	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	IsInterfaceNil() bool
 }
 
