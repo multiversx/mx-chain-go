@@ -356,11 +356,12 @@
 # where x in [MinTimeToWaitBetweenBroadcastsInSec, MaxTimeToWaitBetweenBroadcastsInSec)
 [Heartbeat]
    Enabled = true
-   MinTimeToWaitBetweenBroadcastsInSec = 20
-   MaxTimeToWaitBetweenBroadcastsInSec = 25
-   HbmiRefreshIntervalInSec            = 60
+   MinTimeToWaitBetweenBroadcastsInSec  = 20
+   MaxTimeToWaitBetweenBroadcastsInSec  = 25
+   HbmiRefreshIntervalInSec             = 60
    HideInactiveValidatorIntervalInHours = 24
-   DurationInSecToConsiderUnresponsive = 60
+   PeerTypeRefreshIntervalInSec         = 60
+   DurationInSecToConsiderUnresponsive  = 60
    [Heartbeat.HeartbeatStorage]
        [Heartbeat.HeartbeatStorage.Cache]
            Size = 1000
