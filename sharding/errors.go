@@ -22,6 +22,12 @@ var ErrInvalidNumberPubKeys = errors.New("invalid number of public keys")
 // ErrNilNodesCoordinator signals that the nodesCoordinator is nil
 var ErrNilNodesCoordinator = errors.New("nil nodesCoordinator")
 
+// ErrNilValidatorsProvider signals that the validatorsProvider is nil
+var ErrNilValidatorsProvider = errors.New("nil validatorsProvider")
+
+// ErrNilEpochStartNotifier signals that the ErrNilEpochStartNotifier is nil
+var ErrNilEpochStartNotifier = errors.New("nil epochStartNotifier")
+
 // ErrNilMarshalizer signals that the marshalizer is nil
 var ErrNilMarshalizer = errors.New("nil marshalizer")
 
