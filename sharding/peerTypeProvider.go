@@ -25,32 +25,37 @@ type PeerTypeProvider struct {
 	mutCache         sync.RWMutex
 }
 
+type ArgPeerTypeProvider struct {
+	NodesCoordinator        NodesCoordinator
+	EpochHandler            EpochHandler
+	EpochStartEventNotifier EpochStartEventNotifier
+}
+
 // NewPeerTypeProvider will return a new instance of PeerTypeProvider
-func NewPeerTypeProvider(
-	nodesCoordinator NodesCoordinator,
-	epochHandler EpochHandler,
-	epochStartNotifier EpochStartEventNotifier,
-) (*PeerTypeProvider, error) {
-	if check.IfNil(nodesCoordinator) {
+func NewPeerTypeProvider(arg ArgPeerTypeProvider) (*PeerTypeProvider, error) {
+	if check.IfNil(arg.NodesCoordinator) {
 		return nil, ErrNilNodesCoordinator
 	}
-	if check.IfNil(epochHandler) {
+	if check.IfNil(arg.EpochHandler) {
 		return nil, ErrNilEpochHandler
+	}
+	if arg.EpochStartEventNotifier == nil {
+		return nil, ErrNilEpochStartNotifier
 	}
 
 	ptp := &PeerTypeProvider{
-		nodesCoordinator: nodesCoordinator,
-		epochHandler:     epochHandler,
+		nodesCoordinator: arg.NodesCoordinator,
+		epochHandler:     arg.EpochHandler,
 		cache:            make(map[string]*peerListAndShard),
 		mutCache:         sync.RWMutex{},
 	}
 
-	err := ptp.populateCache(epochHandler.MetaEpoch())
+	err := ptp.populateCache(ptp.epochHandler.MetaEpoch())
 	if err != nil {
 		return nil, err
 	}
 
-	epochStartNotifier.RegisterHandler(ptp.epochStartEventHandler())
+	arg.EpochStartEventNotifier.RegisterHandler(ptp.epochStartEventHandler())
 
 	return ptp, nil
 }
@@ -65,31 +70,26 @@ func (ptp *PeerTypeProvider) populateCache(epoch uint32) error {
 	if err != nil {
 		return err
 	}
-
-	for shardID, eligibleValidatorsInShard := range nodesMapEligible {
-		for _, val := range eligibleValidatorsInShard {
-			ptp.cache[string(val)] = &peerListAndShard{
-				pType:  core.EligibleList,
-				pShard: shardID,
-			}
-		}
-	}
+	ptp.setPeerTypeAndShardId(nodesMapEligible, core.EligibleList)
 
 	nodesMapWaiting, err := ptp.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
 	if err != nil {
 		return err
 	}
+	ptp.setPeerTypeAndShardId(nodesMapWaiting, core.WaitingList)
 
-	for shardID, waitingValidatorsInShard := range nodesMapWaiting {
-		for _, val := range waitingValidatorsInShard {
+	return nil
+}
+
+func (ptp *PeerTypeProvider) setPeerTypeAndShardId(nodesMapEligible map[uint32][][]byte, currentPeerType core.PeerType) {
+	for shardID, eligibleValidatorsInShard := range nodesMapEligible {
+		for _, val := range eligibleValidatorsInShard {
 			ptp.cache[string(val)] = &peerListAndShard{
-				pType:  core.WaitingList,
+				pType:  currentPeerType,
 				pShard: shardID,
 			}
 		}
 	}
-
-	return nil
 }
 
 // ComputeForPubKey returns the peer type for a given public key and shard id
@@ -109,7 +109,6 @@ func (ptp *PeerTypeProvider) computeFromMaps(pubKey []byte) (core.PeerType, uint
 	if err != nil {
 		return "", 0, err
 	}
-
 	for shID, eligibleValidatorsInShard := range nodesMapEligible {
 		for _, val := range eligibleValidatorsInShard {
 			if bytes.Equal(val, pubKey) {
@@ -130,7 +129,6 @@ func (ptp *PeerTypeProvider) computeFromMaps(pubKey []byte) (core.PeerType, uint
 	if err != nil {
 		return "", 0, err
 	}
-
 	for shID, waitingValidatorsInShard := range nodesMapWaiting {
 		for _, val := range waitingValidatorsInShard {
 			if bytes.Equal(val, pubKey) {

@@ -970,18 +970,6 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithInitialNodesPubKeys(initialPubKeys),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{
-			GetPeerAccountCalled: func(address []byte) (handler state.PeerAccountHandler, err error) {
-				switch {
-				case bytes.Equal(address, []byte(keys[0][0])):
-					return nil, errors.New("error")
-				case bytes.Equal(address, []byte(keys[1][0])):
-					return state.NewPeerAccount(mock.NewAddressMock())
-				default:
-					return state.NewPeerAccount(mock.NewAddressMock())
-				}
-			},
-		}),
 		node.WithValidatorStatistics(vsp),
 		node.WithValidatorsProvider(validatorProvider),
 	)
@@ -1032,6 +1020,7 @@ func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
 				}, nil
 			},
 		}),
+		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1087,6 +1076,7 @@ func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
 				}, nil
 			},
 		}),
+		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1246,6 +1236,7 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 				}, nil
 			},
 		}),
+		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(96)),
@@ -1255,6 +1246,8 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
+		HbmiRefreshIntervalInSec:            1,
+		HideInactiveValidatorIntervalInSec:  600,
 	}, "v0.1",
 		"undefined",
 	)
@@ -1333,6 +1326,7 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 				}, nil
 			},
 		}),
+		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(96)),
@@ -1342,6 +1336,8 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
+		HbmiRefreshIntervalInSec:            1,
+		HideInactiveValidatorIntervalInSec:  1,
 	}, "v0.1",
 		"undefined",
 	)
@@ -1422,14 +1418,15 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 				}, nil
 			},
 		}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{
+			GetLatestValidatorInfosCalled: func() (map[uint32][]*state.ValidatorInfo, error) {
 				return map[uint32][]*state.ValidatorInfo{
 					0: {
-						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+						{PublicKey: []byte("pk1"), List: string(core.EligibleList)},
+						{PublicKey: []byte("pk2"), List: string(core.EligibleList)},
 					},
 					1: {
-						{PublicKey: []byte("pk3")},
+						{PublicKey: []byte("pk3"), List: string(core.EligibleList)},
 					},
 				}, nil
 			},
@@ -1444,6 +1441,8 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
+		HbmiRefreshIntervalInSec:            1,
+		HideInactiveValidatorIntervalInSec:  1,
 	}, "v0.1",
 		"undefined",
 	)
@@ -1528,6 +1527,7 @@ func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *tes
 				}, nil
 			},
 		}),
+		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(96)),
@@ -1538,6 +1538,8 @@ func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *tes
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
+		HbmiRefreshIntervalInSec:            1,
+		HideInactiveValidatorIntervalInSec:  1,
 	}, "v0.1",
 		"undefined",
 	)
