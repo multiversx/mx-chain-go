@@ -443,6 +443,8 @@ func TestShardInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 			return nil
 		},
 	}
+	args.WhiteListerVerifiedTxs = &mock.WhiteListHandlerStub{}
+
 	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
 	container, err := icf.Create()
@@ -528,5 +530,6 @@ func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactory
 		AntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
 		WhiteListHandler:       &mock.WhiteListHandlerStub{},
 		NonceConverter:         mock.NewNonceHashConverterMock(),
+		WhiteListerVerifiedTxs: &mock.WhiteListHandlerStub{},
 	}
 }
