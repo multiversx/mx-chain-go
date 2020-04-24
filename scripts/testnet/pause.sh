@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Pause the testnet, by sending SIGSTOP to all the processes of the testnet
+# (seednode, observers, validators, proxy, txgen)
+
 export ELRONDTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 if [ "$1" == "keep" ]; then
@@ -13,19 +16,13 @@ source "$ELRONDTESTNETSCRIPTSDIR/include/nodes.sh"
 source "$ELRONDTESTNETSCRIPTSDIR/include/tools.sh"
 
 if [ $USE_PROXY -eq 1 ]; then
-  stopProxy
+  pauseProxy
 fi
 
 if [ $USE_TXGEN -eq 1 ]; then
-  stopTxGen
+  pauseTxGen
 fi
 
-stopValidators
-stopObservers
-stopSeednode
-
-if [ $USETMUX -eq 1 ] && [ $KEEPOPEN -eq 0 ]
-then
-  tmux kill-session -t "elrond-tools"
-  tmux kill-session -t "elrond-nodes"
-fi
+pauseValidators
+pauseObservers
+pauseSeednode

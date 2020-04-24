@@ -1,5 +1,3 @@
-source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
-
 generateConfig() {
   echo "Generating configuration using values from scripts/variables.sh..."
 
