@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const maxTxNonceDeltaAllowed = 100
@@ -428,7 +429,8 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+	require.Nil(t, err)
 
 	container, err := icf.Create()
 
@@ -475,5 +477,6 @@ func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryAr
 		AntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
 		WhiteListHandler:       &mock.WhiteListHandlerStub{},
 		NonceConverter:         mock.NewNonceHashConverterMock(),
+		WhiteListerVerifiedTxs: &mock.WhiteListHandlerStub{},
 	}
 }
