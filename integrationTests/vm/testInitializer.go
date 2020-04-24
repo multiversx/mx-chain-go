@@ -12,7 +12,6 @@ import (
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/pubkeyConverter"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -32,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/stretchr/testify/assert"
@@ -163,14 +163,14 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		}}
 	argsParser := vmcommon.NewAtArgumentParser()
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter: pubkeyConv,
+		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: oneShardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   argsParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	gasSchedule := make(map[string]map[string]uint64)
-	FillGasMapInternal(gasSchedule, 1)
+	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:  vmContainer,
@@ -249,7 +249,7 @@ func CreateVMAndBlockchainHook(
 	actualGasSchedule := gasSchedule
 	if gasSchedule == nil {
 		actualGasSchedule = arwenConfig.MakeGasMap(1)
-		FillGasMapInternal(actualGasSchedule, 1)
+		defaults.FillGasMapInternal(actualGasSchedule, 1)
 	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
@@ -305,7 +305,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 ) (process.TransactionProcessor, process.SmartContractProcessor) {
 	argsParser := vmcommon.NewAtArgumentParser()
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter: pubkeyConv,
+		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: oneShardCoordinator,
 		BuiltInFuncNames: blockChainHook.GetBuiltInFunctions().Keys(),
 		ArgumentParser:   argsParser,
@@ -313,7 +313,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
 	gasSchedule := make(map[string]map[string]uint64)
-	FillGasMapInternal(gasSchedule, 1)
+	defaults.FillGasMapInternal(gasSchedule, 1)
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:  vmContainer,
 		ArgsParser:   argsParser,
@@ -603,51 +603,4 @@ func CreateMoveBalanceTx(
 		GasPrice: 1,
 		GasLimit: gasLimit,
 	}
-}
-
-// FillGasMapInternal -
-func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
-	gasMap[core.BaseOperationCost] = FillGasMapBaseOperationCosts(value)
-	gasMap[core.BuiltInCost] = FillGasMapBuiltInCosts(value)
-	gasMap[core.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(value)
-
-	return gasMap
-}
-
-// FillGasMapBaseOperationCosts -
-func FillGasMapBaseOperationCosts(value uint64) map[string]uint64 {
-	gasMap := make(map[string]uint64)
-	gasMap["StorePerByte"] = value
-	gasMap["DataCopyPerByte"] = value
-	gasMap["ReleasePerByte"] = value
-	gasMap["PersistPerByte"] = value
-	gasMap["CompilePerByte"] = value
-
-	return gasMap
-}
-
-// FillGasMapBuiltInCosts -
-func FillGasMapBuiltInCosts(value uint64) map[string]uint64 {
-	gasMap := make(map[string]uint64)
-	gasMap["ClaimDeveloperRewards"] = value
-	gasMap["ChangeOwnerAddress"] = value
-	gasMap["SaveUserName"] = value
-	gasMap["SaveKeyValue"] = value
-
-	return gasMap
-}
-
-// FillGasMapMetaChainSystemSCsCosts -
-func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
-	gasMap := make(map[string]uint64)
-	gasMap["Stake"] = value
-	gasMap["UnStake"] = value
-	gasMap["UnBond"] = value
-	gasMap["Claim"] = value
-	gasMap["Get"] = value
-	gasMap["ChangeRewardAddress"] = value
-	gasMap["ChangeValidatorKeys"] = value
-	gasMap["UnJail"] = value
-
-	return gasMap
 }

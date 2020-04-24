@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"math/big"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -40,6 +41,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
+	"github.com/ElrondNetwork/elrond-go/genesis/parser"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -515,7 +517,17 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return fmt.Errorf("%w for AddressPubkeyConverter", err)
 	}
 
-	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(genesisFile.Name), addressPubkeyConverter)
+	//TODO when refactoring main, maybe initialize economics data before this line
+	totalSupply, ok := big.NewInt(0).SetString(economicsConfig.GlobalSettings.TotalSupply, 10)
+	if !ok {
+		return fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
+			economicsConfig.GlobalSettings.TotalSupply)
+	}
+	genesisParser, err := parser.NewGenesis(
+		ctx.GlobalString(genesisFile.Name),
+		totalSupply,
+		addressPubkeyConverter,
+	)
 	if err != nil {
 		return err
 	}
@@ -821,7 +833,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating state components")
 	stateArgs := factory.NewStateComponentsFactoryArgs(
 		generalConfig,
-		genesisConfig,
+		genesisParser,
 		shardCoordinator,
 		coreComponents,
 		pathManager,
@@ -935,7 +947,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		coreArgs,
-		genesisConfig,
+		genesisParser,
 		economicsData,
 		genesisNodesConfig,
 		gasSchedule,

@@ -1,4 +1,4 @@
-package genesis
+package parser
 
 import (
 	"fmt"
@@ -7,14 +7,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-const decodeBase = 10
-
 // Genesis hold data for decoded data from json file
 type Genesis struct {
-	initialAccounts []*InitialAccount
+	initialAccounts []*genesis.InitialAccount
 	entireSupply    *big.Int
 	pubkeyConverter state.PubkeyConverter
 }
@@ -27,33 +26,33 @@ func NewGenesis(
 ) (*Genesis, error) {
 
 	if entireSupply == nil {
-		return nil, ErrNilEntireSupply
+		return nil, genesis.ErrNilEntireSupply
 	}
 	if big.NewInt(0).Cmp(entireSupply) >= 0 {
-		return nil, ErrInvalidEntireSupply
+		return nil, genesis.ErrInvalidEntireSupply
 	}
 	if check.IfNil(pubkeyConverter) {
-		return nil, ErrNilPubkeyConverter
+		return nil, genesis.ErrNilPubkeyConverter
 	}
 
-	initialAccounts := make([]*InitialAccount, 0)
+	initialAccounts := make([]*genesis.InitialAccount, 0)
 	err := core.LoadJsonFile(&initialAccounts, genesisFilePath)
 	if err != nil {
 		return nil, err
 	}
 
-	genesis := &Genesis{
+	g := &Genesis{
 		initialAccounts: initialAccounts,
 		entireSupply:    entireSupply,
 		pubkeyConverter: pubkeyConverter,
 	}
 
-	err = genesis.process()
+	err = g.process()
 	if err != nil {
 		return nil, err
 	}
 
-	return genesis, nil
+	return g, nil
 }
 
 func (g *Genesis) process() error {
@@ -79,7 +78,7 @@ func (g *Genesis) process() error {
 
 	if totalSupply.Cmp(g.entireSupply) != 0 {
 		return fmt.Errorf("%w for entire supply provided %s, computed %s",
-			ErrEntireSupplyMismatch,
+			genesis.ErrEntireSupplyMismatch,
 			g.entireSupply.String(),
 			totalSupply.String(),
 		)
@@ -88,22 +87,22 @@ func (g *Genesis) process() error {
 	return nil
 }
 
-func (g *Genesis) parseElement(initialAccount *InitialAccount) error {
+func (g *Genesis) parseElement(initialAccount *genesis.InitialAccount) error {
 	var err error
 
 	if len(initialAccount.Address) == 0 {
-		return ErrEmptyAddress
+		return genesis.ErrEmptyAddress
 	}
-	initialAccount.address, err = g.pubkeyConverter.Decode(initialAccount.Address)
+	initialAccount.AddressBytes, err = g.pubkeyConverter.Decode(initialAccount.Address)
 	if err != nil {
 		return fmt.Errorf("%w for `%s`",
-			ErrInvalidAddress, initialAccount.Address)
+			genesis.ErrInvalidAddress, initialAccount.Address)
 	}
 
 	return g.parseDelegationElement(initialAccount)
 }
 
-func (g *Genesis) parseDelegationElement(initialAccount *InitialAccount) error {
+func (g *Genesis) parseDelegationElement(initialAccount *genesis.InitialAccount) error {
 	var err error
 	delegationData := initialAccount.Delegation
 
@@ -113,12 +112,12 @@ func (g *Genesis) parseDelegationElement(initialAccount *InitialAccount) error {
 
 	if len(delegationData.Address) == 0 {
 		return fmt.Errorf("%w for address '%s'",
-			ErrEmptyDelegationAddress, initialAccount.Address)
+			genesis.ErrEmptyDelegationAddress, initialAccount.Address)
 	}
-	delegationData.address, err = g.pubkeyConverter.Decode(delegationData.Address)
+	delegationData.AddressBytes, err = g.pubkeyConverter.Decode(delegationData.Address)
 	if err != nil {
 		return fmt.Errorf("%w for `%s`, address %s",
-			ErrInvalidDelegationAddress,
+			genesis.ErrInvalidDelegationAddress,
 			delegationData.Address,
 			initialAccount.Address,
 		)
@@ -127,18 +126,18 @@ func (g *Genesis) parseDelegationElement(initialAccount *InitialAccount) error {
 	return nil
 }
 
-func (g *Genesis) checkInitialAccount(initialAccount *InitialAccount) error {
-	isSmartContract := core.IsSmartContractAddress(initialAccount.address)
+func (g *Genesis) checkInitialAccount(initialAccount *genesis.InitialAccount) error {
+	isSmartContract := core.IsSmartContractAddress(initialAccount.AddressBytes)
 	if isSmartContract {
 		return fmt.Errorf("%w for address %s",
-			ErrAddressIsSmartContract,
+			genesis.ErrAddressIsSmartContract,
 			initialAccount.Address,
 		)
 	}
 
 	if big.NewInt(0).Cmp(initialAccount.Supply) >= 0 {
 		return fmt.Errorf("%w for '%s', address %s",
-			ErrInvalidSupply,
+			genesis.ErrInvalidSupply,
 			initialAccount.Supply,
 			initialAccount.Address,
 		)
@@ -146,7 +145,7 @@ func (g *Genesis) checkInitialAccount(initialAccount *InitialAccount) error {
 
 	if big.NewInt(0).Cmp(initialAccount.Balance) > 0 {
 		return fmt.Errorf("%w for '%s', address %s",
-			ErrInvalidBalance,
+			genesis.ErrInvalidBalance,
 			initialAccount.Balance,
 			initialAccount.Address,
 		)
@@ -154,7 +153,7 @@ func (g *Genesis) checkInitialAccount(initialAccount *InitialAccount) error {
 
 	if big.NewInt(0).Cmp(initialAccount.StakingValue) > 0 {
 		return fmt.Errorf("%w for '%s', address %s",
-			ErrInvalidStakingBalance,
+			genesis.ErrInvalidStakingBalance,
 			initialAccount.Balance,
 			initialAccount.Address,
 		)
@@ -162,7 +161,7 @@ func (g *Genesis) checkInitialAccount(initialAccount *InitialAccount) error {
 
 	if big.NewInt(0).Cmp(initialAccount.Delegation.Value) > 0 {
 		return fmt.Errorf("%w for '%s', address %s",
-			ErrInvalidDelegationValue,
+			genesis.ErrInvalidDelegationValue,
 			initialAccount.Delegation.Value,
 			initialAccount.Address,
 		)
@@ -176,7 +175,7 @@ func (g *Genesis) checkInitialAccount(initialAccount *InitialAccount) error {
 	isSupplyCorrect := big.NewInt(0).Cmp(initialAccount.Supply) < 0 && initialAccount.Supply.Cmp(sum) == 0
 	if !isSupplyCorrect {
 		return fmt.Errorf("%w for address %s, provided %s, computed %s",
-			ErrSupplyMismatch,
+			genesis.ErrSupplyMismatch,
 			initialAccount.Address,
 			initialAccount.Supply.String(),
 			sum.String(),
@@ -193,7 +192,7 @@ func (g *Genesis) checkForDuplicates() error {
 			ib2 := g.initialAccounts[idx2]
 			if ib1.Address == ib2.Address {
 				return fmt.Errorf("%w found for '%s'",
-					ErrDuplicateAddress,
+					genesis.ErrDuplicateAddress,
 					ib1.Address,
 				)
 			}
@@ -226,18 +225,23 @@ func (g *Genesis) DelegatedUpon(address string) *big.Int {
 	return delegated
 }
 
+// InitialAccounts return the initial accounts contained by this parser
+func (g *Genesis) InitialAccounts() []*genesis.InitialAccount {
+	return g.initialAccounts
+}
+
 // InitialAccountsSplitOnAddressesShards gets the initial accounts of the nodes split on the addresses's shards
 func (g *Genesis) InitialAccountsSplitOnAddressesShards(
 	shardCoordinator sharding.Coordinator,
-) (map[uint32][]*InitialAccount, error) {
+) (map[uint32][]*genesis.InitialAccount, error) {
 
 	if check.IfNil(shardCoordinator) {
-		return nil, ErrNilShardCoordinator
+		return nil, genesis.ErrNilShardCoordinator
 	}
 
-	var addresses = make(map[uint32][]*InitialAccount)
+	var addresses = make(map[uint32][]*genesis.InitialAccount)
 	for _, in := range g.initialAccounts {
-		address, err := g.pubkeyConverter.CreateAddressFromBytes(in.address)
+		address, err := g.pubkeyConverter.CreateAddressFromBytes(in.AddressBytes)
 		if err != nil {
 			return nil, err
 		}
@@ -252,19 +256,19 @@ func (g *Genesis) InitialAccountsSplitOnAddressesShards(
 // InitialAccountsSplitOnDelegationAddressesShards gets the initial accounts of the nodes split on the addresses's shards
 func (g *Genesis) InitialAccountsSplitOnDelegationAddressesShards(
 	shardCoordinator sharding.Coordinator,
-) (map[uint32][]*InitialAccount, error) {
+) (map[uint32][]*genesis.InitialAccount, error) {
 
 	if check.IfNil(shardCoordinator) {
-		return nil, ErrNilShardCoordinator
+		return nil, genesis.ErrNilShardCoordinator
 	}
 
-	var addresses = make(map[uint32][]*InitialAccount)
+	var addresses = make(map[uint32][]*genesis.InitialAccount)
 	for _, in := range g.initialAccounts {
 		if len(in.Delegation.Address) == 0 {
 			continue
 		}
 
-		delegationAddress, err := g.pubkeyConverter.CreateAddressFromBytes(in.Delegation.address)
+		delegationAddress, err := g.pubkeyConverter.CreateAddressFromBytes(in.Delegation.AddressBytes)
 		if err != nil {
 			return nil, err
 		}
@@ -274,4 +278,9 @@ func (g *Genesis) InitialAccountsSplitOnDelegationAddressesShards(
 	}
 
 	return addresses, nil
+}
+
+// IsInterfaceNil returns if underlying object is true
+func (g *Genesis) IsInterfaceNil() bool {
+	return g == nil
 }
