@@ -138,6 +138,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (process.T
 		arg.Economics,
 		&disabled.DisabledMessageSignVerifier{},
 		arg.GasMap,
+		arg.InitialNodesSetup,
 	)
 	if err != nil {
 		return nil, nil, err

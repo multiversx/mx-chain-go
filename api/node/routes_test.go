@@ -1,6 +1,7 @@
 package node_test
 
 import (
+	"bytes"
 	"encoding/json"
 	errs "errors"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -33,6 +35,11 @@ type GeneralResponse struct {
 type StatusResponse struct {
 	GeneralResponse
 	Running bool `json:"running"`
+}
+
+type QueryResponse struct {
+	GeneralResponse
+	Result []string `json:"result"`
 }
 
 type StatisticsResponse struct {
@@ -272,6 +279,63 @@ func TestEpochMetrics_ShouldWork(t *testing.T) {
 
 	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
 	assert.True(t, keyAndValueFoundInResponse)
+}
+
+func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errs.New("expected error")
+	facade := &mock.Facade{
+		GetQueryHandlerCalled: func(name string) (handler debug.QueryHandler, err error) {
+			return nil, expectedErr
+		},
+	}
+
+	qdr := &node.QueryDebugRequest{}
+	jsonStr, _ := json.Marshal(qdr)
+
+	ws := startNodeServerWithFacade(facade)
+	req, _ := http.NewRequest("POST", "/node/debug", bytes.NewBuffer(jsonStr))
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	queryResponse := &GeneralResponse{}
+	loadResponse(resp.Body, queryResponse)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, queryResponse.Error, expectedErr.Error())
+}
+
+func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
+	t.Parallel()
+
+	str1 := "aaa"
+	str2 := "bbb"
+	facade := &mock.Facade{
+		GetQueryHandlerCalled: func(name string) (handler debug.QueryHandler, err error) {
+			return &mock.QueryHandlerStub{
+					QueryCalled: func(search string) []string {
+						return []string{str1, str2}
+					},
+				},
+				nil
+		},
+	}
+
+	qdr := &node.QueryDebugRequest{}
+	jsonStr, _ := json.Marshal(qdr)
+
+	ws := startNodeServerWithFacade(facade)
+	req, _ := http.NewRequest("POST", "/node/debug", bytes.NewBuffer(jsonStr))
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	queryResponse := &QueryResponse{}
+	loadResponse(resp.Body, queryResponse)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Contains(t, queryResponse.Result, str1)
+	assert.Contains(t, queryResponse.Result, str2)
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {

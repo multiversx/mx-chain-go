@@ -434,6 +434,48 @@ func TestMultiDataInterceptor_ProcessReceivedMessageWhitelistedShouldRetNil(t *t
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
 }
 
+//------- debug
+
+func TestMultiDataInterceptor_SetInterceptedDebugHandlerNilShouldErr(t *testing.T) {
+	t.Parallel()
+
+	factory := &mock.InterceptedDataFactoryStub{}
+	mdi, _ := interceptors.NewMultiDataInterceptor(
+		testTopic,
+		&mock.MarshalizerMock{},
+		factory,
+		&mock.InterceptorProcessorStub{},
+		&mock.InterceptorThrottlerStub{},
+		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+	)
+
+	err := mdi.SetInterceptedDebugHandler(nil)
+
+	assert.Equal(t, process.ErrNilInterceptedDebugHandler, err)
+}
+
+func TestMultiDataInterceptor_SetInterceptedDebugHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	factory := &mock.InterceptedDataFactoryStub{}
+	mdi, _ := interceptors.NewMultiDataInterceptor(
+		testTopic,
+		&mock.MarshalizerMock{},
+		factory,
+		&mock.InterceptorProcessorStub{},
+		&mock.InterceptorThrottlerStub{},
+		&mock.P2PAntifloodHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+	)
+
+	debugger := &mock.InterceptedDebugHandlerStub{}
+	err := mdi.SetInterceptedDebugHandler(debugger)
+
+	assert.Nil(t, err)
+	assert.True(t, debugger == mdi.InterceptedDebugHandler()) //pointer testing
+}
+
 //------- IsInterfaceNil
 
 func TestMultiDataInterceptor_IsInterfaceNil(t *testing.T) {

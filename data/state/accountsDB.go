@@ -233,7 +233,6 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 func (adb *AccountsDB) saveAccountToTrie(accountHandler AccountHandler) error {
 	log.Trace("accountsDB.saveAccountToTrie",
 		"address", hex.EncodeToString(accountHandler.AddressContainer().Bytes()),
-		"nonce", accountHandler.GetNonce(),
 	)
 
 	//pass the reference to marshalizer, otherwise it will fail marshalizing balance

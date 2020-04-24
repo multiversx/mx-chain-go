@@ -46,6 +46,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
+	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -784,7 +785,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("initializing metrics")
-	metrics.InitMetrics(
+	err = metrics.InitMetrics(
 		coreComponents.StatusHandler,
 		cryptoParams.PublicKeyString,
 		nodeType,
@@ -794,6 +795,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		economicsConfig,
 		generalConfig.EpochStartConfig.RoundsPerEpoch,
 	)
+	if err != nil {
+		return err
+	}
 
 	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
 	if err != nil {
@@ -974,6 +978,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
 		ratingsConfig.General.MaxRating,
 		validatorPubkeyConverter,
+		ratingsData,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1043,6 +1048,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		gasSchedule,
 		economicsData,
 		cryptoComponents.MessageSignVerifier,
+		genesisNodesConfig,
 	)
 	if err != nil {
 		return err
@@ -1055,6 +1061,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		statusPollingInterval,
 		networkComponents,
 		processComponents,
+		shardCoordinator,
 	)
 	if err != nil {
 		return err
@@ -1711,6 +1718,17 @@ func createNode(
 			return nil, errors.New("error creating meta-node: " + err.Error())
 		}
 	}
+
+	err = nodeDebugFactory.CreateInterceptedDebugHandler(
+		nd,
+		process.InterceptorsContainer,
+		process.ResolversFinder,
+		config.Debug.InterceptorResolver,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	return nd, nil
 }
 
@@ -1800,6 +1818,7 @@ func createApiResolver(
 	gasSchedule map[string]map[string]uint64,
 	economics *economics.EconomicsData,
 	messageSigVerifier vm.MessageSignVerifier,
+	nodesSetup sharding.GenesisNodesSetupHandler,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -1825,7 +1844,13 @@ func createApiResolver(
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics, messageSigVerifier, gasSchedule)
+		vmFactory, err = metachain.NewVMContainerFactory(
+			argsHook,
+			economics,
+			messageSigVerifier,
+			gasSchedule,
+			nodesSetup,
+		)
 		if err != nil {
 			return nil, err
 		}

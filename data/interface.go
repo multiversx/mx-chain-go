@@ -191,7 +191,7 @@ type StorageManager interface {
 	Database() DBWriteCacher
 	TakeSnapshot([]byte)
 	SetCheckpoint([]byte)
-	Prune([]byte)
+	Prune([]byte, TriePruningIdentifier)
 	CancelPrune([]byte)
 	MarkForEviction([]byte, ModifiedHashes) error
 	GetDbThatContainsHash([]byte) DBWriteCacher
