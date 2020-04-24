@@ -932,7 +932,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-	whiteListHandler, err := interceptors.NewWhiteListDataVerifier(whiteListCache)
+	whiteListRequest, err := interceptors.NewWhiteListDataVerifier(whiteListCache)
+	if err != nil {
+		return err
+	}
+
+	whiteListerVerifiedTxs, err := createWhiteListerVerifiedTxs(generalConfig)
 	if err != nil {
 		return err
 	}
@@ -954,7 +959,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		networkComponents,
 		coreServiceContainer,
 		requestedItemsHandler,
-		whiteListHandler,
+		whiteListRequest,
+		whiteListerVerifiedTxs,
 		epochStartNotifier,
 		&generalConfig.EpochStartConfig,
 		currentEpoch,
@@ -1003,7 +1009,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer,
 		requestedItemsHandler,
 		epochStartNotifier,
-		whiteListHandler,
+		whiteListRequest,
+		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
 	)
 	if err != nil {
@@ -1570,7 +1577,8 @@ func createNode(
 	indexer indexer.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
-	whiteListHandler process.WhiteListHandler,
+	whiteListRequest process.WhiteListHandler,
+	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan bool,
 ) (*node.Node, error) {
 	var err error
@@ -1676,7 +1684,8 @@ func createNode(
 		node.WithInputAntifloodHandler(network.InputAntifloodHandler),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(hardforkTrigger),
-		node.WithWhiteListHanlder(whiteListHandler),
+		node.WithWhiteListHandler(whiteListRequest),
+		node.WithWhiteListHandlerVerified(whiteListerVerifiedTxs),
 		node.WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		node.WithNodeStopChannel(chanStopNodeProcess),
@@ -1877,4 +1886,16 @@ func createApiResolver(
 	}
 
 	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler)
+}
+
+func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
+	whiteListCacheVerified, err := storageUnit.NewCache(
+		storageUnit.CacheType(generalConfig.WhiteListerVerifiedTxs.Type),
+		generalConfig.WhiteListerVerifiedTxs.Size,
+		generalConfig.WhiteListerVerifiedTxs.Shards,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
 }
