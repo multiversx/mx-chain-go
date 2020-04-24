@@ -107,6 +107,7 @@ type epochStartBootstrap struct {
 	epochStartMetaBlockSyncer epochStart.StartOfEpochMetaSyncer
 	nodesConfigHandler        StartOfEpochNodesConfigHandler
 	whiteListHandler          update.WhiteListHandler
+	whiteListerVerifiedTxs    update.WhiteListHandler
 
 	// gathered data
 	epochStartMeta     *block.MetaBlock
@@ -335,6 +336,11 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
+	e.whiteListerVerifiedTxs, err = interceptors.NewDisabledWhiteListDataVerifier()
+	if err != nil {
+		return err
+	}
+
 	err = e.createRequestHandler()
 	if err != nil {
 		return err
@@ -369,21 +375,22 @@ func (e *epochStartBootstrap) createSyncers() error {
 	var err error
 
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
-		Config:            e.generalConfig,
-		ShardCoordinator:  e.shardCoordinator,
-		ProtoMarshalizer:  e.marshalizer,
-		TxSignMarshalizer: e.txSignMarshalizer,
-		Hasher:            e.hasher,
-		Messenger:         e.messenger,
-		DataPool:          e.dataPool,
-		SingleSigner:      e.singleSigner,
-		BlockSingleSigner: e.blockSingleSigner,
-		KeyGen:            e.keyGen,
-		BlockKeyGen:       e.blockKeyGen,
-		WhiteListHandler:  e.whiteListHandler,
-		ChainID:           []byte(e.genesisNodesConfig.GetChainId()),
-		AddressPubkeyConv: e.addressPubkeyConverter,
-		NonceConverter:    e.uint64Converter,
+		Config:               e.generalConfig,
+		ShardCoordinator:     e.shardCoordinator,
+		ProtoMarshalizer:       e.marshalizer,
+		TxSignMarshalizer:      e.txSignMarshalizer,
+		Hasher:                 e.hasher,
+		Messenger:              e.messenger,
+		DataPool:               e.dataPool,
+		SingleSigner:           e.singleSigner,
+		BlockSingleSigner:      e.blockSingleSigner,
+		KeyGen:                 e.keyGen,
+		BlockKeyGen:            e.blockKeyGen,
+		WhiteListHandler:       e.whiteListHandler,
+		WhiteListerVerifiedTxs: e.whiteListerVerifiedTxs,
+		ChainID:                []byte(e.genesisNodesConfig.GetChainId()),
+		AddressPubkeyConv:      e.addressPubkeyConverter,
+		NonceConverter:         e.uint64Converter,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
