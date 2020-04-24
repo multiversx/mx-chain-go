@@ -52,22 +52,24 @@ func createMockFeeHandler() process.FeeHandler {
 
 func createMockArgument() *ArgInterceptedDataFactory {
 	return &ArgInterceptedDataFactory{
-		ProtoMarshalizer:  &mock.MarshalizerMock{},
-		TxSignMarshalizer: &mock.MarshalizerMock{},
-		Hasher:            mock.HasherMock{},
-		ShardCoordinator:  mock.NewOneShardCoordinatorMock(),
-		MultiSigVerifier:  mock.NewMultiSigner(),
-		NodesCoordinator:  mock.NewNodesCoordinatorMock(),
-		KeyGen:            createMockKeyGen(),
-		BlockKeyGen:       createMockKeyGen(),
-		Signer:            createMockSigner(),
-		BlockSigner:       createMockSigner(),
-		AddressPubkeyConv: createMockPubkeyConverter(),
-		FeeHandler:        createMockFeeHandler(),
-		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           []byte("chain ID"),
-		ValidityAttester:  &mock.ValidityAttesterStub{},
-		EpochStartTrigger: &mock.EpochStartTriggerStub{},
+		ProtoMarshalizer:     &mock.MarshalizerMock{},
+		TxSignMarshalizer:    &mock.MarshalizerMock{},
+		Hasher:               mock.HasherMock{},
+		ShardCoordinator:     mock.NewOneShardCoordinatorMock(),
+		MultiSigVerifier:     mock.NewMultiSigner(),
+		NodesCoordinator:     mock.NewNodesCoordinatorMock(),
+		KeyGen:               createMockKeyGen(),
+		BlockKeyGen:            createMockKeyGen(),
+		Signer:                 createMockSigner(),
+		BlockSigner:            createMockSigner(),
+		AddressPubkeyConv:      createMockPubkeyConverter(),
+		FeeHandler:             createMockFeeHandler(),
+		HeaderSigVerifier:      &mock.HeaderSigVerifierStub{},
+		ChainID:                []byte("chain ID"),
+		ValidityAttester:       &mock.ValidityAttesterStub{},
+		EpochStartTrigger:      &mock.EpochStartTriggerStub{},
+		NonceConverter:         mock.NewNonceHashConverterMock(),
+		WhiteListerVerifiedTxs: &mock.WhiteListHandlerStub{},
 	}
 }
 
@@ -155,6 +157,17 @@ func TestNewInterceptedMetaHeaderDataFactory_NilValidityAttesterShouldErr(t *tes
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
 	assert.True(t, check.IfNil(imh))
 	assert.Equal(t, process.ErrNilValidityAttester, err)
+}
+
+func TestNewInterceptedMetaHeaderDataFactory_NilNonceConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.NonceConverter = nil
+
+	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
+	assert.True(t, check.IfNil(imh))
+	assert.Equal(t, process.ErrNilUint64Converter, err)
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {

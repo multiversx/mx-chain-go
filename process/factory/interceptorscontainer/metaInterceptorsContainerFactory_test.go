@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const maxTxNonceDeltaAllowed = 100
@@ -280,6 +281,18 @@ func TestNewMetaInterceptorsContainerFactory_EpochStartTriggerShouldErr(t *testi
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilEpochStartTrigger, err)
 }
+
+func TestNewMetaInterceptorsContainerFactory_NilNonceConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.NonceConverter = nil
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilUint64Converter, err)
+}
+
 func TestNewMetaInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -416,7 +429,8 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+	require.Nil(t, err)
 
 	container, err := icf.Create()
 
@@ -462,5 +476,7 @@ func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryAr
 		EpochStartTrigger:      &mock.EpochStartTriggerStub{},
 		AntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
 		WhiteListHandler:       &mock.WhiteListHandlerStub{},
+		NonceConverter:         mock.NewNonceHashConverterMock(),
+		WhiteListerVerifiedTxs: &mock.WhiteListHandlerStub{},
 	}
 }

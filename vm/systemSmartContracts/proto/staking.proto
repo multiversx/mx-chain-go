@@ -15,4 +15,6 @@ message StakedData {
 	bytes    RewardAddress = 4 [(gogoproto.jsontag) = "RewardAddress"];
 	bytes    StakeValue    = 5 [(gogoproto.jsontag) = "StakeValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 	uint64   JailedRound   = 7 [(gogoproto.jsontag) = "JailedRound"];
+	uint64   JailedNonce   = 8 [(gogoproto.jsontag) = "JailedNonce"];
+	uint64   UnJailedNonce = 9 [(gogoproto.jsontag) = "UnJailedNonce"];
 }

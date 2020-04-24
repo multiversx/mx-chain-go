@@ -55,6 +55,14 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	adb.mainTrie.ExitSnapshotMode()
 }
 
+// SetStateCheckpoint triggers the checkpointing process of the state trie
+func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
+	log.Trace("peerAccountsDB.SetStateCheckpoint", "root hash", rootHash)
+	adb.mainTrie.EnterSnapshotMode()
+	adb.mainTrie.SetCheckpoint(rootHash)
+	adb.mainTrie.ExitSnapshotMode()
+}
+
 // RecreateAllTries recreates all the tries from the accounts DB
 func (adb *PeerAccountsDB) RecreateAllTries(rootHash []byte) (map[string]data.Trie, error) {
 	recreatedTrie, err := adb.mainTrie.Recreate(rootHash)

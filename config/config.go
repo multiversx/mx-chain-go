@@ -112,6 +112,7 @@ type Config struct {
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesDataPool           CacheConfig
 	WhiteListPool               CacheConfig
+	WhiteListerVerifiedTxs      CacheConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
 	ValidatorPubkeyConverter    PubkeyConfig
@@ -139,6 +140,7 @@ type Config struct {
 	VirtualMachineConfig    VirtualMachineConfig
 
 	Hardfork HardforkConfig
+	Debug    DebugConfig
 }
 
 // StoragePruningConfig will hold settings relates to storage pruning
@@ -263,4 +265,20 @@ type HardforkConfig struct {
 	EnableTrigger         bool
 	EnableTriggerFromP2P  bool
 	PublicKeyToListenFrom string
+}
+
+// DebugConfig will hold debugging configuration
+type DebugConfig struct {
+	InterceptorResolver InterceptorResolverDebugConfig
+}
+
+// InterceptorResolverDebugConfig will hold the interceptor-resolver debug configuration
+type InterceptorResolverDebugConfig struct {
+	Enabled                    bool
+	CacheSize                  int
+	EnablePrint                bool
+	IntervalAutoPrintInSeconds int
+	NumRequestsThreshold       int
+	NumResolveFailureThreshold int
+	DebugLineExpiration        int
 }

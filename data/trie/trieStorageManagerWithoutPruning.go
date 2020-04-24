@@ -30,7 +30,7 @@ func (tsm *trieStorageManagerWithoutPruning) SetCheckpoint([]byte) {
 }
 
 // Prune does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) Prune([]byte) {
+func (tsm *trieStorageManagerWithoutPruning) Prune([]byte, data.TriePruningIdentifier) {
 	log.Trace("trieStorageManagerWithoutPruning - Prune:trie storage pruning is disabled")
 }
 

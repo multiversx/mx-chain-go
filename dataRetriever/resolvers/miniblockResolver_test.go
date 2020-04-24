@@ -126,7 +126,7 @@ func TestMiniblockResolver_RequestDataFromHashArray(t *testing.T) {
 	called := false
 	arg := createMockArgMiniblockResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData) error {
+		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, hashes [][]byte) error {
 			called = true
 			return nil
 		},
@@ -387,7 +387,7 @@ func TestMiniblockResolver_RequestDataFromHashShouldWork(t *testing.T) {
 
 	arg := createMockArgMiniblockResolver()
 	arg.SenderResolver = &mock.TopicResolverSenderStub{
-		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData) error {
+		SendOnRequestTopicCalled: func(rd *dataRetriever.RequestData, hashes [][]byte) error {
 			wasCalled = true
 			return nil
 		},
@@ -415,7 +415,7 @@ func TestMiniblockResolver_SetAndGetNumPeersToQuery(t *testing.T) {
 	mbRes, _ := resolvers.NewMiniblockResolver(arg)
 
 	mbRes.SetNumPeersToQuery(expectedIntra, expectedCross)
-	actualIntra, actualCross := mbRes.GetNumPeersToQuery()
+	actualIntra, actualCross := mbRes.NumPeersToQuery()
 	assert.Equal(t, expectedIntra, actualIntra)
 	assert.Equal(t, expectedCross, actualCross)
 }

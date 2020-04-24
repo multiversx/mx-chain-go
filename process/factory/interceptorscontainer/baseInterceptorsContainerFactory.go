@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -37,7 +38,9 @@ type baseInterceptorsContainerFactory struct {
 	maxTxNonceDeltaAllowed int
 	antifloodHandler       process.P2PAntifloodHandler
 	whiteListHandler       process.WhiteListHandler
+	whiteListerVerifiedTxs process.WhiteListHandler
 	addressPubkeyConverter state.PubkeyConverter
+	nonceConverter         typeConverters.Uint64ByteSliceConverter
 }
 
 func checkBaseParams(
@@ -53,8 +56,10 @@ func checkBaseParams(
 	nodesCoordinator sharding.NodesCoordinator,
 	blackList process.BlackListHandler,
 	antifloodHandler process.P2PAntifloodHandler,
-	whiteListhandler process.WhiteListHandler,
+	whiteListHandler process.WhiteListHandler,
+	whiteListerVerifiedTxs process.WhiteListHandler,
 	addressPubkeyConverter state.PubkeyConverter,
+	nonceConverter typeConverters.Uint64ByteSliceConverter,
 ) error {
 	if check.IfNil(shardCoordinator) {
 		return process.ErrNilShardCoordinator
@@ -89,11 +94,17 @@ func checkBaseParams(
 	if check.IfNil(antifloodHandler) {
 		return process.ErrNilAntifloodHandler
 	}
-	if check.IfNil(whiteListhandler) {
+	if check.IfNil(whiteListHandler) {
+		return process.ErrNilWhiteListHandler
+	}
+	if check.IfNil(whiteListerVerifiedTxs) {
 		return process.ErrNilWhiteListHandler
 	}
 	if check.IfNil(addressPubkeyConverter) {
 		return process.ErrNilPubkeyConverter
+	}
+	if check.IfNil(nonceConverter) {
+		return process.ErrNilUint64Converter
 	}
 
 	return nil

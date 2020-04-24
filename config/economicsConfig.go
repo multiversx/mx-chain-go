@@ -29,7 +29,6 @@ type ValidatorSettings struct {
 	UnBondPeriod             string
 	TotalSupply              string
 	MinStepValue             string
-	NumNodes                 uint32
 	AuctionEnableNonce       string
 	StakeEnableNonce         string
 	NumRoundsWithoutBleed    string

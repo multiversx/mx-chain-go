@@ -44,6 +44,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
+	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -772,7 +773,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("initializing metrics")
-	metrics.InitMetrics(
+	err = metrics.InitMetrics(
 		coreComponents.StatusHandler,
 		cryptoParams.PublicKeyString,
 		nodeType,
@@ -782,6 +783,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		economicsConfig,
 		generalConfig.EpochStartConfig.RoundsPerEpoch,
 	)
+	if err != nil {
+		return err
+	}
 
 	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
 	if err != nil {
@@ -927,7 +931,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-	whiteListHandler, err := interceptors.NewWhiteListDataVerifier(whiteListCache)
+	whiteListRequest, err := interceptors.NewWhiteListDataVerifier(whiteListCache)
+	if err != nil {
+		return err
+	}
+
+	whiteListerVerifiedTxs, err := createWhiteListerVerifiedTxs(generalConfig)
 	if err != nil {
 		return err
 	}
@@ -949,7 +958,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		networkComponents,
 		coreServiceContainer,
 		requestedItemsHandler,
-		whiteListHandler,
+		whiteListRequest,
+		whiteListerVerifiedTxs,
 		epochStartNotifier,
 		&generalConfig.EpochStartConfig,
 		currentEpoch,
@@ -962,6 +972,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
 		ratingsConfig.General.MaxRating,
 		validatorPubkeyConverter,
+		ratingsData,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -997,7 +1008,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer,
 		requestedItemsHandler,
 		epochStartNotifier,
-		whiteListHandler,
+		whiteListRequest,
+		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
 	)
 	if err != nil {
@@ -1031,6 +1043,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		gasSchedule,
 		economicsData,
 		cryptoComponents.MessageSignVerifier,
+		genesisNodesConfig,
 	)
 	if err != nil {
 		return err
@@ -1043,6 +1056,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		statusPollingInterval,
 		networkComponents,
 		processComponents,
+		shardCoordinator,
 	)
 	if err != nil {
 		return err
@@ -1562,7 +1576,8 @@ func createNode(
 	indexer indexer.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
-	whiteListHandler process.WhiteListHandler,
+	whiteListRequest process.WhiteListHandler,
+	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan bool,
 ) (*node.Node, error) {
 	var err error
@@ -1668,7 +1683,8 @@ func createNode(
 		node.WithInputAntifloodHandler(network.InputAntifloodHandler),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(hardforkTrigger),
-		node.WithWhiteListHanlder(whiteListHandler),
+		node.WithWhiteListHandler(whiteListRequest),
+		node.WithWhiteListHandlerVerified(whiteListerVerifiedTxs),
 		node.WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		node.WithNodeStopChannel(chanStopNodeProcess),
@@ -1699,6 +1715,17 @@ func createNode(
 			return nil, errors.New("error creating meta-node: " + err.Error())
 		}
 	}
+
+	err = nodeDebugFactory.CreateInterceptedDebugHandler(
+		nd,
+		process.InterceptorsContainer,
+		process.ResolversFinder,
+		config.Debug.InterceptorResolver,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	return nd, nil
 }
 
@@ -1788,6 +1815,7 @@ func createApiResolver(
 	gasSchedule map[string]map[string]uint64,
 	economics *economics.EconomicsData,
 	messageSigVerifier vm.MessageSignVerifier,
+	nodesSetup sharding.GenesisNodesSetupHandler,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -1813,7 +1841,13 @@ func createApiResolver(
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		vmFactory, err = metachain.NewVMContainerFactory(argsHook, economics, messageSigVerifier, gasSchedule)
+		vmFactory, err = metachain.NewVMContainerFactory(
+			argsHook,
+			economics,
+			messageSigVerifier,
+			gasSchedule,
+			nodesSetup,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -1851,4 +1885,16 @@ func createApiResolver(
 	}
 
 	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler)
+}
+
+func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
+	whiteListCacheVerified, err := storageUnit.NewCache(
+		storageUnit.CacheType(generalConfig.WhiteListerVerifiedTxs.Type),
+		generalConfig.WhiteListerVerifiedTxs.Size,
+		generalConfig.WhiteListerVerifiedTxs.Shards,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
 }
