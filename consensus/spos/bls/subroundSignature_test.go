@@ -311,19 +311,6 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 	assert.False(t, r)
 
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
-	for i := 0; i < len(sr.ConsensusGroup()); i++ {
-		if sr.ConsensusGroup()[i] != string(cnsMsg.PubKey) {
-			_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
-		}
-	}
-	r = sr.ReceivedSignature(cnsMsg)
-	assert.False(t, r)
-
-	for i := 0; i < len(sr.ConsensusGroup()); i++ {
-		if sr.ConsensusGroup()[i] != string(cnsMsg.PubKey) {
-			_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, false)
-		}
-	}
 
 	cnsMsg.PubKey = []byte("X")
 	r = sr.ReceivedSignature(cnsMsg)
