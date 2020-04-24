@@ -52,7 +52,7 @@ func (rhs *RequestHandlerStub) RequestMiniBlocks(_ uint32, _ [][]byte) {
 }
 
 // RequestTrieNodes -
-func (rhs *RequestHandlerStub) RequestTrieNodes(_ uint32, _ []byte, _ string) {
+func (rhs *RequestHandlerStub) RequestTrieNodes(_ uint32, _ [][]byte, _ string) {
 	panic("implement me")
 }
 

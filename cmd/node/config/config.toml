@@ -233,6 +233,11 @@
     Type = "FIFOSharded"
     Shards = 10
 
+[WhiteListerVerifiedTxs]
+    Size = 50000
+    Type = "FIFOSharded"
+    Shards = 50
+
 [UnsignedTransactionDataPool]
     Size = 75000
     Type = "LRU"
