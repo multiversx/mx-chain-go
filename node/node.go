@@ -79,17 +79,17 @@ type Node struct {
 	addressPubkeyConverter        state.PubkeyConverter
 	validatorPubkeyConverter      state.PubkeyConverter
 	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
-	interceptorsContainer  process.InterceptorsContainer
-	resolversFinder        dataRetriever.ResolversFinder
-	peerBlackListHandler   process.BlackListHandler
-	heartbeatMonitor       *heartbeat.Monitor
-	heartbeatSender        *heartbeat.Sender
-	appStatusHandler       core.AppStatusHandler
-	validatorStatistics    process.ValidatorStatisticsProcessor
-	hardforkTrigger        HardforkTrigger
-	validatorsProvider     process.ValidatorsProvider
-	whiteListRequest       process.WhiteListHandler
-	whiteListerVerifiedTxs process.WhiteListHandler
+	interceptorsContainer         process.InterceptorsContainer
+	resolversFinder               dataRetriever.ResolversFinder
+	peerBlackListHandler          process.BlackListHandler
+	heartbeatMonitor              *heartbeat.Monitor
+	heartbeatSender               *heartbeat.Sender
+	appStatusHandler              core.AppStatusHandler
+	validatorStatistics           process.ValidatorStatisticsProcessor
+	hardforkTrigger               HardforkTrigger
+	validatorsProvider            process.ValidatorsProvider
+	whiteListRequest              process.WhiteListHandler
+	whiteListerVerifiedTxs        process.WhiteListHandler
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -954,8 +954,13 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 			return err
 		}
 	}
+	argPeerTypeProvider := sharding.ArgPeerTypeProvider{
+		NodesCoordinator:        n.nodesCoordinator,
+		EpochHandler:            n.epochStartTrigger,
+		EpochStartEventNotifier: n.epochStartRegistrationHandler,
+	}
 
-	peerTypeProvider, err := sharding.NewPeerTypeProvider(n.nodesCoordinator, n.epochStartTrigger, n.epochStartRegistrationHandler)
+	peerTypeProvider, err := sharding.NewPeerTypeProvider(argPeerTypeProvider)
 	if err != nil {
 		return err
 	}
@@ -1011,18 +1016,20 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	}
 
 	argMonitor := heartbeat.ArgHeartbeatMonitor{
-		Marshalizer:                 netInputMarshalizer,
-		MaxDurationPeerUnresponsive: time.Second * time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
-		PubKeysMap:                  pubKeysMap,
-		GenesisTime:                 n.genesisTime,
-		MessageHandler:              heartBeatMsgProcessor,
-		Storer:                      heartbeatStorer,
-		PeerTypeProvider:            peerTypeProvider,
-		Timer:                       timer,
-		AntifloodHandler:            n.inputAntifloodHandler,
-		HardforkTrigger:             n.hardforkTrigger,
-		PeerBlackListHandler:        n.peerBlackListHandler,
-		ValidatorPubkeyConverter:    n.validatorPubkeyConverter,
+		Marshalizer:                        netInputMarshalizer,
+		MaxDurationPeerUnresponsive:        time.Second * time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
+		PubKeysMap:                         pubKeysMap,
+		GenesisTime:                        n.genesisTime,
+		MessageHandler:                     heartBeatMsgProcessor,
+		Storer:                             heartbeatStorer,
+		PeerTypeProvider:                   peerTypeProvider,
+		Timer:                              timer,
+		AntifloodHandler:                   n.inputAntifloodHandler,
+		HardforkTrigger:                    n.hardforkTrigger,
+		PeerBlackListHandler:               n.peerBlackListHandler,
+		ValidatorPubkeyConverter:           n.validatorPubkeyConverter,
+		HbmiRefreshIntervalInSec:           hbConfig.HbmiRefreshIntervalInSec,
+		HideInactiveValidatorIntervalInSec: hbConfig.HideInactiveValidatorIntervalInSec,
 	}
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(argMonitor)
 	if err != nil {
