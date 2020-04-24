@@ -115,16 +115,18 @@ func (tnRes *TrieNodeResolver) RequestDataFromHashArray(hashes [][]byte, _ uint3
 	b := &batch.Batch{
 		Data: hashes,
 	}
-	hash, err := tnRes.marshalizer.Marshal(b)
-
+	buffHashes, err := tnRes.marshalizer.Marshal(b)
 	if err != nil {
 		return err
 	}
 
-	return tnRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.HashArrayType,
-		Value: hash,
-	})
+	return tnRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashArrayType,
+			Value: buffHashes,
+		},
+		hashes,
+	)
 }
 
 // SetNumPeersToQuery will set the number of intra shard and cross shard number of peer to query
