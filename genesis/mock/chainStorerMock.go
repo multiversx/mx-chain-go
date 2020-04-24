@@ -8,14 +8,22 @@ import (
 
 // ChainStorerMock is a mock implementation of the ChainStorer interface
 type ChainStorerMock struct {
-	AddStorerCalled func(key dataRetriever.UnitType, s storage.Storer)
-	GetStorerCalled func(unitType dataRetriever.UnitType) storage.Storer
-	HasCalled       func(unitType dataRetriever.UnitType, key []byte) error
-	GetCalled       func(unitType dataRetriever.UnitType, key []byte) ([]byte, error)
-	PutCalled       func(unitType dataRetriever.UnitType, key []byte, value []byte) error
-	GetAllCalled    func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error)
-	DestroyCalled   func() error
-	CloseAllCalled  func() error
+	AddStorerCalled               func(key dataRetriever.UnitType, s storage.Storer)
+	GetStorerCalled               func(unitType dataRetriever.UnitType) storage.Storer
+	HasCalled                     func(unitType dataRetriever.UnitType, key []byte) error
+	GetCalled                     func(unitType dataRetriever.UnitType, key []byte) ([]byte, error)
+	PutCalled                     func(unitType dataRetriever.UnitType, key []byte, value []byte) error
+	GetAllCalled                  func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error)
+	DestroyCalled                 func() error
+	CloseAllCalled                func() error
+	SetEpochForPutOperationCalled func(epoch uint32)
+}
+
+// SetEpochForPutOperation -
+func (csm *ChainStorerMock) SetEpochForPutOperation(epoch uint32) {
+	if csm.SetEpochForPutOperationCalled != nil {
+		csm.SetEpochForPutOperationCalled(epoch)
+	}
 }
 
 // CloseAll -

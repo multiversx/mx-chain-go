@@ -976,7 +976,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	vmFactory, _ := metaProcess.NewVMContainerFactory(
 		argsHook,
 		tpn.EconomicsData.EconomicsData,
-		&genesis.NilMessageSignVerifier{},
+		&disabled.DisabledMessageSignVerifier{},
 		gasSchedule,
 		tpn.NodesSetup,
 	)

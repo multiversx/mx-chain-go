@@ -14,5 +14,6 @@ type GenesisParser interface {
 // InitialNodesHandler contains the initial nodes setup
 type InitialNodesHandler interface {
 	InitialNodesInfo() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
+	MinNumberOfNodes() uint32
 	IsInterfaceNil() bool
 }
