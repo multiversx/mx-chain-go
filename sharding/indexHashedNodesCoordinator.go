@@ -136,6 +136,10 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	}
 
 	currentConfig := nodesConfig[arguments.Epoch]
+	if currentConfig == nil {
+		return nil, ErrEpochNodesConfigDoesNotExist
+	}
+
 	displayNodesConfiguration(
 		currentConfig.eligibleMap,
 		currentConfig.waitingMap,
