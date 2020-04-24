@@ -161,6 +161,7 @@ func TestRecreateTrieFromSnapshotDb(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.Root()
 	tr.TakeSnapshot(rootHash)
+	time.Sleep(snapshotDelay)
 
 	_ = tr.Update([]byte("doge"), []byte("doge"))
 	_ = tr.Commit()
@@ -250,13 +251,11 @@ func TestPruningIsDoneAfterSnapshotIsFinished(t *testing.T) {
 	_ = tr.Commit()
 	rootHash := tr.root.getHash()
 	tr.CancelPrune(rootHash, data.NewRoot)
-	tr.EnterSnapshotMode()
+
 	tr.TakeSnapshot(rootHash)
+	time.Sleep(snapshotDelay)
 	tr.Prune(rootHash, data.NewRoot)
 	time.Sleep(pruningDelay)
-
-	tr.ExitSnapshotMode()
-	time.Sleep(snapshotDelay)
 
 	val, err := trieStorage.snapshots[0].Get(rootHash)
 	assert.NotNil(t, val)
