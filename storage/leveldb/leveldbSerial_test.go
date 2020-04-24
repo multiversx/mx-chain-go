@@ -42,8 +42,8 @@ func TestSerialDB_GetErrorAfterPutBeforeTimeout(t *testing.T) {
 	_ = ldb.Put(key, val)
 	v, err := ldb.Get(key)
 
-	assert.Nil(t, v)
-	assert.Equal(t, storage.ErrKeyNotFound, err)
+	assert.Equal(t, val, v)
+	assert.Nil(t, err)
 }
 
 func TestSerialDB_GetErrorOnFail(t *testing.T) {

@@ -46,11 +46,13 @@ func (tdaw *TrackableDataTrie) RetrieveValue(key []byte) ([]byte, error) {
 
 	//search in dirty data cache
 	if value, found := tdaw.dirtyData[string(key)]; found {
+		log.Trace("retrieve value from dirty data", "key", key, "value", value)
 		return trimValue(value, tailLength)
 	}
 
 	//search in original data cache
 	if value, found := tdaw.originalData[string(key)]; found {
+		log.Trace("retrieve value from original data", "key", key, "value", value)
 		return trimValue(value, tailLength)
 	}
 
@@ -62,7 +64,7 @@ func (tdaw *TrackableDataTrie) RetrieveValue(key []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	log.Trace("retrieve value from trie", "key", key, "value", value)
 	value, _ = trimValue(value, tailLength)
 
 	//got the value, put it originalData cache as the next fetch will run faster
