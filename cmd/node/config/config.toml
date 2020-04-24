@@ -357,7 +357,7 @@
    Enabled = true
    RefreshIntervalInSec = 30
 
-# Heartbeat, if enabled, will output a heartbeat singal once x seconds,
+# Heartbeat, if enabled, will output a heartbeat signal once x seconds,
 # where x in [MinTimeToWaitBetweenBroadcastsInSec, MaxTimeToWaitBetweenBroadcastsInSec)
 [Heartbeat]
    Enabled = true
