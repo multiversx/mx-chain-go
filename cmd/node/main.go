@@ -59,6 +59,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -692,9 +693,27 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	unitOpener, err := factory.CreateUnitOpener(
+	bootstrapDataProvider, err := storageFactory.NewBootstrapDataProvider(coreComponents.InternalMarshalizer)
+	if err != nil {
+		return err
+	}
+
+	latestStorageDataProvider, err := factory.CreateLatestStorageDataProvider(
+		bootstrapDataProvider,
 		coreComponents.InternalMarshalizer,
 		coreComponents.Hasher,
+		*generalConfig,
+		genesisNodesConfig.ChainID,
+		workingDir,
+		defaultDBPath,
+		defaultEpochString,
+		defaultShardString,
+	)
+
+	unitOpener, err := factory.CreateUnitOpener(
+		bootstrapDataProvider,
+		latestStorageDataProvider,
+		coreComponents.InternalMarshalizer,
 		*generalConfig,
 		genesisNodesConfig.ChainID,
 		workingDir,
@@ -731,6 +750,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		NodeShuffler:               nodesShuffler,
 		Rounder:                    rounder,
 		AddressPubkeyConverter:     addressPubkeyConverter,
+		LatestStorageDataProvider:  latestStorageDataProvider,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {

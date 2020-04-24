@@ -201,7 +201,7 @@ var ErrTimeoutWaitingForMetaBlock = errors.New("timeout while waiting for epoch 
 var ErrNilStorageUnitOpener = errors.New("nil storage unit opener")
 
 // ErrNilLatestStorageDataProvider signals that a nil latest storage data provider was provided
-var ErrNilLatestStorageDataProvider = errors.New("nil latest storage data provided")
+var ErrNilLatestStorageDataProvider = errors.New("nil latest storage data provider")
 
 // ErrNilShuffler signals that a nil shuffler was provided
 var ErrNilShuffler = errors.New("nil nodes shuffler provided")

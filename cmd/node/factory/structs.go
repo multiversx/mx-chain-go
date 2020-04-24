@@ -2460,9 +2460,10 @@ func getSkPk(
 	return skBytes, pkBytes, nil
 }
 
-// CreateUnitOpener will create a new unit opener handler
-func CreateUnitOpener(
-	internalMarshalizer marshal.Marshalizer,
+// CreateLatestStorageDataProvider will create a latest storage data provider handler
+func CreateLatestStorageDataProvider(
+	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
+	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	generalConfig config.Config,
 	chainID string,
@@ -2470,16 +2471,12 @@ func CreateUnitOpener(
 	defaultDBPath string,
 	defaultEpochString string,
 	defaultShardString string,
-) (storage.UnitOpenerHandler, error) {
-	bootstrapDataProvider, err := storageFactory.NewBootstrapDataProvider(internalMarshalizer)
-	if err != nil {
-		return nil, err
-	}
+) (storage.LatestStorageDataProviderHandler, error) {
 	directoryReader := storageFactory.NewDirectoryReader()
 
 	latestStorageDataArgs := storageFactory.ArgsLatestDataProvider{
 		GeneralConfig:         generalConfig,
-		Marshalizer:           internalMarshalizer,
+		Marshalizer:           marshalizer,
 		Hasher:                hasher,
 		BootstrapDataProvider: bootstrapDataProvider,
 		DirectoryReader:       directoryReader,
@@ -2489,11 +2486,21 @@ func CreateUnitOpener(
 		DefaultEpochString:    defaultEpochString,
 		DefaultShardString:    defaultShardString,
 	}
-	latestDataFromStorageProvider, err := storageFactory.NewLatestDataProvider(latestStorageDataArgs)
-	if err != nil {
-		return nil, err
-	}
+	return storageFactory.NewLatestDataProvider(latestStorageDataArgs)
+}
 
+// CreateUnitOpener will create a new unit opener handler
+func CreateUnitOpener(
+	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
+	latestDataFromStorageProvider storage.LatestStorageDataProviderHandler,
+	internalMarshalizer marshal.Marshalizer,
+	generalConfig config.Config,
+	chainID string,
+	workingDir string,
+	defaultDBPath string,
+	defaultEpochString string,
+	defaultShardString string,
+) (storage.UnitOpenerHandler, error) {
 	argsStorageUnitOpener := storageFactory.ArgsNewOpenStorageUnits{
 		GeneralConfig:             generalConfig,
 		Marshalizer:               internalMarshalizer,
