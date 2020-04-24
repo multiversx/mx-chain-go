@@ -79,17 +79,17 @@ type Node struct {
 	addressPubkeyConverter        state.PubkeyConverter
 	validatorPubkeyConverter      state.PubkeyConverter
 	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
-	interceptorsContainer  process.InterceptorsContainer
-	resolversFinder        dataRetriever.ResolversFinder
-	peerBlackListHandler   process.BlackListHandler
-	heartbeatMonitor       *heartbeat.Monitor
-	heartbeatSender        *heartbeat.Sender
-	appStatusHandler       core.AppStatusHandler
-	validatorStatistics    process.ValidatorStatisticsProcessor
-	hardforkTrigger        HardforkTrigger
-	validatorsProvider     process.ValidatorsProvider
-	whiteListRequest       process.WhiteListHandler
-	whiteListerVerifiedTxs process.WhiteListHandler
+	interceptorsContainer         process.InterceptorsContainer
+	resolversFinder               dataRetriever.ResolversFinder
+	peerBlackListHandler          process.BlackListHandler
+	heartbeatMonitor              *heartbeat.Monitor
+	heartbeatSender               *heartbeat.Sender
+	appStatusHandler              core.AppStatusHandler
+	validatorStatistics           process.ValidatorStatisticsProcessor
+	hardforkTrigger               HardforkTrigger
+	validatorsProvider            process.ValidatorsProvider
+	whiteListRequest              process.WhiteListHandler
+	whiteListerVerifiedTxs        process.WhiteListHandler
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -955,11 +955,9 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		}
 	}
 	argPeerTypeProvider := sharding.ArgPeerTypeProvider{
-		NodesCoordinator:          n.nodesCoordinator,
-		EpochHandler:              n.epochStartTrigger,
-		ValidatorsProvider:        n.validatorsProvider,
-		EpochStartEventNotifier:   n.epochStartRegistrationHandler,
-		CacheRefreshIntervalInSec: hbConfig.PeerTypeRefreshIntervalInSec,
+		NodesCoordinator:        n.nodesCoordinator,
+		EpochHandler:            n.epochStartTrigger,
+		EpochStartEventNotifier: n.epochStartRegistrationHandler,
 	}
 
 	peerTypeProvider, err := sharding.NewPeerTypeProvider(argPeerTypeProvider)

@@ -365,7 +365,6 @@
    MaxTimeToWaitBetweenBroadcastsInSec  = 25
    HbmiRefreshIntervalInSec             = 60
    HideInactiveValidatorIntervalInHours = 24
-   PeerTypeRefreshIntervalInSec         = 60
    DurationInSecToConsiderUnresponsive  = 60
    [Heartbeat.HeartbeatStorage]
        [Heartbeat.HeartbeatStorage.Cache]

@@ -1248,7 +1248,6 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 		Enabled:                              true,
 		HbmiRefreshIntervalInSec:             1,
 		HideInactiveValidatorIntervalInHours: 1,
-		PeerTypeRefreshIntervalInSec:         10,
 	}, "v0.1",
 		"undefined",
 	)
