@@ -94,7 +94,7 @@ copyProxyConfig() {
   cp $PROXYDIR/config/config.toml ./proxy/config/
 
   cp ./node/config/economics.toml ./proxy/config/
-  cp ./node/config/initialBalancesSk.pem ./proxy/config
+  cp ./node/config/walletKey.pem ./proxy/config
 
   echo "Copied configuration for the Proxy."
   popd
@@ -126,7 +126,7 @@ copyTxGenConfig() {
   cp $TXGENDIR/config/*.wasm ./txgen/config/
 
   cp ./node/config/economics.toml ./txgen/config/
-  cp ./node/config/initialBalancesSk.pem ./txgen/config
+  cp ./node/config/walletKey.pem ./txgen/config
 
   echo "Copied configuration for the TxGen."
   popd
