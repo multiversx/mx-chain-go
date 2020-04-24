@@ -66,13 +66,13 @@ func createMockArgHeartbeatMonitor() heartbeat.ArgHeartbeatMonitor {
 				return "", 1, nil
 			},
 		},
-		Timer:                                mock.NewMockTimer(),
-		AntifloodHandler:                     createMockP2PAntifloodHandler(),
-		HardforkTrigger:                      &mock.HardforkTriggerStub{},
-		PeerBlackListHandler:                 &mock.BlackListHandlerStub{},
-		ValidatorPubkeyConverter:             mock.NewPubkeyConverterMock(96),
-		HbmiRefreshIntervalInSec:             1,
-		HideInactiveValidatorIntervalInHours: 1,
+		Timer:                              mock.NewMockTimer(),
+		AntifloodHandler:                   createMockP2PAntifloodHandler(),
+		HardforkTrigger:                    &mock.HardforkTriggerStub{},
+		PeerBlackListHandler:               &mock.BlackListHandlerStub{},
+		ValidatorPubkeyConverter:           mock.NewPubkeyConverterMock(96),
+		HbmiRefreshIntervalInSec:           1,
+		HideInactiveValidatorIntervalInSec: 600,
 	}
 }
 
@@ -203,11 +203,11 @@ func TestNewMonitor_ZeroHideInactiveVlidatorIntervalInHoursShouldErr(t *testing.
 	t.Parallel()
 
 	arg := createMockArgHeartbeatMonitor()
-	arg.HideInactiveValidatorIntervalInHours = 0
+	arg.HideInactiveValidatorIntervalInSec = 0
 	mon, err := heartbeat.NewMonitor(arg)
 
 	assert.Nil(t, mon)
-	assert.True(t, errors.Is(err, heartbeat.ErrZeroHideInactiveValidatorIntervalInHours))
+	assert.True(t, errors.Is(err, heartbeat.ErrZeroHideInactiveValidatorIntervalInSec))
 }
 
 func TestNewMonitor_OkValsShouldCreatePubkeyMap(t *testing.T) {
@@ -458,7 +458,7 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 	arg.PubKeysMap = map[uint32][]string{0: {pubKey1, pubKey2}}
 	arg.Storer = storer
 	arg.Timer = th
-	arg.HideInactiveValidatorIntervalInHours = 1
+	arg.HideInactiveValidatorIntervalInSec = 600
 	mon, _ := heartbeat.NewMonitor(arg)
 
 	// First send from pk1
@@ -534,13 +534,13 @@ func TestMonitor_RemoveInactiveValidatorsIfIntervalExceeded(t *testing.T) {
 				return core.ObserverList, 0, nil
 			},
 		},
-		Timer:                                timer,
-		AntifloodHandler:                     createMockP2PAntifloodHandler(),
-		HardforkTrigger:                      &mock.HardforkTriggerStub{},
-		PeerBlackListHandler:                 &mock.BlackListHandlerStub{},
-		ValidatorPubkeyConverter:             mock.NewPubkeyConverterMock(32),
-		HbmiRefreshIntervalInSec:             1,
-		HideInactiveValidatorIntervalInHours: 24,
+		Timer:                              timer,
+		AntifloodHandler:                   createMockP2PAntifloodHandler(),
+		HardforkTrigger:                    &mock.HardforkTriggerStub{},
+		PeerBlackListHandler:               &mock.BlackListHandlerStub{},
+		ValidatorPubkeyConverter:           mock.NewPubkeyConverterMock(32),
+		HbmiRefreshIntervalInSec:           1,
+		HideInactiveValidatorIntervalInSec: 600,
 	}
 	mon, _ := heartbeat.NewMonitor(arg)
 	mon.SendHeartbeatMessage(&heartbeat.Heartbeat{Pubkey: []byte(pkValidator)})
@@ -554,13 +554,13 @@ func TestMonitor_RemoveInactiveValidatorsIfIntervalExceeded(t *testing.T) {
 	hbStatus := mon.GetHeartbeats()
 	assert.Equal(t, 5, len(hbStatus))
 
-	timer.IncrementSeconds(3000 * int(arg.HideInactiveValidatorIntervalInHours))
+	timer.IncrementSeconds(int(arg.HideInactiveValidatorIntervalInSec) - 20)
 	mon.RefreshHbmi()
 	hbStatus = mon.GetHeartbeats()
 	assert.Equal(t, 5, len(hbStatus))
 
-	// increase to over HideInactiveValidatorIntervalInHours ~ 1 hour
-	timer.IncrementSeconds(610 * int(arg.HideInactiveValidatorIntervalInHours))
+	// increase to over HideInactiveValidatorIntervalInSec ~ 10 min
+	timer.IncrementSeconds(int(arg.HideInactiveValidatorIntervalInSec) + 10)
 	mon.RefreshHbmi()
 	hbStatus = mon.GetHeartbeats()
 	// check if pk1 and pk2 are still on

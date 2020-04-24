@@ -86,6 +86,7 @@ func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorA
 }
 
 // GetLatestValidatorInfos gets the latest configuration of validators per shard from the peerAccountsTrie
+// TODO: add cache here
 func (vp *validatorsProvider) GetLatestValidatorInfos() (map[uint32][]*state.ValidatorInfo, error) {
 	latestHash, err := vp.validatorStatistics.RootHash()
 	if err != nil {

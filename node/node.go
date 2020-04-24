@@ -1016,20 +1016,20 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	}
 
 	argMonitor := heartbeat.ArgHeartbeatMonitor{
-		Marshalizer:                          netInputMarshalizer,
-		MaxDurationPeerUnresponsive:          time.Second * time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
-		PubKeysMap:                           pubKeysMap,
-		GenesisTime:                          n.genesisTime,
-		MessageHandler:                       heartBeatMsgProcessor,
-		Storer:                               heartbeatStorer,
-		PeerTypeProvider:                     peerTypeProvider,
-		Timer:                                timer,
-		AntifloodHandler:                     n.inputAntifloodHandler,
-		HardforkTrigger:                      n.hardforkTrigger,
-		PeerBlackListHandler:                 n.peerBlackListHandler,
-		ValidatorPubkeyConverter:             n.validatorPubkeyConverter,
-		HbmiRefreshIntervalInSec:             hbConfig.HbmiRefreshIntervalInSec,
-		HideInactiveValidatorIntervalInHours: hbConfig.HideInactiveValidatorIntervalInHours,
+		Marshalizer:                        netInputMarshalizer,
+		MaxDurationPeerUnresponsive:        time.Second * time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
+		PubKeysMap:                         pubKeysMap,
+		GenesisTime:                        n.genesisTime,
+		MessageHandler:                     heartBeatMsgProcessor,
+		Storer:                             heartbeatStorer,
+		PeerTypeProvider:                   peerTypeProvider,
+		Timer:                              timer,
+		AntifloodHandler:                   n.inputAntifloodHandler,
+		HardforkTrigger:                    n.hardforkTrigger,
+		PeerBlackListHandler:               n.peerBlackListHandler,
+		ValidatorPubkeyConverter:           n.validatorPubkeyConverter,
+		HbmiRefreshIntervalInSec:           hbConfig.HbmiRefreshIntervalInSec,
+		HideInactiveValidatorIntervalInSec: hbConfig.HideInactiveValidatorIntervalInSec,
 	}
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(argMonitor)
 	if err != nil {

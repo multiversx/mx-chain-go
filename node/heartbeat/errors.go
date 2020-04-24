@@ -86,6 +86,6 @@ var ErrNilPubkeyConverter = errors.New("trying to use a nil pubkey converter")
 // ErrZeroHbmiRefreshIntervalInSec signals that a zero value was provided for the HbmiRefreshIntervalInSec
 var ErrZeroHbmiRefreshIntervalInSec = errors.New("zero hbmiRefreshInterval")
 
-// ErrZeroHideInactiveValidatorIntervalInHours signals that a zero value
-// was provided for the ErrZeroHideInactiveValidatorIntervalInHours
-var ErrZeroHideInactiveValidatorIntervalInHours = errors.New("zero hideInactiveValidatorIntervalInHours")
+// ErrZeroHideInactiveValidatorIntervalInSec signals that a zero value
+// was provided for the ErrZeroHideInactiveValidatorIntervalInSec
+var ErrZeroHideInactiveValidatorIntervalInSec = errors.New("zero hideInactiveValidatorIntervalInSec")
