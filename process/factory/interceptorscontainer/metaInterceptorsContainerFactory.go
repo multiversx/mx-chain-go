@@ -43,6 +43,7 @@ func NewMetaInterceptorsContainerFactory(
 		args.BlackList,
 		args.AntifloodHandler,
 		args.WhiteListHandler,
+		args.WhiteListerVerifiedTxs,
 		args.AddressPubkeyConverter,
 		args.NonceConverter,
 	)
@@ -78,23 +79,24 @@ func NewMetaInterceptorsContainerFactory(
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		ProtoMarshalizer:  args.ProtoMarshalizer,
-		TxSignMarshalizer: args.TxSignMarshalizer,
-		Hasher:            args.Hasher,
-		ShardCoordinator:  args.ShardCoordinator,
-		NodesCoordinator:  args.NodesCoordinator,
-		MultiSigVerifier:  args.MultiSigner,
-		KeyGen:            args.KeyGen,
-		BlockKeyGen:       args.BlockKeyGen,
-		Signer:            args.SingleSigner,
-		BlockSigner:       args.BlockSingleSigner,
-		AddressPubkeyConv: args.AddressPubkeyConverter,
-		FeeHandler:        args.TxFeeHandler,
-		HeaderSigVerifier: args.HeaderSigVerifier,
-		ChainID:           args.ChainID,
-		ValidityAttester:  args.ValidityAttester,
-		EpochStartTrigger: args.EpochStartTrigger,
-		NonceConverter:    args.NonceConverter,
+		ProtoMarshalizer:     args.ProtoMarshalizer,
+		TxSignMarshalizer:    args.TxSignMarshalizer,
+		Hasher:               args.Hasher,
+		ShardCoordinator:     args.ShardCoordinator,
+		NodesCoordinator:     args.NodesCoordinator,
+		MultiSigVerifier:     args.MultiSigner,
+		KeyGen:               args.KeyGen,
+		BlockKeyGen:            args.BlockKeyGen,
+		Signer:                 args.SingleSigner,
+		BlockSigner:            args.BlockSingleSigner,
+		AddressPubkeyConv:      args.AddressPubkeyConverter,
+		FeeHandler:             args.TxFeeHandler,
+		HeaderSigVerifier:      args.HeaderSigVerifier,
+		ChainID:                args.ChainID,
+		ValidityAttester:       args.ValidityAttester,
+		EpochStartTrigger:      args.EpochStartTrigger,
+		NonceConverter:         args.NonceConverter,
+		WhiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 	}
 
 	container := containers.NewInterceptorsContainer()
@@ -114,6 +116,7 @@ func NewMetaInterceptorsContainerFactory(
 		accounts:               args.Accounts,
 		antifloodHandler:       args.AntifloodHandler,
 		whiteListHandler:       args.WhiteListHandler,
+		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 		addressPubkeyConverter: args.AddressPubkeyConverter,
 	}
 
