@@ -96,11 +96,6 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
-	miniBlocks, err := msh.groupMiniBlocksByShard(components.PendingMiniBlocks)
-	if err != nil {
-		return err
-	}
-
 	triggerConfigKey, err := msh.saveTriggerRegistry(components)
 	if err != nil {
 		return err
@@ -121,7 +116,7 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		LastCrossNotarizedHeaders:  lastCrossNotarizedHeader,
 		LastSelfNotarizedHeaders:   []bootstrapStorage.BootstrapHeaderInfo{lastHeader},
 		ProcessedMiniBlocks:        []bootstrapStorage.MiniBlocksInMeta{},
-		PendingMiniBlocks:          miniBlocks,
+		PendingMiniBlocks:          []bootstrapStorage.PendingMiniBlocksInfo{},
 		NodesCoordinatorConfigKey:  nodesCoordinatorConfigKey,
 		EpochStartTriggerConfigKey: triggerConfigKey,
 		HighestFinalBlockNonce:     lastHeader.Nonce,

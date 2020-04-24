@@ -87,12 +87,7 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
-	processedMiniBlocks, err := ssh.getProcessedMiniBlocks(components.PendingMiniBlocks, components.EpochStartMetaBlock, components.Headers)
-	if err != nil {
-		return err
-	}
-
-	pendingMiniBlocks, err := ssh.groupMiniBlocksByShard(components.PendingMiniBlocks)
+	processedMiniBlocks, pendingMiniBlocks, err := ssh.getProcessedAndPendingMiniBlocks(components.EpochStartMetaBlock, components.Headers)
 	if err != nil {
 		return err
 	}
@@ -189,23 +184,26 @@ func getEpochStartShardData(metaBlock *block.MetaBlock, shardId uint32) (block.E
 	return block.EpochStartShardData{}, epochStart.ErrEpochStartDataForShardNotFound
 }
 
-func (ssh *shardStorageHandler) getProcessedMiniBlocks(
-	pendingMiniBlocks map[string]*block.MiniBlock,
+func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 	meta *block.MetaBlock,
 	headers map[string]data.HeaderHandler,
-) ([]bootstrapStorage.MiniBlocksInMeta, error) {
+) ([]bootstrapStorage.MiniBlocksInMeta, []bootstrapStorage.PendingMiniBlocksInfo, error) {
 	shardData, err := getEpochStartShardData(meta, ssh.shardCoordinator.SelfId())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	neededMeta, ok := headers[string(shardData.FirstPendingMetaBlock)].(*block.MetaBlock)
 	if !ok {
-		return nil, epochStart.ErrMissingHeader
+		return nil, nil, epochStart.ErrMissingHeader
+	}
+	if check.IfNil(neededMeta) {
+		return nil, nil, epochStart.ErrMissingHeader
 	}
 
-	if check.IfNil(neededMeta) {
-		return nil, epochStart.ErrMissingHeader
+	pendingMiniBlocks := make(map[string]uint32, len(shardData.PendingMiniBlockHeaders))
+	for _, mbHdr := range shardData.PendingMiniBlockHeaders {
+		pendingMiniBlocks[string(mbHdr.Hash)] = mbHdr.SenderShardID
 	}
 
 	processedMbHashes := make([][]byte, 0)
@@ -218,13 +216,26 @@ func (ssh *shardStorageHandler) getProcessedMiniBlocks(
 		processedMbHashes = append(processedMbHashes, mb.Hash)
 	}
 
+	pendingMBsMap := make(map[uint32][][]byte)
+	for hash, shardID := range pendingMiniBlocks {
+		pendingMBsMap[shardID] = append(pendingMBsMap[shardID], []byte(hash))
+	}
+
+	sliceToRet := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)
+	for shardID, hashes := range pendingMBsMap {
+		sliceToRet = append(sliceToRet, bootstrapStorage.PendingMiniBlocksInfo{
+			ShardID:          shardID,
+			MiniBlocksHashes: hashes,
+		})
+	}
+
 	processedMiniBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
 	processedMiniBlocks = append(processedMiniBlocks, bootstrapStorage.MiniBlocksInMeta{
 		MetaHash:         shardData.FirstPendingMetaBlock,
 		MiniBlocksHashes: processedMbHashes,
 	})
 
-	return processedMiniBlocks, nil
+	return processedMiniBlocks, sliceToRet, nil
 }
 
 func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(meta *block.MetaBlock, headers map[string]data.HeaderHandler) ([]bootstrapStorage.BootstrapHeaderInfo, error) {
@@ -357,13 +368,7 @@ func getAllMiniBlocksWithDst(metaBlock *block.MetaBlock, destId uint32) map[stri
 			continue
 		}
 
-		shardMiniBlockHdr := block.MiniBlockHeader{
-			Hash:            val.Hash,
-			ReceiverShardID: val.ReceiverShardID,
-			SenderShardID:   val.SenderShardID,
-			TxCount:         val.TxCount,
-		}
-		hashDst[string(val.Hash)] = shardMiniBlockHdr
+		hashDst[string(val.Hash)] = val
 	}
 
 	return hashDst

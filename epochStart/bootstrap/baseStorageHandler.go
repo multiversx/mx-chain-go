@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -22,24 +21,6 @@ type baseStorageHandler struct {
 	hasher           hashing.Hasher
 	currentEpoch     uint32
 	uint64Converter  typeConverters.Uint64ByteSliceConverter
-}
-
-func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*block.MiniBlock) ([]bootstrapStorage.PendingMiniBlocksInfo, error) {
-	pendingMBsMap := make(map[uint32][][]byte)
-	for hash, miniBlock := range miniBlocks {
-		senderShId := miniBlock.SenderShardID
-		pendingMBsMap[senderShId] = append(pendingMBsMap[senderShId], []byte(hash))
-	}
-
-	sliceToRet := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)
-	for shardID, hashes := range pendingMBsMap {
-		sliceToRet = append(sliceToRet, bootstrapStorage.PendingMiniBlocksInfo{
-			ShardID:          shardID,
-			MiniBlocksHashes: hashes,
-		})
-	}
-
-	return sliceToRet, nil
 }
 
 func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
