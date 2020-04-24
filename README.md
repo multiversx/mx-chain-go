@@ -73,11 +73,10 @@ ______
 OR
 ______
 #### Step 4b: copying credentials and starting a node in a separate network:
-The previous generated .pem files needs to be copied in the same directory where the node binary resides in order to start the node.
+The previous generated .pem file needs to be copied in the same directory where the node binary resides in order to start the node.
 
 ```
-$  cp initialBalancesSk.pem ./../node/config/
-$  cp initialNodesSk.pem ./../node/config/
+$  cp validatorKey.pem ./../node/config/
 $  cd ../node && ./node
 ```
 
