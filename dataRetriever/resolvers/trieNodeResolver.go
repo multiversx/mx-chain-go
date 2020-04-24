@@ -93,8 +93,9 @@ func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message 
 
 	remainingSpace := maxBuffToSendTrieNodes
 	nodes := make([][]byte, 0, maxBuffToSendTrieNodes)
+	var nextNodes [][]byte
 	for _, hash := range hashes {
-		nextNodes, remainingSpace, err := tnRes.getSubTrie(hash, remainingSpace)
+		nextNodes, remainingSpace, err = tnRes.getSubTrie(hash, remainingSpace)
 		if err != nil {
 			continue
 		}
