@@ -208,7 +208,7 @@ type TestProcessorNode struct {
 	StorageBootstrapper      *mock.StorageBootstrapperMock
 	RequestedItemsHandler    dataRetriever.RequestedItemsHandler
 	WhiteListHandler         process.WhiteListHandler
-	WhiteListVerified        process.WhiteListHandler
+	WhiteListerVerifiedTxs   process.WhiteListHandler
 	NetworkShardingCollector consensus.NetworkShardingCollector
 
 	EpochStartTrigger  TestEpochStartTrigger
@@ -460,7 +460,7 @@ func (tpn *TestProcessorNode) initDataPools() {
 
 	cacherVerifiedCfg := storageUnit.CacheConfig{Size: 5000, Type: storageUnit.LRUCache, Shards: 1}
 	cacheVerified, _ := storageUnit.NewCache(cacherVerifiedCfg.Type, cacherVerifiedCfg.Size, cacherVerifiedCfg.Shards)
-	tpn.WhiteListVerified, _ = interceptors.NewWhiteListDataVerifier(cacheVerified)
+	tpn.WhiteListerVerifiedTxs, _ = interceptors.NewWhiteListDataVerifier(cacheVerified)
 }
 
 func (tpn *TestProcessorNode) initStorage() {
@@ -665,7 +665,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ValidityAttester:       tpn.BlockTracker,
 			EpochStartTrigger:      tpn.EpochStartTrigger,
 			WhiteListHandler:       tpn.WhiteListHandler,
-			WhiteListVerified:      tpn.WhiteListVerified,
+			WhiteListerVerifiedTxs: tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:       &mock.NilAntifloodHandler{},
 			NonceConverter:         TestUint64Converter,
 		}
@@ -724,7 +724,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ValidityAttester:       tpn.BlockTracker,
 			EpochStartTrigger:      tpn.EpochStartTrigger,
 			WhiteListHandler:       tpn.WhiteListHandler,
-			WhiteListVerified:      tpn.WhiteListVerified,
+			WhiteListerVerifiedTxs: tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:       &mock.NilAntifloodHandler{},
 			NonceConverter:         TestUint64Converter,
 		}

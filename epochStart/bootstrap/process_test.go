@@ -181,7 +181,7 @@ func TestCreateSyncers(t *testing.T) {
 		},
 	}
 	epochStartProvider.whiteListHandler = &mock.WhiteListHandlerStub{}
-	epochStartProvider.whitelistVerified = &mock.WhiteListHandlerStub{}
+	epochStartProvider.whiteListerVerifiedTxs = &mock.WhiteListHandlerStub{}
 	epochStartProvider.requestHandler = &mock.RequestHandlerStub{}
 
 	err := epochStartProvider.createSyncers()

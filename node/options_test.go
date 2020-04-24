@@ -1244,7 +1244,7 @@ func TestWithWhiteListHandlerVerified_WhiteListHandlerShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.Nil(t, err)
-	assert.True(t, node.whiteListVerified == whiteListHandler)
+	assert.True(t, node.whiteListerVerifiedTxs == whiteListHandler)
 }
 
 func TestWithSignatureSize(t *testing.T) {

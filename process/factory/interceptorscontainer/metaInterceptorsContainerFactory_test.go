@@ -477,6 +477,6 @@ func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryAr
 		AntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
 		WhiteListHandler:       &mock.WhiteListHandlerStub{},
 		NonceConverter:         mock.NewNonceHashConverterMock(),
-		WhiteListVerified:      &mock.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxs: &mock.WhiteListHandlerStub{},
 	}
 }

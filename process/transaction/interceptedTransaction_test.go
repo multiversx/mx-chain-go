@@ -282,7 +282,7 @@ func TestNewInterceptedTransaction_NilFeeHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
-func TestNewInterceptedTransaction_NilWhiteListVerifiedShouldErr(t *testing.T) {
+func TestNewInterceptedTransaction_NilWhiteListerVerifiedTxsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txi, err := transaction.NewInterceptedTransaction(
@@ -766,7 +766,7 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 	}
 
 	cache := mock.NewCacherMock()
-	whiteListVerified, err := interceptors.NewWhiteListDataVerifier(cache)
+	whiteListerVerifiedTxs, err := interceptors.NewWhiteListDataVerifier(cache)
 	require.Nil(t, err)
 
 	txi, err := transaction.NewInterceptedTransaction(
@@ -783,7 +783,7 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 		},
 		shardCoordinator,
 		createFreeTxFeeHandler(),
-		whiteListVerified,
+		whiteListerVerifiedTxs,
 	)
 	require.Nil(t, err)
 

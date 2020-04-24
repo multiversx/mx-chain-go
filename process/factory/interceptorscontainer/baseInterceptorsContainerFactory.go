@@ -38,7 +38,7 @@ type baseInterceptorsContainerFactory struct {
 	maxTxNonceDeltaAllowed int
 	antifloodHandler       process.P2PAntifloodHandler
 	whiteListHandler       process.WhiteListHandler
-	whiteListVerified      process.WhiteListHandler
+	whiteListerVerifiedTxs process.WhiteListHandler
 	addressPubkeyConverter state.PubkeyConverter
 	nonceConverter         typeConverters.Uint64ByteSliceConverter
 }
@@ -57,7 +57,7 @@ func checkBaseParams(
 	blackList process.BlackListHandler,
 	antifloodHandler process.P2PAntifloodHandler,
 	whiteListHandler process.WhiteListHandler,
-	whiteListVerified process.WhiteListHandler,
+	whiteListerVerifiedTxs process.WhiteListHandler,
 	addressPubkeyConverter state.PubkeyConverter,
 	nonceConverter typeConverters.Uint64ByteSliceConverter,
 ) error {
@@ -97,7 +97,7 @@ func checkBaseParams(
 	if check.IfNil(whiteListHandler) {
 		return process.ErrNilWhiteListHandler
 	}
-	if check.IfNil(whiteListVerified) {
+	if check.IfNil(whiteListerVerifiedTxs) {
 		return process.ErrNilWhiteListHandler
 	}
 	if check.IfNil(addressPubkeyConverter) {

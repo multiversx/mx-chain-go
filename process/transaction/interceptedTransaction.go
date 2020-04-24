@@ -19,21 +19,21 @@ import (
 
 // InterceptedTransaction holds and manages a transaction based struct with extended functionality
 type InterceptedTransaction struct {
-	tx                *transaction.Transaction
-	protoMarshalizer  marshal.Marshalizer
-	signMarshalizer   marshal.Marshalizer
-	hasher            hashing.Hasher
-	keyGen            crypto.KeyGenerator
-	singleSigner      crypto.SingleSigner
-	pubkeyConv        state.PubkeyConverter
-	coordinator       sharding.Coordinator
-	hash              []byte
-	rcvShard          uint32
-	sndShard          uint32
-	isForCurrentShard bool
-	sndAddr           state.AddressContainer
-	feeHandler        process.FeeHandler
-	whitelistVerified process.WhiteListHandler
+	tx                     *transaction.Transaction
+	protoMarshalizer       marshal.Marshalizer
+	signMarshalizer        marshal.Marshalizer
+	hasher                 hashing.Hasher
+	keyGen                 crypto.KeyGenerator
+	singleSigner           crypto.SingleSigner
+	pubkeyConv             state.PubkeyConverter
+	coordinator            sharding.Coordinator
+	hash                   []byte
+	rcvShard               uint32
+	sndShard               uint32
+	isForCurrentShard      bool
+	sndAddr                state.AddressContainer
+	feeHandler             process.FeeHandler
+	whiteListerVerifiedTxs process.WhiteListHandler
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -47,7 +47,7 @@ func NewInterceptedTransaction(
 	pubkeyConv state.PubkeyConverter,
 	coordinator sharding.Coordinator,
 	feeHandler process.FeeHandler,
-	whitelistVerified process.WhiteListHandler,
+	whiteListerVerifiedTxs process.WhiteListHandler,
 ) (*InterceptedTransaction, error) {
 
 	if txBuff == nil {
@@ -77,7 +77,7 @@ func NewInterceptedTransaction(
 	if check.IfNil(feeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(whitelistVerified) {
+	if check.IfNil(whiteListerVerifiedTxs) {
 		return nil, process.ErrNilWhiteListHandler
 	}
 
@@ -87,16 +87,16 @@ func NewInterceptedTransaction(
 	}
 
 	inTx := &InterceptedTransaction{
-		tx:                tx,
-		protoMarshalizer:  protoMarshalizer,
-		signMarshalizer:   signMarshalizer,
-		hasher:            hasher,
-		singleSigner:      signer,
-		pubkeyConv:        pubkeyConv,
-		keyGen:            keyGen,
-		coordinator:       coordinator,
-		feeHandler:        feeHandler,
-		whitelistVerified: whitelistVerified,
+		tx:                     tx,
+		protoMarshalizer:       protoMarshalizer,
+		signMarshalizer:        signMarshalizer,
+		hasher:                 hasher,
+		singleSigner:           signer,
+		pubkeyConv:             pubkeyConv,
+		keyGen:                 keyGen,
+		coordinator:            coordinator,
+		feeHandler:             feeHandler,
+		whiteListerVerifiedTxs: whiteListerVerifiedTxs,
 	}
 
 	err = inTx.processFields(txBuff)
@@ -124,14 +124,14 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 		return err
 	}
 
-	whiteListedVerified := inTx.whitelistVerified.IsWhiteListed(inTx)
+	whiteListedVerified := inTx.whiteListerVerifiedTxs.IsWhiteListed(inTx)
 	if !whiteListedVerified {
 		err = inTx.verifySig()
 		if err != nil {
 			return err
 		}
 	} else {
-		inTx.whitelistVerified.Remove([][]byte{inTx.Hash()})
+		inTx.whiteListerVerifiedTxs.Remove([][]byte{inTx.Hash()})
 	}
 
 	return nil
@@ -203,7 +203,7 @@ func (inTx *InterceptedTransaction) verifySig() error {
 		return err
 	}
 
-	inTx.whitelistVerified.Add([][]byte{inTx.Hash()})
+	inTx.whiteListerVerifiedTxs.Add([][]byte{inTx.Hash()})
 
 	return nil
 }

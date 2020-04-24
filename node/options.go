@@ -627,7 +627,7 @@ func WithWhiteListHandlerVerified(whiteListHandler process.WhiteListHandler) Opt
 			return ErrNilWhiteListHandler
 		}
 
-		n.whiteListVerified = whiteListHandler
+		n.whiteListerVerifiedTxs = whiteListHandler
 
 		return nil
 	}

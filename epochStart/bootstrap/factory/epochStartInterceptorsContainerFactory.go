@@ -29,20 +29,20 @@ const timeSpanForBadHeaders = time.Minute
 type ArgsEpochStartInterceptorContainer struct {
 	Config            config.Config
 	ShardCoordinator  sharding.Coordinator
-	TxSignMarshalizer marshal.Marshalizer
-	ProtoMarshalizer  marshal.Marshalizer
-	Hasher            hashing.Hasher
-	Messenger         process.TopicHandler
-	DataPool          dataRetriever.PoolsHolder
-	SingleSigner      crypto.SingleSigner
-	BlockSingleSigner crypto.SingleSigner
-	KeyGen            crypto.KeyGenerator
-	BlockKeyGen       crypto.KeyGenerator
-	WhiteListHandler  update.WhiteListHandler
-	WhiteListVerified update.WhiteListHandler
-	AddressPubkeyConv state.PubkeyConverter
-	ChainID           []byte
-	NonceConverter    typeConverters.Uint64ByteSliceConverter
+	TxSignMarshalizer      marshal.Marshalizer
+	ProtoMarshalizer       marshal.Marshalizer
+	Hasher                 hashing.Hasher
+	Messenger              process.TopicHandler
+	DataPool               dataRetriever.PoolsHolder
+	SingleSigner           crypto.SingleSigner
+	BlockSingleSigner      crypto.SingleSigner
+	KeyGen                 crypto.KeyGenerator
+	BlockKeyGen            crypto.KeyGenerator
+	WhiteListHandler       update.WhiteListHandler
+	WhiteListerVerifiedTxs update.WhiteListHandler
+	AddressPubkeyConv      state.PubkeyConverter
+	ChainID                []byte
+	NonceConverter         typeConverters.Uint64ByteSliceConverter
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but will many disabled
@@ -88,7 +88,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		ValidityAttester:       validityAttester,
 		EpochStartTrigger:      epochStartTrigger,
 		WhiteListHandler:       args.WhiteListHandler,
-		WhiteListVerified:      args.WhiteListVerified,
+		WhiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 		AntifloodHandler:       antiFloodHandler,
 		NonceConverter:         args.NonceConverter,
 	}

@@ -42,7 +42,7 @@ func NewShardInterceptorsContainerFactory(
 		args.BlackList,
 		args.AntifloodHandler,
 		args.WhiteListHandler,
-		args.WhiteListVerified,
+		args.WhiteListerVerifiedTxs,
 		args.AddressPubkeyConverter,
 		args.NonceConverter,
 	)
@@ -86,17 +86,17 @@ func NewShardInterceptorsContainerFactory(
 		MultiSigVerifier:  args.MultiSigner,
 		NodesCoordinator:  args.NodesCoordinator,
 		KeyGen:            args.KeyGen,
-		BlockKeyGen:       args.BlockSignKeyGen,
-		Signer:            args.SingleSigner,
-		BlockSigner:       args.BlockSingleSigner,
-		AddressPubkeyConv: args.AddressPubkeyConverter,
-		FeeHandler:        args.TxFeeHandler,
-		HeaderSigVerifier: args.HeaderSigVerifier,
-		ChainID:           args.ChainID,
-		ValidityAttester:  args.ValidityAttester,
-		EpochStartTrigger: args.EpochStartTrigger,
-		NonceConverter:    args.NonceConverter,
-		WhiteListVerified: args.WhiteListVerified,
+		BlockKeyGen:            args.BlockSignKeyGen,
+		Signer:                 args.SingleSigner,
+		BlockSigner:            args.BlockSingleSigner,
+		AddressPubkeyConv:      args.AddressPubkeyConverter,
+		FeeHandler:             args.TxFeeHandler,
+		HeaderSigVerifier:      args.HeaderSigVerifier,
+		ChainID:                args.ChainID,
+		ValidityAttester:       args.ValidityAttester,
+		EpochStartTrigger:      args.EpochStartTrigger,
+		NonceConverter:         args.NonceConverter,
+		WhiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 	}
 
 	container := containers.NewInterceptorsContainer()
@@ -116,7 +116,7 @@ func NewShardInterceptorsContainerFactory(
 		maxTxNonceDeltaAllowed: args.MaxTxNonceDeltaAllowed,
 		antifloodHandler:       args.AntifloodHandler,
 		whiteListHandler:       args.WhiteListHandler,
-		whiteListVerified:      args.WhiteListVerified,
+		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 		addressPubkeyConverter: args.AddressPubkeyConverter,
 	}
 

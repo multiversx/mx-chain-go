@@ -936,7 +936,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	whiteListVerified, err := createWhiteListVerified(generalConfig)
+	whiteListerVerifiedTxs, err := createWhiteListerVerifiedTxs(generalConfig)
 	if err != nil {
 		return err
 	}
@@ -959,7 +959,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		coreServiceContainer,
 		requestedItemsHandler,
 		whiteListRequest,
-		whiteListVerified,
+		whiteListerVerifiedTxs,
 		epochStartNotifier,
 		&generalConfig.EpochStartConfig,
 		currentEpoch,
@@ -1009,7 +1009,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		requestedItemsHandler,
 		epochStartNotifier,
 		whiteListRequest,
-		whiteListVerified,
+		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
 	)
 	if err != nil {
@@ -1577,7 +1577,7 @@ func createNode(
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
 	whiteListRequest process.WhiteListHandler,
-	whiteListVerified process.WhiteListHandler,
+	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan bool,
 ) (*node.Node, error) {
 	var err error
@@ -1684,7 +1684,7 @@ func createNode(
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithWhiteListHandler(whiteListRequest),
-		node.WithWhiteListHandlerVerified(whiteListVerified),
+		node.WithWhiteListHandlerVerified(whiteListerVerifiedTxs),
 		node.WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		node.WithNodeStopChannel(chanStopNodeProcess),
@@ -1887,11 +1887,11 @@ func createApiResolver(
 	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler)
 }
 
-func createWhiteListVerified(generalConfig *config.Config) (process.WhiteListHandler, error) {
+func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
 	whiteListCacheVerified, err := storageUnit.NewCache(
-		storageUnit.CacheType(generalConfig.WhiteListVerified.Type),
-		generalConfig.WhiteListVerified.Size,
-		generalConfig.WhiteListVerified.Shards,
+		storageUnit.CacheType(generalConfig.WhiteListerVerifiedTxs.Type),
+		generalConfig.WhiteListerVerifiedTxs.Size,
+		generalConfig.WhiteListerVerifiedTxs.Shards,
 	)
 	if err != nil {
 		return nil, err

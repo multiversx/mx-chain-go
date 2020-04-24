@@ -233,7 +233,7 @@
     Type = "FIFOSharded"
     Shards = 10
 
-[WhiteListVerified]
+[WhiteListerVerifiedTxs]
     Size = 50000
     Type = "FIFOSharded"
     Shards = 50
