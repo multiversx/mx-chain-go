@@ -125,3 +125,40 @@ func TestInitialAccount_UnmarshalNotAValidStakingValueShouldErr(t *testing.T) {
 
 	assert.True(t, errors.Is(err, ErrInvalidStakingBalanceString))
 }
+
+func TestInitialAccount_AddressBytes(t *testing.T) {
+	t.Parallel()
+
+	ia := &InitialAccount{}
+	addrBytes := []byte("address bytes")
+	ia.SetAddressBytes(addrBytes)
+	recoverdAddrBytes := ia.AddressBytes()
+
+	assert.Equal(t, addrBytes, recoverdAddrBytes)
+}
+
+func TestInitialAccount_Clone(t *testing.T) {
+	t.Parallel()
+
+	ia := &InitialAccount{
+		Address:      "address",
+		Supply:       big.NewInt(45),
+		Balance:      big.NewInt(56),
+		StakingValue: big.NewInt(78),
+		addressBytes: []byte("address bytes"),
+		Delegation: &DelegationData{
+			Address:      "delegation address",
+			Value:        big.NewInt(910),
+			addressBytes: []byte("delegation address bytes"),
+		},
+	}
+
+	iaCloned := ia.Clone()
+
+	assert.Equal(t, ia, iaCloned)
+	assert.False(t, ia == iaCloned) //pointer testing
+	assert.False(t, ia.Supply == iaCloned.Supply)
+	assert.False(t, ia.Balance == iaCloned.Balance)
+	assert.False(t, ia.StakingValue == iaCloned.StakingValue)
+	assert.False(t, ia.Delegation == iaCloned.Delegation)
+}

@@ -8,6 +8,7 @@ import (
 type GenesisParser interface {
 	InitialAccountsSplitOnAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]*InitialAccount, error)
 	InitialAccountsSplitOnDelegationAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]*InitialAccount, error)
+	InitialAccounts() []*InitialAccount
 	IsInterfaceNil() bool
 }
 

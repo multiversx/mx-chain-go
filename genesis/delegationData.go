@@ -12,7 +12,7 @@ const decodeBase = 10
 type DelegationData struct {
 	Address      string   `json:"address"`
 	Value        *big.Int `json:"value"`
-	AddressBytes []byte   `json:"-"`
+	addressBytes []byte
 }
 
 // MarshalJSON is the function called when trying to serialize the object using the JSON marshaler
@@ -58,4 +58,26 @@ func (dd *DelegationData) UnmarshalJSON(data []byte) error {
 	dd.Address = s.Address
 
 	return nil
+}
+
+// AddressBytes will return the delegation address as raw bytes
+func (dd *DelegationData) AddressBytes() []byte {
+	return dd.addressBytes
+}
+
+// SetAddressBytes will set the delegation address as raw bytes
+func (dd *DelegationData) SetAddressBytes(address []byte) {
+	dd.addressBytes = address
+}
+
+// Clone will return a new instance of the delegation data holding the same information
+func (dd *DelegationData) Clone() *DelegationData {
+	newDelegationData := &DelegationData{
+		Address:      dd.Address,
+		Value:        big.NewInt(0).Set(dd.Value),
+		addressBytes: make([]byte, len(dd.addressBytes)),
+	}
+	copy(newDelegationData.addressBytes, dd.addressBytes)
+
+	return newDelegationData
 }

@@ -74,7 +74,7 @@ func setBalancesToTrie(arg ArgsGenesisBlockCreator) (rootHash []byte, err error)
 }
 
 func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt *genesis.InitialAccount) error {
-	addr, err := arg.PubkeyConv.CreateAddressFromBytes(accnt.AddressBytes)
+	addr, err := arg.PubkeyConv.CreateAddressFromBytes(accnt.AddressBytes())
 	if err != nil {
 		return fmt.Errorf("%w for address %s", err, accnt.Address)
 	}

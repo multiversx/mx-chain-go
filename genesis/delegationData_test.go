@@ -71,3 +71,30 @@ func TestDelegationData_UnmarshalNotAValidValueShouldErr(t *testing.T) {
 
 	assert.True(t, errors.Is(err, ErrInvalidDelegationValueString))
 }
+
+func TestDelegationData_AddressBytes(t *testing.T) {
+	t.Parallel()
+
+	dd := &DelegationData{}
+	addrBytes := []byte("address bytes")
+	dd.SetAddressBytes(addrBytes)
+	recoverdAddrBytes := dd.AddressBytes()
+
+	assert.Equal(t, addrBytes, recoverdAddrBytes)
+}
+
+func TestDelegationData_Clone(t *testing.T) {
+	t.Parallel()
+
+	dd := &DelegationData{
+		Address:      "address",
+		Value:        big.NewInt(45),
+		addressBytes: []byte("address bytes"),
+	}
+
+	ddCloned := dd.Clone()
+
+	assert.Equal(t, dd, ddCloned)
+	assert.False(t, dd == ddCloned) //pointer testing
+	assert.False(t, dd.Value == ddCloned.Value)
+}

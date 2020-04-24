@@ -64,3 +64,18 @@ var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
 
 // ErrNilGenesisParser signals that the provided genesis parser is nil
 var ErrNilGenesisParser = errors.New("nil genesis parser")
+
+// ErrStakingValueIsNotEnough signals that the staking value provided is not enough for provided node(s)
+var ErrStakingValueIsNotEnough = errors.New("staking value is not enough")
+
+// ErrDelegationValueIsNotEnough signals that the delegation value provided is not enough for provided node(s)
+var ErrDelegationValueIsNotEnough = errors.New("delegation value is not enough")
+
+// ErrNodeNotStaked signals that no one staked for the provided node
+var ErrNodeNotStaked = errors.New("for the provided node, no one staked")
+
+// ErrNilInitialNodePrice signals that the provided initial node price is nil
+var ErrNilInitialNodePrice = errors.New("nil initial node price")
+
+// ErrInvalidInitialNodePrice signals that the provided initial node price is invalid
+var ErrInvalidInitialNodePrice = errors.New("invalid initial node price")

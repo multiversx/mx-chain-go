@@ -13,7 +13,7 @@ type InitialAccount struct {
 	Balance      *big.Int        `json:"balance"`
 	StakingValue *big.Int        `json:"stakingvalue"`
 	Delegation   *DelegationData `json:"delegation"`
-	AddressBytes []byte          `json:"-"`
+	addressBytes []byte
 }
 
 // MarshalJSON is the function called when trying to serialize the object using the JSON marshaler
@@ -102,4 +102,30 @@ func (ia *InitialAccount) UnmarshalJSON(data []byte) error {
 	ia.Delegation = s.Delegation
 
 	return nil
+}
+
+// AddressBytes will return the address as raw bytes
+func (ia *InitialAccount) AddressBytes() []byte {
+	return ia.addressBytes
+}
+
+// SetAddressBytes will set the address as raw bytes
+func (ia *InitialAccount) SetAddressBytes(address []byte) {
+	ia.addressBytes = address
+}
+
+// Clone will return a new instance of the initial account holding the same information
+func (ia *InitialAccount) Clone() *InitialAccount {
+	newInitialAccount := &InitialAccount{
+		Address:      ia.Address,
+		Supply:       big.NewInt(0).Set(ia.Supply),
+		Balance:      big.NewInt(0).Set(ia.Balance),
+		StakingValue: big.NewInt(0).Set(ia.StakingValue),
+		Delegation:   ia.Delegation.Clone(),
+		addressBytes: make([]byte, len(ia.addressBytes)),
+	}
+
+	copy(newInitialAccount.addressBytes, ia.addressBytes)
+
+	return newInitialAccount
 }

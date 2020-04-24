@@ -1,4 +1,4 @@
-package parser
+package parsing
 
 import (
 	"fmt"
@@ -88,22 +88,21 @@ func (g *Genesis) process() error {
 }
 
 func (g *Genesis) parseElement(initialAccount *genesis.InitialAccount) error {
-	var err error
-
 	if len(initialAccount.Address) == 0 {
 		return genesis.ErrEmptyAddress
 	}
-	initialAccount.AddressBytes, err = g.pubkeyConverter.Decode(initialAccount.Address)
+	addressBytes, err := g.pubkeyConverter.Decode(initialAccount.Address)
 	if err != nil {
 		return fmt.Errorf("%w for `%s`",
 			genesis.ErrInvalidAddress, initialAccount.Address)
 	}
 
+	initialAccount.SetAddressBytes(addressBytes)
+
 	return g.parseDelegationElement(initialAccount)
 }
 
 func (g *Genesis) parseDelegationElement(initialAccount *genesis.InitialAccount) error {
-	var err error
 	delegationData := initialAccount.Delegation
 
 	if big.NewInt(0).Cmp(delegationData.Value) == 0 {
@@ -114,7 +113,7 @@ func (g *Genesis) parseDelegationElement(initialAccount *genesis.InitialAccount)
 		return fmt.Errorf("%w for address '%s'",
 			genesis.ErrEmptyDelegationAddress, initialAccount.Address)
 	}
-	delegationData.AddressBytes, err = g.pubkeyConverter.Decode(delegationData.Address)
+	addressBytes, err := g.pubkeyConverter.Decode(delegationData.Address)
 	if err != nil {
 		return fmt.Errorf("%w for `%s`, address %s",
 			genesis.ErrInvalidDelegationAddress,
@@ -123,11 +122,13 @@ func (g *Genesis) parseDelegationElement(initialAccount *genesis.InitialAccount)
 		)
 	}
 
+	delegationData.SetAddressBytes(addressBytes)
+
 	return nil
 }
 
 func (g *Genesis) checkInitialAccount(initialAccount *genesis.InitialAccount) error {
-	isSmartContract := core.IsSmartContractAddress(initialAccount.AddressBytes)
+	isSmartContract := core.IsSmartContractAddress(initialAccount.AddressBytes())
 	if isSmartContract {
 		return fmt.Errorf("%w for address %s",
 			genesis.ErrAddressIsSmartContract,
@@ -241,7 +242,7 @@ func (g *Genesis) InitialAccountsSplitOnAddressesShards(
 
 	var addresses = make(map[uint32][]*genesis.InitialAccount)
 	for _, in := range g.initialAccounts {
-		address, err := g.pubkeyConverter.CreateAddressFromBytes(in.AddressBytes)
+		address, err := g.pubkeyConverter.CreateAddressFromBytes(in.AddressBytes())
 		if err != nil {
 			return nil, err
 		}
@@ -268,7 +269,7 @@ func (g *Genesis) InitialAccountsSplitOnDelegationAddressesShards(
 			continue
 		}
 
-		delegationAddress, err := g.pubkeyConverter.CreateAddressFromBytes(in.Delegation.AddressBytes)
+		delegationAddress, err := g.pubkeyConverter.CreateAddressFromBytes(in.Delegation.AddressBytes())
 		if err != nil {
 			return nil, err
 		}

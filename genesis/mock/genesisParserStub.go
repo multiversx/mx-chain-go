@@ -9,6 +9,7 @@ import (
 type GenesisParserStub struct {
 	InitialAccountsSplitOnAddressesShardsCalled           func(shardCoordinator sharding.Coordinator) (map[uint32][]*genesis.InitialAccount, error)
 	InitialAccountsSplitOnDelegationAddressesShardsCalled func(shardCoordinator sharding.Coordinator) (map[uint32][]*genesis.InitialAccount, error)
+	InitialAccountsCalled                                 func() []*genesis.InitialAccount
 }
 
 // InitialAccountsSplitOnAddressesShards -
@@ -27,6 +28,15 @@ func (gps *GenesisParserStub) InitialAccountsSplitOnDelegationAddressesShards(sh
 	}
 
 	return make(map[uint32][]*genesis.InitialAccount), nil
+}
+
+// InitialAccounts -
+func (gps *GenesisParserStub) InitialAccounts() []*genesis.InitialAccount {
+	if gps.InitialAccountsCalled != nil {
+		return gps.InitialAccountsCalled()
+	}
+
+	return make([]*genesis.InitialAccount, 0)
 }
 
 // IsInterfaceNil -

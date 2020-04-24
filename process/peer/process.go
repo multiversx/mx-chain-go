@@ -747,7 +747,7 @@ func (vs *validatorStatistics) initializeNode(
 	peerType core.PeerType,
 	index uint32,
 ) error {
-	peerAccount, err := vs.GetPeerAccount(node.PubKey())
+	peerAccount, err := vs.GetPeerAccount(node.PubKeyBytes())
 	if err != nil {
 		return err
 	}
@@ -764,12 +764,12 @@ func (vs *validatorStatistics) savePeerAccountData(
 	peerType core.PeerType,
 	index uint32,
 ) error {
-	err := peerAccount.SetRewardAddress(node.Address())
+	err := peerAccount.SetRewardAddress(node.AddressBytes())
 	if err != nil {
 		return err
 	}
 
-	err = peerAccount.SetBLSPublicKey(node.PubKey())
+	err = peerAccount.SetBLSPublicKey(node.PubKeyBytes())
 	if err != nil {
 		return err
 	}

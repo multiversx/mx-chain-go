@@ -40,7 +40,8 @@ import (
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/genesis/parser"
+	"github.com/ElrondNetwork/elrond-go/genesis/checking"
+	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
@@ -291,7 +292,7 @@ func createTries(
 
 type stateComponentsFactoryArgs struct {
 	config           *config.Config
-	genesisParser    *parser.Genesis
+	genesisParser    *parsing.Genesis
 	shardCoordinator sharding.Coordinator
 	core             *Core
 	pathManager      storage.PathManagerHandler
@@ -300,7 +301,7 @@ type stateComponentsFactoryArgs struct {
 // NewStateComponentsFactoryArgs initializes the arguments necessary for creating the state components
 func NewStateComponentsFactoryArgs(
 	config *config.Config,
-	genesisParser *parser.Genesis,
+	genesisParser *parsing.Genesis,
 	shardCoordinator sharding.Coordinator,
 	core *Core,
 	pathManager storage.PathManagerHandler,
@@ -547,7 +548,7 @@ func NetworkComponentsFactory(
 
 type processComponentsFactoryArgs struct {
 	coreComponents            *coreComponentsFactoryArgs
-	genesisParser             *parser.Genesis
+	genesisParser             *parsing.Genesis
 	economicsData             *economics.EconomicsData
 	nodesConfig               *sharding.NodesSetup
 	gasSchedule               map[string]map[string]uint64
@@ -580,7 +581,7 @@ type processComponentsFactoryArgs struct {
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
 func NewProcessComponentsFactoryArgs(
 	coreComponents *coreComponentsFactoryArgs,
-	genesisParser *parser.Genesis,
+	genesisParser *parsing.Genesis,
 	economicsData *economics.EconomicsData,
 	nodesConfig *sharding.NodesSetup,
 	gasSchedule map[string]map[string]uint64,
@@ -844,6 +845,20 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		pendingMiniBlocksHandler,
 		txLogsProcessor,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	nodesSetupChecker, err := checking.NewNodesSetupChecker(
+		args.genesisParser,
+		args.economicsData.GenesisNodePrice(),
+		args.validatorPubkeyConverter,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = nodesSetupChecker.Check(args.nodesConfig.AllInitialNodes())
 	if err != nil {
 		return nil, err
 	}
