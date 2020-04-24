@@ -20,11 +20,12 @@ import (
 
 func createMockArgumentsForAuction() ArgsStakingAuctionSmartContract {
 	args := ArgsStakingAuctionSmartContract{
-		ValidatorSettings: &mock.ValidatorSettingsStub{},
-		Eei:               &mock.SystemEIStub{},
-		SigVerifier:       &mock.MessageSignVerifierMock{},
-		AuctionSCAddress:  []byte("auction"),
-		StakingSCAddress:  []byte("staking"),
+		ValidatorSettings:   &mock.ValidatorSettingsStub{},
+		Eei:                 &mock.SystemEIStub{},
+		SigVerifier:         &mock.MessageSignVerifierMock{},
+		AuctionSCAddress:    []byte("auction"),
+		StakingSCAddress:    []byte("staking"),
+		NodesConfigProvider: &mock.NodesConfigProviderStub{},
 	}
 
 	return args
@@ -149,7 +150,7 @@ func TestAuctionSC_calculateNodePrice_Case2(t *testing.T) {
 
 	expectedNodePrice := big.NewInt(20000000)
 	args := createMockArgumentsForAuction()
-	args.ValidatorSettings = &mock.ValidatorSettingsStub{NumNodesCalled: func() uint32 {
+	args.NodesConfigProvider = &mock.NodesConfigProviderStub{MinNumberOfNodesCalled: func() uint32 {
 		return 5
 	}}
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
@@ -171,7 +172,7 @@ func TestAuctionSC_calculateNodePrice_Case3(t *testing.T) {
 
 	expectedNodePrice := big.NewInt(12500000)
 	args := createMockArgumentsForAuction()
-	args.ValidatorSettings = &mock.ValidatorSettingsStub{NumNodesCalled: func() uint32 {
+	args.NodesConfigProvider = &mock.NodesConfigProviderStub{MinNumberOfNodesCalled: func() uint32 {
 		return 5
 	}}
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
@@ -211,7 +212,7 @@ func TestAuctionSC_selection_StakeGetAllocatedSeats(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForAuction()
-	args.ValidatorSettings = &mock.ValidatorSettingsStub{NumNodesCalled: func() uint32 {
+	args.NodesConfigProvider = &mock.NodesConfigProviderStub{MinNumberOfNodesCalled: func() uint32 {
 		return 5
 	}}
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
@@ -489,7 +490,7 @@ func TestAuctionStakingSC_ExecuteInit(t *testing.T) {
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
-	ownerAddr := stakingSmartContract.eei.GetStorage([]byte(OwnerKey))
+	ownerAddr := stakingSmartContract.eei.GetStorage([]byte(ownerKey))
 	assert.Equal(t, arguments.CallerAddr, ownerAddr)
 
 	ownerBalanceBytes := stakingSmartContract.eei.GetStorage(arguments.CallerAddr)
@@ -765,7 +766,6 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 	argsStaking.Eei = eei
 	argsStaking.UnBondPeriod = args.ValidatorSettings.UnBondPeriod()
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
-
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
 		return stakingSC, nil
 	}})
@@ -809,6 +809,7 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 	marshaledStakedData, _ := json.Marshal(stakedData)
 	eei.SetSCAddress(args.StakingSCAddress)
 	eei.SetStorage(arguments.Arguments[0], marshaledStakedData)
+	stakingSC.setConfig(&StakingNodesConfig{MinNumNodes: 5, StakedNodes: 10})
 	eei.SetSCAddress(args.AuctionSCAddress)
 
 	retCode := stakingSmartContract.Execute(arguments)
@@ -848,7 +849,7 @@ func TestAuctionStakingSC_ExecuteUnBoundValidatorNotUnStakeShouldErr(t *testing.
 	eei := &mock.SystemEIStub{}
 	eei.GetStorageCalled = func(key []byte) []byte {
 		switch {
-		case bytes.Equal(key, []byte(OwnerKey)):
+		case bytes.Equal(key, []byte(ownerKey)):
 			return []byte("data")
 		default:
 			registrationDataMarshalized, _ := json.Marshal(&StakedData{UnStakedNonce: 0})
@@ -928,7 +929,7 @@ func TestAuctionStakingSC_ExecuteUnBondBeforePeriodEnds(t *testing.T) {
 		&mock.ArgumentParserMock{})
 
 	eei.SetSCAddress([]byte("addr"))
-	eei.SetStorage([]byte(OwnerKey), []byte("data"))
+	eei.SetStorage([]byte(ownerKey), []byte("data"))
 	eei.SetStorage(blsPubKey.Bytes(), marshalizedRegData)
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
@@ -968,7 +969,7 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 
 	scAddress := []byte("owner")
 	eei.SetSCAddress(scAddress)
-	eei.SetStorage([]byte(OwnerKey), scAddress)
+	eei.SetStorage([]byte(ownerKey), scAddress)
 
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
@@ -989,6 +990,7 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 	argsStaking.Eei = eei
 	argsStaking.UnBondPeriod = args.ValidatorSettings.UnBondPeriod()
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
+
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
 		return stakingSC, nil
 	}})
@@ -1003,6 +1005,7 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 
 	eei.SetSCAddress(args.StakingSCAddress)
 	eei.SetStorage(arguments.Arguments[0], marshalizedStakedData)
+	stakingSC.setConfig(&StakingNodesConfig{MinNumNodes: 5, StakedNodes: 10})
 	eei.SetSCAddress(args.AuctionSCAddress)
 
 	auctionData := AuctionData{
@@ -1104,6 +1107,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 	marshalizedExpectedRegData, _ := json.Marshal(&stakedRegistrationData)
 	eei.SetSCAddress(args.StakingSCAddress)
 	eei.SetStorage(arguments.Arguments[0], marshalizedExpectedRegData)
+	stakingSC.setConfig(&StakingNodesConfig{MinNumNodes: 5, StakedNodes: 10})
 
 	auctionData := AuctionData{
 		RewardAddress:   arguments.CallerAddr,

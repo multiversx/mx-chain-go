@@ -103,7 +103,20 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-	trieStorage, _ := trie.NewTrieStorageManager(store, marsh, testHasher, config.DBConfig{}, ewl, generalCfg)
+	trieStorage, _ := trie.NewTrieStorageManager(
+		store,
+		marsh,
+		testHasher,
+		config.DBConfig{
+			FilePath:          "TrieStorage",
+			Type:              "MemoryDB",
+			BatchDelaySeconds: 30,
+			MaxBatchSize:      6,
+			MaxOpenFiles:      10,
+		},
+		ewl,
+		generalCfg,
+	)
 
 	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher)
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})

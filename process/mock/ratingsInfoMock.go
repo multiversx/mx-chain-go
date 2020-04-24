@@ -47,3 +47,8 @@ func (rd *RatingsInfoMock) MetaChainRatingsStepHandler() process.RatingsStepHand
 func (rd *RatingsInfoMock) ShardChainRatingsStepHandler() process.RatingsStepHandler {
 	return rd.ShardRatingsStepDataProperty
 }
+
+// IsInterfaceNil -
+func (rd *RatingsInfoMock) IsInterfaceNil() bool {
+	return rd == nil
+}

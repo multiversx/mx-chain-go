@@ -38,7 +38,7 @@ func (sms *StorageManagerStub) SetCheckpoint([]byte) {
 }
 
 // Prune --
-func (sms *StorageManagerStub) Prune([]byte) {
+func (sms *StorageManagerStub) Prune([]byte, data.TriePruningIdentifier) {
 
 }
 

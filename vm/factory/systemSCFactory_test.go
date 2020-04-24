@@ -15,10 +15,11 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 	gasSchedule = defaults.FillGasMapInternal(gasSchedule, 1)
 
 	return ArgsNewSystemSCFactory{
-		SystemEI:          &mock.SystemEIStub{},
-		ValidatorSettings: &mock.ValidatorSettingsStub{},
-		SigVerifier:       &mock.MessageSignVerifierMock{},
-		GasMap:            gasSchedule,
+		SystemEI:            &mock.SystemEIStub{},
+		ValidatorSettings:   &mock.ValidatorSettingsStub{},
+		SigVerifier:         &mock.MessageSignVerifierMock{},
+		GasMap:              gasSchedule,
+		NodesConfigProvider: &mock.NodesConfigProviderStub{},
 	}
 }
 
