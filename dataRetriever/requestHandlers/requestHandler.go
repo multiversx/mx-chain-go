@@ -108,34 +108,35 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 		log.Trace("requestByHashes", "hash", txHash)
 	}
 
-	go func() {
-		dataSplit := &partitioning.DataSplit{}
-		var sliceBatches [][][]byte
-		sliceBatches, err = dataSplit.SplitDataInChunks(unrequestedHashes, rrh.maxTxsToRequest)
+	go rrh.requestHashesWithDataSplit(unrequestedHashes, txResolver)
+
+	rrh.addRequestedItem(unrequestedHashes)
+}
+
+func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
+	unrequestedHashes [][]byte,
+	resolver HashSliceResolver,
+) {
+	dataSplit := &partitioning.DataSplit{}
+	sliceBatches, err := dataSplit.SplitDataInChunks(unrequestedHashes, rrh.maxTxsToRequest)
+	if err != nil {
+		log.Debug("requestByHashes.SplitDataInChunks",
+			"error", err.Error(),
+			"num txs", len(unrequestedHashes),
+			"max txs to request", rrh.maxTxsToRequest,
+		)
+		return
+	}
+
+	for _, batch := range sliceBatches {
+		err = resolver.RequestDataFromHashArray(batch, rrh.epoch)
 		if err != nil {
-			log.Debug("requestByHashes.SplitDataInChunks",
+			log.Debug("requestByHashes.RequestDataFromHashArray",
 				"error", err.Error(),
-				"num txs", len(unrequestedHashes),
-				"max txs to request", rrh.maxTxsToRequest,
+				"epoch", rrh.epoch,
+				"batch size", len(batch),
 			)
-			return
 		}
-
-		for _, batch := range sliceBatches {
-			err = txResolver.RequestDataFromHashArray(batch, rrh.epoch)
-			if err != nil {
-				log.Debug("requestByHashes.RequestDataFromHashArray",
-					"error", err.Error(),
-					"epoch", rrh.epoch,
-					"batch size", len(batch),
-				)
-			}
-		}
-	}()
-
-	rrh.whiteList.Add(hashes)
-	for _, hash := range unrequestedHashes {
-		rrh.addRequestedItem(hash)
 	}
 }
 
@@ -181,7 +182,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 		return
 	}
 
-	rrh.addRequestedItem(miniblockHash)
+	rrh.addRequestedItem([][]byte{miniblockHash})
 }
 
 // RequestMiniBlocks method asks for miniblocks from the connected peers
@@ -222,9 +223,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 		return
 	}
 
-	for _, hash := range unrequestedHashes {
-		rrh.addRequestedItem(hash)
-	}
+	rrh.addRequestedItem(unrequestedHashes)
 }
 
 // RequestShardHeader method asks for shard header from the connected peers
@@ -257,7 +256,7 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 		return
 	}
 
-	rrh.addRequestedItem(hash)
+	rrh.addRequestedItem([][]byte{hash})
 }
 
 // RequestMetaHeader method asks for meta header from the connected peers
@@ -289,7 +288,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 		return
 	}
 
-	rrh.addRequestedItem(hash)
+	rrh.addRequestedItem([][]byte{hash})
 }
 
 // RequestShardHeaderByNonce method asks for shard header from the connected peers by nonce
@@ -323,33 +322,20 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 		return
 	}
 
-	rrh.addRequestedItem(key)
+	rrh.addRequestedItem([][]byte{key})
 }
 
 // RequestTrieNodes method asks for trie nodes from the connected peers
 func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string) {
-	rrh.sweepIfNeeded()
-
-	hashesToRequest := make([][]byte, 0, len(hashes))
-	for _, hash := range hashes {
-		if rrh.requestedItemsHandler.Has(string(hash)) {
-			log.Trace("item already requested", "key", hash)
-			continue
-		}
-		hashesToRequest = append(hashesToRequest, hash)
-	}
-
-	if len(hashesToRequest) == 0 {
+	unrequestedHashes := rrh.getUnrequestedHashes(hashes)
+	if len(unrequestedHashes) == 0 {
 		return
 	}
-
-	for _, hash := range hashesToRequest {
-		log.Debug("requesting trie from network",
-			"topic", topic,
-			"shard", destShardID,
-			"hash", hash,
-		)
-	}
+	log.Debug("requesting transactions from network",
+		"topic", topic,
+		"shard", destShardID,
+		"num txs", len(unrequestedHashes),
+	)
 
 	resolver, err := rrh.resolversFinder.MetaCrossShardResolver(topic, destShardID)
 	if err != nil {
@@ -367,20 +353,13 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 		return
 	}
 
-	// epoch doesn't matter because that parameter is not used in trie's resolver
-	err = trieResolver.RequestDataFromHashArray(hashesToRequest, 0)
-	if err != nil {
-		log.Debug("requestByHash.RequestDataFromHashArray",
-			"error", err.Error(),
-			"epoch", 0,
-			"num hashes", len(hashesToRequest),
-		)
-		return
+	for _, txHash := range hashes {
+		log.Trace("requestByHashes", "hash", txHash)
 	}
 
-	for _, hash := range hashesToRequest {
-		rrh.addRequestedItem(hash)
-	}
+	go rrh.requestHashesWithDataSplit(unrequestedHashes, trieResolver)
+
+	rrh.addRequestedItem(unrequestedHashes)
 }
 
 // RequestMetaHeaderByNonce method asks for meta header from the connected peers by nonce
@@ -412,7 +391,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 		return
 	}
 
-	rrh.addRequestedItem(key)
+	rrh.addRequestedItem([][]byte{key})
 }
 
 func (rrh *resolverRequestHandler) testIfRequestIsNeeded(key []byte) bool {
@@ -427,15 +406,18 @@ func (rrh *resolverRequestHandler) testIfRequestIsNeeded(key []byte) bool {
 	return true
 }
 
-func (rrh *resolverRequestHandler) addRequestedItem(key []byte) {
-	err := rrh.requestedItemsHandler.Add(string(key))
-	if err != nil {
-		log.Trace("addRequestedItem",
-			"error", err.Error(),
-			"key", key)
-		return
+func (rrh *resolverRequestHandler) addRequestedItem(keys [][]byte) {
+	for _, key := range keys {
+		err := rrh.requestedItemsHandler.Add(string(key))
+		if err != nil {
+			log.Trace("addRequestedItem",
+				"error", err.Error(),
+				"key", key)
+			return
+		}
 	}
-	rrh.whiteList.Add([][]byte{key})
+
+	rrh.whiteList.Add(keys)
 }
 
 func (rrh *resolverRequestHandler) getShardHeaderResolver(shardID uint32) (dataRetriever.HeaderResolver, error) {
@@ -495,8 +477,8 @@ func (rrh *resolverRequestHandler) getMetaHeaderResolver() (dataRetriever.Header
 
 // RequestStartOfEpochMetaBlock method asks for the start of epoch metablock from the connected peers
 func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
-	epochStartIdentifier := core.EpochStartIdentifier(epoch)
-	if !rrh.testIfRequestIsNeeded([]byte(epochStartIdentifier)) {
+	epochStartIdentifier := []byte(core.EpochStartIdentifier(epoch))
+	if !rrh.testIfRequestIsNeeded(epochStartIdentifier) {
 		return
 	}
 
@@ -522,7 +504,7 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 		return
 	}
 
-	err = headerResolver.RequestDataFromEpoch([]byte(epochStartIdentifier))
+	err = headerResolver.RequestDataFromEpoch(epochStartIdentifier)
 	if err != nil {
 		log.Debug("RequestStartOfEpochMetaBlock.RequestDataFromEpoch",
 			"error", err.Error(),
@@ -531,7 +513,7 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 		return
 	}
 
-	rrh.addRequestedItem([]byte(epochStartIdentifier))
+	rrh.addRequestedItem([][]byte{epochStartIdentifier})
 }
 
 // RequestInterval returns the request interval between sending the same request
