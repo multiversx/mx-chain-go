@@ -250,6 +250,10 @@ func (sr *subroundSignature) waitAllSignatures() {
 		time.Sleep(remainingTime)
 	}
 
+	if sr.IsSubroundFinished(sr.Current()) {
+		return
+	}
+
 	select {
 	case sr.ConsensusChannel() <- true:
 	default:
