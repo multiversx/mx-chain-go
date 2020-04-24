@@ -87,7 +87,7 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
-	processedMiniBlocks, pendingMiniBlocks, err := ssh.getProcessedMiniBlocks(components.EpochStartMetaBlock, components.Headers)
+	processedMiniBlocks, pendingMiniBlocks, err := ssh.getProcessedAndPendingMiniBlocks(components.EpochStartMetaBlock, components.Headers)
 	if err != nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func getEpochStartShardData(metaBlock *block.MetaBlock, shardId uint32) (block.E
 	return block.EpochStartShardData{}, epochStart.ErrEpochStartDataForShardNotFound
 }
 
-func (ssh *shardStorageHandler) getProcessedMiniBlocks(
+func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 	meta *block.MetaBlock,
 	headers map[string]data.HeaderHandler,
 ) ([]bootstrapStorage.MiniBlocksInMeta, []bootstrapStorage.PendingMiniBlocksInfo, error) {
