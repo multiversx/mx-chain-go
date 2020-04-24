@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
@@ -40,6 +41,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	WhiteListHandler  update.WhiteListHandler
 	AddressPubkeyConv state.PubkeyConverter
 	ChainID           []byte
+	NonceConverter    typeConverters.Uint64ByteSliceConverter
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but will many disabled
@@ -86,6 +88,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		EpochStartTrigger:      epochStartTrigger,
 		WhiteListHandler:       args.WhiteListHandler,
 		AntifloodHandler:       antiFloodHandler,
+		NonceConverter:         args.NonceConverter,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

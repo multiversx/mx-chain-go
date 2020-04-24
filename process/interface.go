@@ -89,6 +89,7 @@ type InterceptedData interface {
 	IsInterfaceNil() bool
 	Hash() []byte
 	Type() string
+	Identifiers() [][]byte
 	String() string
 }
 
@@ -421,6 +422,7 @@ type BlockChainHookHandler interface {
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	SetInterceptedDebugHandler(handler InterceptedDebugHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -771,6 +773,7 @@ type RatingsInfoHandler interface {
 	MetaChainRatingsStepHandler() RatingsStepHandler
 	ShardChainRatingsStepHandler() RatingsStepHandler
 	SelectionChances() []SelectionChance
+	IsInterfaceNil() bool
 }
 
 // RatingsStepHandler defines the information needed for the rating computation on shards or meta
@@ -803,5 +806,12 @@ type WhiteListHandler interface {
 	Remove(keys [][]byte)
 	Add(keys [][]byte)
 	IsWhiteListed(interceptedData InterceptedData) bool
+	IsInterfaceNil() bool
+}
+
+// InterceptedDebugHandler defines an interface for debugging the intercepted data
+type InterceptedDebugHandler interface {
+	LogReceivedHashes(topic string, hashes [][]byte)
+	LogProcessedHashes(topic string, hashes [][]byte, err error)
 	IsInterfaceNil() bool
 }

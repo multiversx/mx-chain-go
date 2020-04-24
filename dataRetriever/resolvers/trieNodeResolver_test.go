@@ -256,7 +256,7 @@ func TestTrieNodeResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	requested := &dataRetriever.RequestData{}
 
 	res := &mock.TopicResolverSenderStub{}
-	res.SendOnRequestTopicCalled = func(rd *dataRetriever.RequestData) error {
+	res.SendOnRequestTopicCalled = func(rd *dataRetriever.RequestData, hashes [][]byte) error {
 		requested = rd
 		return nil
 	}
@@ -291,7 +291,7 @@ func TestTrieNodeResolver_SetAndGetNumPeersToQuery(t *testing.T) {
 	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
 
 	tnRes.SetNumPeersToQuery(expectedIntra, expectedCross)
-	actualIntra, actualCross := tnRes.GetNumPeersToQuery()
+	actualIntra, actualCross := tnRes.NumPeersToQuery()
 	assert.Equal(t, expectedIntra, actualIntra)
 	assert.Equal(t, expectedCross, actualCross)
 }
