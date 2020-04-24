@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	syncGo "sync"
 	"sync/atomic"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -89,7 +91,8 @@ type Node struct {
 	validatorStatistics           process.ValidatorStatisticsProcessor
 	hardforkTrigger               HardforkTrigger
 	validatorsProvider            process.ValidatorsProvider
-	whiteListHandler              process.WhiteListHandler
+	whiteListRequest              process.WhiteListHandler
+	whiteListerVerifiedTxs        process.WhiteListHandler
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -138,6 +141,9 @@ type Node struct {
 	publicKeySize int
 
 	chanStopNodeProcess chan bool
+
+	mutQueryHandlers syncGo.RWMutex
+	queryHandlers    map[string]debug.QueryHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -157,6 +163,7 @@ func NewNode(opts ...Option) (*Node, error) {
 		ctx:                      context.Background(),
 		currentSendingGoRoutines: 0,
 		appStatusHandler:         statusHandler.NewNilStatusHandler(),
+		queryHandlers:            make(map[string]debug.QueryHandler),
 	}
 	for _, opt := range opts {
 		err := opt(node)
@@ -755,7 +762,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	txValidator, err := dataValidators.NewTxValidator(
 		n.accounts,
 		n.shardCoordinator,
-		n.whiteListHandler,
+		n.whiteListRequest,
 		n.addressPubkeyConverter,
 		core.MaxTxNonceDeltaAllowed,
 	)
@@ -778,6 +785,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		n.addressPubkeyConverter,
 		n.shardCoordinator,
 		n.feeHandler,
+		n.whiteListerVerifiedTxs,
 	)
 	if err != nil {
 		return err
@@ -949,8 +957,13 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 			return err
 		}
 	}
+	argPeerTypeProvider := sharding.ArgPeerTypeProvider{
+		NodesCoordinator:        n.nodesCoordinator,
+		EpochHandler:            n.epochStartTrigger,
+		EpochStartEventNotifier: n.epochStartRegistrationHandler,
+	}
 
-	peerTypeProvider, err := sharding.NewPeerTypeProvider(n.nodesCoordinator, n.epochStartTrigger, n.epochStartRegistrationHandler)
+	peerTypeProvider, err := sharding.NewPeerTypeProvider(argPeerTypeProvider)
 	if err != nil {
 		return err
 	}
@@ -1006,18 +1019,20 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	}
 
 	argMonitor := heartbeat.ArgHeartbeatMonitor{
-		Marshalizer:                 netInputMarshalizer,
-		MaxDurationPeerUnresponsive: time.Second * time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
-		PubKeysMap:                  pubKeysMap,
-		GenesisTime:                 n.genesisTime,
-		MessageHandler:              heartBeatMsgProcessor,
-		Storer:                      heartbeatStorer,
-		PeerTypeProvider:            peerTypeProvider,
-		Timer:                       timer,
-		AntifloodHandler:            n.inputAntifloodHandler,
-		HardforkTrigger:             n.hardforkTrigger,
-		PeerBlackListHandler:        n.peerBlackListHandler,
-		ValidatorPubkeyConverter:    n.validatorPubkeyConverter,
+		Marshalizer:                        netInputMarshalizer,
+		MaxDurationPeerUnresponsive:        time.Second * time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
+		PubKeysMap:                         pubKeysMap,
+		GenesisTime:                        n.genesisTime,
+		MessageHandler:                     heartBeatMsgProcessor,
+		Storer:                             heartbeatStorer,
+		PeerTypeProvider:                   peerTypeProvider,
+		Timer:                              timer,
+		AntifloodHandler:                   n.inputAntifloodHandler,
+		HardforkTrigger:                    n.hardforkTrigger,
+		PeerBlackListHandler:               n.peerBlackListHandler,
+		ValidatorPubkeyConverter:           n.validatorPubkeyConverter,
+		HbmiRefreshIntervalInSec:           hbConfig.HbmiRefreshIntervalInSec,
+		HideInactiveValidatorIntervalInSec: hbConfig.HideInactiveValidatorIntervalInSec,
 	}
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(argMonitor)
 	if err != nil {
@@ -1130,6 +1145,41 @@ func (n *Node) DecodeAddressPubkey(pk string) ([]byte, error) {
 	}
 
 	return n.addressPubkeyConverter.Decode(pk)
+}
+
+// AddQueryHandler adds a query handler in cache
+func (n *Node) AddQueryHandler(name string, handler debug.QueryHandler) error {
+	if check.IfNil(handler) {
+		return ErrNilQueryHandler
+	}
+	if len(name) == 0 {
+		return ErrEmptyQueryHandlerName
+	}
+
+	n.mutQueryHandlers.Lock()
+	defer n.mutQueryHandlers.Unlock()
+
+	_, ok := n.queryHandlers[name]
+	if ok {
+		return fmt.Errorf("%w with name %s", ErrQueryHandlerAlreadyExists, name)
+	}
+
+	n.queryHandlers[name] = handler
+
+	return nil
+}
+
+// GetQueryHandler returns the query handler if existing
+func (n *Node) GetQueryHandler(name string) (debug.QueryHandler, error) {
+	n.mutQueryHandlers.RLock()
+	defer n.mutQueryHandlers.RUnlock()
+
+	qh, ok := n.queryHandlers[name]
+	if !ok || check.IfNil(qh) {
+		return nil, fmt.Errorf("%w for name %s", ErrNilQueryHandler, name)
+	}
+
+	return qh, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

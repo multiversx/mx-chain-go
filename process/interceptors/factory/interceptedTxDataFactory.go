@@ -14,14 +14,15 @@ import (
 var _ process.InterceptedDataFactory = (*interceptedTxDataFactory)(nil)
 
 type interceptedTxDataFactory struct {
-	protoMarshalizer marshal.Marshalizer
-	signMarshalizer  marshal.Marshalizer
-	hasher           hashing.Hasher
-	keyGen           crypto.KeyGenerator
-	singleSigner     crypto.SingleSigner
-	pubkeyConverter  state.PubkeyConverter
-	shardCoordinator sharding.Coordinator
-	feeHandler       process.FeeHandler
+	protoMarshalizer       marshal.Marshalizer
+	signMarshalizer        marshal.Marshalizer
+	hasher                 hashing.Hasher
+	keyGen                 crypto.KeyGenerator
+	singleSigner           crypto.SingleSigner
+	pubkeyConverter        state.PubkeyConverter
+	shardCoordinator       sharding.Coordinator
+	feeHandler             process.FeeHandler
+	whiteListerVerifiedTxs process.WhiteListHandler
 }
 
 // NewInterceptedTxDataFactory creates an instance of interceptedTxDataFactory
@@ -53,16 +54,20 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if check.IfNil(argument.FeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
+	if check.IfNil(argument.WhiteListerVerifiedTxs) {
+		return nil, process.ErrNilWhiteListHandler
+	}
 
 	return &interceptedTxDataFactory{
-		protoMarshalizer: argument.ProtoMarshalizer,
-		signMarshalizer:  argument.TxSignMarshalizer,
-		hasher:           argument.Hasher,
-		keyGen:           argument.KeyGen,
-		singleSigner:     argument.Signer,
-		pubkeyConverter:  argument.AddressPubkeyConv,
-		shardCoordinator: argument.ShardCoordinator,
-		feeHandler:       argument.FeeHandler,
+		protoMarshalizer:       argument.ProtoMarshalizer,
+		signMarshalizer:        argument.TxSignMarshalizer,
+		hasher:                 argument.Hasher,
+		keyGen:                 argument.KeyGen,
+		singleSigner:           argument.Signer,
+		pubkeyConverter:        argument.AddressPubkeyConv,
+		shardCoordinator:       argument.ShardCoordinator,
+		feeHandler:             argument.FeeHandler,
+		whiteListerVerifiedTxs: argument.WhiteListerVerifiedTxs,
 	}, nil
 }
 
@@ -78,6 +83,7 @@ func (itdf *interceptedTxDataFactory) Create(buff []byte) (process.InterceptedDa
 		itdf.pubkeyConverter,
 		itdf.shardCoordinator,
 		itdf.feeHandler,
+		itdf.whiteListerVerifiedTxs,
 	)
 }
 

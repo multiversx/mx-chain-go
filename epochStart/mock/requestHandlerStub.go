@@ -28,7 +28,7 @@ func (rhs *RequestHandlerStub) RequestMiniBlock(_ uint32, _ []byte) {
 }
 
 // RequestTrieNodes -
-func (rhs *RequestHandlerStub) RequestTrieNodes(_ uint32, _ []byte, _ string) {
+func (rhs *RequestHandlerStub) RequestTrieNodes(_ uint32, _ [][]byte, _ string) {
 }
 
 // SetNumPeersToQuery -

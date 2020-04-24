@@ -197,6 +197,11 @@ func (inUTx *InterceptedUnsignedTransaction) String() string {
 	)
 }
 
+// Identifiers returns the identifiers used in requests
+func (inUTx *InterceptedUnsignedTransaction) Identifiers() [][]byte {
+	return [][]byte{inUTx.hash}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inUTx *InterceptedUnsignedTransaction) IsInterfaceNil() bool {
 	return inUTx == nil

@@ -556,6 +556,7 @@ type processComponentsFactoryArgs struct {
 	coreServiceContainer      serviceContainer.Core
 	requestedItemsHandler     dataRetriever.RequestedItemsHandler
 	whiteListHandler          process.WhiteListHandler
+	whiteListerVerifiedTxs    process.WhiteListHandler
 	epochStartNotifier        EpochStartNotifier
 	epochStart                *config.EpochStartConfig
 	rater                     sharding.PeerAccountListAndRatingHandler
@@ -589,6 +590,7 @@ func NewProcessComponentsFactoryArgs(
 	coreServiceContainer serviceContainer.Core,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	whiteListHandler process.WhiteListHandler,
+	whiteListerVerifiedTxs process.WhiteListHandler,
 	epochStartNotifier EpochStartNotifier,
 	epochStart *config.EpochStartConfig,
 	startEpochNum uint32,
@@ -620,6 +622,7 @@ func NewProcessComponentsFactoryArgs(
 		coreServiceContainer:      coreServiceContainer,
 		requestedItemsHandler:     requestedItemsHandler,
 		whiteListHandler:          whiteListHandler,
+		whiteListerVerifiedTxs:    whiteListerVerifiedTxs,
 		epochStartNotifier:        epochStartNotifier,
 		epochStart:                epochStart,
 		startEpochNum:             startEpochNum,
@@ -763,7 +766,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	_, err = poolsCleaner.NewCrossTxsPoolsCleaner(
+	_, err = poolsCleaner.NewTxsPoolsCleaner(
 		args.state.AddressPubkeyConverter,
 		args.data.Datapool,
 		args.rounder,
@@ -787,6 +790,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		blockTracker,
 		epochStartTrigger,
 		args.whiteListHandler,
+		args.whiteListerVerifiedTxs,
 	)
 	if err != nil {
 		return nil, err
@@ -1092,6 +1096,7 @@ func newInterceptorContainerFactory(
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 	whiteListHandler process.WhiteListHandler,
+	whiteListerVerifiedTxs process.WhiteListHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -1109,6 +1114,7 @@ func newInterceptorContainerFactory(
 			validityAttester,
 			epochStartTrigger,
 			whiteListHandler,
+			whiteListerVerifiedTxs,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1126,6 +1132,7 @@ func newInterceptorContainerFactory(
 			validityAttester,
 			epochStartTrigger,
 			whiteListHandler,
+			whiteListerVerifiedTxs,
 		)
 	}
 
@@ -1179,6 +1186,7 @@ func newShardInterceptorContainerFactory(
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 	whiteListHandler process.WhiteListHandler,
+	whiteListerVerifiedTxs process.WhiteListHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
@@ -1206,7 +1214,9 @@ func newShardInterceptorContainerFactory(
 		ValidityAttester:       validityAttester,
 		EpochStartTrigger:      epochStartTrigger,
 		WhiteListHandler:       whiteListHandler,
+		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
 		AntifloodHandler:       network.InputAntifloodHandler,
+		NonceConverter:         dataCore.Uint64ByteSliceConverter,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1230,6 +1240,7 @@ func newMetaInterceptorContainerFactory(
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 	whiteListHandler process.WhiteListHandler,
+	whiteListerVerifiedTxs process.WhiteListHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
@@ -1257,7 +1268,9 @@ func newMetaInterceptorContainerFactory(
 		ValidityAttester:       validityAttester,
 		EpochStartTrigger:      epochStartTrigger,
 		WhiteListHandler:       whiteListHandler,
+		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
 		AntifloodHandler:       network.InputAntifloodHandler,
+		NonceConverter:         dataCore.Uint64ByteSliceConverter,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {

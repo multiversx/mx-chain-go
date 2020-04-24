@@ -169,21 +169,24 @@ func (tsm *trieStorageManager) ExitSnapshotMode() {
 		tsm.snapshotInProgress--
 	}
 
-	if tsm.snapshotInProgress == 0 {
-		tsm.prune(tsm.pruningBuffer.removeAll())
-	}
-
 	log.Trace("exit snapshot mode", "snapshots in progress", tsm.snapshotInProgress)
 }
 
 // Prune removes the given hash from db
-func (tsm *trieStorageManager) Prune(rootHash []byte) {
+func (tsm *trieStorageManager) Prune(rootHash []byte, identifier data.TriePruningIdentifier) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
 	log.Trace("trie storage manager prune", "root", rootHash)
+	rootHash = append(rootHash, byte(identifier))
 
 	if tsm.snapshotInProgress > 0 {
+		if identifier == data.NewRoot {
+			// TODO refactor pruning mechanism so that pruning will be done on rollback
+			// even if there is a snapshot in progress
+			return
+		}
+
 		tsm.pruningBuffer.add(rootHash)
 		return
 	}
@@ -284,6 +287,8 @@ func (tsm *trieStorageManager) getSnapshotDbThatContainsHash(rootHash []byte) da
 // TakeSnapshot creates a new snapshot, or if there is another snapshot or checkpoint in progress,
 // it adds this snapshot in the queue.
 func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte) {
+	tsm.EnterSnapshotMode()
+
 	snapshotEntry := snapshotsQueueEntry{rootHash: rootHash, newDb: true}
 	tsm.writeOnChan(snapshotEntry)
 }
@@ -292,6 +297,8 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte) {
 // it adds this checkpoint in the queue. The checkpoint operation creates a new snapshot file
 // only if there was no snapshot done prior to this
 func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte) {
+	tsm.EnterSnapshotMode()
+
 	checkpointEntry := snapshotsQueueEntry{rootHash: rootHash, newDb: false}
 	tsm.writeOnChan(checkpointEntry)
 }
@@ -307,6 +314,8 @@ func (tsm *trieStorageManager) writeOnChan(entry snapshotsQueueEntry) {
 }
 
 func (tsm *trieStorageManager) takeSnapshot(snapshot snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher) {
+	defer tsm.ExitSnapshotMode()
+
 	if tsm.getSnapshotDbThatContainsHash(snapshot.rootHash) != nil {
 		log.Trace("snapshot for rootHash already taken", "rootHash", snapshot.rootHash)
 		return

@@ -1,12 +1,13 @@
 package leveldb
 
 import (
+	"bytes"
 	"os"
 	"runtime"
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -96,13 +97,7 @@ func (s *DB) batchTimeoutHandle() {
 	}
 }
 
-// Put adds the value to the (key, val) storage medium
-func (s *DB) Put(key, val []byte) error {
-	err := s.batch.Put(key, val)
-	if err != nil {
-		return err
-	}
-
+func (s *DB) updateBatchWithIncrement() error {
 	s.mutBatch.Lock()
 	defer s.mutBatch.Unlock()
 
@@ -111,7 +106,7 @@ func (s *DB) Put(key, val []byte) error {
 		return nil
 	}
 
-	err = s.putBatch(s.batch)
+	err := s.putBatch(s.batch)
 	if err != nil {
 		log.Warn("leveldb putBatch", "error", err.Error())
 		return err
@@ -123,8 +118,26 @@ func (s *DB) Put(key, val []byte) error {
 	return nil
 }
 
+// Put adds the value to the (key, val) storage medium
+func (s *DB) Put(key, val []byte) error {
+	err := s.batch.Put(key, val)
+	if err != nil {
+		return err
+	}
+
+	return s.updateBatchWithIncrement()
+}
+
 // Get returns the value associated to the key
 func (s *DB) Get(key []byte) ([]byte, error) {
+	data := s.batch.Get(key)
+	if data != nil {
+		if bytes.Equal(data, []byte(removed)) {
+			return nil, storage.ErrKeyNotFound
+		}
+		return data, nil
+	}
+
 	data, err := s.db.Get(key, nil)
 	if err == leveldb.ErrNotFound {
 		return nil, storage.ErrKeyNotFound
@@ -136,8 +149,16 @@ func (s *DB) Get(key []byte) ([]byte, error) {
 	return data, nil
 }
 
-// Has returns true if the given key is present in the persistence medium
+// Has returns nil if the given key is present in the persistence medium
 func (s *DB) Has(key []byte) error {
+	data := s.batch.Get(key)
+	if data != nil {
+		if bytes.Equal(data, []byte(removed)) {
+			return storage.ErrKeyNotFound
+		}
+		return nil
+	}
+
 	has, err := s.db.Has(key, nil)
 	if err != nil {
 		return err
@@ -193,7 +214,7 @@ func (s *DB) Remove(key []byte) error {
 	_ = s.batch.Delete(key)
 	s.mutBatch.Unlock()
 
-	return s.db.Delete(key, nil)
+	return s.updateBatchWithIncrement()
 }
 
 // Destroy removes the storage medium stored data

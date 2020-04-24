@@ -243,11 +243,13 @@ func trieNode(data interface{}) (node, error) {
 func (ts *trieSyncer) requestNodes() uint32 {
 	ts.mutOperation.RLock()
 	numUnResolvedNodes := uint32(len(ts.nodesForTrie))
+	hashes := make([][]byte, 0)
 	for hash, nodeInfo := range ts.nodesForTrie {
 		if !nodeInfo.received {
-			ts.requestHandler.RequestTrieNodes(ts.shardId, []byte(hash), ts.topic)
+			hashes = append(hashes, []byte(hash))
 		}
 	}
+	ts.requestHandler.RequestTrieNodes(ts.shardId, hashes, ts.topic)
 	ts.mutOperation.RUnlock()
 
 	return numUnResolvedNodes

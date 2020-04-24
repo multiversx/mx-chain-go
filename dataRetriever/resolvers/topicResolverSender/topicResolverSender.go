@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	resolverDebug "github.com/ElrondNetwork/elrond-go/debug/resolver"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/message"
@@ -32,16 +33,18 @@ type ArgTopicResolverSender struct {
 }
 
 type topicResolverSender struct {
-	messenger          dataRetriever.MessageHandler
-	marshalizer        marshal.Marshalizer
-	topicName          string
-	peerListCreator    dataRetriever.PeerListCreator
-	randomizer         dataRetriever.IntRandomizer
-	targetShardId      uint32
-	outputAntiflooder  dataRetriever.P2PAntifloodHandler
-	numIntraShardPeers int
-	numCrossShardPeers int
-	mutNumPeersToQuery sync.RWMutex
+	messenger               dataRetriever.MessageHandler
+	marshalizer             marshal.Marshalizer
+	topicName               string
+	peerListCreator         dataRetriever.PeerListCreator
+	randomizer              dataRetriever.IntRandomizer
+	targetShardId           uint32
+	outputAntiflooder       dataRetriever.P2PAntifloodHandler
+	mutNumPeersToQuery      sync.RWMutex
+	numIntraShardPeers      int
+	numCrossShardPeers      int
+	mutResolverDebugHandler sync.RWMutex
+	resolverDebugHandler    dataRetriever.ResolverDebugHandler
 }
 
 // NewTopicResolverSender returns a new topic resolver instance
@@ -85,13 +88,14 @@ func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, e
 		numIntraShardPeers: arg.NumIntraShardPeers,
 		numCrossShardPeers: arg.NumCrossShardPeers,
 	}
+	resolver.resolverDebugHandler = resolverDebug.NewDisabledInterceptorResolver()
 
 	return resolver, nil
 }
 
 // SendOnRequestTopic is used to send request data over channels (topics) to other peers
 // This method only sends the request, the received data should be handled by interceptors
-func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData) error {
+func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
 	buff, err := trs.marshalizer.Marshal(rd)
 	if err != nil {
 		return err
@@ -100,16 +104,25 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 	topicToSendRequest := trs.topicName + topicRequestSuffix
 
 	crossPeers := trs.peerListCreator.PeerList()
-	numSent := trs.sendOnTopic(crossPeers, topicToSendRequest, buff, trs.numCrossShardPeers)
+	numSentCross := trs.sendOnTopic(crossPeers, topicToSendRequest, buff, trs.numCrossShardPeers)
 
 	intraPeers := trs.peerListCreator.IntraShardPeerList()
-	numSent = numSent + trs.sendOnTopic(intraPeers, topicToSendRequest, buff, trs.numIntraShardPeers)
+	numSentIntra := trs.sendOnTopic(intraPeers, topicToSendRequest, buff, trs.numIntraShardPeers)
 
-	if numSent == 0 {
+	trs.callDebugHandler(originalHashes, numSentIntra, numSentCross)
+
+	if numSentCross+numSentIntra == 0 {
 		return fmt.Errorf("%w, topic: %s", dataRetriever.ErrSendRequest, trs.topicName)
 	}
 
 	return nil
+}
+
+func (trs *topicResolverSender) callDebugHandler(originalHashes [][]byte, numSentIntra int, numSentCross int) {
+	trs.mutResolverDebugHandler.RLock()
+	defer trs.mutResolverDebugHandler.RUnlock()
+
+	trs.resolverDebugHandler.LogRequestedData(trs.topicName, originalHashes, numSentIntra, numSentCross)
 }
 
 func createIndexList(listLength int) []int {
@@ -172,6 +185,27 @@ func (trs *topicResolverSender) sendToConnectedPeer(topic string, buff []byte, p
 	return trs.messenger.SendToConnectedPeer(topic, buff, peer)
 }
 
+// ResolverDebugHandler returns the debug handler used in resolvers
+func (trs *topicResolverSender) ResolverDebugHandler() dataRetriever.ResolverDebugHandler {
+	trs.mutResolverDebugHandler.RLock()
+	defer trs.mutResolverDebugHandler.RUnlock()
+
+	return trs.resolverDebugHandler
+}
+
+// SetResolverDebugHandler sets the debug handler used in resolvers
+func (trs *topicResolverSender) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
+	if check.IfNil(handler) {
+		return dataRetriever.ErrNilResolverDebugHandler
+	}
+
+	trs.mutResolverDebugHandler.Lock()
+	trs.resolverDebugHandler = handler
+	trs.mutResolverDebugHandler.Unlock()
+
+	return nil
+}
+
 // RequestTopic returns the topic with the request suffix used for sending requests
 func (trs *topicResolverSender) RequestTopic() string {
 	return trs.topicName + topicRequestSuffix
@@ -202,8 +236,8 @@ func (trs *topicResolverSender) SetNumPeersToQuery(intra int, cross int) {
 	trs.mutNumPeersToQuery.Unlock()
 }
 
-// GetNumPeersToQuery will return the number of intra shard and cross shard number of peer to query
-func (trs *topicResolverSender) GetNumPeersToQuery() (int, int) {
+// NumPeersToQuery will return the number of intra shard and cross shard number of peer to query
+func (trs *topicResolverSender) NumPeersToQuery() (int, int) {
 	trs.mutNumPeersToQuery.RLock()
 	defer trs.mutNumPeersToQuery.RUnlock()
 

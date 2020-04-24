@@ -44,6 +44,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
+	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -189,8 +190,8 @@ VERSION:
 		Usage: "Boolean option for enabling the profiling mode. If set, the /debug/pprof routes will be available " +
 			"on the node for profiling the application.",
 	}
-	// skIndex defines a flag that specifies the 0-th based index of the private key to be used from initialNodesSk.pem file
-	skIndex = cli.IntFlag{
+	// validatorKeyIndex defines a flag that specifies the 0-th based index of the private key to be used from validatorKey.pem file
+	validatorKeyIndex = cli.IntFlag{
 		Name:  "sk-index",
 		Usage: "The index in the PEM file of the private key to be used by the node.",
 		Value: 0,
@@ -238,11 +239,11 @@ VERSION:
 			"user-friendly terminal view of the node.",
 	}
 
-	// initialNodesSkPemFile defines a flag for the path to the ...
-	initialNodesSkPemFile = cli.StringFlag{
-		Name:  "initial-nodes-sk-pem-file",
-		Usage: "The `filepath` for the PEM file which contains the secret keys for initial nodes.",
-		Value: "./config/initialNodesSk.pem",
+	// validatorKeyPemFile defines a flag for the path to the validator key used in block signing
+	validatorKeyPemFile = cli.StringFlag{
+		Name:  "validator-key-pem-file",
+		Usage: "The `filepath` for the PEM file which contains the secret keys for the validator key.",
+		Value: "./config/validatorKey.pem",
 	}
 	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
@@ -362,8 +363,8 @@ func main() {
 		p2pConfigurationFile,
 		gasScheduleConfigurationFile,
 		sk,
-		initialNodesSkPemFile,
-		skIndex,
+		validatorKeyIndex,
+		validatorKeyPemFile,
 		port,
 		profileMode,
 		storageCleanup,
@@ -555,13 +556,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	initialNodesSkPemFileName := ctx.GlobalString(initialNodesSkPemFile.Name)
+	validatorKeyPemFileName := ctx.GlobalString(validatorKeyPemFile.Name)
 	cryptoParams, err := factory.GetSigningParams(
 		ctx,
 		validatorPubkeyConverter,
 		sk.Name,
-		skIndex.Name,
-		initialNodesSkPemFileName,
+		validatorKeyIndex.Name,
+		validatorKeyPemFileName,
 		suite)
 	if err != nil {
 		return fmt.Errorf("%w: consider regenerating your keys", err)
@@ -930,7 +931,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-	whiteListHandler, err := interceptors.NewWhiteListDataVerifier(whiteListCache)
+	whiteListRequest, err := interceptors.NewWhiteListDataVerifier(whiteListCache)
+	if err != nil {
+		return err
+	}
+
+	whiteListerVerifiedTxs, err := createWhiteListerVerifiedTxs(generalConfig)
 	if err != nil {
 		return err
 	}
@@ -952,7 +958,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		networkComponents,
 		coreServiceContainer,
 		requestedItemsHandler,
-		whiteListHandler,
+		whiteListRequest,
+		whiteListerVerifiedTxs,
 		epochStartNotifier,
 		&generalConfig.EpochStartConfig,
 		currentEpoch,
@@ -1001,7 +1008,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer,
 		requestedItemsHandler,
 		epochStartNotifier,
-		whiteListHandler,
+		whiteListRequest,
+		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
 	)
 	if err != nil {
@@ -1568,7 +1576,8 @@ func createNode(
 	indexer indexer.Indexer,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	epochStartRegistrationHandler epochStart.RegistrationHandler,
-	whiteListHandler process.WhiteListHandler,
+	whiteListRequest process.WhiteListHandler,
+	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan bool,
 ) (*node.Node, error) {
 	var err error
@@ -1674,7 +1683,8 @@ func createNode(
 		node.WithInputAntifloodHandler(network.InputAntifloodHandler),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(hardforkTrigger),
-		node.WithWhiteListHanlder(whiteListHandler),
+		node.WithWhiteListHandler(whiteListRequest),
+		node.WithWhiteListHandlerVerified(whiteListerVerifiedTxs),
 		node.WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		node.WithNodeStopChannel(chanStopNodeProcess),
@@ -1705,6 +1715,17 @@ func createNode(
 			return nil, errors.New("error creating meta-node: " + err.Error())
 		}
 	}
+
+	err = nodeDebugFactory.CreateInterceptedDebugHandler(
+		nd,
+		process.InterceptorsContainer,
+		process.ResolversFinder,
+		config.Debug.InterceptorResolver,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	return nd, nil
 }
 
@@ -1864,4 +1885,16 @@ func createApiResolver(
 	}
 
 	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler)
+}
+
+func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
+	whiteListCacheVerified, err := storageUnit.NewCache(
+		storageUnit.CacheType(generalConfig.WhiteListerVerifiedTxs.Type),
+		generalConfig.WhiteListerVerifiedTxs.Size,
+		generalConfig.WhiteListerVerifiedTxs.Shards,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
 }

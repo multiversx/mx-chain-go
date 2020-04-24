@@ -126,6 +126,11 @@ func (inTn *InterceptedTrieNode) Fee() *big.Int {
 	return big.NewInt(0)
 }
 
+// Identifiers returns the identifiers used in requests
+func (inTn *InterceptedTrieNode) Identifiers() [][]byte {
+	return [][]byte{inTn.hash}
+}
+
 // CreateEndOfProcessingTriggerNode changes the hash of the current node by appending the hash to the current hash.
 // This construction will be used to trigger the end of processing for all of the received data
 func (inTn *InterceptedTrieNode) CreateEndOfProcessingTriggerNode() {

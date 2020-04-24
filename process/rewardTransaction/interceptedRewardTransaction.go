@@ -177,6 +177,11 @@ func (inRTx *InterceptedRewardTransaction) String() string {
 	)
 }
 
+// Identifiers returns the identifiers used in requests
+func (inRTx *InterceptedRewardTransaction) Identifiers() [][]byte {
+	return [][]byte{inRTx.hash}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (inRTx *InterceptedRewardTransaction) IsInterfaceNil() bool {
 	return inRTx == nil

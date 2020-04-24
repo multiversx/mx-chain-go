@@ -1,6 +1,7 @@
 package dataRetriever
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -10,6 +11,40 @@ import (
 
 // UnitType is the type for Storage unit identifiers
 type UnitType uint8
+
+// String returns the friendly name of the unit
+func (ut UnitType) String() string {
+	switch ut {
+	case TransactionUnit:
+		return "TransactionUnit"
+	case MiniBlockUnit:
+		return "MiniBlockUnit"
+	case PeerChangesUnit:
+		return "PeerChangesUnit"
+	case BlockHeaderUnit:
+		return "BlockHeaderUnit"
+	case MetaBlockUnit:
+		return "MetaBlockUnit"
+	case UnsignedTransactionUnit:
+		return "UnsignedTransactionUnit"
+	case RewardTransactionUnit:
+		return "RewardTransactionUnit"
+	case MetaHdrNonceHashDataUnit:
+		return "MetaHdrNonceHashDataUnit"
+	case HeartbeatUnit:
+		return "HeartbeatUnit"
+	case BootstrapUnit:
+		return "BootstrapUnit"
+	case StatusMetricsUnit:
+		return "StatusMetricsUnit"
+	}
+
+	if ut < ShardHdrNonceHashDataUnit {
+		return fmt.Sprintf("unknown type %d", ut)
+	}
+
+	return fmt.Sprintf("%s%d", "ShardHdrNonceHashDataUnit", ut-ShardHdrNonceHashDataUnit)
+}
 
 const (
 	// TransactionUnit is the transactions storage unit identifier
@@ -57,9 +92,16 @@ type ResolverThrottler interface {
 type Resolver interface {
 	RequestDataFromHash(hash []byte, epoch uint32) error
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	SetResolverDebugHandler(handler ResolverDebugHandler) error
 	SetNumPeersToQuery(intra int, cross int)
-	GetNumPeersToQuery() (int, int)
+	NumPeersToQuery() (int, int)
 	IsInterfaceNil() bool
+}
+
+// TrieNodesResolver defines what a trie nodes resolver should do
+type TrieNodesResolver interface {
+	Resolver
+	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
 }
 
 // HeaderResolver defines what a block header resolver should do
@@ -78,12 +120,14 @@ type MiniBlocksResolver interface {
 
 // TopicResolverSender defines what sending operations are allowed for a topic resolver
 type TopicResolverSender interface {
-	SendOnRequestTopic(rd *RequestData) error
+	SendOnRequestTopic(rd *RequestData, originalHashes [][]byte) error
 	Send(buff []byte, peer p2p.PeerID) error
 	RequestTopic() string
 	TargetShardID() uint32
 	SetNumPeersToQuery(intra int, cross int)
-	GetNumPeersToQuery() (int, int)
+	SetResolverDebugHandler(handler ResolverDebugHandler) error
+	ResolverDebugHandler() ResolverDebugHandler
+	NumPeersToQuery() (int, int)
 	IsInterfaceNil() bool
 }
 
@@ -96,6 +140,7 @@ type ResolversContainer interface {
 	Remove(key string)
 	Len() int
 	ResolverKeys() string
+	Iterate(handler func(key string, resolver Resolver) bool)
 	IsInterfaceNil() bool
 }
 
@@ -284,7 +329,7 @@ type DataPacker interface {
 
 // TrieDataGetter returns requested data from the trie
 type TrieDataGetter interface {
-	GetSerializedNodes([]byte, uint64) ([][]byte, error)
+	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	IsInterfaceNil() bool
 }
 
@@ -308,5 +353,12 @@ type P2PAntifloodHandler interface {
 type WhiteListHandler interface {
 	Remove(keys [][]byte)
 	Add(keys [][]byte)
+	IsInterfaceNil() bool
+}
+
+// ResolverDebugHandler defines an interface for debugging the reqested-resolved data
+type ResolverDebugHandler interface {
+	LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int)
+	LogFailedToResolveData(topic string, hash []byte, err error)
 	IsInterfaceNil() bool
 }
