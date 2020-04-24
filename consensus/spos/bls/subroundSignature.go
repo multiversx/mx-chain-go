@@ -72,13 +72,13 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		return false
 	}
 
-	if !sr.IsSelfLeaderInCurrentRound() {
-		signatureShare, err := sr.MultiSigner().CreateSignatureShare(sr.GetData(), nil)
-		if err != nil {
-			log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
-			return false
-		}
+	signatureShare, err := sr.MultiSigner().CreateSignatureShare(sr.GetData(), nil)
+	if err != nil {
+		log.Debug("doSignatureJob.CreateSignatureShare", "error", err.Error())
+		return false
+	}
 
+	if !sr.IsSelfLeaderInCurrentRound() {
 		//TODO: Analyze it is possible to send message only to leader with O(1) instead of O(n)
 		cnsMsg := consensus.NewConsensusMessage(
 			sr.GetData(),
@@ -104,7 +104,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		log.Debug("step 2: signature has been sent")
 	}
 
-	err := sr.SetSelfJobDone(sr.Current(), true)
+	err = sr.SetSelfJobDone(sr.Current(), true)
 	if err != nil {
 		log.Debug("doSignatureJob.SetSelfJobDone",
 			"subround", sr.Name(),
