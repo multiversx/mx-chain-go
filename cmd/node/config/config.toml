@@ -233,6 +233,11 @@
     Type = "FIFOSharded"
     Shards = 10
 
+[WhiteListerVerifiedTxs]
+    Size = 50000
+    Type = "FIFOSharded"
+    Shards = 50
+
 [UnsignedTransactionDataPool]
     Size = 75000
     Type = "LRU"
@@ -376,7 +381,7 @@
    Type = "bls"
 
 [NTPConfig]
-   Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com", "time.windows.com"]
+   Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com"]
    Port = 123
    TimeoutMilliseconds = 100
    SyncPeriodSeconds = 3600

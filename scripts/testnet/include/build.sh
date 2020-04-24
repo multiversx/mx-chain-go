@@ -1,5 +1,3 @@
-source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
-
 prepareFolders() {
   [ -d $TESTNETDIR ] || mkdir -p $TESTNETDIR
   cd $TESTNETDIR
@@ -11,11 +9,16 @@ prepareFolders() {
   [ -d node_working_dirs ] || mkdir -p node_working_dirs
 }
 
-prepareFolders_PrivateRepos() {
+prepareFolders_Proxy() {
   [ -d $TESTNETDIR ] || mkdir -p $TESTNETDIR
   cd $TESTNETDIR
   [ -d proxy ] || mkdir -p proxy
   [ -d ./proxy/config ] || mkdir -p ./proxy/config
+}
+
+prepareFolders_TxGen() {
+  [ -d $TESTNETDIR ] || mkdir -p $TESTNETDIR
+  cd $TESTNETDIR
   [ -d txgen ] || mkdir -p txgen
   [ -d ./txgen/config ] || mkdir -p ./txgen/config
 }

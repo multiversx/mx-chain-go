@@ -1128,6 +1128,57 @@ func newDefaultAccount(adb *state.AccountsDB, address state.AddressContainer) st
 	return account
 }
 
+func TestAccountsDB_RecreateTrieInvalidatesDataTriesCache(t *testing.T) {
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
+	evictionWaitListSize := uint(100)
+	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
+	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, generalCfg)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
+
+	hexAddressPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
+	address1, _ := hexAddressPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000000")
+
+	key1 := []byte("ABC")
+	key2 := []byte("ABD")
+	value1 := []byte("dog")
+	value2 := []byte("puppy")
+
+	acc1, _ := adb.LoadAccount(address1)
+	state1 := acc1.(state.UserAccountHandler)
+	state1.DataTrieTracker().SaveKeyValue(key1, value1)
+	state1.DataTrieTracker().SaveKeyValue(key2, value1)
+	_ = adb.SaveAccount(state1)
+	rootHash, err := adb.Commit()
+	require.Nil(t, err)
+
+	acc1, _ = adb.LoadAccount(address1)
+	state1 = acc1.(state.UserAccountHandler)
+	state1.DataTrieTracker().SaveKeyValue(key1, value2)
+	_ = adb.SaveAccount(state1)
+	_, err = adb.Commit()
+	require.Nil(t, err)
+
+	acc1, _ = adb.LoadAccount(address1)
+	state1 = acc1.(state.UserAccountHandler)
+	state1.DataTrieTracker().SaveKeyValue(key2, value2)
+	_ = adb.SaveAccount(state1)
+	err = adb.RevertToSnapshot(0)
+	require.Nil(t, err)
+
+	err = adb.RecreateTrie(rootHash)
+	require.Nil(t, err)
+	acc1, _ = adb.LoadAccount(address1)
+	state1 = acc1.(state.UserAccountHandler)
+
+	retrievedVal, _ := state1.DataTrieTracker().RetrieveValue(key1)
+	assert.Equal(t, value1, retrievedVal)
+}
+
 func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	t.Parallel()
 
