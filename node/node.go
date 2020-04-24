@@ -89,7 +89,8 @@ type Node struct {
 	validatorStatistics           process.ValidatorStatisticsProcessor
 	hardforkTrigger               HardforkTrigger
 	validatorsProvider            process.ValidatorsProvider
-	whiteListHandler              process.WhiteListHandler
+	whiteListRequest              process.WhiteListHandler
+	whiteListerVerifiedTxs        process.WhiteListHandler
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -759,7 +760,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	txValidator, err := dataValidators.NewTxValidator(
 		n.accounts,
 		n.shardCoordinator,
-		n.whiteListHandler,
+		n.whiteListRequest,
 		n.addressPubkeyConverter,
 		core.MaxTxNonceDeltaAllowed,
 	)
@@ -782,6 +783,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		n.addressPubkeyConverter,
 		n.shardCoordinator,
 		n.feeHandler,
+		n.whiteListerVerifiedTxs,
 	)
 	if err != nil {
 		return err
@@ -953,8 +955,13 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 			return err
 		}
 	}
+	argPeerTypeProvider := sharding.ArgPeerTypeProvider{
+		NodesCoordinator:        n.nodesCoordinator,
+		EpochHandler:            n.epochStartTrigger,
+		EpochStartEventNotifier: n.epochStartRegistrationHandler,
+	}
 
-	peerTypeProvider, err := sharding.NewPeerTypeProvider(n.nodesCoordinator, n.epochStartTrigger, n.epochStartRegistrationHandler)
+	peerTypeProvider, err := sharding.NewPeerTypeProvider(argPeerTypeProvider)
 	if err != nil {
 		return err
 	}
@@ -1010,18 +1017,20 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	}
 
 	argMonitor := heartbeat.ArgHeartbeatMonitor{
-		Marshalizer:                 netInputMarshalizer,
-		MaxDurationPeerUnresponsive: time.Second * time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
-		PubKeysMap:                  pubKeysMap,
-		GenesisTime:                 n.genesisTime,
-		MessageHandler:              heartBeatMsgProcessor,
-		Storer:                      heartbeatStorer,
-		PeerTypeProvider:            peerTypeProvider,
-		Timer:                       timer,
-		AntifloodHandler:            n.inputAntifloodHandler,
-		HardforkTrigger:             n.hardforkTrigger,
-		PeerBlackListHandler:        n.peerBlackListHandler,
-		ValidatorPubkeyConverter:    n.validatorPubkeyConverter,
+		Marshalizer:                        netInputMarshalizer,
+		MaxDurationPeerUnresponsive:        time.Second * time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
+		PubKeysMap:                         pubKeysMap,
+		GenesisTime:                        n.genesisTime,
+		MessageHandler:                     heartBeatMsgProcessor,
+		Storer:                             heartbeatStorer,
+		PeerTypeProvider:                   peerTypeProvider,
+		Timer:                              timer,
+		AntifloodHandler:                   n.inputAntifloodHandler,
+		HardforkTrigger:                    n.hardforkTrigger,
+		PeerBlackListHandler:               n.peerBlackListHandler,
+		ValidatorPubkeyConverter:           n.validatorPubkeyConverter,
+		HbmiRefreshIntervalInSec:           hbConfig.HbmiRefreshIntervalInSec,
+		HideInactiveValidatorIntervalInSec: hbConfig.HideInactiveValidatorIntervalInSec,
 	}
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(argMonitor)
 	if err != nil {

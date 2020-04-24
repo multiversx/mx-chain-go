@@ -147,6 +147,18 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		make([]Validator, 0),
 		currentNodesConfig.nbShards)
 
+	currentConfig := nodesConfig[arguments.Epoch]
+	if currentConfig == nil {
+		return nil, ErrEpochNodesConfigDoesNotExist
+	}
+
+	displayNodesConfiguration(
+		currentConfig.eligibleMap,
+		currentConfig.waitingMap,
+		currentConfig.leavingList,
+		make([]Validator, 0),
+		currentConfig.nbShards)
+
 	ihgs.epochStartRegistrationHandler.RegisterHandler(ihgs)
 
 	return ihgs, nil

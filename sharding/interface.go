@@ -173,3 +173,9 @@ type GenesisNodeInfoHandler interface {
 	PubKey() []byte
 	IsInterfaceNil() bool
 }
+
+// ValidatorsProvider can get the latest validator infos from the trie
+type ValidatorsProvider interface {
+	GetLatestValidatorInfos() (map[uint32][]*state.ValidatorInfo, error)
+	IsInterfaceNil() bool
+}

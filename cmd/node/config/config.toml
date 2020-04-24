@@ -233,6 +233,11 @@
     Type = "FIFOSharded"
     Shards = 10
 
+[WhiteListerVerifiedTxs]
+    Size = 50000
+    Type = "FIFOSharded"
+    Shards = 50
+
 [UnsignedTransactionDataPool]
     Size = 75000
     Type = "LRU"
@@ -359,9 +364,11 @@
 # where x in [MinTimeToWaitBetweenBroadcastsInSec, MaxTimeToWaitBetweenBroadcastsInSec)
 [Heartbeat]
    Enabled = true
-   MinTimeToWaitBetweenBroadcastsInSec = 20
-   MaxTimeToWaitBetweenBroadcastsInSec = 25
-   DurationInSecToConsiderUnresponsive = 60
+   MinTimeToWaitBetweenBroadcastsInSec  = 20
+   MaxTimeToWaitBetweenBroadcastsInSec  = 25
+   HbmiRefreshIntervalInSec             = 60
+   HideInactiveValidatorIntervalInSec   = 3600
+   DurationInSecToConsiderUnresponsive  = 60
    [Heartbeat.HeartbeatStorage]
        [Heartbeat.HeartbeatStorage.Cache]
            Size = 1000
@@ -379,7 +386,7 @@
    Type = "bls"
 
 [NTPConfig]
-   Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com", "time.windows.com"]
+   Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com"]
    Port = 123
    TimeoutMilliseconds = 100
    SyncPeriodSeconds = 3600

@@ -240,6 +240,7 @@ type TransactionLogProcessor interface {
 // ValidatorsProvider is the main interface for validators' provider
 type ValidatorsProvider interface {
 	GetLatestValidators() map[string]*state.ValidatorApiResponse
+	GetLatestValidatorInfos() (map[uint32][]*state.ValidatorInfo, error)
 	IsInterfaceNil() bool
 }
 
@@ -452,7 +453,7 @@ type RequestHandler interface {
 	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlock(destShardID uint32, miniblockHash []byte)
 	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)
-	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
+	RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string)
 	RequestStartOfEpochMetaBlock(epoch uint32)
 	RequestInterval() time.Duration
 	SetNumPeersToQuery(key string, intra int, cross int) error

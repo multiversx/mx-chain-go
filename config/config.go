@@ -113,6 +113,7 @@ type Config struct {
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesDataPool           CacheConfig
 	WhiteListPool               CacheConfig
+	WhiteListerVerifiedTxs      CacheConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
 	ValidatorPubkeyConverter    PubkeyConfig
@@ -163,6 +164,8 @@ type HeartbeatConfig struct {
 	MinTimeToWaitBetweenBroadcastsInSec int
 	MaxTimeToWaitBetweenBroadcastsInSec int
 	DurationInSecToConsiderUnresponsive int
+	HbmiRefreshIntervalInSec            uint32
+	HideInactiveValidatorIntervalInSec  uint32
 	HeartbeatStorage                    StorageConfig
 }
 
