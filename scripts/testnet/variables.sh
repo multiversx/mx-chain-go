@@ -62,6 +62,9 @@ export ALWAYS_NEW_CHAINID=1
 # each time.
 export ALWAYS_UPDATE_CONFIGS=1
 
+# Always rebuild Arwen from its sources and copy the executable to the testnet folder.
+export ALWAYS_BUILD_ARWEN=1
+
 # Ports used by the Nodes
 export PORT_SEEDNODE="9999"
 export PORT_ORIGIN_OBSERVER="21100"

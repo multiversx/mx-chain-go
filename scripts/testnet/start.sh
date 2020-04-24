@@ -16,7 +16,10 @@ prepareFolders
 # Phase 1: build Seednode, Node and Arwen executables
 buildSeednode
 buildNode
-buildArwen
+
+if [ $ALWAYS_BUILD_ARWEN -eq 1 ]; then
+  buildArwen
+fi
 
 
 # Phase 2: generate configuration
