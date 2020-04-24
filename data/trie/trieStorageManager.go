@@ -287,6 +287,8 @@ func (tsm *trieStorageManager) getSnapshotDbThatContainsHash(rootHash []byte) da
 // TakeSnapshot creates a new snapshot, or if there is another snapshot or checkpoint in progress,
 // it adds this snapshot in the queue.
 func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte) {
+	tsm.EnterSnapshotMode()
+
 	snapshotEntry := snapshotsQueueEntry{rootHash: rootHash, newDb: true}
 	tsm.writeOnChan(snapshotEntry)
 }
@@ -295,6 +297,8 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte) {
 // it adds this checkpoint in the queue. The checkpoint operation creates a new snapshot file
 // only if there was no snapshot done prior to this
 func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte) {
+	tsm.EnterSnapshotMode()
+
 	checkpointEntry := snapshotsQueueEntry{rootHash: rootHash, newDb: false}
 	tsm.writeOnChan(checkpointEntry)
 }
@@ -310,6 +314,8 @@ func (tsm *trieStorageManager) writeOnChan(entry snapshotsQueueEntry) {
 }
 
 func (tsm *trieStorageManager) takeSnapshot(snapshot snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher) {
+	defer tsm.ExitSnapshotMode()
+
 	if tsm.getSnapshotDbThatContainsHash(snapshot.rootHash) != nil {
 		log.Trace("snapshot for rootHash already taken", "rootHash", snapshot.rootHash)
 		return
