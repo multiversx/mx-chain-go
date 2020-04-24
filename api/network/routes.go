@@ -28,6 +28,5 @@ func GetNetworkData(c *gin.Context) {
 	}
 
 	networkMetrics := ef.StatusMetrics().NetworkMetrics()
-
 	c.JSON(http.StatusOK, gin.H{"config": networkMetrics})
 }

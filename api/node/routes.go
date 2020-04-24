@@ -73,7 +73,6 @@ func EpochData(c *gin.Context) {
 	}
 
 	epochMetrics := ef.StatusMetrics().EpochMetrics()
-
 	c.JSON(http.StatusOK, gin.H{"epochData": epochMetrics})
 }
 
@@ -86,7 +85,6 @@ func ConfigData(c *gin.Context) {
 	}
 
 	configMetrics := ef.StatusMetrics().ConfigMetrics()
-
 	c.JSON(http.StatusOK, gin.H{"config": configMetrics})
 }
 
@@ -127,7 +125,6 @@ func StatusMetrics(c *gin.Context) {
 	}
 
 	details := ef.StatusMetrics().StatusMetricsMapWithoutP2P()
-
 	c.JSON(http.StatusOK, gin.H{"details": details})
 }
 
@@ -140,7 +137,6 @@ func P2pStatusMetrics(c *gin.Context) {
 	}
 
 	details := ef.StatusMetrics().StatusP2pMetricsMap()
-
 	c.JSON(http.StatusOK, gin.H{"details": details})
 }
 
