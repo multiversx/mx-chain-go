@@ -101,6 +101,23 @@ func (tnRes *TrieNodeResolver) RequestDataFromHash(hash []byte, _ uint32) error 
 	})
 }
 
+// RequestDataFromHashArray requests trie nodes from other peers having input multiple trie node hashes
+func (tnRes *TrieNodeResolver) RequestDataFromHashArray(hashes [][]byte, _ uint32) error {
+	b := &batch.Batch{
+		Data: hashes,
+	}
+	hash, err := tnRes.marshalizer.Marshal(b)
+
+	if err != nil {
+		return err
+	}
+
+	return tnRes.SendOnRequestTopic(&dataRetriever.RequestData{
+		Type:  dataRetriever.HashArrayType,
+		Value: hash,
+	})
+}
+
 // SetNumPeersToQuery will set the number of intra shard and cross shard number of peer to query
 func (tnRes *TrieNodeResolver) SetNumPeersToQuery(intra int, cross int) {
 	tnRes.TopicResolverSender.SetNumPeersToQuery(intra, cross)

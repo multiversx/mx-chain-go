@@ -450,7 +450,7 @@ type RequestHandler interface {
 	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlock(destShardID uint32, miniblockHash []byte)
 	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)
-	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
+	RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string)
 	RequestStartOfEpochMetaBlock(epoch uint32)
 	RequestInterval() time.Duration
 	SetNumPeersToQuery(key string, intra int, cross int) error

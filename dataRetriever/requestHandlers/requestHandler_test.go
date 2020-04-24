@@ -910,7 +910,7 @@ func TestRequestTrieNodes_ShouldWork(t *testing.T) {
 		time.Second,
 	)
 
-	rrh.RequestTrieNodes(0, []byte("hash"), "topic")
+	rrh.RequestTrieNodes(0, [][]byte{[]byte("hash")}, "topic")
 	assert.True(t, called)
 }
 
@@ -933,7 +933,7 @@ func TestRequestTrieNodes_NilResolver(t *testing.T) {
 		time.Second,
 	)
 
-	rrh.RequestTrieNodes(core.MetachainShardId, []byte("hash"), "topic")
+	rrh.RequestTrieNodes(core.MetachainShardId, [][]byte{[]byte("hash")}, "topic")
 	assert.True(t, called)
 }
 
@@ -962,7 +962,7 @@ func TestRequestTrieNodes_RequestByHashError(t *testing.T) {
 		time.Second,
 	)
 
-	rrh.RequestTrieNodes(0, []byte("hash"), "topic")
+	rrh.RequestTrieNodes(0, [][]byte{[]byte("hash")}, "topic")
 	assert.True(t, called)
 }
 

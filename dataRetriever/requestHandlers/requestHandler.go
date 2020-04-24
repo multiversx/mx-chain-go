@@ -327,16 +327,27 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 }
 
 // RequestTrieNodes method asks for trie nodes from the connected peers
-func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hash []byte, topic string) {
-	if !rrh.testIfRequestIsNeeded(hash) {
+func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string) {
+	rrh.sweepIfNeeded()
+
+	for i := 0; i < len(hashes); i++ {
+		if rrh.requestedItemsHandler.Has(string(hashes[i])) {
+			log.Trace("item already requested", "key", hashes[i])
+			hashes = append(hashes[:i], hashes[i+1:]...)
+		}
+	}
+
+	if len(hashes) == 0 {
 		return
 	}
 
-	log.Debug("requesting trie from network",
-		"topic", topic,
-		"shard", destShardID,
-		"hash", hash,
-	)
+	for i := range hashes {
+		log.Debug("requesting trie from network",
+			"topic", topic,
+			"shard", destShardID,
+			"hash", hashes[i],
+		)
+	}
 
 	resolver, err := rrh.resolversFinder.MetaCrossShardResolver(topic, destShardID)
 	if err != nil {
@@ -348,18 +359,26 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hash []b
 		return
 	}
 
+	trieResolver, ok := resolver.(dataRetriever.TrieNodesResolver)
+	if !ok {
+		log.Warn("wrong assertion type when creating transaction resolver")
+		return
+	}
+
 	// epoch doesn't matter because that parameter is not used in trie's resolver
-	err = resolver.RequestDataFromHash(hash, 0)
+	err = trieResolver.RequestDataFromHashArray(hashes, 0)
 	if err != nil {
-		log.Debug("requestByHash.RequestDataFromHash",
+		log.Debug("requestByHash.RequestDataFromHashArray",
 			"error", err.Error(),
 			"epoch", 0,
-			"hash", hash,
+			"num hashes", len(hashes),
 		)
 		return
 	}
 
-	rrh.addRequestedItem(hash)
+	for _, hash := range hashes {
+		rrh.addRequestedItem(hash)
+	}
 }
 
 // RequestMetaHeaderByNonce method asks for meta header from the connected peers by nonce
