@@ -262,7 +262,7 @@ func (sr *subroundSignature) waitAllSignatures() {
 
 func (sr *subroundSignature) remainingTime() time.Duration {
 	startTime := sr.Rounder().TimeStamp()
-	maxTime := time.Duration((sr.StartTime() + sr.EndTime()) / 2)
+	maxTime := time.Duration(float64(sr.StartTime()) + float64(sr.EndTime()-sr.StartTime())*waitingAllSigsMaxTimeThreshold)
 	remainigTime := sr.Rounder().RemainingTime(startTime, maxTime)
 
 	return remainigTime
