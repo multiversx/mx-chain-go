@@ -390,42 +390,21 @@ func (sp *shardProcessor) checkEpochCorrectness(
 
 	isOldEpochStart := header.IsStartOfEpochBlock() && header.GetEpoch() < sp.epochStartTrigger.MetaEpoch()
 	if isOldEpochStart {
-		metaBlock, err := sp.getOldEpochStartMetaHdr(header)
+		metaBlock, err := process.GetMetaHeader(header.EpochStartMetaHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 		if err != nil {
 			go sp.requestHandler.RequestStartOfEpochMetaBlock(header.GetEpoch())
 			return fmt.Errorf("%w could not find epoch start metablock for epoch %d",
 				err, header.GetEpoch())
 		}
 
-		metaBlockHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, metaBlock)
-		if err != nil {
-			return fmt.Errorf("%w could not calculate hash for epoch start metablock for epoch %d",
-				err, header.GetEpoch())
-		}
-
-		if !bytes.Equal(header.EpochStartMetaHash, metaBlockHash) {
-			log.Warn("epoch start meta hash missmatch", "proposed", header.EpochStartMetaHash, "calculated", metaBlockHash)
-			return fmt.Errorf("%w proposed header with epoch %d has invalid epochStartMetaHash",
-				process.ErrEpochDoesNotMatch, header.GetEpoch())
+		isMetaBlockCorrect := metaBlock.IsStartOfEpochBlock() && metaBlock.GetEpoch() == header.GetEpoch()
+		if !isMetaBlockCorrect {
+			return fmt.Errorf("%w proposed header with epoch %d does not include correct start of epoch metaBlock %s",
+				process.ErrEpochDoesNotMatch, header.GetEpoch(), header.EpochStartMetaHash)
 		}
 	}
 
 	return nil
-}
-
-func (sp *shardProcessor) getOldEpochStartMetaHdr(header *block.Header) (data.HeaderHandler, error) {
-	metaBlock, err := sp.dataPool.Headers().GetHeaderByHash(header.EpochStartMetaHash)
-	if err == nil {
-		return metaBlock, nil
-	}
-
-	epochStartId := core.EpochStartIdentifier(header.GetEpoch())
-	metaBlock, err = process.GetMetaHeaderFromStorage([]byte(epochStartId), sp.marshalizer, sp.store)
-	if err != nil {
-		return nil, err
-	}
-
-	return metaBlock, nil
 }
 
 // SetNumProcessedObj will set the num of processed transactions

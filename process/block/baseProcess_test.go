@@ -771,12 +771,12 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 		return nil
 	}}
 	arguments.Hasher = hasher
-	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+	epochStartTrigger := &mock.EpochStartTriggerStub{
 		EpochCalled: func() uint32 {
-			return 5
+			return 2
 		},
 		MetaEpochCalled: func() uint32 {
-			return 5
+			return 3
 		},
 		IsEpochStartCalled: func() bool {
 			return true
@@ -785,6 +785,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 			return 100
 		},
 	}
+	arguments.EpochStartTrigger = epochStartTrigger
 
 	randSeed := []byte("randseed")
 	arguments.BlockChain = &mock.BlockChainMock{
@@ -812,22 +813,11 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 
 	blk := &block.Body{}
 	err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
-	assert.True(t, errors.Is(err, process.ErrMissingHeader))
-
-	metaHdr := &block.MetaBlock{}
-	metaHdrData, _ := arguments.Marshalizer.Marshal(metaHdr)
-	_ = arguments.Store.Put(dataRetriever.MetaBlockUnit, []byte(core.EpochStartIdentifier(header.Epoch)), metaHdrData)
-
-	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 
-	hasher.ComputeCalled = func(s string) []byte {
-		if bytes.Equal([]byte(s), metaHdrData) {
-			return epochStartHash
-		}
-		return nil
+	epochStartTrigger.EpochStartMetaHdrHashCalled = func() []byte {
+		return header.EpochStartMetaHash
 	}
-
 	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
 }
@@ -885,17 +875,17 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 
 	metaHdr := &block.MetaBlock{}
 	metaHdrData, _ := arguments.Marshalizer.Marshal(metaHdr)
-	_ = arguments.Store.Put(dataRetriever.MetaBlockUnit, []byte(core.EpochStartIdentifier(header.Epoch)), metaHdrData)
+	_ = arguments.Store.Put(dataRetriever.MetaBlockUnit, header.EpochStartMetaHash, metaHdrData)
 
 	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 
-	hasher.ComputeCalled = func(s string) []byte {
-		if bytes.Equal([]byte(s), metaHdrData) {
-			return epochStartHash
-		}
-		return nil
-	}
+	metaHdr = &block.MetaBlock{Epoch: 3, EpochStart: block.EpochStart{
+		LastFinalizedHeaders: []block.EpochStartShardData{{}},
+		Economics:            block.Economics{},
+	}}
+	metaHdrData, _ = arguments.Marshalizer.Marshal(metaHdr)
+	_ = arguments.Store.Put(dataRetriever.MetaBlockUnit, header.EpochStartMetaHash, metaHdrData)
 
 	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
