@@ -220,10 +220,12 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 	}
 
 	processedMiniBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
-	processedMiniBlocks = append(processedMiniBlocks, bootstrapStorage.MiniBlocksInMeta{
-		MetaHash:         shardData.FirstPendingMetaBlock,
-		MiniBlocksHashes: processedMbHashes,
-	})
+	if len(processedMbHashes) > 0 {
+		processedMiniBlocks = append(processedMiniBlocks, bootstrapStorage.MiniBlocksInMeta{
+			MetaHash:         shardData.FirstPendingMetaBlock,
+			MiniBlocksHashes: processedMbHashes,
+		})
+	}
 
 	sliceToRet := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)
 	for shardID, hashes := range pendingMBsPerShardMap {
