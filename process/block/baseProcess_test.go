@@ -166,8 +166,8 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			cs := &mock.HeadersCacherStub{}
 			cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 			}
-			cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, err error) {
-				return nil, err
+			cs.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
+				return nil, process.ErrMissingHeader
 			}
 			cs.RemoveHeaderByHashCalled = func(key []byte) {
 			}
