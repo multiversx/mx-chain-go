@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -65,6 +66,15 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, er
 		return nil, err
 	}
 
+	if arg.HardForkConfig.MustImport {
+		//TODO: think how to integrate when genesis is modified as well - how to integrate with imported data
+		// one example being - delete or not the validator statistics trie - and restart from 0, or should import from old
+		// data. The same with system smart contract states - these thinks should be programmed according to that specific hardfork
+		// event. As some scenarios would need only a set of pending transactions - others would syncronize everything from before
+		// genesis file should not be changed - as it reflects the true, transparent data for block ZERO
+		return createMetaGenesisAfterHardFork(arg, genesisProcessors)
+	}
+
 	header := &block.MetaBlock{
 		RootHash:               rootHash,
 		PrevHash:               rootHash,
@@ -82,8 +92,8 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, er
 		NodePrice:              big.NewInt(0).Set(arg.Economics.GenesisNodePrice()),
 	}
 
-	//TODO maybe notarize the shard genesis blocks
-
+	//TODO maybe notarize the shard genesis blocks - it would be super important to do it - as smart contract results
+	// can be propagated afterwards and validated
 	header.SetTimeStamp(arg.GenesisTime)
 	header.SetValidatorStatsRootHash(arg.ValidatorStatsRootHash)
 
@@ -93,6 +103,47 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, er
 	}
 
 	return header, nil
+}
+
+func createMetaGenesisAfterHardFork(arg ArgsGenesisBlockCreator, processors *genesisProcessors) (data.HeaderHandler, error) {
+	argsNewMetaBlockCreatorAfterHardFork := hardForkProcess.ArgsNewMetaBlockCreatorAfterHardfork{
+		ImportHandler:    arg.importHandler,
+		Marshalizer:      arg.Marshalizer,
+		Hasher:           arg.Hasher,
+		ShardCoordinator: arg.ShardCoordinator,
+	}
+	metaBlockCreator, err := hardForkProcess.NewMetaBlockCreatorAfterHardfork(argsNewMetaBlockCreatorAfterHardFork)
+	if err != nil {
+		return nil, err
+	}
+
+	hdrHandler, bodyHandler, err := metaBlockCreator.CreateNewBlock(
+		"newChainID",
+		arg.HardForkConfig.StartRound,
+		arg.HardForkConfig.StartNonce,
+		arg.HardForkConfig.StartEpoch,
+	)
+
+	metaHdr, ok := hdrHandler.(*block.MetaBlock)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	metaHdr.SetTimeStamp(arg.GenesisTime)
+	metaHdr.EpochStart.Economics = block.Economics{
+		TotalSupply:            big.NewInt(0).Set(arg.Economics.GenesisTotalSupply()),
+		TotalToDistribute:      big.NewInt(0),
+		TotalNewlyMinted:       big.NewInt(0),
+		RewardsPerBlockPerNode: big.NewInt(0),
+		NodePrice:              big.NewInt(0).Set(arg.Economics.GenesisNodePrice()),
+	}
+
+	errNotCritical := processors.txCoordinator.SaveBlockDataToStorage(bodyHandler.(*block.Body))
+	if errNotCritical != nil {
+		log.Warn("could not save genesis block body to storage", "error", errNotCritical)
+	}
+
+	return metaHdr, nil
 }
 
 func saveGenesisMetaToStorage(

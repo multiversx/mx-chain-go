@@ -93,6 +93,7 @@ func (m *metaBlockCreator) CreateNewBlock(
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
 		Epoch:                  epoch,
+		PubKeysBitmap:          []byte{1},
 	}
 
 	return metaHdr, blockBody, nil

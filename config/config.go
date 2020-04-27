@@ -269,7 +269,7 @@ type HardforkConfig struct {
 	ImportFolder string
 	StartRound   uint64
 	StartNonce   uint64
-	StartEpoch   uint64
+	StartEpoch   uint32
 
 	ExportStateStorageConfig StorageConfig
 	ImportStateStorageConfig StorageConfig

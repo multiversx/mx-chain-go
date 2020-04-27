@@ -78,6 +78,7 @@ func (s *shardBlockCreator) CreateNewBlock(
 		Epoch:           epoch,
 		ChainID:         []byte(chainID),
 		AccumulatedFees: big.NewInt(0),
+		PubKeysBitmap:   []byte{1},
 	}
 
 	blockBody, err := s.createBody()

@@ -41,7 +41,7 @@ func NewGenesisBlockCreator(arg ArgsGenesisBlockCreator) (*genesisBlockCreator, 
 	}
 
 	if arg.HardForkConfig.MustImport {
-		err := gbc.createAndImportHardForkData()
+		err := gbc.createHardForkImportHandler()
 		if err != nil {
 			return nil, err
 		}
@@ -50,7 +50,7 @@ func NewGenesisBlockCreator(arg ArgsGenesisBlockCreator) (*genesisBlockCreator, 
 	return gbc, nil
 }
 
-func (gbc *genesisBlockCreator) createAndImportHardForkData() error {
+func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 	importConfig := gbc.arg.HardForkConfig.ImportStateStorageConfig
 	importStore, err := storageUnit.NewStorageUnitFromConf(
 		factory.GetCacherFromConfig(importConfig.Cache),
@@ -79,11 +79,12 @@ func (gbc *genesisBlockCreator) createAndImportHardForkData() error {
 		TrieFactory:    gbc.arg.TrieFactory,
 		TriesContainer: gbc.arg.TriesContainer,
 	}
-	importer, err := hardfork.NewStateImport(argsHardForkImport)
+	importHandler, err := hardfork.NewStateImport(argsHardForkImport)
 	if err != nil {
 		return err
 	}
 
+	gbc.arg.importHandler = importHandler
 	return nil
 }
 
@@ -140,6 +141,13 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	var err error
 	var genesisBlock data.HeaderHandler
 	var newArgument ArgsGenesisBlockCreator
+
+	if gbc.arg.HardForkConfig.MustImport {
+		err := gbc.arg.importHandler.ImportAll()
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	for shardID := uint32(0); shardID < gbc.arg.ShardCoordinator.NumberOfShards(); shardID++ {
 		newArgument, err = gbc.getNewArgForShard(shardID)
