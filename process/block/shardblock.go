@@ -294,6 +294,7 @@ func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, haveTime f
 
 		_, _, err = headersPool.GetHeadersByNonceAndShardId(gotHdr.GetNonce()+1, core.MetachainShardId)
 		if err != nil {
+			go sp.requestHandler.RequestMetaHeaderByNonce(gotHdr.GetNonce() + 1)
 			continue
 		}
 
