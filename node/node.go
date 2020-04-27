@@ -961,6 +961,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	}
 
 	peerTypeProvider, err := sharding.NewPeerTypeProvider(argPeerTypeProvider)
+
 	if err != nil {
 		return err
 	}
