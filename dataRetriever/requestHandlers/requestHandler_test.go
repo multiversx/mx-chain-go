@@ -889,17 +889,17 @@ func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
 func TestRequestTrieNodes_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	called := false
+	chTxRequested := make(chan struct{})
 	resolverMock := &mock.HashSliceResolverStub{
-		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
-			called = true
+		RequestDataFromHashArrayCalled: func(hash [][]byte, epoch uint32) error {
+			chTxRequested <- struct{}{}
 			return nil
 		},
 	}
 
 	rrh, _ := NewResolverRequestHandler(
 		&mock.ResolversFinderStub{
-			MetaCrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
+			MetaCrossShardResolverCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
 				return resolverMock, nil
 			},
 		},
@@ -910,8 +910,14 @@ func TestRequestTrieNodes_ShouldWork(t *testing.T) {
 		time.Second,
 	)
 
-	rrh.RequestTrieNodes(0, []byte("hash"), "topic")
-	assert.True(t, called)
+	rrh.RequestTrieNodes(0, [][]byte{[]byte("hash")}, "topic")
+	select {
+	case <-chTxRequested:
+	case <-time.After(timeoutSendRequests):
+		assert.Fail(t, "timeout while waiting to call RequestDataFromHashArray")
+	}
+
+	time.Sleep(time.Second)
 }
 
 func TestRequestTrieNodes_NilResolver(t *testing.T) {
@@ -933,36 +939,7 @@ func TestRequestTrieNodes_NilResolver(t *testing.T) {
 		time.Second,
 	)
 
-	rrh.RequestTrieNodes(core.MetachainShardId, []byte("hash"), "topic")
-	assert.True(t, called)
-}
-
-func TestRequestTrieNodes_RequestByHashError(t *testing.T) {
-	t.Parallel()
-
-	called := false
-	localError := errors.New("test error")
-	resolverMock := &mock.HashSliceResolverStub{
-		RequestDataFromHashCalled: func(hash []byte, epoch uint32) error {
-			called = true
-			return localError
-		},
-	}
-
-	rrh, _ := NewResolverRequestHandler(
-		&mock.ResolversFinderStub{
-			MetaCrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, e error) {
-				return resolverMock, nil
-			},
-		},
-		&mock.RequestedItemsHandlerStub{},
-		&mock.WhiteListHandlerStub{},
-		1,
-		0,
-		time.Second,
-	)
-
-	rrh.RequestTrieNodes(0, []byte("hash"), "topic")
+	rrh.RequestTrieNodes(core.MetachainShardId, [][]byte{[]byte("hash")}, "topic")
 	assert.True(t, called)
 }
 

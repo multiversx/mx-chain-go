@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 
+# Call a REST endpoint of the TxGen, requesting it to query the Proxy for all
+# known account balances and nonces, in order to compare their expected state
+# (stored internally in TxGen) with the actual ones from the testnet.
+
 export ELRONDTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
 
-if [ $PRIVATE_REPOS -eq 0 ]; then
-  echo "No validation to perform: TxGen validation is unavailable because private repositories are disabled."
+if [ $USE_TXGEN -eq 0 ]; then
+  echo "No validation to perform: TxGen is disabled."
 else
   if [ $TXGEN_ERC20_MODE -eq 0 ]; then
     echo "Validating native accounts (non-ERC20 mode)"

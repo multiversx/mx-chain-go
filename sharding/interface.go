@@ -168,7 +168,13 @@ type GenesisNodesSetupHandler interface {
 // GenesisNodeInfoHandler defines the public methods for the genesis nodes info
 type GenesisNodeInfoHandler interface {
 	AssignedShard() uint32
-	Address() []byte
-	PubKey() []byte
+	AddressBytes() []byte
+	PubKeyBytes() []byte
+	IsInterfaceNil() bool
+}
+
+// ValidatorsProvider can get the latest validator infos from the trie
+type ValidatorsProvider interface {
+	GetLatestValidatorInfos() (map[uint32][]*state.ValidatorInfo, error)
 	IsInterfaceNil() bool
 }

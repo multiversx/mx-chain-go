@@ -2,7 +2,7 @@ package disabled
 
 import "time"
 
-// RequestHandler -
+// RequestHandler implements the RequestHandler interface but does nothing as it is disabled
 type RequestHandler struct {
 }
 
@@ -47,7 +47,7 @@ func (r *RequestHandler) RequestMiniBlocks(_ uint32, _ [][]byte) {
 }
 
 // RequestTrieNodes -
-func (r *RequestHandler) RequestTrieNodes(_ uint32, _ []byte, _ string) {
+func (r *RequestHandler) RequestTrieNodes(_ uint32, _ [][]byte, _ string) {
 }
 
 // RequestStartOfEpochMetaBlock -
