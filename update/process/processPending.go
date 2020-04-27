@@ -77,17 +77,7 @@ func NewPendingTransactionProcessor(args ArgsPendingTransactionProcessor) (*pend
 
 // ProcessTransactionsDstMe processes all the transactions in which destination is the current shard
 func (p *pendingProcessor) ProcessTransactionsDstMe(mapTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
-	sortedTxs := make([]*txInfo, 0, len(mapTxs))
-	for hash, tx := range mapTxs {
-		sortedTxs = append(sortedTxs, &txInfo{
-			hash: hash,
-			tx:   tx,
-		})
-	}
-
-	sort.Slice(sortedTxs, func(i, j int) bool {
-		return sortedTxs[i].hash < sortedTxs[j].hash
-	})
+	sortedTxs := getSortedSliceFromTxsMap(mapTxs)
 
 	mapMiniBlocks := make(map[string]*block.MiniBlock)
 	for _, info := range sortedTxs {
@@ -96,14 +86,14 @@ func (p *pendingProcessor) ProcessTransactionsDstMe(mapTxs map[string]data.Trans
 			log.Debug("could not react receiver address from tx", "err", err, "rcvAddr", info.tx.GetRcvAddr())
 			continue
 		}
-		sndShardId := core.MetachainShardId
+		sndShardID := core.MetachainShardId
 		if len(info.tx.GetSndAddr()) > 0 {
 			sndAddress, err := p.pubKeyConv.CreateAddressFromBytes(info.tx.GetSndAddr())
 			if err != nil {
 				log.Debug("could not react sender address from tx", "err", err, "rcvAddr", info.tx.GetSndAddr())
 				continue
 			}
-			sndShardId = p.shardCoordinator.ComputeId(sndAddress)
+			sndShardID = p.shardCoordinator.ComputeId(sndAddress)
 		}
 
 		dstShardID := p.shardCoordinator.ComputeId(rcvAddress)
@@ -117,15 +107,16 @@ func (p *pendingProcessor) ProcessTransactionsDstMe(mapTxs map[string]data.Trans
 			continue
 		}
 
-		localID := fmt.Sprintf("%d_%d_%d", sndShardId, dstShardID, blockType)
+		localID := fmt.Sprintf("%d_%d_%d", sndShardID, dstShardID, blockType)
 		mb, ok := mapMiniBlocks[localID]
 		if !ok {
 			mb = &block.MiniBlock{
 				TxHashes:        make([][]byte, 0),
 				ReceiverShardID: dstShardID,
-				SenderShardID:   sndShardId,
+				SenderShardID:   sndShardID,
 				Type:            blockType,
 			}
+			mapMiniBlocks[localID] = mb
 		}
 
 		mb.TxHashes = append(mb.TxHashes, []byte(info.hash))
@@ -136,8 +127,29 @@ func (p *pendingProcessor) ProcessTransactionsDstMe(mapTxs map[string]data.Trans
 		return nil, err
 	}
 
-	miniBlocks := make(block.MiniBlockSlice, 0, len(mapMiniBlocks))
-	for _, mb := range mapMiniBlocks {
+	miniBlocks := getSortedSliceFromMbsMap(mapMiniBlocks)
+	return miniBlocks, nil
+}
+
+func getSortedSliceFromTxsMap(mapTxs map[string]data.TransactionHandler) []*txInfo {
+	sortedTxs := make([]*txInfo, 0, len(mapTxs))
+	for hash, tx := range mapTxs {
+		sortedTxs = append(sortedTxs, &txInfo{
+			hash: hash,
+			tx:   tx,
+		})
+	}
+
+	sort.Slice(sortedTxs, func(i, j int) bool {
+		return sortedTxs[i].hash < sortedTxs[j].hash
+	})
+
+	return sortedTxs
+}
+
+func getSortedSliceFromMbsMap(mbsMap map[string]*block.MiniBlock) block.MiniBlockSlice {
+	miniBlocks := make(block.MiniBlockSlice, 0, len(mbsMap))
+	for _, mb := range mbsMap {
 		miniBlocks = append(miniBlocks, mb)
 	}
 
@@ -148,7 +160,7 @@ func (p *pendingProcessor) ProcessTransactionsDstMe(mapTxs map[string]data.Trans
 		return miniBlocks[i].SenderShardID < miniBlocks[j].SenderShardID
 	})
 
-	return miniBlocks, nil
+	return miniBlocks
 }
 
 func (p *pendingProcessor) processSingleTransaction(info *txInfo) (block.Type, error) {

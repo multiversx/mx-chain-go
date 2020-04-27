@@ -60,7 +60,7 @@ func NewAfterHardForkBlockCreation(args ArgsAfterHardFork) (*afterHardFork, erro
 	}, nil
 }
 
-// CreateAllBlockAfterHardfork creates all the blocks after hardfork
+// CreateAllBlocksAfterHardfork creates all the blocks after hardfork
 func (a *afterHardFork) CreateAllBlocksAfterHardfork(
 	chainID string,
 	round uint64,
@@ -70,14 +70,14 @@ func (a *afterHardFork) CreateAllBlocksAfterHardfork(
 	mapHeaders := make(map[uint32]data.HeaderHandler)
 	mapBodies := make(map[uint32]data.BodyHandler)
 
-	shardIDs := make([]uint32, 0, a.shardCoordinator.NumberOfShards()+1)
+	shardIDs := make([]uint32, a.shardCoordinator.NumberOfShards()+1)
 	for i := uint32(0); i < a.shardCoordinator.NumberOfShards(); i++ {
 		shardIDs[i] = i
 	}
 	shardIDs[a.shardCoordinator.NumberOfShards()] = core.MetachainShardId
 
-	for _, shardId := range shardIDs {
-		blockProcessor, ok := a.mapBlockProcessors[shardId]
+	for _, shardID := range shardIDs {
+		blockProcessor, ok := a.mapBlockProcessors[shardID]
 		if !ok {
 			return nil, nil, update.ErrNilHardForkBlockProcessor
 		}
@@ -87,8 +87,8 @@ func (a *afterHardFork) CreateAllBlocksAfterHardfork(
 			return nil, nil, err
 		}
 
-		mapHeaders[shardId] = hdr
-		mapBodies[shardId] = body
+		mapHeaders[shardID] = hdr
+		mapBodies[shardID] = body
 	}
 
 	return mapHeaders, mapBodies, nil

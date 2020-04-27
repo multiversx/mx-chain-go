@@ -113,7 +113,7 @@ type ImportHandler interface {
 	IsInterfaceNil() bool
 }
 
-// HardForkImportProcessor defines the methods to process after hardfork
+// HardForkBlockProcessor defines the methods to process after hardfork
 type HardForkBlockProcessor interface {
 	CreateNewBlock(
 		chainID string,
