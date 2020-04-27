@@ -287,14 +287,14 @@ func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, haveTime f
 			return nil
 		}
 
-		gotHdr, err := headersPool.GetHeaderByHash(header.EpochStartMetaHash)
-		if err != nil || check.IfNil(gotHdr) {
+		epochStartMetaHdr, err := headersPool.GetHeaderByHash(header.EpochStartMetaHash)
+		if err != nil {
 			continue
 		}
 
-		_, _, err = headersPool.GetHeadersByNonceAndShardId(gotHdr.GetNonce()+1, core.MetachainShardId)
+		_, _, err = headersPool.GetHeadersByNonceAndShardId(epochStartMetaHdr.GetNonce()+1, core.MetachainShardId)
 		if err != nil {
-			go sp.requestHandler.RequestMetaHeaderByNonce(gotHdr.GetNonce() + 1)
+			go sp.requestHandler.RequestMetaHeaderByNonce(epochStartMetaHdr.GetNonce() + 1)
 			continue
 		}
 
@@ -390,8 +390,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 
 	isOldEpochStart := header.IsStartOfEpochBlock() && header.GetEpoch() < sp.epochStartTrigger.MetaEpoch()
 	if isOldEpochStart {
-		epochStartId := core.EpochStartIdentifier(header.GetEpoch())
-		metaBlock, err := process.GetMetaHeaderFromStorage([]byte(epochStartId), sp.marshalizer, sp.store)
+		metaBlock, err := sp.getOldEpochStartMetaHdr(header)
 		if err != nil {
 			go sp.requestHandler.RequestStartOfEpochMetaBlock(header.GetEpoch())
 			return fmt.Errorf("%w could not find epoch start metablock for epoch %d",
