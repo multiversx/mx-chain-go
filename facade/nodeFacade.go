@@ -232,6 +232,11 @@ func (nf *nodeFacade) GetTransaction(hash string) (*transaction.Transaction, err
 	return nf.node.GetTransaction(hash)
 }
 
+// GetTransactionStatus gets the current transaction status, given a specific tx hash
+func (nf *nodeFacade) GetTransactionStatus(hash string) (string, error) {
+	return nf.node.GetTransactionStatus(hash)
+}
+
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
 func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
 	return nf.apiResolver.ComputeTransactionGasLimit(tx)
