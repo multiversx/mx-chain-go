@@ -817,7 +817,6 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestAddressPubkeyConverter,
 		tpn.Storage,
 		tpn.DataPool,
-		tpn.EconomicsData.EconomicsData,
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
@@ -983,7 +982,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	vmFactory, _ := metaProcess.NewVMContainerFactory(
 		argsHook,
 		tpn.EconomicsData.EconomicsData,
-		&disabled.DisabledMessageSignVerifier{},
+		&disabled.MessageSignVerifier{},
 		gasSchedule,
 		tpn.NodesSetup,
 	)

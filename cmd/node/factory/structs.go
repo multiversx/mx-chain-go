@@ -1414,6 +1414,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		GenesisParser:            genesisParser,
 		ValidatorStatsRootHash:   validatorStatsRootHash,
 		GasMap:                   args.gasSchedule,
+		VirtualMachineConfig:     args.coreComponents.config.VirtualMachineConfig,
 		TxLogsProcessor:          args.txLogsProcessor,
 	}
 
@@ -1613,7 +1614,6 @@ func newShardBlockProcessor(
 		stateComponents.AddressPubkeyConverter,
 		data.Store,
 		data.Datapool,
-		economics,
 	)
 	if err != nil {
 		return nil, err
@@ -1672,7 +1672,6 @@ func newShardBlockProcessor(
 		ScrForwarder:     scForwarder,
 		TxFeeHandler:     txFeeHandler,
 		EconomicsFee:     economics,
-		TxTypeHandler:    txTypeHandler,
 		GasHandler:       gasHandler,
 		BuiltInFunctions: vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:  txLogsProcessor,
