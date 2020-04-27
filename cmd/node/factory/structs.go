@@ -1387,6 +1387,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		ValidatorStatsRootHash:   validatorStatsRootHash,
 		GasMap:                   args.gasSchedule,
 		VirtualMachineConfig:     args.coreComponents.config.VirtualMachineConfig,
+		HardForkConfig:           args.coreComponents.config.Hardfork,
 	}
 
 	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)

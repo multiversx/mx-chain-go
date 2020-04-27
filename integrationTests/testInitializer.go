@@ -522,6 +522,7 @@ func CreateGenesisMetaBlock(
 		GasMap:                   gasSchedule,
 		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
 		VirtualMachineConfig:     config.VirtualMachineConfig{},
+		HardForkConfig:           config.HardforkConfig{},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

@@ -3,6 +3,7 @@ package process
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -12,6 +13,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/update/files"
+	hardfork "github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
 type genesisBlockCreationHandler func(arg ArgsGenesisBlockCreator) (data.HeaderHandler, error)
@@ -29,11 +34,57 @@ func NewGenesisBlockCreator(arg ArgsGenesisBlockCreator) (*genesisBlockCreator, 
 		return nil, fmt.Errorf("%w while creating NewGenesisBlockCreator", err)
 	}
 
-	return &genesisBlockCreator{
+	gbc := &genesisBlockCreator{
 		arg:                 arg,
 		shardCreatorHandler: CreateShardGenesisBlock,
 		metaCreatorHandler:  CreateMetaGenesisBlock,
-	}, nil
+	}
+
+	if arg.HardForkConfig.MustImport {
+		err := gbc.createAndImportHardForkData()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return gbc, nil
+}
+
+func (gbc *genesisBlockCreator) createAndImportHardForkData() error {
+	importConfig := gbc.arg.HardForkConfig.ImportStateStorageConfig
+	importStore, err := storageUnit.NewStorageUnitFromConf(
+		factory.GetCacherFromConfig(importConfig.Cache),
+		factory.GetDBFromConfig(importConfig.DB),
+		factory.GetBloomFromConfig(importConfig.Bloom),
+	)
+	if err != nil {
+		return err
+	}
+
+	args := files.ArgsNewMultiFileReader{
+		ImportFolder: gbc.arg.HardForkConfig.ImportFolder,
+		ImportStore:  importStore,
+	}
+	multiFileReader, err := files.NewMultiFileReader(args)
+	if err != nil {
+		return err
+	}
+
+	argsHardForkImport := hardfork.ArgsNewStateImport{
+		Reader:         multiFileReader,
+		Hasher:         gbc.arg.Hasher,
+		Marshalizer:    gbc.arg.Marshalizer,
+		ShardID:        gbc.arg.ShardCoordinator.SelfId(),
+		StorageConfig:  config.StorageConfig{},
+		TrieFactory:    gbc.arg.TrieFactory,
+		TriesContainer: gbc.arg.TriesContainer,
+	}
+	importer, err := hardfork.NewStateImport(argsHardForkImport)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {

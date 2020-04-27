@@ -34,4 +34,5 @@ type ArgsGenesisBlockCreator struct {
 	GasMap                   map[string]map[string]uint64
 	TxLogsProcessor          process.TransactionLogProcessor
 	VirtualMachineConfig     config.VirtualMachineConfig
+	HardForkConfig           config.HardforkConfig
 }

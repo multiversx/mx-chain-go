@@ -265,11 +265,11 @@ type HardforkConfig struct {
 	EnableTriggerFromP2P  bool
 	PublicKeyToListenFrom string
 
-	ImportEnabled bool
-	ImportFolder  string
-	StartRound    uint64
-	StartNonce    uint64
-	StartEpoch    uint64
+	MustImport   bool
+	ImportFolder string
+	StartRound   uint64
+	StartNonce   uint64
+	StartEpoch   uint64
 
 	ExportStateStorageConfig StorageConfig
 	ImportStateStorageConfig StorageConfig
