@@ -34,12 +34,12 @@ import (
 
 // CreateMetaGenesisBlock will create a metachain genesis block
 func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, error) {
-	txProcessor, systemSmartContracts, err := createProcessorsForMetaGenesisBlock(arg)
+	genesisProcessors, err := createProcessorsForMetaGenesisBlock(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	err = deploySystemSmartContracts(arg, txProcessor, systemSmartContracts)
+	err = deploySystemSmartContracts(arg, genesisProcessors.txProcessor, genesisProcessors.systemSCs)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, er
 		allNodes[shard] = append(eligible[shard], waiting[shard]...)
 	}
 
-	err = setStakedData(arg, txProcessor, allNodes)
+	err = setStakedData(arg, genesisProcessors.txProcessor, allNodes)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func saveGenesisMetaToStorage(
 	return nil
 }
 
-func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (process.TransactionProcessor, vm.SystemSCContainer, error) {
+func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisProcessors, error) {
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         arg.Accounts,
@@ -136,19 +136,17 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (process.T
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(
 		argsHook,
 		arg.Economics,
-		&disabled.DisabledMessageSignVerifier{},
+		&disabled.MessageSignVerifier{},
 		arg.GasMap,
 		arg.InitialNodesSetup,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-
-	argsParser := vmcommon.NewAtArgumentParser()
 
 	vmContainer, err := virtualMachineFactory.Create()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(
@@ -160,22 +158,22 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (process.T
 		arg.DataPool,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	interimProcContainer, err := interimProcFactory.Create()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	scForwarder, err := interimProcContainer.Get(block.SmartContractResultBlock)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	gasHandler, err := preprocess.NewGasComputation(arg.Economics)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
@@ -186,10 +184,11 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (process.T
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	genesisFeeHandler := &disabled.DisabledFeeHandler{}
+	argsParser := vmcommon.NewAtArgumentParser()
+	genesisFeeHandler := &disabled.FeeHandler{}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
 		ArgsParser:       argsParser,
@@ -209,7 +208,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (process.T
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	txProcessor, err := processTransaction.NewMetaTxProcessor(
@@ -223,10 +222,66 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (process.T
 		genesisFeeHandler,
 	)
 	if err != nil {
-		return nil, nil, process.ErrNilTxProcessor
+		return nil, process.ErrNilTxProcessor
 	}
 
-	return txProcessor, virtualMachineFactory.SystemSmartContractContainer(), nil
+	disabledRequestHandler := &disabled.RequestHandler{}
+	disabledBlockTracker := &disabled.BlockTracker{}
+	disabledBlockSizeComputationHandler := &disabled.BlockSizeComputationHandler{}
+	disabledBalanceComputationHandler := &disabled.BalanceComputationHandler{}
+
+	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
+		arg.ShardCoordinator,
+		arg.Store,
+		arg.Marshalizer,
+		arg.Hasher,
+		arg.DataPool,
+		arg.Accounts,
+		disabledRequestHandler,
+		txProcessor,
+		scProcessor,
+		arg.Economics,
+		gasHandler,
+		disabledBlockTracker,
+		arg.PubkeyConv,
+		disabledBlockSizeComputationHandler,
+		disabledBalanceComputationHandler,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	preProcContainer, err := preProcFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	txCoordinator, err := coordinator.NewTransactionCoordinator(
+		arg.Hasher,
+		arg.Marshalizer,
+		arg.ShardCoordinator,
+		arg.Accounts,
+		arg.DataPool.MiniBlocks(),
+		disabledRequestHandler,
+		preProcContainer,
+		interimProcContainer,
+		gasHandler,
+		genesisFeeHandler,
+		disabledBlockSizeComputationHandler,
+		disabledBalanceComputationHandler,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &genesisProcessors{
+		txCoordinator: txCoordinator,
+		systemSCs:     virtualMachineFactory.SystemSmartContractContainer(),
+		txProcessor:   txProcessor,
+		scProcessor:   scProcessor,
+		scrProcessor:  scProcessor,
+		rwdProcessor:  nil,
+	}, nil
 }
 
 // deploySystemSmartContracts deploys all the system smart contracts to the account state

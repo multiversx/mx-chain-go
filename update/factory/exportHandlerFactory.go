@@ -402,7 +402,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		DataPool:               e.dataPool,
 		AddressPubkeyConverter: e.addressPubkeyConverter,
 		MaxTxNonceDeltaAllowed: math.MaxInt32,
-		TxFeeHandler:           &disabled.DisabledFeeHandler{},
+		TxFeeHandler:           &disabled.FeeHandler{},
 		BlackList:              timecache.NewTimeCache(time.Second),
 		HeaderSigVerifier:      e.headerSigVerifier,
 		ChainID:                e.chainID,

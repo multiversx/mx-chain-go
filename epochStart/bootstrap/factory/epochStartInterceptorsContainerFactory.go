@@ -56,7 +56,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		return nil, epochStart.ErrNilPubkeyConverter
 	}
 	blackListHandler := timecache.NewTimeCache(timeSpanForBadHeaders)
-	feeHandler := &disabledGenesis.DisabledFeeHandler{}
+	feeHandler := &disabledGenesis.FeeHandler{}
 	headerSigVerifier := disabled.NewHeaderSigVerifier()
 	sizeCheckDelta := 0
 	validityAttester := disabled.NewValidityAttester()
