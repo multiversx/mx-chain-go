@@ -157,7 +157,7 @@ func (ewl *evictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
 		}
 		_, ok := hashes[hash]
 		if ok {
-			log.Trace("found in newHashes", "rootHash", key, "hash", hash)
+			log.Trace("found in newHashes", "rootHash", []byte(key), "hash", hash)
 			return true, nil
 		}
 	}

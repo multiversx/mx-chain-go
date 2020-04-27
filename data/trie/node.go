@@ -88,7 +88,6 @@ func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher) error {
 		return err
 	}
 
-	log.Trace("encodeNodeAndCommitToDB", "key", hex.EncodeToString(key), "val", hex.EncodeToString(val))
 	err = db.Put(key, val)
 
 	return err
@@ -100,7 +99,6 @@ func getNodeFromDBAndDecode(n []byte, db data.DBWriteCacher, marshalizer marshal
 		return nil, fmt.Errorf("getNodeFromDB error %w for key %v", err, hex.EncodeToString(n))
 	}
 
-	log.Trace("getNodeFromDBAndDecode", "key", hex.EncodeToString(n), "val", hex.EncodeToString(encChild))
 	decodedNode, err := decodeNode(encChild, marshalizer, hasher)
 	if err != nil {
 		return nil, err

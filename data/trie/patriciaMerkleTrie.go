@@ -233,7 +233,7 @@ func (tr *patriciaMerkleTrie) markForEviction() error {
 			return err
 		}
 
-		for key := range oldHashes {
+		for key := range newHashes {
 			log.Trace("MarkForEviction newHashes", "hash", key)
 		}
 	}
