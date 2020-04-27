@@ -48,7 +48,7 @@ func (cache *TxCache) doEviction() {
 }
 
 func (cache *TxCache) makeSnapshotOfSenders() {
-	cache.evictionSnapshotOfSenders = cache.txListBySender.getSnapshotAscending()
+	cache.evictionSnapshotOfSenders = cache.txListBySender.getSnapshotAscendingWithDeterministicallySortedHead()
 }
 
 func (cache *TxCache) destroySnapshotOfSenders() {

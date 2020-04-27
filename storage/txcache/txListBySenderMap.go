@@ -1,6 +1,10 @@
 package txcache
 
 import (
+	"sort"
+	"strings"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
@@ -117,6 +121,54 @@ func (txMap *txListBySenderMap) notifyAccountNonce(accountKey []byte, nonce uint
 	listForSender.notifyAccountNonce(nonce)
 }
 
+func (txMap *txListBySenderMap) getSnapshotAscendingWithDeterministicallySortedHead() []*txListForSender {
+	snapshot := txMap.getSnapshotAscending()
+	if len(snapshot) == 0 {
+		return snapshot
+	}
+
+	sorter := func(i, j int) bool {
+		senderI := snapshot[i]
+		senderJ := snapshot[j]
+
+		delta := int(senderI.getLastComputedScore()) - int(senderJ.getLastComputedScore())
+		if delta == 0 {
+			delta = strings.Compare(senderI.GetKey(), senderJ.GetKey())
+		}
+
+		return delta < 0
+	}
+
+	headSize := getSnapshotHeadSize(snapshot)
+	sort.Slice(snapshot[:headSize], sorter)
+	return snapshot
+}
+
+func getSnapshotHeadSize(snapshot []*txListForSender) int {
+	headSize := core.MinInt(len(snapshot), maxSendersSnapshotHeadSize)
+
+	i := 0
+	previousScore := uint32(0)
+	currentScoreStart := 0
+	currentScore := uint32(0)
+
+	for {
+		currentScore = snapshot[i].getLastComputedScore()
+		if currentScore != previousScore {
+			currentScoreStart = i
+		}
+
+		i++
+
+		if i >= headSize {
+			headSize = currentScoreStart
+			break
+		}
+	}
+
+	return headSize
+}
+
 func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {
 	itemsSnapshot := txMap.backingMap.GetSnapshotAscending()
 	listsSnapshot := make([]*txListForSender, len(itemsSnapshot))
@@ -124,9 +176,6 @@ func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {
 	for i, item := range itemsSnapshot {
 		listsSnapshot[i] = item.(*txListForSender)
 	}
-
-	// TODO: Perhaps further sort by rawScore, to better deal with many senders in a bucket
-	// TODO: heuristics, only if histogram is narrow
 
 	return listsSnapshot
 }
@@ -139,10 +188,17 @@ func (txMap *txListBySenderMap) getSnapshotDescending() []*txListForSender {
 		listsSnapshot[i] = item.(*txListForSender)
 	}
 
-	// TODO: Perhaps further sort by rawScore, to better deal with many senders in a bucket
-	// TODO: heuristics, only if histogram is narrow
-
 	return listsSnapshot
+}
+
+func (txMap *txListBySenderMap) getSnapshotDescendingWithDeterministicallySortedTail() []*txListForSender {
+	snapshot := txMap.getSnapshotAscendingWithDeterministicallySortedHead()
+
+	for i, j := 0, len(snapshot)-1; i < j; i, j = i+1, j-1 {
+		snapshot[i], snapshot[j] = snapshot[j], snapshot[i]
+	}
+
+	return snapshot
 }
 
 // ForEachSender is an iterator callback

@@ -123,18 +123,16 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 }
 
 func (cache *TxCache) getSendersEligibleForSelection() []*txListForSender {
-	const eligiblePercentageForHighLoad = 0.75
-	snapshotOfSenders := cache.txListBySender.getSnapshotDescending()
-
 	isHighLoad := cache.isHighLoad()
-	if isHighLoad {
-		endIndex := int(float32(len(snapshotOfSenders))*eligiblePercentageForHighLoad) + 1
-		endIndex = core.MinInt(endIndex, len(snapshotOfSenders))
-		log.Info("TxCache.getSendersEligibleForSelection(), high load", "len(senders)", len(snapshotOfSenders), "len(eligible)", endIndex)
-
-		snapshotOfSenders = snapshotOfSenders[:endIndex]
+	if !isHighLoad {
+		return cache.txListBySender.getSnapshotDescending()
 	}
 
+	snapshotOfSenders := cache.txListBySender.getSnapshotDescendingWithDeterministicallySortedTail()
+	endIndex := int(float32(len(snapshotOfSenders))*eligibleSendersPercentageForHighLoad) + 1
+	endIndex = core.MinInt(endIndex, len(snapshotOfSenders))
+	log.Info("TxCache.getSendersEligibleForSelection(), high load", "len(senders)", len(snapshotOfSenders), "len(eligible)", endIndex)
+	snapshotOfSenders = snapshotOfSenders[:endIndex]
 	return snapshotOfSenders
 }
 
