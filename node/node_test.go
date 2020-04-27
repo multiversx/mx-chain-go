@@ -758,7 +758,7 @@ func TestNode_StartHeartbeatDisabledShouldNotCreateObjects(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             false,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Nil(t, err)
@@ -777,7 +777,7 @@ func TestNode_StartHeartbeatInvalidMinTimeShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Equal(t, node.ErrNegativeMinTimeToWaitBetweenBroadcastsInSec, err)
@@ -793,7 +793,7 @@ func TestNode_StartHeartbeatInvalidMaxTimeShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Equal(t, node.ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec, err)
@@ -809,7 +809,7 @@ func TestNode_StartHeartbeatInvalidDurationShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: -1,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Equal(t, node.ErrNegativeDurationInSecToConsiderUnresponsive, err)
@@ -825,7 +825,7 @@ func TestNode_StartHeartbeatInvalidMaxTimeMinTimeShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 2,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Equal(t, node.ErrWrongValues, err)
@@ -841,7 +841,7 @@ func TestNode_StartHeartbeatInvalidMaxTimeDurationShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 2,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Equal(t, node.ErrWrongValues, err)
@@ -1028,7 +1028,7 @@ func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.NotNil(t, err)
@@ -1085,7 +1085,7 @@ func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.NotNil(t, err)
@@ -1130,7 +1130,7 @@ func TestNode_StartHeartbeatHasTopicValidatorShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Equal(t, node.ErrValidatorAlreadySet, err)
@@ -1182,7 +1182,7 @@ func TestNode_StartHeartbeatCreateTopicFailsShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Equal(t, errExpected, err)
@@ -1249,7 +1249,7 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 		HbmiRefreshIntervalInSec:            1,
 		HideInactiveValidatorIntervalInSec:  600,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Equal(t, errExpected, err)
@@ -1339,7 +1339,7 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 		HbmiRefreshIntervalInSec:            1,
 		HideInactiveValidatorIntervalInSec:  1,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Nil(t, err)
@@ -1444,7 +1444,7 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 		HbmiRefreshIntervalInSec:            1,
 		HideInactiveValidatorIntervalInSec:  1,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 	assert.Nil(t, err)
 
@@ -1541,7 +1541,7 @@ func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *tes
 		HbmiRefreshIntervalInSec:            1,
 		HideInactiveValidatorIntervalInSec:  1,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, registeredHandler)
