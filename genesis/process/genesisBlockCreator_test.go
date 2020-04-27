@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
@@ -29,6 +30,7 @@ func createMockArgument() ArgsGenesisBlockCreator {
 		DataPool:                 mock.NewPoolsHolderMock(),
 		ValidatorStatsRootHash:   make([]byte, 0),
 		TxLogsProcessor:          &mock.TxLogProcessorMock{},
+		VirtualMachineConfig:     config.VirtualMachineConfig{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
