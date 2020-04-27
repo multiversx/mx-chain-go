@@ -20,8 +20,6 @@ var hash = []byte("hash")
 var numIntra = 10
 var numCross = 9
 
-//------- NewInterceptorResolver
-
 func createWorkableConfig() config.InterceptorResolverDebugConfig {
 	return config.InterceptorResolverDebugConfig{
 		Enabled:                    true,
@@ -32,6 +30,12 @@ func createWorkableConfig() config.InterceptorResolverDebugConfig {
 		NumResolveFailureThreshold: 0,
 	}
 }
+
+func mockTimestampHandler() int64 {
+	return 22342
+}
+
+//------- NewInterceptorResolver
 
 func TestNewInterceptorResolver_InvalidSizeShouldErr(t *testing.T) {
 	t.Parallel()
@@ -129,6 +133,7 @@ func TestInterceptorResolver_LogRequestedDataWithFiveIdentifiersShouldWork(t *te
 	t.Parallel()
 
 	ir, _ := NewInterceptorResolver(createWorkableConfig())
+	ir.SetTimehandler(mockTimestampHandler)
 	numIdentifiers := 5
 	foundMap := make(map[string]struct{})
 	for i := 0; i < numIdentifiers; i++ {
@@ -155,6 +160,7 @@ func TestInterceptorResolver_LogRequestedDataSameIdentifierShouldAddRequested(t 
 	t.Parallel()
 
 	ir, _ := NewInterceptorResolver(createWorkableConfig())
+	ir.SetTimehandler(mockTimestampHandler)
 	ir.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
 	events := ir.Events()
 	require.Equal(t, 1, len(events))
@@ -164,6 +170,7 @@ func TestInterceptorResolver_LogRequestedDataSameIdentifierShouldAddRequested(t 
 		topic:       topic,
 		numReqIntra: numIntra,
 		numReqCross: numCross,
+		timestamp:   mockTimestampHandler(),
 	}
 
 	assert.Equal(t, expected, events[0])
@@ -177,6 +184,7 @@ func TestInterceptorResolver_LogRequestedDataSameIdentifierShouldAddRequested(t 
 		topic:       topic,
 		numReqIntra: numIntra * 2,
 		numReqCross: numCross * 2,
+		timestamp:   mockTimestampHandler(),
 	}
 
 	assert.Equal(t, expected, events[0])
@@ -211,6 +219,7 @@ func TestInterceptorResolver_LogProcessedHashesExistingWithErrorShouldIncrementP
 	t.Parallel()
 
 	ir, _ := NewInterceptorResolver(createWorkableConfig())
+	ir.SetTimehandler(mockTimestampHandler)
 	ir.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
 	require.Equal(t, 1, len(ir.Events()))
 
@@ -229,6 +238,7 @@ func TestInterceptorResolver_LogProcessedHashesExistingWithErrorShouldIncrementP
 		lastErr:      err,
 		numProcessed: 1,
 		numReceived:  0,
+		timestamp:    mockTimestampHandler(),
 	}
 
 	assert.Equal(t, expected, requests[0])
@@ -251,6 +261,7 @@ func TestInterceptorResolver_LogReceivedHashesExistingShouldIncrementReceived(t 
 	t.Parallel()
 
 	ir, _ := NewInterceptorResolver(createWorkableConfig())
+	ir.SetTimehandler(mockTimestampHandler)
 	ir.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
 	require.Equal(t, 1, len(ir.Events()))
 
@@ -268,6 +279,7 @@ func TestInterceptorResolver_LogReceivedHashesExistingShouldIncrementReceived(t 
 		lastErr:      nil,
 		numProcessed: 0,
 		numReceived:  1,
+		timestamp:    mockTimestampHandler(),
 	}
 
 	assert.Equal(t, expected, requests[0])
@@ -279,6 +291,7 @@ func TestInterceptorResolver_LogFailedToResolveDataShouldWork(t *testing.T) {
 	t.Parallel()
 
 	ir, _ := NewInterceptorResolver(createWorkableConfig())
+	ir.SetTimehandler(mockTimestampHandler)
 	ir.LogFailedToResolveData(topic, hash, nil)
 
 	require.Equal(t, 1, len(ir.Events()))
@@ -291,6 +304,7 @@ func TestInterceptorResolver_LogFailedToResolveDataShouldWork(t *testing.T) {
 		lastErr:      nil,
 		numProcessed: 0,
 		numReceived:  1,
+		timestamp:    mockTimestampHandler(),
 	}
 	assert.Equal(t, expected, ir.Events()[0])
 
@@ -305,6 +319,7 @@ func TestInterceptorResolver_LogFailedToResolveDataShouldWork(t *testing.T) {
 		lastErr:      nil,
 		numProcessed: 0,
 		numReceived:  2,
+		timestamp:    mockTimestampHandler(),
 	}
 	assert.Equal(t, expected, ir.Events()[0])
 }
@@ -321,6 +336,33 @@ func TestInterceptorResolver_LogFailedToResolveDataAndRequestedDataShouldWork(t 
 
 	assert.Equal(t, 2, len(ir.Events()))
 	fmt.Println(ir.Query("*"))
+}
+
+//------- LogSucceedToResolveData
+
+func TestInterceptorResolver_LogSucceededToResolveDataShouldWork(t *testing.T) {
+	t.Parallel()
+
+	ir, _ := NewInterceptorResolver(createWorkableConfig())
+	ir.SetTimehandler(mockTimestampHandler)
+	ir.LogFailedToResolveData(topic, hash, nil)
+
+	require.Equal(t, 1, len(ir.Events()))
+	expected := &event{
+		eventType:    resolveEvent,
+		hash:         hash,
+		topic:        topic,
+		numReqIntra:  0,
+		numReqCross:  0,
+		lastErr:      nil,
+		numProcessed: 0,
+		numReceived:  1,
+		timestamp:    mockTimestampHandler(),
+	}
+	assert.Equal(t, expected, ir.Events()[0])
+
+	ir.LogSucceededToResolveData(topic, hash)
+	assert.Equal(t, 0, len(ir.Events()))
 }
 
 //------- functions
