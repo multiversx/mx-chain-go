@@ -4,12 +4,10 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	factoryHasher "github.com/ElrondNetwork/elrond-go/hashing/factory"
@@ -35,19 +33,6 @@ type CoreComponentsFactory struct {
 	chainID     []byte
 	marshalizer marshal.Marshalizer
 	hasher      hashing.Hasher
-}
-
-// CoreComponents is the DTO used for core components
-type CoreComponents struct {
-	Hasher                   hashing.Hasher
-	InternalMarshalizer      marshal.Marshalizer
-	VmMarshalizer            marshal.Marshalizer
-	TxSignMarshalizer        marshal.Marshalizer
-	TriesContainer           state.TriesHolder
-	TrieStorageManagers      map[string]data.StorageManager
-	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	StatusHandler            core.AppStatusHandler
-	ChainID                  []byte
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components

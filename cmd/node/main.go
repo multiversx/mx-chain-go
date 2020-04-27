@@ -834,16 +834,20 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating state components")
-	stateArgs := factory.NewStateComponentsFactoryArgs(
-		generalConfig,
-		genesisConfig,
-		shardCoordinator,
-		coreComponents,
-		pathManager,
-	)
-	stateComponents, err := factory.StateComponentsFactory(stateArgs)
+	stateArgs := mainFactory.StateComponentsFactoryArgs{
+		Config:           generalConfig,
+		GenesisConfig:    genesisConfig,
+		ShardCoordinator: shardCoordinator,
+		Core:             coreComponents,
+		PathManager:      pathManager,
+	}
+	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)
 	if err != nil {
-		return err
+		return nil
+	}
+	stateComponents, err := stateComponentsFactory.Create()
+	if err != nil {
+		return nil
 	}
 
 	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
@@ -1577,7 +1581,7 @@ func createNode(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	coreData *mainFactory.CoreComponents,
-	state *factory.State,
+	state *mainFactory.StateComponents,
 	data *factory.Data,
 	crypto *factory.Crypto,
 	process *factory.Process,

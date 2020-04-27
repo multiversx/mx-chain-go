@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math/big"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -30,7 +29,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	dataRetrieverFactory "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
@@ -136,15 +134,6 @@ type Core struct {
 	ChainID                  []byte
 }
 
-// State struct holds the state components of the Elrond protocol
-type State struct {
-	AddressPubkeyConverter   state.PubkeyConverter
-	ValidatorPubkeyConverter state.PubkeyConverter
-	PeerAccounts             state.AccountsAdapter
-	AccountsAdapter          state.AccountsAdapter
-	InBalanceForShard        map[string]*big.Int
-}
-
 // Data struct holds the data components of the Elrond protocol
 type Data struct {
 	Blkc     data.ChainHandler
@@ -163,7 +152,7 @@ type Crypto struct {
 	MessageSignVerifier vm.MessageSignVerifier
 }
 
-// Process struct holds the process components of the Elrond protocol
+// Process struct holds the process components
 type Process struct {
 	InterceptorsContainer    process.InterceptorsContainer
 	ResolversFinder          dataRetriever.ResolversFinder
@@ -179,71 +168,6 @@ type Process struct {
 	BlockTracker             process.BlockTracker
 	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
 	RequestHandler           process.RequestHandler
-}
-
-type stateComponentsFactoryArgs struct {
-	config           *config.Config
-	genesisConfig    *sharding.Genesis
-	shardCoordinator sharding.Coordinator
-	core             *mainFactory.CoreComponents
-	pathManager      storage.PathManagerHandler
-}
-
-// NewStateComponentsFactoryArgs initializes the arguments necessary for creating the state components
-func NewStateComponentsFactoryArgs(
-	config *config.Config,
-	genesisConfig *sharding.Genesis,
-	shardCoordinator sharding.Coordinator,
-	core *mainFactory.CoreComponents,
-	pathManager storage.PathManagerHandler,
-) *stateComponentsFactoryArgs {
-	return &stateComponentsFactoryArgs{
-		config:           config,
-		genesisConfig:    genesisConfig,
-		shardCoordinator: shardCoordinator,
-		core:             core,
-		pathManager:      pathManager,
-	}
-}
-
-// StateComponentsFactory creates the state components
-func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
-	processPubkeyConverter, err := factoryState.NewPubkeyConverter(args.config.AddressPubkeyConverter)
-	if err != nil {
-		return nil, fmt.Errorf("%w for ProcessPubkeyConverter", err)
-	}
-
-	validatorPubkeyConverter, err := factoryState.NewPubkeyConverter(args.config.ValidatorPubkeyConverter)
-	if err != nil {
-		return nil, fmt.Errorf("%w for ValidatorPubkeyConverter", err)
-	}
-
-	accountFactory := factoryState.NewAccountCreator()
-	merkleTrie := args.core.TriesContainer.Get([]byte(factory.UserAccountTrie))
-	accountsAdapter, err := state.NewAccountsDB(merkleTrie, args.core.Hasher, args.core.InternalMarshalizer, accountFactory)
-	if err != nil {
-		return nil, errors.New("could not create accounts adapter: " + err.Error())
-	}
-
-	inBalanceForShard, err := args.genesisConfig.InitialNodesBalances(args.shardCoordinator)
-	if err != nil {
-		return nil, errors.New("initial balances could not be processed " + err.Error())
-	}
-
-	accountFactory = factoryState.NewPeerAccountCreator()
-	merkleTrie = args.core.TriesContainer.Get([]byte(factory.PeerAccountTrie))
-	peerAdapter, err := state.NewPeerAccountsDB(merkleTrie, args.core.Hasher, args.core.InternalMarshalizer, accountFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	return &State{
-		PeerAccounts:             peerAdapter,
-		AddressPubkeyConverter:   processPubkeyConverter,
-		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		AccountsAdapter:          accountsAdapter,
-		InBalanceForShard:        inBalanceForShard,
-	}, nil
 }
 
 type dataComponentsFactoryArgs struct {
@@ -449,7 +373,7 @@ type processComponentsFactoryArgs struct {
 	data                      *Data
 	coreData                  *mainFactory.CoreComponents
 	crypto                    *Crypto
-	state                     *State
+	state                     *mainFactory.StateComponents
 	network                   *Network
 	coreServiceContainer      serviceContainer.Core
 	requestedItemsHandler     dataRetriever.RequestedItemsHandler
@@ -483,7 +407,7 @@ func NewProcessComponentsFactoryArgs(
 	data *Data,
 	coreData *mainFactory.CoreComponents,
 	crypto *Crypto,
-	state *State,
+	state *mainFactory.StateComponents,
 	network *Network,
 	coreServiceContainer serviceContainer.Core,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
@@ -986,7 +910,7 @@ func newInterceptorContainerFactory(
 	data *Data,
 	coreData *mainFactory.CoreComponents,
 	crypto *Crypto,
-	state *State,
+	state *mainFactory.StateComponents,
 	network *Network,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
@@ -996,7 +920,6 @@ func newInterceptorContainerFactory(
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
-
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardInterceptorContainerFactory(
 			shardCoordinator,
@@ -1076,7 +999,7 @@ func newShardInterceptorContainerFactory(
 	data *Data,
 	dataCore *mainFactory.CoreComponents,
 	crypto *Crypto,
-	state *State,
+	state *mainFactory.StateComponents,
 	network *Network,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
@@ -1131,7 +1054,7 @@ func newMetaInterceptorContainerFactory(
 	dataCore *mainFactory.CoreComponents,
 	crypto *Crypto,
 	network *Network,
-	state *State,
+	state *mainFactory.StateComponents,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
@@ -1554,7 +1477,7 @@ func newShardBlockProcessor(
 	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
 	core *mainFactory.CoreComponents,
-	stateComponents *State,
+	stateComponents *mainFactory.StateComponents,
 	forkDetector process.ForkDetector,
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
@@ -1821,7 +1744,7 @@ func newMetaBlockProcessor(
 	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
 	core *mainFactory.CoreComponents,
-	stateComponents *State,
+	stateComponents *mainFactory.StateComponents,
 	forkDetector process.ForkDetector,
 	coreServiceContainer serviceContainer.Core,
 	economicsData *economics.EconomicsData,
