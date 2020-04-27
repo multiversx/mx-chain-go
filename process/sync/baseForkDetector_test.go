@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -907,9 +908,9 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	sfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerMock{}, 0)
 	hdr1 := &block.Header{Nonce: 3, Round: 3}
 	hash1 := []byte("hash1")
-	hdr2 := &block.Header{Nonce: 3, Round: 3}
+	hdr2 := &block.Header{Nonce: 4, Round: 4}
 	hash2 := []byte("hash2")
-	hdr3 := &block.Header{Nonce: 4, Round: 5}
+	hdr3 := &block.Header{Nonce: 5, Round: 5}
 	hash3 := []byte("hash3")
 
 	hdrs := make([]data.HeaderHandler, 0)
@@ -917,7 +918,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	hdrs = append(hdrs, hdr1)
 	hashes = append(hashes, hash1)
 
-	sfd.ReceivedSelfNotarizedHeaders(0, hdrs, hashes)
+	sfd.ReceivedSelfNotarizedHeaders(core.MetachainShardId, hdrs, hashes)
 	assert.Equal(t, uint64(0), sfd.FinalCheckpointNonce())
 
 	_ = sfd.AddHeader(hdr1, hash1, process.BHProcessed, hdrs, hashes)
@@ -928,7 +929,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	hdrs = append(hdrs, hdr2)
 	hashes = append(hashes, hash2)
 
-	sfd.ReceivedSelfNotarizedHeaders(0, hdrs, hashes)
+	sfd.ReceivedSelfNotarizedHeaders(core.MetachainShardId, hdrs, hashes)
 	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
 
 	_ = sfd.AddHeader(hdr2, hash2, process.BHProcessed, hdrs, hashes)
@@ -939,7 +940,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	hdrs = append(hdrs, hdr3)
 	hashes = append(hashes, hash3)
 
-	sfd.ReceivedSelfNotarizedHeaders(0, hdrs, hashes)
+	sfd.ReceivedSelfNotarizedHeaders(core.MetachainShardId, hdrs, hashes)
 	assert.Equal(t, hdr2.Nonce, sfd.FinalCheckpointNonce())
 
 	_ = sfd.AddHeader(hdr3, hash3, process.BHProcessed, hdrs, hashes)
@@ -1029,4 +1030,40 @@ func TestBaseForkDetector_ComputeTimeDuration(t *testing.T) {
 	expectedTimeStamp := hdrTimeStamp - (hdrRound * roundDuration)
 	timeDuration := bfd.ComputeGenesisTimeFromHeader(hdr1)
 	assert.Equal(t, int64(expectedTimeStamp), timeDuration)
+}
+
+func TestShardForkDetector_RemoveHeaderShouldComputeFinalCheckpoint(t *testing.T) {
+	t.Parallel()
+
+	rounderMock := &mock.RounderMock{RoundIndex: 10}
+	sfd, _ := sync.NewShardForkDetector(rounderMock, &mock.BlackListHandlerStub{}, &mock.BlockTrackerMock{}, 0)
+	hdr1 := &block.Header{Nonce: 3, Round: 3}
+	hash1 := []byte("hash1")
+	hdr2 := &block.Header{Nonce: 4, Round: 4}
+	hash2 := []byte("hash2")
+
+	hdrs := make([]data.HeaderHandler, 0)
+	hashes := make([][]byte, 0)
+	hdrs = append(hdrs, hdr1)
+	hashes = append(hashes, hash1)
+
+	_ = sfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+	assert.Equal(t, uint64(0), sfd.FinalCheckpointNonce())
+
+	sfd.ReceivedSelfNotarizedHeaders(core.MetachainShardId, hdrs, hashes)
+	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
+
+	hdrs = make([]data.HeaderHandler, 0)
+	hashes = make([][]byte, 0)
+	hdrs = append(hdrs, hdr2)
+	hashes = append(hashes, hash2)
+
+	_ = sfd.AddHeader(hdr2, hash2, process.BHProcessed, nil, nil)
+	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
+
+	sfd.ReceivedSelfNotarizedHeaders(core.MetachainShardId, hdrs, hashes)
+	assert.Equal(t, hdr2.Nonce, sfd.FinalCheckpointNonce())
+
+	sfd.RemoveHeader(hdr2.GetNonce(), hash2)
+	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
 }

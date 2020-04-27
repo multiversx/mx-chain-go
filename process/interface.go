@@ -725,8 +725,8 @@ type ValidityAttester interface {
 
 // MiniBlockProvider defines what a miniblock data provider should do
 type MiniBlockProvider interface {
-	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
-	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
+	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte, [][]byte)
+	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte, [][]byte)
 	IsInterfaceNil() bool
 }
 

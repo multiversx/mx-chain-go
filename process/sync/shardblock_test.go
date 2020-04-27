@@ -1154,15 +1154,15 @@ func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 	blk := make(block.MiniBlockSlice, 0)
 	args.Rounder = initRounder()
 	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
-		GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-			return blk, nil
+		GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte, [][]byte) {
+			return blk, nil, nil
 		},
 	}
 
 	bs, _ := sync.NewShardBootstrap(args)
 	mbHashes := make([][]byte, 0)
 	mbHashes = append(mbHashes, []byte("aaaa"))
-	mb, _ := bs.GetMiniBlocks(mbHashes)
+	mb, _, _ := bs.GetMiniBlocks(mbHashes)
 
 	assert.True(t, reflect.DeepEqual(blk, mb))
 }
@@ -1587,19 +1587,19 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 	})
 	args.ChainHandler = blkc
 	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
-		GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+		GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte, [][]byte) {
 			for _, hash := range hashes {
 				if bytes.Equal(hash, mbh) {
-					return txBlock, nil
+					return txBlock, nil, nil
 				}
 			}
 
-			return nil, nil
+			return nil, nil, nil
 		},
 	}
 
 	bs, _ := sync.NewShardBootstrap(args)
-	txBlockRecovered, _ := bs.GetMiniBlocks(requestedHash)
+	txBlockRecovered, _, _ := bs.GetMiniBlocks(requestedHash)
 
 	assert.True(t, reflect.DeepEqual(txBlockRecovered, txBlock))
 }
@@ -1628,7 +1628,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetEmptySli
 	args.Store.AddStorer(dataRetriever.TransactionUnit, txBlockUnit)
 
 	bs, _ := sync.NewShardBootstrap(args)
-	txBlockRecovered, _ := bs.GetMiniBlocks(requestedHash)
+	txBlockRecovered, _, _ := bs.GetMiniBlocks(requestedHash)
 
 	assert.Equal(t, 0, len(txBlockRecovered))
 }
@@ -1650,19 +1650,19 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 	args.ChainHandler = blkc
 	args.Store = createFullStore()
 	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
-		GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+		GetMiniBlocksCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte, [][]byte) {
 			for _, hash := range hashes {
 				if bytes.Equal(hash, mbh) {
-					return txBlock, nil
+					return txBlock, nil, nil
 				}
 			}
 
-			return nil, nil
+			return nil, nil, nil
 		},
 	}
 
 	bs, _ := sync.NewShardBootstrap(args)
-	txBlockRecovered, _ := bs.GetMiniBlocks(requestedHash)
+	txBlockRecovered, _, _ := bs.GetMiniBlocks(requestedHash)
 
 	assert.Equal(t, txBlock, txBlockRecovered)
 }
@@ -1837,8 +1837,8 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 		},
 	}
 	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
-		GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-			return make(block.MiniBlockSlice, 0), [][]byte{[]byte("hash")}
+		GetMiniBlocksFromPoolCalled: func(hashes [][]byte) (block.MiniBlockSlice, [][]byte, [][]byte) {
+			return make(block.MiniBlockSlice, 0), make([][]byte, 0), [][]byte{[]byte("hash")}
 		},
 	}
 

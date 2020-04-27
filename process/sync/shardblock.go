@@ -87,7 +87,7 @@ func (boot *ShardBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data
 		hashes[i] = header.MiniBlockHeaders[i].Hash
 	}
 
-	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocks(hashes)
+	miniBlocks, _, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocks(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
 		return nil, process.ErrMissingBody
 	}
@@ -258,7 +258,7 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(header
 		hashes = append(hashes, header.MiniBlockHeaders[i].Hash)
 	}
 
-	_, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)
+	_, _, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
 		log.Trace("requesting in advance mini blocks",
 			"num miniblocks", len(missingMiniBlocksHashes),

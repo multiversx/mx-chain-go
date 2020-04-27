@@ -1,6 +1,7 @@
 package bls
 
 import (
+	"context"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -12,7 +13,8 @@ import (
 type subroundSignature struct {
 	*spos.Subround
 
-	appStatusHandler core.AppStatusHandler
+	appStatusHandler        core.AppStatusHandler
+	waitAllSignaturesCancel context.CancelFunc
 }
 
 // NewSubroundSignature creates a subroundSignature object
@@ -65,6 +67,8 @@ func checkNewSubroundSignatureParams(
 
 // doSignatureJob method does the job of the subround Signature
 func (sr *subroundSignature) doSignatureJob() bool {
+	sr.waitAllSignaturesCancel = nil
+
 	if !sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
 		return true
 	}
@@ -78,7 +82,9 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		return false
 	}
 
-	if !sr.IsSelfLeaderInCurrentRound() {
+	isSelfLeader := sr.IsSelfLeaderInCurrentRound()
+
+	if !isSelfLeader {
 		//TODO: Analyze it is possible to send message only to leader with O(1) instead of O(n)
 		cnsMsg := consensus.NewConsensusMessage(
 			sr.GetData(),
@@ -112,8 +118,10 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		return false
 	}
 
-	if sr.IsSelfLeaderInCurrentRound() {
-		go sr.waitAllSignatures()
+	if isSelfLeader {
+		ctx, cancel := context.WithCancel(context.Background())
+		sr.waitAllSignaturesCancel = cancel
+		go sr.waitAllSignatures(ctx)
 	}
 
 	return true
@@ -201,6 +209,10 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 			log.Debug("step 2: signatures",
 				"received", numSigs,
 				"total", len(sr.ConsensusGroup()))
+
+			if sr.waitAllSignaturesCancel != nil {
+				sr.waitAllSignaturesCancel()
+			}
 		}
 
 		log.Debug("step 2: subround has been finished",
@@ -240,18 +252,13 @@ func (sr *subroundSignature) signaturesCollected(threshold int) (bool, int) {
 	return n >= threshold, n
 }
 
-func (sr *subroundSignature) waitAllSignatures() {
-	for {
-		remainingTime := sr.remainingTime()
-		if remainingTime <= 0 {
-			break
-		}
+func (sr *subroundSignature) waitAllSignatures(ctx context.Context) {
+	remainingTime := sr.remainingTime()
 
-		time.Sleep(remainingTime)
-	}
-
-	if sr.IsSubroundFinished(sr.Current()) {
+	select {
+	case <-ctx.Done():
 		return
+	case <-time.After(remainingTime):
 	}
 
 	select {
