@@ -448,6 +448,11 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	dataTries := adb.dataTries.GetAll()
 	for i := 0; i < len(dataTries); i++ {
 		oldTrieHashes := dataTries[i].ResetOldHashes()
+
+		for j := range oldTrieHashes {
+			log.Debug("oldTrieHash", "hash", hex.EncodeToString(oldTrieHashes[j]))
+		}
+
 		err := dataTries[i].Commit()
 		if err != nil {
 			return nil, err
