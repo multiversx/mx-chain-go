@@ -48,6 +48,7 @@ type ArgsExporter struct {
 	ExportTriesStorageConfig config.StorageConfig
 	ExportStateStorageConfig config.StorageConfig
 	WhiteListHandler         process.WhiteListHandler
+	WhiteListerVerifiedTxs   process.WhiteListHandler
 	InterceptorsContainer    process.InterceptorsContainer
 	MultiSigner              crypto.MultiSigner
 	NodesCoordinator         sharding.NodesCoordinator
@@ -79,6 +80,7 @@ type exportHandlerFactory struct {
 	exportTriesStorageConfig config.StorageConfig
 	exportStateStorageConfig config.StorageConfig
 	whiteListHandler         process.WhiteListHandler
+	whiteListerVerifiedTxs   process.WhiteListHandler
 	interceptorsContainer    process.InterceptorsContainer
 	existingResolvers        dataRetriever.ResolversContainer
 	epochStartTrigger        epochStart.TriggerHandler
@@ -131,6 +133,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		return nil, update.ErrNilAccounts
 	}
 	if check.IfNil(args.WhiteListHandler) {
+		return nil, update.ErrNilWhiteListHandler
+	}
+	if check.IfNil(args.WhiteListerVerifiedTxs) {
 		return nil, update.ErrNilWhiteListHandler
 	}
 	if check.IfNil(args.InterceptorsContainer) {
@@ -193,6 +198,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		exportStateStorageConfig: args.ExportStateStorageConfig,
 		interceptorsContainer:    args.InterceptorsContainer,
 		whiteListHandler:         args.WhiteListHandler,
+		whiteListerVerifiedTxs:   args.WhiteListerVerifiedTxs,
 		existingResolvers:        args.ExistingResolvers,
 		accounts:                 args.ActiveAccountsDBs[state.UserAccountsState],
 		multiSigner:              args.MultiSigner,
@@ -410,6 +416,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		ValidityAttester:       e.validityAttester,
 		EpochStartTrigger:      e.epochStartTrigger,
 		WhiteListHandler:       e.whiteListHandler,
+		WhiteListerVerifiedTxs: e.whiteListerVerifiedTxs,
 		InterceptorsContainer:  e.interceptorsContainer,
 		AntifloodHandler:       e.inputAntifloodHandler,
 		NonceConverter:         e.uint64Converter,

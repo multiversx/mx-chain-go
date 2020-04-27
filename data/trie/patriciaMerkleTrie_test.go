@@ -426,7 +426,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodes(t *testing.T) {
 
 	maxBuffToSend := uint64(500)
 	expectedNodes := 6
-	serializedNodes, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
+	serializedNodes, _, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNodes, len(serializedNodes))
 }
@@ -440,7 +440,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesTinyBufferShouldNotGetAllNodes(t *
 
 	maxBuffToSend := uint64(150)
 	expectedNodes := 2
-	serializedNodes, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
+	serializedNodes, _, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNodes, len(serializedNodes))
 }
@@ -458,7 +458,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 
 	maxBuffToSend := uint64(500)
 	expectedNodes := 6
-	serializedNodes, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
+	serializedNodes, _, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNodes, len(serializedNodes))
 }
