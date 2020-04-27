@@ -20,8 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
-const maxCleanTime = time.Second
-
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
@@ -276,8 +274,9 @@ func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, haveTime f
 
 	go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
 
+	headersPool := sp.dataPool.Headers()
 	for {
-		time.Sleep(time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 		if haveTime() < 0 {
 			break
 		}
@@ -285,6 +284,18 @@ func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, haveTime f
 		if sp.epochStartTrigger.IsEpochStart() {
 			return nil
 		}
+
+		gotHdr, err := headersPool.GetHeaderByHash(header.EpochStartMetaHash)
+		if err != nil || check.IfNil(gotHdr) {
+			continue
+		}
+
+		_, _, err = headersPool.GetHeadersByNonceAndShardId(gotHdr.GetNonce()+1, core.MetachainShardId)
+		if err != nil {
+			continue
+		}
+
+		return nil
 	}
 
 	return process.ErrTimeIsOut
@@ -379,6 +390,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		epochStartId := core.EpochStartIdentifier(header.GetEpoch())
 		metaBlock, err := process.GetMetaHeaderFromStorage([]byte(epochStartId), sp.marshalizer, sp.store)
 		if err != nil {
+			go sp.requestHandler.RequestStartOfEpochMetaBlock(header.GetEpoch())
 			return fmt.Errorf("%w could not find epoch start metablock for epoch %d",
 				err, header.GetEpoch())
 		}
@@ -397,6 +409,21 @@ func (sp *shardProcessor) checkEpochCorrectness(
 	}
 
 	return nil
+}
+
+func (sp *shardProcessor) getOldEpochStartMetaHdr(header *block.Header) (data.HeaderHandler, error) {
+	metaBlock, err := sp.dataPool.Headers().GetHeaderByHash(header.EpochStartMetaHash)
+	if err == nil {
+		return metaBlock, nil
+	}
+
+	epochStartId := core.EpochStartIdentifier(header.GetEpoch())
+	metaBlock, err = process.GetMetaHeaderFromStorage([]byte(epochStartId), sp.marshalizer, sp.store)
+	if err != nil {
+		return nil, err
+	}
+
+	return metaBlock, nil
 }
 
 // SetNumProcessedObj will set the num of processed transactions
