@@ -577,6 +577,7 @@ type processComponentsFactoryArgs struct {
 	maxSizeInBytes            uint32
 	maxRating                 uint32
 	validatorPubkeyConverter  state.PubkeyConverter
+	txLogsProcessor           process.TransactionLogProcessor
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -737,6 +738,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	args.txLogsProcessor = txLogsProcessor
 	genesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(args)
 	if err != nil {
 		return nil, err
@@ -1412,6 +1414,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		GenesisParser:            genesisParser,
 		ValidatorStatsRootHash:   validatorStatsRootHash,
 		GasMap:                   args.gasSchedule,
+		TxLogsProcessor:          args.txLogsProcessor,
 	}
 
 	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)
