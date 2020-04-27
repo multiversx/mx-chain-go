@@ -499,6 +499,7 @@ func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
 		log.Trace("accountsDB.RecreateTrie ended")
 	}()
 
+	adb.dataTries.Reset()
 	newTrie, err := adb.mainTrie.Recreate(rootHash)
 	if err != nil {
 		return err

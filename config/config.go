@@ -112,6 +112,7 @@ type Config struct {
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesDataPool           CacheConfig
 	WhiteListPool               CacheConfig
+	WhiteListerVerifiedTxs      CacheConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
 	ValidatorPubkeyConverter    PubkeyConfig
@@ -158,14 +159,13 @@ type ResourceStatsConfig struct {
 
 // HeartbeatConfig will hold all heartbeat settings
 type HeartbeatConfig struct {
-	Enabled                              bool
-	MinTimeToWaitBetweenBroadcastsInSec  int
-	MaxTimeToWaitBetweenBroadcastsInSec  int
-	DurationInSecToConsiderUnresponsive  int
-	HbmiRefreshIntervalInSec             uint32
-	HideInactiveValidatorIntervalInHours uint32
-	PeerTypeRefreshIntervalInSec         uint32
-	HeartbeatStorage                     StorageConfig
+	Enabled                             bool
+	MinTimeToWaitBetweenBroadcastsInSec int
+	MaxTimeToWaitBetweenBroadcastsInSec int
+	DurationInSecToConsiderUnresponsive int
+	HbmiRefreshIntervalInSec            uint32
+	HideInactiveValidatorIntervalInSec  uint32
+	HeartbeatStorage                    StorageConfig
 }
 
 // GeneralSettingsConfig will hold the general settings for a node

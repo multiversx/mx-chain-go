@@ -1242,13 +1242,12 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(96)),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec:  1,
-		MaxTimeToWaitBetweenBroadcastsInSec:  2,
-		DurationInSecToConsiderUnresponsive:  3,
-		Enabled:                              true,
-		HbmiRefreshIntervalInSec:             1,
-		HideInactiveValidatorIntervalInHours: 1,
-		PeerTypeRefreshIntervalInSec:         10,
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 2,
+		DurationInSecToConsiderUnresponsive: 3,
+		Enabled:                             true,
+		HbmiRefreshIntervalInSec:            1,
+		HideInactiveValidatorIntervalInSec:  600,
 	}, "v0.1",
 		"undefined",
 	)
@@ -1333,12 +1332,12 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(96)),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec:  1,
-		MaxTimeToWaitBetweenBroadcastsInSec:  2,
-		DurationInSecToConsiderUnresponsive:  3,
-		Enabled:                              true,
-		HbmiRefreshIntervalInSec:             1,
-		HideInactiveValidatorIntervalInHours: 1,
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 2,
+		DurationInSecToConsiderUnresponsive: 3,
+		Enabled:                             true,
+		HbmiRefreshIntervalInSec:            1,
+		HideInactiveValidatorIntervalInSec:  1,
 	}, "v0.1",
 		"undefined",
 	)
@@ -1438,12 +1437,12 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec:  1,
-		MaxTimeToWaitBetweenBroadcastsInSec:  2,
-		DurationInSecToConsiderUnresponsive:  3,
-		Enabled:                              true,
-		HbmiRefreshIntervalInSec:             1,
-		HideInactiveValidatorIntervalInHours: 1,
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 2,
+		DurationInSecToConsiderUnresponsive: 3,
+		Enabled:                             true,
+		HbmiRefreshIntervalInSec:            1,
+		HideInactiveValidatorIntervalInSec:  1,
 	}, "v0.1",
 		"undefined",
 	)
@@ -1535,12 +1534,12 @@ func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *tes
 	)
 
 	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec:  1,
-		MaxTimeToWaitBetweenBroadcastsInSec:  2,
-		DurationInSecToConsiderUnresponsive:  3,
-		Enabled:                              true,
-		HbmiRefreshIntervalInSec:             1,
-		HideInactiveValidatorIntervalInHours: 1,
+		MinTimeToWaitBetweenBroadcastsInSec: 1,
+		MaxTimeToWaitBetweenBroadcastsInSec: 2,
+		DurationInSecToConsiderUnresponsive: 3,
+		Enabled:                             true,
+		HbmiRefreshIntervalInSec:            1,
+		HideInactiveValidatorIntervalInSec:  1,
 	}, "v0.1",
 		"undefined",
 	)
