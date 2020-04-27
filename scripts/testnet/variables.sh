@@ -67,8 +67,6 @@ export TOTAL_OBSERVERCOUNT=$total_observer_count
 let "total_node_count = $SHARD_VALIDATORCOUNT * $SHARDCOUNT + $META_VALIDATORCOUNT + $TOTAL_OBSERVERCOUNT"
 export TOTAL_NODECOUNT=$total_node_count
 
-# Okay as defaults, change if needed.
-export MINT_VALUE="1000000000000000000000000000"
 # ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
 export ALWAYS_NEW_CHAINID=1
 # ALWAYS_UPDATE_CONFIGS will re-generate configs (toml + json) each time ./start.sh
