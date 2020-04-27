@@ -20,6 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
+const timeBetweenCheckForEpochStart = 100 * time.Millisecond
+
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
@@ -276,7 +278,7 @@ func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, haveTime f
 
 	headersPool := sp.dataPool.Headers()
 	for {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(timeBetweenCheckForEpochStart)
 		if haveTime() < 0 {
 			break
 		}
