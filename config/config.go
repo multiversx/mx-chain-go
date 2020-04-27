@@ -264,6 +264,15 @@ type HardforkConfig struct {
 	EnableTrigger         bool
 	EnableTriggerFromP2P  bool
 	PublicKeyToListenFrom string
+
+	ImportEnabled bool
+	ImportFolder  string
+	StartRound    uint64
+	StartNonce    uint64
+	StartEpoch    uint64
+
+	ExportStateStorageConfig StorageConfig
+	ImportStateStorageConfig StorageConfig
 }
 
 // DebugConfig will hold debugging configuration

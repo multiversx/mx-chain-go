@@ -63,7 +63,8 @@ func (m *metaBlockCreator) CreateNewBlock(
 	if check.IfNil(validatorAccounts) {
 		return nil, nil, update.ErrNilAccounts
 	}
-	validatorRootHash, err := validatorAccounts.RootHash()
+
+	validatorRootHash, err := validatorAccounts.Commit()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -72,7 +73,7 @@ func (m *metaBlockCreator) CreateNewBlock(
 	if check.IfNil(accounts) {
 		return nil, nil, update.ErrNilAccounts
 	}
-	rootHash, err := accounts.RootHash()
+	rootHash, err := accounts.Commit()
 	if err != nil {
 		return nil, nil, err
 	}

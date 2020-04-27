@@ -402,6 +402,31 @@
     EnableTrigger = true
     EnableTriggerFromP2P = true
     PublicKeyToListenFrom = "b5ea539180627040b2703cabde8ebece0ded59a0c9d2d4a8a73a299fb7bc11d36ac3d1a620501c230059cffa983a7419d192a50ca55ed8aa07254658dda27aba1e54f50fd7cfbb9e66ce1715d72f9c1b0b05272388f9825742161a211debff15"
+	ImportEnabled = false
+	ImportFolder = ""
+	StartRound = 0
+	StartNonce = 0
+	StartEpoch = 0
+	[HardFork.ExportStateStorageConfig]
+	    [HardFork.ExportStateStorageConfig.Cache]
+            Size = 5000
+            Type = "LRU"
+        [HardFork.ExportStateStorageConfig.DB]
+            FilePath = "ExportStateStorage/MainDB"
+            Type = "LvlDBSerial"
+            BatchDelaySeconds = 2
+            MaxBatchSize = 1000
+            MaxOpenFiles = 10
+	[HardFork.ImportStateStorageConfig]
+	    [HardFork.ImportStateStorageConfig.Cache]
+            Size = 5000
+            Type = "LRU"
+        [HardFork.ImportStateStorageConfig.DB]
+            FilePath = "ImportStateStorageConfig/MainDB"
+            Type = "LvlDBSerial"
+            BatchDelaySeconds = 2
+            MaxBatchSize = 1000
+            MaxOpenFiles = 10
 
 [Debug]
     [Debug.InterceptorResolver]
