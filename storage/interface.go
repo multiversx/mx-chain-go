@@ -2,7 +2,8 @@ package storage
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
 // Persister provides storage of data services in a database like construct
@@ -31,6 +32,8 @@ type Persister interface {
 type Batcher interface {
 	// Put inserts one entry - key, value pair - into the batch
 	Put(key []byte, val []byte) error
+	// Get returns the value from the batch
+	Get(key []byte) []byte
 	// Delete deletes the batch
 	Delete(key []byte) error
 	// Reset clears the contents of the batch
@@ -68,7 +71,7 @@ type Cacher interface {
 	// MaxSize returns the maximum number of items which can be stored in the cache.
 	MaxSize() int
 	// RegisterHandler registers a new handler to be called when a new data is added
-	RegisterHandler(func(key []byte))
+	RegisterHandler(func(key []byte, value interface{}))
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -91,21 +94,27 @@ type BloomFilter interface {
 type Storer interface {
 	Put(key, data []byte) error
 	Get(key []byte) ([]byte, error)
-	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
 	Has(key []byte) error
-	HasInEpoch(key []byte, epoch uint32) error
 	SearchFirst(key []byte) ([]byte, error)
 	Remove(key []byte) error
 	ClearCache()
 	DestroyUnit() error
+	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
+	HasInEpoch(key []byte, epoch uint32) error
 	IsInterfaceNil() bool
 	Close() error
 }
 
+// StorerWithPutInEpoch is an extended storer with the ability to set the epoch which will be used for put operations
+type StorerWithPutInEpoch interface {
+	Storer
+	SetEpochForPutOperation(epoch uint32)
+}
+
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
-	RegisterHandler(handler notifier.SubscribeFunctionHandler)
-	UnregisterHandler(handler notifier.SubscribeFunctionHandler)
+	RegisterHandler(handler epochStart.ActionHandler)
+	UnregisterHandler(handler epochStart.ActionHandler)
 	NotifyAll(hdr data.HeaderHandler)
 	IsInterfaceNil() bool
 }
@@ -114,5 +123,15 @@ type EpochStartNotifier interface {
 type PathManagerHandler interface {
 	PathForEpoch(shardId string, epoch uint32, identifier string) string
 	PathForStatic(shardId string, identifier string) string
+	IsInterfaceNil() bool
+}
+
+// ShardCoordinator defines what a shard state coordinator should hold
+type ShardCoordinator interface {
+	NumberOfShards() uint32
+	ComputeId(address state.AddressContainer) uint32
+	SelfId() uint32
+	SameShard(firstAddress, secondAddress state.AddressContainer) bool
+	CommunicationIdentifier(destShardID uint32) string
 	IsInterfaceNil() bool
 }

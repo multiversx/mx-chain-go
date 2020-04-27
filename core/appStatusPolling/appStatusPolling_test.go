@@ -14,35 +14,35 @@ import (
 func TestNewAppStatusPooling_NilAppStatusHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, err := appStatusPolling.NewAppStatusPolling(nil, 1)
+	_, err := appStatusPolling.NewAppStatusPolling(nil, time.Second)
 	assert.Equal(t, err, appStatusPolling.ErrNilAppStatusHandler)
 }
 
 func TestNewAppStatusPooling_NegativePollingDurationShouldErr(t *testing.T) {
 	t.Parallel()
 
-	_, err := appStatusPolling.NewAppStatusPolling(&statusHandler.NilStatusHandler{}, -1)
-	assert.Equal(t, err, appStatusPolling.ErrPollingDurationNegative)
+	_, err := appStatusPolling.NewAppStatusPolling(&statusHandler.NilStatusHandler{}, time.Duration(-1))
+	assert.Equal(t, err, appStatusPolling.ErrPollingDurationToSmall)
 }
 
 func TestNewAppStatusPooling_ZeroPollingDurationShouldErr(t *testing.T) {
 	t.Parallel()
 
 	_, err := appStatusPolling.NewAppStatusPolling(&statusHandler.NilStatusHandler{}, 0)
-	assert.Equal(t, err, appStatusPolling.ErrPollingDurationNegative)
+	assert.Equal(t, err, appStatusPolling.ErrPollingDurationToSmall)
 }
 
 func TestNewAppStatusPooling_OkValsShouldPass(t *testing.T) {
 	t.Parallel()
 
-	_, err := appStatusPolling.NewAppStatusPolling(&statusHandler.NilStatusHandler{}, 1)
+	_, err := appStatusPolling.NewAppStatusPolling(&statusHandler.NilStatusHandler{}, time.Second)
 	assert.Nil(t, err)
 }
 
 func TestNewAppStatusPolling_RegisterHandlerFuncShouldErr(t *testing.T) {
 	t.Parallel()
 
-	asp, err := appStatusPolling.NewAppStatusPolling(&statusHandler.NilStatusHandler{}, 1)
+	asp, err := appStatusPolling.NewAppStatusPolling(&statusHandler.NilStatusHandler{}, time.Second)
 	assert.Nil(t, err)
 
 	err = asp.RegisterPollingFunc(nil)
@@ -52,14 +52,14 @@ func TestNewAppStatusPolling_RegisterHandlerFuncShouldErr(t *testing.T) {
 func TestAppStatusPolling_Poll_TestNumOfConnectedAddressesCalled(t *testing.T) {
 	t.Parallel()
 
-	pollingDurationSec := 1
+	pollingDuration := time.Second
 	chDone := make(chan struct{})
 	ash := mock.AppStatusHandlerStub{
 		SetInt64ValueHandler: func(key string, value int64) {
 			chDone <- struct{}{}
 		},
 	}
-	asp, err := appStatusPolling.NewAppStatusPolling(&ash, pollingDurationSec)
+	asp, err := appStatusPolling.NewAppStatusPolling(&ash, pollingDuration)
 	assert.Nil(t, err)
 
 	err = asp.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
@@ -71,7 +71,7 @@ func TestAppStatusPolling_Poll_TestNumOfConnectedAddressesCalled(t *testing.T) {
 
 	select {
 	case <-chDone:
-	case <-time.After(time.Duration(pollingDurationSec*2) * time.Second):
+	case <-time.After(pollingDuration * 2 * time.Second):
 		assert.Fail(t, "timeout calling SetInt64Value")
 	}
 }

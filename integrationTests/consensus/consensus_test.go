@@ -10,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/assert"
@@ -38,7 +39,7 @@ func initNodesAndTest(
 
 	fmt.Println("Step 1. Setup nodes...")
 
-	advertiser := createMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
 	concMap := &sync.Map{}
@@ -59,7 +60,6 @@ func initNodesAndTest(
 		for i := uint32(0); i < numInvalid; i++ {
 			iCopy := i
 			nodes[0][i].blkProcessor.ProcessBlockCalled = func(
-				blockChain data.ChainHandler,
 				header data.HeaderHandler,
 				body data.BodyHandler,
 				haveTime func() time.Duration,
@@ -72,17 +72,11 @@ func initNodesAndTest(
 				)
 				return process.ErrBlockHashDoesNotMatch
 			}
-			nodes[0][i].blkProcessor.ApplyBodyToHeaderCalled = func(
-				header data.HeaderHandler,
-				body data.BodyHandler,
-			) (data.BodyHandler, error) {
-				return nil, process.ErrAccountStateDirty
-			}
 			nodes[0][i].blkProcessor.CreateBlockCalled = func(
 				header data.HeaderHandler,
 				haveTime func() bool,
-			) (handler data.BodyHandler, e error) {
-				return nil, process.ErrWrongTypeAssertion
+			) (data.HeaderHandler, data.BodyHandler, error) {
+				return nil, nil, process.ErrWrongTypeAssertion
 			}
 		}
 	}
@@ -93,10 +87,9 @@ func initNodesAndTest(
 func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) error {
 	for _, n := range nodes {
 		nCopy := n
-		n.blkProcessor.CommitBlockCalled = func(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error {
+		n.blkProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 			nCopy.blkProcessor.NrCommitBlockCalled++
-			_ = blockChain.SetCurrentBlockHeader(header)
-			_ = blockChain.SetCurrentBlockBody(body)
+			_ = nCopy.blkc.SetCurrentBlockHeader(header)
 
 			mutex.Lock()
 			nonceForRoundMap[header.GetRound()] = header.GetNonce()
@@ -156,13 +149,14 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	numInvalid := uint32(0)
 	roundTime := uint64(4000)
 	numCommBlock := uint64(10)
+
 	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
 
 	mutex := &sync.Mutex{}
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.node.Stop()
+			_ = n.mesenger.Close()
 		}
 	}()
 
@@ -210,7 +204,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	defer func() {
 		_ = advertiser.Close()
 		for _, n := range nodes {
-			_ = n.node.Stop()
+			_ = n.mesenger.Close()
 		}
 	}()
 

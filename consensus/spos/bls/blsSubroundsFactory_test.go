@@ -17,30 +17,6 @@ var chainID = []byte("chain ID")
 
 const roundTimeDuration = 100 * time.Millisecond
 
-const processingThresholdPercent = 85
-
-const (
-	// SrStartRound defines ID of subround "Start round"
-	SrStartRound = iota
-	// SrBlock defines ID of subround "block"
-	SrBlock
-	// SrCommitmentHash defines ID of subround "commitment hash"
-	SrCommitmentHash
-	// SrBitmap defines ID of subround "bitmap"
-	SrBitmap
-	// SrCommitment defines ID of subround "commitment"
-	SrCommitment
-	// SrSignature defines ID of subround "signature"
-	SrSignature
-)
-
-const (
-	// MtBlockBody defines ID of a message that has a block body inside
-	MtBlockBody = iota
-	// MtBlockHeader defines ID of a message that has a block header inside
-	MtBlockHeader
-)
-
 func displayStatistics() {
 }
 
@@ -361,7 +337,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, spos.ErrNilValidatorGroupSelector, err)
+	assert.Equal(t, spos.ErrNilNodesCoordinator, err)
 }
 
 func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {

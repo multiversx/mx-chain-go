@@ -6,12 +6,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-	"github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/stretchr/testify/assert"
 )
-
-var snapshotDelay = time.Second
-var batchDelay = 2 * time.Second
 
 func TestNode_hashChildrenAndNodeBranchNode(t *testing.T) {
 	t.Parallel()
@@ -69,7 +65,7 @@ func TestNode_encodeNodeAndGetHashExtensionNode(t *testing.T) {
 
 	marsh, hasher := getTestMarshAndHasher()
 	en := &extensionNode{
-		CollapsedEn: protobuf.CollapsedEn{
+		CollapsedEn: CollapsedEn{
 			Key:          []byte{2},
 			EncodedChild: []byte("doge"),
 		},
@@ -252,7 +248,7 @@ func TestNode_resolveIfCollapsedNilNode(t *testing.T) {
 	var node *extensionNode
 
 	err := resolveIfCollapsed(node, 0, nil)
-	assert.Equal(t, ErrNilNode, err)
+	assert.Equal(t, ErrNilExtensionNode, err)
 }
 
 func TestNode_concat(t *testing.T) {
@@ -285,7 +281,7 @@ func TestNode_hasValidHashNilNode(t *testing.T) {
 
 	var node *branchNode
 	ok, err := hasValidHash(node)
-	assert.Equal(t, ErrNilNode, err)
+	assert.Equal(t, ErrNilBranchNode, err)
 	assert.False(t, ok)
 }
 
@@ -584,20 +580,20 @@ func TestPruningAndPruningCancellingOnTrieRollback(t *testing.T) {
 }
 
 func finalizeTrieState(t *testing.T, index int, tr data.Trie, rootHashes [][]byte) {
-	err := tr.Prune(rootHashes[index-1], data.OldRoot)
-	assert.Nil(t, err)
+	tr.Prune(rootHashes[index-1], data.OldRoot)
 	tr.CancelPrune(rootHashes[index], data.NewRoot)
+	time.Sleep(pruningDelay)
 
-	_, err = tr.Recreate(rootHashes[index-1])
+	_, err := tr.Recreate(rootHashes[index-1])
 	assert.NotNil(t, err)
 }
 
 func rollbackTrieState(t *testing.T, index int, tr data.Trie, rootHashes [][]byte) {
-	err := tr.Prune(rootHashes[index], data.NewRoot)
-	assert.Nil(t, err)
+	tr.Prune(rootHashes[index], data.NewRoot)
 	tr.CancelPrune(rootHashes[index-1], data.OldRoot)
+	time.Sleep(pruningDelay)
 
-	_, err = tr.Recreate(rootHashes[index])
+	_, err := tr.Recreate(rootHashes[index])
 	assert.NotNil(t, err)
 }
 
@@ -661,11 +657,8 @@ func TestPatriciaMerkleTrie_RecreateFromSnapshotSavesStateToMainDb(t *testing.T)
 
 	rootHash, _ := tr.Root()
 	tr.TakeSnapshot(rootHash)
-
-	for tsm.snapshotsBuffer.len() != 0 {
-		time.Sleep(time.Second)
-	}
-	_ = tr.Prune(rootHash, data.NewRoot)
+	time.Sleep(snapshotDelay)
+	tr.Prune(rootHash, data.NewRoot)
 
 	val, err := tsm.db.Get(rootHash)
 	assert.Nil(t, val)

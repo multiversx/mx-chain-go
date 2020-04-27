@@ -5,6 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 )
 
+const peerMaxMessagesPerSec = uint32(2)
+
 // worker defines the data needed by spos to communicate between nodes which are in the validators group
 type worker struct {
 }
@@ -28,6 +30,11 @@ func (wrk *worker) InitReceivedMessages() map[consensus.MessageType][]*consensus
 	return receivedMessages
 }
 
+// GetMaxMessagesInARoundPerPeer returns the maximum number of messages a peer can send per round for BLS
+func (wrk *worker) GetMaxMessagesInARoundPerPeer() uint32 {
+	return peerMaxMessagesPerSec
+}
+
 //GetStringValue gets the name of the messageType
 func (wrk *worker) GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)
@@ -43,6 +50,11 @@ func (wrk *worker) IsMessageWithBlockBodyAndHeader(msgType consensus.MessageType
 	return msgType == MtBlockBodyAndHeader
 }
 
+//IsMessageWithBlockBody returns if the current messageType is about block body
+func (wrk *worker) IsMessageWithBlockBody(msgType consensus.MessageType) bool {
+	return msgType == MtBlockBody
+}
+
 //IsMessageWithBlockHeader returns if the current messageType is about block header
 func (wrk *worker) IsMessageWithBlockHeader(msgType consensus.MessageType) bool {
 	return msgType == MtBlockHeader
@@ -51,6 +63,22 @@ func (wrk *worker) IsMessageWithBlockHeader(msgType consensus.MessageType) bool 
 //IsMessageWithSignature returns if the current messageType is about signature
 func (wrk *worker) IsMessageWithSignature(msgType consensus.MessageType) bool {
 	return msgType == MtSignature
+}
+
+//IsMessageWithFinalInfo returns if the current messageType is about header final info
+func (wrk *worker) IsMessageWithFinalInfo(msgType consensus.MessageType) bool {
+	return msgType == MtBlockHeaderFinalInfo
+}
+
+//IsMessageTypeValid returns if the current messageType is valid
+func (wrk *worker) IsMessageTypeValid(msgType consensus.MessageType) bool {
+	isMessageTypeValid := msgType == MtBlockBodyAndHeader ||
+		msgType == MtBlockBody ||
+		msgType == MtBlockHeader ||
+		msgType == MtSignature ||
+		msgType == MtBlockHeaderFinalInfo
+
+	return isMessageTypeValid
 }
 
 //IsSubroundSignature returns if the current subround is about signature

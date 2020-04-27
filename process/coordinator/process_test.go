@@ -28,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const MaxGasLimitPerBlock = uint64(100000)
@@ -43,24 +44,13 @@ func FeeHandlerMock() *mock.FeeHandlerStub {
 	}
 }
 
-func MiniBlocksCompacterMock() *mock.MiniBlocksCompacterMock {
-	return &mock.MiniBlocksCompacterMock{
-		CompactCalled: func(miniBlocks block.MiniBlockSlice, mpaHashesAndTxs map[string]data.TransactionHandler) block.MiniBlockSlice {
-			return miniBlocks
-		},
-		ExpandCalled: func(miniBlocks block.MiniBlockSlice, mapHashesAntTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
-			return miniBlocks, nil
-		},
-	}
-}
-
 func createShardedDataChacherNotifier(
 	handler data.TransactionHandler,
 	testHash []byte,
 ) func() dataRetriever.ShardedDataCacherNotifier {
 	return func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {},
+			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &mock.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -126,12 +116,12 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 					}
 					return nil, false
 				},
-				RegisterHandlerCalled: func(i func(key []byte)) {},
+				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
 			cs := &mock.CacherStub{}
-			cs.RegisterHandlerCalled = func(i func(key []byte)) {
+			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 			}
 			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
 				if bytes.Equal([]byte("bbb"), key) {
@@ -147,7 +137,7 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 
 				return nil, false
 			}
-			cs.RegisterHandlerCalled = func(i func(key []byte)) {}
+			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {}
 			cs.RemoveCalled = func(key []byte) {}
 			cs.PutCalled = func(key []byte, value interface{}) (evicted bool) {
 				return false
@@ -171,6 +161,7 @@ func initStore() *dataRetriever.ChainStorer {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.RewardTransactionUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.PeerChangesUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.BlockHeaderUnit, generateTestUnit())
@@ -215,6 +206,9 @@ func TestNewTransactionCoordinator_NilHasher(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -234,6 +228,9 @@ func TestNewTransactionCoordinator_NilMarshalizer(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -253,6 +250,9 @@ func TestNewTransactionCoordinator_NilShardCoordinator(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -272,6 +272,9 @@ func TestNewTransactionCoordinator_NilAccountsStub(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -291,6 +294,9 @@ func TestNewTransactionCoordinator_NilDataPool(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -310,6 +316,9 @@ func TestNewTransactionCoordinator_NilRequestHandler(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -329,6 +338,9 @@ func TestNewTransactionCoordinator_NilPreProcessor(t *testing.T) {
 		nil,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -348,6 +360,9 @@ func TestNewTransactionCoordinator_NilInterProcessor(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		nil,
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
@@ -367,10 +382,79 @@ func TestNewTransactionCoordinator_NilGasHandler(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		nil,
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, tc)
 	assert.Equal(t, process.ErrNilGasHandler, err)
+}
+
+func TestNewTransactionCoordinator_NilFeeAcumulator(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderMock().MiniBlocks(),
+		&mock.RequestHandlerStub{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+		nil,
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
+
+func TestNewTransactionCoordinator_NilBlockSizeComputation(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderMock().MiniBlocks(),
+		&mock.RequestHandlerStub{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		nil,
+		&mock.BalanceComputationStub{},
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
+}
+
+func TestNewTransactionCoordinator_NilBalanceComputation(t *testing.T) {
+	t.Parallel()
+
+	tc, err := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		mock.NewPoolsHolderMock().MiniBlocks(),
+		&mock.RequestHandlerStub{},
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		nil,
+	)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
 }
 
 func TestNewTransactionCoordinator_OK(t *testing.T) {
@@ -386,32 +470,14 @@ func TestNewTransactionCoordinator_OK(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 	assert.False(t, tc.IsInterfaceNil())
-}
-
-func TestTransactionCoordinator_SeparateBodyNil(t *testing.T) {
-	t.Parallel()
-
-	tc, err := NewTransactionCoordinator(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(5),
-		&mock.AccountsStub{},
-		mock.NewPoolsHolderMock().MiniBlocks(),
-		&mock.RequestHandlerStub{},
-		&mock.PreProcessorContainerMock{},
-		&mock.InterimProcessorContainerMock{},
-		&mock.GasHandlerMock{},
-	)
-	assert.Nil(t, err)
-	assert.NotNil(t, tc)
-
-	separated := tc.separateBodyByType(nil)
-	assert.Equal(t, 0, len(separated))
 }
 
 func TestTransactionCoordinator_SeparateBody(t *testing.T) {
@@ -427,23 +493,26 @@ func TestTransactionCoordinator_SeparateBody(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	body := block.Body{}
-	body = append(body, &block.MiniBlock{Type: block.TxBlock})
-	body = append(body, &block.MiniBlock{Type: block.TxBlock})
-	body = append(body, &block.MiniBlock{Type: block.TxBlock})
-	body = append(body, &block.MiniBlock{Type: block.SmartContractResultBlock})
-	body = append(body, &block.MiniBlock{Type: block.SmartContractResultBlock})
-	body = append(body, &block.MiniBlock{Type: block.SmartContractResultBlock})
-	body = append(body, &block.MiniBlock{Type: block.SmartContractResultBlock})
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.TxBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.TxBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.TxBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock})
+	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock})
 
 	separated := tc.separateBodyByType(body)
 	assert.Equal(t, 2, len(separated))
-	assert.Equal(t, 3, len(separated[block.TxBlock]))
-	assert.Equal(t, 4, len(separated[block.SmartContractResultBlock]))
+	assert.Equal(t, 3, len(separated[block.TxBlock].MiniBlocks))
+	assert.Equal(t, 4, len(separated[block.SmartContractResultBlock].MiniBlocks))
 }
 
 func createPreProcessorContainer() process.PreProcessorsContainer {
@@ -453,7 +522,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		initDataPool([]byte("tx_hash0")),
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
@@ -464,11 +533,11 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
-		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -481,8 +550,7 @@ func createInterimProcessorContainer() process.IntermediateProcessorContainer {
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
-		&mock.SpecialAddressHandlerMock{},
+		createMockPubkeyConverter(),
 		initStore(),
 		initDataPool([]byte("test_hash1")),
 		economicsData,
@@ -504,7 +572,7 @@ func createPreProcessorContainerWithDataPool(
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		dataPool,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
@@ -515,9 +583,7 @@ func createPreProcessorContainerWithDataPool(
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
-		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
@@ -562,6 +628,8 @@ func createPreProcessorContainerWithDataPool(
 			},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -589,6 +657,9 @@ func TestTransactionCoordinator_CreateBlockStarted(t *testing.T) {
 				return totalGasConsumed
 			},
 		},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -616,13 +687,15 @@ func TestTransactionCoordinator_CreateMarshalizedDataNilBody(t *testing.T) {
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	mrBody, mrTxs := tc.CreateMarshalizedData(nil)
+	mrTxs := tc.CreateMarshalizedData(nil)
 	assert.Equal(t, 0, len(mrTxs))
-	assert.Equal(t, 0, len(mrBody))
 }
 
 func createMiniBlockWithOneTx(sndId, dstId uint32, blockType block.Type, txHash []byte) *block.MiniBlock {
@@ -632,15 +705,15 @@ func createMiniBlockWithOneTx(sndId, dstId uint32, blockType block.Type, txHash 
 	return &block.MiniBlock{Type: blockType, SenderShardID: sndId, ReceiverShardID: dstId, TxHashes: txHashes}
 }
 
-func createTestBody() block.Body {
-	body := block.Body{}
+func createTestBody() *block.Body {
+	body := &block.Body{}
 
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash1")))
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash2")))
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash3")))
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash4")))
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash5")))
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash6")))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash1")))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash2")))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash3")))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash4")))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash5")))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, []byte("tx_hash6")))
 
 	return body
 }
@@ -658,14 +731,15 @@ func TestTransactionCoordinator_CreateMarshalizedData(t *testing.T) {
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	mrBody, mrTxs := tc.CreateMarshalizedData(createTestBody())
+	mrTxs := tc.CreateMarshalizedData(createTestBody())
 	assert.Equal(t, 0, len(mrTxs))
-	assert.Equal(t, 1, len(mrBody))
-	assert.Equal(t, len(createTestBody()), len(mrBody[1]))
 }
 
 func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T) {
@@ -682,33 +756,36 @@ func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T)
 		createPreProcessorContainer(),
 		interimContainer,
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
 	scrs := make([]data.TransactionHandler, 0)
-	body := block.Body{}
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash1")))
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.TxBlock, []byte("tx_hash1")))
 
 	scr := &smartContractResult.SmartContractResult{SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(99)}
 	scrHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, scr)
 	scrs = append(scrs, scr)
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
 
 	scr = &smartContractResult.SmartContractResult{SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(199)}
 	scrHash, _ = core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, scr)
 	scrs = append(scrs, scr)
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
 
 	scr = &smartContractResult.SmartContractResult{SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(299)}
 	scrHash, _ = core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, scr)
 	scrs = append(scrs, scr)
-	body = append(body, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
+	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
 
 	scrInterimProc, _ := interimContainer.Get(block.SmartContractResultBlock)
 	_ = scrInterimProc.AddIntermediateTransactions(scrs)
 
-	mrBody, mrTxs := tc.CreateMarshalizedData(body)
+	mrTxs := tc.CreateMarshalizedData(body)
 	assert.Equal(t, 1, len(mrTxs))
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -720,8 +797,6 @@ func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T)
 
 		assert.Equal(t, unMrsScr, scrs[i])
 	}
-
-	assert.Equal(t, 1, len(mrBody))
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNilHeader(t *testing.T) {
@@ -737,17 +812,19 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, nil, maxTxRemaining, maxMbRemaining, haveTime)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, nil, haveTime)
 
+	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
 	assert.False(t, finalized)
@@ -758,16 +835,16 @@ func createTestMetablock() *block.MetaBlock {
 
 	meta.ShardInfo = make([]block.ShardData, 0)
 
-	shardMbs := make([]block.ShardMiniBlockHeader, 0)
-	shardMbs = append(shardMbs, block.ShardMiniBlockHeader{Hash: []byte("mb0"), SenderShardID: 0, ReceiverShardID: 0, TxCount: 1})
-	shardMbs = append(shardMbs, block.ShardMiniBlockHeader{Hash: []byte("mb1"), SenderShardID: 0, ReceiverShardID: 1, TxCount: 1})
+	shardMbs := make([]block.MiniBlockHeader, 0)
+	shardMbs = append(shardMbs, block.MiniBlockHeader{Hash: []byte("mb0"), SenderShardID: 0, ReceiverShardID: 0, TxCount: 1})
+	shardMbs = append(shardMbs, block.MiniBlockHeader{Hash: []byte("mb1"), SenderShardID: 0, ReceiverShardID: 1, TxCount: 1})
 	shardData := block.ShardData{ShardID: 0, HeaderHash: []byte("header0"), TxCount: 2, ShardMiniBlockHeaders: shardMbs}
 
 	meta.ShardInfo = append(meta.ShardInfo, shardData)
 
-	shardMbs = make([]block.ShardMiniBlockHeader, 0)
-	shardMbs = append(shardMbs, block.ShardMiniBlockHeader{Hash: []byte("mb2"), SenderShardID: 1, ReceiverShardID: 0, TxCount: 1})
-	shardMbs = append(shardMbs, block.ShardMiniBlockHeader{Hash: []byte("mb3"), SenderShardID: 1, ReceiverShardID: 1, TxCount: 1})
+	shardMbs = make([]block.MiniBlockHeader, 0)
+	shardMbs = append(shardMbs, block.MiniBlockHeader{Hash: []byte("mb2"), SenderShardID: 1, ReceiverShardID: 0, TxCount: 1})
+	shardMbs = append(shardMbs, block.MiniBlockHeader{Hash: []byte("mb3"), SenderShardID: 1, ReceiverShardID: 1, TxCount: 1})
 	shardData = block.ShardData{ShardID: 1, HeaderHash: []byte("header0"), TxCount: 2, ShardMiniBlockHeaders: shardMbs}
 
 	meta.ShardInfo = append(meta.ShardInfo, shardData)
@@ -788,17 +865,19 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNo
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return false
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, maxTxRemaining, maxMbRemaining, haveTime)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, haveTime)
 
+	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
 	assert.False(t, finalized)
@@ -817,17 +896,18 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 		createPreProcessorContainer(),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, maxTxRemaining, maxMbRemaining, haveTime)
-
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, haveTime)
+	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
 	assert.False(t, finalized)
@@ -851,7 +931,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		tdp,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
@@ -862,9 +942,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
-		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
@@ -881,6 +959,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 			},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -898,12 +978,13 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 				return totalGasConsumed
 			},
 		},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
@@ -917,18 +998,110 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		}
 	}
 
-	mbs, txs, finalized := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, maxTxRemaining, maxMbRemaining, haveTime)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, haveTime)
 
+	assert.Nil(t, err)
 	assert.Equal(t, 1, len(mbs))
 	assert.Equal(t, uint32(1), txs)
 	assert.True(t, finalized)
+}
+
+func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreProcessor(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("txHash")
+	tdp := initDataPool(txHash)
+	cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache}
+	hdrPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	tdp.MiniBlocksCalled = func() storage.Cacher {
+		return hdrPool
+	}
+
+	totalGasConsumed := uint64(0)
+	preFactory, _ := shard.NewPreProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(5),
+		initStore(),
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		tdp,
+		createMockPubkeyConverter(),
+		&mock.AccountsStub{},
+		&mock.RequestHandlerStub{},
+		&mock.TxProcessorMock{},
+		&mock.SCProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
+		&mock.RewardTxProcessorMock{},
+		FeeHandlerMock(),
+		&mock.GasHandlerMock{
+			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
+				totalGasConsumed += gasConsumed
+			},
+			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+				return 0, 0, nil
+			},
+			TotalGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
+			TotalGasRefundedCalled: func() uint64 {
+				return 0
+			},
+		},
+		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+	)
+	container, _ := preFactory.Create()
+
+	tc, err := NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(5),
+		&mock.AccountsStub{},
+		tdp.MiniBlocks(),
+		&mock.RequestHandlerStub{},
+		container,
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{
+			TotalGasConsumedCalled: func() uint64 {
+				return totalGasConsumed
+			},
+		},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+	)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	haveTime := func() bool {
+		return true
+	}
+	metaHdr := createTestMetablock()
+
+	unknownPreprocessorType := block.Type(254)
+	for i := 0; i < len(metaHdr.ShardInfo); i++ {
+		for j := 0; j < len(metaHdr.ShardInfo[i].ShardMiniBlockHeaders); j++ {
+			mbHdr := metaHdr.ShardInfo[i].ShardMiniBlockHeaders[j]
+			mb := block.MiniBlock{SenderShardID: mbHdr.SenderShardID, ReceiverShardID: mbHdr.ReceiverShardID, Type: unknownPreprocessorType, TxHashes: [][]byte{txHash}}
+			tdp.MiniBlocks().Put(mbHdr.Hash, &mb)
+		}
+	}
+
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, haveTime)
+
+	assert.NotNil(t, err)
+	assert.True(t, errors.Is(err, process.ErrNilPreProcessor))
+	assert.Nil(t, mbs)
+	assert.Equal(t, uint32(0), txs)
+	assert.False(t, finalized)
 }
 
 func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToProcess(t *testing.T) {
 	t.Parallel()
 
 	shardedCacheMock := &mock.ShardedDataStub{
-		RegisterHandlerCalled: func(i func(key []byte)) {},
+		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 		ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 			return &mock.CacherStub{
 				PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -967,7 +1140,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 				return shardedCacheMock
 			},
 		},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		&mock.AccountsStub{},
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
@@ -978,15 +1151,15 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
-		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
 			TotalGasConsumedCalled: func() uint64 {
 				return totalGasConsumed
 			},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1000,16 +1173,17 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -1027,16 +1201,17 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoTime(t *t
 		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return false
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -1059,16 +1234,17 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNoSpace(t *
 				return totalGasConsumed
 			},
 		},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(0)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
 
 	assert.Equal(t, 0, len(mbs))
 }
@@ -1093,12 +1269,13 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
@@ -1114,7 +1291,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 	}
 
 	// we have one tx per shard.
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
 
 	assert.Equal(t, int(nrShards), len(mbs))
 }
@@ -1139,12 +1316,13 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
@@ -1160,7 +1338,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	gasLimit := MaxGasLimitPerBlock / uint64(numTxsToAdd)
 
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
-	addedTxs := make([]*transaction.Transaction, 0)
 
 	allTxs := 100
 	for i := 0; i < allTxs; i++ {
@@ -1169,11 +1346,10 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
 		txPool.AddData(txHash, newTx, strCache)
 
-		addedTxs = append(addedTxs, newTx)
 	}
 
 	// we have one tx per shard.
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
 
 	assert.Equal(t, 1, len(mbs))
 }
@@ -1212,12 +1388,13 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 			}),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
@@ -1230,21 +1407,18 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
-	addedTxs := make([]*transaction.Transaction, 0)
 
 	for i := 0; i < allTxs; i++ {
 		newTx := &transaction.Transaction{GasLimit: gasLimit + gasLimit/uint64(numMiniBlocks), GasPrice: uint64(i), RcvAddr: scAddress}
 
 		txHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
 		txPool.AddData(txHash, newTx, strCache)
-
-		addedTxs = append(addedTxs, newTx)
 	}
 
 	// we have one tx per shard.
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
 
-	assert.Equal(t, numMiniBlocks, len(mbs))
+	assert.Equal(t, 1, len(mbs))
 }
 
 func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.T) {
@@ -1253,7 +1427,6 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 	numTxsPerBulk := 100
 	numTxsToAdd := 20
 	gasLimit := MaxGasLimitPerBlock / uint64(numTxsToAdd)
-	numMiniBlocks := uint64(numTxsPerBulk / numTxsToAdd)
 
 	nrShards := uint32(5)
 	txPool, _ := createTxPool()
@@ -1281,12 +1454,13 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 			}),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
@@ -1313,9 +1487,9 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 		}
 	}
 
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
 
-	assert.Equal(t, numMiniBlocks, uint64(len(mbs)))
+	assert.Equal(t, 1, len(mbs))
 }
 
 func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
@@ -1342,6 +1516,9 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 				return 0, 0, nil
 			},
 		},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1350,8 +1527,6 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 	assert.Equal(t, 0, len(usedTxs))
 
 	// create block to have some txs
-	maxTxRemaining := uint32(15000)
-	maxMbRemaining := uint32(15000)
 	haveTime := func() bool {
 		return true
 	}
@@ -1366,11 +1541,11 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 		txPool.AddData(txHash, newTx, strCache)
 	}
 
-	mbs := tc.CreateMbsAndProcessTransactionsFromMe(maxTxRemaining, maxMbRemaining, haveTime)
-	assert.Equal(t, int(nrShards), len(mbs))
+	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime)
+	require.Equal(t, 5, len(mbs))
 
 	usedTxs = tc.GetAllCurrentUsedTxs(block.TxBlock)
-	assert.Equal(t, 5, len(usedTxs))
+	require.Equal(t, 5, len(usedTxs))
 }
 
 func TestTransactionCoordinator_RequestBlockTransactionsNilBody(t *testing.T) {
@@ -1388,6 +1563,9 @@ func TestTransactionCoordinator_RequestBlockTransactionsNilBody(t *testing.T) {
 		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1417,14 +1595,17 @@ func TestTransactionCoordinator_RequestBlockTransactionsRequestOne(t *testing.T)
 		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	body := block.Body{}
+	body := &block.Body{}
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashInPool, txHashToAsk}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 	tc.RequestBlockTransactions(body)
 
 	tc.mutRequestedTxs.Lock()
@@ -1453,6 +1634,9 @@ func TestTransactionCoordinator_IsDataPreparedForProcessing(t *testing.T) {
 		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1479,6 +1663,9 @@ func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
 		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1486,9 +1673,9 @@ func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
 	err = tc.SaveBlockDataToStorage(nil)
 	assert.Nil(t, err)
 
-	body := block.Body{}
+	body := &block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
 
@@ -1497,7 +1684,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	err = tc.SaveBlockDataToStorage(body)
 	assert.Equal(t, process.ErrMissingTransaction, err)
@@ -1518,6 +1705,9 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 		createPreProcessorContainerWithDataPool(tdp, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1526,9 +1716,9 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 0, nrTxs)
 
-	body := block.Body{}
+	body := &block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
 	err = tc.SaveBlockDataToStorage(body)
@@ -1539,7 +1729,7 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	err = tc.SaveBlockDataToStorage(body)
 	assert.Equal(t, process.ErrMissingTransaction, err)
@@ -1564,6 +1754,9 @@ func TestTransactionCoordinator_RemoveBlockDataFromPool(t *testing.T) {
 		createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1571,9 +1764,9 @@ func TestTransactionCoordinator_RemoveBlockDataFromPool(t *testing.T) {
 	err = tc.RemoveBlockDataFromPool(nil)
 	assert.Nil(t, err)
 
-	body := block.Body{}
+	body := &block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
 	err = tc.RemoveBlockDataFromPool(body)
@@ -1593,7 +1786,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		dataPool,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		accounts,
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
@@ -1604,9 +1797,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
-		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
 			ComputeGasConsumedByMiniBlockCalled: func(miniBlock *block.MiniBlock, mapHashTx map[string]data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
@@ -1617,6 +1808,8 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1630,6 +1823,9 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1637,12 +1833,12 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 	haveTime := func() time.Duration {
 		return time.Second
 	}
-	err = tc.ProcessBlockTransaction(nil, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Body{}, haveTime)
 	assert.Nil(t, err)
 
-	body := block.Body{}
+	body := &block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
 	err = tc.ProcessBlockTransaction(body, haveTime)
@@ -1656,7 +1852,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 	err = tc.ProcessBlockTransaction(body, haveTime)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
@@ -1676,6 +1872,9 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 		createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1683,12 +1882,12 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 	haveTime := func() time.Duration {
 		return time.Second
 	}
-	err = tc.ProcessBlockTransaction(nil, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Body{}, haveTime)
 	assert.Nil(t, err)
 
-	body := block.Body{}
+	body := &block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
 	err = tc.ProcessBlockTransaction(body, haveTime)
@@ -1702,7 +1901,7 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 	err = tc.ProcessBlockTransaction(body, haveTime)
 	assert.Equal(t, process.ErrMissingTransaction, err)
 }
@@ -1731,7 +1930,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
 		dataPool,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		accounts,
 		requestHandler,
 		&mock.TxProcessorMock{
@@ -1742,11 +1941,11 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
-		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1760,6 +1959,9 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		container,
 		&mock.InterimProcessorContainerMock{},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1845,7 +2047,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		marshalizer,
 		hasher,
 		dataPool,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		accounts,
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
@@ -1867,9 +2069,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
-		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
 			SetGasConsumedCalled: func(gasConsumed uint64, hash []byte) {
 				totalGasConsumed += gasConsumed
@@ -1886,6 +2086,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 			},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1903,6 +2105,9 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 				return 0
 			},
 		},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -1984,7 +2189,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		marshalizer,
 		hasher,
 		dataPool,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		accounts,
 		&mock.RequestHandlerStub{},
 		&mock.TxProcessorMock{
@@ -1998,9 +2203,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&mock.SCProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.RewardTxProcessorMock{},
-		&mock.IntermediateTransactionHandlerMock{},
 		FeeHandlerMock(),
-		MiniBlocksCompacterMock(),
 		&mock.GasHandlerMock{
 			ComputeGasConsumedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
 				return 0, 0, nil
@@ -2019,6 +2222,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 			},
 		},
 		&mock.BlockTrackerMock{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -2040,6 +2245,9 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 				totalGasConsumed = gasConsumed
 			},
 		},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2061,13 +2269,11 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 	txHash := []byte("txHash")
 	tdp := initDataPool(txHash)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
-	adrConv := &mock.AddressConverterMock{}
 	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		adrConv,
-		&mock.SpecialAddressHandlerMock{},
+		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		tdp,
 		economicsData,
@@ -2084,25 +2290,39 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		&mock.PreProcessorContainerMock{},
 		container,
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	err = tc.VerifyCreatedBlockTransactions(&block.Header{ReceiptsHash: []byte("receipt")}, nil)
+	err = tc.VerifyCreatedBlockTransactions(&block.Header{ReceiptsHash: []byte("receipt")}, &block.Body{})
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 
-	body := block.Body{&block.MiniBlock{Type: block.TxBlock}}
+	body := &block.Body{MiniBlocks: []*block.MiniBlock{{Type: block.TxBlock}}}
 	err = tc.VerifyCreatedBlockTransactions(&block.Header{ReceiptsHash: []byte("receipt")}, body)
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 
-	body = block.Body{&block.MiniBlock{
-		Type:            block.SmartContractResultBlock,
-		ReceiverShardID: shardCoordinator.SelfId(),
-		SenderShardID:   shardCoordinator.SelfId() + 1}}
+	body = &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				Type:            block.SmartContractResultBlock,
+				ReceiverShardID: shardCoordinator.SelfId(),
+				SenderShardID:   shardCoordinator.SelfId() + 1},
+		},
+	}
 	err = tc.VerifyCreatedBlockTransactions(&block.Header{ReceiptsHash: []byte("receipt")}, body)
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 
-	body = block.Body{&block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: shardCoordinator.SelfId() + 1}}
+	body = &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				Type:            block.SmartContractResultBlock,
+				ReceiverShardID: shardCoordinator.SelfId() + 1,
+			},
+		},
+	}
 	err = tc.VerifyCreatedBlockTransactions(&block.Header{ReceiptsHash: []byte("receipt")}, body)
 	assert.Equal(t, process.ErrNilMiniBlocks, err)
 }
@@ -2114,13 +2334,11 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 	txHash := []byte("txHash")
 	tdp := initDataPool(txHash)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
-	adrConv := &mock.AddressConverterMock{}
 	interFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		adrConv,
-		&mock.SpecialAddressHandlerMock{},
+		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		tdp,
 		economicsData,
@@ -2137,6 +2355,9 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		&mock.PreProcessorContainerMock{},
 		container,
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2158,7 +2379,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 
 	tdp.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return &mock.ShardedDataStub{
-			RegisterHandlerCalled: func(i func(key []byte)) {},
+			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &mock.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
@@ -2194,7 +2415,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 	err = interProc.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
 
-	body := block.Body{&block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: shardCoordinator.SelfId() + 1, TxHashes: [][]byte{scrHash}}}
+	body := &block.Body{MiniBlocks: []*block.MiniBlock{{Type: block.SmartContractResultBlock, ReceiverShardID: shardCoordinator.SelfId() + 1, TxHashes: [][]byte{scrHash}}}}
 	err = tc.VerifyCreatedBlockTransactions(&block.Header{}, body)
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 }
@@ -2229,13 +2450,16 @@ func TestTransactionCoordinator_SaveBlockDataToStorageSaveIntermediateTxsErrors(
 			},
 		},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	body := block.Body{}
+	body := &block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
 
@@ -2274,13 +2498,16 @@ func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *t
 			},
 		},
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	body := block.Body{}
+	body := &block.Body{}
 	miniBlock := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
-	body = append(body, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
 
@@ -2305,6 +2532,9 @@ func TestTransactionCoordinator_PreprocessorsHasToBeOrderedRewardsAreLast(t *tes
 		createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock()),
 		createInterimProcessorContainer(),
 		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)

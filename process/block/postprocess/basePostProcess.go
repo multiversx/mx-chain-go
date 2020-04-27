@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -36,6 +37,7 @@ type basePostProcessor struct {
 
 	mutInterResultsForBlock sync.Mutex
 	interResultsForBlock    map[string]*txInfo
+	mapTxToResult           map[string][]string
 	intraShardMiniBlock     *block.MiniBlock
 }
 
@@ -45,7 +47,7 @@ func (bpp *basePostProcessor) SaveCurrentIntermediateTxToStorage() error {
 	defer bpp.mutInterResultsForBlock.Unlock()
 
 	for _, txInfoValue := range bpp.interResultsForBlock {
-		if txInfoValue.tx == nil {
+		if check.IfNil(txInfoValue.tx) {
 			return process.ErrMissingTransaction
 		}
 
@@ -68,6 +70,7 @@ func (bpp *basePostProcessor) CreateBlockStarted() {
 	bpp.mutInterResultsForBlock.Lock()
 	bpp.interResultsForBlock = make(map[string]*txInfo)
 	bpp.intraShardMiniBlock = nil
+	bpp.mapTxToResult = make(map[string][]string)
 	bpp.mutInterResultsForBlock.Unlock()
 }
 
@@ -79,7 +82,7 @@ func (bpp *basePostProcessor) CreateMarshalizedData(txHashes [][]byte) ([][]byte
 	mrsTxs := make([][]byte, 0, len(txHashes))
 	for _, txHash := range txHashes {
 		txInfoObject := bpp.interResultsForBlock[string(txHash)]
-		if txInfoObject == nil || txInfoObject.tx == nil {
+		if txInfoObject == nil || check.IfNil(txInfoObject.tx) {
 			continue
 		}
 
@@ -114,7 +117,8 @@ func (bpp *basePostProcessor) GetAllCurrentFinishedTxs() map[string]data.Transac
 
 func (bpp *basePostProcessor) verifyMiniBlock(createMBs map[uint32]*block.MiniBlock, mb *block.MiniBlock) error {
 	createdScrMb, ok := createMBs[mb.ReceiverShardID]
-	if createdScrMb == nil || !ok {
+	if !ok {
+		log.Debug("missing miniblock", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
 		return process.ErrNilMiniBlocks
 	}
 
@@ -129,6 +133,8 @@ func (bpp *basePostProcessor) verifyMiniBlock(createMBs map[uint32]*block.MiniBl
 	}
 
 	if !bytes.Equal(createdHash, receivedHash) {
+		log.Debug("received miniblock", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
+		log.Debug("created miniblock", "type", createdScrMb.Type, "sender", createdScrMb.SenderShardID, "receiver", createdScrMb.ReceiverShardID, "numTxs", len(createdScrMb.TxHashes))
 		return process.ErrMiniBlockHashMismatch
 	}
 
@@ -145,4 +151,26 @@ func (bpp *basePostProcessor) GetCreatedInShardMiniBlock() *block.MiniBlock {
 	}
 
 	return bpp.intraShardMiniBlock.Clone()
+}
+
+// RemoveProcessedResultsFor will remove the created results for the transactions which were reverted
+func (bpp *basePostProcessor) RemoveProcessedResultsFor(txHashes [][]byte) {
+	bpp.mutInterResultsForBlock.Lock()
+	defer bpp.mutInterResultsForBlock.Unlock()
+
+	if len(bpp.mapTxToResult) == 0 {
+		return
+	}
+
+	for _, txHash := range txHashes {
+		resultHashes, ok := bpp.mapTxToResult[string(txHash)]
+		if !ok {
+			continue
+		}
+
+		for _, resultHash := range resultHashes {
+			delete(bpp.interResultsForBlock, resultHash)
+		}
+		delete(bpp.mapTxToResult, string(txHash))
+	}
 }

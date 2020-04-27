@@ -1,51 +1,56 @@
 package spos
 
+import "github.com/ElrondNetwork/elrond-go/core/check"
+
 // ValidateConsensusCore checks for nil all the container objects
 func ValidateConsensusCore(container ConsensusCoreHandler) error {
-	if container == nil || container.IsInterfaceNil() {
+	if check.IfNil(container) {
 		return ErrNilConsensusCore
 	}
-	if container.Blockchain() == nil || container.Blockchain().IsInterfaceNil() {
+	if check.IfNil(container.Blockchain()) {
 		return ErrNilBlockChain
 	}
-	if container.BlockProcessor() == nil || container.BlockProcessor().IsInterfaceNil() {
+	if check.IfNil(container.BlockProcessor()) {
 		return ErrNilBlockProcessor
 	}
-	if container.BootStrapper() == nil || container.BootStrapper().IsInterfaceNil() {
+	if check.IfNil(container.BootStrapper()) {
 		return ErrNilBootstrapper
 	}
-	if container.BroadcastMessenger() == nil || container.BroadcastMessenger().IsInterfaceNil() {
+	if check.IfNil(container.BroadcastMessenger()) {
 		return ErrNilBroadcastMessenger
 	}
-	if container.Chronology() == nil || container.Chronology().IsInterfaceNil() {
+	if check.IfNil(container.Chronology()) {
 		return ErrNilChronologyHandler
 	}
-	if container.Hasher() == nil || container.Hasher().IsInterfaceNil() {
+	if check.IfNil(container.Hasher()) {
 		return ErrNilHasher
 	}
-	if container.Marshalizer() == nil || container.Marshalizer().IsInterfaceNil() {
+	if check.IfNil(container.Marshalizer()) {
 		return ErrNilMarshalizer
 	}
-	if container.MultiSigner() == nil || container.MultiSigner().IsInterfaceNil() {
+	if check.IfNil(container.MultiSigner()) {
 		return ErrNilMultiSigner
 	}
-	if container.Rounder() == nil || container.Rounder().IsInterfaceNil() {
+	if check.IfNil(container.Rounder()) {
 		return ErrNilRounder
 	}
-	if container.ShardCoordinator() == nil || container.ShardCoordinator().IsInterfaceNil() {
+	if check.IfNil(container.ShardCoordinator()) {
 		return ErrNilShardCoordinator
 	}
-	if container.SyncTimer() == nil || container.SyncTimer().IsInterfaceNil() {
+	if check.IfNil(container.SyncTimer()) {
 		return ErrNilSyncTimer
 	}
-	if container.NodesCoordinator() == nil || container.NodesCoordinator().IsInterfaceNil() {
-		return ErrNilValidatorGroupSelector
+	if check.IfNil(container.NodesCoordinator()) {
+		return ErrNilNodesCoordinator
 	}
-	if container.PrivateKey() == nil || container.PrivateKey().IsInterfaceNil() {
+	if check.IfNil(container.PrivateKey()) {
 		return ErrNilBlsPrivateKey
 	}
-	if container.SingleSigner() == nil || container.SingleSigner().IsInterfaceNil() {
+	if check.IfNil(container.SingleSigner()) {
 		return ErrNilBlsSingleSigner
+	}
+	if check.IfNil(container.GetAntiFloodHandler()) {
+		return ErrNilAntifloodHandler
 	}
 
 	return nil

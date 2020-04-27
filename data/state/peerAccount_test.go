@@ -10,556 +10,190 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPeerAccount_MarshalUnmarshal_ShouldWork(t *testing.T) {
+func TestNewEmptyPeerAccount(t *testing.T) {
 	t.Parallel()
 
-	addr := &mock.AddressMock{}
-	addrTr := &mock.AccountTrackerStub{}
-	acnt, _ := state.NewPeerAccount(addr, addrTr)
+	acc := state.NewEmptyPeerAccount()
 
-	marshalizer := mock.MarshalizerMock{}
-	buff, _ := marshalizer.Marshal(&acnt)
-
-	acntRecovered, _ := state.NewPeerAccount(addr, addrTr)
-	_ = marshalizer.Unmarshal(acntRecovered, buff)
-
-	assert.Equal(t, acnt, acntRecovered)
+	assert.NotNil(t, acc)
+	assert.Equal(t, big.NewInt(0), acc.Stake)
+	assert.Equal(t, big.NewInt(0), acc.AccumulatedFees)
 }
 
-func TestPeerAccount_NewAccountNilAddress(t *testing.T) {
+func TestNewPeerAccount_NilAddressContainerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	acc, err := state.NewPeerAccount(nil, &mock.AccountTrackerStub{})
-
-	assert.Nil(t, acc)
-	assert.Equal(t, err, state.ErrNilAddressContainer)
+	acc, err := state.NewPeerAccount(nil)
+	assert.True(t, check.IfNil(acc))
+	assert.Equal(t, state.ErrNilAddressContainer, err)
 }
 
-func TestPeerAccount_NewPeerAccountNilAaccountTracker(t *testing.T) {
+func TestNewPeerAccount_OkParamsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, nil)
-
-	assert.Nil(t, acc)
-	assert.Equal(t, err, state.ErrNilAccountTracker)
-}
-
-func TestPeerAccount_NewPeerAccountOk(t *testing.T) {
-	t.Parallel()
-
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
-
+	acc, err := state.NewPeerAccount(&mock.AddressMock{})
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(acc))
 }
 
-func TestPeerAccount_AddressContainer(t *testing.T) {
+func TestPeerAccount_SetInvalidBLSPublicKey(t *testing.T) {
 	t.Parallel()
 
-	addr := &mock.AddressMock{}
-	acc, err := state.NewPeerAccount(addr, &mock.AccountTrackerStub{})
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
+	pubKey := []byte("")
 
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
-	assert.Equal(t, addr, acc.AddressContainer())
+	err := acc.SetBLSPublicKey(pubKey)
+	assert.Equal(t, state.ErrNilBLSPublicKey, err)
 }
 
-func TestPeerAccount_GetCode(t *testing.T) {
+func TestPeerAccount_SetAndGetBLSPublicKey(t *testing.T) {
 	t.Parallel()
 
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
+	pubKey := []byte("BLSpubKey")
+
+	err := acc.SetBLSPublicKey(pubKey)
 	assert.Nil(t, err)
-
-	code := []byte("code")
-	acc.SetCode(code)
-
-	assert.NotNil(t, acc)
-	assert.Equal(t, code, acc.GetCode())
+	assert.Equal(t, pubKey, acc.GetBLSPublicKey())
 }
 
-func TestPeerAccount_GetCodeHash(t *testing.T) {
+func TestPeerAccount_SetRewardAddressInvalidAddress(t *testing.T) {
 	t.Parallel()
 
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
-	assert.Nil(t, err)
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
 
-	code := []byte("code")
-	acc.CodeHash = code
-
-	assert.NotNil(t, acc)
-	assert.Equal(t, code, acc.GetCodeHash())
+	err := acc.SetRewardAddress([]byte{})
+	assert.Equal(t, state.ErrEmptyAddress, err)
 }
 
-func TestPeerAccount_SetCodeHash(t *testing.T) {
+func TestPeerAccount_SetAndGetRewardAddress(t *testing.T) {
 	t.Parallel()
 
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
-	assert.Nil(t, err)
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
+	addr := []byte("reward address")
 
-	code := []byte("code")
-	acc.SetCodeHash(code)
-
-	assert.NotNil(t, acc)
-	assert.Equal(t, code, acc.GetCodeHash())
+	_ = acc.SetRewardAddress(addr)
+	assert.Equal(t, addr, acc.GetRewardAddress())
 }
 
-func TestPeerAccount_GetRootHash(t *testing.T) {
+func TestPeerAccount_SetInvalidStake(t *testing.T) {
 	t.Parallel()
 
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
-	assert.Nil(t, err)
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
 
-	root := []byte("root")
-	acc.RootHash = root
-
-	assert.NotNil(t, acc)
-	assert.Equal(t, root, acc.GetRootHash())
+	err := acc.SetStake(nil)
+	assert.Equal(t, state.ErrNilStake, err)
 }
 
-func TestPeerAccount_SetRootHash(t *testing.T) {
+func TestPeerAccount_SetAndGetStake(t *testing.T) {
 	t.Parallel()
 
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
+	stake := big.NewInt(10)
+
+	err := acc.SetStake(stake)
 	assert.Nil(t, err)
-
-	root := []byte("root")
-	acc.SetRootHash(root)
-
-	assert.NotNil(t, acc)
-	assert.Equal(t, root, acc.GetRootHash())
+	assert.Equal(t, stake, acc.GetStake())
 }
 
-func TestPeerAccount_DataTrie(t *testing.T) {
+func TestPeerAccount_SetAndGetAccumulatedFees(t *testing.T) {
 	t.Parallel()
 
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, &mock.AccountTrackerStub{})
-	assert.Nil(t, err)
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
+	fees := big.NewInt(10)
 
-	trie := &mock.TrieStub{}
-	acc.SetDataTrie(trie)
-
-	assert.NotNil(t, acc)
-	assert.Equal(t, trie, acc.DataTrie())
+	acc.AddToAccumulatedFees(fees)
+	assert.Equal(t, fees, acc.GetAccumulatedFees())
 }
 
-func TestPeerAccount_SetNonceWithJournal(t *testing.T) {
+func TestPeerAccount_SetAndGetLeaderSuccessRate(t *testing.T) {
 	t.Parallel()
 
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
+	increaseVal := uint32(5)
+	decreaseVal := uint32(3)
 
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, tracker)
-	assert.Nil(t, err)
+	acc.IncreaseLeaderSuccessRate(increaseVal)
+	assert.Equal(t, increaseVal, acc.GetLeaderSuccessRate().NumSuccess)
 
-	nonce := uint64(0)
-	err = acc.SetNonceWithJournal(nonce)
-
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
-	assert.Equal(t, nonce, acc.Nonce)
-	assert.Equal(t, 1, journalizeCalled)
-	assert.Equal(t, 1, saveAccountCalled)
+	acc.DecreaseLeaderSuccessRate(decreaseVal)
+	assert.Equal(t, decreaseVal, acc.GetLeaderSuccessRate().NumFailure)
 }
 
-func TestPeerAccount_SetCodeHashWithJournal(t *testing.T) {
+func TestPeerAccount_SetAndGetValidatorSuccessRate(t *testing.T) {
 	t.Parallel()
 
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
+	increaseVal := uint32(5)
+	decreaseVal := uint32(3)
 
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, tracker)
-	assert.Nil(t, err)
+	acc.IncreaseValidatorSuccessRate(increaseVal)
+	assert.Equal(t, increaseVal, acc.GetValidatorSuccessRate().NumSuccess)
 
-	codeHash := []byte("codehash")
-	err = acc.SetCodeHashWithJournal(codeHash)
-
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
-	assert.Equal(t, codeHash, acc.CodeHash)
-	assert.Equal(t, 1, journalizeCalled)
-	assert.Equal(t, 1, saveAccountCalled)
+	acc.DecreaseValidatorSuccessRate(decreaseVal)
+	assert.Equal(t, decreaseVal, acc.GetValidatorSuccessRate().NumFailure)
 }
 
-func TestPeerAccount_SetAddressWithJournal(t *testing.T) {
+func TestPeerAccount_IncreaseAndGetSetNumSelectedInSuccessBlocks(t *testing.T) {
 	t.Parallel()
 
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
 
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, tracker)
-	assert.Nil(t, err)
-
-	address := []byte("address")
-	err = acc.SetRewardAddressWithJournal(address)
-
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
-	assert.Equal(t, address, acc.RewardAddress)
-	assert.Equal(t, 1, journalizeCalled)
-	assert.Equal(t, 1, saveAccountCalled)
+	acc.IncreaseNumSelectedInSuccessBlocks()
+	assert.Equal(t, uint32(1), acc.GetNumSelectedInSuccessBlocks())
 }
 
-func TestPeerAccount_SetSchnorrPublicKeyWithJournalWithJournal(t *testing.T) {
+func TestPeerAccount_SetAndGetRating(t *testing.T) {
 	t.Parallel()
 
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
-
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, tracker)
-	assert.Nil(t, err)
-
-	pubKey := []byte("pubkey")
-	err = acc.SetSchnorrPublicKeyWithJournal(pubKey)
-
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
-	assert.Equal(t, pubKey, acc.SchnorrPublicKey)
-	assert.Equal(t, 1, journalizeCalled)
-	assert.Equal(t, 1, saveAccountCalled)
-}
-
-func TestPeerAccount_SetBLSPublicKeyWithJournalWithJournal(t *testing.T) {
-	t.Parallel()
-
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
-
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, tracker)
-	assert.Nil(t, err)
-
-	pubKey := []byte("pubkey")
-	err = acc.SetBLSPublicKeyWithJournal(pubKey)
-
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
-	assert.Equal(t, pubKey, acc.BLSPublicKey)
-	assert.Equal(t, 1, journalizeCalled)
-	assert.Equal(t, 1, saveAccountCalled)
-}
-
-func TestPeerAccount_SetStakeWithJournal(t *testing.T) {
-	t.Parallel()
-
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
-
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, tracker)
-	assert.Nil(t, err)
-
-	stake := big.NewInt(250000)
-	err = acc.SetStakeWithJournal(stake)
-
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
-	assert.Equal(t, stake.Uint64(), acc.Stake.Uint64())
-	assert.Equal(t, 1, journalizeCalled)
-	assert.Equal(t, 1, saveAccountCalled)
-}
-
-func TestPeerAccount_SetCurrentShardIdWithJournal(t *testing.T) {
-	t.Parallel()
-
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
-
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, tracker)
-	assert.Nil(t, err)
-
-	shId := uint32(10)
-	err = acc.SetCurrentShardIdWithJournal(shId)
-
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
-	assert.Equal(t, shId, acc.CurrentShardId)
-	assert.Equal(t, 1, journalizeCalled)
-	assert.Equal(t, 1, saveAccountCalled)
-}
-
-func TestPeerAccount_SetNextShardIdWithJournal(t *testing.T) {
-	t.Parallel()
-
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
-
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, tracker)
-	assert.Nil(t, err)
-
-	shId := uint32(10)
-	err = acc.SetNextShardIdWithJournal(shId)
-
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
-	assert.Equal(t, shId, acc.NextShardId)
-	assert.Equal(t, 1, journalizeCalled)
-	assert.Equal(t, 1, saveAccountCalled)
-}
-
-func TestPeerAccount_SetNodeInWaitingListWithJournal(t *testing.T) {
-	t.Parallel()
-
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
-
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, tracker)
-	assert.Nil(t, err)
-
-	err = acc.SetNodeInWaitingListWithJournal(true)
-
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
-	assert.Equal(t, true, acc.NodeInWaitingList)
-	assert.Equal(t, 1, journalizeCalled)
-	assert.Equal(t, 1, saveAccountCalled)
-}
-
-func TestPeerAccount_SetRatingWithJournal(t *testing.T) {
-	t.Parallel()
-
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
-
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, tracker)
-	assert.Nil(t, err)
-
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
 	rating := uint32(10)
-	err = acc.SetRatingWithJournal(rating)
 
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
-	assert.Equal(t, rating, acc.Rating)
-	assert.Equal(t, 1, journalizeCalled)
-	assert.Equal(t, 1, saveAccountCalled)
+	acc.SetRating(rating)
+	assert.Equal(t, rating, acc.GetRating())
 }
 
-func TestPeerAccount_SetJailTimeWithJournal(t *testing.T) {
+func TestPeerAccount_SetAndGetTempRating(t *testing.T) {
 	t.Parallel()
 
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
+	rating := uint32(10)
 
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, tracker)
-	assert.Nil(t, err)
-
-	jailTime := state.TimePeriod{
-		StartTime: state.TimeStamp{Epoch: 12, Round: 12},
-		EndTime:   state.TimeStamp{Epoch: 13, Round: 13},
-	}
-	err = acc.SetJailTimeWithJournal(jailTime)
-
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
-	assert.Equal(t, jailTime, acc.JailTime)
-	assert.Equal(t, 1, journalizeCalled)
-	assert.Equal(t, 1, saveAccountCalled)
+	acc.SetTempRating(rating)
+	assert.Equal(t, rating, acc.GetTempRating())
 }
 
-func TestPeerAccount_IncreaseLeaderSuccessRateWithJournal(t *testing.T) {
+func TestPeerAccount_ResetAtNewEpoch(t *testing.T) {
 	t.Parallel()
 
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
+	acc.AddToAccumulatedFees(big.NewInt(15))
+	tempRating := uint32(5)
+	acc.SetTempRating(tempRating)
+	acc.IncreaseLeaderSuccessRate(2)
+	acc.DecreaseLeaderSuccessRate(2)
+	acc.IncreaseValidatorSuccessRate(2)
+	acc.DecreaseValidatorSuccessRate(2)
+	acc.IncreaseNumSelectedInSuccessBlocks()
+	acc.ConsecutiveProposerMisses = 7
 
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, tracker)
-	assert.Nil(t, err)
-
-	acc.LeaderSuccessRate = state.SignRate{NrSuccess: 10, NrFailure: 10}
-	err = acc.IncreaseLeaderSuccessRateWithJournal(1)
-
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
-	assert.Equal(t, uint32(11), acc.LeaderSuccessRate.NrSuccess)
-	assert.Equal(t, 1, journalizeCalled)
-	assert.Equal(t, 1, saveAccountCalled)
+	acc.ResetAtNewEpoch()
+	assert.Equal(t, big.NewInt(0), acc.GetAccumulatedFees())
+	assert.Equal(t, tempRating, acc.GetRating())
+	assert.Equal(t, uint32(0), acc.GetLeaderSuccessRate().NumSuccess)
+	assert.Equal(t, uint32(0), acc.GetLeaderSuccessRate().NumFailure)
+	assert.Equal(t, uint32(0), acc.GetValidatorSuccessRate().NumSuccess)
+	assert.Equal(t, uint32(0), acc.GetValidatorSuccessRate().NumFailure)
+	assert.Equal(t, uint32(0), acc.GetNumSelectedInSuccessBlocks())
+	assert.Equal(t, uint32(7), acc.GetConsecutiveProposerMisses())
 }
 
-func TestPeerAccount_IncreaseValidatorSuccessRateWithJournal(t *testing.T) {
+func TestPeerAccount_IncreaseAndGetNonce(t *testing.T) {
 	t.Parallel()
 
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
+	acc, _ := state.NewPeerAccount(&mock.AddressMock{})
+	nonce := uint64(5)
 
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, tracker)
-	assert.Nil(t, err)
-
-	acc.ValidatorSuccessRate = state.SignRate{NrSuccess: 10, NrFailure: 10}
-	err = acc.IncreaseValidatorSuccessRateWithJournal(1)
-
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
-	assert.Equal(t, uint32(11), acc.ValidatorSuccessRate.NrSuccess)
-	assert.Equal(t, 1, journalizeCalled)
-	assert.Equal(t, 1, saveAccountCalled)
-}
-
-func TestPeerAccount_DecreaseLeaderSuccessRateWithJournal(t *testing.T) {
-	t.Parallel()
-
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
-
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, tracker)
-	assert.Nil(t, err)
-
-	acc.LeaderSuccessRate = state.SignRate{NrSuccess: 10, NrFailure: 10}
-	err = acc.DecreaseLeaderSuccessRateWithJournal(1)
-
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
-	assert.Equal(t, uint32(11), acc.LeaderSuccessRate.NrFailure)
-	assert.Equal(t, 1, journalizeCalled)
-	assert.Equal(t, 1, saveAccountCalled)
-}
-
-func TestPeerAccount_DecreaseValidatorSuccessRateWithJournal(t *testing.T) {
-	t.Parallel()
-
-	journalizeCalled := 0
-	saveAccountCalled := 0
-	tracker := &mock.AccountTrackerStub{
-		JournalizeCalled: func(entry state.JournalEntry) {
-			journalizeCalled++
-		},
-		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
-			saveAccountCalled++
-			return nil
-		},
-	}
-
-	acc, err := state.NewPeerAccount(&mock.AddressMock{}, tracker)
-	assert.Nil(t, err)
-
-	acc.ValidatorSuccessRate = state.SignRate{NrSuccess: 10, NrFailure: 10}
-	err = acc.DecreaseValidatorSuccessRateWithJournal(1)
-
-	assert.NotNil(t, acc)
-	assert.Nil(t, err)
-	assert.Equal(t, uint32(11), acc.ValidatorSuccessRate.NrFailure)
-	assert.Equal(t, 1, journalizeCalled)
-	assert.Equal(t, 1, saveAccountCalled)
+	acc.IncreaseNonce(nonce)
+	assert.Equal(t, nonce, acc.GetNonce())
 }

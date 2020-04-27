@@ -4,13 +4,13 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/evictionWaitingList"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -18,12 +18,13 @@ import (
 )
 
 type trieCreator struct {
-	evictionWaitingListCfg config.EvictionWaitingListConfig
-	snapshotDbCfg          config.DBConfig
-	marshalizer            marshal.Marshalizer
-	hasher                 hashing.Hasher
-	pathManager            storage.PathManagerHandler
-	shardId                string
+	evictionWaitingListCfg   config.EvictionWaitingListConfig
+	snapshotDbCfg            config.DBConfig
+	marshalizer              marshal.Marshalizer
+	hasher                   hashing.Hasher
+	pathManager              storage.PathManagerHandler
+	shardId                  string
+	trieStorageManagerConfig config.TrieStorageManagerConfig
 }
 
 var log = logger.GetOrCreate("trie")
@@ -43,18 +44,18 @@ func NewTrieFactory(
 	}
 
 	return &trieCreator{
-		evictionWaitingListCfg: args.EvictionWaitingListCfg,
-		snapshotDbCfg:          args.SnapshotDbCfg,
-		marshalizer:            args.Marshalizer,
-		hasher:                 args.Hasher,
-		pathManager:            args.PathManager,
-		shardId:                args.ShardId,
+		evictionWaitingListCfg:   args.EvictionWaitingListCfg,
+		snapshotDbCfg:            args.SnapshotDbCfg,
+		marshalizer:              args.Marshalizer,
+		hasher:                   args.Hasher,
+		pathManager:              args.PathManager,
+		shardId:                  args.ShardId,
+		trieStorageManagerConfig: args.TrieStorageManagerConfig,
 	}, nil
 }
 
 // Create creates a new trie
-func (tc *trieCreator) Create(trieStorageCfg config.StorageConfig, pruningEnabled bool) (data.Trie, error) {
-
+func (tc *trieCreator) Create(trieStorageCfg config.StorageConfig, pruningEnabled bool) (data.StorageManager, data.Trie, error) {
 	trieStoragePath, mainDb := path.Split(tc.pathManager.PathForStatic(tc.shardId, trieStorageCfg.DB.FilePath))
 
 	dbConfig := factory.GetDBFromConfig(trieStorageCfg.DB)
@@ -65,43 +66,67 @@ func (tc *trieCreator) Create(trieStorageCfg config.StorageConfig, pruningEnable
 		factory.GetBloomFromConfig(trieStorageCfg.Bloom),
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	log.Trace("trie pruning status", "enabled", pruningEnabled)
 	if !pruningEnabled {
 		trieStorage, errNewTrie := trie.NewTrieStorageManagerWithoutPruning(accountsTrieStorage)
 		if errNewTrie != nil {
-			return nil, errNewTrie
+			return nil, nil, errNewTrie
 		}
 
-		return trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher)
+		newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return trieStorage, newTrie, nil
 	}
 
-	evictionDb, err := storageUnit.NewDB(
-		storageUnit.DBType(tc.evictionWaitingListCfg.DB.Type),
-		filepath.Join(trieStoragePath, tc.evictionWaitingListCfg.DB.FilePath),
-		tc.evictionWaitingListCfg.DB.MaxBatchSize,
-		tc.evictionWaitingListCfg.DB.BatchDelaySeconds,
-		tc.evictionWaitingListCfg.DB.MaxOpenFiles,
-	)
+	arg := storageUnit.ArgDB{
+		DBType:            storageUnit.DBType(tc.evictionWaitingListCfg.DB.Type),
+		Path:              filepath.Join(trieStoragePath, tc.evictionWaitingListCfg.DB.FilePath),
+		BatchDelaySeconds: tc.evictionWaitingListCfg.DB.BatchDelaySeconds,
+		MaxBatchSize:      tc.evictionWaitingListCfg.DB.MaxBatchSize,
+		MaxOpenFiles:      tc.evictionWaitingListCfg.DB.MaxOpenFiles,
+	}
+	evictionDb, err := storageUnit.NewDB(arg)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	ewl, err := evictionWaitingList.NewEvictionWaitingList(tc.evictionWaitingListCfg.Size, evictionDb, tc.marshalizer)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	tc.snapshotDbCfg.FilePath = filepath.Join(trieStoragePath, tc.snapshotDbCfg.FilePath)
+	snapshotDbCfg := config.DBConfig{
+		FilePath:          filepath.Join(trieStoragePath, tc.snapshotDbCfg.FilePath),
+		Type:              tc.snapshotDbCfg.Type,
+		BatchDelaySeconds: tc.snapshotDbCfg.BatchDelaySeconds,
+		MaxBatchSize:      tc.snapshotDbCfg.MaxBatchSize,
+		MaxOpenFiles:      tc.snapshotDbCfg.MaxOpenFiles,
+	}
 
-	trieStorage, err := trie.NewTrieStorageManager(accountsTrieStorage, &tc.snapshotDbCfg, ewl)
+	trieStorage, err := trie.NewTrieStorageManager(
+		accountsTrieStorage,
+		tc.marshalizer,
+		tc.hasher,
+		snapshotDbCfg,
+		ewl,
+		tc.trieStorageManagerConfig,
+	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher)
+	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return trieStorage, newTrie, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

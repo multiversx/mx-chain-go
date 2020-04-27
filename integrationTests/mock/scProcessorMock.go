@@ -10,9 +10,18 @@ import (
 // SCProcessorMock -
 type SCProcessorMock struct {
 	ComputeTransactionTypeCalled          func(tx data.TransactionHandler) (process.TransactionType, error)
-	ExecuteSmartContractTransactionCalled func(tx data.TransactionHandler, acntSrc, acntDst state.AccountHandler) error
-	DeploySmartContractCalled             func(tx data.TransactionHandler, acntSrc state.AccountHandler) error
+	ExecuteSmartContractTransactionCalled func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) error
+	DeploySmartContractCalled             func(tx data.TransactionHandler, acntSrc state.UserAccountHandler) error
 	ProcessSmartContractResultCalled      func(scr *smartContractResult.SmartContractResult) error
+	ProcessIfErrorCalled                  func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, snapshot int) error
+}
+
+// ProcessIfError -
+func (sc *SCProcessorMock) ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, snapshot int) error {
+	if sc.ProcessIfErrorCalled != nil {
+		return sc.ProcessIfErrorCalled(acntSnd, txHash, tx, returnCode, snapshot)
+	}
+	return nil
 }
 
 // ComputeTransactionType -
@@ -29,7 +38,7 @@ func (sc *SCProcessorMock) ComputeTransactionType(
 // ExecuteSmartContractTransaction -
 func (sc *SCProcessorMock) ExecuteSmartContractTransaction(
 	tx data.TransactionHandler,
-	acntSrc, acntDst state.AccountHandler,
+	acntSrc, acntDst state.UserAccountHandler,
 ) error {
 	if sc.ExecuteSmartContractTransactionCalled == nil {
 		return nil
@@ -41,7 +50,7 @@ func (sc *SCProcessorMock) ExecuteSmartContractTransaction(
 // DeploySmartContract -
 func (sc *SCProcessorMock) DeploySmartContract(
 	tx data.TransactionHandler,
-	acntSrc state.AccountHandler,
+	acntSrc state.UserAccountHandler,
 ) error {
 	if sc.DeploySmartContractCalled == nil {
 		return nil
@@ -61,8 +70,5 @@ func (sc *SCProcessorMock) ProcessSmartContractResult(scr *smartContractResult.S
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sc *SCProcessorMock) IsInterfaceNil() bool {
-	if sc == nil {
-		return true
-	}
-	return false
+	return sc == nil
 }

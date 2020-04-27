@@ -24,7 +24,18 @@ func TestNewInterceptedTxDataFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.Marshalizer = nil
+	arg.ProtoMarshalizer = nil
+
+	imh, err := NewInterceptedTxDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestNewInterceptedTxDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.TxSignMarshalizer = nil
 
 	imh, err := NewInterceptedTxDataFactory(arg)
 	assert.Nil(t, imh)
@@ -68,11 +79,11 @@ func TestNewInterceptedTxDataFactory_NilAdrConvShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.AddrConv = nil
+	arg.AddressPubkeyConv = nil
 
 	imh, err := NewInterceptedTxDataFactory(arg)
 	assert.Nil(t, imh)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestNewInterceptedTxDataFactory_NilSignerShouldErr(t *testing.T) {
@@ -113,6 +124,7 @@ func TestInterceptedTxDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	}
 	emptyTxBuff, _ := marshalizer.Marshal(emptyTx)
 	interceptedData, err := imh.Create(emptyTxBuff)
+	assert.Nil(t, err)
 
 	_, ok := interceptedData.(*transaction.InterceptedTransaction)
 	assert.True(t, ok)

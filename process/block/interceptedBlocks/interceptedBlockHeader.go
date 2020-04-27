@@ -3,9 +3,11 @@ package interceptedBlocks
 import (
 	"fmt"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -24,6 +26,7 @@ type InterceptedHeader struct {
 	chainID           []byte
 	validityAttester  process.ValidityAttester
 	epochStartTrigger process.EpochStartTriggerHandler
+	nonceConverter    typeConverters.Uint64ByteSliceConverter
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -39,13 +42,14 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 	}
 
 	inHdr := &InterceptedHeader{
-		hdr:              	hdr,
-		hasher:           	arg.Hasher,
-		sigVerifier:      	arg.HeaderSigVerifier,
-		shardCoordinator: 	arg.ShardCoordinator,
-		chainID:          	arg.ChainID,
-		validityAttester: 	arg.ValidityAttester,
-		epochStartTrigger:	arg.EpochStartTrigger,
+		hdr:               hdr,
+		hasher:            arg.Hasher,
+		sigVerifier:       arg.HeaderSigVerifier,
+		shardCoordinator:  arg.ShardCoordinator,
+		chainID:           arg.ChainID,
+		validityAttester:  arg.ValidityAttester,
+		epochStartTrigger: arg.EpochStartTrigger,
+		nonceConverter:    arg.NonceConverter,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -53,10 +57,7 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 }
 
 func createShardHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (*block.Header, error) {
-	hdr := &block.Header{
-		MiniBlockHeaders: make([]block.MiniBlockHeader, 0),
-		MetaBlockHashes:  make([][]byte, 0),
-	}
+	hdr := &block.Header{}
 	err := marshalizer.Unmarshal(hdr, hdrBuff)
 	if err != nil {
 		return nil, err
@@ -69,13 +70,18 @@ func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 	inHdr.hash = inHdr.hasher.Compute(string(txBuff))
 
 	isHeaderForCurrentShard := inHdr.shardCoordinator.SelfId() == inHdr.HeaderHandler().GetShardID()
-	isMetachainShardCoordinator := inHdr.shardCoordinator.SelfId() == sharding.MetachainShardId
+	isMetachainShardCoordinator := inHdr.shardCoordinator.SelfId() == core.MetachainShardId
 	inHdr.isForCurrentShard = isHeaderForCurrentShard || isMetachainShardCoordinator
 }
 
 // CheckValidity checks if the received header is valid (not nil fields, valid sig and so on)
 func (inHdr *InterceptedHeader) CheckValidity() error {
-	err := inHdr.integrity()
+	err := inHdr.hdr.CheckChainID(inHdr.chainID)
+	if err != nil {
+		return err
+	}
+
+	err = inHdr.integrity()
 	if err != nil {
 		return err
 	}
@@ -85,16 +91,11 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 		return err
 	}
 
-	err = inHdr.sigVerifier.VerifySignature(inHdr.hdr)
-	if err != nil {
-		return err
-	}
-
-	return inHdr.hdr.CheckChainID(inHdr.chainID)
+	return inHdr.sigVerifier.VerifySignature(inHdr.hdr)
 }
 
 func (inHdr *InterceptedHeader) isEpochCorrect() bool {
-	if inHdr.shardCoordinator.SelfId() != sharding.MetachainShardId {
+	if inHdr.shardCoordinator.SelfId() != core.MetachainShardId {
 		return true
 	}
 	if inHdr.epochStartTrigger.EpochStartRound() >= inHdr.epochStartTrigger.EpochFinalityAttestingRound() {
@@ -124,8 +125,8 @@ func (inHdr *InterceptedHeader) integrity() error {
 			"shardRound=%v, "+
 			"metaFinalityAttestingRound=%v ",
 			process.ErrEpochDoesNotMatch,
-			core.ToHex(inHdr.hash),
-			inHdr.hdr.ShardId,
+			logger.DisplayByteSlice(inHdr.hash),
+			inHdr.hdr.ShardID,
 			inHdr.epochStartTrigger.Epoch(),
 			inHdr.hdr.Epoch,
 			inHdr.hdr.Round,
@@ -173,6 +174,24 @@ func (inHdr *InterceptedHeader) IsForCurrentShard() bool {
 // Type returns the type of this intercepted data
 func (inHdr *InterceptedHeader) Type() string {
 	return "intercepted header"
+}
+
+// String returns the header's most important fields as string
+func (inHdr *InterceptedHeader) String() string {
+	return fmt.Sprintf("shardId=%d, metaEpoch=%d, shardEpoch=%d, round=%d, nonce=%d",
+		inHdr.hdr.ShardID,
+		inHdr.epochStartTrigger.Epoch(),
+		inHdr.hdr.Epoch,
+		inHdr.hdr.Round,
+		inHdr.hdr.Nonce,
+	)
+}
+
+// Identifiers returns the identifiers used in requests
+func (inHdr *InterceptedHeader) Identifiers() [][]byte {
+	nonceBytes := inHdr.nonceConverter.ToByteSlice(inHdr.hdr.Nonce)
+
+	return [][]byte{inHdr.hash, nonceBytes}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

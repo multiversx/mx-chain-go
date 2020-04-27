@@ -3,9 +3,13 @@
 # Path to elrond-go. Determined automatically. Do not change.
 export ELRONDDIR=$(dirname $(dirname $ELRONDTESTNETSCRIPTSDIR))
 
-# Use private repositories or not, i.e. elrond-txgen-go and elrond-proxy-go.
-# These repositories require extra permissions to read.
-export PRIVATE_REPOS=0
+# Enable the Elrond Proxy. Note that this is a private repository
+# (elrond-proxy-go).
+export USE_PROXY=1
+
+# Enable the Elrond Transaction Generator. Note that this is a private
+# repository (elrond-txgen-go).
+export USE_TXGEN=0
 
 # Path where the testnet will be instantiated. This folder is assumed to not
 # exist, but it doesn't matter if it already does. It will be created if not,
@@ -28,6 +32,52 @@ export SEEDNODE="$SEEDNODEDIR/seednode"   # Leave unchanged.
 # blank to not adjust niceness.
 export NODE_NICENESS=10
 
+# Delays after running executables.
+export SEEDNODE_DELAY=5
+export NODE_DELAY=10
+
+#types of keys to generate
+export TX_SIGN_FORMAT="bech32"
+export BLOCK_SIGN_FORMAT="hex"
+
+# Shard structure
+export SHARDCOUNT=2
+export SHARD_VALIDATORCOUNT=3
+export SHARD_OBSERVERCOUNT=1
+export SHARD_CONSENSUS_SIZE=3
+
+# Metashard structure
+export META_VALIDATORCOUNT=3
+export META_OBSERVERCOUNT=1
+export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
+
+# Okay as defaults, change if needed.
+export MINT_VALUE="1000000000000000000000000000"
+
+# ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
+export ALWAYS_NEW_CHAINID=1
+
+# ALWAYS_UPDATE_CONFIGS will re-generate configs (toml + json) each time ./start.sh
+# Set this variable to 0 when testing bootstram from storage or other edge cases where you do not want a fresh new config
+# each time.
+export ALWAYS_UPDATE_CONFIGS=1
+
+# Always rebuild Arwen from its sources and copy the executable to the testnet folder.
+export ALWAYS_BUILD_ARWEN=1
+
+# Ports used by the Nodes
+export PORT_SEEDNODE="9999"
+export PORT_ORIGIN_OBSERVER="21100"
+export PORT_ORIGIN_OBSERVER_REST="10000"
+export PORT_ORIGIN_VALIDATOR="21500"
+export PORT_ORIGIN_VALIDATOR_REST="9500"
+
+# Address of the Seednode. Will be written to the p2p.toml file of the Nodes
+export P2P_SEEDNODE_ADDRESS="/ip4/127.0.0.1/tcp/$PORT_SEEDNODE/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk"
+
+
+# UI configuration profiles
+
 # Use tmux or not. If set to 1, only 2 terminal windows will be opened, and
 # tmux will be used to display the running executables using split windows.
 # Recommended. Tmux needs to be installed.
@@ -38,58 +88,18 @@ export USETMUX=1
 export NODETERMUI=1
 
 # Log level for the logger in the Node.
-export LOGLEVEL="*:DEBUG"
+export LOGLEVEL="*:INFO"
 
-# Delays after running executables.
-export SEEDNODE_DELAY=5
-export NODE_DELAY=10
-
-# Shard structure
-export SHARDCOUNT=2
-export SHARD_VALIDATORCOUNT=4
-export SHARD_OBSERVERCOUNT=1
-export SHARD_CONSENSUS_SIZE=3
-
-# Metashard structure
-export META_VALIDATORCOUNT=1
-export META_OBSERVERCOUNT=0
-export META_CONSENSUS_SIZE=1
-
-# Leave unchanged.
-let "total_observer_count = $SHARD_OBSERVERCOUNT * $SHARDCOUNT + $META_OBSERVERCOUNT"
-export TOTAL_OBSERVERCOUNT=$total_observer_count
-
-# Leave unchanged.
-let "total_node_count = $SHARD_VALIDATORCOUNT * $SHARDCOUNT + $META_VALIDATORCOUNT + $TOTAL_OBSERVERCOUNT"
-export TOTAL_NODECOUNT=$total_node_count
-
-# Okay as defaults, change if needed.
-export CONSENSUS_TYPE="bls"
-export MINT_VALUE="1000000000000000000000000000"
-
-# Ports used by the Nodes
-export PORT_SEEDNODE="9999"
-export PORT_ORIGIN_OBSERVER="21100"
-export PORT_ORIGIN_OBSERVER_REST="10000"
-export PORT_ORIGIN_VALIDATOR="21500"
-export PORT_ORIGIN_VALIDATOR_REST="9500"
-
-# Address of the Seednode. Will be written to the p2p.toml file of the Nodes
-export P2P_SEEDNODE_ADDRESS="/ip4/127.0.0.1/tcp/$PORT_SEEDNODE/p2p/16Uiu2HAmAzokH1ozUF52Vy3RKqRfCMr9ZdNDkUQFEkXRs9DqvmKf"
 
 if [ "$TESTNETMODE" == "debug" ]; then
   NODETERMUI=0
-  USETMUX=1
   LOGLEVEL="*:DEBUG"
 fi
 
-if [ "$TESTNETMODE" == "ui" ]; then
-  NODETERMUI=1
-  USETMUX=1
-  LOGLEVEL="*:DEBUG"
+if [ "$TESTNETMODE" == "trace" ]; then
+  NODETERMUI=0
+  LOGLEVEL="*:TRACE"
 fi
-
-
 
 ########################################################################
 # Proxy configuration (WARNING: elrond-proxy-go is a private repository)
@@ -118,6 +128,20 @@ export NUMACCOUNTS="250"
 # Whether txgen should regenerate its accounts when starting, or not.
 # Recommended value is 1, but 0 is useful to run the txgen a second time, to
 # continue a testing session on the same accounts.
-export TXGEN_REGENERATE_ACCOUNTS=1
-export TXGEN_ERC20_MODE=1
+export TXGEN_REGENERATE_ACCOUNTS=0
+export TXGEN_ERC20_MODE=0
+
+# Load local overrides, .gitignored
+LOCAL_OVERRIDES="$ELRONDTESTNETSCRIPTSDIR/local.sh"
+if [ -f "$LOCAL_OVERRIDES" ]; then
+  source "$ELRONDTESTNETSCRIPTSDIR/local.sh"
+fi
+
+# Leave unchanged.
+let "total_observer_count = $SHARD_OBSERVERCOUNT * $SHARDCOUNT + $META_OBSERVERCOUNT"
+export TOTAL_OBSERVERCOUNT=$total_observer_count
+
+# Leave unchanged.
+let "total_node_count = $SHARD_VALIDATORCOUNT * $SHARDCOUNT + $META_VALIDATORCOUNT + $TOTAL_OBSERVERCOUNT"
+export TOTAL_NODECOUNT=$total_node_count
 

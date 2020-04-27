@@ -1,69 +1,92 @@
 package resolvers
 
 import (
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var log = logger.GetOrCreate("dataretriever/resolvers")
 
+// ArgHeaderResolver is the argument structure used to create new HeaderResolver instance
+type ArgHeaderResolver struct {
+	SenderResolver       dataRetriever.TopicResolverSender
+	Headers              dataRetriever.HeadersPool
+	HdrStorage           storage.Storer
+	HeadersNoncesStorage storage.Storer
+	Marshalizer          marshal.Marshalizer
+	NonceConverter       typeConverters.Uint64ByteSliceConverter
+	ShardCoordinator     sharding.Coordinator
+	AntifloodHandler     dataRetriever.P2PAntifloodHandler
+	Throttler            dataRetriever.ResolverThrottler
+}
+
 // HeaderResolver is a wrapper over Resolver that is specialized in resolving headers requests
 type HeaderResolver struct {
 	dataRetriever.TopicResolverSender
+	messageProcessor
 	headers              dataRetriever.HeadersPool
 	hdrStorage           storage.Storer
 	hdrNoncesStorage     storage.Storer
-	marshalizer          marshal.Marshalizer
 	nonceConverter       typeConverters.Uint64ByteSliceConverter
 	epochHandler         dataRetriever.EpochHandler
+	shardCoordinator     sharding.Coordinator
 	epochProviderByNonce dataRetriever.EpochProviderByNonce
 }
 
 // NewHeaderResolver creates a new header resolver
-func NewHeaderResolver(
-	senderResolver dataRetriever.TopicResolverSender,
-	headers dataRetriever.HeadersPool,
-	hdrStorage storage.Storer,
-	headersNoncesStorage storage.Storer,
-	marshalizer marshal.Marshalizer,
-	nonceConverter typeConverters.Uint64ByteSliceConverter,
-) (*HeaderResolver, error) {
-
-	if check.IfNil(senderResolver) {
+func NewHeaderResolver(arg ArgHeaderResolver) (*HeaderResolver, error) {
+	if check.IfNil(arg.SenderResolver) {
 		return nil, dataRetriever.ErrNilResolverSender
 	}
-	if check.IfNil(headers) {
+	if check.IfNil(arg.Headers) {
 		return nil, dataRetriever.ErrNilHeadersDataPool
 	}
-	if check.IfNil(hdrStorage) {
+	if check.IfNil(arg.HdrStorage) {
 		return nil, dataRetriever.ErrNilHeadersStorage
 	}
-	if check.IfNil(headersNoncesStorage) {
+	if check.IfNil(arg.HeadersNoncesStorage) {
 		return nil, dataRetriever.ErrNilHeadersNoncesStorage
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(arg.Marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
-	if check.IfNil(nonceConverter) {
+	if check.IfNil(arg.NonceConverter) {
 		return nil, dataRetriever.ErrNilUint64ByteSliceConverter
 	}
+	if check.IfNil(arg.ShardCoordinator) {
+		return nil, dataRetriever.ErrNilShardCoordinator
+	}
+	if check.IfNil(arg.AntifloodHandler) {
+		return nil, dataRetriever.ErrNilAntifloodHandler
+	}
+	if check.IfNil(arg.Throttler) {
+		return nil, dataRetriever.ErrNilThrottler
+	}
 
-	epochHandler := &nilEpochHandler{}
+	epochHandler := epochproviders.NewNilEpochHandler()
 	hdrResolver := &HeaderResolver{
-		TopicResolverSender:  senderResolver,
-		headers:              headers,
-		hdrStorage:           hdrStorage,
-		hdrNoncesStorage:     headersNoncesStorage,
-		marshalizer:          marshalizer,
-		nonceConverter:       nonceConverter,
+		TopicResolverSender:  arg.SenderResolver,
+		headers:              arg.Headers,
+		hdrStorage:           arg.HdrStorage,
+		hdrNoncesStorage:     arg.HeadersNoncesStorage,
+		nonceConverter:       arg.NonceConverter,
 		epochHandler:         epochHandler,
-		epochProviderByNonce: NewSimpleEpochProviderByNonce(epochHandler),
+		shardCoordinator:     arg.ShardCoordinator,
+		epochProviderByNonce: epochproviders.NewSimpleEpochProviderByNonce(epochHandler),
+		messageProcessor: messageProcessor{
+			marshalizer:      arg.Marshalizer,
+			antifloodHandler: arg.AntifloodHandler,
+			topic:            arg.SenderResolver.RequestTopic(),
+			throttler:        arg.Throttler,
+		},
 	}
 
 	return hdrResolver, nil
@@ -81,11 +104,20 @@ func (hdrRes *HeaderResolver) SetEpochHandler(epochHandler dataRetriever.EpochHa
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+	err := hdrRes.canProcessMessage(message, fromConnectedPeer)
+	if err != nil {
+		return err
+	}
+
+	hdrRes.throttler.StartProcessing()
+	defer hdrRes.throttler.EndProcessing()
+
 	rd, err := hdrRes.parseReceivedMessage(message)
 	if err != nil {
 		return err
 	}
+
 	var buff []byte
 
 	switch rd.Type {
@@ -99,9 +131,21 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, _ f
 		return dataRetriever.ErrResolveTypeUnknown
 	}
 	if err != nil {
+		hdrRes.ResolverDebugHandler().LogFailedToResolveData(
+			hdrRes.topic,
+			rd.Value,
+			err,
+		)
 		return err
 	}
+
 	if buff == nil {
+		hdrRes.ResolverDebugHandler().LogFailedToResolveData(
+			hdrRes.topic,
+			rd.Value,
+			dataRetriever.ErrMissingData,
+		)
+
 		log.Trace("missing data",
 			"data", rd)
 		return nil
@@ -154,7 +198,6 @@ func (hdrRes *HeaderResolver) searchInCache(nonce uint64) ([]byte, error) {
 		return nil, err
 	}
 
-	// TODO maybe we can return a slice of headers
 	hdr := headers[len(headers)-1]
 	buff, err := hdrRes.marshalizer.Marshal(hdr)
 	if err != nil {
@@ -175,12 +218,7 @@ func (hdrRes *HeaderResolver) resolveHeaderFromHash(rd *dataRetriever.RequestDat
 		//  return hdrRes.hdrStorage.GetFromEpoch(rd.Value, rd.Epoch)
 	}
 
-	buff, err := hdrRes.marshalizer.Marshal(value)
-	if err != nil {
-		return nil, err
-	}
-
-	return buff, nil
+	return hdrRes.marshalizer.Marshal(value)
 }
 
 // resolveHeaderFromEpoch resolves a header using its key based on epoch
@@ -199,44 +237,54 @@ func (hdrRes *HeaderResolver) resolveHeaderFromEpoch(key []byte) ([]byte, error)
 	return hdrRes.hdrStorage.Get(actualKey)
 }
 
-// parseReceivedMessage will transform the received p2p.Message in a RequestData object.
-func (hdrRes *HeaderResolver) parseReceivedMessage(message p2p.MessageP2P) (*dataRetriever.RequestData, error) {
-	rd := &dataRetriever.RequestData{}
-	err := rd.Unmarshal(hdrRes.marshalizer, message)
-	if err != nil {
-		return nil, err
-	}
-	if rd.Value == nil {
-		return nil, dataRetriever.ErrNilValue
-	}
-
-	return rd, nil
-}
-
 // RequestDataFromHash requests a header from other peers having input the hdr hash
 func (hdrRes *HeaderResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
-	return hdrRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.HashType,
-		Value: hash,
-		Epoch: epoch,
-	})
+	return hdrRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashType,
+			Value: hash,
+			Epoch: epoch,
+		},
+		[][]byte{hash},
+	)
 }
 
 // RequestDataFromNonce requests a header from other peers having input the hdr nonce
 func (hdrRes *HeaderResolver) RequestDataFromNonce(nonce uint64, epoch uint32) error {
-	return hdrRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.NonceType,
-		Value: hdrRes.nonceConverter.ToByteSlice(nonce),
-		Epoch: epoch,
-	})
+	return hdrRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.NonceType,
+			Value: hdrRes.nonceConverter.ToByteSlice(nonce),
+			Epoch: epoch,
+		},
+		[][]byte{hdrRes.nonceConverter.ToByteSlice(nonce)},
+	)
 }
 
 // RequestDataFromEpoch requests a header from other peers having input the epoch
 func (hdrRes *HeaderResolver) RequestDataFromEpoch(identifier []byte) error {
-	return hdrRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.EpochType,
-		Value: identifier,
-	})
+	return hdrRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.EpochType,
+			Value: identifier,
+		},
+		[][]byte{identifier},
+	)
+}
+
+// SetNumPeersToQuery will set the number of intra shard and cross shard number of peer to query
+func (hdrRes *HeaderResolver) SetNumPeersToQuery(intra int, cross int) {
+	hdrRes.TopicResolverSender.SetNumPeersToQuery(intra, cross)
+}
+
+// NumPeersToQuery will return the number of intra shard and cross shard number of peer to query
+func (hdrRes *HeaderResolver) NumPeersToQuery() (int, int) {
+	return hdrRes.TopicResolverSender.NumPeersToQuery()
+}
+
+// SetResolverDebugHandler will set a resolver debug handler
+func (hdrRes *HeaderResolver) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
+	return hdrRes.TopicResolverSender.SetResolverDebugHandler(handler)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

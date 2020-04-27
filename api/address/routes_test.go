@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	mock2 "github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -198,7 +199,7 @@ func TestGetAccount_FailWhenFacadeGetAccountFails(t *testing.T) {
 	t.Parallel()
 	returnedError := "i am an error"
 	facade := mock.Facade{
-		GetAccountHandler: func(address string) (*state.Account, error) {
+		GetAccountHandler: func(address string) (state.UserAccountHandler, error) {
 			return nil, errors.New(returnedError)
 		},
 	}
@@ -219,11 +220,12 @@ func TestGetAccount_FailWhenFacadeGetAccountFails(t *testing.T) {
 func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{
-		GetAccountHandler: func(address string) (*state.Account, error) {
-			return &state.Account{
-				Nonce:   1,
-				Balance: big.NewInt(100),
-			}, nil
+		GetAccountHandler: func(address string) (state.UserAccountHandler, error) {
+			acc, _ := state.NewUserAccount(&mock2.AddressMock{})
+			_ = acc.AddToBalance(big.NewInt(100))
+			acc.IncreaseNonce(1)
+
+			return acc, nil
 		},
 	}
 	ws := startNodeServer(&facade)

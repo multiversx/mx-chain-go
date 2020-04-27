@@ -5,9 +5,11 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -29,10 +31,10 @@ type BlockTrackerMock struct {
 	ComputeLongestShardsChainsFromLastNotarizedCalled func() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
 	DisplayTrackedHeadersCalled                       func()
 	GetCrossNotarizedHeaderCalled                     func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
-	GetFinalHeaderCalled                              func(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeaderCalled                 func(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeadersForAllShardsCalled    func() (map[uint32]data.HeaderHandler, error)
 	GetLastSelfNotarizedHeaderCalled                  func(shardID uint32) (data.HeaderHandler, []byte, error)
+	GetSelfNotarizedHeaderCalled                      func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
 	GetTrackedHeadersCalled                           func(shardID uint32) ([]data.HeaderHandler, [][]byte)
 	GetTrackedHeadersForAllShardsCalled               func() map[uint32][]data.HeaderHandler
 	GetTrackedHeadersWithNonceCalled                  func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
@@ -41,6 +43,7 @@ type BlockTrackerMock struct {
 	RegisterSelfNotarizedHeadersHandlerCalled         func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastNotarizedHeadersCalled                  func()
 	RestoreToGenesisCalled                            func()
+	ShouldAddHeaderCalled                             func(headerHandler data.HeaderHandler) bool
 
 	shardCoordinator sharding.Coordinator
 
@@ -118,8 +121,7 @@ func (btm *BlockTrackerMock) InitNotarizedHeaders(startHeaders map[uint32]data.H
 	btm.mutSelfNotarizedHeaders.Lock()
 	btm.selfNotarizedHeaders = make(map[uint32][]*headerInfo)
 
-	for _, startHeader := range selfStartHeaders {
-		shardID := startHeader.GetShardID()
+	for shardID, startHeader := range selfStartHeaders {
 		btm.selfNotarizedHeaders[shardID] = append(btm.selfNotarizedHeaders[shardID], &headerInfo{header: startHeader, hash: nil})
 	}
 	btm.mutSelfNotarizedHeaders.Unlock()
@@ -180,6 +182,11 @@ func (btm *BlockTrackerMock) CleanupHeadersBehindNonce(shardID uint32, selfNotar
 	}
 }
 
+// CleanupInvalidCrossHeaders -
+func (btm *BlockTrackerMock) CleanupInvalidCrossHeaders(_ uint32, _ uint64) {
+
+}
+
 // ComputeLongestChain -
 func (btm *BlockTrackerMock) ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
 	if btm.ComputeLongestChainCalled != nil {
@@ -204,12 +211,12 @@ func (btm *BlockTrackerMock) ComputeLongestChain(shardID uint32, header data.Hea
 
 // ComputeLongestMetaChainFromLastNotarized -
 func (btm *BlockTrackerMock) ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
-	lastCrossNotarizedHeader, _, err := btm.GetLastCrossNotarizedHeader(sharding.MetachainShardId)
+	lastCrossNotarizedHeader, _, err := btm.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	hdrsForShard, hdrsHashesForShard := btm.ComputeLongestChain(sharding.MetachainShardId, lastCrossNotarizedHeader)
+	hdrsForShard, hdrsHashesForShard := btm.ComputeLongestChain(core.MetachainShardId, lastCrossNotarizedHeader)
 
 	return hdrsForShard, hdrsHashesForShard, nil
 }
@@ -270,16 +277,22 @@ func (btm *BlockTrackerMock) GetCrossNotarizedHeader(shardID uint32, offset uint
 		return btm.GetCrossNotarizedHeaderCalled(shardID, offset)
 	}
 
-	return nil, nil, nil
-}
+	btm.mutCrossNotarizedHeaders.RLock()
+	defer btm.mutCrossNotarizedHeaders.RUnlock()
 
-// GetFinalHeader -
-func (btm *BlockTrackerMock) GetFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
-	if btm.GetFinalHeaderCalled != nil {
-		return btm.GetFinalHeaderCalled(shardID)
+	headersInfo := btm.crossNotarizedHeaders[shardID]
+	if headersInfo == nil {
+		return nil, nil, process.ErrNotarizedHeadersSliceForShardIsNil
 	}
 
-	return nil, nil, nil
+	notarizedHeadersCount := uint64(len(headersInfo))
+	if notarizedHeadersCount <= offset {
+		return nil, nil, track.ErrNotarizedHeaderOffsetIsOutOfBound
+	}
+
+	hdrInfo := headersInfo[notarizedHeadersCount-offset-1]
+
+	return hdrInfo.header, hdrInfo.hash, nil
 }
 
 // GetLastCrossNotarizedHeader -
@@ -359,6 +372,30 @@ func (btm *BlockTrackerMock) lastSelfNotarizedHdrForShard(shardID uint32) *heade
 	return nil
 }
 
+// GetSelfNotarizedHeader -
+func (btm *BlockTrackerMock) GetSelfNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+	if btm.GetSelfNotarizedHeaderCalled != nil {
+		return btm.GetSelfNotarizedHeaderCalled(shardID, offset)
+	}
+
+	btm.mutSelfNotarizedHeaders.RLock()
+	defer btm.mutSelfNotarizedHeaders.RUnlock()
+
+	headersInfo := btm.selfNotarizedHeaders[shardID]
+	if headersInfo == nil {
+		return nil, nil, process.ErrNotarizedHeadersSliceForShardIsNil
+	}
+
+	notarizedHeadersCount := uint64(len(headersInfo))
+	if notarizedHeadersCount <= offset {
+		return nil, nil, track.ErrNotarizedHeaderOffsetIsOutOfBound
+	}
+
+	hdrInfo := headersInfo[notarizedHeadersCount-offset-1]
+
+	return hdrInfo.header, hdrInfo.hash, nil
+}
+
 // GetTrackedHeaders -
 func (btm *BlockTrackerMock) GetTrackedHeaders(shardID uint32) ([]data.HeaderHandler, [][]byte) {
 	if btm.GetTrackedHeadersCalled != nil {
@@ -424,6 +461,15 @@ func (btm *BlockTrackerMock) RestoreToGenesis() {
 	if btm.RestoreToGenesisCalled != nil {
 		btm.RestoreToGenesisCalled()
 	}
+}
+
+// ShouldAddHeader -
+func (btm *BlockTrackerMock) ShouldAddHeader(headerHandler data.HeaderHandler) bool {
+	if btm.ShouldAddHeaderCalled != nil {
+		return btm.ShouldAddHeaderCalled(headerHandler)
+	}
+
+	return true
 }
 
 // IsInterfaceNil -

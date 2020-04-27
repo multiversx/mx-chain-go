@@ -1,6 +1,7 @@
 package node_test
 
 import (
+	"bytes"
 	"encoding/json"
 	errs "errors"
 	"fmt"
@@ -15,7 +16,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/node"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -32,6 +35,11 @@ type GeneralResponse struct {
 type StatusResponse struct {
 	GeneralResponse
 	Running bool `json:"running"`
+}
+
+type QueryResponse struct {
+	GeneralResponse
+	Result []string `json:"result"`
 }
 
 type StatisticsResponse struct {
@@ -83,8 +91,6 @@ func TestHeartbeatStatus_FailsWithoutFacade(t *testing.T) {
 func TestHeartbeatstatus_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	t.Parallel()
 
-	facade := mock.Facade{}
-	facade.Running = true
 	ws := startNodeServerWrongFacade()
 	req, _ := http.NewRequest("GET", "/node/heartbeatstatus", nil)
 	resp := httptest.NewRecorder()
@@ -123,7 +129,7 @@ func TestHeartbeatstatus(t *testing.T) {
 
 	hbStatus := []heartbeat.PubKeyHeartbeat{
 		{
-			HexPublicKey:    "pk1",
+			PublicKey:       "pk1",
 			TimeStamp:       time.Now(),
 			MaxInactiveTime: heartbeat.Duration{Duration: 0},
 			IsActive:        true,
@@ -193,11 +199,14 @@ func TestStatistics_ReturnsSuccessfully(t *testing.T) {
 	assert.Equal(t, statisticsRsp.Statistics.NrOfShards, nrOfShards)
 }
 
-func TestStatusMetrics_ShouldDisplayMetrics(t *testing.T) {
+func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := "test-details-key"
 	value := "test-details-value"
 	statusMetricsProvider.SetStringValue(key, value)
+
+	p2pKey := "a_p2p_specific_key"
+	statusMetricsProvider.SetStringValue(p2pKey, "p2p value")
 
 	facade := mock.Facade{}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
@@ -215,6 +224,118 @@ func TestStatusMetrics_ShouldDisplayMetrics(t *testing.T) {
 
 	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, value)
 	assert.True(t, keyAndValueFoundInResponse)
+	assert.False(t, strings.Contains(respStr, p2pKey))
+}
+
+func TestP2PStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
+	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	key := "test-details-key"
+	value := "test-details-value"
+	statusMetricsProvider.SetStringValue(key, value)
+
+	p2pKey := "a_p2p_specific_key"
+	p2pValue := "p2p value"
+	statusMetricsProvider.SetStringValue(p2pKey, p2pValue)
+
+	facade := mock.Facade{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetricsProvider
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/node/p2pstatus", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, p2pKey) && strings.Contains(respStr, p2pValue)
+	assert.True(t, keyAndValueFoundInResponse)
+
+	assert.False(t, strings.Contains(respStr, key))
+}
+
+func TestEpochMetrics_ShouldWork(t *testing.T) {
+	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	key := core.MetricEpochNumber
+	value := uint64(37)
+	statusMetricsProvider.SetUInt64Value(key, value)
+
+	facade := mock.Facade{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetricsProvider
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/node/epoch", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
+	assert.True(t, keyAndValueFoundInResponse)
+}
+
+func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errs.New("expected error")
+	facade := &mock.Facade{
+		GetQueryHandlerCalled: func(name string) (handler debug.QueryHandler, err error) {
+			return nil, expectedErr
+		},
+	}
+
+	qdr := &node.QueryDebugRequest{}
+	jsonStr, _ := json.Marshal(qdr)
+
+	ws := startNodeServerWithFacade(facade)
+	req, _ := http.NewRequest("POST", "/node/debug", bytes.NewBuffer(jsonStr))
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	queryResponse := &GeneralResponse{}
+	loadResponse(resp.Body, queryResponse)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, queryResponse.Error, expectedErr.Error())
+}
+
+func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
+	t.Parallel()
+
+	str1 := "aaa"
+	str2 := "bbb"
+	facade := &mock.Facade{
+		GetQueryHandlerCalled: func(name string) (handler debug.QueryHandler, err error) {
+			return &mock.QueryHandlerStub{
+					QueryCalled: func(search string) []string {
+						return []string{str1, str2}
+					},
+				},
+				nil
+		},
+	}
+
+	qdr := &node.QueryDebugRequest{}
+	jsonStr, _ := json.Marshal(qdr)
+
+	ws := startNodeServerWithFacade(facade)
+	req, _ := http.NewRequest("POST", "/node/debug", bytes.NewBuffer(jsonStr))
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	queryResponse := &QueryResponse{}
+	loadResponse(resp.Body, queryResponse)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Contains(t, queryResponse.Result, str1)
+	assert.Contains(t, queryResponse.Result, str2)
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {

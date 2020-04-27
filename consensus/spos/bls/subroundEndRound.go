@@ -161,13 +161,13 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	sr.createAndBroadcastHeaderFinalInfo()
 
 	// broadcast block body and header
-	err = sr.BroadcastMessenger().BroadcastBlock(sr.Body, sr.Header)
+	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header)
 	if err != nil {
-		log.Debug("doEndRoundJob.BroadcastBlock", "error", err.Error())
+		log.Debug("doEndRoundJob.BroadcastHeader", "error", err.Error())
 	}
 
 	startTime := time.Now()
-	err = sr.BlockProcessor().CommitBlock(sr.Blockchain(), sr.Header, sr.Body)
+	err = sr.BlockProcessor().CommitBlock(sr.Header, sr.Body)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,
@@ -181,7 +181,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	sr.displayStatistics()
 
-	log.Debug("step 3: Body and Header have been committed and broadcast")
+	log.Debug("step 3: Body and Header have been committed and header has been broadcast")
 
 	err = sr.broadcastMiniBlocksAndTransactions()
 	if err != nil {
@@ -199,6 +199,8 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.GetData(),
+		nil,
+		nil,
 		nil,
 		[]byte(sr.SelfPubKey()),
 		nil,
@@ -250,12 +252,23 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 
 	sr.SetProcessingBlock(true)
 
+	shouldNotCommitBlock := sr.ExtendedCalled || int64(header.GetRound()) < sr.Rounder().Index()
+	if shouldNotCommitBlock {
+		log.Debug("canceled round, extended has been called or round index has been changed",
+			"round", sr.Rounder().Index(),
+			"subround", sr.Name(),
+			"header round", header.GetRound(),
+			"extended called", sr.ExtendedCalled,
+		)
+		return false
+	}
+
 	if sr.isOutOfTime() {
 		return false
 	}
 
 	startTime := time.Now()
-	err := sr.BlockProcessor().CommitBlock(sr.Blockchain(), header, sr.Body)
+	err := sr.BlockProcessor().CommitBlock(header, sr.Body)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,
@@ -356,17 +369,22 @@ func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {
 		return err
 	}
 
+	if sr.ShardCoordinator().SelfId() != core.MetachainShardId {
+		var headerHash []byte
+		headerHash, err = core.CalculateHash(sr.Marshalizer(), sr.Hasher(), sr.Header)
+		if err != nil {
+			return err
+		}
+
+		return sr.BroadcastMessenger().SetDataForDelayBroadcast(headerHash, miniBlocks, transactions)
+	}
+
 	err = sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)
 	if err != nil {
 		return err
 	}
 
-	err = sr.BroadcastMessenger().BroadcastTransactions(transactions)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return sr.BroadcastMessenger().BroadcastTransactions(transactions)
 }
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved
@@ -431,7 +449,6 @@ func (sr *subroundEndRound) isOutOfTime() bool {
 			"subround", sr.Name())
 
 		sr.RoundCanceled = true
-
 		return true
 	}
 

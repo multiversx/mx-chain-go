@@ -2,15 +2,17 @@ package metrics
 
 import (
 	"errors"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
 )
 
 // StartMachineStatisticsPolling will start read information about current  running machini
-func StartMachineStatisticsPolling(ash core.AppStatusHandler, pollingInterval int) error {
-	if ash == nil {
+func StartMachineStatisticsPolling(ash core.AppStatusHandler, pollingInterval time.Duration) error {
+	if check.IfNil(ash) {
 		return errors.New("nil AppStatusHandler")
 	}
 
@@ -29,7 +31,7 @@ func StartMachineStatisticsPolling(ash core.AppStatusHandler, pollingInterval in
 		return err
 	}
 
-	err = registeNetStatistics(appStatusPollingHandler)
+	err = registerNetStatistics(appStatusPollingHandler)
 	if err != nil {
 		return err
 	}
@@ -55,7 +57,7 @@ func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 	})
 }
 
-func registeNetStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
+func registerNetStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
 	netStats := &machine.NetStatistics{}
 	go func() {
 		for {

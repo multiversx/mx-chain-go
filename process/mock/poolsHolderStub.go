@@ -35,7 +35,10 @@ func (phs *PoolsHolderStub) PeerChangesBlocks() storage.Cacher {
 
 // Transactions -
 func (phs *PoolsHolderStub) Transactions() dataRetriever.ShardedDataCacherNotifier {
-	return phs.TransactionsCalled()
+	if phs.TransactionsCalled != nil {
+		return phs.TransactionsCalled()
+	}
+	return &ShardedDataStub{}
 }
 
 // MiniBlocks -
@@ -50,12 +53,18 @@ func (phs *PoolsHolderStub) MetaBlocks() storage.Cacher {
 
 // UnsignedTransactions -
 func (phs *PoolsHolderStub) UnsignedTransactions() dataRetriever.ShardedDataCacherNotifier {
-	return phs.UnsignedTransactionsCalled()
+	if phs.UnsignedTransactionsCalled != nil {
+		return phs.UnsignedTransactionsCalled()
+	}
+	return &ShardedDataStub{}
 }
 
 // RewardTransactions -
 func (phs *PoolsHolderStub) RewardTransactions() dataRetriever.ShardedDataCacherNotifier {
-	return phs.RewardTransactionsCalled()
+	if phs.RewardTransactionsCalled != nil {
+		return phs.RewardTransactionsCalled()
+	}
+	return &ShardedDataStub{}
 }
 
 // TrieNodes -
@@ -65,8 +74,5 @@ func (phs *PoolsHolderStub) TrieNodes() storage.Cacher {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (phs *PoolsHolderStub) IsInterfaceNil() bool {
-	if phs == nil {
-		return true
-	}
-	return false
+	return phs == nil
 }

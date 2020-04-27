@@ -13,8 +13,8 @@ var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 // ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
 var ErrNilHasher = errors.New("nil Hasher")
 
-// ErrNilAddressConverter signals that an operation has been attempted to or with a nil AddressConverter implementation
-var ErrNilAddressConverter = errors.New("nil AddressConverter")
+// ErrNilPubkeyConverter signals that an operation has been attempted to or with a nil public key converter implementation
+var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
 
 // ErrNilGasSchedule signals that an operation has been attempted with a nil gas schedule
 var ErrNilGasSchedule = errors.New("nil GasSchedule")
@@ -59,6 +59,9 @@ var ErrNilTxBlockBody = errors.New("nil tx block body")
 // ErrNilStore signals that the provided storage service is nil
 var ErrNilStore = errors.New("nil data storage service")
 
+// ErrNilBootStorer signals that the provided boot storer is bil
+var ErrNilBootStorer = errors.New("nil boot storer")
+
 // ErrNilBlockHeader signals that an operation has been attempted to or with a nil block header
 var ErrNilBlockHeader = errors.New("nil block header")
 
@@ -80,8 +83,8 @@ var ErrNilSignature = errors.New("nil signature")
 // ErrNilMiniBlocks signals that an operation has been attempted with a nil mini-block
 var ErrNilMiniBlocks = errors.New("nil mini blocks")
 
-// ErrNilTxHashes signals that an operation has been atempted with nil transaction hashes
-var ErrNilTxHashes = errors.New("nil transaction hashes")
+// ErrNilMiniBlock signals that an operation has been attempted with a nil miniblock
+var ErrNilMiniBlock = errors.New("nil mini block")
 
 // ErrNilRootHash signals that an operation has been attempted with a nil root hash
 var ErrNilRootHash = errors.New("root hash is nil")
@@ -136,9 +139,6 @@ var ErrNilMessenger = errors.New("nil Messenger")
 
 // ErrNilTxDataPool signals that a nil transaction pool has been provided
 var ErrNilTxDataPool = errors.New("nil transaction data pool")
-
-// ErrEmptyTxDataPool signals that a empty transaction pool has been provided
-var ErrEmptyTxDataPool = errors.New("empty transaction data pool")
 
 // ErrNilHeadersDataPool signals that a nil headers pool has been provided
 var ErrNilHeadersDataPool = errors.New("nil headers data pool")
@@ -242,9 +242,6 @@ var ErrContainerKeyAlreadyExists = errors.New("provided key already exists in co
 // ErrNilRequestHandler signals that a nil request handler interface was provided
 var ErrNilRequestHandler = errors.New("nil request handler")
 
-// ErrNilInternalTransactionProducer signals that a nil system transactions producer was provided
-var ErrNilInternalTransactionProducer = errors.New("nil internal transaction producere")
-
 // ErrNilHaveTimeHandler signals that a nil have time handler func was provided
 var ErrNilHaveTimeHandler = errors.New("nil have time handler")
 
@@ -338,14 +335,14 @@ var ErrNilSmartContractResult = errors.New("smart contract result is nil")
 // ErrNilRewardTransaction signals that the reward transaction is nil
 var ErrNilRewardTransaction = errors.New("reward transaction is nil")
 
-// ErrRewardTransactionNotFound is raised when reward transaction should be present but was not found
-var ErrRewardTransactionNotFound = errors.New("reward transaction not found")
-
 // ErrNilUTxDataPool signals that unsigned transaction pool is nil
 var ErrNilUTxDataPool = errors.New("unsigned transactions pool is nil")
 
 // ErrNilRewardTxDataPool signals that the reward transactions pool is nil
 var ErrNilRewardTxDataPool = errors.New("reward transactions pool is nil")
+
+// ErrNilUnsignedTxDataPool signals that the unsigned transactions pool is nil
+var ErrNilUnsignedTxDataPool = errors.New("unsigned transactions pool is nil")
 
 // ErrNilUTxStorage signals that unsigned transaction storage is nil
 var ErrNilUTxStorage = errors.New("unsigned transactions storage is nil")
@@ -383,6 +380,9 @@ var ErrNilIntermediateProcessorContainer = errors.New("intermediate processor co
 // ErrNilPreProcessorsContainer signals that preprocessors container is nil
 var ErrNilPreProcessorsContainer = errors.New("preprocessors container is nil")
 
+// ErrNilPreProcessor signals that preprocessors is nil
+var ErrNilPreProcessor = errors.New("preprocessor is nil")
+
 // ErrNilGasHandler signals that gas handler is nil
 var ErrNilGasHandler = errors.New("nil gas handler")
 
@@ -407,26 +407,11 @@ var ErrNilInterceptorThrottler = errors.New("nil interceptor throttler")
 // ErrNilUnsignedTxHandler signals that the unsigned tx handler is nil
 var ErrNilUnsignedTxHandler = errors.New("nil unsigned tx handler")
 
-// ErrRewardTxsDoNotMatch signals that reward txs do not match
-var ErrRewardTxsDoNotMatch = errors.New("calculated reward tx with block reward tx does not match")
-
-// ErrRewardTxNotFound signals that the reward transaction was not found
-var ErrRewardTxNotFound = errors.New("reward transaction not found")
-
-// ErrRewardTxsMismatchCreatedReceived signals a mismatch between the nb of created and received reward transactions
-var ErrRewardTxsMismatchCreatedReceived = errors.New("mismatch between created and received reward transactions")
-
 // ErrNilTxTypeHandler signals that tx type handler is nil
 var ErrNilTxTypeHandler = errors.New("nil tx type handler")
 
-// ErrNilSpecialAddressHandler signals that special address handler is nil
-var ErrNilSpecialAddressHandler = errors.New("nil special address handler")
-
 // ErrNilPeerAccountsAdapter signals that a nil peer accounts database was provided
 var ErrNilPeerAccountsAdapter = errors.New("nil peer accounts database")
-
-// ErrInvalidInitialNodesState signals that the initial nodes state is invalid
-var ErrInvalidInitialNodesState = errors.New("provided initial state is invalid")
 
 // ErrInvalidPeerAccount signals that a peer account is invalid
 var ErrInvalidPeerAccount = errors.New("invalid peer account")
@@ -443,14 +428,14 @@ var ErrNilEpochHandler = errors.New("nil epoch handler")
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
 
-// ErrNotEnoughArgumentsToDeploy signals that there are not enough arguments to deploy the smart contract
-var ErrNotEnoughArgumentsToDeploy = errors.New("not enough arguments to deploy the smart contract")
-
 // ErrVMTypeLengthInvalid signals that vm type length is too long
 var ErrVMTypeLengthInvalid = errors.New("vm type length is too long")
 
 // ErrOverallBalanceChangeFromSC signals that all sumed balance changes are not zero
 var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wrong")
+
+// ErrOverflow signals that an overflow occured
+var ErrOverflow = errors.New("type overflow occured")
 
 // ErrNilTxValidator signals that a nil tx validator has been provided
 var ErrNilTxValidator = errors.New("nil transaction validator")
@@ -460,19 +445,6 @@ var ErrNilHdrValidator = errors.New("nil header validator")
 
 // ErrNilPendingMiniBlocksHandler signals that a nil pending miniblocks handler has been provided
 var ErrNilPendingMiniBlocksHandler = errors.New("nil pending miniblocks handler")
-
-// ErrMiniblockNotForCurrentShard signals that the current processing miniblock must not be
-// processed on the current shard
-var ErrMiniblockNotForCurrentShard = errors.New("miniblock is not addressed for current shard")
-
-// ErrNilTxsPoolsCleaner signals that a nil transactions pools cleaner has been provided
-var ErrNilTxsPoolsCleaner = errors.New("nil transactions pools cleaner")
-
-// ErrZeroMaxCleanTime signals that cleaning time for pools is less or equal with 0
-var ErrZeroMaxCleanTime = errors.New("cleaning time is equal or less than zero")
-
-// ErrNilEconomicsRewardsHandler signals that rewards handler is nil
-var ErrNilEconomicsRewardsHandler = errors.New("nil economics rewards handler")
 
 // ErrNilEconomicsFeeHandler signals that fee handler is nil
 var ErrNilEconomicsFeeHandler = errors.New("nil economics fee handler")
@@ -513,8 +485,8 @@ var ErrInvalidMinimumGasLimitForTx = errors.New("invalid minimum gas limit for t
 // ErrInvalidRewardsValue signals that an invalid rewards value has been read from config file
 var ErrInvalidRewardsValue = errors.New("invalid rewards value")
 
-// ErrInvalidUnboundPeriod signals that an invalid unbound period has been read from config file
-var ErrInvalidUnboundPeriod = errors.New("invalid unbound period")
+// ErrInvalidUnBondPeriod signals that an invalid unbond period has been read from config file
+var ErrInvalidUnBondPeriod = errors.New("invalid unbond period")
 
 // ErrInvalidRewardsPercentages signals that rewards percentages are not correct
 var ErrInvalidRewardsPercentages = errors.New("invalid rewards percentages")
@@ -528,23 +500,14 @@ var ErrNilBlockChainHook = errors.New("nil blockchain hook")
 // ErrNilSCDataGetter signals that a nil sc data getter has been provided
 var ErrNilSCDataGetter = errors.New("nil sc data getter")
 
-// ErrPeerChangesHashDoesNotMatch signals that peer changes from header does not match the created ones
-var ErrPeerChangesHashDoesNotMatch = errors.New("peer changes hash does not match")
-
 // ErrNilTxForCurrentBlockHandler signals that nil tx for current block handler has been provided
 var ErrNilTxForCurrentBlockHandler = errors.New("nil tx for current block handler")
 
 // ErrNilSCToProtocol signals that nil smart contract to protocol handler has been provided
 var ErrNilSCToProtocol = errors.New("nil sc to protocol")
 
-// ErrNilPeerChangesHandler signals that nil peer changes handler has been provided
-var ErrNilPeerChangesHandler = errors.New("nil peer changes handler")
-
 // ErrNilNodesSetup signals that nil nodes setup has been provided
 var ErrNilNodesSetup = errors.New("nil nodes setup")
-
-// ErrNilMiniBlocksCompacter signals that a nil mini blocks compacter has been provided
-var ErrNilMiniBlocksCompacter = errors.New("nil mini blocks compacter")
 
 // ErrNilBlackListHandler signals that a nil black list handler was provided
 var ErrNilBlackListHandler = errors.New("nil black list handler")
@@ -564,9 +527,6 @@ var ErrZeroMaxComputableRounds = errors.New("max computable rounds is zero")
 // ErrNilRater signals that nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
 
-// ErrNilRatingReader signals that nil rating reader has been provided
-var ErrNilRatingReader = errors.New("nil rating reader")
-
 // ErrNilNetworkWatcher signals that a nil network watcher has been provided
 var ErrNilNetworkWatcher = errors.New("nil network watcher")
 
@@ -582,11 +542,32 @@ var ErrMinRatingSmallerThanOne = errors.New("min rating is smaller than one")
 // ErrStartRatingNotBetweenMinAndMax signals that the start rating is not between min and max rating
 var ErrStartRatingNotBetweenMinAndMax = errors.New("start rating is not between min and max rating")
 
+// ErrSignedBlocksThresholdNotBetweenZeroAndOne signals that the signed blocks threshold is not between 0 and 1
+var ErrSignedBlocksThresholdNotBetweenZeroAndOne = errors.New("signed blocks threshold is not between 0 and 1")
+
+// ErrConsecutiveMissedBlocksPenaltyLowerThanOne signals that the ConsecutiveMissedBlocksPenalty is lower than 1
+var ErrConsecutiveMissedBlocksPenaltyLowerThanOne = errors.New("consecutive missed blocks penalty lower than 1")
+
+// ErrDecreaseRatingsStepMoreThanMinusOne signals that the decrease rating step has a vale greater than -1
+var ErrDecreaseRatingsStepMoreThanMinusOne = errors.New("decrease rating step has a value greater than -1")
+
+// ErrHoursToMaxRatingFromStartRatingZero signals that the number of hours to reach max rating step is zero
+var ErrHoursToMaxRatingFromStartRatingZero = errors.New("hours to reach max rating is zero")
+
 // ErrSCDeployFromSCRIsNotPermitted signals that operation is not permitted
 var ErrSCDeployFromSCRIsNotPermitted = errors.New("it is not permitted to deploy a smart contract from another smart contract cross shard")
 
 // ErrNotEnoughGas signals that not enough gas has been provided
 var ErrNotEnoughGas = errors.New("not enough gas was sent in the transaction")
+
+// ErrInvalidValue signals that an invalid value was provided
+var ErrInvalidValue = errors.New("invalid value provided")
+
+// ErrNilQuotaStatusHandler signals that a nil quota status handler has been provided
+var ErrNilQuotaStatusHandler = errors.New("nil quota status handler")
+
+// ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
+var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
 
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
@@ -615,6 +596,9 @@ var ErrInvalidChainID = errors.New("invalid chain ID while processing")
 // ErrEpochStartDataDoesNotMatch signals that EpochStartData is not the same as the leader created
 var ErrEpochStartDataDoesNotMatch = errors.New("epoch start data does not match")
 
+// ErrInvalidMinStepValue signals the min step value is invalid
+var ErrInvalidMinStepValue = errors.New("invalid min step value")
+
 // ErrNotEpochStartBlock signals that block is not of type epoch start
 var ErrNotEpochStartBlock = errors.New("not epoch start block")
 
@@ -627,8 +611,152 @@ var ErrNilValidityAttester = errors.New("nil validity attester")
 // ErrNilHeaderHandler signals that a nil header handler has been provided
 var ErrNilHeaderHandler = errors.New("nil header handler")
 
-// ErrNilMiniBlocksResolver signals that a nil miniblocks resolver has been provided
-var ErrNilMiniBlocksResolver = errors.New("nil miniblocks resolver")
+// ErrNilMiniBlocksProvider signals that a nil miniblocks data provider has been passed over
+var ErrNilMiniBlocksProvider = errors.New("nil miniblocks provider")
+
+// ErrNilWhiteListHandler signals that white list handler is nil
+var ErrNilWhiteListHandler = errors.New("nil whitelist handler")
 
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
+
+// ErrEmptyTopic signals that an empty topic has been provided
+var ErrEmptyTopic = errors.New("empty topic")
+
+// ErrInvalidArguments signals that invalid arguments were given to process built-in function
+var ErrInvalidArguments = errors.New("invalid arguments to process built-in function")
+
+// ErrNilBuiltInFunction signals that built in function is nil
+var ErrNilBuiltInFunction = errors.New("built in function is nil")
+
+// ErrRewardMiniBlockNotFromMeta signals that miniblock has a different sender shard than meta
+var ErrRewardMiniBlockNotFromMeta = errors.New("rewards miniblocks should come only from meta")
+
+// ErrValidatorInfoMiniBlockNotFromMeta signals that miniblock has a different sender shard than meta
+var ErrValidatorInfoMiniBlockNotFromMeta = errors.New("validatorInfo miniblocks should come only from meta")
+
+// ErrAccumulatedFeesDoNotMatch signals that accumulated fees do not match
+var ErrAccumulatedFeesDoNotMatch = errors.New("accumulated fees do not match")
+
+// ErrAccumulatedFeesInEpochDoNotMatch signals that accumulated fees in epoch do not match
+var ErrAccumulatedFeesInEpochDoNotMatch = errors.New("accumulated fees in epoch do not match")
+
+// ErrNilRewardsHandler signals that rewards handler is nil
+var ErrNilRewardsHandler = errors.New("rewards handler is nil")
+
+// ErrNilEpochEconomics signals that nil end of epoch econimics was provided
+var ErrNilEpochEconomics = errors.New("nil epoch economics")
+
+// ErrNilEpochStartDataCreator signals that nil epoch start data creator was provided
+var ErrNilEpochStartDataCreator = errors.New("nil epoch start data creator")
+
+// ErrNilEpochStartRewardsCreator signals that nil epoch start rewards creator was provided
+var ErrNilEpochStartRewardsCreator = errors.New("nil epoch start rewards creator")
+
+// ErrNilEpochStartValidatorInfoCreator signals that nil epoch start validator info creator was provided
+var ErrNilEpochStartValidatorInfoCreator = errors.New("nil epoch start validator info creator")
+
+// ErrInvalidGenesisTotalSupply signals that invalid genesis total supply was provided
+var ErrInvalidGenesisTotalSupply = errors.New("invalid genesis total supply")
+
+// ErrInvalidAuctionEnableNonce signals that auction enable nonce is invalid
+var ErrInvalidAuctionEnableNonce = errors.New("invalid auction enable nonce")
+
+// ErrInvalidStakingEnableNonce signals that the staking enable nonce is invalid
+var ErrInvalidStakingEnableNonce = errors.New("invalid staking enable nonce")
+
+// ErrInvalidUnJailPrice signals that invalid unjail price was provided
+var ErrInvalidUnJailPrice = errors.New("invalid unjail price")
+
+// ErrOperationNotPermitted signals that operation is not permitted
+var ErrOperationNotPermitted = errors.New("operation in account not permitted")
+
+// ErrInvalidAddressLength signals that address length is invalid
+var ErrInvalidAddressLength = errors.New("invalid address length")
+
+// ErrDuplicateThreshold signals that two thresholds are the same
+var ErrDuplicateThreshold = errors.New("two thresholds are the same")
+
+// ErrNoChancesForMaxThreshold signals that the max threshold has no chance defined
+var ErrNoChancesForMaxThreshold = errors.New("max threshold has no chances")
+
+// ErrNoChancesProvided signals that there were no chances provided
+var ErrNoChancesProvided = errors.New("no chances are provided")
+
+// ErrNilMinChanceIfZero signals that there was no min chance provided if a chance is still needed
+var ErrNilMinChanceIfZero = errors.New("no min chance ")
+
+// ErrInvalidShardCacherIdentifier signals an invalid identifier
+var ErrInvalidShardCacherIdentifier = errors.New("invalid identifier for shard cacher")
+
+// ErrMaxBlockSizeReached signals that max block size has been reached
+var ErrMaxBlockSizeReached = errors.New("max block size has been reached")
+
+// ErrBlockBodyHashMismatch signals that block body hashes does not match
+var ErrBlockBodyHashMismatch = errors.New("block bodies does not match")
+
+// ErrInvalidMiniBlockType signals that an invalid miniblock type has been provided
+var ErrInvalidMiniBlockType = errors.New("invalid miniblock type")
+
+// ErrInvalidBody signals that an invalid body has been provided
+var ErrInvalidBody = errors.New("invalid body")
+
+// ErrNilBlockSizeComputationHandler signals that a nil block size computation handler has been provided
+var ErrNilBlockSizeComputationHandler = errors.New("nil block size computation handler")
+
+// ErrNilValidatorStatistics signals that a nil validator statistics has been provided
+var ErrNilValidatorStatistics = errors.New("nil validator statistics")
+
+// ErrAccountNotFound signals that the account was not found for the provided address
+var ErrAccountNotFound = errors.New("account not found")
+
+// ErrMaxRatingZero signals that maxrating with a value of zero has been provided
+var ErrMaxRatingZero = errors.New("max rating is zero")
+
+// ErrNilValidatorInfos signals that a nil validator infos has been provided
+var ErrNilValidatorInfos = errors.New("nil validator infos")
+
+// ErrNilBlockSizeThrottler signals that block size throttler si nil
+var ErrNilBlockSizeThrottler = errors.New("block size throttler is nil")
+
+// ErrInvalidMetaTransaction signals that meta transaction is invalid
+var ErrInvalidMetaTransaction = errors.New("meta transaction is invalid")
+
+// ErrLogNotFound is the error returned when a transaction has no logs
+var ErrLogNotFound = errors.New("no logs for queried transaction")
+
+// ErrNilTxLogsProcessor is the error returned when a transaction has no logs
+var ErrNilTxLogsProcessor = errors.New("nil transaction logs processor")
+
+// ErrIncreaseStepLowerThanOne signals that an increase step lower than one has been provided
+var ErrIncreaseStepLowerThanOne = errors.New("increase step is lower than one")
+
+// ErrNilVmInput signals that provided vm input is nil
+var ErrNilVmInput = errors.New("nil vm input")
+
+// ErrNilDnsAddresses signals that nil dns addresses map was provided
+var ErrNilDnsAddresses = errors.New("nil dns addresses map")
+
+// ErrCallerIsNotTheDNSAddress signals that called address is not the DNS address
+var ErrCallerIsNotTheDNSAddress = errors.New("not a dns address")
+
+// ErrUserNameChangeIsDisabled signals the user name change is not allowed
+var ErrUserNameChangeIsDisabled = errors.New("user name change is disabled")
+
+// ErrDestinationNotInSelfShard signals that user is not in self shard
+var ErrDestinationNotInSelfShard = errors.New("destination is not in self shard")
+
+// ErrUserNameDoesNotMatch signals that user name does not match
+var ErrUserNameDoesNotMatch = errors.New("user name does not match")
+
+// ErrUserNameDoesNotMatchInCrossShardTx signals that user name does not match in case of cross shard tx
+var ErrUserNameDoesNotMatchInCrossShardTx = errors.New("user name does not match in destination shard")
+
+// ErrNilBalanceComputationHandler signals that a nil balance computation handler has been provided
+var ErrNilBalanceComputationHandler = errors.New("nil balance computation handler")
+
+// ErrNilRatingsInfoHandler signals that nil ratings info handler has been provided
+var ErrNilRatingsInfoHandler = errors.New("nil ratings info handler")
+
+// ErrNilInterceptedDebugHandler signals that a nil intercepted debug handler has been provided
+var ErrNilInterceptedDebugHandler = errors.New("nil intercepted debug handler")

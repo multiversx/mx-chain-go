@@ -19,9 +19,9 @@ func (psh *PresenterStatusHandler) GetNodeType() string {
 	return psh.getFromCacheAsString(core.MetricNodeType)
 }
 
-// GetPublicKeyTxSign will return node public key for sign transaction
-func (psh *PresenterStatusHandler) GetPublicKeyTxSign() string {
-	return psh.getFromCacheAsString(core.MetricPublicKeyTxSign)
+// GetPeerType will return type of peer (eligible, waiting, and so on)
+func (psh *PresenterStatusHandler) GetPeerType() string {
+	return psh.getFromCacheAsString(core.MetricPeerType)
 }
 
 // GetPublicKeyBlockSign will return node public key for sign blocks

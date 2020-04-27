@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	cmap "github.com/ElrondNetwork/concurrent-map"
-	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 )
 
 var log = logger.GetOrCreate("storage/fifocache")
@@ -15,7 +15,7 @@ type FIFOShardedCache struct {
 	maxsize int
 
 	mutAddedDataHandlers sync.RWMutex
-	addedDataHandlers    []func(key []byte)
+	addedDataHandlers    []func(key []byte, value interface{})
 }
 
 // NewShardedCache creates a new cache instance
@@ -25,7 +25,7 @@ func NewShardedCache(size int, shards int) (*FIFOShardedCache, error) {
 		cache:                cache,
 		maxsize:              size,
 		mutAddedDataHandlers: sync.RWMutex{},
-		addedDataHandlers:    make([]func(key []byte), 0),
+		addedDataHandlers:    make([]func(key []byte, value interface{}), 0),
 	}
 
 	return fifoShardedCache, nil
@@ -42,13 +42,13 @@ func (c *FIFOShardedCache) Clear() {
 // Put adds a value to the cache.  Returns true if an eviction occurred.
 func (c *FIFOShardedCache) Put(key []byte, value interface{}) (evicted bool) {
 	c.cache.Set(string(key), value)
-	c.callAddedDataHandlers(key)
+	c.callAddedDataHandlers(key, value)
 
 	return true
 }
 
 // RegisterHandler registers a new handler to be called when a new data is added
-func (c *FIFOShardedCache) RegisterHandler(handler func(key []byte)) {
+func (c *FIFOShardedCache) RegisterHandler(handler func(key []byte, value interface{})) {
 	if handler == nil {
 		log.Error("attempt to register a nil handler to a cacher object")
 		return
@@ -83,16 +83,16 @@ func (c *FIFOShardedCache) HasOrAdd(key []byte, value interface{}) (found, evict
 	added := c.cache.SetIfAbsent(string(key), value)
 
 	if added {
-		c.callAddedDataHandlers(key)
+		c.callAddedDataHandlers(key, value)
 	}
 
 	return !added, true
 }
 
-func (c *FIFOShardedCache) callAddedDataHandlers(key []byte) {
+func (c *FIFOShardedCache) callAddedDataHandlers(key []byte, value interface{}) {
 	c.mutAddedDataHandlers.RLock()
 	for _, handler := range c.addedDataHandlers {
-		go handler(key)
+		go handler(key, value)
 	}
 	c.mutAddedDataHandlers.RUnlock()
 }
@@ -132,8 +132,5 @@ func (c *FIFOShardedCache) MaxSize() int {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (c *FIFOShardedCache) IsInterfaceNil() bool {
-	if c == nil {
-		return true
-	}
-	return false
+	return c == nil
 }

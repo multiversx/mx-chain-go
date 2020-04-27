@@ -12,7 +12,7 @@ type TransactionInterceptorMock struct {
 	RcvShardVal                 uint32
 	SndShardVal                 uint32
 	IsAddressedToOtherShardsVal bool
-	AddrConverter               state.AddressConverter
+	pubkeyConverter             state.PubkeyConverter
 	Tx                          *transaction.Transaction
 	hash                        []byte
 }
@@ -47,14 +47,14 @@ func (tim *TransactionInterceptorMock) IsAddressedToOtherShards() bool {
 	return tim.IsAddressedToOtherShardsVal
 }
 
-// SetAddressConverter -
-func (tim *TransactionInterceptorMock) SetAddressConverter(converter state.AddressConverter) {
-	tim.AddrConverter = converter
+// SetPubkeyConverter -
+func (tim *TransactionInterceptorMock) SetPubkeyConverter(converter state.PubkeyConverter) {
+	tim.pubkeyConverter = converter
 }
 
-// AddressConverter -
-func (tim *TransactionInterceptorMock) AddressConverter() state.AddressConverter {
-	return tim.AddrConverter
+// PubkeyConverter -
+func (tim *TransactionInterceptorMock) PubkeyConverter() state.PubkeyConverter {
+	return tim.pubkeyConverter
 }
 
 // GetTransaction -
@@ -74,8 +74,5 @@ func (tim *TransactionInterceptorMock) Hash() []byte {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (tim *TransactionInterceptorMock) IsInterfaceNil() bool {
-	if tim == nil {
-		return true
-	}
-	return false
+	return tim == nil
 }

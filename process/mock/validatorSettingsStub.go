@@ -6,13 +6,13 @@ import "math/big"
 type ValidatorSettingsStub struct {
 }
 
-// UnBoundPeriod -
-func (v *ValidatorSettingsStub) UnBoundPeriod() uint64 {
+// UnBondPeriod -
+func (v *ValidatorSettingsStub) UnBondPeriod() uint64 {
 	return 10
 }
 
-// StakeValue -
-func (v *ValidatorSettingsStub) StakeValue() *big.Int {
+// GenesisNodePrice -
+func (v *ValidatorSettingsStub) GenesisNodePrice() *big.Int {
 	return big.NewInt(10)
 }
 

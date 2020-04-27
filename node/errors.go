@@ -16,8 +16,8 @@ var ErrNilHasher = errors.New("trying to set nil hasher")
 // ErrNilAccountsAdapter signals that a nil accounts adapter has been provided
 var ErrNilAccountsAdapter = errors.New("trying to set nil accounts adapter")
 
-// ErrNilAddressConverter signals that a nil address converter has been provided
-var ErrNilAddressConverter = errors.New("trying to set nil address converter")
+// ErrNilPubkeyConverter signals that a nil public key converter has been provided
+var ErrNilPubkeyConverter = errors.New("trying to use a nil pubkey converter")
 
 // ErrNilBlockchain signals that a nil blockchain structure has been provided
 var ErrNilBlockchain = errors.New("nil blockchain")
@@ -66,9 +66,6 @@ var ErrNilNodesCoordinator = errors.New("trying to set nil nodes coordinator")
 
 // ErrNilUint64ByteSliceConverter signals that a nil uint64 <-> byte slice converter has been provided
 var ErrNilUint64ByteSliceConverter = errors.New("trying to set nil uint64 - byte slice converter")
-
-// ErrNilBalances signals that a nil list of initial balances has been provided
-var ErrNilBalances = errors.New("trying to set nil balances")
 
 // ErrNilSingleSig signals that a nil singlesig object has been provided
 var ErrNilSingleSig = errors.New("trying to set nil singlesig")
@@ -127,6 +124,9 @@ var ErrNoTxToProcess = errors.New("no transaction to process")
 // ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
 var ErrInvalidValue = errors.New("invalid value")
 
+// ErrNilNetworkShardingCollector defines the error for setting a nil network sharding collector
+var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
+
 // ErrNilBootStorer signals that a nil boot storer was provided
 var ErrNilBootStorer = errors.New("nil boot storer")
 
@@ -135,9 +135,6 @@ var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
 // ErrNilValidatorStatistics signals that a nil validator statistics has been provided
 var ErrNilValidatorStatistics = errors.New("nil validator statistics")
-
-// ErrCannotConvertToPeerAccount signals that the given account cannot be converted to a peer account
-var ErrCannotConvertToPeerAccount = errors.New("cannot convert to peer account")
 
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID in Node")
@@ -150,3 +147,27 @@ var ErrNilPendingMiniBlocksHandler = errors.New("trying to set nil pending minib
 
 // ErrNilRequestHandler signals that a nil request handler has been provided
 var ErrNilRequestHandler = errors.New("trying to set nil request handler")
+
+// ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
+var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
+
+// ErrNilTxAccumulator signals that a nil Accumulator instance has been provided
+var ErrNilTxAccumulator = errors.New("nil tx accumulator")
+
+// ErrNilHardforkTrigger signals that a nil hardfork trigger has been provided
+var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
+
+// ErrNilWhiteListHandler signals that white list handler is nil
+var ErrNilWhiteListHandler = errors.New("nil whitelist handler")
+
+// ErrNilNodeStopChannel signals that a nil channel for node process stop has been provided
+var ErrNilNodeStopChannel = errors.New("nil node stop channel")
+
+// ErrNilQueryHandler signals that a nil query handler has been provided
+var ErrNilQueryHandler = errors.New("nil query handler")
+
+// ErrQueryHandlerAlreadyExists signals that the query handler is already registered
+var ErrQueryHandlerAlreadyExists = errors.New("query handler already exists")
+
+// ErrEmptyQueryHandlerName signals that an empty string can not be used to be used in the query handler container
+var ErrEmptyQueryHandlerName = errors.New("empty query handler name")

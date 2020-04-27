@@ -1,5 +1,26 @@
 package core
 
+// PeerType represents the type of a peer
+type PeerType string
+
+// EligibleList represents the list of peers who participate in consensus inside a shard
+const EligibleList PeerType = "eligible"
+
+// WaitingList represents the list of peers who don't participate in consensus but will join the next epoch
+const WaitingList PeerType = "waiting"
+
+// LeavingList represents the list of peers who were taken out of eligible and waiting because of rating
+const LeavingList PeerType = "leaving"
+
+// InactiveList represents the list of peers who were taken out because they were leaving
+const InactiveList PeerType = "inactive"
+
+// ObserverList represents the list of peers who don't participate in consensus but will join the next epoch
+const ObserverList PeerType = "observer"
+
+// NewList -
+const NewList PeerType = "new"
+
 // UnVersionedAppString represents the default app version that indicate that the binary wasn't build by setting
 // the appVersion flag
 const UnVersionedAppString = "undefined"
@@ -19,12 +40,19 @@ const pkPrefixSize = 12
 // FileModeUserReadWrite represents the permission for a file which allows the user for reading and writing
 const FileModeUserReadWrite = 0600
 
+// MaxTxNonceDeltaAllowed specifies the maximum difference between an account's nonce and a received transaction's nonce
+// in order to mark the transaction as valid.
+const MaxTxNonceDeltaAllowed = 30000
+
 // MaxBulkTransactionSize specifies the maximum size of one bulk with txs which can be send over the network
 //TODO convert this const into a var and read it from config when this code moves to another binary
-const MaxBulkTransactionSize = 2 << 17 //128KB bulks
+const MaxBulkTransactionSize = 1 << 18 //256KB bulks
 
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
+
+// HeartbeatTopic is the topic used for heartbeat signaling
+const HeartbeatTopic = "heartbeat"
 
 // PathShardPlaceholder represents the placeholder for the shard ID in paths
 const PathShardPlaceholder = "[S]"
@@ -47,6 +75,9 @@ const MetricProbableHighestNonce = "erd_probable_highest_nonce"
 // MetricNumConnectedPeers is the metric for monitoring the number of connected peers
 const MetricNumConnectedPeers = "erd_num_connected_peers"
 
+// MetricNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
+const MetricNumConnectedPeersClassification = "erd_num_connected_peers_classification"
+
 // MetricSynchronizedRound is the metric for monitoring the synchronized round of a node
 const MetricSynchronizedRound = "erd_synchronized_round"
 
@@ -56,12 +87,11 @@ const MetricIsSyncing = "erd_is_syncing"
 // MetricPublicKeyBlockSign is the metric for monitoring public key of a node used in block signing
 const MetricPublicKeyBlockSign = "erd_public_key_block_sign"
 
-// MetricPublicKeyTxSign is the metric for monitoring public key of a node used in tx signing
-// (balance account held by the node)
-const MetricPublicKeyTxSign = "erd_public_key_tx_sign"
-
 // MetricShardId is the metric for monitoring shard id of a node
 const MetricShardId = "erd_shard_id"
+
+// MetricNumShardsWithoutMetacahin is the metric for monitoring the number of shards (excluding meta)
+const MetricNumShardsWithoutMetacahin = "erd_num_shards_without_meta"
 
 // MetricTxPoolLoad is the metric for monitoring number of transactions from pool of a node
 const MetricTxPoolLoad = "erd_tx_pool_load"
@@ -81,7 +111,7 @@ const MetricNodeType = "erd_node_type"
 // MetricLiveValidatorNodes is the metric for monitoring live validators on the network
 const MetricLiveValidatorNodes = "erd_live_validator_nodes"
 
-// MetricConnectedNodes is the metric for monitoring total connected peers on the network
+// MetricConnectedNodes is the metric for monitoring total connected nodes on the network
 const MetricConnectedNodes = "erd_connected_nodes"
 
 // MetricCpuLoadPercent is the metric for monitoring CPU load [%]
@@ -165,9 +195,6 @@ const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 // MetricNumTimesInForkChoice is the metric that counts how many time a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
 
-// MaxMiniBlocksInBlock specifies the max number of mini blocks which can be added in one block
-const MaxMiniBlocksInBlock = 100
-
 //MetricHighestFinalBlockInShard is the metric that stores the highest nonce block notarized by metachain for current shard
 const MetricHighestFinalBlockInShard = "erd_highest_notarized_block_by_metachain_for_current_shard"
 
@@ -189,14 +216,23 @@ const MetricConsensusGroupSize = "erd_metric_consensus_group_size"
 //MetricNumValidators is the metric for the number of validators
 const MetricNumValidators = "erd_metric_num_validators"
 
+// MetricPeerType is the metric which tells the peer's type (in eligible list, in waiting list, or observer)
+const MetricPeerType = "erd_peer_type"
+
 //MetricLeaderPercentage is the metric for leader rewards percentage
 const MetricLeaderPercentage = "erd_metric_leader_percentage"
 
-//MetricCommunityPercentage is the metric for community rewards percentage
-const MetricCommunityPercentage = "erd_metric_community_percentage"
-
 //MetricDenominationCoefficient is the metric for denomination coefficient that is used in views
 const MetricDenominationCoefficient = "erd_metric_denomination_coefficient"
+
+// MetricRoundAtEpochStart is the metric for storing the first round of the current epoch
+const MetricRoundAtEpochStart = "erd_round_at_epoch_start"
+
+// MetricRoundsPerEpoch is the metric that tells the number of rounds in an epoch
+const MetricRoundsPerEpoch = "erd_rounds_per_epoch"
+
+// MetricRoundsPassedInCurrentEpoch is the metric that tells the number of rounds passed in current epoch
+const MetricRoundsPassedInCurrentEpoch = "erd_rounds_passed_in_current_epoch"
 
 //MetricReceivedProposedBlock is the metric that specify the moment in the round when the received block has reached the
 //current node. The value is provided in percent (0 meaning it has been received just after the round started and
@@ -213,5 +249,95 @@ const MetricCreatedProposedBlock = "erd_consensus_created_proposed_block"
 //subround spare duration)
 const MetricProcessedProposedBlock = "erd_consensus_processed_proposed_block"
 
+// MetricMinGasPrice is the metric that specifies min gas price
+const MetricMinGasPrice = "erd_min_gas_price"
+
+// MetricChainId is the metric that specifies current chain id
+const MetricChainId = "erd_chain_id"
+
+// MetachainShardId will be used to identify a shard ID as metachain
+const MetachainShardId = uint32(0xFFFFFFFF)
+
+// AllShardId will be used to identify that a message is for all shards
+const AllShardId = uint32(0xFFFFFFF0)
+
 // MegabyteSize represents the size in bytes of a megabyte
 const MegabyteSize = 1024 * 1024
+
+// BaseOperationCost represents the field name for base operation costs
+const BaseOperationCost = "BaseOperationCost"
+
+// BuiltInCost represents the field name for built in operation costs
+const BuiltInCost = "BuiltInCost"
+
+// MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
+const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"
+
+const (
+	// StorerOrder defines the order of storers to be notified of a start of epoch event
+	StorerOrder = iota
+	// NodesCoordinatorOrder defines the order in which NodesCoordinator is notified of a start of epoch event
+	NodesCoordinatorOrder
+	// ConsensusOrder defines the order in which Consensus is notified of a start of epoch event
+	ConsensusOrder
+	// NetworkShardingOrder defines the order in which the network sharding subsystem is notified of a start of epoch event
+	NetworkShardingOrder
+	// IndexerOrder defines the order in which Indexer is notified of a start of epoch event
+	IndexerOrder
+)
+
+// NodeState specifies what type of state a node could have
+type NodeState int
+
+const (
+	// NsSynchronized defines ID of a state of synchronized
+	NsSynchronized NodeState = iota
+	// NsNotSynchronized defines ID of a state of not synchronized
+	NsNotSynchronized
+	// NsNotCalculated defines ID of a state which is not calculated
+	NsNotCalculated
+)
+
+// MetricP2PPeerInfo is the metric for the node's p2p info
+const MetricP2PPeerInfo = "erd_p2p_peer_info"
+
+// MetricP2PIntraShardValidators is the metric that outputs the intra-shard connected validators
+const MetricP2PIntraShardValidators = "erd_p2p_intra_shard_validators"
+
+// MetricP2PCrossShardValidators is the metric that outputs the cross-shard connected validators
+const MetricP2PCrossShardValidators = "erd_p2p_cross_shard_validators"
+
+// MetricP2PIntraShardObservers is the metric that outputs the intra-shard connected observers
+const MetricP2PIntraShardObservers = "erd_p2p_intra_shard_observers"
+
+// MetricP2PCrossShardObservers is the metric that outputs the cross-shard connected observers
+const MetricP2PCrossShardObservers = "erd_p2p_cross_shard_observers"
+
+// MetricP2PUnknownPeers is the metric that outputs the unknown-shard connected peers
+const MetricP2PUnknownPeers = "erd_p2p_unknown_shard_peers"
+
+// MetricP2PNumConnectedPeersClassification is the metric for monitoring the number of connected peers split on the connection type
+const MetricP2PNumConnectedPeersClassification = "erd_p2p_num_connected_peers_classification"
+
+// HighestRoundFromBootStorage is the key for the highest round that is saved in storage
+const HighestRoundFromBootStorage = "highestRoundFromBootStorage"
+
+// TriggerRegistryKeyPrefix is the key prefix to save epoch start registry to storage
+const TriggerRegistryKeyPrefix = "epochStartTrigger_"
+
+// TriggerRegistryInitialKeyPrefix is the key prefix to save initial data to storage
+const TriggerRegistryInitialKeyPrefix = "initial_value_epoch_"
+
+// NodesCoordinatorRegistryKeyPrefix is the key prefix to save epoch start registry to storage
+const NodesCoordinatorRegistryKeyPrefix = "indexHashed_"
+
+const (
+	// BuiltInFunctionClaimDeveloperRewards is a built-in function
+	BuiltInFunctionClaimDeveloperRewards = "ClaimDeveloperRewards"
+	// BuiltInFunctionChangeOwnerAddress is a built-in function
+	BuiltInFunctionChangeOwnerAddress = "ChangeOwnerAddress"
+	// BuiltInFunctionSetUserName is a built-in function
+	BuiltInFunctionSetUserName = "SetUserName"
+	// BuiltInFunctionSaveKeyValue is a built-in function
+	BuiltInFunctionSaveKeyValue = "SaveKeyValue"
+)

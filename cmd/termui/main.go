@@ -7,18 +7,20 @@ import (
 	"runtime"
 	"syscall"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/termui/provider"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/presenter"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view/termuic"
 	"github.com/urfave/cli"
 )
 
 type config struct {
-	address  string
-	logLevel string
-	interval int
-	useWss   bool
+	logWithCorrelation bool
+	logWithLoggerName  bool
+	useWss             bool
+	interval           int
+	address            string
+	logLevel           string
 }
 
 var (
@@ -53,7 +55,21 @@ VERSION:
 		Destination: &argsConfig.logLevel,
 	}
 
-	// logLevel defines the logger levels and patterns
+	// logWithCorrelation is used when the user wants to include the log correlation elements in logs
+	logWithCorrelation = cli.BoolFlag{
+		Name:        "log-correlation",
+		Usage:       "Will include log correlation elements",
+		Destination: &argsConfig.logWithCorrelation,
+	}
+
+	// logWithLoggerName is used when the user wants to include the logger name in logs
+	logWithLoggerName = cli.BoolFlag{
+		Name:        "log-logger-name",
+		Usage:       "Will include logger name",
+		Destination: &argsConfig.logWithLoggerName,
+	}
+
+	// fetchInterval configures polling period
 	fetchInterval = cli.IntFlag{
 		Name:        "interval",
 		Usage:       "This flag specifies the duration in seconds until new data is fetched from the node",
@@ -89,7 +105,6 @@ func main() {
 
 func startTermuiViewer() error {
 	nodeAddress := argsConfig.address
-	logLevelFlagValue := argsConfig.logLevel
 	fetchIntervalFlagValue := argsConfig.interval
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
@@ -105,7 +120,13 @@ func startTermuiViewer() error {
 
 	statusMetricsProvider.StartUpdatingData()
 
-	err = provider.InitLogHandler(nodeAddress, logLevelFlagValue, argsConfig.useWss)
+	loggerProfile := logger.Profile{
+		LogLevelPatterns: argsConfig.logLevel,
+		WithCorrelation:  argsConfig.logWithCorrelation,
+		WithLoggerName:   argsConfig.logWithLoggerName,
+	}
+
+	err = provider.InitLogHandler(nodeAddress, loggerProfile, argsConfig.useWss)
 	if err != nil {
 		return err
 	}
@@ -131,6 +152,8 @@ func initCliFlags() {
 	cliApp.Flags = []cli.Flag{
 		address,
 		logLevel,
+		logWithCorrelation,
+		logWithLoggerName,
 		fetchInterval,
 		useWss,
 	}

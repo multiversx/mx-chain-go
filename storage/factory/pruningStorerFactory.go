@@ -3,12 +3,11 @@ package factory
 import (
 	"path/filepath"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/logger"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -24,7 +23,7 @@ const (
 // StorageServiceFactory handles the creation of storage services for both meta and shards
 type StorageServiceFactory struct {
 	generalConfig      *config.Config
-	shardCoordinator   sharding.Coordinator
+	shardCoordinator   storage.ShardCoordinator
 	pathManager        storage.PathManagerHandler
 	epochStartNotifier storage.EpochStartNotifier
 	currentEpoch       uint32
@@ -33,7 +32,7 @@ type StorageServiceFactory struct {
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
 func NewStorageServiceFactory(
 	config *config.Config,
-	shardCoordinator sharding.Coordinator,
+	shardCoordinator storage.ShardCoordinator,
 	pathManager storage.PathManagerHandler,
 	epochStartNotifier storage.EpochStartNotifier,
 	currentEpoch uint32,
@@ -78,6 +77,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	var metaHdrHashNonceUnit *pruning.PruningStorer
 	var shardHdrHashNonceUnit *pruning.PruningStorer
 	var bootstrapUnit *pruning.PruningStorer
+	var txLogsUnit *pruning.PruningStorer
 	var err error
 
 	successfullyCreatedStorers := make([]storage.Storer, 0)
@@ -186,6 +186,13 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, bootstrapUnit)
 
+	txLogsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.TxLogsStorage)
+	txLogsUnit, err = pruning.NewPruningStorer(txLogsUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, txLogsUnit)
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
@@ -200,6 +207,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
+	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 
 	return store, err
 }
@@ -212,9 +220,10 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	var metaHdrHashNonceUnit *pruning.PruningStorer
 	var miniBlockUnit *pruning.PruningStorer
 	var unsignedTxUnit *pruning.PruningStorer
-	var miniBlockHeadersUnit *pruning.PruningStorer
+	var rewardTxUnit *pruning.PruningStorer
 	var shardHdrHashNonceUnits []*pruning.PruningStorer
 	var bootstrapUnit *pruning.PruningStorer
+	var txLogsUnit *pruning.PruningStorer
 	var err error
 
 	successfullyCreatedStorers := make([]storage.Storer, 0)
@@ -300,19 +309,19 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, unsignedTxUnit)
 
+	rewardTxUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.RewardTxStorage)
+	rewardTxUnit, err = pruning.NewPruningStorer(rewardTxUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, rewardTxUnit)
+
 	miniBlockUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.MiniBlocksStorage)
 	miniBlockUnit, err = pruning.NewPruningStorer(miniBlockUnitArgs)
 	if err != nil {
 		return nil, err
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, miniBlockUnit)
-
-	miniBlockHeadersUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.MiniBlockHeadersStorage)
-	miniBlockHeadersUnit, err = pruning.NewPruningStorer(miniBlockHeadersUnitArgs)
-	if err != nil {
-		return nil, err
-	}
-	successfullyCreatedStorers = append(successfullyCreatedStorers, miniBlockHeadersUnit)
 
 	bootstrapUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.BootstrapStorage)
 	bootstrapUnit, err = pruning.NewPruningStorer(bootstrapUnitArgs)
@@ -321,6 +330,13 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, bootstrapUnit)
 
+	txLogsUnitArgs := psf.createPruningStorerArgs(psf.generalConfig.TxLogsStorage)
+	txLogsUnit, err = pruning.NewPruningStorer(txLogsUnitArgs)
+	if err != nil {
+		return nil, err
+	}
+	successfullyCreatedStorers = append(successfullyCreatedStorers, txLogsUnit)
+
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
@@ -328,7 +344,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
 	store.AddStorer(dataRetriever.UnsignedTransactionUnit, unsignedTxUnit)
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
-	store.AddStorer(dataRetriever.MiniBlockHeaderUnit, miniBlockHeadersUnit)
+	store.AddStorer(dataRetriever.RewardTransactionUnit, rewardTxUnit)
 	for i := uint32(0); i < psf.shardCoordinator.NumberOfShards(); i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
 		store.AddStorer(hdrNonceHashDataUnit, shardHdrHashNonceUnits[i])
@@ -336,6 +352,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	store.AddStorer(dataRetriever.HeartbeatUnit, heartbeatStorageUnit)
 	store.AddStorer(dataRetriever.BootstrapUnit, bootstrapUnit)
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
+	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 
 	return store, err
 }
@@ -346,7 +363,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(storageConfig config.S
 	numOfActivePersisters := uint32(psf.generalConfig.StoragePruning.NumActivePersisters)
 	pruningEnabled := psf.generalConfig.StoragePruning.Enabled
 	shardId := core.GetShardIdString(psf.shardCoordinator.SelfId())
-	dbPath := filepath.Join(psf.pathManager.PathForEpoch(shardId, 0, storageConfig.DB.FilePath))
+	dbPath := filepath.Join(psf.pathManager.PathForEpoch(shardId, psf.currentEpoch, storageConfig.DB.FilePath))
 	args := &pruning.StorerArgs{
 		Identifier:            storageConfig.DB.FilePath,
 		PruningEnabled:        pruningEnabled,

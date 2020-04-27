@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -56,9 +57,9 @@ func (hc *headersCounter) calculateNumOfShardMBHeaders(header *block.MetaBlock) 
 
 func (hc *headersCounter) displayLogInfo(
 	header *block.MetaBlock,
-	body block.Body,
+	body *block.Body,
 	headerHash []byte,
-	numHeadersFromPool int,
+	numShardHeadersFromPool int,
 	blockTracker process.BlockTracker,
 ) {
 	hc.calculateNumOfShardMBHeaders(header)
@@ -73,11 +74,11 @@ func (hc *headersCounter) displayLogInfo(
 	}
 
 	hc.shardMBHeaderCounterMutex.RLock()
-	message := fmt.Sprintf("header hash: %s\n%s", display.DisplayByteSlice(headerHash), tblString)
+	message := fmt.Sprintf("header hash: %s\n%s", logger.DisplayByteSlice(headerHash), tblString)
 	arguments := []interface{}{
 		"total MB processed", hc.shardMBHeadersTotalProcessed,
 		"block MB processed", hc.shardMBHeadersCurrentBlockProcessed,
-		"shard headers in pool", numHeadersFromPool,
+		"shard headers in pool", numShardHeadersFromPool,
 	}
 	hc.shardMBHeaderCounterMutex.RUnlock()
 
@@ -99,7 +100,12 @@ func (hc *headersCounter) createDisplayableMetaHeader(
 			"MetaBlock"}),
 	}
 
-	lines := displayHeader(header)
+	var lines []*display.LineData
+	if header.IsStartOfEpochBlock() {
+		lines = displayEpochStartMetaBlock(header)
+	} else {
+		lines = displayHeader(header)
+	}
 
 	metaLines := make([]*display.LineData, 0, len(lines)+len(metaLinesHeader))
 	metaLines = append(metaLines, metaLinesHeader...)
@@ -117,7 +123,7 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 		lines = append(lines, display.NewLineData(false, []string{
 			fmt.Sprintf("ShardData_%d", shardData.ShardID),
 			"Header hash",
-			display.DisplayByteSlice(shardData.HeaderHash)}))
+			logger.DisplayByteSlice(shardData.HeaderHash)}))
 
 		if shardData.ShardMiniBlockHeaders == nil || len(shardData.ShardMiniBlockHeaders) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
@@ -132,7 +138,7 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
 					fmt.Sprintf("%d ShardMiniBlockHeaderHash_%d_%d", j+1, senderShard, receiverShard),
-					display.DisplayByteSlice(shardData.ShardMiniBlockHeaders[j].Hash)}))
+					logger.DisplayByteSlice(shardData.ShardMiniBlockHeaders[j].Hash)}))
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
@@ -147,11 +153,11 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *bl
 	return lines
 }
 
-func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, body block.Body) []*display.LineData {
+func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, body *block.Body) []*display.LineData {
 	currentBlockTxs := 0
 
-	for i := 0; i < len(body); i++ {
-		miniBlock := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		miniBlock := body.MiniBlocks[i]
 
 		part := fmt.Sprintf("%s_MiniBlock_%d->%d",
 			miniBlock.Type.String(),
@@ -170,7 +176,7 @@ func (hc *headersCounter) displayTxBlockBody(lines []*display.LineData, body blo
 				lines = append(lines, display.NewLineData(false, []string{
 					part,
 					fmt.Sprintf("TxHash_%d", j+1),
-					display.DisplayByteSlice(miniBlock.TxHashes[j])}))
+					logger.DisplayByteSlice(miniBlock.TxHashes[j])}))
 
 				part = ""
 			} else if j == 1 {
@@ -194,4 +200,87 @@ func (hc *headersCounter) getNumShardMBHeadersTotalProcessed() uint64 {
 	defer hc.shardMBHeaderCounterMutex.Unlock()
 
 	return hc.shardMBHeadersTotalProcessed
+}
+
+func displayEpochStartMetaBlock(block *block.MetaBlock) []*display.LineData {
+	lines := displayHeader(block)
+	economicsLines := displayEconomicsData(block.EpochStart.Economics)
+	lines = append(lines, economicsLines...)
+
+	for _, shardData := range block.EpochStart.LastFinalizedHeaders {
+		shardDataLines := displayEpochStartShardData(shardData)
+		lines = append(lines, shardDataLines...)
+	}
+
+	return lines
+}
+
+func displayEpochStartShardData(shardData block.EpochStartShardData) []*display.LineData {
+	lines := []*display.LineData{
+		display.NewLineData(false, []string{
+			fmt.Sprintf("EpochStartShardData - Shard %d", shardData.ShardID),
+			"Round",
+			fmt.Sprintf("%d", shardData.Round)}),
+		display.NewLineData(false, []string{
+			"",
+			"Nonce",
+			fmt.Sprintf("%d", shardData.Nonce)}),
+		display.NewLineData(false, []string{
+			"",
+			"FirstPendingMetaBlock",
+			logger.DisplayByteSlice(shardData.FirstPendingMetaBlock)}),
+		display.NewLineData(false, []string{
+			"",
+			"LastFinishedMetaBlock",
+			logger.DisplayByteSlice(shardData.LastFinishedMetaBlock)}),
+		display.NewLineData(false, []string{
+			"",
+			"HeaderHash",
+			logger.DisplayByteSlice(shardData.HeaderHash)}),
+		display.NewLineData(false, []string{
+			"",
+			"RootHash",
+			logger.DisplayByteSlice(shardData.RootHash)}),
+		display.NewLineData(false, []string{
+			"",
+			"PendingMiniBlockHeaders count",
+			fmt.Sprintf("%d", len(shardData.PendingMiniBlockHeaders))}),
+	}
+
+	lines[len(lines)-1].HorizontalRuleAfter = true
+
+	return lines
+}
+
+func displayEconomicsData(economics block.Economics) []*display.LineData {
+	return []*display.LineData{
+		display.NewLineData(false, []string{
+			"Epoch Start - Economics",
+			"PrevEpochStartHash",
+			logger.DisplayByteSlice(economics.PrevEpochStartHash)}),
+		display.NewLineData(false, []string{
+			"",
+			"NodePrice",
+			economics.NodePrice.String()}),
+		display.NewLineData(false, []string{
+			"",
+			"RewardsPerBlockPerNode",
+			economics.RewardsPerBlockPerNode.String()}),
+		display.NewLineData(false, []string{
+			"",
+			"TotalSupply",
+			economics.TotalSupply.String()}),
+		display.NewLineData(false, []string{
+			"",
+			"TotalNewlyMinted",
+			economics.TotalNewlyMinted.String()}),
+		display.NewLineData(false, []string{
+			"",
+			"TotalToDistribute",
+			economics.TotalToDistribute.String()}),
+		display.NewLineData(true, []string{
+			"",
+			"PrevEpochStartRound",
+			fmt.Sprintf("%d", economics.PrevEpochStartRound)}),
+	}
 }

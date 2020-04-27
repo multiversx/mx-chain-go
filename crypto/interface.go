@@ -6,7 +6,6 @@ import (
 
 // A Scalar represents a scalar value by which
 // a Point (group element) may be encrypted to produce another Point.
-// adapted from kyber
 type Scalar interface {
 	// MarshalBinary transforms the Scalar into a byte array
 	MarshalBinary() ([]byte, error)
@@ -38,7 +37,7 @@ type Scalar interface {
 	// Inv returns the modular inverse of scalar s given as parameter
 	Inv(s Scalar) (Scalar, error)
 	// Pick returns a fresh random or pseudo-random scalar
-	Pick(rand cipher.Stream) (Scalar, error)
+	Pick() (Scalar, error)
 	// SetBytes sets the scalar from a byte-slice,
 	// reducing if necessary to the appropriate modulus.
 	SetBytes([]byte) (Scalar, error)
@@ -49,7 +48,6 @@ type Scalar interface {
 }
 
 // Point represents an element of a public-key cryptographic Group.
-// adapted from kyber
 type Point interface {
 	// MarshalBinary transforms the Point into a byte array
 	MarshalBinary() ([]byte, error)
@@ -60,8 +58,6 @@ type Point interface {
 	Equal(p Point) (bool, error)
 	// Null returns the neutral identity element.
 	Null() Point
-	// Base returns the Group's base point.
-	Base() Point
 	// Set sets the receiver equal to another Point p.
 	Set(p Point) error
 	// Clone returns a clone of the receiver.
@@ -77,7 +73,7 @@ type Point interface {
 	// Mul returns the result of multiplying receiver by the scalar s.
 	Mul(s Scalar) (Point, error)
 	// Pick returns a fresh random or pseudo-random Point.
-	Pick(rand cipher.Stream) (Point, error)
+	Pick() (Point, error)
 	// GetUnderlyingObj returns the object the implementation wraps
 	GetUnderlyingObj() interface{}
 	// IsInterfaceNil returns true if there is no value under the interface
@@ -85,7 +81,6 @@ type Point interface {
 }
 
 // Group defines a mathematical group used for Diffie-Hellmann operations
-// adapted from kyber
 type Group interface {
 	// String returns the string for the group
 	String() string
@@ -97,12 +92,13 @@ type Group interface {
 	PointLen() int
 	// CreatePoint creates a new point
 	CreatePoint() Point
+	// CreatePointForScalar creates a new point corresponding to the given scalar
+	CreatePointForScalar(scalar Scalar) (Point, error)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 
 // Random is an interface that can be mixed in to local suite definitions.
-// adapted from kyber
 type Random interface {
 	// RandomStream returns a cipher.Stream that produces a
 	// cryptographically random key stream. The stream must
@@ -111,12 +107,11 @@ type Random interface {
 }
 
 // Suite represents the list of functionalities needed by this package.
-// adapted from kyber
 type Suite interface {
 	Group
 	Random
 	// CreateKeyPair creates a scalar and a point pair that can be used in asymmetric cryptography
-	CreateKeyPair(cipher.Stream) (Scalar, Point)
+	CreateKeyPair() (Scalar, Point)
 	// GetUnderlyingSuite returns the library suite that crypto.Suite wraps
 	GetUnderlyingSuite() interface{}
 }
@@ -212,14 +207,7 @@ type LowLevelSignerBLS interface {
 	// VerifySigBytes verifies if a byte array represents a BLS signature
 	VerifySigBytes(suite Suite, sig []byte) error
 	// AggregateSignatures aggregates BLS single signatures given as byte arrays
-	AggregateSignatures(suite Suite, sigs ...[]byte) ([]byte, error)
+	AggregateSignatures(suite Suite, signatures [][]byte, pubKeysSigners []PublicKey) ([]byte, error)
 	// VerifyAggregatedSig verifies the validity of an aggregated signature over a given message
-	VerifyAggregatedSig(suite Suite, aggPointsBytes []byte, aggSigBytes []byte, msg []byte) error
-	// AggregatePublicKeys aggregates a list of public key Points. Returns the byte array representation of the point
-	AggregatePublicKeys(suite Suite, pubKeys ...Point) ([]byte, error)
-	// ScalarMulSig provides the result of multiplying a scalar with a signature.
-	// This is used in the modified BLS multi-signature scheme
-	ScalarMulSig(suite Suite, scalar Scalar, sig []byte) ([]byte, error)
-	// IsInterfaceNil returns true if there is no value under the interface
-	IsInterfaceNil() bool
+	VerifyAggregatedSig(suite Suite, pubKeys []PublicKey, aggSigBytes []byte, msg []byte) error
 }

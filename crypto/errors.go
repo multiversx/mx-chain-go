@@ -16,6 +16,9 @@ var ErrNilPrivateKeyScalar = errors.New("private key holds a nil scalar")
 // ErrInvalidScalar is raised when an invalid scalar is used
 var ErrInvalidScalar = errors.New("scalar is invalid")
 
+// ErrInvalidPoint is raised when an invalid point is used
+var ErrInvalidPoint = errors.New("point is invalid")
+
 // ErrNilPublicKeys is raised when public keys are expected but received nil
 var ErrNilPublicKeys = errors.New("public keys are nil")
 
@@ -76,23 +79,8 @@ var ErrNilMessage = errors.New("message to be signed or to be verified is nil")
 // ErrBitmapMismatch is raised when an invalid bitmap is passed to the multisigner
 var ErrBitmapMismatch = errors.New("multi signer reported a mismatch in used bitmap")
 
-// ErrBitmapNotSet is raised when a cleared bitmap is used
-var ErrBitmapNotSet = errors.New("bitmap is not set")
-
-// ErrNilCommitment is raised when a nil commitment is used
-var ErrNilCommitment = errors.New("commitment is nil")
-
 // ErrNilBitmap is raised when a nil bitmap is used
 var ErrNilBitmap = errors.New("bitmap is nil")
-
-// ErrNilCommitmentSecret is raised when a nil commitment secret is used
-var ErrNilCommitmentSecret = errors.New("commitment secret is nil")
-
-// ErrNilAggregatedCommitment is raised when nil aggregated commitment is used
-var ErrNilAggregatedCommitment = errors.New("aggregated commitment is nil")
-
-// ErrNilCommitmentHash is raised when a nil commitment hash is used
-var ErrNilCommitmentHash = errors.New("commitment hash is nil")
 
 // ErrSigNotValid is raised when a signature verification fails due to invalid signature
 var ErrSigNotValid = errors.New("signature is invalid")
@@ -105,3 +93,21 @@ var ErrEmptyPubKeyString = errors.New("public key string is empty")
 
 // ErrInvalidSigner is raised when the signer is invalid
 var ErrInvalidSigner = errors.New("signer is invalid")
+
+// ErrEd25519InvalidSignature will be returned when ed25519 signature verification fails
+var ErrEd25519InvalidSignature = errors.New("ed25519: invalid signature")
+
+// ErrBLSInvalidSignature will be returned when the provided BLS signature is invalid
+var ErrBLSInvalidSignature = errors.New("bls12-381: invalid signature")
+
+// ErrGeneratingPubFromPriv signals that there was an error generating a public key corresponding to a provided private key
+var ErrGeneratingPubFromPriv = errors.New("unable to generate PublicKey from provided private key")
+
+// ErrNotImplemented signals that a method is not implemented for an interface implementation
+var ErrNotImplemented = errors.New("not implemented")
+
+// ErrWrongPrivateKeySize signals that the length of the provided private key is not the expected one
+var ErrWrongPrivateKeySize = errors.New("wrong private key size")
+
+// ErrWrongPrivateKeyStructure signals that the structure of the private key is incorrect
+var ErrWrongPrivateKeyStructure = errors.New("wrong private key structure")

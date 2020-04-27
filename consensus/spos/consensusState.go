@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -27,6 +27,7 @@ type ConsensusState struct {
 	RoundIndex     int64
 	RoundTimeStamp time.Time
 	RoundCanceled  bool
+	ExtendedCalled bool
 
 	processingBlock    bool
 	mutProcessingBlock sync.RWMutex
@@ -63,6 +64,7 @@ func (cns *ConsensusState) ResetConsensusState() {
 	cns.initReceivedHeaders()
 
 	cns.RoundCanceled = false
+	cns.ExtendedCalled = false
 
 	cns.ResetRoundStatus()
 	cns.ResetRoundState()
@@ -74,12 +76,14 @@ func (cns *ConsensusState) initReceivedHeaders() {
 	cns.mutReceivedHeaders.Unlock()
 }
 
+// AddReceivedHeader append the provided header to the inner received headers list
 func (cns *ConsensusState) AddReceivedHeader(headerHandler data.HeaderHandler) {
 	cns.mutReceivedHeaders.Lock()
 	cns.receivedHeaders = append(cns.receivedHeaders, headerHandler)
 	cns.mutReceivedHeaders.Unlock()
 }
 
+// GetReceivedHeaders returns the received headers list
 func (cns *ConsensusState) GetReceivedHeaders() []data.HeaderHandler {
 	cns.mutReceivedHeaders.RLock()
 	receivedHeaders := cns.receivedHeaders
@@ -124,23 +128,29 @@ func (cns *ConsensusState) GetNextConsensusGroup(
 	round uint64,
 	shardId uint32,
 	nodesCoordinator sharding.NodesCoordinator,
-) ([]string, []string, error) {
-
-	validatorsGroup, err := nodesCoordinator.ComputeValidatorsGroup(randomSource, round, shardId)
+	epoch uint32,
+) ([]string, error) {
+	validatorsGroup, err := nodesCoordinator.ComputeConsensusGroup(randomSource, round, shardId, epoch)
 	if err != nil {
-		return nil, nil, err
+		log.Debug(
+			"compute consensus group",
+			"error", err.Error(),
+			"randomSource", randomSource,
+			"round", round,
+			"shardId", shardId,
+			"epoch", epoch,
+		)
+		return nil, err
 	}
 
 	consensusSize := len(validatorsGroup)
 	newConsensusGroup := make([]string, consensusSize)
-	consensusRewardAddresses := make([]string, consensusSize)
 
 	for i := 0; i < consensusSize; i++ {
 		newConsensusGroup[i] = string(validatorsGroup[i].PubKey())
-		consensusRewardAddresses[i] = string(validatorsGroup[i].Address())
 	}
 
-	return newConsensusGroup, consensusRewardAddresses, nil
+	return newConsensusGroup, nil
 }
 
 // IsConsensusDataSet method returns true if the consensus data for the current round is set and false otherwise

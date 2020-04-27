@@ -16,7 +16,7 @@ func createGenesisBlock(shardId uint32) *block.Header {
 		Signature:       rootHash,
 		RandSeed:        rootHash,
 		PrevRandSeed:    rootHash,
-		ShardId:         shardId,
+		ShardID:         shardId,
 		PubKeysBitmap:   rootHash,
 		RootHash:        rootHash,
 		PrevHash:        rootHash,
@@ -24,22 +24,13 @@ func createGenesisBlock(shardId uint32) *block.Header {
 	}
 }
 
-func TestDisplayBlock_GetNumTxFromPool_NilDataPoolReturnZero(t *testing.T) {
-	t.Parallel()
-
-	transactionCounter := NewTransactionCounter()
-	numTxs := transactionCounter.getNumTxsFromPool(0, nil, 1)
-
-	assert.Equal(t, 0, numTxs)
-}
-
 func TestDisplayBlock_DisplayMetaHashesIncluded(t *testing.T) {
 	t.Parallel()
 
 	shardLines := make([]*display.LineData, 0)
 	header := createGenesisBlock(0)
-	transactionCounter := NewTransactionCounter()
-	lines := transactionCounter.displayMetaHashesIncluded(
+	txCounter := NewTransactionCounter()
+	lines := txCounter.displayMetaHashesIncluded(
 		shardLines,
 		header,
 	)
@@ -52,15 +43,15 @@ func TestDisplayBlock_DisplayTxBlockBody(t *testing.T) {
 	t.Parallel()
 
 	shardLines := make([]*display.LineData, 0)
-	body := make(block.Body, 0)
+	body := &block.Body{}
 	miniblock := block.MiniBlock{
 		ReceiverShardID: 0,
 		SenderShardID:   1,
 		TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2"), []byte("hash3")},
 	}
-	body = append(body, &miniblock)
-	transactionCounter := NewTransactionCounter()
-	lines := transactionCounter.displayTxBlockBody(
+	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
+	txCounter := NewTransactionCounter()
+	lines := txCounter.displayTxBlockBody(
 		shardLines,
 		body,
 	)

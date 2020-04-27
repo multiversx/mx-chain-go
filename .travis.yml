@@ -1,0 +1,68 @@
+language: go
+
+go: "1.13"
+
+os:
+- linux
+- osx
+
+arch:
+- amd64
+- arm64
+
+osx_image: xcode11.3
+
+before_script:
+- APP_VER=$(git describe --tags --long --dirty)
+- APP_VER_SHORT=$(git describe --tags)
+- GOOS=$(go env GOOS)
+- GOARCH=$(go env GOARCH)
+- ARCHIVE="elrond_""$APP_VER_SHORT""_""$GOOS""_""$GOARCH"".tgz"
+
+script:
+- ERD_PACKAGE=node
+- cd $TRAVIS_BUILD_DIR/cmd/$ERD_PACKAGE
+- go build -o "$TRAVIS_BUILD_DIR/build/$ERD_PACKAGE" -a -i -ldflags="-X main.appVersion=$APP_VER"
+- ERD_PACKAGE=keygenerator
+- cd $TRAVIS_BUILD_DIR/cmd/$ERD_PACKAGE
+- go build -o "$TRAVIS_BUILD_DIR/build/$ERD_PACKAGE" -a -i -ldflags="-X main.appVersion=$APP_VER"
+- ERD_PACKAGE=logviewer
+- cd $TRAVIS_BUILD_DIR/cmd/$ERD_PACKAGE
+- go build -o "$TRAVIS_BUILD_DIR/build/$ERD_PACKAGE" -a -i -ldflags="-X main.appVersion=$APP_VER"
+- ERD_PACKAGE=termui
+- cd $TRAVIS_BUILD_DIR/cmd/$ERD_PACKAGE
+- go build -o "$TRAVIS_BUILD_DIR/build/$ERD_PACKAGE" -a -i -ldflags="-X main.appVersion=$APP_VER"
+- cd $TRAVIS_BUILD_DIR 
+- ARWEN_PATH=$TRAVIS_BUILD_DIR/build/arwen make arwen
+
+- GOOS=$(go env GOOS)
+- GOARCH=$(go env GOARCH)
+- cd $TRAVIS_BUILD_DIR
+- ARWEN_VERSION=$(cat go.mod | grep arwen | sed 's/^.*arwen-wasm-vm *//')
+- if [[ "$GOOS" == linux && "$GOARCH" == amd64 ]]; then
+    cp -f $GOPATH/pkg/mod/github.com/\!elrond\!network/arwen-wasm-vm@$ARWEN_VERSION/wasmer/libwasmer_linux_amd64.so $TRAVIS_BUILD_DIR/build;
+  fi
+- if [[ "$GOOS" == linux && "$GOARCH" == arm64 ]]; then
+    cp -f $GOPATH/pkg/mod/github.com/\!elrond\!network/arwen-wasm-vm@$ARWEN_VERSION/wasmer/libwasmer_linux_arm64.so $TRAVIS_BUILD_DIR/build;
+  fi
+- if [[ "$GOOS" == darwin && "$GOARCH" == amd64 ]]; then
+    cp -f $GOPATH/pkg/mod/github.com/\!elrond\!network/arwen-wasm-vm@$ARWEN_VERSION/wasmer/libwasmer_darwin_amd64.dylib $TRAVIS_BUILD_DIR/build;
+  fi
+
+before_deploy:
+- cd "$TRAVIS_BUILD_DIR/build"
+- tar czvf "$TRAVIS_BUILD_DIR/$ARCHIVE" *
+
+after_deploy:
+- rm -rf "$TRAVIS_BUILD_DIR/build"
+- rm -rf "$TRAVIS_BUILD_DIR/$ARCHIVE"
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: PVnsoQM0PWm+2dxXe3zNFIwtNUazJVxexXGzLUAsXuTlnNOGUoiLUDO2qWECVop/kkMPLhV+D1grtU+G8cHBWps4MD216sImGP5NuzBpE7wCRfQ6siW3aGv96AtnXVtDSS2JvDqgAgbaw9Kr+UYuT4ZakavCFiQye3PtMz+n7Ts3kVBqYoPTYOB/BGb+623sHMKmbfLNw2mNHLzrCm3EMxVtAKXCPctGVTXWTFpRCBkONBwjG7+hK5Rl2t7hXrtwub0+KWBelRsMOagW+aDYMBvv2cFZP43ihbUva9vHYa5SkpZn3IYhO95pGXs83XxXNs7pDXmNiwkdL03GQXWj7/W2iL0CP4I8jtETktrdyQCjdshNl2Ud2FE8/8i1Br2Y7P4/9spZF913nMtKxishcXMZpGZQ0ys023p94UpwVfra78HDYcLCKuZt8+TTomsiTrAZcZy0bM77zSuI9GcESZfqmJA+dBLMgtr57sUUqzUvKTfcVSq4nurBy9qWSrOYoo9fiIGzyPdtJblCil8gOUHzgRKSJDH30QnccjUKgJvVLrbEMa26fgUZGUS+3y8G8GrwAjOiNxtaBc0aHQ+vFG0B5lLIGMiwrPNXdz1P4WtHH67WiByPe2fdXUV5POpvwxwqwAg7ZM1EsToow7bwXJKE4CPBr/p/UJF1hljRe6I=
+  file: "$TRAVIS_BUILD_DIR/$ARCHIVE"
+  draft: true
+  on:
+    tags: true

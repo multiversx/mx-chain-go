@@ -1,21 +1,23 @@
 package containers
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/container"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/cornelk/hashmap"
 )
 
 // intermediateTransactionHandlersContainer is an IntermediateTransactionHandlers holder organized by type
 type intermediateTransactionHandlersContainer struct {
-	objects *hashmap.HashMap
+	objects *container.MutexMap
 }
 
 // NewIntermediateTransactionHandlersContainer will create a new instance of a container
 func NewIntermediateTransactionHandlersContainer() *intermediateTransactionHandlersContainer {
 	return &intermediateTransactionHandlersContainer{
-		objects: &hashmap.HashMap{},
+		objects: container.NewMutexMap(),
 	}
 }
 
@@ -24,7 +26,7 @@ func NewIntermediateTransactionHandlersContainer() *intermediateTransactionHandl
 func (ppc *intermediateTransactionHandlersContainer) Get(key block.Type) (process.IntermediateTransactionHandler, error) {
 	value, ok := ppc.objects.Get(uint8(key))
 	if !ok {
-		return nil, process.ErrInvalidContainerKey
+		return nil, fmt.Errorf("%w in intermediate transaction handlers container for key %v", process.ErrInvalidContainerKey, key)
 	}
 
 	interProcessor, ok := value.(process.IntermediateTransactionHandler)
@@ -79,7 +81,7 @@ func (ppc *intermediateTransactionHandlersContainer) Replace(key block.Type, int
 
 // Remove will remove an object at a given key
 func (ppc *intermediateTransactionHandlersContainer) Remove(key block.Type) {
-	ppc.objects.Del(uint8(key))
+	ppc.objects.Remove(uint8(key))
 }
 
 // Len returns the length of the added objects
@@ -89,17 +91,17 @@ func (ppc *intermediateTransactionHandlersContainer) Len() int {
 
 // Keys returns all the existing keys in the container
 func (ppc *intermediateTransactionHandlersContainer) Keys() []block.Type {
-	keys := make([]block.Type, 0)
-	for key := range ppc.objects.Iter() {
-		uint8key, ok := key.Key.(uint8)
+	keys := ppc.objects.Keys()
+	keysByte := make([]block.Type, 0, len(keys))
+	for _, k := range keys {
+		key, ok := k.(byte)
 		if !ok {
 			continue
 		}
-
-		blockType := block.Type(uint8key)
-		keys = append(keys, blockType)
+		keysByte = append(keysByte, block.Type(key))
 	}
-	return keys
+
+	return keysByte
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -58,6 +58,7 @@ type TxValidator interface {
 // TxValidatorHandler defines the functionality that is needed for a TxValidator to validate a transaction
 type TxValidatorHandler interface {
 	SenderShardId() uint32
+	ReceiverShardId() uint32
 	Nonce() uint64
 	SenderAddress() state.AddressContainer
 	Fee() *big.Int
@@ -88,17 +89,19 @@ type InterceptedData interface {
 	IsInterfaceNil() bool
 	Hash() []byte
 	Type() string
+	Identifiers() [][]byte
+	String() string
 }
 
 // InterceptorProcessor further validates and saves received data
 type InterceptorProcessor interface {
-	Validate(data InterceptedData) error
-	Save(data InterceptedData) error
+	Validate(data InterceptedData, fromConnectedPeer p2p.PeerID) error
+	Save(data InterceptedData, fromConnectedPeer p2p.PeerID) error
 	SignalEndOfProcessing(data []InterceptedData)
 	IsInterfaceNil() bool
 }
 
-// InterceptorThrottler can
+// InterceptorThrottler can monitor the number of the currently running interceptor go routines
 type InterceptorThrottler interface {
 	CanProcess() bool
 	StartProcessing()
@@ -109,56 +112,56 @@ type InterceptorThrottler interface {
 // TransactionCoordinator is an interface to coordinate transaction processing using multiple processors
 type TransactionCoordinator interface {
 	RequestMiniBlocks(header data.HeaderHandler)
-	RequestBlockTransactions(body block.Body)
+	RequestBlockTransactions(body *block.Body)
 	IsDataPreparedForProcessing(haveTime func() time.Duration) error
 
-	SaveBlockDataToStorage(body block.Body) error
-	RestoreBlockDataFromStorage(body block.Body) (int, error)
-	RemoveBlockDataFromPool(body block.Body) error
+	SaveBlockDataToStorage(body *block.Body) error
+	RestoreBlockDataFromStorage(body *block.Body) (int, error)
+	RemoveBlockDataFromPool(body *block.Body) error
 
-	ProcessBlockTransaction(body block.Body, haveTime func() time.Duration) error
+	ProcessBlockTransaction(body *block.Body, haveTime func() time.Duration) error
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksHashes map[string]struct{}, maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) (block.MiniBlockSlice, uint32, bool)
-	CreateMbsAndProcessTransactionsFromMe(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) block.MiniBlockSlice
+	CreateMbsAndProcessCrossShardTransactionsDstMe(
+		header data.HeaderHandler,
+		processedMiniBlocksHashes map[string]struct{},
 
-	CreateMarshalizedData(body block.Body) (map[uint32]block.MiniBlockSlice, map[string][][]byte)
+		haveTime func() bool,
+	) (block.MiniBlockSlice, uint32, bool, error)
+	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool) block.MiniBlockSlice
 
+	CreateMarshalizedData(body *block.Body) map[string][][]byte
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
 
 	CreateReceiptsHash() ([]byte, error)
-	VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body block.Body) error
+	VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body *block.Body) error
 	IsInterfaceNil() bool
 }
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
-	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.AccountHandler) error
-	DeploySmartContract(tx data.TransactionHandler, acntSrc state.AccountHandler) error
+	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) error
+	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) error
+	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, snapshot int) error
 	IsInterfaceNil() bool
 }
 
 // IntermediateTransactionHandler handles transactions which are not resolved in only one step
 type IntermediateTransactionHandler interface {
 	AddIntermediateTransactions(txs []data.TransactionHandler) error
-	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
-	VerifyInterMiniBlocks(body block.Body) error
+	CreateAllInterMiniBlocks() []*block.MiniBlock
+	VerifyInterMiniBlocks(body *block.Body) error
 	SaveCurrentIntermediateTxToStorage() error
 	GetAllCurrentFinishedTxs() map[string]data.TransactionHandler
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
+	RemoveProcessedResultsFor(txHashes [][]byte)
 	IsInterfaceNil() bool
 }
 
 // DataMarshalizer defines the behavior of a structure that is able to marshalize containing data
 type DataMarshalizer interface {
 	CreateMarshalizedData(txHashes [][]byte) ([][]byte, error)
-}
-
-// InternalTransactionProducer creates system transactions (e.g. rewards)
-type InternalTransactionProducer interface {
-	CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock
-	IsInterfaceNil() bool
 }
 
 // TransactionVerifier interface validates if the transaction is good and if it should be processed
@@ -168,25 +171,10 @@ type TransactionVerifier interface {
 
 // TransactionFeeHandler processes the transaction fee
 type TransactionFeeHandler interface {
-	ProcessTransactionFee(cost *big.Int)
-	IsInterfaceNil() bool
-}
-
-// SpecialAddressHandler responds with needed special addresses
-type SpecialAddressHandler interface {
-	SetShardConsensusData(randomness []byte, round uint64, epoch uint32, shardID uint32) error
-	SetMetaConsensusData(randomness []byte, round uint64, epoch uint32) error
-	ConsensusShardRewardData() *data.ConsensusRewardData
-	ConsensusMetaRewardData() []*data.ConsensusRewardData
-	ClearMetaConsensusData()
-	ElrondCommunityAddress() []byte
-	LeaderAddress() []byte
-	BurnAddress() []byte
-	SetElrondCommunityAddress(elrond []byte)
-	ShardIdForAddress([]byte) (uint32, error)
-	Epoch() uint32
-	Round() uint64
-	IsCurrentNodeInConsensus() bool
+	CreateBlockStarted()
+	GetAccumulatedFees() *big.Int
+	ProcessTransactionFee(cost *big.Int, txHash []byte)
+	RevertFees(txHashes [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -195,16 +183,16 @@ type PreProcessor interface {
 	CreateBlockStarted()
 	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error
 
-	RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error
-	RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, error)
-	SaveTxBlockToStorage(body block.Body) error
+	RemoveTxBlockFromPools(body *block.Body, miniBlockPool storage.Cacher) error
+	RestoreTxBlockIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error)
+	SaveTxBlockToStorage(body *block.Body) error
 
-	ProcessBlockTransactions(body block.Body, haveTime func() bool) error
-	RequestBlockTransactions(body block.Body) int
+	ProcessBlockTransactions(body *block.Body, haveTime func() bool) error
+	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) error
-	CreateAndProcessMiniBlocks(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) (block.MiniBlockSlice, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) ([][]byte, error)
+	CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	IsInterfaceNil() bool
@@ -212,17 +200,16 @@ type PreProcessor interface {
 
 // BlockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
-	ProcessBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	CommitBlock(blockChain data.ChainHandler, header data.HeaderHandler, body data.BodyHandler) error
-	RevertAccountState()
+	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlock(header data.HeaderHandler, body data.BodyHandler) error
+	RevertAccountState(header data.HeaderHandler)
+	PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RevertStateToBlock(header data.HeaderHandler) error
-	CreateNewHeader() data.HeaderHandler
-	CreateBlockBody(initialHdrData data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error)
+	CreateNewHeader(round uint64, nonce uint64) data.HeaderHandler
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
-	ApplyBodyToHeader(hdr data.HeaderHandler, body data.BodyHandler) (data.BodyHandler, error)
+	CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	ApplyProcessedMiniBlocks(processedMiniBlocks *processedMb.ProcessedMiniBlockTracker)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
-	DecodeBlockBodyAndHeader(dta []byte) (data.BodyHandler, data.HeaderHandler)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)
@@ -231,13 +218,30 @@ type BlockProcessor interface {
 
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
 type ValidatorStatisticsProcessor interface {
-	UpdatePeerState(header data.HeaderHandler) ([]byte, error)
+	UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error)
 	RevertPeerState(header data.HeaderHandler) error
-	RevertPeerStateToSnapshot(snapshot int) error
 	GetPeerAccount(address []byte) (state.PeerAccountHandler, error)
+	Process(shardValidatorInfo data.ShardValidatorInfoHandler) error
 	IsInterfaceNil() bool
-	Commit() ([]byte, error)
 	RootHash() ([]byte, error)
+	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error
+	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
+	ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo) error
+	Commit() ([]byte, error)
+}
+
+// TransactionLogProcessor is the main interface for saving logs generated by smart contract calls
+type TransactionLogProcessor interface {
+	GetLog(txHash []byte) (data.LogHandler, error)
+	SaveLog(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error
+	IsInterfaceNil() bool
+}
+
+// ValidatorsProvider is the main interface for validators' provider
+type ValidatorsProvider interface {
+	GetLatestValidators() map[string]*state.ValidatorApiResponse
+	GetLatestValidatorInfos() (map[uint32][]*state.ValidatorInfo, error)
+	IsInterfaceNil() bool
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -277,7 +281,7 @@ type HashAccesser interface {
 // to synchronize the node
 type Bootstrapper interface {
 	AddSyncStateListener(func(isSyncing bool))
-	ShouldSync() bool
+	GetNodeState() core.NodeState
 	StopSync()
 	StartSync()
 	SetStatusHandler(handler core.AppStatusHandler) error
@@ -309,6 +313,7 @@ type InterceptorsContainer interface {
 	Replace(key string, val Interceptor) error
 	Remove(key string)
 	Len() int
+	Iterate(handler func(key string, interceptor Interceptor) bool)
 	IsInterfaceNil() bool
 }
 
@@ -356,6 +361,7 @@ type IntermediateProcessorsContainerFactory interface {
 
 // VirtualMachinesContainer defines a virtual machine holder data type with basic functionality
 type VirtualMachinesContainer interface {
+	Close() error
 	Get(key []byte) (vmcommon.VMExecutionHandler, error)
 	Add(key []byte, val vmcommon.VMExecutionHandler) error
 	AddMultiple(keys [][]byte, vms []vmcommon.VMExecutionHandler) error
@@ -375,17 +381,20 @@ type VirtualMachinesContainerFactory interface {
 
 // EpochStartTriggerHandler defines that actions which are needed by processor for start of epoch
 type EpochStartTriggerHandler interface {
-	Update(round uint64)
-	ReceivedHeader(header data.HeaderHandler)
+	Update(round uint64, nonce uint64)
 	IsEpochStart() bool
 	Epoch() uint32
+	MetaEpoch() uint32
 	EpochStartRound() uint64
-	SetProcessed(header data.HeaderHandler)
-	Revert(round uint64)
+	SetProcessed(header data.HeaderHandler, body data.BodyHandler)
+	RevertStateToBlock(header data.HeaderHandler) error
 	EpochStartMetaHdrHash() []byte
+	GetSavedStateKey() []byte
+	LoadState(key []byte) error
 	IsInterfaceNil() bool
 	SetFinalityAttestingRound(round uint64)
 	EpochFinalityAttestingRound() uint64
+	RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler)
 }
 
 // EpochBootstrapper defines the actions needed by bootstrapper
@@ -396,11 +405,10 @@ type EpochBootstrapper interface {
 
 // PendingMiniBlocksHandler is an interface to keep unfinalized miniblocks
 type PendingMiniBlocksHandler interface {
-	PendingMiniBlockHeaders(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
 	AddProcessedHeader(handler data.HeaderHandler) error
 	RevertHeader(handler data.HeaderHandler) error
-	GetNumPendingMiniBlocks(shardID uint32) uint32
-	SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32)
+	GetPendingMiniBlocks(shardID uint32) [][]byte
+	SetPendingMiniBlocks(shardID uint32, mbHashes [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -408,12 +416,14 @@ type PendingMiniBlocksHandler interface {
 type BlockChainHookHandler interface {
 	TemporaryAccountsHandler
 	SetCurrentHeader(hdr data.HeaderHandler)
+	GetBuiltInFunctions() BuiltInFunctionContainer
 }
 
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
-	ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	SetInterceptedDebugHandler(handler InterceptedDebugHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -443,14 +453,22 @@ type RequestHandler interface {
 	RequestRewardTransactions(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlock(destShardID uint32, miniblockHash []byte)
 	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)
-	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
+	RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string)
+	RequestStartOfEpochMetaBlock(epoch uint32)
+	RequestInterval() time.Duration
+	SetNumPeersToQuery(key string, intra int, cross int) error
+	GetNumPeersToQuery(key string) (int, int, error)
 	IsInterfaceNil() bool
 }
 
 // ArgumentsParser defines the functionality to parse transaction data into arguments and code for smart contracts
 type ArgumentsParser interface {
-	GetArguments() ([][]byte, error)
+	GetFunctionArguments() ([][]byte, error)
+	GetConstructorArguments() ([][]byte, error)
 	GetCode() ([]byte, error)
+	GetCodeDecoded() ([]byte, error)
+	GetVMType() ([]byte, error)
+	GetCodeMetadata() (vmcommon.CodeMetadata, error)
 	GetFunction() (string, error)
 	ParseData(data string) error
 
@@ -472,42 +490,43 @@ type TemporaryAccountsHandler interface {
 // BlockSizeThrottler defines the functionality of adapting the node to the network speed/latency when it should send a
 // block to its peers which should be received in a limited time frame
 type BlockSizeThrottler interface {
-	MaxItemsToAdd() uint32
-	Add(round uint64, items uint32)
+	GetCurrentMaxSize() uint32
+	Add(round uint64, size uint32)
 	Succeed(round uint64)
-	ComputeMaxItems()
-	IsInterfaceNil() bool
-}
-
-// PoolsCleaner define the functionality that is needed for a pools cleaner
-type PoolsCleaner interface {
-	Clean(duration time.Duration) (bool, error)
-	NumRemovedTxs() uint64
+	ComputeCurrentMaxSize()
 	IsInterfaceNil() bool
 }
 
 // RewardsHandler will return information about rewards
 type RewardsHandler interface {
-	RewardsValue() *big.Int
-	CommunityPercentage() float64
 	LeaderPercentage() float64
-	BurnPercentage() float64
+	MinInflationRate() float64
+	MaxInflationRate() float64
+	IsInterfaceNil() bool
+}
+
+// EndOfEpochEconomics defines the functionality that is needed to compute end of epoch economics data
+type EndOfEpochEconomics interface {
+	ComputeEndOfEpochEconomics(metaBlock *block.MetaBlock) (*block.Economics, error)
+	VerifyRewardsPerBlock(metaBlock *block.MetaBlock) error
 	IsInterfaceNil() bool
 }
 
 // ValidatorSettingsHandler defines the functionality which is needed for validators' settings
 type ValidatorSettingsHandler interface {
-	UnBoundPeriod() uint64
-	StakeValue() *big.Int
+	UnBondPeriod() uint64
+	GenesisNodePrice() *big.Int
 	IsInterfaceNil() bool
 }
 
 // FeeHandler is able to perform some economics calculation on a provided transaction
 type FeeHandler interface {
+	DeveloperPercentage() float64
 	MaxGasLimitPerBlock() uint64
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
 	ComputeFee(tx TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx TransactionWithFeeHandler) error
+	MinGasPrice() uint64
 	IsInterfaceNil() bool
 }
 
@@ -516,7 +535,7 @@ type TransactionWithFeeHandler interface {
 	GetGasLimit() uint64
 	GetGasPrice() uint64
 	GetData() []byte
-	GetRecvAddress() []byte
+	GetRcvAddr() []byte
 }
 
 // EconomicsAddressesHandler will return information about economics addresses
@@ -528,7 +547,7 @@ type EconomicsAddressesHandler interface {
 
 // SmartContractToProtocolHandler is able to translate data from smart contract state into protocol changes
 type SmartContractToProtocolHandler interface {
-	UpdateProtocol(body block.Body, nonce uint64) error
+	UpdateProtocol(body *block.Body, nonce uint64) error
 	IsInterfaceNil() bool
 }
 
@@ -536,13 +555,6 @@ type SmartContractToProtocolHandler interface {
 type PeerChangesHandler interface {
 	PeerChanges() []block.PeerData
 	VerifyPeerChanges(peerChanges []block.PeerData) error
-	IsInterfaceNil() bool
-}
-
-// MiniBlocksCompacter defines the functionality that is needed for mini blocks compaction and expansion
-type MiniBlocksCompacter interface {
-	Compact(block.MiniBlockSlice, map[string]data.TransactionHandler) block.MiniBlockSlice
-	Expand(block.MiniBlockSlice, map[string]data.TransactionHandler) (block.MiniBlockSlice, error)
 	IsInterfaceNil() bool
 }
 
@@ -620,15 +632,16 @@ type BlockTracker interface {
 	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error
 	CleanupHeadersBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
+	CleanupInvalidCrossHeaders(metaNewEpoch uint32, metaRoundAttestingEpoch uint64)
 	ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)
 	ComputeLongestShardsChainsFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
 	DisplayTrackedHeaders()
 	GetCrossNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
-	GetFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
 	GetLastCrossNotarizedHeadersForAllShards() (map[uint32]data.HeaderHandler, error)
 	GetLastSelfNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
+	GetSelfNotarizedHeader(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
 	GetTrackedHeaders(shardID uint32) ([]data.HeaderHandler, [][]byte)
 	GetTrackedHeadersForAllShards() map[uint32][]data.HeaderHandler
 	GetTrackedHeadersWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
@@ -637,6 +650,40 @@ type BlockTracker interface {
 	RegisterSelfNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastNotarizedHeaders()
 	RestoreToGenesis()
+	ShouldAddHeader(headerHandler data.HeaderHandler) bool
+	IsInterfaceNil() bool
+}
+
+// FloodPreventer defines the behavior of a component that is able to signal that too many events occurred
+// on a provided identifier between Reset calls
+type FloodPreventer interface {
+	IncreaseLoadGlobal(identifier string, size uint64) error
+	IncreaseLoad(identifier string, size uint64) error
+	Reset()
+	IsInterfaceNil() bool
+}
+
+// TopicFloodPreventer defines the behavior of a component that is able to signal that too many events occurred
+// on a provided identifier between Reset calls, on a given topic
+type TopicFloodPreventer interface {
+	IncreaseLoad(identifier string, topic string, numMessages uint32) error
+	ResetForTopic(topic string)
+	ResetForNotRegisteredTopics()
+	SetMaxMessagesForTopic(topic string, maxNum uint32)
+	IsInterfaceNil() bool
+}
+
+// P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
+// p2p messages
+type P2PAntifloodHandler interface {
+	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	CanProcessMessagesOnTopic(peer p2p.PeerID, topic string, numMessages uint32) error
+	IsInterfaceNil() bool
+}
+
+// SCQueryService defines how data should be get from a SC account
+type SCQueryService interface {
+	ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, error)
 	IsInterfaceNil() bool
 }
 
@@ -647,6 +694,28 @@ type EpochStartDataCreator interface {
 	IsInterfaceNil() bool
 }
 
+// EpochStartRewardsCreator defines the functionality for the metachain to create rewards at end of epoch
+type EpochStartRewardsCreator interface {
+	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
+	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
+	CreateMarshalizedData(body *block.Body) map[string][][]byte
+	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler
+	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
+	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body)
+	RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body)
+	IsInterfaceNil() bool
+}
+
+// EpochStartValidatorInfoCreator defines the functionality for the metachain to create validator statistics at end of epoch
+type EpochStartValidatorInfoCreator interface {
+	CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
+	VerifyValidatorInfoMiniBlocks(miniblocks []*block.MiniBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
+	SaveValidatorInfoBlocksToStorage(metaBlock *block.MetaBlock, body *block.Body)
+	DeleteValidatorInfoBlocksFromStorage(metaBlock *block.MetaBlock)
+	RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body)
+	IsInterfaceNil() bool
+}
+
 // ValidityAttester is able to manage the valid blocks
 type ValidityAttester interface {
 	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
@@ -654,9 +723,96 @@ type ValidityAttester interface {
 	IsInterfaceNil() bool
 }
 
-// MiniBlocksResolver defines what a mini blocks resolver should do
-type MiniBlocksResolver interface {
+// MiniBlockProvider defines what a miniblock data provider should do
+type MiniBlockProvider interface {
 	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte)
+	IsInterfaceNil() bool
+}
+
+// BuiltinFunction defines the methods for the built-in protocol smart contract functions
+type BuiltinFunction interface {
+	ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, uint64, error)
+	IsInterfaceNil() bool
+}
+
+// BuiltInFunctionContainer defines the methods for the built-in protocol container
+type BuiltInFunctionContainer interface {
+	Get(key string) (BuiltinFunction, error)
+	Add(key string, function BuiltinFunction) error
+	Replace(key string, function BuiltinFunction) error
+	Remove(key string)
+	Len() int
+	Keys() map[string]struct{}
+	IsInterfaceNil() bool
+}
+
+// RoundTimeDurationHandler defines the methods to get the time duration of a round
+type RoundTimeDurationHandler interface {
+	TimeDuration() time.Duration
+	IsInterfaceNil() bool
+}
+
+// Rounder defines the actions which should be handled by a round implementation
+type Rounder interface {
+	Index() int64
+	IsInterfaceNil() bool
+}
+
+// SelectionChance defines the actions which should be handled by a round implementation
+type SelectionChance interface {
+	GetMaxThreshold() uint32
+	GetChancePercent() uint32
+}
+
+// RatingsInfoHandler defines the information needed for the rating computation
+type RatingsInfoHandler interface {
+	StartRating() uint32
+	MaxRating() uint32
+	MinRating() uint32
+	SignedBlocksThreshold() float32
+	MetaChainRatingsStepHandler() RatingsStepHandler
+	ShardChainRatingsStepHandler() RatingsStepHandler
+	SelectionChances() []SelectionChance
+	IsInterfaceNil() bool
+}
+
+// RatingsStepHandler defines the information needed for the rating computation on shards or meta
+type RatingsStepHandler interface {
+	ProposerIncreaseRatingStep() int32
+	ProposerDecreaseRatingStep() int32
+	ValidatorIncreaseRatingStep() int32
+	ValidatorDecreaseRatingStep() int32
+	ConsecutiveMissedBlocksPenalty() float32
+}
+
+// ValidatorInfoSyncer defines the method needed for validatorInfoProcessing
+type ValidatorInfoSyncer interface {
+	SyncMiniBlocks(metaBlock *block.MetaBlock) ([][]byte, data.BodyHandler, error)
+	IsInterfaceNil() bool
+}
+
+//RatingChanceHandler provides the methods needed for the computation of chances from the Rating
+type RatingChanceHandler interface {
+	//GetMaxThreshold returns the threshold until this ChancePercentage holds
+	GetMaxThreshold() uint32
+	//GetChancePercentage returns the percentage for the RatingChanceHandler
+	GetChancePercentage() uint32
+	//IsInterfaceNil verifies if the interface is nil
+	IsInterfaceNil() bool
+}
+
+// WhiteListHandler is the interface needed to add whitelisted data
+type WhiteListHandler interface {
+	Remove(keys [][]byte)
+	Add(keys [][]byte)
+	IsWhiteListed(interceptedData InterceptedData) bool
+	IsInterfaceNil() bool
+}
+
+// InterceptedDebugHandler defines an interface for debugging the intercepted data
+type InterceptedDebugHandler interface {
+	LogReceivedHashes(topic string, hashes [][]byte)
+	LogProcessedHashes(topic string, hashes [][]byte, err error)
 	IsInterfaceNil() bool
 }

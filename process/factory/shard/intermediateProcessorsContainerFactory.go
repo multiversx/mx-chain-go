@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -8,21 +9,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
-	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type intermediateProcessorsContainerFactory struct {
-	shardCoordinator      sharding.Coordinator
-	marshalizer           marshal.Marshalizer
-	hasher                hashing.Hasher
-	addrConverter         state.AddressConverter
-	specialAddressHandler process.SpecialAddressHandler
-	store                 dataRetriever.StorageService
-	poolsHolder           dataRetriever.PoolsHolder
-	economics             *economics.EconomicsData
+	shardCoordinator sharding.Coordinator
+	marshalizer      marshal.Marshalizer
+	hasher           hashing.Hasher
+	pubkeyConverter  state.PubkeyConverter
+	store            dataRetriever.StorageService
+	poolsHolder      dataRetriever.PoolsHolder
+	economics        *economics.EconomicsData
 }
 
 // NewIntermediateProcessorsContainerFactory is responsible for creating a new intermediate processors factory object
@@ -30,44 +29,39 @@ func NewIntermediateProcessorsContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	addrConverter state.AddressConverter,
-	specialAddressHandler process.SpecialAddressHandler,
+	pubkeyConverter state.PubkeyConverter,
 	store dataRetriever.StorageService,
 	poolsHolder dataRetriever.PoolsHolder,
 	economics *economics.EconomicsData,
 ) (*intermediateProcessorsContainerFactory, error) {
 
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if addrConverter == nil || addrConverter.IsInterfaceNil() {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
 	}
-	if specialAddressHandler == nil || specialAddressHandler.IsInterfaceNil() {
-		return nil, process.ErrNilSpecialAddressHandler
-	}
-	if store == nil || store.IsInterfaceNil() {
+	if check.IfNil(store) {
 		return nil, process.ErrNilStorage
 	}
-	if poolsHolder == nil || poolsHolder.IsInterfaceNil() {
+	if check.IfNil(poolsHolder) {
 		return nil, process.ErrNilPoolsHolder
 	}
 
 	return &intermediateProcessorsContainerFactory{
-		shardCoordinator:      shardCoordinator,
-		marshalizer:           marshalizer,
-		hasher:                hasher,
-		addrConverter:         addrConverter,
-		specialAddressHandler: specialAddressHandler,
-		store:                 store,
-		poolsHolder:           poolsHolder,
-		economics:             economics,
+		shardCoordinator: shardCoordinator,
+		marshalizer:      marshalizer,
+		hasher:           hasher,
+		pubkeyConverter:  pubkeyConverter,
+		store:            store,
+		poolsHolder:      poolsHolder,
+		economics:        economics,
 	}, nil
 }
 
@@ -81,16 +75,6 @@ func (ppcm *intermediateProcessorsContainerFactory) Create() (process.Intermedia
 	}
 
 	err = container.Add(block.SmartContractResultBlock, interproc)
-	if err != nil {
-		return nil, err
-	}
-
-	interproc, err = ppcm.createRewardsTxIntermediateProcessor()
-	if err != nil {
-		return nil, err
-	}
-
-	err = container.Add(block.RewardsBlock, interproc)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +107,7 @@ func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIn
 		ppcm.hasher,
 		ppcm.marshalizer,
 		ppcm.shardCoordinator,
-		ppcm.addrConverter,
+		ppcm.pubkeyConverter,
 		ppcm.store,
 		block.SmartContractResultBlock,
 		ppcm.poolsHolder.CurrentBlockTxs(),
@@ -153,21 +137,6 @@ func (ppcm *intermediateProcessorsContainerFactory) createBadTransactionsInterme
 		ppcm.store,
 		block.InvalidBlock,
 		dataRetriever.TransactionUnit,
-	)
-
-	return irp, err
-}
-
-func (ppcm *intermediateProcessorsContainerFactory) createRewardsTxIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
-	irp, err := preprocess.NewRewardTxHandler(
-		ppcm.specialAddressHandler,
-		ppcm.hasher,
-		ppcm.marshalizer,
-		ppcm.shardCoordinator,
-		ppcm.addrConverter,
-		ppcm.store,
-		ppcm.poolsHolder.RewardTransactions(),
-		ppcm.economics,
 	)
 
 	return irp, err

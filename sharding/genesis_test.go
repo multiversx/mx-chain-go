@@ -1,22 +1,24 @@
-package sharding_test
+package sharding
 
 import (
+	"errors"
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/stretchr/testify/assert"
 )
 
-func createGenesisOneShardOneNode() *sharding.Genesis {
-	genesis := &sharding.Genesis{}
-	genesis.InitialBalances = make([]*sharding.InitialBalance, 1)
-	genesis.InitialBalances[0] = &sharding.InitialBalance{}
+func createGenesisOneShardOneNode() *Genesis {
+	genesis := &Genesis{
+		pubkeyConverter: createMockPubkeyConverter(),
+	}
+	genesis.InitialBalances = make([]*InitialBalance, 1)
+	genesis.InitialBalances[0] = &InitialBalance{}
 	genesis.InitialBalances[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
 	genesis.InitialBalances[0].Balance = "11"
 
-	err := genesis.ProcessConfig()
+	err := genesis.processConfig()
 	if err != nil {
 		return nil
 	}
@@ -24,13 +26,15 @@ func createGenesisOneShardOneNode() *sharding.Genesis {
 	return genesis
 }
 
-func createGenesisTwoShardTwoNodes() *sharding.Genesis {
-	genesis := &sharding.Genesis{}
-	genesis.InitialBalances = make([]*sharding.InitialBalance, 4)
-	genesis.InitialBalances[0] = &sharding.InitialBalance{}
-	genesis.InitialBalances[1] = &sharding.InitialBalance{}
-	genesis.InitialBalances[2] = &sharding.InitialBalance{}
-	genesis.InitialBalances[3] = &sharding.InitialBalance{}
+func createGenesisTwoShardTwoNodes() *Genesis {
+	genesis := &Genesis{
+		pubkeyConverter: createMockPubkeyConverter(),
+	}
+	genesis.InitialBalances = make([]*InitialBalance, 4)
+	genesis.InitialBalances[0] = &InitialBalance{}
+	genesis.InitialBalances[1] = &InitialBalance{}
+	genesis.InitialBalances[2] = &InitialBalance{}
+	genesis.InitialBalances[3] = &InitialBalance{}
 
 	genesis.InitialBalances[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
 	genesis.InitialBalances[1].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
@@ -42,7 +46,7 @@ func createGenesisTwoShardTwoNodes() *sharding.Genesis {
 	genesis.InitialBalances[2].Balance = "999"
 	genesis.InitialBalances[3].Balance = "999"
 
-	err := genesis.ProcessConfig()
+	err := genesis.processConfig()
 	if err != nil {
 		return nil
 	}
@@ -50,15 +54,17 @@ func createGenesisTwoShardTwoNodes() *sharding.Genesis {
 	return genesis
 }
 
-func createGenesisTwoShard6NodesMeta() *sharding.Genesis {
-	genesis := &sharding.Genesis{}
-	genesis.InitialBalances = make([]*sharding.InitialBalance, 6)
-	genesis.InitialBalances[0] = &sharding.InitialBalance{}
-	genesis.InitialBalances[1] = &sharding.InitialBalance{}
-	genesis.InitialBalances[2] = &sharding.InitialBalance{}
-	genesis.InitialBalances[3] = &sharding.InitialBalance{}
-	genesis.InitialBalances[4] = &sharding.InitialBalance{}
-	genesis.InitialBalances[5] = &sharding.InitialBalance{}
+func createGenesisTwoShard6NodesMeta() *Genesis {
+	genesis := &Genesis{
+		pubkeyConverter: createMockPubkeyConverter(),
+	}
+	genesis.InitialBalances = make([]*InitialBalance, 6)
+	genesis.InitialBalances[0] = &InitialBalance{}
+	genesis.InitialBalances[1] = &InitialBalance{}
+	genesis.InitialBalances[2] = &InitialBalance{}
+	genesis.InitialBalances[3] = &InitialBalance{}
+	genesis.InitialBalances[4] = &InitialBalance{}
+	genesis.InitialBalances[5] = &InitialBalance{}
 
 	genesis.InitialBalances[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
 	genesis.InitialBalances[1].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7418"
@@ -74,7 +80,7 @@ func createGenesisTwoShard6NodesMeta() *sharding.Genesis {
 	genesis.InitialBalances[4].Balance = "999"
 	genesis.InitialBalances[5].Balance = "999"
 
-	err := genesis.ProcessConfig()
+	err := genesis.processConfig()
 	if err != nil {
 		return nil
 	}
@@ -82,56 +88,63 @@ func createGenesisTwoShard6NodesMeta() *sharding.Genesis {
 	return genesis
 }
 
+func createMockPubkeyConverter() *mock.PubkeyConverterMock {
+	return mock.NewPubkeyConverterMock(32)
+}
+
 func TestGenesis_NewGenesisConfigWrongFile(t *testing.T) {
-	genesis, err := sharding.NewGenesisConfig("")
+	genesis, err := NewGenesisConfig("", createMockPubkeyConverter())
 
 	assert.Nil(t, genesis)
 	assert.NotNil(t, err)
 }
 
 func TestNodes_NewGenesisConfigWrongDataInFile(t *testing.T) {
-	genesis, err := sharding.NewGenesisConfig("mock/invalidGenesisMock.json")
+	genesis, err := NewGenesisConfig("mock/invalidGenesisMock.json", createMockPubkeyConverter())
 
 	assert.Nil(t, genesis)
-	assert.Equal(t, sharding.ErrCouldNotParsePubKey, err)
+	assert.True(t, errors.Is(err, ErrCouldNotParsePubKey))
 }
 
 func TestNodes_NewGenesisShouldWork(t *testing.T) {
-	genesis, err := sharding.NewGenesisConfig("mock/genesisMock.json")
+	genesis, err := NewGenesisConfig("mock/genesisMock.json", createMockPubkeyConverter())
 
 	assert.NotNil(t, genesis)
 	assert.Nil(t, err)
 }
 
 func TestGenesis_ProcessConfigGenesisWithIncompleteDataShouldErr(t *testing.T) {
-	genesis := sharding.Genesis{}
+	genesis := Genesis{
+		pubkeyConverter: createMockPubkeyConverter(),
+	}
 
-	genesis.InitialBalances = make([]*sharding.InitialBalance, 2)
-	genesis.InitialBalances[0] = &sharding.InitialBalance{}
-	genesis.InitialBalances[1] = &sharding.InitialBalance{}
+	genesis.InitialBalances = make([]*InitialBalance, 2)
+	genesis.InitialBalances[0] = &InitialBalance{}
+	genesis.InitialBalances[1] = &InitialBalance{}
 
 	genesis.InitialBalances[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
 
-	err := genesis.ProcessConfig()
+	err := genesis.processConfig()
 
 	assert.NotNil(t, genesis)
-	assert.Equal(t, sharding.ErrCouldNotParsePubKey, err)
+	assert.True(t, errors.Is(err, ErrCouldNotParsePubKey))
 }
 
 func TestGenesis_GenesisWithIncompleteBalance(t *testing.T) {
-	genesis := sharding.Genesis{}
+	genesis := Genesis{
+		pubkeyConverter: createMockPubkeyConverter(),
+	}
 
-	genesis.InitialBalances = make([]*sharding.InitialBalance, 1)
-	genesis.InitialBalances[0] = &sharding.InitialBalance{}
+	genesis.InitialBalances = make([]*InitialBalance, 1)
+	genesis.InitialBalances[0] = &InitialBalance{}
 
 	genesis.InitialBalances[0].PubKey = "5126b6505a73e59a994caa8f556f8c335d4399229de42102bb4814ca261c7419"
 
-	_ = genesis.ProcessConfig()
+	_ = genesis.processConfig()
 
 	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(1, 0)
-	adrConv := mock.NewAddressConverterFake(32, "")
 
-	inBal, err := genesis.InitialNodesBalances(shardCoordinator, adrConv)
+	inBal, err := genesis.InitialNodesBalances(shardCoordinator)
 
 	assert.NotNil(t, genesis)
 	assert.Nil(t, err)
@@ -141,10 +154,11 @@ func TestGenesis_GenesisWithIncompleteBalance(t *testing.T) {
 }
 
 func TestGenesis_InitialNodesBalancesNil(t *testing.T) {
-	genesis := sharding.Genesis{}
+	genesis := Genesis{
+		pubkeyConverter: createMockPubkeyConverter(),
+	}
 	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(1, 0)
-	adrConv := mock.NewAddressConverterFake(32, "")
-	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, adrConv)
+	inBalance, err := genesis.InitialNodesBalances(shardCoordinator)
 
 	assert.NotNil(t, genesis)
 	assert.Equal(t, 0, len(inBalance))
@@ -153,29 +167,17 @@ func TestGenesis_InitialNodesBalancesNil(t *testing.T) {
 
 func TestGenesis_InitialNodesBalancesNilShardCoordinatorShouldErr(t *testing.T) {
 	genesis := createGenesisOneShardOneNode()
-	adrConv := mock.NewAddressConverterFake(32, "")
-	inBalance, err := genesis.InitialNodesBalances(nil, adrConv)
+	inBalance, err := genesis.InitialNodesBalances(nil)
 
 	assert.NotNil(t, genesis)
 	assert.Nil(t, inBalance)
-	assert.Equal(t, sharding.ErrNilShardCoordinator, err)
-}
-
-func TestGenesis_InitialNodesBalancesNilAddrConverterShouldErr(t *testing.T) {
-	genesis := createGenesisOneShardOneNode()
-	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(1, 0)
-	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, nil)
-
-	assert.NotNil(t, genesis)
-	assert.Nil(t, inBalance)
-	assert.Equal(t, sharding.ErrNilAddressConverter, err)
+	assert.Equal(t, ErrNilShardCoordinator, err)
 }
 
 func TestGenesis_InitialNodesBalancesGood(t *testing.T) {
 	genesis := createGenesisTwoShardTwoNodes()
 	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(2, 1)
-	adrConv := mock.NewAddressConverterFake(32, "")
-	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, adrConv)
+	inBalance, err := genesis.InitialNodesBalances(shardCoordinator)
 
 	assert.NotNil(t, genesis)
 	assert.Equal(t, 2, len(inBalance))
@@ -185,8 +187,7 @@ func TestGenesis_InitialNodesBalancesGood(t *testing.T) {
 func TestGenesis_Initial5NodesBalancesGood(t *testing.T) {
 	genesis := createGenesisTwoShard6NodesMeta()
 	shardCoordinator := mock.NewMultipleShardsCoordinatorFake(2, 1)
-	adrConv := mock.NewAddressConverterFake(32, "")
-	inBalance, err := genesis.InitialNodesBalances(shardCoordinator, adrConv)
+	inBalance, err := genesis.InitialNodesBalances(shardCoordinator)
 
 	assert.NotNil(t, genesis)
 	assert.Equal(t, 3, len(inBalance))

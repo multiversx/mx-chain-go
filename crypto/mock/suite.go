@@ -8,39 +8,63 @@ import (
 
 // SuiteMock -
 type SuiteMock struct {
-	StringStub             func() string
-	ScalarLenStub          func() int
-	CreateScalarStub       func() crypto.Scalar
-	PointLenStub           func() int
-	CreatePointStub        func() crypto.Point
-	RandomStreamStub       func() cipher.Stream
-	CreateKeyPairStub      func(cipher.Stream) (crypto.Scalar, crypto.Point)
-	GetUnderlyingSuiteStub func() interface{}
+	StringStub               func() string
+	ScalarLenStub            func() int
+	CreateScalarStub         func() crypto.Scalar
+	PointLenStub             func() int
+	CreatePointStub          func() crypto.Point
+	CreatePointForScalarStub func(scalar crypto.Scalar) (crypto.Point, error)
+	RandomStreamStub         func() cipher.Stream
+	CreateKeyPairStub        func() (crypto.Scalar, crypto.Point)
+	GetUnderlyingSuiteStub   func() interface{}
 }
 
 // String -
 func (s *SuiteMock) String() string {
-	return s.StringStub()
+	if s.StringStub != nil {
+		return s.StringStub()
+	}
+	return "mock suite"
 }
 
 // ScalarLen -
 func (s *SuiteMock) ScalarLen() int {
-	return s.ScalarLenStub()
+	if s.ScalarLenStub != nil {
+		return s.ScalarLenStub()
+	}
+
+	return 32
 }
 
 // CreateScalar -
 func (s *SuiteMock) CreateScalar() crypto.Scalar {
-	return s.CreateScalarStub()
+	if s.CreateScalarStub != nil {
+		return s.CreateScalarStub()
+	}
+	return nil
 }
 
 // PointLen -
 func (s *SuiteMock) PointLen() int {
-	return s.PointLenStub()
+	if s.PointLenStub != nil {
+		return s.PointLenStub()
+	}
+	return 64
 }
 
 // CreatePoint -
 func (s *SuiteMock) CreatePoint() crypto.Point {
-	return s.CreatePointStub()
+	if s.CreatePointStub != nil {
+		return s.CreatePointStub()
+	}
+	return nil
+}
+
+func (s *SuiteMock) CreatePointForScalar(scalar crypto.Scalar) (crypto.Point, error) {
+	if s.CreatePointForScalarStub != nil {
+		return s.CreatePointForScalarStub(scalar)
+	}
+	return nil, nil
 }
 
 // RandomStream -
@@ -51,18 +75,21 @@ func (s *SuiteMock) RandomStream() cipher.Stream {
 
 // GetUnderlyingSuite -
 func (s *SuiteMock) GetUnderlyingSuite() interface{} {
-	return s.GetUnderlyingSuiteStub()
+	if s.GetUnderlyingSuiteStub != nil {
+		return s.GetUnderlyingSuiteStub()
+	}
+	return "invalid suite"
 }
 
 // CreateKeyPair -
-func (s *SuiteMock) CreateKeyPair(c cipher.Stream) (crypto.Scalar, crypto.Point) {
-	return s.CreateKeyPairStub(c)
+func (s *SuiteMock) CreateKeyPair() (crypto.Scalar, crypto.Point) {
+	if s.CreateKeyPairStub != nil {
+		return s.CreateKeyPairStub()
+	}
+	return nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *SuiteMock) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }

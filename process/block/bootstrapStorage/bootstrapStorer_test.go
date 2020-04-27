@@ -1,9 +1,7 @@
 package bootstrapStorage_test
 
 import (
-	"encoding/json"
 	"fmt"
-	"strconv"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -11,11 +9,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	testMarshalizer = &mock.MarshalizerMock{}
+)
+
 func TestNewBootstrapStorer_NilStorerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &mock.MarshalizerMock{}
-	bt, err := bootstrapStorage.NewBootstrapStorer(marshalizer, nil)
+	bt, err := bootstrapStorage.NewBootstrapStorer(testMarshalizer, nil)
 
 	assert.Nil(t, bt)
 	assert.Equal(t, bootstrapStorage.ErrNilBootStorer, err)
@@ -35,8 +36,7 @@ func TestNewBootstrapStorer_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	storer := &mock.StorerMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	bt, err := bootstrapStorage.NewBootstrapStorer(marshalizer, storer)
+	bt, err := bootstrapStorage.NewBootstrapStorer(testMarshalizer, storer)
 
 	assert.NotNil(t, bt)
 	assert.Nil(t, err)
@@ -49,8 +49,7 @@ func TestBootstrapStorer_PutAndGet(t *testing.T) {
 	numRounds := int64(10)
 	round := int64(0)
 	storer := mock.NewStorerMock()
-	marshalizer := &mock.MarshalizerMock{}
-	bt, _ := bootstrapStorage.NewBootstrapStorer(marshalizer, storer)
+	bt, _ := bootstrapStorage.NewBootstrapStorer(testMarshalizer, storer)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{ShardId: 2, Nonce: 3, Hash: []byte("Hash")}
 	dataBoot := bootstrapStorage.BootstrapData{
@@ -86,21 +85,22 @@ func TestBootstrapStorer_SaveLastRound(t *testing.T) {
 
 	putWasCalled := false
 	roundInStorage := int64(5)
+	marshalizer := &mock.MarshalizerMock{}
 	storer := &mock.StorerStub{
 		PutCalled: func(key, data []byte) error {
 			putWasCalled = true
-			err := json.Unmarshal(data, &roundInStorage)
+			rn := bootstrapStorage.RoundNum{}
+			err := marshalizer.Unmarshal(&rn, data)
+			roundInStorage = rn.Num
 			if err != nil {
 				fmt.Println(err.Error())
 			}
 			return nil
 		},
 		GetCalled: func(key []byte) ([]byte, error) {
-			k := []byte(strconv.FormatInt(roundInStorage, 10))
-			return k, nil
+			return marshalizer.Marshal(&bootstrapStorage.RoundNum{Num: roundInStorage})
 		},
 	}
-	marshalizer := &mock.MarshalizerMock{}
 	bt, _ := bootstrapStorage.NewBootstrapStorer(marshalizer, storer)
 
 	assert.Equal(t, roundInStorage, bt.GetHighestRound())
@@ -109,20 +109,4 @@ func TestBootstrapStorer_SaveLastRound(t *testing.T) {
 	assert.Equal(t, newRound, bt.GetHighestRound())
 	assert.Nil(t, err)
 	assert.True(t, putWasCalled)
-}
-
-func TestTrimHeaderInfoSlice(t *testing.T) {
-	t.Parallel()
-
-	input := make([]bootstrapStorage.BootstrapHeaderInfo, 0, 5)
-	input = append(input, bootstrapStorage.BootstrapHeaderInfo{})
-	input = append(input, bootstrapStorage.BootstrapHeaderInfo{})
-
-	assert.Equal(t, 2, len(input))
-	assert.Equal(t, 5, cap(input))
-
-	input = bootstrapStorage.TrimHeaderInfoSlice(input)
-
-	assert.Equal(t, 2, len(input))
-	assert.Equal(t, 2, cap(input))
 }

@@ -2,16 +2,22 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // InterceptorStub -
 type InterceptorStub struct {
-	ProcessReceivedMessageCalled func(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
+	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
 }
 
 // ProcessReceivedMessage -
-func (is *InterceptorStub) ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error {
-	return is.ProcessReceivedMessageCalled(message, broadcastHandler)
+func (is *InterceptorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
+	return is.ProcessReceivedMessageCalled(message)
+}
+
+// SetInterceptedDebugHandler -
+func (is *InterceptorStub) SetInterceptedDebugHandler(_ process.InterceptedDebugHandler) error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

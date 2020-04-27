@@ -46,18 +46,10 @@ const EpochChangeGracePeriod = 1
 // in one round, when node processes a received block
 const MaxHeaderRequestsAllowed = 10
 
-// MaxItemsInBlock defines the maximum threshold which could be set, and represents the maximum number of items
-// (hashes of: mini blocks, txs, meta-headers, shard-headers) which could be added in one block
-const MaxItemsInBlock = 15000
-
 // NumTxPerSenderBatchForFillingMiniblock defines the number of transactions to be drawn
 // from the transactions pool, for a specific sender, in a single pass.
 // Drawing transactions for a miniblock happens in multiple passes, until "MaxItemsInBlock" are drawn.
 const NumTxPerSenderBatchForFillingMiniblock = 10
-
-// MinItemsInBlock defines the minimum threshold which could be set, and represents the maximum number of items
-// (hashes of: mini blocks, txs, meta-headers, shard-headers) which could be added in one block
-const MinItemsInBlock = 15000
 
 // NonceDifferenceWhenSynced defines the difference between probable highest nonce seen from network and node's last
 // committed block nonce, after which, node is considered himself not synced
@@ -78,9 +70,8 @@ const MaxHeadersToRequestInAdvance = 10
 // RoundModulusTrigger defines a round modulus on which a trigger for an action will be released
 const RoundModulusTrigger = 5
 
-// MaxOccupancyPercentageAllowed defines the maximum occupancy percentage allowed to be used,
-// from the full pool capacity, for the received data which are not needed in the near future
-const MaxOccupancyPercentageAllowed = float64(0.9)
+// RoundModulusTriggerWhenSyncIsStuck defines a round modulus on which a trigger for an action when sync is stuck will be released
+const RoundModulusTriggerWhenSyncIsStuck = 20
 
 // MaxRoundsWithoutCommittedBlock defines the maximum rounds to wait for a new block to be committed,
 // before a special action to be applied
@@ -89,9 +80,28 @@ const MaxRoundsWithoutCommittedBlock = 10
 // MinForkRound represents the minimum fork round set by a notarized header received
 const MinForkRound = uint64(0)
 
-// MaxNonceDifferences represents the maximum nonce difference between received and committed header, so the received one
-// to be stored in advance in block tracker
-const MaxNonceDifferences = uint64(1000)
-
 // MaxNumPendingMiniBlocks defines the maximum number of pending miniblocks, after which a shard could be considered stuck
 const MaxNumPendingMiniBlocks = 100
+
+// MaxMetaNoncesBehind defines the maximum difference between the current metablock nonce and the processed metablock
+// nonce before a shard is considered stuck
+const MaxMetaNoncesBehind = 8
+
+// MaxRoundsWithoutNewBlockReceived defines the maximum rounds to wait for a new block to be received,
+// before a special action to be applied
+const MaxRoundsWithoutNewBlockReceived = 10
+
+// MaxMetaHeadersAllowedInOneShardBlock defines the maximum meta headers allowed to be included in one shard block
+const MaxMetaHeadersAllowedInOneShardBlock = 100
+
+// MaxShardHeadersAllowedInOneMetaBlock defines the maximum shard headers allowed to be included in one meta block
+const MaxShardHeadersAllowedInOneMetaBlock = 100
+
+// MaxNumOfTxsToSelect defines the maximum number of transactions that should be selected from the cache
+const MaxNumOfTxsToSelect = 30000
+
+// MaxRoundsToKeepUnprocessedMiniBlocks defines the maximum number of rounds for which unprocessed miniblocks are kept in pool
+const MaxRoundsToKeepUnprocessedMiniBlocks = 50
+
+// MaxRoundsToKeepUnprocessedTransactions defines the maximum number of rounds for which unprocessed transactions are kept in pool
+const MaxRoundsToKeepUnprocessedTransactions = 50

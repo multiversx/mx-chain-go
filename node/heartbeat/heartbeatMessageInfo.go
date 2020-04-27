@@ -4,33 +4,34 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
 // heartbeatMessageInfo retain the message info received from another node (identified by a public key)
 type heartbeatMessageInfo struct {
 	maxDurationPeerUnresponsive time.Duration
-	maxInactiveTime             Duration
-	totalUpTime                 Duration
-	totalDownTime               Duration
+	maxInactiveTime             time.Duration
+	totalUpTime                 time.Duration
+	totalDownTime               time.Duration
 
 	timeStamp          time.Time
 	lastUptimeDowntime time.Time
 	genesisTime        time.Time
 	versionNumber      string
 	nodeDisplayName    string
+	peerType           string
 	receivedShardID    uint32
 	computedShardID    uint32
 	updateMutex        sync.Mutex
 	getTimeHandler     func() time.Time
 	isActive           bool
-	isValidator        bool
 }
 
 // newHeartbeatMessageInfo returns a new instance of a heartbeatMessageInfo
 func newHeartbeatMessageInfo(
 	maxDurationPeerUnresponsive time.Duration,
-	isValidator bool,
+	peerType string,
 	genesisTime time.Time,
 	timer Timer,
 ) (*heartbeatMessageInfo, error) {
@@ -44,16 +45,16 @@ func newHeartbeatMessageInfo(
 
 	hbmi := &heartbeatMessageInfo{
 		maxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
-		maxInactiveTime:             Duration{0},
+		maxInactiveTime:             time.Duration(0),
 		isActive:                    false,
 		receivedShardID:             uint32(0),
 		timeStamp:                   genesisTime,
 		lastUptimeDowntime:          timer.Now(),
-		totalUpTime:                 Duration{0},
-		totalDownTime:               Duration{0},
+		totalUpTime:                 time.Duration(0),
+		totalDownTime:               time.Duration(0),
 		versionNumber:               "",
 		nodeDisplayName:             "",
-		isValidator:                 isValidator,
+		peerType:                    peerType,
 		genesisTime:                 genesisTime,
 		getTimeHandler:              timer.Now,
 	}
@@ -104,8 +105,8 @@ func (hbmi *heartbeatMessageInfo) updateUpAndDownTime(crtTime time.Time) {
 
 	uptime, downTime := hbmi.computeUptimeDowntime(crtTime, lastDuration)
 
-	hbmi.totalUpTime.Duration += uptime
-	hbmi.totalDownTime.Duration += downTime
+	hbmi.totalUpTime += uptime
+	hbmi.totalDownTime += downTime
 
 	hbmi.isActive = uptime == lastDuration
 	hbmi.lastUptimeDowntime = crtTime
@@ -142,33 +143,47 @@ func (hbmi *heartbeatMessageInfo) computeUptimeDowntime(
 // HeartbeatReceived processes a new message arrived from a peer
 func (hbmi *heartbeatMessageInfo) HeartbeatReceived(
 	computedShardID uint32,
-	receivedshardID uint32,
+	receivedShardID uint32,
 	version string,
 	nodeDisplayName string,
+	peerType string,
 ) {
 	hbmi.updateMutex.Lock()
 	defer hbmi.updateMutex.Unlock()
 	crtTime := hbmi.getTimeHandler()
 
 	hbmi.computedShardID = computedShardID
-	hbmi.receivedShardID = receivedshardID
+	hbmi.receivedShardID = receivedShardID
 	hbmi.versionNumber = version
 	hbmi.nodeDisplayName = nodeDisplayName
+	hbmi.peerType = peerType
 
 	hbmi.updateTimes(crtTime)
 	hbmi.timeStamp = crtTime
 	hbmi.isActive = true
 }
 
+// UpdateShardAndPeerType - updates the shard and peerType only for a hbmi
+func (hbmi *heartbeatMessageInfo) UpdateShardAndPeerType(
+	computedShardID uint32,
+	peerType string,
+) {
+	hbmi.updateMutex.Lock()
+	defer hbmi.updateMutex.Unlock()
+
+	hbmi.computedShardID = computedShardID
+	hbmi.peerType = peerType
+}
+
 func (hbmi *heartbeatMessageInfo) updateMaxInactiveTimeDuration(currentTime time.Time) {
 	crtDuration := currentTime.Sub(hbmi.timeStamp)
 	crtDuration = maxDuration(0, crtDuration)
 
-	greaterDurationThanMax := hbmi.maxInactiveTime.Duration < crtDuration
+	greaterDurationThanMax := hbmi.maxInactiveTime < crtDuration
 	currentTimeAfterGenesis := hbmi.genesisTime.Sub(currentTime) < 0
 
 	if greaterDurationThanMax && currentTimeAfterGenesis {
-		hbmi.maxInactiveTime.Duration = crtDuration
+		hbmi.maxInactiveTime = crtDuration
 	}
 }
 
@@ -192,6 +207,5 @@ func (hbmi *heartbeatMessageInfo) GetIsActive() bool {
 func (hbmi *heartbeatMessageInfo) GetIsValidator() bool {
 	hbmi.updateMutex.Lock()
 	defer hbmi.updateMutex.Unlock()
-	isValidator := hbmi.isValidator
-	return isValidator
+	return hbmi.peerType == string(core.EligibleList) || hbmi.peerType == string(core.WaitingList)
 }

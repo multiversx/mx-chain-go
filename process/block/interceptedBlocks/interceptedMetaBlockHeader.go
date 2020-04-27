@@ -1,8 +1,11 @@
 package interceptedBlocks
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -11,13 +14,15 @@ import (
 
 // InterceptedMetaHeader represents the wrapper over the meta block header struct
 type InterceptedMetaHeader struct {
-	hdr              *block.MetaBlock
-	sigVerifier      process.InterceptedHeaderSigVerifier
-	hasher           hashing.Hasher
-	shardCoordinator sharding.Coordinator
-	hash             []byte
-	chainID          []byte
-	validityAttester process.ValidityAttester
+	hdr               *block.MetaBlock
+	sigVerifier       process.InterceptedHeaderSigVerifier
+	hasher            hashing.Hasher
+	shardCoordinator  sharding.Coordinator
+	hash              []byte
+	chainID           []byte
+	validityAttester  process.ValidityAttester
+	epochStartTrigger process.EpochStartTriggerHandler
+	nonceConverter    typeConverters.Uint64ByteSliceConverter
 }
 
 // NewInterceptedMetaHeader creates a new instance of InterceptedMetaHeader struct
@@ -33,12 +38,14 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 	}
 
 	inHdr := &InterceptedMetaHeader{
-		hdr:              hdr,
-		hasher:           arg.Hasher,
-		sigVerifier:      arg.HeaderSigVerifier,
-		shardCoordinator: arg.ShardCoordinator,
-		chainID:          arg.ChainID,
-		validityAttester: arg.ValidityAttester,
+		hdr:               hdr,
+		hasher:            arg.Hasher,
+		sigVerifier:       arg.HeaderSigVerifier,
+		shardCoordinator:  arg.ShardCoordinator,
+		chainID:           arg.ChainID,
+		validityAttester:  arg.ValidityAttester,
+		epochStartTrigger: arg.EpochStartTrigger,
+		nonceConverter:    arg.NonceConverter,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -48,7 +55,6 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 func createMetaHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (*block.MetaBlock, error) {
 	hdr := &block.MetaBlock{
 		ShardInfo: make([]block.ShardData, 0),
-		PeerInfo:  make([]block.PeerData, 0),
 	}
 	err := marshalizer.Unmarshal(hdr, hdrBuff)
 	if err != nil {
@@ -125,6 +131,22 @@ func (imh *InterceptedMetaHeader) IsForCurrentShard() bool {
 // Type returns the type of this intercepted data
 func (imh *InterceptedMetaHeader) Type() string {
 	return "intercepted meta header"
+}
+
+// String returns the meta header's most important fields as string
+func (imh *InterceptedMetaHeader) String() string {
+	return fmt.Sprintf("epoch=%d, round=%d, nonce=%d",
+		imh.hdr.Epoch,
+		imh.hdr.Round,
+		imh.hdr.Nonce,
+	)
+}
+
+// Identifiers returns the identifiers used in requests
+func (imh *InterceptedMetaHeader) Identifiers() [][]byte {
+	nonceBytes := imh.nonceConverter.ToByteSlice(imh.hdr.Nonce)
+
+	return [][]byte{imh.hash, nonceBytes}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

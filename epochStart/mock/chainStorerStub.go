@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ChainStorerStub is a mock implementation of the ChianStorer interface
+// ChainStorerStub is a mock implementation of the ChainStorer interface
 type ChainStorerStub struct {
 	AddStorerCalled func(key dataRetriever.UnitType, s storage.Storer)
 	GetStorerCalled func(unitType dataRetriever.UnitType) storage.Storer
@@ -79,6 +79,10 @@ func (bc *ChainStorerStub) GetAll(unitType dataRetriever.UnitType, keys [][]byte
 		return bc.GetAllCalled(unitType, keys)
 	}
 	return nil, nil
+}
+
+// SetEpochForPutOperation won't do anything
+func (bc *ChainStorerStub) SetEpochForPutOperation(epoch uint32) {
 }
 
 // Destroy removes the underlying files/resources used by the storage service

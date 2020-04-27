@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -11,7 +12,7 @@ func (boot *ShardBootstrap) RequestHeaderWithNonce(nonce uint64) {
 }
 
 func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-	return boot.miniBlocksResolver.GetMiniBlocks(hashes)
+	return boot.miniBlocksProvider.GetMiniBlocks(hashes)
 }
 
 func (boot *MetaBootstrap) ReceivedHeaders(header data.HeaderHandler, key []byte) {
@@ -95,11 +96,13 @@ func (hi *headerInfo) GetBlockHeaderState() process.BlockHeaderState {
 }
 
 func (boot *ShardBootstrap) NotifySyncStateListeners() {
-	boot.notifySyncStateListeners(boot.isNodeSynchronized)
+	isNodeSynchronized := boot.GetNodeState() == core.NsSynchronized
+	boot.notifySyncStateListeners(isNodeSynchronized)
 }
 
 func (boot *MetaBootstrap) NotifySyncStateListeners() {
-	boot.notifySyncStateListeners(boot.isNodeSynchronized)
+	isNodeSynchronized := boot.GetNodeState() == core.NsSynchronized
+	boot.notifySyncStateListeners(isNodeSynchronized)
 }
 
 func (boot *ShardBootstrap) SyncStateListeners() []func(bool) {
@@ -186,9 +189,41 @@ func (boot *baseBootstrap) SetNotarizedMap(notarizedMap map[uint32]*HdrInfo, sha
 }
 
 func (boot *baseBootstrap) SetNodeStateCalculated(state bool) {
-	if state {
-		boot.isNodeStateCalculated.Set()
-	} else {
-		boot.isNodeStateCalculated.Unset()
-	}
+	boot.mutNodeState.Lock()
+	boot.isNodeStateCalculated = state
+	boot.mutNodeState.Unlock()
+}
+
+func (boot *baseBootstrap) ComputeNodeState() {
+	boot.computeNodeState()
+}
+
+func (boot *baseBootstrap) ResetProbableHighestNonceIfNeeded(headerHandler data.HeaderHandler) {
+	boot.resetProbableHighestNonceIfNeeded(headerHandler)
+}
+
+func (boot *baseBootstrap) SetNumSyncedWithErrorsForNonce(nonce uint64, numSyncedWithErrors uint32) {
+	boot.mutNonceSyncedWithErrors.Lock()
+	boot.mapNonceSyncedWithErrors[nonce] = numSyncedWithErrors
+	boot.mutNonceSyncedWithErrors.Unlock()
+}
+
+func (boot *baseBootstrap) GetNumSyncedWithErrorsForNonce(nonce uint64) uint32 {
+	boot.mutNonceSyncedWithErrors.RLock()
+	numSyncedWithErrors := boot.mapNonceSyncedWithErrors[nonce]
+	boot.mutNonceSyncedWithErrors.RUnlock()
+
+	return numSyncedWithErrors
+}
+
+func (boot *baseBootstrap) GetMapNonceSyncedWithErrorsLen() int {
+	boot.mutNonceSyncedWithErrors.RLock()
+	mapNonceSyncedWithErrorsLen := len(boot.mapNonceSyncedWithErrors)
+	boot.mutNonceSyncedWithErrors.RUnlock()
+
+	return mapNonceSyncedWithErrorsLen
+}
+
+func (boot *baseBootstrap) CleanNoncesSyncedWithErrorsBehindFinal() {
+	boot.cleanNoncesSyncedWithErrorsBehindFinal()
 }

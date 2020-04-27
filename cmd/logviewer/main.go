@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gorilla/websocket"
 	"github.com/urfave/cli"
@@ -31,6 +31,8 @@ type config struct {
 	logLevelPatterns string
 	logFile          bool
 	useWss           bool
+	withCorrelation  bool
+	withLoggerName   bool
 }
 
 var (
@@ -79,6 +81,20 @@ VERSION:
 		Destination: &argsConfig.useWss,
 	}
 
+	// withCorrelation is used when the user wants to include the log correlation elements in logs
+	withCorrelation = cli.BoolFlag{
+		Name:        "correlation",
+		Usage:       "Will include log correlation elements",
+		Destination: &argsConfig.withCorrelation,
+	}
+
+	// withLoggerName is used when the user wants to include the logger name in logs
+	withLoggerName = cli.BoolFlag{
+		Name:        "logger-name",
+		Usage:       "Will include logger name",
+		Destination: &argsConfig.withLoggerName,
+	}
+
 	// workingDirectory defines a flag for the path for the working directory.
 	workingDirectory = cli.StringFlag{
 		Name:        "working-directory",
@@ -99,7 +115,7 @@ VERSION:
 
 func main() {
 	initCliFlags()
-	marshalizer = &marshal.ProtobufMarshalizer{}
+	marshalizer = &marshal.GogoProtoMarshalizer{}
 
 	cliApp.Action = func(c *cli.Context) error {
 		return startLogViewer(c)
@@ -124,6 +140,8 @@ func initCliFlags() {
 		logFile,
 		workingDirectory,
 		useWss,
+		withCorrelation,
+		withLoggerName,
 	}
 	cliApp.Authors = []cli.Author{
 		{
@@ -161,9 +179,18 @@ func startLogViewer(ctx *cli.Context) error {
 		}()
 	}
 
+	profile := &logger.Profile{
+		LogLevelPatterns: argsConfig.logLevelPatterns,
+		WithCorrelation:  argsConfig.withCorrelation,
+		WithLoggerName:   argsConfig.withLoggerName,
+	}
+
+	err = profile.Apply()
+	log.LogIfError(err)
+
 	go func() {
 		for {
-			webSocket, err = openWebSocket(argsConfig.address, argsConfig.logLevelPatterns)
+			webSocket, err = openWebSocket(argsConfig.address, profile)
 			if err != nil {
 				log.Error(fmt.Sprintf("logviewer websocket error, retrying in %v...", retryDuration), "error", err.Error())
 				time.Sleep(retryDuration)
@@ -205,22 +232,30 @@ func prepareLogFile() error {
 	return logger.AddLogObserver(logsFile, &logger.PlainFormatter{})
 }
 
-func openWebSocket(address string, logLevelPatterns string) (*websocket.Conn, error) {
+func openWebSocket(address string, profile *logger.Profile) (*websocket.Conn, error) {
 	scheme := ws
+
 	if argsConfig.useWss {
 		scheme = wss
 	}
+
 	u := url.URL{
 		Scheme: scheme,
 		Host:   address,
 		Path:   wsLogPath,
 	}
+
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	err = conn.WriteMessage(websocket.TextMessage, []byte(logLevelPatterns))
+	profileMessage, err := profile.Marshal()
+	if err != nil {
+		return nil, err
+	}
+
+	err = conn.WriteMessage(websocket.TextMessage, profileMessage)
 	if err != nil {
 		return nil, err
 	}
@@ -275,10 +310,12 @@ func outputMessage(message []byte) {
 	}
 
 	recoveredLogLine := &logger.LogLine{
-		Message:   logLine.Message,
-		LogLevel:  logger.LogLevel(logLine.LogLevel),
-		Args:      make([]interface{}, len(logLine.Args)),
-		Timestamp: time.Unix(0, logLine.Timestamp),
+		LoggerName:  logLine.LoggerName,
+		Correlation: logLine.Correlation,
+		Message:     logLine.Message,
+		LogLevel:    logger.LogLevel(logLine.LogLevel),
+		Args:        make([]interface{}, len(logLine.Args)),
+		Timestamp:   time.Unix(0, logLine.Timestamp),
 	}
 	for i, str := range logLine.Args {
 		recoveredLogLine.Args[i] = str

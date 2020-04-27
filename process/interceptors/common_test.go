@@ -6,16 +6,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
 )
 
+const fromConnectedPeer = "from connected peer"
+
 //------- preProcessMessage
+
 func TestPreProcessMessage_NilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	err := preProcessMesage(&mock.InterceptorThrottlerStub{}, nil)
+	err := preProcessMesage(&mock.InterceptorThrottlerStub{}, &mock.P2PAntifloodHandlerStub{}, nil, fromConnectedPeer, "")
 
 	assert.Equal(t, process.ErrNilMessage, err)
 }
@@ -24,12 +28,12 @@ func TestPreProcessMessage_NilDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	msg := &mock.P2PMessageMock{}
-	err := preProcessMesage(&mock.InterceptorThrottlerStub{}, msg)
+	err := preProcessMesage(&mock.InterceptorThrottlerStub{}, &mock.P2PAntifloodHandlerStub{}, msg, fromConnectedPeer, "")
 
 	assert.Equal(t, process.ErrNilDataToProcess, err)
 }
 
-func TestPreProcessMessage_CanNotProcessShouldErr(t *testing.T) {
+func TestPreProcessMessage_AntifloodCanNotProcessShouldErr(t *testing.T) {
 	t.Parallel()
 
 	msg := &mock.P2PMessageMock{
@@ -40,8 +44,55 @@ func TestPreProcessMessage_CanNotProcessShouldErr(t *testing.T) {
 			return false
 		},
 	}
+	expectedErr := errors.New("expected error")
+	antifloodHandler := &mock.P2PAntifloodHandlerStub{
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+			return expectedErr
+		},
+	}
 
-	err := preProcessMesage(throttler, msg)
+	err := preProcessMesage(throttler, antifloodHandler, msg, fromConnectedPeer, "")
+
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestPreProcessMessage_AntifloodTopicCanNotProcessShouldErr(t *testing.T) {
+	t.Parallel()
+
+	msg := &mock.P2PMessageMock{
+		DataField: []byte("data to process"),
+	}
+	throttler := &mock.InterceptorThrottlerStub{
+		CanProcessCalled: func() bool {
+			return false
+		},
+	}
+	expectedErr := errors.New("expected error")
+	antifloodHandler := &mock.P2PAntifloodHandlerStub{
+		CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
+			return expectedErr
+		},
+	}
+
+	err := preProcessMesage(throttler, antifloodHandler, msg, fromConnectedPeer, "")
+
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestPreProcessMessage_ThrottlerCanNotProcessShouldErr(t *testing.T) {
+	t.Parallel()
+
+	msg := &mock.P2PMessageMock{
+		DataField: []byte("data to process"),
+	}
+	throttler := &mock.InterceptorThrottlerStub{
+		CanProcessCalled: func() bool {
+			return false
+		},
+	}
+	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
+
+	err := preProcessMesage(throttler, antifloodHandler, msg, fromConnectedPeer, "")
 
 	assert.Equal(t, process.ErrSystemBusy, err)
 }
@@ -57,7 +108,8 @@ func TestPreProcessMessage_CanProcessReturnsNilAndCallsStartProcessing(t *testin
 			return true
 		},
 	}
-	err := preProcessMesage(throttler, msg)
+	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
+	err := preProcessMesage(throttler, antifloodHandler, msg, fromConnectedPeer, "")
 
 	assert.Nil(t, err)
 	assert.Equal(t, int32(1), throttler.StartProcessingCount())
@@ -87,7 +139,14 @@ func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *tes
 		chDone <- struct{}{}
 	}()
 
-	processInterceptedData(processor, &mock.InterceptedDataStub{}, wg, &mock.P2PMessageMock{})
+	processInterceptedData(
+		processor,
+		&mock.InterceptedDebugHandlerStub{},
+		&mock.InterceptedDataStub{},
+		"topic",
+		wg,
+		&mock.P2PMessageMock{},
+	)
 
 	select {
 	case <-chDone:
@@ -119,7 +178,14 @@ func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T
 		chDone <- struct{}{}
 	}()
 
-	processInterceptedData(processor, &mock.InterceptedDataStub{}, wg, &mock.P2PMessageMock{})
+	processInterceptedData(
+		processor,
+		&mock.InterceptedDebugHandlerStub{},
+		&mock.InterceptedDataStub{},
+		"topic",
+		wg,
+		&mock.P2PMessageMock{},
+	)
 
 	select {
 	case <-chDone:
@@ -151,7 +217,14 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 		chDone <- struct{}{}
 	}()
 
-	processInterceptedData(processor, &mock.InterceptedDataStub{}, wg, &mock.P2PMessageMock{})
+	processInterceptedData(
+		processor,
+		&mock.InterceptedDebugHandlerStub{},
+		&mock.InterceptedDataStub{},
+		"topic",
+		wg,
+		&mock.P2PMessageMock{},
+	)
 
 	select {
 	case <-chDone:
@@ -159,4 +232,48 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 	case <-time.After(time.Second):
 		assert.Fail(t, "timeout while waiting for wait group object to be finished")
 	}
+}
+
+//------- debug
+
+func TestProcessDebugInterceptedData_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	numCalled := 0
+	dh := &mock.InterceptedDebugHandlerStub{
+		LogProcessedHashesCalled: func(topic string, hashes [][]byte, err error) {
+			numCalled += len(hashes)
+		},
+	}
+
+	numCalls := 40
+	ids := &mock.InterceptedDataStub{
+		IdentifiersCalled: func() [][]byte {
+			return make([][]byte, numCalls)
+		},
+	}
+
+	processDebugInterceptedData(dh, ids, "", nil)
+	assert.Equal(t, numCalls, numCalled)
+}
+
+func TestReceivedDebugInterceptedData_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	numCalled := 0
+	dh := &mock.InterceptedDebugHandlerStub{
+		LogReceivedHashesCalled: func(topic string, hashes [][]byte) {
+			numCalled += len(hashes)
+		},
+	}
+
+	numCalls := 40
+	ids := &mock.InterceptedDataStub{
+		IdentifiersCalled: func() [][]byte {
+			return make([][]byte, numCalls)
+		},
+	}
+
+	receivedDebugInterceptedData(dh, ids, "")
+	assert.Equal(t, numCalls, numCalled)
 }

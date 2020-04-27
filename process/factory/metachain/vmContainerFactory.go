@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -14,19 +15,31 @@ import (
 )
 
 type vmContainerFactory struct {
-	blockChainHookImpl *hooks.BlockChainHookImpl
-	cryptoHook         vmcommon.CryptoHook
-	systemContracts    vm.SystemSCContainer
-	economics          *economics.EconomicsData
+	blockChainHookImpl  *hooks.BlockChainHookImpl
+	cryptoHook          vmcommon.CryptoHook
+	systemContracts     vm.SystemSCContainer
+	economics           *economics.EconomicsData
+	messageSigVerifier  vm.MessageSignVerifier
+	nodesConfigProvider vm.NodesConfigProvider
+	gasSchedule         map[string]map[string]uint64
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
 func NewVMContainerFactory(
 	argBlockChainHook hooks.ArgBlockChainHook,
 	economics *economics.EconomicsData,
+	messageSignVerifier vm.MessageSignVerifier,
+	gasSchedule map[string]map[string]uint64,
+	nodesConfigProvider vm.NodesConfigProvider,
 ) (*vmContainerFactory, error) {
 	if economics == nil {
 		return nil, process.ErrNilEconomicsData
+	}
+	if check.IfNil(messageSignVerifier) {
+		return nil, process.ErrNilKeyGen
+	}
+	if check.IfNil(nodesConfigProvider) {
+		return nil, vm.ErrNilNodesConfigProvider
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argBlockChainHook)
@@ -36,9 +49,12 @@ func NewVMContainerFactory(
 	cryptoHook := hooks.NewVMCryptoHook()
 
 	return &vmContainerFactory{
-		blockChainHookImpl: blockChainHookImpl,
-		cryptoHook:         cryptoHook,
-		economics:          economics,
+		blockChainHookImpl:  blockChainHookImpl,
+		cryptoHook:          cryptoHook,
+		economics:           economics,
+		messageSigVerifier:  messageSignVerifier,
+		gasSchedule:         gasSchedule,
+		nodesConfigProvider: nodesConfigProvider,
 	}, nil
 }
 
@@ -60,17 +76,31 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 }
 
 func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, error) {
-	systemEI, err := systemSmartContracts.NewVMContext(vmf.blockChainHookImpl, vmf.cryptoHook)
+	atArgumentParser := vmcommon.NewAtArgumentParser()
+
+	systemEI, err := systemSmartContracts.NewVMContext(vmf.blockChainHookImpl, vmf.cryptoHook, atArgumentParser)
 	if err != nil {
 		return nil, err
 	}
 
-	scFactory, err := systemVMFactory.NewSystemSCFactory(systemEI, vmf.economics)
+	argsNewSystemScFactory := systemVMFactory.ArgsNewSystemSCFactory{
+		SystemEI:            systemEI,
+		ValidatorSettings:   vmf.economics,
+		SigVerifier:         vmf.messageSigVerifier,
+		GasMap:              vmf.gasSchedule,
+		NodesConfigProvider: vmf.nodesConfigProvider,
+	}
+	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
 	if err != nil {
 		return nil, err
 	}
 
 	vmf.systemContracts, err = scFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	err = systemEI.SetSystemSCContainer(vmf.systemContracts)
 	if err != nil {
 		return nil, err
 	}

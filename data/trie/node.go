@@ -1,8 +1,11 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. node.proto
 package trie
 
 import (
+	"encoding/hex"
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/data"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
@@ -24,19 +27,19 @@ type baseNode struct {
 }
 
 type branchNode struct {
-	protobuf.CollapsedBn
+	CollapsedBn
 	children [nrOfChildren]node
 	*baseNode
 }
 
 type extensionNode struct {
-	protobuf.CollapsedEn
+	CollapsedEn
 	child node
 	*baseNode
 }
 
 type leafNode struct {
-	protobuf.CollapsedLn
+	CollapsedLn
 	*baseNode
 }
 
@@ -93,7 +96,7 @@ func encodeNodeAndCommitToDB(n node, db data.DBWriteCacher) error {
 func getNodeFromDBAndDecode(n []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	encChild, err := db.Get(n)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getNodeFromDB error %w for key %v", err, hex.EncodeToString(n))
 	}
 
 	decodedNode, err := decodeNode(encChild, marshalizer, hasher)

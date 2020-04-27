@@ -2,11 +2,13 @@ package transaction_test
 
 import (
 	"encoding/json"
+	"errors"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,18 +31,18 @@ func TestTransaction_SettersAndGetters(t *testing.T) {
 	}
 	assert.False(t, check.IfNil(tx))
 
-	tx.SetSndAddress(sender)
+	tx.SetSndAddr(sender)
 	tx.SetData(txData)
 	tx.SetValue(value)
-	tx.SetRecvAddress(receiver)
+	tx.SetRcvAddr(receiver)
 
 	assert.Equal(t, nonce, tx.GetNonce())
 	assert.Equal(t, value, tx.GetValue())
 	assert.Equal(t, txData, tx.GetData())
 	assert.Equal(t, gasPrice, tx.GetGasPrice())
 	assert.Equal(t, gasLimit, tx.GetGasLimit())
-	assert.Equal(t, sender, tx.GetSndAddress())
-	assert.Equal(t, receiver, tx.GetRecvAddress())
+	assert.Equal(t, sender, tx.GetSndAddr())
+	assert.Equal(t, receiver, tx.GetRcvAddr())
 }
 
 func TestTransaction_MarshalUnmarshalJsonShouldWork(t *testing.T) {
@@ -49,7 +51,7 @@ func TestTransaction_MarshalUnmarshalJsonShouldWork(t *testing.T) {
 	value := big.NewInt(445566)
 	tx := &transaction.Transaction{
 		Nonce:     112233,
-		Value:     value,
+		Value:     new(big.Int).Set(value),
 		RcvAddr:   []byte("receiver"),
 		SndAddr:   []byte("sender"),
 		GasPrice:  1234,
@@ -66,7 +68,7 @@ func TestTransaction_MarshalUnmarshalJsonShouldWork(t *testing.T) {
 	assert.Equal(t, tx, txRecovered)
 
 	buffAsString := string(buff)
-	assert.Contains(t, buffAsString, "\""+value.String()+"\"")
+	assert.Contains(t, buffAsString, value.String())
 }
 
 func TestTransaction_TrimsSlicePtr(t *testing.T) {
@@ -127,4 +129,81 @@ func TestTransaction_TrimsSliceHandler(t *testing.T) {
 
 	assert.Equal(t, 2, len(input))
 	assert.Equal(t, 2, cap(input))
+}
+
+func TestTransaction_GetDataForSigningNilPubkeyConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tx := &transaction.Transaction{}
+
+	buff, err := tx.GetDataForSigning(nil, &mock.MarshalizerStub{})
+
+	assert.Nil(t, buff)
+	assert.Equal(t, transaction.ErrNilEncoder, err)
+}
+
+func TestTransaction_GetDataForSigningNilMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tx := &transaction.Transaction{}
+
+	buff, err := tx.GetDataForSigning(&mock.PubkeyConverterStub{}, nil)
+
+	assert.Nil(t, buff)
+	assert.Equal(t, transaction.ErrNilMarshalizer, err)
+}
+
+func TestTransaction_GetDataForSigningMarshalizerErrShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tx := &transaction.Transaction{}
+
+	numEncodeCalled := 0
+	expectedErr := errors.New("expected error")
+	buff, err := tx.GetDataForSigning(
+		&mock.PubkeyConverterStub{
+			EncodeCalled: func(pkBytes []byte) string {
+				numEncodeCalled++
+				return ""
+			},
+		},
+		&mock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) (bytes []byte, err error) {
+				return nil, expectedErr
+			},
+		},
+	)
+
+	assert.Nil(t, buff)
+	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, 2, numEncodeCalled)
+}
+
+func TestTransaction_GetDataForSigningShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tx := &transaction.Transaction{}
+
+	numEncodeCalled := 0
+	marshalizerWasCalled := false
+	buff, err := tx.GetDataForSigning(
+		&mock.PubkeyConverterStub{
+			EncodeCalled: func(pkBytes []byte) string {
+				numEncodeCalled++
+				return ""
+			},
+		},
+		&mock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) (bytes []byte, err error) {
+				marshalizerWasCalled = true
+
+				return make([]byte, 0), nil
+			},
+		},
+	)
+
+	assert.Equal(t, 0, len(buff))
+	assert.Nil(t, err)
+	assert.True(t, marshalizerWasCalled)
+	assert.Equal(t, 2, numEncodeCalled)
 }

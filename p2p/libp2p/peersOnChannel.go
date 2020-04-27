@@ -74,7 +74,7 @@ func (poc *peersOnChannel) ConnectedPeersOnChannel(topic string) []p2p.PeerID {
 func (poc *peersOnChannel) updateConnectedPeersOnTopic(topic string, connectedPeers []p2p.PeerID) {
 	poc.mutPeers.Lock()
 	poc.peers[topic] = connectedPeers
-	poc.lastUpdated[topic] = poc.clockTime()
+	poc.lastUpdated[topic] = poc.getTimeHandler()
 	poc.mutPeers.Unlock()
 }
 

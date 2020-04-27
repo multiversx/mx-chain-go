@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ChainStorerMock is a mock implementation of the ChianStorer interface
+// ChainStorerMock is a mock implementation of the ChainStorer interface
 type ChainStorerMock struct {
 	AddStorerCalled func(key dataRetriever.UnitType, s storage.Storer)
 	GetStorerCalled func(unitType dataRetriever.UnitType) storage.Storer
@@ -39,7 +39,8 @@ func (bc *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.St
 	if bc.GetStorerCalled != nil {
 		return bc.GetStorerCalled(unitType)
 	}
-	return nil
+
+	return &StorerStub{}
 }
 
 // Has returns true if the key is found in the selected Unit or false otherwise
@@ -82,6 +83,10 @@ func (bc *ChainStorerMock) GetAll(unitType dataRetriever.UnitType, keys [][]byte
 	return nil, nil
 }
 
+// SetEpochForPutOperation won't do anything
+func (bc *ChainStorerMock) SetEpochForPutOperation(epoch uint32) {
+}
+
 // Destroy removes the underlying files/resources used by the storage service
 func (bc *ChainStorerMock) Destroy() error {
 	if bc.DestroyCalled != nil {
@@ -92,8 +97,5 @@ func (bc *ChainStorerMock) Destroy() error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (bc *ChainStorerMock) IsInterfaceNil() bool {
-	if bc == nil {
-		return true
-	}
-	return false
+	return bc == nil
 }

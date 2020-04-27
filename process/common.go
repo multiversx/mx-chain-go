@@ -2,9 +2,12 @@ package process
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math"
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -12,25 +15,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var log = logger.GetOrCreate("process")
-
-// EmptyChannel empties the given channel
-func EmptyChannel(ch chan bool) int {
-	readsCnt := 0
-	for {
-		select {
-		case <-ch:
-			readsCnt++
-		default:
-			return readsCnt
-		}
-	}
-}
 
 // GetShardHeader gets the header, which is associated with the given hash, from pool or storage
 func GetShardHeader(
@@ -168,21 +156,22 @@ func GetMarshalizedHeaderFromStorage(
 	storageService dataRetriever.StorageService,
 ) ([]byte, error) {
 
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if storageService == nil || storageService.IsInterfaceNil() {
+	if check.IfNil(storageService) {
 		return nil, ErrNilStorage
 	}
 
 	hdrStore := storageService.GetStorer(blockUnit)
-	if hdrStore == nil || hdrStore.IsInterfaceNil() {
+	if check.IfNil(hdrStore) {
 		return nil, ErrNilHeadersStorage
 	}
 
 	buffHdr, err := hdrStore.Get(hash)
 	if err != nil {
-		return nil, ErrMissingHeader
+		return nil, fmt.Errorf("%w : GetMarshalizedHeaderFromStorage hash = %s",
+			ErrMissingHeader, logger.DisplayByteSlice(hash))
 	}
 
 	return buffHdr, nil
@@ -265,7 +254,7 @@ func GetMetaHeaderFromPoolWithNonce(
 	headersCacher dataRetriever.HeadersPool,
 ) (*block.MetaBlock, []byte, error) {
 
-	obj, hash, err := getHeaderFromPoolWithNonce(nonce, sharding.MetachainShardId, headersCacher)
+	obj, hash, err := getHeaderFromPoolWithNonce(nonce, core.MetachainShardId, headersCacher)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -287,7 +276,7 @@ func GetHeaderFromStorageWithNonce(
 	marshalizer marshal.Marshalizer,
 ) (data.HeaderHandler, []byte, error) {
 
-	if shardId == sharding.MetachainShardId {
+	if shardId == core.MetachainShardId {
 		return GetMetaHeaderFromStorageWithNonce(nonce, storageService, uint64Converter, marshalizer)
 	}
 	return GetShardHeaderFromStorageWithNonce(nonce, shardId, storageService, uint64Converter, marshalizer)
@@ -510,7 +499,8 @@ func getHeaderFromPool(
 
 	obj, err := headersCacher.GetHeaderByHash(hash)
 	if err != nil {
-		return nil, ErrMissingHeader
+		return nil, fmt.Errorf("%w : getHeaderFromPool hash = %s",
+			ErrMissingHeader, logger.DisplayByteSlice(hash))
 	}
 
 	return obj, nil
@@ -528,7 +518,8 @@ func getHeaderFromPoolWithNonce(
 
 	headers, hashes, err := headersCacher.GetHeadersByNonceAndShardId(nonce, shardId)
 	if err != nil {
-		return nil, nil, ErrMissingHeader
+		return nil, nil, fmt.Errorf("%w : getHeaderFromPoolWithNonce shard = %d nonce = %d",
+			ErrMissingHeader, shardId, nonce)
 	}
 
 	//TODO what should we do when we get from pool more than one header with same nonce and shardId
@@ -611,25 +602,41 @@ func DisplayProcessTxDetails(
 	message string,
 	accountHandler state.AccountHandler,
 	txHandler data.TransactionHandler,
+	addressPubkeyConverter state.PubkeyConverter,
 ) {
 	if !check.IfNil(accountHandler) {
-		account, ok := accountHandler.(*state.Account)
+		account, ok := accountHandler.(state.UserAccountHandler)
 		if ok {
 			log.Trace(message,
-				"nonce", account.Nonce,
-				"balance", account.Balance,
+				"nonce", account.GetNonce(),
+				"balance", account.GetBalance(),
 			)
 		}
 	}
 
-	if !check.IfNil(txHandler) {
-		log.Trace("executing transaction",
-			"nonce", txHandler.GetNonce(),
-			"value", txHandler.GetValue(),
-			"gas limit", txHandler.GetGasLimit(),
-			"gas price", txHandler.GetGasPrice(),
-			"data", hex.EncodeToString(txHandler.GetData()),
-			"sender", hex.EncodeToString(txHandler.GetSndAddress()),
-			"receiver", hex.EncodeToString(txHandler.GetRecvAddress()))
+	if check.IfNil(addressPubkeyConverter) {
+		return
 	}
+	if check.IfNil(txHandler) {
+		return
+	}
+
+	receiver := ""
+	if len(txHandler.GetRcvAddr()) == addressPubkeyConverter.Len() {
+		receiver = addressPubkeyConverter.Encode(txHandler.GetRcvAddr())
+	}
+
+	sender := ""
+	if len(txHandler.GetSndAddr()) == addressPubkeyConverter.Len() {
+		sender = addressPubkeyConverter.Encode(txHandler.GetSndAddr())
+	}
+
+	log.Trace("executing transaction",
+		"nonce", txHandler.GetNonce(),
+		"value", txHandler.GetValue(),
+		"gas limit", txHandler.GetGasLimit(),
+		"gas price", txHandler.GetGasPrice(),
+		"data", hex.EncodeToString(txHandler.GetData()),
+		"sender", sender,
+		"receiver", receiver)
 }

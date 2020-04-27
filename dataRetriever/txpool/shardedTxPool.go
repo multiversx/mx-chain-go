@@ -1,24 +1,32 @@
 package txpool
 
 import (
+	"strconv"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core/counting"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
+
+var _ counting.Countable = (*shardedTxPool)(nil)
+var _ dataRetriever.ShardedDataCacherNotifier = (*shardedTxPool)(nil)
 
 var log = logger.GetOrCreate("txpool")
 
 // shardedTxPool holds transaction caches organised by destination shard
 type shardedTxPool struct {
-	mutex                sync.RWMutex
-	backingMap           map[string]*txPoolShard
-	mutexAddCallbacks    sync.RWMutex
-	onAddCallbacks       []func(key []byte)
-	cacheConfigPrototype txcache.CacheConfig
+	mutexBackingMap                  sync.RWMutex
+	backingMap                       map[string]*txPoolShard
+	mutexAddCallbacks                sync.RWMutex
+	onAddCallbacks                   []func(key []byte, value interface{})
+	cacheConfigPrototype             txcache.CacheConfig
+	cacheConfigPrototypeForSelfShard txcache.CacheConfig
+	selfShardID                      uint32
 }
 
 type txPoolShard struct {
@@ -50,12 +58,18 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		MinGasPriceMicroErd:        uint32(args.MinGasPrice / oneTrilion),
 	}
 
+	cacheConfigPrototypeForSelfShard := cacheConfigPrototype
+	cacheConfigPrototypeForSelfShard.CountThreshold *= args.NumberOfShards
+	cacheConfigPrototypeForSelfShard.NumBytesThreshold *= args.NumberOfShards
+
 	shardedTxPoolObject := &shardedTxPool{
-		mutex:                sync.RWMutex{},
-		backingMap:           make(map[string]*txPoolShard),
-		mutexAddCallbacks:    sync.RWMutex{},
-		onAddCallbacks:       make([]func(key []byte), 0),
-		cacheConfigPrototype: cacheConfigPrototype,
+		mutexBackingMap:                  sync.RWMutex{},
+		backingMap:                       make(map[string]*txPoolShard),
+		mutexAddCallbacks:                sync.RWMutex{},
+		onAddCallbacks:                   make([]func(key []byte, value interface{}), 0),
+		cacheConfigPrototype:             cacheConfigPrototype,
+		cacheConfigPrototypeForSelfShard: cacheConfigPrototypeForSelfShard,
+		selfShardID:                      args.SelfShardID,
 	}
 
 	return shardedTxPoolObject, nil
@@ -74,9 +88,11 @@ func (txPool *shardedTxPool) getTxCache(cacheID string) *txcache.TxCache {
 }
 
 func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
-	txPool.mutex.RLock()
+	cacheID = txPool.routeToCacheUnions(cacheID)
+
+	txPool.mutexBackingMap.RLock()
 	shard, ok := txPool.backingMap[cacheID]
-	txPool.mutex.RUnlock()
+	txPool.mutexBackingMap.RUnlock()
 
 	if ok {
 		return shard
@@ -87,14 +103,12 @@ func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
 }
 
 func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
-	txPool.mutex.Lock()
-	defer txPool.mutex.Unlock()
+	txPool.mutexBackingMap.Lock()
+	defer txPool.mutexBackingMap.Unlock()
 
 	shard, ok := txPool.backingMap[cacheID]
 	if !ok {
-		// Here we clone the config structure
-		cacheConfig := txPool.cacheConfigPrototype
-		cacheConfig.Name = cacheID
+		cacheConfig := txPool.getCacheConfig(cacheID)
 		cache := txcache.NewTxCache(cacheConfig)
 		shard = &txPoolShard{
 			CacheID: cacheID,
@@ -107,6 +121,20 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 	return shard
 }
 
+func (txPool *shardedTxPool) getCacheConfig(cacheID string) txcache.CacheConfig {
+	var cacheConfig txcache.CacheConfig
+
+	isForSelfShard := process.IsShardCacherIdentifierIntraShard(cacheID, txPool.selfShardID)
+	if isForSelfShard {
+		cacheConfig = txPool.cacheConfigPrototypeForSelfShard
+	} else {
+		cacheConfig = txPool.cacheConfigPrototype
+	}
+
+	cacheConfig.Name = cacheID
+	return cacheConfig
+}
+
 // AddData adds the transaction to the cache
 func (txPool *shardedTxPool) AddData(key []byte, value interface{}, cacheID string) {
 	valueAsTransaction, ok := value.(data.TransactionHandler)
@@ -114,25 +142,37 @@ func (txPool *shardedTxPool) AddData(key []byte, value interface{}, cacheID stri
 		return
 	}
 
-	txPool.addTx(key, valueAsTransaction, cacheID)
+	sourceShardID, destinationShardID, err := process.ParseShardCacherIdentifier(cacheID)
+	if err != nil {
+		return
+	}
+
+	wrapper := &txcache.WrappedTransaction{
+		Tx:              valueAsTransaction,
+		TxHash:          key,
+		SenderShardID:   sourceShardID,
+		ReceiverShardID: destinationShardID,
+	}
+
+	txPool.addTx(wrapper, cacheID)
 }
 
 // addTx adds the transaction to the cache
-func (txPool *shardedTxPool) addTx(txHash []byte, tx data.TransactionHandler, cacheID string) {
+func (txPool *shardedTxPool) addTx(tx *txcache.WrappedTransaction, cacheID string) {
 	shard := txPool.getOrCreateShard(cacheID)
 	cache := shard.Cache
-	_, added := cache.AddTx(txHash, tx)
+	_, added := cache.AddTx(tx)
 	if added {
-		txPool.onAdded(txHash)
+		txPool.onAdded(tx.TxHash, tx)
 	}
 }
 
-func (txPool *shardedTxPool) onAdded(txHash []byte) {
+func (txPool *shardedTxPool) onAdded(key []byte, value interface{}) {
 	txPool.mutexAddCallbacks.RLock()
 	defer txPool.mutexAddCallbacks.RUnlock()
 
 	for _, handler := range txPool.onAddCallbacks {
-		go handler(txHash)
+		go handler(key, value)
 	}
 }
 
@@ -144,15 +184,15 @@ func (txPool *shardedTxPool) SearchFirstData(key []byte) (interface{}, bool) {
 
 // searchFirstTx searches the transaction against all shard data store, retrieving the first found
 func (txPool *shardedTxPool) searchFirstTx(txHash []byte) (tx data.TransactionHandler, ok bool) {
-	txPool.mutex.RLock()
-	defer txPool.mutex.RUnlock()
+	txPool.mutexBackingMap.RLock()
+	defer txPool.mutexBackingMap.RUnlock()
 
-	var txFromCache data.TransactionHandler
+	var txFromCache *txcache.WrappedTransaction
 	var hashExists bool
 	for _, shard := range txPool.backingMap {
 		txFromCache, hashExists = shard.Cache.GetByTxHash(txHash)
 		if hashExists {
-			return txFromCache, true
+			return txFromCache.Tx, true
 		}
 	}
 
@@ -189,8 +229,8 @@ func (txPool *shardedTxPool) RemoveDataFromAllShards(key []byte) {
 
 // removeTxFromAllShards removes the transaction from the pool (it searches in all shards)
 func (txPool *shardedTxPool) removeTxFromAllShards(txHash []byte) {
-	txPool.mutex.RLock()
-	defer txPool.mutex.RUnlock()
+	txPool.mutexBackingMap.RLock()
+	defer txPool.mutexBackingMap.RUnlock()
 
 	for _, shard := range txPool.backingMap {
 		cache := shard.Cache
@@ -200,23 +240,26 @@ func (txPool *shardedTxPool) removeTxFromAllShards(txHash []byte) {
 
 // MergeShardStores merges two shards of the pool
 func (txPool *shardedTxPool) MergeShardStores(sourceCacheID, destCacheID string) {
+	sourceCacheID = txPool.routeToCacheUnions(sourceCacheID)
+	destCacheID = txPool.routeToCacheUnions(destCacheID)
+
 	sourceShard := txPool.getOrCreateShard(sourceCacheID)
 	sourceCache := sourceShard.Cache
 
-	sourceCache.ForEachTransaction(func(txHash []byte, tx data.TransactionHandler) {
-		txPool.addTx(txHash, tx, destCacheID)
+	sourceCache.ForEachTransaction(func(txHash []byte, tx *txcache.WrappedTransaction) {
+		txPool.addTx(tx, destCacheID)
 	})
 
-	txPool.mutex.Lock()
+	txPool.mutexBackingMap.Lock()
 	delete(txPool.backingMap, sourceCacheID)
-	txPool.mutex.Unlock()
+	txPool.mutexBackingMap.Unlock()
 }
 
 // Clear clears everything in the pool
 func (txPool *shardedTxPool) Clear() {
-	txPool.mutex.Lock()
+	txPool.mutexBackingMap.Lock()
 	txPool.backingMap = make(map[string]*txPoolShard)
-	txPool.mutex.Unlock()
+	txPool.mutexBackingMap.Unlock()
 }
 
 // ClearShardStore clears a specific cache
@@ -226,11 +269,11 @@ func (txPool *shardedTxPool) ClearShardStore(cacheID string) {
 }
 
 // CreateShardStore is not implemented for this pool, since shard creations is managed internally
-func (txPool *shardedTxPool) CreateShardStore(cacheID string) {
+func (txPool *shardedTxPool) CreateShardStore(_ string) {
 }
 
 // RegisterHandler registers a new handler to be called when a new transaction is added
-func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte)) {
+func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte, value interface{})) {
 	if handler == nil {
 		log.Error("attempt to register a nil handler")
 		return
@@ -241,7 +284,35 @@ func (txPool *shardedTxPool) RegisterHandler(handler func(key []byte)) {
 	txPool.mutexAddCallbacks.Unlock()
 }
 
+// GetCounts returns the total number of transactions in the pool
+func (txPool *shardedTxPool) GetCounts() counting.Counts {
+	txPool.mutexBackingMap.RLock()
+	defer txPool.mutexBackingMap.RUnlock()
+
+	counts := counting.NewShardedCounts()
+
+	for cacheID, shard := range txPool.backingMap {
+		cache := shard.Cache
+		counts.PutCounts(cacheID, cache.CountTx())
+	}
+
+	return counts
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (txPool *shardedTxPool) IsInterfaceNil() bool {
 	return txPool == nil
+}
+
+func (txPool *shardedTxPool) routeToCacheUnions(cacheID string) string {
+	sourceShardID, _, err := process.ParseShardCacherIdentifier(cacheID)
+	if err != nil {
+		return cacheID
+	}
+
+	if sourceShardID == txPool.selfShardID {
+		return strconv.Itoa(int(sourceShardID))
+	}
+
+	return cacheID
 }

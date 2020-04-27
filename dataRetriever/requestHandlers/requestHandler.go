@@ -2,34 +2,39 @@ package requestHandlers
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type resolverRequestHandler struct {
-	resolversFinder       dataRetriever.ResolversFinder
-	requestedItemsHandler dataRetriever.RequestedItemsHandler
 	epoch                 uint32
 	shardID               uint32
 	maxTxsToRequest       int
+	resolversFinder       dataRetriever.ResolversFinder
+	requestedItemsHandler dataRetriever.RequestedItemsHandler
+	whiteList             dataRetriever.WhiteListHandler
 	sweepTime             time.Time
+	requestInterval       time.Duration
+	mutSweepTime          sync.Mutex
 }
 
 var log = logger.GetOrCreate("dataretriever/requesthandlers")
 
-// NewShardResolverRequestHandler creates a requestHandler interface implementation with request functions
-func NewShardResolverRequestHandler(
+// NewResolverRequestHandler creates a requestHandler interface implementation with request functions
+func NewResolverRequestHandler(
 	finder dataRetriever.ResolversFinder,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
+	whiteList dataRetriever.WhiteListHandler,
 	maxTxsToRequest int,
 	shardID uint32,
+	requestInterval time.Duration,
 ) (*resolverRequestHandler, error) {
 
 	if check.IfNil(finder) {
@@ -40,6 +45,12 @@ func NewShardResolverRequestHandler(
 	}
 	if maxTxsToRequest < 1 {
 		return nil, dataRetriever.ErrInvalidMaxTxRequest
+	}
+	if check.IfNil(whiteList) {
+		return nil, dataRetriever.ErrNilWhiteListHandler
+	}
+	if requestInterval < time.Millisecond {
+		return nil, fmt.Errorf("%w:request interval is smaller than a millisecond", dataRetriever.ErrRequestIntervalTooSmall)
 	}
 
 	rrh := &resolverRequestHandler{
@@ -48,37 +59,11 @@ func NewShardResolverRequestHandler(
 		epoch:                 uint32(0), // will be updated after creation of the request handler
 		shardID:               shardID,
 		maxTxsToRequest:       maxTxsToRequest,
+		whiteList:             whiteList,
+		requestInterval:       requestInterval,
 	}
 
 	rrh.sweepTime = time.Now()
-
-	return rrh, nil
-}
-
-// NewMetaResolverRequestHandler creates a requestHandler interface implementation with request functions
-func NewMetaResolverRequestHandler(
-	finder dataRetriever.ResolversFinder,
-	requestedItemsHandler dataRetriever.RequestedItemsHandler,
-	maxTxsToRequest int,
-) (*resolverRequestHandler, error) {
-
-	if check.IfNil(finder) {
-		return nil, dataRetriever.ErrNilResolverFinder
-	}
-	if check.IfNil(requestedItemsHandler) {
-		return nil, dataRetriever.ErrNilRequestedItemsHandler
-	}
-	if maxTxsToRequest < 1 {
-		return nil, dataRetriever.ErrInvalidMaxTxRequest
-	}
-
-	rrh := &resolverRequestHandler{
-		resolversFinder:       finder,
-		requestedItemsHandler: requestedItemsHandler,
-		epoch:                 uint32(0), // will be updated after creation of the request handler
-		shardID:               sharding.MetachainShardId,
-		maxTxsToRequest:       maxTxsToRequest,
-	}
 
 	return rrh, nil
 }
@@ -98,7 +83,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 	if len(unrequestedHashes) == 0 {
 		return
 	}
-	log.Trace("requesting transactions from network",
+	log.Debug("requesting transactions from network",
 		"topic", topic,
 		"shard", destShardID,
 		"num txs", len(unrequestedHashes),
@@ -119,33 +104,39 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 		return
 	}
 
-	go func() {
-		dataSplit := &partitioning.DataSplit{}
-		var sliceBatches [][][]byte
-		sliceBatches, err = dataSplit.SplitDataInChunks(unrequestedHashes, rrh.maxTxsToRequest)
+	for _, txHash := range hashes {
+		log.Trace("requestByHashes", "hash", txHash)
+	}
+
+	go rrh.requestHashesWithDataSplit(unrequestedHashes, txResolver)
+
+	rrh.addRequestedItems(unrequestedHashes)
+}
+
+func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
+	unrequestedHashes [][]byte,
+	resolver HashSliceResolver,
+) {
+	dataSplit := &partitioning.DataSplit{}
+	sliceBatches, err := dataSplit.SplitDataInChunks(unrequestedHashes, rrh.maxTxsToRequest)
+	if err != nil {
+		log.Debug("requestByHashes.SplitDataInChunks",
+			"error", err.Error(),
+			"num txs", len(unrequestedHashes),
+			"max txs to request", rrh.maxTxsToRequest,
+		)
+		return
+	}
+
+	for _, batch := range sliceBatches {
+		err = resolver.RequestDataFromHashArray(batch, rrh.epoch)
 		if err != nil {
-			log.Debug("requestByHashes.SplitDataInChunks",
+			log.Debug("requestByHashes.RequestDataFromHashArray",
 				"error", err.Error(),
-				"num txs", len(unrequestedHashes),
-				"max txs to request", rrh.maxTxsToRequest,
+				"epoch", rrh.epoch,
+				"batch size", len(batch),
 			)
-			return
 		}
-
-		for _, batch := range sliceBatches {
-			err = txResolver.RequestDataFromHashArray(batch, rrh.epoch)
-			if err != nil {
-				log.Debug("requestByHashes.RequestDataFromHashArray",
-					"error", err.Error(),
-					"epoch", rrh.epoch,
-					"batch size", len(batch),
-				)
-			}
-		}
-	}()
-
-	for _, hash := range unrequestedHashes {
-		rrh.addRequestedItem(hash)
 	}
 }
 
@@ -165,7 +156,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 		return
 	}
 
-	log.Trace("requesting miniblock from network",
+	log.Debug("requesting miniblock from network",
 		"topic", factory.MiniBlocksTopic,
 		"shard", destShardID,
 		"hash", miniblockHash,
@@ -191,7 +182,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 		return
 	}
 
-	rrh.addRequestedItem(miniblockHash)
+	rrh.addRequestedItems([][]byte{miniblockHash})
 }
 
 // RequestMiniBlocks method asks for miniblocks from the connected peers
@@ -200,7 +191,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 	if len(unrequestedHashes) == 0 {
 		return
 	}
-	log.Trace("requesting miniblocks from network",
+	log.Debug("requesting miniblocks from network",
 		"topic", factory.MiniBlocksTopic,
 		"shard", destShardID,
 		"num txs", len(unrequestedHashes),
@@ -232,9 +223,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 		return
 	}
 
-	for _, hash := range unrequestedHashes {
-		rrh.addRequestedItem(hash)
-	}
+	rrh.addRequestedItems(unrequestedHashes)
 }
 
 // RequestShardHeader method asks for shard header from the connected peers
@@ -243,7 +232,7 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 		return
 	}
 
-	log.Trace("requesting shard header from network",
+	log.Debug("requesting shard header from network",
 		"shard", shardID,
 		"hash", hash,
 	)
@@ -267,7 +256,7 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 		return
 	}
 
-	rrh.addRequestedItem(hash)
+	rrh.addRequestedItems([][]byte{hash})
 }
 
 // RequestMetaHeader method asks for meta header from the connected peers
@@ -276,7 +265,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 		return
 	}
 
-	log.Trace("requesting meta header from network",
+	log.Debug("requesting meta header from network",
 		"hash", hash,
 	)
 
@@ -299,7 +288,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 		return
 	}
 
-	rrh.addRequestedItem(hash)
+	rrh.addRequestedItems([][]byte{hash})
 }
 
 // RequestShardHeaderByNonce method asks for shard header from the connected peers by nonce
@@ -309,7 +298,7 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 		return
 	}
 
-	log.Trace("requesting shard header by nonce from network",
+	log.Debug("requesting shard header by nonce from network",
 		"shard", shardID,
 		"nonce", nonce,
 	)
@@ -333,65 +322,54 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 		return
 	}
 
-	rrh.addRequestedItem(key)
+	rrh.addRequestedItems([][]byte{key})
 }
 
 // RequestTrieNodes method asks for trie nodes from the connected peers
-func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hash []byte, topic string) {
-	rrh.requestByHash(destShardID, hash, topic)
-}
-
-func (rrh *resolverRequestHandler) requestByHash(destShardID uint32, hash []byte, baseTopic string) {
-	if !rrh.testIfRequestIsNeeded(hash) {
+func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string) {
+	unrequestedHashes := rrh.getUnrequestedHashes(hashes)
+	if len(unrequestedHashes) == 0 {
 		return
 	}
-
-	log.Trace("requesting trie from network",
-		"topic", baseTopic,
+	log.Debug("requesting transactions from network",
+		"topic", topic,
 		"shard", destShardID,
-		"hash", hash,
+		"num txs", len(unrequestedHashes),
 	)
 
-	var resolver dataRetriever.Resolver
-	var err error
-
-	if destShardID == sharding.MetachainShardId {
-		resolver, err = rrh.resolversFinder.MetaChainResolver(baseTopic)
-	} else {
-		resolver, err = rrh.resolversFinder.CrossShardResolver(baseTopic, destShardID)
-	}
-
+	resolver, err := rrh.resolversFinder.MetaCrossShardResolver(topic, destShardID)
 	if err != nil {
 		log.Error("requestByHash.Resolver",
 			"error", err.Error(),
-			"topic", baseTopic,
+			"topic", topic,
 			"shard", destShardID,
 		)
 		return
 	}
 
-	// epoch doesn't matter because that parameter is not used in trie's resolver
-	err = resolver.RequestDataFromHash(hash, 0)
-	if err != nil {
-		log.Debug("requestByHash.RequestDataFromHash",
-			"error", err.Error(),
-			"epoch", 0,
-			"hash", hash,
-		)
+	trieResolver, ok := resolver.(dataRetriever.TrieNodesResolver)
+	if !ok {
+		log.Warn("wrong assertion type when creating transaction resolver")
 		return
 	}
 
-	rrh.addRequestedItem(hash)
+	for _, txHash := range hashes {
+		log.Trace("requestByHashes", "hash", txHash)
+	}
+
+	go rrh.requestHashesWithDataSplit(unrequestedHashes, trieResolver)
+
+	rrh.addRequestedItems(unrequestedHashes)
 }
 
 // RequestMetaHeaderByNonce method asks for meta header from the connected peers by nonce
 func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
-	key := []byte(fmt.Sprintf("%d-%d", sharding.MetachainShardId, nonce))
+	key := []byte(fmt.Sprintf("%d-%d", core.MetachainShardId, nonce))
 	if !rrh.testIfRequestIsNeeded(key) {
 		return
 	}
 
-	log.Trace("requesting meta header by nonce from network",
+	log.Debug("requesting meta header by nonce from network",
 		"nonce", nonce,
 	)
 
@@ -413,7 +391,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 		return
 	}
 
-	rrh.addRequestedItem(key)
+	rrh.addRequestedItems([][]byte{key})
 }
 
 func (rrh *resolverRequestHandler) testIfRequestIsNeeded(key []byte) bool {
@@ -428,19 +406,24 @@ func (rrh *resolverRequestHandler) testIfRequestIsNeeded(key []byte) bool {
 	return true
 }
 
-func (rrh *resolverRequestHandler) addRequestedItem(key []byte) {
-	err := rrh.requestedItemsHandler.Add(string(key))
-	if err != nil {
-		log.Trace("addRequestedItem",
-			"error", err.Error(),
-			"key", key)
+func (rrh *resolverRequestHandler) addRequestedItems(keys [][]byte) {
+	for _, key := range keys {
+		err := rrh.requestedItemsHandler.Add(string(key))
+		if err != nil {
+			log.Trace("addRequestedItems",
+				"error", err.Error(),
+				"key", key)
+			return
+		}
 	}
+
+	rrh.whiteList.Add(keys)
 }
 
 func (rrh *resolverRequestHandler) getShardHeaderResolver(shardID uint32) (dataRetriever.HeaderResolver, error) {
-	isMetachainNode := rrh.shardID == sharding.MetachainShardId
+	isMetachainNode := rrh.shardID == core.MetachainShardId
 	shardIdMissmatch := rrh.shardID != shardID
-	requestOnMetachain := shardID == sharding.MetachainShardId
+	requestOnMetachain := shardID == core.MetachainShardId
 	isRequestInvalid := (!isMetachainNode && shardIdMissmatch) || requestOnMetachain
 	if isRequestInvalid {
 		return nil, dataRetriever.ErrBadRequest
@@ -448,7 +431,7 @@ func (rrh *resolverRequestHandler) getShardHeaderResolver(shardID uint32) (dataR
 
 	//requests should be done on the topic shardBlocks_0_META so that is why we need to figure out
 	//the cross shard id
-	crossShardID := sharding.MetachainShardId
+	crossShardID := core.MetachainShardId
 	if isMetachainNode {
 		crossShardID = shardID
 	}
@@ -457,6 +440,10 @@ func (rrh *resolverRequestHandler) getShardHeaderResolver(shardID uint32) (dataR
 	if err != nil {
 		err = fmt.Errorf("%w, topic: %s, current shard ID: %d, cross shard ID: %d",
 			err, factory.ShardBlocksTopic, rrh.shardID, crossShardID)
+
+		log.Warn("available resolvers in container",
+			"resolvers", rrh.resolversFinder.ResolverKeys(),
+		)
 		return nil, err
 	}
 
@@ -490,13 +477,13 @@ func (rrh *resolverRequestHandler) getMetaHeaderResolver() (dataRetriever.Header
 
 // RequestStartOfEpochMetaBlock method asks for the start of epoch metablock from the connected peers
 func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
-	epochStartIdentifier := core.EpochStartIdentifier(epoch)
-	if !rrh.testIfRequestIsNeeded([]byte(epochStartIdentifier)) {
+	epochStartIdentifier := []byte(core.EpochStartIdentifier(epoch))
+	if !rrh.testIfRequestIsNeeded(epochStartIdentifier) {
 		return
 	}
 
 	baseTopic := factory.MetachainBlocksTopic
-	log.Trace("requesting header by epoch",
+	log.Debug("requesting header by epoch",
 		"topic", baseTopic,
 		"epoch", epoch,
 		"hash", epochStartIdentifier,
@@ -517,7 +504,7 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 		return
 	}
 
-	err = headerResolver.RequestDataFromEpoch([]byte(epochStartIdentifier))
+	err = headerResolver.RequestDataFromEpoch(epochStartIdentifier)
 	if err != nil {
 		log.Debug("RequestStartOfEpochMetaBlock.RequestDataFromEpoch",
 			"error", err.Error(),
@@ -526,7 +513,12 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 		return
 	}
 
-	rrh.addRequestedItem([]byte(epochStartIdentifier))
+	rrh.addRequestedItems([][]byte{epochStartIdentifier})
+}
+
+// RequestInterval returns the request interval between sending the same request
+func (rrh *resolverRequestHandler) RequestInterval() time.Duration {
+	return rrh.requestInterval
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -549,10 +541,37 @@ func (rrh *resolverRequestHandler) getUnrequestedHashes(hashes [][]byte) [][]byt
 }
 
 func (rrh *resolverRequestHandler) sweepIfNeeded() {
-	if time.Since(rrh.sweepTime) <= time.Second {
+	rrh.mutSweepTime.Lock()
+	defer rrh.mutSweepTime.Unlock()
+
+	if time.Since(rrh.sweepTime) <= rrh.requestInterval {
 		return
 	}
 
 	rrh.sweepTime = time.Now()
 	rrh.requestedItemsHandler.Sweep()
+}
+
+// SetNumPeersToQuery will set the number of intra shard and cross shard number of peers to query
+// for a given resolver
+func (rrh *resolverRequestHandler) SetNumPeersToQuery(key string, intra int, cross int) error {
+	resolver, err := rrh.resolversFinder.Get(key)
+	if err != nil {
+		return err
+	}
+
+	resolver.SetNumPeersToQuery(intra, cross)
+	return nil
+}
+
+// GetNumPeersToQuery will return the number of intra shard and cross shard number of peers to query
+// for a given resolver
+func (rrh *resolverRequestHandler) GetNumPeersToQuery(key string) (int, int, error) {
+	resolver, err := rrh.resolversFinder.Get(key)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	intra, cross := resolver.NumPeersToQuery()
+	return intra, cross, nil
 }

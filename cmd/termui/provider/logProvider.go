@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gorilla/websocket"
 )
@@ -20,13 +20,13 @@ const (
 )
 
 // InitLogHandler will open the websocket and set the log level
-func InitLogHandler(nodeURL string, logLevelPatterns string, useWss bool) error {
+func InitLogHandler(nodeURL string, profile logger.Profile, useWss bool) error {
 	var err error
 	scheme := ws
 	if useWss {
 		scheme = wss
 	}
-	webSocket, err = openWebSocket(scheme, nodeURL, logLevelPatterns)
+	webSocket, err = openWebSocket(scheme, nodeURL, profile)
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func InitLogHandler(nodeURL string, logLevelPatterns string, useWss bool) error 
 	return nil
 }
 
-func openWebSocket(scheme string, address string, logLevelPatterns string) (*websocket.Conn, error) {
+func openWebSocket(scheme string, address string, profile logger.Profile) (*websocket.Conn, error) {
 	u := url.URL{
 		Scheme: scheme,
 		Host:   address,
@@ -45,7 +45,12 @@ func openWebSocket(scheme string, address string, logLevelPatterns string) (*web
 		return nil, err
 	}
 
-	err = conn.WriteMessage(websocket.TextMessage, []byte(logLevelPatterns))
+	profileMessage, err := profile.Marshal()
+	if err != nil {
+		return nil, err
+	}
+
+	err = conn.WriteMessage(websocket.TextMessage, profileMessage)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +94,7 @@ func writeMessage(presenter PresenterHandler, message []byte) {
 func formatMessage(message []byte) []byte {
 	logLine := &logger.LogLineWrapper{}
 
-	marshalizer := &marshal.ProtobufMarshalizer{}
+	marshalizer := &marshal.GogoProtoMarshalizer{}
 	err := marshalizer.Unmarshal(logLine, message)
 	if err != nil {
 		log.Debug("can not unmarshal received data", "data", hex.EncodeToString(message))

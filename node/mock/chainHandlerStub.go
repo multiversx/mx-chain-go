@@ -12,7 +12,7 @@ type ChainHandlerStub struct {
 	SetGenesisHeaderCalled      func(gb data.HeaderHandler) error
 	SetGenesisHeaderHashCalled  func(hash []byte)
 	SetCurrentBlockHeaderCalled func(bh data.HeaderHandler) error
-	SetCurrentBlockBodyCalled   func(body data.BodyHandler) error
+	CreateNewHeaderCalled       func() data.HeaderHandler
 }
 
 // GetGenesisHeader -
@@ -54,54 +54,20 @@ func (chs *ChainHandlerStub) GetCurrentBlockHeaderHash() []byte {
 }
 
 // SetCurrentBlockHeaderHash -
-func (chs *ChainHandlerStub) SetCurrentBlockHeaderHash(hash []byte) {
+func (chs *ChainHandlerStub) SetCurrentBlockHeaderHash(_ []byte) {
 
-}
-
-// GetCurrentBlockBody -
-func (chs *ChainHandlerStub) GetCurrentBlockBody() data.BodyHandler {
-	panic("implement me")
-}
-
-// SetCurrentBlockBody -
-func (chs *ChainHandlerStub) SetCurrentBlockBody(body data.BodyHandler) error {
-	if chs.SetCurrentBlockBodyCalled != nil {
-		return chs.SetCurrentBlockBodyCalled(body)
-	}
-	return nil
-}
-
-// GetLocalHeight -
-func (chs *ChainHandlerStub) GetLocalHeight() int64 {
-	panic("implement me")
-}
-
-// SetLocalHeight -
-func (chs *ChainHandlerStub) SetLocalHeight(height int64) {
-	panic("implement me")
-}
-
-// GetNetworkHeight -
-func (chs *ChainHandlerStub) GetNetworkHeight() int64 {
-	panic("implement me")
-}
-
-// SetNetworkHeight -
-func (chs *ChainHandlerStub) SetNetworkHeight(height int64) {
-	panic("implement me")
-}
-
-// HasBadBlock -
-func (chs *ChainHandlerStub) HasBadBlock(blockHash []byte) bool {
-	panic("implement me")
-}
-
-// PutBadBlock -
-func (chs *ChainHandlerStub) PutBadBlock(blockHash []byte) {
-	panic("implement me")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (chs *ChainHandlerStub) IsInterfaceNil() bool {
 	return chs == nil
+}
+
+// CreateNewHeader -
+func (chs *ChainHandlerStub) CreateNewHeader() data.HeaderHandler {
+	if chs.CreateNewHeaderCalled != nil {
+		return chs.CreateNewHeaderCalled()
+	}
+
+	return nil
 }

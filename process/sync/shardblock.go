@@ -52,7 +52,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		bootStorer:          arguments.BootStorer,
 		storageBootstrapper: arguments.StorageBootstrapper,
 		epochHandler:        arguments.EpochHandler,
-		miniBlocksResolver:  arguments.MiniBlocksResolver,
+		miniBlocksProvider:  arguments.MiniblocksProvider,
 		uint64Converter:     arguments.Uint64Converter,
 		poolsHolder:         arguments.PoolsHolder,
 	}
@@ -87,12 +87,12 @@ func (boot *ShardBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data
 		hashes[i] = header.MiniBlockHeaders[i].Hash
 	}
 
-	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocks(hashes)
+	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocks(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
 		return nil, process.ErrMissingBody
 	}
 
-	return block.Body(miniBlocks), nil
+	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
 // StartSync method will start SyncBlocks as a go routine
@@ -148,7 +148,7 @@ func (boot *ShardBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) 
 		boot.shardCoordinator.SelfId(),
 		boot.headers)
 	if err != nil {
-		_ = process.EmptyChannel(boot.chRcvHdrNonce)
+		_ = core.EmptyChannel(boot.chRcvHdrNonce)
 		boot.requestHeaderWithNonce(nonce)
 		err = boot.waitForHeaderNonce()
 		if err != nil {
@@ -172,7 +172,7 @@ func (boot *ShardBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) 
 func (boot *ShardBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (data.HeaderHandler, error) {
 	hdr, err := process.GetShardHeader(hash, boot.headers, boot.marshalizer, boot.store)
 	if err != nil {
-		_ = process.EmptyChannel(boot.chRcvHdrHash)
+		_ = core.EmptyChannel(boot.chRcvHdrHash)
 		boot.requestHeaderWithHash(hash)
 		err = boot.waitForHeaderHash()
 		if err != nil {
@@ -210,7 +210,7 @@ func (boot *ShardBootstrap) getPrevHeader(
 
 func (boot *ShardBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 	blockHeader := boot.chainHandler.GetCurrentBlockHeader()
-	if blockHeader == nil {
+	if check.IfNil(blockHeader) {
 		return nil, process.ErrNilBlockHeader
 	}
 
@@ -258,7 +258,7 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(header
 		hashes = append(hashes, header.MiniBlockHeaders[i].Hash)
 	}
 
-	_, missingMiniBlocksHashes := boot.miniBlocksResolver.GetMiniBlocksFromPool(hashes)
+	_, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
 		log.Trace("requesting in advance mini blocks",
 			"num miniblocks", len(missingMiniBlocksHashes),
@@ -286,7 +286,7 @@ func (boot *ShardBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.H
 		return nil, err
 	}
 
-	blockBody := block.Body(miniBlockSlice)
+	blockBody := &block.Body{MiniBlocks: miniBlockSlice}
 
 	return blockBody, nil
 }

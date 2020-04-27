@@ -36,10 +36,11 @@ type StorageConfig struct {
 	Bloom BloomFilterConfig `json:"bloom"`
 }
 
-// AddressConfig will map the json address configuration
-type AddressConfig struct {
-	Length int    `json:"length"`
-	Prefix string `json:"prefix"`
+// PubkeyConfig will map the json public key configuration
+type PubkeyConfig struct {
+	Length          int    `json:"length"`
+	Type            string `json:"type"`
+	SignatureLength int
 }
 
 // TypeConfig will map the json string type configuration
@@ -58,6 +59,7 @@ type NTPConfig struct {
 	Hosts               []string
 	Port                int
 	TimeoutMilliseconds int
+	SyncPeriodSeconds   int
 	Version             int
 }
 
@@ -69,14 +71,20 @@ type EvictionWaitingListConfig struct {
 
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
-	MinRoundsBetweenEpochs int64
-	RoundsPerEpoch         int64
+	MinRoundsBetweenEpochs      int64
+	RoundsPerEpoch              int64
+	ShuffledOutRestartThreshold float64
+}
+
+// BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle
+type BlockSizeThrottleConfig struct {
+	MinSizeInBytes uint32
+	MaxSizeInBytes uint32
 }
 
 // Config will hold the entire application configuration parameters
 type Config struct {
 	MiniBlocksStorage          StorageConfig
-	MiniBlockHeadersStorage    StorageConfig
 	PeerBlockBodyStorage       StorageConfig
 	BlockHeaderStorage         StorageConfig
 	TxStorage                  StorageConfig
@@ -89,12 +97,13 @@ type Config struct {
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 
-	AccountsTrieStorage     StorageConfig
-	PeerAccountsTrieStorage StorageConfig
-	TrieSnapshotDB          DBConfig
-	EvictionWaitingList     EvictionWaitingListConfig
-	StateTrieConfig         StateTrieConfig
-	BadBlocksCache          CacheConfig
+	AccountsTrieStorage      StorageConfig
+	PeerAccountsTrieStorage  StorageConfig
+	TrieSnapshotDB           DBConfig
+	EvictionWaitingList      EvictionWaitingListConfig
+	StateTriesConfig         StateTriesConfig
+	TrieStorageManagerConfig TrieStorageManagerConfig
+	BadBlocksCache           CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
@@ -102,29 +111,36 @@ type Config struct {
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesDataPool           CacheConfig
+	WhiteListPool               CacheConfig
+	WhiteListerVerifiedTxs      CacheConfig
 	EpochStartConfig            EpochStartConfig
-	Address                     AddressConfig
-	BLSPublicKey                AddressConfig
+	AddressPubkeyConverter      PubkeyConfig
+	ValidatorPubkeyConverter    PubkeyConfig
 	Hasher                      TypeConfig
 	MultisigHasher              TypeConfig
 	Marshalizer                 MarshalizerConfig
+	VmMarshalizer               TypeConfig
+	TxSignMarshalizer           TypeConfig
 
+	PublicKeyShardId CacheConfig
+	PublicKeyPeerId  CacheConfig
+	PeerIdShardId    CacheConfig
+
+	Antiflood       AntifloodConfig
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
 	Consensus       TypeConfig
-	Explorer        ExplorerConfig
 	StoragePruning  StoragePruningConfig
+	TxLogsStorage   StorageConfig
 
-	NTPConfig         NTPConfig
-	HeadersPoolConfig HeadersPoolConfig
-}
+	NTPConfig               NTPConfig
+	HeadersPoolConfig       HeadersPoolConfig
+	BlockSizeThrottleConfig BlockSizeThrottleConfig
+	VirtualMachineConfig    VirtualMachineConfig
 
-// NodeConfig will hold basic p2p settings
-type NodeConfig struct {
-	Port            int
-	Seed            string
-	TargetPeerCount int
+	Hardfork HardforkConfig
+	Debug    DebugConfig
 }
 
 // StoragePruningConfig will hold settings relates to storage pruning
@@ -133,22 +149,6 @@ type StoragePruningConfig struct {
 	FullArchive         bool
 	NumEpochsToKeep     uint64
 	NumActivePersisters uint64
-}
-
-// KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
-type KadDhtPeerDiscoveryConfig struct {
-	Enabled                          bool
-	RefreshIntervalInSec             uint32
-	RandezVous                       string
-	InitialPeerList                  []string
-	BucketSize                       uint32
-	RoutingTableRefreshIntervalInSec uint32
-}
-
-// P2PConfig will hold all the P2P settings
-type P2PConfig struct {
-	Node                NodeConfig
-	KadDhtPeerDiscovery KadDhtPeerDiscoveryConfig
 }
 
 // ResourceStatsConfig will hold all resource stats settings
@@ -163,31 +163,16 @@ type HeartbeatConfig struct {
 	MinTimeToWaitBetweenBroadcastsInSec int
 	MaxTimeToWaitBetweenBroadcastsInSec int
 	DurationInSecToConsiderUnresponsive int
+	HbmiRefreshIntervalInSec            uint32
+	HideInactiveValidatorIntervalInSec  uint32
 	HeartbeatStorage                    StorageConfig
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	DestinationShardAsObserver string
-	StatusPollingIntervalSec   int
-	MaxComputableRounds        uint64
-}
-
-// ExplorerConfig will hold the configuration for the explorer indexer
-type ExplorerConfig struct {
-	Enabled    bool
-	IndexerURL string
-}
-
-// ServersConfig will hold all the confidential settings for servers
-type ServersConfig struct {
-	ElasticSearch ElasticSearchConfig
-}
-
-// ElasticSearchConfig will hold the configuration for the elastic search
-type ElasticSearchConfig struct {
-	Username string
-	Password string
+	StatusPollingIntervalSec int
+	MaxComputableRounds      uint64
+	StartInEpochEnabled      bool
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -196,8 +181,106 @@ type FacadeConfig struct {
 	PprofEnabled     bool
 }
 
-// StateTrieConfig will hold information about state trie
-type StateTrieConfig struct {
-	RoundsModulus  uint
-	PruningEnabled bool
+// StateTriesConfig will hold information about state tries
+type StateTriesConfig struct {
+	CheckpointRoundsModulus     uint
+	AccountsStatePruningEnabled bool
+	PeerStatePruningEnabled     bool
+}
+
+// TrieStorageManagerConfig will hold config information about trie storage manager
+type TrieStorageManagerConfig struct {
+	PruningBufferLen   uint32
+	SnapshotsBufferLen uint32
+	MaxSnapshots       uint8
+}
+
+// WebServerAntifloodConfig will hold the anti-lflooding parameters for the web server
+type WebServerAntifloodConfig struct {
+	SimultaneousRequests         uint32
+	SameSourceRequests           uint32
+	SameSourceResetIntervalInSec uint32
+}
+
+// BlackListConfig will hold the p2p peer black list threshold values
+type BlackListConfig struct {
+	ThresholdNumMessagesPerSecond uint32
+	ThresholdSizePerSecond        uint64
+	NumFloodingRounds             uint32
+	PeerBanDurationInSeconds      uint32
+}
+
+// TopicMaxMessagesConfig will hold the maximum number of messages/sec per topic value
+type TopicMaxMessagesConfig struct {
+	Topic             string
+	NumMessagesPerSec uint32
+}
+
+// TopicAntifloodConfig will hold the maximum values per second to be used in certain topics
+type TopicAntifloodConfig struct {
+	DefaultMaxMessagesPerSec uint32
+	MaxMessages              []TopicMaxMessagesConfig
+}
+
+// TxAccumulatorConfig will hold the tx accumulator config values
+type TxAccumulatorConfig struct {
+	MaxAllowedTimeInMilliseconds   uint32
+	MaxDeviationTimeInMilliseconds uint32
+}
+
+// AntifloodConfig will hold all p2p antiflood parameters
+type AntifloodConfig struct {
+	Enabled                   bool
+	NumConcurrentResolverJobs int32
+	NetworkMaxInput           AntifloodLimitsConfig
+	PeerMaxInput              AntifloodLimitsConfig
+	PeerMaxOutput             AntifloodLimitsConfig
+	Cache                     CacheConfig
+	BlackList                 BlackListConfig
+	WebServer                 WebServerAntifloodConfig
+	Topic                     TopicAntifloodConfig
+	TxAccumulator             TxAccumulatorConfig
+}
+
+// AntifloodLimitsConfig will hold the maximum antiflood limits in both number of messages and total
+// size of the messages
+type AntifloodLimitsConfig struct {
+	MessagesPerSecond  uint32
+	TotalSizePerSecond uint64
+}
+
+// VirtualMachineConfig holds configuration for the Virtual Machine(s)
+type VirtualMachineConfig struct {
+	OutOfProcessEnabled bool
+	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
+}
+
+// VirtualMachineOutOfProcessConfig holds configuration for out-of-process virtual machine(s)
+type VirtualMachineOutOfProcessConfig struct {
+	LogsMarshalizer     string
+	MessagesMarshalizer string
+	MaxLoopTime         int
+}
+
+// HardforkConfig holds the configuration for the hardfork trigger
+type HardforkConfig struct {
+	EnableTrigger         bool
+	EnableTriggerFromP2P  bool
+	PublicKeyToListenFrom string
+}
+
+// DebugConfig will hold debugging configuration
+type DebugConfig struct {
+	InterceptorResolver InterceptorResolverDebugConfig
+}
+
+// InterceptorResolverDebugConfig will hold the interceptor-resolver debug configuration
+type InterceptorResolverDebugConfig struct {
+	Enabled                    bool
+	CacheSize                  int
+	EnablePrint                bool
+	IntervalAutoPrintInSeconds int
+	NumRequestsThreshold       int
+	NumResolveFailureThreshold int
+	DebugLineExpiration        int
 }

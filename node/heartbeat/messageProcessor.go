@@ -10,9 +10,10 @@ import (
 // MessageProcessor is the struct that will handle heartbeat message verifications and conversion between
 // heartbeatMessageInfo and HeartbeatDTO
 type MessageProcessor struct {
-	singleSigner crypto.SingleSigner
-	keygen       crypto.KeyGenerator
-	marshalizer  marshal.Marshalizer
+	singleSigner             crypto.SingleSigner
+	keygen                   crypto.KeyGenerator
+	marshalizer              marshal.Marshalizer
+	networkShardingCollector NetworkShardingCollector
 }
 
 // NewMessageProcessor will return a new instance of MessageProcessor
@@ -20,6 +21,7 @@ func NewMessageProcessor(
 	singleSigner crypto.SingleSigner,
 	keygen crypto.KeyGenerator,
 	marshalizer marshal.Marshalizer,
+	networkShardingCollector NetworkShardingCollector,
 ) (*MessageProcessor, error) {
 	if check.IfNil(singleSigner) {
 		return nil, ErrNilSingleSigner
@@ -30,16 +32,20 @@ func NewMessageProcessor(
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
+	if check.IfNil(networkShardingCollector) {
+		return nil, ErrNilNetworkShardingCollector
+	}
 
 	return &MessageProcessor{
-		singleSigner: singleSigner,
-		keygen:       keygen,
-		marshalizer:  marshalizer,
+		singleSigner:             singleSigner,
+		keygen:                   keygen,
+		marshalizer:              marshalizer,
+		networkShardingCollector: networkShardingCollector,
 	}, nil
 }
 
-// CreateHeartbeatFromP2pMessage will return a heartbeat if all the checks pass
-func (mp *MessageProcessor) CreateHeartbeatFromP2pMessage(message p2p.MessageP2P) (*Heartbeat, error) {
+// CreateHeartbeatFromP2PMessage will return a heartbeat if all the checks pass
+func (mp *MessageProcessor) CreateHeartbeatFromP2PMessage(message p2p.MessageP2P) (*Heartbeat, error) {
 	if check.IfNil(message) {
 		return nil, ErrNilMessage
 	}
@@ -64,6 +70,10 @@ func (mp *MessageProcessor) CreateHeartbeatFromP2pMessage(message p2p.MessageP2P
 		return nil, err
 	}
 
+	mp.networkShardingCollector.UpdatePeerIdPublicKey(message.Peer(), hbRecv.Pubkey)
+	//add into the last failsafe map. Useful for observers.
+	mp.networkShardingCollector.UpdatePeerIdShardId(message.Peer(), hbRecv.ShardID)
+
 	return hbRecv, nil
 }
 
@@ -75,7 +85,7 @@ func (mp *MessageProcessor) verifySignature(hbRecv *Heartbeat) error {
 
 	copiedHeartbeat := *hbRecv
 	copiedHeartbeat.Signature = nil
-	buffCopiedHeartbeat, err := mp.marshalizer.Marshal(copiedHeartbeat)
+	buffCopiedHeartbeat, err := mp.marshalizer.Marshal(&copiedHeartbeat)
 	if err != nil {
 		return err
 	}

@@ -6,18 +6,34 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
 	"github.com/libp2p/go-libp2p/p2p/net/mock"
 )
 
+func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
+	return libp2p.ArgsNetworkMessenger{
+		Context:       context.Background(),
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig: config.P2PConfig{
+			Node: config.NodeConfig{},
+			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+				Enabled: false,
+			},
+			Sharding: config.ShardingConfig{
+				Type: p2p.NilListSharder,
+			},
+		},
+	}
+}
+
 func main() {
 	net := mocknet.New(context.Background())
 
-	mes1, _ := libp2p.NewMemoryMessenger(context.Background(), net, discovery.NewNullDiscoverer())
-	mes2, _ := libp2p.NewMemoryMessenger(context.Background(), net, discovery.NewNullDiscoverer())
+	mes1, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), net)
+	mes2, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), net)
 
 	_ = net.LinkAll()
 
@@ -41,7 +57,7 @@ func main() {
 
 	_ = mes1.RegisterMessageProcessor("test1",
 		&mock.MessageProcessorStub{
-			ProcessMessageCalled: func(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+			ProcessMessageCalled: func(message p2p.MessageP2P, _ p2p.PeerID) error {
 				atomic.AddInt64(&bytesReceived1, int64(len(message.Data())))
 
 				return nil
@@ -49,7 +65,7 @@ func main() {
 		})
 
 	_ = mes1.RegisterMessageProcessor("test2", &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+		ProcessMessageCalled: func(message p2p.MessageP2P, _ p2p.PeerID) error {
 			atomic.AddInt64(&bytesReceived2, int64(len(message.Data())))
 
 			return nil
@@ -57,7 +73,7 @@ func main() {
 	})
 
 	_ = mes1.RegisterMessageProcessor("test3", &mock.MessageProcessorStub{
-		ProcessMessageCalled: func(message p2p.MessageP2P, _ func(buffToSend []byte)) error {
+		ProcessMessageCalled: func(message p2p.MessageP2P, _ p2p.PeerID) error {
 			atomic.AddInt64(&bytesReceived3, int64(len(message.Data())))
 
 			return nil

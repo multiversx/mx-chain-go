@@ -1,6 +1,7 @@
 package storageBootstrap
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -13,17 +14,24 @@ type metaStorageBootstrapper struct {
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 }
 
-// NewMetaStorageBootstrapper is method used to create a nes storage bootstrapper
+// NewMetaStorageBootstrapper is method used to create a new storage bootstrapper
 func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaStorageBootstrapper, error) {
+	err := checkMetaStorageBootstrapperArgs(arguments)
+	if err != nil {
+		return nil, err
+	}
+
 	base := &storageBootstrapper{
-		bootStorer:       arguments.BootStorer,
-		forkDetector:     arguments.ForkDetector,
-		blkExecutor:      arguments.BlockProcessor,
-		blkc:             arguments.ChainHandler,
-		marshalizer:      arguments.Marshalizer,
-		store:            arguments.Store,
-		shardCoordinator: arguments.ShardCoordinator,
-		blockTracker:     arguments.BlockTracker,
+		bootStorer:        arguments.BootStorer,
+		forkDetector:      arguments.ForkDetector,
+		blkExecutor:       arguments.BlockProcessor,
+		blkc:              arguments.ChainHandler,
+		marshalizer:       arguments.Marshalizer,
+		store:             arguments.Store,
+		shardCoordinator:  arguments.ShardCoordinator,
+		nodesCoordinator:  arguments.NodesCoordinator,
+		epochStartTrigger: arguments.EpochStartTrigger,
+		blockTracker:      arguments.BlockTracker,
 
 		uint64Converter:     arguments.Uint64Converter,
 		bootstrapRoundIndex: arguments.BootstrapRoundIndex,
@@ -74,8 +82,8 @@ func (msb *metaStorageBootstrapper) getHeader(hash []byte) (data.HeaderHandler, 
 	return process.GetMetaHeaderFromStorage(hash, msb.marshalizer, msb.store)
 }
 
-func (msb *metaStorageBootstrapper) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	return block.Body{}, nil
+func (msb *metaStorageBootstrapper) getHeaderWithNonce(nonce uint64, _ uint32) (data.HeaderHandler, []byte, error) {
+	return process.GetMetaHeaderFromStorageWithNonce(nonce, msb.store, msb.uint64Converter, msb.marshalizer)
 }
 
 func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte) {
@@ -103,7 +111,7 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 		}
 
 		log.Debug("removing shard header from ShardHdrNonceHashDataUnit storage",
-			"shradId", shardHeader.GetShardID(),
+			"shardId", shardHeader.GetShardID(),
 			"nonce", shardHeader.GetNonce(),
 			"hash", shardHeaderHash)
 
@@ -113,7 +121,7 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 		err = storer.Remove(nonceToByteSlice)
 		if err != nil {
 			log.Debug("shard header was not removed from ShardHdrNonceHashDataUnit storage",
-				"shradId", shardHeader.GetShardID(),
+				"shardId", shardHeader.GetShardID(),
 				"nonce", shardHeader.GetNonce(),
 				"hash", shardHeaderHash,
 				"error", err.Error())
@@ -121,17 +129,50 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 	}
 }
 
-func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(selfNotarizedHeadersHashes [][]byte) ([]data.HeaderHandler, error) {
-	selfNotarizedHeaders := make([]data.HeaderHandler, 0)
-	return selfNotarizedHeaders, nil
+func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(
+	bootstrapHeadersInfo []bootstrapStorage.BootstrapHeaderInfo,
+) ([]data.HeaderHandler, [][]byte, error) {
+
+	for _, bootstrapHeaderInfo := range bootstrapHeadersInfo {
+		selfNotarizedHeader, err := msb.getHeader(bootstrapHeaderInfo.Hash)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		log.Debug("added self notarized header in block tracker",
+			"shard", bootstrapHeaderInfo.ShardId,
+			"round", selfNotarizedHeader.GetRound(),
+			"nonce", selfNotarizedHeader.GetNonce(),
+			"hash", bootstrapHeaderInfo.Hash)
+
+		msb.blockTracker.AddSelfNotarizedHeader(bootstrapHeaderInfo.ShardId, selfNotarizedHeader, bootstrapHeaderInfo.Hash)
+	}
+
+	return make([]data.HeaderHandler, 0), make([][]byte, 0), nil
 }
 
-func (msb *metaStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlockInfo) {
-	for _, pendingMiniBlockInfo := range pendingMiniBlocks {
-		msb.pendingMiniBlocksHandler.SetNumPendingMiniBlocks(pendingMiniBlockInfo.ShardID, pendingMiniBlockInfo.NumPendingMiniBlocks)
+func (msb *metaStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocksInfo []bootstrapStorage.PendingMiniBlocksInfo) {
+	for _, pendingMiniBlockInfo := range pendingMiniBlocksInfo {
+		msb.pendingMiniBlocksHandler.SetPendingMiniBlocks(pendingMiniBlockInfo.ShardID, pendingMiniBlockInfo.MiniBlocksHashes)
 
 		log.Debug("set pending miniblocks",
 			"shard", pendingMiniBlockInfo.ShardID,
-			"num", pendingMiniBlockInfo.NumPendingMiniBlocks)
+			"num", len(pendingMiniBlockInfo.MiniBlocksHashes))
+
+		for _, hash := range pendingMiniBlockInfo.MiniBlocksHashes {
+			log.Trace("miniblock", "hash", hash)
+		}
 	}
+}
+
+func checkMetaStorageBootstrapperArgs(args ArgsMetaStorageBootstrapper) error {
+	err := checkBaseStorageBootrstrapperArguments(args.ArgsBaseStorageBootstrapper)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(args.PendingMiniBlocksHandler) {
+		return process.ErrNilPendingMiniBlocksHandler
+	}
+
+	return nil
 }

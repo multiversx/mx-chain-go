@@ -11,7 +11,7 @@ import (
 )
 
 func createSerialLevelDb(t *testing.T, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (p *leveldb.SerialDB) {
-	dir, err := ioutil.TempDir("", "leveldb_temp")
+	dir, _ := ioutil.TempDir("", "leveldb_temp")
 	lvdb, err := leveldb.NewSerialDB(dir, batchDelaySeconds, maxBatchSize, maxOpenFiles)
 
 	assert.Nil(t, err, "Failed creating leveldb database file")
@@ -42,8 +42,8 @@ func TestSerialDB_GetErrorAfterPutBeforeTimeout(t *testing.T) {
 	_ = ldb.Put(key, val)
 	v, err := ldb.Get(key)
 
-	assert.Nil(t, v)
-	assert.Equal(t, storage.ErrKeyNotFound, err)
+	assert.Equal(t, val, v)
+	assert.Nil(t, err)
 }
 
 func TestSerialDB_GetErrorOnFail(t *testing.T) {

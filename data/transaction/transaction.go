@@ -1,62 +1,18 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. transaction.proto
 package transaction
 
 import (
-	"encoding/json"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-// Transaction holds all the data needed for a value transfer or SC call
-type Transaction struct {
-	Nonce     uint64   `json:"nonce"`
-	Value     *big.Int `json:"value"`
-	RcvAddr   []byte   `json:"receiver"`
-	SndAddr   []byte   `json:"sender"`
-	GasPrice  uint64   `json:"gasPrice,omitempty"`
-	GasLimit  uint64   `json:"gasLimit,omitempty"`
-	Data      []byte   `json:"data,omitempty"`
-	Signature []byte   `json:"signature,omitempty"`
-}
+var _ = data.TransactionHandler(&Transaction{})
 
 // IsInterfaceNil verifies if underlying object is nil
 func (tx *Transaction) IsInterfaceNil() bool {
 	return tx == nil
-}
-
-// GetValue returns the value of the transaction
-func (tx *Transaction) GetValue() *big.Int {
-	return tx.Value
-}
-
-// GetNonce returns the transaction nonce
-func (tx *Transaction) GetNonce() uint64 {
-	return tx.Nonce
-}
-
-// GetData returns the data of the transaction
-func (tx *Transaction) GetData() []byte {
-	return tx.Data
-}
-
-// GetRecvAddress returns the receiver address from the transaction
-func (tx *Transaction) GetRecvAddress() []byte {
-	return tx.RcvAddr
-}
-
-// GetSndAddress returns the sender address from the transaction
-func (tx *Transaction) GetSndAddress() []byte {
-	return tx.SndAddr
-}
-
-// GetGasLimit returns the gas limit of the transaction
-func (tx *Transaction) GetGasLimit() uint64 {
-	return tx.GasLimit
-}
-
-// GetGasPrice returns the gas price of the transaction
-func (tx *Transaction) GetGasPrice() uint64 {
-	return tx.GasPrice
 }
 
 // SetValue sets the value of the transaction
@@ -69,74 +25,14 @@ func (tx *Transaction) SetData(data []byte) {
 	tx.Data = data
 }
 
-// SetRecvAddress sets the receiver address of the transaction
-func (tx *Transaction) SetRecvAddress(addr []byte) {
+// SetRcvAddr sets the receiver address of the transaction
+func (tx *Transaction) SetRcvAddr(addr []byte) {
 	tx.RcvAddr = addr
 }
 
-// SetSndAddress sets the sender address of the transaction
-func (tx *Transaction) SetSndAddress(addr []byte) {
+// SetSndAddr sets the sender address of the transaction
+func (tx *Transaction) SetSndAddr(addr []byte) {
 	tx.SndAddr = addr
-}
-
-// MarshalJSON converts the Transaction data type into its corresponding equivalent in byte slice.
-// Note that Value data type is converted in a string
-func (tx *Transaction) MarshalJSON() ([]byte, error) {
-	valAsString := "nil"
-	if tx.Value != nil {
-		valAsString = tx.Value.String()
-	}
-	return json.Marshal(&struct {
-		Nonce     uint64 `json:"nonce"`
-		Value     string `json:"value"`
-		RcvAddr   []byte `json:"receiver"`
-		SndAddr   []byte `json:"sender"`
-		GasPrice  uint64 `json:"gasPrice,omitempty"`
-		GasLimit  uint64 `json:"gasLimit,omitempty"`
-		Data      []byte `json:"data,omitempty"`
-		Signature []byte `json:"signature,omitempty"`
-	}{
-		Nonce:     tx.Nonce,
-		Value:     valAsString,
-		RcvAddr:   tx.RcvAddr,
-		SndAddr:   tx.SndAddr,
-		GasPrice:  tx.GasPrice,
-		GasLimit:  tx.GasLimit,
-		Data:      tx.Data,
-		Signature: tx.Signature,
-	})
-}
-
-// UnmarshalJSON converts the provided bytes into a Transaction data type.
-func (tx *Transaction) UnmarshalJSON(dataBuff []byte) error {
-	aux := &struct {
-		Nonce     uint64 `json:"nonce"`
-		Value     string `json:"value"`
-		RcvAddr   []byte `json:"receiver"`
-		SndAddr   []byte `json:"sender"`
-		GasPrice  uint64 `json:"gasPrice,omitempty"`
-		GasLimit  uint64 `json:"gasLimit,omitempty"`
-		Data      []byte `json:"data,omitempty"`
-		Signature []byte `json:"signature,omitempty"`
-	}{}
-	if err := json.Unmarshal(dataBuff, &aux); err != nil {
-		return err
-	}
-	tx.Nonce = aux.Nonce
-	tx.RcvAddr = aux.RcvAddr
-	tx.SndAddr = aux.SndAddr
-	tx.GasPrice = aux.GasPrice
-	tx.GasLimit = aux.GasLimit
-	tx.Data = aux.Data
-	tx.Signature = aux.Signature
-
-	var ok bool
-	tx.Value, ok = big.NewInt(0).SetString(aux.Value, 10)
-	if !ok {
-		return data.ErrInvalidValue
-	}
-
-	return nil
 }
 
 // TrimSlicePtr creates a copy of the provided slice without the excess capacity
@@ -157,4 +53,42 @@ func TrimSliceHandler(in []data.TransactionHandler) []data.TransactionHandler {
 	ret := make([]data.TransactionHandler, len(in))
 	copy(ret, in)
 	return ret
+}
+
+// frontendTransaction represents the DTO used in transaction signing/validation.
+type frontendTransaction struct {
+	Nonce            uint64 `json:"nonce"`
+	Value            string `json:"value"`
+	Receiver         string `json:"receiver"`
+	Sender           string `json:"sender"`
+	SenderUsername   []byte `json:"senderUsername,omitempty"`
+	ReceiverUsername []byte `json:"receiverUsername,omitempty"`
+	GasPrice         uint64 `json:"gasPrice"`
+	GasLimit         uint64 `json:"gasLimit"`
+	Data             []byte `json:"data,omitempty"`
+	Signature        string `json:"signature,omitempty"`
+}
+
+// GetDataForSigning returns the serialized transaction having an empty signature field
+func (tx *Transaction) GetDataForSigning(encoder Encoder, marshalizer Marshalizer) ([]byte, error) {
+	if check.IfNil(encoder) {
+		return nil, ErrNilEncoder
+	}
+	if check.IfNil(marshalizer) {
+		return nil, ErrNilMarshalizer
+	}
+
+	ftx := &frontendTransaction{
+		Nonce:            tx.Nonce,
+		Value:            tx.Value.String(),
+		Receiver:         encoder.Encode(tx.RcvAddr),
+		Sender:           encoder.Encode(tx.SndAddr),
+		GasPrice:         tx.GasPrice,
+		GasLimit:         tx.GasLimit,
+		SenderUsername:   tx.SndUserName,
+		ReceiverUsername: tx.RcvUserName,
+		Data:             tx.Data,
+	}
+
+	return marshalizer.Marshal(ftx)
 }

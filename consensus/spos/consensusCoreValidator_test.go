@@ -159,5 +159,5 @@ func TestConsensusContainerValidator_ValidateNilValidatorGroupSelectorShouldFail
 
 	err := ValidateConsensusCore(container)
 
-	assert.Equal(t, ErrNilValidatorGroupSelector, err)
+	assert.Equal(t, ErrNilNodesCoordinator, err)
 }

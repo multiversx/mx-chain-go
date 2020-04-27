@@ -22,6 +22,7 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		ChainID:           []byte("chain ID"),
 		ValidityAttester:  &mock.ValidityAttesterStub{},
 		EpochStartTrigger: &mock.EpochStartTriggerStub{},
+		NonceConverter:    mock.NewNonceHashConverterMock(),
 	}
 
 	hdr := createMockMetaHeader()
@@ -43,7 +44,6 @@ func createMockMetaHeader() *dataBlock.MetaBlock {
 		Signature:     []byte("signature"),
 		RootHash:      []byte("root hash"),
 		TxCount:       0,
-		PeerInfo:      nil,
 		ShardInfo:     nil,
 		ChainID:       []byte("chain ID"),
 	}

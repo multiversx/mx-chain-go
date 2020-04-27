@@ -7,17 +7,17 @@ import (
 	"math/big"
 	"sort"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("process/smartcontract")
@@ -25,92 +25,109 @@ var log = logger.GetOrCreate("process/smartcontract")
 type scProcessor struct {
 	accounts         state.AccountsAdapter
 	tempAccounts     process.TemporaryAccountsHandler
-	adrConv          state.AddressConverter
+	pubkeyConv       state.PubkeyConverter
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
 	vmContainer      process.VirtualMachinesContainer
 	argsParser       process.ArgumentsParser
-	isCallBack       bool
+	builtInFunctions process.BuiltInFunctionContainer
 
 	scrForwarder  process.IntermediateTransactionHandler
 	txFeeHandler  process.TransactionFeeHandler
 	economicsFee  process.FeeHandler
 	txTypeHandler process.TxTypeHandler
 	gasHandler    process.GasHandler
+
+	txLogsProcessor process.TransactionLogProcessor
+}
+
+// ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
+type ArgsNewSmartContractProcessor struct {
+	VmContainer      process.VirtualMachinesContainer
+	ArgsParser       process.ArgumentsParser
+	Hasher           hashing.Hasher
+	Marshalizer      marshal.Marshalizer
+	AccountsDB       state.AccountsAdapter
+	TempAccounts     process.TemporaryAccountsHandler
+	PubkeyConv       state.PubkeyConverter
+	Coordinator      sharding.Coordinator
+	ScrForwarder     process.IntermediateTransactionHandler
+	TxFeeHandler     process.TransactionFeeHandler
+	EconomicsFee     process.FeeHandler
+	TxTypeHandler    process.TxTypeHandler
+	GasHandler       process.GasHandler
+	BuiltInFunctions process.BuiltInFunctionContainer
+	TxLogsProcessor  process.TransactionLogProcessor
 }
 
 // NewSmartContractProcessor create a smart contract processor creates and interprets VM data
-func NewSmartContractProcessor(
-	vmContainer process.VirtualMachinesContainer,
-	argsParser process.ArgumentsParser,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	accountsDB state.AccountsAdapter,
-	tempAccounts process.TemporaryAccountsHandler,
-	adrConv state.AddressConverter,
-	coordinator sharding.Coordinator,
-	scrForwarder process.IntermediateTransactionHandler,
-	txFeeHandler process.TransactionFeeHandler,
-	economicsFee process.FeeHandler,
-	txTypeHandler process.TxTypeHandler,
-	gasHandler process.GasHandler,
-) (*scProcessor, error) {
-
-	if check.IfNil(vmContainer) {
+func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor, error) {
+	if check.IfNil(args.VmContainer) {
 		return nil, process.ErrNoVM
 	}
-	if check.IfNil(argsParser) {
+	if check.IfNil(args.ArgsParser) {
 		return nil, process.ErrNilArgumentParser
 	}
-	if check.IfNil(hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(accountsDB) {
+	if check.IfNil(args.AccountsDB) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(tempAccounts) {
+	if check.IfNil(args.TempAccounts) {
 		return nil, process.ErrNilTemporaryAccountsHandler
 	}
-	if check.IfNil(adrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(args.PubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
-	if check.IfNil(coordinator) {
+	if check.IfNil(args.Coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNil(scrForwarder) {
+	if check.IfNil(args.ScrForwarder) {
 		return nil, process.ErrNilIntermediateTransactionHandler
 	}
-	if check.IfNil(txFeeHandler) {
+	if check.IfNil(args.TxFeeHandler) {
 		return nil, process.ErrNilUnsignedTxHandler
 	}
-	if check.IfNil(economicsFee) {
+	if check.IfNil(args.EconomicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(txTypeHandler) {
+	if check.IfNil(args.TxTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
-	if check.IfNil(gasHandler) {
+	if check.IfNil(args.GasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
+	if check.IfNil(args.BuiltInFunctions) {
+		return nil, process.ErrNilBuiltInFunction
+	}
+	if check.IfNil(args.TxLogsProcessor) {
+		return nil, process.ErrNilTxLogsProcessor
+	}
 
-	return &scProcessor{
-		vmContainer:      vmContainer,
-		argsParser:       argsParser,
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		accounts:         accountsDB,
-		tempAccounts:     tempAccounts,
-		adrConv:          adrConv,
-		shardCoordinator: coordinator,
-		scrForwarder:     scrForwarder,
-		txFeeHandler:     txFeeHandler,
-		economicsFee:     economicsFee,
-		txTypeHandler:    txTypeHandler,
-		gasHandler:       gasHandler}, nil
+	sc := &scProcessor{
+		vmContainer:      args.VmContainer,
+		argsParser:       args.ArgsParser,
+		hasher:           args.Hasher,
+		marshalizer:      args.Marshalizer,
+		accounts:         args.AccountsDB,
+		tempAccounts:     args.TempAccounts,
+		pubkeyConv:       args.PubkeyConv,
+		shardCoordinator: args.Coordinator,
+		scrForwarder:     args.ScrForwarder,
+		txFeeHandler:     args.TxFeeHandler,
+		economicsFee:     args.EconomicsFee,
+		txTypeHandler:    args.TxTypeHandler,
+		gasHandler:       args.GasHandler,
+		builtInFunctions: args.BuiltInFunctions,
+		txLogsProcessor:  args.TxLogsProcessor,
+	}
+
+	return sc, nil
 }
 
 func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
@@ -118,7 +135,7 @@ func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
 		return process.ErrNilTransaction
 	}
 
-	recvAddressIsInvalid := sc.adrConv.AddressLen() != len(tx.GetRecvAddress())
+	recvAddressIsInvalid := sc.pubkeyConv.Len() != len(tx.GetRcvAddr())
 	if recvAddressIsInvalid {
 		return process.ErrWrongTransaction
 	}
@@ -127,26 +144,25 @@ func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
 }
 
 func (sc *scProcessor) isDestAddressEmpty(tx data.TransactionHandler) bool {
-	isEmptyAddress := bytes.Equal(tx.GetRecvAddress(), make([]byte, sc.adrConv.AddressLen()))
+	isEmptyAddress := bytes.Equal(tx.GetRcvAddr(), make([]byte, sc.pubkeyConv.Len()))
 	return isEmptyAddress
 }
 
 // ExecuteSmartContractTransaction processes the transaction, call the VM and processes the SC call output
 func (sc *scProcessor) ExecuteSmartContractTransaction(
 	tx data.TransactionHandler,
-	acntSnd, acntDst state.AccountHandler,
+	acntSnd, acntDst state.UserAccountHandler,
 ) error {
 	defer sc.tempAccounts.CleanTempAccounts()
 
-	if tx == nil || tx.IsInterfaceNil() {
+	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
-	if acntDst == nil || acntDst.IsInterfaceNil() {
+	if check.IfNil(acntDst) {
 		return process.ErrNilSCDestAccount
 	}
-	if acntDst.IsInterfaceNil() || acntDst.GetCode() == nil {
-		return process.ErrNilSCDestAccount
-	}
+
+	log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "data", string(tx.GetData()))
 
 	err := sc.processSCPayment(tx, acntSnd)
 	if err != nil {
@@ -154,10 +170,24 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
+	var txHash []byte
+	txHash, err = core.CalculateHash(sc.marshalizer, sc.hasher, tx)
+	if err != nil {
+		log.Debug("CalculateHash error", "error", err)
+		return err
+	}
+
+	err = sc.saveAccounts(acntSnd, acntDst)
+	if err != nil {
+		log.Debug("saveAccounts error", "error", err)
+		return err
+	}
+
+	snapshot := sc.accounts.JournalLen()
 	defer func() {
 		if err != nil {
-			err = sc.processIfError(acntSnd, tx, err.Error())
-			if err != nil {
+			errNotCritical := sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), snapshot)
+			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
 		}
@@ -169,25 +199,46 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	vmInput, err := sc.createVMCallInput(tx)
+	var vmInput *vmcommon.ContractCallInput
+	vmInput, err = sc.createVMCallInput(tx)
 	if err != nil {
 		log.Debug("create vm call input error", "error", err.Error())
 		return nil
 	}
 
-	vm, err := sc.getVMFromRecvAddress(tx)
+	var executed bool
+	executed, err = sc.resolveBuiltInFunctions(txHash, tx, acntSnd, acntDst, vmInput)
+	if err != nil {
+		log.Debug("processed built in functions error", "error", err.Error())
+		return nil
+	}
+	if executed {
+		return nil
+	}
+
+	var vm vmcommon.VMExecutionHandler
+	vm, err = findVMByTransaction(sc.vmContainer, tx)
 	if err != nil {
 		log.Debug("get vm from address error", "error", err.Error())
 		return nil
 	}
 
-	vmOutput, err := vm.RunSmartContractCall(vmInput)
+	var vmOutput *vmcommon.VMOutput
+	vmOutput, err = vm.RunSmartContractCall(vmInput)
 	if err != nil {
 		log.Debug("run smart contract call error", "error", err.Error())
 		return nil
 	}
 
-	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd)
+	err = sc.saveAccounts(acntSnd, acntDst)
+	if err != nil {
+		log.Debug("saveAccounts error", "error", err)
+		return nil
+	}
+
+	var consumedFee *big.Int
+	var results []data.TransactionHandler
+	results, consumedFee, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType)
 	if err != nil {
 		log.Trace("process vm output error", "error", err.Error())
 		return nil
@@ -199,33 +250,133 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
+	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
+	if ignorableError != nil {
+		log.Debug("txLogsProcessor.SaveLog() error", "error", ignorableError.Error())
+	}
+
+	newDeveloperReward := core.GetPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
+	feeForValidators := big.NewInt(0).Sub(consumedFee, newDeveloperReward)
+
+	acntDst, err = sc.reloadLocalAccount(acntDst)
+	if err != nil {
+		log.Debug("reloadLocalAccount error", "error", err.Error())
+		return nil
+	}
+
+	acntDst.AddToDeveloperReward(newDeveloperReward)
+	sc.txFeeHandler.ProcessTransactionFee(feeForValidators, txHash)
+
+	err = sc.accounts.SaveAccount(acntDst)
+	if err != nil {
+		log.Debug("error saving account")
+	}
 
 	return nil
 }
 
-func (sc *scProcessor) processIfError(
-	acntSnd state.AccountHandler,
+func (sc *scProcessor) saveAccounts(acntSnd, acntDst state.AccountHandler) error {
+	if !check.IfNil(acntSnd) {
+		err := sc.accounts.SaveAccount(acntSnd)
+		if err != nil {
+			return err
+		}
+	}
+
+	if !check.IfNil(acntDst) {
+		err := sc.accounts.SaveAccount(acntDst)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (sc *scProcessor) resolveBuiltInFunctions(
+	txHash []byte,
+	tx data.TransactionHandler,
+	acntSnd, acntDst state.UserAccountHandler,
+	vmInput *vmcommon.ContractCallInput,
+) (bool, error) {
+
+	builtIn, err := sc.builtInFunctions.Get(vmInput.Function)
+	if err != nil {
+		return false, nil
+	}
+	if check.IfNil(builtIn) {
+		return true, process.ErrNilBuiltInFunction
+	}
+
+	valueToSend, gasConsumed, err := builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
+	if err != nil {
+		return true, err
+	}
+
+	if tx.GetGasLimit() < gasConsumed {
+		return true, process.ErrNotEnoughGas
+	}
+
+	gasRemaining := tx.GetGasLimit() - gasConsumed
+	scrRefund, consumedFee, err := sc.createSCRForSender(
+		big.NewInt(0),
+		gasRemaining,
+		vmcommon.Ok,
+		make([][]byte, 0),
+		tx,
+		txHash,
+		acntSnd,
+		vmcommon.DirectCall,
+	)
+	if err != nil {
+		return true, err
+	}
+
+	scrRefund.Value.Add(scrRefund.Value, valueToSend)
+	err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrRefund})
+	if err != nil {
+		log.Debug("AddIntermediateTransactions error", "error", err.Error())
+		return true, err
+	}
+
+	sc.gasHandler.SetGasRefunded(gasRemaining, txHash)
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee, txHash)
+
+	return true, sc.saveAccounts(acntSnd, acntDst)
+}
+
+// ProcessIfError creates a smart contract result, consumed the gas and returns the value to the user
+func (sc *scProcessor) ProcessIfError(
+	acntSnd state.UserAccountHandler,
+	txHash []byte,
 	tx data.TransactionHandler,
 	returnCode string,
+	snapShot int,
 ) error {
+	err := sc.accounts.RevertToSnapshot(snapShot)
+	if err != nil {
+		log.Warn("revert to snapshot", "error", err.Error())
+	}
+
 	consumedFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GetGasLimit()), big.NewInt(0).SetUint64(tx.GetGasPrice()))
-	scrIfError, err := sc.createSCRsWhenError(tx, returnCode)
+	scrIfError, err := sc.createSCRsWhenError(txHash, tx, returnCode)
 	if err != nil {
 		return err
 	}
 
 	if !check.IfNil(acntSnd) {
-		stAcc, ok := acntSnd.(*state.Account)
-		if !ok {
-			return process.ErrWrongTypeAssertion
-		}
-
-		totalCost := big.NewInt(0)
-		err = stAcc.SetBalanceWithJournal(totalCost.Add(stAcc.Balance, tx.GetValue()))
+		err = acntSnd.AddToBalance(tx.GetValue())
 		if err != nil {
 			return err
 		}
+
+		err = sc.accounts.SaveAccount(acntSnd)
+		if err != nil {
+			log.Debug("error saving account")
+		}
+	} else {
+		moveBalanceCost := sc.economicsFee.ComputeFee(tx)
+		consumedFee.Sub(consumedFee, moveBalanceCost)
 	}
 
 	err = sc.scrForwarder.AddIntermediateTransactions(scrIfError)
@@ -233,63 +384,27 @@ func (sc *scProcessor) processIfError(
 		return err
 	}
 
-	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee, txHash)
 
 	return nil
 }
 
-func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acntSnd state.AccountHandler) error {
-	sc.isCallBack = false
-	dataToParse := tx.GetData()
-
-	scr, ok := tx.(*smartContractResult.SmartContractResult)
-	isSCRResultFromCrossShardCall := ok && len(scr.Data) > 0 && scr.Data[0] == '@'
-	if isSCRResultFromCrossShardCall {
-		dataToParse = append([]byte("callBack"), tx.GetData()...)
-		sc.isCallBack = true
-	}
-
-	err := sc.argsParser.ParseData(string(dataToParse))
-	if err != nil {
-		return err
-	}
-
+func (sc *scProcessor) prepareSmartContractCall(tx data.TransactionHandler, acntSnd state.UserAccountHandler) error {
 	nonce := tx.GetNonce()
 	if acntSnd != nil && !acntSnd.IsInterfaceNil() {
 		nonce = acntSnd.GetNonce()
 	}
 
 	txValue := big.NewInt(0).Set(tx.GetValue())
-	sc.tempAccounts.AddTempAccount(tx.GetSndAddress(), txValue, nonce)
+	sc.tempAccounts.AddTempAccount(tx.GetSndAddr(), txValue, nonce)
 
 	return nil
-}
-
-func (sc *scProcessor) getVMTypeFromArguments(vmType []byte) ([]byte, error) {
-	// first parsed argument after the code in case of vmDeploy is the actual vmType
-	vmAppendedType := make([]byte, core.VMTypeLen)
-	vmArgLen := len(vmType)
-	if vmArgLen > core.VMTypeLen {
-		return nil, process.ErrVMTypeLengthInvalid
-	}
-
-	copy(vmAppendedType[core.VMTypeLen-vmArgLen:], vmType)
-	return vmAppendedType, nil
-}
-
-func (sc *scProcessor) getVMFromRecvAddress(tx data.TransactionHandler) (vmcommon.VMExecutionHandler, error) {
-	vmType := core.GetVMType(tx.GetRecvAddress())
-	vm, err := sc.vmContainer.Get(vmType)
-	if err != nil {
-		return nil, err
-	}
-	return vm, nil
 }
 
 // DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(
 	tx data.TransactionHandler,
-	acntSnd state.AccountHandler,
+	acntSnd state.UserAccountHandler,
 ) error {
 	defer sc.tempAccounts.CleanTempAccounts()
 
@@ -305,15 +420,28 @@ func (sc *scProcessor) DeploySmartContract(
 		return process.ErrWrongTransaction
 	}
 
+	txHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, tx)
+	if err != nil {
+		log.Debug("CalculateHash error", "error", err)
+		return err
+	}
+
 	err = sc.processSCPayment(tx, acntSnd)
 	if err != nil {
 		return err
 	}
 
+	err = sc.saveAccounts(acntSnd, nil)
+	if err != nil {
+		log.Debug("saveAccounts error", "error", err)
+		return err
+	}
+
+	snapshot := sc.accounts.JournalLen()
 	defer func() {
 		if err != nil {
-			err = sc.processIfError(acntSnd, tx, err.Error())
-			if err != nil {
+			errNotCritical := sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), snapshot)
+			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
 		}
@@ -343,9 +471,15 @@ func (sc *scProcessor) DeploySmartContract(
 		return nil
 	}
 
-	results, consumedFee, err := sc.processVMOutput(vmOutput, tx, acntSnd)
+	err = sc.accounts.SaveAccount(acntSnd)
 	if err != nil {
-		log.Debug("Processing error", "error", err.Error())
+		log.Debug("Save account error", "error", err.Error())
+		return nil
+	}
+
+	results, consumedFee, err := sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType)
+	if err != nil {
+		log.Trace("Processing error", "error", err.Error())
 		return nil
 	}
 
@@ -355,101 +489,21 @@ func (sc *scProcessor) DeploySmartContract(
 		return nil
 	}
 
-	sc.txFeeHandler.ProcessTransactionFee(consumedFee)
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee, txHash)
 
-	log.Trace("SmartContract deployed")
+	log.Debug("SmartContract deployed")
 	return nil
 }
 
-func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler) (*vmcommon.ContractCallInput, error) {
-	vmInput, err := sc.createVMInput(tx)
-	if err != nil {
-		return nil, err
-	}
-
-	vmCallInput := &vmcommon.ContractCallInput{}
-	vmCallInput.VMInput = *vmInput
-	vmCallInput.Function, err = sc.argsParser.GetFunction()
-	if err != nil {
-		return nil, err
-	}
-
-	vmCallInput.RecipientAddr = tx.GetRecvAddress()
-
-	return vmCallInput, nil
-}
-
-func (sc *scProcessor) createVMDeployInput(
-	tx data.TransactionHandler,
-) (*vmcommon.ContractCreateInput, []byte, error) {
-	vmInput, err := sc.createVMInput(tx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if len(vmInput.Arguments) < 1 {
-		return nil, nil, process.ErrNotEnoughArgumentsToDeploy
-	}
-
-	vmType, err := sc.getVMTypeFromArguments(vmInput.Arguments[0])
-	if err != nil {
-		return nil, nil, err
-	}
-	// delete the first argument as it is the vmType
-	vmInput.Arguments = vmInput.Arguments[1:]
-
-	vmCreateInput := &vmcommon.ContractCreateInput{}
-	hexCode, err := sc.argsParser.GetCode()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	vmCreateInput.ContractCode, err = hex.DecodeString(string(hexCode))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	vmCreateInput.VMInput = *vmInput
-
-	return vmCreateInput, vmType, nil
-}
-
-func (sc *scProcessor) createVMInput(tx data.TransactionHandler) (*vmcommon.VMInput, error) {
-	var err error
-	vmInput := &vmcommon.VMInput{}
-
-	vmInput.CallerAddr = tx.GetSndAddress()
-	vmInput.Arguments, err = sc.argsParser.GetArguments()
-	if err != nil {
-		return nil, err
-	}
-
-	vmInput.CallValue = tx.GetValue()
-	vmInput.GasPrice = tx.GetGasPrice()
-	moveBalanceGasConsume := sc.economicsFee.ComputeGasLimit(tx)
-
-	if tx.GetGasLimit() < moveBalanceGasConsume {
-		return nil, process.ErrNotEnoughGas
-	}
-
-	vmInput.GasProvided = tx.GetGasLimit() - moveBalanceGasConsume
-
-	return vmInput, nil
-}
-
 // taking money from sender, as VM might not have access to him because of state sharding
-func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd state.AccountHandler) error {
-	if acntSnd == nil || acntSnd.IsInterfaceNil() {
+func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd state.UserAccountHandler) error {
+	if check.IfNil(acntSnd) {
 		// transaction was already processed at sender shard
 		return nil
 	}
 
-	err := acntSnd.SetNonceWithJournal(acntSnd.GetNonce() + 1)
-	if err != nil {
-		return err
-	}
-
-	err = sc.economicsFee.CheckValidityTxValues(tx)
+	acntSnd.IncreaseNonce(1)
+	err := sc.economicsFee.CheckValidityTxValues(tx)
 	if err != nil {
 		return err
 	}
@@ -462,17 +516,7 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 		return nil
 	}
 
-	stAcc, ok := acntSnd.(*state.Account)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	if stAcc.Balance.Cmp(cost) < 0 {
-		return process.ErrInsufficientFunds
-	}
-
-	totalCost := big.NewInt(0)
-	err = stAcc.SetBalanceWithJournal(totalCost.Sub(stAcc.Balance, cost))
+	err = acntSnd.SubFromBalance(cost)
 	if err != nil {
 		return err
 	}
@@ -480,19 +524,12 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 	return nil
 }
 
-func (sc *scProcessor) computeTransactionHash(tx data.TransactionHandler) ([]byte, error) {
-	scr, ok := tx.(*smartContractResult.SmartContractResult)
-	if ok {
-		return scr.TxHash, nil
-	}
-
-	return core.CalculateHash(sc.marshalizer, sc.hasher, tx)
-}
-
 func (sc *scProcessor) processVMOutput(
 	vmOutput *vmcommon.VMOutput,
+	txHash []byte,
 	tx data.TransactionHandler,
-	acntSnd state.AccountHandler,
+	acntSnd state.UserAccountHandler,
+	callType vmcommon.CallType,
 ) ([]data.TransactionHandler, *big.Int, error) {
 	if vmOutput == nil {
 		return nil, nil, process.ErrNilVMOutput
@@ -501,15 +538,11 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, process.ErrNilTransaction
 	}
 
-	txHash, err := sc.computeTransactionHash(tx)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		log.Trace("smart contract processing returned with error",
 			"hash", txHash,
 			"return code", vmOutput.ReturnCode.String(),
+			"return message", vmOutput.ReturnMessage,
 		)
 
 		return nil, nil, fmt.Errorf(vmOutput.ReturnCode.String())
@@ -522,7 +555,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, err
 	}
 
-	acntSnd, err = sc.reloadLocalSndAccount(acntSnd)
+	acntSnd, err = sc.reloadLocalAccount(acntSnd)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -530,25 +563,34 @@ func (sc *scProcessor) processVMOutput(
 	totalGasConsumed := tx.GetGasLimit() - vmOutput.GasRemaining
 	log.Trace("total gas consumed", "value", totalGasConsumed, "hash", txHash)
 
-	if vmOutput.GasRefund.Uint64() > 0 {
-		log.Trace("total gas refunded", "value", vmOutput.GasRefund.Uint64(), "hash", txHash)
+	if vmOutput.GasRefund.Cmp(big.NewInt(0)) > 0 {
+		log.Trace("total gas refunded", "value", vmOutput.GasRefund.String(), "hash", txHash)
 	}
 
-	scrRefund, consumedFee, err := sc.createSCRForSender(vmOutput, tx, txHash, acntSnd)
+	scrRefund, consumedFee, err := sc.createSCRForSender(
+		vmOutput.GasRefund,
+		vmOutput.GasRemaining,
+		vmOutput.ReturnCode,
+		vmOutput.ReturnData,
+		tx,
+		txHash,
+		acntSnd,
+		callType,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if scrRefund != nil {
-		scrTxs = append(scrTxs, scrRefund)
+	scrTxs = append(scrTxs, scrRefund)
+
+	if !check.IfNil(acntSnd) {
+		err = sc.accounts.SaveAccount(acntSnd)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	err = sc.deleteAccounts(vmOutput.DeletedAccounts)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = sc.processTouchedAccounts(vmOutput.TouchedAccounts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -596,38 +638,50 @@ func getSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.Storag
 }
 
 func (sc *scProcessor) createSCRsWhenError(
+	txHash []byte,
 	tx data.TransactionHandler,
 	returnCode string,
 ) ([]data.TransactionHandler, error) {
-	txHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, tx)
-	if err != nil {
-		return nil, err
-	}
+	rcvAddress := tx.GetSndAddr()
 
-	rcvAddress := tx.GetSndAddress()
-	if sc.isCallBack {
-		rcvAddress = tx.GetRecvAddress()
+	callType := determineCallType(tx)
+	if callType == vmcommon.AsynchronousCallBack {
+		rcvAddress = tx.GetRcvAddr()
 	}
 
 	scr := &smartContractResult.SmartContractResult{
-		Nonce:   tx.GetNonce(),
-		Value:   tx.GetValue(),
-		RcvAddr: rcvAddress,
-		SndAddr: tx.GetRecvAddress(),
-		Code:    nil,
-		Data:    []byte("@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)),
-		TxHash:  txHash,
+		Nonce:      tx.GetNonce(),
+		Value:      tx.GetValue(),
+		RcvAddr:    rcvAddress,
+		SndAddr:    tx.GetRcvAddr(),
+		Code:       nil,
+		Data:       []byte("@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)),
+		PrevTxHash: txHash,
 	}
+	setOriginalTxHash(scr, txHash, tx)
 
 	resultedScrs := []data.TransactionHandler{scr}
 
 	return resultedScrs, nil
 }
 
-// reloadLocalSndAccount will reload from current account state the sender account
+func setOriginalTxHash(
+	scr *smartContractResult.SmartContractResult,
+	txHash []byte,
+	tx data.TransactionHandler,
+) {
+	currSCR, isSCR := tx.(*smartContractResult.SmartContractResult)
+	if isSCR {
+		scr.OriginalTxHash = currSCR.OriginalTxHash
+	} else {
+		scr.OriginalTxHash = txHash
+	}
+}
+
+// reloadLocalAccount will reload from current account state the sender account
 // this requirement is needed because in the case of refunding the exact account that was previously
 // modified in saveSCOutputToCurrentState, the modifications done there should be visible here
-func (sc *scProcessor) reloadLocalSndAccount(acntSnd state.AccountHandler) (state.AccountHandler, error) {
+func (sc *scProcessor) reloadLocalAccount(acntSnd state.UserAccountHandler) (state.UserAccountHandler, error) {
 	if check.IfNil(acntSnd) {
 		return acntSnd, nil
 	}
@@ -651,12 +705,13 @@ func (sc *scProcessor) createSmartContractResult(
 	result.Value = outAcc.BalanceDelta
 	result.Nonce = outAcc.Nonce
 	result.RcvAddr = outAcc.Address
-	result.SndAddr = tx.GetRecvAddress()
+	result.SndAddr = tx.GetRcvAddr()
 	result.Code = outAcc.Code
 	result.Data = append(outAcc.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
 	result.GasLimit = outAcc.GasLimit
 	result.GasPrice = tx.GetGasPrice()
-	result.TxHash = txHash
+	result.PrevTxHash = txHash
+	setOriginalTxHash(result, txHash, tx)
 
 	return result
 }
@@ -664,50 +719,56 @@ func (sc *scProcessor) createSmartContractResult(
 // createSCRForSender(vmOutput, tx, txHash, acntSnd)
 // give back the user the unused gas money
 func (sc *scProcessor) createSCRForSender(
-	vmOutput *vmcommon.VMOutput,
+	gasRefund *big.Int,
+	gasRemaining uint64,
+	returnCode vmcommon.ReturnCode,
+	returnData [][]byte,
 	tx data.TransactionHandler,
 	txHash []byte,
-	acntSnd state.AccountHandler,
+	acntSnd state.UserAccountHandler,
+	callType vmcommon.CallType,
 ) (*smartContractResult.SmartContractResult, *big.Int, error) {
-	gasRefund := big.NewInt(0).Add(vmOutput.GasRefund, big.NewInt(0).SetUint64(vmOutput.GasRemaining))
+	storageFreeRefund := big.NewInt(0).Mul(gasRefund, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
 
 	consumedFee := big.NewInt(0)
-	consumedFee = consumedFee.Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
+	consumedFee.Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
 
 	refundErd := big.NewInt(0)
-	refundErd = refundErd.Mul(gasRefund, big.NewInt(0).SetUint64(tx.GetGasPrice()))
-	consumedFee = consumedFee.Sub(consumedFee, refundErd)
+	refundErd.Mul(big.NewInt(0).SetUint64(gasRemaining), big.NewInt(0).SetUint64(tx.GetGasPrice()))
+	consumedFee.Sub(consumedFee, refundErd)
 
-	rcvAddress := tx.GetSndAddress()
-	if sc.isCallBack {
-		rcvAddress = tx.GetRecvAddress()
+	rcvAddress := tx.GetSndAddr()
+	if callType == vmcommon.AsynchronousCallBack {
+		rcvAddress = tx.GetRcvAddr()
 	}
 
 	scTx := &smartContractResult.SmartContractResult{}
-	scTx.Value = refundErd
+	scTx.Value = big.NewInt(0).Add(refundErd, storageFreeRefund)
 	scTx.RcvAddr = rcvAddress
-	scTx.SndAddr = tx.GetRecvAddress()
+	scTx.SndAddr = tx.GetRcvAddr()
 	scTx.Nonce = tx.GetNonce() + 1
-	scTx.TxHash = txHash
-	scTx.GasLimit = vmOutput.GasRemaining
+	scTx.PrevTxHash = txHash
+	scTx.GasLimit = gasRemaining
 	scTx.GasPrice = tx.GetGasPrice()
+	setOriginalTxHash(scTx, txHash, tx)
 
-	scTx.Data = []byte("@" + hex.EncodeToString([]byte(vmOutput.ReturnCode.String())))
-	for _, retData := range vmOutput.ReturnData {
+	scTx.Data = []byte("@" + hex.EncodeToString([]byte(returnCode.String())))
+	for _, retData := range returnData {
 		scTx.Data = append(scTx.Data, []byte("@"+hex.EncodeToString(retData))...)
 	}
 
-	if acntSnd == nil || acntSnd.IsInterfaceNil() {
+	if callType == vmcommon.AsynchronousCall {
+		scTx.CallType = vmcommon.AsynchronousCallBack
+	}
+
+	if check.IfNil(acntSnd) {
+		// cross shard move balance fee was already consumed at sender shard
+		moveBalanceCost := sc.economicsFee.ComputeFee(tx)
+		consumedFee.Sub(consumedFee, moveBalanceCost)
 		return scTx, consumedFee, nil
 	}
 
-	stAcc, ok := acntSnd.(*state.Account)
-	if !ok {
-		return nil, nil, process.ErrWrongTypeAssertion
-	}
-
-	newBalance := big.NewInt(0).Add(stAcc.Balance, refundErd)
-	err := stAcc.SetBalanceWithJournal(newBalance)
+	err := acntSnd.AddToBalance(scTx.Value)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -724,7 +785,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 	scResults := make([]data.TransactionHandler, 0, len(outputAccounts))
 
 	sumOfAllDiff := big.NewInt(0)
-	sumOfAllDiff = sumOfAllDiff.Sub(sumOfAllDiff, tx.GetValue())
+	sumOfAllDiff.Sub(sumOfAllDiff, tx.GetValue())
 
 	zero := big.NewInt(0)
 	for i := 0; i < len(outputAccounts); i++ {
@@ -740,7 +801,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 
 		if check.IfNil(acc) {
 			if outAcc.BalanceDelta != nil {
-				sumOfAllDiff = sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
+				sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
 			}
 			continue
 		}
@@ -752,22 +813,9 @@ func (sc *scProcessor) processSCOutputAccounts(
 			log.Trace("storeUpdate", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
 		}
 
-		if len(outAcc.StorageUpdates) > 0 {
-			//SC with data variables
-			err = sc.accounts.SaveDataTrie(acc)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// change code if there is a change
-		if len(outAcc.Code) > 0 {
-			err = sc.accounts.PutCode(acc, outAcc.Code)
-			if err != nil {
-				return nil, err
-			}
-
-			log.Trace("created SC address", "address", hex.EncodeToString(outAcc.Address))
+		err = sc.updateSmartContractCode(acc, outAcc, tx)
+		if err != nil {
+			return nil, err
 		}
 
 		// change nonce only if there is a change
@@ -776,32 +824,28 @@ func (sc *scProcessor) processSCOutputAccounts(
 				return nil, process.ErrWrongNonceInVMOutput
 			}
 
-			err = acc.SetNonceWithJournal(outAcc.Nonce)
-			if err != nil {
-				return nil, err
-			}
+			nonceDifference := outAcc.Nonce - acc.GetNonce()
+			acc.IncreaseNonce(nonceDifference)
 		}
 
 		// if no change then continue
 		if outAcc.BalanceDelta == nil || outAcc.BalanceDelta.Cmp(zero) == 0 {
-			continue
-		}
+			err = sc.accounts.SaveAccount(acc)
+			if err != nil {
+				return nil, err
+			}
 
-		stAcc, ok := acc.(*state.Account)
-		if !ok {
-			return nil, process.ErrWrongTypeAssertion
+			continue
 		}
 
 		sumOfAllDiff = sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
 
-		// update the values according to SC output
-		updatedBalance := big.NewInt(0)
-		updatedBalance = updatedBalance.Add(stAcc.Balance, outAcc.BalanceDelta)
-		if updatedBalance.Cmp(big.NewInt(0)) < 0 {
-			return nil, process.ErrOverallBalanceChangeFromSC
+		err = acc.AddToBalance(outAcc.BalanceDelta)
+		if err != nil {
+			return nil, err
 		}
 
-		err = stAcc.SetBalanceWithJournal(updatedBalance)
+		err = sc.accounts.SaveAccount(acc)
 		if err != nil {
 			return nil, err
 		}
@@ -814,6 +858,40 @@ func (sc *scProcessor) processSCOutputAccounts(
 	return scResults, nil
 }
 
+func (sc *scProcessor) updateSmartContractCode(
+	scAccount state.UserAccountHandler,
+	outputAccount *vmcommon.OutputAccount,
+	tx data.TransactionHandler,
+) error {
+	if len(outputAccount.Code) == 0 {
+		return nil
+	}
+
+	codeMetadata := vmcommon.CodeMetadataFromBytes(scAccount.GetCodeMetadata())
+
+	isDeployment := len(scAccount.GetCode()) == 0
+	if isDeployment {
+		scAccount.SetOwnerAddress(tx.GetSndAddr())
+		scAccount.SetCodeMetadata(outputAccount.CodeMetadata)
+		scAccount.SetCode(outputAccount.Code)
+		log.Trace("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address))
+		return nil
+	}
+
+	isSenderOwner := bytes.Equal(scAccount.GetOwnerAddress(), tx.GetSndAddr())
+	isUpgrade := !isDeployment && isSenderOwner && codeMetadata.Upgradeable
+	if isUpgrade {
+		scAccount.SetCodeMetadata(outputAccount.CodeMetadata)
+		scAccount.SetCode(outputAccount.Code)
+		log.Trace("updateSmartContractCode(): upgraded", "address", sc.pubkeyConv.Encode(outputAccount.Address))
+		return nil
+	}
+
+	log.Trace("updateSmartContractCode() nothing changed", "address", outputAccount.Address)
+	// TODO: change to return some error when IELE is updated. Currently IELE sends the code in output account even for normal SC RUN
+	return nil
+}
+
 // delete accounts - only suicide by current SC or another SC called by current SC - protected by VM
 func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 	for _, value := range deletedAccounts {
@@ -822,7 +900,7 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 			return err
 		}
 
-		if acc == nil || acc.IsInterfaceNil() {
+		if check.IfNil(acc) {
 			//TODO: sharded Smart Contract processing
 			continue
 		}
@@ -835,13 +913,8 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 	return nil
 }
 
-func (sc *scProcessor) processTouchedAccounts(_ [][]byte) error {
-	//TODO: implement
-	return nil
-}
-
-func (sc *scProcessor) getAccountFromAddress(address []byte) (state.AccountHandler, error) {
-	adrSrc, err := sc.adrConv.CreateAddressFromPublicKeyBytes(address)
+func (sc *scProcessor) getAccountFromAddress(address []byte) (state.UserAccountHandler, error) {
+	adrSrc, err := sc.pubkeyConv.CreateAddressFromBytes(address)
 	if err != nil {
 		return nil, err
 	}
@@ -852,12 +925,17 @@ func (sc *scProcessor) getAccountFromAddress(address []byte) (state.AccountHandl
 		return nil, nil
 	}
 
-	acnt, err := sc.accounts.GetAccountWithJournal(adrSrc)
+	acnt, err := sc.accounts.LoadAccount(adrSrc)
 	if err != nil {
 		return nil, err
 	}
 
-	return acnt, nil
+	stAcc, ok := acnt.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return stAcc, nil
 }
 
 // ProcessSmartContractResult updates the account state from the smart contract result
@@ -866,11 +944,20 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		return process.ErrNilSmartContractResult
 	}
 
+	log.Trace("scProcessor.ProcessSmartContractResult()", "sender", scr.GetSndAddr(), "receiver", scr.GetRcvAddr())
+
 	var err error
+	txHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, scr)
+	if err != nil {
+		log.Debug("CalculateHash error", "error", err)
+		return err
+	}
+
+	snapshot := sc.accounts.JournalLen()
 	defer func() {
 		if err != nil {
-			err = sc.processIfError(nil, scr, err.Error())
-			if err != nil {
+			errNotCritical := sc.ProcessIfError(nil, txHash, scr, err.Error(), snapshot)
+			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
 			}
 		}
@@ -885,7 +972,12 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		return nil
 	}
 
-	process.DisplayProcessTxDetails("ProcessSmartContractResult: receiver account details", dstAcc, scr)
+	process.DisplayProcessTxDetails(
+		"ProcessSmartContractResult: receiver account details",
+		dstAcc,
+		scr,
+		sc.pubkeyConv,
+	)
 
 	txType, err := sc.txTypeHandler.ComputeTransactionType(scr)
 	if err != nil {
@@ -909,50 +1001,28 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 }
 
 func (sc *scProcessor) processSimpleSCR(
-	scr *smartContractResult.SmartContractResult,
-	dstAcc state.AccountHandler,
+	scResult *smartContractResult.SmartContractResult,
+	dstAcc state.UserAccountHandler,
 ) error {
-	stAcc, ok := dstAcc.(*state.Account)
-	if !ok {
-		return process.ErrWrongTypeAssertion
+	outputAccount := &vmcommon.OutputAccount{
+		Code:         scResult.Code,
+		CodeMetadata: scResult.CodeMetadata,
+		Address:      scResult.RcvAddr,
 	}
 
-	if len(scr.Data) > 0 {
-		storageUpdates, err := sc.argsParser.GetStorageUpdates(string(scr.Data))
-		if err != nil {
-			log.Debug("storage updates could not be parsed")
-		}
-
-		for i := 0; i < len(storageUpdates); i++ {
-			stAcc.DataTrieTracker().SaveKeyValue(storageUpdates[i].Offset, storageUpdates[i].Data)
-		}
-
-		//SC with data variables
-		err = sc.accounts.SaveDataTrie(stAcc)
-		if err != nil {
-			return err
-		}
-	}
-
-	if len(scr.Code) > 0 {
-		err := sc.accounts.PutCode(stAcc, scr.Code)
-		if err != nil {
-			return err
-		}
-	}
-
-	if scr.Value == nil {
-		return nil
-	}
-
-	operation := big.NewInt(0)
-	operation = operation.Add(scr.Value, stAcc.Balance)
-	err := stAcc.SetBalanceWithJournal(operation)
+	err := sc.updateSmartContractCode(dstAcc, outputAccount, scResult)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	if scResult.Value != nil {
+		err = dstAcc.AddToBalance(scResult.Value)
+		if err != nil {
+			return err
+		}
+	}
+
+	return sc.accounts.SaveAccount(dstAcc)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

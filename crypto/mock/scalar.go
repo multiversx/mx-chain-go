@@ -1,8 +1,6 @@
 package mock
 
 import (
-	"crypto/cipher"
-
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
@@ -10,18 +8,19 @@ import (
 type ScalarMock struct {
 	X int
 
-	MarshalBinaryStub   func(x int) ([]byte, error)
-	UnmarshalBinaryStub func([]byte) (int, error)
+	MarshalBinaryStub    func(x int) ([]byte, error)
+	UnmarshalBinaryStub  func([]byte) (int, error)
+	GetUnderlyingObjStub func() interface{}
 }
 
 // Equal tests if receiver is equal with the scalar s given as parameter.
 // Both scalars need to be derived from the same Group
-func (sm *ScalarMock) Equal(s crypto.Scalar) (bool, error) {
+func (sm *ScalarMock) Equal(_ crypto.Scalar) (bool, error) {
 	panic("implement me")
 }
 
 // Set sets the receiver to Scalar s given as parameter
-func (sm *ScalarMock) Set(s crypto.Scalar) error {
+func (sm *ScalarMock) Set(_ crypto.Scalar) error {
 	panic("implement me")
 }
 
@@ -31,7 +30,7 @@ func (sm *ScalarMock) Clone() crypto.Scalar {
 }
 
 // SetInt64 sets the receiver to a small integer value v given as parameter
-func (sm *ScalarMock) SetInt64(v int64) {
+func (sm *ScalarMock) SetInt64(_ int64) {
 	panic("implement me")
 }
 
@@ -41,12 +40,12 @@ func (sm *ScalarMock) Zero() crypto.Scalar {
 }
 
 // Add returns the modular sum of receiver with scalar s given as parameter
-func (sm *ScalarMock) Add(s crypto.Scalar) (crypto.Scalar, error) {
+func (sm *ScalarMock) Add(_ crypto.Scalar) (crypto.Scalar, error) {
 	panic("implement me")
 }
 
 // Sub returns the modular difference between receiver and scalar s given as parameter
-func (sm *ScalarMock) Sub(s crypto.Scalar) (crypto.Scalar, error) {
+func (sm *ScalarMock) Sub(_ crypto.Scalar) (crypto.Scalar, error) {
 	panic("implement me")
 }
 
@@ -61,27 +60,23 @@ func (sm *ScalarMock) One() crypto.Scalar {
 }
 
 // Mul returns the modular product of receiver with scalar s given as parameter
-func (sm *ScalarMock) Mul(s crypto.Scalar) (crypto.Scalar, error) {
+func (sm *ScalarMock) Mul(_ crypto.Scalar) (crypto.Scalar, error) {
 	panic("implement me")
 }
 
 // Div returns the modular division between receiver and scalar s given as parameter
-func (sm *ScalarMock) Div(s crypto.Scalar) (crypto.Scalar, error) {
+func (sm *ScalarMock) Div(_ crypto.Scalar) (crypto.Scalar, error) {
 	panic("implement me")
 }
 
 // Inv returns the modular inverse of scalar s given as parameter
-func (sm *ScalarMock) Inv(s crypto.Scalar) (crypto.Scalar, error) {
+func (sm *ScalarMock) Inv(_ crypto.Scalar) (crypto.Scalar, error) {
 	panic("implement me")
 }
 
 // Pick returns a fresh random or pseudo-random scalar
 // For the mock set X to the original scalar.X *2
-func (sm *ScalarMock) Pick(rand cipher.Stream) (crypto.Scalar, error) {
-	if rand == nil {
-		return nil, crypto.ErrInvalidParam
-	}
-
+func (sm *ScalarMock) Pick() (crypto.Scalar, error) {
 	ss := &ScalarMock{
 		X:                   sm.X * 2,
 		MarshalBinaryStub:   sm.MarshalBinaryStub,
@@ -99,6 +94,9 @@ func (sm *ScalarMock) SetBytes([]byte) (crypto.Scalar, error) {
 
 // GetUnderlyingObj returns the object the implementation wraps
 func (sm *ScalarMock) GetUnderlyingObj() interface{} {
+	if sm.GetUnderlyingObjStub != nil {
+		return sm.GetUnderlyingObjStub()
+	}
 	return sm.X
 }
 
@@ -116,8 +114,5 @@ func (sm *ScalarMock) UnmarshalBinary(val []byte) error {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sm *ScalarMock) IsInterfaceNil() bool {
-	if sm == nil {
-		return true
-	}
-	return false
+	return sm == nil
 }

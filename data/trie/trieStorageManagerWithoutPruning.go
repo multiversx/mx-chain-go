@@ -3,8 +3,6 @@ package trie
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 // trieStorageManagerWithoutPruning manages the storage operations of the trie, but does not prune old values
@@ -22,19 +20,18 @@ func NewTrieStorageManagerWithoutPruning(db data.DBWriteCacher) (*trieStorageMan
 }
 
 // TakeSnapshot does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot([]byte, marshal.Marshalizer, hashing.Hasher) {
+func (tsm *trieStorageManagerWithoutPruning) TakeSnapshot([]byte) {
 	log.Trace("trieStorageManagerWithoutPruning - TakeSnapshot:trie storage pruning is disabled")
 }
 
 // SetCheckpoint does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) SetCheckpoint([]byte, marshal.Marshalizer, hashing.Hasher) {
+func (tsm *trieStorageManagerWithoutPruning) SetCheckpoint([]byte) {
 	log.Trace("trieStorageManagerWithoutPruning - SetCheckpoint:trie storage pruning is disabled")
 }
 
 // Prune does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) Prune([]byte) error {
+func (tsm *trieStorageManagerWithoutPruning) Prune([]byte, data.TriePruningIdentifier) {
 	log.Trace("trieStorageManagerWithoutPruning - Prune:trie storage pruning is disabled")
-	return nil
 }
 
 // CancelPrune does nothing if pruning is disabled
@@ -46,18 +43,6 @@ func (tsm *trieStorageManagerWithoutPruning) CancelPrune([]byte) {
 func (tsm *trieStorageManagerWithoutPruning) MarkForEviction([]byte, data.ModifiedHashes) error {
 	log.Trace("trieStorageManagerWithoutPruning - MarkForEviction:trie storage pruning is disabled")
 	return nil
-}
-
-// Clone returns a new instance of trieStorageManagerWithoutPruning
-func (tsm *trieStorageManagerWithoutPruning) Clone() data.StorageManager {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
-	return &trieStorageManagerWithoutPruning{
-		&trieStorageManager{
-			db: tsm.db,
-		},
-	}
 }
 
 // IsPruningEnabled returns false if the trie pruning is disabled

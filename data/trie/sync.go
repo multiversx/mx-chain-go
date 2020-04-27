@@ -2,35 +2,45 @@ package trie
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-type trieSyncer struct {
-	trie             *patriciaMerkleTrie
-	resolver         dataRetriever.Resolver
-	interceptedNodes storage.Cacher
-	chRcvTrieNodes   chan bool
-	waitTime         time.Duration
-
-	requestedHashes      [][]byte
-	requestedHashesMutex sync.Mutex
+type trieNodeInfo struct {
+	trieNode node
+	received bool
 }
+
+type trieSyncer struct {
+	rootFound               bool
+	shardId                 uint32
+	topic                   string
+	rootHash                []byte
+	nodesForTrie            map[string]trieNodeInfo
+	waitTimeBetweenRequests time.Duration
+	trie                    *patriciaMerkleTrie
+	requestHandler          RequestHandler
+	interceptedNodes        storage.Cacher
+	mutOperation            sync.RWMutex
+}
+
+const maxNewMissingAddedPerTurn = 10
 
 // NewTrieSyncer creates a new instance of trieSyncer
 func NewTrieSyncer(
-	resolver dataRetriever.Resolver,
+	requestHandler RequestHandler,
 	interceptedNodes storage.Cacher,
 	trie data.Trie,
-	waitTime time.Duration,
+	shardId uint32,
+	topic string,
 ) (*trieSyncer, error) {
-	if check.IfNil(resolver) {
-		return nil, ErrNilResolver
+	if check.IfNil(requestHandler) {
+		return nil, ErrNilRequestHandler
 	}
 	if check.IfNil(interceptedNodes) {
 		return nil, data.ErrNilCacher
@@ -38,87 +48,185 @@ func NewTrieSyncer(
 	if check.IfNil(trie) {
 		return nil, ErrNilTrie
 	}
+	if len(topic) == 0 {
+		return nil, ErrInvalidTrieTopic
+	}
 
 	pmt, ok := trie.(*patriciaMerkleTrie)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
 
-	return &trieSyncer{
-		resolver:         resolver,
-		interceptedNodes: interceptedNodes,
-		trie:             pmt,
-		chRcvTrieNodes:   make(chan bool),
-		requestedHashes:  make([][]byte, 0),
-		waitTime:         waitTime,
-	}, nil
-}
-
-// StartSyncing completes the trie, asking for missing trie nodes on the network
-func (ts *trieSyncer) StartSyncing(rootHash []byte) error {
-	if len(rootHash) == 0 {
-		return ErrInvalidHash
+	ts := &trieSyncer{
+		requestHandler:          requestHandler,
+		interceptedNodes:        interceptedNodes,
+		trie:                    pmt,
+		nodesForTrie:            make(map[string]trieNodeInfo),
+		topic:                   topic,
+		shardId:                 shardId,
+		waitTimeBetweenRequests: time.Second,
 	}
 	ts.interceptedNodes.RegisterHandler(ts.trieNodeIntercepted)
 
-	currentNode, err := ts.getNode(rootHash)
-	if err != nil {
-		return err
+	return ts, nil
+}
+
+// StartSyncing completes the trie, asking for missing trie nodes on the network
+func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
+	if len(rootHash) == 0 {
+		return ErrInvalidHash
+	}
+	if ctx == nil {
+		return ErrNilContext
 	}
 
-	ts.trie.root = currentNode
-	err = ts.trie.root.loadChildren(ts)
-	if err != nil {
-		return err
-	}
+	ts.mutOperation.Lock()
+	ts.nodesForTrie = make(map[string]trieNodeInfo)
+	ts.nodesForTrie[string(rootHash)] = trieNodeInfo{received: false}
+	ts.mutOperation.Unlock()
 
-	nextNodes, err := ts.trie.root.getChildren(ts.trie.Database())
-	if err != nil {
-		return err
-	}
+	ts.rootFound = false
+	ts.rootHash = rootHash
 
-	for len(nextNodes) != 0 {
-		currentNode, err = ts.getNode(nextNodes[0].getHash())
+	for {
+		shouldRetryAfterRequest, err := ts.checkIfSynced()
 		if err != nil {
 			return err
 		}
 
-		nextNodes = nextNodes[1:]
+		numUnResolved := ts.requestNodes()
+		if !shouldRetryAfterRequest && numUnResolved == 0 {
+			err := ts.trie.Commit()
+			if err != nil {
+				return err
+			}
 
-		err = currentNode.loadChildren(ts)
-		if err != nil {
-			return err
+			return nil
 		}
 
-		var children []node
-		children, err = currentNode.getChildren(ts.trie.Database())
-		if err != nil {
-			return err
+		select {
+		case <-time.After(ts.waitTimeBetweenRequests):
+			continue
+		case <-ctx.Done():
+			return ErrTimeIsOut
 		}
-		nextNodes = append(nextNodes, children...)
+	}
+}
+
+func (ts *trieSyncer) checkIfSynced() (bool, error) {
+	var currentNode node
+	var err error
+	var nextNodes []node
+	missingNodes := make(map[string]struct{})
+	currentMissingNodes := make([][]byte, 0)
+	checkedNodes := make(map[string]struct{})
+
+	newElement := true
+	shouldRetryAfterRequest := false
+
+	ts.mutOperation.Lock()
+	defer ts.mutOperation.Unlock()
+
+	for newElement {
+		newElement = false
+
+		for nodeHash, nodeInfo := range ts.nodesForTrie {
+			currentMissingNodes = currentMissingNodes[:0]
+			if _, ok := checkedNodes[nodeHash]; ok {
+				continue
+			}
+
+			currentNode = nodeInfo.trieNode
+			if !nodeInfo.received {
+				currentNode, err = ts.getNode([]byte(nodeHash))
+				if err != nil {
+					continue
+				}
+			}
+
+			if !ts.rootFound && bytes.Equal([]byte(nodeHash), ts.rootHash) {
+				ts.trie.root = currentNode
+				ts.rootFound = true
+			}
+
+			checkedNodes[nodeHash] = struct{}{}
+
+			currentMissingNodes, nextNodes, err = currentNode.loadChildren(ts.getNode)
+			if err != nil {
+				return false, err
+			}
+
+			if len(currentMissingNodes) > 0 {
+				for _, hash := range currentMissingNodes {
+					missingNodes[string(hash)] = struct{}{}
+				}
+
+				nextNodes = append(nextNodes, currentNode)
+				_ = ts.addNew(nextNodes)
+				shouldRetryAfterRequest = true
+
+				if len(missingNodes) > maxNewMissingAddedPerTurn {
+					newElement = false
+				}
+
+				continue
+			}
+
+			nextNodes, err = currentNode.getChildren(ts.trie.Database())
+			if err != nil {
+				return false, err
+			}
+
+			tmpNewElement := ts.addNew(nextNodes)
+			newElement = newElement || tmpNewElement
+
+			delete(ts.nodesForTrie, nodeHash)
+		}
 	}
 
-	err = ts.trie.Commit()
-	if err != nil {
-		return err
+	for hash := range missingNodes {
+		ts.nodesForTrie[hash] = trieNodeInfo{received: false}
 	}
 
-	return nil
+	return shouldRetryAfterRequest, nil
+}
+
+// adds new elements to needed hash map, lock ts.nodeHashesMutex before calling
+func (ts *trieSyncer) addNew(nextNodes []node) bool {
+	newElement := false
+	for _, nextNode := range nextNodes {
+		nextHash := string(nextNode.getHash())
+
+		nodeInfo, ok := ts.nodesForTrie[nextHash]
+		if !ok || !nodeInfo.received {
+			newElement = true
+			ts.nodesForTrie[nextHash] = trieNodeInfo{
+				trieNode: nextNode,
+				received: true,
+			}
+		}
+	}
+
+	return newElement
+}
+
+// Trie returns the synced trie
+func (ts *trieSyncer) Trie() data.Trie {
+	return ts.trie
 }
 
 func (ts *trieSyncer) getNode(hash []byte) (node, error) {
+	nodeInfo, ok := ts.nodesForTrie[string(hash)]
+	if ok && nodeInfo.received {
+		return nodeInfo.trieNode, nil
+	}
+
 	n, ok := ts.interceptedNodes.Get(hash)
 	if ok {
 		return trieNode(n)
 	}
 
-	err := ts.requestNode(hash)
-	if err != nil {
-		return nil, err
-	}
-
-	n, _ = ts.interceptedNodes.Get(hash)
-	return trieNode(n)
+	return nil, ErrNodeNotFound
 }
 
 func trieNode(data interface{}) (node, error) {
@@ -130,55 +238,39 @@ func trieNode(data interface{}) (node, error) {
 	return n.node, nil
 }
 
-func (ts *trieSyncer) requestNode(hash []byte) error {
-	receivedRequestedHashTrigger := append(hash, hash...)
-	ts.requestedHashesMutex.Lock()
-	ts.requestedHashes = append(ts.requestedHashes, receivedRequestedHashTrigger)
-	ts.requestedHashesMutex.Unlock()
+func (ts *trieSyncer) requestNodes() uint32 {
+	ts.mutOperation.RLock()
+	numUnResolvedNodes := uint32(len(ts.nodesForTrie))
+	hashes := make([][]byte, 0)
+	for hash, nodeInfo := range ts.nodesForTrie {
+		if !nodeInfo.received {
+			hashes = append(hashes, []byte(hash))
+		}
+	}
+	ts.requestHandler.RequestTrieNodes(ts.shardId, hashes, ts.topic)
+	ts.mutOperation.RUnlock()
 
-	// epoch doesn't matter because that parameter is not used in trie's resolver
-	err := ts.resolver.RequestDataFromHash(hash, 0)
+	return numUnResolvedNodes
+}
+
+func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
+	ts.mutOperation.Lock()
+	defer ts.mutOperation.Unlock()
+
+	_, ok := ts.nodesForTrie[string(hash)]
+	if !ok {
+		return
+	}
+
+	node, err := trieNode(val)
 	if err != nil {
-		return err
+		return
 	}
 
-	return ts.waitForTrieNode()
-}
-
-func (ts *trieSyncer) waitForTrieNode() error {
-	select {
-	case <-ts.chRcvTrieNodes:
-		return nil
-	case <-time.After(ts.waitTime):
-		return ErrTimeIsOut
+	ts.nodesForTrie[string(hash)] = trieNodeInfo{
+		trieNode: node,
+		received: true,
 	}
-}
-
-func (ts *trieSyncer) trieNodeIntercepted(hash []byte) {
-	ts.requestedHashesMutex.Lock()
-
-	if hashInSlice(hash, ts.requestedHashes) {
-		ts.chRcvTrieNodes <- true
-		ts.removeRequestedHash(hash)
-	}
-	ts.requestedHashesMutex.Unlock()
-}
-
-func (ts *trieSyncer) removeRequestedHash(hash []byte) {
-	for i := range ts.requestedHashes {
-		if bytes.Equal(ts.requestedHashes[i], hash) {
-			ts.requestedHashes = append(ts.requestedHashes[:i], ts.requestedHashes[i+1:]...)
-		}
-	}
-}
-
-func hashInSlice(hash []byte, hashes [][]byte) bool {
-	for _, h := range hashes {
-		if bytes.Equal(h, hash) {
-			return true
-		}
-	}
-	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

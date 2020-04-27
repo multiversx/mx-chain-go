@@ -10,17 +10,22 @@ type TrieStub struct {
 	UpdateCalled             func(key, value []byte) error
 	DeleteCalled             func(key []byte) error
 	RootCalled               func() ([]byte, error)
-	ProveCalled              func(key []byte) ([][]byte, error)
-	VerifyProofCalled        func(proofs [][]byte, key []byte) (bool, error)
 	CommitCalled             func() error
 	RecreateCalled           func(root []byte) (data.Trie, error)
-	DeepCloneCalled          func() (data.Trie, error)
 	CancelPruneCalled        func(rootHash []byte, identifier data.TriePruningIdentifier)
-	PruneCalled              func(rootHash []byte, identifier data.TriePruningIdentifier) error
+	PruneCalled              func(rootHash []byte, identifier data.TriePruningIdentifier)
 	ResetOldHashesCalled     func() [][]byte
 	AppendToOldHashesCalled  func([][]byte)
-	GetSerializedNodesCalled func([]byte, uint64) ([][]byte, error)
+	GetSerializedNodesCalled func([]byte, uint64) ([][]byte, uint64, error)
 	DatabaseCalled           func() data.DBWriteCacher
+}
+
+// EnterSnapshotMode -
+func (ts *TrieStub) EnterSnapshotMode() {
+}
+
+// ExitSnapshotMode -
+func (ts *TrieStub) ExitSnapshotMode() {
 }
 
 // ClosePersister -
@@ -82,24 +87,6 @@ func (ts *TrieStub) Root() ([]byte, error) {
 	return nil, nil
 }
 
-// Prove -
-func (ts *TrieStub) Prove(key []byte) ([][]byte, error) {
-	if ts.ProveCalled != nil {
-		return ts.ProveCalled(key)
-	}
-
-	return nil, nil
-}
-
-// VerifyProof -
-func (ts *TrieStub) VerifyProof(proofs [][]byte, key []byte) (bool, error) {
-	if ts.VerifyProofCalled != nil {
-		return ts.VerifyProofCalled(proofs, key)
-	}
-
-	return false, nil
-}
-
 // Commit -
 func (ts *TrieStub) Commit() error {
 	if ts != nil {
@@ -123,11 +110,6 @@ func (ts *TrieStub) String() string {
 	return "stub trie"
 }
 
-// DeepClone -
-func (ts *TrieStub) DeepClone() (data.Trie, error) {
-	return ts.DeepCloneCalled()
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (ts *TrieStub) IsInterfaceNil() bool {
 	return ts == nil
@@ -141,12 +123,10 @@ func (ts *TrieStub) CancelPrune(rootHash []byte, identifier data.TriePruningIden
 }
 
 // Prune removes from the database all the old hashes that correspond to the given root hash
-func (ts *TrieStub) Prune(rootHash []byte, identifier data.TriePruningIdentifier) error {
+func (ts *TrieStub) Prune(rootHash []byte, identifier data.TriePruningIdentifier) {
 	if ts.PruneCalled != nil {
-		return ts.PruneCalled(rootHash, identifier)
+		ts.PruneCalled(rootHash, identifier)
 	}
-
-	return nil
 }
 
 // ResetOldHashes resets the oldHashes and oldRoot variables and returns the old hashes
@@ -166,11 +146,11 @@ func (ts *TrieStub) AppendToOldHashes(hashes [][]byte) {
 }
 
 // GetSerializedNodes -
-func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]byte, error) {
+func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]byte, uint64, error) {
 	if ts.GetSerializedNodesCalled != nil {
 		return ts.GetSerializedNodesCalled(hash, maxBuffToSend)
 	}
-	return nil, nil
+	return nil, 0, nil
 }
 
 // Database -

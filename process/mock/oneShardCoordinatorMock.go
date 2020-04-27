@@ -1,12 +1,13 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type oneShardCoordinatorMock struct {
 	noShards        uint32
+	selfId          uint32
 	ComputeIdCalled func(state.AddressContainer) uint32
 }
 
@@ -31,23 +32,28 @@ func (scm *oneShardCoordinatorMock) ComputeId(address state.AddressContainer) ui
 
 // SelfId -
 func (scm *oneShardCoordinatorMock) SelfId() uint32 {
-	return 0
+	return scm.selfId
 }
 
 // SetSelfId -
-func (scm *oneShardCoordinatorMock) SetSelfId(shardId uint32) error {
+func (scm *oneShardCoordinatorMock) SetSelfId(selfId uint32) error {
+	scm.selfId = selfId
 	return nil
 }
 
 // SameShard -
-func (scm *oneShardCoordinatorMock) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
+func (scm *oneShardCoordinatorMock) SameShard(_, _ state.AddressContainer) bool {
 	return true
 }
 
 // CommunicationIdentifier -
 func (scm *oneShardCoordinatorMock) CommunicationIdentifier(destShardID uint32) string {
-	if destShardID == sharding.MetachainShardId {
+	if destShardID == core.MetachainShardId {
 		return "_0_META"
+	}
+
+	if destShardID == core.AllShardId {
+		return "_ALL"
 	}
 
 	return "_0"
@@ -55,8 +61,5 @@ func (scm *oneShardCoordinatorMock) CommunicationIdentifier(destShardID uint32) 
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (scm *oneShardCoordinatorMock) IsInterfaceNil() bool {
-	if scm == nil {
-		return true
-	}
-	return false
+	return scm == nil
 }

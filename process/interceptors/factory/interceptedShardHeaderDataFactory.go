@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -17,6 +18,7 @@ type interceptedShardHeaderDataFactory struct {
 	chainID           []byte
 	validityAttester  process.ValidityAttester
 	epochStartTrigger process.EpochStartTriggerHandler
+	nonceConverter    typeConverters.Uint64ByteSliceConverter
 }
 
 // NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
@@ -24,7 +26,10 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 	if argument == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
-	if check.IfNil(argument.Marshalizer) {
+	if check.IfNil(argument.ProtoMarshalizer) {
+		return nil, process.ErrNilMarshalizer
+	}
+	if check.IfNil(argument.TxSignMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(argument.Hasher) {
@@ -45,15 +50,19 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 	if check.IfNil(argument.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
+	if check.IfNil(argument.NonceConverter) {
+		return nil, process.ErrNilUint64Converter
+	}
 
 	return &interceptedShardHeaderDataFactory{
-		marshalizer:       argument.Marshalizer,
+		marshalizer:       argument.ProtoMarshalizer,
 		hasher:            argument.Hasher,
 		shardCoordinator:  argument.ShardCoordinator,
 		headerSigVerifier: argument.HeaderSigVerifier,
 		chainID:           argument.ChainID,
 		validityAttester:  argument.ValidityAttester,
 		epochStartTrigger: argument.EpochStartTrigger,
+		nonceConverter:    argument.NonceConverter,
 	}, nil
 }
 
@@ -68,6 +77,7 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.Int
 		ChainID:           ishdf.chainID,
 		ValidityAttester:  ishdf.validityAttester,
 		EpochStartTrigger: ishdf.epochStartTrigger,
+		NonceConverter:    ishdf.nonceConverter,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)

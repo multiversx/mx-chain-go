@@ -59,14 +59,33 @@ func GetBroadcastMessenger(
 	shardCoordinator sharding.Coordinator,
 	privateKey crypto.PrivateKey,
 	singleSigner crypto.SingleSigner,
+	headersSubscriber consensus.HeadersPoolSubscriber,
 ) (consensus.BroadcastMessenger, error) {
 
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return broadcast.NewShardChainMessenger(marshalizer, messenger, privateKey, shardCoordinator, singleSigner)
+	commonMessengerArgs := broadcast.CommonMessengerArgs{
+		Marshalizer:      marshalizer,
+		Messenger:        messenger,
+		PrivateKey:       privateKey,
+		ShardCoordinator: shardCoordinator,
+		SingleSigner:     singleSigner,
 	}
 
-	if shardCoordinator.SelfId() == sharding.MetachainShardId {
-		return broadcast.NewMetaChainMessenger(marshalizer, messenger, privateKey, shardCoordinator, singleSigner)
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		shardMessengerArgs := broadcast.ShardChainMessengerArgs{
+			CommonMessengerArgs: commonMessengerArgs,
+			HeadersSubscriber:   headersSubscriber,
+			MaxDelayCacheSize:   maxDelayCacheSize,
+		}
+
+		return broadcast.NewShardChainMessenger(shardMessengerArgs)
+	}
+
+	if shardCoordinator.SelfId() == core.MetachainShardId {
+		metaMessengerArgs := broadcast.MetaChainMessengerArgs{
+			CommonMessengerArgs: commonMessengerArgs,
+		}
+
+		return broadcast.NewMetaChainMessenger(metaMessengerArgs)
 	}
 
 	return nil, ErrInvalidShardId

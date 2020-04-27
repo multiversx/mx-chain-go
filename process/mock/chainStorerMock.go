@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ChainStorerMock is a mock implementation of the ChianStorer interface
+// ChainStorerMock is a mock implementation of the ChainStorer interface
 type ChainStorerMock struct {
 	AddStorerCalled func(key dataRetriever.UnitType, s storage.Storer)
 	GetStorerCalled func(unitType dataRetriever.UnitType) storage.Storer
@@ -80,6 +80,10 @@ func (csm *ChainStorerMock) GetAll(unitType dataRetriever.UnitType, keys [][]byt
 		return csm.GetAllCalled(unitType, keys)
 	}
 	return nil, nil
+}
+
+// SetEpochForPutOperation won't do anything
+func (csm *ChainStorerMock) SetEpochForPutOperation(epoch uint32) {
 }
 
 // Destroy removes the underlying files/resources used by the storage service

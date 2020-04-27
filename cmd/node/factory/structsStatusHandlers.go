@@ -3,9 +3,9 @@ package factory
 import (
 	"io"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -37,17 +37,15 @@ type statusHandlersInfo struct {
 // NewStatusHandlersFactoryArgs will return arguments for status handlers
 func NewStatusHandlersFactoryArgs(
 	logViewName string,
-	serversConfigurationFileName string,
 	ctx *cli.Context,
 	marshalizer marshal.Marshalizer,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
 ) *ArgStatusHandlers {
 	return &ArgStatusHandlers{
-		LogViewName:                  logViewName,
-		ServersConfigurationFileName: serversConfigurationFileName,
-		Ctx:                          ctx,
-		Marshalizer:                  marshalizer,
-		Uint64ByteSliceConverter:     uint64ByteSliceConverter,
+		LogViewName:              logViewName,
+		Ctx:                      ctx,
+		Marshalizer:              marshalizer,
+		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 	}
 }
 
@@ -82,7 +80,7 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 		}
 	}
 
-	if views == nil {
+	if len(views) == 0 {
 		log.Warn("No views for current node")
 	}
 

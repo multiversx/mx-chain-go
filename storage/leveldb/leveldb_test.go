@@ -1,17 +1,21 @@
 package leveldb_test
 
 import (
+	"fmt"
 	"io/ioutil"
+	"os"
+	"path"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createLevelDb(t *testing.T, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (p *leveldb.DB) {
-	dir, err := ioutil.TempDir("", "leveldb_temp")
+	dir, _ := ioutil.TempDir("", "leveldb_temp")
 	lvdb, err := leveldb.NewDB(dir, batchDelaySeconds, maxBatchSize, maxOpenFiles)
 
 	assert.Nil(t, err, "Failed creating leveldb database file")
@@ -24,6 +28,50 @@ func TestDB_InitNoError(t *testing.T) {
 	err := ldb.Init()
 
 	assert.Nil(t, err, "error initializing db")
+}
+
+func TestDB_CorruptdeDBShouldRecover(t *testing.T) {
+	dir, _ := ioutil.TempDir("", "leveldb_temp")
+	defer func() {
+		_ = os.RemoveAll(dir)
+	}()
+	db, err := leveldb.NewDB(dir, 10, 1, 10)
+	require.Nil(t, err)
+
+	key := []byte("key")
+	val := []byte("val")
+	err = db.Put(key, val)
+	require.Nil(t, err)
+	_ = db.Close()
+
+	err = os.Remove(path.Join(dir, "MANIFEST-000000"))
+	require.Nil(t, err)
+
+	dbRecovered, err := leveldb.NewDB(dir, 10, 1, 10)
+	if err != nil {
+		assert.Fail(t, fmt.Sprintf("should have not errored %s", err.Error()))
+		return
+	}
+
+	valRecovered, err := dbRecovered.Get(key)
+	assert.Nil(t, err)
+	_ = dbRecovered.Close()
+
+	assert.Equal(t, val, valRecovered)
+}
+
+func TestDB_DoubleOpenShouldError(t *testing.T) {
+	dir, _ := ioutil.TempDir("", "leveldb_temp")
+	lvdb1, err := leveldb.NewDB(dir, 10, 1, 10)
+	require.Nil(t, err)
+
+	defer func() {
+		_ = lvdb1.Close()
+		_ = os.RemoveAll(dir)
+	}()
+
+	_, err = leveldb.NewDB(dir, 10, 1, 10)
+	assert.NotNil(t, err)
 }
 
 func TestDB_PutNoError(t *testing.T) {
@@ -42,8 +90,8 @@ func TestDB_GetErrorAfterPutBeforeTimeout(t *testing.T) {
 	err := ldb.Put(key, val)
 	assert.Nil(t, err)
 	v, err := ldb.Get(key)
-	assert.Nil(t, v)
-	assert.Equal(t, storage.ErrKeyNotFound, err)
+	assert.Equal(t, val, v)
+	assert.Nil(t, err)
 }
 
 func TestDB_GetOKAfterPutWithTimeout(t *testing.T) {

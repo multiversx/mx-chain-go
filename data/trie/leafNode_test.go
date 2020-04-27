@@ -3,13 +3,12 @@ package trie
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -26,7 +25,7 @@ func TestLeafNode_newLeafNode(t *testing.T) {
 
 	marsh, hasher := getTestMarshAndHasher()
 	expectedLn := &leafNode{
-		CollapsedLn: protobuf.CollapsedLn{
+		CollapsedLn: CollapsedLn{
 			Key:   []byte("dog"),
 			Value: []byte("dog"),
 		},
@@ -84,7 +83,7 @@ func TestLeafNode_setHashEmptyNode(t *testing.T) {
 	ln := &leafNode{baseNode: &baseNode{}}
 
 	err := ln.setHash()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 	assert.Nil(t, ln.hash)
 }
 
@@ -94,7 +93,7 @@ func TestLeafNode_setHashNilNode(t *testing.T) {
 	var ln *leafNode
 
 	err := ln.setHash()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, ln)
 }
 
@@ -133,7 +132,7 @@ func TestLeafNode_hashNodeEmptyNode(t *testing.T) {
 	ln := &leafNode{}
 
 	hash, err := ln.hashNode()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 	assert.Nil(t, hash)
 }
 
@@ -143,7 +142,7 @@ func TestLeafNode_hashNodeNilNode(t *testing.T) {
 	var ln *leafNode
 
 	hash, err := ln.hashNode()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, hash)
 }
 
@@ -171,7 +170,7 @@ func TestLeafNode_commitEmptyNode(t *testing.T) {
 	ln := &leafNode{}
 
 	err := ln.commit(false, 0, nil, nil)
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 }
 
 func TestLeafNode_commitNilNode(t *testing.T) {
@@ -180,7 +179,7 @@ func TestLeafNode_commitNilNode(t *testing.T) {
 	var ln *leafNode
 
 	err := ln.commit(false, 0, nil, nil)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilLeafNode))
 }
 
 func TestLeafNode_getEncodedNode(t *testing.T) {
@@ -201,7 +200,7 @@ func TestLeafNode_getEncodedNodeEmpty(t *testing.T) {
 	ln := &leafNode{}
 
 	encNode, err := ln.getEncodedNode()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 	assert.Nil(t, encNode)
 }
 
@@ -211,7 +210,7 @@ func TestLeafNode_getEncodedNodeNil(t *testing.T) {
 	var ln *leafNode
 
 	encNode, err := ln.getEncodedNode()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, encNode)
 }
 
@@ -259,7 +258,7 @@ func TestLeafNode_tryGetEmptyNode(t *testing.T) {
 
 	key := []byte("dog")
 	val, err := ln.tryGet(key, nil)
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 	assert.Nil(t, val)
 }
 
@@ -270,7 +269,7 @@ func TestLeafNode_tryGetNilNode(t *testing.T) {
 	key := []byte("dog")
 
 	val, err := ln.tryGet(key, nil)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, val)
 }
 
@@ -307,7 +306,7 @@ func TestLeafNode_getNextNilNode(t *testing.T) {
 	node, key, err := ln.getNext(key, nil)
 	assert.Nil(t, node)
 	assert.Nil(t, key)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilLeafNode))
 }
 
 func TestLeafNode_insertAtSameKey(t *testing.T) {
@@ -410,7 +409,7 @@ func TestLeafNode_insertInNilNode(t *testing.T) {
 
 	dirty, newNode, _, err := ln.insert(&leafNode{}, nil)
 	assert.False(t, dirty)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, newNode)
 }
 
@@ -493,10 +492,10 @@ func TestLeafNode_isEmptyOrNil(t *testing.T) {
 	t.Parallel()
 
 	ln := &leafNode{}
-	assert.Equal(t, ErrEmptyNode, ln.isEmptyOrNil())
+	assert.Equal(t, ErrEmptyLeafNode, ln.isEmptyOrNil())
 
 	ln = nil
-	assert.Equal(t, ErrNilNode, ln.isEmptyOrNil())
+	assert.Equal(t, ErrNilLeafNode, ln.isEmptyOrNil())
 }
 
 func TestLeafNode_getChildren(t *testing.T) {
@@ -535,22 +534,17 @@ func TestLeafNode_loadChildren(t *testing.T) {
 	tr := initTrie()
 	nodes, hashes := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := lrucache.NewCache(100)
-
-	resolver := &mock.TrieNodesResolverStub{}
 	for i := range nodes {
 		node, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
 		nodesCacher.Put(node.hash, node)
 	}
-	syncer, _ := NewTrieSyncer(resolver, nodesCacher, tr, time.Second)
-	syncer.interceptedNodes.RegisterHandler(func(key []byte) {
-		syncer.chRcvTrieNodes <- true
-	})
 
 	lnPosition := 5
 	ln := &leafNode{baseNode: &baseNode{hash: hashes[lnPosition]}}
-	err := ln.loadChildren(syncer)
+	missing, _, err := ln.loadChildren(nil)
 	assert.Nil(t, err)
-	assert.Equal(t, 5, nodesCacher.Len())
+	assert.Equal(t, 6, nodesCacher.Len())
+	assert.Equal(t, 0, len(missing))
 }
 
 //------- deepClone

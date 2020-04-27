@@ -3,12 +3,14 @@ package metrics
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
-	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -17,24 +19,41 @@ const millisecondsInSecond = 1000
 // InitMetrics will init metrics for status handler
 func InitMetrics(
 	appStatusHandler core.AppStatusHandler,
-	pubKey crypto.PublicKey,
+	pubkeyStr string,
 	nodeType core.NodeType,
 	shardCoordinator sharding.Coordinator,
 	nodesConfig *sharding.NodesSetup,
 	version string,
-	economicsConfig *config.ConfigEconomics,
-) {
+	economicsConfig *config.EconomicsConfig,
+	roundsPerEpoch int64,
+) error {
+	if check.IfNil(appStatusHandler) {
+		return fmt.Errorf("nil AppStatusHandler when initializing metrics")
+	}
+	if check.IfNil(shardCoordinator) {
+		return fmt.Errorf("nil shard coordinator when initializing metrics")
+	}
+	if nodesConfig == nil {
+		return fmt.Errorf("nil nodes config when initializing metrics")
+	}
+	if economicsConfig == nil {
+		return fmt.Errorf("nil economics config when initializing metrics")
+	}
+
 	shardId := uint64(shardCoordinator.SelfId())
+	numOfShards := uint64(shardCoordinator.NumberOfShards())
 	roundDuration := nodesConfig.RoundDuration
 	isSyncing := uint64(1)
 	initUint := uint64(0)
 	initString := ""
 
-	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, factory.GetPkEncoded(pubKey))
+	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, pubkeyStr)
 	appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
+	appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetacahin, numOfShards)
 	appStatusHandler.SetStringValue(core.MetricNodeType, string(nodeType))
 	appStatusHandler.SetUInt64Value(core.MetricRoundTime, roundDuration/millisecondsInSecond)
 	appStatusHandler.SetStringValue(core.MetricAppVersion, version)
+	appStatusHandler.SetUInt64Value(core.MetricRoundsPerEpoch, uint64(roundsPerEpoch))
 	appStatusHandler.SetUInt64Value(core.MetricCountConsensus, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricCountLeader, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricCountAcceptedBlocks, initUint)
@@ -52,47 +71,71 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersFromPool, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumShardHeadersProcessed, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNumTimesInForkChoice, initUint)
-	appStatusHandler.SetStringValue(core.MetricPublicKeyTxSign, initString)
 	appStatusHandler.SetUInt64Value(core.MetricHighestFinalBlockInShard, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricCountConsensusAcceptedBlocks, initUint)
-	appStatusHandler.SetStringValue(core.MetricRewardsValue, economicsConfig.RewardsSettings.RewardsValue)
+	appStatusHandler.SetUInt64Value(core.MetricRoundAtEpochStart, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricRoundsPassedInCurrentEpoch, initUint)
 	appStatusHandler.SetStringValue(core.MetricLeaderPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.LeaderPercentage))
-	appStatusHandler.SetStringValue(core.MetricCommunityPercentage, fmt.Sprintf("%f", economicsConfig.RewardsSettings.CommunityPercentage))
 	appStatusHandler.SetStringValue(core.MetricDenominationCoefficient, economicsConfig.RewardsSettings.DenominationCoefficientForView)
+	appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, initUint)
+	appStatusHandler.SetStringValue(core.MetricNumConnectedPeersClassification, initString)
+
+	appStatusHandler.SetStringValue(core.MetricP2PNumConnectedPeersClassification, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PPeerInfo, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PIntraShardValidators, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PIntraShardObservers, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PCrossShardValidators, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PCrossShardObservers, initString)
+	appStatusHandler.SetStringValue(core.MetricP2PUnknownPeers, initString)
 
 	var consensusGroupSize uint32
 	switch {
 	case shardCoordinator.SelfId() < shardCoordinator.NumberOfShards():
 		consensusGroupSize = nodesConfig.ConsensusGroupSize
-	case shardCoordinator.SelfId() == sharding.MetachainShardId:
+	case shardCoordinator.SelfId() == core.MetachainShardId:
 		consensusGroupSize = nodesConfig.MetaChainConsensusGroupSize
 	default:
 		consensusGroupSize = 0
 	}
 
-	validatorsNodes := nodesConfig.InitialNodesInfo()
+	validatorsNodes, _ := nodesConfig.InitialNodesInfo()
 	numValidators := len(validatorsNodes[shardCoordinator.SelfId()])
 
 	appStatusHandler.SetUInt64Value(core.MetricNumValidators, uint64(numValidators))
 	appStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, uint64(consensusGroupSize))
+
+	return nil
 }
 
-// SaveCurrentNodeNameAndPubKey will save metric in status handler with nodeName and transaction sign public key
-func SaveCurrentNodeNameAndPubKey(ash core.AppStatusHandler, txSignPk string, nodeName string) {
-	ash.SetStringValue(core.MetricPublicKeyTxSign, txSignPk)
-	ash.SetStringValue(core.MetricNodeDisplayName, nodeName)
+// SaveUint64Metric will save a uint64 metric in status handler
+func SaveUint64Metric(ash core.AppStatusHandler, key string, value uint64) {
+	ash.SetUInt64Value(key, value)
+}
+
+// SaveStringMetric will save a string metric in status handler
+func SaveStringMetric(ash core.AppStatusHandler, key, value string) {
+	ash.SetStringValue(key, value)
 }
 
 // StartStatusPolling will start save information in status handler about network
 func StartStatusPolling(
 	ash core.AppStatusHandler,
-	pollingInterval int,
+	pollingInterval time.Duration,
 	networkComponents *factory.Network,
 	processComponents *factory.Process,
+	shardCoordinator sharding.Coordinator,
 ) error {
-
 	if ash == nil {
 		return errors.New("nil AppStatusHandler")
+	}
+	if networkComponents == nil {
+		return errors.New("nil networkComponents")
+	}
+	if processComponents == nil {
+		return errors.New("nil processComponents")
+	}
+	if check.IfNil(shardCoordinator) {
+		return errors.New("nil shard coordinator")
 	}
 
 	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(ash, pollingInterval)
@@ -110,6 +153,11 @@ func StartStatusPolling(
 		return err
 	}
 
+	err = registerShardsInformation(appStatusPollingHandler, shardCoordinator)
+	if err != nil {
+		return err
+	}
+
 	appStatusPollingHandler.Poll()
 
 	return nil
@@ -120,17 +168,90 @@ func registerPollConnectedPeers(
 	networkComponents *factory.Network,
 ) error {
 
-	numOfConnectedPeersHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
-		numOfConnectedPeers := uint64(len(networkComponents.NetMessenger.ConnectedAddresses()))
-		appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
+	p2pMetricsHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
+		computeNumConnectedPeers(appStatusHandler, networkComponents)
+		computeConnectedPeers(appStatusHandler, networkComponents)
 	}
 
-	err := appStatusPollingHandler.RegisterPollingFunc(numOfConnectedPeersHandlerFunc)
+	err := appStatusPollingHandler.RegisterPollingFunc(p2pMetricsHandlerFunc)
 	if err != nil {
 		return errors.New("cannot register handler func for num of connected peers")
 	}
 
 	return nil
+}
+
+func registerShardsInformation(
+	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
+	coordinator sharding.Coordinator,
+) error {
+
+	computeShardsInfo := func(appStatusHandler core.AppStatusHandler) {
+		shardId := uint64(coordinator.SelfId())
+		numOfShards := uint64(coordinator.NumberOfShards())
+
+		appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
+		appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetacahin, numOfShards)
+	}
+
+	err := appStatusPollingHandler.RegisterPollingFunc(computeShardsInfo)
+	if err != nil {
+		return fmt.Errorf("%w, cannot register handler func for shards information", err)
+	}
+
+	return nil
+}
+
+func computeNumConnectedPeers(
+	appStatusHandler core.AppStatusHandler,
+	networkComponents *factory.Network,
+) {
+	numOfConnectedPeers := uint64(len(networkComponents.NetMessenger.ConnectedAddresses()))
+	appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
+}
+
+func computeConnectedPeers(
+	appStatusHandler core.AppStatusHandler,
+	networkComponents *factory.Network,
+) {
+	peersInfo := networkComponents.NetMessenger.GetConnectedPeersInfo()
+
+	peerClassification := fmt.Sprintf("intraVal:%d,crossVal:%d,intraObs:%d,crossObs:%d,unknown:%d,",
+		len(peersInfo.IntraShardValidators),
+		len(peersInfo.CrossShardValidators),
+		len(peersInfo.IntraShardObservers),
+		len(peersInfo.CrossShardObservers),
+		len(peersInfo.UnknownPeers),
+	)
+	appStatusHandler.SetStringValue(core.MetricNumConnectedPeersClassification, peerClassification)
+	appStatusHandler.SetStringValue(core.MetricP2PNumConnectedPeersClassification, peerClassification)
+
+	setP2pConnectedPeersMetrics(appStatusHandler, peersInfo)
+	setCurrentP2pNodeAddresses(appStatusHandler, networkComponents)
+}
+
+func setP2pConnectedPeersMetrics(appStatusHandler core.AppStatusHandler, info *p2p.ConnectedPeersInfo) {
+	appStatusHandler.SetStringValue(core.MetricP2PUnknownPeers, sliceToString(info.UnknownPeers))
+	appStatusHandler.SetStringValue(core.MetricP2PIntraShardValidators, sliceToString(info.IntraShardValidators))
+	appStatusHandler.SetStringValue(core.MetricP2PIntraShardObservers, sliceToString(info.IntraShardObservers))
+	appStatusHandler.SetStringValue(core.MetricP2PCrossShardValidators, sliceToString(info.CrossShardValidators))
+	appStatusHandler.SetStringValue(core.MetricP2PCrossShardObservers, sliceToString(info.CrossShardObservers))
+}
+
+func sliceToString(input []string) string {
+	output := ""
+	for _, str := range input {
+		output += str + ","
+	}
+
+	return output
+}
+
+func setCurrentP2pNodeAddresses(
+	appStatusHandler core.AppStatusHandler,
+	networkComponents *factory.Network,
+) {
+	appStatusHandler.SetStringValue(core.MetricP2PPeerInfo, sliceToString(networkComponents.NetMessenger.Addresses()))
 }
 
 func registerPollProbableHighestNonce(

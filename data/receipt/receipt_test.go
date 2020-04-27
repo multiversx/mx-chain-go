@@ -19,13 +19,13 @@ func TestReceipt_SettersAndGetters(t *testing.T) {
 
 	r.SetData(data)
 	r.SetValue(value)
-	r.SetRecvAddress(addr)
-	r.SetSndAddress(addr)
+	r.SetRcvAddr(addr)
+	r.SetSndAddr(addr)
 
 	assert.Equal(t, data, r.GetData())
 	assert.Equal(t, value, r.GetValue())
-	assert.Equal(t, addr, r.GetRecvAddress())
-	assert.Equal(t, addr, r.GetSndAddress())
+	assert.Equal(t, addr, r.GetRcvAddr())
+	assert.Equal(t, addr, r.GetSndAddr())
 	assert.Equal(t, uint64(0), r.GetNonce())
 	assert.Equal(t, uint64(0), r.GetGasPrice())
 	assert.Equal(t, uint64(0), r.GetGasLimit())

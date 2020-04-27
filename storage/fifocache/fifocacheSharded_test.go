@@ -139,12 +139,12 @@ func TestFIFOShardedCache_HasOrAddNotPresent(t *testing.T) {
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	v, ok := c.Peek(key)
+	_, ok := c.Peek(key)
 
 	assert.False(t, ok, "not expected to find key %s", key)
 
 	c.HasOrAdd(key, val)
-	v, ok = c.Peek(key)
+	v, ok := c.Peek(key)
 
 	assert.True(t, ok, "value expected but not found")
 	assert.Equal(t, val, v, "expected to find %s but found %s", val, v)
@@ -156,12 +156,12 @@ func TestFIFOShardedCache_HasOrAddPresent(t *testing.T) {
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	v, ok := c.Peek(key)
+	_, ok := c.Peek(key)
 
 	assert.False(t, ok, "not expected to find key %s", key)
 
 	c.HasOrAdd(key, val)
-	v, ok = c.Peek(key)
+	v, ok := c.Peek(key)
 
 	assert.True(t, ok, "value expected but not found")
 	assert.Equal(t, val, v, "expected to find %s but found %s", val, v)
@@ -284,7 +284,7 @@ func TestFIFOShardedCache_CacherRegisterPutAddedDataHandlerShouldWork(t *testing
 	wg.Add(1)
 	chDone := make(chan bool)
 
-	f := func(key []byte) {
+	f := func(key []byte, value interface{}) {
 		if !bytes.Equal([]byte("aaaa"), key) {
 			return
 		}
@@ -319,7 +319,7 @@ func TestFIFOShardedCache_CacherRegisterHasOrAddAddedDataHandlerShouldWork(t *te
 	wg.Add(1)
 	chDone := make(chan bool)
 
-	f := func(key []byte) {
+	f := func(key []byte, value interface{}) {
 		if !bytes.Equal([]byte("aaaa"), key) {
 			return
 		}
@@ -354,7 +354,7 @@ func TestFIFOShardedCache_CacherRegisterHasOrAddAddedDataHandlerNotAddedShouldNo
 	wg.Add(1)
 	chDone := make(chan bool)
 
-	f := func(key []byte) {
+	f := func(key []byte, value interface{}) {
 		wg.Done()
 	}
 

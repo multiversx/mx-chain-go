@@ -5,7 +5,8 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
@@ -13,35 +14,27 @@ import (
 
 // SCQueryService can execute Get functions over SC to fetch stored values
 type SCQueryService struct {
-	vmContainer      process.VirtualMachinesContainer
-	gasLimitPerBlock uint64
-	mutRunSc         sync.Mutex
+	vmContainer  process.VirtualMachinesContainer
+	economicsFee process.FeeHandler
+	mutRunSc     sync.Mutex
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
 func NewSCQueryService(
 	vmContainer process.VirtualMachinesContainer,
-	gasLimitPerBlock uint64,
+	economicsFee process.FeeHandler,
 ) (*SCQueryService, error) {
-
-	if vmContainer == nil || vmContainer.IsInterfaceNil() {
+	if check.IfNil(vmContainer) {
 		return nil, process.ErrNoVM
+	}
+	if check.IfNil(economicsFee) {
+		return nil, process.ErrNilEconomicsFeeHandler
 	}
 
 	return &SCQueryService{
-		vmContainer:      vmContainer,
-		gasLimitPerBlock: gasLimitPerBlock,
+		vmContainer:  vmContainer,
+		economicsFee: economicsFee,
 	}, nil
-}
-
-func (service *SCQueryService) getVMFromAddress(scAddress []byte) (vmcommon.VMExecutionHandler, error) {
-	vmType := core.GetVMType(scAddress)
-	vm, err := service.vmContainer.Get(vmType)
-	if err != nil {
-		return nil, err
-	}
-
-	return vm, nil
 }
 
 // ExecuteQuery returns the VMOutput resulted upon running the function on the smart contract
@@ -56,12 +49,16 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 	service.mutRunSc.Lock()
 	defer service.mutRunSc.Unlock()
 
-	vm, err := service.getVMFromAddress(query.ScAddress)
+	return service.executeScCall(query, 0)
+}
+
+func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, error) {
+	vm, err := findVMByScAddress(service.vmContainer, query.ScAddress)
 	if err != nil {
 		return nil, err
 	}
 
-	vmInput := service.createVMCallInput(query)
+	vmInput := service.createVMCallInput(query, gasPrice)
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
 	if err != nil {
 		return nil, err
@@ -75,13 +72,14 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 	return vmOutput, nil
 }
 
-func (service *SCQueryService) createVMCallInput(query *process.SCQuery) *vmcommon.ContractCallInput {
+func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPrice uint64) *vmcommon.ContractCallInput {
 	vmInput := vmcommon.VMInput{
 		CallerAddr:  query.ScAddress,
 		CallValue:   big.NewInt(0),
-		GasPrice:    0,
-		GasProvided: service.gasLimitPerBlock,
+		GasPrice:    gasPrice,
+		GasProvided: service.economicsFee.MaxGasLimitPerBlock(),
 		Arguments:   query.Arguments,
+		CallType:    vmcommon.DirectCall,
 	}
 
 	vmContractCallInput := &vmcommon.ContractCallInput{
@@ -99,6 +97,44 @@ func (service *SCQueryService) checkVMOutput(vmOutput *vmcommon.VMOutput) error 
 	}
 
 	return nil
+}
+
+// ComputeScCallGasLimit will estimate how many gas a transaction will consume
+func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error) {
+	argumentParser := vmcommon.NewAtArgumentParser()
+
+	err := argumentParser.ParseData(string(tx.Data))
+	if err != nil {
+		return 0, err
+	}
+
+	function, err := argumentParser.GetFunction()
+	if err != nil {
+		return 0, err
+	}
+
+	arguments, err := argumentParser.GetFunctionArguments()
+	if err != nil {
+		return 0, err
+	}
+
+	query := &process.SCQuery{
+		ScAddress: tx.RcvAddr,
+		FuncName:  function,
+		Arguments: arguments,
+	}
+
+	service.mutRunSc.Lock()
+	defer service.mutRunSc.Unlock()
+
+	vmOutput, err := service.executeScCall(query, 1)
+	if err != nil {
+		return 0, err
+	}
+
+	gasConsumed := service.economicsFee.MaxGasLimitPerBlock() - vmOutput.GasRemaining
+
+	return gasConsumed, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

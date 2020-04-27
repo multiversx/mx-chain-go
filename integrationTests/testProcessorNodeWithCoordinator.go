@@ -3,15 +3,16 @@ package integrationTests
 import (
 	"context"
 	"fmt"
-	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber"
-	kmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/multisig"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/kyber/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
+	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
+	multisig2 "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -52,8 +53,23 @@ func CreateProcessorNodesWithNodesCoordinator(
 	seedAddress string,
 ) (map[uint32][]*TestProcessorNode, uint32) {
 
+	ncp, nbShards := createNodesCryptoParams(rewardsAddrsAssignments)
+	cp := CreateCryptoParams(len(ncp[0]), len(ncp[core.MetachainShardId]), nbShards)
+	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
+	validatorsMap := GenValidatorsFromPubKeys(pubKeys, nbShards)
+	validatorsMapForNodesCoordinator, _ := sharding.NodesInfoToValidators(validatorsMap)
+
+	cpWaiting := CreateCryptoParams(1, 1, nbShards)
+	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
+	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, nbShards)
+	waitingMapForNodesCoordinator, _ := sharding.NodesInfoToValidators(waitingMap)
+
+	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
+		return validatorsMap, waitingMap
+	}}
+
 	ncp, numShards := createNodesCryptoParams(rewardsAddrsAssignments)
-	validatorsMap := genValidators(ncp)
+
 	nodesMap := make(map[uint32][]*TestProcessorNode)
 	for shardId, validatorList := range validatorsMap {
 		nodesList := make([]*TestProcessorNode, len(validatorList))
@@ -62,12 +78,15 @@ func CreateProcessorNodesWithNodesCoordinator(
 			argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 				ShardConsensusGroupSize: shardConsensusGroupSize,
 				MetaConsensusGroupSize:  metaConsensusGroupSize,
+				Marshalizer:             TestMarshalizer,
 				Hasher:                  TestHasher,
-				ShardId:                 shardId,
+				ShardIDAsObserver:       shardId,
 				NbShards:                numShards,
-				Nodes:                   validatorsMap,
-				SelfPublicKey:           v.Address(),
+				EligibleNodes:           validatorsMapForNodesCoordinator,
+				WaitingNodes:            waitingMapForNodesCoordinator,
+				SelfPublicKey:           v.PubKey(),
 				ConsensusGroupCache:     cache,
+				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 			}
 
 			nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -82,6 +101,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				nodesCoordinator,
 				i,
 				ncp,
+				nodesSetup,
 			)
 		}
 		nodesMap[shardId] = nodesList
@@ -91,20 +111,20 @@ func CreateProcessorNodesWithNodesCoordinator(
 }
 
 func createTestSingleSigner() crypto.SingleSigner {
-	return &singlesig.SchnorrSigner{}
+	return &ed25519SingleSig.Ed25519Signer{}
 }
 
 func createNodesCryptoParams(rewardsAddrsAssignments map[uint32][]uint32) (map[uint32][]*nodeKeys, uint32) {
 	numShards := uint32(0)
-	suiteBlock := kyber.NewSuitePairingBn256()
-	suiteTx := kyber.NewBlakeSHA256Ed25519()
+	suiteBlock := mcl.NewSuiteBLS12()
+	suiteTx := ed25519.NewEd25519()
 
 	blockSignKeyGen := signing.NewKeyGenerator(suiteBlock)
 	txSignKeyGen := signing.NewKeyGenerator(suiteTx)
 
 	//we need to first precompute the num shard ID
 	for shardID := range rewardsAddrsAssignments {
-		foundAHigherShardID := shardID != sharding.MetachainShardId && shardID > numShards
+		foundAHigherShardID := shardID != core.MetachainShardId && shardID > numShards
 		if foundAHigherShardID {
 			numShards = shardID
 		}
@@ -152,7 +172,7 @@ func generateSkAndPkInShard(
 	sk, pk := keyGen.GeneratePair()
 	for {
 		pkBytes, _ := pk.ToByteArray()
-		addr, _ := TestAddressConverter.CreateAddressFromPublicKeyBytes(pkBytes)
+		addr, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(pkBytes)
 		if shardCoordinator.ComputeId(addr) == addrShardID {
 			break
 		}
@@ -162,25 +182,6 @@ func generateSkAndPkInShard(
 	return sk, pk
 }
 
-func genValidators(ncp map[uint32][]*nodeKeys) map[uint32][]sharding.Validator {
-	validatorsMap := make(map[uint32][]sharding.Validator)
-
-	for shardId, shardNodesKeys := range ncp {
-		shardValidators := make([]sharding.Validator, 0)
-		for i := 0; i < len(shardNodesKeys); i++ {
-			v, _ := sharding.NewValidator(
-				big.NewInt(0),
-				1,
-				shardNodesKeys[i].BlockSignPkBytes,
-				shardNodesKeys[i].TxSignPkBytes)
-			shardValidators = append(shardValidators, v)
-		}
-		validatorsMap[shardId] = shardValidators
-	}
-
-	return validatorsMap
-}
-
 func newTestProcessorNodeWithCustomNodesCoordinator(
 	maxShards uint32,
 	nodeShardId uint32,
@@ -188,6 +189,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 	nodesCoordinator sharding.NodesCoordinator,
 	keyIndex int,
 	ncp map[uint32][]*nodeKeys,
+	nodesSetup sharding.GenesisNodesSetupHandler,
 ) *TestProcessorNode {
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
@@ -199,21 +201,22 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		NodesCoordinator:  nodesCoordinator,
 		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
 		ChainID:           ChainID,
+		NodesSetup:        nodesSetup,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
 		Pk: ncp[nodeShardId][keyIndex].BlockSignPk,
 		Sk: ncp[nodeShardId][keyIndex].BlockSignSk,
 	}
-	llsig := &kmultisig.KyberMultiSignerBLS{}
-	blsHasher := blake2b.Blake2b{HashSize: factory.BlsHashSize}
+
+	blsHasher := &blake2b.Blake2b{HashSize: hashing.BlsHashSize}
+	llsig := &multisig2.BlsMultiSigner{Hasher: blsHasher}
 
 	pubKeysMap := pubKeysMapFromKeysMap(ncp)
 	kp := ncp[nodeShardId][keyIndex]
 	var err error
 	tpn.MultiSigner, err = multisig.NewBLSMultisig(
 		llsig,
-		blsHasher,
 		pubKeysMap[nodeShardId],
 		tpn.NodeKeys.Sk,
 		kp.BlockSignKeyGen,
@@ -235,7 +238,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		Nonce:             0,
 		Balance:           nil,
 	}
-	tpn.OwnAccount.Address, _ = TestAddressConverter.CreateAddressFromPublicKeyBytes(kp.TxSignPkBytes)
+	tpn.OwnAccount.Address, _ = TestAddressPubkeyConverter.CreateAddressFromBytes(kp.TxSignPkBytes)
 
 	tpn.initDataPools()
 	tpn.initTestNode()

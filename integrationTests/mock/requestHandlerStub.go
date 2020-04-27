@@ -1,21 +1,57 @@
 package mock
 
+import "time"
+
 // RequestHandlerStub -
 type RequestHandlerStub struct {
-	RequestShardHeaderCalled        func(shardID uint32, hash []byte)
-	RequestMetaHeaderCalled         func(hash []byte)
-	RequestMetaHeaderByNonceCalled  func(nonce uint64)
-	RequestShardHeaderByNonceCalled func(shardID uint32, nonce uint64)
-	RequestTransactionHandlerCalled func(destShardID uint32, txHashes [][]byte)
-	RequestScrHandlerCalled         func(destShardID uint32, txHashes [][]byte)
-	RequestRewardTxHandlerCalled    func(destShardID uint32, txHashes [][]byte)
-	RequestMiniBlockHandlerCalled   func(destShardID uint32, miniblockHash []byte)
-	RequestMiniBlocksHandlerCalled  func(destShardID uint32, miniblocksHashes [][]byte)
-	RequestTrieNodesCalled          func(destShardID uint32, hash []byte, topic string)
+	RequestShardHeaderCalled           func(shardID uint32, hash []byte)
+	RequestMetaHeaderCalled            func(hash []byte)
+	RequestMetaHeaderByNonceCalled     func(nonce uint64)
+	RequestShardHeaderByNonceCalled    func(shardID uint32, nonce uint64)
+	RequestTransactionHandlerCalled    func(destShardID uint32, txHashes [][]byte)
+	RequestScrHandlerCalled            func(destShardID uint32, txHashes [][]byte)
+	RequestRewardTxHandlerCalled       func(destShardID uint32, txHashes [][]byte)
+	RequestMiniBlockHandlerCalled      func(destShardID uint32, miniblockHash []byte)
+	RequestMiniBlocksHandlerCalled     func(destShardID uint32, miniblocksHashes [][]byte)
+	RequestTrieNodesCalled             func(destShardID uint32, hashes [][]byte, topic string)
+	RequestStartOfEpochMetaBlockCalled func(epoch uint32)
+	SetNumPeersToQueryCalled           func(key string, intra int, cross int) error
+	GetNumPeersToQueryCalled           func(key string) (int, int, error)
+}
+
+// SetNumPeersToQuery -
+func (rhs *RequestHandlerStub) SetNumPeersToQuery(key string, intra int, cross int) error {
+	if rhs.SetNumPeersToQueryCalled != nil {
+		return rhs.SetNumPeersToQueryCalled(key, intra, cross)
+	}
+
+	return nil
+}
+
+// GetNumPeersToQuery -
+func (rhs *RequestHandlerStub) GetNumPeersToQuery(key string) (int, int, error) {
+	if rhs.GetNumPeersToQueryCalled != nil {
+		return rhs.GetNumPeersToQueryCalled(key)
+	}
+
+	return 2, 2, nil
+}
+
+// RequestInterval -
+func (rhs *RequestHandlerStub) RequestInterval() time.Duration {
+	return time.Second
+}
+
+// RequestStartOfEpochMetaBlock -
+func (rhs *RequestHandlerStub) RequestStartOfEpochMetaBlock(epoch uint32) {
+	if rhs.RequestStartOfEpochMetaBlockCalled == nil {
+		return
+	}
+	rhs.RequestStartOfEpochMetaBlockCalled(epoch)
 }
 
 // SetEpoch -
-func (rhs *RequestHandlerStub) SetEpoch(epoch uint32) {
+func (rhs *RequestHandlerStub) SetEpoch(_ uint32) {
 }
 
 // RequestShardHeader -
@@ -91,11 +127,11 @@ func (rhs *RequestHandlerStub) RequestMiniBlocks(destShardID uint32, miniblocksH
 }
 
 // RequestTrieNodes -
-func (rhs *RequestHandlerStub) RequestTrieNodes(destShardID uint32, miniblockHash []byte, topic string) {
+func (rhs *RequestHandlerStub) RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string) {
 	if rhs.RequestTrieNodesCalled == nil {
 		return
 	}
-	rhs.RequestTrieNodesCalled(destShardID, miniblockHash, topic)
+	rhs.RequestTrieNodesCalled(destShardID, hashes, topic)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -4,11 +4,11 @@ import "github.com/ElrondNetwork/elrond-go/data/block"
 
 // SCToProtocolStub -
 type SCToProtocolStub struct {
-	UpdateProtocolCalled func(body block.Body, nonce uint64) error
+	UpdateProtocolCalled func(body *block.Body, nonce uint64) error
 }
 
 // UpdateProtocol -
-func (s *SCToProtocolStub) UpdateProtocol(body block.Body, nonce uint64) error {
+func (s *SCToProtocolStub) UpdateProtocol(body *block.Body, nonce uint64) error {
 	if s.UpdateProtocolCalled != nil {
 		return s.UpdateProtocolCalled(body, nonce)
 	}
@@ -17,8 +17,5 @@ func (s *SCToProtocolStub) UpdateProtocol(body block.Body, nonce uint64) error {
 
 // IsInterfaceNil -
 func (s *SCToProtocolStub) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }

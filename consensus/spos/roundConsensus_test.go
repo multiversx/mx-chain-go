@@ -9,14 +9,19 @@ import (
 )
 
 func initRoundConsensus() *spos.RoundConsensus {
-	eligibleList := []string{"1", "2", "3"}
+	pubKeys := []string{"1", "2", "3"}
+	eligibleNodes := make(map[string]struct{})
+
+	for i := range pubKeys {
+		eligibleNodes[pubKeys[i]] = struct{}{}
+	}
 
 	rcns := spos.NewRoundConsensus(
-		eligibleList,
-		len(eligibleList),
+		eligibleNodes,
+		len(eligibleNodes),
 		"2")
 
-	rcns.SetConsensusGroup(eligibleList)
+	rcns.SetConsensusGroup(pubKeys)
 
 	rcns.ResetRoundState()
 
@@ -38,8 +43,13 @@ func TestRoundConsensus_ConsensusGroupIndexFound(t *testing.T) {
 	t.Parallel()
 
 	pubKeys := []string{"key1", "key2", "key3"}
+	eligibleNodes := make(map[string]struct{})
 
-	rcns := spos.NewRoundConsensus(pubKeys, 3, "key3")
+	for i := range pubKeys {
+		eligibleNodes[pubKeys[i]] = struct{}{}
+	}
+
+	rcns := spos.NewRoundConsensus(eligibleNodes, 3, "key3")
 	rcns.SetConsensusGroup(pubKeys)
 	index, err := rcns.ConsensusGroupIndex("key3")
 
@@ -51,8 +61,13 @@ func TestRoundConsensus_ConsensusGroupIndexNotFound(t *testing.T) {
 	t.Parallel()
 
 	pubKeys := []string{"key1", "key2", "key3"}
+	eligibleNodes := make(map[string]struct{})
 
-	rcns := spos.NewRoundConsensus(pubKeys, 3, "key4")
+	for i := range pubKeys {
+		eligibleNodes[pubKeys[i]] = struct{}{}
+	}
+
+	rcns := spos.NewRoundConsensus(eligibleNodes, 3, "key4")
 	rcns.SetConsensusGroup(pubKeys)
 	index, err := rcns.ConsensusGroupIndex("key4")
 
@@ -64,8 +79,13 @@ func TestRoundConsensus_IndexSelfConsensusGroupInConsesus(t *testing.T) {
 	t.Parallel()
 
 	pubKeys := []string{"key1", "key2", "key3"}
+	eligibleNodes := make(map[string]struct{})
 
-	rcns := spos.NewRoundConsensus(pubKeys, 3, "key2")
+	for i := range pubKeys {
+		eligibleNodes[pubKeys[i]] = struct{}{}
+	}
+
+	rcns := spos.NewRoundConsensus(eligibleNodes, 3, "key2")
 	rcns.SetConsensusGroup(pubKeys)
 	index, err := rcns.SelfConsensusGroupIndex()
 
@@ -77,8 +97,13 @@ func TestRoundConsensus_IndexSelfConsensusGroupNotFound(t *testing.T) {
 	t.Parallel()
 
 	pubKeys := []string{"key1", "key2", "key3"}
+	eligibleNodes := make(map[string]struct{})
 
-	rcns := spos.NewRoundConsensus(pubKeys, 3, "key4")
+	for i := range pubKeys {
+		eligibleNodes[pubKeys[i]] = struct{}{}
+	}
+
+	rcns := spos.NewRoundConsensus(eligibleNodes, 3, "key4")
 	rcns.SetConsensusGroup(pubKeys)
 	index, err := rcns.SelfConsensusGroupIndex()
 
@@ -90,12 +115,21 @@ func TestRoundConsensus_SetEligibleListShouldChangeTheEligibleList(t *testing.T)
 	t.Parallel()
 
 	rcns := *initRoundConsensus()
+	eligibleList := []string{"4", "5", "6"}
 
-	rcns.SetEligibleList([]string{"4", "5", "6"})
+	eligibleNodesKeys := make(map[string]struct{})
+	for _, key := range eligibleList {
+		eligibleNodesKeys[key] = struct{}{}
+	}
 
-	assert.Equal(t, "4", rcns.EligibleList()[0])
-	assert.Equal(t, "5", rcns.EligibleList()[1])
-	assert.Equal(t, "6", rcns.EligibleList()[2])
+	rcns.SetEligibleList(eligibleNodesKeys)
+
+	_, ok := rcns.EligibleList()["4"]
+	assert.True(t, ok)
+	_, ok = rcns.EligibleList()["5"]
+	assert.True(t, ok)
+	_, ok = rcns.EligibleList()["6"]
+	assert.True(t, ok)
 }
 
 func TestRoundConsensus_SetConsensusGroupShouldChangeTheConsensusGroup(t *testing.T) {

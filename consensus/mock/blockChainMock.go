@@ -14,14 +14,13 @@ type BlockChainMock struct {
 	SetCurrentBlockHeaderCalled     func(data.HeaderHandler) error
 	GetCurrentBlockHeaderHashCalled func() []byte
 	SetCurrentBlockHeaderHashCalled func([]byte)
-	GetCurrentBlockBodyCalled       func() data.BodyHandler
-	SetCurrentBlockBodyCalled       func(data.BodyHandler) error
 	GetLocalHeightCalled            func() int64
 	SetLocalHeightCalled            func(int64)
 	GetNetworkHeightCalled          func() int64
 	SetNetworkHeightCalled          func(int64)
 	HasBadBlockCalled               func([]byte) bool
 	PutBadBlockCalled               func([]byte)
+	CreateNewHeaderCalled           func() data.HeaderHandler
 }
 
 // GetGenesisHeader returns the genesis block header pointer
@@ -86,71 +85,16 @@ func (bc *BlockChainMock) SetCurrentBlockHeaderHash(hash []byte) {
 	}
 }
 
-// GetCurrentBlockBody returns the tx block body pointer
-func (bc *BlockChainMock) GetCurrentBlockBody() data.BodyHandler {
-	if bc.GetCurrentBlockBodyCalled != nil {
-		return bc.GetCurrentBlockBodyCalled()
-	}
-	return nil
-}
-
-// SetCurrentBlockBody sets the tx block body pointer
-func (bc *BlockChainMock) SetCurrentBlockBody(body data.BodyHandler) error {
-	if bc.SetCurrentBlockBodyCalled != nil {
-		return bc.SetCurrentBlockBodyCalled(body)
-	}
-	return nil
-}
-
-// GetLocalHeight returns the height of the local chain
-func (bc *BlockChainMock) GetLocalHeight() int64 {
-	if bc.GetLocalHeightCalled != nil {
-		return bc.GetLocalHeightCalled()
-	}
-	return 0
-}
-
-// SetLocalHeight sets the height of the local chain
-func (bc *BlockChainMock) SetLocalHeight(height int64) {
-	if bc.SetLocalHeightCalled != nil {
-		bc.SetLocalHeightCalled(height)
-	}
-}
-
-// GetNetworkHeight sets the perceived height of the network chain
-func (bc *BlockChainMock) GetNetworkHeight() int64 {
-	if bc.GetNetworkHeightCalled != nil {
-		return bc.GetNetworkHeightCalled()
-	}
-	return 0
-}
-
-// SetNetworkHeight sets the perceived height of the network chain
-func (bc *BlockChainMock) SetNetworkHeight(height int64) {
-	if bc.SetNetworkHeightCalled != nil {
-		bc.SetNetworkHeightCalled(height)
-	}
-}
-
-// HasBadBlock returns true if the provided hash is blacklisted as a bad block, or false otherwise
-func (bc *BlockChainMock) HasBadBlock(blockHash []byte) bool {
-	if bc.HasBadBlockCalled != nil {
-		return bc.HasBadBlockCalled(blockHash)
-	}
-	return false
-}
-
-// PutBadBlock adds the given serialized block to the bad block cache, blacklisting it
-func (bc *BlockChainMock) PutBadBlock(blockHash []byte) {
-	if bc.PutBadBlockCalled != nil {
-		bc.PutBadBlockCalled(blockHash)
-	}
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (bc *BlockChainMock) IsInterfaceNil() bool {
-	if bc == nil {
-		return true
+	return bc == nil
+}
+
+// CreateNewHeader -
+func (bc *BlockChainMock) CreateNewHeader() data.HeaderHandler {
+	if bc.CreateNewHeaderCalled != nil {
+		return bc.CreateNewHeaderCalled()
 	}
-	return false
+
+	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,14 +20,14 @@ func TestEviction_EvictHighNonceTransactions(t *testing.T) {
 	cache := NewTxCache(config)
 
 	for index := 0; index < 200; index++ {
-		cache.AddTx([]byte{'a', byte(index)}, createTx("alice", uint64(index)))
+		cache.AddTx(createTx([]byte{'a', byte(index)}, "alice", uint64(index)))
 	}
 
 	for index := 0; index < 200; index++ {
-		cache.AddTx([]byte{'b', byte(index)}, createTx("bob", uint64(index)))
+		cache.AddTx(createTx([]byte{'b', byte(index)}, "bob", uint64(index)))
 	}
 
-	cache.AddTx([]byte("hash-carol"), createTx("carol", uint64(1)))
+	cache.AddTx(createTx([]byte("hash-carol"), "carol", uint64(1)))
 
 	require.Equal(t, int64(3), cache.txListBySender.counter.Get())
 	require.Equal(t, int64(401), cache.txByHash.counter.Get())
@@ -50,7 +51,7 @@ func TestEviction_EvictHighNonceTransactions_CoverEmptiedSenderList(t *testing.T
 	}
 
 	cache := NewTxCache(config)
-	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
+	cache.AddTx(createTx([]byte("hash-alice"), "alice", uint64(1)))
 	require.Equal(t, int64(1), cache.CountSenders())
 
 	cache.makeSnapshotOfSenders()
@@ -76,7 +77,7 @@ func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
 	// 200 senders, each with 1 transaction
 	for index := 0; index < 200; index++ {
 		sender := string(createFakeSenderAddress(index))
-		cache.AddTx([]byte{byte(index)}, createTx(sender, uint64(1)))
+		cache.AddTx(createTx([]byte{byte(index)}, sender, uint64(1)))
 	}
 
 	require.Equal(t, int64(200), cache.txListBySender.counter.Get())
@@ -108,7 +109,7 @@ func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 	// 200 senders, each with 1 transaction
 	for index := 0; index < 200; index++ {
 		sender := string(createFakeSenderAddress(index))
-		cache.AddTx([]byte{byte(index)}, createTxWithParams(sender, uint64(1), uint64(numBytesPerTx), 10000, 100*oneTrilion))
+		cache.AddTx(createTxWithParams([]byte{byte(index)}, sender, uint64(1), uint64(numBytesPerTx), 10000, 100*oneTrilion))
 	}
 
 	require.Equal(t, int64(200), cache.txListBySender.counter.Get())
@@ -134,9 +135,9 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 	}
 
 	cache := NewTxCache(config)
-	cache.AddTx([]byte("hash-alice"), createTxWithParams("alice", uint64(1), 1000, 100000, 100*oneTrilion))
-	cache.AddTx([]byte("hash-bob"), createTxWithParams("bob", uint64(1), 1000, 100000, 100*oneTrilion))
-	cache.AddTx([]byte("hash-carol"), createTxWithParams("carol", uint64(1), 1000, 100000, 700*oneTrilion))
+	cache.AddTx(createTxWithParams([]byte("hash-alice"), "alice", uint64(1), 1000, 100000, 100*oneTrilion))
+	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 1000, 100000, 100*oneTrilion))
+	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 1000, 100000, 700*oneTrilion))
 
 	cache.doEviction()
 	require.Equal(t, uint32(0), cache.evictionJournal.passOneNumTxs)
@@ -162,9 +163,9 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 	}
 
 	cache := NewTxCache(config)
-	cache.AddTx([]byte("hash-alice"), createTxWithParams("alice", uint64(1), 800, 100000, 100*oneTrilion))
-	cache.AddTx([]byte("hash-bob"), createTxWithParams("bob", uint64(1), 500, 100000, 100*oneTrilion))
-	cache.AddTx([]byte("hash-carol"), createTxWithParams("carol", uint64(1), 200, 100000, 700*oneTrilion))
+	cache.AddTx(createTxWithParams([]byte("hash-alice"), "alice", uint64(1), 800, 100000, 100*oneTrilion))
+	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 500, 100000, 100*oneTrilion))
+	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 200, 100000, 700*oneTrilion))
 
 	require.InDelta(t, float64(19.50394606), cache.getRawScoreOfSender("alice"), delta)
 	require.InDelta(t, float64(23.68494667), cache.getRawScoreOfSender("bob"), delta)
@@ -192,7 +193,7 @@ func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
 	}
 
 	cache := NewTxCache(config)
-	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
+	cache.AddTx(createTx([]byte("hash-alice"), "alice", uint64(1)))
 
 	cache.isEvictionInProgress.Set()
 	cache.doEviction()
@@ -208,7 +209,7 @@ func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T)
 	}
 
 	cache := NewTxCache(config)
-	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
+	cache.AddTx(createTx([]byte("hash-alice"), "alice", uint64(1)))
 
 	cache.makeSnapshotOfSenders()
 
@@ -226,8 +227,8 @@ func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
 	}
 
 	cache := NewTxCache(config)
-	cache.AddTx([]byte("hash-alice"), createTx("alice", uint64(1)))
-	cache.AddTx([]byte("hash-bob"), createTx("bob", uint64(1)))
+	cache.AddTx(createTx([]byte("hash-alice"), "alice", uint64(1)))
+	cache.AddTx(createTx([]byte("hash-bob"), "bob", uint64(1)))
 
 	cache.makeSnapshotOfSenders()
 
@@ -240,64 +241,27 @@ func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
 	require.Equal(t, uint32(0), nSenders)
 }
 
-// This seems to be the worst case in terms of eviction complexity
-// Eviction is triggered often and little eviction (only 10 senders) is done
-func Test_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_10(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
+// This seems to be the most reasonable "bad-enough" (not worst) scenario to benchmark:
+// 25000 senders with 10 transactions each, with default "NumSendersToEvictInOneStep".
+// ~1 second on average laptop.
+func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 	config := CacheConfig{
 		NumChunksHint:              16,
 		EvictionEnabled:            true,
 		NumBytesThreshold:          1000000000,
 		CountThreshold:             240000,
-		NumSendersToEvictInOneStep: 10,
+		NumSendersToEvictInOneStep: dataRetriever.TxPoolNumSendersToEvictInOneStep,
 		LargeNumOfTxsForASender:    1000,
 		NumTxsToEvictFromASender:   250,
 	}
 
-	cache := NewTxCache(config)
-	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
-	require.Equal(t, int64(240000), cache.CountTx())
-}
-
-func Test_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_100(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	config := CacheConfig{
-		NumChunksHint:              16,
-		EvictionEnabled:            true,
-		NumBytesThreshold:          1000000000,
-		CountThreshold:             240000,
-		NumSendersToEvictInOneStep: 100,
-		LargeNumOfTxsForASender:    1000,
-		NumTxsToEvictFromASender:   250,
-	}
+	numSenders := 25000
+	numTxsPerSender := 10
 
 	cache := NewTxCache(config)
-	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
-	require.Equal(t, int64(240000), cache.CountTx())
-}
+	addManyTransactionsWithUniformDistribution(cache, numSenders, numTxsPerSender)
 
-func Test_AddWithEviction_UniformDistribution_250000x1_WithConfig_NumSendersToEvictInOneStep_1000(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	config := CacheConfig{
-		NumChunksHint:              16,
-		EvictionEnabled:            true,
-		NumBytesThreshold:          1000000000,
-		CountThreshold:             240000,
-		NumSendersToEvictInOneStep: 1000,
-		LargeNumOfTxsForASender:    1000,
-		NumTxsToEvictFromASender:   250,
-	}
-
-	cache := NewTxCache(config)
-	addManyTransactionsWithUniformDistribution(cache, 250000, 1)
-	require.Equal(t, int64(240000), cache.CountTx())
+	// Sometimes (due to map iteration non-determinism), more eviction happens - one more step of 100 senders.
+	require.LessOrEqual(t, uint32(cache.CountTx()), config.CountThreshold)
+	require.GreaterOrEqual(t, uint32(cache.CountTx()), config.CountThreshold-config.NumSendersToEvictInOneStep*uint32(numTxsPerSender))
 }

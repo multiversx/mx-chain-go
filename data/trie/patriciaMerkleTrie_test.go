@@ -2,7 +2,6 @@ package trie_test
 
 import (
 	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -37,16 +36,21 @@ func getDefaultTrieParameters() (data.StorageManager, marshal.Marshalizer, hashi
 
 	tempDir, _ := ioutil.TempDir("", strconv.Itoa(rand.Intn(100000)))
 
-	cfg := &config.DBConfig{
+	cfg := config.DBConfig{
 		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDbSerial),
+		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
 		MaxOpenFiles:      10,
 	}
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
 
 	evictionWaitingList, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
-	trieStorageManager, _ := trie.NewTrieStorageManager(db, cfg, evictionWaitingList)
+	trieStorageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hasher, cfg, evictionWaitingList, generalCfg)
 
 	return trieStorageManager, marshalizer, hasher
 }
@@ -199,78 +203,6 @@ func TestPatriciaMerkleTree_NilRoot(t *testing.T) {
 	root, err := tr.Root()
 	assert.Nil(t, err)
 	assert.Equal(t, emptyTrieHash, root)
-}
-
-func TestPatriciaMerkleTree_Prove(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-
-	proof, err := tr.Prove([]byte("dog"))
-	assert.Nil(t, err)
-	ok, _ := tr.VerifyProof(proof, []byte("dog"))
-	assert.True(t, ok)
-}
-
-func TestPatriciaMerkleTree_ProveCollapsedTrie(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-	_ = tr.Commit()
-
-	proof, err := tr.Prove([]byte("dog"))
-	assert.Nil(t, err)
-	ok, _ := tr.VerifyProof(proof, []byte("dog"))
-	assert.True(t, ok)
-}
-
-func TestPatriciaMerkleTree_ProveOnEmptyTrie(t *testing.T) {
-	t.Parallel()
-
-	tr := emptyTrie()
-
-	proof, err := tr.Prove([]byte("dog"))
-	assert.Nil(t, proof)
-	assert.Equal(t, trie.ErrNilNode, err)
-}
-
-func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
-	t.Parallel()
-
-	tr, val := initTrieMultipleValues(50)
-
-	for i := range val {
-		proof, _ := tr.Prove(val[i])
-
-		ok, err := tr.VerifyProof(proof, val[i])
-		assert.Nil(t, err)
-		assert.True(t, ok)
-
-		ok, err = tr.VerifyProof(proof, []byte("dog"+strconv.Itoa(i)))
-		assert.Nil(t, err)
-		assert.False(t, ok)
-	}
-
-}
-
-func TestPatriciaMerkleTree_VerifyProofNilProofs(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-
-	ok, err := tr.VerifyProof(nil, []byte("dog"))
-	assert.False(t, ok)
-	assert.Nil(t, err)
-}
-
-func TestPatriciaMerkleTree_VerifyProofEmptyProofs(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-
-	ok, err := tr.VerifyProof([][]byte{}, []byte("dog"))
-	assert.False(t, ok)
-	assert.Nil(t, err)
 }
 
 func TestPatriciaMerkleTree_Consistency(t *testing.T) {
@@ -443,72 +375,6 @@ func TestPatriciaMerkleTrie_RecreateWithInvalidRootHash(t *testing.T) {
 	assert.Equal(t, emptyTrieHash, root)
 }
 
-func TestPatriciaMerkleTrie_VerifyProofFromDifferentTrieShouldNotWork(t *testing.T) {
-	t.Parallel()
-
-	tr1 := emptyTrie()
-	tr2 := emptyTrie()
-
-	_ = tr1.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr1.Update([]byte("dog"), []byte("puppy"))
-	_ = tr1.Update([]byte("dogglesworth"), []byte("cat"))
-
-	_ = tr2.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr2.Update([]byte("dog"), []byte("puppy"))
-	_ = tr2.Update([]byte("dogglesworth"), []byte("caterpillar"))
-
-	proof, _ := tr2.Prove([]byte("dogglesworth"))
-	ok, _ := tr1.VerifyProof(proof, []byte("dogglesworth"))
-	assert.False(t, ok)
-}
-
-func TestPatriciaMerkleTrie_VerifyProofBranchNodeWantHashShouldWork(t *testing.T) {
-	t.Parallel()
-
-	tr := emptyTrie()
-
-	_ = tr.Update([]byte("dog"), []byte("cat"))
-	_ = tr.Update([]byte("zebra"), []byte("horse"))
-
-	proof, _ := tr.Prove([]byte("dog"))
-	ok, err := tr.VerifyProof(proof, []byte("dog"))
-	assert.True(t, ok)
-	assert.Nil(t, err)
-}
-
-func TestPatriciaMerkleTrie_VerifyProofExtensionNodeWantHashShouldWork(t *testing.T) {
-	t.Parallel()
-
-	tr := emptyTrie()
-
-	_ = tr.Update([]byte("dog"), []byte("cat"))
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-
-	proof, _ := tr.Prove([]byte("dog"))
-	ok, err := tr.VerifyProof(proof, []byte("dog"))
-	assert.True(t, ok)
-	assert.Nil(t, err)
-}
-
-func TestPatriciaMerkleTrie_DeepCloneShouldWork(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-
-	_ = tr.Update([]byte("doee"), []byte("value of doee"))
-	_ = tr.Update([]byte("doeee"), []byte("value of doeee"))
-
-	trie2, err := tr.DeepClone()
-	assert.Nil(t, err)
-
-	assert.Equal(t, tr, trie2)
-	assert.False(t, tr == trie2)
-	assert.Equal(t, tr.String(), trie2.String())
-	originalRoot, _ := tr.Root()
-	clonedTrie, _ := trie2.Root()
-	assert.Equal(t, originalRoot, clonedTrie)
-}
-
 func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
 	t.Parallel()
 
@@ -520,13 +386,11 @@ func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
 	_ = tr.Commit()
 
 	tr.CancelPrune(rootHash, data.OldRoot)
+	tr.Prune(rootHash, data.OldRoot)
 
-	key := base64.StdEncoding.EncodeToString(append(rootHash, byte(data.OldRoot)))
-	err := fmt.Errorf("key: %s not found", key)
-	expectedErr := fmt.Errorf("trie storage manager prune error: %w, for root %v", err, hex.EncodeToString(append(rootHash, byte(data.OldRoot))))
-
-	err = tr.Prune(rootHash, data.OldRoot)
-	assert.Equal(t, expectedErr, err)
+	newTr, err := tr.Recreate(rootHash)
+	assert.Nil(t, err)
+	assert.NotNil(t, newTr)
 }
 
 func TestPatriciaMerkleTrie_Prune(t *testing.T) {
@@ -544,7 +408,8 @@ func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 	_ = tr.Commit()
 
 	tr.CancelPrune(rootHash, data.NewRoot)
-	_ = tr.Prune(rootHash, data.OldRoot)
+	tr.Prune(rootHash, data.OldRoot)
+	time.Sleep(time.Second)
 
 	expectedErr := fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash))
 	val, err := tr.Database().Get(rootHash)
@@ -561,7 +426,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodes(t *testing.T) {
 
 	maxBuffToSend := uint64(500)
 	expectedNodes := 6
-	serializedNodes, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
+	serializedNodes, _, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNodes, len(serializedNodes))
 }
@@ -575,7 +440,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesTinyBufferShouldNotGetAllNodes(t *
 
 	maxBuffToSend := uint64(150)
 	expectedNodes := 2
-	serializedNodes, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
+	serializedNodes, _, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNodes, len(serializedNodes))
 }
@@ -589,11 +454,11 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 
 	tr.TakeSnapshot(rootHash)
 	time.Sleep(time.Second)
-	_ = tr.Prune(rootHash, data.NewRoot)
+	tr.Prune(rootHash, data.NewRoot)
 
 	maxBuffToSend := uint64(500)
 	expectedNodes := 6
-	serializedNodes, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
+	serializedNodes, _, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNodes, len(serializedNodes))
 }
@@ -731,69 +596,6 @@ func BenchmarkPatriciaMerkleTree_GetCollapsedTrie(b *testing.B) {
 	}
 }
 
-func BenchmarkPatriciaMerkleTree_Prove(b *testing.B) {
-	tr := emptyTrie()
-	hsh := keccak.Keccak{}
-
-	nrValuesInTrie := 1000000
-	values := make([][]byte, nrValuesInTrie)
-
-	for i := 0; i < nrValuesInTrie; i++ {
-		values[i] = hsh.Compute(strconv.Itoa(i))
-		_ = tr.Update(values[i], values[i])
-	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = tr.Prove(values[i%nrValuesInTrie])
-	}
-}
-
-func BenchmarkPatriciaMerkleTree_ProveCollapsedTrie(b *testing.B) {
-	tr := emptyTrie()
-	hsh := keccak.Keccak{}
-
-	nrValuesInTrie := 2000000
-	values := make([][]byte, nrValuesInTrie)
-
-	for i := 0; i < nrValuesInTrie; i++ {
-		values[i] = hsh.Compute(strconv.Itoa(i))
-		_ = tr.Update(values[i], values[i])
-	}
-	_ = tr.Commit()
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = tr.Prove(values[i%nrValuesInTrie])
-	}
-}
-
-func BenchmarkPatriciaMerkleTree_VerifyProof(b *testing.B) {
-	var err error
-	tr := emptyTrie()
-	hsh := keccak.Keccak{}
-
-	nrProofs := 10
-	proofs := make([][][]byte, nrProofs)
-
-	nrValuesInTrie := 100000
-	values := make([][]byte, nrValuesInTrie)
-
-	for i := 0; i < nrValuesInTrie; i++ {
-		values[i] = hsh.Compute(strconv.Itoa(i))
-		_ = tr.Update(values[i], values[i])
-	}
-	for i := 0; i < nrProofs; i++ {
-		proofs[i], err = tr.Prove(values[i])
-		assert.Nil(b, err)
-	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = tr.VerifyProof(proofs[i%nrProofs], values[i%nrProofs])
-	}
-}
-
 func BenchmarkPatriciaMerkleTree_Commit(b *testing.B) {
 	nrValuesInTrie := 1000000
 	for i := 0; i < b.N; i++ {
@@ -835,24 +637,6 @@ func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging30000Nodes(b *testing.B) {
 		}
 		b.StartTimer()
 		_, _ = tr.Root()
-	}
-}
-
-func BenchmarkPatriciaMerkleTrie_Cloning10000ValuesTrie(b *testing.B) {
-	tr := emptyTrie()
-	hsh := keccak.Keccak{}
-
-	nrValuesInTrie := 10000
-	for i := 0; i < nrValuesInTrie; i++ {
-		key := hsh.Compute(strconv.Itoa(i))
-		value := append(key, []byte(strconv.Itoa(i))...)
-
-		_ = tr.Update(key, value)
-	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = tr.DeepClone()
 	}
 }
 

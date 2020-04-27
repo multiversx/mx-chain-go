@@ -2,12 +2,11 @@ package trie
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"reflect"
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -21,7 +20,7 @@ import (
 )
 
 func getTestMarshAndHasher() (marshal.Marshalizer, hashing.Hasher) {
-	marsh := &mock.MarshalizerMock{}
+	marsh := &marshal.GogoProtoMarshalizer{}
 	hasher := &mock.KeccakMock{}
 	return marsh, hasher
 }
@@ -54,15 +53,20 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager, *mock.EvictionWai
 	// TODO change this initialization of the persister  (and everywhere in this package)
 	// by using a persister factory
 	tempDir, _ := ioutil.TempDir("", "leveldb_temp")
-	cfg := &config.DBConfig{
+	cfg := config.DBConfig{
 		FilePath:          tempDir,
-		Type:              string(storageUnit.LvlDbSerial),
+		Type:              string(storageUnit.LvlDBSerial),
 		BatchDelaySeconds: 1,
 		MaxBatchSize:      1,
 		MaxOpenFiles:      10,
 	}
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:   1000,
+		SnapshotsBufferLen: 10,
+		MaxSnapshots:       2,
+	}
 
-	trieStorage, _ := NewTrieStorageManager(db, cfg, evictionWaitList)
+	trieStorage, _ := NewTrieStorageManager(db, marsh, hsh, cfg, evictionWaitList, generalCfg)
 	tr := &patriciaMerkleTrie{
 		trieStorage: trieStorage,
 		marshalizer: marsh,
@@ -140,7 +144,7 @@ func TestBranchNode_getCollapsedEmptyNode(t *testing.T) {
 	bn := emptyDirtyBranchNode()
 
 	collapsed, err := bn.getCollapsed()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 	assert.Nil(t, collapsed)
 }
 
@@ -150,7 +154,7 @@ func TestBranchNode_getCollapsedNilNode(t *testing.T) {
 	var bn *branchNode
 
 	collapsed, err := bn.getCollapsed()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, collapsed)
 }
 
@@ -178,13 +182,14 @@ func TestBranchNode_setHash(t *testing.T) {
 func TestBranchNode_setRootHash(t *testing.T) {
 	t.Parallel()
 
-	cfg := &config.DBConfig{}
+	cfg := config.DBConfig{}
 	db := mock.NewMemDbMock()
 	marsh, hsh := getTestMarshAndHasher()
-	trieStorage, _ := NewTrieStorageManager(db, cfg, &mock.EvictionWaitingList{})
+	trieStorage1, _ := NewTrieStorageManager(db, marsh, hsh, cfg, &mock.EvictionWaitingList{}, config.TrieStorageManagerConfig{})
+	trieStorage2, _ := NewTrieStorageManager(db, marsh, hsh, cfg, &mock.EvictionWaitingList{}, config.TrieStorageManagerConfig{})
 
-	tr1, _ := NewTrie(trieStorage, marsh, hsh)
-	tr2, _ := NewTrie(trieStorage, marsh, hsh)
+	tr1, _ := NewTrie(trieStorage1, marsh, hsh)
+	tr2, _ := NewTrie(trieStorage2, marsh, hsh)
 
 	maxIterations := 10000
 	for i := 0; i < maxIterations; i++ {
@@ -216,7 +221,7 @@ func TestBranchNode_setHashEmptyNode(t *testing.T) {
 	bn := emptyDirtyBranchNode()
 
 	err := bn.setHash()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 	assert.Nil(t, bn.hash)
 }
 
@@ -226,7 +231,7 @@ func TestBranchNode_setHashNilNode(t *testing.T) {
 	var bn *branchNode
 
 	err := bn.setHash()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, bn)
 }
 
@@ -278,7 +283,7 @@ func TestBranchNode_hashChildrenEmptyNode(t *testing.T) {
 	bn := emptyDirtyBranchNode()
 
 	err := bn.hashChildren()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 }
 
 func TestBranchNode_hashChildrenNilNode(t *testing.T) {
@@ -287,7 +292,7 @@ func TestBranchNode_hashChildrenNilNode(t *testing.T) {
 	var bn *branchNode
 
 	err := bn.hashChildren()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 }
 
 func TestBranchNode_hashChildrenCollapsedNode(t *testing.T) {
@@ -319,7 +324,7 @@ func TestBranchNode_hashNodeEmptyNode(t *testing.T) {
 	bn := emptyDirtyBranchNode()
 
 	hash, err := bn.hashNode()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 	assert.Nil(t, hash)
 }
 
@@ -329,7 +334,7 @@ func TestBranchNode_hashNodeNilNode(t *testing.T) {
 	var bn *branchNode
 
 	hash, err := bn.hashNode()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, hash)
 }
 
@@ -359,7 +364,7 @@ func TestBranchNode_commitEmptyNode(t *testing.T) {
 	bn := emptyDirtyBranchNode()
 
 	err := bn.commit(false, 0, nil, nil)
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 }
 
 func TestBranchNode_commitNilNode(t *testing.T) {
@@ -368,7 +373,7 @@ func TestBranchNode_commitNilNode(t *testing.T) {
 	var bn *branchNode
 
 	err := bn.commit(false, 0, nil, nil)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 }
 
 func TestBranchNode_getEncodedNode(t *testing.T) {
@@ -390,7 +395,7 @@ func TestBranchNode_getEncodedNodeEmpty(t *testing.T) {
 	bn := emptyDirtyBranchNode()
 
 	encNode, err := bn.getEncodedNode()
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 	assert.Nil(t, encNode)
 }
 
@@ -400,7 +405,7 @@ func TestBranchNode_getEncodedNodeNil(t *testing.T) {
 	var bn *branchNode
 
 	encNode, err := bn.getEncodedNode()
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, encNode)
 }
 
@@ -428,7 +433,7 @@ func TestBranchNode_resolveCollapsedEmptyNode(t *testing.T) {
 	bn := emptyDirtyBranchNode()
 
 	err := bn.resolveCollapsed(2, nil)
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 }
 
 func TestBranchNode_resolveCollapsedENilNode(t *testing.T) {
@@ -437,7 +442,7 @@ func TestBranchNode_resolveCollapsedENilNode(t *testing.T) {
 	var bn *branchNode
 
 	err := bn.resolveCollapsed(2, nil)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 }
 
 func TestBranchNode_resolveCollapsedPosOutOfRange(t *testing.T) {
@@ -531,7 +536,7 @@ func TestBranchNode_tryGetEmptyNode(t *testing.T) {
 	key := append([]byte{childPos}, []byte("dog")...)
 
 	val, err := bn.tryGet(key, nil)
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 	assert.Nil(t, val)
 }
 
@@ -543,7 +548,7 @@ func TestBranchNode_tryGetNilNode(t *testing.T) {
 	key := append([]byte{childPos}, []byte("dog")...)
 
 	val, err := bn.tryGet(key, nil)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, val)
 }
 
@@ -724,7 +729,7 @@ func TestBranchNode_insertInNilNode(t *testing.T) {
 
 	dirty, newBn, _, err := bn.insert(&leafNode{}, nil)
 	assert.False(t, dirty)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, newBn)
 }
 
@@ -792,7 +797,7 @@ func TestBranchNode_deleteEmptyNode(t *testing.T) {
 
 	dirty, newBn, _, err := bn.delete(key, nil)
 	assert.False(t, dirty)
-	assert.Equal(t, ErrEmptyNode, err)
+	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 	assert.Nil(t, newBn)
 }
 
@@ -805,7 +810,7 @@ func TestBranchNode_deleteNilNode(t *testing.T) {
 
 	dirty, newBn, _, err := bn.delete(key, nil)
 	assert.False(t, dirty)
-	assert.Equal(t, ErrNilNode, err)
+	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, newBn)
 }
 
@@ -914,10 +919,10 @@ func TestBranchNode_isEmptyOrNil(t *testing.T) {
 	t.Parallel()
 
 	bn := emptyDirtyBranchNode()
-	assert.Equal(t, ErrEmptyNode, bn.isEmptyOrNil())
+	assert.Equal(t, ErrEmptyBranchNode, bn.isEmptyOrNil())
 
 	bn = nil
-	assert.Equal(t, ErrNilNode, bn.isEmptyOrNil())
+	assert.Equal(t, ErrNilBranchNode, bn.isEmptyOrNil())
 }
 
 func TestReduceBranchNodeWithExtensionNodeChildShouldWork(t *testing.T) {
@@ -1047,32 +1052,27 @@ func TestBranchNode_loadChildren(t *testing.T) {
 	_ = tr.root.setRootHash()
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := lrucache.NewCache(100)
-
-	resolver := &mock.TrieNodesResolverStub{
-		RequestDataFromHashCalled: func(hash []byte) error {
-			for i := range nodes {
-				node, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
-				nodesCacher.Put(node.hash, node)
-			}
-			return nil
-		},
+	for i := range nodes {
+		node, _ := NewInterceptedTrieNode(nodes[i], marsh, hasher)
+		nodesCacher.Put(node.hash, node)
 	}
-	syncer, _ := NewTrieSyncer(resolver, nodesCacher, tr, time.Second)
-	syncer.interceptedNodes.RegisterHandler(func(key []byte) {
-		syncer.chRcvTrieNodes <- true
-	})
 
 	firstChildIndex := 5
 	secondChildIndex := 7
 
 	bn := getCollapsedBn(t, tr.root)
 
-	err := bn.loadChildren(syncer)
+	getNode := func(hash []byte) (node, error) {
+		cacheData, _ := nodesCacher.Get(hash)
+		return trieNode(cacheData)
+	}
+
+	missing, _, err := bn.loadChildren(getNode)
 	assert.Nil(t, err)
 	assert.NotNil(t, bn.children[firstChildIndex])
 	assert.NotNil(t, bn.children[secondChildIndex])
-
-	assert.Equal(t, 5, nodesCacher.Len())
+	assert.Equal(t, 0, len(missing))
+	assert.Equal(t, 6, nodesCacher.Len())
 }
 
 func getCollapsedBn(t *testing.T, n node) *branchNode {
@@ -1198,26 +1198,6 @@ func getBranchNodeContents(bn *branchNode) string {
 		bn.dirty)
 
 	return str
-}
-
-func BenchmarkDecodeBranchNode(b *testing.B) {
-	marsh, hsh := getTestMarshAndHasher()
-	tr, _, _ := newEmptyTrie()
-
-	nrValuesInTrie := 100000
-	values := make([][]byte, nrValuesInTrie)
-
-	for i := 0; i < nrValuesInTrie; i++ {
-		values[i] = hsh.Compute(strconv.Itoa(i))
-		_ = tr.Update(values[i], values[i])
-	}
-
-	proof, _ := tr.Prove(values[0])
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = decodeNode(proof[0], marsh, hsh)
-	}
 }
 
 func BenchmarkMarshallNodeJson(b *testing.B) {

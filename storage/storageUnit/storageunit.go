@@ -6,17 +6,18 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/bloom"
 	"github.com/ElrondNetwork/elrond-go/storage/fifocache"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 )
 
 // CacheType represents the type of the supported caches
@@ -40,7 +41,8 @@ var log = logger.GetOrCreate("storage/storageUnit")
 // More to be added
 const (
 	LvlDB       DBType = "LvlDB"
-	LvlDbSerial DBType = "LvlDBSerial"
+	LvlDBSerial DBType = "LvlDBSerial"
+	MemoryDB    DBType = "MemoryDB"
 )
 
 const (
@@ -294,7 +296,14 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 		return nil, err
 	}
 
-	db, err = NewDB(dbConf.Type, dbConf.FilePath, dbConf.BatchDelaySeconds, dbConf.MaxBatchSize, dbConf.MaxOpenFiles)
+	argDB := ArgDB{
+		DBType:            dbConf.Type,
+		Path:              dbConf.FilePath,
+		BatchDelaySeconds: dbConf.BatchDelaySeconds,
+		MaxBatchSize:      dbConf.MaxBatchSize,
+		MaxOpenFiles:      dbConf.MaxOpenFiles,
+	}
+	db, err = NewDB(argDB)
 	if err != nil {
 		return nil, err
 	}
@@ -337,16 +346,27 @@ func NewCache(cacheType CacheType, size uint32, shards uint32) (storage.Cacher, 
 	return cacher, nil
 }
 
+// ArgDB is a structure that is used to create a new storage.Persister implementation
+type ArgDB struct {
+	DBType            DBType
+	Path              string
+	BatchDelaySeconds int
+	MaxBatchSize      int
+	MaxOpenFiles      int
+}
+
 // NewDB creates a new database from database config
-func NewDB(dbType DBType, path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (storage.Persister, error) {
+func NewDB(argDB ArgDB) (storage.Persister, error) {
 	var db storage.Persister
 	var err error
 
-	switch dbType {
+	switch argDB.DBType {
 	case LvlDB:
-		db, err = leveldb.NewDB(path, batchDelaySeconds, maxBatchSize, maxOpenFiles)
-	case LvlDbSerial:
-		db, err = leveldb.NewSerialDB(path, batchDelaySeconds, maxBatchSize, maxOpenFiles)
+		db, err = leveldb.NewDB(argDB.Path, argDB.BatchDelaySeconds, argDB.MaxBatchSize, argDB.MaxOpenFiles)
+	case LvlDBSerial:
+		db, err = leveldb.NewSerialDB(argDB.Path, argDB.BatchDelaySeconds, argDB.MaxBatchSize, argDB.MaxOpenFiles)
+	case MemoryDB:
+		db = memorydb.New()
 	default:
 		return nil, storage.ErrNotSupportedDBType
 	}
@@ -388,7 +408,7 @@ func (h HasherType) NewHasher() (hashing.Hasher, error) {
 	case Keccak:
 		return keccak.Keccak{}, nil
 	case Blake2b:
-		return blake2b.Blake2b{}, nil
+		return &blake2b.Blake2b{}, nil
 	case Fnv:
 		return fnv.Fnv{}, nil
 	default:

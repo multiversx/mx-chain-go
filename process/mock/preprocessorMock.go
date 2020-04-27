@@ -12,16 +12,15 @@ import (
 type PreProcessorMock struct {
 	CreateBlockStartedCalled              func()
 	IsDataPreparedCalled                  func(requestedTxs int, haveTime func() time.Duration) error
-	RemoveTxBlockFromPoolsCalled          func(body block.Body, miniBlockPool storage.Cacher) error
-	RestoreTxBlockIntoPoolsCalled         func(body block.Body, miniBlockPool storage.Cacher) (int, error)
-	SaveTxBlockToStorageCalled            func(body block.Body) error
-	ProcessBlockTransactionsCalled        func(body block.Body, haveTime func() bool) error
-	RequestBlockTransactionsCalled        func(body block.Body) int
+	RemoveTxBlockFromPoolsCalled          func(body *block.Body, miniBlockPool storage.Cacher) error
+	RestoreTxBlockIntoPoolsCalled         func(body *block.Body, miniBlockPool storage.Cacher) (int, error)
+	SaveTxBlockToStorageCalled            func(body *block.Body) error
+	ProcessBlockTransactionsCalled        func(body *block.Body, haveTime func() bool) error
+	RequestBlockTransactionsCalled        func(body *block.Body) int
 	CreateMarshalizedDataCalled           func(txHashes [][]byte) ([][]byte, error)
 	RequestTransactionsForMiniBlockCalled func(miniBlock *block.MiniBlock) int
-	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool) error
-	CreateAndProcessMiniBlocksCalled      func(maxTxSpaceRemained uint32, maxMbSpaceRemained uint32, haveTime func() bool) (block.MiniBlockSlice, error)
-	CreateAndProcessMiniBlockCalled       func(senderShardId, receiverShardId uint32, spaceRemained int, haveTime func() bool) (*block.MiniBlock, error)
+	ProcessMiniBlockCalled                func(miniBlock *block.MiniBlock, haveTime func() bool) ([][]byte, error)
+	CreateAndProcessMiniBlocksCalled      func(haveTime func() bool) (block.MiniBlockSlice, error)
 	GetAllCurrentUsedTxsCalled            func() map[string]data.TransactionHandler
 }
 
@@ -42,7 +41,7 @@ func (ppm *PreProcessorMock) IsDataPrepared(requestedTxs int, haveTime func() ti
 }
 
 // RemoveTxBlockFromPools -
-func (ppm *PreProcessorMock) RemoveTxBlockFromPools(body block.Body, miniBlockPool storage.Cacher) error {
+func (ppm *PreProcessorMock) RemoveTxBlockFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
 	if ppm.RemoveTxBlockFromPoolsCalled == nil {
 		return nil
 	}
@@ -50,7 +49,7 @@ func (ppm *PreProcessorMock) RemoveTxBlockFromPools(body block.Body, miniBlockPo
 }
 
 // RestoreTxBlockIntoPools -
-func (ppm *PreProcessorMock) RestoreTxBlockIntoPools(body block.Body, miniBlockPool storage.Cacher) (int, error) {
+func (ppm *PreProcessorMock) RestoreTxBlockIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error) {
 	if ppm.RestoreTxBlockIntoPoolsCalled == nil {
 		return 0, nil
 	}
@@ -58,7 +57,7 @@ func (ppm *PreProcessorMock) RestoreTxBlockIntoPools(body block.Body, miniBlockP
 }
 
 // SaveTxBlockToStorage -
-func (ppm *PreProcessorMock) SaveTxBlockToStorage(body block.Body) error {
+func (ppm *PreProcessorMock) SaveTxBlockToStorage(body *block.Body) error {
 	if ppm.SaveTxBlockToStorageCalled == nil {
 		return nil
 	}
@@ -66,7 +65,7 @@ func (ppm *PreProcessorMock) SaveTxBlockToStorage(body block.Body) error {
 }
 
 // ProcessBlockTransactions -
-func (ppm *PreProcessorMock) ProcessBlockTransactions(body block.Body, haveTime func() bool) error {
+func (ppm *PreProcessorMock) ProcessBlockTransactions(body *block.Body, haveTime func() bool) error {
 	if ppm.ProcessBlockTransactionsCalled == nil {
 		return nil
 	}
@@ -74,7 +73,7 @@ func (ppm *PreProcessorMock) ProcessBlockTransactions(body block.Body, haveTime 
 }
 
 // RequestBlockTransactions -
-func (ppm *PreProcessorMock) RequestBlockTransactions(body block.Body) int {
+func (ppm *PreProcessorMock) RequestBlockTransactions(body *block.Body) int {
 	if ppm.RequestBlockTransactionsCalled == nil {
 		return 0
 	}
@@ -98,25 +97,20 @@ func (ppm *PreProcessorMock) RequestTransactionsForMiniBlock(miniBlock *block.Mi
 }
 
 // ProcessMiniBlock -
-func (ppm *PreProcessorMock) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) error {
+func (ppm *PreProcessorMock) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) ([][]byte, error) {
 	if ppm.ProcessMiniBlockCalled == nil {
-		return nil
+		return nil, nil
 	}
 	return ppm.ProcessMiniBlockCalled(miniBlock, haveTime)
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks
 // as long as it has time
-func (ppm *PreProcessorMock) CreateAndProcessMiniBlocks(
-	maxTxSpaceRemained uint32,
-	maxMbSpaceRemained uint32,
-	haveTime func() bool,
-) (block.MiniBlockSlice, error) {
-
+func (ppm *PreProcessorMock) CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error) {
 	if ppm.CreateAndProcessMiniBlocksCalled == nil {
 		return nil, nil
 	}
-	return ppm.CreateAndProcessMiniBlocksCalled(maxTxSpaceRemained, maxMbSpaceRemained, haveTime)
+	return ppm.CreateAndProcessMiniBlocksCalled(haveTime)
 }
 
 // GetAllCurrentUsedTxs -
@@ -129,8 +123,5 @@ func (ppm *PreProcessorMock) GetAllCurrentUsedTxs() map[string]data.TransactionH
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ppm *PreProcessorMock) IsInterfaceNil() bool {
-	if ppm == nil {
-		return true
-	}
-	return false
+	return ppm == nil
 }

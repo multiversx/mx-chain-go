@@ -1,13 +1,13 @@
 package storage_test
 
 import (
-	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat/storage"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
@@ -83,7 +83,8 @@ func TestHeartbeatDbStorer_LoadKeysShouldWork(t *testing.T) {
 
 	storer := mock.NewStorerMock()
 	keys := [][]byte{[]byte("key1"), []byte("key2")}
-	keysBytes, _ := json.Marshal(keys)
+	msr := &mock.MarshalizerFake{}
+	keysBytes, _ := msr.Marshal(&batch.Batch{Data: keys})
 	_ = storer.Put([]byte("keys"), keysBytes)
 
 	hs, _ := storage.NewHeartbeatDbStorer(
@@ -92,8 +93,8 @@ func TestHeartbeatDbStorer_LoadKeysShouldWork(t *testing.T) {
 	)
 
 	restoredKeys, err := hs.LoadKeys()
-	assert.Equal(t, keys, restoredKeys)
 	assert.Nil(t, err)
+	assert.Equal(t, keys, restoredKeys)
 }
 
 func TestHeartbeatDbStorer_SaveKeys(t *testing.T) {
@@ -142,14 +143,20 @@ func TestHeartbeatDbStorer_LoadGenesisUnmarshalIssueShouldErr(t *testing.T) {
 func TestHeartbeatDbStorer_LoadGenesisTimeShouldWork(t *testing.T) {
 	t.Parallel()
 
-	expectedTime := time.Now()
 	storer := mock.NewStorerMock()
-	genTimeBytes, _ := json.Marshal(expectedTime)
+	msr := &mock.MarshalizerFake{}
+
+	dbt := &heartbeat.DbTimeStamp{
+		Timestamp: time.Now().UnixNano(),
+	}
+	expectedTime := time.Unix(0, dbt.Timestamp)
+
+	genTimeBytes, _ := msr.Marshal(dbt)
 	_ = storer.Put([]byte("genesisTime"), genTimeBytes)
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		storer,
-		&mock.MarshalizerFake{},
+		msr,
 	)
 
 	recGenTime, err := hs.LoadGenesisTime()
@@ -160,14 +167,19 @@ func TestHeartbeatDbStorer_LoadGenesisTimeShouldWork(t *testing.T) {
 func TestHeartbeatDbStorer_UpdateGenesisTimeShouldFindAndReplace(t *testing.T) {
 	t.Parallel()
 
-	expectedTime := time.Now()
 	storer := mock.NewStorerMock()
-	genTimeBytes, _ := json.Marshal(expectedTime)
+	msr := &mock.MarshalizerFake{}
+
+	dbt := &heartbeat.DbTimeStamp{
+		Timestamp: time.Now().UnixNano(),
+	}
+
+	genTimeBytes, _ := msr.Marshal(dbt)
 	_ = storer.Put([]byte("genesisTime"), genTimeBytes)
 
 	hs, _ := storage.NewHeartbeatDbStorer(
 		storer,
-		&mock.MarshalizerFake{},
+		msr,
 	)
 
 	newGenesisTime := time.Now()

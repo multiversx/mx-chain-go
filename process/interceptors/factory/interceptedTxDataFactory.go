@@ -12,13 +12,15 @@ import (
 )
 
 type interceptedTxDataFactory struct {
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	keyGen           crypto.KeyGenerator
-	singleSigner     crypto.SingleSigner
-	addrConverter    state.AddressConverter
-	shardCoordinator sharding.Coordinator
-	feeHandler       process.FeeHandler
+	protoMarshalizer       marshal.Marshalizer
+	signMarshalizer        marshal.Marshalizer
+	hasher                 hashing.Hasher
+	keyGen                 crypto.KeyGenerator
+	singleSigner           crypto.SingleSigner
+	pubkeyConverter        state.PubkeyConverter
+	shardCoordinator       sharding.Coordinator
+	feeHandler             process.FeeHandler
+	whiteListerVerifiedTxs process.WhiteListHandler
 }
 
 // NewInterceptedTxDataFactory creates an instance of interceptedTxDataFactory
@@ -26,7 +28,10 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if argument == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
-	if check.IfNil(argument.Marshalizer) {
+	if check.IfNil(argument.ProtoMarshalizer) {
+		return nil, process.ErrNilMarshalizer
+	}
+	if check.IfNil(argument.TxSignMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(argument.Hasher) {
@@ -38,8 +43,8 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if check.IfNil(argument.Signer) {
 		return nil, process.ErrNilSingleSigner
 	}
-	if check.IfNil(argument.AddrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(argument.AddressPubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(argument.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
@@ -47,15 +52,20 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if check.IfNil(argument.FeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
+	if check.IfNil(argument.WhiteListerVerifiedTxs) {
+		return nil, process.ErrNilWhiteListHandler
+	}
 
 	return &interceptedTxDataFactory{
-		marshalizer:      argument.Marshalizer,
-		hasher:           argument.Hasher,
-		keyGen:           argument.KeyGen,
-		singleSigner:     argument.Signer,
-		addrConverter:    argument.AddrConv,
-		shardCoordinator: argument.ShardCoordinator,
-		feeHandler:       argument.FeeHandler,
+		protoMarshalizer:       argument.ProtoMarshalizer,
+		signMarshalizer:        argument.TxSignMarshalizer,
+		hasher:                 argument.Hasher,
+		keyGen:                 argument.KeyGen,
+		singleSigner:           argument.Signer,
+		pubkeyConverter:        argument.AddressPubkeyConv,
+		shardCoordinator:       argument.ShardCoordinator,
+		feeHandler:             argument.FeeHandler,
+		whiteListerVerifiedTxs: argument.WhiteListerVerifiedTxs,
 	}, nil
 }
 
@@ -63,13 +73,15 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 func (itdf *interceptedTxDataFactory) Create(buff []byte) (process.InterceptedData, error) {
 	return transaction.NewInterceptedTransaction(
 		buff,
-		itdf.marshalizer,
+		itdf.protoMarshalizer,
+		itdf.signMarshalizer,
 		itdf.hasher,
 		itdf.keyGen,
 		itdf.singleSigner,
-		itdf.addrConverter,
+		itdf.pubkeyConverter,
 		itdf.shardCoordinator,
 		itdf.feeHandler,
+		itdf.whiteListerVerifiedTxs,
 	)
 }
 

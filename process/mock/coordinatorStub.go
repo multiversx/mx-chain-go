@@ -25,7 +25,10 @@ func (coordinator *CoordinatorStub) ComputeId(address state.AddressContainer) ui
 
 // SelfId -
 func (coordinator *CoordinatorStub) SelfId() uint32 {
-	return coordinator.SelfIdCalled()
+	if coordinator.SelfIdCalled != nil {
+		return coordinator.SelfIdCalled()
+	}
+	return 0
 }
 
 // SameShard -
@@ -40,8 +43,5 @@ func (coordinator *CoordinatorStub) CommunicationIdentifier(destShardID uint32) 
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (coordinator *CoordinatorStub) IsInterfaceNil() bool {
-	if coordinator == nil {
-		return true
-	}
-	return false
+	return coordinator == nil
 }

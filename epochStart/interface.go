@@ -1,8 +1,10 @@
 package epochStart
 
 import (
+	"context"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 )
@@ -12,25 +14,19 @@ type TriggerHandler interface {
 	ForceEpochStart(round uint64) error
 	IsEpochStart() bool
 	Epoch() uint32
-	ReceivedHeader(header data.HeaderHandler)
-	Update(round uint64)
+	MetaEpoch() uint32
+	Update(round uint64, nonce uint64)
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
-	SetProcessed(header data.HeaderHandler)
+	GetSavedStateKey() []byte
+	LoadState(key []byte) error
+	SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	SetFinalityAttestingRound(round uint64)
 	EpochFinalityAttestingRound() uint64
-	Revert(round uint64)
+	RevertStateToBlock(header data.HeaderHandler) error
 	SetCurrentEpochStartRound(round uint64)
-	IsInterfaceNil() bool
-}
-
-// PendingMiniBlocksHandler defines the actions which should be handled by pending miniblocks implementation
-type PendingMiniBlocksHandler interface {
-	PendingMiniBlockHeaders(lastNotarizedHeaders []data.HeaderHandler) ([]block.ShardMiniBlockHeader, error)
-	AddProcessedHeader(handler data.HeaderHandler) error
-	RevertHeader(handler data.HeaderHandler) error
-	GetNumPendingMiniBlocksForShard(shardID uint32) uint32
-	SetNumPendingMiniBlocksForShard(shardID uint32, numPendingMiniBlocks uint32)
+	RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler)
+	SetAppStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -55,11 +51,73 @@ type RequestHandler interface {
 	RequestMetaHeader(hash []byte)
 	RequestMetaHeaderByNonce(nonce uint64)
 	RequestShardHeaderByNonce(shardId uint32, nonce uint64)
+	RequestStartOfEpochMetaBlock(epoch uint32)
+	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)
+	RequestInterval() time.Duration
+	SetNumPeersToQuery(key string, intra int, cross int) error
+	GetNumPeersToQuery(key string) (int, int, error)
 	IsInterfaceNil() bool
 }
 
-// StartOfEpochNotifier defines what triggers should do for subscribed functions
-type StartOfEpochNotifier interface {
+// ActionHandler defines the action taken on epoch start event
+type ActionHandler interface {
+	EpochStartAction(hdr data.HeaderHandler)
+	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	NotifyOrder() uint32
+}
+
+// RegistrationHandler provides Register and Unregister functionality for the end of epoch events
+type RegistrationHandler interface {
+	RegisterHandler(handler ActionHandler)
+	UnregisterHandler(handler ActionHandler)
+}
+
+// Notifier defines which actions should be done for handling new epoch's events
+type Notifier interface {
 	NotifyAll(hdr data.HeaderHandler)
+	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	IsInterfaceNil() bool
+}
+
+// ValidatorStatisticsProcessorHandler defines the actions for processing validator statistics
+// needed in the epoch events
+type ValidatorStatisticsProcessorHandler interface {
+	Process(info data.ShardValidatorInfoHandler) error
+	Commit() ([]byte, error)
+	IsInterfaceNil() bool
+}
+
+// HeadersByHashSyncer defines the methods to sync all missing headers by hash
+type HeadersByHashSyncer interface {
+	SyncMissingHeadersByHash(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error
+	GetHeaders() (map[string]data.HeaderHandler, error)
+	ClearFields()
+	IsInterfaceNil() bool
+}
+
+// PendingMiniBlocksSyncHandler defines the methods to sync all pending miniblocks
+type PendingMiniBlocksSyncHandler interface {
+	SyncPendingMiniBlocks(miniBlockHeaders []block.MiniBlockHeader, ctx context.Context) error
+	GetMiniBlocks() (map[string]*block.MiniBlock, error)
+	ClearFields()
+	IsInterfaceNil() bool
+}
+
+// AccountsDBSyncer defines the methods for the accounts db syncer
+type AccountsDBSyncer interface {
+	GetSyncedTries() map[string]data.Trie
+	SyncAccounts(rootHash []byte) error
+	IsInterfaceNil() bool
+}
+
+// StartOfEpochMetaSyncer defines the methods to synchronize epoch start meta block from the network when nothing is known
+type StartOfEpochMetaSyncer interface {
+	SyncEpochStartMeta(waitTime time.Duration) (*block.MetaBlock, error)
+	IsInterfaceNil() bool
+}
+
+// NodesConfigProvider will provide the necessary information for start in epoch economics block creation
+type NodesConfigProvider interface {
+	GetNumTotalEligible() uint64
 	IsInterfaceNil() bool
 }

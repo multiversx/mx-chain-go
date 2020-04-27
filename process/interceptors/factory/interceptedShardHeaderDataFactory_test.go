@@ -24,7 +24,18 @@ func TestNewInterceptedShardHeaderDataFactory_NilMarshalizerShouldErr(t *testing
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.Marshalizer = nil
+	arg.ProtoMarshalizer = nil
+
+	imh, err := NewInterceptedShardHeaderDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+}
+
+func TestNewInterceptedShardHeaderDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.TxSignMarshalizer = nil
 
 	imh, err := NewInterceptedShardHeaderDataFactory(arg)
 	assert.True(t, check.IfNil(imh))
@@ -86,6 +97,17 @@ func TestNewInterceptedShardHeaderDataFactory_NilValidityAttesterShouldErr(t *te
 	assert.Equal(t, process.ErrNilValidityAttester, err)
 }
 
+func TestNewInterceptedShardHeaderDataFactory_NilNonceConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.NonceConverter = nil
+
+	imh, err := NewInterceptedShardHeaderDataFactory(arg)
+	assert.True(t, check.IfNil(imh))
+	assert.Equal(t, process.ErrNilUint64Converter, err)
+}
+
 func TestInterceptedShardHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	t.Parallel()
 
@@ -100,6 +122,7 @@ func TestInterceptedShardHeaderDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	emptyBlockHeader := &block.Header{}
 	emptyBlockHeaderBuff, _ := marshalizer.Marshal(emptyBlockHeader)
 	interceptedData, err := imh.Create(emptyBlockHeaderBuff)
+	assert.Nil(t, err)
 
 	_, ok := interceptedData.(*interceptedBlocks.InterceptedHeader)
 	assert.True(t, ok)

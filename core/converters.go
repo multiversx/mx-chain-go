@@ -1,8 +1,6 @@
 package core
 
 import (
-	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"strconv"
@@ -24,24 +22,6 @@ func ConvertBytes(bytes uint64) string {
 		return fmt.Sprintf("%.2f MB", float64(bytes)/1024.0/1024.0)
 	}
 	return fmt.Sprintf("%.2f GB", float64(bytes)/1024.0/1024.0/1024.0)
-}
-
-// ToB64 encodes the given buff to base64
-// This should be used only for display purposes!
-func ToB64(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-	return base64.StdEncoding.EncodeToString(buff)
-}
-
-// ToHex encodes the given buff to hex
-// This should be used only for display purposes!
-func ToHex(buff []byte) string {
-	if buff == nil {
-		return "<NIL>"
-	}
-	return hex.EncodeToString(buff)
 }
 
 // CalculateHash marshalizes the interface and calculates its hash
@@ -131,4 +111,33 @@ func IsUnknownEpochIdentifier(identifier []byte) (bool, error) {
 	}
 
 	return false, nil
+}
+
+// CommunicationIdentifierBetweenShards is used to generate the identifier between shardID1 and shardID2
+// identifier is generated such as the first shard from identifier is always smaller or equal than the last
+func CommunicationIdentifierBetweenShards(shardId1 uint32, shardId2 uint32) string {
+	if shardId1 == AllShardId || shardId2 == AllShardId {
+		return ShardIdToString(AllShardId)
+	}
+
+	if shardId1 == shardId2 {
+		return ShardIdToString(shardId1)
+	}
+
+	if shardId1 < shardId2 {
+		return ShardIdToString(shardId1) + ShardIdToString(shardId2)
+	}
+
+	return ShardIdToString(shardId2) + ShardIdToString(shardId1)
+}
+
+// ShardIdToString returns the string according to the shard id
+func ShardIdToString(shardId uint32) string {
+	if shardId == MetachainShardId {
+		return "_META"
+	}
+	if shardId == AllShardId {
+		return "_ALL"
+	}
+	return fmt.Sprintf("_%d", shardId)
 }

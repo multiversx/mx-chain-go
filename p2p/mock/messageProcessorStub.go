@@ -6,18 +6,19 @@ import (
 
 // MessageProcessorStub -
 type MessageProcessorStub struct {
-	ProcessMessageCalled func(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error
+	ProcessMessageCalled func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
 }
 
 // ProcessReceivedMessage -
-func (mps *MessageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, broadcastHandler func(buffToSend []byte)) error {
-	return mps.ProcessMessageCalled(message, broadcastHandler)
+func (mps *MessageProcessorStub) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
+	if mps.ProcessMessageCalled != nil {
+		return mps.ProcessMessageCalled(message, fromConnectedPeer)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (mps *MessageProcessorStub) IsInterfaceNil() bool {
-	if mps == nil {
-		return true
-	}
-	return false
+	return mps == nil
 }

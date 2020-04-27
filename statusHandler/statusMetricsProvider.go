@@ -1,7 +1,10 @@
 package statusHandler
 
 import (
+	"strings"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 // statusMetrics will handle displaying at /node/details all metrics already collected for other status handlers
@@ -91,13 +94,68 @@ func (sm *statusMetrics) SetStringValue(key string, value string) {
 func (sm *statusMetrics) Close() {
 }
 
-// StatusMetricsMap will return all metrics in a map
-func (sm *statusMetrics) StatusMetricsMap() (map[string]interface{}, error) {
+// StatusMetricsMapWithoutP2P will return the non-p2p metrics in a map
+func (sm *statusMetrics) StatusMetricsMapWithoutP2P() map[string]interface{} {
 	statusMetricsMap := make(map[string]interface{})
 	sm.nodeMetrics.Range(func(key, value interface{}) bool {
+		keyString := key.(string)
+		if strings.Contains(keyString, "_p2p_") {
+			return true
+		}
+
 		statusMetricsMap[key.(string)] = value
 		return true
 	})
 
-	return statusMetricsMap, nil
+	return statusMetricsMap
+}
+
+// StatusP2pMetricsMap will return the p2p metrics in a map
+func (sm *statusMetrics) StatusP2pMetricsMap() map[string]interface{} {
+	statusMetricsMap := make(map[string]interface{})
+	sm.nodeMetrics.Range(func(key, value interface{}) bool {
+		keyString := key.(string)
+		if !strings.Contains(keyString, "_p2p_") {
+			return true
+		}
+
+		statusMetricsMap[key.(string)] = value
+		return true
+	})
+
+	return statusMetricsMap
+}
+
+// EpochMetrics will return metrics related to current epoch
+func (sm *statusMetrics) EpochMetrics() map[string]interface{} {
+	epochMetrics := make(map[string]interface{})
+	var currentEpoch uint32
+	var roundNumberAtEpochStart uint64
+	var roundsPerEpoch uint32
+	var currentRound uint64
+	var ok bool
+	currentEpochObj, ok := sm.nodeMetrics.Load(core.MetricEpochNumber)
+	if ok {
+		currentEpoch = uint32(currentEpochObj.(uint64))
+	}
+	roundNumberAtEpochStartObj, ok := sm.nodeMetrics.Load(core.MetricRoundAtEpochStart)
+	if ok {
+		roundNumberAtEpochStart = roundNumberAtEpochStartObj.(uint64)
+	}
+	roundsPerEpochObj, ok := sm.nodeMetrics.Load(core.MetricRoundsPerEpoch)
+	if ok {
+		roundsPerEpoch = uint32(roundsPerEpochObj.(uint64))
+	}
+	currentRoundObj, ok := sm.nodeMetrics.Load(core.MetricCurrentRound)
+	if ok {
+		currentRound = currentRoundObj.(uint64)
+	}
+
+	epochMetrics[core.MetricEpochNumber] = currentEpoch
+	epochMetrics[core.MetricRoundAtEpochStart] = roundNumberAtEpochStart
+	epochMetrics[core.MetricRoundsPerEpoch] = roundsPerEpoch
+	epochMetrics[core.MetricCurrentRound] = currentRound
+	epochMetrics[core.MetricRoundsPassedInCurrentEpoch] = currentRound - roundNumberAtEpochStart
+
+	return epochMetrics
 }

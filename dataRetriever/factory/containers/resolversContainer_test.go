@@ -1,8 +1,11 @@
 package containers_test
 
 import (
+	"errors"
+	"sync/atomic"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
@@ -15,7 +18,7 @@ func TestNewResolversContainer_ShouldWork(t *testing.T) {
 
 	c := containers.NewResolversContainer()
 
-	assert.NotNil(t, c)
+	assert.False(t, check.IfNil(c))
 }
 
 //------- Add
@@ -118,7 +121,7 @@ func TestResolversContainer_GetNotFoundShouldErr(t *testing.T) {
 	valRecovered, err := c.Get(keyNotFound)
 
 	assert.Nil(t, valRecovered)
-	assert.Equal(t, process.ErrInvalidContainerKey, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidContainerKey))
 }
 
 func TestResolversContainer_GetWrongTypeShouldErr(t *testing.T) {
@@ -203,7 +206,7 @@ func TestResolversContainer_RemoveShouldWork(t *testing.T) {
 	valRecovered, err := c.Get(key)
 
 	assert.Nil(t, valRecovered)
-	assert.Equal(t, process.ErrInvalidContainerKey, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidContainerKey))
 }
 
 //------- Len
@@ -221,4 +224,122 @@ func TestResolversContainer_LenShouldWork(t *testing.T) {
 
 	c.Remove("key1")
 	assert.Equal(t, 1, c.Len())
+}
+
+//------- ResolverKeys
+
+func TestResolversContainer_ResolverKeys(t *testing.T) {
+	t.Parallel()
+
+	c := containers.NewResolversContainer()
+
+	_ = c.Add("key1", &mock.ResolverStub{})
+	_ = c.Add("key0", &mock.ResolverStub{})
+	_ = c.Add("key2", &mock.ResolverStub{})
+	_ = c.Add("a", &mock.ResolverStub{})
+
+	expectedString := "a, key0, key1, key2"
+
+	assert.Equal(t, expectedString, c.ResolverKeys())
+}
+
+//-------- Iterate
+
+func TestResolversContainer_IterateNilHandlerShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "should not have paniced")
+		}
+	}()
+
+	c := containers.NewResolversContainer()
+
+	_ = c.Add("key1", &mock.ResolverStub{})
+	_ = c.Add("key2", &mock.ResolverStub{})
+
+	c.Iterate(nil)
+}
+
+func TestResolversContainer_IterateNotAValidKeyShouldWorkAndNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "should not have paniced")
+		}
+	}()
+
+	c := containers.NewResolversContainer()
+
+	_ = c.Add("key1", &mock.ResolverStub{})
+
+	runs := uint32(0)
+	c.Iterate(func(key string, resolver dataRetriever.Resolver) bool {
+		atomic.AddUint32(&runs, 1)
+		return true
+	})
+
+	assert.Equal(t, uint32(1), atomic.LoadUint32(&runs))
+}
+
+func TestResolversContainer_IterateNotAValidValueShouldWorkAndNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, "should not have paniced")
+		}
+	}()
+
+	c := containers.NewResolversContainer()
+
+	_ = c.Add("key1", &mock.ResolverStub{})
+	c.Objects().Set("key 2", struct{}{})
+
+	runs := uint32(0)
+	c.Iterate(func(key string, resolver dataRetriever.Resolver) bool {
+		atomic.AddUint32(&runs, 1)
+		return true
+	})
+
+	assert.Equal(t, uint32(1), atomic.LoadUint32(&runs))
+}
+
+func TestResolversContainer_Iterate(t *testing.T) {
+	t.Parallel()
+
+	c := containers.NewResolversContainer()
+
+	_ = c.Add("key1", &mock.ResolverStub{})
+	_ = c.Add("key2", &mock.ResolverStub{})
+
+	runs := uint32(0)
+	c.Iterate(func(key string, resolver dataRetriever.Resolver) bool {
+		atomic.AddUint32(&runs, 1)
+		return true
+	})
+
+	assert.Equal(t, uint32(2), atomic.LoadUint32(&runs))
+}
+
+func TestResolversContainer_IterateEarlyExitShouldWork(t *testing.T) {
+	t.Parallel()
+
+	c := containers.NewResolversContainer()
+
+	_ = c.Add("key1", &mock.ResolverStub{})
+	_ = c.Add("key2", &mock.ResolverStub{})
+
+	runs := uint32(0)
+	c.Iterate(func(key string, resolver dataRetriever.Resolver) bool {
+		atomic.AddUint32(&runs, 1)
+		return false
+	})
+
+	assert.Equal(t, uint32(1), atomic.LoadUint32(&runs))
 }

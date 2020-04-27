@@ -13,7 +13,7 @@ type CacherStub struct {
 	KeysCalled            func() [][]byte
 	LenCalled             func() int
 	MaxSizeCalled         func() int
-	RegisterHandlerCalled func(func(key []byte))
+	RegisterHandlerCalled func(func(key []byte, value interface{}))
 }
 
 // Clear -
@@ -72,8 +72,10 @@ func (cs *CacherStub) MaxSize() int {
 }
 
 // RegisterHandler -
-func (cs *CacherStub) RegisterHandler(handler func(key []byte)) {
-	cs.RegisterHandlerCalled(handler)
+func (cs *CacherStub) RegisterHandler(handler func(key []byte, value interface{})) {
+	if cs.RegisterHandlerCalled != nil {
+		cs.RegisterHandlerCalled(handler)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

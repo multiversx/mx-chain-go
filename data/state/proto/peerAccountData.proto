@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "state";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// SignRate is used to keep the number of success and failed signings
+message SignRate {
+    uint32 NumSuccess = 1;
+    uint32 NumFailure = 2;
+}
+
+// ValidatorApiResponse represents the data which is fetched from each validator for returning it in API call
+message ValidatorApiResponse {
+    float TempRating = 1 [(gogoproto.jsontag) = "tempRating"];
+    uint32 NumLeaderSuccess = 2 [(gogoproto.jsontag) = "numLeaderSuccess"];
+    uint32 NumLeaderFailure = 3 [(gogoproto.jsontag) = "numLeaderFailure"];
+    uint32 NumValidatorSuccess = 4 [(gogoproto.jsontag) = "numValidatorSuccess"];
+    uint32 NumValidatorFailure = 5 [(gogoproto.jsontag) = "numValidatorFailure"];
+    float Rating = 6 [(gogoproto.jsontag) = "rating"];
+    float RatingModifier = 7 [(gogoproto.jsontag) = "ratingModifier"];
+    uint32 TotalNumLeaderSuccess = 8 [(gogoproto.jsontag) = "totalNumLeaderSuccess"];
+    uint32 TotalNumLeaderFailure = 9 [(gogoproto.jsontag) = "totalNumLeaderFailure"];
+    uint32 TotalNumValidatorSuccess = 10 [(gogoproto.jsontag) = "totalNumValidatorSuccess"];
+    uint32 TotalNumValidatorFailure = 11 [(gogoproto.jsontag) = "totalNumValidatorFailure"];
+}
+
+// PeerAccountData represents the data that defines the PeerAccount
+message PeerAccountData {
+    bytes BLSPublicKey = 1;
+    bytes RewardAddress = 2;
+    bytes Stake = 3 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    uint32 ShardId = 4;
+    SignRate ValidatorSuccessRate = 5 [(gogoproto.nullable) = false];
+    SignRate LeaderSuccessRate = 6 [(gogoproto.nullable) = false];
+    uint32 Rating = 7;
+    uint32 TempRating = 8;
+    bytes AccumulatedFees = 9 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    uint32 NumSelectedInSuccessBlocks = 10;
+	uint32 IndexInList = 11;
+	string List        = 12;
+    uint32 ConsecutiveProposerMisses = 13;
+    SignRate TotalValidatorSuccessRate = 14 [(gogoproto.nullable) = false];
+    SignRate TotalLeaderSuccessRate = 15 [(gogoproto.nullable) = false];
+    uint64 Nonce = 16;
+    uint32 UnStakedEpoch = 17;
+}

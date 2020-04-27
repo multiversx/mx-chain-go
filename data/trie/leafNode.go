@@ -9,10 +9,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
-	protobuf "github.com/ElrondNetwork/elrond-go/data/trie/proto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
+
+var _ = node(&leafNode{})
 
 func newLeafNode(key, value []byte, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*leafNode, error) {
 	if check.IfNil(marshalizer) {
@@ -23,7 +24,7 @@ func newLeafNode(key, value []byte, marshalizer marshal.Marshalizer, hasher hash
 	}
 
 	return &leafNode{
-		CollapsedLn: protobuf.CollapsedLn{
+		CollapsedLn: CollapsedLn{
 			Key:   key,
 			Value: value,
 		},
@@ -70,7 +71,7 @@ func (ln *leafNode) getCollapsed() (node, error) {
 func (ln *leafNode) setHash() error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
-		return err
+		return fmt.Errorf("setHash error %w", err)
 	}
 	if ln.getHash() != nil {
 		return nil
@@ -102,7 +103,7 @@ func (ln *leafNode) hashChildren() error {
 func (ln *leafNode) hashNode() ([]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("hashNode error %w", err)
 	}
 	return encodeNodeAndGetHash(ln)
 }
@@ -110,7 +111,7 @@ func (ln *leafNode) hashNode() ([]byte, error) {
 func (ln *leafNode) commit(force bool, _ byte, _ data.DBWriteCacher, targetDb data.DBWriteCacher) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
-		return err
+		return fmt.Errorf("commit error %w", err)
 	}
 
 	shouldNotCommit := !ln.dirty && !force
@@ -125,7 +126,7 @@ func (ln *leafNode) commit(force bool, _ byte, _ data.DBWriteCacher, targetDb da
 func (ln *leafNode) getEncodedNode() ([]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getEncodedNode error %w", err)
 	}
 	marshaledNode, err := ln.marsh.Marshal(ln)
 	if err != nil {
@@ -150,7 +151,7 @@ func (ln *leafNode) isPosCollapsed(_ int) bool {
 func (ln *leafNode) tryGet(key []byte, _ data.DBWriteCacher) (value []byte, err error) {
 	err = ln.isEmptyOrNil()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("tryGet error %w", err)
 	}
 	if bytes.Equal(key, ln.Key) {
 		return ln.Value, nil
@@ -162,7 +163,7 @@ func (ln *leafNode) tryGet(key []byte, _ data.DBWriteCacher) (value []byte, err 
 func (ln *leafNode) getNext(key []byte, _ data.DBWriteCacher) (node, []byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("getNext error %w", err)
 	}
 	if bytes.Equal(key, ln.Key) {
 		return nil, nil, nil
@@ -173,7 +174,7 @@ func (ln *leafNode) getNext(key []byte, _ data.DBWriteCacher) (node, []byte, err
 func (ln *leafNode) insert(n *leafNode, _ data.DBWriteCacher) (bool, node, [][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
-		return false, nil, [][]byte{}, err
+		return false, nil, [][]byte{}, fmt.Errorf("insert error %w", err)
 	}
 
 	oldHash := make([][]byte, 0)
@@ -253,10 +254,10 @@ func (ln *leafNode) reduceNode(pos int) (node, error) {
 
 func (ln *leafNode) isEmptyOrNil() error {
 	if ln == nil {
-		return ErrNilNode
+		return ErrNilLeafNode
 	}
 	if ln.Value == nil {
-		return ErrEmptyNode
+		return ErrEmptyLeafNode
 	}
 	return nil
 }
@@ -311,7 +312,7 @@ func (ln *leafNode) deepClone() node {
 func (ln *leafNode) getDirtyHashes(hashes data.ModifiedHashes) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
-		return err
+		return fmt.Errorf("getDirtyHashes error %w", err)
 	}
 
 	if !ln.isDirty() {
@@ -334,15 +335,14 @@ func (ln *leafNode) setDirty(dirty bool) {
 	ln.dirty = dirty
 }
 
-func (ln *leafNode) loadChildren(syncer *trieSyncer) error {
-	syncer.interceptedNodes.Remove(ln.hash)
-	return nil
+func (ln *leafNode) loadChildren(_ func([]byte) (node, error)) ([][]byte, []node, error) {
+	return nil, nil, nil
 }
 
 func (ln *leafNode) getAllLeaves(leaves map[string][]byte, key []byte, _ data.DBWriteCacher, _ marshal.Marshalizer) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
-		return err
+		return fmt.Errorf("getAllLeaves error %w", err)
 	}
 
 	nodeKey := append(key, ln.Key...)

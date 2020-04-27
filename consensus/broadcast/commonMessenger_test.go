@@ -7,9 +7,23 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
+
+func newTestBlockBody() *block.Body {
+	return &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				TxHashes:        [][]byte{[]byte("txh1"), []byte("txh2")},
+				ReceiverShardID: 0,
+				SenderShardID:   0,
+				Type:            0,
+			},
+		},
+	}
+}
 
 func TestCommonMessenger_BroadcastConsensusMessageShouldErrWhenSignMessageFail(t *testing.T) {
 	err := errors.New("sign message error")

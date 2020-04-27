@@ -9,6 +9,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/mock"
@@ -173,6 +176,78 @@ func TestPruningStorer_PutAndGetShouldWork(t *testing.T) {
 	assert.Equal(t, testVal, res)
 }
 
+func TestPruningStorer_Put_EpochWhichWasSetDoesNotExistShouldNotFind(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+
+	persistersByPath := make(map[string]storage.Persister)
+	persistersByPath["Epoch_0"] = memorydb.New()
+	args.PersisterFactory = &mock.PersisterFactoryStub{
+		// simulate an opening of an existing database from the file path by saving activePersisters in a map based on their path
+		CreateCalled: func(path string) (storage.Persister, error) {
+			if _, ok := persistersByPath[path]; ok {
+				return persistersByPath[path], nil
+			}
+			newPers := memorydb.New()
+			persistersByPath[path] = newPers
+
+			return newPers, nil
+		},
+	}
+	ps, _ := pruning.NewPruningStorer(args)
+
+	expectedEpoch := uint32(37)
+	ps.SetEpochForPutOperation(expectedEpoch)
+
+	testKey, testVal := []byte("key1"), []byte("val1")
+	_ = ps.Put(testKey, testVal) // the persister for epoch 37 does not exist - will put in storer 0
+
+	res, _ := ps.Get(testKey)
+	assert.Equal(t, testVal, res)
+}
+
+func TestPruningStorer_Put_ShouldPutInSpecifiedEpoch(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+
+	persistersByPath := make(map[string]storage.Persister)
+	persistersByPath["Epoch_0"] = memorydb.New()
+	expectedEpoch := uint32(37)
+	key := fmt.Sprintf("Epoch_%d", expectedEpoch)
+	persistersByPath[key] = memorydb.New()
+	args.PersisterFactory = &mock.PersisterFactoryStub{
+		// simulate an opening of an existing database from the file path by saving activePersisters in a map based on their path
+		CreateCalled: func(path string) (storage.Persister, error) {
+			if _, ok := persistersByPath[path]; ok {
+				return persistersByPath[path], nil
+			}
+			newPers := memorydb.New()
+			persistersByPath[path] = newPers
+
+			return newPers, nil
+		},
+	}
+	ps, _ := pruning.NewPruningStorer(args)
+	ps.SetEpochForPutOperation(expectedEpoch)
+
+	_ = ps.ChangeEpochSimple(expectedEpoch) // only to add the persister to the map
+	_ = ps.ChangeEpochSimple(0)             // set back
+
+	testKey, testVal := []byte("key1"), []byte("val1")
+	_ = ps.Put(testKey, testVal) // the persister for epoch 37 exists - will put it there
+
+	ps.ClearCache()
+
+	_, err := ps.GetFromEpoch(testKey, 0)
+	assert.NotNil(t, err)
+
+	res, err := ps.GetFromEpoch(testKey, expectedEpoch)
+	assert.Nil(t, err)
+	assert.Equal(t, testVal, res)
+}
+
 func TestPruningStorer_RemoveShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -207,8 +282,8 @@ func TestPruningStorer_DestroyUnitShouldWork(t *testing.T) {
 
 	// simulate the passing of 2 epochs in order to have more persisters.
 	// we will store 3 epochs with 2 active. all 3 should be removed
-	_ = ps.ChangeEpoch(1)
-	_ = ps.ChangeEpoch(2)
+	_ = ps.ChangeEpochSimple(1)
+	_ = ps.ChangeEpochSimple(2)
 
 	err := ps.DestroyUnit()
 	assert.Nil(t, err)
@@ -263,7 +338,7 @@ func TestNewPruningStorer_Has_MultiplePersistersShouldWork(t *testing.T) {
 	err = ps.Has(testKey)
 	assert.Nil(t, err)
 
-	_ = ps.ChangeEpoch(1)
+	_ = ps.ChangeEpochSimple(1)
 	ps.ClearCache()
 
 	// data should still be available in the closed persister
@@ -275,7 +350,7 @@ func TestNewPruningStorer_Has_MultiplePersistersShouldWork(t *testing.T) {
 	assert.NotNil(t, err)
 
 	// after one more epoch change, the persister which holds the data should be removed and the key should not be available
-	_ = ps.ChangeEpoch(2)
+	_ = ps.ChangeEpochSimple(2)
 	ps.ClearCache()
 
 	err = ps.HasInEpoch(testKey, 0)
@@ -302,7 +377,7 @@ func TestNewPruningStorer_OldDataHasToBeRemoved(t *testing.T) {
 	assert.Equal(t, testVal, res)
 
 	// now change the epoch once
-	err = ps.ChangeEpoch(1)
+	err = ps.ChangeEpochSimple(1)
 	assert.Nil(t, err)
 
 	ps.ClearCache()
@@ -313,7 +388,7 @@ func TestNewPruningStorer_OldDataHasToBeRemoved(t *testing.T) {
 	assert.Equal(t, testVal, res)
 
 	// now change the epoch again
-	err = ps.ChangeEpoch(2)
+	err = ps.ChangeEpochSimple(2)
 	assert.Nil(t, err)
 
 	ps.ClearCache()
@@ -361,7 +436,7 @@ func TestNewPruningStorer_GetDataFromClosedPersister(t *testing.T) {
 	assert.Equal(t, testVal, res)
 
 	// now change the epoch so the first persister will be closed as only one persister is active at a moment.
-	err = ps.ChangeEpoch(1)
+	err = ps.ChangeEpochSimple(1)
 	assert.Nil(t, err)
 
 	ps.ClearCache()
@@ -395,9 +470,9 @@ func TestNewPruningStorer_ChangeEpochDbsShouldNotBeDeletedIfPruningIsDisabled(t 
 	ps, _ := pruning.NewPruningStorer(args)
 
 	// change the epoch multiple times
-	_ = ps.ChangeEpoch(1)
-	_ = ps.ChangeEpoch(2)
-	_ = ps.ChangeEpoch(3)
+	_ = ps.ChangeEpochSimple(1)
+	_ = ps.ChangeEpochSimple(2)
+	_ = ps.ChangeEpochSimple(3)
 
 	assert.Equal(t, 1, len(persistersByPath))
 }
@@ -439,23 +514,202 @@ func TestPruningStorer_SearchFirst(t *testing.T) {
 	assert.Equal(t, testVal, res)
 
 	// now skip 1 epoch and data should still be available
-	_ = ps.ChangeEpoch(1)
+	_ = ps.ChangeEpochSimple(1)
 	ps.ClearCache()
 	res, _ = ps.SearchFirst(testKey)
 	assert.Equal(t, testVal, res)
 
 	// skip one more epoch and data should still be available
-	_ = ps.ChangeEpoch(2)
+	_ = ps.ChangeEpochSimple(2)
 	ps.ClearCache()
 	res, _ = ps.SearchFirst(testKey)
 	assert.Equal(t, testVal, res)
 
 	// when we skip one more epoch, the number of active persisters is exceeded and data shouldn't be available anymore
-	_ = ps.ChangeEpoch(1)
+	_ = ps.ChangeEpochSimple(3)
 	ps.ClearCache()
 	res, err = ps.SearchFirst(testKey)
 	assert.Nil(t, res)
 	assert.True(t, errors.Is(err, storage.ErrKeyNotFound))
+}
+
+func TestPruningStorer_ChangeEpochWithKeepingFromOldestEpochInMetaBlock(t *testing.T) {
+	t.Parallel()
+
+	persistersByPath := make(map[string]storage.Persister)
+	persistersByPath["Epoch_0"] = memorydb.New()
+	args := getDefaultArgs()
+	args.DbPath = "Epoch_0"
+	args.PersisterFactory = &mock.PersisterFactoryStub{
+		// simulate an opening of an existing database from the file path by saving activePersisters in a map based on their path
+		CreateCalled: func(path string) (storage.Persister, error) {
+			if _, ok := persistersByPath[path]; ok {
+				return persistersByPath[path], nil
+			}
+			newPers := memorydb.New()
+			persistersByPath[path] = newPers
+
+			return newPers, nil
+		},
+	}
+	args.NumOfActivePersisters = 2
+	args.NumOfEpochsToKeep = 4
+
+	ps, _ := pruning.NewPruningStorer(args)
+	_ = ps.ChangeEpochSimple(1)
+	_ = ps.ChangeEpochSimple(2)
+	_ = ps.ChangeEpochSimple(3)
+
+	metaBlock := &block.MetaBlock{
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{{Epoch: 1}},
+			Economics:            block.Economics{},
+		},
+		Epoch: 4,
+	}
+
+	err := ps.ChangeEpoch(metaBlock)
+	assert.NoError(t, err)
+
+	epochs := ps.GetActivePersistersEpochs()
+	assert.Equal(t, 4, len(epochs))
+
+	metaBlock = &block.MetaBlock{
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{{Epoch: 1}},
+			Economics:            block.Economics{},
+		},
+		Epoch: 5,
+	}
+
+	err = ps.ChangeEpoch(metaBlock)
+	assert.NoError(t, err)
+
+	epochs = ps.GetActivePersistersEpochs()
+	assert.Equal(t, 5, len(epochs))
+
+	// the limit of 5 is exceeded, next epoch the num of active persisters will return to 2
+	metaBlock = &block.MetaBlock{
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{{Epoch: 1}},
+			Economics:            block.Economics{},
+		},
+		Epoch: 6,
+	}
+
+	err = ps.ChangeEpoch(metaBlock)
+	assert.NoError(t, err)
+
+	assert.Equal(t, 2, len(ps.GetActivePersistersEpochs()))
+}
+
+func TestPruningStorer_ChangeEpochShouldUseMetaBlockFromEpochPrepare(t *testing.T) {
+	t.Parallel()
+
+	persistersByPath := make(map[string]storage.Persister)
+	persistersByPath["Epoch_0"] = memorydb.New()
+	args := getDefaultArgs()
+	args.DbPath = "Epoch_0"
+	args.PersisterFactory = &mock.PersisterFactoryStub{
+		// simulate an opening of an existing database from the file path by saving activePersisters in a map based on their path
+		CreateCalled: func(path string) (storage.Persister, error) {
+			if _, ok := persistersByPath[path]; ok {
+				return persistersByPath[path], nil
+			}
+			newPers := memorydb.New()
+			persistersByPath[path] = newPers
+
+			return newPers, nil
+		},
+	}
+	args.NumOfActivePersisters = 2
+	args.NumOfEpochsToKeep = 4
+
+	ps, _ := pruning.NewPruningStorer(args)
+	_ = ps.ChangeEpochSimple(1)
+	_ = ps.ChangeEpochSimple(2)
+	_ = ps.ChangeEpochSimple(3)
+	assert.Equal(t, 2, len(ps.GetActivePersistersEpochs()))
+
+	metaBlock := &block.MetaBlock{
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{{Epoch: 2}},
+			Economics:            block.Economics{},
+		},
+		Epoch: 7,
+	}
+
+	err := ps.PrepareChangeEpoch(metaBlock)
+	assert.NoError(t, err)
+
+	_ = ps.ChangeEpoch(&block.Header{Epoch: 4})
+	assert.Equal(t, 3, len(ps.GetActivePersistersEpochs()))
+}
+
+func TestPruningStorer_ChangeEpochWithExisting(t *testing.T) {
+	t.Parallel()
+
+	persistersByPath := make(map[string]storage.Persister)
+	persistersByPath["Epoch_0/Shard_0/id"] = memorydb.New()
+	args := getDefaultArgs()
+	args.DbPath = "Epoch_0"
+	args.PersisterFactory = &mock.PersisterFactoryStub{
+		// simulate an opening of an existing database from the file path by saving activePersisters in a map based on their path
+		CreateCalled: func(path string) (storage.Persister, error) {
+			if _, ok := persistersByPath[path]; ok {
+				return persistersByPath[path], nil
+			}
+			newPers := memorydb.New()
+			persistersByPath[path] = newPers
+
+			return newPers, nil
+		},
+	}
+	args.NumOfActivePersisters = 2
+	args.NumOfEpochsToKeep = 3
+
+	ps, _ := pruning.NewPruningStorer(args)
+	key0 := []byte("key_ep0")
+	val0 := []byte("value_key_ep0")
+	key1 := []byte("key_ep1")
+	val1 := []byte("value_key_ep1")
+	key2 := []byte("key_ep2")
+	val2 := []byte("value_key_ep2")
+
+	err := ps.Put(key0, val0)
+	require.Nil(t, err)
+
+	_ = ps.ChangeEpochSimple(1)
+	ps.ClearCache()
+	err = ps.Put(key1, val1)
+	require.Nil(t, err)
+
+	_ = ps.ChangeEpochSimple(2)
+	ps.ClearCache()
+	err = ps.Put(key2, val2)
+	require.Nil(t, err)
+
+	err = ps.ChangeEpochSimple(1)
+	require.Nil(t, err)
+	ps.ClearCache()
+
+	err = ps.ChangeEpochSimple(1)
+	require.Nil(t, err)
+	ps.ClearCache()
+	restauredVal0, err := ps.Get(key0)
+	require.Nil(t, err)
+	require.Equal(t, val0, restauredVal0)
+
+	restauredVal1, err := ps.Get(key1)
+	require.Nil(t, err)
+	require.Equal(t, val1, restauredVal1)
+
+	err = ps.ChangeEpochSimple(2)
+	require.Nil(t, err)
+	ps.ClearCache()
+	restauredVal2, err := ps.Get(key2)
+	require.Nil(t, err)
+	require.Equal(t, val2, restauredVal2)
 }
 
 func TestRegex(t *testing.T) {
@@ -487,7 +741,7 @@ func TestDirectories(t *testing.T) {
 
 	pruning.RemoveDirectoryIfEmpty(pathParameter)
 
-	if _, err := os.Stat(pathParameter); !os.IsNotExist(err) {
+	if _, err = os.Stat(pathParameter); !os.IsNotExist(err) {
 		assert.Fail(t, "directory should have been removed")
 	}
 

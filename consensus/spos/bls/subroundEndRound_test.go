@@ -37,7 +37,7 @@ func initSubroundEndRoundWithContainer(container *mock.ConsensusCoreMock) bls.Su
 	srEndRound, _ := bls.NewSubroundEndRound(
 		sr,
 		extend,
-		processingThresholdPercent,
+		bls.ProcessingThresholdPercent,
 		displayStatistics,
 	)
 
@@ -54,7 +54,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T)
 	srEndRound, err := bls.NewSubroundEndRound(
 		nil,
 		extend,
-		processingThresholdPercent,
+		bls.ProcessingThresholdPercent,
 		displayStatistics,
 	)
 
@@ -86,7 +86,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
-		processingThresholdPercent,
+		bls.ProcessingThresholdPercent,
 		displayStatistics,
 	)
 
@@ -118,7 +118,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
-		processingThresholdPercent,
+		bls.ProcessingThresholdPercent,
 		displayStatistics,
 	)
 
@@ -151,7 +151,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
-		processingThresholdPercent,
+		bls.ProcessingThresholdPercent,
 		displayStatistics,
 	)
 
@@ -183,7 +183,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultisignerShouldFail(t *testing
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
-		processingThresholdPercent,
+		bls.ProcessingThresholdPercent,
 		displayStatistics,
 	)
 
@@ -215,7 +215,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRounderShouldFail(t *testing.T) 
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
-		processingThresholdPercent,
+		bls.ProcessingThresholdPercent,
 		displayStatistics,
 	)
 
@@ -247,7 +247,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
-		processingThresholdPercent,
+		bls.ProcessingThresholdPercent,
 		displayStatistics,
 	)
 
@@ -279,7 +279,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
 		extend,
-		processingThresholdPercent,
+		bls.ProcessingThresholdPercent,
 		displayStatistics,
 	)
 
@@ -333,7 +333,6 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 
 	blProcMock := mock.InitBlockProcessorMock()
 	blProcMock.CommitBlockCalled = func(
-		blockChain data.ChainHandler,
 		header data.HeaderHandler,
 		body data.BodyHandler,
 	) error {

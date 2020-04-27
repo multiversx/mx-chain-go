@@ -18,9 +18,9 @@ import (
 )
 
 type intermediateResultsProcessor struct {
-	adrConv   state.AddressConverter
-	blockType block.Type
-	currTxs   dataRetriever.TransactionCacher
+	pubkeyConv state.PubkeyConverter
+	blockType  block.Type
+	currTxs    dataRetriever.TransactionCacher
 
 	*basePostProcessor
 }
@@ -30,7 +30,7 @@ func NewIntermediateResultsProcessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	coordinator sharding.Coordinator,
-	adrConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 	store dataRetriever.StorageService,
 	blockType block.Type,
 	currTxs dataRetriever.TransactionCacher,
@@ -44,8 +44,8 @@ func NewIntermediateResultsProcessor(
 	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNil(adrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(store) {
 		return nil, process.ErrNilStorage
@@ -60,11 +60,12 @@ func NewIntermediateResultsProcessor(
 		shardCoordinator: coordinator,
 		store:            store,
 		storageType:      dataRetriever.UnsignedTransactionUnit,
+		mapTxToResult:    make(map[string][]string),
 	}
 
 	irp := &intermediateResultsProcessor{
 		basePostProcessor: base,
-		adrConv:           adrConv,
+		pubkeyConv:        pubkeyConv,
 		blockType:         blockType,
 		currTxs:           currTxs,
 	}
@@ -75,12 +76,12 @@ func NewIntermediateResultsProcessor(
 }
 
 // CreateAllInterMiniBlocks returns the cross shard miniblocks for the current round created from the smart contract results
-func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*block.MiniBlock {
+func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.MiniBlock {
 	miniBlocks := make(map[uint32]*block.MiniBlock, int(irp.shardCoordinator.NumberOfShards())+1)
 	for i := uint32(0); i < irp.shardCoordinator.NumberOfShards(); i++ {
 		miniBlocks[i] = &block.MiniBlock{}
 	}
-	miniBlocks[sharding.MetachainShardId] = &block.MiniBlock{}
+	miniBlocks[core.MetachainShardId] = &block.MiniBlock{}
 
 	irp.currTxs.Clean()
 	irp.mutInterResultsForBlock.Lock()
@@ -91,7 +92,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 		irp.currTxs.AddTx([]byte(key), value.tx)
 	}
 
-	finalMBs := make(map[uint32]*block.MiniBlock)
+	finalMBs := make([]*block.MiniBlock, 0)
 	for shId, miniblock := range miniBlocks {
 		if len(miniblock.TxHashes) > 0 {
 			miniblock.SenderShardID = irp.shardCoordinator.SelfId()
@@ -106,19 +107,20 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 				"type", miniblock.Type,
 				"senderShardID", miniblock.SenderShardID,
 				"receiverShardID", miniblock.ReceiverShardID,
+				"numTxs", len(miniblock.TxHashes),
 			)
 
-			for _, hash := range miniblock.TxHashes {
-				log.Trace("tx", "hash", hash)
-			}
+			finalMBs = append(finalMBs, miniblock)
 
-			finalMBs[shId] = miniblock
+			if miniblock.ReceiverShardID == irp.shardCoordinator.SelfId() {
+				irp.intraShardMiniBlock = miniblock.Clone()
+			}
 		}
 	}
 
-	if _, ok := finalMBs[irp.shardCoordinator.SelfId()]; ok {
-		irp.intraShardMiniBlock = finalMBs[irp.shardCoordinator.SelfId()].Clone()
-	}
+	sort.Slice(finalMBs, func(i, j int) bool {
+		return finalMBs[i].ReceiverShardID < finalMBs[j].ReceiverShardID
+	})
 
 	irp.mutInterResultsForBlock.Unlock()
 
@@ -126,12 +128,16 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() map[uint32]*
 }
 
 // VerifyInterMiniBlocks verifies if the smart contract results added to the block are valid
-func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body block.Body) error {
+func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body) error {
 	scrMbs := irp.CreateAllInterMiniBlocks()
+	createdMapMbs := make(map[uint32]*block.MiniBlock)
+	for _, mb := range scrMbs {
+		createdMapMbs[mb.ReceiverShardID] = mb
+	}
 
 	countedCrossShard := 0
-	for i := 0; i < len(body); i++ {
-		mb := body[i]
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		mb := body.MiniBlocks[i]
 		if mb.Type != irp.blockType {
 			continue
 		}
@@ -140,7 +146,7 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body block.Body) 
 		}
 
 		countedCrossShard++
-		err := irp.verifyMiniBlock(scrMbs, mb)
+		err := irp.verifyMiniBlock(createdMapMbs, mb)
 		if err != nil {
 			return err
 		}
@@ -170,16 +176,20 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 	irp.mutInterResultsForBlock.Lock()
 	defer irp.mutInterResultsForBlock.Unlock()
 
+	log.Trace("intermediateResultsProcessor.AddIntermediateTransactions()", "txs", len(txs))
+
 	for i := 0; i < len(txs); i++ {
 		addScr, ok := txs[i].(*smartContractResult.SmartContractResult)
 		if !ok {
 			return process.ErrWrongTypeAssertion
 		}
 
-		scrHash, err := core.CalculateHash(irp.marshalizer, irp.hasher, txs[i])
+		scrHash, err := core.CalculateHash(irp.marshalizer, irp.hasher, addScr)
 		if err != nil {
 			return err
 		}
+
+		log.Trace("scr added", "txHash", addScr.PrevTxHash, "hash", scrHash, "nonce", addScr.Nonce, "gasLimit", addScr.GasLimit, "value", addScr.Value)
 
 		sndShId, dstShId, err := irp.getShardIdsFromAddresses(addScr.SndAddr, addScr.RcvAddr)
 		if err != nil {
@@ -189,17 +199,18 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 		addScrShardInfo := &txShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
 		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo}
 		irp.interResultsForBlock[string(scrHash)] = scrInfo
+		irp.mapTxToResult[string(addScr.PrevTxHash)] = append(irp.mapTxToResult[string(addScr.PrevTxHash)], string(scrHash))
 	}
 
 	return nil
 }
 
 func (irp *intermediateResultsProcessor) getShardIdsFromAddresses(sndAddr []byte, rcvAddr []byte) (uint32, uint32, error) {
-	adrSrc, err := irp.adrConv.CreateAddressFromPublicKeyBytes(sndAddr)
+	adrSrc, err := irp.pubkeyConv.CreateAddressFromBytes(sndAddr)
 	if err != nil {
 		return irp.shardCoordinator.NumberOfShards(), irp.shardCoordinator.NumberOfShards(), err
 	}
-	adrDst, err := irp.adrConv.CreateAddressFromPublicKeyBytes(rcvAddr)
+	adrDst, err := irp.pubkeyConv.CreateAddressFromBytes(rcvAddr)
 	if err != nil {
 		return irp.shardCoordinator.NumberOfShards(), irp.shardCoordinator.NumberOfShards(), err
 	}
@@ -207,12 +218,12 @@ func (irp *intermediateResultsProcessor) getShardIdsFromAddresses(sndAddr []byte
 	shardForSrc := irp.shardCoordinator.ComputeId(adrSrc)
 	shardForDst := irp.shardCoordinator.ComputeId(adrDst)
 
-	isEmptyAddress := bytes.Equal(sndAddr, make([]byte, irp.adrConv.AddressLen()))
+	isEmptyAddress := bytes.Equal(sndAddr, make([]byte, irp.pubkeyConv.Len()))
 	if isEmptyAddress {
 		shardForSrc = irp.shardCoordinator.SelfId()
 	}
 
-	isEmptyAddress = bytes.Equal(rcvAddr, make([]byte, irp.adrConv.AddressLen()))
+	isEmptyAddress = bytes.Equal(rcvAddr, make([]byte, irp.pubkeyConv.Len()))
 	if isEmptyAddress {
 		shardForDst = irp.shardCoordinator.SelfId()
 	}

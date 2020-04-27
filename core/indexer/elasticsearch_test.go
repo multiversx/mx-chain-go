@@ -2,60 +2,27 @@ package indexer_test
 
 import (
 	"bytes"
-	"encoding/hex"
-	"fmt"
-	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
-	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/logger"
-	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
-
-var (
-	url              = "http://localhost:9300"
-	shardCoordinator = mock.ShardCoordinatorMock{}
-	marshalizer      = &mock.MarshalizerMock{}
-	hasher           = mock.HasherMock{}
-	username         = "username"
-	password         = "password"
-)
-
-func newTestBlockHeader() *block.Header {
-	return &block.Header{
-		Nonce:            10,
-		PrevHash:         []byte("prev hash"),
-		PrevRandSeed:     []byte("prev rand seed"),
-		RandSeed:         []byte("rand seed"),
-		PubKeysBitmap:    []byte("pub keys bitmap"),
-		ShardId:          5,
-		TimeStamp:        1024,
-		Round:            6,
-		Epoch:            4,
-		BlockBodyType:    block.TxBlock,
-		Signature:        []byte("signature"),
-		MiniBlockHeaders: nil,
-		PeerChanges:      nil,
-		RootHash:         []byte("root hash"),
-		TxCount:          3,
-	}
-}
 
 func newTestMetaBlock() *block.MetaBlock {
 	shardData := block.ShardData{
 		ShardID:               1,
 		HeaderHash:            []byte{1},
-		ShardMiniBlockHeaders: []block.ShardMiniBlockHeader{},
+		ShardMiniBlockHeaders: []block.MiniBlockHeader{},
 		TxCount:               100,
 	}
 	return &block.MetaBlock{
@@ -66,97 +33,65 @@ func newTestMetaBlock() *block.MetaBlock {
 	}
 }
 
-func newTestBlockBody() block.Body {
-	return block.Body{
-		{TxHashes: [][]byte{[]byte("tx1"), []byte("tx2")}, ReceiverShardID: 2, SenderShardID: 2},
-		{TxHashes: [][]byte{[]byte("tx3")}, ReceiverShardID: 4, SenderShardID: 1},
+func NewElasticIndexerArguments() indexer.ElasticIndexerArgs {
+	return indexer.ElasticIndexerArgs{
+		Url:                      "url",
+		UserName:                 "user",
+		Password:                 "password",
+		Marshalizer:              &mock.MarshalizerMock{},
+		Hasher:                   &mock.HasherMock{},
+		Options:                  &indexer.Options{},
+		NodesCoordinator:         &mock.NodesCoordinatorMock{},
+		EpochStartNotifier:       &mock.EpochStartNotifierStub{},
+		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
 	}
-}
-
-func newTestBlockBodyWithSc(scKey string) block.Body {
-	mainBody := newTestBlockBody()
-	mainBody = append(mainBody, &block.MiniBlock{
-		TxHashes:        [][]byte{[]byte(scKey)},
-		ReceiverShardID: 3,
-		SenderShardID:   1,
-		Type:            0,
-	})
-	return mainBody
-}
-
-func newTestTxPool() map[string]data.TransactionHandler {
-	txPool := make(map[string]data.TransactionHandler)
-
-	txPool["tx1"] = &transaction.Transaction{
-		Nonce:     uint64(1),
-		Value:     big.NewInt(1),
-		RcvAddr:   []byte("receiver_address1"),
-		SndAddr:   []byte("sender_address1"),
-		GasPrice:  uint64(10000),
-		GasLimit:  uint64(1000),
-		Data:      []byte("tx_data1"),
-		Signature: []byte("signature1"),
-	}
-
-	txPool["tx2"] = &transaction.Transaction{
-		Nonce:     uint64(2),
-		Value:     big.NewInt(2),
-		RcvAddr:   []byte("receiver_address2"),
-		SndAddr:   []byte("sender_address2"),
-		GasPrice:  uint64(10000),
-		GasLimit:  uint64(1000),
-		Data:      []byte("tx_data2"),
-		Signature: []byte("signature2"),
-	}
-
-	txPool["tx3"] = &transaction.Transaction{
-		Nonce:     uint64(3),
-		Value:     big.NewInt(3),
-		RcvAddr:   []byte("receiver_address3"),
-		SndAddr:   []byte("sender_address3"),
-		GasPrice:  uint64(10000),
-		GasLimit:  uint64(1000),
-		Data:      []byte("tx_data3"),
-		Signature: []byte("signature3"),
-	}
-
-	return txPool
-}
-
-func newTestTxPoolWithScResults(testKey string, testScResult *smartContractResult.SmartContractResult) map[string]data.TransactionHandler {
-	mainTxPool := newTestTxPool()
-
-	mainTxPool[testKey] = testScResult
-
-	return mainTxPool
 }
 
 func TestElasticIndexer_NewIndexerWithNilUrlShouldError(t *testing.T) {
-	ei, err := indexer.NewElasticIndexer("", username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
 
-	assert.Nil(t, ei)
-	assert.Equal(t, core.ErrNilUrl, err)
-}
+	arguments := NewElasticIndexerArguments()
+	arguments.Url = ""
+	ei, err := indexer.NewElasticIndexer(arguments)
 
-func TestElasticIndexer_NewIndexerWithNilShardCoordinatorShouldError(t *testing.T) {
-	ei, err := indexer.NewElasticIndexer("a", username, password, nil, marshalizer, hasher, &indexer.Options{})
-
-	assert.Nil(t, ei)
-	assert.Equal(t, core.ErrNilCoordinator, err)
+	require.Nil(t, ei)
+	require.Equal(t, core.ErrNilUrl, err)
 }
 
 func TestElasticIndexer_NewIndexerWithNilMarsharlizerShouldError(t *testing.T) {
-	ei, err := indexer.NewElasticIndexer("a", username, password, shardCoordinator, nil, hasher, &indexer.Options{})
+	arguments := NewElasticIndexerArguments()
+	arguments.Marshalizer = nil
+	ei, err := indexer.NewElasticIndexer(arguments)
 
-	assert.Nil(t, ei)
-	assert.Equal(t, core.ErrNilMarshalizer, err)
+	require.Nil(t, ei)
+	require.Equal(t, core.ErrNilMarshalizer, err)
 }
 
 func TestElasticIndexer_NewIndexerWithNilHasherShouldError(t *testing.T) {
-	ei, err := indexer.NewElasticIndexer("a", username, password, shardCoordinator, marshalizer, nil, &indexer.Options{})
+	arguments := NewElasticIndexerArguments()
+	arguments.Hasher = nil
+	ei, err := indexer.NewElasticIndexer(arguments)
 
-	assert.Nil(t, ei)
-	assert.Equal(t, core.ErrNilHasher, err)
+	require.Nil(t, ei)
+	require.Equal(t, core.ErrNilHasher, err)
+}
+
+func TestElasticIndexer_NewIndexerWithNilNodesCoordinatorShouldErr(t *testing.T) {
+	arguments := NewElasticIndexerArguments()
+	arguments.NodesCoordinator = nil
+	ei, err := indexer.NewElasticIndexer(arguments)
+
+	require.Nil(t, ei)
+	require.Equal(t, core.ErrNilNodesCoordinator, err)
+}
+
+func TestElasticIndexer_NewIndexerWithNilEpochStartNotifierShouldErr(t *testing.T) {
+	arguments := NewElasticIndexerArguments()
+	arguments.EpochStartNotifier = nil
+	ei, err := indexer.NewElasticIndexer(arguments)
+
+	require.Nil(t, ei)
+	require.Equal(t, core.ErrNilEpochStartNotifier, err)
 }
 
 func TestElasticIndexer_NewIndexerWithCorrectParamsShouldWork(t *testing.T) {
@@ -172,287 +107,269 @@ func TestElasticIndexer_NewIndexerWithCorrectParamsShouldWork(t *testing.T) {
 		}
 	}))
 
-	ei, err := indexer.NewElasticIndexer(ts.URL, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
-
-	assert.NotNil(t, ei)
-	assert.Nil(t, err)
-}
-
-func TestElasticIndexer_CheckAndCreateIndexShouldWorkIfIndexExists(t *testing.T) {
-	blocksFunctionCount := 0
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/blocks" {
-			w.WriteHeader(http.StatusOK)
-			blocksFunctionCount++
-		}
-	}))
-
-	ei := indexer.NewTestElasticIndexer(ts.URL, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
-
-	err := ei.CheckAndCreateIndex("blocks", nil)
-
-	assert.Nil(t, err)
-	assert.Equal(t, 1, blocksFunctionCount)
-}
-
-func TestElasticIndexer_CheckAndCreateIndexShouldCreateIndexIfItDoesNotExist(t *testing.T) {
-	blocksFunctionCount := 0
-	putFunctionCount := 0
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "PUT" {
-			w.WriteHeader(http.StatusOK)
-			putFunctionCount++
-			return
-		}
-		if r.URL.Path == "/blocks" {
-			w.WriteHeader(http.StatusNotFound)
-			blocksFunctionCount++
-			return
-		}
-	}))
-
-	ei := indexer.NewTestElasticIndexer(ts.URL, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
-
-	err := ei.CheckAndCreateIndex("blocks", nil)
-
-	assert.Nil(t, err)
-	assert.Equal(t, 1, blocksFunctionCount)
-	assert.Equal(t, 1, putFunctionCount)
-}
-
-func TestElasticIndexer_CreateIndexShouldCreateIndexIfItDoesNotExist(t *testing.T) {
-	blocksFunctionCount := 0
-	putFunctionCount := 0
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "PUT" {
-			w.WriteHeader(http.StatusOK)
-			putFunctionCount++
-			return
-		}
-		if r.URL.Path == "/blocks" {
-			w.WriteHeader(http.StatusNotFound)
-			blocksFunctionCount++
-			return
-		}
-	}))
-
-	ei := indexer.NewTestElasticIndexer(ts.URL, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
-
-	err := ei.CreateIndex("blocks", nil)
-
-	assert.Nil(t, err)
-	assert.Equal(t, 0, blocksFunctionCount)
-	assert.Equal(t, 1, putFunctionCount)
+	arguments := NewElasticIndexerArguments()
+	arguments.Url = ts.URL
+	ei, err := indexer.NewElasticIndexer(arguments)
+	require.Nil(t, err)
+	require.False(t, check.IfNil(ei))
+	require.False(t, ei.IsNilIndexer())
 }
 
 func TestNewElasticIndexerIncorrectUrl(t *testing.T) {
 	url := string([]byte{1, 2, 3})
 
-	ind, err := indexer.NewElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
-	assert.Nil(t, ind)
-	assert.NotNil(t, err)
-}
-
-func TestElasticIndexer_getSerializedElasticBlockAndHeaderHash(t *testing.T) {
-	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
-	header := newTestBlockHeader()
-	signersIndexes := []uint64{0, 1, 2, 3}
-
-	serializedBlock, headerHash := ei.GetSerializedElasticBlockAndHeaderHash(header, signersIndexes)
-
-	h, _ := marshalizer.Marshal(header)
-	expectedHeaderHash := hasher.Compute(string(h))
-	assert.Equal(t, expectedHeaderHash, headerHash)
-
-	elasticBlock := indexer.Block{
-		Nonce:         header.Nonce,
-		Round:         header.Round,
-		ShardID:       header.ShardId,
-		Hash:          hex.EncodeToString(headerHash),
-		Proposer:      signersIndexes[0],
-		Validators:    signersIndexes,
-		PubKeyBitmap:  hex.EncodeToString(header.PubKeysBitmap),
-		Size:          int64(len(h)),
-		Timestamp:     time.Duration(header.TimeStamp),
-		TxCount:       header.TxCount,
-		StateRootHash: hex.EncodeToString(header.RootHash),
-		PrevHash:      hex.EncodeToString(header.PrevHash),
-	}
-	expectedSerializedBlock, _ := json.Marshal(elasticBlock)
-	assert.Equal(t, expectedSerializedBlock, serializedBlock)
-}
-
-func TestElasticIndexer_buildTransactionBulks(t *testing.T) {
-	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
-
-	header := newTestBlockHeader()
-	body := newTestBlockBody()
-	txPool := newTestTxPool()
-
-	bulks := ei.BuildTransactionBulks(body, header, txPool)
-
-	for _, bulk := range bulks {
-		assert.NotNil(t, bulk)
-	}
-}
-
-func TestElasticIndexer_buildTransactionBulksWithSCResults(t *testing.T) {
-	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
-	testSCKey := "utx1"
-	testSCResult := &smartContractResult.SmartContractResult{
-		Nonce:  1,
-		TxHash: []byte("tx1"),
-	}
-	header := newTestBlockHeader()
-	body := newTestBlockBodyWithSc(testSCKey)
-
-	txPool := newTestTxPoolWithScResults(testSCKey, testSCResult)
-
-	bulks := ei.BuildTransactionBulks(body, header, txPool)
-
-	foundSc := false
-	for _, bulk := range bulks {
-		for _, tx := range bulk {
-			if tx.Hash == hex.EncodeToString([]byte(testSCKey)) {
-				foundSc = true
-				break
-			}
-		}
-		if foundSc {
-			break
-		}
-	}
-
-	assert.True(t, foundSc)
-}
-
-//
-//func TestElasticIndexer_SaveBlockShouldWork(t *testing.T) {
-//	var buf bytes.Buffer
-//	testLogger := logger.NewElrondLogger(logger.WithFile(&buf))
-//
-//	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, testLogger)
-//
-//	header := newTestBlockHeader()
-//	body := newTestBlockBody()
-//	txPool := newTestTxPool()
-//
-//	ei.SaveBlock(body, header, txPool)
-//
-//	//TODO: add thread sleep
-//
-//	assert.Equal(t, 0, buf.Len())
-//}
-//
-//func TestElasticIndexer_SaveBlockWithNilHeaderShouldErr(t *testing.T) {
-//	var buf bytes.Buffer
-//	testLogger := logger.NewElrondLogger(logger.WithFile(&buf))
-//
-//	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, testLogger)
-//
-//	body := newTestBlockBody()
-//	txPool := newTestTxPool()
-//
-//	ei.SaveBlock(body, nil, txPool)
-//
-//	//TODO: add thread sleep
-//
-//	assert.True(t, strings.Contains(buf.String(), indexer.ErrNoHeader.Error()))
-//}
-//
-//func TestElasticIndexer_SaveBlockWithNilBodyShouldErr(t *testing.T) {
-//	var buf bytes.Buffer
-//	testLogger := logger.NewElrondLogger(logger.WithFile(&buf))
-//
-//	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, testLogger)
-//
-//	header := newTestBlockHeader()
-//	txPool := newTestTxPool()
-//
-//	ei.SaveBlock(nil, header, txPool)
-//
-//	//TODO: add thread sleep
-//
-//	assert.True(t, strings.Contains(buf.String(), indexer.ErrBodyTypeAssertion.Error()))
-//}
-//
-//func TestElasticIndexer_SaveBlockWithEmptyBodyShouldErr(t *testing.T) {
-//	var buf bytes.Buffer
-//	testLogger := logger.NewElrondLogger(logger.WithFile(&buf))
-//
-//	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, testLogger)
-//
-//	header := newTestBlockHeader()
-//	txPool := newTestTxPool()
-//	body := block.Body{}
-//
-//	ei.SaveBlock(body, header, txPool)
-//
-//	//TODO: add thread sleep
-//
-//	assert.True(t, strings.Contains(buf.String(), indexer.ErrNoMiniblocks.Error()))
-//}
-
-func TestElasticIndexer_serializeBulkTx(t *testing.T) {
-	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
-
-	header := newTestBlockHeader()
-	body := newTestBlockBody()
-	txPool := newTestTxPool()
-
-	bulks := ei.BuildTransactionBulks(body, header, txPool)
-
-	serializedTx := ei.SerializeBulkTx(bulks[0])
-
-	var buff bytes.Buffer
-	for _, tx := range bulks[0] {
-		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
-		serializedTx, _ := json.Marshal(tx)
-		serializedTx = append(serializedTx, "\n"...)
-		buff.Grow(len(meta) + len(serializedTx))
-		buff.Write(meta)
-		buff.Write(serializedTx)
-	}
-
-	assert.Equal(t, buff, serializedTx)
+	arguments := NewElasticIndexerArguments()
+	arguments.Url = url
+	ind, err := indexer.NewElasticIndexer(arguments)
+	require.Nil(t, ind)
+	require.NotNil(t, err)
 }
 
 func TestElasticIndexer_UpdateTPS(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+
 	output := &bytes.Buffer{}
 	_ = logger.SetLogLevel("core/indexer:TRACE")
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
-	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
+	arguments := NewElasticIndexerArguments()
+	arguments.Url = ts.URL
+
+	defer func() {
+		_ = logger.RemoveLogObserver(output)
+		_ = logger.SetLogLevel("core/indexer:INFO")
+	}()
+
+	ei, err := indexer.NewElasticIndexer(arguments)
+	require.Nil(t, err)
 
 	tpsBench := mock.TpsBenchmarkMock{}
 	tpsBench.Update(newTestMetaBlock())
 
 	ei.UpdateTPS(&tpsBench)
-	assert.Empty(t, output.String())
-	_ = logger.RemoveLogObserver(output)
-	_ = logger.SetLogLevel("core/indexer:INFO")
+	require.Empty(t, output.String())
 }
 
 func TestElasticIndexer_UpdateTPSNil(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+
 	output := &bytes.Buffer{}
 	_ = logger.SetLogLevel("core/indexer:TRACE")
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
-	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
+	arguments := NewElasticIndexerArguments()
+	arguments.Url = ts.URL
+
+	defer func() {
+		_ = logger.RemoveLogObserver(output)
+		_ = logger.SetLogLevel("core/indexer:INFO")
+	}()
+
+	ei, err := indexer.NewElasticIndexer(arguments)
+	require.Nil(t, err)
 
 	ei.UpdateTPS(nil)
-	assert.NotEmpty(t, output.String())
-	_ = logger.RemoveLogObserver(output)
-	_ = logger.SetLogLevel("core/indexer:INFO")
+	require.NotEmpty(t, output.String())
 }
 
-func TestElasticIndexer_SerializeShardInfo(t *testing.T) {
-	ei := indexer.NewTestElasticIndexer(url, username, password, shardCoordinator, marshalizer, hasher, &indexer.Options{})
+func TestElasticIndexer_SaveBlockNilHeaderHandler(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 
-	tpsBench := mock.TpsBenchmarkMock{}
-	tpsBench.UpdateWithShardStats(newTestMetaBlock())
+	output := &bytes.Buffer{}
+	_ = logger.SetLogLevel("core/indexer:TRACE")
+	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
+	arguments := NewElasticIndexerArguments()
+	arguments.Url = ts.URL
+	ei, _ := indexer.NewElasticIndexer(arguments)
 
-	for _, shardInfo := range tpsBench.ShardStatistics() {
-		serializedInfo, meta := ei.SerializeShardInfo(shardInfo)
-		assert.NotNil(t, serializedInfo)
-		assert.NotNil(t, meta)
+	defer func() {
+		_ = logger.RemoveLogObserver(output)
+		_ = logger.SetLogLevel("core/indexer:INFO")
+	}()
+
+	ei.SaveBlock(&block.Body{MiniBlocks: []*block.MiniBlock{}}, nil, nil, nil, nil)
+	require.True(t, strings.Contains(output.String(), indexer.ErrNoHeader.Error()))
+}
+
+func TestElasticIndexer_SaveBlockNilBodyHandler(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+
+	output := &bytes.Buffer{}
+	_ = logger.SetLogLevel("core/indexer:TRACE")
+	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
+	arguments := NewElasticIndexerArguments()
+	arguments.Url = ts.URL
+	ei, _ := indexer.NewElasticIndexer(arguments)
+
+	defer func() {
+		_ = logger.RemoveLogObserver(output)
+		_ = logger.SetLogLevel("core/indexer:INFO")
+	}()
+
+	ei.SaveBlock(nil, nil, nil, nil, nil)
+	require.True(t, strings.Contains(output.String(), indexer.ErrBodyTypeAssertion.Error()))
+}
+
+func TestElasticIndexer_SaveBlockNoMiniBlocks(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+
+	output := &bytes.Buffer{}
+	_ = logger.SetLogLevel("core/indexer:TRACE")
+	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
+	arguments := NewElasticIndexerArguments()
+	arguments.Url = ts.URL
+	ei, _ := indexer.NewElasticIndexer(arguments)
+
+	defer func() {
+		_ = logger.RemoveLogObserver(output)
+		_ = logger.SetLogLevel("core/indexer:INFO")
+	}()
+
+	header := &block.Header{}
+	body := &block.Body{}
+	ei.SaveBlock(body, header, nil, []uint64{0}, nil)
+	require.True(t, strings.Contains(output.String(), indexer.ErrNoMiniblocks.Error()))
+}
+
+func TestElasticIndexer_SaveRoundInfo(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+
+	output := &bytes.Buffer{}
+	_ = logger.SetLogLevel("core/indexer:TRACE")
+	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
+	arguments := NewElasticIndexerArguments()
+	arguments.Marshalizer = &mock.MarshalizerMock{Fail: true}
+	arguments.Url = ts.URL
+	ei, _ := indexer.NewElasticIndexer(arguments)
+
+	defer func() {
+		_ = logger.RemoveLogObserver(output)
+		_ = logger.SetLogLevel("core/indexer:INFO")
+	}()
+
+	ei.SaveRoundInfo(indexer.RoundInfo{})
+	require.Empty(t, output.String())
+}
+
+func TestElasticIndexer_SaveValidatorsPubKeys(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+
+	output := &bytes.Buffer{}
+	_ = logger.SetLogLevel("core/indexer:TRACE")
+	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
+	arguments := NewElasticIndexerArguments()
+	arguments.Url = ts.URL
+	arguments.Marshalizer = &mock.MarshalizerMock{Fail: true}
+	ei, _ := indexer.NewElasticIndexer(arguments)
+
+	valPubKey := make(map[uint32][][]byte)
+
+	keys := [][]byte{[]byte("key")}
+	valPubKey[0] = keys
+	epoch := uint32(0)
+	ei.SaveValidatorsPubKeys(valPubKey, epoch)
+
+	defer func() {
+		_ = logger.RemoveLogObserver(output)
+		_ = logger.SetLogLevel("core/indexer:INFO")
+	}()
+
+	require.Empty(t, output.String())
+}
+
+func TestElasticIndexer_EpochChange(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+
+	getEligibleValidatorsCalled := false
+
+	output := &bytes.Buffer{}
+	_ = logger.SetLogLevel("core/indexer:TRACE")
+	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
+	arguments := NewElasticIndexerArguments()
+	arguments.Url = ts.URL
+	arguments.Marshalizer = &mock.MarshalizerMock{Fail: true}
+	arguments.ShardId = core.MetachainShardId
+	epochChangeNotifier := &mock.EpochStartNotifierStub{}
+	arguments.EpochStartNotifier = epochChangeNotifier
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	testEpoch := uint32(1)
+	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
+		GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (m map[uint32][][]byte, err error) {
+			defer wg.Done()
+			if testEpoch == epoch {
+				getEligibleValidatorsCalled = true
+			}
+
+			return nil, nil
+		},
 	}
+
+	ei, _ := indexer.NewElasticIndexer(arguments)
+	assert.NotNil(t, ei)
+
+	epochChangeNotifier.NotifyAll(&block.Header{Nonce: 1, Epoch: testEpoch})
+	wg.Wait()
+
+	assert.True(t, getEligibleValidatorsCalled)
+}
+
+func TestElasticIndexer_EpochChangeValidators(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+
+	output := &bytes.Buffer{}
+	_ = logger.SetLogLevel("core/indexer:TRACE")
+	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
+	arguments := NewElasticIndexerArguments()
+	arguments.Url = ts.URL
+	arguments.Marshalizer = &mock.MarshalizerMock{Fail: true}
+	arguments.ShardId = core.MetachainShardId
+	epochChangeNotifier := &mock.EpochStartNotifierStub{}
+	arguments.EpochStartNotifier = epochChangeNotifier
+
+	var wg sync.WaitGroup
+
+	val1PubKey := []byte("val1")
+	val2PubKey := []byte("val2")
+	val1MetaPubKey := []byte("val3")
+	val2MetaPubKey := []byte("val4")
+
+	validatorsEpoch1 := map[uint32][][]byte{
+		0:                     {val1PubKey, val2PubKey},
+		core.MetachainShardId: {val1MetaPubKey, val2MetaPubKey},
+	}
+	validatorsEpoch2 := map[uint32][][]byte{
+		0:                     {val2PubKey, val1PubKey},
+		core.MetachainShardId: {val2MetaPubKey, val1MetaPubKey},
+	}
+	var firstEpochCalled, secondEpochCalled bool
+	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
+		GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (m map[uint32][][]byte, err error) {
+			defer wg.Done()
+
+			switch epoch {
+			case 1:
+				firstEpochCalled = true
+				return validatorsEpoch1, nil
+			case 2:
+				secondEpochCalled = true
+				return validatorsEpoch2, nil
+			default:
+				return nil, nil
+			}
+		},
+	}
+
+	ei, _ := indexer.NewElasticIndexer(arguments)
+	assert.NotNil(t, ei)
+
+	wg.Add(1)
+	epochChangeNotifier.NotifyAll(&block.Header{Nonce: 1, Epoch: 1})
+	wg.Wait()
+	assert.True(t, firstEpochCalled)
+
+	wg.Add(1)
+	epochChangeNotifier.NotifyAll(&block.Header{Nonce: 10, Epoch: 2})
+	wg.Wait()
+	assert.True(t, secondEpochCalled)
 }

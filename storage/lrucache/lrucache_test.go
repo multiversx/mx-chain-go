@@ -136,16 +136,13 @@ func TestLRUCache_PeekPresent(t *testing.T) {
 func TestLRUCache_HasOrAddNotPresent(t *testing.T) {
 	key, val := []byte("key7"), []byte("value7")
 	c, err := lrucache.NewCache(10)
-
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	v, ok := c.Peek(key)
-
+	_, ok := c.Peek(key)
 	assert.False(t, ok, "not expected to find key %s", key)
 
 	c.HasOrAdd(key, val)
-	v, ok = c.Peek(key)
-
+	v, ok := c.Peek(key)
 	assert.True(t, ok, "value expected but not found")
 	assert.Equal(t, val, v, "expected to find %s but found %s", val, v)
 }
@@ -156,12 +153,12 @@ func TestLRUCache_HasOrAddPresent(t *testing.T) {
 
 	assert.Nil(t, err, "no error expected but got %s", err)
 
-	v, ok := c.Peek(key)
+	_, ok := c.Peek(key)
 
 	assert.False(t, ok, "not expected to find key %s", key)
 
 	c.HasOrAdd(key, val)
-	v, ok = c.Peek(key)
+	v, ok := c.Peek(key)
 
 	assert.True(t, ok, "value expected but not found")
 	assert.Equal(t, val, v, "expected to find %s but found %s", val, v)
@@ -303,7 +300,7 @@ func TestLRUCache_CacherRegisterPutAddedDataHandlerShouldWork(t *testing.T) {
 	wg.Add(1)
 	chDone := make(chan bool)
 
-	f := func(key []byte) {
+	f := func(key []byte, value interface{}) {
 		if !bytes.Equal([]byte("aaaa"), key) {
 			return
 		}
@@ -338,7 +335,7 @@ func TestLRUCache_CacherRegisterHasOrAddAddedDataHandlerShouldWork(t *testing.T)
 	wg.Add(1)
 	chDone := make(chan bool)
 
-	f := func(key []byte) {
+	f := func(key []byte, value interface{}) {
 		if !bytes.Equal([]byte("aaaa"), key) {
 			return
 		}
@@ -373,7 +370,7 @@ func TestLRUCache_CacherRegisterHasOrAddAddedDataHandlerNotAddedShouldNotCall(t 
 	wg.Add(1)
 	chDone := make(chan bool)
 
-	f := func(key []byte) {
+	f := func(key []byte, value interface{}) {
 		wg.Done()
 	}
 

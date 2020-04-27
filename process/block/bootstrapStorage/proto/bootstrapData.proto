@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "bootstrapStorage";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+//MiniBlocksInMeta is used to store all mini blocks hashes for a metablock hash
+message MiniBlocksInMeta {
+	bytes          MetaHash         = 1;
+	repeated bytes MiniBlocksHashes = 2;
+}
+
+//BootstrapHeaderInfo is used to store information about a header
+message BootstrapHeaderInfo {
+	uint32 ShardId = 1;
+	uint32 Epoch   = 2;
+	uint64 Nonce   = 3;
+	bytes  Hash    = 4;
+}
+
+//PendingMiniBlocksInfo is used to store information about the number of pending miniblocks
+message PendingMiniBlocksInfo  {
+	uint32 ShardID                  = 1;
+	repeated bytes MiniBlocksHashes = 2;
+}
+
+// BootstrapData is used to store information that are needed for bootstrap
+message BootstrapData {
+	BootstrapHeaderInfo            LastHeader                 = 1 [(gogoproto.nullable) = false];
+	repeated BootstrapHeaderInfo   LastCrossNotarizedHeaders  = 2 [(gogoproto.nullable) = false];
+	repeated BootstrapHeaderInfo   LastSelfNotarizedHeaders   = 7 [(gogoproto.nullable) = false];
+	repeated MiniBlocksInMeta      ProcessedMiniBlocks        = 4 [(gogoproto.nullable) = false];
+	repeated PendingMiniBlocksInfo PendingMiniBlocks          = 8 [(gogoproto.nullable) = false];
+	bytes                          NodesCoordinatorConfigKey  = 9;
+	bytes                          EpochStartTriggerConfigKey = 10;
+	uint64                         HighestFinalBlockNonce     = 5;
+	int64                          LastRound                  = 6;
+}
+
+message RoundNum {
+	int64          Num = 1;
+}

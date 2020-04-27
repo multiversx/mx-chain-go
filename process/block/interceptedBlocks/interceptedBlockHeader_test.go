@@ -4,13 +4,13 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,6 +30,7 @@ func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		ChainID:           []byte("chain ID"),
 		ValidityAttester:  &mock.ValidityAttesterStub{},
 		EpochStartTrigger: &mock.EpochStartTriggerStub{},
+		NonceConverter:    mock.NewNonceHashConverterMock(),
 	}
 
 	hdr := createMockShardHeader()
@@ -45,7 +46,7 @@ func createMockShardHeader() *dataBlock.Header {
 		PrevRandSeed:     []byte("prev rand seed"),
 		RandSeed:         []byte("rand seed"),
 		PubKeysBitmap:    []byte{1},
-		ShardId:          hdrShardId,
+		ShardID:          hdrShardId,
 		TimeStamp:        0,
 		Round:            hdrRound,
 		Epoch:            hdrEpoch,
@@ -133,7 +134,7 @@ func TestNewInterceptedHeader_MetachainForThisShardShouldWork(t *testing.T) {
 			return hdrShardId + 2
 		},
 		SelfIdCalled: func() uint32 {
-			return sharding.MetachainShardId
+			return core.MetachainShardId
 		},
 	}
 

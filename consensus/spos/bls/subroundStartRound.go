@@ -2,11 +2,14 @@ package bls
 
 import (
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/data"
 )
 
 // subroundStartRound defines the data needed by the subround StartRound
@@ -41,6 +44,7 @@ func NewSubroundStartRound(
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
 	srStartRound.Extend = extend
+	baseSubround.EpochStartRegistrationHandler().RegisterHandler(&srStartRound)
 
 	return &srStartRound, nil
 }
@@ -70,6 +74,8 @@ func (sr *subroundStartRound) doStartRoundJob() bool {
 	sr.ResetConsensusState()
 	sr.RoundIndex = sr.Rounder().Index()
 	sr.RoundTimeStamp = sr.Rounder().TimeStamp()
+	topic := spos.GetConsensusTopicIDFromShardCoordinator(sr.ShardCoordinator())
+	sr.GetAntiFloodHandler().ResetForTopic(topic)
 	return true
 }
 
@@ -91,9 +97,11 @@ func (sr *subroundStartRound) doStartRoundConsensusCheck() bool {
 }
 
 func (sr *subroundStartRound) initCurrentRound() bool {
-	if sr.BootStrapper().ShouldSync() { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
+	nodeState := sr.BootStrapper().GetNodeState()
+	if nodeState != core.NsSynchronized { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 		return false
 	}
+
 	sr.AppStatusHandler().SetStringValue(core.MetricConsensusRoundState, "")
 
 	err := sr.generateNextConsensusGroup(sr.Rounder().Index())
@@ -171,12 +179,22 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 }
 
 func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
-	if sr.indexer == nil || sr.indexer.IsNilIndexer() {
+	if check.IfNil(sr.indexer) {
 		return
 	}
 
+	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) {
+		currentHeader = sr.Blockchain().GetGenesisHeader()
+	}
+
 	shardId := sr.ShardCoordinator().SelfId()
-	signersIndexes := sr.NodesCoordinator().GetValidatorsIndexes(pubKeys)
+	signersIndexes, err := sr.NodesCoordinator().GetValidatorsIndexes(pubKeys, currentHeader.GetEpoch())
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
 	round := sr.Rounder().Index()
 
 	roundInfo := indexer.RoundInfo{
@@ -192,9 +210,9 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error {
 	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
-	if currentHeader == nil {
+	if check.IfNil(currentHeader) {
 		currentHeader = sr.Blockchain().GetGenesisHeader()
-		if currentHeader == nil {
+		if check.IfNil(currentHeader) {
 			return spos.ErrNilHeader
 		}
 	}
@@ -206,11 +224,12 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 	shardId := sr.ShardCoordinator().SelfId()
 
-	nextConsensusGroup, _, err := sr.GetNextConsensusGroup(
+	nextConsensusGroup, err := sr.GetNextConsensusGroup(
 		randomSeed,
 		uint64(sr.RoundIndex),
 		shardId,
 		sr.NodesCoordinator(),
+		currentHeader.GetEpoch(),
 	)
 	if err != nil {
 		return err
@@ -226,4 +245,31 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 	sr.SetConsensusGroup(nextConsensusGroup)
 
 	return nil
+}
+
+// EpochStartPrepare wis called when an epoch start event is observed, but not yet confirmed/committed.
+// Some components may need to do initialisation on this event
+func (sr *subroundStartRound) EpochStartPrepare(metaHdr data.HeaderHandler, _ data.BodyHandler) {
+	log.Trace(fmt.Sprintf("epoch %d start prepare in consensus", metaHdr.GetEpoch()))
+}
+
+// EpochStartAction is called upon a start of epoch event.
+func (sr *subroundStartRound) EpochStartAction(hdr data.HeaderHandler) {
+	log.Trace(fmt.Sprintf("epoch %d start action in consensus", hdr.GetEpoch()))
+
+	sr.changeEpoch(hdr.GetEpoch())
+}
+
+func (sr *subroundStartRound) changeEpoch(currentEpoch uint32) {
+	epochNodes, err := sr.NodesCoordinator().GetConsensusWhitelistedNodes(currentEpoch)
+	if err != nil {
+		panic(fmt.Sprintf("consensus changing epoch failed with error %s", err.Error()))
+	}
+
+	sr.SetEligibleList(epochNodes)
+}
+
+// NotifyOrder returns the notification order for a start of epoch event
+func (sr *subroundStartRound) NotifyOrder() uint32 {
+	return core.ConsensusOrder
 }

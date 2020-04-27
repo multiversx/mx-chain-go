@@ -6,14 +6,22 @@ import (
 
 // ResolversFinderStub -
 type ResolversFinderStub struct {
-	GetCalled                func(key string) (dataRetriever.Resolver, error)
-	AddCalled                func(key string, val dataRetriever.Resolver) error
-	ReplaceCalled            func(key string, val dataRetriever.Resolver) error
-	RemoveCalled             func(key string)
-	LenCalled                func() int
-	IntraShardResolverCalled func(baseTopic string) (dataRetriever.Resolver, error)
-	MetaChainResolverCalled  func(baseTopic string) (dataRetriever.Resolver, error)
-	CrossShardResolverCalled func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error)
+	GetCalled                    func(key string) (dataRetriever.Resolver, error)
+	AddCalled                    func(key string, val dataRetriever.Resolver) error
+	ReplaceCalled                func(key string, val dataRetriever.Resolver) error
+	RemoveCalled                 func(key string)
+	LenCalled                    func() int
+	IntraShardResolverCalled     func(baseTopic string) (dataRetriever.Resolver, error)
+	MetaChainResolverCalled      func(baseTopic string) (dataRetriever.Resolver, error)
+	CrossShardResolverCalled     func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error)
+	ResolverKeysCalled           func() string
+	MetaCrossShardResolverCalled func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error)
+	IterateCalled                func(handler func(key string, resolver dataRetriever.Resolver) bool)
+}
+
+// MetaCrossShardResolver -
+func (rfs *ResolversFinderStub) MetaCrossShardResolver(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
+	return rfs.MetaCrossShardResolverCalled(baseTopic, crossShard)
 }
 
 // Get -
@@ -27,7 +35,7 @@ func (rfs *ResolversFinderStub) Add(key string, val dataRetriever.Resolver) erro
 }
 
 // AddMultiple -
-func (rfs *ResolversFinderStub) AddMultiple(keys []string, resolvers []dataRetriever.Resolver) error {
+func (rfs *ResolversFinderStub) AddMultiple(_ []string, _ []dataRetriever.Resolver) error {
 	panic("implement me")
 }
 
@@ -44,6 +52,22 @@ func (rfs *ResolversFinderStub) Remove(key string) {
 // Len -
 func (rfs *ResolversFinderStub) Len() int {
 	return rfs.LenCalled()
+}
+
+// Iterate -
+func (rfs *ResolversFinderStub) Iterate(handler func(key string, resolver dataRetriever.Resolver) bool) {
+	if rfs.IterateCalled != nil {
+		rfs.IterateCalled(handler)
+	}
+}
+
+// ResolverKeys -
+func (rfs *ResolversFinderStub) ResolverKeys() string {
+	if rfs.ResolverKeysCalled != nil {
+		return rfs.ResolverKeysCalled()
+	}
+
+	return ""
 }
 
 // IntraShardResolver -
@@ -63,8 +87,5 @@ func (rfs *ResolversFinderStub) CrossShardResolver(baseTopic string, crossShard 
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (rfs *ResolversFinderStub) IsInterfaceNil() bool {
-	if rfs == nil {
-		return true
-	}
-	return false
+	return rfs == nil
 }

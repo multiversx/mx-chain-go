@@ -7,17 +7,14 @@ import (
 // ErrNilMessage signals that a nil message has been received
 var ErrNilMessage = errors.New("nil message")
 
-// ErrNoConnectedPeerToSendRequest signals that the connected peers list is empty and can not send request
-var ErrNoConnectedPeerToSendRequest = errors.New("connected peers list is empty. Can not send request")
+// ErrSendRequest signals that the connected peers list is empty or errors appeared when sending requests
+var ErrSendRequest = errors.New("cannot send request: peer list is empty or errors during the sending")
 
 // ErrNilValue signals the value is nil
 var ErrNilValue = errors.New("nil value")
 
 // ErrTxNotFoundInBlockPool signals the value is nil
 var ErrTxNotFoundInBlockPool = errors.New("cannot find tx in current block pool")
-
-// ErrEmptyMiniBlockSlice signals that an operation has been attempted with an empty mini block slice
-var ErrEmptyMiniBlockSlice = errors.New("empty mini block slice")
 
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
@@ -65,11 +62,11 @@ var ErrInvalidNonceByteSlice = errors.New("invalid nonce byte slice")
 // ErrResolveTypeUnknown signals that an unknown resolve type was provided
 var ErrResolveTypeUnknown = errors.New("unknown resolve type")
 
-// ErrNilBlockBodyPool signals that a nil block body pool has been provided
-var ErrNilBlockBodyPool = errors.New("nil block body pool")
+// ErrNilMiniblocksPool signals that a nil miniblocks pool has been provided
+var ErrNilMiniblocksPool = errors.New("nil miniblocks pool")
 
-// ErrNilBlockBodyStorage signals that a nil block body storage has been provided
-var ErrNilBlockBodyStorage = errors.New("nil block body storage")
+// ErrNilMiniblocksStorage signals that a nil miniblocks storage has been provided
+var ErrNilMiniblocksStorage = errors.New("nil miniblocks storage")
 
 // ErrNilDataPoolHolder signals that the data pool holder is nil
 var ErrNilDataPoolHolder = errors.New("nil data pool holder")
@@ -89,12 +86,6 @@ var ErrNilUint64ByteSliceConverter = errors.New("nil byte slice converter")
 // ErrNilResolverContainer signals that a nil resolver container was provided
 var ErrNilResolverContainer = errors.New("nil resolver container")
 
-// ErrUnmarshalMBHashes signals the value is nil
-var ErrUnmarshalMBHashes = errors.New("could not unmarshal miniblock hashes")
-
-// ErrInvalidRequestType signals that a request on a topic sends an invalid type
-var ErrInvalidRequestType = errors.New("invalid request type")
-
 // ErrWrongTypeInContainer signals that a wrong type of object was found in container
 var ErrWrongTypeInContainer = errors.New("wrong type of object inside container")
 
@@ -106,9 +97,6 @@ var ErrNilPeerChangeBlockDataPool = errors.New("nil peer change block data pool"
 
 // ErrNilTxBlockDataPool signals that a nil tx block body pool has been provided
 var ErrNilTxBlockDataPool = errors.New("nil tx block data pool")
-
-// ErrNilCacher signals that a nil cache has been provided
-var ErrNilCacher = errors.New("nil cacher")
 
 // ErrCacheConfigInvalidSizeInBytes signals that the cache parameter "sizeInBytes" is invalid
 var ErrCacheConfigInvalidSizeInBytes = errors.New("cache parameter [sizeInBytes] is not valid, it must be a positive, and large enough number")
@@ -124,9 +112,6 @@ var ErrCacheConfigInvalidEconomics = errors.New("cache-economics parameter is no
 
 // ErrCacheConfigInvalidSharding signals that a sharding parameter required by the cache is invalid
 var ErrCacheConfigInvalidSharding = errors.New("cache-sharding parameter is not valid")
-
-// ErrNilMetaBlockPool signals that a nil meta block data pool was provided
-var ErrNilMetaBlockPool = errors.New("nil meta block data pool")
 
 // ErrNilTrieNodesPool signals that a nil trie nodes data pool was provided
 var ErrNilTrieNodesPool = errors.New("nil trie nodes data pool")
@@ -166,3 +151,30 @@ var ErrNilEpochHandler = errors.New("nil epoch handler")
 
 // ErrBadRequest signals that the request should not have happened
 var ErrBadRequest = errors.New("request should not be done as it doesn't follow the protocol")
+
+// ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
+var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
+
+// ErrSystemBusy signals that the system is busy and can not process more requests
+var ErrSystemBusy = errors.New("system busy")
+
+// ErrNilThrottler signals that a nil throttler has been provided
+var ErrNilThrottler = errors.New("nil throttler")
+
+// ErrEmptyString signals that an empty string has been provided
+var ErrEmptyString = errors.New("empty string")
+
+// ErrInvalidValue signals that an invalid value has been provided
+var ErrInvalidValue = errors.New("invalid value")
+
+// ErrNilWhiteListHandler signals that white list handler is nil
+var ErrNilWhiteListHandler = errors.New("nil white list handler")
+
+// ErrRequestIntervalTooSmall signals that request interval is too small
+var ErrRequestIntervalTooSmall = errors.New("request interval is too small")
+
+// ErrNilResolverDebugHandler signals that a nil resolver debug handler has been provided
+var ErrNilResolverDebugHandler = errors.New("nil resolver debug handler")
+
+// ErrMissingData signals that the required data is missing
+var ErrMissingData = errors.New("missing data")

@@ -1,8 +1,10 @@
 package unsigned
 
 import (
+	"fmt"
 	"math/big"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -18,7 +20,7 @@ type InterceptedUnsignedTransaction struct {
 	uTx               *smartContractResult.SmartContractResult
 	marshalizer       marshal.Marshalizer
 	hasher            hashing.Hasher
-	addrConv          state.AddressConverter
+	pubkeyConv        state.PubkeyConverter
 	coordinator       sharding.Coordinator
 	hash              []byte
 	rcvShard          uint32
@@ -32,7 +34,7 @@ func NewInterceptedUnsignedTransaction(
 	uTxBuff []byte,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	addrConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 	coordinator sharding.Coordinator,
 ) (*InterceptedUnsignedTransaction, error) {
 	if uTxBuff == nil {
@@ -44,8 +46,8 @@ func NewInterceptedUnsignedTransaction(
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(addrConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(coordinator) {
 		return nil, process.ErrNilShardCoordinator
@@ -60,7 +62,7 @@ func NewInterceptedUnsignedTransaction(
 		uTx:         uTx,
 		marshalizer: marshalizer,
 		hasher:      hasher,
-		addrConv:    addrConv,
+		pubkeyConv:  pubkeyConv,
 		coordinator: coordinator,
 	}
 
@@ -96,12 +98,12 @@ func (inUTx *InterceptedUnsignedTransaction) processFields(uTxBuffWithSig []byte
 	inUTx.hash = inUTx.hasher.Compute(string(uTxBuffWithSig))
 
 	var err error
-	inUTx.sndAddr, err = inUTx.addrConv.CreateAddressFromPublicKeyBytes(inUTx.uTx.SndAddr)
+	inUTx.sndAddr, err = inUTx.pubkeyConv.CreateAddressFromBytes(inUTx.uTx.SndAddr)
 	if err != nil {
 		return process.ErrInvalidSndAddr
 	}
 
-	rcvAddr, err := inUTx.addrConv.CreateAddressFromPublicKeyBytes(inUTx.uTx.RcvAddr)
+	rcvAddr, err := inUTx.pubkeyConv.CreateAddressFromBytes(inUTx.uTx.RcvAddr)
 	if err != nil {
 		return process.ErrInvalidRcvAddr
 	}
@@ -127,10 +129,10 @@ func (inUTx *InterceptedUnsignedTransaction) integrity() error {
 	if inUTx.uTx.Value == nil {
 		return process.ErrNilValue
 	}
-	if inUTx.uTx.Value.Cmp(big.NewInt(0)) < 0 {
+	if inUTx.uTx.Value.Sign() < 0 {
 		return process.ErrNegativeValue
 	}
-	if len(inUTx.uTx.TxHash) == 0 {
+	if len(inUTx.uTx.PrevTxHash) == 0 {
 		return process.ErrNilTxHash
 	}
 
@@ -180,6 +182,21 @@ func (inUTx *InterceptedUnsignedTransaction) Hash() []byte {
 // Type returns the type of this intercepted data
 func (inUTx *InterceptedUnsignedTransaction) Type() string {
 	return "intercepted unsigned tx"
+}
+
+// String returns the unsigned transaction's most important fields as string
+func (inUTx *InterceptedUnsignedTransaction) String() string {
+	return fmt.Sprintf("sender=%s, nonce=%d, value=%s, recv=%s",
+		logger.DisplayByteSlice(inUTx.uTx.SndAddr),
+		inUTx.uTx.Nonce,
+		inUTx.uTx.Value.String(),
+		logger.DisplayByteSlice(inUTx.uTx.RcvAddr),
+	)
+}
+
+// Identifiers returns the identifiers used in requests
+func (inUTx *InterceptedUnsignedTransaction) Identifiers() [][]byte {
+	return [][]byte{inUTx.hash}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

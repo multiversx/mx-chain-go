@@ -1,21 +1,23 @@
 package containers
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/container"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/cornelk/hashmap"
 )
 
 // preProcessorsContainer is an PreProcessors holder organized by type
 type preProcessorsContainer struct {
-	objects *hashmap.HashMap
+	objects *container.MutexMap
 }
 
 // NewPreProcessorsContainer will create a new instance of a container
 func NewPreProcessorsContainer() *preProcessorsContainer {
 	return &preProcessorsContainer{
-		objects: &hashmap.HashMap{},
+		objects: container.NewMutexMap(),
 	}
 }
 
@@ -24,7 +26,7 @@ func NewPreProcessorsContainer() *preProcessorsContainer {
 func (ppc *preProcessorsContainer) Get(key block.Type) (process.PreProcessor, error) {
 	value, ok := ppc.objects.Get(uint8(key))
 	if !ok {
-		return nil, process.ErrInvalidContainerKey
+		return nil, fmt.Errorf("%w in pre processor container for key %v", process.ErrInvalidContainerKey, key)
 	}
 
 	preProcessor, ok := value.(process.PreProcessor)
@@ -79,7 +81,7 @@ func (ppc *preProcessorsContainer) Replace(key block.Type, preProcessor process.
 
 // Remove will remove an object at a given key
 func (ppc *preProcessorsContainer) Remove(key block.Type) {
-	ppc.objects.Del(uint8(key))
+	ppc.objects.Remove(uint8(key))
 }
 
 // Len returns the length of the added objects
@@ -89,17 +91,17 @@ func (ppc *preProcessorsContainer) Len() int {
 
 // Keys returns all the keys from the container
 func (ppc *preProcessorsContainer) Keys() []block.Type {
-	keys := make([]block.Type, 0)
-	for key := range ppc.objects.Iter() {
-		uint8key, ok := key.Key.(uint8)
+	keys := ppc.objects.Keys()
+	keysByte := make([]block.Type, 0, len(keys))
+	for _, k := range keys {
+		key, ok := k.(byte)
 		if !ok {
 			continue
 		}
-
-		blockType := block.Type(uint8key)
-		keys = append(keys, blockType)
+		keysByte = append(keysByte, block.Type(key))
 	}
-	return keys
+
+	return keysByte
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -1,9 +1,11 @@
 package rewardTransaction_test
 
 import (
+	"errors"
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -12,6 +14,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createMockPubkeyConverter() *mock.PubkeyConverterMock {
+	return mock.NewPubkeyConverterMock(32)
+}
+
 func TestNewInterceptedRewardTransaction_NilTxBuffShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -19,7 +25,7 @@ func TestNewInterceptedRewardTransaction_NilTxBuffShouldErr(t *testing.T) {
 		nil,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
 	assert.Nil(t, irt)
@@ -34,7 +40,7 @@ func TestNewInterceptedRewardTransaction_NilMarshalizerShouldErr(t *testing.T) {
 		txBuff,
 		nil,
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
 	assert.Nil(t, irt)
@@ -49,14 +55,14 @@ func TestNewInterceptedRewardTransaction_NilHasherShouldErr(t *testing.T) {
 		txBuff,
 		&mock.MarshalizerMock{},
 		nil,
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
 	assert.Nil(t, irt)
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
-func TestNewInterceptedRewardTransaction_NilAddressConverterShouldErr(t *testing.T) {
+func TestNewInterceptedRewardTransaction_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txBuff := []byte("tx")
@@ -68,7 +74,7 @@ func TestNewInterceptedRewardTransaction_NilAddressConverterShouldErr(t *testing
 		mock.NewMultiShardsCoordinatorMock(3))
 
 	assert.Nil(t, irt)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestNewInterceptedRewardTransaction_NilShardCoordinatorShouldErr(t *testing.T) {
@@ -79,7 +85,7 @@ func TestNewInterceptedRewardTransaction_NilShardCoordinatorShouldErr(t *testing
 		txBuff,
 		&mock.MarshalizerMock{},
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		nil)
 
 	assert.Nil(t, irt)
@@ -92,18 +98,17 @@ func TestNewInterceptedRewardTransaction_OkValsShouldWork(t *testing.T) {
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   new(big.Int).SetInt64(100),
+		Value:   big.NewInt(100),
 		RcvAddr: []byte("receiver"),
-		ShardId: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
 	assert.NotNil(t, irt)
@@ -117,9 +122,8 @@ func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   new(big.Int).SetInt64(100),
+		Value:   big.NewInt(100),
 		RcvAddr: []byte("receiver"),
-		ShardId: shardId,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
@@ -128,19 +132,19 @@ func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
 		return shardId
 	}
 
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		shardCoord)
 
 	assert.NotNil(t, irt)
 	assert.Nil(t, err)
 
 	assert.Equal(t, shardId, irt.ReceiverShardId())
-	assert.Equal(t, shardId, irt.SenderShardId())
+	assert.Equal(t, core.MetachainShardId, irt.SenderShardId())
 	assert.Equal(t, &rewTx, irt.Transaction())
 	assert.True(t, irt.IsForCurrentShard())
 
@@ -154,18 +158,22 @@ func TestNewInterceptedRewardTransaction_InvalidRcvAddrShouldErr(t *testing.T) {
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   new(big.Int).SetInt64(100),
+		Value:   big.NewInt(100),
 		RcvAddr: nil,
-		ShardId: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
+	expectedErr := errors.New("expected error")
 	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{Fail: true},
+		&mock.PubkeyConverterStub{
+			CreateAddressFromBytesCalled: func(pkBytes []byte) (container state.AddressContainer, err error) {
+				return nil, expectedErr
+			},
+		},
 		mock.NewMultiShardsCoordinatorMock(3))
 
 	assert.Nil(t, irt)
@@ -178,18 +186,17 @@ func TestNewInterceptedRewardTransaction_NonceShouldBeZero(t *testing.T) {
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
-		Value:   new(big.Int).SetInt64(100),
+		Value:   big.NewInt(100),
 		RcvAddr: nil,
-		ShardId: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
 	nonce := irt.Nonce()
@@ -204,16 +211,15 @@ func TestNewInterceptedRewardTransaction_Fee(t *testing.T) {
 		Epoch:   0,
 		Value:   big.NewInt(100),
 		RcvAddr: nil,
-		ShardId: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
 	assert.Equal(t, big.NewInt(0), irt.Fee())
@@ -222,22 +228,21 @@ func TestNewInterceptedRewardTransaction_Fee(t *testing.T) {
 func TestNewInterceptedRewardTransaction_SenderAddress(t *testing.T) {
 	t.Parallel()
 
-	value := new(big.Int).SetInt64(100)
+	value := big.NewInt(100)
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
 		Value:   value,
 		RcvAddr: nil,
-		ShardId: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
 	senderAddr := irt.SenderAddress()
@@ -247,22 +252,21 @@ func TestNewInterceptedRewardTransaction_SenderAddress(t *testing.T) {
 func TestNewInterceptedRewardTransaction_CheckValidityNilRcvAddrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	value := new(big.Int).SetInt64(100)
+	value := big.NewInt(100)
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
 		Value:   value,
 		RcvAddr: nil,
-		ShardId: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
 	err := irt.CheckValidity()
@@ -277,16 +281,15 @@ func TestNewInterceptedRewardTransaction_CheckValidityNilValueShouldErr(t *testi
 		Epoch:   0,
 		Value:   nil,
 		RcvAddr: []byte("addr"),
-		ShardId: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
 	err := irt.CheckValidity()
@@ -296,22 +299,21 @@ func TestNewInterceptedRewardTransaction_CheckValidityNilValueShouldErr(t *testi
 func TestNewInterceptedRewardTransaction_CheckValidityNegativeValueShouldErr(t *testing.T) {
 	t.Parallel()
 
-	value := new(big.Int).SetInt64(-100)
+	value := big.NewInt(-100)
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
 		Value:   value,
 		RcvAddr: []byte("addr"),
-		ShardId: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
 	err := irt.CheckValidity()
@@ -321,22 +323,21 @@ func TestNewInterceptedRewardTransaction_CheckValidityNegativeValueShouldErr(t *
 func TestNewInterceptedRewardTransaction_CheckValidityShouldWork(t *testing.T) {
 	t.Parallel()
 
-	value := new(big.Int).SetInt64(100)
+	value := big.NewInt(100)
 	rewTx := rewardTx.RewardTx{
 		Round:   0,
 		Epoch:   0,
 		Value:   value,
 		RcvAddr: []byte("addr"),
-		ShardId: 0,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(rewTx)
+	txBuff, _ := marshalizer.Marshal(&rewTx)
 	irt, _ := rewardTransaction.NewInterceptedRewardTransaction(
 		txBuff,
 		marshalizer,
 		&mock.HasherMock{},
-		&mock.AddressConverterMock{},
+		createMockPubkeyConverter(),
 		mock.NewMultiShardsCoordinatorMock(3))
 
 	err := irt.CheckValidity()

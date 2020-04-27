@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -15,6 +16,7 @@ import (
 type ConsensusCoreMock struct {
 	blockChain             data.ChainHandler
 	blockProcessor         process.BlockProcessor
+	headersSubscriber      consensus.HeadersPoolSubscriber
 	bootstrapper           process.Bootstrapper
 	broadcastMessenger     consensus.BroadcastMessenger
 	chronologyHandler      consensus.ChronologyHandler
@@ -27,6 +29,13 @@ type ConsensusCoreMock struct {
 	shardCoordinator       sharding.Coordinator
 	syncTimer              ntp.SyncTimer
 	validatorGroupSelector sharding.NodesCoordinator
+	epochStartNotifier     epochStart.RegistrationHandler
+	antifloodHandler       consensus.P2PAntifloodHandler
+}
+
+// GetAntiFloodHandler -
+func (ccm *ConsensusCoreMock) GetAntiFloodHandler() consensus.P2PAntifloodHandler {
+	return ccm.antifloodHandler
 }
 
 // Blockchain -
@@ -37,6 +46,11 @@ func (ccm *ConsensusCoreMock) Blockchain() data.ChainHandler {
 // BlockProcessor -
 func (ccm *ConsensusCoreMock) BlockProcessor() process.BlockProcessor {
 	return ccm.blockProcessor
+}
+
+// HeadersPoolSubscriber -
+func (ccm *ConsensusCoreMock) HeadersPoolSubscriber() consensus.HeadersPoolSubscriber {
+	return ccm.headersSubscriber
 }
 
 // BootStrapper -
@@ -87,6 +101,11 @@ func (ccm *ConsensusCoreMock) SyncTimer() ntp.SyncTimer {
 // NodesCoordinator -
 func (ccm *ConsensusCoreMock) NodesCoordinator() sharding.NodesCoordinator {
 	return ccm.validatorGroupSelector
+}
+
+// EpochStartRegistrationHandler -
+func (ccm *ConsensusCoreMock) EpochStartRegistrationHandler() epochStart.RegistrationHandler {
+	return ccm.epochStartNotifier
 }
 
 // SetBlockchain -

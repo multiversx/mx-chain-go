@@ -1,5 +1,3 @@
-source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
-
 generateConfig() {
   echo "Generating configuration using values from scripts/variables.sh..."
 
@@ -13,7 +11,8 @@ generateConfig() {
     -num-of-metachain-nodes $META_VALIDATORCOUNT          \
     -num-of-observers-in-metachain $META_OBSERVERCOUNT    \
     -metachain-consensus-group-size $META_CONSENSUS_SIZE  \
-    -consensus-type $CONSENSUS_TYPE
+    -tx-sign-key-format $TX_SIGN_FORMAT                   \
+    -block-sign-key-format $BLOCK_SIGN_FORMAT
   popd
 }
 
@@ -22,12 +21,8 @@ copyConfig() {
 
   cp ./filegen/genesis.json ./node/config
   cp ./filegen/nodesSetup.json ./node/config
-  cp ./filegen/initialBalancesPkPlain.txt ./node/config
-  cp ./filegen/initialBalancesSk.pem ./node/config
-  cp ./filegen/initialBalancesSkPlain.txt ./node/config
-  cp ./filegen/initialNodesPkPlain.txt ./node/config
-  cp ./filegen/initialNodesSk.pem ./node/config
-  cp ./filegen/initialNodesSkPlain.txt ./node/config
+  cp ./filegen/validatorKey.pem ./node/config
+  cp ./filegen/walletKey.pem ./node/config
   echo "Configuration files copied from the configuration generator to the working directories of the executables."
   popd
 }
@@ -55,8 +50,9 @@ copyNodeConfig() {
   pushd $TESTNETDIR
   cp $NODEDIR/config/config.toml ./node/config
   cp $NODEDIR/config/economics.toml ./node/config
+  cp $NODEDIR/config/ratings.toml ./node/config
   cp $NODEDIR/config/prefs.toml ./node/config
-  cp $NODEDIR/config/server.toml ./node/config
+  cp $NODEDIR/config/external.toml ./node/config
   cp $NODEDIR/config/p2p.toml ./node/config
   cp $NODEDIR/config/gasSchedule.toml ./node/config
 
@@ -79,6 +75,10 @@ updateNodeConfig() {
   let startTime="$(date +%s) + $NODE_DELAY"
   updateJSONValue nodesSetup_edit.json "startTime" "$startTime"
 
+	if [ $ALWAYS_NEW_CHAINID -eq 1 ]; then
+		updateJSONValue nodesSetup_edit.json "chainID" "\"$startTime\""
+	fi
+
   cp nodesSetup_edit.json nodesSetup.json
   rm nodesSetup_edit.json
 
@@ -92,7 +92,7 @@ copyProxyConfig() {
   cp $PROXYDIR/config/config.toml ./proxy/config/
 
   cp ./node/config/economics.toml ./proxy/config/
-  cp ./node/config/initialBalancesSk.pem ./proxy/config
+  cp ./node/config/walletKey.pem ./proxy/config
 
   echo "Copied configuration for the Proxy."
   popd
@@ -124,7 +124,7 @@ copyTxGenConfig() {
   cp $TXGENDIR/config/*.wasm ./txgen/config/
 
   cp ./node/config/economics.toml ./txgen/config/
-  cp ./node/config/initialBalancesSk.pem ./txgen/config
+  cp ./node/config/walletKey.pem ./txgen/config
 
   echo "Copied configuration for the TxGen."
   popd

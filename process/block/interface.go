@@ -5,5 +5,5 @@ import (
 )
 
 type blockProcessor interface {
-	CreateNewHeader() data.HeaderHandler
+	removeStartOfEpochBlockDataFromPools(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error
 }

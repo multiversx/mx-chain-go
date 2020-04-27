@@ -24,9 +24,11 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -47,9 +49,11 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Equal(t, process.ErrNilStore, err)
@@ -70,9 +74,11 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -93,9 +99,11 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -116,9 +124,11 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
@@ -139,9 +149,11 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
@@ -162,9 +174,11 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		nil,
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -185,9 +199,11 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 		nil,
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Equal(t, process.ErrNilTxProcessor, err)
@@ -208,33 +224,13 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Equal(t, process.ErrNilRequestHandler, err)
-	assert.Nil(t, ppcm)
-}
-
-func TestNewPreProcessorsContainerFactory_NilMiniBlocksCompacter(t *testing.T) {
-	t.Parallel()
-
-	ppcm, err := metachain.NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&mock.ChainStorerMock{},
-		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
-		mock.NewPoolsHolderMock(),
-		&mock.AccountsStub{},
-		&mock.RequestHandlerStub{},
-		&mock.TxProcessorMock{},
-		&mock.SmartContractResultsProcessorMock{},
-		&mock.FeeHandlerStub{},
-		nil,
-		&mock.GasHandlerMock{},
-		&mock.BlockTrackerMock{},
-	)
-	assert.Equal(t, process.ErrNilMiniBlocksCompacter, err)
 	assert.Nil(t, ppcm)
 }
 
@@ -252,9 +248,11 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		nil,
 		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Equal(t, process.ErrNilGasHandler, err)
 	assert.Nil(t, ppcm)
@@ -274,11 +272,85 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		nil,
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 	assert.Equal(t, process.ErrNilBlockTracker, err)
+	assert.Nil(t, ppcm)
+}
+
+func TestNewPreProcessorsContainerFactory_NilPubkeyConverter(t *testing.T) {
+	t.Parallel()
+
+	ppcm, err := metachain.NewPreProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ChainStorerMock{},
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		mock.NewPoolsHolderMock(),
+		&mock.AccountsStub{},
+		&mock.RequestHandlerStub{},
+		&mock.TxProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
+		&mock.FeeHandlerStub{},
+		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
+		nil,
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+	)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
+	assert.Nil(t, ppcm)
+}
+
+func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *testing.T) {
+	t.Parallel()
+
+	ppcm, err := metachain.NewPreProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ChainStorerMock{},
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		mock.NewPoolsHolderMock(),
+		&mock.AccountsStub{},
+		&mock.RequestHandlerStub{},
+		&mock.TxProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
+		&mock.FeeHandlerStub{},
+		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		nil,
+		&mock.BalanceComputationStub{},
+	)
+	assert.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
+	assert.Nil(t, ppcm)
+}
+
+func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testing.T) {
+	t.Parallel()
+
+	ppcm, err := metachain.NewPreProcessorsContainerFactory(
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.ChainStorerMock{},
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		mock.NewPoolsHolderMock(),
+		&mock.AccountsStub{},
+		&mock.RequestHandlerStub{},
+		&mock.TxProcessorMock{},
+		&mock.SmartContractResultsProcessorMock{},
+		&mock.FeeHandlerStub{},
+		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		nil,
+	)
+	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
 	assert.Nil(t, ppcm)
 }
 
@@ -296,9 +368,11 @@ func TestNewPreProcessorsContainerFactory(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, err)
@@ -325,9 +399,11 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, err)
@@ -352,9 +428,11 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		&mock.TxProcessorMock{},
 		&mock.SmartContractResultsProcessorMock{},
 		&mock.FeeHandlerStub{},
-		&mock.MiniBlocksCompacterMock{},
 		&mock.GasHandlerMock{},
 		&mock.BlockTrackerMock{},
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
 	)
 
 	assert.Nil(t, err)

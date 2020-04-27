@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,7 +17,7 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStart
 	startRound, err := bls.NewSubroundStartRound(
 		sr,
 		extend,
-		processingThresholdPercent,
+		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 	)
 
@@ -27,7 +28,7 @@ func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) bls.Su
 	startRound, _ := bls.NewSubroundStartRound(
 		sr,
 		extend,
-		processingThresholdPercent,
+		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 	)
 
@@ -42,8 +43,8 @@ func defaultSubround(
 
 	return spos.NewSubround(
 		-1,
-		SrStartRound,
-		SrBlock,
+		bls.SrStartRound,
+		bls.SrBlock,
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
@@ -62,7 +63,7 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bl
 	srStartRound, _ := bls.NewSubroundStartRound(
 		sr,
 		extend,
-		processingThresholdPercent,
+		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 	)
 
@@ -80,7 +81,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSubroundShouldFail(t *testin
 	srStartRound, err := bls.NewSubroundStartRound(
 		nil,
 		extend,
-		processingThresholdPercent,
+		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 	)
 
@@ -197,7 +198,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShould
 	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.Nil(t, srStartRound)
-	assert.Equal(t, spos.ErrNilValidatorGroupSelector, err)
+	assert.Equal(t, spos.ErrNilNodesCoordinator, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {
@@ -248,7 +249,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenRoundI
 
 	sr := *initSubroundStartRound()
 
-	sr.SetStatus(SrStartRound, spos.SsFinished)
+	sr.SetStatus(bls.SrStartRound, spos.SsFinished)
 
 	ok := sr.DoStartRoundConsensusCheck()
 	assert.True(t, ok)
@@ -257,8 +258,8 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenRoundI
 func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenInitCurrentRoundReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	bootstrapperMock := &mock.BootstrapperMock{ShouldSyncCalled: func() bool {
-		return false
+	bootstrapperMock := &mock.BootstrapperMock{GetNodeStateCalled: func() core.NodeState {
+		return core.NsSynchronized
 	}}
 
 	container := mock.InitConsensusCore()
@@ -273,8 +274,8 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenInitCu
 func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenInitCurrentRoundReturnFalse(t *testing.T) {
 	t.Parallel()
 
-	bootstrapperMock := &mock.BootstrapperMock{ShouldSyncCalled: func() bool {
-		return true
+	bootstrapperMock := &mock.BootstrapperMock{GetNodeStateCalled: func() core.NodeState {
+		return core.NsNotSynchronized
 	}}
 
 	container := mock.InitConsensusCore()
@@ -287,13 +288,13 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenInitC
 	assert.False(t, ok)
 }
 
-func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenShouldSyncReturnTrue(t *testing.T) {
+func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetNodeStateNotReturnSynchronized(t *testing.T) {
 	t.Parallel()
 
 	bootstrapperMock := &mock.BootstrapperMock{}
 
-	bootstrapperMock.ShouldSyncCalled = func() bool {
-		return true
+	bootstrapperMock.GetNodeStateCalled = func() core.NodeState {
+		return core.NsNotSynchronized
 	}
 	container := mock.InitConsensusCore()
 	container.SetBootStrapper(bootstrapperMock)
@@ -309,7 +310,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 
 	validatorGroupSelector := &mock.NodesCoordinatorMock{}
 	err := errors.New("error")
-	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte, round uint64, shardId uint32) ([]sharding.Validator, error) {
+	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte, round uint64, shardId uint32, epoch uint32) ([]sharding.Validator, error) {
 		return nil, err
 	}
 	container := mock.InitConsensusCore()
@@ -329,6 +330,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t 
 		bytes []byte,
 		round uint64,
 		shardId uint32,
+		epoch uint32,
 	) ([]sharding.Validator, error) {
 		return make([]sharding.Validator, 0), nil
 	}
@@ -399,8 +401,8 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrue(t *testing.T) {
 
 	bootstrapperMock := &mock.BootstrapperMock{}
 
-	bootstrapperMock.ShouldSyncCalled = func() bool {
-		return false
+	bootstrapperMock.GetNodeStateCalled = func() core.NodeState {
+		return core.NsSynchronized
 	}
 
 	container := mock.InitConsensusCore()
@@ -422,6 +424,7 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing
 		bytes []byte,
 		round uint64,
 		shardId uint32,
+		epoch uint32,
 	) ([]sharding.Validator, error) {
 		return nil, err
 	}

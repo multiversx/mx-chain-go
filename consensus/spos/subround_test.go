@@ -12,6 +12,7 @@ import (
 )
 
 var chainID = []byte("chain ID")
+var wrongChainID = []byte("wrong chain ID")
 
 // executeStoredMessages tries to execute all the messages received which are valid for execution
 func executeStoredMessages() {
@@ -20,17 +21,29 @@ func executeStoredMessages() {
 func createEligibleList(size int) []string {
 	eligibleList := make([]string, 0)
 	for i := 0; i < size; i++ {
-		eligibleList = append(eligibleList, string(i+65))
+		var value string
+		for j := 0; j < PublicKeySize; j++ {
+			value += string(i + 65)
+		}
+
+		eligibleList = append(eligibleList, value)
 	}
+
 	return eligibleList
 }
 
 func initConsensusState() *spos.ConsensusState {
 	consensusGroupSize := 9
 	eligibleList := createEligibleList(consensusGroupSize)
+
+	eligibleNodesKeys := make(map[string]struct{}, len(eligibleList))
+	for _, key := range eligibleList {
+		eligibleNodesKeys[key] = struct{}{}
+	}
+
 	indexLeader := 1
 	rcns := spos.NewRoundConsensus(
-		eligibleList,
+		eligibleNodesKeys,
 		consensusGroupSize,
 		eligibleList[indexLeader])
 
@@ -440,7 +453,7 @@ func TestSubround_NilContainerValidatorGroupSelectorShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, sr)
-	assert.Equal(t, spos.ErrNilValidatorGroupSelector, err)
+	assert.Equal(t, spos.ErrNilNodesCoordinator, err)
 }
 
 func TestSubround_EmptyChainIDShouldFail(t *testing.T) {
@@ -573,43 +586,16 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
-	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
-
-	sr, _ := spos.NewSubround(
-		-1,
-		bls.SrStartRound,
-		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
-		"(START_ROUND)",
-		consensusState,
-		ch,
-		executeStoredMessages,
-		container,
-		chainID,
-	)
-	sr.Job = func() bool {
-		return true
-	}
-	sr.Check = func() bool {
-		return false
-	}
-
-	maxTime := time.Now().Add(100 * time.Millisecond)
-	rounderMock := &mock.RounderMock{}
-	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
-		return time.Until(maxTime)
-	}
-
-	r := sr.DoWork(rounderMock)
-	assert.False(t, r)
+	testDoWork(t, false, false)
 }
 
 func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T) {
 	t.Parallel()
 
+	testDoWork(t, true, true)
+}
+
+func testDoWork(t *testing.T, checkDone bool, shouldWork bool) {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
@@ -631,7 +617,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T)
 		return true
 	}
 	sr.Check = func() bool {
-		return true
+		return checkDone
 	}
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
@@ -641,7 +627,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T)
 	}
 
 	r := sr.DoWork(rounderMock)
-	assert.True(t, r)
+	assert.Equal(t, shouldWork, r)
 }
 
 func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhile(t *testing.T) {

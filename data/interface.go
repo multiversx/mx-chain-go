@@ -1,11 +1,10 @@
 package data
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 // TriePruningIdentifier is the type for trie pruning identifiers
@@ -39,7 +38,10 @@ type HeaderHandler interface {
 	GetTimeStamp() uint64
 	GetTxCount() uint32
 	GetReceiptsHash() []byte
+	GetAccumulatedFees() *big.Int
+	GetEpochStartMetaHash() []byte
 
+	SetAccumulatedFees(value *big.Int)
 	SetShardID(shId uint32)
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
@@ -60,14 +62,13 @@ type HeaderHandler interface {
 	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
 
 	IsInterfaceNil() bool
-	ItemsInBody() uint32
-	ItemsInHeader() uint32
 	Clone() HeaderHandler
 	CheckChainID(reference []byte) error
 }
 
 // BodyHandler interface for a block body
 type BodyHandler interface {
+	Clone() BodyHandler
 	// IntegrityAndValidity checks the integrity and validity of the block
 	IntegrityAndValidity() error
 	// IsInterfaceNil returns true if there is no value under the interface
@@ -84,15 +85,8 @@ type ChainHandler interface {
 	SetCurrentBlockHeader(bh HeaderHandler) error
 	GetCurrentBlockHeaderHash() []byte
 	SetCurrentBlockHeaderHash(hash []byte)
-	GetCurrentBlockBody() BodyHandler
-	SetCurrentBlockBody(body BodyHandler) error
-	GetLocalHeight() int64
-	SetLocalHeight(height int64)
-	GetNetworkHeight() int64
-	SetNetworkHeight(height int64)
-	HasBadBlock(blockHash []byte) bool
-	PutBadBlock(blockHash []byte)
 	IsInterfaceNil() bool
+	CreateNewHeader() HeaderHandler
 }
 
 // TransactionHandler defines the type of executable transaction
@@ -102,15 +96,45 @@ type TransactionHandler interface {
 	GetValue() *big.Int
 	GetNonce() uint64
 	GetData() []byte
-	GetRecvAddress() []byte
-	GetSndAddress() []byte
+	GetRcvAddr() []byte
+	GetSndAddr() []byte
 	GetGasLimit() uint64
 	GetGasPrice() uint64
 
 	SetValue(*big.Int)
 	SetData([]byte)
-	SetRecvAddress([]byte)
-	SetSndAddress([]byte)
+	SetRcvAddr([]byte)
+	SetSndAddr([]byte)
+}
+
+// LogHandler defines the type for a log resulted from executing a transaction or smart contract call
+type LogHandler interface {
+	// GetAddress returns the address of the sc that was originally called by the user
+	GetAddress() []byte
+	// GetLogEvents returns the events from a transaction log entry
+	GetLogEvents() []EventHandler
+
+	IsInterfaceNil() bool
+}
+
+// EventHandler defines the type for an event resulted from a smart contract call contained in a log
+type EventHandler interface {
+	// GetAddress returns the address of the contract that generated this event
+	//  - in sc calling another sc situation this will differ from the
+	//    LogHandler's GetAddress, whereas in the single sc situation
+	//    they will be the same
+	GetAddress() []byte
+	// GetIdentifier returns identifier of the event, that together with the ABI can
+	//   be used to understand the type of the event by other applications
+	GetIdentifier() []byte
+	// GetTopics returns the data that can be indexed so that it would be searchable
+	//  by other applications
+	GetTopics() [][]byte
+	// GetData returns the rest of the event data, which will not be indexed, so storing
+	//  information here should be cheaper
+	GetData() []byte
+
+	IsInterfaceNil() bool
 }
 
 //Trie is an interface for Merkle Trees implementations
@@ -119,22 +143,21 @@ type Trie interface {
 	Update(key, value []byte) error
 	Delete(key []byte) error
 	Root() ([]byte, error)
-	Prove(key []byte) ([][]byte, error)
-	VerifyProof(proofs [][]byte, key []byte) (bool, error)
 	Commit() error
 	Recreate(root []byte) (Trie, error)
 	String() string
-	DeepClone() (Trie, error)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
-	Prune(rootHash []byte, identifier TriePruningIdentifier) error
+	Prune(rootHash []byte, identifier TriePruningIdentifier)
 	TakeSnapshot(rootHash []byte)
 	SetCheckpoint(rootHash []byte)
 	ResetOldHashes() [][]byte
 	AppendToOldHashes([][]byte)
 	Database() DBWriteCacher
-	GetSerializedNodes([]byte, uint64) ([][]byte, error)
+	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetAllLeaves() (map[string][]byte, error)
 	IsPruningEnabled() bool
+	EnterSnapshotMode()
+	ExitSnapshotMode()
 	IsInterfaceNil() bool
 	ClosePersister() error
 }
@@ -152,40 +175,54 @@ type DBWriteCacher interface {
 type DBRemoveCacher interface {
 	Put([]byte, ModifiedHashes) error
 	Evict([]byte) (ModifiedHashes, error)
-	GetSize() uint
 	PresentInNewHashes(hash string) (bool, error)
 	IsInterfaceNil() bool
 }
 
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
 type TrieSyncer interface {
-	StartSyncing(rootHash []byte) error
+	StartSyncing(rootHash []byte, ctx context.Context) error
+	Trie() Trie
 	IsInterfaceNil() bool
 }
 
 // StorageManager manages all trie storage operations
 type StorageManager interface {
 	Database() DBWriteCacher
-	SetDatabase(cacher DBWriteCacher)
-	TakeSnapshot([]byte, marshal.Marshalizer, hashing.Hasher)
-	SetCheckpoint([]byte, marshal.Marshalizer, hashing.Hasher)
-	Prune([]byte) error
+	TakeSnapshot([]byte)
+	SetCheckpoint([]byte)
+	Prune([]byte, TriePruningIdentifier)
 	CancelPrune([]byte)
 	MarkForEviction([]byte, ModifiedHashes) error
 	GetDbThatContainsHash([]byte) DBWriteCacher
-	Clone() StorageManager
 	IsPruningEnabled() bool
+	EnterSnapshotMode()
+	ExitSnapshotMode()
 	IsInterfaceNil() bool
 }
 
 // TrieFactory creates new tries
 type TrieFactory interface {
-	Create(config.StorageConfig, bool) (Trie, error)
+	Create(config.StorageConfig, bool) (StorageManager, Trie, error)
 	IsInterfaceNil() bool
 }
 
-// MarshalizedBodyAndHeader holds marshalized body and header
-type MarshalizedBodyAndHeader struct {
-	Body   []byte
-	Header []byte
+// ValidatorInfoHandler is used to store multiple validatorInfo properties
+type ValidatorInfoHandler interface {
+	GetPublicKey() []byte
+	GetShardId() uint32
+	GetList() string
+	GetIndex() uint32
+	GetTempRating() uint32
+	GetRating() uint32
+	String() string
+	IsInterfaceNil() bool
+}
+
+// ShardValidatorInfoHandler is used to store multiple validatorInfo properties required in shards
+type ShardValidatorInfoHandler interface {
+	GetPublicKey() []byte
+	GetTempRating() uint32
+	String() string
+	IsInterfaceNil() bool
 }

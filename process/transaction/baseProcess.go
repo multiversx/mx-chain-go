@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -15,15 +18,18 @@ import (
 type baseTxProcessor struct {
 	accounts         state.AccountsAdapter
 	shardCoordinator sharding.Coordinator
-	adrConv          state.AddressConverter
+	pubkeyConv       state.PubkeyConverter
 	economicsFee     process.FeeHandler
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	scProcessor      process.SmartContractProcessor
 }
 
 func (txProc *baseTxProcessor) getAccounts(
 	adrSrc, adrDst state.AddressContainer,
-) (*state.Account, *state.Account, error) {
+) (state.UserAccountHandler, state.UserAccountHandler, error) {
 
-	var acntSrc, acntDst *state.Account
+	var acntSrc, acntDst state.UserAccountHandler
 
 	shardForCurrentNode := txProc.shardCoordinator.SelfId()
 	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
@@ -38,12 +44,12 @@ func (txProc *baseTxProcessor) getAccounts(
 	}
 
 	if bytes.Equal(adrSrc.Bytes(), adrDst.Bytes()) {
-		acntWrp, err := txProc.accounts.GetAccountWithJournal(adrSrc)
+		acntWrp, err := txProc.accounts.LoadAccount(adrSrc)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		account, ok := acntWrp.(*state.Account)
+		account, ok := acntWrp.(state.UserAccountHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
@@ -52,12 +58,12 @@ func (txProc *baseTxProcessor) getAccounts(
 	}
 
 	if srcInShard {
-		acntSrcWrp, err := txProc.accounts.GetAccountWithJournal(adrSrc)
+		acntSrcWrp, err := txProc.accounts.LoadAccount(adrSrc)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		account, ok := acntSrcWrp.(*state.Account)
+		account, ok := acntSrcWrp.(state.UserAccountHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
@@ -66,12 +72,12 @@ func (txProc *baseTxProcessor) getAccounts(
 	}
 
 	if dstInShard {
-		acntDstWrp, err := txProc.accounts.GetAccountWithJournal(adrDst)
+		acntDstWrp, err := txProc.accounts.LoadAccount(adrDst)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		account, ok := acntDstWrp.(*state.Account)
+		account, ok := acntDstWrp.(state.UserAccountHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
@@ -82,30 +88,35 @@ func (txProc *baseTxProcessor) getAccounts(
 	return acntSrc, acntDst, nil
 }
 
-func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc state.AddressContainer) (state.AccountHandler, error) {
+func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc state.AddressContainer) (state.UserAccountHandler, error) {
 	shardForCurrentNode := txProc.shardCoordinator.SelfId()
 	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
 	if shardForCurrentNode != shardForSrc {
 		return nil, nil
 	}
 
-	acnt, err := txProc.accounts.GetAccountWithJournal(adrSrc)
+	acnt, err := txProc.accounts.LoadAccount(adrSrc)
 	if err != nil {
 		return nil, err
 	}
 
-	return acnt, nil
+	userAcc, ok := acnt.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return userAcc, nil
 }
 
 func (txProc *baseTxProcessor) getAddresses(
 	tx *transaction.Transaction,
 ) (state.AddressContainer, state.AddressContainer, error) {
-	adrSrc, err := txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.SndAddr)
+	adrSrc, err := txProc.pubkeyConv.CreateAddressFromBytes(tx.SndAddr)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	adrDst, err := txProc.adrConv.CreateAddressFromPublicKeyBytes(tx.RcvAddr)
+	adrDst, err := txProc.pubkeyConv.CreateAddressFromBytes(tx.RcvAddr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -113,9 +124,13 @@ func (txProc *baseTxProcessor) getAddresses(
 	return adrSrc, adrDst, nil
 }
 
-func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSnd state.AccountHandler) error {
+func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSnd, acntDst state.UserAccountHandler) error {
+	err := txProc.checkUserNames(tx, acntSnd, acntDst)
+	if err != nil {
+		return err
+	}
+
 	if check.IfNil(acntSnd) {
-		// transaction was already done at sender shard
 		return nil
 	}
 
@@ -126,21 +141,21 @@ func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSn
 		return process.ErrLowerNonceInTransaction
 	}
 
-	err := txProc.economicsFee.CheckValidityTxValues(tx)
+	err = txProc.economicsFee.CheckValidityTxValues(tx)
 	if err != nil {
 		return err
 	}
 
-	stAcc, ok := acntSnd.(*state.Account)
+	stAcc, ok := acntSnd.(state.UserAccountHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
 	txFee := txProc.economicsFee.ComputeFee(tx)
-	if stAcc.Balance.Cmp(txFee) < 0 {
+	if stAcc.GetBalance().Cmp(txFee) < 0 {
 		return fmt.Errorf("%w, has: %s, wanted: %s",
 			process.ErrInsufficientFee,
-			stAcc.Balance.String(),
+			stAcc.GetBalance().String(),
 			txFee.String(),
 		)
 	}
@@ -149,8 +164,42 @@ func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSn
 	cost.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
 	cost.Add(cost, tx.Value)
 
-	if stAcc.Balance.Cmp(cost) < 0 {
+	if stAcc.GetBalance().Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
+	}
+
+	return nil
+}
+
+func (txProc *baseTxProcessor) checkUserNames(tx *transaction.Transaction, acntSnd, acntDst state.UserAccountHandler) error {
+	isUserNameWrong := len(tx.SndUserName) > 0 &&
+		!check.IfNil(acntSnd) && !bytes.Equal(tx.SndUserName, acntSnd.GetUserName())
+	if isUserNameWrong {
+		return process.ErrUserNameDoesNotMatch
+	}
+
+	isUserNameWrong = len(tx.RcvUserName) > 0 &&
+		!check.IfNil(acntDst) && !bytes.Equal(tx.RcvUserName, acntDst.GetUserName())
+	if isUserNameWrong {
+		if check.IfNil(acntSnd) {
+			return process.ErrUserNameDoesNotMatchInCrossShardTx
+		}
+		return process.ErrUserNameDoesNotMatch
+	}
+
+	return nil
+}
+
+func (txProc *baseTxProcessor) processIfTxErrorCrossShard(tx *transaction.Transaction, errorString string) error {
+	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+	if err != nil {
+		return err
+	}
+
+	snapshot := txProc.accounts.JournalLen()
+	err = txProc.scProcessor.ProcessIfError(nil, txHash, tx, errorString, snapshot)
+	if err != nil {
+		return err
 	}
 
 	return nil

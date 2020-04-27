@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -21,6 +22,25 @@ type SystemEIStub struct {
 	AddTxValueToSmartContractCalled func(value *big.Int, scAddress []byte)
 	BlockChainHookCalled            func() vmcommon.BlockchainHook
 	CryptoHookCalled                func() vmcommon.CryptoHook
+}
+
+// UseGas -
+func (s *SystemEIStub) UseGas(_ uint64) error {
+	return nil
+}
+
+// SetGasProvided -
+func (s *SystemEIStub) SetGasProvided(_ uint64) {
+}
+
+// ExecuteOnDestContext -
+func (s *SystemEIStub) ExecuteOnDestContext(_ []byte, _ []byte, _ *big.Int, _ []byte) (*vmcommon.VMOutput, error) {
+	return &vmcommon.VMOutput{}, nil
+}
+
+// SetSystemSCContainer -
+func (s *SystemEIStub) SetSystemSCContainer(_ vm.SystemSCContainer) error {
+	return nil
 }
 
 // BlockChainHook -
@@ -54,7 +74,7 @@ func (s *SystemEIStub) AddTxValueToSmartContract(value *big.Int, scAddress []byt
 }
 
 // SetSCAddress -
-func (s *SystemEIStub) SetSCAddress(addr []byte) {
+func (s *SystemEIStub) SetSCAddress(_ []byte) {
 }
 
 // Finish -
@@ -120,8 +140,5 @@ func (s *SystemEIStub) CleanCache() {
 
 // IsInterfaceNil -
 func (s *SystemEIStub) IsInterfaceNil() bool {
-	if s == nil {
-		return true
-	}
-	return false
+	return s == nil
 }

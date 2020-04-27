@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -24,12 +25,13 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 				return &mock.AccountWrapMock{}, nil
 			},
 		},
-		AddrConv:         mock.NewAddressConverterFake(32, ""),
+		PubkeyConv:       mock.NewPubkeyConverterMock(32),
 		StorageService:   &mock.ChainStorerMock{},
 		BlockChain:       &mock.BlockChainMock{},
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 		Marshalizer:      &mock.MarshalizerMock{},
 		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 	}
 	return arguments
 }
@@ -45,15 +47,15 @@ func TestNewBlockChainHookImpl_NilAccountsAdapterShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
-func TestNewBlockChainHookImpl_NilAddressConverterShouldErr(t *testing.T) {
+func TestNewBlockChainHookImpl_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
-	args.AddrConv = nil
+	args.PubkeyConv = nil
 	bh, err := hooks.NewBlockChainHookImpl(args)
 
 	assert.Nil(t, bh)
-	assert.Equal(t, process.ErrNilAddressConverter, err)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
 
 func TestNewBlockChainHookImpl_NilStorageServiceShouldErr(t *testing.T) {
@@ -135,7 +137,6 @@ func TestBlockChainHookImpl_AccountExistsErrorsShouldRetFalseAndErr(t *testing.T
 			return nil, errExpected
 		},
 	}
-	args.AddrConv = mock.NewAddressConverterFake(32, "")
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	accountsExists, err := bh.AccountExists(make([]byte, 0))
@@ -153,7 +154,6 @@ func TestBlockChainHookImpl_AccountExistsDoesNotExistsRetFalseAndNil(t *testing.
 			return nil, state.ErrAccNotFound
 		},
 	}
-	args.AddrConv = mock.NewAddressConverterFake(32, "")
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	accountsExists, err := bh.AccountExists(make([]byte, 0))
@@ -180,6 +180,12 @@ func TestBlockChainHookImpl_GetBalanceWrongAccountTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
+	args.Accounts = &mock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			return &mock.PeerAccountHandlerMock{}, nil
+		},
+	}
+
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	balance, err := bh.GetBalance(make([]byte, 0))
@@ -209,10 +215,9 @@ func TestBlockChainHookImpl_GetBalanceGetAccountErrorsShouldErr(t *testing.T) {
 func TestBlockChainHookImpl_GetBalanceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnt := &state.Account{
-		Nonce:   1,
-		Balance: big.NewInt(2),
-	}
+	accnt, _ := state.NewUserAccount(&mock.AddressMock{})
+	_ = accnt.AddToBalance(big.NewInt(2))
+	accnt.IncreaseNonce(1)
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
@@ -252,10 +257,9 @@ func TestBlockChainHookImpl_GetNonceGetAccountErrorsShouldErr(t *testing.T) {
 func TestBlockChainHookImpl_GetNonceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnt := &state.Account{
-		Nonce:   1,
-		Balance: big.NewInt(2),
-	}
+	accnt, _ := state.NewUserAccount(&mock.AddressMock{})
+	_ = accnt.AddToBalance(big.NewInt(2))
+	accnt.IncreaseNonce(1)
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
@@ -297,7 +301,7 @@ func TestBlockChainHookImpl_GetStorageDataShouldWork(t *testing.T) {
 
 	variableIdentifier := []byte("variable")
 	variableValue := []byte("value")
-	accnt := mock.NewAccountWrapMock(nil, nil)
+	accnt := mock.NewAccountWrapMock(nil)
 	accnt.DataTrieTracker().SaveKeyValue(variableIdentifier, variableValue)
 
 	args := createMockVMAccountsArguments()
@@ -337,7 +341,7 @@ func TestBlockChainHookImpl_IsCodeEmptyAccountErrorsShouldErrAndRetFalse(t *test
 func TestBlockChainHookImpl_IsCodeEmptyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnt := mock.NewAccountWrapMock(nil, nil)
+	accnt := mock.NewAccountWrapMock(nil)
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{
@@ -377,7 +381,7 @@ func TestBlockChainHookImpl_GetCodeShouldWork(t *testing.T) {
 	t.Parallel()
 
 	code := []byte("code")
-	accnt := mock.NewAccountWrapMock(nil, nil)
+	accnt := mock.NewAccountWrapMock(nil)
 	accnt.SetCode(code)
 
 	args := createMockVMAccountsArguments()
@@ -441,18 +445,11 @@ func TestBlockChainHookImpl_GetNonceFromFakeAccount(t *testing.T) {
 func TestBlockChainHookImpl_NewAddressLengthNoGood(t *testing.T) {
 	t.Parallel()
 
-	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-		return &state.Account{
-			Nonce:    0,
-			Balance:  nil,
-			CodeHash: nil,
-			RootHash: nil,
-		}, nil
+		return state.NewUserAccount(addressContainer)
 	}
 	args := createMockVMAccountsArguments()
-	args.AddrConv = adrConv
 	args.Accounts = acnts
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
@@ -472,18 +469,11 @@ func TestBlockChainHookImpl_NewAddressLengthNoGood(t *testing.T) {
 func TestBlockChainHookImpl_NewAddressVMTypeTooLong(t *testing.T) {
 	t.Parallel()
 
-	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-		return &state.Account{
-			Nonce:    0,
-			Balance:  nil,
-			CodeHash: nil,
-			RootHash: nil,
-		}, nil
+		return state.NewUserAccount(addressContainer)
 	}
 	args := createMockVMAccountsArguments()
-	args.AddrConv = adrConv
 	args.Accounts = acnts
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
@@ -499,18 +489,11 @@ func TestBlockChainHookImpl_NewAddressVMTypeTooLong(t *testing.T) {
 func TestBlockChainHookImpl_NewAddress(t *testing.T) {
 	t.Parallel()
 
-	adrConv := mock.NewAddressConverterFake(32, "")
 	acnts := &mock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-		return &state.Account{
-			Nonce:    0,
-			Balance:  nil,
-			CodeHash: nil,
-			RootHash: nil,
-		}, nil
+		return state.NewUserAccount(addressContainer)
 	}
 	args := createMockVMAccountsArguments()
-	args.AddrConv = adrConv
 	args.Accounts = acnts
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
@@ -540,9 +523,7 @@ func TestBlockChainHookImpl_GetBlockhashShouldReturnCurrentBlockHeaderHash(t *te
 
 	hdrToRet := &block.Header{Nonce: 2}
 	hashToRet := []byte("hash")
-	adrConv := mock.NewAddressConverterFake(32, "")
 	args := createMockVMAccountsArguments()
-	args.AddrConv = adrConv
 	args.BlockChain = &mock.BlockChainMock{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return hdrToRet
@@ -576,9 +557,7 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		Epoch:     epoch,
 	}
 
-	adrConv := mock.NewAddressConverterFake(32, "")
 	args := createMockVMAccountsArguments()
-	args.AddrConv = adrConv
 	args.BlockChain = &mock.BlockChainMock{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return hdrToRet
@@ -611,10 +590,7 @@ func TestBlockChainHookImpl_GettersFromCurrentHeader(t *testing.T) {
 		Epoch:     epoch,
 	}
 
-	adrConv := mock.NewAddressConverterFake(32, "")
 	args := createMockVMAccountsArguments()
-	args.AddrConv = adrConv
-
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
 	bh.SetCurrentHeader(hdr)

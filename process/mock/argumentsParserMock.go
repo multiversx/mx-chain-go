@@ -1,14 +1,18 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ArgumentParserMock -
 type ArgumentParserMock struct {
 	ParseDataCalled                   func(data string) error
-	GetArgumentsCalled                func() ([][]byte, error)
+	GetConstructorArgumentsCalled     func() ([][]byte, error)
+	GetFunctionArgumentsCalled        func() ([][]byte, error)
 	GetCodeCalled                     func() ([]byte, error)
+	GetCodeDecodedCalled              func() ([]byte, error)
+	GetCodeMetadataCalled             func() (vmcommon.CodeMetadata, error)
+	GetVMTypeCalled                   func() ([]byte, error)
 	GetFunctionCalled                 func() (string, error)
 	GetSeparatorCalled                func() string
 	CreateDataFromStorageUpdateCalled func(storageUpdates []*vmcommon.StorageUpdate) string
@@ -23,12 +27,20 @@ func (ap *ArgumentParserMock) ParseData(data string) error {
 	return ap.ParseDataCalled(data)
 }
 
-// GetArguments -
-func (ap *ArgumentParserMock) GetArguments() ([][]byte, error) {
-	if ap.GetArgumentsCalled == nil {
+// GetConstructorArguments -
+func (ap *ArgumentParserMock) GetConstructorArguments() ([][]byte, error) {
+	if ap.GetConstructorArgumentsCalled == nil {
 		return make([][]byte, 0), nil
 	}
-	return ap.GetArgumentsCalled()
+	return ap.GetConstructorArgumentsCalled()
+}
+
+// GetFunctionArguments -
+func (ap *ArgumentParserMock) GetFunctionArguments() ([][]byte, error) {
+	if ap.GetFunctionArgumentsCalled == nil {
+		return make([][]byte, 0), nil
+	}
+	return ap.GetFunctionArgumentsCalled()
 }
 
 // GetCode -
@@ -37,6 +49,30 @@ func (ap *ArgumentParserMock) GetCode() ([]byte, error) {
 		return []byte(""), nil
 	}
 	return ap.GetCodeCalled()
+}
+
+// GetCodeDecoded -
+func (ap *ArgumentParserMock) GetCodeDecoded() ([]byte, error) {
+	if ap.GetCodeDecodedCalled == nil {
+		return []byte(""), nil
+	}
+	return ap.GetCodeDecodedCalled()
+}
+
+// GetCodeMetadata -
+func (ap *ArgumentParserMock) GetCodeMetadata() (vmcommon.CodeMetadata, error) {
+	if ap.GetCodeMetadataCalled == nil {
+		return vmcommon.CodeMetadata{}, nil
+	}
+	return ap.GetCodeMetadataCalled()
+}
+
+// GetVMType -
+func (ap *ArgumentParserMock) GetVMType() ([]byte, error) {
+	if ap.GetVMTypeCalled == nil {
+		return []byte("00"), nil
+	}
+	return ap.GetVMTypeCalled()
 }
 
 // GetFunction -
@@ -73,8 +109,5 @@ func (ap *ArgumentParserMock) GetStorageUpdates(data string) ([]*vmcommon.Storag
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ap *ArgumentParserMock) IsInterfaceNil() bool {
-	if ap == nil {
-		return true
-	}
-	return false
+	return ap == nil
 }

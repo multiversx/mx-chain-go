@@ -1,7 +1,7 @@
 package node
 
 import (
-	"math/big"
+	"errors"
 	"testing"
 	"time"
 
@@ -39,30 +39,82 @@ func TestWithMessenger_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithMarshalizer_NilMarshalizerShouldErr(t *testing.T) {
+func TestWithInternalMarshalizer_NilProtoMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	opt := WithMarshalizer(nil, testSizeCheckDelta)
+	opt := WithInternalMarshalizer(nil, testSizeCheckDelta)
 	err := opt(node)
 
-	assert.Nil(t, node.marshalizer)
+	assert.Nil(t, node.internalMarshalizer)
 	assert.Equal(t, ErrNilMarshalizer, err)
 }
 
-func TestWithMarshalizer_ShouldWork(t *testing.T) {
+func TestWithInternalMarshalizerr_NilVmMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithVmMarshalizer(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.vmMarshalizer)
+	assert.Equal(t, ErrNilMarshalizer, err)
+}
+
+func TestWithMarshalizer_NilTxSignMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithTxSignMarshalizer(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.txSignMarshalizer)
+	assert.Equal(t, ErrNilMarshalizer, err)
+}
+
+func TestWithProtoMarshalizer_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
 	marshalizer := &mock.MarshalizerMock{}
 
-	opt := WithMarshalizer(marshalizer, testSizeCheckDelta)
+	opt := WithInternalMarshalizer(marshalizer, testSizeCheckDelta)
 	err := opt(node)
 
-	assert.True(t, node.marshalizer == marshalizer)
+	assert.True(t, node.internalMarshalizer == marshalizer)
 	assert.True(t, node.sizeCheckDelta == testSizeCheckDelta)
+	assert.Nil(t, err)
+}
+
+func TestWithVmMarshalizer_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	marshalizer := &mock.MarshalizerMock{}
+
+	opt := WithVmMarshalizer(marshalizer)
+	err := opt(node)
+
+	assert.True(t, node.vmMarshalizer == marshalizer)
+	assert.Nil(t, err)
+}
+
+func TestWithTxSignMarshalizer_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	marshalizer := &mock.MarshalizerMock{}
+
+	opt := WithTxSignMarshalizer(marshalizer)
+	err := opt(node)
+
+	assert.True(t, node.txSignMarshalizer == marshalizer)
 	assert.Nil(t, err)
 }
 
@@ -118,29 +170,55 @@ func TestWithAccountsAdapter_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithAddressConverter_NilConverterShouldErr(t *testing.T) {
+func TestWithAddressPubkeyConverter_NilConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	opt := WithAddressConverter(nil)
+	opt := WithAddressPubkeyConverter(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.addrConverter)
-	assert.Equal(t, ErrNilAddressConverter, err)
+	assert.Nil(t, node.addressPubkeyConverter)
+	assert.True(t, errors.Is(err, ErrNilPubkeyConverter))
 }
 
-func TestWithAddressConverter_ShouldWork(t *testing.T) {
+func TestWithAddressPubkeyConverter_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 
-	converter := &mock.AddressConverterStub{}
+	converter := &mock.PubkeyConverterStub{}
 
-	opt := WithAddressConverter(converter)
+	opt := WithAddressPubkeyConverter(converter)
 	err := opt(node)
 
-	assert.True(t, node.addrConverter == converter)
+	assert.True(t, node.addressPubkeyConverter == converter)
+	assert.Nil(t, err)
+}
+
+func TestWithValidatorPubkeyConverter_NilConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithValidatorPubkeyConverter(nil)
+	err := opt(node)
+
+	assert.Nil(t, node.validatorPubkeyConverter)
+	assert.True(t, errors.Is(err, ErrNilPubkeyConverter))
+}
+
+func TestWithValidatorPubkeyConverter_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	converter := &mock.PubkeyConverterStub{}
+
+	opt := WithValidatorPubkeyConverter(converter)
+	err := opt(node)
+
+	assert.True(t, node.validatorPubkeyConverter == converter)
 	assert.Nil(t, err)
 }
 
@@ -161,9 +239,7 @@ func TestWithBlockChain_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	blkc, _ := blockchain.NewBlockChain(
-		&mock.CacherStub{},
-	)
+	blkc := blockchain.NewBlockChain()
 
 	opt := WithBlockChain(blkc)
 	err := opt(node)
@@ -180,7 +256,7 @@ func TestWithDataStore_NilStoreShouldErr(t *testing.T) {
 	opt := WithDataStore(nil)
 	err := opt(node)
 
-	assert.Nil(t, node.txSignPrivKey)
+	assert.Nil(t, node.store)
 	assert.Equal(t, ErrNilStore, err)
 }
 
@@ -195,32 +271,6 @@ func TestWithDataStore_ShouldWork(t *testing.T) {
 	err := opt(node)
 
 	assert.True(t, node.store == store)
-	assert.Nil(t, err)
-}
-
-func TestWithPrivateKey_NilPrivateKeyShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithTxSignPrivKey(nil)
-	err := opt(node)
-
-	assert.Nil(t, node.txSignPrivKey)
-	assert.Equal(t, ErrNilPrivateKey, err)
-}
-
-func TestWithPrivateKey_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	sk := &mock.PrivateKeyStub{}
-
-	opt := WithTxSignPrivKey(sk)
-	err := opt(node)
-
-	assert.True(t, node.txSignPrivKey == sk)
 	assert.Nil(t, err)
 }
 
@@ -303,32 +353,6 @@ func TestWithPublicKey(t *testing.T) {
 	err := opt(node)
 
 	assert.Equal(t, pubKeys, node.initialNodesPubkeys)
-	assert.Nil(t, err)
-}
-
-func TestWithPublicKey_NilPublicKeyShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithTxSignPubKey(nil)
-	err := opt(node)
-
-	assert.Nil(t, node.txSignPubKey)
-	assert.Equal(t, ErrNilPublicKey, err)
-}
-
-func TestWithPublicKey_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	pk := &mock.PublicKeyMock{}
-
-	opt := WithTxSignPubKey(pk)
-	err := opt(node)
-
-	assert.True(t, node.txSignPubKey == pk)
 	assert.Nil(t, err)
 }
 
@@ -651,35 +675,6 @@ func TestWithUint64ByteSliceConverter_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithInitialNodesBalances_NilBalancesShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithInitialNodesBalances(nil)
-	err := opt(node)
-
-	assert.Nil(t, node.initialNodesBalances)
-	assert.Equal(t, ErrNilBalances, err)
-}
-
-func TestWithInitialNodesBalances_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	balances := map[string]*big.Int{
-		"pk1": big.NewInt(45),
-		"pk2": big.NewInt(56),
-	}
-
-	opt := WithInitialNodesBalances(balances)
-	err := opt(node)
-
-	assert.Equal(t, node.initialNodesBalances, balances)
-	assert.Nil(t, err)
-}
-
 func TestWithSinglesig_NilBlsSinglesigShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -991,7 +986,7 @@ func TestWithValidatorStatistics_OkValidatorStatisticsShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	opt := WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{})
+	opt := WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{})
 	err := opt(node)
 
 	assert.Nil(t, err)
@@ -1043,16 +1038,6 @@ func TestWithTxStorageSize(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithBlackListHandler_NilBlackListHandler(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-	opt := WithBlackListHandler(nil)
-
-	err := opt(node)
-	assert.Equal(t, ErrNilBlackListHandler, err)
-}
-
 func TestWithEpochStartTrigger_NilEpoch(t *testing.T) {
 	t.Parallel()
 
@@ -1081,4 +1066,231 @@ func TestWithPubKey_NilPublicKey(t *testing.T) {
 
 	err := opt(node)
 	assert.Equal(t, ErrNilPublicKey, err)
+}
+
+func TestWithBlockBlackListHandler_NilBlackListHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithBlockBlackListHandler(nil)
+	err := opt(node)
+
+	assert.True(t, errors.Is(err, ErrNilBlackListHandler))
+}
+
+func TestWithBlockBlackListHandler_OkHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	blackListHandler := &mock.BlackListHandlerStub{}
+	opt := WithBlockBlackListHandler(blackListHandler)
+	err := opt(node)
+
+	assert.True(t, node.blocksBlackListHandler == blackListHandler)
+	assert.Nil(t, err)
+}
+
+func TestWithPeerBlackListHandler_NilBlackListHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithPeerBlackListHandler(nil)
+	err := opt(node)
+
+	assert.True(t, errors.Is(err, ErrNilBlackListHandler))
+}
+
+func TestWithPeerBlackListHandler_OkHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	blackListHandler := &mock.BlackListHandlerStub{}
+	opt := WithPeerBlackListHandler(blackListHandler)
+	err := opt(node)
+
+	assert.True(t, node.peerBlackListHandler == blackListHandler)
+	assert.Nil(t, err)
+}
+
+func TestWithNetworkShardingCollector_NilNetworkShardingCollectorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithNetworkShardingCollector(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilNetworkShardingCollector, err)
+}
+
+func TestWithNetworkShardingCollector_OkHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	networkShardingCollector := &mock.NetworkShardingCollectorStub{}
+	opt := WithNetworkShardingCollector(networkShardingCollector)
+	err := opt(node)
+
+	assert.True(t, node.networkShardingCollector == networkShardingCollector)
+	assert.Nil(t, err)
+}
+
+func TestWithInputAntifloodHandler_NilAntifloodHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithInputAntifloodHandler(nil)
+	err := opt(node)
+
+	assert.True(t, errors.Is(err, ErrNilAntifloodHandler))
+}
+
+func TestWithInputAntifloodHandler_OkAntifloodHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
+	opt := WithInputAntifloodHandler(antifloodHandler)
+	err := opt(node)
+
+	assert.True(t, node.inputAntifloodHandler == antifloodHandler)
+	assert.Nil(t, err)
+}
+
+func TestWithTxAccumulator_NilAccumulatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithTxAccumulator(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilTxAccumulator, err)
+}
+
+func TestWithHardforkTrigger_NilHardforkTriggerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithHardforkTrigger(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilHardforkTrigger, err)
+}
+
+func TestWithHardforkTrigger_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	hardforkTrigger := &mock.HardforkTriggerStub{}
+	opt := WithHardforkTrigger(hardforkTrigger)
+	err := opt(node)
+
+	assert.Nil(t, err)
+	assert.True(t, node.hardforkTrigger == hardforkTrigger)
+}
+
+func TestWithWhiteListHandler_NilWhiteListHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithWhiteListHandler(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilWhiteListHandler, err)
+}
+
+func TestWithWhiteListHandler_WhiteListHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	whiteListHandler := &mock.WhiteListHandlerStub{}
+	opt := WithWhiteListHandler(whiteListHandler)
+	err := opt(node)
+
+	assert.Nil(t, err)
+	assert.True(t, node.whiteListRequest == whiteListHandler)
+}
+
+func TestWithWhiteListHandlerVerified_NilWhiteListHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithWhiteListHandlerVerified(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilWhiteListHandler, err)
+}
+
+func TestWithWhiteListHandlerVerified_WhiteListHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	whiteListHandler := &mock.WhiteListHandlerStub{}
+	opt := WithWhiteListHandlerVerified(whiteListHandler)
+	err := opt(node)
+
+	assert.Nil(t, err)
+	assert.True(t, node.whiteListerVerifiedTxs == whiteListHandler)
+}
+
+func TestWithSignatureSize(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	signatureSize := 48
+	opt := WithSignatureSize(signatureSize)
+
+	err := opt(node)
+	assert.Equal(t, signatureSize, node.signatureSize)
+	assert.Nil(t, err)
+}
+
+func TestWithPublicKeySize(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	publicKeySize := 96
+	opt := WithPublicKeySize(publicKeySize)
+
+	err := opt(node)
+	assert.Equal(t, publicKeySize, node.publicKeySize)
+	assert.Nil(t, err)
+}
+
+func TestWithNodeStopChannel_NilNodeStopChannelShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithNodeStopChannel(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilNodeStopChannel, err)
+}
+
+func TestWithNodeStopChannel_OkNodeStopChannelShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	ch := make(chan bool, 1)
+	opt := WithNodeStopChannel(ch)
+	err := opt(node)
+
+	assert.True(t, node.chanStopNodeProcess == ch)
+	assert.Nil(t, err)
 }

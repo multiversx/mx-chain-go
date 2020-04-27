@@ -1,15 +1,29 @@
 package track
 
 import (
-	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// metaBlockTrack
+// shardBlockTrack
+
+func (sbt *shardBlockTrack) SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32) {
+	sbt.blockBalancer.SetNumPendingMiniBlocks(shardID, numPendingMiniBlocks)
+}
 
 func (sbt *shardBlockTrack) GetNumPendingMiniBlocks(shardID uint32) uint32 {
 	return sbt.blockBalancer.GetNumPendingMiniBlocks(shardID)
+}
+
+func (sbt *shardBlockTrack) SetLastShardProcessedMetaNonce(shardID uint32, nonce uint64) {
+	sbt.blockBalancer.SetLastShardProcessedMetaNonce(shardID, nonce)
+}
+
+func (sbt *shardBlockTrack) GetLastShardProcessedMetaNonce(shardID uint32) uint64 {
+	return sbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID)
 }
 
 // baseBlockTrack
@@ -34,8 +48,32 @@ func (bbt *baseBlockTrack) ReceivedMetaBlock(headerHandler data.HeaderHandler, m
 	bbt.receivedMetaBlock(headerHandler, metaBlockHash)
 }
 
+func (bbt *baseBlockTrack) GetMaxNumHeadersToKeepPerShard() int {
+	return bbt.maxNumHeadersToKeepPerShard
+}
+
+func (bbt *baseBlockTrack) ShouldAddHeaderForCrossShard(headerHandler data.HeaderHandler) bool {
+	return bbt.shouldAddHeaderForShard(headerHandler, bbt.crossNotarizer, headerHandler.GetShardID())
+}
+
+func (bbt *baseBlockTrack) ShouldAddHeaderForSelfShard(headerHandler data.HeaderHandler) bool {
+	return bbt.shouldAddHeaderForShard(headerHandler, bbt.selfNotarizer, core.MetachainShardId)
+}
+
 func (bbt *baseBlockTrack) AddHeader(header data.HeaderHandler, hash []byte) {
 	bbt.addHeader(header, hash)
+}
+
+func (bbt *baseBlockTrack) AppendTrackedHeader(headerHandler data.HeaderHandler) {
+	bbt.mutHeaders.Lock()
+	headersForShard, ok := bbt.headers[headerHandler.GetShardID()]
+	if !ok {
+		headersForShard = make(map[uint64][]*HeaderInfo)
+		bbt.headers[headerHandler.GetShardID()] = headersForShard
+	}
+
+	headersForShard[headerHandler.GetNonce()] = append(headersForShard[headerHandler.GetNonce()], &HeaderInfo{Header: headerHandler})
+	bbt.mutHeaders.Unlock()
 }
 
 func (bbt *baseBlockTrack) CleanupTrackedHeadersBehindNonce(shardID uint32, nonce uint64) {
@@ -46,7 +84,7 @@ func (bbt *baseBlockTrack) DisplayTrackedHeadersForShard(shardID uint32, message
 	bbt.displayTrackedHeadersForShard(shardID, message)
 }
 
-func (bbt *baseBlockTrack) SetRounder(rounder consensus.Rounder) {
+func (bbt *baseBlockTrack) SetRounder(rounder process.Rounder) {
 	bbt.rounder = rounder
 }
 
@@ -66,6 +104,10 @@ func NewBaseBlockTrack() *baseBlockTrack {
 	return &baseBlockTrack{}
 }
 
+func (bbt *baseBlockTrack) DoWhitelistIfNeeded(metaBlock *block.MetaBlock) {
+	bbt.doWhitelistIfNeeded(metaBlock)
+}
+
 // blockNotifier
 
 func (bn *blockNotifier) GetNotarizedHeadersHandlers() []func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
@@ -77,6 +119,12 @@ func (bn *blockNotifier) GetNotarizedHeadersHandlers() []func(shardID uint32, he
 }
 
 // blockNotarizer
+
+func (bn *blockNotarizer) AppendNotarizedHeader(headerHandler data.HeaderHandler) {
+	bn.mutNotarizedHeaders.Lock()
+	bn.notarizedHeaders[headerHandler.GetShardID()] = append(bn.notarizedHeaders[headerHandler.GetShardID()], &HeaderInfo{Header: headerHandler})
+	bn.mutNotarizedHeaders.Unlock()
+}
 
 func (bn *blockNotarizer) GetNotarizedHeaders() map[uint32][]*HeaderInfo {
 	bn.mutNotarizedHeaders.RLock()
@@ -126,4 +174,16 @@ func (bp *blockProcessor) CheckHeaderFinality(header data.HeaderHandler, sortedH
 
 func (bp *blockProcessor) RequestHeadersIfNeeded(lastNotarizedHeader data.HeaderHandler, sortedHeaders []data.HeaderHandler, longestChainHeaders []data.HeaderHandler) {
 	bp.requestHeadersIfNeeded(lastNotarizedHeader, sortedHeaders, longestChainHeaders)
+}
+
+func (bp *blockProcessor) GetLatestValidHeader(lastNotarizedHeader data.HeaderHandler, longestChainHeaders []data.HeaderHandler) data.HeaderHandler {
+	return bp.getLatestValidHeader(lastNotarizedHeader, longestChainHeaders)
+}
+
+func (bp *blockProcessor) GetHighestRoundInReceivedHeaders(latestValidHeader data.HeaderHandler, sortedReceivedHeaders []data.HeaderHandler) uint64 {
+	return bp.getHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
+}
+
+func (bp *blockProcessor) RequestHeadersIfNothingNewIsReceived(lastNotarizedHeaderNonce uint64, latestValidHeader data.HeaderHandler, highestRoundInReceivedHeaders uint64) {
+	bp.requestHeadersIfNothingNewIsReceived(lastNotarizedHeaderNonce, latestValidHeader, highestRoundInReceivedHeaders)
 }

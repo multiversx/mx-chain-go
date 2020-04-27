@@ -3,6 +3,7 @@ package vmValues
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -17,7 +18,6 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/json"
 	"github.com/stretchr/testify/require"
 )
 
@@ -153,7 +153,7 @@ func TestCreateSCQuery_ArgumentIsNotHexShouldErr(t *testing.T) {
 		Args:      []string{"bad arg"},
 	}
 
-	_, err := createSCQuery(&request)
+	_, err := createSCQuery(&mock.Facade{}, &request)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "'bad arg' is not a valid hex string")
 }
@@ -180,7 +180,7 @@ func TestAllRoutes_FacadeErrorsShouldErr(t *testing.T) {
 func TestAllRoutes_WhenBadAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	errExpected := errors.New("not a valid hex string")
+	errExpected := errors.New("not a valid address")
 	facade := mock.Facade{
 		ExecuteSCQueryHandler: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
 			return &vmcommon.VMOutput{}, nil

@@ -1,9 +1,14 @@
 package transaction
 
 import (
+	"errors"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -12,13 +17,14 @@ import (
 type metaTxProcessor struct {
 	*baseTxProcessor
 	txTypeHandler process.TxTypeHandler
-	scProcessor   process.SmartContractProcessor
 }
 
 // NewMetaTxProcessor creates a new txProcessor engine
 func NewMetaTxProcessor(
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
 	accounts state.AccountsAdapter,
-	addressConv state.AddressConverter,
+	pubkeyConv state.PubkeyConverter,
 	shardCoordinator sharding.Coordinator,
 	scProcessor process.SmartContractProcessor,
 	txTypeHandler process.TxTypeHandler,
@@ -28,8 +34,8 @@ func NewMetaTxProcessor(
 	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(addressConv) {
-		return nil, process.ErrNilAddressConverter
+	if check.IfNil(pubkeyConv) {
+		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
@@ -47,20 +53,22 @@ func NewMetaTxProcessor(
 	baseTxProcess := &baseTxProcessor{
 		accounts:         accounts,
 		shardCoordinator: shardCoordinator,
-		adrConv:          addressConv,
+		pubkeyConv:       pubkeyConv,
 		economicsFee:     economicsFee,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		scProcessor:      scProcessor,
 	}
 
 	return &metaTxProcessor{
 		baseTxProcessor: baseTxProcess,
-		scProcessor:     scProcessor,
 		txTypeHandler:   txTypeHandler,
 	}, nil
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
 func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) error {
-	if tx == nil || tx.IsInterfaceNil() {
+	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
 
@@ -69,15 +77,33 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) e
 		return err
 	}
 
-	acntSnd, err := txProc.getAccountFromAddress(adrSrc)
+	acntSnd, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
 	if err != nil {
 		return err
 	}
 
-	process.DisplayProcessTxDetails("ProcessTransaction: sender account details", acntSnd, tx)
-
-	err = txProc.checkTxValues(tx, acntSnd)
+	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
 	if err != nil {
+		return err
+	}
+
+	process.DisplayProcessTxDetails(
+		"ProcessTransaction: sender account details",
+		acntSnd,
+		tx,
+		txProc.pubkeyConv,
+	)
+
+	err = txProc.checkTxValues(tx, acntSnd, acntDst)
+	if err != nil {
+		if errors.Is(err, process.ErrUserNameDoesNotMatchInCrossShardTx) {
+			errProcessIfErr := txProc.processIfTxErrorCrossShard(tx, err.Error())
+			if errProcessIfErr != nil {
+				return errProcessIfErr
+			}
+			return nil
+		}
+
 		return err
 	}
 
@@ -93,7 +119,13 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) e
 		return txProc.processSCInvoking(tx, adrSrc, adrDst)
 	}
 
-	return process.ErrWrongTransaction
+	snapshot := txProc.accounts.JournalLen()
+	err = txProc.scProcessor.ProcessIfError(acntSnd, txHash, tx, process.ErrWrongTransaction.Error(), snapshot)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (txProc *metaTxProcessor) processSCDeployment(

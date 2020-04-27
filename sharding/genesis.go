@@ -1,12 +1,13 @@
 package sharding
 
 import (
-	"encoding/hex"
+	"fmt"
 	"math/big"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/logger"
 )
 
 var log = logger.GetOrCreate("sharding")
@@ -21,12 +22,19 @@ type InitialBalance struct {
 
 // Genesis hold data for decoded data from json file
 type Genesis struct {
+	pubkeyConverter state.PubkeyConverter
 	InitialBalances []*InitialBalance `json:"initialBalances"`
 }
 
 // NewGenesisConfig creates a new decoded genesis structure from json config file
-func NewGenesisConfig(genesisFilePath string) (*Genesis, error) {
-	genesis := &Genesis{}
+func NewGenesisConfig(genesisFilePath string, pubkeyConverter state.PubkeyConverter) (*Genesis, error) {
+	if check.IfNil(pubkeyConverter) {
+		return nil, fmt.Errorf("%w for NewGenesisConfig", ErrNilPubkeyConverter)
+	}
+
+	genesis := &Genesis{
+		pubkeyConverter: pubkeyConverter,
+	}
 
 	err := core.LoadJsonFile(genesis, genesisFilePath)
 	if err != nil {
@@ -46,12 +54,11 @@ func (g *Genesis) processConfig() error {
 	var ok bool
 
 	for i := 0; i < len(g.InitialBalances); i++ {
-		g.InitialBalances[i].pubKey, err = hex.DecodeString(g.InitialBalances[i].PubKey)
-
+		g.InitialBalances[i].pubKey, err = g.pubkeyConverter.Decode(g.InitialBalances[i].PubKey)
 		// decoder treats empty string as correct, it is not allowed to have empty string as public key
 		if g.InitialBalances[i].PubKey == "" || err != nil {
 			g.InitialBalances[i].pubKey = nil
-			return ErrCouldNotParsePubKey
+			return fmt.Errorf("%w for pubkey %s", ErrCouldNotParsePubKey, g.InitialBalances[i].PubKey)
 		}
 
 		g.InitialBalances[i].balance, ok = new(big.Int).SetString(g.InitialBalances[i].Balance, 10)
@@ -67,17 +74,14 @@ func (g *Genesis) processConfig() error {
 }
 
 // InitialNodesBalances - gets the initial balances of the nodes
-func (g *Genesis) InitialNodesBalances(shardCoordinator Coordinator, adrConv state.AddressConverter) (map[string]*big.Int, error) {
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+func (g *Genesis) InitialNodesBalances(shardCoordinator Coordinator) (map[string]*big.Int, error) {
+	if check.IfNil(shardCoordinator) {
 		return nil, ErrNilShardCoordinator
-	}
-	if adrConv == nil || adrConv.IsInterfaceNil() {
-		return nil, ErrNilAddressConverter
 	}
 
 	var balances = make(map[string]*big.Int)
 	for _, in := range g.InitialBalances {
-		address, err := adrConv.CreateAddressFromPublicKeyBytes(in.pubKey)
+		address, err := g.pubkeyConverter.CreateAddressFromBytes(in.pubKey)
 		if err != nil {
 			return nil, err
 		}

@@ -2,15 +2,15 @@ package processor
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // TxInterceptorProcessor is the processor used when intercepting transactions
 // (smart contract results, receipts, transaction) structs which satisfy TransactionHandler interface.
 type TxInterceptorProcessor struct {
-	shardedDataCache dataRetriever.ShardedDataCacherNotifier
-	txValidator      process.TxValidator
+	shardedPool ShardedPool
+	txValidator process.TxValidator
 }
 
 // NewTxInterceptorProcessor creates a new TxInterceptorProcessor instance
@@ -26,35 +26,30 @@ func NewTxInterceptorProcessor(argument *ArgTxInterceptorProcessor) (*TxIntercep
 	}
 
 	return &TxInterceptorProcessor{
-		shardedDataCache: argument.ShardedDataCache,
-		txValidator:      argument.TxValidator,
+		shardedPool: argument.ShardedDataCache,
+		txValidator: argument.TxValidator,
 	}, nil
 }
 
 // Validate checks if the intercepted data can be processed
-func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData) error {
+func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData, _ p2p.PeerID) error {
 	interceptedTx, ok := data.(InterceptedTransactionHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	errTxValidation := txip.txValidator.CheckTxValidity(interceptedTx)
-	if errTxValidation != nil {
-		return errTxValidation
-	}
-
-	return nil
+	return txip.txValidator.CheckTxValidity(interceptedTx)
 }
 
 // Save will save the received data into the cacher
-func (txip *TxInterceptorProcessor) Save(data process.InterceptedData) error {
+func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ p2p.PeerID) error {
 	interceptedTx, ok := data.(InterceptedTransactionHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
 	cacherIdentifier := process.ShardCacherIdentifier(interceptedTx.SenderShardId(), interceptedTx.ReceiverShardId())
-	txip.shardedDataCache.AddData(
+	txip.shardedPool.AddData(
 		data.Hash(),
 		interceptedTx.Transaction(),
 		cacherIdentifier,
@@ -69,8 +64,5 @@ func (txip *TxInterceptorProcessor) SignalEndOfProcessing(_ []process.Intercepte
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (txip *TxInterceptorProcessor) IsInterfaceNil() bool {
-	if txip == nil {
-		return true
-	}
-	return false
+	return txip == nil
 }

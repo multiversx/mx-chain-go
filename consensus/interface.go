@@ -4,7 +4,11 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 )
+
+// BlsConsensusType specifies the signature scheme used in the consensus
+const BlsConsensusType = "bls"
 
 // Rounder defines the actions which should be handled by a round implementation
 type Rounder interface {
@@ -59,11 +63,37 @@ type BroadcastMessenger interface {
 	BroadcastMiniBlocks(map[uint32][]byte) error
 	BroadcastTransactions(map[string][][]byte) error
 	BroadcastConsensusMessage(*Message) error
+	SetDataForDelayBroadcast(headerHash []byte, miniBlocks map[uint32][]byte, transactions map[string][][]byte) error
 	IsInterfaceNil() bool
 }
 
 // P2PMessenger defines a subset of the p2p.Messenger interface
 type P2PMessenger interface {
 	Broadcast(topic string, buff []byte)
+	IsInterfaceNil() bool
+}
+
+// NetworkShardingCollector defines the updating methods used by the network sharding component
+// The interface assures that the collected data will be used by the p2p network sharding components
+type NetworkShardingCollector interface {
+	UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte)
+	UpdatePublicKeyShardId(pk []byte, shardId uint32)
+	UpdatePeerIdShardId(pid p2p.PeerID, shardId uint32)
+	IsInterfaceNil() bool
+}
+
+// P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
+// p2p messages
+type P2PAntifloodHandler interface {
+	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
+	CanProcessMessagesOnTopic(peer p2p.PeerID, topic string, numMessages uint32) error
+	ResetForTopic(topic string)
+	SetMaxMessagesForTopic(topic string, maxNum uint32)
+	IsInterfaceNil() bool
+}
+
+// HeadersPoolSubscriber can subscribe for notifications when a new block header is added to the headers pool
+type HeadersPoolSubscriber interface {
+	RegisterHandler(handler func(headerHandler data.HeaderHandler, headerHash []byte))
 	IsInterfaceNil() bool
 }

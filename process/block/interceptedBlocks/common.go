@@ -1,6 +1,7 @@
 package interceptedBlocks
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -12,7 +13,7 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if arg == nil {
 		return process.ErrNilArgumentStruct
 	}
-	if arg.HdrBuff == nil {
+	if len(arg.HdrBuff) == 0 {
 		return process.ErrNilBuffer
 	}
 	if check.IfNil(arg.Marshalizer) {
@@ -36,15 +37,18 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if check.IfNil(arg.ValidityAttester) {
 		return process.ErrNilValidityAttester
 	}
+	if check.IfNil(arg.NonceConverter) {
+		return process.ErrNilUint64Converter
+	}
 
 	return nil
 }
 
-func checkTxBlockBodyArgument(arg *ArgInterceptedTxBlockBody) error {
+func checkMiniblockArgument(arg *ArgInterceptedMiniblock) error {
 	if arg == nil {
 		return process.ErrNilArgumentStruct
 	}
-	if arg.TxBlockBodyBuff == nil {
+	if len(arg.MiniblockBuff) == 0 {
 		return process.ErrNilBuffer
 	}
 	if check.IfNil(arg.Marshalizer) {
@@ -61,22 +65,22 @@ func checkTxBlockBodyArgument(arg *ArgInterceptedTxBlockBody) error {
 }
 
 func checkHeaderHandler(hdr data.HeaderHandler) error {
-	if hdr.GetPubKeysBitmap() == nil {
+	if len(hdr.GetPubKeysBitmap()) == 0 {
 		return process.ErrNilPubKeysBitmap
 	}
-	if hdr.GetPrevHash() == nil {
+	if len(hdr.GetPrevHash()) == 0 {
 		return process.ErrNilPreviousBlockHash
 	}
-	if hdr.GetSignature() == nil {
+	if len(hdr.GetSignature()) == 0 {
 		return process.ErrNilSignature
 	}
-	if hdr.GetRootHash() == nil {
+	if len(hdr.GetRootHash()) == 0 {
 		return process.ErrNilRootHash
 	}
-	if hdr.GetRandSeed() == nil {
+	if len(hdr.GetRandSeed()) == 0 {
 		return process.ErrNilRandSeed
 	}
-	if hdr.GetPrevRandSeed() == nil {
+	if len(hdr.GetPrevRandSeed()) == 0 {
 		return process.ErrNilPrevRandSeed
 	}
 
@@ -85,7 +89,7 @@ func checkHeaderHandler(hdr data.HeaderHandler) error {
 
 func checkMetaShardInfo(shardInfo []block.ShardData, coordinator sharding.Coordinator) error {
 	for _, sd := range shardInfo {
-		if sd.ShardID >= coordinator.NumberOfShards() && sd.ShardID != sharding.MetachainShardId {
+		if sd.ShardID >= coordinator.NumberOfShards() && sd.ShardID != core.MetachainShardId {
 			return process.ErrInvalidShardId
 		}
 
@@ -101,9 +105,11 @@ func checkMetaShardInfo(shardInfo []block.ShardData, coordinator sharding.Coordi
 func checkShardData(sd block.ShardData, coordinator sharding.Coordinator) error {
 	for _, smbh := range sd.ShardMiniBlockHeaders {
 		isWrongSenderShardId := smbh.SenderShardID >= coordinator.NumberOfShards() &&
-			smbh.SenderShardID != sharding.MetachainShardId
+			smbh.SenderShardID != core.MetachainShardId &&
+			smbh.SenderShardID != core.AllShardId
 		isWrongDestinationShardId := smbh.ReceiverShardID >= coordinator.NumberOfShards() &&
-			smbh.ReceiverShardID != sharding.MetachainShardId
+			smbh.ReceiverShardID != core.MetachainShardId &&
+			smbh.ReceiverShardID != core.AllShardId
 		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
 		if isWrongShardId {
 			return process.ErrInvalidShardId
@@ -116,9 +122,11 @@ func checkShardData(sd block.ShardData, coordinator sharding.Coordinator) error 
 func checkMiniblocks(miniblocks []block.MiniBlockHeader, coordinator sharding.Coordinator) error {
 	for _, miniblock := range miniblocks {
 		isWrongSenderShardId := miniblock.SenderShardID >= coordinator.NumberOfShards() &&
-			miniblock.SenderShardID != sharding.MetachainShardId
+			miniblock.SenderShardID != core.MetachainShardId &&
+			miniblock.SenderShardID != core.AllShardId
 		isWrongDestinationShardId := miniblock.ReceiverShardID >= coordinator.NumberOfShards() &&
-			miniblock.ReceiverShardID != sharding.MetachainShardId
+			miniblock.ReceiverShardID != core.MetachainShardId &&
+			miniblock.ReceiverShardID != core.AllShardId
 		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
 		if isWrongShardId {
 			return process.ErrInvalidShardId

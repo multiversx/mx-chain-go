@@ -1,7 +1,7 @@
 package node
 
 import (
-	"math/big"
+	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -25,7 +25,7 @@ import (
 // WithMessenger sets up the messenger option for the Node
 func WithMessenger(mes P2PMessenger) Option {
 	return func(n *Node) error {
-		if mes == nil || mes.IsInterfaceNil() {
+		if check.IfNil(mes) {
 			return ErrNilMessenger
 		}
 		n.messenger = mes
@@ -33,14 +33,36 @@ func WithMessenger(mes P2PMessenger) Option {
 	}
 }
 
-// WithMarshalizer sets up the marshalizer option for the Node
-func WithMarshalizer(marshalizer marshal.Marshalizer, sizeCheckDelta uint32) Option {
+// WithInternalMarshalizer sets up the marshalizer option for the Node
+func WithInternalMarshalizer(marshalizer marshal.Marshalizer, sizeCheckDelta uint32) Option {
 	return func(n *Node) error {
-		if marshalizer == nil || marshalizer.IsInterfaceNil() {
+		if check.IfNil(marshalizer) {
 			return ErrNilMarshalizer
 		}
 		n.sizeCheckDelta = sizeCheckDelta
-		n.marshalizer = marshalizer
+		n.internalMarshalizer = marshalizer
+		return nil
+	}
+}
+
+// WithVmMarshalizer sets up the marshalizer used in Vm communication (SC)
+func WithVmMarshalizer(marshalizer marshal.Marshalizer) Option {
+	return func(n *Node) error {
+		if check.IfNil(marshalizer) {
+			return ErrNilMarshalizer
+		}
+		n.vmMarshalizer = marshalizer
+		return nil
+	}
+}
+
+// WithTxSignMarshalizer sets up the marshalizer used in transaction singning
+func WithTxSignMarshalizer(marshalizer marshal.Marshalizer) Option {
+	return func(n *Node) error {
+		if check.IfNil(marshalizer) {
+			return ErrNilMarshalizer
+		}
+		n.txSignMarshalizer = marshalizer
 		return nil
 	}
 }
@@ -48,7 +70,7 @@ func WithMarshalizer(marshalizer marshal.Marshalizer, sizeCheckDelta uint32) Opt
 // WithHasher sets up the hasher option for the Node
 func WithHasher(hasher hashing.Hasher) Option {
 	return func(n *Node) error {
-		if hasher == nil || hasher.IsInterfaceNil() {
+		if check.IfNil(hasher) {
 			return ErrNilHasher
 		}
 		n.hasher = hasher
@@ -59,7 +81,7 @@ func WithHasher(hasher hashing.Hasher) Option {
 // WithTxFeeHandler sets up the tx fee handler for the Node
 func WithTxFeeHandler(feeHandler process.FeeHandler) Option {
 	return func(n *Node) error {
-		if feeHandler == nil || feeHandler.IsInterfaceNil() {
+		if check.IfNil(feeHandler) {
 			return ErrNilTxFeeHandler
 		}
 		n.feeHandler = feeHandler
@@ -70,7 +92,7 @@ func WithTxFeeHandler(feeHandler process.FeeHandler) Option {
 // WithAccountsAdapter sets up the accounts adapter option for the Node
 func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 	return func(n *Node) error {
-		if accounts == nil || accounts.IsInterfaceNil() {
+		if check.IfNil(accounts) {
 			return ErrNilAccountsAdapter
 		}
 		n.accounts = accounts
@@ -78,13 +100,24 @@ func WithAccountsAdapter(accounts state.AccountsAdapter) Option {
 	}
 }
 
-// WithAddressConverter sets up the address converter adapter option for the Node
-func WithAddressConverter(addrConverter state.AddressConverter) Option {
+// WithAddressPubkeyConverter sets up the address public key converter adapter option for the Node
+func WithAddressPubkeyConverter(pubkeyConverter state.PubkeyConverter) Option {
 	return func(n *Node) error {
-		if addrConverter == nil || addrConverter.IsInterfaceNil() {
-			return ErrNilAddressConverter
+		if check.IfNil(pubkeyConverter) {
+			return fmt.Errorf("%w in WithAddressPubkeyConverter", ErrNilPubkeyConverter)
 		}
-		n.addrConverter = addrConverter
+		n.addressPubkeyConverter = pubkeyConverter
+		return nil
+	}
+}
+
+// WithValidatorPubkeyConverter sets up the validator public key converter adapter option for the Node
+func WithValidatorPubkeyConverter(pubkeyConverter state.PubkeyConverter) Option {
+	return func(n *Node) error {
+		if check.IfNil(pubkeyConverter) {
+			return fmt.Errorf("%w in WithValidatorPubkeyConverter", ErrNilPubkeyConverter)
+		}
+		n.validatorPubkeyConverter = pubkeyConverter
 		return nil
 	}
 }
@@ -92,7 +125,7 @@ func WithAddressConverter(addrConverter state.AddressConverter) Option {
 // WithBlockChain sets up the blockchain option for the Node
 func WithBlockChain(blkc data.ChainHandler) Option {
 	return func(n *Node) error {
-		if blkc == nil || blkc.IsInterfaceNil() {
+		if check.IfNil(blkc) {
 			return ErrNilBlockchain
 		}
 		n.blkc = blkc
@@ -111,21 +144,10 @@ func WithDataStore(store dataRetriever.StorageService) Option {
 	}
 }
 
-// WithTxSignPrivKey sets up the single sign private key option for the Node
-func WithTxSignPrivKey(sk crypto.PrivateKey) Option {
-	return func(n *Node) error {
-		if sk == nil || sk.IsInterfaceNil() {
-			return ErrNilPrivateKey
-		}
-		n.txSignPrivKey = sk
-		return nil
-	}
-}
-
 // WithPubKey sets up the multi sign pub key option for the Node
 func WithPubKey(pk crypto.PublicKey) Option {
 	return func(n *Node) error {
-		if pk == nil || pk.IsInterfaceNil() {
+		if check.IfNil(pk) {
 			return ErrNilPublicKey
 		}
 		n.pubKey = pk
@@ -136,7 +158,7 @@ func WithPubKey(pk crypto.PublicKey) Option {
 // WithPrivKey sets up the multi sign private key option for the Node
 func WithPrivKey(sk crypto.PrivateKey) Option {
 	return func(n *Node) error {
-		if sk == nil || sk.IsInterfaceNil() {
+		if check.IfNil(sk) {
 			return ErrNilPrivateKey
 		}
 		n.privKey = sk
@@ -147,7 +169,7 @@ func WithPrivKey(sk crypto.PrivateKey) Option {
 // WithKeyGen sets up the single sign key generator option for the Node
 func WithKeyGen(keyGen crypto.KeyGenerator) Option {
 	return func(n *Node) error {
-		if keyGen == nil || keyGen.IsInterfaceNil() {
+		if check.IfNil(keyGen) {
 			return ErrNilSingleSignKeyGen
 		}
 		n.keyGen = keyGen
@@ -158,7 +180,7 @@ func WithKeyGen(keyGen crypto.KeyGenerator) Option {
 // WithKeyGenForAccounts sets up the balances key generator option for the Node
 func WithKeyGenForAccounts(keyGenForAccounts crypto.KeyGenerator) Option {
 	return func(n *Node) error {
-		if keyGenForAccounts == nil || keyGenForAccounts.IsInterfaceNil() {
+		if check.IfNil(keyGenForAccounts) {
 			return ErrNilKeyGenForBalances
 		}
 		n.keyGenForAccounts = keyGenForAccounts
@@ -170,18 +192,6 @@ func WithKeyGenForAccounts(keyGenForAccounts crypto.KeyGenerator) Option {
 func WithInitialNodesPubKeys(pubKeys map[uint32][]string) Option {
 	return func(n *Node) error {
 		n.initialNodesPubkeys = pubKeys
-		return nil
-	}
-}
-
-// WithTxSignPubKey sets up the single sign public key option for the Node
-func WithTxSignPubKey(pk crypto.PublicKey) Option {
-	return func(n *Node) error {
-		if pk == nil || pk.IsInterfaceNil() {
-			return ErrNilPublicKey
-		}
-
-		n.txSignPubKey = pk
 		return nil
 	}
 }
@@ -211,7 +221,7 @@ func WithConsensusGroupSize(consensusGroupSize int) Option {
 // WithSyncer sets up the syncTimer option for the Node
 func WithSyncer(syncer ntp.SyncTimer) Option {
 	return func(n *Node) error {
-		if syncer == nil || syncer.IsInterfaceNil() {
+		if check.IfNil(syncer) {
 			return ErrNilSyncTimer
 		}
 		n.syncTimer = syncer
@@ -222,7 +232,7 @@ func WithSyncer(syncer ntp.SyncTimer) Option {
 // WithRounder sets up the rounder option for the Node
 func WithRounder(rounder consensus.Rounder) Option {
 	return func(n *Node) error {
-		if rounder == nil || rounder.IsInterfaceNil() {
+		if check.IfNil(rounder) {
 			return ErrNilRounder
 		}
 		n.rounder = rounder
@@ -233,7 +243,7 @@ func WithRounder(rounder consensus.Rounder) Option {
 // WithBlockProcessor sets up the block processor option for the Node
 func WithBlockProcessor(blockProcessor process.BlockProcessor) Option {
 	return func(n *Node) error {
-		if blockProcessor == nil || blockProcessor.IsInterfaceNil() {
+		if check.IfNil(blockProcessor) {
 			return ErrNilBlockProcessor
 		}
 		n.blockProcessor = blockProcessor
@@ -252,7 +262,7 @@ func WithGenesisTime(genesisTime time.Time) Option {
 // WithDataPool sets up the data pools option for the Node
 func WithDataPool(dataPool dataRetriever.PoolsHolder) Option {
 	return func(n *Node) error {
-		if dataPool == nil || dataPool.IsInterfaceNil() {
+		if check.IfNil(dataPool) {
 			return ErrNilDataPool
 		}
 		n.dataPool = dataPool
@@ -263,7 +273,7 @@ func WithDataPool(dataPool dataRetriever.PoolsHolder) Option {
 // WithShardCoordinator sets up the shard coordinator for the Node
 func WithShardCoordinator(shardCoordinator sharding.Coordinator) Option {
 	return func(n *Node) error {
-		if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+		if check.IfNil(shardCoordinator) {
 			return ErrNilShardCoordinator
 		}
 		n.shardCoordinator = shardCoordinator
@@ -274,7 +284,7 @@ func WithShardCoordinator(shardCoordinator sharding.Coordinator) Option {
 // WithNodesCoordinator sets up the nodes coordinator
 func WithNodesCoordinator(nodesCoordinator sharding.NodesCoordinator) Option {
 	return func(n *Node) error {
-		if nodesCoordinator == nil {
+		if check.IfNil(nodesCoordinator) {
 			return ErrNilNodesCoordinator
 		}
 		n.nodesCoordinator = nodesCoordinator
@@ -285,7 +295,7 @@ func WithNodesCoordinator(nodesCoordinator sharding.NodesCoordinator) Option {
 // WithUint64ByteSliceConverter sets up the uint64 <-> []byte converter
 func WithUint64ByteSliceConverter(converter typeConverters.Uint64ByteSliceConverter) Option {
 	return func(n *Node) error {
-		if converter == nil || converter.IsInterfaceNil() {
+		if check.IfNil(converter) {
 			return ErrNilUint64ByteSliceConverter
 		}
 		n.uint64ByteSliceConverter = converter
@@ -293,21 +303,10 @@ func WithUint64ByteSliceConverter(converter typeConverters.Uint64ByteSliceConver
 	}
 }
 
-// WithInitialNodesBalances sets up the initial map of nodes public keys and their respective balances
-func WithInitialNodesBalances(balances map[string]*big.Int) Option {
-	return func(n *Node) error {
-		if balances == nil {
-			return ErrNilBalances
-		}
-		n.initialNodesBalances = balances
-		return nil
-	}
-}
-
 // WithSingleSigner sets up a singleSigner option for the Node
 func WithSingleSigner(singleSigner crypto.SingleSigner) Option {
 	return func(n *Node) error {
-		if singleSigner == nil || singleSigner.IsInterfaceNil() {
+		if check.IfNil(singleSigner) {
 			return ErrNilSingleSig
 		}
 		n.singleSigner = singleSigner
@@ -318,7 +317,7 @@ func WithSingleSigner(singleSigner crypto.SingleSigner) Option {
 // WithTxSingleSigner sets up a txSingleSigner option for the Node
 func WithTxSingleSigner(txSingleSigner crypto.SingleSigner) Option {
 	return func(n *Node) error {
-		if txSingleSigner == nil || txSingleSigner.IsInterfaceNil() {
+		if check.IfNil(txSingleSigner) {
 			return ErrNilSingleSig
 		}
 		n.txSingleSigner = txSingleSigner
@@ -329,7 +328,7 @@ func WithTxSingleSigner(txSingleSigner crypto.SingleSigner) Option {
 // WithMultiSigner sets up the multiSigner option for the Node
 func WithMultiSigner(multiSigner crypto.MultiSigner) Option {
 	return func(n *Node) error {
-		if multiSigner == nil || multiSigner.IsInterfaceNil() {
+		if check.IfNil(multiSigner) {
 			return ErrNilMultiSig
 		}
 		n.multiSigner = multiSigner
@@ -340,7 +339,7 @@ func WithMultiSigner(multiSigner crypto.MultiSigner) Option {
 // WithForkDetector sets up the multiSigner option for the Node
 func WithForkDetector(forkDetector process.ForkDetector) Option {
 	return func(n *Node) error {
-		if forkDetector == nil || forkDetector.IsInterfaceNil() {
+		if check.IfNil(forkDetector) {
 			return ErrNilForkDetector
 		}
 		n.forkDetector = forkDetector
@@ -351,7 +350,7 @@ func WithForkDetector(forkDetector process.ForkDetector) Option {
 // WithInterceptorsContainer sets up the interceptors container option for the Node
 func WithInterceptorsContainer(interceptorsContainer process.InterceptorsContainer) Option {
 	return func(n *Node) error {
-		if interceptorsContainer == nil || interceptorsContainer.IsInterfaceNil() {
+		if check.IfNil(interceptorsContainer) {
 			return ErrNilInterceptorsContainer
 		}
 		n.interceptorsContainer = interceptorsContainer
@@ -362,7 +361,7 @@ func WithInterceptorsContainer(interceptorsContainer process.InterceptorsContain
 // WithResolversFinder sets up the resolvers finder option for the Node
 func WithResolversFinder(resolversFinder dataRetriever.ResolversFinder) Option {
 	return func(n *Node) error {
-		if resolversFinder == nil || resolversFinder.IsInterfaceNil() {
+		if check.IfNil(resolversFinder) {
 			return ErrNilResolversFinder
 		}
 		n.resolversFinder = resolversFinder
@@ -405,10 +404,21 @@ func WithEpochStartTrigger(epochStartTrigger epochStart.TriggerHandler) Option {
 	}
 }
 
+// WithEpochStartEventNotifier sets up the notifier for the epoch start event
+func WithEpochStartEventNotifier(epochStartEventNotifier epochStart.RegistrationHandler) Option {
+	return func(n *Node) error {
+		if epochStartEventNotifier == nil {
+			return ErrNilEpochStartTrigger
+		}
+		n.epochStartRegistrationHandler = epochStartEventNotifier
+		return nil
+	}
+}
+
 // WithAppStatusHandler sets up which handler will monitor the status of the node
 func WithAppStatusHandler(aph core.AppStatusHandler) Option {
 	return func(n *Node) error {
-		if aph == nil || aph.IsInterfaceNil() {
+		if check.IfNil(aph) {
 			return ErrNilStatusHandler
 
 		}
@@ -425,13 +435,24 @@ func WithIndexer(indexer indexer.Indexer) Option {
 	}
 }
 
-// WithBlackListHandler sets up a black list handler for the Node
-func WithBlackListHandler(blackListHandler process.BlackListHandler) Option {
+// WithBlockBlackListHandler sets up a block black list handler for the Node
+func WithBlockBlackListHandler(blackListHandler process.BlackListHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(blackListHandler) {
-			return ErrNilBlackListHandler
+			return fmt.Errorf("%w for WithBlockBlackListHandler", ErrNilBlackListHandler)
 		}
-		n.blackListHandler = blackListHandler
+		n.blocksBlackListHandler = blackListHandler
+		return nil
+	}
+}
+
+// WithPeerBlackListHandler sets up a block black list handler for the Node
+func WithPeerBlackListHandler(blackListHandler process.BlackListHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(blackListHandler) {
+			return fmt.Errorf("%w for WithPeerBlackListHandler", ErrNilBlackListHandler)
+		}
+		n.peerBlackListHandler = blackListHandler
 		return nil
 	}
 }
@@ -469,13 +490,24 @@ func WithHeaderSigVerifier(headerSigVerifier spos.RandSeedVerifier) Option {
 	}
 }
 
-// WithValidatorStatistics sets up the validator statistics fro the node
+// WithValidatorStatistics sets up the validator statistics for the node
 func WithValidatorStatistics(validatorStatistics process.ValidatorStatisticsProcessor) Option {
 	return func(n *Node) error {
 		if check.IfNil(validatorStatistics) {
 			return ErrNilValidatorStatistics
 		}
 		n.validatorStatistics = validatorStatistics
+		return nil
+	}
+}
+
+// WithValidatorsProvider sets up the validators provider for the node
+func WithValidatorsProvider(validatorsProvider process.ValidatorsProvider) Option {
+	return func(n *Node) error {
+		if check.IfNil(validatorsProvider) {
+			return ErrNilValidatorStatistics
+		}
+		n.validatorsProvider = validatorsProvider
 		return nil
 	}
 }
@@ -521,6 +553,110 @@ func WithRequestHandler(requestHandler process.RequestHandler) Option {
 			return ErrNilRequestHandler
 		}
 		n.requestHandler = requestHandler
+		return nil
+	}
+}
+
+// WithNetworkShardingCollector sets up a network sharding updater for the Node
+func WithNetworkShardingCollector(networkShardingCollector NetworkShardingCollector) Option {
+	return func(n *Node) error {
+		if check.IfNil(networkShardingCollector) {
+			return ErrNilNetworkShardingCollector
+		}
+		n.networkShardingCollector = networkShardingCollector
+		return nil
+	}
+}
+
+// WithInputAntifloodHandler sets up an antiflood handler for the Node on the input side
+func WithInputAntifloodHandler(antifloodHandler P2PAntifloodHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(antifloodHandler) {
+			return fmt.Errorf("%w on input", ErrNilAntifloodHandler)
+		}
+		n.inputAntifloodHandler = antifloodHandler
+		return nil
+	}
+}
+
+// WithTxAccumulator sets up a transaction accumulator handler for the Node
+func WithTxAccumulator(accumulator Accumulator) Option {
+	return func(n *Node) error {
+		if check.IfNil(accumulator) {
+			return ErrNilTxAccumulator
+		}
+		n.txAcumulator = accumulator
+
+		go n.sendFromTxAccumulator()
+		go n.printTxSentCounter()
+
+		return nil
+	}
+}
+
+// WithHardforkTrigger sets up a hardfork trigger
+func WithHardforkTrigger(hardforkTrigger HardforkTrigger) Option {
+	return func(n *Node) error {
+		if check.IfNil(hardforkTrigger) {
+			return ErrNilHardforkTrigger
+		}
+
+		n.hardforkTrigger = hardforkTrigger
+
+		return nil
+	}
+}
+
+// WithWhiteListHandler sets up a white list handler option
+func WithWhiteListHandler(whiteListHandler process.WhiteListHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(whiteListHandler) {
+			return ErrNilWhiteListHandler
+		}
+
+		n.whiteListRequest = whiteListHandler
+
+		return nil
+	}
+}
+
+// WithWhiteListHandlerVerified sets up a white list handler option
+func WithWhiteListHandlerVerified(whiteListHandler process.WhiteListHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(whiteListHandler) {
+			return ErrNilWhiteListHandler
+		}
+
+		n.whiteListerVerifiedTxs = whiteListHandler
+
+		return nil
+	}
+}
+
+// WithSignatureSize sets up a signatureSize option for the Node
+func WithSignatureSize(signatureSize int) Option {
+	return func(n *Node) error {
+		n.signatureSize = signatureSize
+		return nil
+	}
+}
+
+// WithPublicKeySize sets up a publicKeySize option for the Node
+func WithPublicKeySize(publicKeySize int) Option {
+	return func(n *Node) error {
+		n.publicKeySize = publicKeySize
+		return nil
+	}
+}
+
+// WithNodeStopChannel sets up the channel which will handle closing the node
+func WithNodeStopChannel(channel chan bool) Option {
+	return func(n *Node) error {
+		if channel == nil {
+			return ErrNilNodeStopChannel
+		}
+		n.chanStopNodeProcess = channel
+
 		return nil
 	}
 }

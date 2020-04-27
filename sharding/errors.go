@@ -16,11 +16,20 @@ var ErrShardIdOutOfRange = errors.New("shard id out of range")
 // ErrNilPubKey signals that the public key is nil
 var ErrNilPubKey = errors.New("nil public key")
 
+// ErrInvalidNumberPubKeys signals that an invalid number of public keys was used
+var ErrInvalidNumberPubKeys = errors.New("invalid number of public keys")
+
 // ErrNilNodesCoordinator signals that the nodesCoordinator is nil
 var ErrNilNodesCoordinator = errors.New("nil nodesCoordinator")
 
-// ErrNilRater signals that the rater is nil
-var ErrNilRater = errors.New("nil rater")
+// ErrNilValidatorsProvider signals that the validatorsProvider is nil
+var ErrNilValidatorsProvider = errors.New("nil validatorsProvider")
+
+// ErrNilEpochStartNotifier signals that the ErrNilEpochStartNotifier is nil
+var ErrNilEpochStartNotifier = errors.New("nil epochStartNotifier")
+
+// ErrNilMarshalizer signals that the marshalizer is nil
+var ErrNilMarshalizer = errors.New("nil marshalizer")
 
 // ErrNoPubKeys signals an error when public keys are missing
 var ErrNoPubKeys = errors.New("no public keys defined")
@@ -31,8 +40,8 @@ var ErrPublicKeyNotFoundInGenesis = errors.New("public key is not valid, it is m
 // ErrNilShardCoordinator signals that a nil shard coordinator has been provided
 var ErrNilShardCoordinator = errors.New("trying to set nil shard coordinator")
 
-// ErrNilAddressConverter signals that a nil address converter has been provided
-var ErrNilAddressConverter = errors.New("trying to set nil address converter")
+// ErrNilPubkeyConverter signals that a nil public key converter has been provided
+var ErrNilPubkeyConverter = errors.New("trying to set nil pubkey converter")
 
 // ErrCouldNotParsePubKey signals that a given public key could not be parsed
 var ErrCouldNotParsePubKey = errors.New("could not parse node's public key")
@@ -58,17 +67,11 @@ var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
 // ErrSmallMetachainEligibleListSize signals that the eligible validators list's size is less than the consensus size
 var ErrSmallMetachainEligibleListSize = errors.New("small metachain eligible list size")
 
+// ErrEpochNodesConfigDoesNotExist signals that the epoch nodes configuration is missing
+var ErrEpochNodesConfigDoesNotExist = errors.New("epoch nodes configuration does not exist")
+
 // ErrInvalidConsensusGroupSize signals that the consensus size is invalid (e.g. value is negative)
 var ErrInvalidConsensusGroupSize = errors.New("invalid consensus group size")
-
-// ErrEligibleSelectionMismatch signals a mismatch between the eligible list and the group selection bitmap
-var ErrEligibleSelectionMismatch = errors.New("invalid eligible validator selection")
-
-// ErrEligibleTooManySelections signals an invalid selection for consensus group
-var ErrEligibleTooManySelections = errors.New("too many selections for consensus group")
-
-// ErrEligibleTooFewSelections signals an invalid selection for consensus group
-var ErrEligibleTooFewSelections = errors.New("too few selections for consensus group")
 
 // ErrNilRandomness signals that a nil randomness source has been provided
 var ErrNilRandomness = errors.New("nil randomness source")
@@ -76,20 +79,53 @@ var ErrNilRandomness = errors.New("nil randomness source")
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher")
 
-// ErrNilStake signals that a nil stake structure has been provided
-var ErrNilStake = errors.New("nil stake")
+// ErrNilShuffler signals that a nil shuffler was provided
+var ErrNilShuffler = errors.New("nil nodes shuffler provided")
 
-// ErrNegativeStake signals that the stake is negative
-var ErrNegativeStake = errors.New("negative stake")
-
-// ErrNilAddress signals that the address is nil
-var ErrNilAddress = errors.New("nil address")
+// ErrNilBootStorer signals that a nil boot storer was provided
+var ErrNilBootStorer = errors.New("nil boot storer provided")
 
 // ErrValidatorNotFound signals that the validator has not been found
 var ErrValidatorNotFound = errors.New("validator not found")
 
+// ErrNilWeights signals that nil weights list was provided
+var ErrNilWeights = errors.New("nil weights")
+
 // ErrNotImplemented signals a call of a non implemented functionality
 var ErrNotImplemented = errors.New("feature not implemented")
 
-// ErrNilCacher signals that the cacher is nil
+// ErrNilCacher signals that a nil cacher has been provided
 var ErrNilCacher = errors.New("nil cacher")
+
+// ErrNilEpochHandler signals that a nil epoch handler has been provided
+var ErrNilEpochHandler = errors.New("nil epoch handler")
+
+// ErrInvalidSampleSize signals that an invalid sample size was provided
+var ErrInvalidSampleSize = errors.New("invalid sample size")
+
+// ErrInvalidWeight signals an invalid weight was provided
+var ErrInvalidWeight = errors.New("invalid weight")
+
+// ErrNilRandomSelector signals that a nil selector was provided
+var ErrNilRandomSelector = errors.New("nil selector")
+
+// ErrNilChanceComputer signals that a nil chance computer was provided
+var ErrNilChanceComputer = errors.New("nil chance computer")
+
+// ErrWrongTypeAssertion signals wrong type assertion error
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrNilBlockBody signals that block body is nil
+var ErrNilBlockBody = errors.New("nil block body")
+
+// ErrNilShuffledOutHandler signals that a nil shuffled out handler has been provided
+var ErrNilShuffledOutHandler = errors.New("nil shuffled out handler")
+
+// ErrNilOwnPublicKey signals that a nil own public key has been provided
+var ErrNilOwnPublicKey = errors.New("nil own public key")
+
+// ErrNilEndOfProcessingHandler signals that a nil end of processing handler has been provided
+var ErrNilEndOfProcessingHandler = errors.New("nil end of processing handler")
+
+// ErrNilDestinationForDistribute signals that a nil value was provided for destination of distributedNodes
+var ErrNilDestinationForDistribute = errors.New("nil destination list for distributeNodes")

@@ -6,6 +6,7 @@ import (
 
 // MessengerStub -
 type MessengerStub struct {
+	IDCalled                         func() p2p.PeerID
 	CloseCalled                      func() error
 	CreateTopicCalled                func(name string, createChannelForTopic bool) error
 	HasTopicCalled                   func(name string) bool
@@ -19,9 +20,21 @@ type MessengerStub struct {
 	IsConnectedToTheNetworkCalled    func() bool
 }
 
+// ID -
+func (ms *MessengerStub) ID() p2p.PeerID {
+	if ms.IDCalled != nil {
+		return ms.IDCalled()
+	}
+
+	return ""
+}
+
 // RegisterMessageProcessor -
 func (ms *MessengerStub) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
-	return ms.RegisterMessageProcessorCalled(topic, handler)
+	if ms.RegisterMessageProcessorCalled != nil {
+		return ms.RegisterMessageProcessorCalled(topic, handler)
+	}
+	return nil
 }
 
 // Broadcast -
@@ -76,8 +89,5 @@ func (ms *MessengerStub) IsConnectedToTheNetwork() bool {
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ms *MessengerStub) IsInterfaceNil() bool {
-	if ms == nil {
-		return true
-	}
-	return false
+	return ms == nil
 }

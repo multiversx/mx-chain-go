@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +26,7 @@ func TestMetaBlock_GetShard(t *testing.T) {
 
 	m := block.MetaBlock{}
 
-	assert.Equal(t, sharding.MetachainShardId, m.GetShardID())
+	assert.Equal(t, core.MetachainShardId, m.GetShardID())
 }
 
 func TestMetaBlock_GetNonce(t *testing.T) {
@@ -255,9 +255,9 @@ func TestMetaBlock_GetMiniBlockHeadersWithDst(t *testing.T) {
 	metaHdr := &block.MetaBlock{Round: 15}
 	metaHdr.ShardInfo = make([]block.ShardData, 0)
 
-	shardMBHeader := make([]block.ShardMiniBlockHeader, 0)
-	shMBHdr1 := block.ShardMiniBlockHeader{SenderShardID: 0, ReceiverShardID: 1, Hash: []byte("hash1")}
-	shMBHdr2 := block.ShardMiniBlockHeader{SenderShardID: 0, ReceiverShardID: 1, Hash: []byte("hash2")}
+	shardMBHeader := make([]block.MiniBlockHeader, 0)
+	shMBHdr1 := block.MiniBlockHeader{SenderShardID: 0, ReceiverShardID: 1, Hash: []byte("hash1")}
+	shMBHdr2 := block.MiniBlockHeader{SenderShardID: 0, ReceiverShardID: 1, Hash: []byte("hash2")}
 	shardMBHeader = append(shardMBHeader, shMBHdr1, shMBHdr2)
 
 	shData1 := block.ShardData{ShardID: 0, HeaderHash: []byte("sh"), ShardMiniBlockHeaders: shardMBHeader}

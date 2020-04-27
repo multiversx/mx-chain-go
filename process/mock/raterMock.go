@@ -1,24 +1,33 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/sharding"
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+)
 
 // RaterMock -
 type RaterMock struct {
-	StartRating       uint32
-	MinRating         uint32
-	MaxRating         uint32
-	IncreaseProposer  uint32
-	DecreaseProposer  uint32
-	IncreaseValidator uint32
-	DecreaseValidator uint32
+	StartRating           uint32
+	MinRating             uint32
+	MaxRating             uint32
+	Chance                uint32
+	IncreaseProposer      int32
+	DecreaseProposer      int32
+	IncreaseValidator     int32
+	DecreaseValidator     int32
+	MetaIncreaseProposer  int32
+	MetaDecreaseProposer  int32
+	MetaIncreaseValidator int32
+	MetaDecreaseValidator int32
 
 	GetRatingCalled                func(string) uint32
 	GetStartRatingCalled           func() uint32
-	ComputeIncreaseProposerCalled  func(val uint32) uint32
-	ComputeDecreaseProposerCalled  func(val uint32) uint32
-	ComputeIncreaseValidatorCalled func(val uint32) uint32
-	ComputeDecreaseValidatorCalled func(val uint32) uint32
-	RatingReader                   sharding.RatingReader
+	GetSignedBlocksThresholdCalled func() float32
+	ComputeIncreaseProposerCalled  func(shardId uint32, rating uint32) uint32
+	ComputeDecreaseProposerCalled  func(shardId uint32, rating uint32, consecutiveMissedBlocks uint32) uint32
+	RevertIncreaseProposerCalled   func(shardId uint32, rating uint32, nrReverts uint32) uint32
+	ComputeIncreaseValidatorCalled func(shardId uint32, rating uint32) uint32
+	ComputeDecreaseValidatorCalled func(shardId uint32, rating uint32) uint32
+	GetChancesCalled               func(val uint32) uint32
 }
 
 // GetNewMockRater -
@@ -27,28 +36,63 @@ func GetNewMockRater() *RaterMock {
 	raterMock.GetRatingCalled = func(s string) uint32 {
 		return raterMock.StartRating
 	}
-
 	raterMock.GetStartRatingCalled = func() uint32 {
 		return raterMock.StartRating
 	}
-	raterMock.ComputeIncreaseProposerCalled = func(val uint32) uint32 {
-		return raterMock.computeRating(val, int32(raterMock.IncreaseProposer))
+	raterMock.ComputeIncreaseProposerCalled = func(shardId uint32, rating uint32) uint32 {
+		var ratingStep int32
+		if shardId == core.MetachainShardId {
+			ratingStep = raterMock.MetaIncreaseProposer
+		} else {
+			ratingStep = raterMock.IncreaseProposer
+		}
+		return raterMock.computeRating(rating, ratingStep)
 	}
-	raterMock.ComputeDecreaseProposerCalled = func(val uint32) uint32 {
-		return raterMock.computeRating(val, int32(0-raterMock.DecreaseProposer))
+	raterMock.RevertIncreaseProposerCalled = func(shardId uint32, rating uint32, nrReverts uint32) uint32 {
+		var ratingStep int32
+		if shardId == core.MetachainShardId {
+			ratingStep = raterMock.MetaIncreaseValidator
+		} else {
+			ratingStep = raterMock.IncreaseValidator
+		}
+		computedStep := -ratingStep * int32(nrReverts)
+		return raterMock.computeRating(rating, computedStep)
 	}
-	raterMock.ComputeIncreaseValidatorCalled = func(val uint32) uint32 {
-		return raterMock.computeRating(val, int32(raterMock.IncreaseValidator))
+	raterMock.ComputeDecreaseProposerCalled = func(shardId uint32, rating uint32, consecutiveMissedBlocks uint32) uint32 {
+		var ratingStep int32
+		if shardId == core.MetachainShardId {
+			ratingStep = raterMock.MetaDecreaseProposer
+		} else {
+			ratingStep = raterMock.DecreaseProposer
+		}
+		return raterMock.computeRating(rating, ratingStep)
 	}
-	raterMock.ComputeDecreaseValidatorCalled = func(val uint32) uint32 {
-		return raterMock.computeRating(val, int32(0-raterMock.DecreaseValidator))
+	raterMock.ComputeIncreaseValidatorCalled = func(shardId uint32, rating uint32) uint32 {
+		var ratingStep int32
+		if shardId == core.MetachainShardId {
+			ratingStep = raterMock.MetaIncreaseValidator
+		} else {
+			ratingStep = raterMock.IncreaseValidator
+		}
+		return raterMock.computeRating(rating, ratingStep)
 	}
-
+	raterMock.ComputeDecreaseValidatorCalled = func(shardId uint32, rating uint32) uint32 {
+		var ratingStep int32
+		if shardId == core.MetachainShardId {
+			ratingStep = raterMock.MetaDecreaseValidator
+		} else {
+			ratingStep = raterMock.DecreaseValidator
+		}
+		return raterMock.computeRating(rating, ratingStep)
+	}
+	raterMock.GetChancesCalled = func(val uint32) uint32 {
+		return raterMock.Chance
+	}
 	return raterMock
 }
 
-func (rm *RaterMock) computeRating(val uint32, ratingStep int32) uint32 {
-	newVal := int64(val) + int64(ratingStep)
+func (rm *RaterMock) computeRating(rating uint32, ratingStep int32) uint32 {
+	newVal := int64(rating) + int64(ratingStep)
 	if newVal < int64(rm.MinRating) {
 		return rm.MinRating
 	}
@@ -64,39 +108,47 @@ func (rm *RaterMock) GetRating(pk string) uint32 {
 	return rm.GetRatingCalled(pk)
 }
 
-// GetRatings -
-func (rm *RaterMock) GetRatings([]string) map[string]uint32 {
-	return make(map[string]uint32)
-}
-
 // GetStartRating -
 func (rm *RaterMock) GetStartRating() uint32 {
-	return rm.GetStartRatingCalled()
+	if rm.GetStartRatingCalled != nil {
+		return rm.GetStartRatingCalled()
+	}
+	return 10
+}
+
+// GetSignedBlocksThreshold -
+func (rm *RaterMock) GetSignedBlocksThreshold() float32 {
+	return rm.GetSignedBlocksThresholdCalled()
 }
 
 // ComputeIncreaseProposer -
-func (rm *RaterMock) ComputeIncreaseProposer(val uint32) uint32 {
-	return rm.ComputeIncreaseProposerCalled(val)
+func (rm *RaterMock) ComputeIncreaseProposer(shardId uint32, currentRating uint32) uint32 {
+	return rm.ComputeIncreaseProposerCalled(shardId, currentRating)
 }
 
 // ComputeDecreaseProposer -
-func (rm *RaterMock) ComputeDecreaseProposer(val uint32) uint32 {
-	return rm.ComputeDecreaseProposerCalled(val)
+func (rm *RaterMock) ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32) uint32 {
+	return rm.ComputeDecreaseProposerCalled(shardId, currentRating, consecutiveMisses)
+}
+
+// RevertIncreaseValidator -
+func (rm *RaterMock) RevertIncreaseValidator(shardId uint32, currentRating uint32, nrReverts uint32) uint32 {
+	return rm.RevertIncreaseProposerCalled(shardId, currentRating, nrReverts)
 }
 
 // ComputeIncreaseValidator -
-func (rm *RaterMock) ComputeIncreaseValidator(val uint32) uint32 {
-	return rm.ComputeIncreaseValidatorCalled(val)
+func (rm *RaterMock) ComputeIncreaseValidator(shardId uint32, currentRating uint32) uint32 {
+	return rm.ComputeIncreaseValidatorCalled(shardId, currentRating)
 }
 
 // ComputeDecreaseValidator -
-func (rm *RaterMock) ComputeDecreaseValidator(val uint32) uint32 {
-	return rm.ComputeDecreaseValidatorCalled(val)
+func (rm *RaterMock) ComputeDecreaseValidator(shardId uint32, currentRating uint32) uint32 {
+	return rm.ComputeDecreaseValidatorCalled(shardId, currentRating)
 }
 
-// SetRatingReader -
-func (rm *RaterMock) SetRatingReader(reader sharding.RatingReader) {
-	rm.RatingReader = reader
+// GetChance -
+func (rm *RaterMock) GetChance(rating uint32) uint32 {
+	return rm.GetChancesCalled(rating)
 }
 
 // IsInterfaceNil -

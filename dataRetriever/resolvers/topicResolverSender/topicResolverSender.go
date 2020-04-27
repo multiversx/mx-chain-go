@@ -1,102 +1,126 @@
 package topicResolverSender
 
 import (
+	"fmt"
+	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	resolverDebug "github.com/ElrondNetwork/elrond-go/debug/resolver"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/p2p/message"
 )
 
 // topicRequestSuffix represents the topic name suffix
 const topicRequestSuffix = "_REQUEST"
 
-// NumPeersToQuery number of peers to send the message
-const NumPeersToQuery = 2
+const minPeersToQuery = 2
+
+// ArgTopicResolverSender is the argument structure used to create new TopicResolverSender instance
+type ArgTopicResolverSender struct {
+	Messenger          dataRetriever.MessageHandler
+	TopicName          string
+	PeerListCreator    dataRetriever.PeerListCreator
+	Marshalizer        marshal.Marshalizer
+	Randomizer         dataRetriever.IntRandomizer
+	TargetShardId      uint32
+	OutputAntiflooder  dataRetriever.P2PAntifloodHandler
+	NumIntraShardPeers int
+	NumCrossShardPeers int
+}
 
 type topicResolverSender struct {
-	messenger       dataRetriever.MessageHandler
-	marshalizer     marshal.Marshalizer
-	topicName       string
-	peerListCreator dataRetriever.PeerListCreator
-	randomizer      dataRetriever.IntRandomizer
-	targetShardId   uint32
+	messenger               dataRetriever.MessageHandler
+	marshalizer             marshal.Marshalizer
+	topicName               string
+	peerListCreator         dataRetriever.PeerListCreator
+	randomizer              dataRetriever.IntRandomizer
+	targetShardId           uint32
+	outputAntiflooder       dataRetriever.P2PAntifloodHandler
+	mutNumPeersToQuery      sync.RWMutex
+	numIntraShardPeers      int
+	numCrossShardPeers      int
+	mutResolverDebugHandler sync.RWMutex
+	resolverDebugHandler    dataRetriever.ResolverDebugHandler
 }
 
 // NewTopicResolverSender returns a new topic resolver instance
-func NewTopicResolverSender(
-	messenger dataRetriever.MessageHandler,
-	topicName string,
-	peerListCreator dataRetriever.PeerListCreator,
-	marshalizer marshal.Marshalizer,
-	randomizer dataRetriever.IntRandomizer,
-	targetShardId uint32,
-) (*topicResolverSender, error) {
-
-	if messenger == nil || messenger.IsInterfaceNil() {
+func NewTopicResolverSender(arg ArgTopicResolverSender) (*topicResolverSender, error) {
+	if check.IfNil(arg.Messenger) {
 		return nil, dataRetriever.ErrNilMessenger
 	}
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(arg.Marshalizer) {
 		return nil, dataRetriever.ErrNilMarshalizer
 	}
-	if randomizer == nil || randomizer.IsInterfaceNil() {
+	if check.IfNil(arg.Randomizer) {
 		return nil, dataRetriever.ErrNilRandomizer
 	}
-	if peerListCreator == nil || peerListCreator.IsInterfaceNil() {
+	if check.IfNil(arg.PeerListCreator) {
 		return nil, dataRetriever.ErrNilPeerListCreator
+	}
+	if check.IfNil(arg.OutputAntiflooder) {
+		return nil, dataRetriever.ErrNilAntifloodHandler
+	}
+	if arg.NumIntraShardPeers < 0 {
+		return nil, fmt.Errorf("%w for NumIntraShardPeers as the value should be greater or equal than 0",
+			dataRetriever.ErrInvalidValue)
+	}
+	if arg.NumCrossShardPeers < 0 {
+		return nil, fmt.Errorf("%w for NumCrossShardPeers as the value should be greater or equal than 0",
+			dataRetriever.ErrInvalidValue)
+	}
+	if arg.NumCrossShardPeers+arg.NumIntraShardPeers < minPeersToQuery {
+		return nil, fmt.Errorf("%w for NumCrossShardPeers, NumIntraShardPeers as their sum should be greater or equal than %d",
+			dataRetriever.ErrInvalidValue, minPeersToQuery)
 	}
 
 	resolver := &topicResolverSender{
-		messenger:       messenger,
-		topicName:       topicName,
-		peerListCreator: peerListCreator,
-		marshalizer:     marshalizer,
-		randomizer:      randomizer,
-		targetShardId:   targetShardId,
+		messenger:          arg.Messenger,
+		topicName:          arg.TopicName,
+		peerListCreator:    arg.PeerListCreator,
+		marshalizer:        arg.Marshalizer,
+		randomizer:         arg.Randomizer,
+		targetShardId:      arg.TargetShardId,
+		outputAntiflooder:  arg.OutputAntiflooder,
+		numIntraShardPeers: arg.NumIntraShardPeers,
+		numCrossShardPeers: arg.NumCrossShardPeers,
 	}
+	resolver.resolverDebugHandler = resolverDebug.NewDisabledInterceptorResolver()
 
 	return resolver, nil
 }
 
 // SendOnRequestTopic is used to send request data over channels (topics) to other peers
 // This method only sends the request, the received data should be handled by interceptors
-func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData) error {
+func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
 	buff, err := trs.marshalizer.Marshal(rd)
 	if err != nil {
 		return err
 	}
 
-	peerList := trs.peerListCreator.PeerList()
-	if len(peerList) == 0 {
-		return dataRetriever.ErrNoConnectedPeerToSendRequest
-	}
-
 	topicToSendRequest := trs.topicName + topicRequestSuffix
 
-	indexes := createIndexList(len(peerList))
-	shuffledIndexes, err := fisherYatesShuffle(indexes, trs.randomizer)
-	if err != nil {
-		return err
-	}
+	crossPeers := trs.peerListCreator.PeerList()
+	numSentCross := trs.sendOnTopic(crossPeers, topicToSendRequest, buff, trs.numCrossShardPeers)
 
-	msgSentCounter := 0
-	for idx := range shuffledIndexes {
-		peer := peerList[idx]
+	intraPeers := trs.peerListCreator.IntraShardPeerList()
+	numSentIntra := trs.sendOnTopic(intraPeers, topicToSendRequest, buff, trs.numIntraShardPeers)
 
-		err = trs.messenger.SendToConnectedPeer(topicToSendRequest, buff, peer)
-		if err != nil {
-			continue
-		}
+	trs.callDebugHandler(originalHashes, numSentIntra, numSentCross)
 
-		msgSentCounter++
-		if msgSentCounter == NumPeersToQuery {
-			break
-		}
-	}
-
-	if msgSentCounter == 0 {
-		return err
+	if numSentCross+numSentIntra == 0 {
+		return fmt.Errorf("%w, topic: %s", dataRetriever.ErrSendRequest, trs.topicName)
 	}
 
 	return nil
+}
+
+func (trs *topicResolverSender) callDebugHandler(originalHashes [][]byte, numSentIntra int, numSentCross int) {
+	trs.mutResolverDebugHandler.RLock()
+	defer trs.mutResolverDebugHandler.RUnlock()
+
+	trs.resolverDebugHandler.LogRequestedData(trs.topicName, originalHashes, numSentIntra, numSentCross)
 }
 
 func createIndexList(listLength int) []int {
@@ -108,15 +132,81 @@ func createIndexList(listLength int) []int {
 	return indexes
 }
 
+func (trs *topicResolverSender) sendOnTopic(peerList []p2p.PeerID, topicToSendRequest string, buff []byte, maxToSend int) int {
+	if len(peerList) == 0 || maxToSend == 0 {
+		return 0
+	}
+
+	indexes := createIndexList(len(peerList))
+	shuffledIndexes := fisherYatesShuffle(indexes, trs.randomizer)
+
+	msgSentCounter := 0
+	for idx := range shuffledIndexes {
+		peer := peerList[idx]
+
+		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer)
+		if err != nil {
+			continue
+		}
+
+		msgSentCounter++
+		if msgSentCounter == maxToSend {
+			break
+		}
+	}
+
+	return msgSentCounter
+}
+
 // Send is used to send an array buffer to a connected peer
 // It is used when replying to a request
 func (trs *topicResolverSender) Send(buff []byte, peer p2p.PeerID) error {
-	return trs.messenger.SendToConnectedPeer(trs.topicName, buff, peer)
+	return trs.sendToConnectedPeer(trs.topicName, buff, peer)
 }
 
-// TopicRequestSuffix returns the suffix that will be added to create a new channel for requests
-func (trs *topicResolverSender) TopicRequestSuffix() string {
-	return topicRequestSuffix
+func (trs *topicResolverSender) sendToConnectedPeer(topic string, buff []byte, peer p2p.PeerID) error {
+	msg := &message.Message{
+		DataField:   buff,
+		PeerField:   peer,
+		TopicsField: []string{topic},
+	}
+
+	err := trs.outputAntiflooder.CanProcessMessage(msg, peer)
+	if err != nil {
+		return fmt.Errorf("%w while sending %d bytes to peer %s",
+			err,
+			len(buff),
+			p2p.PeerIdToShortString(peer),
+		)
+	}
+
+	return trs.messenger.SendToConnectedPeer(topic, buff, peer)
+}
+
+// ResolverDebugHandler returns the debug handler used in resolvers
+func (trs *topicResolverSender) ResolverDebugHandler() dataRetriever.ResolverDebugHandler {
+	trs.mutResolverDebugHandler.RLock()
+	defer trs.mutResolverDebugHandler.RUnlock()
+
+	return trs.resolverDebugHandler
+}
+
+// SetResolverDebugHandler sets the debug handler used in resolvers
+func (trs *topicResolverSender) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
+	if check.IfNil(handler) {
+		return dataRetriever.ErrNilResolverDebugHandler
+	}
+
+	trs.mutResolverDebugHandler.Lock()
+	trs.resolverDebugHandler = handler
+	trs.mutResolverDebugHandler.Unlock()
+
+	return nil
+}
+
+// RequestTopic returns the topic with the request suffix used for sending requests
+func (trs *topicResolverSender) RequestTopic() string {
+	return trs.topicName + topicRequestSuffix
 }
 
 // TargetShardID returns the target shard ID for this resolver should serve data
@@ -124,20 +214,32 @@ func (trs *topicResolverSender) TargetShardID() uint32 {
 	return trs.targetShardId
 }
 
-func fisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) ([]int, error) {
+func fisherYatesShuffle(indexes []int, randomizer dataRetriever.IntRandomizer) []int {
 	newIndexes := make([]int, len(indexes))
 	copy(newIndexes, indexes)
 
 	for i := len(newIndexes) - 1; i > 0; i-- {
-		j, err := randomizer.Intn(i + 1)
-		if err != nil {
-			return nil, err
-		}
-
+		j := randomizer.Intn(i + 1)
 		newIndexes[i], newIndexes[j] = newIndexes[j], newIndexes[i]
 	}
 
-	return newIndexes, nil
+	return newIndexes
+}
+
+// SetNumPeersToQuery will set the number of intra shard and cross shard number of peers to query
+func (trs *topicResolverSender) SetNumPeersToQuery(intra int, cross int) {
+	trs.mutNumPeersToQuery.Lock()
+	trs.numIntraShardPeers = intra
+	trs.numCrossShardPeers = cross
+	trs.mutNumPeersToQuery.Unlock()
+}
+
+// NumPeersToQuery will return the number of intra shard and cross shard number of peer to query
+func (trs *topicResolverSender) NumPeersToQuery() (int, int) {
+	trs.mutNumPeersToQuery.RLock()
+	defer trs.mutNumPeersToQuery.RUnlock()
+
+	return trs.numIntraShardPeers, trs.numCrossShardPeers
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

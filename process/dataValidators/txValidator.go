@@ -1,9 +1,9 @@
 package dataValidators
 
 import (
-	"encoding/hex"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -13,6 +13,8 @@ import (
 type txValidator struct {
 	accounts             state.AccountsAdapter
 	shardCoordinator     sharding.Coordinator
+	whiteListHandler     process.WhiteListHandler
+	pubkeyConverter      state.PubkeyConverter
 	maxNonceDeltaAllowed int
 }
 
@@ -20,39 +22,59 @@ type txValidator struct {
 func NewTxValidator(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
+	whiteListHandler process.WhiteListHandler,
+	pubkeyConverter state.PubkeyConverter,
 	maxNonceDeltaAllowed int,
 ) (*txValidator, error) {
-
-	if accounts == nil || accounts.IsInterfaceNil() {
+	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if shardCoordinator == nil || shardCoordinator.IsInterfaceNil() {
+	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
+	}
+	if check.IfNil(whiteListHandler) {
+		return nil, process.ErrNilWhiteListHandler
+	}
+	if check.IfNil(pubkeyConverter) {
+		return nil, fmt.Errorf("%w in NewTxValidator", process.ErrNilPubkeyConverter)
 	}
 
 	return &txValidator{
 		accounts:             accounts,
 		shardCoordinator:     shardCoordinator,
+		whiteListHandler:     whiteListHandler,
 		maxNonceDeltaAllowed: maxNonceDeltaAllowed,
+		pubkeyConverter:      pubkeyConverter,
 	}, nil
 }
 
 // CheckTxValidity will filter transactions that needs to be added in pools
 func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler) error {
-	shardId := txv.shardCoordinator.SelfId()
-	txShardId := interceptedTx.SenderShardId()
-	senderIsInAnotherShard := shardId != txShardId
+	// TODO: Refactor, extract methods.
+
+	interceptedData, ok := interceptedTx.(process.InterceptedData)
+	if ok {
+		if txv.whiteListHandler.IsWhiteListed(interceptedData) {
+			return nil
+		}
+	}
+
+	shardID := txv.shardCoordinator.SelfId()
+	txShardID := interceptedTx.SenderShardId()
+	senderIsInAnotherShard := shardID != txShardID
 	if senderIsInAnotherShard {
 		return nil
 	}
 
-	sndAddr := interceptedTx.SenderAddress()
-	accountHandler, err := txv.accounts.GetExistingAccount(sndAddr)
+	senderAddress := interceptedTx.SenderAddress()
+	accountHandler, err := txv.accounts.GetExistingAccount(senderAddress)
 	if err != nil {
-		sndAddrBytes := sndAddr.Bytes()
-		return fmt.Errorf("transaction's sender address %s does not exist in current shard %d",
-			hex.EncodeToString(sndAddrBytes),
-			shardId)
+		return fmt.Errorf("%w for address %s and shard %d, err: %s",
+			process.ErrAccountNotFound,
+			txv.pubkeyConverter.Encode(senderAddress.Bytes()),
+			shardID,
+			err.Error(),
+		)
 	}
 
 	accountNonce := accountHandler.GetNonce()
@@ -61,19 +83,30 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.TxValidatorHandler
 	veryHighNonceInTx := txNonce > accountNonce+uint64(txv.maxNonceDeltaAllowed)
 	isTxRejected := lowerNonceInTx || veryHighNonceInTx
 	if isTxRejected {
-		return fmt.Errorf("invalid nonce. Wanted %d, got %d", accountNonce, txNonce)
+		return fmt.Errorf("%w lowerNonceInTx: %v, veryHighNonceInTx: %v",
+			process.ErrWrongTransaction,
+			lowerNonceInTx,
+			veryHighNonceInTx,
+		)
 	}
 
-	account, ok := accountHandler.(*state.Account)
+	account, ok := accountHandler.(state.UserAccountHandler)
 	if !ok {
-		hexSenderAddr := hex.EncodeToString(sndAddr.Bytes())
-		return fmt.Errorf("cannot convert account handler in a state.Account %s", hexSenderAddr)
+		return fmt.Errorf("%w, account is not of type *state.Account, address: %s",
+			process.ErrWrongTypeAssertion,
+			txv.pubkeyConverter.Encode(senderAddress.Bytes()),
+		)
 	}
 
-	accountBalance := account.Balance
+	accountBalance := account.GetBalance()
 	txFee := interceptedTx.Fee()
 	if accountBalance.Cmp(txFee) < 0 {
-		return fmt.Errorf("insufficient balance. Needed at least %d (fee), account has %d", txFee, accountBalance)
+		return fmt.Errorf("%w, for address: %s, wanted %v, have %v",
+			process.ErrInsufficientFunds,
+			txv.pubkeyConverter.Encode(senderAddress.Bytes()),
+			txFee,
+			accountBalance,
+		)
 	}
 
 	return nil

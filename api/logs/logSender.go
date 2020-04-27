@@ -3,8 +3,8 @@ package logs
 import (
 	"strings"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/logger"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gorilla/websocket"
 )
@@ -12,11 +12,11 @@ import (
 const disconnectMessage = -1
 
 type logSender struct {
-	marshalizer    marshal.Marshalizer
-	conn           wsConn
-	writer         *logWriter
-	log            logger.Logger
-	lastLogPattern string
+	marshalizer marshal.Marshalizer
+	conn        wsConn
+	writer      *logWriter
+	log         logger.Logger
+	lastProfile logger.Profile
 }
 
 // NewLogSender returns a new component that is able to communicate with the log viewer application.
@@ -67,17 +67,18 @@ func (ls *logSender) registerLogWriter() error {
 // will start sending logs information and in the same time monitor the current connection.
 // When the connection ends it will revert the previous log pattern.
 func (ls *logSender) StartSendingBlocking() {
-	ls.lastLogPattern = logger.GetLogLevelPattern()
+	ls.lastProfile = logger.GetCurrentProfile()
 
 	defer func() {
 		_ = ls.conn.Close()
 		_ = ls.writer.Close()
 		_ = logger.RemoveLogObserver(ls.writer)
-		_ = logger.SetLogLevel(ls.lastLogPattern)
-		ls.log.Info("reverted log pattern", "pattern", ls.lastLogPattern)
+		_ = ls.lastProfile.Apply()
+
+		ls.log.Info("reverted log profile", "profile", ls.lastProfile.String())
 	}()
 
-	err := ls.waitForPatternMessage()
+	err := ls.waitForProfile()
 	if err != nil {
 		ls.log.Error(err.Error())
 		return
@@ -87,18 +88,25 @@ func (ls *logSender) StartSendingBlocking() {
 	ls.doSendContinuously()
 }
 
-func (ls *logSender) waitForPatternMessage() error {
+func (ls *logSender) waitForProfile() error {
 	_, message, err := ls.conn.ReadMessage()
 	if err != nil {
 		return err
 	}
 
-	ls.log.Info("websocket log pattern received", "pattern", string(message))
-	err = logger.SetLogLevel(string(message))
+	profile, err := logger.UnmarshalProfile(message)
 	if err != nil {
 		return err
 	}
 
+	ls.log.Info("websocket log profile received", "profile", profile.String())
+
+	err = profile.Apply()
+	if err != nil {
+		return err
+	}
+
+	logger.NotifyProfileChange()
 	return nil
 }
 

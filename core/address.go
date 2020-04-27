@@ -15,7 +15,7 @@ const VMTypeLen = 2
 const ShardIdentiferLen = 2
 
 const metaChainShardIdentifier uint8 = 255
-const numInitCharactersForOnMetachainSC = 5
+const numInitCharactersForOnMetachainSC = 15
 
 // IsSmartContractAddress verifies if a set address is of type smart contract
 func IsSmartContractAddress(rcvAddress []byte) bool {
@@ -23,14 +23,19 @@ func IsSmartContractAddress(rcvAddress []byte) bool {
 		return false
 	}
 
-	isEmptyAddress := bytes.Equal(rcvAddress, make([]byte, len(rcvAddress)))
-	if isEmptyAddress {
+	if IsEmptyAddress(rcvAddress) {
 		return true
 	}
 
-	isSCAddress := bytes.Equal(rcvAddress[:(NumInitCharactersForScAddress-VMTypeLen)],
-		make([]byte, NumInitCharactersForScAddress-VMTypeLen))
+	numOfZeros := NumInitCharactersForScAddress - VMTypeLen
+	isSCAddress := bytes.Equal(rcvAddress[:numOfZeros], make([]byte, numOfZeros))
 	return isSCAddress
+}
+
+// IsEmptyAddress returns whether an address is empty
+func IsEmptyAddress(address []byte) bool {
+	isEmptyAddress := bytes.Equal(address, make([]byte, len(address)))
+	return isEmptyAddress
 }
 
 // IsMetachainIdentifier verifies if the identifier is of type metachain
@@ -66,13 +71,4 @@ func IsSmartContractOnMetachain(identifier []byte, rcvAddress []byte) bool {
 	isOnMetaChainSCAddress := bytes.Equal(leftSide,
 		make([]byte, numInitCharactersForOnMetachainSC))
 	return isOnMetaChainSCAddress
-}
-
-// GetVMType will return the vm type
-func GetVMType(rcvAddress []byte) []byte {
-	if len(rcvAddress) < NumInitCharactersForScAddress {
-		return nil
-	}
-
-	return rcvAddress[NumInitCharactersForScAddress-VMTypeLen : NumInitCharactersForScAddress]
 }
