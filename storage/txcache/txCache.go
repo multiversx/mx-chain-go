@@ -22,6 +22,8 @@ type TxCache struct {
 	numTxAddedDuringEviction      atomic.Counter
 	numTxRemovedBetweenSelections atomic.Counter
 	numTxRemovedDuringEviction    atomic.Counter
+	sweepingMutex                 sync.Mutex
+	sweepingListOfSenders         []*txListForSender
 }
 
 // NewTxCache creates a new transaction cache
@@ -32,11 +34,12 @@ func NewTxCache(config CacheConfig) *TxCache {
 	numChunksHint := config.NumChunksHint
 
 	txCache := &TxCache{
-		name:            config.Name,
-		txListBySender:  newTxListBySenderMap(numChunksHint, config),
-		txByHash:        newTxByHashMap(numChunksHint),
-		config:          config,
-		evictionJournal: evictionJournal{},
+		name:                  config.Name,
+		txListBySender:        newTxListBySenderMap(numChunksHint, config),
+		txByHash:              newTxByHashMap(numChunksHint),
+		config:                config,
+		evictionJournal:       evictionJournal{},
+		sweepingListOfSenders: make([]*txListForSender, 0, estimatedNumOfSweepableSendersPerSelection),
 	}
 
 	return txCache
@@ -49,10 +52,6 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	added = false
 
 	if tx == nil || check.IfNil(tx.Tx) {
-		return
-	}
-
-	if cache.txListBySender.isFromSweepableSender(tx) {
 		return
 	}
 
@@ -97,6 +96,10 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 			isFirstBatch := pass == 0
 			copied := txList.selectBatchTo(isFirstBatch, result[resultFillIndex:], batchSizeWithScoreCoefficient)
 
+			if isFirstBatch {
+				cache.collectSweepable(txList)
+			}
+
 			resultFillIndex += copied
 			copiedInThisPass += copied
 			resultIsFull = resultFillIndex == numRequested
@@ -115,6 +118,7 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 
 	result = result[:resultFillIndex]
 	cache.monitorSelectionEnd(result, stopWatch)
+	go cache.doAfterSelection()
 	return result
 }
 
@@ -132,6 +136,11 @@ func (cache *TxCache) getSendersEligibleForSelection() []*txListForSender {
 	}
 
 	return snapshotOfSenders
+}
+
+func (cache *TxCache) doAfterSelection() {
+	cache.sweepSweepable()
+	cache.diagnose()
 }
 
 // RemoveTxByHash removes tx by hash

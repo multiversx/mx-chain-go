@@ -64,21 +64,6 @@ func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
 	return listForSender
 }
 
-func (txMap *txListBySenderMap) isFromSweepableSender(tx *WrappedTransaction) bool {
-	sender := string(tx.Tx.GetSndAddr())
-	return txMap.isSweepableSender(sender)
-}
-
-func (txMap *txListBySenderMap) isSweepableSender(sender string) bool {
-	listForSenderUntyped, ok := txMap.backingMap.Get(sender)
-	if !ok {
-		return false
-	}
-
-	listForSender := listForSenderUntyped.(*txListForSender)
-	return listForSender.sweepable.IsSet()
-}
-
 // removeTx removes a transaction from the map
 func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 	sender := string(tx.Tx.GetSndAddr())

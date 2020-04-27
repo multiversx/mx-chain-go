@@ -1,0 +1,25 @@
+package txcache
+
+func (cache *TxCache) collectSweepable(list *txListForSender) {
+	if !list.sweepable.IsSet() {
+		return
+	}
+
+	cache.sweepingMutex.Lock()
+	cache.sweepingListOfSenders = append(cache.sweepingListOfSenders, list)
+	cache.sweepingMutex.Unlock()
+}
+
+func (cache *TxCache) sweepSweepable() {
+	cache.sweepingMutex.Lock()
+	defer cache.sweepingMutex.Unlock()
+
+	if len(cache.sweepingListOfSenders) == 0 {
+		return
+	}
+
+	stopWatch := cache.monitorSweepingStart()
+	numTxs, numSenders := cache.evictSendersAndTheirTxs(cache.sweepingListOfSenders)
+	cache.sweepingListOfSenders = make([]*txListForSender, 0, estimatedNumOfSweepableSendersPerSelection)
+	cache.monitorSweepingEnd(numTxs, numSenders, stopWatch)
+}
