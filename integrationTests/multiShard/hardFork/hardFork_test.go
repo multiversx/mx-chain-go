@@ -239,6 +239,7 @@ func createHardForkExporter(
 				},
 			},
 			WhiteListHandler:       node.WhiteListHandler,
+			WhiteListerVerifiedTxs: node.WhiteListerVerifiedTxs,
 			InterceptorsContainer:  node.InterceptorsContainer,
 			ExistingResolvers:      node.ResolversContainer,
 			MultiSigner:            node.MultiSigner,

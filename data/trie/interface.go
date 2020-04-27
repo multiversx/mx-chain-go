@@ -58,7 +58,7 @@ type snapshotNode interface {
 
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
-	RequestTrieNodes(destShardID uint32, hash []byte, topic string)
+	RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string)
 	RequestInterval() time.Duration
 	IsInterfaceNil() bool
 }

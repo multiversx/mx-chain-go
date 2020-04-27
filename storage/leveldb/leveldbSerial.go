@@ -1,6 +1,7 @@
 package leveldb
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"runtime"
@@ -90,19 +91,8 @@ func (s *SerialDB) batchTimeoutHandle(ctx context.Context) {
 	}
 }
 
-// Put adds the value to the (key, val) storage medium
-func (s *SerialDB) Put(key, val []byte) error {
-	if s.isClosed() {
-		return storage.ErrSerialDBIsClosed
-	}
-
+func (s *SerialDB) updateBatchWithIncrement() error {
 	s.mutBatch.Lock()
-	err := s.batch.Put(key, val)
-	if err != nil {
-		s.mutBatch.Unlock()
-		return err
-	}
-
 	s.sizeBatch++
 	if s.sizeBatch < s.maxBatchSize {
 		s.mutBatch.Unlock()
@@ -110,15 +100,42 @@ func (s *SerialDB) Put(key, val []byte) error {
 	}
 	s.mutBatch.Unlock()
 
-	err = s.putBatch()
+	err := s.putBatch()
 
 	return err
+}
+
+// Put adds the value to the (key, val) storage medium
+func (s *SerialDB) Put(key, val []byte) error {
+	if s.isClosed() {
+		return storage.ErrSerialDBIsClosed
+	}
+
+	s.mutBatch.RLock()
+	err := s.batch.Put(key, val)
+	s.mutBatch.RUnlock()
+	if err != nil {
+		return err
+	}
+
+	return s.updateBatchWithIncrement()
 }
 
 // Get returns the value associated to the key
 func (s *SerialDB) Get(key []byte) ([]byte, error) {
 	if s.isClosed() {
 		return nil, storage.ErrSerialDBIsClosed
+	}
+
+	s.mutBatch.RLock()
+	data := s.batch.Get(key)
+	s.mutBatch.RUnlock()
+
+	if data != nil {
+		if bytes.Equal(data, []byte(removed)) {
+			return nil, storage.ErrKeyNotFound
+		}
+		return data, nil
 	}
 
 	ch := make(chan *pairResult)
@@ -141,10 +158,21 @@ func (s *SerialDB) Get(key []byte) ([]byte, error) {
 	return result.value, nil
 }
 
-// Has returns true if the given key is present in the persistence medium
+// Has returns nil if the given key is present in the persistence medium
 func (s *SerialDB) Has(key []byte) error {
 	if s.isClosed() {
 		return storage.ErrSerialDBIsClosed
+	}
+
+	s.mutBatch.RLock()
+	data := s.batch.Get(key)
+	s.mutBatch.RUnlock()
+
+	if data != nil {
+		if bytes.Equal(data, []byte(removed)) {
+			return storage.ErrKeyNotFound
+		}
+		return nil
 	}
 
 	ch := make(chan error)
@@ -226,17 +254,7 @@ func (s *SerialDB) Remove(key []byte) error {
 	_ = s.batch.Delete(key)
 	s.mutBatch.Unlock()
 
-	ch := make(chan error)
-	req := &delAct{
-		key:     key,
-		resChan: ch,
-	}
-
-	s.dbAccess <- req
-	result := <-ch
-	close(ch)
-
-	return result
+	return s.updateBatchWithIncrement()
 }
 
 // Destroy removes the storage medium stored data
