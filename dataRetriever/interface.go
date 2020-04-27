@@ -98,6 +98,12 @@ type Resolver interface {
 	IsInterfaceNil() bool
 }
 
+// TrieNodesResolver defines what a trie nodes resolver should do
+type TrieNodesResolver interface {
+	Resolver
+	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
+}
+
 // HeaderResolver defines what a block header resolver should do
 type HeaderResolver interface {
 	Resolver
@@ -323,7 +329,7 @@ type DataPacker interface {
 
 // TrieDataGetter returns requested data from the trie
 type TrieDataGetter interface {
-	GetSerializedNodes([]byte, uint64) ([][]byte, error)
+	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	IsInterfaceNil() bool
 }
 

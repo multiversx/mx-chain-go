@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# Prepare the configuration files for a testnet:
+#		Build the elrond-deploy-go binary and run it
+#		Copy the generated files to the testnet folder
+#		Copy configuration for the seednode, nodes, proxy and txgen into the testnet folder
+
 export ELRONDTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
@@ -20,11 +25,14 @@ updateSeednodeConfig
 copyNodeConfig
 updateNodeConfig
 
-if [ $PRIVATE_REPOS -eq 1 ]; then
-  prepareFolders_PrivateRepos
-
+if [ $USE_PROXY -eq 1 ]; then
+  prepareFolders_Proxy
   copyProxyConfig
   updateProxyConfig
+fi
+
+if [ $USE_TXGEN -eq 1 ]; then
+  prepareFolders_TxGen
   copyTxGenConfig
   updateTxGenConfig
 fi

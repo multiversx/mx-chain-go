@@ -341,6 +341,11 @@ func getGeneralConfig() config.Config {
 			Type:   "LRU",
 			Shards: 1,
 		},
+		WhiteListerVerifiedTxs: config.CacheConfig{
+			Size:   10000,
+			Type:   "LRU",
+			Shards: 1,
+		},
 		StoragePruning: config.StoragePruningConfig{
 			Enabled:             false,
 			FullArchive:         true,

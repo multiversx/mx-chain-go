@@ -21,7 +21,7 @@ type MultiDataInterceptor struct {
 	factory                    process.InterceptedDataFactory
 	processor                  process.InterceptorProcessor
 	throttler                  process.InterceptorThrottler
-	whiteListHandler           process.WhiteListHandler
+	whiteListRequest           process.WhiteListHandler
 	antifloodHandler           process.P2PAntifloodHandler
 	mutInterceptedDebugHandler sync.RWMutex
 	interceptedDebugHandler    process.InterceptedDebugHandler
@@ -35,7 +35,7 @@ func NewMultiDataInterceptor(
 	processor process.InterceptorProcessor,
 	throttler process.InterceptorThrottler,
 	antifloodHandler process.P2PAntifloodHandler,
-	whiteListHandler process.WhiteListHandler,
+	whiteListRequest process.WhiteListHandler,
 ) (*MultiDataInterceptor, error) {
 	if len(topic) == 0 {
 		return nil, process.ErrEmptyTopic
@@ -55,7 +55,7 @@ func NewMultiDataInterceptor(
 	if check.IfNil(antifloodHandler) {
 		return nil, process.ErrNilAntifloodHandler
 	}
-	if check.IfNil(whiteListHandler) {
+	if check.IfNil(whiteListRequest) {
 		return nil, process.ErrNilWhiteListHandler
 	}
 
@@ -65,7 +65,7 @@ func NewMultiDataInterceptor(
 		factory:          factory,
 		processor:        processor,
 		throttler:        throttler,
-		whiteListHandler: whiteListHandler,
+		whiteListRequest: whiteListRequest,
 		antifloodHandler: antifloodHandler,
 	}
 	multiDataIntercept.interceptedDebugHandler = resolver.NewDisabledInterceptorResolver()
@@ -122,7 +122,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		interceptedMultiData = append(interceptedMultiData, interceptedData)
 
 		isForCurrentShard := interceptedData.IsForCurrentShard()
-		isWhiteListed := mdi.whiteListHandler.IsWhiteListed(interceptedData)
+		isWhiteListed := mdi.whiteListRequest.IsWhiteListed(interceptedData)
 		shouldProcess := isForCurrentShard || isWhiteListed
 		if !shouldProcess {
 			log.Trace("intercepted data should not be processed",
