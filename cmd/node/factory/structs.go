@@ -40,7 +40,8 @@ import (
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/genesis/parser"
+	"github.com/ElrondNetwork/elrond-go/genesis/checking"
+	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
@@ -144,7 +145,7 @@ type State struct {
 	ValidatorPubkeyConverter state.PubkeyConverter
 	PeerAccounts             state.AccountsAdapter
 	AccountsAdapter          state.AccountsAdapter
-	AccountsForShard         []*genesis.InitialAccount
+	AccountsForShard         []genesis.InitialAccountHandler
 }
 
 // Data struct holds the data components of the Elrond protocol
@@ -291,7 +292,7 @@ func createTries(
 
 type stateComponentsFactoryArgs struct {
 	config           *config.Config
-	genesisParser    *parser.Genesis
+	genesisParser    *parsing.Genesis
 	shardCoordinator sharding.Coordinator
 	core             *Core
 	pathManager      storage.PathManagerHandler
@@ -300,7 +301,7 @@ type stateComponentsFactoryArgs struct {
 // NewStateComponentsFactoryArgs initializes the arguments necessary for creating the state components
 func NewStateComponentsFactoryArgs(
 	config *config.Config,
-	genesisParser *parser.Genesis,
+	genesisParser *parsing.Genesis,
 	shardCoordinator sharding.Coordinator,
 	core *Core,
 	pathManager storage.PathManagerHandler,
@@ -547,7 +548,7 @@ func NetworkComponentsFactory(
 
 type processComponentsFactoryArgs struct {
 	coreComponents            *coreComponentsFactoryArgs
-	genesisParser             *parser.Genesis
+	genesisParser             *parsing.Genesis
 	economicsData             *economics.EconomicsData
 	nodesConfig               *sharding.NodesSetup
 	gasSchedule               map[string]map[string]uint64
@@ -576,12 +577,13 @@ type processComponentsFactoryArgs struct {
 	maxSizeInBytes            uint32
 	maxRating                 uint32
 	validatorPubkeyConverter  state.PubkeyConverter
+	txLogsProcessor           process.TransactionLogProcessor
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
 func NewProcessComponentsFactoryArgs(
 	coreComponents *coreComponentsFactoryArgs,
-	genesisParser *parser.Genesis,
+	genesisParser *parsing.Genesis,
 	economicsData *economics.EconomicsData,
 	nodesConfig *sharding.NodesSetup,
 	gasSchedule map[string]map[string]uint64,
@@ -736,6 +738,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	args.txLogsProcessor = txLogsProcessor
 	genesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(args)
 	if err != nil {
 		return nil, err
@@ -848,6 +851,20 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		pendingMiniBlocksHandler,
 		txLogsProcessor,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	nodesSetupChecker, err := checking.NewNodesSetupChecker(
+		args.genesisParser,
+		args.economicsData.GenesisNodePrice(),
+		args.validatorPubkeyConverter,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = nodesSetupChecker.Check(args.nodesConfig.AllInitialNodes())
 	if err != nil {
 		return nil, err
 	}
@@ -1398,6 +1415,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		ValidatorStatsRootHash:   validatorStatsRootHash,
 		GasMap:                   args.gasSchedule,
 		VirtualMachineConfig:     args.coreComponents.config.VirtualMachineConfig,
+		TxLogsProcessor:          args.txLogsProcessor,
 	}
 
 	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)
@@ -1657,6 +1675,7 @@ func newShardBlockProcessor(
 		GasHandler:       gasHandler,
 		BuiltInFunctions: vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:  txLogsProcessor,
+		TxTypeHandler:    txTypeHandler,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {

@@ -86,10 +86,10 @@ func setBalancesToTrie(arg ArgsGenesisBlockCreator) (rootHash []byte, err error)
 	return rootHash, nil
 }
 
-func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt *genesis.InitialAccount) error {
-	addr, err := arg.PubkeyConv.CreateAddressFromBytes(accnt.AddressBytes)
+func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountHandler) error {
+	addr, err := arg.PubkeyConv.CreateAddressFromBytes(accnt.AddressBytes())
 	if err != nil {
-		return fmt.Errorf("%w for address %s", err, accnt.Address)
+		return fmt.Errorf("%w for address %s", err, accnt.GetAddress())
 	}
 
 	accWrp, err := arg.Accounts.LoadAccount(addr)
@@ -102,7 +102,7 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt *genesis.InitialAccount
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = account.AddToBalance(accnt.Balance)
+	err = account.AddToBalance(accnt.GetBalanceValue())
 	if err != nil {
 		return err
 	}

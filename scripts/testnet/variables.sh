@@ -51,9 +51,6 @@ export META_VALIDATORCOUNT=3
 export META_OBSERVERCOUNT=1
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
-# Okay as defaults, change if needed.
-export MINT_VALUE="1000000000000000000000000000"
-
 # ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
 export ALWAYS_NEW_CHAINID=1
 

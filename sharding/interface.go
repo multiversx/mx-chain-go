@@ -168,8 +168,8 @@ type GenesisNodesSetupHandler interface {
 // GenesisNodeInfoHandler defines the public methods for the genesis nodes info
 type GenesisNodeInfoHandler interface {
 	AssignedShard() uint32
-	Address() []byte
-	PubKey() []byte
+	AddressBytes() []byte
+	PubKeyBytes() []byte
 	IsInterfaceNil() bool
 }
 

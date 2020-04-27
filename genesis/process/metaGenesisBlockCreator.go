@@ -360,10 +360,10 @@ func setStakedData(
 				Nonce:     0,
 				Value:     new(big.Int).Set(stakeValue),
 				RcvAddr:   vmFactory.AuctionSCAddress,
-				SndAddr:   nodeInfo.Address(),
+				SndAddr:   nodeInfo.AddressBytes(),
 				GasPrice:  0,
 				GasLimit:  math.MaxUint64,
-				Data:      []byte("stake@" + oneEncoded + "@" + hex.EncodeToString(nodeInfo.PubKey()) + "@" + hex.EncodeToString([]byte("genesis"))),
+				Data:      []byte("stake@" + oneEncoded + "@" + hex.EncodeToString(nodeInfo.PubKeyBytes()) + "@" + hex.EncodeToString([]byte("genesis"))),
 				Signature: nil,
 			}
 
