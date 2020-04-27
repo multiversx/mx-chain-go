@@ -71,7 +71,7 @@ func createMockArgument() ArgsGenesisBlockCreator {
 		},
 	}
 
-	arg.GenesisParser, _ = parsing.NewGenesis(
+	arg.AccountsParser, _ = parsing.NewAccountsParser(
 		"testdata/genesis.json",
 		arg.Economics.TotalSupply(),
 		arg.PubkeyConv,

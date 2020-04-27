@@ -7,24 +7,24 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 )
 
-func (g *Genesis) SetInitialAccounts(initialAccounts []*data.InitialAccount) {
-	g.initialAccounts = initialAccounts
+func (ap *accountsParser) SetInitialAccounts(initialAccounts []*data.InitialAccount) {
+	ap.initialAccounts = initialAccounts
 }
 
-func (g *Genesis) SetEntireSupply(entireSupply *big.Int) {
-	g.entireSupply = entireSupply
+func (ap *accountsParser) SetEntireSupply(entireSupply *big.Int) {
+	ap.entireSupply = entireSupply
 }
 
-func (g *Genesis) Process() error {
-	return g.process()
+func (ap *accountsParser) Process() error {
+	return ap.process()
 }
 
-func (g *Genesis) SetPukeyConverter(pubkeyConverter state.PubkeyConverter) {
-	g.pubkeyConverter = pubkeyConverter
+func (ap *accountsParser) SetPukeyConverter(pubkeyConverter state.PubkeyConverter) {
+	ap.pubkeyConverter = pubkeyConverter
 }
 
-func NewTestGenesis(pubkeyConverter state.PubkeyConverter) *Genesis {
-	return &Genesis{
+func NewTestAccountsParser(pubkeyConverter state.PubkeyConverter) *accountsParser {
+	return &accountsParser{
 		pubkeyConverter: pubkeyConverter,
 		initialAccounts: make([]*data.InitialAccount, 0),
 	}

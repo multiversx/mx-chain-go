@@ -14,7 +14,7 @@ import (
 const minimumAcceptedNodePrice = 0
 
 type nodeSetupChecker struct {
-	genesisParser            genesis.Parser
+	accountsParser           genesis.AccountsParser
 	initialNodePrice         *big.Int
 	validatorPubkeyConverter state.PubkeyConverter
 	zeroValue                *big.Int
@@ -22,12 +22,12 @@ type nodeSetupChecker struct {
 
 // NewNodesSetupChecker will create a node setup checker able to check the initial nodes against the provided genesis values
 func NewNodesSetupChecker(
-	genesisParser genesis.Parser,
+	accountsParser genesis.AccountsParser,
 	initialNodePrice *big.Int,
 	validatorPubkeyConverter state.PubkeyConverter,
 ) (*nodeSetupChecker, error) {
-	if check.IfNil(genesisParser) {
-		return nil, genesis.ErrNilGenesisParser
+	if check.IfNil(accountsParser) {
+		return nil, genesis.ErrNilAccountsParser
 	}
 	if initialNodePrice == nil {
 		return nil, genesis.ErrNilInitialNodePrice
@@ -41,7 +41,7 @@ func NewNodesSetupChecker(
 	}
 
 	return &nodeSetupChecker{
-		genesisParser:            genesisParser,
+		accountsParser:           accountsParser,
 		initialNodePrice:         initialNodePrice,
 		validatorPubkeyConverter: validatorPubkeyConverter,
 		zeroValue:                big.NewInt(0),
@@ -62,7 +62,7 @@ func (nsc *nodeSetupChecker) Check(initialNodes []sharding.GenesisNodeInfoHandle
 }
 
 func (nsc *nodeSetupChecker) getClonedInitialAccounts() []genesis.InitialAccountHandler {
-	initialAccounts := nsc.genesisParser.InitialAccounts()
+	initialAccounts := nsc.accountsParser.InitialAccounts()
 	clonedInitialAccounts := make([]genesis.InitialAccountHandler, len(initialAccounts))
 
 	for idx, ia := range initialAccounts {

@@ -62,8 +62,8 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 // ErrNilPubkeyConverter signals that the provided public key converter is nil
 var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
 
-// ErrNilGenesisParser signals that the provided genesis parser is nil
-var ErrNilGenesisParser = errors.New("nil genesis parser")
+// ErrNilAccountsParser signals that the provided accounts parser is nil
+var ErrNilAccountsParser = errors.New("nil accounts parser")
 
 // ErrStakingValueIsNotEnough signals that the staking value provided is not enough for provided node(s)
 var ErrStakingValueIsNotEnough = errors.New("staking value is not enough")

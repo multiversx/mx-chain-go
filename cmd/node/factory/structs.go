@@ -41,7 +41,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/checking"
-	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
@@ -292,7 +291,7 @@ func createTries(
 
 type stateComponentsFactoryArgs struct {
 	config           *config.Config
-	genesisParser    *parsing.Genesis
+	accountsParser   genesis.AccountsParser
 	shardCoordinator sharding.Coordinator
 	core             *Core
 	pathManager      storage.PathManagerHandler
@@ -301,14 +300,14 @@ type stateComponentsFactoryArgs struct {
 // NewStateComponentsFactoryArgs initializes the arguments necessary for creating the state components
 func NewStateComponentsFactoryArgs(
 	config *config.Config,
-	genesisParser *parsing.Genesis,
+	accountsParser genesis.AccountsParser,
 	shardCoordinator sharding.Coordinator,
 	core *Core,
 	pathManager storage.PathManagerHandler,
 ) *stateComponentsFactoryArgs {
 	return &stateComponentsFactoryArgs{
 		config:           config,
-		genesisParser:    genesisParser,
+		accountsParser:   accountsParser,
 		shardCoordinator: shardCoordinator,
 		core:             core,
 		pathManager:      pathManager,
@@ -334,7 +333,7 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	accountsForShard, err := args.genesisParser.InitialAccountsSplitOnAddressesShards(args.shardCoordinator)
+	accountsForShard, err := args.accountsParser.InitialAccountsSplitOnAddressesShards(args.shardCoordinator)
 	if err != nil {
 		return nil, errors.New("initial balances could not be processed " + err.Error())
 	}
@@ -548,7 +547,7 @@ func NetworkComponentsFactory(
 
 type processComponentsFactoryArgs struct {
 	coreComponents            *coreComponentsFactoryArgs
-	genesisParser             *parsing.Genesis
+	accountsParser            genesis.AccountsParser
 	economicsData             *economics.EconomicsData
 	nodesConfig               *sharding.NodesSetup
 	gasSchedule               map[string]map[string]uint64
@@ -583,7 +582,7 @@ type processComponentsFactoryArgs struct {
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
 func NewProcessComponentsFactoryArgs(
 	coreComponents *coreComponentsFactoryArgs,
-	genesisParser *parsing.Genesis,
+	accountsParser genesis.AccountsParser,
 	economicsData *economics.EconomicsData,
 	nodesConfig *sharding.NodesSetup,
 	gasSchedule map[string]map[string]uint64,
@@ -615,7 +614,7 @@ func NewProcessComponentsFactoryArgs(
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
-		genesisParser:             genesisParser,
+		accountsParser:            accountsParser,
 		economicsData:             economicsData,
 		nodesConfig:               nodesConfig,
 		gasSchedule:               gasSchedule,
@@ -856,7 +855,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	nodesSetupChecker, err := checking.NewNodesSetupChecker(
-		args.genesisParser,
+		args.accountsParser,
 		args.economicsData.GenesisNodePrice(),
 		args.validatorPubkeyConverter,
 	)
@@ -1389,7 +1388,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	dataComponents := args.data
 	shardCoordinator := args.shardCoordinator
 	nodesSetup := args.nodesConfig
-	genesisParser := args.genesisParser
+	accountsParser := args.accountsParser
 	economicsData := args.economicsData
 
 	validatorStatsRootHash, err := stateComponents.PeerAccounts.RootHash()
@@ -1411,7 +1410,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		Hasher:                   coreComponents.Hasher,
 		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter,
 		DataPool:                 dataComponents.Datapool,
-		GenesisParser:            genesisParser,
+		AccountsParser:           accountsParser,
 		ValidatorStatsRootHash:   validatorStatsRootHash,
 		GasMap:                   args.gasSchedule,
 		VirtualMachineConfig:     args.coreComponents.config.VirtualMachineConfig,

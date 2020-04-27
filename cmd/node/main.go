@@ -524,7 +524,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
 			economicsConfig.GlobalSettings.TotalSupply)
 	}
-	genesisParser, err := parsing.NewGenesis(
+	accountsParser, err := parsing.NewAccountsParser(
 		ctx.GlobalString(genesisFile.Name),
 		totalSupply,
 		addressPubkeyConverter,
@@ -837,7 +837,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating state components")
 	stateArgs := factory.NewStateComponentsFactoryArgs(
 		generalConfig,
-		genesisParser,
+		accountsParser,
 		shardCoordinator,
 		coreComponents,
 		pathManager,
@@ -956,7 +956,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		coreArgs,
-		genesisParser,
+		accountsParser,
 		economicsData,
 		genesisNodesConfig,
 		gasSchedule,

@@ -34,12 +34,12 @@ import (
 
 // CreateMetaGenesisBlock will create a metachain genesis block
 func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, error) {
-	genesisProcessors, err := createProcessorsForMetaGenesisBlock(arg)
+	processors, err := createProcessorsForMetaGenesisBlock(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	err = deploySystemSmartContracts(arg, genesisProcessors.txProcessor, genesisProcessors.systemSCs)
+	err = deploySystemSmartContracts(arg, processors.txProcessor, processors.systemSCs)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, er
 		allNodes[shard] = append(eligible[shard], waiting[shard]...)
 	}
 
-	err = setStakedData(arg, genesisProcessors.txProcessor, allNodes)
+	err = setStakedData(arg, processors.txProcessor, allNodes)
 	if err != nil {
 		return nil, err
 	}

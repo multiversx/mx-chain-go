@@ -59,7 +59,7 @@ func setBalancesToTrie(arg ArgsGenesisBlockCreator) (rootHash []byte, err error)
 		return nil, process.ErrAccountStateDirty
 	}
 
-	initialAccounts, err := arg.GenesisParser.InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
+	initialAccounts, err := arg.AccountsParser.InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
 	if err != nil {
 		return nil, err
 	}

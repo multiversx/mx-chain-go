@@ -6,8 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// Parser contains the parsed genesis json file and has some functionality regarding processed data
-type Parser interface {
+// AccountsParser contains the parsed genesis json file and has some functionality regarding processed data
+type AccountsParser interface {
 	InitialAccountsSplitOnAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]InitialAccountHandler, error)
 	InitialAccountsSplitOnDelegationAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]InitialAccountHandler, error)
 	InitialAccounts() []InitialAccountHandler
