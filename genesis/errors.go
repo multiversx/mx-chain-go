@@ -79,3 +79,6 @@ var ErrNilInitialNodePrice = errors.New("nil initial node price")
 
 // ErrInvalidInitialNodePrice signals that the provided initial node price is invalid
 var ErrInvalidInitialNodePrice = errors.New("invalid initial node price")
+
+// ErrNilDelegationHandler signals that a nil delegation handler has been used
+var ErrNilDelegationHandler = errors.New("nil delegation handler")

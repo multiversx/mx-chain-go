@@ -1,9 +1,11 @@
-package genesis
+package data
 
 import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/genesis"
 )
 
 const decodeBase = 10
@@ -49,7 +51,7 @@ func (dd *DelegationData) UnmarshalJSON(data []byte) error {
 	dd.Value, ok = big.NewInt(0).SetString(s.Value, decodeBase)
 	if !ok {
 		return fmt.Errorf("%w for '%s', delegation address %s",
-			ErrInvalidDelegationValueString,
+			genesis.ErrInvalidDelegationValueString,
 			s.Value,
 			s.Address,
 		)
@@ -80,4 +82,19 @@ func (dd *DelegationData) Clone() *DelegationData {
 	copy(newDelegationData.addressBytes, dd.addressBytes)
 
 	return newDelegationData
+}
+
+// GetAddress returns the address as string
+func (dd *DelegationData) GetAddress() string {
+	return dd.Address
+}
+
+// GetValue returns the delegated value
+func (dd *DelegationData) GetValue() *big.Int {
+	return dd.Value
+}
+
+// IsInterfaceNil returns if underlying object is true
+func (dd *DelegationData) IsInterfaceNil() bool {
+	return dd == nil
 }

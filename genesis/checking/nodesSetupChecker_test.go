@@ -8,18 +8,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/checking"
+	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
-func createEmptyInitialAccount() *genesis.InitialAccount {
-	return &genesis.InitialAccount{
+func createEmptyInitialAccount() *data.InitialAccount {
+	return &data.InitialAccount{
 		Address:      "",
 		Supply:       big.NewInt(0),
 		Balance:      big.NewInt(0),
 		StakingValue: big.NewInt(0),
-		Delegation: &genesis.DelegationData{
+		Delegation: &data.DelegationData{
 			Address: "",
 			Value:   big.NewInt(0),
 		},
@@ -103,8 +104,8 @@ func TestNewNodeSetupChecker_CheckNotStakedShouldErr(t *testing.T) {
 
 	nsc, _ := checking.NewNodesSetupChecker(
 		&mock.GenesisParserStub{
-			InitialAccountsCalled: func() []*genesis.InitialAccount {
-				return []*genesis.InitialAccount{ia}
+			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
+				return []genesis.InitialAccountHandler{ia}
 			},
 		},
 		big.NewInt(0),
@@ -134,8 +135,8 @@ func TestNewNodeSetupChecker_CheckNotEnoughStakedShouldErr(t *testing.T) {
 
 	nsc, _ := checking.NewNodesSetupChecker(
 		&mock.GenesisParserStub{
-			InitialAccountsCalled: func() []*genesis.InitialAccount {
-				return []*genesis.InitialAccount{ia}
+			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
+				return []genesis.InitialAccountHandler{ia}
 			},
 		},
 		big.NewInt(nodePrice.Int64()+1),
@@ -165,8 +166,8 @@ func TestNewNodeSetupChecker_CheckTooMuchStakedShouldErr(t *testing.T) {
 
 	nsc, _ := checking.NewNodesSetupChecker(
 		&mock.GenesisParserStub{
-			InitialAccountsCalled: func() []*genesis.InitialAccount {
-				return []*genesis.InitialAccount{ia}
+			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
+				return []genesis.InitialAccountHandler{ia}
 			},
 		},
 		big.NewInt(nodePrice.Int64()-1),
@@ -196,8 +197,8 @@ func TestNewNodeSetupChecker_CheckNotEnoughDelegatedShouldErr(t *testing.T) {
 
 	nsc, _ := checking.NewNodesSetupChecker(
 		&mock.GenesisParserStub{
-			InitialAccountsCalled: func() []*genesis.InitialAccount {
-				return []*genesis.InitialAccount{ia}
+			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
+				return []genesis.InitialAccountHandler{ia}
 			},
 		},
 		big.NewInt(nodePrice.Int64()+1),
@@ -227,8 +228,8 @@ func TestNewNodeSetupChecker_CheckTooMuchDelegatedShouldErr(t *testing.T) {
 
 	nsc, _ := checking.NewNodesSetupChecker(
 		&mock.GenesisParserStub{
-			InitialAccountsCalled: func() []*genesis.InitialAccount {
-				return []*genesis.InitialAccount{ia}
+			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
+				return []genesis.InitialAccountHandler{ia}
 			},
 		},
 		big.NewInt(nodePrice.Int64()-1),
@@ -262,8 +263,8 @@ func TestNewNodeSetupChecker_CheckStakedAndDelegatedShouldWork(t *testing.T) {
 
 	nsc, _ := checking.NewNodesSetupChecker(
 		&mock.GenesisParserStub{
-			InitialAccountsCalled: func() []*genesis.InitialAccount {
-				return []*genesis.InitialAccount{iaStaked, iaDelegated}
+			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
+				return []genesis.InitialAccountHandler{iaStaked, iaDelegated}
 			},
 		},
 		nodePrice,

@@ -14,7 +14,7 @@ import (
 const minimumAcceptedNodePrice = 0
 
 type nodeSetupChecker struct {
-	genesisParser            genesis.GenesisParser
+	genesisParser            genesis.Parser
 	initialNodePrice         *big.Int
 	validatorPubkeyConverter state.PubkeyConverter
 	zeroValue                *big.Int
@@ -22,7 +22,7 @@ type nodeSetupChecker struct {
 
 // NewNodesSetupChecker will create a node setup checker able to check the initial nodes against the provided genesis values
 func NewNodesSetupChecker(
-	genesisParser genesis.GenesisParser,
+	genesisParser genesis.Parser,
 	initialNodePrice *big.Int,
 	validatorPubkeyConverter state.PubkeyConverter,
 ) (*nodeSetupChecker, error) {
@@ -52,10 +52,8 @@ func NewNodesSetupChecker(
 // also, it checks that the amount staked (either directly or delegated) matches exactly the total
 // staked value defined in the genesis file
 func (nsc *nodeSetupChecker) Check(initialNodes []sharding.GenesisNodeInfoHandler) error {
-	var err error
-
 	initialAccounts := nsc.getClonedInitialAccounts()
-	err = nsc.traverseInitialNodes(initialAccounts, initialNodes)
+	err := nsc.traverseInitialNodesSubtractingStakedValue(initialAccounts, initialNodes)
 	if err != nil {
 		return err
 	}
@@ -63,9 +61,9 @@ func (nsc *nodeSetupChecker) Check(initialNodes []sharding.GenesisNodeInfoHandle
 	return nsc.checkRemainderInitialAccounts(initialAccounts)
 }
 
-func (nsc *nodeSetupChecker) getClonedInitialAccounts() []*genesis.InitialAccount {
+func (nsc *nodeSetupChecker) getClonedInitialAccounts() []genesis.InitialAccountHandler {
 	initialAccounts := nsc.genesisParser.InitialAccounts()
-	clonedInitialAccounts := make([]*genesis.InitialAccount, len(initialAccounts))
+	clonedInitialAccounts := make([]genesis.InitialAccountHandler, len(initialAccounts))
 
 	for idx, ia := range initialAccounts {
 		clonedInitialAccounts[idx] = ia.Clone()
@@ -74,12 +72,12 @@ func (nsc *nodeSetupChecker) getClonedInitialAccounts() []*genesis.InitialAccoun
 	return clonedInitialAccounts
 }
 
-func (nsc *nodeSetupChecker) traverseInitialNodes(
-	initialAccounts []*genesis.InitialAccount,
+func (nsc *nodeSetupChecker) traverseInitialNodesSubtractingStakedValue(
+	initialAccounts []genesis.InitialAccountHandler,
 	initialNodes []sharding.GenesisNodeInfoHandler,
 ) error {
 	for _, initialNode := range initialNodes {
-		err := nsc.subtractValue(initialNode.AddressBytes(), initialAccounts)
+		err := nsc.subtractStakedValue(initialNode.AddressBytes(), initialAccounts)
 		if err != nil {
 			return fmt.Errorf("'%w' while processing node pubkey %s",
 				err, nsc.validatorPubkeyConverter.Encode(initialNode.PubKeyBytes()))
@@ -89,20 +87,25 @@ func (nsc *nodeSetupChecker) traverseInitialNodes(
 	return nil
 }
 
-func (nsc *nodeSetupChecker) subtractValue(addressBytes []byte, initialAccounts []*genesis.InitialAccount) error {
+func (nsc *nodeSetupChecker) subtractStakedValue(addressBytes []byte, initialAccounts []genesis.InitialAccountHandler) error {
 	for _, ia := range initialAccounts {
 		if bytes.Equal(ia.AddressBytes(), addressBytes) {
-			ia.StakingValue.Sub(ia.StakingValue, nsc.initialNodePrice)
-			if ia.StakingValue.Cmp(nsc.zeroValue) < 0 {
+			ia.GetStakingValue().Sub(ia.GetStakingValue(), nsc.initialNodePrice)
+			if ia.GetStakingValue().Cmp(nsc.zeroValue) < 0 {
 				return genesis.ErrStakingValueIsNotEnough
 			}
 
 			return nil
 		}
 
-		if bytes.Equal(ia.Delegation.AddressBytes(), addressBytes) {
-			ia.Delegation.Value.Sub(ia.Delegation.Value, nsc.initialNodePrice)
-			if ia.Delegation.Value.Cmp(nsc.zeroValue) < 0 {
+		dh := ia.GetDelegationHandler()
+		if check.IfNil(dh) {
+			return genesis.ErrNilDelegationHandler
+		}
+
+		if bytes.Equal(dh.AddressBytes(), addressBytes) {
+			dh.GetValue().Sub(dh.GetValue(), nsc.initialNodePrice)
+			if dh.GetValue().Cmp(nsc.zeroValue) < 0 {
 				return genesis.ErrDelegationValueIsNotEnough
 			}
 
@@ -115,17 +118,22 @@ func (nsc *nodeSetupChecker) subtractValue(addressBytes []byte, initialAccounts 
 
 // checkRemainderInitialAccounts checks that both staked value and delegated value is 0, meaning that all
 // subtractions occurred perfectly
-func (nsc *nodeSetupChecker) checkRemainderInitialAccounts(initialAccounts []*genesis.InitialAccount) error {
+func (nsc *nodeSetupChecker) checkRemainderInitialAccounts(initialAccounts []genesis.InitialAccountHandler) error {
 	for _, ia := range initialAccounts {
-		if ia.StakingValue.Cmp(nsc.zeroValue) != 0 {
+		if ia.GetStakingValue().Cmp(nsc.zeroValue) != 0 {
 			return fmt.Errorf("%w for staking address %s, remainder %s",
-				genesis.ErrInvalidStakingBalance, ia.Address, ia.StakingValue.String(),
+				genesis.ErrInvalidStakingBalance, ia.GetAddress(), ia.GetStakingValue().String(),
 			)
 		}
 
-		if ia.Delegation.Value.Cmp(nsc.zeroValue) != 0 {
+		dh := ia.GetDelegationHandler()
+		if check.IfNil(dh) {
+			return genesis.ErrNilDelegationHandler
+		}
+
+		if dh.GetValue().Cmp(nsc.zeroValue) != 0 {
 			return fmt.Errorf("%w for delegation address %s, remainder %s",
-				genesis.ErrInvalidDelegationValue, ia.Address, ia.Delegation.Value.String(),
+				genesis.ErrInvalidDelegationValue, ia.GetAddress(), dh.GetValue().String(),
 			)
 		}
 	}

@@ -8,12 +8,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // Genesis hold data for decoded data from json file
 type Genesis struct {
-	initialAccounts []*genesis.InitialAccount
+	initialAccounts []*data.InitialAccount
 	entireSupply    *big.Int
 	pubkeyConverter state.PubkeyConverter
 }
@@ -35,7 +36,7 @@ func NewGenesis(
 		return nil, genesis.ErrNilPubkeyConverter
 	}
 
-	initialAccounts := make([]*genesis.InitialAccount, 0)
+	initialAccounts := make([]*data.InitialAccount, 0)
 	err := core.LoadJsonFile(&initialAccounts, genesisFilePath)
 	if err != nil {
 		return nil, err
@@ -87,7 +88,7 @@ func (g *Genesis) process() error {
 	return nil
 }
 
-func (g *Genesis) parseElement(initialAccount *genesis.InitialAccount) error {
+func (g *Genesis) parseElement(initialAccount *data.InitialAccount) error {
 	if len(initialAccount.Address) == 0 {
 		return genesis.ErrEmptyAddress
 	}
@@ -102,7 +103,7 @@ func (g *Genesis) parseElement(initialAccount *genesis.InitialAccount) error {
 	return g.parseDelegationElement(initialAccount)
 }
 
-func (g *Genesis) parseDelegationElement(initialAccount *genesis.InitialAccount) error {
+func (g *Genesis) parseDelegationElement(initialAccount *data.InitialAccount) error {
 	delegationData := initialAccount.Delegation
 
 	if big.NewInt(0).Cmp(delegationData.Value) == 0 {
@@ -127,7 +128,7 @@ func (g *Genesis) parseDelegationElement(initialAccount *genesis.InitialAccount)
 	return nil
 }
 
-func (g *Genesis) checkInitialAccount(initialAccount *genesis.InitialAccount) error {
+func (g *Genesis) checkInitialAccount(initialAccount *data.InitialAccount) error {
 	isSmartContract := core.IsSmartContractAddress(initialAccount.AddressBytes())
 	if isSmartContract {
 		return fmt.Errorf("%w for address %s",
@@ -227,20 +228,26 @@ func (g *Genesis) DelegatedUpon(address string) *big.Int {
 }
 
 // InitialAccounts return the initial accounts contained by this parser
-func (g *Genesis) InitialAccounts() []*genesis.InitialAccount {
-	return g.initialAccounts
+func (g *Genesis) InitialAccounts() []genesis.InitialAccountHandler {
+	accounts := make([]genesis.InitialAccountHandler, len(g.initialAccounts))
+
+	for idx, ia := range g.initialAccounts {
+		accounts[idx] = ia
+	}
+
+	return accounts
 }
 
 // InitialAccountsSplitOnAddressesShards gets the initial accounts of the nodes split on the addresses's shards
 func (g *Genesis) InitialAccountsSplitOnAddressesShards(
 	shardCoordinator sharding.Coordinator,
-) (map[uint32][]*genesis.InitialAccount, error) {
+) (map[uint32][]genesis.InitialAccountHandler, error) {
 
 	if check.IfNil(shardCoordinator) {
 		return nil, genesis.ErrNilShardCoordinator
 	}
 
-	var addresses = make(map[uint32][]*genesis.InitialAccount)
+	var addresses = make(map[uint32][]genesis.InitialAccountHandler)
 	for _, in := range g.initialAccounts {
 		address, err := g.pubkeyConverter.CreateAddressFromBytes(in.AddressBytes())
 		if err != nil {
@@ -257,13 +264,13 @@ func (g *Genesis) InitialAccountsSplitOnAddressesShards(
 // InitialAccountsSplitOnDelegationAddressesShards gets the initial accounts of the nodes split on the addresses's shards
 func (g *Genesis) InitialAccountsSplitOnDelegationAddressesShards(
 	shardCoordinator sharding.Coordinator,
-) (map[uint32][]*genesis.InitialAccount, error) {
+) (map[uint32][]genesis.InitialAccountHandler, error) {
 
 	if check.IfNil(shardCoordinator) {
 		return nil, genesis.ErrNilShardCoordinator
 	}
 
-	var addresses = make(map[uint32][]*genesis.InitialAccount)
+	var addresses = make(map[uint32][]genesis.InitialAccountHandler)
 	for _, in := range g.initialAccounts {
 		if len(in.Delegation.Address) == 0 {
 			continue

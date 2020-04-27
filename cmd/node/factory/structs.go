@@ -145,7 +145,7 @@ type State struct {
 	ValidatorPubkeyConverter state.PubkeyConverter
 	PeerAccounts             state.AccountsAdapter
 	AccountsAdapter          state.AccountsAdapter
-	AccountsForShard         []*genesis.InitialAccount
+	AccountsForShard         []genesis.InitialAccountHandler
 }
 
 // Data struct holds the data components of the Elrond protocol

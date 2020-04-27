@@ -295,7 +295,7 @@ func printTestDebugLines(
 	fmt.Println(strTr)
 }
 
-func getRootHashByRunningInitialAccounts(initialAccounts []*genesis.InitialAccount) ([]byte, state.AccountsAdapter) {
+func getRootHashByRunningInitialAccounts(initialAccounts []genesis.InitialAccountHandler) ([]byte, state.AccountsAdapter) {
 	adb, _, _ := integrationTests.CreateAccountsDB(0)
 
 	uniformIndexes := make([]int, len(initialAccounts))
@@ -306,8 +306,8 @@ func getRootHashByRunningInitialAccounts(initialAccounts []*genesis.InitialAccou
 
 	for _, idx := range randomIndexes {
 		ia := initialAccounts[idx]
-		decoded, _ := integrationTests.TestAddressPubkeyConverter.Decode(ia.Address)
-		integrationTests.MintAddress(adb, decoded, ia.Balance)
+		decoded, _ := integrationTests.TestAddressPubkeyConverter.Decode(ia.GetAddress())
+		integrationTests.MintAddress(adb, decoded, ia.GetBalanceValue())
 	}
 
 	rootHash, _ := adb.Commit()

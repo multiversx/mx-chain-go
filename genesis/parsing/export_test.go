@@ -4,10 +4,10 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/data"
 )
 
-func (g *Genesis) SetInitialAccounts(initialAccounts []*genesis.InitialAccount) {
+func (g *Genesis) SetInitialAccounts(initialAccounts []*data.InitialAccount) {
 	g.initialAccounts = initialAccounts
 }
 
@@ -26,6 +26,6 @@ func (g *Genesis) SetPukeyConverter(pubkeyConverter state.PubkeyConverter) {
 func NewTestGenesis(pubkeyConverter state.PubkeyConverter) *Genesis {
 	return &Genesis{
 		pubkeyConverter: pubkeyConverter,
-		initialAccounts: make([]*genesis.InitialAccount, 0),
+		initialAccounts: make([]*data.InitialAccount, 0),
 	}
 }

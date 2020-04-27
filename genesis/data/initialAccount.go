@@ -1,9 +1,11 @@
-package genesis
+package data
 
 import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/genesis"
 )
 
 // InitialAccount provides information about one entry in the genesis file
@@ -74,7 +76,7 @@ func (ia *InitialAccount) UnmarshalJSON(data []byte) error {
 	ia.Supply, ok = big.NewInt(0).SetString(s.Supply, decodeBase)
 	if !ok {
 		return fmt.Errorf("%w for '%s', address %s",
-			ErrInvalidSupplyString,
+			genesis.ErrInvalidSupplyString,
 			s.Supply,
 			s.Address,
 		)
@@ -83,7 +85,7 @@ func (ia *InitialAccount) UnmarshalJSON(data []byte) error {
 	ia.Balance, ok = big.NewInt(0).SetString(s.Balance, decodeBase)
 	if !ok {
 		return fmt.Errorf("%w for '%s', address %s",
-			ErrInvalidBalanceString,
+			genesis.ErrInvalidBalanceString,
 			s.Balance,
 			s.Address,
 		)
@@ -92,7 +94,7 @@ func (ia *InitialAccount) UnmarshalJSON(data []byte) error {
 	ia.StakingValue, ok = big.NewInt(0).SetString(s.StakingValue, decodeBase)
 	if !ok {
 		return fmt.Errorf("%w for '%s', address %s",
-			ErrInvalidStakingBalanceString,
+			genesis.ErrInvalidStakingBalanceString,
 			s.StakingValue,
 			s.Address,
 		)
@@ -115,7 +117,7 @@ func (ia *InitialAccount) SetAddressBytes(address []byte) {
 }
 
 // Clone will return a new instance of the initial account holding the same information
-func (ia *InitialAccount) Clone() *InitialAccount {
+func (ia *InitialAccount) Clone() genesis.InitialAccountHandler {
 	newInitialAccount := &InitialAccount{
 		Address:      ia.Address,
 		Supply:       big.NewInt(0).Set(ia.Supply),
@@ -128,4 +130,34 @@ func (ia *InitialAccount) Clone() *InitialAccount {
 	copy(newInitialAccount.addressBytes, ia.addressBytes)
 
 	return newInitialAccount
+}
+
+// GetAddress returns the address of the initial account
+func (ia *InitialAccount) GetAddress() string {
+	return ia.Address
+}
+
+// GetStakingValue returns the staking value
+func (ia *InitialAccount) GetStakingValue() *big.Int {
+	return ia.StakingValue
+}
+
+// GetBalanceValue returns the initial balance value
+func (ia *InitialAccount) GetBalanceValue() *big.Int {
+	return ia.Balance
+}
+
+// GetSupply returns the account's supply value
+func (ia *InitialAccount) GetSupply() *big.Int {
+	return ia.Supply
+}
+
+// GetDelegationHandler returns the delegation handler
+func (ia *InitialAccount) GetDelegationHandler() genesis.DelegationDataHandler {
+	return ia.Delegation
+}
+
+// IsInterfaceNil returns if underlying object is true
+func (ia *InitialAccount) IsInterfaceNil() bool {
+	return ia == nil
 }

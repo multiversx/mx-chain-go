@@ -1,4 +1,4 @@
-package genesis
+package data
 
 import (
 	"bytes"
@@ -7,7 +7,10 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockInitialAccount() *InitialAccount {
@@ -95,7 +98,7 @@ func TestInitialAccount_UnmarshalNotAValidSupplyShouldErr(t *testing.T) {
 	recovered := &InitialAccount{}
 	err := json.Unmarshal(buff, recovered)
 
-	assert.True(t, errors.Is(err, ErrInvalidSupplyString))
+	assert.True(t, errors.Is(err, genesis.ErrInvalidSupplyString))
 }
 
 func TestInitialAccount_UnmarshalNotAValidBalanceShouldErr(t *testing.T) {
@@ -109,7 +112,7 @@ func TestInitialAccount_UnmarshalNotAValidBalanceShouldErr(t *testing.T) {
 	recovered := &InitialAccount{}
 	err := json.Unmarshal(buff, recovered)
 
-	assert.True(t, errors.Is(err, ErrInvalidBalanceString))
+	assert.True(t, errors.Is(err, genesis.ErrInvalidBalanceString))
 }
 
 func TestInitialAccount_UnmarshalNotAValidStakingValueShouldErr(t *testing.T) {
@@ -123,7 +126,7 @@ func TestInitialAccount_UnmarshalNotAValidStakingValueShouldErr(t *testing.T) {
 	recovered := &InitialAccount{}
 	err := json.Unmarshal(buff, recovered)
 
-	assert.True(t, errors.Is(err, ErrInvalidStakingBalanceString))
+	assert.True(t, errors.Is(err, genesis.ErrInvalidStakingBalanceString))
 }
 
 func TestInitialAccount_AddressBytes(t *testing.T) {
@@ -157,8 +160,33 @@ func TestInitialAccount_Clone(t *testing.T) {
 
 	assert.Equal(t, ia, iaCloned)
 	assert.False(t, ia == iaCloned) //pointer testing
-	assert.False(t, ia.Supply == iaCloned.Supply)
-	assert.False(t, ia.Balance == iaCloned.Balance)
-	assert.False(t, ia.StakingValue == iaCloned.StakingValue)
-	assert.False(t, ia.Delegation == iaCloned.Delegation)
+	assert.False(t, ia.Supply == iaCloned.GetSupply())
+	assert.False(t, ia.Balance == iaCloned.GetBalanceValue())
+	assert.False(t, ia.StakingValue == iaCloned.GetStakingValue())
+	assert.False(t, ia.Delegation == iaCloned.GetDelegationHandler())
+}
+
+func TestInitialAccount_Getters(t *testing.T) {
+	t.Parallel()
+
+	accountAddr := "account address"
+	supply := big.NewInt(56)
+	balance := big.NewInt(67)
+	staking := big.NewInt(78)
+	dd := &DelegationData{}
+	ia := &InitialAccount{
+		Address:      accountAddr,
+		Supply:       supply,
+		Balance:      balance,
+		StakingValue: staking,
+		Delegation:   dd,
+	}
+
+	require.False(t, check.IfNil(ia))
+	require.False(t, check.IfNil(ia.GetDelegationHandler()))
+	assert.Equal(t, accountAddr, ia.GetAddress())
+	assert.Equal(t, supply, ia.GetSupply())
+	assert.Equal(t, balance, ia.GetBalanceValue())
+	assert.Equal(t, staking, ia.GetStakingValue())
+	assert.Equal(t, dd, ia.GetDelegationHandler())
 }
