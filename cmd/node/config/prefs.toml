@@ -5,3 +5,6 @@
 
    # NodeDisplayName represents the friendly name a user can pick for his node in the status monitor
    NodeDisplayName = ""
+
+   # Identity represents the keybase's identity
+   Identity = ""
