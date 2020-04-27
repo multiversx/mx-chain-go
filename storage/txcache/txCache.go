@@ -52,11 +52,13 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		return
 	}
 
+	if cache.txListBySender.isFromSweepableSender(tx) {
+		return
+	}
+
 	if cache.config.EvictionEnabled {
 		cache.doEviction()
 	}
-
-	// TODO: Perhaps ignore for sweepable senders?
 
 	ok = true
 	added = cache.txByHash.addTx(tx)
