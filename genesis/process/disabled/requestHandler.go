@@ -2,7 +2,7 @@ package disabled
 
 import "time"
 
-// RequestHandler -
+// RequestHandler implements the RequestHandler interface but does nothing as it is disabled
 type RequestHandler struct {
 }
 

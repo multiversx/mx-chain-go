@@ -2,39 +2,39 @@ package disabled
 
 import "math/big"
 
-// BalanceComputationHandler -
+// BalanceComputationHandler implements BalanceComputationHandler interface but does nothing as it is a disabled component
 type BalanceComputationHandler struct {
 }
 
-// Init -
+// Init does nothing as it is a disabled component
 func (b *BalanceComputationHandler) Init() {
 }
 
-// SetBalanceToAddress -
+// SetBalanceToAddress does nothing as it is a disabled component
 func (b *BalanceComputationHandler) SetBalanceToAddress(_ []byte, _ *big.Int) {
 }
 
-// AddBalanceToAddress -
+// AddBalanceToAddress returns true as it is a disabled component
 func (b *BalanceComputationHandler) AddBalanceToAddress(_ []byte, _ *big.Int) bool {
 	return true
 }
 
-// SubBalanceFromAddress -
+// SubBalanceFromAddress returns true as it is a disabled component
 func (b *BalanceComputationHandler) SubBalanceFromAddress(_ []byte, _ *big.Int) bool {
 	return true
 }
 
-// IsAddressSet -
+// IsAddressSet returns true as it is a disabled component
 func (b *BalanceComputationHandler) IsAddressSet(_ []byte) bool {
 	return true
 }
 
-// AddressHasEnoughBalance -
+// AddressHasEnoughBalance returns true as it is a disabled component
 func (b *BalanceComputationHandler) AddressHasEnoughBalance(_ []byte, _ *big.Int) bool {
 	return true
 }
 
-// IsInterfaceNil -
+// IsInterfaceNil returns true if underlying object is nil
 func (b *BalanceComputationHandler) IsInterfaceNil() bool {
 	return b == nil
 }
