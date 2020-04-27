@@ -47,7 +47,7 @@ func (r *RequestHandler) RequestMiniBlocks(_ uint32, _ [][]byte) {
 }
 
 // RequestTrieNodes -
-func (r *RequestHandler) RequestTrieNodes(_ uint32, _ []byte, _ string) {
+func (r *RequestHandler) RequestTrieNodes(_ uint32, _ [][]byte, _ string) {
 }
 
 // RequestStartOfEpochMetaBlock -
