@@ -23,6 +23,8 @@ import (
 )
 
 func TestNetworkMetrics_ShouldWork(t *testing.T) {
+	t.Parallel()
+
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := core.MetricEpochNumber
 	value := uint64(37)
