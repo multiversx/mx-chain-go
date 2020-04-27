@@ -32,7 +32,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	dataRetrieverFactory "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -42,12 +41,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
-	factoryHasher "github.com/ElrondNetwork/elrond-go/hashing/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	factoryMarshalizer "github.com/ElrondNetwork/elrond-go/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -77,7 +75,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
@@ -184,110 +181,11 @@ type Process struct {
 	RequestHandler           process.RequestHandler
 }
 
-type coreComponentsFactoryArgs struct {
-	config      *config.Config
-	pathManager storage.PathManagerHandler
-	shardId     string
-	chainID     []byte
-}
-
-// NewCoreComponentsFactoryArgs initializes the arguments necessary for creating the core components
-func NewCoreComponentsFactoryArgs(config *config.Config, pathManager storage.PathManagerHandler, shardId string, chainID []byte) *coreComponentsFactoryArgs {
-	return &coreComponentsFactoryArgs{
-		config:      config,
-		pathManager: pathManager,
-		shardId:     shardId,
-		chainID:     chainID,
-	}
-}
-
-// CoreComponentsFactory creates the core components
-func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
-	hasher, err := factoryHasher.NewHasher(args.config.Hasher.Type)
-	if err != nil {
-		return nil, errors.New("could not create hasher: " + err.Error())
-	}
-
-	internalMarshalizer, err := factoryMarshalizer.NewMarshalizer(args.config.Marshalizer.Type)
-	if err != nil {
-		return nil, fmt.Errorf("%w for internalMarshalizer", err)
-	}
-
-	vmMarshalizer, err := factoryMarshalizer.NewMarshalizer(args.config.VmMarshalizer.Type)
-	if err != nil {
-		return nil, fmt.Errorf("%w for vmMarshalizer", err)
-	}
-
-	txSignMarshalizer, err := factoryMarshalizer.NewMarshalizer(args.config.TxSignMarshalizer.Type)
-	if err != nil {
-		return nil, fmt.Errorf("%w for txSignMarshalizer", err)
-	}
-
-	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
-
-	trieStorageManagers, trieContainer, err := createTries(args, internalMarshalizer, hasher)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &Core{
-		Hasher:                   hasher,
-		InternalMarshalizer:      internalMarshalizer,
-		VmMarshalizer:            vmMarshalizer,
-		TxSignMarshalizer:        txSignMarshalizer,
-		TriesContainer:           trieContainer,
-		TrieStorageManagers:      trieStorageManagers,
-		Uint64ByteSliceConverter: uint64ByteSliceConverter,
-		StatusHandler:            statusHandler.NewNilStatusHandler(),
-		ChainID:                  args.chainID,
-	}, nil
-}
-
-func createTries(
-	args *coreComponentsFactoryArgs,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-) (map[string]data.StorageManager, state.TriesHolder, error) {
-
-	trieContainer := state.NewDataTriesHolder()
-	trieFactoryArgs := factory.TrieFactoryArgs{
-		EvictionWaitingListCfg:   args.config.EvictionWaitingList,
-		SnapshotDbCfg:            args.config.TrieSnapshotDB,
-		Marshalizer:              marshalizer,
-		Hasher:                   hasher,
-		PathManager:              args.pathManager,
-		ShardId:                  args.shardId,
-		TrieStorageManagerConfig: args.config.TrieStorageManagerConfig,
-	}
-	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	trieStorageManagers := make(map[string]data.StorageManager)
-	userStorageManager, userAccountTrie, err := trieFactory.Create(args.config.AccountsTrieStorage, args.config.StateTriesConfig.AccountsStatePruningEnabled)
-	if err != nil {
-		return nil, nil, err
-	}
-	trieContainer.Put([]byte(factory.UserAccountTrie), userAccountTrie)
-	trieStorageManagers[factory.UserAccountTrie] = userStorageManager
-
-	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(args.config.PeerAccountsTrieStorage, args.config.StateTriesConfig.PeerStatePruningEnabled)
-	if err != nil {
-		return nil, nil, err
-	}
-	trieContainer.Put([]byte(factory.PeerAccountTrie), peerAccountsTrie)
-	trieStorageManagers[factory.PeerAccountTrie] = peerStorageManager
-
-	return trieStorageManagers, trieContainer, nil
-}
-
 type stateComponentsFactoryArgs struct {
 	config           *config.Config
 	genesisConfig    *sharding.Genesis
 	shardCoordinator sharding.Coordinator
-	core             *Core
+	core             *mainFactory.CoreComponents
 	pathManager      storage.PathManagerHandler
 }
 
@@ -296,7 +194,7 @@ func NewStateComponentsFactoryArgs(
 	config *config.Config,
 	genesisConfig *sharding.Genesis,
 	shardCoordinator sharding.Coordinator,
-	core *Core,
+	core *mainFactory.CoreComponents,
 	pathManager storage.PathManagerHandler,
 ) *stateComponentsFactoryArgs {
 	return &stateComponentsFactoryArgs{
@@ -352,7 +250,7 @@ type dataComponentsFactoryArgs struct {
 	config             *config.Config
 	economicsData      *economics.EconomicsData
 	shardCoordinator   sharding.Coordinator
-	core               *Core
+	core               *mainFactory.CoreComponents
 	pathManager        storage.PathManagerHandler
 	epochStartNotifier EpochStartNotifier
 	currentEpoch       uint32
@@ -363,7 +261,7 @@ func NewDataComponentsFactoryArgs(
 	config *config.Config,
 	economicsData *economics.EconomicsData,
 	shardCoordinator sharding.Coordinator,
-	core *Core,
+	core *mainFactory.CoreComponents,
 	pathManager storage.PathManagerHandler,
 	epochStartNotifier EpochStartNotifier,
 	currentEpoch uint32,
@@ -540,7 +438,7 @@ func NetworkComponentsFactory(
 }
 
 type processComponentsFactoryArgs struct {
-	coreComponents            *coreComponentsFactoryArgs
+	coreComponents            *mainFactory.CoreComponentsFactoryArgs
 	genesisConfig             *sharding.Genesis
 	economicsData             *economics.EconomicsData
 	nodesConfig               *sharding.NodesSetup
@@ -549,7 +447,7 @@ type processComponentsFactoryArgs struct {
 	shardCoordinator          sharding.Coordinator
 	nodesCoordinator          sharding.NodesCoordinator
 	data                      *Data
-	coreData                  *Core
+	coreData                  *mainFactory.CoreComponents
 	crypto                    *Crypto
 	state                     *State
 	network                   *Network
@@ -574,7 +472,7 @@ type processComponentsFactoryArgs struct {
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
 func NewProcessComponentsFactoryArgs(
-	coreComponents *coreComponentsFactoryArgs,
+	coreComponents *mainFactory.CoreComponentsFactoryArgs,
 	genesisConfig *sharding.Genesis,
 	economicsData *economics.EconomicsData,
 	nodesConfig *sharding.NodesSetup,
@@ -583,7 +481,7 @@ func NewProcessComponentsFactoryArgs(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
-	coreData *Core,
+	coreData *mainFactory.CoreComponents,
 	crypto *Crypto,
 	state *State,
 	network *Network,
@@ -1086,7 +984,7 @@ func newInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
-	coreData *Core,
+	coreData *mainFactory.CoreComponents,
 	crypto *Crypto,
 	state *State,
 	network *Network,
@@ -1142,7 +1040,7 @@ func newInterceptorContainerFactory(
 func newResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	data *Data,
-	coreData *Core,
+	coreData *mainFactory.CoreComponents,
 	network *Network,
 	sizeCheckDelta uint32,
 	numConcurrentResolverJobs int32,
@@ -1176,7 +1074,7 @@ func newShardInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
-	dataCore *Core,
+	dataCore *mainFactory.CoreComponents,
 	crypto *Crypto,
 	state *State,
 	network *Network,
@@ -1230,7 +1128,7 @@ func newMetaInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
-	dataCore *Core,
+	dataCore *mainFactory.CoreComponents,
 	crypto *Crypto,
 	network *Network,
 	state *State,
@@ -1283,7 +1181,7 @@ func newMetaInterceptorContainerFactory(
 func newShardResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	data *Data,
-	core *Core,
+	core *mainFactory.CoreComponents,
 	network *Network,
 	sizeCheckDelta uint32,
 	numConcurrentResolverJobs int32,
@@ -1319,7 +1217,7 @@ func newShardResolverContainerFactory(
 func newMetaResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	data *Data,
-	core *Core,
+	core *mainFactory.CoreComponents,
 	network *Network,
 	sizeCheckDelta uint32,
 	numConcurrentResolverJobs int32,
@@ -1464,7 +1362,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	return genesisBlocks, nil
 }
 
-func saveGenesisBlock(header data.HeaderHandler, coreComponents *Core, dataComponents *Data) error {
+func saveGenesisBlock(header data.HeaderHandler, coreComponents *mainFactory.CoreComponents, dataComponents *Data) error {
 	blockBuff, err := coreComponents.InternalMarshalizer.Marshal(header)
 	if err != nil {
 		return err
@@ -1502,7 +1400,7 @@ func createGenesisBlockAndApplyInitialBalances(
 }
 
 func createInMemoryShardCoordinatorAndAccount(
-	coreComponents *Core,
+	coreComponents *mainFactory.CoreComponents,
 	numOfShards uint32,
 	shardId uint32,
 ) (sharding.Coordinator, state.AccountsAdapter, error) {
@@ -1597,7 +1495,7 @@ func newBlockProcessor(
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardBlockProcessor(
-			processArgs.coreComponents.config,
+			processArgs.coreComponents.Config,
 			requestHandler,
 			processArgs.shardCoordinator,
 			processArgs.nodesCoordinator,
@@ -1655,7 +1553,7 @@ func newShardBlockProcessor(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
-	core *Core,
+	core *mainFactory.CoreComponents,
 	stateComponents *State,
 	forkDetector process.ForkDetector,
 	coreServiceContainer serviceContainer.Core,
@@ -1922,7 +1820,7 @@ func newMetaBlockProcessor(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	data *Data,
-	core *Core,
+	core *mainFactory.CoreComponents,
 	stateComponents *State,
 	forkDetector process.ForkDetector,
 	coreServiceContainer serviceContainer.Core,

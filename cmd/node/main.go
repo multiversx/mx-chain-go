@@ -40,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -627,8 +628,18 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating core components")
-	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, pathManager, shardId, []byte(genesisNodesConfig.ChainID))
-	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
+
+	coreArgs := mainFactory.CoreComponentsFactoryArgs{
+		Config:      generalConfig,
+		PathManager: pathManager,
+		ShardId:     shardId,
+		ChainID:     []byte(genesisNodesConfig.ChainID),
+	}
+	coreComponentsFactory, err := mainFactory.NewCoreComponentsFactory(coreArgs)
+	if err != nil {
+		return err
+	}
+	coreComponents, err := coreComponentsFactory.Create()
 	if err != nil {
 		return err
 	}
@@ -943,7 +954,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
-		coreArgs,
+		&coreArgs,
 		genesisConfig,
 		economicsData,
 		genesisNodesConfig,
@@ -1565,7 +1576,7 @@ func createNode(
 	pubKey crypto.PublicKey,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	coreData *factory.Core,
+	coreData *mainFactory.CoreComponents,
 	state *factory.State,
 	data *factory.Data,
 	crypto *factory.Crypto,
