@@ -264,3 +264,32 @@ func TestHeartbeatMessageInfo_GetIsValidator_PeerTypeWaitingShouldReturnTrue(t *
 
 	assert.True(t, hbmi.GetIsValidator())
 }
+
+//------- UpdateShardAndPeerType
+
+func TestHeartbeatMessageInfo_Update(t *testing.T) {
+	t.Parallel()
+
+	mockTimer := mock.NewMockTimer()
+	genesisTime := mockTimer.Now()
+
+	hbmi, _ := heartbeat.NewHeartbeatMessageInfo(
+		10*time.Second,
+		dummyPeerType,
+		genesisTime,
+		mockTimer,
+	)
+
+	computedShardId := uint32(0)
+	peerType := dummyPeerType
+
+	hbmi.HeartbeatReceived(computedShardId, uint32(0), "v0.1", "undefined", peerType)
+	assert.Equal(t, computedShardId, hbmi.GetComputedShardId())
+	assert.Equal(t, peerType, hbmi.GetPeerType())
+
+	computedShardId = uint32(2)
+	peerType = "new peer type"
+	hbmi.UpdateShardAndPeerType(computedShardId, peerType)
+	assert.Equal(t, computedShardId, hbmi.GetComputedShardId())
+	assert.Equal(t, peerType, hbmi.GetPeerType())
+}
