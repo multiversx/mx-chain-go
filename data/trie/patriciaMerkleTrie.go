@@ -232,6 +232,10 @@ func (tr *patriciaMerkleTrie) markForEviction() error {
 		if err != nil {
 			return err
 		}
+
+		for key := range oldHashes {
+			log.Trace("MarkForEviction newHashes", "hash", key)
+		}
 	}
 
 	if len(tr.oldHashes) > 0 && len(tr.oldRoot) > 0 {
@@ -240,6 +244,11 @@ func (tr *patriciaMerkleTrie) markForEviction() error {
 		if err != nil {
 			return err
 		}
+
+		for key := range oldHashes {
+			log.Trace("MarkForEviction oldHashes", "hash", key)
+		}
+
 		tr.oldRoot = make([]byte, 0)
 		tr.oldHashes = make([][]byte, 0)
 	}

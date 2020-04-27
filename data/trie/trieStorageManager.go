@@ -254,10 +254,6 @@ func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
 func (tsm *trieStorageManager) MarkForEviction(root []byte, hashes data.ModifiedHashes) error {
 	log.Trace("trie storage manager: mark for eviction", "root", root)
 
-	for key := range hashes {
-		log.Trace("MarkForEviction", "hash", hex.EncodeToString([]byte(key)))
-	}
-
 	return tsm.dbEvictionWaitingList.Put(root, hashes)
 }
 
