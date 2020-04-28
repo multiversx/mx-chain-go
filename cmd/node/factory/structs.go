@@ -291,7 +291,6 @@ func createTries(
 
 type stateComponentsFactoryArgs struct {
 	config           *config.Config
-	accountsParser   genesis.AccountsParser
 	shardCoordinator sharding.Coordinator
 	core             *Core
 	pathManager      storage.PathManagerHandler
@@ -300,14 +299,12 @@ type stateComponentsFactoryArgs struct {
 // NewStateComponentsFactoryArgs initializes the arguments necessary for creating the state components
 func NewStateComponentsFactoryArgs(
 	config *config.Config,
-	accountsParser genesis.AccountsParser,
 	shardCoordinator sharding.Coordinator,
 	core *Core,
 	pathManager storage.PathManagerHandler,
 ) *stateComponentsFactoryArgs {
 	return &stateComponentsFactoryArgs{
 		config:           config,
-		accountsParser:   accountsParser,
 		shardCoordinator: shardCoordinator,
 		core:             core,
 		pathManager:      pathManager,
@@ -333,11 +330,6 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		return nil, errors.New("could not create accounts adapter: " + err.Error())
 	}
 
-	accountsForShard, err := args.accountsParser.InitialAccountsSplitOnAddressesShards(args.shardCoordinator)
-	if err != nil {
-		return nil, errors.New("initial balances could not be processed " + err.Error())
-	}
-
 	accountFactory = factoryState.NewPeerAccountCreator()
 	merkleTrie = args.core.TriesContainer.Get([]byte(factory.PeerAccountTrie))
 	peerAdapter, err := state.NewPeerAccountsDB(merkleTrie, args.core.Hasher, args.core.InternalMarshalizer, accountFactory)
@@ -350,7 +342,6 @@ func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
 		AddressPubkeyConverter:   processPubkeyConverter,
 		ValidatorPubkeyConverter: validatorPubkeyConverter,
 		AccountsAdapter:          accountsAdapter,
-		AccountsForShard:         accountsForShard[args.shardCoordinator.SelfId()],
 	}, nil
 }
 
@@ -548,6 +539,7 @@ func NetworkComponentsFactory(
 type processComponentsFactoryArgs struct {
 	coreComponents            *coreComponentsFactoryArgs
 	accountsParser            genesis.AccountsParser
+	smartContractParser       genesis.InitialSmartContractParser
 	economicsData             *economics.EconomicsData
 	nodesConfig               *sharding.NodesSetup
 	gasSchedule               map[string]map[string]uint64
@@ -583,6 +575,7 @@ type processComponentsFactoryArgs struct {
 func NewProcessComponentsFactoryArgs(
 	coreComponents *coreComponentsFactoryArgs,
 	accountsParser genesis.AccountsParser,
+	smartContractParser genesis.InitialSmartContractParser,
 	economicsData *economics.EconomicsData,
 	nodesConfig *sharding.NodesSetup,
 	gasSchedule map[string]map[string]uint64,
@@ -615,6 +608,7 @@ func NewProcessComponentsFactoryArgs(
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
 		accountsParser:            accountsParser,
+		smartContractParser:       smartContractParser,
 		economicsData:             economicsData,
 		nodesConfig:               nodesConfig,
 		gasSchedule:               gasSchedule,
@@ -1389,6 +1383,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	shardCoordinator := args.shardCoordinator
 	nodesSetup := args.nodesConfig
 	accountsParser := args.accountsParser
+	smartContractParser := args.smartContractParser
 	economicsData := args.economicsData
 
 	validatorStatsRootHash, err := stateComponents.PeerAccounts.RootHash()
@@ -1411,6 +1406,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter,
 		DataPool:                 dataComponents.Datapool,
 		AccountsParser:           accountsParser,
+		SmartContractParser:      smartContractParser,
 		ValidatorStatsRootHash:   validatorStatsRootHash,
 		GasMap:                   args.gasSchedule,
 		VirtualMachineConfig:     args.coreComponents.config.VirtualMachineConfig,

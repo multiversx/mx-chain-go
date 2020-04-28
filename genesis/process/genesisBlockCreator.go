@@ -79,6 +79,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.TxLogsProcessor) {
 		return process.ErrNilTxLogsProcessor
 	}
+	if check.IfNil(arg.SmartContractParser) {
+		return genesis.ErrNilSmartContractParser
+	}
 
 	return nil
 }

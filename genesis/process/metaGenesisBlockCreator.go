@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
@@ -305,11 +304,6 @@ func deploySystemSmartContracts(
 		Signature: nil,
 	}
 
-	accountsDB, ok := arg.Accounts.(*state.AccountsDB)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
 	systemSCAddresses := make([][]byte, 0)
 	systemSCAddresses = append(systemSCAddresses, systemSCs.Keys()...)
 
@@ -325,7 +319,7 @@ func deploySystemSmartContracts(
 		}
 	}
 
-	_, err := accountsDB.Commit()
+	_, err := arg.Accounts.Commit()
 	if err != nil {
 		return err
 	}

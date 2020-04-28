@@ -4,8 +4,8 @@ package data
 type InitialSmartContract struct {
 	Owner      string `json:"owner"`
 	Filename   string `json:"filename"`
+	VmType     string `json:"vm-type"`
 	ownerBytes []byte
-	hexCode    string
 }
 
 // OwnerBytes will return the owner's address as raw bytes
@@ -18,14 +18,19 @@ func (isc *InitialSmartContract) SetOwnerBytes(owner []byte) {
 	isc.ownerBytes = owner
 }
 
-// SetCode will set the SC code as hex string
-func (isc *InitialSmartContract) SetCode(hexCode string) {
-	isc.hexCode = hexCode
+// GetOwner returns the owner
+func (isc *InitialSmartContract) GetOwner() string {
+	return isc.Owner
 }
 
-// GetCode will return the SC code as hex string
-func (isc *InitialSmartContract) GetCode() string {
-	return isc.hexCode
+// GetFilename returns the filename
+func (isc *InitialSmartContract) GetFilename() string {
+	return isc.Filename
+}
+
+// GetVmType returns the vm type string
+func (isc *InitialSmartContract) GetVmType() string {
+	return isc.VmType
 }
 
 // IsInterfaceNil returns if underlying object is true

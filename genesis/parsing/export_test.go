@@ -29,3 +29,28 @@ func NewTestAccountsParser(pubkeyConverter state.PubkeyConverter) *accountsParse
 		initialAccounts: make([]*data.InitialAccount, 0),
 	}
 }
+
+func NewTestSmartContractsParser(pubkeyConverter state.PubkeyConverter) *smartContractParser {
+	scp := &smartContractParser{
+		pubkeyConverter:       pubkeyConverter,
+		initialSmartContracts: make([]*data.InitialSmartContract, 0),
+	}
+	//mock implementation, assumes the files are present
+	scp.checkForFileHandler = func(filename string) error {
+		return nil
+	}
+
+	return scp
+}
+
+func (scp *smartContractParser) SetInitialSmartContracts(initialSmartContracts []*data.InitialSmartContract) {
+	scp.initialSmartContracts = initialSmartContracts
+}
+
+func (scp *smartContractParser) Process() error {
+	return scp.process()
+}
+
+func (scp *smartContractParser) SetFileHandler(handler func(string) error) {
+	scp.checkForFileHandler = handler
+}

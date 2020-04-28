@@ -107,6 +107,13 @@ VERSION:
 			"bootstrap from, such as initial balances for accounts.",
 		Value: "./config/genesis.json",
 	}
+	// smartContractsFile defines a flag for the path of the file containing initial smart contracts.
+	smartContractsFile = cli.StringFlag{
+		Name: "smart-contracts-file",
+		Usage: "The `" + filePathPlaceholder + "` for the initial smart contracts file. This JSON file contains data used " +
+			"to deploy initial smart contracts such as delegation smart contracts",
+		Value: "./config/genesisSmartContracts.json",
+	}
 	// nodesFile defines a flag for the path of the initial nodes file.
 	nodesFile = cli.StringFlag{
 		Name: "nodes-setup-file",
@@ -356,6 +363,7 @@ func main() {
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
 		genesisFile,
+		smartContractsFile,
 		nodesFile,
 		configurationFile,
 		configurationEconomicsFile,
@@ -524,6 +532,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
 			economicsConfig.GlobalSettings.TotalSupply)
 	}
+
 	accountsParser, err := parsing.NewAccountsParser(
 		ctx.GlobalString(genesisFile.Name),
 		totalSupply,
@@ -532,6 +541,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
+
+	smartContractParser, err := parsing.NewSmartContractsParser(
+		ctx.GlobalString(smartContractsFile.Name),
+		addressPubkeyConverter,
+	)
+	if err != nil {
+		return err
+	}
+
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
 
 	genesisNodesConfig, err := sharding.NewNodesSetup(
@@ -837,7 +855,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating state components")
 	stateArgs := factory.NewStateComponentsFactoryArgs(
 		generalConfig,
-		accountsParser,
 		shardCoordinator,
 		coreComponents,
 		pathManager,
@@ -957,6 +974,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		coreArgs,
 		accountsParser,
+		smartContractParser,
 		economicsData,
 		genesisNodesConfig,
 		gasSchedule,

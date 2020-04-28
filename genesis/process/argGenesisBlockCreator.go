@@ -30,6 +30,7 @@ type ArgsGenesisBlockCreator struct {
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	DataPool                 dataRetriever.PoolsHolder
 	AccountsParser           genesis.AccountsParser
+	SmartContractParser      genesis.InitialSmartContractParser
 	ValidatorStatsRootHash   []byte
 	GasMap                   map[string]map[string]uint64
 	TxLogsProcessor          process.TransactionLogProcessor

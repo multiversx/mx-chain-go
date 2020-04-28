@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -74,6 +75,11 @@ func createMockArgument() ArgsGenesisBlockCreator {
 	arg.AccountsParser, _ = parsing.NewAccountsParser(
 		"testdata/genesis.json",
 		arg.Economics.TotalSupply(),
+		arg.PubkeyConv,
+	)
+
+	arg.SmartContractParser, _ = parsing.NewSmartContractsParser(
+		"testdata/smartcontracts.json",
 		arg.PubkeyConv,
 	)
 
