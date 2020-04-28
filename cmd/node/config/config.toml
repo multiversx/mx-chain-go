@@ -219,8 +219,8 @@
     Type = "LRU"
 
 [TxDataPool]
-    Size = 900000
-    SizeInBytes = 524288000
+    Size = 90000
+    SizeInBytes = 52428800
     Type = "TxCache"
     Shards = 16
 
