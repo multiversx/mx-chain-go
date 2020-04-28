@@ -7,12 +7,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 const hardforkTriggerString = "hardfork trigger"
 const dataSeparator = "|"
 const hardforkGracePeriod = time.Minute * 5
+
+var _ facade.HardforkTrigger = (*trigger)(nil)
 
 // ArgHardforkTrigger contains the
 type ArgHardforkTrigger struct {

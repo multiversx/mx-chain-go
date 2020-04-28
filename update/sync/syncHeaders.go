@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+var _ update.HeaderSyncHandler = (*headersToSync)(nil)
+
 const waitTimeForHeaders = time.Minute
 
 type headersToSync struct {

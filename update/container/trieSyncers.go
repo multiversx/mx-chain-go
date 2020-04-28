@@ -7,6 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+var _ update.TrieSyncContainer = (*trieSyncers)(nil)
+
 type trieSyncers struct {
 	objects *container.MutexMap
 }

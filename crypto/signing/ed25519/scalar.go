@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
+var _ crypto.Scalar = (*ed25519Scalar)(nil)
+
 type ed25519Scalar struct {
 	ed25519.PrivateKey
 }

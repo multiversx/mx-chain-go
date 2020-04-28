@@ -14,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ process.ValidatorInfoSyncer = (*peerMiniBlockSyncer)(nil)
+
 // waitTime defines the time in seconds to wait after a request has been done
 const waitTime = 5 * time.Second
 

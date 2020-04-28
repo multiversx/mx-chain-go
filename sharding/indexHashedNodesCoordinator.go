@@ -18,6 +18,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ NodesCoordinator = (*indexHashedNodesCoordinator)(nil)
+var _ PublicKeysSelector = (*indexHashedNodesCoordinator)(nil)
+
 const (
 	keyFormat               = "%s_%v_%v_%v"
 	defaultSelectionChances = uint32(1)

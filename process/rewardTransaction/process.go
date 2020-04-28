@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.RewardTransactionProcessor = (*rewardTxProcessor)(nil)
+
 type rewardTxProcessor struct {
 	accounts         state.AccountsAdapter
 	pubkeyConv       state.PubkeyConverter

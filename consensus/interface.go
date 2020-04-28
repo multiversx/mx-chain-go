@@ -52,12 +52,6 @@ type ChronologyHandler interface {
 	IsInterfaceNil() bool
 }
 
-// SposFactory defines an interface for a consensus implementation
-type SposFactory interface {
-	GenerateSubrounds()
-	IsInterfaceNil() bool
-}
-
 // BroadcastMessenger defines the behaviour of the broadcast messages by the consensus group
 type BroadcastMessenger interface {
 	BroadcastBlock(data.BodyHandler, data.HeaderHandler) error
