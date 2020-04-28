@@ -42,7 +42,10 @@ func TestNewNetworkComponentsFactory_OkValsShouldWork(t *testing.T) {
 }
 
 func TestNetworkComponentsFactory_Create_ShouldErrDueToBadConfig(t *testing.T) {
-	t.Parallel()
+	//TODO remove skip when external library is concurrent safe
+	if testing.Short() {
+		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
+	}
 
 	ncf, _ := NewNetworkComponentsFactory(&config.P2PConfig{}, &config.Config{}, &mock.AppStatusHandlerFake{})
 
@@ -52,7 +55,10 @@ func TestNetworkComponentsFactory_Create_ShouldErrDueToBadConfig(t *testing.T) {
 }
 
 func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
-	t.Parallel()
+	//TODO remove skip when external library is concurrent safe
+	if testing.Short() {
+		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
+	}
 
 	p2pConfig := &config.P2PConfig{
 		Node: config.NodeConfig{
