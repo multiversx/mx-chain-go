@@ -22,6 +22,8 @@ import (
 
 var _ process.BlockProcessor = (*shardProcessor)(nil)
 
+const timeBetweenCheckForEpochStart = 100 * time.Millisecond
+
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
@@ -276,8 +278,9 @@ func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, haveTime f
 
 	go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
 
+	headersPool := sp.dataPool.Headers()
 	for {
-		time.Sleep(time.Millisecond)
+		time.Sleep(timeBetweenCheckForEpochStart)
 		if haveTime() < 0 {
 			break
 		}
@@ -285,6 +288,19 @@ func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, haveTime f
 		if sp.epochStartTrigger.IsEpochStart() {
 			return nil
 		}
+
+		epochStartMetaHdr, err := headersPool.GetHeaderByHash(header.EpochStartMetaHash)
+		if err != nil {
+			continue
+		}
+
+		_, _, err = headersPool.GetHeadersByNonceAndShardId(epochStartMetaHdr.GetNonce()+1, core.MetachainShardId)
+		if err != nil {
+			go sp.requestHandler.RequestMetaHeaderByNonce(epochStartMetaHdr.GetNonce() + 1)
+			continue
+		}
+
+		return nil
 	}
 
 	return process.ErrTimeIsOut
@@ -376,23 +392,17 @@ func (sp *shardProcessor) checkEpochCorrectness(
 
 	isOldEpochStart := header.IsStartOfEpochBlock() && header.GetEpoch() < sp.epochStartTrigger.MetaEpoch()
 	if isOldEpochStart {
-		epochStartId := core.EpochStartIdentifier(header.GetEpoch())
-		metaBlock, err := process.GetMetaHeaderFromStorage([]byte(epochStartId), sp.marshalizer, sp.store)
+		metaBlock, err := process.GetMetaHeader(header.EpochStartMetaHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 		if err != nil {
+			go sp.requestHandler.RequestStartOfEpochMetaBlock(header.GetEpoch())
 			return fmt.Errorf("%w could not find epoch start metablock for epoch %d",
 				err, header.GetEpoch())
 		}
 
-		metaBlockHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, metaBlock)
-		if err != nil {
-			return fmt.Errorf("%w could not calculate hash for epoch start metablock for epoch %d",
-				err, header.GetEpoch())
-		}
-
-		if !bytes.Equal(header.EpochStartMetaHash, metaBlockHash) {
-			log.Warn("epoch start meta hash missmatch", "proposed", header.EpochStartMetaHash, "calculated", metaBlockHash)
-			return fmt.Errorf("%w proposed header with epoch %d has invalid epochStartMetaHash",
-				process.ErrEpochDoesNotMatch, header.GetEpoch())
+		isMetaBlockCorrect := metaBlock.IsStartOfEpochBlock() && metaBlock.GetEpoch() == header.GetEpoch()
+		if !isMetaBlockCorrect {
+			return fmt.Errorf("%w proposed header with epoch %d does not include correct start of epoch metaBlock %s",
+				process.ErrEpochDoesNotMatch, header.GetEpoch(), header.EpochStartMetaHash)
 		}
 	}
 
