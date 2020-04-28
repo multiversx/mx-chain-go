@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -45,32 +46,40 @@ func NewMiniBlockProvider(arg ArgMiniBlockProvider) (*miniBlockProvider, error) 
 }
 
 // GetMiniBlocks method returns a list of deserialized mini blocks from a given hash list either from data pool or from storage
-func (mbp *miniBlockProvider) GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+func (mbp *miniBlockProvider) GetMiniBlocks(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
+	miniBlocksAndHashes := make([]*process.MiniblockAndHash, 0)
 	missingMiniBlocksHashes := make([][]byte, 0)
-	miniBlocks := make(block.MiniBlockSlice, 0)
 
 	for _, hash := range hashes {
 		miniblock := mbp.getMiniblockFromPool(hash)
 		if miniblock != nil {
-			miniBlocks = append(miniBlocks, miniblock)
+			miniBlockAndHash := &process.MiniblockAndHash{
+				Miniblock: miniblock,
+				Hash:      hash,
+			}
+			miniBlocksAndHashes = append(miniBlocksAndHashes, miniBlockAndHash)
 			continue
 		}
 
 		miniblock = mbp.getMiniBlockFromStorer(hash)
 		if miniblock != nil {
-			miniBlocks = append(miniBlocks, miniblock)
+			miniBlockAndHash := &process.MiniblockAndHash{
+				Miniblock: miniblock,
+				Hash:      hash,
+			}
+			miniBlocksAndHashes = append(miniBlocksAndHashes, miniBlockAndHash)
 			continue
 		}
 
 		missingMiniBlocksHashes = append(missingMiniBlocksHashes, hash)
 	}
 
-	return miniBlocks, missingMiniBlocksHashes
+	return miniBlocksAndHashes, missingMiniBlocksHashes
 }
 
 // GetMiniBlocksFromPool method returns a list of deserialized mini blocks from a given hash list from data pool
-func (mbp *miniBlockProvider) GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
-	miniBlocks := make(block.MiniBlockSlice, 0)
+func (mbp *miniBlockProvider) GetMiniBlocksFromPool(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
+	miniBlocksAndHashes := make([]*process.MiniblockAndHash, 0)
 	missingMiniBlocksHashes := make([][]byte, 0)
 
 	for i := 0; i < len(hashes); i++ {
@@ -80,10 +89,14 @@ func (mbp *miniBlockProvider) GetMiniBlocksFromPool(hashes [][]byte) (block.Mini
 			continue
 		}
 
-		miniBlocks = append(miniBlocks, miniblock)
+		miniBlockAndHash := &process.MiniblockAndHash{
+			Miniblock: miniblock,
+			Hash:      hashes[i],
+		}
+		miniBlocksAndHashes = append(miniBlocksAndHashes, miniBlockAndHash)
 	}
 
-	return miniBlocks, missingMiniBlocksHashes
+	return miniBlocksAndHashes, missingMiniBlocksHashes
 }
 
 func (mbp *miniBlockProvider) getMiniblockFromPool(hash []byte) *block.MiniBlock {
