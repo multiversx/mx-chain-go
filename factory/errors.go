@@ -5,6 +5,9 @@ import "errors"
 // ErrNilConfiguration signals that a nil configuration has been provided
 var ErrNilConfiguration = errors.New("nil configuration provided")
 
+// ErrNilP2PConfiguration signals that a nil p2p configuration has been provided
+var ErrNilP2PConfiguration = errors.New("nil p2p configuration provided")
+
 // ErrNilEconomicsData signals that a nil economics data handler has been provided
 var ErrNilEconomicsData = errors.New("nil economics data provided")
 
@@ -76,3 +79,9 @@ var ErrMissingMultiHasherConfig = errors.New("no multisig hasher provided in con
 
 // ErrMultiSigCreation signals that the multisigner couldn't be created
 var ErrMultiSigCreation = errors.New("could not start creation of multiSigner")
+
+// ErrNilStatusHandler signals that a nil status handler has been provided
+var ErrNilStatusHandler = errors.New("nil status handler provided")
+
+// ErrWrongTypeAssertion signals that a wrong type assertion occurred
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")

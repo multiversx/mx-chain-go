@@ -640,7 +640,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating network components")
-	networkComponents, err := factory.NetworkComponentsFactory(*p2pConfig, *generalConfig, coreComponents.StatusHandler)
+	networkComponentFactory, err := mainFactory.NewNetworkComponentsFactory(p2pConfig, generalConfig, coreComponents.StatusHandler)
+	if err != nil {
+		return err
+	}
+	networkComponents, err := networkComponentFactory.Create()
 	if err != nil {
 		return err
 	}
@@ -1593,7 +1597,7 @@ func createNode(
 	data *mainFactory.DataComponents,
 	crypto *mainFactory.CryptoComponents,
 	process *factory.Process,
-	network *factory.Network,
+	network *mainFactory.NetworkComponents,
 	bootstrapRoundIndex uint64,
 	version string,
 	indexer indexer.Indexer,

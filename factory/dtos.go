@@ -11,6 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -61,4 +63,12 @@ type CryptoComponents struct {
 	TxSignKeyGen        crypto.KeyGenerator
 	InitialPubKeys      map[uint32][]string
 	MessageSignVerifier vm.MessageSignVerifier
+}
+
+// NetworkComponents struct holds the network components
+type NetworkComponents struct {
+	NetMessenger           p2p.Messenger
+	InputAntifloodHandler  P2PAntifloodHandler
+	OutputAntifloodHandler P2PAntifloodHandler
+	PeerBlackListHandler   process.BlackListHandler
 }

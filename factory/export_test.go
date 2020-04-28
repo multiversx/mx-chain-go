@@ -9,3 +9,8 @@ func (cspf *cryptoSigningParamsFactory) SetSkPkProviderHandler(handler func() ([
 func (cspf *cryptoSigningParamsFactory) GetSkPk() ([]byte, []byte, error) {
 	return cspf.getSkPk()
 }
+
+// SetListenAddress will update the listen address for testing reasons
+func (ncf *networkComponentsFactory) SetListenAddress(address string) {
+	ncf.listenAddress = address
+}

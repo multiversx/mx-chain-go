@@ -1,9 +1,7 @@
 package factory
 
 import (
-	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -31,8 +29,6 @@ import (
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -54,7 +50,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
-	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
@@ -88,14 +83,6 @@ type EpochStartNotifier interface {
 	IsInterfaceNil() bool
 }
 
-// Network struct holds the network components of the Elrond protocol
-type Network struct {
-	NetMessenger           p2p.Messenger
-	InputAntifloodHandler  P2PAntifloodHandler
-	OutputAntifloodHandler P2PAntifloodHandler
-	PeerBlackListHandler   process.BlackListHandler
-}
-
 // Process struct holds the process components
 type Process struct {
 	InterceptorsContainer    process.InterceptorsContainer
@@ -114,57 +101,6 @@ type Process struct {
 	RequestHandler           process.RequestHandler
 }
 
-// NetworkComponentsFactory creates the network components
-func NetworkComponentsFactory(
-	p2pConfig config.P2PConfig,
-	mainConfig config.Config,
-	statusHandler core.AppStatusHandler,
-) (*Network, error) {
-
-	arg := libp2p.ArgsNetworkMessenger{
-		Context:       context.Background(),
-		ListenAddress: libp2p.ListenAddrWithIp4AndTcp,
-		P2pConfig:     p2pConfig,
-	}
-
-	netMessenger, err := libp2p.NewNetworkMessenger(arg)
-	if err != nil {
-		return nil, err
-	}
-
-	inAntifloodHandler, p2pPeerBlackList, errNewAntiflood := antifloodFactory.NewP2PAntiFloodAndBlackList(mainConfig, statusHandler)
-	if errNewAntiflood != nil {
-		return nil, errNewAntiflood
-	}
-
-	inputAntifloodHandler, ok := inAntifloodHandler.(P2PAntifloodHandler)
-	if !ok {
-		return nil, fmt.Errorf("%w when casting input antiflood handler to structs/P2PAntifloodHandler", errWrongTypeAssertion)
-	}
-
-	outAntifloodHandler, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(mainConfig)
-	if errOutputAntiflood != nil {
-		return nil, errOutputAntiflood
-	}
-
-	outputAntifloodHandler, ok := outAntifloodHandler.(P2PAntifloodHandler)
-	if !ok {
-		return nil, fmt.Errorf("%w when casting output antiflood handler to structs/P2PAntifloodHandler", errWrongTypeAssertion)
-	}
-
-	err = netMessenger.SetPeerBlackListHandler(p2pPeerBlackList)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Network{
-		NetMessenger:           netMessenger,
-		InputAntifloodHandler:  inputAntifloodHandler,
-		OutputAntifloodHandler: outputAntifloodHandler,
-		PeerBlackListHandler:   p2pPeerBlackList,
-	}, nil
-}
-
 type processComponentsFactoryArgs struct {
 	coreComponents            *mainFactory.CoreComponentsFactoryArgs
 	genesisConfig             *sharding.Genesis
@@ -178,7 +114,7 @@ type processComponentsFactoryArgs struct {
 	coreData                  *mainFactory.CoreComponents
 	crypto                    *mainFactory.CryptoComponents
 	state                     *mainFactory.StateComponents
-	network                   *Network
+	network                   *mainFactory.NetworkComponents
 	coreServiceContainer      serviceContainer.Core
 	requestedItemsHandler     dataRetriever.RequestedItemsHandler
 	whiteListHandler          process.WhiteListHandler
@@ -212,7 +148,7 @@ func NewProcessComponentsFactoryArgs(
 	coreData *mainFactory.CoreComponents,
 	crypto *mainFactory.CryptoComponents,
 	state *mainFactory.StateComponents,
-	network *Network,
+	network *mainFactory.NetworkComponents,
 	coreServiceContainer serviceContainer.Core,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	whiteListHandler process.WhiteListHandler,
@@ -616,7 +552,7 @@ func newInterceptorContainerFactory(
 	coreData *mainFactory.CoreComponents,
 	crypto *mainFactory.CryptoComponents,
 	state *mainFactory.StateComponents,
-	network *Network,
+	network *mainFactory.NetworkComponents,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
@@ -669,7 +605,7 @@ func newResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	data *mainFactory.DataComponents,
 	coreData *mainFactory.CoreComponents,
-	network *Network,
+	network *mainFactory.NetworkComponents,
 	sizeCheckDelta uint32,
 	numConcurrentResolverJobs int32,
 ) (dataRetriever.ResolversContainerFactory, error) {
@@ -705,7 +641,7 @@ func newShardInterceptorContainerFactory(
 	dataCore *mainFactory.CoreComponents,
 	crypto *mainFactory.CryptoComponents,
 	state *mainFactory.StateComponents,
-	network *Network,
+	network *mainFactory.NetworkComponents,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
@@ -758,7 +694,7 @@ func newMetaInterceptorContainerFactory(
 	data *mainFactory.DataComponents,
 	dataCore *mainFactory.CoreComponents,
 	crypto *mainFactory.CryptoComponents,
-	network *Network,
+	network *mainFactory.NetworkComponents,
 	state *mainFactory.StateComponents,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
@@ -810,7 +746,7 @@ func newShardResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	data *mainFactory.DataComponents,
 	core *mainFactory.CoreComponents,
-	network *Network,
+	network *mainFactory.NetworkComponents,
 	sizeCheckDelta uint32,
 	numConcurrentResolverJobs int32,
 ) (dataRetriever.ResolversContainerFactory, error) {
@@ -846,7 +782,7 @@ func newMetaResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	data *mainFactory.DataComponents,
 	core *mainFactory.CoreComponents,
-	network *Network,
+	network *mainFactory.NetworkComponents,
 	sizeCheckDelta uint32,
 	numConcurrentResolverJobs int32,
 ) (dataRetriever.ResolversContainerFactory, error) {
@@ -1814,7 +1750,7 @@ func newValidatorStatisticsProcessor(
 
 // PrepareNetworkShardingCollector will create the network sharding collector and apply it to the network messenger
 func PrepareNetworkShardingCollector(
-	network *Network,
+	network *mainFactory.NetworkComponents,
 	config *config.Config,
 	nodesCoordinator sharding.NodesCoordinator,
 	coordinator sharding.Coordinator,
