@@ -870,24 +870,54 @@ func (boot *baseBootstrap) requestMiniBlocksByHashes(hashes [][]byte) {
 // that will be added. The block executor should decide by parsing the header block body type value
 // what kind of block body received.
 func (boot *baseBootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (block.MiniBlockSlice, error) {
-	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)
-	if len(missingMiniBlocksHashes) > 0 {
-		_ = core.EmptyChannel(boot.chRcvMiniBlocks)
-		boot.requestMiniBlocksByHashes(missingMiniBlocksHashes)
-		err := boot.waitForMiniBlocks()
-		if err != nil {
-			return nil, err
+	miniBlocksAndHashes, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)
+	if len(missingMiniBlocksHashes) == 0 {
+		miniBlocks := make([]*block.MiniBlock, len(miniBlocksAndHashes))
+		for index, miniBlockAndHash := range miniBlocksAndHashes {
+			miniBlocks[index] = miniBlockAndHash.Miniblock
 		}
 
-		receivedMiniBlocks, unreceivedMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(missingMiniBlocksHashes)
-		if len(unreceivedMiniBlocksHashes) > 0 {
+		return miniBlocks, nil
+	}
+
+	_ = core.EmptyChannel(boot.chRcvMiniBlocks)
+	boot.requestMiniBlocksByHashes(missingMiniBlocksHashes)
+	err := boot.waitForMiniBlocks()
+	if err != nil {
+		return nil, err
+	}
+
+	receivedMiniBlocksAndHashes, unreceivedMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(missingMiniBlocksHashes)
+	if len(unreceivedMiniBlocksHashes) > 0 {
+		return nil, process.ErrMissingBody
+	}
+
+	miniBlocksAndHashes = append(miniBlocksAndHashes, receivedMiniBlocksAndHashes...)
+
+	return getOrderedMiniBlocks(hashes, miniBlocksAndHashes)
+}
+
+func getOrderedMiniBlocks(
+	hashes [][]byte,
+	miniBlocksAndHashes []*process.MiniblockAndHash,
+) (block.MiniBlockSlice, error) {
+
+	mapHashMiniBlock := make(map[string]*block.MiniBlock, len(miniBlocksAndHashes))
+	for _, miniBlockAndHash := range miniBlocksAndHashes {
+		mapHashMiniBlock[string(miniBlockAndHash.Hash)] = miniBlockAndHash.Miniblock
+	}
+
+	orderedMiniBlocks := make(block.MiniBlockSlice, len(hashes))
+	for index, hash := range hashes {
+		miniBlock, ok := mapHashMiniBlock[string(hash)]
+		if !ok {
 			return nil, process.ErrMissingBody
 		}
 
-		miniBlocks = append(miniBlocks, receivedMiniBlocks...)
+		orderedMiniBlocks[index] = miniBlock
 	}
 
-	return miniBlocks, nil
+	return orderedMiniBlocks, nil
 }
 
 // waitForMiniBlocks method wait for body with the requested nonce to be received
