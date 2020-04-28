@@ -557,6 +557,8 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	ihgs.mutSavedStateKey.Lock()
 	ihgs.savedStateKey = randomness
 	ihgs.mutSavedStateKey.Unlock()
+
+	ihgs.consensusGroupCacher.Clear()
 }
 
 // GetChance will return default chance
