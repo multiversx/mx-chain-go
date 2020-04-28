@@ -4,11 +4,14 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 var log = logger.GetOrCreate("dataretriever/shardeddata")
+
+var _ dataRetriever.ShardedDataCacherNotifier = (*shardedData)(nil)
 
 // shardedData holds the list of data organised by destination shard
 //

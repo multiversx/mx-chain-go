@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 )
 
+var _ ShuffledOutHandler = (*shuffledOutTrigger)(nil)
+
 type shuffledOutTrigger struct {
 	ownPubKey         []byte
 	currentShardID    uint32

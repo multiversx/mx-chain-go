@@ -11,6 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ data.TrieSyncer = (*trieSyncer)(nil)
+
 type trieNodeInfo struct {
 	trieNode node
 	received bool

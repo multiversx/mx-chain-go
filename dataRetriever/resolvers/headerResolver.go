@@ -15,6 +15,8 @@ import (
 
 var log = logger.GetOrCreate("dataretriever/resolvers")
 
+var _ dataRetriever.HeaderResolver = (*HeaderResolver)(nil)
+
 // ArgHeaderResolver is the argument structure used to create new HeaderResolver instance
 type ArgHeaderResolver struct {
 	SenderResolver       dataRetriever.TopicResolverSender

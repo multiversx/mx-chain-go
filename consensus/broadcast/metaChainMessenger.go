@@ -1,12 +1,15 @@
 package broadcast
 
 import (
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
+
+var _ consensus.BroadcastMessenger = (*metaChainMessenger)(nil)
 
 type metaChainMessenger struct {
 	*commonMessenger

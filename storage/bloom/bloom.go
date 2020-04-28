@@ -21,7 +21,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/fnv"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+var _ storage.BloomFilter = (*Bloom)(nil)
 
 const (
 	bitsInByte = 8

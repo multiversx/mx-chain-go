@@ -4,7 +4,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-// RatingsData will store information about ratingsComputation specific for a shard or metachain
+var _ process.RatingsStepHandler = (*RatingStep)(nil)
+
+// RatingStep will store information about ratingsComputation specific for a shard or metachain
 type RatingStep struct {
 	proposerIncreaseRatingStep     int32
 	proposerDecreaseRatingStep     int32
@@ -13,7 +15,7 @@ type RatingStep struct {
 	consecutiveMissedBlocksPenalty float32
 }
 
-// NewRatingsData creates a new RatingsData instance
+// NewRatingStepData creates a new RatingStep instance
 func NewRatingStepData(
 	proposerIncreaseRatingStep int32,
 	proposerDecreaseRatingStep int32,
