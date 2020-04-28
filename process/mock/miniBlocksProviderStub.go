@@ -1,29 +1,29 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // MiniBlocksProviderStub -
 type MiniBlocksProviderStub struct {
-	GetMiniBlocksCalled         func(hashes [][]byte) (block.MiniBlockSlice, [][]byte, [][]byte)
-	GetMiniBlocksFromPoolCalled func(hashes [][]byte) (block.MiniBlockSlice, [][]byte, [][]byte)
+	GetMiniBlocksCalled         func(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte)
+	GetMiniBlocksFromPoolCalled func(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte)
 }
 
 // GetMiniBlocks -
-func (mbps *MiniBlocksProviderStub) GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte, [][]byte) {
+func (mbps *MiniBlocksProviderStub) GetMiniBlocks(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
 	if mbps.GetMiniBlocksCalled != nil {
 		return mbps.GetMiniBlocksCalled(hashes)
 	}
-	return nil, nil, nil
+	return nil, nil
 }
 
 // GetMiniBlocksFromPool -
-func (mbps *MiniBlocksProviderStub) GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte, [][]byte) {
+func (mbps *MiniBlocksProviderStub) GetMiniBlocksFromPool(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
 	if mbps.GetMiniBlocksFromPoolCalled != nil {
 		return mbps.GetMiniBlocksFromPoolCalled(hashes)
 	}
-	return nil, nil, nil
+	return nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

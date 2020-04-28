@@ -69,7 +69,7 @@ func TestBaseBootstrap_GetOrderedMiniBlocksShouldErrMissingBody(t *testing.T) {
 	t.Parallel()
 
 	hashes := [][]byte{[]byte("hash1")}
-	orderedMiniBlocks, err := getOrderedMiniBlocks(hashes, nil, nil)
+	orderedMiniBlocks, err := getOrderedMiniBlocks(hashes, nil)
 
 	assert.Nil(t, orderedMiniBlocks)
 	assert.Equal(t, process.ErrMissingBody, err)
@@ -88,10 +88,22 @@ func TestBaseBootstrap_GetOrderedMiniBlocksShouldWork(t *testing.T) {
 	miniBlock3 := &block.MiniBlock{SenderShardID: 2}
 
 	hashes := [][]byte{hash1, hash2, hash3}
-	miniBlocks := block.MiniBlockSlice{miniBlock3, miniBlock2, miniBlock1}
-	miniBlocksHashes := [][]byte{hash3, hash2, hash1}
+	miniBlocksAndHashes := []*process.MiniblockAndHash{
+		{
+			Hash:      hash1,
+			Miniblock: miniBlock1,
+		},
+		{
+			Hash:      hash2,
+			Miniblock: miniBlock2,
+		},
+		{
+			Hash:      hash3,
+			Miniblock: miniBlock3,
+		},
+	}
 
-	orderedMiniBlocks, err := getOrderedMiniBlocks(hashes, miniBlocks, miniBlocksHashes)
+	orderedMiniBlocks, err := getOrderedMiniBlocks(hashes, miniBlocksAndHashes)
 
 	assert.Nil(t, err)
 	require.Equal(t, 3, len(orderedMiniBlocks))

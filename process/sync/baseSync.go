@@ -870,8 +870,13 @@ func (boot *baseBootstrap) requestMiniBlocksByHashes(hashes [][]byte) {
 // that will be added. The block executor should decide by parsing the header block body type value
 // what kind of block body received.
 func (boot *baseBootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (block.MiniBlockSlice, error) {
-	miniBlocks, miniBlocksHashes, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)
+	miniBlocksAndHashes, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) == 0 {
+		miniBlocks := make([]*block.MiniBlock, len(miniBlocksAndHashes))
+		for index, miniBlockAndHash := range miniBlocksAndHashes {
+			miniBlocks[index] = miniBlockAndHash.Miniblock
+		}
+
 		return miniBlocks, nil
 	}
 
@@ -882,26 +887,24 @@ func (boot *baseBootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (bl
 		return nil, err
 	}
 
-	receivedMiniBlocks, receivedMiniBlocksHashes, unreceivedMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(missingMiniBlocksHashes)
+	receivedMiniBlocksAndHashes, unreceivedMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(missingMiniBlocksHashes)
 	if len(unreceivedMiniBlocksHashes) > 0 {
 		return nil, process.ErrMissingBody
 	}
 
-	miniBlocks = append(miniBlocks, receivedMiniBlocks...)
-	miniBlocksHashes = append(miniBlocksHashes, receivedMiniBlocksHashes...)
+	miniBlocksAndHashes = append(miniBlocksAndHashes, receivedMiniBlocksAndHashes...)
 
-	return getOrderedMiniBlocks(hashes, miniBlocks, miniBlocksHashes)
+	return getOrderedMiniBlocks(hashes, miniBlocksAndHashes)
 }
 
 func getOrderedMiniBlocks(
 	hashes [][]byte,
-	miniBlocks block.MiniBlockSlice,
-	miniBlocksHashes [][]byte,
+	miniBlocksAndHashes []*process.MiniblockAndHash,
 ) (block.MiniBlockSlice, error) {
 
-	mapHashMiniBlock := make(map[string]*block.MiniBlock, len(miniBlocksHashes))
-	for index, hash := range miniBlocksHashes {
-		mapHashMiniBlock[string(hash)] = miniBlocks[index]
+	mapHashMiniBlock := make(map[string]*block.MiniBlock, len(miniBlocksAndHashes))
+	for _, miniBlockAndHash := range miniBlocksAndHashes {
+		mapHashMiniBlock[string(miniBlockAndHash.Hash)] = miniBlockAndHash.Miniblock
 	}
 
 	orderedMiniBlocks := make(block.MiniBlockSlice, len(hashes))

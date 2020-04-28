@@ -725,8 +725,8 @@ type ValidityAttester interface {
 
 // MiniBlockProvider defines what a miniblock data provider should do
 type MiniBlockProvider interface {
-	GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte, [][]byte)
-	GetMiniBlocksFromPool(hashes [][]byte) (block.MiniBlockSlice, [][]byte, [][]byte)
+	GetMiniBlocks(hashes [][]byte) ([]*MiniblockAndHash, [][]byte)
+	GetMiniBlocksFromPool(hashes [][]byte) ([]*MiniblockAndHash, [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -815,4 +815,10 @@ type InterceptedDebugHandler interface {
 	LogReceivedHashes(topic string, hashes [][]byte)
 	LogProcessedHashes(topic string, hashes [][]byte, err error)
 	IsInterfaceNil() bool
+}
+
+// MiniblockAndHash holds the info related to a miniblock and its hash
+type MiniblockAndHash struct {
+	Miniblock *block.MiniBlock
+	Hash      []byte
 }
