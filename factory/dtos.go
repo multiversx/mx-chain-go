@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
 // StateComponents struct holds the state components of the Elrond protocol
@@ -49,4 +50,15 @@ type DataComponents struct {
 	Blkc     data.ChainHandler
 	Store    dataRetriever.StorageService
 	Datapool dataRetriever.PoolsHolder
+}
+
+// CryptoComponents struct holds the crypto components
+type CryptoComponents struct {
+	TxSingleSigner      crypto.SingleSigner
+	SingleSigner        crypto.SingleSigner
+	MultiSigner         crypto.MultiSigner
+	BlockSignKeyGen     crypto.KeyGenerator
+	TxSignKeyGen        crypto.KeyGenerator
+	InitialPubKeys      map[uint32][]string
+	MessageSignVerifier vm.MessageSignVerifier
 }

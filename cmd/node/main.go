@@ -606,16 +606,18 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	var shardId = core.GetShardIdString(genesisShardCoordinator.SelfId())
 
 	log.Trace("creating crypto components")
-	cryptoArgs := factory.NewCryptoComponentsFactoryArgs(
-		ctx,
-		generalConfig,
-		genesisNodesConfig,
-		genesisShardCoordinator,
-		cryptoParams.KeyGenerator,
-		cryptoParams.PrivateKey,
-		log,
-	)
-	cryptoComponents, err := factory.CryptoComponentsFactory(cryptoArgs)
+	cryptoArgs := mainFactory.CryptoComponentsFactoryArgs{
+		Config:           generalConfig,
+		NodesConfig:      genesisNodesConfig,
+		ShardCoordinator: genesisShardCoordinator,
+		KeyGen:           cryptoParams.KeyGenerator,
+		PrivKey:          cryptoParams.PrivateKey,
+	}
+	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoArgs)
+	if err != nil {
+		return err
+	}
+	cryptoComponents, err := cryptoComponentsFactory.Create()
 	if err != nil {
 		return err
 	}
@@ -1589,7 +1591,7 @@ func createNode(
 	coreData *mainFactory.CoreComponents,
 	state *mainFactory.StateComponents,
 	data *mainFactory.DataComponents,
-	crypto *factory.Crypto,
+	crypto *mainFactory.CryptoComponents,
 	process *factory.Process,
 	network *factory.Network,
 	bootstrapRoundIndex uint64,

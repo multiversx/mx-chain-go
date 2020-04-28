@@ -23,6 +23,15 @@ var ErrNilPathManager = errors.New("nil path manager provided")
 // ErrNilEpochStartNotifier signals that a nil epoch start notifier has been provided
 var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier provided")
 
+// ErrNilNodesConfig signals that a nil nodes configuration has been provided
+var ErrNilNodesConfig = errors.New("nil nodes configuration provided")
+
+// ErrNilKeyGen signals that a nil key generator has been provided
+var ErrNilKeyGen = errors.New("nil key generator provided")
+
+// ErrNilPrivateKey signals that a nil private key has been provided
+var ErrNilPrivateKey = errors.New("nil private key provided")
+
 // ErrHasherCreation signals that the hasher cannot be created based on provided data
 var ErrHasherCreation = errors.New("error creating hasher")
 
@@ -55,3 +64,15 @@ var ErrDataStoreCreation = errors.New("can not create data store")
 
 // ErrDataPoolCreation signals that the data pool cannot be created
 var ErrDataPoolCreation = errors.New("can not create data pool")
+
+// ErrMissingConsensusConfig signals that consensus type isn't specified in the configuration file
+var ErrMissingConsensusConfig = errors.New("no consensus type provided in config file")
+
+// ErrMultiSigHasherMissmatch signals that an invalid multisig hasher was provided
+var ErrMultiSigHasherMissmatch = errors.New("wrong multisig hasher provided for bls consensus type")
+
+// ErrMissingMultiHasherConfig signals that the multihasher type isn't specified in the configuration file
+var ErrMissingMultiHasherConfig = errors.New("no multisig hasher provided in config file")
+
+// ErrMultiSigCreation signals that the multisigner couldn't be created
+var ErrMultiSigCreation = errors.New("could not start creation of multiSigner")

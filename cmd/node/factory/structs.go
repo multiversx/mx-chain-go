@@ -14,20 +14,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion"
 	factorySoftwareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
-	mclmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
-	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
@@ -38,8 +30,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
@@ -75,9 +65,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/urfave/cli"
 )
 
 const (
@@ -108,37 +96,6 @@ type Network struct {
 	PeerBlackListHandler   process.BlackListHandler
 }
 
-// Core struct holds the core components of the Elrond protocol
-type Core struct {
-	Hasher                   hashing.Hasher
-	InternalMarshalizer      marshal.Marshalizer
-	VmMarshalizer            marshal.Marshalizer
-	TxSignMarshalizer        marshal.Marshalizer
-	TriesContainer           state.TriesHolder
-	TrieStorageManagers      map[string]data.StorageManager
-	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	StatusHandler            core.AppStatusHandler
-	ChainID                  []byte
-}
-
-// Data struct holds the data components of the Elrond protocol
-type Data struct {
-	Blkc     data.ChainHandler
-	Store    dataRetriever.StorageService
-	Datapool dataRetriever.PoolsHolder
-}
-
-// Crypto struct holds the crypto components of the Elrond protocol
-type Crypto struct {
-	TxSingleSigner      crypto.SingleSigner
-	SingleSigner        crypto.SingleSigner
-	MultiSigner         crypto.MultiSigner
-	BlockSignKeyGen     crypto.KeyGenerator
-	TxSignKeyGen        crypto.KeyGenerator
-	InitialPubKeys      map[uint32][]string
-	MessageSignVerifier vm.MessageSignVerifier
-}
-
 // Process struct holds the process components
 type Process struct {
 	InterceptorsContainer    process.InterceptorsContainer
@@ -155,79 +112,6 @@ type Process struct {
 	BlockTracker             process.BlockTracker
 	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
 	RequestHandler           process.RequestHandler
-}
-
-type cryptoComponentsFactoryArgs struct {
-	ctx              *cli.Context
-	config           *config.Config
-	nodesConfig      *sharding.NodesSetup
-	shardCoordinator sharding.Coordinator
-	keyGen           crypto.KeyGenerator
-	privKey          crypto.PrivateKey
-	log              logger.Logger
-}
-
-// NewCryptoComponentsFactoryArgs initializes the arguments necessary for creating the crypto components
-func NewCryptoComponentsFactoryArgs(
-	ctx *cli.Context,
-	config *config.Config,
-	nodesConfig *sharding.NodesSetup,
-	shardCoordinator sharding.Coordinator,
-	keyGen crypto.KeyGenerator,
-	privKey crypto.PrivateKey,
-	log logger.Logger,
-) *cryptoComponentsFactoryArgs {
-	return &cryptoComponentsFactoryArgs{
-		ctx:              ctx,
-		config:           config,
-		nodesConfig:      nodesConfig,
-		shardCoordinator: shardCoordinator,
-		keyGen:           keyGen,
-		privKey:          privKey,
-		log:              log,
-	}
-}
-
-// CryptoComponentsFactory creates the crypto components
-func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error) {
-	initialPubKeys := args.nodesConfig.InitialNodesPubKeys()
-	txSingleSigner := &singlesig.Ed25519Signer{}
-	singleSigner, err := createSingleSigner(args.config)
-	if err != nil {
-		return nil, errors.New("could not create singleSigner: " + err.Error())
-	}
-
-	multisigHasher, err := getMultisigHasherFromConfig(args.config)
-	if err != nil {
-		return nil, errors.New("could not create multisig hasher: " + err.Error())
-	}
-
-	currentShardNodesPubKeys, err := args.nodesConfig.InitialEligibleNodesPubKeysForShard(args.shardCoordinator.SelfId())
-	if err != nil {
-		return nil, errors.New("could not start creation of multiSigner: " + err.Error())
-	}
-
-	multiSigner, err := createMultiSigner(args.config, multisigHasher, currentShardNodesPubKeys, args.privKey, args.keyGen)
-	if err != nil {
-		return nil, err
-	}
-
-	txSignKeyGen := signing.NewKeyGenerator(ed25519.NewEd25519())
-
-	messageSignVerifier, err := systemVM.NewMessageSigVerifier(args.keyGen, singleSigner)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Crypto{
-		TxSingleSigner:      txSingleSigner,
-		SingleSigner:        singleSigner,
-		MultiSigner:         multiSigner,
-		BlockSignKeyGen:     args.keyGen,
-		TxSignKeyGen:        txSignKeyGen,
-		InitialPubKeys:      initialPubKeys,
-		MessageSignVerifier: messageSignVerifier,
-	}, nil
 }
 
 // NetworkComponentsFactory creates the network components
@@ -292,7 +176,7 @@ type processComponentsFactoryArgs struct {
 	nodesCoordinator          sharding.NodesCoordinator
 	data                      *mainFactory.DataComponents
 	coreData                  *mainFactory.CoreComponents
-	crypto                    *Crypto
+	crypto                    *mainFactory.CryptoComponents
 	state                     *mainFactory.StateComponents
 	network                   *Network
 	coreServiceContainer      serviceContainer.Core
@@ -326,7 +210,7 @@ func NewProcessComponentsFactoryArgs(
 	nodesCoordinator sharding.NodesCoordinator,
 	data *mainFactory.DataComponents,
 	coreData *mainFactory.CoreComponents,
-	crypto *Crypto,
+	crypto *mainFactory.CryptoComponents,
 	state *mainFactory.StateComponents,
 	network *Network,
 	coreServiceContainer serviceContainer.Core,
@@ -725,56 +609,12 @@ func CreateSoftwareVersionChecker(statusHandler core.AppStatusHandler) (*softwar
 	return softwareVersionChecker, nil
 }
 
-func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
-	switch config.Consensus.Type {
-	case consensus.BlsConsensusType:
-		return &mclsig.BlsSingleSigner{}, nil
-	default:
-		return nil, errors.New("no consensus type provided in config file")
-	}
-}
-
-func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
-	if cfg.Consensus.Type == consensus.BlsConsensusType && cfg.MultisigHasher.Type != "blake2b" {
-		return nil, errors.New("wrong multisig hasher provided for bls consensus type")
-	}
-
-	switch cfg.MultisigHasher.Type {
-	case "sha256":
-		return sha256.Sha256{}, nil
-	case "blake2b":
-		if cfg.Consensus.Type == consensus.BlsConsensusType {
-			return &blake2b.Blake2b{HashSize: multisig.BlsHashSize}, nil
-		}
-		return &blake2b.Blake2b{}, nil
-	}
-
-	return nil, errors.New("no multisig hasher provided in config file")
-}
-
-func createMultiSigner(
-	config *config.Config,
-	hasher hashing.Hasher,
-	pubKeys []string,
-	privateKey crypto.PrivateKey,
-	keyGen crypto.KeyGenerator,
-) (crypto.MultiSigner, error) {
-
-	switch config.Consensus.Type {
-	case consensus.BlsConsensusType:
-		blsSigner := &mclmultisig.BlsMultiSigner{Hasher: hasher}
-		return multisig.NewBLSMultisig(blsSigner, pubKeys, privateKey, keyGen, uint16(0))
-	default:
-		return nil, errors.New("no consensus type provided in config file")
-	}
-}
-
 func newInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	data *mainFactory.DataComponents,
 	coreData *mainFactory.CoreComponents,
-	crypto *Crypto,
+	crypto *mainFactory.CryptoComponents,
 	state *mainFactory.StateComponents,
 	network *Network,
 	economics *economics.EconomicsData,
@@ -863,7 +703,7 @@ func newShardInterceptorContainerFactory(
 	nodesCoordinator sharding.NodesCoordinator,
 	data *mainFactory.DataComponents,
 	dataCore *mainFactory.CoreComponents,
-	crypto *Crypto,
+	crypto *mainFactory.CryptoComponents,
 	state *mainFactory.StateComponents,
 	network *Network,
 	economics *economics.EconomicsData,
@@ -917,7 +757,7 @@ func newMetaInterceptorContainerFactory(
 	nodesCoordinator sharding.NodesCoordinator,
 	data *mainFactory.DataComponents,
 	dataCore *mainFactory.CoreComponents,
-	crypto *Crypto,
+	crypto *mainFactory.CryptoComponents,
 	network *Network,
 	state *mainFactory.StateComponents,
 	economics *economics.EconomicsData,
