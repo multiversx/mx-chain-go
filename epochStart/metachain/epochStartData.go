@@ -174,7 +174,7 @@ func (e *epochStartData) createShardStartDataAndLastProcessedHeaders() (*block.E
 			return nil, nil, err
 		}
 
-		lastMetaHash, lastFinalizedMetaHash, currShardHdrList, err := e.lastFinalizedFirstPendingListHeadersForShard(shardHeader)
+		firstPendingMetaHash, lastFinalizedMetaHash, currShardHdrList, err := e.lastFinalizedFirstPendingListHeadersForShard(shardHeader)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -186,7 +186,7 @@ func (e *epochStartData) createShardStartDataAndLastProcessedHeaders() (*block.E
 			Nonce:                 lastCrossNotarizedHeaderForShard.GetNonce(),
 			HeaderHash:            hdrHash,
 			RootHash:              lastCrossNotarizedHeaderForShard.GetRootHash(),
-			FirstPendingMetaBlock: lastMetaHash,
+			FirstPendingMetaBlock: firstPendingMetaHash,
 			LastFinishedMetaBlock: lastFinalizedMetaHash,
 		}
 
@@ -198,7 +198,7 @@ func (e *epochStartData) createShardStartDataAndLastProcessedHeaders() (*block.E
 }
 
 func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr *block.Header) ([]byte, []byte, []*block.Header, error) {
-	var lastMetaHash []byte
+	var firstPendingMetaHash []byte
 	var lastFinalizedMetaHash []byte
 
 	shardHdrList := make([]*block.Header, 0)
@@ -215,49 +215,49 @@ func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr *
 			return nil, nil, nil, err
 		}
 
+		shardHdrList = append(shardHdrList, prevShardHdr)
 		if len(currentHdr.MetaBlockHashes) == 0 {
 			currentHdr = prevShardHdr
 			continue
 		}
 
-		shardHdrList = append(shardHdrList, prevShardHdr)
 		numAddedMetas := len(currentHdr.MetaBlockHashes)
 		if numAddedMetas > 1 {
-			if len(lastMetaHash) == 0 {
-				lastMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-1]
+			if len(firstPendingMetaHash) == 0 {
+				firstPendingMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-1]
 				lastFinalizedMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-2]
-				return lastMetaHash, lastFinalizedMetaHash, shardHdrList, nil
+				return firstPendingMetaHash, lastFinalizedMetaHash, shardHdrList, nil
 			}
 
-			if bytes.Equal(lastMetaHash, currentHdr.MetaBlockHashes[numAddedMetas-1]) {
+			if bytes.Equal(firstPendingMetaHash, currentHdr.MetaBlockHashes[numAddedMetas-1]) {
 				lastFinalizedMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-2]
-				return lastMetaHash, lastFinalizedMetaHash, shardHdrList, nil
+				return firstPendingMetaHash, lastFinalizedMetaHash, shardHdrList, nil
 			}
 
 			lastFinalizedMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-1]
-			return lastMetaHash, lastFinalizedMetaHash, shardHdrList, nil
+			return firstPendingMetaHash, lastFinalizedMetaHash, shardHdrList, nil
 		}
 
-		if len(lastMetaHash) == 0 {
-			lastMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-1]
+		if len(firstPendingMetaHash) == 0 {
+			firstPendingMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-1]
 			currentHdr = prevShardHdr
 			continue
 		}
 
 		lastFinalizedMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-1]
-		if !bytes.Equal(lastMetaHash, lastFinalizedMetaHash) {
-			return lastMetaHash, lastFinalizedMetaHash, shardHdrList, nil
+		if !bytes.Equal(firstPendingMetaHash, lastFinalizedMetaHash) {
+			return firstPendingMetaHash, lastFinalizedMetaHash, shardHdrList, nil
 		}
 
 		currentHdr = prevShardHdr
 	}
 
-	lastMetaHash, lastFinalizedMetaHash, err := e.getShardDataFromEpochStartData(shardHdr.ShardID, lastMetaHash)
+	firstPendingMetaHash, lastFinalizedMetaHash, err := e.getShardDataFromEpochStartData(shardHdr.ShardID, firstPendingMetaHash)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	return lastMetaHash, lastFinalizedMetaHash, shardHdrList, nil
+	return firstPendingMetaHash, lastFinalizedMetaHash, shardHdrList, nil
 }
 
 func (e *epochStartData) getShardDataFromEpochStartData(
