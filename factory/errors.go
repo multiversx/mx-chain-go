@@ -31,3 +31,12 @@ var ErrAccountsAdapterCreation = errors.New("error creating accounts adapter")
 
 // ErrInitialBalancesCreation signals that the initial balances cannot be created based on provided data
 var ErrInitialBalancesCreation = errors.New("error creating initial balances")
+
+// ErrNilPubKeyConverter signals that a nil public key converter has been provided
+var ErrNilPubKeyConverter = errors.New("nil public key converter provided")
+
+// ErrNilSuite signals that a nil suite has been provided
+var ErrNilSuite = errors.New("nil suite provided")
+
+// ErrPublicKeyMismatch signals that the read public key mismatch the one read
+var ErrPublicKeyMismatch = errors.New("public key mismatch between the computed and the one read from the file")

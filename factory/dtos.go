@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -31,4 +32,13 @@ type CoreComponents struct {
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	StatusHandler            core.AppStatusHandler
 	ChainID                  []byte
+}
+
+// CryptoParams is a DTO for holding block signing parameters
+type CryptoParams struct {
+	KeyGenerator    crypto.KeyGenerator
+	PrivateKey      crypto.PrivateKey
+	PublicKey       crypto.PublicKey
+	PublicKeyBytes  []byte
+	PublicKeyString string
 }

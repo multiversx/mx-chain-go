@@ -1,9 +1,7 @@
 package factory
 
 import (
-	"bytes"
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"time"
@@ -2215,79 +2213,4 @@ func createMemUnit() storage.Storer {
 	}
 
 	return unit
-}
-
-// GetSigningParams returns a key generator, a private key, and a public key
-func GetSigningParams(
-	ctx *cli.Context,
-	pubkeyConverter state.PubkeyConverter,
-	skName string,
-	skIndexName string,
-	skPemFileName string,
-	suite crypto.Suite,
-) (*CryptoParams, error) {
-
-	cryptoParams := &CryptoParams{}
-	sk, readPk, err := getSkPk(ctx, pubkeyConverter, skName, skIndexName, skPemFileName)
-	if err != nil {
-		return nil, err
-	}
-
-	cryptoParams.KeyGenerator = signing.NewKeyGenerator(suite)
-	cryptoParams.PrivateKey, err = cryptoParams.KeyGenerator.PrivateKeyFromByteArray(sk)
-	if err != nil {
-		return nil, err
-	}
-
-	cryptoParams.PublicKey = cryptoParams.PrivateKey.GeneratePublic()
-	if len(readPk) > 0 {
-
-		cryptoParams.PublicKeyBytes, err = cryptoParams.PublicKey.ToByteArray()
-		if err != nil {
-			return nil, err
-		}
-
-		if !bytes.Equal(cryptoParams.PublicKeyBytes, readPk) {
-			return nil, errPublicKeyMismatch
-		}
-	}
-
-	cryptoParams.PublicKeyString = pubkeyConverter.Encode(cryptoParams.PublicKeyBytes)
-
-	return cryptoParams, nil
-}
-
-func getSkPk(
-	ctx *cli.Context,
-	pubkeyConverter state.PubkeyConverter,
-	skName string,
-	skIndexName string,
-	skPemFileName string,
-) ([]byte, []byte, error) {
-
-	//if flag is defined, it shall overwrite what was read from pem file
-	if ctx.GlobalIsSet(skName) {
-		encodedSk := []byte(ctx.GlobalString(skName))
-		sk, err := hex.DecodeString(string(encodedSk))
-
-		return sk, nil, err
-	}
-
-	skIndex := ctx.GlobalInt(skIndexName)
-	encodedSk, pkString, err := core.LoadSkPkFromPemFile(skPemFileName, skIndex)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	skBytes, err := hex.DecodeString(string(encodedSk))
-	if err != nil {
-		return nil, nil, fmt.Errorf("%w for encoded secret key", err)
-	}
-
-	pkBytes, err := pubkeyConverter.Decode(pkString)
-	if err != nil {
-		return nil, nil, fmt.Errorf("%w for encoded public key %s", err, pkString)
-	}
-
-	return skBytes, pkBytes, nil
 }
