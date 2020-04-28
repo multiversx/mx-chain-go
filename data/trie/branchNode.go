@@ -336,7 +336,7 @@ func (bn *branchNode) isPosCollapsed(pos int) bool {
 func (bn *branchNode) tryGet(key []byte, db data.DBWriteCacher) (value []byte, err error) {
 	err = bn.isEmptyOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("tryGet error %w", err)
+		return nil, fmt.Errorf("branchNode tryGet error %w", err)
 	}
 	if len(key) == 0 {
 		return nil, nil
