@@ -29,6 +29,10 @@ func (dir *disabledInterceptorResolver) Query(_ string) []string {
 func (dir *disabledInterceptorResolver) LogFailedToResolveData(_ string, _ []byte, _ error) {
 }
 
+// LogSucceededToResolveData does nothing
+func (dir *disabledInterceptorResolver) LogSucceededToResolveData(_ string, _ []byte) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (dir *disabledInterceptorResolver) IsInterfaceNil() bool {
 	return dir == nil
