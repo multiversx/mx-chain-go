@@ -919,11 +919,14 @@ func (sp *shardProcessor) displayPoolsInfo() {
 func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeader *block.Header) {
 	sp.snapShotEpochStartFromMeta(currentHeader)
 
-	for i := range headers {
-		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(headers[i].GetPrevHash(), sp.marshalizer, sp.store)
+	for _, hdr := range headers {
+		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(hdr.GetPrevHash(), sp.marshalizer, sp.store)
 		if errNotCritical != nil {
 			log.Debug("could not get shard header from storage")
 			return
+		}
+		if hdr.IsStartOfEpochBlock() {
+			sp.nodesCoordinator.ShuffleOutForEpoch(hdr.GetEpoch())
 		}
 
 		log.Trace("updateState: prevHeader",
@@ -934,15 +937,15 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			"root hash", prevHeader.GetRootHash())
 
 		log.Trace("updateState: currHeader",
-			"shard", headers[i].GetShardID(),
-			"epoch", headers[i].GetEpoch(),
-			"round", headers[i].GetRound(),
-			"nonce", headers[i].GetNonce(),
-			"root hash", headers[i].GetRootHash())
+			"shard", hdr.GetShardID(),
+			"epoch", hdr.GetEpoch(),
+			"round", hdr.GetRound(),
+			"nonce", hdr.GetNonce(),
+			"root hash", hdr.GetRootHash())
 
 		sp.updateStateStorage(
-			headers[i],
-			headers[i].GetRootHash(),
+			hdr,
+			hdr.GetRootHash(),
 			prevHeader.GetRootHash(),
 			sp.accountsDB[state.UserAccountsState],
 		)

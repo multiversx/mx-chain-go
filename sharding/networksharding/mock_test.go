@@ -86,6 +86,11 @@ func (ncs *nodesCoordinatorStub) ShardIdForEpoch(_ uint32) (uint32, error) {
 	panic("implement me")
 }
 
+// ShuffleOutForEpoch verifies if the shards changed in the new epoch and calls the shuffleOutHandler
+func (ncm *nodesCoordinatorStub) ShuffleOutForEpoch(_ uint32) {
+	panic("not implemented")
+}
+
 // GetConsensusWhitelistedNodes -
 func (ncs *nodesCoordinatorStub) GetConsensusWhitelistedNodes(_ uint32) (map[string]struct{}, error) {
 	panic("implement me")

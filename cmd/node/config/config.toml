@@ -350,6 +350,9 @@
     # has been shuffled out has to restart its process in order to start in a new shard
     ShuffledOutRestartThreshold = 0.25
 
+    # ShuffleBetweenShards enables the shuffling of validators between shards at the end of epoch
+    ShuffleBetweenShards = false
+
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
 # RefreshIntervalInSec will tell how often a new line containing stats should be added in stats file
