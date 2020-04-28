@@ -27,11 +27,6 @@ type txInfo struct {
 	*txShardInfo
 }
 
-type txsHashesInfo struct {
-	txHashes        [][]byte
-	receiverShardID uint32
-}
-
 type txsForBlock struct {
 	missingTxs     int
 	mutTxsForBlock sync.RWMutex

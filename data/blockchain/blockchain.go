@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
+var _ data.ChainHandler = (*blockChain)(nil)
+
 // blockChain holds the block information for the current shard.
 //
 // The BlockChain also holds pointers to the Genesis block header and the current block

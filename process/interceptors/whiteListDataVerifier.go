@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ process.WhiteListHandler = (*whiteListDataVerifier)(nil)
+
 type whiteListDataVerifier struct {
 	cache storage.Cacher
 }
@@ -32,7 +34,7 @@ func (w *whiteListDataVerifier) IsWhiteListed(interceptedData process.Intercepte
 	return w.cache.Has(interceptedData.Hash())
 }
 
-// Add ads all the list to the cache
+// Add adds all the list to the cache
 func (w *whiteListDataVerifier) Add(keys [][]byte) {
 	for _, key := range keys {
 		_ = w.cache.Put(key, struct{}{})

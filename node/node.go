@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -30,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
@@ -51,6 +53,8 @@ const SendTransactionsPipe = "send transactions pipe"
 
 var log = logger.GetOrCreate("node")
 var numSecondsBetweenPrints = 20
+
+var _ facade.NodeHandler = (*Node)(nil)
 
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
@@ -88,7 +92,8 @@ type Node struct {
 	validatorStatistics           process.ValidatorStatisticsProcessor
 	hardforkTrigger               HardforkTrigger
 	validatorsProvider            process.ValidatorsProvider
-	whiteListHandler              process.WhiteListHandler
+	whiteListRequest              process.WhiteListHandler
+	whiteListerVerifiedTxs        process.WhiteListHandler
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -136,7 +141,7 @@ type Node struct {
 	signatureSize int
 	publicKeySize int
 
-	chanStopNodeProcess chan bool
+	chanStopNodeProcess chan endProcess.ArgEndProcess
 
 	mutQueryHandlers syncGo.RWMutex
 	queryHandlers    map[string]debug.QueryHandler
@@ -758,7 +763,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	txValidator, err := dataValidators.NewTxValidator(
 		n.accounts,
 		n.shardCoordinator,
-		n.whiteListHandler,
+		n.whiteListRequest,
 		n.addressPubkeyConverter,
 		core.MaxTxNonceDeltaAllowed,
 	)
@@ -781,6 +786,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		n.addressPubkeyConverter,
 		n.shardCoordinator,
 		n.feeHandler,
+		n.whiteListerVerifiedTxs,
 	)
 	if err != nil {
 		return err
@@ -932,7 +938,7 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 }
 
 // StartHeartbeat starts the node's heartbeat processing/signaling module
-func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber string, nodeDisplayName string) error {
+func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber string, prefsConfig config.PreferencesConfig) error {
 	if !hbConfig.Enabled {
 		return nil
 	}
@@ -952,8 +958,13 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 			return err
 		}
 	}
+	argPeerTypeProvider := sharding.ArgPeerTypeProvider{
+		NodesCoordinator:        n.nodesCoordinator,
+		EpochHandler:            n.epochStartTrigger,
+		EpochStartEventNotifier: n.epochStartRegistrationHandler,
+	}
 
-	peerTypeProvider, err := sharding.NewPeerTypeProvider(n.nodesCoordinator, n.epochStartTrigger, n.epochStartRegistrationHandler)
+	peerTypeProvider, err := sharding.NewPeerTypeProvider(argPeerTypeProvider)
 	if err != nil {
 		return err
 	}
@@ -968,7 +979,8 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		PeerTypeProvider: peerTypeProvider,
 		StatusHandler:    n.appStatusHandler,
 		VersionNumber:    versionNumber,
-		NodeDisplayName:  nodeDisplayName,
+		NodeDisplayName:  prefsConfig.NodeDisplayName,
+		KeyBaseIdentity:  prefsConfig.Identity,
 		HardforkTrigger:  n.hardforkTrigger,
 	}
 
@@ -1009,18 +1021,20 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 	}
 
 	argMonitor := heartbeat.ArgHeartbeatMonitor{
-		Marshalizer:                 netInputMarshalizer,
-		MaxDurationPeerUnresponsive: time.Second * time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
-		PubKeysMap:                  pubKeysMap,
-		GenesisTime:                 n.genesisTime,
-		MessageHandler:              heartBeatMsgProcessor,
-		Storer:                      heartbeatStorer,
-		PeerTypeProvider:            peerTypeProvider,
-		Timer:                       timer,
-		AntifloodHandler:            n.inputAntifloodHandler,
-		HardforkTrigger:             n.hardforkTrigger,
-		PeerBlackListHandler:        n.peerBlackListHandler,
-		ValidatorPubkeyConverter:    n.validatorPubkeyConverter,
+		Marshalizer:                        netInputMarshalizer,
+		MaxDurationPeerUnresponsive:        time.Second * time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
+		PubKeysMap:                         pubKeysMap,
+		GenesisTime:                        n.genesisTime,
+		MessageHandler:                     heartBeatMsgProcessor,
+		Storer:                             heartbeatStorer,
+		PeerTypeProvider:                   peerTypeProvider,
+		Timer:                              timer,
+		AntifloodHandler:                   n.inputAntifloodHandler,
+		HardforkTrigger:                    n.hardforkTrigger,
+		PeerBlackListHandler:               n.peerBlackListHandler,
+		ValidatorPubkeyConverter:           n.validatorPubkeyConverter,
+		HbmiRefreshIntervalInSec:           hbConfig.HbmiRefreshIntervalInSec,
+		HideInactiveValidatorIntervalInSec: hbConfig.HideInactiveValidatorIntervalInSec,
 	}
 	n.heartbeatMonitor, err = heartbeat.NewMonitor(argMonitor)
 	if err != nil {

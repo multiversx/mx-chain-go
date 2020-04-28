@@ -74,6 +74,7 @@ type EpochStartConfig struct {
 	MinRoundsBetweenEpochs      int64
 	RoundsPerEpoch              int64
 	ShuffledOutRestartThreshold float64
+	ShuffleBetweenShards        bool
 }
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle
@@ -112,6 +113,7 @@ type Config struct {
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesDataPool           CacheConfig
 	WhiteListPool               CacheConfig
+	WhiteListerVerifiedTxs      CacheConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
 	ValidatorPubkeyConverter    PubkeyConfig
@@ -162,6 +164,8 @@ type HeartbeatConfig struct {
 	MinTimeToWaitBetweenBroadcastsInSec int
 	MaxTimeToWaitBetweenBroadcastsInSec int
 	DurationInSecToConsiderUnresponsive int
+	HbmiRefreshIntervalInSec            uint32
+	HideInactiveValidatorIntervalInSec  uint32
 	HeartbeatStorage                    StorageConfig
 }
 

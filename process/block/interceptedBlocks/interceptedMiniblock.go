@@ -11,6 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.InterceptedData = (*InterceptedMiniblock)(nil)
+
 // InterceptedMiniblock is a wrapper over a miniblock
 type InterceptedMiniblock struct {
 	miniblock         *block.MiniBlock

@@ -15,7 +15,7 @@ type SingleDataInterceptor struct {
 	factory                    process.InterceptedDataFactory
 	processor                  process.InterceptorProcessor
 	throttler                  process.InterceptorThrottler
-	whiteListHandler           process.WhiteListHandler
+	whiteListRequested         process.WhiteListHandler
 	antifloodHandler           process.P2PAntifloodHandler
 	mutInterceptedDebugHandler sync.RWMutex
 	interceptedDebugHandler    process.InterceptedDebugHandler
@@ -28,7 +28,7 @@ func NewSingleDataInterceptor(
 	processor process.InterceptorProcessor,
 	throttler process.InterceptorThrottler,
 	antifloodHandler process.P2PAntifloodHandler,
-	whiteListHandler process.WhiteListHandler,
+	whiteListRequested process.WhiteListHandler,
 ) (*SingleDataInterceptor, error) {
 	if len(topic) == 0 {
 		return nil, process.ErrEmptyTopic
@@ -45,17 +45,17 @@ func NewSingleDataInterceptor(
 	if check.IfNil(antifloodHandler) {
 		return nil, process.ErrNilAntifloodHandler
 	}
-	if check.IfNil(whiteListHandler) {
+	if check.IfNil(whiteListRequested) {
 		return nil, process.ErrNilWhiteListHandler
 	}
 
 	singleDataIntercept := &SingleDataInterceptor{
-		topic:            topic,
-		factory:          factory,
-		processor:        processor,
-		throttler:        throttler,
-		antifloodHandler: antifloodHandler,
-		whiteListHandler: whiteListHandler,
+		topic:              topic,
+		factory:            factory,
+		processor:          processor,
+		throttler:          throttler,
+		antifloodHandler:   antifloodHandler,
+		whiteListRequested: whiteListRequested,
 	}
 	singleDataIntercept.interceptedDebugHandler = resolver.NewDisabledInterceptorResolver()
 
@@ -90,7 +90,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	}
 
 	isForCurrentShard := interceptedData.IsForCurrentShard()
-	isWhiteListed := sdi.whiteListHandler.IsWhiteListed(interceptedData)
+	isWhiteListed := sdi.whiteListRequested.IsWhiteListed(interceptedData)
 	shouldProcess := isForCurrentShard || isWhiteListed
 	if !shouldProcess {
 		sdi.throttler.EndProcessing()

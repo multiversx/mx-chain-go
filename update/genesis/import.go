@@ -17,6 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+var _ update.ImportHandler = (*stateImport)(nil)
+
 // ArgsNewStateImport is the arguments structure to create a new state importer
 type ArgsNewStateImport struct {
 	Reader      update.MultiFileReader
