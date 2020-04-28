@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
+var _ dataRetriever.Resolver = (*TrieNodeResolver)(nil)
+
 // maxBuffToSendTrieNodes represents max buffer size to send in bytes
 var maxBuffToSendTrieNodes = uint64(1 << 18) //256KB
 
@@ -131,6 +133,8 @@ func (tnRes *TrieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([
 
 		return nil, remainingSpace, err
 	}
+
+	tnRes.ResolverDebugHandler().LogSucceededToResolveData(tnRes.topic, hash)
 
 	return serializedNodes, remainingSpace, nil
 }

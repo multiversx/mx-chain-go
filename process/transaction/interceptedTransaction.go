@@ -17,6 +17,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.TxValidatorHandler = (*InterceptedTransaction)(nil)
+var _ process.InterceptedData = (*InterceptedTransaction)(nil)
+
 // InterceptedTransaction holds and manages a transaction based struct with extended functionality
 type InterceptedTransaction struct {
 	tx                     *transaction.Transaction

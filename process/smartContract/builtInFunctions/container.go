@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.BuiltInFunctionContainer = (*functionContainer)(nil)
+
 // functionContainer is an interceptors holder organized by type
 type functionContainer struct {
 	objects *container.MutexMap

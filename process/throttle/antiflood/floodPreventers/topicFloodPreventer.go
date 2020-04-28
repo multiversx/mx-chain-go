@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.TopicFloodPreventer = (*topicFloodPreventer)(nil)
+
 const topicMinMessages = 1
 
 // WildcardCharacter is the character string used to specify that the topic refers to a

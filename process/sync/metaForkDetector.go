@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.ForkDetector = (*metaForkDetector)(nil)
+
 // metaForkDetector implements the meta fork detector mechanism
 type metaForkDetector struct {
 	*baseForkDetector
@@ -50,6 +52,8 @@ func NewMetaForkDetector(
 		baseForkDetector: bfd,
 	}
 
+	bfd.forkDetector = &mfd
+
 	return &mfd, nil
 }
 
@@ -80,4 +84,7 @@ func (mfd *metaForkDetector) doJobOnBHProcessed(
 	mfd.setFinalCheckpoint(mfd.lastCheckpoint())
 	mfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash})
 	mfd.removePastOrInvalidRecords()
+}
+
+func (mfd *metaForkDetector) computeFinalCheckpoint() {
 }

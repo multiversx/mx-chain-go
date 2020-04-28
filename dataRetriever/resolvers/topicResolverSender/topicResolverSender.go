@@ -17,6 +17,8 @@ const topicRequestSuffix = "_REQUEST"
 
 const minPeersToQuery = 2
 
+var _ dataRetriever.TopicResolverSender = (*topicResolverSender)(nil)
+
 // ArgTopicResolverSender is the argument structure used to create new TopicResolverSender instance
 type ArgTopicResolverSender struct {
 	Messenger          dataRetriever.MessageHandler
