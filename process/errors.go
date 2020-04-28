@@ -425,6 +425,12 @@ var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
 // ErrNilEpochHandler signals that a nil epoch handler was provided
 var ErrNilEpochHandler = errors.New("nil epoch handler")
 
+// ErrNilValidatorsProvider signals that the validatorsProvider is nil
+var ErrNilValidatorsProvider = errors.New("nil validatorsProvider")
+
+// ErrNilEpochStartNotifier signals that the ErrNilEpochStartNotifier is nil
+var ErrNilEpochStartNotifier = errors.New("nil epochStartNotifier")
+
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
 

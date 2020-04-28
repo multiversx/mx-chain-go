@@ -55,12 +55,6 @@ type PublicKeysSelector interface {
 	GetOwnPublicKey() []byte
 }
 
-// EpochHandler defines what a component which handles current epoch should be able to do
-type EpochHandler interface {
-	MetaEpoch() uint32
-	IsInterfaceNil() bool
-}
-
 // ArgsUpdateNodes holds the parameters required by the shuffler to generate a new nodes configuration
 type ArgsUpdateNodes struct {
 	Eligible map[uint32][]Validator
@@ -170,11 +164,5 @@ type GenesisNodeInfoHandler interface {
 	AssignedShard() uint32
 	Address() []byte
 	PubKey() []byte
-	IsInterfaceNil() bool
-}
-
-// ValidatorsProvider can get the latest validator infos from the trie
-type ValidatorsProvider interface {
-	GetLatestValidatorInfos() (map[uint32][]*state.ValidatorInfo, error)
 	IsInterfaceNil() bool
 }

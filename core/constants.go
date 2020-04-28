@@ -21,6 +21,9 @@ const ObserverList PeerType = "observer"
 // NewList -
 const NewList PeerType = "new"
 
+// CombinedPeerType - represents the combination of two peerTypes
+const CombinedPeerType = "%s (%s)"
+
 // UnVersionedAppString represents the default app version that indicate that the binary wasn't build by setting
 // the appVersion flag
 const UnVersionedAppString = "undefined"

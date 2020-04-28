@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -814,5 +815,26 @@ type WhiteListHandler interface {
 type InterceptedDebugHandler interface {
 	LogReceivedHashes(topic string, hashes [][]byte)
 	LogProcessedHashes(topic string, hashes [][]byte, err error)
+	IsInterfaceNil() bool
+}
+
+// EpochHandler defines what a component which handles current epoch should be able to do
+type EpochHandler interface {
+	MetaEpoch() uint32
+	IsInterfaceNil() bool
+}
+
+// EpochStartEventNotifier provides Register and Unregister functionality for the end of epoch events
+type EpochStartEventNotifier interface {
+	RegisterHandler(handler epochStart.ActionHandler)
+	UnregisterHandler(handler epochStart.ActionHandler)
+	IsInterfaceNil() bool
+}
+
+// NodesCoordinator provides Validator methods needed for the peer processing
+type NodesCoordinator interface {
+	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetAllLeavingValidatorsPublicKeys(epoch uint32) ([][]byte, error)
 	IsInterfaceNil() bool
 }
