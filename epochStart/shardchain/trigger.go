@@ -775,11 +775,11 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	t.epoch = shardHdr.Epoch
 	if t.metaEpoch < t.epoch {
 		t.metaEpoch = t.epoch
+		t.epochMetaBlockHash = shardHdr.EpochStartMetaHash
 	}
 
 	t.isEpochStart = false
 	t.newEpochHdrReceived = false
-	t.epochMetaBlockHash = shardHdr.EpochStartMetaHash
 	t.epochStartShardHeader = shardHdr
 	finishedStartOfEpochMetaHdrs := t.getAllFinishedStartOfEpochMetaHdrs()
 
