@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
@@ -362,17 +364,24 @@ func NewDB(argDB ArgDB) (storage.Persister, error) {
 	var db storage.Persister
 	var err error
 
-	switch argDB.DBType {
-	case LvlDB:
-		db, err = leveldb.NewDB(argDB.Path, argDB.BatchDelaySeconds, argDB.MaxBatchSize, argDB.MaxOpenFiles)
-	case LvlDBSerial:
-		db, err = leveldb.NewSerialDB(argDB.Path, argDB.BatchDelaySeconds, argDB.MaxBatchSize, argDB.MaxOpenFiles)
-	case MemoryDB:
-		db = memorydb.New()
-	default:
-		return nil, storage.ErrNotSupportedDBType
-	}
+	for i := 0; i < core.MaxRetriesToCreateDB; i++ {
+		switch argDB.DBType {
+		case LvlDB:
+			db, err = leveldb.NewDB(argDB.Path, argDB.BatchDelaySeconds, argDB.MaxBatchSize, argDB.MaxOpenFiles)
+		case LvlDBSerial:
+			db, err = leveldb.NewSerialDB(argDB.Path, argDB.BatchDelaySeconds, argDB.MaxBatchSize, argDB.MaxOpenFiles)
+		case MemoryDB:
+			db = memorydb.New()
+		default:
+			return nil, storage.ErrNotSupportedDBType
+		}
 
+		if err == nil {
+			return db, nil
+		}
+
+		time.Sleep(core.SleepTimeBetweenCreateDBRetries)
+	}
 	if err != nil {
 		return nil, err
 	}

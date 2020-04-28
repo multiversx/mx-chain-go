@@ -28,8 +28,10 @@ func NewXorValidatorsShuffler(
 	nodesMeta uint32,
 	hysteresis float32,
 	adaptivity bool,
+	shuffleBetweenShards bool,
 ) *randXORShuffler {
-	rxs := &randXORShuffler{}
+	log.Debug("Shuffler created", "shuffleBetweenShards", shuffleBetweenShards)
+	rxs := &randXORShuffler{shuffleBetweenShards: shuffleBetweenShards}
 
 	rxs.UpdateParams(nodesShard, nodesMeta, hysteresis, adaptivity)
 
