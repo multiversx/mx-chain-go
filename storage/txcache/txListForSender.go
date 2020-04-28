@@ -8,9 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
-const gracePeriodLowerBound = 5
-const gracePeriodUpperBound = 7
-
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
 	copyDetectedGap       bool
@@ -321,10 +318,10 @@ func (listForSender *txListForSender) getLowestNonceTx() *WrappedTransaction {
 // isInGracePeriod returns whether the sender is grace period due to a number of failed selections
 func (listForSender *txListForSender) isInGracePeriod() bool {
 	numFailedSelections := listForSender.numFailedSelections.Get()
-	return numFailedSelections >= gracePeriodLowerBound && numFailedSelections <= gracePeriodUpperBound
+	return numFailedSelections >= senderGracePeriodLowerBound && numFailedSelections <= senderGracePeriodUpperBound
 }
 
 func (listForSender *txListForSender) isGracePeriodExceeded() bool {
 	numFailedSelections := listForSender.numFailedSelections.Get()
-	return numFailedSelections > gracePeriodUpperBound
+	return numFailedSelections > senderGracePeriodUpperBound
 }
