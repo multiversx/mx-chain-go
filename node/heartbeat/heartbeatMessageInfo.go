@@ -55,6 +55,7 @@ func newHeartbeatMessageInfo(
 		totalDownTime:               time.Duration(0),
 		versionNumber:               "",
 		nodeDisplayName:             "",
+		identity:                    "",
 		peerType:                    peerType,
 		genesisTime:                 genesisTime,
 		getTimeHandler:              timer.Now,
