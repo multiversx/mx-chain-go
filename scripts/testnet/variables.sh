@@ -9,7 +9,7 @@ export USE_PROXY=1
 
 # Enable the Elrond Transaction Generator. Note that this is a private
 # repository (elrond-txgen-go).
-export USE_TXGEN=0
+export USE_TXGEN=1
 
 # Path where the testnet will be instantiated. This folder is assumed to not
 # exist, but it doesn't matter if it already does. It will be created if not,
@@ -85,7 +85,7 @@ export USETMUX=1
 
 # Start Nodes with TermUI or not. Looks good with TermUI, but if you want full
 # info and saved logs, set this to 0. TermUI can't save logs.
-export NODETERMUI=1
+export NODETERMUI=0
 
 # Log level for the logger in the Node.
 export LOGLEVEL="*:INFO"

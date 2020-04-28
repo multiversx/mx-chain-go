@@ -9,3 +9,5 @@ const eligibleSendersPercentageForHighLoad = 0.75
 const senderGracePeriodLowerBound = 3
 
 const senderGracePeriodUpperBound = 3
+
+const highLoadPerCapacity = 0.75

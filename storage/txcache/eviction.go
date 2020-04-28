@@ -79,7 +79,6 @@ func (cache *TxCache) shouldContinueEvictingSenders() bool {
 
 func (cache *TxCache) isHighLoad() bool {
 	// TODO: Improve condition
-	const highLoadPerCapacity = 0.5
 	numTxs := cache.CountTx()
 	numBytes := cache.NumBytes()
 	manyTxsThreshold := int64(float32(cache.config.CountThreshold) * highLoadPerCapacity)
