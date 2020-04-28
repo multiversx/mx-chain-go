@@ -360,5 +360,6 @@ type WhiteListHandler interface {
 type ResolverDebugHandler interface {
 	LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int)
 	LogFailedToResolveData(topic string, hash []byte, err error)
+	LogSucceededToResolveData(topic string, hash []byte)
 	IsInterfaceNil() bool
 }
