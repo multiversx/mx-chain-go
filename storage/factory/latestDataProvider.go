@@ -35,6 +35,13 @@ type ArgsLatestDataProvider struct {
 	DefaultShardString    string
 }
 
+type iteratedShardData struct {
+	bootstrapData   *bootstrapStorage.BootstrapData
+	epochStartRound uint64
+	shardIDStr      string
+	successful      bool
+}
+
 type latestDataProvider struct {
 	generalConfig         config.Config
 	marshalizer           marshal.Marshalizer
@@ -127,25 +134,11 @@ func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string,
 			ldp.generalConfig.BootstrapStorage.DB.FilePath,
 		)
 
-		bootstrapData, storer, errGet := ldp.bootstrapDataProvider.LoadForPath(persisterFactory, persisterPath)
-		if errGet != nil {
-			continue
-		}
-
-		if bootstrapData.LastRound > highestRoundInStoredShards {
-			shardID := uint32(0)
-			var err error
-			shardID, err = convertShardIDToUint32(shardIdStr)
-			if err != nil {
-				continue
-			}
-			epochStartRound, err = ldp.loadEpochStartRound(shardID, bootstrapData.EpochStartTriggerConfigKey, storer)
-			if err != nil {
-				continue
-			}
-
-			highestRoundInStoredShards = bootstrapData.LastRound
-			mostRecentBootstrapData = bootstrapData
+		shardData := ldp.loadDataForShard(highestRoundInStoredShards, shardIdStr, persisterFactory, persisterPath)
+		if shardData.successful {
+			epochStartRound = shardData.epochStartRound
+			highestRoundInStoredShards = shardData.bootstrapData.LastRound
+			mostRecentBootstrapData = shardData.bootstrapData
 			mostRecentShard = shardIdStr
 		}
 	}
@@ -166,6 +159,41 @@ func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string,
 	}
 
 	return lastestData, nil
+}
+
+func (ldp *latestDataProvider) loadDataForShard(currentHighestRound int64, shardIdStr string, persisterFactory storage.PersisterFactory, persisterPath string) *iteratedShardData {
+	bootstrapData, storer, errGet := ldp.bootstrapDataProvider.LoadForPath(persisterFactory, persisterPath)
+	if errGet != nil {
+		return &iteratedShardData{}
+	}
+	defer func() {
+		err := storer.Close()
+		if err != nil {
+			log.Debug("latestDataProvider: closing storer", "path", persisterPath, "error", err)
+		}
+	}()
+
+	if bootstrapData.LastRound > currentHighestRound {
+		shardID := uint32(0)
+		var err error
+		shardID, err = convertShardIDToUint32(shardIdStr)
+		if err != nil {
+			return &iteratedShardData{}
+		}
+		epochStartRound, err := ldp.loadEpochStartRound(shardID, bootstrapData.EpochStartTriggerConfigKey, storer)
+		if err != nil {
+			return &iteratedShardData{}
+		}
+
+		return &iteratedShardData{
+			bootstrapData:   bootstrapData,
+			shardIDStr:      shardIdStr,
+			epochStartRound: epochStartRound,
+			successful:      true,
+		}
+	}
+
+	return &iteratedShardData{}
 }
 
 // loadEpochStartRound will return the epoch start round from the bootstrap unit
