@@ -46,6 +46,7 @@ type baseForkDetector struct {
 	blackListHandler process.BlackListHandler
 	genesisTime      int64
 	blockTracker     process.BlockTracker
+	forkDetector     forkDetector
 }
 
 // SetRollBackNonce sets the nonce where the chain should roll back
@@ -229,13 +230,16 @@ func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 
 	bfd.mutHeaders.Unlock()
 
+	bfd.forkDetector.computeFinalCheckpoint()
+
 	probableHighestNonce := bfd.computeProbableHighestNonce()
 	bfd.setProbableHighestNonce(probableHighestNonce)
 
 	log.Debug("forkDetector.RemoveHeader",
 		"nonce", nonce,
 		"hash", hash,
-		"probable highest nonce", probableHighestNonce)
+		"probable highest nonce", probableHighestNonce,
+		"final check point nonce", bfd.finalCheckpoint().nonce)
 }
 
 func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {

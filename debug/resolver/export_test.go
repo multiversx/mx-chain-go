@@ -22,3 +22,7 @@ func (ir *interceptorResolver) Events() []*event {
 
 	return requests
 }
+
+func (ir *interceptorResolver) SetTimehandler(handler func() int64) {
+	ir.timestampHandler = handler
+}

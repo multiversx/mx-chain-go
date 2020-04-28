@@ -110,9 +110,9 @@ func TestMiniBlockProvider_GetMiniBlocksFromPoolFoundInPoolShouldReturn(t *testi
 	arg := createMockMiniblockProviderArgs(existingHashes, nil)
 	mbp, _ := provider.NewMiniBlockProvider(arg)
 
-	miniblocks, missingHashes := mbp.GetMiniBlocksFromPool(existingHashes)
+	miniBlocksAndHashes, missingHashes := mbp.GetMiniBlocksFromPool(existingHashes)
 
-	assert.Equal(t, 2, len(miniblocks))
+	assert.Equal(t, 2, len(miniBlocksAndHashes))
 	assert.Equal(t, 0, len(missingHashes))
 }
 
@@ -124,9 +124,9 @@ func TestMiniBlockProvider_GetMiniBlocksFromPoolTwoFoundInPoolShouldReturn(t *te
 	arg := createMockMiniblockProviderArgs(existingHashes, nil)
 	mbp, _ := provider.NewMiniBlockProvider(arg)
 
-	miniblocks, missingHashes := mbp.GetMiniBlocksFromPool(requestedHashes)
+	miniBlocksAndHashes, missingHashes := mbp.GetMiniBlocksFromPool(requestedHashes)
 
-	assert.Equal(t, 2, len(miniblocks))
+	assert.Equal(t, 2, len(miniBlocksAndHashes))
 	require.Equal(t, 1, len(missingHashes))
 	assert.Equal(t, requestedHashes[len(requestedHashes)-1], missingHashes[0])
 }
@@ -143,9 +143,9 @@ func TestMiniBlockProvider_GetMiniBlocksFromPoolWrongTypeInPoolShouldNotReturn(t
 	}
 	mbp, _ := provider.NewMiniBlockProvider(arg)
 
-	miniblocks, missingHashes := mbp.GetMiniBlocksFromPool(hashes)
+	miniBlocksAndHashes, missingHashes := mbp.GetMiniBlocksFromPool(hashes)
 
-	assert.Equal(t, 0, len(miniblocks))
+	assert.Equal(t, 0, len(miniBlocksAndHashes))
 	assert.Equal(t, hashes, missingHashes)
 }
 
@@ -158,9 +158,9 @@ func TestMiniBlockProvider_GetMiniBlocksFoundInPoolShouldReturn(t *testing.T) {
 	arg := createMockMiniblockProviderArgs(existingHashes, nil)
 	mbp, _ := provider.NewMiniBlockProvider(arg)
 
-	miniblocks, missingHashes := mbp.GetMiniBlocks(existingHashes)
+	miniBlocksAndHashes, missingHashes := mbp.GetMiniBlocks(existingHashes)
 
-	assert.Equal(t, 2, len(miniblocks))
+	assert.Equal(t, 2, len(miniBlocksAndHashes))
 	assert.Equal(t, 0, len(missingHashes))
 }
 
@@ -171,9 +171,9 @@ func TestMiniBlockProvider_GetMiniBlocksNotFoundInPoolButFoundInStorageShouldRet
 	arg := createMockMiniblockProviderArgs(nil, existingHashes)
 	mbp, _ := provider.NewMiniBlockProvider(arg)
 
-	miniblocks, missingHashes := mbp.GetMiniBlocks(existingHashes)
+	miniBlocksAndHashes, missingHashes := mbp.GetMiniBlocks(existingHashes)
 
-	assert.Equal(t, 2, len(miniblocks))
+	assert.Equal(t, 2, len(miniBlocksAndHashes))
 	assert.Equal(t, 0, len(missingHashes))
 }
 
@@ -188,9 +188,9 @@ func TestMiniBlockProvider_GetMiniBlocksShouldWork(t *testing.T) {
 	arg := createMockMiniblockProviderArgs(existingInPool, existingInStorage)
 	mbp, _ := provider.NewMiniBlockProvider(arg)
 
-	miniblocks, missingHashes := mbp.GetMiniBlocks(requestedHashes)
+	miniBlocksAndHashes, missingHashes := mbp.GetMiniBlocks(requestedHashes)
 
-	assert.Equal(t, 2, len(miniblocks))
+	assert.Equal(t, 2, len(miniBlocksAndHashes))
 	require.Equal(t, 1, len(missingHashes))
 	assert.Equal(t, missingHash, missingHashes[0])
 }
