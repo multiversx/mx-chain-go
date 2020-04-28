@@ -1,7 +1,6 @@
 package bls
 
 import (
-	"context"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
@@ -13,8 +12,7 @@ import (
 type subroundSignature struct {
 	*spos.Subround
 
-	appStatusHandler        core.AppStatusHandler
-	waitAllSignaturesCancel context.CancelFunc
+	appStatusHandler core.AppStatusHandler
 }
 
 // NewSubroundSignature creates a subroundSignature object
@@ -67,8 +65,6 @@ func checkNewSubroundSignatureParams(
 
 // doSignatureJob method does the job of the subround Signature
 func (sr *subroundSignature) doSignatureJob() bool {
-	sr.waitAllSignaturesCancel = nil
-
 	if !sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
 		return true
 	}
@@ -119,9 +115,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 	}
 
 	if isSelfLeader {
-		ctx, cancel := context.WithCancel(context.Background())
-		sr.waitAllSignaturesCancel = cancel
-		go sr.waitAllSignatures(ctx)
+		go sr.waitAllSignatures()
 	}
 
 	return true
@@ -209,10 +203,6 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 			log.Debug("step 2: signatures",
 				"received", numSigs,
 				"total", len(sr.ConsensusGroup()))
-
-			if sr.waitAllSignaturesCancel != nil {
-				sr.waitAllSignaturesCancel()
-			}
 		}
 
 		log.Debug("step 2: subround has been finished",
@@ -252,13 +242,12 @@ func (sr *subroundSignature) signaturesCollected(threshold int) (bool, int) {
 	return n >= threshold, n
 }
 
-func (sr *subroundSignature) waitAllSignatures(ctx context.Context) {
+func (sr *subroundSignature) waitAllSignatures() {
 	remainingTime := sr.remainingTime()
+	time.Sleep(remainingTime)
 
-	select {
-	case <-ctx.Done():
+	if sr.IsSubroundFinished(sr.Current()) {
 		return
-	case <-time.After(remainingTime):
 	}
 
 	select {
