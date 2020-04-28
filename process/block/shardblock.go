@@ -925,11 +925,11 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			"root hash", prevHeader.GetRootHash())
 
 		log.Trace("updateState: currHeader",
-			"shard", headers[i].GetShardID(),
-			"epoch", headers[i].GetEpoch(),
-			"round", headers[i].GetRound(),
-			"nonce", headers[i].GetNonce(),
-			"root hash", headers[i].GetRootHash())
+			"shard", hdr.GetShardID(),
+			"epoch", hdr.GetEpoch(),
+			"round", hdr.GetRound(),
+			"nonce", hdr.GetNonce(),
+			"root hash", hdr.GetRootHash())
 
 		sp.updateStateStorage(
 			hdr,
