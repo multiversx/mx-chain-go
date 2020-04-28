@@ -38,6 +38,7 @@ type ArgsGenesisBlockCreator struct {
 	HardForkConfig           config.HardforkConfig
 	TriesContainer           state.TriesHolder
 	TrieFactory              data.TrieFactory
+	ChainID                  string
 
 	// created component needed only for hardfork
 	importHandler update.ImportHandler

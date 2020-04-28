@@ -92,7 +92,7 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHa
 	}
 
 	hdrHandler, bodyHandler, err := shardBlockCreator.CreateNewBlock(
-		"newChainID",
+		arg.ChainID,
 		arg.HardForkConfig.StartRound,
 		arg.HardForkConfig.StartNonce,
 		arg.HardForkConfig.StartEpoch,

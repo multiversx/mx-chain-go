@@ -118,7 +118,7 @@ func createMetaGenesisAfterHardFork(arg ArgsGenesisBlockCreator, processors *gen
 	}
 
 	hdrHandler, bodyHandler, err := metaBlockCreator.CreateNewBlock(
-		"newChainID",
+		arg.ChainID,
 		arg.HardForkConfig.StartRound,
 		arg.HardForkConfig.StartNonce,
 		arg.HardForkConfig.StartEpoch,

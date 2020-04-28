@@ -1200,8 +1200,8 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 	metaBlock *block.MetaBlock,
 	shardID uint32,
 ) (data.HeaderHandler, []byte) {
-	lastNotarizedMetaHeader, lastNotarizedMetaHeaderHash, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardID)
 
+	lastNotarizedMetaHeader, lastNotarizedMetaHeaderHash, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardID)
 	if err != nil {
 		log.Warn("getLastSelfNotarizedHeaderByShard.GetLastSelfNotarizedHeader",
 			"shard", shardID,
@@ -1210,7 +1210,6 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 	}
 
 	maxNotarizedNonce := lastNotarizedMetaHeader.GetNonce()
-
 	for _, shardData := range metaBlock.ShardInfo {
 		if shardData.ShardID != shardID {
 			continue
