@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
@@ -41,4 +42,11 @@ type CryptoParams struct {
 	PublicKey       crypto.PublicKey
 	PublicKeyBytes  []byte
 	PublicKeyString string
+}
+
+// DataComponents struct holds the data components of the Elrond protocol
+type DataComponents struct {
+	Blkc     data.ChainHandler
+	Store    dataRetriever.StorageService
+	Datapool dataRetriever.PoolsHolder
 }

@@ -113,13 +113,6 @@ VERSION:
 			"such as consensus group size, round duration, validators public keys and so on.",
 		Value: "./config/nodesSetup.json",
 	}
-	// sk defines a flag for the path of the multi sign private key used when starting the node
-	sk = cli.StringFlag{
-		Name: "sk",
-		Usage: "The `" + filePathPlaceholder + "` for the PEM file which contains the private key the node will " +
-			"use for block signing.",
-		Value: "",
-	}
 	// configurationFile defines a flag for the path to the main toml configuration file
 	configurationFile = cli.StringFlag{
 		Name: "config",
@@ -363,7 +356,6 @@ func main() {
 		externalConfigFile,
 		p2pConfigurationFile,
 		gasScheduleConfigurationFile,
-		sk,
 		validatorKeyIndex,
 		validatorKeyPemFile,
 		port,
@@ -778,8 +770,21 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating data components")
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
-	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, economicsData, shardCoordinator, coreComponents, pathManager, epochStartNotifier, storerEpoch)
-	dataComponents, err := factory.DataComponentsFactory(dataArgs)
+
+	dataArgs := mainFactory.DataComponentsFactoryArgs{
+		Config:             generalConfig,
+		EconomicsData:      economicsData,
+		ShardCoordinator:   shardCoordinator,
+		Core:               coreComponents,
+		PathManager:        pathManager,
+		EpochStartNotifier: epochStartNotifier,
+		CurrentEpoch:       storerEpoch,
+	}
+	dataComponentsFactory, err := mainFactory.NewDataComponentsFactory(dataArgs)
+	if err != nil {
+		return err
+	}
+	dataComponents, err := dataComponentsFactory.Create()
 	if err != nil {
 		return err
 	}
@@ -1583,7 +1588,7 @@ func createNode(
 	nodesCoordinator sharding.NodesCoordinator,
 	coreData *mainFactory.CoreComponents,
 	state *mainFactory.StateComponents,
-	data *factory.Data,
+	data *mainFactory.DataComponents,
 	crypto *factory.Crypto,
 	process *factory.Process,
 	network *factory.Network,

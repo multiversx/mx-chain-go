@@ -29,7 +29,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	dataRetrieverFactory "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
@@ -72,7 +71,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -100,15 +98,6 @@ type EpochStartNotifier interface {
 	NotifyAll(hdr data.HeaderHandler)
 	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	IsInterfaceNil() bool
-}
-
-// CryptoParams is a DTO for holding block signing parameters
-type CryptoParams struct {
-	KeyGenerator    crypto.KeyGenerator
-	PrivateKey      crypto.PrivateKey
-	PublicKey       crypto.PublicKey
-	PublicKeyBytes  []byte
-	PublicKeyString string
 }
 
 // Network struct holds the network components of the Elrond protocol
@@ -166,73 +155,6 @@ type Process struct {
 	BlockTracker             process.BlockTracker
 	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
 	RequestHandler           process.RequestHandler
-}
-
-type dataComponentsFactoryArgs struct {
-	config             *config.Config
-	economicsData      *economics.EconomicsData
-	shardCoordinator   sharding.Coordinator
-	core               *mainFactory.CoreComponents
-	pathManager        storage.PathManagerHandler
-	epochStartNotifier EpochStartNotifier
-	currentEpoch       uint32
-}
-
-// NewDataComponentsFactoryArgs initializes the arguments necessary for creating the data components
-func NewDataComponentsFactoryArgs(
-	config *config.Config,
-	economicsData *economics.EconomicsData,
-	shardCoordinator sharding.Coordinator,
-	core *mainFactory.CoreComponents,
-	pathManager storage.PathManagerHandler,
-	epochStartNotifier EpochStartNotifier,
-	currentEpoch uint32,
-) *dataComponentsFactoryArgs {
-	return &dataComponentsFactoryArgs{
-		config:             config,
-		economicsData:      economicsData,
-		shardCoordinator:   shardCoordinator,
-		core:               core,
-		pathManager:        pathManager,
-		epochStartNotifier: epochStartNotifier,
-		currentEpoch:       currentEpoch,
-	}
-}
-
-// DataComponentsFactory creates the data components
-func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
-	var datapool dataRetriever.PoolsHolder
-	blkc, err := createBlockChainFromConfig(args.shardCoordinator, args.core.StatusHandler)
-	if err != nil {
-		return nil, errors.New("could not create block chain: " + err.Error())
-	}
-
-	store, err := createDataStoreFromConfig(
-		args.config,
-		args.shardCoordinator,
-		args.pathManager,
-		args.epochStartNotifier,
-		args.currentEpoch,
-	)
-	if err != nil {
-		return nil, errors.New("could not create local data store: " + err.Error())
-	}
-
-	dataPoolArgs := dataRetrieverFactory.ArgsDataPool{
-		Config:           args.config,
-		EconomicsData:    args.economicsData,
-		ShardCoordinator: args.shardCoordinator,
-	}
-	datapool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataPoolArgs)
-	if err != nil {
-		return nil, errors.New("could not create data pools: ")
-	}
-
-	return &Data{
-		Blkc:     blkc,
-		Store:    store,
-		Datapool: datapool,
-	}, nil
 }
 
 type cryptoComponentsFactoryArgs struct {
@@ -368,7 +290,7 @@ type processComponentsFactoryArgs struct {
 	rounder                   consensus.Rounder
 	shardCoordinator          sharding.Coordinator
 	nodesCoordinator          sharding.NodesCoordinator
-	data                      *Data
+	data                      *mainFactory.DataComponents
 	coreData                  *mainFactory.CoreComponents
 	crypto                    *Crypto
 	state                     *mainFactory.StateComponents
@@ -402,7 +324,7 @@ func NewProcessComponentsFactoryArgs(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *Data,
+	data *mainFactory.DataComponents,
 	coreData *mainFactory.CoreComponents,
 	crypto *Crypto,
 	state *mainFactory.StateComponents,
@@ -803,61 +725,6 @@ func CreateSoftwareVersionChecker(statusHandler core.AppStatusHandler) (*softwar
 	return softwareVersionChecker, nil
 }
 
-func createBlockChainFromConfig(coordinator sharding.Coordinator, ash core.AppStatusHandler) (data.ChainHandler, error) {
-
-	if coordinator == nil {
-		return nil, state.ErrNilShardCoordinator
-	}
-
-	if coordinator.SelfId() < coordinator.NumberOfShards() {
-		blockChain := blockchain.NewBlockChain()
-
-		err := blockChain.SetAppStatusHandler(ash)
-		if err != nil {
-			return nil, err
-		}
-
-		return blockChain, nil
-	}
-	if coordinator.SelfId() == core.MetachainShardId {
-		blockChain := blockchain.NewMetaChain()
-
-		err := blockChain.SetAppStatusHandler(ash)
-		if err != nil {
-			return nil, err
-		}
-
-		return blockChain, nil
-	}
-	return nil, errors.New("can not create blockchain")
-}
-
-func createDataStoreFromConfig(
-	config *config.Config,
-	shardCoordinator sharding.Coordinator,
-	pathManager storage.PathManagerHandler,
-	epochStartNotifier EpochStartNotifier,
-	currentEpoch uint32,
-) (dataRetriever.StorageService, error) {
-	storageServiceFactory, err := storageFactory.NewStorageServiceFactory(
-		config,
-		shardCoordinator,
-		pathManager,
-		epochStartNotifier,
-		currentEpoch,
-	)
-	if err != nil {
-		return nil, err
-	}
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return storageServiceFactory.CreateForShard()
-	}
-	if shardCoordinator.SelfId() == core.MetachainShardId {
-		return storageServiceFactory.CreateForMeta()
-	}
-	return nil, errors.New("can not create data store")
-}
-
 func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
 	switch config.Consensus.Type {
 	case consensus.BlsConsensusType:
@@ -905,7 +772,7 @@ func createMultiSigner(
 func newInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *Data,
+	data *mainFactory.DataComponents,
 	coreData *mainFactory.CoreComponents,
 	crypto *Crypto,
 	state *mainFactory.StateComponents,
@@ -960,7 +827,7 @@ func newInterceptorContainerFactory(
 
 func newResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
-	data *Data,
+	data *mainFactory.DataComponents,
 	coreData *mainFactory.CoreComponents,
 	network *Network,
 	sizeCheckDelta uint32,
@@ -994,7 +861,7 @@ func newResolverContainerFactory(
 func newShardInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *Data,
+	data *mainFactory.DataComponents,
 	dataCore *mainFactory.CoreComponents,
 	crypto *Crypto,
 	state *mainFactory.StateComponents,
@@ -1048,7 +915,7 @@ func newShardInterceptorContainerFactory(
 func newMetaInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *Data,
+	data *mainFactory.DataComponents,
 	dataCore *mainFactory.CoreComponents,
 	crypto *Crypto,
 	network *Network,
@@ -1101,7 +968,7 @@ func newMetaInterceptorContainerFactory(
 
 func newShardResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
-	data *Data,
+	data *mainFactory.DataComponents,
 	core *mainFactory.CoreComponents,
 	network *Network,
 	sizeCheckDelta uint32,
@@ -1137,7 +1004,7 @@ func newShardResolverContainerFactory(
 
 func newMetaResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
-	data *Data,
+	data *mainFactory.DataComponents,
 	core *mainFactory.CoreComponents,
 	network *Network,
 	sizeCheckDelta uint32,
@@ -1283,7 +1150,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	return genesisBlocks, nil
 }
 
-func saveGenesisBlock(header data.HeaderHandler, coreComponents *mainFactory.CoreComponents, dataComponents *Data) error {
+func saveGenesisBlock(header data.HeaderHandler, coreComponents *mainFactory.CoreComponents, dataComponents *mainFactory.DataComponents) error {
 	blockBuff, err := coreComponents.InternalMarshalizer.Marshal(header)
 	if err != nil {
 		return err
@@ -1473,7 +1340,7 @@ func newShardBlockProcessor(
 	requestHandler process.RequestHandler,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *Data,
+	data *mainFactory.DataComponents,
 	core *mainFactory.CoreComponents,
 	stateComponents *mainFactory.StateComponents,
 	forkDetector process.ForkDetector,
@@ -1740,7 +1607,7 @@ func newMetaBlockProcessor(
 	requestHandler process.RequestHandler,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *Data,
+	data *mainFactory.DataComponents,
 	core *mainFactory.CoreComponents,
 	stateComponents *mainFactory.StateComponents,
 	forkDetector process.ForkDetector,
