@@ -4,6 +4,8 @@ import (
 	"fmt"
 )
 
+var _ Marshalizer = (*GogoProtoMarshalizer)(nil)
+
 // GogoProtoMarshalizer implements marshaling with protobuf
 type GogoProtoMarshalizer struct {
 }

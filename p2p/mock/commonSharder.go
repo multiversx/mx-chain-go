@@ -2,6 +2,8 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/p2p"
 
+var _ p2p.CommonSharder = (*CommonSharder)(nil)
+
 // CommonSharder -
 type CommonSharder struct {
 	SetPeerShardResolverCalled func(psp p2p.PeerShardResolver) error

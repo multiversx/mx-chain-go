@@ -7,10 +7,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+var _ requestHandlers.HashSliceResolver = (*TxResolver)(nil)
+var _ dataRetriever.Resolver = (*TxResolver)(nil)
 
 // maxBuffToSendBulkTransactions represents max buffer size to send in bytes
 const maxBuffToSendBulkTransactions = 1 << 18 //256KB

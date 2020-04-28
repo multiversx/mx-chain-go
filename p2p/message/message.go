@@ -2,6 +2,8 @@ package message
 
 import "github.com/ElrondNetwork/elrond-go/p2p"
 
+var _ p2p.MessageP2P = (*Message)(nil)
+
 // Message is a data holder struct
 type Message struct {
 	FromField      []byte

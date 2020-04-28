@@ -14,6 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.HdrValidatorHandler = (*InterceptedHeader)(nil)
+var _ process.InterceptedData = (*InterceptedHeader)(nil)
+
 // InterceptedHeader represents the wrapper over HeaderWrapper struct.
 // It implements Newer and Hashed interfaces
 type InterceptedHeader struct {

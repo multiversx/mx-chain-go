@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.TxValidator = (*txValidator)(nil)
+
 // txValidator represents a tx handler validator that doesn't check the validity of provided txHandler
 type txValidator struct {
 	accounts             state.AccountsAdapter

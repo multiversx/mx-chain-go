@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
+var _ consensus.SubroundHandler = (*Subround)(nil)
+
 // Subround struct contains the needed data for one Subround and the Subround properties. It defines a Subround
 // with it's properties (it's ID, next Subround ID, it's duration, it's name) and also it has some handler functions
 // which should be set. Job function will be the main function of this Subround, Extend function will handle the overtime

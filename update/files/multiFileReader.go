@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+var _ update.MultiFileReader = (*multiFileReader)(nil)
+
 type multiFileReader struct {
 	importFolder string
 	files        map[string]io.Closer

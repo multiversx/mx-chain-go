@@ -9,6 +9,8 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
+var _ ConnectionMonitor = (*connectionMonitorWrapper)(nil)
+
 // connectionMonitorWrapper is a wrapper over p2p.ConnectionMonitor that satisfies the Notifiee interface
 // and is able to be notified by the current running host (connection status changes)
 // it handles black list peers

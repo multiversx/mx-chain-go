@@ -11,6 +11,8 @@ import (
 	"github.com/herumi/bls-go-binary/bls"
 )
 
+var _ crypto.LowLevelSignerBLS = (*BlsMultiSigner)(nil)
+
 // 16bytes output hasher!
 const hasherOutputSize = 16
 

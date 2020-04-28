@@ -17,6 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.IntermediateTransactionHandler = (*intermediateResultsProcessor)(nil)
+
 type intermediateResultsProcessor struct {
 	pubkeyConv state.PubkeyConverter
 	blockType  block.Type
