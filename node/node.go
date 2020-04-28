@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -140,7 +141,7 @@ type Node struct {
 	signatureSize int
 	publicKeySize int
 
-	chanStopNodeProcess chan bool
+	chanStopNodeProcess chan endProcess.ArgEndProcess
 
 	mutQueryHandlers syncGo.RWMutex
 	queryHandlers    map[string]debug.QueryHandler
@@ -937,7 +938,7 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 }
 
 // StartHeartbeat starts the node's heartbeat processing/signaling module
-func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber string, nodeDisplayName string) error {
+func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber string, prefsConfig config.PreferencesConfig) error {
 	if !hbConfig.Enabled {
 		return nil
 	}
@@ -978,7 +979,8 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		PeerTypeProvider: peerTypeProvider,
 		StatusHandler:    n.appStatusHandler,
 		VersionNumber:    versionNumber,
-		NodeDisplayName:  nodeDisplayName,
+		NodeDisplayName:  prefsConfig.NodeDisplayName,
+		KeyBaseIdentity:  prefsConfig.Identity,
 		HardforkTrigger:  n.hardforkTrigger,
 	}
 

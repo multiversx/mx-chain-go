@@ -6,11 +6,16 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -91,6 +96,54 @@ func createMetaStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
 
 	return store
+}
+
+func createTxPool(selfShardID uint32) (dataRetriever.ShardedDataCacherNotifier, error) {
+	return txpool.NewShardedTxPool(
+		txpool.ArgShardedTxPool{
+			Config: storageUnit.CacheConfig{
+				Size:        100000,
+				SizeInBytes: 1000000000,
+				Shards:      16,
+			},
+			MinGasPrice:    100000000000000,
+			NumberOfShards: 1,
+			SelfShardID:    selfShardID,
+		},
+	)
+}
+
+func createTestDataPool(selfShardID uint32) dataRetriever.PoolsHolder {
+	txPool, _ := createTxPool(selfShardID)
+
+	uTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1})
+	rewardsTxPool, _ := shardedData.NewShardedData(storageUnit.CacheConfig{Size: 300, Type: storageUnit.LRUCache, Shards: 1})
+
+	hdrPool, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
+
+	cacherCfg := storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
+	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
+	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
+	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
+	cacherCfg = storageUnit.CacheConfig{Size: 50000, Type: storageUnit.LRUCache}
+	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+
+	currTxs, _ := dataPool.NewCurrentBlockPool()
+
+	dPool, _ := dataPool.NewDataPool(
+		txPool,
+		uTxPool,
+		rewardsTxPool,
+		hdrPool,
+		txBlockBody,
+		peerChangeBlockBody,
+		trieNodes,
+		currTxs,
+	)
+
+	return dPool
 }
 
 func TestEpochStartData_NilMarshalizer(t *testing.T) {
@@ -374,6 +427,115 @@ func TestMetaProcessor_CreateEpochStartFromMetaBlockShouldWork(t *testing.T) {
 	assert.Equal(t, hash1, epStart.LastFinalizedHeaders[0].LastFinishedMetaBlock)
 	assert.Equal(t, hash2, epStart.LastFinalizedHeaders[0].FirstPendingMetaBlock)
 	assert.Equal(t, 1, len(epStart.LastFinalizedHeaders[0].PendingMiniBlockHeaders))
+
+	err = epoch.VerifyEpochStartDataForMetablock(&block.MetaBlock{EpochStart: *epStart})
+	assert.Nil(t, err)
+}
+
+func TestMetaProcessor_CreateEpochStartFromMetaBlockEdgeCaseChecking(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartCreatorArguments()
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+		IsEpochStartCalled: func() bool {
+			return true
+		},
+	}
+	arguments.Hasher = &mock.HasherMock{}
+	arguments.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
+	arguments.DataPool = createTestDataPool(core.MetachainShardId)
+
+	startHeaders := createGenesisBlocks(arguments.ShardCoordinator)
+	blockTracker := mock.NewBlockTrackerMock(arguments.ShardCoordinator, startHeaders)
+
+	mbHashes := [][]byte{[]byte("mb_hash1"), []byte("mb_hash2"), []byte("mb_hash3"), []byte("mb_hash4")}
+	metaHdrStorage := arguments.Store.GetStorer(dataRetriever.MetaBlockUnit)
+	var mbHdrs1 []block.MiniBlockHeader
+	mbHdrs1 = append(mbHdrs1, block.MiniBlockHeader{
+		Hash:            mbHashes[0],
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+		TxCount:         2,
+	})
+	mbHdrs1 = append(mbHdrs1, block.MiniBlockHeader{
+		Hash:            mbHashes[1],
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+		TxCount:         2,
+	})
+	shardData := block.ShardData{ShardID: 0, ShardMiniBlockHeaders: mbHdrs1}
+
+	meta1 := &block.MetaBlock{Nonce: 100, ShardInfo: []block.ShardData{shardData}}
+	metaHash1, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, meta1)
+
+	var mbHdrs2 []block.MiniBlockHeader
+	mbHdrs2 = append(mbHdrs2, block.MiniBlockHeader{
+		Hash:            mbHashes[2],
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+		TxCount:         2,
+	})
+	mbHdrs2 = append(mbHdrs2, block.MiniBlockHeader{
+		Hash:            mbHashes[3],
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+		TxCount:         2,
+	})
+	shardData = block.ShardData{ShardID: 0, ShardMiniBlockHeaders: mbHdrs2}
+	meta2 := &block.MetaBlock{Nonce: 101, PrevHash: metaHash1, ShardInfo: []block.ShardData{shardData}}
+	metaHash2, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, meta2)
+
+	marshaledData, _ := arguments.Marshalizer.Marshal(meta1)
+	_ = metaHdrStorage.Put(metaHash1, marshaledData)
+
+	marshaledData, _ = arguments.Marshalizer.Marshal(meta2)
+	_ = metaHdrStorage.Put(metaHash2, marshaledData)
+
+	shardID := uint32(1)
+	prevPrevShardHdr := &block.Header{
+		Nonce:     8,
+		ShardID:   shardID,
+		TimeStamp: 0,
+		Round:     8,
+		Epoch:     0,
+	}
+	prevPrevHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, prevPrevShardHdr)
+	arguments.DataPool.Headers().AddHeader(prevPrevHash, prevPrevShardHdr)
+
+	shardMBHdrs := append(mbHdrs1, mbHdrs2...)
+	prevShardHdr := &block.Header{
+		Nonce:            9,
+		PrevHash:         prevPrevHash,
+		ShardID:          shardID,
+		Round:            9,
+		Epoch:            0,
+		MiniBlockHeaders: shardMBHdrs,
+		MetaBlockHashes:  [][]byte{metaHash1, metaHash2},
+	}
+	prevShardHdrHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, prevShardHdr)
+	arguments.DataPool.Headers().AddHeader(prevShardHdrHash, prevShardHdr)
+
+	shardHdr := &block.Header{
+		Nonce:    10,
+		ShardID:  shardID,
+		Round:    10,
+		Epoch:    0,
+		PrevHash: prevShardHdrHash,
+	}
+	shardHdrHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, shardHdr)
+	arguments.DataPool.Headers().AddHeader(shardHdrHash, shardHdr)
+
+	blockTracker.AddCrossNotarizedHeader(shardID, shardHdr, shardHdrHash)
+	arguments.BlockTracker = blockTracker
+
+	epoch, _ := NewEpochStartData(arguments)
+
+	epStart, err := epoch.CreateEpochStartData()
+	assert.Nil(t, err)
+	assert.NotNil(t, epStart)
+	assert.Equal(t, metaHash1, epStart.LastFinalizedHeaders[shardID].LastFinishedMetaBlock)
+	assert.Equal(t, metaHash2, epStart.LastFinalizedHeaders[shardID].FirstPendingMetaBlock)
+	assert.Equal(t, 0, len(epStart.LastFinalizedHeaders[shardID].PendingMiniBlockHeaders))
 
 	err = epoch.VerifyEpochStartDataForMetablock(&block.MetaBlock{EpochStart: *epStart})
 	assert.Nil(t, err)

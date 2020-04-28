@@ -33,6 +33,7 @@ type NodesCoordinator interface {
 	LoadState(key []byte) error
 	GetSavedStateKey() []byte
 	ShardIdForEpoch(epoch uint32) (uint32, error)
+	ShuffleOutForEpoch(_ uint32)
 	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
 	ConsensusGroupSize(uint32) int
 	GetNumTotalEligible() uint64

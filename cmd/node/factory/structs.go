@@ -570,6 +570,7 @@ type processComponentsFactoryArgs struct {
 	maxSizeInBytes            uint32
 	maxRating                 uint32
 	validatorPubkeyConverter  state.PubkeyConverter
+	epoch                     uint32
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -604,6 +605,7 @@ func NewProcessComponentsFactoryArgs(
 	maxRating uint32,
 	validatorPubkeyConverter state.PubkeyConverter,
 	ratingsData process.RatingsInfoHandler,
+	epoch uint32,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -636,6 +638,7 @@ func NewProcessComponentsFactoryArgs(
 		maxSizeInBytes:            maxSizeInBytes,
 		maxRating:                 maxRating,
 		validatorPubkeyConverter:  validatorPubkeyConverter,
+		epoch:                     epoch,
 	}
 }
 
@@ -924,7 +927,7 @@ func newEpochStartTrigger(
 			DataPool:             args.data.Datapool,
 			Storage:              args.data.Store,
 			RequestHandler:       requestHandler,
-			Epoch:                0,
+			Epoch:                args.epoch,
 			EpochStartNotifier:   args.epochStartNotifier,
 			Validity:             process.MetaBlockValidity,
 			Finality:             process.BlockFinality,
@@ -946,7 +949,7 @@ func newEpochStartTrigger(
 		argEpochStart := &metachainEpochStart.ArgsNewMetaEpochStartTrigger{
 			GenesisTime:        time.Unix(args.nodesConfig.StartTime, 0),
 			Settings:           args.epochStart,
-			Epoch:              0,
+			Epoch:              args.epoch,
 			EpochStartNotifier: args.epochStartNotifier,
 			Storage:            args.data.Store,
 			Marshalizer:        args.coreData.InternalMarshalizer,

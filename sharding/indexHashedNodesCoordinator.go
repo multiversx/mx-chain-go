@@ -137,6 +137,18 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		log.Error("saving initial nodes coordinator config failed",
 			"error", err.Error())
 	}
+	log.Info("new nodes config is set for epoch", "epoch", arguments.Epoch)
+	currentNodesConfig := ihgs.nodesConfig[arguments.Epoch]
+	if currentNodesConfig == nil {
+		return nil, ErrEpochNodesConfigDoesNotExist
+	}
+
+	displayNodesConfiguration(
+		currentNodesConfig.eligibleMap,
+		currentNodesConfig.waitingMap,
+		currentNodesConfig.leavingList,
+		make([]Validator, 0),
+		currentNodesConfig.nbShards)
 
 	currentConfig := nodesConfig[arguments.Epoch]
 	if currentConfig == nil {
@@ -202,6 +214,7 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if !ok {
+		log.Warn("Did not find nodesConfig", "epoch", epoch)
 		nodesConfig = &epochNodesConfig{}
 	}
 
@@ -241,12 +254,10 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 		return err
 	}
 
-	shardIDForSelfPublicKey := ihgs.computeShardForSelfPublicKey(nodesConfig)
-	nodesConfig.shardID = shardIDForSelfPublicKey
 	ihgs.nodesConfig[epoch] = nodesConfig
 	ihgs.numTotalEligible = numTotalEligible
 
-	return ihgs.shuffledOutHandler.Process(shardIDForSelfPublicKey)
+	return nil
 }
 
 // ComputeLeaving - computes leaving validators
@@ -671,6 +682,18 @@ func (ihgs *indexHashedNodesCoordinator) ShardIdForEpoch(epoch uint32) (uint32, 
 	return nodesConfig.shardID, nil
 }
 
+// ShuffleOutForEpoch verifies if the shards changed in the new epoch and calls the shuffleOutHandler
+func (ihgs *indexHashedNodesCoordinator) ShuffleOutForEpoch(epoch uint32) {
+	ihgs.mutNodesConfig.Lock()
+	nodesConfig := ihgs.nodesConfig[epoch]
+	ihgs.mutNodesConfig.Unlock()
+
+	err := ihgs.shuffledOutHandler.Process(nodesConfig.shardID)
+	if err != nil {
+		log.Warn("Shuffle out process failed", "err", err)
+	}
+}
+
 // GetConsensusWhitelistedNodes return the whitelisted nodes allowed to send consensus messages, for each of the shards
 func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	epoch uint32,
@@ -758,8 +781,9 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 		for _, v := range validators {
 			if bytes.Equal(v.PubKey(), pubKey) {
 				log.Trace("computeShardForSelfPublicKey found validator in eligible",
+					"epoch", ihgs.currentEpoch,
 					"shard", shard,
-					"validator PK", v,
+					"validator PK", v.PubKey(),
 				)
 
 				return shard
@@ -771,8 +795,9 @@ func (ihgs *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfi
 		for _, v := range validators {
 			if bytes.Equal(v.PubKey(), pubKey) {
 				log.Trace("computeShardForSelfPublicKey found validator in waiting",
+					"epoch", ihgs.currentEpoch,
 					"shard", shard,
-					"validator PK", v,
+					"validator PK", v.PubKey(),
 				)
 
 				return shard
