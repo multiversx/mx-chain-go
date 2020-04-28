@@ -7,9 +7,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
 var log = logger.GetOrCreate("dataRetriever/headersCache")
+
+var _ dataRetriever.HeadersPool = (*headersPool)(nil)
 
 type headersPool struct {
 	cache                *headersCache

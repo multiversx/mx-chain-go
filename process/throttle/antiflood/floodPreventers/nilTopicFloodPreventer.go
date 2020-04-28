@@ -1,5 +1,9 @@
 package floodPreventers
 
+import "github.com/ElrondNetwork/elrond-go/process"
+
+var _ process.TopicFloodPreventer = (*nilTopicFloodPreventer)(nil)
+
 // nilTopicFloodPreventer is a nil (disabled) implementation of a flood preventer that will not count nor keep track
 // of the received messages on a topic
 type nilTopicFloodPreventer struct {

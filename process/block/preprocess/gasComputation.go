@@ -10,6 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.GasHandler = (*gasComputation)(nil)
+
 type gasComputation struct {
 	economicsFee   process.FeeHandler
 	gasConsumed    map[string]uint64

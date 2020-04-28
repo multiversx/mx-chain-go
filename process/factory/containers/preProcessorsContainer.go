@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.PreProcessorsContainer = (*preProcessorsContainer)(nil)
+
 // preProcessorsContainer is an PreProcessors holder organized by type
 type preProcessorsContainer struct {
 	objects *container.MutexMap

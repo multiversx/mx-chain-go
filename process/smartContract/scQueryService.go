@@ -12,6 +12,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+var _ process.SCQueryService = (*SCQueryService)(nil)
+
 // SCQueryService can execute Get functions over SC to fetch stored values
 type SCQueryService struct {
 	vmContainer  process.VirtualMachinesContainer

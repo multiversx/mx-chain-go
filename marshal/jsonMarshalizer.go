@@ -5,6 +5,8 @@ import (
 	"errors"
 )
 
+var _ Marshalizer = (*JsonMarshalizer)(nil)
+
 // JsonMarshalizer implements Marshalizer interface using JSON format
 type JsonMarshalizer struct {
 }

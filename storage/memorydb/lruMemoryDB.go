@@ -5,6 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
+var _ storage.Persister = (*lruDB)(nil)
+
 // lruDB represents the memory database storage. It holds a LRU of key value pairs
 // and a mutex to handle concurrent accesses to the map
 type lruDB struct {
