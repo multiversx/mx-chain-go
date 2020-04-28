@@ -169,3 +169,12 @@ func (ts *TrieStub) Database() data.DBWriteCacher {
 	}
 	return nil
 }
+
+// GetDirtyHashes -
+func (ts *TrieStub) GetDirtyHashes() (data.ModifiedHashes, error) {
+	return nil, nil
+}
+
+// AddNewHashes -
+func (ts *TrieStub) AddNewHashes(_ data.ModifiedHashes) {
+}

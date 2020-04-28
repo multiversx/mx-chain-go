@@ -33,6 +33,7 @@ type patriciaMerkleTrie struct {
 
 	oldHashes [][]byte
 	oldRoot   []byte
+	newHashes data.ModifiedHashes
 }
 
 // NewTrie creates a new Patricia Merkle Trie
@@ -57,6 +58,7 @@ func NewTrie(
 		hasher:      hsh,
 		oldHashes:   make([][]byte, 0),
 		oldRoot:     make([]byte, 0),
+		newHashes:   make(data.ModifiedHashes),
 	}, nil
 }
 
@@ -213,34 +215,31 @@ func (tr *patriciaMerkleTrie) Commit() error {
 
 func (tr *patriciaMerkleTrie) markForEviction() error {
 	newRoot := tr.root.getHash()
-	newHashes := make(data.ModifiedHashes)
-	err := tr.root.getDirtyHashes(newHashes)
-	if err != nil {
-		return err
-	}
 
 	oldHashes := make(data.ModifiedHashes)
 	for i := range tr.oldHashes {
 		oldHashes[hex.EncodeToString(tr.oldHashes[i])] = struct{}{}
 	}
 
-	removeDuplicatedKeys(oldHashes, newHashes)
+	removeDuplicatedKeys(oldHashes, tr.newHashes)
 
-	if len(newHashes) > 0 && len(newRoot) > 0 {
+	if len(tr.newHashes) > 0 && len(newRoot) > 0 {
 		newRoot = append(newRoot, byte(data.NewRoot))
-		err = tr.trieStorage.MarkForEviction(newRoot, newHashes)
+		err := tr.trieStorage.MarkForEviction(newRoot, tr.newHashes)
 		if err != nil {
 			return err
 		}
 
-		for key := range newHashes {
+		for key := range tr.newHashes {
 			log.Trace("MarkForEviction newHashes", "hash", key)
 		}
+
+		tr.newHashes = make(data.ModifiedHashes)
 	}
 
 	if len(tr.oldHashes) > 0 && len(tr.oldRoot) > 0 {
 		tr.oldRoot = append(tr.oldRoot, byte(data.OldRoot))
-		err = tr.trieStorage.MarkForEviction(tr.oldRoot, oldHashes)
+		err := tr.trieStorage.MarkForEviction(tr.oldRoot, oldHashes)
 		if err != nil {
 			return err
 		}
@@ -352,6 +351,31 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 	tr.mutOperation.Unlock()
 
 	return oldHashes
+}
+
+// GetDirtyHashes returns all the dirty hashes from the trie
+func (tr *patriciaMerkleTrie) GetDirtyHashes() (data.ModifiedHashes, error) {
+	if tr.root == nil {
+		return nil, nil
+	}
+
+	err := tr.root.setRootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	dirtyHashes := make(data.ModifiedHashes)
+	err = tr.root.getDirtyHashes(dirtyHashes)
+	if err != nil {
+		return nil, err
+	}
+
+	return dirtyHashes, nil
+}
+
+// AddNewHashes adds the given hashes to tr.newHashes
+func (tr *patriciaMerkleTrie) AddNewHashes(newHashes data.ModifiedHashes) {
+	tr.newHashes = newHashes
 }
 
 // SetCheckpoint adds the current state of the trie to the snapshot database
