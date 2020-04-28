@@ -153,6 +153,8 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 		return nil
 	}
 
+	hdrRes.ResolverDebugHandler().LogSucceededToResolveData(hdrRes.topic, rd.Value)
+
 	return hdrRes.Send(buff, message.Peer())
 }
 

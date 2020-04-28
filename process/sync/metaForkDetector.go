@@ -52,6 +52,8 @@ func NewMetaForkDetector(
 		baseForkDetector: bfd,
 	}
 
+	bfd.forkDetector = &mfd
+
 	return &mfd, nil
 }
 
@@ -82,4 +84,7 @@ func (mfd *metaForkDetector) doJobOnBHProcessed(
 	mfd.setFinalCheckpoint(mfd.lastCheckpoint())
 	mfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash})
 	mfd.removePastOrInvalidRecords()
+}
+
+func (mfd *metaForkDetector) computeFinalCheckpoint() {
 }

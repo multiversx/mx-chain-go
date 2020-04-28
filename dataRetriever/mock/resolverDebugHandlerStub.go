@@ -2,9 +2,17 @@ package mock
 
 // ResolverDebugHandler -
 type ResolverDebugHandler struct {
-	LogRequestedDataCalled       func(topic string, hash [][]byte, numReqIntra int, numReqCross int)
-	LogFailedToResolveDataCalled func(topic string, hash []byte, err error)
-	EnabledCalled                func() bool
+	LogRequestedDataCalled          func(topic string, hash [][]byte, numReqIntra int, numReqCross int)
+	LogFailedToResolveDataCalled    func(topic string, hash []byte, err error)
+	LogSucceededToResolveDataCalled func(topic string, hash []byte)
+	EnabledCalled                   func() bool
+}
+
+// LogSucceededToResolveData -
+func (rdh *ResolverDebugHandler) LogSucceededToResolveData(topic string, hash []byte) {
+	if rdh.LogSucceededToResolveDataCalled != nil {
+		rdh.LogSucceededToResolveDataCalled(topic, hash)
+	}
 }
 
 // LogRequestedData -

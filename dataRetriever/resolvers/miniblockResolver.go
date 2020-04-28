@@ -112,6 +112,8 @@ func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, f
 		err = fmt.Errorf("%w for hash %s", err, logger.DisplayByteSlice(rd.Value))
 	}
 
+	mbRes.ResolverDebugHandler().LogSucceededToResolveData(mbRes.topic, rd.Value)
+
 	return err
 }
 

@@ -2,6 +2,7 @@ package bls_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
@@ -311,19 +312,6 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 	assert.False(t, r)
 
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
-	for i := 0; i < len(sr.ConsensusGroup()); i++ {
-		if sr.ConsensusGroup()[i] != string(cnsMsg.PubKey) {
-			_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
-		}
-	}
-	r = sr.ReceivedSignature(cnsMsg)
-	assert.False(t, r)
-
-	for i := 0; i < len(sr.ConsensusGroup()); i++ {
-		if sr.ConsensusGroup()[i] != string(cnsMsg.PubKey) {
-			_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, false)
-		}
-	}
 
 	cnsMsg.PubKey = []byte("X")
 	r = sr.ReceivedSignature(cnsMsg)
@@ -407,6 +395,66 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenSignatu
 
 	sr := *initSubroundSignature()
 	assert.False(t, sr.DoSignatureConsensusCheck())
+}
+
+func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenNotAllSignaturesCollectedAndTimeIsNotOut(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	container.SetRounder(&mock.RounderMock{
+		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+			return 1
+		},
+	})
+	sr := *initSubroundSignatureWithContainer(container)
+
+	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+
+	for i := 0; i < sr.Threshold(bls.SrSignature); i++ {
+		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
+	}
+
+	assert.False(t, sr.DoSignatureConsensusCheck())
+}
+
+func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenAllSignaturesCollected(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	container.SetRounder(&mock.RounderMock{
+		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+			return 1
+		},
+	})
+	sr := *initSubroundSignatureWithContainer(container)
+
+	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+
+	for i := 0; i < sr.ConsensusGroupSize(); i++ {
+		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
+	}
+
+	assert.True(t, sr.DoSignatureConsensusCheck())
+}
+
+func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenEnoughButNotAllSignaturesCollectedAndTimeIsOut(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	container.SetRounder(&mock.RounderMock{
+		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+			return -1
+		},
+	})
+	sr := *initSubroundSignatureWithContainer(container)
+
+	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+
+	for i := 0; i < sr.Threshold(bls.SrSignature); i++ {
+		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
+	}
+
+	assert.True(t, sr.DoSignatureConsensusCheck())
 }
 
 func TestSubroundSignature_ReceivedSignatureReturnFalseWhenConsensusDataIsNotEqual(t *testing.T) {

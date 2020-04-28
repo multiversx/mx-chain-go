@@ -37,6 +37,8 @@ type SubroundHandler interface {
 	EndTime() int64
 	// Name returns the name of the current rounder
 	Name() string
+	// ConsensusChannel returns the consensus channel
+	ConsensusChannel() chan bool
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

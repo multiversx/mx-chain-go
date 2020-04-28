@@ -147,6 +147,8 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte) ([]byte, error) {
 		)
 	}
 
+	txRes.ResolverDebugHandler().LogSucceededToResolveData(txRes.topic, hash)
+
 	return buff, err
 }
 

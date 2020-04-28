@@ -195,6 +195,11 @@ func (sr *Subround) AppStatusHandler() core.AppStatusHandler {
 	return sr.appStatusHandler
 }
 
+// ConsensusChannel method returns the consensus channel
+func (sr *Subround) ConsensusChannel() chan bool {
+	return sr.consensusStateChangedChannel
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sr *Subround) IsInterfaceNil() bool {
 	return sr == nil

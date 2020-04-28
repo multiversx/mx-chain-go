@@ -56,6 +56,8 @@ func NewShardForkDetector(
 
 	sfd.blockTracker.RegisterSelfNotarizedHeadersHandler(sfd.ReceivedSelfNotarizedHeaders)
 
+	bfd.forkDetector = &sfd
+
 	return &sfd, nil
 }
 
@@ -129,7 +131,7 @@ func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 		})
 		if appended {
 			log.Debug("added self notarized header in fork detector",
-				"shard", shardID,
+				"notarized by shard", shardID,
 				"round", selfNotarizedHeaders[i].GetRound(),
 				"nonce", selfNotarizedHeaders[i].GetNonce(),
 				"hash", selfNotarizedHeadersHashes[i])
@@ -142,7 +144,8 @@ func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 }
 
 func (sfd *shardForkDetector) computeFinalCheckpoint() {
-	finalCheckpoint := sfd.finalCheckpoint()
+	finalCheckpoint := &checkpointInfo{}
+	finalCheckpointWasSet := false
 
 	sfd.mutHeaders.RLock()
 	for nonce, headersInfo := range sfd.headers {
@@ -166,10 +169,14 @@ func (sfd *shardForkDetector) computeFinalCheckpoint() {
 			round: headersInfo[indexBHNotarized].round,
 			hash:  headersInfo[indexBHNotarized].hash,
 		}
+
+		finalCheckpointWasSet = true
 	}
 	sfd.mutHeaders.RUnlock()
 
-	sfd.setFinalCheckpoint(finalCheckpoint)
+	if finalCheckpointWasSet {
+		sfd.setFinalCheckpoint(finalCheckpoint)
+	}
 }
 
 func (sfd *shardForkDetector) getProcessedAndNotarizedIndexes(headersInfo []*headerInfo) (int, int) {

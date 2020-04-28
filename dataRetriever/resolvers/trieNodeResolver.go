@@ -134,6 +134,8 @@ func (tnRes *TrieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([
 		return nil, remainingSpace, err
 	}
 
+	tnRes.ResolverDebugHandler().LogSucceededToResolveData(tnRes.topic, hash)
+
 	return serializedNodes, remainingSpace, nil
 }
 
