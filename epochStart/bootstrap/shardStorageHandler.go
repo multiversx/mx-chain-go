@@ -97,6 +97,7 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
+	components.NodesConfig.CurrentEpoch = components.ShardHeader.Epoch
 	nodesCoordinatorConfigKey, err := ssh.saveNodesCoordinatorRegistry(components.EpochStartMetaBlock, components.NodesConfig)
 	if err != nil {
 		return err
@@ -321,12 +322,14 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 
 	triggerReg := shardchain.TriggerRegistry{
 		Epoch:                       shardHeader.Epoch,
+		MetaEpoch:                   metaBlock.Epoch,
 		CurrentRoundIndex:           int64(shardHeader.Round),
 		EpochStartRound:             shardHeader.Round,
 		EpochMetaBlockHash:          metaBlockHash,
-		IsEpochStart:                false,
-		NewEpochHeaderReceived:      false,
+		IsEpochStart:                true,
+		NewEpochHeaderReceived:      true,
 		EpochFinalityAttestingRound: 0,
+		EpochStartShardHeader:       &block.Header{},
 	}
 
 	bootstrapKey := []byte(fmt.Sprint(shardHeader.Round))
