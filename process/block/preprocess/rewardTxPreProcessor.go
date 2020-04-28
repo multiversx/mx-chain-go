@@ -18,6 +18,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ process.DataMarshalizer = (*rewardTxPreprocessor)(nil)
+var _ process.PreProcessor = (*rewardTxPreprocessor)(nil)
+
 type rewardTxPreprocessor struct {
 	*basePreProcess
 	chReceivedAllRewardTxs chan bool

@@ -8,6 +8,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.RewardsHandler = (*EconomicsData)(nil)
+var _ process.ValidatorSettingsHandler = (*EconomicsData)(nil)
+var _ process.FeeHandler = (*EconomicsData)(nil)
+
 // EconomicsData will store information about economics
 type EconomicsData struct {
 	leaderPercentage         float64

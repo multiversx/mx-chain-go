@@ -5,7 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+var _ storage.Persister = (*DB)(nil)
 
 // DB represents the memory database storage. It holds a map of key value pairs
 // and a mutex to handle concurrent accesses to the map

@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 )
 
+var _ process.BootstrapperFromStorage = (*metaStorageBootstrapper)(nil)
+
 type metaStorageBootstrapper struct {
 	*storageBootstrapper
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler

@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.IntermediateTransactionHandler = (*oneMBPostProcessor)(nil)
+
 type oneMBPostProcessor struct {
 	blockType block.Type
 	*basePostProcessor

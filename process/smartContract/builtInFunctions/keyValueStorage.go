@@ -11,6 +11,8 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+var _ process.BuiltinFunction = (*saveKeyValueStorage)(nil)
+
 type saveKeyValueStorage struct {
 	gasConfig   BaseOperationCost
 	funcGasCost uint64

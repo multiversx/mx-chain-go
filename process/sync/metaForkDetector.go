@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.ForkDetector = (*metaForkDetector)(nil)
+
 // metaForkDetector implements the meta fork detector mechanism
 type metaForkDetector struct {
 	*baseForkDetector

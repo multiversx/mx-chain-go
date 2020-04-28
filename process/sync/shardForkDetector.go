@@ -11,6 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.ForkDetector = (*shardForkDetector)(nil)
+
 // shardForkDetector implements the shard fork detector mechanism
 type shardForkDetector struct {
 	*baseForkDetector
