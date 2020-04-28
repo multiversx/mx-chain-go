@@ -56,15 +56,15 @@ VERSION:
 	// keyType defines a flag for setting what keys should generate
 	keyType = cli.StringFlag{
 		Name:        "key-type",
-		Usage:       "What king of keys should generate. Available options: block, tx, both",
-		Value:       "both",
+		Usage:       "What king of keys should generate. Available options: validator, wallet, both",
+		Value:       "validator",
 		Destination: &argsConfig.keyType,
 	}
 
 	argsConfig = &cfg{}
 
-	initialBalancesSkFileName = "initialBalancesSk.pem"
-	initialNodesSkFileName    = "initialNodesSk.pem"
+	walletKeyFileName    = "walletKey.pem"
+	validatorKeyFileName = "validatorKey.pem"
 
 	log = logger.GetOrCreate("keygenerator")
 )
@@ -74,7 +74,7 @@ func main() {
 	cli.AppHelpTemplate = fileGenHelpTemplate
 	app.Name = "Key generation Tool"
 	app.Version = "v1.0.0"
-	app.Usage = "This binary will generate a initialBalancesSk.pem and initialNodesSk.pem, each containing one private key"
+	app.Usage = "This binary will generate a validatorKey.pem and walletKey.pem, each containing private key(s)"
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -156,9 +156,9 @@ func generateAllFiles() error {
 
 func generateOneSetOfFiles(index int, numKeys int) error {
 	switch argsConfig.keyType {
-	case "block":
+	case "validator":
 		return generateBlockKey(index, numKeys)
-	case "tx":
+	case "wallet":
 		return generateTxKey(index, numKeys)
 	case "both":
 		err := generateBlockKey(index, numKeys)
@@ -185,7 +185,7 @@ func generateBlockKey(index int, numKeys int) error {
 
 	genForBlockSigningSk := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 
-	return generateAndSave(index, numKeys, initialNodesSkFileName, genForBlockSigningSk, pubkeyConverter)
+	return generateAndSave(index, numKeys, validatorKeyFileName, genForBlockSigningSk, pubkeyConverter)
 }
 
 func generateTxKey(index int, numKeys int) error {
@@ -201,7 +201,7 @@ func generateTxKey(index int, numKeys int) error {
 
 	genForBlockSigningSk := signing.NewKeyGenerator(ed25519.NewEd25519())
 
-	return generateAndSave(index, numKeys, initialBalancesSkFileName, genForBlockSigningSk, pubkeyConverter)
+	return generateAndSave(index, numKeys, walletKeyFileName, genForBlockSigningSk, pubkeyConverter)
 }
 
 func generateAndSave(index int, numKeys int, baseFilename string, genForBlockSigningSk crypto.KeyGenerator, pubkeyConverter state.PubkeyConverter) error {

@@ -521,6 +521,7 @@ func CreateGenesisMetaBlock(
 		ValidatorStatsRootHash:   rootHash,
 		GasMap:                   gasSchedule,
 		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
+		VirtualMachineConfig:     config.VirtualMachineConfig{},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

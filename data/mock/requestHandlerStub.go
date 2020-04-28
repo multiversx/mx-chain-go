@@ -13,7 +13,7 @@ type RequestHandlerStub struct {
 	RequestRewardTxHandlerCalled       func(destShardID uint32, txHashes [][]byte)
 	RequestMiniBlockHandlerCalled      func(destShardID uint32, miniblockHash []byte)
 	RequestMiniBlocksHandlerCalled     func(destShardID uint32, miniblocksHashes [][]byte)
-	RequestTrieNodesCalled             func(destShardID uint32, hash []byte, topic string)
+	RequestTrieNodesCalled             func(destShardID uint32, hashes [][]byte, topic string)
 	RequestStartOfEpochMetaBlockCalled func(epoch uint32)
 }
 
@@ -107,11 +107,11 @@ func (rhs *RequestHandlerStub) RequestMiniBlocks(destShardID uint32, miniblocksH
 }
 
 // RequestTrieNodes -
-func (rhs *RequestHandlerStub) RequestTrieNodes(destShardID uint32, miniblockHash []byte, topic string) {
+func (rhs *RequestHandlerStub) RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string) {
 	if rhs.RequestTrieNodesCalled == nil {
 		return
 	}
-	rhs.RequestTrieNodesCalled(destShardID, miniblockHash, topic)
+	rhs.RequestTrieNodesCalled(destShardID, hashes, topic)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

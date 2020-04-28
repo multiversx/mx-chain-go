@@ -22,7 +22,7 @@ type TrieStub struct {
 	AppendToOldHashesCalled  func([][]byte)
 	TakeSnapshotCalled       func(rootHash []byte)
 	SetCheckpointCalled      func(rootHash []byte)
-	GetSerializedNodesCalled func([]byte, uint64) ([][]byte, error)
+	GetSerializedNodesCalled func([]byte, uint64) ([][]byte, uint64, error)
 	DatabaseCalled           func() data.DBWriteCacher
 	GetAllLeavesCalled       func() (map[string][]byte, error)
 	IsPruningEnabledCalled   func() bool
@@ -164,11 +164,11 @@ func (ts *TrieStub) SetCheckpoint(rootHash []byte) {
 }
 
 // GetSerializedNodes -
-func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]byte, error) {
+func (ts *TrieStub) GetSerializedNodes(hash []byte, maxBuffToSend uint64) ([][]byte, uint64, error) {
 	if ts.GetSerializedNodesCalled != nil {
 		return ts.GetSerializedNodesCalled(hash, maxBuffToSend)
 	}
-	return nil, nil
+	return nil, 0, nil
 }
 
 // Database -

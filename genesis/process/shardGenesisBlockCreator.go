@@ -1,15 +1,28 @@
 package process
 
 import (
+	"errors"
 	"fmt"
+	"math"
 	"math/big"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
+	"github.com/ElrondNetwork/elrond-go/process/coordinator"
+	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("genesis/process")
@@ -73,10 +86,10 @@ func setBalancesToTrie(arg ArgsGenesisBlockCreator) (rootHash []byte, err error)
 	return rootHash, nil
 }
 
-func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt *genesis.InitialAccount) error {
-	addr, err := arg.PubkeyConv.CreateAddressFromBytes(accnt.AddressBytes)
+func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountHandler) error {
+	addr, err := arg.PubkeyConv.CreateAddressFromBytes(accnt.AddressBytes())
 	if err != nil {
-		return fmt.Errorf("%w for address %s", err, accnt.Address)
+		return fmt.Errorf("%w for address %s", err, accnt.GetAddress())
 	}
 
 	accWrp, err := arg.Accounts.LoadAccount(addr)
@@ -89,10 +102,204 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt *genesis.InitialAccount
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = account.AddToBalance(accnt.Balance)
+	err = account.AddToBalance(accnt.GetBalanceValue())
 	if err != nil {
 		return err
 	}
 
 	return arg.Accounts.SaveAccount(account)
+}
+
+func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, error) {
+	argsParser := vmcommon.NewAtArgumentParser()
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasMap:          arg.GasMap,
+		MapDNSAddresses: make(map[string]struct{}),
+	}
+	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	if err != nil {
+		return nil, err
+	}
+
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:         arg.Accounts,
+		PubkeyConv:       arg.PubkeyConv,
+		StorageService:   arg.Store,
+		BlockChain:       arg.Blkc,
+		ShardCoordinator: arg.ShardCoordinator,
+		Marshalizer:      arg.Marshalizer,
+		Uint64Converter:  arg.Uint64ByteSliceConverter,
+		BuiltInFunctions: builtInFuncs,
+	}
+	vmFactory, err := shard.NewVMContainerFactory(
+		arg.VirtualMachineConfig,
+		math.MaxUint64,
+		arg.GasMap,
+		argsHook,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	vmContainer, err := vmFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
+		arg.ShardCoordinator,
+		arg.Marshalizer,
+		arg.Hasher,
+		arg.PubkeyConv,
+		arg.Store,
+		arg.DataPool,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	interimProcContainer, err := interimProcFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	scForwarder, err := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	receiptTxInterim, err := interimProcContainer.Get(dataBlock.ReceiptBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	badTxInterim, err := interimProcContainer.Get(dataBlock.InvalidBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	gasHandler, err := preprocess.NewGasComputation(arg.Economics)
+	if err != nil {
+		return nil, err
+	}
+
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		PubkeyConverter:  arg.PubkeyConv,
+		ShardCoordinator: arg.ShardCoordinator,
+		BuiltInFuncNames: builtInFuncs.Keys(),
+		ArgumentParser:   vmcommon.NewAtArgumentParser(),
+	}
+	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	genesisFeeHandler := &disabled.FeeHandler{}
+	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
+		VmContainer:      vmContainer,
+		ArgsParser:       argsParser,
+		Hasher:           arg.Hasher,
+		Marshalizer:      arg.Marshalizer,
+		AccountsDB:       arg.Accounts,
+		TempAccounts:     vmFactory.BlockChainHookImpl(),
+		PubkeyConv:       arg.PubkeyConv,
+		Coordinator:      arg.ShardCoordinator,
+		ScrForwarder:     scForwarder,
+		TxFeeHandler:     genesisFeeHandler,
+		EconomicsFee:     genesisFeeHandler,
+		TxTypeHandler:    txTypeHandler,
+		GasHandler:       gasHandler,
+		BuiltInFunctions: vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
+		TxLogsProcessor:  arg.TxLogsProcessor,
+	}
+	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
+	if err != nil {
+		return nil, err
+	}
+
+	rewardsTxProcessor, err := rewardTransaction.NewRewardTxProcessor(
+		arg.Accounts,
+		arg.PubkeyConv,
+		arg.ShardCoordinator,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	transactionProcessor, err := transaction.NewTxProcessor(
+		arg.Accounts,
+		arg.Hasher,
+		arg.PubkeyConv,
+		arg.Marshalizer,
+		arg.ShardCoordinator,
+		scProcessor,
+		genesisFeeHandler,
+		txTypeHandler,
+		arg.Economics,
+		receiptTxInterim,
+		badTxInterim,
+	)
+	if err != nil {
+		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
+	}
+
+	disabledRequestHandler := &disabled.RequestHandler{}
+	disabledBlockTracker := &disabled.BlockTracker{}
+	disabledBlockSizeComputationHandler := &disabled.BlockSizeComputationHandler{}
+	disabledBalanceComputationHandler := &disabled.BalanceComputationHandler{}
+
+	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
+		arg.ShardCoordinator,
+		arg.Store,
+		arg.Marshalizer,
+		arg.Hasher,
+		arg.DataPool,
+		arg.PubkeyConv,
+		arg.Accounts,
+		disabledRequestHandler,
+		transactionProcessor,
+		scProcessor,
+		scProcessor,
+		rewardsTxProcessor,
+		arg.Economics,
+		gasHandler,
+		disabledBlockTracker,
+		disabledBlockSizeComputationHandler,
+		disabledBalanceComputationHandler,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	preProcContainer, err := preProcFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	txCoordinator, err := coordinator.NewTransactionCoordinator(
+		arg.Hasher,
+		arg.Marshalizer,
+		arg.ShardCoordinator,
+		arg.Accounts,
+		arg.DataPool.MiniBlocks(),
+		disabledRequestHandler,
+		preProcContainer,
+		interimProcContainer,
+		gasHandler,
+		genesisFeeHandler,
+		disabledBlockSizeComputationHandler,
+		disabledBalanceComputationHandler,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &genesisProcessors{
+		txCoordinator: txCoordinator,
+		systemSCs:     nil,
+		txProcessor:   transactionProcessor,
+		scProcessor:   scProcessor,
+		scrProcessor:  scProcessor,
+		rwdProcessor:  rewardsTxProcessor,
+	}, nil
 }

@@ -29,19 +29,20 @@ const timeSpanForBadHeaders = time.Minute
 type ArgsEpochStartInterceptorContainer struct {
 	Config            config.Config
 	ShardCoordinator  sharding.Coordinator
-	TxSignMarshalizer marshal.Marshalizer
-	ProtoMarshalizer  marshal.Marshalizer
-	Hasher            hashing.Hasher
-	Messenger         process.TopicHandler
-	DataPool          dataRetriever.PoolsHolder
-	SingleSigner      crypto.SingleSigner
-	BlockSingleSigner crypto.SingleSigner
-	KeyGen            crypto.KeyGenerator
-	BlockKeyGen       crypto.KeyGenerator
-	WhiteListHandler  update.WhiteListHandler
-	AddressPubkeyConv state.PubkeyConverter
-	ChainID           []byte
-	NonceConverter    typeConverters.Uint64ByteSliceConverter
+	TxSignMarshalizer      marshal.Marshalizer
+	ProtoMarshalizer       marshal.Marshalizer
+	Hasher                 hashing.Hasher
+	Messenger              process.TopicHandler
+	DataPool               dataRetriever.PoolsHolder
+	SingleSigner           crypto.SingleSigner
+	BlockSingleSigner      crypto.SingleSigner
+	KeyGen                 crypto.KeyGenerator
+	BlockKeyGen            crypto.KeyGenerator
+	WhiteListHandler       update.WhiteListHandler
+	WhiteListerVerifiedTxs update.WhiteListHandler
+	AddressPubkeyConv      state.PubkeyConverter
+	ChainID                []byte
+	NonceConverter         typeConverters.Uint64ByteSliceConverter
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but will many disabled
@@ -56,7 +57,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		return nil, epochStart.ErrNilPubkeyConverter
 	}
 	blackListHandler := timecache.NewTimeCache(timeSpanForBadHeaders)
-	feeHandler := &disabledGenesis.DisabledFeeHandler{}
+	feeHandler := &disabledGenesis.FeeHandler{}
 	headerSigVerifier := disabled.NewHeaderSigVerifier()
 	sizeCheckDelta := 0
 	validityAttester := disabled.NewValidityAttester()
@@ -87,6 +88,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		ValidityAttester:       validityAttester,
 		EpochStartTrigger:      epochStartTrigger,
 		WhiteListHandler:       args.WhiteListHandler,
+		WhiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 		AntifloodHandler:       antiFloodHandler,
 		NonceConverter:         args.NonceConverter,
 	}

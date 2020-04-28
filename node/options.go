@@ -607,14 +607,27 @@ func WithHardforkTrigger(hardforkTrigger HardforkTrigger) Option {
 	}
 }
 
-// WithWhiteListHanlder sets up a white list handler option
-func WithWhiteListHanlder(whiteListHandler process.WhiteListHandler) Option {
+// WithWhiteListHandler sets up a white list handler option
+func WithWhiteListHandler(whiteListHandler process.WhiteListHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(whiteListHandler) {
 			return ErrNilWhiteListHandler
 		}
 
-		n.whiteListHandler = whiteListHandler
+		n.whiteListRequest = whiteListHandler
+
+		return nil
+	}
+}
+
+// WithWhiteListHandlerVerified sets up a white list handler option
+func WithWhiteListHandlerVerified(whiteListHandler process.WhiteListHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(whiteListHandler) {
+			return ErrNilWhiteListHandler
+		}
+
+		n.whiteListerVerifiedTxs = whiteListHandler
 
 		return nil
 	}
