@@ -234,6 +234,13 @@ VERSION:
 		Value: "",
 	}
 
+	// identityFlagName defines the keybase's identity. If set, will override the identity from prefs.toml
+	identityFlagName = cli.StringFlag{
+		Name:  "keybase-identity",
+		Usage: "The keybase's identity. If set, will override the one set in the preferences TOML file.",
+		Value: "",
+	}
+
 	//useLogView is used when termui interface is not needed.
 	useLogView = cli.BoolFlag{
 		Name: "use-log-view",
@@ -378,6 +385,7 @@ func main() {
 		storageCleanup,
 		gopsEn,
 		nodeDisplayName,
+		identityFlagName,
 		restApiInterface,
 		restApiDebug,
 		disableAnsiColor,
@@ -594,6 +602,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	if ctx.IsSet(nodeDisplayName.Name) {
 		preferencesConfig.Preferences.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
+	}
+
+	if ctx.IsSet(identityFlagName.Name) {
+		preferencesConfig.Preferences.Identity = ctx.GlobalString(identityFlagName.Name)
 	}
 
 	err = cleanupStorageIfNecessary(workingDir, ctx, log)
@@ -1775,7 +1787,7 @@ func createNode(
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
-	err = nd.StartHeartbeat(config.Heartbeat, version, preferencesConfig.Preferences.NodeDisplayName)
+	err = nd.StartHeartbeat(config.Heartbeat, version, preferencesConfig.Preferences)
 	if err != nil {
 		return nil, err
 	}
