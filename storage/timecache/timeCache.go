@@ -4,8 +4,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+var _ dataRetriever.RequestedItemsHandler = (*TimeCache)(nil)
+var _ p2p.BlacklistHandler = (*TimeCache)(nil)
 
 // TimeCache can retain an amount of string keys for a defined period of time
 // sweeping (clean-up) is triggered each time a new item is added or a key is present in the time cache

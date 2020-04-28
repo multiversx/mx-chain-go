@@ -54,6 +54,8 @@ var maxSendBuffSize = (1 << 20) - messageHeader
 
 var log = logger.GetOrCreate("p2p/libp2p")
 
+var _ p2p.Messenger = (*networkMessenger)(nil)
+
 //TODO refactor this struct to have be a wrapper (with logic) over a glue code
 type networkMessenger struct {
 	ctx     context.Context

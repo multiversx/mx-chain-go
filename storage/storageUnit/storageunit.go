@@ -20,6 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 )
 
+var _ storage.Storer = (*Unit)(nil)
+
 // CacheType represents the type of the supported caches
 type CacheType string
 

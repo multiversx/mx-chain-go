@@ -14,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
+var _ consensus.ChronologyHandler = (*chronology)(nil)
+
 var log = logger.GetOrCreate("consensus/chronology")
 
 // srBeforeStartRound defines the state which exist before the start of the round

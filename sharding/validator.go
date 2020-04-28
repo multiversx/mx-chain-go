@@ -1,5 +1,7 @@
 package sharding
 
+var _ Validator = (*validator)(nil)
+
 type validator struct {
 	pubKey  []byte
 	chances uint32

@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.DataMarshalizer = (*basePostProcessor)(nil)
+
 type txShardInfo struct {
 	senderShardID   uint32
 	receiverShardID uint32

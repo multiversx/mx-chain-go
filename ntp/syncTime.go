@@ -15,6 +15,8 @@ import (
 	"github.com/beevik/ntp"
 )
 
+var _ SyncTimer = (*syncTime)(nil)
+
 var log = logger.GetOrCreate("ntp")
 
 // numRequestsFromHost represents the number of requests to be done from each host

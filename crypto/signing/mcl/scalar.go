@@ -8,6 +8,8 @@ import (
 	"github.com/herumi/bls-go-binary/bls"
 )
 
+var _ crypto.Scalar = (*Scalar)(nil)
+
 // Scalar -
 type Scalar struct {
 	Scalar *bls.Fr

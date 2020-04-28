@@ -1,5 +1,10 @@
 package discovery
 
+import "github.com/ElrondNetwork/elrond-go/p2p"
+
+var _ p2p.PeerDiscoverer = (*NilDiscoverer)(nil)
+var _ p2p.Reconnecter = (*NilDiscoverer)(nil)
+
 const nilName = "no peer discovery"
 
 // NilDiscoverer is the non-functional peer discoverer aimed to be used when peer discovery options are all disabled

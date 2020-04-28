@@ -4,8 +4,11 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	lru "github.com/hashicorp/golang-lru"
 )
+
+var _ storage.Cacher = (*LRUCache)(nil)
 
 var log = logger.GetOrCreate("storage/lrucache")
 

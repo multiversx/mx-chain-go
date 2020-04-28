@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ process.InterceptorProcessor = (*TrieNodeInterceptorProcessor)(nil)
+
 // TrieNodeInterceptorProcessor is the processor used when intercepting trie nodes
 type TrieNodeInterceptorProcessor struct {
 	interceptedNodes storage.Cacher

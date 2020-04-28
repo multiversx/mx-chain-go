@@ -11,6 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.InterceptedDataFactory = (*interceptedTxDataFactory)(nil)
+
 type interceptedTxDataFactory struct {
 	protoMarshalizer       marshal.Marshalizer
 	signMarshalizer        marshal.Marshalizer
