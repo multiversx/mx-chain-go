@@ -51,7 +51,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 		return nil, input.GasProvided, process.ErrInvalidArguments
 	}
 
-	gasRemaining := uint64(0)
+	gasRemaining := input.GasProvided
 	esdtTokenKey := append([]byte(esdtKeyPrefix), input.Arguments[0]...)
 	value := big.NewInt(0).SetBytes(input.Arguments[1])
 
