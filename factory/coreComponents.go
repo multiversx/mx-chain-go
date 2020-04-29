@@ -4,31 +4,24 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	factoryHasher "github.com/ElrondNetwork/elrond-go/hashing/factory"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	factoryMarshalizer "github.com/ElrondNetwork/elrond-go/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
 type CoreComponentsFactoryArgs struct {
-	Config      *config.Config
-	PathManager storage.PathManagerHandler
-	ShardId     string
-	ChainID     []byte
+	Config  *config.Config
+	ShardId string
+	ChainID []byte
 }
 
 // CoreComponentsFactory is responsible for creating the core components
 type CoreComponentsFactory struct {
 	config      *config.Config
-	pathManager storage.PathManagerHandler
 	shardId     string
 	chainID     []byte
 	marshalizer marshal.Marshalizer
@@ -40,14 +33,10 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*CoreComponentsFa
 	if args.Config == nil {
 		return nil, ErrNilConfiguration
 	}
-	if check.IfNil(args.PathManager) {
-		return nil, ErrNilPathManager
-	}
 	return &CoreComponentsFactory{
-		config:      args.Config,
-		pathManager: args.PathManager,
-		shardId:     args.ShardId,
-		chainID:     args.ChainID,
+		config:  args.Config,
+		shardId: args.ShardId,
+		chainID: args.ChainID,
 	}, nil
 }
 
@@ -75,58 +64,13 @@ func (ccf *CoreComponentsFactory) Create() (*CoreComponents, error) {
 
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
-	trieStorageManagers, trieContainer, err := ccf.createTries(internalMarshalizer, hasher)
-
-	if err != nil {
-		return nil, err
-	}
-
 	return &CoreComponents{
 		Hasher:                   hasher,
 		InternalMarshalizer:      internalMarshalizer,
 		VmMarshalizer:            vmMarshalizer,
 		TxSignMarshalizer:        txSignMarshalizer,
-		TriesContainer:           trieContainer,
-		TrieStorageManagers:      trieStorageManagers,
 		Uint64ByteSliceConverter: uint64ByteSliceConverter,
 		StatusHandler:            statusHandler.NewNilStatusHandler(),
 		ChainID:                  ccf.chainID,
 	}, nil
-}
-
-func (ccf *CoreComponentsFactory) createTries(
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-) (map[string]data.StorageManager, state.TriesHolder, error) {
-	trieContainer := state.NewDataTriesHolder()
-	trieFactoryArgs := factory.TrieFactoryArgs{
-		EvictionWaitingListCfg:   ccf.config.EvictionWaitingList,
-		SnapshotDbCfg:            ccf.config.TrieSnapshotDB,
-		Marshalizer:              marshalizer,
-		Hasher:                   hasher,
-		PathManager:              ccf.pathManager,
-		ShardId:                  ccf.shardId,
-		TrieStorageManagerConfig: ccf.config.TrieStorageManagerConfig,
-	}
-	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	trieStorageManagers := make(map[string]data.StorageManager)
-	userStorageManager, userAccountTrie, err := trieFactory.Create(ccf.config.AccountsTrieStorage, ccf.config.StateTriesConfig.AccountsStatePruningEnabled)
-	if err != nil {
-		return nil, nil, err
-	}
-	trieContainer.Put([]byte(factory.UserAccountTrie), userAccountTrie)
-	trieStorageManagers[factory.UserAccountTrie] = userStorageManager
-
-	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(ccf.config.PeerAccountsTrieStorage, ccf.config.StateTriesConfig.PeerStatePruningEnabled)
-	if err != nil {
-		return nil, nil, err
-	}
-	trieContainer.Put([]byte(factory.PeerAccountTrie), peerAccountsTrie)
-	trieStorageManagers[factory.PeerAccountTrie] = peerStorageManager
-
-	return trieStorageManagers, trieContainer, nil
 }

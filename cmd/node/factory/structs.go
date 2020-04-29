@@ -115,6 +115,7 @@ type processComponentsFactoryArgs struct {
 	crypto                    *mainFactory.CryptoComponents
 	state                     *mainFactory.StateComponents
 	network                   *mainFactory.NetworkComponents
+	tries                     *mainFactory.TriesComponents
 	coreServiceContainer      serviceContainer.Core
 	requestedItemsHandler     dataRetriever.RequestedItemsHandler
 	whiteListHandler          process.WhiteListHandler
@@ -149,6 +150,7 @@ func NewProcessComponentsFactoryArgs(
 	crypto *mainFactory.CryptoComponents,
 	state *mainFactory.StateComponents,
 	network *mainFactory.NetworkComponents,
+	tries *mainFactory.TriesComponents,
 	coreServiceContainer serviceContainer.Core,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	whiteListHandler process.WhiteListHandler,
@@ -181,6 +183,7 @@ func NewProcessComponentsFactoryArgs(
 		crypto:                    crypto,
 		state:                     state,
 		network:                   network,
+		tries:                     tries,
 		coreServiceContainer:      coreServiceContainer,
 		requestedItemsHandler:     requestedItemsHandler,
 		whiteListHandler:          whiteListHandler,
@@ -221,6 +224,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.data,
 		args.coreData,
 		args.network,
+		args.tries,
 		args.sizeCheckDelta,
 		args.numConcurrentResolverJobs,
 	)
@@ -606,6 +610,7 @@ func newResolverContainerFactory(
 	data *mainFactory.DataComponents,
 	coreData *mainFactory.CoreComponents,
 	network *mainFactory.NetworkComponents,
+	tries *mainFactory.TriesComponents,
 	sizeCheckDelta uint32,
 	numConcurrentResolverJobs int32,
 ) (dataRetriever.ResolversContainerFactory, error) {
@@ -616,6 +621,7 @@ func newResolverContainerFactory(
 			data,
 			coreData,
 			network,
+			tries,
 			sizeCheckDelta,
 			numConcurrentResolverJobs,
 		)
@@ -626,6 +632,7 @@ func newResolverContainerFactory(
 			data,
 			coreData,
 			network,
+			tries,
 			sizeCheckDelta,
 			numConcurrentResolverJobs,
 		)
@@ -747,6 +754,7 @@ func newShardResolverContainerFactory(
 	data *mainFactory.DataComponents,
 	core *mainFactory.CoreComponents,
 	network *mainFactory.NetworkComponents,
+	tries *mainFactory.TriesComponents,
 	sizeCheckDelta uint32,
 	numConcurrentResolverJobs int32,
 ) (dataRetriever.ResolversContainerFactory, error) {
@@ -764,7 +772,7 @@ func newShardResolverContainerFactory(
 		DataPools:                  data.Datapool,
 		Uint64ByteSliceConverter:   core.Uint64ByteSliceConverter,
 		DataPacker:                 dataPacker,
-		TriesContainer:             core.TriesContainer,
+		TriesContainer:             tries.TriesContainer,
 		SizeCheckDelta:             sizeCheckDelta,
 		InputAntifloodHandler:      network.InputAntifloodHandler,
 		OutputAntifloodHandler:     network.OutputAntifloodHandler,
@@ -783,6 +791,7 @@ func newMetaResolverContainerFactory(
 	data *mainFactory.DataComponents,
 	core *mainFactory.CoreComponents,
 	network *mainFactory.NetworkComponents,
+	tries *mainFactory.TriesComponents,
 	sizeCheckDelta uint32,
 	numConcurrentResolverJobs int32,
 ) (dataRetriever.ResolversContainerFactory, error) {
@@ -799,7 +808,7 @@ func newMetaResolverContainerFactory(
 		DataPools:                  data.Datapool,
 		Uint64ByteSliceConverter:   core.Uint64ByteSliceConverter,
 		DataPacker:                 dataPacker,
-		TriesContainer:             core.TriesContainer,
+		TriesContainer:             tries.TriesContainer,
 		SizeCheckDelta:             sizeCheckDelta,
 		InputAntifloodHandler:      network.InputAntifloodHandler,
 		OutputAntifloodHandler:     network.OutputAntifloodHandler,

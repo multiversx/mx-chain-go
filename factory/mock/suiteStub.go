@@ -7,8 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
-// SuiteMock -
-type SuiteMock struct {
+// SuiteStub -
+type SuiteStub struct {
 	StringStub               func() string
 	ScalarLenStub            func() int
 	CreateScalarStub         func() crypto.Scalar
@@ -21,7 +21,7 @@ type SuiteMock struct {
 }
 
 // String -
-func (s *SuiteMock) String() string {
+func (s *SuiteStub) String() string {
 	if s.StringStub != nil {
 		return s.StringStub()
 	}
@@ -29,7 +29,7 @@ func (s *SuiteMock) String() string {
 }
 
 // ScalarLen -
-func (s *SuiteMock) ScalarLen() int {
+func (s *SuiteStub) ScalarLen() int {
 	if s.ScalarLenStub != nil {
 		return s.ScalarLenStub()
 	}
@@ -38,7 +38,7 @@ func (s *SuiteMock) ScalarLen() int {
 }
 
 // CreateScalar -
-func (s *SuiteMock) CreateScalar() crypto.Scalar {
+func (s *SuiteStub) CreateScalar() crypto.Scalar {
 	if s.CreateScalarStub != nil {
 		return s.CreateScalarStub()
 	}
@@ -46,7 +46,7 @@ func (s *SuiteMock) CreateScalar() crypto.Scalar {
 }
 
 // PointLen -
-func (s *SuiteMock) PointLen() int {
+func (s *SuiteStub) PointLen() int {
 	if s.PointLenStub != nil {
 		return s.PointLenStub()
 	}
@@ -54,7 +54,7 @@ func (s *SuiteMock) PointLen() int {
 }
 
 // CreatePoint -
-func (s *SuiteMock) CreatePoint() crypto.Point {
+func (s *SuiteStub) CreatePoint() crypto.Point {
 	if s.CreatePointStub != nil {
 		return s.CreatePointStub()
 	}
@@ -62,7 +62,7 @@ func (s *SuiteMock) CreatePoint() crypto.Point {
 }
 
 // CreatePointForScalar -
-func (s *SuiteMock) CreatePointForScalar(scalar crypto.Scalar) (crypto.Point, error) {
+func (s *SuiteStub) CreatePointForScalar(scalar crypto.Scalar) (crypto.Point, error) {
 	if s.CreatePointForScalarStub != nil {
 		return s.CreatePointForScalarStub(scalar)
 	}
@@ -70,13 +70,13 @@ func (s *SuiteMock) CreatePointForScalar(scalar crypto.Scalar) (crypto.Point, er
 }
 
 // RandomStream -
-func (s *SuiteMock) RandomStream() cipher.Stream {
+func (s *SuiteStub) RandomStream() cipher.Stream {
 	stream := NewStreamer()
 	return stream
 }
 
 // GetUnderlyingSuite -
-func (s *SuiteMock) GetUnderlyingSuite() interface{} {
+func (s *SuiteStub) GetUnderlyingSuite() interface{} {
 	if s.GetUnderlyingSuiteStub != nil {
 		return s.GetUnderlyingSuiteStub()
 	}
@@ -84,7 +84,7 @@ func (s *SuiteMock) GetUnderlyingSuite() interface{} {
 }
 
 // CreateKeyPair -
-func (s *SuiteMock) CreateKeyPair() (crypto.Scalar, crypto.Point) {
+func (s *SuiteStub) CreateKeyPair() (crypto.Scalar, crypto.Point) {
 	if s.CreateKeyPairStub != nil {
 		return s.CreateKeyPairStub()
 	}
@@ -92,7 +92,7 @@ func (s *SuiteMock) CreateKeyPair() (crypto.Scalar, crypto.Point) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (s *SuiteMock) IsInterfaceNil() bool {
+func (s *SuiteStub) IsInterfaceNil() bool {
 	return s == nil
 }
 

@@ -138,6 +138,12 @@ func (ccf *cryptoComponentsFactory) createMultiSigner(
 	pubKeys []string,
 ) (crypto.MultiSigner, error) {
 
+	//TODO: the instantiation of BLS multi signer can be done with own public key instead of all public keys
+	// e.g []string{ownPubKey}.
+	// The parameter pubKeys for multi-signer is relevant when we want to create a multisig and in the multisig bitmap
+	// we care about the order of the initial public keys that signed, but we never use the entire set of initial
+	// public keys in their initial order.
+
 	switch ccf.config.Consensus.Type {
 	case consensus.BlsConsensusType:
 		blsSigner := &mclmultisig.BlsMultiSigner{Hasher: hasher}

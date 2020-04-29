@@ -625,16 +625,31 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating core components")
 
 	coreArgs := mainFactory.CoreComponentsFactoryArgs{
-		Config:      generalConfig,
-		PathManager: pathManager,
-		ShardId:     shardId,
-		ChainID:     []byte(genesisNodesConfig.ChainID),
+		Config:  generalConfig,
+		ShardId: shardId,
+		ChainID: []byte(genesisNodesConfig.ChainID),
 	}
 	coreComponentsFactory, err := mainFactory.NewCoreComponentsFactory(coreArgs)
 	if err != nil {
 		return err
 	}
 	coreComponents, err := coreComponentsFactory.Create()
+	if err != nil {
+		return err
+	}
+
+	triesArgs := mainFactory.TriesComponentsFactoryArgs{
+		Marshalizer:      coreComponents.InternalMarshalizer,
+		Hasher:           coreComponents.Hasher,
+		PathManager:      pathManager,
+		ShardCoordinator: genesisShardCoordinator,
+		Config:           generalConfig,
+	}
+	triesComponentsFactory, err := mainFactory.NewTriesComponentsFactory(triesArgs)
+	if err != nil {
+		return err
+	}
+	triesComponents, err := triesComponentsFactory.Create()
 	if err != nil {
 		return err
 	}
@@ -723,8 +738,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		DefaultShardString:         defaultShardString,
 		Rater:                      rater,
 		DestinationShardAsObserver: destShardIdAsObserver,
-		TrieContainer:              coreComponents.TriesContainer,
-		TrieStorageManagers:        coreComponents.TrieStorageManagers,
+		TrieContainer:              triesComponents.TriesContainer,
+		TrieStorageManagers:        triesComponents.TrieStorageManagers,
 		Uint64Converter:            coreComponents.Uint64ByteSliceConverter,
 		NodeShuffler:               nodesShuffler,
 		Rounder:                    rounder,
@@ -983,6 +998,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		cryptoComponents,
 		stateComponents,
 		networkComponents,
+		triesComponents,
 		coreServiceContainer,
 		requestedItemsHandler,
 		whiteListRequest,
@@ -1141,7 +1157,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = dataComponents.Store.CloseAll()
 	log.LogIfError(err)
 
-	dataTries := coreComponents.TriesContainer.GetAll()
+	dataTries := triesComponents.TriesContainer.GetAll()
 	for _, trie := range dataTries {
 		err = trie.ClosePersister()
 		log.LogIfError(err)

@@ -12,7 +12,7 @@ import (
 func TestNewCryptoSigningParamsFactory_NilPubKeyConverterShoulldErr(t *testing.T) {
 	t.Parallel()
 
-	cspf, err := NewCryptoSigningParamsFactory(nil, 0, "name", &mock.SuiteMock{})
+	cspf, err := NewCryptoSigningParamsFactory(nil, 0, "name", &mock.SuiteStub{})
 	require.Nil(t, cspf)
 	require.Equal(t, ErrNilPubKeyConverter, err)
 }
@@ -28,7 +28,7 @@ func TestNewCryptoSigningParamsFactory_NilSuiteShouldErr(t *testing.T) {
 func TestNewCryptoSigningParamsFactory_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cspf, err := NewCryptoSigningParamsFactory(&mock.PubkeyConverterStub{}, 0, "name", &mock.SuiteMock{})
+	cspf, err := NewCryptoSigningParamsFactory(&mock.PubkeyConverterStub{}, 0, "name", &mock.SuiteStub{})
 	require.NoError(t, err)
 	require.NotNil(t, cspf)
 }
@@ -37,7 +37,7 @@ func TestCryptoSigningParamsFactory_Create_GetSkPkErrorsShouldErr(t *testing.T) 
 	t.Parallel()
 
 	expectedErr := errors.New("error while getting the sk and pk")
-	cspf, _ := NewCryptoSigningParamsFactory(&mock.PubkeyConverterStub{}, 0, "name", &mock.SuiteMock{})
+	cspf, _ := NewCryptoSigningParamsFactory(&mock.PubkeyConverterStub{}, 0, "name", &mock.SuiteStub{})
 
 	cspf.SetSkPkProviderHandler(func() ([]byte, []byte, error) {
 		return nil, nil, expectedErr
@@ -51,7 +51,7 @@ func TestCryptoSigningParamsFactory_Create_PubKeyMissmatchShouldErr(t *testing.T
 	t.Parallel()
 
 	diffPubKey1, diffPubkey2 := []byte("public key1"), []byte("public key2")
-	suite := &mock.SuiteMock{
+	suite := &mock.SuiteStub{
 		CreatePointStub: func() crypto.Point {
 			return nil
 		},
@@ -84,7 +84,7 @@ func TestCryptoSigningParamsFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pubKey := []byte("public key")
-	suite := &mock.SuiteMock{
+	suite := &mock.SuiteStub{
 		CreatePointStub: func() crypto.Point {
 			return nil
 		},
@@ -116,7 +116,7 @@ func TestCryptoSigningParamsFactory_CreateShouldWork(t *testing.T) {
 func TestCryptoSigningParamsFactory_GetSkPk_PathNotFound(t *testing.T) {
 	t.Parallel()
 
-	cspf, _ := NewCryptoSigningParamsFactory(&mock.PubkeyConverterStub{}, 0, "name", &mock.SuiteMock{})
+	cspf, _ := NewCryptoSigningParamsFactory(&mock.PubkeyConverterStub{}, 0, "name", &mock.SuiteStub{})
 	sk, pk, err := cspf.GetSkPk()
 	require.Error(t, err)
 	require.Nil(t, sk)

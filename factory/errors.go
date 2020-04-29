@@ -17,11 +17,20 @@ var ErrNilGenesisConfiguration = errors.New("nil genesis configuration provided"
 // ErrNilCoreComponents signals that nil core components have been provided
 var ErrNilCoreComponents = errors.New("nil core components provided")
 
+// ErrNilTriesComponents signals that nil tries components have been provided
+var ErrNilTriesComponents = errors.New("nil tries components provided")
+
 // ErrNilShardCoordinator signals that nil core components have been provided
 var ErrNilShardCoordinator = errors.New("nil shard coordinator provided")
 
 // ErrNilPathManager signals that a nil path manager has been provided
 var ErrNilPathManager = errors.New("nil path manager provided")
+
+// ErrNilMarshalizer signals that a nil marshalizer has been provided
+var ErrNilMarshalizer = errors.New("nil marshalizer provided")
+
+// ErrNilHasher signals that a nil hasher has been provided
+var ErrNilHasher = errors.New("nil hasher provided")
 
 // ErrNilEpochStartNotifier signals that a nil epoch start notifier has been provided
 var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier provided")

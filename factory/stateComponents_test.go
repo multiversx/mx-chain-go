@@ -128,15 +128,22 @@ func getStateArgs() factory.StateComponentsFactoryArgs {
 				SignatureLength: 0,
 			},
 		},
-		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
 		GenesisConfig:    &sharding.Genesis{},
 		PathManager:      &mock.PathManagerStub{},
 		Core:             getCoreComponents(),
+		Tries:            getTriesComponents(),
 	}
 }
 
 func getCoreComponents() *factory.CoreComponents {
-	ccf, _ := factory.NewCoreComponentsFactory(getArgs())
+	ccf, _ := factory.NewCoreComponentsFactory(getCoreArgs())
 	cc, _ := ccf.Create()
 	return cc
+}
+
+func getTriesComponents() *factory.TriesComponents {
+	tcf, _ := factory.NewTriesComponentsFactory(getTriesArgs())
+	tc, _ := tcf.Create()
+	return tc
 }

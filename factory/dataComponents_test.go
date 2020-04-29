@@ -131,7 +131,7 @@ func getDataArgs() factory.DataComponentsFactoryArgs {
 	return factory.DataComponentsFactoryArgs{
 		Config:             getGeneralConfig(),
 		EconomicsData:      &economics.EconomicsData{},
-		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
+		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
 		Core:               getCoreComponents(),
 		PathManager:        &mock.PathManagerStub{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
@@ -141,79 +141,11 @@ func getDataArgs() factory.DataComponentsFactoryArgs {
 
 func getGeneralConfig() *config.Config {
 	return &config.Config{
-		GeneralSettings: config.GeneralSettingsConfig{
-			StartInEpochEnabled: true,
-		},
-		EpochStartConfig: config.EpochStartConfig{
-			MinRoundsBetweenEpochs: 5,
-			RoundsPerEpoch:         10,
-		},
-		WhiteListPool: config.CacheConfig{
-			Size:   10000,
-			Type:   "LRU",
-			Shards: 1,
-		},
-		WhiteListerVerifiedTxs: config.CacheConfig{
-			Size:   10000,
-			Type:   "LRU",
-			Shards: 1,
-		},
 		StoragePruning: config.StoragePruningConfig{
 			Enabled:             false,
 			FullArchive:         true,
 			NumEpochsToKeep:     3,
 			NumActivePersisters: 3,
-		},
-		EvictionWaitingList: config.EvictionWaitingListConfig{
-			Size: 100,
-			DB: config.DBConfig{
-				FilePath:          "EvictionWaitingList",
-				Type:              string(storageUnit.MemoryDB),
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
-		TrieSnapshotDB: config.DBConfig{
-			FilePath:          "TrieSnapshot",
-			Type:              string(storageUnit.MemoryDB),
-			BatchDelaySeconds: 30,
-			MaxBatchSize:      6,
-			MaxOpenFiles:      10,
-		},
-		AccountsTrieStorage: config.StorageConfig{
-			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
-			},
-			DB: config.DBConfig{
-				FilePath:          "AccountsTrie/MainDB",
-				Type:              string(storageUnit.MemoryDB),
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
-		PeerAccountsTrieStorage: config.StorageConfig{
-			Cache: config.CacheConfig{
-				Size: 10000, Type: "LRU", Shards: 1,
-			},
-			DB: config.DBConfig{
-				FilePath:          "PeerAccountsTrie/MainDB",
-				Type:              string(storageUnit.MemoryDB),
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
-		StateTriesConfig: config.StateTriesConfig{
-			CheckpointRoundsModulus:     100,
-			AccountsStatePruningEnabled: false,
-			PeerStatePruningEnabled:     false,
-		},
-		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-			PruningBufferLen:   1000,
-			SnapshotsBufferLen: 10,
-			MaxSnapshots:       2,
 		},
 		TxDataPool: config.CacheConfig{
 			Size: 10000, Type: "LRU", Shards: 1,

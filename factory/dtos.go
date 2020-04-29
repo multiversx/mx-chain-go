@@ -31,8 +31,6 @@ type CoreComponents struct {
 	InternalMarshalizer      marshal.Marshalizer
 	VmMarshalizer            marshal.Marshalizer
 	TxSignMarshalizer        marshal.Marshalizer
-	TriesContainer           state.TriesHolder
-	TrieStorageManagers      map[string]data.StorageManager
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	StatusHandler            core.AppStatusHandler
 	ChainID                  []byte
@@ -47,11 +45,17 @@ type CryptoParams struct {
 	PublicKeyString string
 }
 
-// DataComponents struct holds the data components of the Elrond protocol
+// DataComponents struct holds the data components
 type DataComponents struct {
 	Blkc     data.ChainHandler
 	Store    dataRetriever.StorageService
 	Datapool dataRetriever.PoolsHolder
+}
+
+// TriesComponents holds the tries components
+type TriesComponents struct {
+	TriesContainer      state.TriesHolder
+	TrieStorageManagers map[string]data.StorageManager
 }
 
 // CryptoComponents struct holds the crypto components

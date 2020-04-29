@@ -12,12 +12,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+//TODO: merge this with data components
+
 // StateComponentsFactoryArgs holds the arguments needed for creating a state components factory
 type StateComponentsFactoryArgs struct {
 	Config           *config.Config
 	GenesisConfig    *sharding.Genesis
 	ShardCoordinator sharding.Coordinator
 	Core             *CoreComponents
+	Tries            *TriesComponents
 	PathManager      storage.PathManagerHandler
 }
 
@@ -26,6 +29,7 @@ type stateComponentsFactory struct {
 	genesisConfig    *sharding.Genesis
 	shardCoordinator sharding.Coordinator
 	core             *CoreComponents
+	tries            *TriesComponents
 	pathManager      storage.PathManagerHandler
 }
 
@@ -43,6 +47,9 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 	if args.Core == nil {
 		return nil, ErrNilCoreComponents
 	}
+	if args.Tries == nil {
+		return nil, ErrNilTriesComponents
+	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, ErrNilShardCoordinator
 	}
@@ -51,6 +58,7 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 		config:           args.Config,
 		genesisConfig:    args.GenesisConfig,
 		core:             args.Core,
+		tries:            args.Tries,
 		pathManager:      args.PathManager,
 		shardCoordinator: args.ShardCoordinator,
 	}, nil
@@ -69,7 +77,7 @@ func (scf *stateComponentsFactory) Create() (*StateComponents, error) {
 	}
 
 	accountFactory := factoryState.NewAccountCreator()
-	merkleTrie := scf.core.TriesContainer.Get([]byte(factory.UserAccountTrie))
+	merkleTrie := scf.tries.TriesContainer.Get([]byte(factory.UserAccountTrie))
 	accountsAdapter, err := state.NewAccountsDB(merkleTrie, scf.core.Hasher, scf.core.InternalMarshalizer, accountFactory)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrAccountsAdapterCreation, err.Error())
@@ -81,7 +89,7 @@ func (scf *stateComponentsFactory) Create() (*StateComponents, error) {
 	}
 
 	accountFactory = factoryState.NewPeerAccountCreator()
-	merkleTrie = scf.core.TriesContainer.Get([]byte(factory.PeerAccountTrie))
+	merkleTrie = scf.tries.TriesContainer.Get([]byte(factory.PeerAccountTrie))
 	peerAdapter, err := state.NewPeerAccountsDB(merkleTrie, scf.core.Hasher, scf.core.InternalMarshalizer, accountFactory)
 	if err != nil {
 		return nil, err

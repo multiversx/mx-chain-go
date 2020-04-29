@@ -99,7 +99,7 @@ func getCryptoArgs() factory.CryptoComponentsFactoryArgs {
 			Hasher:         config.TypeConfig{Type: "blake2b"},
 		},
 		NodesConfig:      &mock.NodesSetupStub{},
-		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
 		KeyGen:           &mock.KeyGenMock{},
 		PrivKey:          &mock.PrivateKeyMock{},
 	}

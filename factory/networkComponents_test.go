@@ -12,7 +12,7 @@ import (
 func TestNewNetworkComponentsFactory_NilP2PConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ncf, err := NewNetworkComponentsFactory(nil, &config.Config{}, &mock.AppStatusHandlerFake{})
+	ncf, err := NewNetworkComponentsFactory(nil, &config.Config{}, &mock.AppStatusHandlerMock{})
 	require.Nil(t, ncf)
 	require.Equal(t, ErrNilP2PConfiguration, err)
 }
@@ -20,7 +20,7 @@ func TestNewNetworkComponentsFactory_NilP2PConfigShouldErr(t *testing.T) {
 func TestNewNetworkComponentsFactory_NilMainConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ncf, err := NewNetworkComponentsFactory(&config.P2PConfig{}, nil, &mock.AppStatusHandlerFake{})
+	ncf, err := NewNetworkComponentsFactory(&config.P2PConfig{}, nil, &mock.AppStatusHandlerMock{})
 	require.Nil(t, ncf)
 	require.Equal(t, ErrNilConfiguration, err)
 }
@@ -36,7 +36,7 @@ func TestNewNetworkComponentsFactory_NilStatusHandlerShouldErr(t *testing.T) {
 func TestNewNetworkComponentsFactory_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ncf, err := NewNetworkComponentsFactory(&config.P2PConfig{}, &config.Config{}, &mock.AppStatusHandlerFake{})
+	ncf, err := NewNetworkComponentsFactory(&config.P2PConfig{}, &config.Config{}, &mock.AppStatusHandlerMock{})
 	require.NoError(t, err)
 	require.NotNil(t, ncf)
 }
@@ -47,7 +47,7 @@ func TestNetworkComponentsFactory_Create_ShouldErrDueToBadConfig(t *testing.T) {
 		t.Skip("this test fails with race detector on because of the github.com/koron/go-ssdp lib")
 	}
 
-	ncf, _ := NewNetworkComponentsFactory(&config.P2PConfig{}, &config.Config{}, &mock.AppStatusHandlerFake{})
+	ncf, _ := NewNetworkComponentsFactory(&config.P2PConfig{}, &config.Config{}, &mock.AppStatusHandlerMock{})
 
 	nc, err := ncf.Create()
 	require.Error(t, err)
@@ -82,7 +82,7 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 			Type:                    "NilListSharder",
 		},
 	}
-	ncf, _ := NewNetworkComponentsFactory(p2pConfig, &config.Config{}, &mock.AppStatusHandlerFake{})
+	ncf, _ := NewNetworkComponentsFactory(p2pConfig, &config.Config{}, &mock.AppStatusHandlerMock{})
 
 	ncf.SetListenAddress(libp2p.ListenLocalhostAddrWithIp4AndTcp)
 
