@@ -398,6 +398,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/heartbeatstatus", Open: true},
 					{Name: "/p2pstatus", Open: true},
 					{Name: "/epoch", Open: true},
+					{Name: "/debug", Open: true},
 				},
 			},
 		},
