@@ -51,6 +51,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 		return nil, input.GasProvided, process.ErrInvalidArguments
 	}
 
+	gasRemaining := uint64(0)
 	esdtTokenKey := append([]byte(esdtKeyPrefix), input.Arguments[0]...)
 	value := big.NewInt(0).SetBytes(input.Arguments[1])
 
@@ -60,7 +61,8 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			return nil, input.GasProvided, process.ErrNotEnoughGas
 		}
 
-		err := e.addToESDTBalance(acntSnd, esdtTokenKey, value)
+		gasRemaining = input.GasProvided - e.funcGasCost
+		err := e.addToESDTBalance(acntSnd, esdtTokenKey, big.NewInt(0).Neg(value))
 		if err != nil {
 			return nil, input.GasProvided, err
 		}
@@ -73,7 +75,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 		}
 	}
 
-	return nil, 0, nil
+	return nil, gasRemaining, nil
 }
 
 func (e *esdtTransfer) addToESDTBalance(userAcnt state.UserAccountHandler, key []byte, value *big.Int) error {
