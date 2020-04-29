@@ -13,17 +13,45 @@ import (
 
 var _ process.BuiltinFunction = (*saveKeyValueStorage)(nil)
 
+const numInitCharactersInProtectedKeys = 4
+
 type saveKeyValueStorage struct {
-	gasConfig   BaseOperationCost
-	funcGasCost uint64
+	gasConfig      BaseOperationCost
+	funcGasCost    uint64
+	mapInvalidKeys map[string]struct{}
 }
 
 // NewSaveKeyValueStorageFunc returns the key-value
 func NewSaveKeyValueStorageFunc(
 	gasConfig BaseOperationCost,
 	funcGasCost uint64,
-) *saveKeyValueStorage {
-	return &saveKeyValueStorage{gasConfig: gasConfig, funcGasCost: funcGasCost}
+	mapInvalidKeys map[string]struct{},
+) (*saveKeyValueStorage, error) {
+	if mapInvalidKeys == nil {
+		return nil, process.ErrNilInvalidKeysMap
+	}
+
+	s := &saveKeyValueStorage{
+		gasConfig:   gasConfig,
+		funcGasCost: funcGasCost,
+	}
+	s.mapInvalidKeys = make(map[string]struct{}, len(mapInvalidKeys))
+	for key := range mapInvalidKeys {
+		trimmedKey := key[:numInitCharactersInProtectedKeys]
+		s.mapInvalidKeys[trimmedKey] = struct{}{}
+	}
+
+	return s, nil
+}
+
+func (k *saveKeyValueStorage) isAllowedToSaveUnderKey(key []byte) bool {
+	if len(key) < numInitCharactersInProtectedKeys {
+		return true
+	}
+
+	trimmedKey := key[:numInitCharactersInProtectedKeys]
+	_, ok := k.mapInvalidKeys[string(trimmedKey)]
+	return !ok
 }
 
 // ProcessBuiltinFunction will save the value for the selected key
@@ -41,7 +69,7 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 		return nil, input.GasProvided, process.ErrNilSCDestAccount
 	}
 	if !bytes.Equal(input.CallerAddr, acntDst.AddressContainer().Bytes()) {
-		return nil, 0, fmt.Errorf("%w not the owner of the account", process.ErrOperationNotPermitted)
+		return nil, input.GasProvided, fmt.Errorf("%w not the owner of the account", process.ErrOperationNotPermitted)
 	}
 
 	value := input.Arguments[1]
@@ -52,6 +80,10 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 	}
 
 	key := input.Arguments[0]
+	if !k.isAllowedToSaveUnderKey(key) {
+		return nil, input.GasProvided, fmt.Errorf("%w it is not allowed to save under key %s", process.ErrOperationNotPermitted, key)
+	}
+
 	oldValue, _ := acntDst.DataTrieTracker().RetrieveValue(key)
 	if bytes.Equal(oldValue, value) {
 		return big.NewInt(0), useGas, nil

@@ -1,0 +1,14 @@
+
+syntax = "proto3";
+
+package protoBuiltInFunctions;
+
+option go_package = "builtInFunctions";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// RewardTx holds the data for a reward transaction
+message ESDigitalToken {
+	bytes    Value     = 1 [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+}

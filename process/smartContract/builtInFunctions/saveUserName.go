@@ -29,11 +29,16 @@ func NewSaveUserNameFunc(
 		return nil, process.ErrNilDnsAddresses
 	}
 
-	return &saveUserName{
-		gasCost:         gasCost,
-		mapDnsAddresses: mapDnsAddresses,
-		enableChange:    enableChange,
-	}, nil
+	s := &saveUserName{
+		gasCost:      gasCost,
+		enableChange: enableChange,
+	}
+	s.mapDnsAddresses = make(map[string]struct{}, len(mapDnsAddresses))
+	for key := range mapDnsAddresses {
+		s.mapDnsAddresses[key] = struct{}{}
+	}
+
+	return s, nil
 }
 
 // ProcessBuiltinFunction sets the username to the account if it is allowed
