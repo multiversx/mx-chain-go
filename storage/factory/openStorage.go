@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -92,9 +93,9 @@ func (o *openStorageUnits) OpenStorageUnits() (storage.Storer, error) {
 		o.generalConfig.BootstrapStorage.DB.FilePath,
 	)
 
-	persister, errCreate := persisterFactory.Create(persisterPath)
-	if errCreate != nil {
-		return nil, errCreate
+	persister, err := createDB(persisterFactory, persisterPath)
+	if err != nil {
+		return nil, err
 	}
 
 	defer func() {
@@ -115,6 +116,20 @@ func (o *openStorageUnits) OpenStorageUnits() (storage.Storer, error) {
 	}
 
 	return storer, nil
+}
+
+func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage.Persister, error) {
+	var persister storage.Persister
+	var err error
+	for i := 0; i < core.MaxRetriesToCreateDB; i++ {
+		persister, err = persisterFactory.Create(persisterPath)
+		if err == nil {
+			return persister, nil
+		}
+		log.Warn("Create Persister failed", "path", persisterPath)
+		time.Sleep(core.SleepTimeBetweenCreateDBRetries)
+	}
+	return nil, err
 }
 
 func (o *openStorageUnits) getMostUpToDateDirectory(

@@ -7,6 +7,8 @@ import (
 	"github.com/herumi/bls-go-binary/bls"
 )
 
+var _ crypto.SingleSigner = (*BlsSingleSigner)(nil)
+
 // BlsSingleSigner is a SingleSigner implementation that uses a BLS signature scheme
 type BlsSingleSigner struct {
 }

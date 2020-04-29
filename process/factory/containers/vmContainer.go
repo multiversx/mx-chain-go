@@ -10,6 +10,8 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+var _ process.VirtualMachinesContainer = (*virtualMachinesContainer)(nil)
+
 var logVMContainer = logger.GetOrCreate("factory/containers/vmContainer")
 
 // virtualMachinesContainer is an VM holder organized by type

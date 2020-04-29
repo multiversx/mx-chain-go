@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ process.FloodPreventer = (*quotaFloodPreventer)(nil)
+
 const minMessages = 1
 const minTotalSize = 1 //1Byte
 const initNumMessages = 1

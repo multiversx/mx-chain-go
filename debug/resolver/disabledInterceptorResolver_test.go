@@ -17,5 +17,6 @@ func TestDisabledInterceptorResolver(t *testing.T) {
 	dir.LogProcessedHashes("", nil, nil)
 	dir.LogRequestedData("", nil, 0, 0)
 	dir.LogFailedToResolveData("", nil, nil)
+	dir.LogSucceededToResolveData("", nil)
 	assert.Equal(t, 0, len(dir.Query("*")))
 }

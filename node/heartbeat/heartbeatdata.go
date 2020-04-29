@@ -6,13 +6,6 @@ import (
 	"time"
 )
 
-// Duration is a wrapper of the original Duration struct
-// that has JSON marshal and unmarshal capabilities
-// golang issue: https://github.com/golang/go/issues/10275
-type Duration struct {
-	time.Duration
-}
-
 // PubKeyHeartbeat returns the heartbeat status for a public key
 type PubKeyHeartbeat struct {
 	PublicKey       string    `json:"publicKey"`
@@ -25,7 +18,15 @@ type PubKeyHeartbeat struct {
 	TotalDownTime   int64     `json:"totalDownTimeSec"`
 	VersionNumber   string    `json:"versionNumber"`
 	NodeDisplayName string    `json:"nodeDisplayName"`
+	Identity        string    `json:"identity"`
 	PeerType        string    `json:"peerType"`
+}
+
+// Duration is a wrapper of the original Duration struct
+// that has JSON marshal and unmarshal capabilities
+// golang issue: https://github.com/golang/go/issues/10275
+type Duration struct {
+	time.Duration
 }
 
 // MarshalJSON is called when a json marshal is triggered on this field

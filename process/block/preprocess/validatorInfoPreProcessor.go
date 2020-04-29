@@ -13,6 +13,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ process.DataMarshalizer = (*validatorInfoPreprocessor)(nil)
+var _ process.PreProcessor = (*validatorInfoPreprocessor)(nil)
+
 type validatorInfoPreprocessor struct {
 	hasher      hashing.Hasher
 	marshalizer marshal.Marshalizer

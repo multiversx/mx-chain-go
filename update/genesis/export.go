@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+var _ update.ExportHandler = (*stateExport)(nil)
+
 // ArgsNewStateExporter defines the arguments needed to create new state exporter
 type ArgsNewStateExporter struct {
 	ShardCoordinator sharding.Coordinator

@@ -12,6 +12,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+var _ p2p.CommonSharder = (*prioBitsSharder)(nil)
+
 const (
 	maxMaskBits  = 8
 	fullMaskBits = 0xff

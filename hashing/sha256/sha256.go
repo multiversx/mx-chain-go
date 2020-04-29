@@ -2,7 +2,11 @@ package sha256
 
 import (
 	"crypto/sha256"
+
+	"github.com/ElrondNetwork/elrond-go/hashing"
 )
+
+var _ hashing.Hasher = (*Sha256)(nil)
 
 var sha256EmptyHash []byte
 

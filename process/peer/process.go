@@ -23,6 +23,8 @@ import (
 
 var log = logger.GetOrCreate("process/peer")
 
+var _ process.ValidatorStatisticsProcessor = (*validatorStatistics)(nil)
+
 type validatorActionType uint8
 
 const (

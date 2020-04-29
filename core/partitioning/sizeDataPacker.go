@@ -3,8 +3,11 @@ package partitioning
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
+
+var _ dataRetriever.DataPacker = (*SizeDataPacker)(nil)
 
 const minimumMaxPacketSizeInBytes = 1
 
