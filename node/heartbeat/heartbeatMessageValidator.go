@@ -20,6 +20,11 @@ func verifyLengths(heartbeat *Heartbeat) error {
 		return err
 	}
 
+	err = VerifyHeartbeatProperyLen("Identity", []byte(heartbeat.Identity))
+	if err != nil {
+		return err
+	}
+
 	err = VerifyHeartbeatProperyLen("VersionNumber", []byte(heartbeat.VersionNumber))
 	if err != nil {
 		return err
@@ -49,6 +54,10 @@ func trimLengths(heartbeat *Heartbeat) {
 
 	if len(heartbeat.NodeDisplayName) > maxSizeInBytes {
 		heartbeat.NodeDisplayName = heartbeat.NodeDisplayName[:maxSizeInBytes]
+	}
+
+	if len(heartbeat.Identity) > maxSizeInBytes {
+		heartbeat.Identity = heartbeat.Identity[:maxSizeInBytes]
 	}
 
 	if len(heartbeat.VersionNumber) > maxSizeInBytes {

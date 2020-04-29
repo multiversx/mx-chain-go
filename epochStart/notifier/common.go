@@ -5,6 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
+var _ epochStart.ActionHandler = (*handlerStruct)(nil)
+
 // handlerStruct represents a struct which satisfies the SubscribeFunctionHandler interface
 type handlerStruct struct {
 	act     func(hdr data.HeaderHandler)

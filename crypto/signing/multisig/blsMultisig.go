@@ -10,6 +10,8 @@ import (
 // BlsHashSize specifies the hash size for using bls scheme
 const BlsHashSize = 16
 
+var _ crypto.MultiSigner = (*blsMultiSigner)(nil)
+
 /*
 This implementation follows the modified BLS scheme presented here (curve notation changed in this file as compared to
 the link, so curves G0, G1 in link are referred to as G1, G2 in this file):

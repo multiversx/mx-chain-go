@@ -5,8 +5,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
+
+var _ epochStart.AccountsDBSyncer = (*validatorAccountsSyncer)(nil)
 
 type validatorAccountsSyncer struct {
 	*baseAccountsSyncer

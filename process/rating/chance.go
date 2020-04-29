@@ -1,5 +1,9 @@
 package rating
 
+import "github.com/ElrondNetwork/elrond-go/process"
+
+var _ process.RatingChanceHandler = (*selectionChance)(nil)
+
 type selectionChance struct {
 	maxThreshold     uint32
 	chancePercentage uint32

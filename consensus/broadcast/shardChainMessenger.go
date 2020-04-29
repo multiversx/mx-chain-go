@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
+var _ consensus.BroadcastMessenger = (*shardChainMessenger)(nil)
+
 type delayedBroadcastData struct {
 	headerHash   []byte
 	miniblocks   map[uint32][]byte

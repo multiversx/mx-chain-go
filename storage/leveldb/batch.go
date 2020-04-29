@@ -3,8 +3,11 @@ package leveldb
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/syndtr/goleveldb/leveldb"
 )
+
+var _ storage.Batcher = (*batch)(nil)
 
 const removed = "removed"
 

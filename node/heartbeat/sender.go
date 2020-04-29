@@ -23,6 +23,7 @@ type ArgHeartbeatSender struct {
 	StatusHandler    core.AppStatusHandler
 	VersionNumber    string
 	NodeDisplayName  string
+	KeyBaseIdentity  string
 	HardforkTrigger  HardforkTrigger
 }
 
@@ -38,6 +39,7 @@ type Sender struct {
 	topic            string
 	versionNumber    string
 	nodeDisplayName  string
+	keyBaseIdentity  string
 	hardforkTrigger  HardforkTrigger
 }
 
@@ -83,6 +85,7 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 		statusHandler:    arg.StatusHandler,
 		versionNumber:    arg.VersionNumber,
 		nodeDisplayName:  arg.NodeDisplayName,
+		keyBaseIdentity:  arg.KeyBaseIdentity,
 		hardforkTrigger:  arg.HardforkTrigger,
 	}
 
@@ -96,6 +99,7 @@ func (s *Sender) SendHeartbeat() error {
 		ShardID:         s.shardCoordinator.SelfId(),
 		VersionNumber:   s.versionNumber,
 		NodeDisplayName: s.nodeDisplayName,
+		Identity:        s.keyBaseIdentity,
 		Pid:             s.peerMessenger.ID().Bytes(),
 	}
 

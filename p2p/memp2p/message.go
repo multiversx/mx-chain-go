@@ -6,6 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
+var _ p2p.MessageP2P = (*message)(nil)
+
 // Message represents a message to be sent through the in-memory network
 // simulated by the Network struct.
 type message struct {
