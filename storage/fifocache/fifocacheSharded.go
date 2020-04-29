@@ -5,7 +5,10 @@ import (
 
 	cmap "github.com/ElrondNetwork/concurrent-map"
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+var _ storage.Cacher = (*FIFOShardedCache)(nil)
 
 var log = logger.GetOrCreate("storage/fifocache")
 

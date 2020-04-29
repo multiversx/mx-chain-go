@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.IntermediateProcessorContainer = (*intermediateTransactionHandlersContainer)(nil)
+
 // intermediateTransactionHandlersContainer is an IntermediateTransactionHandlers holder organized by type
 type intermediateTransactionHandlersContainer struct {
 	objects *container.MutexMap

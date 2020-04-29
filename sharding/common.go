@@ -3,6 +3,7 @@ package sharding
 import (
 	"bytes"
 	"encoding/hex"
+	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 )
@@ -92,4 +93,33 @@ func ComputeActuallyRemaining(allLeaving []Validator, actuallyRemoved []Validato
 	}
 
 	return actualRemaining
+}
+
+func SerializableValidatorsToValidators(nodeRegistryValidators map[string][]*SerializableValidator) (map[uint32][]Validator, error) {
+	validators := make(map[uint32][]Validator)
+	for shardId, shardValidators := range nodeRegistryValidators {
+		newValidators, err := SerializableShardValidatorListToValidatorList(shardValidators)
+		if err != nil {
+			return nil, err
+		}
+		shardIdInt, err := strconv.ParseUint(shardId, 10, 32)
+		if err != nil {
+			return nil, err
+		}
+		validators[uint32(shardIdInt)] = newValidators
+	}
+
+	return validators, nil
+}
+
+func SerializableShardValidatorListToValidatorList(shardValidators []*SerializableValidator) ([]Validator, error) {
+	newValidators := make([]Validator, len(shardValidators))
+	for i, validator := range shardValidators {
+		v, err := NewValidator(validator.PubKey, validator.Chances, validator.Index)
+		if err != nil {
+			return nil, err
+		}
+		newValidators[i] = v
+	}
+	return newValidators, nil
 }

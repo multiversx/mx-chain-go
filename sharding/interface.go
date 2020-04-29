@@ -33,6 +33,7 @@ type NodesCoordinator interface {
 	LoadState(key []byte) error
 	GetSavedStateKey() []byte
 	ShardIdForEpoch(epoch uint32) (uint32, error)
+	ShuffleOutForEpoch(_ uint32)
 	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
 	ConsensusGroupSize(uint32) int
 	GetNumTotalEligible() uint64
@@ -118,6 +119,8 @@ type ChanceComputer interface {
 
 //Cacher provides the capabilities needed to store and retrieve information needed in the NodesCoordinator
 type Cacher interface {
+	// Clear is used to completely clear the cache.
+	Clear()
 	// Put adds a value to the cache.  Returns true if an eviction occurred.
 	Put(key []byte, value interface{}) (evicted bool)
 	// Get looks up a key's value from the cache.

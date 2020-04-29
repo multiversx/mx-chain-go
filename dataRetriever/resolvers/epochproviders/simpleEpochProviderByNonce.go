@@ -2,6 +2,8 @@ package epochproviders
 
 import "github.com/ElrondNetwork/elrond-go/dataRetriever"
 
+var _ dataRetriever.EpochProviderByNonce = (*simpleEpochProviderByNonce)(nil)
+
 //TODO: implement a real epoch provider by nonce
 
 // simpleEpochProviderByNonce will use the epoch handler to return the current epoch

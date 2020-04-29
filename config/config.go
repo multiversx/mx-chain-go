@@ -74,6 +74,7 @@ type EpochStartConfig struct {
 	MinRoundsBetweenEpochs      int64
 	RoundsPerEpoch              int64
 	ShuffledOutRestartThreshold float64
+	ShuffleBetweenShards        bool
 }
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle

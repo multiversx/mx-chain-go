@@ -7,6 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+var _ update.AccountsDBSyncContainer = (*accountDBSyncers)(nil)
+
 type accountDBSyncers struct {
 	objects *container.MutexMap
 }
