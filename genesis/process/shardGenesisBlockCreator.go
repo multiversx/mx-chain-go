@@ -101,14 +101,8 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHa
 		return nil, err
 	}
 
-	errNotCritical := processors.txCoordinator.SaveBlockDataToStorage(bodyHandler.(*block.Body))
-	if errNotCritical != nil {
-		log.Warn("error while saving genesis block to storage", "error", errNotCritical)
-	}
+	saveGenesisBodyToStorage(processors.txCoordinator, bodyHandler)
 
-	hdrHandler.SetTimeStamp(arg.GenesisTime)
-	hdrHandler.SetAccumulatedFees(big.NewInt(0))
-	// TODO: think about how some cross-shard results can be saved and further used when starting to process the blocks
 	return hdrHandler, nil
 }
 

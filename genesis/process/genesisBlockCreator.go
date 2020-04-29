@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -235,4 +236,17 @@ func (gbc *genesisBlockCreator) saveGenesisBlock(header data.HeaderHandler) erro
 	}
 
 	return gbc.arg.Store.Put(unitType, hash, blockBuff)
+}
+
+func saveGenesisBodyToStorage(txCoordinator process.TransactionCoordinator, bodyHandler data.BodyHandler) {
+	blockBody, ok := bodyHandler.(*block.Body)
+	if !ok {
+		log.Warn("wrong type assertion when saving genesis body to storage")
+		return
+	}
+
+	errNotCritical := txCoordinator.SaveBlockDataToStorage(blockBody)
+	if errNotCritical != nil {
+		log.Warn("could not save genesis block body to storage", "error", errNotCritical)
+	}
 }

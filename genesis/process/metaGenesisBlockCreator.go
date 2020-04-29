@@ -129,19 +129,7 @@ func createMetaGenesisAfterHardFork(arg ArgsGenesisBlockCreator, processors *gen
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	metaHdr.SetTimeStamp(arg.GenesisTime)
-	metaHdr.EpochStart.Economics = block.Economics{
-		TotalSupply:            big.NewInt(0).Set(arg.Economics.GenesisTotalSupply()),
-		TotalToDistribute:      big.NewInt(0),
-		TotalNewlyMinted:       big.NewInt(0),
-		RewardsPerBlockPerNode: big.NewInt(0),
-		NodePrice:              big.NewInt(0).Set(arg.Economics.GenesisNodePrice()),
-	}
-
-	errNotCritical := processors.txCoordinator.SaveBlockDataToStorage(bodyHandler.(*block.Body))
-	if errNotCritical != nil {
-		log.Warn("could not save genesis block body to storage", "error", errNotCritical)
-	}
+	saveGenesisBodyToStorage(processors.txCoordinator, bodyHandler)
 
 	return metaHdr, nil
 }

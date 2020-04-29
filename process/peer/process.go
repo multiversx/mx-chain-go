@@ -693,7 +693,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 	}
 
 	for _, h := range metaHeader.ShardInfo {
-		if h.Nonce == 0 {
+		if h.Nonce == vs.genesisNonce {
 			continue
 		}
 

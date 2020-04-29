@@ -1642,7 +1642,7 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	for _, shardData := range metaBlock.ShardInfo {
-		if shardData.Nonce == 0 {
+		if shardData.Nonce == mp.genesisNonce {
 			continue
 		}
 
