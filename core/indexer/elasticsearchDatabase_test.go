@@ -21,7 +21,6 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
-	"github.com/magiconair/properties/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -393,5 +392,5 @@ func TestTrimSliceInBulks(t *testing.T) {
 		bulks[i] = append([]int(nil), testSlice[i*bulkSize:(i+1)*bulkSize]...)
 	}
 
-	assert.Equal(t, len(bulks), sliceSize/bulkSize+1)
+	require.Equal(t, len(bulks), sliceSize/bulkSize+1)
 }
