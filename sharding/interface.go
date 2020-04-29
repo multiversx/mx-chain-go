@@ -125,6 +125,8 @@ type ChanceComputer interface {
 
 //Cacher provides the capabilities needed to store and retrieve information needed in the NodesCoordinator
 type Cacher interface {
+	// Clear is used to completely clear the cache.
+	Clear()
 	// Put adds a value to the cache.  Returns true if an eviction occurred.
 	Put(key []byte, value interface{}) (evicted bool)
 	// Get looks up a key's value from the cache.
