@@ -1023,7 +1023,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ratingsConfig.General.MaxRating,
 		validatorPubkeyConverter,
 		ratingsData,
-		bootstrapParameters.Epoch,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1508,7 +1507,7 @@ func createNodesCoordinator(
 	epochConfig config.EpochStartConfig,
 	currentShardID uint32,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
-	parameters bootstrap.Parameters,
+	bootstrapParameters bootstrap.Parameters,
 ) (sharding.NodesCoordinator, error) {
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
 	if err != nil {
@@ -1530,9 +1529,9 @@ func createNodesCoordinator(
 		return nil, errWaitingValidators
 	}
 	currentEpoch := uint32(0)
-	if parameters.NodesConfig != nil {
-		nodeRegistry := parameters.NodesConfig
-		currentEpoch = parameters.Epoch
+	if bootstrapParameters.NodesConfig != nil {
+		nodeRegistry := bootstrapParameters.NodesConfig
+		currentEpoch = bootstrapParameters.Epoch
 		eligibles := nodeRegistry.EpochsConfig[fmt.Sprintf("%d", currentEpoch)].EligibleValidators
 		eligibleValidators, err = sharding.SerializableValidatorsToValidators(eligibles)
 		if err != nil {
