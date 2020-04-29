@@ -26,10 +26,12 @@ import (
 
 func newTestElasticSearchDatabase(elasticsearchWriter databaseWriterHandler, arguments elasticSearchDatabaseArgs) *elasticSearchDatabase {
 	return &elasticSearchDatabase{
-		commonProcessor: &commonProcessor{
-			addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
-			validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
-		},
+		txDatabaseProcessor: newTxDatabaseProcessor(
+			arguments.hasher,
+			arguments.marshalizer,
+			arguments.addressPubkeyConverter,
+			arguments.validatorPubkeyConverter,
+		),
 		dbWriter:    elasticsearchWriter,
 		marshalizer: arguments.marshalizer,
 		hasher:      arguments.hasher,

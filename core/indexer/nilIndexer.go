@@ -3,6 +3,7 @@ package indexer
 import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // NilIndexer will be used when an Indexer is required, but another one isn't necessary or available
@@ -16,6 +17,11 @@ func NewNilIndexer() *NilIndexer {
 
 // SaveBlock will do nothing
 func (ni *NilIndexer) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[string]data.TransactionHandler, _ []uint64, _ []string) {
+}
+
+// SetTxLogsProcessor will do nothing
+func (ni *NilIndexer) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
+
 }
 
 // SaveRoundInfo will do nothing

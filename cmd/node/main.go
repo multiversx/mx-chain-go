@@ -984,6 +984,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer = nil
 	} else {
 		elasticIndexer = coreServiceContainer.Indexer()
+		elasticIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
 	}
 	log.Trace("creating node structure")
 	currentNode, err := createNode(

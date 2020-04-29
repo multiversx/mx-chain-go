@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -133,29 +132,6 @@ func serializeShardInfo(shardInfo statistics.ShardStatistic) ([]byte, []byte) {
 	return serializedInfo, meta
 }
 
-func (cm *commonProcessor) getTransactionByType(
-	tx data.TransactionHandler,
-	txHash []byte,
-	mbHash []byte,
-	blockHash []byte,
-	mb *block.MiniBlock,
-	header data.HeaderHandler,
-	txStatus string,
-) *Transaction {
-	switch currentType := tx.(type) {
-	case *transaction.Transaction:
-		return cm.buildTransaction(currentType, txHash, mbHash, blockHash, mb, header, txStatus)
-	case *smartContractResult.SmartContractResult:
-		return cm.buildSmartContractResult(currentType, txHash, mbHash, blockHash, mb, header)
-	case *rewardTx.RewardTx:
-		return cm.buildRewardTransaction(currentType, txHash, mbHash, blockHash, mb, header, txStatus)
-	case *receipt.Receipt:
-		return cm.buildReceiptTransaction(currentType, txHash, mbHash, blockHash, mb, header)
-	default:
-		return nil
-	}
-}
-
 func (cm *commonProcessor) buildTransaction(
 	tx *transaction.Transaction,
 	txHash []byte,
@@ -182,34 +158,6 @@ func (cm *commonProcessor) buildTransaction(
 		Signature:     hex.EncodeToString(tx.Signature),
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        txStatus,
-	}
-}
-
-func (cm *commonProcessor) buildSmartContractResult(
-	scr *smartContractResult.SmartContractResult,
-	txHash []byte,
-	mbHash []byte,
-	blockHash []byte,
-	mb *block.MiniBlock,
-	header data.HeaderHandler,
-) *Transaction {
-	return &Transaction{
-		Hash:          hex.EncodeToString(txHash),
-		MBHash:        hex.EncodeToString(mbHash),
-		BlockHash:     hex.EncodeToString(blockHash),
-		Nonce:         scr.Nonce,
-		Round:         header.GetRound(),
-		Value:         scr.Value.String(),
-		Receiver:      cm.addressPubkeyConverter.Encode(scr.RcvAddr),
-		Sender:        cm.addressPubkeyConverter.Encode(scr.SndAddr),
-		ReceiverShard: mb.ReceiverShardID,
-		SenderShard:   mb.SenderShardID,
-		GasPrice:      scr.GasPrice,
-		GasLimit:      scr.GasPrice,
-		Data:          string(scr.Data),
-		Signature:     "",
-		Timestamp:     time.Duration(header.GetTimeStamp()),
-		Status:        "Success",
 	}
 }
 
@@ -242,31 +190,19 @@ func (cm *commonProcessor) buildRewardTransaction(
 	}
 }
 
-func (cm *commonProcessor) buildReceiptTransaction(
-	rpt *receipt.Receipt,
-	txHash []byte,
-	mbHash []byte,
-	blockHash []byte,
-	mb *block.MiniBlock,
-	header data.HeaderHandler,
-) *Transaction {
-	return &Transaction{
-		Hash:          hex.EncodeToString(txHash),
-		MBHash:        hex.EncodeToString(mbHash),
-		BlockHash:     hex.EncodeToString(blockHash),
-		Nonce:         rpt.GetNonce(),
-		Round:         header.GetRound(),
-		Value:         rpt.Value.String(),
-		Receiver:      cm.addressPubkeyConverter.Encode(rpt.GetRcvAddr()),
-		Sender:        cm.addressPubkeyConverter.Encode(rpt.GetSndAddr()),
-		ReceiverShard: mb.ReceiverShardID,
-		SenderShard:   mb.SenderShardID,
-		GasPrice:      0,
-		GasLimit:      0,
-		Data:          string(rpt.Data),
-		Signature:     "",
-		Timestamp:     time.Duration(header.GetTimeStamp()),
-		Status:        "Success",
+func (cm *commonProcessor) convertScResultInDatabaseScr(sc *smartContractResult.SmartContractResult) ScResult {
+	return ScResult{
+		Nonce:        sc.Nonce,
+		GasLimit:     sc.GasLimit,
+		GasPrice:     sc.GasPrice,
+		Value:        sc.Value.String(),
+		Sender:       cm.addressPubkeyConverter.Encode(sc.SndAddr),
+		Receiver:     cm.addressPubkeyConverter.Encode(sc.RcvAddr),
+		Code:         string(sc.Code),
+		Data:         string(sc.Data),
+		PreTxHash:    string(sc.PrevTxHash),
+		CallType:     string(sc.CallType),
+		CodeMetadata: string(sc.CodeMetadata),
 	}
 }
 
