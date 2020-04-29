@@ -1003,6 +1003,8 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.commitEpochStart(header, body)
 
+	mp.validatorStatisticsProcessor.DisplayRatings(header.GetEpoch())
+
 	err = mp.saveLastNotarizedHeader(header)
 	if err != nil {
 		return err
@@ -1285,7 +1287,6 @@ func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body
 func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
 		mp.epochStartTrigger.SetProcessed(header, body)
-
 		go mp.epochRewardsCreator.SaveTxBlockToStorage(header, body)
 		go mp.validatorInfoCreator.SaveValidatorInfoBlocksToStorage(header, body)
 	} else {
