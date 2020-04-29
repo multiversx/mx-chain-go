@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
-type cryptoSigningParamsFactory struct {
+type cryptoSigningParamsLoader struct {
 	pubkeyConverter     state.PubkeyConverter
 	skIndex             int
 	skPemFileName       string
@@ -20,13 +20,13 @@ type cryptoSigningParamsFactory struct {
 	skPkProviderHandler func() ([]byte, []byte, error)
 }
 
-// NewCryptoSigningParamsFactory returns a new instance of cryptoSigningParamsFactory
-func NewCryptoSigningParamsFactory(
+// NewCryptoSigningParamsLoader returns a new instance of cryptoSigningParamsLoader
+func NewCryptoSigningParamsLoader(
 	pubkeyConverter state.PubkeyConverter,
 	skIndex int,
 	skPemFileName string,
 	suite crypto.Suite,
-) (*cryptoSigningParamsFactory, error) {
+) (*cryptoSigningParamsLoader, error) {
 	if check.IfNil(pubkeyConverter) {
 		return nil, ErrNilPubKeyConverter
 	}
@@ -34,7 +34,7 @@ func NewCryptoSigningParamsFactory(
 		return nil, ErrNilSuite
 	}
 
-	cspf := &cryptoSigningParamsFactory{
+	cspf := &cryptoSigningParamsLoader{
 		pubkeyConverter: pubkeyConverter,
 		skIndex:         skIndex,
 		skPemFileName:   skPemFileName,
@@ -45,8 +45,8 @@ func NewCryptoSigningParamsFactory(
 	return cspf, nil
 }
 
-// Create returns a key generator, a private key, and a public key
-func (cspf *cryptoSigningParamsFactory) Create() (*CryptoParams, error) {
+// Get returns a key generator, a private key, and a public key
+func (cspf *cryptoSigningParamsLoader) Get() (*CryptoParams, error) {
 	cryptoParams := &CryptoParams{}
 	sk, readPk, err := cspf.skPkProviderHandler()
 	if err != nil {
@@ -77,7 +77,7 @@ func (cspf *cryptoSigningParamsFactory) Create() (*CryptoParams, error) {
 	return cryptoParams, nil
 }
 
-func (cspf *cryptoSigningParamsFactory) getSkPk() ([]byte, []byte, error) {
+func (cspf *cryptoSigningParamsLoader) getSkPk() ([]byte, []byte, error) {
 	skIndex := cspf.skIndex
 	encodedSk, pkString, err := core.LoadSkPkFromPemFile(cspf.skPemFileName, skIndex)
 	if err != nil {

@@ -550,14 +550,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	validatorKeyPemFileName := ctx.GlobalString(validatorKeyPemFile.Name)
-	cryptoParamsFactory, err := mainFactory.NewCryptoSigningParamsFactory(
+	cryptoParamsLoader, err := mainFactory.NewCryptoSigningParamsLoader(
 		validatorPubkeyConverter,
 		ctx.GlobalInt(validatorKeyIndex.Name),
 		validatorKeyPemFileName,
 		suite,
 	)
 
-	cryptoParams, err := cryptoParamsFactory.Create()
+	cryptoParams, err := cryptoParamsLoader.Get()
 	if err != nil {
 		return fmt.Errorf("%w: consider regenerating your keys", err)
 	}
