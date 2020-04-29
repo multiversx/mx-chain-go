@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // ArgsGenesisBlockCreator holds the arguments which are needed to create a genesis metablock
@@ -34,4 +35,11 @@ type ArgsGenesisBlockCreator struct {
 	GasMap                   map[string]map[string]uint64
 	TxLogsProcessor          process.TransactionLogProcessor
 	VirtualMachineConfig     config.VirtualMachineConfig
+	HardForkConfig           config.HardforkConfig
+	TriesContainer           state.TriesHolder
+	TrieFactory              data.TrieFactory
+	ChainID                  string
+
+	// created component needed only for hardfork
+	importHandler update.ImportHandler
 }
