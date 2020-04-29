@@ -35,12 +35,12 @@ func (tsm *trieStorageManagerWithoutPruning) Prune([]byte, data.TriePruningIdent
 }
 
 // CancelPrune does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) CancelPrune([]byte) {
+func (tsm *trieStorageManagerWithoutPruning) CancelPrune([]byte, data.TriePruningIdentifier) {
 	log.Trace("trieStorageManagerWithoutPruning - CancelPrune:trie storage pruning is disabled")
 }
 
 // MarkForEviction does nothing if pruning is disabled
-func (tsm *trieStorageManagerWithoutPruning) MarkForEviction([]byte, data.ModifiedHashes) error {
+func (tsm *trieStorageManagerWithoutPruning) MarkForEviction(_ []byte, _ data.ModifiedHashes) error {
 	log.Trace("trieStorageManagerWithoutPruning - MarkForEviction:trie storage pruning is disabled")
 	return nil
 }

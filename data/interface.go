@@ -194,7 +194,7 @@ type StorageManager interface {
 	TakeSnapshot([]byte)
 	SetCheckpoint([]byte)
 	Prune([]byte, TriePruningIdentifier)
-	CancelPrune([]byte)
+	CancelPrune([]byte, TriePruningIdentifier)
 	MarkForEviction([]byte, ModifiedHashes) error
 	GetDbThatContainsHash([]byte) DBWriteCacher
 	IsPruningEnabled() bool
