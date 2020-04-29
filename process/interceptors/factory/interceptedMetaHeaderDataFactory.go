@@ -2,12 +2,15 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var _ process.InterceptedDataFactory = (*interceptedMetaHeaderDataFactory)(nil)
 
 type interceptedMetaHeaderDataFactory struct {
 	marshalizer       marshal.Marshalizer
@@ -17,6 +20,7 @@ type interceptedMetaHeaderDataFactory struct {
 	chainID           []byte
 	validityAttester  process.ValidityAttester
 	epochStartTrigger process.EpochStartTriggerHandler
+	nonceConverter    typeConverters.Uint64ByteSliceConverter
 }
 
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
@@ -48,6 +52,9 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 	if check.IfNil(argument.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
+	if check.IfNil(argument.NonceConverter) {
+		return nil, process.ErrNilUint64Converter
+	}
 
 	return &interceptedMetaHeaderDataFactory{
 		marshalizer:       argument.ProtoMarshalizer,
@@ -57,6 +64,7 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 		chainID:           argument.ChainID,
 		validityAttester:  argument.ValidityAttester,
 		epochStartTrigger: argument.EpochStartTrigger,
+		nonceConverter:    argument.NonceConverter,
 	}, nil
 }
 
@@ -71,6 +79,7 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte) (process.Inte
 		ChainID:           imhdf.chainID,
 		ValidityAttester:  imhdf.validityAttester,
 		EpochStartTrigger: imhdf.epochStartTrigger,
+		NonceConverter:    imhdf.nonceConverter,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)

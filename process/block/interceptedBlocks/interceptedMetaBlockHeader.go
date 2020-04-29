@@ -5,11 +5,15 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var _ process.HdrValidatorHandler = (*InterceptedMetaHeader)(nil)
+var _ process.InterceptedData = (*InterceptedMetaHeader)(nil)
 
 // InterceptedMetaHeader represents the wrapper over the meta block header struct
 type InterceptedMetaHeader struct {
@@ -21,6 +25,7 @@ type InterceptedMetaHeader struct {
 	chainID           []byte
 	validityAttester  process.ValidityAttester
 	epochStartTrigger process.EpochStartTriggerHandler
+	nonceConverter    typeConverters.Uint64ByteSliceConverter
 }
 
 // NewInterceptedMetaHeader creates a new instance of InterceptedMetaHeader struct
@@ -43,6 +48,7 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 		chainID:           arg.ChainID,
 		validityAttester:  arg.ValidityAttester,
 		epochStartTrigger: arg.EpochStartTrigger,
+		nonceConverter:    arg.NonceConverter,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -137,6 +143,13 @@ func (imh *InterceptedMetaHeader) String() string {
 		imh.hdr.Round,
 		imh.hdr.Nonce,
 	)
+}
+
+// Identifiers returns the identifiers used in requests
+func (imh *InterceptedMetaHeader) Identifiers() [][]byte {
+	nonceBytes := imh.nonceConverter.ToByteSlice(imh.hdr.Nonce)
+
+	return [][]byte{imh.hash, nonceBytes}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

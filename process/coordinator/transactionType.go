@@ -11,6 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.TxTypeHandler = (*txTypeHandler)(nil)
+
 type txTypeHandler struct {
 	pubkeyConv       state.PubkeyConverter
 	shardCoordinator sharding.Coordinator

@@ -125,6 +125,11 @@ func (ncm *NodesCoordinatorStub) ShardIdForEpoch(_ uint32) (uint32, error) {
 	panic("not implemented")
 }
 
+// ShuffleOutForEpoch verifies if the shards changed in the new epoch and calls the shuffleOutHandler
+func (ncm *NodesCoordinatorStub) ShuffleOutForEpoch(_ uint32) {
+	panic("not implemented")
+}
+
 // GetConsensusWhitelistedNodes return the whitelisted nodes allowed to send consensus messages, for each of the shards
 func (ncm *NodesCoordinatorStub) GetConsensusWhitelistedNodes(
 	_ uint32,

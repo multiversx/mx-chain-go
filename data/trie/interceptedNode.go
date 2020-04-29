@@ -10,7 +10,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
+
+var _ process.TxValidatorHandler = (*InterceptedTrieNode)(nil)
+var _ process.InterceptedData = (*InterceptedTrieNode)(nil)
 
 // InterceptedTrieNode implements intercepted data interface and is used when trie nodes are intercepted
 type InterceptedTrieNode struct {
@@ -120,6 +124,11 @@ func (inTn *InterceptedTrieNode) SenderAddress() state.AddressContainer {
 // Fee returns big.NewInt(0)
 func (inTn *InterceptedTrieNode) Fee() *big.Int {
 	return big.NewInt(0)
+}
+
+// Identifiers returns the identifiers used in requests
+func (inTn *InterceptedTrieNode) Identifiers() [][]byte {
+	return [][]byte{inTn.hash}
 }
 
 // CreateEndOfProcessingTriggerNode changes the hash of the current node by appending the hash to the current hash.

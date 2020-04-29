@@ -2,7 +2,10 @@ package disabled
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
+
+var _ process.ValidityAttester = (*validityAttester)(nil)
 
 type validityAttester struct {
 }

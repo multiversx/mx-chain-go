@@ -758,7 +758,7 @@ func TestNode_StartHeartbeatDisabledShouldNotCreateObjects(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             false,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Nil(t, err)
@@ -777,7 +777,7 @@ func TestNode_StartHeartbeatInvalidMinTimeShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Equal(t, node.ErrNegativeMinTimeToWaitBetweenBroadcastsInSec, err)
@@ -793,7 +793,7 @@ func TestNode_StartHeartbeatInvalidMaxTimeShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Equal(t, node.ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec, err)
@@ -809,7 +809,7 @@ func TestNode_StartHeartbeatInvalidDurationShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: -1,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Equal(t, node.ErrNegativeDurationInSecToConsiderUnresponsive, err)
@@ -825,7 +825,7 @@ func TestNode_StartHeartbeatInvalidMaxTimeMinTimeShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 2,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Equal(t, node.ErrWrongValues, err)
@@ -841,7 +841,7 @@ func TestNode_StartHeartbeatInvalidMaxTimeDurationShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 2,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Equal(t, node.ErrWrongValues, err)
@@ -970,18 +970,6 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithInitialNodesPubKeys(initialPubKeys),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{
-			GetPeerAccountCalled: func(address []byte) (handler state.PeerAccountHandler, err error) {
-				switch {
-				case bytes.Equal(address, []byte(keys[0][0])):
-					return nil, errors.New("error")
-				case bytes.Equal(address, []byte(keys[1][0])):
-					return state.NewPeerAccount(mock.NewAddressMock())
-				default:
-					return state.NewPeerAccount(mock.NewAddressMock())
-				}
-			},
-		}),
 		node.WithValidatorStatistics(vsp),
 		node.WithValidatorsProvider(validatorProvider),
 	)
@@ -1032,6 +1020,7 @@ func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
 				}, nil
 			},
 		}),
+		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 1,
@@ -1039,7 +1028,7 @@ func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.NotNil(t, err)
@@ -1087,6 +1076,7 @@ func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
 				}, nil
 			},
 		}),
+		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 	err := n.StartHeartbeat(config.HeartbeatConfig{
@@ -1095,7 +1085,7 @@ func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.NotNil(t, err)
@@ -1140,7 +1130,7 @@ func TestNode_StartHeartbeatHasTopicValidatorShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Equal(t, node.ErrValidatorAlreadySet, err)
@@ -1192,7 +1182,7 @@ func TestNode_StartHeartbeatCreateTopicFailsShouldErr(t *testing.T) {
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Equal(t, errExpected, err)
@@ -1246,6 +1236,7 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 				}, nil
 			},
 		}),
+		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(96)),
@@ -1255,8 +1246,10 @@ func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T)
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
+		HbmiRefreshIntervalInSec:            1,
+		HideInactiveValidatorIntervalInSec:  600,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Equal(t, errExpected, err)
@@ -1333,6 +1326,7 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 				}, nil
 			},
 		}),
+		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(96)),
@@ -1342,8 +1336,10 @@ func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
+		HbmiRefreshIntervalInSec:            1,
+		HideInactiveValidatorIntervalInSec:  1,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 
 	assert.Nil(t, err)
@@ -1422,14 +1418,15 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 				}, nil
 			},
 		}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{
+			GetLatestValidatorInfosCalled: func() (map[uint32][]*state.ValidatorInfo, error) {
 				return map[uint32][]*state.ValidatorInfo{
 					0: {
-						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
+						{PublicKey: []byte("pk1"), List: string(core.EligibleList)},
+						{PublicKey: []byte("pk2"), List: string(core.EligibleList)},
 					},
 					1: {
-						{PublicKey: []byte("pk3")},
+						{PublicKey: []byte("pk3"), List: string(core.EligibleList)},
 					},
 				}, nil
 			},
@@ -1444,8 +1441,10 @@ func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *test
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
+		HbmiRefreshIntervalInSec:            1,
+		HideInactiveValidatorIntervalInSec:  1,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 	assert.Nil(t, err)
 
@@ -1528,6 +1527,7 @@ func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *tes
 				}, nil
 			},
 		}),
+		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(96)),
@@ -1538,8 +1538,10 @@ func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *tes
 		MaxTimeToWaitBetweenBroadcastsInSec: 2,
 		DurationInSecToConsiderUnresponsive: 3,
 		Enabled:                             true,
+		HbmiRefreshIntervalInSec:            1,
+		HideInactiveValidatorIntervalInSec:  1,
 	}, "v0.1",
-		"undefined",
+		config.PreferencesConfig{NodeDisplayName: "undefined", Identity: "identity"},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, registeredHandler)
@@ -2534,4 +2536,65 @@ func TestNode_IsSelfTrigger(t *testing.T) {
 
 	assert.True(t, isSelf)
 	assert.True(t, wasCalled)
+}
+
+//------- Query handlers
+
+func TestNode_AddQueryHandlerNilHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+
+	err := n.AddQueryHandler("handler", nil)
+
+	assert.True(t, errors.Is(err, node.ErrNilQueryHandler))
+}
+
+func TestNode_AddQueryHandlerEmptyNameShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+
+	err := n.AddQueryHandler("", &mock.QueryHandlerStub{})
+
+	assert.True(t, errors.Is(err, node.ErrEmptyQueryHandlerName))
+}
+
+func TestNode_AddQueryHandlerExistsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+
+	err := n.AddQueryHandler("handler", &mock.QueryHandlerStub{})
+	assert.Nil(t, err)
+
+	err = n.AddQueryHandler("handler", &mock.QueryHandlerStub{})
+
+	assert.True(t, errors.Is(err, node.ErrQueryHandlerAlreadyExists))
+}
+
+func TestNode_GetQueryHandlerNotExistsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+
+	qh, err := n.GetQueryHandler("handler")
+
+	assert.True(t, check.IfNil(qh))
+	assert.True(t, errors.Is(err, node.ErrNilQueryHandler))
+}
+
+func TestNode_GetQueryHandlerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode()
+
+	qh := &mock.QueryHandlerStub{}
+	handler := "handler"
+	_ = n.AddQueryHandler(handler, &mock.QueryHandlerStub{})
+
+	qhRecovered, err := n.GetQueryHandler(handler)
+
+	assert.Equal(t, qhRecovered, qh)
+	assert.Nil(t, err)
 }

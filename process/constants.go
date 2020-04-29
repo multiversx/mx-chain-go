@@ -85,7 +85,7 @@ const MaxNumPendingMiniBlocks = 100
 
 // MaxMetaNoncesBehind defines the maximum difference between the current metablock nonce and the processed metablock
 // nonce before a shard is considered stuck
-const MaxMetaNoncesBehind = 8
+const MaxMetaNoncesBehind = 15
 
 // MaxRoundsWithoutNewBlockReceived defines the maximum rounds to wait for a new block to be received,
 // before a special action to be applied

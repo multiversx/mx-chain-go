@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.EpochStartDataCreator = (*epochStartData)(nil)
+
 type epochStartData struct {
 	marshalizer       marshal.Marshalizer
 	hasher            hashing.Hasher
@@ -174,7 +176,7 @@ func (e *epochStartData) createShardStartDataAndLastProcessedHeaders() (*block.E
 			return nil, nil, err
 		}
 
-		lastMetaHash, lastFinalizedMetaHash, currShardHdrList, err := e.lastFinalizedFirstPendingListHeadersForShard(shardHeader)
+		firstPendingMetaHash, lastFinalizedMetaHash, currShardHdrList, err := e.lastFinalizedFirstPendingListHeadersForShard(shardHeader)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -186,7 +188,7 @@ func (e *epochStartData) createShardStartDataAndLastProcessedHeaders() (*block.E
 			Nonce:                 lastCrossNotarizedHeaderForShard.GetNonce(),
 			HeaderHash:            hdrHash,
 			RootHash:              lastCrossNotarizedHeaderForShard.GetRootHash(),
-			FirstPendingMetaBlock: lastMetaHash,
+			FirstPendingMetaBlock: firstPendingMetaHash,
 			LastFinishedMetaBlock: lastFinalizedMetaHash,
 		}
 
@@ -198,7 +200,7 @@ func (e *epochStartData) createShardStartDataAndLastProcessedHeaders() (*block.E
 }
 
 func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr *block.Header) ([]byte, []byte, []*block.Header, error) {
-	var lastMetaHash []byte
+	var firstPendingMetaHash []byte
 	var lastFinalizedMetaHash []byte
 
 	shardHdrList := make([]*block.Header, 0)
@@ -215,49 +217,49 @@ func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr *
 			return nil, nil, nil, err
 		}
 
+		shardHdrList = append(shardHdrList, prevShardHdr)
 		if len(currentHdr.MetaBlockHashes) == 0 {
 			currentHdr = prevShardHdr
 			continue
 		}
 
-		shardHdrList = append(shardHdrList, prevShardHdr)
 		numAddedMetas := len(currentHdr.MetaBlockHashes)
 		if numAddedMetas > 1 {
-			if len(lastMetaHash) == 0 {
-				lastMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-1]
+			if len(firstPendingMetaHash) == 0 {
+				firstPendingMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-1]
 				lastFinalizedMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-2]
-				return lastMetaHash, lastFinalizedMetaHash, shardHdrList, nil
+				return firstPendingMetaHash, lastFinalizedMetaHash, shardHdrList, nil
 			}
 
-			if bytes.Equal(lastMetaHash, currentHdr.MetaBlockHashes[numAddedMetas-1]) {
+			if bytes.Equal(firstPendingMetaHash, currentHdr.MetaBlockHashes[numAddedMetas-1]) {
 				lastFinalizedMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-2]
-				return lastMetaHash, lastFinalizedMetaHash, shardHdrList, nil
+				return firstPendingMetaHash, lastFinalizedMetaHash, shardHdrList, nil
 			}
 
 			lastFinalizedMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-1]
-			return lastMetaHash, lastFinalizedMetaHash, shardHdrList, nil
+			return firstPendingMetaHash, lastFinalizedMetaHash, shardHdrList, nil
 		}
 
-		if len(lastMetaHash) == 0 {
-			lastMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-1]
+		if len(firstPendingMetaHash) == 0 {
+			firstPendingMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-1]
 			currentHdr = prevShardHdr
 			continue
 		}
 
 		lastFinalizedMetaHash = currentHdr.MetaBlockHashes[numAddedMetas-1]
-		if !bytes.Equal(lastMetaHash, lastFinalizedMetaHash) {
-			return lastMetaHash, lastFinalizedMetaHash, shardHdrList, nil
+		if !bytes.Equal(firstPendingMetaHash, lastFinalizedMetaHash) {
+			return firstPendingMetaHash, lastFinalizedMetaHash, shardHdrList, nil
 		}
 
 		currentHdr = prevShardHdr
 	}
 
-	lastMetaHash, lastFinalizedMetaHash, err := e.getShardDataFromEpochStartData(shardHdr.ShardID, lastMetaHash)
+	firstPendingMetaHash, lastFinalizedMetaHash, err := e.getShardDataFromEpochStartData(shardHdr.ShardID, firstPendingMetaHash)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	return lastMetaHash, lastFinalizedMetaHash, shardHdrList, nil
+	return firstPendingMetaHash, lastFinalizedMetaHash, shardHdrList, nil
 }
 
 func (e *epochStartData) getShardDataFromEpochStartData(
@@ -321,9 +323,10 @@ func (e *epochStartData) computePendingMiniBlockList(
 			continue
 		}
 
-		lastEpochShardData := getFirstPendingMetaBlockForShard(previousEpochStartMeta, uint32(shId))
-		if bytes.Equal(lastEpochShardData.FirstPendingMetaBlock, shardData.FirstPendingMetaBlock) {
-			allPending = append(allPending, lastEpochShardData.PendingMiniBlockHeaders...)
+		firstPending, mapPendingMiniBlocks := getEpochStartDataForShard(previousEpochStartMeta, uint32(shId))
+		if bytes.Equal(firstPending, shardData.FirstPendingMetaBlock) {
+			stillPending := e.computeStillPending(uint32(shId), allShardHdrList[shId], mapPendingMiniBlocks)
+			allPending = append(allPending, stillPending...)
 			continue
 		}
 
@@ -334,16 +337,16 @@ func (e *epochStartData) computePendingMiniBlockList(
 		}
 
 		allMiniBlockHeaders := getAllMiniBlocksWithDst(metaHdr, uint32(shId))
-		stillPending := e.computeStillPending(allShardHdrList[shId], allMiniBlockHeaders)
+		stillPending := e.computeStillPending(uint32(shId), allShardHdrList[shId], allMiniBlockHeaders)
 		allPending = append(allPending, stillPending...)
 	}
 
 	return allPending, nil
 }
 
-func getFirstPendingMetaBlockForShard(epochStartMetaHdr *block.MetaBlock, shardID uint32) block.EpochStartShardData {
+func getEpochStartDataForShard(epochStartMetaHdr *block.MetaBlock, shardID uint32) ([]byte, map[string]block.MiniBlockHeader) {
 	if check.IfNil(epochStartMetaHdr) {
-		return block.EpochStartShardData{}
+		return nil, nil
 	}
 
 	for _, epochStartData := range epochStartMetaHdr.EpochStart.LastFinalizedHeaders {
@@ -351,13 +354,19 @@ func getFirstPendingMetaBlockForShard(epochStartMetaHdr *block.MetaBlock, shardI
 			continue
 		}
 
-		return epochStartData
+		mapPendingMiniBlocks := make(map[string]block.MiniBlockHeader, len(epochStartData.PendingMiniBlockHeaders))
+		for _, mbHdr := range epochStartData.PendingMiniBlockHeaders {
+			mapPendingMiniBlocks[string(mbHdr.Hash)] = mbHdr
+		}
+
+		return epochStartData.FirstPendingMetaBlock, mapPendingMiniBlocks
 	}
 
-	return block.EpochStartShardData{}
+	return nil, nil
 }
 
 func (e *epochStartData) computeStillPending(
+	shardID uint32,
 	shardHdrs []*block.Header,
 	miniBlockHeaders map[string]block.MiniBlockHeader,
 ) []block.MiniBlockHeader {
@@ -371,6 +380,7 @@ func (e *epochStartData) computeStillPending(
 	}
 
 	for _, mbHeader := range miniBlockHeaders {
+		log.Debug("pending miniblock for shard ", "id", shardID, "hash", mbHeader.Hash)
 		pendingMiniBlocks = append(pendingMiniBlocks, mbHeader)
 	}
 

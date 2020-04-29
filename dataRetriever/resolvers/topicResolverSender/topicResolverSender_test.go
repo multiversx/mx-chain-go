@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var defaultHashes = [][]byte{[]byte("hash")}
+
 func createMockArgTopicResolverSender() topicResolverSender.ArgTopicResolverSender {
 	return topicResolverSender.ArgTopicResolverSender{
 		Messenger:          &mock.MessageHandlerStub{},
@@ -159,7 +161,7 @@ func TestTopicResolverSender_SendOnRequestTopicMarshalizerFailsShouldErr(t *test
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
-	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
 	assert.Equal(t, errExpected, err)
 }
@@ -178,7 +180,7 @@ func TestTopicResolverSender_SendOnRequestTopicNoOneToSendShouldErr(t *testing.T
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
-	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
 	assert.True(t, errors.Is(err, dataRetriever.ErrSendRequest))
 }
@@ -214,7 +216,7 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
-	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
 	assert.Nil(t, err)
 	assert.True(t, sentToPid1)
@@ -245,7 +247,7 @@ func TestTopicResolverSender_SendOnRequestShouldStopAfterSendingToRequiredNum(t 
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
-	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
 	assert.Nil(t, err)
 	assert.Equal(t, arg.NumCrossShardPeers+arg.NumIntraShardPeers, numSent)
@@ -280,7 +282,7 @@ func TestTopicResolverSender_SendOnRequestNoIntraShardShouldNotCallIntraShard(t 
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
-	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
 	assert.Nil(t, err)
 	assert.Equal(t, arg.NumCrossShardPeers, numSent)
@@ -315,7 +317,7 @@ func TestTopicResolverSender_SendOnRequestNoCrossShardShouldNotCallCrossShard(t 
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
-	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
 	assert.Nil(t, err)
 	assert.Equal(t, arg.NumIntraShardPeers, numSent)
@@ -348,7 +350,7 @@ func TestTopicResolverSender_SendOnRequestTopicErrorsShouldReturnError(t *testin
 	}
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
-	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{})
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
 
 	assert.True(t, errors.Is(err, dataRetriever.ErrSendRequest))
 	assert.True(t, sentToPid1)
@@ -421,6 +423,46 @@ func TestTopicResolverSender_Topic(t *testing.T) {
 	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
 
 	assert.Equal(t, arg.TopicName+topicResolverSender.TopicRequestSuffix, trs.RequestTopic())
+}
+
+func TestTopicResolverSender_ResolverDebugHandler(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTopicResolverSender()
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
+
+	handler := &mock.ResolverDebugHandler{}
+
+	err := trs.SetResolverDebugHandler(handler)
+	assert.Nil(t, err)
+
+	assert.True(t, handler == trs.ResolverDebugHandler()) //pointer testing
+}
+
+func TestTopicResolverSender_SetResolverDebugHandlerNilShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTopicResolverSender()
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
+
+	err := trs.SetResolverDebugHandler(nil)
+	assert.Equal(t, dataRetriever.ErrNilResolverDebugHandler, err)
+}
+
+func TestTopicResolverSender_NumPeersToQueryr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTopicResolverSender()
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
+
+	intra := 1123
+	cross := 2143
+
+	trs.SetNumPeersToQuery(intra, cross)
+	recoveredIntra, recoveredCross := trs.NumPeersToQuery()
+
+	assert.Equal(t, intra, recoveredIntra)
+	assert.Equal(t, cross, recoveredCross)
 }
 
 // ------- FisherYatesShuffle

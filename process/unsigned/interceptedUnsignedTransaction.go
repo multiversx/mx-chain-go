@@ -15,6 +15,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.TxValidatorHandler = (*InterceptedUnsignedTransaction)(nil)
+var _ process.InterceptedData = (*InterceptedUnsignedTransaction)(nil)
+
 // InterceptedUnsignedTransaction holds and manages a transaction based struct with extended functionality
 type InterceptedUnsignedTransaction struct {
 	uTx               *smartContractResult.SmartContractResult
@@ -192,6 +195,11 @@ func (inUTx *InterceptedUnsignedTransaction) String() string {
 		inUTx.uTx.Value.String(),
 		logger.DisplayByteSlice(inUTx.uTx.RcvAddr),
 	)
+}
+
+// Identifiers returns the identifiers used in requests
+func (inUTx *InterceptedUnsignedTransaction) Identifiers() [][]byte {
+	return [][]byte{inUTx.hash}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

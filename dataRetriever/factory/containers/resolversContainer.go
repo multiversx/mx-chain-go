@@ -10,6 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
+var _ dataRetriever.ResolversContainer = (*resolversContainer)(nil)
+
 // resolversContainer is a resolvers holder organized by type
 type resolversContainer struct {
 	objects *container.MutexMap
@@ -109,6 +111,35 @@ func (rc *resolversContainer) ResolverKeys() string {
 	})
 
 	return strings.Join(stringKeys, ", ")
+}
+
+// Iterate will call the provided handler for each and every key-value pair
+func (rc *resolversContainer) Iterate(handler func(key string, resolver dataRetriever.Resolver) bool) {
+	if handler == nil {
+		return
+	}
+
+	for _, keyVal := range rc.objects.Keys() {
+		key, ok := keyVal.(string)
+		if !ok {
+			continue
+		}
+
+		val, ok := rc.objects.Get(key)
+		if !ok {
+			continue
+		}
+
+		resolver, ok := val.(dataRetriever.Resolver)
+		if !ok {
+			continue
+		}
+
+		shouldContinue := handler(key, resolver)
+		if !shouldContinue {
+			return
+		}
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

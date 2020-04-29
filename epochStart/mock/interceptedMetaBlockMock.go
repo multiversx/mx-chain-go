@@ -47,6 +47,11 @@ func (i *interceptedMetaBlockMock) String() string {
 	return "metaBlock"
 }
 
+// Identifiers -
+func (i *interceptedMetaBlockMock) Identifiers() [][]byte {
+	return [][]byte{i.HashToUse}
+}
+
 // IsInterfaceNil -
 func (i *interceptedMetaBlockMock) IsInterfaceNil() bool {
 	return i == nil

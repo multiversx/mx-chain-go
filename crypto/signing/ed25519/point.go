@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
+var _ crypto.Point = (*ed25519Point)(nil)
+
 // ed25519 - is a mapping over crypto/ed25519 public key
 // Most of the implementations of the Point interface functions are mocked
 //  since the implementation details edwards25519 are internal to the crypto/ed25519 package

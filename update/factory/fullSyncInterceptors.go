@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -44,6 +45,7 @@ type fullSyncInterceptorsContainerFactory struct {
 	singleSigner           crypto.SingleSigner
 	addressPubkeyConv      state.PubkeyConverter
 	whiteListHandler       update.WhiteListHandler
+	whiteListerVerifiedTxs update.WhiteListHandler
 	antifloodHandler       process.P2PAntifloodHandler
 }
 
@@ -73,8 +75,10 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	ValidityAttester       process.ValidityAttester
 	EpochStartTrigger      process.EpochStartTriggerHandler
 	WhiteListHandler       update.WhiteListHandler
+	WhiteListerVerifiedTxs update.WhiteListHandler
 	InterceptorsContainer  process.InterceptorsContainer
 	AntifloodHandler       process.P2PAntifloodHandler
+	NonceConverter         typeConverters.Uint64ByteSliceConverter
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -95,6 +99,8 @@ func NewFullSyncInterceptorsContainerFactory(
 		args.MultiSigner,
 		args.NodesCoordinator,
 		args.BlackList,
+		args.NonceConverter,
+		args.WhiteListerVerifiedTxs,
 	)
 	if err != nil {
 		return nil, err
@@ -141,22 +147,24 @@ func NewFullSyncInterceptorsContainerFactory(
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		Hasher:            args.Hasher,
-		ProtoMarshalizer:  args.Marshalizer,
-		TxSignMarshalizer: args.TxSignMarshalizer,
-		ShardCoordinator:  args.ShardCoordinator,
-		MultiSigVerifier:  args.MultiSigner,
-		NodesCoordinator:  args.NodesCoordinator,
-		KeyGen:            args.KeyGen,
-		BlockKeyGen:       args.BlockSignKeyGen,
-		Signer:            args.SingleSigner,
-		BlockSigner:       args.BlockSingleSigner,
-		AddressPubkeyConv: args.AddressPubkeyConverter,
-		FeeHandler:        args.TxFeeHandler,
-		HeaderSigVerifier: args.HeaderSigVerifier,
-		ChainID:           args.ChainID,
-		ValidityAttester:  args.ValidityAttester,
-		EpochStartTrigger: args.EpochStartTrigger,
+		Hasher:                 args.Hasher,
+		ProtoMarshalizer:       args.Marshalizer,
+		TxSignMarshalizer:      args.TxSignMarshalizer,
+		ShardCoordinator:       args.ShardCoordinator,
+		MultiSigVerifier:       args.MultiSigner,
+		NodesCoordinator:       args.NodesCoordinator,
+		KeyGen:                 args.KeyGen,
+		BlockKeyGen:            args.BlockSignKeyGen,
+		Signer:                 args.SingleSigner,
+		BlockSigner:            args.BlockSingleSigner,
+		AddressPubkeyConv:      args.AddressPubkeyConverter,
+		FeeHandler:             args.TxFeeHandler,
+		HeaderSigVerifier:      args.HeaderSigVerifier,
+		ChainID:                args.ChainID,
+		ValidityAttester:       args.ValidityAttester,
+		EpochStartTrigger:      args.EpochStartTrigger,
+		NonceConverter:         args.NonceConverter,
+		WhiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{
@@ -177,6 +185,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		singleSigner:           args.SingleSigner,
 		addressPubkeyConv:      args.AddressPubkeyConverter,
 		whiteListHandler:       args.WhiteListHandler,
+		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 		antifloodHandler:       args.AntifloodHandler,
 	}
 
@@ -239,6 +248,8 @@ func checkBaseParams(
 	multiSigner crypto.MultiSigner,
 	nodesCoordinator sharding.NodesCoordinator,
 	blackList process.BlackListHandler,
+	nonceConverter typeConverters.Uint64ByteSliceConverter,
+	whiteListerVerifiedTxs update.WhiteListHandler,
 ) error {
 	if check.IfNil(shardCoordinator) {
 		return process.ErrNilShardCoordinator
@@ -269,6 +280,12 @@ func checkBaseParams(
 	}
 	if check.IfNil(blackList) {
 		return process.ErrNilBlackListHandler
+	}
+	if check.IfNil(nonceConverter) {
+		return process.ErrNilUint64Converter
+	}
+	if check.IfNil(whiteListerVerifiedTxs) {
+		return process.ErrNilWhiteListHandler
 	}
 
 	return nil

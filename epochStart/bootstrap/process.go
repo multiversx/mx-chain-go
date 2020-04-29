@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -52,6 +53,7 @@ type Parameters struct {
 	Epoch       uint32
 	SelfShardId uint32
 	NumOfShards uint32
+	NodesConfig *sharding.NodesCoordinatorRegistry
 }
 
 // ComponentsNeededForBootstrap holds the components which need to be initialized from network
@@ -107,6 +109,7 @@ type epochStartBootstrap struct {
 	epochStartMetaBlockSyncer epochStart.StartOfEpochMetaSyncer
 	nodesConfigHandler        StartOfEpochNodesConfigHandler
 	whiteListHandler          update.WhiteListHandler
+	whiteListerVerifiedTxs    update.WhiteListHandler
 
 	// gathered data
 	epochStartMeta     *block.MetaBlock
@@ -335,6 +338,11 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
+	e.whiteListerVerifiedTxs, err = interceptors.NewDisabledWhiteListDataVerifier()
+	if err != nil {
+		return err
+	}
+
 	err = e.createRequestHandler()
 	if err != nil {
 		return err
@@ -355,6 +363,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		BlockSigner:       e.blockSingleSigner,
 		WhitelistHandler:  e.whiteListHandler,
 		AddressPubkeyConv: e.addressPubkeyConverter,
+		NonceConverter:    e.uint64Converter,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -368,20 +377,22 @@ func (e *epochStartBootstrap) createSyncers() error {
 	var err error
 
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
-		Config:            e.generalConfig,
-		ShardCoordinator:  e.shardCoordinator,
-		ProtoMarshalizer:  e.marshalizer,
-		TxSignMarshalizer: e.txSignMarshalizer,
-		Hasher:            e.hasher,
-		Messenger:         e.messenger,
-		DataPool:          e.dataPool,
-		SingleSigner:      e.singleSigner,
-		BlockSingleSigner: e.blockSingleSigner,
-		KeyGen:            e.keyGen,
-		BlockKeyGen:       e.blockKeyGen,
-		WhiteListHandler:  e.whiteListHandler,
-		ChainID:           []byte(e.genesisNodesConfig.GetChainId()),
-		AddressPubkeyConv: e.addressPubkeyConverter,
+		Config:               e.generalConfig,
+		ShardCoordinator:     e.shardCoordinator,
+		ProtoMarshalizer:       e.marshalizer,
+		TxSignMarshalizer:      e.txSignMarshalizer,
+		Hasher:                 e.hasher,
+		Messenger:              e.messenger,
+		DataPool:               e.dataPool,
+		SingleSigner:           e.singleSigner,
+		BlockSingleSigner:      e.blockSingleSigner,
+		KeyGen:                 e.keyGen,
+		BlockKeyGen:            e.blockKeyGen,
+		WhiteListHandler:       e.whiteListHandler,
+		WhiteListerVerifiedTxs: e.whiteListerVerifiedTxs,
+		ChainID:                []byte(e.genesisNodesConfig.GetChainId()),
+		AddressPubkeyConv:      e.addressPubkeyConverter,
+		NonceConverter:         e.uint64Converter,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
@@ -480,7 +491,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	e.saveSelfShardId()
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
 	if err != nil {
-		return Parameters{}, err
+		return Parameters{}, fmt.Errorf("%w numberOfShards=%v shardId=%v", err, e.baseData.numberOfShards, e.baseData.shardId)
 	}
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
 
@@ -512,7 +523,9 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		Epoch:       e.baseData.lastEpoch,
 		SelfShardId: e.baseData.shardId,
 		NumOfShards: e.baseData.numberOfShards,
+		NodesConfig: e.nodesConfig,
 	}
+
 	return parameters, nil
 }
 

@@ -1,15 +1,17 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // ResolverStub -
 type ResolverStub struct {
-	RequestDataFromHashCalled    func(hash []byte, epoch uint32) error
-	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
-	SetNumPeersToQueryCalled     func(intra int, cross int)
-	GetNumPeersToQueryCalled     func() (int, int)
+	RequestDataFromHashCalled     func(hash []byte, epoch uint32) error
+	ProcessReceivedMessageCalled  func(message p2p.MessageP2P) error
+	SetNumPeersToQueryCalled      func(intra int, cross int)
+	NumPeersToQueryCalled         func() (int, int)
+	SetResolverDebugHandlerCalled func(handler dataRetriever.ResolverDebugHandler) error
 }
 
 // SetNumPeersToQuery -
@@ -19,10 +21,10 @@ func (rs *ResolverStub) SetNumPeersToQuery(intra int, cross int) {
 	}
 }
 
-// GetNumPeersToQuery -
-func (rs *ResolverStub) GetNumPeersToQuery() (int, int) {
-	if rs.GetNumPeersToQueryCalled != nil {
-		return rs.GetNumPeersToQueryCalled()
+// NumPeersToQuery -
+func (rs *ResolverStub) NumPeersToQuery() (int, int) {
+	if rs.NumPeersToQueryCalled != nil {
+		return rs.NumPeersToQueryCalled()
 	}
 
 	return 2, 2
@@ -36,6 +38,15 @@ func (rs *ResolverStub) RequestDataFromHash(hash []byte, epoch uint32) error {
 // ProcessReceivedMessage -
 func (rs *ResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ p2p.PeerID) error {
 	return rs.ProcessReceivedMessageCalled(message)
+}
+
+// SetResolverDebugHandler -
+func (rs *ResolverStub) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
+	if rs.SetResolverDebugHandlerCalled != nil {
+		return rs.SetResolverDebugHandlerCalled(handler)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

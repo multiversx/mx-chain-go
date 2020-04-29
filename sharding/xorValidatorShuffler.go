@@ -6,6 +6,8 @@ import (
 	"sync"
 )
 
+var _ NodesShuffler = (*randXORShuffler)(nil)
+
 // TODO: Decide if transaction load statistics will be used for limiting the number of shards
 type randXORShuffler struct {
 	// TODO: remove the references to this constant when reinitialization of node in new shard is implemented
@@ -26,8 +28,10 @@ func NewXorValidatorsShuffler(
 	nodesMeta uint32,
 	hysteresis float32,
 	adaptivity bool,
+	shuffleBetweenShards bool,
 ) *randXORShuffler {
-	rxs := &randXORShuffler{}
+	log.Debug("Shuffler created", "shuffleBetweenShards", shuffleBetweenShards)
+	rxs := &randXORShuffler{shuffleBetweenShards: shuffleBetweenShards}
 
 	rxs.UpdateParams(nodesShard, nodesMeta, hysteresis, adaptivity)
 

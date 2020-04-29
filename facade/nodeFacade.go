@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -291,6 +292,11 @@ func (nf *nodeFacade) EncodeAddressPubkey(pk []byte) (string, error) {
 // DecodeAddressPubkey will try to decode the provided address public key string
 func (nf *nodeFacade) DecodeAddressPubkey(pk string) ([]byte, error) {
 	return nf.node.DecodeAddressPubkey(pk)
+}
+
+// GetQueryHandler returns the query handler if existing
+func (nf *nodeFacade) GetQueryHandler(name string) (debug.QueryHandler, error) {
+	return nf.node.GetQueryHandler(name)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

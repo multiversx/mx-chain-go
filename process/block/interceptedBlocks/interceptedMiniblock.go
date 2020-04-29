@@ -11,6 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.InterceptedData = (*InterceptedMiniblock)(nil)
+
 // InterceptedMiniblock is a wrapper over a miniblock
 type InterceptedMiniblock struct {
 	miniblock         *block.MiniBlock
@@ -126,6 +128,11 @@ func (inMb *InterceptedMiniblock) String() string {
 		inMb.miniblock.SenderShardID,
 		inMb.miniblock.ReceiverShardID,
 	)
+}
+
+// Identifiers returns the identifiers used in requests
+func (inMb *InterceptedMiniblock) Identifiers() [][]byte {
+	return [][]byte{inMb.hash}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

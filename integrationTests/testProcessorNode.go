@@ -42,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
+	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
@@ -207,6 +208,7 @@ type TestProcessorNode struct {
 	StorageBootstrapper      *mock.StorageBootstrapperMock
 	RequestedItemsHandler    dataRetriever.RequestedItemsHandler
 	WhiteListHandler         process.WhiteListHandler
+	WhiteListerVerifiedTxs   process.WhiteListHandler
 	NetworkShardingCollector consensus.NetworkShardingCollector
 
 	EpochStartTrigger  TestEpochStartTrigger
@@ -455,6 +457,10 @@ func (tpn *TestProcessorNode) initDataPools() {
 	cacherCfg := storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache, Shards: 1}
 	cache, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
 	tpn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(cache)
+
+	cacherVerifiedCfg := storageUnit.CacheConfig{Size: 5000, Type: storageUnit.LRUCache, Shards: 1}
+	cacheVerified, _ := storageUnit.NewCache(cacherVerifiedCfg.Type, cacherVerifiedCfg.Size, cacherVerifiedCfg.Shards)
+	tpn.WhiteListerVerifiedTxs, _ = interceptors.NewWhiteListDataVerifier(cacheVerified)
 }
 
 func (tpn *TestProcessorNode) initStorage() {
@@ -659,7 +665,9 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ValidityAttester:       tpn.BlockTracker,
 			EpochStartTrigger:      tpn.EpochStartTrigger,
 			WhiteListHandler:       tpn.WhiteListHandler,
+			WhiteListerVerifiedTxs: tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:       &mock.NilAntifloodHandler{},
+			NonceConverter:         TestUint64Converter,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
@@ -716,7 +724,9 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ValidityAttester:       tpn.BlockTracker,
 			EpochStartTrigger:      tpn.EpochStartTrigger,
 			WhiteListHandler:       tpn.WhiteListHandler,
+			WhiteListerVerifiedTxs: tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:       &mock.NilAntifloodHandler{},
+			NonceConverter:         TestUint64Converter,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 
@@ -1299,6 +1309,22 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithDataPool(tpn.DataPool),
 		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
+	)
+	log.LogIfError(err)
+
+	err = nodeDebugFactory.CreateInterceptedDebugHandler(
+		tpn.Node,
+		tpn.InterceptorsContainer,
+		tpn.ResolverFinder,
+		config.InterceptorResolverDebugConfig{
+			Enabled:                    true,
+			CacheSize:                  1000,
+			EnablePrint:                true,
+			IntervalAutoPrintInSeconds: 1,
+			NumRequestsThreshold:       1,
+			NumResolveFailureThreshold: 1,
+			DebugLineExpiration:        1000,
+		},
 	)
 	log.LogIfError(err)
 }

@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.ValidatorsProvider = (*validatorsProvider)(nil)
+
 // validatorsProvider is the main interface for validators' provider
 type validatorsProvider struct {
 	mutCachedMap        sync.Mutex
@@ -83,6 +85,22 @@ func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorA
 	vp.cachedMap = mapToReturn
 
 	return mapToReturn
+}
+
+// GetLatestValidatorInfos gets the latest configuration of validators per shard from the peerAccountsTrie
+// TODO: add cache here
+func (vp *validatorsProvider) GetLatestValidatorInfos() (map[uint32][]*state.ValidatorInfo, error) {
+	latestHash, err := vp.validatorStatistics.RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	validators, err := vp.validatorStatistics.GetValidatorInfoForRootHash(latestHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return validators, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

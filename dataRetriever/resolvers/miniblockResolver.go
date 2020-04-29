@@ -7,10 +7,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+var _ dataRetriever.MiniBlocksResolver = (*miniblockResolver)(nil)
+var _ requestHandlers.HashSliceResolver = (*miniblockResolver)(nil)
 
 // ArgMiniblockResolver is the argument structure used to create a new miniblockResolver instance
 type ArgMiniblockResolver struct {
@@ -99,8 +103,16 @@ func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, f
 	}
 
 	if err != nil {
+		mbRes.ResolverDebugHandler().LogFailedToResolveData(
+			mbRes.topic,
+			rd.Value,
+			err,
+		)
+
 		err = fmt.Errorf("%w for hash %s", err, logger.DisplayByteSlice(rd.Value))
 	}
+
+	mbRes.ResolverDebugHandler().LogSucceededToResolveData(mbRes.topic, rd.Value)
 
 	return err
 }
@@ -177,11 +189,14 @@ func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid p
 
 // RequestDataFromHash requests a block body from other peers having input the block body hash
 func (mbRes *miniblockResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
-	return mbRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.HashType,
-		Value: hash,
-		Epoch: epoch,
-	})
+	return mbRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashType,
+			Value: hash,
+			Epoch: epoch,
+		},
+		[][]byte{hash},
+	)
 }
 
 // RequestDataFromHashArray requests a block body from other peers having input the block body hash
@@ -195,10 +210,13 @@ func (mbRes *miniblockResolver) RequestDataFromHashArray(hashes [][]byte, _ uint
 		return err
 	}
 
-	return mbRes.SendOnRequestTopic(&dataRetriever.RequestData{
-		Type:  dataRetriever.HashArrayType,
-		Value: hash,
-	})
+	return mbRes.SendOnRequestTopic(
+		&dataRetriever.RequestData{
+			Type:  dataRetriever.HashArrayType,
+			Value: hash,
+		},
+		[][]byte{hash},
+	)
 }
 
 // SetNumPeersToQuery will set the number of intra shard and cross shard number of peer to query
@@ -206,9 +224,14 @@ func (mbRes *miniblockResolver) SetNumPeersToQuery(intra int, cross int) {
 	mbRes.TopicResolverSender.SetNumPeersToQuery(intra, cross)
 }
 
-// GetNumPeersToQuery will return the number of intra shard and cross shard number of peer to query
-func (mbRes *miniblockResolver) GetNumPeersToQuery() (int, int) {
-	return mbRes.TopicResolverSender.GetNumPeersToQuery()
+// NumPeersToQuery will return the number of intra shard and cross shard number of peer to query
+func (mbRes *miniblockResolver) NumPeersToQuery() (int, int) {
+	return mbRes.TopicResolverSender.NumPeersToQuery()
+}
+
+// SetResolverDebugHandler will set a resolver debug handler
+func (mbRes *miniblockResolver) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
+	return mbRes.TopicResolverSender.SetResolverDebugHandler(handler)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

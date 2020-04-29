@@ -20,12 +20,12 @@
 
    # NumEpochsToKeep - if the flag above is set to false, this will set the number of epochs to keep in the storage.
    # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
-   NumEpochsToKeep = 3
+   NumEpochsToKeep = 4
 
    # NumActivePersisters - this will set the number of persisters to keep active at a moment. This works for both
    # full archive or not nodes. In case of a node which doesn't have a full archive, it has to be smaller or equal
    # to the NumOfEpochsToKeep flag
-   NumActivePersisters = 2
+   NumActivePersisters = 3
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
@@ -233,6 +233,11 @@
     Type = "FIFOSharded"
     Shards = 10
 
+[WhiteListerVerifiedTxs]
+    Size = 50000
+    Type = "FIFOSharded"
+    Shards = 50
+
 [UnsignedTransactionDataPool]
     Size = 75000
     Type = "LRU"
@@ -345,6 +350,9 @@
     # has been shuffled out has to restart its process in order to start in a new shard
     ShuffledOutRestartThreshold = 0.25
 
+    # ShuffleBetweenShards enables the shuffling of validators between shards at the end of epoch
+    ShuffleBetweenShards = false
+
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
 # RefreshIntervalInSec will tell how often a new line containing stats should be added in stats file
@@ -356,9 +364,11 @@
 # where x in [MinTimeToWaitBetweenBroadcastsInSec, MaxTimeToWaitBetweenBroadcastsInSec)
 [Heartbeat]
    Enabled = true
-   MinTimeToWaitBetweenBroadcastsInSec = 20
-   MaxTimeToWaitBetweenBroadcastsInSec = 25
-   DurationInSecToConsiderUnresponsive = 60
+   MinTimeToWaitBetweenBroadcastsInSec  = 20
+   MaxTimeToWaitBetweenBroadcastsInSec  = 25
+   HbmiRefreshIntervalInSec             = 60
+   HideInactiveValidatorIntervalInSec   = 3600
+   DurationInSecToConsiderUnresponsive  = 60
    [Heartbeat.HeartbeatStorage]
        [Heartbeat.HeartbeatStorage.Cache]
            Size = 1000
@@ -376,7 +386,7 @@
    Type = "bls"
 
 [NTPConfig]
-   Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com", "time.windows.com"]
+   Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com"]
    Port = 123
    TimeoutMilliseconds = 100
    SyncPeriodSeconds = 3600
@@ -402,3 +412,13 @@
     EnableTrigger = true
     EnableTriggerFromP2P = true
     PublicKeyToListenFrom = "b5ea539180627040b2703cabde8ebece0ded59a0c9d2d4a8a73a299fb7bc11d36ac3d1a620501c230059cffa983a7419d192a50ca55ed8aa07254658dda27aba1e54f50fd7cfbb9e66ce1715d72f9c1b0b05272388f9825742161a211debff15"
+
+[Debug]
+    [Debug.InterceptorResolver]
+        Enabled = true
+        CacheSize = 10000
+        EnablePrint	= true
+        IntervalAutoPrintInSeconds = 20
+        NumRequestsThreshold = 9
+        NumResolveFailureThreshold = 3
+        DebugLineExpiration = 10 #Will remove the debug line after a `DebugLineExpiration` number of prints

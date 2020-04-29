@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.InterceptedData = (*InterceptedRewardTransaction)(nil)
+
 // InterceptedRewardTransaction holds and manages a transaction based struct with extended functionality
 type InterceptedRewardTransaction struct {
 	rTx               *rewardTx.RewardTx
@@ -173,6 +175,11 @@ func (inRTx *InterceptedRewardTransaction) String() string {
 		logger.DisplayByteSlice(inRTx.rTx.RcvAddr),
 		inRTx.rTx.Value.String(),
 	)
+}
+
+// Identifiers returns the identifiers used in requests
+func (inRTx *InterceptedRewardTransaction) Identifiers() [][]byte {
+	return [][]byte{inRTx.hash}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
