@@ -17,7 +17,6 @@ import (
 )
 
 var stepDelay = time.Second
-var p2PBootstrapDelay = time.Second * 5
 
 func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	if testing.Short() {
@@ -38,7 +37,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 
 	_ = n.Messenger.Bootstrap()
 
-	time.Sleep(p2PBootstrapDelay)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	//set the account's nonce to startingNonce
 	_ = n.SetAccountNonce(startingNonce)

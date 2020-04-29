@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -15,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var durationBootstrapingTime = 5 * time.Second
 var randezVous = ""
 
 func createDefaultConfig() config.P2PConfig {
@@ -107,7 +105,7 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 	for _, p := range peers {
 		_ = p.Bootstrap()
 	}
-	integrationTests.WaitForBootstrapAndShowConnected(peers, durationBootstrapingTime)
+	integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
 
 	//Step 4. Disconnect one peer
 	disconnectedPeer := peers[5]
@@ -123,7 +121,7 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 		}
 	}
 	for i := 0; i < 5; i++ {
-		integrationTests.WaitForBootstrapAndShowConnected(peers, durationBootstrapingTime)
+		integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
 	}
 
 	//Step 4.1. Test that the peer is disconnected
@@ -139,7 +137,7 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 	fmt.Println("--- Re-linking ---")
 	_ = netw.LinkAll()
 	for i := 0; i < 5; i++ {
-		integrationTests.WaitForBootstrapAndShowConnected(peers, durationBootstrapingTime)
+		integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
 	}
 
 	//Step 5.1. Test that the peer is reconnected

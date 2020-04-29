@@ -52,7 +52,7 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 	p2pBootstrapNodes(nodesMap)
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(block.P2PBootstrapDelay)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(1)
