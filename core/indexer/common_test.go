@@ -72,22 +72,20 @@ func TestGetTransactionByType_RewardTx(t *testing.T) {
 	rwdTx := &rewardTx.RewardTx{Round: round, RcvAddr: rcvAddr}
 	txHash := []byte("txHash")
 	mbHash := []byte("mbHash")
-	blockHash := []byte("blockHash")
 	mb := &block.MiniBlock{TxHashes: [][]byte{txHash}}
 	header := &block.Header{Nonce: 2}
 	status := "Success"
 
-	resultTx := cp.buildRewardTransaction(rwdTx, txHash, mbHash, blockHash, mb, header, status)
+	resultTx := cp.buildRewardTransaction(rwdTx, txHash, mbHash, mb, header, status)
 	expectedTx := &Transaction{
-		Hash:      hex.EncodeToString(txHash),
-		MBHash:    hex.EncodeToString(mbHash),
-		BlockHash: hex.EncodeToString(blockHash),
-		Round:     round,
-		Receiver:  hex.EncodeToString(rcvAddr),
-		Status:    status,
-		Value:     "<nil>",
-		Sender:    fmt.Sprintf("%d", core.MetachainShardId),
-		Data:      "",
+		Hash:     hex.EncodeToString(txHash),
+		MBHash:   hex.EncodeToString(mbHash),
+		Round:    round,
+		Receiver: hex.EncodeToString(rcvAddr),
+		Status:   status,
+		Value:    "<nil>",
+		Sender:   fmt.Sprintf("%d", core.MetachainShardId),
+		Data:     "",
 	}
 
 	require.Equal(t, expectedTx, resultTx)

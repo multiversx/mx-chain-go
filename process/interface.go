@@ -239,9 +239,10 @@ type TransactionLogProcessor interface {
 
 // TransactionLogProcessorDatabase is interface the  for saving logs also in RAM
 type TransactionLogProcessorDatabase interface {
-	GetLogFromRAM(txHash []byte) (data.LogHandler, bool)
-	SaveLogsAlsoInRAM()
-	RemoveLogsFromRAM()
+	GetLogFromCache(txHash []byte) (data.LogHandler, bool)
+	SaveLogToCache()
+	Clean()
+	IsInterfaceNil() bool
 }
 
 // ValidatorsProvider is the main interface for validators' provider

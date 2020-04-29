@@ -15,17 +15,20 @@ func NewNilTxLogsProcessor() *txLogProcessor {
 	return new(txLogProcessor)
 }
 
-// GetLogFromRAM -
-func (t *txLogProcessor) GetLogFromRAM(_ []byte) (data.LogHandler, bool) {
+// GetLogFromCache -
+func (t *txLogProcessor) GetLogFromCache(_ []byte) (data.LogHandler, bool) {
 	return nil, false
 }
 
-// SaveLogsAlsoInRAM -
-func (t *txLogProcessor) SaveLogsAlsoInRAM() {
-
+// SaveLogToCache -
+func (t *txLogProcessor) SaveLogToCache() {
 }
 
-// RemoveLogsFromRAM -
-func (t *txLogProcessor) RemoveLogsFromRAM() {
+// Clean -
+func (t *txLogProcessor) Clean() {
+}
 
+// IsInterfaceNil -
+func (t *txLogProcessor) IsInterfaceNil() bool {
+	return t == nil
 }

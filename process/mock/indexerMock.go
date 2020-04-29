@@ -21,7 +21,6 @@ func (im *IndexerMock) SaveBlock(body data.BodyHandler, header data.HeaderHandle
 
 // SetTxLogsProcessor will do nothing
 func (im *IndexerMock) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
-
 }
 
 // SaveValidatorsRating --

@@ -11,7 +11,7 @@ import (
 type Transaction struct {
 	Hash                 string        `json:"-"`
 	MBHash               string        `json:"miniBlockHash"`
-	BlockHash            string        `json:"blockHash"`
+	BlockHash            string        `json:"-"`
 	Nonce                uint64        `json:"nonce"`
 	Round                uint64        `json:"round"`
 	Value                string        `json:"value"`

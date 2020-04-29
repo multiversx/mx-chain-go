@@ -136,7 +136,6 @@ func (cm *commonProcessor) buildTransaction(
 	tx *transaction.Transaction,
 	txHash []byte,
 	mbHash []byte,
-	blockHash []byte,
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 	txStatus string,
@@ -144,7 +143,6 @@ func (cm *commonProcessor) buildTransaction(
 	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
 		MBHash:        hex.EncodeToString(mbHash),
-		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         tx.Nonce,
 		Round:         header.GetRound(),
 		Value:         tx.Value.String(),
@@ -165,7 +163,6 @@ func (cm *commonProcessor) buildRewardTransaction(
 	rTx *rewardTx.RewardTx,
 	txHash []byte,
 	mbHash []byte,
-	blockHash []byte,
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 	txStatus string,
@@ -173,7 +170,6 @@ func (cm *commonProcessor) buildRewardTransaction(
 	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
 		MBHash:        hex.EncodeToString(mbHash),
-		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         0,
 		Round:         rTx.Round,
 		Value:         rTx.Value.String(),

@@ -20,7 +20,6 @@ func (im *IndexerMock) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map
 
 // SetTxLogsProcessor will do nothing
 func (im *IndexerMock) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
-
 }
 
 // UpdateTPS -

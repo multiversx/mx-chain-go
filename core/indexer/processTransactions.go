@@ -83,7 +83,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	}
 
 	for hash, tx := range transactions {
-		log, ok := tdp.txLogsProcessor.GetLogFromRAM([]byte(hash))
+		log, ok := tdp.txLogsProcessor.GetLogFromCache([]byte(hash))
 		if !ok {
 			continue
 		}
@@ -91,7 +91,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 		tx.Log = tdp.prepareTxLog(log)
 	}
 
-	tdp.txLogsProcessor.RemoveLogsFromRAM()
+	tdp.txLogsProcessor.Clean()
 
 	return append(convertMapTxsToSlice(transactions), rewardsTxs...)
 }
@@ -141,11 +141,6 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 	transactions := make(map[string]*Transaction)
 	rewardsTxs := make([]*Transaction, 0)
 
-	blockHash, err := core.CalculateHash(tdp.marshalizer, tdp.hasher, body)
-	if err != nil {
-		return transactions, rewardsTxs
-	}
-
 	for _, mb := range body.MiniBlocks {
 		mbHash, err := core.CalculateHash(tdp.marshalizer, tdp.hasher, mb)
 		if err != nil {
@@ -161,21 +156,21 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 		case block.TxBlock:
 			txs := getTransactions(txPool, mb.TxHashes)
 			for hash, tx := range txs {
-				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, blockHash, mb, header, mbTxStatus)
+				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, mbTxStatus)
 				transactions[hash] = dbTx
 				delete(txPool, hash)
 			}
 		case block.InvalidBlock:
 			txs := getTransactions(txPool, mb.TxHashes)
 			for hash, tx := range txs {
-				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, blockHash, mb, header, txStatusInvalid)
+				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, txStatusInvalid)
 				transactions[hash] = dbTx
 				delete(txPool, hash)
 			}
 		case block.RewardsBlock:
 			rTxs := getRewardsTransaction(txPool, mb.TxHashes)
 			for hash, rtx := range rTxs {
-				dbTx := tdp.commonProcessor.buildRewardTransaction(rtx, []byte(hash), mbHash, blockHash, mb, header, mbTxStatus)
+				dbTx := tdp.commonProcessor.buildRewardTransaction(rtx, []byte(hash), mbHash, mb, header, mbTxStatus)
 				rewardsTxs = append(rewardsTxs, dbTx)
 				delete(txPool, hash)
 			}
