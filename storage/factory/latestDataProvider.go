@@ -163,15 +163,17 @@ func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string,
 
 func (ldp *latestDataProvider) loadDataForShard(currentHighestRound int64, shardIdStr string, persisterFactory storage.PersisterFactory, persisterPath string) *iteratedShardData {
 	bootstrapData, storer, errGet := ldp.bootstrapDataProvider.LoadForPath(persisterFactory, persisterPath)
+	defer func() {
+		if storer != nil {
+			err := storer.Close()
+			if err != nil {
+				log.Debug("latestDataProvider: closing storer", "path", persisterPath, "error", err)
+			}
+		}
+	}()
 	if errGet != nil {
 		return &iteratedShardData{}
 	}
-	defer func() {
-		err := storer.Close()
-		if err != nil {
-			log.Debug("latestDataProvider: closing storer", "path", persisterPath, "error", err)
-		}
-	}()
 
 	if bootstrapData.LastRound > currentHighestRound {
 		shardID := uint32(0)

@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -89,13 +90,6 @@ func (o *openStorageUnits) GetMostRecentBootstrapStorageUnit() (storage.Storer, 
 		return nil, err
 	}
 
-	defer func() {
-		if err != nil {
-			errClose := persister.Close()
-			log.LogIfError(errClose)
-		}
-	}()
-
 	cacher, err := lrucache.NewCache(10)
 	if err != nil {
 		return nil, err
@@ -117,7 +111,7 @@ func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage
 		if err == nil {
 			return persister, nil
 		}
-		log.Warn("Create Persister failed", "path", persisterPath)
+		log.Warn("Create Persister failed", "path", persisterPath, "error", err)
 		time.Sleep(core.SleepTimeBetweenCreateDBRetries)
 	}
 	return nil, err
@@ -138,7 +132,7 @@ func (o *openStorageUnits) getMostUpToDateDirectory(
 			o.generalConfig.BootstrapStorage.DB.FilePath,
 		)
 
-		bootstrapData, _, errGet := o.bootstrapDataProvider.LoadForPath(persisterFactory, persisterPath)
+		bootstrapData, errGet := o.loadDataForShard(persisterFactory, persisterPath)
 		if errGet != nil {
 			continue
 		}
@@ -154,6 +148,25 @@ func (o *openStorageUnits) getMostUpToDateDirectory(
 	}
 
 	return mostRecentShard, nil
+}
+
+func (o *openStorageUnits) loadDataForShard(
+	persisterFactory storage.PersisterFactory,
+	persisterPath string,
+) (*bootstrapStorage.BootstrapData, error) {
+	bootstrapData, storer, err := o.bootstrapDataProvider.LoadForPath(persisterFactory, persisterPath)
+	defer func() {
+		if storer != nil {
+			errClose := storer.Close()
+			if errClose != nil {
+				log.Debug("openStorageunits: error closing storer",
+					"persister path", persisterPath,
+					"error", errClose)
+			}
+		}
+	}()
+
+	return bootstrapData, err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

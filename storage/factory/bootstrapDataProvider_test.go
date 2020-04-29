@@ -22,7 +22,7 @@ func TestNewBootstrapDataProvider_NilMarshalizerShouldErr(t *testing.T) {
 	require.Equal(t, storage.ErrNilMarshalizer, err)
 }
 
-func TestNewBootstrapDataProvider_OkValuesShouldErr(t *testing.T) {
+func TestNewBootstrapDataProvider_OkValuesShouldWork(t *testing.T) {
 	t.Parallel()
 
 	bdp, err := NewBootstrapDataProvider(&mock.MarshalizerMock{})
