@@ -13,6 +13,10 @@ import (
 
 var log = logger.GetOrCreate("process/block")
 
+var _ crypto.Group = (*SuiteBLS12)(nil)
+var _ crypto.Random = (*SuiteBLS12)(nil)
+var _ crypto.Suite = (*SuiteBLS12)(nil)
+
 // SuiteBLS12 provides an implementation of the Suite interface for BLS12-381
 type SuiteBLS12 struct {
 	G1       *groupG1

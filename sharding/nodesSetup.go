@@ -9,6 +9,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+var _ GenesisNodesSetupHandler = (*NodesSetup)(nil)
+var _ GenesisNodeInfoHandler = (*NodeInfo)(nil)
+
 // InitialNode holds data from json
 type InitialNode struct {
 	PubKey  string `json:"pubkey"`

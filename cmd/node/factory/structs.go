@@ -924,7 +924,7 @@ func newEpochStartTrigger(
 			DataPool:             args.data.Datapool,
 			Storage:              args.data.Store,
 			RequestHandler:       requestHandler,
-			Epoch:                0,
+			Epoch:                args.startEpochNum,
 			EpochStartNotifier:   args.epochStartNotifier,
 			Validity:             process.MetaBlockValidity,
 			Finality:             process.BlockFinality,
@@ -946,7 +946,7 @@ func newEpochStartTrigger(
 		argEpochStart := &metachainEpochStart.ArgsNewMetaEpochStartTrigger{
 			GenesisTime:        time.Unix(args.nodesConfig.StartTime, 0),
 			Settings:           args.epochStart,
-			Epoch:              0,
+			Epoch:              args.startEpochNum,
 			EpochStartNotifier: args.epochStartNotifier,
 			Storage:            args.data.Store,
 			Marshalizer:        args.coreData.InternalMarshalizer,

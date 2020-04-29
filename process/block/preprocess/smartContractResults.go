@@ -18,6 +18,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ process.DataMarshalizer = (*smartContractResults)(nil)
+var _ process.PreProcessor = (*smartContractResults)(nil)
+
 type smartContractResults struct {
 	*basePreProcess
 	chRcvAllScrs                 chan bool

@@ -1,5 +1,7 @@
 package marshal
 
+var _ Marshalizer = (*sizeCheckUnmarshalizer)(nil)
+
 type sizeCheckUnmarshalizer struct {
 	Marshalizer
 	acceptedDelta uint32

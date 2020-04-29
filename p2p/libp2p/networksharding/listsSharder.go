@@ -16,6 +16,8 @@ import (
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
 
+var _ p2p.CommonSharder = (*listsSharder)(nil)
+
 const minAllowedConnectedPeersListSharder = 5
 const minAllowedValidators = 1
 const minAllowedObservers = 1

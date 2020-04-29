@@ -4,9 +4,12 @@ import (
 	"math"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 )
+
+var _ consensus.Rounder = (*round)(nil)
 
 // round defines the data needed by the rounder
 type round struct {

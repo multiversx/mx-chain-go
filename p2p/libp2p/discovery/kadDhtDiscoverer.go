@@ -15,6 +15,9 @@ import (
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
 
+var _ p2p.PeerDiscoverer = (*KadDhtDiscoverer)(nil)
+var _ p2p.ReconnecterWithPauseResumeAndWatchdog = (*KadDhtDiscoverer)(nil)
+
 const (
 	initReconnectMul   = 20
 	kadDhtName         = "kad-dht discovery"

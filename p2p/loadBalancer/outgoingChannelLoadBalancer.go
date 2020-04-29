@@ -6,6 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
+var _ p2p.ChannelLoadBalancer = (*OutgoingChannelLoadBalancer)(nil)
+
 const defaultSendChannel = "default send channel"
 
 // OutgoingChannelLoadBalancer is a component that evenly balances requests to be sent

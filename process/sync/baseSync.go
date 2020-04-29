@@ -223,12 +223,22 @@ func (boot *baseBootstrap) notifySyncStateListeners(isNodeSynchronized bool) {
 	boot.mutSyncStateListeners.RUnlock()
 }
 
-// getNonceForNextBlock will get the nonce for the next block we should request
+// getNonceForNextBlock will get the nonce for the next block
 func (boot *baseBootstrap) getNonceForNextBlock() uint64 {
 	nonce := uint64(1) // first block nonce after genesis block
 	currentBlockHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if !check.IfNil(currentBlockHeader) {
 		nonce = currentBlockHeader.GetNonce() + 1
+	}
+	return nonce
+}
+
+// getNonceForCurrentBlock will get the nonce for the current block
+func (boot *baseBootstrap) getNonceForCurrentBlock() uint64 {
+	nonce := uint64(0) // genesis block nonce
+	currentBlockHeader := boot.chainHandler.GetCurrentBlockHeader()
+	if !check.IfNil(currentBlockHeader) {
+		nonce = currentBlockHeader.GetNonce()
 	}
 	return nonce
 }
@@ -360,12 +370,20 @@ func (boot *baseBootstrap) removeHeaderFromPools(header data.HeaderHandler) []by
 	return hash
 }
 
-func (boot *baseBootstrap) removeHeadersWithNonceFromPool(nonce uint64) {
-	log.Debug("removeHeadersWithNonceFromPool",
-		"shard", boot.shardCoordinator.SelfId(),
+func (boot *baseBootstrap) removeHeadersHigherThanNonceFromPool(nonce uint64) {
+	shardID := boot.shardCoordinator.SelfId()
+	log.Debug("removeHeadersHigherThanNonceFromPool",
+		"shard", shardID,
 		"nonce", nonce)
 
-	boot.headers.RemoveHeaderByNonceAndShardId(nonce, boot.shardCoordinator.SelfId())
+	nonces := boot.headers.Nonces(shardID)
+	for _, currentNonce := range nonces {
+		if currentNonce <= nonce {
+			continue
+		}
+
+		boot.headers.RemoveHeaderByNonceAndShardId(currentNonce, shardID)
+	}
 }
 
 func (boot *baseBootstrap) cleanCachesAndStorageOnRollback(header data.HeaderHandler) {
@@ -502,7 +520,7 @@ func (boot *baseBootstrap) resetProbableHighestNonceIfNeeded(headerHandler data.
 	isInProperRound := process.IsInProperRound(boot.rounder.Index())
 	if allowedSyncWithErrorsLimitReached && isInProperRound {
 		boot.forkDetector.ResetProbableHighestNonce()
-		boot.removeHeadersWithNonceFromPool(boot.getNonceForNextBlock())
+		boot.removeHeadersHigherThanNonceFromPool(boot.getNonceForCurrentBlock())
 	}
 }
 
@@ -781,7 +799,7 @@ func (boot *baseBootstrap) rollBackOneBlockForced() {
 	}
 
 	boot.forkDetector.ResetFork()
-	boot.removeHeadersWithNonceFromPool(boot.getNonceForNextBlock())
+	boot.removeHeadersHigherThanNonceFromPool(boot.getNonceForCurrentBlock())
 }
 
 func (boot *baseBootstrap) rollBackToNonceForced() {
@@ -791,7 +809,7 @@ func (boot *baseBootstrap) rollBackToNonceForced() {
 	}
 
 	boot.forkDetector.ResetProbableHighestNonce()
-	boot.removeHeadersWithNonceFromPool(boot.getNonceForNextBlock())
+	boot.removeHeadersHigherThanNonceFromPool(boot.getNonceForCurrentBlock())
 }
 
 func (boot *baseBootstrap) restoreState(
@@ -870,24 +888,54 @@ func (boot *baseBootstrap) requestMiniBlocksByHashes(hashes [][]byte) {
 // that will be added. The block executor should decide by parsing the header block body type value
 // what kind of block body received.
 func (boot *baseBootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (block.MiniBlockSlice, error) {
-	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)
-	if len(missingMiniBlocksHashes) > 0 {
-		_ = core.EmptyChannel(boot.chRcvMiniBlocks)
-		boot.requestMiniBlocksByHashes(missingMiniBlocksHashes)
-		err := boot.waitForMiniBlocks()
-		if err != nil {
-			return nil, err
+	miniBlocksAndHashes, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)
+	if len(missingMiniBlocksHashes) == 0 {
+		miniBlocks := make([]*block.MiniBlock, len(miniBlocksAndHashes))
+		for index, miniBlockAndHash := range miniBlocksAndHashes {
+			miniBlocks[index] = miniBlockAndHash.Miniblock
 		}
 
-		receivedMiniBlocks, unreceivedMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(missingMiniBlocksHashes)
-		if len(unreceivedMiniBlocksHashes) > 0 {
+		return miniBlocks, nil
+	}
+
+	_ = core.EmptyChannel(boot.chRcvMiniBlocks)
+	boot.requestMiniBlocksByHashes(missingMiniBlocksHashes)
+	err := boot.waitForMiniBlocks()
+	if err != nil {
+		return nil, err
+	}
+
+	receivedMiniBlocksAndHashes, unreceivedMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(missingMiniBlocksHashes)
+	if len(unreceivedMiniBlocksHashes) > 0 {
+		return nil, process.ErrMissingBody
+	}
+
+	miniBlocksAndHashes = append(miniBlocksAndHashes, receivedMiniBlocksAndHashes...)
+
+	return getOrderedMiniBlocks(hashes, miniBlocksAndHashes)
+}
+
+func getOrderedMiniBlocks(
+	hashes [][]byte,
+	miniBlocksAndHashes []*process.MiniblockAndHash,
+) (block.MiniBlockSlice, error) {
+
+	mapHashMiniBlock := make(map[string]*block.MiniBlock, len(miniBlocksAndHashes))
+	for _, miniBlockAndHash := range miniBlocksAndHashes {
+		mapHashMiniBlock[string(miniBlockAndHash.Hash)] = miniBlockAndHash.Miniblock
+	}
+
+	orderedMiniBlocks := make(block.MiniBlockSlice, len(hashes))
+	for index, hash := range hashes {
+		miniBlock, ok := mapHashMiniBlock[string(hash)]
+		if !ok {
 			return nil, process.ErrMissingBody
 		}
 
-		miniBlocks = append(miniBlocks, receivedMiniBlocks...)
+		orderedMiniBlocks[index] = miniBlock
 	}
 
-	return miniBlocks, nil
+	return orderedMiniBlocks, nil
 }
 
 // waitForMiniBlocks method wait for body with the requested nonce to be received

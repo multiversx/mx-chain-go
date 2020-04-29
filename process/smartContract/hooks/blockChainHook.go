@@ -20,6 +20,9 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+var _ process.BlockChainHookHandler = (*BlockChainHookImpl)(nil)
+var _ process.TemporaryAccountsHandler = (*BlockChainHookImpl)(nil)
+
 var log = logger.GetOrCreate("process/smartContract/blockChainHook")
 
 // ArgBlockChainHook represents the arguments structure for the blockchain hook

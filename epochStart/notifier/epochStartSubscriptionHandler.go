@@ -17,6 +17,8 @@ type EpochStartNotifier interface {
 	IsInterfaceNil() bool
 }
 
+var _ EpochStartNotifier = (*epochStartSubscriptionHandler)(nil)
+
 // epochStartSubscriptionHandler will handle subscription of function and notifying them
 type epochStartSubscriptionHandler struct {
 	epochStartHandlers   []epochStart.ActionHandler

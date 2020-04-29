@@ -7,6 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.TransactionFeeHandler = (*feeHandler)(nil)
+
 type feeHandler struct {
 }
 

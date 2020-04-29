@@ -9,11 +9,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 var log = logger.GetOrCreate("trie")
+
+var _ dataRetriever.TrieDataGetter = (*patriciaMerkleTrie)(nil)
 
 const (
 	extension = iota

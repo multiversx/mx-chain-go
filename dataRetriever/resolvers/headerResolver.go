@@ -15,6 +15,8 @@ import (
 
 var log = logger.GetOrCreate("dataretriever/resolvers")
 
+var _ dataRetriever.HeaderResolver = (*HeaderResolver)(nil)
+
 // ArgHeaderResolver is the argument structure used to create new HeaderResolver instance
 type ArgHeaderResolver struct {
 	SenderResolver       dataRetriever.TopicResolverSender
@@ -150,6 +152,8 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 			"data", rd)
 		return nil
 	}
+
+	hdrRes.ResolverDebugHandler().LogSucceededToResolveData(hdrRes.topic, rd.Value)
 
 	return hdrRes.Send(buff, message.Peer())
 }

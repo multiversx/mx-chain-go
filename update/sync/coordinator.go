@@ -12,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+var _ update.StateSyncer = (*syncState)(nil)
+
 var log = logger.GetOrCreate("update/genesis")
 
 type syncState struct {

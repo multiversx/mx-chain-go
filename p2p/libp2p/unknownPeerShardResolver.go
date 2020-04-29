@@ -5,6 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
+var _ p2p.PeerShardResolver = (*unknownPeerShardResolver)(nil)
+
 type unknownPeerShardResolver struct {
 }
 

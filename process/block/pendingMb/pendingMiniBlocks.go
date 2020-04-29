@@ -11,6 +11,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.PendingMiniBlocksHandler = (*pendingMiniBlocks)(nil)
+
 var log = logger.GetOrCreate("process/block/pendingMb")
 
 type pendingMiniBlocks struct {
