@@ -140,7 +140,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	log.Info("new nodes config is set for epoch", "epoch", arguments.Epoch)
 	currentNodesConfig := ihgs.nodesConfig[arguments.Epoch]
 	if currentNodesConfig == nil {
-		return nil, ErrEpochNodesConfigDoesNotExist
+		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, arguments.Epoch)
 	}
 
 	displayNodesConfiguration(
@@ -152,7 +152,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 
 	currentConfig := nodesConfig[arguments.Epoch]
 	if currentConfig == nil {
-		return nil, ErrEpochNodesConfigDoesNotExist
+		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, arguments.Epoch)
 	}
 
 	displayNodesConfiguration(
@@ -309,7 +309,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	ihgs.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, ErrEpochNodesConfigDoesNotExist
+		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
 	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardID, epoch))
@@ -360,7 +360,7 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorWithPublicKey(
 	ihgs.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, 0, ErrEpochNodesConfigDoesNotExist
+		return nil, 0, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
 	nodesConfig.mutNodesMaps.RLock()
@@ -405,7 +405,7 @@ func (ihgs *indexHashedNodesCoordinator) GetAllEligibleValidatorsPublicKeys(epoc
 	ihgs.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, ErrEpochNodesConfigDoesNotExist
+		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
 	nodesConfig.mutNodesMaps.RLock()
@@ -429,7 +429,7 @@ func (ihgs *indexHashedNodesCoordinator) GetAllWaitingValidatorsPublicKeys(epoch
 	ihgs.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, ErrEpochNodesConfigDoesNotExist
+		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
 	nodesConfig.mutNodesMaps.RLock()
@@ -451,7 +451,7 @@ func (ihgs *indexHashedNodesCoordinator) GetAllLeavingValidatorsPublicKeys(epoch
 	ihgs.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, ErrEpochNodesConfigDoesNotExist
+		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
 	nodesConfig.mutNodesMaps.RLock()
@@ -674,7 +674,7 @@ func (ihgs *indexHashedNodesCoordinator) ShardIdForEpoch(epoch uint32) (uint32, 
 	ihgs.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return 0, ErrEpochNodesConfigDoesNotExist
+		return 0, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
 	return nodesConfig.shardID, nil
