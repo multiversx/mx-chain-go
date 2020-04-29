@@ -945,7 +945,6 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
 			}
 
 			rootHash := epochStartShData.RootHash
-			accounts.CancelPrune(rootHash, data.NewRoot)
 			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash)
 			accounts.SnapshotState(rootHash)
 
