@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var durationBootstrapingTime = 2 * time.Second
+var durationBootstrapingTime = 5 * time.Second
 var durationTopicAnnounceTime = 2 * time.Second
 
 func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {

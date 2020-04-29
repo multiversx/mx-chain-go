@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -52,7 +52,7 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 	p2pBootstrapNodes(nodesMap)
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(block.StepDelay)
+	time.Sleep(block.P2PBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(1)

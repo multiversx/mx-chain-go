@@ -8,6 +8,7 @@ import (
 
 // StepDelay -
 var StepDelay = time.Second * 2
+var P2PBootstrapDelay = time.Second * 5
 
 // GetBlockProposersIndexes -
 func GetBlockProposersIndexes(

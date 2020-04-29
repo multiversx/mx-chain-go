@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var durationBootstrapingTime = 2 * time.Second
+var durationBootstrapingTime = 5 * time.Second
 var durationTest = 30 * time.Second
 
 type messageProcessorStub struct {

@@ -120,7 +120,7 @@ func TestShardShouldProposeBlockContainingInvalidTransactions(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(testBlock.StepDelay)
+	time.Sleep(testBlock.P2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(1)

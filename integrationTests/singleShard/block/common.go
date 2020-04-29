@@ -6,4 +6,4 @@ import "time"
 const StepDelay = time.Second
 
 // P2pBootstrapDelay -
-const P2pBootstrapDelay = time.Second * 12
+const P2pBootstrapDelay = time.Second * 5

@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var durationBootstrapingTime = 2 * time.Second
+var durationBootstrapingTime = 5 * time.Second
 var randezVous = ""
 
 func createDefaultConfig() config.P2PConfig {
