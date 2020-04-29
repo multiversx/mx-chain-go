@@ -43,10 +43,11 @@ type baseForkDetector struct {
 	fork       forkInfo
 	mutFork    sync.RWMutex
 
-	blackListHandler process.BlackListHandler
-	genesisTime      int64
-	blockTracker     process.BlockTracker
-	forkDetector     forkDetector
+	blackListHandler   process.BlackListHandler
+	genesisTime        int64
+	blockTracker       process.BlockTracker
+	forkDetector       forkDetector
+	maxForkHeaderEpoch uint32
 }
 
 // SetRollBackNonce sets the nonce where the chain should roll back
@@ -445,7 +446,8 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 		selfHdrInfo = nil
 		forkHeaderRound = math.MaxUint64
 		forkHeaderHash = nil
-		forkHeaderEpoch = getMaxEpochFromHdrsInfo(hdrsInfo)
+		forkHeaderEpoch = 0
+		bfd.maxForkHeaderEpoch = getMaxEpochFromHdrsInfo(hdrsInfo)
 
 		for i := 0; i < len(hdrsInfo); i++ {
 			if hdrsInfo[i].state == process.BHProcessed {
@@ -505,8 +507,7 @@ func (bfd *baseForkDetector) computeForkInfo(
 	if hdrInfo.state == process.BHNotarized {
 		currentForkRound = process.MinForkRound
 	} else {
-		if hdrInfo.epoch < lastForkEpoch {
-			log.Debug("computeForkInfo: epoch change fork choice")
+		if hdrInfo.epoch < bfd.maxForkHeaderEpoch {
 			return lastForkHash, lastForkRound, lastForkEpoch
 		}
 	}
