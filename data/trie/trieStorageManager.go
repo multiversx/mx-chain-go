@@ -181,14 +181,16 @@ func (tsm *trieStorageManager) Prune(rootHash []byte, identifier data.TriePrunin
 	rootHash = append(rootHash, byte(identifier))
 
 	if tsm.snapshotInProgress > 0 {
-		if identifier == data.NewRoot {
-			// TODO refactor pruning mechanism so that pruning will be done on rollback
-			// even if there is a snapshot in progress
+		//if identifier == data.NewRoot {
+		//	// TODO refactor pruning mechanism so that pruning will be done on rollback
+		//	// even if there is a snapshot in progress
+		//
+		//	return
+		//}
+		//
+		//tsm.pruningBuffer.add(rootHash)
 
-			return
-		}
-
-		tsm.pruningBuffer.add(rootHash)
+		//TODO activate pruning when snapshot is in progress
 		return
 	}
 
@@ -213,9 +215,7 @@ func (tsm *trieStorageManager) CancelPrune(rootHash []byte, identifier data.Trie
 	defer tsm.storageOperationMutex.Unlock()
 
 	if tsm.snapshotInProgress > 0 || tsm.pruningBuffer.len() != 0 {
-		if identifier == data.NewRoot {
-			return
-		}
+		return
 	}
 
 	rootHash = append(rootHash, byte(identifier))
