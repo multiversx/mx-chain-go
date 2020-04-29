@@ -2,6 +2,7 @@ package sharding
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"runtime"
 	"strconv"
@@ -769,7 +770,7 @@ func TestNewIndexHashedNodesCoordinator_GetValidatorWithPublicKeyNotExistingEpoc
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
 	_, _, err := ihgs.GetValidatorWithPublicKey(arguments.EligibleNodes[0][0].PubKey(), 1)
-	require.Equal(t, ErrEpochNodesConfigDoesNotExist, err)
+	require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
 }
 
 func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.T) {
@@ -964,7 +965,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysNotExisting
 	var pKeys []string
 	randomness := []byte("randomness")
 	pKeys, err = ihgs.GetConsensusValidatorsPublicKeys(randomness, 0, 0, 1)
-	require.Equal(t, ErrEpochNodesConfigDoesNotExist, err)
+	require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
 	require.Nil(t, pKeys)
 }
 
@@ -1063,7 +1064,7 @@ func TestIndexHashedNodesCoordinator_ShardIdForEpochInvalidEpoch(t *testing.T) {
 	require.Nil(t, err)
 
 	shardId, err := ihgs.ShardIdForEpoch(1)
-	require.Equal(t, ErrEpochNodesConfigDoesNotExist, err)
+	require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
 	require.Equal(t, uint32(0), shardId)
 }
 
