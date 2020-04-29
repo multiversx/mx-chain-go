@@ -245,11 +245,11 @@ func (esd *elasticSearchDatabase) buildTransactionBulks(
 	bulks := make([][]*Transaction, (len(txs)/txBulkSize)+1)
 	for i := 0; i < len(bulks); i++ {
 		if i == len(bulks)-1 {
-			bulks[i] = txs[i*txBulkSize:]
+			bulks[i] = append([]*Transaction(nil), txs[i*txBulkSize:]...)
 			continue
 		}
 
-		bulks[i] = txs[i*txBulkSize : (i+1)*txBulkSize]
+		bulks[i] = append([]*Transaction(nil), txs[i*txBulkSize:(i+1)*txBulkSize]...)
 	}
 
 	return bulks

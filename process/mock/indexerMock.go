@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // IndexerMock is a mock implementation fot the Indexer interface
@@ -16,6 +17,11 @@ func (im *IndexerMock) SaveBlock(body data.BodyHandler, header data.HeaderHandle
 	if im.SaveBlockCalled != nil {
 		im.SaveBlockCalled(body, header, txPool)
 	}
+}
+
+// SetTxLogsProcessor will do nothing
+func (im *IndexerMock) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
+
 }
 
 // SaveValidatorsRating --

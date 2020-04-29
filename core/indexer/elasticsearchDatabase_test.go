@@ -21,6 +21,7 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
+	"github.com/magiconair/properties/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -367,4 +368,30 @@ func TestUpdateMiniBlock(t *testing.T) {
 	esDatabase.SaveMiniblocks(header1, body1)
 	// update
 	esDatabase.SaveMiniblocks(header2, body1)
+}
+
+func TestTrimSliceInBulks(t *testing.T) {
+	t.Parallel()
+
+	sliceSize := 95
+	bulkSize := 10
+
+	testSlice := make([]int, sliceSize)
+	bulks := make([][]int, sliceSize/bulkSize+1)
+
+	for i := 0; i < sliceSize; i++ {
+		testSlice[i] = i
+	}
+
+	for i := 0; i < len(bulks); i++ {
+		bulks[i] = make([]int, bulkSize)
+		if i == len(bulks)-1 {
+			bulks[i] = append([]int(nil), testSlice[i*bulkSize:]...)
+			continue
+		}
+
+		bulks[i] = append([]int(nil), testSlice[i*bulkSize:(i+1)*bulkSize]...)
+	}
+
+	assert.Equal(t, len(bulks), sliceSize/bulkSize+1)
 }

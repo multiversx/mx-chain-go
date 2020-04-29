@@ -1,7 +1,7 @@
 package indexer
 
 import (
-	"fmt"
+	"encoding/hex"
 	"math/big"
 	"testing"
 
@@ -15,34 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestTrimSliceInBulks(t *testing.T) {
-	t.Parallel()
-
-	sliceSize := 10000
-	bulkSize := 1000
-
-	testSlice := make([]int, sliceSize)
-	bulks := make([][]int, sliceSize/bulkSize+1)
-
-	for i := 0; i < sliceSize; i++ {
-		testSlice[i] = i
-	}
-
-	for i := 0; i < len(bulks); i++ {
-		var smallSlice []int
-
-		if i == len(bulks)-1 {
-			smallSlice = testSlice[i*bulkSize:]
-		} else {
-			smallSlice = testSlice[i*bulkSize : (i+1)*bulkSize]
-		}
-
-		bulks[i] = append(bulks[i], smallSlice...)
-	}
-
-	fmt.Println(bulks)
-}
-
 func TestPrepareTransactionsForDatabase(t *testing.T) {
 	t.Parallel()
 
@@ -54,6 +26,8 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 	tx3 := &transaction.Transaction{}
 	txHash4 := []byte("txHash4")
 	tx4 := &transaction.Transaction{}
+	txHash5 := []byte("txHash5")
+	tx5 := &transaction.Transaction{}
 
 	rTx1Hash := []byte("rTxHash1")
 	rTx1 := &rewardTx.RewardTx{}
@@ -110,6 +84,10 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 				TxHashes: [][]byte{rTx1Hash, rTx2Hash},
 				Type:     block.RewardsBlock,
 			},
+			{
+				TxHashes: [][]byte{txHash5},
+				Type:     block.InvalidBlock,
+			},
 		},
 	}
 	header := &block.Header{}
@@ -118,6 +96,7 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		string(txHash2):  tx2,
 		string(txHash3):  tx3,
 		string(txHash4):  tx4,
+		string(txHash5):  tx5,
 		string(rTx1Hash): rTx1,
 		string(rTx2Hash): rTx2,
 		string(recHash1): rec1,
@@ -128,10 +107,55 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 	}
 
 	txDbProc := newTxDatabaseProcessor(
-		&mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.PubkeyConverterMock{}, &mock.PubkeyConverterMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.PubkeyConverterMock{},
+		&mock.PubkeyConverterMock{},
 	)
 
 	transactions := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
-	assert.Equal(t, 6, len(transactions))
+	assert.Equal(t, 7, len(transactions))
 
+}
+
+func TestPrepareTxLog(t *testing.T) {
+	t.Parallel()
+
+	txDbProc := newTxDatabaseProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.PubkeyConverterMock{},
+		&mock.PubkeyConverterMock{},
+	)
+
+	scAddr := []byte("addr")
+	addr := []byte("addr")
+	identifier := []byte("id")
+	top1, top2 := []byte("t1"), []byte("t2")
+	dt := []byte("dt")
+	txLog := &transaction.Log{
+		Address: scAddr,
+		Events: []*transaction.Event{
+			{
+				Address:    addr,
+				Identifier: identifier,
+				Topics:     [][]byte{top1, top2},
+				Data:       dt,
+			},
+		},
+	}
+	expectedTxLog := TxLog{
+		Address: txDbProc.addressPubkeyConverter.Encode(scAddr),
+		Events: []Event{
+			{
+				Address:    hex.EncodeToString(addr),
+				Identifier: hex.EncodeToString(identifier),
+				Topics:     []string{hex.EncodeToString(top1), hex.EncodeToString(top2)},
+				Data:       hex.EncodeToString(dt),
+			},
+		},
+	}
+
+	dbTxLog := txDbProc.prepareTxLog(txLog)
+	assert.Equal(t, expectedTxLog, dbTxLog)
 }

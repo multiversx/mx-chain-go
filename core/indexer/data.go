@@ -32,8 +32,8 @@ type Transaction struct {
 
 // TxLog holds all the data needed for a log structure
 type TxLog struct {
-	Address string   `json:"scAddress"`
-	Events  []*Event `json:"events"`
+	Address string  `json:"scAddress"`
+	Events  []Event `json:"events"`
 }
 
 // Event holds all the data needed for an event structure

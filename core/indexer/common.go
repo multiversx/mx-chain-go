@@ -200,7 +200,7 @@ func (cm *commonProcessor) convertScResultInDatabaseScr(sc *smartContractResult.
 		Receiver:     cm.addressPubkeyConverter.Encode(sc.RcvAddr),
 		Code:         string(sc.Code),
 		Data:         string(sc.Data),
-		PreTxHash:    string(sc.PrevTxHash),
+		PreTxHash:    hex.EncodeToString(sc.PrevTxHash),
 		CallType:     string(sc.CallType),
 		CodeMetadata: string(sc.CodeMetadata),
 	}

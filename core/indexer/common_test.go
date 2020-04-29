@@ -50,7 +50,7 @@ func TestGetTransactionByType_SC(t *testing.T) {
 	scRes := cp.convertScResultInDatabaseScr(smartContractRes)
 	expectedTx := ScResult{
 		Nonce:     nonce,
-		PreTxHash: string(txHash),
+		PreTxHash: hex.EncodeToString(txHash),
 		Code:      string(code),
 		Data:      string(dt),
 		Sender:    cp.addressPubkeyConverter.Encode(sndAddr),

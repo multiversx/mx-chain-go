@@ -1,7 +1,10 @@
 package indexer
 
 import (
+	"encoding/hex"
+
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
@@ -12,6 +15,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+)
+
+const (
+	txStatusSuccess     = "Success"
+	txStatusPending     = "Pending"
+	txStatusInvalid     = "Invalid"
+	txStatusNotExecuted = "Not Executed"
 )
 
 type txDatabaseProcessor struct {
@@ -34,6 +44,7 @@ func newTxDatabaseProcessor(
 			addressPubkeyConverter:   addressPubkeyConverter,
 			validatorPubkeyConverter: validatorPubkeyConverter,
 		},
+		txLogsProcessor: disabled.NewNilTxLogsProcessor(),
 	}
 }
 
@@ -44,7 +55,8 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	selfShardId uint32,
 ) []*Transaction {
 	transactions, rewardsTxs := tdp.groupNormalTxsAndRewards(body, txPool, header, selfShardId)
-	receipts, scResults := groupReceiptAndSmartContractResults(body, txPool)
+	receipts := groupReceipts(txPool)
+	scResults := groupSmartContractResults(txPool)
 
 	for _, rec := range receipts {
 		tx, ok := transactions[string(rec.TxHash)]
@@ -54,12 +66,20 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 		tx.ReceiptValue = rec.Value.String()
 	}
 
+	countScResults := make(map[string]int)
 	for _, scResult := range scResults {
 		tx, ok := transactions[string(scResult.OriginalTxHash)]
 		if !ok {
 			continue
 		}
 		tx.SmartContractResults = append(tx.SmartContractResults, tdp.commonProcessor.convertScResultInDatabaseScr(scResult))
+		countScResults[string(scResult.OriginalTxHash)]++
+	}
+
+	for hash, nrScResult := range countScResults {
+		if nrScResult < 2 {
+			transactions[hash].Status = txStatusNotExecuted
+		}
 	}
 
 	for hash, tx := range transactions {
@@ -68,26 +88,28 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 			continue
 		}
 
-		tx.Log = prepareTxLog(log)
+		tx.Log = tdp.prepareTxLog(log)
 	}
+
+	tdp.txLogsProcessor.RemoveLogsFromRAM()
 
 	return append(convertMapTxsToSlice(transactions), rewardsTxs...)
 }
 
-func prepareTxLog(log data.LogHandler) TxLog {
-	scAddr := string(log.GetAddress())
+func (tdp *txDatabaseProcessor) prepareTxLog(log data.LogHandler) TxLog {
+	scAddr := tdp.addressPubkeyConverter.Encode(log.GetAddress())
 	events := log.GetLogEvents()
 
-	txLogEvents := make([]*Event, len(events))
+	txLogEvents := make([]Event, len(events))
 	for i, event := range events {
-		txLogEvents[i].Address = string(event.GetAddress())
-		txLogEvents[i].Data = string(event.GetData())
-		txLogEvents[i].Identifier = string(event.GetIdentifier())
+		txLogEvents[i].Address = hex.EncodeToString(event.GetAddress())
+		txLogEvents[i].Data = hex.EncodeToString(event.GetData())
+		txLogEvents[i].Identifier = hex.EncodeToString(event.GetIdentifier())
 
 		topics := event.GetTopics()
 		txLogEvents[i].Topics = make([]string, len(topics))
 		for j, topic := range topics {
-			txLogEvents[i].Topics[j] = string(topic)
+			txLogEvents[i].Topics[j] = hex.EncodeToString(topic)
 		}
 	}
 
@@ -130,9 +152,9 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			continue
 		}
 
-		mbTxStatus := "Pending"
+		mbTxStatus := txStatusPending
 		if selfShardId == mb.ReceiverShardID {
-			mbTxStatus = "Success"
+			mbTxStatus = txStatusSuccess
 		}
 
 		switch mb.Type {
@@ -141,12 +163,21 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			for hash, tx := range txs {
 				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, blockHash, mb, header, mbTxStatus)
 				transactions[hash] = dbTx
+				delete(txPool, hash)
+			}
+		case block.InvalidBlock:
+			txs := getTransactions(txPool, mb.TxHashes)
+			for hash, tx := range txs {
+				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, blockHash, mb, header, txStatusInvalid)
+				transactions[hash] = dbTx
+				delete(txPool, hash)
 			}
 		case block.RewardsBlock:
 			rTxs := getRewardsTransaction(txPool, mb.TxHashes)
 			for hash, rtx := range rTxs {
 				dbTx := tdp.commonProcessor.buildRewardTransaction(rtx, []byte(hash), mbHash, blockHash, mb, header, mbTxStatus)
 				rewardsTxs = append(rewardsTxs, dbTx)
+				delete(txPool, hash)
 			}
 		default:
 			continue
@@ -156,72 +187,33 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 	return transactions, rewardsTxs
 }
 
-func groupReceiptAndSmartContractResults(body *block.Body, txPool map[string]data.TransactionHandler) (
-	map[string]*receipt.Receipt,
-	map[string]*smartContractResult.SmartContractResult,
-) {
-	receipts := make(map[string]*receipt.Receipt)
-	scResults := make(map[string]*smartContractResult.SmartContractResult)
-	for _, mb := range body.MiniBlocks {
-		switch mb.Type {
-		case block.ReceiptBlock:
-			tRecs := getTransactionsReceipts(txPool, mb.TxHashes)
-			for hash, tRec := range tRecs {
-				receipts[hash] = tRec
-			}
-		case block.SmartContractResultBlock:
-			scsRes := getSmartContractResults(txPool, mb.TxHashes)
-			for hash, scr := range scsRes {
-				scResults[hash] = scr
-			}
-		default:
+func groupSmartContractResults(txPool map[string]data.TransactionHandler) []*smartContractResult.SmartContractResult {
+	scResults := make([]*smartContractResult.SmartContractResult, 0)
+	for _, tx := range txPool {
+		scResult, ok := tx.(*smartContractResult.SmartContractResult)
+		if !ok {
 			continue
 		}
+
+		scResults = append(scResults, scResult)
 	}
 
-	return receipts, scResults
+	return scResults
 }
 
-func getTransactionsReceipts(
-	txPool map[string]data.TransactionHandler,
-	txHashes [][]byte,
-) map[string]*receipt.Receipt {
-	receiptsMap := make(map[string]*receipt.Receipt)
-	for _, txHash := range txHashes {
-		txHandler, ok := txPool[string(txHash)]
+func groupReceipts(txPool map[string]data.TransactionHandler) []*receipt.Receipt {
+	receipts := make([]*receipt.Receipt, 0)
+	for hash, tx := range txPool {
+		rec, ok := tx.(*receipt.Receipt)
 		if !ok {
 			continue
 		}
 
-		rec, ok := txHandler.(*receipt.Receipt)
-		if !ok {
-			continue
-		}
-
-		receiptsMap[string(txHash)] = rec
+		receipts = append(receipts, rec)
+		delete(txPool, hash)
 	}
 
-	return receiptsMap
-}
-
-func getSmartContractResults(
-	txPool map[string]data.TransactionHandler,
-	txHashes [][]byte,
-) map[string]*smartContractResult.SmartContractResult {
-	scrsResults := make(map[string]*smartContractResult.SmartContractResult)
-	for _, txHash := range txHashes {
-		txHandler, ok := txPool[string(txHash)]
-		if !ok {
-			continue
-		}
-
-		scr, ok := txHandler.(*smartContractResult.SmartContractResult)
-		if !ok {
-			continue
-		}
-		scrsResults[string(txHash)] = scr
-	}
-	return scrsResults
+	return receipts
 }
 
 func getTransactions(txPool map[string]data.TransactionHandler,
