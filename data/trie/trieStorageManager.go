@@ -184,10 +184,6 @@ func (tsm *trieStorageManager) Prune(rootHash []byte, identifier data.TriePrunin
 		if identifier == data.NewRoot {
 			// TODO refactor pruning mechanism so that pruning will be done on rollback
 			// even if there is a snapshot in progress
-			_, err := tsm.dbEvictionWaitingList.Evict(rootHash)
-			if err != nil {
-				log.Error("could not evict rootHash", "rootHash", rootHash)
-			}
 
 			return
 		}
@@ -222,6 +218,7 @@ func (tsm *trieStorageManager) CancelPrune(rootHash []byte, identifier data.Trie
 		}
 	}
 
+	rootHash = append(rootHash, byte(identifier))
 	log.Trace("trie storage manager cancel prune", "root", rootHash)
 	_, _ = tsm.dbEvictionWaitingList.Evict(rootHash)
 	tsm.pruningBuffer.remove(rootHash)
