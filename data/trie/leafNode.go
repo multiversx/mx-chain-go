@@ -151,7 +151,7 @@ func (ln *leafNode) isPosCollapsed(_ int) bool {
 func (ln *leafNode) tryGet(key []byte, _ data.DBWriteCacher) (value []byte, err error) {
 	err = ln.isEmptyOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("leafNode tryGet error %w", err)
+		return nil, fmt.Errorf("tryGet error %w", err)
 	}
 	if bytes.Equal(key, ln.Key) {
 		return ln.Value, nil

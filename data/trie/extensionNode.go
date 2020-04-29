@@ -257,7 +257,7 @@ func (en *extensionNode) isPosCollapsed(_ int) bool {
 func (en *extensionNode) tryGet(key []byte, db data.DBWriteCacher) (value []byte, err error) {
 	err = en.isEmptyOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("extensionNode tryGet error %w", err)
+		return nil, fmt.Errorf("tryGet error %w", err)
 	}
 	keyTooShort := len(key) < len(en.Key)
 	if keyTooShort {
