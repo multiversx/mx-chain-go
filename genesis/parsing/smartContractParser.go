@@ -63,11 +63,6 @@ func (scp *smartContractParser) process() error {
 		}
 	}
 
-	err := scp.checkForDuplicates()
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -105,22 +100,6 @@ func (scp *smartContractParser) checkForFile(filename string) error {
 
 	if info.IsDir() {
 		return fmt.Errorf("%w for the file %s", genesis.ErrFilenameIsDirectory, filename)
-	}
-
-	return nil
-}
-
-func (scp *smartContractParser) checkForDuplicates() error {
-	for idx1 := 0; idx1 < len(scp.initialSmartContracts); idx1++ {
-		ib1 := scp.initialSmartContracts[idx1]
-		for idx2 := idx1 + 1; idx2 < len(scp.initialSmartContracts); idx2++ {
-			ib2 := scp.initialSmartContracts[idx2]
-			if ib1.Owner == ib2.Owner {
-				return fmt.Errorf("%w found for '%s'",
-					genesis.ErrDuplicateOwnerAddress,
-					ib1.Owner)
-			}
-		}
 	}
 
 	return nil

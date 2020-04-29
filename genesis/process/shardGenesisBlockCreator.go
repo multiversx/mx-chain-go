@@ -364,8 +364,14 @@ func deployInitialSmartContract(
 	vmType := sc.GetVmType()
 	deployTxData := strings.Join([]string{code, vmType, codeMetadataHex}, "@")
 
+	nonce, err := getNonce(sc.OwnerBytes(), arg.PubkeyConv, arg.Accounts)
+	if err != nil {
+		return err
+	}
+
 	tx := &transactionData.Transaction{
-		Nonce:     0,
+		Nonce:     nonce,
+		SndAddr:   sc.OwnerBytes(),
 		Value:     big.NewInt(0),
 		RcvAddr:   make([]byte, arg.PubkeyConv.Len()),
 		GasPrice:  0,
@@ -374,7 +380,6 @@ func deployInitialSmartContract(
 		Signature: nil,
 	}
 
-	tx.SndAddr = sc.OwnerBytes()
 	err = processors.txProcessor.ProcessTransaction(tx)
 	if err != nil {
 		return err
@@ -386,4 +391,18 @@ func deployInitialSmartContract(
 	}
 
 	return nil
+}
+
+func getNonce(senderBytes []byte, pubkeyConv state.PubkeyConverter, accounts state.AccountsAdapter) (uint64, error) {
+	adr, err := pubkeyConv.CreateAddressFromBytes(senderBytes)
+	if err != nil {
+		return 0, err
+	}
+
+	accnt, err := accounts.LoadAccount(adr)
+	if err != nil {
+		return 0, err
+	}
+
+	return accnt.GetNonce(), nil
 }

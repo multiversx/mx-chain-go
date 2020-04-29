@@ -491,7 +491,12 @@ func (sc *scProcessor) DeploySmartContract(
 	}
 
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee, txHash)
+	sc.printScDeployed(vmOutput, tx)
 
+	return nil
+}
+
+func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.TransactionHandler) {
 	scGenerated := make([]string, 0, len(vmOutput.OutputAccounts))
 	for addr := range vmOutput.OutputAccounts {
 		if !core.IsSmartContractAddress([]byte(addr)) {
@@ -504,7 +509,6 @@ func (sc *scProcessor) DeploySmartContract(
 	log.Debug("SmartContract deployed",
 		"owner", sc.pubkeyConv.Encode(tx.GetSndAddr()),
 		"SC address(es)", strings.Join(scGenerated, ", "))
-	return nil
 }
 
 // taking money from sender, as VM might not have access to him because of state sharding

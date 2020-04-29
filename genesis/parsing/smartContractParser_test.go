@@ -143,20 +143,6 @@ func TestSmartContractsParser_FileErrorShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, expectedErr))
 }
 
-func TestSmartContractsParser_DuplicatesShouldErr(t *testing.T) {
-	t.Parallel()
-
-	scp := parsing.NewTestSmartContractsParser(createMockHexPubkeyConverter())
-	isc1 := createMockInitialSmartContract("0001")
-	isc2 := createMockInitialSmartContract("0002")
-	isc3 := createMockInitialSmartContract("0001")
-	scp.SetInitialSmartContracts([]*data.InitialSmartContract{isc1, isc2, isc3})
-
-	err := scp.Process()
-
-	assert.True(t, errors.Is(err, genesis.ErrDuplicateOwnerAddress))
-}
-
 //------- InitialSmartContractsSplitOnOwnersShards
 
 func TestSmartContractsParser_InitialSmartContractsSplitOnOwnersShardsNilShardCoordinatorShouldErr(t *testing.T) {
