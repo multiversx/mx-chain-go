@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -121,7 +122,7 @@ func SaveStringMetric(ash core.AppStatusHandler, key, value string) {
 func StartStatusPolling(
 	ash core.AppStatusHandler,
 	pollingInterval time.Duration,
-	networkComponents *factory.Network,
+	networkComponents *mainFactory.NetworkComponents,
 	processComponents *factory.Process,
 	shardCoordinator sharding.Coordinator,
 ) error {
@@ -165,7 +166,7 @@ func StartStatusPolling(
 
 func registerPollConnectedPeers(
 	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
-	networkComponents *factory.Network,
+	networkComponents *mainFactory.NetworkComponents,
 ) error {
 
 	p2pMetricsHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
@@ -204,7 +205,7 @@ func registerShardsInformation(
 
 func computeNumConnectedPeers(
 	appStatusHandler core.AppStatusHandler,
-	networkComponents *factory.Network,
+	networkComponents *mainFactory.NetworkComponents,
 ) {
 	numOfConnectedPeers := uint64(len(networkComponents.NetMessenger.ConnectedAddresses()))
 	appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
@@ -212,7 +213,7 @@ func computeNumConnectedPeers(
 
 func computeConnectedPeers(
 	appStatusHandler core.AppStatusHandler,
-	networkComponents *factory.Network,
+	networkComponents *mainFactory.NetworkComponents,
 ) {
 	peersInfo := networkComponents.NetMessenger.GetConnectedPeersInfo()
 
@@ -249,7 +250,7 @@ func sliceToString(input []string) string {
 
 func setCurrentP2pNodeAddresses(
 	appStatusHandler core.AppStatusHandler,
-	networkComponents *factory.Network,
+	networkComponents *mainFactory.NetworkComponents,
 ) {
 	appStatusHandler.SetStringValue(core.MetricP2PPeerInfo, sliceToString(networkComponents.NetMessenger.Addresses()))
 }
