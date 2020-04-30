@@ -124,12 +124,6 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 	rwdAddrValidatorInfo := rc.computeValidatorInfoPerRewardAddress(validatorsInfo)
 
 	for address, rwdInfo := range rwdAddrValidatorInfo {
-		addrContainer, err := rc.pubkeyConverter.CreateAddressFromBytes([]byte(address))
-		if err != nil {
-			log.Warn("invalid reward address from validator info", "err", err, "provided address", address)
-			continue
-		}
-
 		rwdTx, rwdTxHash, err := rc.createRewardFromRwdInfo([]byte(address), rwdInfo, &metaBlock.EpochStart.Economics, metaBlock)
 		if err != nil {
 			return nil, err
@@ -137,7 +131,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 
 		rc.currTxs.AddTx(rwdTxHash, rwdTx)
 
-		shardId := rc.shardCoordinator.ComputeId(addrContainer)
+		shardId := rc.shardCoordinator.ComputeId([]byte(address))
 		miniBlocks[shardId].TxHashes = append(miniBlocks[shardId].TxHashes, rwdTxHash)
 	}
 

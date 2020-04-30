@@ -8,7 +8,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
@@ -71,11 +70,11 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 
 	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
 	shardCoordinator.CurrentShard = 6
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
-		if bytes.Equal(address.Bytes(), senderAddress) {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, senderAddress) {
 			return senderShard
 		}
-		if bytes.Equal(address.Bytes(), recvAddress) {
+		if bytes.Equal(address, recvAddress) {
 			return recvShard
 		}
 
@@ -89,11 +88,7 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 		mock.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-				return mock.NewAddressMock(pubKey), nil
-			},
-		},
+		&mock.PubkeyConverterStub{},
 		shardCoordinator,
 		txFeeHandler,
 		&mock.WhiteListHandlerStub{},
@@ -326,33 +321,6 @@ func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 
 	assert.Nil(t, txi)
 	assert.Equal(t, errExpected, err)
-}
-
-func TestNewInterceptedTransaction_AddrConvFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	marshalizer := &mock.MarshalizerMock{}
-	txData, _ := marshalizer.Marshal(&dataTransaction.Transaction{Value: big.NewInt(0)})
-
-	txi, err := transaction.NewInterceptedTransaction(
-		txData,
-		marshalizer,
-		marshalizer,
-		mock.HasherMock{},
-		&mock.SingleSignKeyGenMock{},
-		&mock.SignerMock{},
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-				return nil, errors.New("expected error")
-			},
-		},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.FeeHandlerStub{},
-		&mock.WhiteListHandlerStub{},
-	)
-
-	assert.Nil(t, txi)
-	assert.Equal(t, process.ErrInvalidSndAddr, err)
 }
 
 func TestNewInterceptedTransaction_ShouldWork(t *testing.T) {
@@ -612,11 +580,11 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 
 	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
 	shardCoordinator.CurrentShard = 1
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
-		if bytes.Equal(address.Bytes(), senderAddressInShard1) {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, senderAddressInShard1) {
 			return 1
 		}
-		if bytes.Equal(address.Bytes(), recvAddressDeploy) {
+		if bytes.Equal(address, recvAddressDeploy) {
 			return 0
 		}
 
@@ -630,11 +598,7 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 		mock.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-				return mock.NewAddressMock(pubKey), nil
-			},
-		},
+		&mock.PubkeyConverterStub{},
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&mock.WhiteListHandlerStub{},
@@ -761,7 +725,7 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 
 	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
 	shardCoordinator.CurrentShard = 6
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 		return shardCoordinator.CurrentShard
 	}
 
@@ -776,11 +740,7 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 		mock.HasherMock{},
 		createKeyGenMock(),
 		signer,
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-				return mock.NewAddressMock(pubKey), nil
-			},
-		},
+		&mock.PubkeyConverterStub{},
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		whiteListerVerifiedTxs,

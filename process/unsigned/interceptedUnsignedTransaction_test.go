@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/unsigned"
@@ -27,11 +26,11 @@ func createInterceptedScrFromPlainScr(scr *smartContractResult.SmartContractResu
 
 	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
 	shardCoordinator.CurrentShard = 6
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
-		if bytes.Equal(address.Bytes(), senderAddress) {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, senderAddress) {
 			return senderShard
 		}
-		if bytes.Equal(address.Bytes(), recvAddress) {
+		if bytes.Equal(address, recvAddress) {
 			return recvShard
 		}
 
@@ -42,11 +41,7 @@ func createInterceptedScrFromPlainScr(scr *smartContractResult.SmartContractResu
 		txBuff,
 		marshalizer,
 		mock.HasherMock{},
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-				return mock.NewAddressMock(pubKey), nil
-			},
-		},
+		&mock.PubkeyConverterStub{},
 		shardCoordinator,
 	)
 }
@@ -151,25 +146,6 @@ func TestNewInterceptedUnsignedTransaction_UnmarshalingTxFailsShouldErr(t *testi
 
 	assert.Nil(t, txi)
 	assert.Equal(t, errExpected, err)
-}
-
-func TestNewInterceptedUnsignedTransaction_AddrConvFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	txi, err := unsigned.NewInterceptedUnsignedTransaction(
-		[]byte("{}"),
-		&mock.MarshalizerMock{},
-		mock.HasherMock{},
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-				return nil, errors.New("expected error")
-			},
-		},
-		mock.NewOneShardCoordinatorMock(),
-	)
-
-	assert.Nil(t, txi)
-	assert.Equal(t, process.ErrInvalidSndAddr, err)
 }
 
 func TestNewInterceptedUnsignedTransaction_ShouldWork(t *testing.T) {
@@ -344,7 +320,7 @@ func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	assert.Equal(t, expectedHash, txi.Hash())
 	assert.Equal(t, nonce, txi.Nonce())
 	assert.Equal(t, big.NewInt(0), txi.Fee())
-	assert.Equal(t, senderAddress, txi.SenderAddress().Bytes())
+	assert.Equal(t, senderAddress, txi.SenderAddress())
 }
 
 //------- IsInterfaceNil
