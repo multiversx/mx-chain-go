@@ -979,7 +979,6 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	accounts.CancelPrune(rootHash, data.NewRoot)
 	if finalHeader.IsStartOfEpochBlock() {
 		log.Debug("trie snapshot", "rootHash", rootHash)
 		accounts.SnapshotState(rootHash)
@@ -997,6 +996,7 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
+	accounts.CancelPrune(prevRootHash, data.NewRoot)
 	accounts.PruneTrie(prevRootHash, data.OldRoot)
 }
 

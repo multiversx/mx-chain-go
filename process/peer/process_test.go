@@ -1560,6 +1560,45 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithSmallValidatorFa
 	assert.Equal(t, expectedTempRating2, vi[0][0].TempRating)
 }
 
+func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochComputesJustEligible(t *testing.T) {
+	arguments := createMockArguments()
+	rater := createMockRater()
+	rater.GetSignedBlocksThresholdCalled = func() float32 {
+		return 0.025
+	}
+	rater.MinRating = 1000
+	rater.MaxRating = 10000
+
+	arguments.Rater = rater
+
+	updateArgumentsWithNeeded(arguments)
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	tempRating1 := uint32(5000)
+	tempRating2 := uint32(8000)
+
+	validatorSuccess1 := uint32(2)
+	validatorFailure1 := uint32(98)
+	validatorSuccess2 := uint32(1)
+	validatorFailure2 := uint32(99)
+
+	vi := make(map[uint32][]*state.ValidatorInfo)
+	vi[core.MetachainShardId] = make([]*state.ValidatorInfo, 1)
+	vi[core.MetachainShardId][0] = createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorFailure1)
+
+	vi[0] = make([]*state.ValidatorInfo, 1)
+	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorFailure2)
+	vi[0][0].List = string(core.WaitingList)
+
+	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi)
+	assert.Nil(t, err)
+	expectedTempRating1 := tempRating1 - uint32(rater.MetaIncreaseValidator)*validatorFailure1
+	assert.Equal(t, expectedTempRating1, vi[core.MetachainShardId][0].TempRating)
+
+	assert.Equal(t, tempRating2, vi[0][0].TempRating)
+}
+
 func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithLargeValidatorFailureBelowMinRatingShouldWork(t *testing.T) {
 	arguments := createMockArguments()
 	rater := createMockRater()
@@ -1676,7 +1715,7 @@ func createMockValidatorInfo(shardId uint32, tempRating uint32, validatorSuccess
 	return &state.ValidatorInfo{
 		PublicKey:                  nil,
 		ShardId:                    shardId,
-		List:                       "",
+		List:                       string(core.EligibleList),
 		Index:                      0,
 		TempRating:                 tempRating,
 		Rating:                     0,
