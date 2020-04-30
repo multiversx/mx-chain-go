@@ -253,10 +253,6 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	if e.isStartInEpochZero() {
-		return e.prepareEpochZero()
-	}
-
 	e.dataPool, err = factoryDataPool.NewDataPoolFromConfig(
 		factoryDataPool.ArgsDataPool{
 			Config:           &e.generalConfig,
@@ -270,6 +266,10 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
 	if isCurrentEpochSaved || e.isStartInEpochZero() {
+		if e.baseData.lastEpoch == 0 {
+			return e.prepareEpochZero()
+		}
+
 		parameters, err := e.prepareEpochFromStorage()
 		if err == nil {
 			return parameters, nil
