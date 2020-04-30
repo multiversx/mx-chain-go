@@ -40,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
+	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -1969,7 +1970,7 @@ func createApiResolver(
 		vmFactory, err = metachain.NewVMContainerFactory(
 			argsHook,
 			economics,
-			messageSigVerifier,
+			&genesis.NilMessageSignVerifier{},
 			gasSchedule,
 			nodesSetup,
 		)

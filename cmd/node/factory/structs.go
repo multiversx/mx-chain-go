@@ -1957,7 +1957,7 @@ func newMetaBlockProcessor(
 	vmFactory, err := metachain.NewVMContainerFactory(
 		argsHook,
 		economicsData,
-		messageSignVerifier,
+		&genesis.NilMessageSignVerifier{},
 		gasSchedule,
 		nodesSetup,
 	)
