@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -44,22 +43,11 @@ func TestPendingTransactionProcessor_ProcessTransactionsDstMe(t *testing.T) {
 	addr4 := []byte("addr4")
 	addr5 := []byte("addr5")
 	args := createMockArgsPendingTransactionProcessor()
-	args.PubKeyConv = &mock.PubkeyConverterStub{
-		CreateAddressFromBytesCalled: func(pkBytes []byte) (state.AddressContainer, error) {
-			switch {
-			case bytes.Equal(pkBytes, addr1) || bytes.Equal(pkBytes, addr2):
-				return nil, errors.New("localErr")
-			case bytes.Equal(pkBytes, addr3):
-				return mock.NewAddressMock(), nil
-			default:
-				return &mock.AddressMock{}, nil
-			}
-		},
-	}
+	args.PubKeyConv = &mock.PubkeyConverterStub{}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
-		if container.Bytes() != nil {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if address != nil {
 			return 0
 		}
 		return 1
@@ -110,7 +98,7 @@ func TestPendingTransactionProcessor_ProcessTransactionsDstMe(t *testing.T) {
 	assert.True(t, called)
 	assert.NotNil(t, mbSlice)
 	assert.NoError(t, err)
-	assert.Equal(t, mbSlice[0].TxHashes[0], []byte(hash5))
+	assert.Equal(t, []byte(hash2), mbSlice[0].TxHashes[0])
 }
 
 func TestGetSortedSliceFromMbsMap(t *testing.T) {

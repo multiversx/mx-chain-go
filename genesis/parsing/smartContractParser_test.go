@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
@@ -153,32 +152,6 @@ func TestSmartContractsParser_InitialSmartContractsSplitOnOwnersShardsNilShardCo
 
 	assert.Nil(t, m)
 	assert.Equal(t, genesis.ErrNilShardCoordinator, err)
-}
-
-func TestSmartContractsParser_InitialSmartContractsSplitOnOwnersShardsAddressConvertFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("expected error")
-	scp := parsing.NewTestSmartContractsParser(
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
-				return nil, expectedErr
-			},
-		},
-	)
-	ics := []*data.InitialSmartContract{
-		createMockInitialSmartContract("0001"),
-	}
-	scp.SetInitialSmartContracts(ics)
-	err := scp.Process()
-	require.Nil(t, err)
-
-	ibsSplit, err := scp.InitialSmartContractsSplitOnOwnersShards(
-		&mock.ShardCoordinatorMock{},
-	)
-
-	assert.Equal(t, expectedErr, err)
-	assert.Nil(t, ibsSplit)
 }
 
 func TestSmartContractsParser_InitialSmartContractsSplitOnOwnersShards(t *testing.T) {

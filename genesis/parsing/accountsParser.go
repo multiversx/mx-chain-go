@@ -249,11 +249,7 @@ func (ap *accountsParser) InitialAccountsSplitOnAddressesShards(
 
 	var addresses = make(map[uint32][]genesis.InitialAccountHandler)
 	for _, ia := range ap.initialAccounts {
-		address, err := ap.pubkeyConverter.CreateAddressFromBytes(ia.AddressBytes())
-		if err != nil {
-			return nil, err
-		}
-		shardID := shardCoordinator.ComputeId(address)
+		shardID := shardCoordinator.ComputeId(ia.AddressBytes())
 
 		addresses[shardID] = append(addresses[shardID], ia)
 	}
@@ -276,11 +272,7 @@ func (ap *accountsParser) InitialAccountsSplitOnDelegationAddressesShards(
 			continue
 		}
 
-		delegationAddress, err := ap.pubkeyConverter.CreateAddressFromBytes(in.Delegation.AddressBytes())
-		if err != nil {
-			return nil, err
-		}
-		shardID := shardCoordinator.ComputeId(delegationAddress)
+		shardID := shardCoordinator.ComputeId(in.Delegation.AddressBytes())
 
 		addresses[shardID] = append(addresses[shardID], in)
 	}
