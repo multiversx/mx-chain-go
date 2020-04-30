@@ -813,6 +813,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 			storeUpdate := storageUpdates[j]
 			if !process.IsAllowedToSaveUnderKey(storeUpdate.Offset) {
 				log.Trace("storeUpdate is not allowed", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
+				continue
 			}
 
 			acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
