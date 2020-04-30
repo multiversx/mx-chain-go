@@ -18,7 +18,7 @@ func (isc *InitialSmartContract) SetOwnerBytes(owner []byte) {
 	isc.ownerBytes = owner
 }
 
-// GetOwner returns the owner
+// GetOwner returns the smart contract owner address
 func (isc *InitialSmartContract) GetOwner() string {
 	return isc.Owner
 }

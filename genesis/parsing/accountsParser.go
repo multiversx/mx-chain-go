@@ -189,13 +189,13 @@ func (ap *accountsParser) checkInitialAccount(initialAccount *data.InitialAccoun
 
 func (ap *accountsParser) checkForDuplicates() error {
 	for idx1 := 0; idx1 < len(ap.initialAccounts); idx1++ {
-		ib1 := ap.initialAccounts[idx1]
+		ia1 := ap.initialAccounts[idx1]
 		for idx2 := idx1 + 1; idx2 < len(ap.initialAccounts); idx2++ {
-			ib2 := ap.initialAccounts[idx2]
-			if ib1.Address == ib2.Address {
+			ia2 := ap.initialAccounts[idx2]
+			if ia1.Address == ia2.Address {
 				return fmt.Errorf("%w found for '%s'",
 					genesis.ErrDuplicateAddress,
-					ib1.Address,
+					ia1.Address,
 				)
 			}
 		}
@@ -206,9 +206,9 @@ func (ap *accountsParser) checkForDuplicates() error {
 
 // StakedUpon returns the value that was staked upon the provided address
 func (ap *accountsParser) StakedUpon(address string) *big.Int {
-	for _, ib := range ap.initialAccounts {
-		if ib.Address == address {
-			return big.NewInt(0).Set(ib.StakingValue)
+	for _, ia := range ap.initialAccounts {
+		if ia.Address == address {
+			return big.NewInt(0).Set(ia.StakingValue)
 		}
 	}
 
@@ -218,9 +218,9 @@ func (ap *accountsParser) StakedUpon(address string) *big.Int {
 // DelegatedUpon returns the value that was delegated upon the provided address
 func (ap *accountsParser) DelegatedUpon(address string) *big.Int {
 	delegated := big.NewInt(0)
-	for _, ib := range ap.initialAccounts {
-		if ib.Delegation.Address == address {
-			delegated.Add(delegated, ib.Delegation.Value)
+	for _, ia := range ap.initialAccounts {
+		if ia.Delegation.Address == address {
+			delegated.Add(delegated, ia.Delegation.Value)
 		}
 	}
 
@@ -248,14 +248,14 @@ func (ap *accountsParser) InitialAccountsSplitOnAddressesShards(
 	}
 
 	var addresses = make(map[uint32][]genesis.InitialAccountHandler)
-	for _, in := range ap.initialAccounts {
-		address, err := ap.pubkeyConverter.CreateAddressFromBytes(in.AddressBytes())
+	for _, ia := range ap.initialAccounts {
+		address, err := ap.pubkeyConverter.CreateAddressFromBytes(ia.AddressBytes())
 		if err != nil {
 			return nil, err
 		}
 		shardID := shardCoordinator.ComputeId(address)
 
-		addresses[shardID] = append(addresses[shardID], in)
+		addresses[shardID] = append(addresses[shardID], ia)
 	}
 
 	return addresses, nil

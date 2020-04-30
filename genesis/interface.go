@@ -41,7 +41,7 @@ type DelegationDataHandler interface {
 	IsInterfaceNil() bool
 }
 
-// InitialSmartContractHandler represents the interface that describes the smart contract
+// InitialSmartContractHandler represents the interface that describes the the initial smart contract
 type InitialSmartContractHandler interface {
 	GetOwner() string
 	OwnerBytes() []byte
