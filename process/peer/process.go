@@ -48,6 +48,7 @@ type ArgValidatorStatisticsProcessor struct {
 	MaxComputableRounds uint64
 	StartEpoch          uint32
 	NodesSetup          sharding.GenesisNodesSetupHandler
+	GenesisNonce        uint64
 }
 
 type validatorStatistics struct {
@@ -63,6 +64,7 @@ type validatorStatistics struct {
 	maxComputableRounds     uint64
 	missedBlocksCounters    validatorRoundCounters
 	mutMissedBlocksCounters sync.RWMutex
+	genesisNonce            uint64
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -117,6 +119,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		rater:                arguments.Rater,
 		rewardsHandler:       arguments.RewardsHandler,
 		maxComputableRounds:  arguments.MaxComputableRounds,
+		genesisNonce:         arguments.GenesisNonce,
 	}
 
 	rater := arguments.Rater
@@ -319,7 +322,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 		return nil, err
 	}
 
-	if header.GetNonce() == 1 {
+	if header.GetNonce() == vs.genesisNonce+1 {
 		return vs.peerAdapter.RootHash()
 	}
 	log.Trace("Increasing", "round", previousHeader.GetRound(), "prevRandSeed", previousHeader.GetPrevRandSeed())
@@ -690,6 +693,10 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 	}
 
 	for _, h := range metaHeader.ShardInfo {
+		if h.Nonce == vs.genesisNonce {
+			continue
+		}
+
 		shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeConsensusGroup(h.PrevRandSeed, h.Round, h.ShardID, epoch)
 		if shardInfoErr != nil {
 			return shardInfoErr

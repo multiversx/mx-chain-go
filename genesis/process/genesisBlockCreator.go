@@ -3,15 +3,21 @@ package process
 import (
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/update/files"
+	hardfork "github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
 type genesisBlockCreationHandler func(arg ArgsGenesisBlockCreator) (data.HeaderHandler, error)
@@ -29,11 +35,58 @@ func NewGenesisBlockCreator(arg ArgsGenesisBlockCreator) (*genesisBlockCreator, 
 		return nil, fmt.Errorf("%w while creating NewGenesisBlockCreator", err)
 	}
 
-	return &genesisBlockCreator{
+	gbc := &genesisBlockCreator{
 		arg:                 arg,
 		shardCreatorHandler: CreateShardGenesisBlock,
 		metaCreatorHandler:  CreateMetaGenesisBlock,
-	}, nil
+	}
+
+	if arg.HardForkConfig.MustImport {
+		err := gbc.createHardForkImportHandler()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return gbc, nil
+}
+
+func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
+	importConfig := gbc.arg.HardForkConfig.ImportStateStorageConfig
+	importStore, err := storageUnit.NewStorageUnitFromConf(
+		factory.GetCacherFromConfig(importConfig.Cache),
+		factory.GetDBFromConfig(importConfig.DB),
+		factory.GetBloomFromConfig(importConfig.Bloom),
+	)
+	if err != nil {
+		return err
+	}
+
+	args := files.ArgsNewMultiFileReader{
+		ImportFolder: gbc.arg.HardForkConfig.ImportFolder,
+		ImportStore:  importStore,
+	}
+	multiFileReader, err := files.NewMultiFileReader(args)
+	if err != nil {
+		return err
+	}
+
+	argsHardForkImport := hardfork.ArgsNewStateImport{
+		Reader:         multiFileReader,
+		Hasher:         gbc.arg.Hasher,
+		Marshalizer:    gbc.arg.Marshalizer,
+		ShardID:        gbc.arg.ShardCoordinator.SelfId(),
+		StorageConfig:  config.StorageConfig{},
+		TrieFactory:    gbc.arg.TrieFactory,
+		TriesContainer: gbc.arg.TriesContainer,
+	}
+	importHandler, err := hardfork.NewStateImport(argsHardForkImport)
+	if err != nil {
+		return err
+	}
+
+	gbc.arg.importHandler = importHandler
+	return nil
 }
 
 func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
@@ -92,6 +145,13 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	var err error
 	var genesisBlock data.HeaderHandler
 	var newArgument ArgsGenesisBlockCreator
+
+	if gbc.arg.HardForkConfig.MustImport {
+		err := gbc.arg.importHandler.ImportAll()
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	for shardID := uint32(0); shardID < gbc.arg.ShardCoordinator.NumberOfShards(); shardID++ {
 		newArgument, err = gbc.getNewArgForShard(shardID)
@@ -179,4 +239,17 @@ func (gbc *genesisBlockCreator) saveGenesisBlock(header data.HeaderHandler) erro
 	}
 
 	return gbc.arg.Store.Put(unitType, hash, blockBuff)
+}
+
+func saveGenesisBodyToStorage(txCoordinator process.TransactionCoordinator, bodyHandler data.BodyHandler) {
+	blockBody, ok := bodyHandler.(*block.Body)
+	if !ok {
+		log.Warn("wrong type assertion when saving genesis body to storage")
+		return
+	}
+
+	errNotCritical := txCoordinator.SaveBlockDataToStorage(blockBody)
+	if errNotCritical != nil {
+		log.Warn("could not save genesis block body to storage", "error", errNotCritical)
+	}
 }

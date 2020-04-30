@@ -27,6 +27,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
+	"github.com/ElrondNetwork/elrond-vm-common"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -53,6 +55,13 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, e
 			err, arg.ShardCoordinator.SelfId())
 	}
 
+	//TODO add here delegation process
+	if arg.HardForkConfig.MustImport {
+		//TODO think about how to integrate when genesis is modified as well for hardfork - when should set balances be called
+		// shard genesis probably should stay the same as it was  defined for the actual genesis block - because of transparency
+		return createShardGenesisAfterHardFork(arg)
+	}
+
 	header := &block.Header{
 		Nonce:           0,
 		ShardID:         arg.ShardCoordinator.SelfId(),
@@ -67,6 +76,53 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, e
 	}
 
 	return header, nil
+}
+
+func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHandler, error) {
+	processors, err := createProcessorsForShard(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	argsPendingTxProcessor := hardForkProcess.ArgsPendingTransactionProcessor{
+		Accounts:         arg.Accounts,
+		TxProcessor:      processors.txProcessor,
+		RwdTxProcessor:   processors.rwdProcessor,
+		ScrTxProcessor:   processors.scrProcessor,
+		PubKeyConv:       arg.PubkeyConv,
+		ShardCoordinator: arg.ShardCoordinator,
+	}
+	pendingTxProcessor, err := hardForkProcess.NewPendingTransactionProcessor(argsPendingTxProcessor)
+	if err != nil {
+		return nil, err
+	}
+
+	argsShardBlockAfterHardFork := hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{
+		ShardCoordinator:   arg.ShardCoordinator,
+		TxCoordinator:      processors.txCoordinator,
+		PendingTxProcessor: pendingTxProcessor,
+		ImportHandler:      arg.importHandler,
+		Marshalizer:        arg.Marshalizer,
+		Hasher:             arg.Hasher,
+	}
+	shardBlockCreator, err := hardForkProcess.NewShardBlockCreatorAfterHardFork(argsShardBlockAfterHardFork)
+	if err != nil {
+		return nil, err
+	}
+
+	hdrHandler, bodyHandler, err := shardBlockCreator.CreateNewBlock(
+		arg.ChainID,
+		arg.HardForkConfig.StartRound,
+		arg.HardForkConfig.StartNonce,
+		arg.HardForkConfig.StartEpoch,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	saveGenesisBodyToStorage(processors.txCoordinator, bodyHandler)
+
+	return hdrHandler, nil
 }
 
 // setBalancesToTrie adds balances to trie

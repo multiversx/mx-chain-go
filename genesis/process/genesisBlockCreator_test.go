@@ -31,6 +31,7 @@ func createMockArgument() ArgsGenesisBlockCreator {
 		ValidatorStatsRootHash:   make([]byte, 0),
 		TxLogsProcessor:          &mock.TxLogProcessorMock{},
 		VirtualMachineConfig:     config.VirtualMachineConfig{},
+		HardForkConfig:           config.HardforkConfig{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
