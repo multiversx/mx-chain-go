@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
@@ -47,7 +47,7 @@ func TestHeartbeatMonitorWillUpdateAnInactivePeer(t *testing.T) {
 	}()
 
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
-	time.Sleep(time.Second * 5)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	fmt.Println("Sending first messages from both public keys...")
 	err := senders[0].SendHeartbeat()
@@ -102,7 +102,7 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 	}()
 
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
-	time.Sleep(time.Second * 5)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	fmt.Println("Sending first messages with long name...")
 	_ = senders[1].SendHeartbeat()
