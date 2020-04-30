@@ -71,7 +71,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, er
 		// data. The same with system smart contract states - these thinks should be programmed according to that specific hardfork
 		// event. As some scenarios would need only a set of pending transactions - others would syncronize everything from before
 		// genesis file should not be changed - as it reflects the true, transparent data for block ZERO
-		return createMetaGenesisAfterHardFork(arg, genesisProcessors)
+		return createMetaGenesisAfterHardFork(arg, processors)
 	}
 
 	header := &block.MetaBlock{

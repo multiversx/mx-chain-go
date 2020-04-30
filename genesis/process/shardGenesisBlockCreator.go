@@ -29,7 +29,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
 	"github.com/ElrondNetwork/elrond-vm-common"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // codeMetadataHex used for initial SC deployment, set to upgrade-able
