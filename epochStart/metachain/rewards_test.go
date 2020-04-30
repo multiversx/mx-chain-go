@@ -104,15 +104,7 @@ func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 	rwd, _ := NewEpochStartRewardsCreator(args)
 
 	mb := &block.MetaBlock{
-		EpochStart: block.EpochStart{
-			Economics: block.Economics{
-				TotalSupply:            big.NewInt(10000),
-				TotalToDistribute:      big.NewInt(10000),
-				TotalNewlyMinted:       big.NewInt(10000),
-				RewardsPerBlockPerNode: big.NewInt(10000),
-				NodePrice:              big.NewInt(10000),
-			},
-		},
+		EpochStart: getDefaultEpochStart(),
 	}
 	valInfo := make(map[uint32][]*state.ValidatorInfo)
 	valInfo[0] = []*state.ValidatorInfo{
@@ -150,15 +142,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksHashDoesNotMatch(t *testing.T) {
 	mbh.Hash = mbHash
 
 	mb := &block.MetaBlock{
-		EpochStart: block.EpochStart{
-			Economics: block.Economics{
-				TotalSupply:            big.NewInt(10000),
-				TotalToDistribute:      big.NewInt(10000),
-				TotalNewlyMinted:       big.NewInt(10000),
-				RewardsPerBlockPerNode: big.NewInt(10000),
-				NodePrice:              big.NewInt(10000),
-			},
-		},
+		EpochStart: getDefaultEpochStart(),
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			mbh,
 		},
@@ -188,32 +172,34 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksRewardsMbNumDoesNotMatch(t *testi
 		Epoch:   0,
 	}
 	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, rwdTx)
+
+	communityRewardTx := rewardTx.RewardTx{
+		Round:   0,
+		Value:   big.NewInt(50),
+		RcvAddr: []byte{17},
+		Epoch:   0,
+	}
+	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, communityRewardTx)
+
 	bdy := block.MiniBlock{
-		TxHashes:        [][]byte{rwdTxHash},
+		TxHashes:        [][]byte{commRwdTxHash, rwdTxHash},
 		ReceiverShardID: 0,
 		SenderShardID:   core.MetachainShardId,
 		Type:            block.RewardsBlock,
 	}
+
 	mbh := block.MiniBlockHeader{
 		Hash:            nil,
 		SenderShardID:   core.MetachainShardId,
 		ReceiverShardID: 0,
-		TxCount:         1,
+		TxCount:         2,
 		Type:            block.RewardsBlock,
 	}
 	mbHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, bdy)
 	mbh.Hash = mbHash
 
 	mb := &block.MetaBlock{
-		EpochStart: block.EpochStart{
-			Economics: block.Economics{
-				TotalSupply:            big.NewInt(10000),
-				TotalToDistribute:      big.NewInt(10000),
-				TotalNewlyMinted:       big.NewInt(10000),
-				RewardsPerBlockPerNode: big.NewInt(10000),
-				NodePrice:              big.NewInt(10000),
-			},
-		},
+		EpochStart: getDefaultEpochStart(),
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			mbh,
 			mbh,
@@ -244,8 +230,17 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 		Epoch:   0,
 	}
 	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, rwdTx)
+
+	communityRewardTx := rewardTx.RewardTx{
+		Round:   0,
+		Value:   big.NewInt(50),
+		RcvAddr: []byte{17},
+		Epoch:   0,
+	}
+	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, communityRewardTx)
+
 	bdy := block.MiniBlock{
-		TxHashes:        [][]byte{rwdTxHash},
+		TxHashes:        [][]byte{commRwdTxHash, rwdTxHash},
 		ReceiverShardID: 0,
 		SenderShardID:   core.MetachainShardId,
 		Type:            block.RewardsBlock,
@@ -254,22 +249,14 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 		Hash:            nil,
 		SenderShardID:   core.MetachainShardId,
 		ReceiverShardID: 0,
-		TxCount:         1,
+		TxCount:         2,
 		Type:            block.RewardsBlock,
 	}
 	mbHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, bdy)
 	mbh.Hash = mbHash
 
 	mb := &block.MetaBlock{
-		EpochStart: block.EpochStart{
-			Economics: block.Economics{
-				TotalSupply:            big.NewInt(10000),
-				TotalToDistribute:      big.NewInt(10000),
-				TotalNewlyMinted:       big.NewInt(10000),
-				RewardsPerBlockPerNode: big.NewInt(10000),
-				NodePrice:              big.NewInt(10000),
-			},
-		},
+		EpochStart: getDefaultEpochStart(),
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			mbh,
 		},
@@ -294,15 +281,7 @@ func TestRewardsCreator_CreateMarshalizedData(t *testing.T) {
 	rwd, _ := NewEpochStartRewardsCreator(args)
 
 	mb := &block.MetaBlock{
-		EpochStart: block.EpochStart{
-			Economics: block.Economics{
-				TotalSupply:            big.NewInt(10000),
-				TotalToDistribute:      big.NewInt(10000),
-				TotalNewlyMinted:       big.NewInt(10000),
-				RewardsPerBlockPerNode: big.NewInt(10000),
-				NodePrice:              big.NewInt(10000),
-			},
-		},
+		EpochStart: getDefaultEpochStart(),
 	}
 	valInfo := make(map[uint32][]*state.ValidatorInfo)
 	valInfo[0] = []*state.ValidatorInfo{
@@ -358,15 +337,7 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 	rwd, _ := NewEpochStartRewardsCreator(args)
 
 	mb := &block.MetaBlock{
-		EpochStart: block.EpochStart{
-			Economics: block.Economics{
-				TotalSupply:            big.NewInt(10000),
-				TotalToDistribute:      big.NewInt(10000),
-				TotalNewlyMinted:       big.NewInt(10000),
-				RewardsPerBlockPerNode: big.NewInt(10000),
-				NodePrice:              big.NewInt(10000),
-			},
-		},
+		EpochStart: getDefaultEpochStart(),
 	}
 	valInfo := make(map[uint32][]*state.ValidatorInfo)
 	valInfo[0] = []*state.ValidatorInfo{
@@ -406,6 +377,155 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 
 	assert.True(t, putRwdTxWasCalled)
 	assert.True(t, putMbWasCalled)
+}
+
+func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsArguments()
+	rwdc, _ := NewEpochStartRewardsCreator(args)
+
+	mb := &block.MetaBlock{
+		EpochStart: getDefaultEpochStart(),
+	}
+
+	miniBlocks := make(block.MiniBlockSlice, rwdc.shardCoordinator.NumberOfShards())
+	miniBlocks[0] = &block.MiniBlock{}
+	miniBlocks[0].SenderShardID = core.MetachainShardId
+	miniBlocks[0].ReceiverShardID = 0
+	miniBlocks[0].Type = block.RewardsBlock
+	miniBlocks[0].TxHashes = make([][]byte, 0)
+
+	cloneMb := &(*miniBlocks[0])
+	cloneMb.TxHashes = make([][]byte, 0)
+	expectedRwdTx := &rewardTx.RewardTx{
+		Round:   0,
+		Value:   big.NewInt(100),
+		RcvAddr: []byte("pubkey"),
+		Epoch:   0,
+	}
+	expectedRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, expectedRwdTx)
+	cloneMb.TxHashes = append(cloneMb.TxHashes, expectedRwdTxHash)
+
+	valInfo := make(map[uint32][]*state.ValidatorInfo)
+	valInfo[0] = []*state.ValidatorInfo{
+		{
+			PublicKey:       []byte("pubkey"),
+			ShardId:         0,
+			AccumulatedFees: big.NewInt(100),
+		},
+	}
+
+	err := rwdc.addValidatorRewardsToMiniBlocks(valInfo, mb, miniBlocks)
+	assert.Nil(t, err)
+	assert.Equal(t, cloneMb, miniBlocks[0])
+}
+
+func TestRewardsCreator_CreateCommunityRewardTransactionInvalidCommunityAddress(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsArguments()
+	rwdc, _ := NewEpochStartRewardsCreator(args)
+	epStart := getDefaultEpochStart()
+	epStart.Economics.CommunityAddress = []byte("j")
+
+	mb := &block.MetaBlock{
+		EpochStart: epStart,
+	}
+	rwdTx, txHash, shardId, err := rwdc.createCommunityRewardTransaction(mb)
+	assert.NotNil(t, err)
+	assert.Nil(t, rwdTx)
+	assert.Nil(t, txHash)
+	assert.Equal(t, uint32(0), shardId)
+}
+
+func TestRewardsCreator_CreateCommunityRewardTransaction(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsArguments()
+	rwdc, _ := NewEpochStartRewardsCreator(args)
+	mb := &block.MetaBlock{
+		EpochStart: getDefaultEpochStart(),
+	}
+	expectedRewardTx := &rewardTx.RewardTx{
+		Round:   0,
+		Value:   big.NewInt(50),
+		RcvAddr: []byte{17},
+		Epoch:   0,
+	}
+	expectedRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, expectedRewardTx)
+	rwdTx, txHash, _, err := rwdc.createCommunityRewardTransaction(mb)
+	assert.Equal(t, expectedRewardTx, rwdTx)
+	assert.Equal(t, expectedRwdTxHash, txHash)
+	assert.Nil(t, err)
+}
+
+func TestRewardsCreator_AddCommunityRewardToMiniBlocksWrongAddrShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsArguments()
+	epStart := getDefaultEpochStart()
+	epStart.Economics.CommunityAddress = []byte("invalid hex address")
+	rwdc, _ := NewEpochStartRewardsCreator(args)
+	metaBlk := &block.MetaBlock{
+		EpochStart: epStart,
+	}
+
+	miniBlocks := make(block.MiniBlockSlice, rwdc.shardCoordinator.NumberOfShards())
+	miniBlocks[0] = &block.MiniBlock{}
+	miniBlocks[0].SenderShardID = core.MetachainShardId
+	miniBlocks[0].ReceiverShardID = 0
+	miniBlocks[0].Type = block.RewardsBlock
+	miniBlocks[0].TxHashes = make([][]byte, 0)
+
+	err := rwdc.addCommunityRewardToMiniBlocks(miniBlocks, metaBlk)
+	assert.NotNil(t, err)
+}
+
+func TestRewardsCreator_AddCommunityRewardToMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsArguments()
+	rwdc, _ := NewEpochStartRewardsCreator(args)
+	metaBlk := &block.MetaBlock{
+		EpochStart: getDefaultEpochStart(),
+	}
+
+	miniBlocks := make(block.MiniBlockSlice, rwdc.shardCoordinator.NumberOfShards())
+	miniBlocks[0] = &block.MiniBlock{}
+	miniBlocks[0].SenderShardID = core.MetachainShardId
+	miniBlocks[0].ReceiverShardID = 0
+	miniBlocks[0].Type = block.RewardsBlock
+	miniBlocks[0].TxHashes = make([][]byte, 0)
+
+	cloneMb := &(*miniBlocks[0])
+	cloneMb.TxHashes = make([][]byte, 0)
+	expectedRewardTx := &rewardTx.RewardTx{
+		Round:   0,
+		Value:   big.NewInt(50),
+		RcvAddr: []byte{17},
+		Epoch:   0,
+	}
+	expectedRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, expectedRewardTx)
+	cloneMb.TxHashes = append(cloneMb.TxHashes, expectedRwdTxHash)
+
+	err := rwdc.addCommunityRewardToMiniBlocks(miniBlocks, metaBlk)
+	assert.Nil(t, err)
+	assert.Equal(t, cloneMb, miniBlocks[0])
+}
+
+func getDefaultEpochStart() block.EpochStart {
+	return block.EpochStart{
+		Economics: block.Economics{
+			TotalSupply:            big.NewInt(10000),
+			TotalToDistribute:      big.NewInt(10000),
+			TotalNewlyMinted:       big.NewInt(10000),
+			RewardsPerBlockPerNode: big.NewInt(10000),
+			NodePrice:              big.NewInt(10000),
+			CommunityAddress:       []byte("11"), // string hex => 17 decimal
+			RewardsForCommunity:    big.NewInt(50),
+		},
+	}
 }
 
 func getRewardsArguments() ArgsNewRewardsCreator {

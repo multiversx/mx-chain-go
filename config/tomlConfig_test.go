@@ -125,7 +125,9 @@ func TestTomlEconomicsParser(t *testing.T) {
 
 	cfgEconomicsExpected := EconomicsConfig{
 		RewardsSettings: RewardsSettings{
-			LeaderPercentage: leaderPercentage,
+			LeaderPercentage:    leaderPercentage,
+			CommunityPercentage: communityPercentage,
+			CommunityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 		},
 		FeeSettings: FeeSettings{
 			MaxGasLimitPerBlock: maxGasLimitPerBlock,
