@@ -62,7 +62,8 @@ func (m *metaBlockCreator) CreateNewBlock(
 	if check.IfNil(validatorAccounts) {
 		return nil, nil, update.ErrNilAccounts
 	}
-	validatorRootHash, err := validatorAccounts.RootHash()
+
+	validatorRootHash, err := validatorAccounts.Commit()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -71,11 +72,13 @@ func (m *metaBlockCreator) CreateNewBlock(
 	if check.IfNil(accounts) {
 		return nil, nil, update.ErrNilAccounts
 	}
-	rootHash, err := accounts.RootHash()
+	rootHash, err := accounts.Commit()
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// TODO: add changes to the hardFork meta if needed - in general NO.
+	hardForkMeta := m.importHandler.GetHardForkMetaBlock()
 	blockBody := &block.Body{
 		MiniBlocks: make([]*block.MiniBlock, 0),
 	}
@@ -86,11 +89,13 @@ func (m *metaBlockCreator) CreateNewBlock(
 		RandSeed:               rootHash,
 		RootHash:               rootHash,
 		ValidatorStatsRootHash: validatorRootHash,
-		EpochStart:             block.EpochStart{},
+		EpochStart:             hardForkMeta.EpochStart,
 		ChainID:                []byte(chainID),
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
 		Epoch:                  epoch,
+		PubKeysBitmap:          []byte{1},
+		TimeStamp:              hardForkMeta.TimeStamp,
 	}
 
 	return metaHdr, blockBody, nil

@@ -87,6 +87,7 @@ func (s *shardBlockCreator) CreateNewBlock(
 		PrevHash:        rootHash,
 		PrevRandSeed:    rootHash,
 		AccumulatedFees: big.NewInt(0),
+		PubKeysBitmap:   []byte{1},
 	}
 
 	blockBody, err := s.createBody()
@@ -113,6 +114,10 @@ func (s *shardBlockCreator) CreateNewBlock(
 	}
 
 	shardHeader.MetaBlockHashes = [][]byte{metaBlockHash}
+
+	hardForkMeta := s.importHandler.GetHardForkMetaBlock()
+	shardHeader.TimeStamp = hardForkMeta.TimeStamp
+	shardHeader.AccumulatedFees = big.NewInt(0)
 
 	return shardHeader, blockBody, nil
 }

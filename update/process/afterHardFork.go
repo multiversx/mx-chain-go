@@ -10,11 +10,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
-// TODO: do factory which creates the needed components
-// TODO: consensus on the first created block -> integrate the hardfork after processor into the normal block processor ?
-// TODO: save blocks to storage, marshalize, broadcast.
-// TODO: set previous roothash to genesis block
-// TODO: use new genesis block process
+// TODO: save blocks and transactions to storage
+// TODO: marshalize if there are cross shard results (smart contract results in special)
+// TODO: use new genesis block process, integrate with it
 
 // ArgsAfterHardFork defines the arguments for the new after hard fork process handler
 type ArgsAfterHardFork struct {
