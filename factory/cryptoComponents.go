@@ -22,7 +22,7 @@ import (
 
 // CryptoComponentsFactoryArgs holds the arguments needed for creating crypto components
 type CryptoComponentsFactoryArgs struct {
-	Config           *config.Config
+	Config           config.Config
 	NodesConfig      NodesSetupHandler
 	ShardCoordinator sharding.Coordinator
 	KeyGen           crypto.KeyGenerator
@@ -30,7 +30,7 @@ type CryptoComponentsFactoryArgs struct {
 }
 
 type cryptoComponentsFactory struct {
-	config           *config.Config
+	config           config.Config
 	nodesConfig      NodesSetupHandler
 	shardCoordinator sharding.Coordinator
 	keyGen           crypto.KeyGenerator
@@ -39,9 +39,6 @@ type cryptoComponentsFactory struct {
 
 // NewCryptoComponentsFactory returns a new crypto components factory
 func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoComponentsFactory, error) {
-	if args.Config == nil {
-		return nil, ErrNilConfiguration
-	}
 	if args.NodesConfig == nil {
 		return nil, ErrNilNodesConfig
 	}

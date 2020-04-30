@@ -12,24 +12,12 @@ import (
 const testHasher = "blake2b"
 const testMarshalizer = "json"
 
-func TestNewCoreComponentsFactory_NilConfigShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getCoreArgs()
-	args.Config = nil
-	ccf, err := factory.NewCoreComponentsFactory(args)
-
-	require.Nil(t, ccf)
-	require.Equal(t, factory.ErrNilConfiguration, err)
-}
-
 func TestNewCoreComponentsFactory_OkValuesShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getCoreArgs()
-	ccf, err := factory.NewCoreComponentsFactory(args)
+	ccf := factory.NewCoreComponentsFactory(args)
 
-	require.NoError(t, err)
 	require.NotNil(t, ccf)
 }
 
@@ -37,13 +25,13 @@ func TestCoreComponentsFactory_CreateCoreComponents_NoHasherConfigShouldErr(t *t
 	t.Parallel()
 
 	args := getCoreArgs()
-	args.Config = &config.Config{
+	args.Config = config.Config{
 		Marshalizer: config.MarshalizerConfig{
 			Type:           testMarshalizer,
 			SizeCheckDelta: 0,
 		},
 	}
-	ccf, _ := factory.NewCoreComponentsFactory(args)
+	ccf := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -54,7 +42,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_InvalidHasherConfigShouldErr
 	t.Parallel()
 
 	args := getCoreArgs()
-	args.Config = &config.Config{
+	args.Config = config.Config{
 		Marshalizer: config.MarshalizerConfig{
 			Type:           testMarshalizer,
 			SizeCheckDelta: 0,
@@ -63,7 +51,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_InvalidHasherConfigShouldErr
 			Type: "invalid_type",
 		},
 	}
-	ccf, _ := factory.NewCoreComponentsFactory(args)
+	ccf := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -74,12 +62,12 @@ func TestCoreComponentsFactory_CreateCoreComponents_NoInternalMarshalizerConfigS
 	t.Parallel()
 
 	args := getCoreArgs()
-	args.Config = &config.Config{
+	args.Config = config.Config{
 		Hasher: config.TypeConfig{
 			Type: testHasher,
 		},
 	}
-	ccf, _ := factory.NewCoreComponentsFactory(args)
+	ccf := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -90,7 +78,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_InvalidInternalMarshalizerCo
 	t.Parallel()
 
 	args := getCoreArgs()
-	args.Config = &config.Config{
+	args.Config = config.Config{
 		Marshalizer: config.MarshalizerConfig{
 			Type:           "invalid_marshalizer_type",
 			SizeCheckDelta: 0,
@@ -99,7 +87,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_InvalidInternalMarshalizerCo
 			Type: testHasher,
 		},
 	}
-	ccf, _ := factory.NewCoreComponentsFactory(args)
+	ccf := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -110,7 +98,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_NoVmMarshalizerConfigShouldE
 	t.Parallel()
 
 	args := getCoreArgs()
-	args.Config = &config.Config{
+	args.Config = config.Config{
 		Hasher: config.TypeConfig{
 			Type: testHasher,
 		},
@@ -119,7 +107,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_NoVmMarshalizerConfigShouldE
 			SizeCheckDelta: 0,
 		},
 	}
-	ccf, _ := factory.NewCoreComponentsFactory(args)
+	ccf := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -130,7 +118,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_InvalidVmMarshalizerConfigSh
 	t.Parallel()
 
 	args := getCoreArgs()
-	args.Config = &config.Config{
+	args.Config = config.Config{
 		Marshalizer: config.MarshalizerConfig{
 			Type:           testMarshalizer,
 			SizeCheckDelta: 0,
@@ -142,7 +130,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_InvalidVmMarshalizerConfigSh
 			Type: "invalid",
 		},
 	}
-	ccf, _ := factory.NewCoreComponentsFactory(args)
+	ccf := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -153,7 +141,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_NoTxSignMarshalizerConfigSho
 	t.Parallel()
 
 	args := getCoreArgs()
-	args.Config = &config.Config{
+	args.Config = config.Config{
 		Hasher: config.TypeConfig{
 			Type: testHasher,
 		},
@@ -165,7 +153,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_NoTxSignMarshalizerConfigSho
 			Type: testMarshalizer,
 		},
 	}
-	ccf, _ := factory.NewCoreComponentsFactory(args)
+	ccf := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -176,7 +164,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_InvalidTxSignMarshalizerConf
 	t.Parallel()
 
 	args := getCoreArgs()
-	args.Config = &config.Config{
+	args.Config = config.Config{
 		Marshalizer: config.MarshalizerConfig{
 			Type:           testMarshalizer,
 			SizeCheckDelta: 0,
@@ -191,7 +179,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_InvalidTxSignMarshalizerConf
 			Type: "invalid",
 		},
 	}
-	ccf, _ := factory.NewCoreComponentsFactory(args)
+	ccf := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
@@ -202,7 +190,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getCoreArgs()
-	ccf, _ := factory.NewCoreComponentsFactory(args)
+	ccf := factory.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
 	require.NoError(t, err)
@@ -211,7 +199,7 @@ func TestCoreComponentsFactory_CreateCoreComponents_ShouldWork(t *testing.T) {
 
 func getCoreArgs() factory.CoreComponentsFactoryArgs {
 	return factory.CoreComponentsFactoryArgs{
-		Config: &config.Config{
+		Config: config.Config{
 			Marshalizer: config.MarshalizerConfig{
 				Type:           testMarshalizer,
 				SizeCheckDelta: 0,

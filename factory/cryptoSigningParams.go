@@ -12,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+// TODO: merge this with Crypto Components
+
 type cryptoSigningParamsLoader struct {
 	pubkeyConverter     state.PubkeyConverter
 	skIndex             int

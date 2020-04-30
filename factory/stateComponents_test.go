@@ -11,17 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewStateComponentsFactory_NilConfigShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getStateArgs()
-	args.Config = nil
-
-	scf, err := factory.NewStateComponentsFactory(args)
-	require.Nil(t, scf)
-	require.Equal(t, factory.ErrNilConfiguration, err)
-}
-
 func TestNewStateComponentsFactory_NilGenesisConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -116,7 +105,7 @@ func TestStateComponentsFactory_Create_ShouldWork(t *testing.T) {
 
 func getStateArgs() factory.StateComponentsFactoryArgs {
 	return factory.StateComponentsFactoryArgs{
-		Config: &config.Config{
+		Config: config.Config{
 			AddressPubkeyConverter: config.PubkeyConfig{
 				Length:          32,
 				Type:            "hex",
@@ -137,7 +126,7 @@ func getStateArgs() factory.StateComponentsFactoryArgs {
 }
 
 func getCoreComponents() *factory.CoreComponents {
-	ccf, _ := factory.NewCoreComponentsFactory(getCoreArgs())
+	ccf := factory.NewCoreComponentsFactory(getCoreArgs())
 	cc, _ := ccf.Create()
 	return cc
 }

@@ -18,7 +18,7 @@ import (
 
 // DataComponentsFactoryArgs holds the arguments needed for creating a data components factory
 type DataComponentsFactoryArgs struct {
-	Config             *config.Config
+	Config             config.Config
 	EconomicsData      *economics.EconomicsData
 	ShardCoordinator   sharding.Coordinator
 	Core               *CoreComponents
@@ -28,7 +28,7 @@ type DataComponentsFactoryArgs struct {
 }
 
 type dataComponentsFactory struct {
-	config             *config.Config
+	config             config.Config
 	economicsData      *economics.EconomicsData
 	shardCoordinator   sharding.Coordinator
 	core               *CoreComponents
@@ -39,9 +39,6 @@ type dataComponentsFactory struct {
 
 // NewDataComponentsFactory will return a new instance of dataComponentsFactory
 func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFactory, error) {
-	if args.Config == nil {
-		return nil, ErrNilConfiguration
-	}
 	if args.EconomicsData == nil {
 		return nil, ErrNilEconomicsData
 	}
@@ -83,7 +80,7 @@ func (dcf *dataComponentsFactory) Create() (*DataComponents, error) {
 	}
 
 	dataPoolArgs := dataRetrieverFactory.ArgsDataPool{
-		Config:           dcf.config,
+		Config:           &dcf.config,
 		EconomicsData:    dcf.economicsData,
 		ShardCoordinator: dcf.shardCoordinator,
 	}
@@ -125,7 +122,7 @@ func (dcf *dataComponentsFactory) createBlockChainFromConfig() (data.ChainHandle
 
 func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.StorageService, error) {
 	storageServiceFactory, err := factory.NewStorageServiceFactory(
-		dcf.config,
+		&dcf.config,
 		dcf.shardCoordinator,
 		dcf.pathManager,
 		dcf.epochStartNotifier,

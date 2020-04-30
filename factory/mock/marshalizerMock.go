@@ -47,11 +47,6 @@ func (mm MarshalizerMock) Unmarshal(obj interface{}, buff []byte) error {
 	return json.Unmarshal(buff, obj)
 }
 
-// Version is deprecated and will be removed
-func (MarshalizerMock) Version() string {
-	return "JSON/v.0.0.0.1"
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (mm MarshalizerMock) IsInterfaceNil() bool {
 	return false

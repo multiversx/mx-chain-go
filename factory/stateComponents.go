@@ -16,7 +16,7 @@ import (
 
 // StateComponentsFactoryArgs holds the arguments needed for creating a state components factory
 type StateComponentsFactoryArgs struct {
-	Config           *config.Config
+	Config           config.Config
 	GenesisConfig    *sharding.Genesis
 	ShardCoordinator sharding.Coordinator
 	Core             *CoreComponents
@@ -25,7 +25,7 @@ type StateComponentsFactoryArgs struct {
 }
 
 type stateComponentsFactory struct {
-	config           *config.Config
+	config           config.Config
 	genesisConfig    *sharding.Genesis
 	shardCoordinator sharding.Coordinator
 	core             *CoreComponents
@@ -35,9 +35,6 @@ type stateComponentsFactory struct {
 
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory
 func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponentsFactory, error) {
-	if args.Config == nil {
-		return nil, ErrNilConfiguration
-	}
 	if args.GenesisConfig == nil {
 		return nil, ErrNilGenesisConfiguration
 	}

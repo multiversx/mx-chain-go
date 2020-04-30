@@ -20,23 +20,17 @@ type networkComponentsFactory struct {
 
 // NewNetworkComponentsFactory returns a new instance of a network components factory
 func NewNetworkComponentsFactory(
-	p2pConfig *config.P2PConfig,
-	mainConfig *config.Config,
+	p2pConfig config.P2PConfig,
+	mainConfig config.Config,
 	statusHandler core.AppStatusHandler,
 ) (*networkComponentsFactory, error) {
-	if p2pConfig == nil {
-		return nil, ErrNilP2PConfiguration
-	}
-	if mainConfig == nil {
-		return nil, ErrNilConfiguration
-	}
 	if check.IfNil(statusHandler) {
 		return nil, ErrNilStatusHandler
 	}
 
 	return &networkComponentsFactory{
-		p2pConfig:     *p2pConfig,
-		mainConfig:    *mainConfig,
+		p2pConfig:     p2pConfig,
+		mainConfig:    mainConfig,
 		statusHandler: statusHandler,
 		listenAddress: libp2p.ListenAddrWithIp4AndTcp,
 	}, nil

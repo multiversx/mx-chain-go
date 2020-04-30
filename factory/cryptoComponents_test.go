@@ -9,16 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewCryptoComponentsFactory_NilConfigShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getCryptoArgs()
-	args.Config = nil
-	ccf, err := factory.NewCryptoComponentsFactory(args)
-	require.Nil(t, ccf)
-	require.Equal(t, factory.ErrNilConfiguration, err)
-}
-
 func TestNewCryptoComponentsFactory_NiNodesConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -72,7 +62,7 @@ func TestCryptoComponentsFactory_CreateShouldErrDueToBadConfig(t *testing.T) {
 	t.Parallel()
 
 	args := getCryptoArgs()
-	args.Config = &config.Config{}
+	args.Config = config.Config{}
 	ccf, _ := factory.NewCryptoComponentsFactory(args)
 
 	cc, err := ccf.Create()
@@ -93,7 +83,7 @@ func TestCryptoComponentsFactory_Create(t *testing.T) {
 
 func getCryptoArgs() factory.CryptoComponentsFactoryArgs {
 	return factory.CryptoComponentsFactoryArgs{
-		Config: &config.Config{
+		Config: config.Config{
 			Consensus:      config.TypeConfig{Type: "bls"},
 			MultisigHasher: config.TypeConfig{Type: "blake2b"},
 			Hasher:         config.TypeConfig{Type: "blake2b"},

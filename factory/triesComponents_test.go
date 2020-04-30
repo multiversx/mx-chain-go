@@ -10,16 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewTriesComponentsFactory_NilConfigShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getTriesArgs()
-	args.Config = nil
-	tcf, err := factory.NewTriesComponentsFactory(args)
-	require.Nil(t, tcf)
-	require.Equal(t, factory.ErrNilConfiguration, err)
-}
-
 func TestNewTriesComponentsFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -86,7 +76,7 @@ func getTriesArgs() factory.TriesComponentsFactoryArgs {
 		Hasher:           &mock.HasherMock{},
 		PathManager:      &mock.PathManagerStub{},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
-		Config: &config.Config{
+		Config: config.Config{
 			EvictionWaitingList: config.EvictionWaitingListConfig{
 				Size: 10,
 				DB:   getDBCfg(),

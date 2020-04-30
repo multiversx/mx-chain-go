@@ -2,12 +2,6 @@ package factory
 
 import "errors"
 
-// ErrNilConfiguration signals that a nil configuration has been provided
-var ErrNilConfiguration = errors.New("nil configuration provided")
-
-// ErrNilP2PConfiguration signals that a nil p2p configuration has been provided
-var ErrNilP2PConfiguration = errors.New("nil p2p configuration provided")
-
 // ErrNilEconomicsData signals that a nil economics data handler has been provided
 var ErrNilEconomicsData = errors.New("nil economics data provided")
 

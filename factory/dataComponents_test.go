@@ -11,17 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewDataComponentsFactory_NilConfigurationShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getDataArgs()
-	args.Config = nil
-
-	dcf, err := factory.NewDataComponentsFactory(args)
-	require.Nil(t, dcf)
-	require.Equal(t, factory.ErrNilConfiguration, err)
-}
-
 func TestNewDataComponentsFactory_NilEconomicsDataShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -138,14 +127,14 @@ func getDataArgs() factory.DataComponentsFactoryArgs {
 	}
 }
 
-func getGeneralConfig() *config.Config {
+func getGeneralConfig() config.Config {
 	storageCfg := config.StorageConfig{
 		Cache: getCacheCfg(),
 		DB:    getDBCfg(),
 		Bloom: config.BloomFilterConfig{},
 	}
 	cacheCfg := getCacheCfg()
-	return &config.Config{
+	return config.Config{
 		StoragePruning: config.StoragePruningConfig{
 			Enabled:             false,
 			FullArchive:         true,

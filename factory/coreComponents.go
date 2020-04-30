@@ -14,14 +14,14 @@ import (
 
 // CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
 type CoreComponentsFactoryArgs struct {
-	Config  *config.Config
+	Config  config.Config
 	ShardId string
 	ChainID []byte
 }
 
 // CoreComponentsFactory is responsible for creating the core components
 type CoreComponentsFactory struct {
-	config      *config.Config
+	config      config.Config
 	shardId     string
 	chainID     []byte
 	marshalizer marshal.Marshalizer
@@ -29,15 +29,12 @@ type CoreComponentsFactory struct {
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
-func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*CoreComponentsFactory, error) {
-	if args.Config == nil {
-		return nil, ErrNilConfiguration
-	}
+func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) *CoreComponentsFactory {
 	return &CoreComponentsFactory{
 		config:  args.Config,
 		shardId: args.ShardId,
 		chainID: args.ChainID,
-	}, nil
+	}
 }
 
 // Create creates the core components

@@ -21,7 +21,7 @@ type TriesComponentsFactoryArgs struct {
 	Hasher           hashing.Hasher
 	PathManager      storage.PathManagerHandler
 	ShardCoordinator sharding.Coordinator
-	Config           *config.Config
+	Config           config.Config
 }
 
 type triesComponentsFactory struct {
@@ -29,14 +29,11 @@ type triesComponentsFactory struct {
 	hasher           hashing.Hasher
 	pathManager      storage.PathManagerHandler
 	shardCoordinator sharding.Coordinator
-	config           *config.Config
+	config           config.Config
 }
 
 // NewTriesComponentsFactory return a new instance of tries components factory
 func NewTriesComponentsFactory(args TriesComponentsFactoryArgs) (*triesComponentsFactory, error) {
-	if args.Config == nil {
-		return nil, ErrNilConfiguration
-	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, ErrNilMarshalizer
 	}

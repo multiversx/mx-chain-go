@@ -607,7 +607,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating crypto components")
 	cryptoArgs := mainFactory.CryptoComponentsFactoryArgs{
-		Config:           generalConfig,
+		Config:           *generalConfig,
 		NodesConfig:      genesisNodesConfig,
 		ShardCoordinator: genesisShardCoordinator,
 		KeyGen:           cryptoParams.KeyGenerator,
@@ -625,14 +625,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating core components")
 
 	coreArgs := mainFactory.CoreComponentsFactoryArgs{
-		Config:  generalConfig,
+		Config:  *generalConfig,
 		ShardId: shardId,
 		ChainID: []byte(genesisNodesConfig.ChainID),
 	}
-	coreComponentsFactory, err := mainFactory.NewCoreComponentsFactory(coreArgs)
-	if err != nil {
-		return err
-	}
+	coreComponentsFactory := mainFactory.NewCoreComponentsFactory(coreArgs)
 	coreComponents, err := coreComponentsFactory.Create()
 	if err != nil {
 		return err
@@ -643,7 +640,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		Hasher:           coreComponents.Hasher,
 		PathManager:      pathManager,
 		ShardCoordinator: genesisShardCoordinator,
-		Config:           generalConfig,
+		Config:           *generalConfig,
 	}
 	triesComponentsFactory, err := mainFactory.NewTriesComponentsFactory(triesArgs)
 	if err != nil {
@@ -655,7 +652,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating network components")
-	networkComponentFactory, err := mainFactory.NewNetworkComponentsFactory(p2pConfig, generalConfig, coreComponents.StatusHandler)
+	networkComponentFactory, err := mainFactory.NewNetworkComponentsFactory(*p2pConfig, *generalConfig, coreComponents.StatusHandler)
 	if err != nil {
 		return err
 	}
@@ -793,7 +790,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
 
 	dataArgs := mainFactory.DataComponentsFactoryArgs{
-		Config:             generalConfig,
+		Config:             *generalConfig,
 		EconomicsData:      economicsData,
 		ShardCoordinator:   shardCoordinator,
 		Core:               coreComponents,
@@ -862,19 +859,20 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating state components")
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
-		Config:           generalConfig,
+		Config:           *generalConfig,
 		GenesisConfig:    genesisConfig,
 		ShardCoordinator: shardCoordinator,
 		Core:             coreComponents,
 		PathManager:      pathManager,
+		Tries:            triesComponents,
 	}
 	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)
 	if err != nil {
-		return nil
+		return err
 	}
 	stateComponents, err := stateComponentsFactory.Create()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
