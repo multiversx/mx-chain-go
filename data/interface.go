@@ -152,6 +152,8 @@ type Trie interface {
 	SetCheckpoint(rootHash []byte)
 	ResetOldHashes() [][]byte
 	AppendToOldHashes([][]byte)
+	GetDirtyHashes() (ModifiedHashes, error)
+	SetNewHashes(ModifiedHashes)
 	Database() DBWriteCacher
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetAllLeaves() (map[string][]byte, error)
@@ -192,7 +194,7 @@ type StorageManager interface {
 	TakeSnapshot([]byte)
 	SetCheckpoint([]byte)
 	Prune([]byte, TriePruningIdentifier)
-	CancelPrune([]byte)
+	CancelPrune([]byte, TriePruningIdentifier)
 	MarkForEviction([]byte, ModifiedHashes) error
 	GetDbThatContainsHash([]byte) DBWriteCacher
 	IsPruningEnabled() bool

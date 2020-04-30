@@ -43,7 +43,7 @@ func (sms *StorageManagerStub) Prune([]byte, data.TriePruningIdentifier) {
 }
 
 // CancelPrune --
-func (sms *StorageManagerStub) CancelPrune([]byte) {
+func (sms *StorageManagerStub) CancelPrune([]byte, data.TriePruningIdentifier) {
 
 }
 
