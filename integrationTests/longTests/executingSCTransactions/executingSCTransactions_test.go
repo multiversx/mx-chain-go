@@ -21,6 +21,7 @@ import (
 
 var agarioFile = "../agar_v1_min.hex"
 var stepDelay = time.Second
+var p2pBootstrapDelay = time.Second * 5
 
 func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRounds(t *testing.T) {
 	t.Skip("this is a stress test for VM and AGAR.IO")
@@ -61,7 +62,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(stepDelay)
+	time.Sleep(p2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -142,7 +143,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(stepDelay)
+	time.Sleep(p2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -228,7 +229,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(stepDelay)
+	time.Sleep(p2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -319,7 +320,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(stepDelay)
+	time.Sleep(p2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)
