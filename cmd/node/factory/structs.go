@@ -1,12 +1,7 @@
 package factory
 
 import (
-	"bytes"
-	"context"
-	"encoding/hex"
 	"errors"
-	"fmt"
-	"math/big"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -17,24 +12,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion"
 	factorySoftwareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
-	mclmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
-	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
-	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
-	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	dataRetrieverFactory "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
@@ -42,14 +26,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
-	factoryHasher "github.com/ElrondNetwork/elrond-go/hashing/factory"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	factoryMarshalizer "github.com/ElrondNetwork/elrond-go/marshal/factory"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -71,22 +50,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processSync "github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/throttle"
-	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/urfave/cli"
 )
 
 const (
@@ -109,64 +84,7 @@ type EpochStartNotifier interface {
 	IsInterfaceNil() bool
 }
 
-// CryptoParams is a DTO for holding block signing parameters
-type CryptoParams struct {
-	KeyGenerator    crypto.KeyGenerator
-	PrivateKey      crypto.PrivateKey
-	PublicKey       crypto.PublicKey
-	PublicKeyBytes  []byte
-	PublicKeyString string
-}
-
-// Network struct holds the network components of the Elrond protocol
-type Network struct {
-	NetMessenger           p2p.Messenger
-	InputAntifloodHandler  P2PAntifloodHandler
-	OutputAntifloodHandler P2PAntifloodHandler
-	PeerBlackListHandler   process.BlackListHandler
-}
-
-// Core struct holds the core components of the Elrond protocol
-type Core struct {
-	Hasher                   hashing.Hasher
-	InternalMarshalizer      marshal.Marshalizer
-	VmMarshalizer            marshal.Marshalizer
-	TxSignMarshalizer        marshal.Marshalizer
-	TriesContainer           state.TriesHolder
-	TrieStorageManagers      map[string]data.StorageManager
-	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	StatusHandler            core.AppStatusHandler
-	ChainID                  []byte
-}
-
-// State struct holds the state components of the Elrond protocol
-type State struct {
-	AddressPubkeyConverter   state.PubkeyConverter
-	ValidatorPubkeyConverter state.PubkeyConverter
-	PeerAccounts             state.AccountsAdapter
-	AccountsAdapter          state.AccountsAdapter
-	InBalanceForShard        map[string]*big.Int
-}
-
-// Data struct holds the data components of the Elrond protocol
-type Data struct {
-	Blkc     data.ChainHandler
-	Store    dataRetriever.StorageService
-	Datapool dataRetriever.PoolsHolder
-}
-
-// Crypto struct holds the crypto components of the Elrond protocol
-type Crypto struct {
-	TxSingleSigner      crypto.SingleSigner
-	SingleSigner        crypto.SingleSigner
-	MultiSigner         crypto.MultiSigner
-	BlockSignKeyGen     crypto.KeyGenerator
-	TxSignKeyGen        crypto.KeyGenerator
-	InitialPubKeys      map[uint32][]string
-	MessageSignVerifier vm.MessageSignVerifier
-}
-
-// Process struct holds the process components of the Elrond protocol
+// Process struct holds the process components
 type Process struct {
 	InterceptorsContainer    process.InterceptorsContainer
 	ResolversFinder          dataRetriever.ResolversFinder
@@ -184,363 +102,8 @@ type Process struct {
 	RequestHandler           process.RequestHandler
 }
 
-type coreComponentsFactoryArgs struct {
-	config      *config.Config
-	pathManager storage.PathManagerHandler
-	shardId     string
-	chainID     []byte
-}
-
-// NewCoreComponentsFactoryArgs initializes the arguments necessary for creating the core components
-func NewCoreComponentsFactoryArgs(config *config.Config, pathManager storage.PathManagerHandler, shardId string, chainID []byte) *coreComponentsFactoryArgs {
-	return &coreComponentsFactoryArgs{
-		config:      config,
-		pathManager: pathManager,
-		shardId:     shardId,
-		chainID:     chainID,
-	}
-}
-
-// CoreComponentsFactory creates the core components
-func CoreComponentsFactory(args *coreComponentsFactoryArgs) (*Core, error) {
-	hasher, err := factoryHasher.NewHasher(args.config.Hasher.Type)
-	if err != nil {
-		return nil, errors.New("could not create hasher: " + err.Error())
-	}
-
-	internalMarshalizer, err := factoryMarshalizer.NewMarshalizer(args.config.Marshalizer.Type)
-	if err != nil {
-		return nil, fmt.Errorf("%w for internalMarshalizer", err)
-	}
-
-	vmMarshalizer, err := factoryMarshalizer.NewMarshalizer(args.config.VmMarshalizer.Type)
-	if err != nil {
-		return nil, fmt.Errorf("%w for vmMarshalizer", err)
-	}
-
-	txSignMarshalizer, err := factoryMarshalizer.NewMarshalizer(args.config.TxSignMarshalizer.Type)
-	if err != nil {
-		return nil, fmt.Errorf("%w for txSignMarshalizer", err)
-	}
-
-	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
-
-	trieStorageManagers, trieContainer, err := createTries(args, internalMarshalizer, hasher)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &Core{
-		Hasher:                   hasher,
-		InternalMarshalizer:      internalMarshalizer,
-		VmMarshalizer:            vmMarshalizer,
-		TxSignMarshalizer:        txSignMarshalizer,
-		TriesContainer:           trieContainer,
-		TrieStorageManagers:      trieStorageManagers,
-		Uint64ByteSliceConverter: uint64ByteSliceConverter,
-		StatusHandler:            statusHandler.NewNilStatusHandler(),
-		ChainID:                  args.chainID,
-	}, nil
-}
-
-func createTries(
-	args *coreComponentsFactoryArgs,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-) (map[string]data.StorageManager, state.TriesHolder, error) {
-
-	trieContainer := state.NewDataTriesHolder()
-	trieFactoryArgs := factory.TrieFactoryArgs{
-		EvictionWaitingListCfg:   args.config.EvictionWaitingList,
-		SnapshotDbCfg:            args.config.TrieSnapshotDB,
-		Marshalizer:              marshalizer,
-		Hasher:                   hasher,
-		PathManager:              args.pathManager,
-		ShardId:                  args.shardId,
-		TrieStorageManagerConfig: args.config.TrieStorageManagerConfig,
-	}
-	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	trieStorageManagers := make(map[string]data.StorageManager)
-	userStorageManager, userAccountTrie, err := trieFactory.Create(args.config.AccountsTrieStorage, args.config.StateTriesConfig.AccountsStatePruningEnabled)
-	if err != nil {
-		return nil, nil, err
-	}
-	trieContainer.Put([]byte(factory.UserAccountTrie), userAccountTrie)
-	trieStorageManagers[factory.UserAccountTrie] = userStorageManager
-
-	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(args.config.PeerAccountsTrieStorage, args.config.StateTriesConfig.PeerStatePruningEnabled)
-	if err != nil {
-		return nil, nil, err
-	}
-	trieContainer.Put([]byte(factory.PeerAccountTrie), peerAccountsTrie)
-	trieStorageManagers[factory.PeerAccountTrie] = peerStorageManager
-
-	return trieStorageManagers, trieContainer, nil
-}
-
-type stateComponentsFactoryArgs struct {
-	config           *config.Config
-	genesisConfig    *sharding.Genesis
-	shardCoordinator sharding.Coordinator
-	core             *Core
-	pathManager      storage.PathManagerHandler
-}
-
-// NewStateComponentsFactoryArgs initializes the arguments necessary for creating the state components
-func NewStateComponentsFactoryArgs(
-	config *config.Config,
-	genesisConfig *sharding.Genesis,
-	shardCoordinator sharding.Coordinator,
-	core *Core,
-	pathManager storage.PathManagerHandler,
-) *stateComponentsFactoryArgs {
-	return &stateComponentsFactoryArgs{
-		config:           config,
-		genesisConfig:    genesisConfig,
-		shardCoordinator: shardCoordinator,
-		core:             core,
-		pathManager:      pathManager,
-	}
-}
-
-// StateComponentsFactory creates the state components
-func StateComponentsFactory(args *stateComponentsFactoryArgs) (*State, error) {
-	processPubkeyConverter, err := factoryState.NewPubkeyConverter(args.config.AddressPubkeyConverter)
-	if err != nil {
-		return nil, fmt.Errorf("%w for ProcessPubkeyConverter", err)
-	}
-
-	validatorPubkeyConverter, err := factoryState.NewPubkeyConverter(args.config.ValidatorPubkeyConverter)
-	if err != nil {
-		return nil, fmt.Errorf("%w for ValidatorPubkeyConverter", err)
-	}
-
-	accountFactory := factoryState.NewAccountCreator()
-	merkleTrie := args.core.TriesContainer.Get([]byte(factory.UserAccountTrie))
-	accountsAdapter, err := state.NewAccountsDB(merkleTrie, args.core.Hasher, args.core.InternalMarshalizer, accountFactory)
-	if err != nil {
-		return nil, errors.New("could not create accounts adapter: " + err.Error())
-	}
-
-	inBalanceForShard, err := args.genesisConfig.InitialNodesBalances(args.shardCoordinator)
-	if err != nil {
-		return nil, errors.New("initial balances could not be processed " + err.Error())
-	}
-
-	accountFactory = factoryState.NewPeerAccountCreator()
-	merkleTrie = args.core.TriesContainer.Get([]byte(factory.PeerAccountTrie))
-	peerAdapter, err := state.NewPeerAccountsDB(merkleTrie, args.core.Hasher, args.core.InternalMarshalizer, accountFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	return &State{
-		PeerAccounts:             peerAdapter,
-		AddressPubkeyConverter:   processPubkeyConverter,
-		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		AccountsAdapter:          accountsAdapter,
-		InBalanceForShard:        inBalanceForShard,
-	}, nil
-}
-
-type dataComponentsFactoryArgs struct {
-	config             *config.Config
-	economicsData      *economics.EconomicsData
-	shardCoordinator   sharding.Coordinator
-	core               *Core
-	pathManager        storage.PathManagerHandler
-	epochStartNotifier EpochStartNotifier
-	currentEpoch       uint32
-}
-
-// NewDataComponentsFactoryArgs initializes the arguments necessary for creating the data components
-func NewDataComponentsFactoryArgs(
-	config *config.Config,
-	economicsData *economics.EconomicsData,
-	shardCoordinator sharding.Coordinator,
-	core *Core,
-	pathManager storage.PathManagerHandler,
-	epochStartNotifier EpochStartNotifier,
-	currentEpoch uint32,
-) *dataComponentsFactoryArgs {
-	return &dataComponentsFactoryArgs{
-		config:             config,
-		economicsData:      economicsData,
-		shardCoordinator:   shardCoordinator,
-		core:               core,
-		pathManager:        pathManager,
-		epochStartNotifier: epochStartNotifier,
-		currentEpoch:       currentEpoch,
-	}
-}
-
-// DataComponentsFactory creates the data components
-func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
-	var datapool dataRetriever.PoolsHolder
-	blkc, err := createBlockChainFromConfig(args.shardCoordinator, args.core.StatusHandler)
-	if err != nil {
-		return nil, errors.New("could not create block chain: " + err.Error())
-	}
-
-	store, err := createDataStoreFromConfig(
-		args.config,
-		args.shardCoordinator,
-		args.pathManager,
-		args.epochStartNotifier,
-		args.currentEpoch,
-	)
-	if err != nil {
-		return nil, errors.New("could not create local data store: " + err.Error())
-	}
-
-	dataPoolArgs := dataRetrieverFactory.ArgsDataPool{
-		Config:           args.config,
-		EconomicsData:    args.economicsData,
-		ShardCoordinator: args.shardCoordinator,
-	}
-	datapool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataPoolArgs)
-	if err != nil {
-		return nil, errors.New("could not create data pools: ")
-	}
-
-	return &Data{
-		Blkc:     blkc,
-		Store:    store,
-		Datapool: datapool,
-	}, nil
-}
-
-type cryptoComponentsFactoryArgs struct {
-	ctx              *cli.Context
-	config           *config.Config
-	nodesConfig      *sharding.NodesSetup
-	shardCoordinator sharding.Coordinator
-	keyGen           crypto.KeyGenerator
-	privKey          crypto.PrivateKey
-	log              logger.Logger
-}
-
-// NewCryptoComponentsFactoryArgs initializes the arguments necessary for creating the crypto components
-func NewCryptoComponentsFactoryArgs(
-	ctx *cli.Context,
-	config *config.Config,
-	nodesConfig *sharding.NodesSetup,
-	shardCoordinator sharding.Coordinator,
-	keyGen crypto.KeyGenerator,
-	privKey crypto.PrivateKey,
-	log logger.Logger,
-) *cryptoComponentsFactoryArgs {
-	return &cryptoComponentsFactoryArgs{
-		ctx:              ctx,
-		config:           config,
-		nodesConfig:      nodesConfig,
-		shardCoordinator: shardCoordinator,
-		keyGen:           keyGen,
-		privKey:          privKey,
-		log:              log,
-	}
-}
-
-// CryptoComponentsFactory creates the crypto components
-func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error) {
-	initialPubKeys := args.nodesConfig.InitialNodesPubKeys()
-	txSingleSigner := &singlesig.Ed25519Signer{}
-	singleSigner, err := createSingleSigner(args.config)
-	if err != nil {
-		return nil, errors.New("could not create singleSigner: " + err.Error())
-	}
-
-	multisigHasher, err := getMultisigHasherFromConfig(args.config)
-	if err != nil {
-		return nil, errors.New("could not create multisig hasher: " + err.Error())
-	}
-
-	currentShardNodesPubKeys, err := args.nodesConfig.InitialEligibleNodesPubKeysForShard(args.shardCoordinator.SelfId())
-	if err != nil {
-		return nil, errors.New("could not start creation of multiSigner: " + err.Error())
-	}
-
-	multiSigner, err := createMultiSigner(args.config, multisigHasher, currentShardNodesPubKeys, args.privKey, args.keyGen)
-	if err != nil {
-		return nil, err
-	}
-
-	txSignKeyGen := signing.NewKeyGenerator(ed25519.NewEd25519())
-
-	messageSignVerifier, err := systemVM.NewMessageSigVerifier(args.keyGen, singleSigner)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Crypto{
-		TxSingleSigner:      txSingleSigner,
-		SingleSigner:        singleSigner,
-		MultiSigner:         multiSigner,
-		BlockSignKeyGen:     args.keyGen,
-		TxSignKeyGen:        txSignKeyGen,
-		InitialPubKeys:      initialPubKeys,
-		MessageSignVerifier: messageSignVerifier,
-	}, nil
-}
-
-// NetworkComponentsFactory creates the network components
-func NetworkComponentsFactory(
-	p2pConfig config.P2PConfig,
-	mainConfig config.Config,
-	statusHandler core.AppStatusHandler,
-) (*Network, error) {
-
-	arg := libp2p.ArgsNetworkMessenger{
-		Context:       context.Background(),
-		ListenAddress: libp2p.ListenAddrWithIp4AndTcp,
-		P2pConfig:     p2pConfig,
-	}
-
-	netMessenger, err := libp2p.NewNetworkMessenger(arg)
-	if err != nil {
-		return nil, err
-	}
-
-	inAntifloodHandler, p2pPeerBlackList, errNewAntiflood := antifloodFactory.NewP2PAntiFloodAndBlackList(mainConfig, statusHandler)
-	if errNewAntiflood != nil {
-		return nil, errNewAntiflood
-	}
-
-	inputAntifloodHandler, ok := inAntifloodHandler.(P2PAntifloodHandler)
-	if !ok {
-		return nil, fmt.Errorf("%w when casting input antiflood handler to structs/P2PAntifloodHandler", errWrongTypeAssertion)
-	}
-
-	outAntifloodHandler, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(mainConfig)
-	if errOutputAntiflood != nil {
-		return nil, errOutputAntiflood
-	}
-
-	outputAntifloodHandler, ok := outAntifloodHandler.(P2PAntifloodHandler)
-	if !ok {
-		return nil, fmt.Errorf("%w when casting output antiflood handler to structs/P2PAntifloodHandler", errWrongTypeAssertion)
-	}
-
-	err = netMessenger.SetPeerBlackListHandler(p2pPeerBlackList)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Network{
-		NetMessenger:           netMessenger,
-		InputAntifloodHandler:  inputAntifloodHandler,
-		OutputAntifloodHandler: outputAntifloodHandler,
-		PeerBlackListHandler:   p2pPeerBlackList,
-	}, nil
-}
-
 type processComponentsFactoryArgs struct {
-	coreComponents            *coreComponentsFactoryArgs
+	coreComponents            *mainFactory.CoreComponentsFactoryArgs
 	genesisConfig             *sharding.Genesis
 	economicsData             *economics.EconomicsData
 	nodesConfig               *sharding.NodesSetup
@@ -548,11 +111,12 @@ type processComponentsFactoryArgs struct {
 	rounder                   consensus.Rounder
 	shardCoordinator          sharding.Coordinator
 	nodesCoordinator          sharding.NodesCoordinator
-	data                      *Data
-	coreData                  *Core
-	crypto                    *Crypto
-	state                     *State
-	network                   *Network
+	data                      *mainFactory.DataComponents
+	coreData                  *mainFactory.CoreComponents
+	crypto                    *mainFactory.CryptoComponents
+	state                     *mainFactory.StateComponents
+	network                   *mainFactory.NetworkComponents
+	tries                     *mainFactory.TriesComponents
 	coreServiceContainer      serviceContainer.Core
 	requestedItemsHandler     dataRetriever.RequestedItemsHandler
 	whiteListHandler          process.WhiteListHandler
@@ -574,7 +138,7 @@ type processComponentsFactoryArgs struct {
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
 func NewProcessComponentsFactoryArgs(
-	coreComponents *coreComponentsFactoryArgs,
+	coreComponents *mainFactory.CoreComponentsFactoryArgs,
 	genesisConfig *sharding.Genesis,
 	economicsData *economics.EconomicsData,
 	nodesConfig *sharding.NodesSetup,
@@ -582,11 +146,12 @@ func NewProcessComponentsFactoryArgs(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *Data,
-	coreData *Core,
-	crypto *Crypto,
-	state *State,
-	network *Network,
+	data *mainFactory.DataComponents,
+	coreData *mainFactory.CoreComponents,
+	crypto *mainFactory.CryptoComponents,
+	state *mainFactory.StateComponents,
+	network *mainFactory.NetworkComponents,
+	tries *mainFactory.TriesComponents,
 	coreServiceContainer serviceContainer.Core,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	whiteListHandler process.WhiteListHandler,
@@ -619,6 +184,7 @@ func NewProcessComponentsFactoryArgs(
 		crypto:                    crypto,
 		state:                     state,
 		network:                   network,
+		tries:                     tries,
 		coreServiceContainer:      coreServiceContainer,
 		requestedItemsHandler:     requestedItemsHandler,
 		whiteListHandler:          whiteListHandler,
@@ -659,6 +225,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.data,
 		args.coreData,
 		args.network,
+		args.tries,
 		args.sizeCheckDelta,
 		args.numConcurrentResolverJobs,
 	)
@@ -983,113 +550,14 @@ func CreateSoftwareVersionChecker(statusHandler core.AppStatusHandler) (*softwar
 	return softwareVersionChecker, nil
 }
 
-func createBlockChainFromConfig(coordinator sharding.Coordinator, ash core.AppStatusHandler) (data.ChainHandler, error) {
-
-	if coordinator == nil {
-		return nil, state.ErrNilShardCoordinator
-	}
-
-	if coordinator.SelfId() < coordinator.NumberOfShards() {
-		blockChain := blockchain.NewBlockChain()
-
-		err := blockChain.SetAppStatusHandler(ash)
-		if err != nil {
-			return nil, err
-		}
-
-		return blockChain, nil
-	}
-	if coordinator.SelfId() == core.MetachainShardId {
-		blockChain := blockchain.NewMetaChain()
-
-		err := blockChain.SetAppStatusHandler(ash)
-		if err != nil {
-			return nil, err
-		}
-
-		return blockChain, nil
-	}
-	return nil, errors.New("can not create blockchain")
-}
-
-func createDataStoreFromConfig(
-	config *config.Config,
-	shardCoordinator sharding.Coordinator,
-	pathManager storage.PathManagerHandler,
-	epochStartNotifier EpochStartNotifier,
-	currentEpoch uint32,
-) (dataRetriever.StorageService, error) {
-	storageServiceFactory, err := storageFactory.NewStorageServiceFactory(
-		config,
-		shardCoordinator,
-		pathManager,
-		epochStartNotifier,
-		currentEpoch,
-	)
-	if err != nil {
-		return nil, err
-	}
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return storageServiceFactory.CreateForShard()
-	}
-	if shardCoordinator.SelfId() == core.MetachainShardId {
-		return storageServiceFactory.CreateForMeta()
-	}
-	return nil, errors.New("can not create data store")
-}
-
-func createSingleSigner(config *config.Config) (crypto.SingleSigner, error) {
-	switch config.Consensus.Type {
-	case consensus.BlsConsensusType:
-		return &mclsig.BlsSingleSigner{}, nil
-	default:
-		return nil, errors.New("no consensus type provided in config file")
-	}
-}
-
-func getMultisigHasherFromConfig(cfg *config.Config) (hashing.Hasher, error) {
-	if cfg.Consensus.Type == consensus.BlsConsensusType && cfg.MultisigHasher.Type != "blake2b" {
-		return nil, errors.New("wrong multisig hasher provided for bls consensus type")
-	}
-
-	switch cfg.MultisigHasher.Type {
-	case "sha256":
-		return sha256.Sha256{}, nil
-	case "blake2b":
-		if cfg.Consensus.Type == consensus.BlsConsensusType {
-			return &blake2b.Blake2b{HashSize: multisig.BlsHashSize}, nil
-		}
-		return &blake2b.Blake2b{}, nil
-	}
-
-	return nil, errors.New("no multisig hasher provided in config file")
-}
-
-func createMultiSigner(
-	config *config.Config,
-	hasher hashing.Hasher,
-	pubKeys []string,
-	privateKey crypto.PrivateKey,
-	keyGen crypto.KeyGenerator,
-) (crypto.MultiSigner, error) {
-
-	switch config.Consensus.Type {
-	case consensus.BlsConsensusType:
-		blsSigner := &mclmultisig.BlsMultiSigner{Hasher: hasher}
-		return multisig.NewBLSMultisig(blsSigner, pubKeys, privateKey, keyGen, uint16(0))
-	default:
-		return nil, errors.New("no consensus type provided in config file")
-	}
-}
-
 func newInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *Data,
-	coreData *Core,
-	crypto *Crypto,
-	state *State,
-	network *Network,
+	data *mainFactory.DataComponents,
+	coreData *mainFactory.CoreComponents,
+	crypto *mainFactory.CryptoComponents,
+	state *mainFactory.StateComponents,
+	network *mainFactory.NetworkComponents,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
@@ -1098,7 +566,6 @@ func newInterceptorContainerFactory(
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
-
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardInterceptorContainerFactory(
 			shardCoordinator,
@@ -1141,9 +608,10 @@ func newInterceptorContainerFactory(
 
 func newResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
-	data *Data,
-	coreData *Core,
-	network *Network,
+	data *mainFactory.DataComponents,
+	coreData *mainFactory.CoreComponents,
+	network *mainFactory.NetworkComponents,
+	tries *mainFactory.TriesComponents,
 	sizeCheckDelta uint32,
 	numConcurrentResolverJobs int32,
 ) (dataRetriever.ResolversContainerFactory, error) {
@@ -1154,6 +622,7 @@ func newResolverContainerFactory(
 			data,
 			coreData,
 			network,
+			tries,
 			sizeCheckDelta,
 			numConcurrentResolverJobs,
 		)
@@ -1164,6 +633,7 @@ func newResolverContainerFactory(
 			data,
 			coreData,
 			network,
+			tries,
 			sizeCheckDelta,
 			numConcurrentResolverJobs,
 		)
@@ -1175,11 +645,11 @@ func newResolverContainerFactory(
 func newShardInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *Data,
-	dataCore *Core,
-	crypto *Crypto,
-	state *State,
-	network *Network,
+	data *mainFactory.DataComponents,
+	dataCore *mainFactory.CoreComponents,
+	crypto *mainFactory.CryptoComponents,
+	state *mainFactory.StateComponents,
+	network *mainFactory.NetworkComponents,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
@@ -1229,11 +699,11 @@ func newShardInterceptorContainerFactory(
 func newMetaInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *Data,
-	dataCore *Core,
-	crypto *Crypto,
-	network *Network,
-	state *State,
+	data *mainFactory.DataComponents,
+	dataCore *mainFactory.CoreComponents,
+	crypto *mainFactory.CryptoComponents,
+	network *mainFactory.NetworkComponents,
+	state *mainFactory.StateComponents,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
@@ -1282,9 +752,10 @@ func newMetaInterceptorContainerFactory(
 
 func newShardResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
-	data *Data,
-	core *Core,
-	network *Network,
+	data *mainFactory.DataComponents,
+	core *mainFactory.CoreComponents,
+	network *mainFactory.NetworkComponents,
+	tries *mainFactory.TriesComponents,
 	sizeCheckDelta uint32,
 	numConcurrentResolverJobs int32,
 ) (dataRetriever.ResolversContainerFactory, error) {
@@ -1302,7 +773,7 @@ func newShardResolverContainerFactory(
 		DataPools:                  data.Datapool,
 		Uint64ByteSliceConverter:   core.Uint64ByteSliceConverter,
 		DataPacker:                 dataPacker,
-		TriesContainer:             core.TriesContainer,
+		TriesContainer:             tries.TriesContainer,
 		SizeCheckDelta:             sizeCheckDelta,
 		InputAntifloodHandler:      network.InputAntifloodHandler,
 		OutputAntifloodHandler:     network.OutputAntifloodHandler,
@@ -1318,9 +789,10 @@ func newShardResolverContainerFactory(
 
 func newMetaResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
-	data *Data,
-	core *Core,
-	network *Network,
+	data *mainFactory.DataComponents,
+	core *mainFactory.CoreComponents,
+	network *mainFactory.NetworkComponents,
+	tries *mainFactory.TriesComponents,
 	sizeCheckDelta uint32,
 	numConcurrentResolverJobs int32,
 ) (dataRetriever.ResolversContainerFactory, error) {
@@ -1337,7 +809,7 @@ func newMetaResolverContainerFactory(
 		DataPools:                  data.Datapool,
 		Uint64ByteSliceConverter:   core.Uint64ByteSliceConverter,
 		DataPacker:                 dataPacker,
-		TriesContainer:             core.TriesContainer,
+		TriesContainer:             tries.TriesContainer,
 		SizeCheckDelta:             sizeCheckDelta,
 		InputAntifloodHandler:      network.InputAntifloodHandler,
 		OutputAntifloodHandler:     network.OutputAntifloodHandler,
@@ -1464,7 +936,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	return genesisBlocks, nil
 }
 
-func saveGenesisBlock(header data.HeaderHandler, coreComponents *Core, dataComponents *Data) error {
+func saveGenesisBlock(header data.HeaderHandler, coreComponents *mainFactory.CoreComponents, dataComponents *mainFactory.DataComponents) error {
 	blockBuff, err := coreComponents.InternalMarshalizer.Marshal(header)
 	if err != nil {
 		return err
@@ -1502,7 +974,7 @@ func createGenesisBlockAndApplyInitialBalances(
 }
 
 func createInMemoryShardCoordinatorAndAccount(
-	coreComponents *Core,
+	coreComponents *mainFactory.CoreComponents,
 	numOfShards uint32,
 	shardId uint32,
 ) (sharding.Coordinator, state.AccountsAdapter, error) {
@@ -1597,7 +1069,7 @@ func newBlockProcessor(
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardBlockProcessor(
-			processArgs.coreComponents.config,
+			&processArgs.coreComponents.Config,
 			requestHandler,
 			processArgs.shardCoordinator,
 			processArgs.nodesCoordinator,
@@ -1654,9 +1126,9 @@ func newShardBlockProcessor(
 	requestHandler process.RequestHandler,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *Data,
-	core *Core,
-	stateComponents *State,
+	data *mainFactory.DataComponents,
+	core *mainFactory.CoreComponents,
+	stateComponents *mainFactory.StateComponents,
 	forkDetector process.ForkDetector,
 	coreServiceContainer serviceContainer.Core,
 	economics *economics.EconomicsData,
@@ -1921,9 +1393,9 @@ func newMetaBlockProcessor(
 	requestHandler process.RequestHandler,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *Data,
-	core *Core,
-	stateComponents *State,
+	data *mainFactory.DataComponents,
+	core *mainFactory.CoreComponents,
+	stateComponents *mainFactory.StateComponents,
 	forkDetector process.ForkDetector,
 	coreServiceContainer serviceContainer.Core,
 	economicsData *economics.EconomicsData,
@@ -2288,7 +1760,7 @@ func newValidatorStatisticsProcessor(
 
 // PrepareNetworkShardingCollector will create the network sharding collector and apply it to the network messenger
 func PrepareNetworkShardingCollector(
-	network *Network,
+	network *mainFactory.NetworkComponents,
 	config *config.Config,
 	nodesCoordinator sharding.NodesCoordinator,
 	coordinator sharding.Coordinator,
@@ -2396,77 +1868,58 @@ func createMemUnit() storage.Storer {
 	return unit
 }
 
-// GetSigningParams returns a key generator, a private key, and a public key
-func GetSigningParams(
-	ctx *cli.Context,
-	pubkeyConverter state.PubkeyConverter,
-	skName string,
-	skIndexName string,
-	skPemFileName string,
-	suite crypto.Suite,
-) (*CryptoParams, error) {
+// CreateLatestStorageDataProvider will create a latest storage data provider handler
+func CreateLatestStorageDataProvider(
+	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	generalConfig config.Config,
+	chainID string,
+	workingDir string,
+	defaultDBPath string,
+	defaultEpochString string,
+	defaultShardString string,
+) (storage.LatestStorageDataProviderHandler, error) {
+	directoryReader := storageFactory.NewDirectoryReader()
 
-	cryptoParams := &CryptoParams{}
-	sk, readPk, err := getSkPk(ctx, pubkeyConverter, skName, skIndexName, skPemFileName)
-	if err != nil {
-		return nil, err
+	latestStorageDataArgs := storageFactory.ArgsLatestDataProvider{
+		GeneralConfig:         generalConfig,
+		Marshalizer:           marshalizer,
+		Hasher:                hasher,
+		BootstrapDataProvider: bootstrapDataProvider,
+		DirectoryReader:       directoryReader,
+		WorkingDir:            workingDir,
+		ChainID:               chainID,
+		DefaultDBPath:         defaultDBPath,
+		DefaultEpochString:    defaultEpochString,
+		DefaultShardString:    defaultShardString,
 	}
-
-	cryptoParams.KeyGenerator = signing.NewKeyGenerator(suite)
-	cryptoParams.PrivateKey, err = cryptoParams.KeyGenerator.PrivateKeyFromByteArray(sk)
-	if err != nil {
-		return nil, err
-	}
-
-	cryptoParams.PublicKey = cryptoParams.PrivateKey.GeneratePublic()
-	if len(readPk) > 0 {
-
-		cryptoParams.PublicKeyBytes, err = cryptoParams.PublicKey.ToByteArray()
-		if err != nil {
-			return nil, err
-		}
-
-		if !bytes.Equal(cryptoParams.PublicKeyBytes, readPk) {
-			return nil, errPublicKeyMismatch
-		}
-	}
-
-	cryptoParams.PublicKeyString = pubkeyConverter.Encode(cryptoParams.PublicKeyBytes)
-
-	return cryptoParams, nil
+	return storageFactory.NewLatestDataProvider(latestStorageDataArgs)
 }
 
-func getSkPk(
-	ctx *cli.Context,
-	pubkeyConverter state.PubkeyConverter,
-	skName string,
-	skIndexName string,
-	skPemFileName string,
-) ([]byte, []byte, error) {
-
-	//if flag is defined, it shall overwrite what was read from pem file
-	if ctx.GlobalIsSet(skName) {
-		encodedSk := []byte(ctx.GlobalString(skName))
-		sk, err := hex.DecodeString(string(encodedSk))
-
-		return sk, nil, err
+// CreateUnitOpener will create a new unit opener handler
+func CreateUnitOpener(
+	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
+	latestDataFromStorageProvider storage.LatestStorageDataProviderHandler,
+	internalMarshalizer marshal.Marshalizer,
+	generalConfig config.Config,
+	chainID string,
+	workingDir string,
+	defaultDBPath string,
+	defaultEpochString string,
+	defaultShardString string,
+) (storage.UnitOpenerHandler, error) {
+	argsStorageUnitOpener := storageFactory.ArgsNewOpenStorageUnits{
+		GeneralConfig:             generalConfig,
+		Marshalizer:               internalMarshalizer,
+		BootstrapDataProvider:     bootstrapDataProvider,
+		LatestStorageDataProvider: latestDataFromStorageProvider,
+		WorkingDir:                workingDir,
+		ChainID:                   chainID,
+		DefaultDBPath:             defaultDBPath,
+		DefaultEpochString:        defaultEpochString,
+		DefaultShardString:        defaultShardString,
 	}
 
-	skIndex := ctx.GlobalInt(skIndexName)
-	encodedSk, pkString, err := core.LoadSkPkFromPemFile(skPemFileName, skIndex)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	skBytes, err := hex.DecodeString(string(encodedSk))
-	if err != nil {
-		return nil, nil, fmt.Errorf("%w for encoded secret key", err)
-	}
-
-	pkBytes, err := pubkeyConverter.Decode(pkString)
-	if err != nil {
-		return nil, nil, fmt.Errorf("%w for encoded public key %s", err, pkString)
-	}
-
-	return skBytes, pkBytes, nil
+	return storageFactory.NewStorageUnitOpenHandler(argsStorageUnitOpener)
 }

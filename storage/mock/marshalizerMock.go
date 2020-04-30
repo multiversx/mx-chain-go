@@ -5,8 +5,7 @@ import (
 	"errors"
 )
 
-// ErrMockMarshalizer -
-var ErrMockMarshalizer = errors.New("MarshalizerMock generic error")
+var errMockMarshalizer = errors.New("MarshalizerMock generic error")
 
 // MarshalizerMock that will be used for testing
 type MarshalizerMock struct {
@@ -14,9 +13,9 @@ type MarshalizerMock struct {
 }
 
 // Marshal converts the input object in a slice of bytes
-func (mm MarshalizerMock) Marshal(obj interface{}) ([]byte, error) {
+func (mm *MarshalizerMock) Marshal(obj interface{}) ([]byte, error) {
 	if mm.Fail {
-		return nil, ErrMockMarshalizer
+		return nil, errMockMarshalizer
 	}
 
 	if obj == nil {
@@ -27,9 +26,9 @@ func (mm MarshalizerMock) Marshal(obj interface{}) ([]byte, error) {
 }
 
 // Unmarshal applies the serialized values over an instantiated object
-func (mm MarshalizerMock) Unmarshal(obj interface{}, buff []byte) error {
+func (mm *MarshalizerMock) Unmarshal(obj interface{}, buff []byte) error {
 	if mm.Fail {
-		return ErrMockMarshalizer
+		return errMockMarshalizer
 	}
 
 	if obj == nil {
@@ -48,6 +47,6 @@ func (mm MarshalizerMock) Unmarshal(obj interface{}, buff []byte) error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (mm MarshalizerMock) IsInterfaceNil() bool {
-	return false
+func (mm *MarshalizerMock) IsInterfaceNil() bool {
+	return mm == nil
 }
