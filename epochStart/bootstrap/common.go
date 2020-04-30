@@ -62,7 +62,7 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidDefaultDBPath)
 	}
 	if check.IfNil(args.AddressPubkeyConverter) {
-		return fmt.Errorf("%w: %s", epochStart.ErrNilPubkeyConverter, baseErrorMessage)
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilPubkeyConverter)
 	}
 	if len(args.DefaultEpochString) == 0 {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidDefaultEpochString)
@@ -74,7 +74,19 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidWorkingDir)
 	}
 	if check.IfNil(args.Rounder) {
-		return epochStart.ErrNilRounder
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilRounder)
+	}
+	if check.IfNil(args.StorageUnitOpener) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilStorageUnitOpener)
+	}
+	if check.IfNil(args.LatestStorageDataProvider) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilLatestStorageDataProvider)
+	}
+	if check.IfNil(args.Uint64Converter) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilUint64Converter)
+	}
+	if check.IfNil(args.NodeShuffler) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilShuffler)
 	}
 
 	return nil

@@ -110,6 +110,8 @@ type epochStartBootstrap struct {
 	nodesConfigHandler        StartOfEpochNodesConfigHandler
 	whiteListHandler          update.WhiteListHandler
 	whiteListerVerifiedTxs    update.WhiteListHandler
+	storageOpenerHandler      storage.UnitOpenerHandler
+	latestStorageDataProvider storage.LatestStorageDataProviderHandler
 
 	// gathered data
 	epochStartMeta     *block.MetaBlock
@@ -152,6 +154,8 @@ type ArgsEpochStartBootstrap struct {
 	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
 	GenesisShardCoordinator    sharding.Coordinator
 	PathManager                storage.PathManagerHandler
+	StorageUnitOpener          storage.UnitOpenerHandler
+	LatestStorageDataProvider  storage.LatestStorageDataProviderHandler
 	Rater                      sharding.ChanceComputer
 	TrieContainer              state.TriesHolder
 	Uint64Converter            typeConverters.Uint64ByteSliceConverter
@@ -193,6 +197,8 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		uint64Converter:            args.Uint64Converter,
 		nodeShuffler:               args.NodeShuffler,
 		rounder:                    args.Rounder,
+		storageOpenerHandler:       args.StorageUnitOpener,
+		latestStorageDataProvider:  args.LatestStorageDataProvider,
 		addressPubkeyConverter:     args.AddressPubkeyConverter,
 	}
 
