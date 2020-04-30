@@ -75,17 +75,24 @@ func NewPeerTypeProvider(arg ArgPeerTypeProvider) (*PeerTypeProvider, error) {
 }
 
 func (ptp *PeerTypeProvider) populateCache(epoch uint32) {
-	go ptp.populateCacheFromValidatorInfos(epoch)
+	ptp.mutCache.RLock()
+	lastCacheUpDate := ptp.lastCacheUpdate
+	elapsedTime := time.Now().Sub(lastCacheUpDate)
+	shouldUpdate := elapsedTime > ptp.cacheRefreshIntervalDuration
+	ptp.mutCache.RUnlock()
+
+	if shouldUpdate {
+		go ptp.populateCacheFromValidatorInfos(epoch)
+	}
 }
 
 func (ptp *PeerTypeProvider) populateCacheFromValidatorInfos(epoch uint32) {
 	ptp.mutCache.Lock()
-	lastCacheUpDate := ptp.lastCacheUpdate
-	elapsedTime := time.Now().Sub(lastCacheUpDate)
-	if elapsedTime < ptp.cacheRefreshIntervalDuration || ptp.isUpdating {
+	if ptp.isUpdating {
 		ptp.mutCache.Unlock()
 		return
 	}
+
 	ptp.isUpdating = true
 	ptp.mutCache.Unlock()
 
@@ -156,11 +163,12 @@ func (ptp *PeerTypeProvider) ComputeForPubKey(pubKey []byte) (core.PeerType, uin
 	ptp.mutCache.RLock()
 	peerData, ok := ptp.cache[string(pubKey)]
 	ptp.mutCache.RUnlock()
+
+	ptp.populateCache(ptp.epochHandler.MetaEpoch())
+
 	if ok {
 		return peerData.pType, peerData.pShard, nil
 	}
-
-	ptp.populateCache(ptp.epochHandler.MetaEpoch())
 
 	return core.ObserverList, 0, nil
 }

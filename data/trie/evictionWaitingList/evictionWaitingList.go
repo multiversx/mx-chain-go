@@ -3,12 +3,15 @@ package evictionWaitingList
 import (
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+var log = logger.GetOrCreate("trie")
 
 // evictionWaitingList is a structure that caches keys that need to be removed from a certain database.
 // If the cache is full, the keys will be stored in the underlying database. Writing at the same key in
@@ -153,6 +156,7 @@ func (ewl *evictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
 		}
 		_, ok := hashes[hash]
 		if ok {
+			log.Trace("found in newHashes", "rootHash", []byte(key), "hash", hash)
 			return true, nil
 		}
 	}
