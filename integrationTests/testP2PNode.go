@@ -161,7 +161,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		HbmiRefreshIntervalInSec:            5,
 		HideInactiveValidatorIntervalInSec:  600,
 	}
-	err = tP2pNode.Node.StartHeartbeat(hbConfig, "test", "")
+	err = tP2pNode.Node.StartHeartbeat(hbConfig, "test", config.PreferencesConfig{})
 	if err != nil {
 		fmt.Printf("Error starting heartbeat: %s\n", err.Error())
 	}

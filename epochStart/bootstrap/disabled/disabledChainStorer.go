@@ -7,6 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ dataRetriever.StorageService = (*chainStorer)(nil)
+
 // ChainStorer is a mock implementation of the ChainStorer interface
 type chainStorer struct {
 	mapStorages map[dataRetriever.UnitType]storage.Storer

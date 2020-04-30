@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -650,7 +651,7 @@ func WithPublicKeySize(publicKeySize int) Option {
 }
 
 // WithNodeStopChannel sets up the channel which will handle closing the node
-func WithNodeStopChannel(channel chan bool) Option {
+func WithNodeStopChannel(channel chan endProcess.ArgEndProcess) Option {
 	return func(n *Node) error {
 		if channel == nil {
 			return ErrNilNodeStopChannel

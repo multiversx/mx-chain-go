@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.InterceptedDataFactory = (*interceptedTrieNodeDataFactory)(nil)
+
 type interceptedTrieNodeDataFactory struct {
 	marshalizer marshal.Marshalizer
 	hasher      hashing.Hasher

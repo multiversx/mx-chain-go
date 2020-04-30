@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ process.WhiteListHandler = (*whiteListDataVerifier)(nil)
+
 type whiteListDataVerifier struct {
 	cache storage.Cacher
 }

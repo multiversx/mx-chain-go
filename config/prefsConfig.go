@@ -9,4 +9,5 @@ type Preferences struct {
 type PreferencesConfig struct {
 	DestinationShardAsObserver string
 	NodeDisplayName            string
+	Identity                   string
 }

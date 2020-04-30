@@ -15,6 +15,8 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
+
 var logVMContainerFactory = logger.GetOrCreate("vmContainerFactory")
 
 type vmContainerFactory struct {

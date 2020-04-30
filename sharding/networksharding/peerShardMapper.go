@@ -17,6 +17,9 @@ const maxNumPidsPerPk = 3
 
 var log = logger.GetOrCreate("sharding/networksharding")
 
+var _ p2p.NetworkShardingCollector = (*PeerShardMapper)(nil)
+var _ p2p.PeerShardResolver = (*PeerShardMapper)(nil)
+
 // PeerShardMapper stores the mappings between peer IDs and shard IDs
 // Both public key and peer id are verified before they are appended in this cache. In time, the current node
 // will learn a large majority (or even the whole network) of the nodes that make up the network. The public key provided

@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.InterceptedData = (*InterceptedRewardTransaction)(nil)
+
 // InterceptedRewardTransaction holds and manages a transaction based struct with extended functionality
 type InterceptedRewardTransaction struct {
 	rTx               *rewardTx.RewardTx

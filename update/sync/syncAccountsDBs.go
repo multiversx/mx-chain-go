@@ -14,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
+var _ update.EpochStartTriesSyncHandler = (*syncAccountsDBs)(nil)
+
 type syncAccountsDBs struct {
 	tries              *concurrentTriesMap
 	accountsBDsSyncers update.AccountsDBSyncContainer

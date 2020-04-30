@@ -1,6 +1,10 @@
 package rating
 
-// Selection data contains the threshold and chancePercent to be selected
+import "github.com/ElrondNetwork/elrond-go/process"
+
+var _ process.SelectionChance = (*SelectionChance)(nil)
+
+// SelectionChance contains the threshold and chancePercent to be selected
 type SelectionChance struct {
 	MaxThreshold  uint32
 	ChancePercent uint32

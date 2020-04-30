@@ -10,6 +10,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ process.MiniBlockProvider = (*miniBlockProvider)(nil)
+
 var log = logger.GetOrCreate("dataretriever/getters")
 
 // ArgMiniBlockProvider represents a miniblock data provider argument

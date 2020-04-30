@@ -196,3 +196,12 @@ var ErrInvalidWorkingDir = errors.New("invalid working directory")
 
 // ErrTimeoutWaitingForMetaBlock signals that a timeout event was raised while waiting for the epoch start meta block
 var ErrTimeoutWaitingForMetaBlock = errors.New("timeout while waiting for epoch start meta block")
+
+// ErrNilStorageUnitOpener signals that a nil storage unit opener was provided
+var ErrNilStorageUnitOpener = errors.New("nil storage unit opener")
+
+// ErrNilLatestStorageDataProvider signals that a nil latest storage data provider was provided
+var ErrNilLatestStorageDataProvider = errors.New("nil latest storage data provider")
+
+// ErrNilShuffler signals that a nil shuffler was provided
+var ErrNilShuffler = errors.New("nil nodes shuffler provided")

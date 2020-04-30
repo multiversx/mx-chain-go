@@ -87,12 +87,7 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
-	processedMiniBlocks, err := ssh.getProcessedMiniBlocks(components.PendingMiniBlocks, components.EpochStartMetaBlock, components.Headers)
-	if err != nil {
-		return err
-	}
-
-	pendingMiniBlocks, err := ssh.groupMiniBlocksByShard(components.PendingMiniBlocks)
+	processedMiniBlocks, pendingMiniBlocks, err := ssh.getProcessedAndPendingMiniBlocks(components.EpochStartMetaBlock, components.Headers)
 	if err != nil {
 		return err
 	}
@@ -102,6 +97,7 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
+	components.NodesConfig.CurrentEpoch = components.ShardHeader.Epoch
 	nodesCoordinatorConfigKey, err := ssh.saveNodesCoordinatorRegistry(components.EpochStartMetaBlock, components.NodesConfig)
 	if err != nil {
 		return err
@@ -189,29 +185,35 @@ func getEpochStartShardData(metaBlock *block.MetaBlock, shardId uint32) (block.E
 	return block.EpochStartShardData{}, epochStart.ErrEpochStartDataForShardNotFound
 }
 
-func (ssh *shardStorageHandler) getProcessedMiniBlocks(
-	pendingMiniBlocks map[string]*block.MiniBlock,
+func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 	meta *block.MetaBlock,
 	headers map[string]data.HeaderHandler,
-) ([]bootstrapStorage.MiniBlocksInMeta, error) {
+) ([]bootstrapStorage.MiniBlocksInMeta, []bootstrapStorage.PendingMiniBlocksInfo, error) {
 	shardData, err := getEpochStartShardData(meta, ssh.shardCoordinator.SelfId())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	neededMeta, ok := headers[string(shardData.FirstPendingMetaBlock)].(*block.MetaBlock)
 	if !ok {
-		return nil, epochStart.ErrMissingHeader
+		return nil, nil, epochStart.ErrMissingHeader
+	}
+	if check.IfNil(neededMeta) {
+		return nil, nil, epochStart.ErrMissingHeader
 	}
 
-	if check.IfNil(neededMeta) {
-		return nil, epochStart.ErrMissingHeader
+	pendingMBsMap := make(map[string]struct{})
+	pendingMBsPerShardMap := make(map[uint32][][]byte)
+	for _, mbHeader := range shardData.PendingMiniBlockHeaders {
+		senderShId := mbHeader.SenderShardID
+		pendingMBsPerShardMap[senderShId] = append(pendingMBsPerShardMap[senderShId], mbHeader.Hash)
+		pendingMBsMap[string(mbHeader.Hash)] = struct{}{}
 	}
 
 	processedMbHashes := make([][]byte, 0)
 	miniBlocksDstMe := getAllMiniBlocksWithDst(neededMeta, ssh.shardCoordinator.SelfId())
 	for hash, mb := range miniBlocksDstMe {
-		if _, ok := pendingMiniBlocks[hash]; ok {
+		if _, ok := pendingMBsMap[hash]; ok {
 			continue
 		}
 
@@ -219,12 +221,22 @@ func (ssh *shardStorageHandler) getProcessedMiniBlocks(
 	}
 
 	processedMiniBlocks := make([]bootstrapStorage.MiniBlocksInMeta, 0)
-	processedMiniBlocks = append(processedMiniBlocks, bootstrapStorage.MiniBlocksInMeta{
-		MetaHash:         shardData.FirstPendingMetaBlock,
-		MiniBlocksHashes: processedMbHashes,
-	})
+	if len(processedMbHashes) > 0 {
+		processedMiniBlocks = append(processedMiniBlocks, bootstrapStorage.MiniBlocksInMeta{
+			MetaHash:         shardData.FirstPendingMetaBlock,
+			MiniBlocksHashes: processedMbHashes,
+		})
+	}
 
-	return processedMiniBlocks, nil
+	sliceToRet := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)
+	for shardID, hashes := range pendingMBsPerShardMap {
+		sliceToRet = append(sliceToRet, bootstrapStorage.PendingMiniBlocksInfo{
+			ShardID:          shardID,
+			MiniBlocksHashes: hashes,
+		})
+	}
+
+	return processedMiniBlocks, sliceToRet, nil
 }
 
 func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(meta *block.MetaBlock, headers map[string]data.HeaderHandler) ([]bootstrapStorage.BootstrapHeaderInfo, error) {
@@ -310,12 +322,14 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 
 	triggerReg := shardchain.TriggerRegistry{
 		Epoch:                       shardHeader.Epoch,
+		MetaEpoch:                   metaBlock.Epoch,
 		CurrentRoundIndex:           int64(shardHeader.Round),
 		EpochStartRound:             shardHeader.Round,
 		EpochMetaBlockHash:          metaBlockHash,
-		IsEpochStart:                false,
-		NewEpochHeaderReceived:      false,
+		IsEpochStart:                true,
+		NewEpochHeaderReceived:      true,
 		EpochFinalityAttestingRound: 0,
+		EpochStartShardHeader:       &block.Header{},
 	}
 
 	bootstrapKey := []byte(fmt.Sprint(shardHeader.Round))
@@ -356,14 +370,7 @@ func getAllMiniBlocksWithDst(metaBlock *block.MetaBlock, destId uint32) map[stri
 		if !isCrossShardDestMe {
 			continue
 		}
-
-		shardMiniBlockHdr := block.MiniBlockHeader{
-			Hash:            val.Hash,
-			ReceiverShardID: val.ReceiverShardID,
-			SenderShardID:   val.SenderShardID,
-			TxCount:         val.TxCount,
-		}
-		hashDst[string(val.Hash)] = shardMiniBlockHdr
+		hashDst[string(val.Hash)] = val
 	}
 
 	return hashDst

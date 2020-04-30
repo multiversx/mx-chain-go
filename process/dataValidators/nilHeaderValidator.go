@@ -4,6 +4,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.HeaderValidator = (*nilHeaderValidator)(nil)
+
 // nilHeaderValidator represents a header handler validator that doesn't check the validity of provided headerHandler
 type nilHeaderValidator struct {
 }

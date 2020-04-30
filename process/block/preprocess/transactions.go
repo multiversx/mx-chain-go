@@ -26,6 +26,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
 
+var _ process.DataMarshalizer = (*transactions)(nil)
+var _ process.PreProcessor = (*transactions)(nil)
+
 var log = logger.GetOrCreate("process/block/preprocess")
 
 // TODO: increase code coverage with unit test

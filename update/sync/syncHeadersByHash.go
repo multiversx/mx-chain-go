@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+var _ update.MissingHeadersByHashSyncer = (*syncHeadersByHash)(nil)
+
 type syncHeadersByHash struct {
 	mutMissingHdrs          sync.Mutex
 	mapHeaders              map[string]data.HeaderHandler

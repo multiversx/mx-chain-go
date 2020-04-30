@@ -12,6 +12,7 @@ type TriggerRegistry struct {
 	IsEpochStart                bool
 	NewEpochHeaderReceived      bool
 	Epoch                       uint32
+	MetaEpoch                   uint32
 	CurrentRoundIndex           int64
 	EpochStartRound             uint64
 	EpochFinalityAttestingRound uint64
@@ -38,7 +39,7 @@ func (t *trigger) LoadState(key []byte) error {
 	t.mutTrigger.Lock()
 	t.triggerStateKey = key
 	t.epoch = state.Epoch
-	t.metaEpoch = state.Epoch
+	t.metaEpoch = state.MetaEpoch
 	t.currentRoundIndex = state.CurrentRoundIndex
 	t.epochStartRound = state.EpochStartRound
 	t.epochMetaBlockHash = state.EpochMetaBlockHash
@@ -55,6 +56,7 @@ func (t *trigger) LoadState(key []byte) error {
 func (t *trigger) saveState(key []byte) error {
 	registry := &TriggerRegistry{}
 
+	registry.MetaEpoch = t.metaEpoch
 	registry.Epoch = t.epoch
 	registry.CurrentRoundIndex = t.currentRoundIndex
 	registry.EpochStartRound = t.epochStartRound

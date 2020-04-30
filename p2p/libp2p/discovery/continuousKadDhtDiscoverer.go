@@ -14,6 +14,9 @@ import (
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
 
+var _ p2p.PeerDiscoverer = (*ContinuousKadDhtDiscoverer)(nil)
+var _ p2p.Reconnecter = (*ContinuousKadDhtDiscoverer)(nil)
+
 // ContinuousKadDhtDiscoverer is the kad-dht discovery type implementation
 // This implementation does not support pausing and resuming of the discovery process
 type ContinuousKadDhtDiscoverer struct {

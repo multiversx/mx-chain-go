@@ -93,6 +93,10 @@ func (vsp *ValidatorStatisticsProcessorStub) GetPeerAccount(address []byte) (sta
 	return nil, nil
 }
 
+// DisplayRatings -
+func (vsp *ValidatorStatisticsProcessorStub) DisplayRatings(_ uint32) {
+}
+
 // IsInterfaceNil -
 func (vsp *ValidatorStatisticsProcessorStub) IsInterfaceNil() bool {
 	return false

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/stretchr/testify/assert"
@@ -1287,7 +1288,7 @@ func TestWithNodeStopChannel_OkNodeStopChannelShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	ch := make(chan bool, 1)
+	ch := make(chan endProcess.ArgEndProcess, 1)
 	opt := WithNodeStopChannel(ch)
 	err := opt(node)
 
