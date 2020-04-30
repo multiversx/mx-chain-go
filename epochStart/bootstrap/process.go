@@ -110,6 +110,8 @@ type epochStartBootstrap struct {
 	nodesConfigHandler        StartOfEpochNodesConfigHandler
 	whiteListHandler          update.WhiteListHandler
 	whiteListerVerifiedTxs    update.WhiteListHandler
+	storageOpenerHandler      storage.UnitOpenerHandler
+	latestStorageDataProvider storage.LatestStorageDataProviderHandler
 
 	// gathered data
 	epochStartMeta     *block.MetaBlock
@@ -152,6 +154,8 @@ type ArgsEpochStartBootstrap struct {
 	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
 	GenesisShardCoordinator    sharding.Coordinator
 	PathManager                storage.PathManagerHandler
+	StorageUnitOpener          storage.UnitOpenerHandler
+	LatestStorageDataProvider  storage.LatestStorageDataProviderHandler
 	Rater                      sharding.ChanceComputer
 	TrieContainer              state.TriesHolder
 	Uint64Converter            typeConverters.Uint64ByteSliceConverter
@@ -193,6 +197,8 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		uint64Converter:            args.Uint64Converter,
 		nodeShuffler:               args.NodeShuffler,
 		rounder:                    args.Rounder,
+		storageOpenerHandler:       args.StorageUnitOpener,
+		latestStorageDataProvider:  args.LatestStorageDataProvider,
 		addressPubkeyConverter:     args.AddressPubkeyConverter,
 	}
 
@@ -247,10 +253,6 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	if e.isStartInEpochZero() {
-		return e.prepareEpochZero()
-	}
-
 	e.dataPool, err = factoryDataPool.NewDataPoolFromConfig(
 		factoryDataPool.ArgsDataPool{
 			Config:           &e.generalConfig,
@@ -263,11 +265,16 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
-	if isCurrentEpochSaved {
+	if isCurrentEpochSaved || e.isStartInEpochZero() {
+		if e.baseData.lastEpoch == 0 {
+			return e.prepareEpochZero()
+		}
+
 		parameters, err := e.prepareEpochFromStorage()
 		if err == nil {
 			return parameters, nil
 		}
+
 		log.Debug("could not start from storage - will try sync for start in epoch", "error", err)
 	}
 
@@ -377,8 +384,8 @@ func (e *epochStartBootstrap) createSyncers() error {
 	var err error
 
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
-		Config:               e.generalConfig,
-		ShardCoordinator:     e.shardCoordinator,
+		Config:                 e.generalConfig,
+		ShardCoordinator:       e.shardCoordinator,
 		ProtoMarshalizer:       e.marshalizer,
 		TxSignMarshalizer:      e.txSignMarshalizer,
 		Hasher:                 e.hasher,

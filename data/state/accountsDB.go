@@ -444,22 +444,40 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	adb.entries = make([]JournalEntry, 0)
 
 	oldHashes := make([][]byte, 0)
+	newHashes := make(data.ModifiedHashes)
 	//Step 1. commit all data tries
 	dataTries := adb.dataTries.GetAll()
 	for i := 0; i < len(dataTries); i++ {
 		oldTrieHashes := dataTries[i].ResetOldHashes()
-		err := dataTries[i].Commit()
+		newTrieHashes, err := dataTries[i].GetDirtyHashes()
+		if err != nil {
+			return nil, err
+		}
+
+		err = dataTries[i].Commit()
 		if err != nil {
 			return nil, err
 		}
 
 		oldHashes = append(oldHashes, oldTrieHashes...)
+		for hash := range newTrieHashes {
+			newHashes[hash] = struct{}{}
+		}
 	}
 	adb.dataTries.Reset()
 
+	newTrieHashes, err := adb.mainTrie.GetDirtyHashes()
+	if err != nil {
+		return nil, err
+	}
+	for hash := range newTrieHashes {
+		newHashes[hash] = struct{}{}
+	}
+
 	//Step 2. commit main trie
+	adb.mainTrie.SetNewHashes(newHashes)
 	adb.mainTrie.AppendToOldHashes(oldHashes)
-	err := adb.mainTrie.Commit()
+	err = adb.mainTrie.Commit()
 	if err != nil {
 		return nil, err
 	}

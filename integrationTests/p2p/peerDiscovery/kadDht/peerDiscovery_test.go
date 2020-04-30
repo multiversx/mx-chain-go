@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var durationBootstrapingTime = 2 * time.Second
 var durationTopicAnnounceTime = 2 * time.Second
 
 func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
@@ -49,7 +48,7 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 		}
 	}()
 
-	integrationTests.WaitForBootstrapAndShowConnected(peers, durationBootstrapingTime)
+	integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
 
 	//Step 3. Create a test topic, add receiving handlers
 	createTestTopicAndWaitForAnnouncements(t, peers)
@@ -112,7 +111,7 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 		}
 	}()
 
-	integrationTests.WaitForBootstrapAndShowConnected(peers, durationBootstrapingTime)
+	integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
 
 	//Step 3. Create a test topic, add receiving handlers
 	createTestTopicAndWaitForAnnouncements(t, peers)
