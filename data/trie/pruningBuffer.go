@@ -54,8 +54,8 @@ func (pb *pruningBuffer) removeAll() map[string]struct{} {
 }
 
 func (pb *pruningBuffer) len() int {
-	pb.mutOp.Lock()
-	defer pb.mutOp.Unlock()
+	pb.mutOp.RLock()
+	defer pb.mutOp.RUnlock()
 
 	return len(pb.buffer)
 }

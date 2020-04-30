@@ -153,7 +153,7 @@ type Trie interface {
 	ResetOldHashes() [][]byte
 	AppendToOldHashes([][]byte)
 	GetDirtyHashes() (ModifiedHashes, error)
-	AddNewHashes(ModifiedHashes)
+	SetNewHashes(ModifiedHashes)
 	Database() DBWriteCacher
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetAllLeaves() (map[string][]byte, error)

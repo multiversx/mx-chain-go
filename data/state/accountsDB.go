@@ -475,7 +475,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	}
 
 	//Step 2. commit main trie
-	adb.mainTrie.AddNewHashes(newHashes)
+	adb.mainTrie.SetNewHashes(newHashes)
 	adb.mainTrie.AppendToOldHashes(oldHashes)
 	err = adb.mainTrie.Commit()
 	if err != nil {

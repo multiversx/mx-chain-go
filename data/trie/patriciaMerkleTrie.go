@@ -376,8 +376,8 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (data.ModifiedHashes, error) {
 	return dirtyHashes, nil
 }
 
-// AddNewHashes adds the given hashes to tr.newHashes
-func (tr *patriciaMerkleTrie) AddNewHashes(newHashes data.ModifiedHashes) {
+// SetNewHashes adds the given hashes to tr.newHashes
+func (tr *patriciaMerkleTrie) SetNewHashes(newHashes data.ModifiedHashes) {
 	tr.newHashes = newHashes
 }
 

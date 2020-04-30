@@ -563,7 +563,7 @@ func TestPruningAndPruningCancellingOnTrieRollback(t *testing.T) {
 		_ = tr.Update(testVal.key, testVal.value)
 
 		newHashes, _ := tr.GetDirtyHashes()
-		tr.AddNewHashes(newHashes)
+		tr.SetNewHashes(newHashes)
 		_ = tr.Commit()
 		rootHashes = append(rootHashes, tr.root.getHash())
 	}
@@ -657,7 +657,7 @@ func TestPatriciaMerkleTrie_RecreateFromSnapshotSavesStateToMainDb(t *testing.T)
 	_ = tr.Update([]byte("doe"), []byte("doe"))
 	_ = tr.Update([]byte("ddog"), []byte("ddog"))
 	newHashes, _ := tr.GetDirtyHashes()
-	tr.AddNewHashes(newHashes)
+	tr.SetNewHashes(newHashes)
 	_ = tr.Commit()
 
 	rootHash, _ := tr.Root()
