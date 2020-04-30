@@ -50,20 +50,12 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) {
 
 	nonce := tx.Tx.GetNonce()
 	gasPrice := tx.Tx.GetGasPrice()
-	placeToInsert := listForSender.findTxWithLowerNonce(nonce)
-	hasLowestNonce := placeToInsert == nil
+	insertionPlace := listForSender.findInsertionPlace(nonce, gasPrice)
 
-	if hasLowestNonce {
+	if insertionPlace == nil {
 		listForSender.items.PushFront(tx)
 	} else {
-		sibling := placeToInsert.Value.(*WrappedTransaction)
-		gasPriceOfSibling := sibling.Tx.GetGasPrice()
-
-		if gasPrice > gasPriceOfSibling {
-			listForSender.items.InsertBefore(tx, placeToInsert)
-		} else {
-			listForSender.items.InsertAfter(tx, placeToInsert)
-		}
+		listForSender.items.InsertAfter(tx, insertionPlace)
 	}
 
 	listForSender.onAddedTransaction(tx)
@@ -76,10 +68,17 @@ func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction)
 }
 
 // This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) findTxWithLowerNonce(nonce uint64) *list.Element {
+func (listForSender *txListForSender) findInsertionPlace(incomingNonce uint64, incomingGasPrice uint64) *list.Element {
 	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
-		value := element.Value.(*WrappedTransaction)
-		if value.Tx.GetNonce() < nonce {
+		tx := element.Value.(*WrappedTransaction).Tx
+		nonce := tx.GetNonce()
+		gasPrice := tx.GetGasPrice()
+
+		if nonce == incomingNonce && gasPrice > incomingGasPrice {
+			return element
+		}
+
+		if nonce < incomingNonce {
 			return element
 		}
 	}
