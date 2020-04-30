@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewShuffledOutTrigger_NilOwnPublicKeyShouldErr(t *testing.T) {
 	t.Parallel()
 
-	endProcessHandler := func() error {
+	endProcessHandler := func(_ endProcess.ArgEndProcess) error {
 		return nil
 	}
 
@@ -30,7 +31,7 @@ func TestNewShuffledOutTrigger_NilEndOfProcessingHandlerShouldErr(t *testing.T) 
 func TestNewShuffledOutTrigger_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	handler := func() error {
+	handler := func(_ endProcess.ArgEndProcess) error {
 		return nil
 	}
 
@@ -44,7 +45,7 @@ func TestShuffledOutTrigger_Process_SameShardIDShouldReturn(t *testing.T) {
 
 	endProcessHandlerWasCalled := false
 
-	endProcessHandler := func() error {
+	endProcessHandler := func(_ endProcess.ArgEndProcess) error {
 		endProcessHandlerWasCalled = true
 		return nil
 	}
@@ -63,7 +64,7 @@ func TestShuffledOutTrigger_Process_DifferentShardIDShouldCallEndProcessHandler(
 
 	endProcessHandlerWasCalled := false
 
-	endProcessHandler := func() error {
+	endProcessHandler := func(_ endProcess.ArgEndProcess) error {
 		endProcessHandlerWasCalled = true
 		return nil
 	}
@@ -84,7 +85,7 @@ func TestShuffledOutTrigger_DifferentShardIDShouldCallRegisteredHandlers(t *test
 
 	handler1WasCalled, handler2WasCalled := false, false
 
-	endProcessHandler := func() error {
+	endProcessHandler := func(_ endProcess.ArgEndProcess) error {
 		return nil
 	}
 	shardID := uint32(1)

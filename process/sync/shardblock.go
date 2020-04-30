@@ -87,9 +87,14 @@ func (boot *ShardBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data
 		hashes[i] = header.MiniBlockHeaders[i].Hash
 	}
 
-	miniBlocks, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocks(hashes)
+	miniBlocksAndHashes, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocks(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
 		return nil, process.ErrMissingBody
+	}
+
+	miniBlocks := make([]*block.MiniBlock, len(miniBlocksAndHashes))
+	for index, miniBlockAndHash := range miniBlocksAndHashes {
+		miniBlocks[index] = miniBlockAndHash.Miniblock
 	}
 
 	return &block.Body{MiniBlocks: miniBlocks}, nil

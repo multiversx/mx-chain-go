@@ -10,6 +10,8 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+var _ process.BuiltinFunction = (*claimDeveloperRewards)(nil)
+
 type claimDeveloperRewards struct {
 	gasCost uint64
 }

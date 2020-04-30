@@ -12,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+var _ update.MultiFileWriter = (*multiFileWriter)(nil)
+
 var log = logger.GetOrCreate("update/files")
 
 type multiFileWriter struct {

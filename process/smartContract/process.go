@@ -21,6 +21,9 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+var _ process.SmartContractResultProcessor = (*scProcessor)(nil)
+var _ process.SmartContractProcessor = (*scProcessor)(nil)
+
 var log = logger.GetOrCreate("process/smartcontract")
 
 type scProcessor struct {

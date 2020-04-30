@@ -23,6 +23,8 @@ import (
 
 var log = logger.GetOrCreate("process/peer")
 
+var _ process.ValidatorStatisticsProcessor = (*validatorStatistics)(nil)
+
 type validatorActionType uint8
 
 const (
@@ -338,7 +340,6 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 	}
 
 	rootHash, err := vs.peerAdapter.RootHash()
-	vs.displayRatings(header.GetEpoch())
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +349,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 	return rootHash, nil
 }
 
-func (vs *validatorStatistics) displayRatings(epoch uint32) {
+func (vs *validatorStatistics) DisplayRatings(epoch uint32) {
 	validatorPKs, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		log.Warn("could not get ValidatorPublicKeys", "epoch", epoch)
@@ -493,6 +494,10 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(validatorInfos map[uint3
 	signedThreshold := vs.rater.GetSignedBlocksThreshold()
 	for shardId, validators := range validatorInfos {
 		for _, validator := range validators {
+			if validator.List != string(core.EligibleList) {
+				continue
+			}
+
 			err := vs.verifySignaturesBelowSignedThreshold(validator, signedThreshold, shardId)
 			if err != nil {
 				return err

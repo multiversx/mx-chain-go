@@ -193,6 +193,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		BlockSingleSigner:          &mock.SignerMock{},
 		KeyGen:                     &mock.KeyGenMock{},
 		BlockKeyGen:                &mock.KeyGenMock{},
+		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
+		StorageUnitOpener:          &mock.UnitOpenerStub{},
 		GenesisNodesConfig:         nodesConfig,
 		PathManager:                &mock.PathManagerStub{},
 		WorkingDir:                 "test_directory",

@@ -23,6 +23,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ process.TransactionCoordinator = (*transactionCoordinator)(nil)
+
 var log = logger.GetOrCreate("process/coordinator")
 
 type transactionCoordinator struct {

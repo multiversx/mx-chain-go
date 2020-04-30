@@ -20,6 +20,7 @@ type heartbeatMessageInfo struct {
 	genesisTime        time.Time
 	versionNumber      string
 	nodeDisplayName    string
+	identity           string
 	peerType           string
 	receivedShardID    uint32
 	computedShardID    uint32
@@ -54,6 +55,7 @@ func newHeartbeatMessageInfo(
 		totalDownTime:               time.Duration(0),
 		versionNumber:               "",
 		nodeDisplayName:             "",
+		identity:                    "",
 		peerType:                    peerType,
 		genesisTime:                 genesisTime,
 		getTimeHandler:              timer.Now,
@@ -146,6 +148,7 @@ func (hbmi *heartbeatMessageInfo) HeartbeatReceived(
 	receivedShardID uint32,
 	version string,
 	nodeDisplayName string,
+	identity string,
 	peerType string,
 ) {
 	hbmi.updateMutex.Lock()
@@ -156,6 +159,7 @@ func (hbmi *heartbeatMessageInfo) HeartbeatReceived(
 	hbmi.receivedShardID = receivedShardID
 	hbmi.versionNumber = version
 	hbmi.nodeDisplayName = nodeDisplayName
+	hbmi.identity = identity
 	hbmi.peerType = peerType
 
 	hbmi.updateTimes(crtTime)

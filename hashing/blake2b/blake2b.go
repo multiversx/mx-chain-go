@@ -3,8 +3,11 @@ package blake2b
 import (
 	"hash"
 
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"golang.org/x/crypto/blake2b"
 )
+
+var _ hashing.Hasher = (*Blake2b)(nil)
 
 // Blake2b is a blake2b implementation of the hasher interface.
 type Blake2b struct {

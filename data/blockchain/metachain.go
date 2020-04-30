@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
+var _ data.ChainHandler = (*metaChain)(nil)
+
 // metaChain holds the block information for the beacon chain
 //
 // The MetaChain also holds pointers to the Genesis block and the current block.

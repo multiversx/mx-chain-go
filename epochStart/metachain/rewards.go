@@ -22,6 +22,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ process.EpochStartRewardsCreator = (*rewardsCreator)(nil)
+
 // ArgsNewRewardsCreator defines the arguments structure needed to create a new rewards creator
 type ArgsNewRewardsCreator struct {
 	ShardCoordinator sharding.Coordinator

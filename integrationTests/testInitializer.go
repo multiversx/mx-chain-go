@@ -71,6 +71,13 @@ var P2pBootstrapDelay = 5 * time.Second
 
 var log = logger.GetOrCreate("integrationtests")
 
+// shuffler constants
+const (
+	shuffleBetweenShards = false
+	adaptivity           = false
+	hysteresis           = float32(0.2)
+)
+
 // Type defines account types to save in accounts trie
 type Type uint8
 
@@ -798,6 +805,8 @@ func IncrementAndPrintRound(round uint64) uint64 {
 func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, nonce uint64) {
 	fmt.Println("All shards propose blocks...")
 
+	stepDelayAdjustment := StepDelay * time.Duration(1+len(nodes)/3)
+
 	for idx, n := range nodes {
 		if !IsIntInSlice(idx, idxProposers) {
 			continue
@@ -809,7 +818,7 @@ func ProposeBlock(nodes []*TestProcessorNode, idxProposers []int, round uint64, 
 	}
 
 	fmt.Println("Delaying for disseminating headers and miniblocks...")
-	time.Sleep(StepDelay)
+	time.Sleep(stepDelayAdjustment)
 	fmt.Println(MakeDisplayTable(nodes))
 }
 
