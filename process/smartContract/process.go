@@ -161,9 +161,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
-	if check.IfNil(acntDst) {
-		return process.ErrNilSCDestAccount
-	}
 
 	log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "data", string(tx.GetData()))
 
@@ -217,6 +214,10 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	}
 	if executed {
 		return nil
+	}
+
+	if check.IfNil(acntDst) {
+		return process.ErrNilSCDestAccount
 	}
 
 	var vm vmcommon.VMExecutionHandler
@@ -339,6 +340,13 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	)
 	if err != nil {
 		return true, err
+	}
+
+	if !check.IfNil(acntSnd) {
+		err := acntSnd.AddToBalance(scrForSender.Value)
+		if err != nil {
+			return true, err
+		}
 	}
 
 	scrResults = append(scrResults, scrForSender)

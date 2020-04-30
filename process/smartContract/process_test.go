@@ -364,10 +364,11 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil)
 	require.Equal(t, process.ErrNilSCDestAccount, err)
 
-	acntDst.SetCode(nil)
+	acntSrc, acntDst = createAccounts(tx)
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.Nil(t, err)
 
+	acntSrc, acntDst = createAccounts(tx)
 	acntDst = nil
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.Equal(t, process.ErrNilSCDestAccount, err)

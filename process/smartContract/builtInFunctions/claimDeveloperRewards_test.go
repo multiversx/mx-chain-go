@@ -19,8 +19,8 @@ func TestClaimDeveloperRewards_ProcessBuiltinFunction(t *testing.T) {
 	sender := []byte("sender")
 	acc, _ := state.NewUserAccount(mock.NewAddressMock([]byte("addr12")))
 
-	reward, err := cdr.ProcessBuiltinFunction(nil, acc, nil)
-	require.Nil(t, reward)
+	vmOutput, err := cdr.ProcessBuiltinFunction(nil, acc, nil)
+	require.Nil(t, vmOutput)
 	require.Equal(t, process.ErrNilVmInput, err)
 
 	vmInput := &vmcommon.ContractCallInput{
@@ -29,18 +29,17 @@ func TestClaimDeveloperRewards_ProcessBuiltinFunction(t *testing.T) {
 			GasProvided: 100,
 		},
 	}
-	reward, err = cdr.ProcessBuiltinFunction(nil, nil, vmInput)
-	require.Nil(t, reward)
-	require.Equal(t, process.ErrNilSCDestAccount, err)
+	vmOutput, err = cdr.ProcessBuiltinFunction(nil, nil, vmInput)
+	require.Nil(t, err)
 
-	reward, err = cdr.ProcessBuiltinFunction(nil, acc, vmInput)
-	require.Nil(t, reward)
+	vmOutput, err = cdr.ProcessBuiltinFunction(nil, acc, vmInput)
+	require.Nil(t, vmOutput)
 	require.Equal(t, state.ErrOperationNotPermitted, err)
 
 	acc.OwnerAddress = sender
 	value := big.NewInt(100)
 	acc.AddToDeveloperReward(value)
-	vmOutput, err := cdr.ProcessBuiltinFunction(nil, acc, vmInput)
+	vmOutput, err = cdr.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Nil(t, err)
 	require.Equal(t, value, vmOutput.OutputAccounts[string(vmInput.CallerAddr)].BalanceDelta)
 }

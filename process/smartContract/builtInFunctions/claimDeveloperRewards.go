@@ -31,7 +31,8 @@ func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 		return nil, process.ErrNilVmInput
 	}
 	if check.IfNil(acntDst) {
-		return nil, process.ErrNilSCDestAccount
+		// cross-shard call, in sender shard only the gas is taken out
+		return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
 	}
 
 	if !bytes.Equal(vmInput.CallerAddr, acntDst.GetOwnerAddress()) {

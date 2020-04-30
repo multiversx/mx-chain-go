@@ -33,7 +33,7 @@ func TestChangeOwnerAddress_ProcessBuiltinFunction(t *testing.T) {
 	require.Equal(t, process.ErrNilVmInput, err)
 
 	_, err = coa.ProcessBuiltinFunction(nil, nil, vmInput)
-	require.Equal(t, process.ErrNilSCDestAccount, err)
+	require.Nil(t, err)
 
 	acc.OwnerAddress = owner
 	_, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
