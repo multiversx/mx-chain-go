@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. auction.proto
 package systemSmartContracts
 
 import (
@@ -14,27 +15,6 @@ import (
 )
 
 const minArgsLenToChangeValidatorKey = 4
-
-// AuctionData represents what is saved for each validator / bid
-type AuctionData struct {
-	RewardAddress   []byte   `json:"RewardAddress"`
-	RegisterNonce   uint64   `json:"RegisterNonce"`
-	Epoch           uint32   `json:"Epoch"`
-	BlsPubKeys      [][]byte `json:"BlsPubKeys"`
-	TotalStakeValue *big.Int `json:"TotalStakeValue"`
-	LockedStake     *big.Int `json:"LockedStake"`
-	MaxStakePerNode *big.Int `json:"MaxStakePerNode"`
-}
-
-// AuctionConfig represents the settings for a specific epoch
-type AuctionConfig struct {
-	MinStakeValue *big.Int `json:"MinStakeValue"`
-	NumNodes      uint32   `json:"NumNodes"`
-	TotalSupply   *big.Int `json:"TotalSupply"`
-	MinStep       *big.Int `json:"MinStep"`
-	NodePrice     *big.Int `json:"NodePrice"`
-	UnJailPrice   *big.Int `json:"UnJailPrice"`
-}
 
 type stakingAuctionSC struct {
 	eei                vm.SystemEI

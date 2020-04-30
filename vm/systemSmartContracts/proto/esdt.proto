@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "systemSmartContracts";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message ESDTData {
+    bytes IssuerAddress = 1 [(gogoproto.jsontag) = "IssuerAddress"];
+    bytes TokenName     = 2 [(gogoproto.jsontag) = "TokenName"];
+    bytes MintedValue   = 3 [(gogoproto.jsontag) = "MintedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes BurntValue    = 4 [(gogoproto.jsontag) = "BurntValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+}

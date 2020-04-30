@@ -19,13 +19,6 @@ var log = logger.GetOrCreate("vm/systemsmartcontracts")
 const ownerKey = "owner"
 const nodesConfigKey = "nodesConfig"
 
-// StakingNodesConfig is the structure which is saved in the storage of the contract to monitor the nodes leaving and registering
-type StakingNodesConfig struct {
-	MinNumNodes int64
-	StakedNodes int64
-	JailedNodes int64
-}
-
 type stakingSC struct {
 	eei                      vm.SystemEI
 	minStakeValue            *big.Int
