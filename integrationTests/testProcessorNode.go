@@ -1479,7 +1479,7 @@ func (tpn *TestProcessorNode) GetShardHeader(nonce uint64) (*dataBlock.Header, e
 
 	headerObjects, _, err := tpn.DataPool.Headers().GetHeadersByNonceAndShardId(nonce, tpn.ShardCoordinator.SelfId())
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("no headers found for nonce and shard id %d %d %s", nonce, tpn.ShardCoordinator.SelfId(), err.Error()))
+		return nil, errors.New(fmt.Sprintf("no headers found for nonce %d and shard id %d %s", nonce, tpn.ShardCoordinator.SelfId(), err.Error()))
 	}
 
 	headerObject := headerObjects[len(headerObjects)-1]

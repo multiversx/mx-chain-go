@@ -37,7 +37,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 
 	_ = n.Messenger.Bootstrap()
 
-	time.Sleep(stepDelay)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	//set the account's nonce to startingNonce
 	_ = n.SetAccountNonce(startingNonce)
