@@ -79,21 +79,25 @@ func TestMetaBlockCreator_CreateNewBlock(t *testing.T) {
 
 	rootHash1 := []byte("rootHash1")
 	rootHash2 := []byte("rootHash2")
+	metaBlock := &block.MetaBlock{}
 	args := createMockBlockCreatorAfterHardFork()
 	args.ImportHandler = &mock.ImportHandlerStub{
 		GetValidatorAccountsDBCalled: func() state.AccountsAdapter {
 			return &mock.AccountsStub{
-				RootHashCalled: func() ([]byte, error) {
+				CommitCalled: func() ([]byte, error) {
 					return rootHash2, nil
 				},
 			}
 		},
 		GetAccountsDBForShardCalled: func(shardID uint32) state.AccountsAdapter {
 			return &mock.AccountsStub{
-				RootHashCalled: func() ([]byte, error) {
+				CommitCalled: func() ([]byte, error) {
 					return rootHash1, nil
 				},
 			}
+		},
+		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
+			return metaBlock
 		},
 	}
 
@@ -117,6 +121,7 @@ func TestMetaBlockCreator_CreateNewBlock(t *testing.T) {
 		ChainID:                []byte(chainID),
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
+		PubKeysBitmap:          []byte{1},
 		Epoch:                  epoch,
 	}
 	assert.Equal(t, blockBody, body)
