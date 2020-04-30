@@ -74,6 +74,28 @@ func TestDB_DoubleOpenShouldError(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestDB_DoubleOpenButClosedInTimeShouldWork(t *testing.T) {
+	dir, _ := ioutil.TempDir("", "leveldb_temp")
+	lvdb1, err := leveldb.NewDB(dir, 10, 1, 10)
+	require.Nil(t, err)
+
+	defer func() {
+		_ = lvdb1.Close()
+		_ = os.RemoveAll(dir)
+	}()
+
+	go func() {
+		time.Sleep(time.Second * 3)
+		_ = lvdb1.Close()
+	}()
+
+	lvdb2, err := leveldb.NewDB(dir, 10, 1, 10)
+	assert.Nil(t, err)
+	assert.NotNil(t, lvdb2)
+
+	_ = lvdb2.Close()
+}
+
 func TestDB_PutNoError(t *testing.T) {
 	key, val := []byte("key"), []byte("value")
 	ldb := createLevelDb(t, 10, 1, 10)
