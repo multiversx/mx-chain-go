@@ -2,7 +2,11 @@ package fnv
 
 import (
 	"hash/fnv"
+
+	"github.com/ElrondNetwork/elrond-go/hashing"
 )
+
+var _ hashing.Hasher = (*Fnv)(nil)
 
 var fnvEmptyHash []byte
 

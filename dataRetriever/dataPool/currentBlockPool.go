@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
+var _ dataRetriever.TransactionCacher = (*transactionMapCacher)(nil)
+
 type transactionMapCacher struct {
 	mutTxs      sync.RWMutex
 	txsForBlock map[string]data.TransactionHandler

@@ -6,6 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+var _ dataRetriever.PoolsHolder = (*dataPool)(nil)
+
 type dataPool struct {
 	transactions         dataRetriever.ShardedDataCacherNotifier
 	unsignedTransactions dataRetriever.ShardedDataCacherNotifier

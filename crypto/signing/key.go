@@ -8,6 +8,10 @@ import (
 
 var log = logger.GetOrCreate("crypto/signing")
 
+var _ crypto.KeyGenerator = (*keyGenerator)(nil)
+var _ crypto.PublicKey = (*publicKey)(nil)
+var _ crypto.PrivateKey = (*privateKey)(nil)
+
 // privateKey holds the private key and the chosen curve
 type privateKey struct {
 	suite crypto.Suite

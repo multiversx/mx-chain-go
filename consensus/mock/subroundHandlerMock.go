@@ -6,15 +6,16 @@ import (
 
 // SubroundHandlerMock -
 type SubroundHandlerMock struct {
-	DoWorkCalled    func(rounder consensus.Rounder) bool
-	PreviousCalled  func() int
-	NextCalled      func() int
-	CurrentCalled   func() int
-	StartTimeCalled func() int64
-	EndTimeCalled   func() int64
-	NameCalled      func() string
-	JobCalled       func() bool
-	CheckCalled     func() bool
+	DoWorkCalled           func(rounder consensus.Rounder) bool
+	PreviousCalled         func() int
+	NextCalled             func() int
+	CurrentCalled          func() int
+	StartTimeCalled        func() int64
+	EndTimeCalled          func() int64
+	NameCalled             func() string
+	JobCalled              func() bool
+	CheckCalled            func() bool
+	ConsensusChannelCalled func() chan bool
 }
 
 // DoWork -
@@ -50,6 +51,11 @@ func (srm *SubroundHandlerMock) EndTime() int64 {
 // Name -
 func (srm *SubroundHandlerMock) Name() string {
 	return srm.NameCalled()
+}
+
+// ConsensusChannel -
+func (srm *SubroundHandlerMock) ConsensusChannel() chan bool {
+	return srm.ConsensusChannelCalled()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

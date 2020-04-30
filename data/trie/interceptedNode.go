@@ -10,7 +10,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
+
+var _ process.TxValidatorHandler = (*InterceptedTrieNode)(nil)
+var _ process.InterceptedData = (*InterceptedTrieNode)(nil)
 
 // InterceptedTrieNode implements intercepted data interface and is used when trie nodes are intercepted
 type InterceptedTrieNode struct {

@@ -18,6 +18,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.ValidityAttester = (*baseBlockTrack)(nil)
+
 var log = logger.GetOrCreate("process/track")
 
 // HeaderInfo holds the information about a header
