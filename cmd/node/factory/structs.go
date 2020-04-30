@@ -1954,6 +1954,7 @@ func newMetaBlockProcessor(
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 		BuiltInFunctions: builtInFuncs, // no built-in functions for meta.
 	}
+	// TODO: put back message sign verifier to protect observer nodes
 	vmFactory, err := metachain.NewVMContainerFactory(
 		argsHook,
 		economicsData,

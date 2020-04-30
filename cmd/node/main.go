@@ -1967,6 +1967,7 @@ func createApiResolver(
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
+		// TODO: put back message sign verifier to protect observer nodes
 		vmFactory, err = metachain.NewVMContainerFactory(
 			argsHook,
 			economics,
