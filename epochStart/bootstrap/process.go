@@ -253,10 +253,6 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	if e.isStartInEpochZero() {
-		return e.prepareEpochZero()
-	}
-
 	e.dataPool, err = factoryDataPool.NewDataPoolFromConfig(
 		factoryDataPool.ArgsDataPool{
 			Config:           &e.generalConfig,
@@ -269,11 +265,16 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
-	if isCurrentEpochSaved {
+	if isCurrentEpochSaved || e.isStartInEpochZero() {
+		if e.baseData.lastEpoch == 0 {
+			return e.prepareEpochZero()
+		}
+
 		parameters, err := e.prepareEpochFromStorage()
 		if err == nil {
 			return parameters, nil
 		}
+
 		log.Debug("could not start from storage - will try sync for start in epoch", "error", err)
 	}
 
@@ -383,8 +384,8 @@ func (e *epochStartBootstrap) createSyncers() error {
 	var err error
 
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
-		Config:               e.generalConfig,
-		ShardCoordinator:     e.shardCoordinator,
+		Config:                 e.generalConfig,
+		ShardCoordinator:       e.shardCoordinator,
 		ProtoMarshalizer:       e.marshalizer,
 		TxSignMarshalizer:      e.txSignMarshalizer,
 		Hasher:                 e.hasher,
