@@ -186,3 +186,12 @@ func (ts *TrieStub) IsPruningEnabled() bool {
 	}
 	return false
 }
+
+// GetDirtyHashes -
+func (ts *TrieStub) GetDirtyHashes() (data.ModifiedHashes, error) {
+	return nil, nil
+}
+
+// SetNewHashes -
+func (ts *TrieStub) SetNewHashes(_ data.ModifiedHashes) {
+}
