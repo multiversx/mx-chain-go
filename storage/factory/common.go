@@ -1,10 +1,10 @@
 package factory
 
 import (
-	"math"
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -35,10 +35,8 @@ func GetBloomFromConfig(cfg config.BloomFilterConfig) storageUnit.BloomConfig {
 	var hashFuncs []storageUnit.HasherType
 	if cfg.HashFunc != nil {
 		hashFuncs = make([]storageUnit.HasherType, len(cfg.HashFunc))
-		idx := 0
-		for _, hf := range cfg.HashFunc {
+		for idx, hf := range cfg.HashFunc {
 			hashFuncs[idx] = storageUnit.HasherType(hf)
-			idx++
 		}
 	}
 
@@ -50,7 +48,7 @@ func GetBloomFromConfig(cfg config.BloomFilterConfig) storageUnit.BloomConfig {
 
 func convertShardIDToUint32(shardIDStr string) (uint32, error) {
 	if shardIDStr == "metachain" {
-		return math.MaxUint32, nil
+		return core.MetachainShardId, nil
 	}
 
 	shardID, err := strconv.ParseInt(shardIDStr, 10, 64)
