@@ -6,8 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// Parser contains the parsed genesis json file and has some functionality regarding processed data
-type Parser interface {
+// AccountsParser contains the parsed genesis json file and has some functionality regarding processed data
+type AccountsParser interface {
 	InitialAccountsSplitOnAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]InitialAccountHandler, error)
 	InitialAccountsSplitOnDelegationAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]InitialAccountHandler, error)
 	InitialAccounts() []InitialAccountHandler
@@ -38,5 +38,22 @@ type DelegationDataHandler interface {
 	GetAddress() string
 	AddressBytes() []byte
 	GetValue() *big.Int
+	IsInterfaceNil() bool
+}
+
+// InitialSmartContractHandler represents the interface that describes the the initial smart contract
+type InitialSmartContractHandler interface {
+	GetOwner() string
+	OwnerBytes() []byte
+	GetFilename() string
+	GetVmType() string
+	IsInterfaceNil() bool
+}
+
+// InitialSmartContractParser contains the parsed genesis initial smart contracts
+//json file and has some functionality regarding processed data
+type InitialSmartContractParser interface {
+	InitialSmartContractsSplitOnOwnersShards(shardCoordinator sharding.Coordinator) (map[uint32][]InitialSmartContractHandler, error)
+	InitialSmartContracts() []InitialSmartContractHandler
 	IsInterfaceNil() bool
 }

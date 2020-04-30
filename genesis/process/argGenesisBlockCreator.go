@@ -30,7 +30,8 @@ type ArgsGenesisBlockCreator struct {
 	Hasher                   hashing.Hasher
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	DataPool                 dataRetriever.PoolsHolder
-	GenesisParser            genesis.Parser
+	AccountsParser           genesis.AccountsParser
+	SmartContractParser      genesis.InitialSmartContractParser
 	ValidatorStatsRootHash   []byte
 	GasMap                   map[string]map[string]uint64
 	TxLogsProcessor          process.TransactionLogProcessor

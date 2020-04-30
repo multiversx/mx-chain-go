@@ -39,14 +39,14 @@ func TestNewNodesSetupChecker_NilGenesisParserShouldErr(t *testing.T) {
 	)
 
 	assert.True(t, check.IfNil(nsc))
-	assert.Equal(t, genesis.ErrNilGenesisParser, err)
+	assert.Equal(t, genesis.ErrNilAccountsParser, err)
 }
 
 func TestNewNodesSetupChecker_NilInitialNodePriceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	nsc, err := checking.NewNodesSetupChecker(
-		&mock.GenesisParserStub{},
+		&mock.AccountsParserStub{},
 		nil,
 		mock.NewPubkeyConverterMock(32),
 	)
@@ -59,7 +59,7 @@ func TestNewNodesSetupChecker_InvalidInitialNodePriceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	nsc, err := checking.NewNodesSetupChecker(
-		&mock.GenesisParserStub{},
+		&mock.AccountsParserStub{},
 		big.NewInt(-1),
 		mock.NewPubkeyConverterMock(32),
 	)
@@ -72,7 +72,7 @@ func TestNewNodesSetupChecker_NilValidatorPubkeyConverterShouldErr(t *testing.T)
 	t.Parallel()
 
 	nsc, err := checking.NewNodesSetupChecker(
-		&mock.GenesisParserStub{},
+		&mock.AccountsParserStub{},
 		big.NewInt(0),
 		nil,
 	)
@@ -85,7 +85,7 @@ func TestNewNodesSetupChecker_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	nsc, err := checking.NewNodesSetupChecker(
-		&mock.GenesisParserStub{},
+		&mock.AccountsParserStub{},
 		big.NewInt(0),
 		mock.NewPubkeyConverterMock(32),
 	)
@@ -103,7 +103,7 @@ func TestNewNodeSetupChecker_CheckNotStakedShouldErr(t *testing.T) {
 	ia.SetAddressBytes([]byte("staked address"))
 
 	nsc, _ := checking.NewNodesSetupChecker(
-		&mock.GenesisParserStub{
+		&mock.AccountsParserStub{
 			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
 				return []genesis.InitialAccountHandler{ia}
 			},
@@ -134,7 +134,7 @@ func TestNewNodeSetupChecker_CheckNotEnoughStakedShouldErr(t *testing.T) {
 	ia.SetAddressBytes([]byte("staked address"))
 
 	nsc, _ := checking.NewNodesSetupChecker(
-		&mock.GenesisParserStub{
+		&mock.AccountsParserStub{
 			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
 				return []genesis.InitialAccountHandler{ia}
 			},
@@ -165,7 +165,7 @@ func TestNewNodeSetupChecker_CheckTooMuchStakedShouldErr(t *testing.T) {
 	ia.SetAddressBytes([]byte("staked address"))
 
 	nsc, _ := checking.NewNodesSetupChecker(
-		&mock.GenesisParserStub{
+		&mock.AccountsParserStub{
 			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
 				return []genesis.InitialAccountHandler{ia}
 			},
@@ -196,7 +196,7 @@ func TestNewNodeSetupChecker_CheckNotEnoughDelegatedShouldErr(t *testing.T) {
 	ia.Delegation.Value = big.NewInt(0).Set(nodePrice)
 
 	nsc, _ := checking.NewNodesSetupChecker(
-		&mock.GenesisParserStub{
+		&mock.AccountsParserStub{
 			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
 				return []genesis.InitialAccountHandler{ia}
 			},
@@ -227,7 +227,7 @@ func TestNewNodeSetupChecker_CheckTooMuchDelegatedShouldErr(t *testing.T) {
 	ia.Delegation.Value = big.NewInt(0).Set(nodePrice)
 
 	nsc, _ := checking.NewNodesSetupChecker(
-		&mock.GenesisParserStub{
+		&mock.AccountsParserStub{
 			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
 				return []genesis.InitialAccountHandler{ia}
 			},
@@ -262,7 +262,7 @@ func TestNewNodeSetupChecker_CheckStakedAndDelegatedShouldWork(t *testing.T) {
 	iaDelegated.Delegation.SetAddressBytes([]byte("delegated address"))
 
 	nsc, _ := checking.NewNodesSetupChecker(
-		&mock.GenesisParserStub{
+		&mock.AccountsParserStub{
 			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
 				return []genesis.InitialAccountHandler{iaStaked, iaDelegated}
 			},

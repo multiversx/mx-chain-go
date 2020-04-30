@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -410,13 +411,13 @@ func (sc *scProcessor) DeploySmartContract(
 
 	err := sc.checkTxValidity(tx)
 	if err != nil {
-		log.Debug("Transaction invalid", "error", err.Error())
+		log.Debug("invalid transaction", "error", err.Error())
 		return err
 	}
 
 	isEmptyAddress := sc.isDestAddressEmpty(tx)
 	if !isEmptyAddress {
-		log.Debug("Transaction wrong", "error", process.ErrWrongTransaction.Error())
+		log.Debug("wrong transaction", "error", process.ErrWrongTransaction.Error())
 		return process.ErrWrongTransaction
 	}
 
@@ -490,9 +491,24 @@ func (sc *scProcessor) DeploySmartContract(
 	}
 
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee, txHash)
+	sc.printScDeployed(vmOutput, tx)
 
-	log.Debug("SmartContract deployed")
 	return nil
+}
+
+func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.TransactionHandler) {
+	scGenerated := make([]string, 0, len(vmOutput.OutputAccounts))
+	for addr := range vmOutput.OutputAccounts {
+		if !core.IsSmartContractAddress([]byte(addr)) {
+			continue
+		}
+
+		scGenerated = append(scGenerated, sc.pubkeyConv.Encode([]byte(addr)))
+	}
+
+	log.Debug("SmartContract deployed",
+		"owner", sc.pubkeyConv.Encode(tx.GetSndAddr()),
+		"SC address(es)", strings.Join(scGenerated, ", "))
 }
 
 // taking money from sender, as VM might not have access to him because of state sharding

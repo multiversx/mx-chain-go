@@ -15,7 +15,7 @@ import (
 
 func createMockInitialAccount() *InitialAccount {
 	return &InitialAccount{
-		Address:      "addres",
+		Address:      "address",
 		Supply:       big.NewInt(1142),
 		Balance:      big.NewInt(2242),
 		StakingValue: big.NewInt(3342),

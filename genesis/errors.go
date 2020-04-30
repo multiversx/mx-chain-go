@@ -62,8 +62,8 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 // ErrNilPubkeyConverter signals that the provided public key converter is nil
 var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
 
-// ErrNilGenesisParser signals that the provided genesis parser is nil
-var ErrNilGenesisParser = errors.New("nil genesis parser")
+// ErrNilAccountsParser signals that the provided accounts parser is nil
+var ErrNilAccountsParser = errors.New("nil accounts parser")
 
 // ErrStakingValueIsNotEnough signals that the staking value provided is not enough for provided node(s)
 var ErrStakingValueIsNotEnough = errors.New("staking value is not enough")
@@ -82,3 +82,24 @@ var ErrInvalidInitialNodePrice = errors.New("invalid initial node price")
 
 // ErrNilDelegationHandler signals that a nil delegation handler has been used
 var ErrNilDelegationHandler = errors.New("nil delegation handler")
+
+// ErrEmptyOwnerAddress signals that an empty owner address was found in genesis file
+var ErrEmptyOwnerAddress = errors.New("empty owner address")
+
+// ErrInvalidOwnerAddress signals that an invalid owner address was found
+var ErrInvalidOwnerAddress = errors.New("invalid owner address")
+
+// ErrFilenameIsDirectory signals that the provided filename is a directory
+var ErrFilenameIsDirectory = errors.New("provided name is actually a directory")
+
+// ErrDuplicateOwnerAddress signals that the same owner address was found more than one time
+var ErrDuplicateOwnerAddress = errors.New("duplicate owner address")
+
+// ErrNilSmartContractParser signals that the smart contract parser is nil
+var ErrNilSmartContractParser = errors.New("nil smart contract parser")
+
+// ErrInvalidVmType signals that the provided VM type is invalid
+var ErrInvalidVmType = errors.New("invalid vm type")
+
+// ErrEmptyVmType signals that the provided VM type is empty
+var ErrEmptyVmType = errors.New("empty vm type")
