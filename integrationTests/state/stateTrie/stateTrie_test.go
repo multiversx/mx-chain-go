@@ -1319,10 +1319,12 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	assert.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
-	rootHash, _ := shardNode.AccntState.RootHash()
+	rootHash, err := shardNode.AccntState.RootHash()
+	assert.Nil(t, err)
+
 	if !bytes.Equal(rootHash, rootHashOfRollbackedBlock) {
 		time.Sleep(time.Second * 3)
-		err := shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
+		err = shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
 		assert.True(t, errors.Is(err, trie.ErrHashNotFound))
 	}
 
@@ -1340,7 +1342,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	)
 	time.Sleep(time.Second * 5)
 
-	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
+	err = shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(3), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	assert.Equal(t, uint64(4), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
