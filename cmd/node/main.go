@@ -40,7 +40,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
-	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -1967,11 +1966,10 @@ func createApiResolver(
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		// TODO: put back message sign verifier to protect observer nodes
 		vmFactory, err = metachain.NewVMContainerFactory(
 			argsHook,
 			economics,
-			&genesis.NilMessageSignVerifier{},
+			messageSigVerifier,
 			gasSchedule,
 			nodesSetup,
 		)

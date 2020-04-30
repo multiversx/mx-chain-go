@@ -27,3 +27,4 @@
     MaximumPercentageToBleed = "0.5"
     BleedPercentagePerRound = "0.00001"
     UnJailValue = "500000000000000000000"
+    ActivateBLSPubKeyMessageVerification = false #TODO set to true before mainnet

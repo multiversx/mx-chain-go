@@ -416,13 +416,14 @@ func DataComponentsFactory(args *dataComponentsFactoryArgs) (*Data, error) {
 }
 
 type cryptoComponentsFactoryArgs struct {
-	ctx              *cli.Context
-	config           *config.Config
-	nodesConfig      *sharding.NodesSetup
-	shardCoordinator sharding.Coordinator
-	keyGen           crypto.KeyGenerator
-	privKey          crypto.PrivateKey
-	log              logger.Logger
+	ctx               *cli.Context
+	config            *config.Config
+	nodesConfig       *sharding.NodesSetup
+	shardCoordinator  sharding.Coordinator
+	keyGen            crypto.KeyGenerator
+	privKey           crypto.PrivateKey
+	log               logger.Logger
+	validatorSettings *config.ValidatorSettings
 }
 
 // NewCryptoComponentsFactoryArgs initializes the arguments necessary for creating the crypto components
@@ -472,9 +473,14 @@ func CryptoComponentsFactory(args *cryptoComponentsFactoryArgs) (*Crypto, error)
 
 	txSignKeyGen := signing.NewKeyGenerator(ed25519.NewEd25519())
 
-	messageSignVerifier, err := systemVM.NewMessageSigVerifier(args.keyGen, singleSigner)
-	if err != nil {
-		return nil, err
+	var messageSignVerifier vm.MessageSignVerifier
+	if args.validatorSettings.ActivateBLSPubKeyMessageVerification {
+		messageSignVerifier, err = systemVM.NewMessageSigVerifier(args.keyGen, singleSigner)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		messageSignVerifier = &genesis.NilMessageSignVerifier{}
 	}
 
 	return &Crypto{
@@ -1954,11 +1960,10 @@ func newMetaBlockProcessor(
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 		BuiltInFunctions: builtInFuncs, // no built-in functions for meta.
 	}
-	// TODO: put back message sign verifier to protect observer nodes
 	vmFactory, err := metachain.NewVMContainerFactory(
 		argsHook,
 		economicsData,
-		&genesis.NilMessageSignVerifier{},
+		messageSignVerifier,
 		gasSchedule,
 		nodesSetup,
 	)
