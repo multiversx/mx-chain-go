@@ -21,6 +21,7 @@ func TestPrepareEpochFromStorage(t *testing.T) {
 	require.Nil(t, err)
 	epochStartProvider.initializeFromLocalStorage()
 
+	epochStartProvider.baseData.lastEpoch = 10
 	_, err = epochStartProvider.prepareEpochFromStorage()
 	assert.Error(t, err)
 }
