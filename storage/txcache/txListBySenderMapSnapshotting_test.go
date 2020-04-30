@@ -8,7 +8,37 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSendersMap_getSnapshotWithDeterministicallySortedParts(t *testing.T) {
+func TestSendersMap_GetSnapshotHeadSize(t *testing.T) {
+	// With empty snapshot
+	snapshot := makeTestSnapshot(0)
+	headSize := getSnapshotHeadSize(snapshot)
+	require.Equal(t, 0, headSize)
+
+	// With len(snapshot) smaller < "defaultSendersSnapshotHeadSize"
+	snapshot = makeTestSnapshot(42)
+	headSize = getSnapshotHeadSize(snapshot)
+	require.Equal(t, 42, headSize)
+
+	// With len(snapshot) == "defaultSendersSnapshotHeadSize"
+	snapshot = makeTestSnapshot(defaultSendersSnapshotHeadSize)
+	headSize = getSnapshotHeadSize(snapshot)
+	require.Equal(t, defaultSendersSnapshotHeadSize, headSize)
+
+	// With len(snapshot) > "defaultSendersSnapshotHeadSize", and ceiling needed
+	// All but the last 43 have score 0
+	snapshot = makeTestSnapshot(defaultSendersSnapshotHeadSize + 42 + 43)
+	setScoreToTestSnapshotInterval(snapshot, defaultSendersSnapshotHeadSize+42, 43, 1)
+	headSize = getSnapshotHeadSize(snapshot)
+	require.Equal(t, defaultSendersSnapshotHeadSize+42, headSize)
+
+	// With len(snapshot) > "defaultSendersSnapshotHeadSize", and ceiling not needed
+	snapshot = makeTestSnapshot(defaultSendersSnapshotHeadSize + 42 + 43)
+	setScoreToTestSnapshotInterval(snapshot, defaultSendersSnapshotHeadSize, 42+43, 1)
+	headSize = getSnapshotHeadSize(snapshot)
+	require.Equal(t, defaultSendersSnapshotHeadSize, headSize)
+}
+
+func TestSendersMap_GetSnapshotWithDeterministicallySortedParts(t *testing.T) {
 	myMap := newSendersMapToTest()
 
 	snapshotAscending := myMap.getSnapshotAscendingWithDeterministicallySortedHead()
@@ -75,4 +105,20 @@ func TestSendersMap_GetSnapshots_NoPanic_IfAlsoConcurrentMutation(t *testing.T) 
 	}
 
 	wg.Wait()
+}
+
+func makeTestSnapshot(size int) []*txListForSender {
+	snapshot := make([]*txListForSender, size)
+
+	for i := 0; i < size; i++ {
+		snapshot[i] = newListToTest()
+	}
+
+	return snapshot
+}
+
+func setScoreToTestSnapshotInterval(snapshot []*txListForSender, from int, count int, score uint32) {
+	for i := from; i < from+count; i++ {
+		snapshot[i].lastComputedScore.Set(score)
+	}
 }
