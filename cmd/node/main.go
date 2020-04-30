@@ -1099,7 +1099,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListRequest,
 		whiteListerVerifiedTxs,
 		epochStartNotifier,
-		&generalConfig.EpochStartConfig,
+		*generalConfig,
 		currentEpoch,
 		rater,
 		generalConfig.Marshalizer.SizeCheckDelta,

@@ -2,7 +2,6 @@ package factory
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -15,12 +14,7 @@ import (
 	factorySoftwareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
@@ -28,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/checking"
 	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
@@ -106,7 +101,7 @@ type Process struct {
 }
 
 type processComponentsFactoryArgs struct {
-	coreComponents             *mainFactory.CoreComponentsFactoryArgs
+	coreComponents            *mainFactory.CoreComponentsFactoryArgs
 	accountsParser            genesis.AccountsParser
 	smartContractParser       genesis.InitialSmartContractParser
 	economicsData             *economics.EconomicsData
@@ -126,6 +121,7 @@ type processComponentsFactoryArgs struct {
 	whiteListHandler          process.WhiteListHandler
 	whiteListerVerifiedTxs    process.WhiteListHandler
 	epochStartNotifier        EpochStartNotifier
+	mainConfig                config.Config
 	epochStart                *config.EpochStartConfig
 	rater                     sharding.PeerAccountListAndRatingHandler
 	ratingsData               process.RatingsInfoHandler
@@ -144,7 +140,7 @@ type processComponentsFactoryArgs struct {
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
 func NewProcessComponentsFactoryArgs(
 	coreComponents *mainFactory.CoreComponentsFactoryArgs,
-	ccountsParser genesis.AccountsParser,
+	accountsParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
 	economicsData *economics.EconomicsData,
 	nodesConfig *sharding.NodesSetup,
@@ -163,7 +159,7 @@ func NewProcessComponentsFactoryArgs(
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	epochStartNotifier EpochStartNotifier,
-	epochStart *config.EpochStartConfig,
+	mainConfig config.Config,
 	startEpochNum uint32,
 	rater sharding.PeerAccountListAndRatingHandler,
 	sizeCheckDelta uint32,
@@ -197,7 +193,8 @@ func NewProcessComponentsFactoryArgs(
 		whiteListHandler:          whiteListHandler,
 		whiteListerVerifiedTxs:    whiteListerVerifiedTxs,
 		epochStartNotifier:        epochStartNotifier,
-		epochStart:                epochStart,
+		mainConfig:                mainConfig,
+		epochStart:                &mainConfig.EpochStartConfig,
 		startEpochNum:             startEpochNum,
 		rater:                     rater,
 		ratingsData:               ratingsData,
@@ -887,10 +884,10 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		SmartContractParser:      smartContractParser,
 		ValidatorStatsRootHash:   validatorStatsRootHash,
 		GasMap:                   args.gasSchedule,
-		VirtualMachineConfig:     args.coreComponents.config.VirtualMachineConfig,
+		VirtualMachineConfig:     args.mainConfig.VirtualMachineConfig,
 		TxLogsProcessor:          args.txLogsProcessor,
-		HardForkConfig:           args.coreComponents.config.Hardfork,
-		ChainID:                  string(args.coreComponents.chainID),
+		HardForkConfig:           args.mainConfig.Hardfork,
+		ChainID:                  string(args.coreComponents.ChainID),
 	}
 
 	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)
