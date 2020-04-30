@@ -121,7 +121,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		rwdPerBlock.Div(totalRewardsToBeDistributed, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 	}
 
-	rewardsForCommunity := e.computeRewaradsForCommunity(totalRewardsToBeDistributed)
+	rewardsForCommunity := e.computeRewardsForCommunity(totalRewardsToBeDistributed)
 	// adjust rewards per block taking into consideration community rewards
 	e.adjustRewardsPerBlockWithCommunityRewards(rwdPerBlock, rewardsForCommunity, totalNumBlocksInEpoch)
 
@@ -147,7 +147,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 }
 
 // compute the rewards for community - percentage from total rewards
-func (e *economics) computeRewaradsForCommunity(totalRewards *big.Int) *big.Int {
+func (e *economics) computeRewardsForCommunity(totalRewards *big.Int) *big.Int {
 	precentageAdjustment := float64(100)
 	communityPercentage := big.NewInt(0).SetUint64(uint64(e.rewardsHandler.CommunityPercentage() * precentageAdjustment))
 	rewardsForCommunity := big.NewInt(0).Mul(totalRewards, communityPercentage)

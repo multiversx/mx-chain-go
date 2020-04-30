@@ -207,6 +207,38 @@ func TestEconomics_ComputeEndOfEpochEconomics_NilAccumulatedFeesInEpochShouldErr
 	assert.Equal(t, epochStart.ErrNilTotalAccumulatedFeesInEpoch, err)
 }
 
+func TestEconomics_ComputeRewardsForCommunity(t *testing.T) {
+	totalRewards := big.NewInt(0).SetUint64(123456)
+	args := getArguments()
+	args.RewardsHandler = &mock.RewardsHandlerStub{
+		CommunityPercentageCalled: func() float64 {
+			return 0.1
+		},
+	}
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	expectedRewards := big.NewInt(12345)
+	communityRewards := ec.computeRewardsForCommunity(totalRewards)
+	assert.Equal(t, expectedRewards, communityRewards)
+}
+
+func TestEconomics_AdjustRewardsPerBlockWithCommunityRewards(t *testing.T) {
+	args := getArguments()
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	rwdPerBlock := big.NewInt(0).SetUint64(1000)
+	blocksInEpoch := uint64(100)
+	communityRewards := big.NewInt(0).SetUint64(10000)
+
+	expectedRewardsCommunityAfterAdjustment := big.NewInt(0).Set(communityRewards)
+	expectedRwdPerBlock := big.NewInt(900)
+
+	ec.adjustRewardsPerBlockWithCommunityRewards(rwdPerBlock, communityRewards, blocksInEpoch)
+
+	assert.Equal(t, expectedRewardsCommunityAfterAdjustment, communityRewards)
+	assert.Equal(t, expectedRwdPerBlock, rwdPerBlock)
+}
+
 func TestEconomics_ComputeEndOfEpochEconomics_NotEpochStartShouldErr(t *testing.T) {
 	t.Parallel()
 
