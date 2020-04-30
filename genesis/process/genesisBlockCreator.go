@@ -123,14 +123,17 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.DataPool) {
 		return process.ErrNilPoolsHolder
 	}
-	if check.IfNil(arg.GenesisParser) {
-		return genesis.ErrNilGenesisParser
+	if check.IfNil(arg.AccountsParser) {
+		return genesis.ErrNilAccountsParser
 	}
 	if arg.GasMap == nil {
 		return process.ErrNilGasSchedule
 	}
 	if check.IfNil(arg.TxLogsProcessor) {
 		return process.ErrNilTxLogsProcessor
+	}
+	if check.IfNil(arg.SmartContractParser) {
+		return genesis.ErrNilSmartContractParser
 	}
 
 	return nil

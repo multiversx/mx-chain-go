@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
@@ -35,12 +34,12 @@ import (
 
 // CreateMetaGenesisBlock will create a metachain genesis block
 func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, error) {
-	genesisProcessors, err := createProcessorsForMetaGenesisBlock(arg)
+	processors, err := createProcessorsForMetaGenesisBlock(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	err = deploySystemSmartContracts(arg, genesisProcessors.txProcessor, genesisProcessors.systemSCs)
+	err = deploySystemSmartContracts(arg, processors.txProcessor, processors.systemSCs)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +55,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, er
 		allNodes[shard] = append(eligible[shard], waiting[shard]...)
 	}
 
-	err = setStakedData(arg, genesisProcessors.txProcessor, allNodes)
+	err = setStakedData(arg, processors.txProcessor, allNodes)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +71,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, er
 		// data. The same with system smart contract states - these thinks should be programmed according to that specific hardfork
 		// event. As some scenarios would need only a set of pending transactions - others would syncronize everything from before
 		// genesis file should not be changed - as it reflects the true, transparent data for block ZERO
-		return createMetaGenesisAfterHardFork(arg, genesisProcessors)
+		return createMetaGenesisAfterHardFork(arg, processors)
 	}
 
 	header := &block.MetaBlock{
@@ -344,11 +343,6 @@ func deploySystemSmartContracts(
 		Signature: nil,
 	}
 
-	accountsDB, ok := arg.Accounts.(*state.AccountsDB)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
 	systemSCAddresses := make([][]byte, 0)
 	systemSCAddresses = append(systemSCAddresses, systemSCs.Keys()...)
 
@@ -364,7 +358,7 @@ func deploySystemSmartContracts(
 		}
 	}
 
-	_, err := accountsDB.Commit()
+	_, err := arg.Accounts.Commit()
 	if err != nil {
 		return err
 	}

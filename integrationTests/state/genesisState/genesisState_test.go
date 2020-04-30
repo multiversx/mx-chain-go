@@ -34,19 +34,19 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 
 	genesisFile := "genesisEdgeCase.json"
 
-	genesisBalances, err := parsing.NewGenesis(genesisFile, big.NewInt(6000000000), integrationTests.TestAddressPubkeyConverter)
+	accountsParser, err := parsing.NewAccountsParser(genesisFile, big.NewInt(6000000000), integrationTests.TestAddressPubkeyConverter)
 	assert.Nil(t, err)
 
-	fmt.Printf("Loaded %d entries...\n", len(genesisBalances.InitialAccounts()))
+	fmt.Printf("Loaded %d entries...\n", len(accountsParser.InitialAccounts()))
 
-	referenceRootHash, adbReference := getRootHashByRunningInitialAccounts(genesisBalances.InitialAccounts())
+	referenceRootHash, adbReference := getRootHashByRunningInitialAccounts(accountsParser.InitialAccounts())
 	fmt.Printf("Root hash: %s\n", base64.StdEncoding.EncodeToString(referenceRootHash))
 
 	_, _ = adbReference.RootHash()
 
 	noOfTests := 1000
 	for i := 0; i < noOfTests; i++ {
-		rootHash, adb := getRootHashByRunningInitialAccounts(genesisBalances.InitialAccounts())
+		rootHash, adb := getRootHashByRunningInitialAccounts(accountsParser.InitialAccounts())
 		if !bytes.Equal(rootHash, referenceRootHash) {
 			_, _ = adb.RootHash()
 			fmt.Printf("**** Wrong root hash on iteration %d: %s\n", i, base64.StdEncoding.EncodeToString(rootHash))

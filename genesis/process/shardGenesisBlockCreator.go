@@ -1,16 +1,21 @@
 package process
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"math/big"
+	"path/filepath"
+	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	transactionData "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -26,10 +31,23 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
+// codeMetadataHex used for initial SC deployment, set to upgrade-able
+const codeMetadataHex = "0100"
+
 var log = logger.GetOrCreate("genesis/process")
 
 // CreateShardGenesisBlock will create a shard genesis block
 func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, error) {
+	processors, err := createProcessorsForShard(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	err = deployInitialSmartContracts(processors, arg)
+	if err != nil {
+		return nil, err
+	}
+
 	rootHash, err := setBalancesToTrie(arg)
 	if err != nil {
 		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d",
@@ -112,7 +130,7 @@ func setBalancesToTrie(arg ArgsGenesisBlockCreator) (rootHash []byte, err error)
 		return nil, process.ErrAccountStateDirty
 	}
 
-	initialAccounts, err := arg.GenesisParser.InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
+	initialAccounts, err := arg.AccountsParser.InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +306,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		scProcessor,
 		genesisFeeHandler,
 		txTypeHandler,
-		arg.Economics,
+		genesisFeeHandler,
 		receiptTxInterim,
 		badTxInterim,
 	)
@@ -355,4 +373,91 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		scrProcessor:  scProcessor,
 		rwdProcessor:  rewardsTxProcessor,
 	}, nil
+}
+
+func deployInitialSmartContracts(
+	processors *genesisProcessors,
+	arg ArgsGenesisBlockCreator,
+) error {
+	smartContracts, err := arg.SmartContractParser.InitialSmartContractsSplitOnOwnersShards(arg.ShardCoordinator)
+	if err != nil {
+		return err
+	}
+
+	currentShardSmartContracts := smartContracts[arg.ShardCoordinator.SelfId()]
+
+	for _, sc := range currentShardSmartContracts {
+		err = deployInitialSmartContract(processors, sc, arg)
+		if err != nil {
+			return fmt.Errorf("%w for owner %s and filename %s",
+				err, sc.GetOwner(), sc.GetFilename())
+		}
+	}
+
+	return nil
+}
+
+func getSCCodeAsHex(filename string) (string, error) {
+	code, err := ioutil.ReadFile(filepath.Clean(filename))
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(code), nil
+}
+
+func deployInitialSmartContract(
+	processors *genesisProcessors,
+	sc genesis.InitialSmartContractHandler,
+	arg ArgsGenesisBlockCreator,
+) error {
+	code, err := getSCCodeAsHex(sc.GetFilename())
+	if err != nil {
+		return err
+	}
+
+	vmType := sc.GetVmType()
+	deployTxData := strings.Join([]string{code, vmType, codeMetadataHex}, "@")
+
+	nonce, err := getNonce(sc.OwnerBytes(), arg.PubkeyConv, arg.Accounts)
+	if err != nil {
+		return err
+	}
+
+	tx := &transactionData.Transaction{
+		Nonce:     nonce,
+		SndAddr:   sc.OwnerBytes(),
+		Value:     big.NewInt(0),
+		RcvAddr:   make([]byte, arg.PubkeyConv.Len()),
+		GasPrice:  0,
+		GasLimit:  math.MaxUint64,
+		Data:      []byte(deployTxData),
+		Signature: nil,
+	}
+
+	err = processors.txProcessor.ProcessTransaction(tx)
+	if err != nil {
+		return err
+	}
+
+	_, err = arg.Accounts.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getNonce(senderBytes []byte, pubkeyConv state.PubkeyConverter, accounts state.AccountsAdapter) (uint64, error) {
+	adr, err := pubkeyConv.CreateAddressFromBytes(senderBytes)
+	if err != nil {
+		return 0, err
+	}
+
+	accnt, err := accounts.LoadAccount(adr)
+	if err != nil {
+		return 0, err
+	}
+
+	return accnt.GetNonce(), nil
 }
