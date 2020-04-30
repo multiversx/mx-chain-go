@@ -35,6 +35,10 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 }
 
 func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
+	if e.baseData.lastEpoch == 0 {
+		return e.prepareEpochZero()
+	}
+
 	storer, err := e.storageOpenerHandler.GetMostRecentBootstrapStorageUnit()
 	defer func() {
 		if check.IfNil(storer) {
