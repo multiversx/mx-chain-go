@@ -112,7 +112,11 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 	trs.callDebugHandler(originalHashes, numSentIntra, numSentCross)
 
 	if numSentCross+numSentIntra == 0 {
-		return fmt.Errorf("%w, topic: %s", dataRetriever.ErrSendRequest, trs.topicName)
+		return fmt.Errorf("%w, topic: %s, crossPeers: %d, intraPeers: %d",
+			dataRetriever.ErrSendRequest,
+			trs.topicName,
+			len(crossPeers),
+			len(intraPeers))
 	}
 
 	return nil
