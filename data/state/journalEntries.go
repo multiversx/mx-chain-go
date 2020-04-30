@@ -1,8 +1,6 @@
 package state
 
 import (
-	"encoding/hex"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
@@ -123,7 +121,7 @@ func (jedtu *journalEntryDataTrieUpdates) Revert() (AccountHandler, error) {
 			return nil, err
 		}
 
-		log.Trace("revert data trie update", "key", hex.EncodeToString([]byte(key)), "val", hex.EncodeToString(jedtu.trieUpdates[key]))
+		log.Trace("revert data trie update", "key", []byte(key), "val", jedtu.trieUpdates[key])
 	}
 
 	rootHash, err := jedtu.account.DataTrie().Root()

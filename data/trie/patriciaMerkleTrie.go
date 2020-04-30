@@ -358,6 +358,9 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 
 // GetDirtyHashes returns all the dirty hashes from the trie
 func (tr *patriciaMerkleTrie) GetDirtyHashes() (data.ModifiedHashes, error) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
 	if tr.root == nil {
 		return nil, nil
 	}
@@ -378,6 +381,9 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (data.ModifiedHashes, error) {
 
 // SetNewHashes adds the given hashes to tr.newHashes
 func (tr *patriciaMerkleTrie) SetNewHashes(newHashes data.ModifiedHashes) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
 	tr.newHashes = newHashes
 }
 
