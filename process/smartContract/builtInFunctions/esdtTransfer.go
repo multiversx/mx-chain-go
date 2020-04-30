@@ -106,13 +106,11 @@ func (e *esdtTransfer) getESDTDataFromKey(userAcnt state.UserAccountHandler, key
 	esdtData := &ESDigitalToken{Value: big.NewInt(0)}
 	marshalledData, err := userAcnt.DataTrieTracker().RetrieveValue(key)
 	if err != nil {
-		log.Debug("getESDTDataFromKey retrieve value error", "error", err)
 		return esdtData, nil
 	}
 
 	err = e.marshalizer.Unmarshal(esdtData, marshalledData)
 	if err != nil {
-		log.Debug("getESDTDataFromKey unmarshal error", "error", err)
 		return nil, err
 	}
 
