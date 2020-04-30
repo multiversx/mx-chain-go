@@ -16,17 +16,27 @@ type TxProcessorMock struct {
 
 // ProcessTransaction -
 func (etm *TxProcessorMock) ProcessTransaction(transaction *transaction.Transaction) error {
-	return etm.ProcessTransactionCalled(transaction)
+	if etm.ProcessTransactionCalled != nil {
+		return etm.ProcessTransactionCalled(transaction)
+	}
+
+	return nil
 }
 
 // SetBalancesToTrie -
 func (etm *TxProcessorMock) SetBalancesToTrie(accBalance map[string]*big.Int) (rootHash []byte, err error) {
-	return etm.SetBalancesToTrieCalled(accBalance)
+	if etm.SetBalancesToTrieCalled != nil {
+		return etm.SetBalancesToTrieCalled(accBalance)
+	}
+	return nil, nil
 }
 
 // ProcessSmartContractResult -
 func (etm *TxProcessorMock) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) error {
-	return etm.ProcessSmartContractResultCalled(scr)
+	if etm.ProcessSmartContractResultCalled != nil {
+		return etm.ProcessSmartContractResultCalled(scr)
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

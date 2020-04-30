@@ -21,7 +21,6 @@ type TransactionCoordinatorMock struct {
 	CreateBlockStartedCalled                             func()
 	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler,
 		processedMiniBlocksHashes map[string]struct{},
-
 		haveTime func() bool,
 	) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMeCalled func(haveTime func() bool) block.MiniBlockSlice
