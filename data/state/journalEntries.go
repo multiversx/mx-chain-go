@@ -123,7 +123,7 @@ func (jedtu *journalEntryDataTrieUpdates) Revert() (AccountHandler, error) {
 			return nil, err
 		}
 
-		log.Debug("revert data trie update", "key", hex.EncodeToString([]byte(key)), "val", hex.EncodeToString(jedtu.trieUpdates[key]))
+		log.Trace("revert data trie update", "key", hex.EncodeToString([]byte(key)), "val", hex.EncodeToString(jedtu.trieUpdates[key]))
 	}
 
 	rootHash, err := jedtu.account.DataTrie().Root()
