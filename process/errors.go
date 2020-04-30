@@ -737,9 +737,6 @@ var ErrNilVmInput = errors.New("nil vm input")
 // ErrNilDnsAddresses signals that nil dns addresses map was provided
 var ErrNilDnsAddresses = errors.New("nil dns addresses map")
 
-// ErrNilInvalidKeysMap signals that nil invalid keys map was provided
-var ErrNilInvalidKeysMap = errors.New("nil invalid keys map")
-
 // ErrCallerIsNotTheDNSAddress signals that called address is not the DNS address
 var ErrCallerIsNotTheDNSAddress = errors.New("not a dns address")
 

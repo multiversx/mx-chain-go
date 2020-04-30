@@ -50,9 +50,7 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (pr
 		return nil, err
 	}
 
-	mapInvalidKeys := make(map[string]struct{})
-	mapInvalidKeys[esdtKeyPrefix] = struct{}{}
-	newFunc, err = NewSaveKeyValueStorageFunc(gasConfig.BaseOperationCost, gasConfig.BuiltInCost.SaveKeyValue, mapInvalidKeys)
+	newFunc, err = NewSaveKeyValueStorageFunc(gasConfig.BaseOperationCost, gasConfig.BuiltInCost.SaveKeyValue)
 	if err != nil {
 		return nil, err
 	}

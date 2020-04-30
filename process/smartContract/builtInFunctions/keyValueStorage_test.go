@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -24,9 +25,7 @@ func TestSaveKeyValue_ProcessBuiltinFunction(t *testing.T) {
 		CompilePerByte:  1,
 	}
 
-	invalidKeys := make(map[string]struct{})
-	invalidKeys[esdtKeyPrefix] = struct{}{}
-	skv, _ := NewSaveKeyValueStorageFunc(gasConfig, funcGasCost, invalidKeys)
+	skv, _ := NewSaveKeyValueStorageFunc(gasConfig, funcGasCost)
 
 	addr := []byte("addr")
 	acc, _ := state.NewUserAccount(mock.NewAddressMock(addr))
@@ -56,7 +55,7 @@ func TestSaveKeyValue_ProcessBuiltinFunction(t *testing.T) {
 	_, _, err = skv.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.True(t, errors.Is(err, process.ErrOperationNotPermitted))
 
-	key = []byte("esdt")
+	key = []byte(core.ElrondProtectedKeyPrefix + "is the king")
 	value = []byte("value")
 	vmInput.Arguments = [][]byte{key, value}
 

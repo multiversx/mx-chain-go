@@ -4,6 +4,7 @@ package builtInFunctions
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -11,18 +12,19 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-var _ process.BuiltinFunction = (*esdtTransfer)(nil)
+const esdtKeyIdentifier = "esdt"
 
-const esdtKeyPrefix = "esdt"
+var _ process.BuiltinFunction = (*esdtTransfer)(nil)
 
 var zero = big.NewInt(0)
 
 type esdtTransfer struct {
 	funcGasCost uint64
 	marshalizer marshal.Marshalizer
+	keyPrefix   []byte
 }
 
-// NewESDTTransferFunc returns the key-value
+// NewESDTTransferFunc returns the esdt transfer built-in function component
 func NewESDTTransferFunc(
 	funcGasCost uint64,
 	marshalizer marshal.Marshalizer,
@@ -34,6 +36,7 @@ func NewESDTTransferFunc(
 	e := &esdtTransfer{
 		funcGasCost: funcGasCost,
 		marshalizer: marshalizer,
+		keyPrefix:   []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
 	}
 
 	return e, nil
@@ -52,7 +55,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 	}
 
 	gasRemaining := input.GasProvided
-	esdtTokenKey := append([]byte(esdtKeyPrefix), input.Arguments[0]...)
+	esdtTokenKey := append(e.keyPrefix, input.Arguments[0]...)
 	value := big.NewInt(0).SetBytes(input.Arguments[1])
 
 	if !check.IfNil(acntSnd) {
@@ -79,7 +82,10 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 }
 
 func (e *esdtTransfer) addToESDTBalance(userAcnt state.UserAccountHandler, key []byte, value *big.Int) error {
-	esdtData := e.getESDTDataFromKey(userAcnt, key)
+	esdtData, err := e.getESDTDataFromKey(userAcnt, key)
+	if err != nil {
+		return err
+	}
 
 	esdtData.Value.Add(esdtData.Value, value)
 	if esdtData.Value.Cmp(zero) < 0 {
@@ -96,24 +102,24 @@ func (e *esdtTransfer) addToESDTBalance(userAcnt state.UserAccountHandler, key [
 	return nil
 }
 
-func (e *esdtTransfer) getESDTDataFromKey(userAcnt state.UserAccountHandler, key []byte) *ESDigitalToken {
+func (e *esdtTransfer) getESDTDataFromKey(userAcnt state.UserAccountHandler, key []byte) (*ESDigitalToken, error) {
 	esdtData := &ESDigitalToken{Value: big.NewInt(0)}
 	marshalledData, err := userAcnt.DataTrieTracker().RetrieveValue(key)
 	if err != nil {
 		log.Debug("getESDTDataFromKey retrieve value error", "error", err)
-		return esdtData
+		return esdtData, nil
 	}
 
 	err = e.marshalizer.Unmarshal(esdtData, marshalledData)
 	if err != nil {
 		log.Debug("getESDTDataFromKey unmarshal error", "error", err)
-		return esdtData
+		return nil, err
 	}
 
-	return esdtData
+	return esdtData, nil
 }
 
-// IsInterfaceNil return true if underlying object in nil
+// IsInterfaceNil returns true if underlying object in nil
 func (e *esdtTransfer) IsInterfaceNil() bool {
 	return e == nil
 }

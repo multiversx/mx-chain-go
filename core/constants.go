@@ -356,3 +356,6 @@ const MaxRetriesToCreateDB = 10
 
 // SleepTimeBetweenCreateDBRetries represents the number of seconds to sleep between DB creates
 const SleepTimeBetweenCreateDBRetries = 5 * time.Second
+
+// ElrondProtectedKeyPrefix is the key prefix which is protected from writing in the trie - only for special builtin functions
+const ElrondProtectedKeyPrefix = "ELROND"

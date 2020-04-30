@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -13,45 +14,22 @@ import (
 
 var _ process.BuiltinFunction = (*saveKeyValueStorage)(nil)
 
-const numInitCharactersInProtectedKeys = 4
-
 type saveKeyValueStorage struct {
-	gasConfig      BaseOperationCost
-	funcGasCost    uint64
-	mapInvalidKeys map[string]struct{}
+	gasConfig   BaseOperationCost
+	funcGasCost uint64
 }
 
-// NewSaveKeyValueStorageFunc returns the key-value
+// NewSaveKeyValueStorageFunc returns the save key-value storage built in function
 func NewSaveKeyValueStorageFunc(
 	gasConfig BaseOperationCost,
 	funcGasCost uint64,
-	mapInvalidKeys map[string]struct{},
 ) (*saveKeyValueStorage, error) {
-	if mapInvalidKeys == nil {
-		return nil, process.ErrNilInvalidKeysMap
-	}
-
 	s := &saveKeyValueStorage{
 		gasConfig:   gasConfig,
 		funcGasCost: funcGasCost,
 	}
-	s.mapInvalidKeys = make(map[string]struct{}, len(mapInvalidKeys))
-	for key := range mapInvalidKeys {
-		trimmedKey := key[:numInitCharactersInProtectedKeys]
-		s.mapInvalidKeys[trimmedKey] = struct{}{}
-	}
 
 	return s, nil
-}
-
-func (k *saveKeyValueStorage) isAllowedToSaveUnderKey(key []byte) bool {
-	if len(key) < numInitCharactersInProtectedKeys {
-		return true
-	}
-
-	trimmedKey := key[:numInitCharactersInProtectedKeys]
-	_, ok := k.mapInvalidKeys[string(trimmedKey)]
-	return !ok
 }
 
 // ProcessBuiltinFunction will save the value for the selected key
@@ -71,6 +49,9 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 	if !bytes.Equal(input.CallerAddr, acntDst.AddressContainer().Bytes()) {
 		return nil, input.GasProvided, fmt.Errorf("%w not the owner of the account", process.ErrOperationNotPermitted)
 	}
+	if core.IsSmartContractAddress(input.CallerAddr) {
+		return nil, input.GasProvided, fmt.Errorf("%w key-value builtin function not allowed for smart contracts", process.ErrOperationNotPermitted)
+	}
 
 	value := input.Arguments[1]
 	length := uint64(len(value))
@@ -80,7 +61,7 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 	}
 
 	key := input.Arguments[0]
-	if !k.isAllowedToSaveUnderKey(key) {
+	if !process.IsAllowedToSaveUnderKey(key) {
 		return nil, input.GasProvided, fmt.Errorf("%w it is not allowed to save under key %s", process.ErrOperationNotPermitted, key)
 	}
 
