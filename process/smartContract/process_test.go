@@ -1321,8 +1321,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	totalRefund := refundGas.Uint64() * minGasPrice
-	require.Equal(t, currBalance+totalRefund, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
+	require.Equal(t, currBalance, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
 }
 
 func TestScProcessor_processVMOutputNilOutput(t *testing.T) {

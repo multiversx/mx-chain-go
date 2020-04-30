@@ -24,18 +24,18 @@ func TestChangeOwnerAddress_ProcessBuiltinFunction(t *testing.T) {
 		VMInput: vmcommon.VMInput{CallerAddr: owner},
 	}
 
-	_, _, err := coa.ProcessBuiltinFunction(nil, acc, vmInput)
+	_, err := coa.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Equal(t, process.ErrInvalidArguments, err)
 
 	newAddr := []byte("0000")
 	vmInput.Arguments = [][]byte{newAddr}
-	_, _, err = coa.ProcessBuiltinFunction(nil, acc, nil)
+	_, err = coa.ProcessBuiltinFunction(nil, acc, nil)
 	require.Equal(t, process.ErrNilVmInput, err)
 
-	_, _, err = coa.ProcessBuiltinFunction(nil, nil, vmInput)
+	_, err = coa.ProcessBuiltinFunction(nil, nil, vmInput)
 	require.Equal(t, process.ErrNilSCDestAccount, err)
 
 	acc.OwnerAddress = owner
-	_, _, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
+	_, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Nil(t, err)
 }

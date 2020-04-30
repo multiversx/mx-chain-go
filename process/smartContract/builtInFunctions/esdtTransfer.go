@@ -2,6 +2,7 @@
 package builtInFunctions
 
 import (
+	"encoding/hex"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -45,40 +46,50 @@ func NewESDTTransferFunc(
 // ProcessBuiltinFunction will transfer the underlying esdt balance of the account
 func (e *esdtTransfer) ProcessBuiltinFunction(
 	acntSnd, acntDst state.UserAccountHandler,
-	input *vmcommon.ContractCallInput,
-) (*big.Int, uint64, error) {
-	if input == nil {
-		return nil, 0, process.ErrNilVmInput
+	vmInput *vmcommon.ContractCallInput,
+) (*vmcommon.VMOutput, error) {
+	if vmInput == nil {
+		return nil, process.ErrNilVmInput
 	}
-	if len(input.Arguments) != 2 {
-		return nil, input.GasProvided, process.ErrInvalidArguments
+	if len(vmInput.Arguments) != 2 {
+		return nil, process.ErrInvalidArguments
 	}
 
-	gasRemaining := input.GasProvided
-	esdtTokenKey := append(e.keyPrefix, input.Arguments[0]...)
-	value := big.NewInt(0).SetBytes(input.Arguments[1])
+	gasRemaining := vmInput.GasProvided
+	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
+	value := big.NewInt(0).SetBytes(vmInput.Arguments[1])
 
 	if !check.IfNil(acntSnd) {
 		// gas is payed only by sender
-		if input.GasProvided < e.funcGasCost {
-			return nil, input.GasProvided, process.ErrNotEnoughGas
+		if vmInput.GasProvided < e.funcGasCost {
+			return nil, process.ErrNotEnoughGas
 		}
 
-		gasRemaining = input.GasProvided - e.funcGasCost
+		gasRemaining = vmInput.GasProvided - e.funcGasCost
 		err := e.addToESDTBalance(acntSnd, esdtTokenKey, big.NewInt(0).Neg(value))
 		if err != nil {
-			return nil, input.GasProvided, err
+			return nil, err
 		}
 	}
+
+	vmOutPut := &vmcommon.VMOutput{GasRemaining: gasRemaining}
 
 	if !check.IfNil(acntDst) {
 		err := e.addToESDTBalance(acntDst, esdtTokenKey, value)
 		if err != nil {
-			return nil, input.GasProvided, err
+			return nil, err
+		}
+	} else if core.IsSmartContractAddress(vmInput.CallerAddr) {
+		// cross-shard ESDT transfer call through a smart contract - needs the storage update in order to create the smart contract result
+		esdtTransferTxData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(vmInput.Arguments[0]) + "@" + hex.EncodeToString(vmInput.Arguments[1])
+		vmOutPut.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
+		vmOutPut.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
+			Address: vmInput.RecipientAddr,
+			Data:    []byte(esdtTransferTxData),
 		}
 	}
 
-	return nil, gasRemaining, nil
+	return vmOutPut, nil
 }
 
 func (e *esdtTransfer) addToESDTBalance(userAcnt state.UserAccountHandler, key []byte, value *big.Int) error {

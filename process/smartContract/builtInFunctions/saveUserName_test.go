@@ -29,20 +29,20 @@ func TestSaveUserName_ProcessBuiltinFunction(t *testing.T) {
 		VMInput: vmcommon.VMInput{CallerAddr: dnsAddr, GasProvided: 50},
 	}
 
-	_, _, err := coa.ProcessBuiltinFunction(nil, acc, vmInput)
+	_, err := coa.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Equal(t, process.ErrInvalidArguments, err)
 
-	_, _, err = coa.ProcessBuiltinFunction(nil, acc, nil)
+	_, err = coa.ProcessBuiltinFunction(nil, acc, nil)
 	require.Equal(t, process.ErrNilVmInput, err)
 
-	_, _, err = coa.ProcessBuiltinFunction(nil, nil, vmInput)
+	_, err = coa.ProcessBuiltinFunction(nil, nil, vmInput)
 	require.Equal(t, process.ErrNilSCDestAccount, err)
 
 	newUserName := []byte("afafafafafafafafafafafafafafafaf")
 	vmInput.Arguments = [][]byte{newUserName}
-	_, _, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
+	_, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Nil(t, err)
 
-	_, _, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
+	_, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Equal(t, process.ErrUserNameChangeIsDisabled, err)
 }

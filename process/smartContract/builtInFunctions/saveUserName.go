@@ -1,8 +1,6 @@
 package builtInFunctions
 
 import (
-	"math/big"
-
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -45,34 +43,34 @@ func NewSaveUserNameFunc(
 func (s *saveUserName) ProcessBuiltinFunction(
 	_, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
-) (*big.Int, uint64, error) {
+) (*vmcommon.VMOutput, error) {
 	if vmInput == nil {
-		return big.NewInt(0), 0, process.ErrNilVmInput
+		return nil, process.ErrNilVmInput
 	}
 	if check.IfNil(acntDst) {
-		return big.NewInt(0), vmInput.GasProvided, process.ErrNilSCDestAccount
+		return nil, process.ErrNilSCDestAccount
 	}
 
 	_, ok := s.mapDnsAddresses[string(vmInput.CallerAddr)]
 	if !ok {
-		return big.NewInt(0), vmInput.GasProvided, process.ErrCallerIsNotTheDNSAddress
+		return nil, process.ErrCallerIsNotTheDNSAddress
 	}
 
 	if len(vmInput.Arguments) == 0 || len(vmInput.Arguments[0]) != userNameHashLength {
-		return big.NewInt(0), vmInput.GasProvided, process.ErrInvalidArguments
+		return nil, process.ErrInvalidArguments
 	}
 	if vmInput.GasProvided < s.gasCost {
-		return big.NewInt(0), vmInput.GasProvided, process.ErrNotEnoughGas
+		return nil, process.ErrNotEnoughGas
 	}
 
 	currentUserName := acntDst.GetUserName()
 	if !s.enableChange && len(currentUserName) > 0 {
-		return big.NewInt(0), vmInput.GasProvided, process.ErrUserNameChangeIsDisabled
+		return nil, process.ErrUserNameChangeIsDisabled
 	}
 
 	acntDst.SetUserName(vmInput.Arguments[0])
 
-	return big.NewInt(0), s.gasCost, nil
+	return &vmcommon.VMOutput{GasRemaining: vmInput.GasProvided - s.gasCost}, nil
 }
 
 // IsInterfaceNil returns true if underlying object in nil

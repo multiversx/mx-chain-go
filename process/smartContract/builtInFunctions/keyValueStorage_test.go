@@ -33,32 +33,32 @@ func TestSaveKeyValue_ProcessBuiltinFunction(t *testing.T) {
 		VMInput: vmcommon.VMInput{CallerAddr: addr, GasProvided: 50},
 	}
 
-	_, _, err := skv.ProcessBuiltinFunction(nil, acc, vmInput)
+	_, err := skv.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Equal(t, process.ErrInvalidArguments, err)
 
-	_, _, err = skv.ProcessBuiltinFunction(nil, acc, nil)
+	_, err = skv.ProcessBuiltinFunction(nil, acc, nil)
 	require.Equal(t, process.ErrNilVmInput, err)
 
 	key := []byte("key")
 	value := []byte("value")
 	vmInput.Arguments = [][]byte{key, value}
 
-	_, _, err = skv.ProcessBuiltinFunction(nil, nil, vmInput)
+	_, err = skv.ProcessBuiltinFunction(nil, nil, vmInput)
 	require.Equal(t, process.ErrNilSCDestAccount, err)
 
-	_, _, err = skv.ProcessBuiltinFunction(nil, acc, vmInput)
+	_, err = skv.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Nil(t, err)
 	retrievedValue, _ := acc.DataTrieTracker().RetrieveValue(key)
 	require.True(t, bytes.Equal(retrievedValue, value))
 
 	vmInput.CallerAddr = []byte("other")
-	_, _, err = skv.ProcessBuiltinFunction(nil, acc, vmInput)
+	_, err = skv.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.True(t, errors.Is(err, process.ErrOperationNotPermitted))
 
 	key = []byte(core.ElrondProtectedKeyPrefix + "is the king")
 	value = []byte("value")
 	vmInput.Arguments = [][]byte{key, value}
 
-	_, _, err = skv.ProcessBuiltinFunction(nil, acc, vmInput)
+	_, err = skv.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.True(t, errors.Is(err, process.ErrOperationNotPermitted))
 }
