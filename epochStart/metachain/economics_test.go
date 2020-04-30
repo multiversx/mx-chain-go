@@ -301,12 +301,19 @@ func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {
 func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 	t.Parallel()
 
+	commAddress := "communityAddress"
 	totalSupply := big.NewInt(20000000000) // 20B
 	accFeesInEpoch := big.NewInt(0)
 	roundDur := 4
 	args := getArguments()
 	args.RewardsHandler = &mock.RewardsHandlerStub{
 		MaxInflationRateCalled: func() float64 {
+			return 0.1
+		},
+		CommunityAddressCalled: func() string {
+			return commAddress
+		},
+		CommunityPercentageCalled: func() float64 {
 			return 0.1
 		},
 	}
@@ -326,6 +333,8 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 				TotalNewlyMinted:       big.NewInt(10),
 				RewardsPerBlockPerNode: big.NewInt(10),
 				NodePrice:              big.NewInt(10),
+				CommunityAddress:       []byte(commAddress),
+				RewardsForCommunity:    big.NewInt(10),
 			},
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{ShardID: 0, Nonce: 0},
@@ -361,6 +370,9 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 		expectedTotalToDistribute := big.NewInt(int64(expRwdPerBlock * numBlocksInEpoch * 3)) // 2 shards + meta
 		expectedTotalNewlyMinted := big.NewInt(0).Sub(expectedTotalToDistribute, accFeesInEpoch)
 		expectedTotalSupply := big.NewInt(0).Add(totalSupply, expectedTotalNewlyMinted)
+		expectedCommunityRewards := big.NewInt(0).Div(expectedTotalToDistribute, big.NewInt(10))
+		commRewardPerBlock := big.NewInt(0).Div(expectedCommunityRewards, big.NewInt(int64(numBlocksInEpoch*3)))
+		adjustedRwdPerBlock := big.NewInt(0).Sub(big.NewInt(int64(expRwdPerBlock)), commRewardPerBlock)
 
 		mb := block.MetaBlock{
 			Round: uint64(numBlocksInEpoch),
@@ -374,9 +386,11 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 					TotalSupply:            expectedTotalSupply,
 					TotalToDistribute:      expectedTotalToDistribute,
 					TotalNewlyMinted:       expectedTotalNewlyMinted,
-					RewardsPerBlockPerNode: big.NewInt(int64(expRwdPerBlock)),
+					RewardsPerBlockPerNode: adjustedRwdPerBlock,
 					NodePrice:              big.NewInt(10),
 					PrevEpochStartHash:     hdrPrevEpochStartHash,
+					CommunityAddress:       []byte(commAddress),
+					RewardsForCommunity:    expectedCommunityRewards,
 				},
 			},
 			Epoch:                  1,
