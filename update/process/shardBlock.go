@@ -71,23 +71,26 @@ func (s *shardBlockCreator) CreateNewBlock(
 	nonce uint64,
 	epoch uint32,
 ) (data.HeaderHandler, data.BodyHandler, error) {
+	rootHash, err := s.pendingTxProcessor.RootHash()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	shardHeader := &block.Header{
 		Nonce:           nonce,
 		ShardID:         s.shardCoordinator.SelfId(),
 		Round:           round,
 		Epoch:           epoch,
 		ChainID:         []byte(chainID),
+		RootHash:        rootHash,
+		RandSeed:        rootHash,
+		PrevHash:        rootHash,
+		PrevRandSeed:    rootHash,
 		AccumulatedFees: big.NewInt(0),
 		PubKeysBitmap:   []byte{1},
 	}
 
 	blockBody, err := s.createBody()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	shardHeader.MiniBlockHeaders = nil
-	shardHeader.RootHash, err = s.pendingTxProcessor.RootHash()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -129,15 +132,11 @@ func (s *shardBlockCreator) createBody() (*block.Body, error) {
 		return nil, err
 	}
 
-	blockBody := &block.Body{
-		MiniBlocks: make([]*block.MiniBlock, 0),
-	}
-
 	postProcessMiniBlocks := s.txCoordinator.CreatePostProcessMiniBlocks()
-	blockBody.MiniBlocks = append(blockBody.MiniBlocks, dstMeMiniBlocks...)
-	blockBody.MiniBlocks = append(blockBody.MiniBlocks, postProcessMiniBlocks...)
 
-	return blockBody, nil
+	return &block.Body{
+		MiniBlocks: append(dstMeMiniBlocks, postProcessMiniBlocks...),
+	}, nil
 }
 
 func (s *shardBlockCreator) createMiniBlockHeaders(body *block.Body) (int, []block.MiniBlockHeader, error) {

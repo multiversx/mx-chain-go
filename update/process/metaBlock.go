@@ -58,7 +58,6 @@ func (m *metaBlockCreator) CreateNewBlock(
 	nonce uint64,
 	epoch uint32,
 ) (data.HeaderHandler, data.BodyHandler, error) {
-
 	validatorAccounts := m.importHandler.GetValidatorAccountsDB()
 	if check.IfNil(validatorAccounts) {
 		return nil, nil, update.ErrNilAccounts
