@@ -9,10 +9,10 @@ import (
 
 // AccountsStub -
 type AccountsStub struct {
-	GetExistingAccountCalled func(addressContainer state.AddressContainer) (state.AccountHandler, error)
-	LoadAccountCalled        func(container state.AddressContainer) (state.AccountHandler, error)
+	GetExistingAccountCalled func(address []byte) (state.AccountHandler, error)
+	LoadAccountCalled        func(address []byte) (state.AccountHandler, error)
 	SaveAccountCalled        func(account state.AccountHandler) error
-	RemoveAccountCalled      func(addressContainer state.AddressContainer) error
+	RemoveAccountCalled      func(address []byte) error
 	CommitCalled             func() ([]byte, error)
 	JournalLenCalled         func() int
 	RevertToSnapshotCalled   func(snapshot int) error
@@ -26,13 +26,15 @@ type AccountsStub struct {
 	GetAllLeavesCalled       func(rootHash []byte) (map[string][]byte, error)
 }
 
-func (as *AccountsStub) LoadAccount(address state.AddressContainer) (state.AccountHandler, error) {
+// LoadAccount -
+func (as *AccountsStub) LoadAccount(address []byte) (state.AccountHandler, error) {
 	if as.LoadAccountCalled != nil {
 		return as.LoadAccountCalled(address)
 	}
 	return nil, nil
 }
 
+// SaveAccount -
 func (as *AccountsStub) SaveAccount(account state.AccountHandler) error {
 	if as.SaveAccountCalled != nil {
 		return as.SaveAccountCalled(account)
@@ -60,9 +62,9 @@ func (as *AccountsStub) Commit() ([]byte, error) {
 }
 
 // GetExistingAccount -
-func (as *AccountsStub) GetExistingAccount(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+func (as *AccountsStub) GetExistingAccount(address []byte) (state.AccountHandler, error) {
 	if as.GetExistingAccountCalled != nil {
-		return as.GetExistingAccountCalled(addressContainer)
+		return as.GetExistingAccountCalled(address)
 	}
 
 	return nil, errNotImplemented
@@ -78,9 +80,9 @@ func (as *AccountsStub) JournalLen() int {
 }
 
 // RemoveAccount -
-func (as *AccountsStub) RemoveAccount(addressContainer state.AddressContainer) error {
+func (as *AccountsStub) RemoveAccount(address []byte) error {
 	if as.RemoveAccountCalled != nil {
-		return as.RemoveAccountCalled(addressContainer)
+		return as.RemoveAccountCalled(address)
 	}
 
 	return errNotImplemented

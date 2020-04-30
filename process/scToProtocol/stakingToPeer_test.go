@@ -237,7 +237,7 @@ func TestStakingToPeer_UpdateProtocolWrongAccountShouldErr(t *testing.T) {
 	}
 
 	peerState := &mock.AccountsStub{}
-	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return &mock.AccountWrapMock{}, nil
 	}
 
@@ -269,15 +269,15 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 	}
 
 	peerState := &mock.AccountsStub{}
-	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		peerAcc, _ := state.NewPeerAccount(addressContainer)
+	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		peerAcc, _ := state.NewPeerAccount(address)
 		_ = peerAcc.SetRewardAddress([]byte("addr"))
 		_ = peerAcc.SetBLSPublicKey([]byte("BlsAddr"))
 		_ = peerAcc.SetStake(big.NewInt(100))
 
 		return peerAcc, nil
 	}
-	peerState.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
+	peerState.RemoveAccountCalled = func(address []byte) error {
 		return nil
 	}
 
@@ -322,8 +322,8 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 	}
 
 	peerState := &mock.AccountsStub{}
-	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		peerAcc, _ := state.NewPeerAccount(addressContainer)
+	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		peerAcc, _ := state.NewPeerAccount(address)
 		_ = peerAcc.SetRewardAddress([]byte("key"))
 		_ = peerAcc.SetStake(big.NewInt(100))
 
@@ -385,8 +385,8 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 		},
 	}
 
-	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		peerAccount, _ := state.NewPeerAccount(addressContainer)
+	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		peerAccount, _ := state.NewPeerAccount(address)
 		peerAccount.Stake = big.NewInt(0)
 		peerAccount.RewardAddress = []byte(address)
 		return peerAccount, nil
@@ -447,8 +447,8 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 			return testError
 		},
 	}
-	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{})
+	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		peerAccount, _ := state.NewPeerAccount([]byte("1234"))
 		peerAccount.Stake = big.NewInt(100)
 		peerAccount.BLSPublicKey = []byte(address)
 		peerAccount.Nonce = 1
@@ -509,8 +509,8 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 			return nil
 		},
 	}
-	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{})
+	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		peerAccount, _ := state.NewPeerAccount([]byte("1234"))
 		peerAccount.Stake = big.NewInt(100)
 		peerAccount.BLSPublicKey = []byte(address)
 		peerAccount.Nonce = 1
@@ -572,8 +572,8 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 			return testError
 		},
 	}
-	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{})
+	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		peerAccount, _ := state.NewPeerAccount([]byte("1234"))
 		peerAccount.Stake = big.NewInt(100)
 		peerAccount.BLSPublicKey = []byte(address)
 		peerAccount.IndexInList = 1

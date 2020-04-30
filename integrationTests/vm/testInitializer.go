@@ -69,7 +69,7 @@ type accountFactory struct {
 }
 
 // CreateAccount -
-func (af *accountFactory) CreateAccount(address state.AddressContainer) (state.AccountHandler, error) {
+func (af *accountFactory) CreateAccount(address []byte) (state.AccountHandler, error) {
 	return state.NewUserAccount(address)
 }
 
@@ -79,10 +79,10 @@ func (af *accountFactory) IsInterfaceNil() bool {
 }
 
 // CreateEmptyAddress -
-func CreateEmptyAddress() state.AddressContainer {
+func CreateEmptyAddress() []byte {
 	buff := make([]byte, testHasher.Size())
 
-	return state.NewAddress(buff)
+	return buff
 }
 
 // CreateMemUnit -
@@ -126,12 +126,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 
 // CreateAccount -
 func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, balance *big.Int) ([]byte, error) {
-	address, err := pubkeyConv.CreateAddressFromBytes(pubKey)
-	if err != nil {
-		return nil, err
-	}
-
-	account, err := accnts.LoadAccount(address)
+	account, err := accnts.LoadAccount(pubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -381,8 +376,7 @@ func TestDeployedContractContents(
 ) {
 
 	scCodeBytes, _ := hex.DecodeString(scCode)
-	destinationAddress, _ := pubkeyConv.CreateAddressFromBytes(destinationAddressBytes)
-	destinationRecovAccount, _ := accnts.GetExistingAccount(destinationAddress)
+	destinationRecovAccount, _ := accnts.GetExistingAccount(destinationAddressBytes)
 	destinationRecovShardAccount, ok := destinationRecovAccount.(state.UserAccountHandler)
 
 	assert.True(t, ok)
@@ -409,8 +403,7 @@ func TestDeployedContractContents(
 
 // AccountExists -
 func AccountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
-	address, _ := pubkeyConv.CreateAddressFromBytes(addressBytes)
-	accnt, _ := accnts.GetExistingAccount(address)
+	accnt, _ := accnts.GetExistingAccount(addressBytes)
 
 	return accnt != nil
 }
@@ -503,7 +496,7 @@ func CreateDeployTx(
 		Nonce:    senderNonce,
 		Value:    new(big.Int).Set(value),
 		SndAddr:  senderAddressBytes,
-		RcvAddr:  CreateEmptyAddress().Bytes(),
+		RcvAddr:  CreateEmptyAddress(),
 		Data:     []byte(scCodeAndVMType),
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
@@ -519,8 +512,7 @@ func TestAccount(
 	expectedBalance *big.Int,
 ) *big.Int {
 
-	senderAddress, _ := pubkeyConv.CreateAddressFromBytes(senderAddressBytes)
-	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddress)
+	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddressBytes)
 	senderRecovShardAccount := senderRecovAccount.(state.UserAccountHandler)
 
 	assert.Equal(t, expectedNonce, senderRecovShardAccount.GetNonce())
@@ -545,8 +537,7 @@ func ComputeExpectedBalance(
 
 // GetAccountsBalance -
 func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int {
-	address, _ := pubkeyConv.CreateAddressFromBytes(addrBytes)
-	accnt, _ := accnts.GetExistingAccount(address)
+	accnt, _ := accnts.GetExistingAccount(addrBytes)
 	shardAccnt, _ := accnt.(state.UserAccountHandler)
 
 	return shardAccnt.GetBalance()

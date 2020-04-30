@@ -332,7 +332,7 @@ func (si *stateImport) importState(fileName string, trieKey string) error {
 			break
 		}
 
-		if !bytes.Equal(account.AddressContainer().Bytes(), address) {
+		if !bytes.Equal(account.AddressBytes(), address) {
 			return update.ErrHashMissmatch
 		}
 

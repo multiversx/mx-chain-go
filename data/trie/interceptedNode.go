@@ -7,7 +7,6 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -117,7 +116,7 @@ func (inTn *InterceptedTrieNode) Nonce() uint64 {
 }
 
 // SenderAddress returns nil
-func (inTn *InterceptedTrieNode) SenderAddress() state.AddressContainer {
+func (inTn *InterceptedTrieNode) SenderAddress() []byte {
 	return nil
 }
 
