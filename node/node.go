@@ -960,11 +960,11 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		}
 	}
 	argPeerTypeProvider := peer.ArgPeerTypeProvider{
-		NodesCoordinator:          n.nodesCoordinator,
-		EpochHandler:              n.epochStartTrigger,
-		EpochStartEventNotifier:   n.epochStartRegistrationHandler,
-		ValidatorsProvider:        n.validatorsProvider,
-		CacheRefreshIntervalInSec: hbConfig.PeerTypeRefreshIntervalInSec,
+		NodesCoordinator:             n.nodesCoordinator,
+		EpochHandler:                 n.epochStartTrigger,
+		EpochStartEventNotifier:      n.epochStartRegistrationHandler,
+		ValidatorsProvider:           n.validatorsProvider,
+		CacheRefreshIntervalDuration: time.Duration(hbConfig.PeerTypeRefreshIntervalInSec) * time.Second,
 	}
 
 	peerTypeProvider, err := peer.NewPeerTypeProvider(argPeerTypeProvider)
