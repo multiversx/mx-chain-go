@@ -49,12 +49,21 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) {
 	defer listForSender.mutex.Unlock()
 
 	nonce := tx.Tx.GetNonce()
-	mark := listForSender.findTxWithLowerNonce(nonce)
+	gasPrice := tx.Tx.GetGasPrice()
+	placeToInsert := listForSender.findTxWithLowerNonce(nonce)
+	hasLowestNonce := placeToInsert == nil
 
-	if mark == nil {
+	if hasLowestNonce {
 		listForSender.items.PushFront(tx)
 	} else {
-		listForSender.items.InsertAfter(tx, mark)
+		sibling := placeToInsert.Value.(*WrappedTransaction)
+		gasPriceOfSibling := sibling.Tx.GetGasPrice()
+
+		if gasPrice > gasPriceOfSibling {
+			listForSender.items.InsertBefore(tx, placeToInsert)
+		} else {
+			listForSender.items.InsertAfter(tx, placeToInsert)
+		}
 	}
 
 	listForSender.onAddedTransaction(tx)
