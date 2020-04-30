@@ -3,7 +3,6 @@ generateConfig() {
 
   pushd $TESTNETDIR/filegen
   ./filegen \
-    -mint-value $MINT_VALUE                               \
     -num-of-shards $SHARDCOUNT                            \
     -num-of-nodes-in-each-shard $SHARD_VALIDATORCOUNT     \
     -num-of-observers-in-each-shard $SHARD_OBSERVERCOUNT  \

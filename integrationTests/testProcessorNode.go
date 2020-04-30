@@ -32,13 +32,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
-	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
+	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -70,6 +69,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/pkg/errors"
@@ -817,7 +817,6 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestAddressPubkeyConverter,
 		tpn.Storage,
 		tpn.DataPool,
-		tpn.EconomicsData.EconomicsData,
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
@@ -830,7 +829,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	)
 
 	gasSchedule := arwenConfig.MakeGasMap(1)
-	vm.FillGasMapInternal(gasSchedule, 1)
+	defaults.FillGasMapInternal(gasSchedule, 1)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:          gasSchedule,
 		MapDNSAddresses: make(map[string]struct{}),
@@ -979,11 +978,11 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		BuiltInFunctions: builtInFuncs,
 	}
 	gasSchedule := make(map[string]map[string]uint64)
-	vm.FillGasMapInternal(gasSchedule, 1)
+	defaults.FillGasMapInternal(gasSchedule, 1)
 	vmFactory, _ := metaProcess.NewVMContainerFactory(
 		argsHook,
 		tpn.EconomicsData.EconomicsData,
-		&genesis.NilMessageSignVerifier{},
+		&disabled.MessageSignVerifier{},
 		gasSchedule,
 		tpn.NodesSetup,
 	)

@@ -129,7 +129,7 @@ type TransactionCoordinator interface {
 		haveTime func() bool,
 	) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool) block.MiniBlockSlice
-
+	CreatePostProcessMiniBlocks() block.MiniBlockSlice
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
 

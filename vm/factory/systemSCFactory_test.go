@@ -4,15 +4,15 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	vm2 "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule = vm2.FillGasMapInternal(gasSchedule, 1)
+	gasSchedule = defaults.FillGasMapInternal(gasSchedule, 1)
 
 	return ArgsNewSystemSCFactory{
 		SystemEI:            &mock.SystemEIStub{},

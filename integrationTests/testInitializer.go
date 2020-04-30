@@ -39,11 +39,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/display"
-	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
+	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -56,6 +55,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -510,13 +510,13 @@ func CreateGenesisMetaBlock(
 	rootHash []byte,
 ) data.HeaderHandler {
 	gasSchedule := make(map[string]map[string]uint64)
-	vm.FillGasMapInternal(gasSchedule, 1)
+	defaults.FillGasMapInternal(gasSchedule, 1)
 
-	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
+	argsMetaGenesis := genesisProcess.ArgsGenesisBlockCreator{
 		GenesisTime:              0,
 		Accounts:                 accounts,
 		PubkeyConv:               pubkeyConv,
-		NodesSetup:               nodesSetup,
+		InitialNodesSetup:        nodesSetup,
 		ShardCoordinator:         shardCoordinator,
 		Store:                    store,
 		Blkc:                     blkc,
@@ -527,6 +527,9 @@ func CreateGenesisMetaBlock(
 		Economics:                economics,
 		ValidatorStatsRootHash:   rootHash,
 		GasMap:                   gasSchedule,
+		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
+		VirtualMachineConfig:     config.VirtualMachineConfig{},
+		HardForkConfig:           config.HardforkConfig{},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
@@ -546,11 +549,14 @@ func CreateGenesisMetaBlock(
 		argsMetaGenesis.DataPool = newDataPool
 	}
 
-	metaHdr, err := genesis.CreateMetaGenesisBlock(argsMetaGenesis)
+	metaHdr, err := genesisProcess.CreateMetaGenesisBlock(argsMetaGenesis)
 	log.LogIfError(err)
 
-	fmt.Printf("meta genesis root hash %s \n", hex.EncodeToString(metaHdr.GetRootHash()))
-	fmt.Printf("meta genesis validatorStatistics %d %s \n", shardCoordinator.SelfId(), hex.EncodeToString(metaHdr.GetValidatorStatsRootHash()))
+	log.Info("meta genesis root hash", "hash", hex.EncodeToString(metaHdr.GetRootHash()))
+	log.Info("meta genesis validatorStatistics",
+		"shardID", shardCoordinator.SelfId(),
+		"hash", hex.EncodeToString(metaHdr.GetValidatorStatsRootHash()),
+	)
 
 	return metaHdr
 }

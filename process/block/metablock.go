@@ -80,6 +80,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		return nil, process.ErrNilValidatorStatistics
 	}
 
+	genesisHdr := arguments.BlockChain.GetGenesisHeader()
 	base := &baseProcessor{
 		accountsDB:             arguments.AccountsDB,
 		blockSizeThrottler:     arguments.BlockSizeThrottler,
@@ -103,6 +104,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		dataPool:               arguments.DataPool,
 		blockChain:             arguments.BlockChain,
 		stateCheckpointModulus: arguments.StateCheckpointModulus,
+		genesisNonce:           genesisHdr.GetNonce(),
 	}
 
 	mp := metaProcessor{
@@ -799,6 +801,10 @@ func (mp *metaProcessor) createMiniBlocks(
 	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
+func (mp *metaProcessor) isGenesisShardBlockAndFirstMeta(shardHdrNonce uint64) bool {
+	return shardHdrNonce == mp.genesisNonce && check.IfNil(mp.blockChain.GetCurrentBlockHeader())
+}
+
 // full verification through metachain header
 func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	haveTime func() bool,
@@ -831,7 +837,8 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 		}
 
 		lastShardHdr[shardID] = lastCrossNotarizedHeaderForShard
-		mp.hdrsForCurrBlock.hdrHashAndInfo[string(hash)] = &hdrInfo{hdr: lastCrossNotarizedHeaderForShard, usedInBlock: false}
+		usedInBlock := mp.isGenesisShardBlockAndFirstMeta(lastCrossNotarizedHeaderForShard.GetNonce())
+		mp.hdrsForCurrBlock.hdrHashAndInfo[string(hash)] = &hdrInfo{hdr: lastCrossNotarizedHeaderForShard, usedInBlock: usedInBlock}
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
@@ -1204,8 +1211,8 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 	metaBlock *block.MetaBlock,
 	shardID uint32,
 ) (data.HeaderHandler, []byte) {
-	lastNotarizedMetaHeader, lastNotarizedMetaHeaderHash, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardID)
 
+	lastNotarizedMetaHeader, lastNotarizedMetaHeaderHash, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardID)
 	if err != nil {
 		log.Warn("getLastSelfNotarizedHeaderByShard.GetLastSelfNotarizedHeader",
 			"shard", shardID,
@@ -1214,7 +1221,6 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 	}
 
 	maxNotarizedNonce := lastNotarizedMetaHeader.GetNonce()
-
 	for _, shardData := range metaBlock.ShardInfo {
 		if shardData.ShardID != shardID {
 			continue
@@ -1425,7 +1431,8 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 		}
 
 		lastCrossNotarizedHeader[shardID] = lastCrossNotarizedHeaderForShard
-		mp.hdrsForCurrBlock.hdrHashAndInfo[string(hash)] = &hdrInfo{hdr: lastCrossNotarizedHeaderForShard, usedInBlock: false}
+		usedInBlock := mp.isGenesisShardBlockAndFirstMeta(lastCrossNotarizedHeaderForShard.GetNonce())
+		mp.hdrsForCurrBlock.hdrHashAndInfo[string(hash)] = &hdrInfo{hdr: lastCrossNotarizedHeaderForShard, usedInBlock: usedInBlock}
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
@@ -1438,9 +1445,11 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 
 	for shardID, hdrsForShard := range usedShardHdrs {
 		for _, shardHdr := range hdrsForShard {
-			err := mp.headerValidator.IsHeaderConstructionValid(shardHdr, lastCrossNotarizedHeader[shardID])
-			if err != nil {
-				return nil, fmt.Errorf("%w : checkShardHeadersValidity -> isHdrConstructionValid", err)
+			if !mp.isGenesisShardBlockAndFirstMeta(shardHdr.GetNonce()) {
+				err := mp.headerValidator.IsHeaderConstructionValid(shardHdr, lastCrossNotarizedHeader[shardID])
+				if err != nil {
+					return nil, fmt.Errorf("%w : checkShardHeadersValidity -> isHdrConstructionValid", err)
+				}
 			}
 
 			lastCrossNotarizedHeader[shardID] = shardHdr
@@ -1480,7 +1489,9 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 }
 
 // check if shard headers are final by checking if newer headers were constructed upon them
-func (mp *metaProcessor) checkShardHeadersFinality(highestNonceHdrs map[uint32]data.HeaderHandler) error {
+func (mp *metaProcessor) checkShardHeadersFinality(
+	highestNonceHdrs map[uint32]data.HeaderHandler,
+) error {
 	finalityAttestingShardHdrs := mp.sortHeadersForCurrentBlockByNonce(false)
 
 	var errFinal error
@@ -1491,6 +1502,10 @@ func (mp *metaProcessor) checkShardHeadersFinality(highestNonceHdrs map[uint32]d
 		}
 		if lastVerifiedHdr.GetShardID() != shardId {
 			return process.ErrShardIdMissmatch
+		}
+		isGenesisShardBlockAndFirstMeta := mp.isGenesisShardBlockAndFirstMeta(lastVerifiedHdr.GetNonce())
+		if isGenesisShardBlockAndFirstMeta {
+			continue
 		}
 
 		// verify if there are "K" block after current to make this one final
@@ -1630,8 +1645,11 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	for i := 0; i < len(metaBlock.ShardInfo); i++ {
-		shardData := metaBlock.ShardInfo[i]
+	for _, shardData := range metaBlock.ShardInfo {
+		if shardData.Nonce == mp.genesisNonce {
+			continue
+		}
+
 		hdr, err := process.GetShardHeaderFromPool(
 			shardData.HeaderHash,
 			mp.dataPool.Headers())
@@ -1816,7 +1834,7 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 	metaHdr.TxCount += uint32(totalTxCount)
 
 	sw.Start("UpdatePeerState")
-	mp.addCurrentBlockHeaderToInternalMap()
+	mp.prepareBlockHeaderInternalMapForValidatorProcessor()
 	metaHdr.ValidatorStatsRootHash, err = mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr, mp.hdrsForCurrBlock.getHdrHashMap())
 	sw.Stop("UpdatePeerState")
 	if err != nil {
@@ -1832,7 +1850,7 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr *block.MetaBlock, bodyHandler
 	return body, nil
 }
 
-func (mp *metaProcessor) addCurrentBlockHeaderToInternalMap() {
+func (mp *metaProcessor) prepareBlockHeaderInternalMapForValidatorProcessor() {
 	currentBlockHeader := mp.blockChain.GetCurrentBlockHeader()
 	currentBlockHeaderHash := mp.blockChain.GetCurrentBlockHeaderHash()
 
@@ -1847,7 +1865,7 @@ func (mp *metaProcessor) addCurrentBlockHeaderToInternalMap() {
 }
 
 func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlock) error {
-	mp.addCurrentBlockHeaderToInternalMap()
+	mp.prepareBlockHeaderInternalMapForValidatorProcessor()
 	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, mp.hdrsForCurrBlock.getHdrHashMap())
 	if err != nil {
 		return err

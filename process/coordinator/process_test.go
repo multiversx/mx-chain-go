@@ -20,7 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -545,7 +544,6 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 }
 
 func createInterimProcessorContainer() process.IntermediateProcessorContainer {
-	economicsData := &economics.EconomicsData{}
 	preFactory, _ := shard.NewIntermediateProcessorsContainerFactory(
 		mock.NewMultiShardsCoordinatorMock(5),
 		&mock.MarshalizerMock{},
@@ -553,7 +551,6 @@ func createInterimProcessorContainer() process.IntermediateProcessorContainer {
 		createMockPubkeyConverter(),
 		initStore(),
 		initDataPool([]byte("test_hash1")),
-		economicsData,
 	)
 	container, _ := preFactory.Create()
 
@@ -2265,7 +2262,6 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testing.T) {
 	t.Parallel()
 
-	economicsData := &economics.EconomicsData{}
 	txHash := []byte("txHash")
 	tdp := initDataPool(txHash)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
@@ -2276,7 +2272,6 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		tdp,
-		economicsData,
 	)
 	container, _ := preFactory.Create()
 
@@ -2330,7 +2325,6 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsNilOrMiss(t *testi
 func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 	t.Parallel()
 
-	economicsData := &economics.EconomicsData{}
 	txHash := []byte("txHash")
 	tdp := initDataPool(txHash)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
@@ -2341,7 +2335,6 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		tdp,
-		economicsData,
 	)
 	container, _ := interFactory.Create()
 
