@@ -2,7 +2,6 @@ package txcache
 
 import (
 	"math"
-	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -265,39 +264,4 @@ func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 	// Sometimes (due to map iteration non-determinism), more eviction happens - one more step of 100 senders.
 	require.LessOrEqual(t, uint32(cache.CountTx()), config.CountThreshold)
 	require.GreaterOrEqual(t, uint32(cache.CountTx()), config.CountThreshold-config.NumSendersToEvictInOneStep*uint32(numTxsPerSender))
-}
-
-func Test_EvictSendersAndTheirTxs_Concurrently(t *testing.T) {
-	cache := newCacheToTest()
-	var wg sync.WaitGroup
-
-	for i := 0; i < 10; i++ {
-		wg.Add(3)
-
-		go func() {
-			cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
-			cache.AddTx(createTx([]byte("alice-y"), "alice", 43))
-			cache.AddTx(createTx([]byte("bob-x"), "bob", 42))
-			cache.AddTx(createTx([]byte("bob-y"), "bob", 43))
-			wg.Done()
-		}()
-
-		go func() {
-			snapshot := cache.txListBySender.getSnapshotAscending()
-			cache.evictSendersAndTheirTxs(snapshot)
-			wg.Done()
-		}()
-
-		go func() {
-			snapshot := cache.txListBySender.getSnapshotAscending()
-			cache.evictSendersAndTheirTxs(snapshot)
-			wg.Done()
-		}()
-	}
-
-	wg.Wait()
-
-	snapshot := cache.txListBySender.getSnapshotAscending()
-	cache.evictSendersAndTheirTxs(snapshot)
-	require.Equal(t, 0, cache.CountTx())
 }
