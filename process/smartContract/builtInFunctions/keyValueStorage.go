@@ -45,14 +45,13 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 	}
 	value := input.Arguments[1]
 	length := uint64(len(value))
-	maxGasToUse := k.funcGasCost + length*(k.gasConfig.DataCopyPerByte+k.gasConfig.StorePerByte)
+	maxGasToUse := k.funcGasCost + length*(k.gasConfig.DataCopyPerByte+k.gasConfig.StorePerByte+k.gasConfig.PersistPerByte)
 	if input.GasProvided < maxGasToUse {
 		return nil, process.ErrNotEnoughGas
 	}
-
 	if check.IfNil(acntDst) {
 		// cross-shard call, in sender shard only the gas is taken out
-		return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
+		return &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}, nil
 	}
 	if !bytes.Equal(input.CallerAddr, acntDst.AddressContainer().Bytes()) {
 		return nil, fmt.Errorf("%w not the owner of the account", process.ErrOperationNotPermitted)
@@ -62,6 +61,7 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 	}
 
 	useGas := k.funcGasCost + length*k.gasConfig.DataCopyPerByte
+	useGas += k.gasConfig.PersistPerByte * length
 	vmOutput := &vmcommon.VMOutput{GasRemaining: input.GasProvided - useGas}
 
 	key := input.Arguments[0]
