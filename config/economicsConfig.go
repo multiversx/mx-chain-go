@@ -11,6 +11,8 @@ type GlobalSettings struct {
 type RewardsSettings struct {
 	LeaderPercentage               float64
 	DeveloperPercentage            float64
+	CommunityPercentage            float64
+	CommunityAddress               string
 	DenominationCoefficientForView string
 }
 
