@@ -7,10 +7,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+var _ dataRetriever.MiniBlocksResolver = (*miniblockResolver)(nil)
+var _ requestHandlers.HashSliceResolver = (*miniblockResolver)(nil)
 
 // ArgMiniblockResolver is the argument structure used to create a new miniblockResolver instance
 type ArgMiniblockResolver struct {
@@ -107,6 +111,8 @@ func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, f
 
 		err = fmt.Errorf("%w for hash %s", err, logger.DisplayByteSlice(rd.Value))
 	}
+
+	mbRes.ResolverDebugHandler().LogSucceededToResolveData(mbRes.topic, rd.Value)
 
 	return err
 }

@@ -20,6 +20,8 @@ import (
 	"github.com/whyrusleeping/timecache"
 )
 
+var _ p2p.DirectSender = (*directSender)(nil)
+
 const timeSeenMessages = time.Second * 120
 const maxMutexes = 10000
 

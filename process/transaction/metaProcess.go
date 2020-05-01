@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.TransactionProcessor = (*metaTxProcessor)(nil)
+
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type metaTxProcessor struct {
 	*baseTxProcessor

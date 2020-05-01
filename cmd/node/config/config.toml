@@ -20,12 +20,12 @@
 
    # NumEpochsToKeep - if the flag above is set to false, this will set the number of epochs to keep in the storage.
    # Epochs older that (current epoch - NumOfEpochsToKeep) will be removed
-   NumEpochsToKeep = 3
+   NumEpochsToKeep = 4
 
    # NumActivePersisters - this will set the number of persisters to keep active at a moment. This works for both
    # full archive or not nodes. In case of a node which doesn't have a full archive, it has to be smaller or equal
    # to the NumOfEpochsToKeep flag
-   NumActivePersisters = 2
+   NumActivePersisters = 3
 
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
@@ -350,6 +350,9 @@
     # has been shuffled out has to restart its process in order to start in a new shard
     ShuffledOutRestartThreshold = 0.25
 
+    # ShuffleBetweenShards enables the shuffling of validators between shards at the end of epoch
+    ShuffleBetweenShards = false
+
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
 # RefreshIntervalInSec will tell how often a new line containing stats should be added in stats file
@@ -357,7 +360,7 @@
    Enabled = true
    RefreshIntervalInSec = 30
 
-# Heartbeat, if enabled, will output a heartbeat singal once x seconds,
+# Heartbeat, if enabled, will output a heartbeat signal once x seconds,
 # where x in [MinTimeToWaitBetweenBroadcastsInSec, MaxTimeToWaitBetweenBroadcastsInSec)
 [Heartbeat]
    Enabled = true

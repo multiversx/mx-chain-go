@@ -13,19 +13,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 )
 
 func (e *epochStartBootstrap) initializeFromLocalStorage() {
-	latestData, errNotCritical := storageFactory.FindLatestDataFromStorage(
-		e.generalConfig,
-		e.marshalizer,
-		e.workingDir,
-		e.genesisNodesConfig.GetChainId(),
-		e.defaultDBPath,
-		e.defaultEpochString,
-		e.defaultShardString,
-	)
+	latestData, errNotCritical := e.latestStorageDataProvider.Get()
 	if errNotCritical != nil {
 		e.baseData.storageExists = false
 		log.Debug("no epoch db found in storage", "error", errNotCritical.Error())
@@ -44,21 +35,7 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 }
 
 func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
-	args := storageFactory.ArgsNewOpenStorageUnits{
-		GeneralConfig:      e.generalConfig,
-		Marshalizer:        e.marshalizer,
-		WorkingDir:         e.workingDir,
-		ChainID:            e.genesisNodesConfig.GetChainId(),
-		DefaultDBPath:      e.defaultDBPath,
-		DefaultEpochString: e.defaultEpochString,
-		DefaultShardString: e.defaultShardString,
-	}
-	openStorageHandler, err := storageFactory.NewStorageUnitOpenHandler(args)
-	if err != nil {
-		return Parameters{}, err
-	}
-
-	storer, err := openStorageHandler.OpenStorageUnits()
+	storer, err := e.storageOpenerHandler.GetMostRecentBootstrapStorageUnit()
 	defer func() {
 		if check.IfNil(storer) {
 			return
@@ -94,6 +71,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 			Epoch:       e.baseData.lastEpoch,
 			SelfShardId: e.baseData.shardId,
 			NumOfShards: e.baseData.numberOfShards,
+			NodesConfig: e.nodesConfig,
 		}
 		return parameters, nil
 	}
@@ -150,6 +128,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		Epoch:       e.baseData.lastEpoch,
 		SelfShardId: e.shardCoordinator.SelfId(),
 		NumOfShards: e.shardCoordinator.NumberOfShards(),
+		NodesConfig: e.nodesConfig,
 	}
 	return parameters, nil
 }

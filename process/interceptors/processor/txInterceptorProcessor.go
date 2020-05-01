@@ -6,6 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.InterceptorProcessor = (*TxInterceptorProcessor)(nil)
+
 // TxInterceptorProcessor is the processor used when intercepting transactions
 // (smart contract results, receipts, transaction) structs which satisfy TransactionHandler interface.
 type TxInterceptorProcessor struct {

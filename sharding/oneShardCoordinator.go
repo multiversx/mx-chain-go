@@ -5,6 +5,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+var _ Coordinator = (*OneShardCoordinator)(nil)
+
 // OneShardCoordinator creates a shard coordinator object
 type OneShardCoordinator struct{}
 

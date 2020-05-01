@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.InterceptedDataFactory = (*interceptedMiniblockDataFactory)(nil)
+
 type interceptedMiniblockDataFactory struct {
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher

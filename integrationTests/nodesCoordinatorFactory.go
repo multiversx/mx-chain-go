@@ -37,7 +37,12 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 	keys := arg.cp.Keys[arg.shardId][arg.keyIndex]
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
-	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(arg.nodesPerShard), uint32(arg.nbMetaNodes), 0.2, false)
+	nodeShuffler := sharding.NewXorValidatorsShuffler(
+		uint32(arg.nodesPerShard),
+		uint32(arg.nbMetaNodes),
+		hysteresis,
+		adaptivity,
+		shuffleBetweenShards)
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: arg.shardConsensusGroupSize,
 		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,
@@ -75,7 +80,13 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	keys := arg.cp.Keys[arg.shardId][arg.keyIndex]
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
-	nodeShuffler := sharding.NewXorValidatorsShuffler(uint32(arg.nodesPerShard), uint32(arg.nbMetaNodes), 0.2, false)
+	nodeShuffler := sharding.NewXorValidatorsShuffler(
+		uint32(arg.nodesPerShard),
+		uint32(arg.nbMetaNodes),
+		hysteresis,
+		adaptivity,
+		shuffleBetweenShards,
+	)
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: arg.shardConsensusGroupSize,
 		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,

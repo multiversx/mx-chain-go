@@ -14,6 +14,8 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+var _ process.TransactionLogProcessor = (*txLogProcessor)(nil)
+
 var log = logger.GetOrCreate("process/transactionLog")
 
 // ArgTxLogProcessor defines the arguments needed for transaction logs processor
