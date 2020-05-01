@@ -72,7 +72,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(testBlock.StepDelay)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -225,7 +225,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(testBlock.StepDelay)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -346,7 +346,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(testBlock.StepDelay)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)

@@ -50,6 +50,7 @@ type atomicBuffer interface {
 	add(rootHash []byte)
 	remove(rootHash []byte)
 	removeAll() map[string]struct{}
+	len() int
 }
 
 type snapshotNode interface {

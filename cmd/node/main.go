@@ -42,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -61,6 +62,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -113,13 +115,6 @@ VERSION:
 		Usage: "The `" + filePathPlaceholder + "` for the nodes setup. This JSON file contains initial nodes info, " +
 			"such as consensus group size, round duration, validators public keys and so on.",
 		Value: "./config/nodesSetup.json",
-	}
-	// sk defines a flag for the path of the multi sign private key used when starting the node
-	sk = cli.StringFlag{
-		Name: "sk",
-		Usage: "The `" + filePathPlaceholder + "` for the PEM file which contains the private key the node will " +
-			"use for block signing.",
-		Value: "",
 	}
 	// configurationFile defines a flag for the path to the main toml configuration file
 	configurationFile = cli.StringFlag{
@@ -377,7 +372,6 @@ func main() {
 		externalConfigFile,
 		p2pConfigurationFile,
 		gasScheduleConfigurationFile,
-		sk,
 		validatorKeyIndex,
 		validatorKeyPemFile,
 		port,
@@ -583,13 +577,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	validatorKeyPemFileName := ctx.GlobalString(validatorKeyPemFile.Name)
-	cryptoParams, err := factory.GetSigningParams(
-		ctx,
+	cryptoParamsLoader, err := mainFactory.NewCryptoSigningParamsLoader(
 		validatorPubkeyConverter,
-		sk.Name,
-		validatorKeyIndex.Name,
+		ctx.GlobalInt(validatorKeyIndex.Name),
 		validatorKeyPemFileName,
-		suite)
+		suite,
+	)
+
+	cryptoParams, err := cryptoParamsLoader.Get()
 	if err != nil {
 		return fmt.Errorf("%w: consider regenerating your keys", err)
 	}
@@ -642,29 +637,57 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	var shardId = core.GetShardIdString(genesisShardCoordinator.SelfId())
 
 	log.Trace("creating crypto components")
-	cryptoArgs := factory.NewCryptoComponentsFactoryArgs(
-		ctx,
-		generalConfig,
-		genesisNodesConfig,
-		genesisShardCoordinator,
-		cryptoParams.KeyGenerator,
-		cryptoParams.PrivateKey,
-		log,
-	)
-	cryptoComponents, err := factory.CryptoComponentsFactory(cryptoArgs)
+	cryptoArgs := mainFactory.CryptoComponentsFactoryArgs{
+		Config:           *generalConfig,
+		NodesConfig:      genesisNodesConfig,
+		ShardCoordinator: genesisShardCoordinator,
+		KeyGen:           cryptoParams.KeyGenerator,
+		PrivKey:          cryptoParams.PrivateKey,
+	}
+	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoArgs)
+	if err != nil {
+		return err
+	}
+	cryptoComponents, err := cryptoComponentsFactory.Create()
 	if err != nil {
 		return err
 	}
 
 	log.Trace("creating core components")
-	coreArgs := factory.NewCoreComponentsFactoryArgs(generalConfig, pathManager, shardId, []byte(genesisNodesConfig.ChainID))
-	coreComponents, err := factory.CoreComponentsFactory(coreArgs)
+
+	coreArgs := mainFactory.CoreComponentsFactoryArgs{
+		Config:  *generalConfig,
+		ShardId: shardId,
+		ChainID: []byte(genesisNodesConfig.ChainID),
+	}
+	coreComponentsFactory := mainFactory.NewCoreComponentsFactory(coreArgs)
+	coreComponents, err := coreComponentsFactory.Create()
+	if err != nil {
+		return err
+	}
+
+	triesArgs := mainFactory.TriesComponentsFactoryArgs{
+		Marshalizer:      coreComponents.InternalMarshalizer,
+		Hasher:           coreComponents.Hasher,
+		PathManager:      pathManager,
+		ShardCoordinator: genesisShardCoordinator,
+		Config:           *generalConfig,
+	}
+	triesComponentsFactory, err := mainFactory.NewTriesComponentsFactory(triesArgs)
+	if err != nil {
+		return err
+	}
+	triesComponents, err := triesComponentsFactory.Create()
 	if err != nil {
 		return err
 	}
 
 	log.Trace("creating network components")
-	networkComponents, err := factory.NetworkComponentsFactory(*p2pConfig, *generalConfig, coreComponents.StatusHandler)
+	networkComponentFactory, err := mainFactory.NewNetworkComponentsFactory(*p2pConfig, *generalConfig, coreComponents.StatusHandler)
+	if err != nil {
+		return err
+	}
+	networkComponents, err := networkComponentFactory.Create()
 	if err != nil {
 		return err
 	}
@@ -723,6 +746,35 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	bootstrapDataProvider, err := storageFactory.NewBootstrapDataProvider(coreComponents.InternalMarshalizer)
+	if err != nil {
+		return err
+	}
+
+	latestStorageDataProvider, err := factory.CreateLatestStorageDataProvider(
+		bootstrapDataProvider,
+		coreComponents.InternalMarshalizer,
+		coreComponents.Hasher,
+		*generalConfig,
+		genesisNodesConfig.ChainID,
+		workingDir,
+		defaultDBPath,
+		defaultEpochString,
+		defaultShardString,
+	)
+
+	unitOpener, err := factory.CreateUnitOpener(
+		bootstrapDataProvider,
+		latestStorageDataProvider,
+		coreComponents.InternalMarshalizer,
+		*generalConfig,
+		genesisNodesConfig.ChainID,
+		workingDir,
+		defaultDBPath,
+		defaultEpochString,
+		defaultShardString,
+	)
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  cryptoParams.PublicKey,
 		Marshalizer:                coreComponents.InternalMarshalizer,
@@ -738,18 +790,20 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		GenesisNodesConfig:         genesisNodesConfig,
 		GenesisShardCoordinator:    genesisShardCoordinator,
 		PathManager:                pathManager,
+		StorageUnitOpener:          unitOpener,
 		WorkingDir:                 workingDir,
 		DefaultDBPath:              defaultDBPath,
 		DefaultEpochString:         defaultEpochString,
 		DefaultShardString:         defaultShardString,
 		Rater:                      rater,
 		DestinationShardAsObserver: destShardIdAsObserver,
-		TrieContainer:              coreComponents.TriesContainer,
-		TrieStorageManagers:        coreComponents.TrieStorageManagers,
+		TrieContainer:              triesComponents.TriesContainer,
+		TrieStorageManagers:        triesComponents.TrieStorageManagers,
 		Uint64Converter:            coreComponents.Uint64ByteSliceConverter,
 		NodeShuffler:               nodesShuffler,
 		Rounder:                    rounder,
 		AddressPubkeyConverter:     addressPubkeyConverter,
+		LatestStorageDataProvider:  latestStorageDataProvider,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -797,8 +851,21 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating data components")
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
-	dataArgs := factory.NewDataComponentsFactoryArgs(generalConfig, economicsData, shardCoordinator, coreComponents, pathManager, epochStartNotifier, storerEpoch)
-	dataComponents, err := factory.DataComponentsFactory(dataArgs)
+
+	dataArgs := mainFactory.DataComponentsFactoryArgs{
+		Config:             *generalConfig,
+		EconomicsData:      economicsData,
+		ShardCoordinator:   shardCoordinator,
+		Core:               coreComponents,
+		PathManager:        pathManager,
+		EpochStartNotifier: epochStartNotifier,
+		CurrentEpoch:       storerEpoch,
+	}
+	dataComponentsFactory, err := mainFactory.NewDataComponentsFactory(dataArgs)
+	if err != nil {
+		return err
+	}
+	dataComponents, err := dataComponentsFactory.Create()
 	if err != nil {
 		return err
 	}
@@ -858,14 +925,19 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating state components")
-	stateArgs := factory.NewStateComponentsFactoryArgs(
-		generalConfig,
-		genesisConfig,
-		shardCoordinator,
-		coreComponents,
-		pathManager,
-	)
-	stateComponents, err := factory.StateComponentsFactory(stateArgs)
+	stateArgs := mainFactory.StateComponentsFactoryArgs{
+		Config:           *generalConfig,
+		GenesisConfig:    genesisConfig,
+		ShardCoordinator: shardCoordinator,
+		Core:             coreComponents,
+		PathManager:      pathManager,
+		Tries:            triesComponents,
+	}
+	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)
+	if err != nil {
+		return err
+	}
+	stateComponents, err := stateComponentsFactory.Create()
 	if err != nil {
 		return err
 	}
@@ -979,7 +1051,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
-		coreArgs,
+		&coreArgs,
 		genesisConfig,
 		economicsData,
 		genesisNodesConfig,
@@ -992,6 +1064,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		cryptoComponents,
 		stateComponents,
 		networkComponents,
+		triesComponents,
 		coreServiceContainer,
 		requestedItemsHandler,
 		whiteListRequest,
@@ -1151,7 +1224,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = dataComponents.Store.CloseAll()
 	log.LogIfError(err)
 
-	dataTries := coreComponents.TriesContainer.GetAll()
+	dataTries := triesComponents.TriesContainer.GetAll()
 	for _, trie := range dataTries {
 		err = trie.ClosePersister()
 		log.LogIfError(err)
@@ -1659,12 +1732,12 @@ func createNode(
 	pubKey crypto.PublicKey,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	coreData *factory.Core,
-	state *factory.State,
-	data *factory.Data,
-	crypto *factory.Crypto,
+	coreData *mainFactory.CoreComponents,
+	state *mainFactory.StateComponents,
+	data *mainFactory.DataComponents,
+	crypto *mainFactory.CryptoComponents,
 	process *factory.Process,
-	network *factory.Network,
+	network *mainFactory.NetworkComponents,
 	bootstrapRoundIndex uint64,
 	version string,
 	indexer indexer.Indexer,

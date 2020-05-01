@@ -48,7 +48,7 @@ func TestTrieStorageManagerWithoutPruning_CancelPruneShouldNotPanic(t *testing.T
 	t.Parallel()
 
 	ts, _ := NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
-	ts.CancelPrune([]byte{})
+	ts.CancelPrune([]byte{}, 0)
 }
 
 func TestTrieStorageManagerWithoutPruning_MarkForEvictionShouldNotPanic(t *testing.T) {
