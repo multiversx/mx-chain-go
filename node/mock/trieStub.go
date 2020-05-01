@@ -160,3 +160,12 @@ func (ts *TrieStub) Database() data.DBWriteCacher {
 	}
 	return nil
 }
+
+// GetDirtyHashes -
+func (ts *TrieStub) GetDirtyHashes() (data.ModifiedHashes, error) {
+	return nil, nil
+}
+
+// SetNewHashes -
+func (ts *TrieStub) SetNewHashes(_ data.ModifiedHashes) {
+}
