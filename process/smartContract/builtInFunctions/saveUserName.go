@@ -47,8 +47,12 @@ func (s *saveUserName) ProcessBuiltinFunction(
 	if vmInput == nil {
 		return nil, process.ErrNilVmInput
 	}
+	if vmInput.GasProvided < s.gasCost {
+		return nil, process.ErrNotEnoughGas
+	}
 	if check.IfNil(acntDst) {
-		return nil, process.ErrNilSCDestAccount
+		// cross-shard call, in sender shard only the gas is taken out
+		return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
 	}
 
 	_, ok := s.mapDnsAddresses[string(vmInput.CallerAddr)]
@@ -58,9 +62,6 @@ func (s *saveUserName) ProcessBuiltinFunction(
 
 	if len(vmInput.Arguments) == 0 || len(vmInput.Arguments[0]) != userNameHashLength {
 		return nil, process.ErrInvalidArguments
-	}
-	if vmInput.GasProvided < s.gasCost {
-		return nil, process.ErrNotEnoughGas
 	}
 
 	currentUserName := acntDst.GetUserName()

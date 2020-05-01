@@ -36,7 +36,7 @@ func TestSaveUserName_ProcessBuiltinFunction(t *testing.T) {
 	require.Equal(t, process.ErrNilVmInput, err)
 
 	_, err = coa.ProcessBuiltinFunction(nil, nil, vmInput)
-	require.Equal(t, process.ErrNilSCDestAccount, err)
+	require.Nil(t, err)
 
 	newUserName := []byte("afafafafafafafafafafafafafafafaf")
 	vmInput.Arguments = [][]byte{newUserName}

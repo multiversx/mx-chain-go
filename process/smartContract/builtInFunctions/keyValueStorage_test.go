@@ -44,7 +44,7 @@ func TestSaveKeyValue_ProcessBuiltinFunction(t *testing.T) {
 	vmInput.Arguments = [][]byte{key, value}
 
 	_, err = skv.ProcessBuiltinFunction(nil, nil, vmInput)
-	require.Equal(t, process.ErrNilSCDestAccount, err)
+	require.Nil(t, err)
 
 	_, err = skv.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Nil(t, err)

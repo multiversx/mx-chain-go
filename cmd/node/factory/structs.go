@@ -134,6 +134,7 @@ type processComponentsFactoryArgs struct {
 	maxSizeInBytes            uint32
 	maxRating                 uint32
 	validatorPubkeyConverter  state.PubkeyConverter
+	systemSCConfig            *config.SystemSmartContractsConfig
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -169,6 +170,7 @@ func NewProcessComponentsFactoryArgs(
 	maxRating uint32,
 	validatorPubkeyConverter state.PubkeyConverter,
 	ratingsData process.RatingsInfoHandler,
+	systemSCConfig *config.SystemSmartContractsConfig,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -202,6 +204,7 @@ func NewProcessComponentsFactoryArgs(
 		maxSizeInBytes:            maxSizeInBytes,
 		maxRating:                 maxRating,
 		validatorPubkeyConverter:  validatorPubkeyConverter,
+		systemSCConfig:            systemSCConfig,
 	}
 }
 
@@ -895,6 +898,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		Economics:                economicsData,
 		ValidatorStatsRootHash:   validatorStatsRootHash,
 		GasMap:                   args.gasSchedule,
+		SystemSCConfig:           args.systemSCConfig,
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId || args.startEpochNum > 0 {
@@ -1115,6 +1119,7 @@ func newBlockProcessor(
 			processArgs.maxSizeInBytes,
 			processArgs.ratingsData,
 			processArgs.nodesConfig,
+			processArgs.systemSCConfig,
 		)
 	}
 
@@ -1414,6 +1419,7 @@ func newMetaBlockProcessor(
 	maxSizeInBytes uint32,
 	ratingsData process.RatingsInfoHandler,
 	nodesSetup sharding.GenesisNodesSetupHandler,
+	systemSCConfig *config.SystemSmartContractsConfig,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -1433,6 +1439,9 @@ func newMetaBlockProcessor(
 		messageSignVerifier,
 		gasSchedule,
 		nodesSetup,
+		core.Hasher,
+		core.InternalMarshalizer,
+		systemSCConfig,
 	)
 	if err != nil {
 		return nil, err

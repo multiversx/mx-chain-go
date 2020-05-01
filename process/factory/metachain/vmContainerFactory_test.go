@@ -43,6 +43,14 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 		&mock.MessageSignVerifierMock{},
 		gasSchedule,
 		&mock.NodesConfigProviderStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&config.SystemSmartContractsConfig{
+			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+				BaseIssuingCost: "100000000",
+				OwnerAddress:    "aaaaaa",
+			},
+		},
 	)
 
 	assert.NotNil(t, vmf)
@@ -91,6 +99,14 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		&mock.MessageSignVerifierMock{},
 		makeGasSchedule(),
 		&mock.NodesConfigProviderStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&config.SystemSmartContractsConfig{
+			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+				BaseIssuingCost: "100000000",
+				OwnerAddress:    "aaaaaa",
+			},
+		},
 	)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
@@ -147,6 +163,8 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["ChangeRewardAddress"] = value
 	gasMap["ChangeValidatorKeys"] = value
 	gasMap["UnJail"] = value
+	gasMap["ESDTIssue"] = value
+	gasMap["ESDTOperations"] = value
 
 	return gasMap
 }

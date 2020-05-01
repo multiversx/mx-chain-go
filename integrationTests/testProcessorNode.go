@@ -987,6 +987,14 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		&genesis.NilMessageSignVerifier{},
 		gasSchedule,
 		tpn.NodesSetup,
+		TestHasher,
+		TestMarshalizer,
+		&config.SystemSmartContractsConfig{
+			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+				BaseIssuingCost: "100000000",
+				OwnerAddress:    "aaaaaa",
+			},
+		},
 	)
 
 	tpn.VMContainer, _ = vmFactory.Create()

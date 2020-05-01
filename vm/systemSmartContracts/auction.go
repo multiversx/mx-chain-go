@@ -92,7 +92,7 @@ func NewStakingAuctionSmartContract(
 	return reg, nil
 }
 
-// Execute calls one of the functions from the staking smart contract and runs the code according to the input
+// Execute calls one of the functions from the auction staking smart contract and runs the code according to the input
 func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if CheckIfNil(args) != nil {
 		return vmcommon.UserError

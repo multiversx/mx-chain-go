@@ -31,8 +31,14 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 type ESDTData struct {
 	IssuerAddress []byte        `protobuf:"bytes,1,opt,name=IssuerAddress,proto3" json:"IssuerAddress"`
 	TokenName     []byte        `protobuf:"bytes,2,opt,name=TokenName,proto3" json:"TokenName"`
-	MintedValue   *math_big.Int `protobuf:"bytes,3,opt,name=MintedValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"MintedValue"`
-	BurntValue    *math_big.Int `protobuf:"bytes,4,opt,name=BurntValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"BurntValue"`
+	Mintable      bool          `protobuf:"varint,3,opt,name=Mintable,proto3" json:"Mintable"`
+	Burnable      bool          `protobuf:"varint,4,opt,name=Burnable,proto3" json:"Burnable"`
+	CanPause      bool          `protobuf:"varint,5,opt,name=CanPause,proto3" json:"CanPause"`
+	Paused        bool          `protobuf:"varint,6,opt,name=Paused,proto3" json:"Paused"`
+	CanFreeze     bool          `protobuf:"varint,7,opt,name=CanFreeze,proto3" json:"CanFreeze"`
+	CanWipe       bool          `protobuf:"varint,8,opt,name=CanWipe,proto3" json:"CanWipe"`
+	MintedValue   *math_big.Int `protobuf:"bytes,9,opt,name=MintedValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"MintedValue"`
+	BurntValue    *math_big.Int `protobuf:"bytes,10,opt,name=BurntValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"BurntValue"`
 }
 
 func (m *ESDTData) Reset()      { *m = ESDTData{} }
@@ -77,6 +83,48 @@ func (m *ESDTData) GetTokenName() []byte {
 	return nil
 }
 
+func (m *ESDTData) GetMintable() bool {
+	if m != nil {
+		return m.Mintable
+	}
+	return false
+}
+
+func (m *ESDTData) GetBurnable() bool {
+	if m != nil {
+		return m.Burnable
+	}
+	return false
+}
+
+func (m *ESDTData) GetCanPause() bool {
+	if m != nil {
+		return m.CanPause
+	}
+	return false
+}
+
+func (m *ESDTData) GetPaused() bool {
+	if m != nil {
+		return m.Paused
+	}
+	return false
+}
+
+func (m *ESDTData) GetCanFreeze() bool {
+	if m != nil {
+		return m.CanFreeze
+	}
+	return false
+}
+
+func (m *ESDTData) GetCanWipe() bool {
+	if m != nil {
+		return m.CanWipe
+	}
+	return false
+}
+
 func (m *ESDTData) GetMintedValue() *math_big.Int {
 	if m != nil {
 		return m.MintedValue
@@ -91,35 +139,112 @@ func (m *ESDTData) GetBurntValue() *math_big.Int {
 	return nil
 }
 
+type ESDTConfig struct {
+	OwnerAddress       []byte        `protobuf:"bytes,1,opt,name=OwnerAddress,proto3" json:"OwnerAddress"`
+	BaseIssuingCost    *math_big.Int `protobuf:"bytes,2,opt,name=BaseIssuingCost,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"BaseIssuingCost"`
+	MinTokenNameLength uint32        `protobuf:"varint,3,opt,name=MinTokenNameLength,proto3" json:"MinTokenNameLength"`
+	MaxTokenNameLength uint32        `protobuf:"varint,4,opt,name=MaxTokenNameLength,proto3" json:"MaxTokenNameLength"`
+}
+
+func (m *ESDTConfig) Reset()      { *m = ESDTConfig{} }
+func (*ESDTConfig) ProtoMessage() {}
+func (*ESDTConfig) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e413e402abc6a34c, []int{1}
+}
+func (m *ESDTConfig) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ESDTConfig) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *ESDTConfig) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ESDTConfig.Merge(m, src)
+}
+func (m *ESDTConfig) XXX_Size() int {
+	return m.Size()
+}
+func (m *ESDTConfig) XXX_DiscardUnknown() {
+	xxx_messageInfo_ESDTConfig.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ESDTConfig proto.InternalMessageInfo
+
+func (m *ESDTConfig) GetOwnerAddress() []byte {
+	if m != nil {
+		return m.OwnerAddress
+	}
+	return nil
+}
+
+func (m *ESDTConfig) GetBaseIssuingCost() *math_big.Int {
+	if m != nil {
+		return m.BaseIssuingCost
+	}
+	return nil
+}
+
+func (m *ESDTConfig) GetMinTokenNameLength() uint32 {
+	if m != nil {
+		return m.MinTokenNameLength
+	}
+	return 0
+}
+
+func (m *ESDTConfig) GetMaxTokenNameLength() uint32 {
+	if m != nil {
+		return m.MaxTokenNameLength
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterType((*ESDTData)(nil), "proto.ESDTData")
+	proto.RegisterType((*ESDTConfig)(nil), "proto.ESDTConfig")
 }
 
 func init() { proto.RegisterFile("esdt.proto", fileDescriptor_e413e402abc6a34c) }
 
 var fileDescriptor_e413e402abc6a34c = []byte{
-	// 335 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x91, 0xbf, 0x4e, 0xeb, 0x30,
-	0x14, 0x87, 0xe3, 0xde, 0x3f, 0xba, 0xd7, 0xd0, 0x81, 0x88, 0xa1, 0x62, 0x38, 0x41, 0x4c, 0x48,
-	0xa8, 0xc9, 0xc0, 0xc0, 0xc0, 0xd4, 0xb4, 0x1d, 0x3a, 0xd0, 0xa1, 0xad, 0x18, 0xd8, 0x9c, 0xc6,
-	0xa4, 0x51, 0x1b, 0x1b, 0xd9, 0x27, 0x20, 0x36, 0x1e, 0x81, 0xc7, 0x40, 0x3c, 0x09, 0x63, 0xc7,
-	0x2e, 0x04, 0xea, 0x2e, 0x28, 0x53, 0x1f, 0x01, 0xc9, 0x1d, 0x9a, 0xee, 0x4c, 0x3e, 0xdf, 0x67,
-	0x9f, 0xf3, 0x93, 0x75, 0x28, 0xe5, 0x3a, 0x46, 0xff, 0x4e, 0x49, 0x94, 0xee, 0x1f, 0x7b, 0x1c,
-	0x35, 0x93, 0x14, 0x27, 0x79, 0xe4, 0x8f, 0x65, 0x16, 0x24, 0x32, 0x91, 0x81, 0xd5, 0x51, 0x7e,
-	0x6b, 0xc9, 0x82, 0xad, 0x36, 0x5d, 0x27, 0xef, 0x35, 0xfa, 0xaf, 0x3b, 0xec, 0x8c, 0x3a, 0x0c,
-	0x99, 0x7b, 0x41, 0xeb, 0x3d, 0xad, 0x73, 0xae, 0x5a, 0x71, 0xac, 0xb8, 0xd6, 0x0d, 0x72, 0x4c,
-	0x4e, 0xf7, 0xc3, 0x83, 0xb2, 0xf0, 0x76, 0x2f, 0x06, 0xbb, 0xe8, 0x9e, 0xd1, 0xff, 0x23, 0x39,
-	0xe5, 0xa2, 0xcf, 0x32, 0xde, 0xa8, 0xd9, 0xa6, 0x7a, 0x59, 0x78, 0x5b, 0x39, 0xd8, 0x96, 0xee,
-	0x3d, 0xdd, 0xbb, 0x4a, 0x05, 0xf2, 0xf8, 0x9a, 0xcd, 0x72, 0xde, 0xf8, 0x65, 0x9f, 0x8f, 0xca,
-	0xc2, 0xab, 0xea, 0xd7, 0x0f, 0xaf, 0x95, 0x31, 0x9c, 0x04, 0x51, 0x9a, 0xf8, 0x3d, 0x81, 0x97,
-	0x95, 0x6f, 0x75, 0x67, 0x4a, 0x8a, 0xb8, 0xcf, 0xf1, 0x41, 0xaa, 0x69, 0xc0, 0x2d, 0x35, 0x13,
-	0x19, 0xc4, 0x0c, 0x99, 0x1f, 0xa6, 0x49, 0x4f, 0x60, 0x9b, 0x69, 0xe4, 0x6a, 0x50, 0x9d, 0xe8,
-	0x6a, 0x4a, 0xc3, 0x5c, 0x09, 0xdc, 0xc4, 0xfe, 0xb6, 0xb1, 0xc3, 0xb2, 0xf0, 0x2a, 0xf6, 0x67,
-	0x52, 0x2b, 0x03, 0xc3, 0xfe, 0x7c, 0x09, 0xce, 0x62, 0x09, 0xce, 0x7a, 0x09, 0xe4, 0xc9, 0x00,
-	0x79, 0x31, 0x40, 0xde, 0x0c, 0x90, 0xb9, 0x01, 0xb2, 0x30, 0x40, 0x3e, 0x0d, 0x90, 0x2f, 0x03,
-	0xce, 0xda, 0x00, 0x79, 0x5e, 0x81, 0x33, 0x5f, 0x81, 0xb3, 0x58, 0x81, 0x73, 0x73, 0xa8, 0x1f,
-	0x35, 0xf2, 0x6c, 0x98, 0x31, 0x85, 0x6d, 0x29, 0x50, 0xb1, 0x31, 0xea, 0xe8, 0xaf, 0x5d, 0xdb,
-	0xf9, 0x77, 0x00, 0x00, 0x00, 0xff, 0xff, 0xab, 0x2a, 0x0c, 0xf9, 0xfa, 0x01, 0x00, 0x00,
+	// 543 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x94, 0xc1, 0x6f, 0xd3, 0x3e,
+	0x14, 0xc7, 0xe3, 0xfd, 0xba, 0xae, 0xf3, 0x5a, 0xfd, 0xc0, 0x42, 0x28, 0xe2, 0x60, 0x4f, 0x95,
+	0x90, 0x2a, 0xa1, 0xb5, 0x07, 0x90, 0x38, 0x70, 0x5a, 0xb2, 0x4d, 0xaa, 0xc4, 0x0a, 0x72, 0x2b,
+	0x40, 0xdc, 0xdc, 0xc5, 0x4b, 0xa3, 0xb5, 0xf6, 0x14, 0x3b, 0x0c, 0x38, 0x21, 0xfe, 0x02, 0xfe,
+	0x0c, 0xc4, 0x5f, 0xc2, 0xb1, 0x12, 0x07, 0x7a, 0x0a, 0x34, 0xbd, 0xa0, 0x9c, 0xf6, 0x27, 0xa0,
+	0x78, 0x6d, 0x9a, 0x96, 0x1e, 0x77, 0xf2, 0xf7, 0x7d, 0xde, 0xd7, 0xef, 0xe9, 0x39, 0x4f, 0x81,
+	0x90, 0x2b, 0x4f, 0x37, 0x2f, 0x43, 0xa9, 0x25, 0xda, 0x36, 0xc7, 0x83, 0x03, 0x3f, 0xd0, 0x83,
+	0xa8, 0xdf, 0x3c, 0x93, 0xa3, 0x96, 0x2f, 0x7d, 0xd9, 0x32, 0xb8, 0x1f, 0x9d, 0x9b, 0xc8, 0x04,
+	0x46, 0xdd, 0xdc, 0xaa, 0xff, 0x28, 0xc1, 0xca, 0x71, 0xf7, 0xa8, 0x77, 0xc4, 0x34, 0x43, 0x4f,
+	0x61, 0xad, 0xad, 0x54, 0xc4, 0xc3, 0x43, 0xcf, 0x0b, 0xb9, 0x52, 0x36, 0xd8, 0x07, 0x8d, 0xaa,
+	0x73, 0x37, 0x8d, 0xc9, 0x6a, 0x82, 0xae, 0x86, 0xe8, 0x11, 0xdc, 0xed, 0xc9, 0x0b, 0x2e, 0x3a,
+	0x6c, 0xc4, 0xed, 0x2d, 0x73, 0xa9, 0x96, 0xc6, 0x64, 0x09, 0xe9, 0x52, 0xa2, 0x06, 0xac, 0x9c,
+	0x06, 0x42, 0xb3, 0xfe, 0x90, 0xdb, 0xff, 0xed, 0x83, 0x46, 0xc5, 0xa9, 0xa6, 0x31, 0xc9, 0x19,
+	0xcd, 0x55, 0xe6, 0x74, 0xa2, 0x50, 0x18, 0x67, 0x69, 0xe9, 0x5c, 0x30, 0x9a, 0xab, 0xcc, 0xe9,
+	0x32, 0xf1, 0x92, 0x45, 0x8a, 0xdb, 0xdb, 0x4b, 0xe7, 0x82, 0xd1, 0x5c, 0xa1, 0x3a, 0x2c, 0x1b,
+	0xe1, 0xd9, 0x65, 0xe3, 0x83, 0x69, 0x4c, 0xe6, 0x84, 0xce, 0xcf, 0x6c, 0x1c, 0x97, 0x89, 0x93,
+	0x90, 0xf3, 0x8f, 0xdc, 0xde, 0x31, 0x36, 0x33, 0x4e, 0x0e, 0xe9, 0x52, 0xa2, 0x87, 0x70, 0xc7,
+	0x65, 0xe2, 0x75, 0x70, 0xc9, 0xed, 0x8a, 0xb1, 0xee, 0xa5, 0x31, 0x59, 0x20, 0xba, 0x10, 0xe8,
+	0x1d, 0xdc, 0xcb, 0xe6, 0xe2, 0xde, 0x2b, 0x36, 0x8c, 0xb8, 0xbd, 0x6b, 0x1e, 0xa9, 0x97, 0xc6,
+	0xa4, 0x88, 0xbf, 0xfd, 0x22, 0x87, 0x23, 0xa6, 0x07, 0xad, 0x7e, 0xe0, 0x37, 0xdb, 0x42, 0x3f,
+	0x2b, 0x7c, 0xcc, 0xe3, 0x61, 0x28, 0x85, 0xd7, 0xe1, 0xfa, 0x4a, 0x86, 0x17, 0x2d, 0x6e, 0xa2,
+	0x03, 0x5f, 0xb6, 0x3c, 0xa6, 0x59, 0xd3, 0x09, 0xfc, 0xb6, 0xd0, 0x2e, 0x53, 0x9a, 0x87, 0xb4,
+	0x58, 0x11, 0x29, 0x08, 0xb3, 0x57, 0xd2, 0x37, 0x6d, 0xa1, 0x69, 0xdb, 0x4d, 0x63, 0x52, 0xa0,
+	0xb7, 0xd3, 0xb5, 0x50, 0xb0, 0xfe, 0x73, 0x0b, 0xc2, 0x6c, 0xab, 0x5c, 0x29, 0xce, 0x03, 0x1f,
+	0x3d, 0x81, 0xd5, 0x17, 0x57, 0x62, 0x7d, 0xad, 0xee, 0xa4, 0x31, 0x59, 0xe1, 0x74, 0x25, 0x42,
+	0x9f, 0x01, 0xfc, 0xdf, 0x61, 0x8a, 0x67, 0xab, 0x16, 0x08, 0xdf, 0x95, 0x4a, 0xcf, 0x77, 0xeb,
+	0x4d, 0x1a, 0x93, 0xf5, 0xd4, 0xed, 0x0c, 0xb1, 0x5e, 0x15, 0x9d, 0x40, 0x74, 0x1a, 0x88, 0x7c,
+	0x79, 0x9f, 0x73, 0xe1, 0xeb, 0x81, 0x59, 0xdb, 0x9a, 0x73, 0x3f, 0x8d, 0xc9, 0x86, 0x2c, 0xdd,
+	0xc0, 0x4c, 0x1d, 0xf6, 0x7e, 0xbd, 0x4e, 0xa9, 0x50, 0xe7, 0x9f, 0x2c, 0xdd, 0xc0, 0x9c, 0xce,
+	0x78, 0x8a, 0xad, 0xc9, 0x14, 0x5b, 0xd7, 0x53, 0x0c, 0x3e, 0x25, 0x18, 0x7c, 0x4d, 0x30, 0xf8,
+	0x9e, 0x60, 0x30, 0x4e, 0x30, 0x98, 0x24, 0x18, 0xfc, 0x4e, 0x30, 0xf8, 0x93, 0x60, 0xeb, 0x3a,
+	0xc1, 0xe0, 0xcb, 0x0c, 0x5b, 0xe3, 0x19, 0xb6, 0x26, 0x33, 0x6c, 0xbd, 0xbd, 0xa7, 0x3e, 0x28,
+	0xcd, 0x47, 0xdd, 0x11, 0x0b, 0xb5, 0x2b, 0x85, 0x0e, 0xd9, 0x99, 0x56, 0xfd, 0xb2, 0xf9, 0x0d,
+	0x3c, 0xfe, 0x1b, 0x00, 0x00, 0xff, 0xff, 0xc0, 0x81, 0x84, 0x2e, 0x4a, 0x04, 0x00, 0x00,
 }
 
 func (this *ESDTData) Equal(that interface{}) bool {
@@ -147,6 +272,24 @@ func (this *ESDTData) Equal(that interface{}) bool {
 	if !bytes.Equal(this.TokenName, that1.TokenName) {
 		return false
 	}
+	if this.Mintable != that1.Mintable {
+		return false
+	}
+	if this.Burnable != that1.Burnable {
+		return false
+	}
+	if this.CanPause != that1.CanPause {
+		return false
+	}
+	if this.Paused != that1.Paused {
+		return false
+	}
+	if this.CanFreeze != that1.CanFreeze {
+		return false
+	}
+	if this.CanWipe != that1.CanWipe {
+		return false
+	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
 		if !__caster.Equal(this.MintedValue, that1.MintedValue) {
@@ -161,16 +304,71 @@ func (this *ESDTData) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *ESDTConfig) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ESDTConfig)
+	if !ok {
+		that2, ok := that.(ESDTConfig)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.OwnerAddress, that1.OwnerAddress) {
+		return false
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.BaseIssuingCost, that1.BaseIssuingCost) {
+			return false
+		}
+	}
+	if this.MinTokenNameLength != that1.MinTokenNameLength {
+		return false
+	}
+	if this.MaxTokenNameLength != that1.MaxTokenNameLength {
+		return false
+	}
+	return true
+}
 func (this *ESDTData) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 8)
+	s := make([]string, 0, 14)
 	s = append(s, "&systemSmartContracts.ESDTData{")
 	s = append(s, "IssuerAddress: "+fmt.Sprintf("%#v", this.IssuerAddress)+",\n")
 	s = append(s, "TokenName: "+fmt.Sprintf("%#v", this.TokenName)+",\n")
+	s = append(s, "Mintable: "+fmt.Sprintf("%#v", this.Mintable)+",\n")
+	s = append(s, "Burnable: "+fmt.Sprintf("%#v", this.Burnable)+",\n")
+	s = append(s, "CanPause: "+fmt.Sprintf("%#v", this.CanPause)+",\n")
+	s = append(s, "Paused: "+fmt.Sprintf("%#v", this.Paused)+",\n")
+	s = append(s, "CanFreeze: "+fmt.Sprintf("%#v", this.CanFreeze)+",\n")
+	s = append(s, "CanWipe: "+fmt.Sprintf("%#v", this.CanWipe)+",\n")
 	s = append(s, "MintedValue: "+fmt.Sprintf("%#v", this.MintedValue)+",\n")
 	s = append(s, "BurntValue: "+fmt.Sprintf("%#v", this.BurntValue)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *ESDTConfig) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 8)
+	s = append(s, "&systemSmartContracts.ESDTConfig{")
+	s = append(s, "OwnerAddress: "+fmt.Sprintf("%#v", this.OwnerAddress)+",\n")
+	s = append(s, "BaseIssuingCost: "+fmt.Sprintf("%#v", this.BaseIssuingCost)+",\n")
+	s = append(s, "MinTokenNameLength: "+fmt.Sprintf("%#v", this.MinTokenNameLength)+",\n")
+	s = append(s, "MaxTokenNameLength: "+fmt.Sprintf("%#v", this.MaxTokenNameLength)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -212,7 +410,7 @@ func (m *ESDTData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintEsdt(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0x22
+	dAtA[i] = 0x52
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
 		size := __caster.Size(m.MintedValue)
@@ -223,7 +421,67 @@ func (m *ESDTData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintEsdt(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0x1a
+	dAtA[i] = 0x4a
+	if m.CanWipe {
+		i--
+		if m.CanWipe {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x40
+	}
+	if m.CanFreeze {
+		i--
+		if m.CanFreeze {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.Paused {
+		i--
+		if m.Paused {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.CanPause {
+		i--
+		if m.CanPause {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Burnable {
+		i--
+		if m.Burnable {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Mintable {
+		i--
+		if m.Mintable {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
 	if len(m.TokenName) > 0 {
 		i -= len(m.TokenName)
 		copy(dAtA[i:], m.TokenName)
@@ -235,6 +493,57 @@ func (m *ESDTData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i -= len(m.IssuerAddress)
 		copy(dAtA[i:], m.IssuerAddress)
 		i = encodeVarintEsdt(dAtA, i, uint64(len(m.IssuerAddress)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ESDTConfig) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ESDTConfig) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ESDTConfig) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.MaxTokenNameLength != 0 {
+		i = encodeVarintEsdt(dAtA, i, uint64(m.MaxTokenNameLength))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.MinTokenNameLength != 0 {
+		i = encodeVarintEsdt(dAtA, i, uint64(m.MinTokenNameLength))
+		i--
+		dAtA[i] = 0x18
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.BaseIssuingCost)
+		i -= size
+		if _, err := __caster.MarshalTo(m.BaseIssuingCost, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintEsdt(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x12
+	if len(m.OwnerAddress) > 0 {
+		i -= len(m.OwnerAddress)
+		copy(dAtA[i:], m.OwnerAddress)
+		i = encodeVarintEsdt(dAtA, i, uint64(len(m.OwnerAddress)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -266,6 +575,24 @@ func (m *ESDTData) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovEsdt(uint64(l))
 	}
+	if m.Mintable {
+		n += 2
+	}
+	if m.Burnable {
+		n += 2
+	}
+	if m.CanPause {
+		n += 2
+	}
+	if m.Paused {
+		n += 2
+	}
+	if m.CanFreeze {
+		n += 2
+	}
+	if m.CanWipe {
+		n += 2
+	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
 		l = __caster.Size(m.MintedValue)
@@ -275,6 +602,30 @@ func (m *ESDTData) Size() (n int) {
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
 		l = __caster.Size(m.BurntValue)
 		n += 1 + l + sovEsdt(uint64(l))
+	}
+	return n
+}
+
+func (m *ESDTConfig) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.OwnerAddress)
+	if l > 0 {
+		n += 1 + l + sovEsdt(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.BaseIssuingCost)
+		n += 1 + l + sovEsdt(uint64(l))
+	}
+	if m.MinTokenNameLength != 0 {
+		n += 1 + sovEsdt(uint64(m.MinTokenNameLength))
+	}
+	if m.MaxTokenNameLength != 0 {
+		n += 1 + sovEsdt(uint64(m.MaxTokenNameLength))
 	}
 	return n
 }
@@ -292,8 +643,27 @@ func (this *ESDTData) String() string {
 	s := strings.Join([]string{`&ESDTData{`,
 		`IssuerAddress:` + fmt.Sprintf("%v", this.IssuerAddress) + `,`,
 		`TokenName:` + fmt.Sprintf("%v", this.TokenName) + `,`,
+		`Mintable:` + fmt.Sprintf("%v", this.Mintable) + `,`,
+		`Burnable:` + fmt.Sprintf("%v", this.Burnable) + `,`,
+		`CanPause:` + fmt.Sprintf("%v", this.CanPause) + `,`,
+		`Paused:` + fmt.Sprintf("%v", this.Paused) + `,`,
+		`CanFreeze:` + fmt.Sprintf("%v", this.CanFreeze) + `,`,
+		`CanWipe:` + fmt.Sprintf("%v", this.CanWipe) + `,`,
 		`MintedValue:` + fmt.Sprintf("%v", this.MintedValue) + `,`,
 		`BurntValue:` + fmt.Sprintf("%v", this.BurntValue) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ESDTConfig) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ESDTConfig{`,
+		`OwnerAddress:` + fmt.Sprintf("%v", this.OwnerAddress) + `,`,
+		`BaseIssuingCost:` + fmt.Sprintf("%v", this.BaseIssuingCost) + `,`,
+		`MinTokenNameLength:` + fmt.Sprintf("%v", this.MinTokenNameLength) + `,`,
+		`MaxTokenNameLength:` + fmt.Sprintf("%v", this.MaxTokenNameLength) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -404,6 +774,126 @@ func (m *ESDTData) Unmarshal(dAtA []byte) error {
 			}
 			iNdEx = postIndex
 		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Mintable", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Mintable = bool(v != 0)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Burnable", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Burnable = bool(v != 0)
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanPause", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanPause = bool(v != 0)
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Paused", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Paused = bool(v != 0)
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanFreeze", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanFreeze = bool(v != 0)
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CanWipe", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.CanWipe = bool(v != 0)
+		case 9:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MintedValue", wireType)
 			}
@@ -441,7 +931,7 @@ func (m *ESDTData) Unmarshal(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
-		case 4:
+		case 10:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BurntValue", wireType)
 			}
@@ -479,6 +969,169 @@ func (m *ESDTData) Unmarshal(dAtA []byte) error {
 				}
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipEsdt(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ESDTConfig) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowEsdt
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ESDTConfig: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ESDTConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OwnerAddress", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OwnerAddress = append(m.OwnerAddress[:0], dAtA[iNdEx:postIndex]...)
+			if m.OwnerAddress == nil {
+				m.OwnerAddress = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BaseIssuingCost", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthEsdt
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.BaseIssuingCost = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MinTokenNameLength", wireType)
+			}
+			m.MinTokenNameLength = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.MinTokenNameLength |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MaxTokenNameLength", wireType)
+			}
+			m.MaxTokenNameLength = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEsdt
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.MaxTokenNameLength |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipEsdt(dAtA[iNdEx:])
