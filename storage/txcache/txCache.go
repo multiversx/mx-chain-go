@@ -122,6 +122,11 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 	return result
 }
 
+func (cache *TxCache) doAfterSelection() {
+	cache.sweepSweepable()
+	cache.diagnose()
+}
+
 // RemoveTxByHash removes tx by hash
 func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 	tx, ok := cache.txByHash.removeTx(string(txHash))
