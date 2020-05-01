@@ -165,22 +165,23 @@ func TestListForSender_SelectBatchTo_WhenInitialGap(t *testing.T) {
 
 	destination := make([]*WrappedTransaction, 1000)
 
-	// First batch, first failure
+	// First batch of selection, first failure
 	copied := list.selectBatchTo(true, destination, 50)
 	require.Equal(t, 0, copied)
 	require.Nil(t, destination[0])
 	require.Equal(t, int64(1), list.numFailedSelections.Get())
 
-	// Second batch, don't count failure again
+	// Second batch of selection, don't count failure again
 	copied = list.selectBatchTo(false, destination, 50)
 	require.Equal(t, 0, copied)
 	require.Nil(t, destination[0])
 	require.Equal(t, int64(1), list.numFailedSelections.Get())
 
-	// First batch again, second failure
+	// First batch of another selection, second failure, enters grace period
 	copied = list.selectBatchTo(true, destination, 50)
-	require.Equal(t, 0, copied)
-	require.Nil(t, destination[0])
+	require.Equal(t, 1, copied)
+	require.NotNil(t, destination[0])
+	require.Nil(t, destination[1])
 	require.Equal(t, int64(2), list.numFailedSelections.Get())
 }
 
