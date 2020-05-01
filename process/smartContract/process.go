@@ -343,7 +343,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	}
 
 	if !check.IfNil(acntSnd) {
-		err := acntSnd.AddToBalance(scrForSender.Value)
+		err = acntSnd.AddToBalance(scrForSender.Value)
 		if err != nil {
 			return true, err
 		}
@@ -602,7 +602,7 @@ func (sc *scProcessor) processVMOutput(
 	scrTxs = append(scrTxs, scrForSender)
 
 	if !check.IfNil(acntSnd) {
-		err := acntSnd.AddToBalance(scrForSender.Value)
+		err = acntSnd.AddToBalance(scrForSender.Value)
 		if err != nil {
 			return nil, nil, err
 		}

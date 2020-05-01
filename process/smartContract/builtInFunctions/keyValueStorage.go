@@ -43,25 +43,19 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 	if len(input.Arguments) != 2 {
 		return nil, process.ErrInvalidArguments
 	}
-	value := input.Arguments[1]
-	length := uint64(len(value))
-	maxGasToUse := k.funcGasCost + length*(k.gasConfig.DataCopyPerByte+k.gasConfig.StorePerByte+k.gasConfig.PersistPerByte)
-	if input.GasProvided < maxGasToUse {
-		return nil, process.ErrNotEnoughGas
-	}
 	if check.IfNil(acntDst) {
-		// cross-shard call, in sender shard only the gas is taken out
-		return &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}, nil
+		return nil, process.ErrNilSCDestAccount
 	}
-	if !bytes.Equal(input.CallerAddr, acntDst.AddressContainer().Bytes()) {
+	if !bytes.Equal(input.CallerAddr, input.RecipientAddr) {
 		return nil, fmt.Errorf("%w not the owner of the account", process.ErrOperationNotPermitted)
 	}
 	if core.IsSmartContractAddress(input.CallerAddr) {
 		return nil, fmt.Errorf("%w key-value builtin function not allowed for smart contracts", process.ErrOperationNotPermitted)
 	}
 
-	useGas := k.funcGasCost + length*k.gasConfig.DataCopyPerByte
-	useGas += k.gasConfig.PersistPerByte * length
+	value := input.Arguments[1]
+	length := uint64(len(value))
+	useGas := k.funcGasCost + length*(k.gasConfig.DataCopyPerByte+k.gasConfig.PersistPerByte)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: input.GasProvided - useGas}
 
 	key := input.Arguments[0]

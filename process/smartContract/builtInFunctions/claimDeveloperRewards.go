@@ -48,12 +48,12 @@ func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 	}
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: vmInput.GasProvided - c.gasCost}
-	outPutAcc := &vmcommon.OutputAccount{
+	outputAcc := &vmcommon.OutputAccount{
 		Address:      vmInput.CallerAddr,
 		BalanceDelta: big.NewInt(0).Set(value),
 	}
 	vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
-	vmOutput.OutputAccounts[string(outPutAcc.Address)] = outPutAcc
+	vmOutput.OutputAccounts[string(outputAcc.Address)] = outputAcc
 
 	if check.IfNil(acntSnd) {
 		return vmOutput, nil

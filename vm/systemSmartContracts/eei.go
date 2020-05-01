@@ -3,6 +3,7 @@ package systemSmartContracts
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-vm-common"
@@ -234,7 +235,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 		return nil, err
 	}
 
-	if input.Function == "_init" {
+	if input.Function == core.SCDeployInitFunctionName {
 		return &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}, nil
 	}
 

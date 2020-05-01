@@ -2,6 +2,7 @@
 package systemSmartContracts
 
 import (
+	"bytes"
 	"encoding/hex"
 	"math/big"
 
@@ -48,7 +49,7 @@ type ArgsNewESDTSmartContract struct {
 	Hasher        hashing.Hasher
 }
 
-// NewESDTSmartContract create the esdt smart contract, which controls the issuing of tokens
+// NewESDTSmartContract creates the esdt smart contract, which controls the issuing of tokens
 func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	if check.IfNil(args.Eei) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
@@ -76,14 +77,14 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	}, nil
 }
 
-// Execute  calls one of the functions from the esdt smart contract and runs the code according to the input
+// Execute calls one of the functions from the esdt smart contract and runs the code according to the input
 func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if CheckIfNil(args) != nil {
 		return vmcommon.UserError
 	}
 
 	switch args.Function {
-	case "_init":
+	case core.SCDeployInitFunctionName:
 		return e.init(args)
 	case "issue":
 		return e.issue(args)
@@ -119,14 +120,17 @@ func (e *esdt) init(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		MinTokenNameLength: minLengthForTokenName,
 		MaxTokenNameLength: maxLengthForTokenName,
 	}
-	marshalledData, err := e.marshalizer.Marshal(scConfig)
-	log.LogIfError(err, "marshall error on esdt init function")
+	marshaledData, err := e.marshalizer.Marshal(scConfig)
+	log.LogIfError(err, "marshal error on esdt init function")
 
-	e.eei.SetStorage([]byte(configKeyPrefix), marshalledData)
+	e.eei.SetStorage([]byte(configKeyPrefix), marshaledData)
 	return vmcommon.Ok
 }
 
 func (e *esdt) issueProtected(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, e.ownerAddress) {
+		return vmcommon.UserError
+	}
 	if len(args.Arguments) < 3 {
 		return vmcommon.FunctionWrongSignature
 	}
@@ -181,7 +185,7 @@ func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 
 	data := e.eei.GetStorage(tokenName)
 	if len(data) > 0 {
-		return vm.ErrTokenAlreadyTaken
+		return vm.ErrTokenAlreadyRegistered
 	}
 
 	newESDTToken := ESDTData{

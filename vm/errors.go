@@ -113,8 +113,8 @@ var ErrNilMarshalizer = errors.New("nil Marshalizer")
 // ErrNegativeInitialSupply signals that negative initial supply has been provided
 var ErrNegativeInitialSupply = errors.New("negative initial supply was provided")
 
-// ErrTokenAlreadyTaken signals that token was already registered
-var ErrTokenAlreadyTaken = errors.New("token was already registered")
+// ErrTokenAlreadyRegistered signals that token was already registered
+var ErrTokenAlreadyRegistered = errors.New("token was already registered")
 
 // ErrNilSystemSCConfig signals that nil system sc config was provided
 var ErrNilSystemSCConfig = errors.New("nil system sc config")

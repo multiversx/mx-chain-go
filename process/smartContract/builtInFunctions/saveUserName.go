@@ -52,7 +52,7 @@ func (s *saveUserName) ProcessBuiltinFunction(
 	}
 	if check.IfNil(acntDst) {
 		// cross-shard call, in sender shard only the gas is taken out
-		return &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}, nil
+		return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
 	}
 
 	_, ok := s.mapDnsAddresses[string(vmInput.CallerAddr)]

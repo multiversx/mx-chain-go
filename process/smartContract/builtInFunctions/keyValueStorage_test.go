@@ -30,7 +30,8 @@ func TestSaveKeyValue_ProcessBuiltinFunction(t *testing.T) {
 	addr := []byte("addr")
 	acc, _ := state.NewUserAccount(mock.NewAddressMock(addr))
 	vmInput := &vmcommon.ContractCallInput{
-		VMInput: vmcommon.VMInput{CallerAddr: addr, GasProvided: 50},
+		VMInput:       vmcommon.VMInput{CallerAddr: addr, GasProvided: 50},
+		RecipientAddr: addr,
 	}
 
 	_, err := skv.ProcessBuiltinFunction(nil, acc, vmInput)
@@ -44,7 +45,7 @@ func TestSaveKeyValue_ProcessBuiltinFunction(t *testing.T) {
 	vmInput.Arguments = [][]byte{key, value}
 
 	_, err = skv.ProcessBuiltinFunction(nil, nil, vmInput)
-	require.Nil(t, err)
+	require.Equal(t, process.ErrNilSCDestAccount, err)
 
 	_, err = skv.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Nil(t, err)

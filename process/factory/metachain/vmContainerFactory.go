@@ -50,16 +50,16 @@ func NewVMContainerFactory(
 		return nil, process.ErrNilKeyGen
 	}
 	if check.IfNil(nodesConfigProvider) {
-		return nil, vm.ErrNilNodesConfigProvider
+		return nil, process.ErrNilNodesConfigProvider
 	}
 	if check.IfNil(hasher) {
-		return nil, vm.ErrNilMarshalizer
+		return nil, process.ErrNilHasher
 	}
 	if check.IfNil(marshalizer) {
-		return nil, vm.ErrNilHasher
+		return nil, process.ErrNilMarshalizer
 	}
 	if systemSCConfig == nil {
-		return nil, vm.ErrNilSystemSCConfig
+		return nil, process.ErrNilSystemSCConfig
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argBlockChainHook)

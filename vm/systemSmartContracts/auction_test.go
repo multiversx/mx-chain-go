@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -485,7 +486,7 @@ func TestAuctionStakingSC_ExecuteInit(t *testing.T) {
 
 	stakingSmartContract, _ := NewStakingAuctionSmartContract(args)
 	arguments := CreateVmContractCallInput()
-	arguments.Function = "_init"
+	arguments.Function = core.SCDeployInitFunctionName
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
@@ -510,7 +511,7 @@ func TestAuctionStakingSC_ExecuteInitTwoTimeShouldReturnUserError(t *testing.T) 
 
 	stakingSmartContract, _ := NewStakingAuctionSmartContract(args)
 	arguments := CreateVmContractCallInput()
-	arguments.Function = "_init"
+	arguments.Function = core.SCDeployInitFunctionName
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
@@ -1263,7 +1264,7 @@ func TestAuctionStakingSC_SetConfig(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 
 	// call auction smart contract init
-	arguments.Function = "_init"
+	arguments.Function = core.SCDeployInitFunctionName
 	arguments.CallerAddr = ownerAddr
 	retCode = sc.Execute(arguments)
 	require.Equal(t, vmcommon.Ok, retCode)
