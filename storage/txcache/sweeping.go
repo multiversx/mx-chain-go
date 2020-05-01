@@ -1,5 +1,9 @@
 package txcache
 
+func (cache *TxCache) initSweepable() {
+	cache.sweepingListOfSenders = make([]*txListForSender, 0, estimatedNumOfSweepableSendersPerSelection)
+}
+
 func (cache *TxCache) collectSweepable(list *txListForSender) {
 	if !list.sweepable.IsSet() {
 		return
@@ -19,7 +23,7 @@ func (cache *TxCache) sweepSweepable() {
 	}
 
 	stopWatch := cache.monitorSweepingStart()
-	numTxs, numSenders := cache.evictSendersAndTheirTxs(cache.sweepingListOfSenders)
-	cache.sweepingListOfSenders = make([]*txListForSender, 0, estimatedNumOfSweepableSendersPerSelection)
+	numTxs, numSenders := cache.evictSendersAndTheirTxs(snapshot)
+	cache.initSweepable()
 	cache.monitorSweepingEnd(numTxs, numSenders, stopWatch)
 }

@@ -36,14 +36,14 @@ func NewTxCache(config CacheConfig) *TxCache {
 	numChunksHint := config.NumChunksHint
 
 	txCache := &TxCache{
-		name:                  config.Name,
-		txListBySender:        newTxListBySenderMap(numChunksHint, config),
-		txByHash:              newTxByHashMap(numChunksHint),
-		config:                config,
-		evictionJournal:       evictionJournal{},
-		sweepingListOfSenders: make([]*txListForSender, 0, estimatedNumOfSweepableSendersPerSelection),
+		name:            config.Name,
+		txListBySender:  newTxListBySenderMap(numChunksHint, config),
+		txByHash:        newTxByHashMap(numChunksHint),
+		config:          config,
+		evictionJournal: evictionJournal{},
 	}
 
+	txCache.initSweepable()
 	return txCache
 }
 
