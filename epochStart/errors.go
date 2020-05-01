@@ -65,6 +65,9 @@ var ErrNilHeaderValidator = errors.New("nil header validator")
 // ErrNilDataPoolsHolder signals that nil data pools holder has been provided
 var ErrNilDataPoolsHolder = errors.New("nil data pools holder")
 
+// ErrNilCommunityAddress signals that a nil community address was provided
+var ErrNilCommunityAddress = errors.New("nil community address")
+
 // ErrNilStorageService signals that nil storage service has been provided
 var ErrNilStorageService = errors.New("nil storage service")
 
