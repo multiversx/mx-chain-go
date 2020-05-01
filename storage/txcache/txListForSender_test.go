@@ -2,6 +2,7 @@ package txcache
 
 import (
 	"math"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -300,6 +301,28 @@ func TestListForSender_DetectRaceConditions(t *testing.T) {
 	go func() {
 		list.AddTx(createTx([]byte("test"), ".", 42))
 	}()
+}
+
+func TestListForSender_AddTx_ComputeScore_Concurrently(t *testing.T) {
+	list := newListToTest()
+
+	var wg sync.WaitGroup
+
+	for i := 0; i < 100; i++ {
+		wg.Add(2)
+
+		go func() {
+			list.AddTx(createTx([]byte("alice-x"), "alice", 42))
+			wg.Done()
+		}()
+
+		go func() {
+			_ = list.ComputeScore()
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
 }
 
 func newListToTest() *txListForSender {
