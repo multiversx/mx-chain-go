@@ -23,7 +23,7 @@ func (cache *TxCache) sweepSweepable() {
 	}
 
 	stopWatch := cache.monitorSweepingStart()
-	numTxs, numSenders := cache.evictSendersAndTheirTxs(snapshot)
+	numTxs, numSenders := cache.evictSendersAndTheirTxs(cache.sweepingListOfSenders)
 	cache.initSweepable()
 	cache.monitorSweepingEnd(numTxs, numSenders, stopWatch)
 }
