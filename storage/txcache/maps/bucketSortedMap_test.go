@@ -395,13 +395,16 @@ func TestBucketSortedMap_NoForgottenItemsOnConcurrentScoreChanges(t *testing.T) 
 
 		wg.Wait()
 
-		fmt.Println("Should be one item in map")
-		fmt.Println("Buckets", myMap.ScoreChunksCounts())
+		// fmt.Println("Should be one item in map")
+		// fmt.Println("Buckets", myMap.ScoreChunksCounts())
+
+		require.Equal(t, uint32(1), myMap.CountSorted())
+		require.Equal(t, uint32(1), myMap.Count())
 
 		myMap.Remove("a")
 
-		fmt.Println("Should be no item in map")
-		fmt.Println("Buckets", myMap.ScoreChunksCounts())
+		// fmt.Println("Should be no item in map")
+		// fmt.Println("Buckets", myMap.ScoreChunksCounts())
 
 		require.Equal(t, uint32(0), myMap.CountSorted())
 		require.Equal(t, uint32(0), myMap.Count())
