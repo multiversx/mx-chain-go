@@ -24,7 +24,7 @@ func (r *RewardsHandlerStub) CommunityPercentage() float64 {
 		return r.CommunityPercentageCalled()
 	}
 
-	return 1
+	return 0.1
 }
 
 // CommunityAddress will return the community address
@@ -33,7 +33,7 @@ func (r *RewardsHandlerStub) CommunityAddress() string {
 		return r.CommunityAddressCalled()
 	}
 
-	return "address"
+	return "1111"
 }
 
 // MinInflationRate -

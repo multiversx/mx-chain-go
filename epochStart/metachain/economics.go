@@ -121,6 +121,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		rwdPerBlock.Div(totalRewardsToBeDistributed, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 	}
 
+	e.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, metaBlock.AccumulatedFeesInEpoch, totalNumBlocksInEpoch)
 	rewardsForCommunity := e.computeRewardsForCommunity(totalRewardsToBeDistributed)
 	// adjust rewards per block taking into consideration community rewards
 	e.adjustRewardsPerBlockWithCommunityRewards(rwdPerBlock, rewardsForCommunity, totalNumBlocksInEpoch)
@@ -136,7 +137,6 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		TotalNewlyMinted:       big.NewInt(0).Set(newTokens),
 		RewardsPerBlockPerNode: e.computeRewardsPerValidatorPerBlock(rwdPerBlock),
 		RewardsForCommunity:    rewardsForCommunity,
-		CommunityAddress:       []byte(e.rewardsHandler.CommunityAddress()),
 		// TODO: get actual nodePrice from auction smart contract (currently on another feature branch, and not all features enabled)
 		NodePrice:           big.NewInt(0).Set(prevEpochEconomics.NodePrice),
 		PrevEpochStartRound: prevEpochStart.GetRound(),
@@ -148,11 +148,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 
 // compute the rewards for community - percentage from total rewards
 func (e *economics) computeRewardsForCommunity(totalRewards *big.Int) *big.Int {
-	precentageAdjustment := float64(100)
-	communityPercentage := big.NewInt(0).SetUint64(uint64(e.rewardsHandler.CommunityPercentage() * precentageAdjustment))
-	rewardsForCommunity := big.NewInt(0).Mul(totalRewards, communityPercentage)
-	rewardsForCommunity.Div(rewardsForCommunity, big.NewInt(0).SetUint64(uint64(precentageAdjustment)))
-
+	rewardsForCommunity := core.GetPercentageOfValue(totalRewards, e.rewardsHandler.CommunityPercentage())
 	return rewardsForCommunity
 }
 
@@ -164,6 +160,16 @@ func (e *economics) adjustRewardsPerBlockWithCommunityRewards(
 ) {
 	communityRewardsPerBlock := big.NewInt(0).Div(communityRewards, big.NewInt(0).SetUint64(blocksInEpoch))
 	rwdPerBlock.Sub(rwdPerBlock, communityRewardsPerBlock)
+}
+
+func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
+	rwdPerBlock *big.Int,
+	accumulatedFees *big.Int,
+	blocksInEpoch uint64,
+) {
+	rewardsForLeaders := core.GetPercentageOfValue(accumulatedFees, e.rewardsHandler.LeaderPercentage())
+	averageLeaderRewardPerBlock := big.NewInt(0).Div(rewardsForLeaders, big.NewInt(0).SetUint64(blocksInEpoch))
+	rwdPerBlock.Sub(rwdPerBlock, averageLeaderRewardPerBlock)
 }
 
 // compute rewards per node per block

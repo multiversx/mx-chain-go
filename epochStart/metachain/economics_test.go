@@ -239,6 +239,19 @@ func TestEconomics_AdjustRewardsPerBlockWithCommunityRewards(t *testing.T) {
 	assert.Equal(t, expectedRwdPerBlock, rwdPerBlock)
 }
 
+func TestEconomics_AdjustRewardsPerBlockWithLeaderPercentage(t *testing.T) {
+	args := getArguments()
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	rwdPerBlock := big.NewInt(0).SetUint64(1000)
+	blocksInEpoch := uint64(100)
+	accumulatedFeesInEpoch := big.NewInt(0).SetUint64(10000)
+
+	expectedRwdPerBlock := big.NewInt(900)
+	ec.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, accumulatedFeesInEpoch, blocksInEpoch)
+	assert.Equal(t, expectedRwdPerBlock, rwdPerBlock)
+}
+
 func TestEconomics_ComputeEndOfEpochEconomics_NotEpochStartShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -285,8 +298,8 @@ func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {
 		Round: 15000,
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
+				{ShardID: 0, Round: 2, Nonce: 3},
 				{ShardID: 1, Round: 2, Nonce: 3},
-				{ShardID: 2, Round: 2, Nonce: 3},
 			},
 			Economics: block.Economics{},
 		},
@@ -333,7 +346,6 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 				TotalNewlyMinted:       big.NewInt(10),
 				RewardsPerBlockPerNode: big.NewInt(10),
 				NodePrice:              big.NewInt(10),
-				CommunityAddress:       []byte(commAddress),
 				RewardsForCommunity:    big.NewInt(10),
 			},
 			LastFinalizedHeaders: []block.EpochStartShardData{
@@ -389,7 +401,6 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 					RewardsPerBlockPerNode: adjustedRwdPerBlock,
 					NodePrice:              big.NewInt(10),
 					PrevEpochStartHash:     hdrPrevEpochStartHash,
-					CommunityAddress:       []byte(commAddress),
 					RewardsForCommunity:    expectedCommunityRewards,
 				},
 			},

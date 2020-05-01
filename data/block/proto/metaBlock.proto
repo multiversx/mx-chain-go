@@ -71,10 +71,9 @@ message Economics {
 	bytes  TotalNewlyMinted       = 3 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 	bytes  RewardsPerBlockPerNode = 4 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 	bytes  RewardsForCommunity    = 5 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	bytes  CommunityAddress       = 6;
-	bytes  NodePrice              = 7 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	uint64 PrevEpochStartRound    = 8;
-	bytes  PrevEpochStartHash     = 9;
+	bytes  NodePrice              = 6 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	uint64 PrevEpochStartRound    = 7;
+	bytes  PrevEpochStartHash     = 8;
 }
 
 // EpochStart holds the block information for end-of-epoch

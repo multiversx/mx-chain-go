@@ -185,7 +185,7 @@ func checkValues(economics *config.EconomicsConfig) error {
 		isPercentageInvalid(economics.RewardsSettings.DeveloperPercentage) ||
 		isPercentageInvalid(economics.RewardsSettings.CommunityPercentage) ||
 		isPercentageInvalid(economics.GlobalSettings.MaximumInflation) ||
-		isPercentageInvalid(economics.GlobalSettings.MaximumInflation) {
+		isPercentageInvalid(economics.GlobalSettings.MinimumInflation) {
 		return process.ErrInvalidRewardsPercentages
 	}
 

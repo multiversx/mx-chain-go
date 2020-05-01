@@ -87,6 +87,28 @@ func TestNewEpochStartRewardsCreator_NilMarshalizer(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilMarshalizer, err)
 }
 
+func TestNewEpochStartRewardsCreator_EmptyCommunityAddress(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsArguments()
+	args.CommunityAddress = ""
+
+	rwd, err := NewEpochStartRewardsCreator(args)
+	assert.True(t, check.IfNil(rwd))
+	assert.Equal(t, epochStart.ErrNilCommunityAddress, err)
+}
+
+func TestNewEpochStartRewardsCreator_InvalidCommunityAddress(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsArguments()
+	args.CommunityAddress = "xyz" // not a hex string
+
+	rwd, err := NewEpochStartRewardsCreator(args)
+	assert.True(t, check.IfNil(rwd))
+	assert.NotNil(t, err)
+}
+
 func TestNewEpochStartRewardsCreator_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -421,24 +443,6 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
 	assert.Equal(t, cloneMb, miniBlocks[0])
 }
 
-func TestRewardsCreator_CreateCommunityRewardTransactionInvalidCommunityAddress(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsArguments()
-	rwdc, _ := NewEpochStartRewardsCreator(args)
-	epStart := getDefaultEpochStart()
-	epStart.Economics.CommunityAddress = []byte("j")
-
-	mb := &block.MetaBlock{
-		EpochStart: epStart,
-	}
-	rwdTx, txHash, shardId, err := rwdc.createCommunityRewardTransaction(mb)
-	assert.NotNil(t, err)
-	assert.Nil(t, rwdTx)
-	assert.Nil(t, txHash)
-	assert.Equal(t, uint32(0), shardId)
-}
-
 func TestRewardsCreator_CreateCommunityRewardTransaction(t *testing.T) {
 	t.Parallel()
 
@@ -458,28 +462,6 @@ func TestRewardsCreator_CreateCommunityRewardTransaction(t *testing.T) {
 	assert.Equal(t, expectedRewardTx, rwdTx)
 	assert.Equal(t, expectedRwdTxHash, txHash)
 	assert.Nil(t, err)
-}
-
-func TestRewardsCreator_AddCommunityRewardToMiniBlocksWrongAddrShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsArguments()
-	epStart := getDefaultEpochStart()
-	epStart.Economics.CommunityAddress = []byte("invalid hex address")
-	rwdc, _ := NewEpochStartRewardsCreator(args)
-	metaBlk := &block.MetaBlock{
-		EpochStart: epStart,
-	}
-
-	miniBlocks := make(block.MiniBlockSlice, rwdc.shardCoordinator.NumberOfShards())
-	miniBlocks[0] = &block.MiniBlock{}
-	miniBlocks[0].SenderShardID = core.MetachainShardId
-	miniBlocks[0].ReceiverShardID = 0
-	miniBlocks[0].Type = block.RewardsBlock
-	miniBlocks[0].TxHashes = make([][]byte, 0)
-
-	err := rwdc.addCommunityRewardToMiniBlocks(miniBlocks, metaBlk)
-	assert.NotNil(t, err)
 }
 
 func TestRewardsCreator_AddCommunityRewardToMiniBlocks(t *testing.T) {
@@ -522,7 +504,6 @@ func getDefaultEpochStart() block.EpochStart {
 			TotalNewlyMinted:       big.NewInt(10000),
 			RewardsPerBlockPerNode: big.NewInt(10000),
 			NodePrice:              big.NewInt(10000),
-			CommunityAddress:       []byte("11"), // string hex => 17 decimal
 			RewardsForCommunity:    big.NewInt(50),
 		},
 	}
@@ -537,5 +518,6 @@ func getRewardsArguments() ArgsNewRewardsCreator {
 		Hasher:           &mock.HasherMock{},
 		Marshalizer:      &mock.MarshalizerMock{},
 		DataPool:         &mock.PoolsHolderStub{},
+		CommunityAddress: "11", // string hex => 17 decimal
 	}
 }
