@@ -219,9 +219,8 @@
     Type = "LRU"
 
 [TxDataPool]
-    # TODO: Undo after system tests!
-    Size = 90000
-    SizeInBytes = 52428800
+    Size = 900000
+    SizeInBytes = 524288000
     Type = "TxCache"
     Shards = 16
 
