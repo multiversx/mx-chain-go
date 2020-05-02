@@ -601,16 +601,18 @@ func TestAuctionStakingSC_ExecuteStake(t *testing.T) {
 
 	stakerAddress := big.NewInt(100)
 	stakerPubKey := big.NewInt(100)
-	expectedRegistrationData := StakedData{
-		RegisterNonce: 0,
-		Staked:        false,
-		UnStakedNonce: 0,
-		RewardAddress: []byte{100},
-		StakeValue:    nil,
-	}
 
 	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForAuction()
+	expectedRegistrationData := AuctionData{
+		RewardAddress:   stakerAddress.Bytes(),
+		RegisterNonce:   0,
+		Epoch:           0,
+		BlsPubKeys:      [][]byte{stakerPubKey.Bytes()},
+		TotalStakeValue: args.ValidatorSettings.GenesisNodePrice(),
+		LockedStake:     args.ValidatorSettings.GenesisNodePrice(),
+		MaxStakePerNode: args.ValidatorSettings.GenesisNodePrice(),
+	}
 
 	atArgParser := vmcommon.NewAtArgumentParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser)
@@ -638,7 +640,7 @@ func TestAuctionStakingSC_ExecuteStake(t *testing.T) {
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
-	var registrationData StakedData
+	var registrationData AuctionData
 	data := sc.eei.GetStorage(arguments.CallerAddr)
 	err := json.Unmarshal(data, &registrationData)
 	assert.Nil(t, err)

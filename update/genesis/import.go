@@ -101,7 +101,7 @@ func (si *stateImport) ImportAll() error {
 func (si *stateImport) importMetaBlock() error {
 	object, err := si.readNextElement(MetaBlockFileName)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	metaBlock, ok := object.(*block.MetaBlock)
