@@ -958,15 +958,21 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
 		return
 	}
 
-	if header.IsStartOfEpochBlock() {
-		epochStartId := core.EpochStartIdentifier(header.GetEpoch())
-		metaBlock, err := process.GetMetaHeaderFromStorage([]byte(epochStartId), sp.marshalizer, sp.store)
-		if err != nil {
-			log.Warn("could not find epoch start metablock for", "epoch", header.GetEpoch(), "err", err)
-			return
+	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	for _, metaHash := range header.MetaBlockHashes {
+		metaHdrInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaHash)]
+		if !ok {
+			continue
+		}
+		metaHdr, ok := metaHdrInfo.hdr.(*block.MetaBlock)
+		if !ok {
+			continue
+		}
+		if !metaHdr.IsStartOfEpochBlock() {
+			continue
 		}
 
-		for _, epochStartShData := range metaBlock.EpochStart.LastFinalizedHeaders {
+		for _, epochStartShData := range metaHdr.EpochStart.LastFinalizedHeaders {
 			if epochStartShData.ShardID != header.ShardID {
 				continue
 			}
@@ -977,10 +983,10 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
 
 			return
 		}
-
-		log.Warn("could not find epoch start shard data in metaBlock for", "epoch", header.GetEpoch(), "err", err)
-		return
 	}
+	sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
+	return
 }
 
 func (sp *shardProcessor) checkEpochCorrectnessCrossChain() error {
