@@ -13,28 +13,32 @@ import (
 	mclmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
 	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
+	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
 )
 
 // CryptoComponentsFactoryArgs holds the arguments needed for creating crypto components
 type CryptoComponentsFactoryArgs struct {
-	Config           config.Config
-	NodesConfig      NodesSetupHandler
-	ShardCoordinator sharding.Coordinator
-	KeyGen           crypto.KeyGenerator
-	PrivKey          crypto.PrivateKey
+	Config                               config.Config
+	NodesConfig                          NodesSetupHandler
+	ShardCoordinator                     sharding.Coordinator
+	KeyGen                               crypto.KeyGenerator
+	PrivKey                              crypto.PrivateKey
+	ActivateBLSPubKeyMessageVerification bool
 }
 
 type cryptoComponentsFactory struct {
-	config           config.Config
-	nodesConfig      NodesSetupHandler
-	shardCoordinator sharding.Coordinator
-	keyGen           crypto.KeyGenerator
-	privKey          crypto.PrivateKey
+	config                               config.Config
+	nodesConfig                          NodesSetupHandler
+	shardCoordinator                     sharding.Coordinator
+	keyGen                               crypto.KeyGenerator
+	privKey                              crypto.PrivateKey
+	activateBLSPubKeyMessageVerification bool
 }
 
 // NewCryptoComponentsFactory returns a new crypto components factory
@@ -53,11 +57,12 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 	}
 
 	return &cryptoComponentsFactory{
-		config:           args.Config,
-		nodesConfig:      args.NodesConfig,
-		shardCoordinator: args.ShardCoordinator,
-		keyGen:           args.KeyGen,
-		privKey:          args.PrivKey,
+		config:                               args.Config,
+		nodesConfig:                          args.NodesConfig,
+		shardCoordinator:                     args.ShardCoordinator,
+		keyGen:                               args.KeyGen,
+		privKey:                              args.PrivKey,
+		activateBLSPubKeyMessageVerification: args.ActivateBLSPubKeyMessageVerification,
 	}, nil
 }
 
@@ -87,9 +92,14 @@ func (ccf *cryptoComponentsFactory) Create() (*CryptoComponents, error) {
 
 	txSignKeyGen := signing.NewKeyGenerator(ed25519.NewEd25519())
 
-	messageSignVerifier, err := systemVM.NewMessageSigVerifier(ccf.keyGen, singleSigner)
-	if err != nil {
-		return nil, err
+	var messageSignVerifier vm.MessageSignVerifier
+	if ccf.activateBLSPubKeyMessageVerification {
+		messageSignVerifier, err = systemVM.NewMessageSigVerifier(ccf.keyGen, singleSigner)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		messageSignVerifier = &genesis.NilMessageSignVerifier{}
 	}
 
 	return &CryptoComponents{
