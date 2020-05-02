@@ -37,12 +37,19 @@ func createPkBytes(numShards uint32) map[uint32][]byte {
 
 func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 	return ArgsEpochStartBootstrap{
-		PublicKey:                  &mock.PublicKeyStub{},
-		Marshalizer:                &mock.MarshalizerMock{},
-		TxSignMarshalizer:          &mock.MarshalizerMock{},
-		Hasher:                     &mock.HasherMock{},
-		Messenger:                  &mock.MessengerStub{},
-		GeneralConfig:              config.Config{},
+		PublicKey:         &mock.PublicKeyStub{},
+		Marshalizer:       &mock.MarshalizerMock{},
+		TxSignMarshalizer: &mock.MarshalizerMock{},
+		Hasher:            &mock.HasherMock{},
+		Messenger:         &mock.MessengerStub{},
+		GeneralConfig: config.Config{
+			WhiteListPool: config.CacheConfig{
+				Type:        "LRU",
+				Size:        10,
+				SizeInBytes: 1000,
+				Shards:      10,
+			},
+		},
 		EconomicsData:              &economics.EconomicsData{},
 		SingleSigner:               &mock.SignerStub{},
 		BlockSingleSigner:          &mock.SignerStub{},
@@ -66,10 +73,12 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 			triesFactory.UserAccountTrie: &mock.StorageManagerStub{},
 			triesFactory.PeerAccountTrie: &mock.StorageManagerStub{},
 		},
-		Uint64Converter:        &mock.Uint64ByteSliceConverterMock{},
-		NodeShuffler:           &mock.NodeShufflerMock{},
-		Rounder:                &mock.RounderStub{},
-		AddressPubkeyConverter: &mock.PubkeyConverterMock{},
+		Uint64Converter:           &mock.Uint64ByteSliceConverterMock{},
+		NodeShuffler:              &mock.NodeShufflerMock{},
+		Rounder:                   &mock.RounderStub{},
+		AddressPubkeyConverter:    &mock.PubkeyConverterMock{},
+		LatestStorageDataProvider: &mock.LatestStorageDataProviderStub{},
+		StorageUnitOpener:         &mock.UnitOpenerStub{},
 	}
 }
 

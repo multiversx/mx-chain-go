@@ -110,6 +110,8 @@ type epochStartBootstrap struct {
 	nodesConfigHandler        StartOfEpochNodesConfigHandler
 	whiteListHandler          update.WhiteListHandler
 	whiteListerVerifiedTxs    update.WhiteListHandler
+	storageOpenerHandler      storage.UnitOpenerHandler
+	latestStorageDataProvider storage.LatestStorageDataProviderHandler
 
 	// gathered data
 	epochStartMeta     *block.MetaBlock
@@ -152,6 +154,8 @@ type ArgsEpochStartBootstrap struct {
 	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
 	GenesisShardCoordinator    sharding.Coordinator
 	PathManager                storage.PathManagerHandler
+	StorageUnitOpener          storage.UnitOpenerHandler
+	LatestStorageDataProvider  storage.LatestStorageDataProviderHandler
 	Rater                      sharding.ChanceComputer
 	TrieContainer              state.TriesHolder
 	Uint64Converter            typeConverters.Uint64ByteSliceConverter
@@ -193,7 +197,28 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		uint64Converter:            args.Uint64Converter,
 		nodeShuffler:               args.NodeShuffler,
 		rounder:                    args.Rounder,
+		storageOpenerHandler:       args.StorageUnitOpener,
+		latestStorageDataProvider:  args.LatestStorageDataProvider,
 		addressPubkeyConverter:     args.AddressPubkeyConverter,
+	}
+
+	whiteListCache, err := storageUnit.NewCache(
+		storageUnit.CacheType(epochStartProvider.generalConfig.WhiteListPool.Type),
+		epochStartProvider.generalConfig.WhiteListPool.Size,
+		epochStartProvider.generalConfig.WhiteListPool.Shards,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	epochStartProvider.whiteListHandler, err = interceptors.NewWhiteListDataVerifier(whiteListCache)
+	if err != nil {
+		return nil, err
+	}
+
+	epochStartProvider.whiteListerVerifiedTxs, err = interceptors.NewDisabledWhiteListDataVerifier()
+	if err != nil {
+		return nil, err
 	}
 
 	return epochStartProvider, nil
@@ -247,10 +272,6 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	if e.isStartInEpochZero() {
-		return e.prepareEpochZero()
-	}
-
 	e.dataPool, err = factoryDataPool.NewDataPoolFromConfig(
 		factoryDataPool.ArgsDataPool{
 			Config:           &e.generalConfig,
@@ -263,12 +284,17 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
-	if isCurrentEpochSaved {
-		parameters, err := e.prepareEpochFromStorage()
-		if err == nil {
+	if isCurrentEpochSaved || e.isStartInEpochZero() {
+		if e.baseData.lastEpoch == 0 {
+			return e.prepareEpochZero()
+		}
+
+		parameters, errPrepare := e.prepareEpochFromStorage()
+		if errPrepare == nil {
 			return parameters, nil
 		}
-		log.Debug("could not start from storage - will try sync for start in epoch", "error", err)
+
+		log.Debug("could not start from storage - will try sync for start in epoch", "error", errPrepare)
 	}
 
 	err = e.prepareComponentsToSyncFromNetwork()
@@ -324,26 +350,7 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 }
 
 func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
-	whiteListCache, err := storageUnit.NewCache(
-		storageUnit.CacheType(e.generalConfig.WhiteListPool.Type),
-		e.generalConfig.WhiteListPool.Size,
-		e.generalConfig.WhiteListPool.Shards,
-	)
-	if err != nil {
-		return err
-	}
-
-	e.whiteListHandler, err = interceptors.NewWhiteListDataVerifier(whiteListCache)
-	if err != nil {
-		return err
-	}
-
-	e.whiteListerVerifiedTxs, err = interceptors.NewDisabledWhiteListDataVerifier()
-	if err != nil {
-		return err
-	}
-
-	err = e.createRequestHandler()
+	err := e.createRequestHandler()
 	if err != nil {
 		return err
 	}
@@ -377,8 +384,8 @@ func (e *epochStartBootstrap) createSyncers() error {
 	var err error
 
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
-		Config:               e.generalConfig,
-		ShardCoordinator:     e.shardCoordinator,
+		Config:                 e.generalConfig,
+		ShardCoordinator:       e.shardCoordinator,
 		ProtoMarshalizer:       e.marshalizer,
 		TxSignMarshalizer:      e.txSignMarshalizer,
 		Hasher:                 e.hasher,

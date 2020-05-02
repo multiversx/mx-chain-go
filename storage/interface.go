@@ -126,6 +126,42 @@ type PathManagerHandler interface {
 	IsInterfaceNil() bool
 }
 
+// PersisterFactory defines which actions should be done for creating a persister
+type PersisterFactory interface {
+	Create(path string) (Persister, error)
+	IsInterfaceNil() bool
+}
+
+// UnitOpenerHandler defines which actions should be done for opening storage units
+type UnitOpenerHandler interface {
+	GetMostRecentBootstrapStorageUnit() (Storer, error)
+	IsInterfaceNil() bool
+}
+
+// DirectoryReaderHandler defines which actions should be done by a directory reader
+type DirectoryReaderHandler interface {
+	ListFilesAsString(directoryPath string) ([]string, error)
+	ListDirectoriesAsString(directoryPath string) ([]string, error)
+	ListAllAsString(directoryPath string) ([]string, error)
+	IsInterfaceNil() bool
+}
+
+// LatestStorageDataProviderHandler defines which actions be done by a component who fetches latest data from storage
+type LatestStorageDataProviderHandler interface {
+	GetParentDirAndLastEpoch() (string, uint32, error)
+	Get() (LatestDataFromStorage, error)
+	GetShardsFromDirectory(path string) ([]string, error)
+	IsInterfaceNil() bool
+}
+
+// LatestDataFromStorage represents the DTO structure to return from storage
+type LatestDataFromStorage struct {
+	Epoch           uint32
+	ShardID         uint32
+	LastRound       int64
+	EpochStartRound uint64
+}
+
 // ShardCoordinator defines what a shard state coordinator should hold
 type ShardCoordinator interface {
 	NumberOfShards() uint32

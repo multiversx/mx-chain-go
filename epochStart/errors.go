@@ -65,6 +65,9 @@ var ErrNilHeaderValidator = errors.New("nil header validator")
 // ErrNilDataPoolsHolder signals that nil data pools holder has been provided
 var ErrNilDataPoolsHolder = errors.New("nil data pools holder")
 
+// ErrNilCommunityAddress signals that a nil community address was provided
+var ErrNilCommunityAddress = errors.New("nil community address")
+
 // ErrNilStorageService signals that nil storage service has been provided
 var ErrNilStorageService = errors.New("nil storage service")
 
@@ -196,3 +199,12 @@ var ErrInvalidWorkingDir = errors.New("invalid working directory")
 
 // ErrTimeoutWaitingForMetaBlock signals that a timeout event was raised while waiting for the epoch start meta block
 var ErrTimeoutWaitingForMetaBlock = errors.New("timeout while waiting for epoch start meta block")
+
+// ErrNilStorageUnitOpener signals that a nil storage unit opener was provided
+var ErrNilStorageUnitOpener = errors.New("nil storage unit opener")
+
+// ErrNilLatestStorageDataProvider signals that a nil latest storage data provider was provided
+var ErrNilLatestStorageDataProvider = errors.New("nil latest storage data provider")
+
+// ErrNilShuffler signals that a nil shuffler was provided
+var ErrNilShuffler = errors.New("nil nodes shuffler provided")

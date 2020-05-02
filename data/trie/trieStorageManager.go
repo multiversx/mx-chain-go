@@ -181,13 +181,10 @@ func (tsm *trieStorageManager) Prune(rootHash []byte, identifier data.TriePrunin
 	rootHash = append(rootHash, byte(identifier))
 
 	if tsm.snapshotInProgress > 0 {
-		if identifier == data.NewRoot {
-			// TODO refactor pruning mechanism so that pruning will be done on rollback
-			// even if there is a snapshot in progress
-			return
-		}
+		// TODO refactor pruning mechanism so that pruning will be done on rollback
+		// even if there is a snapshot in progress
 
-		tsm.pruningBuffer.add(rootHash)
+		//TODO activate pruning when snapshot is in progress
 		return
 	}
 
@@ -207,10 +204,15 @@ func (tsm *trieStorageManager) prune(oldHashes map[string]struct{}) {
 }
 
 // CancelPrune removes the given hash from the eviction waiting list
-func (tsm *trieStorageManager) CancelPrune(rootHash []byte) {
+func (tsm *trieStorageManager) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
+	if tsm.snapshotInProgress > 0 || tsm.pruningBuffer.len() != 0 {
+		return
+	}
+
+	rootHash = append(rootHash, byte(identifier))
 	log.Trace("trie storage manager cancel prune", "root", rootHash)
 	_, _ = tsm.dbEvictionWaitingList.Evict(rootHash)
 	tsm.pruningBuffer.remove(rootHash)
@@ -253,6 +255,7 @@ func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
 // MarkForEviction adds the given hashes in the eviction waiting list at the provided key
 func (tsm *trieStorageManager) MarkForEviction(root []byte, hashes data.ModifiedHashes) error {
 	log.Trace("trie storage manager: mark for eviction", "root", root)
+
 	return tsm.dbEvictionWaitingList.Put(root, hashes)
 }
 

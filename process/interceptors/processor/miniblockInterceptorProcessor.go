@@ -80,7 +80,7 @@ func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ p
 	}
 
 	if mip.isMbCrossShard(miniblock) && !mip.whiteListHandler.IsWhiteListed(data) {
-		log.Debug(
+		log.Trace(
 			"miniblock interceptor processor : cross shard miniblock for me",
 			"message", "not whitelisted will not be added in pool",
 			"type", miniblock.Type,
