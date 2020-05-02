@@ -959,6 +959,8 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
 	}
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	defer sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
 	for _, metaHash := range header.MetaBlockHashes {
 		metaHdrInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaHash)]
 		if !ok {
@@ -980,11 +982,8 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
 			rootHash := epochStartShData.RootHash
 			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash)
 			accounts.SnapshotState(rootHash)
-
-			return
 		}
 	}
-	sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
 	return
 }
