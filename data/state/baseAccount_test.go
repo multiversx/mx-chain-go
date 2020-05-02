@@ -13,10 +13,10 @@ import (
 func TestBaseAccount_AddressContainer(t *testing.T) {
 	t.Parallel()
 
-	addressContainter := &mock.AddressMock{}
+	address := make([]byte, 32)
 
-	ba := state.NewEmptyBaseAccount(addressContainter, nil)
-	assert.Equal(t, addressContainter, ba.AddressContainer())
+	ba := state.NewEmptyBaseAccount(address, nil)
+	assert.Equal(t, address, ba.AddressBytes())
 }
 
 func TestBaseAccount_SetAndGetCode(t *testing.T) {

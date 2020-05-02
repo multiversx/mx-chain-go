@@ -689,12 +689,12 @@ func (sc *scProcessor) reloadLocalAccount(acntSnd state.UserAccountHandler) (sta
 		return acntSnd, nil
 	}
 
-	isAccountFromCurrentShard := acntSnd.AddressContainer() != nil
+	isAccountFromCurrentShard := acntSnd.AddressBytes() != nil
 	if !isAccountFromCurrentShard {
 		return acntSnd, nil
 	}
 
-	return sc.getAccountFromAddress(acntSnd.AddressContainer().Bytes())
+	return sc.getAccountFromAddress(acntSnd.AddressBytes())
 }
 
 func (sc *scProcessor) createSmartContractResult(
@@ -908,7 +908,7 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 			continue
 		}
 
-		err = sc.accounts.RemoveAccount(acc.AddressContainer())
+		err = sc.accounts.RemoveAccount(acc.AddressBytes())
 		if err != nil {
 			return err
 		}
@@ -917,18 +917,13 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 }
 
 func (sc *scProcessor) getAccountFromAddress(address []byte) (state.UserAccountHandler, error) {
-	adrSrc, err := sc.pubkeyConv.CreateAddressFromBytes(address)
-	if err != nil {
-		return nil, err
-	}
-
 	shardForCurrentNode := sc.shardCoordinator.SelfId()
-	shardForSrc := sc.shardCoordinator.ComputeId(adrSrc)
+	shardForSrc := sc.shardCoordinator.ComputeId(address)
 	if shardForCurrentNode != shardForSrc {
 		return nil, nil
 	}
 
-	acnt, err := sc.accounts.LoadAccount(adrSrc)
+	acnt, err := sc.accounts.LoadAccount(address)
 	if err != nil {
 		return nil, err
 	}

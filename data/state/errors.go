@@ -25,8 +25,8 @@ func (e *ErrMissingTrie) Error() string {
 // ErrNilAccountsAdapter defines the error when trying to revert on nil accounts
 var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 
-// ErrNilAddressContainer defines the error when trying to work with a nil address
-var ErrNilAddressContainer = errors.New("nil AddressContainer")
+// ErrNilAddress defines the error when trying to work with a nil address
+var ErrNilAddress = errors.New("nil address")
 
 // ErrEmptyAddress defines the error when trying to work with an empty address
 var ErrEmptyAddress = errors.New("empty Address")
@@ -72,9 +72,6 @@ var ErrBech32ConvertError = errors.New("can't convert bech32 string")
 
 // ErrNilStake signals that the provided stake is nil
 var ErrNilStake = errors.New("stake is nil")
-
-// ErrNilSchnorrPublicKey signals that the provided schnorr public is nil
-var ErrNilSchnorrPublicKey = errors.New("schnorr public key is nil")
 
 // ErrNilBLSPublicKey signals that the provided BLS public key is nil
 var ErrNilBLSPublicKey = errors.New("bls public key is nil")

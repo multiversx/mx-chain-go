@@ -34,7 +34,6 @@ type InterceptedTransaction struct {
 	rcvShard               uint32
 	sndShard               uint32
 	isForCurrentShard      bool
-	sndAddr                state.AddressContainer
 	feeHandler             process.FeeHandler
 	whiteListerVerifiedTxs process.WhiteListHandler
 }
@@ -141,21 +140,10 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 func (inTx *InterceptedTransaction) processFields(txBuff []byte) error {
 	inTx.hash = inTx.hasher.Compute(string(txBuff))
 
-	var err error
-	inTx.sndAddr, err = inTx.pubkeyConv.CreateAddressFromBytes(inTx.tx.SndAddr)
-	if err != nil {
-		return process.ErrInvalidSndAddr
-	}
-
-	rcvAddr, err := inTx.pubkeyConv.CreateAddressFromBytes(inTx.tx.RcvAddr)
-	if err != nil {
-		return process.ErrInvalidRcvAddr
-	}
-
-	inTx.sndShard = inTx.coordinator.ComputeId(inTx.sndAddr)
-	emptyAddr := make([]byte, len(rcvAddr.Bytes()))
-	inTx.rcvShard = inTx.coordinator.ComputeId(rcvAddr)
-	if bytes.Equal(rcvAddr.Bytes(), emptyAddr) {
+	inTx.sndShard = inTx.coordinator.ComputeId(inTx.tx.SndAddr)
+	emptyAddr := make([]byte, len(inTx.tx.RcvAddr))
+	inTx.rcvShard = inTx.coordinator.ComputeId(inTx.tx.RcvAddr)
+	if bytes.Equal(inTx.tx.RcvAddr, emptyAddr) {
 		inTx.rcvShard = inTx.sndShard
 	}
 
@@ -240,8 +228,8 @@ func (inTx *InterceptedTransaction) Nonce() uint64 {
 }
 
 // SenderAddress returns the transaction sender address
-func (inTx *InterceptedTransaction) SenderAddress() state.AddressContainer {
-	return inTx.sndAddr
+func (inTx *InterceptedTransaction) SenderAddress() []byte {
+	return inTx.tx.SndAddr
 }
 
 // Fee returns the estimated cost of the transaction

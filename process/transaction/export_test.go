@@ -9,11 +9,7 @@ import (
 
 type TxProcessor *txProcessor
 
-func (txProc *txProcessor) GetAddresses(tx *transaction.Transaction) (adrSrc, adrDst state.AddressContainer, err error) {
-	return txProc.getAddresses(tx)
-}
-
-func (txProc *txProcessor) GetAccounts(adrSrc, adrDst state.AddressContainer,
+func (txProc *txProcessor) GetAccounts(adrSrc, adrDst []byte,
 ) (acntSrc, acntDst state.UserAccountHandler, err error) {
 	return txProc.getAccounts(adrSrc, adrDst)
 }

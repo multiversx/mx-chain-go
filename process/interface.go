@@ -60,7 +60,7 @@ type TxValidatorHandler interface {
 	SenderShardId() uint32
 	ReceiverShardId() uint32
 	Nonce() uint64
-	SenderAddress() state.AddressContainer
+	SenderAddress() []byte
 	Fee() *big.Int
 }
 
