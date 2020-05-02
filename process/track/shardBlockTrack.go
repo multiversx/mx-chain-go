@@ -51,6 +51,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 	sbt.blockProcessor = blockProcessorObject
 	sbt.headers = make(map[uint32]map[uint64][]*HeaderInfo)
 	sbt.headersPool.RegisterHandler(sbt.receivedHeader)
+	sbt.headersPool.Clear()
 
 	return &sbt, nil
 }
