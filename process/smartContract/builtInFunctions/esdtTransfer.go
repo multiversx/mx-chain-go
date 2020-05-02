@@ -72,24 +72,28 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 		}
 	}
 
-	vmOutPut := &vmcommon.VMOutput{GasRemaining: gasRemaining}
+	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining}
 
 	if !check.IfNil(acntDst) {
 		err := e.addToESDTBalance(acntDst, esdtTokenKey, value)
 		if err != nil {
 			return nil, err
 		}
-	} else if core.IsSmartContractAddress(vmInput.CallerAddr) {
+
+		return vmOutput, nil
+	}
+
+	if core.IsSmartContractAddress(vmInput.CallerAddr) {
 		// cross-shard ESDT transfer call through a smart contract - needs the storage update in order to create the smart contract result
 		esdtTransferTxData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(vmInput.Arguments[0]) + "@" + hex.EncodeToString(vmInput.Arguments[1])
-		vmOutPut.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
-		vmOutPut.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
+		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
+		vmOutput.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
 			Address: vmInput.RecipientAddr,
 			Data:    []byte(esdtTransferTxData),
 		}
 	}
 
-	return vmOutPut, nil
+	return vmOutput, nil
 }
 
 func (e *esdtTransfer) addToESDTBalance(userAcnt state.UserAccountHandler, key []byte, value *big.Int) error {
