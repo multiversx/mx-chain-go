@@ -85,7 +85,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	hardCodedScResultingAddress, _ := nodeShard1.BlockchainHook.NewAddress(
-		nodes[idxNodeShard1].OwnAccount.Address.Bytes(),
+		nodes[idxNodeShard1].OwnAccount.Address,
 		nodes[idxNodeShard1].OwnAccount.Nonce,
 		factory.IELEVirtualMachine,
 	)
@@ -442,7 +442,6 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	txNonce := uint64(0)
 	owner := senders[0][0]
 	ownerPk, _ := owner.GeneratePublic().ToByteArray()
-	ownerAddr, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(ownerPk)
 	integrationTests.ScCallTxWithParams(
 		nodeShard0,
 		owner,
@@ -459,7 +458,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	_ = integrationTests.IncrementAndPrintRound(round)
 
 	// test sender account decreased its balance with gasPrice * gasLimit
-	accnt, err := consensusNodes[shardId0][0].AccntState.GetExistingAccount(ownerAddr)
+	accnt, err := consensusNodes[shardId0][0].AccntState.GetExistingAccount(ownerPk)
 	assert.Nil(t, err)
 	ownerAccnt := accnt.(state.UserAccountHandler)
 	expectedBalance := big.NewInt(0).Set(initialVal)

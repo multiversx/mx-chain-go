@@ -23,15 +23,15 @@ func NewEmptyPeerAccount() *peerAccount {
 }
 
 // NewPeerAccount creates new simple account wrapper for an PeerAccountContainer (that has just been initialized)
-func NewPeerAccount(addressContainer AddressContainer) (*peerAccount, error) {
-	if addressContainer == nil {
-		return nil, ErrNilAddressContainer
+func NewPeerAccount(address []byte) (*peerAccount, error) {
+	if len(address) == 0 {
+		return nil, ErrNilAddress
 	}
 
 	return &peerAccount{
 		baseAccount: &baseAccount{
-			addressContainer: addressContainer,
-			dataTrieTracker:  NewTrackableDataTrie(addressContainer.Bytes(), nil),
+			address:         address,
+			dataTrieTracker: NewTrackableDataTrie(address, nil),
 		},
 		PeerAccountData: PeerAccountData{
 			Stake:           big.NewInt(0),

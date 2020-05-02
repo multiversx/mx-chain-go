@@ -81,11 +81,7 @@ func (g *Genesis) InitialNodesBalances(shardCoordinator Coordinator) (map[string
 
 	var balances = make(map[string]*big.Int)
 	for _, in := range g.InitialBalances {
-		address, err := g.pubkeyConverter.CreateAddressFromBytes(in.pubKey)
-		if err != nil {
-			return nil, err
-		}
-		addressShard := shardCoordinator.ComputeId(address)
+		addressShard := shardCoordinator.ComputeId(in.pubKey)
 		if addressShard == shardCoordinator.SelfId() {
 			balances[string(in.pubKey)] = in.balance
 		}

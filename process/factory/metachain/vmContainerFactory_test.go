@@ -18,7 +18,7 @@ import (
 func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 	arguments := hooks.ArgBlockChainHook{
 		Accounts: &mock.AccountsStub{
-			GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 				return &mock.AccountWrapMock{}, nil
 			},
 		},

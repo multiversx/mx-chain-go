@@ -357,12 +357,7 @@ func (txs *transactions) getShardFromAddress(address []byte) (uint32, error) {
 		return txs.shardCoordinator.SelfId(), nil
 	}
 
-	addressContainer, err := txs.pubkeyConverter.CreateAddressFromBytes(address)
-	if err != nil {
-		return 0, err
-	}
-
-	return txs.shardCoordinator.ComputeId(addressContainer), nil
+	return txs.shardCoordinator.ComputeId(address), nil
 }
 
 func (txs *transactions) processTxsToMe(
@@ -632,12 +627,7 @@ func (txs *transactions) notifyTransactionProviderIfNeeded() {
 }
 
 func (txs *transactions) getAccountForAddress(address []byte) (state.AccountHandler, error) {
-	addressContainer, err := txs.pubkeyConverter.CreateAddressFromBytes(address)
-	if err != nil {
-		return nil, err
-	}
-
-	account, err := txs.accounts.GetExistingAccount(addressContainer)
+	account, err := txs.accounts.GetExistingAccount(address)
 	if err != nil {
 		return nil, err
 	}

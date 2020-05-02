@@ -1,11 +1,8 @@
 package poolsCleaner
 
 import (
-	"bytes"
-	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -157,17 +154,9 @@ func TestGetShardFromAddress(t *testing.T) {
 	t.Parallel()
 
 	addrLen := 64
-	expectedErr := errors.New("error")
-	testAddr := []byte("addr")
 	addrConverter := &mock.PubkeyConverterStub{
 		LenCalled: func() int {
 			return addrLen
-		},
-		CreateAddressFromBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
-			if bytes.Equal(pubKey, testAddr) {
-				return nil, expectedErr
-			}
-			return nil, nil
 		},
 	}
 	expectedShard := uint32(2)
@@ -176,7 +165,7 @@ func TestGetShardFromAddress(t *testing.T) {
 		&mock.PoolsHolderStub{},
 		&mock.RounderMock{},
 		&mock.CoordinatorStub{
-			ComputeIdCalled: func(address state.AddressContainer) uint32 {
+			ComputeIdCalled: func(address []byte) uint32 {
 				return expectedShard
 			},
 		},
@@ -186,9 +175,6 @@ func TestGetShardFromAddress(t *testing.T) {
 	result, err := txsPoolsCleaner.getShardFromAddress(emptyAddr)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), result)
-
-	_, err = txsPoolsCleaner.getShardFromAddress(testAddr)
-	assert.Equal(t, expectedErr, err)
 
 	result, err = txsPoolsCleaner.getShardFromAddress([]byte("123"))
 	assert.Nil(t, err)
@@ -250,11 +236,7 @@ func TestReceivedUnsignedTx_ShouldBeAddedInMapTxsRounds(t *testing.T) {
 
 	sndAddr := []byte("sndAddr")
 	txsPoolsCleaner, _ := NewTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
-				return nil, nil
-			},
-		},
+		&mock.PubkeyConverterStub{},
 		&mock.PoolsHolderStub{
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
@@ -266,7 +248,7 @@ func TestReceivedUnsignedTx_ShouldBeAddedInMapTxsRounds(t *testing.T) {
 		},
 		&mock.RounderMock{},
 		&mock.CoordinatorStub{
-			ComputeIdCalled: func(address state.AddressContainer) uint32 {
+			ComputeIdCalled: func(address []byte) uint32 {
 				return 2
 			},
 		},
@@ -285,11 +267,7 @@ func TestCleanTxsPoolsIfNeeded_CannotFindTxInPoolShouldBeRemovedFromMap(t *testi
 
 	sndAddr := []byte("sndAddr")
 	txsPoolsCleaner, _ := NewTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
-				return nil, nil
-			},
-		},
+		&mock.PubkeyConverterStub{},
 		&mock.PoolsHolderStub{
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
@@ -301,7 +279,7 @@ func TestCleanTxsPoolsIfNeeded_CannotFindTxInPoolShouldBeRemovedFromMap(t *testi
 		},
 		&mock.RounderMock{},
 		&mock.CoordinatorStub{
-			ComputeIdCalled: func(address state.AddressContainer) uint32 {
+			ComputeIdCalled: func(address []byte) uint32 {
 				return 2
 			},
 		},
@@ -322,11 +300,7 @@ func TestCleanTxsPoolsIfNeeded_RoundDiffTooSmallShouldNotBeRemoved(t *testing.T)
 
 	sndAddr := []byte("sndAddr")
 	txsPoolsCleaner, _ := NewTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
-				return nil, nil
-			},
-		},
+		&mock.PubkeyConverterStub{},
 		&mock.PoolsHolderStub{
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
@@ -342,7 +316,7 @@ func TestCleanTxsPoolsIfNeeded_RoundDiffTooSmallShouldNotBeRemoved(t *testing.T)
 		},
 		&mock.RounderMock{},
 		&mock.CoordinatorStub{
-			ComputeIdCalled: func(address state.AddressContainer) uint32 {
+			ComputeIdCalled: func(address []byte) uint32 {
 				return 2
 			},
 		},
@@ -367,11 +341,7 @@ func TestCleanTxsPoolsIfNeeded_RoundDiffTooBigShouldBeRemoved(t *testing.T) {
 	called := false
 	sndAddr := []byte("sndAddr")
 	txsPoolsCleaner, _ := NewTxsPoolsCleaner(
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
-				return nil, nil
-			},
-		},
+		&mock.PubkeyConverterStub{},
 		&mock.PoolsHolderStub{
 			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &mock.ShardedDataStub{
@@ -390,7 +360,7 @@ func TestCleanTxsPoolsIfNeeded_RoundDiffTooBigShouldBeRemoved(t *testing.T) {
 		},
 		rounder,
 		&mock.CoordinatorStub{
-			ComputeIdCalled: func(address state.AddressContainer) uint32 {
+			ComputeIdCalled: func(address []byte) uint32 {
 				return 2
 			},
 		},
