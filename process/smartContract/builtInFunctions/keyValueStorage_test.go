@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -28,7 +27,7 @@ func TestSaveKeyValue_ProcessBuiltinFunction(t *testing.T) {
 	skv, _ := NewSaveKeyValueStorageFunc(gasConfig, funcGasCost)
 
 	addr := []byte("addr")
-	acc, _ := state.NewUserAccount(mock.NewAddressMock(addr))
+	acc, _ := state.NewUserAccount(addr)
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{CallerAddr: addr, GasProvided: 50},
 	}

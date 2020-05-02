@@ -111,13 +111,8 @@ func (tth *txTypeHandler) isDestAddressEmpty(tx data.TransactionHandler) bool {
 }
 
 func (tth *txTypeHandler) isDestAddressInSelfShard(address []byte) (bool, error) {
-	adrSrc, err := tth.pubkeyConv.CreateAddressFromBytes(address)
-	if err != nil {
-		return false, err
-	}
-
 	shardForCurrentNode := tth.shardCoordinator.SelfId()
-	shardForSrc := tth.shardCoordinator.ComputeId(adrSrc)
+	shardForSrc := tth.shardCoordinator.ComputeId(address)
 	if shardForCurrentNode != shardForSrc {
 		return false, nil
 	}

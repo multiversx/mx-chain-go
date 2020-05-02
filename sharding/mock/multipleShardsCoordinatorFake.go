@@ -3,8 +3,6 @@ package mock
 import (
 	"fmt"
 	"math"
-
-	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 type multipleShardsCoordinatorFake struct {
@@ -35,14 +33,14 @@ func (mscf *multipleShardsCoordinatorFake) NumberOfShards() uint32 {
 }
 
 // ComputeId -
-func (mscf *multipleShardsCoordinatorFake) ComputeId(address state.AddressContainer) uint32 {
+func (mscf *multipleShardsCoordinatorFake) ComputeId(address []byte) uint32 {
 	bytesNeed := int(mscf.numOfShards/256) + 1
 	startingIndex := 0
-	if len(address.Bytes()) > bytesNeed {
-		startingIndex = len(address.Bytes()) - bytesNeed
+	if len(address) > bytesNeed {
+		startingIndex = len(address) - bytesNeed
 	}
 
-	buffNeeded := address.Bytes()[startingIndex:]
+	buffNeeded := address[startingIndex:]
 
 	addr := uint32(0)
 	for i := 0; i < len(buffNeeded); i++ {
@@ -67,7 +65,7 @@ func (mscf *multipleShardsCoordinatorFake) SetSelfId(_ uint32) error {
 }
 
 // SameShard -
-func (mscf *multipleShardsCoordinatorFake) SameShard(_, _ state.AddressContainer) bool {
+func (mscf *multipleShardsCoordinatorFake) SameShard(_, _ []byte) bool {
 	return true
 }
 

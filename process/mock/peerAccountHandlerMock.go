@@ -139,12 +139,12 @@ func (p *PeerAccountHandlerMock) GetValidatorSuccessRate() state.SignRate {
 	return state.SignRate{}
 }
 
-// GetLeaderSuccessRate -
+// GetTotalLeaderSuccessRate -
 func (p *PeerAccountHandlerMock) GetTotalLeaderSuccessRate() state.SignRate {
 	return state.SignRate{}
 }
 
-// GetValidatorSuccessRate -
+// GetTotalValidatorSuccessRate -
 func (p *PeerAccountHandlerMock) GetTotalValidatorSuccessRate() state.SignRate {
 	return state.SignRate{}
 }
@@ -178,8 +178,8 @@ func (p *PeerAccountHandlerMock) SetTempRating(val uint32) {
 func (p *PeerAccountHandlerMock) ResetAtNewEpoch() {
 }
 
-// AddressContainer -
-func (p *PeerAccountHandlerMock) AddressContainer() state.AddressContainer {
+// AddressBytes -
+func (p *PeerAccountHandlerMock) AddressBytes() []byte {
 	return nil
 }
 
@@ -245,7 +245,7 @@ func (p *PeerAccountHandlerMock) GetConsecutiveProposerMisses() uint32 {
 	return 0
 }
 
-// SetConsecutiveProposerMissesWithJournal -
+// SetConsecutiveProposerMisses -
 func (p *PeerAccountHandlerMock) SetConsecutiveProposerMisses(consecutiveMisses uint32) {
 	if p.SetConsecutiveProposerMissesCalled != nil {
 		p.SetConsecutiveProposerMissesCalled(consecutiveMisses)

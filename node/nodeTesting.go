@@ -149,24 +149,19 @@ func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string, sk cryp
 		return 0, nil, nil, 0, err
 	}
 
-	senderAddress, err := n.addressPubkeyConverter.CreateAddressFromBytes(senderAddressBytes)
-	if err != nil {
-		return 0, nil, nil, 0, err
-	}
-
-	receiverAddress, err := n.addressPubkeyConverter.CreateAddressFromString(receiverHex)
+	receiverAddress, err := n.addressPubkeyConverter.Decode(receiverHex)
 	if err != nil {
 		return 0, nil, nil, 0, errors.New("could not create receiver address from provided param: " + err.Error())
 	}
 
-	senderShardId := n.shardCoordinator.ComputeId(senderAddress)
+	senderShardId := n.shardCoordinator.ComputeId(senderAddressBytes)
 
 	newNonce := uint64(0)
 	if senderShardId != n.shardCoordinator.SelfId() {
-		return newNonce, senderAddressBytes, receiverAddress.Bytes(), senderShardId, nil
+		return newNonce, senderAddressBytes, receiverAddress, senderShardId, nil
 	}
 
-	senderAccount, err := n.accounts.GetExistingAccount(senderAddress)
+	senderAccount, err := n.accounts.GetExistingAccount(senderAddressBytes)
 	if err != nil {
 		return 0, nil, nil, 0, errors.New("could not fetch sender account from provided param: " + err.Error())
 	}
@@ -177,7 +172,7 @@ func (n *Node) generateBulkTransactionsPrepareParams(receiverHex string, sk cryp
 	}
 	newNonce = acc.GetNonce()
 
-	return newNonce, senderAddressBytes, receiverAddress.Bytes(), senderShardId, nil
+	return newNonce, senderAddressBytes, receiverAddress, senderShardId, nil
 }
 
 func (n *Node) generateAndSignSingleTx(
@@ -260,11 +255,11 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 		return nil, errors.New("initialize PrivateKey first")
 	}
 
-	receiverAddress, err := n.addressPubkeyConverter.CreateAddressFromString(receiverHex)
+	receiverAddress, err := n.addressPubkeyConverter.Decode(receiverHex)
 	if err != nil {
 		return nil, errors.New("could not create receiver address from provided param")
 	}
-	senderAddress, err := n.addressPubkeyConverter.CreateAddressFromString(senderHex)
+	senderAddress, err := n.addressPubkeyConverter.Decode(senderHex)
 	if err != nil {
 		return nil, errors.New("could not create sender address from provided param")
 	}
@@ -283,8 +278,8 @@ func (n *Node) GenerateTransaction(senderHex string, receiverHex string, value *
 	tx, _, err := n.generateAndSignTxBuffArray(
 		newNonce,
 		value,
-		receiverAddress.Bytes(),
-		senderAddress.Bytes(),
+		receiverAddress,
+		senderAddress,
 		transactionData,
 		privateKey)
 

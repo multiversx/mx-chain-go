@@ -46,7 +46,7 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 	if check.IfNil(acntDst) {
 		return nil, input.GasProvided, process.ErrNilSCDestAccount
 	}
-	if !bytes.Equal(input.CallerAddr, acntDst.AddressContainer().Bytes()) {
+	if !bytes.Equal(input.CallerAddr, acntDst.AddressBytes()) {
 		return nil, input.GasProvided, fmt.Errorf("%w not the owner of the account", process.ErrOperationNotPermitted)
 	}
 	if core.IsSmartContractAddress(input.CallerAddr) {

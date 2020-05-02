@@ -1,15 +1,11 @@
 package mock
 
-import (
-	"github.com/ElrondNetwork/elrond-go/data/state"
-)
-
 // ShardCoordinatorStub -
 type ShardCoordinatorStub struct {
 	NumberOfShardsCalled          func() uint32
-	ComputeIdCalled               func(address state.AddressContainer) uint32
+	ComputeIdCalled               func(address []byte) uint32
 	SelfIdCalled                  func() uint32
-	SameShardCalled               func(firstAddress, secondAddress state.AddressContainer) bool
+	SameShardCalled               func(firstAddress, secondAddress []byte) bool
 	CommunicationIdentifierCalled func(destShardID uint32) string
 }
 
@@ -22,7 +18,7 @@ func (coordinator *ShardCoordinatorStub) NumberOfShards() uint32 {
 }
 
 // ComputeId -
-func (coordinator *ShardCoordinatorStub) ComputeId(address state.AddressContainer) uint32 {
+func (coordinator *ShardCoordinatorStub) ComputeId(address []byte) uint32 {
 	return coordinator.ComputeIdCalled(address)
 }
 
@@ -35,7 +31,7 @@ func (coordinator *ShardCoordinatorStub) SelfId() uint32 {
 }
 
 // SameShard -
-func (coordinator *ShardCoordinatorStub) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
+func (coordinator *ShardCoordinatorStub) SameShard(firstAddress, secondAddress []byte) bool {
 	return coordinator.SameShardCalled(firstAddress, secondAddress)
 }
 

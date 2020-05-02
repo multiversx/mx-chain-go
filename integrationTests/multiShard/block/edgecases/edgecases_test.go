@@ -203,7 +203,7 @@ func printAccount(node *integrationTests.TestProcessorNode) {
 	accnt, _ := node.AccntState.GetExistingAccount(node.OwnAccount.Address)
 	if check.IfNil(accnt) {
 		log.Info("account",
-			"address", node.OwnAccount.Address.Bytes(),
+			"address", node.OwnAccount.Address,
 			"nonce", "-",
 			"balance", "-",
 		)
@@ -211,7 +211,7 @@ func printAccount(node *integrationTests.TestProcessorNode) {
 		return
 	}
 	log.Info("account",
-		"address", node.OwnAccount.Address.Bytes(),
+		"address", node.OwnAccount.Address,
 		"nonce", accnt.GetNonce(),
 		"balance", accnt.(state.UserAccountHandler).GetBalance(),
 	)
@@ -221,7 +221,7 @@ func generateAndSendTxs(
 	n *integrationTests.TestProcessorNode,
 	transferValue uint64,
 	sk crypto.PrivateKey,
-	addr state.AddressContainer,
+	addr []byte,
 	pkReceiver crypto.PublicKey,
 ) {
 	accnt, _ := n.AccntState.GetExistingAccount(addr)
