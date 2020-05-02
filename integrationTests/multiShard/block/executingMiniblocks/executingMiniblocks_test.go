@@ -336,8 +336,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 			assert.Equal(t, big.NewInt(0), account.GetBalance())
 		}
 
-		receiver, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(receiverAddress)
-		accWrp, err := verifierNode.AccntState.GetExistingAccount(receiver)
+		accWrp, err := verifierNode.AccntState.GetExistingAccount(receiverAddress)
 		if err != nil {
 			continue
 		}

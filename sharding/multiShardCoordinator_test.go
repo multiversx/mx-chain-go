@@ -6,15 +6,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/stretchr/testify/assert"
 )
 
-func getAddressFromUint32(address uint32) state.AddressContainer {
+func getAddressFromUint32(address uint32) []byte {
 	buff := make([]byte, 4)
 	binary.BigEndian.PutUint32(buff, address)
-	return &mock.AddressMock{Bts: buff}
+
+	return buff
 }
 
 func TestMultiShardCoordinator_NewMultiShardCoordinator(t *testing.T) {
@@ -120,11 +119,7 @@ func TestMultiShardCoordinator_ComputeId10ShardsBigNumbersShouldWork(t *testing.
 		buff, err := hex.DecodeString(data.address)
 		assert.Nil(t, err)
 
-		addr := &mock.AddressMock{
-			Bts: buff,
-		}
-
-		shardId := sr.ComputeId(addr)
+		shardId := sr.ComputeId(buff)
 
 		assert.Equal(t, data.shardId, shardId)
 	}

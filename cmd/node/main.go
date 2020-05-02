@@ -652,11 +652,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating crypto components")
 	cryptoArgs := mainFactory.CryptoComponentsFactoryArgs{
-		Config:           *generalConfig,
-		NodesConfig:      genesisNodesConfig,
-		ShardCoordinator: genesisShardCoordinator,
-		KeyGen:           cryptoParams.KeyGenerator,
-		PrivKey:          cryptoParams.PrivateKey,
+		Config:                               *generalConfig,
+		NodesConfig:                          genesisNodesConfig,
+		ShardCoordinator:                     genesisShardCoordinator,
+		KeyGen:                               cryptoParams.KeyGenerator,
+		PrivKey:                              cryptoParams.PrivateKey,
+		ActivateBLSPubKeyMessageVerification: economicsConfig.ValidatorSettings.ActivateBLSPubKeyMessageVerification,
 	}
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoArgs)
 	if err != nil {

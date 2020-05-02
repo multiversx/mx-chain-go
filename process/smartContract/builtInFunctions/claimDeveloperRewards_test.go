@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -17,7 +16,7 @@ func TestClaimDeveloperRewards_ProcessBuiltinFunction(t *testing.T) {
 	cdr := claimDeveloperRewards{}
 
 	sender := []byte("sender")
-	acc, _ := state.NewUserAccount(mock.NewAddressMock([]byte("addr12")))
+	acc, _ := state.NewUserAccount([]byte("addr12"))
 
 	vmOutput, err := cdr.ProcessBuiltinFunction(nil, acc, nil)
 	require.Nil(t, vmOutput)

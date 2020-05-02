@@ -135,6 +135,7 @@ const roundDuration = 5 * time.Second
 
 // ChainID is the chain ID identifier used in integration tests, processing nodes
 var ChainID = []byte("integration tests chain ID")
+var testCommunityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
 
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
 const sizeCheckDelta = 100
@@ -418,7 +419,9 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initValidatorStatistics()
-	rootHash, _ := tpn.ValidatorStatisticsProcessor.RootHash()
+	rootHash, err := tpn.ValidatorStatisticsProcessor.RootHash()
+	fmt.Println("error", err)
+
 	tpn.GenesisBlocks = CreateGenesisBlocks(
 		tpn.AccntState,
 		TestAddressPubkeyConverter,
@@ -500,11 +503,12 @@ func CreateEconomicsData() *economics.EconomicsData {
 			GlobalSettings: config.GlobalSettings{
 				TotalSupply:      "2000000000000000000000",
 				MinimumInflation: 0,
-				MaximumInflation: 0.5,
+				MaximumInflation: 0.05,
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:    0.10,
-				DeveloperPercentage: 0.10,
+				LeaderPercentage:    0.1,
+				DeveloperPercentage: 0.1,
+				CommunityAddress:    testCommunityAddress,
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:  maxGasLimitPerBlock,
@@ -1205,6 +1209,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			Hasher:           TestHasher,
 			Marshalizer:      TestMarshalizer,
 			DataPool:         tpn.DataPool,
+			CommunityAddress: testCommunityAddress,
 		}
 		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)
 

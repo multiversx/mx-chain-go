@@ -2,7 +2,6 @@ package transaction_test
 
 import (
 	"bytes"
-	"errors"
 	"math/big"
 	"testing"
 
@@ -171,28 +170,6 @@ func TestMetaTxProcessor_ProcessTransactionNilTxShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilTransaction, err)
 }
 
-func TestMetaTxProcessor_ProcessTransactionErrAddressConvShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("expected error")
-	execTx, _ := txproc.NewMetaTxProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pkBytes []byte) (container state.AddressContainer, err error) {
-				return nil, expectedErr
-			}},
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.TxTypeHandlerMock{},
-		createFreeTxFeeHandler(),
-	)
-
-	err := execTx.ProcessTransaction(&transaction.Transaction{})
-	assert.NotNil(t, err)
-}
-
 func TestMetaTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -229,9 +206,9 @@ func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
-	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(tx.SndAddr)
 	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(tx.RcvAddr)
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -262,9 +239,9 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldCallProcessIfError(t *testing.
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(0)
 
-	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(tx.SndAddr)
 	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(tx.RcvAddr)
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -308,10 +285,10 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
-	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(tx.SndAddr)
 	assert.Nil(t, err)
 
-	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(tx.RcvAddr)
 	assert.Nil(t, err)
 
 	acntSrc.Balance = big.NewInt(46)
@@ -362,10 +339,10 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
 	tx.Value = big.NewInt(45)
 
-	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(tx.SndAddr)
 	assert.Nil(t, err)
 	acntSrc.Balance = big.NewInt(45)
-	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(tx.RcvAddr)
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})
 
@@ -415,18 +392,18 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
 	tx.Value = big.NewInt(45)
 
-	shardCoordinator.ComputeIdCalled = func(container state.AddressContainer) uint32 {
-		if bytes.Equal(container.Bytes(), tx.RcvAddr) {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, tx.RcvAddr) {
 			return 1
 		}
 
 		return 0
 	}
 
-	acntSrc, err := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, err := state.NewUserAccount(tx.SndAddr)
 	assert.Nil(t, err)
 	acntSrc.Balance = big.NewInt(45)
-	acntDst, err := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, err := state.NewUserAccount(tx.RcvAddr)
 	assert.Nil(t, err)
 	acntDst.SetCode([]byte{65})
 

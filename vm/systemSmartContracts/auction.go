@@ -553,7 +553,8 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	if !s.isFunctionEnabled(s.enableAuctionNonce) {
+	currentNonce := s.eei.BlockChainHook().CurrentNonce()
+	if currentNonce == 0 || !s.isFunctionEnabled(s.enableAuctionNonce) {
 		numQualified := big.NewInt(0).Div(registrationData.TotalStakeValue, config.MinStakeValue)
 		s.activateStakingFor(numQualified.Uint64(), registrationData, config.MinStakeValue, registrationData.RewardAddress)
 	}

@@ -60,7 +60,7 @@ type TxValidatorHandler interface {
 	SenderShardId() uint32
 	ReceiverShardId() uint32
 	Nonce() uint64
-	SenderAddress() state.AddressContainer
+	SenderAddress() []byte
 	Fee() *big.Int
 }
 
@@ -501,6 +501,8 @@ type BlockSizeThrottler interface {
 // RewardsHandler will return information about rewards
 type RewardsHandler interface {
 	LeaderPercentage() float64
+	CommunityPercentage() float64
+	CommunityAddress() string
 	MinInflationRate() float64
 	MaxInflationRate() float64
 	IsInterfaceNil() bool

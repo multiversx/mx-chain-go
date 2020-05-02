@@ -548,11 +548,7 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 
 	for _, validators := range vInfos {
 		for _, validator := range validators {
-			addrContainer, err := vs.pubkeyConv.CreateAddressFromBytes(validator.GetPublicKey())
-			if err != nil {
-				return err
-			}
-			account, err := vs.peerAdapter.LoadAccount(addrContainer)
+			account, err := vs.peerAdapter.LoadAccount(validator.GetPublicKey())
 			if err != nil {
 				return err
 			}
@@ -836,12 +832,7 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 
 // GetPeerAccount will return a PeerAccountHandler for a given address
 func (vs *validatorStatistics) GetPeerAccount(address []byte) (state.PeerAccountHandler, error) {
-	addressContainer, err := vs.pubkeyConv.CreateAddressFromBytes(address)
-	if err != nil {
-		return nil, err
-	}
-
-	account, err := vs.peerAdapter.LoadAccount(addressContainer)
+	account, err := vs.peerAdapter.LoadAccount(address)
 	if err != nil {
 		return nil, err
 	}

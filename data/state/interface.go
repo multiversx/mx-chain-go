@@ -24,20 +24,12 @@ type PubkeyConverter interface {
 	Len() int
 	Decode(humanReadable string) ([]byte, error)
 	Encode(pkBytes []byte) string
-	CreateAddressFromString(humanReadable string) (AddressContainer, error)
-	CreateAddressFromBytes(pkBytes []byte) (AddressContainer, error)
-	IsInterfaceNil() bool
-}
-
-// AddressContainer models what an Address struct should do
-type AddressContainer interface {
-	Bytes() []byte
 	IsInterfaceNil() bool
 }
 
 // AccountFactory creates an account of different types
 type AccountFactory interface {
-	CreateAccount(address AddressContainer) (AccountHandler, error)
+	CreateAccount(address []byte) (AccountHandler, error)
 	IsInterfaceNil() bool
 }
 
@@ -50,7 +42,7 @@ type Updater interface {
 // AccountHandler models a state account, which can journalize and revert
 // It knows about code and data, as data structures not hashes
 type AccountHandler interface {
-	AddressContainer() AddressContainer
+	AddressBytes() []byte
 	IncreaseNonce(nonce uint64)
 	GetNonce() uint64
 	IsInterfaceNil() bool
@@ -136,10 +128,10 @@ type DataTrieTracker interface {
 // AccountsAdapter is used for the structure that manages the accounts on top of a trie.PatriciaMerkleTrie
 // implementation
 type AccountsAdapter interface {
-	GetExistingAccount(addressContainer AddressContainer) (AccountHandler, error)
-	LoadAccount(address AddressContainer) (AccountHandler, error)
+	GetExistingAccount(address []byte) (AccountHandler, error)
+	LoadAccount(address []byte) (AccountHandler, error)
 	SaveAccount(account AccountHandler) error
-	RemoveAccount(addressContainer AddressContainer) error
+	RemoveAccount(address []byte) error
 	Commit() ([]byte, error)
 	JournalLen() int
 	RevertToSnapshot(snapshot int) error
@@ -173,7 +165,7 @@ type TriesHolder interface {
 }
 
 type baseAccountHandler interface {
-	AddressContainer() AddressContainer
+	AddressBytes() []byte
 	IncreaseNonce(nonce uint64)
 	GetNonce() uint64
 	SetCode(code []byte)

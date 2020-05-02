@@ -31,7 +31,7 @@ func TestVMInvalidSmartContractCodeShouldNotGenerateAccount(t *testing.T) {
 		Nonce:    senderNonce,
 		Value:    big.NewInt(0),
 		SndAddr:  senderAddressBytes,
-		RcvAddr:  vm.CreateEmptyAddress().Bytes(),
+		RcvAddr:  vm.CreateEmptyAddress(),
 		Data:     []byte(string(scCode) + "@" + hex.EncodeToString(factory.IELEVirtualMachine)),
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
@@ -42,7 +42,7 @@ func TestVMInvalidSmartContractCodeShouldNotGenerateAccount(t *testing.T) {
 
 	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 
-	scAccount, err := testContext.Accounts.GetExistingAccount(state.NewAddress(scAddressBytes))
+	scAccount, err := testContext.Accounts.GetExistingAccount(scAddressBytes)
 	assert.Nil(t, scAccount)
 	assert.Equal(t, state.ErrAccNotFound, err)
 }
@@ -62,7 +62,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	tx := vm.CreateTx(
 		t,
 		senderAddressBytes,
-		vm.CreateEmptyAddress().Bytes(),
+		vm.CreateEmptyAddress(),
 		senderNonce,
 		transferOnCalls,
 		gasPrice,
@@ -113,7 +113,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	tx := vm.CreateTx(
 		t,
 		senderAddressBytes,
-		vm.CreateEmptyAddress().Bytes(),
+		vm.CreateEmptyAddress(),
 		senderNonce,
 		transferOnCalls,
 		gasPrice,

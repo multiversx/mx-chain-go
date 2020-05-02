@@ -40,7 +40,7 @@ func (c *changeOwnerAddress) ProcessBuiltinFunction(
 	if !bytes.Equal(vmInput.CallerAddr, acntDst.GetOwnerAddress()) {
 		return nil, fmt.Errorf("%w not the owner of the account", process.ErrOperationNotPermitted)
 	}
-	if len(vmInput.Arguments[0]) != len(acntDst.AddressContainer().Bytes()) {
+	if len(vmInput.Arguments[0]) != len(acntDst.AddressBytes()) {
 		return nil, process.ErrInvalidAddressLength
 	}
 	if vmInput.GasProvided < c.gasCost {

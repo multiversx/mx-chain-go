@@ -2,8 +2,6 @@ package mock
 
 import (
 	"encoding/hex"
-
-	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // PubkeyConverterMock -
@@ -26,29 +24,6 @@ func (pcm *PubkeyConverterMock) Decode(humanReadable string) ([]byte, error) {
 // Encode -
 func (pcm *PubkeyConverterMock) Encode(pkBytes []byte) string {
 	return hex.EncodeToString(pkBytes)
-}
-
-// CreateAddressFromString -
-func (pcm *PubkeyConverterMock) CreateAddressFromString(humanReadable string) (state.AddressContainer, error) {
-	if len(humanReadable) == 0 {
-		return nil, state.ErrEmptyAddress
-	}
-
-	buff, err := pcm.Decode(humanReadable)
-	if err != nil {
-		return nil, err
-	}
-
-	return state.NewAddress(buff), nil
-}
-
-// CreateAddressFromBytes -
-func (pcm *PubkeyConverterMock) CreateAddressFromBytes(pkBytes []byte) (state.AddressContainer, error) {
-	if len(pkBytes) == 0 {
-		return nil, state.ErrEmptyAddress
-	}
-
-	return state.NewAddress(pkBytes), nil
 }
 
 // Len -

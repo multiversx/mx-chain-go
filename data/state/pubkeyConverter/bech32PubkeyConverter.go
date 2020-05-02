@@ -108,26 +108,6 @@ func (bpc *bech32PubkeyConverter) Encode(pkBytes []byte) string {
 	return converted
 }
 
-// CreateAddressFromString creates an address container based on the provided string
-func (bpc *bech32PubkeyConverter) CreateAddressFromString(humanReadable string) (state.AddressContainer, error) {
-	buff, err := bpc.Decode(humanReadable)
-	if err != nil {
-		return nil, err
-	}
-
-	return state.NewAddress(buff), nil
-}
-
-// CreateAddressFromBytes creates an address container based on the provided public key bytes
-func (bpc *bech32PubkeyConverter) CreateAddressFromBytes(pkBytes []byte) (state.AddressContainer, error) {
-	if len(pkBytes) != bpc.len {
-		return nil, fmt.Errorf("%w when converting to address, expected length %d, received %d",
-			state.ErrWrongSize, bpc.len, len(pkBytes))
-	}
-
-	return state.NewAddress(pkBytes), nil
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (bpc *bech32PubkeyConverter) IsInterfaceNil() bool {
 	return bpc == nil

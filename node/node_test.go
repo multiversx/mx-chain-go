@@ -48,8 +48,8 @@ func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 
 func getAccAdapter(balance *big.Int) *mock.AccountsStub {
 	accDB := &mock.AccountsStub{}
-	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		acc, _ := state.NewUserAccount(addressContainer)
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		acc, _ := state.NewUserAccount(address)
 		_ = acc.AddToBalance(balance)
 		acc.IncreaseNonce(1)
 
@@ -139,32 +139,10 @@ func TestGetBalance_NoAccAdapterShouldError(t *testing.T) {
 	assert.Equal(t, "initialize AccountsAdapter and PubkeyConverter first", err.Error())
 }
 
-func TestGetBalance_CreateAddressFailsShouldError(t *testing.T) {
-
-	accAdapter := getAccAdapter(big.NewInt(0))
-	pubkeyConverter := &mock.PubkeyConverterStub{
-		CreateAddressFromStringCalled: func(humanReadable string) (container state.AddressContainer, err error) {
-			return nil, errors.New("error")
-		},
-	}
-	singleSigner := &mock.SinglesignMock{}
-	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(pubkeyConverter),
-		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSingleSigner(singleSigner),
-	)
-	_, err := n.GetBalance("deadbeaf")
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "invalid address")
-}
-
 func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 
 	accAdapter := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return nil, errors.New("error")
 		},
 	}
@@ -194,7 +172,7 @@ func createDummyHexAddress(hexChars int) string {
 func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 
 	accAdapter := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return nil, nil
 		},
 	}
@@ -282,7 +260,7 @@ func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 
 	accAdapter := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return nil, nil
 		},
 	}
@@ -302,8 +280,8 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 
 	accAdapter := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
-			return state.NewUserAccount(addrContainer)
+		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			return state.NewUserAccount(address)
 		},
 	}
 	privateKey := getPrivateKey()
@@ -408,8 +386,8 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 
 	nonce := uint64(7)
 	accAdapter := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
-			acc, _ := state.NewUserAccount(addrContainer)
+		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			acc, _ := state.NewUserAccount(address)
 			_ = acc.AddToBalance(big.NewInt(0))
 			acc.IncreaseNonce(nonce)
 
@@ -490,8 +468,8 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAddressPubkeyConverter(
 			&mock.PubkeyConverterStub{
-				CreateAddressFromStringCalled: func(hexAddress string) (container state.AddressContainer, e error) {
-					return state.NewAddress([]byte(hexAddress)), nil
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
+					return []byte(hexAddress), nil
 				},
 			},
 		),
@@ -523,8 +501,8 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAddressPubkeyConverter(
 			&mock.PubkeyConverterStub{
-				CreateAddressFromStringCalled: func(hexAddress string) (container state.AddressContainer, e error) {
-					return state.NewAddress([]byte(hexAddress)), nil
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
+					return []byte(hexAddress), nil
 				},
 			},
 		),
@@ -564,8 +542,8 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 		),
 		node.WithAddressPubkeyConverter(
 			&mock.PubkeyConverterStub{
-				CreateAddressFromStringCalled: func(hexAddress string) (container state.AddressContainer, e error) {
-					return state.NewAddress([]byte(hexAddress)), nil
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
+					return []byte(hexAddress), nil
 				},
 			}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
@@ -2091,7 +2069,7 @@ func TestNode_GetAccountWithNilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	accDB := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
 		},
 	}
@@ -2110,7 +2088,7 @@ func TestNode_GetAccountPubkeyConverterFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	accDB := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
 		},
 	}
@@ -2120,7 +2098,7 @@ func TestNode_GetAccountPubkeyConverterFailsShouldErr(t *testing.T) {
 		node.WithAccountsAdapter(accDB),
 		node.WithAddressPubkeyConverter(
 			&mock.PubkeyConverterStub{
-				CreateAddressFromStringCalled: func(hexAddress string) (container state.AddressContainer, e error) {
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
 					return nil, errExpected
 				},
 			}),
@@ -2136,7 +2114,7 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
 	accDB := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
 		},
 	}
@@ -2160,7 +2138,7 @@ func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
 
 	errExpected := errors.New("expected error")
 	accDB := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
 	}
@@ -2180,14 +2158,14 @@ func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	t.Parallel()
 
-	accnt, _ := state.NewUserAccount(&mock.AddressMock{})
+	accnt, _ := state.NewUserAccount([]byte("1234"))
 	_ = accnt.AddToBalance(big.NewInt(1))
 	accnt.IncreaseNonce(2)
 	accnt.SetRootHash([]byte("root hash"))
 	accnt.SetCodeHash([]byte("code hash"))
 
 	accDB := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
 	}
@@ -2354,8 +2332,8 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		},
 	}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
-		items := strings.Split(string(address.Bytes()), "Shard")
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		items := strings.Split(string(address), "Shard")
 		sId, _ := strconv.ParseUint(items[1], 2, 32)
 		return uint32(sId)
 	}
@@ -2417,7 +2395,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 				require.Nil(t, errMarshal)
 
 				mutRecoveredTransactions.Lock()
-				sId := shardCoordinator.ComputeId(state.NewAddress(tx.SndAddr))
+				sId := shardCoordinator.ComputeId(tx.SndAddr)
 				recoveredTransactions[sId] = append(recoveredTransactions[sId], &tx)
 				mutRecoveredTransactions.Unlock()
 
