@@ -49,8 +49,8 @@ func TestESDTTransfer_ProcessBuiltInFunctionSingleShard(t *testing.T) {
 	key := []byte("key")
 	value := big.NewInt(10).Bytes()
 	input.Arguments = [][]byte{key, value}
-	accSnd, _ := state.NewUserAccount(mock.NewAddressMock([]byte("snd")))
-	accDst, _ := state.NewUserAccount(mock.NewAddressMock([]byte("dst")))
+	accSnd, _ := state.NewUserAccount([]byte("snd"))
+	accDst, _ := state.NewUserAccount([]byte("dst"))
 
 	_, _, err := esdt.ProcessBuiltinFunction(accSnd, accDst, input)
 	assert.Equal(t, err, process.ErrInsufficientFunds)
@@ -83,7 +83,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionSenderInShard(t *testing.T) {
 	key := []byte("key")
 	value := big.NewInt(10).Bytes()
 	input.Arguments = [][]byte{key, value}
-	accSnd, _ := state.NewUserAccount(mock.NewAddressMock([]byte("snd")))
+	accSnd, _ := state.NewUserAccount([]byte("snd"))
 
 	esdtKey := append(esdt.keyPrefix, key...)
 	esdtToken := &ESDigitalToken{Value: big.NewInt(100)}
@@ -109,7 +109,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionDestInShard(t *testing.T) {
 	key := []byte("key")
 	value := big.NewInt(10).Bytes()
 	input.Arguments = [][]byte{key, value}
-	accDst, _ := state.NewUserAccount(mock.NewAddressMock([]byte("dst")))
+	accDst, _ := state.NewUserAccount([]byte("dst"))
 
 	_, _, err := esdt.ProcessBuiltinFunction(nil, accDst, input)
 	assert.Nil(t, err)
