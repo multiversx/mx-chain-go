@@ -372,9 +372,7 @@ func TestRequestAndProcessing(t *testing.T) {
 
 	hdrHash1 := []byte("hdrHash1")
 	hdrHash2 := []byte("hdrHash2")
-	header1 := &block.Header{
-		RootHash: []byte("something"),
-	}
+	header1 := &block.Header{}
 	header2 := &block.MetaBlock{
 		Epoch: 1,
 		EpochStart: block.EpochStart{
