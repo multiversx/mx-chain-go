@@ -26,6 +26,27 @@ func TestListForSender_AddTx_Sorts(t *testing.T) {
 	require.Equal(t, []byte("d"), txHashes[3])
 }
 
+func TestListForSender_AddTx_GivesPriorityToHigherGas(t *testing.T) {
+	list := newListToTest()
+
+	list.AddTx(createTxWithParams([]byte("a"), ".", 1, 128, 42, 42))
+	list.AddTx(createTxWithParams([]byte("b"), ".", 3, 128, 42, 100))
+	list.AddTx(createTxWithParams([]byte("c"), ".", 3, 128, 42, 99))
+	list.AddTx(createTxWithParams([]byte("d"), ".", 2, 128, 42, 42))
+	list.AddTx(createTxWithParams([]byte("e"), ".", 3, 128, 42, 101))
+
+	txHashes := list.getTxHashes()
+
+	require.Equal(t, 5, list.items.Len())
+	require.Equal(t, 5, len(txHashes))
+
+	require.Equal(t, []byte("a"), txHashes[0])
+	require.Equal(t, []byte("d"), txHashes[1])
+	require.Equal(t, []byte("e"), txHashes[2])
+	require.Equal(t, []byte("b"), txHashes[3])
+	require.Equal(t, []byte("c"), txHashes[4])
+}
+
 func TestListForSender_findTx(t *testing.T) {
 	list := newListToTest()
 

@@ -71,8 +71,8 @@ func (u *UserAccountStub) GetOwnerAddress() []byte {
 	return nil
 }
 
-// AddressContainer -
-func (u *UserAccountStub) AddressContainer() state.AddressContainer {
+// AddressBytes -
+func (u *UserAccountStub) AddressBytes() []byte {
 	return nil
 }
 
@@ -96,7 +96,7 @@ func (u *UserAccountStub) GetCode() []byte {
 }
 
 // SetCodeMetadata -
-func (u *UserAccountStub) SetCodeMetadata(codeMetadata []byte) {
+func (u *UserAccountStub) SetCodeMetadata(_ []byte) {
 }
 
 // GetCodeMetadata -

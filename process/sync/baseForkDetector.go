@@ -88,7 +88,6 @@ func (bfd *baseForkDetector) removePastOrInvalidRecords() {
 func (bfd *baseForkDetector) checkBlockBasicValidity(
 	header data.HeaderHandler,
 	headerHash []byte,
-	state process.BlockHeaderState,
 ) error {
 
 	if check.IfNil(header) {
@@ -538,12 +537,12 @@ func (bfd *baseForkDetector) shouldSignalFork(
 
 	if lastForkRound != process.MinForkRound {
 		if headerInfo.epoch > lastForkEpoch {
-			log.Debug("shouldSignalFork epoch change false")
+			log.Trace("shouldSignalFork epoch change false")
 			return false
 		}
 
 		if headerInfo.epoch < lastForkEpoch {
-			log.Debug("shouldSignalFork epoch change true")
+			log.Trace("shouldSignalFork epoch change true")
 			return true
 		}
 	}
@@ -655,7 +654,7 @@ func (bfd *baseForkDetector) addHeader(
 	doJobOnBHProcessed func(data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte),
 ) error {
 
-	err := bfd.checkBlockBasicValidity(header, headerHash, state)
+	err := bfd.checkBlockBasicValidity(header, headerHash)
 	if err != nil {
 		return err
 	}
