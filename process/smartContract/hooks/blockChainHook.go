@@ -448,17 +448,12 @@ func (bh *BlockChainHookImpl) GetBuiltinFunctionNames() vmcommon.FunctionNames {
 
 // GetAllState returns the underlying state of a given account
 func (bh *BlockChainHookImpl) GetAllState(address []byte) (map[string][]byte, error) {
-	dstAddr, err := bh.pubkeyConv.CreateAddressFromBytes(address)
-	if err != nil {
-		return nil, err
-	}
-
-	dstShardId := bh.shardCoordinator.ComputeId(dstAddr)
+	dstShardId := bh.shardCoordinator.ComputeId(address)
 	if dstShardId != bh.shardCoordinator.SelfId() {
 		return nil, process.ErrDestinationNotInSelfShard
 	}
 
-	acc, err := bh.accounts.GetExistingAccount(dstAddr)
+	acc, err := bh.accounts.GetExistingAccount(address)
 	if err != nil {
 		return nil, err
 	}
