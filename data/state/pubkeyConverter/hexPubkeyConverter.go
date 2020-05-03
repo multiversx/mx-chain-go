@@ -48,26 +48,6 @@ func (ppc *hexPubkeyConverter) Encode(pkBytes []byte) string {
 	return hex.EncodeToString(pkBytes)
 }
 
-// CreateAddressFromString creates an address container based on the provided string
-func (ppc *hexPubkeyConverter) CreateAddressFromString(humanReadable string) (state.AddressContainer, error) {
-	buff, err := ppc.Decode(humanReadable)
-	if err != nil {
-		return nil, err
-	}
-
-	return state.NewAddress(buff), nil
-}
-
-// CreateAddressFromBytes creates an address container based on the provided public key bytes
-func (ppc *hexPubkeyConverter) CreateAddressFromBytes(pkBytes []byte) (state.AddressContainer, error) {
-	if len(pkBytes) != ppc.len {
-		return nil, fmt.Errorf("%w when converting to address, expected length %d, received %d",
-			state.ErrWrongSize, ppc.len, len(pkBytes))
-	}
-
-	return state.NewAddress(pkBytes), nil
-}
-
 // Len returns the decoded address length
 func (ppc *hexPubkeyConverter) Len() int {
 	return ppc.len

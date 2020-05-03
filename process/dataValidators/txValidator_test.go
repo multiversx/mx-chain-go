@@ -16,8 +16,8 @@ import (
 
 func getAccAdapter(nonce uint64, balance *big.Int) *mock.AccountsStub {
 	accDB := &mock.AccountsStub{}
-	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		acc, _ := state.NewUserAccount(addressContainer)
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		acc, _ := state.NewUserAccount(address)
 		acc.Nonce = nonce
 		acc.Balance = balance
 
@@ -42,7 +42,7 @@ func getTxValidatorHandler(
 	sndShardId uint32,
 	rcvShardId uint32,
 	nonce uint64,
-	sndAddr state.AddressContainer,
+	sndAddr []byte,
 	fee *big.Int,
 ) process.TxValidatorHandler {
 	return &mock.TxValidatorHandlerStub{
@@ -55,7 +55,7 @@ func getTxValidatorHandler(
 		NonceCalled: func() uint64 {
 			return nonce
 		},
-		SenderAddressCalled: func() state.AddressContainer {
+		SenderAddressCalled: func() []byte {
 			return sndAddr
 		},
 		FeeCalled: func() *big.Int {
@@ -171,7 +171,7 @@ func TestTxValidator_CheckTxValidityTxCrossShardShouldWork(t *testing.T) {
 	)
 	assert.Nil(t, err)
 
-	addressMock := mock.NewAddressMock([]byte("address"))
+	addressMock := []byte("address")
 	txValidatorHandler := getTxValidatorHandler(currentShard+1, currentShard, 1, addressMock, big.NewInt(0))
 
 	result := txValidator.CheckTxValidity(txValidatorHandler)
@@ -196,7 +196,7 @@ func TestTxValidator_CheckTxValidityAccountNonceIsGreaterThanTxNonceShouldReturn
 	)
 	assert.Nil(t, err)
 
-	addressMock := mock.NewAddressMock([]byte("address"))
+	addressMock := []byte("address")
 	currentShard := uint32(0)
 	txValidatorHandler := getTxValidatorHandler(currentShard, currentShard, txNonce, addressMock, big.NewInt(0))
 
@@ -222,7 +222,7 @@ func TestTxValidator_CheckTxValidityTxNonceIsTooHigh(t *testing.T) {
 	)
 	assert.Nil(t, err)
 
-	addressMock := mock.NewAddressMock([]byte("address"))
+	addressMock := []byte("address")
 	currentShard := uint32(0)
 	txValidatorHandler := getTxValidatorHandler(currentShard, currentShard, txNonce, addressMock, big.NewInt(0))
 
@@ -250,7 +250,7 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 	)
 	assert.Nil(t, err)
 
-	addressMock := mock.NewAddressMock([]byte("address"))
+	addressMock := []byte("address")
 	currentShard := uint32(0)
 	txValidatorHandler := getTxValidatorHandler(currentShard, currentShard, txNonce, addressMock, fee)
 
@@ -263,7 +263,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.
 	t.Parallel()
 
 	accDB := &mock.AccountsStub{}
-	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return nil, errors.New("cannot find account")
 	}
 	shardCoordinator := createMockCoordinator("_", 0)
@@ -276,7 +276,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.
 		maxNonceDeltaAllowed,
 	)
 
-	addressMock := mock.NewAddressMock([]byte("address"))
+	addressMock := []byte("address")
 	currentShard := uint32(0)
 	txValidatorHandler := getTxValidatorHandler(currentShard, currentShard, 1, addressMock, big.NewInt(0))
 
@@ -288,7 +288,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsButWhiteListedShouldReturnTru
 	t.Parallel()
 
 	accDB := &mock.AccountsStub{}
-	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return nil, errors.New("cannot find account")
 	}
 	shardCoordinator := createMockCoordinator("_", 0)
@@ -305,7 +305,7 @@ func TestTxValidator_CheckTxValidityAccountNotExitsButWhiteListedShouldReturnTru
 		maxNonceDeltaAllowed,
 	)
 
-	addressMock := mock.NewAddressMock([]byte("address"))
+	addressMock := []byte("address")
 	currentShard := uint32(0)
 	txValidatorHandler := getTxValidatorHandler(currentShard, currentShard, 1, addressMock, big.NewInt(0))
 
@@ -326,8 +326,8 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 	t.Parallel()
 
 	accDB := &mock.AccountsStub{}
-	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return state.NewPeerAccount(addressContainer)
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return state.NewPeerAccount(address)
 	}
 	shardCoordinator := createMockCoordinator("_", 0)
 	maxNonceDeltaAllowed := 100
@@ -339,7 +339,7 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 		maxNonceDeltaAllowed,
 	)
 
-	addressMock := mock.NewAddressMock([]byte("address"))
+	addressMock := []byte("address")
 	currentShard := uint32(0)
 	txValidatorHandler := getTxValidatorHandler(currentShard, currentShard, 1, addressMock, big.NewInt(0))
 
@@ -363,7 +363,7 @@ func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
 		maxNonceDeltaAllowed,
 	)
 
-	addressMock := mock.NewAddressMock([]byte("address"))
+	addressMock := []byte("address")
 	currentShard := uint32(0)
 	txValidatorHandler := getTxValidatorHandler(currentShard, currentShard, 1, addressMock, big.NewInt(0))
 

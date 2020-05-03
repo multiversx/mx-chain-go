@@ -101,7 +101,7 @@ func (si *stateImport) ImportAll() error {
 func (si *stateImport) importMetaBlock() error {
 	object, err := si.readNextElement(MetaBlockFileName)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	metaBlock, ok := object.(*block.MetaBlock)
@@ -270,7 +270,7 @@ func (si *stateImport) importState(fileName string, trieKey string) error {
 			break
 		}
 
-		if !bytes.Equal(account.AddressContainer().Bytes(), address) {
+		if !bytes.Equal(account.AddressBytes(), address) {
 			return update.ErrHashMissmatch
 		}
 
