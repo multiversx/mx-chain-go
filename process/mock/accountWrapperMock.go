@@ -17,7 +17,7 @@ type AccountWrapMock struct {
 	codeMetadata      []byte
 	codeHash          []byte
 	rootHash          []byte
-	address           state.AddressContainer
+	address           []byte
 	trackableDataTrie state.DataTrieTracker
 
 	SetNonceWithJournalCalled    func(nonce uint64) error    `json:"-"`
@@ -26,7 +26,7 @@ type AccountWrapMock struct {
 }
 
 // NewAccountWrapMock -
-func NewAccountWrapMock(adr state.AddressContainer) *AccountWrapMock {
+func NewAccountWrapMock(adr []byte) *AccountWrapMock {
 	return &AccountWrapMock{
 		address:           adr,
 		trackableDataTrie: state.NewTrackableDataTrie([]byte("identifier"), nil),
@@ -127,8 +127,8 @@ func (awm *AccountWrapMock) SetRootHash(rootHash []byte) {
 	awm.rootHash = rootHash
 }
 
-// AddressContainer -
-func (awm *AccountWrapMock) AddressContainer() state.AddressContainer {
+// AddressBytes -
+func (awm *AccountWrapMock) AddressBytes() []byte {
 	return awm.address
 }
 

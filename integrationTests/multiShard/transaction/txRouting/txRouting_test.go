@@ -120,11 +120,8 @@ func checkTransactionsInPoolAreForTheNode(t *testing.T, n *integrationTests.Test
 		senderBuff := tx.SndAddr
 		recvBuff := tx.RcvAddr
 
-		sender, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(senderBuff)
-		recv, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(recvBuff)
-
-		senderShardId := n.ShardCoordinator.ComputeId(sender)
-		recvShardId := n.ShardCoordinator.ComputeId(recv)
+		senderShardId := n.ShardCoordinator.ComputeId(senderBuff)
+		recvShardId := n.ShardCoordinator.ComputeId(recvBuff)
 		isForCurrentShard := senderShardId == n.ShardCoordinator.SelfId() || recvShardId == n.ShardCoordinator.SelfId()
 		if !isForCurrentShard {
 			assert.Fail(t, fmt.Sprintf("found a transaction wrongly dispatched, key: %s, tx: %v",

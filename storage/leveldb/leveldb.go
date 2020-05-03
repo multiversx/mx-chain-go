@@ -2,6 +2,7 @@ package leveldb
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"runtime"
 	"sync"
@@ -52,7 +53,7 @@ func NewDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles in
 
 	db, err := openLevelDB(path, options)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w for path %s", err, path)
 	}
 
 	dbStore := &DB{
@@ -203,7 +204,10 @@ func (s *DB) Close() error {
 	s.sizeBatch = 0
 	s.mutBatch.Unlock()
 
-	s.dbClosed <- struct{}{}
+	select {
+	case s.dbClosed <- struct{}{}:
+	default:
+	}
 
 	return s.db.Close()
 }

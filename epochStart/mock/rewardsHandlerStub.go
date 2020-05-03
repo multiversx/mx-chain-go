@@ -2,9 +2,11 @@ package mock
 
 // RewardsHandlerStub -
 type RewardsHandlerStub struct {
-	LeaderPercentageCalled func() float64
-	MinInflationRateCalled func() float64
-	MaxInflationRateCalled func() float64
+	LeaderPercentageCalled    func() float64
+	CommunityPercentageCalled func() float64
+	CommunityAddressCalled    func() string
+	MinInflationRateCalled    func() float64
+	MaxInflationRateCalled    func() float64
 }
 
 // LeaderPercentage -
@@ -14,6 +16,24 @@ func (r *RewardsHandlerStub) LeaderPercentage() float64 {
 	}
 
 	return 1
+}
+
+// CommunityPercentage will return the community percentage value
+func (r *RewardsHandlerStub) CommunityPercentage() float64 {
+	if r.CommunityPercentageCalled != nil {
+		return r.CommunityPercentageCalled()
+	}
+
+	return 0.1
+}
+
+// CommunityAddress will return the community address
+func (r *RewardsHandlerStub) CommunityAddress() string {
+	if r.CommunityAddressCalled != nil {
+		return r.CommunityAddressCalled()
+	}
+
+	return "1111"
 }
 
 // MinInflationRate -
