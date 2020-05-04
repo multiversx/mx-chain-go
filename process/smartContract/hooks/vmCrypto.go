@@ -39,6 +39,6 @@ func (vmch *VMCryptoHook) Ripemd160(data []byte) ([]byte, error) {
 
 // Ecrecover calculates the corresponding Ethereum address for the public key which created the given signature
 // https://ewasm.readthedocs.io/en/mkdocs/system_contracts/
-func (vmch *VMCryptoHook) Ecrecover(hash []byte, recoveryID []byte, r []byte, s []byte) ([]byte, error) {
+func (vmch *VMCryptoHook) Ecrecover(_ []byte, _ []byte, _ []byte, _ []byte) ([]byte, error) {
 	return nil, ErrNotImplemented
 }

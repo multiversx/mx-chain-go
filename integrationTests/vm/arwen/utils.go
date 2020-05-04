@@ -90,7 +90,7 @@ func SetupTestContext(t *testing.T) TestContext {
 
 // Close closes the test context
 func (context *TestContext) Close() {
-	context.VMContainer.Close()
+	_ = context.VMContainer.Close()
 }
 
 func (context *TestContext) initAccounts() {
@@ -142,7 +142,7 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 	tx := &transaction.Transaction{
 		Nonce:    owner.Nonce,
 		Value:    big.NewInt(0),
-		RcvAddr:  vm.CreateEmptyAddress().Bytes(),
+		RcvAddr:  vm.CreateEmptyAddress(),
 		SndAddr:  owner.Address,
 		GasPrice: 1,
 		GasLimit: math.MaxInt32,

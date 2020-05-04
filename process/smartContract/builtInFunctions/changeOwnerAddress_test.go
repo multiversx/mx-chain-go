@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +18,7 @@ func TestChangeOwnerAddress_ProcessBuiltinFunction(t *testing.T) {
 	owner := []byte("sender")
 	addr := []byte("addr")
 
-	acc, _ := state.NewUserAccount(mock.NewAddressMock(addr))
+	acc, _ := state.NewUserAccount(addr)
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{CallerAddr: owner},
 	}

@@ -42,7 +42,7 @@ type rewardsCreator struct {
 	pubkeyConverter  state.PubkeyConverter
 	rewardsStorage   storage.Storer
 	miniBlockStorage storage.Storer
-	communityAddress state.AddressContainer
+	communityAddress []byte
 
 	hasher      hashing.Hasher
 	marshalizer marshal.Marshalizer
@@ -85,7 +85,7 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 		return nil, epochStart.ErrNilCommunityAddress
 	}
 
-	addressContainer, err := args.PubkeyConverter.CreateAddressFromString(args.CommunityAddress)
+	address, err := args.PubkeyConverter.Decode(args.CommunityAddress)
 	if err != nil {
 		log.Warn("invalid community reward address", "err", err, "provided address", args.CommunityAddress)
 		return nil, err
@@ -105,7 +105,7 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 		marshalizer:      args.Marshalizer,
 		miniBlockStorage: args.MiniBlockStorage,
 		dataPool:         args.DataPool,
-		communityAddress: addressContainer,
+		communityAddress: address,
 	}
 
 	return rc, nil
@@ -166,12 +166,6 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 ) error {
 	rwdAddrValidatorInfo := rc.computeValidatorInfoPerRewardAddress(validatorsInfo)
 	for address, rwdInfo := range rwdAddrValidatorInfo {
-		addrContainer, err := rc.pubkeyConverter.CreateAddressFromBytes([]byte(address))
-		if err != nil {
-			log.Warn("invalid reward address from validator info", "err", err, "provided address", address)
-			continue
-		}
-
 		rwdTx, rwdTxHash, err := rc.createRewardFromRwdInfo([]byte(address), rwdInfo, &metaBlock.EpochStart.Economics, metaBlock)
 		if err != nil {
 			return err
@@ -179,7 +173,7 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 
 		rc.currTxs.AddTx(rwdTxHash, rwdTx)
 
-		shardId := rc.shardCoordinator.ComputeId(addrContainer)
+		shardId := rc.shardCoordinator.ComputeId([]byte(address))
 		miniBlocks[shardId].TxHashes = append(miniBlocks[shardId].TxHashes, rwdTxHash)
 	}
 
@@ -208,7 +202,7 @@ func (rc *rewardsCreator) createCommunityRewardTransaction(
 	communityRwdTx := &rewardTx.RewardTx{
 		Round:   metaBlock.GetRound(),
 		Value:   big.NewInt(0).Set(metaBlock.EpochStart.Economics.RewardsForCommunity),
-		RcvAddr: rc.communityAddress.Bytes(),
+		RcvAddr: rc.communityAddress,
 		Epoch:   metaBlock.Epoch,
 	}
 

@@ -30,13 +30,13 @@ func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 }
 
 func createAccounts(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler) {
-	acntSrc, _ := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr)
 	acntSrc.Balance = acntSrc.Balance.Add(acntSrc.Balance, tx.Value)
 	totalFee := big.NewInt(0)
 	totalFee = totalFee.Mul(big.NewInt(int64(tx.GasLimit)), big.NewInt(int64(tx.GasPrice)))
 	acntSrc.Balance.Set(acntSrc.Balance.Add(acntSrc.Balance, totalFee))
 
-	acntDst, _ := state.NewUserAccount(mock.NewAddressMock(tx.RcvAddr))
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr)
 
 	return acntSrc, acntDst
 }
@@ -308,7 +308,7 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	tx.Value = big.NewInt(0)
 	acntSrc, _ := createAccounts(tx)
 
-	accntState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accntState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acntSrc, nil
 	}
 
@@ -464,7 +464,7 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 	tx.Value = big.NewInt(0)
 	acntSrc, acntDst := createAccounts(tx)
 
-	accntState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accntState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acntSrc, nil
 	}
 
@@ -503,7 +503,7 @@ func TestScProcessor_ExecuteSmartContractTransactionSaveLogCalled(t *testing.T) 
 	tx.Value = big.NewInt(0)
 	acntSrc, acntDst := createAccounts(tx)
 
-	accntState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accntState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acntSrc, nil
 	}
 
@@ -831,7 +831,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 		GasRemaining: 0,
 	}
 
-	accntState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accntState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acntSnd, nil
 	}
 
@@ -845,12 +845,12 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 	t.Parallel()
 
 	accountsDB := &mock.AccountsStub{}
-	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return nil, state.ErrAccNotFound
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 		return shardCoordinator.SelfId()
 	}
 
@@ -870,59 +870,18 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 	require.Equal(t, state.ErrAccNotFound, err)
 }
 
-func TestScProcessor_GetAccountFromAddrFaildAddressConv(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("expected error")
-	pubkeyConv := &mock.PubkeyConverterStub{
-		CreateAddressFromBytesCalled: func(pkBytes []byte) (container state.AddressContainer, err error) {
-			return nil, expectedErr
-		},
-	}
-
-	accountsDB := &mock.AccountsStub{}
-	getCalled := 0
-	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		getCalled++
-		return nil, state.ErrAccNotFound
-	}
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
-		return shardCoordinator.SelfId()
-	}
-
-	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
-	arguments := createMockSmartContractProcessorArguments()
-	arguments.VmContainer = vm
-	arguments.ArgsParser = argParser
-	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
-	arguments.PubkeyConv = pubkeyConv
-	arguments.TxLogsProcessor = &mock.TxLogsProcessorStub{}
-	sc, err := NewSmartContractProcessor(arguments)
-	require.NotNil(t, sc)
-	require.Nil(t, err)
-
-	acc, err := sc.getAccountFromAddress([]byte("DST"))
-	require.Nil(t, acc)
-	require.NotNil(t, err)
-	require.Equal(t, 0, getCalled)
-}
-
 func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 	t.Parallel()
 
 	accountsDB := &mock.AccountsStub{}
 	getCalled := 0
-	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		getCalled++
 		return nil, state.ErrAccNotFound
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 		return shardCoordinator.SelfId()
 	}
 
@@ -948,13 +907,13 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	getCalled := 0
-	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		getCalled++
 		return nil, state.ErrAccNotFound
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 		return shardCoordinator.SelfId() + 1
 	}
 
@@ -980,14 +939,14 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	getCalled := 0
-	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		getCalled++
-		acc, _ := state.NewUserAccount(addressContainer)
+		acc, _ := state.NewUserAccount(address)
 		return acc, nil
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 		return shardCoordinator.SelfId()
 	}
 
@@ -1013,16 +972,16 @@ func TestScProcessor_DeleteAccountsFailedAtRemove(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	removeCalled := 0
-	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return nil, state.ErrAccNotFound
 	}
-	accountsDB.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
+	accountsDB.RemoveAccountCalled = func(address []byte) error {
 		removeCalled++
 		return state.ErrAccNotFound
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 		return shardCoordinator.SelfId()
 	}
 
@@ -1049,14 +1008,14 @@ func TestScProcessor_DeleteAccountsNotInShard(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	removeCalled := 0
-	accountsDB.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
+	accountsDB.RemoveAccountCalled = func(address []byte) error {
 		removeCalled++
 		return state.ErrAccNotFound
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	computeIdCalled := 0
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 		computeIdCalled++
 		return shardCoordinator.SelfId() + 1
 	}
@@ -1085,18 +1044,18 @@ func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 
 	accountsDB := &mock.AccountsStub{}
 	removeCalled := 0
-	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		acc, _ := state.NewUserAccount(addressContainer)
+	accountsDB.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		acc, _ := state.NewUserAccount(address)
 		return acc, nil
 	}
-	accountsDB.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
+	accountsDB.RemoveAccountCalled = func(address []byte) error {
 		removeCalled++
 		return nil
 	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	computeIdCalled := 0
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 		computeIdCalled++
 		return shardCoordinator.SelfId()
 	}
@@ -1160,7 +1119,7 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 	tx.GasPrice = 10
 	tx.GasLimit = 15
 
-	acntSrc, _ := state.NewUserAccount(mock.NewAddressMock(tx.SndAddr))
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr)
 	_ = acntSrc.AddToBalance(big.NewInt(45))
 
 	currBalance := acntSrc.GetBalance().Uint64()
@@ -1373,7 +1332,7 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 		GasRemaining: 0,
 	}
 
-	accntState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accntState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acntSrc, nil
 	}
 
@@ -1409,11 +1368,11 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	outacc1.BalanceDelta = big.NewInt(int64(5))
 	outputAccounts = append(outputAccounts, outacc1)
 
-	testAddr := mock.NewAddressMock(outaddress)
+	testAddr := outaddress
 	testAcc, _ := state.NewUserAccount(testAddr)
 
-	accountsDB.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		if bytes.Equal(addressContainer.Bytes(), testAddr.Bytes()) {
+	accountsDB.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		if bytes.Equal(address, testAddr) {
 			return testAcc, nil
 		}
 		return nil, state.ErrAccNotFound
@@ -1437,7 +1396,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	outacc1.BalanceDelta = big.NewInt(int64(10))
 	tx.Value = big.NewInt(int64(10))
 	fakeAccountsHandler.TempAccountCalled = func(address []byte) state.AccountHandler {
-		fakeAcc, _ := state.NewUserAccount(mock.NewAddressMock(address))
+		fakeAcc, _ := state.NewUserAccount(address)
 		fakeAcc.Balance = big.NewInt(int64(5))
 		return fakeAcc
 	}
@@ -1475,7 +1434,7 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 	outacc1.Nonce = 5
 	outputAccounts = append(outputAccounts, outacc1)
 
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 		return shardCoordinator.SelfId() + 1
 	}
 
@@ -1486,9 +1445,9 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	t.Parallel()
 
-	testAccounts, _ := state.NewUserAccount(state.NewAddress([]byte("address")))
+	testAccounts, _ := state.NewUserAccount([]byte("address"))
 	accountsDB := &mock.AccountsStub{
-		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, err error) {
+		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, err error) {
 			return testAccounts, nil
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
@@ -1552,7 +1511,7 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 
 	accError := errors.New("account get error")
 	called := false
-	accountsDB := &mock.AccountsStub{LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB := &mock.AccountsStub{LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 		called = true
 		return nil, accError
 	}}
@@ -1585,7 +1544,7 @@ func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 		return shardCoordinator.CurrentShard + 1
 	}
 	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
@@ -1596,7 +1555,7 @@ func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
 func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
 	t.Parallel()
 
-	accountsDB := &mock.AccountsStub{LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+	accountsDB := &mock.AccountsStub{LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 		return &mock.AccountWrapMock{}, nil
 	}}
 	fakeAccountsHandler := &mock.TemporaryAccountsHandlerMock{}
@@ -1618,8 +1577,8 @@ func TestScProcessor_ProcessSmartContractResultOutputBalanceNil(t *testing.T) {
 	t.Parallel()
 
 	accountsDB := &mock.AccountsStub{
-		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return state.NewUserAccount(addressContainer)
+		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+			return state.NewUserAccount(address)
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			return nil
@@ -1646,8 +1605,8 @@ func TestScProcessor_ProcessSmartContractResultWithCode(t *testing.T) {
 
 	putCodeCalled := 0
 	accountsDB := &mock.AccountsStub{
-		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return state.NewUserAccount(addressContainer)
+		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+			return state.NewUserAccount(address)
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			putCodeCalled++
@@ -1679,8 +1638,8 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 
 	saveAccountCalled := 0
 	accountsDB := &mock.AccountsStub{
-		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return state.NewUserAccount(addressContainer)
+		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+			return state.NewUserAccount(address)
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountCalled++
@@ -1719,8 +1678,8 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 	t.Parallel()
 
 	accountsDB := &mock.AccountsStub{
-		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-			return state.NewUserAccount(addressContainer)
+		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+			return state.NewUserAccount(address)
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			return nil
@@ -1754,10 +1713,10 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 	t.Parallel()
 
 	scAddress := []byte("000000000001234567890123456789012")
-	dstScAddress, _ := state.NewUserAccount(mock.NewAddressMock(scAddress))
+	dstScAddress, _ := state.NewUserAccount(scAddress)
 	dstScAddress.SetCode([]byte("code"))
 	accountsDB := &mock.AccountsStub{
-		LoadAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return dstScAddress, nil
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {

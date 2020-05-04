@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	mock2 "github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -223,7 +222,7 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{
 		GetAccountHandler: func(address string) (state.UserAccountHandler, error) {
-			acc, _ := state.NewUserAccount(&mock2.AddressMock{})
+			acc, _ := state.NewUserAccount([]byte("1234"))
 			_ = acc.AddToBalance(big.NewInt(100))
 			acc.IncreaseNonce(1)
 

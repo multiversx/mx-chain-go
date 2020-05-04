@@ -67,14 +67,14 @@ func (adb *AccountsDB) SaveAccount(account AccountHandler) error {
 		return ErrNilAccountHandler
 	}
 
-	oldAccount, err := adb.getAccount(account.AddressContainer())
+	oldAccount, err := adb.getAccount(account.AddressBytes())
 	if err != nil {
 		return err
 	}
 
 	var entry JournalEntry
 	if check.IfNil(oldAccount) {
-		entry, err = NewJournalEntryAccountCreation(account.AddressContainer().Bytes(), adb.mainTrie)
+		entry, err = NewJournalEntryAccountCreation(account.AddressBytes(), adb.mainTrie)
 		if err != nil {
 			return err
 		}
@@ -153,7 +153,7 @@ func (adb *AccountsDB) loadDataTrie(accountHandler baseAccountHandler) error {
 		return nil
 	}
 
-	dataTrie := adb.dataTries.Get(accountHandler.AddressContainer().Bytes())
+	dataTrie := adb.dataTries.Get(accountHandler.AddressBytes())
 	if dataTrie != nil {
 		accountHandler.SetDataTrie(dataTrie)
 		return nil
@@ -165,7 +165,7 @@ func (adb *AccountsDB) loadDataTrie(accountHandler baseAccountHandler) error {
 	}
 
 	accountHandler.SetDataTrie(dataTrie)
-	adb.dataTries.Put(accountHandler.AddressContainer().Bytes(), dataTrie)
+	adb.dataTries.Put(accountHandler.AddressBytes(), dataTrie)
 	return nil
 }
 
@@ -180,7 +180,7 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 	}
 
 	log.Trace("accountsDB.SaveDataTrie",
-		"address", hex.EncodeToString(accountHandler.AddressContainer().Bytes()),
+		"address", hex.EncodeToString(accountHandler.AddressBytes()),
 		"nonce", accountHandler.GetNonce(),
 	)
 
@@ -191,7 +191,7 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 		}
 
 		accountHandler.SetDataTrie(newDataTrie)
-		adb.dataTries.Put(accountHandler.AddressContainer().Bytes(), newDataTrie)
+		adb.dataTries.Put(accountHandler.AddressBytes(), newDataTrie)
 	}
 
 	trackableDataTrie := accountHandler.DataTrieTracker()
@@ -232,7 +232,7 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 
 func (adb *AccountsDB) saveAccountToTrie(accountHandler AccountHandler) error {
 	log.Trace("accountsDB.saveAccountToTrie",
-		"address", hex.EncodeToString(accountHandler.AddressContainer().Bytes()),
+		"address", hex.EncodeToString(accountHandler.AddressBytes()),
 	)
 
 	//pass the reference to marshalizer, otherwise it will fail marshalizing balance
@@ -241,20 +241,20 @@ func (adb *AccountsDB) saveAccountToTrie(accountHandler AccountHandler) error {
 		return err
 	}
 
-	return adb.mainTrie.Update(accountHandler.AddressContainer().Bytes(), buff)
+	return adb.mainTrie.Update(accountHandler.AddressBytes(), buff)
 }
 
 // RemoveAccount removes the account data from underlying trie.
 // It basically calls Update with empty slice
-func (adb *AccountsDB) RemoveAccount(addressContainer AddressContainer) error {
+func (adb *AccountsDB) RemoveAccount(address []byte) error {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	if check.IfNil(addressContainer) {
-		return fmt.Errorf("%w in RemoveAccount", ErrNilAddressContainer)
+	if len(address) == 0 {
+		return fmt.Errorf("%w in RemoveAccount", ErrNilAddress)
 	}
 
-	acnt, err := adb.getAccount(addressContainer)
+	acnt, err := adb.getAccount(address)
 	if err != nil {
 		return err
 	}
@@ -266,31 +266,31 @@ func (adb *AccountsDB) RemoveAccount(addressContainer AddressContainer) error {
 	adb.journalize(entry)
 
 	log.Trace("accountsDB.RemoveAccount",
-		"address", hex.EncodeToString(addressContainer.Bytes()),
+		"address", hex.EncodeToString(address),
 	)
 
-	return adb.mainTrie.Update(addressContainer.Bytes(), make([]byte, 0))
+	return adb.mainTrie.Update(address, make([]byte, 0))
 }
 
 // LoadAccount fetches the account based on the address. Creates an empty account if the account is missing.
-func (adb *AccountsDB) LoadAccount(addressContainer AddressContainer) (AccountHandler, error) {
+func (adb *AccountsDB) LoadAccount(address []byte) (AccountHandler, error) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	if check.IfNil(addressContainer) {
-		return nil, fmt.Errorf("%w in LoadAccount", ErrNilAddressContainer)
+	if len(address) == 0 {
+		return nil, fmt.Errorf("%w in LoadAccount", ErrNilAddress)
 	}
 
 	log.Trace("accountsDB.LoadAccount",
-		"address", hex.EncodeToString(addressContainer.Bytes()),
+		"address", hex.EncodeToString(address),
 	)
 
-	acnt, err := adb.getAccount(addressContainer)
+	acnt, err := adb.getAccount(address)
 	if err != nil {
 		return nil, err
 	}
 	if acnt == nil {
-		return adb.accountFactory.CreateAccount(addressContainer)
+		return adb.accountFactory.CreateAccount(address)
 	}
 
 	baseAcc, ok := acnt.(baseAccountHandler)
@@ -309,10 +309,8 @@ func (adb *AccountsDB) LoadAccount(addressContainer AddressContainer) (AccountHa
 	return acnt, nil
 }
 
-func (adb *AccountsDB) getAccount(addressContainer AddressContainer) (AccountHandler, error) {
-	addrBytes := addressContainer.Bytes()
-
-	val, err := adb.mainTrie.Get(addrBytes)
+func (adb *AccountsDB) getAccount(address []byte) (AccountHandler, error) {
+	val, err := adb.mainTrie.Get(address)
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +318,7 @@ func (adb *AccountsDB) getAccount(addressContainer AddressContainer) (AccountHan
 		return nil, nil
 	}
 
-	acnt, err := adb.accountFactory.CreateAccount(addressContainer)
+	acnt, err := adb.accountFactory.CreateAccount(address)
 	if err != nil {
 		return nil, err
 	}
@@ -334,19 +332,19 @@ func (adb *AccountsDB) getAccount(addressContainer AddressContainer) (AccountHan
 }
 
 // GetExistingAccount returns an existing account if exists or nil if missing
-func (adb *AccountsDB) GetExistingAccount(addressContainer AddressContainer) (AccountHandler, error) {
+func (adb *AccountsDB) GetExistingAccount(address []byte) (AccountHandler, error) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	if check.IfNil(addressContainer) {
-		return nil, fmt.Errorf("%w in GetExistingAccount, address: %s", ErrNilAddressContainer, hex.EncodeToString(addressContainer.Bytes()))
+	if len(address) == 0 {
+		return nil, fmt.Errorf("%w in GetExistingAccount", ErrNilAddress)
 	}
 
 	log.Trace("accountsDB.GetExistingAccount",
-		"address", hex.EncodeToString(addressContainer.Bytes()),
+		"address", hex.EncodeToString(address),
 	)
 
-	acnt, err := adb.getAccount(addressContainer)
+	acnt, err := adb.getAccount(address)
 	if err != nil {
 		return nil, err
 	}
