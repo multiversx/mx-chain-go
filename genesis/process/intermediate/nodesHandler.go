@@ -14,6 +14,8 @@ type nodesHandler struct {
 	accountsParser genesis.AccountsParser
 }
 
+// NewNodesHandler returns a wrapper instance over the initial nodes setup in order to add some helper functions
+// used in genesis delegation process
 func NewNodesHandler(
 	initialNodesSetup genesis.InitialNodesHandler,
 	accountsParser genesis.AccountsParser,
@@ -78,6 +80,7 @@ func (nh *nodesHandler) isDelegated(address []byte) bool {
 	return false
 }
 
+// GetAllStakedNodes returns all initial nodes that were directly staked upon
 func (nh *nodesHandler) GetAllStakedNodes() []sharding.GenesisNodeInfoHandler {
 	stakedNodes := make([]sharding.GenesisNodeInfoHandler, 0)
 	for _, node := range nh.allNodes {
@@ -89,6 +92,7 @@ func (nh *nodesHandler) GetAllStakedNodes() []sharding.GenesisNodeInfoHandler {
 	return stakedNodes
 }
 
+// GetDelegatedNodes returns the initial nodes that were delegated by the provided delegation SC address
 func (nh *nodesHandler) GetDelegatedNodes(delegationScAddress []byte) []sharding.GenesisNodeInfoHandler {
 	delegatedNodes := make([]sharding.GenesisNodeInfoHandler, 0)
 	for _, node := range nh.allNodes {

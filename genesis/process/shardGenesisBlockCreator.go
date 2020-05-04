@@ -139,10 +139,6 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHa
 
 // setBalancesToTrie adds balances to trie
 func setBalancesToTrie(arg ArgsGenesisBlockCreator) error {
-	if arg.Accounts.JournalLen() != 0 {
-		return process.ErrAccountStateDirty
-	}
-
 	initialAccounts, err := arg.AccountsParser.InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
 	if err != nil {
 		return err
@@ -364,12 +360,13 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 	}
 
 	return &genesisProcessors{
-		txCoordinator: txCoordinator,
-		systemSCs:     nil,
-		txProcessor:   transactionProcessor,
-		scProcessor:   scProcessor,
-		scrProcessor:  scProcessor,
-		rwdProcessor:  rewardsTxProcessor,
+		txCoordinator:  txCoordinator,
+		systemSCs:      nil,
+		txProcessor:    transactionProcessor,
+		scProcessor:    scProcessor,
+		scrProcessor:   scProcessor,
+		rwdProcessor:   rewardsTxProcessor,
+		blockchainHook: vmFactoryImpl.BlockChainHookImpl(),
 	}, nil
 }
 
@@ -408,7 +405,7 @@ func deployInitialSmartContract(
 	deployProcessor, err := intermediate.NewDeployProcessor(
 		txExecutor,
 		arg.PubkeyConv,
-		arg.BlockchainHook,
+		processors.blockchainHook,
 	)
 	if err != nil {
 		return err

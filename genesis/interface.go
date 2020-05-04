@@ -70,6 +70,7 @@ type InitialSmartContractParser interface {
 	IsInterfaceNil() bool
 }
 
+// TxExecutionProcessor represents a transaction builder and executor containing also related helper functions
 type TxExecutionProcessor interface {
 	ExecuteTransaction(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error
 	GetNonce(senderBytes []byte) (uint64, error)
@@ -78,6 +79,7 @@ type TxExecutionProcessor interface {
 	IsInterfaceNil() bool
 }
 
+// NodesHandler is a wrapper over the nodes setup that has some helper functions used when processing genesis tasks
 type NodesHandler interface {
 	GetAllStakedNodes() []sharding.GenesisNodeInfoHandler
 	GetDelegatedNodes(delegationScAddress []byte) []sharding.GenesisNodeInfoHandler

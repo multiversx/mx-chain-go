@@ -33,7 +33,6 @@ func createMockArgument() ArgsGenesisBlockCreator {
 		TxLogsProcessor:          &mock.TxLogProcessorMock{},
 		VirtualMachineConfig:     config.VirtualMachineConfig{},
 		HardForkConfig:           config.HardforkConfig{},
-		BlockchainHook:           &mock.BlockChainHookHandlerMock{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{

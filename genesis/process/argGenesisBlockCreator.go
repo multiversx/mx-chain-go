@@ -40,7 +40,6 @@ type ArgsGenesisBlockCreator struct {
 	TriesContainer           state.TriesHolder
 	TrieFactory              data.TrieFactory
 	ChainID                  string
-	BlockchainHook           process.BlockChainHookHandler
 
 	// created component needed only for hardfork
 	importHandler update.ImportHandler

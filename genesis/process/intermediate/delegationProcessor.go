@@ -189,7 +189,8 @@ func (dp *delegationProcessor) activateBlsKeys(smartContracts []genesis.InitialS
 
 		nonce++
 
-		activateString := fmt.Sprintf("activate@%d@%s", lenDelegated, strings.Join(activateKeys, "@"))
+		hexLenDelegated := hex.EncodeToString(big.NewInt(int64(lenDelegated)).Bytes())
+		activateString := fmt.Sprintf("activate@%s@%s", hexLenDelegated, strings.Join(activateKeys, "@"))
 		err = dp.ExecuteTransaction(
 			nonce,
 			sc.OwnerBytes(),

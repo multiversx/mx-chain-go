@@ -136,9 +136,6 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.SmartContractParser) {
 		return genesis.ErrNilSmartContractParser
 	}
-	if check.IfNil(arg.BlockchainHook) {
-		return process.ErrNilBlockChainHook
-	}
 
 	return nil
 }

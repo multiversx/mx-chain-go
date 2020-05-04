@@ -24,6 +24,7 @@ type deployProcessor struct {
 	replacePlaceholders func(txData string, scResultingAddressBytes []byte) (string, error)
 	getScCodeAsHex      func(filename string) (string, error)
 	blockchainHook      process.BlockChainHookHandler
+	emptyAddress        []byte
 }
 
 // NewDeployProcessor returns a new instance of deploy processor able to deploy SC
@@ -48,6 +49,7 @@ func NewDeployProcessor(
 		blockchainHook:       blockchainHook,
 	}
 	dp.getScCodeAsHex = dp.getSCCodeAsHex
+	dp.emptyAddress = make([]byte, dp.pubkeyConv.Len())
 
 	return dp, nil
 }
@@ -88,7 +90,7 @@ func (dp *deployProcessor) Deploy(sc genesis.InitialSmartContractHandler) error 
 	return dp.ExecuteTransaction(
 		nonce,
 		sc.OwnerBytes(),
-		make([]byte, dp.pubkeyConv.Len()),
+		dp.emptyAddress,
 		big.NewInt(0),
 		[]byte(deployTxData),
 	)
