@@ -49,6 +49,8 @@ func (ewl *evictionWaitingList) Put(rootHash []byte, hashes data.ModifiedHashes)
 	ewl.opMutex.Lock()
 	defer ewl.opMutex.Unlock()
 
+	log.Trace("trie eviction waiting list", "size", len(ewl.cache))
+
 	if uint(len(ewl.cache)) < ewl.cacheSize {
 		ewl.cache[string(rootHash)] = hashes
 		return nil
