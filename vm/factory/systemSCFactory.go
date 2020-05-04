@@ -1,8 +1,11 @@
 package factory
 
 import (
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/mitchellh/mapstructure"
@@ -14,6 +17,9 @@ type systemSCFactory struct {
 	nodesConfigProvider vm.NodesConfigProvider
 	sigVerifier         vm.MessageSignVerifier
 	gasCost             vm.GasCost
+	marshalizer         marshal.Marshalizer
+	hasher              hashing.Hasher
+	systemSCConfig      *config.SystemSmartContractsConfig
 }
 
 // ArgsNewSystemSCFactory defines the arguments struct needed to create the system SCs
@@ -23,6 +29,9 @@ type ArgsNewSystemSCFactory struct {
 	NodesConfigProvider vm.NodesConfigProvider
 	SigVerifier         vm.MessageSignVerifier
 	GasMap              map[string]map[string]uint64
+	Marshalizer         marshal.Marshalizer
+	Hasher              hashing.Hasher
+	SystemSCConfig      *config.SystemSmartContractsConfig
 }
 
 // NewSystemSCFactory creates a factory which will instantiate the system smart contracts
@@ -39,12 +48,24 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 	if check.IfNil(args.NodesConfigProvider) {
 		return nil, vm.ErrNilNodesConfigProvider
 	}
+	if check.IfNil(args.Marshalizer) {
+		return nil, vm.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Hasher) {
+		return nil, vm.ErrNilHasher
+	}
+	if args.SystemSCConfig == nil {
+		return nil, vm.ErrNilSystemSCConfig
+	}
 
 	scf := &systemSCFactory{
 		systemEI:            args.SystemEI,
 		validatorSettings:   args.ValidatorSettings,
 		sigVerifier:         args.SigVerifier,
 		nodesConfigProvider: args.NodesConfigProvider,
+		marshalizer:         args.Marshalizer,
+		hasher:              args.Hasher,
+		systemSCConfig:      args.SystemSCConfig,
 	}
 
 	err := scf.createGasConfig(args.GasMap)
@@ -127,6 +148,24 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 	}
 
 	err = scContainer.Add(AuctionSCAddress, auction)
+	if err != nil {
+		return nil, err
+	}
+
+	argsESDT := systemSmartContracts.ArgsNewESDTSmartContract{
+		Eei:           scf.systemEI,
+		GasCost:       scf.gasCost,
+		ESDTSCAddress: ESDTSCAddress,
+		Marshalizer:   scf.marshalizer,
+		Hasher:        scf.hasher,
+		ESDTSCConfig:  scf.systemSCConfig.ESDTSystemSCConfig,
+	}
+	esdt, err := systemSmartContracts.NewESDTSmartContract(argsESDT)
+	if err != nil {
+		return nil, err
+	}
+
+	err = scContainer.Add(ESDTSCAddress, esdt)
 	if err != nil {
 		return nil, err
 	}

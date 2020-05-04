@@ -19,6 +19,8 @@ type MetaChainSystemSCsCost struct {
 	ChangeRewardAddress uint64
 	ChangeValidatorKeys uint64
 	UnJail              uint64
+	ESDTIssue           uint64
+	ESDTOperations      uint64
 }
 
 // GasCost holds all the needed gas costs for system smart contracts

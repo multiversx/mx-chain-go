@@ -70,16 +70,21 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.InvalidTransaction, process.ErrWrongTransaction
 	}
 
+	if len(tx.GetData()) == 0 {
+		return process.MoveBalance, nil
+	}
+
 	isDestInSelfShard, err := tth.isDestAddressInSelfShard(tx.GetRcvAddr())
 	if err != nil {
 		return process.InvalidTransaction, err
 	}
 
-	if !isDestInSelfShard || len(tx.GetData()) == 0 {
+	isBuiltInFunction := tth.isBuiltInFunctionCall(tx.GetData())
+	if !isBuiltInFunction && !isDestInSelfShard {
 		return process.MoveBalance, nil
 	}
 
-	if core.IsSmartContractAddress(tx.GetRcvAddr()) || tth.isBuiltInFunctionCall(tx.GetData()) {
+	if core.IsSmartContractAddress(tx.GetRcvAddr()) || isBuiltInFunction {
 		return process.SCInvoking, nil
 	}
 
@@ -88,6 +93,9 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 
 func (tth *txTypeHandler) isBuiltInFunctionCall(txData []byte) bool {
 	if len(tth.builtInFuncNames) == 0 {
+		return false
+	}
+	if len(txData) == 0 {
 		return false
 	}
 

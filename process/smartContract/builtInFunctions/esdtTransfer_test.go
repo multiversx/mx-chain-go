@@ -15,11 +15,11 @@ func TestESDTTransfer_ProcessBuiltInFunctionErrors(t *testing.T) {
 	t.Parallel()
 
 	esdt, _ := NewESDTTransferFunc(10, &mock.MarshalizerMock{})
-	_, _, err := esdt.ProcessBuiltinFunction(nil, nil, nil)
+	_, err := esdt.ProcessBuiltinFunction(nil, nil, nil)
 	assert.Equal(t, err, process.ErrNilVmInput)
 
 	input := &vmcommon.ContractCallInput{}
-	_, _, err = esdt.ProcessBuiltinFunction(nil, nil, input)
+	_, err = esdt.ProcessBuiltinFunction(nil, nil, input)
 	assert.Equal(t, err, process.ErrInvalidArguments)
 
 	input = &vmcommon.ContractCallInput{
@@ -28,12 +28,12 @@ func TestESDTTransfer_ProcessBuiltInFunctionErrors(t *testing.T) {
 	key := []byte("key")
 	value := []byte("value")
 	input.Arguments = [][]byte{key, value}
-	_, _, err = esdt.ProcessBuiltinFunction(nil, nil, input)
+	_, err = esdt.ProcessBuiltinFunction(nil, nil, input)
 	assert.Nil(t, err)
 
 	input.GasProvided = esdt.funcGasCost - 1
 	accSnd := state.NewEmptyUserAccount()
-	_, _, err = esdt.ProcessBuiltinFunction(accSnd, nil, input)
+	_, err = esdt.ProcessBuiltinFunction(accSnd, nil, input)
 	assert.Equal(t, err, process.ErrNotEnoughGas)
 }
 
@@ -52,7 +52,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionSingleShard(t *testing.T) {
 	accSnd, _ := state.NewUserAccount([]byte("snd"))
 	accDst, _ := state.NewUserAccount([]byte("dst"))
 
-	_, _, err := esdt.ProcessBuiltinFunction(accSnd, accDst, input)
+	_, err := esdt.ProcessBuiltinFunction(accSnd, accDst, input)
 	assert.Equal(t, err, process.ErrInsufficientFunds)
 
 	esdtKey := append(esdt.keyPrefix, key...)
@@ -60,7 +60,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionSingleShard(t *testing.T) {
 	marshalledData, _ := marshalizer.Marshal(esdtToken)
 	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
 
-	_, _, err = esdt.ProcessBuiltinFunction(accSnd, accDst, input)
+	_, err = esdt.ProcessBuiltinFunction(accSnd, accDst, input)
 	assert.Nil(t, err)
 	marshalledData, _ = accSnd.DataTrieTracker().RetrieveValue(esdtKey)
 	_ = marshalizer.Unmarshal(esdtToken, marshalledData)
@@ -90,7 +90,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionSenderInShard(t *testing.T) {
 	marshalledData, _ := marshalizer.Marshal(esdtToken)
 	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
 
-	_, _, err := esdt.ProcessBuiltinFunction(accSnd, nil, input)
+	_, err := esdt.ProcessBuiltinFunction(accSnd, nil, input)
 	assert.Nil(t, err)
 	marshalledData, _ = accSnd.DataTrieTracker().RetrieveValue(esdtKey)
 	_ = marshalizer.Unmarshal(esdtToken, marshalledData)
@@ -111,7 +111,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionDestInShard(t *testing.T) {
 	input.Arguments = [][]byte{key, value}
 	accDst, _ := state.NewUserAccount([]byte("dst"))
 
-	_, _, err := esdt.ProcessBuiltinFunction(nil, accDst, input)
+	_, err := esdt.ProcessBuiltinFunction(nil, accDst, input)
 	assert.Nil(t, err)
 	esdtKey := append(esdt.keyPrefix, key...)
 	esdtToken := &ESDigitalToken{}

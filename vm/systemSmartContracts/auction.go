@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. auction.proto
 package systemSmartContracts
 
 import (
@@ -8,33 +9,13 @@ import (
 	"math/big"
 	"math/rand"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const minArgsLenToChangeValidatorKey = 4
-
-// AuctionData represents what is saved for each validator / bid
-type AuctionData struct {
-	RewardAddress   []byte   `json:"RewardAddress"`
-	RegisterNonce   uint64   `json:"RegisterNonce"`
-	Epoch           uint32   `json:"Epoch"`
-	BlsPubKeys      [][]byte `json:"BlsPubKeys"`
-	TotalStakeValue *big.Int `json:"TotalStakeValue"`
-	LockedStake     *big.Int `json:"LockedStake"`
-	MaxStakePerNode *big.Int `json:"MaxStakePerNode"`
-}
-
-// AuctionConfig represents the settings for a specific epoch
-type AuctionConfig struct {
-	MinStakeValue *big.Int `json:"MinStakeValue"`
-	NumNodes      uint32   `json:"NumNodes"`
-	TotalSupply   *big.Int `json:"TotalSupply"`
-	MinStep       *big.Int `json:"MinStep"`
-	NodePrice     *big.Int `json:"NodePrice"`
-	UnJailPrice   *big.Int `json:"UnJailPrice"`
-}
 
 type stakingAuctionSC struct {
 	eei                vm.SystemEI
@@ -112,14 +93,14 @@ func NewStakingAuctionSmartContract(
 	return reg, nil
 }
 
-// Execute calls one of the functions from the staking smart contract and runs the code according to the input
+// Execute calls one of the functions from the auction staking smart contract and runs the code according to the input
 func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if CheckIfNil(args) != nil {
 		return vmcommon.UserError
 	}
 
 	switch args.Function {
-	case "_init":
+	case core.SCDeployInitFunctionName:
 		return s.init(args)
 	case "stake":
 		return s.stake(args)

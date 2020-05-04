@@ -348,6 +348,9 @@ const BuiltInFunctionSaveKeyValue = "SaveKeyValue"
 // BuiltInFunctionESDTTransfer is the key for the elrond standard digital token transfer built-in function
 const BuiltInFunctionESDTTransfer = "ESDTTransfer"
 
+// SCDeployInitFunctionName is the key for the function which is called at smart contract deploy time
+const SCDeployInitFunctionName = "_init"
+
 // ShuffledOut signals that a restart is pending because the node was shuffled out
 const ShuffledOut = "shuffledOut"
 

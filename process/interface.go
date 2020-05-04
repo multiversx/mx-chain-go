@@ -735,7 +735,7 @@ type MiniBlockProvider interface {
 
 // BuiltinFunction defines the methods for the built-in protocol smart contract functions
 type BuiltinFunction interface {
-	ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, uint64, error)
+	ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	IsInterfaceNil() bool
 }
 

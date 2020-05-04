@@ -9,6 +9,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -18,13 +19,6 @@ var log = logger.GetOrCreate("vm/systemsmartcontracts")
 
 const ownerKey = "owner"
 const nodesConfigKey = "nodesConfig"
-
-// StakingNodesConfig is the structure which is saved in the storage of the contract to monitor the nodes leaving and registering
-type StakingNodesConfig struct {
-	MinNumNodes int64
-	StakedNodes int64
-	JailedNodes int64
-}
 
 type stakingSC struct {
 	eei                      vm.SystemEI
@@ -95,7 +89,7 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	}
 
 	switch args.Function {
-	case "_init":
+	case core.SCDeployInitFunctionName:
 		return r.init(args)
 	case "stake":
 		return r.stake(args, false)

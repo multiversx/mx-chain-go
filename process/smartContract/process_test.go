@@ -364,10 +364,11 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil)
 	require.Equal(t, process.ErrNilSCDestAccount, err)
 
-	acntDst.SetCode(nil)
+	acntSrc, acntDst = createAccounts(tx)
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.Nil(t, err)
 
+	acntSrc, acntDst = createAccounts(tx)
 	acntDst = nil
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.Equal(t, process.ErrNilSCDestAccount, err)
@@ -1280,8 +1281,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	totalRefund := refundGas.Uint64() * minGasPrice
-	require.Equal(t, currBalance+totalRefund, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
+	require.Equal(t, currBalance, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
 }
 
 func TestScProcessor_processVMOutputNilOutput(t *testing.T) {

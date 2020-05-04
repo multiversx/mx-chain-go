@@ -161,9 +161,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
-	if check.IfNil(acntDst) {
-		return process.ErrNilSCDestAccount
-	}
 
 	log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "data", string(tx.GetData()))
 
@@ -217,6 +214,10 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	}
 	if executed {
 		return nil
+	}
+
+	if check.IfNil(acntDst) {
+		return process.ErrNilSCDestAccount
 	}
 
 	var vm vmcommon.VMExecutionHandler
@@ -311,19 +312,25 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		return true, process.ErrNilBuiltInFunction
 	}
 
-	valueToSend, gasConsumed, err := builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
+	vmOutput, err := builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
 	if err != nil {
 		return true, err
 	}
 
-	if tx.GetGasLimit() < gasConsumed {
-		return true, process.ErrNotEnoughGas
+	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
+	for _, outAcc := range vmOutput.OutputAccounts {
+		storageUpdates := getSortedStorageUpdates(outAcc)
+		scTx := sc.createSmartContractResult(outAcc, tx, txHash, storageUpdates)
+		scrResults = append(scrResults, scTx)
 	}
 
-	gasRemaining := tx.GetGasLimit() - gasConsumed
-	scrRefund, consumedFee, err := sc.createSCRForSender(
-		big.NewInt(0),
-		gasRemaining,
+	refund := big.NewInt(0)
+	if vmOutput.GasRefund != nil {
+		refund = vmOutput.GasRefund
+	}
+	scrForSender, consumedFee, err := sc.createSCRForSender(
+		refund,
+		vmOutput.GasRemaining,
 		vmcommon.Ok,
 		make([][]byte, 0),
 		tx,
@@ -335,14 +342,22 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		return true, err
 	}
 
-	scrRefund.Value.Add(scrRefund.Value, valueToSend)
-	err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrRefund})
+	if !check.IfNil(acntSnd) {
+		err = acntSnd.AddToBalance(scrForSender.Value)
+		if err != nil {
+			return true, err
+		}
+	}
+
+	scrResults = append(scrResults, scrForSender)
+
+	err = sc.scrForwarder.AddIntermediateTransactions(scrResults)
 	if err != nil {
 		log.Debug("AddIntermediateTransactions error", "error", err.Error())
 		return true, err
 	}
 
-	sc.gasHandler.SetGasRefunded(gasRemaining, txHash)
+	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee, txHash)
 
 	return true, sc.saveAccounts(acntSnd, acntDst)
@@ -570,7 +585,7 @@ func (sc *scProcessor) processVMOutput(
 		log.Trace("total gas refunded", "value", vmOutput.GasRefund.String(), "hash", txHash)
 	}
 
-	scrRefund, consumedFee, err := sc.createSCRForSender(
+	scrForSender, consumedFee, err := sc.createSCRForSender(
 		vmOutput.GasRefund,
 		vmOutput.GasRemaining,
 		vmOutput.ReturnCode,
@@ -584,9 +599,14 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, err
 	}
 
-	scrTxs = append(scrTxs, scrRefund)
+	scrTxs = append(scrTxs, scrForSender)
 
 	if !check.IfNil(acntSnd) {
+		err = acntSnd.AddToBalance(scrForSender.Value)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		err = sc.accounts.SaveAccount(acntSnd)
 		if err != nil {
 			return nil, nil, err
@@ -771,11 +791,6 @@ func (sc *scProcessor) createSCRForSender(
 		return scTx, consumedFee, nil
 	}
 
-	err := acntSnd.AddToBalance(scTx.Value)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	return scTx, consumedFee, nil
 }
 
@@ -791,8 +806,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 	sumOfAllDiff.Sub(sumOfAllDiff, tx.GetValue())
 
 	zero := big.NewInt(0)
-	for i := 0; i < len(outputAccounts); i++ {
-		outAcc := outputAccounts[i]
+	for _, outAcc := range outputAccounts {
 		acc, err := sc.getAccountFromAddress(outAcc.Address)
 		if err != nil {
 			return nil, err
