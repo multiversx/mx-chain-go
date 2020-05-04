@@ -266,7 +266,7 @@ func playersDoTransfer(
 	for _, playerToTransfer := range players {
 		for _, player := range players {
 			createAndSendTx(node, player, big.NewInt(0), 20000, scAddress,
-				[]byte("transfer@"+hex.EncodeToString(playerToTransfer.Address.Bytes())+"@"+hex.EncodeToString(txValue.Bytes())))
+				[]byte("transfer@"+hex.EncodeToString(playerToTransfer.Address)+"@"+hex.EncodeToString(txValue.Bytes())))
 		}
 	}
 }
@@ -282,7 +282,7 @@ func createAndSendTx(
 	tx := &transaction.Transaction{
 		Nonce:    player.Nonce,
 		Value:    txValue,
-		SndAddr:  player.Address.Bytes(),
+		SndAddr:  player.Address,
 		RcvAddr:  rcvAddress,
 		Data:     txData,
 		GasPrice: node.EconomicsData.GetMinGasPrice(),

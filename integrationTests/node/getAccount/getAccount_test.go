@@ -35,10 +35,8 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	accDB, _, _ := integrationTests.CreateAccountsDB(0)
 
 	addressBytes := integrationTests.CreateRandomBytes(32)
-	address, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(addressBytes)
-
 	nonce := uint64(2233)
-	account, _ := accDB.LoadAccount(address)
+	account, _ := accDB.LoadAccount(addressBytes)
 	account.IncreaseNonce(nonce)
 	_ = accDB.SaveAccount(account)
 	_, _ = accDB.Commit()

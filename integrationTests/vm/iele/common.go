@@ -29,7 +29,7 @@ func DeployContract(
 	tx := vm.CreateTx(
 		tb,
 		senderAddressBytes,
-		vm.CreateEmptyAddress().Bytes(),
+		vm.CreateEmptyAddress(),
 		senderNonce,
 		transferOnCalls,
 		gasPrice,

@@ -2,8 +2,6 @@ package mock
 
 import (
 	"math/big"
-
-	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // TxValidatorHandlerStub -
@@ -11,7 +9,7 @@ type TxValidatorHandlerStub struct {
 	SenderShardIdCalled   func() uint32
 	ReceiverShardIdCalled func() uint32
 	NonceCalled           func() uint64
-	SenderAddressCalled   func() state.AddressContainer
+	SenderAddressCalled   func() []byte
 	FeeCalled             func() *big.Int
 }
 
@@ -31,7 +29,7 @@ func (tvhs *TxValidatorHandlerStub) Nonce() uint64 {
 }
 
 // SenderAddress -
-func (tvhs *TxValidatorHandlerStub) SenderAddress() state.AddressContainer {
+func (tvhs *TxValidatorHandlerStub) SenderAddress() []byte {
 	return tvhs.SenderAddressCalled()
 }
 

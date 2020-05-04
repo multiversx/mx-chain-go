@@ -27,12 +27,12 @@ func createAccountStub(sndAddr, rcvAddr []byte,
 ) *mock.AccountsStub {
 	adb := mock.AccountsStub{}
 
-	adb.LoadAccountCalled = func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-		if bytes.Equal(addressContainer.Bytes(), sndAddr) {
+	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+		if bytes.Equal(address, sndAddr) {
 			return acntSrc, nil
 		}
 
-		if bytes.Equal(addressContainer.Bytes(), rcvAddr) {
+		if bytes.Equal(address, rcvAddr) {
 			return acntDst, nil
 		}
 
@@ -46,8 +46,8 @@ func prepareAccountsAndBalancesMap() (*mock.AccountsStub, map[string]*big.Int, s
 	adr1 := []byte("accnt1")
 	adr2 := []byte("accnt2")
 
-	accnt1, _ := state.NewUserAccount(mock.NewAddressMock(adr1))
-	accnt2, _ := state.NewUserAccount(mock.NewAddressMock(adr2))
+	accnt1, _ := state.NewUserAccount(adr1)
+	accnt2, _ := state.NewUserAccount(adr2)
 
 	adb := createAccountStub(adr1, adr2, accnt1, accnt2)
 	adb.JournalLenCalled = func() int {
@@ -164,8 +164,8 @@ func TestCreateGenesisBlockFromInitialBalances_TrieCommitFailsShouldRevert(t *te
 		revertCalled = true
 		return nil
 	}
-	adb.LoadAccountCalled = func(container state.AddressContainer) (handler state.AccountHandler, err error) {
-		return state.NewUserAccount(container)
+	adb.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, err error) {
+		return state.NewUserAccount(address)
 	}
 
 	header, err := genesis.CreateShardGenesisBlockFromInitialBalances(
@@ -188,7 +188,7 @@ func TestCreateGenesisBlockFromInitialBalances_AccountsFailShouldErr(t *testing.
 	errAccounts := errors.New("accounts error")
 
 	adb.LoadAccountCalled =
-		func(addressContainer state.AddressContainer) (wrapper state.AccountHandler, e error) {
+		func(address []byte) (wrapper state.AccountHandler, e error) {
 			return nil, errAccounts
 		}
 
