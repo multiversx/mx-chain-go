@@ -49,7 +49,7 @@ func createMockArgument() ArgsGenesisBlockCreator {
 		SaveAccountCalled: func(account state.AccountHandler) error {
 			return nil
 		},
-		LoadAccountCalled: func(container state.AddressContainer) (state.AccountHandler, error) {
+		LoadAccountCalled: func(container []byte) (state.AccountHandler, error) {
 			return state.NewEmptyUserAccount(), nil
 		},
 	}

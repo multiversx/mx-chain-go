@@ -127,11 +127,7 @@ func (scp *smartContractParser) InitialSmartContractsSplitOnOwnersShards(
 
 	var smartContracts = make(map[uint32][]genesis.InitialSmartContractHandler)
 	for _, isc := range scp.initialSmartContracts {
-		ownerAddress, err := scp.pubkeyConverter.CreateAddressFromBytes(isc.OwnerBytes())
-		if err != nil {
-			return nil, err
-		}
-		shardID := shardCoordinator.ComputeId(ownerAddress)
+		shardID := shardCoordinator.ComputeId(isc.OwnerBytes())
 
 		smartContracts[shardID] = append(smartContracts[shardID], isc)
 	}

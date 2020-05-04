@@ -10,10 +10,10 @@ import (
 // AccountsStub -
 type AccountsStub struct {
 	AddJournalEntryCalled    func(je state.JournalEntry)
-	GetExistingAccountCalled func(addressContainer state.AddressContainer) (state.AccountHandler, error)
-	LoadAccountCalled        func(container state.AddressContainer) (state.AccountHandler, error)
+	GetExistingAccountCalled func(addressContainer []byte) (state.AccountHandler, error)
+	LoadAccountCalled        func(container []byte) (state.AccountHandler, error)
 	SaveAccountCalled        func(account state.AccountHandler) error
-	RemoveAccountCalled      func(addressContainer state.AddressContainer) error
+	RemoveAccountCalled      func(addressContainer []byte) error
 	CommitCalled             func() ([]byte, error)
 	JournalLenCalled         func() int
 	RevertToSnapshotCalled   func(snapshot int) error
@@ -37,7 +37,7 @@ func (as *AccountsStub) RecreateAllTries(rootHash []byte) (map[string]data.Trie,
 }
 
 // LoadAccount -
-func (as *AccountsStub) LoadAccount(address state.AddressContainer) (state.AccountHandler, error) {
+func (as *AccountsStub) LoadAccount(address []byte) (state.AccountHandler, error) {
 	if as.LoadAccountCalled != nil {
 		return as.LoadAccountCalled(address)
 	}
@@ -79,7 +79,7 @@ func (as *AccountsStub) Commit() ([]byte, error) {
 }
 
 // GetExistingAccount -
-func (as *AccountsStub) GetExistingAccount(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+func (as *AccountsStub) GetExistingAccount(addressContainer []byte) (state.AccountHandler, error) {
 	if as.GetExistingAccountCalled != nil {
 		return as.GetExistingAccountCalled(addressContainer)
 	}
@@ -97,7 +97,7 @@ func (as *AccountsStub) JournalLen() int {
 }
 
 // RemoveAccount -
-func (as *AccountsStub) RemoveAccount(addressContainer state.AddressContainer) error {
+func (as *AccountsStub) RemoveAccount(addressContainer []byte) error {
 	if as.RemoveAccountCalled != nil {
 		return as.RemoveAccountCalled(addressContainer)
 	}

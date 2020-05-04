@@ -158,12 +158,7 @@ func setBalancesToTrie(arg ArgsGenesisBlockCreator) (rootHash []byte, err error)
 }
 
 func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountHandler) error {
-	addr, err := arg.PubkeyConv.CreateAddressFromBytes(accnt.AddressBytes())
-	if err != nil {
-		return fmt.Errorf("%w for address %s", err, accnt.GetAddress())
-	}
-
-	accWrp, err := arg.Accounts.LoadAccount(addr)
+	accWrp, err := arg.Accounts.LoadAccount(accnt.AddressBytes())
 	if err != nil {
 		return err
 	}
@@ -419,7 +414,7 @@ func deployInitialSmartContract(
 	vmType := sc.GetVmType()
 	deployTxData := strings.Join([]string{code, vmType, codeMetadataHex}, "@")
 
-	nonce, err := getNonce(sc.OwnerBytes(), arg.PubkeyConv, arg.Accounts)
+	nonce, err := getNonce(sc.OwnerBytes(), arg.Accounts)
 	if err != nil {
 		return err
 	}
@@ -448,13 +443,8 @@ func deployInitialSmartContract(
 	return nil
 }
 
-func getNonce(senderBytes []byte, pubkeyConv state.PubkeyConverter, accounts state.AccountsAdapter) (uint64, error) {
-	adr, err := pubkeyConv.CreateAddressFromBytes(senderBytes)
-	if err != nil {
-		return 0, err
-	}
-
-	accnt, err := accounts.LoadAccount(adr)
+func getNonce(senderBytes []byte, accounts state.AccountsAdapter) (uint64, error) {
+	accnt, err := accounts.LoadAccount(senderBytes)
 	if err != nil {
 		return 0, err
 	}

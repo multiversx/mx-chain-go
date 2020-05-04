@@ -81,22 +81,12 @@ func (p *pendingProcessor) ProcessTransactionsDstMe(mapTxs map[string]data.Trans
 
 	mapMiniBlocks := make(map[string]*block.MiniBlock)
 	for _, info := range sortedTxs {
-		rcvAddress, err := p.pubKeyConv.CreateAddressFromBytes(info.tx.GetRcvAddr())
-		if err != nil {
-			log.Debug("could not react receiver address from tx", "err", err, "rcvAddr", info.tx.GetRcvAddr())
-			continue
-		}
 		sndShardID := core.MetachainShardId
 		if len(info.tx.GetSndAddr()) > 0 {
-			sndAddress, err := p.pubKeyConv.CreateAddressFromBytes(info.tx.GetSndAddr())
-			if err != nil {
-				log.Debug("could not react sender address from tx", "err", err, "rcvAddr", info.tx.GetSndAddr())
-				continue
-			}
-			sndShardID = p.shardCoordinator.ComputeId(sndAddress)
+			sndShardID = p.shardCoordinator.ComputeId(info.tx.GetSndAddr())
 		}
 
-		dstShardID := p.shardCoordinator.ComputeId(rcvAddress)
+		dstShardID := p.shardCoordinator.ComputeId(info.tx.GetRcvAddr())
 		if dstShardID != p.shardCoordinator.SelfId() {
 			continue
 		}
