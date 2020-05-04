@@ -99,9 +99,13 @@ func (scf *systemSCFactory) createGasConfig(gasMap map[string]map[string]uint64)
 		return err
 	}
 
+	builtInFunctionsCost := &vm.BuiltInCost{}
+	err = mapstructure.Decode(gasMap[core.BuiltInCost], builtInFunctionsCost)
+
 	scf.gasCost = vm.GasCost{
 		BaseOperationCost:      *baseOps,
 		MetaChainSystemSCsCost: *metaChainSCsOps,
+		BuiltInCost:            *builtInFunctionsCost,
 	}
 
 	return nil

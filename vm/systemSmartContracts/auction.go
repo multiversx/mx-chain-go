@@ -17,6 +17,8 @@ import (
 
 const minArgsLenToChangeValidatorKey = 4
 
+var zero = big.NewInt(0)
+
 type stakingAuctionSC struct {
 	eei                vm.SystemEI
 	unBondPeriod       uint64
@@ -129,7 +131,7 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 	config := s.getConfig(s.eei.BlockChainHook().CurrentEpoch())
 	totalUnJailPrice := big.NewInt(0).Mul(config.UnJailPrice, big.NewInt(int64(len(args.Arguments))))
 
-	if totalUnJailPrice.Cmp(args.CallValue) < 0 {
+	if totalUnJailPrice.Cmp(args.CallValue) != 0 {
 		return vmcommon.UserError
 	}
 
@@ -154,6 +156,9 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 }
 
 func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		return vmcommon.UserError
+	}
 	if len(args.Arguments) < 1 {
 		return vmcommon.UserError
 	}
@@ -197,6 +202,9 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 }
 
 func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		return vmcommon.UserError
+	}
 	// list of arguments are NumNodes, (OldKey, NewKey, SignedMessage) X NumNodes
 	if len(args.Arguments) < minArgsLenToChangeValidatorKey {
 		return vmcommon.UserError
@@ -273,6 +281,10 @@ func (s *stakingAuctionSC) replaceBLSKey(registrationData *AuctionData, oldBlsKe
 }
 
 func (s *stakingAuctionSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		return vmcommon.UserError
+	}
+
 	if len(args.Arguments) < 1 {
 		return vmcommon.UserError
 	}
@@ -676,6 +688,10 @@ func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedData, error) {
 }
 
 func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		return vmcommon.UserError
+	}
+
 	isUnStakeEnabled := s.isFunctionEnabled(s.enableStakingNonce)
 	if !isUnStakeEnabled {
 		return vmcommon.UserError
@@ -737,6 +753,10 @@ func getBLSPublicKeys(registrationData *AuctionData, args *vmcommon.ContractCall
 }
 
 func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		return vmcommon.UserError
+	}
+
 	isStakeEnabled := s.isFunctionEnabled(s.enableStakingNonce)
 	if !isStakeEnabled {
 		return vmcommon.UserError
@@ -793,7 +813,7 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 	_ = registrationData.LockedStake.Sub(registrationData.LockedStake, totalUnBond)
 	_ = registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, totalUnBond)
 
-	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil)
+	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
 	if err != nil {
 		log.Debug("transfer error on unBond function")
 		return vmcommon.UserError
@@ -814,15 +834,17 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 }
 
 func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		return vmcommon.UserError
+	}
+
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
 		return vmcommon.UserError
 	}
-
 	if len(registrationData.RewardAddress) == 0 {
 		return vmcommon.UserError
 	}
-
 	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Claim)
 	if err != nil {
 		return vmcommon.OutOfGas
@@ -841,7 +863,7 @@ func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, claimable, nil)
+	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, claimable, nil, 0)
 	if err != nil {
 		log.Debug("transfer error on finalizeUnStake function",
 			"error", err.Error(),

@@ -25,6 +25,8 @@ var _ process.SmartContractProcessor = (*scProcessor)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract")
 
+var zero = big.NewInt(0)
+
 type scProcessor struct {
 	accounts         state.AccountsAdapter
 	tempAccounts     process.TemporaryAccountsHandler
@@ -248,7 +250,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	err = sc.scrForwarder.AddIntermediateTransactions(results)
+	finalResults := sc.deleteSCRsWithValueZeroGoingToMeta(results)
+	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
 	if err != nil {
 		log.Debug("AddIntermediateTransactions error", "error", err.Error())
 		return nil
@@ -277,6 +280,18 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	}
 
 	return nil
+}
+
+func (sc *scProcessor) deleteSCRsWithValueZeroGoingToMeta(scrs []data.TransactionHandler) []data.TransactionHandler {
+	cleanSCRs := make([]data.TransactionHandler, 0, len(scrs))
+	for _, scr := range scrs {
+		shardID := sc.shardCoordinator.ComputeId(scr.GetRcvAddr())
+		if shardID == core.MetachainShardId && scr.GetGasLimit() == 0 && scr.GetValue().Cmp(zero) == 0 {
+			continue
+		}
+		cleanSCRs = append(cleanSCRs, scr)
+	}
+	return cleanSCRs
 }
 
 func (sc *scProcessor) saveAccounts(acntSnd, acntDst state.AccountHandler) error {
@@ -350,11 +365,16 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	}
 
 	scrResults = append(scrResults, scrForSender)
-
-	err = sc.scrForwarder.AddIntermediateTransactions(scrResults)
+	finalResults := sc.deleteSCRsWithValueZeroGoingToMeta(scrResults)
+	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
 	if err != nil {
 		log.Debug("AddIntermediateTransactions error", "error", err.Error())
 		return true, err
+	}
+
+	if check.IfNil(acntSnd) {
+		// it was already consumed in sender shard
+		consumedFee = big.NewInt(0)
 	}
 
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
@@ -542,6 +562,24 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 	return nil
 }
 
+func (sc *scProcessor) computeGasRemainingFromVMOutput(vmOutput *vmcommon.VMOutput) uint64 {
+	gasRemaining := vmOutput.GasRemaining
+	for _, outAcc := range vmOutput.OutputAccounts {
+		if outAcc.GasLimit == 0 {
+			continue
+		}
+
+		if gasRemaining < outAcc.GasLimit {
+			log.Error("gasLimit missmatch in vmOutput - too much consumed gas - more then tx.GasLimit")
+			return 0
+		}
+
+		gasRemaining -= outAcc.GasLimit
+	}
+
+	return gasRemaining
+}
+
 func (sc *scProcessor) processVMOutput(
 	vmOutput *vmcommon.VMOutput,
 	txHash []byte,
@@ -556,12 +594,31 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, process.ErrNilTransaction
 	}
 
+	gasRemainedForSender := sc.computeGasRemainingFromVMOutput(vmOutput)
+	scrForSender, consumedFee, err := sc.createSCRForSender(
+		vmOutput.GasRefund,
+		gasRemainedForSender,
+		vmOutput.ReturnCode,
+		vmOutput.ReturnData,
+		tx,
+		txHash,
+		acntSnd,
+		callType,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		log.Trace("smart contract processing returned with error",
 			"hash", txHash,
 			"return code", vmOutput.ReturnCode.String(),
 			"return message", vmOutput.ReturnMessage,
 		)
+
+		if callType == vmcommon.AsynchronousCall {
+			return []data.TransactionHandler{scrForSender}, consumedFee, nil
+		}
 
 		return nil, nil, fmt.Errorf(vmOutput.ReturnCode.String())
 	}
@@ -578,25 +635,11 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, err
 	}
 
-	totalGasConsumed := tx.GetGasLimit() - vmOutput.GasRemaining
+	totalGasConsumed := tx.GetGasLimit() - gasRemainedForSender
 	log.Trace("total gas consumed", "value", totalGasConsumed, "hash", txHash)
 
 	if vmOutput.GasRefund.Cmp(big.NewInt(0)) > 0 {
 		log.Trace("total gas refunded", "value", vmOutput.GasRefund.String(), "hash", txHash)
-	}
-
-	scrForSender, consumedFee, err := sc.createSCRForSender(
-		vmOutput.GasRefund,
-		vmOutput.GasRemaining,
-		vmOutput.ReturnCode,
-		vmOutput.ReturnData,
-		tx,
-		txHash,
-		acntSnd,
-		callType,
-	)
-	if err != nil {
-		return nil, nil, err
 	}
 
 	scrTxs = append(scrTxs, scrForSender)

@@ -77,7 +77,6 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	// TODO: check why 2 nodes staking consumes a smaller amount of gas
 	checkAccountsAfterStaking(t, nodes)
 
 	/////////------ send unStake tx
