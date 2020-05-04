@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 //TODO improve code coverage of this package
@@ -32,6 +33,7 @@ func createMockArgument() ArgsGenesisBlockCreator {
 		TxLogsProcessor:          &mock.TxLogProcessorMock{},
 		VirtualMachineConfig:     config.VirtualMachineConfig{},
 		HardForkConfig:           config.HardforkConfig{},
+		BlockchainHook:           &mock.BlockChainHookHandlerMock{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -90,7 +92,8 @@ func TestGenesisBlockCreator_CreateGenesisBlocksShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()
-	gbc, _ := NewGenesisBlockCreator(arg)
+	gbc, err := NewGenesisBlockCreator(arg)
+	require.Nil(t, err)
 
 	blocks, err := gbc.CreateGenesisBlocks()
 

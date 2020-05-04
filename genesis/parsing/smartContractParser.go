@@ -83,11 +83,13 @@ func (scp *smartContractParser) parseElement(initialSmartContract *data.InitialS
 			genesis.ErrEmptyVmType, initialSmartContract.Owner)
 	}
 
-	_, err = hex.DecodeString(initialSmartContract.VmType)
+	vmTypeBytes, err := hex.DecodeString(initialSmartContract.VmType)
 	if err != nil {
 		return fmt.Errorf("%w for provided %s, error: %s",
 			genesis.ErrInvalidVmType, initialSmartContract.VmType, err.Error())
 	}
+
+	initialSmartContract.SetVmTypeBytes(vmTypeBytes)
 
 	return nil
 }

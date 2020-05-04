@@ -1,2 +1,9 @@
 [
+  {
+    "owner": "erd1pajyy0hn3kw5s9dn5pf8980fdy2d0evklrj03699uxtl4k0fyudqrzxf8j",
+    "filename": "./config/genesisContracts/answer.wasm",
+    "vm-type": "0500",
+    "init-parameters": "%sc_total_stake%@1000@%auction_sc_address%",
+    "type": "delegation"
+  }
 ]

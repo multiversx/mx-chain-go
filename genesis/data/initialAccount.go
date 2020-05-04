@@ -16,6 +16,7 @@ type InitialAccount struct {
 	StakingValue *big.Int        `json:"stakingvalue"`
 	Delegation   *DelegationData `json:"delegation"`
 	addressBytes []byte
+	nonceOffset  uint64
 }
 
 // MarshalJSON is the function called when trying to serialize the object using the JSON marshaler
@@ -155,6 +156,16 @@ func (ia *InitialAccount) GetSupply() *big.Int {
 // GetDelegationHandler returns the delegation handler
 func (ia *InitialAccount) GetDelegationHandler() genesis.DelegationDataHandler {
 	return ia.Delegation
+}
+
+// IncrementNonceOffset will add 1 to the nonce offset internal value
+func (ia *InitialAccount) IncrementNonceOffset() {
+	ia.nonceOffset++
+}
+
+// NonceOffset will return the tracked nonce difference
+func (ia *InitialAccount) NonceOffset() uint64 {
+	return ia.nonceOffset
 }
 
 // IsInterfaceNil returns if underlying object is true

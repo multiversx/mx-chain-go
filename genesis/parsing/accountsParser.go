@@ -280,6 +280,25 @@ func (ap *accountsParser) InitialAccountsSplitOnDelegationAddressesShards(
 	return addresses, nil
 }
 
+// GetTotalStakedForDelegationAddress returns the total staked value for a provided delegation address
+func (ap *accountsParser) GetTotalStakedForDelegationAddress(delegationAddress string) *big.Int {
+	sum := big.NewInt(0)
+
+	for _, in := range ap.initialAccounts {
+		if in.Delegation.Address == delegationAddress {
+			sum.Add(sum, in.Delegation.Value)
+		}
+	}
+
+	return sum
+}
+
+// GetInitialAccountsForDelegated returns the initial accounts that are set to the provided delegated address
+func (ap *accountsParser) GetInitialAccountsForDelegated(addressBytes []byte) []genesis.InitialAccountHandler {
+	//TODO add implementation here
+	return make([]genesis.InitialAccountHandler, 0)
+}
+
 // IsInterfaceNil returns if underlying object is true
 func (ap *accountsParser) IsInterfaceNil() bool {
 	return ap == nil

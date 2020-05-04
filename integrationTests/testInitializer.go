@@ -549,7 +549,10 @@ func CreateGenesisMetaBlock(
 		argsMetaGenesis.DataPool = newDataPool
 	}
 
-	metaHdr, err := genesisProcess.CreateMetaGenesisBlock(argsMetaGenesis)
+	nodesHandler, err := mock.NewNodesHandlerMock(nodesSetup)
+	log.LogIfError(err)
+
+	metaHdr, err := genesisProcess.CreateMetaGenesisBlock(argsMetaGenesis, nodesHandler)
 	log.LogIfError(err)
 
 	log.Info("meta genesis root hash", "hash", hex.EncodeToString(metaHdr.GetRootHash()))

@@ -1,23 +1,19 @@
 package process
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"math/big"
-	"path/filepath"
-	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	transactionData "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
+	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -31,13 +27,12 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
-// codeMetadataHex used for initial SC deployment, set to upgrade-able
-const codeMetadataHex = "0100"
-
 var log = logger.GetOrCreate("genesis/process")
 
+var zero = big.NewInt(0)
+
 // CreateShardGenesisBlock will create a shard genesis block
-func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, error) {
+func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesHandler genesis.NodesHandler) (data.HeaderHandler, error) {
 	processors, err := createProcessorsForShard(arg)
 	if err != nil {
 		return nil, err
@@ -48,7 +43,25 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, e
 		return nil, err
 	}
 
-	rootHash, err := setBalancesToTrie(arg)
+	err = setBalancesToTrie(arg)
+	if err != nil {
+		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d",
+			err, arg.ShardCoordinator.SelfId())
+	}
+
+	err = incrementStakersNonces(arg)
+	if err != nil {
+		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d",
+			err, arg.ShardCoordinator.SelfId())
+	}
+
+	err = executeDelegation(processors, arg, nodesHandler)
+	if err != nil {
+		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d",
+			err, arg.ShardCoordinator.SelfId())
+	}
+
+	rootHash, err := arg.Accounts.Commit()
 	if err != nil {
 		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d",
 			err, arg.ShardCoordinator.SelfId())
@@ -125,14 +138,14 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHa
 }
 
 // setBalancesToTrie adds balances to trie
-func setBalancesToTrie(arg ArgsGenesisBlockCreator) (rootHash []byte, err error) {
+func setBalancesToTrie(arg ArgsGenesisBlockCreator) error {
 	if arg.Accounts.JournalLen() != 0 {
-		return nil, process.ErrAccountStateDirty
+		return process.ErrAccountStateDirty
 	}
 
 	initialAccounts, err := arg.AccountsParser.InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	initialAccountsForShard := initialAccounts[arg.ShardCoordinator.SelfId()]
@@ -140,21 +153,11 @@ func setBalancesToTrie(arg ArgsGenesisBlockCreator) (rootHash []byte, err error)
 	for _, accnt := range initialAccountsForShard {
 		err = setBalanceToTrie(arg, accnt)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	rootHash, err = arg.Accounts.Commit()
-	if err != nil {
-		errToLog := arg.Accounts.RevertToSnapshot(0)
-		if errToLog != nil {
-			log.Debug("error reverting to snapshot", "error", errToLog.Error())
-		}
-
-		return nil, err
-	}
-
-	return rootHash, nil
+	return nil
 }
 
 func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountHandler) error {
@@ -197,7 +200,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		Uint64Converter:  arg.Uint64ByteSliceConverter,
 		BuiltInFunctions: builtInFuncs,
 	}
-	vmFactory, err := shard.NewVMContainerFactory(
+	vmFactoryImpl, err := shard.NewVMContainerFactory(
 		arg.VirtualMachineConfig,
 		math.MaxUint64,
 		arg.GasMap,
@@ -207,7 +210,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		return nil, err
 	}
 
-	vmContainer, err := vmFactory.Create()
+	vmContainer, err := vmFactoryImpl.Create()
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +270,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		Hasher:           arg.Hasher,
 		Marshalizer:      arg.Marshalizer,
 		AccountsDB:       arg.Accounts,
-		TempAccounts:     vmFactory.BlockChainHookImpl(),
+		TempAccounts:     vmFactoryImpl.BlockChainHookImpl(),
 		PubkeyConv:       arg.PubkeyConv,
 		Coordinator:      arg.ShardCoordinator,
 		ScrForwarder:     scForwarder,
@@ -275,7 +278,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		EconomicsFee:     genesisFeeHandler,
 		TxTypeHandler:    txTypeHandler,
 		GasHandler:       gasHandler,
-		BuiltInFunctions: vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
+		BuiltInFunctions: vmFactoryImpl.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:  arg.TxLogsProcessor,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
@@ -380,7 +383,6 @@ func deployInitialSmartContracts(
 	}
 
 	currentShardSmartContracts := smartContracts[arg.ShardCoordinator.SelfId()]
-
 	for _, sc := range currentShardSmartContracts {
 		err = deployInitialSmartContract(processors, sc, arg)
 		if err != nil {
@@ -392,62 +394,75 @@ func deployInitialSmartContracts(
 	return nil
 }
 
-func getSCCodeAsHex(filename string) (string, error) {
-	code, err := ioutil.ReadFile(filepath.Clean(filename))
-	if err != nil {
-		return "", err
-	}
-
-	return hex.EncodeToString(code), nil
-}
-
 func deployInitialSmartContract(
 	processors *genesisProcessors,
 	sc genesis.InitialSmartContractHandler,
 	arg ArgsGenesisBlockCreator,
 ) error {
-	code, err := getSCCodeAsHex(sc.GetFilename())
+
+	txExecutor, err := intermediate.NewTxExecutionProcessor(processors.txProcessor, arg.Accounts)
 	if err != nil {
 		return err
 	}
 
-	vmType := sc.GetVmType()
-	deployTxData := strings.Join([]string{code, vmType, codeMetadataHex}, "@")
-
-	nonce, err := getNonce(sc.OwnerBytes(), arg.Accounts)
+	deployProcessor, err := intermediate.NewDeployProcessor(
+		txExecutor,
+		arg.PubkeyConv,
+		arg.BlockchainHook,
+	)
 	if err != nil {
 		return err
 	}
 
-	tx := &transactionData.Transaction{
-		Nonce:     nonce,
-		SndAddr:   sc.OwnerBytes(),
-		Value:     big.NewInt(0),
-		RcvAddr:   make([]byte, arg.PubkeyConv.Len()),
-		GasPrice:  0,
-		GasLimit:  math.MaxUint64,
-		Data:      []byte(deployTxData),
-		Signature: nil,
+	switch sc.GetType() {
+	case genesis.DelegationType:
+		deployProcessor, err = intermediate.NewDelegationDeployProcessor(
+			deployProcessor,
+			arg.AccountsParser,
+			arg.Economics.GenesisNodePrice(),
+		)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = processors.txProcessor.ProcessTransaction(tx)
-	if err != nil {
-		return err
-	}
-
-	_, err = arg.Accounts.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return deployProcessor.Deploy(sc)
 }
 
-func getNonce(senderBytes []byte, accounts state.AccountsAdapter) (uint64, error) {
-	accnt, err := accounts.LoadAccount(senderBytes)
+func incrementStakersNonces(arg ArgsGenesisBlockCreator) error {
+	initialAddresses, err := arg.AccountsParser.InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return accnt.GetNonce(), nil
+	initalAddressesInCurrentShard := initialAddresses[arg.ShardCoordinator.SelfId()]
+	for _, ia := range initalAddressesInCurrentShard {
+		if ia.GetStakingValue().Cmp(zero) < 1 {
+			continue
+		}
+
+		ia.IncrementNonceOffset()
+	}
+
+	return err
+}
+
+func executeDelegation(processors *genesisProcessors, arg ArgsGenesisBlockCreator, nodesHandler genesis.NodesHandler) error {
+	txExecutor, err := intermediate.NewTxExecutionProcessor(processors.txProcessor, arg.Accounts)
+	if err != nil {
+		return err
+	}
+
+	delegationProcessor, err := intermediate.NewDelegationProcessor(
+		txExecutor,
+		arg.ShardCoordinator,
+		arg.AccountsParser,
+		arg.SmartContractParser,
+		nodesHandler,
+	)
+	if err != nil {
+		return err
+	}
+
+	return delegationProcessor.ExecuteDelegation()
 }
