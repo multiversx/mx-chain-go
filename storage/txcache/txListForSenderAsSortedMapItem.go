@@ -3,7 +3,6 @@ package txcache
 import (
 	"math"
 
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
@@ -102,9 +101,4 @@ func (listForSender *txListForSender) GetScoreChunk() *maps.MapChunk {
 // SetScoreChunk returns the score chunk the sender is currently in
 func (listForSender *txListForSender) SetScoreChunk(scoreChunk *maps.MapChunk) {
 	listForSender.scoreChunk = scoreChunk
-}
-
-// ScoreChangeInProgressFlag gets the atomic flag indicating whether a score change is in progress
-func (listForSender *txListForSender) ScoreChangeInProgressFlag() *atomic.Flag {
-	return &listForSender.scoreChangeInProgress
 }

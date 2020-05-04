@@ -13,31 +13,34 @@ const gracePeriodUpperBound = 7
 
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
-	copyDetectedGap       bool
-	copyPreviousNonce     uint64
-	sender                string
-	items                 *list.List
-	copyBatchIndex        *list.Element
-	cacheConfig           *CacheConfig
-	scoreChunk            *maps.MapChunk
-	mutex                 sync.RWMutex
-	scoreChangeInProgress atomic.Flag
-	accountNonceKnown     atomic.Flag
-	sweepable             atomic.Flag
-	lastComputedScore     atomic.Uint32
-	accountNonce          atomic.Uint64
-	totalBytes            atomic.Counter
-	totalGas              atomic.Counter
-	totalFee              atomic.Counter
-	numFailedSelections   atomic.Counter
+	copyDetectedGap     bool
+	copyPreviousNonce   uint64
+	sender              string
+	items               *list.List
+	copyBatchIndex      *list.Element
+	cacheConfig         *CacheConfig
+	scoreChunk          *maps.MapChunk
+	mutex               sync.RWMutex
+	accountNonceKnown   atomic.Flag
+	sweepable           atomic.Flag
+	lastComputedScore   atomic.Uint32
+	accountNonce        atomic.Uint64
+	totalBytes          atomic.Counter
+	totalGas            atomic.Counter
+	totalFee            atomic.Counter
+	numFailedSelections atomic.Counter
+	onScoreChange       scoreChangeCallback
 }
 
+type scoreChangeCallback func(value *txListForSender)
+
 // newTxListForSender creates a new (sorted) list of transactions
-func newTxListForSender(sender string, cacheConfig *CacheConfig) *txListForSender {
+func newTxListForSender(sender string, cacheConfig *CacheConfig, onScoreChange scoreChangeCallback) *txListForSender {
 	return &txListForSender{
-		items:       list.New(),
-		sender:      sender,
-		cacheConfig: cacheConfig,
+		items:         list.New(),
+		sender:        sender,
+		cacheConfig:   cacheConfig,
+		onScoreChange: onScoreChange,
 	}
 }
 
@@ -65,6 +68,7 @@ func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction)
 	listForSender.totalBytes.Add(int64(estimateTxSize(tx)))
 	listForSender.totalGas.Add(int64(estimateTxGas(tx)))
 	listForSender.totalFee.Add(int64(estimateTxFee(tx)))
+	listForSender.onScoreChange(listForSender)
 }
 
 // This function should only be used in critical section (listForSender.mutex)
@@ -108,6 +112,7 @@ func (listForSender *txListForSender) onRemovedListElement(element *list.Element
 	listForSender.totalBytes.Subtract(int64(estimateTxSize(value)))
 	listForSender.totalGas.Subtract(int64(estimateTxGas(value)))
 	listForSender.totalGas.Subtract(int64(estimateTxFee(value)))
+	listForSender.onScoreChange(listForSender)
 }
 
 // RemoveHighNonceTxs removes "count" transactions from the back of the list

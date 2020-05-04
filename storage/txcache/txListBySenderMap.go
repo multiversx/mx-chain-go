@@ -29,11 +29,6 @@ func (txMap *txListBySenderMap) addTx(tx *WrappedTransaction) {
 	sender := string(tx.Tx.GetSndAddr())
 	listForSender := txMap.getOrAddListForSender(sender)
 	listForSender.AddTx(tx)
-	txMap.notifyScoreChange(listForSender)
-}
-
-func (txMap *txListBySenderMap) notifyScoreChange(txList *txListForSender) {
-	txMap.backingMap.NotifyScoreChange(txList)
 }
 
 func (txMap *txListBySenderMap) getOrAddListForSender(sender string) *txListForSender {
@@ -56,12 +51,17 @@ func (txMap *txListBySenderMap) getListForSender(sender string) (*txListForSende
 }
 
 func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
-	listForSender := newTxListForSender(sender, &txMap.cacheConfig)
+	listForSender := newTxListForSender(sender, &txMap.cacheConfig, txMap.notifyScoreChange)
 
 	txMap.backingMap.Set(listForSender)
 	txMap.counter.Increment()
 
 	return listForSender
+}
+
+// This function should only be called in a critical section managed by a "txListForSender"
+func (txMap *txListBySenderMap) notifyScoreChange(txList *txListForSender) {
+	txMap.backingMap.NotifyScoreChange(txList)
 }
 
 // removeTx removes a transaction from the map
@@ -78,8 +78,6 @@ func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 
 	if listForSender.IsEmpty() {
 		txMap.removeSender(sender)
-	} else {
-		txMap.notifyScoreChange(listForSender)
 	}
 
 	return isFound

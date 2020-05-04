@@ -1,7 +1,6 @@
 package txcache
 
 import (
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -42,26 +41,4 @@ func Benchmark_computeSenderScore(b *testing.B) {
 			computeSenderScore(senderScoreParams{count: j, size: (j + 1) * 500, fee: toMicroERD(11 * j), gas: 100000 * j})
 		}
 	}
-}
-
-func TestListForSender_AddTx_ComputeScore_Concurrently(t *testing.T) {
-	list := newListToTest()
-
-	var wg sync.WaitGroup
-
-	for i := 0; i < 100; i++ {
-		wg.Add(2)
-
-		go func() {
-			list.AddTx(createTx([]byte("alice-x"), "alice", 42))
-			wg.Done()
-		}()
-
-		go func() {
-			_ = list.ComputeScore()
-			wg.Done()
-		}()
-	}
-
-	wg.Wait()
 }
