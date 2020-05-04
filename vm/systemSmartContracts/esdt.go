@@ -26,9 +26,6 @@ const canWipe = "canWipe"
 
 const conversionBase = 10
 
-//TODO: think about how should we enable issuing of shorter names - maybe only a special address can do it
-// a little bit centralized but it resolves the problem of issuing commonly known token names
-
 type esdt struct {
 	eei             vm.SystemEI
 	gasCost         vm.GasCost

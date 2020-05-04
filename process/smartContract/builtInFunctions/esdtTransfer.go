@@ -59,7 +59,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
 	value := big.NewInt(0).SetBytes(vmInput.Arguments[1])
 
-	log.Warn("esdtTranfer", "snd", vmInput.CallerAddr, "rcv", vmInput.RecipientAddr, "value", value)
+	log.Trace("esdtTranfer", "snd", vmInput.CallerAddr, "rcv", vmInput.RecipientAddr, "value", value)
 
 	if !check.IfNil(acntSnd) {
 		// gas is payed only by sender
@@ -114,7 +114,7 @@ func (e *esdtTransfer) addToESDTBalance(userAcnt state.UserAccountHandler, key [
 		return err
 	}
 
-	log.Warn("esdt after transfer", "addr", userAcnt.AddressBytes(), "value", esdtData.Value)
+	log.Trace("esdt after transfer", "addr", userAcnt.AddressBytes(), "value", esdtData.Value)
 	userAcnt.DataTrieTracker().SaveKeyValue(key, marshalledData)
 
 	return nil
