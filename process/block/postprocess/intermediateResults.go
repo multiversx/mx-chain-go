@@ -208,17 +208,8 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 }
 
 func (irp *intermediateResultsProcessor) getShardIdsFromAddresses(sndAddr []byte, rcvAddr []byte) (uint32, uint32, error) {
-	adrSrc, err := irp.pubkeyConv.CreateAddressFromBytes(sndAddr)
-	if err != nil {
-		return irp.shardCoordinator.NumberOfShards(), irp.shardCoordinator.NumberOfShards(), err
-	}
-	adrDst, err := irp.pubkeyConv.CreateAddressFromBytes(rcvAddr)
-	if err != nil {
-		return irp.shardCoordinator.NumberOfShards(), irp.shardCoordinator.NumberOfShards(), err
-	}
-
-	shardForSrc := irp.shardCoordinator.ComputeId(adrSrc)
-	shardForDst := irp.shardCoordinator.ComputeId(adrDst)
+	shardForSrc := irp.shardCoordinator.ComputeId(sndAddr)
+	shardForDst := irp.shardCoordinator.ComputeId(rcvAddr)
 
 	isEmptyAddress := bytes.Equal(sndAddr, make([]byte, irp.pubkeyConv.Len()))
 	if isEmptyAddress {

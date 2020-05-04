@@ -26,7 +26,7 @@ type baseTxProcessor struct {
 }
 
 func (txProc *baseTxProcessor) getAccounts(
-	adrSrc, adrDst state.AddressContainer,
+	adrSrc, adrDst []byte,
 ) (state.UserAccountHandler, state.UserAccountHandler, error) {
 
 	var acntSrc, acntDst state.UserAccountHandler
@@ -38,12 +38,11 @@ func (txProc *baseTxProcessor) getAccounts(
 	srcInShard := shardForSrc == shardForCurrentNode
 	dstInShard := shardForDst == shardForCurrentNode
 
-	if srcInShard && (adrSrc == nil || adrSrc.IsInterfaceNil()) ||
-		dstInShard && (adrDst == nil || adrDst.IsInterfaceNil()) {
+	if srcInShard && len(adrSrc) == 0 || dstInShard && len(adrDst) == 0 {
 		return nil, nil, process.ErrNilAddressContainer
 	}
 
-	if bytes.Equal(adrSrc.Bytes(), adrDst.Bytes()) {
+	if bytes.Equal(adrSrc, adrDst) {
 		acntWrp, err := txProc.accounts.LoadAccount(adrSrc)
 		if err != nil {
 			return nil, nil, err
@@ -88,7 +87,7 @@ func (txProc *baseTxProcessor) getAccounts(
 	return acntSrc, acntDst, nil
 }
 
-func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc state.AddressContainer) (state.UserAccountHandler, error) {
+func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc []byte) (state.UserAccountHandler, error) {
 	shardForCurrentNode := txProc.shardCoordinator.SelfId()
 	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
 	if shardForCurrentNode != shardForSrc {
@@ -106,22 +105,6 @@ func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc state.AddressContain
 	}
 
 	return userAcc, nil
-}
-
-func (txProc *baseTxProcessor) getAddresses(
-	tx *transaction.Transaction,
-) (state.AddressContainer, state.AddressContainer, error) {
-	adrSrc, err := txProc.pubkeyConv.CreateAddressFromBytes(tx.SndAddr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	adrDst, err := txProc.pubkeyConv.CreateAddressFromBytes(tx.RcvAddr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return adrSrc, adrDst, nil
 }
 
 func (txProc *baseTxProcessor) checkTxValues(tx *transaction.Transaction, acntSnd, acntDst state.UserAccountHandler) error {

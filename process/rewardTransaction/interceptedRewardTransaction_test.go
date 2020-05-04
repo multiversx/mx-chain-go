@@ -1,13 +1,11 @@
 package rewardTransaction_test
 
 import (
-	"errors"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
@@ -128,7 +126,7 @@ func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
-	shardCoord.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+	shardCoord.ComputeIdCalled = func(address []byte) uint32 {
 		return shardId
 	}
 
@@ -150,34 +148,6 @@ func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
 
 	txHash := irt.Hasher().Compute(string(txBuff))
 	assert.Equal(t, txHash, irt.Hash())
-}
-
-func TestNewInterceptedRewardTransaction_InvalidRcvAddrShouldErr(t *testing.T) {
-	t.Parallel()
-
-	rewTx := rewardTx.RewardTx{
-		Round:   0,
-		Epoch:   0,
-		Value:   big.NewInt(100),
-		RcvAddr: nil,
-	}
-
-	marshalizer := &mock.MarshalizerMock{}
-	txBuff, _ := marshalizer.Marshal(&rewTx)
-	expectedErr := errors.New("expected error")
-	irt, err := rewardTransaction.NewInterceptedRewardTransaction(
-		txBuff,
-		marshalizer,
-		&mock.HasherMock{},
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pkBytes []byte) (container state.AddressContainer, err error) {
-				return nil, expectedErr
-			},
-		},
-		mock.NewMultiShardsCoordinatorMock(3))
-
-	assert.Nil(t, irt)
-	assert.Equal(t, process.ErrInvalidRcvAddr, err)
 }
 
 func TestNewInterceptedRewardTransaction_NonceShouldBeZero(t *testing.T) {

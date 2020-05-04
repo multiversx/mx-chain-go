@@ -4,7 +4,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // InterceptedTxHandlerStub -
@@ -12,7 +11,7 @@ type InterceptedTxHandlerStub struct {
 	SenderShardIdCalled   func() uint32
 	ReceiverShardIdCalled func() uint32
 	NonceCalled           func() uint64
-	SenderAddressCalled   func() state.AddressContainer
+	SenderAddressCalled   func() []byte
 	FeeCalled             func() *big.Int
 	TransactionCalled     func() data.TransactionHandler
 }
@@ -33,7 +32,7 @@ func (iths *InterceptedTxHandlerStub) Nonce() uint64 {
 }
 
 // SenderAddress -
-func (iths *InterceptedTxHandlerStub) SenderAddress() state.AddressContainer {
+func (iths *InterceptedTxHandlerStub) SenderAddress() []byte {
 	return iths.SenderAddressCalled()
 }
 

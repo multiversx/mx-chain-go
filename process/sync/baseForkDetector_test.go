@@ -85,10 +85,10 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrGenesisTimeMissmatch(t *te
 		genesisTime,
 	)
 
-	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: round, TimeStamp: incorrectTimeStamp}, []byte("hash"), process.BHProposed)
+	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: round, TimeStamp: incorrectTimeStamp}, []byte("hash"))
 	assert.Equal(t, sync.ErrGenesisTimeMissmatch, err)
 
-	err = bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: round, TimeStamp: incorrectTimeStamp}, []byte("hash"), process.BHReceived)
+	err = bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: round, TimeStamp: incorrectTimeStamp}, []byte("hash"))
 	assert.Equal(t, sync.ErrGenesisTimeMissmatch, err)
 }
 
@@ -103,7 +103,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerRoundInBlock(t *testi
 		0,
 	)
 	bfd.SetFinalCheckpoint(1, 1, nil)
-	err := bfd.CheckBlockValidity(&block.Header{PubKeysBitmap: []byte("X")}, []byte("hash"), process.BHProcessed)
+	err := bfd.CheckBlockValidity(&block.Header{PubKeysBitmap: []byte("X")}, []byte("hash"))
 	assert.Equal(t, sync.ErrLowerRoundInBlock, err)
 }
 
@@ -118,7 +118,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerNonceInBlock(t *testi
 		0,
 	)
 	bfd.SetFinalCheckpoint(2, 2, nil)
-	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")}, []byte("hash"), process.BHProcessed)
+	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")}, []byte("hash"))
 	assert.Equal(t, sync.ErrLowerNonceInBlock, err)
 }
 
@@ -132,7 +132,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrHigherRoundInBlock(t *test
 		&mock.BlockTrackerMock{},
 		0,
 	)
-	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 2, PubKeysBitmap: []byte("X")}, []byte("hash"), process.BHProcessed)
+	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 2, PubKeysBitmap: []byte("X")}, []byte("hash"))
 	assert.Equal(t, sync.ErrHigherRoundInBlock, err)
 }
 
@@ -146,7 +146,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrHigherNonceInBlock(t *test
 		&mock.BlockTrackerMock{},
 		0,
 	)
-	err := bfd.CheckBlockValidity(&block.Header{Nonce: 2, Round: 1, PubKeysBitmap: []byte("X")}, []byte("hash"), process.BHProcessed)
+	err := bfd.CheckBlockValidity(&block.Header{Nonce: 2, Round: 1, PubKeysBitmap: []byte("X")}, []byte("hash"))
 	assert.Equal(t, sync.ErrHigherNonceInBlock, err)
 }
 
@@ -160,7 +160,7 @@ func TestBasicForkDetector_CheckBlockValidityShouldWork(t *testing.T) {
 		&mock.BlockTrackerMock{},
 		0,
 	)
-	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}, []byte("hash"), process.BHProcessed)
+	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}, []byte("hash"))
 	assert.Nil(t, err)
 }
 

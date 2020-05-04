@@ -115,17 +115,22 @@ func TestTomlParser(t *testing.T) {
 }
 
 func TestTomlEconomicsParser(t *testing.T) {
-	rewardsValue := "1000000000000000000000000000000000"
 	communityPercentage := 0.1
 	leaderPercentage := 0.1
-	burnPercentage := 0.8
+	developerPercentage := 0.3
 	maxGasLimitPerBlock := "18446744073709551615"
 	minGasPrice := "18446744073709551615"
 	minGasLimit := "18446744073709551615"
+	communityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
+	denominatinoCoefficient := "0.000000000000000001"
 
 	cfgEconomicsExpected := EconomicsConfig{
 		RewardsSettings: RewardsSettings{
-			LeaderPercentage: leaderPercentage,
+			LeaderPercentage:               leaderPercentage,
+			CommunityPercentage:            communityPercentage,
+			CommunityAddress:               communityAddress,
+			DenominationCoefficientForView: denominatinoCoefficient,
+			DeveloperPercentage:            developerPercentage,
 		},
 		FeeSettings: FeeSettings{
 			MaxGasLimitPerBlock: maxGasLimitPerBlock,
@@ -136,10 +141,11 @@ func TestTomlEconomicsParser(t *testing.T) {
 
 	testString := `
 [RewardsSettings]
-    RewardsValue = "` + rewardsValue + `"
     CommunityPercentage = ` + fmt.Sprintf("%.6f", communityPercentage) + `
+	CommunityAddress = "` + communityAddress + `"
+	DenominationCoefficientForView = "` + denominatinoCoefficient + `"
     LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage) + `
-    BurnPercentage =  ` + fmt.Sprintf("%.6f", burnPercentage) + `
+	DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
 [FeeSettings]
 	MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `"
     MinGasPrice = "` + minGasPrice + `"

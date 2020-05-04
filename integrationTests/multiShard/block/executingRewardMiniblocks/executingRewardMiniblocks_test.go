@@ -326,8 +326,7 @@ func verifyRewardsForMetachain(
 	rewardValue := big.NewInt(0)
 
 	for metaAddr, numOfTimesRewarded := range mapRewardsForMeta {
-		addrContainer, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes([]byte(metaAddr))
-		acc, err := nodes[0][0].AccntState.GetExistingAccount(addrContainer)
+		acc, err := nodes[0][0].AccntState.GetExistingAccount([]byte(metaAddr))
 		assert.Nil(t, err)
 
 		expectedBalance := big.NewInt(0).SetUint64(uint64(numOfTimesRewarded))
@@ -348,11 +347,10 @@ func verifyRewardsForShards(
 	feePerTxForLeader := float64(gasPrice) * float64(gasLimit) * getLeaderPercentage(nodesMap[0][0])
 
 	for address, nbRewards := range mapRewardsForAddress {
-		addrContainer, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes([]byte(address))
-		shard := nodesMap[0][0].ShardCoordinator.ComputeId(addrContainer)
+		shard := nodesMap[0][0].ShardCoordinator.ComputeId([]byte(address))
 
 		for _, shardNode := range nodesMap[shard] {
-			acc, err := shardNode.AccntState.GetExistingAccount(addrContainer)
+			acc, err := shardNode.AccntState.GetExistingAccount([]byte(address))
 			assert.Nil(t, err)
 
 			nbProposedTxs := nbTxsForLeaderAddress[address]
@@ -362,7 +360,7 @@ func verifyRewardsForShards(
 			totalFees.Mul(totalFees, big.NewInt(0).SetUint64(uint64(feePerTxForLeader)))
 
 			expectedBalance.Add(expectedBalance, totalFees)
-			fmt.Println(fmt.Sprintf("checking account %s has balance %d", acc.AddressContainer().Bytes(), expectedBalance))
+			fmt.Println(fmt.Sprintf("checking account %s has balance %d", acc.AddressBytes(), expectedBalance))
 			assert.Equal(t, expectedBalance, acc.(state.UserAccountHandler).GetBalance())
 		}
 	}

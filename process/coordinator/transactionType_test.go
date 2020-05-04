@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -189,9 +188,7 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
-		CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
-			return mock.NewAddressMock(pubKey), nil
-		}}
+	}
 	tth, err := NewTxTypeHandler(arg)
 
 	assert.NotNil(t, tth)
@@ -217,9 +214,7 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunc(t *testing.T) {
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
-		CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
-			return mock.NewAddressMock(pubKey), nil
-		}}
+	}
 	builtIn := "builtIn"
 	arg.BuiltInFuncNames[builtIn] = struct{}{}
 	tth, err := NewTxTypeHandler(arg)
