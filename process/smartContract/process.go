@@ -610,7 +610,6 @@ func (sc *scProcessor) processVMOutput(
 	if err != nil {
 		return nil, nil, err
 	}
-	forwardedFee := sc.computeAllFeesSentForward(scrTxs)
 
 	acntSnd, err = sc.reloadLocalAccount(acntSnd)
 	if err != nil {
@@ -622,12 +621,6 @@ func (sc *scProcessor) processVMOutput(
 
 	if vmOutput.GasRefund.Cmp(big.NewInt(0)) > 0 {
 		log.Trace("total gas refunded", "value", vmOutput.GasRefund.String(), "hash", txHash)
-	}
-
-	consumedFee.Sub(consumedFee, forwardedFee)
-	if consumedFee.Cmp(zero) < 0 {
-		log.Error("consumedFee in smart contract shard should be bigger then forwardedFees")
-		consumedFee = big.NewInt(0)
 	}
 
 	scrTxs = append(scrTxs, scrForSender)
@@ -652,23 +645,6 @@ func (sc *scProcessor) processVMOutput(
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
 
 	return scrTxs, consumedFee, nil
-}
-
-func (sc *scProcessor) computeAllFeesSentForward(scrs []data.TransactionHandler) *big.Int {
-	fee := big.NewInt(0)
-
-	selfShardID := sc.shardCoordinator.SelfId()
-	for _, scr := range scrs {
-		recvShardID := sc.shardCoordinator.ComputeId(scr.GetRcvAddr())
-		if selfShardID == recvShardID {
-			continue
-		}
-
-		scrFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(scr.GetGasLimit()), big.NewInt(0).SetUint64(scr.GetGasPrice()))
-		fee.Add(fee, scrFee)
-	}
-
-	return fee
 }
 
 func sortVMOutputInsideData(vmOutput *vmcommon.VMOutput) []*vmcommon.OutputAccount {
