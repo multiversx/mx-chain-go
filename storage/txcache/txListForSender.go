@@ -19,7 +19,7 @@ type txListForSender struct {
 	items               *list.List
 	copyBatchIndex      *list.Element
 	cacheConfig         *CacheConfig
-	scoreChunk          *maps.MapChunk
+	scoreChunk          *maps.MapChunkPointer
 	mutex               sync.RWMutex
 	accountNonceKnown   atomic.Flag
 	sweepable           atomic.Flag
@@ -41,6 +41,7 @@ func newTxListForSender(sender string, cacheConfig *CacheConfig, onScoreChange s
 		sender:        sender,
 		cacheConfig:   cacheConfig,
 		onScoreChange: onScoreChange,
+		scoreChunk:    &maps.MapChunkPointer{},
 	}
 }
 

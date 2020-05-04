@@ -13,18 +13,20 @@ type dummyItem struct {
 	scoreChangeInProgress atomic.Flag
 	score                 atomic.Uint32
 	key                   string
-	chunk                 *MapChunk
+	chunk                 *MapChunkPointer
 }
 
 func newDummyItem(key string) *dummyItem {
 	return &dummyItem{
-		key: key,
+		key:   key,
+		chunk: &MapChunkPointer{},
 	}
 }
 
 func newScoredDummyItem(key string, score uint32) *dummyItem {
 	item := &dummyItem{
-		key: key,
+		key:   key,
+		chunk: &MapChunkPointer{},
 	}
 	item.score.Set(score)
 	return item
@@ -38,16 +40,8 @@ func (item *dummyItem) ComputeScore() uint32 {
 	return item.score.Get()
 }
 
-func (item *dummyItem) GetScoreChunk() *MapChunk {
+func (item *dummyItem) ScoreChunk() *MapChunkPointer {
 	return item.chunk
-}
-
-func (item *dummyItem) SetScoreChunk(chunk *MapChunk) {
-	item.chunk = chunk
-}
-
-func (item *dummyItem) ScoreChangeInProgressFlag() *atomic.Flag {
-	return &item.scoreChangeInProgress
 }
 
 func TestNewBucketSortedMap(t *testing.T) {
@@ -145,41 +139,16 @@ func TestBucketSortedMap_ItemMovesOnNotifyScoreChange(t *testing.T) {
 	myMap.NotifyScoreChangeByKey("a")
 	myMap.NotifyScoreChangeByKey("b")
 
-	require.Equal(t, myMap.scoreChunks[1], a.GetScoreChunk())
-	require.Equal(t, myMap.scoreChunks[42], b.GetScoreChunk())
+	require.Equal(t, myMap.scoreChunks[1], a.ScoreChunk().Get())
+	require.Equal(t, myMap.scoreChunks[42], b.ScoreChunk().Get())
 
 	a.score.Set(2)
 	b.score.Set(43)
 	myMap.NotifyScoreChangeByKey("a")
 	myMap.NotifyScoreChangeByKey("b")
 
-	require.Equal(t, myMap.scoreChunks[2], a.GetScoreChunk())
-	require.Equal(t, myMap.scoreChunks[43], b.GetScoreChunk())
-}
-
-func TestBucketSortedMap_ItemDoesNotMoveOnIfMovementAlreadyInProgress(t *testing.T) {
-	myMap := NewBucketSortedMap(4, 100)
-
-	a := newScoredDummyItem("a", 1)
-	b := newScoredDummyItem("b", 42)
-	myMap.Set(a)
-	myMap.Set(b)
-
-	myMap.NotifyScoreChangeByKey("a")
-	myMap.NotifyScoreChangeByKey("b")
-
-	require.Equal(t, myMap.scoreChunks[1], a.GetScoreChunk())
-	require.Equal(t, myMap.scoreChunks[42], b.GetScoreChunk())
-
-	b.ScoreChangeInProgressFlag().Set()
-
-	a.score.Set(2)
-	b.score.Set(43)
-	myMap.NotifyScoreChangeByKey("a")
-	myMap.NotifyScoreChangeByKey("b")
-
-	require.Equal(t, myMap.scoreChunks[2], a.GetScoreChunk())
-	require.Equal(t, myMap.scoreChunks[42], b.GetScoreChunk())
+	require.Equal(t, myMap.scoreChunks[2], a.ScoreChunk().Get())
+	require.Equal(t, myMap.scoreChunks[43], b.ScoreChunk().Get())
 }
 
 func TestBucketSortedMap_Has(t *testing.T) {
