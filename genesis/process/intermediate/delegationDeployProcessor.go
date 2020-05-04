@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 )
 
@@ -18,13 +19,33 @@ type delegationDeployProcessor struct {
 	nodePrice      *big.Int
 }
 
+// NewDelegationDeployProcessor returns a new deploy processor specialized for deploying delegation SC
 func NewDelegationDeployProcessor(
-	processor *deployProcessor,
+	deployProcessor *deployProcessor,
 	accountsParser genesis.AccountsParser,
 	nodePrice *big.Int,
-) (*deployProcessor, error) {
-	//TODO add constructor
-	return nil, nil
+) (*delegationDeployProcessor, error) {
+	if check.IfNil(deployProcessor) {
+		return nil, genesis.ErrNilDeployProcessor
+	}
+	if check.IfNil(accountsParser) {
+		return nil, genesis.ErrNilAccountsParser
+	}
+	if nodePrice == nil {
+		return nil, genesis.ErrNilInitialNodePrice
+	}
+	if nodePrice.Cmp(zero) < 1 {
+		return nil, genesis.ErrInvalidInitialNodePrice
+	}
+
+	ddp := &delegationDeployProcessor{
+		deployProcessor: deployProcessor,
+		accountsParser:  accountsParser,
+		nodePrice:       nodePrice,
+	}
+	ddp.replacePlaceholders = ddp.replaceDelegationPlaceholders
+
+	return ddp, nil
 }
 
 func (ddp *delegationDeployProcessor) replaceDelegationPlaceholders(

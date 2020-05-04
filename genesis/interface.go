@@ -9,6 +9,12 @@ import (
 // DelegationType defines the constant used when checking if a smart contract is of delegation type
 const DelegationType = "delegation"
 
+// DelegationResult represents the DTO that contains the delegation results metrics
+type DelegationResult struct {
+	NumTotalStaked    int
+	NumTotalDelegated int
+}
+
 // AccountsParser contains the parsed genesis json file and has some functionality regarding processed data
 type AccountsParser interface {
 	InitialAccountsSplitOnAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]InitialAccountHandler, error)

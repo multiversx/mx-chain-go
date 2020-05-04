@@ -55,22 +55,24 @@ func NewDelegationProcessor(
 }
 
 // ExecuteDelegation will execute stake, set bls keys and activate on all delegation contracts from this shard
-func (dp *delegationProcessor) ExecuteDelegation() error {
+func (dp *delegationProcessor) ExecuteDelegation() (genesis.DelegationResult, error) {
 	smartContracts, err := dp.getDelegationScOnCurrentShard()
 	if err != nil {
-		return err
+		return genesis.DelegationResult{}, err
 	}
 
 	if len(smartContracts) == 0 {
-		return nil
+		return genesis.DelegationResult{}, nil
 	}
 
-	err = dp.executeStake(smartContracts)
+	dr := genesis.DelegationResult{}
+	dr.NumTotalStaked, err = dp.executeStake(smartContracts)
 	if err != nil {
-		return err
+		return genesis.DelegationResult{}, err
 	}
 
-	return dp.activateBlsKeys(smartContracts)
+	dr.NumTotalDelegated, err = dp.activateBlsKeys(smartContracts)
+	return dr, err
 }
 
 func (dp *delegationProcessor) getDelegationScOnCurrentShard() ([]genesis.InitialSmartContractHandler, error) {
@@ -90,18 +92,21 @@ func (dp *delegationProcessor) getDelegationScOnCurrentShard() ([]genesis.Initia
 	return smartContracts, nil
 }
 
-func (dp *delegationProcessor) executeStake(smartContracts []genesis.InitialSmartContractHandler) error {
+func (dp *delegationProcessor) executeStake(smartContracts []genesis.InitialSmartContractHandler) (int, error) {
+	stakedOnDelegation := 0
+
 	for _, sc := range smartContracts {
 		accounts := dp.accuntsParser.GetInitialAccountsForDelegated(sc.AddressBytes())
 		for _, ac := range accounts {
 			err := dp.stake(ac, sc)
 			if err != nil {
-				return fmt.Errorf("%w while calling stake function from account %s", err, ac.GetAddress())
+				return 0, fmt.Errorf("%w while calling stake function from account %s", err, ac.GetAddress())
 			}
 		}
+		stakedOnDelegation += len(accounts)
 	}
 
-	return nil
+	return stakedOnDelegation, nil
 }
 
 func (dp *delegationProcessor) stake(ac genesis.InitialAccountHandler, sc genesis.InitialSmartContractHandler) error {
@@ -152,9 +157,10 @@ func (dp *delegationProcessor) stake(ac genesis.InitialAccountHandler, sc genesi
 	return nil
 }
 
-func (dp *delegationProcessor) activateBlsKeys(smartContracts []genesis.InitialSmartContractHandler) error {
+func (dp *delegationProcessor) activateBlsKeys(smartContracts []genesis.InitialSmartContractHandler) (int, error) {
 	mockSignature := "genesis"
 
+	totalDelegated := 0
 	for _, sc := range smartContracts {
 		delegatedNodes := dp.nodesHandler.GetDelegatedNodes(sc.AddressBytes())
 
@@ -162,6 +168,7 @@ func (dp *delegationProcessor) activateBlsKeys(smartContracts []genesis.InitialS
 		if lenDelegated == 0 {
 			continue
 		}
+		totalDelegated += lenDelegated
 
 		setBlsKeys := make([]string, 0, lenDelegated)
 		activateKeys := make([]string, 0, lenDelegated)
@@ -172,7 +179,7 @@ func (dp *delegationProcessor) activateBlsKeys(smartContracts []genesis.InitialS
 
 		nonce, err := dp.GetNonce(sc.OwnerBytes())
 		if err != nil {
-			return err
+			return 0, err
 		}
 
 		setString := fmt.Sprintf("setBlsKeys@%d@%s", lenDelegated, strings.Join(setBlsKeys, "@"))
@@ -184,7 +191,7 @@ func (dp *delegationProcessor) activateBlsKeys(smartContracts []genesis.InitialS
 			[]byte(setString),
 		)
 		if err != nil {
-			return err
+			return 0, err
 		}
 
 		nonce++
@@ -199,9 +206,9 @@ func (dp *delegationProcessor) activateBlsKeys(smartContracts []genesis.InitialS
 			[]byte(activateString),
 		)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	}
 
-	return nil
+	return totalDelegated, nil
 }

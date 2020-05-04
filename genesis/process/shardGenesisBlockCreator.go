@@ -31,6 +31,11 @@ var log = logger.GetOrCreate("genesis/process")
 
 var zero = big.NewInt(0)
 
+type deployedScMetrics struct {
+	numDelegation int
+	numOtherTypes int
+}
+
 // CreateShardGenesisBlock will create a shard genesis block
 func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesHandler genesis.NodesHandler) (data.HeaderHandler, error) {
 	processors, err := createProcessorsForShard(arg)
@@ -38,24 +43,26 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesHandler genesis.N
 		return nil, err
 	}
 
-	err = deployInitialSmartContracts(processors, arg)
+	deployMetrics := &deployedScMetrics{}
+
+	err = deployInitialSmartContracts(processors, arg, deployMetrics)
 	if err != nil {
 		return nil, err
 	}
 
-	err = setBalancesToTrie(arg)
+	numSetBalances, err := setBalancesToTrie(arg)
 	if err != nil {
 		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
-	err = incrementStakersNonces(arg)
+	numStaked, err := incrementStakersNonces(arg)
 	if err != nil {
 		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
-	err = executeDelegation(processors, arg, nodesHandler)
+	delegationResult, err := executeDelegation(processors, arg, nodesHandler)
 	if err != nil {
 		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d",
 			err, arg.ShardCoordinator.SelfId())
@@ -66,6 +73,16 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesHandler genesis.N
 		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d",
 			err, arg.ShardCoordinator.SelfId())
 	}
+
+	log.Debug("shard block genesis",
+		"shard ID", arg.ShardCoordinator.SelfId(),
+		"num delegation SC deployed", deployMetrics.numDelegation,
+		"num other SC deployed", deployMetrics.numOtherTypes,
+		"num set balances", numSetBalances,
+		"num staked directly", numStaked,
+		"total staked on a delegation SC", delegationResult.NumTotalStaked,
+		"total delegation nodes", delegationResult.NumTotalDelegated,
+	)
 
 	//TODO add here delegation process
 	if arg.HardForkConfig.MustImport {
@@ -138,10 +155,10 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHa
 }
 
 // setBalancesToTrie adds balances to trie
-func setBalancesToTrie(arg ArgsGenesisBlockCreator) error {
+func setBalancesToTrie(arg ArgsGenesisBlockCreator) (int, error) {
 	initialAccounts, err := arg.AccountsParser.InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	initialAccountsForShard := initialAccounts[arg.ShardCoordinator.SelfId()]
@@ -149,11 +166,11 @@ func setBalancesToTrie(arg ArgsGenesisBlockCreator) error {
 	for _, accnt := range initialAccountsForShard {
 		err = setBalanceToTrie(arg, accnt)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	}
 
-	return nil
+	return len(initialAccountsForShard), nil
 }
 
 func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountHandler) error {
@@ -373,6 +390,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 func deployInitialSmartContracts(
 	processors *genesisProcessors,
 	arg ArgsGenesisBlockCreator,
+	deployMetrics *deployedScMetrics,
 ) error {
 	smartContracts, err := arg.SmartContractParser.InitialSmartContractsSplitOnOwnersShards(arg.ShardCoordinator)
 	if err != nil {
@@ -381,7 +399,7 @@ func deployInitialSmartContracts(
 
 	currentShardSmartContracts := smartContracts[arg.ShardCoordinator.SelfId()]
 	for _, sc := range currentShardSmartContracts {
-		err = deployInitialSmartContract(processors, sc, arg)
+		err = deployInitialSmartContract(processors, sc, arg, deployMetrics)
 		if err != nil {
 			return fmt.Errorf("%w for owner %s and filename %s",
 				err, sc.GetOwner(), sc.GetFilename())
@@ -395,6 +413,7 @@ func deployInitialSmartContract(
 	processors *genesisProcessors,
 	sc genesis.InitialSmartContractHandler,
 	arg ArgsGenesisBlockCreator,
+	deployMetrics *deployedScMetrics,
 ) error {
 
 	txExecutor, err := intermediate.NewTxExecutionProcessor(processors.txProcessor, arg.Accounts)
@@ -402,7 +421,8 @@ func deployInitialSmartContract(
 		return err
 	}
 
-	deployProcessor, err := intermediate.NewDeployProcessor(
+	var deployProc deployProcessor
+	dp, err := intermediate.NewDeployProcessor(
 		txExecutor,
 		arg.PubkeyConv,
 		processors.blockchainHook,
@@ -410,26 +430,31 @@ func deployInitialSmartContract(
 	if err != nil {
 		return err
 	}
+	deployProc = dp
 
 	switch sc.GetType() {
 	case genesis.DelegationType:
-		deployProcessor, err = intermediate.NewDelegationDeployProcessor(
-			deployProcessor,
+		deployProc, err = intermediate.NewDelegationDeployProcessor(
+			dp,
 			arg.AccountsParser,
 			arg.Economics.GenesisNodePrice(),
 		)
 		if err != nil {
 			return err
 		}
+
+		deployMetrics.numDelegation++
+	default:
+		deployMetrics.numOtherTypes++
 	}
 
-	return deployProcessor.Deploy(sc)
+	return deployProc.Deploy(sc)
 }
 
-func incrementStakersNonces(arg ArgsGenesisBlockCreator) error {
+func incrementStakersNonces(arg ArgsGenesisBlockCreator) (int, error) {
 	initialAddresses, err := arg.AccountsParser.InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	initalAddressesInCurrentShard := initialAddresses[arg.ShardCoordinator.SelfId()]
@@ -441,13 +466,17 @@ func incrementStakersNonces(arg ArgsGenesisBlockCreator) error {
 		ia.IncrementNonceOffset()
 	}
 
-	return err
+	return len(initalAddressesInCurrentShard), nil
 }
 
-func executeDelegation(processors *genesisProcessors, arg ArgsGenesisBlockCreator, nodesHandler genesis.NodesHandler) error {
+func executeDelegation(
+	processors *genesisProcessors,
+	arg ArgsGenesisBlockCreator,
+	nodesHandler genesis.NodesHandler,
+) (genesis.DelegationResult, error) {
 	txExecutor, err := intermediate.NewTxExecutionProcessor(processors.txProcessor, arg.Accounts)
 	if err != nil {
-		return err
+		return genesis.DelegationResult{}, err
 	}
 
 	delegationProcessor, err := intermediate.NewDelegationProcessor(
@@ -458,7 +487,7 @@ func executeDelegation(processors *genesisProcessors, arg ArgsGenesisBlockCreato
 		nodesHandler,
 	)
 	if err != nil {
-		return err
+		return genesis.DelegationResult{}, err
 	}
 
 	return delegationProcessor.ExecuteDelegation()
