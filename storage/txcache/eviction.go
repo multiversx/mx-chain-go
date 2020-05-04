@@ -30,8 +30,6 @@ func (cache *TxCache) doEviction() {
 
 	stopWatch := cache.monitorEvictionStart()
 
-	// TODO: first phase, evict sweepable.
-
 	if tooManyTxs {
 		cache.makeSnapshotOfSenders()
 		journal.passOneNumTxs, journal.passOneNumSenders = cache.evictHighNonceTransactions()
@@ -113,6 +111,7 @@ func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 	return cache.doEvictItems(txsToEvict, sendersToEvict)
 }
 
+// This is called concurrently by two goroutines: the eviction one and the sweeping one
 func (cache *TxCache) doEvictItems(txsToEvict [][]byte, sendersToEvict []string) (countTxs uint32, countSenders uint32) {
 	countTxs = cache.txByHash.RemoveTxsBulk(txsToEvict)
 	countSenders = cache.txListBySender.RemoveSendersBulk(sendersToEvict)
@@ -154,6 +153,7 @@ func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32
 	return
 }
 
+// This is called concurrently by two goroutines: the eviction one and the sweeping one
 func (cache *TxCache) evictSendersAndTheirTxs(listsToEvict []*txListForSender) (uint32, uint32) {
 	sendersToEvict := make([]string, 0, len(listsToEvict))
 	txsToEvict := make([][]byte, 0, approximatelyCountTxInLists(listsToEvict))

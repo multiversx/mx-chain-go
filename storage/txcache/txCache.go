@@ -24,6 +24,8 @@ type TxCache struct {
 	numTxAddedDuringEviction      atomic.Counter
 	numTxRemovedBetweenSelections atomic.Counter
 	numTxRemovedDuringEviction    atomic.Counter
+	sweepingMutex                 sync.Mutex
+	sweepingListOfSenders         []*txListForSender
 }
 
 // NewTxCache creates a new transaction cache
@@ -41,6 +43,7 @@ func NewTxCache(config CacheConfig) *TxCache {
 		evictionJournal: evictionJournal{},
 	}
 
+	txCache.initSweepable()
 	return txCache
 }
 
@@ -93,9 +96,16 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 			isFirstBatch := pass == 0
 			copied := txList.selectBatchTo(isFirstBatch, result[resultFillIndex:], batchSizeWithScoreCoefficient)
 
+			if isFirstBatch {
+				cache.collectSweepable(txList)
+			}
+
 			resultFillIndex += copied
 			copiedInThisPass += copied
 			resultIsFull = resultFillIndex == numRequested
+			if resultIsFull {
+				return
+			}
 		})
 
 		nothingCopiedThisPass := copiedInThisPass == 0
@@ -108,7 +118,13 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 
 	result = result[:resultFillIndex]
 	cache.monitorSelectionEnd(result, stopWatch)
+	go cache.doAfterSelection()
 	return result
+}
+
+func (cache *TxCache) doAfterSelection() {
+	cache.sweepSweepable()
+	cache.diagnose()
 }
 
 // RemoveTxByHash removes tx by hash

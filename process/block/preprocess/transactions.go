@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
@@ -161,15 +161,13 @@ func (txs *transactions) waitForTxHashes(waitTime time.Duration) error {
 // IsDataPrepared returns non error if all the requested transactions arrived and were saved into the pool
 func (txs *transactions) IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error {
 	if requestedTxs > 0 {
-		log.Debug("requested missing txs",
-			"num txs", requestedTxs)
+		log.Debug("requested missing txs", "num txs", requestedTxs)
 		err := txs.waitForTxHashes(haveTime())
 		txs.txsForCurrBlock.mutTxsForBlock.Lock()
 		missingTxs := txs.txsForCurrBlock.missingTxs
 		txs.txsForCurrBlock.missingTxs = 0
 		txs.txsForCurrBlock.mutTxsForBlock.Unlock()
-		log.Debug("received missing txs",
-			"num txs", requestedTxs-missingTxs)
+		log.Debug("received missing txs", "num txs", requestedTxs-missingTxs, "requested", requestedTxs, "missing", missingTxs)
 		if err != nil {
 			return err
 		}

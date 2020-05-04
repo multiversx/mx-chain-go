@@ -186,22 +186,23 @@ func TestListForSender_SelectBatchTo_WhenInitialGap(t *testing.T) {
 
 	destination := make([]*WrappedTransaction, 1000)
 
-	// First batch, first failure
+	// First batch of selection, first failure
 	copied := list.selectBatchTo(true, destination, 50)
 	require.Equal(t, 0, copied)
 	require.Nil(t, destination[0])
 	require.Equal(t, int64(1), list.numFailedSelections.Get())
 
-	// Second batch, don't count failure again
+	// Second batch of selection, don't count failure again
 	copied = list.selectBatchTo(false, destination, 50)
 	require.Equal(t, 0, copied)
 	require.Nil(t, destination[0])
 	require.Equal(t, int64(1), list.numFailedSelections.Get())
 
-	// First batch again, second failure
+	// First batch of another selection, second failure, enters grace period
 	copied = list.selectBatchTo(true, destination, 50)
-	require.Equal(t, 0, copied)
-	require.Nil(t, destination[0])
+	require.Equal(t, 1, copied)
+	require.NotNil(t, destination[0])
+	require.Nil(t, destination[1])
 	require.Equal(t, int64(2), list.numFailedSelections.Get())
 }
 
@@ -217,7 +218,7 @@ func TestListForSender_SelectBatchTo_WhenGracePeriodWithGapResolve(t *testing.T)
 	destination := make([]*WrappedTransaction, 1000)
 
 	// Try a number of selections with failure, reach close to grace period
-	for i := 1; i < gracePeriodLowerBound; i++ {
+	for i := 1; i < senderGracePeriodLowerBound; i++ {
 		copied := list.selectBatchTo(true, destination, math.MaxInt32)
 		require.Equal(t, 0, copied)
 		require.Equal(t, int64(i), list.numFailedSelections.Get())
@@ -226,12 +227,8 @@ func TestListForSender_SelectBatchTo_WhenGracePeriodWithGapResolve(t *testing.T)
 	// Try selection again. Failure will move the sender to grace period and return 1 transaction
 	copied := list.selectBatchTo(true, destination, math.MaxInt32)
 	require.Equal(t, 1, copied)
-	require.Equal(t, int64(gracePeriodLowerBound), list.numFailedSelections.Get())
-
-	// Try a new selection during the grace period
-	copied = list.selectBatchTo(true, destination, math.MaxInt32)
-	require.Equal(t, 1, copied)
-	require.Equal(t, int64(gracePeriodLowerBound+1), list.numFailedSelections.Get())
+	require.Equal(t, int64(senderGracePeriodLowerBound), list.numFailedSelections.Get())
+	require.False(t, list.sweepable.IsSet())
 
 	// Now resolve the gap
 	list.AddTx(createTx([]byte("resolving-tx"), ".", 1))
@@ -239,6 +236,7 @@ func TestListForSender_SelectBatchTo_WhenGracePeriodWithGapResolve(t *testing.T)
 	copied = list.selectBatchTo(true, destination, math.MaxInt32)
 	require.Equal(t, 19, copied)
 	require.Equal(t, int64(0), list.numFailedSelections.Get())
+	require.False(t, list.sweepable.IsSet())
 }
 
 func TestListForSender_SelectBatchTo_WhenGracePeriodWithNoGapResolve(t *testing.T) {
@@ -253,14 +251,14 @@ func TestListForSender_SelectBatchTo_WhenGracePeriodWithNoGapResolve(t *testing.
 	destination := make([]*WrappedTransaction, 1000)
 
 	// Try a number of selections with failure, reach close to grace period
-	for i := 1; i < gracePeriodLowerBound; i++ {
+	for i := 1; i < senderGracePeriodLowerBound; i++ {
 		copied := list.selectBatchTo(true, destination, math.MaxInt32)
 		require.Equal(t, 0, copied)
 		require.Equal(t, int64(i), list.numFailedSelections.Get())
 	}
 
 	// Try a number of selections with failure, within the grace period
-	for i := gracePeriodLowerBound; i <= gracePeriodUpperBound; i++ {
+	for i := senderGracePeriodLowerBound; i <= senderGracePeriodUpperBound; i++ {
 		copied := list.selectBatchTo(true, destination, math.MaxInt32)
 		require.Equal(t, 1, copied)
 		require.Equal(t, int64(i), list.numFailedSelections.Get())
@@ -269,7 +267,7 @@ func TestListForSender_SelectBatchTo_WhenGracePeriodWithNoGapResolve(t *testing.
 	// Grace period exceeded now
 	copied := list.selectBatchTo(true, destination, math.MaxInt32)
 	require.Equal(t, 0, copied)
-	require.Equal(t, int64(gracePeriodUpperBound+1), list.numFailedSelections.Get())
+	require.Equal(t, int64(senderGracePeriodUpperBound+1), list.numFailedSelections.Get())
 	require.True(t, list.sweepable.IsSet())
 }
 
