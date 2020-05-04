@@ -2,13 +2,11 @@ package mock
 
 import (
 	"fmt"
-
-	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // MultipleShardsCoordinatorMock -
 type MultipleShardsCoordinatorMock struct {
-	ComputeIdCalled func(address state.AddressContainer) uint32
+	ComputeIdCalled func(address []byte) uint32
 	NoShards        uint32
 	CurrentShard    uint32
 }
@@ -24,7 +22,7 @@ func (scm *MultipleShardsCoordinatorMock) NumberOfShards() uint32 {
 }
 
 // ComputeId -
-func (scm *MultipleShardsCoordinatorMock) ComputeId(address state.AddressContainer) uint32 {
+func (scm *MultipleShardsCoordinatorMock) ComputeId(address []byte) uint32 {
 	if scm.ComputeIdCalled == nil {
 		return scm.SelfId()
 	}
@@ -42,7 +40,7 @@ func (scm *MultipleShardsCoordinatorMock) SetSelfId(_ uint32) error {
 }
 
 // SameShard -
-func (scm *MultipleShardsCoordinatorMock) SameShard(_, _ state.AddressContainer) bool {
+func (scm *MultipleShardsCoordinatorMock) SameShard(_, _ []byte) bool {
 	return true
 }
 

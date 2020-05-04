@@ -14,7 +14,7 @@ func NewAccountCreator() state.AccountFactory {
 }
 
 // CreateAccount calls the new Account creator and returns the result
-func (ac *AccountCreator) CreateAccount(address state.AddressContainer) (state.AccountHandler, error) {
+func (ac *AccountCreator) CreateAccount(address []byte) (state.AccountHandler, error) {
 	return state.NewUserAccount(address)
 }
 

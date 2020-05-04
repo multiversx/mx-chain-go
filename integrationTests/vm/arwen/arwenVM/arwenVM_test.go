@@ -42,7 +42,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	tx := vm.CreateTx(
 		t,
 		senderAddressBytes,
-		vm.CreateEmptyAddress().Bytes(),
+		vm.CreateEmptyAddress(),
 		senderNonce,
 		transferOnCalls,
 		gasPrice,
@@ -107,7 +107,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	tx = vm.CreateTx(
 		t,
 		ownerAddressBytes,
-		vm.CreateEmptyAddress().Bytes(),
+		vm.CreateEmptyAddress(),
 		ownerNonce,
 		transferOnCalls,
 		gasPrice,
@@ -171,7 +171,7 @@ func runWASMVMBenchmark(
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,
 		Value:     new(big.Int).Set(transferOnCalls),
-		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
+		RcvAddr:   vm.CreateEmptyAddress(),
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
@@ -253,7 +253,7 @@ func TestWASMNamespacing(t *testing.T) {
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,
 		Value:     new(big.Int).Set(transferOnCalls),
-		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
+		RcvAddr:   vm.CreateEmptyAddress(),
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
@@ -312,7 +312,7 @@ func TestWASMMetering(t *testing.T) {
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,
 		Value:     new(big.Int).Set(transferOnCalls),
-		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
+		RcvAddr:   vm.CreateEmptyAddress(),
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,

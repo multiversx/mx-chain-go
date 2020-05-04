@@ -352,12 +352,7 @@ func (bpp *basePreProcess) saveAccountBalanceForAddress(address []byte) {
 }
 
 func (bpp *basePreProcess) getBalanceForAddress(address []byte) (*big.Int, error) {
-	addressContainer, err := bpp.pubkeyConverter.CreateAddressFromBytes(address)
-	if err != nil {
-		return nil, err
-	}
-
-	accountHandler, err := bpp.accounts.GetExistingAccount(addressContainer)
+	accountHandler, err := bpp.accounts.GetExistingAccount(address)
 	if err != nil {
 		return nil, err
 	}

@@ -62,7 +62,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 
 	err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	mainTrie := u.dataTries[string(rootHash)]
