@@ -25,6 +25,8 @@ var _ process.SmartContractProcessor = (*scProcessor)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract")
 
+var zero = big.NewInt(0)
+
 type scProcessor struct {
 	accounts         state.AccountsAdapter
 	tempAccounts     process.TemporaryAccountsHandler
@@ -248,7 +250,8 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	err = sc.scrForwarder.AddIntermediateTransactions(results)
+	finalResults := sc.deleteSCRsWithValueZeroGoingToMeta(results)
+	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
 	if err != nil {
 		log.Debug("AddIntermediateTransactions error", "error", err.Error())
 		return nil
@@ -277,6 +280,18 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	}
 
 	return nil
+}
+
+func (sc *scProcessor) deleteSCRsWithValueZeroGoingToMeta(scrs []data.TransactionHandler) []data.TransactionHandler {
+	cleanSCRs := make([]data.TransactionHandler, 0, len(scrs))
+	for _, scr := range scrs {
+		shardID := sc.shardCoordinator.ComputeId(scr.GetRcvAddr())
+		if shardID == core.MetachainShardId && scr.GetGasLimit() == 0 && scr.GetValue().Cmp(zero) == 0 {
+			continue
+		}
+		cleanSCRs = append(cleanSCRs, scr)
+	}
+	return cleanSCRs
 }
 
 func (sc *scProcessor) saveAccounts(acntSnd, acntDst state.AccountHandler) error {
@@ -350,11 +365,16 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	}
 
 	scrResults = append(scrResults, scrForSender)
-
-	err = sc.scrForwarder.AddIntermediateTransactions(scrResults)
+	finalResults := sc.deleteSCRsWithValueZeroGoingToMeta(scrResults)
+	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
 	if err != nil {
 		log.Debug("AddIntermediateTransactions error", "error", err.Error())
 		return true, err
+	}
+
+	if check.IfNil(acntSnd) {
+		// it was already consumed in sender shard
+		consumedFee = big.NewInt(0)
 	}
 
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
@@ -556,12 +576,30 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, process.ErrNilTransaction
 	}
 
+	scrForSender, consumedFee, err := sc.createSCRForSender(
+		vmOutput.GasRefund,
+		vmOutput.GasRemaining,
+		vmOutput.ReturnCode,
+		vmOutput.ReturnData,
+		tx,
+		txHash,
+		acntSnd,
+		callType,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		log.Trace("smart contract processing returned with error",
 			"hash", txHash,
 			"return code", vmOutput.ReturnCode.String(),
 			"return message", vmOutput.ReturnMessage,
 		)
+
+		if callType == vmcommon.AsynchronousCall {
+			return []data.TransactionHandler{scrForSender}, consumedFee, nil
+		}
 
 		return nil, nil, fmt.Errorf(vmOutput.ReturnCode.String())
 	}
@@ -572,6 +610,7 @@ func (sc *scProcessor) processVMOutput(
 	if err != nil {
 		return nil, nil, err
 	}
+	forwardedFee := sc.computeAllFeesSentForward(scrTxs)
 
 	acntSnd, err = sc.reloadLocalAccount(acntSnd)
 	if err != nil {
@@ -585,18 +624,10 @@ func (sc *scProcessor) processVMOutput(
 		log.Trace("total gas refunded", "value", vmOutput.GasRefund.String(), "hash", txHash)
 	}
 
-	scrForSender, consumedFee, err := sc.createSCRForSender(
-		vmOutput.GasRefund,
-		vmOutput.GasRemaining,
-		vmOutput.ReturnCode,
-		vmOutput.ReturnData,
-		tx,
-		txHash,
-		acntSnd,
-		callType,
-	)
-	if err != nil {
-		return nil, nil, err
+	consumedFee.Sub(consumedFee, forwardedFee)
+	if consumedFee.Cmp(zero) < 0 {
+		log.Error("consumedFee in smart contract shard should be bigger then forwardedFees")
+		consumedFee = big.NewInt(0)
 	}
 
 	scrTxs = append(scrTxs, scrForSender)
@@ -621,6 +652,23 @@ func (sc *scProcessor) processVMOutput(
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
 
 	return scrTxs, consumedFee, nil
+}
+
+func (sc *scProcessor) computeAllFeesSentForward(scrs []data.TransactionHandler) *big.Int {
+	fee := big.NewInt(0)
+
+	selfShardID := sc.shardCoordinator.SelfId()
+	for _, scr := range scrs {
+		recvShardID := sc.shardCoordinator.ComputeId(scr.GetRcvAddr())
+		if selfShardID == recvShardID {
+			continue
+		}
+
+		scrFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(scr.GetGasLimit()), big.NewInt(0).SetUint64(scr.GetGasPrice()))
+		fee.Add(fee, scrFee)
+	}
+
+	return fee
 }
 
 func sortVMOutputInsideData(vmOutput *vmcommon.VMOutput) []*vmcommon.OutputAccount {
