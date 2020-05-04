@@ -562,6 +562,25 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 	return nil
 }
 
+func (sc *scProcessor) computeGasRemainingFromVMOutput(vmOutput *vmcommon.VMOutput) uint64 {
+	gasRemaining := vmOutput.GasRemaining
+	for _, outAcc := range vmOutput.OutputAccounts {
+		if outAcc.GasLimit == 0 {
+			continue
+		}
+
+		if gasRemaining < outAcc.GasLimit {
+			log.Error("gasLimit missmatch in vmOutput - too much consumed gas - more then tx.GasLimit")
+			gasRemaining = 0
+			return gasRemaining
+		}
+
+		gasRemaining = gasRemaining - outAcc.GasLimit
+	}
+
+	return gasRemaining
+}
+
 func (sc *scProcessor) processVMOutput(
 	vmOutput *vmcommon.VMOutput,
 	txHash []byte,
@@ -576,9 +595,10 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, process.ErrNilTransaction
 	}
 
+	gasRemainedForSender := sc.computeGasRemainingFromVMOutput(vmOutput)
 	scrForSender, consumedFee, err := sc.createSCRForSender(
 		vmOutput.GasRefund,
-		vmOutput.GasRemaining,
+		gasRemainedForSender,
 		vmOutput.ReturnCode,
 		vmOutput.ReturnData,
 		tx,
@@ -616,7 +636,7 @@ func (sc *scProcessor) processVMOutput(
 		return nil, nil, err
 	}
 
-	totalGasConsumed := tx.GetGasLimit() - vmOutput.GasRemaining
+	totalGasConsumed := tx.GetGasLimit() - gasRemainedForSender
 	log.Trace("total gas consumed", "value", totalGasConsumed, "hash", txHash)
 
 	if vmOutput.GasRefund.Cmp(big.NewInt(0)) > 0 {
