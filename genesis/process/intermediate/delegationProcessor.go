@@ -1,10 +1,7 @@
 package intermediate
 
 import (
-	"encoding/hex"
 	"fmt"
-	"math/big"
-	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/genesis"
@@ -158,7 +155,7 @@ func (dp *delegationProcessor) stake(ac genesis.InitialAccountHandler, sc genesi
 }
 
 func (dp *delegationProcessor) activateBlsKeys(smartContracts []genesis.InitialSmartContractHandler) (int, error) {
-	mockSignature := "genesis"
+	//mockSignature := "genesis"
 
 	totalDelegated := 0
 	for _, sc := range smartContracts {
@@ -170,44 +167,45 @@ func (dp *delegationProcessor) activateBlsKeys(smartContracts []genesis.InitialS
 		}
 		totalDelegated += lenDelegated
 
-		setBlsKeys := make([]string, 0, lenDelegated)
-		activateKeys := make([]string, 0, lenDelegated)
-		for _, node := range delegatedNodes {
-			setBlsKeys = append(setBlsKeys, hex.EncodeToString(node.PubKeyBytes()))
-			activateKeys = append(activateKeys, mockSignature)
-		}
-
-		nonce, err := dp.GetNonce(sc.OwnerBytes())
-		if err != nil {
-			return 0, err
-		}
-
-		setString := fmt.Sprintf("setBlsKeys@%d@%s", lenDelegated, strings.Join(setBlsKeys, "@"))
-		err = dp.ExecuteTransaction(
-			nonce,
-			sc.OwnerBytes(),
-			sc.AddressBytes(),
-			big.NewInt(0),
-			[]byte(setString),
-		)
-		if err != nil {
-			return 0, err
-		}
-
-		nonce++
-
-		hexLenDelegated := hex.EncodeToString(big.NewInt(int64(lenDelegated)).Bytes())
-		activateString := fmt.Sprintf("activate@%s@%s", hexLenDelegated, strings.Join(activateKeys, "@"))
-		err = dp.ExecuteTransaction(
-			nonce,
-			sc.OwnerBytes(),
-			sc.AddressBytes(),
-			big.NewInt(0),
-			[]byte(activateString),
-		)
-		if err != nil {
-			return 0, err
-		}
+		//TODO refactor this: use the new delegation contract version that will only activate the nodes internally
+		//setBlsKeys := make([]string, 0, lenDelegated)
+		//activateKeys := make([]string, 0, lenDelegated)
+		//for _, node := range delegatedNodes {
+		//	setBlsKeys = append(setBlsKeys, hex.EncodeToString(node.PubKeyBytes()))
+		//	activateKeys = append(activateKeys, mockSignature)
+		//}
+		//
+		//nonce, err := dp.GetNonce(sc.OwnerBytes())
+		//if err != nil {
+		//	return 0, err
+		//}
+		//
+		//setString := fmt.Sprintf("setBlsKeys@%d@%s", lenDelegated, strings.Join(setBlsKeys, "@"))
+		//err = dp.ExecuteTransaction(
+		//	nonce,
+		//	sc.OwnerBytes(),
+		//	sc.AddressBytes(),
+		//	big.NewInt(0),
+		//	[]byte(setString),
+		//)
+		//if err != nil {
+		//	return 0, err
+		//}
+		//
+		//nonce++
+		//
+		//hexLenDelegated := hex.EncodeToString(big.NewInt(int64(lenDelegated)).Bytes())
+		//activateString := fmt.Sprintf("activate@%s@%s", hexLenDelegated, strings.Join(activateKeys, "@"))
+		//err = dp.ExecuteTransaction(
+		//	nonce,
+		//	sc.OwnerBytes(),
+		//	sc.AddressBytes(),
+		//	big.NewInt(0),
+		//	[]byte(activateString),
+		//)
+		//if err != nil {
+		//	return 0, err
+		//}
 	}
 
 	return totalDelegated, nil

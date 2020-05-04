@@ -40,6 +40,8 @@ export NODE_DELAY=10
 export TX_SIGN_FORMAT="bech32"
 export BLOCK_SIGN_FORMAT="hex"
 
+export GENESIS_STAKE_TYPE="delegated" #'delegated' or 'direct' as in direct stake
+
 # Shard structure
 export SHARDCOUNT=2
 export SHARD_VALIDATORCOUNT=3

@@ -84,7 +84,6 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesHandler genesis.N
 		"total delegation nodes", delegationResult.NumTotalDelegated,
 	)
 
-	//TODO add here delegation process
 	if arg.HardForkConfig.MustImport {
 		//TODO think about how to integrate when genesis is modified as well for hardfork - when should set balances be called
 		// shard genesis probably should stay the same as it was  defined for the actual genesis block - because of transparency
@@ -457,16 +456,18 @@ func incrementStakersNonces(arg ArgsGenesisBlockCreator) (int, error) {
 		return 0, err
 	}
 
+	stakersCounter := 0
 	initalAddressesInCurrentShard := initialAddresses[arg.ShardCoordinator.SelfId()]
 	for _, ia := range initalAddressesInCurrentShard {
 		if ia.GetStakingValue().Cmp(zero) < 1 {
 			continue
 		}
 
+		stakersCounter++
 		ia.IncrementNonceOffset()
 	}
 
-	return len(initalAddressesInCurrentShard), nil
+	return stakersCounter, nil
 }
 
 func executeDelegation(

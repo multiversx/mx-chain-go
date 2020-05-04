@@ -87,7 +87,7 @@ type TxExecutionProcessor interface {
 
 // NodesHandler is a wrapper over the nodes setup that has some helper functions used when processing genesis tasks
 type NodesHandler interface {
-	GetAllStakedNodes() []sharding.GenesisNodeInfoHandler
+	GetAllNodes() []sharding.GenesisNodeInfoHandler
 	GetDelegatedNodes(delegationScAddress []byte) []sharding.GenesisNodeInfoHandler
 	IsInterfaceNil() bool
 }

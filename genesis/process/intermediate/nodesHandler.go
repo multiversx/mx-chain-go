@@ -80,16 +80,9 @@ func (nh *nodesHandler) isDelegated(address []byte) bool {
 	return false
 }
 
-// GetAllStakedNodes returns all initial nodes that were directly staked upon
-func (nh *nodesHandler) GetAllStakedNodes() []sharding.GenesisNodeInfoHandler {
-	stakedNodes := make([]sharding.GenesisNodeInfoHandler, 0)
-	for _, node := range nh.allNodes {
-		if nh.isStaked(node.AddressBytes()) {
-			stakedNodes = append(stakedNodes, node)
-		}
-	}
-
-	return stakedNodes
+// GetAllNodes returns all initial nodes that (directly staked or delegated)
+func (nh *nodesHandler) GetAllNodes() []sharding.GenesisNodeInfoHandler {
+	return nh.allNodes
 }
 
 // GetDelegatedNodes returns the initial nodes that were delegated by the provided delegation SC address

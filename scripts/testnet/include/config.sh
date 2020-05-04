@@ -11,7 +11,8 @@ generateConfig() {
     -num-of-observers-in-metachain $META_OBSERVERCOUNT    \
     -metachain-consensus-group-size $META_CONSENSUS_SIZE  \
     -tx-sign-key-format $TX_SIGN_FORMAT                   \
-    -block-sign-key-format $BLOCK_SIGN_FORMAT
+    -block-sign-key-format $BLOCK_SIGN_FORMAT             \
+    -stake-type $GENESIS_STAKE_TYPE
   popd
 }
 
@@ -22,6 +23,7 @@ copyConfig() {
   cp ./filegen/nodesSetup.json ./node/config
   cp ./filegen/validatorKey.pem ./node/config
   cp ./filegen/walletKey.pem ./node/config
+  cp ./filegen/genesisSmartContracts.json ./node/config
   echo "Configuration files copied from the configuration generator to the working directories of the executables."
   popd
 }
@@ -54,7 +56,6 @@ copyNodeConfig() {
   cp $NODEDIR/config/external.toml ./node/config
   cp $NODEDIR/config/p2p.toml ./node/config
   cp $NODEDIR/config/gasSchedule.toml ./node/config
-  cp $NODEDIR/config/genesisSmartContracts.json ./node/config
   mkdir ./node/config/genesisContracts -p
   cp $NODEDIR/config/genesisContracts/*.* ./node/config/genesisContracts
 
