@@ -58,10 +58,12 @@ func TestVmContainerFactory_Create(t *testing.T) {
 			GlobalSettings: config.GlobalSettings{
 				TotalSupply:      "2000000000000000000000",
 				MinimumInflation: 0,
-				MaximumInflation: 0.5,
+				MaximumInflation: 0.05,
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage: 0.10,
+				LeaderPercentage:    0.1,
+				CommunityPercentage: 0.1,
+				CommunityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:  "10000000000",

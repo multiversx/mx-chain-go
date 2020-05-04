@@ -55,13 +55,12 @@ type NodesSetup struct {
 	MinNodesPerShard   uint32 `json:"minNodesPerShard"`
 	ChainID            string `json:"chainID"`
 
-	MetaChainConsensusGroupSize uint32 `json:"metaChainConsensusGroupSize"`
-	MetaChainMinNodes           uint32 `json:"metaChainMinNodes"`
+	MetaChainConsensusGroupSize uint32  `json:"metaChainConsensusGroupSize"`
+	MetaChainMinNodes           uint32  `json:"metaChainMinNodes"`
+	Hysteresis                  float32 `json:"hysteresis"`
+	Adaptivity                  bool    `json:"adaptivity"`
 
 	InitialNodes []*InitialNode `json:"initialNodes"`
-
-	Hysteresis float32 `json:"hysteresis"`
-	Adaptivity bool    `json:"adaptivity"`
 
 	nrOfShards               uint32
 	nrOfNodes                uint32

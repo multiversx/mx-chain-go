@@ -334,10 +334,10 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 	if len(unrequestedHashes) == 0 {
 		return
 	}
-	log.Debug("requesting transactions from network",
+	log.Debug("requesting trie nodes from network",
 		"topic", topic,
 		"shard", destShardID,
-		"num txs", len(unrequestedHashes),
+		"num nodes", len(unrequestedHashes),
 	)
 
 	resolver, err := rrh.resolversFinder.MetaCrossShardResolver(topic, destShardID)
@@ -352,7 +352,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 
 	trieResolver, ok := resolver.(dataRetriever.TrieNodesResolver)
 	if !ok {
-		log.Warn("wrong assertion type when creating transaction resolver")
+		log.Warn("wrong assertion type when creating a trie nodes resolver")
 		return
 	}
 
