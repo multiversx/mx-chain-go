@@ -187,6 +187,17 @@ func (cm *commonProcessor) buildRewardTransaction(
 }
 
 func (cm *commonProcessor) convertScResultInDatabaseScr(sc *smartContractResult.SmartContractResult) ScResult {
+	encodedData := strings.Split(string(sc.Data), "@")
+
+	decodedData := ""
+	for _, enc := range encodedData {
+		val, err := hex.DecodeString(enc)
+		if err != nil || len(val) == 0 {
+			continue
+		}
+		decodedData += "@" + string(val)
+	}
+
 	return ScResult{
 		Nonce:        sc.Nonce,
 		GasLimit:     sc.GasLimit,
@@ -195,7 +206,7 @@ func (cm *commonProcessor) convertScResultInDatabaseScr(sc *smartContractResult.
 		Sender:       cm.addressPubkeyConverter.Encode(sc.SndAddr),
 		Receiver:     cm.addressPubkeyConverter.Encode(sc.RcvAddr),
 		Code:         string(sc.Code),
-		Data:         string(sc.Data),
+		Data:         decodedData,
 		PreTxHash:    hex.EncodeToString(sc.PrevTxHash),
 		CallType:     string(sc.CallType),
 		CodeMetadata: string(sc.CodeMetadata),
@@ -245,32 +256,86 @@ func prepareBufferMiniblocks(buff bytes.Buffer, meta, serializedData []byte) byt
 	return buff
 }
 
-func serializeBulkTxs(bulk []*Transaction) bytes.Buffer {
+func serializeBulkTxs(bulk []*Transaction, selfShardID uint32) bytes.Buffer {
 	var buff bytes.Buffer
-	for _, tx := range bulk {
-		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
-		serializedTx, err := json.Marshal(tx)
-		if err != nil {
-			log.Debug("indexer: marshal",
-				"error", "could not serialize transaction, will skip indexing",
-				"tx hash", tx.Hash)
-			continue
-		}
-		// append a newline for each element
-		serializedTx = append(serializedTx, "\n"...)
+	var err error
 
-		buff.Grow(len(meta) + len(serializedTx))
+	for _, tx := range bulk {
+		var meta, serializedData []byte
+
+		if isCrossShardDstMe(tx, selfShardID) && tx.Status != txStatusInvalid {
+			// update tx
+			meta, serializedData = prepareTxUpdate(tx)
+		} else {
+			// write tx
+			meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
+			serializedData, err = json.Marshal(tx)
+			if err != nil {
+				log.Debug("indexer: marshal",
+					"error", "could not serialize transaction, will skip indexing",
+					"tx hash", tx.Hash)
+				continue
+			}
+		}
+
+		// append a newline for each element
+		serializedData = append(serializedData, "\n"...)
+
+		buff.Grow(len(meta) + len(serializedData))
 		_, err = buff.Write(meta)
 		if err != nil {
 			log.Warn("elastic search: serialize bulk tx, write meta", "error", err.Error())
 		}
-		_, err = buff.Write(serializedTx)
+		_, err = buff.Write(serializedData)
 		if err != nil {
 			log.Warn("elastic search: serialize bulk tx, write serialized tx", "error", err.Error())
 		}
 	}
 
 	return buff
+}
+
+func prepareTxUpdate(tx *Transaction) ([]byte, []byte) {
+	var meta, serializedData []byte
+
+	meta = []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s", "_type" : "%s"  } }%s`, tx.Hash, "_doc", "\n"))
+
+	marshalizedLog, err := json.Marshal(tx.Log)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize transaction log, will skip indexing",
+			"tx hash", tx.Hash)
+		return nil, nil
+	}
+	scResults, err := json.Marshal(tx.SmartContractResults)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize smart contract results, will skip indexing",
+			"tx hash", tx.Hash)
+		return nil, nil
+	}
+
+	marshalizedTimestamp, err := json.Marshal(tx.Timestamp)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize timestamp, will skip indexing",
+			"tx hash", tx.Hash)
+		return nil, nil
+	}
+
+	if tx.GasUsed == "" {
+		serializedData = []byte(fmt.Sprintf(`{ "doc" : { "log" : %s, "scResults" : %s, "status": "%s", "timestamp": %s } }`,
+			string(marshalizedLog), string(scResults), tx.Status, string(marshalizedTimestamp)))
+	} else {
+		serializedData = []byte(fmt.Sprintf(`{ "doc" : { "log" : %s, "scResults" : %s, "status": "%s", "timestamp": %s, "gasUsed" : "%s" } }`,
+			string(marshalizedLog), string(scResults), tx.Status, string(marshalizedTimestamp), tx.GasUsed))
+	}
+
+	return meta, serializedData
+}
+
+func isCrossShardDstMe(tx *Transaction, selfShardID uint32) bool {
+	return tx.SenderShard != tx.ReceiverShard && tx.ReceiverShard == selfShardID
 }
 
 func computeSizeOfTxs(marshalizer marshal.Marshalizer, txs map[string]data.TransactionHandler) int {

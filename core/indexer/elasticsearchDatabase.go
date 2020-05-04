@@ -209,11 +209,11 @@ func (esd *elasticSearchDatabase) SaveTransactions(
 	body *block.Body,
 	header data.HeaderHandler,
 	txPool map[string]data.TransactionHandler,
-	selfShardId uint32,
+	selfShardID uint32,
 ) {
-	bulks := esd.buildTransactionBulks(body, header, txPool, selfShardId)
+	bulks := esd.buildTransactionBulks(body, header, txPool, selfShardID)
 	for _, bulk := range bulks {
-		buff := serializeBulkTxs(bulk)
+		buff := serializeBulkTxs(bulk, selfShardID)
 		if buff.Len() == 0 {
 			continue
 		}

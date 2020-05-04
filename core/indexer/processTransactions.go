@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"encoding/hex"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
@@ -52,9 +53,9 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	body *block.Body,
 	header data.HeaderHandler,
 	txPool map[string]data.TransactionHandler,
-	selfShardId uint32,
+	selfShardID uint32,
 ) []*Transaction {
-	transactions, rewardsTxs := tdp.groupNormalTxsAndRewards(body, txPool, header, selfShardId)
+	transactions, rewardsTxs := tdp.groupNormalTxsAndRewards(body, txPool, header, selfShardID)
 	receipts := groupReceipts(txPool)
 	scResults := groupSmartContractResults(txPool)
 
@@ -63,7 +64,12 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 		if !ok {
 			continue
 		}
-		tx.ReceiptValue = rec.Value.String()
+
+		gasUsed := big.NewInt(0).SetUint64(tx.GasPrice)
+		gasUsed.Mul(gasUsed, big.NewInt(0).SetUint64(tx.GasLimit))
+		gasUsed.Sub(gasUsed, rec.Value)
+
+		tx.GasUsed = gasUsed.String()
 	}
 
 	countScResults := make(map[string]int)
@@ -72,7 +78,17 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 		if !ok {
 			continue
 		}
-		tx.SmartContractResults = append(tx.SmartContractResults, tdp.commonProcessor.convertScResultInDatabaseScr(scResult))
+
+		dbScResult := tdp.commonProcessor.convertScResultInDatabaseScr(scResult)
+		if tx.Sender == dbScResult.Receiver && dbScResult.Value != "0" && dbScResult.GasLimit != 0 {
+			gasUsed := big.NewInt(0).SetUint64(tx.GasPrice)
+			gasUsed.Mul(gasUsed, big.NewInt(0).SetUint64(tx.GasLimit))
+			gasUsed.Sub(gasUsed, scResult.Value)
+
+			tx.GasUsed = gasUsed.String()
+		}
+
+		tx.SmartContractResults = append(tx.SmartContractResults, dbScResult)
 		countScResults[string(scResult.OriginalTxHash)]++
 	}
 
@@ -133,7 +149,7 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 	body *block.Body,
 	txPool map[string]data.TransactionHandler,
 	header data.HeaderHandler,
-	selfShardId uint32,
+	selfShardID uint32,
 ) (
 	map[string]*Transaction,
 	[]*Transaction,
@@ -148,7 +164,7 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 		}
 
 		mbTxStatus := txStatusPending
-		if selfShardId == mb.ReceiverShardID {
+		if selfShardID == mb.ReceiverShardID {
 			mbTxStatus = txStatusSuccess
 		}
 

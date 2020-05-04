@@ -19,6 +19,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/receipt"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/stretchr/testify/require"
@@ -367,6 +369,99 @@ func TestUpdateMiniBlock(t *testing.T) {
 	esDatabase.SaveMiniblocks(header1, body1)
 	// update
 	esDatabase.SaveMiniblocks(header2, body1)
+}
+
+func TestUpdateTransaction(t *testing.T) {
+	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
+
+	args := elasticSearchDatabaseArgs{
+		url:                    "http://localhost:9200",
+		userName:               "basic_auth_username",
+		password:               "basic_auth_password",
+		marshalizer:            &mock.MarshalizerMock{},
+		hasher:                 &mock.HasherMock{},
+		addressPubkeyConverter: &mock.PubkeyConverterMock{},
+	}
+
+	esDatabase, _ := newElasticSearchDatabase(args)
+
+	txHash1 := []byte("txHash1")
+	tx1 := &transaction.Transaction{
+		GasPrice: 1,
+		GasLimit: 500,
+	}
+	txHash2 := []byte("txHash2")
+	sndAddr := []byte("snd")
+	tx2 := &transaction.Transaction{
+		GasLimit: 1,
+		GasPrice: 500,
+		SndAddr:  sndAddr,
+	}
+	txHash3 := []byte("txHash3")
+	tx3 := &transaction.Transaction{}
+
+	recHash1 := []byte("recHash1")
+	rec1 := &receipt.Receipt{
+		Value:  big.NewInt(100),
+		TxHash: txHash1,
+	}
+
+	scHash1 := []byte("scHash1")
+	scResult1 := &smartContractResult.SmartContractResult{
+		OriginalTxHash: txHash1,
+	}
+
+	scHash2 := []byte("scHash2")
+	scResult2 := &smartContractResult.SmartContractResult{
+		OriginalTxHash: txHash2,
+		RcvAddr:        sndAddr,
+		GasLimit:       500,
+		GasPrice:       1,
+		Value:          big.NewInt(150),
+	}
+
+	body := &dataBlock.Body{
+		MiniBlocks: []*dataBlock.MiniBlock{
+			{
+				TxHashes: [][]byte{txHash1, txHash2},
+				Type:     dataBlock.TxBlock,
+			},
+			{
+				TxHashes: [][]byte{txHash3},
+				Type:     dataBlock.TxBlock,
+			},
+			{
+				TxHashes: [][]byte{recHash1},
+				Type:     dataBlock.ReceiptBlock,
+			},
+			{
+				TxHashes: [][]byte{scHash1, scHash2},
+				Type:     dataBlock.SmartContractResultBlock,
+			},
+		},
+	}
+	header := &dataBlock.Header{}
+	txPool := map[string]data.TransactionHandler{
+		string(txHash1):  tx1,
+		string(txHash2):  tx2,
+		string(txHash3):  tx3,
+		string(recHash1): rec1,
+	}
+
+	body.MiniBlocks[0].ReceiverShardID = 1
+	// insert
+	esDatabase.SaveTransactions(body, header, txPool, 0)
+
+	header.TimeStamp = 1234
+	txPool = map[string]data.TransactionHandler{
+		string(txHash1): tx1,
+		string(txHash2): tx2,
+		string(scHash1): scResult1,
+		string(scHash2): scResult2,
+	}
+
+	// update
+	esDatabase.SaveTransactions(body, header, txPool, 1)
 }
 
 func TestTrimSliceInBulks(t *testing.T) {

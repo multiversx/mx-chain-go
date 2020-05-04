@@ -35,13 +35,13 @@ func TestGetTransactionByType_SC(t *testing.T) {
 
 	nonce := uint64(10)
 	txHash := []byte("txHash")
-	code, dt := []byte("code"), []byte("data")
+	code := []byte("code")
 	sndAddr, rcvAddr := []byte("snd"), []byte("rec")
 	smartContractRes := &smartContractResult.SmartContractResult{
 		Nonce:      nonce,
 		PrevTxHash: txHash,
 		Code:       code,
-		Data:       dt,
+		Data:       []byte(""),
 		SndAddr:    sndAddr,
 		RcvAddr:    rcvAddr,
 		CallType:   vmcommon.CallType(0),
@@ -52,7 +52,7 @@ func TestGetTransactionByType_SC(t *testing.T) {
 		Nonce:     nonce,
 		PreTxHash: hex.EncodeToString(txHash),
 		Code:      string(code),
-		Data:      string(dt),
+		Data:      "",
 		Sender:    cp.addressPubkeyConverter.Encode(sndAddr),
 		Receiver:  cp.addressPubkeyConverter.Encode(rcvAddr),
 		Value:     "<nil>",

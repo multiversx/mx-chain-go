@@ -25,7 +25,7 @@ type Transaction struct {
 	Signature            string        `json:"signature"`
 	Timestamp            time.Duration `json:"timestamp"`
 	Status               string        `json:"status"`
-	ReceiptValue         string        `json:"gasRefund"`
+	GasUsed              string        `json:"gasUsed"`
 	SmartContractResults []ScResult    `json:"scResults"`
 	Log                  TxLog         `json:"log"`
 }
