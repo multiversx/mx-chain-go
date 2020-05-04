@@ -152,22 +152,12 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 }
 
 func (ssh *shardStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNeededForBootstrap) error {
-	_, err := ssh.saveMetaHdrToStorage(components.EpochStartMetaBlock)
-	if err != nil {
-		return nil
-	}
-
-	err = ssh.saveMetaHdrForEpochTrigger(components.EpochStartMetaBlock)
+	err := ssh.saveMetaHdrForEpochTrigger(components.EpochStartMetaBlock)
 	if err != nil {
 		return err
 	}
 
 	err = ssh.saveMetaHdrForEpochTrigger(components.PreviousEpochStart)
-	if err != nil {
-		return err
-	}
-
-	_, err = ssh.saveMetaHdrToStorage(components.PreviousEpochStart)
 	if err != nil {
 		return err
 	}
@@ -245,7 +235,12 @@ func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(meta *block.MetaBl
 		return nil, err
 	}
 
-	neededHdr, ok := headers[string(shardData.LastFinishedMetaBlock)]
+	lastCrossMetaHdrHash := shardData.LastFinishedMetaBlock
+	if len(shardData.PendingMiniBlockHeaders) == 0 {
+		lastCrossMetaHdrHash = shardData.FirstPendingMetaBlock
+	}
+
+	neededHdr, ok := headers[string(lastCrossMetaHdrHash)]
 	if !ok {
 		return nil, epochStart.ErrMissingHeader
 	}
@@ -263,33 +258,8 @@ func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(meta *block.MetaBl
 	crossNotarizedHdrs := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
 	crossNotarizedHdrs = append(crossNotarizedHdrs, bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: core.MetachainShardId,
-		Nonce:   neededHdr.GetNonce(),
-		Hash:    shardData.LastFinishedMetaBlock,
-	})
-
-	if len(shardData.PendingMiniBlockHeaders) > 0 {
-		return crossNotarizedHdrs, nil
-	}
-
-	neededHdr, ok = headers[string(shardData.FirstPendingMetaBlock)]
-	if !ok {
-		return nil, epochStart.ErrMissingHeader
-	}
-
-	neededMeta, ok = neededHdr.(*block.MetaBlock)
-	if !ok {
-		return nil, epochStart.ErrWrongTypeAssertion
-	}
-
-	_, err = ssh.saveMetaHdrToStorage(neededMeta)
-	if err != nil {
-		return nil, err
-	}
-
-	crossNotarizedHdrs = append(crossNotarizedHdrs, bootstrapStorage.BootstrapHeaderInfo{
-		ShardId: core.MetachainShardId,
 		Nonce:   neededMeta.GetNonce(),
-		Hash:    shardData.FirstPendingMetaBlock,
+		Hash:    lastCrossMetaHdrHash,
 	})
 
 	return crossNotarizedHdrs, nil

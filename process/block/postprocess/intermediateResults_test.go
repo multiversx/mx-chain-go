@@ -2,7 +2,6 @@ package postprocess
 
 import (
 	"bytes"
-	"errors"
 	"sort"
 	"testing"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -124,36 +122,6 @@ func TestNewIntermediateResultsProcessor_Good(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestIntermediateResultsProcessor_getShardIdsFromAddressesErrAdrConv(t *testing.T) {
-	t.Parallel()
-
-	nrShards := 5
-	expectedErr := errors.New("expected error")
-	irp, err := NewIntermediateResultsProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pkBytes []byte) (container state.AddressContainer, err error) {
-				return nil, expectedErr
-			},
-		},
-		&mock.ChainStorerMock{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-	)
-
-	assert.NotNil(t, irp)
-	assert.Nil(t, err)
-
-	sndAddr := []byte("sndAddress")
-	dstAddr := []byte("dstAddress")
-
-	sndId, dstId, err := irp.getShardIdsFromAddresses(sndAddr, dstAddr)
-	assert.Equal(t, uint32(nrShards), sndId, dstId)
-	assert.Equal(t, expectedErr, err)
-}
-
 func TestIntermediateResultsProcessor_getShardIdsFromAddressesGood(t *testing.T) {
 	t.Parallel()
 
@@ -222,35 +190,6 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsWrongType(t *te
 
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
-}
-
-func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrConvError(t *testing.T) {
-	t.Parallel()
-
-	nrShards := 5
-	expectedErr := errors.New("expected error")
-	irp, err := NewIntermediateResultsProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pkBytes []byte) (container state.AddressContainer, err error) {
-				return nil, expectedErr
-			},
-		},
-		&mock.ChainStorerMock{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-	)
-
-	assert.NotNil(t, irp)
-	assert.Nil(t, err)
-
-	txs := make([]data.TransactionHandler, 0)
-	txs = append(txs, &smartContractResult.SmartContractResult{})
-
-	err = irp.AddIntermediateTransactions(txs)
-	assert.Equal(t, expectedErr, err)
 }
 
 func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *testing.T) {
@@ -391,8 +330,8 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 
 	snd := []byte("snd")
 
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
-		if bytes.Equal(address.Bytes(), snd) {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, snd) {
 			return shardCoordinator.SelfId()
 		}
 		return shardCoordinator.SelfId() + 1
@@ -519,8 +458,8 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMiniBlockMissmatc
 
 	snd := []byte("snd")
 
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
-		if bytes.Equal(address.Bytes(), snd) {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, snd) {
 			return shardCoordinator.SelfId()
 		}
 		return otherShard
@@ -560,8 +499,8 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 
 	snd := []byte("snd")
 	otherShard := shardCoordinator.SelfId() + 1
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
-		if bytes.Equal(address.Bytes(), snd) {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, snd) {
 			return shardCoordinator.SelfId()
 		}
 		return otherShard
@@ -626,8 +565,8 @@ func TestIntermediateResultsProcessor_SaveCurrentIntermediateTxToStorageShouldSa
 
 	snd := []byte("snd")
 
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
-		if bytes.Equal(address.Bytes(), snd) {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, snd) {
 			return shardCoordinator.SelfId()
 		}
 		return shardCoordinator.SelfId() + 1
@@ -701,8 +640,8 @@ func TestIntermediateResultsProcessor_CreateMarshalizedData(t *testing.T) {
 
 	snd := []byte("snd")
 
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
-		if bytes.Equal(address.Bytes(), snd) {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, snd) {
 			return shardCoordinator.SelfId()
 		}
 		return shardCoordinator.SelfId() + 1
@@ -768,8 +707,8 @@ func TestIntermediateResultsProcessor_GetAllCurrentUsedTxs(t *testing.T) {
 
 	snd := []byte("snd")
 
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
-		if bytes.Equal(address.Bytes(), snd) {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, snd) {
 			return shardCoordinator.SelfId()
 		}
 		return shardCoordinator.SelfId() + 1

@@ -3,6 +3,7 @@ package leveldb
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"runtime"
 	"sync"
@@ -50,7 +51,7 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 
 	db, err := openLevelDB(path, options)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w for path %s", err, path)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

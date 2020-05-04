@@ -33,8 +33,8 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 		Value:    big.NewInt(1),
 		GasLimit: 2,
 		GasPrice: 1,
-		SndAddr:  address.Bytes(),
-		RcvAddr:  address.Bytes(),
+		SndAddr:  address,
+		RcvAddr:  address,
 	}
 
 	err := txProcessor.ProcessTransaction(tx)
@@ -68,8 +68,8 @@ func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	tx := &transaction.Transaction{
 		Nonce:    nonce,
 		Value:    big.NewInt(1),
-		SndAddr:  address.Bytes(),
-		RcvAddr:  address.Bytes(),
+		SndAddr:  address,
+		RcvAddr:  address,
 		GasLimit: 2,
 		GasPrice: 2,
 	}
@@ -110,8 +110,8 @@ func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
 func testExecTransactionsMoreTxWithRevert(
 	t *testing.T,
 	accnts state.AccountsAdapter,
-	sender state.AddressContainer,
-	receiver state.AddressContainer,
+	sender []byte,
+	receiver []byte,
 	initialHash []byte,
 	initialNonce uint64,
 	initialBalance int64,
@@ -130,8 +130,8 @@ func testExecTransactionsMoreTxWithRevert(
 			Value:    big.NewInt(int64(value)),
 			GasPrice: gasPrice,
 			GasLimit: gasLimit,
-			SndAddr:  sender.Bytes(),
-			RcvAddr:  receiver.Bytes(),
+			SndAddr:  sender,
+			RcvAddr:  receiver,
 		}
 
 		err := txProcessor.ProcessTransaction(tx)

@@ -9,7 +9,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
@@ -35,9 +34,6 @@ func createMockHexPubkeyConverter() *mock.PubkeyConverterStub {
 	return &mock.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return hex.DecodeString(humanReadable)
-		},
-		CreateAddressFromBytesCalled: func(pkBytes []byte) (state.AddressContainer, error) {
-			return mock.NewAddressMock(pkBytes), nil
 		},
 	}
 }
@@ -394,34 +390,6 @@ func TestAccountsParser_InitialAccountsSplitOnAddressesShardsNilShardCoordinator
 	assert.Equal(t, genesis.ErrNilShardCoordinator, err)
 }
 
-func TestAccountsParser_InitialAccountsSplitOnAddressesShardsShardsAddressConvertFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("expected error")
-	ap := parsing.NewTestAccountsParser(
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
-				return nil, expectedErr
-			},
-		},
-	)
-	balance := int64(1)
-	ibs := []*data.InitialAccount{
-		createSimpleInitialAccount("0001", balance),
-	}
-	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
-	ap.SetInitialAccounts(ibs)
-	err := ap.Process()
-	require.Nil(t, err)
-
-	ibsSplit, err := ap.InitialAccountsSplitOnAddressesShards(
-		&mock.ShardCoordinatorMock{},
-	)
-
-	assert.Equal(t, expectedErr, err)
-	assert.Nil(t, ibsSplit)
-}
-
 func TestAccountsParser_InitialAccountsSplitOnAddressesShards(t *testing.T) {
 	t.Parallel()
 
@@ -464,34 +432,6 @@ func TestAccountsParser_InitialAccountsSplitOnDelegationAddressesShardsNilShardC
 
 	assert.Nil(t, ibs)
 	assert.Equal(t, genesis.ErrNilShardCoordinator, err)
-}
-
-func TestAccountsParser_InitialAccountsSplitOnDelegationAddressesShardsPubkeyConverterFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("expected error")
-	ap := parsing.NewTestAccountsParser(
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
-				return nil, expectedErr
-			},
-		},
-	)
-	balance := int64(1)
-	ibs := []*data.InitialAccount{
-		createDelegatedInitialAccount("0001", "0002", balance),
-	}
-	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
-	ap.SetInitialAccounts(ibs)
-	err := ap.Process()
-	require.Nil(t, err)
-
-	ibsSplit, err := ap.InitialAccountsSplitOnDelegationAddressesShards(
-		&mock.ShardCoordinatorMock{},
-	)
-
-	assert.Equal(t, expectedErr, err)
-	assert.Nil(t, ibsSplit)
 }
 
 func TestAccountsParser_InitialAccountsSplitOnDelegationAddressesShards(t *testing.T) {
