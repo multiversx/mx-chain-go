@@ -688,10 +688,38 @@ func (ihgs *indexHashedNodesCoordinator) ShuffleOutForEpoch(epoch uint32) {
 	nodesConfig := ihgs.nodesConfig[epoch]
 	ihgs.mutNodesConfig.Unlock()
 
-	err := ihgs.shuffledOutHandler.Process(nodesConfig.shardID)
-	if err != nil {
-		log.Warn("Shuffle out process failed", "err", err)
+	if isValidator(nodesConfig, ihgs.selfPubKey) {
+		err := ihgs.shuffledOutHandler.Process(nodesConfig.shardID)
+		if err != nil {
+			log.Warn("Shuffle out process failed", "err", err)
+		}
 	}
+}
+
+func isValidator(config *epochNodesConfig, pk []byte) bool {
+	found := false
+	found = searchInMap(config.eligibleMap, pk)
+	if found {
+		return true
+	}
+
+	found = searchInMap(config.waitingMap, pk)
+	if found {
+		return true
+	}
+
+	return false
+}
+
+func searchInMap(validatorMap map[uint32][]Validator, pk []byte) bool {
+	for _, validatorsInShard := range validatorMap {
+		for _, val := range validatorsInShard {
+			if bytes.Equal(val.PubKey(), pk) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // GetConsensusWhitelistedNodes return the whitelisted nodes allowed to send consensus messages, for each of the shards

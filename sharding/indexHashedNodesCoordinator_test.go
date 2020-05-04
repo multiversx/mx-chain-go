@@ -1234,6 +1234,156 @@ func TestIndexHashedNodesCoordinator_GetOwnPublicKey(t *testing.T) {
 	require.Equal(t, arguments.SelfPublicKey, ownPubKey)
 }
 
+func TestIndexHashedNodesCoordinator_ShuffleOutWithEligible(t *testing.T) {
+	t.Parallel()
+
+	processCalled := false
+	newShard := uint32(0)
+
+	arguments := createArguments()
+	arguments.ShuffledOutHandler = &mock.ShuffledOutHandlerStub{
+		ProcessCalled: func(newShardID uint32) error {
+			processCalled = true
+			newShard = newShardID
+			return nil
+		},
+	}
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	epoch := uint32(2)
+	validatorShard := uint32(7)
+	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID: validatorShard,
+			eligibleMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
+			},
+		},
+	}
+
+	ihgs.ShuffleOutForEpoch(epoch)
+	require.True(t, processCalled)
+	require.Equal(t, validatorShard, newShard)
+}
+
+func TestIndexHashedNodesCoordinator_ShuffleOutWithWaiting(t *testing.T) {
+	t.Parallel()
+
+	processCalled := false
+	newShard := uint32(0)
+
+	arguments := createArguments()
+	arguments.ShuffledOutHandler = &mock.ShuffledOutHandlerStub{
+		ProcessCalled: func(newShardID uint32) error {
+			processCalled = true
+			newShard = newShardID
+			return nil
+		},
+	}
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	epoch := uint32(2)
+	validatorShard := uint32(7)
+	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID: validatorShard,
+			waitingMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
+			},
+		},
+	}
+
+	ihgs.ShuffleOutForEpoch(epoch)
+	require.True(t, processCalled)
+	require.Equal(t, validatorShard, newShard)
+}
+
+func TestIndexHashedNodesCoordinator_ShuffleOutWithObserver(t *testing.T) {
+	t.Parallel()
+
+	processCalled := false
+	newShard := uint32(0)
+
+	arguments := createArguments()
+	arguments.ShuffledOutHandler = &mock.ShuffledOutHandlerStub{
+		ProcessCalled: func(newShardID uint32) error {
+			processCalled = true
+			newShard = newShardID
+			return nil
+		},
+	}
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	epoch := uint32(2)
+	validatorShard := uint32(7)
+	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID: validatorShard,
+			eligibleMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock([]byte("eligibleKey"), 1, 1)},
+			},
+			waitingMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock([]byte("waitingKey"), 1, 1)},
+			},
+			leavingList: []Validator{mock.NewValidatorMock(pk, 1, 1)},
+		},
+	}
+
+	ihgs.ShuffleOutForEpoch(epoch)
+	require.False(t, processCalled)
+	expectedShardForLeaving := uint32(0)
+	require.Equal(t, expectedShardForLeaving, newShard)
+}
+
+func TestIndexHashedNodesCoordinator_ShuffleOutNotFound(t *testing.T) {
+	t.Parallel()
+
+	processCalled := false
+	newShard := uint32(0)
+
+	arguments := createArguments()
+	arguments.ShuffledOutHandler = &mock.ShuffledOutHandlerStub{
+		ProcessCalled: func(newShardID uint32) error {
+			processCalled = true
+			newShard = newShardID
+			return nil
+		},
+	}
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	epoch := uint32(2)
+	validatorShard := uint32(7)
+	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID: validatorShard,
+			eligibleMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock([]byte("eligibleKey"), 1, 1)},
+			},
+			waitingMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock([]byte("waitingKey"), 1, 1)},
+			},
+			leavingList: []Validator{mock.NewValidatorMock([]byte("observerKey"), 1, 1)},
+		},
+	}
+
+	ihgs.ShuffleOutForEpoch(epoch)
+	require.False(t, processCalled)
+	expectedShardForNotFound := uint32(0)
+	require.Equal(t, expectedShardForNotFound, newShard)
+}
+
 func TestIndexHashedNodesCoordinator_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
