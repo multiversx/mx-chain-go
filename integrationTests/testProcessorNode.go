@@ -995,7 +995,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestMarshalizer,
 		&config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost: "100000000",
+				BaseIssuingCost: "1000",
 				OwnerAddress:    "aaaaaa",
 			},
 		},

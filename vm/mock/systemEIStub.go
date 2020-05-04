@@ -85,7 +85,7 @@ func (s *SystemEIStub) Finish(value []byte) {
 }
 
 // Transfer -
-func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.Int, input []byte) error {
+func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) error {
 	if s.TransferCalled != nil {
 		return s.TransferCalled(destination, sender, value, input)
 	}

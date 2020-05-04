@@ -188,7 +188,7 @@ func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 		return vm.ErrTokenAlreadyRegistered
 	}
 
-	newESDTToken := ESDTData{
+	newESDTToken := &ESDTData{
 		IssuerAddress: owner,
 		TokenName:     tokenName,
 		Mintable:      false,
@@ -223,8 +223,8 @@ func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 
 	e.eei.SetStorage(tokenName, marshalledData)
 
-	esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(initialSupply.Bytes())
-	err = e.eei.Transfer(owner, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData))
+	esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenName) + "@" + hex.EncodeToString(initialSupply.Bytes())
+	err = e.eei.Transfer(owner, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 	if err != nil {
 		return err
 	}

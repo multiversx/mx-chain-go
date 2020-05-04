@@ -793,7 +793,7 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 	_ = registrationData.LockedStake.Sub(registrationData.LockedStake, totalUnBond)
 	_ = registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, totalUnBond)
 
-	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil)
+	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
 	if err != nil {
 		log.Debug("transfer error on unBond function")
 		return vmcommon.UserError
@@ -841,7 +841,7 @@ func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, claimable, nil)
+	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, claimable, nil, 0)
 	if err != nil {
 		log.Debug("transfer error on finalizeUnStake function",
 			"error", err.Error(),
