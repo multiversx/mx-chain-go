@@ -16,12 +16,12 @@ type MapChunkPointer struct {
 	value atomic.Value
 }
 
-// Set sets the value
+// Set sets the pointer
 func (variable *MapChunkPointer) Set(value *MapChunk) {
 	variable.value.Store(value)
 }
 
-// Get gets the value
+// Get gets the pointer
 func (variable *MapChunkPointer) Get() *MapChunk {
 	value := variable.value.Load()
 	if value == nil {
