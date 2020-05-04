@@ -571,11 +571,10 @@ func (sc *scProcessor) computeGasRemainingFromVMOutput(vmOutput *vmcommon.VMOutp
 
 		if gasRemaining < outAcc.GasLimit {
 			log.Error("gasLimit missmatch in vmOutput - too much consumed gas - more then tx.GasLimit")
-			gasRemaining = 0
-			return gasRemaining
+			return 0
 		}
 
-		gasRemaining = gasRemaining - outAcc.GasLimit
+		gasRemaining -= outAcc.GasLimit
 	}
 
 	return gasRemaining
