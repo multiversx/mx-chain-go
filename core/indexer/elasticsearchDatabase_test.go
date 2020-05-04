@@ -467,25 +467,32 @@ func TestUpdateTransaction(t *testing.T) {
 func TestTrimSliceInBulks(t *testing.T) {
 	t.Parallel()
 
-	sliceSize := 95
-	bulkSize := 10
+	sliceSize := 9500
+	bulkSize := 1000
 
 	testSlice := make([]int, sliceSize)
 	bulks := make([][]int, sliceSize/bulkSize+1)
+	bulksBigCapacity1 := make([][]int, sliceSize/bulkSize+1)
+	bulksBigCapacity2 := make([][]int, sliceSize/bulkSize+1)
 
 	for i := 0; i < sliceSize; i++ {
 		testSlice[i] = i
 	}
 
 	for i := 0; i < len(bulks); i++ {
-		bulks[i] = make([]int, bulkSize)
 		if i == len(bulks)-1 {
 			bulks[i] = append([]int(nil), testSlice[i*bulkSize:]...)
+			bulksBigCapacity1[i] = append(bulksBigCapacity1[i], testSlice[i*bulkSize:]...)
+			bulksBigCapacity2[i] = testSlice[i*bulkSize:]
 			continue
 		}
 
 		bulks[i] = append([]int(nil), testSlice[i*bulkSize:(i+1)*bulkSize]...)
+		bulksBigCapacity1[i] = append(bulksBigCapacity1[i], testSlice[i*bulkSize:(i+1)*bulkSize]...)
+		bulksBigCapacity2[i] = testSlice[i*bulkSize : (i+1)*bulkSize]
 	}
 
 	require.Equal(t, len(bulks), sliceSize/bulkSize+1)
+	require.Equal(t, len(bulksBigCapacity1), sliceSize/bulkSize+1)
+	require.Equal(t, len(bulksBigCapacity2), sliceSize/bulkSize+1)
 }

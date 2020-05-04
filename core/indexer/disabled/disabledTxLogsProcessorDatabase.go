@@ -20,8 +20,8 @@ func (t *txLogProcessor) GetLogFromCache(_ []byte) (data.LogHandler, bool) {
 	return nil, false
 }
 
-// SaveLogToCache -
-func (t *txLogProcessor) SaveLogToCache() {
+// EnableLogToBeSavedInCache -
+func (t *txLogProcessor) EnableLogToBeSavedInCache() {
 }
 
 // Clean -

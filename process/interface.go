@@ -241,7 +241,7 @@ type TransactionLogProcessor interface {
 // TransactionLogProcessorDatabase is interface the  for saving logs also in RAM
 type TransactionLogProcessorDatabase interface {
 	GetLogFromCache(txHash []byte) (data.LogHandler, bool)
-	SaveLogToCache()
+	EnableLogToBeSavedInCache()
 	Clean()
 	IsInterfaceNil() bool
 }

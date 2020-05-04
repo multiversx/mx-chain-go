@@ -229,7 +229,6 @@ func (esd *elasticSearchDatabase) SaveTransactions(
 // SetTxLogsProcessor will set tx logs processor
 func (esd *elasticSearchDatabase) SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase) {
 	esd.txLogsProcessor = txLogsProc
-	esd.txLogsProcessor.SaveLogToCache()
 }
 
 // buildTransactionBulks creates bulks of maximum txBulkSize transactions to be indexed together
@@ -245,11 +244,11 @@ func (esd *elasticSearchDatabase) buildTransactionBulks(
 	bulks := make([][]*Transaction, (len(txs)/txBulkSize)+1)
 	for i := 0; i < len(bulks); i++ {
 		if i == len(bulks)-1 {
-			bulks[i] = append([]*Transaction(nil), txs[i*txBulkSize:]...)
+			bulks[i] = append(bulks[i], txs[i*txBulkSize:]...)
 			continue
 		}
 
-		bulks[i] = append([]*Transaction(nil), txs[i*txBulkSize:(i+1)*txBulkSize]...)
+		bulks[i] = append(bulks[i], txs[i*txBulkSize:(i+1)*txBulkSize]...)
 	}
 
 	return bulks

@@ -19,10 +19,11 @@ import (
 )
 
 const (
-	txStatusSuccess     = "Success"
-	txStatusPending     = "Pending"
-	txStatusInvalid     = "Invalid"
-	txStatusNotExecuted = "Not Executed"
+	txStatusSuccess                     = "Success"
+	txStatusPending                     = "Pending"
+	txStatusInvalid                     = "Invalid"
+	txStatusNotExecuted                 = "Not Executed"
+	minimumNumberOfSmartContractResults = 2
 )
 
 type txDatabaseProcessor struct {
@@ -93,18 +94,18 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	}
 
 	for hash, nrScResult := range countScResults {
-		if nrScResult < 2 {
+		if nrScResult < minimumNumberOfSmartContractResults {
 			transactions[hash].Status = txStatusNotExecuted
 		}
 	}
 
 	for hash, tx := range transactions {
-		log, ok := tdp.txLogsProcessor.GetLogFromCache([]byte(hash))
+		txLog, ok := tdp.txLogsProcessor.GetLogFromCache([]byte(hash))
 		if !ok {
 			continue
 		}
 
-		tx.Log = tdp.prepareTxLog(log)
+		tx.Log = tdp.prepareTxLog(txLog)
 	}
 
 	tdp.txLogsProcessor.Clean()
