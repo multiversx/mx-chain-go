@@ -68,14 +68,6 @@ func (sortedMap *BucketSortedMap) Set(item BucketSortedMapItem) {
 	chunk.setItem(item)
 }
 
-// NotifyScoreChangeByKey moves or adds the item to the corresponding score chunk
-func (sortedMap *BucketSortedMap) NotifyScoreChangeByKey(key string) {
-	item, ok := sortedMap.Get(key)
-	if ok {
-		sortedMap.NotifyScoreChange(item)
-	}
-}
-
 // NotifyScoreChange moves or adds the item to the corresponding score chunk
 func (sortedMap *BucketSortedMap) NotifyScoreChange(item BucketSortedMapItem) {
 	newScore := item.ComputeScore()
