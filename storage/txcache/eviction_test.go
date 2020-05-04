@@ -279,6 +279,8 @@ func Test_EvictSendersAndTheirTxs_Concurrently(t *testing.T) {
 			cache.AddTx(createTx([]byte("alice-y"), "alice", 43))
 			cache.AddTx(createTx([]byte("bob-x"), "bob", 42))
 			cache.AddTx(createTx([]byte("bob-y"), "bob", 43))
+			cache.Remove([]byte("alice-x"))
+			cache.Remove([]byte("bob-x"))
 			wg.Done()
 		}()
 
@@ -296,9 +298,4 @@ func Test_EvictSendersAndTheirTxs_Concurrently(t *testing.T) {
 	}
 
 	wg.Wait()
-
-	snapshot := cache.txListBySender.getSnapshotAscending()
-	cache.evictSendersAndTheirTxs(snapshot)
-	require.Equal(t, 0, cache.txByHash.backingMap.Count())
-	require.Equal(t, uint32(0), cache.txListBySender.backingMap.Count())
 }
