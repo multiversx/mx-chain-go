@@ -592,8 +592,8 @@ func (s *stakingAuctionSC) activateStakingFor(
 			continue
 		}
 
-		numStaked++
 		if stakedData.Staked {
+			numStaked++
 			continue
 		}
 
@@ -603,8 +603,10 @@ func (s *stakingAuctionSC) activateStakingFor(
 			continue
 		}
 
-		registrationData.LockedStake.Add(registrationData.LockedStake, fixedStakeValue)
+		numStaked++
 	}
+
+	registrationData.LockedStake.Mul(fixedStakeValue, big.NewInt(0).SetUint64(numStaked))
 }
 
 func (s *stakingAuctionSC) executeOnStakingSC(data []byte) (*vmcommon.VMOutput, error) {
