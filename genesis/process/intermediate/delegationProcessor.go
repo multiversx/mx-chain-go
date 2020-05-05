@@ -207,3 +207,8 @@ func (dp *delegationProcessor) activateBlsKeys(smartContracts []genesis.InitialS
 
 	return totalDelegated, nil
 }
+
+// IsInterfaceNil returns if underlying object is true
+func (dp *delegationProcessor) IsInterfaceNil() bool {
+	return dp == nil || dp.TxExecutionProcessor == nil
+}

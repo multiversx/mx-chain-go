@@ -51,8 +51,8 @@ func NewNodesListSplitter(
 	}, nil
 }
 
-func (nh *nodesHandler) isDelegated(address []byte) bool {
-	accounts := nh.accountsParser.InitialAccounts()
+func (nls *nodesListSplitter) isDelegated(address []byte) bool {
+	accounts := nls.accountsParser.InitialAccounts()
 	for _, ac := range accounts {
 		dh := ac.GetDelegationHandler()
 		if check.IfNil(dh) {
@@ -70,8 +70,8 @@ func (nh *nodesHandler) isDelegated(address []byte) bool {
 }
 
 // GetAllNodes returns all initial nodes that (directly staked or delegated)
-func (nh *nodesHandler) GetAllNodes() []sharding.GenesisNodeInfoHandler {
-	return nh.allNodes
+func (nls *nodesListSplitter) GetAllNodes() []sharding.GenesisNodeInfoHandler {
+	return nls.allNodes
 }
 
 // GetDelegatedNodes returns the initial nodes that were delegated by the provided delegation SC address

@@ -65,41 +65,41 @@ func createInitialAccountWithDelegation(delegationAddress string) *data.InitialA
 	return ia
 }
 
-func TestNewNodesHandler_NilNodesHandlerShouldErr(t *testing.T) {
+func TestNewNodesListSplitter_NilNodesHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	nh, err := NewNodesHandler(
+	nls, err := NewNodesListSplitter(
 		nil,
 		&mock.AccountsParserStub{},
 	)
 
-	assert.True(t, check.IfNil(nh))
+	assert.True(t, check.IfNil(nls))
 	assert.Equal(t, genesis.ErrNilNodesSetup, err)
 }
 
-func TestNewNodesHandler_NilAccountsParserShouldErr(t *testing.T) {
+func TestNewNodesListSplitter_NilAccountsParserShouldErr(t *testing.T) {
 	t.Parallel()
 
-	nh, err := NewNodesHandler(
+	nls, err := NewNodesListSplitter(
 		&mock.InitialNodesHandlerStub{},
 		nil,
 	)
 
-	assert.True(t, check.IfNil(nh))
+	assert.True(t, check.IfNil(nls))
 	assert.Equal(t, genesis.ErrNilAccountsParser, err)
 }
 
-func TestNodesHandler_GetAllNodes(t *testing.T) {
+func TestNewNodesListSplitter_GetAllNodes(t *testing.T) {
 	t.Parallel()
 
-	nh, err := NewNodesHandler(
+	nls, err := NewNodesListSplitter(
 		createMockNodesHandler(),
 		&mock.AccountsParserStub{},
 	)
 
 	require.Nil(t, err)
 
-	nodes := nh.GetAllNodes()
+	nodes := nls.GetAllNodes()
 	require.Equal(t, 9, len(nodes))
 
 	//this will also test the order of the elements
@@ -117,10 +117,10 @@ func TestNodesHandler_GetAllNodes(t *testing.T) {
 	assert.Equal(t, "addr9", string(nodes[8].AddressBytes()))
 }
 
-func TestNodesHandler_GetDelegatedNodes(t *testing.T) {
+func TestNodesListSplitter_GetDelegatedNodes(t *testing.T) {
 	t.Parallel()
 
-	nh, _ := NewNodesHandler(
+	nls, _ := NewNodesListSplitter(
 		createMockNodesHandler(),
 		&mock.AccountsParserStub{
 			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
@@ -134,11 +134,11 @@ func TestNodesHandler_GetDelegatedNodes(t *testing.T) {
 		},
 	)
 
-	nodes := nh.GetDelegatedNodes([]byte("addr6"))
+	nodes := nls.GetDelegatedNodes([]byte("addr6"))
 	require.Equal(t, 1, len(nodes))
 	assert.Equal(t, "pubkey6", string(nodes[0].PubKeyBytes()))
 
-	nodes = nh.GetDelegatedNodes([]byte("addr1"))
+	nodes = nls.GetDelegatedNodes([]byte("addr1"))
 	require.Equal(t, 2, len(nodes))
 	//Test the order
 	assert.Equal(t, "pubkey1", string(nodes[0].PubKeyBytes()))

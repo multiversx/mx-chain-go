@@ -1,6 +1,7 @@
 package intermediate
 
 import (
+	"errors"
 	"math/big"
 	"testing"
 
@@ -91,5 +92,67 @@ func TestNewDelegationDeployProcessor_ShouldWork(t *testing.T) {
 	)
 
 	assert.False(t, check.IfNil(ddp))
+	assert.Nil(t, err)
+}
+
+//------- replaceDelegationPlaceholders
+
+func TestDelegationDeployProcessor_ReplaceDelegationPlaceholdersNotStakedShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ddp, _ := NewDelegationDeployProcessor(
+		&mock.DeployProcessorStub{},
+		&mock.AccountsParserStub{
+			GetTotalStakedForDelegationAddressCalled: func(delegationAddress string) *big.Int {
+				return big.NewInt(0)
+			},
+		},
+		mock.NewPubkeyConverterMock(32),
+		big.NewInt(1),
+	)
+
+	str, err := ddp.replaceDelegationPlaceholders("data", []byte("sc address"))
+
+	assert.Equal(t, "", str)
+	assert.True(t, errors.Is(err, genesis.ErrInvalidDelegationValue))
+}
+
+func TestDelegationDeployProcessor_ReplaceDelegationPlaceholdersNotAnExactValueShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ddp, _ := NewDelegationDeployProcessor(
+		&mock.DeployProcessorStub{},
+		&mock.AccountsParserStub{
+			GetTotalStakedForDelegationAddressCalled: func(delegationAddress string) *big.Int {
+				return big.NewInt(4)
+			},
+		},
+		mock.NewPubkeyConverterMock(32),
+		big.NewInt(3),
+	)
+
+	str, err := ddp.replaceDelegationPlaceholders("data", []byte("sc address"))
+
+	assert.Equal(t, "", str)
+	assert.True(t, errors.Is(err, genesis.ErrInvalidDelegationValue))
+}
+
+func TestDelegationDeployProcessor_ReplaceDelegationPlaceholdersShouldWork(t *testing.T) {
+	t.Parallel()
+
+	ddp, _ := NewDelegationDeployProcessor(
+		&mock.DeployProcessorStub{},
+		&mock.AccountsParserStub{
+			GetTotalStakedForDelegationAddressCalled: func(delegationAddress string) *big.Int {
+				return big.NewInt(6)
+			},
+		},
+		mock.NewPubkeyConverterMock(32),
+		big.NewInt(3),
+	)
+
+	str, err := ddp.replaceDelegationPlaceholders(stakedPlaceholder, []byte("sc address"))
+
+	assert.Equal(t, "6", str)
 	assert.Nil(t, err)
 }
