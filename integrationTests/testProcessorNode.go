@@ -885,7 +885,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		ArgumentParser:   tpn.ArgsParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
-	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
+	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler)
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      tpn.VMContainer,
@@ -1015,7 +1015,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ArgumentParser:   tpn.ArgsParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
-	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
+	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler)
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      tpn.VMContainer,
 		ArgsParser:       tpn.ArgsParser,

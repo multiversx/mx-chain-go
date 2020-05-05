@@ -59,7 +59,7 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (pr
 		return nil, err
 	}
 
-	newFunc, err = NewESDTTransferFunc(gasConfig.BuiltInCost.SaveKeyValue, args.Marshalizer)
+	newFunc, err = NewESDTTransferFunc(gasConfig.BuiltInCost.ESDTTransfer, args.Marshalizer)
 	if err != nil {
 		return nil, err
 	}

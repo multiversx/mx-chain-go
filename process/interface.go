@@ -45,7 +45,7 @@ type SmartContractResultProcessor interface {
 
 // TxTypeHandler is an interface to calculate the transaction type
 type TxTypeHandler interface {
-	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, error)
+	ComputeTransactionType(tx data.TransactionHandler) TransactionType
 	IsInterfaceNil() bool
 }
 

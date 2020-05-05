@@ -301,11 +301,6 @@ func createProcessorsForMetaGenesisBlock(
 		return nil, nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(args.Economics)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  args.PubkeyConv,
 		ShardCoordinator: args.ShardCoordinator,
@@ -313,6 +308,11 @@ func createProcessorsForMetaGenesisBlock(
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	gasHandler, err := preprocess.NewGasComputation(args.Economics, txTypeHandler)
 	if err != nil {
 		return nil, nil, err
 	}

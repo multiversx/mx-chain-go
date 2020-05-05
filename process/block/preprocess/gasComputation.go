@@ -3,7 +3,6 @@ package preprocess
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -14,6 +13,7 @@ var _ process.GasHandler = (*gasComputation)(nil)
 
 type gasComputation struct {
 	economicsFee   process.FeeHandler
+	txTypeHandler  process.TxTypeHandler
 	gasConsumed    map[string]uint64
 	mutGasConsumed sync.RWMutex
 	gasRefunded    map[string]uint64
@@ -23,16 +23,20 @@ type gasComputation struct {
 // NewGasComputation creates a new object which computes the gas consumption
 func NewGasComputation(
 	economicsFee process.FeeHandler,
+	txTypeHandler process.TxTypeHandler,
 ) (*gasComputation, error) {
-
 	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
+	if check.IfNil(txTypeHandler) {
+		return nil, process.ErrNilTxTypeHandler
+	}
 
 	return &gasComputation{
-		economicsFee: economicsFee,
-		gasConsumed:  make(map[string]uint64),
-		gasRefunded:  make(map[string]uint64),
+		txTypeHandler: txTypeHandler,
+		economicsFee:  economicsFee,
+		gasConsumed:   make(map[string]uint64),
+		gasRefunded:   make(map[string]uint64),
 	}, nil
 }
 
@@ -167,8 +171,13 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 
 	txGasLimitConsumption := gc.economicsFee.ComputeGasLimit(txHandler)
 
-	if core.IsSmartContractAddress(txHandler.GetRcvAddr()) {
-		if txSenderShardId != txReceiverShardId && txGasLimitConsumption < txHandler.GetGasLimit() {
+	txType := gc.txTypeHandler.ComputeTransactionType(txHandler)
+	isSCCall := txType == process.SCDeployment || txType == process.SCInvoking || txType == process.BuiltInFunctionCall
+	if isSCCall {
+		isCrossShardSCCall := txSenderShardId != txReceiverShardId &&
+			txGasLimitConsumption < txHandler.GetGasLimit() &&
+			txType != process.BuiltInFunctionCall
+		if isCrossShardSCCall {
 			gasConsumedByTxInSenderShard := txGasLimitConsumption
 			gasConsumedByTxInReceiverShard := txHandler.GetGasLimit() - txGasLimitConsumption
 

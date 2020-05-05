@@ -1692,8 +1692,8 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 	arguments.TempAccounts = fakeAccountsHandler
 	arguments.Coordinator = shardCoordinator
 	arguments.TxTypeHandler = &mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
-			return process.SCDeployment, nil
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
+			return process.SCDeployment
 		},
 	}
 	sc, err := NewSmartContractProcessor(arguments)
@@ -1741,8 +1741,8 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 		},
 	}
 	arguments.TxTypeHandler = &mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
-			return process.SCInvoking, nil
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
+			return process.SCInvoking
 		},
 	}
 	sc, err := NewSmartContractProcessor(arguments)

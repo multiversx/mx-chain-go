@@ -1212,16 +1212,6 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(economics)
-	if err != nil {
-		return nil, err
-	}
-
-	txFeeHandler, err := postprocess.NewFeeAccumulator()
-	if err != nil {
-		return nil, err
-	}
-
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  stateComponents.AddressPubkeyConverter,
 		ShardCoordinator: shardCoordinator,
@@ -1229,6 +1219,16 @@ func newShardBlockProcessor(
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	gasHandler, err := preprocess.NewGasComputation(economics, txTypeHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	txFeeHandler, err := postprocess.NewFeeAccumulator()
 	if err != nil {
 		return nil, err
 	}
@@ -1476,16 +1476,6 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(economicsData)
-	if err != nil {
-		return nil, err
-	}
-
-	txFeeHandler, err := postprocess.NewFeeAccumulator()
-	if err != nil {
-		return nil, err
-	}
-
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  stateComponents.AddressPubkeyConverter,
 		ShardCoordinator: shardCoordinator,
@@ -1493,6 +1483,16 @@ func newMetaBlockProcessor(
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	gasHandler, err := preprocess.NewGasComputation(economicsData, txTypeHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	txFeeHandler, err := postprocess.NewFeeAccumulator()
 	if err != nil {
 		return nil, err
 	}

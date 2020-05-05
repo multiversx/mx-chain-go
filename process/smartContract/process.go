@@ -1036,10 +1036,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		sc.pubkeyConv,
 	)
 
-	txType, err := sc.txTypeHandler.ComputeTransactionType(scr)
-	if err != nil {
-		return nil
-	}
+	txType := sc.txTypeHandler.ComputeTransactionType(scr)
 
 	switch txType {
 	case process.MoveBalance:
@@ -1049,6 +1046,9 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		err = process.ErrSCDeployFromSCRIsNotPermitted
 		return nil
 	case process.SCInvoking:
+		err = sc.ExecuteSmartContractTransaction(scr, nil, dstAcc)
+		return nil
+	case process.BuiltInFunctionCall:
 		err = sc.ExecuteSmartContractTransaction(scr, nil, dstAcc)
 		return nil
 	}

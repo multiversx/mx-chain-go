@@ -55,13 +55,13 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 		return nil, process.ErrInvalidArguments
 	}
 
-	gasRemaining := uint64(0)
-	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
 	value := big.NewInt(0).SetBytes(vmInput.Arguments[1])
 	if value.Cmp(zero) <= 0 {
 		return nil, process.ErrNegativeValue
 	}
 
+	gasRemaining := uint64(0)
+	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
 	log.Trace("esdtTransfer", "snd", vmInput.CallerAddr, "rcv", vmInput.RecipientAddr, "value", value)
 
 	if !check.IfNil(acntSnd) {
