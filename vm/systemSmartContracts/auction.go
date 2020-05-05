@@ -516,7 +516,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	registrationData.TotalStakeValue.Add(registrationData.TotalStakeValue, args.CallValue)
-	if registrationData.TotalStakeValue.Cmp(config.MinStakeValue) < 0 || args.CallValue.Sign() <= 0 {
+	if registrationData.TotalStakeValue.Cmp(config.MinStakeValue) < 0 {
 		return vmcommon.UserError
 	}
 
