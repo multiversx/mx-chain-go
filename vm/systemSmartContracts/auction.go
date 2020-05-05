@@ -510,7 +510,6 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	config := s.getConfig(s.eei.BlockChainHook().CurrentEpoch())
-
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
 		return vmcommon.UserError
