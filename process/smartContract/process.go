@@ -283,6 +283,10 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 }
 
 func (sc *scProcessor) deleteSCRsWithValueZeroGoingToMeta(scrs []data.TransactionHandler) []data.TransactionHandler {
+	if sc.shardCoordinator.SelfId() == core.MetachainShardId {
+		return scrs
+	}
+
 	cleanSCRs := make([]data.TransactionHandler, 0, len(scrs))
 	for _, scr := range scrs {
 		shardID := sc.shardCoordinator.ComputeId(scr.GetRcvAddr())
