@@ -81,6 +81,7 @@ func CreateShardGenesisBlockFromInitialBalances(
 		RandSeed:        rootHash,
 		TimeStamp:       genesisTime,
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 
 	return header, err

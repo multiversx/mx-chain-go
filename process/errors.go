@@ -638,6 +638,9 @@ var ErrValidatorInfoMiniBlockNotFromMeta = errors.New("validatorInfo miniblocks 
 // ErrAccumulatedFeesDoNotMatch signals that accumulated fees do not match
 var ErrAccumulatedFeesDoNotMatch = errors.New("accumulated fees do not match")
 
+// ErrDeveloperFeesDoNotMatch signals that developer fees do not match
+var ErrDeveloperFeesDoNotMatch = errors.New("developer fees do not match")
+
 // ErrAccumulatedFeesInEpochDoNotMatch signals that accumulated fees in epoch do not match
 var ErrAccumulatedFeesInEpochDoNotMatch = errors.New("accumulated fees in epoch do not match")
 

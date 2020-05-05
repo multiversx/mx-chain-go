@@ -719,6 +719,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
 				Epoch:           1,
 				RandSeed:        randSeed,
 				AccumulatedFees: big.NewInt(0),
+				DeveloperFees:   big.NewInt(0),
 			}
 		},
 	}
@@ -809,6 +810,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 		EpochStartMetaHash: epochStartHash,
 		RootHash:           rootHash,
 		AccumulatedFees:    big.NewInt(0),
+		DeveloperFees:      big.NewInt(0),
 	}
 
 	blk := &block.Body{}
@@ -867,6 +869,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 		EpochStartMetaHash: epochStartHash,
 		RootHash:           rootHash,
 		AccumulatedFees:    big.NewInt(0),
+		DeveloperFees:      big.NewInt(0),
 	}
 
 	blk := &block.Body{}

@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -252,7 +252,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	err = sp.verifyAccumulatedFees(header)
+	err = sp.verifyFees(header)
 	if err != nil {
 		return err
 	}
@@ -1086,6 +1086,7 @@ func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) data.Heade
 		Nonce:           nonce,
 		Round:           round,
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 
 	return header
@@ -1706,6 +1707,7 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, body *blo
 	shardHeader.MiniBlockHeaders = miniBlockHeaders
 	shardHeader.TxCount = uint32(totalTxCount)
 	shardHeader.AccumulatedFees = sp.feeHandler.GetAccumulatedFees()
+	shardHeader.DeveloperFees = sp.feeHandler.GetDeveloperFees()
 
 	sw.Start("sortHeaderHashesForCurrentBlockByNonce")
 	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)

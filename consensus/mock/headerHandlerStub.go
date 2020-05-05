@@ -34,6 +34,10 @@ func (hhs *HeaderHandlerStub) GetDeveloperFees() *big.Int {
 func (hhs *HeaderHandlerStub) SetAccumulatedFees(_ *big.Int) {
 }
 
+// SetDeveloperFees -
+func (hhs *HeaderHandlerStub) SetDeveloperFees(_ *big.Int) {
+}
+
 // GetReceiptsHash -
 func (hhs *HeaderHandlerStub) GetReceiptsHash() []byte {
 	return []byte("receipt")

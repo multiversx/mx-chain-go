@@ -84,7 +84,7 @@ func (m *MetaBlock) SetAccumulatedFees(value *big.Int) {
 	m.AccumulatedFees.Set(value)
 }
 
-// SetDeveloperFees sets the devloper fees in the header
+// SetDeveloperFees sets the developer fees in the header
 func (m *MetaBlock) SetDeveloperFees(value *big.Int) {
 	m.DeveloperFees.Set(value)
 }

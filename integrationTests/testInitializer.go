@@ -428,6 +428,7 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 		RootHash:        rootHash,
 		PrevHash:        rootHash,
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 }
 

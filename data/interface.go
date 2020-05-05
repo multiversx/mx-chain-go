@@ -39,11 +39,11 @@ type HeaderHandler interface {
 	GetTxCount() uint32
 	GetReceiptsHash() []byte
 	GetAccumulatedFees() *big.Int
-	//GetDeveloperFees() *big.Int
+	GetDeveloperFees() *big.Int
 	GetEpochStartMetaHash() []byte
 
 	SetAccumulatedFees(value *big.Int)
-	//SetDeveloperFees() *big.Int
+	SetDeveloperFees(value *big.Int)
 	SetShardID(shId uint32)
 	SetNonce(n uint64)
 	SetEpoch(e uint32)

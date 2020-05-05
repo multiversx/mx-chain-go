@@ -261,6 +261,7 @@ func TestEconomics_ComputeEndOfEpochEconomics_NotEpochStartShouldErr(t *testing.
 	mb1 := block.MetaBlock{
 		Epoch:                  0,
 		AccumulatedFeesInEpoch: big.NewInt(10),
+		DevFeesInEpoch:         big.NewInt(0),
 	}
 	res, err := ec.ComputeEndOfEpochEconomics(&mb1)
 	assert.Nil(t, res)
@@ -305,6 +306,7 @@ func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {
 		},
 		Epoch:                  2,
 		AccumulatedFeesInEpoch: big.NewInt(10000),
+		DevFeesInEpoch:         big.NewInt(0),
 	}
 	res, err := ec.ComputeEndOfEpochEconomics(&mb)
 	assert.Nil(t, err)
@@ -317,6 +319,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 	commAddress := "communityAddress"
 	totalSupply := big.NewInt(20000000000) // 20B
 	accFeesInEpoch := big.NewInt(0)
+	devFeesInEpoch := big.NewInt(0)
 	roundDur := 4
 	args := getArguments()
 	args.RewardsHandler = &mock.RewardsHandlerStub{
@@ -406,6 +409,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 			},
 			Epoch:                  1,
 			AccumulatedFeesInEpoch: accFeesInEpoch,
+			DevFeesInEpoch:         devFeesInEpoch,
 		}
 
 		err := ec.VerifyRewardsPerBlock(&mb)

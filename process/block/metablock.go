@@ -304,7 +304,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.verifyAccumulatedFees(header)
+	err = mp.verifyFees(header)
 	if err != nil {
 		return err
 	}
@@ -371,7 +371,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.verifyAccumulatedFees(header)
+	err = mp.verifyFees(header)
 	if err != nil {
 		return err
 	}
@@ -1466,6 +1466,9 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 		if shardData.AccumulatedFees.Cmp(shardHdr.AccumulatedFees) != 0 {
 			return nil, process.ErrAccumulatedFeesDoNotMatch
 		}
+		if shardData.DeveloperFees.Cmp(shardHdr.DeveloperFees) != 0 {
+			return nil, process.ErrDeveloperFeesDoNotMatch
+		}
 
 		mapMiniBlockHeadersInMetaBlock := make(map[string]struct{})
 		for _, shardMiniBlockHdr := range shardData.ShardMiniBlockHeaders {
@@ -1699,6 +1702,7 @@ func (mp *metaProcessor) createShardInfo() ([]block.ShardData, error) {
 		}
 		shardData.LastIncludedMetaNonce = header.GetNonce()
 		shardData.AccumulatedFees = shardHdr.AccumulatedFees
+		shardData.DeveloperFees = shardHdr.DeveloperFees
 
 		if len(shardHdr.MiniBlockHeaders) > 0 {
 			shardData.ShardMiniBlockHeaders = make([]block.MiniBlockHeader, 0, len(shardHdr.MiniBlockHeaders))
