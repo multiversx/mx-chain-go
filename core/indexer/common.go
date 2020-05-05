@@ -193,7 +193,7 @@ func (cm *commonProcessor) convertScResultInDatabaseScr(sc *smartContractResult.
 	for _, enc := range encodedData {
 		val, err := hex.DecodeString(enc)
 		if err != nil || len(val) == 0 {
-			continue
+			decodedData += "@" + enc
 		}
 		decodedData += "@" + string(val)
 	}
