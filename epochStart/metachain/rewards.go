@@ -170,6 +170,9 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 		if err != nil {
 			return err
 		}
+		if rwdTx.Value.Cmp(big.NewInt(0)) <= 0 {
+			continue
+		}
 
 		rc.currTxs.AddTx(rwdTxHash, rwdTx)
 
@@ -188,6 +191,10 @@ func (rc *rewardsCreator) addCommunityRewardToMiniBlocks(
 	if err != nil {
 		return err
 	}
+	if rwdTx.Value.Cmp(big.NewInt(0)) <= 0 {
+		return nil
+	}
+
 	rc.currTxs.AddTx(rwdTxHash, rwdTx)
 	miniBlocks[shardId].TxHashes = append(miniBlocks[shardId].TxHashes, rwdTxHash)
 
