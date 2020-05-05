@@ -93,10 +93,12 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 	resultFillIndex := 0
 	resultIsFull := false
 
+	snapshotOfSenders := cache.getSendersEligibleForSelection()
+
 	for pass := 0; !resultIsFull; pass++ {
 		copiedInThisPass := 0
 
-		cache.forEachSenderDescending(func(key string, txList *txListForSender) {
+		for _, txList := range snapshotOfSenders {
 			batchSizeWithScoreCoefficient := batchSizePerSender * int(txList.getLastComputedScore()+1)
 			// Reset happens on first pass only
 			isFirstBatch := pass == 0
@@ -110,9 +112,9 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 			copiedInThisPass += copied
 			resultIsFull = resultFillIndex == numRequested
 			if resultIsFull {
-				return
+				break
 			}
-		})
+		}
 
 		nothingCopiedThisPass := copiedInThisPass == 0
 
@@ -125,6 +127,10 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 	result = result[:resultFillIndex]
 	cache.monitorSelectionEnd(result, stopWatch)
 	return result
+}
+
+func (cache *TxCache) getSendersEligibleForSelection() []*txListForSender {
+	return cache.txListBySender.getSnapshotDescending()
 }
 
 func (cache *TxCache) doAfterSelection() {
@@ -168,10 +174,6 @@ func (cache *TxCache) Len() int {
 // CountSenders gets the number of senders in the cache
 func (cache *TxCache) CountSenders() int64 {
 	return cache.txListBySender.counter.Get()
-}
-
-func (cache *TxCache) forEachSenderDescending(function ForEachSender) {
-	cache.txListBySender.forEachDescending(function)
 }
 
 // ForEachTransaction iterates over the transactions in the cache

@@ -126,14 +126,15 @@ func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {
 	return listsSnapshot
 }
 
-// ForEachSender is an iterator callback
-type ForEachSender func(key string, value *txListForSender)
+func (txMap *txListBySenderMap) getSnapshotDescending() []*txListForSender {
+	itemsSnapshot := txMap.backingMap.GetSnapshotDescending()
+	listsSnapshot := make([]*txListForSender, len(itemsSnapshot))
 
-func (txMap *txListBySenderMap) forEachDescending(function ForEachSender) {
-	txMap.backingMap.IterCbSortedDescending(func(key string, item maps.BucketSortedMapItem) {
-		txList := item.(*txListForSender)
-		function(key, txList)
-	})
+	for i, item := range itemsSnapshot {
+		listsSnapshot[i] = item.(*txListForSender)
+	}
+
+	return listsSnapshot
 }
 
 func (txMap *txListBySenderMap) clear() {
