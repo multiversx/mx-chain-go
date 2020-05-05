@@ -330,10 +330,11 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	// return error here only if acntSnd is not nil - so this is sender shard
 
 	vmOutput, err := builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
-	if err != nil && !check.IfNil(acntSnd) {
-		return true, err
-	}
 	if err != nil {
+		if !check.IfNil(acntSnd) {
+			return true, err
+		}
+
 		vmOutput = &vmcommon.VMOutput{ReturnCode: vmcommon.UserError, ReturnMessage: err.Error()}
 	}
 
