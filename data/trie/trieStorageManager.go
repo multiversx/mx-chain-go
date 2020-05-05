@@ -201,6 +201,10 @@ func (tsm *trieStorageManager) Prune(rootHash []byte, identifier data.TriePrunin
 func (tsm *trieStorageManager) resolveBufferedHashes(oldHashes [][]byte) {
 	for _, rootHash := range oldHashes {
 		lastBytePos := len(rootHash) - 1
+		if lastBytePos < 0 {
+			continue
+		}
+
 		pruneOperation := pruningOperation(rootHash[lastBytePos])
 		rootHash = rootHash[:lastBytePos]
 
