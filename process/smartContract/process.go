@@ -212,7 +212,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	executed, err = sc.resolveBuiltInFunctions(txHash, tx, acntSnd, acntDst, vmInput)
 	if err != nil {
 		log.Debug("processed built in functions error", "error", err.Error())
-		return nil
+		return err
 	}
 	if executed {
 		return nil
@@ -323,13 +323,14 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	if err != nil {
 		return false, nil
 	}
-	if check.IfNil(builtIn) {
-		return true, process.ErrNilBuiltInFunction
-	}
+	// return error here only if acntSnd is not nil - so this is sender shard
 
 	vmOutput, err := builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
-	if err != nil {
+	if err != nil && !check.IfNil(acntSnd) {
 		return true, err
+	}
+	if err != nil {
+		vmOutput = &vmcommon.VMOutput{ReturnCode: vmcommon.UserError, ReturnMessage: err.Error()}
 	}
 
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
@@ -343,20 +344,16 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	if vmOutput.GasRefund != nil {
 		refund = vmOutput.GasRefund
 	}
-	scrForSender, consumedFee, err := sc.createSCRForSender(
+	scrForSender, consumedFee := sc.createSCRForSender(
 		refund,
 		vmOutput.GasRemaining,
-		vmcommon.Ok,
+		vmOutput.ReturnCode,
 		make([][]byte, 0),
 		tx,
 		txHash,
 		acntSnd,
 		vmcommon.DirectCall,
 	)
-	if err != nil {
-		return true, err
-	}
-
 	if !check.IfNil(acntSnd) {
 		err = acntSnd.AddToBalance(scrForSender.Value)
 		if err != nil {
@@ -595,7 +592,7 @@ func (sc *scProcessor) processVMOutput(
 	}
 
 	gasRemainedForSender := sc.computeGasRemainingFromVMOutput(vmOutput)
-	scrForSender, consumedFee, err := sc.createSCRForSender(
+	scrForSender, consumedFee := sc.createSCRForSender(
 		vmOutput.GasRefund,
 		gasRemainedForSender,
 		vmOutput.ReturnCode,
@@ -605,9 +602,6 @@ func (sc *scProcessor) processVMOutput(
 		acntSnd,
 		callType,
 	)
-	if err != nil {
-		return nil, nil, err
-	}
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		log.Trace("smart contract processing returned with error",
@@ -793,7 +787,7 @@ func (sc *scProcessor) createSCRForSender(
 	txHash []byte,
 	acntSnd state.UserAccountHandler,
 	callType vmcommon.CallType,
-) (*smartContractResult.SmartContractResult, *big.Int, error) {
+) (*smartContractResult.SmartContractResult, *big.Int) {
 	storageFreeRefund := big.NewInt(0).Mul(gasRefund, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
 
 	consumedFee := big.NewInt(0)
@@ -831,10 +825,10 @@ func (sc *scProcessor) createSCRForSender(
 		// cross shard move balance fee was already consumed at sender shard
 		moveBalanceCost := sc.economicsFee.ComputeFee(tx)
 		consumedFee.Sub(consumedFee, moveBalanceCost)
-		return scTx, consumedFee, nil
+		return scTx, consumedFee
 	}
 
-	return scTx, consumedFee, nil
+	return scTx, consumedFee
 }
 
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.
