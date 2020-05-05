@@ -37,7 +37,7 @@ type deployedScMetrics struct {
 }
 
 // CreateShardGenesisBlock will create a shard genesis block
-func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesHandler genesis.NodesHandler) (data.HeaderHandler, error) {
+func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter) (data.HeaderHandler, error) {
 	processors, err := createProcessorsForShard(arg)
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesHandler genesis.N
 			err, arg.ShardCoordinator.SelfId())
 	}
 
-	delegationResult, err := executeDelegation(processors, arg, nodesHandler)
+	delegationResult, err := executeDelegation(processors, arg, nodesListSplitter)
 	if err != nil {
 		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d",
 			err, arg.ShardCoordinator.SelfId())
@@ -472,7 +472,7 @@ func incrementStakersNonces(arg ArgsGenesisBlockCreator) (int, error) {
 func executeDelegation(
 	processors *genesisProcessors,
 	arg ArgsGenesisBlockCreator,
-	nodesHandler genesis.NodesHandler,
+	nodesListSplitter genesis.NodesListSplitter,
 ) (genesis.DelegationResult, error) {
 	txExecutor, err := intermediate.NewTxExecutionProcessor(processors.txProcessor, arg.Accounts)
 	if err != nil {
@@ -484,7 +484,7 @@ func executeDelegation(
 		arg.ShardCoordinator,
 		arg.AccountsParser,
 		arg.SmartContractParser,
-		nodesHandler,
+		nodesListSplitter,
 	)
 	if err != nil {
 		return genesis.DelegationResult{}, err

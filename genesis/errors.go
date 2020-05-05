@@ -107,8 +107,8 @@ var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 // ErrNilTxExecutionProcessor signals that a nil tx execution processor has been provided
 var ErrNilTxExecutionProcessor = errors.New("nil tx execution processor")
 
-// ErrNilNodesHandler signals that a nil nodes handler has been provided
-var ErrNilNodesHandler = errors.New("nil nodes handler")
+// ErrNilNodesListSplitter signals that a nil nodes handler has been provided
+var ErrNilNodesListSplitter = errors.New("nil nodes list splitter")
 
 // ErrNilDeployProcessor signals that a nil deploy processor has been provided
 var ErrNilDeployProcessor = errors.New("nil deploy processor")

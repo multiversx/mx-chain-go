@@ -9,17 +9,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-type nodesHandler struct {
+type nodesListSplitter struct {
 	allNodes       []sharding.GenesisNodeInfoHandler
 	accountsParser genesis.AccountsParser
 }
 
-// NewNodesHandler returns a wrapper instance over the initial nodes setup in order to add some helper functions
-// used in genesis delegation process
-func NewNodesHandler(
+// NewNodesListSplitter returns an instance able to split the nodes by some criterias
+func NewNodesListSplitter(
 	initialNodesSetup genesis.InitialNodesHandler,
 	accountsParser genesis.AccountsParser,
-) (*nodesHandler, error) {
+) (*nodesListSplitter, error) {
 
 	if check.IfNil(accountsParser) {
 		return nil, genesis.ErrNilAccountsParser
@@ -43,14 +42,14 @@ func NewNodesHandler(
 		allNodes = append(allNodes, waiting[shardID]...)
 	}
 
-	return &nodesHandler{
+	return &nodesListSplitter{
 		allNodes:       allNodes,
 		accountsParser: accountsParser,
 	}, nil
 }
 
-func (nh *nodesHandler) isStaked(address []byte) bool {
-	accounts := nh.accountsParser.InitialAccounts()
+func (nls *nodesListSplitter) isStaked(address []byte) bool {
+	accounts := nls.accountsParser.InitialAccounts()
 	for _, ac := range accounts {
 		if !bytes.Equal(ac.AddressBytes(), address) {
 			continue
@@ -62,8 +61,8 @@ func (nh *nodesHandler) isStaked(address []byte) bool {
 	return false
 }
 
-func (nh *nodesHandler) isDelegated(address []byte) bool {
-	accounts := nh.accountsParser.InitialAccounts()
+func (nls *nodesListSplitter) isDelegated(address []byte) bool {
+	accounts := nls.accountsParser.InitialAccounts()
 	for _, ac := range accounts {
 		dh := ac.GetDelegationHandler()
 		if check.IfNil(dh) {
@@ -81,10 +80,10 @@ func (nh *nodesHandler) isDelegated(address []byte) bool {
 }
 
 // GetAllStakedNodes returns all initial nodes that were directly staked upon
-func (nh *nodesHandler) GetAllStakedNodes() []sharding.GenesisNodeInfoHandler {
+func (nls *nodesListSplitter) GetAllStakedNodes() []sharding.GenesisNodeInfoHandler {
 	stakedNodes := make([]sharding.GenesisNodeInfoHandler, 0)
-	for _, node := range nh.allNodes {
-		if nh.isStaked(node.AddressBytes()) {
+	for _, node := range nls.allNodes {
+		if nls.isStaked(node.AddressBytes()) {
 			stakedNodes = append(stakedNodes, node)
 		}
 	}
@@ -93,10 +92,10 @@ func (nh *nodesHandler) GetAllStakedNodes() []sharding.GenesisNodeInfoHandler {
 }
 
 // GetDelegatedNodes returns the initial nodes that were delegated by the provided delegation SC address
-func (nh *nodesHandler) GetDelegatedNodes(delegationScAddress []byte) []sharding.GenesisNodeInfoHandler {
+func (nls *nodesListSplitter) GetDelegatedNodes(delegationScAddress []byte) []sharding.GenesisNodeInfoHandler {
 	delegatedNodes := make([]sharding.GenesisNodeInfoHandler, 0)
-	for _, node := range nh.allNodes {
-		if !nh.isDelegated(node.AddressBytes()) {
+	for _, node := range nls.allNodes {
+		if !nls.isDelegated(node.AddressBytes()) {
 			continue
 		}
 		if !bytes.Equal(node.AddressBytes(), delegationScAddress) {
@@ -110,6 +109,6 @@ func (nh *nodesHandler) GetDelegatedNodes(delegationScAddress []byte) []sharding
 }
 
 // IsInterfaceNil returns if underlying object is true
-func (nh *nodesHandler) IsInterfaceNil() bool {
-	return nh == nil
+func (nls *nodesListSplitter) IsInterfaceNil() bool {
+	return nls == nil
 }
