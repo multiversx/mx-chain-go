@@ -72,7 +72,7 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	assert.Equal(t, hex.EncodeToString([]byte(sender)), txResp.Sender)
 	assert.Equal(t, hex.EncodeToString([]byte(receiver)), txResp.Receiver)
 	assert.Equal(t, value.String(), txResp.Value)
-	assert.Equal(t, txData, txResp.Data)
+	assert.Equal(t, string(txData), txResp.Data)
 }
 
 func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
@@ -318,7 +318,7 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 		Sender:    "sender1",
 		Receiver:  "receiver1",
 		Value:     "100",
-		Data:      []byte{},
+		Data:      "",
 		Nonce:     0,
 		GasPrice:  0,
 		GasLimit:  0,
