@@ -85,9 +85,6 @@ func TestSendersMap_RemoveSendersBulk_ConcurrentWithAddition(t *testing.T) {
 			myMap.addTx(createTx([]byte("a"), "alice", uint64(i)))
 			myMap.addTx(createTx([]byte("b"), "bob", uint64(i)))
 			myMap.addTx(createTx([]byte("c"), "carol", uint64(i)))
-			myMap.addTx(createTx([]byte("d"), "d", uint64(i)))
-			myMap.addTx(createTx([]byte("e"), "e", uint64(i)))
-			myMap.addTx(createTx([]byte("f"), "f", uint64(i)))
 
 			wg.Done()
 		}(i)
