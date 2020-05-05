@@ -20,14 +20,35 @@ func kBToBytes(kB float32) uint64 {
 	return uint64(kB * 1000)
 }
 
-func (cache *TxCache) getRawScoreOfSender(sender string) float64 {
+func (cache *TxCache) getListForSender(sender string) *txListForSender {
 	list, ok := cache.txListBySender.getListForSender(sender)
 	if !ok {
 		panic("sender not in cache")
 	}
 
-	rawScore := list.computeRawScore()
-	return rawScore
+	return list
+}
+
+func (cache *TxCache) getRawScoreOfSender(sender string) float64 {
+	return cache.getListForSender(sender).computeRawScore()
+}
+
+func (cache *TxCache) getNumFailedSelectionsOfSender(sender string) int {
+	return int(cache.getListForSender(sender).numFailedSelections.Get())
+}
+
+func (cache *TxCache) setNumFailedSelectionsOfSender(sender string, numFailed int) {
+	cache.getListForSender(sender).numFailedSelections.Set(int64(numFailed))
+}
+
+func (cache *TxCache) isSenderSweepable(sender string) bool {
+	for _, item := range cache.sweepingListOfSenders {
+		if item.sender == sender {
+			return true
+		}
+	}
+
+	return false
 }
 
 func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nTransactionsPerSender int) {

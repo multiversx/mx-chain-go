@@ -8,9 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
-const gracePeriodLowerBound = 5
-const gracePeriodUpperBound = 7
-
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
 	copyDetectedGap       bool
@@ -23,13 +20,13 @@ type txListForSender struct {
 	mutex                 sync.RWMutex
 	scoreChangeInProgress atomic.Flag
 	accountNonceKnown     atomic.Flag
-	sweepable             atomic.Flag
 	lastComputedScore     atomic.Uint32
 	accountNonce          atomic.Uint64
 	totalBytes            atomic.Counter
 	totalGas              atomic.Counter
 	totalFee              atomic.Counter
 	numFailedSelections   atomic.Counter
+	sweepable             atomic.Flag
 }
 
 // newTxListForSender creates a new (sorted) list of transactions
@@ -256,7 +253,7 @@ func approximatelyCountTxInLists(lists []*txListForSender) uint64 {
 	return count
 }
 
-// notifyAccountNonce does not update the "sweepable" flag, nor the "numFailedSelections" counter,
+// notifyAccountNonce does not update the "numFailedSelections" counter,
 // since the notification comes at a time when we cannot actually detect whether the initial gap still exists or it was resolved.
 func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) {
 	listForSender.accountNonce.Set(nonce)
@@ -275,7 +272,6 @@ func (listForSender *txListForSender) verifyInitialGapOnSelectionStart() bool {
 		}
 	} else {
 		listForSender.numFailedSelections.Reset()
-		listForSender.sweepable.Unset()
 	}
 
 	return hasInitialGap
@@ -314,10 +310,10 @@ func (listForSender *txListForSender) getLowestNonceTx() *WrappedTransaction {
 // isInGracePeriod returns whether the sender is grace period due to a number of failed selections
 func (listForSender *txListForSender) isInGracePeriod() bool {
 	numFailedSelections := listForSender.numFailedSelections.Get()
-	return numFailedSelections >= gracePeriodLowerBound && numFailedSelections <= gracePeriodUpperBound
+	return numFailedSelections >= senderGracePeriodLowerBound && numFailedSelections <= senderGracePeriodUpperBound
 }
 
 func (listForSender *txListForSender) isGracePeriodExceeded() bool {
 	numFailedSelections := listForSender.numFailedSelections.Get()
-	return numFailedSelections > gracePeriodUpperBound
+	return numFailedSelections > senderGracePeriodUpperBound
 }
