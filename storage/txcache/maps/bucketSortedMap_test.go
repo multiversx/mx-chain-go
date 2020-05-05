@@ -260,6 +260,28 @@ func TestBucketSortedMap_GetSnapshotAscending(t *testing.T) {
 	require.ElementsMatch(t, []BucketSortedMapItem{c, a, b}, snapshot)
 }
 
+func TestBucketSortedMap_GetSnapshotDescending(t *testing.T) {
+	myMap := NewBucketSortedMap(4, 100)
+
+	snapshot := myMap.GetSnapshotDescending()
+	require.ElementsMatch(t, []BucketSortedMapItem{}, snapshot)
+
+	a := newScoredDummyItem("a", 15)
+	b := newScoredDummyItem("b", 101)
+	c := newScoredDummyItem("c", 3)
+
+	myMap.Set(a)
+	myMap.Set(b)
+	myMap.Set(c)
+
+	simulateMutationThatChangesScore(myMap, "a")
+	simulateMutationThatChangesScore(myMap, "b")
+	simulateMutationThatChangesScore(myMap, "c")
+
+	snapshot = myMap.GetSnapshotDescending()
+	require.ElementsMatch(t, []BucketSortedMapItem{b, a, c}, snapshot)
+}
+
 func TestBucketSortedMap_AddManyItems(t *testing.T) {
 	numGoroutines := 42
 	numItemsPerGoroutine := 1000

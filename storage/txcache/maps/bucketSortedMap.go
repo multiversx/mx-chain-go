@@ -182,8 +182,17 @@ func (sortedMap *BucketSortedMap) ScoreChunksCounts() []uint32 {
 type SortedMapIterCb func(key string, value BucketSortedMapItem)
 
 // GetSnapshotAscending gets a snapshot of the items
-// This applies a read lock on all chunks, so that they aren't mutated during snapshot
 func (sortedMap *BucketSortedMap) GetSnapshotAscending() []BucketSortedMapItem {
+	return sortedMap.getSortedSnapshot(sortedMap.fillSnapshotAscending)
+}
+
+// GetSnapshotDescending gets a snapshot of the items
+func (sortedMap *BucketSortedMap) GetSnapshotDescending() []BucketSortedMapItem {
+	return sortedMap.getSortedSnapshot(sortedMap.fillSnapshotDescending)
+}
+
+// This applies a read lock on all chunks, so that they aren't mutated during snapshot
+func (sortedMap *BucketSortedMap) getSortedSnapshot(fillSnapshot func(scoreChunks []*MapChunk, snapshot []BucketSortedMapItem)) []BucketSortedMapItem {
 	counter := uint32(0)
 	scoreChunks := sortedMap.getScoreChunks()
 
@@ -193,14 +202,7 @@ func (sortedMap *BucketSortedMap) GetSnapshotAscending() []BucketSortedMapItem {
 	}
 
 	snapshot := make([]BucketSortedMapItem, counter)
-
-	i := 0
-	for _, chunk := range scoreChunks {
-		for _, item := range chunk.items {
-			snapshot[i] = item
-			i++
-		}
-	}
+	fillSnapshot(scoreChunks, snapshot)
 
 	for _, chunk := range scoreChunks {
 		chunk.mutex.RUnlock()
@@ -209,19 +211,19 @@ func (sortedMap *BucketSortedMap) GetSnapshotAscending() []BucketSortedMapItem {
 	return snapshot
 }
 
-// GetSnapshotDescending gets a snapshot of the items
-// This applies a read lock on all chunks, so that they aren't mutated during snapshot
-func (sortedMap *BucketSortedMap) GetSnapshotDescending() []BucketSortedMapItem {
-	counter := uint32(0)
-	scoreChunks := sortedMap.getScoreChunks()
-
+// This function should only be called under already read-locked score chunks
+func (sortedMap *BucketSortedMap) fillSnapshotAscending(scoreChunks []*MapChunk, snapshot []BucketSortedMapItem) {
+	i := 0
 	for _, chunk := range scoreChunks {
-		chunk.mutex.RLock()
-		counter += uint32(len(chunk.items))
+		for _, item := range chunk.items {
+			snapshot[i] = item
+			i++
+		}
 	}
+}
 
-	snapshot := make([]BucketSortedMapItem, counter)
-
+// This function should only be called under already read-locked score chunks
+func (sortedMap *BucketSortedMap) fillSnapshotDescending(scoreChunks []*MapChunk, snapshot []BucketSortedMapItem) {
 	i := 0
 	for chunkIndex := len(scoreChunks) - 1; chunkIndex >= 0; chunkIndex-- {
 		chunk := scoreChunks[chunkIndex]
@@ -230,12 +232,6 @@ func (sortedMap *BucketSortedMap) GetSnapshotDescending() []BucketSortedMapItem 
 			i++
 		}
 	}
-
-	for _, chunk := range scoreChunks {
-		chunk.mutex.RUnlock()
-	}
-
-	return snapshot
 }
 
 // IterCbSortedAscending iterates over the sorted elements in the map
