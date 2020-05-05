@@ -904,6 +904,9 @@ func createBlockBodyFromNodesCoordinator(ihgs *indexHashedNodesCoordinator, epoc
 	mbs = createMiniBlocksForNodesMap(ihgs.nodesConfig[epoch].waitingMap, string(core.WaitingList), ihgs.marshalizer)
 	body.MiniBlocks = append(body.MiniBlocks, mbs...)
 
+	mbs = createMiniBlocksForNodesMap(ihgs.nodesConfig[epoch].leavingMap, string(core.LeavingList), ihgs.marshalizer)
+	body.MiniBlocks = append(body.MiniBlocks, mbs...)
+
 	return body
 }
 
@@ -935,24 +938,132 @@ func TestIndexHashedNodesCoordinator_EpochStart(t *testing.T) {
 
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
+	epoch := uint32(1)
 
 	header := &block.MetaBlock{
 		PrevRandSeed: []byte("rand seed"),
 		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
-		Epoch:        1,
+		Epoch:        epoch,
 	}
 
-	body := createBlockBodyFromNodesCoordinator(ihgs, 0)
+	ihgs.nodesConfig[epoch] = ihgs.nodesConfig[0]
+
+	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
 	ihgs.EpochStartPrepare(header, body)
 	ihgs.EpochStartAction(header)
 
-	validators, err := ihgs.GetAllEligibleValidatorsPublicKeys(1)
+	validators, err := ihgs.GetAllEligibleValidatorsPublicKeys(epoch)
 	require.Nil(t, err)
 	require.NotNil(t, validators)
 
 	computedShardId := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[0])
 	// should remain in same shard with intra shard shuffling
 	require.Equal(t, arguments.ShardIDAsObserver, computedShardId)
+}
+
+func TestIndexHashedNodesCoordinator_EpochStartInEligible(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+	epoch := uint32(2)
+
+	header := &block.MetaBlock{
+		PrevRandSeed: []byte("rand seed"),
+		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		Epoch:        epoch,
+	}
+
+	validatorShard := core.MetachainShardId
+	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID: validatorShard,
+			eligibleMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
+			},
+		},
+	}
+	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
+	ihgs.EpochStartPrepare(header, body)
+	ihgs.EpochStartAction(header)
+
+	computedShardId := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[epoch])
+
+	require.Equal(t, validatorShard, computedShardId)
+}
+
+func TestIndexHashedNodesCoordinator_EpochStartInWaiting(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	epoch := uint32(2)
+	header := &block.MetaBlock{
+		PrevRandSeed: []byte("rand seed"),
+		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		Epoch:        epoch,
+	}
+
+	validatorShard := core.MetachainShardId
+	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID: validatorShard,
+			waitingMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
+			},
+		},
+	}
+	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
+	ihgs.EpochStartPrepare(header, body)
+	ihgs.EpochStartAction(header)
+
+	computedShardId := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[epoch])
+	require.Equal(t, validatorShard, computedShardId)
+}
+
+func TestIndexHashedNodesCoordinator_EpochStartInLeaving(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	epoch := uint32(2)
+	header := &block.MetaBlock{
+		PrevRandSeed: []byte("rand seed"),
+		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		Epoch:        epoch,
+	}
+
+	validatorShard := core.MetachainShardId
+	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID: validatorShard,
+			eligibleMap: map[uint32][]Validator{
+				validatorShard: {
+					mock.NewValidatorMock([]byte("eligiblePk"), 1, 1),
+				},
+			},
+			leavingMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
+			},
+		},
+	}
+	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
+	ihgs.EpochStartPrepare(header, body)
+	ihgs.EpochStartAction(header)
+
+	computedShardId := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[epoch])
+	require.Equal(t, validatorShard, computedShardId)
 }
 
 func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysNotExistingEpoch(t *testing.T) {
@@ -1334,7 +1445,8 @@ func TestIndexHashedNodesCoordinator_ShuffleOutWithObserver(t *testing.T) {
 			waitingMap: map[uint32][]Validator{
 				validatorShard: {mock.NewValidatorMock([]byte("waitingKey"), 1, 1)},
 			},
-			leavingList: []Validator{mock.NewValidatorMock(pk, 1, 1)},
+			leavingMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock(pk, 1, 1)}},
 		},
 	}
 
@@ -1374,7 +1486,9 @@ func TestIndexHashedNodesCoordinator_ShuffleOutNotFound(t *testing.T) {
 			waitingMap: map[uint32][]Validator{
 				validatorShard: {mock.NewValidatorMock([]byte("waitingKey"), 1, 1)},
 			},
-			leavingList: []Validator{mock.NewValidatorMock([]byte("observerKey"), 1, 1)},
+			leavingMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock([]byte("observerKey"), 1, 1)},
+			},
 		},
 	}
 

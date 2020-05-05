@@ -31,7 +31,7 @@ func (ncm *NodesCoordinatorMock) GetChance(uint32) uint32 {
 }
 
 // GetAllLeavingValidatorsPublicKeys -
-func (ncm *NodesCoordinatorMock) GetAllLeavingValidatorsPublicKeys(_ uint32) ([][]byte, error) {
+func (ncm *NodesCoordinatorMock) GetAllLeavingValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
 
@@ -124,9 +124,9 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	return nil
 }
 
-// ComputeLeaving -
-func (ncm *NodesCoordinatorMock) ComputeLeaving(_ []*state.ShardValidatorInfo) ([]sharding.Validator, error) {
-	return make([]sharding.Validator, 0), nil
+// ComputeAdditionalLeaving -
+func (ncm *NodesCoordinatorMock) ComputeAdditionalLeaving(_ []*state.ShardValidatorInfo) (map[uint32][]sharding.Validator, error) {
+	return make(map[uint32][]sharding.Validator, 0), nil
 }
 
 // ComputeConsensusGroup -
