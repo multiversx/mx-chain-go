@@ -33,7 +33,7 @@ import (
 )
 
 // CreateMetaGenesisBlock will create a metachain genesis block
-func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesHandler genesis.NodesHandler) (data.HeaderHandler, error) {
+func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter) (data.HeaderHandler, error) {
 	processors, err := createProcessorsForMetaGenesisBlock(arg)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesHandler genesis.No
 		return nil, err
 	}
 
-	err = setStakedData(arg, processors.txProcessor, nodesHandler)
+	err = setStakedData(arg, processors.txProcessor, nodesListSplitter)
 	if err != nil {
 		return nil, err
 	}
@@ -368,13 +368,13 @@ func deploySystemSmartContracts(
 func setStakedData(
 	arg ArgsGenesisBlockCreator,
 	txProcessor process.TransactionProcessor,
-	nodesHandler genesis.NodesHandler,
+	nodesListSplitter genesis.NodesListSplitter,
 ) error {
 	// create staking smart contract state for genesis - update fixed stake value from all
 	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
 	stakeValue := arg.Economics.GenesisNodePrice()
 
-	stakedNodes := nodesHandler.GetAllNodes()
+	stakedNodes := nodesListSplitter.GetAllNodes()
 	for _, nodeInfo := range stakedNodes {
 		tx := &transaction.Transaction{
 			Nonce:     0,

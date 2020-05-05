@@ -9,17 +9,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-type nodesHandler struct {
+type nodesListSplitter struct {
 	allNodes       []sharding.GenesisNodeInfoHandler
 	accountsParser genesis.AccountsParser
 }
 
-// NewNodesHandler returns a wrapper instance over the initial nodes setup in order to add some helper functions
-// used in genesis delegation process
-func NewNodesHandler(
+// NewNodesListSplitter returns an instance able to split the nodes by some criterias
+func NewNodesListSplitter(
 	initialNodesSetup genesis.InitialNodesHandler,
 	accountsParser genesis.AccountsParser,
-) (*nodesHandler, error) {
+) (*nodesListSplitter, error) {
 
 	if check.IfNil(initialNodesSetup) {
 		return nil, genesis.ErrNilNodesSetup
@@ -46,7 +45,7 @@ func NewNodesHandler(
 		allNodes = append(allNodes, waiting[shardID]...)
 	}
 
-	return &nodesHandler{
+	return &nodesListSplitter{
 		allNodes:       allNodes,
 		accountsParser: accountsParser,
 	}, nil
@@ -76,10 +75,10 @@ func (nh *nodesHandler) GetAllNodes() []sharding.GenesisNodeInfoHandler {
 }
 
 // GetDelegatedNodes returns the initial nodes that were delegated by the provided delegation SC address
-func (nh *nodesHandler) GetDelegatedNodes(delegationScAddress []byte) []sharding.GenesisNodeInfoHandler {
+func (nls *nodesListSplitter) GetDelegatedNodes(delegationScAddress []byte) []sharding.GenesisNodeInfoHandler {
 	delegatedNodes := make([]sharding.GenesisNodeInfoHandler, 0)
-	for _, node := range nh.allNodes {
-		if !nh.isDelegated(node.AddressBytes()) {
+	for _, node := range nls.allNodes {
+		if !nls.isDelegated(node.AddressBytes()) {
 			continue
 		}
 		if !bytes.Equal(node.AddressBytes(), delegationScAddress) {
@@ -93,6 +92,6 @@ func (nh *nodesHandler) GetDelegatedNodes(delegationScAddress []byte) []sharding
 }
 
 // IsInterfaceNil returns if underlying object is true
-func (nh *nodesHandler) IsInterfaceNil() bool {
-	return nh == nil
+func (nls *nodesListSplitter) IsInterfaceNil() bool {
+	return nls == nil
 }

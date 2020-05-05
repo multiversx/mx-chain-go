@@ -21,7 +21,7 @@ import (
 	hardfork "github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
-type genesisBlockCreationHandler func(arg ArgsGenesisBlockCreator, nodesHandler genesis.NodesHandler) (data.HeaderHandler, error)
+type genesisBlockCreationHandler func(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter) (data.HeaderHandler, error)
 
 type genesisBlockCreator struct {
 	arg                 ArgsGenesisBlockCreator
@@ -154,7 +154,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 		}
 	}
 
-	nodesHandler, err := intermediate.NewNodesHandler(gbc.arg.InitialNodesSetup, gbc.arg.AccountsParser)
+	nodesListSplitter, err := intermediate.NewNodesListSplitter(gbc.arg.InitialNodesSetup, gbc.arg.AccountsParser)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 				err, shardID)
 		}
 
-		genesisBlock, err = gbc.shardCreatorHandler(newArgument, nodesHandler)
+		genesisBlock, err = gbc.shardCreatorHandler(newArgument, nodesListSplitter)
 		if err != nil {
 			return nil, fmt.Errorf("'%w' while generating genesis block for shard %d",
 				err, shardID)
@@ -186,7 +186,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	}
 
 	newArgument.Blkc = blockchain.NewMetaChain()
-	genesisBlock, err = gbc.metaCreatorHandler(newArgument, nodesHandler)
+	genesisBlock, err = gbc.metaCreatorHandler(newArgument, nodesListSplitter)
 	if err != nil {
 		return nil, fmt.Errorf("'%w' while generating genesis block for metachain", err)
 	}

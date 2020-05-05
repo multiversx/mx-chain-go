@@ -15,7 +15,7 @@ type delegationProcessor struct {
 	shardCoordinator     sharding.Coordinator
 	accuntsParser        genesis.AccountsParser
 	smartContractsParser genesis.InitialSmartContractParser
-	nodesHandler         genesis.NodesHandler
+	nodesListSplitter    genesis.NodesListSplitter
 }
 
 // NewDelegationProcessor returns a new delegation processor instance
@@ -24,7 +24,7 @@ func NewDelegationProcessor(
 	shardCoordinator sharding.Coordinator,
 	accountsParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
-	nodesHandler genesis.NodesHandler,
+	nodesListSplitter genesis.NodesListSplitter,
 ) (*delegationProcessor, error) {
 	if check.IfNil(executor) {
 		return nil, genesis.ErrNilTxExecutionProcessor
@@ -38,8 +38,8 @@ func NewDelegationProcessor(
 	if check.IfNil(smartContractParser) {
 		return nil, genesis.ErrNilSmartContractParser
 	}
-	if check.IfNil(nodesHandler) {
-		return nil, genesis.ErrNilNodesHandler
+	if check.IfNil(nodesListSplitter) {
+		return nil, genesis.ErrNilNodesListSplitter
 	}
 
 	return &delegationProcessor{
@@ -47,7 +47,7 @@ func NewDelegationProcessor(
 		shardCoordinator:     shardCoordinator,
 		accuntsParser:        accountsParser,
 		smartContractsParser: smartContractParser,
-		nodesHandler:         nodesHandler,
+		nodesListSplitter:    nodesListSplitter,
 	}, nil
 }
 
@@ -156,7 +156,7 @@ func (dp *delegationProcessor) activateBlsKeys(smartContracts []genesis.InitialS
 
 	totalDelegated := 0
 	for _, sc := range smartContracts {
-		delegatedNodes := dp.nodesHandler.GetDelegatedNodes(sc.AddressBytes())
+		delegatedNodes := dp.nodesListSplitter.GetDelegatedNodes(sc.AddressBytes())
 
 		lenDelegated := len(delegatedNodes)
 		if lenDelegated == 0 {
