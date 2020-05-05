@@ -2,7 +2,6 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // ShardCoordinatorMock -
@@ -15,7 +14,7 @@ func (scm ShardCoordinatorMock) NumberOfShards() uint32 {
 }
 
 // ComputeId -
-func (scm ShardCoordinatorMock) ComputeId(_ state.AddressContainer) uint32 {
+func (scm ShardCoordinatorMock) ComputeId(_ []byte) uint32 {
 	panic("implement me")
 }
 
@@ -30,7 +29,7 @@ func (scm ShardCoordinatorMock) SelfId() uint32 {
 }
 
 // SameShard -
-func (scm ShardCoordinatorMock) SameShard(_, _ state.AddressContainer) bool {
+func (scm ShardCoordinatorMock) SameShard(_, _ []byte) bool {
 	return true
 }
 

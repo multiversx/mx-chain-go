@@ -557,30 +557,23 @@ func CreateGenesisMetaBlock(
 	return metaHdr
 }
 
-// CreateAddressFromAddrBytes creates an address container object from address bytes provided
-func CreateAddressFromAddrBytes(pubkeyBytes []byte) state.AddressContainer {
-	addr, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(pubkeyBytes)
-	return addr
-}
-
 // CreateRandomAddress creates a random byte array with fixed size
-func CreateRandomAddress() state.AddressContainer {
-	addr, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(CreateRandomBytes(32))
-	return addr
+func CreateRandomAddress() []byte {
+	return CreateRandomBytes(32)
 }
 
 // MintAddress will create an account (if it does not exists), update the balance with required value,
 // save the account and commit the trie.
 func MintAddress(accnts state.AccountsAdapter, addressBytes []byte, value *big.Int) {
-	accnt, _ := accnts.LoadAccount(CreateAddressFromAddrBytes(addressBytes))
+	accnt, _ := accnts.LoadAccount(addressBytes)
 	_ = accnt.(state.UserAccountHandler).AddToBalance(value)
 	_ = accnts.SaveAccount(accnt)
 	_, _ = accnts.Commit()
 }
 
 // CreateAccount creates a new account and returns the address
-func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int) state.AddressContainer {
-	address, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(CreateRandomBytes(32))
+func CreateAccount(accnts state.AccountsAdapter, nonce uint64, balance *big.Int) []byte {
+	address := CreateRandomBytes(32)
 	account, _ := accnts.LoadAccount(address)
 	account.(state.UserAccountHandler).IncreaseNonce(nonce)
 	_ = account.(state.UserAccountHandler).AddToBalance(balance)
@@ -615,7 +608,7 @@ func MakeDisplayTable(nodes []*TestProcessorNode) string {
 
 // PrintShardAccount outputs on console a shard account data contained
 func PrintShardAccount(accnt state.UserAccountHandler, tag string) {
-	str := fmt.Sprintf("%s Address: %s\n", tag, base64.StdEncoding.EncodeToString(accnt.AddressContainer().Bytes()))
+	str := fmt.Sprintf("%s Address: %s\n", tag, base64.StdEncoding.EncodeToString(accnt.AddressBytes()))
 	str += fmt.Sprintf("  Nonce: %d\n", accnt.GetNonce())
 	str += fmt.Sprintf("  Balance: %d\n", accnt.GetBalance().Uint64())
 	str += fmt.Sprintf("  Code hash: %s\n", base64.StdEncoding.EncodeToString(accnt.GetCodeHash()))
@@ -633,7 +626,7 @@ func CreateRandomBytes(chars int) []byte {
 }
 
 // GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
-func GenerateAddressJournalAccountAccountsDB() (state.AddressContainer, state.UserAccountHandler, *state.AccountsDB) {
+func GenerateAddressJournalAccountAccountsDB() ([]byte, state.UserAccountHandler, *state.AccountsDB) {
 	adr := CreateRandomAddress()
 	adb, _, _ := CreateAccountsDB(UserAccount)
 	account, _ := state.NewUserAccount(adr)
@@ -767,7 +760,7 @@ func mintAddressesFromSameShard(nodes []*TestProcessorNode, targetNodeIdx int, v
 		}
 
 		n.OwnAccount.Balance = big.NewInt(0).Set(value)
-		MintAddress(targetNode.AccntState, n.OwnAccount.Address.Bytes(), value)
+		MintAddress(targetNode.AccntState, n.OwnAccount.Address, value)
 	}
 }
 
@@ -783,7 +776,7 @@ func MintAllPlayers(nodes []*TestProcessorNode, players []*TestWalletAccount, va
 				continue
 			}
 
-			MintAddress(n.AccntState, player.Address.Bytes(), value)
+			MintAddress(n.AccntState, player.Address, value)
 			player.Balance = big.NewInt(0).Set(value)
 		}
 	}
@@ -1106,7 +1099,7 @@ func CreateAndSendTransaction(
 	tx := &transaction.Transaction{
 		Nonce:    node.OwnAccount.Nonce,
 		Value:    new(big.Int).Set(txValue),
-		SndAddr:  node.OwnAccount.Address.Bytes(),
+		SndAddr:  node.OwnAccount.Address,
 		RcvAddr:  rcvAddress,
 		Data:     []byte(txData),
 		GasPrice: MinTxGasPrice,
@@ -1118,7 +1111,7 @@ func CreateAndSendTransaction(
 
 	_, err := node.SendTransaction(tx)
 	if err != nil {
-		log.Warn("could not create transaction", "address", node.OwnAccount.Address.Bytes(), "error", err)
+		log.Warn("could not create transaction", "address", node.OwnAccount.Address, "error", err)
 	}
 	node.OwnAccount.Nonce++
 }
@@ -1134,7 +1127,7 @@ func CreateAndSendTransactionWithGasLimit(
 	tx := &transaction.Transaction{
 		Nonce:    node.OwnAccount.Nonce,
 		Value:    txValue,
-		SndAddr:  node.OwnAccount.Address.Bytes(),
+		SndAddr:  node.OwnAccount.Address,
 		RcvAddr:  rcvAddress,
 		Data:     txData,
 		GasPrice: MinTxGasPrice,
@@ -1213,16 +1206,14 @@ func skToPk(sk crypto.PrivateKey) []byte {
 // TestPublicKeyHasBalance checks if the account corresponding to the given public key has the expected balance
 func TestPublicKeyHasBalance(t *testing.T, n *TestProcessorNode, pk crypto.PublicKey, expectedBalance *big.Int) {
 	pkBuff, _ := pk.ToByteArray()
-	addr, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(pkBuff)
-	account, _ := n.AccntState.GetExistingAccount(addr)
+	account, _ := n.AccntState.GetExistingAccount(pkBuff)
 	assert.Equal(t, expectedBalance, account.(state.UserAccountHandler).GetBalance())
 }
 
 // TestPrivateKeyHasBalance checks if the private key has the expected balance
 func TestPrivateKeyHasBalance(t *testing.T, n *TestProcessorNode, sk crypto.PrivateKey, expectedBalance *big.Int) {
 	pkBuff, _ := sk.GeneratePublic().ToByteArray()
-	addr, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(pkBuff)
-	account, _ := n.AccntState.GetExistingAccount(addr)
+	account, _ := n.AccntState.GetExistingAccount(pkBuff)
 	assert.Equal(t, expectedBalance, account.(state.UserAccountHandler).GetBalance())
 }
 
@@ -1300,8 +1291,7 @@ func GenerateSkAndPkInShard(
 
 	for {
 		pkBytes, _ := pk.ToByteArray()
-		addr, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(pkBytes)
-		if coordinator.ComputeId(addr) == shardId {
+		if coordinator.ComputeId(pkBytes) == shardId {
 			break
 		}
 		sk, pk = keyGen.GeneratePair()
@@ -1375,8 +1365,7 @@ func CreateMintingForSenders(
 
 		for _, sk := range sendersPrivateKeys {
 			pkBuff, _ := sk.GeneratePublic().ToByteArray()
-			adr, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(pkBuff)
-			account, _ := n.AccntState.LoadAccount(adr)
+			account, _ := n.AccntState.LoadAccount(pkBuff)
 			_ = account.(state.UserAccountHandler).AddToBalance(value)
 			_ = n.AccntState.SaveAccount(account)
 		}
@@ -1426,8 +1415,7 @@ func CreateAccountForNodes(nodes []*TestProcessorNode) {
 
 // CreateAccountForNode creates an account for the given node
 func CreateAccountForNode(node *TestProcessorNode) {
-	addr, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(node.OwnAccount.PkTxSignBytes)
-	acc, _ := node.AccntState.LoadAccount(addr)
+	acc, _ := node.AccntState.LoadAccount(node.OwnAccount.PkTxSignBytes)
 	_ = node.AccntState.SaveAccount(acc)
 	_, _ = node.AccntState.Commit()
 }
@@ -1535,8 +1523,7 @@ func generateValidTx(
 	pkRecvBuff, _ := pkRecv.ToByteArray()
 
 	accnts, _, _ := CreateAccountsDB(UserAccount)
-	addrSender, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(pkSenderBuff)
-	acc, _ := accnts.LoadAccount(addrSender)
+	acc, _ := accnts.LoadAccount(pkSenderBuff)
 	_ = accnts.SaveAccount(acc)
 	_, _ = accnts.Commit()
 

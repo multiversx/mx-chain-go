@@ -55,13 +55,6 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	integrationTests.MintAllNodes(nodes, initialVal)
 	verifyInitialBalance(t, nodes, initialVal)
 
-	minNumNodes := nodes[0].NodesSetup.MinNumberOfNodes()
-	validators := make([]*integrationTests.TestWalletAccount, minNumNodes)
-	for i := 0; i < int(minNumNodes); i++ {
-		validators[i] = integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
-	}
-	integrationTests.MintAllPlayers(nodes, validators, initialVal)
-
 	round := uint64(0)
 	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
@@ -75,13 +68,6 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 		pubKey := generateUniqueKey(index)
 		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("msg"))
 		integrationTests.CreateAndSendTransaction(node, nodePrice, factory.AuctionSCAddress, txData)
-	}
-
-	// need to add enough stakers in order to make it possible to call unstake and unbond
-	for index, validator := range validators {
-		pubKey := generateUniqueKey(index + len(nodes) + 1)
-		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("msg"))
-		createAndSendTx(nodes[0], validator, nodePrice, factory.AuctionSCAddress, []byte(txData))
 	}
 
 	time.Sleep(time.Second)
@@ -269,7 +255,7 @@ func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
 
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
-				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
+				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
 				assert.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
 				break
 			}
@@ -284,7 +270,7 @@ func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProce
 
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
-				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
+				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
 				assert.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
 				break
 			}
@@ -298,7 +284,7 @@ func verifyInitialBalance(t *testing.T, nodes []*integrationTests.TestProcessorN
 
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
-				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address.Bytes())
+				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
 				assert.Equal(t, initialVal, sndAcc.GetBalance())
 				break
 			}
@@ -307,8 +293,7 @@ func verifyInitialBalance(t *testing.T, nodes []*integrationTests.TestProcessorN
 }
 
 func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) state.UserAccountHandler {
-	addrCont, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(address)
-	sndrAcc, _ := accState.GetExistingAccount(addrCont)
+	sndrAcc, _ := accState.GetExistingAccount(address)
 
 	sndAccSt, _ := sndrAcc.(state.UserAccountHandler)
 
@@ -331,7 +316,7 @@ func createAndSendTx(
 	tx := &transaction.Transaction{
 		Nonce:    player.Nonce,
 		Value:    txValue,
-		SndAddr:  player.Address.Bytes(),
+		SndAddr:  player.Address,
 		RcvAddr:  rcvAddress,
 		Data:     txData,
 		GasPrice: node.EconomicsData.GetMinGasPrice(),

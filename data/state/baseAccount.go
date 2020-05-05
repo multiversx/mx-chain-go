@@ -5,14 +5,14 @@ import (
 )
 
 type baseAccount struct {
-	addressContainer AddressContainer
-	code             []byte
-	dataTrieTracker  DataTrieTracker
+	address         []byte
+	code            []byte
+	dataTrieTracker DataTrieTracker
 }
 
-// AddressContainer returns the address associated with the account
-func (ba *baseAccount) AddressContainer() AddressContainer {
-	return ba.addressContainer
+// AddressBytes returns the address associated with the account as byte slice
+func (ba *baseAccount) AddressBytes() []byte {
+	return ba.address
 }
 
 // GetCode gets the actual code that needs to be run in the VM

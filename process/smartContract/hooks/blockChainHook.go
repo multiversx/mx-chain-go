@@ -403,25 +403,15 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 func (bh *BlockChainHookImpl) getUserAccounts(
 	input *vmcommon.ContractCallInput,
 ) (state.UserAccountHandler, state.UserAccountHandler, error) {
-	sndAddr, err := bh.pubkeyConv.CreateAddressFromBytes(input.CallerAddr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	dstAddr, err := bh.pubkeyConv.CreateAddressFromBytes(input.RecipientAddr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	shardId := bh.shardCoordinator.ComputeId(dstAddr)
+	shardId := bh.shardCoordinator.ComputeId(input.RecipientAddr)
 	if shardId != bh.shardCoordinator.SelfId() {
 		return nil, nil, process.ErrDestinationNotInSelfShard
 	}
 
 	var sndAccount state.UserAccountHandler
-	sndShardId := bh.shardCoordinator.ComputeId(sndAddr)
+	sndShardId := bh.shardCoordinator.ComputeId(input.CallerAddr)
 	if sndShardId == bh.shardCoordinator.SelfId() {
-		acc, err := bh.accounts.GetExistingAccount(sndAddr)
+		acc, err := bh.accounts.GetExistingAccount(input.CallerAddr)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -433,7 +423,7 @@ func (bh *BlockChainHookImpl) getUserAccounts(
 		}
 	}
 
-	acc, err := bh.accounts.LoadAccount(dstAddr)
+	acc, err := bh.accounts.LoadAccount(input.RecipientAddr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -481,12 +471,7 @@ func (bh *BlockChainHookImpl) getAccountFromAddressBytes(address []byte) (state.
 		return tempAcc, nil
 	}
 
-	addr, err := bh.pubkeyConv.CreateAddressFromBytes(address)
-	if err != nil {
-		return nil, err
-	}
-
-	return bh.accounts.GetExistingAccount(addr)
+	return bh.accounts.GetExistingAccount(address)
 }
 
 func (bh *BlockChainHookImpl) getShardAccountFromAddressBytes(address []byte) (state.UserAccountHandler, error) {
@@ -519,8 +504,7 @@ func (bh *BlockChainHookImpl) AddTempAccount(address []byte, balance *big.Int, n
 	bh.mutTempAccounts.Lock()
 	defer bh.mutTempAccounts.Unlock()
 
-	addrContainer := state.NewAddress(address)
-	account, err := state.NewUserAccount(addrContainer)
+	account, err := state.NewUserAccount(address)
 	if err != nil {
 		return
 	}

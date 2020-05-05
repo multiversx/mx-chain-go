@@ -18,7 +18,7 @@ import (
 func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 	arguments := hooks.ArgBlockChainHook{
 		Accounts: &mock.AccountsStub{
-			GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 				return &mock.AccountWrapMock{}, nil
 			},
 		},
@@ -77,7 +77,9 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	container, err := vmf.Create()
 	require.Nil(t, err)
 	require.NotNil(t, container)
-	defer container.Close()
+	defer func() {
+		_ = container.Close()
+	}()
 
 	assert.Nil(t, err)
 	assert.NotNil(t, container)

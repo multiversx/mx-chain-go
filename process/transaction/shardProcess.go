@@ -101,12 +101,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 		return process.ErrNilTransaction
 	}
 
-	adrSrc, adrDst, err := txProc.getAddresses(tx)
-	if err != nil {
-		return err
-	}
-
-	acntSnd, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
+	acntSnd, acntDst, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
 	if err != nil {
 		return err
 	}
@@ -144,11 +139,11 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 
 	switch txType {
 	case process.MoveBalance:
-		return txProc.processMoveBalance(tx, adrSrc, adrDst)
+		return txProc.processMoveBalance(tx, tx.SndAddr, tx.RcvAddr)
 	case process.SCDeployment:
-		return txProc.processSCDeployment(tx, adrSrc)
+		return txProc.processSCDeployment(tx, tx.SndAddr)
 	case process.SCInvoking:
-		return txProc.processSCInvoking(tx, adrSrc, adrDst)
+		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 	}
 
 	return process.ErrWrongTransaction
@@ -266,7 +261,7 @@ func (txProc *txProcessor) processTxFee(
 func (txProc *txProcessor) checkIfValidTxToMetaChain(
 	tx *transaction.Transaction,
 	acntSnd state.UserAccountHandler,
-	adrDst state.AddressContainer,
+	adrDst []byte,
 ) error {
 
 	destShardId := txProc.shardCoordinator.ComputeId(adrDst)
@@ -284,7 +279,7 @@ func (txProc *txProcessor) checkIfValidTxToMetaChain(
 
 func (txProc *txProcessor) processMoveBalance(
 	tx *transaction.Transaction,
-	adrSrc, adrDst state.AddressContainer,
+	adrSrc, adrDst []byte,
 ) error {
 
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
@@ -349,7 +344,7 @@ func (txProc *txProcessor) saveAccounts(acntSnd, acntDst state.AccountHandler) e
 
 func (txProc *txProcessor) processSCDeployment(
 	tx *transaction.Transaction,
-	adrSrc state.AddressContainer,
+	adrSrc []byte,
 ) error {
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
@@ -364,7 +359,7 @@ func (txProc *txProcessor) processSCDeployment(
 
 func (txProc *txProcessor) processSCInvoking(
 	tx *transaction.Transaction,
-	adrSrc, adrDst state.AddressContainer,
+	adrSrc, adrDst []byte,
 ) error {
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
