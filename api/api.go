@@ -141,8 +141,25 @@ func registerRoutes(ws *gin.Engine, routesConfig config.ApiRoutesConfig, elrondF
 		pprof.Register(ws)
 	}
 
-	marshalizerForLogs := &marshal.GogoProtoMarshalizer{}
-	registerLoggerWsRoute(ws, marshalizerForLogs)
+	if isLogRouteEnabled(routesConfig) {
+		marshalizerForLogs := &marshal.GogoProtoMarshalizer{}
+		registerLoggerWsRoute(ws, marshalizerForLogs)
+	}
+}
+
+func isLogRouteEnabled(routesConfig config.ApiRoutesConfig) bool {
+	logConfig, ok := routesConfig.APIPackages["log"]
+	if !ok {
+		return false
+	}
+
+	for _, cfg := range logConfig.Routes {
+		if cfg.Name == "/log" && cfg.Open {
+			return true
+		}
+	}
+
+	return false
 }
 
 func registerValidators() error {

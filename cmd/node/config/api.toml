@@ -37,6 +37,13 @@
         { Name = "/trigger", Open = true }
 	]
 
+[APIPackages.log]
+	Routes = [
+         # /log will handle sending the log information
+        { Name = "/log", Open = true }
+	]
+
+
 [APIPackages.validator]
 	Routes = [
          # /validator/statistics will return a list of validators statistics for all validators
