@@ -85,26 +85,27 @@ func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 	return isFound
 }
 
-func (txMap *txListBySenderMap) removeSender(sender string) {
+func (txMap *txListBySenderMap) removeSender(sender string) bool {
 	if !txMap.backingMap.Has(sender) {
-		return
+		return false
 	}
 
 	txMap.backingMap.Remove(sender)
 	txMap.counter.Decrement()
+	return true
 }
 
 // RemoveSendersBulk removes senders, in bulk
 func (txMap *txListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
-	oldCount := uint32(txMap.counter.Get())
+	numRemoved := uint32(0)
 
 	for _, senderKey := range senders {
-		txMap.removeSender(senderKey)
+		if txMap.removeSender(senderKey) {
+			numRemoved++
+		}
 	}
 
-	newCount := uint32(txMap.counter.Get())
-	nRemoved := oldCount - newCount
-	return nRemoved
+	return numRemoved
 }
 
 func (txMap *txListBySenderMap) notifyAccountNonce(accountKey []byte, nonce uint64) {
