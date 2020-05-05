@@ -268,7 +268,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	}
 
 	acntDst.AddToDeveloperReward(newDeveloperReward)
-	sc.txFeeHandler.ProcessTransactionFee(feeForValidators, txHash)
+	sc.txFeeHandler.ProcessTransactionFee(feeForValidators, nil, txHash)
 
 	err = sc.accounts.SaveAccount(acntDst)
 	if err != nil {
@@ -343,7 +343,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	}
 
 	sc.gasHandler.SetGasRefunded(gasRemaining, txHash)
-	sc.txFeeHandler.ProcessTransactionFee(consumedFee, txHash)
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee, nil, txHash)
 
 	return true, sc.saveAccounts(acntSnd, acntDst)
 }
@@ -387,7 +387,7 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
-	sc.txFeeHandler.ProcessTransactionFee(consumedFee, txHash)
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee, nil, txHash)
 
 	return nil
 }
@@ -492,7 +492,7 @@ func (sc *scProcessor) DeploySmartContract(
 		return nil
 	}
 
-	sc.txFeeHandler.ProcessTransactionFee(consumedFee, txHash)
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee, nil, txHash)
 
 	log.Debug("SmartContract deployed")
 	return nil

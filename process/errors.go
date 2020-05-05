@@ -641,6 +641,9 @@ var ErrAccumulatedFeesDoNotMatch = errors.New("accumulated fees do not match")
 // ErrAccumulatedFeesInEpochDoNotMatch signals that accumulated fees in epoch do not match
 var ErrAccumulatedFeesInEpochDoNotMatch = errors.New("accumulated fees in epoch do not match")
 
+// ErrDevFeesInEpochDoNotMatch signals that developer fees in epoch do not match
+var ErrDevFeesInEpochDoNotMatch = errors.New("developer fees in epoch do not match")
+
 // ErrNilRewardsHandler signals that rewards handler is nil
 var ErrNilRewardsHandler = errors.New("rewards handler is nil")
 

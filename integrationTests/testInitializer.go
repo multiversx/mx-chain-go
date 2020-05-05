@@ -452,6 +452,8 @@ func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 		MiniBlockHeaders:       nil,
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
+		DeveloperFees:          big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
 	}
 }
 

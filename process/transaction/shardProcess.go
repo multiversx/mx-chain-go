@@ -192,7 +192,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return err
 	}
 
-	txProc.txFeeHandler.ProcessTransactionFee(txFee, txHash)
+	txProc.txFeeHandler.ProcessTransactionFee(txFee, nil, txHash)
 
 	err = txProc.accounts.SaveAccount(acntSnd)
 	if err != nil {
@@ -324,7 +324,7 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	txProc.txFeeHandler.ProcessTransactionFee(txFee, txHash)
+	txProc.txFeeHandler.ProcessTransactionFee(txFee, nil, txHash)
 
 	return txProc.saveAccounts(acntSrc, acntDst)
 }

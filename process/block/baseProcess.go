@@ -397,6 +397,8 @@ func (bp *baseProcessor) verifyAccumulatedFees(header data.HeaderHandler) error 
 	if header.GetAccumulatedFees().Cmp(bp.feeHandler.GetAccumulatedFees()) != 0 {
 		return process.ErrAccumulatedFeesDoNotMatch
 	}
+	if header.GetA
+
 	return nil
 }
 

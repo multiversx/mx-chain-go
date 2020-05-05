@@ -84,6 +84,11 @@ func (m *MetaBlock) SetAccumulatedFees(value *big.Int) {
 	m.AccumulatedFees.Set(value)
 }
 
+// SetDeveloperFees sets the devloper fees in the header
+func (m *MetaBlock) SetDeveloperFees(value *big.Int) {
+	m.DeveloperFees.Set(value)
+}
+
 // SetTimeStamp sets header timestamp
 func (m *MetaBlock) SetTimeStamp(ts uint64) {
 	m.TimeStamp = ts

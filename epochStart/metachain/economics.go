@@ -87,6 +87,9 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	if metaBlock.AccumulatedFeesInEpoch == nil {
 		return nil, epochStart.ErrNilTotalAccumulatedFeesInEpoch
 	}
+	if metaBlock.DevFeesInEpoch == nil {
+		return nil, epochStart.ErrNilTotalDevFeesInEpoch
+	}
 	if !metaBlock.IsStartOfEpochBlock() || metaBlock.Epoch < 1 {
 		return nil, epochStart.ErrNotEpochStartBlock
 	}
