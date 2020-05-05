@@ -81,6 +81,12 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 // It returns at most "numRequested" transactions
 // Each sender gets the chance to give at least "batchSizePerSender" transactions, unless "numRequested" limit is reached before iterating over all senders
 func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender int) []*WrappedTransaction {
+	result := cache.doSelectTransactions(numRequested, batchSizePerSender)
+	go cache.doAfterSelection()
+	return result
+}
+
+func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender int) []*WrappedTransaction {
 	stopWatch := cache.monitorSelectionStart()
 
 	result := make([]*WrappedTransaction, numRequested)
@@ -118,7 +124,6 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 
 	result = result[:resultFillIndex]
 	cache.monitorSelectionEnd(result, stopWatch)
-	go cache.doAfterSelection()
 	return result
 }
 
