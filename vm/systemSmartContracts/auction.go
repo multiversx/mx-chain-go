@@ -625,7 +625,7 @@ func (s *stakingAuctionSC) getOrCreateRegistrationData(key []byte) (*AuctionData
 		MaxStakePerNode: big.NewInt(0),
 	}
 
-	if data != nil {
+	if len(data) > 0 {
 		err := json.Unmarshal(data, &registrationData)
 		if err != nil {
 			log.Debug("unmarshal error on staking SC stake function",
@@ -675,7 +675,7 @@ func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedData, error) {
 	}
 
 	data := vmOutput.ReturnData[0]
-	if data != nil {
+	if len(data) > 0 {
 		err := json.Unmarshal(data, &stakedData)
 		if err != nil {
 			log.Debug("unmarshal error on staking SC stake function",

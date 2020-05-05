@@ -367,7 +367,7 @@ func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedData, error) {
 	}
 
 	data := r.eei.GetStorage(key)
-	if data != nil {
+	if len(data) > 0 {
 		err := json.Unmarshal(data, &registrationData)
 		if err != nil {
 			log.Debug("unmarshal error on staking SC stake function",

@@ -476,11 +476,120 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeOneBlsPubKeyAndRestake(t *testing.T
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	arguments.Function = "stake"
-	arguments.CallerAddr = stakerAddress.Bytes()
 	arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), stakerPubKey.Bytes(), []byte("signed")}
 	arguments.CallValue = big.NewInt(0)
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
+
+	arguments.Function = "unStake"
+	arguments.Arguments = [][]byte{stakerPubKey.Bytes()}
+	arguments.CallValue = big.NewInt(0)
+
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	addToStakeValue := big.NewInt(10000)
+	arguments.Function = "stake"
+	arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), stakerPubKey.Bytes(), []byte("signed")}
+	arguments.CallValue = addToStakeValue
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	arguments.Function = "claim"
+	arguments.CallValue = big.NewInt(0)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	vmOutput := eei.CreateVMOutput()
+	assert.NotNil(t, vmOutput)
+	outputAccount := vmOutput.OutputAccounts[string(arguments.CallerAddr)]
+	assert.True(t, outputAccount.BalanceDelta.Cmp(addToStakeValue) == 0)
+
+	eei.SetSCAddress(args.StakingSCAddress)
+	marshalledData := eei.GetStorage(stakerPubKey.Bytes())
+	stakedData := &StakedData{}
+	_ = json.Unmarshal(marshalledData, stakedData)
+	assert.True(t, stakedData.Staked)
+}
+
+func TestStakingAuctionSC_ExecuteStakeUnStakeUnBondBlsPubKeyAndRestake(t *testing.T) {
+	t.Parallel()
+
+	stakerAddress := big.NewInt(100)
+	stakerPubKey := big.NewInt(100)
+	nonce := uint64(1)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			return nonce
+		},
+	}
+	validatorSettings := &mock.ValidatorSettingsStub{
+		StakeEnableNonceCalled: func() uint64 {
+			return 0
+		},
+		UnBondPeriodCalled: func() uint64 {
+			return 0
+		},
+	}
+	args := createMockArgumentsForAuction()
+	args.ValidatorSettings = validatorSettings
+
+	atArgParser := vmcommon.NewAtArgumentParser()
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser)
+
+	argsStaking := createMockStakingScArguments()
+	argsStaking.MinStakeValue = args.ValidatorSettings.GenesisNodePrice()
+	argsStaking.Eei = eei
+	argsStaking.UnBondPeriod = args.ValidatorSettings.UnBondPeriod()
+	stakingSC, _ := NewStakingSmartContract(argsStaking)
+
+	eei.SetSCAddress([]byte("addr"))
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		return stakingSC, nil
+	}})
+
+	args.Eei = eei
+
+	sc, _ := NewStakingAuctionSmartContract(args)
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "stake"
+	arguments.CallerAddr = stakerAddress.Bytes()
+	arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), stakerPubKey.Bytes(), []byte("signed")}
+	arguments.CallValue = big.NewInt(100).Set(args.ValidatorSettings.GenesisNodePrice())
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	nonce += 1
+	arguments.Function = "unStake"
+	arguments.Arguments = [][]byte{stakerPubKey.Bytes()}
+	arguments.CallValue = big.NewInt(0)
+
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	nonce += args.ValidatorSettings.UnBondPeriod() + 1
+	arguments.Function = "unBond"
+	arguments.Arguments = [][]byte{stakerPubKey.Bytes()}
+	arguments.CallValue = big.NewInt(0)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	arguments.Function = "stake"
+	arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), stakerPubKey.Bytes(), []byte("signed")}
+	arguments.CallValue = big.NewInt(0)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+
+	arguments.CallValue = args.ValidatorSettings.GenesisNodePrice()
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	eei.SetSCAddress(args.StakingSCAddress)
+	marshalledData := eei.GetStorage(stakerPubKey.Bytes())
+	stakedData := &StakedData{}
+	_ = json.Unmarshal(marshalledData, stakedData)
+	assert.True(t, stakedData.Staked)
 }
 
 func TestStakingAuctionSC_ExecuteUnBound(t *testing.T) {
