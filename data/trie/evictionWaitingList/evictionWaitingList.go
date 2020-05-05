@@ -122,8 +122,9 @@ func (ewl *evictionWaitingList) IsInterfaceNil() bool {
 	return ewl == nil
 }
 
-// PresentInNewHashes searches for the given hash in all of the evictionWaitingList's newHashes
-func (ewl *evictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
+// ShouldKeepHash searches for the given hash in all of the evictionWaitingList's newHashes.
+// If the identifier is equal to oldRoot, then we should also search in oldHashes.
+func (ewl *evictionWaitingList) ShouldKeepHash(hash string, identifier data.TriePruningIdentifier) (bool, error) {
 	ewl.opMutex.RLock()
 	defer ewl.opMutex.RUnlock()
 
@@ -133,7 +134,7 @@ func (ewl *evictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
 		}
 
 		lastByte := key[len(key)-1]
-		if data.TriePruningIdentifier(lastByte) == data.OldRoot {
+		if data.TriePruningIdentifier(lastByte) == data.OldRoot && identifier == data.OldRoot {
 			continue
 		}
 
@@ -158,7 +159,7 @@ func (ewl *evictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
 		}
 		_, ok := hashes[hash]
 		if ok {
-			log.Trace("found in newHashes", "rootHash", []byte(key), "hash", hash)
+			log.Trace("should keep hash", "rootHash", []byte(key), "hash", hash)
 			return true, nil
 		}
 	}

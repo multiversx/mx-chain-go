@@ -258,14 +258,20 @@ func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
 
 	log.Debug("trie removeFromDb", "rootHash", rootHash)
 
+	lastBytePos := len(rootHash) - 1
+	if lastBytePos < 0 {
+		return ErrInvalidIdentifier
+	}
+	identifier := data.TriePruningIdentifier(rootHash[lastBytePos])
+
 	var hash []byte
-	var present bool
+	var shouldKeepHash bool
 	for key := range hashes {
-		present, err = tsm.dbEvictionWaitingList.PresentInNewHashes(key)
+		shouldKeepHash, err = tsm.dbEvictionWaitingList.ShouldKeepHash(key, identifier)
 		if err != nil {
 			return err
 		}
-		if present {
+		if shouldKeepHash {
 			continue
 		}
 

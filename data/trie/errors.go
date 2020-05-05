@@ -81,3 +81,6 @@ var ErrInvalidTrieTopic = errors.New("invalid trie topic")
 
 // ErrNilContext signals that nil context has been provided
 var ErrNilContext = errors.New("nil context")
+
+// ErrInvalidIdentifier signals that the root hash has an  invalid identifier
+var ErrInvalidIdentifier = errors.New("invalid identifier")
