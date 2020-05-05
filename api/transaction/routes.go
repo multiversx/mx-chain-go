@@ -43,7 +43,7 @@ type SendTxRequest struct {
 	Sender    string `form:"sender" json:"sender"`
 	Receiver  string `form:"receiver" json:"receiver"`
 	Value     string `form:"value" json:"value"`
-	Data      []byte `form:"data" json:"data"`
+	Data      string `form:"data" json:"data"`
 	Nonce     uint64 `form:"nonce" json:"nonce"`
 	GasPrice  uint64 `form:"gasPrice" json:"gasPrice"`
 	GasLimit  uint64 `form:"gasLimit" json:"gasLimit"`
@@ -90,7 +90,7 @@ func SendTransaction(c *gin.Context) {
 		gtx.Sender,
 		gtx.GasPrice,
 		gtx.GasLimit,
-		gtx.Data,
+		[]byte(gtx.Data),
 		gtx.Signature,
 	)
 	if err != nil {
@@ -139,7 +139,7 @@ func SendMultipleTransactions(c *gin.Context) {
 			receivedTx.Sender,
 			receivedTx.GasPrice,
 			receivedTx.GasLimit,
-			receivedTx.Data,
+			[]byte(receivedTx.Data),
 			receivedTx.Signature,
 		)
 		if err != nil {
@@ -213,7 +213,7 @@ func txResponseFromTransaction(ef TxService, tx *transaction.Transaction) (TxRes
 	response.Nonce = tx.Nonce
 	response.Sender = sender
 	response.Receiver = receiver
-	response.Data = tx.Data
+	response.Data = string(tx.Data)
 	response.Signature = hex.EncodeToString(tx.Signature)
 	response.Value = tx.Value.String()
 	response.GasLimit = tx.GasLimit
@@ -243,7 +243,7 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 		gtx.Sender,
 		gtx.GasPrice,
 		gtx.GasLimit,
-		gtx.Data,
+		[]byte(gtx.Data),
 		gtx.Signature,
 	)
 	if err != nil {
