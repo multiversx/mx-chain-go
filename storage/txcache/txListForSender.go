@@ -109,7 +109,7 @@ func (listForSender *txListForSender) onRemovedListElement(element *list.Element
 
 	listForSender.totalBytes.Subtract(int64(estimateTxSize(value)))
 	listForSender.totalGas.Subtract(int64(estimateTxGas(value)))
-	listForSender.totalGas.Subtract(int64(estimateTxFee(value)))
+	listForSender.totalFee.Subtract(int64(estimateTxFee(value)))
 	listForSender.onScoreChange(listForSender)
 }
 
