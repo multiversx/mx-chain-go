@@ -13,21 +13,20 @@ type dummyItem struct {
 	scoreChangeInProgress atomic.Flag
 	score                 atomic.Uint32
 	key                   string
-	chunk                 *MapChunkPointer
+	chunk                 *MapChunk
+	chunkMutex            sync.RWMutex
 	mutex                 sync.Mutex
 }
 
 func newDummyItem(key string) *dummyItem {
 	return &dummyItem{
-		key:   key,
-		chunk: &MapChunkPointer{},
+		key: key,
 	}
 }
 
 func newScoredDummyItem(key string, score uint32) *dummyItem {
 	item := &dummyItem{
-		key:   key,
-		chunk: &MapChunkPointer{},
+		key: key,
 	}
 	item.score.Set(score)
 	return item
@@ -41,8 +40,18 @@ func (item *dummyItem) ComputeScore() uint32 {
 	return item.score.Get()
 }
 
-func (item *dummyItem) ScoreChunk() *MapChunkPointer {
+func (item *dummyItem) GetScoreChunk() *MapChunk {
+	item.chunkMutex.RLock()
+	defer item.chunkMutex.RUnlock()
+
 	return item.chunk
+}
+
+func (item *dummyItem) SetScoreChunk(chunk *MapChunk) {
+	item.chunkMutex.Lock()
+	defer item.chunkMutex.Unlock()
+
+	item.chunk = chunk
 }
 
 func (item *dummyItem) simulateMutationThatChangesScore(myMap *BucketSortedMap) {
@@ -156,16 +165,16 @@ func TestBucketSortedMap_ItemMovesOnNotifyScoreChange(t *testing.T) {
 	simulateMutationThatChangesScore(myMap, "a")
 	simulateMutationThatChangesScore(myMap, "b")
 
-	require.Equal(t, myMap.scoreChunks[1], a.ScoreChunk().Get())
-	require.Equal(t, myMap.scoreChunks[42], b.ScoreChunk().Get())
+	require.Equal(t, myMap.scoreChunks[1], a.GetScoreChunk())
+	require.Equal(t, myMap.scoreChunks[42], b.GetScoreChunk())
 
 	a.score.Set(2)
 	b.score.Set(43)
 	simulateMutationThatChangesScore(myMap, "a")
 	simulateMutationThatChangesScore(myMap, "b")
 
-	require.Equal(t, myMap.scoreChunks[2], a.ScoreChunk().Get())
-	require.Equal(t, myMap.scoreChunks[43], b.ScoreChunk().Get())
+	require.Equal(t, myMap.scoreChunks[2], a.GetScoreChunk())
+	require.Equal(t, myMap.scoreChunks[43], b.GetScoreChunk())
 }
 
 func TestBucketSortedMap_Has(t *testing.T) {

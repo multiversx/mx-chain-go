@@ -76,15 +76,15 @@ func (sortedMap *BucketSortedMap) NotifyScoreChange(item BucketSortedMapItem) {
 	}
 
 	newScoreChunk := sortedMap.getScoreChunks()[newScore]
-	if newScoreChunk != item.ScoreChunk().Get() {
+	if newScoreChunk != item.GetScoreChunk() {
 		removeFromScoreChunk(item)
 		newScoreChunk.setItem(item)
-		item.ScoreChunk().Set(newScoreChunk)
+		item.SetScoreChunk(newScoreChunk)
 	}
 }
 
 func removeFromScoreChunk(item BucketSortedMapItem) {
-	currentScoreChunk := item.ScoreChunk().Get()
+	currentScoreChunk := item.GetScoreChunk()
 	if currentScoreChunk != nil {
 		currentScoreChunk.removeItem(item)
 	}

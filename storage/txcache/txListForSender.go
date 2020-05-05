@@ -16,8 +16,7 @@ type txListForSender struct {
 	items               *list.List
 	copyBatchIndex      *list.Element
 	cacheConfig         *CacheConfig
-	scoreChunk          *maps.MapChunkPointer
-	mutex               sync.RWMutex
+	scoreChunk          *maps.MapChunk
 	accountNonceKnown   atomic.Flag
 	lastComputedScore   atomic.Uint32
 	accountNonce        atomic.Uint64
@@ -27,6 +26,9 @@ type txListForSender struct {
 	numFailedSelections atomic.Counter
 	onScoreChange       scoreChangeCallback
 	sweepable           atomic.Flag
+
+	scoreChunkMutex sync.RWMutex
+	mutex           sync.RWMutex
 }
 
 type scoreChangeCallback func(value *txListForSender)
@@ -38,7 +40,6 @@ func newTxListForSender(sender string, cacheConfig *CacheConfig, onScoreChange s
 		sender:        sender,
 		cacheConfig:   cacheConfig,
 		onScoreChange: onScoreChange,
-		scoreChunk:    &maps.MapChunkPointer{},
 	}
 }
 

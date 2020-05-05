@@ -93,7 +93,17 @@ func computeSenderScore(params senderScoreParams) float64 {
 	return score
 }
 
-// GetScoreChunk returns a mutable pointer to the current score chunk
-func (listForSender *txListForSender) ScoreChunk() *maps.MapChunkPointer {
+// GetScoreChunk returns the score chunk the sender is currently in
+func (listForSender *txListForSender) GetScoreChunk() *maps.MapChunk {
+	listForSender.scoreChunkMutex.RLock()
+	defer listForSender.scoreChunkMutex.RUnlock()
+
 	return listForSender.scoreChunk
+}
+
+// SetScoreChunk returns the score chunk the sender is currently in
+func (listForSender *txListForSender) SetScoreChunk(scoreChunk *maps.MapChunk) {
+	listForSender.scoreChunkMutex.Lock()
+	listForSender.scoreChunk = scoreChunk
+	listForSender.scoreChunkMutex.Unlock()
 }
