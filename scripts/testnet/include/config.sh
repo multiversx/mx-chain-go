@@ -55,7 +55,8 @@ copyNodeConfig() {
   cp $NODEDIR/config/p2p.toml ./node/config
   cp $NODEDIR/config/gasSchedule.toml ./node/config
   cp $NODEDIR/config/genesisSmartContracts.json ./node/config
-
+  mkdir ./node/config/genesisContracts -p
+  cp $NODEDIR/config/genesisContracts/*.* ./node/config/genesisContracts
 
   echo "Configuration files copied from the Node to the working directories of the executables."
   popd

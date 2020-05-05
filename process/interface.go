@@ -418,6 +418,7 @@ type BlockChainHookHandler interface {
 	TemporaryAccountsHandler
 	SetCurrentHeader(hdr data.HeaderHandler)
 	GetBuiltInFunctions() BuiltInFunctionContainer
+	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
 }
 
 // Interceptor defines what a data interceptor should do

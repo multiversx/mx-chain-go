@@ -111,7 +111,7 @@ func (as *AccountsStub) RevertToSnapshot(snapshot int) error {
 		return as.RevertToSnapshotCalled(snapshot)
 	}
 
-	return errNotImplemented
+	return nil
 }
 
 // RootHash -

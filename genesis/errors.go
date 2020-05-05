@@ -92,9 +92,6 @@ var ErrInvalidOwnerAddress = errors.New("invalid owner address")
 // ErrFilenameIsDirectory signals that the provided filename is a directory
 var ErrFilenameIsDirectory = errors.New("provided name is actually a directory")
 
-// ErrDuplicateOwnerAddress signals that the same owner address was found more than one time
-var ErrDuplicateOwnerAddress = errors.New("duplicate owner address")
-
 // ErrNilSmartContractParser signals that the smart contract parser is nil
 var ErrNilSmartContractParser = errors.New("nil smart contract parser")
 
@@ -103,3 +100,15 @@ var ErrInvalidVmType = errors.New("invalid vm type")
 
 // ErrEmptyVmType signals that the provided VM type is empty
 var ErrEmptyVmType = errors.New("empty vm type")
+
+// ErrWrongTypeAssertion signals that a wrong type assertion occurred
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrNilTxExecutionProcessor signals that a nil tx execution processor has been provided
+var ErrNilTxExecutionProcessor = errors.New("nil tx execution processor")
+
+// ErrNilNodesListSplitter signals that a nil nodes handler has been provided
+var ErrNilNodesListSplitter = errors.New("nil nodes list splitter")
+
+// ErrNilDeployProcessor signals that a nil deploy processor has been provided
+var ErrNilDeployProcessor = errors.New("nil deploy processor")

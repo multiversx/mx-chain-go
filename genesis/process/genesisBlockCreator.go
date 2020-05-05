@@ -12,6 +12,7 @@ import (
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -20,7 +21,7 @@ import (
 	hardfork "github.com/ElrondNetwork/elrond-go/update/genesis"
 )
 
-type genesisBlockCreationHandler func(arg ArgsGenesisBlockCreator) (data.HeaderHandler, error)
+type genesisBlockCreationHandler func(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter) (data.HeaderHandler, error)
 
 type genesisBlockCreator struct {
 	arg                 ArgsGenesisBlockCreator
@@ -42,7 +43,7 @@ func NewGenesisBlockCreator(arg ArgsGenesisBlockCreator) (*genesisBlockCreator, 
 	}
 
 	if arg.HardForkConfig.MustImport {
-		err := gbc.createHardForkImportHandler()
+		err = gbc.createHardForkImportHandler()
 		if err != nil {
 			return nil, err
 		}
@@ -147,10 +148,15 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	var newArgument ArgsGenesisBlockCreator
 
 	if gbc.arg.HardForkConfig.MustImport {
-		err := gbc.arg.importHandler.ImportAll()
+		err = gbc.arg.importHandler.ImportAll()
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	nodesListSplitter, err := intermediate.NewNodesListSplitter(gbc.arg.InitialNodesSetup, gbc.arg.AccountsParser)
+	if err != nil {
+		return nil, err
 	}
 
 	for shardID := uint32(0); shardID < gbc.arg.ShardCoordinator.NumberOfShards(); shardID++ {
@@ -160,7 +166,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 				err, shardID)
 		}
 
-		genesisBlock, err = gbc.shardCreatorHandler(newArgument)
+		genesisBlock, err = gbc.shardCreatorHandler(newArgument, nodesListSplitter)
 		if err != nil {
 			return nil, fmt.Errorf("'%w' while generating genesis block for shard %d",
 				err, shardID)
@@ -180,7 +186,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	}
 
 	newArgument.Blkc = blockchain.NewMetaChain()
-	genesisBlock, err = gbc.metaCreatorHandler(newArgument)
+	genesisBlock, err = gbc.metaCreatorHandler(newArgument, nodesListSplitter)
 	if err != nil {
 		return nil, fmt.Errorf("'%w' while generating genesis block for metachain", err)
 	}

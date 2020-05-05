@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -25,7 +26,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
@@ -33,7 +33,7 @@ import (
 )
 
 // CreateMetaGenesisBlock will create a metachain genesis block
-func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, error) {
+func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter) (data.HeaderHandler, error) {
 	processors, err := createProcessorsForMetaGenesisBlock(arg)
 	if err != nil {
 		return nil, err
@@ -49,13 +49,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator) (data.HeaderHandler, er
 		return nil, err
 	}
 
-	eligible, waiting := arg.InitialNodesSetup.InitialNodesInfo()
-	allNodes := make(map[uint32][]sharding.GenesisNodeInfoHandler)
-	for shard := range eligible {
-		allNodes[shard] = append(eligible[shard], waiting[shard]...)
-	}
-
-	err = setStakedData(arg, processors.txProcessor, allNodes)
+	err = setStakedData(arg, processors.txProcessor, nodesListSplitter)
 	if err != nil {
 		return nil, err
 	}
@@ -313,12 +307,13 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 	}
 
 	return &genesisProcessors{
-		txCoordinator: txCoordinator,
-		systemSCs:     virtualMachineFactory.SystemSmartContractContainer(),
-		txProcessor:   txProcessor,
-		scProcessor:   scProcessor,
-		scrProcessor:  scProcessor,
-		rwdProcessor:  nil,
+		txCoordinator:  txCoordinator,
+		systemSCs:      virtualMachineFactory.SystemSmartContractContainer(),
+		blockchainHook: virtualMachineFactory.BlockChainHookImpl(),
+		txProcessor:    txProcessor,
+		scProcessor:    scProcessor,
+		scrProcessor:   scProcessor,
+		rwdProcessor:   nil,
 	}, nil
 }
 
@@ -370,40 +365,28 @@ func deploySystemSmartContracts(
 func setStakedData(
 	arg ArgsGenesisBlockCreator,
 	txProcessor process.TransactionProcessor,
-	initialNodeInfo map[uint32][]sharding.GenesisNodeInfoHandler,
+	nodesListSplitter genesis.NodesListSplitter,
 ) error {
 	// create staking smart contract state for genesis - update fixed stake value from all
 	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
 	stakeValue := arg.Economics.GenesisNodePrice()
 
-	//it is important that the processing is done in a deterministic way
-	keys := make([]uint32, 0, len(initialNodeInfo))
-	for k := range initialNodeInfo {
-		keys = append(keys, k)
-	}
+	stakedNodes := nodesListSplitter.GetAllStakedNodes()
+	for _, nodeInfo := range stakedNodes {
+		tx := &transaction.Transaction{
+			Nonce:     0,
+			Value:     new(big.Int).Set(stakeValue),
+			RcvAddr:   vmFactory.AuctionSCAddress,
+			SndAddr:   nodeInfo.AddressBytes(),
+			GasPrice:  0,
+			GasLimit:  math.MaxUint64,
+			Data:      []byte("stake@" + oneEncoded + "@" + hex.EncodeToString(nodeInfo.PubKeyBytes()) + "@" + hex.EncodeToString([]byte("genesis"))),
+			Signature: nil,
+		}
 
-	sort.Slice(keys, func(i, j int) bool {
-		return keys[i] < keys[j]
-	})
-
-	for _, shardID := range keys {
-		nodeInfoList := initialNodeInfo[shardID]
-		for _, nodeInfo := range nodeInfoList {
-			tx := &transaction.Transaction{
-				Nonce:     0,
-				Value:     new(big.Int).Set(stakeValue),
-				RcvAddr:   vmFactory.AuctionSCAddress,
-				SndAddr:   nodeInfo.AddressBytes(),
-				GasPrice:  0,
-				GasLimit:  math.MaxUint64,
-				Data:      []byte("stake@" + oneEncoded + "@" + hex.EncodeToString(nodeInfo.PubKeyBytes()) + "@" + hex.EncodeToString([]byte("genesis"))),
-				Signature: nil,
-			}
-
-			err := txProcessor.ProcessTransaction(tx)
-			if err != nil {
-				return err
-			}
+		err := txProcessor.ProcessTransaction(tx)
+		if err != nil {
+			return err
 		}
 	}
 

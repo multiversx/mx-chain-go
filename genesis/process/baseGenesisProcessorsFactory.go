@@ -6,10 +6,11 @@ import (
 )
 
 type genesisProcessors struct {
-	txCoordinator process.TransactionCoordinator
-	systemSCs     vm.SystemSCContainer
-	txProcessor   process.TransactionProcessor
-	scProcessor   process.SmartContractProcessor
-	scrProcessor  process.SmartContractResultProcessor
-	rwdProcessor  process.RewardTransactionProcessor
+	txCoordinator  process.TransactionCoordinator
+	systemSCs      vm.SystemSCContainer
+	txProcessor    process.TransactionProcessor
+	scProcessor    process.SmartContractProcessor
+	scrProcessor   process.SmartContractResultProcessor
+	rwdProcessor   process.RewardTransactionProcessor
+	blockchainHook process.BlockChainHookHandler
 }

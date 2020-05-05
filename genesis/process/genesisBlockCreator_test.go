@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 //TODO improve code coverage of this package
@@ -49,7 +50,7 @@ func createMockArgument() ArgsGenesisBlockCreator {
 		SaveAccountCalled: func(account state.AccountHandler) error {
 			return nil
 		},
-		LoadAccountCalled: func(container []byte) (state.AccountHandler, error) {
+		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return state.NewEmptyUserAccount(), nil
 		},
 	}
@@ -90,7 +91,8 @@ func TestGenesisBlockCreator_CreateGenesisBlocksShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()
-	gbc, _ := NewGenesisBlockCreator(arg)
+	gbc, err := NewGenesisBlockCreator(arg)
+	require.Nil(t, err)
 
 	blocks, err := gbc.CreateGenesisBlocks()
 

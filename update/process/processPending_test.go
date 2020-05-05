@@ -46,8 +46,8 @@ func TestPendingTransactionProcessor_ProcessTransactionsDstMe(t *testing.T) {
 	args.PubKeyConv = &mock.PubkeyConverterStub{}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	shardCoordinator.ComputeIdCalled = func(container []byte) uint32 {
-		if container != nil {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if address != nil {
 			return 0
 		}
 		return 1
