@@ -78,9 +78,8 @@ func TestSendersMap_RemoveSendersBulk_ConcurrentWithAddition(t *testing.T) {
 		}
 	}()
 
+	wg.Add(100)
 	for i := 0; i < 100; i++ {
-		wg.Add(1)
-
 		go func(i int) {
 			myMap.addTx(createTx([]byte("a"), "alice", uint64(i)))
 			myMap.addTx(createTx([]byte("b"), "bob", uint64(i)))
