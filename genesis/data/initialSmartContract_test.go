@@ -52,3 +52,14 @@ func TestInitialSmartContract_Getters(t *testing.T) {
 	assert.Equal(t, scType, isc.GetType())
 	assert.Equal(t, initParams, isc.GetInitParameters())
 }
+
+func TestInitialSmartContract_AddressBytes(t *testing.T) {
+	t.Parallel()
+
+	ia := &InitialSmartContract{}
+	addrBytes := []byte("address bytes")
+	ia.SetAddressBytes(addrBytes)
+	recoverdAddrBytes := ia.AddressBytes()
+
+	assert.Equal(t, addrBytes, recoverdAddrBytes)
+}

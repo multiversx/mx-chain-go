@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -20,11 +21,12 @@ const auctionScAddressPlaceholder = "%auction_sc_address%"
 
 type deployProcessor struct {
 	genesis.TxExecutionProcessor
-	pubkeyConv          state.PubkeyConverter
-	replacePlaceholders func(txData string, scResultingAddressBytes []byte) (string, error)
-	getScCodeAsHex      func(filename string) (string, error)
-	blockchainHook      process.BlockChainHookHandler
-	emptyAddress        []byte
+	pubkeyConv             state.PubkeyConverter
+	mutReplacePlaceholders sync.RWMutex
+	replacePlaceholders    func(txData string, scResultingAddressBytes []byte) (string, error)
+	getScCodeAsHex         func(filename string) (string, error)
+	blockchainHook         process.BlockChainHookHandler
+	emptyAddress           []byte
 }
 
 // NewDeployProcessor returns a new instance of deploy processor able to deploy SC
@@ -80,12 +82,15 @@ func (dp *deployProcessor) Deploy(sc genesis.InitialSmartContractHandler) error 
 	vmType := sc.GetVmType()
 	deployTxData := strings.Join([]string{code, vmType, codeMetadataHexForInitialSC}, "@")
 	deployTxData = dp.applyCommonPlaceholders(deployTxData)
+
+	dp.mutReplacePlaceholders.RLock()
 	if dp.replacePlaceholders != nil {
 		deployTxData, err = dp.replacePlaceholders(deployTxData, scResultingAddressBytes)
 		if err != nil {
 			return err
 		}
 	}
+	dp.mutReplacePlaceholders.RUnlock()
 
 	return dp.ExecuteTransaction(
 		nonce,
@@ -110,4 +115,16 @@ func (dp *deployProcessor) getSCCodeAsHex(filename string) (string, error) {
 	}
 
 	return hex.EncodeToString(code), nil
+}
+
+// SetReplacePlaceholders sets the replace placeholder custom handler
+func (dp *deployProcessor) SetReplacePlaceholders(handler func(txData string, scResultingAddressBytes []byte) (string, error)) {
+	dp.mutReplacePlaceholders.Lock()
+	dp.replacePlaceholders = handler
+	dp.mutReplacePlaceholders.Unlock()
+}
+
+// IsInterfaceNil returns if underlying object is true
+func (dp *deployProcessor) IsInterfaceNil() bool {
+	return dp == nil || dp.TxExecutionProcessor == nil
 }

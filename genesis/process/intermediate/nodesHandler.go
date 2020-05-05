@@ -21,6 +21,9 @@ func NewNodesHandler(
 	accountsParser genesis.AccountsParser,
 ) (*nodesHandler, error) {
 
+	if check.IfNil(initialNodesSetup) {
+		return nil, genesis.ErrNilNodesSetup
+	}
 	if check.IfNil(accountsParser) {
 		return nil, genesis.ErrNilAccountsParser
 	}
@@ -47,19 +50,6 @@ func NewNodesHandler(
 		allNodes:       allNodes,
 		accountsParser: accountsParser,
 	}, nil
-}
-
-func (nh *nodesHandler) isStaked(address []byte) bool {
-	accounts := nh.accountsParser.InitialAccounts()
-	for _, ac := range accounts {
-		if !bytes.Equal(ac.AddressBytes(), address) {
-			continue
-		}
-
-		return ac.GetStakingValue().Cmp(zero) > 0
-	}
-
-	return false
 }
 
 func (nh *nodesHandler) isDelegated(address []byte) bool {

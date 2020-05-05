@@ -18,7 +18,6 @@ type DelegationResult struct {
 // AccountsParser contains the parsed genesis json file and has some functionality regarding processed data
 type AccountsParser interface {
 	InitialAccountsSplitOnAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]InitialAccountHandler, error)
-	InitialAccountsSplitOnDelegationAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]InitialAccountHandler, error)
 	InitialAccounts() []InitialAccountHandler
 	GetTotalStakedForDelegationAddress(delegationAddress string) *big.Int
 	GetInitialAccountsForDelegated(addressBytes []byte) []InitialAccountHandler
@@ -41,8 +40,6 @@ type InitialAccountHandler interface {
 	GetBalanceValue() *big.Int
 	GetSupply() *big.Int
 	GetDelegationHandler() DelegationDataHandler
-	IncrementNonceOffset()
-	NonceOffset() uint64
 	IsInterfaceNil() bool
 }
 
@@ -89,5 +86,12 @@ type TxExecutionProcessor interface {
 type NodesHandler interface {
 	GetAllNodes() []sharding.GenesisNodeInfoHandler
 	GetDelegatedNodes(delegationScAddress []byte) []sharding.GenesisNodeInfoHandler
+	IsInterfaceNil() bool
+}
+
+// DeployProcessor is able to deploy a smart contract
+type DeployProcessor interface {
+	Deploy(sc InitialSmartContractHandler) error
+	SetReplacePlaceholders(handler func(txData string, scResultingAddressBytes []byte) (string, error))
 	IsInterfaceNil() bool
 }

@@ -137,7 +137,6 @@ func (dp *delegationProcessor) stake(ac genesis.InitialAccountHandler, sc genesi
 		)
 	}
 
-	//cross shard transaction, just increment the nonce offset internally after executing stake function on delegation SC
 	err = dp.ExecuteTransaction(
 		0,
 		ac.AddressBytes(),
@@ -148,8 +147,6 @@ func (dp *delegationProcessor) stake(ac genesis.InitialAccountHandler, sc genesi
 	if err != nil {
 		return err
 	}
-
-	ac.IncrementNonceOffset()
 
 	return nil
 }

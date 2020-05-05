@@ -74,7 +74,7 @@ updateNodeConfig() {
 
   cp nodesSetup.json nodesSetup_edit.json
   
-  let startTime="$(date +%s) + $NODE_DELAY"
+  let startTime="$(date +%s) + $NODE_DELAY + 30"
   updateJSONValue nodesSetup_edit.json "startTime" "$startTime"
 
 	if [ $ALWAYS_NEW_CHAINID -eq 1 ]; then

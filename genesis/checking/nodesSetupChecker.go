@@ -144,17 +144,6 @@ func (nsc *nodeSetupChecker) checkRemainderInitialAccounts(
 				genesis.ErrInvalidStakingBalance, ia.GetAddress(), ia.GetStakingValue().String(),
 			)
 		}
-
-		dh := ia.GetDelegationHandler()
-		if check.IfNil(dh) {
-			return genesis.ErrNilDelegationHandler
-		}
-
-		if dh.GetValue().Cmp(zero) != 0 {
-			return fmt.Errorf("%w for delegation address %s, remainder %s",
-				genesis.ErrInvalidDelegationValue, ia.GetAddress(), dh.GetValue().String(),
-			)
-		}
 	}
 
 	for _, delegation := range delegated {

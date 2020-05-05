@@ -110,5 +110,8 @@ var ErrNilTxExecutionProcessor = errors.New("nil tx execution processor")
 // ErrNilNodesHandler signals that a nil nodes handler has been provided
 var ErrNilNodesHandler = errors.New("nil nodes handler")
 
+// ErrNilNodesSetup signals that a nil nodes setup handler has been provided
+var ErrNilNodesSetup = errors.New("nil nodes setup")
+
 // ErrNilDeployProcessor signals that a nil deploy processor has been provided
 var ErrNilDeployProcessor = errors.New("nil deploy processor")
