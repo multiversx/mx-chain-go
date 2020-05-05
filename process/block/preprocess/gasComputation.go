@@ -3,6 +3,7 @@ package preprocess
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -169,17 +170,20 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 		return 0, 0, process.ErrNilTransaction
 	}
 
-	txGasLimitConsumption := gc.economicsFee.ComputeGasLimit(txHandler)
+	moveBalanceConsumption := gc.economicsFee.ComputeGasLimit(txHandler)
 
 	txType := gc.txTypeHandler.ComputeTransactionType(txHandler)
-	isSCCall := txType == process.SCDeployment || txType == process.SCInvoking || txType == process.BuiltInFunctionCall
+	isSCCall := txType == process.SCDeployment ||
+		txType == process.SCInvoking ||
+		txType == process.BuiltInFunctionCall ||
+		(core.IsSmartContractAddress(txHandler.GetRcvAddr()) && len(txHandler.GetData()) > 0)
 	if isSCCall {
 		isCrossShardSCCall := txSenderShardId != txReceiverShardId &&
-			txGasLimitConsumption < txHandler.GetGasLimit() &&
+			moveBalanceConsumption < txHandler.GetGasLimit() &&
 			txType != process.BuiltInFunctionCall
 		if isCrossShardSCCall {
-			gasConsumedByTxInSenderShard := txGasLimitConsumption
-			gasConsumedByTxInReceiverShard := txHandler.GetGasLimit() - txGasLimitConsumption
+			gasConsumedByTxInSenderShard := moveBalanceConsumption
+			gasConsumedByTxInReceiverShard := txHandler.GetGasLimit() - moveBalanceConsumption
 
 			return gasConsumedByTxInSenderShard, gasConsumedByTxInReceiverShard, nil
 		}
@@ -187,7 +191,7 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 		return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 	}
 
-	return txGasLimitConsumption, txGasLimitConsumption, nil
+	return moveBalanceConsumption, moveBalanceConsumption, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
