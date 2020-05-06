@@ -56,6 +56,7 @@ copyNodeConfig() {
   cp $NODEDIR/config/external.toml ./node/config
   cp $NODEDIR/config/p2p.toml ./node/config
   cp $NODEDIR/config/gasSchedule.toml ./node/config
+  cp $NODEDIR/config/systemSmartContractsConfig.toml ./node/config
   mkdir ./node/config/genesisContracts -p
   cp $NODEDIR/config/genesisContracts/*.* ./node/config/genesisContracts
 
