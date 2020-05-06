@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,6 +17,7 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 		GasMap:               gasMap,
 		MapDNSAddresses:      make(map[string]struct{}),
 		EnableUserNameChange: false,
+		Marshalizer:          &mock.MarshalizerMock{},
 	}
 
 	return args
@@ -45,6 +47,7 @@ func fillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["ChangeOwnerAddress"] = value
 	gasMap["SaveUserName"] = value
 	gasMap["SaveKeyValue"] = value
+	gasMap["ESDTTransfer"] = value
 
 	return gasMap
 }
@@ -67,5 +70,5 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	args = createMockArguments()
 	container, err = CreateBuiltInFunctionContainer(args)
 	assert.Nil(t, err)
-	assert.Equal(t, container.Len(), 4)
+	assert.Equal(t, container.Len(), 5)
 }

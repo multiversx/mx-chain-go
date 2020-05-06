@@ -1,6 +1,7 @@
 package process
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -58,7 +59,7 @@ func (s *systemVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (
 	deployInput := &vmcommon.ContractCallInput{
 		VMInput:       input.VMInput,
 		RecipientAddr: input.CallerAddr,
-		Function:      "_init",
+		Function:      core.SCDeployInitFunctionName,
 	}
 
 	returnCode := contract.Execute(deployInput)
@@ -83,7 +84,7 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 		return nil, vm.ErrUnknownSystemSmartContract
 	}
 
-	if input.Function == "_init" {
+	if input.Function == core.SCDeployInitFunctionName {
 		return &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}, nil
 	}
 
