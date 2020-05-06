@@ -944,8 +944,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		scProcessorMock,
 		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{
-			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
-				return process.SCInvoking, nil
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
+				return process.SCInvoking
 			},
 		},
 		feeHandlerMock(),
@@ -999,8 +999,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 		mock.NewOneShardCoordinatorMock(),
 		scProcessorMock,
 		&mock.FeeAccumulatorStub{},
-		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
-			return process.SCInvoking, nil
+		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
+			return process.SCInvoking
 		}},
 		feeHandlerMock(),
 		&mock.IntermediateTransactionHandlerMock{},
@@ -1254,8 +1254,8 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 		scProcessorMock,
 		&mock.FeeAccumulatorStub{},
 		&mock.TxTypeHandlerMock{
-			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
-				return process.MoveBalance, nil
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
+				return process.MoveBalance
 			},
 		},
 		feeHandlerMock(),

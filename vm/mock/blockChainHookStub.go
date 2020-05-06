@@ -27,8 +27,9 @@ type BlockChainHookStub struct {
 	CurrentTimeStampCalled        func() uint64
 	CurrentRandomSeedCalled       func() []byte
 	CurrentEpochCalled            func() uint32
-	ProcessBuiltInFunctionCalled  func(input *vmcommon.ContractCallInput) (*big.Int, uint64, error)
+	ProcessBuiltInFunctionCalled  func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	GetBuiltinFunctionNamesCalled func() vmcommon.FunctionNames
+	GetAllStateCalled             func(address []byte) (map[string][]byte, error)
 }
 
 // AccountExists -
@@ -184,11 +185,19 @@ func (b *BlockChainHookStub) CurrentEpoch() uint32 {
 }
 
 // ProcessBuiltInFunction -
-func (b *BlockChainHookStub) ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*big.Int, uint64, error) {
+func (b *BlockChainHookStub) ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	if b.ProcessBuiltInFunctionCalled != nil {
-		return b.ProcessBuiltInFunction(input)
+		return b.ProcessBuiltInFunctionCalled(input)
 	}
-	return nil, 0, nil
+	return &vmcommon.VMOutput{}, nil
+}
+
+// GetAllState -
+func (b *BlockChainHookStub) GetAllState(address []byte) (map[string][]byte, error) {
+	if b.GetAllStateCalled != nil {
+		return b.GetAllStateCalled(address)
+	}
+	return nil, nil
 }
 
 // GetBuiltinFunctionNames -
