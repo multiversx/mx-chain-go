@@ -209,7 +209,7 @@ func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr *
 	for currentHdr := shardHdr; currentHdr.GetNonce() > 0 && currentHdr.GetEpoch() == shardHdr.GetEpoch(); {
 		prevShardHdr, err := process.GetShardHeader(currentHdr.GetPrevHash(), e.dataPool.Headers(), e.marshalizer, e.store)
 		if err != nil {
-			e.requestHandler.RequestShardHeader(currentHdr.ShardID, currentHdr.GetPrevHash())
+			go e.requestHandler.RequestShardHeader(currentHdr.ShardID, currentHdr.GetPrevHash())
 			if e.epochStartTrigger.Epoch()-currentHdr.GetEpoch() > maxEpochDifference {
 				log.Warn("shard remained in an epoch that is too old", "shardID", currentHdr.ShardID, "shard Epoch", currentHdr.Epoch, "meta Epoch", e.epochStartTrigger.Epoch())
 				break
@@ -332,7 +332,7 @@ func (e *epochStartData) computePendingMiniBlockList(
 
 		metaHdr, err := e.getMetaBlockByHash(shardData.FirstPendingMetaBlock)
 		if err != nil {
-			e.requestHandler.RequestMetaHeader(shardData.FirstPendingMetaBlock)
+			go e.requestHandler.RequestMetaHeader(shardData.FirstPendingMetaBlock)
 			return nil, err
 		}
 
