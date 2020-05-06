@@ -187,6 +187,10 @@ func (tsm *trieStorageManager) Prune(rootHash []byte, identifier data.TriePrunin
 	rootHash = append(rootHash, byte(identifier))
 
 	if tsm.snapshotInProgress > 0 {
+		if identifier == data.NewRoot {
+			return
+		}
+
 		rootHash = append(rootHash, byte(prune))
 		tsm.pruningBuffer.add(rootHash)
 
