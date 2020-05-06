@@ -70,6 +70,10 @@ func (sc *scProcessor) initializeVMInputFromTx(vmInput *vmcommon.VMInput, tx dat
 }
 
 func (sc *scProcessor) prepareGasProvided(tx data.TransactionHandler) (uint64, error) {
+	if sc.shardCoordinator.ComputeId(tx.GetSndAddr()) == core.MetachainShardId {
+		return tx.GetGasLimit(), nil
+	}
+
 	gasForTxData := sc.economicsFee.ComputeGasLimit(tx)
 	if tx.GetGasLimit() < gasForTxData {
 		return 0, process.ErrNotEnoughGas

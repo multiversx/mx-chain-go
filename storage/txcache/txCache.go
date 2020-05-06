@@ -81,16 +81,24 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 // It returns at most "numRequested" transactions
 // Each sender gets the chance to give at least "batchSizePerSender" transactions, unless "numRequested" limit is reached before iterating over all senders
 func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender int) []*WrappedTransaction {
+	result := cache.doSelectTransactions(numRequested, batchSizePerSender)
+	go cache.doAfterSelection()
+	return result
+}
+
+func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender int) []*WrappedTransaction {
 	stopWatch := cache.monitorSelectionStart()
 
 	result := make([]*WrappedTransaction, numRequested)
 	resultFillIndex := 0
 	resultIsFull := false
 
+	snapshotOfSenders := cache.getSendersEligibleForSelection()
+
 	for pass := 0; !resultIsFull; pass++ {
 		copiedInThisPass := 0
 
-		cache.forEachSenderDescending(func(key string, txList *txListForSender) {
+		for _, txList := range snapshotOfSenders {
 			batchSizeWithScoreCoefficient := batchSizePerSender * int(txList.getLastComputedScore()+1)
 			// Reset happens on first pass only
 			isFirstBatch := pass == 0
@@ -104,9 +112,9 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 			copiedInThisPass += copied
 			resultIsFull = resultFillIndex == numRequested
 			if resultIsFull {
-				return
+				break
 			}
-		})
+		}
 
 		nothingCopiedThisPass := copiedInThisPass == 0
 
@@ -118,8 +126,11 @@ func (cache *TxCache) SelectTransactions(numRequested int, batchSizePerSender in
 
 	result = result[:resultFillIndex]
 	cache.monitorSelectionEnd(result, stopWatch)
-	go cache.doAfterSelection()
 	return result
+}
+
+func (cache *TxCache) getSendersEligibleForSelection() []*txListForSender {
+	return cache.txListBySender.getSnapshotDescending()
 }
 
 func (cache *TxCache) doAfterSelection() {
@@ -163,10 +174,6 @@ func (cache *TxCache) Len() int {
 // CountSenders gets the number of senders in the cache
 func (cache *TxCache) CountSenders() int64 {
 	return cache.txListBySender.counter.Get()
-}
-
-func (cache *TxCache) forEachSenderDescending(function ForEachSender) {
-	cache.txListBySender.forEachDescending(function)
 }
 
 // ForEachTransaction iterates over the transactions in the cache
