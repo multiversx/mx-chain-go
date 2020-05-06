@@ -94,7 +94,6 @@ func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 	for _, txList := range cache.evictionSnapshotOfSenders {
 		if txList.HasMoreThan(threshold) {
 			txsToEvictForSender := txList.RemoveHighNonceTxs(numTxsToEvict)
-			cache.txListBySender.notifyScoreChange(txList)
 			txsToEvict = append(txsToEvict, txsToEvictForSender...)
 		}
 
