@@ -1848,30 +1848,6 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 	assert.True(t, requestDataWasCalled)
 }
 
-func TestShardBootstrap_CleanNoncesSyncedWithErrorsBehindFinalShouldWork(t *testing.T) {
-	t.Parallel()
-
-	args := CreateShardBootstrapMockArguments()
-	forkDetectorMock := &mock.ForkDetectorMock{
-		GetHighestFinalBlockNonceCalled: func() uint64 {
-			return 3
-		},
-	}
-	args.ForkDetector = forkDetectorMock
-
-	bs, _ := sync.NewShardBootstrap(args)
-	bs.SetNumSyncedWithErrorsForNonce(1, 7)
-	bs.SetNumSyncedWithErrorsForNonce(2, 8)
-	bs.SetNumSyncedWithErrorsForNonce(3, 9)
-
-	assert.Equal(t, 3, bs.GetMapNonceSyncedWithErrorsLen())
-
-	bs.CleanNoncesSyncedWithErrorsBehindFinal()
-
-	assert.Equal(t, 1, bs.GetMapNonceSyncedWithErrorsLen())
-	assert.Equal(t, uint32(9), bs.GetNumSyncedWithErrorsForNonce(3))
-}
-
 func TestShardBootstrap_DoJobOnSyncBlockFailShouldNotResetProbableHighestNonceWhenAreNotEnoughErrorsPerNonce(t *testing.T) {
 	t.Parallel()
 
@@ -1952,4 +1928,28 @@ func TestShardBootstrap_DoJobOnSyncBlockFailShouldResetProbableHighestNonce(t *t
 	bs.DoJobOnSyncBlockFail(nil, nil, errors.New("error"))
 
 	assert.True(t, wasCalled)
+}
+
+func TestShardBootstrap_CleanNoncesSyncedWithErrorsBehindFinalShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	forkDetectorMock := &mock.ForkDetectorMock{
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return 3
+		},
+	}
+	args.ForkDetector = forkDetectorMock
+
+	bs, _ := sync.NewShardBootstrap(args)
+	bs.SetNumSyncedWithErrorsForNonce(1, 7)
+	bs.SetNumSyncedWithErrorsForNonce(2, 8)
+	bs.SetNumSyncedWithErrorsForNonce(3, 9)
+
+	assert.Equal(t, 3, bs.GetMapNonceSyncedWithErrorsLen())
+
+	bs.CleanNoncesSyncedWithErrorsBehindFinal()
+
+	assert.Equal(t, 1, bs.GetMapNonceSyncedWithErrorsLen())
+	assert.Equal(t, uint32(9), bs.GetNumSyncedWithErrorsForNonce(3))
 }
