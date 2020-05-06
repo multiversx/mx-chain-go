@@ -54,6 +54,9 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 	if len(vmInput.Arguments) != 2 {
 		return nil, process.ErrInvalidArguments
 	}
+	if vmInput.CallValue.Cmp(zero) != 0 {
+		return nil, process.ErrBuiltInFunctionCalledWithValue
+	}
 
 	value := big.NewInt(0).SetBytes(vmInput.Arguments[1])
 	if value.Cmp(zero) <= 0 {

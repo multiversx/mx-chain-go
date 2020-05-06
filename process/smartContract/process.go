@@ -185,9 +185,10 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
+	var executedBuiltIn bool
 	snapshot := sc.accounts.JournalLen()
 	defer func() {
-		if err != nil {
+		if err != nil && !executedBuiltIn {
 			errNotCritical := sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), snapshot)
 			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
@@ -208,13 +209,12 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	var executed bool
-	executed, err = sc.resolveBuiltInFunctions(txHash, tx, acntSnd, acntDst, vmInput)
+	executedBuiltIn, err = sc.resolveBuiltInFunctions(txHash, tx, acntSnd, acntDst, vmInput)
 	if err != nil {
 		log.Debug("processed built in functions error", "error", err.Error())
 		return err
 	}
-	if executed {
+	if executedBuiltIn {
 		return nil
 	}
 
@@ -333,6 +333,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	vmOutput, err := builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
 	if err != nil {
 		if !check.IfNil(acntSnd) {
+			log.Trace("built in function error at sender", "err", err, "function", vmInput.Function)
 			return true, err
 		}
 
