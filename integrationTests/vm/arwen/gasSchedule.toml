@@ -3,6 +3,7 @@
     ClaimDeveloperRewards = 5000000
     SaveUserName          = 5000000
     SaveKeyValue          = 250000
+    ESDTTransfer          = 250000
 
 [MetaChainSystemSCsCost]
     Stake               = 5000000
