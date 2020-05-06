@@ -56,8 +56,19 @@ func (cache *TxCache) monitorSelectionEnd(selection []*WrappedTransaction, stopW
 	numTxRemoved := cache.numTxRemovedBetweenSelections.Reset()
 	log.Debug("TxCache: selection ended", "name", cache.name, "duration", duration, "numTxSelected", len(selection), "numTxAddedBetweenSelections", numTxAdded, "numTxRemovedBetweenSelections", numTxRemoved)
 	cache.displaySendersHistogram()
+}
 
-	go cache.diagnose()
+func (cache *TxCache) monitorSweepingStart() *core.StopWatch {
+	sw := core.NewStopWatch()
+	sw.Start("sweeping")
+	return sw
+}
+
+func (cache *TxCache) monitorSweepingEnd(numTxs uint32, numSenders uint32, stopWatch *core.StopWatch) {
+	stopWatch.Stop("sweeping")
+	duration := stopWatch.GetMeasurement("sweeping")
+	log.Debug("TxCache: swept senders:", "name", cache.name, "duration", duration, "txs", numTxs, "senders", numSenders)
+	cache.displaySendersHistogram()
 }
 
 func (cache *TxCache) displaySendersHistogram() {

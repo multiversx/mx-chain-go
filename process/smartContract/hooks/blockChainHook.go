@@ -365,49 +365,44 @@ func (bh *BlockChainHookImpl) NewAddress(creatorAddress []byte, creatorNonce uin
 }
 
 // ProcessBuiltInFunction is the hook through which a smart contract can execute a built in function
-func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*big.Int, uint64, error) {
+func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	if input == nil {
-		return big.NewInt(0), 0, process.ErrNilVmInput
+		return nil, process.ErrNilVmInput
 	}
 
 	function, err := bh.builtInFunctions.Get(input.Function)
 	if err != nil {
-		return big.NewInt(0), input.GasProvided, err
+		return nil, err
 	}
 
 	sndAccount, dstAccount, err := bh.getUserAccounts(input)
 	if err != nil {
-		return big.NewInt(0), input.GasProvided, err
+		return nil, err
 	}
 
-	value, gasConsumed, err := function.ProcessBuiltinFunction(sndAccount, dstAccount, input)
+	vmOutput, err := function.ProcessBuiltinFunction(sndAccount, dstAccount, input)
 	if err != nil {
-		return big.NewInt(0), input.GasProvided, err
+		return nil, err
 	}
 
 	if !check.IfNil(sndAccount) {
-		err := bh.accounts.SaveAccount(sndAccount)
-		if err != nil {
-			return big.NewInt(0), input.GasProvided, err
+		errSave := bh.accounts.SaveAccount(sndAccount)
+		if errSave != nil {
+			return nil, errSave
 		}
 	}
 
 	err = bh.accounts.SaveAccount(dstAccount)
 	if err != nil {
-		return big.NewInt(0), input.GasProvided, err
+		return nil, err
 	}
 
-	return value, gasConsumed, nil
+	return vmOutput, nil
 }
 
 func (bh *BlockChainHookImpl) getUserAccounts(
 	input *vmcommon.ContractCallInput,
 ) (state.UserAccountHandler, state.UserAccountHandler, error) {
-	shardId := bh.shardCoordinator.ComputeId(input.RecipientAddr)
-	if shardId != bh.shardCoordinator.SelfId() {
-		return nil, nil, process.ErrDestinationNotInSelfShard
-	}
-
 	var sndAccount state.UserAccountHandler
 	sndShardId := bh.shardCoordinator.ComputeId(input.CallerAddr)
 	if sndShardId == bh.shardCoordinator.SelfId() {
@@ -423,13 +418,19 @@ func (bh *BlockChainHookImpl) getUserAccounts(
 		}
 	}
 
-	acc, err := bh.accounts.LoadAccount(input.RecipientAddr)
-	if err != nil {
-		return nil, nil, err
-	}
-	dstAccount, ok := acc.(state.UserAccountHandler)
-	if !ok {
-		return nil, nil, process.ErrWrongTypeAssertion
+	var dstAccount state.UserAccountHandler
+	dstShardId := bh.shardCoordinator.ComputeId(input.RecipientAddr)
+	if dstShardId == bh.shardCoordinator.SelfId() {
+		acc, err := bh.accounts.LoadAccount(input.RecipientAddr)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		var ok bool
+		dstAccount, ok = acc.(state.UserAccountHandler)
+		if !ok {
+			return nil, nil, process.ErrWrongTypeAssertion
+		}
 	}
 
 	return sndAccount, dstAccount, nil
@@ -443,6 +444,26 @@ func (bh *BlockChainHookImpl) GetBuiltInFunctions() process.BuiltInFunctionConta
 // GetBuiltinFunctionNames returns the built in function names
 func (bh *BlockChainHookImpl) GetBuiltinFunctionNames() vmcommon.FunctionNames {
 	return bh.builtInFunctions.Keys()
+}
+
+// GetAllState returns the underlying state of a given account
+func (bh *BlockChainHookImpl) GetAllState(address []byte) (map[string][]byte, error) {
+	dstShardId := bh.shardCoordinator.ComputeId(address)
+	if dstShardId != bh.shardCoordinator.SelfId() {
+		return nil, process.ErrDestinationNotInSelfShard
+	}
+
+	acc, err := bh.accounts.GetExistingAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	dstAccount, ok := acc.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return dstAccount.DataTrie().GetAllLeaves()
 }
 
 func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte {

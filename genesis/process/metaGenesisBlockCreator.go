@@ -171,6 +171,9 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 		&disabled.MessageSignVerifier{},
 		arg.GasMap,
 		arg.InitialNodesSetup,
+		arg.Hasher,
+		arg.Marshalizer,
+		&arg.SystemSCConfig,
 	)
 	if err != nil {
 		return nil, err
@@ -203,11 +206,6 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 		return nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(arg.Economics)
-	if err != nil {
-		return nil, err
-	}
-
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  arg.PubkeyConv,
 		ShardCoordinator: arg.ShardCoordinator,
@@ -215,6 +213,11 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	gasHandler, err := preprocess.NewGasComputation(arg.Economics, txTypeHandler)
 	if err != nil {
 		return nil, err
 	}

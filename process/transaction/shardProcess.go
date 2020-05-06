@@ -132,17 +132,15 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) error
 		return err
 	}
 
-	txType, err := txProc.txTypeHandler.ComputeTransactionType(tx)
-	if err != nil {
-		return err
-	}
-
+	txType := txProc.txTypeHandler.ComputeTransactionType(tx)
 	switch txType {
 	case process.MoveBalance:
 		return txProc.processMoveBalance(tx, tx.SndAddr, tx.RcvAddr)
 	case process.SCDeployment:
 		return txProc.processSCDeployment(tx, tx.SndAddr)
 	case process.SCInvoking:
+		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
+	case process.BuiltInFunctionCall:
 		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 	}
 

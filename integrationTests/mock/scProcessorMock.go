@@ -9,7 +9,7 @@ import (
 
 // SCProcessorMock -
 type SCProcessorMock struct {
-	ComputeTransactionTypeCalled          func(tx data.TransactionHandler) (process.TransactionType, error)
+	ComputeTransactionTypeCalled          func(tx data.TransactionHandler) process.TransactionType
 	ExecuteSmartContractTransactionCalled func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) error
 	DeploySmartContractCalled             func(tx data.TransactionHandler, acntSrc state.UserAccountHandler) error
 	ProcessSmartContractResultCalled      func(scr *smartContractResult.SmartContractResult) error
@@ -25,11 +25,9 @@ func (sc *SCProcessorMock) ProcessIfError(acntSnd state.UserAccountHandler, txHa
 }
 
 // ComputeTransactionType -
-func (sc *SCProcessorMock) ComputeTransactionType(
-	tx data.TransactionHandler,
-) (process.TransactionType, error) {
+func (sc *SCProcessorMock) ComputeTransactionType(tx data.TransactionHandler) process.TransactionType {
 	if sc.ComputeTransactionTypeCalled == nil {
-		return process.MoveBalance, nil
+		return process.MoveBalance
 	}
 
 	return sc.ComputeTransactionTypeCalled(tx)

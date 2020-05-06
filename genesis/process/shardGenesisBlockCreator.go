@@ -202,8 +202,10 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, error) {
 	argsParser := vmcommon.NewAtArgumentParser()
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:          arg.GasMap,
-		MapDNSAddresses: make(map[string]struct{}),
+		GasMap:               arg.GasMap,
+		MapDNSAddresses:      make(map[string]struct{}),
+		EnableUserNameChange: false,
+		Marshalizer:          arg.Marshalizer,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
@@ -267,11 +269,6 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		return nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(arg.Economics)
-	if err != nil {
-		return nil, err
-	}
-
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  arg.PubkeyConv,
 		ShardCoordinator: arg.ShardCoordinator,
@@ -279,6 +276,11 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	gasHandler, err := preprocess.NewGasComputation(arg.Economics, txTypeHandler)
 	if err != nil {
 		return nil, err
 	}

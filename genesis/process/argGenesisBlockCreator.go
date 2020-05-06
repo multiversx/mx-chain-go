@@ -40,6 +40,7 @@ type ArgsGenesisBlockCreator struct {
 	TriesContainer           state.TriesHolder
 	TrieFactory              data.TrieFactory
 	ChainID                  string
+	SystemSCConfig           config.SystemSmartContractsConfig
 
 	// created component needed only for hardfork
 	importHandler update.ImportHandler

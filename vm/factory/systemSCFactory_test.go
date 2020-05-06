@@ -3,6 +3,7 @@ package factory
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -20,6 +21,14 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 		SigVerifier:         &mock.MessageSignVerifierMock{},
 		GasMap:              gasSchedule,
 		NodesConfigProvider: &mock.NodesConfigProviderStub{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		Hasher:              &mock.HasherMock{},
+		SystemSCConfig: &config.SystemSmartContractsConfig{
+			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+				BaseIssuingCost: "100000000",
+				OwnerAddress:    "aaaaaa",
+			},
+		},
 	}
 }
 
@@ -63,7 +72,7 @@ func TestSystemSCFactory_Create(t *testing.T) {
 
 	container, err := scFactory.Create()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, container.Len())
+	assert.Equal(t, 3, container.Len())
 }
 
 func TestSystemSCFactory_IsInterfaceNil(t *testing.T) {

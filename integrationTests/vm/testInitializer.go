@@ -263,6 +263,7 @@ func CreateVMAndBlockchainHook(
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:          actualGasSchedule,
 		MapDNSAddresses: make(map[string]struct{}),
+		Marshalizer:     testMarshalizer,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
