@@ -583,10 +583,12 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 			*v = block.MetaBlock{
 				PubKeysBitmap:   []byte{255, 255},
 				AccumulatedFees: big.NewInt(0),
+				DeveloperFees:   big.NewInt(0),
 			}
 		case *block.Header:
 			*v = block.Header{
 				AccumulatedFees: big.NewInt(0),
+				DeveloperFees:   big.NewInt(0),
 			}
 		default:
 			fmt.Println(v)
