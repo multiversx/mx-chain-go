@@ -1249,15 +1249,6 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	txLogsStorage := data.Store.GetStorer(dataRetriever.TxLogsUnit)
-	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer:      txLogsStorage,
-		Marshalizer: core.InternalMarshalizer,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
 		ArgsParser:       argsParser,
@@ -1510,15 +1501,6 @@ func newMetaBlockProcessor(
 	}
 
 	txFeeHandler, err := postprocess.NewFeeAccumulator()
-	if err != nil {
-		return nil, err
-	}
-
-	txLogsStorage := data.Store.GetStorer(dataRetriever.TxLogsUnit)
-	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer:      txLogsStorage,
-		Marshalizer: core.InternalMarshalizer,
-	})
 	if err != nil {
 		return nil, err
 	}
