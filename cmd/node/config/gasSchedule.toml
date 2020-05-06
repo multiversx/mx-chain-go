@@ -3,6 +3,7 @@
     ClaimDeveloperRewards = 5000000
     SaveUserName          = 5000000
     SaveKeyValue          = 250000
+    ESDTTransfer          = 250000
 
 [MetaChainSystemSCsCost]
     Stake               = 5000000
@@ -13,6 +14,8 @@
     ChangeRewardAddress = 5000000
     ChangeValidatorKeys = 5000000
     UnJail              = 5000000
+    ESDTIssue           = 50000000
+    ESDTOperations      = 50000000
 
 [BaseOperationCost]
     StorePerByte      = 50000
