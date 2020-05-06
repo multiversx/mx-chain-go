@@ -1292,16 +1292,20 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 }
 
 func handleAppClose(log logger.Logger, endProcessArgument endProcess.ArgEndProcess) {
-	log.Debug(
-		"restarting node",
-		"reason",
-		endProcessArgument.Reason,
-		"description",
-		endProcessArgument.Description,
-	)
+	log.Debug("closing node")
+
 	switch endProcessArgument.Reason {
 	case core.ShuffledOut:
+		log.Debug(
+			"restarting node",
+			"reason",
+			endProcessArgument.Reason,
+			"description",
+			endProcessArgument.Description,
+		)
+
 		newStartInEpoch(log)
+	default:
 	}
 }
 

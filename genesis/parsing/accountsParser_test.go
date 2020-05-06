@@ -51,30 +51,20 @@ func createSimpleInitialAccount(address string, balance int64) *data.InitialAcco
 	}
 }
 
-func createDelegatedInitialAccount(address string, delegated string, delegatedBalance int64) *data.InitialAccount {
-	return &data.InitialAccount{
+func createDelegatedInitialAccount(address string, delegatedBytes []byte, delegatedBalance int64) *data.InitialAccount {
+	ia := &data.InitialAccount{
 		Address:      address,
 		Supply:       big.NewInt(delegatedBalance),
 		Balance:      big.NewInt(0),
 		StakingValue: big.NewInt(0),
 		Delegation: &data.DelegationData{
-			Address: delegated,
+			Address: hex.EncodeToString(delegatedBytes),
 			Value:   big.NewInt(delegatedBalance),
 		},
 	}
-}
+	ia.SetAddressBytes(delegatedBytes)
 
-func createStakedInitialAccount(address string, stakedBalance int64) *data.InitialAccount {
-	return &data.InitialAccount{
-		Address:      address,
-		Supply:       big.NewInt(stakedBalance),
-		Balance:      big.NewInt(0),
-		StakingValue: big.NewInt(stakedBalance),
-		Delegation: &data.DelegationData{
-			Address: "",
-			Value:   big.NewInt(0),
-		},
-	}
+	return ia
 }
 
 func TestNewAccountsParser_NilEntireBalanceShouldErr(t *testing.T) {
@@ -325,57 +315,6 @@ func TestAccountsParser_ProcessShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- StakedUpon / DelegatedUpon
-
-func TestAccountsParser_StakedUpon(t *testing.T) {
-	t.Parallel()
-
-	addr := "0001"
-	stakedUpon := int64(78)
-
-	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
-	ib := createStakedInitialAccount(addr, stakedUpon)
-	ap.SetEntireSupply(big.NewInt(stakedUpon))
-	ap.SetInitialAccounts([]*data.InitialAccount{ib})
-
-	err := ap.Process()
-	require.Nil(t, err)
-
-	computedStakedUpon := ap.StakedUpon(addr)
-	assert.Equal(t, big.NewInt(stakedUpon), computedStakedUpon)
-
-	computedStakedUpon = ap.StakedUpon("not found")
-	assert.Equal(t, big.NewInt(0), computedStakedUpon)
-}
-
-func TestAccountsParser_DelegatedUpon(t *testing.T) {
-	t.Parallel()
-
-	addr1 := "1000"
-	addr2 := "2000"
-	delegatedUpon := int64(78)
-
-	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
-	ib1 := createDelegatedInitialAccount("0001", addr1, delegatedUpon)
-	ib2 := createDelegatedInitialAccount("0002", addr1, delegatedUpon)
-	ib3 := createDelegatedInitialAccount("0003", addr2, delegatedUpon)
-
-	ap.SetEntireSupply(big.NewInt(3 * delegatedUpon))
-	ap.SetInitialAccounts([]*data.InitialAccount{ib1, ib2, ib3})
-
-	err := ap.Process()
-	require.Nil(t, err)
-
-	computedDelegatedUpon := ap.DelegatedUpon(addr1)
-	assert.Equal(t, big.NewInt(2*delegatedUpon), computedDelegatedUpon)
-
-	computedDelegatedUpon = ap.DelegatedUpon(addr2)
-	assert.Equal(t, big.NewInt(delegatedUpon), computedDelegatedUpon)
-
-	computedDelegatedUpon = ap.DelegatedUpon("not found")
-	assert.Equal(t, big.NewInt(0), computedDelegatedUpon)
-}
-
 //------- InitialAccountsSplitOnAddressesShards
 
 func TestAccountsParser_InitialAccountsSplitOnAddressesShardsNilShardCoordinatorShouldErr(t *testing.T) {
@@ -420,47 +359,40 @@ func TestAccountsParser_InitialAccountsSplitOnAddressesShards(t *testing.T) {
 	assert.Equal(t, 2, len(ibsSplit[1]))
 }
 
-//------- InitialAccountsSplitOnDelegationAddressesShards
-
-func TestAccountsParser_InitialAccountsSplitOnDelegationAddressesShardsNilShardCoordinatorShouldErr(t *testing.T) {
+func TestAccountsParser_GetInitialAccountsForDelegated(t *testing.T) {
 	t.Parallel()
 
-	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
-	ibs, err := ap.InitialAccountsSplitOnDelegationAddressesShards(
-		nil,
-	)
-
-	assert.Nil(t, ibs)
-	assert.Equal(t, genesis.ErrNilShardCoordinator, err)
-}
-
-func TestAccountsParser_InitialAccountsSplitOnDelegationAddressesShards(t *testing.T) {
-	t.Parallel()
+	addr1 := "1000"
+	addr2 := "2000"
+	delegatedUpon := int64(78)
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
-	balance := int64(1)
-	ibs := []*data.InitialAccount{
-		createSimpleInitialAccount("0001", balance),
-		createDelegatedInitialAccount("0101", "0001", balance),
-		createDelegatedInitialAccount("0201", "0000", balance),
-		createDelegatedInitialAccount("0301", "0002", balance),
-		createDelegatedInitialAccount("0401", "0101", balance),
-	}
+	ib1 := createDelegatedInitialAccount("0001", []byte(addr1), delegatedUpon)
+	ib2 := createDelegatedInitialAccount("0002", []byte(addr1), delegatedUpon)
+	ib3 := createDelegatedInitialAccount("0003", []byte(addr2), delegatedUpon)
 
-	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
-	ap.SetInitialAccounts(ibs)
+	ap.SetEntireSupply(big.NewInt(3 * delegatedUpon))
+	ap.SetInitialAccounts([]*data.InitialAccount{ib1, ib2, ib3})
+
 	err := ap.Process()
 	require.Nil(t, err)
 
-	threeSharder := &mock.ShardCoordinatorMock{
-		NumOfShards: 3,
-		SelfShardId: 0,
-	}
-	ibsSplit, err := ap.InitialAccountsSplitOnDelegationAddressesShards(
-		threeSharder,
-	)
+	list := ap.GetInitialAccountsForDelegated([]byte(addr1))
+	require.Equal(t, 2, len(list))
+	//order is important
+	assert.Equal(t, ib1, list[0])
+	assert.Equal(t, ib2, list[1])
+	delegated := ap.GetTotalStakedForDelegationAddress(hex.EncodeToString([]byte(addr1)))
+	assert.Equal(t, big.NewInt(delegatedUpon*2), delegated)
 
-	assert.Nil(t, err)
-	require.Equal(t, 3, len(ibsSplit))
-	assert.Equal(t, 2, len(ibsSplit[1]))
+	list = ap.GetInitialAccountsForDelegated([]byte(addr2))
+	require.Equal(t, 1, len(list))
+	assert.Equal(t, ib3, list[0])
+	delegated = ap.GetTotalStakedForDelegationAddress(hex.EncodeToString([]byte(addr2)))
+	assert.Equal(t, big.NewInt(delegatedUpon), delegated)
+
+	list = ap.GetInitialAccountsForDelegated([]byte("not delegated"))
+	require.Equal(t, 0, len(list))
+	delegated = ap.GetTotalStakedForDelegationAddress(hex.EncodeToString([]byte("not delegated")))
+	assert.Equal(t, big.NewInt(0), delegated)
 }

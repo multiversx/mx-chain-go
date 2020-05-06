@@ -365,6 +365,9 @@ func deploySystemSmartContracts(
 }
 
 // setStakedData sets the initial staked values to the staking smart contract
+// it will register both categories of nodes: direct staked and delegated stake. This is done because it is the only
+// way possible due to the fact that the delegation contract can not call a sandbox-ed processor suite and accounts state
+// at genesis time
 func setStakedData(
 	arg ArgsGenesisBlockCreator,
 	txProcessor process.TransactionProcessor,
@@ -374,7 +377,7 @@ func setStakedData(
 	oneEncoded := hex.EncodeToString(big.NewInt(1).Bytes())
 	stakeValue := arg.Economics.GenesisNodePrice()
 
-	stakedNodes := nodesListSplitter.GetAllStakedNodes()
+	stakedNodes := nodesListSplitter.GetAllNodes()
 	for _, nodeInfo := range stakedNodes {
 		tx := &transaction.Transaction{
 			Nonce:     0,
@@ -392,6 +395,10 @@ func setStakedData(
 			return err
 		}
 	}
+
+	log.Debug("meta block genesis",
+		"num nodes staked", len(stakedNodes),
+	)
 
 	return nil
 }

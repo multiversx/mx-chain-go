@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 )
 
@@ -14,15 +15,17 @@ const stakedPlaceholder = "%sc_total_stake%"
 var zero = big.NewInt(0)
 
 type delegationDeployProcessor struct {
-	*deployProcessor
+	genesis.DeployProcessor
 	accountsParser genesis.AccountsParser
+	pubkeyConv     state.PubkeyConverter
 	nodePrice      *big.Int
 }
 
 // NewDelegationDeployProcessor returns a new deploy processor specialized for deploying delegation SC
 func NewDelegationDeployProcessor(
-	deployProcessor *deployProcessor,
+	deployProcessor genesis.DeployProcessor,
 	accountsParser genesis.AccountsParser,
+	pubkeyConv state.PubkeyConverter,
 	nodePrice *big.Int,
 ) (*delegationDeployProcessor, error) {
 	if check.IfNil(deployProcessor) {
@@ -30,6 +33,9 @@ func NewDelegationDeployProcessor(
 	}
 	if check.IfNil(accountsParser) {
 		return nil, genesis.ErrNilAccountsParser
+	}
+	if check.IfNil(pubkeyConv) {
+		return nil, genesis.ErrNilPubkeyConverter
 	}
 	if nodePrice == nil {
 		return nil, genesis.ErrNilInitialNodePrice
@@ -39,11 +45,12 @@ func NewDelegationDeployProcessor(
 	}
 
 	ddp := &delegationDeployProcessor{
-		deployProcessor: deployProcessor,
+		DeployProcessor: deployProcessor,
 		accountsParser:  accountsParser,
+		pubkeyConv:      pubkeyConv,
 		nodePrice:       nodePrice,
 	}
-	ddp.replacePlaceholders = ddp.replaceDelegationPlaceholders
+	ddp.SetReplacePlaceholders(ddp.replaceDelegationPlaceholders)
 
 	return ddp, nil
 }
@@ -55,8 +62,8 @@ func (ddp *delegationDeployProcessor) replaceDelegationPlaceholders(
 
 	scResultingAddress := ddp.pubkeyConv.Encode(scResultingAddressBytes)
 	val := ddp.accountsParser.GetTotalStakedForDelegationAddress(scResultingAddress)
-	if val.Cmp(zero) == 0 {
-		return "", fmt.Errorf("%w, 0 delegated value for resulting address %s",
+	if val.Cmp(zero) < 1 {
+		return "", fmt.Errorf("%w, 0 or negative delegated value for resulting address %s",
 			genesis.ErrInvalidDelegationValue, scResultingAddress)
 	}
 
@@ -70,4 +77,9 @@ func (ddp *delegationDeployProcessor) replaceDelegationPlaceholders(
 	txData = strings.Replace(txData, stakedPlaceholder, val.Text(16), -1)
 
 	return txData, nil
+}
+
+// IsInterfaceNil returns if underlying object is true
+func (ddp *delegationDeployProcessor) IsInterfaceNil() bool {
+	return ddp == nil || ddp.DeployProcessor == nil
 }

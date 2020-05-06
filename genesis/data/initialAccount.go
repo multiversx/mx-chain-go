@@ -158,16 +158,6 @@ func (ia *InitialAccount) GetDelegationHandler() genesis.DelegationDataHandler {
 	return ia.Delegation
 }
 
-// IncrementNonceOffset will add 1 to the nonce offset internal value
-func (ia *InitialAccount) IncrementNonceOffset() {
-	ia.nonceOffset++
-}
-
-// NonceOffset will return the tracked nonce difference
-func (ia *InitialAccount) NonceOffset() uint64 {
-	return ia.nonceOffset
-}
-
 // IsInterfaceNil returns if underlying object is true
 func (ia *InitialAccount) IsInterfaceNil() bool {
 	return ia == nil

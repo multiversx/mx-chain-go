@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
@@ -52,25 +53,31 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 
 	numSetBalances, err := setBalancesToTrie(arg)
 	if err != nil {
-		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d",
+		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while setting the balances to trie",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
-	numStaked, err := incrementStakersNonces(arg)
+	numStaked, err := increaseStakersNonces(processors, arg)
 	if err != nil {
-		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d",
+		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing nonces",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
 	delegationResult, err := executeDelegation(processors, arg, nodesListSplitter)
 	if err != nil {
-		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d",
+		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while execution delegation",
+			err, arg.ShardCoordinator.SelfId())
+	}
+
+	numCrossShardDelegations, err := incrementNoncesForCrossShardDelegations(processors, arg)
+	if err != nil {
+		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing crossshard nonce",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
 	rootHash, err := arg.Accounts.Commit()
 	if err != nil {
-		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d",
+		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while commiting",
 			err, arg.ShardCoordinator.SelfId())
 	}
 
@@ -82,9 +89,9 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 		"num staked directly", numStaked,
 		"total staked on a delegation SC", delegationResult.NumTotalStaked,
 		"total delegation nodes", delegationResult.NumTotalDelegated,
+		"cross shard delegation calls", numCrossShardDelegations,
 	)
 
-	//TODO add here delegation process
 	if arg.HardForkConfig.MustImport {
 		//TODO think about how to integrate when genesis is modified as well for hardfork - when should set balances be called
 		// shard genesis probably should stay the same as it was  defined for the actual genesis block - because of transparency
@@ -423,8 +430,8 @@ func deployInitialSmartContract(
 		return err
 	}
 
-	var deployProc deployProcessor
-	dp, err := intermediate.NewDeployProcessor(
+	var deployProc genesis.DeployProcessor
+	deployProc, err = intermediate.NewDeployProcessor(
 		txExecutor,
 		arg.PubkeyConv,
 		processors.blockchainHook,
@@ -432,13 +439,13 @@ func deployInitialSmartContract(
 	if err != nil {
 		return err
 	}
-	deployProc = dp
 
 	switch sc.GetType() {
 	case genesis.DelegationType:
 		deployProc, err = intermediate.NewDelegationDeployProcessor(
-			dp,
+			deployProc,
 			arg.AccountsParser,
+			arg.PubkeyConv,
 			arg.Economics.GenesisNodePrice(),
 		)
 		if err != nil {
@@ -453,22 +460,35 @@ func deployInitialSmartContract(
 	return deployProc.Deploy(sc)
 }
 
-func incrementStakersNonces(arg ArgsGenesisBlockCreator) (int, error) {
+func increaseStakersNonces(processors *genesisProcessors, arg ArgsGenesisBlockCreator) (int, error) {
+	txExecutor, err := intermediate.NewTxExecutionProcessor(processors.txProcessor, arg.Accounts)
+	if err != nil {
+		return 0, err
+	}
+
 	initialAddresses, err := arg.AccountsParser.InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
 	if err != nil {
 		return 0, err
 	}
 
+	stakersCounter := 0
 	initalAddressesInCurrentShard := initialAddresses[arg.ShardCoordinator.SelfId()]
 	for _, ia := range initalAddressesInCurrentShard {
 		if ia.GetStakingValue().Cmp(zero) < 1 {
 			continue
 		}
 
-		ia.IncrementNonceOffset()
+		numNodesStaked := big.NewInt(0).Set(ia.GetStakingValue())
+		numNodesStaked.Div(numNodesStaked, arg.Economics.GenesisNodePrice())
+
+		stakersCounter++
+		err = txExecutor.AddNonce(ia.AddressBytes(), numNodesStaked.Uint64())
+		if err != nil {
+			return 0, fmt.Errorf("%w when adding nonce for address %s", err, ia.GetAddress())
+		}
 	}
 
-	return len(initalAddressesInCurrentShard), nil
+	return stakersCounter, nil
 }
 
 func executeDelegation(
@@ -493,4 +513,36 @@ func executeDelegation(
 	}
 
 	return delegationProcessor.ExecuteDelegation()
+}
+
+func incrementNoncesForCrossShardDelegations(processors *genesisProcessors, arg ArgsGenesisBlockCreator) (int, error) {
+	txExecutor, err := intermediate.NewTxExecutionProcessor(processors.txProcessor, arg.Accounts)
+	if err != nil {
+		return 0, err
+	}
+
+	initialAddresses, err := arg.AccountsParser.InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
+	if err != nil {
+		return 0, err
+	}
+
+	counter := 0
+	initalAddressesInCurrentShard := initialAddresses[arg.ShardCoordinator.SelfId()]
+	for _, ia := range initalAddressesInCurrentShard {
+		dh := ia.GetDelegationHandler()
+		if check.IfNil(dh) {
+			continue
+		}
+		if arg.ShardCoordinator.SameShard(ia.AddressBytes(), dh.AddressBytes()) {
+			continue
+		}
+
+		counter++
+		err = txExecutor.AddNonce(ia.AddressBytes(), 1)
+		if err != nil {
+			return 0, fmt.Errorf("%w when adding nonce for address %s", err, ia.GetAddress())
+		}
+	}
+
+	return counter, nil
 }

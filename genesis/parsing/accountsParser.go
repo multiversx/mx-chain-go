@@ -1,6 +1,7 @@
 package parsing
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 
@@ -116,10 +117,11 @@ func (ap *accountsParser) parseDelegationElement(initialAccount *data.InitialAcc
 	}
 	addressBytes, err := ap.pubkeyConverter.Decode(delegationData.Address)
 	if err != nil {
-		return fmt.Errorf("%w for `%s`, address %s",
+		return fmt.Errorf("%w for `%s`, address %s, error %s",
 			genesis.ErrInvalidDelegationAddress,
 			delegationData.Address,
 			initialAccount.Address,
+			err.Error(),
 		)
 	}
 
@@ -204,29 +206,6 @@ func (ap *accountsParser) checkForDuplicates() error {
 	return nil
 }
 
-// StakedUpon returns the value that was staked upon the provided address
-func (ap *accountsParser) StakedUpon(address string) *big.Int {
-	for _, ia := range ap.initialAccounts {
-		if ia.Address == address {
-			return big.NewInt(0).Set(ia.StakingValue)
-		}
-	}
-
-	return big.NewInt(0)
-}
-
-// DelegatedUpon returns the value that was delegated upon the provided address
-func (ap *accountsParser) DelegatedUpon(address string) *big.Int {
-	delegated := big.NewInt(0)
-	for _, ia := range ap.initialAccounts {
-		if ia.Delegation.Address == address {
-			delegated.Add(delegated, ia.Delegation.Value)
-		}
-	}
-
-	return delegated
-}
-
 // InitialAccounts return the initial accounts contained by this parser
 func (ap *accountsParser) InitialAccounts() []genesis.InitialAccountHandler {
 	accounts := make([]genesis.InitialAccountHandler, len(ap.initialAccounts))
@@ -257,29 +236,6 @@ func (ap *accountsParser) InitialAccountsSplitOnAddressesShards(
 	return addresses, nil
 }
 
-// InitialAccountsSplitOnDelegationAddressesShards gets the initial accounts of the nodes split on the addresses's shards
-func (ap *accountsParser) InitialAccountsSplitOnDelegationAddressesShards(
-	shardCoordinator sharding.Coordinator,
-) (map[uint32][]genesis.InitialAccountHandler, error) {
-
-	if check.IfNil(shardCoordinator) {
-		return nil, genesis.ErrNilShardCoordinator
-	}
-
-	var addresses = make(map[uint32][]genesis.InitialAccountHandler)
-	for _, in := range ap.initialAccounts {
-		if len(in.Delegation.Address) == 0 {
-			continue
-		}
-
-		shardID := shardCoordinator.ComputeId(in.Delegation.AddressBytes())
-
-		addresses[shardID] = append(addresses[shardID], in)
-	}
-
-	return addresses, nil
-}
-
 // GetTotalStakedForDelegationAddress returns the total staked value for a provided delegation address
 func (ap *accountsParser) GetTotalStakedForDelegationAddress(delegationAddress string) *big.Int {
 	sum := big.NewInt(0)
@@ -295,8 +251,14 @@ func (ap *accountsParser) GetTotalStakedForDelegationAddress(delegationAddress s
 
 // GetInitialAccountsForDelegated returns the initial accounts that are set to the provided delegated address
 func (ap *accountsParser) GetInitialAccountsForDelegated(addressBytes []byte) []genesis.InitialAccountHandler {
-	//TODO add implementation here
-	return make([]genesis.InitialAccountHandler, 0)
+	list := make([]genesis.InitialAccountHandler, 0)
+	for _, ia := range ap.initialAccounts {
+		if bytes.Equal(ia.Delegation.AddressBytes(), addressBytes) {
+			list = append(list, ia)
+		}
+	}
+
+	return list
 }
 
 // IsInterfaceNil returns if underlying object is true

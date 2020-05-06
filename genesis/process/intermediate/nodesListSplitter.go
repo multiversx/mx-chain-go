@@ -20,6 +20,9 @@ func NewNodesListSplitter(
 	accountsParser genesis.AccountsParser,
 ) (*nodesListSplitter, error) {
 
+	if check.IfNil(initialNodesSetup) {
+		return nil, genesis.ErrNilNodesSetup
+	}
 	if check.IfNil(accountsParser) {
 		return nil, genesis.ErrNilAccountsParser
 	}
@@ -48,19 +51,6 @@ func NewNodesListSplitter(
 	}, nil
 }
 
-func (nls *nodesListSplitter) isStaked(address []byte) bool {
-	accounts := nls.accountsParser.InitialAccounts()
-	for _, ac := range accounts {
-		if !bytes.Equal(ac.AddressBytes(), address) {
-			continue
-		}
-
-		return ac.GetStakingValue().Cmp(zero) > 0
-	}
-
-	return false
-}
-
 func (nls *nodesListSplitter) isDelegated(address []byte) bool {
 	accounts := nls.accountsParser.InitialAccounts()
 	for _, ac := range accounts {
@@ -79,16 +69,9 @@ func (nls *nodesListSplitter) isDelegated(address []byte) bool {
 	return false
 }
 
-// GetAllStakedNodes returns all initial nodes that were directly staked upon
-func (nls *nodesListSplitter) GetAllStakedNodes() []sharding.GenesisNodeInfoHandler {
-	stakedNodes := make([]sharding.GenesisNodeInfoHandler, 0)
-	for _, node := range nls.allNodes {
-		if nls.isStaked(node.AddressBytes()) {
-			stakedNodes = append(stakedNodes, node)
-		}
-	}
-
-	return stakedNodes
+// GetAllNodes returns all initial nodes that (directly staked or delegated)
+func (nls *nodesListSplitter) GetAllNodes() []sharding.GenesisNodeInfoHandler {
+	return nls.allNodes
 }
 
 // GetDelegatedNodes returns the initial nodes that were delegated by the provided delegation SC address

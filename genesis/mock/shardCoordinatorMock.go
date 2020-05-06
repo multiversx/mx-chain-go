@@ -56,8 +56,12 @@ func (scm *ShardCoordinatorMock) SelfId() uint32 {
 }
 
 // SameShard -
-func (scm *ShardCoordinatorMock) SameShard(_, _ []byte) bool {
-	return false
+func (scm *ShardCoordinatorMock) SameShard(address1, address2 []byte) bool {
+	if len(address1) == 0 || len(address2) == 0 {
+		return false
+	}
+
+	return address1[len(address1)-1] == address2[len(address2)-1]
 }
 
 // CommunicationIdentifier -
