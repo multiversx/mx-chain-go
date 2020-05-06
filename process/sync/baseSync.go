@@ -485,8 +485,8 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, he
 	processBlockStarted := !check.IfNil(bodyHandler) && !check.IfNil(headerHandler)
 	isProcessWithError := processBlockStarted && err != process.ErrTimeIsOut
 
-	numSyncedWithErrorsForNonce := boot.incrementSyncedWithErrorsForNonce(boot.getNonceForNextBlock())
-	allowedSyncWithErrorsLimitReached := numSyncedWithErrorsForNonce >= process.MaxSyncWithErrorsAllowed
+	numSyncedWithErrors := boot.incrementSyncedWithErrorsForNonce(boot.getNonceForNextBlock())
+	allowedSyncWithErrorsLimitReached := numSyncedWithErrors >= process.MaxSyncWithErrorsAllowed
 	isInProperRound := process.IsInProperRound(boot.rounder.Index())
 	isSyncWithErrorsLimitReachedInProperRound := allowedSyncWithErrorsLimitReached && isInProperRound
 
@@ -512,10 +512,10 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, he
 func (boot *baseBootstrap) incrementSyncedWithErrorsForNonce(nonce uint64) uint32 {
 	boot.mutNonceSyncedWithErrors.Lock()
 	boot.mapNonceSyncedWithErrors[nonce]++
-	nonceSyncedWithErrors := boot.mapNonceSyncedWithErrors[nonce]
+	numSyncedWithErrors := boot.mapNonceSyncedWithErrors[nonce]
 	boot.mutNonceSyncedWithErrors.Unlock()
 
-	return nonceSyncedWithErrors
+	return numSyncedWithErrors
 }
 
 // syncBlock method actually does the synchronization. It requests the next block header from the pool
