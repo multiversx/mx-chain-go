@@ -1,17 +1,22 @@
 package builtInFunctions
 
 import (
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/mitchellh/mapstructure"
 )
+
+var log = logger.GetOrCreate("process/smartContract/builtInFunctions")
 
 // ArgsCreateBuiltInFunctionContainer -
 type ArgsCreateBuiltInFunctionContainer struct {
 	GasMap               map[string]map[string]uint64
 	MapDNSAddresses      map[string]struct{}
 	EnableUserNameChange bool
+	Marshalizer          marshal.Marshalizer
 }
 
 // CreateBuiltInFunctionContainer will create the list of built-in functions
@@ -45,8 +50,20 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (pr
 		return nil, err
 	}
 
-	newFunc = NewSaveKeyValueStorageFunc(gasConfig.BaseOperationCost, gasConfig.BuiltInCost.SaveKeyValue)
+	newFunc, err = NewSaveKeyValueStorageFunc(gasConfig.BaseOperationCost, gasConfig.BuiltInCost.SaveKeyValue)
+	if err != nil {
+		return nil, err
+	}
 	err = container.Add(core.BuiltInFunctionSaveKeyValue, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	newFunc, err = NewESDTTransferFunc(gasConfig.BuiltInCost.ESDTTransfer, args.Marshalizer)
+	if err != nil {
+		return nil, err
+	}
+	err = container.Add(core.BuiltInFunctionESDTTransfer, newFunc)
 	if err != nil {
 		return nil, err
 	}

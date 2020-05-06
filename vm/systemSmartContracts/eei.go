@@ -3,6 +3,7 @@ package systemSmartContracts
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-vm-common"
@@ -110,12 +111,7 @@ func (host *vmContext) GetBalance(addr []byte) *big.Int {
 
 // Transfer handles any necessary value transfer required and takes
 // the necessary steps to create accounts
-func (host *vmContext) Transfer(
-	destination []byte,
-	sender []byte,
-	value *big.Int,
-	input []byte,
-) error {
+func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 
 	senderAcc, ok := host.outputAccounts[string(sender)]
 	if !ok {
@@ -140,6 +136,7 @@ func (host *vmContext) Transfer(
 	_ = senderAcc.BalanceDelta.Sub(senderAcc.BalanceDelta, value)
 	_ = destAcc.BalanceDelta.Add(destAcc.BalanceDelta, value)
 	destAcc.Data = append(destAcc.Data, input...)
+	destAcc.GasLimit += gasLimit
 
 	return nil
 }
@@ -215,7 +212,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 		return nil, err
 	}
 
-	err = host.Transfer(input.RecipientAddr, input.CallerAddr, input.CallValue, nil)
+	err = host.Transfer(input.RecipientAddr, input.CallerAddr, input.CallValue, nil, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +231,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 		return nil, err
 	}
 
-	if input.Function == "_init" {
+	if input.Function == core.SCDeployInitFunctionName {
 		return &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}, nil
 	}
 
