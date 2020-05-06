@@ -14,6 +14,8 @@ type dummyItem struct {
 	score                 atomic.Uint32
 	key                   string
 	chunk                 *MapChunk
+	chunkMutex            sync.RWMutex
+	mutex                 sync.Mutex
 }
 
 func newDummyItem(key string) *dummyItem {
@@ -39,15 +41,33 @@ func (item *dummyItem) ComputeScore() uint32 {
 }
 
 func (item *dummyItem) GetScoreChunk() *MapChunk {
+	item.chunkMutex.RLock()
+	defer item.chunkMutex.RUnlock()
+
 	return item.chunk
 }
 
 func (item *dummyItem) SetScoreChunk(chunk *MapChunk) {
+	item.chunkMutex.Lock()
+	defer item.chunkMutex.Unlock()
+
 	item.chunk = chunk
 }
 
-func (item *dummyItem) ScoreChangeInProgressFlag() *atomic.Flag {
-	return &item.scoreChangeInProgress
+func (item *dummyItem) simulateMutationThatChangesScore(myMap *BucketSortedMap) {
+	item.mutex.Lock()
+	myMap.NotifyScoreChange(item)
+	item.mutex.Unlock()
+}
+
+func simulateMutationThatChangesScore(myMap *BucketSortedMap, key string) {
+	item, ok := myMap.Get(key)
+	if !ok {
+		return
+	}
+
+	itemAsDummy := item.(*dummyItem)
+	itemAsDummy.simulateMutationThatChangesScore(myMap)
 }
 
 func TestNewBucketSortedMap(t *testing.T) {
@@ -70,10 +90,10 @@ func TestBucketSortedMap_Count(t *testing.T) {
 	myMap.Set(newScoredDummyItem("c", 2))
 	myMap.Set(newScoredDummyItem("d", 3))
 
-	myMap.NotifyScoreChangeByKey("a")
-	myMap.NotifyScoreChangeByKey("b")
-	myMap.NotifyScoreChangeByKey("c")
-	myMap.NotifyScoreChangeByKey("d")
+	simulateMutationThatChangesScore(myMap, "a")
+	simulateMutationThatChangesScore(myMap, "b")
+	simulateMutationThatChangesScore(myMap, "c")
+	simulateMutationThatChangesScore(myMap, "d")
 
 	require.Equal(t, uint32(4), myMap.Count())
 	require.Equal(t, uint32(4), myMap.CountSorted())
@@ -97,9 +117,9 @@ func TestBucketSortedMap_Keys(t *testing.T) {
 	myMap.Set(newDummyItem("b"))
 	myMap.Set(newDummyItem("c"))
 
-	myMap.NotifyScoreChangeByKey("a")
-	myMap.NotifyScoreChangeByKey("b")
-	myMap.NotifyScoreChangeByKey("c")
+	simulateMutationThatChangesScore(myMap, "a")
+	simulateMutationThatChangesScore(myMap, "b")
+	simulateMutationThatChangesScore(myMap, "c")
 
 	require.Equal(t, 3, len(myMap.Keys()))
 	require.Equal(t, 3, len(myMap.KeysSorted()))
@@ -115,12 +135,12 @@ func TestBucketSortedMap_KeysSorted(t *testing.T) {
 	myMap.Set(newScoredDummyItem("f", 5))
 	myMap.Set(newScoredDummyItem("e", 4))
 
-	myMap.NotifyScoreChangeByKey("d")
-	myMap.NotifyScoreChangeByKey("e")
-	myMap.NotifyScoreChangeByKey("f")
-	myMap.NotifyScoreChangeByKey("a")
-	myMap.NotifyScoreChangeByKey("b")
-	myMap.NotifyScoreChangeByKey("c")
+	simulateMutationThatChangesScore(myMap, "d")
+	simulateMutationThatChangesScore(myMap, "e")
+	simulateMutationThatChangesScore(myMap, "f")
+	simulateMutationThatChangesScore(myMap, "a")
+	simulateMutationThatChangesScore(myMap, "b")
+	simulateMutationThatChangesScore(myMap, "c")
 
 	keys := myMap.KeysSorted()
 	require.Equal(t, "a", keys[0])
@@ -142,44 +162,19 @@ func TestBucketSortedMap_ItemMovesOnNotifyScoreChange(t *testing.T) {
 	myMap.Set(a)
 	myMap.Set(b)
 
-	myMap.NotifyScoreChangeByKey("a")
-	myMap.NotifyScoreChangeByKey("b")
+	simulateMutationThatChangesScore(myMap, "a")
+	simulateMutationThatChangesScore(myMap, "b")
 
 	require.Equal(t, myMap.scoreChunks[1], a.GetScoreChunk())
 	require.Equal(t, myMap.scoreChunks[42], b.GetScoreChunk())
 
 	a.score.Set(2)
 	b.score.Set(43)
-	myMap.NotifyScoreChangeByKey("a")
-	myMap.NotifyScoreChangeByKey("b")
+	simulateMutationThatChangesScore(myMap, "a")
+	simulateMutationThatChangesScore(myMap, "b")
 
 	require.Equal(t, myMap.scoreChunks[2], a.GetScoreChunk())
 	require.Equal(t, myMap.scoreChunks[43], b.GetScoreChunk())
-}
-
-func TestBucketSortedMap_ItemDoesNotMoveOnIfMovementAlreadyInProgress(t *testing.T) {
-	myMap := NewBucketSortedMap(4, 100)
-
-	a := newScoredDummyItem("a", 1)
-	b := newScoredDummyItem("b", 42)
-	myMap.Set(a)
-	myMap.Set(b)
-
-	myMap.NotifyScoreChangeByKey("a")
-	myMap.NotifyScoreChangeByKey("b")
-
-	require.Equal(t, myMap.scoreChunks[1], a.GetScoreChunk())
-	require.Equal(t, myMap.scoreChunks[42], b.GetScoreChunk())
-
-	b.ScoreChangeInProgressFlag().Set()
-
-	a.score.Set(2)
-	b.score.Set(43)
-	myMap.NotifyScoreChangeByKey("a")
-	myMap.NotifyScoreChangeByKey("b")
-
-	require.Equal(t, myMap.scoreChunks[2], a.GetScoreChunk())
-	require.Equal(t, myMap.scoreChunks[42], b.GetScoreChunk())
 }
 
 func TestBucketSortedMap_Has(t *testing.T) {
@@ -220,9 +215,9 @@ func TestBucketSortedMap_IterCb(t *testing.T) {
 	myMap.Set(newScoredDummyItem("a", 15))
 	myMap.Set(newScoredDummyItem("b", 101))
 	myMap.Set(newScoredDummyItem("c", 3))
-	myMap.NotifyScoreChangeByKey("a")
-	myMap.NotifyScoreChangeByKey("b")
-	myMap.NotifyScoreChangeByKey("c")
+	simulateMutationThatChangesScore(myMap, "a")
+	simulateMutationThatChangesScore(myMap, "b")
+	simulateMutationThatChangesScore(myMap, "c")
 
 	sorted := []string{"c", "a", "b"}
 
@@ -257,12 +252,34 @@ func TestBucketSortedMap_GetSnapshotAscending(t *testing.T) {
 	myMap.Set(b)
 	myMap.Set(c)
 
-	myMap.NotifyScoreChangeByKey("a")
-	myMap.NotifyScoreChangeByKey("b")
-	myMap.NotifyScoreChangeByKey("c")
+	simulateMutationThatChangesScore(myMap, "a")
+	simulateMutationThatChangesScore(myMap, "b")
+	simulateMutationThatChangesScore(myMap, "c")
 
 	snapshot = myMap.GetSnapshotAscending()
 	require.ElementsMatch(t, []BucketSortedMapItem{c, a, b}, snapshot)
+}
+
+func TestBucketSortedMap_GetSnapshotDescending(t *testing.T) {
+	myMap := NewBucketSortedMap(4, 100)
+
+	snapshot := myMap.GetSnapshotDescending()
+	require.ElementsMatch(t, []BucketSortedMapItem{}, snapshot)
+
+	a := newScoredDummyItem("a", 15)
+	b := newScoredDummyItem("b", 101)
+	c := newScoredDummyItem("c", 3)
+
+	myMap.Set(a)
+	myMap.Set(b)
+	myMap.Set(c)
+
+	simulateMutationThatChangesScore(myMap, "a")
+	simulateMutationThatChangesScore(myMap, "b")
+	simulateMutationThatChangesScore(myMap, "c")
+
+	snapshot = myMap.GetSnapshotDescending()
+	require.ElementsMatch(t, []BucketSortedMapItem{b, a, c}, snapshot)
 }
 
 func TestBucketSortedMap_AddManyItems(t *testing.T) {
@@ -283,7 +300,7 @@ func TestBucketSortedMap_AddManyItems(t *testing.T) {
 				key := fmt.Sprintf("%d_%d", i, j)
 				item := newScoredDummyItem(key, uint32(j%numScoreChunks))
 				myMap.Set(item)
-				myMap.NotifyScoreChangeByKey(key)
+				simulateMutationThatChangesScore(myMap, key)
 			}
 
 			waitGroup.Done()
@@ -360,7 +377,7 @@ func TestBucketSortedMap_ClearConcurrentWithWrite(t *testing.T) {
 			myMap.Set(newDummyItem("foobar"))
 			myMap.Remove("foobar")
 			myMap.NotifyScoreChange(newDummyItem("foobar"))
-			myMap.NotifyScoreChangeByKey("foobar")
+			simulateMutationThatChangesScore(myMap, "foobar")
 		}
 
 		wg.Done()
@@ -376,32 +393,29 @@ func TestBucketSortedMap_NoForgottenItemsOnConcurrentScoreChanges(t *testing.T) 
 		myMap := NewBucketSortedMap(16, 16)
 		a := newScoredDummyItem("a", 0)
 		myMap.Set(a)
-		myMap.NotifyScoreChangeByKey("a")
+		simulateMutationThatChangesScore(myMap, "a")
 
 		var wg sync.WaitGroup
 		wg.Add(2)
 
 		go func() {
 			a.score.Set(1)
-			myMap.NotifyScoreChangeByKey("a")
+			simulateMutationThatChangesScore(myMap, "a")
 			wg.Done()
 		}()
 
 		go func() {
 			a.score.Set(2)
-			myMap.NotifyScoreChangeByKey("a")
+			simulateMutationThatChangesScore(myMap, "a")
 			wg.Done()
 		}()
 
 		wg.Wait()
 
-		fmt.Println("Should be one item in map")
-		fmt.Println("Buckets", myMap.ScoreChunksCounts())
+		require.Equal(t, uint32(1), myMap.CountSorted())
+		require.Equal(t, uint32(1), myMap.Count())
 
 		myMap.Remove("a")
-
-		fmt.Println("Should be no item in map")
-		fmt.Println("Buckets", myMap.ScoreChunksCounts())
 
 		require.Equal(t, uint32(0), myMap.CountSorted())
 		require.Equal(t, uint32(0), myMap.Count())
