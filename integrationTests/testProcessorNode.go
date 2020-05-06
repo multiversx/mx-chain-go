@@ -837,6 +837,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:          gasSchedule,
 		MapDNSAddresses: make(map[string]struct{}),
+		Marshalizer:     TestMarshalizer,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
@@ -883,7 +884,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		ArgumentParser:   tpn.ArgsParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
-	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
+	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler)
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      tpn.VMContainer,
@@ -989,6 +990,14 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		&disabled.MessageSignVerifier{},
 		gasSchedule,
 		tpn.NodesSetup,
+		TestHasher,
+		TestMarshalizer,
+		&config.SystemSmartContractsConfig{
+			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+				BaseIssuingCost: "1000",
+				OwnerAddress:    "aaaaaa",
+			},
+		},
 	)
 
 	tpn.VMContainer, _ = vmFactory.Create()
@@ -1005,7 +1014,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ArgumentParser:   tpn.ArgsParser,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
-	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData)
+	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler)
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      tpn.VMContainer,
 		ArgsParser:       tpn.ArgsParser,
