@@ -121,6 +121,7 @@ type epochStartBootstrap struct {
 	userAccountTries   map[string]data.Trie
 	peerAccountTries   map[string]data.Trie
 	baseData           baseDataInStorage
+	shuffledOut        bool
 }
 
 type baseDataInStorage struct {
@@ -200,6 +201,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		storageOpenerHandler:       args.StorageUnitOpener,
 		latestStorageDataProvider:  args.LatestStorageDataProvider,
 		addressPubkeyConverter:     args.AddressPubkeyConverter,
+		shuffledOut:                false,
 	}
 
 	whiteListCache, err := storageUnit.NewCache(
@@ -294,7 +296,17 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			return parameters, nil
 		}
 
+		if e.shuffledOut {
+			// sync was already tried - not need to continue from here
+			return Parameters{}, err
+		}
+
 		log.Debug("could not start from storage - will try sync for start in epoch", "error", errPrepare)
+		if !e.baseData.storageExists {
+			e.baseData.lastEpoch = 0
+			e.baseData.shardId = e.genesisShardCoordinator.SelfId()
+			e.baseData.numberOfShards = e.genesisShardCoordinator.NumberOfShards()
+		}
 	}
 
 	err = e.prepareComponentsToSyncFromNetwork()
