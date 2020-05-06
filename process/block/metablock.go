@@ -235,12 +235,16 @@ func (mp *metaProcessor) ProcessBlock(
 
 	haveMissingShardHeaders := requestedShardHdrs > 0 || requestedFinalityAttestingShardHdrs > 0
 	if haveMissingShardHeaders {
-		log.Debug("requested missing shard headers",
-			"num headers", requestedShardHdrs,
-		)
-		log.Debug("requested missing finality attesting shard headers",
-			"num finality shard headers", requestedFinalityAttestingShardHdrs,
-		)
+		if requestedShardHdrs > 0 {
+			log.Debug("requested missing shard headers",
+				"num headers", requestedShardHdrs,
+			)
+		}
+		if requestedFinalityAttestingShardHdrs > 0 {
+			log.Debug("requested missing finality attesting shard headers",
+				"num finality shard headers", requestedFinalityAttestingShardHdrs,
+			)
+		}
 
 		err = mp.waitForBlockHeaders(haveTime())
 
