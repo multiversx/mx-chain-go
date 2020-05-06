@@ -228,6 +228,7 @@ func TestTxProcessor_SetBalancesToTrieOkValsShouldWork(t *testing.T) {
 			PrevRandSeed:    rootHash,
 			RandSeed:        rootHash,
 			AccumulatedFees: big.NewInt(0),
+			DeveloperFees:   big.NewInt(0),
 		},
 		header,
 	)

@@ -82,6 +82,7 @@ func CreateShardGenesisBlockFromInitialBalances(
 		RandSeed:        rootHash,
 		TimeStamp:       genesisTime,
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 
 	return header, err
@@ -197,6 +198,8 @@ func CreateMetaGenesisBlock(
 		PrevRandSeed:           rootHash,
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
+		DeveloperFees:          big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
 		PubKeysBitmap:          []byte{1},
 	}
 	header.EpochStart.Economics = block.Economics{
