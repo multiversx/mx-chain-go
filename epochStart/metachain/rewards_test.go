@@ -401,6 +401,41 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 	assert.True(t, putMbWasCalled)
 }
 
+func TestRewardsCreator_addValidatorRewardsToMiniBlocksZeroValueShouldNotAdd(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsArguments()
+	rwdc, _ := NewEpochStartRewardsCreator(args)
+
+	epochStartEconomics := getDefaultEpochStart()
+	epochStartEconomics.Economics.RewardsForCommunity = big.NewInt(0)
+	epochStartEconomics.Economics.RewardsPerBlockPerNode = big.NewInt(0)
+
+	mb := &block.MetaBlock{
+		EpochStart: epochStartEconomics,
+	}
+
+	miniBlocks := make(block.MiniBlockSlice, rwdc.shardCoordinator.NumberOfShards())
+	miniBlocks[0] = &block.MiniBlock{}
+	miniBlocks[0].SenderShardID = core.MetachainShardId
+	miniBlocks[0].ReceiverShardID = 0
+	miniBlocks[0].Type = block.RewardsBlock
+	miniBlocks[0].TxHashes = make([][]byte, 0)
+
+	valInfo := make(map[uint32][]*state.ValidatorInfo)
+	valInfo[0] = []*state.ValidatorInfo{
+		{
+			PublicKey:       []byte("pubkey"),
+			ShardId:         0,
+			AccumulatedFees: big.NewInt(0),
+		},
+	}
+
+	err := rwdc.addValidatorRewardsToMiniBlocks(valInfo, mb, miniBlocks)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(miniBlocks[0].TxHashes))
+}
+
 func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
 	t.Parallel()
 
@@ -494,6 +529,31 @@ func TestRewardsCreator_AddCommunityRewardToMiniBlocks(t *testing.T) {
 	err := rwdc.addCommunityRewardToMiniBlocks(miniBlocks, metaBlk)
 	assert.Nil(t, err)
 	assert.Equal(t, cloneMb, miniBlocks[0])
+}
+
+func TestRewardsCreator_AddCommunityRewardZeroValueShouldNotAdd(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsArguments()
+	rwdc, _ := NewEpochStartRewardsCreator(args)
+
+	epochStartEconomics := getDefaultEpochStart()
+	epochStartEconomics.Economics.RewardsForCommunity = big.NewInt(0)
+
+	mb := &block.MetaBlock{
+		EpochStart: epochStartEconomics,
+	}
+
+	miniBlocks := make(block.MiniBlockSlice, rwdc.shardCoordinator.NumberOfShards())
+	miniBlocks[0] = &block.MiniBlock{}
+	miniBlocks[0].SenderShardID = core.MetachainShardId
+	miniBlocks[0].ReceiverShardID = 0
+	miniBlocks[0].Type = block.RewardsBlock
+	miniBlocks[0].TxHashes = make([][]byte, 0)
+
+	err := rwdc.addCommunityRewardToMiniBlocks(miniBlocks, mb)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(miniBlocks[0].TxHashes))
 }
 
 func getDefaultEpochStart() block.EpochStart {
