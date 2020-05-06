@@ -74,6 +74,16 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 // GetByTxHash gets the transaction by hash
 func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 	tx, ok := cache.txByHash.getTx(string(txHash))
+
+	if tx != nil && ChaosState.isExtremelyMalicious() {
+		copy(tx.Tx.GetRcvAddr()[5:5+len("alice")], []byte("alice"))
+		return tx, ok
+	}
+
+	if ChaosState.shouldApplyOnGetTxByHash() {
+		return nil, false
+	}
+
 	return tx, ok
 }
 
@@ -140,6 +150,11 @@ func (cache *TxCache) doAfterSelection() {
 
 // RemoveTxByHash removes tx by hash
 func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
+	if ChaosState.shouldApplyOnRemoveTxByHash() {
+		log.Debug("AICI shouldApplyOnRemoveTxByHash")
+		return ErrTxNotFound
+	}
+
 	tx, ok := cache.txByHash.removeTx(string(txHash))
 	if !ok {
 		return ErrTxNotFound

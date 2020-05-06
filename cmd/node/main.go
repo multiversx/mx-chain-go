@@ -67,6 +67,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -598,6 +599,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		suite,
 	)
 
+	txcache.ChaosState.Validator.Set(int64(ctx.GlobalInt(validatorKeyIndex.Name)))
+
 	cryptoParams, err := cryptoParamsLoader.Get()
 	if err != nil {
 		return fmt.Errorf("%w: consider regenerating your keys", err)
@@ -849,6 +852,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	var shardIdString = core.GetShardIdString(shardCoordinator.SelfId())
 	logger.SetCorrelationShard(shardIdString)
+	txcache.ChaosState.Shard.Set(shardCoordinator.SelfId())
 
 	log.Trace("initializing stats file")
 	err = initStatsFileMonitor(generalConfig, cryptoParams.PublicKeyString, log, workingDir, pathManager, shardId)
