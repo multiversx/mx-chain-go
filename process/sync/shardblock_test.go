@@ -1848,89 +1848,6 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 	assert.True(t, requestDataWasCalled)
 }
 
-func TestShardBootstrap_ResetProbableHighestNonceIfNeededShouldNotBeDoneWhenHeaderIsNil(t *testing.T) {
-	t.Parallel()
-
-	args := CreateShardBootstrapMockArguments()
-
-	wasCalled := false
-	forkDetectorMock := &mock.ForkDetectorMock{
-		ResetProbableHighestNonceCalled: func() {
-			wasCalled = true
-		},
-	}
-	args.ForkDetector = forkDetectorMock
-
-	bs, _ := sync.NewShardBootstrap(args)
-	bs.ResetProbableHighestNonceIfNeeded(nil)
-
-	assert.False(t, wasCalled)
-}
-
-func TestShardBootstrap_ResetProbableHighestNonceIfNeededShouldNotBeDoneWhenAreNotEnoughErrorsPerNonce(t *testing.T) {
-	t.Parallel()
-
-	args := CreateShardBootstrapMockArguments()
-
-	wasCalled := false
-	forkDetectorMock := &mock.ForkDetectorMock{
-		ResetProbableHighestNonceCalled: func() {
-			wasCalled = true
-		},
-	}
-	args.ForkDetector = forkDetectorMock
-
-	bs, _ := sync.NewShardBootstrap(args)
-	bs.SetNumSyncedWithErrorsForNonce(2, 8)
-	bs.ResetProbableHighestNonceIfNeeded(&block.Header{Nonce: 2})
-
-	assert.False(t, wasCalled)
-}
-
-func TestShardBootstrap_ResetProbableHighestNonceIfNeededShouldNotBeDoneWhenIsNotInProperRound(t *testing.T) {
-	t.Parallel()
-
-	args := CreateShardBootstrapMockArguments()
-
-	wasCalled := false
-	forkDetectorMock := &mock.ForkDetectorMock{
-		ResetProbableHighestNonceCalled: func() {
-			wasCalled = true
-		},
-	}
-	args.ForkDetector = forkDetectorMock
-
-	rounderMock := &mock.RounderMock{}
-	rounderMock.RoundIndex = 1
-	args.Rounder = rounderMock
-
-	bs, _ := sync.NewShardBootstrap(args)
-	bs.SetNumSyncedWithErrorsForNonce(2, 9)
-	bs.ResetProbableHighestNonceIfNeeded(&block.Header{Nonce: 2})
-
-	assert.False(t, wasCalled)
-}
-
-func TestShardBootstrap_ResetProbableHighestNonceIfNeededShouldBeDone(t *testing.T) {
-	t.Parallel()
-
-	args := CreateShardBootstrapMockArguments()
-
-	wasCalled := false
-	forkDetectorMock := &mock.ForkDetectorMock{
-		ResetProbableHighestNonceCalled: func() {
-			wasCalled = true
-		},
-	}
-	args.ForkDetector = forkDetectorMock
-
-	bs, _ := sync.NewShardBootstrap(args)
-	bs.SetNumSyncedWithErrorsForNonce(2, 9)
-	bs.ResetProbableHighestNonceIfNeeded(&block.Header{Nonce: 2})
-
-	assert.True(t, wasCalled)
-}
-
 func TestShardBootstrap_CleanNoncesSyncedWithErrorsBehindFinalShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -1953,4 +1870,86 @@ func TestShardBootstrap_CleanNoncesSyncedWithErrorsBehindFinalShouldWork(t *test
 
 	assert.Equal(t, 1, bs.GetMapNonceSyncedWithErrorsLen())
 	assert.Equal(t, uint32(9), bs.GetNumSyncedWithErrorsForNonce(3))
+}
+
+func TestShardBootstrap_DoJobOnSyncBlockFailShouldNotResetProbableHighestNonceWhenAreNotEnoughErrorsPerNonce(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+
+	wasCalled := false
+	forkDetectorMock := &mock.ForkDetectorMock{
+		ResetProbableHighestNonceCalled: func() {
+			wasCalled = true
+		},
+	}
+	args.ForkDetector = forkDetectorMock
+	args.ChainHandler = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 1}
+		},
+	}
+
+	bs, _ := sync.NewShardBootstrap(args)
+	bs.SetNumSyncedWithErrorsForNonce(2, 8)
+	bs.DoJobOnSyncBlockFail(nil, nil, errors.New("error"))
+
+	assert.False(t, wasCalled)
+}
+
+func TestShardBootstrap_DoJobOnSyncBlockFailShouldNotResetProbableHighestNonceWhenIsNotInProperRound(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+
+	wasCalled := false
+	forkDetectorMock := &mock.ForkDetectorMock{
+		ResetProbableHighestNonceCalled: func() {
+			wasCalled = true
+		},
+	}
+	args.ForkDetector = forkDetectorMock
+	args.ChainHandler = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 1}
+		},
+	}
+
+	rounderMock := &mock.RounderMock{}
+	rounderMock.RoundIndex = 1
+	args.Rounder = rounderMock
+
+	bs, _ := sync.NewShardBootstrap(args)
+	bs.SetNumSyncedWithErrorsForNonce(2, 9)
+	bs.DoJobOnSyncBlockFail(nil, nil, errors.New("error"))
+
+	assert.False(t, wasCalled)
+}
+
+func TestShardBootstrap_DoJobOnSyncBlockFailShouldResetProbableHighestNonce(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+
+	wasCalled := false
+	forkDetectorMock := &mock.ForkDetectorMock{
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return 1
+		},
+		ResetProbableHighestNonceCalled: func() {
+			wasCalled = true
+		},
+	}
+	args.ForkDetector = forkDetectorMock
+	args.ChainHandler = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 1}
+		},
+	}
+
+	bs, _ := sync.NewShardBootstrap(args)
+	bs.SetNumSyncedWithErrorsForNonce(2, 9)
+	bs.DoJobOnSyncBlockFail(nil, nil, errors.New("error"))
+
+	assert.True(t, wasCalled)
 }
