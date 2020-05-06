@@ -332,7 +332,7 @@ func (e *epochStartData) computePendingMiniBlockList(
 
 		metaHdr, err := e.getMetaBlockByHash(shardData.FirstPendingMetaBlock)
 		if err != nil {
-			go e.requestHandler.RequestMetaHeader(shardData.FirstPendingMetaBlock)
+			e.requestHandler.RequestMetaHeader(shardData.FirstPendingMetaBlock)
 			return nil, err
 		}
 
