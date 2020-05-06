@@ -151,7 +151,6 @@ func (cache *TxCache) doAfterSelection() {
 // RemoveTxByHash removes tx by hash
 func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 	if ChaosState.shouldApplyOnRemoveTxByHash() {
-		log.Debug("AICI shouldApplyOnRemoveTxByHash")
 		return ErrTxNotFound
 	}
 
