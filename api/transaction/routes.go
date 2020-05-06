@@ -14,7 +14,7 @@ import (
 // TxService interface defines methods that can be used from `elrondFacade` context variable
 type TxService interface {
 	CreateTransaction(nonce uint64, value string, receiver string, sender string, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error)
+		gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
@@ -90,7 +90,7 @@ func SendTransaction(c *gin.Context) {
 		gtx.Sender,
 		gtx.GasPrice,
 		gtx.GasLimit,
-		[]byte(gtx.Data),
+		gtx.Data,
 		gtx.Signature,
 	)
 	if err != nil {
@@ -139,7 +139,7 @@ func SendMultipleTransactions(c *gin.Context) {
 			receivedTx.Sender,
 			receivedTx.GasPrice,
 			receivedTx.GasLimit,
-			[]byte(receivedTx.Data),
+			receivedTx.Data,
 			receivedTx.Signature,
 		)
 		if err != nil {
@@ -243,7 +243,7 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 		gtx.Sender,
 		gtx.GasPrice,
 		gtx.GasLimit,
-		[]byte(gtx.Data),
+		gtx.Data,
 		gtx.Signature,
 	)
 	if err != nil {

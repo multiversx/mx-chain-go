@@ -1343,7 +1343,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		TestAddressPubkeyConverter.Encode(tx.SndAddr),
 		tx.GasPrice,
 		tx.GasLimit,
-		tx.Data,
+		string(tx.Data),
 		hex.EncodeToString(tx.Signature),
 	)
 	if err != nil {
