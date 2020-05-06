@@ -104,10 +104,7 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) e
 		return err
 	}
 
-	txType, err := txProc.txTypeHandler.ComputeTransactionType(tx)
-	if err != nil {
-		return err
-	}
+	txType := txProc.txTypeHandler.ComputeTransactionType(tx)
 
 	switch txType {
 	case process.SCDeployment:

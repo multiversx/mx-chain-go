@@ -15,6 +15,7 @@ type BuiltInCost struct {
 	ClaimDeveloperRewards uint64
 	SaveUserName          uint64
 	SaveKeyValue          uint64
+	ESDTTransfer          uint64
 }
 
 // GasCost holds all the needed gas costs for system smart contracts
