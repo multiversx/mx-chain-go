@@ -530,7 +530,7 @@ func CreateGenesisMetaBlock(
 		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
 		VirtualMachineConfig:     config.VirtualMachineConfig{},
 		HardForkConfig:           config.HardforkConfig{},
-		SystemSCConfig: &config.SystemSmartContractsConfig{
+		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
 				OwnerAddress:    "aaaaaa",

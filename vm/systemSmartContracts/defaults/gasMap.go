@@ -30,6 +30,7 @@ func FillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["ChangeOwnerAddress"] = value
 	gasMap["SaveUserName"] = value
 	gasMap["SaveKeyValue"] = value
+	gasMap["ESDTTransfer"] = value
 
 	return gasMap
 }
@@ -45,6 +46,8 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["ChangeRewardAddress"] = value
 	gasMap["ChangeValidatorKeys"] = value
 	gasMap["UnJail"] = value
+	gasMap["ESDTIssue"] = value
+	gasMap["ESDTOperations"] = value
 
 	return gasMap
 }

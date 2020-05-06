@@ -891,7 +891,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		TxLogsProcessor:          args.txLogsProcessor,
 		HardForkConfig:           args.mainConfig.Hardfork,
 		ChainID:                  string(args.coreComponents.ChainID),
-		SystemSCConfig:           args.systemSCConfig,
+		SystemSCConfig:           *args.systemSCConfig,
 	}
 
 	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)
@@ -1134,15 +1134,6 @@ func newShardBlockProcessor(
 	}
 
 	txFeeHandler, err := postprocess.NewFeeAccumulator()
-	if err != nil {
-		return nil, err
-	}
-
-	txLogsStorage := data.Store.GetStorer(dataRetriever.TxLogsUnit)
-	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer:      txLogsStorage,
-		Marshalizer: core.InternalMarshalizer,
-	})
 	if err != nil {
 		return nil, err
 	}
@@ -1399,15 +1390,6 @@ func newMetaBlockProcessor(
 	}
 
 	txFeeHandler, err := postprocess.NewFeeAccumulator()
-	if err != nil {
-		return nil, err
-	}
-
-	txLogsStorage := data.Store.GetStorer(dataRetriever.TxLogsUnit)
-	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer:      txLogsStorage,
-		Marshalizer: core.InternalMarshalizer,
-	})
 	if err != nil {
 		return nil, err
 	}
