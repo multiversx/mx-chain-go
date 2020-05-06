@@ -88,6 +88,11 @@ func (h *Header) SetAccumulatedFees(value *big.Int) {
 	h.AccumulatedFees.Set(value)
 }
 
+// SetDeveloperFees sets the developer fees in the header
+func (h *Header) SetDeveloperFees(value *big.Int) {
+	h.DeveloperFees.Set(value)
+}
+
 // SetTxCount sets the transaction count of the block associated with this header
 func (h *Header) SetTxCount(txCount uint32) {
 	h.TxCount = txCount

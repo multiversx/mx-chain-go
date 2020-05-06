@@ -173,7 +173,8 @@ type TransactionVerifier interface {
 type TransactionFeeHandler interface {
 	CreateBlockStarted()
 	GetAccumulatedFees() *big.Int
-	ProcessTransactionFee(cost *big.Int, txHash []byte)
+	GetDeveloperFees() *big.Int
+	ProcessTransactionFee(cost *big.Int, devFee *big.Int, txHash []byte)
 	RevertFees(txHashes [][]byte)
 	IsInterfaceNil() bool
 }
