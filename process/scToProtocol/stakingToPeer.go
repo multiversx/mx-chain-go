@@ -266,7 +266,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) ([]string, erro
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
-		if miniBlock.SenderShardID != core.MetachainShardId {
+		if miniBlock.SenderShardID != core.MetachainShardId || miniBlock.ReceiverShardID != core.MetachainShardId {
 			continue
 		}
 
