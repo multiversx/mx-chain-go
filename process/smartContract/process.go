@@ -163,7 +163,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
-
 	log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "data", string(tx.GetData()))
 
 	err := sc.processSCPayment(tx, acntSnd)
@@ -283,7 +282,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 }
 
 func (sc *scProcessor) deleteSCRsWithValueZeroGoingToMeta(scrs []data.TransactionHandler) []data.TransactionHandler {
-	if sc.shardCoordinator.SelfId() == core.MetachainShardId {
+	if sc.shardCoordinator.SelfId() == core.MetachainShardId || len(scrs) == 0 {
 		return scrs
 	}
 
@@ -340,8 +339,8 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 
-	outPutAccounts := sortVMOutputInsideData(vmOutput)
-	for _, outAcc := range outPutAccounts {
+	outputAccounts := sortVMOutputInsideData(vmOutput)
+	for _, outAcc := range outputAccounts {
 		storageUpdates := getSortedStorageUpdates(outAcc)
 		scTx := sc.createSmartContractResult(outAcc, tx, txHash, storageUpdates)
 		scrResults = append(scrResults, scTx)
@@ -355,7 +354,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		refund,
 		vmOutput.GasRemaining,
 		vmOutput.ReturnCode,
-		make([][]byte, 0),
+		vmOutput.ReturnData,
 		tx,
 		txHash,
 		acntSnd,
