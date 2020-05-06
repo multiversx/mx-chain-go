@@ -40,13 +40,12 @@ func TestSweeping_CollectSweepable(t *testing.T) {
 
 	// 3nd fail, collect Alice and Bob as sweepables
 	selection = cache.doSelectTransactions(1000, 1000)
-	// o si rulat gorutina si a sters offfffff. cum pot oare?
 	require.Equal(t, 1, len(selection))
 	require.Equal(t, 2, len(cache.sweepingListOfSenders))
 	require.True(t, cache.isSenderSweepable("alice"))
-	require.True(t, cache.isSenderSweepable("bob")) // WTF
+	require.True(t, cache.isSenderSweepable("bob"))
 	require.Equal(t, 3, cache.getNumFailedSelectionsOfSender("alice"))
-	require.Equal(t, 3, cache.getNumFailedSelectionsOfSender("bob")) // bob even not in senders oohhhh
+	require.Equal(t, 3, cache.getNumFailedSelectionsOfSender("bob"))
 	require.Equal(t, 0, cache.getNumFailedSelectionsOfSender("carol"))
 }
 
