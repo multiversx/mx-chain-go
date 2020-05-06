@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -104,6 +105,7 @@ type ArgsMetaGenesisBlockCreator struct {
 	ValidatorStatsRootHash   []byte
 	MessageSignVerifier      vm.MessageSignVerifier
 	GasMap                   map[string]map[string]uint64
+	SystemSCConfig           *config.SystemSmartContractsConfig
 }
 
 // CreateMetaGenesisBlock creates the meta genesis block
@@ -143,6 +145,9 @@ func CreateMetaGenesisBlock(
 	}
 	if check.IfNil(args.DataPool) {
 		return nil, process.ErrNilMetaBlocksPool
+	}
+	if args.SystemSCConfig == nil {
+		return nil, vm.ErrNilSystemSCConfig
 	}
 
 	txProcessor, systemSmartContracts, err := createProcessorsForMetaGenesisBlock(args)
@@ -262,6 +267,9 @@ func createProcessorsForMetaGenesisBlock(
 		&NilMessageSignVerifier{},
 		args.GasMap,
 		args.NodesSetup,
+		args.Hasher,
+		args.Marshalizer,
+		args.SystemSCConfig,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -296,11 +304,6 @@ func createProcessorsForMetaGenesisBlock(
 		return nil, nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(args.Economics)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  args.PubkeyConv,
 		ShardCoordinator: args.ShardCoordinator,
@@ -308,6 +311,11 @@ func createProcessorsForMetaGenesisBlock(
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	gasHandler, err := preprocess.NewGasComputation(args.Economics, txTypeHandler)
 	if err != nil {
 		return nil, nil, err
 	}

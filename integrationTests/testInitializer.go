@@ -530,6 +530,12 @@ func CreateGenesisMetaBlock(
 		Economics:                economics,
 		ValidatorStatsRootHash:   rootHash,
 		GasMap:                   gasSchedule,
+		SystemSCConfig: &config.SystemSmartContractsConfig{
+			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+				BaseIssuingCost: "1000",
+				OwnerAddress:    "aaaaaa",
+			},
+		},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
