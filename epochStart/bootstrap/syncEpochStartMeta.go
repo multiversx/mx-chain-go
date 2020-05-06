@@ -155,6 +155,11 @@ func (e *epochStartMetaSyncer) initTopicForEpochStartMetaBlockInterceptor() erro
 		return err
 	}
 
+	err = e.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic)
+	if err != nil {
+		log.Debug("error unregistering message processors", "error", err)
+	}
+
 	err = e.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, e.singleDataInterceptor)
 	if err != nil {
 		return err
