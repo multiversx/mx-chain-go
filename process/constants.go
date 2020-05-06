@@ -26,6 +26,8 @@ const (
 	SCDeployment
 	// SCInvoking defines ID of a transaction of type smart contract call
 	SCInvoking
+	// BuiltInFunctionCall
+	BuiltInFunctionCall
 	// RewardTx defines ID of a reward transaction
 	RewardTx
 	// InvalidTransaction defines unknown transaction type
