@@ -315,8 +315,8 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		scProcessorMock,
 		&mock.TxTypeHandlerMock{
-			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
-				return process.SCInvoking, nil
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
+				return process.SCInvoking
 			},
 		},
 		createFreeTxFeeHandler(),
@@ -367,8 +367,8 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 		createMockPubkeyConverter(),
 		mock.NewOneShardCoordinatorMock(),
 		scProcessorMock,
-		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
-			return process.SCInvoking, nil
+		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
+			return process.SCInvoking
 		}},
 		createFreeTxFeeHandler(),
 	)

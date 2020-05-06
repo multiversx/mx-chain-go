@@ -41,7 +41,7 @@ func createBlockBody() *block.Body {
 		MiniBlocks: []*block.MiniBlock{
 			{
 				TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2")},
-				ReceiverShardID: 0,
+				ReceiverShardID: core.MetachainShardId,
 				SenderShardID:   core.MetachainShardId,
 				Type:            block.SmartContractResultBlock,
 			},

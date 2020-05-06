@@ -1,12 +1,9 @@
 package maps
 
-import "github.com/ElrondNetwork/elrond-go/core/atomic"
-
-// BucketSortedMapItem is
+// BucketSortedMapItem defines an item of the bucket sorted map
 type BucketSortedMapItem interface {
 	GetKey() string
 	ComputeScore() uint32
 	GetScoreChunk() *MapChunk
 	SetScoreChunk(*MapChunk)
-	ScoreChangeInProgressFlag() *atomic.Flag
 }
