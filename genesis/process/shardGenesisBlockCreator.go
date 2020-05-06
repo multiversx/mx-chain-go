@@ -57,7 +57,7 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 			err, arg.ShardCoordinator.SelfId())
 	}
 
-	numStaked, err := incrementStakersNonces(processors, arg)
+	numStaked, err := increaseStakersNonces(processors, arg)
 	if err != nil {
 		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing nonces",
 			err, arg.ShardCoordinator.SelfId())
@@ -69,7 +69,7 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 			err, arg.ShardCoordinator.SelfId())
 	}
 
-	numCrossShardDelegations, err := incrementCrossShardDelegators(processors, arg)
+	numCrossShardDelegations, err := incrementNoncesForCrossShardDelegations(processors, arg)
 	if err != nil {
 		return nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while incrementing crossshard nonce",
 			err, arg.ShardCoordinator.SelfId())
@@ -460,7 +460,7 @@ func deployInitialSmartContract(
 	return deployProc.Deploy(sc)
 }
 
-func incrementStakersNonces(processors *genesisProcessors, arg ArgsGenesisBlockCreator) (int, error) {
+func increaseStakersNonces(processors *genesisProcessors, arg ArgsGenesisBlockCreator) (int, error) {
 	txExecutor, err := intermediate.NewTxExecutionProcessor(processors.txProcessor, arg.Accounts)
 	if err != nil {
 		return 0, err
@@ -478,8 +478,11 @@ func incrementStakersNonces(processors *genesisProcessors, arg ArgsGenesisBlockC
 			continue
 		}
 
+		numNodesStaked := big.NewInt(0).Set(ia.GetStakingValue())
+		numNodesStaked.Div(numNodesStaked, arg.Economics.GenesisNodePrice())
+
 		stakersCounter++
-		err = txExecutor.AddNonce(ia.AddressBytes(), 1)
+		err = txExecutor.AddNonce(ia.AddressBytes(), numNodesStaked.Uint64())
 		if err != nil {
 			return 0, fmt.Errorf("%w when adding nonce for address %s", err, ia.GetAddress())
 		}
@@ -512,7 +515,7 @@ func executeDelegation(
 	return delegationProcessor.ExecuteDelegation()
 }
 
-func incrementCrossShardDelegators(processors *genesisProcessors, arg ArgsGenesisBlockCreator) (int, error) {
+func incrementNoncesForCrossShardDelegations(processors *genesisProcessors, arg ArgsGenesisBlockCreator) (int, error) {
 	txExecutor, err := intermediate.NewTxExecutionProcessor(processors.txProcessor, arg.Accounts)
 	if err != nil {
 		return 0, err

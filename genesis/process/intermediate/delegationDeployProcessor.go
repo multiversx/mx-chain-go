@@ -62,8 +62,8 @@ func (ddp *delegationDeployProcessor) replaceDelegationPlaceholders(
 
 	scResultingAddress := ddp.pubkeyConv.Encode(scResultingAddressBytes)
 	val := ddp.accountsParser.GetTotalStakedForDelegationAddress(scResultingAddress)
-	if val.Cmp(zero) == 0 {
-		return "", fmt.Errorf("%w, 0 delegated value for resulting address %s",
+	if val.Cmp(zero) < 1 {
+		return "", fmt.Errorf("%w, 0 or negative delegated value for resulting address %s",
 			genesis.ErrInvalidDelegationValue, scResultingAddress)
 	}
 

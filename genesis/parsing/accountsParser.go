@@ -117,10 +117,11 @@ func (ap *accountsParser) parseDelegationElement(initialAccount *data.InitialAcc
 	}
 	addressBytes, err := ap.pubkeyConverter.Decode(delegationData.Address)
 	if err != nil {
-		return fmt.Errorf("%w for `%s`, address %s",
+		return fmt.Errorf("%w for `%s`, address %s, error %s",
 			genesis.ErrInvalidDelegationAddress,
 			delegationData.Address,
 			initialAccount.Address,
+			err.Error(),
 		)
 	}
 

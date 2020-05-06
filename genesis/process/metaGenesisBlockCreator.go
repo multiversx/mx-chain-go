@@ -365,8 +365,8 @@ func deploySystemSmartContracts(
 }
 
 // setStakedData sets the initial staked values to the staking smart contract
-// it will register both categories of nodes: direct staked and delegated stake. This done because it is the only
-// way possible due to the fact the the delegation contract can not call a sandbox-ed processor suite and accounts state
+// it will register both categories of nodes: direct staked and delegated stake. This is done because it is the only
+// way possible due to the fact that the delegation contract can not call a sandbox-ed processor suite and accounts state
 // at genesis time
 func setStakedData(
 	arg ArgsGenesisBlockCreator,
