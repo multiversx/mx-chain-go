@@ -327,8 +327,8 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	if err != nil {
 		return false, nil
 	}
-	// return error here only if acntSnd is not nil - so this is sender shard
 
+	// return error here only if acntSnd is not nil - so this is sender shard
 	vmOutput, err := builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
 	if err != nil {
 		if !check.IfNil(acntSnd) {
@@ -339,7 +339,9 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	}
 
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
-	for _, outAcc := range vmOutput.OutputAccounts {
+
+	outPutAccounts := sortVMOutputInsideData(vmOutput)
+	for _, outAcc := range outPutAccounts {
 		storageUpdates := getSortedStorageUpdates(outAcc)
 		scTx := sc.createSmartContractResult(outAcc, tx, txHash, storageUpdates)
 		scrResults = append(scrResults, scTx)
