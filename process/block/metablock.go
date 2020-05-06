@@ -1188,7 +1188,7 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 	if lastMetaBlock.IsStartOfEpochBlock() {
 		log.Debug("trie snapshot", "rootHash", lastMetaBlock.GetRootHash())
 		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash())
-		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetRootHash())
+		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash())
 	}
 
 	mp.updateStateStorage(
