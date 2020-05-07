@@ -129,7 +129,7 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 		return nil
 	}
 
-	log.Debug("received epoch start meta", "epoch", metaBlock.GetEpoch(), "from peer", fromConnectedPeer)
+	log.Debug("received epoch start meta", "epoch", metaBlock.GetEpoch(), "from peer", fromConnectedPeer.Pretty())
 	e.mutReceivedMetaBlocks.Lock()
 	e.mapReceivedMetaBlocks[string(mbHash)] = metaBlock
 	e.addToPeerList(string(mbHash), fromConnectedPeer)
