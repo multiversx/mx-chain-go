@@ -724,5 +724,5 @@ func TestIntermediateResultsProcessor_GetAllCurrentUsedTxs(t *testing.T) {
 	assert.Nil(t, err)
 
 	usedTxs := irp.GetAllCurrentFinishedTxs()
-	assert.Equal(t, 2, len(usedTxs))
+	assert.Equal(t, 4, len(usedTxs))
 }

@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/gin-gonic/gin"
 )
@@ -61,11 +62,11 @@ type TxResponse struct {
 }
 
 // Routes defines transaction related routes
-func Routes(router *gin.RouterGroup) {
-	router.POST("/send", SendTransaction)
-	router.POST("/cost", ComputeTransactionGasLimit)
-	router.POST("/send-multiple", SendMultipleTransactions)
-	router.GET("/:txhash", GetTransaction)
+func Routes(router *wrapper.RouterWrapper) {
+	router.RegisterHandler(http.MethodPost, "/send", SendTransaction)
+	router.RegisterHandler(http.MethodPost, "/cost", ComputeTransactionGasLimit)
+	router.RegisterHandler(http.MethodPost, "/send-multiple", SendMultipleTransactions)
+	router.RegisterHandler(http.MethodGet, "/:txhash", GetTransaction)
 }
 
 // SendTransaction will receive a transaction from the client and propagate it for processing

@@ -37,6 +37,13 @@ func createMockArguments() ArgNodeFacade {
 			RestApiInterface: "127.0.0.1:8080",
 			PprofEnabled:     false,
 		},
+		ApiRoutesConfig: config.ApiRoutesConfig{APIPackages: map[string]config.APIPackageConfig{
+			"node": {
+				[]config.RouteConfig{
+					{Name: "status"},
+				},
+			},
+		}},
 	}
 }
 
@@ -95,6 +102,17 @@ func TestNewNodeFacade_WithInvalidSameSourceRequestsShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(nf))
 	assert.True(t, errors.Is(err, ErrInvalidValue))
+}
+
+func TestNewNodeFacade_WithInvalidApiRoutesConfigShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.ApiRoutesConfig = config.ApiRoutesConfig{}
+	nf, err := NewNodeFacade(arg)
+
+	assert.True(t, check.IfNil(nf))
+	assert.True(t, errors.Is(err, ErrNoApiRoutesConfig))
 }
 
 func TestNewNodeFacade_WithValidNodeShouldReturnNotNil(t *testing.T) {

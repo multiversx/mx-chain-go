@@ -195,7 +195,7 @@ func TestHeaderResolver_ProcessReceivedMessage_Ok(t *testing.T) {
 
 	arg := createMockArgHeaderResolver()
 	arg.HdrStorage = &mock.StorerStub{
-		GetCalled: func(key []byte) (i []byte, err error) {
+		SearchFirstCalled: func(key []byte) (i []byte, err error) {
 			return nil, nil
 		},
 	}
