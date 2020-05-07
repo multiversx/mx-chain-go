@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/update/factory"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -109,11 +110,13 @@ func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
 
 func hardForkImport(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
 	for _, node := range nodes {
+		gasSchedule := make(map[string]map[string]uint64)
+		defaults.FillGasMapInternal(gasSchedule, 1)
 		log.Warn("started import process")
 		validatorsRoothash, _ := node.ValidatorStatisticsProcessor.RootHash()
 		argsGenesis := process.ArgsGenesisBlockCreator{
 			GenesisTime:              0,
-			StartEpochNum:            0,
+			StartEpochNum:            10,
 			Accounts:                 node.AccntState,
 			PubkeyConv:               nil,
 			InitialNodesSetup:        node.NodesSetup,
@@ -128,7 +131,7 @@ func hardForkImport(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
 			AccountsParser:           nil,
 			SmartContractParser:      nil,
 			ValidatorStatsRootHash:   validatorsRoothash,
-			GasMap:                   nil,
+			GasMap:                   gasSchedule,
 			TxLogsProcessor:          nil,
 			VirtualMachineConfig:     config.VirtualMachineConfig{},
 			HardForkConfig:           config.HardforkConfig{},
