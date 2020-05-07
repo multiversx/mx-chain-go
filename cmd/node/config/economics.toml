@@ -1,8 +1,8 @@
 #Economics config of the node
 [GlobalSettings]
-    TotalSupply = "20000000000000000000000000000" #20BILERD
+    TotalSupply = "200000000000000000000000000000" #20BILERD
     MinimumInflation = 0.0
-    MaximumInflation = 0.1 #fraction of value 1 - 10%
+    MaximumInflation = 0.075 #fraction of value 1 - 7.5%
 
 [RewardsSettings]
     LeaderPercentage = 0.1 #fraction of value 1 - 10%
@@ -13,20 +13,20 @@
 
 [FeeSettings]
     MaxGasLimitPerBlock = "1500000000"
-    MinGasPrice = "100000000000000" #will yield min tx fee of 10ERD
+    MinGasPrice = "200000000000" #will yield min tx fee of 0.01ERD
     MinGasLimit = "50000"
     GasPerDataByte = "1500"
     DataLimitForBaseCalc = "10000"
 
 [ValidatorSettings]
-    GenesisNodePrice = "500000000000000000000000" #500000ERD
+    GenesisNodePrice = "2500000000000000000000000" #2.5MILERD
     UnBondPeriod = "400"
     MinStepValue = "10000000000000000000000"
-    TotalSupply = "20000000000000000000000000000" #20BIL ERD
+    TotalSupply = "200000000000000000000000000000" #20BIL ERD
     AuctionEnableNonce = "100000000000"
     StakeEnableNonce = "0"
     NumRoundsWithoutBleed = "100"
     MaximumPercentageToBleed = "0.5"
     BleedPercentagePerRound = "0.00001"
-    UnJailValue = "50000000000000000000" #0.1% of genesis node price
+    UnJailValue = "250000000000000000000" #0.1% of genesis node price
     ActivateBLSPubKeyMessageVerification = false #TODO set to true before mainnet
