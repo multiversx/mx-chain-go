@@ -14,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	valStats "github.com/ElrondNetwork/elrond-go/api/validator"
 	"github.com/ElrondNetwork/elrond-go/api/vmValues"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/gin-contrib/cors"
@@ -64,7 +66,7 @@ func (gev *ginErrorWriter) Write(p []byte) (n int, err error) {
 }
 
 // Start will boot up the api and appropriate routes, handlers and validators
-func Start(elrondFacade MainApiHandler, processors ...MiddlewareProcessor) error {
+func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, processors ...MiddlewareProcessor) error {
 	var ws *gin.Engine
 	if !elrondFacade.RestAPIServerDebugMode() {
 		gin.DefaultWriter = &ginWriter{}
@@ -87,47 +89,85 @@ func Start(elrondFacade MainApiHandler, processors ...MiddlewareProcessor) error
 		return err
 	}
 
-	registerRoutes(ws, elrondFacade)
+	registerRoutes(ws, routesConfig, elrondFacade)
 
 	return ws.Run(elrondFacade.RestApiInterface())
 }
 
-func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
+func registerRoutes(ws *gin.Engine, routesConfig config.ApiRoutesConfig, elrondFacade middleware.ElrondHandler) {
 	nodeRoutes := ws.Group("/node")
 	nodeRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	node.Routes(nodeRoutes)
+	wrappedNodeRouter, err := wrapper.NewRouterWrapper("node", nodeRoutes, routesConfig)
+	if err == nil {
+		node.Routes(wrappedNodeRouter)
+	}
 
 	addressRoutes := ws.Group("/address")
 	addressRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	address.Routes(addressRoutes)
+	wrappedAddressRouter, err := wrapper.NewRouterWrapper("address", addressRoutes, routesConfig)
+	if err == nil {
+		address.Routes(wrappedAddressRouter)
+	}
 
 	networkRoutes := ws.Group("/network")
 	networkRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	network.Routes(networkRoutes)
+	wrappedNetworkRoutes, err := wrapper.NewRouterWrapper("network", networkRoutes, routesConfig)
+	if err == nil {
+		network.Routes(wrappedNetworkRoutes)
+	}
 
 	txRoutes := ws.Group("/transaction")
 	txRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	transaction.Routes(txRoutes)
+	wrappedTransactionRouter, err := wrapper.NewRouterWrapper("transaction", txRoutes, routesConfig)
+	if err == nil {
+		transaction.Routes(wrappedTransactionRouter)
+	}
 
 	vmValuesRoutes := ws.Group("/vm-values")
 	vmValuesRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	vmValues.Routes(vmValuesRoutes)
+	wrappedVmValuesRouter, err := wrapper.NewRouterWrapper("vm-values", vmValuesRoutes, routesConfig)
+	if err == nil {
+		vmValues.Routes(wrappedVmValuesRouter)
+	}
 
 	validatorRoutes := ws.Group("/validator")
 	validatorRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	valStats.Routes(validatorRoutes)
+	wrappedValidatorsRouter, err := wrapper.NewRouterWrapper("validator", validatorRoutes, routesConfig)
+	if err == nil {
+		valStats.Routes(wrappedValidatorsRouter)
+	}
 
 	hardforkRoutes := ws.Group("/hardfork")
 	hardforkRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	hardfork.Routes(hardforkRoutes)
+	wrappedHardforkRouter, err := wrapper.NewRouterWrapper("hardfork", hardforkRoutes, routesConfig)
+	if err == nil {
+		hardfork.Routes(wrappedHardforkRouter)
+	}
 
 	apiHandler, ok := elrondFacade.(MainApiHandler)
 	if ok && apiHandler.PprofEnabled() {
 		pprof.Register(ws)
 	}
 
-	marshalizerForLogs := &marshal.GogoProtoMarshalizer{}
-	registerLoggerWsRoute(ws, marshalizerForLogs)
+	if isLogRouteEnabled(routesConfig) {
+		marshalizerForLogs := &marshal.GogoProtoMarshalizer{}
+		registerLoggerWsRoute(ws, marshalizerForLogs)
+	}
+}
+
+func isLogRouteEnabled(routesConfig config.ApiRoutesConfig) bool {
+	logConfig, ok := routesConfig.APIPackages["log"]
+	if !ok {
+		return false
+	}
+
+	for _, cfg := range logConfig.Routes {
+		if cfg.Name == "/log" && cfg.Open {
+			return true
+		}
+	}
+
+	return false
 }
 
 func registerValidators() error {
