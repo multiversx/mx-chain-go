@@ -155,6 +155,7 @@ func (e *epochStartMetaSyncer) initTopicForEpochStartMetaBlockInterceptor() erro
 		return err
 	}
 
+	e.resetTopicsAndInterceptors()
 	err = e.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, e.singleDataInterceptor)
 	if err != nil {
 		return err
