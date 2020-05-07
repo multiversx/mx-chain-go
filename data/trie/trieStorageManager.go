@@ -352,9 +352,6 @@ func (tsm *trieStorageManager) writeOnChan(entry snapshotsQueueEntry) {
 	select {
 	case tsm.snapshotReq <- entry:
 		return
-	default:
-		log.Debug("snapshots buffer is full")
-		return
 	}
 }
 
