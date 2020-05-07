@@ -6,7 +6,7 @@ import (
 	"math"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -217,6 +217,9 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 		persisterToUse = persisterInSetEpoch
 	} else {
 		persisterToUse = ps.activePersisters[0]
+		log.Warn("active persister not found",
+			"epoch", ps.epochForPutOperation,
+			"used", persisterToUse.epoch)
 	}
 
 	err := persisterToUse.persister.Put(key, data)
@@ -444,7 +447,9 @@ func (ps *PruningStorer) HasInEpoch(key []byte, epoch uint32) error {
 
 // SetEpochForPutOperation will set the epoch to be used when using the put operation
 func (ps *PruningStorer) SetEpochForPutOperation(epoch uint32) {
+	ps.lock.Lock()
 	ps.epochForPutOperation = epoch
+	ps.lock.Unlock()
 }
 
 // Remove removes the data associated to the given key from both cache and persistence medium
