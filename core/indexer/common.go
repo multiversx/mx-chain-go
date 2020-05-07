@@ -192,19 +192,7 @@ func (cm *commonProcessor) buildRewardTransaction(
 }
 
 func (cm *commonProcessor) convertScResultInDatabaseScr(sc *smartContractResult.SmartContractResult) ScResult {
-	encodedData := strings.Split(string(sc.Data), "@")
-
-	decodedData := ""
-	for _, enc := range encodedData {
-		val, err := hex.DecodeString(enc)
-		if err != nil {
-			decodedData += "@" + enc
-		}
-
-		if len(val) != 0 {
-			decodedData += "@" + string(val)
-		}
-	}
+	decodedData := decodeScResultData(sc.Data)
 
 	return ScResult{
 		Nonce:        sc.Nonce,
@@ -219,6 +207,41 @@ func (cm *commonProcessor) convertScResultInDatabaseScr(sc *smartContractResult.
 		CallType:     string(sc.CallType),
 		CodeMetadata: string(sc.CodeMetadata),
 	}
+}
+
+func decodeScResultData(scrData []byte) string {
+	encodedData := strings.Split(string(scrData), "@")
+	encodedData = append([]string(nil), encodedData[1:]...)
+
+	decodedData := ""
+	for i, enc := range encodedData {
+		if !canInterpretAsString([]byte(enc)) {
+			continue
+		}
+		if i > 0 {
+			decodedData += "@" + enc
+			continue
+		}
+
+		val, _ := hex.DecodeString(enc)
+		if len(val) > 0 {
+			decodedData += "@" + string(val)
+		}
+	}
+
+	return decodedData
+}
+
+func canInterpretAsString(bytes []byte) bool {
+	if len(bytes) == 0 {
+		return false
+	}
+	for _, b := range bytes {
+		if b < 32 || b > 126 {
+			return false
+		}
+	}
+	return true
 }
 
 func serializeBulkMiniBlocks(hdrShardID uint32, bulkMbs []*Miniblock) bytes.Buffer {

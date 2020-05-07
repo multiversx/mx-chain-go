@@ -80,16 +80,8 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 			continue
 		}
 
-		dbScResult := tdp.commonProcessor.convertScResultInDatabaseScr(scResult)
-		if tx.Sender == dbScResult.Receiver && dbScResult.Value != "0" && dbScResult.GasLimit != 0 {
-			gasUsed := big.NewInt(0).SetUint64(tx.GasPrice)
-			gasUsed.Mul(gasUsed, big.NewInt(0).SetUint64(tx.GasLimit))
-			gasUsed.Sub(gasUsed, scResult.Value)
+		tx = tdp.addScResultInfoInTx(scResult, tx)
 
-			tx.GasUsed = gasUsed.String()
-		}
-
-		tx.SmartContractResults = append(tx.SmartContractResults, dbScResult)
 		countScResults[string(scResult.OriginalTxHash)]++
 	}
 
@@ -111,6 +103,24 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	tdp.txLogsProcessor.Clean()
 
 	return append(convertMapTxsToSlice(transactions), rewardsTxs...)
+}
+
+func (tdp *txDatabaseProcessor) addScResultInfoInTx(scr *smartContractResult.SmartContractResult, tx *Transaction) *Transaction {
+	dbScResult := tdp.commonProcessor.convertScResultInDatabaseScr(scr)
+	if tx.Sender != dbScResult.Receiver || dbScResult.Data == "" {
+		return tx
+	}
+
+	tx.SmartContractResults = append(tx.SmartContractResults, dbScResult)
+
+	if dbScResult.GasLimit != 0 && dbScResult.Value != "0" {
+		gasUsed := big.NewInt(0).SetUint64(tx.GasPrice)
+		gasUsed.Mul(gasUsed, big.NewInt(0).SetUint64(tx.GasLimit))
+		gasUsed.Sub(gasUsed, scr.Value)
+		tx.GasUsed = gasUsed.String()
+	}
+
+	return tx
 }
 
 func (tdp *txDatabaseProcessor) prepareTxLog(log data.LogHandler) TxLog {
