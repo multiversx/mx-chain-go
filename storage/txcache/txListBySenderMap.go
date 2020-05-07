@@ -29,11 +29,6 @@ func (txMap *txListBySenderMap) addTx(tx *WrappedTransaction) {
 	sender := string(tx.Tx.GetSndAddr())
 	listForSender := txMap.getOrAddListForSender(sender)
 	listForSender.AddTx(tx)
-	txMap.notifyScoreChange(listForSender)
-}
-
-func (txMap *txListBySenderMap) notifyScoreChange(txList *txListForSender) {
-	txMap.backingMap.NotifyScoreChange(txList)
 }
 
 func (txMap *txListBySenderMap) getOrAddListForSender(sender string) *txListForSender {
@@ -56,12 +51,17 @@ func (txMap *txListBySenderMap) getListForSender(sender string) (*txListForSende
 }
 
 func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
-	listForSender := newTxListForSender(sender, &txMap.cacheConfig)
+	listForSender := newTxListForSender(sender, &txMap.cacheConfig, txMap.notifyScoreChange)
 
 	txMap.backingMap.Set(listForSender)
 	txMap.counter.Increment()
 
 	return listForSender
+}
+
+// This function should only be called in a critical section managed by a "txListForSender"
+func (txMap *txListBySenderMap) notifyScoreChange(txList *txListForSender) {
+	txMap.backingMap.NotifyScoreChange(txList)
 }
 
 // removeTx removes a transaction from the map
@@ -78,33 +78,32 @@ func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 
 	if listForSender.IsEmpty() {
 		txMap.removeSender(sender)
-	} else {
-		txMap.notifyScoreChange(listForSender)
 	}
 
 	return isFound
 }
 
-func (txMap *txListBySenderMap) removeSender(sender string) {
+func (txMap *txListBySenderMap) removeSender(sender string) bool {
 	if !txMap.backingMap.Has(sender) {
-		return
+		return false
 	}
 
 	txMap.backingMap.Remove(sender)
 	txMap.counter.Decrement()
+	return true
 }
 
 // RemoveSendersBulk removes senders, in bulk
 func (txMap *txListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
-	oldCount := uint32(txMap.counter.Get())
+	numRemoved := uint32(0)
 
 	for _, senderKey := range senders {
-		txMap.removeSender(senderKey)
+		if txMap.removeSender(senderKey) {
+			numRemoved++
+		}
 	}
 
-	newCount := uint32(txMap.counter.Get())
-	nRemoved := oldCount - newCount
-	return nRemoved
+	return numRemoved
 }
 
 func (txMap *txListBySenderMap) notifyAccountNonce(accountKey []byte, nonce uint64) {
@@ -128,14 +127,15 @@ func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {
 	return listsSnapshot
 }
 
-// ForEachSender is an iterator callback
-type ForEachSender func(key string, value *txListForSender)
+func (txMap *txListBySenderMap) getSnapshotDescending() []*txListForSender {
+	itemsSnapshot := txMap.backingMap.GetSnapshotDescending()
+	listsSnapshot := make([]*txListForSender, len(itemsSnapshot))
 
-func (txMap *txListBySenderMap) forEachDescending(function ForEachSender) {
-	txMap.backingMap.IterCbSortedDescending(func(key string, item maps.BucketSortedMapItem) {
-		txList := item.(*txListForSender)
-		function(key, txList)
-	})
+	for i, item := range itemsSnapshot {
+		listsSnapshot[i] = item.(*txListForSender)
+	}
+
+	return listsSnapshot
 }
 
 func (txMap *txListBySenderMap) clear() {
