@@ -31,7 +31,7 @@ type trieStorageManager struct {
 	snapshots          []storage.Persister
 	snapshotId         int
 	snapshotDbCfg      config.DBConfig
-	snapshotReq        chan snapshotsQueueEntry
+	snapshotReq        chan *snapshotsQueueEntry
 	pruningBuffer      atomicBuffer
 	snapshotInProgress uint32
 	maxSnapshots       uint8
@@ -79,7 +79,7 @@ func NewTrieStorageManager(
 		snapshotDbCfg:         snapshotDbCfg,
 		pruningBuffer:         newPruningBuffer(generalConfig.PruningBufferLen),
 		dbEvictionWaitingList: ewl,
-		snapshotReq:           make(chan snapshotsQueueEntry, generalConfig.SnapshotsBufferLen),
+		snapshotReq:           make(chan *snapshotsQueueEntry, generalConfig.SnapshotsBufferLen),
 		snapshotInProgress:    0,
 		maxSnapshots:          generalConfig.MaxSnapshots,
 	}
@@ -334,7 +334,7 @@ func (tsm *trieStorageManager) getSnapshotDbThatContainsHash(rootHash []byte) da
 func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte) {
 	tsm.EnterSnapshotMode()
 
-	snapshotEntry := snapshotsQueueEntry{rootHash: rootHash, newDb: true}
+	snapshotEntry := &snapshotsQueueEntry{rootHash: rootHash, newDb: true}
 	tsm.writeOnChan(snapshotEntry)
 }
 
@@ -344,21 +344,18 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte) {
 func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte) {
 	tsm.EnterSnapshotMode()
 
-	checkpointEntry := snapshotsQueueEntry{rootHash: rootHash, newDb: false}
+	checkpointEntry := &snapshotsQueueEntry{rootHash: rootHash, newDb: false}
 	tsm.writeOnChan(checkpointEntry)
 }
 
-func (tsm *trieStorageManager) writeOnChan(entry snapshotsQueueEntry) {
+func (tsm *trieStorageManager) writeOnChan(entry *snapshotsQueueEntry) {
 	select {
 	case tsm.snapshotReq <- entry:
-		return
-	default:
-		log.Debug("snapshots buffer is full")
 		return
 	}
 }
 
-func (tsm *trieStorageManager) takeSnapshot(snapshot snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher) {
+func (tsm *trieStorageManager) takeSnapshot(snapshot *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher) {
 	defer tsm.ExitSnapshotMode()
 
 	if tsm.getSnapshotDbThatContainsHash(snapshot.rootHash) != nil {
