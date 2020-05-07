@@ -111,7 +111,10 @@ func registerRoutes(ws *gin.Engine, routesConfig config.ApiRoutesConfig, elrondF
 
 	networkRoutes := ws.Group("/network")
 	networkRoutes.Use(middleware.WithElrondFacade(elrondFacade))
-	network.Routes(networkRoutes)
+	wrappedNetworkRoutes, err := wrapper.NewRouterWrapper("network", networkRoutes, routesConfig)
+	if err == nil {
+		network.Routes(wrappedNetworkRoutes)
+	}
 
 	txRoutes := ws.Group("/transaction")
 	txRoutes.Use(middleware.WithElrondFacade(elrondFacade))

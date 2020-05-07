@@ -37,12 +37,21 @@
         { Name = "/trigger", Open = true }
 	]
 
+[APIPackages.network]
+	Routes = [
+         # /network/status will return metrics related to current status of the chain (epoch, nonce, round)
+        { Name = "/status", Open = true },
+
+         # /network/config will return metrics related to current configuration of the network (number of shards,
+         # consensus group size and so on)
+         { Name = "/config", Open = true }
+	]
+
 [APIPackages.log]
 	Routes = [
          # /log will handle sending the log information
         { Name = "/log", Open = true }
 	]
-
 
 [APIPackages.validator]
 	Routes = [
