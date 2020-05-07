@@ -171,7 +171,7 @@ const MetricNumMiniBlocks = "erd_num_mini_blocks"
 const MetricConsensusRoundState = "erd_consensus_round_state"
 
 // MetricCrossCheckBlockHeight is the metric that store cross block height
-const MetricCrossCheckBlockHeight = "erd_metric_cross_check_block_height"
+const MetricCrossCheckBlockHeight = "erd_cross_check_block_height"
 
 // MetricNumProcessedTxs is the metric that stores the number of transactions processed
 const MetricNumProcessedTxs = "erd_num_transactions_processed"
@@ -213,31 +213,31 @@ const MetricRewardsValue = "erd_rewards_value"
 const MetricNodeDisplayName = "erd_node_display_name"
 
 // MetricConsensusGroupSize is the metric for consensus group size for the current shard/meta
-const MetricConsensusGroupSize = "erd_metric_consensus_group_size"
+const MetricConsensusGroupSize = "erd_consensus_group_size"
 
 // MetricShardConsensusGroupSize is the metric for the shard consensus group size
-const MetricShardConsensusGroupSize = "erd_metric_shard_consensus_group_size"
+const MetricShardConsensusGroupSize = "erd_shard_consensus_group_size"
 
 // MetricMetaConsensusGroupSize is the metric for the metachain consensus group size
-const MetricMetaConsensusGroupSize = "erd_metric_shard_consensus_group_size"
+const MetricMetaConsensusGroupSize = "erd_meta_consensus_group_size"
 
 // MetricNumNodesPerShard is the metric which holds the number of nodes in a shard
-const MetricNumNodesPerShard = "erd_metric_num_nodes_in_shard"
+const MetricNumNodesPerShard = "erd_num_nodes_in_shard"
 
 // MetricNumMetachainNodes is the metric which holds the number of nodes in metachain
-const MetricNumMetachainNodes = "erd_metric_num_metachain_nodes"
+const MetricNumMetachainNodes = "erd_num_metachain_nodes"
 
 //MetricNumValidators is the metric for the number of validators
-const MetricNumValidators = "erd_metric_num_validators"
+const MetricNumValidators = "erd_num_validators"
 
 // MetricPeerType is the metric which tells the peer's type (in eligible list, in waiting list, or observer)
 const MetricPeerType = "erd_peer_type"
 
 //MetricLeaderPercentage is the metric for leader rewards percentage
-const MetricLeaderPercentage = "erd_metric_leader_percentage"
+const MetricLeaderPercentage = "erd_leader_percentage"
 
 //MetricDenominationCoefficient is the metric for denomination coefficient that is used in views
-const MetricDenominationCoefficient = "erd_metric_denomination_coefficient"
+const MetricDenominationCoefficient = "erd_denomination_coefficient"
 
 // MetricRoundAtEpochStart is the metric for storing the first round of the current epoch
 const MetricRoundAtEpochStart = "erd_round_at_epoch_start"

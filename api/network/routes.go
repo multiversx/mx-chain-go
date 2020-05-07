@@ -16,7 +16,20 @@ type FacadeHandler interface {
 
 // Routes defines address related routes
 func Routes(router *gin.RouterGroup) {
-	router.GET("", GetNetworkData)
+	router.GET("/config", ConfigData)
+	router.GET("/status", GetNetworkData)
+}
+
+// ConfigData returns data about current configuration
+func ConfigData(c *gin.Context) {
+	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		return
+	}
+
+	configMetrics := ef.StatusMetrics().ConfigMetrics()
+	c.JSON(http.StatusOK, gin.H{"config": configMetrics})
 }
 
 // GetNetworkData returns data about current network metrics
@@ -28,5 +41,5 @@ func GetNetworkData(c *gin.Context) {
 	}
 
 	networkMetrics := ef.StatusMetrics().NetworkMetrics()
-	c.JSON(http.StatusOK, gin.H{"config": networkMetrics})
+	c.JSON(http.StatusOK, gin.H{"status": networkMetrics})
 }
