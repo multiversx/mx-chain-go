@@ -110,7 +110,7 @@ func (si *stateImport) ImportAll() error {
 			if !canImportState {
 				continue
 			}
-			err = si.importState(splitString[0], splitString[1])
+			err = si.importState(fileName)
 		}
 		if err != nil {
 			return err
@@ -270,8 +270,8 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (data.Trie, error) 
 	return trieForShard, nil
 }
 
-func (si *stateImport) importState(fileName string, trieKey string) error {
-	accType, shId, err := GetTrieTypeAndShId(trieKey)
+func (si *stateImport) importState(fileName string) error {
+	accType, shId, err := GetTrieTypeAndShId(fileName)
 	if err != nil {
 		return err
 	}
