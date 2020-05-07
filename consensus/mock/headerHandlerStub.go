@@ -25,8 +25,17 @@ func (hhs *HeaderHandlerStub) GetAccumulatedFees() *big.Int {
 	return big.NewInt(0)
 }
 
+// GetDeveloperFees -
+func (hhs *HeaderHandlerStub) GetDeveloperFees() *big.Int {
+	return big.NewInt(0)
+}
+
 // SetAccumulatedFees -
 func (hhs *HeaderHandlerStub) SetAccumulatedFees(_ *big.Int) {
+}
+
+// SetDeveloperFees -
+func (hhs *HeaderHandlerStub) SetDeveloperFees(_ *big.Int) {
 }
 
 // GetReceiptsHash -
