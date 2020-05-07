@@ -179,7 +179,7 @@ type DBWriteCacher interface {
 type DBRemoveCacher interface {
 	Put([]byte, ModifiedHashes) error
 	Evict([]byte) (ModifiedHashes, error)
-	PresentInNewHashes(hash string) (bool, error)
+	ShouldKeepHash(hash string, identifier TriePruningIdentifier) (bool, error)
 	IsInterfaceNil() bool
 }
 
