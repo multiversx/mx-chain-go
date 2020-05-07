@@ -406,15 +406,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	txLogsStorage := args.data.Store.GetStorer(dataRetriever.TxLogsUnit)
-	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer:      txLogsStorage,
-		Marshalizer: args.coreData.InternalMarshalizer,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	blockProcessor, err := newBlockProcessor(
 		args,
 		requestHandler,
@@ -1036,7 +1027,6 @@ func newBlockProcessor(
 			processArgs.nodesConfig,
 			txLogsProcessor,
 			processArgs.systemSCConfig,
-			txLogsProcessor,
 		)
 	}
 
@@ -1329,7 +1319,6 @@ func newMetaBlockProcessor(
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	txLogsProcessor process.TransactionLogProcessor,
 	systemSCConfig *config.SystemSmartContractsConfig,
-	txLogsProcessor process.TransactionLogProcessor,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()

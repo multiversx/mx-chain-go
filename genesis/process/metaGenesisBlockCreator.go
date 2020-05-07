@@ -75,6 +75,8 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		PrevRandSeed:           rootHash,
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
+		DeveloperFees:          big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
 		PubKeysBitmap:          []byte{1},
 	}
 	header.EpochStart.Economics = block.Economics{
