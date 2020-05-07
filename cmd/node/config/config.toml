@@ -188,7 +188,7 @@
 
 [TrieStorageManagerConfig]
     PruningBufferLen = 1000
-    SnapshotsBufferLen = 100000000
+    SnapshotsBufferLen = 10000
     MaxSnapshots = 2
 
 [PeerAccountsTrieStorage]
