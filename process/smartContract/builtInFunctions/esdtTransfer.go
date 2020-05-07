@@ -54,6 +54,9 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 	if len(vmInput.Arguments) != 2 {
 		return nil, process.ErrInvalidArguments
 	}
+	if vmInput.CallValue.Cmp(zero) != 0 {
+		return nil, process.ErrBuiltInFunctionCalledWithValue
+	}
 
 	value := big.NewInt(0).SetBytes(vmInput.Arguments[1])
 	if value.Cmp(zero) <= 0 {
@@ -65,7 +68,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 	log.Trace("esdtTransfer", "sender", vmInput.CallerAddr, "receiver", vmInput.RecipientAddr, "value", value, "token", esdtTokenKey)
 
 	if !check.IfNil(acntSnd) {
-		// gas is payed only by sender
+		// gas is paid only by sender
 		if vmInput.GasProvided < e.funcGasCost {
 			return nil, process.ErrNotEnoughGas
 		}
@@ -78,7 +81,6 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 	}
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining}
-
 	if !check.IfNil(acntDst) {
 		err := e.addToESDTBalance(acntDst, esdtTokenKey, value)
 		if err != nil {
