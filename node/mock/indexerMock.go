@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // IndexerMock is a mock implementation fot the Indexer interface
@@ -15,6 +16,10 @@ type IndexerMock struct {
 // SaveBlock -
 func (im *IndexerMock) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[string]data.TransactionHandler, _ []uint64, _ []string) {
 	panic("implement me")
+}
+
+// SetTxLogsProcessor will do nothing
+func (im *IndexerMock) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
 }
 
 // UpdateTPS -

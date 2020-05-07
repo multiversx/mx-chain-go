@@ -3,7 +3,9 @@ package txcache
 import (
 	"fmt"
 	"math"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -299,6 +301,44 @@ func Test_IsInterfaceNil(t *testing.T) {
 	require.True(t, check.IfNil(thisIsNil))
 }
 
+func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
+	cache := newCacheToTest()
+
+	// Alice will quickly move between two score buckets (chunks)
+	cheapTransaction := createTxWithParams([]byte("alice-x-o"), "alice", 0, 128, 50000, 100*oneTrilion)
+	expensiveTransaction := createTxWithParams([]byte("alice-x-1"), "alice", 1, 128, 50000, 300*oneTrilion)
+	cache.AddTx(cheapTransaction)
+	cache.AddTx(expensiveTransaction)
+
+	wg := sync.WaitGroup{}
+
+	// Simulate selection
+	wg.Add(1)
+	go func() {
+		for i := 0; i < 100; i++ {
+			fmt.Println("Selection", i)
+			cache.SelectTransactions(100, 100)
+		}
+
+		wg.Done()
+	}()
+
+	// Simulate add / remove transactions
+	wg.Add(1)
+	go func() {
+		for i := 0; i < 100; i++ {
+			fmt.Println("Add / remove", i)
+			cache.Remove([]byte("alice-x-1"))
+			cache.AddTx(expensiveTransaction)
+		}
+
+		wg.Done()
+	}()
+
+	timedOut := waitTimeout(&wg, 1*time.Second)
+	require.False(t, timedOut, "Timed out. Perhaps deadlock?")
+}
+
 func newCacheToTest() *TxCache {
-	return NewTxCache(CacheConfig{Name: "test", NumChunksHint: 16})
+	return NewTxCache(CacheConfig{Name: "test", NumChunksHint: 16, MinGasPriceMicroErd: 100})
 }

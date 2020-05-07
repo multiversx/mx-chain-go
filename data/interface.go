@@ -39,9 +39,11 @@ type HeaderHandler interface {
 	GetTxCount() uint32
 	GetReceiptsHash() []byte
 	GetAccumulatedFees() *big.Int
+	GetDeveloperFees() *big.Int
 	GetEpochStartMetaHash() []byte
 
 	SetAccumulatedFees(value *big.Int)
+	SetDeveloperFees(value *big.Int)
 	SetShardID(shId uint32)
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
@@ -177,7 +179,7 @@ type DBWriteCacher interface {
 type DBRemoveCacher interface {
 	Put([]byte, ModifiedHashes) error
 	Evict([]byte) (ModifiedHashes, error)
-	PresentInNewHashes(hash string) (bool, error)
+	ShouldKeepHash(hash string, identifier TriePruningIdentifier) (bool, error)
 	IsInterfaceNil() bool
 }
 

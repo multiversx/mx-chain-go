@@ -43,6 +43,9 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 	if len(input.Arguments) != 2 {
 		return nil, process.ErrInvalidArguments
 	}
+	if input.CallValue.Cmp(zero) != 0 {
+		return nil, process.ErrBuiltInFunctionCalledWithValue
+	}
 	if check.IfNil(acntDst) {
 		return nil, process.ErrNilSCDestAccount
 	}

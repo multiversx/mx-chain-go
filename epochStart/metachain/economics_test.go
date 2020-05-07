@@ -201,10 +201,22 @@ func TestEconomics_ComputeEndOfEpochEconomics_NilAccumulatedFeesInEpochShouldErr
 	args := getArguments()
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
-	mb := block.MetaBlock{AccumulatedFeesInEpoch: nil}
+	mb := block.MetaBlock{AccumulatedFeesInEpoch: nil, DevFeesInEpoch: big.NewInt(0)}
 	res, err := ec.ComputeEndOfEpochEconomics(&mb)
 	assert.Nil(t, res)
 	assert.Equal(t, epochStart.ErrNilTotalAccumulatedFeesInEpoch, err)
+}
+
+func TestEconomics_ComputeEndOfEpochEconomics_NilDevFeesInEpochShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	mb := block.MetaBlock{AccumulatedFeesInEpoch: big.NewInt(0), DevFeesInEpoch: nil}
+	res, err := ec.ComputeEndOfEpochEconomics(&mb)
+	assert.Nil(t, res)
+	assert.Equal(t, epochStart.ErrNilTotalDevFeesInEpoch, err)
 }
 
 func TestEconomics_ComputeRewardsForCommunity(t *testing.T) {
@@ -252,6 +264,19 @@ func TestEconomics_AdjustRewardsPerBlockWithLeaderPercentage(t *testing.T) {
 	assert.Equal(t, expectedRwdPerBlock, rwdPerBlock)
 }
 
+func TestEconomics_AdjustRewardsPerBlockWithDeveloperFees(t *testing.T) {
+	args := getArguments()
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	rwdPerBlock := big.NewInt(0).SetUint64(1000)
+	blocksInEpoch := uint64(100)
+	developerFees := big.NewInt(0).SetUint64(500)
+
+	expectedRwdPerBlock := big.NewInt(995)
+	ec.adjustRewardsPerBlockWithDeveloperFees(rwdPerBlock, developerFees, blocksInEpoch)
+	assert.Equal(t, expectedRwdPerBlock, rwdPerBlock)
+}
+
 func TestEconomics_ComputeEndOfEpochEconomics_NotEpochStartShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -261,6 +286,7 @@ func TestEconomics_ComputeEndOfEpochEconomics_NotEpochStartShouldErr(t *testing.
 	mb1 := block.MetaBlock{
 		Epoch:                  0,
 		AccumulatedFeesInEpoch: big.NewInt(10),
+		DevFeesInEpoch:         big.NewInt(0),
 	}
 	res, err := ec.ComputeEndOfEpochEconomics(&mb1)
 	assert.Nil(t, res)
@@ -305,6 +331,7 @@ func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {
 		},
 		Epoch:                  2,
 		AccumulatedFeesInEpoch: big.NewInt(10000),
+		DevFeesInEpoch:         big.NewInt(0),
 	}
 	res, err := ec.ComputeEndOfEpochEconomics(&mb)
 	assert.Nil(t, err)
@@ -317,6 +344,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 	commAddress := "communityAddress"
 	totalSupply := big.NewInt(20000000000) // 20B
 	accFeesInEpoch := big.NewInt(0)
+	devFeesInEpoch := big.NewInt(0)
 	roundDur := 4
 	args := getArguments()
 	args.RewardsHandler = &mock.RewardsHandlerStub{
@@ -406,6 +434,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 			},
 			Epoch:                  1,
 			AccumulatedFeesInEpoch: accFeesInEpoch,
+			DevFeesInEpoch:         devFeesInEpoch,
 		}
 
 		err := ec.VerifyRewardsPerBlock(&mb)

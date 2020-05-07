@@ -98,7 +98,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 
 		numUnResolved := ts.requestNodes()
 		if !shouldRetryAfterRequest && numUnResolved == 0 {
-			err := ts.trie.Commit()
+			err = ts.trie.Commit()
 			if err != nil {
 				return err
 			}

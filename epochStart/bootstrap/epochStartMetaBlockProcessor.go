@@ -118,9 +118,8 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 	}
 
 	metaBlock := interceptedHdr.HeaderHandler().(*block.MetaBlock)
-
 	if !metaBlock.IsStartOfEpochBlock() {
-		log.Warn("saving epoch start meta block error", "error", epochStart.ErrNotEpochStartBlock)
+		log.Warn("received metablock is not of type epoch start", "error", epochStart.ErrNotEpochStartBlock)
 		return nil
 	}
 
@@ -130,6 +129,7 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 		return nil
 	}
 
+	log.Debug("received epoch start meta", "epoch", metaBlock.GetEpoch(), "from peer", fromConnectedPeer.Pretty())
 	e.mutReceivedMetaBlocks.Lock()
 	e.mapReceivedMetaBlocks[string(mbHash)] = metaBlock
 	e.addToPeerList(string(mbHash), fromConnectedPeer)
@@ -221,7 +221,6 @@ func (e *epochStartMetaBlockProcessor) requestMetaBlock() error {
 
 	unknownEpoch := uint32(math.MaxUint32)
 	e.requestHandler.RequestStartOfEpochMetaBlock(unknownEpoch)
-
 	return nil
 }
 
