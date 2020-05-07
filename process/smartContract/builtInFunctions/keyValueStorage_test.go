@@ -3,6 +3,7 @@ package builtInFunctions
 import (
 	"bytes"
 	"errors"
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -29,7 +30,11 @@ func TestSaveKeyValue_ProcessBuiltinFunction(t *testing.T) {
 	addr := []byte("addr")
 	acc, _ := state.NewUserAccount(addr)
 	vmInput := &vmcommon.ContractCallInput{
-		VMInput:       vmcommon.VMInput{CallerAddr: addr, GasProvided: 50},
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  addr,
+			GasProvided: 50,
+			CallValue:   big.NewInt(0),
+		},
 		RecipientAddr: addr,
 	}
 
