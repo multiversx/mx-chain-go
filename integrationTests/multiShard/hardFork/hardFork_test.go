@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/update/factory"
@@ -91,14 +92,57 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		}
 	}()
 
-	createHardForkExporter(t, nodes)
+	hardForkExport(t, nodes)
+	hardForkImport(t, nodes)
+}
 
+func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
+	createHardForkExporter(t, nodes)
 	for _, node := range nodes {
 		log.Warn("***********************************************************************************")
 		log.Warn("starting to export for node with shard", "id", node.ShardCoordinator.SelfId())
 		err := node.ExportHandler.ExportAll(1)
 		assert.Nil(t, err)
 		log.Warn("***********************************************************************************")
+	}
+}
+
+func hardForkImport(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
+	for _, node := range nodes {
+		log.Warn("started import process")
+		validatorsRoothash, _ := node.ValidatorStatisticsProcessor.RootHash()
+		argsGenesis := process.ArgsGenesisBlockCreator{
+			GenesisTime:              0,
+			StartEpochNum:            0,
+			Accounts:                 node.AccntState,
+			PubkeyConv:               nil,
+			InitialNodesSetup:        node.NodesSetup,
+			Economics:                node.EconomicsData.EconomicsData,
+			ShardCoordinator:         node.ShardCoordinator,
+			Store:                    node.Storage,
+			Blkc:                     node.BlockChain,
+			Marshalizer:              integrationTests.TestMarshalizer,
+			Hasher:                   integrationTests.TestHasher,
+			Uint64ByteSliceConverter: nil,
+			DataPool:                 node.DataPool,
+			AccountsParser:           nil,
+			SmartContractParser:      nil,
+			ValidatorStatsRootHash:   validatorsRoothash,
+			GasMap:                   nil,
+			TxLogsProcessor:          nil,
+			VirtualMachineConfig:     config.VirtualMachineConfig{},
+			HardForkConfig:           config.HardforkConfig{},
+			TriesContainer:           nil,
+			TrieFactory:              nil,
+			ChainID:                  "",
+			SystemSCConfig:           config.SystemSmartContractsConfig{},
+		}
+
+		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)
+		require.Nil(t, err)
+		genesisBlocks, err := genesisProcessor.CreateGenesisBlocks()
+		require.Nil(t, err)
+		require.NotNil(t, genesisBlocks)
 	}
 }
 
@@ -180,15 +224,8 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 		}
 	}()
 
-	createHardForkExporter(t, nodes)
-
-	for _, node := range nodes {
-		log.Warn("***********************************************************************************")
-		log.Warn("starting to export for node with shard", "id", node.ShardCoordinator.SelfId())
-		err := node.ExportHandler.ExportAll(2)
-		assert.Nil(t, err)
-		log.Warn("***********************************************************************************")
-	}
+	hardForkExport(t, nodes)
+	hardForkImport(t, nodes)
 }
 
 func createHardForkExporter(
