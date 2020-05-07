@@ -80,7 +80,7 @@ func (tlp *txLogProcessor) GetLogFromCache(txHash []byte) (data.LogHandler, bool
 	return nil, false
 }
 
-// EnableLogToBeSavedInCache will a flag with true and txLogProcessor will start save transactions logs also in RAM
+// EnableLogToBeSavedInCache will set a flag with true and txLogProcessor will start saving transactions logs also in RAM
 func (tlp *txLogProcessor) EnableLogToBeSavedInCache() {
 	tlp.storeLogsInCache = true
 }
