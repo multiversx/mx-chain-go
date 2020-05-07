@@ -28,8 +28,6 @@ type epochStartData struct {
 	requestHandler    epochStart.RequestHandler
 }
 
-const maxEpochDifference = 2
-
 // ArgsNewEpochStartData defines the input parameters for epoch start data creator
 type ArgsNewEpochStartData struct {
 	Marshalizer       marshal.Marshalizer
@@ -210,11 +208,8 @@ func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr *
 		prevShardHdr, err := process.GetShardHeader(currentHdr.GetPrevHash(), e.dataPool.Headers(), e.marshalizer, e.store)
 		if err != nil {
 			go e.requestHandler.RequestShardHeader(currentHdr.ShardID, currentHdr.GetPrevHash())
-			if e.epochStartTrigger.Epoch()-currentHdr.GetEpoch() > maxEpochDifference {
-				log.Warn("shard remained in an epoch that is too old", "shardID", currentHdr.ShardID, "shard Epoch", currentHdr.Epoch, "meta Epoch", e.epochStartTrigger.Epoch())
-				break
-			}
-			return nil, nil, nil, err
+			log.Warn("shard remained in an epoch that is too old", "shardID", currentHdr.ShardID, "shard Epoch", currentHdr.Epoch, "meta Epoch", e.epochStartTrigger.Epoch())
+			break
 		}
 
 		shardHdrList = append(shardHdrList, prevShardHdr)

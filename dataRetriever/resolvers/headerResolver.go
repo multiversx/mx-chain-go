@@ -235,7 +235,7 @@ func (hdrRes *HeaderResolver) resolveHeaderFromEpoch(key []byte) ([]byte, error)
 	}
 
 	if isUnknownEpoch {
-		actualKey = []byte(core.EpochStartIdentifier(hdrRes.epochHandler.Epoch()))
+		actualKey = []byte(core.EpochStartIdentifier(hdrRes.epochHandler.MetaEpoch()))
 	}
 
 	return hdrRes.hdrStorage.Get(actualKey)

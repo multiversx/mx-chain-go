@@ -2,13 +2,13 @@ package mock
 
 // EpochHandlerStub -
 type EpochHandlerStub struct {
-	EpochCalled func() uint32
+	MetaEpochCalled func() uint32
 }
 
 // Epoch -
-func (ehs *EpochHandlerStub) Epoch() uint32 {
-	if ehs.EpochCalled != nil {
-		return ehs.EpochCalled()
+func (ehs *EpochHandlerStub) MetaEpoch() uint32 {
+	if ehs.MetaEpochCalled != nil {
+		return ehs.MetaEpochCalled()
 	}
 
 	return uint32(0)

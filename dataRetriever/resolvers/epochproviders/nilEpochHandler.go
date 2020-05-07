@@ -9,7 +9,7 @@ func NewNilEpochHandler() *nilEpochHandler {
 }
 
 // Epoch returns the current epoch
-func (n *nilEpochHandler) Epoch() uint32 {
+func (n *nilEpochHandler) MetaEpoch() uint32 {
 	return 0
 }
 
