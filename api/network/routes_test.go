@@ -14,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/network"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
@@ -123,7 +125,8 @@ func startNodeServer(handler network.FacadeHandler) *gin.Engine {
 	if handler != nil {
 		networkRoutes.Use(middleware.WithElrondFacade(handler))
 	}
-	network.Routes(networkRoutes)
+	networkRouteWrapper, _ := wrapper.NewRouterWrapper("network", networkRoutes, getRoutesConfig())
+	network.Routes(networkRouteWrapper)
 	return ws
 }
 
@@ -134,11 +137,25 @@ func startNodeServerWrongFacade() *gin.Engine {
 		c.Set("elrondFacade", mock.WrongFacade{})
 	})
 	networkRoute := ws.Group("/network")
-	network.Routes(networkRoute)
+	networkRouteWrapper, _ := wrapper.NewRouterWrapper("network", networkRoute, getRoutesConfig())
+	network.Routes(networkRouteWrapper)
 	return ws
 }
 
 type GeneralResponse struct {
 	Message string `json:"message"`
 	Error   string `json:"error"`
+}
+
+func getRoutesConfig() config.ApiRoutesConfig {
+	return config.ApiRoutesConfig{
+		APIPackages: map[string]config.APIPackageConfig{
+			"network": {
+				[]config.RouteConfig{
+					{Name: "/config", Open: true},
+					{Name: "/status", Open: true},
+				},
+			},
+		},
+	}
 }

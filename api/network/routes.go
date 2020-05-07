@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/gin-gonic/gin"
 )
@@ -15,9 +16,9 @@ type FacadeHandler interface {
 }
 
 // Routes defines address related routes
-func Routes(router *gin.RouterGroup) {
-	router.GET("/config", ConfigData)
-	router.GET("/status", GetNetworkData)
+func Routes(router *wrapper.RouterWrapper) {
+	router.RegisterHandler(http.MethodGet, "/config", ConfigData)
+	router.RegisterHandler(http.MethodGet, "/status", GetNetworkData)
 }
 
 // ConfigData returns data about current configuration

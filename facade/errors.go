@@ -13,3 +13,6 @@ var ErrNilApiResolver = errors.New("nil api resolver")
 
 // ErrInvalidValue signals that an invalid value has been provided
 var ErrInvalidValue = errors.New("invalid value")
+
+// ErrNoApiRoutesConfig signals that no configuration was found for API routes
+var ErrNoApiRoutesConfig = errors.New("no configuration found for API routes")
