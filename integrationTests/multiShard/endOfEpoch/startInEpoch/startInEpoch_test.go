@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -117,7 +118,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	endOfEpoch.VerifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 
 	epochHandler := &mock.EpochStartTriggerStub{
-		EpochCalled: func() uint32 {
+		MetaEpochCalled: func() uint32 {
 			return epoch
 		},
 	}
@@ -213,6 +214,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
 
+	_ = logger.SetLogLevel("*:DEBUG")
 	bootstrapParams, err := epochStartBootstrap.Bootstrap()
 	assert.NoError(t, err)
 	assert.Equal(t, bootstrapParams.SelfShardId, shardID)

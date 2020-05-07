@@ -302,11 +302,6 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		}
 
 		log.Debug("could not start from storage - will try sync for start in epoch", "error", errPrepare)
-		if !e.baseData.storageExists {
-			e.baseData.lastEpoch = 0
-			e.baseData.shardId = e.genesisShardCoordinator.SelfId()
-			e.baseData.numberOfShards = e.genesisShardCoordinator.NumberOfShards()
-		}
 	}
 
 	err = e.prepareComponentsToSyncFromNetwork()
@@ -318,6 +313,13 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	if err != nil {
 		// node should try to start from what he has in DB if not epoch start metablock is received in time
 		if errors.Is(err, epochStart.ErrTimeoutWaitingForMetaBlock) {
+			if !e.baseData.storageExists {
+				// genesis data
+				e.baseData.lastEpoch = 0
+				e.baseData.shardId = e.genesisShardCoordinator.SelfId()
+				e.baseData.numberOfShards = e.genesisShardCoordinator.NumberOfShards()
+			}
+
 			parameters := Parameters{
 				Epoch:       e.baseData.lastEpoch,
 				SelfShardId: e.baseData.shardId,
