@@ -91,14 +91,16 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 		}
 	}
 
-	for hash, tx := range transactions {
-		txLog, ok := tdp.txLogsProcessor.GetLogFromCache([]byte(hash))
-		if !ok {
-			continue
-		}
-
-		tx.Log = tdp.prepareTxLog(txLog)
-	}
+	// TODO for the moment do not save logs in database
+	// uncomment this when transaction logs need to be saved in database
+	//for hash, tx := range transactions {
+	//	txLog, ok := tdp.txLogsProcessor.GetLogFromCache([]byte(hash))
+	//	if !ok {
+	//		continue
+	//	}
+	//
+	//	tx.Log = tdp.prepareTxLog(txLog)
+	//}
 
 	tdp.txLogsProcessor.Clean()
 

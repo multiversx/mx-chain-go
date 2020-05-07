@@ -27,7 +27,7 @@ type Transaction struct {
 	Status               string        `json:"status"`
 	GasUsed              string        `json:"gasUsed"`
 	SmartContractResults []ScResult    `json:"scResults"`
-	Log                  TxLog         `json:"log"`
+	Log                  TxLog         `json:"-"`
 }
 
 // TxLog holds all the data needed for a log structure
