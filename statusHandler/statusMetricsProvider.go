@@ -129,33 +129,70 @@ func (sm *statusMetrics) StatusP2pMetricsMap() map[string]interface{} {
 // EpochMetrics will return metrics related to current epoch
 func (sm *statusMetrics) EpochMetrics() map[string]interface{} {
 	epochMetrics := make(map[string]interface{})
-	var currentEpoch uint32
-	var roundNumberAtEpochStart uint64
-	var roundsPerEpoch uint32
-	var currentRound uint64
-	var ok bool
-	currentEpochObj, ok := sm.nodeMetrics.Load(core.MetricEpochNumber)
-	if ok {
-		currentEpoch = uint32(currentEpochObj.(uint64))
-	}
-	roundNumberAtEpochStartObj, ok := sm.nodeMetrics.Load(core.MetricRoundAtEpochStart)
-	if ok {
-		roundNumberAtEpochStart = roundNumberAtEpochStartObj.(uint64)
-	}
-	roundsPerEpochObj, ok := sm.nodeMetrics.Load(core.MetricRoundsPerEpoch)
-	if ok {
-		roundsPerEpoch = uint32(roundsPerEpochObj.(uint64))
-	}
-	currentRoundObj, ok := sm.nodeMetrics.Load(core.MetricCurrentRound)
-	if ok {
-		currentRound = currentRoundObj.(uint64)
-	}
 
-	epochMetrics[core.MetricEpochNumber] = currentEpoch
-	epochMetrics[core.MetricRoundAtEpochStart] = roundNumberAtEpochStart
-	epochMetrics[core.MetricRoundsPerEpoch] = roundsPerEpoch
+	currentRound := sm.loadUint64Metric(core.MetricCurrentRound)
+	roundNumberAtEpochStart := sm.loadUint64Metric(core.MetricRoundAtEpochStart)
+	epochMetrics[core.MetricEpochNumber] = sm.loadUint64Metric(core.MetricEpochNumber)
+	epochMetrics[core.MetricRoundsPerEpoch] = sm.loadUint64Metric(core.MetricRoundsPerEpoch)
 	epochMetrics[core.MetricCurrentRound] = currentRound
+	epochMetrics[core.MetricRoundAtEpochStart] = roundNumberAtEpochStart
 	epochMetrics[core.MetricRoundsPassedInCurrentEpoch] = currentRound - roundNumberAtEpochStart
 
 	return epochMetrics
+}
+
+// ConfigMetrics will return metrics related to current configuration
+func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
+	configMetrics := make(map[string]interface{})
+
+	configMetrics[core.MetricNumShardsWithoutMetacahin] = sm.loadUint64Metric(core.MetricNumShardsWithoutMetacahin)
+	configMetrics[core.MetricNumNodesPerShard] = sm.loadUint64Metric(core.MetricNumNodesPerShard)
+	configMetrics[core.MetricNumMetachainNodes] = sm.loadUint64Metric(core.MetricNumMetachainNodes)
+	configMetrics[core.MetricShardConsensusGroupSize] = sm.loadUint64Metric(core.MetricShardConsensusGroupSize)
+	configMetrics[core.MetricMetaConsensusGroupSize] = sm.loadUint64Metric(core.MetricMetaConsensusGroupSize)
+	configMetrics[core.MetricMinGasPrice] = sm.loadUint64Metric(core.MetricMinGasPrice)
+	configMetrics[core.MetricMinGasLimit] = sm.loadUint64Metric(core.MetricMinGasLimit)
+	configMetrics[core.MetricGasPerDataByte] = sm.loadUint64Metric(core.MetricGasPerDataByte)
+	configMetrics[core.MetricChainId] = sm.loadStringMetric(core.MetricChainId)
+	configMetrics[core.MetricRoundDuration] = sm.loadUint64Metric(core.MetricRoundDuration)
+	configMetrics[core.MetricStartTime] = sm.loadUint64Metric(core.MetricStartTime)
+
+	return configMetrics
+}
+
+// NetworkMetrics will return metrics related to current configuration
+func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
+	networkMetrics := make(map[string]interface{})
+
+	networkMetrics[core.MetricNonce] = sm.loadUint64Metric(core.MetricNonce)
+	networkMetrics[core.MetricCurrentRound] = sm.loadUint64Metric(core.MetricCurrentRound)
+	networkMetrics[core.MetricEpochNumber] = sm.loadUint64Metric(core.MetricEpochNumber)
+
+	return networkMetrics
+}
+
+func (sm *statusMetrics) loadUint64Metric(metric string) uint64 {
+	metricObj, ok := sm.nodeMetrics.Load(metric)
+	if !ok {
+		return 0
+	}
+	metricAsUint64, ok := metricObj.(uint64)
+	if !ok {
+		return 0
+	}
+
+	return metricAsUint64
+}
+
+func (sm *statusMetrics) loadStringMetric(metric string) string {
+	metricObj, ok := sm.nodeMetrics.Load(metric)
+	if !ok {
+		return ""
+	}
+	metricAsString, ok := metricObj.(string)
+	if !ok {
+		return ""
+	}
+
+	return metricAsString
 }
