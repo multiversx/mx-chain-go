@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/logs"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
+	"github.com/ElrondNetwork/elrond-go/api/network"
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	valStats "github.com/ElrondNetwork/elrond-go/api/validator"
@@ -99,6 +100,10 @@ func registerRoutes(ws *gin.Engine, elrondFacade middleware.ElrondHandler) {
 	addressRoutes := ws.Group("/address")
 	addressRoutes.Use(middleware.WithElrondFacade(elrondFacade))
 	address.Routes(addressRoutes)
+
+	networkRoutes := ws.Group("/network")
+	networkRoutes.Use(middleware.WithElrondFacade(elrondFacade))
+	network.Routes(networkRoutes)
 
 	txRoutes := ws.Group("/transaction")
 	txRoutes.Use(middleware.WithElrondFacade(elrondFacade))
