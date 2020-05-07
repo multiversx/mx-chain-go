@@ -24,32 +24,18 @@ func TestSnapshotsBuffer_Add(t *testing.T) {
 	assert.Equal(t, 2, len(sb.buffer))
 }
 
-func TestSnapshotsBuffer_RemoveFirstValue(t *testing.T) {
+func TestSnapshotBuffer_Len(t *testing.T) {
 	sb := defaultPruningBuffer()
 
-	sb.remove([]byte("0"))
-	assert.Equal(t, 1, len(sb.buffer))
-}
-
-func TestSnapshotsBuffer_RemoveLastValue(t *testing.T) {
-	sb := defaultPruningBuffer()
-
-	newVal := []byte("2")
-	sb.add(newVal)
-	assert.Equal(t, 3, len(sb.buffer))
-
-	sb.remove(newVal)
-	assert.Equal(t, 2, len(sb.buffer))
+	assert.Equal(t, 2, sb.len())
 }
 
 func TestSnapshotsBuffer_RemoveAll(t *testing.T) {
 	sb := defaultPruningBuffer()
 
 	buffer := sb.removeAll()
-	_, ok := buffer[string([]byte("0"))]
-	assert.True(t, ok)
-	_, ok = buffer[string([]byte("1"))]
-	assert.True(t, ok)
+	assert.Equal(t, []byte("0"), buffer[0])
+	assert.Equal(t, []byte("1"), buffer[1])
 
 	assert.Equal(t, 0, len(sb.buffer))
 }

@@ -61,9 +61,6 @@ var ErrNilTrie = errors.New("the trie is nil")
 // ErrNilRequestHandler is raised when the given request handler is nil
 var ErrNilRequestHandler = errors.New("the request handler is nil")
 
-// ErrInvalidHash is raised when the given hash is invalid
-var ErrInvalidHash = errors.New("the received hash is invalid")
-
 // ErrTimeIsOut signals that time is out
 var ErrTimeIsOut = errors.New("time is out")
 
@@ -84,3 +81,6 @@ var ErrInvalidTrieTopic = errors.New("invalid trie topic")
 
 // ErrNilContext signals that nil context has been provided
 var ErrNilContext = errors.New("nil context")
+
+// ErrInvalidIdentifier signals that the root hash has an  invalid identifier
+var ErrInvalidIdentifier = errors.New("invalid identifier")
