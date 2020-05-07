@@ -233,12 +233,11 @@ func (hdrRes *HeaderResolver) resolveHeaderFromEpoch(key []byte) ([]byte, error)
 	if err != nil {
 		return nil, err
 	}
-
 	if isUnknownEpoch {
 		actualKey = []byte(core.EpochStartIdentifier(hdrRes.epochHandler.MetaEpoch()))
 	}
 
-	return hdrRes.hdrStorage.Get(actualKey)
+	return hdrRes.hdrStorage.SearchFirst(actualKey)
 }
 
 // RequestDataFromHash requests a header from other peers having input the hdr hash
