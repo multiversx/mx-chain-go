@@ -154,7 +154,6 @@ func (tP2pNode *TestP2PNode) initNode() {
 	}
 
 	hbConfig := config.HeartbeatConfig{
-		Enabled:                             true,
 		MinTimeToWaitBetweenBroadcastsInSec: 4,
 		MaxTimeToWaitBetweenBroadcastsInSec: 6,
 		DurationInSecToConsiderUnresponsive: 60,

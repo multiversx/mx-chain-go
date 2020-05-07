@@ -6,8 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -38,7 +38,7 @@ type NodeHandler interface {
 	GetAccount(address string) (state.UserAccountHandler, error)
 
 	// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
-	GetHeartbeats() []heartbeat.PubKeyHeartbeat
+	GetHeartbeats() []data.PubKeyHeartbeat
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool

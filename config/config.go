@@ -160,7 +160,6 @@ type ResourceStatsConfig struct {
 
 // HeartbeatConfig will hold all heartbeat settings
 type HeartbeatConfig struct {
-	Enabled                             bool
 	MinTimeToWaitBetweenBroadcastsInSec int
 	MaxTimeToWaitBetweenBroadcastsInSec int
 	DurationInSecToConsiderUnresponsive int

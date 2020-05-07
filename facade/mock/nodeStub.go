@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 )
 
 // NodeStub -
@@ -26,7 +26,7 @@ type NodeStub struct {
 	GetCurrentPublicKeyHandler                     func() string
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
-	GetHeartbeatsHandler                           func() []heartbeat.PubKeyHeartbeat
+	GetHeartbeatsHandler                           func() []data.PubKeyHeartbeat
 	ValidatorStatisticsApiCalled                   func() (map[string]*state.ValidatorApiResponse, error)
 	DirectTriggerCalled                            func() error
 	IsSelfTriggerCalled                            func() bool
@@ -81,7 +81,7 @@ func (ns *NodeStub) GetAccount(address string) (state.UserAccountHandler, error)
 }
 
 // GetHeartbeats -
-func (ns *NodeStub) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
+func (ns *NodeStub) GetHeartbeats() []data.PubKeyHeartbeat {
 	return ns.GetHeartbeatsHandler()
 }
 

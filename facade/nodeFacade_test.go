@@ -14,8 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/facade/mock"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
@@ -272,7 +272,7 @@ func TestNodeFacade_GetHeartbeatsReturnsNilShouldErr(t *testing.T) {
 	t.Parallel()
 
 	node := &mock.NodeStub{
-		GetHeartbeatsHandler: func() []heartbeat.PubKeyHeartbeat {
+		GetHeartbeatsHandler: func() []data.PubKeyHeartbeat {
 			return nil
 		},
 	}
@@ -290,19 +290,19 @@ func TestNodeFacade_GetHeartbeats(t *testing.T) {
 	t.Parallel()
 
 	node := &mock.NodeStub{
-		GetHeartbeatsHandler: func() []heartbeat.PubKeyHeartbeat {
-			return []heartbeat.PubKeyHeartbeat{
+		GetHeartbeatsHandler: func() []data.PubKeyHeartbeat {
+			return []data.PubKeyHeartbeat{
 				{
 					PublicKey:       "pk1",
 					TimeStamp:       time.Now(),
-					MaxInactiveTime: heartbeat.Duration{Duration: 0},
+					MaxInactiveTime: data.Duration{Duration: 0},
 					IsActive:        true,
 					ReceivedShardID: uint32(0),
 				},
 				{
 					PublicKey:       "pk2",
 					TimeStamp:       time.Now(),
-					MaxInactiveTime: heartbeat.Duration{Duration: 0},
+					MaxInactiveTime: data.Duration{Duration: 0},
 					IsActive:        true,
 					ReceivedShardID: uint32(0),
 				},
