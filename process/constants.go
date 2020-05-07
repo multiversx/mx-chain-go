@@ -26,7 +26,7 @@ const (
 	SCDeployment
 	// SCInvoking defines ID of a transaction of type smart contract call
 	SCInvoking
-	// BuiltInFunctionCall
+	// BuiltInFunctionCall defines ID of a builtin function call
 	BuiltInFunctionCall
 	// RewardTx defines ID of a reward transaction
 	RewardTx
@@ -56,10 +56,6 @@ const NumTxPerSenderBatchForFillingMiniblock = 10
 // NonceDifferenceWhenSynced defines the difference between probable highest nonce seen from network and node's last
 // committed block nonce, after which, node is considered himself not synced
 const NonceDifferenceWhenSynced = 0
-
-// MaxRequestsWithTimeoutAllowed defines the maximum allowed number of requests with timeout,
-// before a special action to be applied
-const MaxRequestsWithTimeoutAllowed = 5
 
 // MaxSyncWithErrorsAllowed defines the maximum allowed number of sync with errors,
 // before a special action to be applied

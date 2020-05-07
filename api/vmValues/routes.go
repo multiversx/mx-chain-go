@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/gin-gonic/gin"
@@ -26,11 +27,11 @@ type VMValueRequest struct {
 }
 
 // Routes defines address related routes
-func Routes(router *gin.RouterGroup) {
-	router.POST("/hex", getHex)
-	router.POST("/string", getString)
-	router.POST("/int", getInt)
-	router.POST("/query", executeQuery)
+func Routes(router *wrapper.RouterWrapper) {
+	router.RegisterHandler(http.MethodPost, "/hex", getHex)
+	router.RegisterHandler(http.MethodPost, "/string", getString)
+	router.RegisterHandler(http.MethodPost, "/int", getInt)
+	router.RegisterHandler(http.MethodPost, "/query", executeQuery)
 }
 
 // getHex returns the data as bytes, hex-encoded
