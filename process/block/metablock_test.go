@@ -100,6 +100,8 @@ func createMetaBlockHeader() *block.MetaBlock {
 		RandSeed:               make([]byte, 0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
 		AccumulatedFees:        big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
+		DeveloperFees:          big.NewInt(0),
 	}
 
 	shardMiniBlockHeaders := make([]block.MiniBlockHeader, 0)
@@ -536,6 +538,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 		&block.MetaBlock{
 			Nonce:                  0,
 			AccumulatedFeesInEpoch: big.NewInt(0),
+			DevFeesInEpoch:         big.NewInt(0),
 		},
 	)
 	hdr := createMetaBlockHeader()
@@ -1660,6 +1663,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 		PrevHash:        prevHash,
 		RootHash:        []byte("prevRootHash"),
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 
 	prevHash, _ = mp.ComputeHeaderHash(prevHdr)
@@ -1672,6 +1676,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 		PrevHash:        prevHash,
 		RootHash:        []byte("currRootHash"),
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 	currHash, _ := mp.ComputeHeaderHash(currHdr)
 	pool.Headers().AddHeader(currHash, currHdr)
@@ -1686,6 +1691,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 		PrevHash:        prevHash,
 		RootHash:        []byte("currRootHash"),
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 	wrongCurrHash, _ := mp.ComputeHeaderHash(wrongCurrHdr)
 	pool.Headers().AddHeader(wrongCurrHash, wrongCurrHdr)
@@ -1703,10 +1709,20 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	_, err := mp.CheckShardHeadersValidity(metaHdr)
 	assert.True(t, errors.Is(err, process.ErrWrongNonceInBlock))
 
-	shDataCurr = block.ShardData{ShardID: 0, HeaderHash: currHash, AccumulatedFees: big.NewInt(0)}
+	shDataCurr = block.ShardData{
+		ShardID:         0,
+		HeaderHash:      currHash,
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+	}
 	metaHdr.ShardInfo = make([]block.ShardData, 0)
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataCurr)
-	shDataPrev = block.ShardData{ShardID: 0, HeaderHash: prevHash, AccumulatedFees: big.NewInt(0)}
+	shDataPrev = block.ShardData{
+		ShardID:         0,
+		HeaderHash:      prevHash,
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+	}
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataPrev)
 
 	mp.CreateBlockStarted()
@@ -1809,11 +1825,17 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 		PrevHash:        prevHash,
 		RootHash:        []byte("currRootHash"),
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 	currHash := []byte("currhash")
 	metaHdr := &block.MetaBlock{Round: 20}
 
-	shDataCurr := block.ShardData{ShardID: 0, HeaderHash: currHash, AccumulatedFees: big.NewInt(0)}
+	shDataCurr := block.ShardData{
+		ShardID:         0,
+		HeaderHash:      currHash,
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+	}
 	metaHdr.ShardInfo = make([]block.ShardData, 0)
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataCurr)
 
@@ -2461,7 +2483,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	arguments.Hasher = hasher
 	blkc := &mock.BlockChainMock{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.MetaBlock{Nonce: 0, AccumulatedFeesInEpoch: big.NewInt(0)}
+			return &block.MetaBlock{Nonce: 0, AccumulatedFeesInEpoch: big.NewInt(0), DevFeesInEpoch: big.NewInt(0)}
 		},
 		GetCurrentBlockHeaderHashCalled: func() []byte {
 			return hash

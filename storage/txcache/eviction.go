@@ -124,27 +124,32 @@ func (cache *TxCache) evictSendersInLoop() (uint32, uint32, uint32) {
 
 // evictSendersWhileTooManyTxs removes transactions in a loop, as long as "shouldContinue" is true
 // One batch of senders is removed in each step
-// Before starting the loop, the senders are sorted as specified by "sendersSortKind"
-func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32, countTxs uint32, countSenders uint32) {
+func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32, numTxs uint32, numSenders uint32) {
 	if !shouldContinue() {
 		return
 	}
 
-	batchesSource := cache.evictionSnapshotOfSenders
+	snapshot := cache.evictionSnapshotOfSenders
+	snapshotLength := uint32(len(snapshot))
 	batchSize := cache.config.NumSendersToEvictInOneStep
 	batchStart := uint32(0)
 
 	for step = 0; shouldContinue(); step++ {
-		batchEnd := core.MinUint32(batchStart+batchSize, uint32(len(batchesSource)))
-		batch := batchesSource[batchStart:batchEnd]
+		batchEnd := batchStart + batchSize
+		batchEndBounded := core.MinUint32(batchEnd, snapshotLength)
+		batch := snapshot[batchStart:batchEndBounded]
 
-		countTxsEvictedInStep, countSendersEvictedInStep := cache.evictSendersAndTheirTxs(batch)
+		numTxsEvictedInStep, numSendersEvictedInStep := cache.evictSendersAndTheirTxs(batch)
 
-		countTxs += countTxsEvictedInStep
-		countSenders += countSendersEvictedInStep
+		numTxs += numTxsEvictedInStep
+		numSenders += numSendersEvictedInStep
 		batchStart += batchSize
 
-		shouldBreak := countTxsEvictedInStep == 0 || countSendersEvictedInStep < batchSize
+		reachedEnd := batchStart >= snapshotLength
+		noTxsEvicted := numTxsEvictedInStep == 0
+		incompleteBatch := numSendersEvictedInStep < batchSize
+
+		shouldBreak := noTxsEvicted || incompleteBatch || reachedEnd
 		if shouldBreak {
 			break
 		}
