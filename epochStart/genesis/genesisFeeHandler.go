@@ -56,8 +56,13 @@ func (f *feeHandler) GetAccumulatedFees() *big.Int {
 	return big.NewInt(0)
 }
 
+// GetDeveloperFees -
+func (f *feeHandler) GetDeveloperFees() *big.Int {
+	return big.NewInt(0)
+}
+
 // ProcessTransactionFee -
-func (f *feeHandler) ProcessTransactionFee(_ *big.Int, _ []byte) {
+func (f *feeHandler) ProcessTransactionFee(_ *big.Int, _ *big.Int, _ []byte) {
 }
 
 // RevertFees -

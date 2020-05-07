@@ -57,6 +57,41 @@ func TestSendersMap_RemoveSender(t *testing.T) {
 	require.Equal(t, int64(0), myMap.counter.Get())
 }
 
+func TestSendersMap_RemoveSendersBulk_ConcurrentWithAddition(t *testing.T) {
+	myMap := newSendersMapToTest()
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		for i := 0; i < 100; i++ {
+			numRemoved := myMap.RemoveSendersBulk([]string{"alice"})
+			require.LessOrEqual(t, numRemoved, uint32(1))
+
+			numRemoved = myMap.RemoveSendersBulk([]string{"bob"})
+			require.LessOrEqual(t, numRemoved, uint32(1))
+
+			numRemoved = myMap.RemoveSendersBulk([]string{"carol"})
+			require.LessOrEqual(t, numRemoved, uint32(1))
+		}
+	}()
+
+	wg.Add(100)
+	for i := 0; i < 100; i++ {
+		go func(i int) {
+			myMap.addTx(createTx([]byte("a"), "alice", uint64(i)))
+			myMap.addTx(createTx([]byte("b"), "bob", uint64(i)))
+			myMap.addTx(createTx([]byte("c"), "carol", uint64(i)))
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+}
+
 func TestSendersMap_notifyAccountNonce(t *testing.T) {
 	myMap := newSendersMapToTest()
 

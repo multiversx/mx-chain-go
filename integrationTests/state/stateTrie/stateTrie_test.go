@@ -1480,8 +1480,6 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	t.Skip("skip this test until trie pruning mechanism refactor")
-	//TODO unskip the test when pruning will be done even if snapshot is in progress
 
 	numOfShards := 1
 	nodesPerShard := 1
