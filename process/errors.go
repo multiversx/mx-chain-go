@@ -167,12 +167,6 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 // ErrNilNodesCoordinator signals that an operation has been attempted to or with a nil nodes coordinator
 var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
 
-// ErrInvalidRcvAddr signals that an operation has been attempted to or with an invalid receiver address
-var ErrInvalidRcvAddr = errors.New("invalid receiver address")
-
-// ErrInvalidSndAddr signals that an operation has been attempted to or with an invalid sender address
-var ErrInvalidSndAddr = errors.New("invalid sender address")
-
 // ErrNilKeyGen signals that an operation has been attempted to or with a nil single sign key generator
 var ErrNilKeyGen = errors.New("nil key generator")
 
@@ -781,3 +775,6 @@ var ErrNilRatingsInfoHandler = errors.New("nil ratings info handler")
 
 // ErrNilInterceptedDebugHandler signals that a nil intercepted debug handler has been provided
 var ErrNilInterceptedDebugHandler = errors.New("nil intercepted debug handler")
+
+// ErrBuiltInFunctionCalledWithValue signals that builtin function was called with value that is not allowed
+var ErrBuiltInFunctionCalledWithValue = errors.New("built in function called with tx value is not allowed")
