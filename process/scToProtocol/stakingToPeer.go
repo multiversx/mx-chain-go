@@ -117,12 +117,7 @@ func checkIfNil(args ArgStakingToPeer) error {
 }
 
 func (stp *stakingToPeer) getPeerAccount(key []byte) (state.PeerAccountHandler, error) {
-	adrSrc, err := stp.pubkeyConv.CreateAddressFromBytes(key)
-	if err != nil {
-		return nil, err
-	}
-
-	account, err := stp.peerState.LoadAccount(adrSrc)
+	account, err := stp.peerState.LoadAccount(key)
 	if err != nil {
 		return nil, err
 	}
@@ -173,13 +168,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		}
 		// no data under key -> peer can be deleted from trie
 		if len(data) == 0 {
-			var adrSrc state.AddressContainer
-			adrSrc, err = stp.pubkeyConv.CreateAddressFromBytes(blsPubKey)
-			if err != nil {
-				return err
-			}
-
-			err = stp.peerState.RemoveAccount(adrSrc)
+			err = stp.peerState.RemoveAccount(blsPubKey)
 			if err != nil {
 				return err
 			}
@@ -277,7 +266,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) ([]string, erro
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
-		if miniBlock.SenderShardID != core.MetachainShardId {
+		if miniBlock.SenderShardID != core.MetachainShardId || miniBlock.ReceiverShardID != core.MetachainShardId {
 			continue
 		}
 

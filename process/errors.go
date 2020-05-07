@@ -131,6 +131,12 @@ var ErrNilBlockProcessor = errors.New("nil block processor")
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
+// ErrNilNodesConfigProvider signals that an operation has been attempted to or with a nil nodes config provider
+var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
+
+// ErrNilSystemSCConfig signals that nil system sc config was provided
+var ErrNilSystemSCConfig = errors.New("nil system sc config")
+
 // ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
 var ErrNilRounder = errors.New("nil Rounder")
 
@@ -644,8 +650,14 @@ var ErrValidatorInfoMiniBlockNotFromMeta = errors.New("validatorInfo miniblocks 
 // ErrAccumulatedFeesDoNotMatch signals that accumulated fees do not match
 var ErrAccumulatedFeesDoNotMatch = errors.New("accumulated fees do not match")
 
+// ErrDeveloperFeesDoNotMatch signals that developer fees do not match
+var ErrDeveloperFeesDoNotMatch = errors.New("developer fees do not match")
+
 // ErrAccumulatedFeesInEpochDoNotMatch signals that accumulated fees in epoch do not match
 var ErrAccumulatedFeesInEpochDoNotMatch = errors.New("accumulated fees in epoch do not match")
+
+// ErrDevFeesInEpochDoNotMatch signals that developer fees in epoch do not match
+var ErrDevFeesInEpochDoNotMatch = errors.New("developer fees in epoch do not match")
 
 // ErrNilRewardsHandler signals that rewards handler is nil
 var ErrNilRewardsHandler = errors.New("rewards handler is nil")
@@ -742,6 +754,9 @@ var ErrNilVmInput = errors.New("nil vm input")
 
 // ErrNilDnsAddresses signals that nil dns addresses map was provided
 var ErrNilDnsAddresses = errors.New("nil dns addresses map")
+
+// ErrNilCommunityAddress signals that a nil community address was provided
+var ErrNilCommunityAddress = errors.New("nil community address")
 
 // ErrCallerIsNotTheDNSAddress signals that called address is not the DNS address
 var ErrCallerIsNotTheDNSAddress = errors.New("not a dns address")

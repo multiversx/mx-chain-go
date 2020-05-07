@@ -130,7 +130,13 @@ VERSION:
 			"economics configurations such as minimum gas price for a transactions and so on.",
 		Value: "./config/economics.toml",
 	}
-	// configurationEconomicsFile defines a flag for the path to the ratings toml configuration file
+	// configurationSystemSCFile defines a flag for the path to the system sc toml configuration file
+	configurationSystemSCFile = cli.StringFlag{
+		Name:  "config-systemSmartContracts",
+		Usage: "The `" + filePathPlaceholder + "` for the system smart contracts configuration file.",
+		Value: "./config/systemSmartContractsConfig.toml",
+	}
+	// configurationRatingsFile defines a flag for the path to the ratings toml configuration file
 	configurationRatingsFile = cli.StringFlag{
 		Name:  "config-ratings",
 		Usage: "The ratings configuration file to load",
@@ -367,6 +373,7 @@ func main() {
 		nodesFile,
 		configurationFile,
 		configurationEconomicsFile,
+		configurationSystemSCFile,
 		configurationRatingsFile,
 		configurationPreferencesFile,
 		externalConfigFile,
@@ -485,6 +492,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 	log.Debug("config", "file", configurationEconomicsFileName)
+
+	configurationSystemSCConfigFileName := ctx.GlobalString(configurationSystemSCFile.Name)
+	systemSCConfig, err := loadSystemSmartContractsConfig(configurationSystemSCConfigFileName)
+	if err != nil {
+		return err
+	}
+	log.Debug("config", "file", configurationSystemSCFile)
 
 	configurationRatingsFileName := ctx.GlobalString(configurationRatingsFile.Name)
 	ratingsConfig, err := loadRatingsConfig(configurationRatingsFileName)
@@ -638,11 +652,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating crypto components")
 	cryptoArgs := mainFactory.CryptoComponentsFactoryArgs{
-		Config:           *generalConfig,
-		NodesConfig:      genesisNodesConfig,
-		ShardCoordinator: genesisShardCoordinator,
-		KeyGen:           cryptoParams.KeyGenerator,
-		PrivKey:          cryptoParams.PrivateKey,
+		Config:                               *generalConfig,
+		NodesConfig:                          genesisNodesConfig,
+		ShardCoordinator:                     genesisShardCoordinator,
+		KeyGen:                               cryptoParams.KeyGenerator,
+		PrivKey:                              cryptoParams.PrivateKey,
+		ActivateBLSPubKeyMessageVerification: economicsConfig.ValidatorSettings.ActivateBLSPubKeyMessageVerification,
 	}
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoArgs)
 	if err != nil {
@@ -1081,6 +1096,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ratingsConfig.General.MaxRating,
 		validatorPubkeyConverter,
 		ratingsData,
+		systemSCConfig,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1145,6 +1161,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		dataComponents.Store,
 		dataComponents.Blkc,
 		coreComponents.InternalMarshalizer,
+		coreComponents.Hasher,
 		coreComponents.Uint64ByteSliceConverter,
 		shardCoordinator,
 		statusHandlersInfo.StatusMetrics,
@@ -1152,6 +1169,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		economicsData,
 		cryptoComponents.MessageSignVerifier,
 		genesisNodesConfig,
+		systemSCConfig,
 	)
 	if err != nil {
 		return err
@@ -1450,6 +1468,16 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 
 func loadEconomicsConfig(filepath string) (*config.EconomicsConfig, error) {
 	cfg := &config.EconomicsConfig{}
+	err := core.LoadTomlFile(cfg, filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+func loadSystemSmartContractsConfig(filepath string) (*config.SystemSmartContractsConfig, error) {
+	cfg := &config.SystemSmartContractsConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
 		return nil, err
@@ -1975,6 +2003,7 @@ func createApiResolver(
 	storageService dataRetriever.StorageService,
 	blockChain data.ChainHandler,
 	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	shardCoordinator sharding.Coordinator,
 	statusMetrics external.StatusMetricsHandler,
@@ -1982,6 +2011,7 @@ func createApiResolver(
 	economics *economics.EconomicsData,
 	messageSigVerifier vm.MessageSignVerifier,
 	nodesSetup sharding.GenesisNodesSetupHandler,
+	systemSCConfig *config.SystemSmartContractsConfig,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -1989,6 +2019,7 @@ func createApiResolver(
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:          gasSchedule,
 		MapDNSAddresses: make(map[string]struct{}),
+		Marshalizer:     marshalizer,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
@@ -2013,6 +2044,9 @@ func createApiResolver(
 			messageSigVerifier,
 			gasSchedule,
 			nodesSetup,
+			hasher,
+			marshalizer,
+			systemSCConfig,
 		)
 		if err != nil {
 			return nil, err

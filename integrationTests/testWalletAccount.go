@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	ed25519SingleSig "github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -22,7 +21,7 @@ type TestWalletAccount struct {
 	KeygenTxSign      crypto.KeyGenerator
 	KeygenBlockSign   crypto.KeyGenerator
 
-	Address state.AddressContainer
+	Address []byte
 	Nonce   uint64
 	Balance *big.Int
 }
@@ -66,7 +65,7 @@ func (twa *TestWalletAccount) initCrypto(coordinator sharding.Coordinator, shard
 	twa.PkTxSignBytes, _ = pk.ToByteArray()
 	twa.KeygenTxSign = keyGen
 	twa.KeygenBlockSign = &mock.KeyGenMock{}
-	twa.Address, _ = TestAddressPubkeyConverter.CreateAddressFromBytes(twa.PkTxSignBytes)
+	twa.Address = twa.PkTxSignBytes
 }
 
 // LoadTxSignSkBytes alters the already generated sk/pk pair
@@ -77,5 +76,5 @@ func (twa *TestWalletAccount) LoadTxSignSkBytes(skBytes []byte) {
 	twa.SkTxSign = newSk
 	twa.PkTxSign = newPk
 	twa.PkTxSignBytes, _ = newPk.ToByteArray()
-	twa.Address, _ = TestAddressPubkeyConverter.CreateAddressFromBytes(twa.PkTxSignBytes)
+	twa.Address = twa.PkTxSignBytes
 }

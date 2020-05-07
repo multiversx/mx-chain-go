@@ -34,6 +34,17 @@ func (bdp *bootstrapDataProvider) LoadForPath(
 		return nil, nil, err
 	}
 
+	defer func() {
+		if err != nil {
+			errClose := persister.Close()
+			if errClose != nil {
+				log.Debug("encountered a non-critical error closing bootstrap persister",
+					"error", errClose,
+				)
+			}
+		}
+	}()
+
 	cacher, err := lrucache.NewCache(10)
 	if err != nil {
 		return nil, nil, err

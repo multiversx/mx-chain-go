@@ -134,6 +134,7 @@ type processComponentsFactoryArgs struct {
 	maxSizeInBytes            uint32
 	maxRating                 uint32
 	validatorPubkeyConverter  state.PubkeyConverter
+	systemSCConfig            *config.SystemSmartContractsConfig
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -169,6 +170,7 @@ func NewProcessComponentsFactoryArgs(
 	maxRating uint32,
 	validatorPubkeyConverter state.PubkeyConverter,
 	ratingsData process.RatingsInfoHandler,
+	systemSCConfig *config.SystemSmartContractsConfig,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -202,6 +204,7 @@ func NewProcessComponentsFactoryArgs(
 		maxSizeInBytes:            maxSizeInBytes,
 		maxRating:                 maxRating,
 		validatorPubkeyConverter:  validatorPubkeyConverter,
+		systemSCConfig:            systemSCConfig,
 	}
 }
 
@@ -895,6 +898,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		Economics:                economicsData,
 		ValidatorStatsRootHash:   validatorStatsRootHash,
 		GasMap:                   args.gasSchedule,
+		SystemSCConfig:           args.systemSCConfig,
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId || args.startEpochNum > 0 {
@@ -1115,6 +1119,7 @@ func newBlockProcessor(
 			processArgs.maxSizeInBytes,
 			processArgs.ratingsData,
 			processArgs.nodesConfig,
+			processArgs.systemSCConfig,
 		)
 	}
 
@@ -1147,6 +1152,7 @@ func newShardBlockProcessor(
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:          gasSchedule,
 		MapDNSAddresses: make(map[string]struct{}),
+		Marshalizer:     core.InternalMarshalizer,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
@@ -1206,16 +1212,6 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(economics)
-	if err != nil {
-		return nil, err
-	}
-
-	txFeeHandler, err := postprocess.NewFeeAccumulator()
-	if err != nil {
-		return nil, err
-	}
-
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  stateComponents.AddressPubkeyConverter,
 		ShardCoordinator: shardCoordinator,
@@ -1223,6 +1219,16 @@ func newShardBlockProcessor(
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	gasHandler, err := preprocess.NewGasComputation(economics, txTypeHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	txFeeHandler, err := postprocess.NewFeeAccumulator()
 	if err != nil {
 		return nil, err
 	}
@@ -1413,6 +1419,7 @@ func newMetaBlockProcessor(
 	maxSizeInBytes uint32,
 	ratingsData process.RatingsInfoHandler,
 	nodesSetup sharding.GenesisNodesSetupHandler,
+	systemSCConfig *config.SystemSmartContractsConfig,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -1432,6 +1439,9 @@ func newMetaBlockProcessor(
 		messageSignVerifier,
 		gasSchedule,
 		nodesSetup,
+		core.Hasher,
+		core.InternalMarshalizer,
+		systemSCConfig,
 	)
 	if err != nil {
 		return nil, err
@@ -1466,16 +1476,6 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(economicsData)
-	if err != nil {
-		return nil, err
-	}
-
-	txFeeHandler, err := postprocess.NewFeeAccumulator()
-	if err != nil {
-		return nil, err
-	}
-
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  stateComponents.AddressPubkeyConverter,
 		ShardCoordinator: shardCoordinator,
@@ -1483,6 +1483,16 @@ func newMetaBlockProcessor(
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	gasHandler, err := preprocess.NewGasComputation(economicsData, txTypeHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	txFeeHandler, err := postprocess.NewFeeAccumulator()
 	if err != nil {
 		return nil, err
 	}
@@ -1652,6 +1662,7 @@ func newMetaBlockProcessor(
 		Hasher:           core.Hasher,
 		Marshalizer:      core.InternalMarshalizer,
 		DataPool:         data.Datapool,
+		CommunityAddress: economicsData.CommunityAddress(),
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {

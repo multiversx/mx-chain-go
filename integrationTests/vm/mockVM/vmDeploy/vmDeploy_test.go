@@ -26,7 +26,7 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 	tx := vm.CreateTx(
 		t,
 		senderAddressBytes,
-		vm.CreateEmptyAddress().Bytes(),
+		vm.CreateEmptyAddress(),
 		senderNonce,
 		transferOnCalls,
 		gasPrice,
@@ -74,7 +74,7 @@ func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
 	tx := vm.CreateTx(
 		t,
 		senderAddressBytes,
-		vm.CreateEmptyAddress().Bytes(),
+		vm.CreateEmptyAddress(),
 		senderNonce,
 		transferOnCalls,
 		gasPrice,
@@ -122,7 +122,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	tx := vm.CreateTx(
 		t,
 		senderAddressBytes,
-		vm.CreateEmptyAddress().Bytes(),
+		vm.CreateEmptyAddress(),
 		senderNonce,
 		transferOnCalls,
 		gasPrice,
@@ -172,7 +172,7 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	tx := vm.CreateTx(
 		t,
 		senderAddressBytes,
-		vm.CreateEmptyAddress().Bytes(),
+		vm.CreateEmptyAddress(),
 		senderNonce,
 		transferOnCalls,
 		gasPrice,

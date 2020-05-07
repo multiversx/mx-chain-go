@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -64,7 +65,6 @@ func CreateShardGenesisBlockFromInitialBalances(
 	rootHash, err := setBalancesToTrie(
 		accounts,
 		shardCoordinator,
-		pubkeyConv,
 		initialBalances,
 	)
 	if err != nil {
@@ -82,6 +82,7 @@ func CreateShardGenesisBlockFromInitialBalances(
 		RandSeed:        rootHash,
 		TimeStamp:       genesisTime,
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 
 	return header, err
@@ -104,6 +105,7 @@ type ArgsMetaGenesisBlockCreator struct {
 	ValidatorStatsRootHash   []byte
 	MessageSignVerifier      vm.MessageSignVerifier
 	GasMap                   map[string]map[string]uint64
+	SystemSCConfig           *config.SystemSmartContractsConfig
 }
 
 // CreateMetaGenesisBlock creates the meta genesis block
@@ -143,6 +145,9 @@ func CreateMetaGenesisBlock(
 	}
 	if check.IfNil(args.DataPool) {
 		return nil, process.ErrNilMetaBlocksPool
+	}
+	if args.SystemSCConfig == nil {
+		return nil, vm.ErrNilSystemSCConfig
 	}
 
 	txProcessor, systemSmartContracts, err := createProcessorsForMetaGenesisBlock(args)
@@ -193,6 +198,8 @@ func CreateMetaGenesisBlock(
 		PrevRandSeed:           rootHash,
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
+		DeveloperFees:          big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
 		PubKeysBitmap:          []byte{1},
 	}
 	header.EpochStart.Economics = block.Economics{
@@ -260,6 +267,9 @@ func createProcessorsForMetaGenesisBlock(
 		&NilMessageSignVerifier{},
 		args.GasMap,
 		args.NodesSetup,
+		args.Hasher,
+		args.Marshalizer,
+		args.SystemSCConfig,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -294,11 +304,6 @@ func createProcessorsForMetaGenesisBlock(
 		return nil, nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(args.Economics)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  args.PubkeyConv,
 		ShardCoordinator: args.ShardCoordinator,
@@ -306,6 +311,11 @@ func createProcessorsForMetaGenesisBlock(
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	gasHandler, err := preprocess.NewGasComputation(args.Economics, txTypeHandler)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -440,7 +450,6 @@ func setStakedData(
 func setBalancesToTrie(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
-	pukeyConv state.PubkeyConverter,
 	initialBalances map[string]*big.Int,
 ) (rootHash []byte, err error) {
 
@@ -449,7 +458,7 @@ func setBalancesToTrie(
 	}
 
 	for i, v := range initialBalances {
-		err = setBalanceToTrie(accounts, shardCoordinator, pukeyConv, []byte(i), v)
+		err = setBalanceToTrie(accounts, shardCoordinator, []byte(i), v)
 
 		if err != nil {
 			return nil, err
@@ -472,21 +481,15 @@ func setBalancesToTrie(
 func setBalanceToTrie(
 	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
-	pukeyConv state.PubkeyConverter,
 	addr []byte,
 	balance *big.Int,
 ) error {
 
-	addrContainer, err := pukeyConv.CreateAddressFromBytes(addr)
-	if err != nil {
-		return err
-	}
-
-	if shardCoordinator.ComputeId(addrContainer) != shardCoordinator.SelfId() {
+	if shardCoordinator.ComputeId(addr) != shardCoordinator.SelfId() {
 		return process.ErrMintAddressNotInThisShard
 	}
 
-	accWrp, err := accounts.LoadAccount(addrContainer)
+	accWrp, err := accounts.LoadAccount(addr)
 	if err != nil {
 		return err
 	}

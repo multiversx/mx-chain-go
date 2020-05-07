@@ -46,7 +46,7 @@ type SmartContractResultProcessor interface {
 
 // TxTypeHandler is an interface to calculate the transaction type
 type TxTypeHandler interface {
-	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, error)
+	ComputeTransactionType(tx data.TransactionHandler) TransactionType
 	IsInterfaceNil() bool
 }
 
@@ -61,7 +61,7 @@ type TxValidatorHandler interface {
 	SenderShardId() uint32
 	ReceiverShardId() uint32
 	Nonce() uint64
-	SenderAddress() state.AddressContainer
+	SenderAddress() []byte
 	Fee() *big.Int
 }
 
@@ -174,7 +174,8 @@ type TransactionVerifier interface {
 type TransactionFeeHandler interface {
 	CreateBlockStarted()
 	GetAccumulatedFees() *big.Int
-	ProcessTransactionFee(cost *big.Int, txHash []byte)
+	GetDeveloperFees() *big.Int
+	ProcessTransactionFee(cost *big.Int, devFee *big.Int, txHash []byte)
 	RevertFees(txHashes [][]byte)
 	IsInterfaceNil() bool
 }
@@ -502,6 +503,8 @@ type BlockSizeThrottler interface {
 // RewardsHandler will return information about rewards
 type RewardsHandler interface {
 	LeaderPercentage() float64
+	CommunityPercentage() float64
+	CommunityAddress() string
 	MinInflationRate() float64
 	MaxInflationRate() float64
 	IsInterfaceNil() bool
@@ -734,7 +737,7 @@ type MiniBlockProvider interface {
 
 // BuiltinFunction defines the methods for the built-in protocol smart contract functions
 type BuiltinFunction interface {
-	ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*big.Int, uint64, error)
+	ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	IsInterfaceNil() bool
 }
 
