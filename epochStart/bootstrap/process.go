@@ -577,7 +577,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	log.Debug("start in epoch bootstrap: started syncPeerAccountsState")
 	err = e.syncPeerAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
 	if err != nil {
-		return nil
+		return err
 	}
 	log.Debug("start in epoch bootstrap: syncPeerAccountsState", "peer account tries map length", len(e.peerAccountTries))
 

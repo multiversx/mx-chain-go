@@ -357,16 +357,23 @@ const TriggerRegistryInitialKeyPrefix = "initial_value_epoch_"
 // NodesCoordinatorRegistryKeyPrefix is the key prefix to save epoch start registry to storage
 const NodesCoordinatorRegistryKeyPrefix = "indexHashed_"
 
-const (
-	// BuiltInFunctionClaimDeveloperRewards is a built-in function
-	BuiltInFunctionClaimDeveloperRewards = "ClaimDeveloperRewards"
-	// BuiltInFunctionChangeOwnerAddress is a built-in function
-	BuiltInFunctionChangeOwnerAddress = "ChangeOwnerAddress"
-	// BuiltInFunctionSetUserName is a built-in function
-	BuiltInFunctionSetUserName = "SetUserName"
-	// BuiltInFunctionSaveKeyValue is a built-in function
-	BuiltInFunctionSaveKeyValue = "SaveKeyValue"
-)
+// BuiltInFunctionClaimDeveloperRewards is the key for the claim developer rewards built-in function
+const BuiltInFunctionClaimDeveloperRewards = "ClaimDeveloperRewards"
+
+// BuiltInFunctionChangeOwnerAddress is the key for the change owner built in function built-in function
+const BuiltInFunctionChangeOwnerAddress = "ChangeOwnerAddress"
+
+// BuiltInFunctionSetUserName is the key for the set user name built-in function
+const BuiltInFunctionSetUserName = "SetUserName"
+
+// BuiltInFunctionSaveKeyValue is the key for the save key value built-in function
+const BuiltInFunctionSaveKeyValue = "SaveKeyValue"
+
+// BuiltInFunctionESDTTransfer is the key for the elrond standard digital token transfer built-in function
+const BuiltInFunctionESDTTransfer = "ESDTTransfer"
+
+// SCDeployInitFunctionName is the key for the function which is called at smart contract deploy time
+const SCDeployInitFunctionName = "_init"
 
 // ShuffledOut signals that a restart is pending because the node was shuffled out
 const ShuffledOut = "shuffledOut"
@@ -376,3 +383,6 @@ const MaxRetriesToCreateDB = 10
 
 // SleepTimeBetweenCreateDBRetries represents the number of seconds to sleep between DB creates
 const SleepTimeBetweenCreateDBRetries = 5 * time.Second
+
+// ElrondProtectedKeyPrefix is the key prefix which is protected from writing in the trie - only for special builtin functions
+const ElrondProtectedKeyPrefix = "ELROND"

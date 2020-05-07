@@ -4,8 +4,6 @@ package state
 import (
 	"bytes"
 	"math/big"
-
-	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
 var _ UserAccountHandler = (*userAccount)(nil)
@@ -30,22 +28,20 @@ func NewEmptyUserAccount() *userAccount {
 }
 
 // NewUserAccount creates new simple account wrapper for an AccountContainer (that has just been initialized)
-func NewUserAccount(addressContainer AddressContainer) (*userAccount, error) {
-	if check.IfNil(addressContainer) {
-		return nil, ErrNilAddressContainer
+func NewUserAccount(address []byte) (*userAccount, error) {
+	if len(address) == 0 {
+		return nil, ErrNilAddress
 	}
-
-	addressBytes := addressContainer.Bytes()
 
 	return &userAccount{
 		baseAccount: &baseAccount{
-			addressContainer: addressContainer,
-			dataTrieTracker:  NewTrackableDataTrie(addressBytes, nil),
+			address:         address,
+			dataTrieTracker: NewTrackableDataTrie(address, nil),
 		},
 		UserAccountData: UserAccountData{
 			DeveloperReward: big.NewInt(0),
 			Balance:         big.NewInt(0),
-			Address:         addressBytes,
+			Address:         address,
 		},
 	}, nil
 }
@@ -110,7 +106,7 @@ func (a *userAccount) ChangeOwnerAddress(sndAddress []byte, newAddress []byte) e
 	if !bytes.Equal(sndAddress, a.OwnerAddress) {
 		return ErrOperationNotPermitted
 	}
-	if len(newAddress) != len(a.addressContainer.Bytes()) {
+	if len(newAddress) != len(a.address) {
 		return ErrInvalidAddressLength
 	}
 

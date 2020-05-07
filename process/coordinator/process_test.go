@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
@@ -2367,11 +2366,11 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 	scr := &smartContractResult.SmartContractResult{Nonce: 10, SndAddr: sndAddr, RcvAddr: rcvAddr}
 	scrHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, scr)
 
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
-		if bytes.Equal(address.Bytes(), sndAddr) {
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, sndAddr) {
 			return shardCoordinator.SelfId()
 		}
-		if bytes.Equal(address.Bytes(), rcvAddr) {
+		if bytes.Equal(address, rcvAddr) {
 			return shardCoordinator.SelfId() + 1
 		}
 		return shardCoordinator.SelfId() + 2

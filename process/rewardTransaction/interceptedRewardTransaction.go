@@ -80,12 +80,7 @@ func NewInterceptedRewardTransaction(
 func (inRTx *InterceptedRewardTransaction) processFields(rewardTxBuff []byte) error {
 	inRTx.hash = inRTx.hasher.Compute(string(rewardTxBuff))
 
-	rcvAddr, err := inRTx.pubkeyConv.CreateAddressFromBytes(inRTx.rTx.RcvAddr)
-	if err != nil {
-		return process.ErrInvalidRcvAddr
-	}
-
-	inRTx.rcvShard = inRTx.coordinator.ComputeId(rcvAddr)
+	inRTx.rcvShard = inRTx.coordinator.ComputeId(inRTx.rTx.RcvAddr)
 	inRTx.sndShard = core.MetachainShardId
 
 	isForCurrentShardRecv := inRTx.rcvShard == inRTx.coordinator.SelfId()
@@ -123,7 +118,7 @@ func (inRTx *InterceptedRewardTransaction) Fee() *big.Int {
 }
 
 // SenderAddress returns the transaction sender address
-func (inRTx *InterceptedRewardTransaction) SenderAddress() state.AddressContainer {
+func (inRTx *InterceptedRewardTransaction) SenderAddress() []byte {
 	return nil
 }
 

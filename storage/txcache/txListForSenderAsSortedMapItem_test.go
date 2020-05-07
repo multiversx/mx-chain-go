@@ -21,6 +21,39 @@ func TestSenderAsBucketSortedMapItem_ComputeScore(t *testing.T) {
 	require.InDelta(t, float64(5.795382396), list.computeRawScore(), delta)
 }
 
+func TestSenderAsBucketSortedMapItem_ScoreFluctuatesDeterministicallyWhenTransactionsAreAddedOrRemoved(t *testing.T) {
+	list := newListToTest()
+
+	A := createTxWithParams([]byte("A"), ".", 1, 1000, 200000, 100*oneTrilion)
+	B := createTxWithParams([]byte("b"), ".", 1, 500, 100000, 100*oneTrilion)
+	C := createTxWithParams([]byte("c"), ".", 1, 500, 100000, 100*oneTrilion)
+
+	scoreNone := int(list.ComputeScore())
+	list.AddTx(A)
+	scoreA := int(list.ComputeScore())
+	list.AddTx(B)
+	scoreAB := int(list.ComputeScore())
+	list.AddTx(C)
+	scoreABC := int(list.ComputeScore())
+
+	require.Equal(t, 0, scoreNone)
+	require.Equal(t, 17, scoreA)
+	require.Equal(t, 8, scoreAB)
+	require.Equal(t, 5, scoreABC)
+
+	list.RemoveTx(C)
+	scoreAB = int(list.ComputeScore())
+	list.RemoveTx(B)
+	scoreA = int(list.ComputeScore())
+	list.RemoveTx(A)
+	scoreNone = int(list.ComputeScore())
+
+	require.Equal(t, 0, scoreNone)
+	require.Equal(t, 17, scoreA)
+	require.Equal(t, 8, scoreAB)
+	require.Equal(t, 5, scoreABC)
+}
+
 func Test_computeSenderScore(t *testing.T) {
 	score := computeSenderScore(senderScoreParams{count: 14000, size: kBToBytes(100000), fee: toMicroERD(300000), gas: 2500000000, minGasPrice: 100})
 	require.InDelta(t, float64(0.1789683371), score, delta)
