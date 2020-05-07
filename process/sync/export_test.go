@@ -198,8 +198,8 @@ func (boot *baseBootstrap) ComputeNodeState() {
 	boot.computeNodeState()
 }
 
-func (boot *baseBootstrap) ResetProbableHighestNonceIfNeeded(headerHandler data.HeaderHandler) {
-	boot.resetProbableHighestNonceIfNeeded(headerHandler)
+func (boot *baseBootstrap) DoJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
+	boot.doJobOnSyncBlockFail(bodyHandler, headerHandler, err)
 }
 
 func (boot *baseBootstrap) SetNumSyncedWithErrorsForNonce(nonce uint64, numSyncedWithErrors uint32) {
