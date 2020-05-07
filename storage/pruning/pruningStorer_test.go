@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/stretchr/testify/require"
@@ -510,8 +509,6 @@ func TestNewPruningStorer_ChangeEpochDbsShouldNotBeDeletedIfPruningIsDisabled(t 
 func TestNewPruningStorer_ChangeEpochConcurrentPut(t *testing.T) {
 	t.Parallel()
 
-	_ = logger.SetLogLevel("*:TRACE")
-
 	args := getDefaultArgsSerialDB()
 	args.DbPath = "Epoch_0"
 	args.PruningEnabled = true
@@ -525,14 +522,10 @@ func TestNewPruningStorer_ChangeEpochConcurrentPut(t *testing.T) {
 		for {
 			select {
 			case <-ctx.Done():
-				err := ps.Close()
-				require.Nil(t, err)
-				err = ps.DestroyUnit()
-				require.Nil(t, err)
 				return
 			default:
-				err := ps.Put([]byte("key"+strconv.Itoa(cnt)), []byte("val"+strconv.Itoa(cnt)))
-				require.Nil(t, err)
+				err1 := ps.Put([]byte("key"+strconv.Itoa(cnt)), []byte("val"+strconv.Itoa(cnt)))
+				require.Nil(t, err1)
 				cnt++
 				time.Sleep(time.Millisecond)
 			}
@@ -544,22 +537,21 @@ func TestNewPruningStorer_ChangeEpochConcurrentPut(t *testing.T) {
 		for {
 			select {
 			case <-ctx.Done():
-				err := ps.DestroyUnit()
-				require.Nil(t, err)
+				_ = ps.DestroyUnit()
 				return
 			default:
-				err := ps.ChangeEpochSimple(cnt)
+				err2 := ps.ChangeEpochSimple(cnt)
 				ps.SetEpochForPutOperation(cnt)
-				require.Nil(t, err)
+				require.Nil(t, err2)
 				cnt++
 				time.Sleep(time.Millisecond)
 			}
 		}
 	}(ctx)
 
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 4)
 	cancel()
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 2)
 }
 
 func TestPruningStorer_SearchFirst(t *testing.T) {
