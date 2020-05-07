@@ -1,6 +1,6 @@
 #Economics config of the node
 [GlobalSettings]
-    TotalSupply = "200000000000000000000000000000" #20BILERD
+    TotalSupply = "20000000000000000000000000000" #20BILERD
     MinimumInflation = 0.0
     MaximumInflation = 0.075 #fraction of value 1 - 7.5%
 
@@ -22,11 +22,11 @@
     GenesisNodePrice = "2500000000000000000000000" #2.5MILERD
     UnBondPeriod = "400"
     MinStepValue = "10000000000000000000000"
-    TotalSupply = "200000000000000000000000000000" #20BIL ERD
+    TotalSupply = "20000000000000000000000000000" #20BIL ERD
     AuctionEnableNonce = "100000000000"
     StakeEnableNonce = "0"
     NumRoundsWithoutBleed = "100"
     MaximumPercentageToBleed = "0.5"
     BleedPercentagePerRound = "0.00001"
-    UnJailValue = "250000000000000000000" #0.1% of genesis node price
+    UnJailValue = "2500000000000000000000" #0.1% of genesis node price
     ActivateBLSPubKeyMessageVerification = false #TODO set to true before mainnet
