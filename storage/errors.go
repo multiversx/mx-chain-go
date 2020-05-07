@@ -82,9 +82,6 @@ var ErrInvalidNumberOfActivePersisters = errors.New("invalid number of active pe
 // ErrClosingPersisters signals that not all persisters were closed
 var ErrClosingPersisters = errors.New("cannot close all the persisters")
 
-// ErrPersisterIsNotActive signals that not a not active persister is used when an active persister needed
-var ErrPersisterIsNotActive = errors.New("persister is not active")
-
 // ErrCacheSizeIsLowerThanBatchSize signals that size of cache is lower than size of batch
 var ErrCacheSizeIsLowerThanBatchSize = errors.New("cache size is lower than batch size")
 
