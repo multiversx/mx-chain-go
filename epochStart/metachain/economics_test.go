@@ -2,6 +2,7 @@ package metachain
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -440,6 +441,161 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 		err := ec.VerifyRewardsPerBlock(&mb)
 		assert.Nil(t, err)
 	}
+}
+
+func TestComputeEndOfEpochEconomics(t *testing.T) {
+	t.Parallel()
+
+	commAddress := "communityAddress"
+	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000000", 10) // 20 Billions ERD
+	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)          // 1000 ERD
+
+	roundDur := 4
+	args := getArguments()
+	args.RewardsHandler = &mock.RewardsHandlerStub{
+		MaxInflationRateCalled: func() float64 {
+			return 0.1
+		},
+		CommunityAddressCalled: func() string {
+			return commAddress
+		},
+		CommunityPercentageCalled: func() float64 {
+			return 0.1
+		},
+		LeaderPercentageCalled: func() float64 {
+			return 0.1
+		},
+	}
+	args.RoundTime = &mock.RoundTimeDurationHandler{
+		TimeDurationCalled: func() time.Duration {
+			return time.Duration(roundDur) * time.Second
+		},
+	}
+	hdrPrevEpochStart := block.MetaBlock{
+		Round: 0,
+		Nonce: 0,
+		Epoch: 0,
+		EpochStart: block.EpochStart{
+			Economics: block.Economics{
+				TotalSupply:            totalSupply,
+				TotalToDistribute:      big.NewInt(10),
+				TotalNewlyMinted:       big.NewInt(10),
+				RewardsPerBlockPerNode: big.NewInt(10),
+				NodePrice:              nodePrice,
+				RewardsForCommunity:    big.NewInt(10),
+			},
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{ShardID: 0, Nonce: 0},
+				{ShardID: 1, Nonce: 0},
+			},
+		},
+	}
+	args.Store = &mock.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
+			return &mock.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
+				return hdrBytes, nil
+			}}
+		},
+	}
+
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	epochDuration := numberOfSecondsInDay
+	roundsPerEpoch := uint64(epochDuration / roundDur)
+	type testInput struct {
+		blockPerEpochOneShard uint64
+		acFeesInEpoch         *big.Int
+		devFeesInEpoch        *big.Int
+	}
+
+	testInpus := []testInput{
+		{blockPerEpochOneShard: roundsPerEpoch, acFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 2, acFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 4, acFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 8, acFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 16, acFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 32, acFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 64, acFeesInEpoch: intToErd(100000000000000), devFeesInEpoch: intToErd(10000000)},
+		{blockPerEpochOneShard: roundsPerEpoch, acFeesInEpoch: intToErd(100000000000000), devFeesInEpoch: intToErd(30000000000000)},
+	}
+
+	rewardsPerBlock, _ := big.NewInt(0).SetString("84559445290038908043", 10) // *based on 0.1 inflation
+	for _, input := range testInpus {
+		meta := &block.MetaBlock{
+			AccumulatedFeesInEpoch: input.acFeesInEpoch,
+			DevFeesInEpoch:         input.devFeesInEpoch,
+			Epoch:                  1,
+			Round:                  roundsPerEpoch,
+			Nonce:                  input.blockPerEpochOneShard,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{ShardID: 0, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
+					{ShardID: 1, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
+				},
+			},
+		}
+
+		economicsBlock, err := ec.ComputeEndOfEpochEconomics(meta)
+		assert.Nil(t, err)
+
+		blocksPerEpochTotal := int64(input.blockPerEpochOneShard * 3)
+		hitRate := float64(input.blockPerEpochOneShard) / float64(roundsPerEpoch) * 100
+		printEconomicsData(economicsBlock, hitRate, blocksPerEpochTotal)
+
+		expectedTotalRewardsToBeDistributed := big.NewInt(0).Mul(rewardsPerBlock, big.NewInt(blocksPerEpochTotal))
+		expectedNewTokens := big.NewInt(0).Sub(expectedTotalRewardsToBeDistributed, input.acFeesInEpoch)
+		if expectedNewTokens.Cmp(big.NewInt(0)) < 0 {
+			expectedNewTokens = big.NewInt(0)
+			expectedTotalRewardsToBeDistributed = input.acFeesInEpoch
+		}
+
+		adjustedRewardsPerBlock := big.NewInt(0).Div(expectedTotalRewardsToBeDistributed, big.NewInt(blocksPerEpochTotal))
+
+		// subtract developer rewards per block
+		developerFeesPerBlock := big.NewInt(0).Div(input.devFeesInEpoch, big.NewInt(blocksPerEpochTotal))
+		adjustedRewardsPerBlock.Sub(adjustedRewardsPerBlock, developerFeesPerBlock)
+		// subtract leader percentage per block
+		rewardsForLeader := core.GetPercentageOfValue(input.acFeesInEpoch, args.RewardsHandler.LeaderPercentage())
+		rewardsForLeaderPerBlock := big.NewInt(0).Div(rewardsForLeader, big.NewInt(blocksPerEpochTotal))
+		adjustedRewardsPerBlock.Sub(adjustedRewardsPerBlock, rewardsForLeaderPerBlock)
+		// communityPercentage
+		expectedCommunityRewards := core.GetPercentageOfValue(expectedTotalRewardsToBeDistributed, args.RewardsHandler.CommunityPercentage())
+		// subtract community percentage per block
+		communityRewardsPerBlock := big.NewInt(0).Div(expectedCommunityRewards, big.NewInt(blocksPerEpochTotal))
+		adjustedRewardsPerBlock.Sub(adjustedRewardsPerBlock, communityRewardsPerBlock)
+
+		assert.Equal(t, expectedNewTokens, economicsBlock.TotalNewlyMinted)
+		assert.Equal(t, big.NewInt(0).Add(totalSupply, expectedNewTokens), economicsBlock.TotalSupply)
+		assert.Equal(t, expectedTotalRewardsToBeDistributed, economicsBlock.TotalToDistribute)
+		assert.Equal(t, expectedCommunityRewards, economicsBlock.RewardsForCommunity)
+		assert.Equal(t, nodePrice, economicsBlock.NodePrice)
+		assert.Equal(t, adjustedRewardsPerBlock, economicsBlock.RewardsPerBlockPerNode)
+	}
+
+}
+
+func printEconomicsData(eb *block.Economics, hitRate float64, numBlocksTotal int64) {
+	fmt.Printf("Hit rate per shard %.4f%%, Total block produced: %d \n", hitRate, numBlocksTotal)
+	fmt.Printf("Total supply: %vERD, TotalToDistribute %vERD, "+
+		"TotalNewlyMinted %vERD, RewardsPerBlockPerNode %vERD, RewardsForCommunity %vERD, NodePrice: %vERD",
+		denomination(eb.TotalSupply), denomination(eb.TotalToDistribute), denomination(eb.TotalNewlyMinted),
+		denomination(eb.RewardsPerBlockPerNode), denomination(eb.RewardsForCommunity), denomination(eb.NodePrice))
+	fmt.Println()
+}
+
+func intToErd(value int) *big.Int {
+	denomination, _ := big.NewInt(0).SetString("1000000000000000000", 10)
+
+	return big.NewInt(0).Mul(denomination, big.NewInt(int64(value)))
+}
+
+func denomination(value *big.Int) string {
+	denomination, _ := big.NewInt(0).SetString("1000000000000000000", 10)
+	cpValue := big.NewInt(0).Set(value)
+
+	return cpValue.Div(cpValue, denomination).String()
 }
 
 func getArguments() ArgsNewEpochEconomics {
