@@ -105,7 +105,7 @@ func main() {
 	app.Name = "SeedNode CLI App"
 	app.Usage = "This is the entry point for starting a new seed node - the app will help bootnodes connect to the network"
 	app.Flags = []cli.Flag{port, p2pSeed}
-	app.Version = "v0.0.1"
+	app.Version = "v1.0.0"
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",

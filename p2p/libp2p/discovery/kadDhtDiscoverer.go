@@ -1,15 +1,18 @@
 package discovery
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p"
 	"github.com/ElrondNetwork/elrond-go-sandbox/p2p/libp2p"
 	"github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p-kad-dht/opts"
+	protocol "github.com/libp2p/go-libp2p-protocol"
 )
 
-var peerDiscoveryTimeout = time.Duration(time.Second * 10)
+var peerDiscoveryTimeout = time.Second * 10
 var noOfQueries = 1
 
 const kadDhtName = "kad-dht discovery"
@@ -40,6 +43,8 @@ func NewKadDhtPeerDiscoverer(
 			"No initial connection will be done")
 	}
 
+	fmt.Println("Randez-vous: " + randezVous)
+
 	return &KadDhtDiscoverer{
 		refreshInterval:  refreshInterval,
 		randezVous:       randezVous,
@@ -67,7 +72,8 @@ func (kdd *KadDhtDiscoverer) Bootstrap() error {
 	// client because we want each peer to maintain its own local copy of the
 	// DHT, so that the bootstrapping node of the DHT can go down without
 	// inhibiting future peer discovery.
-	kademliaDHT, err := dht.New(ctx, h)
+	protocols := dhtopts.Protocols([]protocol.ID{protocol.ID(kdd.randezVous)}...)
+	kademliaDHT, err := dht.New(ctx, h, protocols)
 	if err != nil {
 		return err
 	}
@@ -86,7 +92,7 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap() {
 	cfg := dht.BootstrapConfig{
 		Period:  kdd.refreshInterval,
 		Queries: noOfQueries,
-		Timeout: time.Duration(peerDiscoveryTimeout),
+		Timeout: peerDiscoveryTimeout,
 	}
 
 	ctx := kdd.contextProvider.Context()
