@@ -307,8 +307,6 @@ func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersTwoPeersShou
 	}
 }
 
-//TODO(this PR) add an integration test instead for protocol IDs
-
 func TestContinuousKadDhtDiscoverer_Name(t *testing.T) {
 	t.Parallel()
 

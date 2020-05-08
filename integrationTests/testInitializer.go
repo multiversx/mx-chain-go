@@ -134,6 +134,24 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 	return libP2PMes
 }
 
+// CreateMessengerWithKadDhtAndProtocolID creates a new libp2p messenger with kad-dht peer discovery and peer ID
+func CreateMessengerWithKadDhtAndProtocolID(ctx context.Context, initialAddr string, randezVous string) p2p.Messenger {
+	p2pConfig := createP2PConfig([]string{initialAddr})
+	p2pConfig.KadDhtPeerDiscovery.RandezVous = randezVous
+	arg := libp2p.ArgsNetworkMessenger{
+		Context:       ctx,
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:     p2pConfig,
+	}
+
+	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	return libP2PMes
+}
+
 // CreateMessengerFromConfig creates a new libp2p messenger with provided configuration
 func CreateMessengerFromConfig(ctx context.Context, p2pConfig config.P2PConfig) p2p.Messenger {
 	arg := libp2p.ArgsNetworkMessenger{

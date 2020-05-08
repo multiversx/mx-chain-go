@@ -131,6 +131,87 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 	assert.Fail(t, "test failed. Discovery/message passing are not validated")
 }
 
+func TestPeerDiscoveryAndMessageSendingWithOneAdvertiserAndProtocolID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	_ = advertiser.Bootstrap()
+
+	randezVous1 := "/erd/kad/0.0.0"
+	randezVous2 := "/amony/kad/0.0.0"
+
+	peer1 := integrationTests.CreateMessengerWithKadDhtAndProtocolID(
+		context.Background(),
+		integrationTests.GetConnectableAddress(advertiser),
+		randezVous1,
+	)
+	peer2 := integrationTests.CreateMessengerWithKadDhtAndProtocolID(
+		context.Background(),
+		integrationTests.GetConnectableAddress(advertiser),
+		randezVous1,
+	)
+	peer3 := integrationTests.CreateMessengerWithKadDhtAndProtocolID(
+		context.Background(),
+		integrationTests.GetConnectableAddress(advertiser),
+		randezVous2,
+	)
+
+	peers := []p2p.Messenger{peer1, peer2, peer3}
+
+	for _, peer := range peers {
+		_ = peer.Bootstrap()
+	}
+
+	//cleanup function that closes all messengers
+	defer func() {
+		for i := 0; i < len(peers); i++ {
+			if peers[i] != nil {
+				_ = peers[i].Close()
+			}
+		}
+
+		if advertiser != nil {
+			_ = advertiser.Close()
+		}
+	}()
+
+	integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
+
+	createTestTopicAndWaitForAnnouncements(t, peers)
+
+	topic := "test topic"
+	message := []byte("message")
+	messageProcessors := assignProcessors(peers, topic)
+
+	peer1.Broadcast(topic, message)
+	time.Sleep(time.Second * 2)
+
+	assert.Equal(t, message, messageProcessors[0].GetLastMessage())
+	assert.Equal(t, message, messageProcessors[1].GetLastMessage())
+	assert.Nil(t, messageProcessors[2].GetLastMessage())
+}
+
+func assignProcessors(peers []p2p.Messenger, topic string) []*peerDiscovery.SimpleMessageProcessor {
+	processors := make([]*peerDiscovery.SimpleMessageProcessor, 0, len(peers))
+	for _, peer := range peers {
+		if peer.HasTopicValidator(topic) {
+			_ = peer.UnregisterMessageProcessor(topic)
+		}
+
+		proc := &peerDiscovery.SimpleMessageProcessor{}
+		processors = append(processors, proc)
+
+		err := peer.RegisterMessageProcessor(topic, proc)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+	}
+
+	return processors
+}
+
 func createTestTopicAndWaitForAnnouncements(t *testing.T, peers []p2p.Messenger) {
 	for _, peer := range peers {
 		err := peer.CreateTopic("test topic", true)

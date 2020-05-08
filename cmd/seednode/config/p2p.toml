@@ -17,7 +17,7 @@
     #########################################################################################
     #The seed provided will be hashed using SHA256 and the resulting 32 byte length byte array will be used in
     #p2p identity generation
-    Seed = ""
+    Seed = "seed"
 
     # The targeted number of peer connections
     TargetPeerCount = 100000
@@ -49,7 +49,7 @@
     #
     #If the initial peers list is left empty, the node will not try to connect to other peers during initial bootstrap
     #phase but will accept connections and will do the network discovery if another peer connects to it
-   InitialPeerList = ["/ip4/68.183.214.74/tcp/10000/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk"]
+   InitialPeerList = [""]
 
    #kademlia's routing table bucket size
    BucketSize = 100
