@@ -14,7 +14,7 @@ func NewPeerAccountCreator() state.AccountFactory {
 }
 
 // CreateAccount calls the new Account creator and returns the result
-func (pac *PeerAccountCreator) CreateAccount(address state.AddressContainer) (state.AccountHandler, error) {
+func (pac *PeerAccountCreator) CreateAccount(address []byte) (state.AccountHandler, error) {
 	return state.NewPeerAccount(address)
 }
 

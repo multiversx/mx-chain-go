@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -121,6 +120,7 @@ type epochStartBootstrap struct {
 	userAccountTries   map[string]data.Trie
 	peerAccountTries   map[string]data.Trie
 	baseData           baseDataInStorage
+	shuffledOut        bool
 }
 
 type baseDataInStorage struct {
@@ -200,6 +200,26 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		storageOpenerHandler:       args.StorageUnitOpener,
 		latestStorageDataProvider:  args.LatestStorageDataProvider,
 		addressPubkeyConverter:     args.AddressPubkeyConverter,
+		shuffledOut:                false,
+	}
+
+	whiteListCache, err := storageUnit.NewCache(
+		storageUnit.CacheType(epochStartProvider.generalConfig.WhiteListPool.Type),
+		epochStartProvider.generalConfig.WhiteListPool.Size,
+		epochStartProvider.generalConfig.WhiteListPool.Shards,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	epochStartProvider.whiteListHandler, err = interceptors.NewWhiteListDataVerifier(whiteListCache)
+	if err != nil {
+		return nil, err
+	}
+
+	epochStartProvider.whiteListerVerifiedTxs, err = interceptors.NewDisabledWhiteListDataVerifier()
+	if err != nil {
+		return nil, err
 	}
 
 	return epochStartProvider, nil
@@ -270,12 +290,17 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			return e.prepareEpochZero()
 		}
 
-		parameters, err := e.prepareEpochFromStorage()
-		if err == nil {
+		parameters, errPrepare := e.prepareEpochFromStorage()
+		if errPrepare == nil {
 			return parameters, nil
 		}
 
-		log.Debug("could not start from storage - will try sync for start in epoch", "error", err)
+		if e.shuffledOut {
+			// sync was already tried - not need to continue from here
+			return Parameters{}, err
+		}
+
+		log.Debug("could not start from storage - will try sync for start in epoch", "error", errPrepare)
 	}
 
 	err = e.prepareComponentsToSyncFromNetwork()
@@ -285,16 +310,6 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 	e.epochStartMeta, err = e.epochStartMetaBlockSyncer.SyncEpochStartMeta(timeToWait)
 	if err != nil {
-		// node should try to start from what he has in DB if not epoch start metablock is received in time
-		if errors.Is(err, epochStart.ErrTimeoutWaitingForMetaBlock) {
-			parameters := Parameters{
-				Epoch:       e.baseData.lastEpoch,
-				SelfShardId: e.baseData.shardId,
-				NumOfShards: e.baseData.numberOfShards,
-			}
-			return parameters, nil
-		}
-
 		return Parameters{}, err
 	}
 	log.Debug("start in epoch bootstrap: got epoch start meta header", "epoch", e.epochStartMeta.Epoch, "nonce", e.epochStartMeta.Nonce)
@@ -331,26 +346,7 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 }
 
 func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
-	whiteListCache, err := storageUnit.NewCache(
-		storageUnit.CacheType(e.generalConfig.WhiteListPool.Type),
-		e.generalConfig.WhiteListPool.Size,
-		e.generalConfig.WhiteListPool.Shards,
-	)
-	if err != nil {
-		return err
-	}
-
-	e.whiteListHandler, err = interceptors.NewWhiteListDataVerifier(whiteListCache)
-	if err != nil {
-		return err
-	}
-
-	e.whiteListerVerifiedTxs, err = interceptors.NewDisabledWhiteListDataVerifier()
-	if err != nil {
-		return err
-	}
-
-	err = e.createRequestHandler()
+	err := e.createRequestHandler()
 	if err != nil {
 		return err
 	}
@@ -577,7 +573,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	log.Debug("start in epoch bootstrap: started syncPeerAccountsState")
 	err = e.syncPeerAccountsState(e.epochStartMeta.ValidatorStatsRootHash)
 	if err != nil {
-		return nil
+		return err
 	}
 	log.Debug("start in epoch bootstrap: syncPeerAccountsState", "peer account tries map length", len(e.peerAccountTries))
 

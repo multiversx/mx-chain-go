@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
@@ -32,7 +33,7 @@ type elasticSearchDatabaseArgs struct {
 
 // elasticSearchDatabase object it contains business logic built over databaseWriterHandler glue code wrapper
 type elasticSearchDatabase struct {
-	*commonProcessor
+	*txDatabaseProcessor
 	dbWriter    databaseWriterHandler
 	marshalizer marshal.Marshalizer
 	hasher      hashing.Hasher
@@ -55,10 +56,12 @@ func newElasticSearchDatabase(arguments elasticSearchDatabaseArgs) (*elasticSear
 		marshalizer: arguments.marshalizer,
 		hasher:      arguments.hasher,
 	}
-	esdb.commonProcessor = &commonProcessor{
-		addressPubkeyConverter:   arguments.addressPubkeyConverter,
-		validatorPubkeyConverter: arguments.validatorPubkeyConverter,
-	}
+	esdb.txDatabaseProcessor = newTxDatabaseProcessor(
+		arguments.hasher,
+		arguments.marshalizer,
+		arguments.addressPubkeyConverter,
+		arguments.validatorPubkeyConverter,
+	)
 
 	err = esdb.createIndexes()
 	if err != nil {
@@ -206,11 +209,11 @@ func (esd *elasticSearchDatabase) SaveTransactions(
 	body *block.Body,
 	header data.HeaderHandler,
 	txPool map[string]data.TransactionHandler,
-	selfShardId uint32,
+	selfShardID uint32,
 ) {
-	bulks := esd.buildTransactionBulks(body, header, txPool, selfShardId)
+	bulks := esd.buildTransactionBulks(body, header, txPool, selfShardID)
 	for _, bulk := range bulks {
-		buff := serializeBulkTxs(bulk)
+		buff := serializeBulkTxs(bulk, selfShardID)
 		if buff.Len() == 0 {
 			continue
 		}
@@ -223,6 +226,11 @@ func (esd *elasticSearchDatabase) SaveTransactions(
 	}
 }
 
+// SetTxLogsProcessor will set tx logs processor
+func (esd *elasticSearchDatabase) SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase) {
+	esd.txLogsProcessor = txLogsProc
+}
+
 // buildTransactionBulks creates bulks of maximum txBulkSize transactions to be indexed together
 //  using the elastic search bulk API
 func (esd *elasticSearchDatabase) buildTransactionBulks(
@@ -231,46 +239,16 @@ func (esd *elasticSearchDatabase) buildTransactionBulks(
 	txPool map[string]data.TransactionHandler,
 	selfShardId uint32,
 ) [][]*Transaction {
-	processedTxCount := 0
-	bulks := make([][]*Transaction, (header.GetTxCount()/txBulkSize)+1)
-	blockMarshal, _ := esd.marshalizer.Marshal(header)
-	blockHash := esd.hasher.Compute(string(blockMarshal))
+	txs := esd.prepareTransactionsForDatabase(body, header, txPool, selfShardId)
 
-	for _, mb := range body.MiniBlocks {
-		if mb.Type == block.PeerBlock {
+	bulks := make([][]*Transaction, (len(txs)/txBulkSize)+1)
+	for i := 0; i < len(bulks); i++ {
+		if i == len(bulks)-1 {
+			bulks[i] = append(bulks[i], txs[i*txBulkSize:]...)
 			continue
 		}
 
-		mbMarshal, err := esd.marshalizer.Marshal(mb)
-		if err != nil {
-			log.Debug("indexer: marshal", "error", "could not marshal miniblock")
-			continue
-		}
-		mbHash := esd.hasher.Compute(string(mbMarshal))
-
-		mbTxStatus := "Pending"
-		if selfShardId == mb.ReceiverShardID {
-			mbTxStatus = "Success"
-		}
-
-		for _, txHash := range mb.TxHashes {
-			processedTxCount++
-
-			currentBulk := processedTxCount / txBulkSize
-			currentTxHandler, ok := txPool[string(txHash)]
-			if !ok {
-				log.Debug("indexer: elasticsearch could not find tx hash in pool")
-				continue
-			}
-
-			currentTx := esd.commonProcessor.getTransactionByType(currentTxHandler, txHash, mbHash, blockHash, mb, header, mbTxStatus)
-			if currentTx == nil {
-				log.Debug("indexer: elasticsearch found tx in pool but of wrong type")
-				continue
-			}
-
-			bulks[currentBulk] = append(bulks[currentBulk], currentTx)
-		}
+		bulks[i] = append(bulks[i], txs[i*txBulkSize:(i+1)*txBulkSize]...)
 	}
 
 	return bulks

@@ -18,7 +18,7 @@ import (
 func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 	arguments := hooks.ArgBlockChainHook{
 		Accounts: &mock.AccountsStub{
-			GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+			GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 				return &mock.AccountWrapMock{}, nil
 			},
 		},
@@ -43,6 +43,14 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 		&mock.MessageSignVerifierMock{},
 		gasSchedule,
 		&mock.NodesConfigProviderStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&config.SystemSmartContractsConfig{
+			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+				BaseIssuingCost: "100000000",
+				OwnerAddress:    "aaaaaa",
+			},
+		},
 	)
 
 	assert.NotNil(t, vmf)
@@ -58,10 +66,12 @@ func TestVmContainerFactory_Create(t *testing.T) {
 			GlobalSettings: config.GlobalSettings{
 				TotalSupply:      "2000000000000000000000",
 				MinimumInflation: 0,
-				MaximumInflation: 0.5,
+				MaximumInflation: 0.05,
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage: 0.10,
+				LeaderPercentage:    0.1,
+				CommunityPercentage: 0.1,
+				CommunityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:  "10000000000",
@@ -91,6 +101,14 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		&mock.MessageSignVerifierMock{},
 		makeGasSchedule(),
 		&mock.NodesConfigProviderStub{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&config.SystemSmartContractsConfig{
+			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+				BaseIssuingCost: "100000000",
+				OwnerAddress:    "aaaaaa",
+			},
+		},
 	)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
@@ -147,6 +165,8 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["ChangeRewardAddress"] = value
 	gasMap["ChangeValidatorKeys"] = value
 	gasMap["UnJail"] = value
+	gasMap["ESDTIssue"] = value
+	gasMap["ESDTOperations"] = value
 
 	return gasMap
 }

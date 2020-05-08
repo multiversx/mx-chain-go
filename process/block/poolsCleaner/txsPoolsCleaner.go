@@ -294,10 +294,5 @@ func (tpc *txsPoolsCleaner) getShardFromAddress(address []byte) (uint32, error) 
 		return tpc.shardCoordinator.SelfId(), nil
 	}
 
-	addressContainer, err := tpc.addressPubkeyConverter.CreateAddressFromBytes(address)
-	if err != nil {
-		return 0, err
-	}
-
-	return tpc.shardCoordinator.ComputeId(addressContainer), nil
+	return tpc.shardCoordinator.ComputeId(address), nil
 }

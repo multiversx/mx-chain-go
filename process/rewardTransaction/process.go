@@ -40,18 +40,13 @@ func NewRewardTxProcessor(
 }
 
 func (rtp *rewardTxProcessor) getAccountFromAddress(address []byte) (state.UserAccountHandler, error) {
-	addr, err := rtp.pubkeyConv.CreateAddressFromBytes(address)
-	if err != nil {
-		return nil, err
-	}
-
 	shardForCurrentNode := rtp.shardCoordinator.SelfId()
-	shardForAddr := rtp.shardCoordinator.ComputeId(addr)
+	shardForAddr := rtp.shardCoordinator.ComputeId(address)
 	if shardForCurrentNode != shardForAddr {
 		return nil, nil
 	}
 
-	acnt, err := rtp.accounts.LoadAccount(addr)
+	acnt, err := rtp.accounts.LoadAccount(address)
 	if err != nil {
 		return nil, err
 	}

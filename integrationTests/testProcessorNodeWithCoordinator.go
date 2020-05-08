@@ -172,8 +172,7 @@ func generateSkAndPkInShard(
 	sk, pk := keyGen.GeneratePair()
 	for {
 		pkBytes, _ := pk.ToByteArray()
-		addr, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(pkBytes)
-		if shardCoordinator.ComputeId(addr) == addrShardID {
+		if shardCoordinator.ComputeId(pkBytes) == addrShardID {
 			break
 		}
 		sk, pk = keyGen.GeneratePair()
@@ -238,7 +237,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		Nonce:             0,
 		Balance:           nil,
 	}
-	tpn.OwnAccount.Address, _ = TestAddressPubkeyConverter.CreateAddressFromBytes(kp.TxSignPkBytes)
+	tpn.OwnAccount.Address = kp.TxSignPkBytes
 
 	tpn.initDataPools()
 	tpn.initTestNode()

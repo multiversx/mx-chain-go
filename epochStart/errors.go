@@ -65,6 +65,9 @@ var ErrNilHeaderValidator = errors.New("nil header validator")
 // ErrNilDataPoolsHolder signals that nil data pools holder has been provided
 var ErrNilDataPoolsHolder = errors.New("nil data pools holder")
 
+// ErrNilCommunityAddress signals that a nil community address was provided
+var ErrNilCommunityAddress = errors.New("nil community address")
+
 // ErrNilStorageService signals that nil storage service has been provided
 var ErrNilStorageService = errors.New("nil storage service")
 
@@ -109,6 +112,9 @@ var ErrNilRewardsHandler = errors.New("rewards handler is nil")
 
 // ErrNilTotalAccumulatedFeesInEpoch signals that total accumulated fees in epoch is nil
 var ErrNilTotalAccumulatedFeesInEpoch = errors.New("total accumulated fees in epoch is nil")
+
+// ErrNilTotalDevFeesInEpoch signals that total developer fees in epoch is nil
+var ErrNilTotalDevFeesInEpoch = errors.New("total developer fees in epoch is nil")
 
 // ErrEndOfEpochEconomicsDataDoesNotMatch signals that end of epoch data does not match
 var ErrEndOfEpochEconomicsDataDoesNotMatch = errors.New("end of epoch economics data does not match")

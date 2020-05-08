@@ -367,9 +367,9 @@ func (n *Node) GetBalance(address string) (*big.Int, error) {
 		return nil, errors.New("initialize AccountsAdapter and PubkeyConverter first")
 	}
 
-	addr, err := n.addressPubkeyConverter.CreateAddressFromString(address)
+	addr, err := n.addressPubkeyConverter.Decode(address)
 	if err != nil {
-		return nil, errors.New("invalid address, could not decode from hex: " + err.Error())
+		return nil, errors.New("invalid address, could not decode from: " + err.Error())
 	}
 	accWrp, err := n.accounts.GetExistingAccount(addr)
 	if err != nil {
@@ -738,24 +738,14 @@ func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
 }
 
 func (n *Node) getSenderShardId(tx *transaction.Transaction) (uint32, error) {
-	senderBytes, err := n.addressPubkeyConverter.CreateAddressFromBytes(tx.SndAddr)
-	if err != nil {
-		return 0, err
-	}
-
-	senderShardId := n.shardCoordinator.ComputeId(senderBytes)
+	senderShardId := n.shardCoordinator.ComputeId(tx.SndAddr)
 	if senderShardId != n.shardCoordinator.SelfId() {
 		return senderShardId, nil
 	}
 
 	//tx is cross-shard with self, send it on the [transaction topic]_self_cross directly so it will
 	//traverse the network only once
-	recvBytes, err := n.addressPubkeyConverter.CreateAddressFromBytes(tx.RcvAddr)
-	if err != nil {
-		return 0, err
-	}
-
-	return n.shardCoordinator.ComputeId(recvBytes), nil
+	return n.shardCoordinator.ComputeId(tx.RcvAddr), nil
 }
 
 // ValidateTransaction will validate a transaction
@@ -851,7 +841,7 @@ func (n *Node) CreateTransaction(
 	sender string,
 	gasPrice uint64,
 	gasLimit uint64,
-	dataField []byte,
+	dataField string,
 	signatureHex string,
 ) (*transaction.Transaction, []byte, error) {
 
@@ -862,12 +852,12 @@ func (n *Node) CreateTransaction(
 		return nil, nil, ErrNilAccountsAdapter
 	}
 
-	receiverAddress, err := n.addressPubkeyConverter.CreateAddressFromString(receiver)
+	receiverAddress, err := n.addressPubkeyConverter.Decode(receiver)
 	if err != nil {
 		return nil, nil, errors.New("could not create receiver address from provided param")
 	}
 
-	senderAddress, err := n.addressPubkeyConverter.CreateAddressFromString(sender)
+	senderAddress, err := n.addressPubkeyConverter.Decode(sender)
 	if err != nil {
 		return nil, nil, errors.New("could not create sender address from provided param")
 	}
@@ -885,11 +875,11 @@ func (n *Node) CreateTransaction(
 	tx := &transaction.Transaction{
 		Nonce:     nonce,
 		Value:     valAsBigInt,
-		RcvAddr:   receiverAddress.Bytes(),
-		SndAddr:   senderAddress.Bytes(),
+		RcvAddr:   receiverAddress,
+		SndAddr:   senderAddress,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      dataField,
+		Data:      []byte(dataField),
 		Signature: signatureBytes,
 	}
 
@@ -916,7 +906,7 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 		return nil, ErrNilAccountsAdapter
 	}
 
-	addr, err := n.addressPubkeyConverter.CreateAddressFromString(address)
+	addr, err := n.addressPubkeyConverter.Decode(address)
 	if err != nil {
 		return nil, err
 	}

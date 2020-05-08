@@ -1,6 +1,7 @@
 package process
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math"
@@ -639,4 +640,15 @@ func DisplayProcessTxDetails(
 		"data", hex.EncodeToString(txHandler.GetData()),
 		"sender", sender,
 		"receiver", receiver)
+}
+
+// IsAllowedToSaveUnderKey returns if saving key-value in data tries under given key is allowed
+func IsAllowedToSaveUnderKey(key []byte) bool {
+	prefixLen := len(core.ElrondProtectedKeyPrefix)
+	if len(key) < prefixLen {
+		return true
+	}
+
+	trimmedKey := key[:prefixLen]
+	return !bytes.Equal(trimmedKey, []byte(core.ElrondProtectedKeyPrefix))
 }

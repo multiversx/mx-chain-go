@@ -3,7 +3,6 @@ package builtInFunctions
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -26,33 +25,37 @@ func NewChangeOwnerAddressFunc(gasCost uint64) *changeOwnerAddress {
 func (c *changeOwnerAddress) ProcessBuiltinFunction(
 	_, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
-) (*big.Int, uint64, error) {
+) (*vmcommon.VMOutput, error) {
 	if vmInput == nil {
-		return nil, 0, process.ErrNilVmInput
+		return nil, process.ErrNilVmInput
 	}
 	if len(vmInput.Arguments) == 0 {
-		return nil, vmInput.GasProvided, process.ErrInvalidArguments
+		return nil, process.ErrInvalidArguments
+	}
+	if vmInput.CallValue.Cmp(zero) != 0 {
+		return nil, process.ErrBuiltInFunctionCalledWithValue
 	}
 	if check.IfNil(acntDst) {
-		return nil, vmInput.GasProvided, process.ErrNilSCDestAccount
+		// cross-shard call, in sender shard only the gas is taken out
+		return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
 	}
 
 	if !bytes.Equal(vmInput.CallerAddr, acntDst.GetOwnerAddress()) {
-		return nil, 0, fmt.Errorf("%w not the owner of the account", process.ErrOperationNotPermitted)
+		return nil, fmt.Errorf("%w not the owner of the account", process.ErrOperationNotPermitted)
 	}
-	if len(vmInput.Arguments[0]) != len(acntDst.AddressContainer().Bytes()) {
-		return nil, 0, process.ErrInvalidAddressLength
+	if len(vmInput.Arguments[0]) != len(acntDst.AddressBytes()) {
+		return nil, process.ErrInvalidAddressLength
 	}
 	if vmInput.GasProvided < c.gasCost {
-		return nil, vmInput.GasProvided, process.ErrNotEnoughGas
+		return nil, process.ErrNotEnoughGas
 	}
 
 	err := acntDst.ChangeOwnerAddress(vmInput.CallerAddr, vmInput.Arguments[0])
 	if err != nil {
-		return nil, vmInput.GasProvided, err
+		return nil, err
 	}
 
-	return big.NewInt(0), c.gasCost, nil
+	return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
 }
 
 // IsInterfaceNil returns true if underlying object in nil

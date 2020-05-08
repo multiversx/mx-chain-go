@@ -93,42 +93,17 @@ func TestRewardTxProcessor_ProcessRewardTransactionNilTxValueShouldErr(t *testin
 	assert.Equal(t, process.ErrNilValueFromRewardTransaction, err)
 }
 
-func TestRewardTxProcessor_ProcessRewardTransactionCannotCreateAddressShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("cannot create address")
-	rtp, _ := rewardTransaction.NewRewardTxProcessor(
-		&mock.AccountsStub{},
-		&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pubKey []byte) (state.AddressContainer, error) {
-				return nil, expectedErr
-			},
-		},
-		mock.NewMultiShardsCoordinatorMock(3),
-	)
-
-	rwdTx := rewardTx.RewardTx{
-		Round:   0,
-		Epoch:   0,
-		Value:   big.NewInt(100),
-		RcvAddr: []byte("rcvr"),
-	}
-
-	err := rtp.ProcessRewardTransaction(&rwdTx)
-	assert.Equal(t, expectedErr, err)
-}
-
 func TestRewardTxProcessor_ProcessRewardTransactionAddressNotInNodesShardShouldNotExecute(t *testing.T) {
 	t.Parallel()
 
 	getAccountWithJournalWasCalled := false
 	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
-	shardCoord.ComputeIdCalled = func(address state.AddressContainer) uint32 {
+	shardCoord.ComputeIdCalled = func(address []byte) uint32 {
 		return uint32(5)
 	}
 	rtp, _ := rewardTransaction.NewRewardTxProcessor(
 		&mock.AccountsStub{
-			LoadAccountCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+			LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
 				getAccountWithJournalWasCalled = true
 				return nil, nil
 			},
@@ -156,7 +131,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotGetAccountShouldErr(t *
 	expectedErr := errors.New("cannot get account")
 	rtp, _ := rewardTransaction.NewRewardTxProcessor(
 		&mock.AccountsStub{
-			LoadAccountCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+			LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
 				return nil, expectedErr
 			},
 		},
@@ -179,7 +154,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionWrongTypeAssertionAccountHold
 	t.Parallel()
 
 	accountsDb := &mock.AccountsStub{
-		LoadAccountCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
+		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return &mock.PeerAccountHandlerMock{}, nil
 		},
 	}
@@ -207,8 +182,8 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 	saveAccountWasCalled := false
 
 	accountsDb := &mock.AccountsStub{
-		LoadAccountCalled: func(addressContainer state.AddressContainer) (state.AccountHandler, error) {
-			return state.NewUserAccount(addressContainer)
+		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			return state.NewUserAccount(address)
 		},
 		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
 			saveAccountWasCalled = true

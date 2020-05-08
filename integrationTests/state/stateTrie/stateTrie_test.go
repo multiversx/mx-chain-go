@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/state/pubkeyConverter"
@@ -57,7 +58,7 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	_, err = adb.Commit()
 	assert.Nil(t, err)
 
-	acc, err := adb.LoadAccount(account.AddressContainer())
+	acc, err := adb.LoadAccount(account.AddressBytes())
 	assert.Nil(t, err)
 	recoveredAccount := acc.(state.UserAccountHandler)
 
@@ -83,7 +84,7 @@ func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
 
 	fmt.Printf("SC code is at address: %v\n", account.GetCodeHash())
 
-	acc, err := adb.LoadAccount(account.AddressContainer())
+	acc, err := adb.LoadAccount(account.AddressBytes())
 	assert.Nil(t, err)
 	recoveredAccount := acc.(state.UserAccountHandler)
 
@@ -140,7 +141,7 @@ func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(100)
 
-	addresses := make([]state.AddressContainer, 0)
+	addresses := make([][]byte, 0)
 
 	//generating 100 different addresses
 	for len(addresses) < 100 {
@@ -148,7 +149,7 @@ func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
 
 		found := false
 		for i := 0; i < len(addresses); i++ {
-			if bytes.Equal(addresses[i].Bytes(), addr.Bytes()) {
+			if bytes.Equal(addresses[i], addr) {
 				found = true
 				break
 			}
@@ -1011,7 +1012,7 @@ func createAccounts(
 	nrOfAccounts int,
 	balance int,
 	persist storage.Persister,
-) (*state.AccountsDB, []state.AddressContainer, data.Trie) {
+) (*state.AccountsDB, [][]byte, data.Trie) {
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 	store, _ := storageUnit.NewStorageUnit(cache, persist)
 	evictionWaitListSize := uint(100)
@@ -1021,7 +1022,7 @@ func createAccounts(
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
-	addr := make([]state.AddressContainer, nrOfAccounts)
+	addr := make([][]byte, nrOfAccounts)
 	for i := 0; i < nrOfAccounts; i++ {
 		addr[i] = integrationTests.CreateAccount(adb, 0, big.NewInt(int64(balance)))
 	}
@@ -1031,7 +1032,7 @@ func createAccounts(
 
 func createAndExecTxs(
 	b *testing.B,
-	addr []state.AddressContainer,
+	addr [][]byte,
 	nrTxs int,
 	nrOfAccounts int,
 	txVal int,
@@ -1051,8 +1052,8 @@ func createAndExecTxs(
 		tx := &transaction2.Transaction{
 			Nonce:   1,
 			Value:   big.NewInt(int64(txVal)),
-			SndAddr: addr[sender].Bytes(),
-			RcvAddr: addr[receiver].Bytes(),
+			SndAddr: addr[sender],
+			RcvAddr: addr[receiver],
 		}
 
 		startTime := time.Now()
@@ -1101,9 +1102,9 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	hexPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
-	address1, _ := hexPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000000")
-	address2, _ := hexPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000001")
-	address3, _ := hexPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000002")
+	address1, _ := hexPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000000")
+	address2, _ := hexPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000001")
+	address3, _ := hexPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000002")
 
 	newDefaultAccount(adb, address1)
 	newDefaultAccount(adb, address2)
@@ -1122,7 +1123,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func newDefaultAccount(adb *state.AccountsDB, address state.AddressContainer) state.AccountHandler {
+func newDefaultAccount(adb *state.AccountsDB, address []byte) state.AccountHandler {
 	account, _ := adb.LoadAccount(address)
 	_ = adb.SaveAccount(account)
 
@@ -1142,7 +1143,7 @@ func TestAccountsDB_RecreateTrieInvalidatesDataTriesCache(t *testing.T) {
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	hexAddressPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
-	address1, _ := hexAddressPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000000")
+	address1, _ := hexAddressPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000000")
 
 	key1 := []byte("ABC")
 	key2 := []byte("ABD")
@@ -1195,8 +1196,8 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	hexAddressPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
-	address1, _ := hexAddressPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000000")
-	address2, _ := hexAddressPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000001")
+	address1, _ := hexAddressPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000000")
+	address2, _ := hexAddressPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000001")
 
 	key1 := []byte("ABC")
 	key2 := []byte("ABD")
@@ -1480,8 +1481,6 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	t.Skip("skip this test until trie pruning mechanism refactor")
-	//TODO unskip the test when pruning will be done even if snapshot is in progress
 
 	numOfShards := 1
 	nodesPerShard := 1
@@ -1533,7 +1532,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	time.Sleep(integrationTests.StepDelay)
 
 	checkpointsRootHashes := make(map[int][][]byte)
-	snapshotsRootHashes := make(map[int][][]byte)
+	snapshotsRootHashes := make(map[uint32][][]byte)
 	prunedRootHashes := make(map[int][][]byte)
 
 	numShardNodes := numOfShards * nodesPerShard
@@ -1564,7 +1563,8 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	}
 
 	for i := 0; i < numOfShards*nodesPerShard; i++ {
-		testNodeStateCheckpointSnapshotAndPruning(t, nodes[i], checkpointsRootHashes[i], snapshotsRootHashes[i], prunedRootHashes[i])
+		shId := nodes[i].ShardCoordinator.SelfId()
+		testNodeStateCheckpointSnapshotAndPruning(t, nodes[i], checkpointsRootHashes[i], snapshotsRootHashes[shId], prunedRootHashes[i])
 	}
 }
 
@@ -1572,15 +1572,13 @@ func collectSnapshotAndCheckpointHashes(
 	nodes []*integrationTests.TestProcessorNode,
 	numShardNodes int,
 	checkpointsRootHashes map[int][][]byte,
-	snapshotsRootHashes map[int][][]byte,
+	snapshotsRootHashes map[uint32][][]byte,
 	prunedRootHashes map[int][][]byte,
 	stateCheckpointModulus uint64,
 ) {
 	for j := 0; j < numShardNodes; j++ {
 		currentBlockHeader := nodes[j].BlockChain.GetCurrentBlockHeader()
-
 		if currentBlockHeader.IsStartOfEpochBlock() {
-			snapshotsRootHashes[j] = append(snapshotsRootHashes[j], currentBlockHeader.GetRootHash())
 			continue
 		}
 
@@ -1591,6 +1589,23 @@ func collectSnapshotAndCheckpointHashes(
 		}
 
 		prunedRootHashes[j] = append(prunedRootHashes[j], currentBlockHeader.GetRootHash())
+	}
+
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
+			continue
+		}
+
+		currentBlockHeader := node.BlockChain.GetCurrentBlockHeader()
+		if !currentBlockHeader.IsStartOfEpochBlock() {
+			continue
+		}
+
+		metaHdr := currentBlockHeader.(*block.MetaBlock)
+		snapshotsRootHashes[core.MetachainShardId] = append(snapshotsRootHashes[core.MetachainShardId], metaHdr.GetRootHash())
+		for _, epochStartData := range metaHdr.EpochStart.LastFinalizedHeaders {
+			snapshotsRootHashes[epochStartData.ShardID] = append(snapshotsRootHashes[epochStartData.ShardID], epochStartData.RootHash)
+		}
 	}
 }
 

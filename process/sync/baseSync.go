@@ -86,7 +86,6 @@ type baseBootstrap struct {
 	syncStateListeners       []func(bool)
 	mutSyncStateListeners    sync.RWMutex
 	uint64Converter          typeConverters.Uint64ByteSliceConverter
-	requestsWithTimeout      uint32
 	mapNonceSyncedWithErrors map[uint64]uint32
 	mutNonceSyncedWithErrors sync.RWMutex
 
@@ -482,15 +481,16 @@ func (boot *baseBootstrap) syncBlocks() {
 	}
 }
 
-func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler, err error) {
-	if err == process.ErrTimeIsOut {
-		boot.requestsWithTimeout++
-	}
+func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
+	processBlockStarted := !check.IfNil(bodyHandler) && !check.IfNil(headerHandler)
+	isProcessWithError := processBlockStarted && err != process.ErrTimeIsOut
 
-	allowedRequestsWithTimeOutLimitReached := boot.requestsWithTimeout >= process.MaxRequestsWithTimeoutAllowed
+	numSyncedWithErrors := boot.incrementSyncedWithErrorsForNonce(boot.getNonceForNextBlock())
+	allowedSyncWithErrorsLimitReached := numSyncedWithErrors >= process.MaxSyncWithErrorsAllowed
 	isInProperRound := process.IsInProperRound(boot.rounder.Index())
+	isSyncWithErrorsLimitReachedInProperRound := allowedSyncWithErrorsLimitReached && isInProperRound
 
-	shouldRollBack := err != process.ErrTimeIsOut || (allowedRequestsWithTimeOutLimitReached && isInProperRound)
+	shouldRollBack := isProcessWithError || isSyncWithErrorsLimitReachedInProperRound
 	if shouldRollBack {
 		if !check.IfNil(headerHandler) {
 			hash := boot.removeHeaderFromPools(headerHandler)
@@ -501,27 +501,21 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(headerHandler data.HeaderHandler
 		if errNotCritical != nil {
 			log.Debug("rollBack", "error", errNotCritical.Error())
 		}
-	}
 
-	boot.resetProbableHighestNonceIfNeeded(headerHandler)
+		if isSyncWithErrorsLimitReachedInProperRound {
+			boot.forkDetector.ResetProbableHighestNonce()
+			boot.removeHeadersHigherThanNonceFromPool(boot.getNonceForCurrentBlock())
+		}
+	}
 }
 
-func (boot *baseBootstrap) resetProbableHighestNonceIfNeeded(headerHandler data.HeaderHandler) {
-	if check.IfNil(headerHandler) {
-		return
-	}
-
+func (boot *baseBootstrap) incrementSyncedWithErrorsForNonce(nonce uint64) uint32 {
 	boot.mutNonceSyncedWithErrors.Lock()
-	boot.mapNonceSyncedWithErrors[headerHandler.GetNonce()]++
-	nonceSyncedWithErrors := boot.mapNonceSyncedWithErrors[headerHandler.GetNonce()]
+	boot.mapNonceSyncedWithErrors[nonce]++
+	numSyncedWithErrors := boot.mapNonceSyncedWithErrors[nonce]
 	boot.mutNonceSyncedWithErrors.Unlock()
 
-	allowedSyncWithErrorsLimitReached := nonceSyncedWithErrors >= process.MaxSyncWithErrorsAllowed
-	isInProperRound := process.IsInProperRound(boot.rounder.Index())
-	if allowedSyncWithErrorsLimitReached && isInProperRound {
-		boot.forkDetector.ResetProbableHighestNonce()
-		boot.removeHeadersHigherThanNonceFromPool(boot.getNonceForCurrentBlock())
-	}
+	return numSyncedWithErrors
 }
 
 // syncBlock method actually does the synchronization. It requests the next block header from the pool
@@ -568,23 +562,24 @@ func (boot *baseBootstrap) syncBlock() error {
 		}
 	}
 
-	var hdr data.HeaderHandler
+	var body data.BodyHandler
+	var header data.HeaderHandler
 	var err error
 
 	defer func() {
 		if err != nil {
-			boot.doJobOnSyncBlockFail(hdr, err)
+			boot.doJobOnSyncBlockFail(body, header, err)
 		}
 	}()
 
-	hdr, err = boot.getNextHeaderRequestingIfMissing()
+	header, err = boot.getNextHeaderRequestingIfMissing()
 	if err != nil {
 		return err
 	}
 
-	go boot.requestHeadersFromNonceIfMissing(hdr.GetNonce() + 1)
+	go boot.requestHeadersFromNonceIfMissing(header.GetNonce() + 1)
 
-	blockBody, err := boot.blockBootstrapper.getBlockBodyRequestingIfMissing(hdr)
+	body, err = boot.blockBootstrapper.getBlockBodyRequestingIfMissing(header)
 	if err != nil {
 		return err
 	}
@@ -596,7 +591,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startProcessBlockTime := time.Now()
-	err = boot.blockProcessor.ProcessBlock(hdr, blockBody, haveTime)
+	err = boot.blockProcessor.ProcessBlock(header, body, haveTime)
 	elapsedTime := time.Since(startProcessBlockTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
@@ -606,7 +601,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	startCommitBlockTime := time.Now()
-	err = boot.blockProcessor.CommitBlock(hdr, blockBody)
+	err = boot.blockProcessor.CommitBlock(header, body)
 	elapsedTime = time.Since(startCommitBlockTime)
 	log.Debug("elapsed time to commit block",
 		"time [s]", elapsedTime,
@@ -616,11 +611,10 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	log.Debug("block has been synced successfully",
-		"nonce", hdr.GetNonce(),
+		"nonce", header.GetNonce(),
 	)
 
 	boot.cleanNoncesSyncedWithErrorsBehindFinal()
-	boot.requestsWithTimeout = 0
 
 	return nil
 }

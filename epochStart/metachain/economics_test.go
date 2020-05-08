@@ -201,10 +201,80 @@ func TestEconomics_ComputeEndOfEpochEconomics_NilAccumulatedFeesInEpochShouldErr
 	args := getArguments()
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
-	mb := block.MetaBlock{AccumulatedFeesInEpoch: nil}
+	mb := block.MetaBlock{AccumulatedFeesInEpoch: nil, DevFeesInEpoch: big.NewInt(0)}
 	res, err := ec.ComputeEndOfEpochEconomics(&mb)
 	assert.Nil(t, res)
 	assert.Equal(t, epochStart.ErrNilTotalAccumulatedFeesInEpoch, err)
+}
+
+func TestEconomics_ComputeEndOfEpochEconomics_NilDevFeesInEpochShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	mb := block.MetaBlock{AccumulatedFeesInEpoch: big.NewInt(0), DevFeesInEpoch: nil}
+	res, err := ec.ComputeEndOfEpochEconomics(&mb)
+	assert.Nil(t, res)
+	assert.Equal(t, epochStart.ErrNilTotalDevFeesInEpoch, err)
+}
+
+func TestEconomics_ComputeRewardsForCommunity(t *testing.T) {
+	totalRewards := big.NewInt(0).SetUint64(123456)
+	args := getArguments()
+	args.RewardsHandler = &mock.RewardsHandlerStub{
+		CommunityPercentageCalled: func() float64 {
+			return 0.1
+		},
+	}
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	expectedRewards := big.NewInt(12345)
+	communityRewards := ec.computeRewardsForCommunity(totalRewards)
+	assert.Equal(t, expectedRewards, communityRewards)
+}
+
+func TestEconomics_AdjustRewardsPerBlockWithCommunityRewards(t *testing.T) {
+	args := getArguments()
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	rwdPerBlock := big.NewInt(0).SetUint64(1000)
+	blocksInEpoch := uint64(100)
+	communityRewards := big.NewInt(0).SetUint64(10000)
+
+	expectedRewardsCommunityAfterAdjustment := big.NewInt(0).Set(communityRewards)
+	expectedRwdPerBlock := big.NewInt(900)
+
+	ec.adjustRewardsPerBlockWithCommunityRewards(rwdPerBlock, communityRewards, blocksInEpoch)
+
+	assert.Equal(t, expectedRewardsCommunityAfterAdjustment, communityRewards)
+	assert.Equal(t, expectedRwdPerBlock, rwdPerBlock)
+}
+
+func TestEconomics_AdjustRewardsPerBlockWithLeaderPercentage(t *testing.T) {
+	args := getArguments()
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	rwdPerBlock := big.NewInt(0).SetUint64(1000)
+	blocksInEpoch := uint64(100)
+	accumulatedFeesInEpoch := big.NewInt(0).SetUint64(10000)
+
+	expectedRwdPerBlock := big.NewInt(900)
+	ec.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, accumulatedFeesInEpoch, blocksInEpoch)
+	assert.Equal(t, expectedRwdPerBlock, rwdPerBlock)
+}
+
+func TestEconomics_AdjustRewardsPerBlockWithDeveloperFees(t *testing.T) {
+	args := getArguments()
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	rwdPerBlock := big.NewInt(0).SetUint64(1000)
+	blocksInEpoch := uint64(100)
+	developerFees := big.NewInt(0).SetUint64(500)
+
+	expectedRwdPerBlock := big.NewInt(995)
+	ec.adjustRewardsPerBlockWithDeveloperFees(rwdPerBlock, developerFees, blocksInEpoch)
+	assert.Equal(t, expectedRwdPerBlock, rwdPerBlock)
 }
 
 func TestEconomics_ComputeEndOfEpochEconomics_NotEpochStartShouldErr(t *testing.T) {
@@ -216,6 +286,7 @@ func TestEconomics_ComputeEndOfEpochEconomics_NotEpochStartShouldErr(t *testing.
 	mb1 := block.MetaBlock{
 		Epoch:                  0,
 		AccumulatedFeesInEpoch: big.NewInt(10),
+		DevFeesInEpoch:         big.NewInt(0),
 	}
 	res, err := ec.ComputeEndOfEpochEconomics(&mb1)
 	assert.Nil(t, res)
@@ -253,13 +324,14 @@ func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {
 		Round: 15000,
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
+				{ShardID: 0, Round: 2, Nonce: 3},
 				{ShardID: 1, Round: 2, Nonce: 3},
-				{ShardID: 2, Round: 2, Nonce: 3},
 			},
 			Economics: block.Economics{},
 		},
 		Epoch:                  2,
 		AccumulatedFeesInEpoch: big.NewInt(10000),
+		DevFeesInEpoch:         big.NewInt(0),
 	}
 	res, err := ec.ComputeEndOfEpochEconomics(&mb)
 	assert.Nil(t, err)
@@ -269,12 +341,20 @@ func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {
 func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 	t.Parallel()
 
+	commAddress := "communityAddress"
 	totalSupply := big.NewInt(20000000000) // 20B
 	accFeesInEpoch := big.NewInt(0)
+	devFeesInEpoch := big.NewInt(0)
 	roundDur := 4
 	args := getArguments()
 	args.RewardsHandler = &mock.RewardsHandlerStub{
 		MaxInflationRateCalled: func() float64 {
+			return 0.1
+		},
+		CommunityAddressCalled: func() string {
+			return commAddress
+		},
+		CommunityPercentageCalled: func() float64 {
 			return 0.1
 		},
 	}
@@ -294,6 +374,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 				TotalNewlyMinted:       big.NewInt(10),
 				RewardsPerBlockPerNode: big.NewInt(10),
 				NodePrice:              big.NewInt(10),
+				RewardsForCommunity:    big.NewInt(10),
 			},
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{ShardID: 0, Nonce: 0},
@@ -329,6 +410,9 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 		expectedTotalToDistribute := big.NewInt(int64(expRwdPerBlock * numBlocksInEpoch * 3)) // 2 shards + meta
 		expectedTotalNewlyMinted := big.NewInt(0).Sub(expectedTotalToDistribute, accFeesInEpoch)
 		expectedTotalSupply := big.NewInt(0).Add(totalSupply, expectedTotalNewlyMinted)
+		expectedCommunityRewards := big.NewInt(0).Div(expectedTotalToDistribute, big.NewInt(10))
+		commRewardPerBlock := big.NewInt(0).Div(expectedCommunityRewards, big.NewInt(int64(numBlocksInEpoch*3)))
+		adjustedRwdPerBlock := big.NewInt(0).Sub(big.NewInt(int64(expRwdPerBlock)), commRewardPerBlock)
 
 		mb := block.MetaBlock{
 			Round: uint64(numBlocksInEpoch),
@@ -342,13 +426,15 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 					TotalSupply:            expectedTotalSupply,
 					TotalToDistribute:      expectedTotalToDistribute,
 					TotalNewlyMinted:       expectedTotalNewlyMinted,
-					RewardsPerBlockPerNode: big.NewInt(int64(expRwdPerBlock)),
+					RewardsPerBlockPerNode: adjustedRwdPerBlock,
 					NodePrice:              big.NewInt(10),
 					PrevEpochStartHash:     hdrPrevEpochStartHash,
+					RewardsForCommunity:    expectedCommunityRewards,
 				},
 			},
 			Epoch:                  1,
 			AccumulatedFeesInEpoch: accFeesInEpoch,
+			DevFeesInEpoch:         devFeesInEpoch,
 		}
 
 		err := ec.VerifyRewardsPerBlock(&mb)
