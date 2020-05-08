@@ -101,7 +101,6 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(address),
 		libp2p.Identity(p2pPrivKey),
-		libp2p.EnableNATService(),
 		libp2p.DisableRelay(),
 	}
 
