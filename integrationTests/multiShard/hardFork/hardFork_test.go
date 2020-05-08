@@ -98,6 +98,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 
 	exportStorageConfigs := hardForkExport(t, nodes)
 	hardForkImport(t, nodes, exportStorageConfigs)
+	checkGenesisBlocksStateIsEqual(t, nodes)
 }
 
 func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *testing.T) {
@@ -178,9 +179,9 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 		}
 	}()
 
-	//_ = logger.SetLogLevel("update/files:TRACE,*:DEBUG")
 	exportStorageConfigs := hardForkExport(t, nodes)
 	hardForkImport(t, nodes, exportStorageConfigs)
+	checkGenesisBlocksStateIsEqual(t, nodes)
 }
 
 func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode) []*config.StorageConfig {
@@ -193,6 +194,17 @@ func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode) [
 		log.Warn("***********************************************************************************")
 	}
 	return exportStorageConfigs
+}
+
+func checkGenesisBlocksStateIsEqual(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
+	for _, nodeA := range nodes {
+		for _, nodeB := range nodes {
+			for _, genesisBlockA := range nodeA.GenesisBlocks {
+				genesisBlockB := nodeB.GenesisBlocks[genesisBlockA.GetShardID()]
+				assert.True(t, bytes.Equal(genesisBlockA.GetRootHash(), genesisBlockB.GetRootHash()))
+			}
+		}
+	}
 }
 
 func hardForkImport(
@@ -255,15 +267,6 @@ func hardForkImport(
 		node.GenesisBlocks = genesisBlocks
 		for _, genesisBlock := range genesisBlocks {
 			log.Info("hardfork genesisblock roothash", "shardID", genesisBlock.GetShardID(), "rootHash", genesisBlock.GetRootHash())
-		}
-	}
-
-	for _, nodeA := range nodes {
-		for _, nodeB := range nodes {
-			for _, genesisBlockA := range nodeA.GenesisBlocks {
-				genesisBlockB := nodeB.GenesisBlocks[genesisBlockA.GetShardID()]
-				assert.True(t, bytes.Equal(genesisBlockA.GetRootHash(), genesisBlockB.GetRootHash()))
-			}
 		}
 	}
 }

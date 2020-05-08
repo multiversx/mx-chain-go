@@ -57,6 +57,8 @@ const (
 
 // atSep is a separator used for export and import to decipher needed types
 const atSep = "@"
+const accTypeIDX = 3
+const shardIDIDX = 2
 
 // NewObject creates an object according to the given type
 func NewObject(objType Type) (interface{}, error) {
@@ -99,13 +101,13 @@ func GetTrieTypeAndShId(key string) (Type, uint32, error) {
 		return UserAccount, 0, update.ErrUnknownType
 	}
 
-	accTypeInt64, err := strconv.ParseInt(splitString[3], 10, 0)
+	accTypeInt64, err := strconv.ParseInt(splitString[accTypeIDX], 10, 0)
 	if err != nil {
 		return UserAccount, 0, err
 	}
 	accType := Type(accTypeInt64)
 
-	shId, err := strconv.ParseInt(splitString[2], 10, 0)
+	shId, err := strconv.ParseInt(splitString[shardIDIDX], 10, 0)
 	if err != nil {
 		return UserAccount, 0, err
 	}
