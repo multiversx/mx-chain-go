@@ -352,21 +352,22 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		RequestHandler:    e.requestHandler,
-		Messenger:         e.messenger,
-		Marshalizer:       e.marshalizer,
-		TxSignMarshalizer: e.txSignMarshalizer,
-		ShardCoordinator:  e.shardCoordinator,
-		Hasher:            e.hasher,
-		ChainID:           []byte(e.genesisNodesConfig.GetChainId()),
-		EconomicsData:     e.economicsData,
-		KeyGen:            e.keyGen,
-		BlockKeyGen:       e.blockKeyGen,
-		Signer:            e.singleSigner,
-		BlockSigner:       e.blockSingleSigner,
-		WhitelistHandler:  e.whiteListHandler,
-		AddressPubkeyConv: e.addressPubkeyConverter,
-		NonceConverter:    e.uint64Converter,
+		RequestHandler:     e.requestHandler,
+		Messenger:          e.messenger,
+		Marshalizer:        e.marshalizer,
+		TxSignMarshalizer:  e.txSignMarshalizer,
+		ShardCoordinator:   e.shardCoordinator,
+		Hasher:             e.hasher,
+		ChainID:            []byte(e.genesisNodesConfig.GetChainId()),
+		EconomicsData:      e.economicsData,
+		KeyGen:             e.keyGen,
+		BlockKeyGen:        e.blockKeyGen,
+		Signer:             e.singleSigner,
+		BlockSigner:        e.blockSingleSigner,
+		WhitelistHandler:   e.whiteListHandler,
+		AddressPubkeyConv:  e.addressPubkeyConverter,
+		NonceConverter:     e.uint64Converter,
+		StartInEpochConfig: e.generalConfig.EpochStartConfig,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {

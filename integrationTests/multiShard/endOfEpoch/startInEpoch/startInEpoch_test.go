@@ -328,8 +328,10 @@ func getGeneralConfig() config.Config {
 			StartInEpochEnabled: true,
 		},
 		EpochStartConfig: config.EpochStartConfig{
-			MinRoundsBetweenEpochs: 5,
-			RoundsPerEpoch:         10,
+			MinRoundsBetweenEpochs:            5,
+			RoundsPerEpoch:                    10,
+			MinNumConnectedPeersToStart:       2,
+			MinNumOfPeersToConsiderBlockValid: 2,
 		},
 		WhiteListPool: config.CacheConfig{
 			Size:   10000,

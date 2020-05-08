@@ -49,6 +49,10 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 				SizeInBytes: 1000,
 				Shards:      10,
 			},
+			EpochStartConfig: config.EpochStartConfig{
+				MinNumConnectedPeersToStart:       2,
+				MinNumOfPeersToConsiderBlockValid: 2,
+			},
 		},
 		EconomicsData:              &economics.EconomicsData{},
 		SingleSigner:               &mock.SignerStub{},
