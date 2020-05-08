@@ -27,7 +27,6 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (pr
 	}
 
 	container := NewBuiltInFunctionContainer()
-
 	var newFunc process.BuiltinFunction
 	newFunc = NewClaimDeveloperRewardsFunc(gasConfig.BuiltInCost.ClaimDeveloperRewards)
 	err = container.Add(core.BuiltInFunctionClaimDeveloperRewards, newFunc)

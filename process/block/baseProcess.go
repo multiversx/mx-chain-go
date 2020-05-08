@@ -994,11 +994,6 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	if finalHeader.IsStartOfEpochBlock() {
-		log.Debug("trie snapshot", "rootHash", rootHash)
-		accounts.SnapshotState(rootHash)
-	}
-
 	// TODO generate checkpoint on a trigger
 	if bp.stateCheckpointModulus != 0 {
 		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {

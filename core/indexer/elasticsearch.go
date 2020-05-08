@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -164,6 +165,11 @@ func (ei *elasticIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	}
 
 	ei.database.SaveShardStatistics(tpsBenchmark)
+}
+
+// SetTxLogsProcessor will set tx logs processor
+func (ei *elasticIndexer) SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase) {
+	ei.database.SetTxLogsProcessor(txLogsProc)
 }
 
 // IsNilIndexer will return a bool value that signals if the indexer's implementation is a NilIndexer

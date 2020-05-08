@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -133,42 +132,21 @@ func serializeShardInfo(shardInfo statistics.ShardStatistic) ([]byte, []byte) {
 	return serializedInfo, meta
 }
 
-func (cm *commonProcessor) getTransactionByType(
-	tx data.TransactionHandler,
-	txHash []byte,
-	mbHash []byte,
-	blockHash []byte,
-	mb *block.MiniBlock,
-	header data.HeaderHandler,
-	txStatus string,
-) *Transaction {
-	switch currentType := tx.(type) {
-	case *transaction.Transaction:
-		return cm.buildTransaction(currentType, txHash, mbHash, blockHash, mb, header, txStatus)
-	case *smartContractResult.SmartContractResult:
-		return cm.buildSmartContractResult(currentType, txHash, mbHash, blockHash, mb, header)
-	case *rewardTx.RewardTx:
-		return cm.buildRewardTransaction(currentType, txHash, mbHash, blockHash, mb, header, txStatus)
-	case *receipt.Receipt:
-		return cm.buildReceiptTransaction(currentType, txHash, mbHash, blockHash, mb, header)
-	default:
-		return nil
-	}
-}
-
 func (cm *commonProcessor) buildTransaction(
 	tx *transaction.Transaction,
 	txHash []byte,
 	mbHash []byte,
-	blockHash []byte,
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 	txStatus string,
 ) *Transaction {
+	gasPriceBig := big.NewInt(0).SetUint64(tx.GasPrice)
+	gasLimitBig := big.NewInt(0).SetUint64(tx.GasLimit)
+	gasUsed := big.NewInt(0).Mul(gasPriceBig, gasLimitBig).String()
+
 	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
 		MBHash:        hex.EncodeToString(mbHash),
-		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         tx.Nonce,
 		Round:         header.GetRound(),
 		Value:         tx.Value.String(),
@@ -182,34 +160,7 @@ func (cm *commonProcessor) buildTransaction(
 		Signature:     hex.EncodeToString(tx.Signature),
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        txStatus,
-	}
-}
-
-func (cm *commonProcessor) buildSmartContractResult(
-	scr *smartContractResult.SmartContractResult,
-	txHash []byte,
-	mbHash []byte,
-	blockHash []byte,
-	mb *block.MiniBlock,
-	header data.HeaderHandler,
-) *Transaction {
-	return &Transaction{
-		Hash:          hex.EncodeToString(txHash),
-		MBHash:        hex.EncodeToString(mbHash),
-		BlockHash:     hex.EncodeToString(blockHash),
-		Nonce:         scr.Nonce,
-		Round:         header.GetRound(),
-		Value:         scr.Value.String(),
-		Receiver:      cm.addressPubkeyConverter.Encode(scr.RcvAddr),
-		Sender:        cm.addressPubkeyConverter.Encode(scr.SndAddr),
-		ReceiverShard: mb.ReceiverShardID,
-		SenderShard:   mb.SenderShardID,
-		GasPrice:      scr.GasPrice,
-		GasLimit:      scr.GasPrice,
-		Data:          string(scr.Data),
-		Signature:     "",
-		Timestamp:     time.Duration(header.GetTimeStamp()),
-		Status:        "Success",
+		GasUsed:       gasUsed,
 	}
 }
 
@@ -217,7 +168,6 @@ func (cm *commonProcessor) buildRewardTransaction(
 	rTx *rewardTx.RewardTx,
 	txHash []byte,
 	mbHash []byte,
-	blockHash []byte,
 	mb *block.MiniBlock,
 	header data.HeaderHandler,
 	txStatus string,
@@ -225,7 +175,6 @@ func (cm *commonProcessor) buildRewardTransaction(
 	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
 		MBHash:        hex.EncodeToString(mbHash),
-		BlockHash:     hex.EncodeToString(blockHash),
 		Nonce:         0,
 		Round:         rTx.Round,
 		Value:         rTx.Value.String(),
@@ -242,32 +191,57 @@ func (cm *commonProcessor) buildRewardTransaction(
 	}
 }
 
-func (cm *commonProcessor) buildReceiptTransaction(
-	rpt *receipt.Receipt,
-	txHash []byte,
-	mbHash []byte,
-	blockHash []byte,
-	mb *block.MiniBlock,
-	header data.HeaderHandler,
-) *Transaction {
-	return &Transaction{
-		Hash:          hex.EncodeToString(txHash),
-		MBHash:        hex.EncodeToString(mbHash),
-		BlockHash:     hex.EncodeToString(blockHash),
-		Nonce:         rpt.GetNonce(),
-		Round:         header.GetRound(),
-		Value:         rpt.Value.String(),
-		Receiver:      cm.addressPubkeyConverter.Encode(rpt.GetRcvAddr()),
-		Sender:        cm.addressPubkeyConverter.Encode(rpt.GetSndAddr()),
-		ReceiverShard: mb.ReceiverShardID,
-		SenderShard:   mb.SenderShardID,
-		GasPrice:      0,
-		GasLimit:      0,
-		Data:          string(rpt.Data),
-		Signature:     "",
-		Timestamp:     time.Duration(header.GetTimeStamp()),
-		Status:        "Success",
+func (cm *commonProcessor) convertScResultInDatabaseScr(sc *smartContractResult.SmartContractResult) ScResult {
+	decodedData := decodeScResultData(sc.Data)
+
+	return ScResult{
+		Nonce:        sc.Nonce,
+		GasLimit:     sc.GasLimit,
+		GasPrice:     sc.GasPrice,
+		Value:        sc.Value.String(),
+		Sender:       cm.addressPubkeyConverter.Encode(sc.SndAddr),
+		Receiver:     cm.addressPubkeyConverter.Encode(sc.RcvAddr),
+		Code:         string(sc.Code),
+		Data:         decodedData,
+		PreTxHash:    hex.EncodeToString(sc.PrevTxHash),
+		CallType:     string(sc.CallType),
+		CodeMetadata: string(sc.CodeMetadata),
 	}
+}
+
+func decodeScResultData(scrData []byte) string {
+	encodedData := strings.Split(string(scrData), "@")
+	encodedData = append([]string(nil), encodedData[1:]...)
+
+	decodedData := ""
+	for i, enc := range encodedData {
+		if !canInterpretAsString([]byte(enc)) {
+			continue
+		}
+		if i > 0 {
+			decodedData += "@" + enc
+			continue
+		}
+
+		val, _ := hex.DecodeString(enc)
+		if len(val) > 0 {
+			decodedData += "@" + string(val)
+		}
+	}
+
+	return decodedData
+}
+
+func canInterpretAsString(bytes []byte) bool {
+	if len(bytes) == 0 {
+		return false
+	}
+	for _, b := range bytes {
+		if b < 32 || b > 126 {
+			return false
+		}
+	}
+	return true
 }
 
 func serializeBulkMiniBlocks(hdrShardID uint32, bulkMbs []*Miniblock) bytes.Buffer {
@@ -313,32 +287,91 @@ func prepareBufferMiniblocks(buff bytes.Buffer, meta, serializedData []byte) byt
 	return buff
 }
 
-func serializeBulkTxs(bulk []*Transaction) bytes.Buffer {
+func serializeBulkTxs(bulk []*Transaction, selfShardID uint32) bytes.Buffer {
 	var buff bytes.Buffer
-	for _, tx := range bulk {
-		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
-		serializedTx, err := json.Marshal(tx)
-		if err != nil {
-			log.Debug("indexer: marshal",
-				"error", "could not serialize transaction, will skip indexing",
-				"tx hash", tx.Hash)
-			continue
-		}
-		// append a newline for each element
-		serializedTx = append(serializedTx, "\n"...)
+	var err error
 
-		buff.Grow(len(meta) + len(serializedTx))
+	for _, tx := range bulk {
+		var meta, serializedData []byte
+
+		if isCrossShardDstMe(tx, selfShardID) && tx.Status != txStatusInvalid {
+			// update tx
+			meta, serializedData = prepareTxUpdate(tx)
+		} else {
+			// write tx
+			meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
+			serializedData, err = json.Marshal(tx)
+			if err != nil {
+				log.Debug("indexer: marshal",
+					"error", "could not serialize transaction, will skip indexing",
+					"tx hash", tx.Hash)
+				continue
+			}
+		}
+
+		// append a newline for each element
+		serializedData = append(serializedData, "\n"...)
+
+		buff.Grow(len(meta) + len(serializedData))
 		_, err = buff.Write(meta)
 		if err != nil {
 			log.Warn("elastic search: serialize bulk tx, write meta", "error", err.Error())
 		}
-		_, err = buff.Write(serializedTx)
+		_, err = buff.Write(serializedData)
 		if err != nil {
 			log.Warn("elastic search: serialize bulk tx, write serialized tx", "error", err.Error())
 		}
 	}
 
 	return buff
+}
+
+func prepareTxUpdate(tx *Transaction) ([]byte, []byte) {
+	var meta, serializedData []byte
+
+	meta = []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s", "_type" : "%s"  } }%s`, tx.Hash, "_doc", "\n"))
+
+	marshalizedLog, err := json.Marshal(tx.Log)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize transaction log, will skip indexing",
+			"tx hash", tx.Hash)
+		return nil, nil
+	}
+	scResults, err := json.Marshal(tx.SmartContractResults)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize smart contract results, will skip indexing",
+			"tx hash", tx.Hash)
+		return nil, nil
+	}
+
+	marshalizedTimestamp, err := json.Marshal(tx.Timestamp)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize timestamp, will skip indexing",
+			"tx hash", tx.Hash)
+		return nil, nil
+	}
+
+	gasPriceBig := big.NewInt(0).SetUint64(tx.GasPrice)
+	gasLimitBig := big.NewInt(0).SetUint64(tx.GasLimit)
+	gas := big.NewInt(0).Mul(gasPriceBig, gasLimitBig).String()
+	if tx.GasUsed == gas {
+		// do not update gasUsed because it is the same with gasUsed when transaction was saved first time in database
+		serializedData = []byte(fmt.Sprintf(`{ "doc" : { "log" : %s, "scResults" : %s, "status": "%s", "timestamp": %s } }`,
+			string(marshalizedLog), string(scResults), tx.Status, string(marshalizedTimestamp)))
+	} else {
+		// update gasUsed because was changed (is a smart contract operation)
+		serializedData = []byte(fmt.Sprintf(`{ "doc" : { "log" : %s, "scResults" : %s, "status": "%s", "timestamp": %s, "gasUsed" : "%s" } }`,
+			string(marshalizedLog), string(scResults), tx.Status, string(marshalizedTimestamp), tx.GasUsed))
+	}
+
+	return meta, serializedData
+}
+
+func isCrossShardDstMe(tx *Transaction, selfShardID uint32) bool {
+	return tx.SenderShard != tx.ReceiverShard && tx.ReceiverShard == selfShardID
 }
 
 func computeSizeOfTxs(marshalizer marshal.Marshalizer, txs map[string]data.TransactionHandler) int {

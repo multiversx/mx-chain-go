@@ -161,7 +161,7 @@ type ResolversContainerFactory interface {
 
 // EpochHandler defines the functionality to get the current epoch
 type EpochHandler interface {
-	Epoch() uint32
+	MetaEpoch() uint32
 	IsInterfaceNil() bool
 }
 
