@@ -186,7 +186,7 @@ func shuffleNodes(
 		numToRemove[shardId] = len(waiting[shardId])
 	}
 
-	removeLeavingNodesNotExistingInEligibleOrWaiting(unstakeLeaving, additionalLeaving, waitingCopy, eligibleCopy)
+	stillRemainingInLeaving, _ := removeLeavingNodesNotExistingInEligibleOrWaiting(allLeaving, waitingCopy, eligibleCopy)
 
 	newEligible, newWaiting, stillRemainingInLeaving := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, unstakeLeaving)
 	newEligible, newWaiting, stillRemainingInLeaving = removeLeavingNodesFromValidatorMaps(newEligible, newWaiting, numToRemove, additionalLeaving)
@@ -223,11 +223,26 @@ func shuffleNodes(
 	}
 }
 
-func removeLeavingNodesNotExistingInEligibleOrWaiting(unstakeLeaving []Validator, additionalLeaving []Validator, waitingCopy map[uint32][]Validator, eligibleCopy map[uint32][]Validator) {
-	removeValidatorsNotInMap(unstakeLeaving, waitingCopy)
-	removeValidatorsNotInMap(unstakeLeaving, eligibleCopy)
-	removeValidatorsNotInMap(additionalLeaving, waitingCopy)
-	removeValidatorsNotInMap(additionalLeaving, eligibleCopy)
+func removeLeavingNodesNotExistingInEligibleOrWaiting(
+	leavingValidators []Validator,
+	waiting map[uint32][]Validator,
+	eligible map[uint32][]Validator,
+) ([]Validator, []Validator) {
+	notFoundValidators := make([]Validator, 0)
+
+	for _, v := range leavingValidators {
+		if !foundInMap(waiting, v) {
+			notFoundValidators = append(notFoundValidators, v)
+		}
+	}
+
+	for _, v := range leavingValidators {
+		if !foundInMap(eligible, v) {
+			notFoundValidators = append(notFoundValidators, v)
+		}
+	}
+
+	return removeValidatorsFromList(leavingValidators, notFoundValidators, len(notFoundValidators))
 }
 
 func removeLeavingNodesFromValidatorMaps(
@@ -243,14 +258,6 @@ func removeLeavingNodesFromValidatorMaps(
 	waiting, stillRemainingInLeaving = removeNodesFromMap(waiting, stillRemainingInLeaving, numToRemove)
 	eligible, stillRemainingInLeaving = removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
 	return eligible, waiting, stillRemainingInLeaving
-}
-
-func removeValidatorsNotInMap(validators []Validator, validatorsMap map[uint32][]Validator) {
-	for i, v := range validators {
-		if !foundInMap(validatorsMap, v) {
-			removeValidatorFromList(validators, i)
-		}
-	}
 }
 
 func foundInMap(nodesMap map[uint32][]Validator, validator Validator) bool {

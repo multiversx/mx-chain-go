@@ -74,7 +74,7 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeAdditionalLeaving(allVa
 			if err != nil {
 				return nil, err
 			}
-
+			log.Debug("computed leaving based on rating for validator", "pk", vInfo.GetPublicKey())
 			extraLeavingNodesMap[vInfo.ShardId] = append(extraLeavingNodesMap[vInfo.ShardId], val)
 		}
 	}

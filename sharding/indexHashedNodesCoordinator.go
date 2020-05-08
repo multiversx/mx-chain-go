@@ -516,20 +516,21 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
+	// TODO: compare with previous nodesConfig if exists
 	newNodesConfig, err := ihgs.computeNodesConfigFromList(allValidatorInfo)
 	if err != nil {
 		log.Error("could not compute nodes config from list - do nothing on nodesCoordinator epochStartPrepare")
 		return
 	}
 
-	additionalLeaving, err := ihgs.nodesCoordinatorHelper.ComputeAdditionalLeaving(allValidatorInfo)
+	additionalLeavingMap, err := ihgs.nodesCoordinatorHelper.ComputeAdditionalLeaving(allValidatorInfo)
 	if err != nil {
 		log.Error("could not compute additionalLeaving Nodes  - do nothing on nodesCoordinator epochStartPrepare")
 		return
 	}
 
 	unstakeLeaving := ihgs.createSortedListFromMap(newNodesConfig.leavingMap)
-	additionalLeavingList := ihgs.createSortedListFromMap(additionalLeaving)
+	additionalLeavingList := ihgs.createSortedListFromMap(additionalLeavingMap)
 
 	shufflerArgs := ArgsUpdateNodes{
 		Eligible:          newNodesConfig.eligibleMap,
@@ -545,6 +546,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 
 	leavingNodesMap, stillRemainingNodesMap := ihgs.createActuallyLeavingPerShards(
 		newNodesConfig.leavingMap,
+		additionalLeavingMap,
 		resUpdateNodes.Leaving,
 	)
 
@@ -561,7 +563,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	displayNodesConfiguration(
 		resUpdateNodes.Eligible,
 		resUpdateNodes.Waiting,
-		newNodesConfig.leavingMap,
+		leavingNodesMap,
 		stillRemainingNodesMap,
 		newNodesConfig.nbShards)
 
@@ -921,15 +923,15 @@ func (ihgs *indexHashedNodesCoordinator) ValidatorsWeights(validators []Validato
 }
 
 func (ihgs *indexHashedNodesCoordinator) createActuallyLeavingPerShards(
-	computedLeaving map[uint32][]Validator,
+	unstakeLeaving map[uint32][]Validator,
+	additionalLeaving map[uint32][]Validator,
 	leaving []Validator,
 ) (map[uint32][]Validator, map[uint32][]Validator) {
 	actuallyLeaving := make(map[uint32][]Validator)
 	actuallyRemaining := make(map[uint32][]Validator)
 
-	for shardId, leavingValidatorsPerShard := range computedLeaving {
+	for shardId, leavingValidatorsPerShard := range unstakeLeaving {
 		sort.Sort(validatorList(leavingValidatorsPerShard))
-
 		for _, validator := range leavingValidatorsPerShard {
 			found := false
 			for _, leavingValidator := range leaving {
@@ -945,6 +947,25 @@ func (ihgs *indexHashedNodesCoordinator) createActuallyLeavingPerShards(
 			}
 		}
 	}
+
+	for shardId, leavingValidatorsPerShard := range additionalLeaving {
+		sort.Sort(validatorList(leavingValidatorsPerShard))
+		for _, validator := range leavingValidatorsPerShard {
+			found := false
+			for _, leavingValidator := range leaving {
+				if bytes.Equal(validator.PubKey(), leavingValidator.PubKey()) {
+					found = true
+					break
+				}
+			}
+			if found {
+				actuallyLeaving[shardId] = append(actuallyLeaving[shardId], validator)
+			} else {
+				actuallyRemaining[shardId] = append(actuallyRemaining[shardId], validator)
+			}
+		}
+	}
+
 	return actuallyLeaving, actuallyRemaining
 }
 

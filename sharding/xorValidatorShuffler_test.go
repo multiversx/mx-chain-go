@@ -868,7 +868,7 @@ func TestRandXORShuffler_UpdateNodeListsNoReSharding(t *testing.T) {
 	assert.Equal(t, len(allPrevEligible)+len(allPrevWaiting), len(allNewEligible)+len(allNewWaiting))
 }
 
-func TestRandXORShuffler_UpdateNodeListsWithLeavingRemovesFromEligible(t *testing.T) {
+func TestRandXORShuffler_UpdateNodeListsWithUnstakeLeavingRemovesFromEligible(t *testing.T) {
 	t.Parallel()
 
 	eligiblePerShard := 10
@@ -906,10 +906,9 @@ func TestRandXORShuffler_UpdateNodeListsWithLeavingRemovesFromEligible(t *testin
 	previousNumberOfNodes := (eligiblePerShard + waitingPerShard) * (nbShards + 1)
 	currentNumberOfNodes := len(allNewEligible) + len(allNewWaiting) + len(resUpdateNodeList.Leaving)
 	assert.Equal(t, previousNumberOfNodes, currentNumberOfNodes)
-
 }
 
-func TestRandXORShuffler_UpdateNodeListsWithLeavingRemovesFromWaiting(t *testing.T) {
+func TestRandXORShuffler_UpdateNodeListsWithUnstakeLeavingRemovesFromWaiting(t *testing.T) {
 	t.Parallel()
 
 	eligiblePerShard := 10
@@ -949,7 +948,7 @@ func TestRandXORShuffler_UpdateNodeListsWithLeavingRemovesFromWaiting(t *testing
 	assert.Equal(t, previousNumberOfNodes, currentNumberOfNodes)
 }
 
-func TestRandXORShuffler_UpdateNodeListsWithNonExistentLeavingDoesNotRemove(t *testing.T) {
+func TestRandXORShuffler_UpdateNodeListsWithNonExistentUnstakeLeavingDoesNotRemove(t *testing.T) {
 	t.Parallel()
 
 	shuffler := NewXorValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
