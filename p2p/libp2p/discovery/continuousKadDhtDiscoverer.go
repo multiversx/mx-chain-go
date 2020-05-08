@@ -172,8 +172,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) bootstrap(ctx context.Context) {
 		kadDht := ckdd.kadDHT
 		ckdd.mutKadDht.RUnlock()
 
-		err := kadDht.Bootstrap(ckdd.context)
-		shouldReconnect := kadDht != nil && kbucket.ErrLookupFailure == err
+		shouldReconnect := kadDht != nil && kbucket.ErrLookupFailure == kadDht.Bootstrap(ckdd.context)
 		if shouldReconnect {
 			<-ckdd.ReconnectToNetwork()
 		}
