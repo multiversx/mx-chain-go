@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -174,7 +175,7 @@ func (si *stateImport) readNextElement(fileName string) (interface{}, error) {
 		return nil, err
 	}
 
-	objType, readHash, err := GetKeyTypeAndHash(key)
+	objType, _, err := GetKeyTypeAndHash(key)
 	if err != nil {
 		return nil, err
 	}
@@ -182,11 +183,6 @@ func (si *stateImport) readNextElement(fileName string) (interface{}, error) {
 	object, err := NewObject(objType)
 	if err != nil {
 		return nil, err
-	}
-
-	hash := si.hasher.Compute(string(value))
-	if !bytes.Equal(readHash, hash) {
-		return nil, update.ErrHashMissmatch
 	}
 
 	err = json.Unmarshal(value, object)
@@ -297,7 +293,7 @@ func (si *stateImport) importState(fileName string) error {
 		return err
 	}
 
-	keyType, _, err := GetKeyTypeAndHash(key)
+	keyType, rootHash, err := GetKeyTypeAndHash(key)
 	if err != nil {
 		return err
 	}
@@ -307,7 +303,11 @@ func (si *stateImport) importState(fileName string) error {
 	}
 
 	oldRootHash := value
-	log.Debug("old root hash", "value", oldRootHash)
+	log.Debug("old root hash", "value", oldRootHash, "read root hash", rootHash)
+
+	if bytes.Equal(value, trie.EmptyTrieHash) {
+		return si.saveRootHash(accountsDB, accType, shId)
+	}
 
 	var address []byte
 	var account state.AccountHandler

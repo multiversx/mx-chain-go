@@ -2,8 +2,8 @@ package process
 
 import (
 	"fmt"
+	"path"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -54,9 +54,11 @@ func NewGenesisBlockCreator(arg ArgsGenesisBlockCreator) (*genesisBlockCreator, 
 
 func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 	importConfig := gbc.arg.HardForkConfig.ImportStateStorageConfig
+	dbConfig := factory.GetDBFromConfig(importConfig.DB)
+	dbConfig.FilePath = path.Join(gbc.arg.HardForkConfig.ImportFolder, importConfig.DB.FilePath)
 	importStore, err := storageUnit.NewStorageUnitFromConf(
 		factory.GetCacherFromConfig(importConfig.Cache),
-		factory.GetDBFromConfig(importConfig.DB),
+		dbConfig,
 		factory.GetBloomFromConfig(importConfig.Bloom),
 	)
 	if err != nil {
@@ -77,7 +79,7 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 		Hasher:         gbc.arg.Hasher,
 		Marshalizer:    gbc.arg.Marshalizer,
 		ShardID:        gbc.arg.ShardCoordinator.SelfId(),
-		StorageConfig:  config.StorageConfig{},
+		StorageConfig:  gbc.arg.HardForkConfig.ImportStateStorageConfig,
 		TrieFactory:    gbc.arg.TrieFactory,
 		TriesContainer: gbc.arg.TriesContainer,
 	}

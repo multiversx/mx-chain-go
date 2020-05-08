@@ -55,9 +55,6 @@ const (
 	DataTrie
 )
 
-// SupportedAccountTypes is the list to describe the possible account types in the accounts DB
-var SupportedAccountTypes = []Type{UserAccount, ValidatorAccount, DataTrie}
-
 // atSep is a separator used for export and import to decipher needed types
 const atSep = "@"
 
@@ -102,13 +99,13 @@ func GetTrieTypeAndShId(key string) (Type, uint32, error) {
 		return UserAccount, 0, update.ErrUnknownType
 	}
 
-	accTypeInt64, err := strconv.ParseInt(splitString[2], 10, 0)
+	accTypeInt64, err := strconv.ParseInt(splitString[3], 10, 0)
 	if err != nil {
 		return UserAccount, 0, err
 	}
-	accType := getAccountType(int(accTypeInt64))
+	accType := Type(accTypeInt64)
 
-	shId, err := strconv.ParseInt(splitString[1], 10, 0)
+	shId, err := strconv.ParseInt(splitString[2], 10, 0)
 	if err != nil {
 		return UserAccount, 0, err
 	}
@@ -132,17 +129,6 @@ func getTransactionKeyTypeAndHash(splitString []string) (Type, []byte, error) {
 	return Unknown, nil, update.ErrUnknownType
 }
 
-func getAccountType(intType int) Type {
-	accType := UserAccount
-	for currType := range SupportedAccountTypes {
-		if currType == intType {
-			accType = Type(currType)
-			break
-		}
-	}
-	return accType
-}
-
 func getTrieTypeAndHash(splitString []string) (Type, []byte, error) {
 	if len(splitString) < 3 {
 		return Unknown, nil, update.ErrUnknownType
@@ -152,7 +138,7 @@ func getTrieTypeAndHash(splitString []string) (Type, []byte, error) {
 	if err != nil {
 		return Unknown, nil, err
 	}
-	accType := getAccountType(int(accTypeInt64))
+	accType := Type(accTypeInt64)
 
 	return accType, []byte(splitString[2]), nil
 }

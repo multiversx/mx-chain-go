@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -93,58 +94,8 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		}
 	}()
 
-	hardForkExport(t, nodes)
-	hardForkImport(t, nodes)
-}
-
-func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
-	createHardForkExporter(t, nodes)
-	for _, node := range nodes {
-		log.Warn("***********************************************************************************")
-		log.Warn("starting to export for node with shard", "id", node.ShardCoordinator.SelfId())
-		err := node.ExportHandler.ExportAll(1)
-		assert.Nil(t, err)
-		log.Warn("***********************************************************************************")
-	}
-}
-
-func hardForkImport(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
-	for _, node := range nodes {
-		gasSchedule := make(map[string]map[string]uint64)
-		defaults.FillGasMapInternal(gasSchedule, 1)
-		log.Warn("started import process")
-		validatorsRoothash, _ := node.ValidatorStatisticsProcessor.RootHash()
-		argsGenesis := process.ArgsGenesisBlockCreator{
-			GenesisTime:              0,
-			StartEpochNum:            10,
-			Accounts:                 node.AccntState,
-			PubkeyConv:               integrationTests.TestAddressPubkeyConverter,
-			InitialNodesSetup:        node.NodesSetup,
-			Economics:                node.EconomicsData.EconomicsData,
-			ShardCoordinator:         node.ShardCoordinator,
-			Store:                    node.Storage,
-			Blkc:                     node.BlockChain,
-			Marshalizer:              integrationTests.TestMarshalizer,
-			Hasher:                   integrationTests.TestHasher,
-			Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
-			DataPool:                 node.DataPool,
-			ValidatorStatsRootHash:   validatorsRoothash,
-			GasMap:                   gasSchedule,
-			TxLogsProcessor:          &mock.TxLogsProcessorStub{},
-			VirtualMachineConfig:     config.VirtualMachineConfig{},
-			HardForkConfig:           config.HardforkConfig{},
-			TriesContainer:           node.TrieContainer,
-			TrieFactory:              nil,
-			ChainID:                  "somethingNew",
-			SystemSCConfig:           config.SystemSmartContractsConfig{},
-		}
-
-		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)
-		require.Nil(t, err)
-		genesisBlocks, err := genesisProcessor.CreateGenesisBlocks()
-		require.Nil(t, err)
-		require.NotNil(t, genesisBlocks)
-	}
+	exportStorageConfigs := hardForkExport(t, nodes)
+	hardForkImport(t, nodes, exportStorageConfigs)
 }
 
 func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *testing.T) {
@@ -225,20 +176,145 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 		}
 	}()
 
-	hardForkExport(t, nodes)
-	hardForkImport(t, nodes)
+	exportStorageConfigs := hardForkExport(t, nodes)
+	hardForkImport(t, nodes, exportStorageConfigs)
+}
+
+func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode) []*config.StorageConfig {
+	exportStorageConfigs := createHardForkExporter(t, nodes)
+	for _, node := range nodes {
+		log.Warn("***********************************************************************************")
+		log.Warn("starting to export for node with shard", "id", node.ShardCoordinator.SelfId())
+		err := node.ExportHandler.ExportAll(1)
+		assert.Nil(t, err)
+		log.Warn("***********************************************************************************")
+	}
+	return exportStorageConfigs
+}
+
+func createConfigForTrieFactory() config.Config {
+	return config.Config{
+		StoragePruning: config.StoragePruningConfig{
+			Enabled:             false,
+			FullArchive:         true,
+			NumEpochsToKeep:     3,
+			NumActivePersisters: 3,
+		},
+		EvictionWaitingList: config.EvictionWaitingListConfig{
+			Size: 100,
+			DB: config.DBConfig{
+				FilePath:          "EvictionWaitingList",
+				Type:              "MemoryDB",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		TrieSnapshotDB: config.DBConfig{
+			FilePath:          "TrieSnapshot",
+			Type:              "MemoryDB",
+			BatchDelaySeconds: 30,
+			MaxBatchSize:      6,
+			MaxOpenFiles:      10,
+		},
+	}
+}
+
+func hardForkImport(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	importStorageConfigs []*config.StorageConfig,
+) {
+	for id, node := range nodes {
+		gasSchedule := make(map[string]map[string]uint64)
+		defaults.FillGasMapInternal(gasSchedule, 1)
+		log.Warn("started import process")
+
+		generalConfig := createConfigForTrieFactory()
+		trieFactoryArgs := trieFactory.TrieFactoryArgs{
+			EvictionWaitingListCfg:   generalConfig.EvictionWaitingList,
+			SnapshotDbCfg:            generalConfig.TrieSnapshotDB,
+			Marshalizer:              integrationTests.TestMarshalizer,
+			Hasher:                   integrationTests.TestHasher,
+			PathManager:              &mock.PathManagerStub{},
+			TrieStorageManagerConfig: generalConfig.TrieStorageManagerConfig,
+		}
+		trieFactoryObj, _ := trieFactory.NewTrieFactory(trieFactoryArgs)
+
+		validatorsRoothash, _ := node.ValidatorStatisticsProcessor.RootHash()
+		argsGenesis := process.ArgsGenesisBlockCreator{
+			GenesisTime:              0,
+			StartEpochNum:            0,
+			Accounts:                 node.AccntState,
+			PubkeyConv:               integrationTests.TestAddressPubkeyConverter,
+			InitialNodesSetup:        node.NodesSetup,
+			Economics:                node.EconomicsData.EconomicsData,
+			ShardCoordinator:         node.ShardCoordinator,
+			Store:                    node.Storage,
+			Blkc:                     node.BlockChain,
+			Marshalizer:              integrationTests.TestMarshalizer,
+			Hasher:                   integrationTests.TestHasher,
+			Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
+			DataPool:                 node.DataPool,
+			ValidatorStatsRootHash:   validatorsRoothash,
+			GasMap:                   gasSchedule,
+			TxLogsProcessor:          &mock.TxLogsProcessorStub{},
+			VirtualMachineConfig:     config.VirtualMachineConfig{},
+			HardForkConfig: config.HardforkConfig{
+				MustImport:               true,
+				ImportFolder:             node.ExportFolder,
+				StartEpoch:               1000,
+				StartNonce:               1000,
+				StartRound:               1000,
+				ImportStateStorageConfig: *importStorageConfigs[id],
+			},
+			TriesContainer: node.TrieContainer,
+			TrieFactory:    trieFactoryObj,
+			ChainID:        string(node.ChainID),
+			SystemSCConfig: config.SystemSmartContractsConfig{
+				ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+					BaseIssuingCost: "1000",
+					OwnerAddress:    "aaaaaa",
+				},
+			},
+			AccountsParser:      &mock.AccountsParserStub{},
+			SmartContractParser: &mock.SmartContractParserStub{},
+		}
+
+		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)
+		require.Nil(t, err)
+		genesisBlocks, err := genesisProcessor.CreateGenesisBlocks()
+		require.Nil(t, err)
+		require.NotNil(t, genesisBlocks)
+	}
 }
 
 func createHardForkExporter(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
-) {
+) []*config.StorageConfig {
+	exportConfigs := make([]*config.StorageConfig, 0, len(nodes))
+
 	for id, node := range nodes {
 		accountsDBs := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 		accountsDBs[state.UserAccountsState] = node.AccntState
 		accountsDBs[state.PeerAccountsState] = node.PeerState
 
 		node.ExportFolder = "./export" + fmt.Sprintf("%d", id)
+		exportConfig := config.StorageConfig{
+			Cache: config.CacheConfig{
+				Size: 100000, Type: "LRU", Shards: 1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "ExportState" + fmt.Sprintf("%d", id),
+				Type:              "LvlDBSerial",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		}
+		exportConfigs = append(exportConfigs, &exportConfig)
+
 		argsExportHandler := factory.ArgsExporter{
 			TxSignMarshalizer: integrationTests.TestTxSignMarshalizer,
 			Marshalizer:       integrationTests.TestMarshalizer,
@@ -264,34 +340,23 @@ func createHardForkExporter(
 					MaxOpenFiles:      10,
 				},
 			},
-			ExportStateStorageConfig: config.StorageConfig{
-				Cache: config.CacheConfig{
-					Size: 10000, Type: "LRU", Shards: 1,
-				},
-				DB: config.DBConfig{
-					FilePath:          "ExportState" + fmt.Sprintf("%d", id),
-					Type:              "MemoryDB",
-					BatchDelaySeconds: 30,
-					MaxBatchSize:      6,
-					MaxOpenFiles:      10,
-				},
-			},
-			WhiteListHandler:       node.WhiteListHandler,
-			WhiteListerVerifiedTxs: node.WhiteListerVerifiedTxs,
-			InterceptorsContainer:  node.InterceptorsContainer,
-			ExistingResolvers:      node.ResolversContainer,
-			MultiSigner:            node.MultiSigner,
-			NodesCoordinator:       node.NodesCoordinator,
-			SingleSigner:           node.OwnAccount.SingleSigner,
-			AddressPubkeyConverter: integrationTests.TestAddressPubkeyConverter,
-			BlockKeyGen:            node.OwnAccount.KeygenBlockSign,
-			KeyGen:                 node.OwnAccount.KeygenTxSign,
-			BlockSigner:            node.OwnAccount.BlockSingleSigner,
-			HeaderSigVerifier:      node.HeaderSigVerifier,
-			ChainID:                node.ChainID,
-			ValidityAttester:       node.BlockTracker,
-			OutputAntifloodHandler: &mock.NilAntifloodHandler{},
-			InputAntifloodHandler:  &mock.NilAntifloodHandler{},
+			ExportStateStorageConfig: exportConfig,
+			WhiteListHandler:         node.WhiteListHandler,
+			WhiteListerVerifiedTxs:   node.WhiteListerVerifiedTxs,
+			InterceptorsContainer:    node.InterceptorsContainer,
+			ExistingResolvers:        node.ResolversContainer,
+			MultiSigner:              node.MultiSigner,
+			NodesCoordinator:         node.NodesCoordinator,
+			SingleSigner:             node.OwnAccount.SingleSigner,
+			AddressPubkeyConverter:   integrationTests.TestAddressPubkeyConverter,
+			BlockKeyGen:              node.OwnAccount.KeygenBlockSign,
+			KeyGen:                   node.OwnAccount.KeygenTxSign,
+			BlockSigner:              node.OwnAccount.BlockSingleSigner,
+			HeaderSigVerifier:        node.HeaderSigVerifier,
+			ChainID:                  node.ChainID,
+			ValidityAttester:         node.BlockTracker,
+			OutputAntifloodHandler:   &mock.NilAntifloodHandler{},
+			InputAntifloodHandler:    &mock.NilAntifloodHandler{},
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)
@@ -302,6 +367,8 @@ func createHardForkExporter(
 		assert.Nil(t, err)
 		require.NotNil(t, node.ExportHandler)
 	}
+
+	return exportConfigs
 }
 
 func verifyIfNodesHaveCorrectEpoch(

@@ -179,7 +179,7 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 		return err
 	}
 
-	accType, shId, err := GetTrieTypeAndShId(key)
+	accType, shId, err := GetTrieTypeAndShId(fileName)
 	if err != nil {
 		return err
 	}

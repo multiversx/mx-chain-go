@@ -100,11 +100,13 @@ func (m *multiFileReader) ReadNextItem(fileName string) (string, []byte, error) 
 	}
 
 	hexEncoded := scanner.Text()
+
 	key, err := hex.DecodeString(hexEncoded)
 	if err != nil {
 		return "", nil, err
 	}
 
+	log.Info("import key", "key", string(key))
 	value, err := m.importStore.Get(key)
 	if err != nil {
 		return "", nil, err
