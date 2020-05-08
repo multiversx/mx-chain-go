@@ -211,15 +211,16 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 
 	ps.cacher.Put(key, data)
 
-	var persisterToUse *persisterData
-	persisterInSetEpoch, ok := ps.persistersMapByEpoch[ps.epochForPutOperation]
-	if ok && !persisterInSetEpoch.isClosed {
-		persisterToUse = persisterInSetEpoch
-	} else {
-		persisterToUse = ps.activePersisters[0]
-		log.Warn("active persister not found",
-			"epoch", ps.epochForPutOperation,
-			"used", persisterToUse.epoch)
+	persisterToUse := ps.activePersisters[0]
+	if ps.pruningEnabled {
+		persisterInSetEpoch, ok := ps.persistersMapByEpoch[ps.epochForPutOperation]
+		if ok && !persisterInSetEpoch.isClosed {
+			persisterToUse = persisterInSetEpoch
+		} else {
+			log.Warn("active persister not found",
+				"epoch", ps.epochForPutOperation,
+				"used", persisterToUse.epoch)
+		}
 	}
 
 	err := persisterToUse.persister.Put(key, data)
