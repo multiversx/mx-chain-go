@@ -36,7 +36,7 @@ const ListenAddrWithIp4AndTcp = "/ip4/0.0.0.0/tcp/"
 const ListenLocalhostAddrWithIp4AndTcp = "/ip4/127.0.0.1/tcp/"
 
 // DirectSendID represents the protocol ID for sending and receiving direct P2P messages
-const DirectSendID = protocol.ID("/directsend/1.0.0")
+const DirectSendID = protocol.ID("/erd/directsend/1.0.0")
 
 const durationBetweenSends = time.Microsecond * 10
 const durationCheckConnections = time.Second
@@ -69,7 +69,8 @@ type networkMessenger struct {
 	sharder             p2p.CommonSharder
 	peerShardResolver   p2p.PeerShardResolver
 	mutTopics           sync.RWMutex
-	topics              map[string]p2p.MessageProcessor
+	processors          map[string]p2p.MessageProcessor
+	topics              map[string]*pubsub.Topic
 	outgoingPLB         p2p.ChannelLoadBalancer
 	poc                 *peersOnChannel
 	goRoutinesThrottler *throttler.NumGoRoutinesThrottler
@@ -150,7 +151,8 @@ func createMessenger(
 	netMes := networkMessenger{
 		ctx:               args.Context,
 		p2pHost:           NewConnectableHost(p2pHost),
-		topics:            make(map[string]p2p.MessageProcessor),
+		processors:        make(map[string]p2p.MessageProcessor),
+		topics:            make(map[string]*pubsub.Topic),
 		outgoingPLB:       loadBalancer.NewOutgoingChannelLoadBalancer(),
 		peerShardResolver: &unknownPeerShardResolver{},
 	}
@@ -220,7 +222,11 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 				continue
 			}
 
-			errPublish := pubsub.Publish(sendableData.Topic, sendableData.Buff)
+			netMes.mutTopics.RLock()
+			topic := netMes.topics[sendableData.Topic]
+			netMes.mutTopics.RUnlock()
+
+			errPublish := topic.Publish(netMes.ctx, sendableData.Buff)
 			if errPublish != nil {
 				log.Trace("error sending data", "error", errPublish)
 			}
@@ -471,21 +477,22 @@ func (netMes *networkMessenger) ConnectedPeersOnTopic(topic string) []p2p.PeerID
 // CreateTopic opens a new topic using pubsub infrastructure
 func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic bool) error {
 	netMes.mutTopics.Lock()
+	defer netMes.mutTopics.Unlock()
 	_, found := netMes.topics[name]
 	if found {
-		netMes.mutTopics.Unlock()
 		return nil
 	}
 
-	//TODO investigate if calling Subscribe on the pubsub impl does exactly the same thing as Topic.Subscribe
-	// after calling pubsub.Join
-	netMes.topics[name] = nil
-	subscrRequest, err := netMes.pb.Subscribe(name)
+	topic, err := netMes.pb.Join(name)
 	if err != nil {
-		netMes.mutTopics.Unlock()
-		return err
+		return fmt.Errorf("%w for topic %s", err, name)
 	}
-	netMes.mutTopics.Unlock()
+
+	netMes.topics[name] = topic
+	subscrRequest, err := topic.Subscribe()
+	if err != nil {
+		return fmt.Errorf("%w for topic %s", err, name)
+	}
 
 	if createChannelForTopic {
 		err = netMes.outgoingPLB.AddChannel(name)
@@ -513,7 +520,7 @@ func (netMes *networkMessenger) HasTopic(name string) bool {
 // HasTopicValidator returns true if the topic has a validator set
 func (netMes *networkMessenger) HasTopicValidator(name string) bool {
 	netMes.mutTopics.RLock()
-	validator := netMes.topics[name]
+	validator := netMes.processors[name]
 	netMes.mutTopics.RUnlock()
 
 	return validator != nil
@@ -569,7 +576,7 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
-	validator := netMes.topics[topic]
+	validator := netMes.processors[topic]
 	if !check.IfNil(validator) {
 		return fmt.Errorf("%w, operation RegisterMessageProcessor, topic %s",
 			p2p.ErrTopicValidatorOperationNotSupported,
@@ -601,7 +608,7 @@ func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p
 		return err
 	}
 
-	netMes.topics[topic] = handler
+	netMes.processors[topic] = handler
 	return nil
 }
 
@@ -610,7 +617,7 @@ func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
 
-	for topic, validator := range netMes.topics {
+	for topic, validator := range netMes.processors {
 		if check.IfNil(validator) {
 			continue
 		}
@@ -620,7 +627,7 @@ func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
 			return err
 		}
 
-		netMes.topics[topic] = nil
+		netMes.processors[topic] = nil
 	}
 	return nil
 }
@@ -629,10 +636,11 @@ func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
 func (netMes *networkMessenger) UnregisterMessageProcessor(topic string) error {
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
-	validator, found := netMes.topics[topic]
+	_, found := netMes.topics[topic]
 	if !found {
 		return p2p.ErrNilTopic
 	}
+	validator := netMes.processors[topic]
 	if check.IfNil(validator) {
 		return fmt.Errorf("%w, operation UnregisterMessageProcessor, topic %s",
 			p2p.ErrTopicValidatorOperationNotSupported,
@@ -645,7 +653,7 @@ func (netMes *networkMessenger) UnregisterMessageProcessor(topic string) error {
 		return err
 	}
 
-	netMes.topics[topic] = nil
+	netMes.processors[topic] = nil
 	return nil
 }
 
@@ -658,7 +666,7 @@ func (netMes *networkMessenger) directMessageHandler(message p2p.MessageP2P, fro
 	var processor p2p.MessageProcessor
 
 	netMes.mutTopics.RLock()
-	processor = netMes.topics[message.Topics()[0]]
+	processor = netMes.processors[message.Topics()[0]]
 	netMes.mutTopics.RUnlock()
 
 	if processor == nil {

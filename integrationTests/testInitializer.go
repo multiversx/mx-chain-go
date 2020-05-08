@@ -107,7 +107,7 @@ func createP2PConfig(initialPeerList []string) config.P2PConfig {
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
 			RefreshIntervalInSec:             2,
-			RandezVous:                       "",
+			RandezVous:                       "/erd/kad/0.0.0",
 			InitialPeerList:                  initialPeerList,
 			BucketSize:                       100,
 			RoutingTableRefreshIntervalInSec: 2,

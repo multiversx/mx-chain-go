@@ -3,7 +3,6 @@ package discovery_test
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -12,9 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p-core/event"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +23,7 @@ func createTestArgument() discovery.ArgKadDht {
 		Host:                 &mock.ConnectableHostStub{},
 		KddSharder:           &mock.SharderStub{},
 		PeersRefreshInterval: time.Second,
-		RandezVous:           "",
+		RandezVous:           "/erd/test/0.0.0",
 		InitialPeersList:     []string{"peer1", "peer2"},
 		BucketSize:           100,
 		RoutingTableRefresh:  5 * time.Second,
@@ -195,6 +192,13 @@ func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShoul
 
 			return nil
 		},
+		EventBusCalled: func() event.Bus {
+			return &mock.EventBusStub{
+				SubscribeCalled: func(eventType interface{}, opts ...event.SubscriptionOpt) (event.Subscription, error) {
+					return &mock.EventSubscriptionStub{}, nil
+				},
+			}
+		},
 	}
 	ckdd, _ := discovery.NewContinuousKadDhtDiscoverer(arg)
 	chanDone := ckdd.ConnectToOnePeerFromInitialPeersList(time.Second, []string{peerID})
@@ -229,6 +233,13 @@ func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersOnePeerShoul
 			}
 
 			return nil
+		},
+		EventBusCalled: func() event.Bus {
+			return &mock.EventBusStub{
+				SubscribeCalled: func(eventType interface{}, opts ...event.SubscriptionOpt) (event.Subscription, error) {
+					return &mock.EventSubscriptionStub{}, nil
+				},
+			}
 		},
 	}
 	ckdd, _ := discovery.NewContinuousKadDhtDiscoverer(arg)
@@ -277,6 +288,13 @@ func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersTwoPeersShou
 
 			return errDidNotConnect
 		},
+		EventBusCalled: func() event.Bus {
+			return &mock.EventBusStub{
+				SubscribeCalled: func(eventType interface{}, opts ...event.SubscriptionOpt) (event.Subscription, error) {
+					return &mock.EventSubscriptionStub{}, nil
+				},
+			}
+		},
 	}
 	ckdd, _ := discovery.NewContinuousKadDhtDiscoverer(arg)
 
@@ -289,54 +307,7 @@ func TestContinuousKadDhtDiscoverer_ConnectToOnePeerFromInitialPeersTwoPeersShou
 	}
 }
 
-//---------- Protocols
-
-func TestContinuousKadDhtDiscoverer_Protocols(t *testing.T) {
-	streams := make(map[protocol.ID]network.StreamHandler)
-	notifeesCnt := 0
-	net := &mock.NetworkStub{
-		ConnectednessCalled: func(p peer.ID) network.Connectedness {
-			fmt.Printf("Conn to %s\n", p.Pretty())
-			return network.CannotConnect
-		},
-
-		NotifyCalled:     func(nn network.Notifiee) { notifeesCnt++ },
-		StopNotifyCalled: func(nn network.Notifiee) { notifeesCnt-- },
-	}
-	arg := createTestArgument()
-	arg.Host = &mock.ConnectableHostStub{
-		IDCalled: func() peer.ID {
-			return "local peer"
-		},
-		NetworkCalled: func() network.Network {
-			return net
-		},
-		SetStreamHandlerCalled: func(proto protocol.ID, sh network.StreamHandler) {
-			fmt.Printf("Set strem hndl %v\n", proto)
-			streams[proto] = sh
-		},
-		RemoveStreamHandlerCalled: func(proto protocol.ID) {
-			fmt.Printf("Remove stream %v\n", proto)
-			streams[proto] = nil
-		},
-	}
-	ckdd, _ := discovery.NewContinuousKadDhtDiscoverer(arg)
-
-	err := ckdd.Bootstrap()
-	assert.Nil(t, err)
-
-	assert.Equal(t, notifeesCnt, 1)
-	err = ckdd.UpdateRandezVous("r2")
-	assert.Nil(t, err)
-	assert.Equal(t, notifeesCnt, 1)
-	err = ckdd.StopDHT()
-	assert.Nil(t, err)
-
-	assert.Equal(t, notifeesCnt, 0)
-	for p, cb := range streams {
-		assert.Nil(t, cb, p, "should have no callback")
-	}
-}
+//TODO(this PR) add an integration test instead for protocol IDs
 
 func TestContinuousKadDhtDiscoverer_Name(t *testing.T) {
 	t.Parallel()
