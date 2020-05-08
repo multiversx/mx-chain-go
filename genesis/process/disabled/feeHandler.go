@@ -51,11 +51,16 @@ func (fh *FeeHandler) GetAccumulatedFees() *big.Int {
 }
 
 // ProcessTransactionFee does nothing
-func (fh *FeeHandler) ProcessTransactionFee(_ *big.Int, _ []byte) {
+func (fh *FeeHandler) ProcessTransactionFee(_ *big.Int, _ *big.Int, _ []byte) {
 }
 
 // RevertFees does nothing
 func (fh *FeeHandler) RevertFees(_ [][]byte) {
+}
+
+// GetDeveloperFees -
+func (fh *FeeHandler) GetDeveloperFees() *big.Int {
+	return big.NewInt(0)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

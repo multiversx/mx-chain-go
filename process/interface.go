@@ -173,7 +173,8 @@ type TransactionVerifier interface {
 type TransactionFeeHandler interface {
 	CreateBlockStarted()
 	GetAccumulatedFees() *big.Int
-	ProcessTransactionFee(cost *big.Int, txHash []byte)
+	GetDeveloperFees() *big.Int
+	ProcessTransactionFee(cost *big.Int, devFee *big.Int, txHash []byte)
 	RevertFees(txHashes [][]byte)
 	IsInterfaceNil() bool
 }
@@ -235,6 +236,14 @@ type ValidatorStatisticsProcessor interface {
 type TransactionLogProcessor interface {
 	GetLog(txHash []byte) (data.LogHandler, error)
 	SaveLog(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error
+	IsInterfaceNil() bool
+}
+
+// TransactionLogProcessorDatabase is interface the  for saving logs also in RAM
+type TransactionLogProcessorDatabase interface {
+	GetLogFromCache(txHash []byte) (data.LogHandler, bool)
+	EnableLogToBeSavedInCache()
+	Clean()
 	IsInterfaceNil() bool
 }
 

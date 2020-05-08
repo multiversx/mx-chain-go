@@ -213,3 +213,55 @@ func TestTomlExternalParser(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, cfgExternalExpected, cfg)
 }
+
+func TestAPIRoutesToml(t *testing.T) {
+	package0 := "testPackage0"
+	route0 := "testRoute0"
+	route1 := "testRoute1"
+
+	package1 := "testPackage1"
+	route2 := "testRoute2"
+
+	expectedCfg := ApiRoutesConfig{
+		APIPackages: map[string]APIPackageConfig{
+			package0: {
+				Routes: []RouteConfig{
+					{Name: route0, Open: true},
+					{Name: route1, Open: true},
+				},
+			},
+			package1: {
+				Routes: []RouteConfig{
+					{Name: route2, Open: false},
+				},
+			},
+		},
+	}
+
+	testString := `
+     # API routes configuration
+[APIPackages]
+
+[APIPackages.` + package0 + `]
+	Routes = [
+        # test comment
+        { Name = "` + route0 + `", Open = true },
+
+        # test comment
+        { Name = "` + route1 + `", Open = true },
+	]
+
+[APIPackages.` + package1 + `]
+	Routes = [
+         # test comment
+        { Name = "` + route2 + `", Open = false }
+    ]
+ `
+
+	cfg := ApiRoutesConfig{}
+
+	err := toml.Unmarshal([]byte(testString), &cfg)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedCfg, cfg)
+}

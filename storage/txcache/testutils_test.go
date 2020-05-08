@@ -2,7 +2,9 @@ package txcache
 
 import (
 	"encoding/binary"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -118,4 +120,21 @@ func measureWithStopWatch(b *testing.B, function func()) {
 
 	duration := sw.GetMeasurementsMap()["time"]
 	b.ReportMetric(duration, "time@stopWatch")
+}
+
+// waitTimeout waits for the waitgroup for the specified max timeout.
+// Returns true if waiting timed out.
+// Reference: https://stackoverflow.com/a/32843750/1475331
+func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
+	c := make(chan struct{})
+	go func() {
+		defer close(c)
+		wg.Wait()
+	}()
+	select {
+	case <-c:
+		return false // completed normally
+	case <-time.After(timeout):
+		return true // timed out
+	}
 }

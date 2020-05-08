@@ -1,6 +1,7 @@
 package builtInFunctions
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -25,7 +26,11 @@ func TestSaveUserName_ProcessBuiltinFunction(t *testing.T) {
 
 	acc, _ := state.NewUserAccount(addr)
 	vmInput := &vmcommon.ContractCallInput{
-		VMInput: vmcommon.VMInput{CallerAddr: dnsAddr, GasProvided: 50},
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  dnsAddr,
+			GasProvided: 50,
+			CallValue:   big.NewInt(0),
+		},
 	}
 
 	_, err := coa.ProcessBuiltinFunction(nil, acc, vmInput)

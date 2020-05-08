@@ -164,7 +164,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	if check.IfNil(tx) {
 		return process.ErrNilTransaction
 	}
-
 	log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "data", string(tx.GetData()))
 
 	err := sc.processSCPayment(tx, acntSnd)
@@ -186,9 +185,10 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
+	var executedBuiltIn bool
 	snapshot := sc.accounts.JournalLen()
 	defer func() {
-		if err != nil {
+		if err != nil && !executedBuiltIn {
 			errNotCritical := sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), snapshot)
 			if errNotCritical != nil {
 				log.Debug("error while processing error in smart contract processor")
@@ -209,13 +209,12 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return nil
 	}
 
-	var executed bool
-	executed, err = sc.resolveBuiltInFunctions(txHash, tx, acntSnd, acntDst, vmInput)
+	executedBuiltIn, err = sc.resolveBuiltInFunctions(txHash, tx, acntSnd, acntDst, vmInput)
 	if err != nil {
 		log.Debug("processed built in functions error", "error", err.Error())
 		return err
 	}
-	if executed {
+	if executedBuiltIn {
 		return nil
 	}
 
@@ -264,7 +263,6 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	}
 
 	newDeveloperReward := core.GetPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
-	feeForValidators := big.NewInt(0).Sub(consumedFee, newDeveloperReward)
 
 	acntDst, err = sc.reloadLocalAccount(acntDst)
 	if err != nil {
@@ -273,7 +271,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	}
 
 	acntDst.AddToDeveloperReward(newDeveloperReward)
-	sc.txFeeHandler.ProcessTransactionFee(feeForValidators, txHash)
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee, newDeveloperReward, txHash)
 
 	err = sc.accounts.SaveAccount(acntDst)
 	if err != nil {
@@ -284,7 +282,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 }
 
 func (sc *scProcessor) deleteSCRsWithValueZeroGoingToMeta(scrs []data.TransactionHandler) []data.TransactionHandler {
-	if sc.shardCoordinator.SelfId() == core.MetachainShardId {
+	if sc.shardCoordinator.SelfId() == core.MetachainShardId || len(scrs) == 0 {
 		return scrs
 	}
 
@@ -296,6 +294,7 @@ func (sc *scProcessor) deleteSCRsWithValueZeroGoingToMeta(scrs []data.Transactio
 		}
 		cleanSCRs = append(cleanSCRs, scr)
 	}
+
 	return cleanSCRs
 }
 
@@ -328,11 +327,12 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	if err != nil {
 		return false, nil
 	}
-	// return error here only if acntSnd is not nil - so this is sender shard
 
+	// return error here only if acntSnd is not nil - so this is sender shard
 	vmOutput, err := builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
 	if err != nil {
 		if !check.IfNil(acntSnd) {
+			log.Trace("built in function error at sender", "err", err, "function", vmInput.Function)
 			return true, err
 		}
 
@@ -340,7 +340,9 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	}
 
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
-	for _, outAcc := range vmOutput.OutputAccounts {
+
+	outputAccounts := sortVMOutputInsideData(vmOutput)
+	for _, outAcc := range outputAccounts {
 		storageUpdates := getSortedStorageUpdates(outAcc)
 		scTx := sc.createSmartContractResult(outAcc, tx, txHash, storageUpdates)
 		scrResults = append(scrResults, scTx)
@@ -354,7 +356,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		refund,
 		vmOutput.GasRemaining,
 		vmOutput.ReturnCode,
-		make([][]byte, 0),
+		vmOutput.ReturnData,
 		tx,
 		txHash,
 		acntSnd,
@@ -381,7 +383,7 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	}
 
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
-	sc.txFeeHandler.ProcessTransactionFee(consumedFee, txHash)
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), txHash)
 
 	return true, sc.saveAccounts(acntSnd, acntDst)
 }
@@ -425,7 +427,7 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
-	sc.txFeeHandler.ProcessTransactionFee(consumedFee, txHash)
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), txHash)
 
 	return nil
 }
@@ -530,7 +532,7 @@ func (sc *scProcessor) DeploySmartContract(
 		return nil
 	}
 
-	sc.txFeeHandler.ProcessTransactionFee(consumedFee, txHash)
+	sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), txHash)
 	sc.printScDeployed(vmOutput, tx)
 
 	return nil
