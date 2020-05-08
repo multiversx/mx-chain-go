@@ -211,7 +211,7 @@ func (nf *nodeFacade) CreateTransaction(
 	senderHex string,
 	gasPrice uint64,
 	gasLimit uint64,
-	txData []byte,
+	txData string,
 	signatureHex string,
 ) (*transaction.Transaction, []byte, error) {
 
