@@ -1,15 +1,19 @@
 package pruning_test
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/storage/leveldb"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -58,6 +62,31 @@ func getDefaultArgs() *pruning.StorerArgs {
 		NumOfActivePersisters: 2,
 		Notifier:              &mock.EpochStartNotifierStub{},
 		MaxBatchSize:          10,
+	}
+}
+
+func getDefaultArgsSerialDB() *pruning.StorerArgs {
+	cacheConf, dbConf, blConf := getDummyConfig()
+	cacheConf.Size = 40
+	persisterFactory := &mock.PersisterFactoryStub{
+		CreateCalled: func(path string) (storage.Persister, error) {
+			return leveldb.NewSerialDB(path, 1, 20, 10)
+		},
+	}
+	return &pruning.StorerArgs{
+		PruningEnabled:        true,
+		Identifier:            "id",
+		FullArchive:           false,
+		ShardCoordinator:      mock.NewShardCoordinatorMock(0, 2),
+		PathManager:           &mock.PathManagerStub{},
+		CacheConf:             cacheConf,
+		DbPath:                dbConf.FilePath,
+		PersisterFactory:      persisterFactory,
+		BloomFilterConf:       blConf,
+		NumOfEpochsToKeep:     3,
+		NumOfActivePersisters: 2,
+		Notifier:              &mock.EpochStartNotifierStub{},
+		MaxBatchSize:          20,
 	}
 }
 
@@ -475,6 +504,54 @@ func TestNewPruningStorer_ChangeEpochDbsShouldNotBeDeletedIfPruningIsDisabled(t 
 	_ = ps.ChangeEpochSimple(3)
 
 	assert.Equal(t, 1, len(persistersByPath))
+}
+
+func TestNewPruningStorer_ChangeEpochConcurrentPut(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgsSerialDB()
+	args.DbPath = "Epoch_0"
+	args.PruningEnabled = true
+	ps, err := pruning.NewPruningStorer(args)
+	require.Nil(t, err)
+	ps.SetEpochForPutOperation(0)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func(ctx context.Context) {
+		cnt := 0
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				err1 := ps.Put([]byte("key"+strconv.Itoa(cnt)), []byte("val"+strconv.Itoa(cnt)))
+				require.Nil(t, err1)
+				cnt++
+				time.Sleep(time.Millisecond)
+			}
+		}
+	}(ctx)
+
+	go func(ctx context.Context) {
+		cnt := uint32(1)
+		for {
+			select {
+			case <-ctx.Done():
+				_ = ps.DestroyUnit()
+				return
+			default:
+				err2 := ps.ChangeEpochSimple(cnt)
+				ps.SetEpochForPutOperation(cnt)
+				require.Nil(t, err2)
+				cnt++
+				time.Sleep(time.Millisecond)
+			}
+		}
+	}(ctx)
+
+	time.Sleep(time.Second * 4)
+	cancel()
+	time.Sleep(time.Second * 2)
 }
 
 func TestPruningStorer_SearchFirst(t *testing.T) {
