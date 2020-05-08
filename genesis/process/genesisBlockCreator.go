@@ -75,13 +75,12 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 	}
 
 	argsHardForkImport := hardfork.ArgsNewStateImport{
-		Reader:         multiFileReader,
-		Hasher:         gbc.arg.Hasher,
-		Marshalizer:    gbc.arg.Marshalizer,
-		ShardID:        gbc.arg.ShardCoordinator.SelfId(),
-		StorageConfig:  gbc.arg.HardForkConfig.ImportStateStorageConfig,
-		TrieFactory:    gbc.arg.TrieFactory,
-		TriesContainer: gbc.arg.TriesContainer,
+		Reader:             multiFileReader,
+		Hasher:             gbc.arg.Hasher,
+		Marshalizer:        gbc.arg.Marshalizer,
+		ShardID:            gbc.arg.ShardCoordinator.SelfId(),
+		StorageConfig:      gbc.arg.HardForkConfig.ImportStateStorageConfig,
+		TrieStorageManager: gbc.arg.TrieStorageManager,
 	}
 	importHandler, err := hardfork.NewStateImport(argsHardForkImport)
 	if err != nil {

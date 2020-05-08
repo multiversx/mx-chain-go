@@ -1,6 +1,7 @@
 package hardFork
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"math/big"
@@ -8,13 +9,14 @@ import (
 	"testing"
 	"time"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -32,7 +34,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
+	numOfShards := 1
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
@@ -151,7 +153,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	time.Sleep(time.Second)
 
 	/////////----- wait for epoch end period
-	epoch := uint32(2)
+	epoch := uint32(1)
 	nrRoundsToPropagateMultiShard := uint64(6)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -176,6 +178,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 		}
 	}()
 
+	//_ = logger.SetLogLevel("update/files:TRACE,*:DEBUG")
 	exportStorageConfigs := hardForkExport(t, nodes)
 	hardForkImport(t, nodes, exportStorageConfigs)
 }
@@ -192,56 +195,19 @@ func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode) [
 	return exportStorageConfigs
 }
 
-func createConfigForTrieFactory() config.Config {
-	return config.Config{
-		StoragePruning: config.StoragePruningConfig{
-			Enabled:             false,
-			FullArchive:         true,
-			NumEpochsToKeep:     3,
-			NumActivePersisters: 3,
-		},
-		EvictionWaitingList: config.EvictionWaitingListConfig{
-			Size: 100,
-			DB: config.DBConfig{
-				FilePath:          "EvictionWaitingList",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
-		TrieSnapshotDB: config.DBConfig{
-			FilePath:          "TrieSnapshot",
-			Type:              "MemoryDB",
-			BatchDelaySeconds: 30,
-			MaxBatchSize:      6,
-			MaxOpenFiles:      10,
-		},
-	}
-}
-
 func hardForkImport(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
 	importStorageConfigs []*config.StorageConfig,
 ) {
 	for id, node := range nodes {
-		gasSchedule := make(map[string]map[string]uint64)
+		gasSchedule := arwenConfig.MakeGasMap(1)
 		defaults.FillGasMapInternal(gasSchedule, 1)
 		log.Warn("started import process")
 
-		generalConfig := createConfigForTrieFactory()
-		trieFactoryArgs := trieFactory.TrieFactoryArgs{
-			EvictionWaitingListCfg:   generalConfig.EvictionWaitingList,
-			SnapshotDbCfg:            generalConfig.TrieSnapshotDB,
-			Marshalizer:              integrationTests.TestMarshalizer,
-			Hasher:                   integrationTests.TestHasher,
-			PathManager:              &mock.PathManagerStub{},
-			TrieStorageManagerConfig: generalConfig.TrieStorageManagerConfig,
-		}
-		trieFactoryObj, _ := trieFactory.NewTrieFactory(trieFactoryArgs)
-
+		trieStorageManager, _ := trie.NewTrieStorageManagerWithoutPruning(integrationTests.CreateMemUnit())
 		validatorsRoothash, _ := node.ValidatorStatisticsProcessor.RootHash()
+
 		argsGenesis := process.ArgsGenesisBlockCreator{
 			GenesisTime:              0,
 			StartEpochNum:            0,
@@ -268,9 +234,8 @@ func hardForkImport(
 				StartRound:               1000,
 				ImportStateStorageConfig: *importStorageConfigs[id],
 			},
-			TriesContainer: node.TrieContainer,
-			TrieFactory:    trieFactoryObj,
-			ChainID:        string(node.ChainID),
+			TrieStorageManager: trieStorageManager,
+			ChainID:            string(node.ChainID),
 			SystemSCConfig: config.SystemSmartContractsConfig{
 				ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 					BaseIssuingCost: "1000",
@@ -286,6 +251,20 @@ func hardForkImport(
 		genesisBlocks, err := genesisProcessor.CreateGenesisBlocks()
 		require.Nil(t, err)
 		require.NotNil(t, genesisBlocks)
+
+		node.GenesisBlocks = genesisBlocks
+		for _, genesisBlock := range genesisBlocks {
+			log.Info("hardfork genesisblock roothash", "shardID", genesisBlock.GetShardID(), "rootHash", genesisBlock.GetRootHash())
+		}
+	}
+
+	for _, nodeA := range nodes {
+		for _, nodeB := range nodes {
+			for _, genesisBlockA := range nodeA.GenesisBlocks {
+				genesisBlockB := nodeB.GenesisBlocks[genesisBlockA.GetShardID()]
+				assert.True(t, bytes.Equal(genesisBlockA.GetRootHash(), genesisBlockB.GetRootHash()))
+			}
+		}
 	}
 }
 

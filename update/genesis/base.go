@@ -80,12 +80,12 @@ func NewObject(objType Type) (interface{}, error) {
 }
 
 // NewEmptyAccount returns a new account according to the given type
-func NewEmptyAccount(accType Type) (state.AccountHandler, error) {
+func NewEmptyAccount(accType Type, address []byte) (state.AccountHandler, error) {
 	switch accType {
 	case UserAccount:
-		return state.NewEmptyUserAccount(), nil
+		return state.NewUserAccount(address)
 	case ValidatorAccount:
-		return state.NewEmptyPeerAccount(), nil
+		return state.NewPeerAccount(address)
 	case DataTrie:
 		return nil, nil
 	}

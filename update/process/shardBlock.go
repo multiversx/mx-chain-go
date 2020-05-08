@@ -71,6 +71,11 @@ func (s *shardBlockCreator) CreateNewBlock(
 	nonce uint64,
 	epoch uint32,
 ) (data.HeaderHandler, data.BodyHandler, error) {
+	blockBody, err := s.createBody()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	rootHash, err := s.pendingTxProcessor.RootHash()
 	if err != nil {
 		return nil, nil, err
@@ -88,11 +93,6 @@ func (s *shardBlockCreator) CreateNewBlock(
 		PrevRandSeed:    rootHash,
 		AccumulatedFees: big.NewInt(0),
 		PubKeysBitmap:   []byte{1},
-	}
-
-	blockBody, err := s.createBody()
-	if err != nil {
-		return nil, nil, err
 	}
 
 	shardHeader.ReceiptsHash, err = s.txCoordinator.CreateReceiptsHash()

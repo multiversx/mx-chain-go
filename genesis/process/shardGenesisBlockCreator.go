@@ -39,6 +39,10 @@ type deployedScMetrics struct {
 
 // CreateShardGenesisBlock will create a shard genesis block
 func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter) (data.HeaderHandler, error) {
+	if arg.HardForkConfig.MustImport {
+		return createShardGenesisAfterHardFork(arg)
+	}
+
 	processors, err := createProcessorsForShard(arg)
 	if err != nil {
 		return nil, err
@@ -92,12 +96,6 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 		"cross shard delegation calls", numCrossShardDelegations,
 	)
 
-	if arg.HardForkConfig.MustImport {
-		//TODO think about how to integrate when genesis is modified as well for hardfork - when should set balances be called
-		// shard genesis probably should stay the same as it was  defined for the actual genesis block - because of transparency
-		return createShardGenesisAfterHardFork(arg)
-	}
-
 	header := &block.Header{
 		Nonce:           0,
 		ShardID:         arg.ShardCoordinator.SelfId(),
@@ -115,6 +113,7 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 }
 
 func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHandler, error) {
+	arg.Accounts = arg.importHandler.GetAccountsDBForShard(arg.ShardCoordinator.SelfId())
 	processors, err := createProcessorsForShard(arg)
 	if err != nil {
 		return nil, err

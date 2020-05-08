@@ -37,8 +37,7 @@ type ArgsGenesisBlockCreator struct {
 	TxLogsProcessor          process.TransactionLogProcessor
 	VirtualMachineConfig     config.VirtualMachineConfig
 	HardForkConfig           config.HardforkConfig
-	TriesContainer           state.TriesHolder
-	TrieFactory              data.TrieFactory
+	TrieStorageManager       data.StorageManager
 	ChainID                  string
 	SystemSCConfig           config.SystemSmartContractsConfig
 
