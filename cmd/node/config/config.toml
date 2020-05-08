@@ -171,7 +171,7 @@
         MaxOpenFiles = 10
 
 [EvictionWaitingList]
-    Size = 1000
+    Size = 10000
     [EvictionWaitingList.DB]
         FilePath = "EvictionWaitingList"
         Type = "LvlDBSerial"
@@ -340,7 +340,7 @@
 
 # The marshalizer used in transaction signing
 [TxSignMarshalizer]
-   Type = "json"
+   Type = "tx-json"
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]

@@ -444,7 +444,7 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	sender := ""
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := []byte("-")
+	txData := "-"
 	signature := "-"
 
 	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
@@ -476,7 +476,7 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	sender := ""
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := []byte("-")
+	txData := "-"
 	signature := "-"
 
 	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
@@ -510,7 +510,7 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	sender := "snd"
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := []byte("-")
+	txData := "-"
 	signature := "-"
 
 	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
@@ -550,7 +550,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	sender := "snd"
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := []byte("-")
+	txData := "-"
 	signature := "617eff4f"
 
 	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
