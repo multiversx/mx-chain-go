@@ -841,7 +841,7 @@ func (n *Node) CreateTransaction(
 	sender string,
 	gasPrice uint64,
 	gasLimit uint64,
-	dataField []byte,
+	dataField string,
 	signatureHex string,
 ) (*transaction.Transaction, []byte, error) {
 
@@ -879,7 +879,7 @@ func (n *Node) CreateTransaction(
 		SndAddr:   senderAddress,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      dataField,
+		Data:      []byte(dataField),
 		Signature: signatureBytes,
 	}
 

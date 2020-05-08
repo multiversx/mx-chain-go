@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -121,7 +122,7 @@ func TestStakingSC_ExecuteInit(t *testing.T) {
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 	arguments := CreateVmContractCallInput()
-	arguments.Function = "_init"
+	arguments.Function = core.SCDeployInitFunctionName
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
@@ -145,7 +146,7 @@ func TestStakingSC_ExecuteInitTwoTimeShouldReturnUserError(t *testing.T) {
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
 	arguments := CreateVmContractCallInput()
-	arguments.Function = "_init"
+	arguments.Function = core.SCDeployInitFunctionName
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)

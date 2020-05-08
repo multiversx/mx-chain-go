@@ -188,7 +188,7 @@
 
 [TrieStorageManagerConfig]
     PruningBufferLen = 1000
-    SnapshotsBufferLen = 10
+    SnapshotsBufferLen = 1000000
     MaxSnapshots = 2
 
 [PeerAccountsTrieStorage]
@@ -340,7 +340,7 @@
 
 # The marshalizer used in transaction signing
 [TxSignMarshalizer]
-   Type = "json"
+   Type = "tx-json"
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]

@@ -117,7 +117,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	endOfEpoch.VerifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 
 	epochHandler := &mock.EpochStartTriggerStub{
-		EpochCalled: func() uint32 {
+		MetaEpochCalled: func() uint32 {
 			return epoch
 		},
 	}
