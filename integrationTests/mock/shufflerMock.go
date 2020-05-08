@@ -21,7 +21,7 @@ func (nsm *NodeShufflerMock) UpdateNodeLists(args sharding.ArgsUpdateNodes) shar
 	return sharding.ResUpdateNodes{
 		Eligible:       args.Eligible,
 		Waiting:        args.Waiting,
-		Leaving:        args.UnstakeLeaving,
+		Leaving:        args.UnStakeLeaving,
 		StillRemaining: make([]sharding.Validator, 0),
 	}
 }

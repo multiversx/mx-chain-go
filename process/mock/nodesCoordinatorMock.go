@@ -166,7 +166,7 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 
 // ComputeAdditionalLeaving -
 func (ncm *NodesCoordinatorMock) ComputeAdditionalLeaving([]*state.ShardValidatorInfo) (map[uint32][]sharding.Validator, error) {
-	return make(map[uint32][]sharding.Validator, 0), nil
+	return make(map[uint32][]sharding.Validator), nil
 }
 
 // ComputeConsensusGroup -

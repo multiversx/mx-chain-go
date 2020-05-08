@@ -820,6 +820,7 @@ func TestRandXORShuffler_UpdateParams(t *testing.T) {
 		metaHysteresis:       0,
 		adaptivity:           true,
 		shuffleBetweenShards: true,
+		validatorDistributor: &CrossShardValidatorDistributor{},
 	}
 
 	shuffler.UpdateParams(
@@ -853,7 +854,7 @@ func TestRandXORShuffler_UpdateNodeListsNoReSharding(t *testing.T) {
 		Eligible:          eligibleMap,
 		Waiting:           waitingMap,
 		NewNodes:          newNodes,
-		UnstakeLeaving:    leavingNodes,
+		UnStakeLeaving:    leavingNodes,
 		AdditionalLeaving: extraLeavingNodes,
 		Rand:              randomness,
 	}
@@ -887,7 +888,7 @@ func TestRandXORShuffler_UpdateNodeListsWithUnstakeLeavingRemovesFromEligible(t 
 
 	args := createShufflerArgs(eligiblePerShard, waitingPerShard, uint32(nbShards))
 
-	args.UnstakeLeaving = []Validator{
+	args.UnStakeLeaving = []Validator{
 		args.Eligible[core.MetachainShardId][0],
 		args.Eligible[core.MetachainShardId][1],
 	}
@@ -927,7 +928,7 @@ func TestRandXORShuffler_UpdateNodeListsWithUnstakeLeavingRemovesFromWaiting(t *
 
 	args := createShufflerArgs(eligiblePerShard, waitingPerShard, uint32(nbShards))
 
-	args.UnstakeLeaving = []Validator{
+	args.UnStakeLeaving = []Validator{
 		args.Waiting[core.MetachainShardId][0],
 		args.Waiting[core.MetachainShardId][1],
 	}
@@ -959,7 +960,7 @@ func TestRandXORShuffler_UpdateNodeListsWithNonExistentUnstakeLeavingDoesNotRemo
 
 	args := createShufflerArgs(eligiblePerShard, waitingPerShard, nbShards)
 
-	args.UnstakeLeaving = []Validator{
+	args.UnStakeLeaving = []Validator{
 		&validator{
 			pubKey: generateRandomByteArray(32),
 		},
@@ -983,7 +984,7 @@ func TestRandXORShuffler_UpdateNodeListsWithNonExistentUnstakeLeavingDoesNotRemo
 	}
 
 	for i := range resUpdateNodeList.Leaving {
-		assert.Equal(t, args.UnstakeLeaving[i], resUpdateNodeList.Leaving[i])
+		assert.Equal(t, args.UnStakeLeaving[i], resUpdateNodeList.Leaving[i])
 	}
 }
 
@@ -1027,7 +1028,7 @@ func TestRandXORShuffler_UpdateNodeListsWithRangeOnMaps(t *testing.T) {
 			allValidators = removeValidatorFromList(allValidators, randIndex)
 		}
 
-		args.UnstakeLeaving = leavingValidators
+		args.UnStakeLeaving = leavingValidators
 
 		resUpdateNodeListInitial := shuffler.UpdateNodeLists(args)
 
@@ -1062,7 +1063,7 @@ func TestRandXORShuffler_UpdateNodeListsNoReShardingIntraShardShuffling(t *testi
 		Eligible:          eligibleMap,
 		Waiting:           waitingMap,
 		NewNodes:          newNodes,
-		UnstakeLeaving:    leavingNodes,
+		UnStakeLeaving:    leavingNodes,
 		AdditionalLeaving: additionalLeavingNodes,
 		Rand:              randomness,
 	}
@@ -1101,7 +1102,7 @@ func createShufflerArgs(eligiblePerShard int, waitingPerShard int, nbShards uint
 		Eligible:          eligibleMap,
 		Waiting:           waitingMap,
 		NewNodes:          newNodes,
-		UnstakeLeaving:    leavingNodes,
+		UnStakeLeaving:    leavingNodes,
 		AdditionalLeaving: additionalLeaving,
 		Rand:              randomness,
 	}
