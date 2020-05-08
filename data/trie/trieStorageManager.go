@@ -188,6 +188,7 @@ func (tsm *trieStorageManager) Prune(rootHash []byte, identifier data.TriePrunin
 
 	if tsm.snapshotInProgress > 0 {
 		if identifier == data.NewRoot {
+			tsm.cancelPrune(rootHash)
 			return
 		}
 
