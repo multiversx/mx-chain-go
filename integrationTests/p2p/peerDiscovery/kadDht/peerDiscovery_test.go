@@ -191,6 +191,10 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiserAndProtocolID(t *testing
 	assert.Equal(t, message, messageProcessors[0].GetLastMessage())
 	assert.Equal(t, message, messageProcessors[1].GetLastMessage())
 	assert.Nil(t, messageProcessors[2].GetLastMessage())
+
+	assert.Equal(t, 2, len(peer1.ConnectedPeers()))
+	assert.Equal(t, 2, len(peer2.ConnectedPeers()))
+	assert.Equal(t, 1, len(peer3.ConnectedPeers()))
 }
 
 func assignProcessors(peers []p2p.Messenger, topic string) []*peerDiscovery.SimpleMessageProcessor {
