@@ -111,8 +111,8 @@ func (ewl *EvictionWaitingList) IsInterfaceNil() bool {
 	return ewl == nil
 }
 
-// PresentInNewHashes --
-func (ewl *EvictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
+// ShouldKeepHash --
+func (ewl *EvictionWaitingList) ShouldKeepHash(hash string, identifier data.TriePruningIdentifier) (bool, error) {
 	ewl.OpMutex.Lock()
 	defer ewl.OpMutex.Unlock()
 
@@ -122,7 +122,7 @@ func (ewl *EvictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
 		}
 
 		lastByte := key[len(key)-1]
-		if data.TriePruningIdentifier(lastByte) == data.OldRoot {
+		if data.TriePruningIdentifier(lastByte) == data.OldRoot && identifier == data.OldRoot {
 			continue
 		}
 

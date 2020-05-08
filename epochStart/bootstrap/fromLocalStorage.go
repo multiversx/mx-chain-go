@@ -76,8 +76,15 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return parameters, nil
 	}
 
+	e.shuffledOut = isShuffledOut
 	log.Debug("prepareEpochFromStorage for shuffled out", "initial shard id", e.baseData.shardId, "new shard id", newShardId)
 	e.baseData.shardId = newShardId
+
+	err = e.createRequestHandler()
+	if err != nil {
+		return Parameters{}, err
+	}
+
 	err = e.createSyncers()
 	if err != nil {
 		return Parameters{}, err

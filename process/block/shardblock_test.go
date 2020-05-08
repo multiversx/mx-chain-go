@@ -826,6 +826,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 		RootHash:         []byte("rootHash"),
 		MiniBlockHeaders: mbHdrs,
 		AccumulatedFees:  big.NewInt(0),
+		DeveloperFees:    big.NewInt(0),
 	}
 
 	// set accounts not dirty
@@ -912,6 +913,7 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 		RootHash:         rootHash,
 		MiniBlockHeaders: mbHdrs,
 		AccumulatedFees:  big.NewInt(0),
+		DeveloperFees:    big.NewInt(0),
 	}
 	// set accounts not dirty
 	journalLen := func() int { return 0 }
@@ -1744,6 +1746,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		RootHash:        rootHash,
 		PrevRandSeed:    randSeed,
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 	mb := block.MiniBlock{
 		TxHashes: [][]byte{txHash},
@@ -1848,6 +1851,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 		RootHash:        rootHash,
 		PrevRandSeed:    randSeed,
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 	mb := block.MiniBlock{
 		TxHashes: [][]byte{txHash},
@@ -3095,7 +3099,8 @@ func TestShardProcessor_DecodeBlockHeader(t *testing.T) {
 	hdr.Nonce = 1
 	hdr.TimeStamp = uint64(0)
 	hdr.Signature = []byte("A")
-	hdr.AccumulatedFees = new(big.Int)
+	hdr.AccumulatedFees = big.NewInt(0)
+	hdr.DeveloperFees = big.NewInt(0)
 	_, err = marshalizerMock.Marshal(hdr)
 	assert.Nil(t, err)
 

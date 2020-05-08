@@ -98,6 +98,7 @@ type Process struct {
 	BlockTracker             process.BlockTracker
 	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
 	RequestHandler           process.RequestHandler
+	TxLogsProcessor          process.TransactionLogProcessorDatabase
 }
 
 type processComponentsFactoryArgs struct {
@@ -450,6 +451,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		BlockTracker:             blockTracker,
 		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
 		RequestHandler:           requestHandler,
+		TxLogsProcessor:          txLogsProcessor,
 	}, nil
 }
 
