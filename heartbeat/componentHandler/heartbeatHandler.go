@@ -55,7 +55,6 @@ type HeartbeatHandler struct {
 	monitor    *process.Monitor
 	sender     *process.Sender
 	arg        ArgHeartbeat
-	ctx        context.Context
 	cancelFunc func()
 }
 
@@ -190,8 +189,9 @@ func (hbh *HeartbeatHandler) create() error {
 		return err
 	}
 
-	hbh.ctx, hbh.cancelFunc = context.WithCancel(context.Background())
-	go hbh.startSendingHeartbeats()
+	var ctx context.Context
+	ctx, hbh.cancelFunc = context.WithCancel(context.Background())
+	go hbh.startSendingHeartbeats(ctx)
 
 	return nil
 }
@@ -210,7 +210,7 @@ func (hbh *HeartbeatHandler) getLatestValidators() (map[uint32][]*state.Validato
 	return validators, nil, nil
 }
 
-func (hbh *HeartbeatHandler) startSendingHeartbeats() {
+func (hbh *HeartbeatHandler) startSendingHeartbeats(ctx context.Context) {
 	r := rand.New(rand.NewSource(time.Now().Unix()))
 	cfg := hbh.arg.HeartbeatConfig
 
@@ -223,7 +223,7 @@ func (hbh *HeartbeatHandler) startSendingHeartbeats() {
 		timeToWait := time.Second*time.Duration(cfg.MinTimeToWaitBetweenBroadcastsInSec) + time.Duration(randomNanos)
 
 		select {
-		case <-hbh.ctx.Done():
+		case <-ctx.Done():
 			log.Debug("heartbeat's go routine is stopping...")
 			return
 		case <-time.After(timeToWait):
