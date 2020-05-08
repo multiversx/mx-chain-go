@@ -329,7 +329,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkAfterMulti
 	go func() {
 		index := 0
 		for {
-			time.Sleep(DurationBetweenChecksForEpochStartMetaBlock - 10*time.Millisecond)
+			time.Sleep(durationBetweenChecks - 10*time.Millisecond)
 			_ = esmbp.Save(intData, p2p.PeerID(fmt.Sprintf("peer_%d", index)))
 			_ = esmbp.Save(intData, p2p.PeerID(fmt.Sprintf("peer_%d", index+1)))
 			index += 2
@@ -370,7 +370,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkAfterMulti
 	go func() {
 		index := 0
 		for {
-			time.Sleep(DurationBetweenReRequest - 10*time.Millisecond)
+			time.Sleep(durationBetweenReRequests - 10*time.Millisecond)
 			_ = esmbp.Save(intData, p2p.PeerID(fmt.Sprintf("peer_%d", index)))
 			_ = esmbp.Save(intData, p2p.PeerID(fmt.Sprintf("peer_%d", index+1)))
 			index += 2

@@ -264,7 +264,3 @@ func (e *epochStartMetaBlockProcessor) GetMapMetaBlock() map[string]*block.MetaB
 
 	return e.mapReceivedMetaBlocks
 }
-
-const DurationBetweenChecksForEpochStartMetaBlock = durationBetweenChecks
-
-const DurationBetweenReRequest = durationBetweenReRequests

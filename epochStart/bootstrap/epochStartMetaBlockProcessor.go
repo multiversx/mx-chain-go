@@ -64,7 +64,7 @@ func NewEpochStartMetaBlockProcessor(
 		return nil, epochStart.ErrInvalidConsensusThreshold
 	}
 	if minNumConnectedPeers < 1 {
-		return nil, epochStart.ErrNotEnoughMinNumConnectedPeers
+		return nil, epochStart.ErrNotEnoughNumConnectedPeers
 	}
 	if minNumOfPeersToConsiderBlockValid < 1 {
 		return nil, epochStart.ErrNotEnoughNumOfPeersToConsiderBlockValid

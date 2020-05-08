@@ -212,8 +212,8 @@ var ErrNilLatestStorageDataProvider = errors.New("nil latest storage data provid
 // ErrNilShuffler signals that a nil shuffler was provided
 var ErrNilShuffler = errors.New("nil nodes shuffler provided")
 
-// ErrNotEnoughMinNumConnectedPeers signals that config is invalid for num of connected peers
-var ErrNotEnoughMinNumConnectedPeers = errors.New("not enough min num of connected peers from config")
+// ErrNotEnoughNumConnectedPeers signals that config is invalid for num of connected peers
+var ErrNotEnoughNumConnectedPeers = errors.New("not enough min num of connected peers from config")
 
 // ErrNotEnoughNumOfPeersToConsiderBlockValid signals that config is invalid for num of peer to consider block valid
 var ErrNotEnoughNumOfPeersToConsiderBlockValid = errors.New("not enough num of peers to consider block valid from config")
