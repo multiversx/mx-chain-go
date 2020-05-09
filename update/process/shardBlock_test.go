@@ -165,7 +165,7 @@ func TestCreateNewBlock(t *testing.T) {
 		AccumulatedFees: big.NewInt(0),
 		PubKeysBitmap:   []byte{1},
 	}
-	header, body, err := shardBlockCreator.CreateNewBlock(chainID, round, nonce, epoch)
+	header, body, err := shardBlockCreator.CreateNewBlock(chainID, round, "", nonce, epoch)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedBody, body)
 	assert.Equal(t, expectedHeader, header)

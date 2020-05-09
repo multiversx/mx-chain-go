@@ -80,7 +80,7 @@ func (a *afterHardFork) CreateAllBlocksAfterHardfork(
 			return nil, nil, update.ErrNilHardForkBlockProcessor
 		}
 
-		hdr, body, err := blockProcessor.CreateNewBlock(chainID, round, nonce, epoch)
+		hdr, body, err := blockProcessor.CreateNewBlock(chainID, "", round, nonce, epoch)
 		if err != nil {
 			return nil, nil, err
 		}

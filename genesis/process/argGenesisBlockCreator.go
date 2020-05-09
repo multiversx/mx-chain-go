@@ -17,6 +17,7 @@ import (
 
 // ArgsGenesisBlockCreator holds the arguments which are needed to create a genesis metablock
 type ArgsGenesisBlockCreator struct {
+	Version                  string
 	GenesisTime              uint64
 	StartEpochNum            uint32
 	Accounts                 state.AccountsAdapter

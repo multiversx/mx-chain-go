@@ -1144,6 +1144,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		validatorPubkeyConverter,
 		ratingsData,
 		systemSCConfig,
+		version,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {

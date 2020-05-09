@@ -65,12 +65,7 @@ func NewShardBlockCreatorAfterHardFork(args ArgsNewShardBlockCreatorAfterHardFor
 }
 
 // CreateNewBlock will create a new block after hardfork import
-func (s *shardBlockCreator) CreateNewBlock(
-	chainID string,
-	round uint64,
-	nonce uint64,
-	epoch uint32,
-) (data.HeaderHandler, data.BodyHandler, error) {
+func (s *shardBlockCreator) CreateNewBlock(chainID string, version string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, data.BodyHandler, error) {
 	blockBody, err := s.createBody()
 	if err != nil {
 		return nil, nil, err

@@ -52,12 +52,7 @@ func NewMetaBlockCreatorAfterHardfork(args ArgsNewMetaBlockCreatorAfterHardfork)
 }
 
 // CreateNewBlock will create a new block after hardfork import
-func (m *metaBlockCreator) CreateNewBlock(
-	chainID string,
-	round uint64,
-	nonce uint64,
-	epoch uint32,
-) (data.HeaderHandler, data.BodyHandler, error) {
+func (m *metaBlockCreator) CreateNewBlock(chainID string, version string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, data.BodyHandler, error) {
 	validatorAccounts := m.importHandler.GetValidatorAccountsDB()
 	if check.IfNil(validatorAccounts) {
 		return nil, nil, update.ErrNilAccounts

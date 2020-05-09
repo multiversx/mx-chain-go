@@ -137,6 +137,7 @@ type processComponentsFactoryArgs struct {
 	validatorPubkeyConverter  state.PubkeyConverter
 	systemSCConfig            *config.SystemSmartContractsConfig
 	txLogsProcessor           process.TransactionLogProcessor
+	version                   string
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -174,6 +175,7 @@ func NewProcessComponentsFactoryArgs(
 	validatorPubkeyConverter state.PubkeyConverter,
 	ratingsData process.RatingsInfoHandler,
 	systemSCConfig *config.SystemSmartContractsConfig,
+	version string,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -210,6 +212,7 @@ func NewProcessComponentsFactoryArgs(
 		maxRating:                 maxRating,
 		validatorPubkeyConverter:  validatorPubkeyConverter,
 		systemSCConfig:            systemSCConfig,
+		version:                   version,
 	}
 }
 
@@ -872,6 +875,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	}
 
 	arg := genesisProcess.ArgsGenesisBlockCreator{
+		Version:                  args.version,
 		GenesisTime:              uint64(nodesSetup.StartTime),
 		StartEpochNum:            args.startEpochNum,
 		Accounts:                 stateComponents.AccountsAdapter,
@@ -998,6 +1002,7 @@ func newBlockProcessor(
 			processArgs.minSizeInBytes,
 			processArgs.maxSizeInBytes,
 			txLogsProcessor,
+			processArgs.version,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1027,6 +1032,7 @@ func newBlockProcessor(
 			processArgs.nodesConfig,
 			txLogsProcessor,
 			processArgs.systemSCConfig,
+			processArgs.version,
 		)
 	}
 
@@ -1054,6 +1060,7 @@ func newShardBlockProcessor(
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
 	txLogsProcessor process.TransactionLogProcessor,
+	version string,
 ) (process.BlockProcessor, error) {
 	argsParser := vmcommon.NewAtArgumentParser()
 
@@ -1253,6 +1260,7 @@ func newShardBlockProcessor(
 	accountsDb[state.UserAccountsState] = stateComponents.AccountsAdapter
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
+		Version:                version,
 		AccountsDB:             accountsDb,
 		ForkDetector:           forkDetector,
 		Hasher:                 core.Hasher,
@@ -1319,6 +1327,7 @@ func newMetaBlockProcessor(
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	txLogsProcessor process.TransactionLogProcessor,
 	systemSCConfig *config.SystemSmartContractsConfig,
+	version string,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -1576,6 +1585,7 @@ func newMetaBlockProcessor(
 	accountsDb[state.PeerAccountsState] = stateComponents.PeerAccounts
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
+		Version:                version,
 		AccountsDB:             accountsDb,
 		ForkDetector:           forkDetector,
 		Hasher:                 core.Hasher,
