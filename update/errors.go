@@ -195,4 +195,4 @@ var ErrNilPendingTxProcessor = errors.New("nil pending tx processor")
 var ErrNilHardForkBlockProcessor = errors.New("nil hard fork block processor")
 
 // ErrNilTrieStorageManager signals that nil trie storage manager has been provided
-var ErrNilTrieStorageManager = errors.New("nil storage manager has been factory")
+var ErrNilTrieStorageManager = errors.New("nil trie storage")

@@ -326,12 +326,12 @@ func (si *stateImport) importState(fileName string) error {
 	}
 
 	// read root hash - that is the first saved in the file
-	key, value, err := si.reader.ReadNextItem(fileName)
+	key, rootHash, err := si.reader.ReadNextItem(fileName)
 	if err != nil {
 		return err
 	}
 
-	keyType, rootHash, err := GetKeyTypeAndHash(key)
+	keyType, _, err := GetKeyTypeAndHash(key)
 	if err != nil {
 		return err
 	}
@@ -340,17 +340,15 @@ func (si *stateImport) importState(fileName string) error {
 		return fmt.Errorf("%w wanted a roothash", update.ErrWrongTypeAssertion)
 	}
 
-	oldRootHash := value
-	log.Debug("old root hash", "value", oldRootHash, "read root hash", rootHash)
-
-	if bytes.Equal(value, trie.EmptyTrieHash) {
+	if bytes.Equal(rootHash, trie.EmptyTrieHash) {
 		return si.saveRootHash(accountsDB, accType, shId)
 	}
 
+	var marshalledData []byte
 	var address []byte
 	var account state.AccountHandler
 	for {
-		key, value, err = si.reader.ReadNextItem(fileName)
+		key, marshalledData, err = si.reader.ReadNextItem(fileName)
 		if err != nil {
 			break
 		}
@@ -365,10 +363,10 @@ func (si *stateImport) importState(fileName string) error {
 			break
 		}
 
-		err = json.Unmarshal(value, account)
+		err = json.Unmarshal(marshalledData, account)
 		if err != nil {
 			log.Trace("error unmarshaling account this is maybe a code", "address", address, "error", err)
-			err = mainTrie.Update(address, value)
+			err = mainTrie.Update(address, marshalledData)
 			if err != nil {
 				break
 			}
@@ -398,7 +396,7 @@ func (si *stateImport) saveRootHash(accountsDB state.AccountsAdapter, accType Ty
 		accountsDB.SnapshotState(rootHash)
 	}
 
-	log.Info("imported state rootHash", "rootHash", rootHash, "shID", shardID)
+	log.Info("imported state", "rootHash", rootHash, "shID", shardID)
 	if accType == ValidatorAccount {
 		si.validatorsRootHash = rootHash
 		si.validatorDB = accountsDB

@@ -106,7 +106,7 @@ func (m *multiFileReader) ReadNextItem(fileName string) (string, []byte, error) 
 		return "", nil, err
 	}
 
-	log.Trace("import key", "key", string(key))
+	log.Trace("import", "key", string(key))
 	value, err := m.importStore.Get(key)
 	if err != nil {
 		return "", nil, err

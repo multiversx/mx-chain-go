@@ -72,12 +72,12 @@ func (m *metaBlockCreator) CreateNewBlock(
 	if check.IfNil(accounts) {
 		return nil, nil, update.ErrNilAccounts
 	}
+
 	rootHash, err := accounts.Commit()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// TODO: add changes to the hardFork meta if needed - in general NO.
 	hardForkMeta := m.importHandler.GetHardForkMetaBlock()
 	blockBody := &block.Body{
 		MiniBlocks: make([]*block.MiniBlock, 0),
