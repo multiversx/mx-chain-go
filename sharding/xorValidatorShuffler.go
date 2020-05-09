@@ -195,7 +195,7 @@ func shuffleNodes(
 	newEligible, newWaiting, stillRemainingInLeaving := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, unstakeLeaving)
 	newEligible, newWaiting, stillRemainingInLeaving = removeLeavingNodesFromValidatorMaps(newEligible, newWaiting, numToRemove, additionalLeaving)
 
-	shuffledOutMap := shuffleOut(eligible, newEligible, numToRemove, randomness)
+	shuffledOutMap, newEligible := shuffleOutNodes(newEligible, numToRemove, randomness)
 
 	moveNodesToMap(newEligible, newWaiting)
 	err := distributeValidators(newNodes, newWaiting, randomness)
@@ -218,26 +218,6 @@ func shuffleNodes(
 	}
 }
 
-func shuffleOut(
-	eligible map[uint32][]Validator,
-	newEligible map[uint32][]Validator,
-	numToRemove map[uint32]int,
-	randomness []byte,
-) map[uint32][]Validator {
-	shuffledOutMap := make(map[uint32][]Validator)
-	sortedShardIds := sortKeys(eligible)
-	for _, shardId := range sortedShardIds {
-		validators := newEligible[shardId]
-		numToShuffle := numToRemove[shardId]
-		shuffledOutMap[shardId], newEligible[shardId] = shuffleOutShard(
-			validators,
-			numToShuffle,
-			randomness,
-		)
-	}
-	return shuffledOutMap
-}
-
 func removeLeavingNodesNotExistingInEligibleOrWaiting(
 	leavingValidators []Validator,
 	waiting map[uint32][]Validator,
@@ -247,13 +227,10 @@ func removeLeavingNodesNotExistingInEligibleOrWaiting(
 
 	for _, v := range leavingValidators {
 		found, _ := searchInMap(waiting, v.PubKey())
-		if !found {
-			notFoundValidators = append(notFoundValidators, v)
+		if found {
+			continue
 		}
-	}
-
-	for _, v := range leavingValidators {
-		found, _ := searchInMap(eligible, v.PubKey())
+		found, _ = searchInMap(eligible, v.PubKey())
 		if !found {
 			notFoundValidators = append(notFoundValidators, v)
 		}
@@ -317,14 +294,14 @@ func (rxs *randXORShuffler) computeNewShards(
 	return nbShardsNew
 }
 
-// shuffleOutNodes shuffles the list of eligible validators in each shard and returns the array of shuffled out
+// shuffleOutNodes shuffles the list of eligible validators in each shard and returns the map of shuffled out
 // validators
 func shuffleOutNodes(
 	eligible map[uint32][]Validator,
 	numToShuffle map[uint32]int,
 	randomness []byte,
-) ([]Validator, map[uint32][]Validator) {
-	shuffledOut := make([]Validator, 0)
+) (map[uint32][]Validator, map[uint32][]Validator) {
+	shuffledOutMap := make(map[uint32][]Validator)
 	newEligible := make(map[uint32][]Validator)
 	var shardShuffledOut []Validator
 
@@ -332,12 +309,11 @@ func shuffleOutNodes(
 	for _, shardId := range sortedShardIds {
 		validators := eligible[shardId]
 		shardShuffledOut, validators = shuffleOutShard(validators, numToShuffle[shardId], randomness)
-		shuffledOut = append(shuffledOut, shardShuffledOut...)
-
+		shuffledOutMap[shardId] = shardShuffledOut
 		newEligible[shardId], _ = removeValidatorsFromList(validators, shardShuffledOut, len(shardShuffledOut))
 	}
 
-	return shuffledOut, newEligible
+	return shuffledOutMap, newEligible
 }
 
 // shuffleOutShard selects the validators to be shuffled out from a shard
