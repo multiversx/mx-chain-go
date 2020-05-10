@@ -529,14 +529,14 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	unStakeLeaving := ihgs.createSortedListFromMap(newNodesConfig.leavingMap)
+	unStakeLeavingList := ihgs.createSortedListFromMap(newNodesConfig.leavingMap)
 	additionalLeavingList := ihgs.createSortedListFromMap(additionalLeavingMap)
 
 	shufflerArgs := ArgsUpdateNodes{
 		Eligible:          newNodesConfig.eligibleMap,
 		Waiting:           newNodesConfig.waitingMap,
 		NewNodes:          newNodesConfig.newList,
-		UnStakeLeaving:    unStakeLeaving,
+		UnStakeLeaving:    unStakeLeavingList,
 		AdditionalLeaving: additionalLeavingList,
 		Rand:              randomness,
 		NbShards:          newNodesConfig.nbShards,
@@ -544,7 +544,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 
 	resUpdateNodes := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
 
-	leavingNodesMap, stillRemainingNodesMap := ihgs.createActuallyLeavingPerShards(
+	leavingNodesMap, stillRemainingNodesMap := createActuallyLeavingPerShards(
 		newNodesConfig.leavingMap,
 		additionalLeavingMap,
 		resUpdateNodes.Leaving,
@@ -910,28 +910,36 @@ func (ihgs *indexHashedNodesCoordinator) ValidatorsWeights(validators []Validato
 	return weights, nil
 }
 
-func (ihgs *indexHashedNodesCoordinator) createActuallyLeavingPerShards(
+func createActuallyLeavingPerShards(
 	unstakeLeaving map[uint32][]Validator,
 	additionalLeaving map[uint32][]Validator,
 	leaving []Validator,
 ) (map[uint32][]Validator, map[uint32][]Validator) {
 	actuallyLeaving := make(map[uint32][]Validator)
 	actuallyRemaining := make(map[uint32][]Validator)
+	processedValidatorsMap := make(map[string]bool)
 
-	ihgs.computeActuallyLeaving(unstakeLeaving, leaving, actuallyLeaving, actuallyRemaining)
-	ihgs.computeActuallyLeaving(additionalLeaving, leaving, actuallyLeaving, actuallyRemaining)
+	computeActuallyLeaving(unstakeLeaving, leaving, actuallyLeaving, actuallyRemaining, processedValidatorsMap)
+	computeActuallyLeaving(additionalLeaving, leaving, actuallyLeaving, actuallyRemaining, processedValidatorsMap)
 
 	return actuallyLeaving, actuallyRemaining
 }
 
-func (ihgs *indexHashedNodesCoordinator) computeActuallyLeaving(
+func computeActuallyLeaving(
 	unstakeLeaving map[uint32][]Validator,
 	leaving []Validator,
 	actuallyLeaving map[uint32][]Validator,
 	actuallyRemaining map[uint32][]Validator,
+	processedValidatorsMap map[string]bool,
 ) {
-	for shardId, leavingValidatorsPerShard := range unstakeLeaving {
+	sortedShardIds := sortKeys(unstakeLeaving)
+	for _, shardId := range sortedShardIds {
+		leavingValidatorsPerShard := unstakeLeaving[shardId]
 		for _, validator := range leavingValidatorsPerShard {
+			if processedValidatorsMap[string(validator.PubKey())] {
+				continue
+			}
+			processedValidatorsMap[string(validator.PubKey())] = true
 			found := false
 			for _, leavingValidator := range leaving {
 				if bytes.Equal(validator.PubKey(), leavingValidator.PubKey()) {

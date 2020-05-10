@@ -8,8 +8,7 @@ func (vd *IntraShardValidatorDistributor) DistributeValidators(
 	source map[uint32][]Validator,
 	_ []byte,
 ) error {
-	moveNodesToMap(destination, source)
-	return nil
+	return moveNodesToMap(destination, source)
 }
 
 // IsInterfaceNil - verifies if the interface is nil

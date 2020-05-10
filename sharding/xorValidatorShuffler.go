@@ -126,8 +126,8 @@ func removeDupplicates(unstake []Validator, additionalLeaving []Validator) []Val
 	additionalCopy = append(additionalCopy, additionalLeaving...)
 
 	for _, unstakeValidator := range unstake {
-		for i, additionalLeavingValidator := range additionalLeaving {
-			if bytes.Equal(unstakeValidator.PubKey(), additionalLeavingValidator.PubKey()) {
+		for i := len(additionalCopy) - 1; i >= 0; i-- {
+			if bytes.Equal(unstakeValidator.PubKey(), additionalCopy[i].PubKey()) {
 				additionalCopy = removeValidatorFromList(additionalCopy, i)
 			}
 		}
@@ -190,22 +190,28 @@ func shuffleNodes(
 		numToRemove[shardId] = len(waiting[shardId])
 	}
 
-	stillRemainingInLeaving, _ := removeLeavingNodesNotExistingInEligibleOrWaiting(allLeaving, waitingCopy, eligibleCopy)
+	remainingUnstakeLeaving, _ := removeLeavingNodesNotExistingInEligibleOrWaiting(unstakeLeaving, waitingCopy, eligibleCopy)
+	remainingAdditionalLeaving, _ := removeLeavingNodesNotExistingInEligibleOrWaiting(additionalLeaving, waitingCopy, eligibleCopy)
 
-	newEligible, newWaiting, stillRemainingInLeaving := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, unstakeLeaving)
-	newEligible, newWaiting, stillRemainingInLeaving = removeLeavingNodesFromValidatorMaps(newEligible, newWaiting, numToRemove, additionalLeaving)
+	newEligible, newWaiting, stillRemainingUnstakeLeaving := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, remainingUnstakeLeaving)
+	newEligible, newWaiting, stillRemainingAdditionalLeaving := removeLeavingNodesFromValidatorMaps(newEligible, newWaiting, numToRemove, remainingAdditionalLeaving)
+
+	stillRemainingInLeaving := append(stillRemainingUnstakeLeaving, stillRemainingAdditionalLeaving...)
 
 	shuffledOutMap, newEligible := shuffleOutNodes(newEligible, numToRemove, randomness)
 
-	moveNodesToMap(newEligible, newWaiting)
-	err := distributeValidators(newNodes, newWaiting, randomness)
+	err := moveNodesToMap(newEligible, newWaiting)
+	if err != nil {
+		log.Warn("moveNodesToMap failed", "error", err)
+	}
+	err = distributeValidators(newNodes, newWaiting, randomness)
 	if err != nil {
 		log.Warn("distributeValidators newNodes failed", "error", err)
 	}
 
 	err = distributor.DistributeValidators(newWaiting, shuffledOutMap, randomness)
 	if err != nil {
-		log.Warn("distributeValidators newNodes failed", "error", err)
+		log.Warn("distributeValidators shuffledOut failed", "error", err)
 	}
 
 	actualLeaving, _ := removeValidatorsFromList(allLeaving, stillRemainingInLeaving, len(stillRemainingInLeaving))
@@ -370,9 +376,11 @@ func removeValidatorsFromList(
 			break
 		}
 
-		for index, val := range resultedList {
+		for i := len(resultedList) - 1; i >= 0; i-- {
+			val := resultedList[i]
 			if bytes.Equal(val.PubKey(), valToRemove.PubKey()) {
-				resultedList = removeValidatorFromList(resultedList, index)
+				resultedList = removeValidatorFromList(resultedList, i)
+
 				removed = append(removed, val)
 				break
 			}
@@ -462,11 +470,16 @@ func copyValidatorMap(validators map[uint32][]Validator) map[uint32][]Validator 
 }
 
 // moveNodesToMap moves the validators in the waiting list to corresponding eligible list
-func moveNodesToMap(destination map[uint32][]Validator, source map[uint32][]Validator) {
+func moveNodesToMap(destination map[uint32][]Validator, source map[uint32][]Validator) error {
+	if destination == nil {
+		return ErrNilDestinationForDistribute
+	}
+
 	for k, v := range source {
 		destination[k] = append(destination[k], v...)
 		source[k] = make([]Validator, 0)
 	}
+	return nil
 }
 
 // distributeNewNodes distributes a list of validators to the given validators map
