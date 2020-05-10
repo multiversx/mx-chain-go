@@ -125,6 +125,8 @@ func (ckdd *ContinuousKadDhtDiscoverer) startDHT() error {
 		dht.Mode(dht.ModeAutoServer),
 		dht.DisableProviders(),
 		dht.DisableValues(),
+		dht.RoutingTableFilter(dht.PublicRoutingTableFilter),
+		dht.QueryFilter(dht.PublicQueryFilter),
 	)
 	if err != nil {
 		cancel()
