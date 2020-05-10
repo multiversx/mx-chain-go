@@ -102,6 +102,7 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		libp2p.ListenAddrStrings(address),
 		libp2p.Identity(p2pPrivKey),
 		libp2p.DisableRelay(),
+		libp2p.NATPortMap(),
 	}
 
 	h, err := libp2p.New(args.Context, opts...)
