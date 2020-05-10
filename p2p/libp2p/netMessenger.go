@@ -101,6 +101,7 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 	logging.SetLevel(logging.NOTICE, "dht")
 	logging.SetLevel(logging.NOTICE, "nat")
 	logging.SetLevel(logging.NOTICE, "basichost")
+	logging.SetLevel(logging.DEBUG, "pubsub")
 	fmt.Println("hello world")
 
 	address := fmt.Sprintf(args.ListenAddress+"%d", args.P2pConfig.Node.Port)
