@@ -25,8 +25,10 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-pubsub"
+	"github.com/multiformats/go-multiaddr"
 )
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
@@ -78,6 +80,29 @@ type networkMessenger struct {
 	connectionsMetric   *metrics.Connections
 }
 
+func (netMes *networkMessenger) Listen(_ network.Network, _ multiaddr.Multiaddr) {
+}
+
+func (netMes *networkMessenger) ListenClose(_ network.Network, _ multiaddr.Multiaddr) {
+}
+
+func (netMes *networkMessenger) Connected(_ network.Network, conn network.Conn) {
+	netMes.p2pHost.Peerstore().AddAddr(
+		conn.RemotePeer(),
+		conn.RemoteMultiaddr(),
+		peerstore.ConnectedAddrTTL,
+	)
+}
+
+func (netMes *networkMessenger) Disconnected(_ network.Network, _ network.Conn) {
+}
+
+func (netMes *networkMessenger) OpenedStream(_ network.Network, _ network.Stream) {
+}
+
+func (netMes *networkMessenger) ClosedStream(_ network.Network, _ network.Stream) {
+}
+
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
 type ArgsNetworkMessenger struct {
 	Context       context.Context
@@ -101,9 +126,6 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(address),
 		libp2p.Identity(p2pPrivKey),
-		libp2p.EnableAutoRelay(),
-		libp2p.DefaultStaticRelays(),
-		libp2p.NATPortMap(),
 	}
 
 	h, err := libp2p.New(args.Context, opts...)
@@ -116,6 +138,8 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		log.LogIfError(h.Close())
 		return nil, err
 	}
+
+	h.Network().Notify(p2pNode)
 
 	return p2pNode, nil
 }
@@ -466,6 +490,7 @@ func (netMes *networkMessenger) PeerAddress(pid p2p.PeerID) string {
 	return addresses[0].String()
 }
 
+// PeerAddresses returns the addresses of a provided peer. The first one is connected pid address, the later, what exists in the peerstore.
 func (netMes *networkMessenger) PeerAddresses(pid p2p.PeerID) []string {
 	h := netMes.p2pHost
 
