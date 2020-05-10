@@ -482,9 +482,7 @@ func Test_removeValidatorsFromListRandomValidatorsMaxSmaller(t *testing.T) {
 
 	_ = copy(validatorsCopy, validators)
 
-	sort.Slice(validators, func(i, j int) bool {
-		return bytes.Compare(validators[i].PubKey(), validators[j].PubKey()) < 0
-	})
+	sort.Sort(validatorList(validators))
 
 	validatorsToRemove = append(validatorsToRemove, validators[:nbValidatotrsToRemove]...)
 
@@ -503,9 +501,7 @@ func Test_removeValidatorsFromListRandomValidatorsMaxGreater(t *testing.T) {
 
 	_ = copy(validatorsCopy, validators)
 
-	sort.Slice(validators, func(i, j int) bool {
-		return bytes.Compare(validators[i].PubKey(), validators[j].PubKey()) < 0
-	})
+	sort.Sort(validatorList(validators))
 
 	validatorsToRemove = append(validatorsToRemove, validators[:nbValidatotrsToRemove]...)
 
@@ -1553,10 +1549,7 @@ func TestRandXORShuffler_UpdateNodeLists_WithAdditionalLeaving(t *testing.T) {
 		eligibleMap[1][2],
 		eligibleMap[1][eligiblePerShard-1]}
 
-	additionalLeavingList := make([]Validator, 0)
-	for _, shardLeaving := range additionalLeaving {
-		additionalLeavingList = append(additionalLeavingList, shardLeaving...)
-	}
+	unstakeLeavingList, additionalLeavingList := prepareListsFromMaps(unstakeLeaving, additionalLeaving)
 
 	shuffler := createXorShufflerIntraShards()
 
@@ -1564,7 +1557,7 @@ func TestRandXORShuffler_UpdateNodeLists_WithAdditionalLeaving(t *testing.T) {
 		Eligible:          eligibleMap,
 		Waiting:           waitingMap,
 		NewNodes:          make([]Validator, 0),
-		UnStakeLeaving:    make([]Validator, 0),
+		UnStakeLeaving:    unstakeLeavingList,
 		AdditionalLeaving: additionalLeavingList,
 		Rand:              generateRandomByteArray(32),
 		NbShards:          nbShards,
@@ -1630,15 +1623,7 @@ func TestRandXORShuffler_UpdateNodeLists_WithUnstakeAndAdditionalLeaving_NoDuppl
 		eligibleMap[1][1],
 	}
 
-	unstakeLeavingList := make([]Validator, 0)
-	for _, shardLeaving := range unstakeLeaving {
-		unstakeLeavingList = append(unstakeLeavingList, shardLeaving...)
-	}
-
-	additionalLeavingList := make([]Validator, 0)
-	for _, shardLeaving := range additionalLeaving {
-		additionalLeavingList = append(additionalLeavingList, shardLeaving...)
-	}
+	unstakeLeavingList, additionalLeavingList := prepareListsFromMaps(unstakeLeaving, additionalLeaving)
 
 	shuffler := createXorShufflerIntraShards()
 
@@ -1718,15 +1703,7 @@ func TestRandXORShuffler_UpdateNodeLists_WithAdditionalLeaving_WithDupplicates(t
 		eligibleMap[1][2],
 	}
 
-	unstakeLeavingList := make([]Validator, 0)
-	for _, shardLeaving := range unstakeLeaving {
-		unstakeLeavingList = append(unstakeLeavingList, shardLeaving...)
-	}
-
-	additionalLeavingList := make([]Validator, 0)
-	for _, shardLeaving := range additionalLeaving {
-		additionalLeavingList = append(additionalLeavingList, shardLeaving...)
-	}
+	unstakeLeavingList, additionalLeavingList := prepareListsFromMaps(unstakeLeaving, additionalLeaving)
 
 	shuffler := createXorShufflerIntraShards()
 
@@ -1744,12 +1721,86 @@ func TestRandXORShuffler_UpdateNodeLists_WithAdditionalLeaving_WithDupplicates(t
 
 	leavingPerShardMap, stillRemainingPerShardMap := createActuallyLeavingPerShards(unstakeLeaving, additionalLeaving, result.Leaving)
 
-	displayNodesConfiguration(
-		result.Eligible,
-		result.Waiting,
-		leavingPerShardMap,
-		stillRemainingPerShardMap,
-		arg.NbShards)
+	for i := uint32(0); i < nbShards+1; i++ {
+		shardId := i
+		if i == nbShards {
+			shardId = core.MetachainShardId
+		}
+		verifyResultsIntraShardShuffling(t,
+			eligibleMap[shardId],
+			waitingMap[shardId],
+			additionalLeaving[shardId],
+			unstakeLeaving[shardId],
+			result.Eligible[shardId],
+			result.Waiting[shardId],
+			leavingPerShardMap[shardId],
+			stillRemainingPerShardMap[shardId],
+		)
+	}
+}
+
+func TestRandXORShuffler_UpdateNodeLists_All(t *testing.T) {
+	t.Parallel()
+
+	eligiblePerShard := 4
+	waitingPerShard := 2
+	nbShards := uint32(2)
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	unstakeLeaving := make(map[uint32][]Validator)
+	additionalLeaving := make(map[uint32][]Validator)
+
+	// dupplicates on metachain both eligible and waiting
+	firstRemovedMeta := waitingMap[core.MetachainShardId][1]
+	secondRemovedMeta := eligibleMap[core.MetachainShardId][0]
+	notRemovedMeta := eligibleMap[core.MetachainShardId][eligiblePerShard-1]
+
+	unstakeLeaving[core.MetachainShardId] = []Validator{
+		secondRemovedMeta,
+		firstRemovedMeta,
+	}
+	additionalLeaving[core.MetachainShardId] = []Validator{
+		secondRemovedMeta,
+		firstRemovedMeta,
+		notRemovedMeta,
+	}
+
+	// no dupplicates on shard 0
+	firstRemovedShard0 := eligibleMap[0][3]
+	secondRemovedShard0 := waitingMap[0][0]
+	unstakeLeaving[0] = []Validator{
+		firstRemovedShard0,
+	}
+	additionalLeaving[0] = []Validator{
+		secondRemovedShard0,
+	}
+
+	// just 1 from waiting to be removed from shard 1
+	firstRemovedShard1 := waitingMap[1][1]
+	unstakeLeaving[1] = []Validator{
+		firstRemovedShard1,
+	}
+	additionalLeaving[1] = nil
+
+	unstakeLeavingList, additionalLeavingList := prepareListsFromMaps(unstakeLeaving, additionalLeaving)
+
+	shuffler := createXorShufflerIntraShards()
+
+	arg := ArgsUpdateNodes{
+		Eligible:          eligibleMap,
+		Waiting:           waitingMap,
+		NewNodes:          make([]Validator, 0),
+		UnStakeLeaving:    unstakeLeavingList,
+		AdditionalLeaving: additionalLeavingList,
+		Rand:              generateRandomByteArray(32),
+		NbShards:          nbShards,
+	}
+
+	result := shuffler.UpdateNodeLists(arg)
+
+	leavingPerShardMap, stillRemainingPerShardMap := createActuallyLeavingPerShards(unstakeLeaving, additionalLeaving, result.Leaving)
 
 	for i := uint32(0); i < nbShards+1; i++ {
 		shardId := i
@@ -1767,6 +1818,43 @@ func TestRandXORShuffler_UpdateNodeLists_WithAdditionalLeaving_WithDupplicates(t
 			stillRemainingPerShardMap[shardId],
 		)
 	}
+
+	removedFromMeta := []Validator{firstRemovedMeta, secondRemovedMeta}
+	sort.Sort(validatorList(removedFromMeta))
+	sort.Sort(validatorList(leavingPerShardMap[core.MetachainShardId]))
+	assert.Equal(t, removedFromMeta, leavingPerShardMap[core.MetachainShardId])
+	found, _ := searchInMap(result.Eligible, firstRemovedMeta.PubKey())
+	assert.False(t, found)
+	found, _ = searchInMap(result.Waiting, secondRemovedMeta.PubKey())
+	assert.False(t, found)
+
+	remainingInMeta := []Validator{notRemovedMeta}
+	sort.Sort(validatorList(remainingInMeta))
+	sort.Sort(validatorList(stillRemainingPerShardMap[core.MetachainShardId]))
+	assert.Equal(t, remainingInMeta, stillRemainingPerShardMap[core.MetachainShardId])
+	found, shardId := searchInMap(result.Eligible, notRemovedMeta.PubKey())
+	assert.True(t, found)
+	assert.Equal(t, core.MetachainShardId, shardId)
+
+	removedFromShard0 := []Validator{firstRemovedShard0, secondRemovedShard0}
+	sort.Sort(validatorList(removedFromShard0))
+	sort.Sort(validatorList(leavingPerShardMap[0]))
+	assert.Equal(t, removedFromShard0, leavingPerShardMap[0])
+	found, _ = searchInMap(result.Eligible, firstRemovedShard0.PubKey())
+	assert.False(t, found)
+	found, _ = searchInMap(result.Waiting, secondRemovedShard0.PubKey())
+	assert.False(t, found)
+
+	removedFromShard1 := []Validator{firstRemovedShard1}
+	sort.Sort(validatorList(removedFromShard1))
+	sort.Sort(validatorList(leavingPerShardMap[1]))
+	assert.Equal(t, removedFromShard1, leavingPerShardMap[1])
+	found, _ = searchInMap(result.Waiting, secondRemovedShard0.PubKey())
+	assert.False(t, found)
+}
+
+func prepareListsFromMaps(unstakeLeaving map[uint32][]Validator, additionalLeaving map[uint32][]Validator) ([]Validator, []Validator) {
+	return getValidatorsInMap(unstakeLeaving), getValidatorsInMap(additionalLeaving)
 }
 
 func verifyResultsIntraShardShuffling(
@@ -1824,65 +1912,6 @@ func verifyResultsIntraShardShuffling(
 	//	assert.Equal(t, computedStillRemaining, stillRemaining)
 	//}
 }
-
-func TestRandXORShuffler_UpdateNodeLists_WithAdditionalLeavingFromEligible(t *testing.T) {
-
-}
-
-func TestRandXORShuffler_UpdateNodeLists_WithBothLeavingNoDupplicatesFromEligible(t *testing.T) {
-
-}
-
-func TestRandXORShuffler_UpdateNodeLists_WithBothLeavingWithDupplicatesFromEligible(t *testing.T) {
-
-}
-
-func TestRandXORShuffler_UpdateNodeLists_WithUnstakeLeavingFromWaiting(t *testing.T) {
-
-}
-
-func TestRandXORShuffler_UpdateNodeLists_WithAdditionalLeavingFromWaiting(t *testing.T) {
-
-}
-
-func TestRandXORShuffler_UpdateNodeLists_WithBothLeavingNoDupplicatesFromWaiting(t *testing.T) {
-
-}
-
-func TestRandXORShuffler_UpdateNodeLists_WithBothLeavingWithDupplicatesFromWaiting(t *testing.T) {
-
-}
-
-//func TestRandXORShuffler_RemoveNodesFromShard_(t *testing.T) {
-//	t.Parallel()
-//
-//	eligiblePerShard := 10
-//	waitingPerShard := 3
-//	nbShards := uint32(3)
-//
-//	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
-//	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
-//
-//	leavingValidators := []Validator {
-//		eligibleMap[core.MetachainShardId][0],
-//		eligibleMap[0][eligiblePerShard/2],
-//		waitingMap[1][waitingPerShard-1],
-//	}
-//
-//	numToRemove := make(map[uint32]int)
-//	for shardId := range waitingMap {
-//		numToRemove[shardId] = waitingPerShard
-//	}
-//
-//	eligibleCopy := copyValidatorMap(eligibleMap)
-//	waitingCopy := copyValidatorMap(waitingMap)
-//	leavingNodes, numRemoved = removeNodesFromShard(existingNodes, leavingNodes, shardId, numToRemoveOnShard)
-//	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators)
-//
-//	assert.Equal(t, 3, len(newEligible))
-//	assert.Equal(t, 3, len(newWaiting))
-//	assert.Equal(t, 0, len(stillRemaining))
-//}
 
 func TestRandXORShuffler_ShuffleOutShard_WithMoreThanValidatorsShuffledOut(t *testing.T) {
 	t.Parallel()
