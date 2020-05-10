@@ -98,9 +98,9 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		return nil, err
 	}
 
-	logging.SetLevel(logging.DEBUG, "dht")
-	logging.SetLevel(logging.DEBUG, "nat")
-	logging.SetLevel(logging.DEBUG, "basichost")
+	logging.SetLevel(logging.NOTICE, "dht")
+	logging.SetLevel(logging.NOTICE, "nat")
+	logging.SetLevel(logging.NOTICE, "basichost")
 
 	address := fmt.Sprintf(args.ListenAddress+"%d", args.P2pConfig.Node.Port)
 	opts := []libp2p.Option{
