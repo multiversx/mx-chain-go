@@ -90,7 +90,7 @@ func (netMes *networkMessenger) Connected(_ network.Network, conn network.Conn) 
 	netMes.p2pHost.Peerstore().AddAddr(
 		conn.RemotePeer(),
 		conn.RemoteMultiaddr(),
-		peerstore.ConnectedAddrTTL,
+		peerstore.PermanentAddrTTL,
 	)
 }
 
