@@ -467,6 +467,26 @@ func (netMes *networkMessenger) PeerAddress(pid p2p.PeerID) string {
 	return addresses[0].String()
 }
 
+func (netMes *networkMessenger) PeerAddresses(pid p2p.PeerID) []string {
+	h := netMes.p2pHost
+
+	addresses := h.Peerstore().Addrs(peer.ID(pid.Bytes()))
+	strs := make([]string, 0)
+
+	//check if the peer is connected to return it's connected address
+	for _, c := range h.Network().Conns() {
+		if string(c.RemotePeer()) == string(pid.Bytes()) {
+			strs = append(strs, c.RemoteMultiaddr().String())
+		}
+	}
+
+	for _, adr := range addresses {
+		strs = append(strs, adr.String())
+	}
+
+	return strs
+}
+
 // ConnectedPeersOnTopic returns the connected peers on a provided topic
 func (netMes *networkMessenger) ConnectedPeersOnTopic(topic string) []p2p.PeerID {
 	return netMes.poc.ConnectedPeersOnChannel(topic)

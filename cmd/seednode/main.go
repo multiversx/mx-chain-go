@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"sort"
-	"strings"
 	"syscall"
 	"time"
 
@@ -144,17 +143,30 @@ func displayMessengerInfo(messenger p2p.Messenger) {
 	tbl, _ := display.CreateTableString(headerSeedAddresses, addresses)
 	fmt.Println(tbl)
 
-	mesConnectedAddrs := messenger.ConnectedAddresses()
-	sort.Slice(mesConnectedAddrs, func(i, j int) bool {
-		return strings.Compare(mesConnectedAddrs[i], mesConnectedAddrs[j]) < 0
+	pids := messenger.ConnectedPeers()
+	fmt.Printf("Seednode is connected to %d peers:\r\n", len(pids))
+
+	headerConnectedAddresses := []string{"Peer", "Addresses", "Connected?"}
+
+	sort.Slice(pids, func(i, j int) bool {
+		return pids[i].Pretty() < pids[j].Pretty()
 	})
 
-	headerConnectedAddresses := []string{
-		fmt.Sprintf("Seednode is connected to %d peers:", len(mesConnectedAddrs))}
-	connAddresses := make([]*display.LineData, len(mesConnectedAddrs))
+	connAddresses := make([]*display.LineData, 0)
+	for _, pid := range pids {
+		addrs := messenger.PeerAddresses(pid)
 
-	for idx, address := range mesConnectedAddrs {
-		connAddresses[idx] = display.NewLineData(false, []string{address})
+		for i := 0; i < len(addrs); i++ {
+			connected := ""
+			if i == 0 {
+				connected = "YES"
+			}
+
+			ld := display.NewLineData(i == len(addrs)-1, []string{pid.Pretty(), addrs[i], connected})
+
+			connAddresses = append(connAddresses, ld)
+		}
+
 	}
 
 	tbl2, _ := display.CreateTableString(headerConnectedAddresses, connAddresses)

@@ -111,6 +111,8 @@ type Messenger interface {
 	// ConnectToPeer(PeerAddress(somePeerID)).
 	PeerAddress(pid PeerID) string
 
+	PeerAddresses(pid PeerID) []string
+
 	// ConnectedPeersOnTopic returns the IDs of the peers to which the Messenger
 	// is currently connected, but filtered by a topic they are registered to.
 	ConnectedPeersOnTopic(topic string) []PeerID
