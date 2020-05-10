@@ -104,7 +104,7 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		libp2p.DisableRelay(),
 		libp2p.NATPortMap(),
 		libp2p.EnableNATService(),
-		libp2p.ForceReachabilityPublic(),
+		libp2p.ForceReachabilityPrivate(),
 	}
 
 	h, err := libp2p.New(args.Context, opts...)
