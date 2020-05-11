@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-	heartbeatMock "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/stretchr/testify/assert"
@@ -1086,7 +1085,7 @@ func TestWithBlockBlackListHandler_OkHandlerShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	blackListHandler := &heartbeatMock.BlackListHandlerStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 	opt := WithBlockBlackListHandler(blackListHandler)
 	err := opt(node)
 
@@ -1110,7 +1109,7 @@ func TestWithPeerBlackListHandler_OkHandlerShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	blackListHandler := &heartbeatMock.BlackListHandlerStub{}
+	blackListHandler := &mock.BlackListHandlerStub{}
 	opt := WithPeerBlackListHandler(blackListHandler)
 	err := opt(node)
 

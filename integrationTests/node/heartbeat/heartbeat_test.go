@@ -13,11 +13,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	heartbeatMock "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
@@ -218,7 +217,7 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 		Marshalizer:      integrationTests.TestMarshalizer,
 		Topic:            topic,
 		ShardCoordinator: &sharding.OneShardCoordinator{},
-		PeerTypeProvider: &heartbeatMock.PeerTypeProviderStub{},
+		PeerTypeProvider: &mock.PeerTypeProviderStub{},
 		StatusHandler:    &mock.AppStatusHandlerStub{},
 		VersionNumber:    version,
 		NodeDisplayName:  nodeName,
@@ -250,7 +249,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 		PubKeysMap:                  map[uint32][]string{0: {""}},
 		GenesisTime:                 time.Now(),
 		MessageHandler:              mp,
-		Storer: &heartbeatMock.HeartbeatStorerStub{
+		Storer: &mock.HeartbeatStorerStub{
 			UpdateGenesisTimeCalled: func(genesisTime time.Time) error {
 				return nil
 			},
@@ -267,7 +266,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 				return nil
 			},
 		},
-		PeerTypeProvider: &heartbeatMock.PeerTypeProviderStub{},
+		PeerTypeProvider: &mock.PeerTypeProviderStub{},
 		Timer:            &process.RealTimer{},
 		AntifloodHandler: &mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
@@ -275,7 +274,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 			},
 		},
 		HardforkTrigger:                    &mock.HardforkTriggerStub{},
-		PeerBlackListHandler:               &heartbeatMock.BlackListHandlerStub{},
+		PeerBlackListHandler:               &mock.BlackListHandlerStub{},
 		ValidatorPubkeyConverter:           integrationTests.TestValidatorPubkeyConverter,
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
