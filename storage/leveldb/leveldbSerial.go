@@ -233,13 +233,13 @@ func (s *SerialDB) isClosed() bool {
 // Close closes the files/resources associated to the storage medium
 func (s *SerialDB) Close() error {
 	s.mutClosed.Lock()
+	defer s.mutClosed.Unlock()
+
 	if s.closed {
-		s.mutClosed.Unlock()
 		return nil
 	}
-	s.closed = true
-	s.mutClosed.Unlock()
 
+	s.closed = true
 	_ = s.putBatch()
 
 	s.cancel()
@@ -271,9 +271,9 @@ func (s *SerialDB) Destroy() error {
 
 	s.mutClosed.Lock()
 	s.closed = true
+	err := s.db.Close()
 	s.mutClosed.Unlock()
 
-	err := s.db.Close()
 	if err != nil {
 		return err
 	}

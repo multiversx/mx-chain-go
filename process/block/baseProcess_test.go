@@ -912,3 +912,82 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
 }
+
+func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfAccPruneIsDisabled(t *testing.T) {
+	t.Parallel()
+
+	pruningCalled := 0
+	peerAccDb := &mock.AccountsStub{
+		PruneTrieCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+			pruningCalled++
+		},
+		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+			pruningCalled++
+		},
+		IsPruningEnabledCalled: func() bool {
+			return true
+		},
+	}
+
+	arguments := CreateMockArguments()
+	arguments.AccountsDB[state.PeerAccountsState] = peerAccDb
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	prevHeader := &block.MetaBlock{
+		RootHash:               []byte("prevRootHash"),
+		ValidatorStatsRootHash: []byte("prevValidatorRootHash"),
+	}
+	currHeader := &block.MetaBlock{
+		RootHash:               []byte("prevRootHash"),
+		ValidatorStatsRootHash: []byte("currValidatorRootHash"),
+	}
+
+	bp.PruneStateOnRollback(currHeader, prevHeader)
+	assert.Equal(t, 2, pruningCalled)
+}
+
+func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDifferentValidatorRootHash(t *testing.T) {
+	t.Parallel()
+
+	pruningCalled := 0
+	peerAccDb := &mock.AccountsStub{
+		PruneTrieCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+			pruningCalled++
+		},
+		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+			pruningCalled++
+		},
+		IsPruningEnabledCalled: func() bool {
+			return true
+		},
+	}
+
+	accDb := &mock.AccountsStub{
+		PruneTrieCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+			pruningCalled++
+		},
+		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+			pruningCalled++
+		},
+		IsPruningEnabledCalled: func() bool {
+			return true
+		},
+	}
+
+	arguments := CreateMockArguments()
+	arguments.AccountsDB[state.PeerAccountsState] = peerAccDb
+	arguments.AccountsDB[state.UserAccountsState] = accDb
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	prevHeader := &block.MetaBlock{
+		RootHash:               []byte("prevRootHash"),
+		ValidatorStatsRootHash: []byte("prevValidatorRootHash"),
+	}
+	currHeader := &block.MetaBlock{
+		RootHash:               []byte("prevRootHash"),
+		ValidatorStatsRootHash: []byte("currValidatorRootHash"),
+	}
+
+	bp.PruneStateOnRollback(currHeader, prevHeader)
+	assert.Equal(t, 2, pruningCalled)
+}

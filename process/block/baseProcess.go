@@ -1036,13 +1036,13 @@ func (bp *baseProcessor) commitAll() error {
 func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
 	for key := range bp.accountsDB {
 		if !bp.accountsDB[key].IsPruningEnabled() {
-			return
+			continue
 		}
 
 		rootHash, prevRootHash := bp.getRootHashes(currHeader, prevHeader, key)
 
 		if bytes.Equal(rootHash, prevRootHash) {
-			return
+			continue
 		}
 
 		bp.accountsDB[key].CancelPrune(prevRootHash, data.OldRoot)
