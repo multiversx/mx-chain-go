@@ -1653,7 +1653,6 @@ func newValidatorStatisticsProcessor(
 		DataPool:            peerDataPool,
 		StorageService:      storageService,
 		Marshalizer:         processComponents.coreData.InternalMarshalizer,
-		StakeValue:          processComponents.economicsData.GenesisNodePrice(),
 		Rater:               processComponents.rater,
 		MaxComputableRounds: processComponents.maxComputableRounds,
 		RewardsHandler:      processComponents.economicsData,

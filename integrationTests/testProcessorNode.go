@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -400,7 +399,6 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		DataPool:            tpn.DataPool,
 		StorageService:      tpn.Storage,
 		Marshalizer:         TestMarshalizer,
-		StakeValue:          big.NewInt(500),
 		Rater:               rater,
 		MaxComputableRounds: 1000,
 		RewardsHandler:      tpn.EconomicsData,
