@@ -251,10 +251,6 @@ func (e *epochStartMetaBlockProcessor) processEntry(
 	return false
 }
 
-// SignalEndOfProcessing won't do anything
-func (e *epochStartMetaBlockProcessor) SignalEndOfProcessing(_ []process.InterceptedData) {
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (e *epochStartMetaBlockProcessor) IsInterfaceNil() bool {
 	return e == nil
