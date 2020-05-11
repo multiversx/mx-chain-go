@@ -53,6 +53,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, process.ErrNilTransactionPool
 	}
 
+	genesisHdr := arguments.BlockChain.GetGenesisHeader()
 	base := &baseProcessor{
 		accountsDB:             arguments.AccountsDB,
 		blockSizeThrottler:     arguments.BlockSizeThrottler,
@@ -76,6 +77,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		stateCheckpointModulus: arguments.StateCheckpointModulus,
 		blockChain:             arguments.BlockChain,
 		feeHandler:             arguments.FeeHandler,
+		genesisNonce:           genesisHdr.GetNonce(),
 	}
 
 	sp := shardProcessor{
