@@ -45,7 +45,7 @@ func newTxListForSender(sender string, cacheConfig *CacheConfig, onScoreChange s
 
 // AddTx adds a transaction in sender's list
 // This is a "sorted" insert
-func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) txHashes {
+func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, txHashes) {
 	// We don't allow concurrent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
@@ -56,7 +56,13 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) txHashes {
 
 	if insertionPlace == nil {
 		listForSender.items.PushFront(tx)
+		// TODO: fix, check duplicated here.
 	} else {
+		duplicated := insertionPlace.Value.(*WrappedTransaction).sameAs(tx)
+		if duplicated {
+			return false, nil
+		}
+
 		listForSender.items.InsertAfter(tx, insertionPlace)
 	}
 
@@ -64,7 +70,7 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) txHashes {
 	evicted := listForSender.applyLimit()
 	listForSender.triggerScoreChange()
 
-	return evicted
+	return true, evicted
 }
 
 // This function should only be used in critical section (listForSender.mutex)

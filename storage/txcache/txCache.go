@@ -64,11 +64,13 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	}
 
 	ok = true
-	added = cache.txByHash.addTx(tx)
+	added, evicted := cache.txListBySender.addTx(tx)
 	if added {
-		cache.txListBySender.addTx(tx)
+		cache.txByHash.addTx(tx)
 		cache.monitorTxAddition()
 	}
+
+	cache.txByHash.RemoveTxsBulk(evicted)
 
 	return
 }
