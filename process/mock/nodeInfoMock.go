@@ -1,5 +1,6 @@
 package mock
 
+// NodeInfoMock -
 type NodeInfoMock struct {
 	address []byte
 	pubKey  []byte
@@ -20,13 +21,13 @@ func (n *NodeInfoMock) AssignedShard() uint32 {
 	return n.shardId
 }
 
-// Address -
-func (n *NodeInfoMock) Address() []byte {
+// AddressBytes -
+func (n *NodeInfoMock) AddressBytes() []byte {
 	return n.address
 }
 
-// PubKey -
-func (n *NodeInfoMock) PubKey() []byte {
+// PubKeyBytes -
+func (n *NodeInfoMock) PubKeyBytes() []byte {
 	return n.pubKey
 }
 

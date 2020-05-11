@@ -747,7 +747,6 @@ func (e *epochStartBootstrap) createTriesForNewShardId(shardId uint32) error {
 		Marshalizer:              e.marshalizer,
 		Hasher:                   e.hasher,
 		PathManager:              e.pathManager,
-		ShardId:                  core.GetShardIdString(shardId),
 		TrieStorageManagerConfig: e.generalConfig.TrieStorageManagerConfig,
 	}
 	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
@@ -755,7 +754,11 @@ func (e *epochStartBootstrap) createTriesForNewShardId(shardId uint32) error {
 		return err
 	}
 
-	userStorageManager, userAccountTrie, err := trieFactory.Create(e.generalConfig.AccountsTrieStorage, e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled)
+	userStorageManager, userAccountTrie, err := trieFactory.Create(
+		e.generalConfig.AccountsTrieStorage,
+		core.GetShardIdString(shardId),
+		e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+	)
 	if err != nil {
 		return err
 	}
@@ -763,7 +766,11 @@ func (e *epochStartBootstrap) createTriesForNewShardId(shardId uint32) error {
 	e.trieContainer.Replace([]byte(factory.UserAccountTrie), userAccountTrie)
 	e.trieStorageManagers[factory.UserAccountTrie] = userStorageManager
 
-	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(e.generalConfig.PeerAccountsTrieStorage, e.generalConfig.StateTriesConfig.PeerStatePruningEnabled)
+	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(
+		e.generalConfig.PeerAccountsTrieStorage,
+		core.GetShardIdString(shardId),
+		e.generalConfig.StateTriesConfig.PeerStatePruningEnabled,
+	)
 	if err != nil {
 		return err
 	}
