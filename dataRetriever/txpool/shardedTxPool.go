@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/counting"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -51,10 +51,10 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		NumChunksHint:              args.Config.Shards,
 		EvictionEnabled:            true,
 		NumBytesThreshold:          args.Config.SizeInBytes / numCaches,
+		NumBytesPerSenderThreshold: args.Config.SizeInBytesPerSender,
 		CountThreshold:             args.Config.Size / numCaches,
+		CountPerSenderThreshold:    args.Config.SizePerSender,
 		NumSendersToEvictInOneStep: dataRetriever.TxPoolNumSendersToEvictInOneStep,
-		LargeNumOfTxsForASender:    dataRetriever.TxPoolLargeNumOfTxsForASender,
-		NumTxsToEvictFromASender:   dataRetriever.TxPoolNumTxsToEvictFromASender,
 		MinGasPriceMicroErd:        uint32(args.MinGasPrice / oneTrilion),
 	}
 

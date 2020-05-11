@@ -21,8 +21,14 @@ func (args *ArgShardedTxPool) verify() error {
 	if config.SizeInBytes < dataRetriever.TxPoolMinSizeInBytes {
 		return fmt.Errorf("%w: config.SizeInBytes is less than [dataRetriever.TxPoolMinSizeInBytes]", dataRetriever.ErrCacheConfigInvalidSizeInBytes)
 	}
+	if config.SizeInBytesPerSender < dataRetriever.TxPoolMinSizeInBytes {
+		return fmt.Errorf("%w: config.SizeInBytesPerSender is less than [dataRetriever.TxPoolMinSizeInBytes]", dataRetriever.ErrCacheConfigInvalidSizeInBytes)
+	}
 	if config.Size < 1 {
 		return fmt.Errorf("%w: config.Size is less than 1", dataRetriever.ErrCacheConfigInvalidSize)
+	}
+	if config.SizePerSender < 1 {
+		return fmt.Errorf("%w: config.SizePerSender is less than 1", dataRetriever.ErrCacheConfigInvalidSize)
 	}
 	if config.Shards < 1 {
 		return fmt.Errorf("%w: config.Shards (map chunks) is less than 1", dataRetriever.ErrCacheConfigInvalidShards)
