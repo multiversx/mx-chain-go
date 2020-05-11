@@ -262,7 +262,7 @@ func TestHeartbeatDbSnorer_SavePubkeyDataPutShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestHeartbeatDbStorer_LoadHbmiDTOShouldWork(t *testing.T) {
+func TestHeartbeatDbStorer_LoadHeartBeatDTOShouldWork(t *testing.T) {
 	t.Parallel()
 
 	hs, _ := storage.NewHeartbeatDbStorer(
@@ -275,7 +275,7 @@ func TestHeartbeatDbStorer_LoadHbmiDTOShouldWork(t *testing.T) {
 	}
 	_ = hs.SavePubkeyData([]byte("key1"), &hb)
 
-	hbmiDto, err := hs.LoadHbmiDTO("key1")
+	hbmiDto, err := hs.LoadHeartBeatDTO("key1")
 	assert.Nil(t, err)
 	assert.Equal(t, hb.NodeDisplayName, hbmiDto.NodeDisplayName)
 }

@@ -50,7 +50,7 @@ type Timer interface {
 type HeartbeatStorageHandler interface {
 	LoadGenesisTime() (time.Time, error)
 	UpdateGenesisTime(genesisTime time.Time) error
-	LoadHbmiDTO(pubKey string) (*data.HeartbeatDTO, error)
+	LoadHeartBeatDTO(pubKey string) (*data.HeartbeatDTO, error)
 	SavePubkeyData(pubkey []byte, heartbeat *data.HeartbeatDTO) error
 	LoadKeys() ([][]byte, error)
 	SaveKeys(peersSlice [][]byte) error

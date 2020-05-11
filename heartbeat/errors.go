@@ -83,24 +83,21 @@ var ErrNilBlackListHandler = errors.New("nil black list handler")
 // ErrNilPubkeyConverter signals that a nil public key converter has been provided
 var ErrNilPubkeyConverter = errors.New("trying to use a nil pubkey converter")
 
-// ErrZeroHbmiRefreshIntervalInSec signals that a zero value was provided for the HbmiRefreshIntervalInSec
-var ErrZeroHbmiRefreshIntervalInSec = errors.New("zero hbmiRefreshInterval")
+// ErrZeroHeartbeatRefreshIntervalInSec signals that a zero value was provided for the HeartbeatRefreshIntervalInSec
+var ErrZeroHeartbeatRefreshIntervalInSec = errors.New("zero heartbeatRefreshInterval")
 
 // ErrZeroHideInactiveValidatorIntervalInSec signals that a zero value
 // was provided for the ErrZeroHideInactiveValidatorIntervalInSec
 var ErrZeroHideInactiveValidatorIntervalInSec = errors.New("zero hideInactiveValidatorIntervalInSec")
 
 // ErrNegativeDurationInSecToConsiderUnresponsive is raised when a value less than 1 has been provided
-var ErrNegativeDurationInSecToConsiderUnresponsive = errors.New("value DurationInSecToConsiderUnresponsive is less" +
-	" than 1")
+var ErrNegativeDurationInSecToConsiderUnresponsive = errors.New("value DurationInSecToConsiderUnresponsive is less than 1")
 
 // ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec is raised when a value less than 1 has been provided
-var ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec = errors.New("value MaxTimeToWaitBetweenBroadcastsInSec is less " +
-	"than 1")
+var ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec = errors.New("value MaxTimeToWaitBetweenBroadcastsInSec is less than 1")
 
 // ErrNegativeMinTimeToWaitBetweenBroadcastsInSec is raised when a value less than 1 has been provided
-var ErrNegativeMinTimeToWaitBetweenBroadcastsInSec = errors.New("value MinTimeToWaitBetweenBroadcastsInSec is less " +
-	"than 1")
+var ErrNegativeMinTimeToWaitBetweenBroadcastsInSec = errors.New("value MinTimeToWaitBetweenBroadcastsInSec is less than 1")
 
 // ErrWrongValues signals that wrong values were provided
 var ErrWrongValues = errors.New("wrong values for heartbeat parameters")

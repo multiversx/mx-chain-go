@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	mock2 "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
+	heartbeatMock "github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -218,7 +218,7 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 		Marshalizer:      integrationTests.TestMarshalizer,
 		Topic:            topic,
 		ShardCoordinator: &sharding.OneShardCoordinator{},
-		PeerTypeProvider: &mock2.PeerTypeProviderStub{},
+		PeerTypeProvider: &heartbeatMock.PeerTypeProviderStub{},
 		StatusHandler:    &mock.AppStatusHandlerStub{},
 		VersionNumber:    version,
 		NodeDisplayName:  nodeName,
@@ -250,11 +250,11 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 		PubKeysMap:                  map[uint32][]string{0: {""}},
 		GenesisTime:                 time.Now(),
 		MessageHandler:              mp,
-		Storer: &mock2.HeartbeatStorerStub{
+		Storer: &heartbeatMock.HeartbeatStorerStub{
 			UpdateGenesisTimeCalled: func(genesisTime time.Time) error {
 				return nil
 			},
-			LoadHbmiDTOCalled: func(pubKey string) (*data.HeartbeatDTO, error) {
+			LoadHeartBeatDTOCalled: func(pubKey string) (*data.HeartbeatDTO, error) {
 				return nil, errors.New("not found")
 			},
 			LoadKeysCalled: func() ([][]byte, error) {
@@ -267,7 +267,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 				return nil
 			},
 		},
-		PeerTypeProvider: &mock2.PeerTypeProviderStub{},
+		PeerTypeProvider: &heartbeatMock.PeerTypeProviderStub{},
 		Timer:            &process.RealTimer{},
 		AntifloodHandler: &mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
@@ -275,9 +275,9 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 			},
 		},
 		HardforkTrigger:                    &mock.HardforkTriggerStub{},
-		PeerBlackListHandler:               &mock2.BlackListHandlerStub{},
+		PeerBlackListHandler:               &heartbeatMock.BlackListHandlerStub{},
 		ValidatorPubkeyConverter:           integrationTests.TestValidatorPubkeyConverter,
-		HbmiRefreshIntervalInSec:           1,
+		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
 	}
 

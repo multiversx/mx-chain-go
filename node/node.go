@@ -964,7 +964,15 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
-	return n.heartbeatHandler.Monitor().GetHeartbeats()
+	if check.IfNil(n.heartbeatHandler) {
+		return make([]heartbeatData.PubKeyHeartbeat, 0)
+	}
+	mon := n.heartbeatHandler.Monitor()
+	if check.IfNil(mon) {
+		return make([]heartbeatData.PubKeyHeartbeat, 0)
+	}
+
+	return mon.GetHeartbeats()
 }
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys

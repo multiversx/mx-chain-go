@@ -365,9 +365,9 @@
 [Heartbeat]
    MinTimeToWaitBetweenBroadcastsInSec  = 20
    MaxTimeToWaitBetweenBroadcastsInSec  = 25
-   HbmiRefreshIntervalInSec             = 60
+   HeartbeatRefreshIntervalInSec        = 60
    HideInactiveValidatorIntervalInSec   = 3600
-   DurationInSecToConsiderUnresponsive  = 60
+   DurationToConsiderUnresponsiveInSec  = 60
    [Heartbeat.HeartbeatStorage]
        [Heartbeat.HeartbeatStorage.Cache]
            Size = 1000

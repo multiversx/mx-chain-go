@@ -168,7 +168,7 @@ func (hbmi *heartbeatMessageInfo) HeartbeatReceived(
 	hbmi.isActive = true
 }
 
-// UpdateShardAndPeerType - updates the shard and peerType only for a hbmi
+// UpdateShardAndPeerType - updates the shard and peerType only for a heartbeat message info
 func (hbmi *heartbeatMessageInfo) UpdateShardAndPeerType(
 	computedShardID uint32,
 	peerType string,

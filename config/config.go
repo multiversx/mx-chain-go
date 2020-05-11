@@ -50,7 +50,8 @@ type TypeConfig struct {
 
 // MarshalizerConfig holds the marshalizer related configuration
 type MarshalizerConfig struct {
-	Type           string `json:"type"`
+	Type string `json:"type"`
+	//TODO check if we still need this
 	SizeCheckDelta uint32 `json:"sizeCheckDelta"`
 }
 
@@ -162,8 +163,8 @@ type ResourceStatsConfig struct {
 type HeartbeatConfig struct {
 	MinTimeToWaitBetweenBroadcastsInSec int
 	MaxTimeToWaitBetweenBroadcastsInSec int
-	DurationInSecToConsiderUnresponsive int
-	HbmiRefreshIntervalInSec            uint32
+	DurationToConsiderUnresponsiveInSec int
+	HeartbeatRefreshIntervalInSec       uint32
 	HideInactiveValidatorIntervalInSec  uint32
 	HeartbeatStorage                    StorageConfig
 }

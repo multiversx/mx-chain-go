@@ -11,12 +11,12 @@ import (
 type SinglesignMock struct {
 }
 
-// Sign Signs a message with using a single signature schnorr scheme
+// Sign -
 func (s *SinglesignMock) Sign(_ crypto.PrivateKey, _ []byte) ([]byte, error) {
 	return []byte("signed"), nil
 }
 
-// Verify verifies a signature using a single signature schnorr scheme
+// Verify -
 func (s *SinglesignMock) Verify(_ crypto.PublicKey, _ []byte, sig []byte) error {
 	verSig := []byte("signed")
 
@@ -26,7 +26,7 @@ func (s *SinglesignMock) Verify(_ crypto.PublicKey, _ []byte, sig []byte) error 
 	return nil
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
+// IsInterfaceNil -
 func (s *SinglesignMock) IsInterfaceNil() bool {
 	return s == nil
 }
@@ -35,17 +35,17 @@ func (s *SinglesignMock) IsInterfaceNil() bool {
 type SinglesignFailMock struct {
 }
 
-// Sign Signs a message with using a single signature schnorr scheme
+// Sign -
 func (s *SinglesignFailMock) Sign(_ crypto.PrivateKey, _ []byte) ([]byte, error) {
 	return nil, errors.New("signing failure")
 }
 
-// Verify verifies a signature using a single signature schnorr scheme
+// Verify -
 func (s *SinglesignFailMock) Verify(_ crypto.PublicKey, _ []byte, _ []byte) error {
 	return errors.New("signature verification failure")
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
+// IsInterfaceNil -
 func (s *SinglesignFailMock) IsInterfaceNil() bool {
 	return s == nil
 }
@@ -56,17 +56,17 @@ type SinglesignStub struct {
 	VerifyCalled func(public crypto.PublicKey, msg []byte, sig []byte) error
 }
 
-// Sign Signs a message with using a single signature schnorr scheme
+// Sign -
 func (s *SinglesignStub) Sign(private crypto.PrivateKey, msg []byte) ([]byte, error) {
 	return s.SignCalled(private, msg)
 }
 
-// Verify verifies a signature using a single signature schnorr scheme
+// Verify -
 func (s *SinglesignStub) Verify(public crypto.PublicKey, msg []byte, sig []byte) error {
 	return s.VerifyCalled(public, msg, sig)
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
+// IsInterfaceNil -
 func (s *SinglesignStub) IsInterfaceNil() bool {
 	return s == nil
 }

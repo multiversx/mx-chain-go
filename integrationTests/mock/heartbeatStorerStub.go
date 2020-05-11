@@ -10,7 +10,7 @@ import (
 type HeartbeatStorerStub struct {
 	LoadGenesisTimeCalled   func() (time.Time, error)
 	UpdateGenesisTimeCalled func(genesisTime time.Time) error
-	LoadHbmiDTOCalled       func(pubKey string) (*data.HeartbeatDTO, error)
+	LoadHeartBeatDTOCalled  func(pubKey string) (*data.HeartbeatDTO, error)
 	SavePubkeyDataCalled    func(pubkey []byte, heartbeat *data.HeartbeatDTO) error
 	LoadKeysCalled          func() ([][]byte, error)
 	SaveKeysCalled          func(peersSlice [][]byte) error
@@ -26,9 +26,9 @@ func (hss *HeartbeatStorerStub) UpdateGenesisTime(genesisTime time.Time) error {
 	return hss.UpdateGenesisTimeCalled(genesisTime)
 }
 
-// LoadHbmiDTO -
-func (hss *HeartbeatStorerStub) LoadHbmiDTO(pubKey string) (*data.HeartbeatDTO, error) {
-	return hss.LoadHbmiDTOCalled(pubKey)
+// LoadHeartBeatDTO -
+func (hss *HeartbeatStorerStub) LoadHeartBeatDTO(pubKey string) (*data.HeartbeatDTO, error) {
+	return hss.LoadHeartBeatDTOCalled(pubKey)
 }
 
 // SavePubkeyData -

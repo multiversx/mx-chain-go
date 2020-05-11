@@ -97,8 +97,8 @@ func (hs *HeartbeatDbStorer) saveGenesisTimeToDb(genesisTime time.Time) error {
 	return nil
 }
 
-// LoadHbmiDTO will return the HeartbeatDTO for the given public key from storage
-func (hs *HeartbeatDbStorer) LoadHbmiDTO(pubKey string) (*data.HeartbeatDTO, error) {
+// LoadHeartBeatDTO will return the HeartbeatDTO for the given public key from storage
+func (hs *HeartbeatDbStorer) LoadHeartBeatDTO(pubKey string) (*data.HeartbeatDTO, error) {
 	pkbytes := []byte(pubKey)
 
 	hbFromDB, err := hs.storer.Get(pkbytes)

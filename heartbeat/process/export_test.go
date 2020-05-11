@@ -19,8 +19,8 @@ func (m *Monitor) SetMessages(messages map[string]*heartbeatMessageInfo) {
 	m.heartbeatMessages = messages
 }
 
-// GetHbmi -
-func (m *Monitor) GetHbmi(_ time.Time) *heartbeatMessageInfo {
+// GetHeartbeatMessageInfo -
+func (m *Monitor) GetHeartbeatMessageInfo(_ time.Time) *heartbeatMessageInfo {
 	return &heartbeatMessageInfo{
 		maxDurationPeerUnresponsive: 0,
 		maxInactiveTime:             time.Duration(0),
@@ -103,7 +103,7 @@ func GetMaxSizeInBytes() int {
 	return maxSizeInBytes
 }
 
-// RefreshHbmi -
-func (m *Monitor) RefreshHbmi() {
-	m.refreshHbmi()
+// RefreshHeartbeatMessageInfo -
+func (m *Monitor) RefreshHeartbeatMessageInfo() {
+	m.refreshHeartbeatMessageInfo()
 }

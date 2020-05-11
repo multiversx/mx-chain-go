@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
 	"github.com/stretchr/testify/assert"
@@ -17,8 +18,8 @@ func createMockArgument() ArgHeartbeat {
 		HeartbeatConfig: config.HeartbeatConfig{
 			MinTimeToWaitBetweenBroadcastsInSec: 2,
 			MaxTimeToWaitBetweenBroadcastsInSec: 3,
-			DurationInSecToConsiderUnresponsive: 10,
-			HbmiRefreshIntervalInSec:            1,
+			DurationToConsiderUnresponsiveInSec: 10,
+			HeartbeatRefreshIntervalInSec:       1,
 			HideInactiveValidatorIntervalInSec:  20,
 		},
 		PrefsConfig: config.PreferencesConfig{
@@ -58,10 +59,10 @@ func TestNewHeartbeatHandler_DurationInSecToConsiderUnresponsive(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.HeartbeatConfig.DurationInSecToConsiderUnresponsive = 0
+	arg.HeartbeatConfig.DurationToConsiderUnresponsiveInSec = 0
 	hbh, err := NewHeartbeatHandler(arg)
 
-	assert.Nil(t, hbh)
+	assert.True(t, check.IfNil(hbh))
 	assert.Equal(t, heartbeat.ErrNegativeDurationInSecToConsiderUnresponsive, err)
 }
 
@@ -72,7 +73,7 @@ func TestNewHeartbeatHandler_MaxTimeToWaitBetweenBroadcastsInSec(t *testing.T) {
 	arg.HeartbeatConfig.MaxTimeToWaitBetweenBroadcastsInSec = 0
 	hbh, err := NewHeartbeatHandler(arg)
 
-	assert.Nil(t, hbh)
+	assert.True(t, check.IfNil(hbh))
 	assert.Equal(t, heartbeat.ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec, err)
 }
 
@@ -83,7 +84,7 @@ func TestNewHeartbeatHandler_MinTimeToWaitBetweenBroadcastsInSec(t *testing.T) {
 	arg.HeartbeatConfig.MinTimeToWaitBetweenBroadcastsInSec = 0
 	hbh, err := NewHeartbeatHandler(arg)
 
-	assert.Nil(t, hbh)
+	assert.True(t, check.IfNil(hbh))
 	assert.Equal(t, heartbeat.ErrNegativeMinTimeToWaitBetweenBroadcastsInSec, err)
 }
 
@@ -95,7 +96,7 @@ func TestNewHeartbeatHandler_InvalidMaxTimeToWaitBetweenBroadcastsInSec(t *testi
 	arg.HeartbeatConfig.MinTimeToWaitBetweenBroadcastsInSec = 3
 	hbh, err := NewHeartbeatHandler(arg)
 
-	assert.Nil(t, hbh)
+	assert.True(t, check.IfNil(hbh))
 	assert.True(t, errors.Is(err, heartbeat.ErrWrongValues))
 }
 
@@ -103,11 +104,11 @@ func TestNewHeartbeatHandler_InvalidDurationInSecToConsiderUnresponsive(t *testi
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.HeartbeatConfig.DurationInSecToConsiderUnresponsive = 2
+	arg.HeartbeatConfig.DurationToConsiderUnresponsiveInSec = 2
 	arg.HeartbeatConfig.MaxTimeToWaitBetweenBroadcastsInSec = 3
 	hbh, err := NewHeartbeatHandler(arg)
 
-	assert.Nil(t, hbh)
+	assert.True(t, check.IfNil(hbh))
 	assert.True(t, errors.Is(err, heartbeat.ErrWrongValues))
 }
 
@@ -118,7 +119,7 @@ func TestNewHeartbeatHandler_NilMessenger(t *testing.T) {
 	arg.Messenger = nil
 	hbh, err := NewHeartbeatHandler(arg)
 
-	assert.Nil(t, hbh)
+	assert.True(t, check.IfNil(hbh))
 	assert.Equal(t, heartbeat.ErrNilMessenger, err)
 }
 
@@ -129,7 +130,7 @@ func TestNewHeartbeatHandler_ShouldWork(t *testing.T) {
 	hbh, err := NewHeartbeatHandler(arg)
 
 	assert.Nil(t, err)
-	require.NotNil(t, hbh)
+	assert.False(t, check.IfNil(hbh))
 	require.NotNil(t, hbh.Monitor())
 	require.NotNil(t, hbh.Sender())
 

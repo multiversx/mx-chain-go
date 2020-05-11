@@ -158,7 +158,7 @@ func (hbh *HeartbeatHandler) create() error {
 
 	argMonitor := process.ArgHeartbeatMonitor{
 		Marshalizer:                        netInputMarshalizer,
-		MaxDurationPeerUnresponsive:        time.Second * time.Duration(arg.HeartbeatConfig.DurationInSecToConsiderUnresponsive),
+		MaxDurationPeerUnresponsive:        time.Second * time.Duration(arg.HeartbeatConfig.DurationToConsiderUnresponsiveInSec),
 		PubKeysMap:                         pubKeysMap,
 		GenesisTime:                        arg.GenesisTime,
 		MessageHandler:                     heartBeatMsgProcessor,
@@ -169,7 +169,7 @@ func (hbh *HeartbeatHandler) create() error {
 		HardforkTrigger:                    arg.HardforkTrigger,
 		PeerBlackListHandler:               arg.PeerBlackListHandler,
 		ValidatorPubkeyConverter:           arg.ValidatorPubkeyConverter,
-		HbmiRefreshIntervalInSec:           arg.HeartbeatConfig.HbmiRefreshIntervalInSec,
+		HeartbeatRefreshIntervalInSec:      arg.HeartbeatConfig.HeartbeatRefreshIntervalInSec,
 		HideInactiveValidatorIntervalInSec: arg.HeartbeatConfig.HideInactiveValidatorIntervalInSec,
 	}
 	hbh.monitor, err = process.NewMonitor(argMonitor)
@@ -216,9 +216,10 @@ func (hbh *HeartbeatHandler) startSendingHeartbeats(ctx context.Context) {
 
 	log.Debug("heartbeat's endless sending go routine started")
 
+	diffSeconds := cfg.MaxTimeToWaitBetweenBroadcastsInSec - cfg.MinTimeToWaitBetweenBroadcastsInSec
+	diffNanos := int64(diffSeconds) * time.Second.Nanoseconds()
+
 	for {
-		diffSeconds := cfg.MaxTimeToWaitBetweenBroadcastsInSec - cfg.MinTimeToWaitBetweenBroadcastsInSec
-		diffNanos := int64(diffSeconds) * time.Second.Nanoseconds()
 		randomNanos := r.Int63n(diffNanos)
 		timeToWait := time.Second*time.Duration(cfg.MinTimeToWaitBetweenBroadcastsInSec) + time.Duration(randomNanos)
 
@@ -237,7 +238,7 @@ func (hbh *HeartbeatHandler) startSendingHeartbeats(ctx context.Context) {
 }
 
 func (hbh *HeartbeatHandler) checkConfigParams(config config.HeartbeatConfig) error {
-	if config.DurationInSecToConsiderUnresponsive < 1 {
+	if config.DurationToConsiderUnresponsiveInSec < 1 {
 		return heartbeat.ErrNegativeDurationInSecToConsiderUnresponsive
 	}
 	if config.MaxTimeToWaitBetweenBroadcastsInSec < 1 {
@@ -249,7 +250,7 @@ func (hbh *HeartbeatHandler) checkConfigParams(config config.HeartbeatConfig) er
 	if config.MaxTimeToWaitBetweenBroadcastsInSec <= config.MinTimeToWaitBetweenBroadcastsInSec {
 		return fmt.Errorf("%w for MaxTimeToWaitBetweenBroadcastsInSec", heartbeat.ErrWrongValues)
 	}
-	if config.DurationInSecToConsiderUnresponsive <= config.MaxTimeToWaitBetweenBroadcastsInSec {
+	if config.DurationToConsiderUnresponsiveInSec <= config.MaxTimeToWaitBetweenBroadcastsInSec {
 		return fmt.Errorf("%w for DurationInSecToConsiderUnresponsive", heartbeat.ErrWrongValues)
 	}
 
@@ -271,4 +272,9 @@ func (hbh *HeartbeatHandler) Close() error {
 	hbh.cancelFunc()
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (hbh *HeartbeatHandler) IsInterfaceNil() bool {
+	return hbh == nil
 }

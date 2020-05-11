@@ -36,7 +36,7 @@ func createMockStorer() heartbeat.HeartbeatStorageHandler {
 		UpdateGenesisTimeCalled: func(genesisTime time.Time) error {
 			return nil
 		},
-		LoadHbmiDTOCalled: func(pubKey string) (*data.HeartbeatDTO, error) {
+		LoadHeartBeatDTOCalled: func(pubKey string) (*data.HeartbeatDTO, error) {
 			return nil, errors.New("not found")
 		},
 		LoadKeysCalled: func() ([][]byte, error) {
@@ -73,7 +73,7 @@ func createMockArgHeartbeatMonitor() process.ArgHeartbeatMonitor {
 		HardforkTrigger:                    &mock.HardforkTriggerStub{},
 		PeerBlackListHandler:               &mock.BlackListHandlerStub{},
 		ValidatorPubkeyConverter:           mock.NewPubkeyConverterMock(96),
-		HbmiRefreshIntervalInSec:           1,
+		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
 	}
 }
@@ -194,11 +194,11 @@ func TestNewMonitor_ZeroHbmiRefreshIntervalShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgHeartbeatMonitor()
-	arg.HbmiRefreshIntervalInSec = 0
+	arg.HeartbeatRefreshIntervalInSec = 0
 	mon, err := process.NewMonitor(arg)
 
 	assert.Nil(t, mon)
-	assert.True(t, errors.Is(err, heartbeat.ErrZeroHbmiRefreshIntervalInSec))
+	assert.True(t, errors.Is(err, heartbeat.ErrZeroHeartbeatRefreshIntervalInSec))
 }
 
 func TestNewMonitor_ZeroHideInactiveVlidatorIntervalInHoursShouldErr(t *testing.T) {
@@ -476,7 +476,7 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 	th.IncrementSeconds(6)
 
 	// Check that both are added
-	mon.RefreshHbmi()
+	mon.RefreshHeartbeatMessageInfo()
 	hbStatus := mon.GetHeartbeats()
 	assert.Equal(t, 2, len(hbStatus))
 	//assert.False(t, hbStatus[1].IsActive)
@@ -487,7 +487,7 @@ func TestMonitor_ProcessReceivedMessageShouldSetPeerInactive(t *testing.T) {
 	assert.Nil(t, err)
 
 	th.IncrementSeconds(4)
-	mon.RefreshHbmi()
+	mon.RefreshHeartbeatMessageInfo()
 	hbStatus = mon.GetHeartbeats()
 
 	// check if pk1 is still on
@@ -541,7 +541,7 @@ func TestMonitor_RemoveInactiveValidatorsIfIntervalExceeded(t *testing.T) {
 		HardforkTrigger:                    &mock.HardforkTriggerStub{},
 		PeerBlackListHandler:               &mock.BlackListHandlerStub{},
 		ValidatorPubkeyConverter:           mock.NewPubkeyConverterMock(32),
-		HbmiRefreshIntervalInSec:           1,
+		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
 	}
 	mon, _ := process.NewMonitor(arg)
@@ -552,18 +552,18 @@ func TestMonitor_RemoveInactiveValidatorsIfIntervalExceeded(t *testing.T) {
 	mon.SendHeartbeatMessage(&data.Heartbeat{Pubkey: []byte(pubKey4)})
 
 	// Check that all are added
-	mon.RefreshHbmi()
+	mon.RefreshHeartbeatMessageInfo()
 	hbStatus := mon.GetHeartbeats()
 	assert.Equal(t, 5, len(hbStatus))
 
 	timer.IncrementSeconds(int(arg.HideInactiveValidatorIntervalInSec) - 20)
-	mon.RefreshHbmi()
+	mon.RefreshHeartbeatMessageInfo()
 	hbStatus = mon.GetHeartbeats()
 	assert.Equal(t, 5, len(hbStatus))
 
 	// increase to over HideInactiveValidatorIntervalInSec ~ 10 min
 	timer.IncrementSeconds(int(arg.HideInactiveValidatorIntervalInSec) + 10)
-	mon.RefreshHbmi()
+	mon.RefreshHeartbeatMessageInfo()
 	hbStatus = mon.GetHeartbeats()
 	// check if pk1 and pk2 are still on
 	assert.Equal(t, 2, len(hbStatus))

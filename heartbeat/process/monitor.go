@@ -36,7 +36,7 @@ type ArgHeartbeatMonitor struct {
 	HardforkTrigger                    heartbeat.HardforkTrigger
 	PeerBlackListHandler               heartbeat.BlackListHandler
 	ValidatorPubkeyConverter           state.PubkeyConverter
-	HbmiRefreshIntervalInSec           uint32
+	HeartbeatRefreshIntervalInSec      uint32
 	HideInactiveValidatorIntervalInSec uint32
 }
 
@@ -60,7 +60,7 @@ type Monitor struct {
 	hardforkTrigger                    heartbeat.HardforkTrigger
 	peerBlackListHandler               heartbeat.BlackListHandler
 	validatorPubkeyConverter           state.PubkeyConverter
-	hbmiRefreshIntervalInSec           uint32
+	heartbeatRefreshIntervalInSec      uint32
 	hideInactiveValidatorIntervalInSec uint32
 }
 
@@ -96,8 +96,8 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 	if check.IfNil(arg.ValidatorPubkeyConverter) {
 		return nil, heartbeat.ErrNilPubkeyConverter
 	}
-	if arg.HbmiRefreshIntervalInSec == 0 {
-		return nil, heartbeat.ErrZeroHbmiRefreshIntervalInSec
+	if arg.HeartbeatRefreshIntervalInSec == 0 {
+		return nil, heartbeat.ErrZeroHeartbeatRefreshIntervalInSec
 	}
 	if arg.HideInactiveValidatorIntervalInSec == 0 {
 		return nil, heartbeat.ErrZeroHideInactiveValidatorIntervalInSec
@@ -117,7 +117,7 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		hardforkTrigger:                    arg.HardforkTrigger,
 		peerBlackListHandler:               arg.PeerBlackListHandler,
 		validatorPubkeyConverter:           arg.ValidatorPubkeyConverter,
-		hbmiRefreshIntervalInSec:           arg.HbmiRefreshIntervalInSec,
+		heartbeatRefreshIntervalInSec:      arg.HeartbeatRefreshIntervalInSec,
 		hideInactiveValidatorIntervalInSec: arg.HideInactiveValidatorIntervalInSec,
 	}
 
@@ -165,7 +165,7 @@ func (m *Monitor) initializeHeartBeatForPK(
 	pubKeysToSave map[string]*heartbeatMessageInfo,
 	pubKeysMapCopy map[uint32][]string,
 ) error {
-	hbmi, err := m.loadHbmiFromStorer(pubkey)
+	hbmi, err := m.loadHeartbeatsFromStorer(pubkey)
 	if err != nil { // if pubKey not found in DB, create a new instance
 		peerType, shardID := m.computePeerTypeAndShardID([]byte(pubkey))
 		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, peerType, m.genesisTime, m.timer)
@@ -206,7 +206,7 @@ func (m *Monitor) loadRestOfPubKeysFromStorage() error {
 		pubKey := string(peer)
 		_, ok := m.heartbeatMessages[pubKey]
 		if !ok { // peer not in nodes map
-			hbmi, err1 := m.loadHbmiFromStorer(pubKey)
+			hbmi, err1 := m.loadHeartbeatsFromStorer(pubKey)
 			if err1 != nil {
 				continue
 			}
@@ -217,13 +217,13 @@ func (m *Monitor) loadRestOfPubKeysFromStorage() error {
 	return nil
 }
 
-func (m *Monitor) loadHbmiFromStorer(pubKey string) (*heartbeatMessageInfo, error) {
-	hbmiDTO, err := m.storer.LoadHbmiDTO(pubKey)
+func (m *Monitor) loadHeartbeatsFromStorer(pubKey string) (*heartbeatMessageInfo, error) {
+	heartbeatDTO, err := m.storer.LoadHeartBeatDTO(pubKey)
 	if err != nil {
 		return nil, err
 	}
 
-	receivedHbmi := m.convertFromExportedStruct(*hbmiDTO, m.maxDurationPeerUnresponsive)
+	receivedHbmi := m.convertFromExportedStruct(*heartbeatDTO, m.maxDurationPeerUnresponsive)
 	receivedHbmi.getTimeHandler = m.timer.Now
 	crtTime := m.timer.Now()
 	crtDuration := crtTime.Sub(receivedHbmi.lastUptimeDowntime)
@@ -318,7 +318,7 @@ func (m *Monitor) addHeartbeatMessageToMap(hb *data.Heartbeat) {
 		peerType, _ := m.computePeerTypeAndShardID(hb.Pubkey)
 		hbmi, err = newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, peerType, m.genesisTime, m.timer)
 		if err != nil {
-			log.Debug("error creating hbmi", "error", err.Error())
+			log.Debug("error creating heartbeat message info", "error", err.Error())
 			m.mutHeartbeatMessages.Unlock()
 			return
 		}
@@ -526,16 +526,16 @@ func (m *Monitor) convertFromExportedStruct(hbDTO data.HeartbeatDTO, maxDuration
 // startValidatorProcessing will start the updating of the information about the nodes
 func (m *Monitor) startValidatorProcessing() {
 	go func() {
-		refreshInterval := time.Duration(m.hbmiRefreshIntervalInSec) * time.Second
+		refreshInterval := time.Duration(m.heartbeatRefreshIntervalInSec) * time.Second
 
 		for {
-			m.refreshHbmi()
+			m.refreshHeartbeatMessageInfo()
 			time.Sleep(refreshInterval)
 		}
 	}()
 }
 
-func (m *Monitor) refreshHbmi() {
+func (m *Monitor) refreshHeartbeatMessageInfo() {
 	m.computeAllHeartbeatMessages()
 	m.computeInactiveHeartbeatMessages()
 }
