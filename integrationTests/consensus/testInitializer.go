@@ -164,9 +164,11 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
-				Size:        100000,
-				SizeInBytes: 1000000000,
-				Shards:      1,
+				Size:                 100000,
+				SizePerSender:        1000,
+				SizeInBytes:          1000000000,
+				SizeInBytesPerSender: 10000000,
+				Shards:               16,
 			},
 			MinGasPrice:    100000000000000,
 			NumberOfShards: 1,
