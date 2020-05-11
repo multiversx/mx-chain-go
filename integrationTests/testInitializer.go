@@ -340,8 +340,8 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	return store
 }
 
-// CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
-func CreateAccountsDB(accountType Type) (*state.AccountsDB, data.Trie, storage.Storer) {
+// CreateTrieStorageManager creates the trie storage manager for the tests
+func CreateTrieStorageManager() (data.StorageManager, storage.Storer) {
 	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 
@@ -359,14 +359,22 @@ func CreateAccountsDB(accountType Type) (*state.AccountsDB, data.Trie, storage.S
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-	trieStorage, _ := trie.NewTrieStorageManager(store, TestMarshalizer, TestHasher, cfg, ewl, generalCfg)
+	trieStorageManager, _ := trie.NewTrieStorageManager(store, TestMarshalizer, TestHasher, cfg, ewl, generalCfg)
 
-	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
+	return trieStorageManager, store
+}
+
+// CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
+func CreateAccountsDB(
+	accountType Type,
+	trieStorageManager data.StorageManager,
+) (*state.AccountsDB, data.Trie) {
+	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher)
 
 	accountFactory := getAccountFactory(accountType)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, TestMarshalizer, accountFactory)
 
-	return adb, tr, store
+	return adb, tr
 }
 
 func getAccountFactory(accountType Type) state.AccountFactory {
@@ -550,7 +558,8 @@ func CreateGenesisMetaBlock(
 		newDataPool := CreateTestDataPool(nil, shardCoordinator.SelfId())
 
 		newBlkc := blockchain.NewMetaChain()
-		newAccounts, _, _ := CreateAccountsDB(UserAccount)
+		trieStorage, _ := CreateTrieStorageManager()
+		newAccounts, _ := CreateAccountsDB(UserAccount, trieStorage)
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
@@ -644,7 +653,8 @@ func CreateRandomBytes(chars int) []byte {
 // GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
 func GenerateAddressJournalAccountAccountsDB() ([]byte, state.UserAccountHandler, *state.AccountsDB) {
 	adr := CreateRandomAddress()
-	adb, _, _ := CreateAccountsDB(UserAccount)
+	trieStorage, _ := CreateTrieStorageManager()
+	adb, _ := CreateAccountsDB(UserAccount, trieStorage)
 	account, _ := state.NewUserAccount(adr)
 
 	return adr, account, adb
@@ -1538,7 +1548,8 @@ func generateValidTx(
 	_, pkRecv, _ := GenerateSkAndPkInShard(shardCoordinator, receiverShardId)
 	pkRecvBuff, _ := pkRecv.ToByteArray()
 
-	accnts, _, _ := CreateAccountsDB(UserAccount)
+	trieStorage, _ := CreateTrieStorageManager()
+	accnts, _ := CreateAccountsDB(UserAccount, trieStorage)
 	acc, _ := accnts.LoadAccount(pkSenderBuff)
 	_ = accnts.SaveAccount(acc)
 	_, _ = accnts.Commit()

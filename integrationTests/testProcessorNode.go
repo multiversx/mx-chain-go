@@ -174,6 +174,7 @@ type TestProcessorNode struct {
 	Storage       dataRetriever.StorageService
 	PeerState     state.AccountsAdapter
 	AccntState    state.AccountsAdapter
+	TrieStorage   data.StorageManager
 	TrieContainer state.TriesHolder
 	BlockChain    data.ChainHandler
 	GenesisBlocks map[uint32]data.HeaderHandler
@@ -374,13 +375,14 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 }
 
 func (tpn *TestProcessorNode) initAccountDBs() {
+	tpn.TrieStorage, _ = CreateTrieStorageManager()
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie data.Trie
-	tpn.AccntState, stateTrie, _ = CreateAccountsDB(UserAccount)
+	tpn.AccntState, stateTrie = CreateAccountsDB(UserAccount, tpn.TrieStorage)
 	tpn.TrieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
 
 	var peerTrie data.Trie
-	tpn.PeerState, peerTrie, _ = CreateAccountsDB(ValidatorAccount)
+	tpn.PeerState, peerTrie = CreateAccountsDB(ValidatorAccount, tpn.TrieStorage)
 	tpn.TrieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
 }
 

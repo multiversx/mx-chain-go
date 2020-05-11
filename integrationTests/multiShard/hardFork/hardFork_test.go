@@ -16,7 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -217,7 +216,6 @@ func hardForkImport(
 		defaults.FillGasMapInternal(gasSchedule, 1)
 		log.Warn("started import process")
 
-		trieStorageManager, _ := trie.NewTrieStorageManagerWithoutPruning(integrationTests.CreateMemUnit())
 		argsGenesis := process.ArgsGenesisBlockCreator{
 			GenesisTime:              0,
 			StartEpochNum:            0,
@@ -244,7 +242,7 @@ func hardForkImport(
 				StartRound:               1000,
 				ImportStateStorageConfig: *importStorageConfigs[id],
 			},
-			TrieStorageManager: trieStorageManager,
+			TrieStorageManager: node.TrieStorage,
 			ChainID:            string(node.ChainID),
 			SystemSCConfig: config.SystemSmartContractsConfig{
 				ESDTSystemSCConfig: config.ESDTSystemSCConfig{
