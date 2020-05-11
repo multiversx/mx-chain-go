@@ -218,8 +218,6 @@ func hardForkImport(
 		log.Warn("started import process")
 
 		trieStorageManager, _ := trie.NewTrieStorageManagerWithoutPruning(integrationTests.CreateMemUnit())
-		validatorsRoothash, _ := node.ValidatorStatisticsProcessor.RootHash()
-
 		argsGenesis := process.ArgsGenesisBlockCreator{
 			GenesisTime:              0,
 			StartEpochNum:            0,
@@ -234,7 +232,7 @@ func hardForkImport(
 			Hasher:                   integrationTests.TestHasher,
 			Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
 			DataPool:                 node.DataPool,
-			ValidatorStatsRootHash:   validatorsRoothash,
+			ValidatorAccounts:        node.PeerState,
 			GasMap:                   gasSchedule,
 			TxLogsProcessor:          &mock.TxLogsProcessorStub{},
 			VirtualMachineConfig:     config.VirtualMachineConfig{},

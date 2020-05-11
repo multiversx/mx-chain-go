@@ -29,7 +29,6 @@ func createMockArgument() ArgsGenesisBlockCreator {
 		Hasher:                   &mock.HasherMock{},
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
 		DataPool:                 mock.NewPoolsHolderMock(),
-		ValidatorStatsRootHash:   make([]byte, 0),
 		TxLogsProcessor:          &mock.TxLogProcessorMock{},
 		VirtualMachineConfig:     config.VirtualMachineConfig{},
 		HardForkConfig:           config.HardforkConfig{},
@@ -58,6 +57,21 @@ func createMockArgument() ArgsGenesisBlockCreator {
 		},
 		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return state.NewEmptyUserAccount(), nil
+		},
+	}
+
+	arg.ValidatorAccounts = &mock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return make([]byte, 0), nil
+		},
+		CommitCalled: func() ([]byte, error) {
+			return make([]byte, 0), nil
+		},
+		SaveAccountCalled: func(account state.AccountHandler) error {
+			return nil
+		},
+		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			return state.NewEmptyPeerAccount(), nil
 		},
 	}
 

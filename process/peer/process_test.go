@@ -92,7 +92,6 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		Rater:               createMockRater(),
 		RewardsHandler:      economicsData,
 		MaxComputableRounds: 1000,
-		StartEpoch:          0,
 		NodesSetup:          &mock.NodesSetupStub{},
 	}
 	return arguments

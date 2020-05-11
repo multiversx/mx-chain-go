@@ -417,7 +417,7 @@
 	StartRound = 0
 	StartNonce = 0
 	StartEpoch = 0
-	ValidatorGracePeriod = 0 #defines how long is the rating computation disabled after hardfork
+	ValidatorGracePeriodInEpochs = 0 #defines how long is the rating computation disabled after hardfork
 	[HardFork.ExportStateStorageConfig]
 	    [HardFork.ExportStateStorageConfig.Cache]
             Size = 5000

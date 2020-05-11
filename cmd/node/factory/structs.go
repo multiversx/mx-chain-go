@@ -869,11 +869,6 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	smartContractParser := args.smartContractParser
 	economicsData := args.economicsData
 
-	validatorStatsRootHash, err := stateComponents.PeerAccounts.RootHash()
-	if err != nil {
-		return nil, err
-	}
-
 	arg := genesisProcess.ArgsGenesisBlockCreator{
 		Version:                  args.version,
 		GenesisTime:              uint64(nodesSetup.StartTime),
@@ -891,7 +886,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		DataPool:                 dataComponents.Datapool,
 		AccountsParser:           accountsParser,
 		SmartContractParser:      smartContractParser,
-		ValidatorStatsRootHash:   validatorStatsRootHash,
+		ValidatorAccounts:        stateComponents.PeerAccounts,
 		GasMap:                   args.gasSchedule,
 		VirtualMachineConfig:     args.mainConfig.VirtualMachineConfig,
 		TxLogsProcessor:          args.txLogsProcessor,
@@ -1645,6 +1640,11 @@ func newValidatorStatisticsProcessor(
 		peerDataPool = processComponents.data.Datapool
 	}
 
+	hardForkConfig := processComponents.mainConfig.Hardfork
+	ratingEnabledEpoch := uint32(0)
+	if hardForkConfig.MustImport {
+		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
+	}
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		PeerAdapter:         processComponents.state.PeerAccounts,
 		PubkeyConv:          processComponents.state.ValidatorPubkeyConverter,
@@ -1656,8 +1656,8 @@ func newValidatorStatisticsProcessor(
 		Rater:               processComponents.rater,
 		MaxComputableRounds: processComponents.maxComputableRounds,
 		RewardsHandler:      processComponents.economicsData,
-		StartEpoch:          processComponents.startEpochNum,
 		NodesSetup:          processComponents.nodesConfig,
+		RatingEnableEpoch:   ratingEnabledEpoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

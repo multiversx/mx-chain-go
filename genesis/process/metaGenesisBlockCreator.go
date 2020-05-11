@@ -75,6 +75,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		PubKeysBitmap:          []byte{1},
 		ChainID:                []byte(arg.ChainID),
 		SoftwareVersion:        []byte(arg.Version),
+		TimeStamp:              arg.GenesisTime,
 	}
 	header.EpochStart.Economics = block.Economics{
 		TotalSupply:            big.NewInt(0).Set(arg.Economics.GenesisTotalSupply()),
@@ -84,8 +85,11 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		NodePrice:              big.NewInt(0).Set(arg.Economics.GenesisNodePrice()),
 	}
 
-	header.SetTimeStamp(arg.GenesisTime)
-	header.SetValidatorStatsRootHash(arg.ValidatorStatsRootHash)
+	validatorRootHash, err := arg.ValidatorAccounts.RootHash()
+	if err != nil {
+		return nil, err
+	}
+	header.SetValidatorStatsRootHash(validatorRootHash)
 
 	err = saveGenesisMetaToStorage(arg.Store, arg.Marshalizer, header)
 	if err != nil {
@@ -114,12 +118,24 @@ func createMetaGenesisAfterHardFork(arg ArgsGenesisBlockCreator, processors *gen
 		arg.HardForkConfig.StartNonce,
 		arg.HardForkConfig.StartEpoch,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	metaHdr, ok := hdrHandler.(*block.MetaBlock)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
+	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
+	if err != nil {
+		return nil, err
+	}
+
+	err = arg.ValidatorAccounts.RecreateTrie(hdrHandler.GetValidatorStatsRootHash())
+	if err != nil {
+		return nil, err
+	}
 	saveGenesisBodyToStorage(processors.txCoordinator, bodyHandler)
 
 	return metaHdr, nil

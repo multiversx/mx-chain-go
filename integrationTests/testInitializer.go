@@ -461,6 +461,7 @@ func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 // CreateGenesisBlocks creates empty genesis blocks for all known shards, including metachain
 func CreateGenesisBlocks(
 	accounts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
 	pubkeyConv state.PubkeyConverter,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	shardCoordinator sharding.Coordinator,
@@ -471,7 +472,6 @@ func CreateGenesisBlocks(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	dataPool dataRetriever.PoolsHolder,
 	economics *economics.EconomicsData,
-	rootHash []byte,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
@@ -481,6 +481,7 @@ func CreateGenesisBlocks(
 
 	genesisBlocks[core.MetachainShardId] = CreateGenesisMetaBlock(
 		accounts,
+		validatorAccounts,
 		pubkeyConv,
 		nodesSetup,
 		shardCoordinator,
@@ -491,7 +492,6 @@ func CreateGenesisBlocks(
 		uint64Converter,
 		dataPool,
 		economics,
-		rootHash,
 	)
 
 	return genesisBlocks
@@ -500,6 +500,7 @@ func CreateGenesisBlocks(
 // CreateGenesisMetaBlock creates a new mock meta genesis block
 func CreateGenesisMetaBlock(
 	accounts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
 	pubkeyConv state.PubkeyConverter,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	shardCoordinator sharding.Coordinator,
@@ -510,7 +511,6 @@ func CreateGenesisMetaBlock(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	dataPool dataRetriever.PoolsHolder,
 	economics *economics.EconomicsData,
-	rootHash []byte,
 ) data.HeaderHandler {
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
@@ -528,7 +528,7 @@ func CreateGenesisMetaBlock(
 		Uint64ByteSliceConverter: uint64Converter,
 		DataPool:                 dataPool,
 		Economics:                economics,
-		ValidatorStatsRootHash:   rootHash,
+		ValidatorAccounts:        validatorAccounts,
 		GasMap:                   gasSchedule,
 		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
 		VirtualMachineConfig:     config.VirtualMachineConfig{},

@@ -47,7 +47,6 @@ type ArgValidatorStatisticsProcessor struct {
 	Rater               sharding.PeerAccountListAndRatingHandler
 	RewardsHandler      process.RewardsHandler
 	MaxComputableRounds uint64
-	StartEpoch          uint32
 	NodesSetup          sharding.GenesisNodesSetupHandler
 	GenesisNonce        uint64
 	RatingEnableEpoch   uint32

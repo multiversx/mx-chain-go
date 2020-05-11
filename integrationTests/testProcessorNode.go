@@ -402,7 +402,6 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		Rater:               rater,
 		MaxComputableRounds: 1000,
 		RewardsHandler:      tpn.EconomicsData,
-		StartEpoch:          0,
 		NodesSetup:          tpn.NodesSetup,
 	}
 
@@ -421,11 +420,10 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initValidatorStatistics()
-	rootHash, err := tpn.ValidatorStatisticsProcessor.RootHash()
-	fmt.Println("error", err)
 
 	tpn.GenesisBlocks = CreateGenesisBlocks(
 		tpn.AccntState,
+		tpn.PeerState,
 		TestAddressPubkeyConverter,
 		tpn.NodesSetup,
 		tpn.ShardCoordinator,
@@ -436,7 +434,6 @@ func (tpn *TestProcessorNode) initTestNode() {
 		TestUint64Converter,
 		tpn.DataPool,
 		tpn.EconomicsData.EconomicsData,
-		rootHash,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
