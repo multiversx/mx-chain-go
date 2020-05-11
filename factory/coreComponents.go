@@ -5,9 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
-	"github.com/ElrondNetwork/elrond-go/hashing"
 	factoryHasher "github.com/ElrondNetwork/elrond-go/hashing/factory"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	factoryMarshalizer "github.com/ElrondNetwork/elrond-go/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
@@ -21,11 +19,9 @@ type CoreComponentsFactoryArgs struct {
 
 // CoreComponentsFactory is responsible for creating the core components
 type CoreComponentsFactory struct {
-	config      config.Config
-	shardId     string
-	chainID     []byte
-	marshalizer marshal.Marshalizer
-	hasher      hashing.Hasher
+	config  config.Config
+	shardId string
+	chainID []byte
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components

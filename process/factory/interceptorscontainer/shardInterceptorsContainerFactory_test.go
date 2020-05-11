@@ -279,17 +279,6 @@ func TestNewShardInterceptorsContainerFactory_EmptyEpochStartTriggerShouldErr(t 
 	assert.Equal(t, process.ErrNilEpochStartTrigger, err)
 }
 
-func TestNewShardInterceptorsContainerFactory_NilNonceConverterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.NonceConverter = nil
-	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
-
-	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilUint64Converter, err)
-}
-
 func TestNewShardInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
