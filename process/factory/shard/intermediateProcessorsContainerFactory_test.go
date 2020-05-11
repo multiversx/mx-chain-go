@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -59,7 +58,6 @@ func TestNewIntermediateProcessorsContainerFactory_NilShardCoord(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
-		&economics.EconomicsData{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -77,7 +75,6 @@ func TestNewIntermediateProcessorsContainerFactory_NilMarshalizer(t *testing.T) 
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
-		&economics.EconomicsData{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -95,7 +92,6 @@ func TestNewIntermediateProcessorsContainerFactory_NilHasher(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
-		&economics.EconomicsData{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -113,7 +109,6 @@ func TestNewIntermediateProcessorsContainerFactory_NilAdrConv(t *testing.T) {
 		nil,
 		&mock.ChainStorerMock{},
 		dPool,
-		&economics.EconomicsData{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -131,7 +126,6 @@ func TestNewIntermediateProcessorsContainerFactory_NilStorer(t *testing.T) {
 		createMockPubkeyConverter(),
 		nil,
 		dPool,
-		&economics.EconomicsData{},
 	)
 
 	assert.Nil(t, ipcf)
@@ -149,7 +143,6 @@ func TestNewIntermediateProcessorsContainerFactory(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
-		&economics.EconomicsData{},
 	)
 
 	assert.Nil(t, err)
@@ -168,7 +161,6 @@ func TestIntermediateProcessorsContainerFactory_Create(t *testing.T) {
 		createMockPubkeyConverter(),
 		&mock.ChainStorerMock{},
 		dPool,
-		&economics.EconomicsData{},
 	)
 
 	assert.Nil(t, err)
