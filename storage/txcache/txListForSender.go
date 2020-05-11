@@ -88,8 +88,11 @@ func (listForSender *txListForSender) applyLimit() [][]byte {
 }
 
 func (listForSender *txListForSender) isLimitReached() bool {
-	tooManyBytes := listForSender.totalBytes.Get() > int64(listForSender.cacheConfig.NumBytesPerSenderThreshold)
-	tooManyTxs := listForSender.countTx() > uint64(listForSender.cacheConfig.CountPerSenderThreshold)
+	maxBytes := int64(listForSender.cacheConfig.NumBytesPerSenderThreshold)
+	maxNumTxs := uint64(listForSender.cacheConfig.CountPerSenderThreshold)
+	tooManyBytes := maxBytes > 0 && listForSender.totalBytes.Get() > maxBytes
+	tooManyTxs := maxNumTxs > 0 && listForSender.countTx() > maxNumTxs
+
 	return tooManyBytes || tooManyTxs
 }
 

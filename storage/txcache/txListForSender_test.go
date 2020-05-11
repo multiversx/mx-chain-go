@@ -63,6 +63,10 @@ func TestListForSender_findTx(t *testing.T) {
 	elementWithB := list.findListElementWithTx(txB)
 	noElementWithD := list.findListElementWithTx(txD)
 
+	require.NotNil(t, elementWithA)
+	require.NotNil(t, elementWithANewer)
+	require.NotNil(t, elementWithB)
+
 	require.Equal(t, txA, elementWithA.Value.(*WrappedTransaction))
 	require.Equal(t, txANewer, elementWithANewer.Value.(*WrappedTransaction))
 	require.Equal(t, txB, elementWithB.Value.(*WrappedTransaction))
