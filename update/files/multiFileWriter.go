@@ -90,6 +90,7 @@ func (m *multiFileWriter) Write(fileName string, key string, value []byte) error
 		return err
 	}
 
+	log.Trace("export", "key", key)
 	err = m.exportStore.Put([]byte(key), value)
 	if err != nil {
 		return err
@@ -132,6 +133,11 @@ func (m *multiFileWriter) Finish() {
 		if err != nil {
 			log.Warn("could not close file ", "fileName", fileName, "error", err)
 		}
+	}
+
+	err := m.exportStore.Close()
+	if err != nil {
+		log.Warn("could not close storer", "error", err)
 	}
 }
 
