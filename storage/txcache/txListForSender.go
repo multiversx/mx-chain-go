@@ -114,31 +114,6 @@ func (listForSender *txListForSender) onRemovedListElement(element *list.Element
 	listForSender.onScoreChange(listForSender)
 }
 
-// RemoveHighNonceTxs removes "count" transactions from the back of the list
-func (listForSender *txListForSender) RemoveHighNonceTxs(count uint32) [][]byte {
-	listForSender.mutex.Lock()
-	defer listForSender.mutex.Unlock()
-
-	removedTxHashes := make([][]byte, count)
-
-	index := uint32(0)
-	var previous *list.Element
-	for element := listForSender.items.Back(); element != nil && count > index; element = previous {
-		// Remove node
-		previous = element.Prev()
-		listForSender.items.Remove(element)
-		listForSender.onRemovedListElement(element)
-
-		// Keep track of removed transaction
-		value := element.Value.(*WrappedTransaction)
-		removedTxHashes[index] = value.TxHash
-
-		index++
-	}
-
-	return removedTxHashes
-}
-
 // This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTransaction) *list.Element {
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {

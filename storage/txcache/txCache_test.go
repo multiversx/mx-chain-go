@@ -246,8 +246,6 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 		NumBytesThreshold:          math.MaxUint32,
 		CountThreshold:             100,
 		NumSendersToEvictInOneStep: 1,
-		LargeNumOfTxsForASender:    math.MaxUint32,
-		NumTxsToEvictFromASender:   0,
 	}
 
 	// 11 * 10
@@ -261,8 +259,6 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 		NumBytesThreshold:          math.MaxUint32,
 		CountThreshold:             250000,
 		NumSendersToEvictInOneStep: 1,
-		LargeNumOfTxsForASender:    math.MaxUint32,
-		NumTxsToEvictFromASender:   0,
 	}
 
 	// 100 * 1000

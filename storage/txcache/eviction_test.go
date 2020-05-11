@@ -9,61 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestEviction_EvictHighNonceTransactions(t *testing.T) {
-	config := CacheConfig{
-		NumChunksHint:            16,
-		CountThreshold:           400,
-		LargeNumOfTxsForASender:  50,
-		NumTxsToEvictFromASender: 25,
-		MinGasPriceMicroErd:      100,
-	}
-
-	cache := NewTxCache(config)
-
-	for index := 0; index < 200; index++ {
-		cache.AddTx(createTx([]byte{'a', byte(index)}, "alice", uint64(index)))
-	}
-
-	for index := 0; index < 200; index++ {
-		cache.AddTx(createTx([]byte{'b', byte(index)}, "bob", uint64(index)))
-	}
-
-	cache.AddTx(createTx([]byte("hash-carol"), "carol", uint64(1)))
-
-	require.Equal(t, int64(3), cache.txListBySender.counter.Get())
-	require.Equal(t, int64(401), cache.txByHash.counter.Get())
-
-	cache.makeSnapshotOfSenders()
-	nTxs, nSenders := cache.evictHighNonceTransactions()
-
-	require.Equal(t, uint32(50), nTxs)
-	require.Equal(t, uint32(0), nSenders)
-	require.Equal(t, int64(3), cache.txListBySender.counter.Get())
-	require.Equal(t, int64(351), cache.txByHash.counter.Get())
-}
-
-func TestEviction_EvictHighNonceTransactions_CoverEmptiedSenderList(t *testing.T) {
-	config := CacheConfig{
-		NumChunksHint:            1,
-		CountThreshold:           0,
-		LargeNumOfTxsForASender:  0,
-		NumTxsToEvictFromASender: 1,
-		MinGasPriceMicroErd:      100,
-	}
-
-	cache := NewTxCache(config)
-	cache.AddTx(createTx([]byte("hash-alice"), "alice", uint64(1)))
-	require.Equal(t, int64(1), cache.CountSenders())
-
-	cache.makeSnapshotOfSenders()
-
-	// Alice is also removed from the map of senders, since it has no transaction left
-	nTxs, nSenders := cache.evictHighNonceTransactions()
-	require.Equal(t, uint32(1), nTxs)
-	require.Equal(t, uint32(1), nSenders)
-	require.Equal(t, int64(0), cache.CountSenders())
-}
-
 func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
 	config := CacheConfig{
 		NumChunksHint:              16,
@@ -141,11 +86,9 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 1000, 100000, 700*oneTrilion))
 
 	cache.doEviction()
-	require.Equal(t, uint32(0), cache.evictionJournal.passOneNumTxs)
-	require.Equal(t, uint32(0), cache.evictionJournal.passOneNumSenders)
-	require.Equal(t, uint32(2), cache.evictionJournal.passTwoNumTxs)
-	require.Equal(t, uint32(2), cache.evictionJournal.passTwoNumSenders)
-	require.Equal(t, uint32(1), cache.evictionJournal.passTwoNumSteps)
+	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumTxs)
+	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumSenders)
+	require.Equal(t, uint32(1), cache.evictionJournal.passOneNumSteps)
 
 	// Alice and Bob evicted. Carol still there.
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
@@ -173,11 +116,9 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 	require.InDelta(t, float64(100), cache.getRawScoreOfSender("carol"), delta)
 
 	cache.doEviction()
-	require.Equal(t, uint32(0), cache.evictionJournal.passOneNumTxs)
-	require.Equal(t, uint32(0), cache.evictionJournal.passOneNumSenders)
-	require.Equal(t, uint32(2), cache.evictionJournal.passTwoNumTxs)
-	require.Equal(t, uint32(2), cache.evictionJournal.passTwoNumSenders)
-	require.Equal(t, uint32(1), cache.evictionJournal.passTwoNumSteps)
+	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumTxs)
+	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumSenders)
+	require.Equal(t, uint32(1), cache.evictionJournal.passOneNumSteps)
 
 	// Alice and Bob evicted (lower score). Carol still there.
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
@@ -252,8 +193,6 @@ func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 		NumBytesThreshold:          1000000000,
 		CountThreshold:             240000,
 		NumSendersToEvictInOneStep: dataRetriever.TxPoolNumSendersToEvictInOneStep,
-		LargeNumOfTxsForASender:    1000,
-		NumTxsToEvictFromASender:   250,
 	}
 
 	numSenders := 25000

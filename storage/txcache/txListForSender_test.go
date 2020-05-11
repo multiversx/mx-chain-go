@@ -97,37 +97,6 @@ func TestListForSender_RemoveTransaction_NoPanicWhenTxMissing(t *testing.T) {
 	require.Equal(t, 0, list.items.Len())
 }
 
-func TestListForSender_RemoveHighNonceTransactions(t *testing.T) {
-	list := newListToTest()
-
-	for index := 0; index < 100; index++ {
-		list.AddTx(createTx([]byte{byte(index)}, ".", uint64(index)))
-	}
-
-	list.RemoveHighNonceTxs(50)
-	require.Equal(t, 50, list.items.Len())
-
-	list.RemoveHighNonceTxs(20)
-	require.Equal(t, 30, list.items.Len())
-
-	list.RemoveHighNonceTxs(30)
-	require.Equal(t, 0, list.items.Len())
-}
-
-func TestListForSender_RemoveHighNonceTransactions_NoPanicWhenCornerCases(t *testing.T) {
-	list := newListToTest()
-
-	for index := 0; index < 100; index++ {
-		list.AddTx(createTx([]byte{byte(index)}, ".", uint64(index)))
-	}
-
-	list.RemoveHighNonceTxs(0)
-	require.Equal(t, 100, list.items.Len())
-
-	list.RemoveHighNonceTxs(500)
-	require.Equal(t, 0, list.items.Len())
-}
-
 func TestListForSender_SelectBatchTo(t *testing.T) {
 	list := newListToTest()
 
