@@ -123,8 +123,8 @@ func (ckdd *ContinuousKadDhtDiscoverer) startDHT() error {
 		//dht.RoutingTableRefreshPeriod(ckdd.routingTableRefresh),
 		//dht.RoutingTableRefreshQueryTimeout(peerDiscoveryTimeout),
 		dht.Mode(dht.ModeServer),
-		dht.DisableProviders(),
-		dht.DisableValues(),
+		//dht.DisableProviders(),
+		//dht.DisableValues(),
 	)
 	if err != nil {
 		cancel()
