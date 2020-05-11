@@ -131,6 +131,7 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		}
 		log.Info("static relayers", "relayers", strings.Join(relayers, ", "))
 		opts = append(opts, libp2p.StaticRelays(relayAddresses))
+		opts = append(opts, libp2p.EnableAutoRelay())
 	} else {
 		log.Info("node set as relayer")
 		opts = append(opts, libp2p.EnableRelay([]relay.RelayOpt{relay.OptActive}...))
