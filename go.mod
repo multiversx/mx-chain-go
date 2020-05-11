@@ -26,11 +26,17 @@ require (
 	github.com/jbenet/goprocess v0.1.4
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/libp2p/go-libp2p v0.8.2
+	github.com/libp2p/go-libp2p-autonat v0.2.2
+	github.com/libp2p/go-libp2p-autonat-svc v0.1.0
+	github.com/libp2p/go-libp2p-connmgr v0.2.1
 	github.com/libp2p/go-libp2p-core v0.5.3
 	github.com/libp2p/go-libp2p-discovery v0.3.0
 	github.com/libp2p/go-libp2p-kad-dht v0.7.11
 	github.com/libp2p/go-libp2p-kbucket v0.4.1
 	github.com/libp2p/go-libp2p-pubsub v0.2.6
+	github.com/libp2p/go-libp2p-quic-transport v0.3.7
+	github.com/libp2p/go-libp2p-secio v0.2.2
+	github.com/libp2p/go-libp2p-tls v0.1.3
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/mr-tron/base58 v1.1.3
 	github.com/multiformats/go-multiaddr v0.2.1
@@ -43,7 +49,7 @@ require (
 	github.com/urfave/cli v1.20.0
 	github.com/whyrusleeping/go-logging v0.0.1
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
-	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
+	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
 	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )

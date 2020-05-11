@@ -22,6 +22,8 @@ import (
 	"github.com/btcsuite/btcd/btcec"
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
+	autonatSvc "github.com/libp2p/go-libp2p-autonat-svc"
+	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -30,6 +32,9 @@ import (
 	"github.com/libp2p/go-libp2p-core/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-pubsub"
+	libp2pquic "github.com/libp2p/go-libp2p-quic-transport"
+	secio "github.com/libp2p/go-libp2p-secio"
+	libp2ptls "github.com/libp2p/go-libp2p-tls"
 )
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
@@ -117,12 +122,37 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 			idht, err = dht.New(args.Context, h)
 			return idht, err
 		}),
+		// support TLS connections
+		libp2p.Security(libp2ptls.ID, libp2ptls.New),
+		// support secio connections
+		libp2p.Security(secio.ID, secio.New),
+		// support QUIC - experimental
+		libp2p.Transport(libp2pquic.NewTransport),
+		// support any other default transports (TCP)
+		libp2p.DefaultTransports,
+		// Let's prevent our peer from having too many
+		// connections by attaching a connection manager.
+		libp2p.ConnectionManager(connmgr.NewConnManager(
+			100,         // Lowwater
+			400,         // HighWater,
+			time.Minute, // GracePeriod
+		)),
+		libp2p.EnableAutoRelay(),
 	}
 
 	h, err := libp2p.New(args.Context, opts...)
 	if err != nil {
 		return nil, err
 	}
+
+	_, err = autonatSvc.NewAutoNATService(args.Context, h,
+		// Support same non default security and transport options as
+		// original host.
+		libp2p.Security(libp2ptls.ID, libp2ptls.New),
+		libp2p.Security(secio.ID, secio.New),
+		libp2p.Transport(libp2pquic.NewTransport),
+		libp2p.DefaultTransports,
+	)
 
 	p2pNode, err := createMessenger(args, h, true)
 	if err != nil {
