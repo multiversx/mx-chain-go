@@ -10,6 +10,8 @@ import (
 
 var _ storage.Cacher = (*TxCache)(nil)
 
+type txHashes = [][]byte
+
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
 	name                          string
@@ -234,7 +236,7 @@ func (cache *TxCache) RemoveOldest() {
 }
 
 // Keys returns the tx hashes in the cache
-func (cache *TxCache) Keys() [][]byte {
+func (cache *TxCache) Keys() txHashes {
 	return cache.txByHash.keys()
 }
 
