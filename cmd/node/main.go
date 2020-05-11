@@ -130,6 +130,13 @@ VERSION:
 			"economics configurations such as minimum gas price for a transactions and so on.",
 		Value: "./config/economics.toml",
 	}
+	// configurationApiFile defines a flag for the path to the api routes toml configuration file
+	configurationApiFile = cli.StringFlag{
+		Name: "config-api",
+		Usage: "The `" + filePathPlaceholder + "` for the api configuration file. This TOML file contains " +
+			"all available routes for Rest API and options to enable or disable them.",
+		Value: "./config/api.toml",
+	}
 	// configurationSystemSCFile defines a flag for the path to the system sc toml configuration file
 	configurationSystemSCFile = cli.StringFlag{
 		Name:  "config-systemSmartContracts",
@@ -372,6 +379,7 @@ func main() {
 		genesisFile,
 		nodesFile,
 		configurationFile,
+		configurationApiFile,
 		configurationEconomicsFile,
 		configurationSystemSCFile,
 		configurationRatingsFile,
@@ -485,6 +493,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 	log.Debug("config", "file", configurationFileName)
+
+	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
+	apiRoutesConfig, err := loadApiConfig(configurationApiFileName)
+	if err != nil {
+		return err
+	}
+	log.Debug("config", "file", configurationApiFileName)
 
 	configurationEconomicsFileName := ctx.GlobalString(configurationEconomicsFile.Name)
 	economicsConfig, err := loadEconomicsConfig(configurationEconomicsFileName)
@@ -964,7 +979,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricNodeDisplayName, preferencesConfig.Preferences.NodeDisplayName)
 	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricChainId, genesisNodesConfig.ChainID)
+	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricGasPerDataByte, economicsData.GasPerDataByte())
 	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricMinGasPrice, economicsData.MinGasPrice())
+	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricMinGasLimit, economicsData.MinGasLimit())
 
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", cryptoParams.PublicKeyString,
@@ -1108,6 +1125,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer = nil
 	} else {
 		elasticIndexer = coreServiceContainer.Indexer()
+		elasticIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
+		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
 	}
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
@@ -1206,6 +1225,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			RestApiInterface: ctx.GlobalString(restApiInterface.Name),
 			PprofEnabled:     ctx.GlobalBool(profileMode.Name),
 		},
+		ApiRoutesConfig: *apiRoutesConfig,
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)
@@ -1458,6 +1478,16 @@ func enableGopsIfNeeded(ctx *cli.Context, log logger.Logger) {
 
 func loadMainConfig(filepath string) (*config.Config, error) {
 	cfg := &config.Config{}
+	err := core.LoadTomlFile(cfg, filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+func loadApiConfig(filepath string) (*config.ApiRoutesConfig, error) {
+	cfg := &config.ApiRoutesConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
 		return nil, err

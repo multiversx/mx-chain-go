@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -404,10 +404,14 @@ func (bp *baseProcessor) createBlockStarted() {
 	bp.feeHandler.CreateBlockStarted()
 }
 
-func (bp *baseProcessor) verifyAccumulatedFees(header data.HeaderHandler) error {
+func (bp *baseProcessor) verifyFees(header data.HeaderHandler) error {
 	if header.GetAccumulatedFees().Cmp(bp.feeHandler.GetAccumulatedFees()) != 0 {
 		return process.ErrAccumulatedFeesDoNotMatch
 	}
+	if header.GetDeveloperFees().Cmp(bp.feeHandler.GetDeveloperFees()) != 0 {
+		return process.ErrDeveloperFeesDoNotMatch
+	}
+
 	return nil
 }
 
@@ -990,11 +994,6 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	if finalHeader.IsStartOfEpochBlock() {
-		log.Debug("trie snapshot", "rootHash", rootHash)
-		accounts.SnapshotState(rootHash)
-	}
-
 	// TODO generate checkpoint on a trigger
 	if bp.stateCheckpointModulus != 0 {
 		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
@@ -1036,13 +1035,13 @@ func (bp *baseProcessor) commitAll() error {
 func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
 	for key := range bp.accountsDB {
 		if !bp.accountsDB[key].IsPruningEnabled() {
-			return
+			continue
 		}
 
 		rootHash, prevRootHash := bp.getRootHashes(currHeader, prevHeader, key)
 
 		if bytes.Equal(rootHash, prevRootHash) {
-			return
+			continue
 		}
 
 		bp.accountsDB[key].CancelPrune(prevRootHash, data.OldRoot)

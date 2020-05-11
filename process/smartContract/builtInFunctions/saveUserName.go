@@ -47,6 +47,9 @@ func (s *saveUserName) ProcessBuiltinFunction(
 	if vmInput == nil {
 		return nil, process.ErrNilVmInput
 	}
+	if vmInput.CallValue.Cmp(zero) != 0 {
+		return nil, process.ErrBuiltInFunctionCalledWithValue
+	}
 	if vmInput.GasProvided < s.gasCost {
 		return nil, process.ErrNotEnoughGas
 	}

@@ -37,6 +37,13 @@ func createMockArguments() ArgNodeFacade {
 			RestApiInterface: "127.0.0.1:8080",
 			PprofEnabled:     false,
 		},
+		ApiRoutesConfig: config.ApiRoutesConfig{APIPackages: map[string]config.APIPackageConfig{
+			"node": {
+				[]config.RouteConfig{
+					{Name: "status"},
+				},
+			},
+		}},
 	}
 }
 
@@ -95,6 +102,17 @@ func TestNewNodeFacade_WithInvalidSameSourceRequestsShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(nf))
 	assert.True(t, errors.Is(err, ErrInvalidValue))
+}
+
+func TestNewNodeFacade_WithInvalidApiRoutesConfigShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.ApiRoutesConfig = config.ApiRoutesConfig{}
+	nf, err := NewNodeFacade(arg)
+
+	assert.True(t, check.IfNil(nf))
+	assert.True(t, errors.Is(err, ErrNoApiRoutesConfig))
 }
 
 func TestNewNodeFacade_WithValidNodeShouldReturnNotNil(t *testing.T) {
@@ -447,7 +465,7 @@ func TestNodeFacade_CreateTransaction(t *testing.T) {
 	nodeCreateTxWasCalled := false
 	node := &mock.NodeStub{
 		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string,
-			gasPrice uint64, gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error) {
+			gasPrice uint64, gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error) {
 			nodeCreateTxWasCalled = true
 			return nil, nil, nil
 		},
@@ -456,7 +474,7 @@ func TestNodeFacade_CreateTransaction(t *testing.T) {
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	_, _, _ = nf.CreateTransaction(0, "0", "0", "0", 0, 0, []byte("0"), "0")
+	_, _, _ = nf.CreateTransaction(0, "0", "0", "0", 0, 0, "0", "0")
 
 	assert.True(t, nodeCreateTxWasCalled)
 }

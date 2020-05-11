@@ -26,6 +26,7 @@ func TestClaimDeveloperRewards_ProcessBuiltinFunction(t *testing.T) {
 		VMInput: vmcommon.VMInput{
 			CallerAddr:  sender,
 			GasProvided: 100,
+			CallValue:   big.NewInt(0),
 		},
 	}
 	vmOutput, err = cdr.ProcessBuiltinFunction(nil, nil, vmInput)

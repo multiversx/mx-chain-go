@@ -19,8 +19,18 @@ func (hhs *HeaderHandlerStub) GetAccumulatedFees() *big.Int {
 	panic("implement me")
 }
 
+// GetDeveloperFees --
+func (hhs *HeaderHandlerStub) GetDeveloperFees() *big.Int {
+	panic("implement me")
+}
+
 // SetAccumulatedFees --
 func (hhs *HeaderHandlerStub) SetAccumulatedFees(_ *big.Int) {
+	panic("implement me")
+}
+
+// SetDeveloperFees --
+func (hhs *HeaderHandlerStub) SetDeveloperFees(_ *big.Int) {
 	panic("implement me")
 }
 

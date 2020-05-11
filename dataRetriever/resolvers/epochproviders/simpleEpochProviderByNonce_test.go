@@ -13,7 +13,7 @@ func TestSimpleEpochProviderByNonce_EpochForNonce(t *testing.T) {
 
 	epoch := uint32(1)
 	sep := NewSimpleEpochProviderByNonce(&mock.EpochHandlerStub{
-		EpochCalled: func() uint32 {
+		MetaEpochCalled: func() uint32 {
 			return epoch
 		},
 	})

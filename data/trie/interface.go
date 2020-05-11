@@ -48,8 +48,7 @@ type node interface {
 
 type atomicBuffer interface {
 	add(rootHash []byte)
-	remove(rootHash []byte)
-	removeAll() map[string]struct{}
+	removeAll() [][]byte
 	len() int
 }
 

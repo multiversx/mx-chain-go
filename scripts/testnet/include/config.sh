@@ -48,6 +48,7 @@ updateSeednodeConfig() {
 
 copyNodeConfig() {
   pushd $TESTNETDIR
+  cp $NODEDIR/config/api.toml ./node/config
   cp $NODEDIR/config/config.toml ./node/config
   cp $NODEDIR/config/economics.toml ./node/config
   cp $NODEDIR/config/ratings.toml ./node/config
@@ -55,7 +56,7 @@ copyNodeConfig() {
   cp $NODEDIR/config/external.toml ./node/config
   cp $NODEDIR/config/p2p.toml ./node/config
   cp $NODEDIR/config/gasSchedule.toml ./node/config
-
+  cp $NODEDIR/config/systemSmartContractsConfig.toml ./node/config
 
   echo "Configuration files copied from the Node to the working directories of the executables."
   popd
