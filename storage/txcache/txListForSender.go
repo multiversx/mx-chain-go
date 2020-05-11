@@ -91,8 +91,8 @@ func (listForSender *txListForSender) applyLimit() txHashes {
 func (listForSender *txListForSender) isLimitReached() bool {
 	maxBytes := int64(listForSender.cacheConfig.NumBytesPerSenderThreshold)
 	maxNumTxs := uint64(listForSender.cacheConfig.CountPerSenderThreshold)
-	tooManyBytes := maxBytes > 0 && listForSender.totalBytes.Get() > maxBytes
-	tooManyTxs := maxNumTxs > 0 && listForSender.countTx() > maxNumTxs
+	tooManyBytes := listForSender.totalBytes.Get() > maxBytes
+	tooManyTxs := listForSender.countTx() > maxNumTxs
 
 	return tooManyBytes || tooManyTxs
 }

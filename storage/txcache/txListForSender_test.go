@@ -297,5 +297,9 @@ func TestListForSender_DetectRaceConditions(t *testing.T) {
 }
 
 func newListToTest() *txListForSender {
-	return newTxListForSender(".", &CacheConfig{MinGasPriceMicroErd: 100}, func(value *txListForSender) {})
+	return newTxListForSender(".", &CacheConfig{
+		NumBytesPerSenderThreshold: math.MaxUint32,
+		CountPerSenderThreshold:    math.MaxUint32,
+		MinGasPriceMicroErd:        100,
+	}, func(value *txListForSender) {})
 }

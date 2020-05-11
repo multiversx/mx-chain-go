@@ -241,11 +241,15 @@ func Test_Keys(t *testing.T) {
 
 func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	config := CacheConfig{
+		Name:                       "untitled",
 		NumChunksHint:              16,
 		EvictionEnabled:            true,
 		NumBytesThreshold:          math.MaxUint32,
 		CountThreshold:             100,
 		NumSendersToEvictInOneStep: 1,
+		NumBytesPerSenderThreshold: math.MaxUint32,
+		CountPerSenderThreshold:    math.MaxUint32,
+		MinGasPriceMicroErd:        100,
 	}
 
 	// 11 * 10
@@ -257,11 +261,15 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	require.LessOrEqual(t, cache.CountTx(), int64(100))
 
 	config = CacheConfig{
+		Name:                       "untitled",
 		NumChunksHint:              16,
 		EvictionEnabled:            true,
 		NumBytesThreshold:          math.MaxUint32,
 		CountThreshold:             250000,
 		NumSendersToEvictInOneStep: 1,
+		NumBytesPerSenderThreshold: math.MaxUint32,
+		CountPerSenderThreshold:    math.MaxUint32,
+		MinGasPriceMicroErd:        100,
 	}
 
 	// 100 * 1000
@@ -342,7 +350,13 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 }
 
 func newCacheToTest() *TxCache {
-	cache, err := NewTxCache(CacheConfig{Name: "test", NumChunksHint: 16, MinGasPriceMicroErd: 100})
+	cache, err := NewTxCache(CacheConfig{
+		Name:                       "test",
+		NumChunksHint:              16,
+		NumBytesPerSenderThreshold: math.MaxUint32,
+		CountPerSenderThreshold:    math.MaxUint32,
+		MinGasPriceMicroErd:        100,
+	})
 	if err != nil {
 		panic(fmt.Sprintf("newCacheToTest(): %s", err))
 	}

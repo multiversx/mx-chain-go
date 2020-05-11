@@ -11,10 +11,13 @@ import (
 
 func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
 	config := CacheConfig{
+		Name:                       "untitled",
 		NumChunksHint:              16,
 		CountThreshold:             100,
+		CountPerSenderThreshold:    math.MaxUint32,
 		NumSendersToEvictInOneStep: 20,
 		NumBytesThreshold:          math.MaxUint32,
+		NumBytesPerSenderThreshold: math.MaxUint32,
 		MinGasPriceMicroErd:        100,
 	}
 
@@ -45,9 +48,12 @@ func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 	numBytesPerTx := uint32(1000)
 
 	config := CacheConfig{
+		Name:                       "untitled",
 		NumChunksHint:              16,
 		CountThreshold:             math.MaxUint32,
+		CountPerSenderThreshold:    math.MaxUint32,
 		NumBytesThreshold:          numBytesPerTx * 100,
+		NumBytesPerSenderThreshold: math.MaxUint32,
 		NumSendersToEvictInOneStep: 20,
 		MinGasPriceMicroErd:        100,
 	}
@@ -77,9 +83,12 @@ func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 
 func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 	config := CacheConfig{
+		Name:                       "untitled",
 		NumChunksHint:              16,
 		NumBytesThreshold:          math.MaxUint32,
+		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountThreshold:             2,
+		CountPerSenderThreshold:    math.MaxUint32,
 		NumSendersToEvictInOneStep: 2,
 		MinGasPriceMicroErd:        100,
 	}
@@ -106,9 +115,12 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 
 func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 	config := CacheConfig{
+		Name:                       "untitled",
 		NumChunksHint:              16,
 		CountThreshold:             math.MaxUint32,
+		CountPerSenderThreshold:    math.MaxUint32,
 		NumBytesThreshold:          1000,
+		NumBytesPerSenderThreshold: math.MaxUint32,
 		NumSendersToEvictInOneStep: 2,
 		MinGasPriceMicroErd:        100,
 	}
@@ -139,9 +151,13 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 
 func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
 	config := CacheConfig{
+		Name:                       "untitled",
 		NumChunksHint:              1,
 		CountThreshold:             0,
 		NumSendersToEvictInOneStep: 1,
+		NumBytesPerSenderThreshold: math.MaxUint32,
+		CountPerSenderThreshold:    math.MaxUint32,
+		MinGasPriceMicroErd:        100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -158,9 +174,13 @@ func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
 
 func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T) {
 	config := CacheConfig{
+		Name:                       "untitled",
 		NumChunksHint:              1,
 		CountThreshold:             0,
 		NumSendersToEvictInOneStep: 42,
+		NumBytesPerSenderThreshold: math.MaxUint32,
+		CountPerSenderThreshold:    math.MaxUint32,
+		MinGasPriceMicroErd:        100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -179,9 +199,13 @@ func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T)
 
 func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
 	config := CacheConfig{
+		Name:                       "untitled",
 		NumChunksHint:              1,
 		CountThreshold:             0,
 		NumSendersToEvictInOneStep: 1,
+		NumBytesPerSenderThreshold: math.MaxUint32,
+		CountPerSenderThreshold:    math.MaxUint32,
+		MinGasPriceMicroErd:        100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -207,11 +231,15 @@ func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
 // ~1 second on average laptop.
 func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 	config := CacheConfig{
+		Name:                       "untitled",
 		NumChunksHint:              16,
 		EvictionEnabled:            true,
 		NumBytesThreshold:          1000000000,
 		CountThreshold:             240000,
 		NumSendersToEvictInOneStep: dataRetriever.TxPoolNumSendersToEvictInOneStep,
+		NumBytesPerSenderThreshold: math.MaxUint32,
+		CountPerSenderThreshold:    math.MaxUint32,
+		MinGasPriceMicroErd:        100,
 	}
 
 	numSenders := 25000

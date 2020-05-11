@@ -2,6 +2,7 @@ package txcache
 
 import (
 	"fmt"
+	"math"
 	"sync"
 	"testing"
 
@@ -175,5 +176,8 @@ func createTxListBySenderMap(numSenders int) txListBySenderMap {
 }
 
 func newSendersMapToTest() txListBySenderMap {
-	return newTxListBySenderMap(4, CacheConfig{})
+	return newTxListBySenderMap(4, CacheConfig{
+		NumBytesPerSenderThreshold: math.MaxUint32,
+		CountPerSenderThreshold:    math.MaxUint32,
+	})
 }
