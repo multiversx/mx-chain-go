@@ -609,9 +609,13 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		case string(core.EligibleList):
 			eligibleMap[validatorInfo.ShardId] = append(eligibleMap[validatorInfo.ShardId], newValidator)
 		case string(core.LeavingList):
+			log.Debug("leaving node trie", "pk", validatorInfo.PublicKey)
 			leavingMap[validatorInfo.ShardId] = append(leavingMap[validatorInfo.ShardId], newValidator)
 		case string(core.NewList):
+			log.Debug("new node registered", "pk", validatorInfo.PublicKey)
 			newNodesList = append(newNodesList, newValidator)
+		case string(core.InactiveList):
+			log.Debug("inactive validator", "pk", validatorInfo.PublicKey)
 		}
 	}
 

@@ -1,7 +1,6 @@
 package sharding
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
@@ -59,15 +58,6 @@ func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeAdditionalLeaving(allVa
 	extraLeavingNodesMap := make(map[uint32][]Validator, 0)
 	minChances := ihgs.GetChance(0)
 	for _, vInfo := range allValidators {
-		if vInfo.List == string(core.InactiveList) {
-			log.Debug("inactive validator", "pk", vInfo.GetPublicKey())
-			continue
-		}
-		if vInfo.List == string(core.LeavingList) {
-			log.Debug("leaving validator from trie", "pk", vInfo.GetPublicKey())
-			continue
-		}
-
 		chances := ihgs.GetChance(vInfo.TempRating)
 		if chances < minChances {
 			val, err := NewValidator(vInfo.PublicKey, chances, vInfo.Index)
