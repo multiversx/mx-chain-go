@@ -80,6 +80,7 @@ type networkMessenger struct {
 	ip                  *identityProvider
 	connectionsMetric   *metrics.Connections
 	initial             []string
+	idht                *dht.IpfsDHT
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -130,6 +131,7 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 	}
 
 	p2pNode.initial = args.P2pConfig.KadDhtPeerDiscovery.InitialPeerList
+	p2pNode.idht = idht
 
 	return p2pNode, nil
 }
@@ -411,6 +413,15 @@ func (netMes *networkMessenger) ConnectToPeer(address string) error {
 
 // Bootstrap will start the peer discovery mechanism
 func (netMes *networkMessenger) Bootstrap() error {
+	go func() {
+		for {
+			time.Sleep(time.Second * 20)
+
+			err := netMes.idht.Bootstrap(context.Background())
+			log.LogIfError(err)
+		}
+	}()
+
 	//return netMes.peerDiscoverer.Bootstrap()
 	if len(netMes.initial) == 0 {
 		return nil
