@@ -20,8 +20,8 @@ import (
 const durationBetweenChecks = 200 * time.Millisecond
 const durationBetweenReRequests = 1 * time.Second
 const durationBetweenCheckingNumConnectedPeers = 500 * time.Millisecond
-const minNumConnectedPeers = 6
-const minNumOfPeersToConsiderBlockValid = 3
+const minNumConnectedPeers = 3
+const minNumOfPeersToConsiderBlockValid = 2
 
 var _ process.InterceptorProcessor = (*epochStartMetaBlockProcessor)(nil)
 

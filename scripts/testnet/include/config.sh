@@ -48,6 +48,7 @@ updateSeednodeConfig() {
 
 copyNodeConfig() {
   pushd $TESTNETDIR
+  cp $NODEDIR/config/api.toml ./node/config
   cp $NODEDIR/config/config.toml ./node/config
   cp $NODEDIR/config/economics.toml ./node/config
   cp $NODEDIR/config/ratings.toml ./node/config
