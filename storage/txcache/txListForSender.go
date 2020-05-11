@@ -45,7 +45,7 @@ func newTxListForSender(sender string, cacheConfig *CacheConfig, onScoreChange s
 
 // AddTx adds a transaction in sender's list
 // This is a "sorted" insert
-func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) {
+func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) [][]byte {
 	// We don't allow concurrent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
@@ -61,12 +61,45 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) {
 	}
 
 	listForSender.onAddedTransaction(tx)
+	evicted := listForSender.applyLimit()
+	listForSender.triggerScoreChange()
+
+	return evicted
+}
+
+// This function should only be used in critical section (listForSender.mutex)
+func (listForSender *txListForSender) applyLimit() [][]byte {
+	evictedTxHashes := make([][]byte, 0)
+
+	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
+		if !listForSender.isLimitReached() {
+			break
+		}
+
+		listForSender.items.Remove(element)
+		listForSender.onRemovedListElement(element)
+
+		// Keep track of removed transaction
+		value := element.Value.(*WrappedTransaction)
+		evictedTxHashes = append(evictedTxHashes, value.TxHash)
+	}
+
+	return evictedTxHashes
+}
+
+func (listForSender *txListForSender) isLimitReached() {
+	tooManyBytes := listForSender.totalBytes.Get() > listForSender.cacheConfig.NumBytesPerSenderThreshold
+	tooManyTxs := listForSender.countTx() > listForSender.cacheConfig.CountPerSenderThreshold
+	return tooManyBytes || tooManyTxs
 }
 
 func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction) {
 	listForSender.totalBytes.Add(int64(estimateTxSize(tx)))
 	listForSender.totalGas.Add(int64(estimateTxGas(tx)))
 	listForSender.totalFee.Add(int64(estimateTxFee(tx)))
+}
+
+func (listForSender *txListForSender) triggerScoreChange() {
 	listForSender.onScoreChange(listForSender)
 }
 
@@ -100,6 +133,7 @@ func (listForSender *txListForSender) RemoveTx(tx *WrappedTransaction) bool {
 	if isFound {
 		listForSender.items.Remove(marker)
 		listForSender.onRemovedListElement(marker)
+		listForSender.triggerScoreChange()
 	}
 
 	return isFound
@@ -111,7 +145,6 @@ func (listForSender *txListForSender) onRemovedListElement(element *list.Element
 	listForSender.totalBytes.Subtract(int64(estimateTxSize(value)))
 	listForSender.totalGas.Subtract(int64(estimateTxGas(value)))
 	listForSender.totalFee.Subtract(int64(estimateTxFee(value)))
-	listForSender.onScoreChange(listForSender)
 }
 
 // This function should only be used in critical section (listForSender.mutex)
