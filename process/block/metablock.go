@@ -965,8 +965,6 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	mp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
-
 	log.Debug("started committing block",
 		"epoch", headerHandler.GetEpoch(),
 		"round", headerHandler.GetRound(),
@@ -989,16 +987,15 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	headerHash := mp.hasher.Compute(string(marshalizedHeader))
-
-	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
-
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		err = process.ErrWrongTypeAssertion
 		return err
 	}
 
+	mp.commitEpochStart(header, body)
+	headerHash := mp.hasher.Compute(string(marshalizedHeader))
+	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 	mp.saveBody(body)
 
 	err = mp.commitAll()
@@ -1007,8 +1004,6 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	rewardsTxs := mp.getRewardsTxs(header, body)
-
-	mp.commitEpochStart(header, body)
 
 	mp.validatorStatisticsProcessor.DisplayRatings(header.GetEpoch())
 
@@ -1300,9 +1295,11 @@ func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body
 func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
 		mp.epochStartTrigger.SetProcessed(header, body)
+		mp.store.SetEpochForPutOperation(header.GetEpoch())
 		go mp.epochRewardsCreator.SaveTxBlockToStorage(header, body)
 		go mp.validatorInfoCreator.SaveValidatorInfoBlocksToStorage(header, body)
 	} else {
+		mp.store.SetEpochForPutOperation(header.GetEpoch())
 		currentHeader := mp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
 			mp.epochStartTrigger.SetFinalityAttestingRound(header.GetRound())
