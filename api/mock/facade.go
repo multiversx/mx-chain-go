@@ -8,8 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -19,7 +19,7 @@ type Facade struct {
 	ShouldErrorStart                  bool
 	ShouldErrorStop                   bool
 	TpsBenchmarkHandler               func() *statistics.TpsBenchmark
-	GetHeartbeatsHandler              func() ([]heartbeat.PubKeyHeartbeat, error)
+	GetHeartbeatsHandler              func() ([]data.PubKeyHeartbeat, error)
 	BalanceHandler                    func(string) (*big.Int, error)
 	GetAccountHandler                 func(address string) (state.UserAccountHandler, error)
 	GenerateTransactionHandler        func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
@@ -59,7 +59,7 @@ func (f *Facade) TpsBenchmark() *statistics.TpsBenchmark {
 }
 
 // GetHeartbeats returns the slice of heartbeat info
-func (f *Facade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error) {
+func (f *Facade) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 	return f.GetHeartbeatsHandler()
 }
 
