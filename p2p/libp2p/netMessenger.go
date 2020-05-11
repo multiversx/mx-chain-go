@@ -21,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/libp2p/go-libp2p"
+	relay "github.com/libp2p/go-libp2p-circuit"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -129,7 +130,7 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 
 		opts = append(opts, libp2p.StaticRelays(relayAddresses))
 	} else {
-		opts = append(opts, libp2p.EnableRelay())
+		opts = append(opts, libp2p.EnableRelay([]relay.RelayOpt{relay.OptActive}...))
 	}
 
 	h, err := libp2p.New(args.Context, opts...)
