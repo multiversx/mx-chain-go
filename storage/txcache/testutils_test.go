@@ -23,7 +23,11 @@ func kBToBytes(kB float32) uint64 {
 }
 
 func (cache *TxCache) getListForSender(sender string) *txListForSender {
-	list, ok := cache.txListBySender.getListForSender(sender)
+	return cache.txListBySender.testGetListForSender(sender)
+}
+
+func (sendersMap *txListBySenderMap) testGetListForSender(sender string) *txListForSender {
+	list, ok := sendersMap.getListForSender(sender)
 	if !ok {
 		panic("sender not in cache")
 	}

@@ -263,10 +263,10 @@ func TestListForSender_hasInitialGap(t *testing.T) {
 	// No transaction, no gap
 	require.False(t, list.hasInitialGap())
 	// One gap
-	list.AddTx(createTx([]byte("tx-44"), ".", 43))
+	list.AddTx(createTx([]byte("tx-43"), ".", 43))
 	require.True(t, list.hasInitialGap())
 	// Resolve gap
-	list.AddTx(createTx([]byte("tx-44"), ".", 42))
+	list.AddTx(createTx([]byte("tx-42"), ".", 42))
 	require.False(t, list.hasInitialGap())
 }
 
@@ -288,7 +288,6 @@ func TestListForSender_DetectRaceConditions(t *testing.T) {
 	go func() {
 		// These are called concurrently with addition: during eviction, during removal etc.
 		approximatelyCountTxInLists([]*txListForSender{list})
-		list.HasMoreThan(42)
 		list.IsEmpty()
 	}()
 

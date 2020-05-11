@@ -181,11 +181,6 @@ func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTra
 	return nil
 }
 
-// HasMoreThan checks whether the list has more items than specified
-func (listForSender *txListForSender) HasMoreThan(count uint32) bool {
-	return uint32(listForSender.countTxWithLock()) > count
-}
-
 // IsEmpty checks whether the list is empty
 func (listForSender *txListForSender) IsEmpty() bool {
 	return listForSender.countTxWithLock() == 0

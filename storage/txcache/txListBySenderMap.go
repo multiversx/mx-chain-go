@@ -75,8 +75,8 @@ func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 	}
 
 	isFound := listForSender.RemoveTx(tx)
-
-	if listForSender.IsEmpty() {
+	isEmpty := listForSender.IsEmpty()
+	if isEmpty {
 		txMap.removeSender(sender)
 	}
 
