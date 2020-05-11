@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -178,6 +179,14 @@ func (h *Header) CheckChainID(reference []byte) error {
 		)
 	}
 
+	return nil
+}
+
+// CheckSoftwareVersion returns nil if the software version has the correct length
+func (h *Header) CheckSoftwareVersion() error {
+	if len(h.SoftwareVersion) == 0 && len(h.SoftwareVersion) > core.MaxSoftwareVersionLength {
+		return data.ErrInvalidSoftwareVersion
+	}
 	return nil
 }
 

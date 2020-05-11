@@ -64,6 +64,7 @@ type baseProcessor struct {
 	blockChain              data.ChainHandler
 	hdrsForCurrBlock        *hdrForBlock
 	genesisNonce            uint64
+	version                 string
 
 	appStatusHandler       core.AppStatusHandler
 	stateCheckpointModulus uint
@@ -393,6 +394,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.BlockSizeThrottler) {
 		return process.ErrNilBlockSizeThrottler
+	}
+	if len(arguments.Version) == 0 {
+		return process.ErrEmptySoftwareVersion
 	}
 
 	return nil

@@ -161,6 +161,14 @@ func (m *MetaBlock) CheckChainID(reference []byte) error {
 	return nil
 }
 
+// CheckSoftwareVersion returns nil if the software version has the correct length
+func (m *MetaBlock) CheckSoftwareVersion() error {
+	if len(m.SoftwareVersion) == 0 && len(m.SoftwareVersion) > core.MaxSoftwareVersionLength {
+		return data.ErrInvalidSoftwareVersion
+	}
+	return nil
+}
+
 // GetEpochStartMetaHash returns the hash of the epoch start meta block
 func (m *MetaBlock) GetEpochStartMetaHash() []byte {
 	return nil
