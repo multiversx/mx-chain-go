@@ -386,3 +386,132 @@ func TestTrieSnapshottingAndCheckpointConcurrently(t *testing.T) {
 	assert.NotNil(t, val)
 	assert.Nil(t, err)
 }
+
+func TestTriePruneAndCancelPruneWhileSnapshotInProgressAddsToPruningBuffer(t *testing.T) {
+	t.Parallel()
+
+	tr, trieStorage, _ := newEmptyTrie()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Commit()
+	oldRootHash, _ := tr.Root()
+
+	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	_ = tr.Commit()
+	newRootHash, _ := tr.Root()
+
+	tr.EnterSnapshotMode()
+	tr.Prune(oldRootHash, data.OldRoot)
+	tr.CancelPrune(newRootHash, data.NewRoot)
+	tr.ExitSnapshotMode()
+
+	assert.Equal(t, 2, trieStorage.pruningBuffer.len())
+}
+
+func TestTriePruneOnRollbackWhileSnapshotInProgressCancelsPrune(t *testing.T) {
+	t.Parallel()
+
+	tr, trieStorage, _ := newEmptyTrie()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Commit()
+	oldRootHash, _ := tr.Root()
+
+	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	_ = tr.Commit()
+	newRootHash, _ := tr.Root()
+
+	tr.EnterSnapshotMode()
+	tr.CancelPrune(oldRootHash, data.OldRoot)
+	tr.Prune(newRootHash, data.NewRoot)
+	tr.ExitSnapshotMode()
+
+	assert.Equal(t, 1, trieStorage.pruningBuffer.len())
+}
+
+func TestTriePruneAfterSnapshotIsDonePrunesBufferedHashes(t *testing.T) {
+	t.Parallel()
+
+	tr, trieStorage, _ := newEmptyTrie()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	newHashes, _ := tr.GetDirtyHashes()
+	tr.SetNewHashes(newHashes)
+	_ = tr.Commit()
+	oldRootHash, _ := tr.Root()
+
+	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	newHashes, _ = tr.GetDirtyHashes()
+	tr.SetNewHashes(newHashes)
+	_ = tr.Commit()
+	newRootHash, _ := tr.Root()
+
+	tr.EnterSnapshotMode()
+	tr.Prune(oldRootHash, data.OldRoot)
+	tr.CancelPrune(newRootHash, data.NewRoot)
+	tr.ExitSnapshotMode()
+
+	tr.Prune(oldRootHash, data.NewRoot)
+
+	assert.Equal(t, 0, trieStorage.pruningBuffer.len())
+}
+
+func TestTrieCancelPruneAndPruningBufferNotEmptyAddsToPruningBuffer(t *testing.T) {
+	t.Parallel()
+
+	tr, trieStorage, _ := newEmptyTrie()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Commit()
+	oldRootHash, _ := tr.Root()
+
+	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	_ = tr.Commit()
+	newRootHash, _ := tr.Root()
+
+	tr.EnterSnapshotMode()
+	tr.Prune(oldRootHash, data.OldRoot)
+	tr.CancelPrune(newRootHash, data.NewRoot)
+	tr.ExitSnapshotMode()
+
+	tr.CancelPrune(oldRootHash, data.NewRoot)
+
+	assert.Equal(t, 3, trieStorage.pruningBuffer.len())
+}
+
+func TestTriePruneAndCancelPruneAddedToBufferInOrder(t *testing.T) {
+	t.Parallel()
+
+	tr, trieStorage, _ := newEmptyTrie()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Commit()
+	oldRootHash, _ := tr.Root()
+
+	_ = tr.Update([]byte("dogglesworth"), []byte("catnip"))
+	_ = tr.Commit()
+	newRootHash, _ := tr.Root()
+
+	tr.EnterSnapshotMode()
+	tr.Prune(oldRootHash, data.OldRoot)
+	tr.CancelPrune(newRootHash, data.NewRoot)
+	tr.ExitSnapshotMode()
+
+	tr.CancelPrune(oldRootHash, data.NewRoot)
+
+	bufferedHashes := trieStorage.pruningBuffer.removeAll()
+
+	expectedHash := append(oldRootHash, byte(data.OldRoot))
+	assert.Equal(t, append(expectedHash, byte(prune)), bufferedHashes[0])
+
+	expectedHash = append(newRootHash, byte(data.NewRoot))
+	assert.Equal(t, append(expectedHash, byte(cancelPrune)), bufferedHashes[1])
+
+	expectedHash = append(oldRootHash, byte(data.NewRoot))
+	assert.Equal(t, append(expectedHash, byte(cancelPrune)), bufferedHashes[2])
+}

@@ -187,7 +187,7 @@
      MaxOpenFiles = 10
 
 [TrieStorageManagerConfig]
-    PruningBufferLen = 1000
+    PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
     MaxSnapshots = 2
 
