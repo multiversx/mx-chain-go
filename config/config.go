@@ -287,8 +287,8 @@ type DebugConfig struct {
 // InterceptorResolverDebugConfig will hold the interceptor-resolver debug configuration
 type InterceptorResolverDebugConfig struct {
 	Enabled                    bool
-	CacheSize                  int
 	EnablePrint                bool
+	CacheSize                  int
 	IntervalAutoPrintInSeconds int
 	NumRequestsThreshold       int
 	NumResolveFailureThreshold int

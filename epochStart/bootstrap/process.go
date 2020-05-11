@@ -127,8 +127,8 @@ type baseDataInStorage struct {
 	shardId         uint32
 	numberOfShards  uint32
 	lastRound       int64
-	lastEpoch       uint32
 	epochStartRound uint64
+	lastEpoch       uint32
 	storageExists   bool
 }
 
