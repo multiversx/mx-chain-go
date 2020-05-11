@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -23,14 +22,14 @@ import (
 	"github.com/btcsuite/btcd/btcec"
 	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
-	relay "github.com/libp2p/go-libp2p-circuit"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p-core/routing"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-pubsub"
-	"github.com/multiformats/go-multiaddr"
 )
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
@@ -106,36 +105,16 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 	logging.SetLogLevel("basichost", "DEBUG")
 
 	address := fmt.Sprintf(args.ListenAddress+"%d", args.P2pConfig.Node.Port)
+	var idht *dht.IpfsDHT
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(address),
 		libp2p.Identity(p2pPrivKey),
 		libp2p.NATPortMap(),
 		libp2p.EnableNATService(),
-	}
-
-	if len(args.P2pConfig.KadDhtPeerDiscovery.InitialPeerList) > 0 {
-		relayAddresses := make([]peer.AddrInfo, 0, len(args.P2pConfig.KadDhtPeerDiscovery.InitialPeerList))
-		relayers := make([]string, 0)
-		for _, addr := range args.P2pConfig.KadDhtPeerDiscovery.InitialPeerList {
-			a, err := multiaddr.NewMultiaddr(addr)
-			if err != nil {
-				continue
-			}
-
-			pi, err := peer.AddrInfoFromP2pAddr(a)
-			if err != nil {
-				continue
-			}
-
-			relayAddresses = append(relayAddresses, *pi)
-			relayers = append(relayers, addr)
-		}
-		log.Info("static relayers", "relayers", strings.Join(relayers, ", "))
-		opts = append(opts, libp2p.StaticRelays(relayAddresses))
-		opts = append(opts, libp2p.EnableAutoRelay())
-	} else {
-		log.Info("node set as relayer")
-		opts = append(opts, libp2p.EnableRelay([]relay.RelayOpt{relay.OptActive}...))
+		libp2p.Routing(func(h host.Host) (routing.PeerRouting, error) {
+			idht, err = dht.New(args.Context, h)
+			return idht, err
+		}),
 	}
 
 	h, err := libp2p.New(args.Context, opts...)
@@ -196,22 +175,22 @@ func createMessenger(
 		return nil, err
 	}
 
-	err = netMes.createDiscoverer(args.P2pConfig)
-	if err != nil {
-		return nil, err
-	}
+	//err = netMes.createDiscoverer(args.P2pConfig)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	err = netMes.createConnectionMonitor(args.P2pConfig)
-	if err != nil {
-		return nil, err
-	}
+	//err = netMes.createConnectionMonitor(args.P2pConfig)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	netMes.createConnectionsMetric()
 
-	netMes.ds, err = NewDirectSender(args.Context, p2pHost, netMes.directMessageHandler)
-	if err != nil {
-		return nil, err
-	}
+	//netMes.ds, err = NewDirectSender(args.Context, p2pHost, netMes.directMessageHandler)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	netMes.goRoutinesThrottler, err = throttler.NewNumGoRoutinesThrottler(broadcastGoRoutines)
 	if err != nil {

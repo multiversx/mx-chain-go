@@ -121,7 +121,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) startDHT() error {
 		ckdd.hostConnManagement,
 		dht.ProtocolPrefix(protocolID),
 		//dht.RoutingTableRefreshPeriod(ckdd.routingTableRefresh),
-		//dht.RoutingTableRefreshQueryTimeout(peerDiscoveryTimeout),
+		dht.RoutingTableRefreshQueryTimeout(peerDiscoveryTimeout),
 		dht.Mode(dht.ModeServer),
 		//dht.DisableProviders(),
 		//dht.DisableValues(),
