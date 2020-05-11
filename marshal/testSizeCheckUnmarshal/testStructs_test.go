@@ -3,7 +3,6 @@
 package testSizeCheckUnmarshal
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -42,7 +41,7 @@ func TestSizeUnmarshalizerTestStruct2ToTestStruct1Err(t *testing.T) {
 
 	marshalizedTs2, _ := sizeCheckMarslalizer.Marshal(ts2)
 	err := sizeCheckMarslalizer.Unmarshal(ts1, marshalizedTs2)
-	assert.NotNil(t, err)
+	assert.Equal(t, marshal.ErrUnmarshallingBadSize, err)
 }
 
 func TestSizeUnmarshalizerTestStruct1ToTestStruct2(t *testing.T) {
@@ -59,6 +58,5 @@ func TestSizeUnmarshalizerTestStruct1ToTestStruct2(t *testing.T) {
 
 	marshalizedTs1, _ := sizeCheckMarslalizer.Marshal(ts1)
 	err := sizeCheckMarslalizer.Unmarshal(ts2, marshalizedTs1)
-	fmt.Println(ts2)
 	assert.Nil(t, err)
 }
