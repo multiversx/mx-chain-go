@@ -27,6 +27,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-pubsub"
+	"github.com/multiformats/go-multiaddr"
 )
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
@@ -107,6 +108,28 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		libp2p.Identity(p2pPrivKey),
 		libp2p.NATPortMap(),
 		libp2p.EnableNATService(),
+	}
+
+	if len(args.P2pConfig.KadDhtPeerDiscovery.InitialPeerList) > 0 {
+		relayAddresses := make([]peer.AddrInfo, 0, len(args.P2pConfig.KadDhtPeerDiscovery.InitialPeerList))
+
+		for _, addr := range args.P2pConfig.KadDhtPeerDiscovery.InitialPeerList {
+			a, err := multiaddr.NewMultiaddr(addr)
+			if err != nil {
+				continue
+			}
+
+			pi, err := peer.AddrInfoFromP2pAddr(a)
+			if err != nil {
+				continue
+			}
+
+			relayAddresses = append(relayAddresses, *pi)
+		}
+
+		opts = append(opts, libp2p.StaticRelays(relayAddresses))
+	} else {
+		opts = append(opts, libp2p.EnableRelay())
 	}
 
 	h, err := libp2p.New(args.Context, opts...)
