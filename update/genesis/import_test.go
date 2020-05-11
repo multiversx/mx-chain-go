@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -112,10 +113,10 @@ func TestNewStateImport(t *testing.T) {
 		args    ArgsNewStateImport
 		exError error
 	}{
-		{name: "NilReader", args: ArgsNewStateImport{Reader: nil, Marshalizer: &mock.MarshalizerMock{}, Hasher: &mock.HasherStub{}}, exError: update.ErrNilMultiFileReader},
-		{name: "NilMarshalizer", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: nil, Hasher: &mock.HasherStub{}}, exError: update.ErrNilMarshalizer},
-		{name: "NilHasher", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: &mock.MarshalizerMock{}, Hasher: nil}, exError: update.ErrNilHasher},
-		{name: "Ok", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: &mock.MarshalizerMock{}, Hasher: &mock.HasherStub{}}, exError: nil},
+		{name: "NilReader", args: ArgsNewStateImport{Reader: nil, Marshalizer: &mock.MarshalizerMock{}, Hasher: &mock.HasherStub{}, TrieStorageManager: &mock.StorageManagerStub{}}, exError: update.ErrNilMultiFileReader},
+		{name: "NilMarshalizer", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: nil, Hasher: &mock.HasherStub{}, TrieStorageManager: &mock.StorageManagerStub{}}, exError: update.ErrNilMarshalizer},
+		{name: "NilHasher", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: &mock.MarshalizerMock{}, Hasher: nil, TrieStorageManager: &mock.StorageManagerStub{}}, exError: update.ErrNilHasher},
+		{name: "Ok", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: &mock.MarshalizerMock{}, Hasher: &mock.HasherStub{}, TrieStorageManager: &mock.StorageManagerStub{}}, exError: nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -142,9 +143,12 @@ func TestImportAll(t *testing.T) {
 	}
 	reader, _ := files.NewMultiFileReader(argsReader)
 	args := ArgsNewStateImport{
-		Reader:      reader,
-		Hasher:      &mock.HasherMock{},
-		Marshalizer: &mock.MarshalizerMock{},
+		Reader:             reader,
+		Hasher:             &mock.HasherMock{},
+		Marshalizer:        &mock.MarshalizerMock{},
+		TrieStorageManager: &mock.StorageManagerStub{},
+		ShardID:            0,
+		StorageConfig:      config.StorageConfig{},
 	}
 
 	importState, _ := NewStateImport(args)

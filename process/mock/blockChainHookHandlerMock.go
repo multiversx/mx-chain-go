@@ -14,6 +14,7 @@ type BlockChainHookHandlerMock struct {
 	CleanTempAccountsCalled func()
 	TempAccountCalled       func(address []byte) state.AccountHandler
 	SetCurrentHeaderCalled  func(hdr data.HeaderHandler)
+	NewAddressCalled        func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
 }
 
 // GetBuiltInFunctions -
@@ -53,4 +54,13 @@ func (e *BlockChainHookHandlerMock) SetCurrentHeader(hdr data.HeaderHandler) {
 	if e.SetCurrentHeaderCalled != nil {
 		e.SetCurrentHeaderCalled(hdr)
 	}
+}
+
+// NewAddress -
+func (e *BlockChainHookHandlerMock) NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
+	if e.NewAddressCalled != nil {
+		return e.NewAddressCalled(creatorAddress, creatorNonce, vmType)
+	}
+
+	return make([]byte, 0), nil
 }

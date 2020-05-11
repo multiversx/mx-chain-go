@@ -113,6 +113,7 @@ func createMetaBlockHeader() *block.MetaBlock {
 	}
 	shardMiniBlockHeaders = append(shardMiniBlockHeaders, shardMiniBlockHeader)
 	shardData := block.ShardData{
+		Nonce:                 1,
 		ShardID:               0,
 		HeaderHash:            []byte("hdr_hash1"),
 		TxCount:               1,
@@ -492,6 +493,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 			Nonce: 1,
 		},
 	)
+	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
 
 	arguments.BlockChain = blkc
 	mp, _ := blproc.NewMetaProcessor(arguments)
@@ -516,6 +518,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 			Nonce: 1,
 		},
 	)
+	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
 	arguments.BlockChain = blkc
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	hdr := &block.MetaBlock{
@@ -541,6 +544,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 			DevFeesInEpoch:         big.NewInt(0),
 		},
 	)
+	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
 	hdr := createMetaBlockHeader()
 	body := &block.Body{}
 	// set accounts not dirty
@@ -676,6 +680,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
 	}
 	arguments.BlockTracker = blockTrackerMock
 	blkc := blockchain.NewMetaChain()
+	_ = blkc.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
 	arguments.BlockChain = blkc
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
@@ -1072,7 +1077,7 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotValid(t *testing.T)
 	assert.Nil(t, err)
 	shardInfo, err = mp.CreateShardInfo()
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(shardInfo))
+	assert.Equal(t, 1, len(shardInfo))
 }
 
 func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T) {
@@ -1807,6 +1812,9 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
 	startHeaders := createGenesisBlocks(arguments.ShardCoordinator)
 	arguments.BlockTracker = mock.NewBlockTrackerMock(arguments.ShardCoordinator, startHeaders)
+	arguments.BlockChain = blockchain.NewMetaChain()
+	_ = arguments.BlockChain.SetGenesisHeader(&block.MetaBlock{Nonce: 0})
+	_ = arguments.BlockChain.SetCurrentBlockHeader(&block.MetaBlock{Nonce: 1})
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	prevRandSeed := startHeaders[0].GetRandSeed()
@@ -2076,6 +2084,9 @@ func TestMetaProcessor_DecodeBlockHeader(t *testing.T) {
 		CreateNewHeaderCalled: func() data.HeaderHandler {
 			return &block.MetaBlock{}
 		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.MetaBlock{Nonce: 0}
+		},
 	}
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	hdr := &block.MetaBlock{}
@@ -2303,11 +2314,13 @@ func TestMetaProcessor_ProcessBlockNoShardHeadersReceivedShouldErr(t *testing.T)
 		RootHash:      []byte("roothash"),
 		ShardInfo: []block.ShardData{
 			{
+				Nonce:                 1,
 				ShardID:               0,
 				ShardMiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("hashTx"), TxCount: 1}},
 				TxCount:               1,
 			},
 			{
+				Nonce:                 1,
 				ShardID:               0,
 				ShardMiniBlockHeaders: []block.MiniBlockHeader{{Hash: hash2, TxCount: 1}},
 				TxCount:               1,
@@ -2487,6 +2500,9 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 		},
 		GetCurrentBlockHeaderHashCalled: func() []byte {
 			return hash
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
 		},
 	}
 	arguments.BlockChain = blkc
