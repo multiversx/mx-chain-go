@@ -45,7 +45,6 @@ func NewMetaInterceptorsContainerFactory(
 		args.WhiteListHandler,
 		args.WhiteListerVerifiedTxs,
 		args.AddressPubkeyConverter,
-		args.NonceConverter,
 	)
 	if err != nil {
 		return nil, err
@@ -79,13 +78,13 @@ func NewMetaInterceptorsContainerFactory(
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		ProtoMarshalizer:     args.ProtoMarshalizer,
-		TxSignMarshalizer:    args.TxSignMarshalizer,
-		Hasher:               args.Hasher,
-		ShardCoordinator:     args.ShardCoordinator,
-		NodesCoordinator:     args.NodesCoordinator,
-		MultiSigVerifier:     args.MultiSigner,
-		KeyGen:               args.KeyGen,
+		ProtoMarshalizer:       args.ProtoMarshalizer,
+		TxSignMarshalizer:      args.TxSignMarshalizer,
+		Hasher:                 args.Hasher,
+		ShardCoordinator:       args.ShardCoordinator,
+		NodesCoordinator:       args.NodesCoordinator,
+		MultiSigVerifier:       args.MultiSigner,
+		KeyGen:                 args.KeyGen,
 		BlockKeyGen:            args.BlockKeyGen,
 		Signer:                 args.SingleSigner,
 		BlockSigner:            args.BlockSingleSigner,

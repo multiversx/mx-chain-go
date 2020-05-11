@@ -154,11 +154,10 @@ func (tP2pNode *TestP2PNode) initNode() {
 	}
 
 	hbConfig := config.HeartbeatConfig{
-		Enabled:                             true,
 		MinTimeToWaitBetweenBroadcastsInSec: 4,
 		MaxTimeToWaitBetweenBroadcastsInSec: 6,
-		DurationInSecToConsiderUnresponsive: 60,
-		HbmiRefreshIntervalInSec:            5,
+		DurationToConsiderUnresponsiveInSec: 60,
+		HeartbeatRefreshIntervalInSec:       5,
 		HideInactiveValidatorIntervalInSec:  600,
 	}
 	err = tP2pNode.Node.StartHeartbeat(hbConfig, "test", config.PreferencesConfig{})

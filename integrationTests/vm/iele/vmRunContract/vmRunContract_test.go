@@ -27,7 +27,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
 	defer testContext.Close()
 
-	iele.DeployContract(
+	err := iele.DeployContract(
 		t,
 		senderAddressBytes,
 		senderNonce,
@@ -38,6 +38,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		testContext.TxProcessor,
 		testContext.Accounts,
 	)
+	assert.NoError(t, err)
 
 	destinationAddressBytes, _ := testContext.BlockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 	addValue := uint64(128)
@@ -54,7 +55,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		data,
 	)
 
-	err := testContext.TxProcessor.ProcessTransaction(txRun)
+	err = testContext.TxProcessor.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
@@ -95,7 +96,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	defer testContext.Close()
 
 	//deploy will transfer 0 and will succeed
-	iele.DeployContract(
+	err := iele.DeployContract(
 		t,
 		senderAddressBytes,
 		senderNonce,
@@ -106,6 +107,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		testContext.TxProcessor,
 		testContext.Accounts,
 	)
+	assert.NoError(t, err)
 
 	destinationAddressBytes, _ := testContext.BlockchainHook.NewAddress(senderAddressBytes, senderNonce, factory.IELEVirtualMachine)
 	addValue := uint64(128)
@@ -123,7 +125,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		data,
 	)
 
-	err := testContext.TxProcessor.ProcessTransaction(txRun)
+	err = testContext.TxProcessor.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
