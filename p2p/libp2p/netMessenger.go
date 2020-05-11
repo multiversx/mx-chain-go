@@ -27,7 +27,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-pubsub"
-	"github.com/whyrusleeping/go-logging"
 )
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
@@ -98,11 +97,10 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		return nil, err
 	}
 
-	logging.SetLevel(logging.NOTICE, "dht")
-	logging.SetLevel(logging.NOTICE, "nat")
-	logging.SetLevel(logging.NOTICE, "basichost")
-	logging.SetLevel(logging.DEBUG, "pubsub")
-	fmt.Println("hello world")
+	//logging.SetLogLevel("dht", "DEBUG")
+	//logging.SetLogLevel("nat", "DEBUG")
+	//logging.SetLogLevel("nat2", "DEBUG")
+	//logging.SetLogLevel("basichost", "DEBUG")
 
 	address := fmt.Sprintf(args.ListenAddress+"%d", args.P2pConfig.Node.Port)
 	opts := []libp2p.Option{
@@ -117,6 +115,10 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	//logging.SetLogLevel("dht", "DEBUG")
+	//logging.SetLogLevel("nat", "DEBUG")
+	//logging.SetLogLevel("basichost", "DEBUG")
 
 	p2pNode, err := createMessenger(args, h, true)
 	if err != nil {

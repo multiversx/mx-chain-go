@@ -3,7 +3,7 @@
 #NodeConfig holds the P2P settings
 [Node]
     #Port is the port that will be opened by the node on all interfaces so other peers can connect to it
-    Port = 10000
+    Port = 0
 
     #Seed represents the seed string generator for p2p identity (used during authentication and message passing).
     #An empty Seed value will mean that the identity will be generated randomly in a secure cryptographically manner.
@@ -17,7 +17,7 @@
     #########################################################################################
     #The seed provided will be hashed using SHA256 and the resulting 32 byte length byte array will be used in
     #p2p identity generation
-    Seed = "seed"
+    Seed = "seedJLSTmp"
 
     # The targeted number of peer connections
     TargetPeerCount = 100000
@@ -49,7 +49,7 @@
     #
     #If the initial peers list is left empty, the node will not try to connect to other peers during initial bootstrap
     #phase but will accept connections and will do the network discovery if another peer connects to it
-   InitialPeerList = []
+   InitialPeerList = ["/ip4/178.128.39.254/tcp/10000/p2p/16Uiu2HAmPBEgdrK3YYxbgHjrf2CH6iThYFVMqgzB8nMLXd8jvsWg"]
 
    #kademlia's routing table bucket size
    BucketSize = 100
