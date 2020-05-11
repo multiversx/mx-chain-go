@@ -71,7 +71,6 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	}
 
 	cache.txByHash.RemoveTxsBulk(evicted)
-
 	return
 }
 
@@ -146,7 +145,7 @@ func (cache *TxCache) doAfterSelection() {
 func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 	tx, ok := cache.txByHash.removeTx(string(txHash))
 	if !ok {
-		return ErrTxNotFound
+		return errTxNotFound
 	}
 
 	cache.monitorTxRemoval()
@@ -154,7 +153,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 	found := cache.txListBySender.removeTx(tx)
 	if !found {
 		cache.onRemoveTxInconsistency(txHash)
-		return ErrMapsSyncInconsistency
+		return errMapsSyncInconsistency
 	}
 
 	return nil

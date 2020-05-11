@@ -107,7 +107,7 @@ func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {
 func Test_RemoveByTxHash_Error_WhenMissing(t *testing.T) {
 	cache := newCacheToTest()
 	err := cache.RemoveTxByHash([]byte("missing"))
-	require.Equal(t, err, ErrTxNotFound)
+	require.Equal(t, err, errTxNotFound)
 }
 
 func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
@@ -121,7 +121,7 @@ func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
 	cache.txListBySender.removeTx(tx)
 
 	err := cache.RemoveTxByHash(txHash)
-	require.Equal(t, err, ErrMapsSyncInconsistency)
+	require.Equal(t, err, errMapsSyncInconsistency)
 }
 
 func Test_Clear(t *testing.T) {

@@ -50,19 +50,14 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, txHas
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
-	nonce := tx.Tx.GetNonce()
-	gasPrice := tx.Tx.GetGasPrice()
-	insertionPlace := listForSender.findInsertionPlace(nonce, gasPrice)
+	insertionPlace, err := listForSender.findInsertionPlace(tx)
+	if err != nil {
+		return false, nil
+	}
 
 	if insertionPlace == nil {
 		listForSender.items.PushFront(tx)
-		// TODO: fix, check duplicated here.
 	} else {
-		duplicated := insertionPlace.Value.(*WrappedTransaction).sameAs(tx)
-		if duplicated {
-			return false, nil
-		}
-
 		listForSender.items.InsertAfter(tx, insertionPlace)
 	}
 
@@ -113,22 +108,34 @@ func (listForSender *txListForSender) triggerScoreChange() {
 }
 
 // This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) findInsertionPlace(incomingNonce uint64, incomingGasPrice uint64) *list.Element {
+func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTransaction) (*list.Element, error) {
+	incomingNonce := incomingTx.Tx.GetNonce()
+	incomingGasPrice := incomingTx.Tx.GetGasPrice()
+
 	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
-		tx := element.Value.(*WrappedTransaction).Tx
-		nonce := tx.GetNonce()
-		gasPrice := tx.GetGasPrice()
+		tx := element.Value.(*WrappedTransaction)
+		nonce := tx.Tx.GetNonce()
+		gasPrice := tx.Tx.GetGasPrice()
+
+		if incomingTx.sameAs(tx) {
+			// The incoming transaction will be discarded
+			return nil, errTxDuplicated
+		}
 
 		if nonce == incomingNonce && gasPrice > incomingGasPrice {
-			return element
+			// The incoming transaction will be placed right after the existing one (with higher price).
+			return element, nil
 		}
 
 		if nonce < incomingNonce {
-			return element
+			// We've found the first transaction with a lower nonce than the incoming one,
+			// thus the incoming transaction will be placed right after this one.
+			return element, nil
 		}
 	}
 
-	return nil
+	// The incoming transaction will be inserted at the head of the list.
+	return nil, nil
 }
 
 // RemoveTx removes a transaction from the sender's list
