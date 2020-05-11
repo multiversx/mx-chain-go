@@ -32,14 +32,14 @@ type QueryDebugRequest struct {
 type statisticsResponse struct {
 	LiveTPS               float64                   `json:"liveTPS"`
 	PeakTPS               float64                   `json:"peakTPS"`
-	NrOfShards            uint32                    `json:"nrOfShards"`
 	BlockNumber           uint64                    `json:"blockNumber"`
 	RoundNumber           uint64                    `json:"roundNumber"`
 	RoundTime             uint64                    `json:"roundTime"`
 	AverageBlockTxCount   *big.Int                  `json:"averageBlockTxCount"`
-	LastBlockTxCount      uint32                    `json:"lastBlockTxCount"`
 	TotalProcessedTxCount *big.Int                  `json:"totalProcessedTxCount"`
 	ShardStatistics       []shardStatisticsResponse `json:"shardStatistics"`
+	LastBlockTxCount      uint32                    `json:"lastBlockTxCount"`
+	NrOfShards            uint32                    `json:"nrOfShards"`
 }
 
 type shardStatisticsResponse struct {

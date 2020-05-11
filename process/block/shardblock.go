@@ -988,8 +988,6 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
 			accounts.SnapshotState(rootHash)
 		}
 	}
-
-	return
 }
 
 func (sp *shardProcessor) checkEpochCorrectnessCrossChain() error {

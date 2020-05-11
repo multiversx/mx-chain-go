@@ -31,8 +31,8 @@ const epochForDefaultEpochPrepareHdr = math.MaxUint32 - 7
 // persisterData structure is used so the persister and its path can be kept in the same place
 type persisterData struct {
 	persister storage.Persister
-	epoch     uint32
 	path      string
+	epoch     uint32
 	isClosed  bool
 }
 
@@ -49,10 +49,10 @@ type PruningStorer struct {
 	persisterFactory      DbFactoryHandler
 	mutEpochPrepareHdr    sync.RWMutex
 	epochPrepareHdr       *block.MetaBlock
+	identifier            string
 	numOfEpochsToKeep     uint32
 	numOfActivePersisters uint32
 	epochForPutOperation  uint32
-	identifier            string
 	fullArchive           bool
 	pruningEnabled        bool
 }

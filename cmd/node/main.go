@@ -612,6 +612,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		validatorKeyPemFileName,
 		suite,
 	)
+	if err != nil {
+		return err
+	}
 
 	cryptoParams, err := cryptoParamsLoader.Get()
 	if err != nil {
@@ -792,6 +795,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		defaultEpochString,
 		defaultShardString,
 	)
+	if err != nil {
+		return err
+	}
 
 	unitOpener, err := factory.CreateUnitOpener(
 		bootstrapDataProvider,
@@ -804,6 +810,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		defaultEpochString,
 		defaultShardString,
 	)
+	if err != nil {
+		return err
+	}
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  cryptoParams.PublicKey,
