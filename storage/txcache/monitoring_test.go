@@ -15,7 +15,9 @@ func TestMonitoring_numTxAddedAndRemovedDuringEviction(t *testing.T) {
 		NumSendersToEvictInOneStep: 1,
 	}
 
-	cache := NewTxCache(config)
+	cache, err := NewTxCache(config)
+	require.Nil(t, err)
+	require.NotNil(t, cache)
 
 	cache.isEvictionInProgress.Set()
 
@@ -41,7 +43,9 @@ func TestMonitoring_numTxAddedAndRemovedBetweenSelections(t *testing.T) {
 		NumSendersToEvictInOneStep: 1,
 	}
 
-	cache := NewTxCache(config)
+	cache, err := NewTxCache(config)
+	require.Nil(t, err)
+	require.NotNil(t, cache)
 
 	require.Equal(t, int64(0), cache.numTxAddedBetweenSelections.Get())
 

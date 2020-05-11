@@ -249,7 +249,10 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	}
 
 	// 11 * 10
-	cache := NewTxCache(config)
+	cache, err := NewTxCache(config)
+	require.Nil(t, err)
+	require.NotNil(t, cache)
+
 	addManyTransactionsWithUniformDistribution(cache, 11, 10)
 	require.LessOrEqual(t, cache.CountTx(), int64(100))
 
@@ -262,7 +265,10 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	}
 
 	// 100 * 1000
-	cache = NewTxCache(config)
+	cache, err = NewTxCache(config)
+	require.Nil(t, err)
+	require.NotNil(t, cache)
+
 	addManyTransactionsWithUniformDistribution(cache, 100, 1000)
 	require.LessOrEqual(t, cache.CountTx(), int64(250000))
 }
@@ -336,5 +342,10 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 }
 
 func newCacheToTest() *TxCache {
-	return NewTxCache(CacheConfig{Name: "test", NumChunksHint: 16, MinGasPriceMicroErd: 100})
+	cache, err := NewTxCache(CacheConfig{Name: "test", NumChunksHint: 16, MinGasPriceMicroErd: 100})
+	if err != nil {
+		panic(fmt.Sprintf("newCacheToTest(): %s", err))
+	}
+
+	return cache
 }

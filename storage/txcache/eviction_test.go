@@ -18,7 +18,9 @@ func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
 		MinGasPriceMicroErd:        100,
 	}
 
-	cache := NewTxCache(config)
+	cache, err := NewTxCache(config)
+	require.Nil(t, err)
+	require.NotNil(t, cache)
 
 	// 200 senders, each with 1 transaction
 	for index := 0; index < 200; index++ {
@@ -50,7 +52,9 @@ func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 		MinGasPriceMicroErd:        100,
 	}
 
-	cache := NewTxCache(config)
+	cache, err := NewTxCache(config)
+	require.Nil(t, err)
+	require.NotNil(t, cache)
 
 	// 200 senders, each with 1 transaction
 	for index := 0; index < 200; index++ {
@@ -80,7 +84,10 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 		MinGasPriceMicroErd:        100,
 	}
 
-	cache := NewTxCache(config)
+	cache, err := NewTxCache(config)
+	require.Nil(t, err)
+	require.NotNil(t, cache)
+
 	cache.AddTx(createTxWithParams([]byte("hash-alice"), "alice", uint64(1), 1000, 100000, 100*oneTrilion))
 	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 1000, 100000, 100*oneTrilion))
 	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 1000, 100000, 700*oneTrilion))
@@ -106,7 +113,10 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 		MinGasPriceMicroErd:        100,
 	}
 
-	cache := NewTxCache(config)
+	cache, err := NewTxCache(config)
+	require.Nil(t, err)
+	require.NotNil(t, cache)
+
 	cache.AddTx(createTxWithParams([]byte("hash-alice"), "alice", uint64(1), 800, 100000, 100*oneTrilion))
 	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 500, 100000, 100*oneTrilion))
 	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 200, 100000, 700*oneTrilion))
@@ -134,7 +144,10 @@ func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
 		NumSendersToEvictInOneStep: 1,
 	}
 
-	cache := NewTxCache(config)
+	cache, err := NewTxCache(config)
+	require.Nil(t, err)
+	require.NotNil(t, cache)
+
 	cache.AddTx(createTx([]byte("hash-alice"), "alice", uint64(1)))
 
 	cache.isEvictionInProgress.Set()
@@ -150,7 +163,10 @@ func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T)
 		NumSendersToEvictInOneStep: 42,
 	}
 
-	cache := NewTxCache(config)
+	cache, err := NewTxCache(config)
+	require.Nil(t, err)
+	require.NotNil(t, cache)
+
 	cache.AddTx(createTx([]byte("hash-alice"), "alice", uint64(1)))
 
 	cache.makeSnapshotOfSenders()
@@ -168,7 +184,10 @@ func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
 		NumSendersToEvictInOneStep: 1,
 	}
 
-	cache := NewTxCache(config)
+	cache, err := NewTxCache(config)
+	require.Nil(t, err)
+	require.NotNil(t, cache)
+
 	cache.AddTx(createTx([]byte("hash-alice"), "alice", uint64(1)))
 	cache.AddTx(createTx([]byte("hash-bob"), "bob", uint64(1)))
 
@@ -198,7 +217,10 @@ func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 	numSenders := 25000
 	numTxsPerSender := 10
 
-	cache := NewTxCache(config)
+	cache, err := NewTxCache(config)
+	require.Nil(t, err)
+	require.NotNil(t, cache)
+
 	addManyTransactionsWithUniformDistribution(cache, numSenders, numTxsPerSender)
 
 	// Sometimes (due to map iteration non-determinism), more eviction happens - one more step of 100 senders.

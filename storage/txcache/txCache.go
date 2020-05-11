@@ -31,8 +31,14 @@ type TxCache struct {
 }
 
 // NewTxCache creates a new transaction cache
-func NewTxCache(config CacheConfig) *TxCache {
+func NewTxCache(config CacheConfig) (*TxCache, error) {
 	log.Debug("NewTxCache", "config", config)
+
+	err := config.verify()
+	if err != nil {
+		log.Error("NewTxCache config.verify()", "err", err)
+		return nil, err
+	}
 
 	// Note: for simplicity, we use the same "numChunksHint" for both internal concurrent maps
 	numChunksHint := config.NumChunksHint
@@ -46,7 +52,7 @@ func NewTxCache(config CacheConfig) *TxCache {
 	}
 
 	txCache.initSweepable()
-	return txCache
+	return txCache, nil
 }
 
 // AddTx adds a transaction in the cache

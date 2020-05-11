@@ -175,7 +175,7 @@ func Test_AddData_CallsOnAddedHandlers(t *testing.T) {
 
 	// Second addition is ignored (txhash-based deduplication)
 	pool.AddData([]byte("hash-1"), createTx("alice", 42), "1")
-	pool.AddData([]byte("hash-1"), createTx("whatever", 43), "1")
+	pool.AddData([]byte("hash-1"), createTx("alice", 42), "1")
 
 	waitABit()
 	require.Equal(t, uint32(1), atomic.LoadUint32(&numAdded))
