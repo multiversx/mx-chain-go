@@ -87,9 +87,9 @@ func (listForSender *txListForSender) applyLimit() [][]byte {
 	return evictedTxHashes
 }
 
-func (listForSender *txListForSender) isLimitReached() {
-	tooManyBytes := listForSender.totalBytes.Get() > listForSender.cacheConfig.NumBytesPerSenderThreshold
-	tooManyTxs := listForSender.countTx() > listForSender.cacheConfig.CountPerSenderThreshold
+func (listForSender *txListForSender) isLimitReached() bool {
+	tooManyBytes := listForSender.totalBytes.Get() > int64(listForSender.cacheConfig.NumBytesPerSenderThreshold)
+	tooManyTxs := listForSender.countTx() > uint64(listForSender.cacheConfig.CountPerSenderThreshold)
 	return tooManyBytes || tooManyTxs
 }
 
