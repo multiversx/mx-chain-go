@@ -1,6 +1,7 @@
 package hardFork
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"math/big"
@@ -8,16 +9,20 @@ import (
 	"testing"
 	"time"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/update/factory"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,7 +34,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
+	numOfShards := 1
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
@@ -91,15 +96,9 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		}
 	}()
 
-	createHardForkExporter(t, nodes)
-
-	for _, node := range nodes {
-		log.Warn("***********************************************************************************")
-		log.Warn("starting to export for node with shard", "id", node.ShardCoordinator.SelfId())
-		err := node.ExportHandler.ExportAll(1)
-		assert.Nil(t, err)
-		log.Warn("***********************************************************************************")
-	}
+	exportStorageConfigs := hardForkExport(t, nodes)
+	hardForkImport(t, nodes, exportStorageConfigs)
+	checkGenesisBlocksStateIsEqual(t, nodes)
 }
 
 func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *testing.T) {
@@ -155,7 +154,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	time.Sleep(time.Second)
 
 	/////////----- wait for epoch end period
-	epoch := uint32(2)
+	epoch := uint32(1)
 	nrRoundsToPropagateMultiShard := uint64(6)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -180,27 +179,124 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 		}
 	}()
 
-	createHardForkExporter(t, nodes)
+	exportStorageConfigs := hardForkExport(t, nodes)
+	hardForkImport(t, nodes, exportStorageConfigs)
+	checkGenesisBlocksStateIsEqual(t, nodes)
+}
 
+func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode) []*config.StorageConfig {
+	exportStorageConfigs := createHardForkExporter(t, nodes)
 	for _, node := range nodes {
 		log.Warn("***********************************************************************************")
 		log.Warn("starting to export for node with shard", "id", node.ShardCoordinator.SelfId())
-		err := node.ExportHandler.ExportAll(2)
+		err := node.ExportHandler.ExportAll(1)
 		assert.Nil(t, err)
 		log.Warn("***********************************************************************************")
+	}
+	return exportStorageConfigs
+}
+
+func checkGenesisBlocksStateIsEqual(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
+	for _, nodeA := range nodes {
+		for _, nodeB := range nodes {
+			for _, genesisBlockA := range nodeA.GenesisBlocks {
+				genesisBlockB := nodeB.GenesisBlocks[genesisBlockA.GetShardID()]
+				assert.True(t, bytes.Equal(genesisBlockA.GetRootHash(), genesisBlockB.GetRootHash()))
+			}
+		}
+	}
+}
+
+func hardForkImport(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	importStorageConfigs []*config.StorageConfig,
+) {
+	for id, node := range nodes {
+		gasSchedule := arwenConfig.MakeGasMap(1)
+		defaults.FillGasMapInternal(gasSchedule, 1)
+		log.Warn("started import process")
+
+		trieStorageManager, _ := trie.NewTrieStorageManagerWithoutPruning(integrationTests.CreateMemUnit())
+		validatorsRoothash, _ := node.ValidatorStatisticsProcessor.RootHash()
+
+		argsGenesis := process.ArgsGenesisBlockCreator{
+			GenesisTime:              0,
+			StartEpochNum:            0,
+			Accounts:                 node.AccntState,
+			PubkeyConv:               integrationTests.TestAddressPubkeyConverter,
+			InitialNodesSetup:        node.NodesSetup,
+			Economics:                node.EconomicsData.EconomicsData,
+			ShardCoordinator:         node.ShardCoordinator,
+			Store:                    node.Storage,
+			Blkc:                     node.BlockChain,
+			Marshalizer:              integrationTests.TestMarshalizer,
+			Hasher:                   integrationTests.TestHasher,
+			Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
+			DataPool:                 node.DataPool,
+			ValidatorStatsRootHash:   validatorsRoothash,
+			GasMap:                   gasSchedule,
+			TxLogsProcessor:          &mock.TxLogsProcessorStub{},
+			VirtualMachineConfig:     config.VirtualMachineConfig{},
+			HardForkConfig: config.HardforkConfig{
+				MustImport:               true,
+				ImportFolder:             node.ExportFolder,
+				StartEpoch:               1000,
+				StartNonce:               1000,
+				StartRound:               1000,
+				ImportStateStorageConfig: *importStorageConfigs[id],
+			},
+			TrieStorageManager: trieStorageManager,
+			ChainID:            string(node.ChainID),
+			SystemSCConfig: config.SystemSmartContractsConfig{
+				ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+					BaseIssuingCost: "1000",
+					OwnerAddress:    "aaaaaa",
+				},
+			},
+			AccountsParser:      &mock.AccountsParserStub{},
+			SmartContractParser: &mock.SmartContractParserStub{},
+		}
+
+		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)
+		require.Nil(t, err)
+		genesisBlocks, err := genesisProcessor.CreateGenesisBlocks()
+		require.Nil(t, err)
+		require.NotNil(t, genesisBlocks)
+
+		node.GenesisBlocks = genesisBlocks
+		for _, genesisBlock := range genesisBlocks {
+			log.Info("hardfork genesisblock roothash", "shardID", genesisBlock.GetShardID(), "rootHash", genesisBlock.GetRootHash())
+		}
 	}
 }
 
 func createHardForkExporter(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
-) {
+) []*config.StorageConfig {
+	exportConfigs := make([]*config.StorageConfig, 0, len(nodes))
+
 	for id, node := range nodes {
 		accountsDBs := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 		accountsDBs[state.UserAccountsState] = node.AccntState
 		accountsDBs[state.PeerAccountsState] = node.PeerState
 
 		node.ExportFolder = "./export" + fmt.Sprintf("%d", id)
+		exportConfig := config.StorageConfig{
+			Cache: config.CacheConfig{
+				Size: 100000, Type: "LRU", Shards: 1,
+			},
+			DB: config.DBConfig{
+				FilePath:          "ExportState" + fmt.Sprintf("%d", id),
+				Type:              "LvlDBSerial",
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		}
+		exportConfigs = append(exportConfigs, &exportConfig)
+
 		argsExportHandler := factory.ArgsExporter{
 			TxSignMarshalizer: integrationTests.TestTxSignMarshalizer,
 			Marshalizer:       integrationTests.TestMarshalizer,
@@ -226,34 +322,23 @@ func createHardForkExporter(
 					MaxOpenFiles:      10,
 				},
 			},
-			ExportStateStorageConfig: config.StorageConfig{
-				Cache: config.CacheConfig{
-					Size: 10000, Type: "LRU", Shards: 1,
-				},
-				DB: config.DBConfig{
-					FilePath:          "ExportState" + fmt.Sprintf("%d", id),
-					Type:              "MemoryDB",
-					BatchDelaySeconds: 30,
-					MaxBatchSize:      6,
-					MaxOpenFiles:      10,
-				},
-			},
-			WhiteListHandler:       node.WhiteListHandler,
-			WhiteListerVerifiedTxs: node.WhiteListerVerifiedTxs,
-			InterceptorsContainer:  node.InterceptorsContainer,
-			ExistingResolvers:      node.ResolversContainer,
-			MultiSigner:            node.MultiSigner,
-			NodesCoordinator:       node.NodesCoordinator,
-			SingleSigner:           node.OwnAccount.SingleSigner,
-			AddressPubkeyConverter: integrationTests.TestAddressPubkeyConverter,
-			BlockKeyGen:            node.OwnAccount.KeygenBlockSign,
-			KeyGen:                 node.OwnAccount.KeygenTxSign,
-			BlockSigner:            node.OwnAccount.BlockSingleSigner,
-			HeaderSigVerifier:      node.HeaderSigVerifier,
-			ChainID:                node.ChainID,
-			ValidityAttester:       node.BlockTracker,
-			OutputAntifloodHandler: &mock.NilAntifloodHandler{},
-			InputAntifloodHandler:  &mock.NilAntifloodHandler{},
+			ExportStateStorageConfig: exportConfig,
+			WhiteListHandler:         node.WhiteListHandler,
+			WhiteListerVerifiedTxs:   node.WhiteListerVerifiedTxs,
+			InterceptorsContainer:    node.InterceptorsContainer,
+			ExistingResolvers:        node.ResolversContainer,
+			MultiSigner:              node.MultiSigner,
+			NodesCoordinator:         node.NodesCoordinator,
+			SingleSigner:             node.OwnAccount.SingleSigner,
+			AddressPubkeyConverter:   integrationTests.TestAddressPubkeyConverter,
+			BlockKeyGen:              node.OwnAccount.KeygenBlockSign,
+			KeyGen:                   node.OwnAccount.KeygenTxSign,
+			BlockSigner:              node.OwnAccount.BlockSingleSigner,
+			HeaderSigVerifier:        node.HeaderSigVerifier,
+			ChainID:                  node.ChainID,
+			ValidityAttester:         node.BlockTracker,
+			OutputAntifloodHandler:   &mock.NilAntifloodHandler{},
+			InputAntifloodHandler:    &mock.NilAntifloodHandler{},
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)
@@ -264,6 +349,8 @@ func createHardForkExporter(
 		assert.Nil(t, err)
 		require.NotNil(t, node.ExportHandler)
 	}
+
+	return exportConfigs
 }
 
 func verifyIfNodesHaveCorrectEpoch(

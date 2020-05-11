@@ -43,10 +43,6 @@ func (cache *TxCache) getNumFailedSelectionsOfSender(sender string) int {
 	return int(cache.getListForSender(sender).numFailedSelections.Get())
 }
 
-func (cache *TxCache) setNumFailedSelectionsOfSender(sender string, numFailed int) {
-	cache.getListForSender(sender).numFailedSelections.Set(int64(numFailed))
-}
-
 func (cache *TxCache) isSenderSweepable(sender string) bool {
 	for _, item := range cache.sweepingListOfSenders {
 		if item.sender == sender {
