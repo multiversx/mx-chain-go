@@ -34,13 +34,13 @@ import (
 
 // CreateMetaGenesisBlock will create a metachain genesis block
 func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter) (data.HeaderHandler, error) {
+	if arg.HardForkConfig.MustImport {
+		return createMetaGenesisAfterHardFork(arg)
+	}
+
 	processors, err := createProcessorsForMetaGenesisBlock(arg)
 	if err != nil {
 		return nil, err
-	}
-
-	if arg.HardForkConfig.MustImport {
-		return createMetaGenesisAfterHardFork(arg, processors)
 	}
 
 	err = deploySystemSmartContracts(arg, processors.txProcessor, processors.systemSCs)
@@ -99,7 +99,17 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 	return header, nil
 }
 
-func createMetaGenesisAfterHardFork(arg ArgsGenesisBlockCreator, processors *genesisProcessors) (data.HeaderHandler, error) {
+func createMetaGenesisAfterHardFork(
+	arg ArgsGenesisBlockCreator,
+) (data.HeaderHandler, error) {
+	tmpArg := arg
+	tmpArg.ValidatorAccounts = arg.importHandler.GetValidatorAccountsDB()
+	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(core.MetachainShardId)
+	processors, err := createProcessorsForMetaGenesisBlock(tmpArg)
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewMetaBlockCreatorAfterHardFork := hardForkProcess.ArgsNewMetaBlockCreatorAfterHardfork{
 		ImportHandler:    arg.importHandler,
 		Marshalizer:      arg.Marshalizer,

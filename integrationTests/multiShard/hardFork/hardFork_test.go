@@ -28,7 +28,7 @@ import (
 
 var log = logger.GetOrCreate("integrationTests/hardfork")
 
-func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
+func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -100,7 +100,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	checkGenesisBlocksStateIsEqual(t, nodes)
 }
 
-func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *testing.T) {
+func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
