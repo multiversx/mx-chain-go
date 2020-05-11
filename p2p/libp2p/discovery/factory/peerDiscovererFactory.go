@@ -39,7 +39,7 @@ func createKadDhtPeerDiscoverer(
 		RandezVous:           p2pConfig.KadDhtPeerDiscovery.RandezVous,
 		InitialPeersList:     p2pConfig.KadDhtPeerDiscovery.InitialPeerList,
 		BucketSize:           p2pConfig.KadDhtPeerDiscovery.BucketSize,
-		RoutingTableRefresh:  time.Second * time.Duration(p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
+		RoutingTableRefresh:  time.Second * time.Duration(p2pConfig.KadDhtPeerDiscovery.RoutingTableRefreshIntervalInSec),
 	}
 
 	switch p2pConfig.Sharding.Type {
