@@ -14,9 +14,6 @@ var ErrNoFileToImport = errors.New("no files to import")
 // ErrEndOfFile signals that end of file was reached
 var ErrEndOfFile = errors.New("end of file")
 
-// ErrHashMissmatch signals that received hash is not equal with processed one
-var ErrHashMissmatch = errors.New("hash missmatch")
-
 // ErrNilDataWriter signals that data writer is nil
 var ErrNilDataWriter = errors.New("nil data writer")
 
@@ -197,5 +194,5 @@ var ErrNilPendingTxProcessor = errors.New("nil pending tx processor")
 // ErrNilHardForkBlockProcessor signals that nil hard fork block processor has been provided
 var ErrNilHardForkBlockProcessor = errors.New("nil hard fork block processor")
 
-// ErrNilTrieFactory signals that nil trie factory has been provided
-var ErrNilTrieFactory = errors.New("nil trie factory")
+// ErrNilTrieStorageManager signals that nil trie storage manager has been provided
+var ErrNilTrieStorageManager = errors.New("nil trie storage")

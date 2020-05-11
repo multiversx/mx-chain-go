@@ -55,11 +55,10 @@ const (
 	DataTrie
 )
 
-// SupportedAccountTypes is the list to describe the possible account types in the accounts DB
-var SupportedAccountTypes = []Type{UserAccount, ValidatorAccount, DataTrie}
-
 // atSep is a separator used for export and import to decipher needed types
 const atSep = "@"
+const accTypeIDX = 3
+const shardIDIDX = 2
 
 // NewObject creates an object according to the given type
 func NewObject(objType Type) (interface{}, error) {
@@ -83,12 +82,12 @@ func NewObject(objType Type) (interface{}, error) {
 }
 
 // NewEmptyAccount returns a new account according to the given type
-func NewEmptyAccount(accType Type) (state.AccountHandler, error) {
+func NewEmptyAccount(accType Type, address []byte) (state.AccountHandler, error) {
 	switch accType {
 	case UserAccount:
-		return state.NewEmptyUserAccount(), nil
+		return state.NewUserAccount(address)
 	case ValidatorAccount:
-		return state.NewEmptyPeerAccount(), nil
+		return state.NewPeerAccount(address)
 	case DataTrie:
 		return nil, nil
 	}
@@ -102,13 +101,13 @@ func GetTrieTypeAndShId(key string) (Type, uint32, error) {
 		return UserAccount, 0, update.ErrUnknownType
 	}
 
-	accTypeInt64, err := strconv.ParseInt(splitString[2], 10, 0)
+	accTypeInt64, err := strconv.ParseInt(splitString[accTypeIDX], 10, 0)
 	if err != nil {
 		return UserAccount, 0, err
 	}
-	accType := getAccountType(int(accTypeInt64))
+	accType := Type(accTypeInt64)
 
-	shId, err := strconv.ParseInt(splitString[1], 10, 0)
+	shId, err := strconv.ParseInt(splitString[shardIDIDX], 10, 0)
 	if err != nil {
 		return UserAccount, 0, err
 	}
@@ -132,17 +131,6 @@ func getTransactionKeyTypeAndHash(splitString []string) (Type, []byte, error) {
 	return Unknown, nil, update.ErrUnknownType
 }
 
-func getAccountType(intType int) Type {
-	accType := UserAccount
-	for currType := range SupportedAccountTypes {
-		if currType == intType {
-			accType = Type(currType)
-			break
-		}
-	}
-	return accType
-}
-
 func getTrieTypeAndHash(splitString []string) (Type, []byte, error) {
 	if len(splitString) < 3 {
 		return Unknown, nil, update.ErrUnknownType
@@ -152,7 +140,7 @@ func getTrieTypeAndHash(splitString []string) (Type, []byte, error) {
 	if err != nil {
 		return Unknown, nil, err
 	}
-	accType := getAccountType(int(accTypeInt64))
+	accType := Type(accTypeInt64)
 
 	return accType, []byte(splitString[2]), nil
 }

@@ -39,6 +39,10 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		return nil, err
 	}
 
+	if arg.HardForkConfig.MustImport {
+		return createMetaGenesisAfterHardFork(arg, processors)
+	}
+
 	err = deploySystemSmartContracts(arg, processors.txProcessor, processors.systemSCs)
 	if err != nil {
 		return nil, err
@@ -57,15 +61,6 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 	rootHash, err := arg.Accounts.Commit()
 	if err != nil {
 		return nil, err
-	}
-
-	if arg.HardForkConfig.MustImport {
-		//TODO: think how to integrate when genesis is modified as well - how to integrate with imported data
-		// one example being - delete or not the validator statistics trie - and restart from 0, or should import from old
-		// data. The same with system smart contract states - these thinks should be programmed according to that specific hardfork
-		// event. As some scenarios would need only a set of pending transactions - others would syncronize everything from before
-		// genesis file should not be changed - as it reflects the true, transparent data for block ZERO
-		return createMetaGenesisAfterHardFork(arg, processors)
 	}
 
 	header := &block.MetaBlock{
@@ -87,8 +82,6 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		NodePrice:              big.NewInt(0).Set(arg.Economics.GenesisNodePrice()),
 	}
 
-	//TODO maybe notarize the shard genesis blocks - it would be super important to do it - as smart contract results
-	// can be propagated afterwards and validated
 	header.SetTimeStamp(arg.GenesisTime)
 	header.SetValidatorStatsRootHash(arg.ValidatorStatsRootHash)
 
