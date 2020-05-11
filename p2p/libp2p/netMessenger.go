@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -113,7 +114,7 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 
 	if len(args.P2pConfig.KadDhtPeerDiscovery.InitialPeerList) > 0 {
 		relayAddresses := make([]peer.AddrInfo, 0, len(args.P2pConfig.KadDhtPeerDiscovery.InitialPeerList))
-
+		relayers := make([]string, 0)
 		for _, addr := range args.P2pConfig.KadDhtPeerDiscovery.InitialPeerList {
 			a, err := multiaddr.NewMultiaddr(addr)
 			if err != nil {
@@ -126,10 +127,12 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 			}
 
 			relayAddresses = append(relayAddresses, *pi)
+			relayers = append(relayers, addr)
 		}
-
+		log.Info("static relayers", "relayers", strings.Join(relayers, ", "))
 		opts = append(opts, libp2p.StaticRelays(relayAddresses))
 	} else {
+		log.Info("node set as relayer")
 		opts = append(opts, libp2p.EnableRelay([]relay.RelayOpt{relay.OptActive}...))
 	}
 
