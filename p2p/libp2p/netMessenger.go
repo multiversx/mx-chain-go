@@ -79,6 +79,7 @@ type networkMessenger struct {
 	goRoutinesThrottler *throttler.NumGoRoutinesThrottler
 	ip                  *identityProvider
 	connectionsMetric   *metrics.Connections
+	initial             []string
 }
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
@@ -127,6 +128,8 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		log.LogIfError(h.Close())
 		return nil, err
 	}
+
+	p2pNode.initial = args.P2pConfig.KadDhtPeerDiscovery.InitialPeerList
 
 	return p2pNode, nil
 }
@@ -408,7 +411,12 @@ func (netMes *networkMessenger) ConnectToPeer(address string) error {
 
 // Bootstrap will start the peer discovery mechanism
 func (netMes *networkMessenger) Bootstrap() error {
-	return netMes.peerDiscoverer.Bootstrap()
+	//return netMes.peerDiscoverer.Bootstrap()
+	if len(netMes.initial) == 0 {
+		return nil
+	}
+
+	return netMes.ConnectToPeer(netMes.initial[0])
 }
 
 // IsConnected returns true if current node is connected to provided peer
