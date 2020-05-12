@@ -7,7 +7,7 @@ import (
 )
 
 func TestSenderAsBucketSortedMapItem_ComputeScore(t *testing.T) {
-	list := newListToTest()
+	list := newUnconstrainedListToTest()
 
 	list.AddTx(createTxWithParams([]byte("a"), ".", 1, 1000, 200000, 100*oneTrilion))
 	list.AddTx(createTxWithParams([]byte("b"), ".", 1, 500, 100000, 100*oneTrilion))
@@ -22,7 +22,7 @@ func TestSenderAsBucketSortedMapItem_ComputeScore(t *testing.T) {
 }
 
 func TestSenderAsBucketSortedMapItem_ScoreFluctuatesDeterministicallyWhenTransactionsAreAddedOrRemoved(t *testing.T) {
-	list := newListToTest()
+	list := newUnconstrainedListToTest()
 
 	A := createTxWithParams([]byte("A"), ".", 1, 1000, 200000, 100*oneTrilion)
 	B := createTxWithParams([]byte("b"), ".", 1, 500, 100000, 100*oneTrilion)

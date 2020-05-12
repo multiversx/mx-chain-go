@@ -8,26 +8,18 @@ import (
 )
 
 func TestListForSender_AddTx_Sorts(t *testing.T) {
-	list := newListToTest()
+	list := newUnconstrainedListToTest()
 
 	list.AddTx(createTx([]byte("a"), ".", 1))
 	list.AddTx(createTx([]byte("c"), ".", 3))
 	list.AddTx(createTx([]byte("d"), ".", 4))
 	list.AddTx(createTx([]byte("b"), ".", 2))
 
-	txHashes := list.getTxHashes()
-
-	require.Equal(t, 4, list.items.Len())
-	require.Equal(t, 4, len(txHashes))
-
-	require.Equal(t, []byte("a"), txHashes[0])
-	require.Equal(t, []byte("b"), txHashes[1])
-	require.Equal(t, []byte("c"), txHashes[2])
-	require.Equal(t, []byte("d"), txHashes[3])
+	require.ElementsMatch(t, []string{"a", "b", "c", "d"}, list.getTxHashesAsStrings())
 }
 
 func TestListForSender_AddTx_GivesPriorityToHigherGas(t *testing.T) {
-	list := newListToTest()
+	list := newUnconstrainedListToTest()
 
 	list.AddTx(createTxWithParams([]byte("a"), ".", 1, 128, 42, 42))
 	list.AddTx(createTxWithParams([]byte("b"), ".", 3, 128, 42, 100))
@@ -35,20 +27,72 @@ func TestListForSender_AddTx_GivesPriorityToHigherGas(t *testing.T) {
 	list.AddTx(createTxWithParams([]byte("d"), ".", 2, 128, 42, 42))
 	list.AddTx(createTxWithParams([]byte("e"), ".", 3, 128, 42, 101))
 
-	txHashes := list.getTxHashes()
+	require.ElementsMatch(t, []string{"a", "d", "e", "b", "c"}, list.getTxHashesAsStrings())
+}
 
-	require.Equal(t, 5, list.items.Len())
-	require.Equal(t, 5, len(txHashes))
+func TestListForSender_AddTx_IgnoresDuplicates(t *testing.T) {
+	list := newUnconstrainedListToTest()
 
-	require.Equal(t, []byte("a"), txHashes[0])
-	require.Equal(t, []byte("d"), txHashes[1])
-	require.Equal(t, []byte("e"), txHashes[2])
-	require.Equal(t, []byte("b"), txHashes[3])
-	require.Equal(t, []byte("c"), txHashes[4])
+	added, _ := list.AddTx(createTx([]byte("tx1"), ".", 1))
+	require.True(t, added)
+	added, _ = list.AddTx(createTx([]byte("tx2"), ".", 2))
+	require.True(t, added)
+	added, _ = list.AddTx(createTx([]byte("tx3"), ".", 3))
+	require.True(t, added)
+	added, _ = list.AddTx(createTx([]byte("tx2"), ".", 2))
+	require.False(t, added)
+}
+
+func TestListForSender_AddTx_AppliesSizeConstraints_Count(t *testing.T) {
+	list := newListToTest(math.MaxUint32, 3)
+
+	list.AddTx(createTx([]byte("tx1"), ".", 1))
+	list.AddTx(createTx([]byte("tx5"), ".", 5))
+	list.AddTx(createTx([]byte("tx4"), ".", 4))
+	list.AddTx(createTx([]byte("tx2"), ".", 2))
+	require.ElementsMatch(t, []string{"tx1", "tx2", "tx4"}, list.getTxHashesAsStrings())
+
+	_, evicted := list.AddTx(createTx([]byte("tx3"), ".", 3))
+	require.ElementsMatch(t, []string{"tx1", "tx2", "tx3"}, list.getTxHashesAsStrings())
+	require.ElementsMatch(t, []string{"tx4"}, hashesAsStrings(evicted))
+
+	// Gives priority to higher gas - undesirably to some extent, "tx3" is evicted
+	_, evicted = list.AddTx(createTxWithParams([]byte("tx2++"), ".", 2, 128, 42, 42))
+	require.ElementsMatch(t, []string{"tx1", "tx2++", "tx2"}, list.getTxHashesAsStrings())
+	require.ElementsMatch(t, []string{"tx3"}, hashesAsStrings(evicted))
+
+	// Undesirably to some extent, "tx3++"" is added, then evicted
+	_, evicted = list.AddTx(createTxWithParams([]byte("tx3++"), ".", 3, 128, 42, 42))
+	require.ElementsMatch(t, []string{"tx1", "tx2++", "tx2"}, list.getTxHashesAsStrings())
+	require.ElementsMatch(t, []string{"tx3++"}, hashesAsStrings(evicted))
+}
+
+func TestListForSender_AddTx_AppliesSizeConstraints_SizeInBytes(t *testing.T) {
+	list := newListToTest(1024, math.MaxUint32)
+
+	list.AddTx(createTxWithParams([]byte("tx1"), ".", 1, 128, 42, 42))
+	list.AddTx(createTxWithParams([]byte("tx2"), ".", 2, 512, 42, 42))
+	list.AddTx(createTxWithParams([]byte("tx3"), ".", 3, 256, 42, 42))
+	_, evicted := list.AddTx(createTxWithParams([]byte("tx5"), ".", 4, 256, 42, 42))
+	require.ElementsMatch(t, []string{"tx1", "tx2", "tx3"}, list.getTxHashesAsStrings())
+	require.ElementsMatch(t, []string{"tx5"}, hashesAsStrings(evicted))
+
+	_, evicted = list.AddTx(createTxWithParams([]byte("tx5--"), ".", 4, 128, 42, 42))
+	require.ElementsMatch(t, []string{"tx1", "tx2", "tx3", "tx5--"}, list.getTxHashesAsStrings())
+	require.ElementsMatch(t, []string{}, hashesAsStrings(evicted))
+
+	_, evicted = list.AddTx(createTxWithParams([]byte("tx4"), ".", 4, 128, 42, 42))
+	require.ElementsMatch(t, []string{"tx1", "tx2", "tx3", "tx4"}, list.getTxHashesAsStrings())
+	require.ElementsMatch(t, []string{"tx5--"}, hashesAsStrings(evicted))
+
+	// Gives priority to higher gas - undesirably to some extent, "tx4" is evicted
+	_, evicted = list.AddTx(createTxWithParams([]byte("tx3++"), ".", 4, 256, 42, 100))
+	require.ElementsMatch(t, []string{"tx1", "tx2", "tx3++", "tx3"}, list.getTxHashesAsStrings())
+	require.ElementsMatch(t, []string{"tx4"}, hashesAsStrings(evicted))
 }
 
 func TestListForSender_findTx(t *testing.T) {
-	list := newListToTest()
+	list := newUnconstrainedListToTest()
 
 	txA := createTx([]byte("A"), ".", 41)
 	txANewer := createTx([]byte("ANewer"), ".", 41)
@@ -74,7 +118,7 @@ func TestListForSender_findTx(t *testing.T) {
 }
 
 func TestListForSender_findTx_CoverNonceComparisonOptimization(t *testing.T) {
-	list := newListToTest()
+	list := newUnconstrainedListToTest()
 	list.AddTx(createTx([]byte("A"), ".", 42))
 
 	// Find one with a lower nonce, not added to cache
@@ -83,7 +127,7 @@ func TestListForSender_findTx_CoverNonceComparisonOptimization(t *testing.T) {
 }
 
 func TestListForSender_RemoveTransaction(t *testing.T) {
-	list := newListToTest()
+	list := newUnconstrainedListToTest()
 	tx := createTx([]byte("a"), ".", 1)
 
 	list.AddTx(tx)
@@ -94,7 +138,7 @@ func TestListForSender_RemoveTransaction(t *testing.T) {
 }
 
 func TestListForSender_RemoveTransaction_NoPanicWhenTxMissing(t *testing.T) {
-	list := newListToTest()
+	list := newUnconstrainedListToTest()
 	tx := createTx([]byte(""), ".", 1)
 
 	list.RemoveTx(tx)
@@ -102,7 +146,7 @@ func TestListForSender_RemoveTransaction_NoPanicWhenTxMissing(t *testing.T) {
 }
 
 func TestListForSender_SelectBatchTo(t *testing.T) {
-	list := newListToTest()
+	list := newUnconstrainedListToTest()
 
 	for index := 0; index < 100; index++ {
 		list.AddTx(createTx([]byte{byte(index)}, ".", uint64(index)))
@@ -131,7 +175,7 @@ func TestListForSender_SelectBatchTo(t *testing.T) {
 }
 
 func TestListForSender_SelectBatchTo_NoPanicWhenCornerCases(t *testing.T) {
-	list := newListToTest()
+	list := newUnconstrainedListToTest()
 
 	for index := 0; index < 100; index++ {
 		list.AddTx(createTx([]byte{byte(index)}, ".", uint64(index)))
@@ -149,7 +193,7 @@ func TestListForSender_SelectBatchTo_NoPanicWhenCornerCases(t *testing.T) {
 }
 
 func TestListForSender_SelectBatchTo_WhenInitialGap(t *testing.T) {
-	list := newListToTest()
+	list := newUnconstrainedListToTest()
 
 	list.notifyAccountNonce(1)
 
@@ -180,7 +224,7 @@ func TestListForSender_SelectBatchTo_WhenInitialGap(t *testing.T) {
 }
 
 func TestListForSender_SelectBatchTo_WhenGracePeriodWithGapResolve(t *testing.T) {
-	list := newListToTest()
+	list := newUnconstrainedListToTest()
 
 	list.notifyAccountNonce(1)
 
@@ -213,7 +257,7 @@ func TestListForSender_SelectBatchTo_WhenGracePeriodWithGapResolve(t *testing.T)
 }
 
 func TestListForSender_SelectBatchTo_WhenGracePeriodWithNoGapResolve(t *testing.T) {
-	list := newListToTest()
+	list := newUnconstrainedListToTest()
 
 	list.notifyAccountNonce(1)
 
@@ -245,7 +289,7 @@ func TestListForSender_SelectBatchTo_WhenGracePeriodWithNoGapResolve(t *testing.
 }
 
 func TestListForSender_NotifyAccountNonce(t *testing.T) {
-	list := newListToTest()
+	list := newUnconstrainedListToTest()
 
 	require.Equal(t, uint64(0), list.accountNonce.Get())
 	require.False(t, list.accountNonceKnown.IsSet())
@@ -257,7 +301,7 @@ func TestListForSender_NotifyAccountNonce(t *testing.T) {
 }
 
 func TestListForSender_hasInitialGap(t *testing.T) {
-	list := newListToTest()
+	list := newUnconstrainedListToTest()
 	list.notifyAccountNonce(42)
 
 	// No transaction, no gap
@@ -271,7 +315,7 @@ func TestListForSender_hasInitialGap(t *testing.T) {
 }
 
 func TestListForSender_getTxHashes(t *testing.T) {
-	list := newListToTest()
+	list := newUnconstrainedListToTest()
 	require.Len(t, list.getTxHashes(), 0)
 
 	list.AddTx(createTx([]byte("A"), ".", 1))
@@ -283,7 +327,7 @@ func TestListForSender_getTxHashes(t *testing.T) {
 }
 
 func TestListForSender_DetectRaceConditions(t *testing.T) {
-	list := newListToTest()
+	list := newUnconstrainedListToTest()
 
 	go func() {
 		// These are called concurrently with addition: during eviction, during removal etc.
@@ -296,10 +340,18 @@ func TestListForSender_DetectRaceConditions(t *testing.T) {
 	}()
 }
 
-func newListToTest() *txListForSender {
+func newUnconstrainedListToTest() *txListForSender {
 	return newTxListForSender(".", &CacheConfig{
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountPerSenderThreshold:    math.MaxUint32,
+		MinGasPriceMicroErd:        100,
+	}, func(value *txListForSender) {})
+}
+
+func newListToTest(numBytesThreshold uint32, countThreshold uint32) *txListForSender {
+	return newTxListForSender(".", &CacheConfig{
+		NumBytesPerSenderThreshold: numBytesThreshold,
+		CountPerSenderThreshold:    countThreshold,
 		MinGasPriceMicroErd:        100,
 	}, func(value *txListForSender) {})
 }

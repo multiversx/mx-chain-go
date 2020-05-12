@@ -62,14 +62,14 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, txHas
 	}
 
 	listForSender.onAddedTransaction(tx)
-	evicted := listForSender.applyLimit()
+	evicted := listForSender.applySizeConstraints()
 	listForSender.triggerScoreChange()
 
 	return true, evicted
 }
 
 // This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) applyLimit() txHashes {
+func (listForSender *txListForSender) applySizeConstraints() txHashes {
 	evictedTxHashes := make(txHashes, 0)
 
 	for element := listForSender.items.Back(); element != nil; element = element.Prev() {

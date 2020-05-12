@@ -53,6 +53,21 @@ func (cache *TxCache) isSenderSweepable(sender string) bool {
 	return false
 }
 
+func (listForSender *txListForSender) getTxHashesAsStrings() []string {
+	hashes := listForSender.getTxHashes()
+	return hashesAsStrings(hashes)
+}
+
+func hashesAsStrings(hashes txHashes) []string {
+	result := make([]string, len(hashes))
+
+	for i := 0; i < len(hashes); i++ {
+		result[i] = string(hashes[i])
+	}
+
+	return result
+}
+
 func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nTransactionsPerSender int) {
 	for senderTag := 0; senderTag < nSenders; senderTag++ {
 		sender := createFakeSenderAddress(senderTag)
