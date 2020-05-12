@@ -58,4 +58,5 @@ type CoreComponentsHandler interface {
 	StatusHandler() core.AppStatusHandler
 	SetStatusHandler(statusHandler core.AppStatusHandler) error
 	ChainID() []byte
+	IsInterfaceNil() bool
 }
