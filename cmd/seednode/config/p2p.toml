@@ -33,7 +33,7 @@
     Enabled = true
 
     #RefreshIntervalInSec represents the time in seconds between querying for new peers
-    RefreshIntervalInSec = 2
+    RefreshIntervalInSec = 10
 
     #RandezVous represents the meeting point that this node will advertize itself
     #To connect to other nodes, those nodes should have the same RandezVous string

@@ -64,8 +64,9 @@ func TestNewPeerDiscoverer_PrioBitsSharderShouldWork(t *testing.T) {
 
 	p2pConfig := config.P2PConfig{
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled:              true,
-			RefreshIntervalInSec: 1,
+			Enabled:                          true,
+			RefreshIntervalInSec:             1,
+			RoutingTableRefreshIntervalInSec: 300,
 		},
 		Sharding: config.ShardingConfig{
 			Type: p2p.PrioBitsSharder,
@@ -90,8 +91,9 @@ func TestNewPeerDiscoverer_ListsSharderShouldWork(t *testing.T) {
 
 	p2pConfig := config.P2PConfig{
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
-			Enabled:              true,
-			RefreshIntervalInSec: 1,
+			Enabled:                          true,
+			RefreshIntervalInSec:             1,
+			RoutingTableRefreshIntervalInSec: 300,
 		},
 		Sharding: config.ShardingConfig{
 			Type: p2p.ListsSharder,

@@ -14,13 +14,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var randezVous = "/erd/kad/1.0.0"
+
 func createDefaultConfig() config.P2PConfig {
 	return config.P2PConfig{
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
 			RefreshIntervalInSec:             1,
 			RoutingTableRefreshIntervalInSec: 1,
-			RandezVous:                       "/erd/kad/0.0.0",
+			RandezVous:                       "/erd/kad/1.0.0",
 			InitialPeerList:                  nil,
 			BucketSize:                       100,
 		},
