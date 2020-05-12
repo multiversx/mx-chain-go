@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -128,8 +127,8 @@ type baseDataInStorage struct {
 	shardId         uint32
 	numberOfShards  uint32
 	lastRound       int64
-	lastEpoch       uint32
 	epochStartRound uint64
+	lastEpoch       uint32
 	storageExists   bool
 }
 
@@ -311,23 +310,6 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 	e.epochStartMeta, err = e.epochStartMetaBlockSyncer.SyncEpochStartMeta(timeToWait)
 	if err != nil {
-		// node should try to start from what he has in DB if not epoch start metablock is received in time
-		if errors.Is(err, epochStart.ErrTimeoutWaitingForMetaBlock) {
-			if !e.baseData.storageExists {
-				// genesis data
-				e.baseData.lastEpoch = 0
-				e.baseData.shardId = e.genesisShardCoordinator.SelfId()
-				e.baseData.numberOfShards = e.genesisShardCoordinator.NumberOfShards()
-			}
-
-			parameters := Parameters{
-				Epoch:       e.baseData.lastEpoch,
-				SelfShardId: e.baseData.shardId,
-				NumOfShards: e.baseData.numberOfShards,
-			}
-			return parameters, nil
-		}
-
 		return Parameters{}, err
 	}
 	log.Debug("start in epoch bootstrap: got epoch start meta header", "epoch", e.epochStartMeta.Epoch, "nonce", e.epochStartMeta.Nonce)
@@ -370,21 +352,22 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		RequestHandler:    e.requestHandler,
-		Messenger:         e.messenger,
-		Marshalizer:       e.marshalizer,
-		TxSignMarshalizer: e.txSignMarshalizer,
-		ShardCoordinator:  e.shardCoordinator,
-		Hasher:            e.hasher,
-		ChainID:           []byte(e.genesisNodesConfig.GetChainId()),
-		EconomicsData:     e.economicsData,
-		KeyGen:            e.keyGen,
-		BlockKeyGen:       e.blockKeyGen,
-		Signer:            e.singleSigner,
-		BlockSigner:       e.blockSingleSigner,
-		WhitelistHandler:  e.whiteListHandler,
-		AddressPubkeyConv: e.addressPubkeyConverter,
-		NonceConverter:    e.uint64Converter,
+		RequestHandler:     e.requestHandler,
+		Messenger:          e.messenger,
+		Marshalizer:        e.marshalizer,
+		TxSignMarshalizer:  e.txSignMarshalizer,
+		ShardCoordinator:   e.shardCoordinator,
+		Hasher:             e.hasher,
+		ChainID:            []byte(e.genesisNodesConfig.GetChainId()),
+		EconomicsData:      e.economicsData,
+		KeyGen:             e.keyGen,
+		BlockKeyGen:        e.blockKeyGen,
+		Signer:             e.singleSigner,
+		BlockSigner:        e.blockSingleSigner,
+		WhitelistHandler:   e.whiteListHandler,
+		AddressPubkeyConv:  e.addressPubkeyConverter,
+		NonceConverter:     e.uint64Converter,
+		StartInEpochConfig: e.generalConfig.EpochStartConfig,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {

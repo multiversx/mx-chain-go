@@ -53,7 +53,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, process.ErrNilTransactionPool
 	}
 
-	sftVersionLength := core.MinInt(core.MaxSoftwareVersionLength, len(arguments.Version))
 	genesisHdr := arguments.BlockChain.GetGenesisHeader()
 	base := &baseProcessor{
 		accountsDB:             arguments.AccountsDB,
@@ -79,7 +78,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		blockChain:             arguments.BlockChain,
 		feeHandler:             arguments.FeeHandler,
 		genesisNonce:           genesisHdr.GetNonce(),
-		version:                arguments.Version[:sftVersionLength],
+		version:                core.TrimSoftwareVersion(arguments.Version),
 	}
 
 	sp := shardProcessor{
@@ -992,8 +991,6 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
 			accounts.SnapshotState(rootHash)
 		}
 	}
-
-	return
 }
 
 func (sp *shardProcessor) checkEpochCorrectnessCrossChain() error {

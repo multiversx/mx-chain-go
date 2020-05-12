@@ -171,7 +171,7 @@
         MaxOpenFiles = 10
 
 [EvictionWaitingList]
-    Size = 1000
+    Size = 10000
     [EvictionWaitingList.DB]
         FilePath = "EvictionWaitingList"
         Type = "LvlDBSerial"
@@ -340,7 +340,7 @@
 
 # The marshalizer used in transaction signing
 [TxSignMarshalizer]
-   Type = "json"
+   Type = "tx-json"
 
 # TODO: change this config to real numbers before merging to development
 [EpochStartConfig]
@@ -363,12 +363,11 @@
 # Heartbeat, if enabled, will output a heartbeat signal once x seconds,
 # where x in [MinTimeToWaitBetweenBroadcastsInSec, MaxTimeToWaitBetweenBroadcastsInSec)
 [Heartbeat]
-   Enabled = true
    MinTimeToWaitBetweenBroadcastsInSec  = 20
    MaxTimeToWaitBetweenBroadcastsInSec  = 25
-   HbmiRefreshIntervalInSec             = 60
+   HeartbeatRefreshIntervalInSec        = 60
    HideInactiveValidatorIntervalInSec   = 3600
-   DurationInSecToConsiderUnresponsive  = 60
+   DurationToConsiderUnresponsiveInSec  = 60
    [Heartbeat.HeartbeatStorage]
        [Heartbeat.HeartbeatStorage.Cache]
            Size = 1000
@@ -438,6 +437,10 @@
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
+
+[StartInEpochConfig]
+    MinNumConnectedPeersToStart       = 2
+	MinNumOfPeersToConsiderBlockValid = 2
 
 [Debug]
     [Debug.InterceptorResolver]

@@ -74,7 +74,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		DevFeesInEpoch:         big.NewInt(0),
 		PubKeysBitmap:          []byte{1},
 		ChainID:                []byte(arg.ChainID),
-		SoftwareVersion:        []byte(arg.Version),
+		SoftwareVersion:        []byte(""),
 		TimeStamp:              arg.GenesisTime,
 	}
 	header.EpochStart.Economics = block.Economics{
@@ -123,7 +123,6 @@ func createMetaGenesisAfterHardFork(
 
 	hdrHandler, bodyHandler, err := metaBlockCreator.CreateNewBlock(
 		arg.ChainID,
-		arg.Version,
 		arg.HardForkConfig.StartRound,
 		arg.HardForkConfig.StartNonce,
 		arg.HardForkConfig.StartEpoch,

@@ -359,12 +359,12 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
-	acntSrc, acntDst := createAccounts(tx)
+	acntSrc, _ := createAccounts(tx)
 
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil)
 	require.Equal(t, process.ErrNilSCDestAccount, err)
 
-	acntSrc, acntDst = createAccounts(tx)
+	acntSrc, acntDst := createAccounts(tx)
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.Nil(t, err)
 

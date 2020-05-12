@@ -163,7 +163,7 @@ func (m *MetaBlock) CheckChainID(reference []byte) error {
 
 // CheckSoftwareVersion returns nil if the software version has the correct length
 func (m *MetaBlock) CheckSoftwareVersion() error {
-	if len(m.SoftwareVersion) == 0 && len(m.SoftwareVersion) > core.MaxSoftwareVersionLength {
+	if len(m.SoftwareVersion) == 0 || len(m.SoftwareVersion) > core.MaxSoftwareVersionLengthInBytes {
 		return data.ErrInvalidSoftwareVersion
 	}
 	return nil
