@@ -107,9 +107,8 @@ func (ckdd *ContinuousKadDhtDiscoverer) UpdateRandezVous(s string) error {
 
 func (ckdd *ContinuousKadDhtDiscoverer) protocols() []protocol.ID {
 	return []protocol.ID{
-		protocol.ID(fmt.Sprintf("%s/erd_%s", opts.ProtocolDHT, ckdd.randezVous)),
-		protocol.ID(fmt.Sprintf("%s/erd", opts.ProtocolDHT)),
-		opts.ProtocolDHT,
+		protocol.ID(ckdd.randezVous),
+		opts.ProtocolDHT, //TODO remove this after we have a working seeder
 	}
 }
 
