@@ -20,22 +20,22 @@ import (
 const durationBetweenChecks = 200 * time.Millisecond
 const durationBetweenReRequests = 1 * time.Second
 const durationBetweenCheckingNumConnectedPeers = 500 * time.Millisecond
-const minNumConnectedPeers = 3
-const minNumOfPeersToConsiderBlockValid = 2
 
 var _ process.InterceptorProcessor = (*epochStartMetaBlockProcessor)(nil)
 
 type epochStartMetaBlockProcessor struct {
-	messenger              Messenger
-	requestHandler         RequestHandler
-	marshalizer            marshal.Marshalizer
-	hasher                 hashing.Hasher
-	mutReceivedMetaBlocks  sync.RWMutex
-	mapReceivedMetaBlocks  map[string]*block.MetaBlock
-	mapMetaBlocksFromPeers map[string][]p2p.PeerID
-	chanConsensusReached   chan bool
-	metaBlock              *block.MetaBlock
-	peerCountTarget        int
+	messenger                         Messenger
+	requestHandler                    RequestHandler
+	marshalizer                       marshal.Marshalizer
+	hasher                            hashing.Hasher
+	mutReceivedMetaBlocks             sync.RWMutex
+	mapReceivedMetaBlocks             map[string]*block.MetaBlock
+	mapMetaBlocksFromPeers            map[string][]p2p.PeerID
+	chanConsensusReached              chan bool
+	metaBlock                         *block.MetaBlock
+	peerCountTarget                   int
+	minNumConnectedPeers              int
+	minNumOfPeersToConsiderBlockValid int
 }
 
 // NewEpochStartMetaBlockProcessor will return a interceptor processor for epoch start meta block
@@ -45,6 +45,8 @@ func NewEpochStartMetaBlockProcessor(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	consensusPercentage uint8,
+	minNumConnectedPeers int,
+	minNumOfPeersToConsiderBlockValid int,
 ) (*epochStartMetaBlockProcessor, error) {
 	if check.IfNil(messenger) {
 		return nil, epochStart.ErrNilMessenger
@@ -61,16 +63,24 @@ func NewEpochStartMetaBlockProcessor(
 	if !(consensusPercentage > 0 && consensusPercentage <= 100) {
 		return nil, epochStart.ErrInvalidConsensusThreshold
 	}
+	if minNumConnectedPeers < 1 {
+		return nil, epochStart.ErrNotEnoughNumConnectedPeers
+	}
+	if minNumOfPeersToConsiderBlockValid < 1 {
+		return nil, epochStart.ErrNotEnoughNumOfPeersToConsiderBlockValid
+	}
 
 	processor := &epochStartMetaBlockProcessor{
-		messenger:              messenger,
-		requestHandler:         handler,
-		marshalizer:            marshalizer,
-		hasher:                 hasher,
-		mutReceivedMetaBlocks:  sync.RWMutex{},
-		mapReceivedMetaBlocks:  make(map[string]*block.MetaBlock),
-		mapMetaBlocksFromPeers: make(map[string][]p2p.PeerID),
-		chanConsensusReached:   make(chan bool, 1),
+		messenger:                         messenger,
+		requestHandler:                    handler,
+		marshalizer:                       marshalizer,
+		hasher:                            hasher,
+		minNumConnectedPeers:              minNumConnectedPeers,
+		minNumOfPeersToConsiderBlockValid: minNumOfPeersToConsiderBlockValid,
+		mutReceivedMetaBlocks:             sync.RWMutex{},
+		mapReceivedMetaBlocks:             make(map[string]*block.MetaBlock),
+		mapMetaBlocksFromPeers:            make(map[string][]p2p.PeerID),
+		chanConsensusReached:              make(chan bool, 1),
 	}
 
 	processor.waitForEnoughNumConnectedPeers(messenger)
@@ -90,12 +100,12 @@ func (e *epochStartMetaBlockProcessor) Validate(_ process.InterceptedData, _ p2p
 func (e *epochStartMetaBlockProcessor) waitForEnoughNumConnectedPeers(messenger Messenger) {
 	for {
 		numConnectedPeers := len(messenger.ConnectedPeers())
-		if numConnectedPeers >= minNumConnectedPeers {
+		if numConnectedPeers >= e.minNumConnectedPeers {
 			break
 		}
 
 		log.Debug("epoch bootstrapper: not enough connected peers",
-			"wanted", minNumConnectedPeers,
+			"wanted", e.minNumConnectedPeers,
 			"actual", numConnectedPeers)
 		time.Sleep(durationBetweenCheckingNumConnectedPeers)
 	}
@@ -197,7 +207,7 @@ func (e *epochStartMetaBlockProcessor) getMostReceivedMetaBlock() (*block.MetaBl
 	defer e.mutReceivedMetaBlocks.RUnlock()
 
 	var mostReceivedHash string
-	maxLength := minNumOfPeersToConsiderBlockValid - 1
+	maxLength := e.minNumOfPeersToConsiderBlockValid - 1
 	for hash, entry := range e.mapMetaBlocksFromPeers {
 		if len(entry) > maxLength {
 			maxLength = len(entry)
