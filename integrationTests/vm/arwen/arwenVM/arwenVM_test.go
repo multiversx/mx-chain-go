@@ -733,17 +733,18 @@ func TestAndCatchTrieError(t *testing.T) {
 			require.Nil(t, testContext.GetLatestError())
 
 			if index%5 == 0 {
-				err := testContext.Accounts.RevertToSnapshot(snapShot)
-				if err != nil {
-					log.Warn("revert to snapshot", "error", err.Error())
+				errRevert := testContext.Accounts.RevertToSnapshot(snapShot)
+				if errRevert != nil {
+					log.Warn("revert to snapshot", "error", errRevert.Error())
 				}
 			}
 		}
 
 		tx = vm.CreateTransferTokenTx(ownerNonce, erc20value, scAddress, ownerAddressBytes, accumulateAddress)
+		require.NotNil(t, tx)
 
-		newRootHash, err := testContext.Accounts.Commit()
-		require.Nil(t, err)
+		newRootHash, errNewRh := testContext.Accounts.Commit()
+		require.Nil(t, errNewRh)
 
 		for index, testAddress := range receiverAddresses {
 			if index%5 == 0 {
@@ -757,9 +758,9 @@ func TestAndCatchTrieError(t *testing.T) {
 			require.Nil(t, testContext.GetLatestError())
 
 			if index%5 == 0 {
-				err := testContext.Accounts.RevertToSnapshot(snapShot)
-				if err != nil {
-					log.Warn("revert to snapshot", "error", err.Error())
+				errRevert := testContext.Accounts.RevertToSnapshot(snapShot)
+				if errRevert != nil {
+					log.Warn("revert to snapshot", "error", errRevert.Error())
 				}
 			}
 		}

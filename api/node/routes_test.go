@@ -21,8 +21,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/debug"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -110,7 +110,7 @@ func TestHeartbeatstatus_FromFacadeErrors(t *testing.T) {
 
 	errExpected := errs.New("expected error")
 	facade := mock.Facade{
-		GetHeartbeatsHandler: func() ([]heartbeat.PubKeyHeartbeat, error) {
+		GetHeartbeatsHandler: func() ([]data.PubKeyHeartbeat, error) {
 			return nil, errExpected
 		},
 	}
@@ -129,17 +129,17 @@ func TestHeartbeatstatus_FromFacadeErrors(t *testing.T) {
 func TestHeartbeatstatus(t *testing.T) {
 	t.Parallel()
 
-	hbStatus := []heartbeat.PubKeyHeartbeat{
+	hbStatus := []data.PubKeyHeartbeat{
 		{
 			PublicKey:       "pk1",
 			TimeStamp:       time.Now(),
-			MaxInactiveTime: heartbeat.Duration{Duration: 0},
+			MaxInactiveTime: data.Duration{Duration: 0},
 			IsActive:        true,
 			ReceivedShardID: uint32(0),
 		},
 	}
 	facade := mock.Facade{
-		GetHeartbeatsHandler: func() (heartbeats []heartbeat.PubKeyHeartbeat, e error) {
+		GetHeartbeatsHandler: func() (heartbeats []data.PubKeyHeartbeat, e error) {
 			return hbStatus, nil
 		},
 	}

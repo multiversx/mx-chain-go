@@ -40,6 +40,8 @@ export NODE_DELAY=10
 export TX_SIGN_FORMAT="bech32"
 export BLOCK_SIGN_FORMAT="hex"
 
+export GENESIS_STAKE_TYPE="delegated" #'delegated' or 'direct' as in direct stake
+
 # Shard structure
 export SHARDCOUNT=2
 export SHARD_VALIDATORCOUNT=3
@@ -50,9 +52,6 @@ export SHARD_CONSENSUS_SIZE=3
 export META_VALIDATORCOUNT=3
 export META_OBSERVERCOUNT=1
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
-
-# Okay as defaults, change if needed.
-export MINT_VALUE="1000000000000000000000000000"
 
 # ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
 export ALWAYS_NEW_CHAINID=1

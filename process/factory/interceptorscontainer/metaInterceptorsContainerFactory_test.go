@@ -282,17 +282,6 @@ func TestNewMetaInterceptorsContainerFactory_EpochStartTriggerShouldErr(t *testi
 	assert.Equal(t, process.ErrNilEpochStartTrigger, err)
 }
 
-func TestNewMetaInterceptorsContainerFactory_NilNonceConverterShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsMeta()
-	args.NonceConverter = nil
-	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
-
-	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilUint64Converter, err)
-}
-
 func TestNewMetaInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
