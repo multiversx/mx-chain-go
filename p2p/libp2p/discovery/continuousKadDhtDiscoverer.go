@@ -106,13 +106,6 @@ func (ckdd *ContinuousKadDhtDiscoverer) UpdateRandezVous(s string) error {
 	return ckdd.startDHT()
 }
 
-func (ckdd *ContinuousKadDhtDiscoverer) protocols() []protocol.ID {
-	return []protocol.ID{
-		protocol.ID(ckdd.randezVous),
-		opts.ProtocolDHT, //TODO remove this after we have a working seeder
-	}
-}
-
 func (ckdd *ContinuousKadDhtDiscoverer) startDHT() error {
 	ctxrun, cancel := context.WithCancel(ckdd.context)
 	var err error
