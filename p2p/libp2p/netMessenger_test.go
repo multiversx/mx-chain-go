@@ -175,7 +175,7 @@ func TestNewNetworkMessenger_WithKadDiscovererPrioSharderInvalidPrioBitsShouldEr
 	arg.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
 		Enabled:                          true,
 		RefreshIntervalInSec:             10,
-		RandezVous:                       "",
+		RandezVous:                       "/erd/kad/1.0.0",
 		InitialPeerList:                  nil,
 		BucketSize:                       100,
 		RoutingTableRefreshIntervalInSec: 10,
@@ -197,7 +197,7 @@ func TestNewNetworkMessenger_WithKadDiscovererPrioSharderShouldWork(t *testing.T
 	arg.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
 		Enabled:                          true,
 		RefreshIntervalInSec:             10,
-		RandezVous:                       "",
+		RandezVous:                       "/erd/kad/1.0.0",
 		InitialPeerList:                  nil,
 		BucketSize:                       100,
 		RoutingTableRefreshIntervalInSec: 10,
@@ -224,7 +224,7 @@ func TestNewNetworkMessenger_WithKadDiscovererListsSharderInvalidTargetConnShoul
 	arg.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
 		Enabled:                          true,
 		RefreshIntervalInSec:             10,
-		RandezVous:                       "",
+		RandezVous:                       "/erd/kad/1.0.0",
 		InitialPeerList:                  nil,
 		BucketSize:                       100,
 		RoutingTableRefreshIntervalInSec: 10,
@@ -246,7 +246,7 @@ func TestNewNetworkMessenger_WithKadDiscovererListSharderShouldWork(t *testing.T
 	arg.P2pConfig.KadDhtPeerDiscovery = config.KadDhtPeerDiscoveryConfig{
 		Enabled:                          true,
 		RefreshIntervalInSec:             10,
-		RandezVous:                       "",
+		RandezVous:                       "/erd/kad/1.0.0",
 		InitialPeerList:                  nil,
 		BucketSize:                       100,
 		RoutingTableRefreshIntervalInSec: 10,
