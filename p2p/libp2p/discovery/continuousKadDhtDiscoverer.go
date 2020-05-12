@@ -189,6 +189,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) bootstrap(ctx context.Context) {
 
 		shouldReconnect := kadDht != nil && kbucket.ErrLookupFailure == kadDht.BootstrapOnce(ctx, cfg)
 		if shouldReconnect {
+			log.Debug("peer disconnected, retrying reconnection to seeder")
 			<-ckdd.ReconnectToNetwork()
 		}
 
