@@ -34,9 +34,10 @@ export NODE_NICENESS=10
 
 # Delays after running executables.
 export SEEDNODE_DELAY=5
-export NODE_DELAY=10
+export GENESIS_DELAY=30
+export NODE_DELAY=$GENESIS_DELAY
 
-#types of keys to generate
+# Types of keys to generate
 export TX_SIGN_FORMAT="bech32"
 export BLOCK_SIGN_FORMAT="hex"
 
