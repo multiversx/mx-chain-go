@@ -76,7 +76,11 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		cache.monitorTxAddition()
 	}
 
-	cache.txByHash.RemoveTxsBulk(evicted)
+	if len(evicted) > 0 {
+		log.Trace("TxCache.AddTx()", "len(evicted)", len(evicted))
+		cache.txByHash.RemoveTxsBulk(evicted)
+	}
+
 	return
 }
 
