@@ -189,7 +189,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) bootstrap(ctx context.Context) {
 
 		shouldReconnect := kadDht != nil && kbucket.ErrLookupFailure == kadDht.BootstrapOnce(ctx, cfg)
 		if shouldReconnect {
-			log.Debug("peer disconnected, retrying reconnection to seeder")
+			log.Debug("peer disconnected, retrying connection to seeder(s)")
 			<-ckdd.ReconnectToNetwork()
 		}
 
@@ -227,9 +227,13 @@ func (ckdd *ContinuousKadDhtDiscoverer) tryConnectToSeeder(
 	startIndex := 0
 
 	for {
+		initialPeer := initialPeersList[startIndex]
 		err := ckdd.host.ConnectToPeer(ckdd.context, initialPeersList[startIndex])
 		if err != nil {
-			//could not connect, wait and try next one
+			log.Debug("error connecting to seeder",
+				"seeder", initialPeer,
+				"error", err.Error(),
+			)
 			startIndex++
 			startIndex = startIndex % len(initialPeersList)
 			select {
