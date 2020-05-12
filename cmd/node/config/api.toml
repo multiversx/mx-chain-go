@@ -85,7 +85,7 @@
          { Name = "/send-multiple", Open = true },
 
          # /transaction/cost will receive a single transaction in JSON format and will return the estimated cost of it
-         { Name = "/cost", Open = false },
+         { Name = "/cost", Open = true },
 
          # /transaction/:txhash will return the transaction in JSON format based on its hash
          { Name = "/:txhash", Open = true }
