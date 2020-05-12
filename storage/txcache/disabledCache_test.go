@@ -32,6 +32,33 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 	require.NotPanics(t, func() { cache.ForEachTransaction(func(_ []byte, _ *WrappedTransaction) {}) })
 
 	cache.Clear()
+
 	evicted := cache.Put(nil, nil)
 	require.False(t, evicted)
+
+	value, ok := cache.Get([]byte{})
+	require.Nil(t, value)
+	require.False(t, ok)
+
+	value, ok = cache.Peek([]byte{})
+	require.Nil(t, value)
+	require.False(t, ok)
+
+	has := cache.Has([]byte{})
+	require.False(t, has)
+
+	has, evicted = cache.HasOrAdd([]byte{}, nil)
+	require.False(t, has)
+	require.False(t, evicted)
+
+	cache.Remove([]byte{})
+	cache.RemoveOldest()
+
+	keys := cache.Keys()
+	require.Equal(t, 0, len(keys))
+
+	maxSize := cache.MaxSize()
+	require.Equal(t, 0, maxSize)
+
+	require.NotPanics(t, func() { cache.RegisterHandler(func(_ []byte, _ interface{}) {}) })
 }

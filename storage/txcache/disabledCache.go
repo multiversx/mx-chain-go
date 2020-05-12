@@ -69,10 +69,6 @@ func (cache *DisabledCache) Put(key []byte, value interface{}) (evicted bool) {
 
 // Get -
 func (cache *DisabledCache) Get(key []byte) (value interface{}, ok bool) {
-	tx, ok := cache.GetByTxHash(key)
-	if ok {
-		return tx.Tx, true
-	}
 	return nil, false
 }
 
