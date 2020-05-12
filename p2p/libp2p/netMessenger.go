@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -20,13 +20,14 @@ import (
 	randFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/rand/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/btcsuite/btcd/btcec"
+	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/libp2p/go-libp2p-pubsub"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
@@ -45,6 +46,7 @@ const ttlPeersOnTopic = time.Second * 10
 const pubsubTimeCacheDuration = 10 * time.Minute
 const broadcastGoRoutines = 1000
 const secondsBetweenPeerPrints = 20
+const secondsBetweenExternalLoggersCheck = 20
 const defaultThresholdMinConnectedPeers = 3
 
 //TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
@@ -55,13 +57,21 @@ var maxSendBuffSize = (1 << 20) - messageHeader
 var log = logger.GetOrCreate("p2p/libp2p")
 
 var _ p2p.Messenger = (*networkMessenger)(nil)
+var externalPackages = []string{"dht", "nat", "basichost", "pubsub"}
+
+func init() {
+	for _, external := range externalPackages {
+		_ = logger.GetOrCreate(fmt.Sprintf("p2p/libp2p/external/%s", external))
+	}
+}
 
 //TODO refactor this struct to have be a wrapper (with logic) over a glue code
 type networkMessenger struct {
-	ctx     context.Context
-	p2pHost ConnectableHost
-	pb      *pubsub.PubSub
-	ds      p2p.DirectSender
+	ctx        context.Context
+	cancelFunc context.CancelFunc
+	p2pHost    ConnectableHost
+	pb         *pubsub.PubSub
+	ds         p2p.DirectSender
 	//TODO refactor this (connMonitor & connMonitorWrapper)
 	connMonitor         ConnectionMonitor
 	connMonitorWrapper  p2p.ConnectionMonitorWrapper
@@ -80,18 +90,12 @@ type networkMessenger struct {
 
 // ArgsNetworkMessenger defines the options used to create a p2p wrapper
 type ArgsNetworkMessenger struct {
-	Context       context.Context
 	ListenAddress string
 	P2pConfig     config.P2PConfig
 }
 
 // NewNetworkMessenger creates a libP2P messenger by opening a port on the current machine
 func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
-	err := checkParameters(args)
-	if err != nil {
-		return nil, err
-	}
-
 	p2pPrivKey, err := createP2PPrivKey(args.P2pConfig.Node.Seed)
 	if err != nil {
 		return nil, err
@@ -101,17 +105,25 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 	opts := []libp2p.Option{
 		libp2p.ListenAddrStrings(address),
 		libp2p.Identity(p2pPrivKey),
+		libp2p.DefaultMuxers,
+		libp2p.DefaultSecurity,
+		libp2p.DefaultTransports,
+		//we need the disable relay option in order to save the node's bandwidth as much as possible
 		libp2p.DisableRelay(),
 		libp2p.EnableNATService(),
 		libp2p.NATPortMap(),
 	}
 
-	h, err := libp2p.New(args.Context, opts...)
+	setupExternalP2PLoggers()
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
+	h, err := libp2p.New(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	p2pNode, err := createMessenger(args, h, true)
+	p2pNode, err := createMessenger(args, h, ctx, cancelFunc, true)
 	if err != nil {
 		log.LogIfError(h.Close())
 		return nil, err
@@ -120,12 +132,15 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 	return p2pNode, nil
 }
 
-func checkParameters(args ArgsNetworkMessenger) error {
-	if args.Context == nil {
-		return p2p.ErrNilContext
-	}
+func setupExternalP2PLoggers() {
+	for _, external := range externalPackages {
+		logLevel := logger.GetLoggerLogLevel(fmt.Sprintf("p2p/libp2p/external/%s", external))
+		if logLevel > logger.LogTrace {
+			continue
+		}
 
-	return nil
+		_ = logging.SetLogLevel(external, "DEBUG")
+	}
 }
 
 func createP2PPrivKey(seed string) (*libp2pCrypto.Secp256k1PrivateKey, error) {
@@ -142,11 +157,14 @@ func createP2PPrivKey(seed string) (*libp2pCrypto.Secp256k1PrivateKey, error) {
 func createMessenger(
 	args ArgsNetworkMessenger,
 	p2pHost host.Host,
+	ctx context.Context,
+	cancelFunc context.CancelFunc,
 	withMessageSigning bool,
 ) (*networkMessenger, error) {
 	var err error
 	netMes := networkMessenger{
-		ctx:               args.Context,
+		ctx:               ctx,
+		cancelFunc:        cancelFunc,
 		p2pHost:           NewConnectableHost(p2pHost),
 		processors:        make(map[string]p2p.MessageProcessor),
 		topics:            make(map[string]*pubsub.Topic),
@@ -176,7 +194,7 @@ func createMessenger(
 
 	netMes.createConnectionsMetric()
 
-	netMes.ds, err = NewDirectSender(args.Context, p2pHost, netMes.directMessageHandler)
+	netMes.ds, err = NewDirectSender(ctx, p2pHost, netMes.directMessageHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -316,11 +334,16 @@ func (netMes *networkMessenger) printLogs() {
 	log.Info("listening on addresses", addresses...)
 
 	go netMes.printLogsStats()
+	go netMes.checkExternalLoggers()
 }
 
 func (netMes *networkMessenger) printLogsStats() {
 	for {
-		time.Sleep(secondsBetweenPeerPrints * time.Second)
+		select {
+		case <-netMes.ctx.Done():
+			return
+		case <-time.After(secondsBetweenPeerPrints * time.Second):
+		}
 
 		conns := netMes.connectionsMetric.ResetNumConnections()
 		disconns := netMes.connectionsMetric.ResetNumDisconnections()
@@ -346,6 +369,18 @@ func (netMes *networkMessenger) printLogsStats() {
 	}
 }
 
+func (netMes *networkMessenger) checkExternalLoggers() {
+	for {
+		select {
+		case <-netMes.ctx.Done():
+			return
+		case <-time.After(secondsBetweenExternalLoggersCheck * time.Second):
+		}
+
+		setupExternalP2PLoggers()
+	}
+}
+
 // ApplyOptions can set up different configurable options of a networkMessenger instance
 func (netMes *networkMessenger) ApplyOptions(opts ...Option) error {
 	for _, opt := range opts {
@@ -359,6 +394,11 @@ func (netMes *networkMessenger) ApplyOptions(opts ...Option) error {
 
 // Close closes the host, connections and streams
 func (netMes *networkMessenger) Close() error {
+	netMes.cancelFunc()
+
+	err := netMes.outgoingPLB.Close()
+	log.LogIfError(err)
+
 	return netMes.p2pHost.Close()
 }
 
@@ -498,7 +538,10 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 	//just a dummy func to consume messages received by the newly created topic
 	go func() {
 		for {
-			_, _ = subscrRequest.Next(netMes.ctx)
+			_, err = subscrRequest.Next(netMes.ctx)
+			if err != nil {
+				return
+			}
 		}
 	}()
 
@@ -633,16 +676,10 @@ func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
 func (netMes *networkMessenger) UnregisterMessageProcessor(topic string) error {
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
-	_, found := netMes.topics[topic]
-	if !found {
-		return p2p.ErrNilTopic
-	}
+
 	validator := netMes.processors[topic]
 	if check.IfNil(validator) {
-		return fmt.Errorf("%w, operation UnregisterMessageProcessor, topic %s",
-			p2p.ErrTopicValidatorOperationNotSupported,
-			topic,
-		)
+		return nil
 	}
 
 	err := netMes.pb.UnregisterTopicValidator(topic)

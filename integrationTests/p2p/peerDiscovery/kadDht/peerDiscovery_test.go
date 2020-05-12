@@ -1,7 +1,6 @@
 package kadDht
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -22,15 +21,14 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 	numOfPeers := 20
 
 	//Step 1. Create advertiser
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	//Step 2. Create numOfPeers instances of messenger type and call bootstrap
 	peers := make([]p2p.Messenger, numOfPeers)
 
 	for i := 0; i < numOfPeers; i++ {
-		peers[i] = integrationTests.CreateMessengerWithKadDht(context.Background(),
-			integrationTests.GetConnectableAddress(advertiser))
+		peers[i] = integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertiser))
 
 		_ = peers[i].Bootstrap()
 	}
@@ -78,12 +76,11 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 
 	//Step 1. Create 3 advertisers and connect them together
 	advertisers := make([]p2p.Messenger, numOfAdvertisers)
-	advertisers[0] = integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertisers[0] = integrationTests.CreateMessengerWithKadDht("")
 	_ = advertisers[0].Bootstrap()
 
 	for idx := 1; idx < numOfAdvertisers; idx++ {
-		advertisers[idx] = integrationTests.CreateMessengerWithKadDht(context.Background(),
-			integrationTests.GetConnectableAddress(advertisers[0]))
+		advertisers[idx] = integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertisers[0]))
 		_ = advertisers[idx].Bootstrap()
 	}
 
@@ -91,8 +88,7 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 	peers := make([]p2p.Messenger, numOfPeers)
 
 	for i := 0; i < numOfPeers; i++ {
-		peers[i] = integrationTests.CreateMessengerWithKadDht(context.Background(),
-			integrationTests.GetConnectableAddress(advertisers[i%numOfAdvertisers]))
+		peers[i] = integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertisers[i%numOfAdvertisers]))
 		_ = peers[i].Bootstrap()
 	}
 
@@ -136,24 +132,21 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiserAndProtocolID(t *testing
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	randezVous1 := "/erd/kad/1.0.0"
 	randezVous2 := "/amony/kad/0.0.0"
 
 	peer1 := integrationTests.CreateMessengerWithKadDhtAndProtocolID(
-		context.Background(),
 		integrationTests.GetConnectableAddress(advertiser),
 		randezVous1,
 	)
 	peer2 := integrationTests.CreateMessengerWithKadDhtAndProtocolID(
-		context.Background(),
 		integrationTests.GetConnectableAddress(advertiser),
 		randezVous1,
 	)
 	peer3 := integrationTests.CreateMessengerWithKadDhtAndProtocolID(
-		context.Background(),
 		integrationTests.GetConnectableAddress(advertiser),
 		randezVous2,
 	)

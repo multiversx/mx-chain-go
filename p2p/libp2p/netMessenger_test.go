@@ -64,7 +64,6 @@ func getConnectableAddress(mes p2p.Messenger) string {
 
 func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 	return libp2p.ArgsNetworkMessenger{
-		Context:       context.Background(),
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{},
@@ -108,17 +107,6 @@ func containsPeerID(list []p2p.PeerID, searchFor p2p.PeerID) bool {
 
 //------- NewMemoryLibp2pMessenger
 
-func TestNewMemoryLibp2pMessenger_NilContextShouldErr(t *testing.T) {
-	netw := mocknet.New(context.Background())
-
-	args := createMockNetworkArgs()
-	args.Context = nil
-	mes, err := libp2p.NewMockMessenger(args, netw)
-
-	assert.Nil(t, mes)
-	assert.Equal(t, p2p.ErrNilContext, err)
-}
-
 func TestNewMemoryLibp2pMessenger_NilMockNetShouldErr(t *testing.T) {
 	args := createMockNetworkArgs()
 	mes, err := libp2p.NewMockMessenger(args, nil)
@@ -139,16 +127,6 @@ func TestNewMemoryLibp2pMessenger_OkValsWithoutDiscoveryShouldWork(t *testing.T)
 }
 
 //------- NewNetworkMessenger
-
-func TestNewNetworkMessenger_NilContextShouldErr(t *testing.T) {
-	arg := createMockNetworkArgs()
-	arg.Context = nil
-
-	mes, err := libp2p.NewNetworkMessenger(arg)
-
-	assert.Nil(t, mes)
-	assert.Equal(t, err, p2p.ErrNilContext)
-}
 
 func TestNewNetworkMessenger_WithDeactivatedKadDiscovererShouldWork(t *testing.T) {
 	//TODO remove skip when external library is concurrent safe
@@ -422,23 +400,13 @@ func TestLibp2pMessenger_RegisterTopicValidatorReregistrationShouldErr(t *testin
 	_ = mes.Close()
 }
 
-func TestLibp2pMessenger_UnegisterTopicValidatorOnInexistentTopicShouldErr(t *testing.T) {
-	mes := createMockMessenger()
-
-	err := mes.UnregisterMessageProcessor("test")
-
-	assert.Equal(t, p2p.ErrNilTopic, err)
-
-	_ = mes.Close()
-}
-
-func TestLibp2pMessenger_UnegisterTopicValidatorOnANotRegisteredTopicShouldErr(t *testing.T) {
+func TestLibp2pMessenger_UnegisterTopicValidatorOnANotRegisteredTopicShouldNotErr(t *testing.T) {
 	mes := createMockMessenger()
 
 	_ = mes.CreateTopic("test", false)
 	err := mes.UnregisterMessageProcessor("test")
 
-	assert.True(t, errors.Is(err, p2p.ErrTopicValidatorOperationNotSupported))
+	assert.Nil(t, err)
 
 	_ = mes.Close()
 }

@@ -1,6 +1,8 @@
 package libp2p
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
 )
@@ -12,10 +14,6 @@ func NewMockMessenger(
 	args ArgsNetworkMessenger,
 	mockNet mocknet.Mocknet,
 ) (*networkMessenger, error) {
-	err := checkParameters(args)
-	if err != nil {
-		return nil, err
-	}
 	if mockNet == nil {
 		return nil, p2p.ErrNilMockNet
 	}
@@ -25,7 +23,9 @@ func NewMockMessenger(
 		return nil, err
 	}
 
-	mes, err := createMessenger(args, h, false)
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
+	mes, err := createMessenger(args, h, ctx, cancelFunc, false)
 	if err != nil {
 		return nil, err
 	}
