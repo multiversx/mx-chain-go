@@ -1,8 +1,12 @@
 package factory
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
@@ -30,4 +34,28 @@ type P2PAntifloodHandler interface {
 	ResetForTopic(topic string)
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
 	IsInterfaceNil() bool
+}
+
+// Closer defines the Close behavior
+type Closer interface {
+	Close() error
+}
+
+// ComponentHandler defines the actions common to all component handlers
+type ComponentHandler interface {
+	Create() error
+	Close() error
+}
+
+// CoreComponentsHandler defines the core components handler actions
+type CoreComponentsHandler interface {
+	ComponentHandler
+	InternalMarshalizer() marshal.Marshalizer
+	TxMarshalizer() marshal.Marshalizer
+	VmMarshalizer() marshal.Marshalizer
+	Hasher() hashing.Hasher
+	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
+	StatusHandler() core.AppStatusHandler
+	SetStatusHandler(statusHandler core.AppStatusHandler) error
+	ChainID() []byte
 }

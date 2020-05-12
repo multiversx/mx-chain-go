@@ -38,7 +38,7 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) *CoreComponentsFac
 }
 
 // Create creates the core components
-func (ccf *CoreComponentsFactory) Create() (*CoreComponents, error) {
+func (ccf *CoreComponentsFactory) Create() (*coreComponents, error) {
 	hasher, err := factoryHasher.NewHasher(ccf.config.Hasher.Type)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrHasherCreation, err.Error())
@@ -61,7 +61,7 @@ func (ccf *CoreComponentsFactory) Create() (*CoreComponents, error) {
 
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
-	return &CoreComponents{
+	return &coreComponents{
 		Hasher:                   hasher,
 		InternalMarshalizer:      internalMarshalizer,
 		VmMarshalizer:            vmMarshalizer,
