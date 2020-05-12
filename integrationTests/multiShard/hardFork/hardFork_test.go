@@ -213,7 +213,7 @@ func hardForkImport(
 	importStorageConfigs []*config.StorageConfig,
 ) {
 	for id, node := range nodes {
-		gasSchedule := arwenConfig.MakeGasMap(1)
+		gasSchedule := arwenConfig.MakeGasMapForTests()
 		defaults.FillGasMapInternal(gasSchedule, 1)
 		log.Warn("started import process")
 

@@ -61,7 +61,7 @@ func createMockArgument() ArgsGenesisBlockCreator {
 		},
 	}
 
-	arg.GasMap = arwenConfig.MakeGasMap(1)
+	arg.GasMap = arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(arg.GasMap, 1)
 
 	ted := &economics.TestEconomicsData{

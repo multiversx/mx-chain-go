@@ -3,7 +3,7 @@ module github.com/ElrondNetwork/elrond-go
 go 1.13
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm v0.3.16
+	github.com/ElrondNetwork/arwen-wasm-vm v0.3.17
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-go-logger v1.0.3
 	github.com/ElrondNetwork/elrond-vm v0.0.25
@@ -47,3 +47,5 @@ require (
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
+
+replace github.com/ElrondNetwork/arwen-wasm-vm => ../arwen-wasm-vm
