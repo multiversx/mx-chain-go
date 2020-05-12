@@ -65,7 +65,7 @@ func (txMap *txByHashMap) RemoveTxsBulk(txHashes txHashes) uint32 {
 	}
 
 	newCount := uint32(txMap.counter.Get())
-	// TODO: Check this for overflow as well?
+	// TODO: Check this for overflow as well, then fix in EN-6299
 	numRemoved := oldCount - newCount
 	return numRemoved
 }

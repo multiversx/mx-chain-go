@@ -27,11 +27,11 @@ func (cache *TxCache) areInternalMapsConsistent() bool {
 	internalMapBySender := cache.txListBySender
 
 	senders := internalMapBySender.getSnapshotAscending()
-	numTransactionsByHash := len(internalMapByHash.keys())
-	numTransactionsBySender := 0
+	numTransactionsInMapByHash := len(internalMapByHash.keys())
+	numTransactionsInMapBySender := 0
 
 	for _, sender := range senders {
-		numTransactionsBySender += int(sender.countTx())
+		numTransactionsInMapBySender += int(sender.countTx())
 
 		for _, hash := range sender.getTxHashesAsStrings() {
 			_, ok := internalMapByHash.getTx(hash)
@@ -41,7 +41,7 @@ func (cache *TxCache) areInternalMapsConsistent() bool {
 		}
 	}
 
-	if numTransactionsBySender != numTransactionsByHash {
+	if numTransactionsInMapBySender != numTransactionsInMapByHash {
 		return false
 	}
 

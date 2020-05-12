@@ -22,7 +22,7 @@ func Test_NewTxCache(t *testing.T) {
 		MinGasPriceNanoErd:         100,
 	}
 
-	evictionConfig := CacheConfig{
+	withEvictionConfig := CacheConfig{
 		Name:                       "test",
 		NumChunksHint:              16,
 		NumBytesPerSenderThreshold: math.MaxUint32,
@@ -58,15 +58,15 @@ func Test_NewTxCache(t *testing.T) {
 	badConfig.MinGasPriceNanoErd = 0
 	requireErrorOnNewTxCache(t, badConfig, "config.MinGasPriceNanoErd")
 
-	badConfig = evictionConfig
+	badConfig = withEvictionConfig
 	badConfig.NumBytesThreshold = 0
 	requireErrorOnNewTxCache(t, badConfig, "config.NumBytesThreshold")
 
-	badConfig = evictionConfig
+	badConfig = withEvictionConfig
 	badConfig.CountThreshold = 0
 	requireErrorOnNewTxCache(t, badConfig, "config.CountThreshold")
 
-	badConfig = evictionConfig
+	badConfig = withEvictionConfig
 	badConfig.NumSendersToEvictInOneStep = 0
 	requireErrorOnNewTxCache(t, badConfig, "config.NumSendersToEvictInOneStep")
 }
@@ -110,7 +110,7 @@ func Test_AddNilTx_DoesNothing(t *testing.T) {
 	require.Nil(t, foundTx)
 }
 
-func Test_AddTx_AppliesSizeConstraintsPerSender_NumTransactions(t *testing.T) {
+func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) {
 	cache := newCacheToTest(math.MaxUint32, 3)
 
 	cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1))
@@ -128,7 +128,7 @@ func Test_AddTx_AppliesSizeConstraintsPerSender_NumTransactions(t *testing.T) {
 	require.True(t, cache.areInternalMapsConsistent())
 }
 
-func Test_AddTx_AppliesSizeConstraintsPerSender_NumBytes(t *testing.T) {
+func Test_AddTx_AppliesSizeConstraintsPerSenderForNumBytes(t *testing.T) {
 	cache := newCacheToTest(1024, math.MaxUint32)
 
 	cache.AddTx(createTxWithParams([]byte("tx-alice-1"), "alice", 1, 128, 42, 42))

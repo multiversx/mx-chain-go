@@ -43,7 +43,7 @@ func TestListForSender_AddTx_IgnoresDuplicates(t *testing.T) {
 	require.False(t, added)
 }
 
-func TestListForSender_AddTx_AppliesSizeConstraints_NumTransactions(t *testing.T) {
+func TestListForSender_AddTx_AppliesSizeConstraintsForNumTransactions(t *testing.T) {
 	list := newListToTest(math.MaxUint32, 3)
 
 	list.AddTx(createTx([]byte("tx1"), ".", 1))
@@ -56,18 +56,18 @@ func TestListForSender_AddTx_AppliesSizeConstraints_NumTransactions(t *testing.T
 	require.ElementsMatch(t, []string{"tx1", "tx2", "tx3"}, list.getTxHashesAsStrings())
 	require.ElementsMatch(t, []string{"tx4"}, hashesAsStrings(evicted))
 
-	// Gives priority to higher gas - undesirably to some extent, "tx3" is evicted
+	// Gives priority to higher gas - though undesirably to some extent, "tx3" is evicted
 	_, evicted = list.AddTx(createTxWithParams([]byte("tx2++"), ".", 2, 128, 42, 42))
 	require.ElementsMatch(t, []string{"tx1", "tx2++", "tx2"}, list.getTxHashesAsStrings())
 	require.ElementsMatch(t, []string{"tx3"}, hashesAsStrings(evicted))
 
-	// Undesirably to some extent, "tx3++"" is added, then evicted
+	// Though Undesirably to some extent, "tx3++"" is added, then evicted
 	_, evicted = list.AddTx(createTxWithParams([]byte("tx3++"), ".", 3, 128, 42, 42))
 	require.ElementsMatch(t, []string{"tx1", "tx2++", "tx2"}, list.getTxHashesAsStrings())
 	require.ElementsMatch(t, []string{"tx3++"}, hashesAsStrings(evicted))
 }
 
-func TestListForSender_AddTx_AppliesSizeConstraints_NumBytes(t *testing.T) {
+func TestListForSender_AddTx_AppliesSizeConstraintsForNumBytes(t *testing.T) {
 	list := newListToTest(1024, math.MaxUint32)
 
 	list.AddTx(createTxWithParams([]byte("tx1"), ".", 1, 128, 42, 42))
@@ -85,7 +85,7 @@ func TestListForSender_AddTx_AppliesSizeConstraints_NumBytes(t *testing.T) {
 	require.ElementsMatch(t, []string{"tx1", "tx2", "tx3", "tx4"}, list.getTxHashesAsStrings())
 	require.ElementsMatch(t, []string{"tx5--"}, hashesAsStrings(evicted))
 
-	// Gives priority to higher gas - undesirably to some extent, "tx4" is evicted
+	// Gives priority to higher gas - though undesirably to some extent, "tx4" is evicted
 	_, evicted = list.AddTx(createTxWithParams([]byte("tx3++"), ".", 4, 256, 42, 100))
 	require.ElementsMatch(t, []string{"tx1", "tx2", "tx3++", "tx3"}, list.getTxHashesAsStrings())
 	require.ElementsMatch(t, []string{"tx4"}, hashesAsStrings(evicted))

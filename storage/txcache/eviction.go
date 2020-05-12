@@ -11,12 +11,7 @@ func (cache *TxCache) doEviction() {
 		return
 	}
 
-	tooManyBytes := cache.areThereTooManyBytes()
-	tooManyTxs := cache.areThereTooManyTxs()
-	tooManySenders := cache.areThereTooManySenders()
-
-	isCapacityExceeded := tooManyBytes || tooManyTxs || tooManySenders
-	if !isCapacityExceeded {
+	if !cache.isCapacityExceeded() {
 		return
 	}
 
@@ -30,7 +25,7 @@ func (cache *TxCache) doEviction() {
 
 	stopWatch := cache.monitorEvictionStart()
 
-	if cache.shouldContinueEvictingSenders() {
+	if cache.isCapacityExceeded() {
 		cache.makeSnapshotOfSenders()
 		journal.passOneNumSteps, journal.passOneNumTxs, journal.passOneNumSenders = cache.evictSendersInLoop()
 		journal.evictionPerformed = true
@@ -47,6 +42,10 @@ func (cache *TxCache) makeSnapshotOfSenders() {
 
 func (cache *TxCache) destroySnapshotOfSenders() {
 	cache.evictionSnapshotOfSenders = nil
+}
+
+func (cache *TxCache) isCapacityExceeded() bool {
+	return cache.areThereTooManyBytes() || cache.areThereTooManySenders() || cache.areThereTooManyTxs()
 }
 
 func (cache *TxCache) areThereTooManyBytes() bool {
@@ -67,10 +66,6 @@ func (cache *TxCache) areThereTooManyTxs() bool {
 	return tooManyTxs
 }
 
-func (cache *TxCache) shouldContinueEvictingSenders() bool {
-	return cache.areThereTooManyTxs() || cache.areThereTooManySenders() || cache.areThereTooManyBytes()
-}
-
 // This is called concurrently by two goroutines: the eviction one and the sweeping one
 func (cache *TxCache) doEvictItems(txsToEvict txHashes, sendersToEvict []string) (countTxs uint32, countSenders uint32) {
 	countTxs = cache.txByHash.RemoveTxsBulk(txsToEvict)
@@ -79,7 +74,7 @@ func (cache *TxCache) doEvictItems(txsToEvict txHashes, sendersToEvict []string)
 }
 
 func (cache *TxCache) evictSendersInLoop() (uint32, uint32, uint32) {
-	return cache.evictSendersWhile(cache.shouldContinueEvictingSenders)
+	return cache.evictSendersWhile(cache.isCapacityExceeded)
 }
 
 // evictSendersWhileTooManyTxs removes transactions in a loop, as long as "shouldContinue" is true

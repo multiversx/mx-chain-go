@@ -13,5 +13,4 @@ type txCache interface {
 	RemoveTxByHash(txHash []byte) error
 	CountTx() int64
 	ForEachTransaction(function txcache.ForEachTransaction)
-	SelectTransactions(numRequested int, batchSizePerSender int) []*txcache.WrappedTransaction
 }

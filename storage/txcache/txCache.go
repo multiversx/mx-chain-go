@@ -36,7 +36,6 @@ func NewTxCache(config CacheConfig) (*TxCache, error) {
 
 	err := config.verify()
 	if err != nil {
-		log.Error("NewTxCache config.verify()", "err", err)
 		return nil, err
 	}
 

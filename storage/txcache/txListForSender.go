@@ -72,15 +72,16 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, txHas
 func (listForSender *txListForSender) applySizeConstraints() txHashes {
 	evictedTxHashes := make(txHashes, 0)
 
+	// Iterate back to front
 	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
-		if !listForSender.isLimitReached() {
+		if !listForSender.isCapacityExceeded() {
 			break
 		}
 
 		listForSender.items.Remove(element)
 		listForSender.onRemovedListElement(element)
 
-		// Keep track of removed transaction
+		// Keep track of removed transactions
 		value := element.Value.(*WrappedTransaction)
 		evictedTxHashes = append(evictedTxHashes, value.TxHash)
 	}
@@ -88,7 +89,7 @@ func (listForSender *txListForSender) applySizeConstraints() txHashes {
 	return evictedTxHashes
 }
 
-func (listForSender *txListForSender) isLimitReached() bool {
+func (listForSender *txListForSender) isCapacityExceeded() bool {
 	maxBytes := int64(listForSender.cacheConfig.NumBytesPerSenderThreshold)
 	maxNumTxs := uint64(listForSender.cacheConfig.CountPerSenderThreshold)
 	tooManyBytes := listForSender.totalBytes.Get() > maxBytes
@@ -123,7 +124,7 @@ func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTran
 		}
 
 		if nonce == incomingNonce && gasPrice > incomingGasPrice {
-			// The incoming transaction will be placed right after the existing one (with higher price).
+			// The incoming transaction will be placed right after the existing one, which has same nonce but higher price.
 			return element, nil
 		}
 
