@@ -143,6 +143,11 @@ func (m *multiFileReader) Finish() {
 			log.Warn("could not close file ", "fileName", fileName, "error", err)
 		}
 	}
+
+	err := m.importStore.Close()
+	if err != nil {
+		log.Warn("could not close import store ", "error", err)
+	}
 }
 
 // IsInterfaceNil returns true if underlying object is nil
