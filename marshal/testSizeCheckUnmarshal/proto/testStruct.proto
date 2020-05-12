@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package testSizeCheckUnmarshal;
+
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message TestStruct1  {
+    uint64 field1 = 1;
+    bytes  field2 = 2;
+}
+
+message TestStruct2  {
+    uint64 field1 = 1;
+    bytes  field2 = 2;
+    bytes  field3 = 3;
+}
+
+
