@@ -439,6 +439,10 @@
             MaxBatchSize = 1000
             MaxOpenFiles = 10
 
+[StartInEpochConfig]
+    MinNumConnectedPeersToStart       = 2
+	MinNumOfPeersToConsiderBlockValid = 2
+
 [Debug]
     [Debug.InterceptorResolver]
         Enabled = true
