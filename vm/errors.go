@@ -118,3 +118,6 @@ var ErrTokenAlreadyRegistered = errors.New("token was already registered")
 
 // ErrNilSystemSCConfig signals that nil system sc config was provided
 var ErrNilSystemSCConfig = errors.New("nil system sc config")
+
+// ErrNilValidatorAccountsDB signals that nil validator accounts DB was provided
+var ErrNilValidatorAccountsDB = errors.New("nil validator accounts DB")

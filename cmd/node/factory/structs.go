@@ -1341,6 +1341,7 @@ func newMetaBlockProcessor(
 		core.Hasher,
 		core.InternalMarshalizer,
 		systemSCConfig,
+		stateComponents.PeerAccounts,
 	)
 	if err != nil {
 		return nil, err

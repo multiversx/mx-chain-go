@@ -595,8 +595,8 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		log.Error("unBond is not possible for jailed nodes")
 		return vmcommon.UserError
 	}
-	if !r.canUnBond() {
-		log.Error("unBond is not possible as too many left")
+	if !r.canUnBond() || r.eei.IsValidator(args.Arguments[0]) {
+		log.Error("unBond is not possible as not enough left")
 		return vmcommon.UserError
 	}
 
