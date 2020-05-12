@@ -20,6 +20,7 @@ import (
 	randFactory "github.com/ElrondNetwork/elrond-go/p2p/libp2p/rand/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p/loadBalancer"
 	"github.com/btcsuite/btcd/btcec"
+	logging "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p"
 	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -110,6 +111,10 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	_ = logging.SetLogLevel("dht", "DEBUG")
+	_ = logging.SetLogLevel("basichost", "DEBUG")
+	_ = logging.SetLogLevel("nat", "DEBUG")
 
 	p2pNode, err := createMessenger(args, h, true)
 	if err != nil {
