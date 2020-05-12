@@ -19,7 +19,7 @@ func Test_NewTxCache(t *testing.T) {
 		NumChunksHint:              16,
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 	}
 
 	evictionConfig := CacheConfig{
@@ -27,7 +27,7 @@ func Test_NewTxCache(t *testing.T) {
 		NumChunksHint:              16,
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 		EvictionEnabled:            true,
 		NumBytesThreshold:          math.MaxUint32,
 		CountThreshold:             math.MaxUint32,
@@ -55,8 +55,8 @@ func Test_NewTxCache(t *testing.T) {
 	requireErrorOnNewTxCache(t, badConfig, "config.CountPerSenderThreshold")
 
 	badConfig = config
-	badConfig.MinGasPriceMicroErd = 0
-	requireErrorOnNewTxCache(t, badConfig, "config.MinGasPriceMicroErd")
+	badConfig.MinGasPriceNanoErd = 0
+	requireErrorOnNewTxCache(t, badConfig, "config.MinGasPriceNanoErd")
 
 	badConfig = evictionConfig
 	badConfig.NumBytesThreshold = 0
@@ -351,7 +351,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 		NumSendersToEvictInOneStep: 1,
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 	}
 
 	// 11 * 10
@@ -371,7 +371,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 		NumSendersToEvictInOneStep: 1,
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 	}
 
 	// 100 * 1000
@@ -417,8 +417,8 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
 
 	// Alice will quickly move between two score buckets (chunks)
-	cheapTransaction := createTxWithParams([]byte("alice-x-o"), "alice", 0, 128, 50000, 100*oneTrilion)
-	expensiveTransaction := createTxWithParams([]byte("alice-x-1"), "alice", 1, 128, 50000, 300*oneTrilion)
+	cheapTransaction := createTxWithParams([]byte("alice-x-o"), "alice", 0, 128, 50000, 100*oneBillion)
+	expensiveTransaction := createTxWithParams([]byte("alice-x-1"), "alice", 1, 128, 50000, 300*oneBillion)
 	cache.AddTx(cheapTransaction)
 	cache.AddTx(expensiveTransaction)
 
@@ -457,7 +457,7 @@ func newUnconstrainedCacheToTest() *TxCache {
 		NumChunksHint:              16,
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 	})
 	if err != nil {
 		panic(fmt.Sprintf("newUnconstrainedCacheToTest(): %s", err))
@@ -472,7 +472,7 @@ func newCacheToTest(numBytesPerSenderThreshold uint32, countPerSenderThreshold u
 		NumChunksHint:              16,
 		NumBytesPerSenderThreshold: numBytesPerSenderThreshold,
 		CountPerSenderThreshold:    countPerSenderThreshold,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 	})
 	if err != nil {
 		panic(fmt.Sprintf("newCacheToTest(): %s", err))

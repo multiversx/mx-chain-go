@@ -55,7 +55,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		CountThreshold:             args.Config.Size / numCaches,
 		CountPerSenderThreshold:    args.Config.SizePerSender,
 		NumSendersToEvictInOneStep: dataRetriever.TxPoolNumSendersToEvictInOneStep,
-		MinGasPriceMicroErd:        uint32(args.MinGasPrice / oneBillion),
+		MinGasPriceNanoErd:         uint32(args.MinGasPrice / oneBillion),
 	}
 
 	cacheConfigPrototypeForSelfShard := cacheConfigPrototype

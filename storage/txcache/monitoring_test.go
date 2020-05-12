@@ -16,7 +16,7 @@ func TestMonitoring_numTxAddedAndRemovedDuringEviction(t *testing.T) {
 		NumSendersToEvictInOneStep: 1,
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -48,7 +48,7 @@ func TestMonitoring_numTxAddedAndRemovedBetweenSelections(t *testing.T) {
 		NumSendersToEvictInOneStep: 1,
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 	}
 
 	cache, err := NewTxCache(config)

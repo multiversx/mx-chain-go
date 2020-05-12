@@ -344,7 +344,7 @@ func newUnconstrainedListToTest() *txListForSender {
 	return newTxListForSender(".", &CacheConfig{
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 	}, func(value *txListForSender) {})
 }
 
@@ -352,6 +352,6 @@ func newListToTest(numBytesThreshold uint32, countThreshold uint32) *txListForSe
 	return newTxListForSender(".", &CacheConfig{
 		NumBytesPerSenderThreshold: numBytesThreshold,
 		CountPerSenderThreshold:    countThreshold,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 	}, func(value *txListForSender) {})
 }

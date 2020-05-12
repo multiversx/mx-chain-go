@@ -18,7 +18,7 @@ func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
 		NumSendersToEvictInOneStep: 20,
 		NumBytesThreshold:          math.MaxUint32,
 		NumBytesPerSenderThreshold: math.MaxUint32,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -55,7 +55,7 @@ func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 		NumBytesThreshold:          numBytesPerTx * 100,
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		NumSendersToEvictInOneStep: 20,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -65,7 +65,7 @@ func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 	// 200 senders, each with 1 transaction
 	for index := 0; index < 200; index++ {
 		sender := string(createFakeSenderAddress(index))
-		cache.AddTx(createTxWithParams([]byte{byte(index)}, sender, uint64(1), uint64(numBytesPerTx), 10000, 100*oneTrilion))
+		cache.AddTx(createTxWithParams([]byte{byte(index)}, sender, uint64(1), uint64(numBytesPerTx), 10000, 100*oneBillion))
 	}
 
 	require.Equal(t, int64(200), cache.txListBySender.counter.Get())
@@ -90,16 +90,16 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 		CountThreshold:             2,
 		CountPerSenderThreshold:    math.MaxUint32,
 		NumSendersToEvictInOneStep: 2,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 	}
 
 	cache, err := NewTxCache(config)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
-	cache.AddTx(createTxWithParams([]byte("hash-alice"), "alice", uint64(1), 1000, 100000, 100*oneTrilion))
-	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 1000, 100000, 100*oneTrilion))
-	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 1000, 100000, 700*oneTrilion))
+	cache.AddTx(createTxWithParams([]byte("hash-alice"), "alice", uint64(1), 1000, 100000, 100*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 1000, 100000, 100*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 1000, 100000, 700*oneBillion))
 
 	cache.doEviction()
 	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumTxs)
@@ -122,16 +122,16 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 		NumBytesThreshold:          1000,
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		NumSendersToEvictInOneStep: 2,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 	}
 
 	cache, err := NewTxCache(config)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
-	cache.AddTx(createTxWithParams([]byte("hash-alice"), "alice", uint64(1), 800, 100000, 100*oneTrilion))
-	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 500, 100000, 100*oneTrilion))
-	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 200, 100000, 700*oneTrilion))
+	cache.AddTx(createTxWithParams([]byte("hash-alice"), "alice", uint64(1), 800, 100000, 100*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 500, 100000, 100*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 200, 100000, 700*oneBillion))
 
 	require.InDelta(t, float64(19.50394606), cache.getRawScoreOfSender("alice"), delta)
 	require.InDelta(t, float64(23.68494667), cache.getRawScoreOfSender("bob"), delta)
@@ -157,7 +157,7 @@ func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
 		NumSendersToEvictInOneStep: 1,
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -180,7 +180,7 @@ func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T)
 		NumSendersToEvictInOneStep: 42,
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -205,7 +205,7 @@ func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
 		NumSendersToEvictInOneStep: 1,
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -239,7 +239,7 @@ func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 		NumSendersToEvictInOneStep: dataRetriever.TxPoolNumSendersToEvictInOneStep,
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceMicroErd:        100,
+		MinGasPriceNanoErd:         100,
 	}
 
 	numSenders := 25000

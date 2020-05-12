@@ -12,7 +12,7 @@ type CacheConfig struct {
 	CountThreshold             uint32
 	CountPerSenderThreshold    uint32
 	NumSendersToEvictInOneStep uint32
-	MinGasPriceMicroErd        uint32
+	MinGasPriceNanoErd         uint32
 }
 
 func (config *CacheConfig) verify() error {
@@ -32,8 +32,8 @@ func (config *CacheConfig) verify() error {
 		return fmt.Errorf("%w: config.CountPerSenderThreshold is invalid", errInvalidCacheConfig)
 	}
 
-	if config.MinGasPriceMicroErd == 0 {
-		return fmt.Errorf("%w: config.MinGasPriceMicroErd is invalid", errInvalidCacheConfig)
+	if config.MinGasPriceNanoErd == 0 {
+		return fmt.Errorf("%w: config.MinGasPriceNanoErd is invalid", errInvalidCacheConfig)
 	}
 
 	if config.EvictionEnabled {
