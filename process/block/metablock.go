@@ -80,7 +80,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		return nil, process.ErrNilValidatorStatistics
 	}
 
-	sftVersionLength := core.MinInt(core.MaxSoftwareVersionLength, len(arguments.Version))
 	genesisHdr := arguments.BlockChain.GetGenesisHeader()
 	base := &baseProcessor{
 		accountsDB:             arguments.AccountsDB,
@@ -106,7 +105,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		blockChain:             arguments.BlockChain,
 		stateCheckpointModulus: arguments.StateCheckpointModulus,
 		genesisNonce:           genesisHdr.GetNonce(),
-		version:                arguments.Version[:sftVersionLength],
+		version:                core.TrimSoftwareVersion(arguments.Version),
 	}
 
 	mp := metaProcessor{

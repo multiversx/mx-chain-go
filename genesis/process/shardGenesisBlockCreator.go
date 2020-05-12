@@ -109,7 +109,7 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
 		ChainID:         []byte(arg.ChainID),
-		SoftwareVersion: []byte(arg.Version),
+		SoftwareVersion: []byte(""),
 	}
 
 	return header, nil
@@ -150,7 +150,6 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHa
 
 	hdrHandler, bodyHandler, err := shardBlockCreator.CreateNewBlock(
 		arg.ChainID,
-		arg.Version,
 		arg.HardForkConfig.StartRound,
 		arg.HardForkConfig.StartNonce,
 		arg.HardForkConfig.StartEpoch,

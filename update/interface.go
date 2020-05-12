@@ -115,7 +115,7 @@ type ImportHandler interface {
 
 // HardForkBlockProcessor defines the methods to process after hardfork
 type HardForkBlockProcessor interface {
-	CreateNewBlock(chainID string, version string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, data.BodyHandler, error)
+	CreateNewBlock(chainID string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, data.BodyHandler, error)
 	IsInterfaceNil() bool
 }
 

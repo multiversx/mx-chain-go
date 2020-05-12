@@ -875,7 +875,6 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	}
 
 	arg := genesisProcess.ArgsGenesisBlockCreator{
-		Version:                  args.version,
 		GenesisTime:              uint64(nodesSetup.StartTime),
 		StartEpochNum:            args.startEpochNum,
 		Accounts:                 stateComponents.AccountsAdapter,

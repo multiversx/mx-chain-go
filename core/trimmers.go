@@ -8,3 +8,9 @@ func GetTrimmedPk(pk string) string {
 
 	return pk
 }
+
+// TrimSoftwareVersion returns a trimmed byte array of the software version
+func TrimSoftwareVersion(version string) string {
+	softwareVersionLength := MinInt(MaxSoftwareVersionLength, len(version))
+	return version[:softwareVersionLength]
+}
