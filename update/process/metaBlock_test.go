@@ -104,7 +104,7 @@ func TestMetaBlockCreator_CreateNewBlock(t *testing.T) {
 	blockCreator, _ := NewMetaBlockCreatorAfterHardfork(args)
 
 	chainID, round, nonce, epoch := "id", uint64(10), uint64(12), uint32(1)
-	header, body, err := blockCreator.CreateNewBlock(chainID, "d", round, nonce, epoch)
+	header, body, err := blockCreator.CreateNewBlock(chainID, round, nonce, epoch)
 	assert.NoError(t, err)
 
 	blockBody := &block.Body{
