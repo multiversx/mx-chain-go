@@ -104,7 +104,7 @@ func TestMetaBlockCreator_CreateNewBlock(t *testing.T) {
 	blockCreator, _ := NewMetaBlockCreatorAfterHardfork(args)
 
 	chainID, round, nonce, epoch := "id", uint64(10), uint64(12), uint32(1)
-	header, body, err := blockCreator.CreateNewBlock(chainID, round, nonce, epoch)
+	header, body, err := blockCreator.CreateNewBlock(chainID, "d", round, nonce, epoch)
 	assert.NoError(t, err)
 
 	blockBody := &block.Body{
@@ -119,6 +119,7 @@ func TestMetaBlockCreator_CreateNewBlock(t *testing.T) {
 		ValidatorStatsRootHash: rootHash2,
 		EpochStart:             block.EpochStart{},
 		ChainID:                []byte(chainID),
+		SoftwareVersion:        []byte("d"),
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
 		PubKeysBitmap:          []byte{1},

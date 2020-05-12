@@ -66,6 +66,7 @@ type HeaderHandler interface {
 	IsInterfaceNil() bool
 	Clone() HeaderHandler
 	CheckChainID(reference []byte) error
+	CheckSoftwareVersion() error
 }
 
 // BodyHandler interface for a block body

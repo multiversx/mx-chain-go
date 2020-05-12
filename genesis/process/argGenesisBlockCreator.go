@@ -17,9 +17,11 @@ import (
 
 // ArgsGenesisBlockCreator holds the arguments which are needed to create a genesis metablock
 type ArgsGenesisBlockCreator struct {
+	Version                  string
 	GenesisTime              uint64
 	StartEpochNum            uint32
 	Accounts                 state.AccountsAdapter
+	ValidatorAccounts        state.AccountsAdapter
 	PubkeyConv               state.PubkeyConverter
 	InitialNodesSetup        genesis.InitialNodesHandler
 	Economics                *economics.EconomicsData //TODO refactor and use an interface
@@ -32,12 +34,11 @@ type ArgsGenesisBlockCreator struct {
 	DataPool                 dataRetriever.PoolsHolder
 	AccountsParser           genesis.AccountsParser
 	SmartContractParser      genesis.InitialSmartContractParser
-	ValidatorStatsRootHash   []byte
 	GasMap                   map[string]map[string]uint64
 	TxLogsProcessor          process.TransactionLogProcessor
 	VirtualMachineConfig     config.VirtualMachineConfig
 	HardForkConfig           config.HardforkConfig
-	TrieStorageManager       data.StorageManager
+	TrieStorageManagers      map[string]data.StorageManager
 	ChainID                  string
 	SystemSCConfig           config.SystemSmartContractsConfig
 

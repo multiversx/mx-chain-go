@@ -54,10 +54,18 @@ func NewMetaBlockCreatorAfterHardfork(args ArgsNewMetaBlockCreatorAfterHardfork)
 // CreateNewBlock will create a new block after hardfork import
 func (m *metaBlockCreator) CreateNewBlock(
 	chainID string,
+	version string,
 	round uint64,
 	nonce uint64,
 	epoch uint32,
 ) (data.HeaderHandler, data.BodyHandler, error) {
+	if len(version) == 0 {
+		return nil, nil, update.ErrEmptySoftwareVersion
+	}
+	if len(chainID) == 0 {
+		return nil, nil, update.ErrEmptyChainID
+	}
+
 	validatorAccounts := m.importHandler.GetValidatorAccountsDB()
 	if check.IfNil(validatorAccounts) {
 		return nil, nil, update.ErrNilAccounts
@@ -82,6 +90,7 @@ func (m *metaBlockCreator) CreateNewBlock(
 	blockBody := &block.Body{
 		MiniBlocks: make([]*block.MiniBlock, 0),
 	}
+	sftVersionLength := core.MinInt(core.MaxSoftwareVersionLength, len(version))
 	metaHdr := &block.MetaBlock{
 		Nonce:                  nonce,
 		Round:                  round,
@@ -91,6 +100,7 @@ func (m *metaBlockCreator) CreateNewBlock(
 		ValidatorStatsRootHash: validatorRootHash,
 		EpochStart:             hardForkMeta.EpochStart,
 		ChainID:                []byte(chainID),
+		SoftwareVersion:        []byte(version[:sftVersionLength]),
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
 		Epoch:                  epoch,

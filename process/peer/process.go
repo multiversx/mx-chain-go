@@ -37,7 +37,6 @@ const (
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
-	StakeValue          *big.Int
 	Marshalizer         marshal.Marshalizer
 	NodesCoordinator    sharding.NodesCoordinator
 	ShardCoordinator    sharding.Coordinator
@@ -48,9 +47,9 @@ type ArgValidatorStatisticsProcessor struct {
 	Rater               sharding.PeerAccountListAndRatingHandler
 	RewardsHandler      process.RewardsHandler
 	MaxComputableRounds uint64
-	StartEpoch          uint32
 	NodesSetup          sharding.GenesisNodesSetupHandler
 	GenesisNonce        uint64
+	RatingEnableEpoch   uint32
 }
 
 type validatorStatistics struct {
@@ -67,6 +66,7 @@ type validatorStatistics struct {
 	missedBlocksCounters    validatorRoundCounters
 	mutMissedBlocksCounters sync.RWMutex
 	genesisNonce            uint64
+	ratingEnableEpoch       uint32
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -92,9 +92,6 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	}
 	if check.IfNil(arguments.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
-	}
-	if arguments.StakeValue == nil {
-		return nil, process.ErrNilEconomicsData
 	}
 	if arguments.MaxComputableRounds == 0 {
 		return nil, process.ErrZeroMaxComputableRounds
@@ -122,10 +119,11 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		rewardsHandler:       arguments.RewardsHandler,
 		maxComputableRounds:  arguments.MaxComputableRounds,
 		genesisNonce:         arguments.GenesisNonce,
+		ratingEnableEpoch:    arguments.RatingEnableEpoch,
 	}
 
 	rater := arguments.Rater
-	err := vs.saveInitialState(arguments.NodesSetup, arguments.StakeValue, rater.GetStartRating())
+	err := vs.saveInitialState(arguments.NodesSetup, rater.GetStartRating())
 	if err != nil {
 		return nil, err
 	}
@@ -214,16 +212,15 @@ func (vs *validatorStatistics) saveUpdatesForList(
 // saveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
 func (vs *validatorStatistics) saveInitialState(
 	nodesConfig sharding.GenesisNodesSetupHandler,
-	stakeValue *big.Int,
 	startRating uint32,
 ) error {
 	eligibleNodesInfo, waitingNodesInfo := nodesConfig.InitialNodesInfo()
-	err := vs.saveInitialValueForMap(eligibleNodesInfo, stakeValue, startRating, core.EligibleList)
+	err := vs.saveInitialValueForMap(eligibleNodesInfo, startRating, core.EligibleList)
 	if err != nil {
 		return err
 	}
 
-	err = vs.saveInitialValueForMap(waitingNodesInfo, stakeValue, startRating, core.WaitingList)
+	err = vs.saveInitialValueForMap(waitingNodesInfo, startRating, core.WaitingList)
 	if err != nil {
 		return err
 	}
@@ -240,7 +237,6 @@ func (vs *validatorStatistics) saveInitialState(
 
 func (vs *validatorStatistics) saveInitialValueForMap(
 	nodesInfo map[uint32][]sharding.GenesisNodeInfoHandler,
-	stakeValue *big.Int,
 	startRating uint32,
 	peerType core.PeerType,
 ) error {
@@ -248,11 +244,10 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 		return nil
 	}
 
-	// TODO: check why range over map does not give the same validator statistics roothash
 	for shardID := uint32(0); shardID < vs.shardCoordinator.NumberOfShards(); shardID++ {
 		nodeInfoList := nodesInfo[shardID]
 		for index, nodeInfo := range nodeInfoList {
-			err := vs.initializeNode(nodeInfo, stakeValue, startRating, shardID, peerType, uint32(index))
+			err := vs.initializeNode(nodeInfo, startRating, shardID, peerType, uint32(index))
 			if err != nil {
 				return err
 			}
@@ -262,7 +257,7 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 	shardID := core.MetachainShardId
 	nodeInfoList := nodesInfo[shardID]
 	for index, nodeInfo := range nodeInfoList {
-		err := vs.initializeNode(nodeInfo, stakeValue, startRating, shardID, peerType, uint32(index))
+		err := vs.initializeNode(nodeInfo, startRating, shardID, peerType, uint32(index))
 		if err != nil {
 			return err
 		}
@@ -328,13 +323,22 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 		return vs.peerAdapter.RootHash()
 	}
 	log.Trace("Increasing", "round", previousHeader.GetRound(), "prevRandSeed", previousHeader.GetPrevRandSeed())
-	consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(previousHeader.GetPrevRandSeed(), previousHeader.GetRound(), previousHeader.GetShardID(), epoch)
+	consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(
+		previousHeader.GetPrevRandSeed(),
+		previousHeader.GetRound(),
+		previousHeader.GetShardID(),
+		epoch)
 	if err != nil {
 		return nil, err
 	}
 	leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
 	log.Trace("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
-	err = vs.updateValidatorInfo(consensusGroup, previousHeader.GetPubKeysBitmap(), previousHeader.GetAccumulatedFees(), previousHeader.GetShardID())
+	err = vs.updateValidatorInfo(
+		consensusGroup,
+		previousHeader.GetPubKeysBitmap(),
+		previousHeader.GetAccumulatedFees(),
+		previousHeader.GetShardID(),
+		epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -486,9 +490,16 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 }
 
 // ProcessRatingsEndOfEpoch makes end of epoch process on the rating
-func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo) error {
+func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(
+	validatorInfos map[uint32][]*state.ValidatorInfo,
+	epoch uint32,
+) error {
 	if len(validatorInfos) == 0 {
 		return process.ErrNilValidatorInfos
+	}
+
+	if epoch > 0 {
+		epoch = epoch - 1
 	}
 
 	signedThreshold := vs.rater.GetSignedBlocksThreshold()
@@ -498,7 +509,7 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(validatorInfos map[uint3
 				continue
 			}
 
-			err := vs.verifySignaturesBelowSignedThreshold(validator, signedThreshold, shardId)
+			err := vs.verifySignaturesBelowSignedThreshold(validator, signedThreshold, shardId, epoch)
 			if err != nil {
 				return err
 			}
@@ -508,9 +519,20 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(validatorInfos map[uint3
 	return nil
 }
 
-func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(validator *state.ValidatorInfo, signedThreshold float32, shardId uint32) error {
+func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
+	validator *state.ValidatorInfo,
+	signedThreshold float32,
+	shardId uint32,
+	epoch uint32,
+) error {
+
+	if epoch < vs.ratingEnableEpoch {
+		return nil
+	}
+
 	validatorAppereances := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure)
 	computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorAppereances)
+
 	if computedThreshold <= signedThreshold {
 		newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.TempRating, validator.ValidatorFailure)
 		pa, err := vs.GetPeerAccount(validator.PublicKey)
@@ -592,7 +614,17 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 	return vs.decreaseAll(shardID, missedRounds-1, epoch)
 }
 
-func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, currentHeaderRound uint64, prevRandSeed []byte, shardID uint32, epoch uint32) error {
+func (vs *validatorStatistics) computeDecrease(
+	previousHeaderRound uint64,
+	currentHeaderRound uint64,
+	prevRandSeed []byte,
+	shardID uint32,
+	epoch uint32,
+) error {
+	if epoch < vs.ratingEnableEpoch {
+		return nil
+	}
+
 	sw := core.NewStopWatch()
 	sw.Start("checkForMissedBlocks")
 	defer func() {
@@ -625,7 +657,10 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 		vs.mutMissedBlocksCounters.Unlock()
 
 		swInner.Start("ComputeDecreaseProposer")
-		newRating := vs.rater.ComputeDecreaseProposer(shardID, leaderPeerAcc.GetTempRating(), leaderPeerAcc.GetConsecutiveProposerMisses())
+		newRating := vs.rater.ComputeDecreaseProposer(
+			shardID,
+			leaderPeerAcc.GetTempRating(),
+			leaderPeerAcc.GetConsecutiveProposerMisses())
 		swInner.Stop("ComputeDecreaseProposer")
 
 		swInner.Start("SetConsecutiveProposerMisses")
@@ -641,7 +676,7 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 		}
 
 		swInner.Start("ComputeDecreaseAllValidators")
-		err = vs.decreaseForConsensusValidators(consensusGroup, shardID)
+		err = vs.decreaseForConsensusValidators(consensusGroup, shardID, epoch)
 		swInner.Stop("ComputeDecreaseAllValidators")
 		if err != nil {
 			return err
@@ -651,7 +686,15 @@ func (vs *validatorStatistics) computeDecrease(previousHeaderRound uint64, curre
 	return nil
 }
 
-func (vs *validatorStatistics) decreaseForConsensusValidators(consensusGroup []sharding.Validator, shardId uint32) error {
+func (vs *validatorStatistics) decreaseForConsensusValidators(
+	consensusGroup []sharding.Validator,
+	shardId uint32,
+	epoch uint32,
+) error {
+	if epoch < vs.ratingEnableEpoch {
+		return nil
+	}
+
 	vs.mutMissedBlocksCounters.Lock()
 	defer vs.mutMissedBlocksCounters.Unlock()
 
@@ -681,7 +724,10 @@ func (vs *validatorStatistics) RevertPeerState(header data.HeaderHandler) error 
 	return vs.peerAdapter.RecreateTrie(header.GetValidatorStatsRootHash())
 }
 
-func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandler, cacheMap map[string]data.HeaderHandler) error {
+func (vs *validatorStatistics) updateShardDataPeerState(
+	header data.HeaderHandler,
+	cacheMap map[string]data.HeaderHandler,
+) error {
 	metaHeader, ok := header.(*block.MetaBlock)
 	if !ok {
 		return process.ErrInvalidMetaHeader
@@ -703,7 +749,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(header data.HeaderHandle
 			return shardInfoErr
 		}
 
-		shardInfoErr = vs.updateValidatorInfo(shardConsensus, h.PubKeysBitmap, h.AccumulatedFees, h.ShardID)
+		shardInfoErr = vs.updateValidatorInfo(shardConsensus, h.PubKeysBitmap, h.AccumulatedFees, h.ShardID, epoch)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -749,7 +795,6 @@ func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data
 
 func (vs *validatorStatistics) initializeNode(
 	node sharding.GenesisNodeInfoHandler,
-	stakeValue *big.Int,
 	startRating uint32,
 	shardID uint32,
 	peerType core.PeerType,
@@ -760,13 +805,12 @@ func (vs *validatorStatistics) initializeNode(
 		return err
 	}
 
-	return vs.savePeerAccountData(peerAccount, node, stakeValue, startRating, shardID, peerType, index)
+	return vs.savePeerAccountData(peerAccount, node, startRating, shardID, peerType, index)
 }
 
 func (vs *validatorStatistics) savePeerAccountData(
 	peerAccount state.PeerAccountHandler,
 	node sharding.GenesisNodeInfoHandler,
-	stakeValue *big.Int,
 	startRating uint32,
 	shardID uint32,
 	peerType core.PeerType,
@@ -782,11 +826,6 @@ func (vs *validatorStatistics) savePeerAccountData(
 		return err
 	}
 
-	err = peerAccount.SetStake(stakeValue)
-	if err != nil {
-		return err
-	}
-
 	peerAccount.SetRating(startRating)
 	peerAccount.SetTempRating(startRating)
 	peerAccount.SetListAndIndex(shardID, string(peerType), index)
@@ -794,10 +833,18 @@ func (vs *validatorStatistics) savePeerAccountData(
 	return vs.peerAdapter.SaveAccount(peerAccount)
 }
 
-func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Validator, signingBitmap []byte, accumulatedFees *big.Int, shardId uint32) error {
+func (vs *validatorStatistics) updateValidatorInfo(
+	validatorList []sharding.Validator,
+	signingBitmap []byte,
+	accumulatedFees *big.Int,
+	shardId uint32,
+	epoch uint32,
+) error {
+
 	if len(signingBitmap) == 0 {
 		return process.ErrNilPubKeysBitmap
 	}
+
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
 		peerAcc, err := vs.GetPeerAccount(validatorList[i].PubKey())
@@ -827,7 +874,10 @@ func (vs *validatorStatistics) updateValidatorInfo(validatorList []sharding.Vali
 			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
 		}
 
-		peerAcc.SetTempRating(newRating)
+		if epoch >= vs.ratingEnableEpoch {
+			peerAcc.SetTempRating(newRating)
+		}
+
 		err = vs.peerAdapter.SaveAccount(peerAcc)
 		if err != nil {
 			return err
@@ -954,7 +1004,14 @@ func (vs *validatorStatistics) display(validatorKey string) {
 	)
 }
 
-func (vs *validatorStatistics) decreaseAll(shardID uint32, missedRounds uint64, epoch uint32) error {
+func (vs *validatorStatistics) decreaseAll(
+	shardID uint32,
+	missedRounds uint64,
+	epoch uint32,
+) error {
+	if epoch < vs.ratingEnableEpoch {
+		return nil
+	}
 
 	log.Trace("ValidatorStatistics decreasing all", "shardID", shardID, "missedRounds", missedRounds)
 	consensusGroupSize := vs.nodesCoordinator.ConsensusGroupSize(shardID)
@@ -962,6 +1019,7 @@ func (vs *validatorStatistics) decreaseAll(shardID uint32, missedRounds uint64, 
 	if err != nil {
 		return err
 	}
+
 	shardValidators := validators[shardID]
 	validatorsCount := len(shardValidators)
 	percentageRoundMissedFromTotalValidators := float64(missedRounds) / float64(validatorsCount)
@@ -969,6 +1027,7 @@ func (vs *validatorStatistics) decreaseAll(shardID uint32, missedRounds uint64, 
 	consensusGroupAppearances := uint32(float64(consensusGroupSize)*percentageRoundMissedFromTotalValidators +
 		1 - math.SmallestNonzeroFloat64)
 	ratingDifference := uint32(0)
+
 	for i, validator := range shardValidators {
 		validatorPeerAccount, err := vs.GetPeerAccount(validator)
 		if err != nil {
