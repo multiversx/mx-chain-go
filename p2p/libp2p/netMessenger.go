@@ -107,14 +107,14 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		libp2p.NATPortMap(),
 	}
 
+	_ = logging.SetLogLevel("dht", "DEBUG")
+	_ = logging.SetLogLevel("basichost", "DEBUG")
+	_ = logging.SetLogLevel("nat", "DEBUG")
+
 	h, err := libp2p.New(args.Context, opts...)
 	if err != nil {
 		return nil, err
 	}
-
-	_ = logging.SetLogLevel("dht", "DEBUG")
-	_ = logging.SetLogLevel("basichost", "DEBUG")
-	_ = logging.SetLogLevel("nat", "DEBUG")
 
 	p2pNode, err := createMessenger(args, h, true)
 	if err != nil {
