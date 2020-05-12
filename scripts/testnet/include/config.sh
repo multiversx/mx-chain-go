@@ -94,6 +94,7 @@ copyProxyConfig() {
   pushd $TESTNETDIR
 
   cp $PROXYDIR/config/config.toml ./proxy/config/
+  cp $PROXYDIR/config/external.toml ./proxy/config/
 
   cp ./node/config/economics.toml ./proxy/config/
   cp ./node/config/walletKey.pem ./proxy/config
