@@ -12,14 +12,14 @@ func (n *Node) GetTransactionStatus(txHash string) (string, error) {
 		return "", err
 	}
 
-	found := n.isTxInDataPool(hash)
-	if found {
-		return "pending", nil
+	foundInStorage := n.isTxInStorage(hash)
+	if foundInStorage {
+		return "executed", nil
 	}
 
-	found = n.isTxInStorage(hash)
-	if found {
-		return "executed", nil
+	foundInDataPool := n.isTxInDataPool(hash)
+	if foundInDataPool {
+		return "received", nil
 	}
 
 	return "unknown", nil
