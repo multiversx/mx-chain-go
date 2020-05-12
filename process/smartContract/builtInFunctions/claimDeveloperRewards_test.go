@@ -31,6 +31,7 @@ func TestClaimDeveloperRewards_ProcessBuiltinFunction(t *testing.T) {
 	}
 	vmOutput, err = cdr.ProcessBuiltinFunction(nil, nil, vmInput)
 	require.Nil(t, err)
+	require.NotNil(t, vmOutput)
 
 	vmOutput, err = cdr.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Nil(t, vmOutput)

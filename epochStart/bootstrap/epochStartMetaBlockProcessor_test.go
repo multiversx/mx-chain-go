@@ -305,48 +305,17 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstT
 func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkAfterMultipleTries(t *testing.T) {
 	t.Parallel()
 
-	esmbp, _ := NewEpochStartMetaBlockProcessor(
-		&mock.MessengerStub{
-			ConnectedPeersCalled: func() []p2p.PeerID {
-				return []p2p.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
-			},
-		},
-		&mock.RequestHandlerStub{},
-		&mock.MarshalizerMock{},
-		&mock.HasherMock{},
-		64,
-		3,
-		3,
-	)
-
-	expectedMetaBlock := &block.MetaBlock{
-		Nonce:      10,
-		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{Round: 1}}},
-	}
-
-	intData := mock.NewInterceptedMetaBlockMock(expectedMetaBlock, []byte("hash"))
-
-	go func() {
-		index := 0
-		for {
-			time.Sleep(durationBetweenChecks - 10*time.Millisecond)
-			_ = esmbp.Save(intData, p2p.PeerID(fmt.Sprintf("peer_%d", index)))
-			_ = esmbp.Save(intData, p2p.PeerID(fmt.Sprintf("peer_%d", index+1)))
-			index += 2
-		}
-	}()
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	mb, err := esmbp.GetEpochStartMetaBlock(ctx)
-	cancel()
-	assert.NoError(t, err)
-	assert.Equal(t, expectedMetaBlock, mb)
+	testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t, bootstrap.DurationBetweenChecksForEpochStartMetaBlock-10*time.Millisecond)
 }
 
 func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkAfterMultipleRequests(t *testing.T) {
 	t.Parallel()
 
-	esmbp, _ := NewEpochStartMetaBlockProcessor(
+	testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t, bootstrap.DurationBetweenReRequest-10*time.Millisecond)
+}
+
+func testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t *testing.T, tts time.Duration) {
+	esmbp, _ := bootstrap.NewEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{
 			ConnectedPeersCalled: func() []p2p.PeerID {
 				return []p2p.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
@@ -359,24 +328,20 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkAfterMulti
 		3,
 		3,
 	)
-
 	expectedMetaBlock := &block.MetaBlock{
 		Nonce:      10,
 		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{Round: 1}}},
 	}
-
 	intData := mock.NewInterceptedMetaBlockMock(expectedMetaBlock, []byte("hash"))
-
 	go func() {
 		index := 0
 		for {
-			time.Sleep(durationBetweenReRequests - 10*time.Millisecond)
+			time.Sleep(tts)
 			_ = esmbp.Save(intData, p2p.PeerID(fmt.Sprintf("peer_%d", index)))
 			_ = esmbp.Save(intData, p2p.PeerID(fmt.Sprintf("peer_%d", index+1)))
 			index += 2
 		}
 	}()
-
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	mb, err := esmbp.GetEpochStartMetaBlock(ctx)
 	cancel()
