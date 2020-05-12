@@ -139,7 +139,7 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiserAndProtocolID(t *testing
 	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
 	_ = advertiser.Bootstrap()
 
-	randezVous1 := "/erd/kad/0.0.0"
+	randezVous1 := "/erd/kad/1.0.0"
 	randezVous2 := "/amony/kad/0.0.0"
 
 	peer1 := integrationTests.CreateMessengerWithKadDhtAndProtocolID(
