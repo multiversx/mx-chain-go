@@ -305,17 +305,17 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstT
 func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkAfterMultipleTries(t *testing.T) {
 	t.Parallel()
 
-	testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t, bootstrap.DurationBetweenChecksForEpochStartMetaBlock-10*time.Millisecond)
+	testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t, durationBetweenChecks-10*time.Millisecond)
 }
 
 func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkAfterMultipleRequests(t *testing.T) {
 	t.Parallel()
 
-	testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t, bootstrap.DurationBetweenReRequest-10*time.Millisecond)
+	testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t, durationBetweenChecks-10*time.Millisecond)
 }
 
 func testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t *testing.T, tts time.Duration) {
-	esmbp, _ := bootstrap.NewEpochStartMetaBlockProcessor(
+	esmbp, _ := NewEpochStartMetaBlockProcessor(
 		&mock.MessengerStub{
 			ConnectedPeersCalled: func() []p2p.PeerID {
 				return []p2p.PeerID{"peer_0", "peer_1", "peer_2", "peer_3", "peer_4", "peer_5"}
