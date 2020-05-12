@@ -84,6 +84,7 @@ func NewVMContainerFactory(
 		hasher:              hasher,
 		marshalizer:         marshalizer,
 		systemSCConfig:      systemSCConfig,
+		validatorAccountsDB: validatorAccountsDB,
 	}, nil
 }
 

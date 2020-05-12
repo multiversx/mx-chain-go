@@ -1004,6 +1004,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				OwnerAddress:    "aaaaaa",
 			},
 		},
+		tpn.PeerState,
 	)
 
 	tpn.VMContainer, _ = vmFactory.Create()
