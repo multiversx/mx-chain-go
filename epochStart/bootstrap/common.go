@@ -53,7 +53,7 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilRater)
 	}
 	if len(args.TrieStorageManagers) == 0 {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilTrieStorageManager)
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilTrieStorageManagers)
 	}
 	if check.IfNil(args.TrieContainer) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilTriesContainer)
