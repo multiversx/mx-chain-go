@@ -43,7 +43,7 @@ func TestListForSender_AddTx_IgnoresDuplicates(t *testing.T) {
 	require.False(t, added)
 }
 
-func TestListForSender_AddTx_AppliesSizeConstraints_Count(t *testing.T) {
+func TestListForSender_AddTx_AppliesSizeConstraints_NumTransactions(t *testing.T) {
 	list := newListToTest(math.MaxUint32, 3)
 
 	list.AddTx(createTx([]byte("tx1"), ".", 1))
@@ -67,7 +67,7 @@ func TestListForSender_AddTx_AppliesSizeConstraints_Count(t *testing.T) {
 	require.ElementsMatch(t, []string{"tx3++"}, hashesAsStrings(evicted))
 }
 
-func TestListForSender_AddTx_AppliesSizeConstraints_SizeInBytes(t *testing.T) {
+func TestListForSender_AddTx_AppliesSizeConstraints_NumBytes(t *testing.T) {
 	list := newListToTest(1024, math.MaxUint32)
 
 	list.AddTx(createTxWithParams([]byte("tx1"), ".", 1, 128, 42, 42))

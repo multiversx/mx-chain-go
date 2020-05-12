@@ -22,6 +22,36 @@ func kBToBytes(kB float32) uint64 {
 	return uint64(kB * 1000)
 }
 
+func (cache *TxCache) areInternalMapsConsistent() bool {
+	internalMapByHash := cache.txByHash
+	internalMapBySender := cache.txListBySender
+
+	senders := internalMapBySender.getSnapshotAscending()
+	numTransactionsByHash := len(internalMapByHash.keys())
+	numTransactionsBySender := 0
+
+	for _, sender := range senders {
+		numTransactionsBySender += int(sender.countTx())
+
+		for _, hash := range sender.getTxHashesAsStrings() {
+			_, ok := internalMapByHash.getTx(hash)
+			if !ok {
+				return false
+			}
+		}
+	}
+
+	if numTransactionsBySender != numTransactionsByHash {
+		return false
+	}
+
+	return true
+}
+
+func (cache *TxCache) getHashesForSender(sender string) []string {
+	return cache.getListForSender(sender).getTxHashesAsStrings()
+}
+
 func (cache *TxCache) getListForSender(sender string) *txListForSender {
 	return cache.txListBySender.testGetListForSender(sender)
 }

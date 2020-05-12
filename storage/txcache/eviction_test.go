@@ -257,7 +257,7 @@ func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 }
 
 func Test_EvictSendersAndTheirTxs_Concurrently(t *testing.T) {
-	cache := newCacheToTest()
+	cache := newUnconstrainedCacheToTest()
 	var wg sync.WaitGroup
 
 	for i := 0; i < 10; i++ {
