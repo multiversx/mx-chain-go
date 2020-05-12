@@ -73,6 +73,8 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		DeveloperFees:          big.NewInt(0),
 		DevFeesInEpoch:         big.NewInt(0),
 		PubKeysBitmap:          []byte{1},
+		ChainID:                []byte(arg.ChainID),
+		SoftwareVersion:        []byte(""),
 	}
 	header.EpochStart.Economics = block.Economics{
 		TotalSupply:            big.NewInt(0).Set(arg.Economics.GenesisTotalSupply()),

@@ -196,3 +196,6 @@ var ErrNilHardForkBlockProcessor = errors.New("nil hard fork block processor")
 
 // ErrNilTrieStorageManager signals that nil trie storage manager has been provided
 var ErrNilTrieStorageManager = errors.New("nil trie storage")
+
+// ErrEmptyChainID signals that empty chain ID was provided
+var ErrEmptyChainID = errors.New("empty chain ID")

@@ -108,6 +108,8 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 		TimeStamp:       arg.GenesisTime,
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
+		ChainID:         []byte(arg.ChainID),
+		SoftwareVersion: []byte(""),
 	}
 
 	return header, nil
