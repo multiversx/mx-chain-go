@@ -6,6 +6,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
+func (e *epochStartMetaSyncer) SetEpochStartMetaBlockInterceptorProcessor(proc EpochStartMetaBlockInterceptorProcessor) {
+	e.metaBlockProcessor = proc
+}
+
 // TODO: We should remove this type of configs hidden in tests
 func getGeneralConfig() config.Config {
 	return config.Config{
