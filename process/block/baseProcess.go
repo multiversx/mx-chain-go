@@ -63,6 +63,7 @@ type baseProcessor struct {
 	feeHandler              process.TransactionFeeHandler
 	blockChain              data.ChainHandler
 	hdrsForCurrBlock        *hdrForBlock
+	genesisNonce            uint64
 
 	appStatusHandler       core.AppStatusHandler
 	stateCheckpointModulus uint
@@ -118,7 +119,7 @@ func (bp *baseProcessor) checkBlockValidity(
 	currentBlockHeader := bp.blockChain.GetCurrentBlockHeader()
 
 	if check.IfNil(currentBlockHeader) {
-		if headerHandler.GetNonce() == 1 { // first block after genesis
+		if headerHandler.GetNonce() == bp.genesisNonce+1 { // first block after genesis
 			if bytes.Equal(headerHandler.GetPrevHash(), bp.blockChain.GetGenesisHeaderHash()) {
 				// TODO: add genesis block verification
 				return nil
@@ -994,11 +995,6 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	if finalHeader.IsStartOfEpochBlock() {
-		log.Debug("trie snapshot", "rootHash", rootHash)
-		accounts.SnapshotState(rootHash)
-	}
-
 	// TODO generate checkpoint on a trigger
 	if bp.stateCheckpointModulus != 0 {
 		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
@@ -1040,13 +1036,13 @@ func (bp *baseProcessor) commitAll() error {
 func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
 	for key := range bp.accountsDB {
 		if !bp.accountsDB[key].IsPruningEnabled() {
-			return
+			continue
 		}
 
 		rootHash, prevRootHash := bp.getRootHashes(currHeader, prevHeader, key)
 
 		if bytes.Equal(rootHash, prevRootHash) {
-			return
+			continue
 		}
 
 		bp.accountsDB[key].CancelPrune(prevRootHash, data.OldRoot)

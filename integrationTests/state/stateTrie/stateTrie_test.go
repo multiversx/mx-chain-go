@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/state/pubkeyConverter"
@@ -1531,7 +1532,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	time.Sleep(integrationTests.StepDelay)
 
 	checkpointsRootHashes := make(map[int][][]byte)
-	snapshotsRootHashes := make(map[int][][]byte)
+	snapshotsRootHashes := make(map[uint32][][]byte)
 	prunedRootHashes := make(map[int][][]byte)
 
 	numShardNodes := numOfShards * nodesPerShard
@@ -1562,7 +1563,8 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	}
 
 	for i := 0; i < numOfShards*nodesPerShard; i++ {
-		testNodeStateCheckpointSnapshotAndPruning(t, nodes[i], checkpointsRootHashes[i], snapshotsRootHashes[i], prunedRootHashes[i])
+		shId := nodes[i].ShardCoordinator.SelfId()
+		testNodeStateCheckpointSnapshotAndPruning(t, nodes[i], checkpointsRootHashes[i], snapshotsRootHashes[shId], prunedRootHashes[i])
 	}
 }
 
@@ -1570,15 +1572,13 @@ func collectSnapshotAndCheckpointHashes(
 	nodes []*integrationTests.TestProcessorNode,
 	numShardNodes int,
 	checkpointsRootHashes map[int][][]byte,
-	snapshotsRootHashes map[int][][]byte,
+	snapshotsRootHashes map[uint32][][]byte,
 	prunedRootHashes map[int][][]byte,
 	stateCheckpointModulus uint64,
 ) {
 	for j := 0; j < numShardNodes; j++ {
 		currentBlockHeader := nodes[j].BlockChain.GetCurrentBlockHeader()
-
 		if currentBlockHeader.IsStartOfEpochBlock() {
-			snapshotsRootHashes[j] = append(snapshotsRootHashes[j], currentBlockHeader.GetRootHash())
 			continue
 		}
 
@@ -1589,6 +1589,23 @@ func collectSnapshotAndCheckpointHashes(
 		}
 
 		prunedRootHashes[j] = append(prunedRootHashes[j], currentBlockHeader.GetRootHash())
+	}
+
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
+			continue
+		}
+
+		currentBlockHeader := node.BlockChain.GetCurrentBlockHeader()
+		if !currentBlockHeader.IsStartOfEpochBlock() {
+			continue
+		}
+
+		metaHdr := currentBlockHeader.(*block.MetaBlock)
+		snapshotsRootHashes[core.MetachainShardId] = append(snapshotsRootHashes[core.MetachainShardId], metaHdr.GetRootHash())
+		for _, epochStartData := range metaHdr.EpochStart.LastFinalizedHeaders {
+			snapshotsRootHashes[epochStartData.ShardID] = append(snapshotsRootHashes[epochStartData.ShardID], epochStartData.RootHash)
+		}
 	}
 }
 

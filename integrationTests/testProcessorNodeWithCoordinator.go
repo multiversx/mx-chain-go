@@ -84,7 +84,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				NbShards:                numShards,
 				EligibleNodes:           validatorsMapForNodesCoordinator,
 				WaitingNodes:            waitingMapForNodesCoordinator,
-				SelfPublicKey:           v.PubKey(),
+				SelfPublicKey:           v.PubKeyBytes(),
 				ConsensusGroupCache:     cache,
 				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 			}

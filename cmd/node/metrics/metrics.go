@@ -88,6 +88,12 @@ func InitMetrics(
 	appStatusHandler.SetStringValue(core.MetricP2PCrossShardValidators, initString)
 	appStatusHandler.SetStringValue(core.MetricP2PCrossShardObservers, initString)
 	appStatusHandler.SetStringValue(core.MetricP2PUnknownPeers, initString)
+	appStatusHandler.SetUInt64Value(core.MetricShardConsensusGroupSize, uint64(nodesConfig.ConsensusGroupSize))
+	appStatusHandler.SetUInt64Value(core.MetricMetaConsensusGroupSize, uint64(nodesConfig.MetaChainConsensusGroupSize))
+	appStatusHandler.SetUInt64Value(core.MetricNumNodesPerShard, uint64(nodesConfig.MinNodesPerShard))
+	appStatusHandler.SetUInt64Value(core.MetricNumMetachainNodes, uint64(nodesConfig.MetaChainMinNodes))
+	appStatusHandler.SetUInt64Value(core.MetricStartTime, uint64(nodesConfig.StartTime))
+	appStatusHandler.SetUInt64Value(core.MetricRoundDuration, nodesConfig.RoundDuration)
 
 	var consensusGroupSize uint32
 	switch {

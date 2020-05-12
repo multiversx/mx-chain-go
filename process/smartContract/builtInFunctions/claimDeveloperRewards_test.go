@@ -26,10 +26,12 @@ func TestClaimDeveloperRewards_ProcessBuiltinFunction(t *testing.T) {
 		VMInput: vmcommon.VMInput{
 			CallerAddr:  sender,
 			GasProvided: 100,
+			CallValue:   big.NewInt(0),
 		},
 	}
 	vmOutput, err = cdr.ProcessBuiltinFunction(nil, nil, vmInput)
 	require.Nil(t, err)
+	require.NotNil(t, vmOutput)
 
 	vmOutput, err = cdr.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Nil(t, vmOutput)

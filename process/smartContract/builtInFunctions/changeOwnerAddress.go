@@ -32,6 +32,9 @@ func (c *changeOwnerAddress) ProcessBuiltinFunction(
 	if len(vmInput.Arguments) == 0 {
 		return nil, process.ErrInvalidArguments
 	}
+	if vmInput.CallValue.Cmp(zero) != 0 {
+		return nil, process.ErrBuiltInFunctionCalledWithValue
+	}
 	if check.IfNil(acntDst) {
 		// cross-shard call, in sender shard only the gas is taken out
 		return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil

@@ -117,7 +117,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	endOfEpoch.VerifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 
 	epochHandler := &mock.EpochStartTriggerStub{
-		EpochCalled: func() uint32 {
+		MetaEpochCalled: func() uint32 {
 			return epoch
 		},
 	}
@@ -295,7 +295,6 @@ func createTries(
 		Marshalizer:              marshalizer,
 		Hasher:                   hasher,
 		PathManager:              pathManager,
-		ShardId:                  core.GetShardIdString(shardId),
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig,
 	}
 	trieFactory, err := triesFactory.NewTrieFactory(trieFactoryArgs)
@@ -304,14 +303,22 @@ func createTries(
 	}
 
 	trieStorageManagers := make(map[string]data.StorageManager)
-	userStorageManager, userAccountTrie, err := trieFactory.Create(config.AccountsTrieStorage, config.StateTriesConfig.AccountsStatePruningEnabled)
+	userStorageManager, userAccountTrie, err := trieFactory.Create(
+		config.AccountsTrieStorage,
+		core.GetShardIdString(shardId),
+		config.StateTriesConfig.AccountsStatePruningEnabled,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 	trieContainer.Put([]byte(triesFactory.UserAccountTrie), userAccountTrie)
 	trieStorageManagers[triesFactory.UserAccountTrie] = userStorageManager
 
-	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(config.PeerAccountsTrieStorage, config.StateTriesConfig.PeerStatePruningEnabled)
+	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(
+		config.PeerAccountsTrieStorage,
+		core.GetShardIdString(shardId),
+		config.StateTriesConfig.PeerStatePruningEnabled,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
