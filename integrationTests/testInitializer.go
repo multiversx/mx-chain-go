@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"math/big"
 	"strings"
 	"sync"
@@ -1914,9 +1915,9 @@ func createTxPool(selfShardID uint32) (dataRetriever.ShardedDataCacherNotifier, 
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
 				Size:                 100000,
-				SizePerSender:        1000,
+				SizePerSender:        math.MaxUint32,
 				SizeInBytes:          1000000000,
-				SizeInBytesPerSender: 10000000,
+				SizeInBytesPerSender: math.MaxUint32,
 				Shards:               16,
 			},
 			MinGasPrice:    100000000000000,
