@@ -39,7 +39,7 @@ type deployedScMetrics struct {
 
 // CreateShardGenesisBlock will create a shard genesis block
 func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter) (data.HeaderHandler, error) {
-	if arg.HardForkConfig.MustImport {
+	if mustDoHardForkImportProcess(arg) {
 		return createShardGenesisAfterHardFork(arg)
 	}
 

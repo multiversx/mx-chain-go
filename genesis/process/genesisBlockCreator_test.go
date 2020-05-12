@@ -6,7 +6,9 @@ import (
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
@@ -19,6 +21,15 @@ import (
 
 //TODO improve code coverage of this package
 func createMockArgument() ArgsGenesisBlockCreator {
+	memDBMock := mock.NewMemDbMock()
+	storageManager := &mock.StorageManagerStub{DatabaseCalled: func() data.DBWriteCacher {
+		return memDBMock
+	}}
+
+	trieStorageManagers := make(map[string]data.StorageManager)
+	trieStorageManagers[factory.UserAccountTrie] = storageManager
+	trieStorageManagers[factory.PeerAccountTrie] = storageManager
+
 	arg := ArgsGenesisBlockCreator{
 		GenesisTime:              0,
 		StartEpochNum:            0,
@@ -38,6 +49,7 @@ func createMockArgument() ArgsGenesisBlockCreator {
 				OwnerAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 			},
 		},
+		TrieStorageManagers: trieStorageManagers,
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{

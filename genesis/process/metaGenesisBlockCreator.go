@@ -34,7 +34,7 @@ import (
 
 // CreateMetaGenesisBlock will create a metachain genesis block
 func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter) (data.HeaderHandler, error) {
-	if arg.HardForkConfig.MustImport {
+	if mustDoHardForkImportProcess(arg) {
 		return createMetaGenesisAfterHardFork(arg)
 	}
 

@@ -175,6 +175,7 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 	defer func() {
 		for _, node := range nodes {
 			_ = os.RemoveAll(node.ExportFolder)
+			_ = os.RemoveAll("./Static")
 		}
 	}()
 
@@ -242,8 +243,8 @@ func hardForkImport(
 				StartRound:               1000,
 				ImportStateStorageConfig: *importStorageConfigs[id],
 			},
-			TrieStorageManager: node.TrieStorage,
-			ChainID:            string(node.ChainID),
+			TrieStorageManagers: node.TrieStorageManagers,
+			ChainID:             string(node.ChainID),
 			SystemSCConfig: config.SystemSmartContractsConfig{
 				ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 					BaseIssuingCost: "1000",

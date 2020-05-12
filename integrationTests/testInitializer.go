@@ -470,6 +470,7 @@ func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 func CreateGenesisBlocks(
 	accounts state.AccountsAdapter,
 	validatorAccounts state.AccountsAdapter,
+	trieStorageManagers map[string]data.StorageManager,
 	pubkeyConv state.PubkeyConverter,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	shardCoordinator sharding.Coordinator,
@@ -490,6 +491,7 @@ func CreateGenesisBlocks(
 	genesisBlocks[core.MetachainShardId] = CreateGenesisMetaBlock(
 		accounts,
 		validatorAccounts,
+		trieStorageManagers,
 		pubkeyConv,
 		nodesSetup,
 		shardCoordinator,
@@ -509,6 +511,7 @@ func CreateGenesisBlocks(
 func CreateGenesisMetaBlock(
 	accounts state.AccountsAdapter,
 	validatorAccounts state.AccountsAdapter,
+	trieStorageManagers map[string]data.StorageManager,
 	pubkeyConv state.PubkeyConverter,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	shardCoordinator sharding.Coordinator,
@@ -526,6 +529,7 @@ func CreateGenesisMetaBlock(
 	argsMetaGenesis := genesisProcess.ArgsGenesisBlockCreator{
 		GenesisTime:              0,
 		Accounts:                 accounts,
+		TrieStorageManagers:      trieStorageManagers,
 		PubkeyConv:               pubkeyConv,
 		InitialNodesSetup:        nodesSetup,
 		ShardCoordinator:         shardCoordinator,
