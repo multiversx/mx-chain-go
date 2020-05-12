@@ -164,7 +164,7 @@ func TestCreateNewBlock(t *testing.T) {
 		MetaBlockHashes: [][]byte{metaHash}, MiniBlockHeaders: expectedMbHeaders,
 		AccumulatedFees: big.NewInt(0),
 		PubKeysBitmap:   []byte{1},
-		SoftwareVersion: []byte("d"),
+		SoftwareVersion: []byte(""),
 	}
 	header, body, err := shardBlockCreator.CreateNewBlock(chainID, round, nonce, epoch)
 	assert.NoError(t, err)

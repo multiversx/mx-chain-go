@@ -119,7 +119,7 @@ func TestMetaBlockCreator_CreateNewBlock(t *testing.T) {
 		ValidatorStatsRootHash: rootHash2,
 		EpochStart:             block.EpochStart{},
 		ChainID:                []byte(chainID),
-		SoftwareVersion:        []byte("d"),
+		SoftwareVersion:        []byte(""),
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
 		PubKeysBitmap:          []byte{1},

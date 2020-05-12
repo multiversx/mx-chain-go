@@ -198,4 +198,4 @@ var ErrNilHardForkBlockProcessor = errors.New("nil hard fork block processor")
 var ErrNilTrieStorageManager = errors.New("nil trie storage")
 
 // ErrEmptyChainID signals that empty chain ID was provided
-var ErrEmptyChainID = errors.New("empty software version")
+var ErrEmptyChainID = errors.New("empty chain ID")

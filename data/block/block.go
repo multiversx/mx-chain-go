@@ -184,7 +184,7 @@ func (h *Header) CheckChainID(reference []byte) error {
 
 // CheckSoftwareVersion returns nil if the software version has the correct length
 func (h *Header) CheckSoftwareVersion() error {
-	if len(h.SoftwareVersion) == 0 && len(h.SoftwareVersion) > core.MaxSoftwareVersionLength {
+	if len(h.SoftwareVersion) == 0 || len(h.SoftwareVersion) > core.MaxSoftwareVersionLengthInBytes {
 		return data.ErrInvalidSoftwareVersion
 	}
 	return nil
