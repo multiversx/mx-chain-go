@@ -36,7 +36,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 				SizeInBytesPerSender: 10000000,
 				Shards:               16,
 			},
-			MinGasPrice:    100000000000000,
+			MinGasPrice:    200000000000,
 			NumberOfShards: 1,
 		},
 	)

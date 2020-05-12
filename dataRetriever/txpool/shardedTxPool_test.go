@@ -24,7 +24,7 @@ func Test_NewShardedTxPool(t *testing.T) {
 }
 
 func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
-	goodArgs := ArgShardedTxPool{Config: storageUnit.CacheConfig{Size: 100, SizePerSender: 10, SizeInBytes: 409600, SizeInBytesPerSender: 40960, Shards: 16}, MinGasPrice: 100000000000000, NumberOfShards: 1}
+	goodArgs := ArgShardedTxPool{Config: storageUnit.CacheConfig{Size: 100, SizePerSender: 10, SizeInBytes: 409600, SizeInBytesPerSender: 40960, Shards: 16}, MinGasPrice: 200000000000, NumberOfShards: 1}
 
 	args := goodArgs
 	args.Config.SizeInBytes = 1
@@ -78,7 +78,7 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 
 func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	config := storageUnit.CacheConfig{SizeInBytes: 524288000, SizeInBytesPerSender: 614400, Size: 900000, SizePerSender: 1000, Shards: 1}
-	args := ArgShardedTxPool{Config: config, MinGasPrice: 100000000000000, NumberOfShards: 5}
+	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 5}
 
 	poolAsInterface, err := NewShardedTxPool(args)
 	require.Nil(t, err)
@@ -91,7 +91,7 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	require.Equal(t, uint32(100000), pool.cacheConfigPrototype.CountThreshold)
 	require.Equal(t, uint32(1000), pool.cacheConfigPrototype.CountPerSenderThreshold)
 	require.Equal(t, uint32(100), pool.cacheConfigPrototype.NumSendersToEvictInOneStep)
-	require.Equal(t, uint32(100), pool.cacheConfigPrototype.MinGasPriceMicroErd)
+	require.Equal(t, uint32(200), pool.cacheConfigPrototype.MinGasPriceMicroErd)
 	require.Equal(t, uint32(291271110), pool.cacheConfigPrototypeForSelfShard.NumBytesThreshold)
 	require.Equal(t, uint32(500000), pool.cacheConfigPrototypeForSelfShard.CountThreshold)
 }
@@ -319,7 +319,7 @@ func Test_NotImplementedFunctions(t *testing.T) {
 
 func Test_routeToCacheUnions(t *testing.T) {
 	config := storageUnit.CacheConfig{Size: 100, SizePerSender: 10, SizeInBytes: 409600, SizeInBytesPerSender: 40960, Shards: 16}
-	args := ArgShardedTxPool{Config: config, MinGasPrice: 100000000000000, NumberOfShards: 4, SelfShardID: 42}
+	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 4, SelfShardID: 42}
 	poolAsInterface, _ := NewShardedTxPool(args)
 	pool := poolAsInterface.(*shardedTxPool)
 
@@ -334,7 +334,7 @@ func Test_routeToCacheUnions(t *testing.T) {
 
 func Test_getCacheConfig(t *testing.T) {
 	config := storageUnit.CacheConfig{Size: 150, SizePerSender: 1, SizeInBytes: 61440, SizeInBytesPerSender: 40960, Shards: 16}
-	args := ArgShardedTxPool{Config: config, MinGasPrice: 100000000000000, NumberOfShards: 8, SelfShardID: 4}
+	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 8, SelfShardID: 4}
 	poolAsInterface, _ := NewShardedTxPool(args)
 	pool := poolAsInterface.(*shardedTxPool)
 
@@ -368,6 +368,6 @@ type thisIsNotATransaction struct {
 
 func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 	config := storageUnit.CacheConfig{Size: 100, SizePerSender: 10, SizeInBytes: 409600, SizeInBytesPerSender: 40960, Shards: 16}
-	args := ArgShardedTxPool{Config: config, MinGasPrice: 100000000000000, NumberOfShards: 4}
+	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 4}
 	return NewShardedTxPool(args)
 }

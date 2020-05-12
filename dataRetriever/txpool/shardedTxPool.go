@@ -37,14 +37,14 @@ type txPoolShard struct {
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
 func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNotifier, error) {
-	log.Trace("NewShardedTxPool", "args", args)
+	log.Info("NewShardedTxPool", "args", args)
 
 	err := args.verify()
 	if err != nil {
 		return nil, err
 	}
 
-	const oneTrilion = 1000000 * 1000000
+	const oneBillion = 1000000 * 1000
 	numCaches := 2*args.NumberOfShards - 1
 
 	cacheConfigPrototype := txcache.CacheConfig{
@@ -55,7 +55,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		CountThreshold:             args.Config.Size / numCaches,
 		CountPerSenderThreshold:    args.Config.SizePerSender,
 		NumSendersToEvictInOneStep: dataRetriever.TxPoolNumSendersToEvictInOneStep,
-		MinGasPriceMicroErd:        uint32(args.MinGasPrice / oneTrilion),
+		MinGasPriceMicroErd:        uint32(args.MinGasPrice / oneBillion),
 	}
 
 	cacheConfigPrototypeForSelfShard := cacheConfigPrototype
