@@ -13,6 +13,70 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func Test_NewTxCache(t *testing.T) {
+	config := CacheConfig{
+		Name:                       "test",
+		NumChunksHint:              16,
+		NumBytesPerSenderThreshold: math.MaxUint32,
+		CountPerSenderThreshold:    math.MaxUint32,
+		MinGasPriceMicroErd:        100,
+	}
+
+	evictionConfig := CacheConfig{
+		Name:                       "test",
+		NumChunksHint:              16,
+		NumBytesPerSenderThreshold: math.MaxUint32,
+		CountPerSenderThreshold:    math.MaxUint32,
+		MinGasPriceMicroErd:        100,
+		EvictionEnabled:            true,
+		NumBytesThreshold:          math.MaxUint32,
+		CountThreshold:             math.MaxUint32,
+		NumSendersToEvictInOneStep: 100,
+	}
+
+	cache, err := NewTxCache(config)
+	require.Nil(t, err)
+	require.NotNil(t, cache)
+
+	badConfig := config
+	badConfig.Name = ""
+	requireErrorOnNewTxCache(t, badConfig, "config.Name")
+
+	badConfig = config
+	badConfig.NumChunksHint = 0
+	requireErrorOnNewTxCache(t, badConfig, "config.NumChunksHint")
+
+	badConfig = config
+	badConfig.NumBytesPerSenderThreshold = 0
+	requireErrorOnNewTxCache(t, badConfig, "config.NumBytesPerSenderThreshold")
+
+	badConfig = config
+	badConfig.CountPerSenderThreshold = 0
+	requireErrorOnNewTxCache(t, badConfig, "config.CountPerSenderThreshold")
+
+	badConfig = config
+	badConfig.MinGasPriceMicroErd = 0
+	requireErrorOnNewTxCache(t, badConfig, "config.MinGasPriceMicroErd")
+
+	badConfig = evictionConfig
+	badConfig.NumBytesThreshold = 0
+	requireErrorOnNewTxCache(t, badConfig, "config.NumBytesThreshold")
+
+	badConfig = evictionConfig
+	badConfig.CountThreshold = 0
+	requireErrorOnNewTxCache(t, badConfig, "config.CountThreshold")
+
+	badConfig = evictionConfig
+	badConfig.NumSendersToEvictInOneStep = 0
+	requireErrorOnNewTxCache(t, badConfig, "config.NumSendersToEvictInOneStep")
+}
+
+func requireErrorOnNewTxCache(t *testing.T, config CacheConfig, errMessage string) {
+	cache, err := NewTxCache(config)
+	require.Contains(t, err.Error(), errMessage)
+	require.Nil(t, cache)
+}
+
 func Test_AddTx(t *testing.T) {
 	cache := newCacheToTest()
 
