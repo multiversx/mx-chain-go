@@ -109,15 +109,17 @@ func createTestImportFile(t *testing.T, folderName string, storer storage.Storer
 }
 
 func TestNewStateImport(t *testing.T) {
+	trieStorageManagers := make(map[string]data.StorageManager)
+	trieStorageManagers[factory.UserAccountTrie] = &mock.StorageManagerStub{}
 	tests := []struct {
 		name    string
 		args    ArgsNewStateImport
 		exError error
 	}{
-		{name: "NilReader", args: ArgsNewStateImport{Reader: nil, Marshalizer: &mock.MarshalizerMock{}, Hasher: &mock.HasherStub{}, TrieStorageManagers: make(map[string]data.StorageManager)}, exError: update.ErrNilMultiFileReader},
-		{name: "NilMarshalizer", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: nil, Hasher: &mock.HasherStub{}, TrieStorageManagers: make(map[string]data.StorageManager)}, exError: update.ErrNilMarshalizer},
-		{name: "NilHasher", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: &mock.MarshalizerMock{}, Hasher: nil, TrieStorageManagers: make(map[string]data.StorageManager)}, exError: update.ErrNilHasher},
-		{name: "Ok", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: &mock.MarshalizerMock{}, Hasher: &mock.HasherStub{}, TrieStorageManagers: make(map[string]data.StorageManager)}, exError: nil},
+		{name: "NilReader", args: ArgsNewStateImport{Reader: nil, Marshalizer: &mock.MarshalizerMock{}, Hasher: &mock.HasherStub{}, TrieStorageManagers: trieStorageManagers}, exError: update.ErrNilMultiFileReader},
+		{name: "NilMarshalizer", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: nil, Hasher: &mock.HasherStub{}, TrieStorageManagers: trieStorageManagers}, exError: update.ErrNilMarshalizer},
+		{name: "NilHasher", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: &mock.MarshalizerMock{}, Hasher: nil, TrieStorageManagers: trieStorageManagers}, exError: update.ErrNilHasher},
+		{name: "Ok", args: ArgsNewStateImport{Reader: &mock.MultiFileReaderStub{}, Marshalizer: &mock.MarshalizerMock{}, Hasher: &mock.HasherStub{}, TrieStorageManagers: trieStorageManagers}, exError: nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

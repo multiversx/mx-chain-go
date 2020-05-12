@@ -194,11 +194,8 @@ var ErrNilPendingTxProcessor = errors.New("nil pending tx processor")
 // ErrNilHardForkBlockProcessor signals that nil hard fork block processor has been provided
 var ErrNilHardForkBlockProcessor = errors.New("nil hard fork block processor")
 
-// ErrNilTrieStorageManager signals that nil trie storage manager has been provided
-var ErrNilTrieStorageManager = errors.New("nil trie storage")
-
-// ErrEmptySoftwareVersion signals that empty software version was provided
-var ErrEmptySoftwareVersion = errors.New("empty software version")
+// ErrNilTrieStorageManagers signals that nil trie storage managers has been provided
+var ErrNilTrieStorageManagers = errors.New("nil trie storage managers")
 
 // ErrEmptyChainID signals that empty chain ID was provided
-var ErrEmptyChainID = errors.New("empty software version")
+var ErrEmptyChainID = errors.New("empty chain ID")

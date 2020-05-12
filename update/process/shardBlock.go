@@ -67,14 +67,10 @@ func NewShardBlockCreatorAfterHardFork(args ArgsNewShardBlockCreatorAfterHardFor
 // CreateNewBlock will create a new block after hardfork import
 func (s *shardBlockCreator) CreateNewBlock(
 	chainID string,
-	version string,
 	round uint64,
 	nonce uint64,
 	epoch uint32,
 ) (data.HeaderHandler, data.BodyHandler, error) {
-	if len(version) == 0 {
-		return nil, nil, update.ErrEmptySoftwareVersion
-	}
 	if len(chainID) == 0 {
 		return nil, nil, update.ErrEmptyChainID
 	}
@@ -89,14 +85,13 @@ func (s *shardBlockCreator) CreateNewBlock(
 		return nil, nil, err
 	}
 
-	sftVersionLength := core.MinInt(core.MaxSoftwareVersionLength, len(version))
 	shardHeader := &block.Header{
 		Nonce:           nonce,
 		ShardID:         s.shardCoordinator.SelfId(),
 		Round:           round,
 		Epoch:           epoch,
 		ChainID:         []byte(chainID),
-		SoftwareVersion: []byte(version[:sftVersionLength]),
+		SoftwareVersion: []byte(""),
 		RootHash:        rootHash,
 		RandSeed:        rootHash,
 		PrevHash:        rootHash,

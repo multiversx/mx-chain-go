@@ -60,8 +60,8 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, update.ErrNilMarshalizer
 	}
-	if args.TrieStorageManagers == nil {
-		return nil, update.ErrNilTrieStorageManager
+	if len(args.TrieStorageManagers) == 0 {
+		return nil, update.ErrNilTrieStorageManagers
 	}
 
 	st := &stateImport{
@@ -253,6 +253,21 @@ func (si *stateImport) importDataTrie(fileName string) error {
 	var value []byte
 	var err error
 	var address []byte
+
+	// read root hash - that is the first saved in the file
+	key, _, err = si.reader.ReadNextItem(fileName)
+	if err != nil {
+		return err
+	}
+
+	keyType, _, err := GetKeyTypeAndHash(key)
+	if err != nil {
+		return err
+	}
+
+	if keyType != RootHash {
+		return fmt.Errorf("%w wanted a roothash", update.ErrWrongTypeAssertion)
+	}
 
 	dataTrie, err := trie.NewTrie(si.trieStorageManagers[triesFactory.UserAccountTrie], si.marshalizer, si.hasher)
 	if err != nil {

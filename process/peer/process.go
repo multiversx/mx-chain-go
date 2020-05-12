@@ -854,7 +854,7 @@ func (vs *validatorStatistics) updateValidatorInfo(
 
 		peerAcc.IncreaseNumSelectedInSuccessBlocks()
 
-		var newRating uint32
+		newRating := peerAcc.GetRating()
 		isLeader := i == 0
 		validatorSigned := (signingBitmap[i/8] & (1 << (uint16(i) % 8))) != 0
 		actionType := vs.computeValidatorActionType(isLeader, validatorSigned)
@@ -870,13 +870,13 @@ func (vs *validatorStatistics) updateValidatorInfo(
 			peerAcc.IncreaseValidatorSuccessRate(1)
 			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
 		case validatorFail:
-			peerAcc.DecreaseValidatorSuccessRate(1)
-			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
+			if epoch >= vs.ratingEnableEpoch {
+				peerAcc.DecreaseValidatorSuccessRate(1)
+				newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
+			}
 		}
 
-		if epoch >= vs.ratingEnableEpoch {
-			peerAcc.SetTempRating(newRating)
-		}
+		peerAcc.SetTempRating(newRating)
 
 		err = vs.peerAdapter.SaveAccount(peerAcc)
 		if err != nil {
