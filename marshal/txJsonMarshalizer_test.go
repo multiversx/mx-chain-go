@@ -35,4 +35,5 @@ func TestTxJsonMarshalizer_MarshalUnmarshalWithCharactersThatCouldBeEncoded(t *t
 	var resTx1 *TestTxStruct
 	err = tjm.Unmarshal(&resTx1, marshaledTx1)
 	assert.Equal(t, tx, resTx1)
+	assert.NoError(t, err)
 }
