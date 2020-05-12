@@ -81,7 +81,7 @@ func computeSenderScore(params senderScoreParams) float64 {
 	// We use size in ~kB
 	const bytesInKB = 1000
 	size := float64(params.size) / bytesInKB
-	sizePow2 := float64(size) * float64(size)
+	sizePow2 := size * size
 	sizeScore := math.Log(sizePow2+1) + 1
 
 	rawScore := PPUScore / countScore / sizeScore
