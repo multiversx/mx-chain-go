@@ -84,7 +84,7 @@ type ResUpdateNodes struct {
 // NodesShuffler provides shuffling functionality for nodes
 type NodesShuffler interface {
 	UpdateParams(numNodesShard uint32, numNodesMeta uint32, hysteresis float32, adaptivity bool)
-	UpdateNodeLists(args ArgsUpdateNodes) ResUpdateNodes
+	UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error)
 	IsInterfaceNil() bool
 }
 

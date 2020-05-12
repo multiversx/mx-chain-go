@@ -542,7 +542,11 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		NbShards:          newNodesConfig.nbShards,
 	}
 
-	resUpdateNodes := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
+	resUpdateNodes, err := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
+	if err != nil {
+		log.Error("could not compute UpdateNodeLists - do nothing on nodesCoordinator epochStartPrepare", "err", err.Error())
+		return
+	}
 
 	leavingNodesMap, stillRemainingNodesMap := createActuallyLeavingPerShards(
 		newNodesConfig.leavingMap,
@@ -553,11 +557,13 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	err = ihgs.setNodesPerShards(resUpdateNodes.Eligible, resUpdateNodes.Waiting, leavingNodesMap, newEpoch)
 	if err != nil {
 		log.Error("set nodes per shard failed", "error", err.Error())
+		return
 	}
 
 	err = ihgs.saveState(randomness)
 	if err != nil {
 		log.Error("saving nodes coordinator config failed", "error", err.Error())
+		return
 	}
 
 	displayNodesConfiguration(
@@ -598,22 +604,23 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 
 	for _, validatorInfo := range validatorInfos {
 		chance := ihgs.nodesCoordinatorHelper.GetChance(validatorInfo.TempRating)
-		newValidator, err := NewValidator(validatorInfo.PublicKey, chance, validatorInfo.Index)
+		currentValidator, err := NewValidator(validatorInfo.PublicKey, chance, validatorInfo.Index)
 		if err != nil {
 			return nil, err
 		}
 
 		switch validatorInfo.List {
 		case string(core.WaitingList):
-			waitingMap[validatorInfo.ShardId] = append(waitingMap[validatorInfo.ShardId], newValidator)
+			waitingMap[validatorInfo.ShardId] = append(waitingMap[validatorInfo.ShardId], currentValidator)
 		case string(core.EligibleList):
-			eligibleMap[validatorInfo.ShardId] = append(eligibleMap[validatorInfo.ShardId], newValidator)
+			eligibleMap[validatorInfo.ShardId] = append(eligibleMap[validatorInfo.ShardId], currentValidator)
 		case string(core.LeavingList):
 			log.Debug("leaving node trie", "pk", validatorInfo.PublicKey)
-			leavingMap[validatorInfo.ShardId] = append(leavingMap[validatorInfo.ShardId], newValidator)
+			eligibleMap[validatorInfo.ShardId] = append(eligibleMap[validatorInfo.ShardId], currentValidator)
+			leavingMap[validatorInfo.ShardId] = append(leavingMap[validatorInfo.ShardId], currentValidator)
 		case string(core.NewList):
 			log.Debug("new node registered", "pk", validatorInfo.PublicKey)
-			newNodesList = append(newNodesList, newValidator)
+			newNodesList = append(newNodesList, currentValidator)
 		case string(core.InactiveList):
 			log.Debug("inactive validator", "pk", validatorInfo.PublicKey)
 		}
