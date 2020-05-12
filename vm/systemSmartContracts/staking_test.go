@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -570,6 +571,57 @@ func TestStakingSC_ExecuteFinalizeUnBoundBeforePeriodEnds(t *testing.T) {
 	arguments.CallerAddr = []byte("data")
 	arguments.Function = "finalizeUnStake"
 	arguments.Arguments = [][]byte{blsPubKey.Bytes()}
+
+	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+}
+
+func TestStakingSC_ExecuteUnBoundStillValidator(t *testing.T) {
+	t.Parallel()
+
+	unBondPeriod := uint64(100)
+	unstakedNonce := uint64(10)
+	registrationData := StakedData{
+		RegisterNonce: 0,
+		Staked:        false,
+		UnStakedNonce: unstakedNonce,
+		RewardAddress: []byte("auction"),
+		StakeValue:    big.NewInt(100),
+		JailedRound:   math.MaxUint64,
+	}
+
+	peerAccount := state.NewEmptyPeerAccount()
+	peerAccount.List = string(core.EligibleList)
+	stakeValue := big.NewInt(100)
+	marshalizedRegData, _ := json.Marshal(&registrationData)
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{
+			CurrentNonceCalled: func() uint64 {
+				return unstakedNonce + unBondPeriod + 1
+			},
+		},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+				return peerAccount, nil
+			}})
+	scAddress := []byte("owner")
+	eei.SetSCAddress(scAddress)
+	eei.SetStorage([]byte(ownerKey), scAddress)
+
+	args := createMockStakingScArguments()
+	args.MinStakeValue = stakeValue
+	args.Eei = eei
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+
+	arguments := CreateVmContractCallInput()
+	arguments.CallerAddr = []byte("auction")
+	arguments.Function = "unBond"
+	arguments.Arguments = [][]byte{[]byte("abc")}
+
+	stakingSmartContract.eei.SetStorage(arguments.Arguments[0], marshalizedRegData)
+	stakingSmartContract.setConfig(&StakingNodesConfig{MinNumNodes: 5, StakedNodes: 10})
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
