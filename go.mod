@@ -19,31 +19,30 @@ require (
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.3.5
 	github.com/google/gops v0.3.6
-	github.com/gorilla/websocket v1.4.1
-	github.com/hashicorp/golang-lru v0.5.3
+	github.com/gorilla/websocket v1.4.2
+	github.com/hashicorp/golang-lru v0.5.4
 	github.com/herumi/bls-go-binary v0.0.0-20200324054641-17de9ae04665
-	github.com/ipfs/go-log v0.0.1
-	github.com/jbenet/goprocess v0.1.3
+	github.com/ipfs/go-log v1.0.4
+	github.com/jbenet/goprocess v0.1.4
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
-	github.com/libp2p/go-libp2p v0.3.1
-	github.com/libp2p/go-libp2p-core v0.2.2
-	github.com/libp2p/go-libp2p-discovery v0.1.0
-	github.com/libp2p/go-libp2p-kad-dht v0.2.1
-	github.com/libp2p/go-libp2p-kbucket v0.2.1
-	github.com/libp2p/go-libp2p-pubsub v0.1.1
+	github.com/libp2p/go-libp2p v0.8.2
+	github.com/libp2p/go-libp2p-core v0.5.3
+	github.com/libp2p/go-libp2p-discovery v0.3.0
+	github.com/libp2p/go-libp2p-kad-dht v0.7.11
+	github.com/libp2p/go-libp2p-kbucket v0.4.1
+	github.com/libp2p/go-libp2p-pubsub v0.2.6
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/mr-tron/base58 v1.1.3
-	github.com/multiformats/go-multiaddr v0.0.4
+	github.com/multiformats/go-multiaddr v0.2.1
 	github.com/pelletier/go-toml v1.6.0
-	github.com/pkg/errors v0.8.1
+	github.com/pkg/errors v0.9.1
 	github.com/pkg/profile v1.3.0
 	github.com/shirou/gopsutil v0.0.0-20190731134726-d80c43f9c984
 	github.com/stretchr/testify v1.5.1
 	github.com/syndtr/goleveldb v1.0.1-0.20190318030020-c3a204f8e965
 	github.com/urfave/cli v1.20.0
-	github.com/whyrusleeping/go-logging v0.0.1 // indirect
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
-	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
-	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
+	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )

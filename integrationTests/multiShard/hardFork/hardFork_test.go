@@ -2,7 +2,6 @@ package hardFork
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"math/big"
 	"os"
@@ -38,7 +37,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
@@ -110,7 +109,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(

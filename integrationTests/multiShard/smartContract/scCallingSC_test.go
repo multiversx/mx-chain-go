@@ -2,7 +2,6 @@ package smartContract
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -34,7 +33,7 @@ func TestSCCallingIntraShard(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 0
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
@@ -118,7 +117,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
@@ -219,7 +218,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
@@ -337,7 +336,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	nodesPerShard := 3
 	numMetachainNodes := 3
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
@@ -424,7 +423,7 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 	shardConsensusGroupSize := 2
 	metaConsensusGroupSize := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
@@ -519,7 +518,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	shardConsensusGroupSize := 2
 	metaConsensusGroupSize := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(

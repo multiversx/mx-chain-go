@@ -1,7 +1,6 @@
 package epochChangeWithNodesShuffling
 
 import (
-	"context"
 	"math/big"
 	"testing"
 	"time"
@@ -21,7 +20,7 @@ func TestEpochChangeWithNodesShuffling(t *testing.T) {
 	consensusGroupSize := 2
 	maxGasLimitPerBlock := uint64(100000)
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
