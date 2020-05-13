@@ -319,8 +319,9 @@ func createConsensusOnlyNode(
 		},
 		CreateNewHeaderCalled: func(round uint64, nonce uint64) data.HeaderHandler {
 			return &dataBlock.Header{
-				Round: round,
-				Nonce: nonce,
+				Round:           round,
+				Nonce:           nonce,
+				SoftwareVersion: []byte("version"),
 			}
 		},
 	}

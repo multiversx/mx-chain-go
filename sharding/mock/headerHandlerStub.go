@@ -8,10 +8,19 @@ import (
 
 // HeaderHandlerStub --
 type HeaderHandlerStub struct {
-	GetPrevRandSeedCalled     func() []byte
-	GetRandSeedCalled         func() []byte
-	IsStartOfEpochBlockCalled func() bool
-	GetEpochCaled             func() uint32
+	GetPrevRandSeedCalled      func() []byte
+	GetRandSeedCalled          func() []byte
+	IsStartOfEpochBlockCalled  func() bool
+	GetEpochCaled              func() uint32
+	CheckSoftwareVersionCalled func() error
+}
+
+// CheckSoftwareVersion -
+func (hhs *HeaderHandlerStub) CheckSoftwareVersion() error {
+	if hhs.CheckSoftwareVersionCalled != nil {
+		return hhs.CheckSoftwareVersionCalled()
+	}
+	return nil
 }
 
 // GetAccumulatedFees --

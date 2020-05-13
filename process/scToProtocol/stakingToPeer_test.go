@@ -273,7 +273,6 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 		peerAcc, _ := state.NewPeerAccount(address)
 		_ = peerAcc.SetRewardAddress([]byte("addr"))
 		_ = peerAcc.SetBLSPublicKey([]byte("BlsAddr"))
-		_ = peerAcc.SetStake(big.NewInt(100))
 
 		return peerAcc, nil
 	}
@@ -325,7 +324,6 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		peerAcc, _ := state.NewPeerAccount(address)
 		_ = peerAcc.SetRewardAddress([]byte("key"))
-		_ = peerAcc.SetStake(big.NewInt(100))
 
 		return peerAcc, nil
 	}
@@ -387,7 +385,6 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 
 	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		peerAccount, _ := state.NewPeerAccount(address)
-		peerAccount.Stake = big.NewInt(0)
 		peerAccount.RewardAddress = address
 		return peerAccount, nil
 	}
@@ -449,7 +446,6 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 	}
 	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		peerAccount, _ := state.NewPeerAccount([]byte("1234"))
-		peerAccount.Stake = big.NewInt(100)
 		peerAccount.BLSPublicKey = address
 		peerAccount.Nonce = 1
 		return peerAccount, nil
@@ -511,7 +507,6 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 	}
 	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		peerAccount, _ := state.NewPeerAccount([]byte("1234"))
-		peerAccount.Stake = big.NewInt(100)
 		peerAccount.BLSPublicKey = address
 		peerAccount.Nonce = 1
 		return peerAccount, nil
@@ -574,7 +569,6 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 	}
 	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		peerAccount, _ := state.NewPeerAccount([]byte("1234"))
-		peerAccount.Stake = big.NewInt(100)
 		peerAccount.BLSPublicKey = address
 		peerAccount.IndexInList = 1
 		return peerAccount, nil

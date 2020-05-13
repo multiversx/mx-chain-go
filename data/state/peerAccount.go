@@ -16,7 +16,6 @@ func NewEmptyPeerAccount() *peerAccount {
 	return &peerAccount{
 		baseAccount: &baseAccount{},
 		PeerAccountData: PeerAccountData{
-			Stake:           big.NewInt(0),
 			AccumulatedFees: big.NewInt(0),
 		},
 	}
@@ -34,7 +33,6 @@ func NewPeerAccount(address []byte) (*peerAccount, error) {
 			dataTrieTracker: NewTrackableDataTrie(address, nil),
 		},
 		PeerAccountData: PeerAccountData{
-			Stake:           big.NewInt(0),
 			AccumulatedFees: big.NewInt(0),
 		},
 	}, nil
@@ -57,16 +55,6 @@ func (pa *peerAccount) SetRewardAddress(address []byte) error {
 	}
 
 	pa.RewardAddress = address
-	return nil
-}
-
-// SetStake sets the account's stake
-func (pa *peerAccount) SetStake(stake *big.Int) error {
-	if stake == nil {
-		return ErrNilStake
-	}
-
-	pa.Stake = big.NewInt(0).Set(stake)
 	return nil
 }
 
