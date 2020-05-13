@@ -37,6 +37,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	keyIndex int,
 	ownAccount *TestWalletAccount,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
+	headerIntegrityVerifier process.InterceptedHeaderIntegrityVerifier,
 	nodeSetup sharding.GenesisNodesSetupHandler,
 ) *TestProcessorNode {
 
@@ -44,13 +45,14 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 
 	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
 	tpn := &TestProcessorNode{
-		ShardCoordinator:  shardCoordinator,
-		Messenger:         messenger,
-		NodesCoordinator:  nodesCoordinator,
-		HeaderSigVerifier: headerSigVerifier,
-		ChainID:           ChainID,
-		NodesSetup:        nodeSetup,
-		RatingsData:       ratingsData,
+		ShardCoordinator:        shardCoordinator,
+		Messenger:               messenger,
+		NodesCoordinator:        nodesCoordinator,
+		HeaderSigVerifier:       headerSigVerifier,
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		ChainID:                 ChainID,
+		NodesSetup:              nodeSetup,
+		RatingsData:             ratingsData,
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
@@ -241,6 +243,7 @@ func CreateNode(
 		keyIndex,
 		nil,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeaderIntegrityVerifierStub{},
 		nodesSetup,
 	)
 }
@@ -296,7 +299,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
 		if err != nil {
-			fmt.Println("Error creating node coordinator")
+			fmt.Println("Error creating node coordinator: " + err.Error())
 		}
 
 		nodesList := make([]*TestProcessorNode, len(validatorList))
@@ -321,6 +324,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 				i,
 				nil,
 				headerSig,
+				headerCheck.NewHeaderIntegrityVerifier(),
 				nodesSetup,
 			)
 		}
@@ -418,6 +422,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				i,
 				ownAccount,
 				headerSig,
+				headerCheck.NewHeaderIntegrityVerifier(),
 				nodesSetup,
 			)
 		}

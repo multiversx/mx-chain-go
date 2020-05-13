@@ -22,6 +22,7 @@ var _ process.InterceptedData = (*InterceptedHeader)(nil)
 type InterceptedHeader struct {
 	hdr               *block.Header
 	sigVerifier       process.InterceptedHeaderSigVerifier
+	integrityVerifier process.InterceptedHeaderIntegrityVerifier
 	hasher            hashing.Hasher
 	shardCoordinator  sharding.Coordinator
 	hash              []byte
@@ -48,6 +49,7 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 		hdr:               hdr,
 		hasher:            arg.Hasher,
 		sigVerifier:       arg.HeaderSigVerifier,
+		integrityVerifier: arg.HeaderIntegrityVerifier,
 		shardCoordinator:  arg.ShardCoordinator,
 		chainID:           arg.ChainID,
 		validityAttester:  arg.ValidityAttester,
@@ -79,12 +81,7 @@ func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 
 // CheckValidity checks if the received header is valid (not nil fields, valid sig and so on)
 func (inHdr *InterceptedHeader) CheckValidity() error {
-	err := inHdr.hdr.CheckChainID(inHdr.chainID)
-	if err != nil {
-		return err
-	}
-
-	err = inHdr.hdr.CheckSoftwareVersion()
+	err := inHdr.integrityVerifier.Verify(inHdr.hdr, inHdr.chainID)
 	if err != nil {
 		return err
 	}

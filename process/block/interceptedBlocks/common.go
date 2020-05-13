@@ -28,6 +28,9 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if check.IfNil(arg.HeaderSigVerifier) {
 		return process.ErrNilHeaderSigVerifier
 	}
+	if check.IfNil(arg.HeaderIntegrityVerifier) {
+		return process.ErrNilHeaderIntegrityVerifier
+	}
 	if check.IfNil(arg.EpochStartTrigger) {
 		return process.ErrNilEpochStartTrigger
 	}

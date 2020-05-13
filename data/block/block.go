@@ -2,12 +2,8 @@
 package block
 
 import (
-	"bytes"
-	"encoding/hex"
-	"fmt"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -77,6 +73,11 @@ func (h *Header) SetLeaderSignature(sg []byte) {
 // SetChainID sets the chain ID on which this block is valid on
 func (h *Header) SetChainID(chainID []byte) {
 	h.ChainID = chainID
+}
+
+// SetSoftwareVersion sets the chain ID on which this block is valid on
+func (h *Header) SetSoftwareVersion(version []byte) {
+	h.SoftwareVersion = version
 }
 
 // SetTimeStamp sets header timestamp
@@ -165,29 +166,6 @@ func (h *Header) IsInterfaceNil() bool {
 // IsStartOfEpochBlock verifies if the block is of type start of epoch
 func (h *Header) IsStartOfEpochBlock() bool {
 	return len(h.EpochStartMetaHash) > 0
-}
-
-// CheckChainID returns nil if the header's chain ID matches the one provided
-// otherwise, it will error
-func (h *Header) CheckChainID(reference []byte) error {
-	if !bytes.Equal(h.ChainID, reference) {
-		return fmt.Errorf(
-			"%w, expected: %s, got %s",
-			data.ErrInvalidChainID,
-			hex.EncodeToString(reference),
-			hex.EncodeToString(h.ChainID),
-		)
-	}
-
-	return nil
-}
-
-// CheckSoftwareVersion returns nil if the software version has the correct length
-func (h *Header) CheckSoftwareVersion() error {
-	if len(h.SoftwareVersion) == 0 || len(h.SoftwareVersion) > core.MaxSoftwareVersionLengthInBytes {
-		return data.ErrInvalidSoftwareVersion
-	}
-	return nil
 }
 
 // Clone the underlying data

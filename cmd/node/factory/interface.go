@@ -5,11 +5,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
-//HeaderSigVerifierHandler is the interface needed to check a header if is correct
+// HeaderSigVerifierHandler is the interface needed to check that a header's signature is correct
 type HeaderSigVerifierHandler interface {
 	VerifyRandSeed(header data.HeaderHandler) error
 	VerifyRandSeedAndLeaderSignature(header data.HeaderHandler) error
 	VerifySignature(header data.HeaderHandler) error
+	IsInterfaceNil() bool
+}
+
+// HeaderIntegrityVerifierHandler is the interface needed to check that a header's integrity is correct
+type HeaderIntegrityVerifierHandler interface {
+	Verify(header data.HeaderHandler, referenceChainID []byte) error
 	IsInterfaceNil() bool
 }
 

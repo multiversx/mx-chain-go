@@ -250,3 +250,12 @@ func (hhs *HeaderHandlerStub) CheckChainID(reference []byte) error {
 func (hhs *HeaderHandlerStub) GetEpochStartMetaHash() []byte {
 	panic("implement me")
 }
+
+// GetSoftwareVersion -
+func (hhs *HeaderHandlerStub) GetSoftwareVersion() []byte {
+	return []byte("softwareVersion")
+}
+
+// SetSoftwareVersion -
+func (hhs *HeaderHandlerStub) SetSoftwareVersion(_ []byte) {
+}

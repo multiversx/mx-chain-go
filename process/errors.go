@@ -569,6 +569,9 @@ var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
+// ErrNilHeaderIntegrityVerifier signals that a nil header integrity verifier has been provided
+var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier")
+
 // ErrFailedTransaction signals that transaction is of type failed.
 var ErrFailedTransaction = errors.New("failed transaction, gas consumed")
 

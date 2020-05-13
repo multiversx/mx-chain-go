@@ -51,34 +51,35 @@ type fullSyncInterceptorsContainerFactory struct {
 
 // ArgsNewFullSyncInterceptorsContainerFactory holds the arguments needed for fullSyncInterceptorsContainerFactory
 type ArgsNewFullSyncInterceptorsContainerFactory struct {
-	Accounts               state.AccountsAdapter
-	ShardCoordinator       sharding.Coordinator
-	NodesCoordinator       sharding.NodesCoordinator
-	Messenger              process.TopicHandler
-	Store                  dataRetriever.StorageService
-	Marshalizer            marshal.Marshalizer
-	TxSignMarshalizer      marshal.Marshalizer
-	Hasher                 hashing.Hasher
-	KeyGen                 crypto.KeyGenerator
-	BlockSignKeyGen        crypto.KeyGenerator
-	SingleSigner           crypto.SingleSigner
-	BlockSingleSigner      crypto.SingleSigner
-	MultiSigner            crypto.MultiSigner
-	DataPool               dataRetriever.PoolsHolder
-	AddressPubkeyConverter state.PubkeyConverter
-	MaxTxNonceDeltaAllowed int
-	TxFeeHandler           process.FeeHandler
-	BlackList              process.BlackListHandler
-	HeaderSigVerifier      process.InterceptedHeaderSigVerifier
-	ChainID                []byte
-	SizeCheckDelta         uint32
-	ValidityAttester       process.ValidityAttester
-	EpochStartTrigger      process.EpochStartTriggerHandler
-	WhiteListHandler       update.WhiteListHandler
-	WhiteListerVerifiedTxs update.WhiteListHandler
-	InterceptorsContainer  process.InterceptorsContainer
-	AntifloodHandler       process.P2PAntifloodHandler
-	NonceConverter         typeConverters.Uint64ByteSliceConverter
+	Accounts                state.AccountsAdapter
+	ShardCoordinator        sharding.Coordinator
+	NodesCoordinator        sharding.NodesCoordinator
+	Messenger               process.TopicHandler
+	Store                   dataRetriever.StorageService
+	Marshalizer             marshal.Marshalizer
+	TxSignMarshalizer       marshal.Marshalizer
+	Hasher                  hashing.Hasher
+	KeyGen                  crypto.KeyGenerator
+	BlockSignKeyGen         crypto.KeyGenerator
+	SingleSigner            crypto.SingleSigner
+	BlockSingleSigner       crypto.SingleSigner
+	MultiSigner             crypto.MultiSigner
+	DataPool                dataRetriever.PoolsHolder
+	AddressPubkeyConverter  state.PubkeyConverter
+	MaxTxNonceDeltaAllowed  int
+	TxFeeHandler            process.FeeHandler
+	BlackList               process.BlackListHandler
+	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
+	ChainID                 []byte
+	SizeCheckDelta          uint32
+	ValidityAttester        process.ValidityAttester
+	EpochStartTrigger       process.EpochStartTriggerHandler
+	WhiteListHandler        update.WhiteListHandler
+	WhiteListerVerifiedTxs  update.WhiteListHandler
+	InterceptorsContainer   process.InterceptorsContainer
+	AntifloodHandler        process.P2PAntifloodHandler
+	NonceConverter          typeConverters.Uint64ByteSliceConverter
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -127,6 +128,9 @@ func NewFullSyncInterceptorsContainerFactory(
 	if check.IfNil(args.HeaderSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
 	}
+	if check.IfNil(args.HeaderIntegrityVerifier) {
+		return nil, process.ErrNilHeaderIntegrityVerifier
+	}
 	if len(args.ChainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
@@ -147,24 +151,25 @@ func NewFullSyncInterceptorsContainerFactory(
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		Hasher:                 args.Hasher,
-		ProtoMarshalizer:       args.Marshalizer,
-		TxSignMarshalizer:      args.TxSignMarshalizer,
-		ShardCoordinator:       args.ShardCoordinator,
-		MultiSigVerifier:       args.MultiSigner,
-		NodesCoordinator:       args.NodesCoordinator,
-		KeyGen:                 args.KeyGen,
-		BlockKeyGen:            args.BlockSignKeyGen,
-		Signer:                 args.SingleSigner,
-		BlockSigner:            args.BlockSingleSigner,
-		AddressPubkeyConv:      args.AddressPubkeyConverter,
-		FeeHandler:             args.TxFeeHandler,
-		HeaderSigVerifier:      args.HeaderSigVerifier,
-		ChainID:                args.ChainID,
-		ValidityAttester:       args.ValidityAttester,
-		EpochStartTrigger:      args.EpochStartTrigger,
-		NonceConverter:         args.NonceConverter,
-		WhiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
+		Hasher:                  args.Hasher,
+		ProtoMarshalizer:        args.Marshalizer,
+		TxSignMarshalizer:       args.TxSignMarshalizer,
+		ShardCoordinator:        args.ShardCoordinator,
+		MultiSigVerifier:        args.MultiSigner,
+		NodesCoordinator:        args.NodesCoordinator,
+		KeyGen:                  args.KeyGen,
+		BlockKeyGen:             args.BlockSignKeyGen,
+		Signer:                  args.SingleSigner,
+		BlockSigner:             args.BlockSingleSigner,
+		AddressPubkeyConv:       args.AddressPubkeyConverter,
+		FeeHandler:              args.TxFeeHandler,
+		HeaderSigVerifier:       args.HeaderSigVerifier,
+		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
+		ChainID:                 args.ChainID,
+		ValidityAttester:        args.ValidityAttester,
+		EpochStartTrigger:       args.EpochStartTrigger,
+		NonceConverter:          args.NonceConverter,
+		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{
