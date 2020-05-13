@@ -65,7 +65,10 @@ type HeaderHandler interface {
 
 	IsInterfaceNil() bool
 	Clone() HeaderHandler
+
+	// TODO: move this checks to a separate component
 	CheckChainID(reference []byte) error
+	CheckSoftwareVersion() error
 }
 
 // BodyHandler interface for a block body
