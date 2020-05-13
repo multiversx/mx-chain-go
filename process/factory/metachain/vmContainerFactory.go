@@ -3,6 +3,7 @@ package metachain
 import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -20,6 +21,7 @@ import (
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 
 type vmContainerFactory struct {
+	validatorAccountsDB state.AccountsAdapter
 	blockChainHookImpl  *hooks.BlockChainHookImpl
 	cryptoHook          vmcommon.CryptoHook
 	systemContracts     vm.SystemSCContainer
@@ -42,6 +44,7 @@ func NewVMContainerFactory(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	systemSCConfig *config.SystemSmartContractsConfig,
+	validatorAccountsDB state.AccountsAdapter,
 ) (*vmContainerFactory, error) {
 	if economics == nil {
 		return nil, process.ErrNilEconomicsData
@@ -61,6 +64,9 @@ func NewVMContainerFactory(
 	if systemSCConfig == nil {
 		return nil, process.ErrNilSystemSCConfig
 	}
+	if check.IfNil(validatorAccountsDB) {
+		return nil, vm.ErrNilValidatorAccountsDB
+	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argBlockChainHook)
 	if err != nil {
@@ -78,6 +84,7 @@ func NewVMContainerFactory(
 		hasher:              hasher,
 		marshalizer:         marshalizer,
 		systemSCConfig:      systemSCConfig,
+		validatorAccountsDB: validatorAccountsDB,
 	}, nil
 }
 
@@ -101,7 +108,12 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, error) {
 	atArgumentParser := vmcommon.NewAtArgumentParser()
 
-	systemEI, err := systemSmartContracts.NewVMContext(vmf.blockChainHookImpl, vmf.cryptoHook, atArgumentParser)
+	systemEI, err := systemSmartContracts.NewVMContext(
+		vmf.blockChainHookImpl,
+		vmf.cryptoHook,
+		atArgumentParser,
+		vmf.validatorAccountsDB,
+	)
 	if err != nil {
 		return nil, err
 	}

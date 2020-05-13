@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
+	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
@@ -42,7 +43,7 @@ func NewGenesisBlockCreator(arg ArgsGenesisBlockCreator) (*genesisBlockCreator, 
 		metaCreatorHandler:  CreateMetaGenesisBlock,
 	}
 
-	if arg.HardForkConfig.MustImport {
+	if mustDoHardForkImportProcess(gbc.arg) {
 		err = gbc.createHardForkImportHandler()
 		if err != nil {
 			return nil, err
@@ -50,6 +51,10 @@ func NewGenesisBlockCreator(arg ArgsGenesisBlockCreator) (*genesisBlockCreator, 
 	}
 
 	return gbc, nil
+}
+
+func mustDoHardForkImportProcess(arg ArgsGenesisBlockCreator) bool {
+	return arg.HardForkConfig.MustImport && arg.StartEpochNum <= arg.HardForkConfig.StartEpoch
 }
 
 func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
@@ -75,12 +80,12 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 	}
 
 	argsHardForkImport := hardfork.ArgsNewStateImport{
-		Reader:             multiFileReader,
-		Hasher:             gbc.arg.Hasher,
-		Marshalizer:        gbc.arg.Marshalizer,
-		ShardID:            gbc.arg.ShardCoordinator.SelfId(),
-		StorageConfig:      gbc.arg.HardForkConfig.ImportStateStorageConfig,
-		TrieStorageManager: gbc.arg.TrieStorageManager,
+		Reader:              multiFileReader,
+		Hasher:              gbc.arg.Hasher,
+		Marshalizer:         gbc.arg.Marshalizer,
+		ShardID:             gbc.arg.ShardCoordinator.SelfId(),
+		StorageConfig:       gbc.arg.HardForkConfig.ImportStateStorageConfig,
+		TrieStorageManagers: gbc.arg.TrieStorageManagers,
 	}
 	importHandler, err := hardfork.NewStateImport(argsHardForkImport)
 	if err != nil {
@@ -137,6 +142,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.SmartContractParser) {
 		return genesis.ErrNilSmartContractParser
 	}
+	if arg.TrieStorageManagers == nil {
+		return genesis.ErrNilTrieStorageManager
+	}
 
 	return nil
 }
@@ -148,7 +156,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	var genesisBlock data.HeaderHandler
 	var newArgument ArgsGenesisBlockCreator
 
-	if gbc.arg.HardForkConfig.MustImport {
+	if mustDoHardForkImportProcess(gbc.arg) {
 		err = gbc.arg.importHandler.ImportAll()
 		if err != nil {
 			return nil, err
@@ -211,10 +219,11 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 	}
 
 	newArgument := gbc.arg //copy the arguments
-	newArgument.Accounts, err = createInMemoryAccountAdapter(
+	newArgument.Accounts, err = createAccountAdapter(
 		newArgument.Marshalizer,
 		newArgument.Hasher,
 		factoryState.NewAccountCreator(),
+		gbc.arg.TrieStorageManagers[triesFactory.UserAccountTrie],
 	)
 	if err != nil {
 		return ArgsGenesisBlockCreator{}, fmt.Errorf("'%w' while generating an in-memory accounts adapter for shard %d",
