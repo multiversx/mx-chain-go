@@ -246,6 +246,10 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 				if errPublish != nil {
 					log.Trace("error sending data", "error", errPublish)
 				}
+			} else {
+				log.Warn("writing on a topic that the node did not register on - message dropped",
+					"topic", sendableData.Topic,
+				)
 			}
 
 			time.Sleep(durationBetweenSends)
