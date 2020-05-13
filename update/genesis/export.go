@@ -34,7 +34,7 @@ type stateExport struct {
 	hasher           hashing.Hasher
 }
 
-var log = logger.GetOrCreate("update/genesis/")
+var log = logger.GetOrCreate("update/genesis")
 
 // NewStateExporter exports all the data at a specific moment to a set of files
 func NewStateExporter(args ArgsNewStateExporter) (*stateExport, error) {

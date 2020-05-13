@@ -91,7 +91,8 @@ func (m *multiFileWriter) Write(fileName string, key string, value []byte) error
 	}
 
 	log.Trace("export", "key", key, "value", value)
-	err = m.exportStore.Put([]byte(key), value)
+	formattedKey := []byte(key + fileName)
+	err = m.exportStore.Put(formattedKey, value)
 	if err != nil {
 		return err
 	}

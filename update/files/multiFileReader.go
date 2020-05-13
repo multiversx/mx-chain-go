@@ -106,7 +106,8 @@ func (m *multiFileReader) ReadNextItem(fileName string) (string, []byte, error) 
 		return "", nil, err
 	}
 
-	value, err := m.importStore.Get(key)
+	formattedKey := []byte(string(key) + fileName)
+	value, err := m.importStore.Get(formattedKey)
 	if err != nil {
 		return "", nil, err
 	}
