@@ -1,7 +1,6 @@
 package basicSync
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -22,7 +21,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	shardId := uint32(0)
 	numNodesPerShard := 6
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
@@ -94,7 +93,7 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 	shardId := uint32(0)
 	numNodesPerShard := 6
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 

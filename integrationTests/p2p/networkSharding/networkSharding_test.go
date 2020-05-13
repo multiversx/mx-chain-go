@@ -1,7 +1,6 @@
 package networkSharding
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -63,7 +62,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	numShards := 2
 	consensusGroupSize := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
