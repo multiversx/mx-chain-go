@@ -79,7 +79,7 @@ func (ptp *PeerTypeProvider) ComputeForPubKey(pubKey []byte) (core.PeerType, uin
 	peerData, ok := ptp.cache[string(pubKey)]
 	ptp.mutCache.RUnlock()
 
-	// component is used could be refreshed on expiration
+	// component is used so it could be refreshed on expiration
 	ptp.refreshCache <- false
 	if ok {
 		return peerData.pType, peerData.pShard, nil
@@ -121,7 +121,6 @@ func (ptp *PeerTypeProvider) updateCache() {
 	allNodes, err := ptp.validatorsProvider.GetLatestValidatorInfos()
 	if err != nil {
 		log.Warn("peerTypeProvider - GetLatestValidatorInfos failed", "error", err)
-		return
 	}
 
 	newCache := ptp.createNewCache(ptp.epochHandler.MetaEpoch(), allNodes)

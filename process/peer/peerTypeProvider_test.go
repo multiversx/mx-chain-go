@@ -107,8 +107,16 @@ func TestPeerTypeProvider_UpdateCache_WithError(t *testing.T) {
 		return nil, expectedErr
 	}
 
+	pk := []byte("pk")
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	nodesCoordinator.GetAllEligibleValidatorsPublicKeysCalled = func() (map[uint32][][]byte, error) {
+		return map[uint32][][]byte{
+			0: {pk},
+		}, nil
+	}
+
 	ptp := PeerTypeProvider{
-		nodesCoordinator:             arg.NodesCoordinator,
+		nodesCoordinator:             nodesCoordinator,
 		epochHandler:                 arg.EpochHandler,
 		validatorsProvider:           arg.ValidatorsProvider,
 		cache:                        nil,
@@ -119,7 +127,8 @@ func TestPeerTypeProvider_UpdateCache_WithError(t *testing.T) {
 
 	ptp.updateCache()
 
-	assert.Nil(t, ptp.cache)
+	assert.NotNil(t, ptp.GetCache())
+	assert.Equal(t, 1, len(ptp.GetCache()))
 }
 
 func TestPeerTypeProvider_UpdateCache(t *testing.T) {
