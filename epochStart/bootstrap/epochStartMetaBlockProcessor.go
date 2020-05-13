@@ -47,8 +47,8 @@ func NewEpochStartMetaBlockProcessor(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	consensusPercentage uint8,
-	minNumConnectedPeers int,
-	minNumOfPeersToConsiderBlockValid int,
+	minNumConnectedPeersConfig int,
+	minNumOfPeersToConsiderBlockValidConfig int,
 ) (*epochStartMetaBlockProcessor, error) {
 	if check.IfNil(messenger) {
 		return nil, epochStart.ErrNilMessenger
@@ -65,10 +65,10 @@ func NewEpochStartMetaBlockProcessor(
 	if !(consensusPercentage > 0 && consensusPercentage <= 100) {
 		return nil, epochStart.ErrInvalidConsensusThreshold
 	}
-	if minNumConnectedPeers < minNumConnectedPeers {
+	if minNumConnectedPeersConfig < minNumConnectedPeers {
 		return nil, epochStart.ErrNotEnoughNumConnectedPeers
 	}
-	if minNumOfPeersToConsiderBlockValid < minNumOfPeersToConsiderBlockValid {
+	if minNumOfPeersToConsiderBlockValidConfig < minNumPeersToConsiderMetaBlockValid {
 		return nil, epochStart.ErrNotEnoughNumOfPeersToConsiderBlockValid
 	}
 
@@ -77,8 +77,8 @@ func NewEpochStartMetaBlockProcessor(
 		requestHandler:                    handler,
 		marshalizer:                       marshalizer,
 		hasher:                            hasher,
-		minNumConnectedPeers:              minNumConnectedPeers,
-		minNumOfPeersToConsiderBlockValid: minNumOfPeersToConsiderBlockValid,
+		minNumConnectedPeers:              minNumConnectedPeersConfig,
+		minNumOfPeersToConsiderBlockValid: minNumOfPeersToConsiderBlockValidConfig,
 		mutReceivedMetaBlocks:             sync.RWMutex{},
 		mapReceivedMetaBlocks:             make(map[string]*block.MetaBlock),
 		mapMetaBlocksFromPeers:            make(map[string][]p2p.PeerID),
