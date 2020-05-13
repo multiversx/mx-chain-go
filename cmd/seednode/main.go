@@ -1,15 +1,18 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"syscall"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger/redirects"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/display"
@@ -17,6 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/urfave/cli"
 )
+
+const defaultLogsPath = "logs"
 
 var (
 	seedNodeHelpTemplate = `NAME:
@@ -46,16 +51,32 @@ VERSION:
 		Usage: "P2P seed will be used when generating credentials for p2p component. Can be any string.",
 		Value: "seed",
 	}
+	// logLevel defines the logger level
+	logLevel = cli.StringFlag{
+		Name: "log-level",
+		Usage: "This flag specifies the logger `level(s)`. It can contain multiple comma-separated value. For example" +
+			", if set to *:INFO the logs for all packages will have the INFO level. However, if set to *:INFO,api:DEBUG" +
+			" the logs for all packages will have the INFO level, excepting the api package which will receive a DEBUG" +
+			" log level.",
+		Value: "*:" + logger.LogInfo.String(),
+	}
+	//logFile is used when the log output needs to be logged in a file
+	logSaveFile = cli.BoolFlag{
+		Name:  "log-save",
+		Usage: "Boolean option for enabling log saving. If set, it will automatically save all the logs into a file.",
+	}
 
 	p2pConfigurationFile = "./config/p2p.toml"
 )
+
+var log = logger.GetOrCreate("main")
 
 func main() {
 	app := cli.NewApp()
 	cli.AppHelpTemplate = seedNodeHelpTemplate
 	app.Name = "SeedNode CLI App"
 	app.Usage = "This is the entry point for starting a new seed node - the app will help bootnodes connect to the network"
-	app.Flags = []cli.Flag{port, p2pSeed}
+	app.Flags = []cli.Flag{port, p2pSeed, logLevel, logSaveFile}
 	app.Version = "v0.0.1"
 	app.Authors = []cli.Author{
 		{
@@ -70,13 +91,34 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Error(err.Error())
 		os.Exit(1)
 	}
 }
 
 func startNode(ctx *cli.Context) error {
-	fmt.Println("Starting node...")
+	var err error
+	withLogFile := ctx.GlobalBool(logSaveFile.Name)
+	if withLogFile {
+		var fileForLogs *os.File
+		workingDir := getWorkingDir(log)
+		fileForLogs, err = prepareLogFile(workingDir)
+		if err != nil {
+			return fmt.Errorf("%w creating a log file", err)
+		}
+
+		defer func() {
+			_ = fileForLogs.Close()
+		}()
+	}
+
+	logLevelFlagValue := ctx.GlobalString(logLevel.Name)
+	err = logger.SetLogLevel(logLevelFlagValue)
+	if err != nil {
+		return err
+	}
+
+	log.Info("starting seednode...")
 
 	stop := make(chan bool, 1)
 	sigs := make(chan os.Signal, 1)
@@ -86,7 +128,9 @@ func startNode(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Initialized with p2p config from: %s\n", p2pConfigurationFile)
+	log.Info("initialized with p2p config",
+		"filename", p2pConfigurationFile,
+	)
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = uint32(ctx.GlobalUint(port.Name))
 	}
@@ -94,7 +138,6 @@ func startNode(ctx *cli.Context) error {
 		p2pConfig.Node.Seed = ctx.GlobalString(p2pSeed.Name)
 	}
 
-	fmt.Println("Seed node....")
 	messenger, err := createNode(*p2pConfig)
 	if err != nil {
 		return err
@@ -107,11 +150,11 @@ func startNode(ctx *cli.Context) error {
 
 	go func() {
 		<-sigs
-		fmt.Println("terminating at user's signal...")
+		log.Info("terminating at user's signal...")
 		stop <- true
 	}()
 
-	fmt.Println("Application is now running...")
+	log.Info("application is now running...")
 	displayMessengerInfo(messenger)
 	for {
 		select {
@@ -125,7 +168,6 @@ func startNode(ctx *cli.Context) error {
 
 func createNode(p2pConfig config.P2PConfig) (p2p.Messenger, error) {
 	arg := libp2p.ArgsNetworkMessenger{
-		Context:       context.Background(),
 		ListenAddress: libp2p.ListenAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
 	}
@@ -142,15 +184,14 @@ func displayMessengerInfo(messenger p2p.Messenger) {
 	}
 
 	tbl, _ := display.CreateTableString(headerSeedAddresses, addresses)
-	fmt.Println(tbl)
+	log.Info("\n" + tbl)
 
 	mesConnectedAddrs := messenger.ConnectedAddresses()
 	sort.Slice(mesConnectedAddrs, func(i, j int) bool {
 		return strings.Compare(mesConnectedAddrs[i], mesConnectedAddrs[j]) < 0
 	})
 
-	headerConnectedAddresses := []string{
-		fmt.Sprintf("Seednode is connected to %d peers:", len(mesConnectedAddrs))}
+	headerConnectedAddresses := []string{fmt.Sprintf("Seednode is connected to %d peers:", len(mesConnectedAddrs))}
 	connAddresses := make([]*display.LineData, len(mesConnectedAddrs))
 
 	for idx, address := range mesConnectedAddrs {
@@ -158,5 +199,43 @@ func displayMessengerInfo(messenger p2p.Messenger) {
 	}
 
 	tbl2, _ := display.CreateTableString(headerConnectedAddresses, connAddresses)
-	fmt.Println(tbl2)
+	log.Info("\n" + tbl2)
+}
+
+func prepareLogFile(workingDir string) (*os.File, error) {
+	logDirectory := filepath.Join(workingDir, defaultLogsPath)
+	fileForLog, err := core.CreateFile("elrond-go", logDirectory, "log")
+	if err != nil {
+		return nil, err
+	}
+
+	//we need this function as to close file.Close() when the code panics and the defer func associated
+	//with the file pointer in the main func will never be reached
+	runtime.SetFinalizer(fileForLog, func(f *os.File) {
+		_ = f.Close()
+	})
+
+	err = redirects.RedirectStderr(fileForLog)
+	if err != nil {
+		return nil, err
+	}
+
+	err = logger.AddLogObserver(fileForLog, &logger.PlainFormatter{})
+	if err != nil {
+		return nil, fmt.Errorf("%w adding file log observer", err)
+	}
+
+	return fileForLog, nil
+}
+
+func getWorkingDir(log logger.Logger) string {
+	workingDir, err := os.Getwd()
+	if err != nil {
+		log.LogIfError(err)
+		workingDir = ""
+	}
+
+	log.Trace("working directory", "path", workingDir)
+
+	return workingDir
 }

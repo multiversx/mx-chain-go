@@ -1,7 +1,6 @@
 package integrationTests
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
@@ -61,7 +60,7 @@ func NewTestSyncNode(
 		},
 	}
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	messenger := CreateMessengerWithKadDht(initialNodeAddr)
 
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,

@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -39,7 +38,7 @@ func initNodesAndTest(
 
 	fmt.Println("Step 1. Setup nodes...")
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	concMap := &sync.Map{}

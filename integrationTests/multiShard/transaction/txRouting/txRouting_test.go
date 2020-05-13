@@ -1,7 +1,6 @@
 package txRouting
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -26,7 +25,7 @@ func TestRoutingOfTransactionsInShards(t *testing.T) {
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(

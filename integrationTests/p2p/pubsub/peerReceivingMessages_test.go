@@ -1,7 +1,6 @@
 package peerDisconnecting
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -37,13 +36,12 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 	numOfPeers := 20
 
 	//Step 1. Create advertiser
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 
 	//Step 2. Create numOfPeers instances of messenger type and call bootstrap
 	peers := make([]p2p.Messenger, numOfPeers)
 	for i := 0; i < numOfPeers; i++ {
-		node := integrationTests.CreateMessengerWithKadDht(context.Background(),
-			integrationTests.GetConnectableAddress(advertiser))
+		node := integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertiser))
 		peers[i] = node
 	}
 

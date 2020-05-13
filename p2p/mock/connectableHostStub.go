@@ -37,7 +37,7 @@ func (hs *ConnectableHostStub) EventBus() event.Bus {
 		return hs.EventBusCalled()
 	}
 
-	return nil
+	return &EventBusStub{}
 }
 
 // ConnectToPeer -
