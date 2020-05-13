@@ -105,6 +105,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		blockChain:             arguments.BlockChain,
 		stateCheckpointModulus: arguments.StateCheckpointModulus,
 		genesisNonce:           genesisHdr.GetNonce(),
+		version:                core.TrimSoftwareVersion(arguments.Version),
 	}
 
 	mp := metaProcessor{
@@ -352,7 +353,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorsInfo)
+	err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorsInfo, header.Epoch)
 	if err != nil {
 		return err
 	}
@@ -705,7 +706,7 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 
-	err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorsInfo)
+	err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorsInfo, metaBlock.Epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -1928,6 +1929,7 @@ func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) data.Header
 		AccumulatedFeesInEpoch: big.NewInt(0),
 		DeveloperFees:          big.NewInt(0),
 		DevFeesInEpoch:         big.NewInt(0),
+		SoftwareVersion:        []byte(mp.version),
 	}
 
 	mp.epochStartTrigger.Update(round, nonce)
