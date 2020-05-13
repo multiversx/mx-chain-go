@@ -127,8 +127,8 @@ type baseDataInStorage struct {
 	shardId         uint32
 	numberOfShards  uint32
 	lastRound       int64
-	lastEpoch       uint32
 	epochStartRound uint64
+	lastEpoch       uint32
 	storageExists   bool
 }
 
@@ -352,21 +352,22 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		RequestHandler:    e.requestHandler,
-		Messenger:         e.messenger,
-		Marshalizer:       e.marshalizer,
-		TxSignMarshalizer: e.txSignMarshalizer,
-		ShardCoordinator:  e.shardCoordinator,
-		Hasher:            e.hasher,
-		ChainID:           []byte(e.genesisNodesConfig.GetChainId()),
-		EconomicsData:     e.economicsData,
-		KeyGen:            e.keyGen,
-		BlockKeyGen:       e.blockKeyGen,
-		Signer:            e.singleSigner,
-		BlockSigner:       e.blockSingleSigner,
-		WhitelistHandler:  e.whiteListHandler,
-		AddressPubkeyConv: e.addressPubkeyConverter,
-		NonceConverter:    e.uint64Converter,
+		RequestHandler:     e.requestHandler,
+		Messenger:          e.messenger,
+		Marshalizer:        e.marshalizer,
+		TxSignMarshalizer:  e.txSignMarshalizer,
+		ShardCoordinator:   e.shardCoordinator,
+		Hasher:             e.hasher,
+		ChainID:            []byte(e.genesisNodesConfig.GetChainId()),
+		EconomicsData:      e.economicsData,
+		KeyGen:             e.keyGen,
+		BlockKeyGen:        e.blockKeyGen,
+		Signer:             e.singleSigner,
+		BlockSigner:        e.blockSingleSigner,
+		WhitelistHandler:   e.whiteListHandler,
+		AddressPubkeyConv:  e.addressPubkeyConverter,
+		NonceConverter:     e.uint64Converter,
+		StartInEpochConfig: e.generalConfig.EpochStartConfig,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -748,7 +749,6 @@ func (e *epochStartBootstrap) createTriesForNewShardId(shardId uint32) error {
 		Marshalizer:              e.marshalizer,
 		Hasher:                   e.hasher,
 		PathManager:              e.pathManager,
-		ShardId:                  core.GetShardIdString(shardId),
 		TrieStorageManagerConfig: e.generalConfig.TrieStorageManagerConfig,
 	}
 	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
@@ -758,6 +758,7 @@ func (e *epochStartBootstrap) createTriesForNewShardId(shardId uint32) error {
 
 	userStorageManager, userAccountTrie, err := trieFactory.Create(
 		e.generalConfig.AccountsTrieStorage,
+		core.GetShardIdString(shardId),
 		e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
 		e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 	)
@@ -770,6 +771,7 @@ func (e *epochStartBootstrap) createTriesForNewShardId(shardId uint32) error {
 
 	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(
 		e.generalConfig.PeerAccountsTrieStorage,
+		core.GetShardIdString(shardId),
 		e.generalConfig.StateTriesConfig.PeerStatePruningEnabled,
 		e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
 	)

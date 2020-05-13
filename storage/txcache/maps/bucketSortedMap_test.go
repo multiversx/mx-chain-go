@@ -10,12 +10,11 @@ import (
 )
 
 type dummyItem struct {
-	scoreChangeInProgress atomic.Flag
-	score                 atomic.Uint32
-	key                   string
-	chunk                 *MapChunk
-	chunkMutex            sync.RWMutex
-	mutex                 sync.Mutex
+	score      atomic.Uint32
+	key        string
+	chunk      *MapChunk
+	chunkMutex sync.RWMutex
+	mutex      sync.Mutex
 }
 
 func newDummyItem(key string) *dummyItem {

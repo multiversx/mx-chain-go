@@ -23,7 +23,6 @@ type trieCreator struct {
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
 	pathManager              storage.PathManagerHandler
-	shardId                  string
 	trieStorageManagerConfig config.TrieStorageManagerConfig
 }
 
@@ -49,14 +48,18 @@ func NewTrieFactory(
 		marshalizer:              args.Marshalizer,
 		hasher:                   args.Hasher,
 		pathManager:              args.PathManager,
-		shardId:                  args.ShardId,
 		trieStorageManagerConfig: args.TrieStorageManagerConfig,
 	}, nil
 }
 
 // Create creates a new trie
-func (tc *trieCreator) Create(trieStorageCfg config.StorageConfig, pruningEnabled bool, maxTrieLevelInMem uint) (data.StorageManager, data.Trie, error) {
-	trieStoragePath, mainDb := path.Split(tc.pathManager.PathForStatic(tc.shardId, trieStorageCfg.DB.FilePath))
+func (tc *trieCreator) Create(
+	trieStorageCfg config.StorageConfig,
+	shardID string,
+	pruningEnabled bool,
+	maxTrieLevelInMem uint,
+) (data.StorageManager, data.Trie, error) {
+	trieStoragePath, mainDb := path.Split(tc.pathManager.PathForStatic(shardID, trieStorageCfg.DB.FilePath))
 
 	dbConfig := factory.GetDBFromConfig(trieStorageCfg.DB)
 	dbConfig.FilePath = path.Join(trieStoragePath, mainDb)

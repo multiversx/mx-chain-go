@@ -65,9 +65,10 @@ func (tcf *triesComponentsFactory) Create() (*TriesComponents, error) {
 		Marshalizer:              tcf.marshalizer,
 		Hasher:                   tcf.hasher,
 		PathManager:              tcf.pathManager,
-		ShardId:                  convertShardIDToString(tcf.shardCoordinator.SelfId()),
 		TrieStorageManagerConfig: tcf.config.TrieStorageManagerConfig,
 	}
+	shardIDString := convertShardIDToString(tcf.shardCoordinator.SelfId())
+
 	trieFactoryObj, err := trieFactory.NewTrieFactory(trieFactoryArgs)
 	if err != nil {
 		return nil, err
@@ -76,6 +77,7 @@ func (tcf *triesComponentsFactory) Create() (*TriesComponents, error) {
 	trieStorageManagers := make(map[string]data.StorageManager)
 	userStorageManager, userAccountTrie, err := trieFactoryObj.Create(
 		tcf.config.AccountsTrieStorage,
+		shardIDString,
 		tcf.config.StateTriesConfig.AccountsStatePruningEnabled,
 		tcf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
 	)
@@ -87,6 +89,7 @@ func (tcf *triesComponentsFactory) Create() (*TriesComponents, error) {
 
 	peerStorageManager, peerAccountsTrie, err := trieFactoryObj.Create(
 		tcf.config.PeerAccountsTrieStorage,
+		shardIDString,
 		tcf.config.StateTriesConfig.PeerStatePruningEnabled,
 		tcf.config.StateTriesConfig.MaxPeerTrieLevelInMemory,
 	)

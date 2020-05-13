@@ -14,19 +14,18 @@ import (
 	factorySoftwareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	metachainEpochStart "github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/checking"
+	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -57,7 +56,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -105,7 +103,8 @@ type Process struct {
 
 type processComponentsFactoryArgs struct {
 	coreComponents            *mainFactory.CoreComponentsFactoryArgs
-	genesisConfig             *sharding.Genesis
+	accountsParser            genesis.AccountsParser
+	smartContractParser       genesis.InitialSmartContractParser
 	economicsData             *economics.EconomicsData
 	nodesConfig               *sharding.NodesSetup
 	gasSchedule               map[string]map[string]uint64
@@ -123,6 +122,7 @@ type processComponentsFactoryArgs struct {
 	whiteListHandler          process.WhiteListHandler
 	whiteListerVerifiedTxs    process.WhiteListHandler
 	epochStartNotifier        EpochStartNotifier
+	mainConfig                config.Config
 	epochStart                *config.EpochStartConfig
 	rater                     sharding.PeerAccountListAndRatingHandler
 	ratingsData               process.RatingsInfoHandler
@@ -136,12 +136,14 @@ type processComponentsFactoryArgs struct {
 	maxRating                 uint32
 	validatorPubkeyConverter  state.PubkeyConverter
 	systemSCConfig            *config.SystemSmartContractsConfig
+	txLogsProcessor           process.TransactionLogProcessor
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
 func NewProcessComponentsFactoryArgs(
 	coreComponents *mainFactory.CoreComponentsFactoryArgs,
-	genesisConfig *sharding.Genesis,
+	accountsParser genesis.AccountsParser,
+	smartContractParser genesis.InitialSmartContractParser,
 	economicsData *economics.EconomicsData,
 	nodesConfig *sharding.NodesSetup,
 	gasSchedule map[string]map[string]uint64,
@@ -159,7 +161,7 @@ func NewProcessComponentsFactoryArgs(
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	epochStartNotifier EpochStartNotifier,
-	epochStart *config.EpochStartConfig,
+	mainConfig config.Config,
 	startEpochNum uint32,
 	rater sharding.PeerAccountListAndRatingHandler,
 	sizeCheckDelta uint32,
@@ -175,7 +177,8 @@ func NewProcessComponentsFactoryArgs(
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
-		genesisConfig:             genesisConfig,
+		accountsParser:            accountsParser,
+		smartContractParser:       smartContractParser,
 		economicsData:             economicsData,
 		nodesConfig:               nodesConfig,
 		gasSchedule:               gasSchedule,
@@ -193,7 +196,8 @@ func NewProcessComponentsFactoryArgs(
 		whiteListHandler:          whiteListHandler,
 		whiteListerVerifiedTxs:    whiteListerVerifiedTxs,
 		epochStartNotifier:        epochStartNotifier,
-		epochStart:                epochStart,
+		mainConfig:                mainConfig,
+		epochStart:                &mainConfig.EpochStartConfig,
 		startEpochNum:             startEpochNum,
 		rater:                     rater,
 		ratingsData:               ratingsData,
@@ -292,6 +296,16 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 
 	log.Trace("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
 
+	txLogsStorage := args.data.Store.GetStorer(dataRetriever.TxLogsUnit)
+	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
+		Storer:      txLogsStorage,
+		Marshalizer: args.coreData.InternalMarshalizer,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	args.txLogsProcessor = txLogsProcessor
 	genesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(args)
 	if err != nil {
 		return nil, err
@@ -392,15 +406,6 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	txLogsStorage := args.data.Store.GetStorer(dataRetriever.TxLogsUnit)
-	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer:      txLogsStorage,
-		Marshalizer: args.coreData.InternalMarshalizer,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	blockProcessor, err := newBlockProcessor(
 		args,
 		requestHandler,
@@ -413,6 +418,20 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		pendingMiniBlocksHandler,
 		txLogsProcessor,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	nodesSetupChecker, err := checking.NewNodesSetupChecker(
+		args.accountsParser,
+		args.economicsData.GenesisNodePrice(),
+		args.validatorPubkeyConverter,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = nodesSetupChecker.Check(args.nodesConfig.AllInitialNodes())
 	if err != nil {
 		return nil, err
 	}
@@ -843,63 +862,22 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	dataComponents := args.data
 	shardCoordinator := args.shardCoordinator
 	nodesSetup := args.nodesConfig
-	genesisConfig := args.genesisConfig
+	accountsParser := args.accountsParser
+	smartContractParser := args.smartContractParser
 	economicsData := args.economicsData
-
-	genesisBlocks := make(map[uint32]data.HeaderHandler)
 
 	validatorStatsRootHash, err := stateComponents.PeerAccounts.RootHash()
 	if err != nil {
 		return nil, err
 	}
 
-	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		var newShardCoordinator sharding.Coordinator
-		var accountsAdapter state.AccountsAdapter
-
-		isCurrentShard := shardId == shardCoordinator.SelfId()
-		if isCurrentShard && args.startEpochNum == 0 {
-			accountsAdapter = stateComponents.AccountsAdapter
-			newShardCoordinator = shardCoordinator
-		} else {
-			newShardCoordinator, accountsAdapter, err = createInMemoryShardCoordinatorAndAccount(
-				coreComponents,
-				shardCoordinator.NumberOfShards(),
-				shardId,
-			)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		var genesisBlock data.HeaderHandler
-		genesisBlock, err = createGenesisBlockAndApplyInitialBalances(
-			accountsAdapter,
-			newShardCoordinator,
-			stateComponents.AddressPubkeyConverter,
-			genesisConfig,
-			uint64(nodesSetup.StartTime),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		genesisBlocks[shardId] = genesisBlock
-		err = saveGenesisBlock(
-			genesisBlock,
-			coreComponents,
-			dataComponents,
-		)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
+	arg := genesisProcess.ArgsGenesisBlockCreator{
 		GenesisTime:              uint64(nodesSetup.StartTime),
+		StartEpochNum:            args.startEpochNum,
 		Accounts:                 stateComponents.AccountsAdapter,
 		PubkeyConv:               stateComponents.AddressPubkeyConverter,
-		NodesSetup:               nodesSetup,
+		InitialNodesSetup:        nodesSetup,
+		Economics:                economicsData,
 		ShardCoordinator:         shardCoordinator,
 		Store:                    dataComponents.Store,
 		Blkc:                     dataComponents.Blkc,
@@ -907,109 +885,23 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		Hasher:                   coreComponents.Hasher,
 		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter,
 		DataPool:                 dataComponents.Datapool,
-		Economics:                economicsData,
+		AccountsParser:           accountsParser,
+		SmartContractParser:      smartContractParser,
 		ValidatorStatsRootHash:   validatorStatsRootHash,
 		GasMap:                   args.gasSchedule,
-		SystemSCConfig:           args.systemSCConfig,
+		VirtualMachineConfig:     args.mainConfig.VirtualMachineConfig,
+		TxLogsProcessor:          args.txLogsProcessor,
+		HardForkConfig:           args.mainConfig.Hardfork,
+		ChainID:                  string(args.coreComponents.ChainID),
+		SystemSCConfig:           *args.systemSCConfig,
 	}
 
-	if shardCoordinator.SelfId() != core.MetachainShardId || args.startEpochNum > 0 {
-		var newShardCoordinator sharding.Coordinator
-		var newAccounts state.AccountsAdapter
-		newShardCoordinator, newAccounts, err = createInMemoryShardCoordinatorAndAccount(
-			coreComponents,
-			shardCoordinator.NumberOfShards(),
-			core.MetachainShardId,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		newBlockChain := blockchain.NewMetaChain()
-		argsMetaGenesis.ShardCoordinator = newShardCoordinator
-		argsMetaGenesis.Accounts = newAccounts
-		argsMetaGenesis.Blkc = newBlockChain
-	}
-
-	genesisBlock, err := genesis.CreateMetaGenesisBlock(
-		argsMetaGenesis,
-	)
+	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debug("MetaGenesisBlock created",
-		"roothash", genesisBlock.GetRootHash(),
-		"validatorStatsRootHash", genesisBlock.GetValidatorStatsRootHash(),
-	)
-
-	genesisBlocks[core.MetachainShardId] = genesisBlock
-	err = saveGenesisBlock(genesisBlock, coreComponents, dataComponents)
-	if err != nil {
-		return nil, err
-	}
-
-	return genesisBlocks, nil
-}
-
-func saveGenesisBlock(header data.HeaderHandler, coreComponents *mainFactory.CoreComponents, dataComponents *mainFactory.DataComponents) error {
-	blockBuff, err := coreComponents.InternalMarshalizer.Marshal(header)
-	if err != nil {
-		return err
-	}
-
-	hash := coreComponents.Hasher.Compute(string(blockBuff))
-	unitType := dataRetriever.BlockHeaderUnit
-	if header.GetShardID() == core.MetachainShardId {
-		unitType = dataRetriever.MetaBlockUnit
-	}
-
-	return dataComponents.Store.Put(unitType, hash, blockBuff)
-}
-
-func createGenesisBlockAndApplyInitialBalances(
-	accounts state.AccountsAdapter,
-	shardCoordinator sharding.Coordinator,
-	pubkeyConverter state.PubkeyConverter,
-	genesisConfig *sharding.Genesis,
-	startTime uint64,
-) (data.HeaderHandler, error) {
-
-	initialBalances, err := genesisConfig.InitialNodesBalances(shardCoordinator)
-	if err != nil {
-		return nil, err
-	}
-
-	return genesis.CreateShardGenesisBlockFromInitialBalances(
-		accounts,
-		shardCoordinator,
-		pubkeyConverter,
-		initialBalances,
-		startTime,
-	)
-}
-
-func createInMemoryShardCoordinatorAndAccount(
-	coreComponents *mainFactory.CoreComponents,
-	numOfShards uint32,
-	shardId uint32,
-) (sharding.Coordinator, state.AccountsAdapter, error) {
-
-	newShardCoordinator, err := sharding.NewMultiShardCoordinator(numOfShards, shardId)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	accounts, err := generateInMemoryAccountsAdapter(
-		factoryState.NewAccountCreator(),
-		coreComponents.Hasher,
-		coreComponents.InternalMarshalizer,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return newShardCoordinator, accounts, nil
+	return gbc.CreateGenesisBlocks()
 }
 
 func newBlockTracker(
@@ -1133,8 +1025,8 @@ func newBlockProcessor(
 			processArgs.maxSizeInBytes,
 			processArgs.ratingsData,
 			processArgs.nodesConfig,
-			processArgs.systemSCConfig,
 			txLogsProcessor,
+			processArgs.systemSCConfig,
 		)
 	}
 
@@ -1202,7 +1094,6 @@ func newShardBlockProcessor(
 		stateComponents.AddressPubkeyConverter,
 		data.Store,
 		data.Datapool,
-		economics,
 	)
 	if err != nil {
 		return nil, err
@@ -1261,10 +1152,10 @@ func newShardBlockProcessor(
 		ScrForwarder:     scForwarder,
 		TxFeeHandler:     txFeeHandler,
 		EconomicsFee:     economics,
-		TxTypeHandler:    txTypeHandler,
 		GasHandler:       gasHandler,
 		BuiltInFunctions: vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:  txLogsProcessor,
+		TxTypeHandler:    txTypeHandler,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -1426,8 +1317,8 @@ func newMetaBlockProcessor(
 	maxSizeInBytes uint32,
 	ratingsData process.RatingsInfoHandler,
 	nodesSetup sharding.GenesisNodesSetupHandler,
-	systemSCConfig *config.SystemSmartContractsConfig,
 	txLogsProcessor process.TransactionLogProcessor,
+	systemSCConfig *config.SystemSmartContractsConfig,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -1837,46 +1728,6 @@ func createNetworkShardingCollector(
 
 func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
 	return storageUnit.NewCache(storageUnit.CacheType(cacheConfig.Type), cacheConfig.Size, cacheConfig.Shards)
-}
-
-func generateInMemoryAccountsAdapter(
-	accountFactory state.AccountFactory,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-) (state.AccountsAdapter, error) {
-	trieStorage, err := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
-	if err != nil {
-		return nil, err
-	}
-
-	maxTrieLevelInMemory := uint(5)
-	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, maxTrieLevelInMemory)
-	if err != nil {
-		return nil, err
-	}
-
-	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	return adb, nil
-}
-
-func createMemUnit() storage.Storer {
-	cache, err := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
-	if err != nil {
-		log.Error("error creating cache for mem unit " + err.Error())
-		return nil
-	}
-
-	unit, err := storageUnit.NewStorageUnit(cache, memorydb.New())
-	if err != nil {
-		log.Error("error creating unit " + err.Error())
-		return nil
-	}
-
-	return unit
 }
 
 // CreateLatestStorageDataProvider will create a latest storage data provider handler

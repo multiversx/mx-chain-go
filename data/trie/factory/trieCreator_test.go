@@ -19,7 +19,6 @@ func getArgs() TrieFactoryArgs {
 		Marshalizer: &mock.MarshalizerMock{},
 		Hasher:      &mock.HasherMock{},
 		PathManager: &mock.PathManagerStub{},
-		ShardId:     "0",
 	}
 }
 
@@ -82,7 +81,7 @@ func TestTrieFactory_CreateNotSupportedCacheType(t *testing.T) {
 	trieStorageCfg := config.StorageConfig{}
 
 	maxTrieLevelInMemory := uint(5)
-	_, tr, err := tf.Create(trieStorageCfg, false, maxTrieLevelInMemory)
+	_, tr, err := tf.Create(trieStorageCfg, "0", false,maxTrieLevelInMemory)
 	require.Nil(t, tr)
 	require.Equal(t, storage.ErrNotSupportedCacheType, err)
 }
@@ -95,7 +94,7 @@ func TestTrieFactory_CreateWithoutPrunningWork(t *testing.T) {
 	trieStorageCfg := createTrieStorageCfg()
 
 	maxTrieLevelInMemory := uint(5)
-	_, tr, err := tf.Create(trieStorageCfg, false, maxTrieLevelInMemory)
+	_, tr, err := tf.Create(trieStorageCfg, "0", false, maxTrieLevelInMemory)
 	require.NotNil(t, tr)
 	require.Nil(t, err)
 }
@@ -108,7 +107,7 @@ func TestTrieFactory_CreateWithPrunningWrongDbType(t *testing.T) {
 	trieStorageCfg := createTrieStorageCfg()
 
 	maxTrieLevelInMemory := uint(5)
-	_, tr, err := tf.Create(trieStorageCfg, true, maxTrieLevelInMemory)
+	_, tr, err := tf.Create(trieStorageCfg, "0", true, maxTrieLevelInMemory)
 	require.Nil(t, tr)
 	require.Equal(t, storage.ErrNotSupportedDBType, err)
 }
@@ -124,7 +123,7 @@ func TestTrieFactory_CreateInvalidCacheSize(t *testing.T) {
 	trieStorageCfg := createTrieStorageCfg()
 
 	maxTrieLevelInMemory := uint(5)
-	_, tr, err := tf.Create(trieStorageCfg, true, maxTrieLevelInMemory)
+	_, tr, err := tf.Create(trieStorageCfg, "0", true, maxTrieLevelInMemory)
 	require.Nil(t, tr)
 	require.Equal(t, data.ErrInvalidCacheSize, err)
 }
@@ -141,7 +140,7 @@ func TestTrieFactory_CreateWithPRunningShouldWork(t *testing.T) {
 	trieStorageCfg := createTrieStorageCfg()
 
 	maxTrieLevelInMemory := uint(5)
-	_, tr, err := tf.Create(trieStorageCfg, true, maxTrieLevelInMemory)
+	_, tr, err := tf.Create(trieStorageCfg, "0", true, maxTrieLevelInMemory)
 	require.NotNil(t, tr)
 	require.Nil(t, err)
 }

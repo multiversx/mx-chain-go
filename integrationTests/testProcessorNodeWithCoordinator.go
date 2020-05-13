@@ -1,7 +1,6 @@
 package integrationTests
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -84,7 +83,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				NbShards:                numShards,
 				EligibleNodes:           validatorsMapForNodesCoordinator,
 				WaitingNodes:            waitingMapForNodesCoordinator,
-				SelfPublicKey:           v.PubKey(),
+				SelfPublicKey:           v.PubKeyBytes(),
 				ConsensusGroupCache:     cache,
 				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 			}
@@ -193,7 +192,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	messenger := CreateMessengerWithKadDht(initialNodeAddr)
 	tpn := &TestProcessorNode{
 		ShardCoordinator:  shardCoordinator,
 		Messenger:         messenger,

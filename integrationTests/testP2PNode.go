@@ -1,7 +1,6 @@
 package integrationTests
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"strconv"
@@ -83,7 +82,7 @@ func NewTestP2PNode(
 		fmt.Printf("Error creating NewPeerShardMapper: %s\n", err.Error())
 	}
 
-	tP2pNode.Messenger = CreateMessengerFromConfig(context.Background(), p2pConfig)
+	tP2pNode.Messenger = CreateMessengerFromConfig(p2pConfig)
 	localId := tP2pNode.Messenger.ID()
 	tP2pNode.NetworkShardingUpdater.UpdatePeerIdShardId(localId, shardCoordinator.SelfId())
 
@@ -154,11 +153,10 @@ func (tP2pNode *TestP2PNode) initNode() {
 	}
 
 	hbConfig := config.HeartbeatConfig{
-		Enabled:                             true,
 		MinTimeToWaitBetweenBroadcastsInSec: 4,
 		MaxTimeToWaitBetweenBroadcastsInSec: 6,
-		DurationInSecToConsiderUnresponsive: 60,
-		HbmiRefreshIntervalInSec:            5,
+		DurationToConsiderUnresponsiveInSec: 60,
+		HeartbeatRefreshIntervalInSec:       5,
 		HideInactiveValidatorIntervalInSec:  600,
 	}
 	err = tP2pNode.Node.StartHeartbeat(hbConfig, "test", config.PreferencesConfig{})
