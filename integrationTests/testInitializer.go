@@ -1,7 +1,6 @@
 package integrationTests
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
@@ -110,7 +109,7 @@ func createP2PConfig(initialPeerList []string) config.P2PConfig {
 			RandezVous:                       "/erd/kad/1.0.0",
 			InitialPeerList:                  initialPeerList,
 			BucketSize:                       100,
-			RoutingTableRefreshIntervalInSec: 2,
+			RoutingTableRefreshIntervalInSec: 100,
 		},
 		Sharding: config.ShardingConfig{
 			Type: p2p.NilListSharder,
@@ -119,11 +118,35 @@ func createP2PConfig(initialPeerList []string) config.P2PConfig {
 }
 
 // CreateMessengerWithKadDht creates a new libp2p messenger with kad-dht peer discovery
-func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
+func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
+	initialAddresses := make([]string, 0)
+	if len(initialAddr) > 0 {
+		initialAddresses = append(initialAddresses, initialAddr)
+	}
 	arg := libp2p.ArgsNetworkMessenger{
-		Context:       ctx,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:     createP2PConfig([]string{initialAddr}),
+		P2pConfig:     createP2PConfig(initialAddresses),
+	}
+
+	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	return libP2PMes
+}
+
+// CreateMessengerWithKadDhtAndProtocolID creates a new libp2p messenger with kad-dht peer discovery and peer ID
+func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, randezVous string) p2p.Messenger {
+	initialAddresses := make([]string, 0)
+	if len(initialAddr) > 0 {
+		initialAddresses = append(initialAddresses, initialAddr)
+	}
+	p2pConfig := createP2PConfig(initialAddresses)
+	p2pConfig.KadDhtPeerDiscovery.RandezVous = randezVous
+	arg := libp2p.ArgsNetworkMessenger{
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:     p2pConfig,
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -135,9 +158,8 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 }
 
 // CreateMessengerFromConfig creates a new libp2p messenger with provided configuration
-func CreateMessengerFromConfig(ctx context.Context, p2pConfig config.P2PConfig) p2p.Messenger {
+func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 	arg := libp2p.ArgsNetworkMessenger{
-		Context:       ctx,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
 	}
@@ -166,7 +188,6 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 	}
 
 	arg := libp2p.ArgsNetworkMessenger{
-		Context:       context.Background(),
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
 	}
@@ -1763,7 +1784,7 @@ func SetupSyncNodesOneShardAndMeta(
 	maxShards := uint32(1)
 	shardId := uint32(0)
 
-	advertiser := CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := GetConnectableAddress(advertiser)
 
