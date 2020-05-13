@@ -235,7 +235,8 @@ func (si *stateImport) getTrie(shardID uint32) (data.Trie, error) {
 		return trieForShard, nil
 	}
 
-	trieForShard, err := trie.NewTrie(si.trieStorageManager, si.marshalizer, si.hasher)
+	maxTrieLevelInMemory := uint(2)
+	trieForShard, err := trie.NewTrie(si.trieStorageManager, si.marshalizer, si.hasher, maxTrieLevelInMemory)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +252,8 @@ func (si *stateImport) importDataTrie(fileName string) error {
 	var err error
 	var address []byte
 
-	dataTrie, err := trie.NewTrie(si.trieStorageManager, si.marshalizer, si.hasher)
+	maxTrieLevelInMemory := uint(5)
+	dataTrie, err := trie.NewTrie(si.trieStorageManager, si.marshalizer, si.hasher, maxTrieLevelInMemory)
 	if err != nil {
 		return err
 	}

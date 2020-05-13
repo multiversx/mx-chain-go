@@ -81,7 +81,7 @@ func TestTrieFactory_CreateNotSupportedCacheType(t *testing.T) {
 	trieStorageCfg := config.StorageConfig{}
 
 	maxTrieLevelInMemory := uint(5)
-	_, tr, err := tf.Create(trieStorageCfg, "0", false,maxTrieLevelInMemory)
+	_, tr, err := tf.Create(trieStorageCfg, "0", false, maxTrieLevelInMemory)
 	require.Nil(t, tr)
 	require.Equal(t, storage.ErrNotSupportedCacheType, err)
 }
