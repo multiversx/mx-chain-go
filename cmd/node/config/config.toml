@@ -353,7 +353,7 @@
     # ShuffleBetweenShards enables the shuffling of validators between shards at the end of epoch
     ShuffleBetweenShards = false
     MinNumConnectedPeersToStart       = 2
-    MinNumOfPeersToConsiderBlockValid = 2 #TODO add tests for invalid values
+    MinNumOfPeersToConsiderBlockValid = 2
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
