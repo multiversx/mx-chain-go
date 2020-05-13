@@ -115,10 +115,10 @@ var TestBalanceComputationHandler, _ = preprocess.NewBalanceComputation()
 var MinTxGasPrice = uint64(10)
 
 // MinTxGasLimit defines minimum gas limit required by a transaction
-var MinTxGasLimit = uint64(1000)
+var MinTxGasLimit = uint64(10_000)
 
 // MaxGasLimitPerBlock defines maximum gas limit allowed per one block
-const MaxGasLimitPerBlock = uint64(300000)
+const MaxGasLimitPerBlock = uint64(3_000_000)
 
 const maxTxNonceDeltaAllowed = 8000
 const minConnectedPeers = 0
