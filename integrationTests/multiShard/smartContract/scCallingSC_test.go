@@ -148,7 +148,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	firstSCOwner := nodes[0].OwnAccount.Address
 
 	// deploy the smart contracts
-	firstSCAddress := putDeploySCToDataPool("../../vm/arwen/testdata/counter.wasm", firstSCOwner, 0, big.NewInt(50), "", nodes)
+	firstSCAddress := putDeploySCToDataPool("../../vm/arwen/testdata/counter/counter.wasm", firstSCOwner, 0, big.NewInt(50), "", nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -249,7 +249,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	firstSCOwner := nodes[0].OwnAccount.Address
 
 	// deploy the smart contracts
-	firstSCAddress := putDeploySCToDataPool("../../vm/arwen/testdata/counter.wasm", firstSCOwner, 0, big.NewInt(50), "", nodes)
+	firstSCAddress := putDeploySCToDataPool("../../vm/arwen/testdata/counter/counter.wasm", firstSCOwner, 0, big.NewInt(50), "", nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)
