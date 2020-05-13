@@ -37,6 +37,8 @@ type patriciaMerkleTrie struct {
 	oldHashes [][]byte
 	oldRoot   []byte
 	newHashes data.ModifiedHashes
+
+	maxTrieLevelInMemory uint
 }
 
 // NewTrie creates a new Patricia Merkle Trie
@@ -44,6 +46,7 @@ func NewTrie(
 	trieStorage data.StorageManager,
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
+	maxTrieLevelInMemory uint,
 ) (*patriciaMerkleTrie, error) {
 	if check.IfNil(trieStorage) {
 		return nil, ErrNilTrieStorage
@@ -54,14 +57,16 @@ func NewTrie(
 	if check.IfNil(hsh) {
 		return nil, ErrNilHasher
 	}
+	log.Debug("created new trie", "max trie level in memory", maxTrieLevelInMemory)
 
 	return &patriciaMerkleTrie{
-		trieStorage: trieStorage,
-		marshalizer: msh,
-		hasher:      hsh,
-		oldHashes:   make([][]byte, 0),
-		oldRoot:     make([]byte, 0),
-		newHashes:   make(data.ModifiedHashes),
+		trieStorage:          trieStorage,
+		marshalizer:          msh,
+		hasher:               hsh,
+		oldHashes:            make([][]byte, 0),
+		oldRoot:              make([]byte, 0),
+		newHashes:            make(data.ModifiedHashes),
+		maxTrieLevelInMemory: maxTrieLevelInMemory,
 	}, nil
 }
 
@@ -208,7 +213,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		}
 	}
 
-	err = tr.root.commit(false, 0, tr.trieStorage.Database(), tr.trieStorage.Database())
+	err = tr.root.commit(false, 0, tr.maxTrieLevelInMemory, tr.trieStorage.Database(), tr.trieStorage.Database())
 	if err != nil {
 		return err
 	}
@@ -277,6 +282,7 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 			tr.trieStorage,
 			tr.marshalizer,
 			tr.hasher,
+			tr.maxTrieLevelInMemory,
 		)
 	}
 
@@ -423,6 +429,7 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte) (data.Trie, error)
 		tr.trieStorage,
 		tr.marshalizer,
 		tr.hasher,
+		tr.maxTrieLevelInMemory,
 	)
 	if err != nil {
 		return nil, err
@@ -437,7 +444,7 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte) (data.Trie, error)
 	newTr.root = newRoot
 
 	if db != tr.Database() {
-		err = newTr.root.commit(true, 0, db, tr.Database())
+		err = newTr.root.commit(true, 0, tr.maxTrieLevelInMemory, db, tr.Database())
 		if err != nil {
 			return nil, err
 		}

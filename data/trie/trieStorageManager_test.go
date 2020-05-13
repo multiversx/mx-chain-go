@@ -82,7 +82,8 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 	size := uint(100)
 	evictionWaitList, _ := mock.NewEvictionWaitingList(size, mock.NewMemDbMock(), msh)
 	trieStorage, _ := NewTrieStorageManager(db, msh, hsh, cfg, evictionWaitList, generalCfg)
-	tr, _ := NewTrie(trieStorage, msh, hsh)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := NewTrie(trieStorage, msh, hsh, maxTrieLevelInMemory)
 
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))

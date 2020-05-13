@@ -1849,7 +1849,8 @@ func generateInMemoryAccountsAdapter(
 		return nil, err
 	}
 
-	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher)
+	maxTrieLevelInMemory := uint(5)
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, maxTrieLevelInMemory)
 	if err != nil {
 		return nil, err
 	}

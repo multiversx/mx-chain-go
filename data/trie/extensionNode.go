@@ -175,7 +175,7 @@ func (en *extensionNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(en)
 }
 
-func (en *extensionNode) commit(force bool, level byte, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+func (en *extensionNode) commit(force bool, level byte, maxTrieLevelInMemory uint, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
 	level++
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -195,7 +195,7 @@ func (en *extensionNode) commit(force bool, level byte, originDb data.DBWriteCac
 	}
 
 	if en.child != nil {
-		err = en.child.commit(force, level, originDb, targetDb)
+		err = en.child.commit(force, level, maxTrieLevelInMemory, originDb, targetDb)
 		if err != nil {
 			return err
 		}
@@ -206,7 +206,7 @@ func (en *extensionNode) commit(force bool, level byte, originDb data.DBWriteCac
 	if err != nil {
 		return err
 	}
-	if level == maxTrieLevelAfterCommit {
+	if uint(level) == maxTrieLevelInMemory {
 		var collapsed node
 		collapsed, err = en.getCollapsed()
 		if err != nil {

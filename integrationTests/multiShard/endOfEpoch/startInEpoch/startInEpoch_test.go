@@ -304,14 +304,22 @@ func createTries(
 	}
 
 	trieStorageManagers := make(map[string]data.StorageManager)
-	userStorageManager, userAccountTrie, err := trieFactory.Create(config.AccountsTrieStorage, config.StateTriesConfig.AccountsStatePruningEnabled)
+	userStorageManager, userAccountTrie, err := trieFactory.Create(
+		config.AccountsTrieStorage,
+		config.StateTriesConfig.AccountsStatePruningEnabled,
+		config.StateTriesConfig.MaxStateTrieLevelInMemory,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 	trieContainer.Put([]byte(triesFactory.UserAccountTrie), userAccountTrie)
 	trieStorageManagers[triesFactory.UserAccountTrie] = userStorageManager
 
-	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(config.PeerAccountsTrieStorage, config.StateTriesConfig.PeerStatePruningEnabled)
+	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(
+		config.PeerAccountsTrieStorage,
+		config.StateTriesConfig.PeerStatePruningEnabled,
+		config.StateTriesConfig.MaxPeerTrieLevelInMemory,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -392,6 +400,8 @@ func getGeneralConfig() config.Config {
 			CheckpointRoundsModulus:     100,
 			AccountsStatePruningEnabled: false,
 			PeerStatePruningEnabled:     false,
+			MaxStateTrieLevelInMemory:   5,
+			MaxPeerTrieLevelInMemory:    5,
 		},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
 			PruningBufferLen:   1000,

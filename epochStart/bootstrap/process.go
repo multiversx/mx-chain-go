@@ -717,12 +717,13 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 	argsUserAccountsSyncer := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:             e.hasher,
-			Marshalizer:        e.marshalizer,
-			TrieStorageManager: e.trieStorageManagers[factory.UserAccountTrie],
-			RequestHandler:     e.requestHandler,
-			WaitTime:           trieSyncWaitTime,
-			Cacher:             e.dataPool.TrieNodes(),
+			Hasher:               e.hasher,
+			Marshalizer:          e.marshalizer,
+			TrieStorageManager:   e.trieStorageManagers[factory.UserAccountTrie],
+			RequestHandler:       e.requestHandler,
+			WaitTime:             trieSyncWaitTime,
+			Cacher:               e.dataPool.TrieNodes(),
+			MaxTrieLevelInMemory: e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 		},
 		ShardId: e.shardCoordinator.SelfId(),
 	}
@@ -755,7 +756,11 @@ func (e *epochStartBootstrap) createTriesForNewShardId(shardId uint32) error {
 		return err
 	}
 
-	userStorageManager, userAccountTrie, err := trieFactory.Create(e.generalConfig.AccountsTrieStorage, e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled)
+	userStorageManager, userAccountTrie, err := trieFactory.Create(
+		e.generalConfig.AccountsTrieStorage,
+		e.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+	)
 	if err != nil {
 		return err
 	}
@@ -763,7 +768,11 @@ func (e *epochStartBootstrap) createTriesForNewShardId(shardId uint32) error {
 	e.trieContainer.Replace([]byte(factory.UserAccountTrie), userAccountTrie)
 	e.trieStorageManagers[factory.UserAccountTrie] = userStorageManager
 
-	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(e.generalConfig.PeerAccountsTrieStorage, e.generalConfig.StateTriesConfig.PeerStatePruningEnabled)
+	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(
+		e.generalConfig.PeerAccountsTrieStorage,
+		e.generalConfig.StateTriesConfig.PeerStatePruningEnabled,
+		e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+	)
 	if err != nil {
 		return err
 	}
@@ -777,12 +786,13 @@ func (e *epochStartBootstrap) createTriesForNewShardId(shardId uint32) error {
 func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 	argsValidatorAccountsSyncer := syncer.ArgsNewValidatorAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:             e.hasher,
-			Marshalizer:        e.marshalizer,
-			TrieStorageManager: e.trieStorageManagers[factory.PeerAccountTrie],
-			RequestHandler:     e.requestHandler,
-			WaitTime:           trieSyncWaitTime,
-			Cacher:             e.dataPool.TrieNodes(),
+			Hasher:               e.hasher,
+			Marshalizer:          e.marshalizer,
+			TrieStorageManager:   e.trieStorageManagers[factory.PeerAccountTrie],
+			RequestHandler:       e.requestHandler,
+			WaitTime:             trieSyncWaitTime,
+			Cacher:               e.dataPool.TrieNodes(),
+			MaxTrieLevelInMemory: e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
 		},
 	}
 	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)

@@ -74,14 +74,22 @@ func (tcf *triesComponentsFactory) Create() (*TriesComponents, error) {
 	}
 
 	trieStorageManagers := make(map[string]data.StorageManager)
-	userStorageManager, userAccountTrie, err := trieFactoryObj.Create(tcf.config.AccountsTrieStorage, tcf.config.StateTriesConfig.AccountsStatePruningEnabled)
+	userStorageManager, userAccountTrie, err := trieFactoryObj.Create(
+		tcf.config.AccountsTrieStorage,
+		tcf.config.StateTriesConfig.AccountsStatePruningEnabled,
+		tcf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
+	)
 	if err != nil {
 		return nil, err
 	}
 	trieContainer.Put([]byte(trieFactory.UserAccountTrie), userAccountTrie)
 	trieStorageManagers[trieFactory.UserAccountTrie] = userStorageManager
 
-	peerStorageManager, peerAccountsTrie, err := trieFactoryObj.Create(tcf.config.PeerAccountsTrieStorage, tcf.config.StateTriesConfig.PeerStatePruningEnabled)
+	peerStorageManager, peerAccountsTrie, err := trieFactoryObj.Create(
+		tcf.config.PeerAccountsTrieStorage,
+		tcf.config.StateTriesConfig.PeerStatePruningEnabled,
+		tcf.config.StateTriesConfig.MaxPeerTrieLevelInMemory,
+	)
 	if err != nil {
 		return nil, err
 	}

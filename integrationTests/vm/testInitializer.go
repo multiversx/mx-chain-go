@@ -118,7 +118,8 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 		generalCfg,
 	)
 
-	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher, maxTrieLevelInMemory)
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
 
 	return adb

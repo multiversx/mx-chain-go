@@ -29,7 +29,7 @@ func emptyTrie() data.Trie {
 	return tr
 }
 
-func getDefaultTrieParameters() (data.StorageManager, marshal.Marshalizer, hashing.Hasher) {
+func getDefaultTrieParameters() (data.StorageManager, marshal.Marshalizer, hashing.Hasher, uint) {
 	db := mock.NewMemDbMock()
 	marshalizer := &mock.ProtobufMarshalizerMock{}
 	hasher := &mock.KeccakMock{}
@@ -51,8 +51,9 @@ func getDefaultTrieParameters() (data.StorageManager, marshal.Marshalizer, hashi
 
 	evictionWaitingList, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
 	trieStorageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hasher, cfg, evictionWaitingList, generalCfg)
+	maxTrieLevelInMemory := uint(5)
 
-	return trieStorageManager, marshalizer, hasher
+	return trieStorageManager, marshalizer, hasher, maxTrieLevelInMemory
 }
 
 func initTrieMultipleValues(nr int) (data.Trie, [][]byte) {
@@ -81,8 +82,8 @@ func initTrie() data.Trie {
 func TestNewTrieWithNilTrieStorage(t *testing.T) {
 	t.Parallel()
 
-	_, marshalizer, hasher := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(nil, marshalizer, hasher)
+	_, marshalizer, hasher, maxTrieLevelInMemory := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(nil, marshalizer, hasher, maxTrieLevelInMemory)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilTrieStorage, err)
@@ -91,8 +92,8 @@ func TestNewTrieWithNilTrieStorage(t *testing.T) {
 func TestNewTrieWithNilMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, _, hasher := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, nil, hasher)
+	trieStorage, _, hasher, maxTrieLevelInMemory := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, nil, hasher, maxTrieLevelInMemory)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilMarshalizer, err)
@@ -101,8 +102,8 @@ func TestNewTrieWithNilMarshalizer(t *testing.T) {
 func TestNewTrieWithNilHasher(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, marshalizer, _ := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, marshalizer, nil)
+	trieStorage, marshalizer, _, maxTrieLevelInMemory := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, marshalizer, nil, maxTrieLevelInMemory)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilHasher, err)
@@ -471,9 +472,9 @@ func TestPatriciaMerkleTrie_GetAllLeaves(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(leaves))
-	assert.Equal(t, []byte("reindeer"), leaves[string([]byte("doe"))])
-	assert.Equal(t, []byte("puppy"), leaves[string([]byte("dog"))])
-	assert.Equal(t, []byte("cat"), leaves[string([]byte("ddog"))])
+	assert.Equal(t, []byte("reindeer"), leaves["doe"])
+	assert.Equal(t, []byte("puppy"), leaves["dog"])
+	assert.Equal(t, []byte("cat"), leaves["ddog"])
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
