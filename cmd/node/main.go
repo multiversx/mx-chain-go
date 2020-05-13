@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"math/big"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -43,6 +44,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -109,6 +111,13 @@ VERSION:
 			"bootstrap from, such as initial balances for accounts.",
 		Value: "./config/genesis.json",
 	}
+	// smartContractsFile defines a flag for the path of the file containing initial smart contracts.
+	smartContractsFile = cli.StringFlag{
+		Name: "smart-contracts-file",
+		Usage: "The `" + filePathPlaceholder + "` for the initial smart contracts file. This JSON file contains data used " +
+			"to deploy initial smart contracts such as delegation smart contracts",
+		Value: "./config/genesisSmartContracts.json",
+	}
 	// nodesFile defines a flag for the path of the initial nodes file.
 	nodesFile = cli.StringFlag{
 		Name: "nodes-setup-file",
@@ -130,7 +139,20 @@ VERSION:
 			"economics configurations such as minimum gas price for a transactions and so on.",
 		Value: "./config/economics.toml",
 	}
-	// configurationEconomicsFile defines a flag for the path to the ratings toml configuration file
+	// configurationApiFile defines a flag for the path to the api routes toml configuration file
+	configurationApiFile = cli.StringFlag{
+		Name: "config-api",
+		Usage: "The `" + filePathPlaceholder + "` for the api configuration file. This TOML file contains " +
+			"all available routes for Rest API and options to enable or disable them.",
+		Value: "./config/api.toml",
+	}
+	// configurationSystemSCFile defines a flag for the path to the system sc toml configuration file
+	configurationSystemSCFile = cli.StringFlag{
+		Name:  "config-systemSmartContracts",
+		Usage: "The `" + filePathPlaceholder + "` for the system smart contracts configuration file.",
+		Value: "./config/systemSmartContractsConfig.toml",
+	}
+	// configurationRatingsFile defines a flag for the path to the ratings toml configuration file
 	configurationRatingsFile = cli.StringFlag{
 		Name:  "config-ratings",
 		Usage: "The ratings configuration file to load",
@@ -364,9 +386,12 @@ func main() {
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
 		genesisFile,
+		smartContractsFile,
 		nodesFile,
 		configurationFile,
+		configurationApiFile,
 		configurationEconomicsFile,
+		configurationSystemSCFile,
 		configurationRatingsFile,
 		configurationPreferencesFile,
 		externalConfigFile,
@@ -479,12 +504,26 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	log.Debug("config", "file", configurationFileName)
 
+	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
+	apiRoutesConfig, err := loadApiConfig(configurationApiFileName)
+	if err != nil {
+		return err
+	}
+	log.Debug("config", "file", configurationApiFileName)
+
 	configurationEconomicsFileName := ctx.GlobalString(configurationEconomicsFile.Name)
 	economicsConfig, err := loadEconomicsConfig(configurationEconomicsFileName)
 	if err != nil {
 		return err
 	}
 	log.Debug("config", "file", configurationEconomicsFileName)
+
+	configurationSystemSCConfigFileName := ctx.GlobalString(configurationSystemSCFile.Name)
+	systemSCConfig, err := loadSystemSmartContractsConfig(configurationSystemSCConfigFileName)
+	if err != nil {
+		return err
+	}
+	log.Debug("config", "file", configurationSystemSCFile)
 
 	configurationRatingsFileName := ctx.GlobalString(configurationRatingsFile.Name)
 	ratingsConfig, err := loadRatingsConfig(configurationRatingsFileName)
@@ -527,10 +566,30 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return fmt.Errorf("%w for AddressPubkeyConverter", err)
 	}
 
-	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(genesisFile.Name), addressPubkeyConverter)
+	//TODO when refactoring main, maybe initialize economics data before this line
+	totalSupply, ok := big.NewInt(0).SetString(economicsConfig.GlobalSettings.TotalSupply, 10)
+	if !ok {
+		return fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
+			economicsConfig.GlobalSettings.TotalSupply)
+	}
+
+	accountsParser, err := parsing.NewAccountsParser(
+		ctx.GlobalString(genesisFile.Name),
+		totalSupply,
+		addressPubkeyConverter,
+	)
 	if err != nil {
 		return err
 	}
+
+	smartContractParser, err := parsing.NewSmartContractsParser(
+		ctx.GlobalString(smartContractsFile.Name),
+		addressPubkeyConverter,
+	)
+	if err != nil {
+		return err
+	}
+
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
 
 	genesisNodesConfig, err := sharding.NewNodesSetup(
@@ -583,6 +642,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		validatorKeyPemFileName,
 		suite,
 	)
+	if err != nil {
+		return err
+	}
 
 	cryptoParams, err := cryptoParamsLoader.Get()
 	if err != nil {
@@ -763,6 +825,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		defaultEpochString,
 		defaultShardString,
 	)
+	if err != nil {
+		return err
+	}
 
 	unitOpener, err := factory.CreateUnitOpener(
 		bootstrapDataProvider,
@@ -775,6 +840,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		defaultEpochString,
 		defaultShardString,
 	)
+	if err != nil {
+		return err
+	}
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  cryptoParams.PublicKey,
@@ -928,7 +996,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating state components")
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
 		Config:           *generalConfig,
-		GenesisConfig:    genesisConfig,
 		ShardCoordinator: shardCoordinator,
 		Core:             coreComponents,
 		PathManager:      pathManager,
@@ -950,7 +1017,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricNodeDisplayName, preferencesConfig.Preferences.NodeDisplayName)
 	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricChainId, genesisNodesConfig.ChainID)
+	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricGasPerDataByte, economicsData.GasPerDataByte())
 	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricMinGasPrice, economicsData.MinGasPrice())
+	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricMinGasLimit, economicsData.MinGasLimit())
 
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", cryptoParams.PublicKeyString,
@@ -1052,7 +1121,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		&coreArgs,
-		genesisConfig,
+		accountsParser,
+		smartContractParser,
 		economicsData,
 		genesisNodesConfig,
 		gasSchedule,
@@ -1070,7 +1140,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListRequest,
 		whiteListerVerifiedTxs,
 		epochStartNotifier,
-		&generalConfig.EpochStartConfig,
+		*generalConfig,
 		currentEpoch,
 		rater,
 		generalConfig.Marshalizer.SizeCheckDelta,
@@ -1082,6 +1152,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ratingsConfig.General.MaxRating,
 		validatorPubkeyConverter,
 		ratingsData,
+		systemSCConfig,
+		version,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1093,6 +1165,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer = nil
 	} else {
 		elasticIndexer = coreServiceContainer.Indexer()
+		elasticIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
+		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
 	}
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
@@ -1142,10 +1216,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	apiResolver, err := createApiResolver(
 		generalConfig,
 		stateComponents.AccountsAdapter,
+		stateComponents.PeerAccounts,
 		stateComponents.AddressPubkeyConverter,
 		dataComponents.Store,
 		dataComponents.Blkc,
 		coreComponents.InternalMarshalizer,
+		coreComponents.Hasher,
 		coreComponents.Uint64ByteSliceConverter,
 		shardCoordinator,
 		statusHandlersInfo.StatusMetrics,
@@ -1153,6 +1229,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		economicsData,
 		cryptoComponents.MessageSignVerifier,
 		genesisNodesConfig,
+		systemSCConfig,
 	)
 	if err != nil {
 		return err
@@ -1189,6 +1266,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			RestApiInterface: ctx.GlobalString(restApiInterface.Name),
 			PprofEnabled:     ctx.GlobalBool(profileMode.Name),
 		},
+		ApiRoutesConfig: *apiRoutesConfig,
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)
@@ -1245,16 +1323,20 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 }
 
 func handleAppClose(log logger.Logger, endProcessArgument endProcess.ArgEndProcess) {
-	log.Debug(
-		"restarting node",
-		"reason",
-		endProcessArgument.Reason,
-		"description",
-		endProcessArgument.Description,
-	)
+	log.Debug("closing node")
+
 	switch endProcessArgument.Reason {
 	case core.ShuffledOut:
+		log.Debug(
+			"restarting node",
+			"reason",
+			endProcessArgument.Reason,
+			"description",
+			endProcessArgument.Description,
+		)
+
 		newStartInEpoch(log)
+	default:
 	}
 }
 
@@ -1449,8 +1531,28 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 	return cfg, nil
 }
 
+func loadApiConfig(filepath string) (*config.ApiRoutesConfig, error) {
+	cfg := &config.ApiRoutesConfig{}
+	err := core.LoadTomlFile(cfg, filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
 func loadEconomicsConfig(filepath string) (*config.EconomicsConfig, error) {
 	cfg := &config.EconomicsConfig{}
+	err := core.LoadTomlFile(cfg, filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+func loadSystemSmartContractsConfig(filepath string) (*config.SystemSmartContractsConfig, error) {
+	cfg := &config.SystemSmartContractsConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
 	if err != nil {
 		return nil, err
@@ -1972,10 +2074,12 @@ func startStatisticsMonitor(
 func createApiResolver(
 	config *config.Config,
 	accnts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
 	pubkeyConv state.PubkeyConverter,
 	storageService dataRetriever.StorageService,
 	blockChain data.ChainHandler,
 	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	shardCoordinator sharding.Coordinator,
 	statusMetrics external.StatusMetricsHandler,
@@ -1983,6 +2087,7 @@ func createApiResolver(
 	economics *economics.EconomicsData,
 	messageSigVerifier vm.MessageSignVerifier,
 	nodesSetup sharding.GenesisNodesSetupHandler,
+	systemSCConfig *config.SystemSmartContractsConfig,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -1990,6 +2095,7 @@ func createApiResolver(
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:          gasSchedule,
 		MapDNSAddresses: make(map[string]struct{}),
+		Marshalizer:     marshalizer,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
@@ -2014,6 +2120,10 @@ func createApiResolver(
 			messageSigVerifier,
 			gasSchedule,
 			nodesSetup,
+			hasher,
+			marshalizer,
+			systemSCConfig,
+			validatorAccounts,
 		)
 		if err != nil {
 			return nil, err

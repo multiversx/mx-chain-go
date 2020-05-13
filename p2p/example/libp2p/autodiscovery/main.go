@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -15,14 +14,13 @@ import (
 
 func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 	return libp2p.ArgsNetworkMessenger{
-		Context:       context.Background(),
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled:                          true,
 				RefreshIntervalInSec:             2,
-				RandezVous:                       "",
+				RandezVous:                       "/erd/kad/1.0.0",
 				InitialPeerList:                  nil,
 				BucketSize:                       100,
 				RoutingTableRefreshIntervalInSec: 10,

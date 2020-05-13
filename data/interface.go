@@ -39,9 +39,11 @@ type HeaderHandler interface {
 	GetTxCount() uint32
 	GetReceiptsHash() []byte
 	GetAccumulatedFees() *big.Int
+	GetDeveloperFees() *big.Int
 	GetEpochStartMetaHash() []byte
 
 	SetAccumulatedFees(value *big.Int)
+	SetDeveloperFees(value *big.Int)
 	SetShardID(shId uint32)
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
@@ -63,7 +65,10 @@ type HeaderHandler interface {
 
 	IsInterfaceNil() bool
 	Clone() HeaderHandler
+
+	// TODO: move this checks to a separate component
 	CheckChainID(reference []byte) error
+	CheckSoftwareVersion() error
 }
 
 // BodyHandler interface for a block body
@@ -177,7 +182,7 @@ type DBWriteCacher interface {
 type DBRemoveCacher interface {
 	Put([]byte, ModifiedHashes) error
 	Evict([]byte) (ModifiedHashes, error)
-	PresentInNewHashes(hash string) (bool, error)
+	ShouldKeepHash(hash string, identifier TriePruningIdentifier) (bool, error)
 	IsInterfaceNil() bool
 }
 
@@ -205,7 +210,7 @@ type StorageManager interface {
 
 // TrieFactory creates new tries
 type TrieFactory interface {
-	Create(config.StorageConfig, bool) (StorageManager, Trie, error)
+	Create(config.StorageConfig, string, bool) (StorageManager, Trie, error)
 	IsInterfaceNil() bool
 }
 

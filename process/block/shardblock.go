@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -53,6 +53,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, process.ErrNilTransactionPool
 	}
 
+	genesisHdr := arguments.BlockChain.GetGenesisHeader()
 	base := &baseProcessor{
 		accountsDB:             arguments.AccountsDB,
 		blockSizeThrottler:     arguments.BlockSizeThrottler,
@@ -76,6 +77,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		stateCheckpointModulus: arguments.StateCheckpointModulus,
 		blockChain:             arguments.BlockChain,
 		feeHandler:             arguments.FeeHandler,
+		genesisNonce:           genesisHdr.GetNonce(),
+		version:                core.TrimSoftwareVersion(arguments.Version),
 	}
 
 	sp := shardProcessor{
@@ -172,12 +175,16 @@ func (sp *shardProcessor) ProcessBlock(
 
 	haveMissingMetaHeaders := requestedMetaHdrs > 0 || requestedFinalityAttestingMetaHdrs > 0
 	if haveMissingMetaHeaders {
-		log.Debug("requested missing meta headers",
-			"num headers", requestedMetaHdrs,
-		)
-		log.Debug("requested missing finality attesting meta headers",
-			"num finality meta headers", requestedFinalityAttestingMetaHdrs,
-		)
+		if requestedMetaHdrs > 0 {
+			log.Debug("requested missing meta headers",
+				"num headers", requestedMetaHdrs,
+			)
+		}
+		if requestedFinalityAttestingMetaHdrs > 0 {
+			log.Debug("requested missing finality attesting meta headers",
+				"num finality meta headers", requestedFinalityAttestingMetaHdrs,
+			)
+		}
 
 		err = sp.waitForMetaHdrHashes(haveTime())
 
@@ -252,7 +259,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	err = sp.verifyAccumulatedFees(header)
+	err = sp.verifyFees(header)
 	if err != nil {
 		return err
 	}
@@ -984,8 +991,6 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
 			accounts.SnapshotState(rootHash)
 		}
 	}
-
-	return
 }
 
 func (sp *shardProcessor) checkEpochCorrectnessCrossChain() error {
@@ -1086,6 +1091,8 @@ func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) data.Heade
 		Nonce:           nonce,
 		Round:           round,
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		SoftwareVersion: []byte(sp.version),
 	}
 
 	return header
@@ -1706,6 +1713,7 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, body *blo
 	shardHeader.MiniBlockHeaders = miniBlockHeaders
 	shardHeader.TxCount = uint32(totalTxCount)
 	shardHeader.AccumulatedFees = sp.feeHandler.GetAccumulatedFees()
+	shardHeader.DeveloperFees = sp.feeHandler.GetDeveloperFees()
 
 	sw.Start("sortHeaderHashesForCurrentBlockByNonce")
 	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)

@@ -18,6 +18,15 @@ type HeaderHandlerStub struct {
 	CloneCalled                      func() data.HeaderHandler
 	GetChainIDCalled                 func() []byte
 	CheckChainIDCalled               func(reference []byte) error
+	CheckSoftwareVersionCalled       func() error
+}
+
+// CheckSoftwareVersion -
+func (hhs *HeaderHandlerStub) CheckSoftwareVersion() error {
+	if hhs.CheckSoftwareVersionCalled != nil {
+		return hhs.CheckSoftwareVersionCalled()
+	}
+	return nil
 }
 
 // GetAccumulatedFees -
@@ -25,8 +34,17 @@ func (hhs *HeaderHandlerStub) GetAccumulatedFees() *big.Int {
 	return big.NewInt(0)
 }
 
+// GetDeveloperFees -
+func (hhs *HeaderHandlerStub) GetDeveloperFees() *big.Int {
+	return big.NewInt(0)
+}
+
 // SetAccumulatedFees -
 func (hhs *HeaderHandlerStub) SetAccumulatedFees(_ *big.Int) {
+}
+
+// SetDeveloperFees -
+func (hhs *HeaderHandlerStub) SetDeveloperFees(_ *big.Int) {
 }
 
 // GetReceiptsHash -

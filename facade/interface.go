@@ -6,8 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -22,7 +22,7 @@ type NodeHandler interface {
 
 	//CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error)
+		gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error)
 
 	//ValidateTransaction will validate a transaction
 	ValidateTransaction(tx *transaction.Transaction) error
@@ -38,7 +38,7 @@ type NodeHandler interface {
 	GetAccount(address string) (state.UserAccountHandler, error)
 
 	// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
-	GetHeartbeats() []heartbeat.PubKeyHeartbeat
+	GetHeartbeats() []data.PubKeyHeartbeat
 
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool

@@ -1,6 +1,7 @@
 package loadBalancer
 
 import (
+	"context"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -20,15 +21,21 @@ type OutgoingChannelLoadBalancer struct {
 	//iteration is done directly on slices as that is used very often and is about 50x
 	//faster then an iteration over a map
 	namesChans map[string]chan *p2p.SendableData
+	cancelFunc context.CancelFunc
+	ctx        context.Context //we need the context saved here in order to call appendChannel from exported func AddChannel
 }
 
 // NewOutgoingChannelLoadBalancer creates a new instance of a ChannelLoadBalancer instance
 func NewOutgoingChannelLoadBalancer() *OutgoingChannelLoadBalancer {
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
 	oclb := &OutgoingChannelLoadBalancer{
 		chans:      make([]chan *p2p.SendableData, 0),
 		names:      make([]string, 0),
 		namesChans: make(map[string]chan *p2p.SendableData),
 		mainChan:   make(chan *p2p.SendableData),
+		cancelFunc: cancelFunc,
+		ctx:        ctx,
 	}
 
 	oclb.appendChannel(defaultSendChannel)
@@ -44,10 +51,11 @@ func (oplb *OutgoingChannelLoadBalancer) appendChannel(channel string) {
 
 	go func() {
 		for {
-			obj, ok := <-ch
+			var obj *p2p.SendableData
 
-			if !ok {
-				//channel closed, close the go routine
+			select {
+			case obj = <-ch:
+			case <-oplb.ctx.Done():
 				return
 			}
 
@@ -129,6 +137,12 @@ func (oplb *OutgoingChannelLoadBalancer) GetChannelOrDefault(channel string) cha
 func (oplb *OutgoingChannelLoadBalancer) CollectOneElementFromChannels() *p2p.SendableData {
 	obj := <-oplb.mainChan
 	return obj
+}
+
+// Close finishes all started go routines in this instance
+func (oplb *OutgoingChannelLoadBalancer) Close() error {
+	oplb.cancelFunc()
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

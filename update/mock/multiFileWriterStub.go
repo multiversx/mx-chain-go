@@ -2,9 +2,17 @@ package mock
 
 // MultiFileWriterStub -
 type MultiFileWriterStub struct {
-	NewFileCalled func(name string) error
-	WriteCalled   func(fileName string, key string, value []byte) error
-	FinishCalled  func()
+	NewFileCalled   func(name string) error
+	WriteCalled     func(fileName string, key string, value []byte) error
+	FinishCalled    func()
+	CloseFileCalled func(fileName string)
+}
+
+// CloseFile -
+func (mfw *MultiFileWriterStub) CloseFile(fileName string) {
+	if mfw.CloseFileCalled != nil {
+		mfw.CloseFileCalled(fileName)
+	}
 }
 
 // NewFile -

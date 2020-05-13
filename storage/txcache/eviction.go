@@ -30,8 +30,6 @@ func (cache *TxCache) doEviction() {
 
 	stopWatch := cache.monitorEvictionStart()
 
-	// TODO: first phase, evict sweepable.
-
 	if tooManyTxs {
 		cache.makeSnapshotOfSenders()
 		journal.passOneNumTxs, journal.passOneNumSenders = cache.evictHighNonceTransactions()
@@ -96,7 +94,6 @@ func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 	for _, txList := range cache.evictionSnapshotOfSenders {
 		if txList.HasMoreThan(threshold) {
 			txsToEvictForSender := txList.RemoveHighNonceTxs(numTxsToEvict)
-			cache.txListBySender.notifyScoreChange(txList)
 			txsToEvict = append(txsToEvict, txsToEvictForSender...)
 		}
 
@@ -114,6 +111,7 @@ func (cache *TxCache) evictHighNonceTransactions() (uint32, uint32) {
 	return cache.doEvictItems(txsToEvict, sendersToEvict)
 }
 
+// This is called concurrently by two goroutines: the eviction one and the sweeping one
 func (cache *TxCache) doEvictItems(txsToEvict [][]byte, sendersToEvict []string) (countTxs uint32, countSenders uint32) {
 	countTxs = cache.txByHash.RemoveTxsBulk(txsToEvict)
 	countSenders = cache.txListBySender.RemoveSendersBulk(sendersToEvict)
@@ -126,27 +124,32 @@ func (cache *TxCache) evictSendersInLoop() (uint32, uint32, uint32) {
 
 // evictSendersWhileTooManyTxs removes transactions in a loop, as long as "shouldContinue" is true
 // One batch of senders is removed in each step
-// Before starting the loop, the senders are sorted as specified by "sendersSortKind"
-func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32, countTxs uint32, countSenders uint32) {
+func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32, numTxs uint32, numSenders uint32) {
 	if !shouldContinue() {
 		return
 	}
 
-	batchesSource := cache.evictionSnapshotOfSenders
+	snapshot := cache.evictionSnapshotOfSenders
+	snapshotLength := uint32(len(snapshot))
 	batchSize := cache.config.NumSendersToEvictInOneStep
 	batchStart := uint32(0)
 
 	for step = 0; shouldContinue(); step++ {
-		batchEnd := core.MinUint32(batchStart+batchSize, uint32(len(batchesSource)))
-		batch := batchesSource[batchStart:batchEnd]
+		batchEnd := batchStart + batchSize
+		batchEndBounded := core.MinUint32(batchEnd, snapshotLength)
+		batch := snapshot[batchStart:batchEndBounded]
 
-		countTxsEvictedInStep, countSendersEvictedInStep := cache.evictSendersAndTheirTxs(batch)
+		numTxsEvictedInStep, numSendersEvictedInStep := cache.evictSendersAndTheirTxs(batch)
 
-		countTxs += countTxsEvictedInStep
-		countSenders += countSendersEvictedInStep
+		numTxs += numTxsEvictedInStep
+		numSenders += numSendersEvictedInStep
 		batchStart += batchSize
 
-		shouldBreak := countTxsEvictedInStep == 0 || countSendersEvictedInStep < batchSize
+		reachedEnd := batchStart >= snapshotLength
+		noTxsEvicted := numTxsEvictedInStep == 0
+		incompleteBatch := numSendersEvictedInStep < batchSize
+
+		shouldBreak := noTxsEvicted || incompleteBatch || reachedEnd
 		if shouldBreak {
 			break
 		}
@@ -155,6 +158,7 @@ func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32
 	return
 }
 
+// This is called concurrently by two goroutines: the eviction one and the sweeping one
 func (cache *TxCache) evictSendersAndTheirTxs(listsToEvict []*txListForSender) (uint32, uint32) {
 	sendersToEvict := make([]string, 0, len(listsToEvict))
 	txsToEvict := make([][]byte, 0, approximatelyCountTxInLists(listsToEvict))

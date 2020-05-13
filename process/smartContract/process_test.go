@@ -359,15 +359,16 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
-	acntSrc, acntDst := createAccounts(tx)
+	acntSrc, _ := createAccounts(tx)
 
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil)
 	require.Equal(t, process.ErrNilSCDestAccount, err)
 
-	acntDst.SetCode(nil)
+	acntSrc, acntDst := createAccounts(tx)
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.Nil(t, err)
 
+	acntSrc, acntDst = createAccounts(tx)
 	acntDst = nil
 	err = sc.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 	require.Equal(t, process.ErrNilSCDestAccount, err)
@@ -1179,7 +1180,7 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 	acntSrc, _ := createAccounts(tx)
 	currBalance := acntSrc.(state.UserAccountHandler).GetBalance().Uint64()
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
-	_, _, err = sc.createSCRForSender(
+	_, _ = sc.createSCRForSender(
 		vmOutput.GasRefund,
 		vmOutput.GasRemaining,
 		vmOutput.ReturnCode,
@@ -1212,7 +1213,7 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	tx.GasLimit = 10
 	txHash := []byte("txHash")
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
-	sctx, consumed, err := sc.createSCRForSender(
+	sctx, consumed := sc.createSCRForSender(
 		vmOutput.GasRefund,
 		vmOutput.GasRemaining,
 		vmOutput.ReturnCode,
@@ -1227,7 +1228,7 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	require.Equal(t, 0, consumed.Cmp(big.NewInt(0).SetUint64(tx.GasPrice*tx.GasLimit)))
 
 	vmOutput = &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
-	sctx, consumed, err = sc.createSCRForSender(
+	sctx, consumed = sc.createSCRForSender(
 		vmOutput.GasRefund,
 		vmOutput.GasRemaining,
 		vmOutput.ReturnCode,
@@ -1268,7 +1269,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: refundGas}
-	_, _, err = sc.createSCRForSender(
+	_, _ = sc.createSCRForSender(
 		vmOutput.GasRefund,
 		vmOutput.GasRemaining,
 		vmOutput.ReturnCode,
@@ -1280,8 +1281,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	totalRefund := refundGas.Uint64() * minGasPrice
-	require.Equal(t, currBalance+totalRefund, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
+	require.Equal(t, currBalance, acntSrc.(state.UserAccountHandler).GetBalance().Uint64())
 }
 
 func TestScProcessor_processVMOutputNilOutput(t *testing.T) {
@@ -1692,8 +1692,8 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 	arguments.TempAccounts = fakeAccountsHandler
 	arguments.Coordinator = shardCoordinator
 	arguments.TxTypeHandler = &mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
-			return process.SCDeployment, nil
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
+			return process.SCDeployment
 		},
 	}
 	sc, err := NewSmartContractProcessor(arguments)
@@ -1741,8 +1741,8 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 		},
 	}
 	arguments.TxTypeHandler = &mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, e error) {
-			return process.SCInvoking, nil
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
+			return process.SCInvoking
 		},
 	}
 	sc, err := NewSmartContractProcessor(arguments)

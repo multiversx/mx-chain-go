@@ -89,11 +89,9 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
 		PubkeyConv:          createMockPubkeyConverter(),
 		PeerAdapter:         getAccountsMock(),
-		StakeValue:          economicsData.GenesisNodePrice(),
 		Rater:               createMockRater(),
 		RewardsHandler:      economicsData,
 		MaxComputableRounds: 1000,
-		StartEpoch:          0,
 		NodesSetup:          &mock.NodesSetupStub{},
 	}
 	return arguments
@@ -183,17 +181,6 @@ func TestNewValidatorStatisticsProcessor_ZeroMaxComputableRoundsShouldErr(t *tes
 
 	assert.Nil(t, validatorStatistics)
 	assert.Equal(t, process.ErrZeroMaxComputableRounds, err)
-}
-
-func TestNewValidatorStatisticsProcessor_NilStakeValueShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockArguments()
-	arguments.StakeValue = nil
-	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
-
-	assert.Nil(t, validatorStatistics)
-	assert.Equal(t, process.ErrNilEconomicsData, err)
 }
 
 func TestNewValidatorStatisticsProcessor_NilRaterShouldErr(t *testing.T) {
@@ -583,10 +570,12 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 			*v = block.MetaBlock{
 				PubKeysBitmap:   []byte{255, 255},
 				AccumulatedFees: big.NewInt(0),
+				DeveloperFees:   big.NewInt(0),
 			}
 		case *block.Header:
 			*v = block.Header{
 				AccumulatedFees: big.NewInt(0),
+				DeveloperFees:   big.NewInt(0),
 			}
 		default:
 			fmt.Println(v)
@@ -1384,11 +1373,11 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithNilMapShouldErr(
 	arguments := createMockArguments()
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
-	err := validatorStatistics.ProcessRatingsEndOfEpoch(nil)
+	err := validatorStatistics.ProcessRatingsEndOfEpoch(nil, 1)
 	assert.Equal(t, process.ErrNilValidatorInfos, err)
 
 	vi := make(map[uint32][]*state.ValidatorInfo)
-	err = validatorStatistics.ProcessRatingsEndOfEpoch(vi)
+	err = validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
 	assert.Equal(t, process.ErrNilValidatorInfos, err)
 }
 
@@ -1440,7 +1429,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithNoValidatorFailu
 		AccumulatedFees:            nil,
 	}
 
-	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi)
+	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
 	assert.Nil(t, err)
 	assert.Equal(t, tempRating1, vi[core.MetachainShardId][0].TempRating)
 	assert.Equal(t, tempRating2, vi[0][0].TempRating)
@@ -1474,7 +1463,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithSmallValidatorFa
 	vi[0] = make([]*state.ValidatorInfo, 1)
 	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorFailure2)
 
-	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi)
+	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
 	assert.Nil(t, err)
 	expectedTempRating1 := tempRating1 - uint32(rater.MetaIncreaseValidator)*validatorFailure1
 	assert.Equal(t, expectedTempRating1, vi[core.MetachainShardId][0].TempRating)
@@ -1513,7 +1502,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochComputesJustEligible
 	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorFailure2)
 	vi[0][0].List = string(core.WaitingList)
 
-	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi)
+	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
 	assert.Nil(t, err)
 	expectedTempRating1 := tempRating1 - uint32(rater.MetaIncreaseValidator)*validatorFailure1
 	assert.Equal(t, expectedTempRating1, vi[core.MetachainShardId][0].TempRating)
@@ -1549,7 +1538,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithLargeValidatorFa
 	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorFailure2)
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi)
+	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
 
 	assert.Nil(t, err)
 	assert.Equal(t, rater.MinRating, vi[core.MetachainShardId][0].TempRating)
@@ -1677,7 +1666,6 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 	pa0.PeerAccountData = state.PeerAccountData{
 		BLSPublicKey:    []byte("bls0"),
 		RewardAddress:   []byte("reward0"),
-		Stake:           big.NewInt(10),
 		AccumulatedFees: big.NewInt(11),
 		ValidatorSuccessRate: state.SignRate{
 			NumSuccess: 1,
@@ -1706,7 +1694,6 @@ func createPeerAccounts(addrBytes0 []byte, addrBytesMeta []byte) (state.PeerAcco
 	paMeta.PeerAccountData = state.PeerAccountData{
 		BLSPublicKey:    []byte("blsM"),
 		RewardAddress:   []byte("rewardM"),
-		Stake:           big.NewInt(110),
 		AccumulatedFees: big.NewInt(111),
 		ValidatorSuccessRate: state.SignRate{
 			NumSuccess: 11,

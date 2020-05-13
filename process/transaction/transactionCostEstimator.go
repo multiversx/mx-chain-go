@@ -65,11 +65,7 @@ func getOperationCost(gasSchedule map[string]map[string]uint64) (uint64, uint64)
 
 // ComputeTransactionGasLimit will calculate how many gas units a transaction will consume
 func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
-	txType, err := tce.txTypeHandler.ComputeTransactionType(tx)
-	if err != nil {
-		return 0, err
-	}
-
+	txType := tce.txTypeHandler.ComputeTransactionType(tx)
 	tx.GasPrice = 1
 
 	switch txType {
@@ -78,6 +74,8 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 	case process.SCDeployment:
 		return tce.computeScDeployGasLimit(tx)
 	case process.SCInvoking:
+		return tce.computeScCallGasLimit(tx)
+	case process.BuiltInFunctionCall:
 		return tce.computeScCallGasLimit(tx)
 	default:
 		return 0, process.ErrWrongTransaction

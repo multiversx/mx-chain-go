@@ -22,10 +22,23 @@ type SystemEIStub struct {
 	AddTxValueToSmartContractCalled func(value *big.Int, scAddress []byte)
 	BlockChainHookCalled            func() vmcommon.BlockchainHook
 	CryptoHookCalled                func() vmcommon.CryptoHook
+	UseGasCalled                    func(gas uint64) error
+	IsValidatorCalled               func(blsKey []byte) bool
+}
+
+// IsValidator -
+func (s *SystemEIStub) IsValidator(blsKey []byte) bool {
+	if s.IsValidatorCalled != nil {
+		return s.IsValidatorCalled(blsKey)
+	}
+	return false
 }
 
 // UseGas -
-func (s *SystemEIStub) UseGas(_ uint64) error {
+func (s *SystemEIStub) UseGas(gas uint64) error {
+	if s.UseGasCalled != nil {
+		return s.UseGasCalled(gas)
+	}
 	return nil
 }
 
@@ -85,7 +98,7 @@ func (s *SystemEIStub) Finish(value []byte) {
 }
 
 // Transfer -
-func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.Int, input []byte) error {
+func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) error {
 	if s.TransferCalled != nil {
 		return s.TransferCalled(destination, sender, value, input)
 	}

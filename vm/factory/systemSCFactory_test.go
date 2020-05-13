@@ -3,16 +3,17 @@ package factory
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	vm2 "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule = vm2.FillGasMapInternal(gasSchedule, 1)
+	gasSchedule = defaults.FillGasMapInternal(gasSchedule, 1)
 
 	return ArgsNewSystemSCFactory{
 		SystemEI:            &mock.SystemEIStub{},
@@ -20,6 +21,14 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 		SigVerifier:         &mock.MessageSignVerifierMock{},
 		GasMap:              gasSchedule,
 		NodesConfigProvider: &mock.NodesConfigProviderStub{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		Hasher:              &mock.HasherMock{},
+		SystemSCConfig: &config.SystemSmartContractsConfig{
+			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+				BaseIssuingCost: "100000000",
+				OwnerAddress:    "aaaaaa",
+			},
+		},
 	}
 }
 
@@ -63,7 +72,7 @@ func TestSystemSCFactory_Create(t *testing.T) {
 
 	container, err := scFactory.Create()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, container.Len())
+	assert.Equal(t, 3, container.Len())
 }
 
 func TestSystemSCFactory_IsInterfaceNil(t *testing.T) {

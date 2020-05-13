@@ -87,6 +87,9 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	if metaBlock.AccumulatedFeesInEpoch == nil {
 		return nil, epochStart.ErrNilTotalAccumulatedFeesInEpoch
 	}
+	if metaBlock.DevFeesInEpoch == nil {
+		return nil, epochStart.ErrNilTotalDevFeesInEpoch
+	}
 	if !metaBlock.IsStartOfEpochBlock() || metaBlock.Epoch < 1 {
 		return nil, epochStart.ErrNotEpochStartBlock
 	}
@@ -121,6 +124,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		rwdPerBlock.Div(totalRewardsToBeDistributed, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 	}
 
+	e.adjustRewardsPerBlockWithDeveloperFees(rwdPerBlock, metaBlock.DevFeesInEpoch, totalNumBlocksInEpoch)
 	e.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, metaBlock.AccumulatedFeesInEpoch, totalNumBlocksInEpoch)
 	rewardsForCommunity := e.computeRewardsForCommunity(totalRewardsToBeDistributed)
 	// adjust rewards per block taking into consideration community rewards
@@ -160,6 +164,16 @@ func (e *economics) adjustRewardsPerBlockWithCommunityRewards(
 ) {
 	communityRewardsPerBlock := big.NewInt(0).Div(communityRewards, big.NewInt(0).SetUint64(blocksInEpoch))
 	rwdPerBlock.Sub(rwdPerBlock, communityRewardsPerBlock)
+}
+
+// adjustment for rewards given for each proposed block taking developer fees into consideration
+func (e *economics) adjustRewardsPerBlockWithDeveloperFees(
+	rwdPerBlock *big.Int,
+	developerFees *big.Int,
+	blocksInEpoch uint64,
+) {
+	developerFeesPerBlock := big.NewInt(0).Div(developerFees, big.NewInt(0).SetUint64(blocksInEpoch))
+	rwdPerBlock.Sub(rwdPerBlock, developerFeesPerBlock)
 }
 
 func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(

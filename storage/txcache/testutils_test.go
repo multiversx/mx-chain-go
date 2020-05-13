@@ -2,7 +2,9 @@ package txcache
 
 import (
 	"encoding/binary"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -20,14 +22,31 @@ func kBToBytes(kB float32) uint64 {
 	return uint64(kB * 1000)
 }
 
-func (cache *TxCache) getRawScoreOfSender(sender string) float64 {
+func (cache *TxCache) getListForSender(sender string) *txListForSender {
 	list, ok := cache.txListBySender.getListForSender(sender)
 	if !ok {
 		panic("sender not in cache")
 	}
 
-	rawScore := list.computeRawScore()
-	return rawScore
+	return list
+}
+
+func (cache *TxCache) getRawScoreOfSender(sender string) float64 {
+	return cache.getListForSender(sender).computeRawScore()
+}
+
+func (cache *TxCache) getNumFailedSelectionsOfSender(sender string) int {
+	return int(cache.getListForSender(sender).numFailedSelections.Get())
+}
+
+func (cache *TxCache) isSenderSweepable(sender string) bool {
+	for _, item := range cache.sweepingListOfSenders {
+		if item.sender == sender {
+			return true
+		}
+	}
+
+	return false
 }
 
 func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nTransactionsPerSender int) {
@@ -97,4 +116,21 @@ func measureWithStopWatch(b *testing.B, function func()) {
 
 	duration := sw.GetMeasurementsMap()["time"]
 	b.ReportMetric(duration, "time@stopWatch")
+}
+
+// waitTimeout waits for the waitgroup for the specified max timeout.
+// Returns true if waiting timed out.
+// Reference: https://stackoverflow.com/a/32843750/1475331
+func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
+	c := make(chan struct{})
+	go func() {
+		defer close(c)
+		wg.Wait()
+	}()
+	select {
+	case <-c:
+		return false // completed normally
+	case <-time.After(timeout):
+		return true // timed out
+	}
 }

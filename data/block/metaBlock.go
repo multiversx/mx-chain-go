@@ -84,6 +84,11 @@ func (m *MetaBlock) SetAccumulatedFees(value *big.Int) {
 	m.AccumulatedFees.Set(value)
 }
 
+// SetDeveloperFees sets the developer fees in the header
+func (m *MetaBlock) SetDeveloperFees(value *big.Int) {
+	m.DeveloperFees.Set(value)
+}
+
 // SetTimeStamp sets header timestamp
 func (m *MetaBlock) SetTimeStamp(ts uint64) {
 	m.TimeStamp = ts
@@ -153,6 +158,14 @@ func (m *MetaBlock) CheckChainID(reference []byte) error {
 		)
 	}
 
+	return nil
+}
+
+// CheckSoftwareVersion returns nil if the software version has the correct length
+func (m *MetaBlock) CheckSoftwareVersion() error {
+	if len(m.SoftwareVersion) == 0 || len(m.SoftwareVersion) > core.MaxSoftwareVersionLengthInBytes {
+		return data.ErrInvalidSoftwareVersion
+	}
 	return nil
 }
 

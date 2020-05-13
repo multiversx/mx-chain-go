@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -86,6 +87,11 @@ func (h *Header) SetTimeStamp(ts uint64) {
 // SetAccumulatedFees sets the accumulated fees in the header
 func (h *Header) SetAccumulatedFees(value *big.Int) {
 	h.AccumulatedFees.Set(value)
+}
+
+// SetDeveloperFees sets the developer fees in the header
+func (h *Header) SetDeveloperFees(value *big.Int) {
+	h.DeveloperFees.Set(value)
 }
 
 // SetTxCount sets the transaction count of the block associated with this header
@@ -173,6 +179,14 @@ func (h *Header) CheckChainID(reference []byte) error {
 		)
 	}
 
+	return nil
+}
+
+// CheckSoftwareVersion returns nil if the software version has the correct length
+func (h *Header) CheckSoftwareVersion() error {
+	if len(h.SoftwareVersion) == 0 || len(h.SoftwareVersion) > core.MaxSoftwareVersionLengthInBytes {
+		return data.ErrInvalidSoftwareVersion
+	}
 	return nil
 }
 
