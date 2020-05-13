@@ -1,7 +1,6 @@
 package integrationTests
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
@@ -39,11 +38,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/display"
-	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
+	genesisProcess "github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -56,6 +54,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -107,10 +106,10 @@ func createP2PConfig(initialPeerList []string) config.P2PConfig {
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
 			RefreshIntervalInSec:             2,
-			RandezVous:                       "",
+			RandezVous:                       "/erd/kad/1.0.0",
 			InitialPeerList:                  initialPeerList,
 			BucketSize:                       100,
-			RoutingTableRefreshIntervalInSec: 2,
+			RoutingTableRefreshIntervalInSec: 100,
 		},
 		Sharding: config.ShardingConfig{
 			Type: p2p.NilListSharder,
@@ -119,11 +118,35 @@ func createP2PConfig(initialPeerList []string) config.P2PConfig {
 }
 
 // CreateMessengerWithKadDht creates a new libp2p messenger with kad-dht peer discovery
-func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Messenger {
+func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
+	initialAddresses := make([]string, 0)
+	if len(initialAddr) > 0 {
+		initialAddresses = append(initialAddresses, initialAddr)
+	}
 	arg := libp2p.ArgsNetworkMessenger{
-		Context:       ctx,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
-		P2pConfig:     createP2PConfig([]string{initialAddr}),
+		P2pConfig:     createP2PConfig(initialAddresses),
+	}
+
+	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	return libP2PMes
+}
+
+// CreateMessengerWithKadDhtAndProtocolID creates a new libp2p messenger with kad-dht peer discovery and peer ID
+func CreateMessengerWithKadDhtAndProtocolID(initialAddr string, randezVous string) p2p.Messenger {
+	initialAddresses := make([]string, 0)
+	if len(initialAddr) > 0 {
+		initialAddresses = append(initialAddresses, initialAddr)
+	}
+	p2pConfig := createP2PConfig(initialAddresses)
+	p2pConfig.KadDhtPeerDiscovery.RandezVous = randezVous
+	arg := libp2p.ArgsNetworkMessenger{
+		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
+		P2pConfig:     p2pConfig,
 	}
 
 	libP2PMes, err := libp2p.NewNetworkMessenger(arg)
@@ -135,9 +158,8 @@ func CreateMessengerWithKadDht(ctx context.Context, initialAddr string) p2p.Mess
 }
 
 // CreateMessengerFromConfig creates a new libp2p messenger with provided configuration
-func CreateMessengerFromConfig(ctx context.Context, p2pConfig config.P2PConfig) p2p.Messenger {
+func CreateMessengerFromConfig(p2pConfig config.P2PConfig) p2p.Messenger {
 	arg := libp2p.ArgsNetworkMessenger{
-		Context:       ctx,
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
 	}
@@ -166,7 +188,6 @@ func CreateMessengerWithNoDiscovery() p2p.Messenger {
 	}
 
 	arg := libp2p.ArgsNetworkMessenger{
-		Context:       context.Background(),
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig:     p2pConfig,
 	}
@@ -513,13 +534,13 @@ func CreateGenesisMetaBlock(
 	rootHash []byte,
 ) data.HeaderHandler {
 	gasSchedule := make(map[string]map[string]uint64)
-	vm.FillGasMapInternal(gasSchedule, 1)
+	defaults.FillGasMapInternal(gasSchedule, 1)
 
-	argsMetaGenesis := genesis.ArgsMetaGenesisBlockCreator{
+	argsMetaGenesis := genesisProcess.ArgsGenesisBlockCreator{
 		GenesisTime:              0,
 		Accounts:                 accounts,
 		PubkeyConv:               pubkeyConv,
-		NodesSetup:               nodesSetup,
+		InitialNodesSetup:        nodesSetup,
 		ShardCoordinator:         shardCoordinator,
 		Store:                    store,
 		Blkc:                     blkc,
@@ -530,7 +551,10 @@ func CreateGenesisMetaBlock(
 		Economics:                economics,
 		ValidatorStatsRootHash:   rootHash,
 		GasMap:                   gasSchedule,
-		SystemSCConfig: &config.SystemSmartContractsConfig{
+		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
+		VirtualMachineConfig:     config.VirtualMachineConfig{},
+		HardForkConfig:           config.HardforkConfig{},
+		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
 				OwnerAddress:    "aaaaaa",
@@ -555,11 +579,17 @@ func CreateGenesisMetaBlock(
 		argsMetaGenesis.DataPool = newDataPool
 	}
 
-	metaHdr, err := genesis.CreateMetaGenesisBlock(argsMetaGenesis)
+	nodesHandler, err := mock.NewNodesHandlerMock(nodesSetup)
 	log.LogIfError(err)
 
-	fmt.Printf("meta genesis root hash %s \n", hex.EncodeToString(metaHdr.GetRootHash()))
-	fmt.Printf("meta genesis validatorStatistics %d %s \n", shardCoordinator.SelfId(), hex.EncodeToString(metaHdr.GetValidatorStatsRootHash()))
+	metaHdr, err := genesisProcess.CreateMetaGenesisBlock(argsMetaGenesis, nodesHandler)
+	log.LogIfError(err)
+
+	log.Info("meta genesis root hash", "hash", hex.EncodeToString(metaHdr.GetRootHash()))
+	log.Info("meta genesis validatorStatistics",
+		"shardID", shardCoordinator.SelfId(),
+		"hash", hex.EncodeToString(metaHdr.GetValidatorStatsRootHash()),
+	)
 
 	return metaHdr
 }
@@ -1754,7 +1784,7 @@ func SetupSyncNodesOneShardAndMeta(
 	maxShards := uint32(1)
 	shardId := uint32(0)
 
-	advertiser := CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := GetConnectableAddress(advertiser)
 

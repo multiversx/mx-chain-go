@@ -24,7 +24,8 @@ const (
 	branch
 )
 
-var emptyTrieHash = make([]byte, 32)
+// EmptyTrieHash returns the value with empty trie hash
+var EmptyTrieHash = make([]byte, 32)
 
 type patriciaMerkleTrie struct {
 	root node
@@ -171,7 +172,7 @@ func (tr *patriciaMerkleTrie) Root() ([]byte, error) {
 	defer tr.mutOperation.Unlock()
 
 	if tr.root == nil {
-		return emptyTrieHash, nil
+		return EmptyTrieHash, nil
 	}
 
 	hash := tr.root.getHash()
@@ -316,7 +317,7 @@ func emptyTrie(root []byte) bool {
 	if len(root) == 0 {
 		return true
 	}
-	if bytes.Equal(root, emptyTrieHash) {
+	if bytes.Equal(root, EmptyTrieHash) {
 		return true
 	}
 	return false
@@ -389,7 +390,7 @@ func (tr *patriciaMerkleTrie) SetNewHashes(newHashes data.ModifiedHashes) {
 
 // SetCheckpoint adds the current state of the trie to the snapshot database
 func (tr *patriciaMerkleTrie) SetCheckpoint(rootHash []byte) {
-	if bytes.Equal(rootHash, emptyTrieHash) {
+	if bytes.Equal(rootHash, EmptyTrieHash) {
 		log.Trace("should not snapshot empty trie")
 		return
 	}
@@ -400,7 +401,7 @@ func (tr *patriciaMerkleTrie) SetCheckpoint(rootHash []byte) {
 // TakeSnapshot creates a new database in which the current state of the trie is saved.
 // If the maximum number of snapshots has been reached, the oldest snapshot is removed.
 func (tr *patriciaMerkleTrie) TakeSnapshot(rootHash []byte) {
-	if bytes.Equal(rootHash, emptyTrieHash) {
+	if bytes.Equal(rootHash, EmptyTrieHash) {
 		log.Trace("should not snapshot empty trie")
 		return
 	}

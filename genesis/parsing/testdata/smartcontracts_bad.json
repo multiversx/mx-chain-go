@@ -1,0 +1,12 @@
+[
+  {
+    "owner": "not-an-address",
+    "filename": "testdata/empty1.wasm",
+    "vm-type": "00"
+  },
+  {
+    "owner": "0002",
+    "filename": "testdata/empty2.wasm",
+    "vm-type": "00"
+  }
+]

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"math/rand"
 	syncGo "sync"
 	"sync/atomic"
 	"time"
@@ -33,9 +32,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/componentHandler"
+	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	heartbeatProcess "github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/node/heartbeat/storage"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -87,8 +87,6 @@ type Node struct {
 	interceptorsContainer         process.InterceptorsContainer
 	resolversFinder               dataRetriever.ResolversFinder
 	peerBlackListHandler          process.BlackListHandler
-	heartbeatMonitor              *heartbeat.Monitor
-	heartbeatSender               *heartbeat.Sender
 	appStatusHandler              core.AppStatusHandler
 	validatorStatistics           process.ValidatorStatisticsProcessor
 	hardforkTrigger               HardforkTrigger
@@ -146,6 +144,8 @@ type Node struct {
 
 	mutQueryHandlers syncGo.RWMutex
 	queryHandlers    map[string]debug.QueryHandler
+
+	heartbeatHandler *componentHandler.HeartbeatHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -842,7 +842,7 @@ func (n *Node) CreateTransaction(
 	sender string,
 	gasPrice uint64,
 	gasLimit uint64,
-	dataField []byte,
+	dataField string,
 	signatureHex string,
 ) (*transaction.Transaction, []byte, error) {
 
@@ -880,7 +880,7 @@ func (n *Node) CreateTransaction(
 		SndAddr:   senderAddress,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      dataField,
+		Data:      []byte(dataField),
 		Signature: signatureBytes,
 	}
 
@@ -929,171 +929,51 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 }
 
 // StartHeartbeat starts the node's heartbeat processing/signaling module
+//TODO(next PR) remove the instantiation of the heartbeat component from here
 func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber string, prefsConfig config.PreferencesConfig) error {
-	if !hbConfig.Enabled {
-		return nil
+	arg := componentHandler.ArgHeartbeat{
+		HeartbeatConfig:          hbConfig,
+		PrefsConfig:              prefsConfig,
+		Marshalizer:              n.internalMarshalizer,
+		Messenger:                n.messenger,
+		ShardCoordinator:         n.shardCoordinator,
+		NodesCoordinator:         n.nodesCoordinator,
+		AppStatusHandler:         n.appStatusHandler,
+		Storer:                   n.store.GetStorer(dataRetriever.HeartbeatUnit),
+		ValidatorStatistics:      n.validatorStatistics,
+		KeyGenerator:             n.keyGen,
+		SingleSigner:             n.singleSigner,
+		PrivKey:                  n.privKey,
+		HardforkTrigger:          n.hardforkTrigger,
+		AntifloodHandler:         n.inputAntifloodHandler,
+		PeerBlackListHandler:     n.peerBlackListHandler,
+		ValidatorPubkeyConverter: n.validatorPubkeyConverter,
+		EpochStartTrigger:        n.epochStartTrigger,
+		EpochStartRegistration:   n.epochStartRegistrationHandler,
+		Timer:                    &heartbeatProcess.RealTimer{},
+		GenesisTime:              n.genesisTime,
+		VersionNumber:            versionNumber,
+		PeerShardMapper:          n.networkShardingCollector,
+		SizeCheckDelta:           n.sizeCheckDelta,
 	}
 
-	err := n.checkConfigParams(hbConfig)
-	if err != nil {
-		return err
-	}
+	var err error
+	n.heartbeatHandler, err = componentHandler.NewHeartbeatHandler(arg)
 
-	if n.messenger.HasTopicValidator(core.HeartbeatTopic) {
-		return ErrValidatorAlreadySet
-	}
-
-	if !n.messenger.HasTopic(core.HeartbeatTopic) {
-		err = n.messenger.CreateTopic(core.HeartbeatTopic, true)
-		if err != nil {
-			return err
-		}
-	}
-	argPeerTypeProvider := peer.ArgPeerTypeProvider{
-		NodesCoordinator:             n.nodesCoordinator,
-		EpochHandler:                 n.epochStartTrigger,
-		EpochStartEventNotifier:      n.epochStartRegistrationHandler,
-		ValidatorsProvider:           n.validatorsProvider,
-		CacheRefreshIntervalDuration: time.Duration(hbConfig.PeerTypeRefreshIntervalInSec) * time.Second,
-	}
-
-	peerTypeProvider, err := peer.NewPeerTypeProvider(argPeerTypeProvider)
-
-	if err != nil {
-		return err
-	}
-
-	argSender := heartbeat.ArgHeartbeatSender{
-		PeerMessenger:    n.messenger,
-		SingleSigner:     n.singleSigner,
-		PrivKey:          n.privKey,
-		Marshalizer:      n.internalMarshalizer,
-		Topic:            core.HeartbeatTopic,
-		ShardCoordinator: n.shardCoordinator,
-		PeerTypeProvider: peerTypeProvider,
-		StatusHandler:    n.appStatusHandler,
-		VersionNumber:    versionNumber,
-		NodeDisplayName:  prefsConfig.NodeDisplayName,
-		KeyBaseIdentity:  prefsConfig.Identity,
-		HardforkTrigger:  n.hardforkTrigger,
-	}
-
-	n.heartbeatSender, err = heartbeat.NewSender(argSender)
-	if err != nil {
-		return err
-	}
-
-	heartbeatStorageUnit := n.store.GetStorer(dataRetriever.HeartbeatUnit)
-
-	heartBeatMsgProcessor, err := heartbeat.NewMessageProcessor(
-		n.singleSigner,
-		n.keyGen,
-		n.internalMarshalizer,
-		n.networkShardingCollector,
-	)
-	if err != nil {
-		return err
-	}
-
-	heartbeatStorer, err := storage.NewHeartbeatDbStorer(heartbeatStorageUnit, n.internalMarshalizer)
-	if err != nil {
-		return err
-	}
-
-	timer := &heartbeat.RealTimer{}
-	netInputMarshalizer := n.internalMarshalizer
-	if n.sizeCheckDelta > 0 {
-		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.internalMarshalizer, n.sizeCheckDelta)
-	}
-
-	allValidators, _, _ := n.getLatestValidators()
-	pubKeysMap := make(map[uint32][]string)
-	for shardID, valsInShard := range allValidators {
-		for _, val := range valsInShard {
-			pubKeysMap[shardID] = append(pubKeysMap[shardID], string(val.PublicKey))
-		}
-	}
-
-	argMonitor := heartbeat.ArgHeartbeatMonitor{
-		Marshalizer:                        netInputMarshalizer,
-		MaxDurationPeerUnresponsive:        time.Second * time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
-		PubKeysMap:                         pubKeysMap,
-		GenesisTime:                        n.genesisTime,
-		MessageHandler:                     heartBeatMsgProcessor,
-		Storer:                             heartbeatStorer,
-		PeerTypeProvider:                   peerTypeProvider,
-		Timer:                              timer,
-		AntifloodHandler:                   n.inputAntifloodHandler,
-		HardforkTrigger:                    n.hardforkTrigger,
-		PeerBlackListHandler:               n.peerBlackListHandler,
-		ValidatorPubkeyConverter:           n.validatorPubkeyConverter,
-		HbmiRefreshIntervalInSec:           hbConfig.HbmiRefreshIntervalInSec,
-		HideInactiveValidatorIntervalInSec: hbConfig.HideInactiveValidatorIntervalInSec,
-	}
-	n.heartbeatMonitor, err = heartbeat.NewMonitor(argMonitor)
-	if err != nil {
-		return err
-	}
-
-	err = n.heartbeatMonitor.SetAppStatusHandler(n.appStatusHandler)
-	if err != nil {
-		return err
-	}
-
-	err = n.messenger.RegisterMessageProcessor(core.HeartbeatTopic, n.heartbeatMonitor)
-	if err != nil {
-		return err
-	}
-
-	go n.startSendingHeartbeats(hbConfig)
-
-	return nil
-}
-
-func (n *Node) checkConfigParams(config config.HeartbeatConfig) error {
-	if config.DurationInSecToConsiderUnresponsive < 1 {
-		return ErrNegativeDurationInSecToConsiderUnresponsive
-	}
-	if config.MaxTimeToWaitBetweenBroadcastsInSec < 1 {
-		return ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec
-	}
-	if config.MinTimeToWaitBetweenBroadcastsInSec < 1 {
-		return ErrNegativeMinTimeToWaitBetweenBroadcastsInSec
-	}
-	if config.MaxTimeToWaitBetweenBroadcastsInSec <= config.MinTimeToWaitBetweenBroadcastsInSec {
-		return ErrWrongValues
-	}
-	if config.DurationInSecToConsiderUnresponsive <= config.MaxTimeToWaitBetweenBroadcastsInSec {
-		return ErrWrongValues
-	}
-
-	return nil
-}
-
-func (n *Node) startSendingHeartbeats(config config.HeartbeatConfig) {
-	r := rand.New(rand.NewSource(time.Now().Unix()))
-
-	for {
-		diffSeconds := config.MaxTimeToWaitBetweenBroadcastsInSec - config.MinTimeToWaitBetweenBroadcastsInSec
-		diffNanos := int64(diffSeconds) * time.Second.Nanoseconds()
-		randomNanos := r.Int63n(diffNanos)
-		timeToWait := time.Second*time.Duration(config.MinTimeToWaitBetweenBroadcastsInSec) + time.Duration(randomNanos)
-
-		time.Sleep(timeToWait)
-
-		err := n.heartbeatSender.SendHeartbeat()
-		if err != nil {
-			log.Debug("SendHeartbeat", "error", err.Error())
-		}
-	}
+	return err
 }
 
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
-func (n *Node) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
-	if n.heartbeatMonitor == nil {
-		return nil
+func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
+	if check.IfNil(n.heartbeatHandler) {
+		return make([]heartbeatData.PubKeyHeartbeat, 0)
 	}
-	return n.heartbeatMonitor.GetHeartbeats()
+	mon := n.heartbeatHandler.Monitor()
+	if check.IfNil(mon) {
+		return make([]heartbeatData.PubKeyHeartbeat, 0)
+	}
+
+	return mon.GetHeartbeats()
 }
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys

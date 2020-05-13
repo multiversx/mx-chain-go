@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -21,7 +20,6 @@ type intermediateProcessorsContainerFactory struct {
 	pubkeyConverter  state.PubkeyConverter
 	store            dataRetriever.StorageService
 	poolsHolder      dataRetriever.PoolsHolder
-	economics        *economics.EconomicsData
 }
 
 // NewIntermediateProcessorsContainerFactory is responsible for creating a new intermediate processors factory object
@@ -32,7 +30,6 @@ func NewIntermediateProcessorsContainerFactory(
 	pubkeyConverter state.PubkeyConverter,
 	store dataRetriever.StorageService,
 	poolsHolder dataRetriever.PoolsHolder,
-	economics *economics.EconomicsData,
 ) (*intermediateProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -61,7 +58,6 @@ func NewIntermediateProcessorsContainerFactory(
 		pubkeyConverter:  pubkeyConverter,
 		store:            store,
 		poolsHolder:      poolsHolder,
-		economics:        economics,
 	}, nil
 }
 
