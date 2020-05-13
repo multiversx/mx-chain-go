@@ -199,3 +199,6 @@ var ErrNilTrieStorageManagers = errors.New("nil trie storage managers")
 
 // ErrEmptyChainID signals that empty chain ID was provided
 var ErrEmptyChainID = errors.New("empty chain ID")
+
+// ErrNilHardForkTriggerHandler signals that nil hardfork trigger handler
+var ErrNilHardForkTriggerHandler = errors.New("nil hardfork trigger handler")

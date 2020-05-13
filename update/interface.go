@@ -209,3 +209,14 @@ type SigVerifier interface {
 	Verify(message []byte, sig []byte, pk []byte) error
 	IsInterfaceNil() bool
 }
+
+// HardforkTrigger defines the behavior of a hardfork trigger
+type HardforkTrigger interface {
+	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
+	RecordedTriggerMessage() ([]byte, bool)
+	RegisterHandler(handler func()) error
+	Trigger() error
+	CreateData() []byte
+	IsSelfTrigger() bool
+	IsInterfaceNil() bool
+}

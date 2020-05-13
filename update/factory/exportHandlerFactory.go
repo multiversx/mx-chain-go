@@ -5,6 +5,7 @@ import (
 	"path"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -29,6 +30,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/genesis"
 	"github.com/ElrondNetwork/elrond-go/update/sync"
 )
+
+var log = logger.GetOrCreate("update/factory")
 
 // ArgsExporter is the argument structure to create a new exporter
 type ArgsExporter struct {
@@ -62,6 +65,7 @@ type ArgsExporter struct {
 	ValidityAttester         process.ValidityAttester
 	InputAntifloodHandler    dataRetriever.P2PAntifloodHandler
 	OutputAntifloodHandler   dataRetriever.P2PAntifloodHandler
+	TriggerHandler           update.HardforkTrigger
 }
 
 type exportHandlerFactory struct {
@@ -180,6 +184,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.OutputAntifloodHandler) {
 		return nil, update.ErrNilAntiFloodHandler
 	}
+	if check.IfNil(args.TriggerHandler) {
+		return nil, update.ErrNilHardForkTriggerHandler
+	}
 
 	e := &exportHandlerFactory{
 		txSignMarshalizer:        args.TxSignMarshalizer,
@@ -213,6 +220,11 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		chainID:                  args.ChainID,
 		inputAntifloodHandler:    args.InputAntifloodHandler,
 		outputAntifloodHandler:   args.OutputAntifloodHandler,
+	}
+
+	err := args.TriggerHandler.RegisterHandler(e.exportProcess)
+	if err != nil {
+		return nil, err
 	}
 
 	return e, nil
@@ -388,6 +400,13 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	return exportHandler, nil
+}
+
+func (e *exportHandlerFactory) exportProcess() {
+	exportHandler, err := e.Create()
+	if err != nil {
+		log.Error("could not create export Handler", "arg", err)
+	}
 }
 
 func (e *exportHandlerFactory) createInterceptors() error {
