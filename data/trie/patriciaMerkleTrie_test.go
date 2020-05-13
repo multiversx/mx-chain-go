@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
@@ -475,6 +476,52 @@ func TestPatriciaMerkleTrie_GetAllLeaves(t *testing.T) {
 	assert.Equal(t, []byte("reindeer"), leaves["doe"])
 	assert.Equal(t, []byte("puppy"), leaves["dog"])
 	assert.Equal(t, []byte("cat"), leaves["ddog"])
+}
+
+func TestPatriciaMerkleTrie_String(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	str := tr.String()
+	assert.NotEqual(t, 0, len(str))
+
+	tr = emptyTrie()
+	str = tr.String()
+	assert.Equal(t, "*** EMPTY TRIE ***\n", str)
+}
+
+func TestPatriciaMerkleTrie_ClosePersister(t *testing.T) {
+	t.Parallel()
+
+	tempDir, _ := ioutil.TempDir("", strconv.Itoa(rand.Intn(100000)))
+	arg := storageUnit.ArgDB{
+		DBType:            storageUnit.LvlDBSerial,
+		Path:              tempDir,
+		BatchDelaySeconds: 1,
+		MaxBatchSize:      1,
+		MaxOpenFiles:      10,
+	}
+	db, _ := storageUnit.NewDB(arg)
+	marshalizer := &mock.ProtobufMarshalizerMock{}
+	hasher := &mock.KeccakMock{}
+
+	trieStorageManager, _ := trie.NewTrieStorageManager(
+		db,
+		marshalizer,
+		hasher,
+		config.DBConfig{},
+		&mock.EvictionWaitingList{},
+		config.TrieStorageManagerConfig{},
+	)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, maxTrieLevelInMemory)
+
+	err := tr.ClosePersister()
+	assert.Nil(t, err)
+
+	key, err := tr.Database().Get([]byte("key"))
+	assert.Nil(t, key)
+	assert.Equal(t, storage.ErrSerialDBIsClosed, err)
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {

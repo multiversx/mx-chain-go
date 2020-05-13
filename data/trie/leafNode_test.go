@@ -694,3 +694,48 @@ func TestLeafNode_deleteDifferentKeyShouldNotModifyTrie(t *testing.T) {
 	assert.Equal(t, rootHash, tr.root.getHash())
 	assert.Equal(t, [][]byte{}, tr.oldHashes)
 }
+
+func TestLeafNode_newLeafNodeNilMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ln, err := newLeafNode([]byte("key"), []byte("val"), nil, mock.HasherMock{})
+	assert.Nil(t, ln)
+	assert.Equal(t, ErrNilMarshalizer, err)
+}
+
+func TestLeafNode_newLeafNodeNilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ln, err := newLeafNode([]byte("key"), []byte("val"), &mock.MarshalizerMock{}, nil)
+	assert.Nil(t, ln)
+	assert.Equal(t, ErrNilHasher, err)
+}
+
+func TestLeafNode_newLeafNodeOkVals(t *testing.T) {
+	t.Parallel()
+
+	marsh, hasher := getTestMarshAndHasher()
+	key := []byte("key")
+	val := []byte("val")
+	ln, err := newLeafNode(key, val, marsh, hasher)
+
+	assert.Nil(t, err)
+	assert.Equal(t, key, ln.Key)
+	assert.Equal(t, val, ln.Value)
+	assert.Equal(t, hasher, ln.hasher)
+	assert.Equal(t, marsh, ln.marsh)
+	assert.True(t, ln.dirty)
+}
+
+func TestLeafNode_getMarshalizer(t *testing.T) {
+	t.Parallel()
+
+	marsh, _ := getTestMarshAndHasher()
+	ln := &leafNode{
+		baseNode: &baseNode{
+			marsh: marsh,
+		},
+	}
+
+	assert.Equal(t, marsh, ln.getMarshalizer())
+}
