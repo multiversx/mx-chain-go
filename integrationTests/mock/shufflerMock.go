@@ -17,13 +17,13 @@ func (nsm *NodeShufflerMock) UpdateParams(
 }
 
 // UpdateNodeLists -
-func (nsm *NodeShufflerMock) UpdateNodeLists(args sharding.ArgsUpdateNodes) sharding.ResUpdateNodes {
-	return sharding.ResUpdateNodes{
+func (nsm *NodeShufflerMock) UpdateNodeLists(args sharding.ArgsUpdateNodes) (*sharding.ResUpdateNodes, error) {
+	return &sharding.ResUpdateNodes{
 		Eligible:       args.Eligible,
 		Waiting:        args.Waiting,
-		Leaving:        args.Leaving,
+		Leaving:        args.UnStakeLeaving,
 		StillRemaining: make([]sharding.Validator, 0),
-	}
+	}, nil
 }
 
 // IsInterfaceNil -
