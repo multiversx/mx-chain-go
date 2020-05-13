@@ -76,7 +76,7 @@ updateNodeConfig() {
 
   cp nodesSetup.json nodesSetup_edit.json
   
-  let startTime="$(date +%s) + $NODE_DELAY + 30"
+  let startTime="$(date +%s) + $GENESIS_DELAY"
   updateJSONValue nodesSetup_edit.json "startTime" "$startTime"
 
 	if [ $ALWAYS_NEW_CHAINID -eq 1 ]; then
@@ -96,6 +96,7 @@ copyProxyConfig() {
   cp $PROXYDIR/config/config.toml ./proxy/config/
 
   cp ./node/config/economics.toml ./proxy/config/
+  cp ./node/config/external.toml ./proxy/config/
   cp ./node/config/walletKey.pem ./proxy/config
 
   echo "Copied configuration for the Proxy."
