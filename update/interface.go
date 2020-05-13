@@ -67,6 +67,7 @@ type MultiFileWriter interface {
 	NewFile(name string) error
 	Write(fileName string, key string, value []byte) error
 	Finish()
+	CloseFile(fileName string)
 	IsInterfaceNil() bool
 }
 
@@ -75,6 +76,7 @@ type MultiFileReader interface {
 	GetFileNames() []string
 	ReadNextItem(fileName string) (string, []byte, error)
 	Finish()
+	CloseFile(fileName string)
 	IsInterfaceNil() bool
 }
 

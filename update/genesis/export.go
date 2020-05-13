@@ -215,6 +215,7 @@ func (se *stateExport) exportDataTries(leafs map[string][]byte, accType Type, sh
 		}
 	}
 
+	se.writer.CloseFile(fileName)
 	return nil
 }
 
@@ -248,6 +249,7 @@ func (se *stateExport) exportAccountLeafs(leafs map[string][]byte, accType Type,
 		}
 	}
 
+	se.writer.CloseFile(fileName)
 	return nil
 }
 
