@@ -14,7 +14,7 @@ type NodesCoordinatorMock struct {
 }
 
 // GetAllLeavingValidatorsPublicKeys -
-func (ncm *NodesCoordinatorMock) GetAllLeavingValidatorsPublicKeys(_ uint32) ([][]byte, error) {
+func (ncm *NodesCoordinatorMock) GetAllLeavingValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
 
@@ -102,9 +102,9 @@ func (ncm *NodesCoordinatorMock) SetNodesPerShards(
 	return nil
 }
 
-// ComputeLeaving -
-func (ncm *NodesCoordinatorMock) ComputeLeaving([]*state.ShardValidatorInfo) ([]sharding.Validator, error) {
-	return make([]sharding.Validator, 0), nil
+// ComputeAdditionalLeaving -
+func (ncm *NodesCoordinatorMock) ComputeAdditionalLeaving([]*state.ShardValidatorInfo) (map[uint32][]sharding.Validator, error) {
+	return make(map[uint32][]sharding.Validator), nil
 }
 
 // LoadState -

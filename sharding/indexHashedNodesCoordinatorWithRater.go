@@ -1,7 +1,6 @@
 package sharding
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
@@ -54,28 +53,23 @@ func NewIndexHashedNodesCoordinatorWithRater(
 	return ihncr, nil
 }
 
-// ComputeLeaving - computes the validators that have a threshold below the minimum rating
-func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeLeaving(allValidators []*state.ShardValidatorInfo) ([]Validator, error) {
-	leavingList := make([]Validator, 0)
+// ComputeAdditionalLeaving - computes the extra leaving validators that have a threshold below the minimum rating
+func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeAdditionalLeaving(allValidators []*state.ShardValidatorInfo) (map[uint32][]Validator, error) {
+	extraLeavingNodesMap := make(map[uint32][]Validator, 0)
 	minChances := ihgs.GetChance(0)
 	for _, vInfo := range allValidators {
-		if vInfo.List == string(core.InactiveList) {
-			log.Debug("inactive validator", "pk", vInfo.GetPublicKey())
-			continue
-		}
-
 		chances := ihgs.GetChance(vInfo.TempRating)
-		if chances < minChances || vInfo.List == string(core.LeavingList) {
+		if chances < minChances {
 			val, err := NewValidator(vInfo.PublicKey, chances, vInfo.Index)
 			if err != nil {
 				return nil, err
 			}
-
-			leavingList = append(leavingList, val)
+			log.Debug("computed leaving based on rating for validator", "pk", vInfo.GetPublicKey())
+			extraLeavingNodesMap[vInfo.ShardId] = append(extraLeavingNodesMap[vInfo.ShardId], val)
 		}
 	}
 
-	return leavingList, nil
+	return extraLeavingNodesMap, nil
 }
 
 //IsInterfaceNil verifies that the underlying value is nil
