@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
@@ -138,7 +138,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 
 	for _, nds := range nodesMap {
 		idx, err := getNodeIndex(nodes, nds[0])
-		assert.Nil(t, err)
+		require.Nil(t, err)
 
 		idxProposers = append(idxProposers, idx)
 	}
@@ -247,14 +247,14 @@ func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrat
 }
 
 func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
-	expectedValue := big.NewInt(0).SetUint64(9999961980)
+	expectedValue := big.NewInt(0).SetUint64(9999691980)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
-				assert.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
+				require.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
 				break
 			}
 		}
@@ -262,14 +262,14 @@ func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
 }
 
 func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
-	expectedValue := big.NewInt(0).SetUint64(9499987270)
+	expectedValue := big.NewInt(0).SetUint64(9499897270)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
-				assert.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
+				require.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
 				break
 			}
 		}
@@ -283,7 +283,7 @@ func verifyInitialBalance(t *testing.T, nodes []*integrationTests.TestProcessorN
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
-				assert.Equal(t, initialVal, sndAcc.GetBalance())
+				require.Equal(t, initialVal, sndAcc.GetBalance())
 				break
 			}
 		}
