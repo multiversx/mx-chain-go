@@ -299,6 +299,7 @@ func (si *stateImport) importDataTrie(fileName string) error {
 		return err
 	}
 	si.tries[fileName] = dataTrie
+	si.reader.CloseFile(fileName)
 
 	return nil
 }
@@ -408,6 +409,7 @@ func (si *stateImport) importState(fileName string) error {
 		return fmt.Errorf("%w fileName: %s", err, fileName)
 	}
 
+	si.reader.CloseFile(fileName)
 	return si.saveRootHash(accountsDB, accType, shId)
 }
 

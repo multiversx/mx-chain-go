@@ -596,7 +596,7 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 	if !r.canUnBond() || r.eei.IsValidator(args.Arguments[0]) {
-		log.Error("unBond is not possible as not enough left")
+		log.Error("unBond is not possible as not enough remaining")
 		return vmcommon.UserError
 	}
 
