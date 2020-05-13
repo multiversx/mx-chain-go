@@ -19,7 +19,7 @@ type StateComponentsFactoryArgs struct {
 	Config           config.Config
 	GenesisConfig    *sharding.Genesis
 	ShardCoordinator sharding.Coordinator
-	Core             *CoreComponents
+	Core             CoreComponentsHolder
 	Tries            *TriesComponents
 	PathManager      storage.PathManagerHandler
 }
@@ -28,7 +28,7 @@ type stateComponentsFactory struct {
 	config           config.Config
 	genesisConfig    *sharding.Genesis
 	shardCoordinator sharding.Coordinator
-	core             *CoreComponents
+	core             CoreComponentsHolder
 	tries            *TriesComponents
 	pathManager      storage.PathManagerHandler
 }
@@ -75,7 +75,7 @@ func (scf *stateComponentsFactory) Create() (*StateComponents, error) {
 
 	accountFactory := factoryState.NewAccountCreator()
 	merkleTrie := scf.tries.TriesContainer.Get([]byte(factory.UserAccountTrie))
-	accountsAdapter, err := state.NewAccountsDB(merkleTrie, scf.core.Hasher, scf.core.InternalMarshalizer, accountFactory)
+	accountsAdapter, err := state.NewAccountsDB(merkleTrie, scf.core.Hasher(), scf.core.InternalMarshalizer(), accountFactory)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrAccountsAdapterCreation, err.Error())
 	}
@@ -87,7 +87,7 @@ func (scf *stateComponentsFactory) Create() (*StateComponents, error) {
 
 	accountFactory = factoryState.NewPeerAccountCreator()
 	merkleTrie = scf.tries.TriesContainer.Get([]byte(factory.PeerAccountTrie))
-	peerAdapter, err := state.NewPeerAccountsDB(merkleTrie, scf.core.Hasher, scf.core.InternalMarshalizer, accountFactory)
+	peerAdapter, err := state.NewPeerAccountsDB(merkleTrie, scf.core.Hasher(), scf.core.InternalMarshalizer(), accountFactory)
 	if err != nil {
 		return nil, err
 	}

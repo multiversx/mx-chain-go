@@ -21,7 +21,7 @@ type DataComponentsFactoryArgs struct {
 	Config             config.Config
 	EconomicsData      *economics.EconomicsData
 	ShardCoordinator   sharding.Coordinator
-	Core               *CoreComponents
+	Core               CoreComponentsHolder
 	PathManager        storage.PathManagerHandler
 	EpochStartNotifier EpochStartNotifier
 	CurrentEpoch       uint32
@@ -31,7 +31,7 @@ type dataComponentsFactory struct {
 	config             config.Config
 	economicsData      *economics.EconomicsData
 	shardCoordinator   sharding.Coordinator
-	core               *CoreComponents
+	core               CoreComponentsHolder
 	pathManager        storage.PathManagerHandler
 	epochStartNotifier EpochStartNotifier
 	currentEpoch       uint32
@@ -45,7 +45,7 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, ErrNilShardCoordinator
 	}
-	if args.Core == nil {
+	if check.IfNil(args.Core) {
 		return nil, ErrNilCoreComponents
 	}
 	if check.IfNil(args.PathManager) {
@@ -100,7 +100,7 @@ func (dcf *dataComponentsFactory) createBlockChainFromConfig() (data.ChainHandle
 	if dcf.shardCoordinator.SelfId() < dcf.shardCoordinator.NumberOfShards() {
 		blockChain := blockchain.NewBlockChain()
 
-		err := blockChain.SetAppStatusHandler(dcf.core.StatusHandler)
+		err := blockChain.SetAppStatusHandler(dcf.core.StatusHandler())
 		if err != nil {
 			return nil, err
 		}
@@ -110,7 +110,7 @@ func (dcf *dataComponentsFactory) createBlockChainFromConfig() (data.ChainHandle
 	if dcf.shardCoordinator.SelfId() == core.MetachainShardId {
 		blockChain := blockchain.NewMetaChain()
 
-		err := blockChain.SetAppStatusHandler(dcf.core.StatusHandler)
+		err := blockChain.SetAppStatusHandler(dcf.core.StatusHandler())
 		if err != nil {
 			return nil, err
 		}

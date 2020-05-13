@@ -125,10 +125,11 @@ func getStateArgs() factory.StateComponentsFactoryArgs {
 	}
 }
 
-func getCoreComponents() *factory.CoreComponents {
-	ccf := factory.NewCoreComponentsFactory(getCoreArgs())
-	cc, _ := ccf.Create()
-	return cc
+func getCoreComponents() factory.CoreComponentsHolder {
+	coreArgs := getCoreArgs()
+	coreComponents, _ := factory.NewManagedCoreComponents(factory.CoreComponentsHandlerArgs(coreArgs))
+	_ = coreComponents.Create()
+	return coreComponents
 }
 
 func getTriesComponents() *factory.TriesComponents {

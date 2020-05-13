@@ -116,11 +116,15 @@ func TestDataComponentsFactory_CreateForMetaShouldWork(t *testing.T) {
 }
 
 func getDataArgs() factory.DataComponentsFactoryArgs {
+	coreArgs := getCoreArgs()
+	coreComponents, _ := factory.NewManagedCoreComponents(factory.CoreComponentsHandlerArgs(coreArgs))
+	_ = coreComponents.Create()
+
 	return factory.DataComponentsFactoryArgs{
 		Config:             getGeneralConfig(),
 		EconomicsData:      &economics.EconomicsData{},
 		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
-		Core:               getCoreComponents(),
+		Core:               coreComponents,
 		PathManager:        &mock.PathManagerStub{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		CurrentEpoch:       0,
