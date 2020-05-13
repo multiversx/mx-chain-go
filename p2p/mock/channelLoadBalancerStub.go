@@ -10,6 +10,7 @@ type ChannelLoadBalancerStub struct {
 	RemoveChannelCalled                 func(pipe string) error
 	GetChannelOrDefaultCalled           func(pipe string) chan *p2p.SendableData
 	CollectOneElementFromChannelsCalled func() *p2p.SendableData
+	CloseCalled                         func() error
 }
 
 // AddChannel -
@@ -30,6 +31,15 @@ func (clbs *ChannelLoadBalancerStub) GetChannelOrDefault(pipe string) chan *p2p.
 // CollectOneElementFromChannels -
 func (clbs *ChannelLoadBalancerStub) CollectOneElementFromChannels() *p2p.SendableData {
 	return clbs.CollectOneElementFromChannelsCalled()
+}
+
+// Close -
+func (clbs *ChannelLoadBalancerStub) Close() error {
+	if clbs.CloseCalled != nil {
+		return clbs.CloseCalled()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
