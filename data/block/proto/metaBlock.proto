@@ -86,6 +86,7 @@ message EpochStart {
 // MetaBlock holds the data that will be saved to the metachain each round
 message MetaBlock {
 	 uint64            Nonce                    = 1;
+	 uint32            Epoch                    = 2;
 	 uint64            Round                    = 3;
 	 uint64            TimeStamp                = 4;
 	 repeated ShardData       ShardInfo         = 5 [(gogoproto.nullable) = false];
@@ -102,10 +103,10 @@ message MetaBlock {
 	 bytes             ReceiptsHash             = 17;
 	 EpochStart        EpochStart               = 18 [(gogoproto.nullable) = false];
 	 bytes             ChainID                  = 19;
-	 bytes             AccumulatedFees          = 20 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	 bytes             AccumulatedFeesInEpoch   = 21 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	 bytes             DeveloperFees            = 22 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	 bytes             DevFeesInEpoch           = 23 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	 uint32            Epoch                    = 2;
-	 uint32            TxCount                  = 15;
+	 bytes             SoftwareVersion          = 20;
+	 bytes             AccumulatedFees          = 21 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	 bytes             AccumulatedFeesInEpoch   = 22 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	 bytes             DeveloperFees            = 23 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	 bytes             DevFeesInEpoch           = 24 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	 uint32            TxCount                  = 25;
 }

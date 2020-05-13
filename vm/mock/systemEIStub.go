@@ -23,6 +23,15 @@ type SystemEIStub struct {
 	BlockChainHookCalled            func() vmcommon.BlockchainHook
 	CryptoHookCalled                func() vmcommon.CryptoHook
 	UseGasCalled                    func(gas uint64) error
+	IsValidatorCalled               func(blsKey []byte) bool
+}
+
+// IsValidator -
+func (s *SystemEIStub) IsValidator(blsKey []byte) bool {
+	if s.IsValidatorCalled != nil {
+		return s.IsValidatorCalled(blsKey)
+	}
+	return false
 }
 
 // UseGas -
