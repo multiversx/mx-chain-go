@@ -217,7 +217,7 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 		if ok && !persisterInSetEpoch.isClosed {
 			persisterToUse = persisterInSetEpoch
 		} else {
-			log.Warn("active persister not found",
+			log.Debug("active persister not found",
 				"epoch", ps.epochForPutOperation,
 				"used", persisterToUse.epoch)
 		}
