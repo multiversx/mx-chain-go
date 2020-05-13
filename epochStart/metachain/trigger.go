@@ -63,6 +63,7 @@ type trigger struct {
 	marshalizer                 marshal.Marshalizer
 	hasher                      hashing.Hasher
 	appStatusHandler            core.AppStatusHandler
+	storage                     dataRetriever.StorageService
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -123,6 +124,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		hasher:                      args.Hasher,
 		epochStartMeta:              &block.MetaBlock{},
 		appStatusHandler:            &statusHandler.NilStatusHandler{},
+		storage:                     args.Storage,
 	}
 
 	err := trig.saveState(trig.triggerStateKey)
@@ -241,10 +243,14 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 
 	metaHash := t.hasher.Compute(string(metaBuff))
 
+	t.storage.SetEpochForPutOperation(t.epoch)
 	t.currEpochStartRound = metaBlock.Round
 	t.epoch = metaBlock.Epoch
 	t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
+
+	t.storage.SetEpochForPutOperation(metaBlock.Epoch)
 	t.epochStartNotifier.NotifyAll(metaBlock)
+
 	t.isEpochStart = false
 	t.currentRound = metaBlock.Round
 	t.epochStartMeta = metaBlock
