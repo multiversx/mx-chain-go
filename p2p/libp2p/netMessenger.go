@@ -231,6 +231,12 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 
 	go func(pubsub *pubsub.PubSub, plb p2p.ChannelLoadBalancer) {
 		for {
+			select {
+			case <-time.After(durationBetweenSends):
+			case <-netMes.ctx.Done():
+				return
+			}
+
 			sendableData := plb.CollectOneElementFromChannels()
 			if sendableData == nil {
 				continue
@@ -240,18 +246,18 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 			topic := netMes.topics[sendableData.Topic]
 			netMes.mutTopics.RUnlock()
 
-			if topic != nil {
-				errPublish := topic.Publish(netMes.ctx, sendableData.Buff)
-				if errPublish != nil {
-					log.Trace("error sending data", "error", errPublish)
-				}
-			} else {
+			if topic == nil {
 				log.Warn("writing on a topic that the node did not register on - message dropped",
 					"topic", sendableData.Topic,
 				)
+
+				continue
 			}
 
-			time.Sleep(durationBetweenSends)
+			errPublish := topic.Publish(netMes.ctx, sendableData.Buff)
+			if errPublish != nil {
+				log.Trace("error sending data", "error", errPublish)
+			}
 		}
 	}(netMes.pb, netMes.outgoingPLB)
 
