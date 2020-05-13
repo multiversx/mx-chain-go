@@ -1,5 +1,10 @@
 package sharding
 
+import (
+	"encoding/hex"
+	"fmt"
+)
+
 var _ Validator = (*validator)(nil)
 
 type validator struct {
@@ -34,6 +39,11 @@ func (v *validator) Chances() uint32 {
 // Index returns the validators index
 func (v *validator) Index() uint32 {
 	return v.index
+}
+
+// String returns the toString respresentation of the validator
+func (v *validator) String() string {
+	return fmt.Sprintf("%s %v %v", hex.EncodeToString(v.pubKey), v.index, v.chances)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
