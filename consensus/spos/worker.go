@@ -391,6 +391,12 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 			err)
 	}
 
+	err = header.CheckSoftwareVersion()
+	if err != nil {
+		return fmt.Errorf("%w : verify software version for received header from consensus topic failed",
+			err)
+	}
+
 	err = wrk.headerSigVerifier.VerifyRandSeed(header)
 	if err != nil {
 		return fmt.Errorf("%w : verify rand seed for received header from consensus topic failed",

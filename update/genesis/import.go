@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -23,31 +24,29 @@ var _ update.ImportHandler = (*stateImport)(nil)
 
 // ArgsNewStateImport is the arguments structure to create a new state importer
 type ArgsNewStateImport struct {
-	Reader             update.MultiFileReader
-	Hasher             hashing.Hasher
-	Marshalizer        marshal.Marshalizer
-	ShardID            uint32
-	StorageConfig      config.StorageConfig
-	TrieStorageManager data.StorageManager
+	Reader              update.MultiFileReader
+	Hasher              hashing.Hasher
+	Marshalizer         marshal.Marshalizer
+	ShardID             uint32
+	StorageConfig       config.StorageConfig
+	TrieStorageManagers map[string]data.StorageManager
 }
 
 type stateImport struct {
-	reader             update.MultiFileReader
-	genesisHeaders     map[uint32]data.HeaderHandler
-	transactions       map[string]data.TransactionHandler
-	miniBlocks         map[string]*block.MiniBlock
-	importedMetaBlock  *block.MetaBlock
-	tries              map[string]data.Trie
-	accountDBsMap      map[uint32]state.AccountsAdapter
-	validatorDB        state.AccountsAdapter
-	newRootHashes      map[uint32][]byte
-	validatorsRootHash []byte
+	reader            update.MultiFileReader
+	genesisHeaders    map[uint32]data.HeaderHandler
+	transactions      map[string]data.TransactionHandler
+	miniBlocks        map[string]*block.MiniBlock
+	importedMetaBlock *block.MetaBlock
+	tries             map[string]data.Trie
+	accountDBsMap     map[uint32]state.AccountsAdapter
+	validatorDB       state.AccountsAdapter
 
-	hasher             hashing.Hasher
-	marshalizer        marshal.Marshalizer
-	shardID            uint32
-	storageConfig      config.StorageConfig
-	trieStorageManager data.StorageManager
+	hasher              hashing.Hasher
+	marshalizer         marshal.Marshalizer
+	shardID             uint32
+	storageConfig       config.StorageConfig
+	trieStorageManagers map[string]data.StorageManager
 }
 
 // NewStateImport creates an importer which reads all the files for a new start
@@ -61,24 +60,23 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, update.ErrNilMarshalizer
 	}
-	if check.IfNil(args.TrieStorageManager) {
-		return nil, update.ErrNilTrieStorageManager
+	if len(args.TrieStorageManagers) == 0 {
+		return nil, update.ErrNilTrieStorageManagers
 	}
 
 	st := &stateImport{
-		reader:             args.Reader,
-		genesisHeaders:     make(map[uint32]data.HeaderHandler),
-		transactions:       make(map[string]data.TransactionHandler),
-		miniBlocks:         make(map[string]*block.MiniBlock),
-		importedMetaBlock:  &block.MetaBlock{},
-		tries:              make(map[string]data.Trie),
-		newRootHashes:      make(map[uint32][]byte),
-		hasher:             args.Hasher,
-		marshalizer:        args.Marshalizer,
-		accountDBsMap:      make(map[uint32]state.AccountsAdapter),
-		trieStorageManager: args.TrieStorageManager,
-		storageConfig:      args.StorageConfig,
-		shardID:            args.ShardID,
+		reader:              args.Reader,
+		genesisHeaders:      make(map[uint32]data.HeaderHandler),
+		transactions:        make(map[string]data.TransactionHandler),
+		miniBlocks:          make(map[string]*block.MiniBlock),
+		importedMetaBlock:   &block.MetaBlock{},
+		tries:               make(map[string]data.Trie),
+		hasher:              args.Hasher,
+		marshalizer:         args.Marshalizer,
+		accountDBsMap:       make(map[uint32]state.AccountsAdapter),
+		trieStorageManagers: args.TrieStorageManagers,
+		storageConfig:       args.StorageConfig,
+		shardID:             args.ShardID,
 	}
 
 	return st, nil
@@ -228,15 +226,20 @@ func newAccountCreator(accType Type) (state.AccountFactory, error) {
 	return nil, update.ErrUnknownType
 }
 
-func (si *stateImport) getTrie(shardID uint32) (data.Trie, error) {
+func (si *stateImport) getTrie(shardID uint32, accType Type) (data.Trie, error) {
 	shIDString := core.ShardIdToString(shardID)
 	trieForShard, ok := si.tries[shIDString]
 	if ok {
 		return trieForShard, nil
 	}
 
-	maxTrieLevelInMemory := uint(2)
-	trieForShard, err := trie.NewTrie(si.trieStorageManager, si.marshalizer, si.hasher, maxTrieLevelInMemory)
+	trieStorageManager := si.trieStorageManagers[triesFactory.UserAccountTrie]
+	if accType == ValidatorAccount {
+		trieStorageManager = si.trieStorageManagers[triesFactory.PeerAccountTrie]
+	}
+
+	maxTrieLevelInMemory := uint(5)
+	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher,maxTrieLevelInMemory)
 	if err != nil {
 		return nil, err
 	}
@@ -252,8 +255,23 @@ func (si *stateImport) importDataTrie(fileName string) error {
 	var err error
 	var address []byte
 
+	// read root hash - that is the first saved in the file
+	key, _, err = si.reader.ReadNextItem(fileName)
+	if err != nil {
+		return err
+	}
+
+	keyType, _, err := GetKeyTypeAndHash(key)
+	if err != nil {
+		return err
+	}
+
+	if keyType != RootHash {
+		return fmt.Errorf("%w wanted a roothash", update.ErrWrongTypeAssertion)
+	}
+
 	maxTrieLevelInMemory := uint(5)
-	dataTrie, err := trie.NewTrie(si.trieStorageManager, si.marshalizer, si.hasher, maxTrieLevelInMemory)
+	dataTrie, err := trie.NewTrie(si.trieStorageManagers[triesFactory.UserAccountTrie], si.marshalizer, si.hasher,maxTrieLevelInMemory)
 	if err != nil {
 		return err
 	}
@@ -283,6 +301,7 @@ func (si *stateImport) importDataTrie(fileName string) error {
 		return err
 	}
 	si.tries[fileName] = dataTrie
+	si.reader.CloseFile(fileName)
 
 	return nil
 }
@@ -293,14 +312,20 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 		return nil, nil, err
 	}
 
-	currentTrie, err := si.getTrie(shardID)
+	currentTrie, err := si.getTrie(shardID, accType)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if accType == ValidatorAccount {
-		accountsDB, err := state.NewAccountsDB(currentTrie, si.hasher, si.marshalizer, accountFactory)
-		return accountsDB, currentTrie, err
+		if check.IfNil(si.validatorDB) {
+			accountsDB, err := state.NewAccountsDB(currentTrie, si.hasher, si.marshalizer, accountFactory)
+			if err != nil {
+				return nil, nil, err
+			}
+			si.validatorDB = accountsDB
+		}
+		return si.validatorDB, currentTrie, err
 	}
 
 	accountsDB, ok := si.accountDBsMap[shardID]
@@ -309,6 +334,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 	}
 
 	accountsDB, err = state.NewAccountsDB(currentTrie, si.hasher, si.marshalizer, accountFactory)
+	si.accountDBsMap[shardID] = accountsDB
 	return accountsDB, currentTrie, err
 }
 
@@ -385,6 +411,7 @@ func (si *stateImport) importState(fileName string) error {
 		return fmt.Errorf("%w fileName: %s", err, fileName)
 	}
 
+	si.reader.CloseFile(fileName)
 	return si.saveRootHash(accountsDB, accType, shId)
 }
 
@@ -394,19 +421,8 @@ func (si *stateImport) saveRootHash(accountsDB state.AccountsAdapter, accType Ty
 		return err
 	}
 
-	if si.shardID == shardID {
-		accountsDB.SnapshotState(rootHash)
-	}
-
-	log.Info("imported state", "rootHash", rootHash, "shID", shardID)
-	if accType == ValidatorAccount {
-		si.validatorsRootHash = rootHash
-		si.validatorDB = accountsDB
-		return nil
-	}
-
-	si.accountDBsMap[shardID] = accountsDB
-	si.newRootHashes[shardID] = rootHash
+	accountsDB.SnapshotState(rootHash)
+	log.Info("imported state", "rootHash", rootHash, "shID", shardID, "accType", accType)
 
 	return nil
 }

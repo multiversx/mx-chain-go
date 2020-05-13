@@ -51,6 +51,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 				OwnerAddress:    "aaaaaa",
 			},
 		},
+		&mock.AccountsStub{},
 	)
 
 	assert.NotNil(t, vmf)
@@ -109,6 +110,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				OwnerAddress:    "aaaaaa",
 			},
 		},
+		&mock.AccountsStub{},
 	)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
