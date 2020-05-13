@@ -84,6 +84,11 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 		return err
 	}
 
+	err = inHdr.hdr.CheckSoftwareVersion()
+	if err != nil {
+		return err
+	}
+
 	err = inHdr.integrity()
 	if err != nil {
 		return err

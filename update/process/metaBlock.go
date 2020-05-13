@@ -58,6 +58,10 @@ func (m *metaBlockCreator) CreateNewBlock(
 	nonce uint64,
 	epoch uint32,
 ) (data.HeaderHandler, data.BodyHandler, error) {
+	if len(chainID) == 0 {
+		return nil, nil, update.ErrEmptyChainID
+	}
+
 	validatorAccounts := m.importHandler.GetValidatorAccountsDB()
 	if check.IfNil(validatorAccounts) {
 		return nil, nil, update.ErrNilAccounts
@@ -91,6 +95,7 @@ func (m *metaBlockCreator) CreateNewBlock(
 		ValidatorStatsRootHash: validatorRootHash,
 		EpochStart:             hardForkMeta.EpochStart,
 		ChainID:                []byte(chainID),
+		SoftwareVersion:        []byte(""),
 		AccumulatedFees:        big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(0),
 		Epoch:                  epoch,

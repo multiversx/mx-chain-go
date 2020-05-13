@@ -78,6 +78,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		blockChain:             arguments.BlockChain,
 		feeHandler:             arguments.FeeHandler,
 		genesisNonce:           genesisHdr.GetNonce(),
+		version:                core.TrimSoftwareVersion(arguments.Version),
 	}
 
 	sp := shardProcessor{
@@ -1091,6 +1092,7 @@ func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) data.Heade
 		Round:           round,
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
+		SoftwareVersion: []byte(sp.version),
 	}
 
 	return header

@@ -12,7 +12,8 @@ import (
 func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
-	accDB, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	accDB, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accDB),
@@ -32,7 +33,8 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	t.Parallel()
 
-	accDB, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	accDB, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	addressBytes := integrationTests.CreateRandomBytes(32)
 	nonce := uint64(2233)
