@@ -25,9 +25,8 @@ type PeerTypeProvider struct {
 	epochHandler                 process.EpochHandler
 	validatorsProvider           process.ValidatorsProvider
 	cache                        map[string]*peerListAndShard
-	isUpdating                   bool
-	lastCacheUpdate              time.Time
 	cacheRefreshIntervalDuration time.Duration
+	refreshCache                 chan bool
 	mutCache                     sync.RWMutex
 }
 
@@ -64,58 +63,75 @@ func NewPeerTypeProvider(arg ArgPeerTypeProvider) (*PeerTypeProvider, error) {
 		cache:                        make(map[string]*peerListAndShard),
 		mutCache:                     sync.RWMutex{},
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDuration,
+		refreshCache:                 make(chan bool),
 	}
 
-	ptp.populateCacheFromValidatorInfos(ptp.epochHandler.MetaEpoch())
+	ptp.startRefreshProcess()
 
 	arg.EpochStartEventNotifier.RegisterHandler(ptp.epochStartEventHandler())
 
 	return ptp, nil
 }
 
-func (ptp *PeerTypeProvider) populateCache(epoch uint32) {
+// ComputeForPubKey returns the peer type for a given public key and shard id
+func (ptp *PeerTypeProvider) ComputeForPubKey(pubKey []byte) (core.PeerType, uint32, error) {
 	ptp.mutCache.RLock()
-	lastCacheUpDate := ptp.lastCacheUpdate
-	elapsedTime := time.Now().Sub(lastCacheUpDate)
-	shouldUpdate := elapsedTime > ptp.cacheRefreshIntervalDuration
+	peerData, ok := ptp.cache[string(pubKey)]
 	ptp.mutCache.RUnlock()
 
-	if shouldUpdate {
-		go ptp.populateCacheFromValidatorInfos(epoch)
+	// component is used could be refreshed on expiration
+	ptp.refreshCache <- false
+	if ok {
+		return peerData.pType, peerData.pShard, nil
 	}
+
+	return core.ObserverList, 0, nil
 }
 
-func (ptp *PeerTypeProvider) populateCacheFromValidatorInfos(epoch uint32) {
-	ptp.mutCache.Lock()
-	if ptp.isUpdating {
-		ptp.mutCache.Unlock()
-		return
-	}
+func (ptp *PeerTypeProvider) epochStartEventHandler() sharding.EpochStartActionHandler {
+	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
+		ptp.refreshCache <- true
+	}, func(_ data.HeaderHandler) {}, core.ConsensusOrder)
 
-	ptp.isUpdating = true
-	ptp.mutCache.Unlock()
+	return subscribeHandler
+}
 
-	defer func() {
-		ptp.mutCache.Lock()
-		ptp.isUpdating = false
-		ptp.mutCache.Unlock()
+func (ptp *PeerTypeProvider) startRefreshProcess() {
+	go func() {
+		ptp.updateCache()
+		lastUpdate := time.Now()
+		for {
+			select {
+			case forceRefresh := <-ptp.refreshCache:
+				{
+					expired := time.Since(lastUpdate) > ptp.cacheRefreshIntervalDuration
+					if forceRefresh || expired {
+						ptp.updateCache()
+						lastUpdate = time.Now()
+					}
+				}
+			case <-time.After(ptp.cacheRefreshIntervalDuration):
+				log.Debug("after")
+			}
+		}
 	}()
+}
 
+func (ptp *PeerTypeProvider) updateCache() {
 	allNodes, err := ptp.validatorsProvider.GetLatestValidatorInfos()
 	if err != nil {
 		log.Warn("peerTypeProvider - GetLatestValidatorInfos failed", "error", err)
 		return
 	}
 
-	newCache := ptp.createNewCache(epoch, allNodes, err)
+	newCache := ptp.createNewCache(ptp.epochHandler.MetaEpoch(), allNodes)
 
 	ptp.mutCache.Lock()
-	ptp.lastCacheUpdate = time.Now()
 	ptp.cache = newCache
 	ptp.mutCache.Unlock()
 }
 
-func (ptp *PeerTypeProvider) createNewCache(epoch uint32, allNodes map[uint32][]*state.ValidatorInfo, err error) map[string]*peerListAndShard {
+func (ptp *PeerTypeProvider) createNewCache(epoch uint32, allNodes map[uint32][]*state.ValidatorInfo) map[string]*peerListAndShard {
 	newCache := make(map[string]*peerListAndShard)
 	for shardId, validatorsPerShard := range allNodes {
 		for _, v := range validatorsPerShard {
@@ -130,19 +146,19 @@ func (ptp *PeerTypeProvider) createNewCache(epoch uint32, allNodes map[uint32][]
 	if err != nil {
 		log.Warn("peerTypeProvider - GetAllEligibleValidatorsPublicKeys failed", "epoch", epoch)
 	}
-	ptp.aggregatePType(newCache, nodesMapEligible, core.EligibleList)
+	aggregatePType(newCache, nodesMapEligible, core.EligibleList)
 
 	nodesMapWaiting, err := ptp.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
 	if err != nil {
 		log.Warn("peerTypeProvider - GetAllWaitingValidatorsPublicKeys failed", "epoch", epoch)
 	}
-	ptp.aggregatePType(newCache, nodesMapWaiting, core.WaitingList)
+	aggregatePType(newCache, nodesMapWaiting, core.WaitingList)
 	return newCache
 }
 
-func (ptp *PeerTypeProvider) aggregatePType(newCache map[string]*peerListAndShard, nodesMapEligible map[uint32][][]byte, currentPeerType core.PeerType) {
-	for shardID, eligibleValidatorsInShard := range nodesMapEligible {
-		for _, val := range eligibleValidatorsInShard {
+func aggregatePType(newCache map[string]*peerListAndShard, validatorsMap map[uint32][][]byte, currentPeerType core.PeerType) {
+	for shardID, shardValidators := range validatorsMap {
+		for _, val := range shardValidators {
 			fountInTrieValidator := newCache[string(val)]
 			peerType := currentPeerType
 			if fountInTrieValidator != nil && fountInTrieValidator.pType != currentPeerType {
@@ -155,27 +171,6 @@ func (ptp *PeerTypeProvider) aggregatePType(newCache map[string]*peerListAndShar
 			}
 		}
 	}
-}
-
-// ComputeForPubKey returns the peer type for a given public key and shard id
-func (ptp *PeerTypeProvider) ComputeForPubKey(pubKey []byte) (core.PeerType, uint32, error) {
-	ptp.mutCache.RLock()
-	peerData, ok := ptp.cache[string(pubKey)]
-	ptp.mutCache.RUnlock()
-
-	if ok {
-		return peerData.pType, peerData.pShard, nil
-	}
-
-	return core.ObserverList, 0, nil
-}
-
-func (ptp *PeerTypeProvider) epochStartEventHandler() sharding.EpochStartActionHandler {
-	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
-		ptp.populateCache(ptp.epochHandler.MetaEpoch())
-	}, func(_ data.HeaderHandler) {}, core.ConsensusOrder)
-
-	return subscribeHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

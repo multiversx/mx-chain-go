@@ -71,7 +71,7 @@ func TestNewPeerTypeProvider_ShouldWork(t *testing.T) {
 	assert.NotNil(t, ptp)
 }
 
-func TestNewPeerTypeProvider_CallsPopulateAndRegister(t *testing.T) {
+func TestPeerTypeProvider_CallsPopulateAndRegister(t *testing.T) {
 	numRegisterHandlerCalled := int32(0)
 	numPopulateCacheCalled := int32(0)
 
@@ -90,120 +90,328 @@ func TestNewPeerTypeProvider_CallsPopulateAndRegister(t *testing.T) {
 	}
 
 	_, _ = NewPeerTypeProvider(arg)
-	assert.Equal(t, int32(1), numPopulateCacheCalled)
-	assert.Equal(t, int32(1), numRegisterHandlerCalled)
+
+	time.Sleep(arg.CacheRefreshIntervalDuration)
+
+	assert.Equal(t, int32(1), atomic.LoadInt32(&numPopulateCacheCalled))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&numRegisterHandlerCalled))
 }
 
-func TestNewPeerTypeProvider_CallsPopulateWithError(t *testing.T) {
+func TestPeerTypeProvider_UpdateCache_WithError(t *testing.T) {
 	expectedErr := errors.New("expectedError")
 	arg := createDefaultArg()
 
 	validatorProviderStub := &mock.ValidatorsProviderStub{}
 	arg.ValidatorsProvider = validatorProviderStub
-	ptp, _ := NewPeerTypeProvider(arg)
-	time.Sleep(1 * time.Millisecond)
-	wg := sync.WaitGroup{}
-	wg.Add(1)
 	validatorProviderStub.GetLatestValidatorInfosCalled = func() (map[uint32][]*state.ValidatorInfo, error) {
-		defer wg.Done()
-		assert.True(t, ptp.isUpdating)
 		return nil, expectedErr
 	}
 
-	ptp.populateCache(0)
-	wg.Wait()
-	time.Sleep(1 * time.Millisecond)
-	assert.False(t, ptp.isUpdating)
-}
-
-func TestNewPeerTypeProvider_CallsPopulateOnlyAfterTimeout(t *testing.T) {
-	populateCacheCalled := int32(0)
-	refreshIntervalDuration := 10 * time.Millisecond
-	arg := createDefaultArg()
-	arg.CacheRefreshIntervalDuration = refreshIntervalDuration
-	validatorsProviderStub := &mock.ValidatorsProviderStub{}
-	arg.ValidatorsProvider = validatorsProviderStub
-
-	ptp, _ := NewPeerTypeProvider(arg)
-
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	validatorsProviderStub.GetLatestValidatorInfosCalled = func() (map[uint32][]*state.ValidatorInfo, error) {
-		defer wg.Done()
-		atomic.AddInt32(&populateCacheCalled, 1)
-		return nil, nil
+	ptp := PeerTypeProvider{
+		nodesCoordinator:             arg.NodesCoordinator,
+		epochHandler:                 arg.EpochHandler,
+		validatorsProvider:           arg.ValidatorsProvider,
+		cache:                        nil,
+		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDuration,
+		refreshCache:                 nil,
+		mutCache:                     sync.RWMutex{},
 	}
 
-	// inside refreshInterval because newPeerType populated
-	populateCacheCalled = 0
-	ptp.populateCache(0)
-	assert.Equal(t, int32(0), populateCacheCalled)
+	ptp.updateCache()
 
-	// outside refreshInterval because newPeerType
-	time.Sleep(refreshIntervalDuration)
-	ptp.populateCache(0)
-	wg.Wait()
-	time.Sleep(10 * time.Millisecond)
-	assert.Equal(t, int32(1), populateCacheCalled)
+	assert.Nil(t, ptp.cache)
 }
 
-func TestNewPeerTypeProvider_CallsPopulateOnlyOnceIfIsUpdating(t *testing.T) {
-	numPopulateCacheCalled := 0
-
-	arg := createDefaultArg()
-
-	validatorsProviderStub := &mock.ValidatorsProviderStub{}
-	arg.ValidatorsProvider = validatorsProviderStub
-
-	ptp, _ := NewPeerTypeProvider(arg)
-	time.Sleep(defaultRefreshIntervalDuration)
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	validatorsProviderStub.GetLatestValidatorInfosCalled = func() (map[uint32][]*state.ValidatorInfo, error) {
-		defer wg.Done()
-		numPopulateCacheCalled++
-		time.Sleep(20 * time.Millisecond)
-		return nil, nil
+func TestPeerTypeProvider_UpdateCache(t *testing.T) {
+	pk := "pk1"
+	initialShardId := uint32(1)
+	validatorsMap := make(map[uint32][]*state.ValidatorInfo)
+	validatorsMap[initialShardId] = []*state.ValidatorInfo{
+		{
+			PublicKey: []byte(pk),
+			List:      "eligible",
+		},
 	}
-
-	numPopulateCacheCalled = 0
-	ptp.populateCache(0)
-	ptp.populateCache(0)
-	ptp.populateCache(0)
-	wg.Wait()
-	assert.Equal(t, 1, numPopulateCacheCalled)
-}
-
-func TestNewPeerTypeProvider_CallsPopulateOnEpochChange(t *testing.T) {
-	populateCacheCalled := false
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-
 	arg := createDefaultArg()
-	arg.CacheRefreshIntervalDuration = 0
-	epochStartNotifier := &mock.EpochStartNotifierStub{}
-	arg.EpochStartEventNotifier = epochStartNotifier
 	arg.ValidatorsProvider = &mock.ValidatorsProviderStub{
 		GetLatestValidatorInfosCalled: func() (map[uint32][]*state.ValidatorInfo, error) {
-			defer wg.Done()
-			populateCacheCalled = true
-			return nil, nil
+			return validatorsMap, nil
 		},
 	}
 
-	_, _ = NewPeerTypeProvider(arg)
-	populateCacheCalled = false
+	ptp := PeerTypeProvider{
+		nodesCoordinator:             arg.NodesCoordinator,
+		epochHandler:                 arg.EpochHandler,
+		validatorsProvider:           arg.ValidatorsProvider,
+		cache:                        nil,
+		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDuration,
+		refreshCache:                 nil,
+		mutCache:                     sync.RWMutex{},
+	}
+
+	ptp.updateCache()
+
+	assert.NotNil(t, ptp.cache)
+	assert.Equal(t, len(validatorsMap[initialShardId]), len(ptp.cache))
+	assert.NotNil(t, ptp.cache[pk])
+	assert.Equal(t, core.EligibleList, ptp.cache[pk].pType)
+	assert.Equal(t, initialShardId, ptp.cache[pk].pShard)
+}
+
+func TestPeerTypeProvider_aggregatePType_equal(t *testing.T) {
+	pkInactive := "pk1"
+	trieInctiveShardId := uint32(0)
+	pkEligible := "pk2"
+	trieEligibleShardId := uint32(1)
+	pkLeaving := "pk3"
+	trieLeavingShardId := uint32(2)
+
+	cache := make(map[string]*peerListAndShard)
+	cache[pkInactive] = &peerListAndShard{pType: core.InactiveList, pShard: trieInctiveShardId}
+	cache[pkEligible] = &peerListAndShard{pType: core.EligibleList, pShard: trieEligibleShardId}
+	cache[pkLeaving] = &peerListAndShard{pType: core.LeavingList, pShard: trieLeavingShardId}
+
+	nodesCoordinatorEligibleShardId := uint32(0)
+	nodesCoordinatorLeavingShardId := core.MetachainShardId
+
+	validatorsMap := map[uint32][][]byte{
+		nodesCoordinatorEligibleShardId: {[]byte(pkEligible)},
+		nodesCoordinatorLeavingShardId:  {[]byte(pkLeaving)},
+	}
+	aggregatePType(cache, validatorsMap, core.EligibleList)
+
+	assert.Equal(t, trieInctiveShardId, cache[pkInactive].pShard)
+	assert.Equal(t, core.InactiveList, cache[pkInactive].pType)
+
+	assert.Equal(t, nodesCoordinatorEligibleShardId, cache[pkEligible].pShard)
+	assert.Equal(t, core.EligibleList, cache[pkEligible].pType)
+
+	assert.Equal(t, nodesCoordinatorLeavingShardId, cache[pkLeaving].pShard)
+	assert.Equal(t, core.PeerType("eligible (leaving)"), cache[pkLeaving].pType)
+}
+
+func TestNewPeerTypeProvider_createCache(t *testing.T) {
+	pkEligible := "pk1"
+	pkWaiting := "pk2"
+	pkLeaving := "pk3"
+	pkInactive := "pk4"
+	pkNew := "pk5"
+
+	validatorsMap := make(map[uint32][]*state.ValidatorInfo)
+	eligibleShardId := uint32(0)
+	waitingShardId := uint32(1)
+	leavingShardId := uint32(2)
+	inactiveShardId := uint32(3)
+	newShardId := core.MetachainShardId
+	validatorsMap[eligibleShardId] = []*state.ValidatorInfo{
+		{
+			PublicKey: []byte(pkEligible),
+			List:      string(core.EligibleList),
+		},
+	}
+	validatorsMap[waitingShardId] = []*state.ValidatorInfo{
+		{
+			PublicKey: []byte(pkWaiting),
+			List:      string(core.WaitingList),
+		},
+	}
+	validatorsMap[leavingShardId] = []*state.ValidatorInfo{
+		{
+			PublicKey: []byte(pkLeaving),
+			List:      string(core.LeavingList),
+		},
+	}
+	validatorsMap[inactiveShardId] = []*state.ValidatorInfo{
+		{
+			PublicKey: []byte(pkInactive),
+			List:      string(core.InactiveList),
+		},
+	}
+	validatorsMap[newShardId] = []*state.ValidatorInfo{
+		{
+			PublicKey: []byte(pkNew),
+			List:      string(core.NewList),
+		},
+	}
+	arg := createDefaultArg()
+
+	ptp := PeerTypeProvider{
+		nodesCoordinator:             arg.NodesCoordinator,
+		epochHandler:                 arg.EpochHandler,
+		validatorsProvider:           arg.ValidatorsProvider,
+		cache:                        nil,
+		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDuration,
+		mutCache:                     sync.RWMutex{},
+	}
+
+	cache := ptp.createNewCache(0, validatorsMap)
+
+	assert.NotNil(t, cache)
+
+	assert.NotNil(t, cache[pkEligible])
+	assert.Equal(t, core.EligibleList, cache[pkEligible].pType)
+	assert.Equal(t, eligibleShardId, cache[pkEligible].pShard)
+
+	assert.NotNil(t, cache[pkWaiting])
+	assert.Equal(t, core.WaitingList, cache[pkWaiting].pType)
+	assert.Equal(t, waitingShardId, cache[pkWaiting].pShard)
+
+	assert.NotNil(t, cache[pkLeaving])
+	assert.Equal(t, core.LeavingList, cache[pkLeaving].pType)
+	assert.Equal(t, leavingShardId, cache[pkLeaving].pShard)
+
+	assert.NotNil(t, cache[pkInactive])
+	assert.Equal(t, core.InactiveList, cache[pkInactive].pType)
+	assert.Equal(t, inactiveShardId, cache[pkInactive].pShard)
+
+	assert.NotNil(t, cache[pkNew])
+	assert.Equal(t, core.NewList, cache[pkNew].pType)
+	assert.Equal(t, newShardId, cache[pkNew].pShard)
+}
+
+func TestNewPeerTypeProvider_createCache_combined(t *testing.T) {
+	pkEligibleInTrie := "pk1"
+	pkInactive := "pk2"
+	pkLeavingInTrie := "pk3"
+
+	validatorsMap := make(map[uint32][]*state.ValidatorInfo)
+	eligibleShardId := uint32(0)
+	inactiveShardId := uint32(1)
+	leavingShardId := uint32(2)
+	validatorsMap[eligibleShardId] = []*state.ValidatorInfo{
+		{
+			PublicKey: []byte(pkEligibleInTrie),
+			List:      string(core.EligibleList),
+		},
+	}
+	validatorsMap[inactiveShardId] = []*state.ValidatorInfo{
+		{
+			PublicKey: []byte(pkInactive),
+			List:      string(core.InactiveList),
+		},
+	}
+	validatorsMap[leavingShardId] = []*state.ValidatorInfo{
+		{
+			PublicKey: []byte(pkLeavingInTrie),
+			List:      string(core.LeavingList),
+		},
+	}
+	arg := createDefaultArg()
+	nodesCoordinator := mock.NewNodesCoordinatorMock()
+	nodesCoordinatorEligibleShardId := uint32(5)
+	nodesCoordinatorLeavingShardId := uint32(6)
+	nodesCoordinator.GetAllEligibleValidatorsPublicKeysCalled = func() (map[uint32][][]byte, error) {
+		return map[uint32][][]byte{
+			nodesCoordinatorEligibleShardId: {[]byte(pkEligibleInTrie)},
+			nodesCoordinatorLeavingShardId:  {[]byte(pkLeavingInTrie)},
+		}, nil
+	}
+
+	ptp := PeerTypeProvider{
+		nodesCoordinator:             nodesCoordinator,
+		epochHandler:                 arg.EpochHandler,
+		validatorsProvider:           arg.ValidatorsProvider,
+		cache:                        nil,
+		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDuration,
+		mutCache:                     sync.RWMutex{},
+	}
+
+	cache := ptp.createNewCache(0, validatorsMap)
+
+	assert.NotNil(t, cache[pkEligibleInTrie])
+	assert.Equal(t, core.EligibleList, cache[pkEligibleInTrie].pType)
+	assert.Equal(t, nodesCoordinatorEligibleShardId, cache[pkEligibleInTrie].pShard)
+
+	assert.NotNil(t, cache[pkInactive])
+	assert.Equal(t, core.InactiveList, cache[pkInactive].pType)
+	assert.Equal(t, inactiveShardId, cache[pkInactive].pShard)
+
+	computedPeerType := core.PeerType(fmt.Sprintf(core.CombinedPeerType, core.EligibleList, core.LeavingList))
+	assert.NotNil(t, cache[pkLeavingInTrie])
+	assert.Equal(t, computedPeerType, cache[pkLeavingInTrie].pType)
+	assert.Equal(t, nodesCoordinatorLeavingShardId, cache[pkLeavingInTrie].pShard)
+}
+
+func TestNewPeerTypeProvider_CallsPopulateOnlyAfterTimeout(t *testing.T) {
+	zeroNumner := int32(0)
+	populateCacheCalled := &zeroNumner
+
+	pk := "pk"
+	arg := createDefaultArg()
+	arg.CacheRefreshIntervalDuration = time.Millisecond * 10
+	validatorsProviderStub := &mock.ValidatorsProviderStub{}
+	arg.ValidatorsProvider = validatorsProviderStub
+	validatorsProviderStub.GetLatestValidatorInfosCalled = func() (map[uint32][]*state.ValidatorInfo, error) {
+		atomic.AddInt32(populateCacheCalled, 1)
+		return nil, nil
+	}
+
+	ptp, _ := NewPeerTypeProvider(arg)
+
+	// allow previous call to through
+	time.Sleep(time.Millisecond)
+
+	// inside refreshInterval of 10 milis
+	atomic.StoreInt32(populateCacheCalled, 0)
+	_, _, _ = ptp.ComputeForPubKey([]byte(pk))
+	time.Sleep(time.Millisecond)
+	assert.Equal(t, int32(0), atomic.LoadInt32(populateCacheCalled))
+	_, _, _ = ptp.ComputeForPubKey([]byte(pk))
+	time.Sleep(time.Millisecond)
+	assert.Equal(t, int32(0), atomic.LoadInt32(populateCacheCalled))
+
+	// outside of refreshInterval
+	time.Sleep(arg.CacheRefreshIntervalDuration)
+	_, _, _ = ptp.ComputeForPubKey([]byte(pk))
+	//allow call to go through
+	time.Sleep(time.Millisecond)
+	assert.Equal(t, int32(1), atomic.LoadInt32(populateCacheCalled))
+
+}
+
+func TestNewPeerTypeProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
+	arg := createDefaultArg()
+	callNumber := 0
+	epochStartNotifier := &mock.EpochStartNotifierStub{}
+	arg.EpochStartEventNotifier = epochStartNotifier
+	pkEligibleInTrie := "pk1"
+	arg.ValidatorsProvider = &mock.ValidatorsProviderStub{
+		GetLatestValidatorInfosCalled: func() (map[uint32][]*state.ValidatorInfo, error) {
+			callNumber++
+			// first call comes from the constructor
+			if callNumber == 1 {
+				return nil, nil
+			}
+			return map[uint32][]*state.ValidatorInfo{
+				0: {
+					{
+						PublicKey: []byte(pkEligibleInTrie),
+						List:      string(core.EligibleList),
+					},
+				},
+			}, nil
+		},
+	}
+
+	ptp, _ := NewPeerTypeProvider(arg)
+
+	assert.Equal(t, 0, len(ptp.GetCache())) // nothing in cache
+	time.Sleep(arg.CacheRefreshIntervalDuration)
+	assert.Equal(t, 0, len(ptp.GetCache())) // nothing in cache because it was not used
+
 	epochStartNotifier.NotifyAll(nil)
-	wg.Wait()
-	assert.True(t, populateCacheCalled)
+	time.Sleep(arg.CacheRefreshIntervalDuration)
+	assert.Equal(t, 1, len(ptp.GetCache())) // forced cache update from notifier
+	assert.NotNil(t, ptp.GetCache()[pkEligibleInTrie])
 }
 
 func TestNewPeerTypeProvider_ComputeForKeyFromCache(t *testing.T) {
 	arg := createDefaultArg()
+	arg.CacheRefreshIntervalDuration = 10 * time.Millisecond
 	pk := []byte("pk1")
 	initialShardId := uint32(1)
+	popMutex := sync.RWMutex{}
 	populateCacheCalled := false
-
 	validatorsMap := make(map[uint32][]*state.ValidatorInfo)
 	validatorsMap[initialShardId] = []*state.ValidatorInfo{
 		{
@@ -213,48 +421,53 @@ func TestNewPeerTypeProvider_ComputeForKeyFromCache(t *testing.T) {
 	}
 	arg.ValidatorsProvider = &mock.ValidatorsProviderStub{
 		GetLatestValidatorInfosCalled: func() (map[uint32][]*state.ValidatorInfo, error) {
+			popMutex.Lock()
+			defer popMutex.Unlock()
 			populateCacheCalled = true
 			return validatorsMap, nil
 		},
 	}
-	arg.CacheRefreshIntervalDuration = 1
 	ptp, _ := NewPeerTypeProvider(arg)
+	time.Sleep(arg.CacheRefreshIntervalDuration)
+	popMutex.Lock()
 	populateCacheCalled = false
+	popMutex.Unlock()
 	peerType, shardId, err := ptp.ComputeForPubKey(pk)
 
-	assert.False(t, populateCacheCalled)
+	popMutex.RLock()
+	called := populateCacheCalled
+	popMutex.RUnlock()
+	assert.False(t, called)
 	assert.Equal(t, core.EligibleList, peerType)
 	assert.Equal(t, initialShardId, shardId)
 	assert.Nil(t, err)
 }
 
-func TestNewPeerTypeProvider_ComputeForKeyNotFoundInCacheReturnsObserverAndPopulateCache(t *testing.T) {
+func TestNewPeerTypeProvider_ComputeForKeyNotFoundInCacheReturnsObserverAndUpdateCache(t *testing.T) {
 	arg := createDefaultArg()
 	pk := []byte("pk1")
 	initialShardId := uint32(1)
-	numPopulateCacheCalled := 1
-
+	callCount := 0
 	validatorsMap := make(map[uint32][]*state.ValidatorInfo)
 	validatorsProviderStub := &mock.ValidatorsProviderStub{}
 	arg.ValidatorsProvider = validatorsProviderStub
-	arg.CacheRefreshIntervalDuration = 0
-	ptp, _ := NewPeerTypeProvider(arg)
-
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	validatorsProviderStub.GetLatestValidatorInfosCalled = func() (map[uint32][]*state.ValidatorInfo, error) {
-		defer wg.Done()
-		numPopulateCacheCalled++
-		return validatorsMap, nil
-	}
-
-	numPopulateCacheCalled = 0
 	validatorsMap[initialShardId] = []*state.ValidatorInfo{
 		{
 			PublicKey: pk,
 			List:      "eligible",
 		},
 	}
+	validatorsProviderStub.GetLatestValidatorInfosCalled = func() (map[uint32][]*state.ValidatorInfo, error) {
+		callCount++
+		if callCount == 1 {
+			return nil, nil
+		}
+		return validatorsMap, nil
+	}
+
+	ptp, _ := NewPeerTypeProvider(arg)
+	time.Sleep(arg.CacheRefreshIntervalDuration)
+	assert.Equal(t, 0, len(ptp.GetCache()))
 
 	peerType, shardId, err := ptp.ComputeForPubKey(pk)
 
@@ -262,8 +475,9 @@ func TestNewPeerTypeProvider_ComputeForKeyNotFoundInCacheReturnsObserverAndPopul
 	assert.Equal(t, uint32(0), shardId)
 	assert.Nil(t, err)
 
-	wg.Wait()
-	assert.Equal(t, 1, numPopulateCacheCalled)
+	time.Sleep(arg.CacheRefreshIntervalDuration)
+
+	assert.Equal(t, 1, len(ptp.GetCache()))
 }
 
 func TestNewPeerTypeProvider_ComputeForKeyCombinedPeerType(t *testing.T) {
@@ -291,7 +505,6 @@ func TestNewPeerTypeProvider_ComputeForKeyCombinedPeerType(t *testing.T) {
 			return validatorsMap, nil
 		},
 	}
-	arg.CacheRefreshIntervalDuration = 0
 
 	eligibleMap := make(map[uint32][][]byte)
 	eligibleMap[uint32(1)] = [][]byte{pkLeaving}
@@ -308,6 +521,7 @@ func TestNewPeerTypeProvider_ComputeForKeyCombinedPeerType(t *testing.T) {
 	}
 
 	ptp, _ := NewPeerTypeProvider(arg)
+	time.Sleep(time.Millisecond)
 	peerType, shardId, err := ptp.ComputeForPubKey(pkLeaving)
 	combinedType := core.PeerType(fmt.Sprintf(core.CombinedPeerType, core.EligibleList, pkLeavingList))
 	assert.Equal(t, combinedType, peerType)
