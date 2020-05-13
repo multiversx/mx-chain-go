@@ -3,7 +3,6 @@ package factory
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -33,18 +32,18 @@ type CryptoComponentsFactoryArgs struct {
 	ValidatorKeyPemFileName              string
 	SkIndex                              int
 	Config                               config.Config
-	CoreComponentsHandler                CoreComponentsHandler
+	CoreComponentsHolder                 CoreComponentsHolder
 	ActivateBLSPubKeyMessageVerification bool
 }
 
 type cryptoComponentsFactory struct {
 	pubKeyConverter                      state.PubkeyConverter
-	suite                                crypto.Suite
 	validatorKeyPemFileName              string
 	skIndex                              int
 	config                               config.Config
-	coreComponentsHandler                CoreComponentsHandler
+	coreComponentsHolder                 CoreComponentsHolder
 	activateBLSPubKeyMessageVerification bool
+	keyLoader                            func(string, int) ([]byte, string, error)
 }
 
 // CryptoParams holds the node public/private key data
@@ -53,7 +52,7 @@ type CryptoParams struct {
 	PrivateKey      crypto.PrivateKey
 	PublicKeyString string
 	PublicKeyBytes  []byte
-	PrivateKeyKey   []byte
+	PrivateKeyBytes []byte
 }
 
 // CryptoComponents struct holds the crypto components
@@ -69,8 +68,11 @@ type CryptoComponents struct {
 
 // NewCryptoComponentsFactory returns a new crypto components factory
 func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoComponentsFactory, error) {
-	if check.IfNil(args.CoreComponentsHandler) {
+	if check.IfNil(args.CoreComponentsHolder) {
 		return nil, ErrNilCoreComponents
+	}
+	if len(args.ValidatorKeyPemFileName) == 0 {
+		return nil, ErrNilPath
 	}
 
 	pubKeyConverter, err := stateFactory.NewPubkeyConverter(args.Config.ValidatorPubkeyConverter)
@@ -78,25 +80,25 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		return nil, err
 	}
 
-	suite, err := getSuite(&args.Config)
-	if err != nil {
-		return nil, err
-	}
-
 	return &cryptoComponentsFactory{
 		pubKeyConverter:                      pubKeyConverter,
-		suite:                                suite,
 		validatorKeyPemFileName:              args.ValidatorKeyPemFileName,
 		skIndex:                              args.SkIndex,
 		config:                               args.Config,
-		coreComponentsHandler:                args.CoreComponentsHandler,
+		coreComponentsHolder:                 args.CoreComponentsHolder,
 		activateBLSPubKeyMessageVerification: args.ActivateBLSPubKeyMessageVerification,
+		keyLoader:                            core.LoadSkPkFromPemFile,
 	}, nil
 }
 
 // Create will create and return crypto components
 func (ccf *cryptoComponentsFactory) Create() (*CryptoComponents, error) {
-	blockSignKeyGen := signing.NewKeyGenerator(ccf.suite)
+	suite, err := ccf.getSuite()
+	if err != nil {
+		return nil, err
+	}
+
+	blockSignKeyGen := signing.NewKeyGenerator(suite)
 	cp, err := ccf.createCryptoParams(blockSignKeyGen)
 	if err != nil {
 		return nil, err
@@ -109,7 +111,7 @@ func (ccf *cryptoComponentsFactory) Create() (*CryptoComponents, error) {
 		return nil, err
 	}
 
-	multisigHasher, err := ccf.getMultisigHasherFromConfig()
+	multisigHasher, err := ccf.getMultiSigHasherFromConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -145,11 +147,11 @@ func (ccf *cryptoComponentsFactory) createSingleSigner() (crypto.SingleSigner, e
 	case consensus.BlsConsensusType:
 		return &mclsig.BlsSingleSigner{}, nil
 	default:
-		return nil, ErrMissingConsensusConfig
+		return nil, ErrInvalidConsensusConfig
 	}
 }
 
-func (ccf *cryptoComponentsFactory) getMultisigHasherFromConfig() (hashing.Hasher, error) {
+func (ccf *cryptoComponentsFactory) getMultiSigHasherFromConfig() (hashing.Hasher, error) {
 	if ccf.config.Consensus.Type == consensus.BlsConsensusType && ccf.config.MultisigHasher.Type != "blake2b" {
 		return nil, ErrMultiSigHasherMissmatch
 	}
@@ -175,18 +177,18 @@ func (ccf *cryptoComponentsFactory) createMultiSigner(
 	switch ccf.config.Consensus.Type {
 	case consensus.BlsConsensusType:
 		blsSigner := &mclmultisig.BlsMultiSigner{Hasher: hasher}
-		return multisig.NewBLSMultisig(blsSigner, []string{cp.PublicKeyString}, cp.PrivateKey, blSignKeyGen, uint16(0))
+		return multisig.NewBLSMultisig(blsSigner, []string{string(cp.PublicKeyBytes)}, cp.PrivateKey, blSignKeyGen, uint16(0))
 	default:
-		return nil, ErrMissingConsensusConfig
+		return nil, ErrInvalidConsensusConfig
 	}
 }
 
-func getSuite(config *config.Config) (crypto.Suite, error) {
-	switch config.Consensus.Type {
+func (ccf *cryptoComponentsFactory) getSuite() (crypto.Suite, error) {
+	switch ccf.config.Consensus.Type {
 	case consensus.BlsConsensusType:
 		return mcl.NewSuiteBLS12(), nil
 	default:
-		return nil, errors.New("no consensus provided in config file")
+		return nil, ErrInvalidConsensusConfig
 	}
 }
 
@@ -224,7 +226,7 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 }
 
 func (ccf *cryptoComponentsFactory) getSkPk() ([]byte, []byte, error) {
-	encodedSk, pkString, err := core.LoadSkPkFromPemFile(ccf.validatorKeyPemFileName, ccf.skIndex)
+	encodedSk, pkString, err := ccf.keyLoader(ccf.validatorKeyPemFileName, ccf.skIndex)
 	if err != nil {
 		return nil, nil, err
 	}
