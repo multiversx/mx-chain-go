@@ -142,7 +142,6 @@ func (oplb *OutgoingChannelLoadBalancer) CollectOneElementFromChannels() *p2p.Se
 // Close finishes all started go routines in this instance
 func (oplb *OutgoingChannelLoadBalancer) Close() error {
 	oplb.cancelFunc()
-
 	return nil
 }
 

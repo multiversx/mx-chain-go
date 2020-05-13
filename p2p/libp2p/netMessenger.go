@@ -45,8 +45,8 @@ const refreshPeersOnTopic = time.Second * 3
 const ttlPeersOnTopic = time.Second * 10
 const pubsubTimeCacheDuration = 10 * time.Minute
 const broadcastGoRoutines = 1000
-const secondsBetweenPeerPrints = 20
-const secondsBetweenExternalLoggersCheck = 20
+const timeBetweenPeerPrints = time.Second * 20
+const timeBetweenExternalLoggersCheck = time.Second * 20
 const defaultThresholdMinConnectedPeers = 3
 
 //TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
@@ -117,7 +117,6 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 	setupExternalP2PLoggers()
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
-
 	h, err := libp2p.New(ctx, opts...)
 	if err != nil {
 		return nil, err
@@ -134,7 +133,7 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 
 func setupExternalP2PLoggers() {
 	for _, external := range externalPackages {
-		logLevel := logger.GetLoggerLogLevel(fmt.Sprintf("p2p/libp2p/external/%s", external))
+		logLevel := logger.GetLoggerLogLevel("p2p/libp2p/external/" + external)
 		if logLevel > logger.LogTrace {
 			continue
 		}
@@ -348,7 +347,7 @@ func (netMes *networkMessenger) printLogsStats() {
 		select {
 		case <-netMes.ctx.Done():
 			return
-		case <-time.After(secondsBetweenPeerPrints * time.Second):
+		case <-time.After(timeBetweenPeerPrints):
 		}
 
 		conns := netMes.connectionsMetric.ResetNumConnections()
@@ -365,8 +364,8 @@ func (netMes *networkMessenger) printLogsStats() {
 			"unknown", len(peersInfo.UnknownPeers),
 		)
 
-		connsPerSec := conns / secondsBetweenPeerPrints
-		disconnsPerSec := disconns / secondsBetweenPeerPrints
+		connsPerSec := conns / uint32(timeBetweenPeerPrints/time.Second)
+		disconnsPerSec := disconns / uint32(timeBetweenPeerPrints/time.Second)
 
 		log.Debug("network connection metrics",
 			"connections/s", connsPerSec,
@@ -380,7 +379,7 @@ func (netMes *networkMessenger) checkExternalLoggers() {
 		select {
 		case <-netMes.ctx.Done():
 			return
-		case <-time.After(secondsBetweenExternalLoggersCheck * time.Second):
+		case <-time.After(timeBetweenExternalLoggersCheck):
 		}
 
 		setupExternalP2PLoggers()
@@ -543,9 +542,10 @@ func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic b
 
 	//just a dummy func to consume messages received by the newly created topic
 	go func() {
+		var errSubscrNext error
 		for {
-			_, err = subscrRequest.Next(netMes.ctx)
-			if err != nil {
+			_, errSubscrNext = subscrRequest.Next(netMes.ctx)
+			if errSubscrNext != nil {
 				return
 			}
 		}
