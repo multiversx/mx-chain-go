@@ -1163,3 +1163,15 @@ func TestNetworkMessenger_SetPeerShardResolver(t *testing.T) {
 
 	assert.Nil(t, err)
 }
+
+func TestNetworkMessenger_DoubleCloseShouldWork(t *testing.T) {
+	mes := createMessenger()
+
+	time.Sleep(time.Second)
+
+	err := mes.Close()
+	assert.Nil(t, err)
+
+	err = mes.Close()
+	assert.Nil(t, err)
+}

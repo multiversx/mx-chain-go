@@ -241,9 +241,11 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 			topic := netMes.topics[sendableData.Topic]
 			netMes.mutTopics.RUnlock()
 
-			errPublish := topic.Publish(netMes.ctx, sendableData.Buff)
-			if errPublish != nil {
-				log.Trace("error sending data", "error", errPublish)
+			if topic != nil {
+				errPublish := topic.Publish(netMes.ctx, sendableData.Buff)
+				if errPublish != nil {
+					log.Trace("error sending data", "error", errPublish)
+				}
 			}
 
 			time.Sleep(durationBetweenSends)
