@@ -131,13 +131,8 @@ func TestEpochStartBootstrap_Bootstrap(t *testing.T) {
 			return roundDuration
 		},
 	}
-	args.GeneralConfig = config.Config{
-		EpochStartConfig: config.EpochStartConfig{
-			RoundsPerEpoch: roundsPerEpoch,
-		},
-	}
 	args.GeneralConfig = getGeneralConfig()
-
+	args.GeneralConfig.EpochStartConfig.RoundsPerEpoch = roundsPerEpoch
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 
 	done := make(chan bool, 1)
