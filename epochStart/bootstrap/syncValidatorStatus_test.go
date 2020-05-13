@@ -80,7 +80,9 @@ func TestSyncValidatorStatus_NodesConfigFromMetaBlock(t *testing.T) {
 					PendingMiniBlockHeaders: nil,
 				},
 			},
-		}}
+		},
+	}
+
 	registry, _, err := svs.NodesConfigFromMetaBlock(currMb, prevMb)
 	require.NoError(t, err)
 	require.NotNil(t, registry)

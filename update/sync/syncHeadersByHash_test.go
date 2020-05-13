@@ -54,7 +54,7 @@ func TestNewMissingheadersByHashSyncer_OkValsShouldWork(t *testing.T) {
 	require.NotNil(t, mhhs)
 }
 
-func TestSyncHeadersByHash_SyncMissingHeadersByHash_HeaderInCacheShouldWork(t *testing.T) {
+func TestSyncHeadersByHash_SyncMissingHeadersByHashHeaderFoundInCacheShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getMisingHeadersByHashSyncerArgs()
@@ -69,7 +69,7 @@ func TestSyncHeadersByHash_SyncMissingHeadersByHash_HeaderInCacheShouldWork(t *t
 	require.NoError(t, err)
 }
 
-func TestSyncHeadersByHash_SyncMissingHeadersByHash_HeaderInStorageShouldWork(t *testing.T) {
+func TestSyncHeadersByHash_SyncMissingHeadersByHashHeaderFoundInStorageShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getMisingHeadersByHashSyncerArgs()
@@ -91,7 +91,7 @@ func TestSyncHeadersByHash_SyncMissingHeadersByHash_HeaderInStorageShouldWork(t 
 	require.NoError(t, err)
 }
 
-func TestSyncHeadersByHash_SyncMissingHeadersByHash_HeaderNotFoundShouldTimeout(t *testing.T) {
+func TestSyncHeadersByHash_SyncMissingHeadersByHashHeaderNotFoundShouldTimeout(t *testing.T) {
 	t.Parallel()
 
 	var errNotFound = errors.New("not found")
@@ -115,7 +115,7 @@ func TestSyncHeadersByHash_SyncMissingHeadersByHash_HeaderNotFoundShouldTimeout(
 	require.Equal(t, update.ErrTimeIsOut, err)
 }
 
-func TestSyncHeadersByHash_GetHeaders_NotSyncedShouldErr(t *testing.T) {
+func TestSyncHeadersByHash_GetHeadersNotSyncedShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getMisingHeadersByHashSyncerArgs()
@@ -127,7 +127,7 @@ func TestSyncHeadersByHash_GetHeaders_NotSyncedShouldErr(t *testing.T) {
 	require.Equal(t, update.ErrNotSynced, err)
 }
 
-func TestSyncHeadersByHash_GetHeaders_ShouldReceiveAndReturnOkMb(t *testing.T) {
+func TestSyncHeadersByHash_GetHeadersShouldReceiveAndReturnOkMb(t *testing.T) {
 	t.Parallel()
 
 	var handlerToNotify func(header data.HeaderHandler, shardHeaderHash []byte)

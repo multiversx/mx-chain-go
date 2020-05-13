@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
@@ -22,7 +23,7 @@ func TestNewEpochStartMetaSyncer_ShouldWork(t *testing.T) {
 	require.False(t, check.IfNil(ess))
 }
 
-func TestEpochStartMetaSyncer_SyncEpochStartMeta_ErrRegisterMessengerProcessorShouldErr(t *testing.T) {
+func TestEpochStartMetaSyncer_SyncEpochStartMetaRegisterMessengerProcessorFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
@@ -36,12 +37,12 @@ func TestEpochStartMetaSyncer_SyncEpochStartMeta_ErrRegisterMessengerProcessorSh
 	args.Messenger = messenger
 	ess, _ := NewEpochStartMetaSyncer(args)
 
-	mb, err := ess.SyncEpochStartMeta(1 * time.Second)
+	mb, err := ess.SyncEpochStartMeta(time.Second)
 	require.Equal(t, expectedErr, err)
 	require.Nil(t, mb)
 }
 
-func TestEpochStartMetaSyncer_SyncEpochStartMeta_ProcessorReturnsErrorShouldErr(t *testing.T) {
+func TestEpochStartMetaSyncer_SyncEpochStartMetaProcessorFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
@@ -62,12 +63,12 @@ func TestEpochStartMetaSyncer_SyncEpochStartMeta_ProcessorReturnsErrorShouldErr(
 	}
 	ess.SetEpochStartMetaBlockInterceptorProcessor(mbIntercProc)
 
-	mb, err := ess.SyncEpochStartMeta(1 * time.Second)
+	mb, err := ess.SyncEpochStartMeta(time.Second)
 	require.Equal(t, expectedErr, err)
 	require.Nil(t, mb)
 }
 
-func TestEpochStartMetaSyncer_SyncEpochStartMeta_ShouldWork(t *testing.T) {
+func TestEpochStartMetaSyncer_SyncEpochStartMetaShouldWork(t *testing.T) {
 	t.Parallel()
 
 	expectedMb := &block.MetaBlock{Nonce: 37}
@@ -88,7 +89,7 @@ func TestEpochStartMetaSyncer_SyncEpochStartMeta_ShouldWork(t *testing.T) {
 	}
 	ess.SetEpochStartMetaBlockInterceptorProcessor(mbIntercProc)
 
-	mb, err := ess.SyncEpochStartMeta(1 * time.Second)
+	mb, err := ess.SyncEpochStartMeta(time.Second)
 	require.NoError(t, err)
 	require.Equal(t, expectedMb, mb)
 }
@@ -110,6 +111,10 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 		WhitelistHandler:  &mock.WhiteListHandlerStub{},
 		AddressPubkeyConv: mock.NewPubkeyConverterMock(32),
 		NonceConverter:    &mock.Uint64ByteSliceConverterMock{},
+		StartInEpochConfig: config.EpochStartConfig{
+			MinNumConnectedPeersToStart:       2,
+			MinNumOfPeersToConsiderBlockValid: 2,
+		},
 	}
 
 }

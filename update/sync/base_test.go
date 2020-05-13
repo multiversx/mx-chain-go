@@ -27,6 +27,7 @@ func TestGetDataFromStorage_NotFoundShouldErr(t *testing.T) {
 			return nil, localErr
 		},
 	}
+
 	res, err := GetDataFromStorage([]byte("test"), storer)
 	require.Equal(t, localErr, err)
 	require.Nil(t, res)
@@ -41,6 +42,7 @@ func TestGetDataFromStorage_FoundShouldWork(t *testing.T) {
 			return expRes, nil
 		},
 	}
+
 	res, err := GetDataFromStorage([]byte("test"), storer)
 	require.NoError(t, err)
 	require.Equal(t, expRes, res)
