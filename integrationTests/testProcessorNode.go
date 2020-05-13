@@ -137,7 +137,7 @@ const roundDuration = 5 * time.Second
 var ChainID = []byte("integration tests chain ID")
 
 // SoftwareVersion is the software version identifier used in integration tests, processing nodes
-var SoftwareVersion = []byte("integration tests")
+var SoftwareVersion = []byte("intT")
 
 var testCommunityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
 
@@ -1325,6 +1325,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithPrivKey(tpn.NodeKeys.Sk),
 		node.WithPubKey(tpn.NodeKeys.Pk),
 		node.WithInterceptorsContainer(tpn.InterceptorsContainer),
+		node.WithHeaderIntegrityVerifier(tpn.HeaderIntegrityVerifier),
 		node.WithResolversFinder(tpn.ResolverFinder),
 		node.WithBlockProcessor(tpn.BlockProcessor),
 		node.WithTxSingleSigner(tpn.OwnAccount.SingleSigner),
@@ -1455,6 +1456,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	blockHeader.SetRandSeed(sig)
 	blockHeader.SetLeaderSignature([]byte("leader sign"))
 	blockHeader.SetChainID(tpn.ChainID)
+	blockHeader.SetSoftwareVersion(SoftwareVersion)
 	blockHeader.SetTimeStamp(round * uint64(tpn.Rounder.TimeDuration().Seconds()))
 
 	blockHeader, blockBody, err := tpn.BlockProcessor.CreateBlock(blockHeader, haveTime)

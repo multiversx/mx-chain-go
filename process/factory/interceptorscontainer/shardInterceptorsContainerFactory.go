@@ -67,8 +67,8 @@ func NewShardInterceptorsContainerFactory(
 	if check.IfNil(args.HeaderSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
 	}
-	if check.IfNil(args.HeaderSigVerifier) {
-		return nil, process.ErrNilHeaderSigVerifier
+	if check.IfNil(args.HeaderIntegrityVerifier) {
+		return nil, process.ErrNilHeaderIntegrityVerifier
 	}
 	if len(args.ChainID) == 0 {
 		return nil, process.ErrInvalidChainID

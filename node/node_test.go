@@ -1366,9 +1366,9 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
+		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
 	)
 
-	// TODO: when feature for starting from a higher epoch number is ready we should add a test for that as well
 	err := n.StartConsensus()
 	assert.Nil(t, err)
 }

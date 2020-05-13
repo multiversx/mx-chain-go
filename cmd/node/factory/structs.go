@@ -93,6 +93,7 @@ type Process struct {
 	BlackListHandler         process.BlackListHandler
 	BootStorer               process.BootStorer
 	HeaderSigVerifier        HeaderSigVerifierHandler
+	HeaderIntegrityVerifier  HeaderIntegrityVerifierHandler
 	ValidatorsStatistics     process.ValidatorStatisticsProcessor
 	ValidatorsProvider       process.ValidatorsProvider
 	BlockTracker             process.BlockTracker
@@ -451,6 +452,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		BlackListHandler:         blackListHandler,
 		BootStorer:               bootStorer,
 		HeaderSigVerifier:        headerSigVerifier,
+		HeaderIntegrityVerifier:  headerIntegrityVerifier,
 		ValidatorsStatistics:     validatorStatisticsProcessor,
 		ValidatorsProvider:       validatorsProvider,
 		BlockTracker:             blockTracker,
