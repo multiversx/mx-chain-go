@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -34,21 +35,22 @@ type epochStartMetaSyncer struct {
 
 // ArgsNewEpochStartMetaSyncer -
 type ArgsNewEpochStartMetaSyncer struct {
-	RequestHandler    RequestHandler
-	Messenger         Messenger
-	Marshalizer       marshal.Marshalizer
-	TxSignMarshalizer marshal.Marshalizer
-	ShardCoordinator  sharding.Coordinator
-	KeyGen            crypto.KeyGenerator
-	BlockKeyGen       crypto.KeyGenerator
-	Hasher            hashing.Hasher
-	Signer            crypto.SingleSigner
-	BlockSigner       crypto.SingleSigner
-	ChainID           []byte
-	EconomicsData     *economics.EconomicsData
-	WhitelistHandler  process.WhiteListHandler
-	AddressPubkeyConv state.PubkeyConverter
-	NonceConverter    typeConverters.Uint64ByteSliceConverter
+	RequestHandler     RequestHandler
+	Messenger          Messenger
+	Marshalizer        marshal.Marshalizer
+	TxSignMarshalizer  marshal.Marshalizer
+	ShardCoordinator   sharding.Coordinator
+	KeyGen             crypto.KeyGenerator
+	BlockKeyGen        crypto.KeyGenerator
+	Hasher             hashing.Hasher
+	Signer             crypto.SingleSigner
+	BlockSigner        crypto.SingleSigner
+	ChainID            []byte
+	EconomicsData      *economics.EconomicsData
+	WhitelistHandler   process.WhiteListHandler
+	AddressPubkeyConv  state.PubkeyConverter
+	NonceConverter     typeConverters.Uint64ByteSliceConverter
+	StartInEpochConfig config.EpochStartConfig
 }
 
 // thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
@@ -74,6 +76,8 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		args.Marshalizer,
 		args.Hasher,
 		thresholdForConsideringMetaBlockCorrect,
+		args.StartInEpochConfig.MinNumConnectedPeersToStart,
+		args.StartInEpochConfig.MinNumOfPeersToConsiderBlockValid,
 	)
 	if err != nil {
 		return nil, err
