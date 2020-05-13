@@ -15,7 +15,6 @@ func TestNewEmptyPeerAccount(t *testing.T) {
 	acc := state.NewEmptyPeerAccount()
 
 	assert.NotNil(t, acc)
-	assert.Equal(t, big.NewInt(0), acc.Stake)
 	assert.Equal(t, big.NewInt(0), acc.AccumulatedFees)
 }
 
@@ -73,26 +72,6 @@ func TestPeerAccount_SetAndGetRewardAddress(t *testing.T) {
 
 	_ = acc.SetRewardAddress(addr)
 	assert.Equal(t, addr, acc.GetRewardAddress())
-}
-
-func TestPeerAccount_SetInvalidStake(t *testing.T) {
-	t.Parallel()
-
-	acc, _ := state.NewPeerAccount(make([]byte, 32))
-
-	err := acc.SetStake(nil)
-	assert.Equal(t, state.ErrNilStake, err)
-}
-
-func TestPeerAccount_SetAndGetStake(t *testing.T) {
-	t.Parallel()
-
-	acc, _ := state.NewPeerAccount(make([]byte, 32))
-	stake := big.NewInt(10)
-
-	err := acc.SetStake(stake)
-	assert.Nil(t, err)
-	assert.Equal(t, stake, acc.GetStake())
 }
 
 func TestPeerAccount_SetAndGetAccumulatedFees(t *testing.T) {

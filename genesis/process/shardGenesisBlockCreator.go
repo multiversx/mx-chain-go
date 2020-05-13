@@ -39,7 +39,7 @@ type deployedScMetrics struct {
 
 // CreateShardGenesisBlock will create a shard genesis block
 func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter) (data.HeaderHandler, error) {
-	if arg.HardForkConfig.MustImport {
+	if mustDoHardForkImportProcess(arg) {
 		return createShardGenesisAfterHardFork(arg)
 	}
 
@@ -116,14 +116,15 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 }
 
 func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHandler, error) {
-	arg.Accounts = arg.importHandler.GetAccountsDBForShard(arg.ShardCoordinator.SelfId())
-	processors, err := createProcessorsForShard(arg)
+	tmpArg := arg
+	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(arg.ShardCoordinator.SelfId())
+	processors, err := createProcessorsForShard(tmpArg)
 	if err != nil {
 		return nil, err
 	}
 
 	argsPendingTxProcessor := hardForkProcess.ArgsPendingTransactionProcessor{
-		Accounts:         arg.Accounts,
+		Accounts:         tmpArg.Accounts,
 		TxProcessor:      processors.txProcessor,
 		RwdTxProcessor:   processors.rwdProcessor,
 		ScrTxProcessor:   processors.scrProcessor,
@@ -154,6 +155,11 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHa
 		arg.HardForkConfig.StartNonce,
 		arg.HardForkConfig.StartEpoch,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
 	if err != nil {
 		return nil, err
 	}

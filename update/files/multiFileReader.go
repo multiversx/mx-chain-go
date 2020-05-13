@@ -106,11 +106,12 @@ func (m *multiFileReader) ReadNextItem(fileName string) (string, []byte, error) 
 		return "", nil, err
 	}
 
-	log.Trace("import", "key", string(key))
-	value, err := m.importStore.Get(key)
+	formattedKey := []byte(string(key) + fileName)
+	value, err := m.importStore.Get(formattedKey)
 	if err != nil {
 		return "", nil, err
 	}
+	log.Trace("import", "key", string(key), "value", value)
 
 	return string(key), value, nil
 }
@@ -142,6 +143,11 @@ func (m *multiFileReader) Finish() {
 		if err != nil {
 			log.Warn("could not close file ", "fileName", fileName, "error", err)
 		}
+	}
+
+	err := m.importStore.Close()
+	if err != nil {
+		log.Warn("could not close import store ", "error", err)
 	}
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -170,14 +169,15 @@ type TestProcessorNode struct {
 	OwnAccount *TestWalletAccount
 	NodeKeys   *TestKeyPair
 
-	ExportFolder  string
-	DataPool      dataRetriever.PoolsHolder
-	Storage       dataRetriever.StorageService
-	PeerState     state.AccountsAdapter
-	AccntState    state.AccountsAdapter
-	TrieContainer state.TriesHolder
-	BlockChain    data.ChainHandler
-	GenesisBlocks map[uint32]data.HeaderHandler
+	ExportFolder        string
+	DataPool            dataRetriever.PoolsHolder
+	Storage             dataRetriever.StorageService
+	PeerState           state.AccountsAdapter
+	AccntState          state.AccountsAdapter
+	TrieStorageManagers map[string]data.StorageManager
+	TrieContainer       state.TriesHolder
+	BlockChain          data.ChainHandler
+	GenesisBlocks       map[uint32]data.HeaderHandler
 
 	EconomicsData *economics.TestEconomicsData
 	RatingsData   *rating.RatingsData
@@ -375,14 +375,19 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 }
 
 func (tpn *TestProcessorNode) initAccountDBs() {
+	trieStorageManager, _ := CreateTrieStorageManager()
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie data.Trie
-	tpn.AccntState, stateTrie, _ = CreateAccountsDB(UserAccount)
+	tpn.AccntState, stateTrie = CreateAccountsDB(UserAccount, trieStorageManager)
 	tpn.TrieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
 
 	var peerTrie data.Trie
-	tpn.PeerState, peerTrie, _ = CreateAccountsDB(ValidatorAccount)
+	tpn.PeerState, peerTrie = CreateAccountsDB(ValidatorAccount, trieStorageManager)
 	tpn.TrieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
+
+	tpn.TrieStorageManagers = make(map[string]data.StorageManager)
+	tpn.TrieStorageManagers[trieFactory.UserAccountTrie] = trieStorageManager
+	tpn.TrieStorageManagers[trieFactory.PeerAccountTrie] = trieStorageManager
 }
 
 func (tpn *TestProcessorNode) initValidatorStatistics() {
@@ -400,11 +405,9 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		DataPool:            tpn.DataPool,
 		StorageService:      tpn.Storage,
 		Marshalizer:         TestMarshalizer,
-		StakeValue:          big.NewInt(500),
 		Rater:               rater,
 		MaxComputableRounds: 1000,
 		RewardsHandler:      tpn.EconomicsData,
-		StartEpoch:          0,
 		NodesSetup:          tpn.NodesSetup,
 	}
 
@@ -423,11 +426,11 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initValidatorStatistics()
-	rootHash, err := tpn.ValidatorStatisticsProcessor.RootHash()
-	fmt.Println("error", err)
 
 	tpn.GenesisBlocks = CreateGenesisBlocks(
 		tpn.AccntState,
+		tpn.PeerState,
+		tpn.TrieStorageManagers,
 		TestAddressPubkeyConverter,
 		tpn.NodesSetup,
 		tpn.ShardCoordinator,
@@ -438,7 +441,6 @@ func (tpn *TestProcessorNode) initTestNode() {
 		TestUint64Converter,
 		tpn.DataPool,
 		tpn.EconomicsData.EconomicsData,
-		rootHash,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors()

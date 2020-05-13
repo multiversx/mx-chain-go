@@ -416,6 +416,7 @@
 	StartRound = 0
 	StartNonce = 0
 	StartEpoch = 0
+	ValidatorGracePeriodInEpochs = 0 #defines how long is the rating computation disabled after hardfork
 	[HardFork.ExportStateStorageConfig]
 	    [HardFork.ExportStateStorageConfig.Cache]
             Size = 5000
@@ -431,7 +432,7 @@
             Size = 5000
             Type = "LRU"
         [HardFork.ImportStateStorageConfig.DB]
-            FilePath = "ImportStateStorageConfig/MainDB"
+            FilePath = "ExportStateStorage/MainDB"
             Type = "LvlDBSerial"
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
