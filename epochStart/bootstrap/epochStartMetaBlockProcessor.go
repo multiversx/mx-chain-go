@@ -20,6 +20,8 @@ import (
 const durationBetweenChecks = 200 * time.Millisecond
 const durationBetweenReRequests = 1 * time.Second
 const durationBetweenCheckingNumConnectedPeers = 500 * time.Millisecond
+const minNumPeersToConsiderMetaBlockValid = 1
+const minNumConnectedPeers = 1
 
 var _ process.InterceptorProcessor = (*epochStartMetaBlockProcessor)(nil)
 
@@ -63,10 +65,10 @@ func NewEpochStartMetaBlockProcessor(
 	if !(consensusPercentage > 0 && consensusPercentage <= 100) {
 		return nil, epochStart.ErrInvalidConsensusThreshold
 	}
-	if minNumConnectedPeers < 1 {
+	if minNumConnectedPeers < minNumConnectedPeers {
 		return nil, epochStart.ErrNotEnoughNumConnectedPeers
 	}
-	if minNumOfPeersToConsiderBlockValid < 1 {
+	if minNumOfPeersToConsiderBlockValid < minNumOfPeersToConsiderBlockValid {
 		return nil, epochStart.ErrNotEnoughNumOfPeersToConsiderBlockValid
 	}
 
