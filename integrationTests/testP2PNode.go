@@ -1,7 +1,6 @@
 package integrationTests
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"strconv"
@@ -83,7 +82,7 @@ func NewTestP2PNode(
 		fmt.Printf("Error creating NewPeerShardMapper: %s\n", err.Error())
 	}
 
-	tP2pNode.Messenger = CreateMessengerFromConfig(context.Background(), p2pConfig)
+	tP2pNode.Messenger = CreateMessengerFromConfig(p2pConfig)
 	localId := tP2pNode.Messenger.ID()
 	tP2pNode.NetworkShardingUpdater.UpdatePeerIdShardId(localId, shardCoordinator.SelfId())
 

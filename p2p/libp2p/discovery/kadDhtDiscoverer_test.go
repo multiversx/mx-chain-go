@@ -3,7 +3,6 @@ package discovery_test
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -12,11 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/discovery"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
-	"github.com/libp2p/go-libp2p-core/connmgr"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -263,65 +257,4 @@ func TestKadDhtPeerDiscoverer_Watchdog(t *testing.T) {
 	}
 
 	_ = kdd.StopWatchdog()
-}
-
-//---------- Protocols
-func TestKadDhtPeerDiscoverer_Protocols(t *testing.T) {
-	t.Parallel()
-
-	streams := make(map[protocol.ID]network.StreamHandler)
-	notifeesCnt := 0
-	net := &mock.NetworkStub{
-		ConnectednessCalled: func(p peer.ID) network.Connectedness {
-			fmt.Printf("Conn to %s\n", p.Pretty())
-			return network.CannotConnect
-		},
-
-		NotifyCalled:     func(nn network.Notifiee) { notifeesCnt++ },
-		StopNotifyCalled: func(nn network.Notifiee) { notifeesCnt-- },
-	}
-
-	host := &mock.ConnectableHostStub{
-		IDCalled: func() peer.ID {
-			return "local peer"
-		},
-		PeerstoreCalled: func() peerstore.Peerstore {
-			return nil
-		},
-		NetworkCalled: func() network.Network {
-			return net
-		},
-		SetStreamHandlerCalled: func(proto protocol.ID, sh network.StreamHandler) {
-			fmt.Printf("Set strem hndl %v\n", proto)
-			streams[proto] = sh
-		},
-		RemoveStreamHandlerCalled: func(proto protocol.ID) {
-			fmt.Printf("Remove stream %v\n", proto)
-			streams[proto] = nil
-		},
-		ConnManagerCalled: func() connmgr.ConnManager {
-			return nil
-		},
-	}
-
-	interval := time.Second
-	arg := createTestArgument()
-	arg.PeersRefreshInterval = interval
-	arg.Host = host
-	kdd, _ := discovery.NewKadDhtPeerDiscoverer(arg)
-
-	err := kdd.Bootstrap()
-	assert.Nil(t, err)
-
-	assert.Equal(t, notifeesCnt, 1)
-	err = kdd.UpdateRandezVous("r2")
-	assert.Nil(t, err)
-	assert.Equal(t, notifeesCnt, 1)
-	err = kdd.StopDHT()
-	assert.Nil(t, err)
-
-	assert.Equal(t, notifeesCnt, 0)
-	for p, cb := range streams {
-		assert.Nil(t, cb, p, "should have no callback")
-	}
 }
