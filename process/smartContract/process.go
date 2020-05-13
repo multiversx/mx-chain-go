@@ -540,8 +540,12 @@ func (sc *scProcessor) DeploySmartContract(
 
 func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.TransactionHandler) {
 	scGenerated := make([]string, 0, len(vmOutput.OutputAccounts))
-	for key := range vmOutput.OutputAccounts {
-		addr := vmOutput.OutputAccounts[key].Address
+	for _, account := range vmOutput.OutputAccounts {
+		if account == nil {
+			continue
+		}
+
+		addr := account.Address
 		if !core.IsSmartContractAddress([]byte(addr)) {
 			continue
 		}
