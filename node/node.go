@@ -41,7 +41,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/sync"
 	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
@@ -955,6 +954,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		VersionNumber:            versionNumber,
 		PeerShardMapper:          n.networkShardingCollector,
 		SizeCheckDelta:           n.sizeCheckDelta,
+		ValidatorsProvider:       n.validatorsProvider,
 	}
 
 	var err error

@@ -53,9 +53,8 @@ func NewPeerTypeProvider(arg ArgPeerTypeProvider) (*PeerTypeProvider, error) {
 	if arg.EpochStartEventNotifier == nil {
 		return nil, process.ErrNilEpochStartNotifier
 	}
-	if arg.CacheRefreshIntervalDuration == 0 {
-		log.Warn("all values not found in the cache will trigger a cache refresh from trie",
-			"cacheRefreshInterval", arg.CacheRefreshIntervalDuration)
+	if arg.CacheRefreshIntervalDuration <= 0 {
+		return nil, process.ErrInvalidCacheRefreshIntervalDuration
 	}
 
 	ptp := &PeerTypeProvider{
@@ -163,8 +162,6 @@ func (ptp *PeerTypeProvider) ComputeForPubKey(pubKey []byte) (core.PeerType, uin
 	ptp.mutCache.RLock()
 	peerData, ok := ptp.cache[string(pubKey)]
 	ptp.mutCache.RUnlock()
-
-	ptp.populateCache(ptp.epochHandler.MetaEpoch())
 
 	if ok {
 		return peerData.pType, peerData.pShard, nil

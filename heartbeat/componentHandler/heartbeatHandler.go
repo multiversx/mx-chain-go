@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	heartbeatStorage "github.com/ElrondNetwork/elrond-go/heartbeat/storage"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	peerProcess "github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -47,6 +49,7 @@ type ArgHeartbeat struct {
 	VersionNumber            string
 	PeerShardMapper          heartbeat.NetworkShardingCollector
 	SizeCheckDelta           uint32
+	ValidatorsProvider       peerProcess.ValidatorsProvider
 }
 
 // HeartbeatHandler is the struct used to manage heartbeat subsystem consisting of a heartbeat sender and monitor
@@ -94,13 +97,15 @@ func (hbh *HeartbeatHandler) create() error {
 			return err
 		}
 	}
-	argPeerTypeProvider := sharding.ArgPeerTypeProvider{
-		NodesCoordinator:        arg.NodesCoordinator,
-		EpochHandler:            arg.EpochStartTrigger,
-		EpochStartEventNotifier: arg.EpochStartRegistration,
+	argPeerTypeProvider := peer.ArgPeerTypeProvider{
+		NodesCoordinator:             arg.NodesCoordinator,
+		EpochHandler:                 arg.EpochStartTrigger,
+		EpochStartEventNotifier:      arg.EpochStartRegistration,
+		ValidatorsProvider:           arg.ValidatorsProvider,
+		CacheRefreshIntervalDuration: time.Duration(arg.HeartbeatConfig.PeerTypeRefreshIntervalInSec) * time.Second,
 	}
 
-	peerTypeProvider, err := sharding.NewPeerTypeProvider(argPeerTypeProvider)
+	peerTypeProvider, err := peer.NewPeerTypeProvider(argPeerTypeProvider)
 	if err != nil {
 		return err
 	}

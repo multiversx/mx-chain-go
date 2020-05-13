@@ -45,6 +45,15 @@ func TestNewPeerTypeProvider_NilEpochStartNotifier(t *testing.T) {
 	assert.Equal(t, process.ErrNilEpochStartNotifier, err)
 }
 
+func TestNewPeerTypeProvider_ZeroCacheRefreshInterval(t *testing.T) {
+	arg := createDefaultArg()
+	arg.CacheRefreshIntervalDuration = 0
+
+	ptp, err := NewPeerTypeProvider(arg)
+	assert.Nil(t, ptp)
+	assert.Equal(t, process.ErrInvalidCacheRefreshIntervalDuration, err)
+}
+
 func TestNewPeerTypeProvider_NilValidatorsProvider(t *testing.T) {
 	arg := createDefaultArg()
 	arg.ValidatorsProvider = nil

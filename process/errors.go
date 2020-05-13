@@ -290,9 +290,6 @@ var ErrHeaderNotFinal = errors.New("header in metablock is not final")
 // ErrShardIdMissmatch signals shard ID does not match expectations
 var ErrShardIdMissmatch = errors.New("shard ID missmatch")
 
-// ErrMintAddressNotInThisShard signals that the mint address does not belong to current shard
-var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to current shard")
-
 // ErrNotarizedHeadersSliceIsNil signals that the slice holding notarized headers is nil
 var ErrNotarizedHeadersSliceIsNil = errors.New("notarized headers slice is nil")
 
@@ -430,6 +427,9 @@ var ErrNilValidatorsProvider = errors.New("nil validatorsProvider")
 
 // ErrNilEpochStartNotifier signals that the ErrNilEpochStartNotifier is nil
 var ErrNilEpochStartNotifier = errors.New("nil epochStartNotifier")
+
+// ErrInvalidCacheRefreshIntervalDuration signals that the ErrInvalidCacheRefreshIntervalDuration is zero or less
+var ErrInvalidCacheRefreshIntervalDuration = errors.New("nil CacheRefreshIntervalDuration")
 
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
