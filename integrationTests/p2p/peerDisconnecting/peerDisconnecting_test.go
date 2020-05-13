@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var randezVous = ""
+var randezVous = "/erd/kad/1.0.0"
 
 func createDefaultConfig() config.P2PConfig {
 	return config.P2PConfig{
