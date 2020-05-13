@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -1208,4 +1209,129 @@ func BenchmarkMarshallNodeJson(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_, _ = marsh.Marshal(bn)
 	}
+}
+
+func TestBranchNode_newBranchNodeNilMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	bn, err := newBranchNode(nil, mock.HasherMock{})
+	assert.Nil(t, bn)
+	assert.Equal(t, ErrNilMarshalizer, err)
+}
+
+func TestBranchNode_newBranchNodeNilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	bn, err := newBranchNode(&mock.MarshalizerMock{}, nil)
+	assert.Nil(t, bn)
+	assert.Equal(t, ErrNilHasher, err)
+}
+
+func TestBranchNode_newBranchNodeOkVals(t *testing.T) {
+	t.Parallel()
+
+	var children [nrOfChildren]node
+	marsh, hasher := getTestMarshAndHasher()
+	bn, err := newBranchNode(marsh, hasher)
+
+	assert.Nil(t, err)
+	assert.Equal(t, make([][]byte, nrOfChildren), bn.EncodedChildren)
+	assert.Equal(t, children, bn.children)
+	assert.Equal(t, marsh, bn.marsh)
+	assert.Equal(t, hasher, bn.hasher)
+	assert.True(t, bn.dirty)
+}
+
+func TestBranchNode_getMarshalizer(t *testing.T) {
+	t.Parallel()
+
+	expectedMarsh := &mock.MarshalizerMock{}
+	bn := &branchNode{
+		baseNode: &baseNode{
+			marsh: expectedMarsh,
+		},
+	}
+
+	marsh := bn.getMarshalizer()
+	assert.Equal(t, expectedMarsh, marsh)
+}
+
+func TestBranchNode_setRootHashCollapsedChildren(t *testing.T) {
+	t.Parallel()
+
+	marsh, hasher := getTestMarshAndHasher()
+	bn := &branchNode{
+		baseNode: &baseNode{
+			marsh:  marsh,
+			hasher: hasher,
+		},
+	}
+
+	_, collapsedBn := getBnAndCollapsedBn(marsh, hasher)
+	_, collapsedEn := getEnAndCollapsedEn()
+	collapsedLn := getLn(marsh, hasher)
+
+	bn.children[0] = collapsedBn
+	bn.children[1] = collapsedEn
+	bn.children[2] = collapsedLn
+
+	err := bn.setRootHash()
+	assert.Nil(t, err)
+}
+
+func TestBranchNode_commitCollapsesTrieIfMaxTrieLevelInMemoryIsReached(t *testing.T) {
+	t.Parallel()
+
+	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshAndHasher())
+	_ = collapsedBn.setRootHash()
+
+	err := bn.commit(true, 0, 1, mock.NewMemDbMock(), mock.NewMemDbMock())
+	assert.Nil(t, err)
+
+	assert.Equal(t, collapsedBn.EncodedChildren, bn.EncodedChildren)
+	assert.Equal(t, collapsedBn.children, bn.children)
+	assert.Equal(t, collapsedBn.hash, bn.hash)
+}
+
+func TestBranchNode_reduceNodeBnChild(t *testing.T) {
+	t.Parallel()
+
+	marsh, hasher := getTestMarshAndHasher()
+	en, _ := getEnAndCollapsedEn()
+	pos := 5
+	expectedNode, _ := newExtensionNode([]byte{byte(pos)}, en.child, marsh, hasher)
+
+	newNode, err := en.child.reduceNode(pos)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedNode, newNode)
+}
+
+func TestBranchNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
+	t.Parallel()
+
+	bnWriter := bytes.NewBuffer(make([]byte, 0))
+	collapsedBnWriter := bytes.NewBuffer(make([]byte, 0))
+
+	db := mock.NewMemDbMock()
+	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshAndHasher())
+	_ = bn.commit(true, 0, 5, db, db)
+	_ = collapsedBn.commit(true, 0, 5, db, db)
+
+	bn.print(bnWriter, 0, db)
+	collapsedBn.print(collapsedBnWriter, 0, db)
+
+	assert.Equal(t, bnWriter.Bytes(), collapsedBnWriter.Bytes())
+}
+
+func TestBranchNode_getDirtyHashesFromNotDirtyNode(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	bn, _ := getBnAndCollapsedBn(getTestMarshAndHasher())
+	_ = bn.commit(true, 0, 5, db, db)
+	dirtyHashes := make(data.ModifiedHashes)
+
+	err := bn.getDirtyHashes(dirtyHashes)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(dirtyHashes))
 }
