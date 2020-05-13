@@ -2,12 +2,14 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
@@ -47,9 +49,8 @@ type ComponentHandler interface {
 	Close() error
 }
 
-// CoreComponentsHandler defines the core components handler actions
-type CoreComponentsHandler interface {
-	ComponentHandler
+// CoreComponentsHolder holds the core components
+type CoreComponentsHolder interface {
 	InternalMarshalizer() marshal.Marshalizer
 	TxMarshalizer() marshal.Marshalizer
 	VmMarshalizer() marshal.Marshalizer
@@ -59,4 +60,37 @@ type CoreComponentsHandler interface {
 	SetStatusHandler(statusHandler core.AppStatusHandler) error
 	ChainID() []byte
 	IsInterfaceNil() bool
+}
+
+// CoreComponentsHandler defines the core components handler actions
+type CoreComponentsHandler interface {
+	ComponentHandler
+	CoreComponentsHolder
+}
+
+// CryptoParamsHolder permits access to crypto parameters such as the private and public keys
+type CryptoParamsHolder interface {
+	PublicKey() crypto.PublicKey
+	PrivateKey() crypto.PrivateKey
+	PublicKeyString() string
+	PublicKeyBytes() []byte
+	PrivateKeyBytes() []byte
+}
+
+// CryptoComponentsHolder holds the crypto components
+type CryptoComponentsHolder interface {
+	CryptoParamsHolder
+	TxSingleSigner() crypto.SingleSigner
+	SingleSigner() crypto.SingleSigner
+	MultiSigner() crypto.MultiSigner
+	BlockSignKeyGen() crypto.KeyGenerator
+	TxSignKeyGen() crypto.KeyGenerator
+	MessageSignVerifier() vm.MessageSignVerifier
+	IsInterfaceNil() bool
+}
+
+// CryptoComponentsHandler defines the crypto components handler actions
+type CryptoComponentsHandler interface {
+	ComponentHandler
+	CryptoComponentsHolder
 }

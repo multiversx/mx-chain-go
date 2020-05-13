@@ -15,14 +15,12 @@ import (
 // CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
 type CoreComponentsFactoryArgs struct {
 	Config  config.Config
-	ShardId string
 	ChainID []byte
 }
 
 // CoreComponentsFactory is responsible for creating the core components
 type CoreComponentsFactory struct {
 	config      config.Config
-	shardId     string
 	chainID     []byte
 	marshalizer marshal.Marshalizer
 	hasher      hashing.Hasher
@@ -32,7 +30,6 @@ type CoreComponentsFactory struct {
 func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) *CoreComponentsFactory {
 	return &CoreComponentsFactory{
 		config:  args.Config,
-		shardId: args.ShardId,
 		chainID: args.ChainID,
 	}
 }

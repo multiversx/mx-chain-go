@@ -11,6 +11,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
+var _ ComponentHandler = (*ManagedCoreComponents)(nil)
+var _ CoreComponentsHolder = (*ManagedCoreComponents)(nil)
+var _ CoreComponentsHandler = (*ManagedCoreComponents)(nil)
+
 // CoreComponentsHandlerArgs holds the arguments required to create a core components handler
 type CoreComponentsHandlerArgs CoreComponentsFactoryArgs
 
@@ -170,4 +174,9 @@ func (mcc *ManagedCoreComponents) ChainID() []byte {
 	}
 
 	return mcc.coreComponents.ChainID
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mcc *ManagedCoreComponents) IsInterfaceNil() bool {
+	return mcc == nil
 }

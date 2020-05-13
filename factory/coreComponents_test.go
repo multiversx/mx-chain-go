@@ -214,7 +214,6 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				Type: testMarshalizer,
 			},
 		},
-		ShardId: "0",
 		ChainID: []byte("chainID"),
 	}
 }
