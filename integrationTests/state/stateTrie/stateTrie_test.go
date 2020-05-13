@@ -2,7 +2,6 @@ package stateTrie
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -1487,7 +1486,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	numMetachainNodes := 1
 	stateCheckpointModulus := uint(3)
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodesWithCustomStateCheckpointModulus(

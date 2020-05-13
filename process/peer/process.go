@@ -156,12 +156,12 @@ func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) error {
 		return err
 	}
 
-	nodesList, err := vs.nodesCoordinator.GetAllLeavingValidatorsPublicKeys(epoch)
+	nodesMap, err = vs.nodesCoordinator.GetAllLeavingValidatorsPublicKeys(epoch)
 	if err != nil {
 		return err
 	}
 
-	err = vs.saveUpdatesForList(nodesList, 0, core.InactiveList)
+	err = vs.saveUpdatesForNodesMap(nodesMap, core.InactiveList)
 	if err != nil {
 		return err
 	}

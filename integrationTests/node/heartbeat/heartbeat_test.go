@@ -1,7 +1,6 @@
 package heartbeat
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -32,7 +31,7 @@ func TestHeartbeatMonitorWillUpdateAnInactivePeer(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 	maxUnresposiveTime := time.Second * 10
@@ -79,7 +78,7 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 	maxUnresposiveTime := time.Second * 10
@@ -133,7 +132,7 @@ func prepareNodes(
 	pks := make([]crypto.PublicKey, 0)
 
 	for i := 0; i < interactingNodes; i++ {
-		nodes[i] = integrationTests.CreateMessengerWithKadDht(context.Background(), advertiserAddr)
+		nodes[i] = integrationTests.CreateMessengerWithKadDht(advertiserAddr)
 		_ = nodes[i].CreateTopic(topicHeartbeat, true)
 
 		isSender := integrationTests.IsIntInSlice(i, senderIdxs)

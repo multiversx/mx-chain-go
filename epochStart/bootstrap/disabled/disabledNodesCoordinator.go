@@ -20,7 +20,7 @@ func (n *nodesCoordinator) GetChance(uint32) uint32 {
 }
 
 // GetAllLeavingValidatorsPublicKeys -
-func (n *nodesCoordinator) GetAllLeavingValidatorsPublicKeys(_ uint32) ([][]byte, error) {
+func (n *nodesCoordinator) GetAllLeavingValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
 
@@ -29,8 +29,8 @@ func (n *nodesCoordinator) ValidatorsWeights(validators []sharding.Validator) ([
 	return make([]uint32, len(validators)), nil
 }
 
-// ComputeLeaving -
-func (n *nodesCoordinator) ComputeLeaving(_ []*state.ShardValidatorInfo) ([]sharding.Validator, error) {
+// ComputeAdditionalLeaving -
+func (n *nodesCoordinator) ComputeAdditionalLeaving(_ []*state.ShardValidatorInfo) (map[uint32][]sharding.Validator, error) {
 	return nil, nil
 }
 
