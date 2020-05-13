@@ -399,6 +399,7 @@ func (host *vmContext) IsValidator(blsKey []byte) bool {
 		return false
 	}
 
+	// TODO: rename GetList from validator account
 	isValidator := validatorAccount.GetList() == string(core.EligibleList) ||
 		validatorAccount.GetList() == string(core.WaitingList)
 	return isValidator
