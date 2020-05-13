@@ -361,8 +361,8 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	return store
 }
 
-// CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
-func CreateAccountsDB(accountType Type) (*state.AccountsDB, data.Trie, storage.Storer) {
+// CreateTrieStorageManager creates the trie storage manager for the tests
+func CreateTrieStorageManager() (data.StorageManager, storage.Storer) {
 	store := CreateMemUnit()
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 
@@ -380,14 +380,22 @@ func CreateAccountsDB(accountType Type) (*state.AccountsDB, data.Trie, storage.S
 		SnapshotsBufferLen: 10,
 		MaxSnapshots:       2,
 	}
-	trieStorage, _ := trie.NewTrieStorageManager(store, TestMarshalizer, TestHasher, cfg, ewl, generalCfg)
+	trieStorageManager, _ := trie.NewTrieStorageManager(store, TestMarshalizer, TestHasher, cfg, ewl, generalCfg)
 
-	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
+	return trieStorageManager, store
+}
+
+// CreateAccountsDB creates an account state with a valid trie implementation but with a memory storage
+func CreateAccountsDB(
+	accountType Type,
+	trieStorageManager data.StorageManager,
+) (*state.AccountsDB, data.Trie) {
+	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher)
 
 	accountFactory := getAccountFactory(accountType)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, TestMarshalizer, accountFactory)
 
-	return adb, tr, store
+	return adb, tr
 }
 
 func getAccountFactory(accountType Type) state.AccountFactory {
@@ -482,6 +490,8 @@ func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
 // CreateGenesisBlocks creates empty genesis blocks for all known shards, including metachain
 func CreateGenesisBlocks(
 	accounts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
+	trieStorageManagers map[string]data.StorageManager,
 	pubkeyConv state.PubkeyConverter,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	shardCoordinator sharding.Coordinator,
@@ -492,7 +502,6 @@ func CreateGenesisBlocks(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	dataPool dataRetriever.PoolsHolder,
 	economics *economics.EconomicsData,
-	rootHash []byte,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
@@ -502,6 +511,8 @@ func CreateGenesisBlocks(
 
 	genesisBlocks[core.MetachainShardId] = CreateGenesisMetaBlock(
 		accounts,
+		validatorAccounts,
+		trieStorageManagers,
 		pubkeyConv,
 		nodesSetup,
 		shardCoordinator,
@@ -512,7 +523,6 @@ func CreateGenesisBlocks(
 		uint64Converter,
 		dataPool,
 		economics,
-		rootHash,
 	)
 
 	return genesisBlocks
@@ -521,6 +531,8 @@ func CreateGenesisBlocks(
 // CreateGenesisMetaBlock creates a new mock meta genesis block
 func CreateGenesisMetaBlock(
 	accounts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
+	trieStorageManagers map[string]data.StorageManager,
 	pubkeyConv state.PubkeyConverter,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	shardCoordinator sharding.Coordinator,
@@ -531,7 +543,6 @@ func CreateGenesisMetaBlock(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	dataPool dataRetriever.PoolsHolder,
 	economics *economics.EconomicsData,
-	rootHash []byte,
 ) data.HeaderHandler {
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
@@ -539,6 +550,7 @@ func CreateGenesisMetaBlock(
 	argsMetaGenesis := genesisProcess.ArgsGenesisBlockCreator{
 		GenesisTime:              0,
 		Accounts:                 accounts,
+		TrieStorageManagers:      trieStorageManagers,
 		PubkeyConv:               pubkeyConv,
 		InitialNodesSetup:        nodesSetup,
 		ShardCoordinator:         shardCoordinator,
@@ -549,7 +561,7 @@ func CreateGenesisMetaBlock(
 		Uint64ByteSliceConverter: uint64Converter,
 		DataPool:                 dataPool,
 		Economics:                economics,
-		ValidatorStatsRootHash:   rootHash,
+		ValidatorAccounts:        validatorAccounts,
 		GasMap:                   gasSchedule,
 		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
 		VirtualMachineConfig:     config.VirtualMachineConfig{},
@@ -571,7 +583,8 @@ func CreateGenesisMetaBlock(
 		newDataPool := CreateTestDataPool(nil, shardCoordinator.SelfId())
 
 		newBlkc := blockchain.NewMetaChain()
-		newAccounts, _, _ := CreateAccountsDB(UserAccount)
+		trieStorage, _ := CreateTrieStorageManager()
+		newAccounts, _ := CreateAccountsDB(UserAccount, trieStorage)
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
@@ -665,7 +678,8 @@ func CreateRandomBytes(chars int) []byte {
 // GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
 func GenerateAddressJournalAccountAccountsDB() ([]byte, state.UserAccountHandler, *state.AccountsDB) {
 	adr := CreateRandomAddress()
-	adb, _, _ := CreateAccountsDB(UserAccount)
+	trieStorage, _ := CreateTrieStorageManager()
+	adb, _ := CreateAccountsDB(UserAccount, trieStorage)
 	account, _ := state.NewUserAccount(adr)
 
 	return adr, account, adb
@@ -1559,7 +1573,8 @@ func generateValidTx(
 	_, pkRecv, _ := GenerateSkAndPkInShard(shardCoordinator, receiverShardId)
 	pkRecvBuff, _ := pkRecv.ToByteArray()
 
-	accnts, _, _ := CreateAccountsDB(UserAccount)
+	trieStorage, _ := CreateTrieStorageManager()
+	accnts, _ := CreateAccountsDB(UserAccount, trieStorage)
 	acc, _ := accnts.LoadAccount(pkSenderBuff)
 	_ = accnts.SaveAccount(acc)
 	_, _ = accnts.Commit()
