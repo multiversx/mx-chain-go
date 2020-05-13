@@ -20,15 +20,6 @@ type HeaderHandlerStub struct {
 	CheckChainIDCalled               func(reference []byte) error
 	GetAccumulatedFeesCalled         func() *big.Int
 	GetDeveloperFeesCalled           func() *big.Int
-	CheckSoftwareVersionCalled       func() error
-}
-
-// CheckSoftwareVersion -
-func (hhs *HeaderHandlerStub) CheckSoftwareVersion() error {
-	if hhs.CheckSoftwareVersionCalled != nil {
-		return hhs.CheckSoftwareVersionCalled()
-	}
-	return nil
 }
 
 // GetAccumulatedFees -
@@ -226,34 +217,9 @@ func (hhs *HeaderHandlerStub) SetValidatorStatsRootHash(_ []byte) {
 	panic("implement me")
 }
 
-// GetMiniBlockProcessed -
-func (hhs *HeaderHandlerStub) GetMiniBlockProcessed(_ []byte) bool {
-	panic("implement me")
-}
-
-// SetMiniBlockProcessed -
-func (hhs *HeaderHandlerStub) SetMiniBlockProcessed(_ []byte, _ bool) {
-	panic("implement me")
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (hhs *HeaderHandlerStub) IsInterfaceNil() bool {
 	return hhs == nil
-}
-
-// ItemsInHeader -
-func (hhs *HeaderHandlerStub) ItemsInHeader() uint32 {
-	panic("implement me")
-}
-
-// ItemsInBody -
-func (hhs *HeaderHandlerStub) ItemsInBody() uint32 {
-	panic("implement me")
-}
-
-// CheckChainID -
-func (hhs *HeaderHandlerStub) CheckChainID(reference []byte) error {
-	return hhs.CheckChainIDCalled(reference)
 }
 
 // GetEpochStartMetaHash -
