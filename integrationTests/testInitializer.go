@@ -391,7 +391,7 @@ func CreateAccountsDB(
 	trieStorageManager data.StorageManager,
 ) (*state.AccountsDB, data.Trie) {
 	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher,maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher, maxTrieLevelInMemory)
 
 	accountFactory := getAccountFactory(accountType)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, TestMarshalizer, accountFactory)
