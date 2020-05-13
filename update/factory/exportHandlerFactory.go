@@ -406,7 +406,11 @@ func (e *exportHandlerFactory) exportProcess() {
 	exportHandler, err := e.Create()
 	if err != nil {
 		log.Error("could not create export Handler", "arg", err)
+		return
 	}
+
+	// TODO: maybe need to stop consensus and all other processes - soft close may be a must
+	exportHandler.ExportAll()
 }
 
 func (e *exportHandlerFactory) createInterceptors() error {
