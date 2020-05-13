@@ -1154,7 +1154,7 @@ func CreateAndSendTransaction(
 		RcvAddr:  rcvAddress,
 		Data:     []byte(txData),
 		GasPrice: MinTxGasPrice,
-		GasLimit: MinTxGasLimit*100 + uint64(len(txData)),
+		GasLimit: MinTxGasLimit*1000 + uint64(len(txData)),
 	}
 
 	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
