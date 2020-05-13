@@ -47,5 +47,3 @@ require (
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
-
-replace github.com/ElrondNetwork/arwen-wasm-vm => ../arwen-wasm-vm
