@@ -356,7 +356,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	go chronologyHandler.StartRounds()
+	chronologyHandler.StartRounds()
 
 	return nil
 }

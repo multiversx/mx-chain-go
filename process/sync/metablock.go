@@ -1,6 +1,8 @@
 package sync
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -115,7 +117,9 @@ func (boot *MetaBootstrap) StartSync() {
 		boot.setLastEpochStartRound()
 	}
 
-	go boot.syncBlocks()
+	var ctx context.Context
+	ctx, boot.cancelFunc = context.WithCancel(context.Background())
+	go boot.syncBlocks(ctx)
 }
 
 func (boot *MetaBootstrap) setLastEpochStartRound() {
@@ -247,11 +251,6 @@ func (boot *MetaBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 	}
 
 	return header, nil
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (boot *MetaBootstrap) IsInterfaceNil() bool {
-	return boot == nil
 }
 
 func (boot *MetaBootstrap) haveHeaderInPoolWithNonce(nonce uint64) bool {

@@ -13,26 +13,31 @@ type SyncTimerStub struct {
 }
 
 // StartSync is a mock implementation for StartSync
-func (stm *SyncTimerStub) StartSync() {
-	stm.StartSyncCalled()
+func (sts *SyncTimerStub) StartSync() {
+	sts.StartSyncCalled()
 }
 
 // ClockOffset is a mock implementation for ClockOffset
-func (stm *SyncTimerStub) ClockOffset() time.Duration {
-	return stm.ClockOffsetCalled()
+func (sts *SyncTimerStub) ClockOffset() time.Duration {
+	return sts.ClockOffsetCalled()
 }
 
 // FormattedCurrentTime is a mock implementation for FormattedCurrentTime
-func (stm *SyncTimerStub) FormattedCurrentTime() string {
-	return stm.FormattedCurrentTimeCalled()
+func (sts *SyncTimerStub) FormattedCurrentTime() string {
+	return sts.FormattedCurrentTimeCalled()
 }
 
 // CurrentTime is a mock implementation for CurrentTime
-func (stm *SyncTimerStub) CurrentTime() time.Time {
-	return stm.CurrentTimeCalled()
+func (sts *SyncTimerStub) CurrentTime() time.Time {
+	return sts.CurrentTimeCalled()
+}
+
+// Close -
+func (sts *SyncTimerStub) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (stm *SyncTimerStub) IsInterfaceNil() bool {
-	return stm == nil
+func (sts *SyncTimerStub) IsInterfaceNil() bool {
+	return sts == nil
 }

@@ -1,6 +1,7 @@
 package spos
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -64,6 +65,7 @@ type Worker struct {
 	signatureSize       int
 	publicKeySize       int
 	publicKeyBitmapSize int
+	cancelFunc          func()
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -137,7 +139,9 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 	maxMessagesInARoundPerPeer := wrk.consensusService.GetMaxMessagesInARoundPerPeer()
 	wrk.antifloodHandler.SetMaxMessagesForTopic(topic, maxMessagesInARoundPerPeer)
 
-	go wrk.checkChannels()
+	var ctx context.Context
+	ctx, wrk.cancelFunc = context.WithCancel(context.Background())
+	go wrk.checkChannels(ctx)
 
 	wrk.mapDisplayHashConsensusMessage = make(map[string][]*consensus.Message)
 	wrk.publicKeyBitmapSize = wrk.getPublicKeyBitmapSize()
@@ -540,9 +544,19 @@ func (wrk *Worker) executeMessage(cnsDtaList []*consensus.Message) {
 
 // checkChannels method is used to listen to the channels through which node receives and consumes,
 // during the round, different messages from the nodes which are in the validators group
-func (wrk *Worker) checkChannels() {
+func (wrk *Worker) checkChannels(ctx context.Context) {
+	var rcvDta *consensus.Message
+
 	for {
-		rcvDta := <-wrk.executeMessageChannel
+		select {
+		case <-ctx.Done():
+			log.Debug("worker's go routine is stopping...")
+			return
+		case rcvDta = <-wrk.executeMessageChannel:
+		case <-time.After(time.Millisecond):
+			continue
+		}
+
 		msgType := consensus.MessageType(rcvDta.MsgType)
 		if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
 			if callReceivedMessage(rcvDta) {
@@ -621,6 +635,15 @@ func (wrk *Worker) SetAppStatusHandler(ash core.AppStatusHandler) error {
 		return ErrNilAppStatusHandler
 	}
 	wrk.appStatusHandler = ash
+
+	return nil
+}
+
+// Close will close the endless running go routine
+func (wrk *Worker) Close() error {
+	if wrk.cancelFunc != nil {
+		wrk.cancelFunc()
+	}
 
 	return nil
 }

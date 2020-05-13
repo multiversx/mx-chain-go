@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"io"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -45,6 +46,7 @@ type SubroundHandler interface {
 
 // ChronologyHandler defines the actions which should be handled by a chronology implementation
 type ChronologyHandler interface {
+	io.Closer
 	AddSubround(SubroundHandler)
 	RemoveAllSubrounds()
 	// StartRounds starts rounds in a sequential manner, one after the other

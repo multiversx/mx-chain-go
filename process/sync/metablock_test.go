@@ -373,7 +373,7 @@ func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
 
 	bs.StartSync()
 	time.Sleep(200 * time.Millisecond)
-	bs.StopSync()
+	bs.Close()
 }
 
 func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
@@ -452,7 +452,7 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond)
 
-	bs.StopSync()
+	bs.Close()
 }
 
 func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {

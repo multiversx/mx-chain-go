@@ -12,7 +12,6 @@ type BootstrapperMock struct {
 	AddSyncStateListenerCalled      func(func(bool))
 	GetNodeStateCalled              func() core.NodeState
 	StartSyncCalled                 func()
-	StopSyncCalled                  func()
 	SetStatusHandlerCalled          func(handler core.AppStatusHandler) error
 }
 
@@ -46,14 +45,14 @@ func (boot *BootstrapperMock) StartSync() {
 	boot.StartSyncCalled()
 }
 
-// StopSync -
-func (boot *BootstrapperMock) StopSync() {
-	boot.StopSyncCalled()
-}
-
 // SetStatusHandler -
 func (boot *BootstrapperMock) SetStatusHandler(handler core.AppStatusHandler) error {
 	return boot.SetStatusHandlerCalled(handler)
+}
+
+// Close -
+func (boot *BootstrapperMock) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

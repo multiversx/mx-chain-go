@@ -1,6 +1,7 @@
 package process
 
 import (
+	"io"
 	"math/big"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -290,9 +291,9 @@ type HashAccesser interface {
 // Bootstrapper is an interface that defines the behaviour of a struct that is able
 // to synchronize the node
 type Bootstrapper interface {
+	io.Closer
 	AddSyncStateListener(func(isSyncing bool))
 	GetNodeState() core.NodeState
-	StopSync()
 	StartSync()
 	SetStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool

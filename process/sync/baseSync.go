@@ -2,6 +2,7 @@ package sync
 
 import (
 	"bytes"
+	"context"
 	"math"
 	"sync"
 	"time"
@@ -105,6 +106,7 @@ type baseBootstrap struct {
 	miniBlocksProvider process.MiniBlockProvider
 	poolsHolder        dataRetriever.PoolsHolder
 	mutRequestHeaders  sync.Mutex
+	cancelFunc         func()
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -455,28 +457,23 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(fromNonce uint64) {
 	boot.requestHeaders(fromNonce, toNonce)
 }
 
-// StopSync method will stop SyncBlocks
-func (boot *baseBootstrap) StopSync() {
-	boot.chStopSync <- true
-}
-
 // syncBlocks method calls repeatedly synchronization method SyncBlock
-func (boot *baseBootstrap) syncBlocks() {
+func (boot *baseBootstrap) syncBlocks(ctx context.Context) {
 	for {
-		time.Sleep(sleepTime)
+		select {
+		case <-ctx.Done():
+			log.Debug("bootstrap's go routine is stopping...")
+			return
+		case <-time.After(sleepTime):
+		}
 
 		if !boot.networkWatcher.IsConnectedToTheNetwork() {
 			continue
 		}
 
-		select {
-		case <-boot.chStopSync:
-			return
-		default:
-			err := boot.syncStarter.SyncBlock()
-			if err != nil {
-				log.Debug("SyncBlock", "error", err.Error())
-			}
+		err := boot.syncStarter.SyncBlock()
+		if err != nil {
+			log.Debug("SyncBlock", "error", err.Error())
 		}
 	}
 }
@@ -956,8 +953,6 @@ func (boot *baseBootstrap) init() {
 	boot.poolsHolder.MiniBlocks().RegisterHandler(boot.receivedMiniblock)
 	boot.headers.RegisterHandler(boot.processReceivedHeader)
 
-	boot.chStopSync = make(chan bool)
-
 	boot.statusHandler = statusHandler.NewNilStatusHandler()
 
 	boot.syncStateListeners = make([]func(bool), 0)
@@ -999,4 +994,18 @@ func (boot *baseBootstrap) GetNodeState() core.NodeState {
 	}
 
 	return core.NsNotSynchronized
+}
+
+// Close will close the endless running go routine
+func (boot *baseBootstrap) Close() error {
+	if boot.cancelFunc != nil {
+		boot.cancelFunc()
+	}
+
+	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (boot *baseBootstrap) IsInterfaceNil() bool {
+	return boot == nil
 }

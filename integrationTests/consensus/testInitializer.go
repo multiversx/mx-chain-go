@@ -353,7 +353,7 @@ func createConsensusOnlyNode(
 	singleBlsSigner := &mclsinglesig.BlsSingleSigner{}
 
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
-	go syncer.StartSync()
+	syncer.StartSync()
 
 	rounder, _ := round.NewRound(
 		time.Unix(startTime, 0),

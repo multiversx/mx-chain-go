@@ -130,7 +130,7 @@ func TestGetOffset(t *testing.T) {
 
 func TestCallQuery(t *testing.T) {
 	st := ntp2.NewSyncTime(config.NTPConfig{Hosts: []string{""}, SyncPeriodSeconds: 1}, queryMock4)
-	go st.StartSync()
+	st.StartSync()
 
 	assert.NotNil(t, st.Query())
 	assert.Equal(t, time.Second, st.SyncPeriod())
