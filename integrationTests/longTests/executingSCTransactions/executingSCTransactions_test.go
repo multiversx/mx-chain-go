@@ -1,7 +1,6 @@
 package executingSCTransactions
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -34,7 +33,7 @@ func TestProcessesJoinGameTheSamePlayerMultipleTimesRewardAndEndgameInMultipleRo
 
 	maxShards := uint32(1)
 	numOfNodes := 1
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
@@ -115,7 +114,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 
 	maxShards := uint32(1)
 	numOfNodes := 4
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
@@ -194,7 +193,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 	scCode, err := ioutil.ReadFile(agarioFile)
 	assert.Nil(t, err)
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
@@ -289,7 +288,7 @@ func TestProcessesJoinGame100PlayersMultipleTimesRewardAndEndgameInMultipleRound
 
 	maxShards := uint32(2)
 	numOfNodes := 6
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 

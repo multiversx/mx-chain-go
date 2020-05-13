@@ -1,7 +1,6 @@
 package executingRewardMiniblocks
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"math/big"
@@ -32,7 +31,7 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	nbShards := 2
 	consensusGroupSize := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
@@ -119,7 +118,7 @@ func TestExecuteBlocksWithTransactionsWhichReachedGasLimitAndCheckRewards(t *tes
 	nbShards := 1
 	consensusGroupSize := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
@@ -200,7 +199,7 @@ func TestExecuteBlocksWithoutTransactionsAndCheckRewards(t *testing.T) {
 	nbShards := 2
 	consensusGroupSize := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)

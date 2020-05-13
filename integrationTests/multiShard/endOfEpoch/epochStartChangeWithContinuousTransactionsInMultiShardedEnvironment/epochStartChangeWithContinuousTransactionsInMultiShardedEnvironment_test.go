@@ -1,7 +1,6 @@
 package epochStartChangeWithContinuousTransactionsInMultiShardedEnvironment
 
 import (
-	"context"
 	"math/big"
 	"testing"
 	"time"
@@ -19,7 +18,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	nodesPerShard := 3
 	numMetachainNodes := 3
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
