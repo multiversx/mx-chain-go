@@ -25,7 +25,7 @@ void      bigIntSetInt64(bigInt destination, long long value);
 void      bigIntFinishUnsigned(bigInt reference);
 void      bigIntFinishSigned(bigInt reference);
 void      bigIntGetCallValue(bigInt destination);
-void      bigIntgetExternalBalance(byte *address, bigInt result);
+void      bigIntGetExternalBalance(byte *address, bigInt result);
 
 int       bigIntByteLength(bigInt reference);
 int       bigIntGetUnsignedBytes(bigInt reference, byte *byte);
