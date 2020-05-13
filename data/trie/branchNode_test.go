@@ -1323,7 +1323,7 @@ func TestBranchNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 	assert.Equal(t, bnWriter.Bytes(), collapsedBnWriter.Bytes())
 }
 
-func TestBranchNode_getDirtyHashesFromNotDirtyNode(t *testing.T) {
+func TestBranchNode_getDirtyHashesFromCleanNode(t *testing.T) {
 	t.Parallel()
 
 	db := mock.NewMemDbMock()

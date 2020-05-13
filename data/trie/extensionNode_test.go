@@ -1,11 +1,14 @@
 package trie
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/data"
 
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -933,4 +936,94 @@ func getExtensionNodeContents(en *extensionNode) string {
 		en.dirty)
 
 	return str
+}
+
+func TestExtensionNode_newExtensionNodeNilMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	en, err := newExtensionNode([]byte("key"), &branchNode{}, nil, mock.HasherMock{})
+	assert.Nil(t, en)
+	assert.Equal(t, ErrNilMarshalizer, err)
+}
+
+func TestExtensionNode_newExtensionNodeNilHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	en, err := newExtensionNode([]byte("key"), &branchNode{}, &mock.MarshalizerMock{}, nil)
+	assert.Nil(t, en)
+	assert.Equal(t, ErrNilHasher, err)
+}
+
+func TestExtensionNode_newExtensionNodeOkVals(t *testing.T) {
+	t.Parallel()
+
+	marsh, hasher := getTestMarshAndHasher()
+	key := []byte("key")
+	child := &branchNode{}
+	en, err := newExtensionNode(key, child, marsh, hasher)
+
+	assert.Nil(t, err)
+	assert.Equal(t, key, en.Key)
+	assert.Nil(t, en.EncodedChild)
+	assert.Equal(t, child, en.child)
+	assert.Equal(t, hasher, en.hasher)
+	assert.Equal(t, marsh, en.marsh)
+	assert.True(t, en.dirty)
+}
+
+func TestExtensionNode_getMarshalizer(t *testing.T) {
+	t.Parallel()
+
+	marsh, _ := getTestMarshAndHasher()
+	en := &extensionNode{
+		baseNode: &baseNode{
+			marsh: marsh,
+		},
+	}
+
+	assert.Equal(t, marsh, en.getMarshalizer())
+}
+
+func TestExtensionNode_commitCollapsesTrieIfMaxTrieLevelInMemoryIsReached(t *testing.T) {
+	t.Parallel()
+
+	en, collapsedEn := getEnAndCollapsedEn()
+	_ = collapsedEn.setRootHash()
+
+	err := en.commit(true, 0, 1, mock.NewMemDbMock(), mock.NewMemDbMock())
+	assert.Nil(t, err)
+
+	assert.Equal(t, collapsedEn.EncodedChild, en.EncodedChild)
+	assert.Equal(t, collapsedEn.child, en.child)
+	assert.Equal(t, collapsedEn.hash, en.hash)
+}
+
+func TestExtensionNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
+	t.Parallel()
+
+	enWriter := bytes.NewBuffer(make([]byte, 0))
+	collapsedEnWriter := bytes.NewBuffer(make([]byte, 0))
+
+	db := mock.NewMemDbMock()
+	en, collapsedEn := getEnAndCollapsedEn()
+	_ = en.commit(true, 0, 5, db, db)
+	_ = collapsedEn.commit(true, 0, 5, db, db)
+
+	en.print(enWriter, 0, db)
+	collapsedEn.print(collapsedEnWriter, 0, db)
+
+	assert.Equal(t, enWriter.Bytes(), collapsedEnWriter.Bytes())
+}
+
+func TestExtensionNode_getDirtyHashesFromCleanNode(t *testing.T) {
+	t.Parallel()
+
+	db := mock.NewMemDbMock()
+	en, _ := getEnAndCollapsedEn()
+	_ = en.commit(true, 0, 5, db, db)
+	dirtyHashes := make(data.ModifiedHashes)
+
+	err := en.getDirtyHashes(dirtyHashes)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(dirtyHashes))
 }
