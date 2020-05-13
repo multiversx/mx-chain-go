@@ -148,7 +148,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	firstSCOwner := nodes[0].OwnAccount.Address
 
 	// deploy the smart contracts
-	firstSCAddress := putDeploySCToDataPool("./testdata/counter.wasm", firstSCOwner, 0, big.NewInt(50), "", nodes)
+	firstSCAddress := putDeploySCToDataPool("../../vm/arwen/testdata/counter.wasm", firstSCOwner, 0, big.NewInt(50), "", nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -249,7 +249,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	firstSCOwner := nodes[0].OwnAccount.Address
 
 	// deploy the smart contracts
-	firstSCAddress := putDeploySCToDataPool("./testdata/counter.wasm", firstSCOwner, 0, big.NewInt(50), "", nodes)
+	firstSCAddress := putDeploySCToDataPool("../../vm/arwen/testdata/counter.wasm", firstSCOwner, 0, big.NewInt(50), "", nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -688,7 +688,11 @@ func putDeploySCToDataPool(
 	initArgs string,
 	nodes []*integrationTests.TestProcessorNode,
 ) []byte {
-	scCode, _ := ioutil.ReadFile(fileName)
+	scCode, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		panic(fmt.Sprintf("putDeploySCToDataPool(): %s", err))
+	}
+
 	scCodeString := hex.EncodeToString(scCode)
 	scCodeMetadataString := "0000"
 
