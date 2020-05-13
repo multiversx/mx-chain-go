@@ -198,6 +198,7 @@ type ChannelLoadBalancer interface {
 	RemoveChannel(channel string) error
 	GetChannelOrDefault(channel string) chan *SendableData
 	CollectOneElementFromChannels() *SendableData
+	Close() error
 	IsInterfaceNil() bool
 }
 

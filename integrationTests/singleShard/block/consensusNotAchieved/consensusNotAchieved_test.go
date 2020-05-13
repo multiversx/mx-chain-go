@@ -1,7 +1,6 @@
 package consensusNotAchieved
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -25,7 +24,7 @@ func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesOrWrongBitmapShouldNotB
 	maxShards := 1
 	consensusGroupSize := 2
 	nodesPerShard := 5
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	singleSigner := &mock.SignerMock{

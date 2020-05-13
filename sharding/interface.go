@@ -51,7 +51,7 @@ type PublicKeysSelector interface {
 	GetValidatorsIndexes(publicKeys []string, epoch uint32) ([]uint64, error)
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
-	GetAllLeavingValidatorsPublicKeys(epoch uint32) ([][]byte, error)
+	GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetOwnPublicKey() []byte
 }
@@ -64,12 +64,13 @@ type EpochHandler interface {
 
 // ArgsUpdateNodes holds the parameters required by the shuffler to generate a new nodes configuration
 type ArgsUpdateNodes struct {
-	Eligible map[uint32][]Validator
-	Waiting  map[uint32][]Validator
-	NewNodes []Validator
-	Leaving  []Validator
-	Rand     []byte
-	NbShards uint32
+	Eligible          map[uint32][]Validator
+	Waiting           map[uint32][]Validator
+	NewNodes          []Validator
+	UnStakeLeaving    []Validator
+	AdditionalLeaving []Validator
+	Rand              []byte
+	NbShards          uint32
 }
 
 // ResUpdateNodes holds the result of the UpdateNodes method
@@ -83,14 +84,14 @@ type ResUpdateNodes struct {
 // NodesShuffler provides shuffling functionality for nodes
 type NodesShuffler interface {
 	UpdateParams(numNodesShard uint32, numNodesMeta uint32, hysteresis float32, adaptivity bool)
-	UpdateNodeLists(args ArgsUpdateNodes) ResUpdateNodes
+	UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error)
 	IsInterfaceNil() bool
 }
 
 // NodesCoordinatorHelper provides polymorphism functionality for nodesCoordinator
 type NodesCoordinatorHelper interface {
 	ValidatorsWeights(validators []Validator) ([]uint32, error)
-	ComputeLeaving(allValidators []*state.ShardValidatorInfo) ([]Validator, error)
+	ComputeAdditionalLeaving(allValidators []*state.ShardValidatorInfo) (map[uint32][]Validator, error)
 	GetChance(uint32) uint32
 }
 
@@ -179,5 +180,11 @@ type GenesisNodeInfoHandler interface {
 // ValidatorsProvider can get the latest validator infos from the trie
 type ValidatorsProvider interface {
 	GetLatestValidatorInfos() (map[uint32][]*state.ValidatorInfo, error)
+	IsInterfaceNil() bool
+}
+
+// ValidatorsDistributor distributes validators across shards
+type ValidatorsDistributor interface {
+	DistributeValidators(destination map[uint32][]Validator, source map[uint32][]Validator, rand []byte) error
 	IsInterfaceNil() bool
 }
