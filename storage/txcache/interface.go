@@ -12,6 +12,7 @@ type txCache interface {
 	RemoveTxByHash(txHash []byte) error
 	CountTx() int64
 	ForEachTransaction(function ForEachTransaction)
+	SelectTransactions(numRequested int, batchSizePerSender int) []*WrappedTransaction
 }
 
 type scoreComputer interface {
