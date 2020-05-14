@@ -31,8 +31,6 @@ func TestTomlParser(t *testing.T) {
 	hasherType := "hashFunc4"
 	multiSigHasherType := "hashFunc5"
 
-	consensusType := "bls"
-
 	cfgExpected := Config{
 		MiniBlocksStorage: StorageConfig{
 			Cache: CacheConfig{
@@ -65,8 +63,9 @@ func TestTomlParser(t *testing.T) {
 		MultisigHasher: TypeConfig{
 			Type: multiSigHasherType,
 		},
-		Consensus: TypeConfig{
-			Type: consensusType,
+		Consensus: ConsensusConfig{
+			Type:    "bls",
+			ChainID: "undefined",
 		},
 	}
 

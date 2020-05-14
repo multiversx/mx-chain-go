@@ -10,17 +10,17 @@ import (
 )
 
 var _ GenesisNodesSetupHandler = (*NodesSetup)(nil)
-var _ GenesisNodeInfoHandler = (*NodeInfo)(nil)
+var _ GenesisNodeInfoHandler = (*nodeInfo)(nil)
 
 // InitialNode holds data from json
 type InitialNode struct {
 	PubKey  string `json:"pubkey"`
 	Address string `json:"address"`
-	NodeInfo
+	nodeInfo
 }
 
-// NodeInfo holds node info
-type NodeInfo struct {
+// nodeInfo holds node info
+type nodeInfo struct {
 	assignedShard uint32
 	eligible      bool
 	pubKey        []byte
@@ -28,22 +28,22 @@ type NodeInfo struct {
 }
 
 // AssignedShard gets the node assigned shard
-func (ni *NodeInfo) AssignedShard() uint32 {
+func (ni *nodeInfo) AssignedShard() uint32 {
 	return ni.assignedShard
 }
 
 // Address gets the node address
-func (ni *NodeInfo) Address() []byte {
+func (ni *nodeInfo) Address() []byte {
 	return ni.address
 }
 
 // PubKey gets the node public key
-func (ni *NodeInfo) PubKey() []byte {
+func (ni *nodeInfo) PubKey() []byte {
 	return ni.pubKey
 }
 
 // IsInterfaceNil returns true if underlying object is nil
-func (ni *NodeInfo) IsInterfaceNil() bool {
+func (ni *nodeInfo) IsInterfaceNil() bool {
 	return ni == nil
 }
 
@@ -53,7 +53,6 @@ type NodesSetup struct {
 	RoundDuration      uint64 `json:"roundDuration"`
 	ConsensusGroupSize uint32 `json:"consensusGroupSize"`
 	MinNodesPerShard   uint32 `json:"minNodesPerShard"`
-	ChainID            string `json:"chainID"`
 
 	MetaChainConsensusGroupSize uint32  `json:"metaChainConsensusGroupSize"`
 	MetaChainMinNodes           uint32  `json:"metaChainMinNodes"`
@@ -218,11 +217,11 @@ func (ns *NodesSetup) createInitialNodesInfo() {
 	ns.waiting = make(map[uint32][]GenesisNodeInfoHandler, nrOfShardAndMeta)
 	for _, in := range ns.InitialNodes {
 		if in.pubKey != nil && in.address != nil {
-			nodeInfo := &NodeInfo{in.assignedShard, in.eligible, in.pubKey, in.address}
+			ni := &nodeInfo{in.assignedShard, in.eligible, in.pubKey, in.address}
 			if in.eligible {
-				ns.eligible[in.assignedShard] = append(ns.eligible[in.assignedShard], nodeInfo)
+				ns.eligible[in.assignedShard] = append(ns.eligible[in.assignedShard], ni)
 			} else {
-				ns.waiting[in.assignedShard] = append(ns.waiting[in.assignedShard], nodeInfo)
+				ns.waiting[in.assignedShard] = append(ns.waiting[in.assignedShard], ni)
 			}
 		}
 	}
@@ -306,11 +305,6 @@ func (ns *NodesSetup) GetStartTime() int64 {
 // GetRoundDuration returns the round duration
 func (ns *NodesSetup) GetRoundDuration() uint64 {
 	return ns.RoundDuration
-}
-
-// GetChainId returns the chain ID
-func (ns *NodesSetup) GetChainId() string {
-	return ns.ChainID
 }
 
 // GetShardConsensusGroupSize returns the shard consensus group size

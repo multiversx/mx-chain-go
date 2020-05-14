@@ -248,7 +248,10 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				Type:            "hex",
 				SignatureLength: 48,
 			},
+			Consensus: config.ConsensusConfig{
+				Type:    "bls",
+				ChainID: "undefined",
+			},
 		},
-		ChainID: []byte("chainID"),
 	}
 }

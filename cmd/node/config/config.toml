@@ -384,6 +384,7 @@
 # When consensus type is "bls" the multisig hasher type should be "blake2b"
 [Consensus]
    Type = "bls"
+   ChainID = "undefined"
 
 [NTPConfig]
    Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com"]

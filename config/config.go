@@ -54,6 +54,11 @@ type MarshalizerConfig struct {
 	SizeCheckDelta uint32 `json:"sizeCheckDelta"`
 }
 
+type ConsensusConfig struct {
+	Type    string `json:"type"`
+	ChainID string `json:"chainID"`
+}
+
 // NTPConfig will hold the configuration for NTP queries
 type NTPConfig struct {
 	Hosts               []string
@@ -131,7 +136,7 @@ type Config struct {
 	ResourceStats   ResourceStatsConfig
 	Heartbeat       HeartbeatConfig
 	GeneralSettings GeneralSettingsConfig
-	Consensus       TypeConfig
+	Consensus       ConsensusConfig
 	StoragePruning  StoragePruningConfig
 	TxLogsStorage   StorageConfig
 

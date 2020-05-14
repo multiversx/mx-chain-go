@@ -21,7 +21,7 @@ type CoreComponentsHandlerArgs CoreComponentsFactoryArgs
 
 // managedCoreComponents is an implementation of core components handler that can create, close and access the core components
 type managedCoreComponents struct {
-	coreComponentsFactory *CoreComponentsFactory
+	coreComponentsFactory *coreComponentsFactory
 	*coreComponents
 	cancelFunc        func()
 	mutCoreComponents sync.RWMutex
@@ -179,12 +179,12 @@ func (mcc *managedCoreComponents) SetStatusHandler(statusHandler core.AppStatusH
 }
 
 // ChainID returns the core components chainID
-func (mcc *managedCoreComponents) ChainID() []byte {
+func (mcc *managedCoreComponents) ChainID() string {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
 	if mcc.coreComponents == nil {
-		return nil
+		return ""
 	}
 
 	return mcc.coreComponents.ChainID

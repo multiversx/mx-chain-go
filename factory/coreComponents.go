@@ -18,16 +18,12 @@ import (
 
 // CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
 type CoreComponentsFactoryArgs struct {
-	Config  config.Config
-	ChainID []byte
+	Config config.Config
 }
 
-// CoreComponentsFactory is responsible for creating the core components
-type CoreComponentsFactory struct {
-	config      config.Config
-	chainID     []byte
-	marshalizer marshal.Marshalizer
-	hasher      hashing.Hasher
+// coreComponentsFactory is responsible for creating the core components
+type coreComponentsFactory struct {
+	config config.Config
 }
 
 // coreComponents is the DTO used for core components
@@ -40,19 +36,18 @@ type coreComponents struct {
 	addressPubKeyConverter   state.PubkeyConverter
 	validatorPubKeyConverter state.PubkeyConverter
 	StatusHandler            core.AppStatusHandler
-	ChainID                  []byte
+	ChainID                  string
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
-func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) *CoreComponentsFactory {
-	return &CoreComponentsFactory{
-		config:  args.Config,
-		chainID: args.ChainID,
+func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) *coreComponentsFactory {
+	return &coreComponentsFactory{
+		config: args.Config,
 	}
 }
 
 // Create creates the core components
-func (ccf *CoreComponentsFactory) Create() (*coreComponents, error) {
+func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	hasher, err := factoryHasher.NewHasher(ccf.config.Hasher.Type)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrHasherCreation, err.Error())
@@ -93,6 +88,6 @@ func (ccf *CoreComponentsFactory) Create() (*coreComponents, error) {
 		addressPubKeyConverter:   addressPubkeyConverter,
 		validatorPubKeyConverter: validatorPubkeyConverter,
 		StatusHandler:            statusHandler.NewNilStatusHandler(),
-		ChainID:                  ccf.chainID,
+		ChainID:                  ccf.config.Consensus.ChainID,
 	}, nil
 }

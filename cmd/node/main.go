@@ -33,7 +33,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -536,16 +535,25 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		p2pConfig.Node.Port = uint32(ctx.GlobalUint(port.Name))
 	}
 
-	addressPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.AddressPubkeyConverter)
-	if err != nil {
-		return fmt.Errorf("%w for AddressPubkeyConverter", err)
+	log.Trace("creating core components")
+
+	coreArgs := mainFactory.CoreComponentsHandlerArgs{
+		Config: *generalConfig,
 	}
-	validatorPubkeyConverter, err := stateFactory.NewPubkeyConverter(generalConfig.ValidatorPubkeyConverter)
+	managedCoreComponents, err := mainFactory.NewManagedCoreComponents(coreArgs)
 	if err != nil {
-		return fmt.Errorf("%w for AddressPubkeyConverter", err)
+		return err
 	}
 
-	genesisConfig, err := sharding.NewGenesisConfig(ctx.GlobalString(genesisFile.Name), addressPubkeyConverter)
+	err = managedCoreComponents.Create()
+	if err != nil {
+		return err
+	}
+
+	genesisConfig, err := sharding.NewGenesisConfig(
+		ctx.GlobalString(genesisFile.Name),
+		managedCoreComponents.AddressPubKeyConverter(),
+	)
 	if err != nil {
 		return err
 	}
@@ -553,8 +561,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	genesisNodesConfig, err := sharding.NewNodesSetup(
 		ctx.GlobalString(nodesFile.Name),
-		addressPubkeyConverter,
-		validatorPubkeyConverter,
+		managedCoreComponents.AddressPubKeyConverter(),
+		managedCoreComponents.ValidatorPubKeyConverter(),
 	)
 	if err != nil {
 		return err
@@ -588,22 +596,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		"formatted", startTime.Format("Mon Jan 2 15:04:05 MST 2006"),
 		"seconds", startTime.Unix())
 	validatorKeyPemFileName := ctx.GlobalString(validatorKeyPemFile.Name)
-
-	log.Trace("creating core components")
-
-	coreArgs := mainFactory.CoreComponentsHandlerArgs{
-		Config:  *generalConfig,
-		ChainID: []byte(genesisNodesConfig.ChainID),
-	}
-	managedCoreComponents, err := mainFactory.NewManagedCoreComponents(coreArgs)
-	if err != nil {
-		return err
-	}
-
-	err = managedCoreComponents.Create()
-	if err != nil {
-		return err
-	}
 
 	log.Trace("creating crypto components")
 
@@ -647,7 +639,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	pathTemplateForPruningStorer := filepath.Join(
 		workingDir,
 		defaultDBPath,
-		genesisNodesConfig.ChainID,
+		managedCoreComponents.ChainID(),
 		fmt.Sprintf("%s_%s", defaultEpochString, core.PathEpochPlaceholder),
 		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
@@ -655,7 +647,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	pathTemplateForStaticStorer := filepath.Join(
 		workingDir,
 		defaultDBPath,
-		genesisNodesConfig.ChainID,
+		managedCoreComponents.ChainID(),
 		defaultStaticDbString,
 		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
@@ -762,7 +754,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		managedCoreComponents.InternalMarshalizer(),
 		managedCoreComponents.Hasher(),
 		*generalConfig,
-		genesisNodesConfig.ChainID,
+		managedCoreComponents.ChainID(),
 		workingDir,
 		defaultDBPath,
 		defaultEpochString,
@@ -774,7 +766,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		latestStorageDataProvider,
 		managedCoreComponents.InternalMarshalizer(),
 		*generalConfig,
-		genesisNodesConfig.ChainID,
+		managedCoreComponents.ChainID(),
 		workingDir,
 		defaultDBPath,
 		defaultEpochString,
@@ -808,7 +800,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		Uint64Converter:            managedCoreComponents.Uint64ByteSliceConverter(),
 		NodeShuffler:               nodesShuffler,
 		Rounder:                    rounder,
-		AddressPubkeyConverter:     addressPubkeyConverter,
+		AddressPubkeyConverter:     managedCoreComponents.AddressPubKeyConverter(),
 		LatestStorageDataProvider:  latestStorageDataProvider,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
@@ -957,7 +949,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricNodeDisplayName, preferencesConfig.Preferences.NodeDisplayName)
-	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricChainId, genesisNodesConfig.ChainID)
+	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricChainId, managedCoreComponents.ChainID())
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricGasPerDataByte, economicsData.GasPerDataByte())
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricMinGasPrice, economicsData.MinGasPrice())
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricMinGasLimit, economicsData.MinGasLimit())
@@ -1018,8 +1010,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			managedCoreComponents.Hasher(),
 			nodesCoordinator,
 			epochStartNotifier,
-			addressPubkeyConverter,
-			validatorPubkeyConverter,
+			managedCoreComponents.AddressPubKeyConverter(),
+			managedCoreComponents.ValidatorPubKeyConverter(),
 			shardCoordinator.SelfId(),
 		)
 		if err != nil {
@@ -1090,7 +1082,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		generalConfig.BlockSizeThrottleConfig.MinSizeInBytes,
 		generalConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
 		ratingsConfig.General.MaxRating,
-		validatorPubkeyConverter,
+		managedCoreComponents.ValidatorPubKeyConverter(),
 		ratingsData,
 		systemSCConfig,
 	)
@@ -1880,7 +1872,7 @@ func createNode(
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
 		node.WithValidatorStatistics(process.ValidatorsStatistics),
 		node.WithValidatorsProvider(process.ValidatorsProvider),
-		node.WithChainID(coreData.ChainID()),
+		node.WithChainID([]byte(coreData.ChainID())),
 		node.WithBlockTracker(process.BlockTracker),
 		node.WithRequestHandler(process.RequestHandler),
 		node.WithInputAntifloodHandler(network.InputAntifloodHandler),

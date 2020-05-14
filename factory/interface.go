@@ -62,7 +62,7 @@ type CoreComponentsHolder interface {
 	ValidatorPubKeyConverter() state.PubkeyConverter
 	StatusHandler() core.AppStatusHandler
 	SetStatusHandler(statusHandler core.AppStatusHandler) error
-	ChainID() []byte
+	ChainID() string
 	IsInterfaceNil() bool
 }
 
