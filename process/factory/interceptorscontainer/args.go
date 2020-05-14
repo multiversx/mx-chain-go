@@ -33,7 +33,6 @@ type ShardInterceptorsContainerFactoryArgs struct {
 	BlackList               process.BlackListHandler
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
-	ChainID                 []byte
 	SizeCheckDelta          uint32
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler
@@ -65,7 +64,6 @@ type MetaInterceptorsContainerFactoryArgs struct {
 	BlackList               process.BlackListHandler
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
-	ChainID                 []byte
 	SizeCheckDelta          uint32
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler

@@ -268,17 +268,6 @@ func TestNewShardInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *te
 	assert.Equal(t, process.ErrNilBlackListHandler, err)
 }
 
-func TestNewShardInterceptorsContainerFactory_EmptyChainIDShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsShard()
-	args.ChainID = nil
-	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
-
-	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrInvalidChainID, err)
-}
-
 func TestNewShardInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -535,7 +524,6 @@ func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactory
 		BlackList:               &mock.BlackListHandlerStub{},
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		ChainID:                 chainID,
 		SizeCheckDelta:          0,
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},

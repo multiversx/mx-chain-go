@@ -640,7 +640,7 @@ type InterceptedHeaderSigVerifier interface {
 // InterceptedHeaderIntegrityVerifier is the interface needed at interceptors level to check that a header's integrity
 // is correct
 type InterceptedHeaderIntegrityVerifier interface {
-	Verify(header data.HeaderHandler, referenceChainID []byte) error
+	Verify(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 

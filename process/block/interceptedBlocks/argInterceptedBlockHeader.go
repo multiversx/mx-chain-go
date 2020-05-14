@@ -16,7 +16,6 @@ type ArgInterceptedBlockHeader struct {
 	ShardCoordinator        sharding.Coordinator
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
-	ChainID                 []byte
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler
 	NonceConverter          typeConverters.Uint64ByteSliceConverter

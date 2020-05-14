@@ -387,7 +387,7 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 		"nbTxs", header.GetTxCount(),
 		"val stats root hash", header.GetValidatorStatsRootHash())
 
-	err := wrk.headerIntegrityVerifier.Verify(header, wrk.chainID)
+	err := wrk.headerIntegrityVerifier.Verify(header)
 	if err != nil {
 		return fmt.Errorf("%w : verify header integrity from consensus topic failed", err)
 	}

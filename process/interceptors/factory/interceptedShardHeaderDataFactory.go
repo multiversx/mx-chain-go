@@ -50,9 +50,6 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 	if check.IfNil(argument.EpochStartTrigger) {
 		return nil, process.ErrNilEpochStartTrigger
 	}
-	if len(argument.ChainID) == 0 {
-		return nil, process.ErrInvalidChainID
-	}
 	if check.IfNil(argument.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
@@ -66,7 +63,6 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 		shardCoordinator:        argument.ShardCoordinator,
 		headerSigVerifier:       argument.HeaderSigVerifier,
 		headerIntegrityVerifier: argument.HeaderIntegrityVerifier,
-		chainID:                 argument.ChainID,
 		validityAttester:        argument.ValidityAttester,
 		epochStartTrigger:       argument.EpochStartTrigger,
 		nonceConverter:          argument.NonceConverter,
@@ -82,7 +78,6 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.Int
 		ShardCoordinator:        ishdf.shardCoordinator,
 		HeaderSigVerifier:       ishdf.headerSigVerifier,
 		HeaderIntegrityVerifier: ishdf.headerIntegrityVerifier,
-		ChainID:                 ishdf.chainID,
 		ValidityAttester:        ishdf.validityAttester,
 		EpochStartTrigger:       ishdf.epochStartTrigger,
 		NonceConverter:          ishdf.nonceConverter,

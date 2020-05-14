@@ -590,9 +590,6 @@ var ErrReceiptsHashMissmatch = errors.New("receipts hash missmatch")
 // ErrMiniBlockNumMissMatch signals that number of miniblocks does not match
 var ErrMiniBlockNumMissMatch = errors.New("num miniblocks does not match")
 
-// ErrInvalidChainID signals that an invalid chain ID has been provided
-var ErrInvalidChainID = errors.New("invalid chain ID while processing")
-
 // ErrEpochStartDataDoesNotMatch signals that EpochStartData is not the same as the leader created
 var ErrEpochStartDataDoesNotMatch = errors.New("epoch start data does not match")
 

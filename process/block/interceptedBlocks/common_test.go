@@ -17,7 +17,6 @@ func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 		HdrBuff:                 []byte("test buffer"),
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		ChainID:                 []byte("chain ID"),
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		NonceConverter:          mock.NewNonceHashConverterMock(),
@@ -123,17 +122,6 @@ func TestCheckBlockHeaderArgument_NilShardCoordinatorShouldErr(t *testing.T) {
 	err := checkBlockHeaderArgument(arg)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
-}
-
-func TestCheckBlockHeaderArgument_EmptyChainIDShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createDefaultBlockHeaderArgument()
-	arg.ChainID = nil
-
-	err := checkBlockHeaderArgument(arg)
-
-	assert.Equal(t, process.ErrInvalidChainID, err)
 }
 
 func TestCheckBlockHeaderArgument_NilValidityAttesterShouldErr(t *testing.T) {

@@ -41,7 +41,6 @@ type ArgsEpochStartInterceptorContainer struct {
 	WhiteListHandler       update.WhiteListHandler
 	WhiteListerVerifiedTxs update.WhiteListHandler
 	AddressPubkeyConv      state.PubkeyConverter
-	ChainID                []byte
 	NonceConverter         typeConverters.Uint64ByteSliceConverter
 }
 
@@ -85,7 +84,6 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		BlackList:               blackListHandler,
 		HeaderSigVerifier:       headerSigVerifier,
 		HeaderIntegrityVerifier: headerIntegrityVerifier,
-		ChainID:                 args.ChainID,
 		SizeCheckDelta:          uint32(sizeCheckDelta),
 		ValidityAttester:        validityAttester,
 		EpochStartTrigger:       epochStartTrigger,

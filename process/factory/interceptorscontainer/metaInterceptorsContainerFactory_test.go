@@ -18,7 +18,6 @@ import (
 
 const maxTxNonceDeltaAllowed = 100
 
-var chainID = []byte("chain ID")
 var errExpected = errors.New("expected error")
 
 func createMetaStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegister string) process.TopicHandler {
@@ -271,17 +270,6 @@ func TestNewMetaInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *tes
 	assert.Equal(t, process.ErrNilBlackListHandler, err)
 }
 
-func TestNewMetaInterceptorsContainerFactory_EmptyCahinIDShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgumentsMeta()
-	args.ChainID = nil
-	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
-
-	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrInvalidChainID, err)
-}
-
 func TestNewMetaInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -482,7 +470,6 @@ func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryAr
 		BlackList:               &mock.BlackListHandlerStub{},
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		ChainID:                 chainID,
 		SizeCheckDelta:          0,
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},

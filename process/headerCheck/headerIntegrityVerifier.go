@@ -10,21 +10,28 @@ import (
 )
 
 type headerIntegrityVerifier struct {
+	referenceChainID []byte
 }
 
 // NewHeaderIntegrityVerifier returns a new instance of headerIntegrityVerifier
-func NewHeaderIntegrityVerifier() *headerIntegrityVerifier {
-	return &headerIntegrityVerifier{}
+func NewHeaderIntegrityVerifier(referenceChainID []byte) (*headerIntegrityVerifier, error) {
+	if len(referenceChainID) == 0 {
+		return nil, ErrInvalidReferenceChainID
+	}
+
+	return &headerIntegrityVerifier{
+		referenceChainID: referenceChainID,
+	}, nil
 }
 
 // Verify will check the header's fields such as the chain ID or the software version
-func (h *headerIntegrityVerifier) Verify(hdr data.HeaderHandler, referenceChainID []byte) error {
+func (h *headerIntegrityVerifier) Verify(hdr data.HeaderHandler) error {
 	err := h.checkSoftwareVersion(hdr)
 	if err != nil {
 		return err
 	}
 
-	return h.checkChainID(hdr, referenceChainID)
+	return h.checkChainID(hdr)
 }
 
 // CheckSoftwareVersion returns nil if the software version has the correct length
@@ -37,15 +44,12 @@ func (h *headerIntegrityVerifier) checkSoftwareVersion(hdr data.HeaderHandler) e
 
 // CheckChainID returns nil if the header's chain ID matches the one provided
 // otherwise, it will error
-func (h *headerIntegrityVerifier) checkChainID(hdr data.HeaderHandler, reference []byte) error {
-	if len(reference) == 0 {
-		return ErrInvalidReferenceChainID
-	}
-	if !bytes.Equal(reference, hdr.GetChainID()) {
+func (h *headerIntegrityVerifier) checkChainID(hdr data.HeaderHandler) error {
+	if !bytes.Equal(h.referenceChainID, hdr.GetChainID()) {
 		return fmt.Errorf(
 			"%w, expected: %s, got %s",
 			ErrInvalidChainID,
-			hex.EncodeToString(reference),
+			hex.EncodeToString(h.referenceChainID),
 			hex.EncodeToString(hdr.GetChainID()),
 		)
 	}

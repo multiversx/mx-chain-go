@@ -231,7 +231,10 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	if err != nil {
 		return nil, err
 	}
-	headerIntegrityVerifier := headerCheck.NewHeaderIntegrityVerifier()
+	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier([]byte(args.nodesConfig.ChainID))
+	if err != nil {
+		return nil, err
+	}
 
 	resolversContainerFactory, err := newResolverContainerFactory(
 		args.shardCoordinator,
@@ -725,7 +728,6 @@ func newShardInterceptorContainerFactory(
 		BlackList:               headerBlackList,
 		HeaderSigVerifier:       headerSigVerifier,
 		HeaderIntegrityVerifier: headerIntegrityVerifier,
-		ChainID:                 dataCore.ChainID,
 		SizeCheckDelta:          sizeCheckDelta,
 		ValidityAttester:        validityAttester,
 		EpochStartTrigger:       epochStartTrigger,
@@ -781,7 +783,6 @@ func newMetaInterceptorContainerFactory(
 		BlackList:               headerBlackList,
 		HeaderSigVerifier:       headerSigVerifier,
 		HeaderIntegrityVerifier: headerIntegrityVerifier,
-		ChainID:                 dataCore.ChainID,
 		SizeCheckDelta:          sizeCheckDelta,
 		ValidityAttester:        validityAttester,
 		EpochStartTrigger:       epochStartTrigger,

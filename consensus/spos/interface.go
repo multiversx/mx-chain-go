@@ -134,6 +134,6 @@ type RandSeedVerifier interface {
 
 // HeaderIntegrityVerifier encapsulates methods useful to check that a header's integrity is correct
 type HeaderIntegrityVerifier interface {
-	Verify(header data.HeaderHandler, referenceChainID []byte) error
+	Verify(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }

@@ -66,7 +66,6 @@ func createMockArgument() *ArgInterceptedDataFactory {
 		FeeHandler:              createMockFeeHandler(),
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		ChainID:                 []byte("chain ID"),
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		NonceConverter:          mock.NewNonceHashConverterMock(),
@@ -147,17 +146,6 @@ func TestNewInterceptedMetaHeaderDataFactory_NilShardCoordinatorShouldErr(t *tes
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
 	assert.True(t, check.IfNil(imh))
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
-}
-
-func TestNewInterceptedMetaHeaderDataFactory_NilChainIdShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	arg.ChainID = nil
-
-	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
-	assert.True(t, check.IfNil(imh))
-	assert.Equal(t, process.ErrInvalidChainID, err)
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_NilValidityAttesterShouldErr(t *testing.T) {

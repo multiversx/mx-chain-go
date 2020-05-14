@@ -9,38 +9,39 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewHeaderIntegrityVerifier(t *testing.T) {
+func TestNewHeaderIntegrityVerifier_InvalidReferenceChainIDShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdrIntVer := NewHeaderIntegrityVerifier()
+	hdrIntVer, err := NewHeaderIntegrityVerifier(nil)
+	require.True(t, check.IfNil(hdrIntVer))
+	require.Equal(t, ErrInvalidReferenceChainID, err)
+}
+
+func TestNewHeaderIntegrityVerifier_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	hdrIntVer, err := NewHeaderIntegrityVerifier([]byte("chainID"))
 	require.False(t, check.IfNil(hdrIntVer))
+	require.NoError(t, err)
 }
 
 func TestHeaderIntegrityVerifier_VerifySoftwareVersionShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdrIntVer := NewHeaderIntegrityVerifier()
-	err := hdrIntVer.Verify(&block.MetaBlock{}, []byte("cID"))
+	hdrIntVer, _ := NewHeaderIntegrityVerifier([]byte("chainID"))
+	err := hdrIntVer.Verify(&block.MetaBlock{})
 	require.Equal(t, ErrInvalidSoftwareVersion, err)
-}
-
-func TestHeaderIntegrityVerifier_VerifyInvalidReferenceChainIDShouldErr(t *testing.T) {
-	t.Parallel()
-
-	hdrIntVer := NewHeaderIntegrityVerifier()
-	err := hdrIntVer.Verify(&block.MetaBlock{SoftwareVersion: []byte("version")}, nil)
-	require.Equal(t, ErrInvalidReferenceChainID, err)
 }
 
 func TestHeaderIntegrityVerifier_VerifyHdrChainIDAndReferenceChainIDMissmatchShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hdrIntVer := NewHeaderIntegrityVerifier()
+	hdrIntVer, _ := NewHeaderIntegrityVerifier([]byte("chainID"))
 	mb := &block.MetaBlock{
 		SoftwareVersion: []byte("software"),
-		ChainID:         []byte("chainID-0"),
+		ChainID:         []byte("different-chainID"),
 	}
-	err := hdrIntVer.Verify(mb, []byte("chainID-1"))
+	err := hdrIntVer.Verify(mb)
 	require.True(t, errors.Is(err, ErrInvalidChainID))
 }
 
@@ -48,11 +49,11 @@ func TestHeaderIntegrityVerifier_VerifyShouldWork(t *testing.T) {
 	t.Parallel()
 
 	expectedChainID := []byte("#chainID")
-	hdrIntVer := NewHeaderIntegrityVerifier()
+	hdrIntVer, _ := NewHeaderIntegrityVerifier(expectedChainID)
 	mb := &block.MetaBlock{
 		SoftwareVersion: []byte("software"),
 		ChainID:         expectedChainID,
 	}
-	err := hdrIntVer.Verify(mb, expectedChainID)
+	err := hdrIntVer.Verify(mb)
 	require.NoError(t, err)
 }

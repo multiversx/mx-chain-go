@@ -311,6 +311,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			KeyGen:            keyGen,
 		}
 		headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
+		headerIntegrityVerifier, _ := headerCheck.NewHeaderIntegrityVerifier(ChainID)
 		for i := range validatorList {
 			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
 				uint32(nbShards),
@@ -323,7 +324,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 				i,
 				nil,
 				headerSig,
-				headerCheck.NewHeaderIntegrityVerifier(),
+				headerIntegrityVerifier,
 				nodesSetup,
 			)
 		}
@@ -410,6 +411,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			}
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
+			headerIntegrityVerifier, _ := headerCheck.NewHeaderIntegrityVerifier(ChainID)
 			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
 				uint32(nbShards),
 				shardId,
@@ -421,7 +423,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				i,
 				ownAccount,
 				headerSig,
-				headerCheck.NewHeaderIntegrityVerifier(),
+				headerIntegrityVerifier,
 				nodesSetup,
 			)
 		}

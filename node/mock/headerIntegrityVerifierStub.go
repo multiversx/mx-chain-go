@@ -4,13 +4,13 @@ import "github.com/ElrondNetwork/elrond-go/data"
 
 // HeaderIntegrityVerifierStub -
 type HeaderIntegrityVerifierStub struct {
-	VerifyCalled func(header data.HeaderHandler, referenceChainID []byte) error
+	VerifyCalled func(header data.HeaderHandler) error
 }
 
 // Verify -
-func (h *HeaderIntegrityVerifierStub) Verify(header data.HeaderHandler, referenceChainID []byte) error {
+func (h *HeaderIntegrityVerifierStub) Verify(header data.HeaderHandler) error {
 	if h.VerifyCalled != nil {
-		return h.VerifyCalled(header, referenceChainID)
+		return h.VerifyCalled(header)
 	}
 
 	return nil

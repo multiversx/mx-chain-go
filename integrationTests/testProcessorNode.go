@@ -315,12 +315,13 @@ func NewTestProcessorNode(
 	}
 
 	messenger := CreateMessengerWithKadDht(initialNodeAddr)
+	headerIntegrityVerifier, _ := headerCheck.NewHeaderIntegrityVerifier(ChainID)
 	tpn := &TestProcessorNode{
 		ShardCoordinator:        shardCoordinator,
 		Messenger:               messenger,
 		NodesCoordinator:        nodesCoordinator,
 		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier: headerCheck.NewHeaderIntegrityVerifier(),
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
 		ChainID:                 ChainID,
 		NodesSetup:              nodesSetup,
 	}
@@ -674,7 +675,6 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			BlackList:               tpn.BlockBlackListHandler,
 			HeaderSigVerifier:       tpn.HeaderSigVerifier,
 			HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
-			ChainID:                 tpn.ChainID,
 			SizeCheckDelta:          sizeCheckDelta,
 			ValidityAttester:        tpn.BlockTracker,
 			EpochStartTrigger:       tpn.EpochStartTrigger,
@@ -734,7 +734,6 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			BlackList:               tpn.BlockBlackListHandler,
 			HeaderSigVerifier:       tpn.HeaderSigVerifier,
 			HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
-			ChainID:                 tpn.ChainID,
 			SizeCheckDelta:          sizeCheckDelta,
 			ValidityAttester:        tpn.BlockTracker,
 			EpochStartTrigger:       tpn.EpochStartTrigger,

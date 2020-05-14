@@ -93,7 +93,6 @@ type exportHandlerFactory struct {
 	blockSigner              crypto.SingleSigner
 	addressPubkeyConverter   state.PubkeyConverter
 	headerSigVerifier        process.InterceptedHeaderSigVerifier
-	chainID                  []byte
 	validityAttester         process.ValidityAttester
 	resolverContainer        dataRetriever.ResolversContainer
 	inputAntifloodHandler    dataRetriever.P2PAntifloodHandler
@@ -210,7 +209,6 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		blockSigner:              args.BlockSigner,
 		headerSigVerifier:        args.HeaderSigVerifier,
 		validityAttester:         args.ValidityAttester,
-		chainID:                  args.ChainID,
 		inputAntifloodHandler:    args.InputAntifloodHandler,
 		outputAntifloodHandler:   args.OutputAntifloodHandler,
 	}
@@ -411,7 +409,6 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		TxFeeHandler:           &disabled.FeeHandler{},
 		BlackList:              timecache.NewTimeCache(time.Second),
 		HeaderSigVerifier:      e.headerSigVerifier,
-		ChainID:                e.chainID,
 		SizeCheckDelta:         math.MaxUint32,
 		ValidityAttester:       e.validityAttester,
 		EpochStartTrigger:      e.epochStartTrigger,

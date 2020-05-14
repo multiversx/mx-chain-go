@@ -16,7 +16,7 @@ func NewHeaderIntegrityVerifier() *headerIntegrityVerifier {
 }
 
 // Verify returns nil as this is a disabled implementation
-func (h *headerIntegrityVerifier) Verify(header data.HeaderHandler, referenceChainID []byte) error {
+func (h *headerIntegrityVerifier) Verify(header data.HeaderHandler) error {
 	return nil
 }
 

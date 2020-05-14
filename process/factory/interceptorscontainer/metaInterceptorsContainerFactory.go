@@ -73,9 +73,6 @@ func NewMetaInterceptorsContainerFactory(
 	if check.IfNil(args.EpochStartTrigger) {
 		return nil, process.ErrNilEpochStartTrigger
 	}
-	if len(args.ChainID) == 0 {
-		return nil, process.ErrInvalidChainID
-	}
 	if check.IfNil(args.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
@@ -95,7 +92,6 @@ func NewMetaInterceptorsContainerFactory(
 		FeeHandler:              args.TxFeeHandler,
 		HeaderSigVerifier:       args.HeaderSigVerifier,
 		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
-		ChainID:                 args.ChainID,
 		ValidityAttester:        args.ValidityAttester,
 		EpochStartTrigger:       args.EpochStartTrigger,
 		NonceConverter:          args.NonceConverter,

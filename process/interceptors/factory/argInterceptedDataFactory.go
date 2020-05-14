@@ -28,7 +28,6 @@ type ArgInterceptedDataFactory struct {
 	WhiteListerVerifiedTxs  process.WhiteListHandler
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
-	ChainID                 []byte
 	ValidityAttester        process.ValidityAttester
 	EpochStartTrigger       process.EpochStartTriggerHandler
 	NonceConverter          typeConverters.Uint64ByteSliceConverter
