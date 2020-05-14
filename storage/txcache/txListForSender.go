@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
+var _ maps.BucketSortedMapItem = (*txListForSender)(nil)
+
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
 	copyDetectedGap     bool
