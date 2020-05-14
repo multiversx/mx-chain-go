@@ -88,10 +88,31 @@ func (ptp *PeerTypeProvider) ComputeForPubKey(pubKey []byte) (core.PeerType, uin
 	return core.ObserverList, 0, nil
 }
 
+// GetAllPeerTypeInfos returns all known peer type infos
+func (ptp *PeerTypeProvider) GetAllPeerTypeInfos() []PeerTypeInfoHandler {
+	ptp.mutCache.RLock()
+	cache := ptp.cache
+	ptp.mutCache.RUnlock()
+
+	// component is used so it could be refreshed on expiration
+	ptp.refreshCache <- false
+
+	peerTypeInfos := make([]PeerTypeInfoHandler, 0, len(cache))
+	for pkString, peerListAndShard := range cache {
+		peerTypeInfos = append(peerTypeInfos, &PeerTypeInfo{
+			PublicKey: pkString,
+			PeerType:  string(peerListAndShard.pType),
+			ShardId:   peerListAndShard.pShard,
+		})
+	}
+
+	return peerTypeInfos
+}
+
 func (ptp *PeerTypeProvider) epochStartEventHandler() sharding.EpochStartActionHandler {
 	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
 		ptp.refreshCache <- true
-	}, func(_ data.HeaderHandler) {}, core.ConsensusOrder)
+	}, func(_ data.HeaderHandler) {}, core.IndexerOrder)
 
 	return subscribeHandler
 }
@@ -106,12 +127,11 @@ func (ptp *PeerTypeProvider) startRefreshProcess() {
 				{
 					expired := time.Since(lastUpdate) > ptp.cacheRefreshIntervalDuration
 					if forceRefresh || expired {
-						ptp.updateCache()
 						lastUpdate = time.Now()
+						ptp.updateCache()
 					}
 				}
 			case <-time.After(ptp.cacheRefreshIntervalDuration):
-				log.Debug("after")
 			}
 		}
 	}()
@@ -120,7 +140,7 @@ func (ptp *PeerTypeProvider) startRefreshProcess() {
 func (ptp *PeerTypeProvider) updateCache() {
 	allNodes, err := ptp.validatorsProvider.GetLatestValidatorInfos()
 	if err != nil {
-		log.Warn("peerTypeProvider - GetLatestValidatorInfos failed", "error", err)
+		log.Debug("peerTypeProvider - GetLatestValidatorInfos failed", "error", err)
 	}
 
 	newCache := ptp.createNewCache(ptp.epochHandler.MetaEpoch(), allNodes)

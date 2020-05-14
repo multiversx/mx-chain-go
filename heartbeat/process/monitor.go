@@ -418,6 +418,18 @@ func (m *Monitor) computeInactiveHeartbeatMessages() {
 		}
 	}
 
+	peerTypeInfos := m.peerTypeProvider.GetAllPeerTypeInfos()
+	for _, peerTypeInfo := range peerTypeInfos {
+		if m.heartbeatMessages[peerTypeInfo.GetPublicKey()] == nil {
+			hbmi, err := newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, peerTypeInfo.GetPeerType(), m.genesisTime, m.timer)
+			if err != nil {
+				log.Debug("could not create hbmi ", "err", err)
+			}
+			hbmi.computedShardID = peerTypeInfo.GetShardId()
+			m.heartbeatMessages[peerTypeInfo.GetPublicKey()] = hbmi
+		}
+	}
+
 	m.mutHeartbeatMessages.Unlock()
 	go m.SaveMultipleHeartbeatMessageInfos(inactiveHbChangedMap)
 }

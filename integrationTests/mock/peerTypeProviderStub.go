@@ -1,6 +1,9 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/core"
+import (
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/process/peer"
+)
 
 // PeerTypeProviderStub -
 type PeerTypeProviderStub struct {
@@ -14,6 +17,11 @@ func (p *PeerTypeProviderStub) ComputeForPubKey(pubKey []byte) (core.PeerType, u
 	}
 
 	return "", 0, nil
+}
+
+// GetAllPeerTypeInfos -
+func (p *PeerTypeProviderStub) GetAllPeerTypeInfos() []peer.PeerTypeInfoHandler {
+	return nil
 }
 
 // IsInterfaceNil -
