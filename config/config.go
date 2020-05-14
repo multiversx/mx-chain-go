@@ -267,9 +267,10 @@ type VirtualMachineOutOfProcessConfig struct {
 
 // HardforkConfig holds the configuration for the hardfork trigger
 type HardforkConfig struct {
-	EnableTrigger         bool
-	EnableTriggerFromP2P  bool
-	PublicKeyToListenFrom string
+	EnableTrigger             bool
+	EnableTriggerFromP2P      bool
+	PublicKeyToListenFrom     string
+	CloseAfterExportInMinutes uint32
 
 	MustImport bool
 	StartRound uint64
@@ -280,6 +281,7 @@ type HardforkConfig struct {
 
 	ImportFolder             string
 	ExportStateStorageConfig StorageConfig
+	ExportTriesStorageConfig StorageConfig
 	ImportStateStorageConfig StorageConfig
 }
 

@@ -1175,6 +1175,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		networkComponents,
 		whiteListRequest,
 		whiteListerVerifiedTxs,
+		chanStopNodeProcess,
 	)
 	if err != nil {
 		return err
@@ -1858,6 +1859,7 @@ func createHardForkTrigger(
 	network *mainFactory.NetworkComponents,
 	whiteListRequest process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (node.HardforkTrigger, error) {
 
 	selfPubKeyBytes, err := pubKey.ToByteArray()
@@ -1888,7 +1890,7 @@ func createHardForkTrigger(
 		ExistingResolvers:        process.ResolversFinder,
 		ExportFolder:             hardForkConfig.ImportFolder,
 		ExportTriesStorageConfig: hardForkConfig.ExportStateStorageConfig,
-		ExportStateStorageConfig: hardForkConfig.ExportStateStorageConfig,
+		ExportStateStorageConfig: hardForkConfig.ExportTriesStorageConfig,
 		WhiteListHandler:         whiteListRequest,
 		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
 		InterceptorsContainer:    process.InterceptorsContainer,
@@ -1919,6 +1921,7 @@ func createHardForkTrigger(
 		ArgumentParser:       atArgumentParser,
 		EpochProvider:        process.EpochStartTrigger,
 		ExportFactoryHandler: hardForkExportFactory,
+		ChanStopNodeProcess:  chanStopNodeProcess,
 	}
 	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
 	if err != nil {

@@ -8,7 +8,9 @@ import (
 	"sync"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -20,23 +22,26 @@ const hardforkGracePeriod = time.Minute * 5
 const epochGracePeriod = 4
 
 var _ facade.HardforkTrigger = (*trigger)(nil)
+var log = logger.GetOrCreate("update/trigger")
 
 // ArgHardforkTrigger contains the
 type ArgHardforkTrigger struct {
-	TriggerPubKeyBytes   []byte
-	SelfPubKeyBytes      []byte
-	Enabled              bool
-	EnabledAuthenticated bool
-	ArgumentParser       process.ArgumentsParser
-	EpochProvider        update.EpochHandler
-	ExportFactoryHandler update.ExportFactoryHandler
+	TriggerPubKeyBytes        []byte
+	SelfPubKeyBytes           []byte
+	Enabled                   bool
+	EnabledAuthenticated      bool
+	ArgumentParser            process.ArgumentsParser
+	EpochProvider             update.EpochHandler
+	ExportFactoryHandler      update.ExportFactoryHandler
+	CloseAfterExportInMinutes uint32
+	ChanStopNodeProcess       chan endProcess.ArgEndProcess
 }
 
 // trigger implements a hardfork trigger that is able to notify a set list of handlers if this instance gets triggered
 // by external events
 type trigger struct {
 	mutTriggerHandlers     sync.RWMutex
-	triggerHandlers        []func()
+	triggerHandlers        []func(epoch uint32)
 	triggerPubKey          []byte
 	selfPubKey             []byte
 	enabled                bool
@@ -45,10 +50,13 @@ type trigger struct {
 	mutTriggered           sync.RWMutex
 	triggered              bool
 	recordedTriggerMessage []byte
+	epoch                  uint32
 	getTimestampHandler    func() int64
 	argumentParser         process.ArgumentsParser
 	epochProvider          update.EpochHandler
 	exportFactoryHandler   update.ExportFactoryHandler
+	closeAfterInMinutes    uint32
+	chanStopNodeProcess    chan endProcess.ArgEndProcess
 }
 
 // NewTrigger returns the trigger instance
@@ -68,9 +76,12 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 	if check.IfNil(arg.ExportFactoryHandler) {
 		return nil, update.ErrNilExportHandlerFactory
 	}
+	if arg.ChanStopNodeProcess == nil {
+		return nil, update.ErrNilChanStopNodeProcess
+	}
 
 	t := &trigger{
-		triggerHandlers:      make([]func(), 0),
+		triggerHandlers:      make([]func(epoch uint32), 0),
 		enabled:              arg.Enabled,
 		enabledAuthenticated: arg.EnabledAuthenticated,
 		selfPubKey:           arg.SelfPubKeyBytes,
@@ -79,6 +90,8 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 		argumentParser:       arg.ArgumentParser,
 		epochProvider:        arg.EpochProvider,
 		exportFactoryHandler: arg.ExportFactoryHandler,
+		closeAfterInMinutes:  arg.CloseAfterExportInMinutes,
+		chanStopNodeProcess:  arg.ChanStopNodeProcess,
 	}
 	t.isTriggerSelf = bytes.Equal(arg.TriggerPubKeyBytes, arg.SelfPubKeyBytes)
 
@@ -96,19 +109,42 @@ func (t *trigger) Trigger() error {
 	if !t.enabled {
 		return update.ErrTriggerNotEnabled
 	}
-
-	return t.doTrigger(nil)
+	t.doTrigger(0)
+	return nil
 }
 
-func (t *trigger) doTrigger(payload []byte) error {
+func (t *trigger) doTrigger(epoch uint32) {
+	t.callAddedDataHandlers(epoch)
+
+	if epoch > t.epochProvider.MetaEpoch() {
+		return
+	}
+
+	t.exportAll()
+}
+
+func (t *trigger) exportAll() {
 	t.mutTriggered.Lock()
-	t.triggered = true
-	t.recordedTriggerMessage = payload
-	t.mutTriggered.Unlock()
+	defer t.mutTriggered.Unlock()
 
-	t.callAddedDataHandlers()
+	exportHandler, err := t.exportFactoryHandler.Create()
+	if err != nil {
+		log.Error("error while creating export handler", "error", err)
+		return
+	}
 
-	return nil
+	err = exportHandler.ExportAll(t.epoch)
+	if err != nil {
+		log.Error("error while exporting data", "error", err)
+		return
+	}
+
+	time.Sleep(time.Duration(t.closeAfterInMinutes) * time.Minute)
+	argument := endProcess.ArgEndProcess{
+		Reason:      "HardForkExport",
+		Description: "Node finished the export process with success",
+	}
+	t.chanStopNodeProcess <- argument
 }
 
 // TriggerReceived is called whenever a trigger is received from the p2p side
@@ -166,7 +202,15 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 		return true, fmt.Errorf("%w epoch out of grace perdiod", update.ErrIncorrectHardforkMessage)
 	}
 
-	return true, t.doTrigger(originalPayload)
+	t.mutTriggered.Lock()
+	t.triggered = true
+	t.recordedTriggerMessage = originalPayload
+	t.epoch = uint32(epoch)
+	t.mutTriggered.Unlock()
+
+	t.doTrigger(uint32(epoch))
+
+	return true, nil
 }
 
 func (t *trigger) getIntFromArgument(value string) (int64, error) {
@@ -181,16 +225,16 @@ func (t *trigger) getIntFromArgument(value string) (int64, error) {
 	return n, nil
 }
 
-func (t *trigger) callAddedDataHandlers() {
+func (t *trigger) callAddedDataHandlers(epoch uint32) {
 	t.mutTriggerHandlers.RLock()
 	for _, handler := range t.triggerHandlers {
-		go handler()
+		go handler(epoch)
 	}
 	t.mutTriggerHandlers.RUnlock()
 }
 
 // RegisterHandler will add a trigger event handler to the list
-func (t *trigger) RegisterHandler(handler func()) error {
+func (t *trigger) RegisterHandler(handler func(epoch uint32)) error {
 	if handler == nil {
 		return fmt.Errorf("%w when setting a hardfork trigger", update.ErrNilHandler)
 	}

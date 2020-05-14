@@ -208,3 +208,6 @@ var ErrNotEnoughArgumentsForHardForkTrigger = errors.New("not enough arguments f
 
 // ErrNilExportHandlerFactory signals that nil export handler factory has been provided
 var ErrNilExportHandlerFactory = errors.New("nil export handler factory")
+
+// ErrNilChanStopNodeProcess signals that nil channel to stop node was provided
+var ErrNilChanStopNodeProcess = errors.New("nil channel to stop node")
