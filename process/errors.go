@@ -778,3 +778,6 @@ var ErrNilInterceptedDebugHandler = errors.New("nil intercepted debug handler")
 
 // ErrBuiltInFunctionCalledWithValue signals that builtin function was called with value that is not allowed
 var ErrBuiltInFunctionCalledWithValue = errors.New("built in function called with tx value is not allowed")
+
+// ErrEmptySoftwareVersion signals that empty software version was called
+var ErrEmptySoftwareVersion = errors.New("empty software version")

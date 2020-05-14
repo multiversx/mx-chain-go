@@ -228,7 +228,7 @@ type ValidatorStatisticsProcessor interface {
 	RootHash() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error
 	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
-	ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo) error
+	ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error
 	Commit() ([]byte, error)
 	DisplayRatings(epoch uint32)
 }

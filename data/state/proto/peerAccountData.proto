@@ -32,19 +32,18 @@ message ValidatorApiResponse {
 message PeerAccountData {
     bytes BLSPublicKey = 1;
     bytes RewardAddress = 2;
-    bytes Stake = 3 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    uint32 ShardId = 4;
-    SignRate ValidatorSuccessRate = 5 [(gogoproto.nullable) = false];
-    SignRate LeaderSuccessRate = 6 [(gogoproto.nullable) = false];
-    uint32 Rating = 7;
-    uint32 TempRating = 8;
-    bytes AccumulatedFees = 9 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    uint32 NumSelectedInSuccessBlocks = 10;
-	uint32 IndexInList = 11;
-	string List        = 12;
-    uint32 ConsecutiveProposerMisses = 13;
-    SignRate TotalValidatorSuccessRate = 14 [(gogoproto.nullable) = false];
-    SignRate TotalLeaderSuccessRate = 15 [(gogoproto.nullable) = false];
-    uint64 Nonce = 16;
-    uint32 UnStakedEpoch = 17;
+    uint32 ShardId = 3;
+    SignRate ValidatorSuccessRate = 4 [(gogoproto.nullable) = false];
+    SignRate LeaderSuccessRate = 5 [(gogoproto.nullable) = false];
+    uint32 Rating = 6;
+    uint32 TempRating = 7;
+    bytes AccumulatedFees = 8 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    uint32 NumSelectedInSuccessBlocks = 9;
+	uint32 IndexInList = 10;
+	string List        = 11;
+    uint32 ConsecutiveProposerMisses = 12;
+    SignRate TotalValidatorSuccessRate = 13 [(gogoproto.nullable) = false];
+    SignRate TotalLeaderSuccessRate = 14 [(gogoproto.nullable) = false];
+    uint64 Nonce = 15;
+    uint32 UnStakedEpoch = 16;
 }
