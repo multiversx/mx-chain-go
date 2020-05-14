@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestScoreComputer_computeRawScore(t *testing.T) {
-	computer := newScoreComputer(100)
+func TestDefaultScoreComputer_computeRawScore(t *testing.T) {
+	computer := newDefaultScoreComputer(100)
 
 	score := computer.computeRawScore(senderScoreParams{count: 14000, size: kBToBytes(100000), fee: toNanoERD(300), gas: 2500000000})
 	require.InDelta(t, float64(0.1789683371), score, delta)
@@ -23,7 +23,7 @@ func TestScoreComputer_computeRawScore(t *testing.T) {
 }
 
 func BenchmarkScoreComputer_computeRawScore(b *testing.B) {
-	computer := newScoreComputer(100)
+	computer := newDefaultScoreComputer(100)
 
 	for i := 0; i < b.N; i++ {
 		for j := uint64(0); j < 10000000; j++ {
@@ -32,8 +32,8 @@ func BenchmarkScoreComputer_computeRawScore(b *testing.B) {
 	}
 }
 
-func TestScoreComputer_computeRawScoreOfTxListForSender(t *testing.T) {
-	computer := newScoreComputer(100)
+func TestDefaultScoreComputer_computeRawScoreOfTxListForSender(t *testing.T) {
+	computer := newDefaultScoreComputer(100)
 	list := newUnconstrainedListToTest()
 
 	list.AddTx(createTxWithParams([]byte("a"), ".", 1, 1000, 200000, 100*oneBillion))
@@ -50,8 +50,8 @@ func TestScoreComputer_computeRawScoreOfTxListForSender(t *testing.T) {
 	require.InDelta(t, float64(5.795382396), rawScore, delta)
 }
 
-func TestScoreComputer_scoreFluctuatesDeterministicallyWhileTxListForSenderMutates(t *testing.T) {
-	computer := newScoreComputer(100)
+func TestDefaultScoreComputer_scoreFluctuatesDeterministicallyWhileTxListForSenderMutates(t *testing.T) {
+	computer := newDefaultScoreComputer(100)
 	list := newUnconstrainedListToTest()
 
 	A := createTxWithParams([]byte("A"), ".", 1, 1000, 200000, 100*oneBillion)

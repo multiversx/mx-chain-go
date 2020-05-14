@@ -12,7 +12,7 @@ type txListBySenderMap struct {
 	backingMap        *maps.BucketSortedMap
 	senderConstraints senderConstraints
 	counter           atomic.Counter
-	scoreComputer     *scoreComputer
+	scoreComputer     *defaultScoreComputer
 }
 
 // newTxListBySenderMap creates a new instance of TxListBySenderMap
@@ -22,8 +22,7 @@ func newTxListBySenderMap(nChunksHint uint32, senderConstraints senderConstraint
 	return txListBySenderMap{
 		backingMap:        backingMap,
 		senderConstraints: senderConstraints,
-		// TODO: Receive computer in constructor
-		scoreComputer: newScoreComputer(100),
+		scoreComputer:     newDefaultScoreComputer(100),
 	}
 }
 

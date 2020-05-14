@@ -16,19 +16,19 @@ type senderScoreParams struct {
 	gas uint64
 }
 
-type scoreComputer struct {
+type defaultScoreComputer struct {
 	// Price is in nano ERD
 	minGasPrice uint32
 }
 
-func newScoreComputer(minGasPrice uint32) *scoreComputer {
-	return &scoreComputer{
+func newDefaultScoreComputer(minGasPrice uint32) *defaultScoreComputer {
+	return &defaultScoreComputer{
 		minGasPrice: minGasPrice,
 	}
 }
 
 // computeScore computes the score of the sender, as an integer 0-100
-func (computer *scoreComputer) computeScore(scoreParams senderScoreParams) uint32 {
+func (computer *defaultScoreComputer) computeScore(scoreParams senderScoreParams) uint32 {
 	rawScore := computer.computeRawScore(scoreParams)
 	truncatedScore := uint32(rawScore)
 	return truncatedScore
@@ -53,7 +53,7 @@ func (computer *scoreComputer) computeScore(scoreParams senderScoreParams) uint3
 //  - txSize: size of transactions, in kB (1000 bytes)
 //
 // TODO (optimization): switch to integer operations (as opposed to float operations).
-func (computer *scoreComputer) computeRawScore(params senderScoreParams) float64 {
+func (computer *defaultScoreComputer) computeRawScore(params senderScoreParams) float64 {
 	allParamsDefined := params.fee > 0 && params.gas > 0 && params.size > 0 && params.count > 0
 	if !allParamsDefined {
 		return 0
