@@ -13,12 +13,7 @@ type HardForkBlockProcessor struct {
 }
 
 // CreateNewBlock --
-func (hfbp *HardForkBlockProcessor) CreateNewBlock(
-	chainID string,
-	round uint64,
-	nonce uint64,
-	epoch uint32,
-) (data.HeaderHandler, data.BodyHandler, error) {
+func (hfbp *HardForkBlockProcessor) CreateNewBlock(chainID string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, data.BodyHandler, error) {
 	if hfbp.CreateNewBlockCalled != nil {
 		return hfbp.CreateNewBlockCalled(chainID, round, nonce, epoch)
 	}

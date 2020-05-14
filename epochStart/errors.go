@@ -185,8 +185,8 @@ var ErrNilRater = errors.New("nil rater")
 // ErrNilTriesContainer signals that a nil tries container has been provided
 var ErrNilTriesContainer = errors.New("nil tries container")
 
-// ErrNilTrieStorageManager signals that a nil trie storage managers map has been provided
-var ErrNilTrieStorageManager = errors.New("nil trie storage managers map")
+// ErrNilTrieStorageManagers signals that a nil trie storage managers map has been provided
+var ErrNilTrieStorageManagers = errors.New("nil trie storage managers map")
 
 // ErrInvalidDefaultDBPath signals that an invalid default database path has been provided
 var ErrInvalidDefaultDBPath = errors.New("invalid default db path")

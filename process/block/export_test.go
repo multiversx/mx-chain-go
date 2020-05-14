@@ -103,6 +103,7 @@ func NewShardProcessorEmptyWith3shards(
 			DataPool:           tdp,
 			BlockChain:         blockChain,
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
+			Version:            "softwareVersion",
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)

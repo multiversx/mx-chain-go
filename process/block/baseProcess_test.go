@@ -310,6 +310,7 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
 			BlockChain:         blkc,
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
+			Version:            "softwareVersion",
 		},
 	}
 
