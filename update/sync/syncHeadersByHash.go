@@ -176,7 +176,7 @@ func (m *syncHeadersByHash) getHeaderFromPoolOrStorage(hash []byte) (data.Header
 	}
 
 	var hdr block.Header
-	err = m.marshalizer.Unmarshal(hdr, hdrData)
+	err = m.marshalizer.Unmarshal(&hdr, hdrData)
 	if err != nil {
 		return nil, false
 	}
