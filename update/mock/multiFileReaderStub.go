@@ -5,6 +5,14 @@ type MultiFileReaderStub struct {
 	GetFileNamesCalled func() []string
 	ReadNextItemCalled func(fileName string) (string, []byte, error)
 	FinishCalled       func()
+	CloseFileCalled    func(fileName string)
+}
+
+// CloseFile -
+func (mf *MultiFileReaderStub) CloseFile(fileName string) {
+	if mf.CloseFileCalled != nil {
+		mf.CloseFileCalled(fileName)
+	}
 }
 
 // GetFileNames -
