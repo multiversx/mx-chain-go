@@ -17,7 +17,7 @@ type txListForSender struct {
 	sender              string
 	items               *list.List
 	copyBatchIndex      *list.Element
-	cacheConfig         *CacheConfig
+	constraints         *senderConstraints
 	scoreChunk          *maps.MapChunk
 	accountNonceKnown   atomic.Flag
 	lastComputedScore   atomic.Uint32
@@ -36,11 +36,11 @@ type txListForSender struct {
 type scoreChangeCallback func(value *txListForSender, scoreParams senderScoreParams)
 
 // newTxListForSender creates a new (sorted) list of transactions
-func newTxListForSender(sender string, cacheConfig *CacheConfig, onScoreChange scoreChangeCallback) *txListForSender {
+func newTxListForSender(sender string, constraints *senderConstraints, onScoreChange scoreChangeCallback) *txListForSender {
 	return &txListForSender{
 		items:         list.New(),
 		sender:        sender,
-		cacheConfig:   cacheConfig,
+		constraints:   constraints,
 		onScoreChange: onScoreChange,
 	}
 }
@@ -92,8 +92,8 @@ func (listForSender *txListForSender) applySizeConstraints() txHashes {
 }
 
 func (listForSender *txListForSender) isCapacityExceeded() bool {
-	maxBytes := int64(listForSender.cacheConfig.NumBytesPerSenderThreshold)
-	maxNumTxs := uint64(listForSender.cacheConfig.CountPerSenderThreshold)
+	maxBytes := int64(listForSender.constraints.maxNumBytes)
+	maxNumTxs := uint64(listForSender.constraints.maxNumTxs)
 	tooManyBytes := listForSender.totalBytes.Get() > maxBytes
 	tooManyTxs := listForSender.countTx() > maxNumTxs
 

@@ -9,20 +9,21 @@ const numberOfScoreChunks = uint32(100)
 
 // txListBySenderMap is a map-like structure for holding and accessing transactions by sender
 type txListBySenderMap struct {
-	backingMap    *maps.BucketSortedMap
-	cacheConfig   CacheConfig
-	counter       atomic.Counter
-	scoreComputer *scoreComputer
+	backingMap        *maps.BucketSortedMap
+	senderConstraints senderConstraints
+	counter           atomic.Counter
+	scoreComputer     *scoreComputer
 }
 
 // newTxListBySenderMap creates a new instance of TxListBySenderMap
-func newTxListBySenderMap(nChunksHint uint32, cacheConfig CacheConfig) txListBySenderMap {
+func newTxListBySenderMap(nChunksHint uint32, senderConstraints senderConstraints) txListBySenderMap {
 	backingMap := maps.NewBucketSortedMap(nChunksHint, numberOfScoreChunks)
 
 	return txListBySenderMap{
-		backingMap:    backingMap,
-		cacheConfig:   cacheConfig,
-		scoreComputer: newScoreComputer(cacheConfig.MinGasPriceNanoErd),
+		backingMap:        backingMap,
+		senderConstraints: senderConstraints,
+		// TODO: Receive computer in constructor
+		scoreComputer: newScoreComputer(100),
 	}
 }
 
@@ -53,7 +54,7 @@ func (txMap *txListBySenderMap) getListForSender(sender string) (*txListForSende
 }
 
 func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
-	listForSender := newTxListForSender(sender, &txMap.cacheConfig, txMap.notifyScoreChange)
+	listForSender := newTxListForSender(sender, &txMap.senderConstraints, txMap.notifyScoreChange)
 
 	txMap.backingMap.Set(listForSender)
 	txMap.counter.Increment()

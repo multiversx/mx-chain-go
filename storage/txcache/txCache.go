@@ -41,10 +41,11 @@ func NewTxCache(config CacheConfig) (*TxCache, error) {
 
 	// Note: for simplicity, we use the same "numChunksHint" for both internal concurrent maps
 	numChunksHint := config.NumChunksHint
+	senderConstraints := config.getSenderConstraints()
 
 	txCache := &TxCache{
 		name:            config.Name,
-		txListBySender:  newTxListBySenderMap(numChunksHint, config),
+		txListBySender:  newTxListBySenderMap(numChunksHint, senderConstraints),
 		txByHash:        newTxByHashMap(numChunksHint),
 		config:          config,
 		evictionJournal: evictionJournal{},

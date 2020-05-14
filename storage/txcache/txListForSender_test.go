@@ -356,17 +356,15 @@ func TestListForSender_DetectRaceConditions(t *testing.T) {
 }
 
 func newUnconstrainedListToTest() *txListForSender {
-	return newTxListForSender(".", &CacheConfig{
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceNanoErd:         100,
+	return newTxListForSender(".", &senderConstraints{
+		maxNumBytes: math.MaxUint32,
+		maxNumTxs:   math.MaxUint32,
 	}, func(_ *txListForSender, _ senderScoreParams) {})
 }
 
-func newListToTest(numBytesThreshold uint32, countThreshold uint32) *txListForSender {
-	return newTxListForSender(".", &CacheConfig{
-		NumBytesPerSenderThreshold: numBytesThreshold,
-		CountPerSenderThreshold:    countThreshold,
-		MinGasPriceNanoErd:         100,
+func newListToTest(maxNumBytes uint32, maxNumTxs uint32) *txListForSender {
+	return newTxListForSender(".", &senderConstraints{
+		maxNumBytes: maxNumBytes,
+		maxNumTxs:   maxNumTxs,
 	}, func(_ *txListForSender, _ senderScoreParams) {})
 }
