@@ -125,6 +125,11 @@ func (decorator *txCacheFailsafeDecorator) RegisterHandler(function func(key []b
 	decorator.backingCache.RegisterHandler(function)
 }
 
+// NotifyAccountNonce delegates to backing cache
+func (decorator *txCacheFailsafeDecorator) NotifyAccountNonce(accountKey []byte, nonce uint64) {
+	decorator.backingCache.NotifyAccountNonce(accountKey, nonce)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (decorator *txCacheFailsafeDecorator) IsInterfaceNil() bool {
 	return decorator == nil

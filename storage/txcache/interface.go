@@ -13,6 +13,7 @@ type txCache interface {
 	CountTx() int64
 	ForEachTransaction(function ForEachTransaction)
 	SelectTransactions(numRequested int, batchSizePerSender int) []*WrappedTransaction
+	NotifyAccountNonce(accountKey []byte, nonce uint64)
 }
 
 type scoreComputer interface {

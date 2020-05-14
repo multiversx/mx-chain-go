@@ -101,6 +101,10 @@ func (cache *DisabledCache) MaxSize() int {
 func (cache *DisabledCache) RegisterHandler(func(key []byte, value interface{})) {
 }
 
+// NotifyAccountNonce does nothing
+func (cache *DisabledCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (cache *DisabledCache) IsInterfaceNil() bool {
 	return cache == nil
