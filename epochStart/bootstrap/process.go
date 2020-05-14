@@ -75,7 +75,6 @@ type epochStartBootstrap struct {
 	shardCoordinator           sharding.Coordinator
 	genesisNodesConfig         sharding.GenesisNodesSetupHandler
 	genesisShardCoordinator    sharding.Coordinator
-	pathManager                storage.PathManagerHandler
 	destinationShardAsObserver uint32
 	rater                      sharding.ChanceComputer
 	trieContainer              state.TriesHolder
@@ -545,7 +544,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	storageHandlerComponent, err := NewMetaStorageHandler(
 		e.generalConfig,
 		e.shardCoordinator,
-		e.pathManager,
+		e.coreComponentsHolder.PathHandler(),
 		e.coreComponentsHolder.InternalMarshalizer(),
 		e.coreComponentsHolder.Hasher(),
 		e.epochStartMeta.Epoch,
@@ -646,7 +645,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	storageHandlerComponent, err := NewShardStorageHandler(
 		e.generalConfig,
 		e.shardCoordinator,
-		e.pathManager,
+		e.coreComponentsHolder.PathHandler(),
 		e.coreComponentsHolder.InternalMarshalizer(),
 		e.coreComponentsHolder.Hasher(),
 		e.baseData.lastEpoch,
@@ -696,7 +695,7 @@ func (e *epochStartBootstrap) createTriesForNewShardId(shardId uint32) error {
 		SnapshotDbCfg:            e.generalConfig.TrieSnapshotDB,
 		Marshalizer:              e.coreComponentsHolder.InternalMarshalizer(),
 		Hasher:                   e.coreComponentsHolder.Hasher(),
-		PathManager:              e.pathManager,
+		PathManager:              e.coreComponentsHolder.PathHandler(),
 		ShardId:                  core.GetShardIdString(shardId),
 		TrieStorageManagerConfig: e.generalConfig.TrieStorageManagerConfig,
 	}

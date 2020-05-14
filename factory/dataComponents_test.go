@@ -44,17 +44,6 @@ func TestNewDataComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 	require.Equal(t, factory.ErrNilCoreComponents, err)
 }
 
-func TestNewDataComponentsFactory_NilPathManagerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getDataArgs()
-	args.PathManager = nil
-
-	dcf, err := factory.NewDataComponentsFactory(args)
-	require.Nil(t, dcf)
-	require.Equal(t, factory.ErrNilPathManager, err)
-}
-
 func TestNewDataComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -125,7 +114,6 @@ func getDataArgs() factory.DataComponentsFactoryArgs {
 		EconomicsData:      &economics.EconomicsData{},
 		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
 		Core:               coreComponents,
-		PathManager:        &mock.PathManagerStub{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		CurrentEpoch:       0,
 	}

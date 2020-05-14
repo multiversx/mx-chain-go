@@ -194,6 +194,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			Hash:                integrationTests.TestHasher,
 			UInt64ByteSliceConv: uint64Converter,
 			AddrPubKeyConv:      integrationTests.TestAddressPubkeyConverter,
+			PathHdl:             &mock.PathManagerStub{},
 			ChainIdCalled: func() string {
 				return string(integrationTests.ChainID)
 			},
@@ -205,11 +206,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
 		StorageUnitOpener:          &mock.UnitOpenerStub{},
 		GenesisNodesConfig:         nodesConfig,
-		PathManager:                &mock.PathManagerStub{},
-		WorkingDir:                 "test_directory",
-		DefaultDBPath:              "test_db",
-		DefaultEpochString:         "test_epoch",
-		DefaultShardString:         "test_shard",
 		Rater:                      &mock.RaterMock{},
 		DestinationShardAsObserver: shardID,
 		TrieContainer:              triesHolder,

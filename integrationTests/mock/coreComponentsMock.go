@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // CoreComponentsMock -
@@ -14,6 +15,7 @@ type CoreComponentsMock struct {
 	Hash                hashing.Hasher
 	UInt64ByteSliceConv typeConverters.Uint64ByteSliceConverter
 	AddrPubKeyConv      state.PubkeyConverter
+	PathHdl             storage.PathManagerHandler
 	ChainIdCalled       func() string
 }
 
@@ -40,6 +42,11 @@ func (ccm *CoreComponentsMock) Uint64ByteSliceConverter() typeConverters.Uint64B
 // AddressPubKeyConverter -
 func (ccm *CoreComponentsMock) AddressPubKeyConverter() state.PubkeyConverter {
 	return ccm.AddrPubKeyConv
+}
+
+// PathHander -
+func (ccm *CoreComponentsMock) PathHandler() storage.PathManagerHandler {
+	return ccm.PathHdl
 }
 
 // ChainID -

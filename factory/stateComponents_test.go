@@ -22,17 +22,6 @@ func TestNewStateComponentsFactory_NilGenesisConfigShouldErr(t *testing.T) {
 	require.Equal(t, factory.ErrNilGenesisConfiguration, err)
 }
 
-func TestNewStateComponentsFactory_NilPathManagerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getStateArgs()
-	args.PathManager = nil
-
-	scf, err := factory.NewStateComponentsFactory(args)
-	require.Nil(t, scf)
-	require.Equal(t, factory.ErrNilPathManager, err)
-}
-
 func TestNewStateComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -119,7 +108,6 @@ func getStateArgs() factory.StateComponentsFactoryArgs {
 		},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
 		GenesisConfig:    &sharding.Genesis{},
-		PathManager:      &mock.PathManagerStub{},
 		Core:             getCoreComponents(),
 		Tries:            getTriesComponents(),
 	}

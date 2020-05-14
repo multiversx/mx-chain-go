@@ -43,6 +43,7 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 			Hash:                &mock.HasherMock{},
 			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:      &mock.PubkeyConverterMock{},
+			PathHdl:             &mock.PathManagerStub{},
 		},
 		CryptoComponentsHolder: &mock.CryptoComponentsMock{
 			PubKey:   &mock.PublicKeyMock{},
@@ -63,11 +64,6 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 		EconomicsData:              &economics.EconomicsData{},
 		GenesisNodesConfig:         &mock.NodesSetupStub{},
 		GenesisShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
-		PathManager:                &mock.PathManagerStub{},
-		WorkingDir:                 "test_directory",
-		DefaultDBPath:              "test_db",
-		DefaultEpochString:         "test_epoch",
-		DefaultShardString:         "test_shard",
 		Rater:                      &mock.RaterStub{},
 		DestinationShardAsObserver: 0,
 		TrieContainer: &mock.TriesHolderMock{

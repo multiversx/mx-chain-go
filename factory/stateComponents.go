@@ -35,11 +35,11 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 	if args.GenesisConfig == nil {
 		return nil, ErrNilGenesisConfiguration
 	}
-	if check.IfNil(args.Core.PathHandler()) {
-		return nil, ErrNilPathManager
-	}
 	if args.Core == nil {
 		return nil, ErrNilCoreComponents
+	}
+	if check.IfNil(args.Core.PathHandler()) {
+		return nil, ErrNilPathManager
 	}
 	if args.Tries == nil {
 		return nil, ErrNilTriesComponents
