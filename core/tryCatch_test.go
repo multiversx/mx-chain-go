@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_TryCatch_WorksWhenNoError(t *testing.T) {
+func TestTryCatch_WorksWhenNoError(t *testing.T) {
 	tryCalled := false
 	catchCalled := false
 
@@ -25,7 +25,7 @@ func Test_TryCatch_WorksWhenNoError(t *testing.T) {
 	require.False(t, catchCalled)
 }
 
-func Test_TryCatch_CatchesRuntimeError(t *testing.T) {
+func TestTryCatch_CatchesRuntimeError(t *testing.T) {
 	var caughtError error
 
 	try := func() {
@@ -43,7 +43,7 @@ func Test_TryCatch_CatchesRuntimeError(t *testing.T) {
 	require.NotNil(t, caughtError)
 }
 
-func Test_TryCatch_CatchesCustomError(t *testing.T) {
+func TestTryCatch_CatchesCustomError(t *testing.T) {
 	var caughtError error
 
 	try := func() {
@@ -61,7 +61,7 @@ func Test_TryCatch_CatchesCustomError(t *testing.T) {
 	require.Contains(t, caughtError.Error(), "untyped error")
 }
 
-func Test_TryCatch_CatchesCustomErrorTyped(t *testing.T) {
+func TestTryCatch_CatchesCustomErrorTyped(t *testing.T) {
 	var caughtError error
 	customError := fmt.Errorf("error")
 
@@ -77,4 +77,46 @@ func Test_TryCatch_CatchesCustomErrorTyped(t *testing.T) {
 
 	require.NotNil(t, caughtError)
 	require.Equal(t, customError, caughtError)
+}
+
+func BenchmarkTryCatch(b *testing.B) {
+	var foo int
+
+	tryGoodFunction := func() {
+		foo = foo * 2
+	}
+
+	tryBadFunction := func() {
+		foo = 1 / foo
+	}
+
+	// ~1x
+	foo = 1
+	b.Run("no try-catch", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for j := 0; j < 1000000; j++ {
+				tryGoodFunction()
+			}
+		}
+	})
+
+	// ~20x (~15_000_000 calls per second on an average computer)
+	foo = 1
+	b.Run("optimistic (no panic)", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for j := 0; j < 1000000; j++ {
+				TryCatch(tryGoodFunction, func(err error) {}, "tried by failed")
+			}
+		}
+	})
+
+	// ~40x
+	foo = 0
+	b.Run("pesimistic (divide by zero)", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			for j := 0; j < 1000000; j++ {
+				TryCatch(tryBadFunction, func(err error) {}, "tried by failed")
+			}
+		}
+	})
 }
