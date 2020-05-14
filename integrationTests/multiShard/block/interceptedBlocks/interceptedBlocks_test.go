@@ -1,7 +1,6 @@
 package interceptedBlocks
 
 import (
-	"context"
 	"fmt"
 	"sync/atomic"
 	"testing"
@@ -31,7 +30,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	senderShard := uint32(0)
 	recvShards := []uint32{1, 2}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
@@ -96,7 +95,7 @@ func TestMetaHeadersAreRequsted(t *testing.T) {
 	}
 
 	maxShards := uint32(2)
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
@@ -180,7 +179,7 @@ func TestMetaHeadersAreRequestedByAMetachainNode(t *testing.T) {
 	}
 
 	maxShards := uint32(2)
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 

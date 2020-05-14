@@ -115,3 +115,6 @@ var ErrNilNodesSetup = errors.New("nil nodes setup")
 
 // ErrNilDeployProcessor signals that a nil deploy processor has been provided
 var ErrNilDeployProcessor = errors.New("nil deploy processor")
+
+// ErrNilTrieStorageManager signals that a nil trie storage manager has been provided
+var ErrNilTrieStorageManager = errors.New("nil trie storage manager")

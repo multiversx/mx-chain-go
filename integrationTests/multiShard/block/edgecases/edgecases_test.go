@@ -1,7 +1,6 @@
 package edgecases
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 	"testing"
@@ -31,7 +30,7 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
@@ -113,7 +112,7 @@ func TestMetaShouldBeAbleToProduceBlockInAVeryHighRoundAndStartOfEpoch(t *testin
 	nbShards := 1
 	consensusGroupSize := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)

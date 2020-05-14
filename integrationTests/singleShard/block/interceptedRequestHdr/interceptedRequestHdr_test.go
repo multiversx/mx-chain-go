@@ -153,6 +153,7 @@ func generateTwoHeaders(chainID []byte) (data.HeaderHandler, data.HeaderHandler)
 		RandSeed:         make([]byte, 1),
 		MiniBlockHeaders: nil,
 		ChainID:          chainID,
+		SoftwareVersion:  []byte("version"),
 	}
 
 	hdr2 := &block.Header{
@@ -170,6 +171,7 @@ func generateTwoHeaders(chainID []byte) (data.HeaderHandler, data.HeaderHandler)
 		RandSeed:         make([]byte, 1),
 		MiniBlockHeaders: nil,
 		ChainID:          chainID,
+		SoftwareVersion:  []byte("version"),
 	}
 
 	return hdr1, hdr2

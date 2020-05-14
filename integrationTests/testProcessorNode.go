@@ -1,10 +1,8 @@
 package integrationTests
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -135,6 +133,10 @@ const roundDuration = 5 * time.Second
 
 // ChainID is the chain ID identifier used in integration tests, processing nodes
 var ChainID = []byte("integration tests chain ID")
+
+// SoftwareVersion is the software version identifier used in integration tests, processing nodes
+var SoftwareVersion = []byte("integration tests")
+
 var testCommunityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
 
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
@@ -166,14 +168,15 @@ type TestProcessorNode struct {
 	OwnAccount *TestWalletAccount
 	NodeKeys   *TestKeyPair
 
-	ExportFolder  string
-	DataPool      dataRetriever.PoolsHolder
-	Storage       dataRetriever.StorageService
-	PeerState     state.AccountsAdapter
-	AccntState    state.AccountsAdapter
-	TrieContainer state.TriesHolder
-	BlockChain    data.ChainHandler
-	GenesisBlocks map[uint32]data.HeaderHandler
+	ExportFolder        string
+	DataPool            dataRetriever.PoolsHolder
+	Storage             dataRetriever.StorageService
+	PeerState           state.AccountsAdapter
+	AccntState          state.AccountsAdapter
+	TrieStorageManagers map[string]data.StorageManager
+	TrieContainer       state.TriesHolder
+	BlockChain          data.ChainHandler
+	GenesisBlocks       map[uint32]data.HeaderHandler
 
 	EconomicsData *economics.TestEconomicsData
 	RatingsData   *rating.RatingsData
@@ -309,7 +312,7 @@ func NewTestProcessorNode(
 		},
 	}
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	messenger := CreateMessengerWithKadDht(initialNodeAddr)
 	tpn := &TestProcessorNode{
 		ShardCoordinator:  shardCoordinator,
 		Messenger:         messenger,
@@ -338,7 +341,7 @@ func NewTestProcessorNode(
 func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, initialNodeAddr string, dPool dataRetriever.PoolsHolder) *TestProcessorNode {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	messenger := CreateMessengerWithKadDht(initialNodeAddr)
 	_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
 	nodesCoordinator := &mock.NodesCoordinatorMock{}
 	kg := &mock.KeyGenMock{}
@@ -371,14 +374,19 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 }
 
 func (tpn *TestProcessorNode) initAccountDBs() {
+	trieStorageManager, _ := CreateTrieStorageManager()
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie data.Trie
-	tpn.AccntState, stateTrie, _ = CreateAccountsDB(UserAccount)
+	tpn.AccntState, stateTrie = CreateAccountsDB(UserAccount, trieStorageManager)
 	tpn.TrieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
 
 	var peerTrie data.Trie
-	tpn.PeerState, peerTrie, _ = CreateAccountsDB(ValidatorAccount)
+	tpn.PeerState, peerTrie = CreateAccountsDB(ValidatorAccount, trieStorageManager)
 	tpn.TrieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
+
+	tpn.TrieStorageManagers = make(map[string]data.StorageManager)
+	tpn.TrieStorageManagers[trieFactory.UserAccountTrie] = trieStorageManager
+	tpn.TrieStorageManagers[trieFactory.PeerAccountTrie] = trieStorageManager
 }
 
 func (tpn *TestProcessorNode) initValidatorStatistics() {
@@ -396,11 +404,9 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		DataPool:            tpn.DataPool,
 		StorageService:      tpn.Storage,
 		Marshalizer:         TestMarshalizer,
-		StakeValue:          big.NewInt(500),
 		Rater:               rater,
 		MaxComputableRounds: 1000,
 		RewardsHandler:      tpn.EconomicsData,
-		StartEpoch:          0,
 		NodesSetup:          tpn.NodesSetup,
 	}
 
@@ -419,11 +425,11 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initValidatorStatistics()
-	rootHash, err := tpn.ValidatorStatisticsProcessor.RootHash()
-	fmt.Println("error", err)
 
 	tpn.GenesisBlocks = CreateGenesisBlocks(
 		tpn.AccntState,
+		tpn.PeerState,
+		tpn.TrieStorageManagers,
 		TestAddressPubkeyConverter,
 		tpn.NodesSetup,
 		tpn.ShardCoordinator,
@@ -434,7 +440,6 @@ func (tpn *TestProcessorNode) initTestNode() {
 		TestUint64Converter,
 		tpn.DataPool,
 		tpn.EconomicsData.EconomicsData,
-		rootHash,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
@@ -998,6 +1003,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				OwnerAddress:    "aaaaaa",
 			},
 		},
+		tpn.PeerState,
 	)
 
 	tpn.VMContainer, _ = vmFactory.Create()
@@ -1134,6 +1140,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		StateCheckpointModulus: stateCheckpointModulus,
 		BlockChain:             tpn.BlockChain,
 		BlockSizeThrottler:     TestBlockSizeThrottler,
+		Version:                string(SoftwareVersion),
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {

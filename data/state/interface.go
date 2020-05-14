@@ -55,8 +55,6 @@ type PeerAccountHandler interface {
 	SetBLSPublicKey([]byte) error
 	GetRewardAddress() []byte
 	SetRewardAddress([]byte) error
-	GetStake() *big.Int
-	SetStake(*big.Int) error
 	GetAccumulatedFees() *big.Int
 	AddToAccumulatedFees(*big.Int)
 	GetList() string

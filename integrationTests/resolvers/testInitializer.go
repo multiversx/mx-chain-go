@@ -60,6 +60,7 @@ func CreateShardHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte
 		EpochStartMetaHash: nil,
 		ReceiptsHash:       nil,
 		ChainID:            chainID,
+		SoftwareVersion:    []byte("version"),
 		MiniBlockHeaders:   make([]block.MiniBlockHeader, 0),
 		PeerChanges:        nil,
 		Epoch:              2,

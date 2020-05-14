@@ -106,7 +106,6 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 	}
 
 	trigggerStateKey := core.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
-
 	trig := &trigger{
 		triggerStateKey:             []byte(trigggerStateKey),
 		roundsPerEpoch:              uint64(args.Settings.RoundsPerEpoch),
@@ -244,12 +243,13 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 
 	t.currEpochStartRound = metaBlock.Round
 	t.epoch = metaBlock.Epoch
-	t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
-	t.epochStartNotifier.NotifyAll(metaBlock)
 	t.isEpochStart = false
 	t.currentRound = metaBlock.Round
 	t.epochStartMeta = metaBlock
 	t.epochStartMetaHash = metaHash
+
+	t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
+	t.epochStartNotifier.NotifyAll(metaBlock)
 
 	t.saveCurrentState(metaBlock.Round)
 

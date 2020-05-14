@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -299,7 +298,7 @@ func createConsensusOnlyNode(
 	testHasher := createHasher(consensusType)
 	testMarshalizer := &marshal.GogoProtoMarshalizer{}
 
-	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), initialAddr)
+	messenger := integrationTests.CreateMessengerWithKadDht(initialAddr)
 	rootHash := []byte("roothash")
 
 	blockChain := createTestBlockChain()
@@ -320,8 +319,9 @@ func createConsensusOnlyNode(
 		},
 		CreateNewHeaderCalled: func(round uint64, nonce uint64) data.HeaderHandler {
 			return &dataBlock.Header{
-				Round: round,
-				Nonce: nonce,
+				Round:           round,
+				Nonce:           nonce,
+				SoftwareVersion: []byte("version"),
 			}
 		},
 	}
