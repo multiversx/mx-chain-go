@@ -128,18 +128,17 @@ func (t *trigger) epochConfirmed(epoch uint32) {
 }
 
 // Trigger will start of the hardfork process
-func (t *trigger) Trigger() error {
+func (t *trigger) Trigger(epoch uint32) error {
 	if !t.enabled {
 		return update.ErrTriggerNotEnabled
 	}
 
-	currentEpoch := t.epochProvider.MetaEpoch()
 	t.mutTriggered.Lock()
 	t.triggered = true
-	t.epoch = currentEpoch
+	t.epoch = epoch
 	t.mutTriggered.Unlock()
 
-	t.doTrigger(currentEpoch)
+	t.doTrigger(epoch)
 
 	return nil
 }
@@ -293,10 +292,12 @@ func (t *trigger) RecordedTriggerMessage() ([]byte, bool) {
 }
 
 // CreateData creates a correct hardfork trigger message based on the identifier and the additional information
-func (t *trigger) CreateData(epoch uint32) []byte {
+func (t *trigger) CreateData() []byte {
+	t.mutTriggered.RLock()
 	payload := hardforkTriggerString +
 		dataSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", t.getTimestampHandler()))) +
-		dataSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", epoch)))
+		dataSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", t.epoch)))
+	t.mutTriggered.RUnlock()
 
 	return []byte(payload)
 }

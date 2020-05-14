@@ -2,7 +2,7 @@ package mock
 
 // HardforkTriggerStub -
 type HardforkTriggerStub struct {
-	TriggerCalled                func() error
+	TriggerCalled                func(epoch uint32) error
 	IsSelfTriggerCalled          func() bool
 	TriggerReceivedCalled        func(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessageCalled func() ([]byte, bool)
@@ -10,9 +10,9 @@ type HardforkTriggerStub struct {
 }
 
 // Trigger -
-func (hts *HardforkTriggerStub) Trigger() error {
+func (hts *HardforkTriggerStub) Trigger(epoch uint32) error {
 	if hts.TriggerCalled != nil {
-		return hts.TriggerCalled()
+		return hts.TriggerCalled(epoch)
 	}
 
 	return nil
