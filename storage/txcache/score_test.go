@@ -31,3 +31,55 @@ func BenchmarkScoreComputer_computeRawScore(b *testing.B) {
 		}
 	}
 }
+
+func TestScoreComputer_computeRawScoreOfTxListForSender(t *testing.T) {
+	computer := &scoreComputer{}
+	list := newUnconstrainedListToTest()
+
+	list.AddTx(createTxWithParams([]byte("a"), ".", 1, 1000, 200000, 100*oneBillion))
+	list.AddTx(createTxWithParams([]byte("b"), ".", 1, 500, 100000, 100*oneBillion))
+	list.AddTx(createTxWithParams([]byte("c"), ".", 1, 500, 100000, 100*oneBillion))
+
+	require.Equal(t, uint64(3), list.countTx())
+	require.Equal(t, int64(2000), list.totalBytes.Get())
+	require.Equal(t, int64(400000), list.totalGas.Get())
+	require.Equal(t, int64(40*oneMilion), list.totalFee.Get())
+
+	scoreParams := list.getScoreParams()
+	rawScore := computer.computeRawScore(scoreParams)
+	require.InDelta(t, float64(5.795382396), rawScore, delta)
+}
+
+func TestScoreComputer_scoreFluctuatesDeterministicallyWhileTxListForSenderMutates(t *testing.T) {
+	computer := &scoreComputer{}
+	list := newUnconstrainedListToTest()
+
+	A := createTxWithParams([]byte("A"), ".", 1, 1000, 200000, 100*oneBillion)
+	B := createTxWithParams([]byte("b"), ".", 1, 500, 100000, 100*oneBillion)
+	C := createTxWithParams([]byte("c"), ".", 1, 500, 100000, 100*oneBillion)
+
+	scoreNone := int(computer.computeScore(list.getScoreParams()))
+	list.AddTx(A)
+	scoreA := int(computer.computeScore(list.getScoreParams()))
+	list.AddTx(B)
+	scoreAB := int(computer.computeScore(list.getScoreParams()))
+	list.AddTx(C)
+	scoreABC := int(computer.computeScore(list.getScoreParams()))
+
+	require.Equal(t, 0, scoreNone)
+	require.Equal(t, 17, scoreA)
+	require.Equal(t, 8, scoreAB)
+	require.Equal(t, 5, scoreABC)
+
+	list.RemoveTx(C)
+	scoreAB = int(computer.computeScore(list.getScoreParams()))
+	list.RemoveTx(B)
+	scoreA = int(computer.computeScore(list.getScoreParams()))
+	list.RemoveTx(A)
+	scoreNone = int(computer.computeScore(list.getScoreParams()))
+
+	require.Equal(t, 0, scoreNone)
+	require.Equal(t, 17, scoreA)
+	require.Equal(t, 8, scoreAB)
+	require.Equal(t, 5, scoreABC)
+}
