@@ -360,9 +360,10 @@ func getCryptoArgs() factory.CryptoComponentsFactoryArgs {
 
 	args := factory.CryptoComponentsFactoryArgs{
 		Config: config.Config{
-			Consensus:      config.ConsensusConfig{Type: "bls", ChainID: "undefined"},
-			MultisigHasher: config.TypeConfig{Type: "blake2b"},
-			Hasher:         config.TypeConfig{Type: "blake2b"},
+			GeneralSettings: config.GeneralSettingsConfig{ChainID: "undefined"},
+			Consensus:       config.ConsensusConfig{Type: "bls"},
+			MultisigHasher:  config.TypeConfig{Type: "blake2b"},
+			Hasher:          config.TypeConfig{Type: "blake2b"},
 		},
 		SkIndex:                              0,
 		ValidatorKeyPemFileName:              "validatorKey.pem",

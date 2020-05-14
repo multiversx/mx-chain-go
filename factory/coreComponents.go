@@ -102,7 +102,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		validatorPubKeyConverter: validatorPubkeyConverter,
 		statusHandler:            statusHandler.NewNilStatusHandler(),
 		pathHandler:              pathHandler,
-		chainID:                  ccf.config.Consensus.ChainID,
+		chainID:                  ccf.config.GeneralSettings.ChainID,
 	}, nil
 }
 
@@ -110,7 +110,7 @@ func (ccf *coreComponentsFactory) createStorerTemplatePaths() (string, string) {
 	pathTemplateForPruningStorer := filepath.Join(
 		ccf.workingDir,
 		core.DefaultDBPath,
-		ccf.config.Consensus.ChainID,
+		ccf.config.GeneralSettings.ChainID,
 		fmt.Sprintf("%s_%s", core.DefaultEpochString, core.PathEpochPlaceholder),
 		fmt.Sprintf("%s_%s", core.DefaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
@@ -118,7 +118,7 @@ func (ccf *coreComponentsFactory) createStorerTemplatePaths() (string, string) {
 	pathTemplateForStaticStorer := filepath.Join(
 		ccf.workingDir,
 		core.DefaultDBPath,
-		ccf.config.Consensus.ChainID,
+		ccf.config.GeneralSettings.ChainID,
 		core.DefaultStaticDbString,
 		fmt.Sprintf("%s_%s", core.DefaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)

@@ -55,8 +55,7 @@ type MarshalizerConfig struct {
 }
 
 type ConsensusConfig struct {
-	Type    string `json:"type"`
-	ChainID string `json:"chainID"`
+	Type string `json:"type"`
 }
 
 // NTPConfig will hold the configuration for NTP queries
@@ -179,6 +178,7 @@ type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec int
 	MaxComputableRounds      uint64
 	StartInEpochEnabled      bool
+	ChainID                  string
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade

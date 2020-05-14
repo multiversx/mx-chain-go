@@ -236,6 +236,9 @@ func TestCoreComponentsFactory_CreateStorerTemplatePaths(t *testing.T) {
 func getCoreArgs() factory.CoreComponentsFactoryArgs {
 	return factory.CoreComponentsFactoryArgs{
 		Config: config.Config{
+			GeneralSettings: config.GeneralSettingsConfig{
+				ChainID: "undefined",
+			},
 			Marshalizer: config.MarshalizerConfig{
 				Type:           testMarshalizer,
 				SizeCheckDelta: 0,
@@ -260,8 +263,7 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				SignatureLength: 48,
 			},
 			Consensus: config.ConsensusConfig{
-				Type:    "bls",
-				ChainID: "undefined",
+				Type: "bls",
 			},
 		},
 		WorkingDirectory: "home",

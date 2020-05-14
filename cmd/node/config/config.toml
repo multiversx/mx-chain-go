@@ -11,6 +11,9 @@
    # available in local disk
    StartInEpochEnabled = true
 
+   # ChainID identifies the blockChain
+   ChainID = "undefined"
+
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
    Enabled = true
@@ -384,7 +387,6 @@
 # When consensus type is "bls" the multisig hasher type should be "blake2b"
 [Consensus]
    Type = "bls"
-   ChainID = "undefined"
 
 [NTPConfig]
    Hosts = ["time.google.com", "time.cloudflare.com",  "time.apple.com"]
