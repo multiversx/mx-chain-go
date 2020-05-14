@@ -133,9 +133,9 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 500, 100000, 100*oneBillion))
 	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 200, 100000, 700*oneBillion))
 
-	require.InDelta(t, float64(19.50394606), cache.getRawScoreOfSender("alice"), delta)
-	require.InDelta(t, float64(23.68494667), cache.getRawScoreOfSender("bob"), delta)
-	require.InDelta(t, float64(100), cache.getRawScoreOfSender("carol"), delta)
+	require.InDelta(t, float64(19), cache.getScoreOfSender("alice"), delta)
+	require.InDelta(t, float64(23), cache.getScoreOfSender("bob"), delta)
+	require.InDelta(t, float64(100), cache.getScoreOfSender("carol"), delta)
 
 	cache.doEviction()
 	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumTxs)

@@ -4,6 +4,9 @@ import (
 	"math"
 )
 
+var _ scoreComputer = (*defaultScoreComputer)(nil)
+var _ scoreComputer = (*disabledScoreComputer)(nil)
+
 // TODO: the score formula should not be sensitive to the order of magnitude of the minGasPrice.
 // TODO (continued): We should not rely on any order of magnitude known a priori.
 // TODO (continued): The score formula should work even if minGasPrice = 0.
@@ -79,4 +82,11 @@ func (computer *defaultScoreComputer) computeRawScore(params senderScoreParams) 
 	asymptoticScore := (1/(1+math.Exp(-rawScore)) - 0.5) * 2
 	score := asymptoticScore * float64(numberOfScoreChunks)
 	return score
+}
+
+type disabledScoreComputer struct {
+}
+
+func (computer *disabledScoreComputer) computeScore(scoreParams senderScoreParams) uint32 {
+	return 0
 }

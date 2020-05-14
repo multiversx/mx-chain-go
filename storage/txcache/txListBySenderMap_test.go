@@ -179,5 +179,5 @@ func newSendersMapToTest() txListBySenderMap {
 	return newTxListBySenderMap(4, senderConstraints{
 		maxNumBytes: math.MaxUint32,
 		maxNumTxs:   math.MaxUint32,
-	})
+	}, &disabledScoreComputer{})
 }
