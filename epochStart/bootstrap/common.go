@@ -52,8 +52,8 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.Rater) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilRater)
 	}
-	if args.TrieStorageManagers == nil {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilTrieStorageManager)
+	if len(args.TrieStorageManagers) == 0 {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilTrieStorageManagers)
 	}
 	if check.IfNil(args.TrieContainer) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilTriesContainer)
@@ -87,6 +87,12 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	}
 	if check.IfNil(args.NodeShuffler) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilShuffler)
+	}
+	if args.GeneralConfig.EpochStartConfig.MinNumOfPeersToConsiderBlockValid < minNumPeersToConsiderMetaBlockValid {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNotEnoughNumOfPeersToConsiderBlockValid)
+	}
+	if args.GeneralConfig.EpochStartConfig.MinNumConnectedPeersToStart < minNumConnectedPeers {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNotEnoughNumConnectedPeers)
 	}
 
 	return nil

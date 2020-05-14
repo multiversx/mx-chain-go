@@ -547,7 +547,8 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 	wrk.SetBlockProcessor(&mock.BlockProcessorMock{
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 			return &block.Header{
-				ChainID: chainID,
+				ChainID:         chainID,
+				SoftwareVersion: []byte("version"),
 			}
 		},
 		RevertAccountStateCalled: func(header data.HeaderHandler) {
