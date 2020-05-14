@@ -25,6 +25,9 @@ import (
 
 var _ close.Closer = (*Worker)(nil)
 
+// sleepTime defines the time in milliseconds between each iteration made in checkChannels method
+const sleepTime = 5 * time.Millisecond
+
 // Worker defines the data needed by spos to communicate between nodes which are in the validators group
 type Worker struct {
 	consensusService   ConsensusService
@@ -559,7 +562,7 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 			log.Debug("worker's go routine is stopping...")
 			return
 		case rcvDta = <-wrk.executeMessageChannel:
-		case <-time.After(time.Millisecond):
+		case <-time.After(sleepTime):
 			continue
 		}
 
