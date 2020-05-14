@@ -105,6 +105,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		blockChain:             arguments.BlockChain,
 		stateCheckpointModulus: arguments.StateCheckpointModulus,
 		genesisNonce:           genesisHdr.GetNonce(),
+		version:                core.TrimSoftwareVersion(arguments.Version),
 	}
 
 	mp := metaProcessor{
@@ -352,7 +353,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorsInfo)
+	err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorsInfo, header.Epoch)
 	if err != nil {
 		return err
 	}
@@ -705,7 +706,7 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 
-	err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorsInfo)
+	err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorsInfo, metaBlock.Epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -982,6 +983,8 @@ func (mp *metaProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
+
+	mp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
 
 	header, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
@@ -1301,11 +1304,9 @@ func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body
 func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
 		mp.epochStartTrigger.SetProcessed(header, body)
-		mp.store.SetEpochForPutOperation(header.GetEpoch())
 		go mp.epochRewardsCreator.SaveTxBlockToStorage(header, body)
 		go mp.validatorInfoCreator.SaveValidatorInfoBlocksToStorage(header, body)
 	} else {
-		mp.store.SetEpochForPutOperation(header.GetEpoch())
 		currentHeader := mp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
 			mp.epochStartTrigger.SetFinalityAttestingRound(header.GetRound())
@@ -1928,6 +1929,7 @@ func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) data.Header
 		AccumulatedFeesInEpoch: big.NewInt(0),
 		DeveloperFees:          big.NewInt(0),
 		DevFeesInEpoch:         big.NewInt(0),
+		SoftwareVersion:        []byte(mp.version),
 	}
 
 	mp.epochStartTrigger.Update(round, nonce)

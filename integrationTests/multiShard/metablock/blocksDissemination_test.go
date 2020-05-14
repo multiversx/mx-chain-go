@@ -1,7 +1,6 @@
 package metablock
 
 import (
-	"context"
 	"fmt"
 	"sync/atomic"
 	"testing"
@@ -21,7 +20,7 @@ func TestHeadersAreReceivedByMetachainAndShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	numOfShards := 1
@@ -78,7 +77,7 @@ func TestHeadersAreResolvedByMetachainAndShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	numOfShards := 1

@@ -67,6 +67,7 @@ type MultiFileWriter interface {
 	NewFile(name string) error
 	Write(fileName string, key string, value []byte) error
 	Finish()
+	CloseFile(fileName string)
 	IsInterfaceNil() bool
 }
 
@@ -75,6 +76,7 @@ type MultiFileReader interface {
 	GetFileNames() []string
 	ReadNextItem(fileName string) (string, []byte, error)
 	Finish()
+	CloseFile(fileName string)
 	IsInterfaceNil() bool
 }
 
@@ -115,12 +117,7 @@ type ImportHandler interface {
 
 // HardForkBlockProcessor defines the methods to process after hardfork
 type HardForkBlockProcessor interface {
-	CreateNewBlock(
-		chainID string,
-		round uint64,
-		nonce uint64,
-		epoch uint32,
-	) (data.HeaderHandler, data.BodyHandler, error)
+	CreateNewBlock(chainID string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, data.BodyHandler, error)
 	IsInterfaceNil() bool
 }
 

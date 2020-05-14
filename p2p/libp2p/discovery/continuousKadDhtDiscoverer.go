@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
 
@@ -105,24 +104,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) UpdateRandezVous(s string) error {
 	return ckdd.startDHT()
 }
 
-func (ckdd *ContinuousKadDhtDiscoverer) protocols() []protocol.ID {
-	return []protocol.ID{
-		protocol.ID(ckdd.randezVous),
-		opts.ProtocolDHT, //TODO remove this after we have a working seeder
-	}
-}
-
 func (ckdd *ContinuousKadDhtDiscoverer) startDHT() error {
-	defaultOptions := opts.Defaults
-	customOptions := func(opt *opts.Options) error {
-		err := defaultOptions(opt)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
 	ctxrun, cancel := context.WithCancel(ckdd.context)
 	var err error
 	ckdd.hostConnManagement, err = NewHostWithConnectionManagement(ckdd.host, ckdd.sharder)
@@ -131,7 +113,14 @@ func (ckdd *ContinuousKadDhtDiscoverer) startDHT() error {
 		return err
 	}
 
-	kademliaDHT, err := dht.New(ckdd.context, ckdd.hostConnManagement, opts.Protocols(ckdd.protocols()...), customOptions)
+	protocolID := protocol.ID(ckdd.randezVous)
+	kademliaDHT, err := dht.New(
+		ckdd.context,
+		ckdd.hostConnManagement,
+		dht.ProtocolPrefix(protocolID),
+		dht.RoutingTableRefreshPeriod(ckdd.routingTableRefresh),
+		dht.Mode(dht.ModeServer),
+	)
 	if err != nil {
 		cancel()
 		return err
@@ -152,9 +141,8 @@ func (ckdd *ContinuousKadDhtDiscoverer) stopDHT() error {
 	ckdd.refreshCancel()
 	ckdd.refreshCancel = nil
 
-	for _, p := range ckdd.protocols() {
-		ckdd.host.RemoveStreamHandler(p)
-	}
+	protocolID := protocol.ID(ckdd.randezVous)
+	ckdd.host.RemoveStreamHandler(protocolID)
 
 	err := ckdd.kadDHT.Close()
 
@@ -176,26 +164,23 @@ func (ckdd *ContinuousKadDhtDiscoverer) connectToInitialAndBootstrap(ctx context
 }
 
 func (ckdd *ContinuousKadDhtDiscoverer) bootstrap(ctx context.Context) {
-	cfg := dht.BootstrapConfig{
-		Period:  ckdd.peersRefreshInterval,
-		Queries: noOfQueries,
-		Timeout: peerDiscoveryTimeout,
-	}
-
+	log.Debug("starting the p2p bootstrapping process")
 	for {
 		ckdd.mutKadDht.RLock()
 		kadDht := ckdd.kadDHT
 		ckdd.mutKadDht.RUnlock()
 
-		shouldReconnect := kadDht != nil && kbucket.ErrLookupFailure == kadDht.BootstrapOnce(ctx, cfg)
+		shouldReconnect := kadDht != nil && kbucket.ErrLookupFailure == kadDht.Bootstrap(ckdd.context)
 		if shouldReconnect {
-			log.Debug("peer disconnected, retrying connection to seeder(s)")
+			log.Debug("pausing the p2p bootstrapping process")
 			<-ckdd.ReconnectToNetwork()
+			log.Debug("resuming the p2p bootstrapping process")
 		}
 
 		select {
 		case <-time.After(ckdd.peersRefreshInterval):
 		case <-ctx.Done():
+			log.Debug("closing the p2p bootstrapping process")
 			return
 		}
 	}
@@ -228,7 +213,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) tryConnectToSeeder(
 
 	for {
 		initialPeer := initialPeersList[startIndex]
-		err := ckdd.host.ConnectToPeer(ckdd.context, initialPeersList[startIndex])
+		err := ckdd.host.ConnectToPeer(ckdd.context, initialPeer)
 		if err != nil {
 			log.Debug("error connecting to seeder",
 				"seeder", initialPeer,
@@ -242,9 +227,11 @@ func (ckdd *ContinuousKadDhtDiscoverer) tryConnectToSeeder(
 			case <-time.After(intervalBetweenAttempts):
 				continue
 			}
+		} else {
+			log.Debug("connected to seeder", "address", initialPeer)
 		}
-		break
 
+		break
 	}
 	chanDone <- struct{}{}
 }

@@ -71,6 +71,10 @@ func (s *shardBlockCreator) CreateNewBlock(
 	nonce uint64,
 	epoch uint32,
 ) (data.HeaderHandler, data.BodyHandler, error) {
+	if len(chainID) == 0 {
+		return nil, nil, update.ErrEmptyChainID
+	}
+
 	blockBody, err := s.createBody()
 	if err != nil {
 		return nil, nil, err
@@ -87,6 +91,7 @@ func (s *shardBlockCreator) CreateNewBlock(
 		Round:           round,
 		Epoch:           epoch,
 		ChainID:         []byte(chainID),
+		SoftwareVersion: []byte(""),
 		RootHash:        rootHash,
 		RandSeed:        rootHash,
 		PrevHash:        rootHash,

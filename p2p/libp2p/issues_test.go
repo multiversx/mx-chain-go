@@ -2,7 +2,6 @@ package libp2p_test
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"sync/atomic"
 	"testing"
@@ -17,7 +16,6 @@ import (
 
 func createMessenger() p2p.Messenger {
 	args := libp2p.ArgsNetworkMessenger{
-		Context:       context.Background(),
 		ListenAddress: libp2p.ListenLocalhostAddrWithIp4AndTcp,
 		P2pConfig: config.P2PConfig{
 			Node: config.NodeConfig{},

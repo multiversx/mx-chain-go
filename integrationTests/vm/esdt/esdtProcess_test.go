@@ -1,7 +1,6 @@
 package esdt
 
 import (
-	"context"
 	"encoding/hex"
 	"math/big"
 	"testing"
@@ -26,7 +25,7 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(

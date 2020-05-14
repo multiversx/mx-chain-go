@@ -2,10 +2,12 @@ package config
 
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
-	Type        string `json:"type"`
-	Size        uint32 `json:"size"`
-	SizeInBytes uint32 `json:"sizeInBytes"`
-	Shards      uint32 `json:"shards"`
+	Type                 string `json:"type"`
+	Size                 uint32 `json:"size"`
+	SizePerSender        uint32 `json:"sizePerSender"`
+	SizeInBytes          uint32 `json:"sizeInBytes"`
+	SizeInBytesPerSender uint32 `json:"sizeInBytesPerSender"`
+	Shards               uint32 `json:"shards"`
 }
 
 //HeadersPoolConfig will map the headers cache configuration
@@ -271,12 +273,14 @@ type HardforkConfig struct {
 	EnableTriggerFromP2P  bool
 	PublicKeyToListenFrom string
 
-	MustImport   bool
-	ImportFolder string
-	StartRound   uint64
-	StartNonce   uint64
-	StartEpoch   uint32
+	MustImport bool
+	StartRound uint64
+	StartNonce uint64
+	StartEpoch uint32
 
+	ValidatorGracePeriodInEpochs uint32
+
+	ImportFolder             string
 	ExportStateStorageConfig StorageConfig
 	ImportStateStorageConfig StorageConfig
 }

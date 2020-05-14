@@ -2,7 +2,6 @@ package hardFork
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"math/big"
 	"os"
@@ -16,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -29,7 +27,7 @@ import (
 
 var log = logger.GetOrCreate("integrationTests/hardfork")
 
-func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
+func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -38,7 +36,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
@@ -101,7 +99,7 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	checkGenesisBlocksStateIsEqual(t, nodes)
 }
 
-func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *testing.T) {
+func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -110,7 +108,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
@@ -176,6 +174,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	defer func() {
 		for _, node := range nodes {
 			_ = os.RemoveAll(node.ExportFolder)
+			_ = os.RemoveAll("./Static")
 		}
 	}()
 
@@ -217,9 +216,6 @@ func hardForkImport(
 		defaults.FillGasMapInternal(gasSchedule, 1)
 		log.Warn("started import process")
 
-		trieStorageManager, _ := trie.NewTrieStorageManagerWithoutPruning(integrationTests.CreateMemUnit())
-		validatorsRoothash, _ := node.ValidatorStatisticsProcessor.RootHash()
-
 		argsGenesis := process.ArgsGenesisBlockCreator{
 			GenesisTime:              0,
 			StartEpochNum:            0,
@@ -234,7 +230,7 @@ func hardForkImport(
 			Hasher:                   integrationTests.TestHasher,
 			Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
 			DataPool:                 node.DataPool,
-			ValidatorStatsRootHash:   validatorsRoothash,
+			ValidatorAccounts:        node.PeerState,
 			GasMap:                   gasSchedule,
 			TxLogsProcessor:          &mock.TxLogsProcessorStub{},
 			VirtualMachineConfig:     config.VirtualMachineConfig{},
@@ -246,8 +242,8 @@ func hardForkImport(
 				StartRound:               1000,
 				ImportStateStorageConfig: *importStorageConfigs[id],
 			},
-			TrieStorageManager: trieStorageManager,
-			ChainID:            string(node.ChainID),
+			TrieStorageManagers: node.TrieStorageManagers,
+			ChainID:             string(node.ChainID),
 			SystemSCConfig: config.SystemSmartContractsConfig{
 				ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 					BaseIssuingCost: "1000",

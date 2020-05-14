@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -164,11 +163,13 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
-				Size:        100000,
-				SizeInBytes: 1000000000,
-				Shards:      1,
+				Size:                 100000,
+				SizePerSender:        1000,
+				SizeInBytes:          1000000000,
+				SizeInBytesPerSender: 10000000,
+				Shards:               16,
 			},
-			MinGasPrice:    100000000000000,
+			MinGasPrice:    200000000000,
 			NumberOfShards: 1,
 		},
 	)
@@ -299,7 +300,7 @@ func createConsensusOnlyNode(
 	testHasher := createHasher(consensusType)
 	testMarshalizer := &marshal.GogoProtoMarshalizer{}
 
-	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), initialAddr)
+	messenger := integrationTests.CreateMessengerWithKadDht(initialAddr)
 	rootHash := []byte("roothash")
 
 	blockChain := createTestBlockChain()
@@ -320,8 +321,9 @@ func createConsensusOnlyNode(
 		},
 		CreateNewHeaderCalled: func(round uint64, nonce uint64) data.HeaderHandler {
 			return &dataBlock.Header{
-				Round: round,
-				Nonce: nonce,
+				Round:           round,
+				Nonce:           nonce,
+				SoftwareVersion: []byte("version"),
 			}
 		},
 	}
