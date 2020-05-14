@@ -61,7 +61,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
-	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
@@ -69,17 +68,6 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
-)
-
-const (
-	defaultStatsPath             = "stats"
-	defaultLogsPath              = "logs"
-	defaultDBPath                = "db"
-	defaultEpochString           = "Epoch"
-	defaultStaticDbString        = "Static"
-	defaultShardString           = "Shard"
-	metachainShardName           = "metachain"
-	secondsToWaitForP2PBootstrap = 20
 )
 
 var (
@@ -538,7 +526,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating core components")
 
 	coreArgs := mainFactory.CoreComponentsHandlerArgs{
-		Config: *generalConfig,
+		Config:           *generalConfig,
+		WorkingDirectory: workingDir,
 	}
 	managedCoreComponents, err := mainFactory.NewManagedCoreComponents(coreArgs)
 	if err != nil {
@@ -636,28 +625,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	pathTemplateForPruningStorer := filepath.Join(
-		workingDir,
-		defaultDBPath,
-		managedCoreComponents.ChainID(),
-		fmt.Sprintf("%s_%s", defaultEpochString, core.PathEpochPlaceholder),
-		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
-		core.PathIdentifierPlaceholder)
-
-	pathTemplateForStaticStorer := filepath.Join(
-		workingDir,
-		defaultDBPath,
-		managedCoreComponents.ChainID(),
-		defaultStaticDbString,
-		fmt.Sprintf("%s_%s", defaultShardString, core.PathShardPlaceholder),
-		core.PathIdentifierPlaceholder)
-
-	var pathManager *pathmanager.PathManager
-	pathManager, err = pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer)
-	if err != nil {
-		return err
-	}
-
 	genesisShardCoordinator, nodeType, err := createShardCoordinator(genesisNodesConfig, managedCryptoComponents.PublicKey(), preferencesConfig.Preferences, log)
 	if err != nil {
 		return err
@@ -667,7 +634,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	triesArgs := mainFactory.TriesComponentsFactoryArgs{
 		Marshalizer:      managedCoreComponents.InternalMarshalizer(),
 		Hasher:           managedCoreComponents.Hasher(),
-		PathManager:      pathManager,
+		PathManager:      managedCoreComponents.PathHandler(),
 		ShardCoordinator: genesisShardCoordinator,
 		Config:           *generalConfig,
 	}
@@ -693,8 +660,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("waiting %d seconds for network discovery...", secondsToWaitForP2PBootstrap))
-	time.Sleep(secondsToWaitForP2PBootstrap * time.Second)
+	log.Info(fmt.Sprintf("waiting %d seconds for network discovery...", core.SecondsToWaitForP2PBootstrap))
+	time.Sleep(core.SecondsToWaitForP2PBootstrap * time.Second)
 
 	log.Trace("creating economics data components")
 	economicsData, err := economics.NewEconomicsData(economicsConfig)
@@ -756,9 +723,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		*generalConfig,
 		managedCoreComponents.ChainID(),
 		workingDir,
-		defaultDBPath,
-		defaultEpochString,
-		defaultShardString,
+		core.DefaultDBPath,
+		core.DefaultEpochString,
+		core.DefaultShardString,
 	)
 
 	unitOpener, err := factory.CreateUnitOpener(
@@ -768,9 +735,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		*generalConfig,
 		managedCoreComponents.ChainID(),
 		workingDir,
-		defaultDBPath,
-		defaultEpochString,
-		defaultShardString,
+		core.DefaultDBPath,
+		core.DefaultEpochString,
+		core.DefaultShardString,
 	)
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
@@ -781,12 +748,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		EconomicsData:              economicsData,
 		GenesisNodesConfig:         genesisNodesConfig,
 		GenesisShardCoordinator:    genesisShardCoordinator,
-		PathManager:                pathManager,
 		StorageUnitOpener:          unitOpener,
-		WorkingDir:                 workingDir,
-		DefaultDBPath:              defaultDBPath,
-		DefaultEpochString:         defaultEpochString,
-		DefaultShardString:         defaultShardString,
 		Rater:                      rater,
 		DestinationShardAsObserver: destShardIdAsObserver,
 		TrieContainer:              triesComponents.TriesContainer,
@@ -826,7 +788,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	logger.SetCorrelationShard(shardIdString)
 
 	log.Trace("initializing stats file")
-	err = initStatsFileMonitor(generalConfig, managedCryptoComponents.PublicKeyString(), log, workingDir, pathManager, shardId)
+	err = initStatsFileMonitor(
+		generalConfig,
+		managedCryptoComponents.PublicKeyString(),
+		log,
+		workingDir,
+		managedCoreComponents.PathHandler(),
+		shardId)
 	if err != nil {
 		return err
 	}
@@ -850,7 +818,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		EconomicsData:      economicsData,
 		ShardCoordinator:   shardCoordinator,
 		Core:               managedCoreComponents,
-		PathManager:        pathManager,
 		EpochStartNotifier: epochStartNotifier,
 		CurrentEpoch:       storerEpoch,
 	}
@@ -923,7 +890,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		GenesisConfig:    genesisConfig,
 		ShardCoordinator: shardCoordinator,
 		Core:             managedCoreComponents,
-		PathManager:      pathManager,
 		Tries:            triesComponents,
 	}
 	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)
@@ -962,7 +928,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 	}
 
-	statsFolder := filepath.Join(workingDir, defaultStatsPath)
+	statsFolder := filepath.Join(workingDir, core.DefaultStatsPath)
 	copyConfigToStatsFolder(
 		statsFolder,
 		[]string{
@@ -1312,7 +1278,7 @@ func cleanupStorageIfNecessary(workingDir string, ctx *cli.Context, log logger.L
 	if storageCleanupFlagValue {
 		dbPath := filepath.Join(
 			workingDir,
-			defaultDBPath)
+			core.DefaultDBPath)
 		log.Trace("cleaning storage", "path", dbPath)
 		err := os.RemoveAll(dbPath)
 		if err != nil {
@@ -1378,7 +1344,7 @@ func getWorkingDir(ctx *cli.Context, log logger.Logger) string {
 }
 
 func prepareLogFile(workingDir string) (*os.File, error) {
-	logDirectory := filepath.Join(workingDir, defaultLogsPath)
+	logDirectory := filepath.Join(workingDir, core.DefaultLogsPath)
 	fileForLog, err := core.CreateFile("elrond-go", logDirectory, "log")
 	if err != nil {
 		return nil, err
@@ -1548,7 +1514,7 @@ func createShardCoordinator(
 
 	var shardName string
 	if selfShardId == core.MetachainShardId {
-		shardName = metachainShardName
+		shardName = core.MetachainShardName
 	} else {
 		shardName = fmt.Sprintf("%d", selfShardId)
 	}
@@ -1681,7 +1647,7 @@ func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (ui
 	if len(destShard) == 0 {
 		return 0, errors.New("option DestinationShardAsObserver is not set in prefs.toml")
 	}
-	if destShard == metachainShardName {
+	if destShard == core.MetachainShardName {
 		return core.MetachainShardId, nil
 	}
 
@@ -1924,7 +1890,7 @@ func initStatsFileMonitor(
 	pathManager storage.PathManagerHandler,
 	shardId string,
 ) error {
-	statsFile, err := core.CreateFile(core.GetTrimmedPk(pubKeyString), filepath.Join(workingDir, defaultStatsPath), "txt")
+	statsFile, err := core.CreateFile(core.GetTrimmedPk(pubKeyString), filepath.Join(workingDir, core.DefaultStatsPath), "txt")
 	if err != nil {
 		return err
 	}

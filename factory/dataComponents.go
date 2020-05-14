@@ -12,7 +12,6 @@ import (
 	dataRetrieverFactory "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 )
 
@@ -22,7 +21,6 @@ type DataComponentsFactoryArgs struct {
 	EconomicsData      *economics.EconomicsData
 	ShardCoordinator   sharding.Coordinator
 	Core               CoreComponentsHolder
-	PathManager        storage.PathManagerHandler
 	EpochStartNotifier EpochStartNotifier
 	CurrentEpoch       uint32
 }
@@ -32,7 +30,6 @@ type dataComponentsFactory struct {
 	economicsData      *economics.EconomicsData
 	shardCoordinator   sharding.Coordinator
 	core               CoreComponentsHolder
-	pathManager        storage.PathManagerHandler
 	epochStartNotifier EpochStartNotifier
 	currentEpoch       uint32
 }
@@ -55,7 +52,7 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 	if check.IfNil(args.Core) {
 		return nil, ErrNilCoreComponents
 	}
-	if check.IfNil(args.PathManager) {
+	if check.IfNil(args.Core.PathHandler()) {
 		return nil, ErrNilPathManager
 	}
 	if check.IfNil(args.EpochStartNotifier) {
@@ -67,7 +64,6 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 		economicsData:      args.EconomicsData,
 		shardCoordinator:   args.ShardCoordinator,
 		core:               args.Core,
-		pathManager:        args.PathManager,
 		epochStartNotifier: args.EpochStartNotifier,
 		currentEpoch:       args.CurrentEpoch,
 	}, nil
@@ -131,7 +127,7 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 	storageServiceFactory, err := factory.NewStorageServiceFactory(
 		&dcf.config,
 		dcf.shardCoordinator,
-		dcf.pathManager,
+		dcf.core.PathHandler(),
 		dcf.epochStartNotifier,
 		dcf.currentEpoch,
 	)

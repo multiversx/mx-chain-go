@@ -9,7 +9,6 @@ import (
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 //TODO: merge this with data components
@@ -21,7 +20,6 @@ type StateComponentsFactoryArgs struct {
 	ShardCoordinator sharding.Coordinator
 	Core             CoreComponentsHolder
 	Tries            *TriesComponents
-	PathManager      storage.PathManagerHandler
 }
 
 type stateComponentsFactory struct {
@@ -30,7 +28,6 @@ type stateComponentsFactory struct {
 	shardCoordinator sharding.Coordinator
 	core             CoreComponentsHolder
 	tries            *TriesComponents
-	pathManager      storage.PathManagerHandler
 }
 
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory
@@ -38,7 +35,7 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 	if args.GenesisConfig == nil {
 		return nil, ErrNilGenesisConfiguration
 	}
-	if check.IfNil(args.PathManager) {
+	if check.IfNil(args.Core.PathHandler()) {
 		return nil, ErrNilPathManager
 	}
 	if args.Core == nil {
@@ -56,7 +53,6 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 		genesisConfig:    args.GenesisConfig,
 		core:             args.Core,
 		tries:            args.Tries,
-		pathManager:      args.PathManager,
 		shardCoordinator: args.ShardCoordinator,
 	}, nil
 }

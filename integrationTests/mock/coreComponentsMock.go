@@ -27,7 +27,7 @@ func (ccm *CoreComponentsMock) TxMarshalizer() marshal.Marshalizer {
 	return ccm.TxMarsh
 }
 
-// Hasher -
+// hasher -
 func (ccm *CoreComponentsMock) Hasher() hashing.Hasher {
 	return ccm.Hash
 }

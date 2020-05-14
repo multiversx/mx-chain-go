@@ -28,7 +28,7 @@ type ConsensusCoreHandler interface {
 	Chronology() consensus.ChronologyHandler
 	// GetAntiFloodHandler returns the antiflood handler which will be used in subrounds
 	GetAntiFloodHandler() consensus.P2PAntifloodHandler
-	// Hasher gets the Hasher stored in the ConsensusCore
+	// hasher gets the hasher stored in the ConsensusCore
 	Hasher() hashing.Hasher
 	// Marshalizer gets the Marshalizer stored in the ConsensusCore
 	Marshalizer() marshal.Marshalizer

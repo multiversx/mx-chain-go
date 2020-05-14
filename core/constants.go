@@ -386,3 +386,27 @@ const SleepTimeBetweenCreateDBRetries = 5 * time.Second
 
 // ElrondProtectedKeyPrefix is the key prefix which is protected from writing in the trie - only for special builtin functions
 const ElrondProtectedKeyPrefix = "ELROND"
+
+// DefaultStatsPath is the default path where the node stats are logged
+const DefaultStatsPath = "stats"
+
+// DefaultLogsPath is the default path for the node logs
+const DefaultLogsPath = "logs"
+
+// DefaultDBPath is the default path for nodes databases
+const DefaultDBPath = "db"
+
+// DefaultEpochString is the default folder root name for node per epoch databases
+const DefaultEpochString = "Epoch"
+
+// DefaultStaticDbString is the default name for the static databases (not changing with epoch)
+const DefaultStaticDbString = "Static"
+
+// DefaultShardString is the default folder root name for per shard databases
+const DefaultShardString = "Shard"
+
+// MetachainShardName is the string identifier of the metachain shard
+const MetachainShardName = "metachain"
+
+// SecondsToWaitForP2PBootstrap is the wait time for the P2P to bootstrap
+const SecondsToWaitForP2PBootstrap = 20

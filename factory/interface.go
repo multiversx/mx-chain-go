@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
@@ -62,6 +63,7 @@ type CoreComponentsHolder interface {
 	ValidatorPubKeyConverter() state.PubkeyConverter
 	StatusHandler() core.AppStatusHandler
 	SetStatusHandler(statusHandler core.AppStatusHandler) error
+	PathHandler() storage.PathManagerHandler
 	ChainID() string
 	IsInterfaceNil() bool
 }

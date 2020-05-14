@@ -10,9 +10,6 @@ import (
 const baseErrorMessage = "error with epoch start bootstrapper arguments"
 
 func checkArguments(args ArgsEpochStartBootstrap) error {
-	if check.IfNil(args.PathManager) {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilPathManager)
-	}
 	if check.IfNil(args.GenesisShardCoordinator) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilShardCoordinator)
 	}
@@ -52,6 +49,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.CoreComponentsHolder.TxMarshalizer()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilTxSignMarshalizer)
 	}
+	if check.IfNil(args.CoreComponentsHolder.PathHandler()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilPathManager)
+	}
 	if args.GenesisNodesConfig == nil {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilGenesisNodesConfig)
 	}
@@ -64,20 +64,8 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.TrieContainer) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilTriesContainer)
 	}
-	if len(args.DefaultDBPath) == 0 {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidDefaultDBPath)
-	}
 	if check.IfNil(args.CoreComponentsHolder.AddressPubKeyConverter()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilPubkeyConverter)
-	}
-	if len(args.DefaultEpochString) == 0 {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidDefaultEpochString)
-	}
-	if len(args.DefaultShardString) == 0 {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidDefaultShardString)
-	}
-	if len(args.WorkingDir) == 0 {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidWorkingDir)
 	}
 	if check.IfNil(args.Rounder) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilRounder)

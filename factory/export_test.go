@@ -5,6 +5,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
+// CreateStorerTemplatePaths -
+func (ccf *coreComponentsFactory) CreateStorerTemplatePaths() (string, string) {
+	return ccf.createStorerTemplatePaths()
+}
+
 // GetSkPk -
 func (ccf *cryptoComponentsFactory) GetSkPk() ([]byte, []byte, error) {
 	return ccf.getSkPk()

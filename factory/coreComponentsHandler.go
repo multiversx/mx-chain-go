@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var _ ComponentHandler = (*managedCoreComponents)(nil)
@@ -55,7 +56,7 @@ func (mcc *managedCoreComponents) Create() error {
 // Close closes the managed core components
 func (mcc *managedCoreComponents) Close() error {
 	mcc.mutCoreComponents.Lock()
-	mcc.coreComponents.StatusHandler.Close()
+	mcc.coreComponents.statusHandler.Close()
 	mcc.cancelFunc()
 	mcc.cancelFunc = nil
 	mcc.coreComponents = nil
@@ -73,7 +74,7 @@ func (mcc *managedCoreComponents) InternalMarshalizer() marshal.Marshalizer {
 		return nil
 	}
 
-	return mcc.coreComponents.InternalMarshalizer
+	return mcc.coreComponents.internalMarshalizer
 }
 
 // TxMarshalizer returns the core components tx marshalizer
@@ -85,7 +86,7 @@ func (mcc *managedCoreComponents) TxMarshalizer() marshal.Marshalizer {
 		return nil
 	}
 
-	return mcc.coreComponents.TxSignMarshalizer
+	return mcc.coreComponents.txSignMarshalizer
 }
 
 // VmMarshalizer returns the core components vm marshalizer
@@ -97,7 +98,7 @@ func (mcc *managedCoreComponents) VmMarshalizer() marshal.Marshalizer {
 		return nil
 	}
 
-	return mcc.coreComponents.VmMarshalizer
+	return mcc.coreComponents.vmMarshalizer
 }
 
 // Hasher returns the core components Hasher
@@ -109,7 +110,7 @@ func (mcc *managedCoreComponents) Hasher() hashing.Hasher {
 		return nil
 	}
 
-	return mcc.coreComponents.Hasher
+	return mcc.coreComponents.hasher
 }
 
 // Uint64ByteSliceConverter returns the core component converter between a byte slice and uint64
@@ -121,7 +122,7 @@ func (mcc *managedCoreComponents) Uint64ByteSliceConverter() typeConverters.Uint
 		return nil
 	}
 
-	return mcc.coreComponents.Uint64ByteSliceConverter
+	return mcc.coreComponents.uint64ByteSliceConverter
 }
 
 // AddressPubKeyConverter returns the address to public key converter
@@ -157,7 +158,7 @@ func (mcc *managedCoreComponents) StatusHandler() core.AppStatusHandler {
 		return nil
 	}
 
-	return mcc.coreComponents.StatusHandler
+	return mcc.coreComponents.statusHandler
 }
 
 // SetStatusHandler allows the change of the status handler
@@ -173,9 +174,21 @@ func (mcc *managedCoreComponents) SetStatusHandler(statusHandler core.AppStatusH
 		return ErrNilCoreComponents
 	}
 
-	mcc.coreComponents.StatusHandler = statusHandler
+	mcc.coreComponents.statusHandler = statusHandler
 
 	return nil
+}
+
+// PathHandler returns the core components path handler
+func (mcc *managedCoreComponents) PathHandler() storage.PathManagerHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.pathHandler
 }
 
 // ChainID returns the core components chainID
@@ -187,7 +200,7 @@ func (mcc *managedCoreComponents) ChainID() string {
 		return ""
 	}
 
-	return mcc.coreComponents.ChainID
+	return mcc.coreComponents.chainID
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

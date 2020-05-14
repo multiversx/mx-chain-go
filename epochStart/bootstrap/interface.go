@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // StartOfEpochNodesConfigHandler defines the methods to process nodesConfig from epoch start metablocks
@@ -69,6 +70,7 @@ type BootstrapCoreComponentsHolder interface {
 	Hasher() hashing.Hasher
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	AddressPubKeyConverter() state.PubkeyConverter
+	PathHandler() storage.PathManagerHandler
 	ChainID() string
 	IsInterfaceNil() bool
 }

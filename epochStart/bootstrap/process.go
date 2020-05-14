@@ -76,10 +76,6 @@ type epochStartBootstrap struct {
 	genesisNodesConfig         sharding.GenesisNodesSetupHandler
 	genesisShardCoordinator    sharding.Coordinator
 	pathManager                storage.PathManagerHandler
-	workingDir                 string
-	defaultDBPath              string
-	defaultEpochString         string
-	defaultShardString         string
 	destinationShardAsObserver uint32
 	rater                      sharding.ChanceComputer
 	trieContainer              state.TriesHolder
@@ -125,17 +121,12 @@ type ArgsEpochStartBootstrap struct {
 	CoreComponentsHolder       BootstrapCoreComponentsHolder
 	CryptoComponentsHolder     BootstrapCryptoComponentsHolder
 	DestinationShardAsObserver uint32
-	WorkingDir                 string
-	DefaultDBPath              string
-	DefaultEpochString         string
-	DefaultShardString         string
 	TrieStorageManagers        map[string]data.StorageManager
 	Messenger                  Messenger
 	GeneralConfig              config.Config
 	EconomicsData              *economics.EconomicsData
 	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
 	GenesisShardCoordinator    sharding.Coordinator
-	PathManager                storage.PathManagerHandler
 	StorageUnitOpener          storage.UnitOpenerHandler
 	LatestStorageDataProvider  storage.LatestStorageDataProviderHandler
 	Rater                      sharding.ChanceComputer
@@ -159,11 +150,6 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		economicsData:              args.EconomicsData,
 		genesisNodesConfig:         args.GenesisNodesConfig,
 		genesisShardCoordinator:    args.GenesisShardCoordinator,
-		workingDir:                 args.WorkingDir,
-		pathManager:                args.PathManager,
-		defaultEpochString:         args.DefaultEpochString,
-		defaultDBPath:              args.DefaultDBPath,
-		defaultShardString:         args.DefaultShardString,
 		rater:                      args.Rater,
 		destinationShardAsObserver: args.DestinationShardAsObserver,
 		trieContainer:              args.TrieContainer,
