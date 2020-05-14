@@ -6,10 +6,10 @@ import (
 )
 
 type adapterTxCacheToSortedTransactionsProvider struct {
-	txCache *txcache.TxCache
+	txCache TxCache
 }
 
-func newAdapterTxCacheToSortedTransactionsProvider(txCache *txcache.TxCache) *adapterTxCacheToSortedTransactionsProvider {
+func newAdapterTxCacheToSortedTransactionsProvider(txCache TxCache) *adapterTxCacheToSortedTransactionsProvider {
 	adapter := &adapterTxCacheToSortedTransactionsProvider{
 		txCache: txCache,
 	}
