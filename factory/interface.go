@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
@@ -113,4 +114,19 @@ type DataComponentsHolder interface {
 type DataComponentsHandler interface {
 	ComponentHandler
 	DataComponentsHolder
+}
+
+// NetworkComponentsHolder holds the network components
+type NetworkComponentsHolder interface {
+	NetworkMessenger() p2p.Messenger
+	InputAntiFloodHandler() P2PAntifloodHandler
+	OutputAntiFloodHandler() P2PAntifloodHandler
+	PeerBlackListHandler() process.BlackListHandler
+	IsInterfaceNil() bool
+}
+
+// NetworkComponentsHandler defines the network components handler actions
+type NetworkComponentsHandler interface {
+	ComponentHandler
+	NetworkComponentsHolder
 }

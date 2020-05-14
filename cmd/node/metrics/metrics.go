@@ -128,14 +128,14 @@ func SaveStringMetric(ash core.AppStatusHandler, key, value string) {
 func StartStatusPolling(
 	ash core.AppStatusHandler,
 	pollingInterval time.Duration,
-	networkComponents *mainFactory.NetworkComponents,
+	networkComponents mainFactory.NetworkComponentsHolder,
 	processComponents *factory.Process,
 	shardCoordinator sharding.Coordinator,
 ) error {
 	if ash == nil {
 		return errors.New("nil AppStatusHandler")
 	}
-	if networkComponents == nil {
+	if check.IfNil(networkComponents) {
 		return errors.New("nil networkComponents")
 	}
 	if processComponents == nil {
@@ -172,7 +172,7 @@ func StartStatusPolling(
 
 func registerPollConnectedPeers(
 	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
-	networkComponents *mainFactory.NetworkComponents,
+	networkComponents mainFactory.NetworkComponentsHolder,
 ) error {
 
 	p2pMetricsHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
@@ -211,17 +211,17 @@ func registerShardsInformation(
 
 func computeNumConnectedPeers(
 	appStatusHandler core.AppStatusHandler,
-	networkComponents *mainFactory.NetworkComponents,
+	networkComponents mainFactory.NetworkComponentsHolder,
 ) {
-	numOfConnectedPeers := uint64(len(networkComponents.NetMessenger.ConnectedAddresses()))
+	numOfConnectedPeers := uint64(len(networkComponents.NetworkMessenger().ConnectedAddresses()))
 	appStatusHandler.SetUInt64Value(core.MetricNumConnectedPeers, numOfConnectedPeers)
 }
 
 func computeConnectedPeers(
 	appStatusHandler core.AppStatusHandler,
-	networkComponents *mainFactory.NetworkComponents,
+	networkComponents mainFactory.NetworkComponentsHolder,
 ) {
-	peersInfo := networkComponents.NetMessenger.GetConnectedPeersInfo()
+	peersInfo := networkComponents.NetworkMessenger().GetConnectedPeersInfo()
 
 	peerClassification := fmt.Sprintf("intraVal:%d,crossVal:%d,intraObs:%d,crossObs:%d,unknown:%d,",
 		len(peersInfo.IntraShardValidators),
@@ -256,9 +256,9 @@ func sliceToString(input []string) string {
 
 func setCurrentP2pNodeAddresses(
 	appStatusHandler core.AppStatusHandler,
-	networkComponents *mainFactory.NetworkComponents,
+	networkComponents mainFactory.NetworkComponentsHolder,
 ) {
-	appStatusHandler.SetStringValue(core.MetricP2PPeerInfo, sliceToString(networkComponents.NetMessenger.Addresses()))
+	appStatusHandler.SetStringValue(core.MetricP2PPeerInfo, sliceToString(networkComponents.NetworkMessenger().Addresses()))
 }
 
 func registerPollProbableHighestNonce(

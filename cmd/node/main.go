@@ -648,15 +648,22 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating network components")
-	networkComponentFactory, err := mainFactory.NewNetworkComponentsFactory(*p2pConfig, *generalConfig, managedCoreComponents.StatusHandler())
+	args := mainFactory.NetworkComponentsHandlerArgs{
+		P2pConfig:     *p2pConfig,
+		MainConfig:    *generalConfig,
+		StatusHandler: managedCoreComponents.StatusHandler(),
+	}
+
+	managedNetworkComponents, err := mainFactory.NewManagedNetworkComponents(args)
 	if err != nil {
 		return err
 	}
-	networkComponents, err := networkComponentFactory.Create()
+	err = managedNetworkComponents.Create()
 	if err != nil {
 		return err
 	}
-	err = networkComponents.NetMessenger.Bootstrap()
+
+	err = managedNetworkComponents.NetworkMessenger().Bootstrap()
 	if err != nil {
 		return err
 	}
@@ -743,7 +750,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:       managedCoreComponents,
 		CryptoComponentsHolder:     managedCryptoComponents,
-		Messenger:                  networkComponents.NetMessenger,
+		Messenger:                  managedNetworkComponents.NetworkMessenger(),
 		GeneralConfig:              *generalConfig,
 		EconomicsData:              economicsData,
 		GenesisNodesConfig:         genesisNodesConfig,
@@ -1023,7 +1030,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		managedCoreComponents,
 		managedCryptoComponents,
 		stateComponents,
-		networkComponents,
+		managedNetworkComponents,
 		triesComponents,
 		coreServiceContainer,
 		requestedItemsHandler,
@@ -1074,7 +1081,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		dataComponents,
 		managedCryptoComponents,
 		processComponents,
-		networkComponents,
+		managedNetworkComponents,
 		ctx.GlobalUint64(bootstrapRoundIndex.Name),
 		version,
 		elasticIndexer,
@@ -1128,7 +1135,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	err = metrics.StartStatusPolling(
 		currentNode.GetAppStatusHandler(),
 		statusPollingInterval,
-		networkComponents,
+		managedNetworkComponents,
 		processComponents,
 		shardCoordinator,
 	)
@@ -1202,7 +1209,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Info("closing network connections...")
-	err = networkComponents.NetMessenger.Close()
+	err = managedNetworkComponents.NetworkMessenger().Close()
 	log.LogIfError(err)
 
 	handleAppClose(log, sig)
@@ -1723,7 +1730,7 @@ func createNode(
 	data *mainFactory.DataComponents,
 	crypto mainFactory.CryptoComponentsHolder,
 	process *factory.Process,
-	network *mainFactory.NetworkComponents,
+	network mainFactory.NetworkComponentsHolder,
 	bootstrapRoundIndex uint64,
 	version string,
 	indexer indexer.Indexer,
@@ -1784,7 +1791,7 @@ func createNode(
 
 	var nd *node.Node
 	nd, err = node.NewNode(
-		node.WithMessenger(network.NetMessenger),
+		node.WithMessenger(network.NetworkMessenger()),
 		node.WithHasher(coreData.Hasher()),
 		node.WithInternalMarshalizer(coreData.InternalMarshalizer(), config.Marshalizer.SizeCheckDelta),
 		node.WithVmMarshalizer(coreData.VmMarshalizer()),
@@ -1823,7 +1830,7 @@ func createNode(
 		node.WithEpochStartTrigger(process.EpochStartTrigger),
 		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
 		node.WithBlockBlackListHandler(process.BlackListHandler),
-		node.WithPeerBlackListHandler(network.PeerBlackListHandler),
+		node.WithPeerBlackListHandler(network.PeerBlackListHandler()),
 		node.WithNetworkShardingCollector(networkShardingCollector),
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
@@ -1833,7 +1840,7 @@ func createNode(
 		node.WithChainID([]byte(coreData.ChainID())),
 		node.WithBlockTracker(process.BlockTracker),
 		node.WithRequestHandler(process.RequestHandler),
-		node.WithInputAntifloodHandler(network.InputAntifloodHandler),
+		node.WithInputAntifloodHandler(network.InputAntiFloodHandler()),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithWhiteListHandler(whiteListRequest),

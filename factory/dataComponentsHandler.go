@@ -71,7 +71,7 @@ func (mdc *managedDataComponents) Blockchain() data.ChainHandler {
 		return nil
 	}
 
-	return mdc.DataComponents.Blkc
+	return mdc.Blkc
 }
 
 // StorageService returns the storage service
@@ -83,7 +83,7 @@ func (mdc *managedDataComponents) StorageService() dataRetriever.StorageService 
 		return nil
 	}
 
-	return mdc.DataComponents.Store
+	return mdc.Store
 }
 
 // Datapool returns the Datapool

@@ -116,7 +116,7 @@ type processComponentsFactoryArgs struct {
 	coreData                  mainFactory.CoreComponentsHolder
 	crypto                    mainFactory.CryptoComponentsHolder
 	state                     *mainFactory.StateComponents
-	network                   *mainFactory.NetworkComponents
+	network                   mainFactory.NetworkComponentsHolder
 	tries                     *mainFactory.TriesComponents
 	coreServiceContainer      serviceContainer.Core
 	requestedItemsHandler     dataRetriever.RequestedItemsHandler
@@ -152,7 +152,7 @@ func NewProcessComponentsFactoryArgs(
 	coreData mainFactory.CoreComponentsHolder,
 	crypto mainFactory.CryptoComponentsHolder,
 	state *mainFactory.StateComponents,
-	network *mainFactory.NetworkComponents,
+	network mainFactory.NetworkComponentsHolder,
 	tries *mainFactory.TriesComponents,
 	coreServiceContainer serviceContainer.Core,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
@@ -572,7 +572,7 @@ func newInterceptorContainerFactory(
 	coreData mainFactory.CoreComponentsHolder,
 	crypto mainFactory.CryptoComponentsHolder,
 	state *mainFactory.StateComponents,
-	network *mainFactory.NetworkComponents,
+	network mainFactory.NetworkComponentsHolder,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
@@ -625,7 +625,7 @@ func newResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	data *mainFactory.DataComponents,
 	coreData mainFactory.CoreComponentsHolder,
-	network *mainFactory.NetworkComponents,
+	network mainFactory.NetworkComponentsHolder,
 	tries *mainFactory.TriesComponents,
 	sizeCheckDelta uint32,
 	numConcurrentResolverJobs int32,
@@ -664,7 +664,7 @@ func newShardInterceptorContainerFactory(
 	dataCore mainFactory.CoreComponentsHolder,
 	crypto mainFactory.CryptoComponentsHolder,
 	state *mainFactory.StateComponents,
-	network *mainFactory.NetworkComponents,
+	network mainFactory.NetworkComponentsHolder,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
 	sizeCheckDelta uint32,
@@ -678,7 +678,7 @@ func newShardInterceptorContainerFactory(
 		Accounts:               state.AccountsAdapter,
 		ShardCoordinator:       shardCoordinator,
 		NodesCoordinator:       nodesCoordinator,
-		Messenger:              network.NetMessenger,
+		Messenger:              network.NetworkMessenger(),
 		Store:                  data.Store,
 		ProtoMarshalizer:       dataCore.InternalMarshalizer(),
 		TxSignMarshalizer:      dataCore.TxMarshalizer(),
@@ -700,7 +700,7 @@ func newShardInterceptorContainerFactory(
 		EpochStartTrigger:      epochStartTrigger,
 		WhiteListHandler:       whiteListHandler,
 		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
-		AntifloodHandler:       network.InputAntifloodHandler,
+		AntifloodHandler:       network.InputAntiFloodHandler(),
 		NonceConverter:         dataCore.Uint64ByteSliceConverter(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
@@ -717,7 +717,7 @@ func newMetaInterceptorContainerFactory(
 	data *mainFactory.DataComponents,
 	dataCore mainFactory.CoreComponentsHolder,
 	crypto mainFactory.CryptoComponentsHolder,
-	network *mainFactory.NetworkComponents,
+	network mainFactory.NetworkComponentsHolder,
 	state *mainFactory.StateComponents,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
@@ -731,7 +731,7 @@ func newMetaInterceptorContainerFactory(
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
 		ShardCoordinator:       shardCoordinator,
 		NodesCoordinator:       nodesCoordinator,
-		Messenger:              network.NetMessenger,
+		Messenger:              network.NetworkMessenger(),
 		Store:                  data.Store,
 		ProtoMarshalizer:       dataCore.InternalMarshalizer(),
 		TxSignMarshalizer:      dataCore.TxMarshalizer(),
@@ -754,7 +754,7 @@ func newMetaInterceptorContainerFactory(
 		EpochStartTrigger:      epochStartTrigger,
 		WhiteListHandler:       whiteListHandler,
 		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
-		AntifloodHandler:       network.InputAntifloodHandler,
+		AntifloodHandler:       network.InputAntiFloodHandler(),
 		NonceConverter:         dataCore.Uint64ByteSliceConverter(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
@@ -769,7 +769,7 @@ func newShardResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	data *mainFactory.DataComponents,
 	core mainFactory.CoreComponentsHolder,
-	network *mainFactory.NetworkComponents,
+	network mainFactory.NetworkComponentsHolder,
 	tries *mainFactory.TriesComponents,
 	sizeCheckDelta uint32,
 	numConcurrentResolverJobs int32,
@@ -782,7 +782,7 @@ func newShardResolverContainerFactory(
 
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:           shardCoordinator,
-		Messenger:                  network.NetMessenger,
+		Messenger:                  network.NetworkMessenger(),
 		Store:                      data.Store,
 		Marshalizer:                core.InternalMarshalizer(),
 		DataPools:                  data.Datapool,
@@ -790,8 +790,8 @@ func newShardResolverContainerFactory(
 		DataPacker:                 dataPacker,
 		TriesContainer:             tries.TriesContainer,
 		SizeCheckDelta:             sizeCheckDelta,
-		InputAntifloodHandler:      network.InputAntifloodHandler,
-		OutputAntifloodHandler:     network.OutputAntifloodHandler,
+		InputAntifloodHandler:      network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:     network.OutputAntiFloodHandler(),
 		NumConcurrentResolvingJobs: numConcurrentResolverJobs,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
@@ -806,7 +806,7 @@ func newMetaResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	data *mainFactory.DataComponents,
 	core mainFactory.CoreComponentsHolder,
-	network *mainFactory.NetworkComponents,
+	network mainFactory.NetworkComponentsHolder,
 	tries *mainFactory.TriesComponents,
 	sizeCheckDelta uint32,
 	numConcurrentResolverJobs int32,
@@ -818,7 +818,7 @@ func newMetaResolverContainerFactory(
 
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:           shardCoordinator,
-		Messenger:                  network.NetMessenger,
+		Messenger:                  network.NetworkMessenger(),
 		Store:                      data.Store,
 		Marshalizer:                core.InternalMarshalizer(),
 		DataPools:                  data.Datapool,
@@ -826,8 +826,8 @@ func newMetaResolverContainerFactory(
 		DataPacker:                 dataPacker,
 		TriesContainer:             tries.TriesContainer,
 		SizeCheckDelta:             sizeCheckDelta,
-		InputAntifloodHandler:      network.InputAntifloodHandler,
-		OutputAntifloodHandler:     network.OutputAntifloodHandler,
+		InputAntifloodHandler:      network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:     network.OutputAntiFloodHandler(),
 		NumConcurrentResolvingJobs: numConcurrentResolverJobs,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
@@ -1770,7 +1770,7 @@ func newValidatorStatisticsProcessor(
 
 // PrepareNetworkShardingCollector will create the network sharding collector and apply it to the network messenger
 func PrepareNetworkShardingCollector(
-	network *mainFactory.NetworkComponents,
+	network mainFactory.NetworkComponentsHolder,
 	config *config.Config,
 	nodesCoordinator sharding.NodesCoordinator,
 	coordinator sharding.Coordinator,
@@ -1783,10 +1783,10 @@ func PrepareNetworkShardingCollector(
 		return nil, err
 	}
 
-	localId := network.NetMessenger.ID()
+	localId := network.NetworkMessenger().ID()
 	networkShardingCollector.UpdatePeerIdShardId(localId, coordinator.SelfId())
 
-	err = network.NetMessenger.SetPeerShardResolver(networkShardingCollector)
+	err = network.NetworkMessenger().SetPeerShardResolver(networkShardingCollector)
 	if err != nil {
 		return nil, err
 	}

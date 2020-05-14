@@ -7,7 +7,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
+	"github.com/ElrondNetwork/elrond-go/process"
 	antifloodFactory "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/factory"
 )
 
@@ -16,6 +18,14 @@ type networkComponentsFactory struct {
 	mainConfig    config.Config
 	statusHandler core.AppStatusHandler
 	listenAddress string
+}
+
+// networkComponents struct holds the network components
+type networkComponents struct {
+	netMessenger           p2p.Messenger
+	inputAntifloodHandler  P2PAntifloodHandler
+	outputAntifloodHandler P2PAntifloodHandler
+	peerBlackListHandler   process.BlackListHandler
 }
 
 // NewNetworkComponentsFactory returns a new instance of a network components factory
@@ -37,7 +47,7 @@ func NewNetworkComponentsFactory(
 }
 
 // Create creates and returns the network components
-func (ncf *networkComponentsFactory) Create() (*NetworkComponents, error) {
+func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 	arg := libp2p.ArgsNetworkMessenger{
 		Context:       context.Background(),
 		ListenAddress: ncf.listenAddress,
@@ -74,10 +84,10 @@ func (ncf *networkComponentsFactory) Create() (*NetworkComponents, error) {
 		return nil, err
 	}
 
-	return &NetworkComponents{
-		NetMessenger:           netMessenger,
-		InputAntifloodHandler:  inputAntifloodHandler,
-		OutputAntifloodHandler: outputAntifloodHandler,
-		PeerBlackListHandler:   p2pPeerBlackList,
+	return &networkComponents{
+		netMessenger:           netMessenger,
+		inputAntifloodHandler:  inputAntifloodHandler,
+		outputAntifloodHandler: outputAntifloodHandler,
+		peerBlackListHandler:   p2pPeerBlackList,
 	}, nil
 }
