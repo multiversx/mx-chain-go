@@ -30,7 +30,7 @@ type epochStartMetaSyncer struct {
 	marshalizer           marshal.Marshalizer
 	hasher                hashing.Hasher
 	singleDataInterceptor process.Interceptor
-	metaBlockProcessor    *epochStartMetaBlockProcessor
+	metaBlockProcessor    EpochStartMetaBlockInterceptorProcessor
 }
 
 // ArgsNewEpochStartMetaSyncer -
