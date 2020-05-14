@@ -29,6 +29,7 @@ type ArgHardforkTrigger struct {
 	EnabledAuthenticated bool
 	ArgumentParser       process.ArgumentsParser
 	EpochProvider        update.EpochHandler
+	ExportFactoryHandler update.ExportFactoryHandler
 }
 
 // trigger implements a hardfork trigger that is able to notify a set list of handlers if this instance gets triggered
@@ -47,6 +48,7 @@ type trigger struct {
 	getTimestampHandler    func() int64
 	argumentParser         process.ArgumentsParser
 	epochProvider          update.EpochHandler
+	exportFactoryHandler   update.ExportFactoryHandler
 }
 
 // NewTrigger returns the trigger instance
@@ -63,6 +65,9 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 	if check.IfNil(arg.EpochProvider) {
 		return nil, update.ErrNilEpochHandler
 	}
+	if check.IfNil(arg.ExportFactoryHandler) {
+		return nil, update.ErrNilExportHandlerFactory
+	}
 
 	t := &trigger{
 		triggerHandlers:      make([]func(), 0),
@@ -73,6 +78,7 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 		triggered:            false,
 		argumentParser:       arg.ArgumentParser,
 		epochProvider:        arg.EpochProvider,
+		exportFactoryHandler: arg.ExportFactoryHandler,
 	}
 	t.isTriggerSelf = bytes.Equal(arg.TriggerPubKeyBytes, arg.SelfPubKeyBytes)
 

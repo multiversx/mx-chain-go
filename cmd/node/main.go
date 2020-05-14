@@ -69,7 +69,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	factory2 "github.com/ElrondNetwork/elrond-go/update/factory"
+	exportFactory "github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -1161,6 +1161,25 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	hardForkTrigger, err := createHardForkTrigger(
+		generalConfig,
+		cryptoParams.KeyGenerator,
+		cryptoParams.PublicKey,
+		shardCoordinator,
+		nodesCoordinator,
+		coreComponents,
+		stateComponents,
+		dataComponents,
+		cryptoComponents,
+		processComponents,
+		networkComponents,
+		whiteListRequest,
+		whiteListerVerifiedTxs,
+	)
+	if err != nil {
+		return err
+	}
+
 	var elasticIndexer indexer.Indexer
 	if check.IfNil(coreServiceContainer) {
 		elasticIndexer = nil
@@ -1195,6 +1214,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListRequest,
 		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
+		hardForkTrigger,
 	)
 	if err != nil {
 		return err
@@ -1824,6 +1844,90 @@ func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sh
 	return 0, state.ErrUnknownShardId
 }
 
+func createHardForkTrigger(
+	config *config.Config,
+	keyGen crypto.KeyGenerator,
+	pubKey crypto.PublicKey,
+	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
+	coreData *mainFactory.CoreComponents,
+	stateComponents *mainFactory.StateComponents,
+	data *mainFactory.DataComponents,
+	crypto *mainFactory.CryptoComponents,
+	process *factory.Process,
+	network *mainFactory.NetworkComponents,
+	whiteListRequest process.WhiteListHandler,
+	whiteListerVerifiedTxs process.WhiteListHandler,
+) (node.HardforkTrigger, error) {
+
+	selfPubKeyBytes, err := pubKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+	triggerPubKeyBytes, err := stateComponents.ValidatorPubkeyConverter.Decode(config.Hardfork.PublicKeyToListenFrom)
+	if err != nil {
+		return nil, fmt.Errorf("%w while decoding HardforkConfig.PublicKeyToListenFrom", err)
+	}
+
+	accountsDBs := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+	accountsDBs[state.UserAccountsState] = stateComponents.AccountsAdapter
+	accountsDBs[state.PeerAccountsState] = stateComponents.PeerAccounts
+	hardForkConfig := config.Hardfork
+	argsExporter := exportFactory.ArgsExporter{
+		TxSignMarshalizer:        coreData.TxSignMarshalizer,
+		Marshalizer:              coreData.InternalMarshalizer,
+		Hasher:                   coreData.Hasher,
+		HeaderValidator:          process.HeaderValidator,
+		Uint64Converter:          coreData.Uint64ByteSliceConverter,
+		DataPool:                 data.Datapool,
+		StorageService:           data.Store,
+		RequestHandler:           process.RequestHandler,
+		ShardCoordinator:         shardCoordinator,
+		Messenger:                network.NetMessenger,
+		ActiveAccountsDBs:        accountsDBs,
+		ExistingResolvers:        process.ResolversFinder,
+		ExportFolder:             hardForkConfig.ImportFolder,
+		ExportTriesStorageConfig: hardForkConfig.ExportStateStorageConfig,
+		ExportStateStorageConfig: hardForkConfig.ExportStateStorageConfig,
+		WhiteListHandler:         whiteListRequest,
+		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
+		InterceptorsContainer:    process.InterceptorsContainer,
+		MultiSigner:              crypto.MultiSigner,
+		NodesCoordinator:         nodesCoordinator,
+		SingleSigner:             crypto.TxSingleSigner,
+		AddressPubkeyConverter:   stateComponents.AddressPubkeyConverter,
+		BlockKeyGen:              keyGen,
+		KeyGen:                   crypto.TxSignKeyGen,
+		BlockSigner:              crypto.SingleSigner,
+		HeaderSigVerifier:        process.HeaderSigVerifier,
+		ChainID:                  coreData.ChainID,
+		ValidityAttester:         process.BlockTracker,
+		InputAntifloodHandler:    network.InputAntifloodHandler,
+		OutputAntifloodHandler:   network.OutputAntifloodHandler,
+	}
+	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
+	if err != nil {
+		return nil, err
+	}
+
+	atArgumentParser := vmcommon.NewAtArgumentParser()
+	argTrigger := trigger.ArgHardforkTrigger{
+		TriggerPubKeyBytes:   triggerPubKeyBytes,
+		SelfPubKeyBytes:      selfPubKeyBytes,
+		Enabled:              config.Hardfork.EnableTrigger,
+		EnabledAuthenticated: config.Hardfork.EnableTriggerFromP2P,
+		ArgumentParser:       atArgumentParser,
+		EpochProvider:        process.EpochStartTrigger,
+		ExportFactoryHandler: hardForkExportFactory,
+	}
+	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
+	if err != nil {
+		return nil, err
+	}
+
+	return hardforkTrigger, nil
+}
+
 func createNode(
 	config *config.Config,
 	preferencesConfig *config.Preferences,
@@ -1836,7 +1940,7 @@ func createNode(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
 	coreData *mainFactory.CoreComponents,
-	state *mainFactory.StateComponents,
+	stateComponents *mainFactory.StateComponents,
 	data *mainFactory.DataComponents,
 	crypto *mainFactory.CryptoComponents,
 	process *factory.Process,
@@ -1849,6 +1953,7 @@ func createNode(
 	whiteListRequest process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
+	hardForkTrigger node.HardforkTrigger,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -1879,63 +1984,6 @@ func createNode(
 		return nil, err
 	}
 
-	selfPubKeyBytes, err := pubKey.ToByteArray()
-	if err != nil {
-		return nil, err
-	}
-	triggerPubKeyBytes, err := state.ValidatorPubkeyConverter.Decode(config.Hardfork.PublicKeyToListenFrom)
-	if err != nil {
-		return nil, fmt.Errorf("%w while decoding HardforkConfig.PublicKeyToListenFrom", err)
-	}
-
-	argTrigger := trigger.ArgHardforkTrigger{
-		TriggerPubKeyBytes:   triggerPubKeyBytes,
-		SelfPubKeyBytes:      selfPubKeyBytes,
-		Enabled:              config.Hardfork.EnableTrigger,
-		EnabledAuthenticated: config.Hardfork.EnableTriggerFromP2P,
-	}
-	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
-	if err != nil {
-		return nil, err
-	}
-
-	argsExporter := factory2.ArgsExporter{
-		TxSignMarshalizer:        coreData.TxSignMarshalizer,
-		Marshalizer:              coreData.InternalMarshalizer,
-		Hasher:                   coreData.Hasher,
-		HeaderValidator:          nil,
-		Uint64Converter:          nil,
-		DataPool:                 nil,
-		StorageService:           nil,
-		RequestHandler:           nil,
-		ShardCoordinator:         nil,
-		Messenger:                nil,
-		ActiveAccountsDBs:        nil,
-		ExistingResolvers:        nil,
-		ExportFolder:             "",
-		ExportTriesStorageConfig: config.StorageConfig{},
-		ExportStateStorageConfig: config.StorageConfig{},
-		WhiteListHandler:         nil,
-		WhiteListerVerifiedTxs:   nil,
-		InterceptorsContainer:    nil,
-		MultiSigner:              nil,
-		NodesCoordinator:         nil,
-		SingleSigner:             nil,
-		AddressPubkeyConverter:   nil,
-		BlockKeyGen:              nil,
-		KeyGen:                   nil,
-		BlockSigner:              nil,
-		HeaderSigVerifier:        nil,
-		ChainID:                  nil,
-		ValidityAttester:         nil,
-		InputAntifloodHandler:    nil,
-		OutputAntifloodHandler:   nil,
-	}
-	hardForkExportFactory, err := factory2.NewExportHandlerFactory(argsExporter)
-	if err != nil {
-		return nil, err
-	}
-
 	var nd *node.Node
 	nd, err = node.NewNode(
 		node.WithMessenger(network.NetMessenger),
@@ -1945,9 +1993,9 @@ func createNode(
 		node.WithTxSignMarshalizer(coreData.TxSignMarshalizer),
 		node.WithTxFeeHandler(economicsData),
 		node.WithInitialNodesPubKeys(crypto.InitialPubKeys),
-		node.WithAddressPubkeyConverter(state.AddressPubkeyConverter),
-		node.WithValidatorPubkeyConverter(state.ValidatorPubkeyConverter),
-		node.WithAccountsAdapter(state.AccountsAdapter),
+		node.WithAddressPubkeyConverter(stateComponents.AddressPubkeyConverter),
+		node.WithValidatorPubkeyConverter(stateComponents.ValidatorPubkeyConverter),
+		node.WithAccountsAdapter(stateComponents.AccountsAdapter),
 		node.WithBlockChain(data.Blkc),
 		node.WithDataStore(data.Store),
 		node.WithRoundDuration(nodesConfig.RoundDuration),
@@ -1989,7 +2037,7 @@ func createNode(
 		node.WithRequestHandler(process.RequestHandler),
 		node.WithInputAntifloodHandler(network.InputAntifloodHandler),
 		node.WithTxAccumulator(txAccumulator),
-		node.WithHardforkTrigger(hardforkTrigger),
+		node.WithHardforkTrigger(hardForkTrigger),
 		node.WithWhiteListHandler(whiteListRequest),
 		node.WithWhiteListHandlerVerified(whiteListerVerifiedTxs),
 		node.WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),

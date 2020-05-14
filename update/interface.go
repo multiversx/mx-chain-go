@@ -215,3 +215,9 @@ type EpochHandler interface {
 	MetaEpoch() uint32
 	IsInterfaceNil() bool
 }
+
+// ExportFactoryHandler defines the functionality to create and export handler
+type ExportFactoryHandler interface {
+	Create() (ExportHandler, error)
+	IsInterfaceNil() bool
+}

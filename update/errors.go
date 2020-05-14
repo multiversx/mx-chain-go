@@ -205,3 +205,6 @@ var ErrNilArgumentParser = errors.New("nil argument parser")
 
 // ErrNotEnoughArgumentsForHardForkTrigger signals that not enough arguments has been provided for hardfork trigger
 var ErrNotEnoughArgumentsForHardForkTrigger = errors.New("not enough arguments for hardfork trigger")
+
+// ErrNilExportHandlerFactory signals that nil export handler factory has been provided
+var ErrNilExportHandlerFactory = errors.New("nil export handler factory")

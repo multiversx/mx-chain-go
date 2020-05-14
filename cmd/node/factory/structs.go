@@ -99,6 +99,7 @@ type Process struct {
 	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
 	RequestHandler           process.RequestHandler
 	TxLogsProcessor          process.TransactionLogProcessorDatabase
+	HeaderValidator          epochStart.HeaderValidator
 }
 
 type processComponentsFactoryArgs struct {
@@ -455,6 +456,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
 		RequestHandler:           requestHandler,
 		TxLogsProcessor:          txLogsProcessor,
+		HeaderValidator:          headerValidator,
 	}, nil
 }
 
