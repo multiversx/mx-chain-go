@@ -1,8 +1,6 @@
 package spos
 
 import (
-	"io"
-
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -98,7 +96,8 @@ type SubroundsFactory interface {
 
 //WorkerHandler represents the interface for the SposWorker
 type WorkerHandler interface {
-	io.Closer
+	Close() error
+	StartWorking()
 	//AddReceivedMessageCall adds a new handler function for a received message type
 	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool)
 	//AddReceivedHeaderHandler adds a new handler function for a received header

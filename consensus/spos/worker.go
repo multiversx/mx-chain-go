@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/close"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -21,6 +22,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
+
+var _ close.Closer = (*Worker)(nil)
 
 // Worker defines the data needed by spos to communicate between nodes which are in the validators group
 type Worker struct {
@@ -139,14 +142,17 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 	maxMessagesInARoundPerPeer := wrk.consensusService.GetMaxMessagesInARoundPerPeer()
 	wrk.antifloodHandler.SetMaxMessagesForTopic(topic, maxMessagesInARoundPerPeer)
 
-	var ctx context.Context
-	ctx, wrk.cancelFunc = context.WithCancel(context.Background())
-	go wrk.checkChannels(ctx)
-
 	wrk.mapDisplayHashConsensusMessage = make(map[string][]*consensus.Message)
 	wrk.publicKeyBitmapSize = wrk.getPublicKeyBitmapSize()
 
 	return &wrk, nil
+}
+
+// StartWorking actually starts the consensus working mechanism
+func (wrk *Worker) StartWorking() {
+	var ctx context.Context
+	ctx, wrk.cancelFunc = context.WithCancel(context.Background())
+	go wrk.checkChannels(ctx)
 }
 
 func checkNewWorkerParams(

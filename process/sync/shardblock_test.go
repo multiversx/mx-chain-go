@@ -585,7 +585,7 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 
 	bs, _ := sync.NewShardBootstrap(args)
 
-	bs.StartSync()
+	bs.StartSyncingBlocks()
 	time.Sleep(200 * time.Millisecond)
 	bs.Close()
 }
@@ -675,7 +675,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
-	bs.StartSync()
+	bs.StartSyncingBlocks()
 
 	time.Sleep(200 * time.Millisecond)
 

@@ -1,7 +1,6 @@
 package process
 
 import (
-	"io"
 	"math/big"
 	"time"
 
@@ -291,10 +290,10 @@ type HashAccesser interface {
 // Bootstrapper is an interface that defines the behaviour of a struct that is able
 // to synchronize the node
 type Bootstrapper interface {
-	io.Closer
+	Close() error
 	AddSyncStateListener(func(isSyncing bool))
 	GetNodeState() core.NodeState
-	StartSync()
+	StartSyncingBlocks()
 	SetStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
@@ -835,4 +834,11 @@ type InterceptedDebugHandler interface {
 type MiniblockAndHash struct {
 	Miniblock *block.MiniBlock
 	Hash      []byte
+}
+
+// PoolsCleaner defines the functionality to clean pools for old records
+type PoolsCleaner interface {
+	Close() error
+	StartCleaning()
+	IsInterfaceNil() bool
 }

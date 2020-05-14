@@ -603,7 +603,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Debug("config", "file", ctx.GlobalString(nodesFile.Name))
 
 	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, nil)
-	syncer.StartSync()
+	syncer.StartSyncingTime()
 
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 

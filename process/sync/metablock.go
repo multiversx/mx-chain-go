@@ -104,8 +104,8 @@ func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.
 	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
-// StartSync method will start SyncBlocks as a go routine
-func (boot *MetaBootstrap) StartSync() {
+// StartSyncingBlocks method will start syncing blocks as a go routine
+func (boot *MetaBootstrap) StartSyncingBlocks() {
 	// when a node starts it first tries to bootstrap from storage, if there already exist a database saved
 	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
 	if errNotCritical != nil {

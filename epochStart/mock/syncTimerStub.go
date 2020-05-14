@@ -6,15 +6,15 @@ import (
 
 // SyncTimerStub is a mock implementation of SyncTimer interface
 type SyncTimerStub struct {
-	StartSyncCalled            func()
+	StartSyncingTimeCalled     func()
 	ClockOffsetCalled          func() time.Duration
 	FormattedCurrentTimeCalled func() string
 	CurrentTimeCalled          func() time.Time
 }
 
-// StartSync is a mock implementation for StartSync
-func (sts *SyncTimerStub) StartSync() {
-	sts.StartSyncCalled()
+// StartSyncingTime is a mock implementation for StartSyncingTime
+func (sts *SyncTimerStub) StartSyncingTime() {
+	sts.StartSyncingTimeCalled()
 }
 
 // ClockOffset is a mock implementation for ClockOffset

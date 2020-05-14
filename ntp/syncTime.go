@@ -13,10 +13,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/close"
 	"github.com/beevik/ntp"
 )
 
 var _ SyncTimer = (*syncTime)(nil)
+var _ close.Closer = (*syncTime)(nil)
 
 var log = logger.GetOrCreate("ntp")
 
@@ -120,9 +122,9 @@ func NewSyncTime(
 	return &s
 }
 
-// StartSync method does the time synchronization at every syncPeriod time elapsed. This method should be started on go
+// StartSyncingTime method does the time synchronization at every syncPeriod time elapsed. This method should be started on go
 // routine
-func (s *syncTime) StartSync() {
+func (s *syncTime) StartSyncingTime() {
 	var ctx context.Context
 	ctx, s.cancelFunc = context.WithCancel(context.Background())
 	go s.startSync(ctx)

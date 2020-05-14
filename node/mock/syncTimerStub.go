@@ -8,8 +8,8 @@ import (
 type SyncTimerStub struct {
 }
 
-// StartSync -
-func (sts *SyncTimerStub) StartSync() {
+// StartSyncingTime -
+func (sts *SyncTimerStub) StartSyncingTime() {
 }
 
 // ClockOffset -

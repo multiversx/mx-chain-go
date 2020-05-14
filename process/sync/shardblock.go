@@ -101,8 +101,8 @@ func (boot *ShardBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data
 	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
-// StartSync method will start SyncBlocks as a go routine
-func (boot *ShardBootstrap) StartSync() {
+// StartSyncingBlocks method will start syncing blocks as a go routine
+func (boot *ShardBootstrap) StartSyncingBlocks() {
 	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
 	if errNotCritical != nil {
 		log.Debug("boot.syncFromStorer",
