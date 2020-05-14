@@ -396,6 +396,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		WhiteListerVerifiedTxs: e.whiteListerVerifiedTxs,
 		AddressPubkeyConv:      e.addressPubkeyConverter,
 		NonceConverter:         e.uint64Converter,
+		ChainID:                []byte(e.genesisNodesConfig.GetChainId()),
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
