@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -37,7 +36,6 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:TRACE")
 	testNodeStartsInEpoch(t, 0, 18)
 }
 
