@@ -140,10 +140,6 @@ func (cm *commonProcessor) buildTransaction(
 	header data.HeaderHandler,
 	txStatus string,
 ) *Transaction {
-	gasPriceBig := big.NewInt(0).SetUint64(tx.GasPrice)
-	gasLimitBig := big.NewInt(0).SetUint64(tx.GasLimit)
-	gasUsed := big.NewInt(0).Mul(gasPriceBig, gasLimitBig).String()
-
 	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
 		MBHash:        hex.EncodeToString(mbHash),
@@ -160,7 +156,7 @@ func (cm *commonProcessor) buildTransaction(
 		Signature:     hex.EncodeToString(tx.Signature),
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        txStatus,
-		GasUsed:       gasUsed,
+		GasUsed:       tx.GasLimit,
 	}
 }
 
@@ -354,17 +350,14 @@ func prepareTxUpdate(tx *Transaction) ([]byte, []byte) {
 		return nil, nil
 	}
 
-	gasPriceBig := big.NewInt(0).SetUint64(tx.GasPrice)
-	gasLimitBig := big.NewInt(0).SetUint64(tx.GasLimit)
-	gas := big.NewInt(0).Mul(gasPriceBig, gasLimitBig).String()
-	if tx.GasUsed == gas {
+	if tx.GasUsed == tx.GasLimit {
 		// do not update gasUsed because it is the same with gasUsed when transaction was saved first time in database
 		serializedData = []byte(fmt.Sprintf(`{ "doc" : { "log" : %s, "scResults" : %s, "status": "%s", "timestamp": %s } }`,
 			string(marshalizedLog), string(scResults), tx.Status, string(marshalizedTimestamp)))
 	} else {
 		// update gasUsed because was changed (is a smart contract operation)
-		serializedData = []byte(fmt.Sprintf(`{ "doc" : { "log" : %s, "scResults" : %s, "status": "%s", "timestamp": %s, "gasUsed" : "%s" } }`,
-			string(marshalizedLog), string(scResults), tx.Status, string(marshalizedTimestamp), tx.GasUsed))
+		serializedData = []byte(fmt.Sprintf(`{ "doc" : { "log" : %s, "scResults" : %s, "status": "%s", "timestamp": %s, "gasUsed" : %s } }`,
+			string(marshalizedLog), string(scResults), tx.Status, string(marshalizedTimestamp), fmt.Sprintf("%d", tx.GasUsed)))
 	}
 
 	return meta, serializedData
