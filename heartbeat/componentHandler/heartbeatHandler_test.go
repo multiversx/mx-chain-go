@@ -57,7 +57,7 @@ func createMockArgument() ArgHeartbeat {
 
 //------- NewHeartbeatHandler
 
-func TestNewHeartbeatHandler_DurationInSecToConsiderUnresponsive(t *testing.T) {
+func TestNewHeartbeatHandler_DurationToConsiderUnresponsiveInSec(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()
@@ -65,7 +65,7 @@ func TestNewHeartbeatHandler_DurationInSecToConsiderUnresponsive(t *testing.T) {
 	hbh, err := NewHeartbeatHandler(arg)
 
 	assert.True(t, check.IfNil(hbh))
-	assert.Equal(t, heartbeat.ErrNegativeDurationInSecToConsiderUnresponsive, err)
+	assert.Equal(t, heartbeat.ErrNegativeDurationToConsiderUnresponsiveInSec, err)
 }
 
 func TestNewHeartbeatHandler_MaxTimeToWaitBetweenBroadcastsInSec(t *testing.T) {
@@ -102,7 +102,7 @@ func TestNewHeartbeatHandler_InvalidMaxTimeToWaitBetweenBroadcastsInSec(t *testi
 	assert.True(t, errors.Is(err, heartbeat.ErrWrongValues))
 }
 
-func TestNewHeartbeatHandler_InvalidDurationInSecToConsiderUnresponsive(t *testing.T) {
+func TestNewHeartbeatHandler_InvalidDurationToConsiderUnresponsiveInSec(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()

@@ -244,7 +244,7 @@ func (hbh *HeartbeatHandler) startSendingHeartbeats(ctx context.Context) {
 
 func (hbh *HeartbeatHandler) checkConfigParams(config config.HeartbeatConfig) error {
 	if config.DurationToConsiderUnresponsiveInSec < 1 {
-		return heartbeat.ErrNegativeDurationInSecToConsiderUnresponsive
+		return heartbeat.ErrNegativeDurationToConsiderUnresponsiveInSec
 	}
 	if config.MaxTimeToWaitBetweenBroadcastsInSec < 1 {
 		return heartbeat.ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec
@@ -256,7 +256,7 @@ func (hbh *HeartbeatHandler) checkConfigParams(config config.HeartbeatConfig) er
 		return fmt.Errorf("%w for MaxTimeToWaitBetweenBroadcastsInSec", heartbeat.ErrWrongValues)
 	}
 	if config.DurationToConsiderUnresponsiveInSec <= config.MaxTimeToWaitBetweenBroadcastsInSec {
-		return fmt.Errorf("%w for DurationInSecToConsiderUnresponsive", heartbeat.ErrWrongValues)
+		return fmt.Errorf("%w for DurationToConsiderUnresponsiveInSec", heartbeat.ErrWrongValues)
 	}
 
 	return nil
