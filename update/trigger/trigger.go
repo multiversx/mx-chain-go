@@ -110,8 +110,21 @@ func (t *trigger) getCurrentUnixTime() int64 {
 	return time.Now().Unix()
 }
 
-func (t *trigger) epochConfirmed(_ uint32) {
+func (t *trigger) epochConfirmed(epoch uint32) {
+	if !t.enabled {
+		return
+	}
 
+	t.mutTriggered.Lock()
+	isTriggered := t.triggered
+	triggeredEpoch := t.epoch
+	t.mutTriggered.Unlock()
+
+	if !isTriggered || triggeredEpoch > epoch {
+		return
+	}
+
+	t.exportAll()
 }
 
 // Trigger will start of the hardfork process
