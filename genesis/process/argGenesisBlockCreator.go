@@ -37,9 +37,10 @@ type ArgsGenesisBlockCreator struct {
 	TxLogsProcessor          process.TransactionLogProcessor
 	VirtualMachineConfig     config.VirtualMachineConfig
 	HardForkConfig           config.HardforkConfig
-	TrieStorageManagers      map[string]data.StorageManager
-	ChainID                  string
-	SystemSCConfig           config.SystemSmartContractsConfig
+	//TODO remove this: at genesis time the genesis block creator should not write other shard's data in the same storage manager
+	TrieStorageManagers map[string]data.StorageManager
+	ChainID             string
+	SystemSCConfig      config.SystemSmartContractsConfig
 
 	// created component needed only for hardfork
 	importHandler update.ImportHandler

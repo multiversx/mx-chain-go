@@ -169,6 +169,9 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	}
 
 	for shardID := uint32(0); shardID < gbc.arg.ShardCoordinator.NumberOfShards(); shardID++ {
+		log.Debug("genesis block creator",
+			"shard ID", shardID,
+		)
 		newArgument, err = gbc.getNewArgForShard(shardID)
 		if err != nil {
 			return nil, fmt.Errorf("'%w' while creating new argument for shard %d",
@@ -188,6 +191,10 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 				err, shardID)
 		}
 	}
+
+	log.Debug("genesis block creator",
+		"shard ID", "meta",
+	)
 
 	newArgument, err = gbc.getNewArgForShard(core.MetachainShardId)
 	if err != nil {

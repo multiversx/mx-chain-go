@@ -131,29 +131,6 @@ func TestDeployProcessor_DeployNewAddressFailsShouldErr(t *testing.T) {
 	assert.Equal(t, expectedErr, err)
 }
 
-func TestDeployProcessor_DeployReplacePlaceholdersFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := fmt.Errorf("expected error")
-	dp, _ := NewDeployProcessor(
-		&mock.TxExecutionProcessorStub{},
-		mock.NewPubkeyConverterMock(0),
-		&mock.BlockChainHookHandlerMock{},
-	)
-	dp.getScCodeAsHex = func(filename string) (string, error) {
-		return "", nil
-	}
-	dp.SetReplacePlaceholders(
-		func(txData string, scResultingAddressBytes []byte) (string, error) {
-			return "", expectedErr
-		},
-	)
-
-	err := dp.Deploy(&data.InitialSmartContract{})
-
-	assert.Equal(t, expectedErr, err)
-}
-
 func TestDeployProcessor_DeployShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -163,6 +140,7 @@ func TestDeployProcessor_DeployShouldWork(t *testing.T) {
 	executeCalled := false
 	testCode := "code"
 	vmType := "0500"
+	accountExists := false
 	dp, _ := NewDeployProcessor(
 		&mock.TxExecutionProcessorStub{
 			GetNonceCalled: func(senderBytes []byte) (uint64, error) {
@@ -193,6 +171,12 @@ func TestDeployProcessor_DeployShouldWork(t *testing.T) {
 
 				executeCalled = true
 				return nil
+			},
+			AccountExistsCalled: func(address []byte) bool {
+				result := accountExists
+				accountExists = true
+
+				return result
 			},
 		},
 		mock.NewPubkeyConverterMock(lenAddress),

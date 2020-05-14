@@ -63,3 +63,14 @@ func TestInitialSmartContract_AddressBytes(t *testing.T) {
 
 	assert.Equal(t, addrBytes, recoverdAddrBytes)
 }
+
+func TestInitialSmartContract_Address(t *testing.T) {
+	t.Parallel()
+
+	ia := &InitialSmartContract{}
+	address := "address"
+	ia.SetAddress(address)
+	recoverdAddress := ia.Address()
+
+	assert.Equal(t, address, recoverdAddress)
+}

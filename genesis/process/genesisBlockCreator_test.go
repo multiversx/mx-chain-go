@@ -1,6 +1,9 @@
 package process
 
 import (
+	"bytes"
+	"encoding/hex"
+	"math"
 	"math/big"
 	"testing"
 
@@ -8,23 +11,27 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+var entireGenesisSupply = big.NewInt(22000)
+var nodePrice = big.NewInt(5000)
+
 //TODO improve code coverage of this package
-func createMockArgument() ArgsGenesisBlockCreator {
+func createMockArgument(t *testing.T) ArgsGenesisBlockCreator {
 	memDBMock := mock.NewMemDbMock()
-	storageManager := &mock.StorageManagerStub{DatabaseCalled: func() data.DBWriteCacher {
-		return memDBMock
-	}}
+	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(memDBMock)
 
 	trieStorageManagers := make(map[string]data.StorageManager)
 	trieStorageManagers[factory.UserAccountTrie] = storageManager
@@ -34,7 +41,6 @@ func createMockArgument() ArgsGenesisBlockCreator {
 		GenesisTime:              0,
 		StartEpochNum:            0,
 		PubkeyConv:               mock.NewPubkeyConverterMock(32),
-		InitialNodesSetup:        &mock.InitialNodesSetupHandlerStub{},
 		Blkc:                     &mock.BlockChainStub{},
 		Marshalizer:              &mock.MarshalizerMock{},
 		Hasher:                   &mock.HasherMock{},
@@ -57,20 +63,14 @@ func createMockArgument() ArgsGenesisBlockCreator {
 		SelfShardId: 0,
 	}
 
-	arg.Accounts = &mock.AccountsStub{
-		RootHashCalled: func() ([]byte, error) {
-			return make([]byte, 0), nil
-		},
-		CommitCalled: func() ([]byte, error) {
-			return make([]byte, 0), nil
-		},
-		SaveAccountCalled: func(account state.AccountHandler) error {
-			return nil
-		},
-		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
-			return state.NewEmptyUserAccount(), nil
-		},
-	}
+	var err error
+	arg.Accounts, err = createAccountAdapter(
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		factoryState.NewAccountCreator(),
+		trieStorageManagers[factory.UserAccountTrie],
+	)
+	require.Nil(t, err)
 
 	arg.ValidatorAccounts = &mock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
@@ -93,10 +93,11 @@ func createMockArgument() ArgsGenesisBlockCreator {
 	ted := &economics.TestEconomicsData{
 		EconomicsData: &economics.EconomicsData{},
 	}
-	ted.SetGenesisNodePrice(big.NewInt(100))
+	ted.SetGenesisNodePrice(nodePrice)
 	ted.SetMinStep(big.NewInt(1))
-	ted.SetTotalSupply(big.NewInt(10000))
+	ted.SetTotalSupply(entireGenesisSupply)
 	ted.SetUnJailPrice(big.NewInt(1))
+	ted.SetMaxGasLimitPerBlock(math.MaxUint64)
 	arg.Economics = ted.EconomicsData
 
 	arg.Store = &mock.ChainStorerMock{
@@ -105,16 +106,46 @@ func createMockArgument() ArgsGenesisBlockCreator {
 		},
 	}
 
-	arg.AccountsParser, _ = parsing.NewAccountsParser(
+	arg.AccountsParser, err = parsing.NewAccountsParser(
 		"testdata/genesis.json",
 		arg.Economics.TotalSupply(),
 		arg.PubkeyConv,
 	)
+	require.Nil(t, err)
 
-	arg.SmartContractParser, _ = parsing.NewSmartContractsParser(
+	arg.SmartContractParser, err = parsing.NewSmartContractsParser(
 		"testdata/smartcontracts.json",
 		arg.PubkeyConv,
 	)
+	require.Nil(t, err)
+
+	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
+	stakedAddr, _ := hex.DecodeString("b00102030405060708090001020304050607080900010203040506070809000b")
+	arg.InitialNodesSetup = &mock.InitialNodesHandlerStub{
+		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
+			return map[uint32][]sharding.GenesisNodeInfoHandler{
+				0: {
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: scAddressBytes,
+						PubKeyBytesValue:  bytes.Repeat([]byte{1}, 128),
+					},
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: stakedAddr,
+						PubKeyBytesValue:  bytes.Repeat([]byte{2}, 128),
+					},
+				},
+				1: {
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: scAddressBytes,
+						PubKeyBytesValue:  bytes.Repeat([]byte{3}, 128),
+					},
+				},
+			}, make(map[uint32][]sharding.GenesisNodeInfoHandler)
+		},
+		MinNumberOfNodesCalled: func() uint32 {
+			return 1
+		},
+	}
 
 	return arg
 }
@@ -122,7 +153,7 @@ func createMockArgument() ArgsGenesisBlockCreator {
 func TestGenesisBlockCreator_CreateGenesisBlocksShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	arg := createMockArgument(t)
 	gbc, err := NewGenesisBlockCreator(arg)
 	require.Nil(t, err)
 

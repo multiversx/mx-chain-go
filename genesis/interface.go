@@ -62,6 +62,8 @@ type InitialSmartContractHandler interface {
 	VmTypeBytes() []byte
 	SetAddressBytes(addressBytes []byte)
 	AddressBytes() []byte
+	SetAddress(address string)
+	Address() string
 	IsInterfaceNil() bool
 }
 
@@ -76,6 +78,7 @@ type InitialSmartContractParser interface {
 // TxExecutionProcessor represents a transaction builder and executor containing also related helper functions
 type TxExecutionProcessor interface {
 	ExecuteTransaction(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error
+	AccountExists(address []byte) bool
 	GetNonce(senderBytes []byte) (uint64, error)
 	AddBalance(senderBytes []byte, value *big.Int) error
 	AddNonce(senderBytes []byte, nonce uint64) error
@@ -92,6 +95,5 @@ type NodesListSplitter interface {
 // DeployProcessor is able to deploy a smart contract
 type DeployProcessor interface {
 	Deploy(sc InitialSmartContractHandler) error
-	SetReplacePlaceholders(handler func(txData string, scResultingAddressBytes []byte) (string, error))
 	IsInterfaceNil() bool
 }

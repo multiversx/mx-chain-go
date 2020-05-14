@@ -10,6 +10,7 @@ type InitialSmartContract struct {
 	ownerBytes     []byte
 	vmTypeBytes    []byte
 	addressBytes   []byte
+	address        string
 }
 
 // OwnerBytes will return the owner's address as raw bytes
@@ -65,6 +66,16 @@ func (isc *InitialSmartContract) SetAddressBytes(addressBytes []byte) {
 // AddressBytes returns the smart contract address bytes
 func (isc *InitialSmartContract) AddressBytes() []byte {
 	return isc.addressBytes
+}
+
+// SetAddress sets the initial smart contract address as string
+func (isc *InitialSmartContract) SetAddress(address string) {
+	isc.address = address
+}
+
+// Address returns the smart contract address string
+func (isc *InitialSmartContract) Address() string {
+	return isc.address
 }
 
 // IsInterfaceNil returns if underlying object is true

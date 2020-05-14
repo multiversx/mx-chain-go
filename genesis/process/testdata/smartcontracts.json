@@ -2,6 +2,15 @@
   {
     "owner": "0102030405060708090001020304050607080900010203040506070809000102",
     "filename": "testdata/answer.wasm",
-    "vm-type": "0501"
+    "vm-type": "0500",
+    "init-parameters": "",
+    "type": "test"
+  },
+  {
+    "owner": "0102030405060708090001020304050607080900010203040506070809000102",
+    "filename": "testdata/delegation.wasm",
+    "vm-type": "0500",
+    "init-parameters": "0BB8@%auction_sc_address%@0A61D0",
+    "type": "delegation"
   }
 ]

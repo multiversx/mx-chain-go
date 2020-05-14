@@ -393,6 +393,11 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		return nil, err
 	}
 
+	queryService, err := smartContract.NewSCQueryService(vmContainer, arg.Economics)
+	if err != nil {
+		return nil, err
+	}
+
 	return &genesisProcessors{
 		txCoordinator:  txCoordinator,
 		systemSCs:      nil,
@@ -401,6 +406,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		scrProcessor:   scProcessor,
 		rwdProcessor:   rewardsTxProcessor,
 		blockchainHook: vmFactoryImpl.BlockChainHookImpl(),
+		queryService:   queryService,
 	}, nil
 }
 
@@ -450,16 +456,6 @@ func deployInitialSmartContract(
 
 	switch sc.GetType() {
 	case genesis.DelegationType:
-		deployProc, err = intermediate.NewDelegationDeployProcessor(
-			deployProc,
-			arg.AccountsParser,
-			arg.PubkeyConv,
-			arg.Economics.GenesisNodePrice(),
-		)
-		if err != nil {
-			return err
-		}
-
 		deployMetrics.numDelegation++
 	default:
 		deployMetrics.numOtherTypes++
@@ -509,13 +505,17 @@ func executeDelegation(
 		return genesis.DelegationResult{}, err
 	}
 
-	delegationProcessor, err := intermediate.NewDelegationProcessor(
-		txExecutor,
-		arg.ShardCoordinator,
-		arg.AccountsParser,
-		arg.SmartContractParser,
-		nodesListSplitter,
-	)
+	argDP := intermediate.ArgDelegationProcessor{
+		Executor:            txExecutor,
+		ShardCoordinator:    arg.ShardCoordinator,
+		AccountsParser:      arg.AccountsParser,
+		SmartContractParser: arg.SmartContractParser,
+		NodesListSplitter:   nodesListSplitter,
+		QueryService:        processors.queryService,
+		NodePrice:           arg.Economics.GenesisNodePrice(),
+	}
+
+	delegationProcessor, err := intermediate.NewDelegationProcessor(argDP)
 	if err != nil {
 		return genesis.DelegationResult{}, err
 	}
