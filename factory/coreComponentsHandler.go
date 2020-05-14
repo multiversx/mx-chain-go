@@ -6,31 +6,21 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
-var _ ComponentHandler = (*ManagedCoreComponents)(nil)
-var _ CoreComponentsHolder = (*ManagedCoreComponents)(nil)
-var _ CoreComponentsHandler = (*ManagedCoreComponents)(nil)
+var _ ComponentHandler = (*managedCoreComponents)(nil)
+var _ CoreComponentsHolder = (*managedCoreComponents)(nil)
+var _ CoreComponentsHandler = (*managedCoreComponents)(nil)
 
 // CoreComponentsHandlerArgs holds the arguments required to create a core components handler
 type CoreComponentsHandlerArgs CoreComponentsFactoryArgs
 
-// coreComponents is the DTO used for core components
-type coreComponents struct {
-	Hasher                   hashing.Hasher
-	InternalMarshalizer      marshal.Marshalizer
-	VmMarshalizer            marshal.Marshalizer
-	TxSignMarshalizer        marshal.Marshalizer
-	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	StatusHandler            core.AppStatusHandler
-	ChainID                  []byte
-}
-
-// ManagedCoreComponents is an implementation of core components handler that can create, close and access the core components
-type ManagedCoreComponents struct {
+// managedCoreComponents is an implementation of core components handler that can create, close and access the core components
+type managedCoreComponents struct {
 	coreComponentsFactory *CoreComponentsFactory
 	*coreComponents
 	cancelFunc        func()
@@ -38,9 +28,9 @@ type ManagedCoreComponents struct {
 }
 
 // NewManagedCoreComponents creates a new core components handler implementation
-func NewManagedCoreComponents(args CoreComponentsHandlerArgs) (*ManagedCoreComponents, error) {
+func NewManagedCoreComponents(args CoreComponentsHandlerArgs) (*managedCoreComponents, error) {
 	coreComponentsFactory := NewCoreComponentsFactory(CoreComponentsFactoryArgs(args))
-	mcc := &ManagedCoreComponents{
+	mcc := &managedCoreComponents{
 		coreComponents:        nil,
 		coreComponentsFactory: coreComponentsFactory,
 	}
@@ -48,7 +38,7 @@ func NewManagedCoreComponents(args CoreComponentsHandlerArgs) (*ManagedCoreCompo
 }
 
 // Create creates the core components
-func (mcc *ManagedCoreComponents) Create() error {
+func (mcc *managedCoreComponents) Create() error {
 	cc, err := mcc.coreComponentsFactory.Create()
 	if err != nil {
 		return err
@@ -63,7 +53,7 @@ func (mcc *ManagedCoreComponents) Create() error {
 }
 
 // Close closes the managed core components
-func (mcc *ManagedCoreComponents) Close() error {
+func (mcc *managedCoreComponents) Close() error {
 	mcc.mutCoreComponents.Lock()
 	mcc.coreComponents.StatusHandler.Close()
 	mcc.cancelFunc()
@@ -75,7 +65,7 @@ func (mcc *ManagedCoreComponents) Close() error {
 }
 
 // InternalMarshalizer returns the core components internal marshalizer
-func (mcc *ManagedCoreComponents) InternalMarshalizer() marshal.Marshalizer {
+func (mcc *managedCoreComponents) InternalMarshalizer() marshal.Marshalizer {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -87,7 +77,7 @@ func (mcc *ManagedCoreComponents) InternalMarshalizer() marshal.Marshalizer {
 }
 
 // TxMarshalizer returns the core components tx marshalizer
-func (mcc *ManagedCoreComponents) TxMarshalizer() marshal.Marshalizer {
+func (mcc *managedCoreComponents) TxMarshalizer() marshal.Marshalizer {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -99,7 +89,7 @@ func (mcc *ManagedCoreComponents) TxMarshalizer() marshal.Marshalizer {
 }
 
 // VmMarshalizer returns the core components vm marshalizer
-func (mcc *ManagedCoreComponents) VmMarshalizer() marshal.Marshalizer {
+func (mcc *managedCoreComponents) VmMarshalizer() marshal.Marshalizer {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -111,7 +101,7 @@ func (mcc *ManagedCoreComponents) VmMarshalizer() marshal.Marshalizer {
 }
 
 // Hasher returns the core components Hasher
-func (mcc *ManagedCoreComponents) Hasher() hashing.Hasher {
+func (mcc *managedCoreComponents) Hasher() hashing.Hasher {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -123,7 +113,7 @@ func (mcc *ManagedCoreComponents) Hasher() hashing.Hasher {
 }
 
 // Uint64ByteSliceConverter returns the core component converter between a byte slice and uint64
-func (mcc *ManagedCoreComponents) Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter {
+func (mcc *managedCoreComponents) Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -134,8 +124,32 @@ func (mcc *ManagedCoreComponents) Uint64ByteSliceConverter() typeConverters.Uint
 	return mcc.coreComponents.Uint64ByteSliceConverter
 }
 
+// AddressPubKeyConverter returns the address to public key converter
+func (mcc *managedCoreComponents) AddressPubKeyConverter() state.PubkeyConverter {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.addressPubKeyConverter
+}
+
+// ValidatorPubKeyConverter returns the validator public key converter
+func (mcc *managedCoreComponents) ValidatorPubKeyConverter() state.PubkeyConverter {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.validatorPubKeyConverter
+}
+
 // StatusHandler returns the core components status handler
-func (mcc *ManagedCoreComponents) StatusHandler() core.AppStatusHandler {
+func (mcc *managedCoreComponents) StatusHandler() core.AppStatusHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -147,7 +161,7 @@ func (mcc *ManagedCoreComponents) StatusHandler() core.AppStatusHandler {
 }
 
 // SetStatusHandler allows the change of the status handler
-func (mcc *ManagedCoreComponents) SetStatusHandler(statusHandler core.AppStatusHandler) error {
+func (mcc *managedCoreComponents) SetStatusHandler(statusHandler core.AppStatusHandler) error {
 	if check.IfNil(statusHandler) {
 		return ErrNilStatusHandler
 	}
@@ -165,7 +179,7 @@ func (mcc *ManagedCoreComponents) SetStatusHandler(statusHandler core.AppStatusH
 }
 
 // ChainID returns the core components chainID
-func (mcc *ManagedCoreComponents) ChainID() []byte {
+func (mcc *managedCoreComponents) ChainID() []byte {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -177,6 +191,6 @@ func (mcc *ManagedCoreComponents) ChainID() []byte {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (mcc *ManagedCoreComponents) IsInterfaceNil() bool {
+func (mcc *managedCoreComponents) IsInterfaceNil() bool {
 	return mcc == nil
 }

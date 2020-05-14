@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/stretchr/testify/require"
 )
@@ -186,6 +187,30 @@ func TestCoreComponentsFactory_CreateCoreComponents_InvalidTxSignMarshalizerConf
 	require.True(t, errors.Is(err, factory.ErrMarshalizerCreation))
 }
 
+func TestCoreComponentsFactory_CreateCoreComponentsInvalidValPubKeyConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getCoreArgs()
+	args.Config.ValidatorPubkeyConverter.Type = "invalid"
+	ccf := factory.NewCoreComponentsFactory(args)
+
+	cc, err := ccf.Create()
+	require.Nil(t, cc)
+	require.True(t, errors.Is(err, state.ErrInvalidPubkeyConverterType))
+}
+
+func TestCoreComponentsFactory_CreateCoreComponentsInvalidAddrPubKeyConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getCoreArgs()
+	args.Config.AddressPubkeyConverter.Type = "invalid"
+	ccf := factory.NewCoreComponentsFactory(args)
+
+	cc, err := ccf.Create()
+	require.Nil(t, cc)
+	require.True(t, errors.Is(err, state.ErrInvalidPubkeyConverterType))
+}
+
 func TestCoreComponentsFactory_CreateCoreComponents_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -212,6 +237,16 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 			},
 			TxSignMarshalizer: config.TypeConfig{
 				Type: testMarshalizer,
+			},
+			AddressPubkeyConverter: config.PubkeyConfig{
+				Length:          32,
+				Type:            "bech32",
+				SignatureLength: 0,
+			},
+			ValidatorPubkeyConverter: config.PubkeyConfig{
+				Length:          96,
+				Type:            "hex",
+				SignatureLength: 48,
 			},
 		},
 		ChainID: []byte("chainID"),

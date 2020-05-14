@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/stretchr/testify/require"
@@ -38,16 +37,6 @@ func TestNewCryptoComponentsFactory_NilPemFileShouldErr(t *testing.T) {
 	ccf, err := factory.NewCryptoComponentsFactory(args)
 	require.Nil(t, ccf)
 	require.Equal(t, factory.ErrNilPath, err)
-}
-
-func TestNewCryptoComponentsFactory_InvalidPubKeyConverterTypeConfigShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getCryptoArgs()
-	args.Config.ValidatorPubkeyConverter.Type = "invalid"
-	ccf, err := factory.NewCryptoComponentsFactory(args)
-	require.Nil(t, ccf)
-	require.True(t, errors.Is(err, state.ErrInvalidPubkeyConverterType))
 }
 
 func TestNewCryptoComponentsFactory_OkValsShouldWork(t *testing.T) {
@@ -374,11 +363,6 @@ func getCryptoArgs() factory.CryptoComponentsFactoryArgs {
 			Consensus:      config.TypeConfig{Type: "bls"},
 			MultisigHasher: config.TypeConfig{Type: "blake2b"},
 			Hasher:         config.TypeConfig{Type: "blake2b"},
-			ValidatorPubkeyConverter: config.PubkeyConfig{
-				Length:          96,
-				Type:            "hex",
-				SignatureLength: 48,
-			},
 		},
 		SkIndex:                              0,
 		ValidatorKeyPemFileName:              "validatorKey.pem",

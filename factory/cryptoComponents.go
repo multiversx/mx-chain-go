@@ -17,8 +17,6 @@ import (
 	mclmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
 	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
@@ -37,7 +35,6 @@ type CryptoComponentsFactoryArgs struct {
 }
 
 type cryptoComponentsFactory struct {
-	pubKeyConverter                      state.PubkeyConverter
 	validatorKeyPemFileName              string
 	skIndex                              int
 	config                               config.Config
@@ -55,8 +52,8 @@ type CryptoParams struct {
 	PrivateKeyBytes []byte
 }
 
-// CryptoComponents struct holds the crypto components
-type CryptoComponents struct {
+// cryptoComponents struct holds the crypto components
+type cryptoComponents struct {
 	TxSingleSigner      crypto.SingleSigner
 	SingleSigner        crypto.SingleSigner
 	MultiSigner         crypto.MultiSigner
@@ -75,13 +72,7 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		return nil, ErrNilPath
 	}
 
-	pubKeyConverter, err := stateFactory.NewPubkeyConverter(args.Config.ValidatorPubkeyConverter)
-	if err != nil {
-		return nil, err
-	}
-
 	return &cryptoComponentsFactory{
-		pubKeyConverter:                      pubKeyConverter,
 		validatorKeyPemFileName:              args.ValidatorKeyPemFileName,
 		skIndex:                              args.SkIndex,
 		config:                               args.Config,
@@ -92,7 +83,7 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 }
 
 // Create will create and return crypto components
-func (ccf *cryptoComponentsFactory) Create() (*CryptoComponents, error) {
+func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	suite, err := ccf.getSuite()
 	if err != nil {
 		return nil, err
@@ -131,7 +122,7 @@ func (ccf *cryptoComponentsFactory) Create() (*CryptoComponents, error) {
 		messageSignVerifier = &genesis.NilMessageSignVerifier{}
 	}
 
-	return &CryptoComponents{
+	return &cryptoComponents{
 		TxSingleSigner:      txSingleSigner,
 		SingleSigner:        singleSigner,
 		MultiSigner:         multiSigner,
@@ -220,7 +211,8 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 		}
 	}
 
-	cryptoParams.PublicKeyString = ccf.pubKeyConverter.Encode(cryptoParams.PublicKeyBytes)
+	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()
+	cryptoParams.PublicKeyString = validatorKeyConverter.Encode(cryptoParams.PublicKeyBytes)
 
 	return cryptoParams, nil
 }
@@ -236,7 +228,8 @@ func (ccf *cryptoComponentsFactory) getSkPk() ([]byte, []byte, error) {
 		return nil, nil, fmt.Errorf("%w for encoded secret key", err)
 	}
 
-	pkBytes, err := ccf.pubKeyConverter.Decode(pkString)
+	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()
+	pkBytes, err := validatorKeyConverter.Decode(pkString)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w for encoded public key %s", err, pkString)
 	}
