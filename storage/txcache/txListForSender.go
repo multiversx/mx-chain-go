@@ -117,9 +117,8 @@ func (listForSender *txListForSender) getScoreParams() senderScoreParams {
 	gas := listForSender.totalGas.GetUint64()
 	size := listForSender.totalBytes.GetUint64()
 	count := listForSender.countTx()
-	minGasPrice := listForSender.cacheConfig.MinGasPriceNanoErd
 
-	return senderScoreParams{count: count, size: size, fee: fee, gas: gas, minGasPrice: minGasPrice}
+	return senderScoreParams{count: count, size: size, fee: fee, gas: gas}
 }
 
 // This function should only be used in critical section (listForSender.mutex)

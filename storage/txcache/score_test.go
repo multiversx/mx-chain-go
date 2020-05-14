@@ -7,23 +7,23 @@ import (
 )
 
 func TestScoreComputer_computeRawScore(t *testing.T) {
-	computer := &scoreComputer{}
+	computer := newScoreComputer(100)
 
-	score := computer.computeRawScore(senderScoreParams{count: 14000, size: kBToBytes(100000), fee: toNanoERD(300), gas: 2500000000, minGasPrice: 100})
+	score := computer.computeRawScore(senderScoreParams{count: 14000, size: kBToBytes(100000), fee: toNanoERD(300), gas: 2500000000})
 	require.InDelta(t, float64(0.1789683371), score, delta)
 
-	score = computer.computeRawScore(senderScoreParams{count: 19000, size: kBToBytes(3000), fee: toNanoERD(2300), gas: 19000000000, minGasPrice: 100})
+	score = computer.computeRawScore(senderScoreParams{count: 19000, size: kBToBytes(3000), fee: toNanoERD(2300), gas: 19000000000})
 	require.InDelta(t, float64(0.2517997181), score, delta)
 
-	score = computer.computeRawScore(senderScoreParams{count: 3, size: kBToBytes(2), fee: toNanoERD(0.04), gas: 400000, minGasPrice: 100})
+	score = computer.computeRawScore(senderScoreParams{count: 3, size: kBToBytes(2), fee: toNanoERD(0.04), gas: 400000})
 	require.InDelta(t, float64(5.795382396), score, delta)
 
-	score = computer.computeRawScore(senderScoreParams{count: 1, size: kBToBytes(0.3), fee: toNanoERD(0.05), gas: 100000, minGasPrice: 100})
+	score = computer.computeRawScore(senderScoreParams{count: 1, size: kBToBytes(0.3), fee: toNanoERD(0.05), gas: 100000})
 	require.InDelta(t, float64(100), score, delta)
 }
 
 func BenchmarkScoreComputer_computeRawScore(b *testing.B) {
-	computer := &scoreComputer{}
+	computer := newScoreComputer(100)
 
 	for i := 0; i < b.N; i++ {
 		for j := uint64(0); j < 10000000; j++ {
@@ -33,7 +33,7 @@ func BenchmarkScoreComputer_computeRawScore(b *testing.B) {
 }
 
 func TestScoreComputer_computeRawScoreOfTxListForSender(t *testing.T) {
-	computer := &scoreComputer{}
+	computer := newScoreComputer(100)
 	list := newUnconstrainedListToTest()
 
 	list.AddTx(createTxWithParams([]byte("a"), ".", 1, 1000, 200000, 100*oneBillion))
@@ -51,7 +51,7 @@ func TestScoreComputer_computeRawScoreOfTxListForSender(t *testing.T) {
 }
 
 func TestScoreComputer_scoreFluctuatesDeterministicallyWhileTxListForSenderMutates(t *testing.T) {
-	computer := &scoreComputer{}
+	computer := newScoreComputer(100)
 	list := newUnconstrainedListToTest()
 
 	A := createTxWithParams([]byte("A"), ".", 1, 1000, 200000, 100*oneBillion)

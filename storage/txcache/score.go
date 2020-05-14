@@ -14,11 +14,17 @@ type senderScoreParams struct {
 	// Fee is in nano ERD
 	fee uint64
 	gas uint64
+}
+
+type scoreComputer struct {
 	// Price is in nano ERD
 	minGasPrice uint32
 }
 
-type scoreComputer struct {
+func newScoreComputer(minGasPrice uint32) *scoreComputer {
+	return &scoreComputer{
+		minGasPrice: minGasPrice,
+	}
 }
 
 // computeScore computes the score of the sender, as an integer 0-100
@@ -53,7 +59,7 @@ func (computer *scoreComputer) computeRawScore(params senderScoreParams) float64
 		return 0
 	}
 
-	PPUMin := float64(params.minGasPrice)
+	PPUMin := float64(computer.minGasPrice)
 	PPUAvg := float64(params.fee) / float64(params.gas)
 	PPUScore := math.Pow(PPUAvg/PPUMin, 3)
 

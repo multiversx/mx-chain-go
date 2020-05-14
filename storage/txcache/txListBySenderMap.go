@@ -22,7 +22,7 @@ func newTxListBySenderMap(nChunksHint uint32, cacheConfig CacheConfig) txListByS
 	return txListBySenderMap{
 		backingMap:    backingMap,
 		cacheConfig:   cacheConfig,
-		scoreComputer: &scoreComputer{},
+		scoreComputer: newScoreComputer(cacheConfig.MinGasPriceNanoErd),
 	}
 }
 
