@@ -181,18 +181,24 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	trieStorageManager, triesHolder, _ := createTries(getGeneralConfig(), integrationTests.TestMarshalizer, integrationTests.TestHasher, 0, &mock.PathManagerStub{})
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
-		PublicKey:                  nodeToJoinLate.NodeKeys.Pk,
-		Marshalizer:                integrationTests.TestMarshalizer,
-		TxSignMarshalizer:          integrationTests.TestTxSignMarshalizer,
-		Hasher:                     integrationTests.TestHasher,
+		CryptoComponentsHolder: &mock.CryptoComponentsMock{
+			PubKey:   nodeToJoinLate.NodeKeys.Pk,
+			BlockSig: &mock.SignerMock{},
+			TxSig:    &mock.SignerMock{},
+			BlKeyGen: &mock.KeyGenMock{},
+			TxKeyGen: &mock.KeyGenMock{},
+		},
+		CoreComponentsHolder: &mock.CoreComponentsMock{
+			IntMarsh:            integrationTests.TestMarshalizer,
+			TxMarsh:             integrationTests.TestTxSignMarshalizer,
+			Hash:                integrationTests.TestHasher,
+			UInt64ByteSliceConv: uint64Converter,
+			AddrPubKeyConv:      integrationTests.TestAddressPubkeyConverter,
+		},
 		Messenger:                  nodeToJoinLate.Messenger,
 		GeneralConfig:              getGeneralConfig(),
 		GenesisShardCoordinator:    genesisShardCoordinator,
 		EconomicsData:              integrationTests.CreateEconomicsData(),
-		SingleSigner:               &mock.SignerMock{},
-		BlockSingleSigner:          &mock.SignerMock{},
-		KeyGen:                     &mock.KeyGenMock{},
-		BlockKeyGen:                &mock.KeyGenMock{},
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
 		StorageUnitOpener:          &mock.UnitOpenerStub{},
 		GenesisNodesConfig:         nodesConfig,
@@ -205,10 +211,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		DestinationShardAsObserver: shardID,
 		TrieContainer:              triesHolder,
 		TrieStorageManagers:        trieStorageManager,
-		Uint64Converter:            uint64Converter,
 		NodeShuffler:               &mock.NodeShufflerMock{},
 		Rounder:                    rounder,
-		AddressPubkeyConverter:     integrationTests.TestAddressPubkeyConverter,
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)

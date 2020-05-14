@@ -1,9 +1,14 @@
 package bootstrap
 
 import (
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -43,5 +48,27 @@ type RequestHandler interface {
 	RequestStartOfEpochMetaBlock(epoch uint32)
 	SetNumPeersToQuery(topic string, intra int, cross int) error
 	GetNumPeersToQuery(topic string) (int, int, error)
+	IsInterfaceNil() bool
+}
+
+// BootstrapCryptoComponentsHolder holds the crypto components required for bootstrap
+type BootstrapCryptoComponentsHolder interface {
+	PublicKey() crypto.PublicKey
+	BlockSigner() crypto.SingleSigner
+	TxSingleSigner() crypto.SingleSigner
+	MultiSigner() crypto.MultiSigner
+	BlockSignKeyGen() crypto.KeyGenerator
+	TxSignKeyGen() crypto.KeyGenerator
+	IsInterfaceNil() bool
+}
+
+// BootstrapCoreComponentsHolder holds the core components required for bootstrap
+type BootstrapCoreComponentsHolder interface {
+	InternalMarshalizer() marshal.Marshalizer
+	TxMarshalizer() marshal.Marshalizer
+	Hasher() hashing.Hasher
+	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
+	AddressPubKeyConverter() state.PubkeyConverter
+	ChainID() string
 	IsInterfaceNil() bool
 }

@@ -9,13 +9,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/syncer"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	factoryDataPool "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
@@ -25,8 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	factoryInterceptors "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
@@ -46,28 +42,6 @@ const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
 const roundGracePeriod = 25
-
-// BootstrapCryptoComponentsHolder holds the crypto components required for bootstrap
-type BootstrapCryptoComponentsHolder interface {
-	PublicKey() crypto.PublicKey
-	BlockSigner() crypto.SingleSigner
-	TxSingleSigner() crypto.SingleSigner
-	MultiSigner() crypto.MultiSigner
-	BlockSignKeyGen() crypto.KeyGenerator
-	TxSignKeyGen() crypto.KeyGenerator
-	IsInterfaceNil() bool
-}
-
-// BootstrapCoreComponentsHolder holds the core components required for bootstrap
-type BootstrapCoreComponentsHolder interface {
-	InternalMarshalizer() marshal.Marshalizer
-	TxMarshalizer() marshal.Marshalizer
-	Hasher() hashing.Hasher
-	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
-	AddressPubKeyConverter() state.PubkeyConverter
-	ChainID() string
-	IsInterfaceNil() bool
-}
 
 // Parameters defines the DTO for the result produced by the bootstrap component
 type Parameters struct {

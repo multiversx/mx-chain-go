@@ -37,11 +37,21 @@ func createPkBytes(numShards uint32) map[uint32][]byte {
 
 func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 	return ArgsEpochStartBootstrap{
-		PublicKey:         &mock.PublicKeyStub{},
-		Marshalizer:       &mock.MarshalizerMock{},
-		TxSignMarshalizer: &mock.MarshalizerMock{},
-		Hasher:            &mock.HasherMock{},
-		Messenger:         &mock.MessengerStub{},
+		CoreComponentsHolder: &mock.CoreComponentsMock{
+			IntMarsh:            &mock.MarshalizerMock{},
+			Marsh:               &mock.MarshalizerMock{},
+			Hash:                &mock.HasherMock{},
+			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
+			AddrPubKeyConv:      &mock.PubkeyConverterMock{},
+		},
+		CryptoComponentsHolder: &mock.CryptoComponentsMock{
+			PubKey:   &mock.PublicKeyMock{},
+			BlockSig: &mock.SignerStub{},
+			TxSig:    &mock.SignerStub{},
+			BlKeyGen: &mock.KeyGenMock{},
+			TxKeyGen: &mock.KeyGenMock{},
+		},
+		Messenger: &mock.MessengerStub{},
 		GeneralConfig: config.Config{
 			WhiteListPool: config.CacheConfig{
 				Type:        "LRU",
@@ -51,10 +61,6 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 			},
 		},
 		EconomicsData:              &economics.EconomicsData{},
-		SingleSigner:               &mock.SignerStub{},
-		BlockSingleSigner:          &mock.SignerStub{},
-		KeyGen:                     &mock.KeyGenMock{},
-		BlockKeyGen:                &mock.KeyGenMock{},
 		GenesisNodesConfig:         &mock.NodesSetupStub{},
 		GenesisShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
 		PathManager:                &mock.PathManagerStub{},
@@ -73,10 +79,8 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 			triesFactory.UserAccountTrie: &mock.StorageManagerStub{},
 			triesFactory.PeerAccountTrie: &mock.StorageManagerStub{},
 		},
-		Uint64Converter:           &mock.Uint64ByteSliceConverterMock{},
 		NodeShuffler:              &mock.NodeShufflerMock{},
 		Rounder:                   &mock.RounderStub{},
-		AddressPubkeyConverter:    &mock.PubkeyConverterMock{},
 		LatestStorageDataProvider: &mock.LatestStorageDataProviderStub{},
 		StorageUnitOpener:         &mock.UnitOpenerStub{},
 	}
@@ -367,7 +371,6 @@ func getNodesConfigMock(numOfShards uint32) sharding.GenesisNodesSetupHandler {
 
 func TestRequestAndProcessing(t *testing.T) {
 	args := createMockEpochStartBootstrapArgs()
-	args.PublicKey = &mock.PublicKeyMock{}
 	args.GenesisNodesConfig = getNodesConfigMock(1)
 
 	hdrHash1 := []byte("hdrHash1")
