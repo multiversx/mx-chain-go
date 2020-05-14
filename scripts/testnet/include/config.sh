@@ -3,7 +3,6 @@ generateConfig() {
 
   pushd $TESTNETDIR/filegen
   ./filegen \
-    -mint-value $MINT_VALUE                               \
     -num-of-shards $SHARDCOUNT                            \
     -num-of-nodes-in-each-shard $SHARD_VALIDATORCOUNT     \
     -num-of-observers-in-each-shard $SHARD_OBSERVERCOUNT  \
@@ -12,7 +11,8 @@ generateConfig() {
     -num-of-observers-in-metachain $META_OBSERVERCOUNT    \
     -metachain-consensus-group-size $META_CONSENSUS_SIZE  \
     -tx-sign-key-format $TX_SIGN_FORMAT                   \
-    -block-sign-key-format $BLOCK_SIGN_FORMAT
+    -block-sign-key-format $BLOCK_SIGN_FORMAT             \
+    -stake-type $GENESIS_STAKE_TYPE
   popd
 }
 
@@ -23,6 +23,7 @@ copyConfig() {
   cp ./filegen/nodesSetup.json ./node/config
   cp ./filegen/validatorKey.pem ./node/config
   cp ./filegen/walletKey.pem ./node/config
+  cp ./filegen/genesisSmartContracts.json ./node/config
   echo "Configuration files copied from the configuration generator to the working directories of the executables."
   popd
 }
@@ -48,6 +49,7 @@ updateSeednodeConfig() {
 
 copyNodeConfig() {
   pushd $TESTNETDIR
+  cp $NODEDIR/config/api.toml ./node/config
   cp $NODEDIR/config/config.toml ./node/config
   cp $NODEDIR/config/economics.toml ./node/config
   cp $NODEDIR/config/ratings.toml ./node/config
@@ -55,7 +57,9 @@ copyNodeConfig() {
   cp $NODEDIR/config/external.toml ./node/config
   cp $NODEDIR/config/p2p.toml ./node/config
   cp $NODEDIR/config/gasSchedule.toml ./node/config
-
+  cp $NODEDIR/config/systemSmartContractsConfig.toml ./node/config
+  mkdir ./node/config/genesisContracts -p
+  cp $NODEDIR/config/genesisContracts/*.* ./node/config/genesisContracts
 
   echo "Configuration files copied from the Node to the working directories of the executables."
   popd
@@ -72,7 +76,7 @@ updateNodeConfig() {
 
   cp nodesSetup.json nodesSetup_edit.json
   
-  let startTime="$(date +%s) + $NODE_DELAY"
+  let startTime="$(date +%s) + $GENESIS_DELAY"
   updateJSONValue nodesSetup_edit.json "startTime" "$startTime"
 
 	if [ $ALWAYS_NEW_CHAINID -eq 1 ]; then
@@ -92,6 +96,7 @@ copyProxyConfig() {
   cp $PROXYDIR/config/config.toml ./proxy/config/
 
   cp ./node/config/economics.toml ./proxy/config/
+  cp ./node/config/external.toml ./proxy/config/
   cp ./node/config/walletKey.pem ./proxy/config
 
   echo "Copied configuration for the Proxy."

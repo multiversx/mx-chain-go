@@ -19,7 +19,6 @@ func getArgs() TrieFactoryArgs {
 		Marshalizer: &mock.MarshalizerMock{},
 		Hasher:      &mock.HasherMock{},
 		PathManager: &mock.PathManagerStub{},
-		ShardId:     "0",
 	}
 }
 
@@ -81,7 +80,7 @@ func TestTrieFactory_CreateNotSupportedCacheType(t *testing.T) {
 	tf, _ := NewTrieFactory(args)
 	trieStorageCfg := config.StorageConfig{}
 
-	_, tr, err := tf.Create(trieStorageCfg, false)
+	_, tr, err := tf.Create(trieStorageCfg, "0", false)
 	require.Nil(t, tr)
 	require.Equal(t, storage.ErrNotSupportedCacheType, err)
 }
@@ -93,7 +92,7 @@ func TestTrieFactory_CreateWithoutPrunningWork(t *testing.T) {
 	tf, _ := NewTrieFactory(args)
 	trieStorageCfg := createTrieStorageCfg()
 
-	_, tr, err := tf.Create(trieStorageCfg, false)
+	_, tr, err := tf.Create(trieStorageCfg, "0", false)
 	require.NotNil(t, tr)
 	require.Nil(t, err)
 }
@@ -105,7 +104,7 @@ func TestTrieFactory_CreateWithPrunningWrongDbType(t *testing.T) {
 	tf, _ := NewTrieFactory(args)
 	trieStorageCfg := createTrieStorageCfg()
 
-	_, tr, err := tf.Create(trieStorageCfg, true)
+	_, tr, err := tf.Create(trieStorageCfg, "0", true)
 	require.Nil(t, tr)
 	require.Equal(t, storage.ErrNotSupportedDBType, err)
 }
@@ -120,7 +119,7 @@ func TestTrieFactory_CreateInvalidCacheSize(t *testing.T) {
 	tf, _ := NewTrieFactory(args)
 	trieStorageCfg := createTrieStorageCfg()
 
-	_, tr, err := tf.Create(trieStorageCfg, true)
+	_, tr, err := tf.Create(trieStorageCfg, "0", true)
 	require.Nil(t, tr)
 	require.Equal(t, data.ErrInvalidCacheSize, err)
 }
@@ -136,7 +135,7 @@ func TestTrieFactory_CreateWithPRunningShouldWork(t *testing.T) {
 	tf, _ := NewTrieFactory(args)
 	trieStorageCfg := createTrieStorageCfg()
 
-	_, tr, err := tf.Create(trieStorageCfg, true)
+	_, tr, err := tf.Create(trieStorageCfg, "0", true)
 	require.NotNil(t, tr)
 	require.Nil(t, err)
 }

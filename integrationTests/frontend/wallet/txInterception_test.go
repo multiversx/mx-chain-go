@@ -38,12 +38,12 @@ func TestInterceptedTxWhithDataField(t *testing.T) {
 		t,
 		0,
 		value,
-		"erd1t2cct2ahdna5n2q3ljzj4tgn6fnqqrncs967pekunl7cuscqxymsgm388y",
-		"erd14t6l0x27w4d4354sqfm40wuv9p0r49uzl9598eka290x9kws2nvqlkc36j",
-		"9b5dc11f0b8da13bd0e6590ba79f9bc4635464cc7a1d5f33493d5a4a91015bac6e523c88917f17f94eb4133f5df791a3bb432d927f45ce1c8fd015fc5cc02705",
+		"erd12dnfhej64s6c56ka369gkyj3hwv5ms0y5rxgsk2k7hkd2vuk7rvqxkalsa",
+		"erd1zq6l0g5yg6ehz7reatt3uhyfy89udx8q3p72fy5fhmfdvr883xgqufyvte",
+		"8bdaebfc67b5b7e8a325004b3934dc6f1f0329b3d29baa1763c663925384bd93f1de3a8ac297db918a233c13c4014431a8ed7455c03e2a706828a9a400b6b107",
 		10,
 		100000,
-		[]byte("!!!!!"),
+		[]byte("data@~`!@#$^&*()_=[]{};'<>?,./|<>><!!!!!"),
 	)
 }
 
@@ -132,7 +132,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 
 	select {
 	case <-chDone:
-	case <-time.After(time.Second * 2):
+	case <-time.After(time.Second * 3):
 		assert.Fail(t, "timeout getting transaction")
 	}
 }

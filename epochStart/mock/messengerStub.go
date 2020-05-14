@@ -6,7 +6,8 @@ import (
 
 // MessengerStub -
 type MessengerStub struct {
-	ConnectedPeersCalled func() []p2p.PeerID
+	ConnectedPeersCalled           func() []p2p.PeerID
+	RegisterMessageProcessorCalled func(topic string, handler p2p.MessageProcessor) error
 }
 
 // ConnectedPeersOnTopic -
@@ -36,6 +37,10 @@ func (m *MessengerStub) CreateTopic(name string, createChannelForTopic bool) err
 
 // RegisterMessageProcessor -
 func (m *MessengerStub) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
+	if m.RegisterMessageProcessorCalled != nil {
+		return m.RegisterMessageProcessorCalled(topic, handler)
+	}
+
 	return nil
 }
 

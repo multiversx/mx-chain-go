@@ -1,7 +1,6 @@
 package integrationTests
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
@@ -61,7 +60,7 @@ func NewTestSyncNode(
 		},
 	}
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	messenger := CreateMessengerWithKadDht(initialNodeAddr)
 
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
@@ -174,6 +173,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		StateCheckpointModulus: stateCheckpointModulus,
 		BlockChain:             tpn.BlockChain,
 		BlockSizeThrottler:     TestBlockSizeThrottler,
+		Version:                string(SoftwareVersion),
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

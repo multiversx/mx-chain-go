@@ -65,7 +65,10 @@ type HeaderHandler interface {
 
 	IsInterfaceNil() bool
 	Clone() HeaderHandler
+
+	// TODO: move this checks to a separate component
 	CheckChainID(reference []byte) error
+	CheckSoftwareVersion() error
 }
 
 // BodyHandler interface for a block body
@@ -207,7 +210,7 @@ type StorageManager interface {
 
 // TrieFactory creates new tries
 type TrieFactory interface {
-	Create(config.StorageConfig, bool) (StorageManager, Trie, error)
+	Create(config.StorageConfig, string, bool) (StorageManager, Trie, error)
 	IsInterfaceNil() bool
 }
 

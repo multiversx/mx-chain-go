@@ -23,7 +23,10 @@ func TestESDTTransfer_ProcessBuiltInFunctionErrors(t *testing.T) {
 	assert.Equal(t, err, process.ErrInvalidArguments)
 
 	input = &vmcommon.ContractCallInput{
-		VMInput: vmcommon.VMInput{GasProvided: 50},
+		VMInput: vmcommon.VMInput{
+			GasProvided: 50,
+			CallValue:   big.NewInt(0),
+		},
 	}
 	key := []byte("key")
 	value := []byte("value")
@@ -44,7 +47,10 @@ func TestESDTTransfer_ProcessBuiltInFunctionSingleShard(t *testing.T) {
 	esdt, _ := NewESDTTransferFunc(10, marshalizer)
 
 	input := &vmcommon.ContractCallInput{
-		VMInput: vmcommon.VMInput{GasProvided: 50},
+		VMInput: vmcommon.VMInput{
+			GasProvided: 50,
+			CallValue:   big.NewInt(0),
+		},
 	}
 	key := []byte("key")
 	value := big.NewInt(10).Bytes()
@@ -78,7 +84,10 @@ func TestESDTTransfer_ProcessBuiltInFunctionSenderInShard(t *testing.T) {
 	esdt, _ := NewESDTTransferFunc(10, marshalizer)
 
 	input := &vmcommon.ContractCallInput{
-		VMInput: vmcommon.VMInput{GasProvided: 50},
+		VMInput: vmcommon.VMInput{
+			GasProvided: 50,
+			CallValue:   big.NewInt(0),
+		},
 	}
 	key := []byte("key")
 	value := big.NewInt(10).Bytes()
@@ -104,7 +113,10 @@ func TestESDTTransfer_ProcessBuiltInFunctionDestInShard(t *testing.T) {
 	esdt, _ := NewESDTTransferFunc(10, marshalizer)
 
 	input := &vmcommon.ContractCallInput{
-		VMInput: vmcommon.VMInput{GasProvided: 50},
+		VMInput: vmcommon.VMInput{
+			GasProvided: 50,
+			CallValue:   big.NewInt(0),
+		},
 	}
 	key := []byte("key")
 	value := big.NewInt(10).Bytes()
