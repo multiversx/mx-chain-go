@@ -360,7 +360,7 @@ func newUnconstrainedListToTest() *txListForSender {
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountPerSenderThreshold:    math.MaxUint32,
 		MinGasPriceNanoErd:         100,
-	}, func(value *txListForSender) {})
+	}, func(_ *txListForSender, _ senderScoreParams) {})
 }
 
 func newListToTest(numBytesThreshold uint32, countThreshold uint32) *txListForSender {
@@ -368,5 +368,5 @@ func newListToTest(numBytesThreshold uint32, countThreshold uint32) *txListForSe
 		NumBytesPerSenderThreshold: numBytesThreshold,
 		CountPerSenderThreshold:    countThreshold,
 		MinGasPriceNanoErd:         100,
-	}, func(value *txListForSender) {})
+	}, func(_ *txListForSender, _ senderScoreParams) {})
 }

@@ -33,7 +33,7 @@ type txListForSender struct {
 	mutex           sync.RWMutex
 }
 
-type scoreChangeCallback func(value *txListForSender)
+type scoreChangeCallback func(value *txListForSender, scoreParams senderScoreParams)
 
 // newTxListForSender creates a new (sorted) list of transactions
 func newTxListForSender(sender string, cacheConfig *CacheConfig, onScoreChange scoreChangeCallback) *txListForSender {
@@ -107,7 +107,10 @@ func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction)
 }
 
 func (listForSender *txListForSender) triggerScoreChange() {
-	listForSender.onScoreChange(listForSender)
+	scoreParams := listForSender.getScoreParams()
+	listForSender.onScoreChange(listForSender, scoreParams)
+}
+
 // This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) getScoreParams() senderScoreParams {
 	fee := listForSender.totalFee.GetUint64()
