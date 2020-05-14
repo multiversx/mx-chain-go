@@ -324,11 +324,13 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		RequestHandler:   e.requestHandler,
-		Messenger:        e.messenger,
-		ShardCoordinator: e.shardCoordinator,
-		EconomicsData:    e.economicsData,
-		WhitelistHandler: e.whiteListHandler,
+		CoreComponentsHolder:   e.coreComponentsHolder,
+		CryptoComponentsHolder: e.cryptoComponentsHolder,
+		RequestHandler:         e.requestHandler,
+		Messenger:              e.messenger,
+		ShardCoordinator:       e.shardCoordinator,
+		EconomicsData:          e.economicsData,
+		WhitelistHandler:       e.whiteListHandler,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {

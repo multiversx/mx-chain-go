@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -36,6 +37,7 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	_ = logger.SetLogLevel("*:TRACE")
 	testNodeStartsInEpoch(t, 0, 18)
 }
 
@@ -194,6 +196,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			Hash:                integrationTests.TestHasher,
 			UInt64ByteSliceConv: uint64Converter,
 			AddrPubKeyConv:      integrationTests.TestAddressPubkeyConverter,
+			ChainIdCalled: func() string {
+				return string(integrationTests.ChainID)
+			},
 		},
 		Messenger:                  nodeToJoinLate.Messenger,
 		GeneralConfig:              getGeneralConfig(),
