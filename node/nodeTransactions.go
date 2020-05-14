@@ -2,10 +2,18 @@ package node
 
 import (
 	"encoding/hex"
+	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
+// GetTransaction gets the transaction
+func (n *Node) GetTransaction(txHash string) (*transaction.Transaction, error) {
+	return nil, fmt.Errorf("not yet implemented")
+}
+
+// GetTransactionStatus gets the transaction status
 func (n *Node) GetTransactionStatus(txHash string) (string, error) {
 	hash, err := hex.DecodeString(txHash)
 	if err != nil {
