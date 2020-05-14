@@ -251,7 +251,7 @@ func TestTrigger_TriggerReceivedCreatePayloadShouldWork(t *testing.T) {
 	arg := createMockArgHardforkTrigger()
 	trig, _ := trigger.NewTrigger(arg)
 
-	data := trig.CreateData()
+	data := trig.CreateData(0)
 	numTrigCalled := int32(0)
 	payloadReceived := []byte("original message")
 	_ = trig.RegisterHandler(func() {

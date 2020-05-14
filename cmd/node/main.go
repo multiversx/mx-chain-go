@@ -69,6 +69,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	factory2 "github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -1894,6 +1895,43 @@ func createNode(
 		EnabledAuthenticated: config.Hardfork.EnableTriggerFromP2P,
 	}
 	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
+	if err != nil {
+		return nil, err
+	}
+
+	argsExporter := factory2.ArgsExporter{
+		TxSignMarshalizer:        coreData.TxSignMarshalizer,
+		Marshalizer:              coreData.InternalMarshalizer,
+		Hasher:                   coreData.Hasher,
+		HeaderValidator:          nil,
+		Uint64Converter:          nil,
+		DataPool:                 nil,
+		StorageService:           nil,
+		RequestHandler:           nil,
+		ShardCoordinator:         nil,
+		Messenger:                nil,
+		ActiveAccountsDBs:        nil,
+		ExistingResolvers:        nil,
+		ExportFolder:             "",
+		ExportTriesStorageConfig: config.StorageConfig{},
+		ExportStateStorageConfig: config.StorageConfig{},
+		WhiteListHandler:         nil,
+		WhiteListerVerifiedTxs:   nil,
+		InterceptorsContainer:    nil,
+		MultiSigner:              nil,
+		NodesCoordinator:         nil,
+		SingleSigner:             nil,
+		AddressPubkeyConverter:   nil,
+		BlockKeyGen:              nil,
+		KeyGen:                   nil,
+		BlockSigner:              nil,
+		HeaderSigVerifier:        nil,
+		ChainID:                  nil,
+		ValidityAttester:         nil,
+		InputAntifloodHandler:    nil,
+		OutputAntifloodHandler:   nil,
+	}
+	hardForkExportFactory, err := factory2.NewExportHandlerFactory(argsExporter)
 	if err != nil {
 		return nil, err
 	}

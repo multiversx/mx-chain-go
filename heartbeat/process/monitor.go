@@ -276,8 +276,6 @@ func (m *Monitor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPe
 		return err
 	}
 
-	//TODO check if hardfork trigger can be set otherwise (not requiring a pk that will actually send the trigger
-	// whenever it wants)
 	isHardforkTrigger, err := m.hardforkTrigger.TriggerReceived(message.Data(), hbRecv.Payload, hbRecv.Pubkey)
 	if isHardforkTrigger {
 		return err

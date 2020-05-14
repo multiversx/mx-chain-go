@@ -209,3 +209,9 @@ type SigVerifier interface {
 	Verify(message []byte, sig []byte, pk []byte) error
 	IsInterfaceNil() bool
 }
+
+// EpochHandler defines the functionality to get the current epoch
+type EpochHandler interface {
+	MetaEpoch() uint32
+	IsInterfaceNil() bool
+}

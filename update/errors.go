@@ -199,3 +199,9 @@ var ErrNilTrieStorageManagers = errors.New("nil trie storage managers")
 
 // ErrEmptyChainID signals that empty chain ID was provided
 var ErrEmptyChainID = errors.New("empty chain ID")
+
+// ErrNilArgumentParser signals that nil argument parser was provided
+var ErrNilArgumentParser = errors.New("nil argument parser")
+
+// ErrNotEnoughArgumentsForHardForkTrigger signals that not enough arguments has been provided for hardfork trigger
+var ErrNotEnoughArgumentsForHardForkTrigger = errors.New("not enough arguments for hardfork trigger")

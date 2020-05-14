@@ -84,7 +84,7 @@ type PeerTypeProviderHandler interface {
 type HardforkTrigger interface {
 	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessage() ([]byte, bool)
-	CreateData() []byte
+	CreateData(epoch uint32) []byte
 	IsInterfaceNil() bool
 }
 

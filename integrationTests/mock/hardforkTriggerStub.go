@@ -46,7 +46,7 @@ func (hts *HardforkTriggerStub) RecordedTriggerMessage() ([]byte, bool) {
 }
 
 // CreateData -
-func (hts *HardforkTriggerStub) CreateData() []byte {
+func (hts *HardforkTriggerStub) CreateData(uint32) []byte {
 	if hts.CreateDataCalled != nil {
 		return hts.CreateDataCalled()
 	}
