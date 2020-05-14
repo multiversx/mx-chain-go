@@ -170,12 +170,14 @@ func (t *trigger) exportAll() {
 		return
 	}
 
-	time.Sleep(time.Duration(t.closeAfterInMinutes) * time.Minute)
-	argument := endProcess.ArgEndProcess{
-		Reason:      "HardForkExport",
-		Description: "Node finished the export process with success",
-	}
-	t.chanStopNodeProcess <- argument
+	go func() {
+		time.Sleep(time.Duration(t.closeAfterInMinutes) * time.Minute)
+		argument := endProcess.ArgEndProcess{
+			Reason:      "HardForkExport",
+			Description: "Node finished the export process with success",
+		}
+		t.chanStopNodeProcess <- argument
+	}()
 }
 
 // TriggerReceived is called whenever a trigger is received from the p2p side
@@ -210,7 +212,7 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 	}
 
 	if len(arguments) != 2 {
-		return true, update.ErrNotEnoughArgumentsForHardForkTrigger
+		return true, update.ErrIncorrectHardforkMessage
 	}
 
 	timestamp, err := t.getIntFromArgument(string(arguments[0]))

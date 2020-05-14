@@ -1,6 +1,7 @@
 package trigger_test
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sync/atomic"
@@ -25,7 +26,7 @@ func createMockArgHardforkTrigger() trigger.ArgHardforkTrigger {
 		ArgumentParser:            vmcommon.NewAtArgumentParser(),
 		EpochProvider:             &mock.EpochHandlerStub{},
 		ExportFactoryHandler:      &mock.ExportFactoryHandlerStub{},
-		CloseAfterExportInMinutes: 1,
+		CloseAfterExportInMinutes: 0,
 		ChanStopNodeProcess:       make(chan endProcess.ArgEndProcess),
 		EpochConfirmedNotifier:    &mock.EpochStartNotifierStub{},
 	}
@@ -189,7 +190,7 @@ func TestTrigger_TriggerReceivedNotAnIntShouldErr(t *testing.T) {
 
 	arg := createMockArgHardforkTrigger()
 	trig, _ := trigger.NewTrigger(arg)
-	data := []byte(trigger.HardforkTriggerString + trigger.PayloadSeparator + "not-an-int")
+	data := []byte(trigger.HardforkTriggerString + trigger.PayloadSeparator + hex.EncodeToString([]byte("not-an-int")))
 
 	isHardfork, err := trig.TriggerReceived(nil, data, arg.TriggerPubKeyBytes)
 	assert.True(t, errors.Is(err, update.ErrIncorrectHardforkMessage))
@@ -234,7 +235,9 @@ func TestTrigger_TriggerReceivedShouldWork(t *testing.T) {
 		return currentTimeStamp
 	})
 	messageTimeStamp := currentTimeStamp - int64(trigger.HardforkGracePeriod.Seconds())
-	data := []byte(trigger.HardforkTriggerString + trigger.PayloadSeparator + fmt.Sprintf("%d", messageTimeStamp))
+	data := []byte(trigger.HardforkTriggerString +
+		trigger.PayloadSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", messageTimeStamp))) +
+		trigger.PayloadSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", 0))))
 
 	payload, wasTriggered := trig.RecordedTriggerMessage()
 	assert.Nil(t, payload)
