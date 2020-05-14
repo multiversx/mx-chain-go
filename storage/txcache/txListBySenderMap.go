@@ -61,7 +61,7 @@ func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
 
 // This function should only be called in a critical section managed by a "txListForSender"
 func (txMap *txListBySenderMap) notifyScoreChange(txList *txListForSender) {
-	txMap.backingMap.NotifyScoreChange(txList)
+	txMap.backingMap.NotifyScoreChange(txList, txList.ComputeScore())
 }
 
 // removeTx removes a transaction from the map
