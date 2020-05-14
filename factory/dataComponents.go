@@ -37,6 +37,13 @@ type dataComponentsFactory struct {
 	currentEpoch       uint32
 }
 
+// DataComponents struct holds the data components
+type DataComponents struct {
+	Blkc     data.ChainHandler
+	Store    dataRetriever.StorageService
+	Datapool dataRetriever.PoolsHolder
+}
+
 // NewDataComponentsFactory will return a new instance of dataComponentsFactory
 func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFactory, error) {
 	if args.EconomicsData == nil {

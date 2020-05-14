@@ -2,7 +2,6 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
@@ -36,11 +35,6 @@ func (ccf *cryptoComponentsFactory) CreateMultiSigner(
 // GetSuite -
 func (ccf *cryptoComponentsFactory) GetSuite() (crypto.Suite, error) {
 	return ccf.getSuite()
-}
-
-// PubKeyConverter -
-func (ccf *cryptoComponentsFactory) PubKeyConverter() state.PubkeyConverter {
-	return ccf.pubKeyConverter
 }
 
 // SetKeyLoader -

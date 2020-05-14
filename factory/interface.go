@@ -4,7 +4,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -56,6 +58,8 @@ type CoreComponentsHolder interface {
 	VmMarshalizer() marshal.Marshalizer
 	Hasher() hashing.Hasher
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
+	AddressPubKeyConverter() state.PubkeyConverter
+	ValidatorPubKeyConverter() state.PubkeyConverter
 	StatusHandler() core.AppStatusHandler
 	SetStatusHandler(statusHandler core.AppStatusHandler) error
 	ChainID() []byte
@@ -93,4 +97,18 @@ type CryptoComponentsHolder interface {
 type CryptoComponentsHandler interface {
 	ComponentHandler
 	CryptoComponentsHolder
+}
+
+// DataComponentsHolder holds the data components
+type DataComponentsHolder interface {
+	Blockchain() data.ChainHandler
+	StorageService() dataRetriever.StorageService
+	Datapool() dataRetriever.PoolsHolder
+	IsInterfaceNil() bool
+}
+
+// DataComponentsHandler defines the data components handler actions
+type DataComponentsHandler interface {
+	ComponentHandler
+	DataComponentsHolder
 }

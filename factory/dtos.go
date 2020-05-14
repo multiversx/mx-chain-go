@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -17,13 +16,6 @@ type StateComponents struct {
 	PeerAccounts             state.AccountsAdapter
 	AccountsAdapter          state.AccountsAdapter
 	InBalanceForShard        map[string]*big.Int
-}
-
-// DataComponents struct holds the data components
-type DataComponents struct {
-	Blkc     data.ChainHandler
-	Store    dataRetriever.StorageService
-	Datapool dataRetriever.PoolsHolder
 }
 
 // TriesComponents holds the tries components
