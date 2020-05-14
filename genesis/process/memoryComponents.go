@@ -8,13 +8,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
+const maxTrieLevelInMemory = uint(5)
+
 func createAccountAdapter(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	accountFactory state.AccountFactory,
 	trieStorage data.StorageManager,
 ) (state.AccountsAdapter, error) {
-	maxTrieLevelInMemory := uint(5)
 	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, maxTrieLevelInMemory)
 	if err != nil {
 		return nil, err

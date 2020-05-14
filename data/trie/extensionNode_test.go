@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/data"
-
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/stretchr/testify/assert"

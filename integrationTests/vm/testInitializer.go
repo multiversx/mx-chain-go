@@ -46,6 +46,8 @@ var pubkeyConv, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 var log = logger.GetOrCreate("integrationtests")
 
+const maxTrieLevelInMemory = uint(5)
+
 // VMTestContext -
 type VMTestContext struct {
 	TxProcessor    process.TransactionProcessor
@@ -118,7 +120,6 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 		generalCfg,
 	)
 
-	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher, maxTrieLevelInMemory)
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
 
