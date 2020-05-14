@@ -21,11 +21,11 @@ type Transaction struct {
 	SenderShard          uint32        `json:"senderShard"`
 	GasPrice             uint64        `json:"gasPrice"`
 	GasLimit             uint64        `json:"gasLimit"`
+	GasUsed              uint64        `json:"gasUsed"`
 	Data                 string        `json:"data"`
 	Signature            string        `json:"signature"`
 	Timestamp            time.Duration `json:"timestamp"`
 	Status               string        `json:"status"`
-	GasUsed              string        `json:"gasUsed"`
 	SmartContractResults []ScResult    `json:"scResults"`
 	Log                  TxLog         `json:"-"`
 }
