@@ -85,7 +85,7 @@ type CryptoParamsHolder interface {
 type CryptoComponentsHolder interface {
 	CryptoParamsHolder
 	TxSingleSigner() crypto.SingleSigner
-	SingleSigner() crypto.SingleSigner
+	BlockSigner() crypto.SingleSigner
 	MultiSigner() crypto.MultiSigner
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSignKeyGen() crypto.KeyGenerator

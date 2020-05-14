@@ -607,17 +607,17 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ActivateBLSPubKeyMessageVerification: economicsConfig.ValidatorSettings.ActivateBLSPubKeyMessageVerification,
 	}
 
-	cryptoComponentsHandler, err := mainFactory.NewManagedCryptoComponents(cryptoComponentsHandlerArgs)
+	managedCryptoComponents, err := mainFactory.NewManagedCryptoComponents(cryptoComponentsHandlerArgs)
 	if err != nil {
 		return err
 	}
 
-	err = cryptoComponentsHandler.Create()
+	err = managedCryptoComponents.Create()
 	if err != nil {
 		return err
 	}
 
-	log.Debug("block sign pubkey", "value", cryptoComponentsHandler.PublicKeyString())
+	log.Debug("block sign pubkey", "value", managedCryptoComponents.PublicKeyString())
 
 	if ctx.IsSet(destinationShardAsObserver.Name) {
 		preferencesConfig.Preferences.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
@@ -658,7 +658,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	genesisShardCoordinator, nodeType, err := createShardCoordinator(genesisNodesConfig, cryptoComponentsHandler.PublicKey(), preferencesConfig.Preferences, log)
+	genesisShardCoordinator, nodeType, err := createShardCoordinator(genesisNodesConfig, managedCryptoComponents.PublicKey(), preferencesConfig.Preferences, log)
 	if err != nil {
 		return err
 	}
@@ -774,17 +774,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	)
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
-		PublicKey:                  cryptoComponentsHandler.PublicKey(),
-		Marshalizer:                managedCoreComponents.InternalMarshalizer(),
-		TxSignMarshalizer:          managedCoreComponents.TxMarshalizer(),
-		Hasher:                     managedCoreComponents.Hasher(),
+		CoreComponentsHolder:       managedCoreComponents,
+		CryptoComponentsHolder:     managedCryptoComponents,
 		Messenger:                  networkComponents.NetMessenger,
 		GeneralConfig:              *generalConfig,
 		EconomicsData:              economicsData,
-		SingleSigner:               cryptoComponentsHandler.TxSingleSigner(),
-		BlockSingleSigner:          cryptoComponentsHandler.SingleSigner(),
-		KeyGen:                     cryptoComponentsHandler.TxSignKeyGen(),
-		BlockKeyGen:                cryptoComponentsHandler.BlockSignKeyGen(),
 		GenesisNodesConfig:         genesisNodesConfig,
 		GenesisShardCoordinator:    genesisShardCoordinator,
 		PathManager:                pathManager,
@@ -797,10 +791,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		DestinationShardAsObserver: destShardIdAsObserver,
 		TrieContainer:              triesComponents.TriesContainer,
 		TrieStorageManagers:        triesComponents.TrieStorageManagers,
-		Uint64Converter:            managedCoreComponents.Uint64ByteSliceConverter(),
 		NodeShuffler:               nodesShuffler,
 		Rounder:                    rounder,
-		AddressPubkeyConverter:     managedCoreComponents.AddressPubKeyConverter(),
 		LatestStorageDataProvider:  latestStorageDataProvider,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
@@ -834,7 +826,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	logger.SetCorrelationShard(shardIdString)
 
 	log.Trace("initializing stats file")
-	err = initStatsFileMonitor(generalConfig, cryptoComponentsHandler.PublicKeyString(), log, workingDir, pathManager, shardId)
+	err = initStatsFileMonitor(generalConfig, managedCryptoComponents.PublicKeyString(), log, workingDir, pathManager, shardId)
 	if err != nil {
 		return err
 	}
@@ -874,7 +866,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("initializing metrics")
 	err = metrics.InitMetrics(
 		managedCoreComponents.StatusHandler(),
-		cryptoComponentsHandler.PublicKeyString(),
+		managedCryptoComponents.PublicKeyString(),
 		nodeType,
 		shardCoordinator,
 		genesisNodesConfig,
@@ -910,7 +902,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		genesisNodesConfig,
 		preferencesConfig.Preferences,
 		epochStartNotifier,
-		cryptoComponentsHandler.PublicKey(),
+		managedCryptoComponents.PublicKey(),
 		managedCoreComponents.InternalMarshalizer(),
 		managedCoreComponents.Hasher(),
 		rater,
@@ -955,7 +947,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricMinGasLimit, economicsData.MinGasLimit())
 
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
-		"PkBlockSign", cryptoComponentsHandler.PublicKeyString(),
+		"PkBlockSign", managedCryptoComponents.PublicKeyString(),
 		"ShardId", shardId,
 		"TotalShards", shardCoordinator.NumberOfShards(),
 		"AppVersion", version,
@@ -1063,7 +1055,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		nodesCoordinator,
 		dataComponents,
 		managedCoreComponents,
-		cryptoComponentsHandler,
+		managedCryptoComponents,
 		stateComponents,
 		networkComponents,
 		triesComponents,
@@ -1106,15 +1098,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		genesisNodesConfig,
 		economicsData,
 		syncer,
-		cryptoComponentsHandler.BlockSignKeyGen(),
-		cryptoComponentsHandler.PrivateKey(),
-		cryptoComponentsHandler.PublicKey(),
+		managedCryptoComponents.BlockSignKeyGen(),
+		managedCryptoComponents.PrivateKey(),
+		managedCryptoComponents.PublicKey(),
 		shardCoordinator,
 		nodesCoordinator,
 		managedCoreComponents,
 		stateComponents,
 		dataComponents,
-		cryptoComponentsHandler,
+		managedCryptoComponents,
 		processComponents,
 		networkComponents,
 		ctx.GlobalUint64(bootstrapRoundIndex.Name),
@@ -1157,7 +1149,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		statusHandlersInfo.StatusMetrics,
 		gasSchedule,
 		economicsData,
-		cryptoComponentsHandler.MessageSignVerifier(),
+		managedCryptoComponents.MessageSignVerifier(),
 		genesisNodesConfig,
 		systemSCConfig,
 	)
@@ -1847,7 +1839,7 @@ func createNode(
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithNodesCoordinator(nodesCoordinator),
 		node.WithUint64ByteSliceConverter(coreData.Uint64ByteSliceConverter()),
-		node.WithSingleSigner(crypto.SingleSigner()),
+		node.WithSingleSigner(crypto.BlockSigner()),
 		node.WithMultiSigner(crypto.MultiSigner()),
 		node.WithKeyGen(keyGen),
 		node.WithKeyGenForAccounts(crypto.TxSignKeyGen()),

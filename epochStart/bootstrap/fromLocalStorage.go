@@ -54,7 +54,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	pubKey, err := e.publicKey.ToByteArray()
+	pubKey, err := e.cryptoComponentsHolder.PublicKey().ToByteArray()
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -194,7 +194,7 @@ func checkIfValidatorIsInList(
 }
 
 func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*bootstrapStorage.BootstrapData, *sharding.NodesCoordinatorRegistry, error) {
-	bootStorer, err := bootstrapStorage.NewBootstrapStorer(e.marshalizer, storer)
+	bootStorer, err := bootstrapStorage.NewBootstrapStorer(e.coreComponentsHolder.InternalMarshalizer(), storer)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -230,7 +230,7 @@ func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer
 	}
 
 	metaBlock := &block.MetaBlock{}
-	err = e.marshalizer.Unmarshal(metaBlock, data)
+	err = e.coreComponentsHolder.InternalMarshalizer().Unmarshal(metaBlock, data)
 	if err != nil {
 		return nil, err
 	}

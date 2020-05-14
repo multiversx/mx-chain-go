@@ -5,10 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -34,21 +31,13 @@ type epochStartMetaSyncer struct {
 
 // ArgsNewEpochStartMetaSyncer -
 type ArgsNewEpochStartMetaSyncer struct {
-	RequestHandler    RequestHandler
-	Messenger         Messenger
-	Marshalizer       marshal.Marshalizer
-	TxSignMarshalizer marshal.Marshalizer
-	ShardCoordinator  sharding.Coordinator
-	KeyGen            crypto.KeyGenerator
-	BlockKeyGen       crypto.KeyGenerator
-	Hasher            hashing.Hasher
-	Signer            crypto.SingleSigner
-	BlockSigner       crypto.SingleSigner
-	ChainID           []byte
-	EconomicsData     *economics.EconomicsData
-	WhitelistHandler  process.WhiteListHandler
-	AddressPubkeyConv state.PubkeyConverter
-	NonceConverter    typeConverters.Uint64ByteSliceConverter
+	CoreComponentsHolder   BootstrapCoreComponentsHolder
+	CryptoComponentsHolder BootstrapCryptoComponentsHolder
+	RequestHandler         RequestHandler
+	Messenger              Messenger
+	ShardCoordinator       sharding.Coordinator
+	EconomicsData          *economics.EconomicsData
+	WhitelistHandler       process.WhiteListHandler
 }
 
 // thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
@@ -57,22 +46,28 @@ const thresholdForConsideringMetaBlockCorrect = 67
 
 // NewEpochStartMetaSyncer will return a new instance of epochStartMetaSyncer
 func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaSyncer, error) {
-	if check.IfNil(args.AddressPubkeyConv) {
+	if check.IfNil(args.CoreComponentsHolder) {
+		return nil, epochStart.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(args.CryptoComponentsHolder) {
+		return nil, epochStart.ErrNilCryptoComponentsHolder
+	}
+	if check.IfNil(args.CoreComponentsHolder.AddressPubKeyConverter()) {
 		return nil, epochStart.ErrNilPubkeyConverter
 	}
 
 	e := &epochStartMetaSyncer{
 		requestHandler: args.RequestHandler,
 		messenger:      args.Messenger,
-		marshalizer:    args.Marshalizer,
-		hasher:         args.Hasher,
+		marshalizer:    args.CoreComponentsHolder.InternalMarshalizer(),
+		hasher:         args.CoreComponentsHolder.Hasher(),
 	}
 
 	processor, err := NewEpochStartMetaBlockProcessor(
 		args.Messenger,
 		args.RequestHandler,
-		args.Marshalizer,
-		args.Hasher,
+		args.CoreComponentsHolder.InternalMarshalizer(),
+		args.CoreComponentsHolder.Hasher(),
 		thresholdForConsideringMetaBlockCorrect,
 	)
 	if err != nil {
@@ -81,23 +76,23 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	e.metaBlockProcessor = processor
 
 	argsInterceptedDataFactory := interceptorsFactory.ArgInterceptedDataFactory{
-		ProtoMarshalizer:  args.Marshalizer,
-		TxSignMarshalizer: args.TxSignMarshalizer,
-		Hasher:            args.Hasher,
+		ProtoMarshalizer:  args.CoreComponentsHolder.InternalMarshalizer(),
+		TxSignMarshalizer: args.CoreComponentsHolder.TxMarshalizer(),
+		Hasher:            args.CoreComponentsHolder.Hasher(),
 		ShardCoordinator:  args.ShardCoordinator,
 		MultiSigVerifier:  disabled.NewMultiSigVerifier(),
 		NodesCoordinator:  disabled.NewNodesCoordinator(),
-		KeyGen:            args.KeyGen,
-		BlockKeyGen:       args.BlockKeyGen,
-		Signer:            args.Signer,
-		BlockSigner:       args.BlockSigner,
-		AddressPubkeyConv: args.AddressPubkeyConv,
+		KeyGen:            args.CryptoComponentsHolder.TxSignKeyGen(),
+		BlockKeyGen:       args.CryptoComponentsHolder.BlockSignKeyGen(),
+		Signer:            args.CryptoComponentsHolder.TxSingleSigner(),
+		BlockSigner:       args.CryptoComponentsHolder.BlockSigner(),
+		AddressPubkeyConv: args.CoreComponentsHolder.AddressPubKeyConverter(),
 		FeeHandler:        args.EconomicsData,
 		HeaderSigVerifier: disabled.NewHeaderSigVerifier(),
-		ChainID:           args.ChainID,
+		ChainID:           []byte(args.CoreComponentsHolder.ChainID()),
 		ValidityAttester:  disabled.NewValidityAttester(),
 		EpochStartTrigger: disabled.NewEpochStartTrigger(),
-		NonceConverter:    args.NonceConverter,
+		NonceConverter:    args.CoreComponentsHolder.Uint64ByteSliceConverter(),
 	}
 
 	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedDataFactory)

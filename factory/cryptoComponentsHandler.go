@@ -135,8 +135,8 @@ func (mcc *managedCryptoComponents) TxSingleSigner() crypto.SingleSigner {
 	return mcc.cryptoComponents.TxSingleSigner
 }
 
-// SingleSigner returns block single signer
-func (mcc *managedCryptoComponents) SingleSigner() crypto.SingleSigner {
+// BlockSigner returns block single signer
+func (mcc *managedCryptoComponents) BlockSigner() crypto.SingleSigner {
 	mcc.mutCryptoComponents.RLock()
 	defer mcc.mutCryptoComponents.RUnlock()
 
