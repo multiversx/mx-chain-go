@@ -2,8 +2,6 @@ package txcache
 
 import (
 	"math"
-
-	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
 // TODO: the score formula should not be sensitive to the order of magnitude of the minGasPrice.
@@ -20,30 +18,11 @@ type senderScoreParams struct {
 	minGasPrice uint32
 }
 
-// GetKey return the key
-func (listForSender *txListForSender) GetKey() string {
-	return listForSender.sender
-}
-
-func (listForSender *txListForSender) getLastComputedScore() uint32 {
-	return listForSender.lastComputedScore.Get()
-}
-
 // ComputeScore computes the score of the sender, as an integer 0-100
 func (listForSender *txListForSender) ComputeScore() uint32 {
 	score := uint32(listForSender.computeRawScore())
 	listForSender.lastComputedScore.Set(score)
 	return score
-}
-
-func (listForSender *txListForSender) computeRawScore() float64 {
-	fee := listForSender.totalFee.GetUint64()
-	gas := listForSender.totalGas.GetUint64()
-	size := listForSender.totalBytes.GetUint64()
-	count := listForSender.countTx()
-	minGasPrice := listForSender.cacheConfig.MinGasPriceNanoErd
-
-	return computeSenderScore(senderScoreParams{count: count, size: size, fee: fee, gas: gas, minGasPrice: minGasPrice})
 }
 
 // score for a sender is defined as follows:
@@ -91,19 +70,4 @@ func computeSenderScore(params senderScoreParams) float64 {
 	asymptoticScore := (1/(1+math.Exp(-rawScore)) - 0.5) * 2
 	score := asymptoticScore * float64(numberOfScoreChunks)
 	return score
-}
-
-// GetScoreChunk returns the score chunk the sender is currently in
-func (listForSender *txListForSender) GetScoreChunk() *maps.MapChunk {
-	listForSender.scoreChunkMutex.RLock()
-	defer listForSender.scoreChunkMutex.RUnlock()
-
-	return listForSender.scoreChunk
-}
-
-// SetScoreChunk returns the score chunk the sender is currently in
-func (listForSender *txListForSender) SetScoreChunk(scoreChunk *maps.MapChunk) {
-	listForSender.scoreChunkMutex.Lock()
-	listForSender.scoreChunk = scoreChunk
-	listForSender.scoreChunkMutex.Unlock()
 }

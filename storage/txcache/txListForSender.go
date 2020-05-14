@@ -108,6 +108,15 @@ func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction)
 
 func (listForSender *txListForSender) triggerScoreChange() {
 	listForSender.onScoreChange(listForSender)
+// This function should only be used in critical section (listForSender.mutex)
+func (listForSender *txListForSender) getScoreParams() senderScoreParams {
+	fee := listForSender.totalFee.GetUint64()
+	gas := listForSender.totalGas.GetUint64()
+	size := listForSender.totalBytes.GetUint64()
+	count := listForSender.countTx()
+	minGasPrice := listForSender.cacheConfig.MinGasPriceNanoErd
+
+	return senderScoreParams{count: count, size: size, fee: fee, gas: gas, minGasPrice: minGasPrice}
 }
 
 // This function should only be used in critical section (listForSender.mutex)
@@ -346,4 +355,32 @@ func (listForSender *txListForSender) isInGracePeriod() bool {
 func (listForSender *txListForSender) isGracePeriodExceeded() bool {
 	numFailedSelections := listForSender.numFailedSelections.Get()
 	return numFailedSelections > senderGracePeriodUpperBound
+}
+
+func (listForSender *txListForSender) getLastComputedScore() uint32 {
+	return listForSender.lastComputedScore.Get()
+}
+
+func (listForSender *txListForSender) setLastComputedScore(score uint32) {
+	listForSender.lastComputedScore.Set(score)
+}
+
+// GetKey returns the key
+func (listForSender *txListForSender) GetKey() string {
+	return listForSender.sender
+}
+
+// GetScoreChunk returns the score chunk the sender is currently in
+func (listForSender *txListForSender) GetScoreChunk() *maps.MapChunk {
+	listForSender.scoreChunkMutex.RLock()
+	defer listForSender.scoreChunkMutex.RUnlock()
+
+	return listForSender.scoreChunk
+}
+
+// SetScoreChunk returns the score chunk the sender is currently in
+func (listForSender *txListForSender) SetScoreChunk(scoreChunk *maps.MapChunk) {
+	listForSender.scoreChunkMutex.Lock()
+	listForSender.scoreChunk = scoreChunk
+	listForSender.scoreChunkMutex.Unlock()
 }
