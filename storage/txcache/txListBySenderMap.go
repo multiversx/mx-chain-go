@@ -9,9 +9,10 @@ const numberOfScoreChunks = uint32(100)
 
 // txListBySenderMap is a map-like structure for holding and accessing transactions by sender
 type txListBySenderMap struct {
-	backingMap  *maps.BucketSortedMap
-	cacheConfig CacheConfig
-	counter     atomic.Counter
+	backingMap    *maps.BucketSortedMap
+	cacheConfig   CacheConfig
+	counter       atomic.Counter
+	scoreComputer *scoreComputer
 }
 
 // newTxListBySenderMap creates a new instance of TxListBySenderMap
@@ -19,8 +20,9 @@ func newTxListBySenderMap(nChunksHint uint32, cacheConfig CacheConfig) txListByS
 	backingMap := maps.NewBucketSortedMap(nChunksHint, numberOfScoreChunks)
 
 	return txListBySenderMap{
-		backingMap:  backingMap,
-		cacheConfig: cacheConfig,
+		backingMap:    backingMap,
+		cacheConfig:   cacheConfig,
+		scoreComputer: &scoreComputer{},
 	}
 }
 
