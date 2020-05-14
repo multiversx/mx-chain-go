@@ -221,3 +221,9 @@ type ExportFactoryHandler interface {
 	Create() (ExportHandler, error)
 	IsInterfaceNil() bool
 }
+
+// EpochChangeConfirmedNotifier defines the functionality needed to register for the epoch change confirmed event
+type EpochChangeConfirmedNotifier interface {
+	RegisterForEpochChangeConfirmed(handler func(epoch uint32))
+	IsInterfaceNil() bool
+}

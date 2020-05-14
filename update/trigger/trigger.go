@@ -35,6 +35,7 @@ type ArgHardforkTrigger struct {
 	ExportFactoryHandler      update.ExportFactoryHandler
 	CloseAfterExportInMinutes uint32
 	ChanStopNodeProcess       chan endProcess.ArgEndProcess
+	EpochConfirmedNotifier    update.EpochChangeConfirmedNotifier
 }
 
 // trigger implements a hardfork trigger that is able to notify a set list of handlers if this instance gets triggered
@@ -57,6 +58,7 @@ type trigger struct {
 	exportFactoryHandler   update.ExportFactoryHandler
 	closeAfterInMinutes    uint32
 	chanStopNodeProcess    chan endProcess.ArgEndProcess
+	epochConfirmedNotifier update.EpochChangeConfirmedNotifier
 }
 
 // NewTrigger returns the trigger instance
@@ -79,6 +81,9 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 	if arg.ChanStopNodeProcess == nil {
 		return nil, update.ErrNilChanStopNodeProcess
 	}
+	if check.IfNil(arg.EpochConfirmedNotifier) {
+		return nil, update.ErrNilEpochConfirmedNotifier
+	}
 
 	t := &trigger{
 		triggerHandlers:      make([]func(epoch uint32), 0),
@@ -93,9 +98,10 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 		closeAfterInMinutes:  arg.CloseAfterExportInMinutes,
 		chanStopNodeProcess:  arg.ChanStopNodeProcess,
 	}
-	t.isTriggerSelf = bytes.Equal(arg.TriggerPubKeyBytes, arg.SelfPubKeyBytes)
 
+	t.isTriggerSelf = bytes.Equal(arg.TriggerPubKeyBytes, arg.SelfPubKeyBytes)
 	t.getTimestampHandler = t.getCurrentUnixTime
+	arg.EpochConfirmedNotifier.RegisterForEpochChangeConfirmed(t.epochConfirmed)
 
 	return t, nil
 }
@@ -104,12 +110,24 @@ func (t *trigger) getCurrentUnixTime() int64 {
 	return time.Now().Unix()
 }
 
+func (t *trigger) epochConfirmed(_ uint32) {
+
+}
+
 // Trigger will start of the hardfork process
 func (t *trigger) Trigger() error {
 	if !t.enabled {
 		return update.ErrTriggerNotEnabled
 	}
-	t.doTrigger(0)
+
+	currentEpoch := t.epochProvider.MetaEpoch()
+	t.mutTriggered.Lock()
+	t.triggered = true
+	t.epoch = currentEpoch
+	t.mutTriggered.Unlock()
+
+	t.doTrigger(currentEpoch)
+
 	return nil
 }
 

@@ -8,17 +8,26 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArgHardforkTrigger() trigger.ArgHardforkTrigger {
 	return trigger.ArgHardforkTrigger{
-		TriggerPubKeyBytes:   []byte("trigger"),
-		SelfPubKeyBytes:      []byte("self"),
-		Enabled:              true,
-		EnabledAuthenticated: true,
+		TriggerPubKeyBytes:        []byte("trigger"),
+		SelfPubKeyBytes:           []byte("self"),
+		Enabled:                   true,
+		EnabledAuthenticated:      true,
+		ArgumentParser:            vmcommon.NewAtArgumentParser(),
+		EpochProvider:             &mock.EpochHandlerStub{},
+		ExportFactoryHandler:      &mock.ExportFactoryHandlerStub{},
+		CloseAfterExportInMinutes: 1,
+		ChanStopNodeProcess:       make(chan endProcess.ArgEndProcess),
+		EpochConfirmedNotifier:    &mock.EpochStartNotifierStub{},
 	}
 }
 
@@ -76,7 +85,7 @@ func TestTrigger_TriggerEnabledShouldWork(t *testing.T) {
 	arg := createMockArgHardforkTrigger()
 	trig, _ := trigger.NewTrigger(arg)
 	numTrigCalled := int32(0)
-	_ = trig.RegisterHandler(func() {
+	_ = trig.RegisterHandler(func(epoch uint32) {
 		atomic.AddInt32(&numTrigCalled, 1)
 	})
 
@@ -217,7 +226,7 @@ func TestTrigger_TriggerReceivedShouldWork(t *testing.T) {
 	trig, _ := trigger.NewTrigger(arg)
 	numTrigCalled := int32(0)
 	payloadReceived := []byte("original message")
-	_ = trig.RegisterHandler(func() {
+	_ = trig.RegisterHandler(func(epoch uint32) {
 		atomic.AddInt32(&numTrigCalled, 1)
 	})
 	currentTimeStamp := time.Now().Unix()
@@ -254,7 +263,7 @@ func TestTrigger_TriggerReceivedCreatePayloadShouldWork(t *testing.T) {
 	data := trig.CreateData(0)
 	numTrigCalled := int32(0)
 	payloadReceived := []byte("original message")
-	_ = trig.RegisterHandler(func() {
+	_ = trig.RegisterHandler(func(epoch uint32) {
 		atomic.AddInt32(&numTrigCalled, 1)
 	})
 
@@ -282,7 +291,7 @@ func TestTrigger_RegisterHandlerShouldWork(t *testing.T) {
 	arg := createMockArgHardforkTrigger()
 	trig, _ := trigger.NewTrigger(arg)
 
-	err := trig.RegisterHandler(func() {})
+	err := trig.RegisterHandler(func(epoch uint32) {})
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(trig.RegisteredHandlers()))

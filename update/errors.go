@@ -211,3 +211,6 @@ var ErrNilExportHandlerFactory = errors.New("nil export handler factory")
 
 // ErrNilChanStopNodeProcess signals that nil channel to stop node was provided
 var ErrNilChanStopNodeProcess = errors.New("nil channel to stop node")
+
+// ErrNilEpochConfirmedNotifier signals that nil epoch confirmed notifier was provided
+var ErrNilEpochConfirmedNotifier = errors.New("nil epoch confirmed notifier")

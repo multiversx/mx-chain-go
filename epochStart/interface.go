@@ -76,6 +76,7 @@ type RegistrationHandler interface {
 type Notifier interface {
 	NotifyAll(hdr data.HeaderHandler)
 	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	NotifyEpochChangeConfirmed(epoch uint32)
 	IsInterfaceNil() bool
 }
 

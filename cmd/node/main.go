@@ -1176,6 +1176,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListRequest,
 		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
+		epochStartNotifier,
 	)
 	if err != nil {
 		return err
@@ -1860,6 +1861,7 @@ func createHardForkTrigger(
 	whiteListRequest process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
+	epochNotifier factory.EpochStartNotifier,
 ) (node.HardforkTrigger, error) {
 
 	selfPubKeyBytes, err := pubKey.ToByteArray()
@@ -1914,14 +1916,15 @@ func createHardForkTrigger(
 
 	atArgumentParser := vmcommon.NewAtArgumentParser()
 	argTrigger := trigger.ArgHardforkTrigger{
-		TriggerPubKeyBytes:   triggerPubKeyBytes,
-		SelfPubKeyBytes:      selfPubKeyBytes,
-		Enabled:              config.Hardfork.EnableTrigger,
-		EnabledAuthenticated: config.Hardfork.EnableTriggerFromP2P,
-		ArgumentParser:       atArgumentParser,
-		EpochProvider:        process.EpochStartTrigger,
-		ExportFactoryHandler: hardForkExportFactory,
-		ChanStopNodeProcess:  chanStopNodeProcess,
+		TriggerPubKeyBytes:     triggerPubKeyBytes,
+		SelfPubKeyBytes:        selfPubKeyBytes,
+		Enabled:                config.Hardfork.EnableTrigger,
+		EnabledAuthenticated:   config.Hardfork.EnableTriggerFromP2P,
+		ArgumentParser:         atArgumentParser,
+		EpochProvider:          process.EpochStartTrigger,
+		ExportFactoryHandler:   hardForkExportFactory,
+		ChanStopNodeProcess:    chanStopNodeProcess,
+		EpochConfirmedNotifier: epochNotifier,
 	}
 	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
 	if err != nil {
