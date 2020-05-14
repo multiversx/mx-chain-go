@@ -73,7 +73,7 @@ func TestTrigger_TriggerNotEnabledShouldErr(t *testing.T) {
 	arg.Enabled = false
 	trig, _ := trigger.NewTrigger(arg)
 
-	err := trig.Trigger()
+	err := trig.Trigger(0)
 	assert.Equal(t, update.ErrTriggerNotEnabled, err)
 
 	_, wasTriggered := trig.RecordedTriggerMessage()
@@ -94,7 +94,7 @@ func TestTrigger_TriggerEnabledShouldWork(t *testing.T) {
 	assert.Nil(t, payload)
 	assert.False(t, wasTriggered)
 
-	err := trig.Trigger()
+	err := trig.Trigger(0)
 
 	// delay as to execute the async calls
 	time.Sleep(time.Second)
@@ -263,7 +263,7 @@ func TestTrigger_TriggerReceivedCreatePayloadShouldWork(t *testing.T) {
 	arg := createMockArgHardforkTrigger()
 	trig, _ := trigger.NewTrigger(arg)
 
-	data := trig.CreateData(0)
+	data := trig.CreateData()
 	numTrigCalled := int32(0)
 	payloadReceived := []byte("original message")
 	_ = trig.RegisterHandler(func(epoch uint32) {

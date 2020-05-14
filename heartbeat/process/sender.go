@@ -113,7 +113,7 @@ func (s *Sender) SendHeartbeat() error {
 			// so that will be spread in an epidemic manner
 			s.peerMessenger.Broadcast(s.topic, triggerMessage)
 		} else {
-			hb.Payload = s.hardforkTrigger.CreateData(0)
+			hb.Payload = s.hardforkTrigger.CreateData()
 		}
 	}
 

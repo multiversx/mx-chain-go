@@ -54,7 +54,7 @@ type HardforkTrigger interface {
 	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessage() ([]byte, bool)
 	Trigger(epoch uint32) error
-	CreateData(epoch uint32) []byte
+	CreateData() []byte
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }
