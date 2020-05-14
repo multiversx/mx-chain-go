@@ -5,6 +5,7 @@ import (
 )
 
 var _ storage.Cacher = (*DisabledCache)(nil)
+var _ txCache = (*DisabledCache)(nil)
 
 // DisabledCache represents a disabled cache
 type DisabledCache struct {

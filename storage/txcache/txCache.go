@@ -9,6 +9,7 @@ import (
 )
 
 var _ storage.Cacher = (*TxCache)(nil)
+var _ txCache = (*TxCache)(nil)
 
 type txHashes = [][]byte
 
