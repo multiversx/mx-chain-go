@@ -27,14 +27,14 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	goodArgs := ArgShardedTxPool{Config: storageUnit.CacheConfig{Size: 100, SizePerSender: 10, SizeInBytes: 409600, SizeInBytesPerSender: 40960, Shards: 16}, MinGasPrice: 200000000000, NumberOfShards: 1}
 
 	args := goodArgs
-	args.Config.SizeInBytes = 1
+	args.Config.SizeInBytes = 0
 	pool, err := NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidSizeInBytes.Error())
 
 	args = goodArgs
-	args.Config.SizeInBytesPerSender = 1
+	args.Config.SizeInBytesPerSender = 0
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)

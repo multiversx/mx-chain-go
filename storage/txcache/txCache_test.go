@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"sync"
@@ -40,41 +41,42 @@ func Test_NewTxCache(t *testing.T) {
 
 	badConfig := config
 	badConfig.Name = ""
-	requireErrorOnNewTxCache(t, badConfig, "config.Name")
+	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.Name")
 
 	badConfig = config
 	badConfig.NumChunksHint = 0
-	requireErrorOnNewTxCache(t, badConfig, "config.NumChunksHint")
+	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumChunksHint")
 
 	badConfig = config
 	badConfig.NumBytesPerSenderThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, "config.NumBytesPerSenderThreshold")
+	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumBytesPerSenderThreshold")
 
 	badConfig = config
 	badConfig.CountPerSenderThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, "config.CountPerSenderThreshold")
+	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.CountPerSenderThreshold")
 
 	badConfig = config
 	badConfig.MinGasPriceNanoErd = 0
-	requireErrorOnNewTxCache(t, badConfig, "config.MinGasPriceNanoErd")
+	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.MinGasPriceNanoErd")
 
 	badConfig = withEvictionConfig
 	badConfig.NumBytesThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, "config.NumBytesThreshold")
+	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumBytesThreshold")
 
 	badConfig = withEvictionConfig
 	badConfig.CountThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, "config.CountThreshold")
+	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.CountThreshold")
 
 	badConfig = withEvictionConfig
 	badConfig.NumSendersToEvictInOneStep = 0
-	requireErrorOnNewTxCache(t, badConfig, "config.NumSendersToEvictInOneStep")
+	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumSendersToEvictInOneStep")
 }
 
-func requireErrorOnNewTxCache(t *testing.T, config CacheConfig, errMessage string) {
-	cache, err := NewTxCache(config)
-	require.Contains(t, err.Error(), errMessage)
+func requireErrorOnNewTxCache(t *testing.T, config CacheConfig, errExpected error, errPartialMessage string) {
+	cache, errReceived := NewTxCache(config)
 	require.Nil(t, cache)
+	require.True(t, errors.Is(errReceived, errExpected))
+	require.Contains(t, errReceived.Error(), errPartialMessage)
 }
 
 func Test_AddTx(t *testing.T) {

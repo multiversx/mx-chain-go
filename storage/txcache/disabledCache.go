@@ -15,106 +15,89 @@ func NewDisabledCache() *DisabledCache {
 	return &DisabledCache{}
 }
 
-// AddTx -
+// AddTx does nothing
 func (cache *DisabledCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
-	log.Error("DisabledCache.AddTx()")
 	return false, false
 }
 
-// GetByTxHash -
+// GetByTxHash returns no transaction
 func (cache *DisabledCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
-	log.Error("DisabledCache.GetByTxHash()")
 	return nil, false
 }
 
-// SelectTransactions -
+// SelectTransactions returns an empty slice
 func (cache *DisabledCache) SelectTransactions(numRequested int, batchSizePerSender int) []*WrappedTransaction {
-	log.Error("DisabledCache.SelectTransactions()")
 	return make([]*WrappedTransaction, 0)
 }
 
-// RemoveTxByHash -
+// RemoveTxByHash does nothing
 func (cache *DisabledCache) RemoveTxByHash(txHash []byte) error {
-	log.Error("DisabledCache.RemoveTxByHash()")
 	return nil
 }
 
-// CountTx -
+// CountTx returns zero
 func (cache *DisabledCache) CountTx() int64 {
-	log.Error("DisabledCache.CountTx()")
 	return 0
 }
 
-// Len -
+// Len returns zero
 func (cache *DisabledCache) Len() int {
-	log.Error("DisabledCache.Len()")
 	return 0
 }
 
-// ForEachTransaction -
+// ForEachTransaction does nothing
 func (cache *DisabledCache) ForEachTransaction(function ForEachTransaction) {
-	log.Error("DisabledCache.ForEachTransaction()")
 }
 
-// Clear -
+// Clear does nothing
 func (cache *DisabledCache) Clear() {
-	log.Error("DisabledCache.Clear()")
 }
 
-// Put -
+// Put does nothing
 func (cache *DisabledCache) Put(key []byte, value interface{}) (evicted bool) {
-	log.Error("DisabledCache.Put()")
 	return false
 }
 
-// Get -
+// Get returns no transaction
 func (cache *DisabledCache) Get(key []byte) (value interface{}, ok bool) {
 	return nil, false
 }
 
-// Has -
+// Has returns false
 func (cache *DisabledCache) Has(key []byte) bool {
-	log.Error("DisabledCache.Has is not implemented")
 	return false
 }
 
-// Peek -
+// Peek returns no transaction
 func (cache *DisabledCache) Peek(key []byte) (value interface{}, ok bool) {
-	log.Error("DisabledCache.DisabledCache()")
 	return nil, false
 }
 
-// HasOrAdd -
+// HasOrAdd returns false, does nothing
 func (cache *DisabledCache) HasOrAdd(key []byte, value interface{}) (ok, evicted bool) {
-	log.Error("DisabledCache.HasOrAdd()")
 	return false, false
 }
 
-// Remove -
+// Remove does nothing
 func (cache *DisabledCache) Remove(key []byte) {
-	log.Error("DisabledCache.Remove()")
 }
 
-// RemoveOldest -
+// RemoveOldest does nothing
 func (cache *DisabledCache) RemoveOldest() {
-	log.Error("DisabledCache.RemoveOldest()")
 }
 
-// Keys -
+// Keys returns an empty slice
 func (cache *DisabledCache) Keys() txHashes {
-	log.Error("DisabledCache.Keys()")
 	return make([][]byte, 0)
 }
 
-// MaxSize -
+// MaxSize returns zero
 func (cache *DisabledCache) MaxSize() int {
-	log.Error("DisabledCache.MaxSize()")
 	return 0
 }
 
-// RegisterHandler -
+// RegisterHandler does nothing
 func (cache *DisabledCache) RegisterHandler(func(key []byte, value interface{})) {
-	log.Error("DisabledCache.RegisterHandler()")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
