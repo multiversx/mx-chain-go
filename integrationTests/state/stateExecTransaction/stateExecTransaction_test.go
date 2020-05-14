@@ -18,7 +18,8 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 	}
 	t.Parallel()
 
-	accnts, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	accnts, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	txProcessor := integrationTests.CreateSimpleTxProcessor(accnts)
 	nonce := uint64(6)
 	balance := big.NewInt(10000)
@@ -53,7 +54,8 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accnts, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	accnts, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	txProcessor := integrationTests.CreateSimpleTxProcessor(accnts)
 
 	nonce := uint64(6)
@@ -92,7 +94,8 @@ func TestExecTransaction_MoreTransactionsWithRevertShouldWork(t *testing.T) {
 
 	t.Parallel()
 
-	accnts, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	accnts, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)
@@ -181,7 +184,8 @@ func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *t
 	}
 	t.Parallel()
 
-	accnts, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	accnts, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	nonce := uint64(6)
 	initialBalance := int64(100000)

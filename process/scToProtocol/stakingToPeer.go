@@ -213,13 +213,6 @@ func (stp *stakingToPeer) updatePeerState(
 		}
 	}
 
-	if account.GetStake().Cmp(stakingData.StakeValue) != 0 {
-		err = account.SetStake(stakingData.StakeValue)
-		if err != nil {
-			return err
-		}
-	}
-
 	isValidator := account.GetList() == string(core.EligibleList) || account.GetList() == string(core.WaitingList)
 	isJailed := stakingData.JailedNonce >= stakingData.UnJailedNonce && stakingData.JailedNonce > 0
 
