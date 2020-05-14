@@ -15,7 +15,7 @@ func TestListForSender_AddTx_Sorts(t *testing.T) {
 	list.AddTx(createTx([]byte("d"), ".", 4))
 	list.AddTx(createTx([]byte("b"), ".", 2))
 
-	require.ElementsMatch(t, []string{"a", "b", "c", "d"}, list.getTxHashesAsStrings())
+	require.Equal(t, []string{"a", "b", "c", "d"}, list.getTxHashesAsStrings())
 }
 
 func TestListForSender_AddTx_GivesPriorityToHigherGas(t *testing.T) {
@@ -27,7 +27,22 @@ func TestListForSender_AddTx_GivesPriorityToHigherGas(t *testing.T) {
 	list.AddTx(createTxWithParams([]byte("d"), ".", 2, 128, 42, 42))
 	list.AddTx(createTxWithParams([]byte("e"), ".", 3, 128, 42, 101))
 
-	require.ElementsMatch(t, []string{"a", "d", "e", "b", "c"}, list.getTxHashesAsStrings())
+	require.Equal(t, []string{"a", "d", "e", "b", "c"}, list.getTxHashesAsStrings())
+}
+
+func TestListForSender_AddTx_SortsCorrectlyWhenSameNonceSamePrice(t *testing.T) {
+	list := newUnconstrainedListToTest()
+
+	list.AddTx(createTxWithParams([]byte("a"), ".", 1, 128, 42, 42))
+	list.AddTx(createTxWithParams([]byte("b"), ".", 3, 128, 42, 100))
+	list.AddTx(createTxWithParams([]byte("c"), ".", 3, 128, 42, 100))
+	list.AddTx(createTxWithParams([]byte("d"), ".", 3, 128, 42, 98))
+	list.AddTx(createTxWithParams([]byte("e"), ".", 3, 128, 42, 101))
+	list.AddTx(createTxWithParams([]byte("f"), ".", 2, 128, 42, 42))
+	list.AddTx(createTxWithParams([]byte("g"), ".", 3, 128, 42, 99))
+
+	// In case of same-nonce, same-price transactions, the newer one has priority
+	require.Equal(t, []string{"a", "f", "e", "c", "b", "g", "d"}, list.getTxHashesAsStrings())
 }
 
 func TestListForSender_AddTx_IgnoresDuplicates(t *testing.T) {
@@ -50,21 +65,21 @@ func TestListForSender_AddTx_AppliesSizeConstraintsForNumTransactions(t *testing
 	list.AddTx(createTx([]byte("tx5"), ".", 5))
 	list.AddTx(createTx([]byte("tx4"), ".", 4))
 	list.AddTx(createTx([]byte("tx2"), ".", 2))
-	require.ElementsMatch(t, []string{"tx1", "tx2", "tx4"}, list.getTxHashesAsStrings())
+	require.Equal(t, []string{"tx1", "tx2", "tx4"}, list.getTxHashesAsStrings())
 
 	_, evicted := list.AddTx(createTx([]byte("tx3"), ".", 3))
-	require.ElementsMatch(t, []string{"tx1", "tx2", "tx3"}, list.getTxHashesAsStrings())
-	require.ElementsMatch(t, []string{"tx4"}, hashesAsStrings(evicted))
+	require.Equal(t, []string{"tx1", "tx2", "tx3"}, list.getTxHashesAsStrings())
+	require.Equal(t, []string{"tx4"}, hashesAsStrings(evicted))
 
 	// Gives priority to higher gas - though undesirably to some extent, "tx3" is evicted
 	_, evicted = list.AddTx(createTxWithParams([]byte("tx2++"), ".", 2, 128, 42, 42))
-	require.ElementsMatch(t, []string{"tx1", "tx2++", "tx2"}, list.getTxHashesAsStrings())
-	require.ElementsMatch(t, []string{"tx3"}, hashesAsStrings(evicted))
+	require.Equal(t, []string{"tx1", "tx2++", "tx2"}, list.getTxHashesAsStrings())
+	require.Equal(t, []string{"tx3"}, hashesAsStrings(evicted))
 
 	// Though Undesirably to some extent, "tx3++"" is added, then evicted
 	_, evicted = list.AddTx(createTxWithParams([]byte("tx3++"), ".", 3, 128, 42, 42))
-	require.ElementsMatch(t, []string{"tx1", "tx2++", "tx2"}, list.getTxHashesAsStrings())
-	require.ElementsMatch(t, []string{"tx3++"}, hashesAsStrings(evicted))
+	require.Equal(t, []string{"tx1", "tx2++", "tx2"}, list.getTxHashesAsStrings())
+	require.Equal(t, []string{"tx3++"}, hashesAsStrings(evicted))
 }
 
 func TestListForSender_AddTx_AppliesSizeConstraintsForNumBytes(t *testing.T) {
@@ -74,21 +89,21 @@ func TestListForSender_AddTx_AppliesSizeConstraintsForNumBytes(t *testing.T) {
 	list.AddTx(createTxWithParams([]byte("tx2"), ".", 2, 512, 42, 42))
 	list.AddTx(createTxWithParams([]byte("tx3"), ".", 3, 256, 42, 42))
 	_, evicted := list.AddTx(createTxWithParams([]byte("tx5"), ".", 4, 256, 42, 42))
-	require.ElementsMatch(t, []string{"tx1", "tx2", "tx3"}, list.getTxHashesAsStrings())
-	require.ElementsMatch(t, []string{"tx5"}, hashesAsStrings(evicted))
+	require.Equal(t, []string{"tx1", "tx2", "tx3"}, list.getTxHashesAsStrings())
+	require.Equal(t, []string{"tx5"}, hashesAsStrings(evicted))
 
 	_, evicted = list.AddTx(createTxWithParams([]byte("tx5--"), ".", 4, 128, 42, 42))
-	require.ElementsMatch(t, []string{"tx1", "tx2", "tx3", "tx5--"}, list.getTxHashesAsStrings())
-	require.ElementsMatch(t, []string{}, hashesAsStrings(evicted))
+	require.Equal(t, []string{"tx1", "tx2", "tx3", "tx5--"}, list.getTxHashesAsStrings())
+	require.Equal(t, []string{}, hashesAsStrings(evicted))
 
 	_, evicted = list.AddTx(createTxWithParams([]byte("tx4"), ".", 4, 128, 42, 42))
-	require.ElementsMatch(t, []string{"tx1", "tx2", "tx3", "tx4"}, list.getTxHashesAsStrings())
-	require.ElementsMatch(t, []string{"tx5--"}, hashesAsStrings(evicted))
+	require.Equal(t, []string{"tx1", "tx2", "tx3", "tx4"}, list.getTxHashesAsStrings())
+	require.Equal(t, []string{"tx5--"}, hashesAsStrings(evicted))
 
 	// Gives priority to higher gas - though undesirably to some extent, "tx4" is evicted
-	_, evicted = list.AddTx(createTxWithParams([]byte("tx3++"), ".", 4, 256, 42, 100))
-	require.ElementsMatch(t, []string{"tx1", "tx2", "tx3++", "tx3"}, list.getTxHashesAsStrings())
-	require.ElementsMatch(t, []string{"tx4"}, hashesAsStrings(evicted))
+	_, evicted = list.AddTx(createTxWithParams([]byte("tx3++"), ".", 3, 256, 42, 100))
+	require.Equal(t, []string{"tx1", "tx2", "tx3++", "tx3"}, list.getTxHashesAsStrings())
+	require.Equal(t, []string{"tx4"}, hashesAsStrings(evicted))
 }
 
 func TestListForSender_findTx(t *testing.T) {

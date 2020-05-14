@@ -120,13 +120,13 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) 
 	cache.AddTx(createTx([]byte("tx-alice-4"), "alice", 4))
 	cache.AddTx(createTx([]byte("tx-bob-1"), "bob", 1))
 	cache.AddTx(createTx([]byte("tx-bob-2"), "bob", 2))
-	require.ElementsMatch(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
-	require.ElementsMatch(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
+	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
+	require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
 	require.True(t, cache.areInternalMapsConsistent())
 
 	cache.AddTx(createTx([]byte("tx-alice-3"), "alice", 3))
-	require.ElementsMatch(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3"}, cache.getHashesForSender("alice"))
-	require.ElementsMatch(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
+	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3"}, cache.getHashesForSender("alice"))
+	require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
 	require.True(t, cache.areInternalMapsConsistent())
 }
 
@@ -139,14 +139,14 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumBytes(t *testing.T) {
 	cache.AddTx(createTxWithParams([]byte("tx-bob-1"), "bob", 1, 512, 42, 42))
 	cache.AddTx(createTxWithParams([]byte("tx-bob-2"), "bob", 2, 513, 42, 42))
 
-	require.ElementsMatch(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
-	require.ElementsMatch(t, []string{"tx-bob-1"}, cache.getHashesForSender("bob"))
+	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
+	require.Equal(t, []string{"tx-bob-1"}, cache.getHashesForSender("bob"))
 	require.True(t, cache.areInternalMapsConsistent())
 
 	cache.AddTx(createTxWithParams([]byte("tx-alice-3"), "alice", 3, 256, 42, 42))
 	cache.AddTx(createTxWithParams([]byte("tx-bob-2"), "bob", 3, 512, 42, 42))
-	require.ElementsMatch(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3"}, cache.getHashesForSender("alice"))
-	require.ElementsMatch(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
+	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3"}, cache.getHashesForSender("alice"))
+	require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
 	require.True(t, cache.areInternalMapsConsistent())
 }
 
