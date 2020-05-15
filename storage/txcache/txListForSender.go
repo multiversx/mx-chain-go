@@ -324,3 +324,17 @@ func (listForSender *txListForSender) isGracePeriodExceeded() bool {
 	numFailedSelections := listForSender.numFailedSelections.Get()
 	return numFailedSelections > senderGracePeriodUpperBound
 }
+
+// TODO: remove, just for debugging
+func (listForSender *txListForSender) getLowestNonceWithLock() int64 {
+	listForSender.mutex.RLock()
+	defer listForSender.mutex.RUnlock()
+
+	front := listForSender.items.Front()
+	if front == nil {
+		return -1
+	}
+
+	value := front.Value.(*WrappedTransaction)
+	return int64(value.Tx.GetNonce())
+}

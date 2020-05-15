@@ -109,10 +109,26 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 				if copied > 0 {
 					firstTx := result[resultFillIndex:][0]
 					firstTxHash := firstTx.TxHash
-					firstTxSender := firstTx.Tx.GetSndAddr()
 					firstTxNonce := firstTx.Tx.GetNonce()
 
-					log.Debug("Selection first batch of sender", "sender", []byte(txList.sender), "knownNonce", txList.accountNonce.Get(), "firstTx", firstTxHash, "firstTxNonce", firstTxNonce, "firstTxSender", firstTxSender, "numTxsInFirstBatch", copied)
+					log.Debug("SOME selection in first batch of sender",
+						"sender", []byte(txList.sender),
+						"knownNonce", txList.accountNonce.Get(),
+						"firstTx", firstTxHash,
+						"firstTxNonce", firstTxNonce,
+						"numFailed", txList.numFailedSelections.Get(),
+						"isGrace", txList.isInGracePeriod(),
+						"numTxsInFirstBatch", copied,
+					)
+				} else {
+					log.Debug("NO selection in first batch of sender",
+						"sender", []byte(txList.sender),
+						"knownNonce", txList.accountNonce.Get(),
+						"numFailed", txList.numFailedSelections.Get(),
+						"isGrace", txList.isInGracePeriod(),
+						"sweepable", txList.sweepable.IsSet(),
+						"lowestNonce", txList.getLowestNonceWithLock(),
+					)
 				}
 			}
 
