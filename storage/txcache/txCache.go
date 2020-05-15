@@ -104,6 +104,18 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 			isFirstBatch := pass == 0
 			copied := txList.selectBatchTo(isFirstBatch, result[resultFillIndex:], batchSizeWithScoreCoefficient)
 
+			// TODO: Remove (just logging)
+			if isFirstBatch {
+				if copied > 0 {
+					firstTx := result[resultFillIndex:][0]
+					firstTxHash := firstTx.TxHash
+					firstTxSender := firstTx.Tx.GetSndAddr()
+					firstTxNonce := firstTx.Tx.GetNonce()
+
+					log.Debug("Selection first batch of sender", "sender", []byte(txList.sender), "knownNonce", txList.accountNonce.Get(), "firstTx", firstTxHash, "firstTxNonce", firstTxNonce, "firstTxSender", firstTxSender, "numTxsInFirstBatch", copied)
+				}
+			}
+
 			if isFirstBatch {
 				cache.collectSweepable(txList)
 			}
