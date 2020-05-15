@@ -1,6 +1,6 @@
 [
   {
-    "owner": "erd1098wtt750w65caywv6v5wyxqdpzgp78axz2j3lpxeq6e9c9uwlys28eh6v",
+    "owner": "erd16grmckn46ry7fwyvass8e8pz88klazzpc0c5f0pnrv643td4797sgnvjkm",
     "filename": "./config/genesisContracts/delegation.wasm",
     "vm-type": "0500",
     "init-parameters": "0BB8@%auction_sc_address%@0A61D0",
