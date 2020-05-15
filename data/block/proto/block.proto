@@ -68,8 +68,9 @@ message Header  {
 	bytes                    EpochStartMetaHash     = 18;
 	bytes                    ReceiptsHash           = 19;
 	bytes                    ChainID                = 20;
-	bytes                    AccumulatedFees        = 21 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	bytes                    DeveloperFees          = 22 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes                    SoftwareVersion        = 21;
+	bytes                    AccumulatedFees        = 22 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes                    DeveloperFees          = 23 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
 message Body {

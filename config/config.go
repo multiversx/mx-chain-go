@@ -189,6 +189,8 @@ type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
+	MaxStateTrieLevelInMemory   uint
+	MaxPeerTrieLevelInMemory    uint
 }
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
@@ -271,12 +273,14 @@ type HardforkConfig struct {
 	EnableTriggerFromP2P  bool
 	PublicKeyToListenFrom string
 
-	MustImport   bool
-	ImportFolder string
-	StartRound   uint64
-	StartNonce   uint64
-	StartEpoch   uint32
+	MustImport bool
+	StartRound uint64
+	StartNonce uint64
+	StartEpoch uint32
 
+	ValidatorGracePeriodInEpochs uint32
+
+	ImportFolder             string
 	ExportStateStorageConfig StorageConfig
 	ImportStateStorageConfig StorageConfig
 }

@@ -39,7 +39,7 @@ type deployedScMetrics struct {
 
 // CreateShardGenesisBlock will create a shard genesis block
 func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter) (data.HeaderHandler, error) {
-	if arg.HardForkConfig.MustImport {
+	if mustDoHardForkImportProcess(arg) {
 		return createShardGenesisAfterHardFork(arg)
 	}
 
@@ -108,20 +108,23 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 		TimeStamp:       arg.GenesisTime,
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
+		ChainID:         []byte(arg.ChainID),
+		SoftwareVersion: []byte(""),
 	}
 
 	return header, nil
 }
 
 func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHandler, error) {
-	arg.Accounts = arg.importHandler.GetAccountsDBForShard(arg.ShardCoordinator.SelfId())
-	processors, err := createProcessorsForShard(arg)
+	tmpArg := arg
+	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(arg.ShardCoordinator.SelfId())
+	processors, err := createProcessorsForShard(tmpArg)
 	if err != nil {
 		return nil, err
 	}
 
 	argsPendingTxProcessor := hardForkProcess.ArgsPendingTransactionProcessor{
-		Accounts:         arg.Accounts,
+		Accounts:         tmpArg.Accounts,
 		TxProcessor:      processors.txProcessor,
 		RwdTxProcessor:   processors.rwdProcessor,
 		ScrTxProcessor:   processors.scrProcessor,
@@ -152,6 +155,11 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHa
 		arg.HardForkConfig.StartNonce,
 		arg.HardForkConfig.StartEpoch,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
 	if err != nil {
 		return nil, err
 	}
@@ -385,6 +393,11 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		return nil, err
 	}
 
+	queryService, err := smartContract.NewSCQueryService(vmContainer, arg.Economics)
+	if err != nil {
+		return nil, err
+	}
+
 	return &genesisProcessors{
 		txCoordinator:  txCoordinator,
 		systemSCs:      nil,
@@ -393,6 +406,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		scrProcessor:   scProcessor,
 		rwdProcessor:   rewardsTxProcessor,
 		blockchainHook: vmFactoryImpl.BlockChainHookImpl(),
+		queryService:   queryService,
 	}, nil
 }
 
@@ -430,28 +444,19 @@ func deployInitialSmartContract(
 		return err
 	}
 
-	var deployProc genesis.DeployProcessor
-	deployProc, err = intermediate.NewDeployProcessor(
-		txExecutor,
-		arg.PubkeyConv,
-		processors.blockchainHook,
-	)
+	argDeploy := intermediate.ArgDeployProcessor{
+		Executor:       txExecutor,
+		PubkeyConv:     arg.PubkeyConv,
+		BlockchainHook: processors.blockchainHook,
+		QueryService:   processors.queryService,
+	}
+	deployProc, err := intermediate.NewDeployProcessor(argDeploy)
 	if err != nil {
 		return err
 	}
 
 	switch sc.GetType() {
 	case genesis.DelegationType:
-		deployProc, err = intermediate.NewDelegationDeployProcessor(
-			deployProc,
-			arg.AccountsParser,
-			arg.PubkeyConv,
-			arg.Economics.GenesisNodePrice(),
-		)
-		if err != nil {
-			return err
-		}
-
 		deployMetrics.numDelegation++
 	default:
 		deployMetrics.numOtherTypes++
@@ -501,13 +506,17 @@ func executeDelegation(
 		return genesis.DelegationResult{}, err
 	}
 
-	delegationProcessor, err := intermediate.NewDelegationProcessor(
-		txExecutor,
-		arg.ShardCoordinator,
-		arg.AccountsParser,
-		arg.SmartContractParser,
-		nodesListSplitter,
-	)
+	argDP := intermediate.ArgDelegationProcessor{
+		Executor:            txExecutor,
+		ShardCoordinator:    arg.ShardCoordinator,
+		AccountsParser:      arg.AccountsParser,
+		SmartContractParser: arg.SmartContractParser,
+		NodesListSplitter:   nodesListSplitter,
+		QueryService:        processors.queryService,
+		NodePrice:           arg.Economics.GenesisNodePrice(),
+	}
+
+	delegationProcessor, err := intermediate.NewDelegationProcessor(argDP)
 	if err != nil {
 		return genesis.DelegationResult{}, err
 	}

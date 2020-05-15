@@ -1,8 +1,10 @@
 package trie_test
 
 import (
+	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
@@ -46,7 +48,7 @@ func TestNewInterceptedTrieNode_EmptyBufferShouldFail(t *testing.T) {
 
 	_, marsh, hasher := getDefaultInterceptedTrieNodeParameters()
 	interceptedNode, err := trie.NewInterceptedTrieNode([]byte{}, marsh, hasher)
-	assert.Nil(t, interceptedNode)
+	assert.True(t, check.IfNil(interceptedNode))
 	assert.Equal(t, trie.ErrValueTooShort, err)
 }
 
@@ -55,7 +57,7 @@ func TestNewInterceptedTrieNode_NilMarshalizerShouldFail(t *testing.T) {
 
 	buff, _, hasher := getDefaultInterceptedTrieNodeParameters()
 	interceptedNode, err := trie.NewInterceptedTrieNode(buff, nil, hasher)
-	assert.Nil(t, interceptedNode)
+	assert.True(t, check.IfNil(interceptedNode))
 	assert.Equal(t, trie.ErrNilMarshalizer, err)
 }
 
@@ -64,7 +66,7 @@ func TestNewInterceptedTrieNode_NilHasherShouldFail(t *testing.T) {
 
 	buff, marsh, _ := getDefaultInterceptedTrieNodeParameters()
 	interceptedNode, err := trie.NewInterceptedTrieNode(buff, marsh, nil)
-	assert.Nil(t, interceptedNode)
+	assert.True(t, check.IfNil(interceptedNode))
 	assert.Equal(t, trie.ErrNilHasher, err)
 }
 
@@ -72,7 +74,7 @@ func TestNewInterceptedTrieNode_OkParametersShouldWork(t *testing.T) {
 	t.Parallel()
 
 	interceptedNode, err := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
-	assert.NotNil(t, interceptedNode)
+	assert.False(t, check.IfNil(interceptedNode))
 	assert.Nil(t, err)
 }
 
@@ -105,4 +107,67 @@ func TestInterceptedTrieNode_EncodedNode(t *testing.T) {
 
 	encNode := interceptedNode.EncodedNode()
 	assert.Equal(t, nodes[0], encNode)
+}
+
+func TestInterceptedTrieNode_IsForCurrentShard(t *testing.T) {
+	t.Parallel()
+
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
+	assert.True(t, interceptedNode.IsForCurrentShard())
+}
+
+func TestInterceptedTrieNode_Type(t *testing.T) {
+	t.Parallel()
+
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
+	assert.Equal(t, "intercepted trie node", interceptedNode.Type())
+}
+
+func TestInterceptedTrieNode_String(t *testing.T) {
+	t.Parallel()
+
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
+	assert.NotEqual(t, 0, interceptedNode.String())
+}
+
+func TestInterceptedTrieNode_SenderShardId(t *testing.T) {
+	t.Parallel()
+
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
+	assert.NotEqual(t, 0, interceptedNode.SenderShardId())
+}
+
+func TestInterceptedTrieNode_ReceiverShardId(t *testing.T) {
+	t.Parallel()
+
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
+	assert.NotEqual(t, 0, interceptedNode.ReceiverShardId())
+}
+
+func TestInterceptedTrieNode_Nonce(t *testing.T) {
+	t.Parallel()
+
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
+	assert.NotEqual(t, 0, interceptedNode.Nonce())
+}
+
+func TestInterceptedTrieNode_SenderAddress(t *testing.T) {
+	t.Parallel()
+
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
+	assert.Nil(t, interceptedNode.SenderAddress())
+}
+
+func TestInterceptedTrieNode_Fee(t *testing.T) {
+	t.Parallel()
+
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
+	assert.Equal(t, big.NewInt(0), interceptedNode.Fee())
+}
+
+func TestInterceptedTrieNode_Identifiers(t *testing.T) {
+	t.Parallel()
+
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
+	assert.Equal(t, [][]byte{interceptedNode.Hash()}, interceptedNode.Identifiers())
 }

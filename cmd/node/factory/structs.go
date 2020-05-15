@@ -137,6 +137,7 @@ type processComponentsFactoryArgs struct {
 	validatorPubkeyConverter  state.PubkeyConverter
 	systemSCConfig            *config.SystemSmartContractsConfig
 	txLogsProcessor           process.TransactionLogProcessor
+	version                   string
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -174,6 +175,7 @@ func NewProcessComponentsFactoryArgs(
 	validatorPubkeyConverter state.PubkeyConverter,
 	ratingsData process.RatingsInfoHandler,
 	systemSCConfig *config.SystemSmartContractsConfig,
+	version string,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -210,6 +212,7 @@ func NewProcessComponentsFactoryArgs(
 		maxRating:                 maxRating,
 		validatorPubkeyConverter:  validatorPubkeyConverter,
 		systemSCConfig:            systemSCConfig,
+		version:                   version,
 	}
 }
 
@@ -342,7 +345,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	_, err = poolsCleaner.NewMiniBlocksPoolsCleaner(
+	mbsPoolsCleaner, err := poolsCleaner.NewMiniBlocksPoolsCleaner(
 		args.data.Datapool.MiniBlocks(),
 		args.rounder,
 		args.shardCoordinator,
@@ -351,7 +354,9 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	_, err = poolsCleaner.NewTxsPoolsCleaner(
+	mbsPoolsCleaner.StartCleaning()
+
+	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
 		args.state.AddressPubkeyConverter,
 		args.data.Datapool,
 		args.rounder,
@@ -360,6 +365,8 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	if err != nil {
 		return nil, err
 	}
+
+	txsPoolsCleaner.StartCleaning()
 
 	interceptorContainerFactory, blackListHandler, err := newInterceptorContainerFactory(
 		args.shardCoordinator,
@@ -866,11 +873,6 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	smartContractParser := args.smartContractParser
 	economicsData := args.economicsData
 
-	validatorStatsRootHash, err := stateComponents.PeerAccounts.RootHash()
-	if err != nil {
-		return nil, err
-	}
-
 	arg := genesisProcess.ArgsGenesisBlockCreator{
 		GenesisTime:              uint64(nodesSetup.StartTime),
 		StartEpochNum:            args.startEpochNum,
@@ -887,11 +889,12 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		DataPool:                 dataComponents.Datapool,
 		AccountsParser:           accountsParser,
 		SmartContractParser:      smartContractParser,
-		ValidatorStatsRootHash:   validatorStatsRootHash,
+		ValidatorAccounts:        stateComponents.PeerAccounts,
 		GasMap:                   args.gasSchedule,
 		VirtualMachineConfig:     args.mainConfig.VirtualMachineConfig,
 		TxLogsProcessor:          args.txLogsProcessor,
 		HardForkConfig:           args.mainConfig.Hardfork,
+		TrieStorageManagers:      args.tries.TrieStorageManagers,
 		ChainID:                  string(args.coreComponents.ChainID),
 		SystemSCConfig:           *args.systemSCConfig,
 	}
@@ -998,6 +1001,7 @@ func newBlockProcessor(
 			processArgs.minSizeInBytes,
 			processArgs.maxSizeInBytes,
 			txLogsProcessor,
+			processArgs.version,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1027,6 +1031,7 @@ func newBlockProcessor(
 			processArgs.nodesConfig,
 			txLogsProcessor,
 			processArgs.systemSCConfig,
+			processArgs.version,
 		)
 	}
 
@@ -1054,6 +1059,7 @@ func newShardBlockProcessor(
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
 	txLogsProcessor process.TransactionLogProcessor,
+	version string,
 ) (process.BlockProcessor, error) {
 	argsParser := vmcommon.NewAtArgumentParser()
 
@@ -1253,6 +1259,7 @@ func newShardBlockProcessor(
 	accountsDb[state.UserAccountsState] = stateComponents.AccountsAdapter
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
+		Version:                version,
 		AccountsDB:             accountsDb,
 		ForkDetector:           forkDetector,
 		Hasher:                 core.Hasher,
@@ -1319,6 +1326,7 @@ func newMetaBlockProcessor(
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	txLogsProcessor process.TransactionLogProcessor,
 	systemSCConfig *config.SystemSmartContractsConfig,
+	version string,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -1341,6 +1349,7 @@ func newMetaBlockProcessor(
 		core.Hasher,
 		core.InternalMarshalizer,
 		systemSCConfig,
+		stateComponents.PeerAccounts,
 	)
 	if err != nil {
 		return nil, err
@@ -1576,6 +1585,7 @@ func newMetaBlockProcessor(
 	accountsDb[state.PeerAccountsState] = stateComponents.PeerAccounts
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
+		Version:                version,
 		AccountsDB:             accountsDb,
 		ForkDetector:           forkDetector,
 		Hasher:                 core.Hasher,
@@ -1635,6 +1645,11 @@ func newValidatorStatisticsProcessor(
 		peerDataPool = processComponents.data.Datapool
 	}
 
+	hardForkConfig := processComponents.mainConfig.Hardfork
+	ratingEnabledEpoch := uint32(0)
+	if hardForkConfig.MustImport {
+		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
+	}
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		PeerAdapter:         processComponents.state.PeerAccounts,
 		PubkeyConv:          processComponents.state.ValidatorPubkeyConverter,
@@ -1643,12 +1658,11 @@ func newValidatorStatisticsProcessor(
 		DataPool:            peerDataPool,
 		StorageService:      storageService,
 		Marshalizer:         processComponents.coreData.InternalMarshalizer,
-		StakeValue:          processComponents.economicsData.GenesisNodePrice(),
 		Rater:               processComponents.rater,
 		MaxComputableRounds: processComponents.maxComputableRounds,
 		RewardsHandler:      processComponents.economicsData,
-		StartEpoch:          processComponents.startEpochNum,
 		NodesSetup:          processComponents.nodesConfig,
+		RatingEnableEpoch:   ratingEnabledEpoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

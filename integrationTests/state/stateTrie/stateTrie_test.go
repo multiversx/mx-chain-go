@@ -135,7 +135,8 @@ func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testin
 func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	wg := sync.WaitGroup{}
 	wg.Add(100)
@@ -251,7 +252,8 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
 	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, hasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
 
-	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher)
+	maxTrieLevelInMemory := uint(5)
+	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher, maxTrieLevelInMemory)
 
 	key := hasher.Compute("key")
 	value := hasher.Compute("value")
@@ -274,7 +276,8 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	//verifies that commit saves the new tries and that can be loaded back
 	t.Parallel()
 
-	adb, _, mu := integrationTests.CreateAccountsDB(0)
+	trieStore, mu := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStore)
 	adr1 := integrationTests.CreateRandomAddress()
 	adr2 := integrationTests.CreateRandomAddress()
 
@@ -311,7 +314,8 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), integrationTests.TestMarshalizer)
 	trieStorage, _ := trie.NewTrieStorageManager(mu, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	adb, _ = state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	//reloading a new trie to test if data is inside
@@ -344,7 +348,8 @@ func TestAccountsDB_CommitAnEmptyStateShouldWork(t *testing.T) {
 		}
 	}()
 
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	hash, err := adb.Commit()
 
@@ -417,7 +422,8 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
 	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
@@ -493,7 +499,8 @@ func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
 	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
@@ -572,7 +579,8 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	require.Nil(t, err)
 	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
@@ -642,7 +650,8 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
 	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
@@ -720,7 +729,8 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
 	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
@@ -814,7 +824,8 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
 	assert.Nil(t, err)
@@ -867,7 +878,8 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
 	assert.Nil(t, err)
@@ -900,7 +912,8 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
 	assert.Nil(t, err)
@@ -1018,7 +1031,8 @@ func createAccounts(
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
 	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	addr := make([][]byte, nrOfAccounts)
@@ -1069,7 +1083,8 @@ func BenchmarkTxExecution(b *testing.B) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
 	assert.Nil(b, err)
@@ -1097,7 +1112,8 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
 	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, generalCfg)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	hexPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
@@ -1138,7 +1154,8 @@ func TestAccountsDB_RecreateTrieInvalidatesDataTriesCache(t *testing.T) {
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
 	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, generalCfg)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	hexAddressPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
@@ -1191,7 +1208,8 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
 	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, generalCfg)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	hexAddressPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)

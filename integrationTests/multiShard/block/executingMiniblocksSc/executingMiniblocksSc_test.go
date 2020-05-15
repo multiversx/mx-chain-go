@@ -231,7 +231,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(100000000)
 	topUpValue := big.NewInt(500)
 	rewardValue := big.NewInt(10)
 	integrationTests.MintAllNodes(nodes, initialVal)
@@ -352,7 +352,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(100000000)
 	topUpValue := big.NewInt(500)
 	integrationTests.MintAllNodes(nodes, initialVal)
 

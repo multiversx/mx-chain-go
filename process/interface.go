@@ -16,7 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -97,7 +97,6 @@ type InterceptedData interface {
 type InterceptorProcessor interface {
 	Validate(data InterceptedData, fromConnectedPeer p2p.PeerID) error
 	Save(data InterceptedData, fromConnectedPeer p2p.PeerID) error
-	SignalEndOfProcessing(data []InterceptedData)
 	IsInterfaceNil() bool
 }
 
@@ -227,7 +226,7 @@ type ValidatorStatisticsProcessor interface {
 	RootHash() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error
 	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
-	ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo) error
+	ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error
 	Commit() ([]byte, error)
 	DisplayRatings(epoch uint32)
 }
@@ -290,10 +289,10 @@ type HashAccesser interface {
 // Bootstrapper is an interface that defines the behaviour of a struct that is able
 // to synchronize the node
 type Bootstrapper interface {
+	Close() error
 	AddSyncStateListener(func(isSyncing bool))
 	GetNodeState() core.NodeState
-	StopSync()
-	StartSync()
+	StartSyncingBlocks()
 	SetStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
@@ -834,4 +833,11 @@ type InterceptedDebugHandler interface {
 type MiniblockAndHash struct {
 	Miniblock *block.MiniBlock
 	Hash      []byte
+}
+
+// PoolsCleaner defines the functionality to clean pools for old records
+type PoolsCleaner interface {
+	Close() error
+	StartCleaning()
+	IsInterfaceNil() bool
 }

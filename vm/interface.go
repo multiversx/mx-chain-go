@@ -40,6 +40,7 @@ type SystemEI interface {
 	UseGas(gasToConsume uint64) error
 	BlockChainHook() vmcommon.BlockchainHook
 	CryptoHook() vmcommon.CryptoHook
+	IsValidator(blsKey []byte) bool
 
 	IsInterfaceNil() bool
 }

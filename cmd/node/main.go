@@ -603,7 +603,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Debug("config", "file", ctx.GlobalString(nodesFile.Name))
 
 	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, nil)
-	go syncer.StartSync()
+	syncer.StartSyncingTime()
 
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
@@ -1153,6 +1153,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		validatorPubkeyConverter,
 		ratingsData,
 		systemSCConfig,
+		version,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1215,6 +1216,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	apiResolver, err := createApiResolver(
 		generalConfig,
 		stateComponents.AccountsAdapter,
+		stateComponents.PeerAccounts,
 		stateComponents.AddressPubkeyConverter,
 		dataComponents.Store,
 		dataComponents.Blkc,
@@ -2072,6 +2074,7 @@ func startStatisticsMonitor(
 func createApiResolver(
 	config *config.Config,
 	accnts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
 	pubkeyConv state.PubkeyConverter,
 	storageService dataRetriever.StorageService,
 	blockChain data.ChainHandler,
@@ -2120,6 +2123,7 @@ func createApiResolver(
 			hasher,
 			marshalizer,
 			systemSCConfig,
+			validatorAccounts,
 		)
 		if err != nil {
 			return nil, err

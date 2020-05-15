@@ -73,6 +73,7 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			DataPool:           mdp,
 			BlockChain:         createTestBlockchain(),
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
+			Version:            "softwareVersion",
 		},
 		SCDataGetter:                 &mock.ScQueryStub{},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
