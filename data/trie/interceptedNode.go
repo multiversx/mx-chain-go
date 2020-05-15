@@ -129,11 +129,3 @@ func (inTn *InterceptedTrieNode) Fee() *big.Int {
 func (inTn *InterceptedTrieNode) Identifiers() [][]byte {
 	return [][]byte{inTn.hash}
 }
-
-// CreateEndOfProcessingTriggerNode changes the hash of the current node by appending the hash to the current hash.
-// This construction will be used to trigger the end of processing for all of the received data
-func (inTn *InterceptedTrieNode) CreateEndOfProcessingTriggerNode() {
-	inTn.mutex.Lock()
-	inTn.hash = append(inTn.hash, inTn.hash...)
-	inTn.mutex.Unlock()
-}

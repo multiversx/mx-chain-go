@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/close"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -28,6 +29,7 @@ var _ dataRetriever.EpochHandler = (*trigger)(nil)
 var _ epochStart.TriggerHandler = (*trigger)(nil)
 var _ process.EpochStartTriggerHandler = (*trigger)(nil)
 var _ process.EpochBootstrapper = (*trigger)(nil)
+var _ close.Closer = (*trigger)(nil)
 
 const minimumNonceToStartEpoch = 4
 
@@ -422,6 +424,11 @@ func (t *trigger) SetCurrentEpochStartRound(round uint64) {
 	t.currentRound = round
 	t.saveCurrentState(round)
 	t.mutTrigger.Unlock()
+}
+
+// Close will close the endless running go routine
+func (t *trigger) Close() error {
+	return nil
 }
 
 // IsInterfaceNil return true if underlying object is nil

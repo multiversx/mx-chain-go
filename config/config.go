@@ -189,6 +189,8 @@ type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
+	MaxStateTrieLevelInMemory   uint
+	MaxPeerTrieLevelInMemory    uint
 }
 
 // TrieStorageManagerConfig will hold config information about trie storage manager

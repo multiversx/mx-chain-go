@@ -319,6 +319,7 @@ func createHardForkExporter(
 				},
 			},
 			ExportStateStorageConfig: exportConfig,
+			MaxTrieLevelInMemory:     uint(5),
 			WhiteListHandler:         node.WhiteListHandler,
 			WhiteListerVerifiedTxs:   node.WhiteListerVerifiedTxs,
 			InterceptorsContainer:    node.InterceptorsContainer,
