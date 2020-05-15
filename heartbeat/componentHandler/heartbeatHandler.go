@@ -55,10 +55,11 @@ type ArgHeartbeat struct {
 // HeartbeatHandler is the struct used to manage heartbeat subsystem consisting of a heartbeat sender and monitor
 // wired on a dedicated p2p topic
 type HeartbeatHandler struct {
-	monitor    *process.Monitor
-	sender     *process.Sender
-	arg        ArgHeartbeat
-	cancelFunc func()
+	monitor          *process.Monitor
+	sender           *process.Sender
+	arg              ArgHeartbeat
+	peerTypeProvider *peer.PeerTypeProvider
+	cancelFunc       func()
 }
 
 // NewHeartbeatHandler will create a heartbeat handler containing both a monitor and a sender
@@ -112,7 +113,7 @@ func (hbh *HeartbeatHandler) create() error {
 	if err != nil {
 		return err
 	}
-
+	hbh.peerTypeProvider = peerTypeProvider
 	argSender := process.ArgHeartbeatSender{
 		PeerMessenger:    arg.Messenger,
 		SingleSigner:     arg.SingleSigner,
@@ -277,7 +278,7 @@ func (hbh *HeartbeatHandler) Sender() *process.Sender {
 func (hbh *HeartbeatHandler) Close() error {
 	hbh.cancelFunc()
 
-	return nil
+	return hbh.peerTypeProvider.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -29,6 +29,7 @@ type PeerTypeProvider struct {
 	cacheRefreshIntervalDuration time.Duration
 	refreshCache                 chan bool
 	mutCache                     sync.RWMutex
+	cancelFunc                   func()
 }
 
 // ArgPeerTypeProvider contains all parameters needed for creating a PeerTypeProvider
@@ -72,7 +73,8 @@ func NewPeerTypeProvider(arg ArgPeerTypeProvider) (*PeerTypeProvider, error) {
 		refreshCache:                 make(chan bool),
 	}
 
-	currentContext, _ := context.WithCancel(arg.Context)
+	currentContext, cancelfunc := context.WithCancel(context.Background())
+	ptp.cancelFunc = cancelfunc
 	go ptp.startRefreshProcess(currentContext)
 	arg.EpochStartEventNotifier.RegisterHandler(ptp.epochStartEventHandler())
 
@@ -126,12 +128,11 @@ func (ptp *PeerTypeProvider) startRefreshProcess(ctx context.Context) {
 		ptp.updateCache()
 		select {
 		case <-ptp.refreshCache:
-			{
-				continue
-			}
 		case <-ctx.Done():
-			log.Debug("peerTypeProvider's go routine is stopping...")
-			return
+			{
+				log.Debug("peerTypeProvider's go routine is stopping...")
+				return
+			}
 		case <-time.After(ptp.cacheRefreshIntervalDuration):
 		}
 	}
@@ -150,7 +151,10 @@ func (ptp *PeerTypeProvider) updateCache() {
 	ptp.mutCache.Unlock()
 }
 
-func (ptp *PeerTypeProvider) createNewCache(epoch uint32, allNodes map[uint32][]*state.ValidatorInfo) map[string]*peerListAndShard {
+func (ptp *PeerTypeProvider) createNewCache(
+	epoch uint32,
+	allNodes map[uint32][]*state.ValidatorInfo,
+) map[string]*peerListAndShard {
 	newCache := make(map[string]*peerListAndShard)
 	for shardId, validatorsPerShard := range allNodes {
 		for _, v := range validatorsPerShard {
@@ -175,7 +179,11 @@ func (ptp *PeerTypeProvider) createNewCache(epoch uint32, allNodes map[uint32][]
 	return newCache
 }
 
-func aggregatePType(newCache map[string]*peerListAndShard, validatorsMap map[uint32][][]byte, currentPeerType core.PeerType) {
+func aggregatePType(
+	newCache map[string]*peerListAndShard,
+	validatorsMap map[uint32][][]byte,
+	currentPeerType core.PeerType,
+) {
 	for shardID, shardValidators := range validatorsMap {
 		for _, val := range shardValidators {
 			foundInTrieValidator := newCache[string(val)]
@@ -195,4 +203,11 @@ func aggregatePType(newCache map[string]*peerListAndShard, validatorsMap map[uin
 // IsInterfaceNil returns true if there is no value under the interface
 func (ptp *PeerTypeProvider) IsInterfaceNil() bool {
 	return ptp == nil
+}
+
+// Close - frees up everything, cancels long running methods
+func (ptp *PeerTypeProvider) Close() error {
+	ptp.cancelFunc()
+
+	return nil
 }

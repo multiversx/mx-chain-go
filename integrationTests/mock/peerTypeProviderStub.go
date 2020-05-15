@@ -28,3 +28,8 @@ func (p *PeerTypeProviderStub) GetAllPeerTypeInfos() []*state.PeerTypeInfo {
 func (p *PeerTypeProviderStub) IsInterfaceNil() bool {
 	return p == nil
 }
+
+// Close  -
+func (p *PeerTypeProviderStub) Close() error {
+	return nil
+}

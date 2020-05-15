@@ -142,6 +142,45 @@ func TestPeerTypeProvider_UpdateCache_WithError(t *testing.T) {
 	assert.Equal(t, 1, len(ptp.GetCache()))
 }
 
+func TestPeerTypeProvider_Cancel_startRefreshProcess(t *testing.T) {
+	arg := createDefaultArg()
+
+	arg.PeerTypeRefreshIntervalInSec = 1 * time.Millisecond
+	ptp := PeerTypeProvider{
+		nodesCoordinator:             arg.NodesCoordinator,
+		epochHandler:                 arg.EpochHandler,
+		validatorsProvider:           arg.ValidatorsProvider,
+		cache:                        make(map[string]*peerListAndShard),
+		cacheRefreshIntervalDuration: arg.PeerTypeRefreshIntervalInSec,
+		refreshCache:                 make(chan bool),
+		mutCache:                     sync.RWMutex{},
+	}
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	mutFinished := sync.Mutex{}
+	finished := false
+	go func() {
+		ptp.startRefreshProcess(ctx)
+		mutFinished.Lock()
+		finished = true
+		mutFinished.Unlock()
+	}()
+
+	time.Sleep(5 * time.Millisecond)
+	mutFinished.Lock()
+	currentFinished := finished
+	mutFinished.Unlock()
+	assert.False(t, currentFinished)
+
+	cancelFunc()
+
+	time.Sleep(5 * time.Millisecond)
+	mutFinished.Lock()
+	currentFinished = finished
+	mutFinished.Unlock()
+	assert.True(t, currentFinished)
+}
+
 func TestPeerTypeProvider_UpdateCache(t *testing.T) {
 	pk := "pk1"
 	initialShardId := uint32(1)
@@ -385,7 +424,7 @@ func TestNewPeerTypeProvider_CallsPopulateOnlyAfterTimeout(t *testing.T) {
 	_, _, _ = ptp.ComputeForPubKey([]byte(pk))
 	//allow call to go through
 	time.Sleep(time.Millisecond)
-	assert.Equal(t, int32(1), atomic.LoadInt32(populateCacheCalled))
+	assert.True(t, atomic.LoadInt32(populateCacheCalled) > 0)
 
 }
 
@@ -425,7 +464,7 @@ func TestNewPeerTypeProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 
 func TestNewPeerTypeProvider_ComputeForKeyFromCache(t *testing.T) {
 	arg := createDefaultArg()
-	arg.PeerTypeRefreshIntervalInSec = 25 * time.Millisecond
+	arg.PeerTypeRefreshIntervalInSec = 50 * time.Millisecond
 	pk := []byte("pk1")
 	initialShardId := uint32(1)
 	popMutex := sync.RWMutex{}
@@ -446,7 +485,7 @@ func TestNewPeerTypeProvider_ComputeForKeyFromCache(t *testing.T) {
 		},
 	}
 	ptp, _ := NewPeerTypeProvider(arg)
-	time.Sleep(arg.PeerTypeRefreshIntervalInSec)
+	time.Sleep(time.Millisecond)
 	popMutex.Lock()
 	populateCacheCalled = false
 	popMutex.Unlock()
