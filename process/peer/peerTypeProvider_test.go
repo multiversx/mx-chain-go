@@ -86,6 +86,7 @@ func TestPeerTypeProvider_CallsPopulateAndRegister(t *testing.T) {
 	numPopulateCacheCalled := int32(0)
 
 	arg := createDefaultArg()
+	arg.PeerTypeRefreshIntervalInSec = 10 * time.Millisecond
 	arg.EpochStartEventNotifier = &mock.EpochStartNotifierStub{
 		RegisterHandlerCalled: func(handler epochStart.ActionHandler) {
 			atomic.AddInt32(&numRegisterHandlerCalled, 1)
@@ -101,7 +102,7 @@ func TestPeerTypeProvider_CallsPopulateAndRegister(t *testing.T) {
 
 	_, _ = NewPeerTypeProvider(arg)
 
-	time.Sleep(arg.PeerTypeRefreshIntervalInSec)
+	time.Sleep(time.Millisecond)
 
 	assert.Equal(t, int32(1), atomic.LoadInt32(&numPopulateCacheCalled))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&numRegisterHandlerCalled))
@@ -468,6 +469,7 @@ func TestNewPeerTypeProvider_ComputeForKeyNotFoundInCacheReturnsObserverAndUpdat
 	validatorsMap := make(map[uint32][]*state.ValidatorInfo)
 	validatorsProviderStub := &mock.ValidatorsProviderStub{}
 	arg.ValidatorsProvider = validatorsProviderStub
+	arg.PeerTypeRefreshIntervalInSec = 10 * time.Millisecond
 	validatorsMap[initialShardId] = []*state.ValidatorInfo{
 		{
 			PublicKey: pk,
@@ -483,7 +485,7 @@ func TestNewPeerTypeProvider_ComputeForKeyNotFoundInCacheReturnsObserverAndUpdat
 	}
 
 	ptp, _ := NewPeerTypeProvider(arg)
-	time.Sleep(arg.PeerTypeRefreshIntervalInSec)
+	time.Sleep(time.Millisecond)
 	assert.Equal(t, 0, len(ptp.GetCache()))
 
 	peerType, shardId, err := ptp.ComputeForPubKey(pk)
