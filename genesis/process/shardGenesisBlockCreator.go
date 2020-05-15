@@ -444,12 +444,13 @@ func deployInitialSmartContract(
 		return err
 	}
 
-	var deployProc genesis.DeployProcessor
-	deployProc, err = intermediate.NewDeployProcessor(
-		txExecutor,
-		arg.PubkeyConv,
-		processors.blockchainHook,
-	)
+	argDeploy := intermediate.ArgDeployProcessor{
+		Executor:       txExecutor,
+		PubkeyConv:     arg.PubkeyConv,
+		BlockchainHook: processors.blockchainHook,
+		QueryService:   processors.queryService,
+	}
+	deployProc, err := intermediate.NewDeployProcessor(argDeploy)
 	if err != nil {
 		return err
 	}

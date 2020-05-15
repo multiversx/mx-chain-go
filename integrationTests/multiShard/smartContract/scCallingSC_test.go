@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -23,6 +24,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var log = logger.GetOrCreate("integrationtests/multishard/smartcontract")
 
 func TestSCCallingIntraShard(t *testing.T) {
 	if testing.Short() {
@@ -579,6 +582,18 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	shardNode.OwnAccount.Nonce++
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+
+	// check that the version is the expected one
+	scQueryVersion := &process.SCQuery{
+		ScAddress: delegateSCAddress,
+		FuncName:  "version",
+		Arguments: [][]byte{},
+	}
+	vmOutputVersion, _ := shardNode.SCQueryService.ExecuteQuery(scQueryVersion)
+	assert.NotNil(t, vmOutputVersion)
+	assert.Equal(t, len(vmOutputVersion.ReturnData), 1)
+	assert.True(t, bytes.Equal([]byte("0.2.0"), vmOutputVersion.ReturnData[0]))
+	log.Info("SC deployed", "version", string(vmOutputVersion.ReturnData[0]))
 
 	// set number of nodes
 	setNrNodesTxData := "setNrNodes@1"

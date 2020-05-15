@@ -29,6 +29,8 @@ type ArgDelegationProcessor struct {
 const stakeFunction = "stakeGenesis"
 const setBlsKeysFunction = "setBlsKeys"
 const activateBlsKeysFunction = "activate"
+const setNumNodesFunction = "setNumNodes"
+const setStakePerNodeFunction = "setStakePerNode"
 
 var log = logger.GetOrCreate("genesis/process/intermediate")
 
@@ -168,7 +170,7 @@ func (dp *delegationProcessor) setDelegationStartParameters(smartContracts []gen
 }
 
 func (dp *delegationProcessor) executeSetNumNodes(numNodes int, sc genesis.InitialSmartContractHandler) error {
-	setNumNodesTxData := fmt.Sprintf("setNrNodes@%x", numNodes)
+	setNumNodesTxData := fmt.Sprintf("%s@%x", setNumNodesFunction, numNodes)
 
 	nonce, err := dp.GetNonce(sc.OwnerBytes())
 	if err != nil {
@@ -185,7 +187,7 @@ func (dp *delegationProcessor) executeSetNumNodes(numNodes int, sc genesis.Initi
 }
 
 func (dp *delegationProcessor) executeSetNodePrice(sc genesis.InitialSmartContractHandler) error {
-	setStakePerNodeTxData := fmt.Sprintf("setStakePerNode@%x", dp.nodePrice)
+	setStakePerNodeTxData := fmt.Sprintf("%s@%x", setStakePerNodeFunction, dp.nodePrice)
 
 	nonce, err := dp.GetNonce(sc.OwnerBytes())
 	if err != nil {

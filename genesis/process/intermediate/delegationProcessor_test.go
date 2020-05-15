@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockArg() ArgDelegationProcessor {
+func createMockDelegationProcessorArg() ArgDelegationProcessor {
 	return ArgDelegationProcessor{
 		Executor:            &mock.TxExecutionProcessorStub{},
 		ShardCoordinator:    &mock.ShardCoordinatorMock{},
@@ -32,7 +32,7 @@ func createMockArg() ArgDelegationProcessor {
 func TestNewDelegationProcessor_NilExecutorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockDelegationProcessorArg()
 	arg.Executor = nil
 	dp, err := NewDelegationProcessor(arg)
 
@@ -43,7 +43,7 @@ func TestNewDelegationProcessor_NilExecutorShouldErr(t *testing.T) {
 func TestNewDelegationProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockDelegationProcessorArg()
 	arg.ShardCoordinator = nil
 	dp, err := NewDelegationProcessor(arg)
 
@@ -54,7 +54,7 @@ func TestNewDelegationProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 func TestNewDelegationProcessor_NilAccountsParserShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockDelegationProcessorArg()
 	arg.AccountsParser = nil
 	dp, err := NewDelegationProcessor(arg)
 
@@ -65,7 +65,7 @@ func TestNewDelegationProcessor_NilAccountsParserShouldErr(t *testing.T) {
 func TestNewDelegationProcessor_NilSmartContractParserShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockDelegationProcessorArg()
 	arg.SmartContractParser = nil
 	dp, err := NewDelegationProcessor(arg)
 
@@ -76,7 +76,7 @@ func TestNewDelegationProcessor_NilSmartContractParserShouldErr(t *testing.T) {
 func TestNewDelegationProcessor_NilNodesSplitterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockDelegationProcessorArg()
 	arg.NodesListSplitter = nil
 	dp, err := NewDelegationProcessor(arg)
 
@@ -87,7 +87,7 @@ func TestNewDelegationProcessor_NilNodesSplitterShouldErr(t *testing.T) {
 func TestNewDelegationProcessor_NilQueryServiceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockDelegationProcessorArg()
 	arg.QueryService = nil
 	dp, err := NewDelegationProcessor(arg)
 
@@ -98,7 +98,7 @@ func TestNewDelegationProcessor_NilQueryServiceShouldErr(t *testing.T) {
 func TestNewDelegationProcessor_NilNodePriceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockDelegationProcessorArg()
 	arg.NodePrice = nil
 	dp, err := NewDelegationProcessor(arg)
 
@@ -109,7 +109,7 @@ func TestNewDelegationProcessor_NilNodePriceShouldErr(t *testing.T) {
 func TestNewDelegationProcessor_ZeroNodePriceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockDelegationProcessorArg()
 	arg.NodePrice = big.NewInt(0)
 	dp, err := NewDelegationProcessor(arg)
 
@@ -120,7 +120,7 @@ func TestNewDelegationProcessor_ZeroNodePriceShouldErr(t *testing.T) {
 func TestNewDelegationProcessor_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockDelegationProcessorArg()
 	dp, err := NewDelegationProcessor(arg)
 
 	assert.False(t, check.IfNil(dp))
@@ -133,7 +133,7 @@ func TestDelegationProcessor_ExecuteDelegationSplitFailsShouldErr(t *testing.T) 
 	t.Parallel()
 
 	expectedErr := fmt.Errorf("expected error")
-	arg := createMockArg()
+	arg := createMockDelegationProcessorArg()
 	arg.Executor = &mock.TxExecutionProcessorStub{
 		ExecuteTransactionCalled: func(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error {
 			assert.Fail(t, "should have not execute a transaction")
@@ -158,7 +158,7 @@ func TestDelegationProcessor_ExecuteDelegationSplitFailsShouldErr(t *testing.T) 
 func TestDelegationProcessor_ExecuteDelegationNoDelegationScShouldRetNil(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockDelegationProcessorArg()
 	arg.Executor = &mock.TxExecutionProcessorStub{
 		ExecuteTransactionCalled: func(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error {
 			assert.Fail(t, "should have not execute a transaction")
@@ -195,7 +195,7 @@ func TestDelegationProcessor_ExecuteDelegationStakeShouldWork(t *testing.T) {
 	pubkey2 := []byte("pubkey2")
 	pubkey3 := []byte("pubkey3")
 
-	arg := createMockArg()
+	arg := createMockDelegationProcessorArg()
 	arg.Executor = &mock.TxExecutionProcessorStub{
 		ExecuteTransactionCalled: func(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error {
 			isStakeCall := strings.Contains(string(data), "stake")

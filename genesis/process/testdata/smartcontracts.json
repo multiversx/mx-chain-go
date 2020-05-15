@@ -11,6 +11,7 @@
     "filename": "testdata/delegation.wasm",
     "vm-type": "0500",
     "init-parameters": "0BB8@%auction_sc_address%@0A61D0",
-    "type": "delegation"
+    "type": "delegation",
+    "version": "0.*.0"
   }
 ]
