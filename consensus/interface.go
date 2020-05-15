@@ -45,6 +45,7 @@ type SubroundHandler interface {
 
 // ChronologyHandler defines the actions which should be handled by a chronology implementation
 type ChronologyHandler interface {
+	Close() error
 	AddSubround(SubroundHandler)
 	RemoveAllSubrounds()
 	// StartRounds starts rounds in a sequential manner, one after the other
