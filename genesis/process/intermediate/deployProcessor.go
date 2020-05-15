@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/version"
+	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -163,7 +163,7 @@ func (dp *deployProcessor) checkVersion(sc genesis.InitialSmartContractHandler, 
 		return nil
 	}
 
-	vc, err := version.NewVersionComparator(sc.GetVersion())
+	vc, err := versioning.NewVersionComparator(sc.GetVersion())
 	if err != nil {
 		return err
 	}
@@ -182,7 +182,15 @@ func (dp *deployProcessor) checkVersion(sc genesis.InitialSmartContractHandler, 
 		return genesis.ErrGetVersionFromSC
 	}
 
-	return vc.Check(string(vmOutputVersion.ReturnData[0]))
+	version := string(vmOutputVersion.ReturnData[0])
+
+	log.Debug("SC version",
+		"SC address", sc.Address(),
+		"SC owner", sc.GetOwner(),
+		"version", version,
+	)
+
+	return vc.Check(version)
 }
 
 // IsInterfaceNil returns if underlying object is true
