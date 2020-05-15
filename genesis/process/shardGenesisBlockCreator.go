@@ -506,7 +506,7 @@ func executeDelegation(
 		return genesis.DelegationResult{}, err
 	}
 
-	argDP := intermediate.ArgDelegationProcessor{
+	argDP := intermediate.ArgStandardDelegationProcessor{
 		Executor:            txExecutor,
 		ShardCoordinator:    arg.ShardCoordinator,
 		AccountsParser:      arg.AccountsParser,
@@ -516,7 +516,7 @@ func executeDelegation(
 		NodePrice:           arg.Economics.GenesisNodePrice(),
 	}
 
-	delegationProcessor, err := intermediate.NewDelegationProcessor(argDP)
+	delegationProcessor, err := intermediate.NewStandardDelegationProcessor(argDP)
 	if err != nil {
 		return genesis.DelegationResult{}, err
 	}
