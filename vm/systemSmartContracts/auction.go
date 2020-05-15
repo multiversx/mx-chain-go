@@ -183,13 +183,15 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 		return vmcommon.UserError
 	}
 
+	txData := "changeRewardAddress@" + hex.EncodeToString(registrationData.RewardAddress)
 	for _, blsKey := range registrationData.BlsPubKeys {
-		vmOutput, err := s.executeOnStakingSC([]byte("changeRewardAddress@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
-		isError := err != nil || vmOutput.ReturnCode != vmcommon.Ok
-		if isError {
-			log.LogIfError(err)
-			return vmcommon.UserError
-		}
+		txData += "@" + hex.EncodeToString(blsKey)
+	}
+	vmOutput, err := s.executeOnStakingSC([]byte(txData))
+	isError := err != nil || vmOutput.ReturnCode != vmcommon.Ok
+	if isError {
+		log.LogIfError(err)
+		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
