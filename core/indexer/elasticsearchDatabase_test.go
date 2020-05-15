@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
@@ -387,14 +388,14 @@ func TestUpdateTransaction(t *testing.T) {
 
 	txHash1 := []byte("txHash1")
 	tx1 := &transaction.Transaction{
-		GasPrice: 1,
+		GasPrice: 10,
 		GasLimit: 500,
 	}
 	txHash2 := []byte("txHash2")
 	sndAddr := []byte("snd")
 	tx2 := &transaction.Transaction{
-		GasLimit: 1,
-		GasPrice: 500,
+		GasPrice: 10,
+		GasLimit: 500,
 		SndAddr:  sndAddr,
 	}
 	txHash3 := []byte("txHash3")
@@ -420,6 +421,15 @@ func TestUpdateTransaction(t *testing.T) {
 		Value:          big.NewInt(150),
 	}
 
+	rTx1Hash := []byte("rTxHash1")
+	rTx1 := &rewardTx.RewardTx{
+		Round: 1113,
+	}
+	rTx2Hash := []byte("rTxHash2")
+	rTx2 := &rewardTx.RewardTx{
+		Round: 1114,
+	}
+
 	body := &dataBlock.Body{
 		MiniBlocks: []*dataBlock.MiniBlock{
 			{
@@ -429,6 +439,10 @@ func TestUpdateTransaction(t *testing.T) {
 			{
 				TxHashes: [][]byte{txHash3},
 				Type:     dataBlock.TxBlock,
+			},
+			{
+				Type:     dataBlock.RewardsBlock,
+				TxHashes: [][]byte{rTx1Hash, rTx2Hash},
 			},
 			{
 				TxHashes: [][]byte{recHash1},
@@ -446,6 +460,8 @@ func TestUpdateTransaction(t *testing.T) {
 		string(txHash2):  tx2,
 		string(txHash3):  tx3,
 		string(recHash1): rec1,
+		string(rTx1Hash): rTx1,
+		string(rTx2Hash): rTx2,
 	}
 
 	body.MiniBlocks[0].ReceiverShardID = 1
