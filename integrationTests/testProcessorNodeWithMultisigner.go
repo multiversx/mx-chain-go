@@ -269,7 +269,7 @@ func CreateNodeWithBLSAndTxKeys(
 	twa.Address = twa.PkTxSignBytes
 	tpn.OwnAccount = twa
 
-	tpn.EpochStartNotifier = &mock.EpochStartNotifierStub{}
+	tpn.EpochStartNotifier = epochStartSubscriber
 	tpn.initDataPools()
 	tpn.initTestNode()
 
