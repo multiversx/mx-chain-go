@@ -34,6 +34,7 @@ const setNumNodesFunction = "setNumNodes"
 const setStakePerNodeFunction = "setStakePerNode"
 
 var log = logger.GetOrCreate("genesis/process/intermediate")
+var zero = big.NewInt(0)
 
 type delegationProcessor struct {
 	genesis.TxExecutionProcessor
@@ -98,7 +99,7 @@ func (dp *delegationProcessor) ExecuteDelegation() (genesis.DelegationResult, er
 		return genesis.DelegationResult{}, err
 	}
 
-	_, err = dp.executeManageBlsKeys(smartContracts, dp.setBlsKey, setBlsKeysFunction)
+	_, err = dp.executeManageBlsKeys(smartContracts, dp.getBlsKey, setBlsKeysFunction)
 	if err != nil {
 		return genesis.DelegationResult{}, err
 	}
@@ -109,7 +110,7 @@ func (dp *delegationProcessor) ExecuteDelegation() (genesis.DelegationResult, er
 		return genesis.DelegationResult{}, err
 	}
 
-	dr.NumTotalDelegated, err = dp.executeManageBlsKeys(smartContracts, dp.activate, activateBlsKeysFunction)
+	dr.NumTotalDelegated, err = dp.executeManageBlsKeys(smartContracts, dp.getBlsKeySig, activateBlsKeysFunction)
 	if err != nil {
 		return genesis.DelegationResult{}, err
 	}
@@ -337,11 +338,11 @@ func (dp *delegationProcessor) executeManageBlsKeys(
 	return totalDelegated, nil
 }
 
-func (dp *delegationProcessor) setBlsKey(node sharding.GenesisNodeInfoHandler) string {
+func (dp *delegationProcessor) getBlsKey(node sharding.GenesisNodeInfoHandler) string {
 	return hex.EncodeToString(node.PubKeyBytes())
 }
 
-func (dp *delegationProcessor) activate(_ sharding.GenesisNodeInfoHandler) string {
+func (dp *delegationProcessor) getBlsKeySig(_ sharding.GenesisNodeInfoHandler) string {
 	mockSignature := []byte("genesis signature")
 
 	return hex.EncodeToString(mockSignature)

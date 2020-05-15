@@ -1,12 +1,12 @@
 {
   "startTime": 0,
-  "roundDuration": 4000,
+  "roundDuration": 6000,
   "consensusGroupSize": 3,
   "minNodesPerShard": 3,
   "chainID": "testnet",
   "metaChainConsensusGroupSize": 3,
   "metaChainMinNodes": 3,
-  "hysteresis": 0,
+  "hysteresis": 0.2,
   "adaptivity": false,
   "initialNodes": [
     {
