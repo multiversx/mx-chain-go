@@ -820,7 +820,7 @@ func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.Retu
 	zero := big.NewInt(0)
 	claimable := big.NewInt(0).Sub(registrationData.TotalStakeValue, registrationData.LockedStake)
 	if claimable.Cmp(zero) <= 0 {
-		return vmcommon.UserError
+		return vmcommon.Ok
 	}
 
 	registrationData.TotalStakeValue.Set(registrationData.LockedStake)
