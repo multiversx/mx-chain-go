@@ -7,20 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/require"
 )
-
-func TestNewStateComponentsFactory_NilGenesisConfigShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getStateArgs()
-	args.GenesisConfig = nil
-
-	scf, err := factory.NewStateComponentsFactory(args)
-	require.Nil(t, scf)
-	require.Equal(t, factory.ErrNilGenesisConfiguration, err)
-}
 
 func TestNewStateComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -107,7 +95,6 @@ func getStateArgs() factory.StateComponentsFactoryArgs {
 			},
 		},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
-		GenesisConfig:    &sharding.Genesis{},
 		Core:             getCoreComponents(),
 		Tries:            getTriesComponents(),
 	}

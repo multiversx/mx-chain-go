@@ -16,7 +16,6 @@ import (
 // StateComponentsFactoryArgs holds the arguments needed for creating a state components factory
 type StateComponentsFactoryArgs struct {
 	Config           config.Config
-	GenesisConfig    *sharding.Genesis
 	ShardCoordinator sharding.Coordinator
 	Core             CoreComponentsHolder
 	Tries            *TriesComponents
@@ -24,7 +23,6 @@ type StateComponentsFactoryArgs struct {
 
 type stateComponentsFactory struct {
 	config           config.Config
-	genesisConfig    *sharding.Genesis
 	shardCoordinator sharding.Coordinator
 	core             CoreComponentsHolder
 	tries            *TriesComponents
@@ -32,9 +30,6 @@ type stateComponentsFactory struct {
 
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory
 func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponentsFactory, error) {
-	if args.GenesisConfig == nil {
-		return nil, ErrNilGenesisConfiguration
-	}
 	if args.Core == nil {
 		return nil, ErrNilCoreComponents
 	}
@@ -50,7 +45,6 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 
 	return &stateComponentsFactory{
 		config:           args.Config,
-		genesisConfig:    args.GenesisConfig,
 		core:             args.Core,
 		tries:            args.Tries,
 		shardCoordinator: args.ShardCoordinator,
@@ -76,11 +70,6 @@ func (scf *stateComponentsFactory) Create() (*StateComponents, error) {
 		return nil, fmt.Errorf("%w: %s", ErrAccountsAdapterCreation, err.Error())
 	}
 
-	inBalanceForShard, err := scf.genesisConfig.InitialNodesBalances(scf.shardCoordinator)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrInitialBalancesCreation, err.Error())
-	}
-
 	accountFactory = factoryState.NewPeerAccountCreator()
 	merkleTrie = scf.tries.TriesContainer.Get([]byte(factory.PeerAccountTrie))
 	peerAdapter, err := state.NewPeerAccountsDB(merkleTrie, scf.core.Hasher(), scf.core.InternalMarshalizer(), accountFactory)
@@ -93,6 +82,5 @@ func (scf *stateComponentsFactory) Create() (*StateComponents, error) {
 		AddressPubkeyConverter:   processPubkeyConverter,
 		ValidatorPubkeyConverter: validatorPubkeyConverter,
 		AccountsAdapter:          accountsAdapter,
-		InBalanceForShard:        inBalanceForShard,
 	}, nil
 }

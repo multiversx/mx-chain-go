@@ -17,7 +17,7 @@ import (
 	mclmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
 	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
-	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -119,7 +119,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 			return nil, err
 		}
 	} else {
-		messageSignVerifier = &genesis.NilMessageSignVerifier{}
+		messageSignVerifier = &disabled.MessageSignVerifier{}
 	}
 
 	return &cryptoComponents{

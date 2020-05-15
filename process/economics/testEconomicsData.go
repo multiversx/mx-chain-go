@@ -1,5 +1,7 @@
 package economics
 
+import "math/big"
+
 // TestEconomicsData extends EconomicsData and is used in integration tests as it exposes some functions
 // that are not supposed to be used in production code
 // Exported functions simplify the reproduction of edge cases
@@ -40,4 +42,24 @@ func (ted *TestEconomicsData) SetGasPerDataByte(gasPerDataByte uint64) {
 // SetDataLimitForBaseCalc sets base calc limit for gasLimit calculation
 func (ted *TestEconomicsData) SetDataLimitForBaseCalc(dataLimitForBaseCalc uint64) {
 	ted.dataLimitForBaseCalc = dataLimitForBaseCalc
+}
+
+// SetGenesisNodePrice sets the genesis node price
+func (ted *TestEconomicsData) SetGenesisNodePrice(nodePrice *big.Int) {
+	ted.genesisNodePrice = nodePrice
+}
+
+// SetMinStep will set the min step value
+func (ted *TestEconomicsData) SetMinStep(minStep *big.Int) {
+	ted.minStep = minStep
+}
+
+// SetTotalSupply sets the total supply when booting the network
+func (ted *TestEconomicsData) SetTotalSupply(totalSupply *big.Int) {
+	ted.genesisTotalSupply = totalSupply
+}
+
+// SetUnJailPrice sets the un-jail price of a node
+func (ted *TestEconomicsData) SetUnJailPrice(unJailPrice *big.Int) {
+	ted.unJailPrice = unJailPrice
 }

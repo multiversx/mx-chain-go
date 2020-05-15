@@ -1,7 +1,6 @@
 package heartbeat
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -12,10 +11,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
@@ -31,7 +31,7 @@ func TestHeartbeatMonitorWillUpdateAnInactivePeer(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 	maxUnresposiveTime := time.Second * 10
@@ -78,7 +78,7 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 	maxUnresposiveTime := time.Second * 10
@@ -120,19 +120,19 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 
 func prepareNodes(
 	advertiserAddr string,
-	monitor *heartbeat.Monitor,
+	monitor *process.Monitor,
 	interactingNodes int,
 	defaultNodeName string,
-) ([]p2p.Messenger, []*heartbeat.Sender, []crypto.PublicKey) {
+) ([]p2p.Messenger, []*process.Sender, []crypto.PublicKey) {
 
 	senderIdxs := []int{0, 1}
 	nodes := make([]p2p.Messenger, interactingNodes)
 	topicHeartbeat := "topic"
-	senders := make([]*heartbeat.Sender, 0)
+	senders := make([]*process.Sender, 0)
 	pks := make([]crypto.PublicKey, 0)
 
 	for i := 0; i < interactingNodes; i++ {
-		nodes[i] = integrationTests.CreateMessengerWithKadDht(context.Background(), advertiserAddr)
+		nodes[i] = integrationTests.CreateMessengerWithKadDht(advertiserAddr)
 		_ = nodes[i].CreateTopic(topicHeartbeat, true)
 
 		isSender := integrationTests.IsIntInSlice(i, senderIdxs)
@@ -150,7 +150,7 @@ func prepareNodes(
 	return nodes, senders, pks
 }
 
-func checkReceivedMessages(t *testing.T, monitor *heartbeat.Monitor, pks []crypto.PublicKey, activeIdxs []int) {
+func checkReceivedMessages(t *testing.T, monitor *process.Monitor, pks []crypto.PublicKey, activeIdxs []int) {
 	pkHeartBeats := monitor.GetHeartbeats()
 
 	extraPkInMonitor := 1
@@ -163,7 +163,7 @@ func checkReceivedMessages(t *testing.T, monitor *heartbeat.Monitor, pks []crypt
 	}
 }
 
-func isMessageReceived(heartbeats []heartbeat.PubKeyHeartbeat, pk crypto.PublicKey) bool {
+func isMessageReceived(heartbeats []data.PubKeyHeartbeat, pk crypto.PublicKey) bool {
 	pkBytes, _ := pk.ToByteArray()
 
 	for _, hb := range heartbeats {
@@ -176,7 +176,7 @@ func isMessageReceived(heartbeats []heartbeat.PubKeyHeartbeat, pk crypto.PublicK
 	return false
 }
 
-func isPkActive(heartbeats []heartbeat.PubKeyHeartbeat, pk crypto.PublicKey) bool {
+func isPkActive(heartbeats []data.PubKeyHeartbeat, pk crypto.PublicKey) bool {
 	pkBytes, _ := pk.ToByteArray()
 
 	for _, hb := range heartbeats {
@@ -189,7 +189,7 @@ func isPkActive(heartbeats []heartbeat.PubKeyHeartbeat, pk crypto.PublicKey) boo
 	return false
 }
 
-func isMessageCorrectLen(heartbeats []heartbeat.PubKeyHeartbeat, pk crypto.PublicKey, expectedLen int) bool {
+func isMessageCorrectLen(heartbeats []data.PubKeyHeartbeat, pk crypto.PublicKey, expectedLen int) bool {
 	pkBytes, _ := pk.ToByteArray()
 
 	for _, hb := range heartbeats {
@@ -202,14 +202,14 @@ func isMessageCorrectLen(heartbeats []heartbeat.PubKeyHeartbeat, pk crypto.Publi
 	return false
 }
 
-func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string) (*heartbeat.Sender, crypto.PublicKey) {
+func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string) (*process.Sender, crypto.PublicKey) {
 	suite := mcl.NewSuiteBLS12()
 	signer := &mclsig.BlsSingleSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 	sk, pk := keyGen.GeneratePair()
 	version := "v01"
 
-	argSender := heartbeat.ArgHeartbeatSender{
+	argSender := process.ArgHeartbeatSender{
 		PeerMessenger:    messenger,
 		SingleSigner:     signer,
 		PrivKey:          sk,
@@ -223,17 +223,17 @@ func createSenderWithName(messenger p2p.Messenger, topic string, nodeName string
 		HardforkTrigger:  &mock.HardforkTriggerStub{},
 	}
 
-	sender, _ := heartbeat.NewSender(argSender)
+	sender, _ := process.NewSender(argSender)
 	return sender, pk
 }
 
-func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor {
+func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 	suite := mcl.NewSuiteBLS12()
 	singlesigner := &mclsig.BlsSingleSigner{}
 	keyGen := signing.NewKeyGenerator(suite)
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 
-	mp, _ := heartbeat.NewMessageProcessor(
+	mp, _ := process.NewMessageProcessor(
 		singlesigner,
 		keyGen,
 		marshalizer,
@@ -242,7 +242,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 			UpdatePeerIdShardIdCalled:   func(pid p2p.PeerID, shardId uint32) {},
 		})
 
-	argMonitor := heartbeat.ArgHeartbeatMonitor{
+	argMonitor := process.ArgHeartbeatMonitor{
 		Marshalizer:                 integrationTests.TestMarshalizer,
 		MaxDurationPeerUnresponsive: maxDurationPeerUnresponsive,
 		PubKeysMap:                  map[uint32][]string{0: {""}},
@@ -252,13 +252,13 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 			UpdateGenesisTimeCalled: func(genesisTime time.Time) error {
 				return nil
 			},
-			LoadHbmiDTOCalled: func(pubKey string) (*heartbeat.HeartbeatDTO, error) {
+			LoadHeartBeatDTOCalled: func(pubKey string) (*data.HeartbeatDTO, error) {
 				return nil, errors.New("not found")
 			},
 			LoadKeysCalled: func() ([][]byte, error) {
 				return nil, nil
 			},
-			SavePubkeyDataCalled: func(pubkey []byte, heartbeat *heartbeat.HeartbeatDTO) error {
+			SavePubkeyDataCalled: func(pubkey []byte, heartbeat *data.HeartbeatDTO) error {
 				return nil
 			},
 			SaveKeysCalled: func(peersSlice [][]byte) error {
@@ -266,7 +266,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 			},
 		},
 		PeerTypeProvider: &mock.PeerTypeProviderStub{},
-		Timer:            &heartbeat.RealTimer{},
+		Timer:            &process.RealTimer{},
 		AntifloodHandler: &mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 				return nil
@@ -275,11 +275,11 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *heartbeat.Monitor
 		HardforkTrigger:                    &mock.HardforkTriggerStub{},
 		PeerBlackListHandler:               &mock.BlackListHandlerStub{},
 		ValidatorPubkeyConverter:           integrationTests.TestValidatorPubkeyConverter,
-		HbmiRefreshIntervalInSec:           1,
+		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
 	}
 
-	monitor, _ := heartbeat.NewMonitor(argMonitor)
+	monitor, _ := process.NewMonitor(argMonitor)
 
 	return monitor
 }

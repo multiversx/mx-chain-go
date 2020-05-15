@@ -58,6 +58,7 @@ func createMockShardHeader() *dataBlock.Header {
 		MetaBlockHashes:  nil,
 		TxCount:          0,
 		ChainID:          []byte("chain ID"),
+		SoftwareVersion:  []byte("version"),
 	}
 }
 

@@ -1,6 +1,8 @@
 package bootstrap
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -21,10 +23,10 @@ type StartOfEpochNodesConfigHandler interface {
 	IsInterfaceNil() bool
 }
 
-// EpochStartInterceptor defines the methods to sync an epoch start metablock
-type EpochStartInterceptor interface {
-	process.Interceptor
-	GetEpochStartMetaBlock(target int, epoch uint32) (*block.MetaBlock, error)
+// EpochStartMetaBlockInterceptorProcessor defines the methods to sync an epoch start metablock
+type EpochStartMetaBlockInterceptorProcessor interface {
+	process.InterceptorProcessor
+	GetEpochStartMetaBlock(ctx context.Context) (*block.MetaBlock, error)
 }
 
 // StartInEpochNodesCoordinator defines the methods to process and save nodesCoordinator information to storage

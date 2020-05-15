@@ -1,0 +1,62 @@
+[
+  {
+    "address": "0001",
+    "supply": "5",
+    "balance": "5",
+    "stakingvalue": "0",
+    "delegation": {
+      "address": "",
+      "value":   "0"
+    }
+  },
+  {
+    "address": "0002",
+    "supply": "5",
+    "balance": "2",
+    "stakingvalue": "3",
+    "delegation": {
+      "address": "",
+      "value":   "0"
+    }
+  },
+  {
+    "address": "0003",
+    "supply": "5",
+    "balance": "0",
+    "stakingvalue": "5",
+    "delegation": {
+      "address": "",
+      "value":   "0"
+    }
+  },
+  {
+    "address": "0004",
+    "supply": "5",
+    "balance": "2",
+    "stakingvalue": "0",
+    "delegation": {
+      "address": "0005",
+      "value":   "3"
+    }
+  },
+  {
+    "address": "0006",
+    "supply": "5",
+    "balance": "0",
+    "stakingvalue": "2",
+    "delegation": {
+      "address": "0007",
+      "value":   "3"
+    }
+  },
+  {
+    "address": "0008",
+    "supply": "5",
+    "balance": "1",
+    "stakingvalue": "2",
+    "delegation": {
+      "address": "0009",
+      "value":   "2"
+    }
+  }
+]

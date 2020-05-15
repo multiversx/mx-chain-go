@@ -290,9 +290,6 @@ var ErrHeaderNotFinal = errors.New("header in metablock is not final")
 // ErrShardIdMissmatch signals shard ID does not match expectations
 var ErrShardIdMissmatch = errors.New("shard ID missmatch")
 
-// ErrMintAddressNotInThisShard signals that the mint address does not belong to current shard
-var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to current shard")
-
 // ErrNotarizedHeadersSliceIsNil signals that the slice holding notarized headers is nil
 var ErrNotarizedHeadersSliceIsNil = errors.New("notarized headers slice is nil")
 
@@ -772,3 +769,6 @@ var ErrNilInterceptedDebugHandler = errors.New("nil intercepted debug handler")
 
 // ErrBuiltInFunctionCalledWithValue signals that builtin function was called with value that is not allowed
 var ErrBuiltInFunctionCalledWithValue = errors.New("built in function called with tx value is not allowed")
+
+// ErrEmptySoftwareVersion signals that empty software version was called
+var ErrEmptySoftwareVersion = errors.New("empty software version")

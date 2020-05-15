@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -49,7 +48,6 @@ func NewNetworkComponentsFactory(
 // Create creates and returns the network components
 func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 	arg := libp2p.ArgsNetworkMessenger{
-		Context:       context.Background(),
 		ListenAddress: ncf.listenAddress,
 		P2pConfig:     ncf.p2pConfig,
 	}

@@ -32,13 +32,13 @@ func (ni *nodeInfo) AssignedShard() uint32 {
 	return ni.assignedShard
 }
 
-// Address gets the node address
-func (ni *nodeInfo) Address() []byte {
+// AddressBytes gets the node address as bytes
+func (ni *nodeInfo) AddressBytes() []byte {
 	return ni.address
 }
 
-// PubKey gets the node public key
-func (ni *nodeInfo) PubKey() []byte {
+// PubKeyBytes gets the node public key as bytes
+func (ni *nodeInfo) PubKeyBytes() []byte {
 	return ni.pubKey
 }
 
@@ -233,7 +233,7 @@ func (ns *NodesSetup) InitialNodesPubKeys() map[uint32][]string {
 	for shardId, nodesInfo := range ns.eligible {
 		pubKeys := make([]string, len(nodesInfo))
 		for i := 0; i < len(nodesInfo); i++ {
-			pubKeys[i] = string(nodesInfo[i].PubKey())
+			pubKeys[i] = string(nodesInfo[i].PubKeyBytes())
 		}
 
 		allNodesPubKeys[shardId] = pubKeys
@@ -245,6 +245,16 @@ func (ns *NodesSetup) InitialNodesPubKeys() map[uint32][]string {
 // InitialNodesInfo - gets initial nodes info
 func (ns *NodesSetup) InitialNodesInfo() (map[uint32][]GenesisNodeInfoHandler, map[uint32][]GenesisNodeInfoHandler) {
 	return ns.eligible, ns.waiting
+}
+
+// AllInitialNodes returns all initial nodes loaded
+func (ns *NodesSetup) AllInitialNodes() []GenesisNodeInfoHandler {
+	list := make([]GenesisNodeInfoHandler, len(ns.InitialNodes))
+	for idx, initialNode := range ns.InitialNodes {
+		list[idx] = initialNode
+	}
+
+	return list
 }
 
 // InitialEligibleNodesPubKeysForShard - gets initial nodes public keys for shard
@@ -259,7 +269,7 @@ func (ns *NodesSetup) InitialEligibleNodesPubKeysForShard(shardId uint32) ([]str
 	nodesInfo := ns.eligible[shardId]
 	pubKeys := make([]string, len(nodesInfo))
 	for i := 0; i < len(nodesInfo); i++ {
-		pubKeys[i] = string(nodesInfo[i].PubKey())
+		pubKeys[i] = string(nodesInfo[i].PubKeyBytes())
 	}
 
 	return pubKeys, nil

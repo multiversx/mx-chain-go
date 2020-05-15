@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -26,7 +27,7 @@ type epochStartMetaSyncer struct {
 	marshalizer           marshal.Marshalizer
 	hasher                hashing.Hasher
 	singleDataInterceptor process.Interceptor
-	metaBlockProcessor    *epochStartMetaBlockProcessor
+	metaBlockProcessor    EpochStartMetaBlockInterceptorProcessor
 }
 
 // ArgsNewEpochStartMetaSyncer -
@@ -38,6 +39,7 @@ type ArgsNewEpochStartMetaSyncer struct {
 	ShardCoordinator       sharding.Coordinator
 	EconomicsData          *economics.EconomicsData
 	WhitelistHandler       process.WhiteListHandler
+	StartInEpochConfig     config.EpochStartConfig
 }
 
 // thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
@@ -69,6 +71,8 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		args.CoreComponentsHolder.InternalMarshalizer(),
 		args.CoreComponentsHolder.Hasher(),
 		thresholdForConsideringMetaBlockCorrect,
+		args.StartInEpochConfig.MinNumConnectedPeersToStart,
+		args.StartInEpochConfig.MinNumOfPeersToConsiderBlockValid,
 	)
 	if err != nil {
 		return nil, err

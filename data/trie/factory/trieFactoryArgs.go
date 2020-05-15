@@ -20,6 +20,5 @@ type TrieFactoryArgs struct {
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	PathManager              storage.PathManagerHandler
-	ShardId                  string
 	TrieStorageManagerConfig config.TrieStorageManagerConfig
 }

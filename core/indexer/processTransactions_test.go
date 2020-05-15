@@ -19,9 +19,15 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 	t.Parallel()
 
 	txHash1 := []byte("txHash1")
-	tx1 := &transaction.Transaction{}
+	tx1 := &transaction.Transaction{
+		GasLimit: 100,
+		GasPrice: 100,
+	}
 	txHash2 := []byte("txHash2")
-	tx2 := &transaction.Transaction{}
+	tx2 := &transaction.Transaction{
+		GasLimit: 100,
+		GasPrice: 100,
+	}
 	txHash3 := []byte("txHash3")
 	tx3 := &transaction.Transaction{}
 	txHash4 := []byte("txHash4")

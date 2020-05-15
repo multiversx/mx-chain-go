@@ -60,6 +60,10 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 				SizeInBytes: 1000,
 				Shards:      10,
 			},
+			EpochStartConfig: config.EpochStartConfig{
+				MinNumConnectedPeersToStart:       2,
+				MinNumOfPeersToConsiderBlockValid: 2,
+			},
 		},
 		EconomicsData:              &economics.EconomicsData{},
 		GenesisNodesConfig:         &mock.NodesSetupStub{},
@@ -127,13 +131,8 @@ func TestEpochStartBootstrap_Bootstrap(t *testing.T) {
 			return roundDuration
 		},
 	}
-	args.GeneralConfig = config.Config{
-		EpochStartConfig: config.EpochStartConfig{
-			RoundsPerEpoch: roundsPerEpoch,
-		},
-	}
 	args.GeneralConfig = getGeneralConfig()
-
+	args.GeneralConfig.EpochStartConfig.RoundsPerEpoch = roundsPerEpoch
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 
 	done := make(chan bool, 1)

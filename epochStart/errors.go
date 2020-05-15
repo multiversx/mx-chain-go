@@ -191,8 +191,8 @@ var ErrNilRater = errors.New("nil rater")
 // ErrNilTriesContainer signals that a nil tries container has been provided
 var ErrNilTriesContainer = errors.New("nil tries container")
 
-// ErrNilTrieStorageManager signals that a nil trie storage managers map has been provided
-var ErrNilTrieStorageManager = errors.New("nil trie storage managers map")
+// ErrNilTrieStorageManagers signals that a nil trie storage managers map has been provided
+var ErrNilTrieStorageManagers = errors.New("nil trie storage managers map")
 
 // ErrInvalidDefaultDBPath signals that an invalid default database path has been provided
 var ErrInvalidDefaultDBPath = errors.New("invalid default db path")
@@ -217,3 +217,9 @@ var ErrNilLatestStorageDataProvider = errors.New("nil latest storage data provid
 
 // ErrNilShuffler signals that a nil shuffler was provided
 var ErrNilShuffler = errors.New("nil nodes shuffler provided")
+
+// ErrNotEnoughNumConnectedPeers signals that config is invalid for num of connected peers
+var ErrNotEnoughNumConnectedPeers = errors.New("not enough min num of connected peers from config")
+
+// ErrNotEnoughNumOfPeersToConsiderBlockValid signals that config is invalid for num of peer to consider block valid
+var ErrNotEnoughNumOfPeersToConsiderBlockValid = errors.New("not enough num of peers to consider block valid from config")

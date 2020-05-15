@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+	"math/big"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -40,6 +41,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -93,6 +95,13 @@ VERSION:
 		Usage: "The `" + filePathPlaceholder + "` for the genesis file. This JSON file contains initial data to " +
 			"bootstrap from, such as initial balances for accounts.",
 		Value: "./config/genesis.json",
+	}
+	// smartContractsFile defines a flag for the path of the file containing initial smart contracts.
+	smartContractsFile = cli.StringFlag{
+		Name: "smart-contracts-file",
+		Usage: "The `" + filePathPlaceholder + "` for the initial smart contracts file. This JSON file contains data used " +
+			"to deploy initial smart contracts such as delegation smart contracts",
+		Value: "./config/genesisSmartContracts.json",
 	}
 	// nodesFile defines a flag for the path of the initial nodes file.
 	nodesFile = cli.StringFlag{
@@ -362,6 +371,7 @@ func main() {
 	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
 	app.Flags = []cli.Flag{
 		genesisFile,
+		smartContractsFile,
 		nodesFile,
 		configurationFile,
 		configurationApiFile,
@@ -539,13 +549,30 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	genesisConfig, err := sharding.NewGenesisConfig(
+	//TODO when refactoring main, maybe initialize economics data before this line
+	totalSupply, ok := big.NewInt(0).SetString(economicsConfig.GlobalSettings.TotalSupply, 10)
+	if !ok {
+		return fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
+			economicsConfig.GlobalSettings.TotalSupply)
+	}
+
+	accountsParser, err := parsing.NewAccountsParser(
 		ctx.GlobalString(genesisFile.Name),
+		totalSupply,
 		managedCoreComponents.AddressPubKeyConverter(),
 	)
 	if err != nil {
 		return err
 	}
+
+	smartContractParser, err := parsing.NewSmartContractsParser(
+		ctx.GlobalString(smartContractsFile.Name),
+		managedCoreComponents.AddressPubKeyConverter(),
+	)
+	if err != nil {
+		return err
+	}
+
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
 
 	genesisNodesConfig, err := sharding.NewNodesSetup(
@@ -734,6 +761,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		core.DefaultEpochString,
 		core.DefaultShardString,
 	)
+	if err != nil {
+		return err
+	}
 
 	unitOpener, err := factory.CreateUnitOpener(
 		bootstrapDataProvider,
@@ -746,6 +776,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		core.DefaultEpochString,
 		core.DefaultShardString,
 	)
+	if err != nil {
+		return err
+	}
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:       managedCoreComponents,
@@ -894,7 +927,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating state components")
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
 		Config:           *generalConfig,
-		GenesisConfig:    genesisConfig,
 		ShardCoordinator: shardCoordinator,
 		Core:             managedCoreComponents,
 		Tries:            triesComponents,
@@ -1019,7 +1051,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		(*mainFactory.CoreComponentsFactoryArgs)(&coreArgs),
-		genesisConfig,
+		accountsParser,
+		smartContractParser,
 		economicsData,
 		genesisNodesConfig,
 		gasSchedule,
@@ -1037,7 +1070,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListRequest,
 		whiteListerVerifiedTxs,
 		epochStartNotifier,
-		&generalConfig.EpochStartConfig,
+		*generalConfig,
 		currentEpoch,
 		rater,
 		generalConfig.Marshalizer.SizeCheckDelta,
@@ -1050,6 +1083,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		managedCoreComponents.ValidatorPubKeyConverter(),
 		ratingsData,
 		systemSCConfig,
+		version,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1112,6 +1146,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	apiResolver, err := createApiResolver(
 		generalConfig,
 		stateComponents.AccountsAdapter,
+		stateComponents.PeerAccounts,
 		stateComponents.AddressPubkeyConverter,
 		dataComponents.Store,
 		dataComponents.Blkc,
@@ -1218,16 +1253,20 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 }
 
 func handleAppClose(log logger.Logger, endProcessArgument endProcess.ArgEndProcess) {
-	log.Debug(
-		"restarting node",
-		"reason",
-		endProcessArgument.Reason,
-		"description",
-		endProcessArgument.Description,
-	)
+	log.Debug("closing node")
+
 	switch endProcessArgument.Reason {
 	case core.ShuffledOut:
+		log.Debug(
+			"restarting node",
+			"reason",
+			endProcessArgument.Reason,
+			"description",
+			endProcessArgument.Description,
+		)
+
 		newStartInEpoch(log)
+	default:
 	}
 }
 
@@ -1965,6 +2004,7 @@ func startStatisticsMonitor(
 func createApiResolver(
 	config *config.Config,
 	accnts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
 	pubkeyConv state.PubkeyConverter,
 	storageService dataRetriever.StorageService,
 	blockChain data.ChainHandler,
@@ -2013,6 +2053,7 @@ func createApiResolver(
 			hasher,
 			marshalizer,
 			systemSCConfig,
+			validatorAccounts,
 		)
 		if err != nil {
 			return nil, err

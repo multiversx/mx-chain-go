@@ -33,7 +33,9 @@ func haveTime() time.Duration {
 }
 
 func createTestBlockchain() *mock.BlockChainMock {
-	return &mock.BlockChainMock{}
+	return &mock.BlockChainMock{GetGenesisHeaderCalled: func() data.HeaderHandler {
+		return &block.Header{Nonce: 0}
+	}}
 }
 
 func generateTestCache() storage.Cacher {
@@ -279,6 +281,8 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = &mock.AccountsStub{}
 
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
 	arguments := blproc.ArgShardProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			AccountsDB:        accountsDb,
@@ -304,8 +308,9 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			},
 			DataPool:           initDataPool([]byte("")),
 			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
-			BlockChain:         blockchain.NewBlockChain(),
+			BlockChain:         blkc,
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
+			Version:            "softwareVersion",
 		},
 	}
 
@@ -692,6 +697,9 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
 				Epoch: 2,
 			}
 		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
+		},
 	}
 	arguments.BlockChain = blockChain
 	sp, _ := blproc.NewShardProcessor(arguments)
@@ -721,6 +729,9 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
 				AccumulatedFees: big.NewInt(0),
 				DeveloperFees:   big.NewInt(0),
 			}
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
 		},
 	}
 	arguments.BlockChain = blockChain
@@ -752,6 +763,9 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
 				Epoch:    3,
 				RandSeed: randSeed,
 			}
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
 		},
 	}
 	arguments.BlockChain = blockChain
@@ -795,6 +809,9 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 				Epoch:    2,
 				RandSeed: randSeed,
 			}
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
 		},
 	}
 
@@ -854,6 +871,9 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 				Epoch:    2,
 				RandSeed: randSeed,
 			}
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
 		},
 	}
 

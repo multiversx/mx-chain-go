@@ -50,7 +50,8 @@ type TypeConfig struct {
 
 // MarshalizerConfig holds the marshalizer related configuration
 type MarshalizerConfig struct {
-	Type           string `json:"type"`
+	Type string `json:"type"`
+	//TODO check if we still need this
 	SizeCheckDelta uint32 `json:"sizeCheckDelta"`
 }
 
@@ -75,10 +76,12 @@ type EvictionWaitingListConfig struct {
 
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
-	MinRoundsBetweenEpochs      int64
-	RoundsPerEpoch              int64
-	ShuffledOutRestartThreshold float64
-	ShuffleBetweenShards        bool
+	MinRoundsBetweenEpochs            int64
+	RoundsPerEpoch                    int64
+	ShuffledOutRestartThreshold       float64
+	ShuffleBetweenShards              bool
+	MinNumConnectedPeersToStart       int
+	MinNumOfPeersToConsiderBlockValid int
 }
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle
@@ -164,11 +167,10 @@ type ResourceStatsConfig struct {
 
 // HeartbeatConfig will hold all heartbeat settings
 type HeartbeatConfig struct {
-	Enabled                             bool
 	MinTimeToWaitBetweenBroadcastsInSec int
 	MaxTimeToWaitBetweenBroadcastsInSec int
-	DurationInSecToConsiderUnresponsive int
-	HbmiRefreshIntervalInSec            uint32
+	DurationToConsiderUnresponsiveInSec int
+	HeartbeatRefreshIntervalInSec       uint32
 	HideInactiveValidatorIntervalInSec  uint32
 	HeartbeatStorage                    StorageConfig
 }
@@ -273,6 +275,17 @@ type HardforkConfig struct {
 	EnableTrigger         bool
 	EnableTriggerFromP2P  bool
 	PublicKeyToListenFrom string
+
+	MustImport bool
+	StartRound uint64
+	StartNonce uint64
+	StartEpoch uint32
+
+	ValidatorGracePeriodInEpochs uint32
+
+	ImportFolder             string
+	ExportStateStorageConfig StorageConfig
+	ImportStateStorageConfig StorageConfig
 }
 
 // DebugConfig will hold debugging configuration
@@ -283,8 +296,8 @@ type DebugConfig struct {
 // InterceptorResolverDebugConfig will hold the interceptor-resolver debug configuration
 type InterceptorResolverDebugConfig struct {
 	Enabled                    bool
-	CacheSize                  int
 	EnablePrint                bool
+	CacheSize                  int
 	IntervalAutoPrintInSeconds int
 	NumRequestsThreshold       int
 	NumResolveFailureThreshold int
