@@ -568,7 +568,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	totalStake := stakePerNode // 1 node only in this test
 	nodeSharePer10000 := 3000
 	time_before_force_unstake := 680400
-	stakerBLSKey, _ := hex.DecodeString(strings.Repeat("a", 128*2))
+	stakerBLSKey, _ := hex.DecodeString(strings.Repeat("a", 96*2))
 	stakerBLSSignature, _ := hex.DecodeString(strings.Repeat("c", 32*2))
 
 	// deploy the delegation smart contract
@@ -581,8 +581,8 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
 	// set number of nodes
-	setNrNodesTxData := "setNrNodes@1"
-	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, setNrNodesTxData)
+	setNumNodesTxData := "setNumNodes@1"
+	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, setNumNodesTxData)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
