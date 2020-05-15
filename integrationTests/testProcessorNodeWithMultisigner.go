@@ -113,7 +113,7 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 
 }
 
-// CreateNodesWithNodesCoordinatorAndTxKeys
+// CreateNodesWithNodesCoordinatorAndTxKeys -
 func CreateNodesWithNodesCoordinatorAndTxKeys(
 	nodesPerShard int,
 	nbMetaNodes int,
@@ -180,6 +180,7 @@ func CreateNodesWithNodesCoordinatorAndTxKeys(
 	return nodesMap
 }
 
+// CreateNodeWithBLSAndTxKeys -
 func CreateNodeWithBLSAndTxKeys(
 	nodesPerShard int,
 	nbMetaNodes int,
@@ -354,6 +355,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 	return nodesMap
 }
 
+// CreateNode -
 func CreateNode(
 	nodesPerShard int,
 	nbMetaNodes int,
