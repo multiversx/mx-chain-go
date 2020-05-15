@@ -131,5 +131,5 @@ var ErrNilQueryService = errors.New("nil query service")
 // ErrMissingElement signals a missing element event
 var ErrMissingElement = errors.New("missing element")
 
-// ErrGetVersionFromSC signals that a coll to "version" function on a contract resulted in an unexpected result
+// ErrGetVersionFromSC signals that a call to "version" function on a contract resulted in an unexpected result
 var ErrGetVersionFromSC = errors.New("get version from contract returned an invalid response")

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sort"
 	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -426,26 +427,26 @@ func (dp *delegationProcessor) verifyRegisteredNodes(sc genesis.InitialSmartCont
 		nodesAddresses = append(nodesAddresses, node.PubKeyBytes())
 	}
 
-	if len(vmOutputBlsKeys.ReturnData) != len(nodesAddresses) {
-		return fmt.Errorf("%w staked nodes mismatch: %d found in SC, %d provided",
-			genesis.ErrWhileVerifyingDelegation, len(vmOutputBlsKeys.ReturnData), len(nodesAddresses))
-	}
-
 	return dp.sameElements(vmOutputBlsKeys.ReturnData, nodesAddresses)
 }
 
-func (dp *delegationProcessor) sameElements(slice1 [][]byte, slice2 [][]byte) error {
-	for _, elem1 := range slice1 {
-		found := false
-		for _, elem2 := range slice2 {
-			if bytes.Equal(elem1, elem2) {
-				found = true
-				break
-			}
-		}
+func (dp *delegationProcessor) sameElements(scReturned [][]byte, loaded [][]byte) error {
+	if len(scReturned) != len(loaded) {
+		return fmt.Errorf("%w staked nodes mismatch: %d found in SC, %d provided",
+			genesis.ErrWhileVerifyingDelegation, len(scReturned), len(loaded))
+	}
 
-		if !found {
-			return fmt.Errorf("%w for key %s", genesis.ErrMissingElement, hex.EncodeToString(elem1))
+	sort.Slice(scReturned, func(i, j int) bool {
+		return bytes.Compare(scReturned[i], scReturned[j]) < 0
+	})
+	sort.Slice(loaded, func(i, j int) bool {
+		return bytes.Compare(loaded[i], loaded[j]) < 0
+	})
+
+	for i := 0; i < len(loaded); i++ {
+		if !bytes.Equal(loaded[i], scReturned[i]) {
+			return fmt.Errorf("%w, found in sc: %s, provided: %s",
+				genesis.ErrMissingElement, hex.EncodeToString(scReturned[i]), hex.EncodeToString(loaded[i]))
 		}
 	}
 

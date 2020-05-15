@@ -16,7 +16,7 @@ type versionComparator struct {
 	release string
 }
 
-// NewVersionComparator return a new version comparator instance
+// NewVersionComparator returns a new version comparator instance
 func NewVersionComparator(providedVersion string) (*versionComparator, error) {
 	vc := &versionComparator{
 		version: providedVersion,

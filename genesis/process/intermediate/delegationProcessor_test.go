@@ -2,6 +2,7 @@ package intermediate
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -293,4 +294,54 @@ func TestDelegationProcessor_ExecuteDelegationStakeShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedResult, result)
+}
+
+//------- SameElements
+
+func TestSameElements_WrongNumberShouldErr(t *testing.T) {
+	t.Parallel()
+
+	scReturned := [][]byte{[]byte("buf1"), []byte("buf2"), []byte("buf3")}
+	loaded := [][]byte{[]byte("buf1"), []byte("buf2")}
+
+	dp := &delegationProcessor{}
+	err := dp.sameElements(scReturned, loaded)
+
+	assert.True(t, errors.Is(err, genesis.ErrWhileVerifyingDelegation))
+}
+
+func TestSameElements_MissingFromLoadedShouldErr(t *testing.T) {
+	t.Parallel()
+
+	scReturned := [][]byte{[]byte("buf5"), []byte("buf2"), []byte("buf3")}
+	loaded := [][]byte{[]byte("buf1"), []byte("buf3"), []byte("buf2")}
+
+	dp := &delegationProcessor{}
+	err := dp.sameElements(scReturned, loaded)
+
+	assert.True(t, errors.Is(err, genesis.ErrMissingElement))
+}
+
+func TestSameElements_DuplicateShouldErr(t *testing.T) {
+	t.Parallel()
+
+	scReturned := [][]byte{[]byte("buf2"), []byte("buf2"), []byte("buf3")}
+	loaded := [][]byte{[]byte("buf2"), []byte("buf1"), []byte("buf1")}
+
+	dp := &delegationProcessor{}
+	err := dp.sameElements(scReturned, loaded)
+
+	assert.True(t, errors.Is(err, genesis.ErrMissingElement))
+}
+
+func TestSameElements_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	scReturned := [][]byte{[]byte("buf1"), []byte("buf2"), []byte("buf3")}
+	loaded := [][]byte{[]byte("buf2"), []byte("buf3"), []byte("buf1")}
+
+	dp := &delegationProcessor{}
+	err := dp.sameElements(scReturned, loaded)
+
+	assert.Nil(t, err)
 }
