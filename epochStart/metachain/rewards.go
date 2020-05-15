@@ -293,6 +293,10 @@ func (rc *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 
 		numReceivedRewardsMBs++
 		createdMiniBlock := getMiniBlockWithReceiverShardID(miniBlockHdr.ReceiverShardID, createdMiniBlocks)
+		if createdMiniBlock == nil {
+			return epochStart.ErrRewardMiniBlockHashDoesNotMatch
+		}
+
 		createdMBHash, errComputeHash := core.CalculateHash(rc.marshalizer, rc.hasher, createdMiniBlock)
 		if errComputeHash != nil {
 			return errComputeHash
