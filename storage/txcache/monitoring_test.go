@@ -9,13 +9,19 @@ import (
 
 func TestMonitoring_numTxAddedAndRemovedDuringEviction(t *testing.T) {
 	config := CacheConfig{
+		Name:                       "untitled",
 		NumChunksHint:              16,
 		CountThreshold:             math.MaxUint32,
 		NumBytesThreshold:          math.MaxUint32,
 		NumSendersToEvictInOneStep: 1,
+		NumBytesPerSenderThreshold: math.MaxUint32,
+		CountPerSenderThreshold:    math.MaxUint32,
+		MinGasPriceNanoErd:         100,
 	}
 
-	cache := NewTxCache(config)
+	cache, err := NewTxCache(config)
+	require.Nil(t, err)
+	require.NotNil(t, cache)
 
 	cache.isEvictionInProgress.Set()
 
@@ -35,13 +41,19 @@ func TestMonitoring_numTxAddedAndRemovedDuringEviction(t *testing.T) {
 
 func TestMonitoring_numTxAddedAndRemovedBetweenSelections(t *testing.T) {
 	config := CacheConfig{
+		Name:                       "untitled",
 		NumChunksHint:              16,
 		CountThreshold:             math.MaxUint32,
 		NumBytesThreshold:          math.MaxUint32,
 		NumSendersToEvictInOneStep: 1,
+		NumBytesPerSenderThreshold: math.MaxUint32,
+		CountPerSenderThreshold:    math.MaxUint32,
+		MinGasPriceNanoErd:         100,
 	}
 
-	cache := NewTxCache(config)
+	cache, err := NewTxCache(config)
+	require.Nil(t, err)
+	require.NotNil(t, cache)
 
 	require.Equal(t, int64(0), cache.numTxAddedBetweenSelections.Get())
 
