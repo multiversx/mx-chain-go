@@ -78,6 +78,9 @@ func NewHeartbeatHandler(arg ArgHeartbeat) (*HeartbeatHandler, error) {
 func (hbh *HeartbeatHandler) create() error {
 	arg := hbh.arg
 
+	var ctx context.Context
+	ctx, hbh.cancelFunc = context.WithCancel(context.Background())
+
 	err := hbh.checkConfigParams(arg.HeartbeatConfig)
 	if err != nil {
 		return err
@@ -102,9 +105,9 @@ func (hbh *HeartbeatHandler) create() error {
 		EpochHandler:                 arg.EpochStartTrigger,
 		EpochStartEventNotifier:      arg.EpochStartRegistration,
 		ValidatorsProvider:           arg.ValidatorsProvider,
-		CacheRefreshIntervalDuration: time.Duration(arg.HeartbeatConfig.PeerTypeRefreshIntervalInSec) * time.Second,
+		Context:                      ctx,
+		PeerTypeRefreshIntervalInSec: time.Duration(arg.HeartbeatConfig.PeerTypeRefreshIntervalInSec) * time.Second,
 	}
-
 	peerTypeProvider, err := peer.NewPeerTypeProvider(argPeerTypeProvider)
 	if err != nil {
 		return err
@@ -194,8 +197,6 @@ func (hbh *HeartbeatHandler) create() error {
 		return err
 	}
 
-	var ctx context.Context
-	ctx, hbh.cancelFunc = context.WithCancel(context.Background())
 	go hbh.startSendingHeartbeats(ctx)
 
 	return nil
@@ -244,7 +245,7 @@ func (hbh *HeartbeatHandler) startSendingHeartbeats(ctx context.Context) {
 
 func (hbh *HeartbeatHandler) checkConfigParams(config config.HeartbeatConfig) error {
 	if config.DurationToConsiderUnresponsiveInSec < 1 {
-		return heartbeat.ErrNegativeDurationToConsiderUnresponsiveInSec
+		return heartbeat.ErrInvalidDurationToConsiderUnresponsiveInSec
 	}
 	if config.MaxTimeToWaitBetweenBroadcastsInSec < 1 {
 		return heartbeat.ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec

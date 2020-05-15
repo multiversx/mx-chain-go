@@ -420,13 +420,14 @@ func (m *Monitor) computeInactiveHeartbeatMessages() {
 
 	peerTypeInfos := m.peerTypeProvider.GetAllPeerTypeInfos()
 	for _, peerTypeInfo := range peerTypeInfos {
-		if m.heartbeatMessages[peerTypeInfo.GetPublicKey()] == nil {
-			hbmi, err := newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, peerTypeInfo.GetPeerType(), m.genesisTime, m.timer)
+		if m.heartbeatMessages[peerTypeInfo.PublicKey] == nil {
+			hbmi, err := newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, peerTypeInfo.PeerType, m.genesisTime, m.timer)
 			if err != nil {
 				log.Debug("could not create hbmi ", "err", err)
+				continue
 			}
-			hbmi.computedShardID = peerTypeInfo.GetShardId()
-			m.heartbeatMessages[peerTypeInfo.GetPublicKey()] = hbmi
+			hbmi.computedShardID = peerTypeInfo.ShardId
+			m.heartbeatMessages[peerTypeInfo.PublicKey] = hbmi
 		}
 	}
 

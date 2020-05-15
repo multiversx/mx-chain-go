@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process/peer"
 )
 
 // P2PMessenger defines a subset of the p2p.Messenger interface
@@ -78,7 +77,7 @@ type P2PAntifloodHandler interface {
 // PeerTypeProviderHandler defines what a component which computes the type of a peer should do
 type PeerTypeProviderHandler interface {
 	ComputeForPubKey(pubKey []byte) (core.PeerType, uint32, error)
-	GetAllPeerTypeInfos() []peer.PeerTypeInfoHandler
+	GetAllPeerTypeInfos() []*state.PeerTypeInfo
 	IsInterfaceNil() bool
 }
 

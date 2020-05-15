@@ -44,6 +44,7 @@ type NodesCoordinator interface {
 type EpochStartEventNotifier interface {
 	RegisterHandler(handler epochStart.ActionHandler)
 	UnregisterHandler(handler epochStart.ActionHandler)
+	IsInterfaceNil() bool
 }
 
 // PublicKeysSelector allows retrieval of eligible validators public keys

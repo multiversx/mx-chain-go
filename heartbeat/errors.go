@@ -90,8 +90,8 @@ var ErrZeroHeartbeatRefreshIntervalInSec = errors.New("zero heartbeatRefreshInte
 // was provided for the ErrZeroHideInactiveValidatorIntervalInSec
 var ErrZeroHideInactiveValidatorIntervalInSec = errors.New("zero hideInactiveValidatorIntervalInSec")
 
-// ErrNegativeDurationToConsiderUnresponsiveInSec is raised when a value less than 1 has been provided
-var ErrNegativeDurationToConsiderUnresponsiveInSec = errors.New("value DurationToConsiderUnresponsiveInSec is less than 1")
+// ErrInvalidDurationToConsiderUnresponsiveInSec is raised when a value less than 1 has been provided
+var ErrInvalidDurationToConsiderUnresponsiveInSec = errors.New("value DurationToConsiderUnresponsiveInSec is less than 1")
 
 // ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec is raised when a value less than 1 has been provided
 var ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec = errors.New("value MaxTimeToWaitBetweenBroadcastsInSec is less than 1")

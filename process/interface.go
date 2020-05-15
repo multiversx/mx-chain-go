@@ -847,6 +847,7 @@ type EpochHandler interface {
 type EpochStartEventNotifier interface {
 	RegisterHandler(handler epochStart.ActionHandler)
 	UnregisterHandler(handler epochStart.ActionHandler)
+	IsInterfaceNil() bool
 }
 
 // NodesCoordinator provides Validator methods needed for the peer processing

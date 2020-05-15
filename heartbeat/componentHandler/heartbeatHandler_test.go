@@ -65,7 +65,7 @@ func TestNewHeartbeatHandler_DurationToConsiderUnresponsiveInSec(t *testing.T) {
 	hbh, err := NewHeartbeatHandler(arg)
 
 	assert.True(t, check.IfNil(hbh))
-	assert.Equal(t, heartbeat.ErrNegativeDurationToConsiderUnresponsiveInSec, err)
+	assert.Equal(t, heartbeat.ErrInvalidDurationToConsiderUnresponsiveInSec, err)
 }
 
 func TestNewHeartbeatHandler_MaxTimeToWaitBetweenBroadcastsInSec(t *testing.T) {

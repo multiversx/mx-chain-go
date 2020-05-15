@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -30,12 +31,14 @@ type PeerTypeProvider struct {
 	mutCache                     sync.RWMutex
 }
 
+// ArgPeerTypeProvider contains all parameters needed for creating a PeerTypeProvider
 type ArgPeerTypeProvider struct {
 	NodesCoordinator             process.NodesCoordinator
 	EpochHandler                 process.EpochHandler
 	ValidatorsProvider           process.ValidatorsProvider
 	EpochStartEventNotifier      process.EpochStartEventNotifier
-	CacheRefreshIntervalDuration time.Duration
+	PeerTypeRefreshIntervalInSec time.Duration
+	Context                      context.Context
 }
 
 // NewPeerTypeProvider will return a new instance of PeerTypeProvider
@@ -49,11 +52,14 @@ func NewPeerTypeProvider(arg ArgPeerTypeProvider) (*PeerTypeProvider, error) {
 	if check.IfNil(arg.ValidatorsProvider) {
 		return nil, process.ErrNilValidatorsProvider
 	}
-	if arg.EpochStartEventNotifier == nil {
+	if check.IfNil(arg.EpochStartEventNotifier) {
 		return nil, process.ErrNilEpochStartNotifier
 	}
-	if arg.CacheRefreshIntervalDuration <= 0 {
-		return nil, process.ErrInvalidCacheRefreshIntervalDuration
+	if arg.PeerTypeRefreshIntervalInSec <= 0 {
+		return nil, process.ErrInvalidPeerTypeRefreshIntervalInSec
+	}
+	if arg.Context == nil {
+		return nil, process.ErrNilContext
 	}
 
 	ptp := &PeerTypeProvider{
@@ -62,12 +68,12 @@ func NewPeerTypeProvider(arg ArgPeerTypeProvider) (*PeerTypeProvider, error) {
 		validatorsProvider:           arg.ValidatorsProvider,
 		cache:                        make(map[string]*peerListAndShard),
 		mutCache:                     sync.RWMutex{},
-		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDuration,
+		cacheRefreshIntervalDuration: arg.PeerTypeRefreshIntervalInSec,
 		refreshCache:                 make(chan bool),
 	}
 
-	ptp.startRefreshProcess()
-
+	currentContext, _ := context.WithCancel(arg.Context)
+	go ptp.startRefreshProcess(currentContext)
 	arg.EpochStartEventNotifier.RegisterHandler(ptp.epochStartEventHandler())
 
 	return ptp, nil
@@ -79,8 +85,6 @@ func (ptp *PeerTypeProvider) ComputeForPubKey(pubKey []byte) (core.PeerType, uin
 	peerData, ok := ptp.cache[string(pubKey)]
 	ptp.mutCache.RUnlock()
 
-	// component is used so it could be refreshed on expiration
-	ptp.refreshCache <- false
 	if ok {
 		return peerData.pType, peerData.pShard, nil
 	}
@@ -89,17 +93,13 @@ func (ptp *PeerTypeProvider) ComputeForPubKey(pubKey []byte) (core.PeerType, uin
 }
 
 // GetAllPeerTypeInfos returns all known peer type infos
-func (ptp *PeerTypeProvider) GetAllPeerTypeInfos() []PeerTypeInfoHandler {
+func (ptp *PeerTypeProvider) GetAllPeerTypeInfos() []*state.PeerTypeInfo {
 	ptp.mutCache.RLock()
-	cache := ptp.cache
-	ptp.mutCache.RUnlock()
+	defer ptp.mutCache.RUnlock()
 
-	// component is used so it could be refreshed on expiration
-	ptp.refreshCache <- false
-
-	peerTypeInfos := make([]PeerTypeInfoHandler, 0, len(cache))
-	for pkString, peerListAndShard := range cache {
-		peerTypeInfos = append(peerTypeInfos, &PeerTypeInfo{
+	peerTypeInfos := make([]*state.PeerTypeInfo, 0, len(ptp.cache))
+	for pkString, peerListAndShard := range ptp.cache {
+		peerTypeInfos = append(peerTypeInfos, &state.PeerTypeInfo{
 			PublicKey: pkString,
 			PeerType:  string(peerListAndShard.pType),
 			ShardId:   peerListAndShard.pShard,
@@ -110,31 +110,34 @@ func (ptp *PeerTypeProvider) GetAllPeerTypeInfos() []PeerTypeInfoHandler {
 }
 
 func (ptp *PeerTypeProvider) epochStartEventHandler() sharding.EpochStartActionHandler {
-	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
-		ptp.refreshCache <- true
-	}, func(_ data.HeaderHandler) {}, core.IndexerOrder)
+	subscribeHandler := notifier.NewHandlerForEpochStart(
+		func(hdr data.HeaderHandler) {
+			ptp.refreshCache <- true
+		},
+		func(_ data.HeaderHandler) {},
+		core.IndexerOrder,
+	)
 
 	return subscribeHandler
 }
 
-func (ptp *PeerTypeProvider) startRefreshProcess() {
-	go func() {
+func (ptp *PeerTypeProvider) startRefreshProcess(ctx context.Context) {
+	for {
 		ptp.updateCache()
-		lastUpdate := time.Now()
-		for {
-			select {
-			case forceRefresh := <-ptp.refreshCache:
-				{
-					expired := time.Since(lastUpdate) > ptp.cacheRefreshIntervalDuration
-					if forceRefresh || expired {
-						lastUpdate = time.Now()
-						ptp.updateCache()
-					}
-				}
-			case <-time.After(ptp.cacheRefreshIntervalDuration):
+		select {
+		case <-ptp.refreshCache:
+			{
+				continue
+			}
+		case <-ctx.Done():
+			log.Debug("peerTypeProvider's go routine is stopping...")
+			return
+		case <-time.After(ptp.cacheRefreshIntervalDuration):
+			{
+
 			}
 		}
-	}()
+	}
 }
 
 func (ptp *PeerTypeProvider) updateCache() {
@@ -178,10 +181,10 @@ func (ptp *PeerTypeProvider) createNewCache(epoch uint32, allNodes map[uint32][]
 func aggregatePType(newCache map[string]*peerListAndShard, validatorsMap map[uint32][][]byte, currentPeerType core.PeerType) {
 	for shardID, shardValidators := range validatorsMap {
 		for _, val := range shardValidators {
-			fountInTrieValidator := newCache[string(val)]
+			foundInTrieValidator := newCache[string(val)]
 			peerType := currentPeerType
-			if fountInTrieValidator != nil && fountInTrieValidator.pType != currentPeerType {
-				peerType = core.PeerType(fmt.Sprintf(core.CombinedPeerType, currentPeerType, fountInTrieValidator.pType))
+			if foundInTrieValidator != nil && foundInTrieValidator.pType != currentPeerType {
+				peerType = core.PeerType(fmt.Sprintf(core.CombinedPeerType, currentPeerType, foundInTrieValidator.pType))
 			}
 
 			newCache[string(val)] = &peerListAndShard{

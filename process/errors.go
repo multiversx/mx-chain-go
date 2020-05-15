@@ -428,8 +428,11 @@ var ErrNilValidatorsProvider = errors.New("nil validatorsProvider")
 // ErrNilEpochStartNotifier signals that the ErrNilEpochStartNotifier is nil
 var ErrNilEpochStartNotifier = errors.New("nil epochStartNotifier")
 
-// ErrInvalidCacheRefreshIntervalDuration signals that the ErrInvalidCacheRefreshIntervalDuration is zero or less
-var ErrInvalidCacheRefreshIntervalDuration = errors.New("nil CacheRefreshIntervalDuration")
+// ErrInvalidPeerTypeRefreshIntervalInSec signals that the peerTypeRefreshIntervalInSec is invalid - zero or less
+var ErrInvalidPeerTypeRefreshIntervalInSec = errors.New("nil PeerTypeRefreshIntervalInSec")
+
+// ErrNilContext signals that the context is nil
+var ErrNilContext = errors.New("nil context")
 
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")

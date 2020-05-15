@@ -9,10 +9,3 @@ type DataPool interface {
 	Headers() dataRetriever.HeadersPool
 	IsInterfaceNil() bool
 }
-
-// PeerTypeInfoHandler defines an interface for the PeerTypeInfo
-type PeerTypeInfoHandler interface {
-	GetPublicKey() string
-	GetPeerType() string
-	GetShardId() uint32
-}

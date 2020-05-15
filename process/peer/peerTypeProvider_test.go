@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -47,11 +48,20 @@ func TestNewPeerTypeProvider_NilEpochStartNotifier(t *testing.T) {
 
 func TestNewPeerTypeProvider_ZeroCacheRefreshInterval(t *testing.T) {
 	arg := createDefaultArg()
-	arg.CacheRefreshIntervalDuration = 0
+	arg.PeerTypeRefreshIntervalInSec = 0
 
 	ptp, err := NewPeerTypeProvider(arg)
 	assert.Nil(t, ptp)
-	assert.Equal(t, process.ErrInvalidCacheRefreshIntervalDuration, err)
+	assert.Equal(t, process.ErrInvalidPeerTypeRefreshIntervalInSec, err)
+}
+
+func TestNewPeerTypeProvider_NilContext(t *testing.T) {
+	arg := createDefaultArg()
+	arg.Context = nil
+
+	ptp, err := NewPeerTypeProvider(arg)
+	assert.Nil(t, ptp)
+	assert.Equal(t, process.ErrNilContext, err)
 }
 
 func TestNewPeerTypeProvider_NilValidatorsProvider(t *testing.T) {
@@ -91,7 +101,7 @@ func TestPeerTypeProvider_CallsPopulateAndRegister(t *testing.T) {
 
 	_, _ = NewPeerTypeProvider(arg)
 
-	time.Sleep(arg.CacheRefreshIntervalDuration)
+	time.Sleep(arg.PeerTypeRefreshIntervalInSec)
 
 	assert.Equal(t, int32(1), atomic.LoadInt32(&numPopulateCacheCalled))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&numRegisterHandlerCalled))
@@ -120,7 +130,7 @@ func TestPeerTypeProvider_UpdateCache_WithError(t *testing.T) {
 		epochHandler:                 arg.EpochHandler,
 		validatorsProvider:           arg.ValidatorsProvider,
 		cache:                        nil,
-		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDuration,
+		cacheRefreshIntervalDuration: arg.PeerTypeRefreshIntervalInSec,
 		refreshCache:                 nil,
 		mutCache:                     sync.RWMutex{},
 	}
@@ -153,7 +163,7 @@ func TestPeerTypeProvider_UpdateCache(t *testing.T) {
 		epochHandler:                 arg.EpochHandler,
 		validatorsProvider:           arg.ValidatorsProvider,
 		cache:                        nil,
-		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDuration,
+		cacheRefreshIntervalDuration: arg.PeerTypeRefreshIntervalInSec,
 		refreshCache:                 nil,
 		mutCache:                     sync.RWMutex{},
 	}
@@ -249,7 +259,7 @@ func TestNewPeerTypeProvider_createCache(t *testing.T) {
 		epochHandler:                 arg.EpochHandler,
 		validatorsProvider:           arg.ValidatorsProvider,
 		cache:                        nil,
-		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDuration,
+		cacheRefreshIntervalDuration: arg.PeerTypeRefreshIntervalInSec,
 		mutCache:                     sync.RWMutex{},
 	}
 
@@ -321,7 +331,7 @@ func TestNewPeerTypeProvider_createCache_combined(t *testing.T) {
 		epochHandler:                 arg.EpochHandler,
 		validatorsProvider:           arg.ValidatorsProvider,
 		cache:                        nil,
-		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDuration,
+		cacheRefreshIntervalDuration: arg.PeerTypeRefreshIntervalInSec,
 		mutCache:                     sync.RWMutex{},
 	}
 
@@ -347,7 +357,7 @@ func TestNewPeerTypeProvider_CallsPopulateOnlyAfterTimeout(t *testing.T) {
 
 	pk := "pk"
 	arg := createDefaultArg()
-	arg.CacheRefreshIntervalDuration = time.Millisecond * 10
+	arg.PeerTypeRefreshIntervalInSec = time.Millisecond * 10
 	validatorsProviderStub := &mock.ValidatorsProviderStub{}
 	arg.ValidatorsProvider = validatorsProviderStub
 	validatorsProviderStub.GetLatestValidatorInfosCalled = func() (map[uint32][]*state.ValidatorInfo, error) {
@@ -370,7 +380,7 @@ func TestNewPeerTypeProvider_CallsPopulateOnlyAfterTimeout(t *testing.T) {
 	assert.Equal(t, int32(0), atomic.LoadInt32(populateCacheCalled))
 
 	// outside of refreshInterval
-	time.Sleep(arg.CacheRefreshIntervalDuration)
+	time.Sleep(arg.PeerTypeRefreshIntervalInSec)
 	_, _, _ = ptp.ComputeForPubKey([]byte(pk))
 	//allow call to go through
 	time.Sleep(time.Millisecond)
@@ -383,6 +393,7 @@ func TestNewPeerTypeProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 	callNumber := 0
 	epochStartNotifier := &mock.EpochStartNotifierStub{}
 	arg.EpochStartEventNotifier = epochStartNotifier
+	arg.PeerTypeRefreshIntervalInSec = 10 * time.Millisecond
 	pkEligibleInTrie := "pk1"
 	arg.ValidatorsProvider = &mock.ValidatorsProviderStub{
 		GetLatestValidatorInfosCalled: func() (map[uint32][]*state.ValidatorInfo, error) {
@@ -405,18 +416,15 @@ func TestNewPeerTypeProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 	ptp, _ := NewPeerTypeProvider(arg)
 
 	assert.Equal(t, 0, len(ptp.GetCache())) // nothing in cache
-	time.Sleep(arg.CacheRefreshIntervalDuration)
-	assert.Equal(t, 0, len(ptp.GetCache())) // nothing in cache because it was not used
-
 	epochStartNotifier.NotifyAll(nil)
-	time.Sleep(arg.CacheRefreshIntervalDuration)
-	assert.Equal(t, 1, len(ptp.GetCache())) // forced cache update from notifier
+	time.Sleep(time.Millisecond)
+	assert.Equal(t, 1, len(ptp.GetCache()))
 	assert.NotNil(t, ptp.GetCache()[pkEligibleInTrie])
 }
 
 func TestNewPeerTypeProvider_ComputeForKeyFromCache(t *testing.T) {
 	arg := createDefaultArg()
-	arg.CacheRefreshIntervalDuration = 10 * time.Millisecond
+	arg.PeerTypeRefreshIntervalInSec = 10 * time.Millisecond
 	pk := []byte("pk1")
 	initialShardId := uint32(1)
 	popMutex := sync.RWMutex{}
@@ -437,7 +445,7 @@ func TestNewPeerTypeProvider_ComputeForKeyFromCache(t *testing.T) {
 		},
 	}
 	ptp, _ := NewPeerTypeProvider(arg)
-	time.Sleep(arg.CacheRefreshIntervalDuration)
+	time.Sleep(arg.PeerTypeRefreshIntervalInSec)
 	popMutex.Lock()
 	populateCacheCalled = false
 	popMutex.Unlock()
@@ -475,7 +483,7 @@ func TestNewPeerTypeProvider_ComputeForKeyNotFoundInCacheReturnsObserverAndUpdat
 	}
 
 	ptp, _ := NewPeerTypeProvider(arg)
-	time.Sleep(arg.CacheRefreshIntervalDuration)
+	time.Sleep(arg.PeerTypeRefreshIntervalInSec)
 	assert.Equal(t, 0, len(ptp.GetCache()))
 
 	peerType, shardId, err := ptp.ComputeForPubKey(pk)
@@ -484,7 +492,7 @@ func TestNewPeerTypeProvider_ComputeForKeyNotFoundInCacheReturnsObserverAndUpdat
 	assert.Equal(t, uint32(0), shardId)
 	assert.Nil(t, err)
 
-	time.Sleep(arg.CacheRefreshIntervalDuration)
+	time.Sleep(arg.PeerTypeRefreshIntervalInSec)
 
 	assert.Equal(t, 1, len(ptp.GetCache()))
 }
@@ -557,6 +565,7 @@ func createDefaultArg() ArgPeerTypeProvider {
 		EpochHandler:                 &mock.EpochStartTriggerStub{},
 		ValidatorsProvider:           &mock.ValidatorsProviderStub{},
 		EpochStartEventNotifier:      &mock.EpochStartNotifierStub{},
-		CacheRefreshIntervalDuration: defaultRefreshIntervalDuration,
+		PeerTypeRefreshIntervalInSec: defaultRefreshIntervalDuration,
+		Context:                      context.Background(),
 	}
 }
