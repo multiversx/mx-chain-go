@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -129,4 +130,29 @@ type NetworkComponentsHolder interface {
 type NetworkComponentsHandler interface {
 	ComponentHandler
 	NetworkComponentsHolder
+}
+
+// ProcessComponentsHolder holds the process components
+type ProcessComponentsHolder interface {
+	InterceptorsContainer() process.InterceptorsContainer
+	ResolversFinder() dataRetriever.ResolversFinder
+	Rounder() consensus.Rounder
+	EpochStartTrigger() epochStart.TriggerHandler
+	ForkDetector() process.ForkDetector
+	BlockProcessor() process.BlockProcessor
+	BlackListHandler() process.BlackListHandler
+	BootStorer() process.BootStorer
+	HeaderSigVerifier() process.InterceptedHeaderSigVerifier
+	ValidatorsStatistics() process.ValidatorStatisticsProcessor
+	ValidatorsProvider() process.ValidatorsProvider
+	BlockTracker() process.BlockTracker
+	PendingMiniBlocksHandler() process.PendingMiniBlocksHandler
+	RequestHandler() process.RequestHandler
+	TxLogsProcessor() process.TransactionLogProcessorDatabase
+}
+
+// ProcessComponentsHandler defines the process components handler actions
+type ProcessComponentsHandler interface {
+	ComponentHandler
+	ProcessComponentsHolder
 }

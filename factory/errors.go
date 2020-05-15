@@ -73,3 +73,66 @@ var ErrNilStatusHandler = errors.New("nil status handler provided")
 
 // ErrWrongTypeAssertion signals that a wrong type assertion occurred
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrNilAccountsParser signals that a nil accounts parser has been provided
+var ErrNilAccountsParser = errors.New("nil accounts parser")
+
+// ErrNilSmartContractParser signals that a nil smart contract parser has been provided
+var ErrNilSmartContractParser = errors.New("nil smart contract parser")
+
+// ErrNilNodesConfig signals that a nil nodes config has been provided
+var ErrNilNodesConfig = errors.New("nil nodes config")
+
+// ErrNilGasSchedule signals that a nil gas schedule has been provided
+var ErrNilGasSchedule = errors.New("nil gas schedule")
+
+// ErrNilRounder signals that a nil rounder has been provided
+var ErrNilRounder = errors.New("nil rounder")
+
+// ErrNilNodesCoordinator signals that nil nodes coordinator has been provided
+var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
+
+// ErrNilDataComponents signals that nil data components have been provided
+var ErrNilDataComponents = errors.New("nil data components")
+
+// ErrNilCoreComponentsHolder signals that a nil core components holder has been provided
+var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
+
+// ErrNilCryptoComponentsHolder signals that a nil crypto components holder has been provided
+var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
+
+// ErrNilStateComponents signals that nil state components have been provided
+var ErrNilStateComponents = errors.New("nil state components")
+
+// ErrNilNetworkComponentsHolder signals that a nil network components holder has been provided
+var ErrNilNetworkComponentsHolder = errors.New("nil network components holder")
+
+// ErrNilCoreServiceContainer signals that a nil core service container has been provided
+var ErrNilCoreServiceContainer = errors.New("nil core service container")
+
+// ErrNilRequestedItemHandler signals that a nil requested item handler has been provided
+var ErrNilRequestedItemHandler = errors.New("nil requested item handler")
+
+// ErrNilWhiteListHandler signals that a nil white list handler has been provided
+var ErrNilWhiteListHandler = errors.New("nil white list handler")
+
+// ErrNilWhiteListVerifiedTxs signals that a nil white list verifies txs has been provided
+var ErrNilWhiteListVerifiedTxs = errors.New("nil white list verified txs")
+
+// ErrNilEpochStartConfig signals that a nil epoch start configuration has been provided
+var ErrNilEpochStartConfig = errors.New("nil epoch start configuration")
+
+// ErrNilRater signals that a nil rater has been provided
+var ErrNilRater = errors.New("nil rater")
+
+// ErrNilRatingData signals that a nil rating data has been provided
+var ErrNilRatingData = errors.New("nil rating data")
+
+// ErrNilPubKeyConverter signals that a nil public key converter has been provided
+var ErrNilPubKeyConverter = errors.New("nil public key converter")
+
+// ErrNilSystemSCConfig signals that a nil system smart contract configuration has been provided
+var ErrNilSystemSCConfig = errors.New("nil system smart contract configuration")
+
+// ErrNilTxLogsConfiguration signals that a nil transaction logs processor has been provided
+var ErrNilTxLogsConfiguration = errors.New("nil transaction logs processor")
