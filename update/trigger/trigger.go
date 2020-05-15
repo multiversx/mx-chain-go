@@ -163,11 +163,13 @@ func (t *trigger) exportAll() {
 		return
 	}
 
+	log.Info("started hardFork export process")
 	err = exportHandler.ExportAll(t.epoch)
 	if err != nil {
 		log.Error("error while exporting data", "error", err)
 		return
 	}
+	log.Info("finished hardFork export process")
 
 	go func() {
 		time.Sleep(time.Duration(t.closeAfterInMinutes) * time.Minute)

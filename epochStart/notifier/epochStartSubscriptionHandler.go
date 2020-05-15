@@ -102,7 +102,7 @@ func (essh *epochStartSubscriptionHandler) RegisterForEpochChangeConfirmed(handl
 func (essh *epochStartSubscriptionHandler) NotifyEpochChangeConfirmed(epoch uint32) {
 	essh.mutEpochStartHandler.Lock()
 	for _, handler := range essh.epochFinalizedHandler {
-		handler(epoch)
+		go handler(epoch)
 	}
 	essh.mutEpochStartHandler.Unlock()
 }
