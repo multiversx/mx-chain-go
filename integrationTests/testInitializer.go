@@ -75,6 +75,7 @@ const (
 	shuffleBetweenShards = false
 	adaptivity           = false
 	hysteresis           = float32(0.2)
+	maxTrieLevelInMemory = uint(5)
 )
 
 // Type defines account types to save in accounts trie
@@ -390,7 +391,7 @@ func CreateAccountsDB(
 	accountType Type,
 	trieStorageManager data.StorageManager,
 ) (*state.AccountsDB, data.Trie) {
-	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher)
+	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher, maxTrieLevelInMemory)
 
 	accountFactory := getAccountFactory(accountType)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, TestMarshalizer, accountFactory)
@@ -778,7 +779,8 @@ func CreateNewDefaultTrie() data.Trie {
 		MaxSnapshots:       2,
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), TestMarshalizer, TestHasher, config.DBConfig{}, ewl, generalCfg)
-	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
+
+	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, maxTrieLevelInMemory)
 	return tr
 }
 

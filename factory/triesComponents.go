@@ -79,6 +79,7 @@ func (tcf *triesComponentsFactory) Create() (*TriesComponents, error) {
 		tcf.config.AccountsTrieStorage,
 		shardIDString,
 		tcf.config.StateTriesConfig.AccountsStatePruningEnabled,
+		tcf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
 	)
 	if err != nil {
 		return nil, err
@@ -90,6 +91,7 @@ func (tcf *triesComponentsFactory) Create() (*TriesComponents, error) {
 		tcf.config.PeerAccountsTrieStorage,
 		shardIDString,
 		tcf.config.StateTriesConfig.PeerStatePruningEnabled,
+		tcf.config.StateTriesConfig.MaxPeerTrieLevelInMemory,
 	)
 	if err != nil {
 		return nil, err
