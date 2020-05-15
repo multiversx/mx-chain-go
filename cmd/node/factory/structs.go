@@ -891,7 +891,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		TxLogsProcessor:          args.txLogsProcessor,
 		HardForkConfig:           args.mainConfig.Hardfork,
 		TrieStorageManagers:      args.tries.TrieStorageManagers,
-		ChainID:                  string(args.coreComponents.ChainID()),
+		ChainID:                  coreComponents.ChainID(),
 		SystemSCConfig:           *args.systemSCConfig,
 	}
 
