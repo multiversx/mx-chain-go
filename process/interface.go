@@ -97,7 +97,6 @@ type InterceptedData interface {
 type InterceptorProcessor interface {
 	Validate(data InterceptedData, fromConnectedPeer p2p.PeerID) error
 	Save(data InterceptedData, fromConnectedPeer p2p.PeerID) error
-	SignalEndOfProcessing(data []InterceptedData)
 	IsInterfaceNil() bool
 }
 

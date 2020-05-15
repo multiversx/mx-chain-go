@@ -187,7 +187,7 @@
      MaxOpenFiles = 10
 
 [TrieStorageManagerConfig]
-    PruningBufferLen = 1000
+    PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
     MaxSnapshots = 2
 
@@ -397,6 +397,8 @@
     CheckpointRoundsModulus = 100
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
+    MaxStateTrieLevelInMemory = 5
+    MaxPeerTrieLevelInMemory = 5
 
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB
