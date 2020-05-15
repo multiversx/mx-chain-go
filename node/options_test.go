@@ -426,7 +426,7 @@ func TestWithSyncer_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	sync := &mock.SyncStub{}
+	sync := &mock.SyncTimerStub{}
 
 	opt := WithSyncer(sync)
 	err := opt(node)
