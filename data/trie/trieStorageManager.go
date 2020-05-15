@@ -376,7 +376,8 @@ func (tsm *trieStorageManager) takeSnapshot(snapshot *snapshotsQueueEntry, msh m
 		return
 	}
 
-	err = newRoot.commit(true, 0, tsm.db, db)
+	maxTrieLevelInMemory := uint(5)
+	err = newRoot.commit(true, 0, maxTrieLevelInMemory, tsm.db, db)
 	if err != nil {
 		log.Error("trie storage manager: commit", "error", err.Error())
 		return

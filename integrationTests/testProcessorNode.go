@@ -1410,7 +1410,7 @@ func (tpn *TestProcessorNode) StartSync() error {
 		return errors.New("no bootstrapper available")
 	}
 
-	tpn.Bootstrapper.StartSync()
+	tpn.Bootstrapper.StartSyncingBlocks()
 
 	return nil
 }
