@@ -425,7 +425,7 @@ func TestNewPeerTypeProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 
 func TestNewPeerTypeProvider_ComputeForKeyFromCache(t *testing.T) {
 	arg := createDefaultArg()
-	arg.PeerTypeRefreshIntervalInSec = 10 * time.Millisecond
+	arg.PeerTypeRefreshIntervalInSec = 25 * time.Millisecond
 	pk := []byte("pk1")
 	initialShardId := uint32(1)
 	popMutex := sync.RWMutex{}

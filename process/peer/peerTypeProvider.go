@@ -133,9 +133,6 @@ func (ptp *PeerTypeProvider) startRefreshProcess(ctx context.Context) {
 			log.Debug("peerTypeProvider's go routine is stopping...")
 			return
 		case <-time.After(ptp.cacheRefreshIntervalDuration):
-			{
-
-			}
 		}
 	}
 }
