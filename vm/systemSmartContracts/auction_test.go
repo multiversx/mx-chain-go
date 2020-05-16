@@ -1436,8 +1436,8 @@ func TestAuctionStakingSC_Claim(t *testing.T) {
 	//do stake
 	stake(t, sc, args.ValidatorSettings.GenesisNodePrice(), receiverAddr, stakerAddress, stakerPubKey, nodesToRunBytes)
 
-	//do claim all stake is locked should return UserError
-	doClaim(t, sc, stakerAddress, receiverAddr, vmcommon.UserError)
+	//do claim all stake is locked should return Ok
+	doClaim(t, sc, stakerAddress, receiverAddr, vmcommon.Ok)
 
 	// do stake to add more money but not lock the stake
 	nonce = 0
