@@ -73,6 +73,7 @@ func TestTrigger_LoadStateAfterSave(t *testing.T) {
 	epochStartTrigger1.epochMetaBlockHash = []byte("meta block hash")
 	epochStartTrigger1.isEpochStart = false
 	epochStartTrigger1.epochFinalityAttestingRound = 680
+	epochStartTrigger1.cancelFunc = nil
 	err := epochStartTrigger1.saveState(key)
 	assert.Nil(t, err)
 	assert.NotEqual(t, epochStartTrigger1, epochStartTrigger2)

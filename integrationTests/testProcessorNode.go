@@ -155,6 +155,8 @@ type CryptoParams struct {
 	KeyGen       crypto.KeyGenerator
 	Keys         map[uint32][]*TestKeyPair
 	SingleSigner crypto.SingleSigner
+	TxKeyGen     crypto.KeyGenerator
+	TxKeys       map[uint32][]*TestKeyPair
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -1167,9 +1169,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
-		blsKeyedPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(128)
 		argsStakingToPeer := scToProtocol.ArgStakingToPeer{
-			PubkeyConv:       blsKeyedPubkeyConverter,
+			PubkeyConv:       TestValidatorPubkeyConverter,
 			Hasher:           TestHasher,
 			ProtoMarshalizer: TestMarshalizer,
 			VmMarshalizer:    TestVmMarshalizer,
@@ -1409,7 +1410,7 @@ func (tpn *TestProcessorNode) StartSync() error {
 		return errors.New("no bootstrapper available")
 	}
 
-	tpn.Bootstrapper.StartSync()
+	tpn.Bootstrapper.StartSyncingBlocks()
 
 	return nil
 }

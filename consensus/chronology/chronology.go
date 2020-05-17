@@ -1,6 +1,7 @@
 package chronology
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -9,12 +10,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/close"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var _ consensus.ChronologyHandler = (*chronology)(nil)
+var _ close.Closer = (*chronology)(nil)
 
 var log = logger.GetOrCreate("consensus/chronology")
 
@@ -34,6 +37,7 @@ type chronology struct {
 	subroundHandlers []consensus.SubroundHandler
 	mutSubrounds     sync.RWMutex
 	appStatusHandler core.AppStatusHandler
+	cancelFunc       func()
 }
 
 // NewChronology creates a new chronology object
@@ -114,8 +118,20 @@ func (chr *chronology) RemoveAllSubrounds() {
 
 // StartRounds actually starts the chronology and calls the DoWork() method of the subroundHandlers loaded
 func (chr *chronology) StartRounds() {
+	var ctx context.Context
+	ctx, chr.cancelFunc = context.WithCancel(context.Background())
+	go chr.startRounds(ctx)
+}
+
+func (chr *chronology) startRounds(ctx context.Context) {
 	for {
-		time.Sleep(time.Millisecond)
+		select {
+		case <-ctx.Done():
+			log.Debug("chronology's go routine is stopping...")
+			return
+		case <-time.After(time.Millisecond):
+		}
+
 		chr.startRound()
 	}
 }
@@ -197,6 +213,15 @@ func (chr *chronology) loadSubroundHandler(subroundId int) consensus.SubroundHan
 	}
 
 	return chr.subroundHandlers[index]
+}
+
+// Close will close the endless running go routine
+func (chr *chronology) Close() error {
+	if chr.cancelFunc != nil {
+		chr.cancelFunc()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
