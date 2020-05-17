@@ -203,11 +203,13 @@ func (listForSender *txListForSender) IsEmpty() bool {
 
 // selectBatchTo copies a batch (usually small) of transactions to a destination slice
 // It also updates the internal state used for copy operations
-func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destination []*WrappedTransaction, batchSize int) int {
+func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destination []*WrappedTransaction, batchSize int) batchSelectionJournal {
 	// We can't read from multiple goroutines at the same time
 	// And we can't mutate the sender's list while reading it
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
+
+	journal := batchSelectionJournal{}
 
 	// Reset the internal state used for copy operations
 	if isFirstBatch {
@@ -216,6 +218,9 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 		listForSender.copyBatchIndex = listForSender.items.Front()
 		listForSender.copyPreviousNonce = 0
 		listForSender.copyDetectedGap = hasInitialGap
+
+		journal.isFirstBatch = true
+		journal.hasInitialGap = hasInitialGap
 	}
 
 	element := listForSender.copyBatchIndex
@@ -228,6 +233,7 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 	// then one transaction will be returned. But subsequent reads for this sender will return nothing.
 	if detectedGap {
 		if isFirstBatch && listForSender.isInGracePeriod() {
+			journal.isGracePeriod = true
 			batchSize = 1
 		} else {
 			batchSize = 0
@@ -245,6 +251,7 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 
 		if previousNonce > 0 && txNonce > previousNonce+1 {
 			listForSender.copyDetectedGap = true
+			journal.hasMiddleGap = true
 			break
 		}
 
@@ -255,7 +262,8 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 
 	listForSender.copyBatchIndex = element
 	listForSender.copyPreviousNonce = previousNonce
-	return copied
+	journal.copied = copied
+	return journal
 }
 
 // getTxHashes returns the hashes of transactions in the list

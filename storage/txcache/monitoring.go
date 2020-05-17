@@ -54,8 +54,46 @@ func (cache *TxCache) monitorSelectionEnd(selection []*WrappedTransaction, stopW
 	duration := stopWatch.GetMeasurement("selection")
 	numTxAdded := cache.numTxAddedBetweenSelections.Reset()
 	numTxRemoved := cache.numTxRemovedBetweenSelections.Reset()
-	log.Debug("TxCache: selection ended", "name", cache.name, "duration", duration, "numTxSelected", len(selection), "numTxAddedBetweenSelections", numTxAdded, "numTxRemovedBetweenSelections", numTxRemoved)
+	numSendersSelected := cache.numSendersSelected.Reset()
+	numSendersWithInitialGap := cache.numSendersWithInitialGap.Reset()
+	numSendersWithMiddleGap := cache.numSendersWithMiddleGap.Reset()
+	numSendersInGracePeriod := cache.numSendersInGracePeriod.Reset()
+
+	log.Debug("TxCache: selection ended", "name", cache.name, "duration", duration,
+		"numTxSelected", len(selection),
+		"numTxAddedBetweenSelections", numTxAdded,
+		"numTxRemovedBetweenSelections", numTxRemoved,
+		"numSendersSelected", numSendersSelected,
+		"numSendersWithInitialGap", numSendersWithInitialGap,
+		"numSendersWithMiddleGap", numSendersWithMiddleGap,
+		"numSendersInGracePeriod", numSendersInGracePeriod,
+	)
+
 	cache.displaySendersHistogram()
+}
+
+type batchSelectionJournal struct {
+	isFirstBatch  bool
+	copied        int
+	hasInitialGap bool
+	hasMiddleGap  bool
+	isGracePeriod bool
+}
+
+func (cache *TxCache) monitorBatchSelectionEnd(journal batchSelectionJournal) {
+	if journal.isFirstBatch {
+		if journal.hasInitialGap {
+			cache.numSendersWithInitialGap.Increment()
+		} else if journal.hasMiddleGap {
+			cache.numSendersWithMiddleGap.Increment()
+		}
+
+		if journal.isGracePeriod {
+			cache.numSendersInGracePeriod.Increment()
+		} else if journal.copied > 0 {
+			cache.numSendersSelected.Increment()
+		}
+	}
 }
 
 func (cache *TxCache) monitorSweepingStart() *core.StopWatch {

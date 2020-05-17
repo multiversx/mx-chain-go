@@ -27,6 +27,10 @@ type TxCache struct {
 	numTxAddedDuringEviction      atomic.Counter
 	numTxRemovedBetweenSelections atomic.Counter
 	numTxRemovedDuringEviction    atomic.Counter
+	numSendersSelected            atomic.Counter
+	numSendersWithInitialGap      atomic.Counter
+	numSendersWithMiddleGap       atomic.Counter
+	numSendersInGracePeriod       atomic.Counter
 	sweepingMutex                 sync.Mutex
 	sweepingListOfSenders         []*txListForSender
 }
@@ -116,14 +120,15 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 			batchSizeWithScoreCoefficient := batchSizePerSender * int(txList.getLastComputedScore()+1)
 			// Reset happens on first pass only
 			isFirstBatch := pass == 0
-			copied := txList.selectBatchTo(isFirstBatch, result[resultFillIndex:], batchSizeWithScoreCoefficient)
+			journal := txList.selectBatchTo(isFirstBatch, result[resultFillIndex:], batchSizeWithScoreCoefficient)
+			cache.monitorBatchSelectionEnd(journal)
 
 			if isFirstBatch {
 				cache.collectSweepable(txList)
 			}
 
-			resultFillIndex += copied
-			copiedInThisPass += copied
+			resultFillIndex += journal.copied
+			copiedInThisPass += journal.copied
 			resultIsFull = resultFillIndex == numRequested
 			if resultIsFull {
 				break
