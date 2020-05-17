@@ -41,14 +41,14 @@ func sameValidators(list1 []Validator, list2 []Validator) bool {
 		return false
 	}
 
-	for i, validator := range list1 {
-		if !bytes.Equal(validator.PubKey(), list2[i].PubKey()) {
+	for i, val := range list1 {
+		if !bytes.Equal(val.PubKey(), list2[i].PubKey()) {
 			return false
 		}
-		if validator.Index() != list2[i].Index() {
+		if val.Index() != list2[i].Index() {
 			return false
 		}
-		if validator.Chances() != list2[i].Chances() {
+		if val.Chances() != list2[i].Chances() {
 			return false
 		}
 	}
@@ -61,8 +61,8 @@ func validatorsEqualSerializableValidators(validators []Validator, sValidators [
 		return false
 	}
 
-	for i, validator := range validators {
-		if !bytes.Equal(validator.PubKey(), sValidators[i].PubKey) {
+	for i, val := range validators {
+		if !bytes.Equal(val.PubKey(), sValidators[i].PubKey) {
 			return false
 		}
 	}
@@ -143,10 +143,10 @@ func TestIndexHashedNodesCoordinator_epochValidatorsToEpochNodesConfig(t *testin
 
 	for _, nodesConfig := range nc.nodesConfig {
 		epochValidators := epochNodesConfigToEpochValidators(nodesConfig)
-		epochNodesConfig, err := epochValidatorsToEpochNodesConfig(epochValidators)
+		epochConfig, err := epochValidatorsToEpochNodesConfig(epochValidators)
 		assert.Nil(t, err)
-		assert.True(t, sameValidatorsDifferentMapTypes(epochNodesConfig.eligibleMap, epochValidators.EligibleValidators))
-		assert.True(t, sameValidatorsDifferentMapTypes(epochNodesConfig.waitingMap, epochValidators.WaitingValidators))
+		assert.True(t, sameValidatorsDifferentMapTypes(epochConfig.eligibleMap, epochValidators.EligibleValidators))
+		assert.True(t, sameValidatorsDifferentMapTypes(epochConfig.waitingMap, epochValidators.WaitingValidators))
 	}
 }
 

@@ -914,6 +914,7 @@ func TestRandXORShuffler_UpdateParams(t *testing.T) {
 	assert.Equal(t, shuffler2, shuffler)
 }
 
+//TODO fix weak warnings
 func TestRandXORShuffler_UpdateNodeListsNoReSharding(t *testing.T) {
 	t.Parallel()
 

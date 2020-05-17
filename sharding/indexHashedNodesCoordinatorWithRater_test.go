@@ -188,9 +188,9 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 
 	consensusAppearances := make(map[string]uint64)
 	leaderAppearances := make(map[string]uint64)
-	for _, validator := range list {
-		consensusAppearances[string(validator.PubKey())] = 0
-		leaderAppearances[string(validator.PubKey())] = 0
+	for _, val := range list {
+		consensusAppearances[string(val.PubKey())] = 0
+		leaderAppearances[string(val.PubKey())] = 0
 	}
 
 	eligibleMap := make(map[uint32][]Validator)

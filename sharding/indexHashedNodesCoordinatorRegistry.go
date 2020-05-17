@@ -28,8 +28,8 @@ type NodesCoordinatorRegistry struct {
 	CurrentEpoch uint32                      `json:"currentEpoch"`
 }
 
-// TODO: add proto marshalizer for these package - replace all json marshalizers
 // LoadState loads the nodes coordinator state from the used boot storage
+// TODO: add proto marshalizer for these package - replace all json marshalizers
 func (ihgs *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	return ihgs.baseLoadState(key)
 }
@@ -258,12 +258,12 @@ func NodesInfoToValidators(nodesInfo map[uint32][]GenesisNodeInfoHandler) (map[u
 	for shId, nodeInfoList := range nodesInfo {
 		validators := make([]Validator, 0, len(nodeInfoList))
 		for index, nodeInfo := range nodeInfoList {
-			validator, err := NewValidator(nodeInfo.PubKeyBytes(), defaultSelectionChances, uint32(index))
+			val, err := NewValidator(nodeInfo.PubKeyBytes(), defaultSelectionChances, uint32(index))
 			if err != nil {
 				return nil, err
 			}
 
-			validators = append(validators, validator)
+			validators = append(validators, val)
 		}
 		validatorsMap[shId] = validators
 	}

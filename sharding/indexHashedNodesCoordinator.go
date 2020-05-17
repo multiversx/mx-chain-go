@@ -52,6 +52,8 @@ func (v validatorList) Less(i, j int) bool {
 }
 
 // TODO: add a parameter for shardID  when acting as observer
+// TODO: refactor this, carve-it out on a separate file, add mutex, methods that can access the maps only by
+//  setting the mutex, add an interface for it, use it here.
 type epochNodesConfig struct {
 	nbShards                uint32
 	shardID                 uint32
@@ -61,7 +63,6 @@ type epochNodesConfig struct {
 	publicKeyToValidatorMap map[string]*validatorWithShardID
 	leavingMap              map[uint32][]Validator
 	newList                 []Validator
-	mutNodesMaps            sync.RWMutex
 }
 
 type indexHashedNodesCoordinator struct {
@@ -211,9 +212,6 @@ func (ihgs *indexHashedNodesCoordinator) setNodesPerShards(
 		nodesConfig = &epochNodesConfig{}
 	}
 
-	nodesConfig.mutNodesMaps.Lock()
-	defer nodesConfig.mutNodesMaps.Unlock()
-
 	if eligible == nil || waiting == nil {
 		return ErrNilInputNodesMap
 	}
@@ -336,15 +334,12 @@ func (ihgs *indexHashedNodesCoordinator) GetValidatorWithPublicKey(
 		return nil, 0, ErrNilPubKey
 	}
 	ihgs.mutNodesConfig.RLock()
-	nodesConfig, ok := ihgs.nodesConfig[epoch]
-	ihgs.mutNodesConfig.RUnlock()
+	defer ihgs.mutNodesConfig.RUnlock()
 
+	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if !ok {
 		return nil, 0, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
-
-	nodesConfig.mutNodesMaps.RLock()
-	defer nodesConfig.mutNodesMaps.RUnlock()
 
 	v, ok := nodesConfig.publicKeyToValidatorMap[string(publicKey)]
 	if ok {
@@ -381,15 +376,12 @@ func (ihgs *indexHashedNodesCoordinator) GetAllEligibleValidatorsPublicKeys(epoc
 	validatorsPubKeys := make(map[uint32][][]byte)
 
 	ihgs.mutNodesConfig.RLock()
-	nodesConfig, ok := ihgs.nodesConfig[epoch]
-	ihgs.mutNodesConfig.RUnlock()
+	defer ihgs.mutNodesConfig.RUnlock()
 
+	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if !ok {
 		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
-
-	nodesConfig.mutNodesMaps.RLock()
-	defer nodesConfig.mutNodesMaps.RUnlock()
 
 	for shardID, shardEligible := range nodesConfig.eligibleMap {
 		for i := 0; i < len(shardEligible); i++ {
@@ -405,15 +397,12 @@ func (ihgs *indexHashedNodesCoordinator) GetAllWaitingValidatorsPublicKeys(epoch
 	validatorsPubKeys := make(map[uint32][][]byte)
 
 	ihgs.mutNodesConfig.RLock()
-	nodesConfig, ok := ihgs.nodesConfig[epoch]
-	ihgs.mutNodesConfig.RUnlock()
+	defer ihgs.mutNodesConfig.RUnlock()
 
+	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if !ok {
 		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
-
-	nodesConfig.mutNodesMaps.RLock()
-	defer nodesConfig.mutNodesMaps.RUnlock()
 
 	for shardID, shardWaiting := range nodesConfig.waitingMap {
 		for i := 0; i < len(shardWaiting); i++ {
@@ -429,15 +418,12 @@ func (ihgs *indexHashedNodesCoordinator) GetAllLeavingValidatorsPublicKeys(epoch
 	validatorsPubKeys := make(map[uint32][][]byte)
 
 	ihgs.mutNodesConfig.RLock()
-	nodesConfig, ok := ihgs.nodesConfig[epoch]
-	ihgs.mutNodesConfig.RUnlock()
+	defer ihgs.mutNodesConfig.RUnlock()
 
+	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if !ok {
 		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
-
-	nodesConfig.mutNodesMaps.RLock()
-	defer nodesConfig.mutNodesMaps.RUnlock()
 
 	for shardID, shardLeaving := range nodesConfig.leavingMap {
 		for i := 0; i < len(shardLeaving); i++ {
@@ -944,22 +930,22 @@ func computeActuallyLeaving(
 	sortedShardIds := sortKeys(unstakeLeaving)
 	for _, shardId := range sortedShardIds {
 		leavingValidatorsPerShard := unstakeLeaving[shardId]
-		for _, validator := range leavingValidatorsPerShard {
-			if processedValidatorsMap[string(validator.PubKey())] {
+		for _, val := range leavingValidatorsPerShard {
+			if processedValidatorsMap[string(val.PubKey())] {
 				continue
 			}
-			processedValidatorsMap[string(validator.PubKey())] = true
+			processedValidatorsMap[string(val.PubKey())] = true
 			found := false
 			for _, leavingValidator := range leaving {
-				if bytes.Equal(validator.PubKey(), leavingValidator.PubKey()) {
+				if bytes.Equal(val.PubKey(), leavingValidator.PubKey()) {
 					found = true
 					break
 				}
 			}
 			if found {
-				actuallyLeaving[shardId] = append(actuallyLeaving[shardId], validator)
+				actuallyLeaving[shardId] = append(actuallyLeaving[shardId], val)
 			} else {
-				actuallyRemaining[shardId] = append(actuallyRemaining[shardId], validator)
+				actuallyRemaining[shardId] = append(actuallyRemaining[shardId], val)
 			}
 		}
 	}

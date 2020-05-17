@@ -39,9 +39,6 @@ func NewIndexHashedNodesCoordinatorWithRater(
 		nodesConfig = &epochNodesConfig{}
 	}
 
-	nodesConfig.mutNodesMaps.Lock()
-	defer nodesConfig.mutNodesMaps.Unlock()
-
 	var err error
 	nodesConfig.selectors, err = ihncr.createSelectors(nodesConfig)
 	if err != nil {

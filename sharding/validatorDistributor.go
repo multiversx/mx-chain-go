@@ -3,6 +3,7 @@ package sharding
 // IntraShardValidatorDistributor - distributes validators from source to destination inside the same shard
 type IntraShardValidatorDistributor struct{}
 
+// DistributeValidators will split the validators based on the shard they belong
 func (vd *IntraShardValidatorDistributor) DistributeValidators(
 	destination map[uint32][]Validator,
 	source map[uint32][]Validator,
