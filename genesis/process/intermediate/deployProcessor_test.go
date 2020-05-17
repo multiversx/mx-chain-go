@@ -12,17 +12,25 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
+
+func createMockDeployArg() ArgDeployProcessor {
+	return ArgDeployProcessor{
+		Executor:       &mock.TxExecutionProcessorStub{},
+		PubkeyConv:     mock.NewPubkeyConverterMock(32),
+		BlockchainHook: &mock.BlockChainHookHandlerMock{},
+		QueryService:   &mock.QueryServiceStub{},
+	}
+}
 
 func TestNewDeployProcessor_NilExecutorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	dp, err := NewDeployProcessor(
-		nil,
-		mock.NewPubkeyConverterMock(32),
-		&mock.BlockChainHookHandlerMock{},
-	)
+	arg := createMockDeployArg()
+	arg.Executor = nil
+	dp, err := NewDeployProcessor(arg)
 
 	assert.True(t, check.IfNil(dp))
 	assert.Equal(t, genesis.ErrNilTxExecutionProcessor, err)
@@ -31,11 +39,9 @@ func TestNewDeployProcessor_NilExecutorShouldErr(t *testing.T) {
 func TestNewDeployProcessor_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	dp, err := NewDeployProcessor(
-		&mock.TxExecutionProcessorStub{},
-		nil,
-		&mock.BlockChainHookHandlerMock{},
-	)
+	arg := createMockDeployArg()
+	arg.PubkeyConv = nil
+	dp, err := NewDeployProcessor(arg)
 
 	assert.True(t, check.IfNil(dp))
 	assert.Equal(t, genesis.ErrNilPubkeyConverter, err)
@@ -44,24 +50,30 @@ func TestNewDeployProcessor_NilPubkeyConverterShouldErr(t *testing.T) {
 func TestNewDeployProcessor_NilBlockchainHookShouldErr(t *testing.T) {
 	t.Parallel()
 
-	dp, err := NewDeployProcessor(
-		&mock.TxExecutionProcessorStub{},
-		mock.NewPubkeyConverterMock(32),
-		nil,
-	)
+	arg := createMockDeployArg()
+	arg.BlockchainHook = nil
+	dp, err := NewDeployProcessor(arg)
 
 	assert.True(t, check.IfNil(dp))
 	assert.Equal(t, process.ErrNilBlockChainHook, err)
 }
 
+func TestNewDeployProcessor_NilQueryServiceShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockDeployArg()
+	arg.QueryService = nil
+	dp, err := NewDeployProcessor(arg)
+
+	assert.True(t, check.IfNil(dp))
+	assert.Equal(t, genesis.ErrNilQueryService, err)
+}
+
 func TestNewDeployProcessor_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	dp, err := NewDeployProcessor(
-		&mock.TxExecutionProcessorStub{},
-		mock.NewPubkeyConverterMock(32),
-		&mock.BlockChainHookHandlerMock{},
-	)
+	arg := createMockDeployArg()
+	dp, err := NewDeployProcessor(arg)
 
 	assert.False(t, check.IfNil(dp))
 	assert.Nil(t, err)
@@ -72,11 +84,8 @@ func TestNewDeployProcessor_ShouldWork(t *testing.T) {
 func TestDeployProcessor_DeployGetCodeFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	dp, _ := NewDeployProcessor(
-		&mock.TxExecutionProcessorStub{},
-		mock.NewPubkeyConverterMock(0),
-		&mock.BlockChainHookHandlerMock{},
-	)
+	arg := createMockDeployArg()
+	dp, _ := NewDeployProcessor(arg)
 	expectedErr := fmt.Errorf("expected error")
 	dp.getScCodeAsHex = func(filename string) (string, error) {
 		return "", expectedErr
@@ -91,15 +100,13 @@ func TestDeployProcessor_DeployGetNonceFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := fmt.Errorf("expected error")
-	dp, _ := NewDeployProcessor(
-		&mock.TxExecutionProcessorStub{
-			GetNonceCalled: func(senderBytes []byte) (uint64, error) {
-				return 0, expectedErr
-			},
+	arg := createMockDeployArg()
+	arg.Executor = &mock.TxExecutionProcessorStub{
+		GetNonceCalled: func(senderBytes []byte) (uint64, error) {
+			return 0, expectedErr
 		},
-		mock.NewPubkeyConverterMock(0),
-		&mock.BlockChainHookHandlerMock{},
-	)
+	}
+	dp, _ := NewDeployProcessor(arg)
 	dp.getScCodeAsHex = func(filename string) (string, error) {
 		return "", nil
 	}
@@ -113,41 +120,16 @@ func TestDeployProcessor_DeployNewAddressFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := fmt.Errorf("expected error")
-	dp, _ := NewDeployProcessor(
-		&mock.TxExecutionProcessorStub{},
-		mock.NewPubkeyConverterMock(0),
-		&mock.BlockChainHookHandlerMock{
-			NewAddressCalled: func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
-				return nil, expectedErr
-			},
+	arg := createMockDeployArg()
+	arg.BlockchainHook = &mock.BlockChainHookHandlerMock{
+		NewAddressCalled: func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
+			return nil, expectedErr
 		},
-	)
+	}
+	dp, _ := NewDeployProcessor(arg)
 	dp.getScCodeAsHex = func(filename string) (string, error) {
 		return "", nil
 	}
-
-	err := dp.Deploy(&data.InitialSmartContract{})
-
-	assert.Equal(t, expectedErr, err)
-}
-
-func TestDeployProcessor_DeployReplacePlaceholdersFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := fmt.Errorf("expected error")
-	dp, _ := NewDeployProcessor(
-		&mock.TxExecutionProcessorStub{},
-		mock.NewPubkeyConverterMock(0),
-		&mock.BlockChainHookHandlerMock{},
-	)
-	dp.getScCodeAsHex = func(filename string) (string, error) {
-		return "", nil
-	}
-	dp.SetReplacePlaceholders(
-		func(txData string, scResultingAddressBytes []byte) (string, error) {
-			return "", expectedErr
-		},
-	)
 
 	err := dp.Deploy(&data.InitialSmartContract{})
 
@@ -159,57 +141,71 @@ func TestDeployProcessor_DeployShouldWork(t *testing.T) {
 
 	testNonce := uint64(4453)
 	testSender := []byte("sender")
-	lenAddress := 32
 	executeCalled := false
 	testCode := "code"
 	vmType := "0500"
-	dp, _ := NewDeployProcessor(
-		&mock.TxExecutionProcessorStub{
-			GetNonceCalled: func(senderBytes []byte) (uint64, error) {
-				if bytes.Equal(senderBytes, testSender) {
-					return testNonce, nil
-				}
-				assert.Fail(t, "wrong sender")
+	version := "1.0.0"
+	accountExists := false
+	arg := createMockDeployArg()
+	arg.Executor = &mock.TxExecutionProcessorStub{
+		GetNonceCalled: func(senderBytes []byte) (uint64, error) {
+			if bytes.Equal(senderBytes, testSender) {
+				return testNonce, nil
+			}
+			assert.Fail(t, "wrong sender")
 
-				return 0, nil
-			},
-			ExecuteTransactionCalled: func(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error {
-				if nonce != testNonce {
-					assert.Fail(t, "nonce mismatch")
-				}
-				if !bytes.Equal(sndAddr, testSender) {
-					assert.Fail(t, "sender mismatch")
-				}
-				if !bytes.Equal(rcvAddress, make([]byte, lenAddress)) {
-					assert.Fail(t, "receiver mismatch")
-				}
-				if value.Cmp(zero) != 0 {
-					assert.Fail(t, "value should have been 0")
-				}
-				expectedCode := fmt.Sprintf("%s@%s@0100", testCode, vmType)
-				if string(data) != expectedCode {
-					assert.Fail(t, "code mismatch")
-				}
-
-				executeCalled = true
-				return nil
-			},
+			return 0, nil
 		},
-		mock.NewPubkeyConverterMock(lenAddress),
-		&mock.BlockChainHookHandlerMock{
-			NewAddressCalled: func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
-				buff := fmt.Sprintf("%s_%d_%s", string(creatorAddress), creatorNonce, hex.EncodeToString(vmType))
+		ExecuteTransactionCalled: func(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error {
+			if nonce != testNonce {
+				assert.Fail(t, "nonce mismatch")
+			}
+			if !bytes.Equal(sndAddr, testSender) {
+				assert.Fail(t, "sender mismatch")
+			}
+			if !bytes.Equal(rcvAddress, make([]byte, arg.PubkeyConv.Len())) {
+				assert.Fail(t, "receiver mismatch")
+			}
+			if value.Cmp(zero) != 0 {
+				assert.Fail(t, "value should have been 0")
+			}
+			expectedCode := fmt.Sprintf("%s@%s@0100", testCode, vmType)
+			if string(data) != expectedCode {
+				assert.Fail(t, "code mismatch")
+			}
 
-				return []byte(buff), nil
-			},
+			executeCalled = true
+			return nil
 		},
-	)
+		AccountExistsCalled: func(address []byte) bool {
+			result := accountExists
+			accountExists = true
+
+			return result
+		},
+	}
+	arg.BlockchainHook = &mock.BlockChainHookHandlerMock{
+		NewAddressCalled: func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
+			buff := fmt.Sprintf("%s_%d_%s", string(creatorAddress), creatorNonce, hex.EncodeToString(vmType))
+
+			return []byte(buff), nil
+		},
+	}
+	arg.QueryService = &mock.QueryServiceStub{
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+			return &vmcommon.VMOutput{
+				ReturnData: [][]byte{[]byte(version)},
+			}, nil
+		},
+	}
+	dp, _ := NewDeployProcessor(arg)
 	dp.getScCodeAsHex = func(filename string) (string, error) {
 		return testCode, nil
 	}
 
 	sc := &data.InitialSmartContract{
-		VmType: vmType,
+		VmType:  vmType,
+		Version: version,
 	}
 	sc.SetOwnerBytes(testSender)
 

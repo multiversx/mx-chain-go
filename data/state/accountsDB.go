@@ -227,6 +227,11 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 	accountHandler.SetRootHash(rootHash)
 	trackableDataTrie.ClearDataCaches()
 
+	log.Trace("accountsDB.SaveDataTrie",
+		"address", hex.EncodeToString(accountHandler.AddressBytes()),
+		"new root hash", accountHandler.GetRootHash(),
+	)
+
 	return nil
 }
 
