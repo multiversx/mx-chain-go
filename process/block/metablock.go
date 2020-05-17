@@ -1003,6 +1003,9 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
+	// must be called before commitEpochStart
+	rewardsTxs := mp.getRewardsTxs(header, body)
+
 	mp.commitEpochStart(header, body)
 	headerHash := mp.hasher.Compute(string(marshalizedHeader))
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
@@ -1012,8 +1015,6 @@ func (mp *metaProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
-
-	rewardsTxs := mp.getRewardsTxs(header, body)
 
 	mp.validatorStatisticsProcessor.DisplayRatings(header.GetEpoch())
 

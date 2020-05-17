@@ -276,8 +276,7 @@ func (r *stakingSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 
-	for i := 1; i < len(args.Arguments); i++ {
-		blsKey := args.Arguments[i]
+	for _, blsKey := range args.Arguments[1:] {
 		stakedData, err := r.getOrCreateRegisteredData(blsKey)
 		if err != nil {
 			return vmcommon.UserError

@@ -20,18 +20,20 @@ import (
 
 // ArgsNewDataTrieFactory is the argument structure for the new data trie factory
 type ArgsNewDataTrieFactory struct {
-	StorageConfig    config.StorageConfig
-	SyncFolder       string
-	Marshalizer      marshal.Marshalizer
-	Hasher           hashing.Hasher
-	ShardCoordinator sharding.Coordinator
+	StorageConfig        config.StorageConfig
+	SyncFolder           string
+	Marshalizer          marshal.Marshalizer
+	Hasher               hashing.Hasher
+	ShardCoordinator     sharding.Coordinator
+	MaxTrieLevelInMemory uint
 }
 
 type dataTrieFactory struct {
-	shardCoordinator sharding.Coordinator
-	trieStorage      data.StorageManager
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
+	shardCoordinator     sharding.Coordinator
+	trieStorage          data.StorageManager
+	marshalizer          marshal.Marshalizer
+	hasher               hashing.Hasher
+	maxTrieLevelInMemory uint
 }
 
 // NewDataTrieFactory creates a data trie factory
@@ -105,7 +107,7 @@ func (d *dataTrieFactory) Create() (state.TriesHolder, error) {
 }
 
 func (d *dataTrieFactory) createAndAddOneTrie(shId uint32, accType genesis.Type, container state.TriesHolder) error {
-	dataTrie, err := trie.NewTrie(d.trieStorage, d.marshalizer, d.hasher)
+	dataTrie, err := trie.NewTrie(d.trieStorage, d.marshalizer, d.hasher, d.maxTrieLevelInMemory)
 	if err != nil {
 		return err
 	}

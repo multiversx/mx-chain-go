@@ -100,10 +100,6 @@ func (mip *MiniblockInterceptorProcessor) isMbCrossShard(miniblock *block.MiniBl
 	return miniblock.SenderShardID != mip.shardCoordinator.SelfId()
 }
 
-// SignalEndOfProcessing signals the end of processing
-func (mip *MiniblockInterceptorProcessor) SignalEndOfProcessing(_ []process.InterceptedData) {
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (mip *MiniblockInterceptorProcessor) IsInterfaceNil() bool {
 	return mip == nil

@@ -5,6 +5,7 @@ import "math/big"
 // TxExecutionProcessorStub -
 type TxExecutionProcessorStub struct {
 	ExecuteTransactionCalled func(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error
+	AccountExistsCalled      func(address []byte) bool
 	GetNonceCalled           func(senderBytes []byte) (uint64, error)
 	AddBalanceCalled         func(senderBytes []byte, value *big.Int) error
 	AddNonceCalled           func(senderBytes []byte, nonce uint64) error
@@ -17,6 +18,15 @@ func (teps *TxExecutionProcessorStub) ExecuteTransaction(nonce uint64, sndAddr [
 	}
 
 	return nil
+}
+
+// AccountExists -
+func (teps *TxExecutionProcessorStub) AccountExists(address []byte) bool {
+	if teps.AccountExistsCalled != nil {
+		return teps.AccountExistsCalled(address)
+	}
+
+	return false
 }
 
 // GetNonce -

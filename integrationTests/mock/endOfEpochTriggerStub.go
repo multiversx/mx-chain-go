@@ -142,6 +142,11 @@ func (e *EpochStartTriggerStub) ReceivedHeader(header data.HeaderHandler) {
 func (e *EpochStartTriggerStub) SetRoundsPerEpoch(_ uint64) {
 }
 
+// Close -
+func (e *EpochStartTriggerStub) Close() error {
+	return nil
+}
+
 // IsInterfaceNil -
 func (e *EpochStartTriggerStub) IsInterfaceNil() bool {
 	return e == nil
