@@ -62,10 +62,10 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, txHas
 	}
 
 	listForSender.onAddedTransaction(tx)
-	evicted := listForSender.applySizeConstraints()
+	//evicted := listForSender.applySizeConstraints()
 	listForSender.triggerScoreChange()
 
-	return true, evicted
+	return true, make([][]byte, 0)
 }
 
 // This function should only be used in critical section (listForSender.mutex)

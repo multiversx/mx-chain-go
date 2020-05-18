@@ -76,7 +76,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	}
 
 	if len(evicted) > 0 {
-		cache.txByHash.RemoveTxsBulk(evicted)
+		//cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
 	return
@@ -145,7 +145,7 @@ func (cache *TxCache) getSendersEligibleForSelection() []*txListForSender {
 }
 
 func (cache *TxCache) doAfterSelection() {
-	cache.sweepSweepable()
+	//cache.sweepSweepable()
 	cache.diagnose()
 }
 

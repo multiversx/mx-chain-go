@@ -249,7 +249,7 @@ func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
 		delete(tpc.mapTxsRounds, hash)
 		numTxsCleaned++
 
-		log.Trace("transaction has been cleaned",
+		log.Debug("transaction has been cleaned",
 			"hash", []byte(hash),
 			"round", currTxInfo.round,
 			"sender", currTxInfo.senderShardID,
