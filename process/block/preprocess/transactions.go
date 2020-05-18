@@ -11,6 +11,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/alarms"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/sliceUtil"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -527,7 +528,7 @@ func (txs *transactions) receivedTransaction(key []byte, value interface{}) {
 	_, reallyHasTransaction := txs.txPool.SearchFirstData(key)
 	if !reallyHasTransaction {
 		log.Warn("transactions.receivedTransaction(), but NOT IN POOL", "tx", key)
-		logger.SetLogLevel("*:DEBUG,api:INFO,txcache:TRACE,missingTransactions:TRACE,dataretriever/requesthandlers:TRACE")
+		alarms.RaiseTransactionsAlarm()
 	}
 
 	receivedAllMissing := txs.baseReceivedTransaction(key, wrappedTx.Tx, &txs.txsForCurrBlock)

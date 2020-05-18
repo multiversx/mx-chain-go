@@ -3,6 +3,7 @@ package txcache
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core/alarms"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -85,6 +86,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 			log.Trace("TxCache.AddTx() ADDED", "tx", tx.TxHash)
 		} else {
 			log.Warn("TxCache.AddTx() ADDED-REMOVED", "tx", tx.TxHash)
+			alarms.RaiseTransactionsAlarm()
 		}
 	} else {
 		log.Debug("TxCache.AddTx() NOT ADDED (perhaps duplicated)", "tx", tx.TxHash)
