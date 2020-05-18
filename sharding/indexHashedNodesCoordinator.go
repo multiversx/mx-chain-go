@@ -282,6 +282,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	if ok {
 		if shardID >= nodesConfig.nbShards && shardID != core.MetachainShardId {
 			log.Debug("shardID is not ok", "shardID", shardID, "nbShards", nodesConfig.nbShards)
+			ihgs.mutNodesConfig.RUnlock()
 			return nil, ErrInvalidShardId
 		}
 		selector = nodesConfig.selectors[shardID]
@@ -635,13 +636,17 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 	for _, leavingList := range leavingMap {
 		sort.Sort(validatorList(leavingList))
 	}
+	nbShards := len(eligibleMap)
+	if nbShards > 0 {
+		nbShards = nbShards - 1
+	}
 
 	newNodesConfig := &epochNodesConfig{
 		eligibleMap: eligibleMap,
 		waitingMap:  waitingMap,
 		leavingMap:  leavingMap,
 		newList:     newNodesList,
-		nbShards:    uint32(len(eligibleMap)),
+		nbShards:    uint32(nbShards),
 	}
 
 	return newNodesConfig, nil

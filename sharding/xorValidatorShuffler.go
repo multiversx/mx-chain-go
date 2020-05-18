@@ -242,7 +242,7 @@ func computeNumToRemove(arg shuffleNodesArg) (map[uint32]int, error) {
 		return numToRemove, nil
 	}
 
-	for shardId := uint32(0); shardId < arg.nbShards-1; shardId++ {
+	for shardId := uint32(0); shardId < arg.nbShards; shardId++ {
 		maxToRemove, err := computeNumToRemovePerShard(
 			len(arg.eligible[shardId]),
 			len(arg.waiting[shardId]),
