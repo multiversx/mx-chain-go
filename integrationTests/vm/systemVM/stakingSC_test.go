@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
@@ -138,7 +139,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 
 	for _, nds := range nodesMap {
 		idx, err := getNodeIndex(nodes, nds[0])
-		assert.Nil(t, err)
+		require.Nil(t, err)
 
 		idxProposers = append(idxProposers, idx)
 	}
@@ -300,8 +301,8 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 
 	for i := uint64(0); i < nbBlocksToProduce; i++ {
-		for _, nodes := range nodesMap {
-			integrationTests.UpdateRound(nodes, round)
+		for _, nodesSlice := range nodesMap {
+			integrationTests.UpdateRound(nodesSlice, round)
 		}
 
 		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
@@ -342,7 +343,7 @@ func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
-				assert.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
+				require.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
 				break
 			}
 		}
@@ -356,8 +357,9 @@ func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProce
 
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
+
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
-				assert.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
+				require.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
 				break
 			}
 		}
@@ -371,7 +373,7 @@ func verifyInitialBalance(t *testing.T, nodes []*integrationTests.TestProcessorN
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
-				assert.Equal(t, initialVal, sndAcc.GetBalance())
+				require.Equal(t, initialVal, sndAcc.GetBalance())
 				break
 			}
 		}

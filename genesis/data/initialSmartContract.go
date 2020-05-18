@@ -7,9 +7,11 @@ type InitialSmartContract struct {
 	VmType         string `json:"vm-type"`
 	InitParameters string `json:"init-parameters"`
 	Type           string `json:"type"`
+	Version        string `json:"version"`
 	ownerBytes     []byte
 	vmTypeBytes    []byte
 	addressBytes   []byte
+	address        string
 }
 
 // OwnerBytes will return the owner's address as raw bytes
@@ -65,6 +67,21 @@ func (isc *InitialSmartContract) SetAddressBytes(addressBytes []byte) {
 // AddressBytes returns the smart contract address bytes
 func (isc *InitialSmartContract) AddressBytes() []byte {
 	return isc.addressBytes
+}
+
+// SetAddress sets the initial smart contract address as string
+func (isc *InitialSmartContract) SetAddress(address string) {
+	isc.address = address
+}
+
+// Address returns the smart contract address string
+func (isc *InitialSmartContract) Address() string {
+	return isc.address
+}
+
+// GetVersion returns the recorded version (if existing) of the SC
+func (isc *InitialSmartContract) GetVersion() string {
+	return isc.Version
 }
 
 // IsInterfaceNil returns if underlying object is true

@@ -258,7 +258,7 @@ func CreateVMAndBlockchainHook(
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
 	actualGasSchedule := gasSchedule
 	if gasSchedule == nil {
-		actualGasSchedule = arwenConfig.MakeGasMap(1)
+		actualGasSchedule = arwenConfig.MakeGasMapForTests()
 		defaults.FillGasMapInternal(actualGasSchedule, 1)
 	}
 
