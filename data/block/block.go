@@ -75,7 +75,7 @@ func (h *Header) SetChainID(chainID []byte) {
 	h.ChainID = chainID
 }
 
-// SetSoftwareVersion sets the chain ID on which this block is valid on
+// SetSoftwareVersion sets the software version of the header
 func (h *Header) SetSoftwareVersion(version []byte) {
 	h.SoftwareVersion = version
 }

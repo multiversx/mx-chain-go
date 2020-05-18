@@ -13,6 +13,8 @@ type headerIntegrityVerifier struct {
 	referenceChainID []byte
 }
 
+// TODO: maybe merge this struct and header sig verifier in a single component
+
 // NewHeaderIntegrityVerifier returns a new instance of headerIntegrityVerifier
 func NewHeaderIntegrityVerifier(referenceChainID []byte) (*headerIntegrityVerifier, error) {
 	if len(referenceChainID) == 0 {
@@ -34,7 +36,7 @@ func (h *headerIntegrityVerifier) Verify(hdr data.HeaderHandler) error {
 	return h.checkChainID(hdr)
 }
 
-// CheckSoftwareVersion returns nil if the software version has the correct length
+// checkSoftwareVersion returns nil if the software version has the correct length
 func (h *headerIntegrityVerifier) checkSoftwareVersion(hdr data.HeaderHandler) error {
 	if len(hdr.GetSoftwareVersion()) == 0 || len(hdr.GetSoftwareVersion()) > core.MaxSoftwareVersionLengthInBytes {
 		return ErrInvalidSoftwareVersion
@@ -42,7 +44,7 @@ func (h *headerIntegrityVerifier) checkSoftwareVersion(hdr data.HeaderHandler) e
 	return nil
 }
 
-// CheckChainID returns nil if the header's chain ID matches the one provided
+// checkChainID returns nil if the header's chain ID matches the one provided
 // otherwise, it will error
 func (h *headerIntegrityVerifier) checkChainID(hdr data.HeaderHandler) error {
 	if !bytes.Equal(h.referenceChainID, hdr.GetChainID()) {

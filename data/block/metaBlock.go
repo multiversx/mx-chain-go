@@ -76,7 +76,7 @@ func (m *MetaBlock) SetChainID(chainID []byte) {
 	m.ChainID = chainID
 }
 
-// SetSoftwareVersion sets the chain ID on which this block is valid on
+// SetSoftwareVersion sets the software version of the block
 func (m *MetaBlock) SetSoftwareVersion(version []byte) {
 	m.SoftwareVersion = version
 }
