@@ -2,8 +2,9 @@ package alarms
 
 import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/prometheus/common/log"
 )
+
+var log = logger.GetOrCreate("alarms")
 
 // RaiseTransactionsAlarm raises an alarm
 func RaiseTransactionsAlarm() {
