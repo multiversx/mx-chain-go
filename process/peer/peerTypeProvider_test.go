@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -456,7 +457,7 @@ func TestNewPeerTypeProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 	ptp, _ := NewPeerTypeProvider(arg)
 
 	assert.Equal(t, 0, len(ptp.GetCache())) // nothing in cache
-	epochStartNotifier.NotifyAll(nil)
+	epochStartNotifier.NotifyAll(&block.Header{Nonce: 1, ShardID: 2, Round: 3})
 	time.Sleep(time.Millisecond)
 	assert.Equal(t, 1, len(ptp.GetCache()))
 	assert.NotNil(t, ptp.GetCache()[pkEligibleInTrie])
