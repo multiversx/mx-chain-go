@@ -106,6 +106,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		return nil
 	}
 
+	// TODO: might think of a way to gracefully close the goroutine which waits for the wait group
 	wgProcess := &sync.WaitGroup{}
 	wgProcess.Add(1)
 	go func() {

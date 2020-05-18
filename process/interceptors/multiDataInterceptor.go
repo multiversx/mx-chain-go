@@ -101,6 +101,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 	interceptedMultiData := make([]process.InterceptedData, 0)
 	lastErrEncountered := error(nil)
+	// TODO: might think of a way to gracefully close the goroutine which waits for the wait group
 	wgProcess := &sync.WaitGroup{}
 	wgProcess.Add(len(multiDataBuff))
 
