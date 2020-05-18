@@ -10,8 +10,8 @@ extern "C"
     int getNumArguments();
     int getArgument(int argumentIndex, byte *argument);
     int getArgumentLength(int argumentIndex);
-    int storageStore(byte *key, byte *data, int dataLength);
-    int storageLoad(byte *key, byte *data);
+    int storageStore(byte *key, int keyLength, byte *data, int dataLength);
+    int storageLoad(byte *key, int keyLength, byte *data);
     void signalError(byte *message, int length);
     void asyncCall(byte *destination, byte *value, byte *data, int length);
 }
@@ -47,7 +47,7 @@ extern "C" void getUltimateAnswer()
 extern "C" void getChildAddress()
 {
     byte childAddress[32];
-    storageLoad((byte *)childContractAddressKey, childAddress);
+    storageLoad((byte *)childContractAddressKey, 32, childAddress);
     finish(childAddress, 32);
 }
 
@@ -58,7 +58,7 @@ extern "C" void createChild()
     getArgument(0, code);
     byte childAddress[32];
     createContract(nullptr, code, codeLength, childAddress, 0, nullptr, nullptr);
-    storageStore((byte *)childContractAddressKey, childAddress, 32);
+    storageStore((byte *)childContractAddressKey, 32, childAddress, 32);
 }
 
 extern "C" void upgradeChild()
@@ -68,7 +68,7 @@ extern "C" void upgradeChild()
     getArgument(0, code);
 
     byte childAddress[32];
-    storageLoad((byte *)childContractAddressKey, childAddress);
+    storageLoad((byte *)childContractAddressKey, 32, childAddress);
 
     // "upgradeContract@code@0100"
     int dataLength = 15 + 1 + codeLength + 1 + 4;

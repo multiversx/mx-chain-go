@@ -88,7 +88,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 		nodes[idxNodeShard1].OwnAccount.Nonce,
 		factory.IELEVirtualMachine,
 	)
-	integrationTests.DeployScTx(nodes, idxNodeShard1, string(scCode), factory.IELEVirtualMachine)
+	integrationTests.DeployScTx(nodes, idxNodeShard1, string(scCode), factory.IELEVirtualMachine, "")
 
 	integrationTests.UpdateRound(nodes, round)
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
@@ -231,12 +231,12 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(100000000)
 	topUpValue := big.NewInt(500)
 	rewardValue := big.NewInt(10)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
-	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode), factory.IELEVirtualMachine)
+	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode), factory.IELEVirtualMachine, "")
 
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
@@ -352,11 +352,11 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(100000000)
 	topUpValue := big.NewInt(500)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
-	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode), factory.IELEVirtualMachine)
+	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode), factory.IELEVirtualMachine, "")
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
 	integrationTests.PlayerJoinsGame(
