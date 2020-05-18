@@ -10,6 +10,8 @@ import (
 
 var _ storage.Cacher = (*TxCache)(nil)
 
+type txHashes = [][]byte
+
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
 	name                          string
@@ -29,8 +31,13 @@ type TxCache struct {
 }
 
 // NewTxCache creates a new transaction cache
-func NewTxCache(config CacheConfig) *TxCache {
+func NewTxCache(config CacheConfig) (*TxCache, error) {
 	log.Debug("NewTxCache", "config", config)
+
+	err := config.verify()
+	if err != nil {
+		return nil, err
+	}
 
 	// Note: for simplicity, we use the same "numChunksHint" for both internal concurrent maps
 	numChunksHint := config.NumChunksHint
@@ -44,7 +51,7 @@ func NewTxCache(config CacheConfig) *TxCache {
 	}
 
 	txCache.initSweepable()
-	return txCache
+	return txCache, nil
 }
 
 // AddTx adds a transaction in the cache
@@ -62,10 +69,14 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	}
 
 	ok = true
-	added = cache.txByHash.addTx(tx)
+	added, evicted := cache.txListBySender.addTx(tx)
 	if added {
-		cache.txListBySender.addTx(tx)
+		cache.txByHash.addTx(tx)
 		cache.monitorTxAddition()
+	}
+
+	if len(evicted) > 0 {
+		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
 	return
@@ -142,7 +153,7 @@ func (cache *TxCache) doAfterSelection() {
 func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 	tx, ok := cache.txByHash.removeTx(string(txHash))
 	if !ok {
-		return ErrTxNotFound
+		return errTxNotFound
 	}
 
 	cache.monitorTxRemoval()
@@ -150,7 +161,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 	found := cache.txListBySender.removeTx(tx)
 	if !found {
 		cache.onRemoveTxInconsistency(txHash)
-		return ErrMapsSyncInconsistency
+		return errMapsSyncInconsistency
 	}
 
 	return nil
@@ -234,7 +245,7 @@ func (cache *TxCache) RemoveOldest() {
 }
 
 // Keys returns the tx hashes in the cache
-func (cache *TxCache) Keys() [][]byte {
+func (cache *TxCache) Keys() txHashes {
 	return cache.txByHash.keys()
 }
 

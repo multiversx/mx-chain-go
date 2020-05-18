@@ -241,7 +241,7 @@ func TestBucketSortedMap_GetSnapshotAscending(t *testing.T) {
 	myMap := NewBucketSortedMap(4, 100)
 
 	snapshot := myMap.GetSnapshotAscending()
-	require.ElementsMatch(t, []BucketSortedMapItem{}, snapshot)
+	require.Equal(t, []BucketSortedMapItem{}, snapshot)
 
 	a := newScoredDummyItem("a", 15)
 	b := newScoredDummyItem("b", 101)
@@ -256,14 +256,14 @@ func TestBucketSortedMap_GetSnapshotAscending(t *testing.T) {
 	simulateMutationThatChangesScore(myMap, "c")
 
 	snapshot = myMap.GetSnapshotAscending()
-	require.ElementsMatch(t, []BucketSortedMapItem{c, a, b}, snapshot)
+	require.Equal(t, []BucketSortedMapItem{c, a, b}, snapshot)
 }
 
 func TestBucketSortedMap_GetSnapshotDescending(t *testing.T) {
 	myMap := NewBucketSortedMap(4, 100)
 
 	snapshot := myMap.GetSnapshotDescending()
-	require.ElementsMatch(t, []BucketSortedMapItem{}, snapshot)
+	require.Equal(t, []BucketSortedMapItem{}, snapshot)
 
 	a := newScoredDummyItem("a", 15)
 	b := newScoredDummyItem("b", 101)
@@ -278,7 +278,7 @@ func TestBucketSortedMap_GetSnapshotDescending(t *testing.T) {
 	simulateMutationThatChangesScore(myMap, "c")
 
 	snapshot = myMap.GetSnapshotDescending()
-	require.ElementsMatch(t, []BucketSortedMapItem{b, a, c}, snapshot)
+	require.Equal(t, []BucketSortedMapItem{b, a, c}, snapshot)
 }
 
 func TestBucketSortedMap_AddManyItems(t *testing.T) {

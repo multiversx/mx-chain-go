@@ -113,8 +113,23 @@ var ErrNilNodesListSplitter = errors.New("nil nodes list splitter")
 // ErrNilNodesSetup signals that a nil nodes setup handler has been provided
 var ErrNilNodesSetup = errors.New("nil nodes setup")
 
-// ErrNilDeployProcessor signals that a nil deploy processor has been provided
-var ErrNilDeployProcessor = errors.New("nil deploy processor")
+// ErrAccountAlreadyExists signals that an account already exists
+var ErrAccountAlreadyExists = errors.New("account already exists")
+
+// ErrAccountNotCreated signals that an account could not have been created
+var ErrAccountNotCreated = errors.New("account not created")
 
 // ErrNilTrieStorageManager signals that a nil trie storage manager has been provided
 var ErrNilTrieStorageManager = errors.New("nil trie storage manager")
+
+// ErrWhileVerifyingDelegation signals that a verification error occurred
+var ErrWhileVerifyingDelegation = errors.New("error occurred while verifying delegation SC")
+
+// ErrNilQueryService signals that a nil query service has been provided
+var ErrNilQueryService = errors.New("nil query service")
+
+// ErrMissingElement signals a missing element event
+var ErrMissingElement = errors.New("missing element")
+
+// ErrGetVersionFromSC signals that a call to "version" function on a contract resulted in an unexpected result
+var ErrGetVersionFromSC = errors.New("get version from contract returned an invalid response")

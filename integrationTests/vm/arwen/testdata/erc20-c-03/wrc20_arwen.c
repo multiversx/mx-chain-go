@@ -92,11 +92,11 @@ void init() {
 
   // set total supply
   computeTotalSupplyKey(currentKey);
-  bigIntStorageStoreUnsigned(currentKey, totalSupply);
+  bigIntStorageStoreUnsigned(currentKey, 32, totalSupply);
 
   // sender balance <- total supply
   computeBalanceKey(currentKey, sender);
-  bigIntStorageStoreUnsigned(currentKey, totalSupply);
+  bigIntStorageStoreUnsigned(currentKey, 32, totalSupply);
 }
 
 // getter function: retrieves total token supply
@@ -107,7 +107,7 @@ void totalSupply() {
   // load total supply from storage
   computeTotalSupplyKey(currentKey);
   bigInt totalSupply = bigIntNew(0);
-  bigIntStorageLoadUnsigned(currentKey, totalSupply);
+  bigIntStorageLoadUnsigned(currentKey, 32, totalSupply);
 
   // return total supply as big int
   bigIntFinishUnsigned(totalSupply);
@@ -124,7 +124,7 @@ void balanceOf() {
   // load balance
   computeBalanceKey(currentKey, caller);
   bigInt balance = bigIntNew(0);
-  bigIntStorageLoadUnsigned(currentKey, balance);
+  bigIntStorageLoadUnsigned(currentKey, 32, balance);
 
   // return balance as big int
   bigIntFinishUnsigned(balance);
@@ -144,7 +144,7 @@ void allowance() {
   // get allowance
   computeAllowanceKey(currentKey, sender, recipient);
   bigInt allowance = bigIntNew(0);
-  bigIntStorageLoadUnsigned(currentKey, allowance);
+  bigIntStorageLoadUnsigned(currentKey, 32, allowance);
 
   // return allowance as big int
   bigIntFinishUnsigned(allowance);
@@ -172,7 +172,7 @@ void transferToken() {
   // load sender balance
   computeBalanceKey(currentKey, sender);
   bigInt senderBalance = bigIntNew(0);
-  bigIntStorageLoadUnsigned(currentKey, senderBalance);
+  bigIntStorageLoadUnsigned(currentKey, 32, senderBalance);
 
   // check if enough funds
   if (bigIntCmp(amount, senderBalance) > 0) {
@@ -182,14 +182,14 @@ void transferToken() {
 
   // update sender balance
   bigIntSub(senderBalance, senderBalance, amount);
-  bigIntStorageStoreUnsigned(currentKey, senderBalance);
+  bigIntStorageStoreUnsigned(currentKey, 32, senderBalance);
 
   // load & update receiver balance
   computeBalanceKey(currentKey, recipient);
   bigInt receiverBalance = bigIntNew(0);
-  bigIntStorageLoadUnsigned(currentKey, receiverBalance);
+  bigIntStorageLoadUnsigned(currentKey, 32, receiverBalance);
   bigIntAdd(receiverBalance, receiverBalance, amount);
-  bigIntStorageStoreUnsigned(currentKey, receiverBalance);
+  bigIntStorageStoreUnsigned(currentKey, 32, receiverBalance);
 
   // log operation
   saveLogWith3Topics(transferEvent, sender, recipient, amount);
@@ -217,7 +217,7 @@ void approve() {
 
   // store allowance
   computeAllowanceKey(currentKey, sender, recipient);
-  bigIntStorageStoreUnsigned(currentKey, amount);
+  bigIntStorageStoreUnsigned(currentKey, 32, amount);
 
   // log operation
   saveLogWith3Topics(approveEvent, sender, recipient, amount);
@@ -249,7 +249,7 @@ void transferFrom() {
   // load allowance
   computeAllowanceKey(currentKey, sender, caller);
   bigInt allowance = bigIntNew(0);
-  bigIntStorageLoadUnsigned(currentKey, allowance);
+  bigIntStorageLoadUnsigned(currentKey, 32, allowance);
 
   // amount should not exceed allowance
   if (bigIntCmp(amount, allowance) > 0) {
@@ -259,12 +259,12 @@ void transferFrom() {
 
   // update allowance
   bigIntSub(allowance, allowance, amount);
-  bigIntStorageStoreUnsigned(currentKey, allowance);
+  bigIntStorageStoreUnsigned(currentKey, 32, allowance);
 
   // load sender balance
   computeBalanceKey(currentKey, sender);
   bigInt senderBalance = bigIntNew(0);
-  bigIntStorageLoadUnsigned(currentKey, senderBalance);
+  bigIntStorageLoadUnsigned(currentKey, 32, senderBalance);
 
   // check if enough funds
   if (bigIntCmp(amount, senderBalance) > 0) {
@@ -274,14 +274,14 @@ void transferFrom() {
 
   // update sender balance
   bigIntSub(senderBalance, senderBalance, amount);
-  bigIntStorageStoreUnsigned(currentKey, senderBalance);
+  bigIntStorageStoreUnsigned(currentKey, 32, senderBalance);
 
   // load & update receiver balance
   computeBalanceKey(currentKey, recipient);
   bigInt receiverBalance = bigIntNew(0);
-  bigIntStorageLoadUnsigned(currentKey, receiverBalance);
+  bigIntStorageLoadUnsigned(currentKey, 32, receiverBalance);
   bigIntAdd(receiverBalance, receiverBalance, amount);
-  bigIntStorageStoreUnsigned(currentKey, receiverBalance);
+  bigIntStorageStoreUnsigned(currentKey, 32, receiverBalance);
 
   // log operation
   saveLogWith3Topics(transferEvent, sender, recipient, amount);

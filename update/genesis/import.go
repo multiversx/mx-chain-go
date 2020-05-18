@@ -22,6 +22,8 @@ import (
 
 var _ update.ImportHandler = (*stateImport)(nil)
 
+const maxTrieLevelInMemory = uint(5)
+
 // ArgsNewStateImport is the arguments structure to create a new state importer
 type ArgsNewStateImport struct {
 	Reader              update.MultiFileReader
@@ -238,7 +240,7 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (data.Trie, error) 
 		trieStorageManager = si.trieStorageManagers[triesFactory.PeerAccountTrie]
 	}
 
-	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher)
+	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher, maxTrieLevelInMemory)
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +271,7 @@ func (si *stateImport) importDataTrie(fileName string) error {
 		return fmt.Errorf("%w wanted a roothash", update.ErrWrongTypeAssertion)
 	}
 
-	dataTrie, err := trie.NewTrie(si.trieStorageManagers[triesFactory.UserAccountTrie], si.marshalizer, si.hasher)
+	dataTrie, err := trie.NewTrie(si.trieStorageManagers[triesFactory.UserAccountTrie], si.marshalizer, si.hasher, maxTrieLevelInMemory)
 	if err != nil {
 		return err
 	}

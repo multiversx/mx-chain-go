@@ -1,6 +1,7 @@
 package spos
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -9,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/close"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -20,6 +22,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
+
+var _ close.Closer = (*Worker)(nil)
+
+// sleepTime defines the time in milliseconds between each iteration made in checkChannels method
+const sleepTime = 5 * time.Millisecond
 
 // Worker defines the data needed by spos to communicate between nodes which are in the validators group
 type Worker struct {
@@ -64,6 +71,7 @@ type Worker struct {
 	signatureSize       int
 	publicKeySize       int
 	publicKeyBitmapSize int
+	cancelFunc          func()
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -137,12 +145,17 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 	maxMessagesInARoundPerPeer := wrk.consensusService.GetMaxMessagesInARoundPerPeer()
 	wrk.antifloodHandler.SetMaxMessagesForTopic(topic, maxMessagesInARoundPerPeer)
 
-	go wrk.checkChannels()
-
 	wrk.mapDisplayHashConsensusMessage = make(map[string][]*consensus.Message)
 	wrk.publicKeyBitmapSize = wrk.getPublicKeyBitmapSize()
 
 	return &wrk, nil
+}
+
+// StartWorking actually starts the consensus working mechanism
+func (wrk *Worker) StartWorking() {
+	var ctx context.Context
+	ctx, wrk.cancelFunc = context.WithCancel(context.Background())
+	go wrk.checkChannels(ctx)
 }
 
 func checkNewWorkerParams(
@@ -540,9 +553,19 @@ func (wrk *Worker) executeMessage(cnsDtaList []*consensus.Message) {
 
 // checkChannels method is used to listen to the channels through which node receives and consumes,
 // during the round, different messages from the nodes which are in the validators group
-func (wrk *Worker) checkChannels() {
+func (wrk *Worker) checkChannels(ctx context.Context) {
+	var rcvDta *consensus.Message
+
 	for {
-		rcvDta := <-wrk.executeMessageChannel
+		select {
+		case <-ctx.Done():
+			log.Debug("worker's go routine is stopping...")
+			return
+		case rcvDta = <-wrk.executeMessageChannel:
+		case <-time.After(sleepTime):
+			continue
+		}
+
 		msgType := consensus.MessageType(rcvDta.MsgType)
 		if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
 			if callReceivedMessage(rcvDta) {
@@ -621,6 +644,15 @@ func (wrk *Worker) SetAppStatusHandler(ash core.AppStatusHandler) error {
 		return ErrNilAppStatusHandler
 	}
 	wrk.appStatusHandler = ash
+
+	return nil
+}
+
+// Close will close the endless running go routine
+func (wrk *Worker) Close() error {
+	if wrk.cancelFunc != nil {
+		wrk.cancelFunc()
+	}
 
 	return nil
 }
