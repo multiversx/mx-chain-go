@@ -220,7 +220,7 @@
 
 [TxDataPool]
     Size = 900000
-    SizePerSender = 500
+    SizePerSender = 1000
     SizeInBytes = 524288000
     SizeInBytesPerSender = 614400
     Type = "TxCache"
