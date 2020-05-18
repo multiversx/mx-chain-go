@@ -2,11 +2,13 @@ package poolsCleaner
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/close"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -15,6 +17,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache"
 )
+
+var _ close.Closer = (*txsPoolsCleaner)(nil)
 
 // sleepTime defines the time between each iteration made in clean...Pools methods
 const sleepTime = time.Minute
@@ -45,6 +49,7 @@ type txsPoolsCleaner struct {
 	mutMapTxsRounds sync.RWMutex
 	mapTxsRounds    map[string]*txInfo
 	emptyAddress    []byte
+	cancelFunc      func()
 }
 
 // NewTxsPoolsCleaner will return a new txs pools cleaner
@@ -94,14 +99,25 @@ func NewTxsPoolsCleaner(
 
 	tpc.emptyAddress = make([]byte, tpc.addressPubkeyConverter.Len())
 
-	go tpc.cleanTxsPools()
-
 	return &tpc, nil
 }
 
-func (tpc *txsPoolsCleaner) cleanTxsPools() {
+// StartCleaning actually starts the pools cleaning mechanism
+func (tpc *txsPoolsCleaner) StartCleaning() {
+	var ctx context.Context
+	ctx, tpc.cancelFunc = context.WithCancel(context.Background())
+	go tpc.cleanTxsPools(ctx)
+}
+
+func (tpc *txsPoolsCleaner) cleanTxsPools(ctx context.Context) {
 	for {
-		time.Sleep(sleepTime)
+		select {
+		case <-ctx.Done():
+			log.Debug("txsPoolsCleaner's go routine is stopping...")
+			return
+		case <-time.After(sleepTime):
+		}
+
 		numTxsInMap := tpc.cleanTxsPoolsIfNeeded()
 		log.Debug("txsPoolsCleaner.cleanTxsPools", "num txs in map", numTxsInMap)
 	}
@@ -295,4 +311,18 @@ func (tpc *txsPoolsCleaner) getShardFromAddress(address []byte) (uint32, error) 
 	}
 
 	return tpc.shardCoordinator.ComputeId(address), nil
+}
+
+// Close will close the endless running go routine
+func (tpc *txsPoolsCleaner) Close() error {
+	if tpc.cancelFunc != nil {
+		tpc.cancelFunc()
+	}
+
+	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (tpc *txsPoolsCleaner) IsInterfaceNil() bool {
+	return tpc == nil
 }

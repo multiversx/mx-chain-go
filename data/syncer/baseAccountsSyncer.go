@@ -16,29 +16,31 @@ import (
 )
 
 type baseAccountsSyncer struct {
-	hasher             hashing.Hasher
-	marshalizer        marshal.Marshalizer
-	trieSyncers        map[string]data.TrieSyncer
-	dataTries          map[string]data.Trie
-	mutex              sync.Mutex
-	trieStorageManager data.StorageManager
-	requestHandler     trie.RequestHandler
-	waitTime           time.Duration
-	shardId            uint32
-	cacher             storage.Cacher
-	rootHash           []byte
+	hasher               hashing.Hasher
+	marshalizer          marshal.Marshalizer
+	trieSyncers          map[string]data.TrieSyncer
+	dataTries            map[string]data.Trie
+	mutex                sync.Mutex
+	trieStorageManager   data.StorageManager
+	requestHandler       trie.RequestHandler
+	waitTime             time.Duration
+	shardId              uint32
+	cacher               storage.Cacher
+	rootHash             []byte
+	maxTrieLevelInMemory uint
 }
 
 const minWaitTime = time.Second
 
 // ArgsNewBaseAccountsSyncer defines the arguments needed for the new account syncer
 type ArgsNewBaseAccountsSyncer struct {
-	Hasher             hashing.Hasher
-	Marshalizer        marshal.Marshalizer
-	TrieStorageManager data.StorageManager
-	RequestHandler     trie.RequestHandler
-	WaitTime           time.Duration
-	Cacher             storage.Cacher
+	Hasher               hashing.Hasher
+	Marshalizer          marshal.Marshalizer
+	TrieStorageManager   data.StorageManager
+	RequestHandler       trie.RequestHandler
+	WaitTime             time.Duration
+	Cacher               storage.Cacher
+	MaxTrieLevelInMemory uint
 }
 
 func checkArgs(args ArgsNewBaseAccountsSyncer) error {
@@ -67,7 +69,7 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte, trieTopic string, ctx context.Context) error {
 	b.rootHash = rootHash
 
-	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher)
+	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
 	if err != nil {
 		return err
 	}

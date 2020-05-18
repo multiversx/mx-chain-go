@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"context"
 	"math"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -100,8 +101,8 @@ func (boot *ShardBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data
 	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
-// StartSync method will start SyncBlocks as a go routine
-func (boot *ShardBootstrap) StartSync() {
+// StartSyncingBlocks method will start syncing blocks as a go routine
+func (boot *ShardBootstrap) StartSyncingBlocks() {
 	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
 	if errNotCritical != nil {
 		log.Debug("boot.syncFromStorer",
@@ -112,7 +113,9 @@ func (boot *ShardBootstrap) StartSync() {
 		boot.blockProcessor.SetNumProcessedObj(numTxs)
 	}
 
-	go boot.syncBlocks()
+	var ctx context.Context
+	ctx, boot.cancelFunc = context.WithCancel(context.Background())
+	go boot.syncBlocks(ctx)
 }
 
 // SyncBlock method actually does the synchronization. It requests the next block header from the pool
@@ -225,11 +228,6 @@ func (boot *ShardBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 	}
 
 	return header, nil
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (boot *ShardBootstrap) IsInterfaceNil() bool {
-	return boot == nil
 }
 
 func (boot *ShardBootstrap) haveHeaderInPoolWithNonce(nonce uint64) bool {

@@ -22,7 +22,7 @@ func (pb *pruningBuffer) add(rootHash []byte) {
 	defer pb.mutOp.Unlock()
 
 	if uint32(len(pb.buffer)) == pb.size {
-		log.Trace("pruning buffer is full", "rootHash", rootHash)
+		log.Warn("pruning buffer is full", "rootHash", rootHash)
 		return
 	}
 
