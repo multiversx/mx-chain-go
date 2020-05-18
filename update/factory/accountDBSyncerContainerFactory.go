@@ -19,24 +19,26 @@ import (
 
 // ArgsNewAccountsDBSyncersContainerFactory defines the arguments needed to create accounts DB syncers container
 type ArgsNewAccountsDBSyncersContainerFactory struct {
-	TrieCacher         storage.Cacher
-	RequestHandler     update.RequestHandler
-	ShardCoordinator   sharding.Coordinator
-	Hasher             hashing.Hasher
-	Marshalizer        marshal.Marshalizer
-	TrieStorageManager data.StorageManager
-	WaitTime           time.Duration
+	TrieCacher           storage.Cacher
+	RequestHandler       update.RequestHandler
+	ShardCoordinator     sharding.Coordinator
+	Hasher               hashing.Hasher
+	Marshalizer          marshal.Marshalizer
+	TrieStorageManager   data.StorageManager
+	WaitTime             time.Duration
+	MaxTrieLevelInMemory uint
 }
 
 type accountDBSyncersContainerFactory struct {
-	trieCacher         storage.Cacher
-	requestHandler     update.RequestHandler
-	container          update.AccountsDBSyncContainer
-	shardCoordinator   sharding.Coordinator
-	hasher             hashing.Hasher
-	marshalizer        marshal.Marshalizer
-	waitTime           time.Duration
-	trieStorageManager data.StorageManager
+	trieCacher           storage.Cacher
+	requestHandler       update.RequestHandler
+	container            update.AccountsDBSyncContainer
+	shardCoordinator     sharding.Coordinator
+	hasher               hashing.Hasher
+	marshalizer          marshal.Marshalizer
+	waitTime             time.Duration
+	trieStorageManager   data.StorageManager
+	maxTrieLevelinMemory uint
 }
 
 const minWaitTime = time.Second
@@ -105,12 +107,13 @@ func (a *accountDBSyncersContainerFactory) Create() (update.AccountsDBSyncContai
 func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint32) error {
 	args := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:             a.hasher,
-			Marshalizer:        a.marshalizer,
-			TrieStorageManager: a.trieStorageManager,
-			RequestHandler:     a.requestHandler,
-			WaitTime:           a.waitTime,
-			Cacher:             a.trieCacher,
+			Hasher:               a.hasher,
+			Marshalizer:          a.marshalizer,
+			TrieStorageManager:   a.trieStorageManager,
+			RequestHandler:       a.requestHandler,
+			WaitTime:             a.waitTime,
+			Cacher:               a.trieCacher,
+			MaxTrieLevelInMemory: a.maxTrieLevelinMemory,
 		},
 		ShardId: shardId,
 	}
@@ -126,12 +129,13 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId uint32) error {
 	args := syncer.ArgsNewValidatorAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:             a.hasher,
-			Marshalizer:        a.marshalizer,
-			TrieStorageManager: a.trieStorageManager,
-			RequestHandler:     a.requestHandler,
-			WaitTime:           a.waitTime,
-			Cacher:             a.trieCacher,
+			Hasher:               a.hasher,
+			Marshalizer:          a.marshalizer,
+			TrieStorageManager:   a.trieStorageManager,
+			RequestHandler:       a.requestHandler,
+			WaitTime:             a.waitTime,
+			Cacher:               a.trieCacher,
+			MaxTrieLevelInMemory: a.maxTrieLevelinMemory,
 		},
 	}
 	accountSyncer, err := syncer.NewValidatorAccountsSyncer(args)

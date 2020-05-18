@@ -1,9 +1,10 @@
 [
   {
-    "owner": "erd1pajyy0hn3kw5s9dn5pf8980fdy2d0evklrj03699uxtl4k0fyudqrzxf8j",
-    "filename": "./config/genesisContracts/answer.wasm",
+    "owner": "erd16grmckn46ry7fwyvass8e8pz88klazzpc0c5f0pnrv643td4797sgnvjkm",
+    "filename": "./config/genesisContracts/delegation.wasm",
     "vm-type": "0500",
-    "init-parameters": "",
-    "type": "test"
+    "init-parameters": "0BB8@%auction_sc_address%@0A61D0",
+    "type": "delegation",
+    "version": "0.2.*"
   }
 ]

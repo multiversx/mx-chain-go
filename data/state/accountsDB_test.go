@@ -810,7 +810,8 @@ func TestAccountsDB_RevertToSnapshotShouldWork(t *testing.T) {
 	hsh := mock.HasherMock{}
 	accFactory := factory.NewAccountCreator()
 	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
-	tr, _ := trie.NewTrie(storageManager, marsh, hsh)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(storageManager, marsh, hsh, maxTrieLevelInMemory)
 
 	adb, _ := state.NewAccountsDB(tr, hsh, marsh, accFactory)
 

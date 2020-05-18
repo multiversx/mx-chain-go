@@ -296,6 +296,71 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWorkEvenIfNotAllShardsHaveRewards(t *testing.T) {
+	t.Parallel()
+
+	receivedShardID := uint32(5)
+	shardCoordinator := &mock.ShardCoordinatorStub{
+		ComputeIdCalled: func(address []byte) uint32 {
+			return receivedShardID
+		},
+		NumberOfShardsCalled: func() uint32 {
+			return receivedShardID + 1
+		}}
+	args := getRewardsArguments()
+	args.ShardCoordinator = shardCoordinator
+	rwd, _ := NewEpochStartRewardsCreator(args)
+	rwdTx := rewardTx.RewardTx{
+		Round:   0,
+		Value:   big.NewInt(100),
+		RcvAddr: []byte{},
+		Epoch:   0,
+	}
+	rwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, rwdTx)
+
+	communityRewardTx := rewardTx.RewardTx{
+		Round:   0,
+		Value:   big.NewInt(50),
+		RcvAddr: []byte{17},
+		Epoch:   0,
+	}
+	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, communityRewardTx)
+
+	bdy := block.MiniBlock{
+		TxHashes:        [][]byte{commRwdTxHash, rwdTxHash},
+		ReceiverShardID: receivedShardID,
+		SenderShardID:   core.MetachainShardId,
+		Type:            block.RewardsBlock,
+	}
+	mbh := block.MiniBlockHeader{
+		Hash:            nil,
+		SenderShardID:   core.MetachainShardId,
+		ReceiverShardID: receivedShardID,
+		TxCount:         2,
+		Type:            block.RewardsBlock,
+	}
+	mbHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &mock.HasherMock{}, bdy)
+	mbh.Hash = mbHash
+
+	mb := &block.MetaBlock{
+		EpochStart: getDefaultEpochStart(),
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			mbh,
+		},
+	}
+	valInfo := make(map[uint32][]*state.ValidatorInfo)
+	valInfo[0] = []*state.ValidatorInfo{
+		{
+			PublicKey:       []byte("pubkey"),
+			ShardId:         receivedShardID,
+			AccumulatedFees: big.NewInt(100),
+		},
+	}
+
+	err := rwd.VerifyRewardsMiniBlocks(mb, valInfo)
+	assert.Nil(t, err)
+}
+
 func TestRewardsCreator_CreateMarshalizedData(t *testing.T) {
 	t.Parallel()
 

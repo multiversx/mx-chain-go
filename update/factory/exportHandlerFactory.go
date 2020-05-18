@@ -47,6 +47,7 @@ type ArgsExporter struct {
 	ExportFolder             string
 	ExportTriesStorageConfig config.StorageConfig
 	ExportStateStorageConfig config.StorageConfig
+	MaxTrieLevelInMemory     uint
 	WhiteListHandler         process.WhiteListHandler
 	WhiteListerVerifiedTxs   process.WhiteListHandler
 	InterceptorsContainer    process.InterceptorsContainer
@@ -79,6 +80,7 @@ type exportHandlerFactory struct {
 	exportFolder             string
 	exportTriesStorageConfig config.StorageConfig
 	exportStateStorageConfig config.StorageConfig
+	maxTrieLevelInMemory     uint
 	whiteListHandler         process.WhiteListHandler
 	whiteListerVerifiedTxs   process.WhiteListHandler
 	interceptorsContainer    process.InterceptorsContainer
@@ -248,11 +250,12 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsDataTrieFactory := ArgsNewDataTrieFactory{
-		StorageConfig:    e.exportTriesStorageConfig,
-		SyncFolder:       e.exportFolder,
-		Marshalizer:      e.marshalizer,
-		Hasher:           e.hasher,
-		ShardCoordinator: e.shardCoordinator,
+		StorageConfig:        e.exportTriesStorageConfig,
+		SyncFolder:           e.exportFolder,
+		Marshalizer:          e.marshalizer,
+		Hasher:               e.hasher,
+		ShardCoordinator:     e.shardCoordinator,
+		MaxTrieLevelInMemory: e.maxTrieLevelInMemory,
 	}
 	dataTriesContainerFactory, err := NewDataTrieFactory(argsDataTrieFactory)
 	if err != nil {
@@ -283,13 +286,14 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsAccountsSyncers := ArgsNewAccountsDBSyncersContainerFactory{
-		TrieCacher:         e.dataPool.TrieNodes(),
-		RequestHandler:     e.requestHandler,
-		ShardCoordinator:   e.shardCoordinator,
-		Hasher:             e.hasher,
-		Marshalizer:        e.marshalizer,
-		TrieStorageManager: dataTriesContainerFactory.TrieStorageManager(),
-		WaitTime:           time.Minute,
+		TrieCacher:           e.dataPool.TrieNodes(),
+		RequestHandler:       e.requestHandler,
+		ShardCoordinator:     e.shardCoordinator,
+		Hasher:               e.hasher,
+		Marshalizer:          e.marshalizer,
+		TrieStorageManager:   dataTriesContainerFactory.TrieStorageManager(),
+		WaitTime:             time.Minute,
+		MaxTrieLevelInMemory: e.maxTrieLevelInMemory,
 	}
 	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)
 	if err != nil {

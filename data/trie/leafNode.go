@@ -108,7 +108,7 @@ func (ln *leafNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(ln)
 }
 
-func (ln *leafNode) commit(force bool, _ byte, _ data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+func (ln *leafNode) commit(force bool, _ byte, _ uint, _ data.DBWriteCacher, targetDb data.DBWriteCacher) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit error %w", err)

@@ -21,10 +21,6 @@ func (ips *InterceptorProcessorStub) Save(data process.InterceptedData, _ p2p.Pe
 	return ips.SaveCalled(data)
 }
 
-// SignalEndOfProcessing -
-func (ips *InterceptorProcessorStub) SignalEndOfProcessing(_ []process.InterceptedData) {
-}
-
 // IsInterfaceNil -
 func (ips *InterceptorProcessorStub) IsInterfaceNil() bool {
 	return ips == nil
