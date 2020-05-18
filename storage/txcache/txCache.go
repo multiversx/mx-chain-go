@@ -89,7 +89,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 			alarms.RaiseTransactionsAlarm()
 		}
 	} else {
-		log.Debug("TxCache.AddTx() NOT ADDED (perhaps duplicated)", "tx", tx.TxHash)
+		log.Trace("TxCache.AddTx() NOT ADDED (perhaps duplicated)", "tx", tx.TxHash)
 	}
 
 	return
