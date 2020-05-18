@@ -160,6 +160,12 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 			forBlock.missingTxs--
 		}
 
+		if forBlock.missingTxs == 0 {
+			logMissing.Debug("basePreProcess.baseReceivedTransaction() RESOLVED ALL missing", "len(forBlock)", len(forBlock.txHashAndInfo))
+		} else {
+			logMissing.Trace("basePreProcess.baseReceivedTransaction() STILL MISSING transactions", "missingTxs", forBlock.missingTxs)
+		}
+
 		return forBlock.missingTxs == 0
 	}
 

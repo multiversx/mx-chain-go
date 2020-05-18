@@ -68,6 +68,17 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		cache.monitorTxAddition()
 	}
 
+	if added {
+		_, reallyAdded := cache.GetByTxHash(tx.TxHash)
+		if reallyAdded {
+			log.Trace("TxCache.AddTx() ADDED", "tx", tx.TxHash)
+		} else {
+			log.Warn("TxCache.AddTx() ADDED-REMOVED", "tx", tx.TxHash)
+		}
+	} else {
+		log.Debug("TxCache.AddTx() NOT ADDED (perhaps duplicated)", "tx", tx.TxHash)
+	}
+
 	return
 }
 

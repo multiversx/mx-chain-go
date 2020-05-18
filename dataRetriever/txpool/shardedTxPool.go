@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/counting"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -172,6 +172,7 @@ func (txPool *shardedTxPool) onAdded(key []byte, value interface{}) {
 	defer txPool.mutexAddCallbacks.RUnlock()
 
 	for _, handler := range txPool.onAddCallbacks {
+		// TODO: Not on goroutine?
 		go handler(key, value)
 	}
 }

@@ -30,6 +30,7 @@ var _ process.DataMarshalizer = (*transactions)(nil)
 var _ process.PreProcessor = (*transactions)(nil)
 
 var log = logger.GetOrCreate("process/block/preprocess")
+var logMissing = logger.GetOrCreate("missingTransactions")
 
 // TODO: increase code coverage with unit test
 
@@ -523,6 +524,12 @@ func (txs *transactions) receivedTransaction(key []byte, value interface{}) {
 		return
 	}
 
+	_, reallyHasTransaction := txs.txPool.SearchFirstData(key)
+	if !reallyHasTransaction {
+		log.Warn("transactions.receivedTransaction(), but NOT IN POOL", "tx", key)
+		logger.SetLogLevel("*:DEBUG,api:INFO,txcache:TRACE,missingTransactions:TRACE,dataretriever/requesthandlers:TRACE")
+	}
+
 	receivedAllMissing := txs.baseReceivedTransaction(key, wrappedTx.Tx, &txs.txsForCurrBlock)
 
 	if receivedAllMissing {
@@ -643,6 +650,7 @@ func (txs *transactions) RequestTransactionsForMiniBlock(miniBlock *block.MiniBl
 
 	missingTxsForMiniBlock := txs.computeMissingTxsForMiniBlock(miniBlock)
 	if len(missingTxsForMiniBlock) > 0 {
+		log.Debug("transactions.RequestTransactionsForMiniBlock()", "txs", missingTxsForMiniBlock)
 		txs.onRequestTransaction(miniBlock.SenderShardID, missingTxsForMiniBlock)
 	}
 
