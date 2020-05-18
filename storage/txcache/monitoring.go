@@ -93,14 +93,11 @@ type evictionJournal struct {
 	evictionPerformed bool
 	passOneNumTxs     uint32
 	passOneNumSenders uint32
-	passTwoNumTxs     uint32
-	passTwoNumSenders uint32
-	passTwoNumSteps   uint32
+	passOneNumSteps   uint32
 }
 
 func (journal *evictionJournal) display() {
-	log.Debug("Eviction.pass1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders)
-	log.Debug("Eviction.pass2:", "txs", journal.passTwoNumTxs, "senders", journal.passTwoNumSenders, "steps", journal.passTwoNumSteps)
+	log.Debug("Eviction.pass1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders, "steps", journal.passOneNumSteps)
 }
 
 func (cache *TxCache) diagnose() {
