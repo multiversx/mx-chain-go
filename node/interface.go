@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // P2PMessenger defines a subset of the p2p.Messenger interface
@@ -55,6 +56,7 @@ type HardforkTrigger interface {
 	RecordedTriggerMessage() ([]byte, bool)
 	Trigger(epoch uint32) error
 	CreateData() []byte
+	AddCloser(closer update.Closer) error
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }

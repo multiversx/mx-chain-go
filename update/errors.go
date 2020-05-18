@@ -158,8 +158,8 @@ var ErrTimeIsOut = errors.New("time is out")
 // ErrTriggerNotEnabled signals that the trigger is not enabled
 var ErrTriggerNotEnabled = errors.New("trigger is not enabled")
 
-// ErrNilHandler signals that a nil trigger handler was provided
-var ErrNilHandler = errors.New("nil handler")
+// ErrNilCloser signals that a nil closer instance was provided
+var ErrNilCloser = errors.New("nil closer instance")
 
 // ErrInvalidValue signals that the value provided is invalid
 var ErrInvalidValue = errors.New("invalid value")
@@ -211,3 +211,6 @@ var ErrNilChanStopNodeProcess = errors.New("nil channel to stop node")
 
 // ErrNilEpochConfirmedNotifier signals that nil epoch confirmed notifier was provided
 var ErrNilEpochConfirmedNotifier = errors.New("nil epoch confirmed notifier")
+
+// ErrTriggerAlreadyDone signals that the trigger is already in action, can not re-enter
+var ErrTriggerAlreadyDone = errors.New("trigger already in action")

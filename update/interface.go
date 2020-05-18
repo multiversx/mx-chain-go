@@ -227,3 +227,9 @@ type EpochChangeConfirmedNotifier interface {
 	RegisterForEpochChangeConfirmed(handler func(epoch uint32))
 	IsInterfaceNil() bool
 }
+
+// Closer defines the functionality of an entity that can be closed
+type Closer interface {
+	Close() error
+	IsInterfaceNil() bool
+}

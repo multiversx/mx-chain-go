@@ -145,3 +145,4 @@ export TOTAL_OBSERVERCOUNT=$total_observer_count
 let "total_node_count = $SHARD_VALIDATORCOUNT * $SHARDCOUNT + $META_VALIDATORCOUNT + $TOTAL_OBSERVERCOUNT"
 export TOTAL_NODECOUNT=$total_node_count
 
+export USE_HARDFORK=1

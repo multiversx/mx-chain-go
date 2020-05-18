@@ -46,6 +46,7 @@ import (
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // SendTransactionsPipe is the pipe used for sending new transactions
@@ -360,6 +361,17 @@ func (n *Node) StartConsensus() error {
 	}
 
 	chronologyHandler.StartRounds()
+
+	return n.addCloserInstances(chronologyHandler, bootstrapper, worker, n.syncTimer)
+}
+
+func (n *Node) addCloserInstances(closers ...update.Closer) error {
+	for _, c := range closers {
+		err := n.hardforkTrigger.AddCloser(c)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

@@ -424,31 +424,31 @@
 	StartNonce = 10000
 	StartEpoch = 100
 	ValidatorGracePeriodInEpochs = 1 #defines how long is the rating computation disabled after hardfork
-	[HardFork.ExportStateStorageConfig]
-	    [HardFork.ExportStateStorageConfig.Cache]
+	[Hardfork.ExportStateStorageConfig]
+	    [Hardfork.ExportStateStorageConfig.Cache]
             Size = 5000
             Type = "LRU"
-        [HardFork.ExportStateStorageConfig.DB]
+        [Hardfork.ExportStateStorageConfig.DB]
             FilePath = "ExportStateStorage/MainDB"
             Type = "LvlDBSerial"
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
-    [HardFork.ExportTriesStorageConfig]
-        [HardFork.ExportTriesStorageConfig.Cache]
+    [Hardfork.ExportTriesStorageConfig]
+        [Hardfork.ExportTriesStorageConfig.Cache]
             Size = 5000
             Type = "LRU"
-        [HardFork.ExportTriesStorageConfig.DB]
+        [Hardfork.ExportTriesStorageConfig.DB]
             FilePath = "ExportTrieStorage/MainTrie"
             Type = "LvlDBSerial"
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
-	[HardFork.ImportStateStorageConfig]
-	    [HardFork.ImportStateStorageConfig.Cache]
+	[Hardfork.ImportStateStorageConfig]
+	    [Hardfork.ImportStateStorageConfig.Cache]
             Size = 5000
             Type = "LRU"
-        [HardFork.ImportStateStorageConfig.DB]
+        [Hardfork.ImportStateStorageConfig.DB]
             FilePath = "ExportStateStorage/MainDB"
             Type = "LvlDBSerial"
             BatchDelaySeconds = 2

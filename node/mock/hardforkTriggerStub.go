@@ -1,5 +1,7 @@
 package mock
 
+import "github.com/ElrondNetwork/elrond-go/update"
+
 // HardforkTriggerStub -
 type HardforkTriggerStub struct {
 	TriggerCalled                func(epoch uint32) error
@@ -7,6 +9,7 @@ type HardforkTriggerStub struct {
 	TriggerReceivedCalled        func(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessageCalled func() ([]byte, bool)
 	CreateDataCalled             func() []byte
+	AddCloserCalled              func(closer update.Closer) error
 }
 
 // Trigger -
@@ -52,6 +55,15 @@ func (hts *HardforkTriggerStub) CreateData() []byte {
 	}
 
 	return make([]byte, 0)
+}
+
+// AddCloser -
+func (hts *HardforkTriggerStub) AddCloser(closer update.Closer) error {
+	if hts.AddCloserCalled != nil {
+		return hts.AddCloserCalled(closer)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -

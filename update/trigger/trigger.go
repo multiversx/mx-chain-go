@@ -41,8 +41,6 @@ type ArgHardforkTrigger struct {
 // trigger implements a hardfork trigger that is able to notify a set list of handlers if this instance gets triggered
 // by external events
 type trigger struct {
-	mutTriggerHandlers     sync.RWMutex
-	triggerHandlers        []func(epoch uint32)
 	triggerPubKey          []byte
 	selfPubKey             []byte
 	enabled                bool
@@ -59,6 +57,8 @@ type trigger struct {
 	closeAfterInMinutes    uint32
 	chanStopNodeProcess    chan endProcess.ArgEndProcess
 	epochConfirmedNotifier update.EpochChangeConfirmedNotifier
+	mutClosers             sync.RWMutex
+	closers                []update.Closer
 }
 
 // NewTrigger returns the trigger instance
@@ -86,7 +86,6 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 	}
 
 	t := &trigger{
-		triggerHandlers:      make([]func(epoch uint32), 0),
 		enabled:              arg.Enabled,
 		enabledAuthenticated: arg.EnabledAuthenticated,
 		selfPubKey:           arg.SelfPubKeyBytes,
@@ -97,6 +96,7 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 		exportFactoryHandler: arg.ExportFactoryHandler,
 		closeAfterInMinutes:  arg.CloseAfterExportInMinutes,
 		chanStopNodeProcess:  arg.ChanStopNodeProcess,
+		closers:              make([]update.Closer, 0),
 	}
 
 	t.isTriggerSelf = bytes.Equal(arg.TriggerPubKeyBytes, arg.SelfPubKeyBytes)
@@ -134,6 +134,10 @@ func (t *trigger) Trigger(epoch uint32) error {
 	}
 
 	t.mutTriggered.Lock()
+	if t.triggered {
+		t.mutTriggered.Unlock()
+		return update.ErrTriggerAlreadyDone
+	}
 	t.triggered = true
 	t.epoch = epoch
 	t.mutTriggered.Unlock()
@@ -144,11 +148,15 @@ func (t *trigger) Trigger(epoch uint32) error {
 }
 
 func (t *trigger) doTrigger(epoch uint32) {
-	t.callAddedDataHandlers(epoch)
-
 	if epoch > t.epochProvider.MetaEpoch() {
 		return
 	}
+
+	t.mutTriggered.Lock()
+	t.triggered = true
+	t.mutTriggered.Unlock()
+
+	t.callClose()
 
 	t.exportAll()
 }
@@ -237,6 +245,12 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 	}
 
 	t.mutTriggered.Lock()
+	if t.triggered {
+		t.mutTriggered.Unlock()
+
+		return true, nil //trigger already in action for self node, send it to others
+	}
+
 	t.triggered = true
 	t.recordedTriggerMessage = originalPayload
 	t.epoch = uint32(epoch)
@@ -245,6 +259,19 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 	t.doTrigger(uint32(epoch))
 
 	return true, nil
+}
+
+func (t *trigger) callClose() {
+	log.Debug("calling close on all registered instances")
+
+	t.mutClosers.RLock()
+	for _, c := range t.closers {
+		err := c.Close()
+		if err != nil {
+			log.Warn("error closing registered instance", "error", err)
+		}
+	}
+	t.mutClosers.RUnlock()
 }
 
 func (t *trigger) getIntFromArgument(value string) (int64, error) {
@@ -257,27 +284,6 @@ func (t *trigger) getIntFromArgument(value string) (int64, error) {
 	}
 
 	return n, nil
-}
-
-func (t *trigger) callAddedDataHandlers(epoch uint32) {
-	t.mutTriggerHandlers.RLock()
-	for _, handler := range t.triggerHandlers {
-		go handler(epoch)
-	}
-	t.mutTriggerHandlers.RUnlock()
-}
-
-// RegisterHandler will add a trigger event handler to the list
-func (t *trigger) RegisterHandler(handler func(epoch uint32)) error {
-	if handler == nil {
-		return fmt.Errorf("%w when setting a hardfork trigger", update.ErrNilHandler)
-	}
-
-	t.mutTriggerHandlers.Lock()
-	t.triggerHandlers = append(t.triggerHandlers, handler)
-	t.mutTriggerHandlers.Unlock()
-
-	return nil
 }
 
 // IsSelfTrigger returns true if self public key is the trigger public key set in the configs
@@ -302,6 +308,19 @@ func (t *trigger) CreateData() []byte {
 	t.mutTriggered.RUnlock()
 
 	return []byte(payload)
+}
+
+// AddCloser will add a closer interface on the existing list
+func (t *trigger) AddCloser(closer update.Closer) error {
+	if check.IfNil(closer) {
+		return update.ErrNilCloser
+	}
+
+	t.mutClosers.Lock()
+	t.closers = append(t.closers, closer)
+	t.mutClosers.Unlock()
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
