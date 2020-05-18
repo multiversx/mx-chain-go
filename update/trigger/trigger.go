@@ -76,7 +76,7 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 		return nil, update.ErrNilEpochHandler
 	}
 	if check.IfNil(arg.ExportFactoryHandler) {
-		return nil, update.ErrNilExportHandlerFactory
+		return nil, update.ErrNilExportFacotryHandler
 	}
 	if arg.ChanStopNodeProcess == nil {
 		return nil, update.ErrNilChanStopNodeProcess
@@ -115,10 +115,10 @@ func (t *trigger) epochConfirmed(epoch uint32) {
 		return
 	}
 
-	t.mutTriggered.Lock()
+	t.mutTriggered.RLock()
 	isTriggered := t.triggered
 	triggeredEpoch := t.epoch
-	t.mutTriggered.Unlock()
+	t.mutTriggered.RUnlock()
 
 	if !isTriggered || triggeredEpoch > epoch {
 		return
@@ -127,7 +127,7 @@ func (t *trigger) epochConfirmed(epoch uint32) {
 	t.exportAll()
 }
 
-// Trigger will start of the hardfork process
+// Trigger will start the hardfork process
 func (t *trigger) Trigger(epoch uint32) error {
 	if !t.enabled {
 		return update.ErrTriggerNotEnabled
@@ -223,7 +223,7 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 
 	currentTimeStamp := t.getTimestampHandler()
 	if timestamp+int64(hardforkGracePeriod.Seconds()) < currentTimeStamp {
-		return true, fmt.Errorf("%w timestamp out of grace period message", update.ErrIncorrectHardforkMessage)
+		return true, fmt.Errorf("%w message timestamp out of grace period message", update.ErrIncorrectHardforkMessage)
 	}
 
 	epoch, err := t.getIntFromArgument(string(arguments[1]))
@@ -233,7 +233,7 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 
 	currentEpoch := int64(t.epochProvider.MetaEpoch())
 	if currentEpoch-epoch > epochGracePeriod {
-		return true, fmt.Errorf("%w epoch out of grace perdiod", update.ErrIncorrectHardforkMessage)
+		return true, fmt.Errorf("%w epoch out of grace period", update.ErrIncorrectHardforkMessage)
 	}
 
 	t.mutTriggered.Lock()
