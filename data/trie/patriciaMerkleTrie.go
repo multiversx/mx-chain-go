@@ -58,6 +58,9 @@ func NewTrie(
 	if check.IfNil(hsh) {
 		return nil, ErrNilHasher
 	}
+	if maxTrieLevelInMemory <= 0 {
+		return nil, ErrInvalidLevelValue
+	}
 	log.Debug("created new trie", "max trie level in memory", maxTrieLevelInMemory)
 
 	return &patriciaMerkleTrie{
@@ -514,7 +517,9 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 // GetAllLeaves iterates the trie and returns a map that contains all leafNodes information
 func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
-	//TODO: save those leafs into a levelDB struct (cache and storage) and at processing time to get from that structure.
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
 	if tr.root == nil {
 		return map[string][]byte{}, nil
 	}
