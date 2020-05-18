@@ -25,6 +25,10 @@ type networkComponents struct {
 	inputAntifloodHandler  P2PAntifloodHandler
 	outputAntifloodHandler P2PAntifloodHandler
 	peerBlackListHandler   process.BlackListHandler
+	floodPreventer         process.FloodPreventer
+	outFloodPreventer      process.FloodPreventer
+	topicFloodPreventer    process.TopicFloodPreventer
+	antifloodConfig        config.AntifloodConfig
 }
 
 // NewNetworkComponentsFactory returns a new instance of a network components factory
@@ -57,17 +61,18 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	inAntifloodHandler, p2pPeerBlackList, errNewAntiflood := antifloodFactory.NewP2PAntiFloodAndBlackList(ncf.mainConfig, ncf.statusHandler)
-	if errNewAntiflood != nil {
-		return nil, errNewAntiflood
+	antiFloodComponents, err := antifloodFactory.NewP2PAntiFloodAndBlackList(ncf.mainConfig, ncf.statusHandler)
+	if err != nil {
+		return nil, err
 	}
+	inAntifloodHandler, p2pPeerBlackList := antiFloodComponents.AntiFloodHandler, antiFloodComponents.BlacklistHandler
 
 	inputAntifloodHandler, ok := inAntifloodHandler.(P2PAntifloodHandler)
 	if !ok {
 		return nil, fmt.Errorf("%w when casting input antiflood handler to structs/P2PAntifloodHandler", ErrWrongTypeAssertion)
 	}
 
-	outAntifloodHandler, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(ncf.mainConfig)
+	outAntifloodHandler, outFloodPreventer, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(ncf.mainConfig)
 	if errOutputAntiflood != nil {
 		return nil, errOutputAntiflood
 	}
@@ -87,5 +92,9 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		inputAntifloodHandler:  inputAntifloodHandler,
 		outputAntifloodHandler: outputAntifloodHandler,
 		peerBlackListHandler:   p2pPeerBlackList,
+		floodPreventer:         antiFloodComponents.FloodPreventer,
+		outFloodPreventer:      outFloodPreventer,
+		topicFloodPreventer:    antiFloodComponents.TopicFloodPreventer,
+		antifloodConfig:        ncf.mainConfig.Antiflood,
 	}, nil
 }
