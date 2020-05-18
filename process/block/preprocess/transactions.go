@@ -913,7 +913,11 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 			if errors.Is(err, process.ErrHigherNonceInTransaction) {
 				account, _ := txs.getAccountForAddress([]byte(tx.GetSndAddr()))
-				log.Debug("bad tx ErrHigherNonceInTransaction; senderAddressToSkip", "sender", tx.GetSndAddr(), "correctNonce", account.GetNonce(), "txNonce", tx.GetNonce(), "hash", txHash)
+				accountNonce := -1
+				if account != nil {
+					accountNonce = int(account.GetNonce())
+				}
+				log.Debug("bad tx ErrHigherNonceInTransaction; senderAddressToSkip", "sender", tx.GetSndAddr(), "correctNonce", accountNonce, "txNonce", tx.GetNonce(), "hash", txHash)
 				senderAddressToSkip = tx.GetSndAddr()
 			}
 

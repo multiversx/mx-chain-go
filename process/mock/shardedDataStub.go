@@ -39,7 +39,10 @@ func (sd *ShardedDataStub) AddData(key []byte, data interface{}, cacheId string)
 
 // SearchFirstData -
 func (sd *ShardedDataStub) SearchFirstData(key []byte) (value interface{}, ok bool) {
-	return sd.SearchFirstDataCalled(key)
+	if sd.SearchFirstDataCalled != nil {
+		return sd.SearchFirstDataCalled(key)
+	}
+	return nil, false
 }
 
 // RemoveData -
