@@ -518,7 +518,11 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.OutOfGas
 	}
 
-	registrationData.RewardAddress = args.CallerAddr
+	isAlreadyRegistered := len(registrationData.RewardAddress) > 0
+	if !isAlreadyRegistered {
+		registrationData.RewardAddress = args.CallerAddr
+	}
+
 	registrationData.MaxStakePerNode = big.NewInt(0).Set(registrationData.TotalStakeValue)
 	registrationData.Epoch = s.eei.BlockChainHook().CurrentEpoch()
 
@@ -527,10 +531,17 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	if uint64(lenArgs) > maxNodesToRun*2+1 {
 		for i := maxNodesToRun*2 + 1; i < uint64(lenArgs); i++ {
 			if len(args.Arguments[i]) == len(args.CallerAddr) {
-				registrationData.RewardAddress = args.Arguments[i]
-			} else {
-				registrationData.MaxStakePerNode.SetBytes(args.Arguments[i])
+				if !isAlreadyRegistered {
+					registrationData.RewardAddress = args.Arguments[i]
+				}
+				continue
 			}
+
+			maxStakePerNode, ok := big.NewInt(0).SetString(string(args.Arguments[i]), conversionBase)
+			if !ok {
+				continue
+			}
+			registrationData.MaxStakePerNode.Set(maxStakePerNode)
 		}
 	}
 
