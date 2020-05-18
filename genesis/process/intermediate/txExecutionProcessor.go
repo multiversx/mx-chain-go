@@ -69,7 +69,6 @@ func (tep *txExecutionProcessor) GetNonce(senderBytes []byte) (uint64, error) {
 // AccountExists returns if an account exists in the accounts DB
 func (tep *txExecutionProcessor) AccountExists(address []byte) bool {
 	_, err := tep.accounts.GetExistingAccount(address)
-
 	return err == nil
 }
 

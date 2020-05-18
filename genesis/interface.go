@@ -64,6 +64,7 @@ type InitialSmartContractHandler interface {
 	AddressBytes() []byte
 	SetAddress(address string)
 	Address() string
+	GetVersion() string
 	IsInterfaceNil() bool
 }
 

@@ -2,6 +2,7 @@ package intermediate
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -17,8 +18,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMockArg() ArgDelegationProcessor {
-	return ArgDelegationProcessor{
+func createMockStandardDelegationProcessorArg() ArgStandardDelegationProcessor {
+	return ArgStandardDelegationProcessor{
 		Executor:            &mock.TxExecutionProcessorStub{},
 		ShardCoordinator:    &mock.ShardCoordinatorMock{},
 		AccountsParser:      &mock.AccountsParserStub{},
@@ -29,99 +30,99 @@ func createMockArg() ArgDelegationProcessor {
 	}
 }
 
-func TestNewDelegationProcessor_NilExecutorShouldErr(t *testing.T) {
+func TestNewStandardDelegationProcessor_NilExecutorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockStandardDelegationProcessorArg()
 	arg.Executor = nil
-	dp, err := NewDelegationProcessor(arg)
+	dp, err := NewStandardDelegationProcessor(arg)
 
 	assert.True(t, check.IfNil(dp))
 	assert.Equal(t, genesis.ErrNilTxExecutionProcessor, err)
 }
 
-func TestNewDelegationProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
+func TestNewStandardDelegationProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockStandardDelegationProcessorArg()
 	arg.ShardCoordinator = nil
-	dp, err := NewDelegationProcessor(arg)
+	dp, err := NewStandardDelegationProcessor(arg)
 
 	assert.True(t, check.IfNil(dp))
 	assert.Equal(t, genesis.ErrNilShardCoordinator, err)
 }
 
-func TestNewDelegationProcessor_NilAccountsParserShouldErr(t *testing.T) {
+func TestNewStandardDelegationProcessor_NilAccountsParserShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockStandardDelegationProcessorArg()
 	arg.AccountsParser = nil
-	dp, err := NewDelegationProcessor(arg)
+	dp, err := NewStandardDelegationProcessor(arg)
 
 	assert.True(t, check.IfNil(dp))
 	assert.Equal(t, genesis.ErrNilAccountsParser, err)
 }
 
-func TestNewDelegationProcessor_NilSmartContractParserShouldErr(t *testing.T) {
+func TestNewStandardDelegationProcessor_NilSmartContractParserShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockStandardDelegationProcessorArg()
 	arg.SmartContractParser = nil
-	dp, err := NewDelegationProcessor(arg)
+	dp, err := NewStandardDelegationProcessor(arg)
 
 	assert.True(t, check.IfNil(dp))
 	assert.Equal(t, genesis.ErrNilSmartContractParser, err)
 }
 
-func TestNewDelegationProcessor_NilNodesSplitterShouldErr(t *testing.T) {
+func TestNewStandardDelegationProcessor_NilNodesSplitterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockStandardDelegationProcessorArg()
 	arg.NodesListSplitter = nil
-	dp, err := NewDelegationProcessor(arg)
+	dp, err := NewStandardDelegationProcessor(arg)
 
 	assert.True(t, check.IfNil(dp))
 	assert.Equal(t, genesis.ErrNilNodesListSplitter, err)
 }
 
-func TestNewDelegationProcessor_NilQueryServiceShouldErr(t *testing.T) {
+func TestNewStandardDelegationProcessor_NilQueryServiceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockStandardDelegationProcessorArg()
 	arg.QueryService = nil
-	dp, err := NewDelegationProcessor(arg)
+	dp, err := NewStandardDelegationProcessor(arg)
 
 	assert.True(t, check.IfNil(dp))
 	assert.Equal(t, genesis.ErrNilQueryService, err)
 }
 
-func TestNewDelegationProcessor_NilNodePriceShouldErr(t *testing.T) {
+func TestNewStandardDelegationProcessor_NilNodePriceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockStandardDelegationProcessorArg()
 	arg.NodePrice = nil
-	dp, err := NewDelegationProcessor(arg)
+	dp, err := NewStandardDelegationProcessor(arg)
 
 	assert.True(t, check.IfNil(dp))
 	assert.Equal(t, genesis.ErrNilInitialNodePrice, err)
 }
 
-func TestNewDelegationProcessor_ZeroNodePriceShouldErr(t *testing.T) {
+func TestNewStandardDelegationProcessor_ZeroNodePriceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockStandardDelegationProcessorArg()
 	arg.NodePrice = big.NewInt(0)
-	dp, err := NewDelegationProcessor(arg)
+	dp, err := NewStandardDelegationProcessor(arg)
 
 	assert.True(t, check.IfNil(dp))
 	assert.Equal(t, genesis.ErrInvalidInitialNodePrice, err)
 }
 
-func TestNewDelegationProcessor_ShouldWork(t *testing.T) {
+func TestNewStandardDelegationProcessor_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
-	dp, err := NewDelegationProcessor(arg)
+	arg := createMockStandardDelegationProcessorArg()
+	dp, err := NewStandardDelegationProcessor(arg)
 
 	assert.False(t, check.IfNil(dp))
 	assert.Nil(t, err)
@@ -129,11 +130,11 @@ func TestNewDelegationProcessor_ShouldWork(t *testing.T) {
 
 //------- ExecuteDelegation
 
-func TestDelegationProcessor_ExecuteDelegationSplitFailsShouldErr(t *testing.T) {
+func TestStandardDelegationProcessor_ExecuteDelegationSplitFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := fmt.Errorf("expected error")
-	arg := createMockArg()
+	arg := createMockStandardDelegationProcessorArg()
 	arg.Executor = &mock.TxExecutionProcessorStub{
 		ExecuteTransactionCalled: func(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error {
 			assert.Fail(t, "should have not execute a transaction")
@@ -147,7 +148,7 @@ func TestDelegationProcessor_ExecuteDelegationSplitFailsShouldErr(t *testing.T) 
 		},
 	}
 
-	dp, _ := NewDelegationProcessor(arg)
+	dp, _ := NewStandardDelegationProcessor(arg)
 
 	result, err := dp.ExecuteDelegation()
 
@@ -155,10 +156,10 @@ func TestDelegationProcessor_ExecuteDelegationSplitFailsShouldErr(t *testing.T) 
 	assert.Equal(t, genesis.DelegationResult{}, result)
 }
 
-func TestDelegationProcessor_ExecuteDelegationNoDelegationScShouldRetNil(t *testing.T) {
+func TestStandardDelegationProcessor_ExecuteDelegationNoDelegationScShouldRetNil(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArg()
+	arg := createMockStandardDelegationProcessorArg()
 	arg.Executor = &mock.TxExecutionProcessorStub{
 		ExecuteTransactionCalled: func(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error {
 			assert.Fail(t, "should have not execute a transaction")
@@ -177,7 +178,7 @@ func TestDelegationProcessor_ExecuteDelegationNoDelegationScShouldRetNil(t *test
 			}, nil
 		},
 	}
-	dp, _ := NewDelegationProcessor(arg)
+	dp, _ := NewStandardDelegationProcessor(arg)
 
 	result, err := dp.ExecuteDelegation()
 
@@ -185,7 +186,7 @@ func TestDelegationProcessor_ExecuteDelegationNoDelegationScShouldRetNil(t *test
 	assert.Equal(t, genesis.DelegationResult{}, result)
 }
 
-func TestDelegationProcessor_ExecuteDelegationStakeShouldWork(t *testing.T) {
+func TestStandardDelegationProcessor_ExecuteDelegationStakeShouldWork(t *testing.T) {
 	t.Parallel()
 
 	staker1 := []byte("stakerB")
@@ -195,7 +196,7 @@ func TestDelegationProcessor_ExecuteDelegationStakeShouldWork(t *testing.T) {
 	pubkey2 := []byte("pubkey2")
 	pubkey3 := []byte("pubkey3")
 
-	arg := createMockArg()
+	arg := createMockStandardDelegationProcessorArg()
 	arg.Executor = &mock.TxExecutionProcessorStub{
 		ExecuteTransactionCalled: func(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error {
 			isStakeCall := strings.Contains(string(data), "stake")
@@ -282,7 +283,7 @@ func TestDelegationProcessor_ExecuteDelegationStakeShouldWork(t *testing.T) {
 			}
 		},
 	}
-	dp, _ := NewDelegationProcessor(arg)
+	dp, _ := NewStandardDelegationProcessor(arg)
 
 	result, err := dp.ExecuteDelegation()
 
@@ -293,4 +294,54 @@ func TestDelegationProcessor_ExecuteDelegationStakeShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedResult, result)
+}
+
+//------- SameElements
+
+func TestSameElements_WrongNumberShouldErr(t *testing.T) {
+	t.Parallel()
+
+	scReturned := [][]byte{[]byte("buf1"), []byte("buf2"), []byte("buf3")}
+	loaded := [][]byte{[]byte("buf1"), []byte("buf2")}
+
+	dp := &standardDelegationProcessor{}
+	err := dp.sameElements(scReturned, loaded)
+
+	assert.True(t, errors.Is(err, genesis.ErrWhileVerifyingDelegation))
+}
+
+func TestSameElements_MissingFromLoadedShouldErr(t *testing.T) {
+	t.Parallel()
+
+	scReturned := [][]byte{[]byte("buf5"), []byte("buf2"), []byte("buf3")}
+	loaded := [][]byte{[]byte("buf1"), []byte("buf3"), []byte("buf2")}
+
+	dp := &standardDelegationProcessor{}
+	err := dp.sameElements(scReturned, loaded)
+
+	assert.True(t, errors.Is(err, genesis.ErrMissingElement))
+}
+
+func TestSameElements_DuplicateShouldErr(t *testing.T) {
+	t.Parallel()
+
+	scReturned := [][]byte{[]byte("buf2"), []byte("buf2"), []byte("buf3")}
+	loaded := [][]byte{[]byte("buf2"), []byte("buf1"), []byte("buf1")}
+
+	dp := &standardDelegationProcessor{}
+	err := dp.sameElements(scReturned, loaded)
+
+	assert.True(t, errors.Is(err, genesis.ErrMissingElement))
+}
+
+func TestSameElements_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	scReturned := [][]byte{[]byte("buf1"), []byte("buf2"), []byte("buf3")}
+	loaded := [][]byte{[]byte("buf2"), []byte("buf3"), []byte("buf1")}
+
+	dp := &standardDelegationProcessor{}
+	err := dp.sameElements(scReturned, loaded)
+
+	assert.Nil(t, err)
 }

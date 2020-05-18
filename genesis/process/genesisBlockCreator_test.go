@@ -127,17 +127,17 @@ func createMockArgument(t *testing.T) ArgsGenesisBlockCreator {
 				0: {
 					&mock.GenesisNodeInfoHandlerMock{
 						AddressBytesValue: scAddressBytes,
-						PubKeyBytesValue:  bytes.Repeat([]byte{1}, 128),
+						PubKeyBytesValue:  bytes.Repeat([]byte{1}, 96),
 					},
 					&mock.GenesisNodeInfoHandlerMock{
 						AddressBytesValue: stakedAddr,
-						PubKeyBytesValue:  bytes.Repeat([]byte{2}, 128),
+						PubKeyBytesValue:  bytes.Repeat([]byte{2}, 96),
 					},
 				},
 				1: {
 					&mock.GenesisNodeInfoHandlerMock{
 						AddressBytesValue: scAddressBytes,
-						PubKeyBytesValue:  bytes.Repeat([]byte{3}, 128),
+						PubKeyBytesValue:  bytes.Repeat([]byte{3}, 96),
 					},
 				},
 			}, make(map[uint32][]sharding.GenesisNodeInfoHandler)

@@ -10,9 +10,10 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
 	"github.com/ElrondNetwork/elrond-go/vm/factory"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -159,13 +160,6 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
-	minNumNodes := nodes[0].NodesSetup.MinNumberOfNodes()
-	validators := make([]*integrationTests.TestWalletAccount, minNumNodes)
-	for i := 0; i < int(minNumNodes); i++ {
-		validators[i] = integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
-	}
-	integrationTests.MintAllPlayers(nodes, validators, initialVal)
-
 	verifyInitialBalance(t, nodes, initialVal)
 
 	round := uint64(0)
@@ -181,13 +175,6 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 		pubKey := generateUniqueKey(index)
 		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("msg"))
 		integrationTests.CreateAndSendTransaction(node, nodePrice, factory.AuctionSCAddress, txData)
-	}
-
-	// need to add enough stakers in order to make it possible to call unstake and unbond
-	for index, validator := range validators {
-		pubKey := generateUniqueKey(index + len(nodes) + 1)
-		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("msg"))
-		createAndSendTx(nodes[0], validator, nodePrice, factory.AuctionSCAddress, []byte(txData))
 	}
 
 	time.Sleep(time.Second)
@@ -236,6 +223,108 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	verifyUnbound(t, nodes)
 }
 
+func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
+	shardConsensusGroupSize := 1
+	metaConsensusGroupSize := 1
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorAndTxKeys(
+		nodesPerShard,
+		numMetachainNodes,
+		numOfShards,
+		shardConsensusGroupSize,
+		metaConsensusGroupSize,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	nodes := make([]*integrationTests.TestProcessorNode, 0)
+	idxProposers := make([]int, numOfShards+1)
+
+	for _, nds := range nodesMap {
+		nodes = append(nodes, nds...)
+	}
+
+	for _, nds := range nodesMap {
+		idx, err := getNodeIndex(nodes, nds[0])
+		assert.Nil(t, err)
+
+		idxProposers = append(idxProposers, idx)
+	}
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	roundsPerEpoch := uint64(5)
+	for _, node := range nodes {
+		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+	}
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	for _, node := range nodesMap {
+		fmt.Println(integrationTests.MakeDisplayTable(node))
+	}
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	rewardAccount := integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
+
+	verifyInitialBalance(t, nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	var txData string
+	for _, node := range nodes {
+		txData = "changeRewardAddress" + "@" + hex.EncodeToString(rewardAccount.Address)
+		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), factory.AuctionSCAddress, txData)
+	}
+
+	round = uint64(1)
+	nonce = uint64(1)
+	nbBlocksToProduce := roundsPerEpoch * 3
+	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
+
+	for i := uint64(0); i < nbBlocksToProduce; i++ {
+		for _, nodesSlice := range nodesMap {
+			integrationTests.UpdateRound(nodesSlice, round)
+		}
+
+		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
+		indexesProposers := endOfEpoch.GetBlockProposersIndexes(consensusNodes, nodesMap)
+		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
+		round++
+		nonce++
+
+		time.Sleep(1 * time.Second)
+	}
+
+	rewardShardID := nodes[0].ShardCoordinator.ComputeId(rewardAccount.Address)
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != rewardShardID {
+			continue
+		}
+
+		rwdAccount := getAccountFromAddrBytes(node.AccntState, rewardAccount.Address)
+		assert.True(t, rwdAccount.GetBalance().Cmp(big.NewInt(0)) > 0)
+	}
+}
+
 func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrationTests.TestProcessorNode) (int, error) {
 	for i := range nodeList {
 		if node == nodeList[i] {
@@ -247,7 +336,7 @@ func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrat
 }
 
 func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
-	expectedValue := big.NewInt(0).SetUint64(9999961980)
+	expectedValue := big.NewInt(0).SetUint64(9999963900)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
@@ -262,7 +351,7 @@ func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
 }
 
 func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
-	expectedValue := big.NewInt(0).SetUint64(9499987270)
+	expectedValue := big.NewInt(0).SetUint64(9499987910)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
@@ -300,31 +389,7 @@ func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) sta
 }
 
 func generateUniqueKey(identifier int) string {
-	neededLength := 256
+	neededLength := 192
 	uniqueIdentifier := fmt.Sprintf("%d", identifier)
 	return strings.Repeat("0", neededLength-len(uniqueIdentifier)) + uniqueIdentifier
-}
-
-func createAndSendTx(
-	node *integrationTests.TestProcessorNode,
-	player *integrationTests.TestWalletAccount,
-	txValue *big.Int,
-	rcvAddress []byte,
-	txData []byte,
-) {
-	tx := &transaction.Transaction{
-		Nonce:    player.Nonce,
-		Value:    txValue,
-		SndAddr:  player.Address,
-		RcvAddr:  rcvAddress,
-		Data:     txData,
-		GasPrice: node.EconomicsData.GetMinGasPrice(),
-		GasLimit: node.EconomicsData.GetMinGasLimit()*uint64(100) + uint64(len(txData)),
-	}
-
-	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
-	tx.Signature, _ = player.SingleSigner.Sign(player.SkTxSign, txBuff)
-
-	_, _ = node.SendTransaction(tx)
-	player.Nonce++
 }

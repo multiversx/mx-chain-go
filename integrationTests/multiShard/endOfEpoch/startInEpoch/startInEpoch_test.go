@@ -306,6 +306,7 @@ func createTries(
 		config.AccountsTrieStorage,
 		core.GetShardIdString(shardId),
 		config.StateTriesConfig.AccountsStatePruningEnabled,
+		config.StateTriesConfig.MaxStateTrieLevelInMemory,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -317,6 +318,7 @@ func createTries(
 		config.PeerAccountsTrieStorage,
 		core.GetShardIdString(shardId),
 		config.StateTriesConfig.PeerStatePruningEnabled,
+		config.StateTriesConfig.MaxPeerTrieLevelInMemory,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -400,6 +402,8 @@ func getGeneralConfig() config.Config {
 			CheckpointRoundsModulus:     100,
 			AccountsStatePruningEnabled: false,
 			PeerStatePruningEnabled:     false,
+			MaxStateTrieLevelInMemory:   5,
+			MaxPeerTrieLevelInMemory:    5,
 		},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
 			PruningBufferLen:   1000,

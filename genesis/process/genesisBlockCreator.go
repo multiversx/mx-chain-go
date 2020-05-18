@@ -213,6 +213,8 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 		return nil, fmt.Errorf("'%w' while saving genesis block for metachain", err)
 	}
 
+	//TODO call here trie pruning on all roothashes not from current shard
+
 	return genesisBlocks, nil
 }
 

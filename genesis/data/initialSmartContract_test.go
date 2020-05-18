@@ -37,12 +37,14 @@ func TestInitialSmartContract_Getters(t *testing.T) {
 	vmType := "vm type"
 	initParams := "init parameters"
 	scType := "type"
+	version := "version"
 	isc := &InitialSmartContract{
 		Owner:          owner,
 		Filename:       filename,
 		VmType:         vmType,
 		Type:           scType,
 		InitParameters: initParams,
+		Version:        version,
 	}
 
 	assert.False(t, check.IfNil(isc))
@@ -51,6 +53,7 @@ func TestInitialSmartContract_Getters(t *testing.T) {
 	assert.Equal(t, vmType, isc.GetVmType())
 	assert.Equal(t, scType, isc.GetType())
 	assert.Equal(t, initParams, isc.GetInitParameters())
+	assert.Equal(t, version, isc.GetVersion())
 }
 
 func TestInitialSmartContract_AddressBytes(t *testing.T) {

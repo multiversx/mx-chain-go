@@ -444,12 +444,13 @@ func deployInitialSmartContract(
 		return err
 	}
 
-	var deployProc genesis.DeployProcessor
-	deployProc, err = intermediate.NewDeployProcessor(
-		txExecutor,
-		arg.PubkeyConv,
-		processors.blockchainHook,
-	)
+	argDeploy := intermediate.ArgDeployProcessor{
+		Executor:       txExecutor,
+		PubkeyConv:     arg.PubkeyConv,
+		BlockchainHook: processors.blockchainHook,
+		QueryService:   processors.queryService,
+	}
+	deployProc, err := intermediate.NewDeployProcessor(argDeploy)
 	if err != nil {
 		return err
 	}
@@ -505,7 +506,7 @@ func executeDelegation(
 		return genesis.DelegationResult{}, err
 	}
 
-	argDP := intermediate.ArgDelegationProcessor{
+	argDP := intermediate.ArgStandardDelegationProcessor{
 		Executor:            txExecutor,
 		ShardCoordinator:    arg.ShardCoordinator,
 		AccountsParser:      arg.AccountsParser,
@@ -515,7 +516,7 @@ func executeDelegation(
 		NodePrice:           arg.Economics.GenesisNodePrice(),
 	}
 
-	delegationProcessor, err := intermediate.NewDelegationProcessor(argDP)
+	delegationProcessor, err := intermediate.NewStandardDelegationProcessor(argDP)
 	if err != nil {
 		return genesis.DelegationResult{}, err
 	}

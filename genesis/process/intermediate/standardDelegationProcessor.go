@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sort"
 	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -15,8 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// ArgDelegationProcessor is the argument used to construct a delegation processor
-type ArgDelegationProcessor struct {
+// ArgStandardDelegationProcessor is the argument used to construct a standard delegation processor
+type ArgStandardDelegationProcessor struct {
 	Executor            genesis.TxExecutionProcessor
 	ShardCoordinator    sharding.Coordinator
 	AccountsParser      genesis.AccountsParser
@@ -29,10 +30,13 @@ type ArgDelegationProcessor struct {
 const stakeFunction = "stakeGenesis"
 const setBlsKeysFunction = "setBlsKeys"
 const activateBlsKeysFunction = "activate"
+const setNumNodesFunction = "setNumNodes"
+const setStakePerNodeFunction = "setStakePerNode"
 
 var log = logger.GetOrCreate("genesis/process/intermediate")
+var zero = big.NewInt(0)
 
-type delegationProcessor struct {
+type standardDelegationProcessor struct {
 	genesis.TxExecutionProcessor
 	shardCoordinator     sharding.Coordinator
 	accuntsParser        genesis.AccountsParser
@@ -42,8 +46,8 @@ type delegationProcessor struct {
 	nodePrice            *big.Int
 }
 
-// NewDelegationProcessor returns a new delegation processor instance
-func NewDelegationProcessor(arg ArgDelegationProcessor) (*delegationProcessor, error) {
+// NewStandardDelegationProcessor returns a new standard delegation processor instance
+func NewStandardDelegationProcessor(arg ArgStandardDelegationProcessor) (*standardDelegationProcessor, error) {
 	if check.IfNil(arg.Executor) {
 		return nil, genesis.ErrNilTxExecutionProcessor
 	}
@@ -69,7 +73,7 @@ func NewDelegationProcessor(arg ArgDelegationProcessor) (*delegationProcessor, e
 		return nil, genesis.ErrInvalidInitialNodePrice
 	}
 
-	return &delegationProcessor{
+	return &standardDelegationProcessor{
 		TxExecutionProcessor: arg.Executor,
 		shardCoordinator:     arg.ShardCoordinator,
 		accuntsParser:        arg.AccountsParser,
@@ -81,8 +85,8 @@ func NewDelegationProcessor(arg ArgDelegationProcessor) (*delegationProcessor, e
 }
 
 // ExecuteDelegation will execute stake, set bls keys and activate on all delegation contracts from this shard
-func (dp *delegationProcessor) ExecuteDelegation() (genesis.DelegationResult, error) {
-	smartContracts, err := dp.getDelegationScOnCurrentShard()
+func (sdp *standardDelegationProcessor) ExecuteDelegation() (genesis.DelegationResult, error) {
+	smartContracts, err := sdp.getDelegationScOnCurrentShard()
 	if err != nil {
 		return genesis.DelegationResult{}, err
 	}
@@ -90,28 +94,28 @@ func (dp *delegationProcessor) ExecuteDelegation() (genesis.DelegationResult, er
 		return genesis.DelegationResult{}, nil
 	}
 
-	err = dp.setDelegationStartParameters(smartContracts)
+	err = sdp.setDelegationStartParameters(smartContracts)
 	if err != nil {
 		return genesis.DelegationResult{}, err
 	}
 
-	_, err = dp.executeManageBlsKeys(smartContracts, dp.setBlsKey, setBlsKeysFunction)
+	_, err = sdp.executeManageBlsKeys(smartContracts, sdp.getBlsKey, setBlsKeysFunction)
 	if err != nil {
 		return genesis.DelegationResult{}, err
 	}
 
 	dr := genesis.DelegationResult{}
-	dr.NumTotalStaked, err = dp.executeStake(smartContracts)
+	dr.NumTotalStaked, err = sdp.executeStake(smartContracts)
 	if err != nil {
 		return genesis.DelegationResult{}, err
 	}
 
-	dr.NumTotalDelegated, err = dp.executeManageBlsKeys(smartContracts, dp.activate, activateBlsKeysFunction)
+	dr.NumTotalDelegated, err = sdp.executeManageBlsKeys(smartContracts, sdp.getBlsKeySig, activateBlsKeysFunction)
 	if err != nil {
 		return genesis.DelegationResult{}, err
 	}
 
-	err = dp.executeVerify(smartContracts)
+	err = sdp.executeVerify(smartContracts)
 	if err != nil {
 		return genesis.DelegationResult{}, err
 	}
@@ -119,14 +123,14 @@ func (dp *delegationProcessor) ExecuteDelegation() (genesis.DelegationResult, er
 	return dr, err
 }
 
-func (dp *delegationProcessor) getDelegationScOnCurrentShard() ([]genesis.InitialSmartContractHandler, error) {
-	allSmartContracts, err := dp.smartContractsParser.InitialSmartContractsSplitOnOwnersShards(dp.shardCoordinator)
+func (sdp *standardDelegationProcessor) getDelegationScOnCurrentShard() ([]genesis.InitialSmartContractHandler, error) {
+	allSmartContracts, err := sdp.smartContractsParser.InitialSmartContractsSplitOnOwnersShards(sdp.shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
 	smartContracts := make([]genesis.InitialSmartContractHandler, 0)
-	smartContractsForCurrentShard := allSmartContracts[dp.shardCoordinator.SelfId()]
+	smartContractsForCurrentShard := allSmartContracts[sdp.shardCoordinator.SelfId()]
 	for _, sc := range smartContractsForCurrentShard {
 		if sc.GetType() == genesis.DelegationType {
 			smartContracts = append(smartContracts, sc)
@@ -135,30 +139,30 @@ func (dp *delegationProcessor) getDelegationScOnCurrentShard() ([]genesis.Initia
 
 	log.Trace("getDelegationScOnCurrentShard",
 		"num delegation SC", len(smartContracts),
-		"shard ID", dp.shardCoordinator.SelfId(),
+		"shard ID", sdp.shardCoordinator.SelfId(),
 	)
 	return smartContracts, nil
 }
 
-func (dp *delegationProcessor) setDelegationStartParameters(smartContracts []genesis.InitialSmartContractHandler) error {
+func (sdp *standardDelegationProcessor) setDelegationStartParameters(smartContracts []genesis.InitialSmartContractHandler) error {
 	for _, sc := range smartContracts {
-		delegatedNodes := dp.nodesListSplitter.GetDelegatedNodes(sc.AddressBytes())
+		delegatedNodes := sdp.nodesListSplitter.GetDelegatedNodes(sc.AddressBytes())
 		numNodes := len(delegatedNodes)
 
 		log.Trace("setDelegationStartParameters",
 			"SC owner", sc.GetOwner(),
 			"SC address", sc.Address(),
 			"num delegated nodes", numNodes,
-			"node price", dp.nodePrice.String(),
-			"shard ID", dp.shardCoordinator.SelfId(),
+			"node price", sdp.nodePrice.String(),
+			"shard ID", sdp.shardCoordinator.SelfId(),
 		)
 
-		err := dp.executeSetNumNodes(numNodes, sc)
+		err := sdp.executeSetNumNodes(numNodes, sc)
 		if err != nil {
 			return err
 		}
 
-		err = dp.executeSetNodePrice(sc)
+		err = sdp.executeSetNodePrice(sc)
 		if err != nil {
 			return err
 		}
@@ -167,15 +171,15 @@ func (dp *delegationProcessor) setDelegationStartParameters(smartContracts []gen
 	return nil
 }
 
-func (dp *delegationProcessor) executeSetNumNodes(numNodes int, sc genesis.InitialSmartContractHandler) error {
-	setNumNodesTxData := fmt.Sprintf("setNrNodes@%x", numNodes)
+func (sdp *standardDelegationProcessor) executeSetNumNodes(numNodes int, sc genesis.InitialSmartContractHandler) error {
+	setNumNodesTxData := fmt.Sprintf("%s@%x", setNumNodesFunction, numNodes)
 
-	nonce, err := dp.GetNonce(sc.OwnerBytes())
+	nonce, err := sdp.GetNonce(sc.OwnerBytes())
 	if err != nil {
 		return err
 	}
 
-	return dp.ExecuteTransaction(
+	return sdp.ExecuteTransaction(
 		nonce,
 		sc.OwnerBytes(),
 		sc.AddressBytes(),
@@ -184,15 +188,15 @@ func (dp *delegationProcessor) executeSetNumNodes(numNodes int, sc genesis.Initi
 	)
 }
 
-func (dp *delegationProcessor) executeSetNodePrice(sc genesis.InitialSmartContractHandler) error {
-	setStakePerNodeTxData := fmt.Sprintf("setStakePerNode@%x", dp.nodePrice)
+func (sdp *standardDelegationProcessor) executeSetNodePrice(sc genesis.InitialSmartContractHandler) error {
+	setStakePerNodeTxData := fmt.Sprintf("%s@%x", setStakePerNodeFunction, sdp.nodePrice)
 
-	nonce, err := dp.GetNonce(sc.OwnerBytes())
+	nonce, err := sdp.GetNonce(sc.OwnerBytes())
 	if err != nil {
 		return err
 	}
 
-	return dp.ExecuteTransaction(
+	return sdp.ExecuteTransaction(
 		nonce,
 		sc.OwnerBytes(),
 		sc.AddressBytes(),
@@ -201,11 +205,11 @@ func (dp *delegationProcessor) executeSetNodePrice(sc genesis.InitialSmartContra
 	)
 }
 
-func (dp *delegationProcessor) executeStake(smartContracts []genesis.InitialSmartContractHandler) (int, error) {
+func (sdp *standardDelegationProcessor) executeStake(smartContracts []genesis.InitialSmartContractHandler) (int, error) {
 	stakedOnDelegation := 0
 
 	for _, sc := range smartContracts {
-		accounts := dp.accuntsParser.GetInitialAccountsForDelegated(sc.AddressBytes())
+		accounts := sdp.accuntsParser.GetInitialAccountsForDelegated(sc.AddressBytes())
 		if len(accounts) == 0 {
 			log.Debug("genesis delegation SC was not delegated by any account",
 				"SC owner", sc.GetOwner(),
@@ -216,7 +220,7 @@ func (dp *delegationProcessor) executeStake(smartContracts []genesis.InitialSmar
 
 		totalDelegated := big.NewInt(0)
 		for _, ac := range accounts {
-			err := dp.stake(ac, sc)
+			err := sdp.stake(ac, sc)
 			if err != nil {
 				return 0, fmt.Errorf("%w while calling stake function from account %s", err, ac.GetAddress())
 			}
@@ -236,8 +240,8 @@ func (dp *delegationProcessor) executeStake(smartContracts []genesis.InitialSmar
 	return stakedOnDelegation, nil
 }
 
-func (dp *delegationProcessor) stake(ac genesis.InitialAccountHandler, sc genesis.InitialSmartContractHandler) error {
-	isIntraShardCall := dp.shardCoordinator.SameShard(ac.AddressBytes(), sc.AddressBytes())
+func (sdp *standardDelegationProcessor) stake(ac genesis.InitialAccountHandler, sc genesis.InitialSmartContractHandler) error {
+	isIntraShardCall := sdp.shardCoordinator.SameShard(ac.AddressBytes(), sc.AddressBytes())
 
 	dh := ac.GetDelegationHandler()
 	if check.IfNil(dh) {
@@ -251,14 +255,14 @@ func (dp *delegationProcessor) stake(ac genesis.InitialAccountHandler, sc genesi
 	var nonce = uint64(0)
 	if isIntraShardCall {
 		//intra shard transaction, get current nonce in order to make the tx processor work
-		nonce, err = dp.GetNonce(ac.AddressBytes())
+		nonce, err = sdp.GetNonce(ac.AddressBytes())
 		if err != nil {
 			return err
 		}
 	}
 
 	stakeData := fmt.Sprintf("%s@%s", stakeFunction, dh.GetValue().Text(16))
-	err = dp.ExecuteTransaction(
+	err = sdp.ExecuteTransaction(
 		nonce,
 		ac.AddressBytes(),
 		sc.AddressBytes(),
@@ -272,7 +276,7 @@ func (dp *delegationProcessor) stake(ac genesis.InitialAccountHandler, sc genesi
 	return nil
 }
 
-func (dp *delegationProcessor) executeManageBlsKeys(
+func (sdp *standardDelegationProcessor) executeManageBlsKeys(
 	smartContracts []genesis.InitialSmartContractHandler,
 	handler func(node sharding.GenesisNodeInfoHandler) string,
 	function string,
@@ -280,13 +284,13 @@ func (dp *delegationProcessor) executeManageBlsKeys(
 
 	log.Trace("executeManageSetBlsKeys",
 		"num delegation SC", len(smartContracts),
-		"shard ID", dp.shardCoordinator.SelfId(),
+		"shard ID", sdp.shardCoordinator.SelfId(),
 		"function", function,
 	)
 
 	totalDelegated := 0
 	for _, sc := range smartContracts {
-		delegatedNodes := dp.nodesListSplitter.GetDelegatedNodes(sc.AddressBytes())
+		delegatedNodes := sdp.nodesListSplitter.GetDelegatedNodes(sc.AddressBytes())
 
 		lenDelegated := len(delegatedNodes)
 		if lenDelegated == 0 {
@@ -303,7 +307,7 @@ func (dp *delegationProcessor) executeManageBlsKeys(
 			"SC owner", sc.GetOwner(),
 			"SC address", sc.Address(),
 			"num nodes", lenDelegated,
-			"shard ID", dp.shardCoordinator.SelfId(),
+			"shard ID", sdp.shardCoordinator.SelfId(),
 			"function", function,
 		)
 
@@ -314,12 +318,12 @@ func (dp *delegationProcessor) executeManageBlsKeys(
 			arguments = append(arguments, arg)
 		}
 
-		nonce, err := dp.GetNonce(sc.OwnerBytes())
+		nonce, err := sdp.GetNonce(sc.OwnerBytes())
 		if err != nil {
 			return 0, err
 		}
 
-		err = dp.ExecuteTransaction(
+		err = sdp.ExecuteTransaction(
 			nonce,
 			sc.OwnerBytes(),
 			sc.AddressBytes(),
@@ -334,19 +338,19 @@ func (dp *delegationProcessor) executeManageBlsKeys(
 	return totalDelegated, nil
 }
 
-func (dp *delegationProcessor) setBlsKey(node sharding.GenesisNodeInfoHandler) string {
+func (sdp *standardDelegationProcessor) getBlsKey(node sharding.GenesisNodeInfoHandler) string {
 	return hex.EncodeToString(node.PubKeyBytes())
 }
 
-func (dp *delegationProcessor) activate(_ sharding.GenesisNodeInfoHandler) string {
+func (sdp *standardDelegationProcessor) getBlsKeySig(_ sharding.GenesisNodeInfoHandler) string {
 	mockSignature := []byte("genesis signature")
 
 	return hex.EncodeToString(mockSignature)
 }
 
-func (dp *delegationProcessor) executeVerify(smartContracts []genesis.InitialSmartContractHandler) error {
+func (sdp *standardDelegationProcessor) executeVerify(smartContracts []genesis.InitialSmartContractHandler) error {
 	for _, sc := range smartContracts {
-		err := dp.verify(sc)
+		err := sdp.verify(sc)
 		if err != nil {
 			return fmt.Errorf("%w for contract %s, owner %s", err, sc.Address(), sc.GetOwner())
 		}
@@ -355,13 +359,13 @@ func (dp *delegationProcessor) executeVerify(smartContracts []genesis.InitialSma
 	return nil
 }
 
-func (dp *delegationProcessor) verify(sc genesis.InitialSmartContractHandler) error {
-	err := dp.verifyStakedValue(sc)
+func (sdp *standardDelegationProcessor) verify(sc genesis.InitialSmartContractHandler) error {
+	err := sdp.verifyStakedValue(sc)
 	if err != nil {
 		return fmt.Errorf("%w for verifyStakedValue", err)
 	}
 
-	err = dp.verifyRegisteredNodes(sc)
+	err = sdp.verifyRegisteredNodes(sc)
 	if err != nil {
 		return fmt.Errorf("%w for verifyRegisteredNodes", err)
 	}
@@ -369,13 +373,13 @@ func (dp *delegationProcessor) verify(sc genesis.InitialSmartContractHandler) er
 	return nil
 }
 
-func (dp *delegationProcessor) verifyStakedValue(sc genesis.InitialSmartContractHandler) error {
+func (sdp *standardDelegationProcessor) verifyStakedValue(sc genesis.InitialSmartContractHandler) error {
 	scQueryStakeValue := &process.SCQuery{
 		ScAddress: sc.AddressBytes(),
 		FuncName:  "getFilledStake",
 		Arguments: [][]byte{},
 	}
-	vmOutputStakeValue, err := dp.queryService.ExecuteQuery(scQueryStakeValue)
+	vmOutputStakeValue, err := sdp.queryService.ExecuteQuery(scQueryStakeValue)
 	if err != nil {
 		return err
 	}
@@ -384,7 +388,7 @@ func (dp *delegationProcessor) verifyStakedValue(sc genesis.InitialSmartContract
 	}
 	scStakedValue := big.NewInt(0).SetBytes(vmOutputStakeValue.ReturnData[0])
 	providedStakedValue := big.NewInt(0)
-	providedDelegators := dp.accuntsParser.GetInitialAccountsForDelegated(sc.AddressBytes())
+	providedDelegators := sdp.accuntsParser.GetInitialAccountsForDelegated(sc.AddressBytes())
 
 	for _, delegator := range providedDelegators {
 		if check.IfNil(delegator) {
@@ -407,43 +411,43 @@ func (dp *delegationProcessor) verifyStakedValue(sc genesis.InitialSmartContract
 	return nil
 }
 
-func (dp *delegationProcessor) verifyRegisteredNodes(sc genesis.InitialSmartContractHandler) error {
+func (sdp *standardDelegationProcessor) verifyRegisteredNodes(sc genesis.InitialSmartContractHandler) error {
 	scQueryBlsKeys := &process.SCQuery{
 		ScAddress: sc.AddressBytes(),
 		FuncName:  "getBlsKeys",
 		Arguments: [][]byte{},
 	}
 
-	vmOutputBlsKeys, err := dp.queryService.ExecuteQuery(scQueryBlsKeys)
+	vmOutputBlsKeys, err := sdp.queryService.ExecuteQuery(scQueryBlsKeys)
 	if err != nil {
 		return err
 	}
-	delegatedNodes := dp.nodesListSplitter.GetDelegatedNodes(sc.AddressBytes())
+	delegatedNodes := sdp.nodesListSplitter.GetDelegatedNodes(sc.AddressBytes())
 	nodesAddresses := make([][]byte, 0, len(delegatedNodes))
 	for _, node := range delegatedNodes {
 		nodesAddresses = append(nodesAddresses, node.PubKeyBytes())
 	}
 
-	if len(vmOutputBlsKeys.ReturnData) != len(nodesAddresses) {
-		return fmt.Errorf("%w staked nodes mismatch: %d found in SC, %d provided",
-			genesis.ErrWhileVerifyingDelegation, len(vmOutputBlsKeys.ReturnData), len(nodesAddresses))
-	}
-
-	return dp.sameElements(vmOutputBlsKeys.ReturnData, nodesAddresses)
+	return sdp.sameElements(vmOutputBlsKeys.ReturnData, nodesAddresses)
 }
 
-func (dp *delegationProcessor) sameElements(slice1 [][]byte, slice2 [][]byte) error {
-	for _, elem1 := range slice1 {
-		found := false
-		for _, elem2 := range slice2 {
-			if bytes.Equal(elem1, elem2) {
-				found = true
-				break
-			}
-		}
+func (sdp *standardDelegationProcessor) sameElements(scReturned [][]byte, loaded [][]byte) error {
+	if len(scReturned) != len(loaded) {
+		return fmt.Errorf("%w staked nodes mismatch: %d found in SC, %d provided",
+			genesis.ErrWhileVerifyingDelegation, len(scReturned), len(loaded))
+	}
 
-		if !found {
-			return fmt.Errorf("%w for key %s", genesis.ErrMissingElement, hex.EncodeToString(elem1))
+	sort.Slice(scReturned, func(i, j int) bool {
+		return bytes.Compare(scReturned[i], scReturned[j]) < 0
+	})
+	sort.Slice(loaded, func(i, j int) bool {
+		return bytes.Compare(loaded[i], loaded[j]) < 0
+	})
+
+	for i := 0; i < len(loaded); i++ {
+		if !bytes.Equal(loaded[i], scReturned[i]) {
+			return fmt.Errorf("%w, found in sc: %s, provided: %s",
+				genesis.ErrMissingElement, hex.EncodeToString(scReturned[i]), hex.EncodeToString(loaded[i]))
 		}
 	}
 
@@ -451,6 +455,6 @@ func (dp *delegationProcessor) sameElements(slice1 [][]byte, slice2 [][]byte) er
 }
 
 // IsInterfaceNil returns if underlying object is true
-func (dp *delegationProcessor) IsInterfaceNil() bool {
-	return dp == nil || dp.TxExecutionProcessor == nil
+func (sdp *standardDelegationProcessor) IsInterfaceNil() bool {
+	return sdp == nil || sdp.TxExecutionProcessor == nil
 }

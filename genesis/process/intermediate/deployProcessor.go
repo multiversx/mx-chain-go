@@ -9,8 +9,10 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmFactory "github.com/ElrondNetwork/elrond-go/vm/factory"
 )
@@ -18,35 +20,45 @@ import (
 // codeMetadataHexForInitialSC used for initial SC deployment, set to upgrade-able
 const codeMetadataHexForInitialSC = "0100"
 const auctionScAddressPlaceholder = "%auction_sc_address%"
+const versionFunction = "version"
+
+// ArgDeployProcessor is the argument used to create a deployProcessor instance
+type ArgDeployProcessor struct {
+	Executor       genesis.TxExecutionProcessor
+	PubkeyConv     state.PubkeyConverter
+	BlockchainHook process.BlockChainHookHandler
+	QueryService   external.SCQueryService
+}
 
 type deployProcessor struct {
 	genesis.TxExecutionProcessor
 	pubkeyConv     state.PubkeyConverter
 	getScCodeAsHex func(filename string) (string, error)
 	blockchainHook process.BlockChainHookHandler
+	scQueryService process.SCQueryService
 	emptyAddress   []byte
 }
 
 // NewDeployProcessor returns a new instance of deploy processor able to deploy SC
-func NewDeployProcessor(
-	executor genesis.TxExecutionProcessor,
-	pubkeyConv state.PubkeyConverter,
-	blockchainHook process.BlockChainHookHandler,
-) (*deployProcessor, error) {
-	if check.IfNil(executor) {
+func NewDeployProcessor(arg ArgDeployProcessor) (*deployProcessor, error) {
+	if check.IfNil(arg.Executor) {
 		return nil, genesis.ErrNilTxExecutionProcessor
 	}
-	if check.IfNil(pubkeyConv) {
+	if check.IfNil(arg.PubkeyConv) {
 		return nil, genesis.ErrNilPubkeyConverter
 	}
-	if check.IfNil(blockchainHook) {
+	if check.IfNil(arg.BlockchainHook) {
 		return nil, process.ErrNilBlockChainHook
+	}
+	if check.IfNil(arg.QueryService) {
+		return nil, genesis.ErrNilQueryService
 	}
 
 	dp := &deployProcessor{
-		TxExecutionProcessor: executor,
-		pubkeyConv:           pubkeyConv,
-		blockchainHook:       blockchainHook,
+		TxExecutionProcessor: arg.Executor,
+		pubkeyConv:           arg.PubkeyConv,
+		blockchainHook:       arg.BlockchainHook,
+		scQueryService:       arg.QueryService,
 	}
 	dp.getScCodeAsHex = dp.getSCCodeAsHex
 	dp.emptyAddress = make([]byte, dp.pubkeyConv.Len())
@@ -125,7 +137,7 @@ func (dp *deployProcessor) Deploy(sc genesis.InitialSmartContractHandler) error 
 		)
 	}
 
-	return nil
+	return dp.checkVersion(sc, scResultingAddressBytes)
 }
 
 func (dp *deployProcessor) applyCommonPlaceholders(txData string) string {
@@ -142,6 +154,43 @@ func (dp *deployProcessor) getSCCodeAsHex(filename string) (string, error) {
 	}
 
 	return hex.EncodeToString(code), nil
+}
+
+func (dp *deployProcessor) checkVersion(sc genesis.InitialSmartContractHandler, scResultingAddressBytes []byte) error {
+	if len(sc.GetVersion()) == 0 {
+		//no version info, assuming deployed contract is up-to-date (let contracts that do not provide "version" function
+		// to be deployed at genesis time)
+		return nil
+	}
+
+	vc, err := versioning.NewVersionComparator(sc.GetVersion())
+	if err != nil {
+		return err
+	}
+
+	scQueryVersion := &process.SCQuery{
+		ScAddress: scResultingAddressBytes,
+		FuncName:  versionFunction,
+		Arguments: [][]byte{},
+	}
+
+	vmOutputVersion, err := dp.scQueryService.ExecuteQuery(scQueryVersion)
+	if err != nil {
+		return err
+	}
+	if len(vmOutputVersion.ReturnData) != 1 {
+		return genesis.ErrGetVersionFromSC
+	}
+
+	version := string(vmOutputVersion.ReturnData[0])
+
+	log.Debug("SC version",
+		"SC address", sc.Address(),
+		"SC owner", sc.GetOwner(),
+		"version", version,
+	)
+
+	return vc.Check(version)
 }
 
 // IsInterfaceNil returns if underlying object is true
