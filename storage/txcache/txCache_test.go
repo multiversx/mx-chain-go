@@ -453,6 +453,32 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 	require.False(t, timedOut, "Timed out. Perhaps deadlock?")
 }
 
+func Test_SearchCacheInconsistency(t *testing.T) {
+	cache := newUnconstrainedCacheToTest()
+	var wg sync.WaitGroup
+
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+
+		go func() {
+			cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
+			cache.detectTxIdentityInconsistency("alice-x", "alice")
+			cache.Remove([]byte("alice-x"))
+			wg.Done()
+		}()
+
+		wg.Add(1)
+		// This is just to add some read-locking on senders (backing map)
+		go func() {
+			snapshot := cache.txListBySender.getSnapshotAscending()
+			cache.evictSendersAndTheirTxs(snapshot)
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+}
+
 func newUnconstrainedCacheToTest() *TxCache {
 	cache, err := NewTxCache(CacheConfig{
 		Name:                       "test",

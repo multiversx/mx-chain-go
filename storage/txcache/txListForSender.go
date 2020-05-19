@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"bytes"
 	"container/list"
 	"sync"
 
@@ -64,7 +65,7 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, txHas
 	listForSender.onAddedTransaction(tx)
 	evicted := listForSender.applySizeConstraints()
 	listForSender.triggerScoreChange()
-
+	//fmt.Println("added in sender", string(tx.TxHash))
 	return true, evicted
 }
 
@@ -174,6 +175,10 @@ func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTra
 			return element
 		}
 
+		// if value != txToFind && value.sameAs(txToFind) {
+		// 	panic("same tx, different pointers")
+		// }
+
 		// Optimization: stop search at this point, since the list is sorted by nonce
 		if value.Tx.GetNonce() > txToFind.Tx.GetNonce() {
 			break
@@ -258,6 +263,21 @@ func (listForSender *txListForSender) getTxHashes() txHashes {
 	}
 
 	return result
+}
+
+// getTx returns the transaction by hash (linear search)
+func (listForSender *txListForSender) getTx(hash []byte) (*WrappedTransaction, bool) {
+	listForSender.mutex.RLock()
+	defer listForSender.mutex.RUnlock()
+
+	for element := listForSender.items.Front(); element != nil; element = element.Next() {
+		value := element.Value.(*WrappedTransaction)
+		if bytes.Equal(value.TxHash, hash) {
+			return value, true
+		}
+	}
+
+	return nil, false
 }
 
 // This function should only be used in critical section (listForSender.mutex)
