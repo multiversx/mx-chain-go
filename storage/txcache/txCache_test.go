@@ -464,7 +464,7 @@ func Test_SearchCacheInconsistency(t *testing.T) {
 			correlation := fmt.Sprintf("%d", routineID)
 			cache.addTxDebug(correlation, createTx([]byte("alice-x"), "alice", 42))
 			cache.detectTxIdentityInconsistency(correlation, "alice-x", "alice")
-			cache.Remove([]byte("alice-x"))
+			cache.removeDebug(correlation, []byte("alice-x"))
 			wg.Done()
 		}(i)
 	}

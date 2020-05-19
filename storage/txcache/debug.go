@@ -42,3 +42,38 @@ func (listForSender *txListForSender) addTxDebug(correlation string, tx *Wrapped
 
 	return true, make([][]byte, 0)
 }
+
+func (cache *TxCache) removeDebug(correlation string, key []byte) {
+	cache.removeTxByHashDebug(correlation, key)
+}
+
+func (cache *TxCache) removeTxByHashDebug(correlation string, txHash []byte) {
+	tx, ok := cache.txByHash.removeTx(string(txHash))
+	if !ok {
+		fmt.Println(correlation, "remove: not found in txByHash")
+		return
+	}
+
+	found := cache.txListBySender.removeTxDebug(correlation, tx)
+	if !found {
+		fmt.Println(correlation, "remove: not found in txListBySender")
+	}
+}
+
+func (txMap *txListBySenderMap) removeTxDebug(correlation string, tx *WrappedTransaction) bool {
+	sender := string(tx.Tx.GetSndAddr())
+
+	listForSender, ok := txMap.getListForSender(sender)
+	if !ok {
+		fmt.Println(correlation, "sender to remove not in cache")
+		return false
+	}
+
+	isFound := listForSender.RemoveTx(tx)
+	isEmpty := listForSender.IsEmpty()
+	if isEmpty {
+		txMap.removeSender(sender)
+	}
+
+	return isFound
+}
