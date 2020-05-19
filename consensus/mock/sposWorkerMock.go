@@ -98,6 +98,15 @@ func (sposWorkerMock *SposWorkerMock) SetAppStatusHandler(ash core.AppStatusHand
 	return nil
 }
 
+// Close -
+func (sposWorkerMock *SposWorkerMock) Close() error {
+	return nil
+}
+
+// StartWorking -
+func (sposWorkerMock *SposWorkerMock) StartWorking() {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sposWorkerMock *SposWorkerMock) IsInterfaceNil() bool {
 	return sposWorkerMock == nil

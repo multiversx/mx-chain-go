@@ -21,8 +21,7 @@ copyConfig() {
 
   cp ./filegen/genesis.json ./node/config
   cp ./filegen/nodesSetup.json ./node/config
-  cp ./filegen/validatorKey.pem ./node/config
-  cp ./filegen/walletKey.pem ./node/config
+  cp ./filegen/*.pem ./node/config #there might be more .pem files there
   cp ./filegen/genesisSmartContracts.json ./node/config
   echo "Configuration files copied from the configuration generator to the working directories of the executables."
   popd

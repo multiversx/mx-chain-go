@@ -69,8 +69,9 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 		gasUsed := big.NewInt(0).SetUint64(tx.GasPrice)
 		gasUsed.Mul(gasUsed, big.NewInt(0).SetUint64(tx.GasLimit))
 		gasUsed.Sub(gasUsed, rec.Value)
+		gasUsed.Div(gasUsed, big.NewInt(0).SetUint64(tx.GasPrice))
 
-		tx.GasUsed = gasUsed.String()
+		tx.GasUsed = gasUsed.Uint64()
 	}
 
 	countScResults := make(map[string]int)
@@ -116,10 +117,8 @@ func (tdp *txDatabaseProcessor) addScResultInfoInTx(scr *smartContractResult.Sma
 	tx.SmartContractResults = append(tx.SmartContractResults, dbScResult)
 
 	if dbScResult.GasLimit != 0 && dbScResult.Value != "0" {
-		gasUsed := big.NewInt(0).SetUint64(tx.GasPrice)
-		gasUsed.Mul(gasUsed, big.NewInt(0).SetUint64(tx.GasLimit))
-		gasUsed.Sub(gasUsed, scr.Value)
-		tx.GasUsed = gasUsed.String()
+		gasUsed := tx.GasLimit - scr.GasLimit
+		tx.GasUsed = gasUsed
 	}
 
 	return tx

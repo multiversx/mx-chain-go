@@ -241,7 +241,8 @@ func (n *Node) StartConsensus() error {
 		log.Debug("cannot set app status handler for shard bootstrapper")
 	}
 
-	bootstrapper.StartSync()
+	bootstrapper.StartSyncingBlocks()
+
 	epoch := uint32(0)
 	crtBlockHeader := n.blkc.GetCurrentBlockHeader()
 	if !check.IfNil(crtBlockHeader) {
@@ -307,6 +308,8 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
+	worker.StartWorking()
+
 	n.dataPool.Headers().RegisterHandler(worker.ReceivedHeader)
 
 	err = n.createConsensusTopic(worker)
@@ -358,7 +361,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	go chronologyHandler.StartRounds()
+	chronologyHandler.StartRounds()
 
 	return nil
 }

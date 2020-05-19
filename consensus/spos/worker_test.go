@@ -1284,6 +1284,7 @@ func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBlockIsNotFinished(t
 func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
+	wrk.StartWorking()
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
@@ -1309,11 +1310,14 @@ func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 	wrk.ExecuteMessage(cnsDataList)
 
 	assert.Nil(t, wrk.ReceivedMessages()[msgType][0])
+
+	wrk.Close()
 }
 
 func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
+	wrk.StartWorking()
 	wrk.SetReceivedMessagesCalls(bls.MtBlockHeader, func(cnsMsg *consensus.Message) bool {
 		_ = wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bls.SrBlock, true)
 		return true
@@ -1346,6 +1350,8 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, isBlockJobDone)
+
+	wrk.Close()
 }
 
 func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
@@ -1452,6 +1458,7 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
+	wrk.StartWorking()
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
@@ -1482,6 +1489,8 @@ func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 
 	rcvMsg = wrk.ReceivedMessages()
 	assert.Equal(t, 0, len(rcvMsg[msgType]))
+
+	wrk.Close()
 }
 
 func TestWorker_SetAppStatusHandlerNilShouldErr(t *testing.T) {

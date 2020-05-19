@@ -6,7 +6,8 @@ import (
 
 // SyncTimer defines an interface for time synchronization
 type SyncTimer interface {
-	StartSync()
+	Close() error
+	StartSyncingTime()
 	ClockOffset() time.Duration
 	FormattedCurrentTime() string
 	CurrentTime() time.Time

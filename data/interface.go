@@ -208,7 +208,7 @@ type StorageManager interface {
 
 // TrieFactory creates new tries
 type TrieFactory interface {
-	Create(config.StorageConfig, string, bool) (StorageManager, Trie, error)
+	Create(config.StorageConfig, string, bool, uint) (StorageManager, Trie, error)
 	IsInterfaceNil() bool
 }
 

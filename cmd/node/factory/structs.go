@@ -350,7 +350,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	_, err = poolsCleaner.NewMiniBlocksPoolsCleaner(
+	mbsPoolsCleaner, err := poolsCleaner.NewMiniBlocksPoolsCleaner(
 		args.data.Datapool.MiniBlocks(),
 		args.rounder,
 		args.shardCoordinator,
@@ -359,7 +359,9 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	_, err = poolsCleaner.NewTxsPoolsCleaner(
+	mbsPoolsCleaner.StartCleaning()
+
+	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
 		args.state.AddressPubkeyConverter,
 		args.data.Datapool,
 		args.rounder,
@@ -368,6 +370,8 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	if err != nil {
 		return nil, err
 	}
+
+	txsPoolsCleaner.StartCleaning()
 
 	interceptorContainerFactory, blackListHandler, err := newInterceptorContainerFactory(
 		args.shardCoordinator,

@@ -20,6 +20,8 @@ import (
 const durationBetweenChecks = 200 * time.Millisecond
 const durationBetweenReRequests = 1 * time.Second
 const durationBetweenCheckingNumConnectedPeers = 500 * time.Millisecond
+const minNumPeersToConsiderMetaBlockValid = 1
+const minNumConnectedPeers = 1
 
 var _ process.InterceptorProcessor = (*epochStartMetaBlockProcessor)(nil)
 
@@ -45,8 +47,8 @@ func NewEpochStartMetaBlockProcessor(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	consensusPercentage uint8,
-	minNumConnectedPeers int,
-	minNumOfPeersToConsiderBlockValid int,
+	minNumConnectedPeersConfig int,
+	minNumOfPeersToConsiderBlockValidConfig int,
 ) (*epochStartMetaBlockProcessor, error) {
 	if check.IfNil(messenger) {
 		return nil, epochStart.ErrNilMessenger
@@ -63,10 +65,10 @@ func NewEpochStartMetaBlockProcessor(
 	if !(consensusPercentage > 0 && consensusPercentage <= 100) {
 		return nil, epochStart.ErrInvalidConsensusThreshold
 	}
-	if minNumConnectedPeers < 1 {
+	if minNumConnectedPeersConfig < minNumConnectedPeers {
 		return nil, epochStart.ErrNotEnoughNumConnectedPeers
 	}
-	if minNumOfPeersToConsiderBlockValid < 1 {
+	if minNumOfPeersToConsiderBlockValidConfig < minNumPeersToConsiderMetaBlockValid {
 		return nil, epochStart.ErrNotEnoughNumOfPeersToConsiderBlockValid
 	}
 
@@ -75,8 +77,8 @@ func NewEpochStartMetaBlockProcessor(
 		requestHandler:                    handler,
 		marshalizer:                       marshalizer,
 		hasher:                            hasher,
-		minNumConnectedPeers:              minNumConnectedPeers,
-		minNumOfPeersToConsiderBlockValid: minNumOfPeersToConsiderBlockValid,
+		minNumConnectedPeers:              minNumConnectedPeersConfig,
+		minNumOfPeersToConsiderBlockValid: minNumOfPeersToConsiderBlockValidConfig,
 		mutReceivedMetaBlocks:             sync.RWMutex{},
 		mapReceivedMetaBlocks:             make(map[string]*block.MetaBlock),
 		mapMetaBlocksFromPeers:            make(map[string][]p2p.PeerID),
@@ -259,10 +261,6 @@ func (e *epochStartMetaBlockProcessor) processEntry(
 	}
 
 	return false
-}
-
-// SignalEndOfProcessing won't do anything
-func (e *epochStartMetaBlockProcessor) SignalEndOfProcessing(_ []process.InterceptedData) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
