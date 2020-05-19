@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"sync"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/counting"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -31,31 +31,31 @@ type shardedTxPool struct {
 
 type txPoolShard struct {
 	CacheID string
-	Cache   txCache
+	Cache   *txcache.TxCache
 }
 
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
 func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNotifier, error) {
-	log.Info("NewShardedTxPool", "args", args)
+	log.Trace("NewShardedTxPool", "args", args)
 
 	err := args.verify()
 	if err != nil {
 		return nil, err
 	}
 
-	const oneBillion = 1000000 * 1000
+	const oneTrilion = 1000000 * 1000000
 	numCaches := 2*args.NumberOfShards - 1
 
 	cacheConfigPrototype := txcache.CacheConfig{
 		NumChunksHint:              args.Config.Shards,
 		EvictionEnabled:            true,
 		NumBytesThreshold:          args.Config.SizeInBytes / numCaches,
-		NumBytesPerSenderThreshold: args.Config.SizeInBytesPerSender,
 		CountThreshold:             args.Config.Size / numCaches,
-		CountPerSenderThreshold:    args.Config.SizePerSender,
 		NumSendersToEvictInOneStep: dataRetriever.TxPoolNumSendersToEvictInOneStep,
-		MinGasPriceNanoErd:         uint32(args.MinGasPrice / oneBillion),
+		LargeNumOfTxsForASender:    dataRetriever.TxPoolLargeNumOfTxsForASender,
+		NumTxsToEvictFromASender:   dataRetriever.TxPoolNumTxsToEvictFromASender,
+		MinGasPriceMicroErd:        uint32(args.MinGasPrice / oneTrilion),
 	}
 
 	cacheConfigPrototypeForSelfShard := cacheConfigPrototype
@@ -82,7 +82,7 @@ func (txPool *shardedTxPool) ShardDataStore(cacheID string) storage.Cacher {
 }
 
 // getTxCache returns the requested cache
-func (txPool *shardedTxPool) getTxCache(cacheID string) txCache {
+func (txPool *shardedTxPool) getTxCache(cacheID string) *txcache.TxCache {
 	shard := txPool.getOrCreateShard(cacheID)
 	return shard.Cache
 }
@@ -108,7 +108,8 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 
 	shard, ok := txPool.backingMap[cacheID]
 	if !ok {
-		cache := txPool.createTxCache(cacheID)
+		cacheConfig := txPool.getCacheConfig(cacheID)
+		cache := txcache.NewTxCache(cacheConfig)
 		shard = &txPoolShard{
 			CacheID: cacheID,
 			Cache:   cache,
@@ -118,17 +119,6 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 	}
 
 	return shard
-}
-
-func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
-	cacheConfig := txPool.getCacheConfig(cacheID)
-	cache, err := txcache.NewTxCache(cacheConfig)
-	if err != nil {
-		log.Error("shardedTxPool.createTxCache()", "err", err)
-		return txcache.NewDisabledCache()
-	}
-
-	return cache
 }
 
 func (txPool *shardedTxPool) getCacheConfig(cacheID string) txcache.CacheConfig {
@@ -154,7 +144,6 @@ func (txPool *shardedTxPool) AddData(key []byte, value interface{}, cacheID stri
 
 	sourceShardID, destinationShardID, err := process.ParseShardCacherIdentifier(cacheID)
 	if err != nil {
-		log.Error("shardedTxPool.AddData()", "err", err)
 		return
 	}
 
