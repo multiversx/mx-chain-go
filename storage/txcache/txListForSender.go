@@ -174,10 +174,6 @@ func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTra
 			return element
 		}
 
-		// if value != txToFind && value.sameAs(txToFind) {
-		// 	panic("same tx, different pointers")
-		// }
-
 		// Optimization: stop search at this point, since the list is sorted by nonce
 		if value.Tx.GetNonce() > txToFind.Tx.GetNonce() {
 			break

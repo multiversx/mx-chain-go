@@ -72,6 +72,7 @@ func (txMap *txListBySenderMap) removeTxDebug(correlation string, tx *WrappedTra
 	isFound := listForSender.RemoveTx(tx)
 	isEmpty := listForSender.IsEmpty()
 	if isEmpty {
+		fmt.Println(correlation, "empty sender will be removed")
 		txMap.removeSender(sender)
 	}
 
