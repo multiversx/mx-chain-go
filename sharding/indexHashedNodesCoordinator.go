@@ -282,6 +282,7 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	if ok {
 		if shardID >= nodesConfig.nbShards && shardID != core.MetachainShardId {
 			log.Warn("shardID is not ok", "shardID", shardID, "nbShards", nodesConfig.nbShards)
+			ihgs.mutNodesConfig.RUnlock()
 			return nil, ErrInvalidShardId
 		}
 		selector = nodesConfig.selectors[shardID]
