@@ -49,7 +49,7 @@ func (cache *TxCache) areInternalMapsConsistent() bool {
 	return true
 }
 
-func (cache *TxCache) detectTxIdentityInconsistency(hash string, sender string) {
+func (cache *TxCache) detectTxIdentityInconsistency(correlation string, hash string, sender string) {
 	txInMapByHash, ok := cache.GetByTxHash([]byte(hash))
 	if !ok {
 		return
@@ -68,7 +68,7 @@ func (cache *TxCache) detectTxIdentityInconsistency(hash string, sender string) 
 	}
 
 	if txInMapByHash != txInMapBySender {
-		panic(fmt.Sprintf("different tx identities for hash [%s], sender [%s]", hash, sender))
+		panic(fmt.Sprintf("%s: different tx identities for hash [%s], sender [%s]", correlation, hash, sender))
 	}
 }
 

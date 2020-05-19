@@ -65,7 +65,6 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, txHas
 	listForSender.onAddedTransaction(tx)
 	evicted := listForSender.applySizeConstraints()
 	listForSender.triggerScoreChange()
-	//fmt.Println("added in sender", string(tx.TxHash))
 	return true, evicted
 }
 
