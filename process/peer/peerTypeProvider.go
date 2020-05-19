@@ -23,11 +23,10 @@ type peerListAndShard struct {
 // PeerTypeProvider handles the computation of a peer type
 type PeerTypeProvider struct {
 	nodesCoordinator             process.NodesCoordinator
-	epochHandler                 process.EpochHandler
 	validatorsProvider           process.ValidatorsProvider
 	cache                        map[string]*peerListAndShard
 	cacheRefreshIntervalDuration time.Duration
-	refreshCache                 chan bool
+	refreshCache                 chan uint32
 	mutCache                     sync.RWMutex
 	cancelFunc                   func()
 }
@@ -35,7 +34,7 @@ type PeerTypeProvider struct {
 // ArgPeerTypeProvider contains all parameters needed for creating a PeerTypeProvider
 type ArgPeerTypeProvider struct {
 	NodesCoordinator             process.NodesCoordinator
-	EpochHandler                 process.EpochHandler
+	StartEpoch                   uint32
 	ValidatorsProvider           process.ValidatorsProvider
 	EpochStartEventNotifier      process.EpochStartEventNotifier
 	PeerTypeRefreshIntervalInSec time.Duration
@@ -46,9 +45,6 @@ type ArgPeerTypeProvider struct {
 func NewPeerTypeProvider(arg ArgPeerTypeProvider) (*PeerTypeProvider, error) {
 	if check.IfNil(arg.NodesCoordinator) {
 		return nil, process.ErrNilNodesCoordinator
-	}
-	if check.IfNil(arg.EpochHandler) {
-		return nil, process.ErrNilEpochHandler
 	}
 	if check.IfNil(arg.ValidatorsProvider) {
 		return nil, process.ErrNilValidatorsProvider
@@ -65,17 +61,16 @@ func NewPeerTypeProvider(arg ArgPeerTypeProvider) (*PeerTypeProvider, error) {
 
 	ptp := &PeerTypeProvider{
 		nodesCoordinator:             arg.NodesCoordinator,
-		epochHandler:                 arg.EpochHandler,
 		validatorsProvider:           arg.ValidatorsProvider,
 		cache:                        make(map[string]*peerListAndShard),
 		mutCache:                     sync.RWMutex{},
 		cacheRefreshIntervalDuration: arg.PeerTypeRefreshIntervalInSec,
-		refreshCache:                 make(chan bool),
+		refreshCache:                 make(chan uint32),
 	}
 
 	currentContext, cancelfunc := context.WithCancel(context.Background())
 	ptp.cancelFunc = cancelfunc
-	go ptp.startRefreshProcess(currentContext)
+	go ptp.startRefreshProcess(currentContext, arg.StartEpoch)
 	arg.EpochStartEventNotifier.RegisterHandler(ptp.epochStartEventHandler())
 
 	return ptp, nil
@@ -114,11 +109,14 @@ func (ptp *PeerTypeProvider) GetAllPeerTypeInfos() []*state.PeerTypeInfo {
 func (ptp *PeerTypeProvider) epochStartEventHandler() sharding.EpochStartActionHandler {
 	subscribeHandler := notifier.NewHandlerForEpochStart(
 		func(hdr data.HeaderHandler) {
-			log.Debug("epochStartEventHandler - refreshCache forced",
+			log.Trace("epochStartEventHandler - refreshCache forced",
 				"nonce", hdr.GetNonce(),
 				"shard", hdr.GetShardID(),
-				"round", hdr.GetRound())
-			ptp.refreshCache <- true
+				"round", hdr.GetRound(),
+				"epoch", hdr.GetEpoch())
+			go func() {
+				ptp.refreshCache <- hdr.GetEpoch()
+			}()
 		},
 		func(_ data.HeaderHandler) {},
 		core.IndexerOrder,
@@ -127,37 +125,33 @@ func (ptp *PeerTypeProvider) epochStartEventHandler() sharding.EpochStartActionH
 	return subscribeHandler
 }
 
-func (ptp *PeerTypeProvider) startRefreshProcess(ctx context.Context) {
+func (ptp *PeerTypeProvider) startRefreshProcess(ctx context.Context, startEpoch uint32) {
+	epoch := startEpoch
 	for {
-		ptp.updateCache()
+		ptp.updateCache(epoch)
 		select {
-		case <-ptp.refreshCache:
-			log.Debug("startRefreshProcess - forced refresh")
+		case epoch = <-ptp.refreshCache:
+			log.Trace("startRefreshProcess - forced refresh", "epoch", epoch)
 		case <-ctx.Done():
 			log.Debug("peerTypeProvider's go routine is stopping...")
 			return
 		case <-time.After(ptp.cacheRefreshIntervalDuration):
-			log.Debug("startRefreshProcess - time after")
+			log.Trace("startRefreshProcess - time after")
 		}
 	}
 }
 
-func (ptp *PeerTypeProvider) updateCache() {
-	log.Debug("peerTypeProvider - updateCache started")
+func (ptp *PeerTypeProvider) updateCache(epoch uint32) {
 	allNodes, err := ptp.validatorsProvider.GetLatestValidatorInfos()
 	if err != nil {
-		log.Debug("peerTypeProvider - GetLatestValidatorInfos failed", "error", err)
+		log.Trace("peerTypeProvider - GetLatestValidatorInfos failed", "error", err)
 	}
 
-	log.Debug("peerTypeProvider - create new cache - before")
-	newCache := ptp.createNewCache(ptp.epochHandler.MetaEpoch(), allNodes)
-	log.Debug("peerTypeProvider - create new cache - after")
+	newCache := ptp.createNewCache(epoch, allNodes)
 
 	ptp.mutCache.Lock()
 	ptp.cache = newCache
 	ptp.mutCache.Unlock()
-
-	log.Debug("peerTypeProvider - updateCache finished")
 }
 
 func (ptp *PeerTypeProvider) createNewCache(
@@ -174,20 +168,16 @@ func (ptp *PeerTypeProvider) createNewCache(
 		}
 	}
 
-	log.Debug("createNewCache - before GetAllEligibleValidatorsPublicKeys")
 	nodesMapEligible, err := ptp.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
-		log.Warn("peerTypeProvider - GetAllEligibleValidatorsPublicKeys failed", "epoch", epoch)
+		log.Debug("peerTypeProvider - GetAllEligibleValidatorsPublicKeys failed", "epoch", epoch)
 	}
-	log.Debug("createNewCache - after GetAllEligibleValidatorsPublicKeys")
 	aggregatePType(newCache, nodesMapEligible, core.EligibleList)
 
-	log.Debug("createNewCache - before GetAllWaitingValidatorsPublicKeys")
 	nodesMapWaiting, err := ptp.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
 	if err != nil {
-		log.Warn("peerTypeProvider - GetAllWaitingValidatorsPublicKeys failed", "epoch", epoch)
+		log.Debug("peerTypeProvider - GetAllWaitingValidatorsPublicKeys failed", "epoch", epoch)
 	}
-	log.Debug("createNewCache - after GetAllWaitingValidatorsPublicKeys")
 	aggregatePType(newCache, nodesMapWaiting, core.WaitingList)
 
 	return newCache

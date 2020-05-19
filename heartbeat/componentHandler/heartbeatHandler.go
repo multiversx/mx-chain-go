@@ -103,7 +103,7 @@ func (hbh *HeartbeatHandler) create() error {
 	}
 	argPeerTypeProvider := peer.ArgPeerTypeProvider{
 		NodesCoordinator:             arg.NodesCoordinator,
-		EpochHandler:                 arg.EpochStartTrigger,
+		StartEpoch:                   arg.EpochStartTrigger.MetaEpoch(),
 		EpochStartEventNotifier:      arg.EpochStartRegistration,
 		ValidatorsProvider:           arg.ValidatorsProvider,
 		Context:                      ctx,

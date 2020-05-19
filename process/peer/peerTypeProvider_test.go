@@ -29,15 +29,6 @@ func TestNewPeerTypeProvider_NilNodesCoordinator(t *testing.T) {
 	assert.Equal(t, process.ErrNilNodesCoordinator, err)
 }
 
-func TestNewPeerTypeProvider_NilEpochHandler(t *testing.T) {
-	arg := createDefaultArg()
-	arg.EpochHandler = nil
-
-	ptp, err := NewPeerTypeProvider(arg)
-	assert.Nil(t, ptp)
-	assert.Equal(t, process.ErrNilEpochHandler, err)
-}
-
 func TestNewPeerTypeProvider_NilEpochStartNotifier(t *testing.T) {
 	arg := createDefaultArg()
 	arg.EpochStartEventNotifier = nil
@@ -129,7 +120,6 @@ func TestPeerTypeProvider_UpdateCache_WithError(t *testing.T) {
 
 	ptp := PeerTypeProvider{
 		nodesCoordinator:             nodesCoordinator,
-		epochHandler:                 arg.EpochHandler,
 		validatorsProvider:           arg.ValidatorsProvider,
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.PeerTypeRefreshIntervalInSec,
@@ -137,7 +127,7 @@ func TestPeerTypeProvider_UpdateCache_WithError(t *testing.T) {
 		mutCache:                     sync.RWMutex{},
 	}
 
-	ptp.updateCache()
+	ptp.updateCache(0)
 
 	assert.NotNil(t, ptp.GetCache())
 	assert.Equal(t, 1, len(ptp.GetCache()))
@@ -149,11 +139,10 @@ func TestPeerTypeProvider_Cancel_startRefreshProcess(t *testing.T) {
 	arg.PeerTypeRefreshIntervalInSec = 1 * time.Millisecond
 	ptp := PeerTypeProvider{
 		nodesCoordinator:             arg.NodesCoordinator,
-		epochHandler:                 arg.EpochHandler,
 		validatorsProvider:           arg.ValidatorsProvider,
 		cache:                        make(map[string]*peerListAndShard),
 		cacheRefreshIntervalDuration: arg.PeerTypeRefreshIntervalInSec,
-		refreshCache:                 make(chan bool),
+		refreshCache:                 make(chan uint32),
 		mutCache:                     sync.RWMutex{},
 	}
 
@@ -161,7 +150,7 @@ func TestPeerTypeProvider_Cancel_startRefreshProcess(t *testing.T) {
 	mutFinished := sync.Mutex{}
 	finished := false
 	go func() {
-		ptp.startRefreshProcess(ctx)
+		ptp.startRefreshProcess(ctx, 0)
 		mutFinished.Lock()
 		finished = true
 		mutFinished.Unlock()
@@ -201,7 +190,6 @@ func TestPeerTypeProvider_UpdateCache(t *testing.T) {
 
 	ptp := PeerTypeProvider{
 		nodesCoordinator:             arg.NodesCoordinator,
-		epochHandler:                 arg.EpochHandler,
 		validatorsProvider:           arg.ValidatorsProvider,
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.PeerTypeRefreshIntervalInSec,
@@ -209,7 +197,7 @@ func TestPeerTypeProvider_UpdateCache(t *testing.T) {
 		mutCache:                     sync.RWMutex{},
 	}
 
-	ptp.updateCache()
+	ptp.updateCache(0)
 
 	assert.NotNil(t, ptp.cache)
 	assert.Equal(t, len(validatorsMap[initialShardId]), len(ptp.cache))
@@ -297,7 +285,6 @@ func TestNewPeerTypeProvider_createCache(t *testing.T) {
 
 	ptp := PeerTypeProvider{
 		nodesCoordinator:             arg.NodesCoordinator,
-		epochHandler:                 arg.EpochHandler,
 		validatorsProvider:           arg.ValidatorsProvider,
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.PeerTypeRefreshIntervalInSec,
@@ -369,7 +356,6 @@ func TestNewPeerTypeProvider_createCache_combined(t *testing.T) {
 
 	ptp := PeerTypeProvider{
 		nodesCoordinator:             nodesCoordinator,
-		epochHandler:                 arg.EpochHandler,
 		validatorsProvider:           arg.ValidatorsProvider,
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.PeerTypeRefreshIntervalInSec,
@@ -604,7 +590,7 @@ func TestNewPeerTypeProvider_IsInterfaceNil(t *testing.T) {
 func createDefaultArg() ArgPeerTypeProvider {
 	return ArgPeerTypeProvider{
 		NodesCoordinator:             &mock.NodesCoordinatorMock{},
-		EpochHandler:                 &mock.EpochStartTriggerStub{},
+		StartEpoch:                   0,
 		ValidatorsProvider:           &mock.ValidatorsProviderStub{},
 		EpochStartEventNotifier:      &mock.EpochStartNotifierStub{},
 		PeerTypeRefreshIntervalInSec: defaultRefreshIntervalDuration,
