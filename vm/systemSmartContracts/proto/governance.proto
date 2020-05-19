@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "systemSmartContracts";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message WhiteListProposal {
+    bytes IssuerAddress = 1 [(gogoproto.jsontag) = "IssuerAddress"];
+}
+
+message HardForkProposal {
+    bytes  IssuerAddress      = 1 [(gogoproto.jsontag) = "IssuerAddress"];
+    uint32 EpochToHardFork    = 2 [(gogoproto.jsontag) = "EpochToHardFork"];
+    bytes  NewSoftwareVersion = 3 [(gogoproto.jsontag) = "NewSoftwareVersion"];
+}
+
+message GeneralProposal {
+    bytes  GitHubCommit   = 1 [(gogoproto.jsontag) = "GitHubCommit"];
+    uint64 StartVoteNonce = 2 [(gogoproto.jsontag) = "StartVoteNonce"];
+    uint64 EndVoteNonce   = 3 [(gogoproto.jsontag) = "EndVoteNonce"];
+}
+
+message GovernanceConfig {
+    int64 NumNodes         = 1 [(gogoproto.jsontag) = "NumNodes"];
+    int32 MinQuorum        = 2 [(gogoproto.jsontag) = "MinQuorum"];
+    int32 MinPassThreshold = 3 [(gogoproto.jsontag) = "MinPassThreshold"];
+    int32 MinVetoThreshold = 4 [(gogoproto.jsontag) = "MinVetoThreshold"];
+    bytes ProposalFee      = 5 [(gogoproto.jsontag) = "ProposalFee", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+}
+
