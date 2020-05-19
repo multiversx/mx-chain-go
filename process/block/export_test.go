@@ -76,17 +76,26 @@ func NewShardProcessorEmptyWith3shards(
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = &mock.AccountsStub{}
 
+	coreComponents := &mock.CoreComponentsMock{
+		IntMarsh:            &mock.MarshalizerMock{},
+		Hash:                &mock.HasherMock{},
+		UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
+	}
+	dataComponents := &mock.DataComponentsMock{
+		Storage:    &mock.ChainStorerMock{},
+		DataPool:   tdp,
+		BlockChain: blockChain,
+	}
+
 	arguments := ArgShardProcessor{
 		ArgBaseProcessor: ArgBaseProcessor{
+			CoreComponents:    coreComponents,
+			DataComponents:    dataComponents,
 			AccountsDB:        accountsDb,
 			ForkDetector:      &mock.ForkDetectorMock{},
-			Hasher:            &mock.HasherMock{},
-			Marshalizer:       &mock.MarshalizerMock{},
-			Store:             &mock.ChainStorerMock{},
 			ShardCoordinator:  shardCoordinator,
 			NodesCoordinator:  nodesCoordinator,
 			FeeHandler:        &mock.FeeAccumulatorStub{},
-			Uint64Converter:   &mock.Uint64ByteSliceConverterMock{},
 			RequestHandler:    &mock.RequestHandlerStub{},
 			Core:              &mock.ServiceContainerMock{},
 			BlockChainHook:    &mock.BlockChainHookHandlerMock{},
@@ -100,8 +109,6 @@ func NewShardProcessorEmptyWith3shards(
 				},
 			},
 			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
-			DataPool:           tdp,
-			BlockChain:         blockChain,
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
 			Version:            "softwareVersion",
 		},
