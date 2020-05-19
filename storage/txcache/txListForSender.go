@@ -167,15 +167,18 @@ func (listForSender *txListForSender) onRemovedListElement(element *list.Element
 
 // This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTransaction) *list.Element {
+	txToFindHash := txToFind.TxHash
+	txToFindNonce := txToFind.Tx.GetNonce()
+
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(*WrappedTransaction)
 
-		if value == txToFind {
+		if bytes.Equal(value.TxHash, txToFindHash) {
 			return element
 		}
 
 		// Optimization: stop search at this point, since the list is sorted by nonce
-		if value.Tx.GetNonce() > txToFind.Tx.GetNonce() {
+		if value.Tx.GetNonce() > txToFindNonce {
 			break
 		}
 	}
