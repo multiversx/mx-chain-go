@@ -853,7 +853,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating data components")
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
 
-	dataArgs := mainFactory.DataComponentsFactoryArgs{
+	dataArgs := mainFactory.DataComponentsHandlerArgs{
 		Config:             *generalConfig,
 		EconomicsData:      economicsData,
 		ShardCoordinator:   shardCoordinator,
@@ -861,11 +861,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		EpochStartNotifier: epochStartNotifier,
 		CurrentEpoch:       storerEpoch,
 	}
-	dataComponentsFactory, err := mainFactory.NewDataComponentsFactory(dataArgs)
+
+	managedDataComponents, err := mainFactory.NewManagedDataComponents(dataArgs)
 	if err != nil {
 		return err
 	}
-	dataComponents, err := dataComponentsFactory.Create()
+	err = managedDataComponents.Create()
 	if err != nil {
 		return err
 	}
@@ -885,7 +886,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
+	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(
+		managedDataComponents.StorageService().GetStorer(dataRetriever.StatusMetricsUnit),
+	)
 	if err != nil {
 		return err
 	}
@@ -913,7 +916,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		managedCoreComponents.InternalMarshalizer(),
 		managedCoreComponents.Hasher(),
 		rater,
-		dataComponents.Store.GetStorer(dataRetriever.BootstrapUnit),
+		managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
 		nodesShuffler,
 		generalConfig.EpochStartConfig,
 		shardCoordinator.SelfId(),
@@ -940,7 +943,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
+	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(
+		managedDataComponents.StorageService().GetStorer(dataRetriever.StatusMetricsUnit),
+	)
 	if err != nil {
 		return err
 	}
@@ -1059,7 +1064,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		rounder,
 		shardCoordinator,
 		nodesCoordinator,
-		dataComponents,
+		managedDataComponents,
 		managedCoreComponents,
 		managedCryptoComponents,
 		stateComponents,
@@ -1112,7 +1117,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		nodesCoordinator,
 		managedCoreComponents,
 		stateComponents,
-		dataComponents,
+		managedDataComponents,
 		managedCryptoComponents,
 		processComponents,
 		managedNetworkComponents,

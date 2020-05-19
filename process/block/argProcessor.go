@@ -14,18 +14,30 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+type coreComponentsHolder interface {
+	Hasher() hashing.Hasher
+	InternalMarshalizer() marshal.Marshalizer
+	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
+	IsInterfaceNil() bool
+}
+
+type dataComponentsHolder interface {
+	StorageService() dataRetriever.StorageService
+	Datapool() dataRetriever.PoolsHolder
+	Blockchain() data.ChainHandler
+	IsInterfaceNil() bool
+}
+
 // ArgBaseProcessor holds all dependencies required by the process data factory in order to create
 // new instances
 type ArgBaseProcessor struct {
+	CoreComponents         coreComponentsHolder
+	DataComponents         dataComponentsHolder
 	AccountsDB             map[state.AccountsDbIdentifier]state.AccountsAdapter
 	ForkDetector           process.ForkDetector
-	Hasher                 hashing.Hasher
-	Marshalizer            marshal.Marshalizer
-	Store                  dataRetriever.StorageService
 	ShardCoordinator       sharding.Coordinator
 	NodesCoordinator       sharding.NodesCoordinator
 	FeeHandler             process.TransactionFeeHandler
-	Uint64Converter        typeConverters.Uint64ByteSliceConverter
 	RequestHandler         process.RequestHandler
 	Core                   serviceContainer.Core
 	BlockChainHook         process.BlockChainHookHandler
@@ -35,8 +47,6 @@ type ArgBaseProcessor struct {
 	Rounder                consensus.Rounder
 	BootStorer             process.BootStorer
 	BlockTracker           process.BlockTracker
-	DataPool               dataRetriever.PoolsHolder
-	BlockChain             data.ChainHandler
 	StateCheckpointModulus uint
 	BlockSizeThrottler     process.BlockSizeThrottler
 	Version                string

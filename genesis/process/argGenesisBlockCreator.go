@@ -15,31 +15,42 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+type coreComponentsHandler interface {
+	InternalMarshalizer() marshal.Marshalizer
+	Hasher() hashing.Hasher
+	AddressPubKeyConverter() state.PubkeyConverter
+	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
+	ChainID() string
+	IsInterfaceNil() bool
+}
+
+type dataComponentsHandler interface {
+	StorageService() dataRetriever.StorageService
+	Blockchain() data.ChainHandler
+	Datapool() dataRetriever.PoolsHolder
+	SetBlockchain(chain data.ChainHandler)
+	IsInterfaceNil() bool
+}
+
 // ArgsGenesisBlockCreator holds the arguments which are needed to create a genesis metablock
 type ArgsGenesisBlockCreator struct {
-	GenesisTime              uint64
-	StartEpochNum            uint32
-	Accounts                 state.AccountsAdapter
-	ValidatorAccounts        state.AccountsAdapter
-	PubkeyConv               state.PubkeyConverter
-	InitialNodesSetup        genesis.InitialNodesHandler
-	Economics                *economics.EconomicsData //TODO refactor and use an interface
-	ShardCoordinator         sharding.Coordinator
-	Store                    dataRetriever.StorageService
-	Blkc                     data.ChainHandler
-	Marshalizer              marshal.Marshalizer
-	Hasher                   hashing.Hasher
-	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	DataPool                 dataRetriever.PoolsHolder
-	AccountsParser           genesis.AccountsParser
-	SmartContractParser      genesis.InitialSmartContractParser
-	GasMap                   map[string]map[string]uint64
-	TxLogsProcessor          process.TransactionLogProcessor
-	VirtualMachineConfig     config.VirtualMachineConfig
-	HardForkConfig           config.HardforkConfig
-	TrieStorageManagers      map[string]data.StorageManager
-	ChainID                  string
-	SystemSCConfig           config.SystemSmartContractsConfig
+	GenesisTime          uint64
+	StartEpochNum        uint32
+	Data                 dataComponentsHandler
+	Core                 coreComponentsHandler
+	Accounts             state.AccountsAdapter
+	ValidatorAccounts    state.AccountsAdapter
+	InitialNodesSetup    genesis.InitialNodesHandler
+	Economics            *economics.EconomicsData //TODO refactor and use an interface
+	ShardCoordinator     sharding.Coordinator
+	AccountsParser       genesis.AccountsParser
+	SmartContractParser  genesis.InitialSmartContractParser
+	GasMap               map[string]map[string]uint64
+	TxLogsProcessor      process.TransactionLogProcessor
+	VirtualMachineConfig config.VirtualMachineConfig
+	HardForkConfig       config.HardforkConfig
+	TrieStorageManagers  map[string]data.StorageManager
+	SystemSCConfig       config.SystemSmartContractsConfig
 
 	// created component needed only for hardfork
 	importHandler update.ImportHandler

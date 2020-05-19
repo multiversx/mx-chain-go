@@ -28,10 +28,13 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 	if argument == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
-	if check.IfNil(argument.ProtoMarshalizer) {
+	if check.IfNil(argument.CoreComponents) {
+		return nil, process.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(argument.CoreComponents.InternalMarshalizer()) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(argument.TxSignMarshalizer) {
+	if check.IfNil(argument.CoreComponents.TxMarshalizer()) {
 		return nil, process.ErrNilMarshalizer
 	}
 	if check.IfNil(argument.Hasher) {

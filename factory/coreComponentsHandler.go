@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"context"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -24,7 +23,6 @@ type CoreComponentsHandlerArgs CoreComponentsFactoryArgs
 type managedCoreComponents struct {
 	coreComponentsFactory *coreComponentsFactory
 	*coreComponents
-	cancelFunc        func()
 	mutCoreComponents sync.RWMutex
 }
 
@@ -47,7 +45,6 @@ func (mcc *managedCoreComponents) Create() error {
 
 	mcc.mutCoreComponents.Lock()
 	mcc.coreComponents = cc
-	_, mcc.cancelFunc = context.WithCancel(context.Background())
 	mcc.mutCoreComponents.Unlock()
 
 	return nil
@@ -57,8 +54,6 @@ func (mcc *managedCoreComponents) Create() error {
 func (mcc *managedCoreComponents) Close() error {
 	mcc.mutCoreComponents.Lock()
 	mcc.coreComponents.statusHandler.Close()
-	mcc.cancelFunc()
-	mcc.cancelFunc = nil
 	mcc.coreComponents = nil
 	mcc.mutCoreComponents.Unlock()
 
@@ -75,6 +70,20 @@ func (mcc *managedCoreComponents) InternalMarshalizer() marshal.Marshalizer {
 	}
 
 	return mcc.coreComponents.internalMarshalizer
+}
+
+// SetInternalMarshalizer sets the internal marshalizer to the one given as parameter
+func (mcc *managedCoreComponents) SetInternalMarshalizer(m marshal.Marshalizer) error {
+	mcc.mutCoreComponents.Lock()
+	defer mcc.mutCoreComponents.Unlock()
+
+	if mcc.coreComponents == nil {
+		return ErrNilCoreComponents
+	}
+
+	mcc.coreComponents.internalMarshalizer = m
+
+	return nil
 }
 
 // TxMarshalizer returns the core components tx marshalizer

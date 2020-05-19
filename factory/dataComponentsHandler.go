@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"context"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -19,7 +18,6 @@ type DataComponentsHandlerArgs DataComponentsFactoryArgs
 type managedDataComponents struct {
 	*DataComponents
 	dataComponentsFactory *dataComponentsFactory
-	cancelFunc            func()
 	mutDataComponents     sync.RWMutex
 }
 
@@ -45,7 +43,6 @@ func (mdc *managedDataComponents) Create() error {
 
 	mdc.mutDataComponents.Lock()
 	mdc.DataComponents = dc
-	_, mdc.cancelFunc = context.WithCancel(context.Background())
 	mdc.mutDataComponents.Unlock()
 
 	return nil
@@ -54,10 +51,14 @@ func (mdc *managedDataComponents) Create() error {
 // Close closes the data components
 func (mdc *managedDataComponents) Close() error {
 	mdc.mutDataComponents.Lock()
-	mdc.cancelFunc()
-	mdc.cancelFunc = nil
+	defer mdc.mutDataComponents.Unlock()
+
+	err := mdc.DataComponents.Store.CloseAll()
+	if err != nil {
+		return err
+	}
+
 	mdc.DataComponents = nil
-	mdc.mutDataComponents.Unlock()
 
 	return nil
 }
@@ -72,6 +73,12 @@ func (mdc *managedDataComponents) Blockchain() data.ChainHandler {
 	}
 
 	return mdc.Blkc
+}
+
+func (mdc *managedDataComponents) SetBlockchain(chain data.ChainHandler) {
+	mdc.mutDataComponents.Lock()
+	mdc.Blkc = chain
+	mdc.mutDataComponents.Unlock()
 }
 
 // StorageService returns the storage service

@@ -25,7 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("genesis/process")
@@ -108,7 +108,7 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 		TimeStamp:       arg.GenesisTime,
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
-		ChainID:         []byte(arg.ChainID),
+		ChainID:         []byte(arg.Core.ChainID()),
 		SoftwareVersion: []byte(""),
 	}
 
@@ -128,7 +128,7 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHa
 		TxProcessor:      processors.txProcessor,
 		RwdTxProcessor:   processors.rwdProcessor,
 		ScrTxProcessor:   processors.scrProcessor,
-		PubKeyConv:       arg.PubkeyConv,
+		PubKeyConv:       arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator: arg.ShardCoordinator,
 	}
 	pendingTxProcessor, err := hardForkProcess.NewPendingTransactionProcessor(argsPendingTxProcessor)
@@ -141,8 +141,8 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHa
 		TxCoordinator:      processors.txCoordinator,
 		PendingTxProcessor: pendingTxProcessor,
 		ImportHandler:      arg.importHandler,
-		Marshalizer:        arg.Marshalizer,
-		Hasher:             arg.Hasher,
+		Marshalizer:        arg.Core.InternalMarshalizer(),
+		Hasher:             arg.Core.Hasher(),
 	}
 	shardBlockCreator, err := hardForkProcess.NewShardBlockCreatorAfterHardFork(argsShardBlockAfterHardFork)
 	if err != nil {
@@ -150,7 +150,7 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator) (data.HeaderHa
 	}
 
 	hdrHandler, bodyHandler, err := shardBlockCreator.CreateNewBlock(
-		arg.ChainID,
+		arg.Core.ChainID(),
 		arg.HardForkConfig.StartRound,
 		arg.HardForkConfig.StartNonce,
 		arg.HardForkConfig.StartEpoch,
@@ -213,7 +213,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 		GasMap:               arg.GasMap,
 		MapDNSAddresses:      make(map[string]struct{}),
 		EnableUserNameChange: false,
-		Marshalizer:          arg.Marshalizer,
+		Marshalizer:          arg.Core.InternalMarshalizer(),
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
@@ -222,12 +222,12 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         arg.Accounts,
-		PubkeyConv:       arg.PubkeyConv,
-		StorageService:   arg.Store,
-		BlockChain:       arg.Blkc,
+		PubkeyConv:       arg.Core.AddressPubKeyConverter(),
+		StorageService:   arg.Data.StorageService(),
+		BlockChain:       arg.Data.Blockchain(),
 		ShardCoordinator: arg.ShardCoordinator,
-		Marshalizer:      arg.Marshalizer,
-		Uint64Converter:  arg.Uint64ByteSliceConverter,
+		Marshalizer:      arg.Core.InternalMarshalizer(),
+		Uint64Converter:  arg.Core.Uint64ByteSliceConverter(),
 		BuiltInFunctions: builtInFuncs,
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(
@@ -247,11 +247,11 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		arg.ShardCoordinator,
-		arg.Marshalizer,
-		arg.Hasher,
-		arg.PubkeyConv,
-		arg.Store,
-		arg.DataPool,
+		arg.Core.InternalMarshalizer(),
+		arg.Core.Hasher(),
+		arg.Core.AddressPubKeyConverter(),
+		arg.Data.StorageService(),
+		arg.Data.Datapool(),
 	)
 	if err != nil {
 		return nil, err
@@ -278,7 +278,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  arg.PubkeyConv,
+		PubkeyConverter:  arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator: arg.ShardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   vmcommon.NewAtArgumentParser(),
@@ -297,11 +297,11 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
 		ArgsParser:       argsParser,
-		Hasher:           arg.Hasher,
-		Marshalizer:      arg.Marshalizer,
+		Hasher:           arg.Core.Hasher(),
+		Marshalizer:      arg.Core.InternalMarshalizer(),
 		AccountsDB:       arg.Accounts,
 		TempAccounts:     vmFactoryImpl.BlockChainHookImpl(),
-		PubkeyConv:       arg.PubkeyConv,
+		PubkeyConv:       arg.Core.AddressPubKeyConverter(),
 		Coordinator:      arg.ShardCoordinator,
 		ScrForwarder:     scForwarder,
 		TxFeeHandler:     genesisFeeHandler,
@@ -318,7 +318,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 
 	rewardsTxProcessor, err := rewardTransaction.NewRewardTxProcessor(
 		arg.Accounts,
-		arg.PubkeyConv,
+		arg.Core.AddressPubKeyConverter(),
 		arg.ShardCoordinator,
 	)
 	if err != nil {
@@ -327,9 +327,9 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 
 	transactionProcessor, err := transaction.NewTxProcessor(
 		arg.Accounts,
-		arg.Hasher,
-		arg.PubkeyConv,
-		arg.Marshalizer,
+		arg.Core.Hasher(),
+		arg.Core.AddressPubKeyConverter(),
+		arg.Core.InternalMarshalizer(),
 		arg.ShardCoordinator,
 		scProcessor,
 		genesisFeeHandler,
@@ -349,11 +349,11 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		arg.ShardCoordinator,
-		arg.Store,
-		arg.Marshalizer,
-		arg.Hasher,
-		arg.DataPool,
-		arg.PubkeyConv,
+		arg.Data.StorageService(),
+		arg.Core.InternalMarshalizer(),
+		arg.Core.Hasher(),
+		arg.Data.Datapool(),
+		arg.Core.AddressPubKeyConverter(),
 		arg.Accounts,
 		disabledRequestHandler,
 		transactionProcessor,
@@ -376,11 +376,11 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator) (*genesisProcessors, 
 	}
 
 	txCoordinator, err := coordinator.NewTransactionCoordinator(
-		arg.Hasher,
-		arg.Marshalizer,
+		arg.Core.Hasher(),
+		arg.Core.InternalMarshalizer(),
 		arg.ShardCoordinator,
 		arg.Accounts,
-		arg.DataPool.MiniBlocks(),
+		arg.Data.Datapool().MiniBlocks(),
 		disabledRequestHandler,
 		preProcContainer,
 		interimProcContainer,
@@ -441,7 +441,7 @@ func deployInitialSmartContract(
 	var deployProc genesis.DeployProcessor
 	deployProc, err = intermediate.NewDeployProcessor(
 		txExecutor,
-		arg.PubkeyConv,
+		arg.Core.AddressPubKeyConverter(),
 		processors.blockchainHook,
 	)
 	if err != nil {
@@ -453,7 +453,7 @@ func deployInitialSmartContract(
 		deployProc, err = intermediate.NewDelegationDeployProcessor(
 			deployProc,
 			arg.AccountsParser,
-			arg.PubkeyConv,
+			arg.Core.AddressPubKeyConverter(),
 			arg.Economics.GenesisNodePrice(),
 		)
 		if err != nil {

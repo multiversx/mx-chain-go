@@ -43,27 +43,27 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, err
 	}
 
-	if check.IfNil(arguments.DataPool) {
+	if check.IfNil(arguments.DataComponents.Datapool()) {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if check.IfNil(arguments.DataPool.Headers()) {
+	if check.IfNil(arguments.DataComponents.Datapool().Headers()) {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if check.IfNil(arguments.DataPool.Transactions()) {
+	if check.IfNil(arguments.DataComponents.Datapool().Transactions()) {
 		return nil, process.ErrNilTransactionPool
 	}
 
-	genesisHdr := arguments.BlockChain.GetGenesisHeader()
+	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	base := &baseProcessor{
 		accountsDB:             arguments.AccountsDB,
 		blockSizeThrottler:     arguments.BlockSizeThrottler,
 		forkDetector:           arguments.ForkDetector,
-		hasher:                 arguments.Hasher,
-		marshalizer:            arguments.Marshalizer,
-		store:                  arguments.Store,
+		hasher:                 arguments.CoreComponents.Hasher(),
+		marshalizer:            arguments.CoreComponents.InternalMarshalizer(),
+		store:                  arguments.DataComponents.StorageService(),
 		shardCoordinator:       arguments.ShardCoordinator,
 		nodesCoordinator:       arguments.NodesCoordinator,
-		uint64Converter:        arguments.Uint64Converter,
+		uint64Converter:        arguments.CoreComponents.Uint64ByteSliceConverter(),
 		requestHandler:         arguments.RequestHandler,
 		appStatusHandler:       statusHandler.NewNilStatusHandler(),
 		blockChainHook:         arguments.BlockChainHook,
@@ -73,9 +73,9 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		headerValidator:        arguments.HeaderValidator,
 		bootStorer:             arguments.BootStorer,
 		blockTracker:           arguments.BlockTracker,
-		dataPool:               arguments.DataPool,
+		dataPool:               arguments.DataComponents.Datapool(),
 		stateCheckpointModulus: arguments.StateCheckpointModulus,
-		blockChain:             arguments.BlockChain,
+		blockChain:             arguments.DataComponents.Blockchain(),
 		feeHandler:             arguments.FeeHandler,
 		genesisNonce:           genesisHdr.GetNonce(),
 		version:                core.TrimSoftwareVersion(arguments.Version),

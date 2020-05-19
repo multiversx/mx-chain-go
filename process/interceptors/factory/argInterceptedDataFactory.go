@@ -10,25 +10,37 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+// interceptedDataCoreComponentsHolder holds the core components required by the intercepted data factory
+type interceptedDataCoreComponentsHolder interface {
+	InternalMarshalizer() marshal.Marshalizer
+	TxMarshalizer() marshal.Marshalizer
+	Hasher() hashing.Hasher
+	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
+	AddressPubKeyConverter() state.PubkeyConverter
+	ChainID() string
+	IsInterfaceNil() bool
+}
+
+// interceptedDataCryptoComponentsHolder holds the crypto components required by the intercepted data factory
+type interceptedDataCryptoComponentsHolder interface {
+	TxSignKeyGen() crypto.KeyGenerator
+	BlockSignKeyGen() crypto.KeyGenerator
+	TxSingleSigner() crypto.SingleSigner
+	BlockSigner() crypto.SingleSigner
+	MultiSigner() crypto.MultiSigner
+	IsInterfaceNil() bool
+}
+
 // ArgInterceptedDataFactory holds all dependencies required by the shard and meta intercepted data factory in order to create
 // new instances
 type ArgInterceptedDataFactory struct {
-	ProtoMarshalizer       marshal.Marshalizer
-	TxSignMarshalizer      marshal.Marshalizer
-	Hasher                 hashing.Hasher
+	CoreComponents         interceptedDataCoreComponentsHolder
+	CryptoComponents       interceptedDataCryptoComponentsHolder
 	ShardCoordinator       sharding.Coordinator
-	MultiSigVerifier       crypto.MultiSigVerifier
 	NodesCoordinator       sharding.NodesCoordinator
-	KeyGen                 crypto.KeyGenerator
-	BlockKeyGen            crypto.KeyGenerator
-	Signer                 crypto.SingleSigner
-	BlockSigner            crypto.SingleSigner
-	AddressPubkeyConv      state.PubkeyConverter
 	FeeHandler             process.FeeHandler
 	WhiteListerVerifiedTxs process.WhiteListHandler
 	HeaderSigVerifier      process.InterceptedHeaderSigVerifier
-	ChainID                []byte
 	ValidityAttester       process.ValidityAttester
 	EpochStartTrigger      process.EpochStartTriggerHandler
-	NonceConverter         typeConverters.Uint64ByteSliceConverter
 }

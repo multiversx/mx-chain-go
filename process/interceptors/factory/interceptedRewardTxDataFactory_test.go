@@ -22,8 +22,9 @@ func TestNewInterceptedRewardTxDataFactory_NilArgumentsShouldErr(t *testing.T) {
 func TestNewInterceptedRewardTxDataFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
-	arg.ProtoMarshalizer = nil
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.IntMarsh = nil
+	arg := createMockArgument(coreComp, cryptoComp)
 
 	imh, err := NewInterceptedRewardTxDataFactory(arg)
 	assert.Nil(t, imh)
@@ -33,8 +34,9 @@ func TestNewInterceptedRewardTxDataFactory_NilMarshalizerShouldErr(t *testing.T)
 func TestNewInterceptedRewardTxDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
-	arg.TxSignMarshalizer = nil
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.TxMarsh = nil
+	arg := createMockArgument(coreComp, cryptoComp)
 
 	imh, err := NewInterceptedRewardTxDataFactory(arg)
 	assert.Nil(t, imh)
@@ -44,8 +46,9 @@ func TestNewInterceptedRewardTxDataFactory_NilSignMarshalizerShouldErr(t *testin
 func TestNewInterceptedRewardTxDataFactory_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
-	arg.Hasher = nil
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.Hash = nil
+	arg := createMockArgument(coreComp, cryptoComp)
 
 	imh, err := NewInterceptedRewardTxDataFactory(arg)
 	assert.Nil(t, imh)
@@ -55,7 +58,8 @@ func TestNewInterceptedRewardTxDataFactory_NilHasherShouldErr(t *testing.T) {
 func TestNewInterceptedRewardTxDataFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	coreComp, cryptoComp := createMockComponentHolders()
+	arg := createMockArgument(coreComp, cryptoComp)
 	arg.ShardCoordinator = nil
 
 	imh, err := NewInterceptedRewardTxDataFactory(arg)
@@ -66,8 +70,9 @@ func TestNewInterceptedRewardTxDataFactory_NilShardCoordinatorShouldErr(t *testi
 func TestInterceptedRewardTxDataFactory_NilAdrConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
-	arg.AddressPubkeyConv = nil
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.AddrPubKeyConv = nil
+	arg := createMockArgument(coreComp, cryptoComp)
 
 	imh, err := NewInterceptedRewardTxDataFactory(arg)
 	assert.Nil(t, imh)
@@ -77,7 +82,8 @@ func TestInterceptedRewardTxDataFactory_NilAdrConverterShouldErr(t *testing.T) {
 func TestInterceptedRewardTxDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	coreComp, cryptoComp := createMockComponentHolders()
+	arg := createMockArgument(coreComp, cryptoComp)
 
 	imh, err := NewInterceptedRewardTxDataFactory(arg)
 	assert.NotNil(t, imh)

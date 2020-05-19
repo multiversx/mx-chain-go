@@ -146,13 +146,23 @@ func initBlockHeader(prevHash []byte, prevRandSeed []byte, rootHash []byte, mbHd
 	return hdr
 }
 
-func CreateMockArgumentsMultiShard() blproc.ArgShardProcessor {
-	arguments := CreateMockArguments()
-	arguments.DataPool = initDataPool([]byte("tx_hash1"))
+func CreateCoreComponentsMultiShard() (*mock.CoreComponentsMock, *mock.DataComponentsMock) {
+	coreComponents, dataComponents := createComponentHolderMocks()
+	dataComponents.BlockChain = blockchain.NewBlockChain()
+	_ = dataComponents.BlockChain.SetGenesisHeader(&block.Header{Nonce: 0})
+	dataComponents.DataPool = initDataPool([]byte("tx_hash1"))
+
+	return coreComponents, dataComponents
+}
+
+func CreateMockArgumentsMultiShard(
+	coreComponents *mock.CoreComponentsMock,
+	dataComponents *mock.DataComponentsMock,
+) blproc.ArgShardProcessor {
+
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = initAccountsMock()
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
-	arguments.BlockChain = blockchain.NewBlockChain()
-	_ = arguments.BlockChain.SetGenesisHeader(&block.Header{Nonce: 0})
 
 	return arguments
 }

@@ -11,6 +11,26 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+type coreComponentsHolder interface {
+	InternalMarshalizer() marshal.Marshalizer
+	SetInternalMarshalizer(marshalizer marshal.Marshalizer) error
+	TxMarshalizer() marshal.Marshalizer
+	Hasher() hashing.Hasher
+	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
+	AddressPubKeyConverter() state.PubkeyConverter
+	ChainID() string
+	IsInterfaceNil() bool
+}
+
+type cryptoComponentsHolder interface {
+	TxSignKeyGen() crypto.KeyGenerator
+	BlockSignKeyGen() crypto.KeyGenerator
+	TxSingleSigner() crypto.SingleSigner
+	BlockSigner() crypto.SingleSigner
+	MultiSigner() crypto.MultiSigner
+	IsInterfaceNil() bool
+}
+
 // ShardInterceptorsContainerFactoryArgs holds the arguments needed for ShardInterceptorsContainerFactory
 type ShardInterceptorsContainerFactoryArgs struct {
 	Accounts               state.AccountsAdapter
@@ -18,57 +38,39 @@ type ShardInterceptorsContainerFactoryArgs struct {
 	NodesCoordinator       sharding.NodesCoordinator
 	Messenger              process.TopicHandler
 	Store                  dataRetriever.StorageService
-	ProtoMarshalizer       marshal.Marshalizer
-	TxSignMarshalizer      marshal.Marshalizer
-	Hasher                 hashing.Hasher
-	KeyGen                 crypto.KeyGenerator
-	BlockSignKeyGen        crypto.KeyGenerator
-	SingleSigner           crypto.SingleSigner
-	BlockSingleSigner      crypto.SingleSigner
-	MultiSigner            crypto.MultiSigner
+	CoreComponents         coreComponentsHolder
+	CryptoComponents       cryptoComponentsHolder
 	DataPool               dataRetriever.PoolsHolder
-	AddressPubkeyConverter state.PubkeyConverter
 	MaxTxNonceDeltaAllowed int
 	TxFeeHandler           process.FeeHandler
 	BlackList              process.BlackListHandler
 	HeaderSigVerifier      process.InterceptedHeaderSigVerifier
-	ChainID                []byte
 	SizeCheckDelta         uint32
 	ValidityAttester       process.ValidityAttester
 	EpochStartTrigger      process.EpochStartTriggerHandler
 	WhiteListHandler       process.WhiteListHandler
 	WhiteListerVerifiedTxs process.WhiteListHandler
 	AntifloodHandler       process.P2PAntifloodHandler
-	NonceConverter         typeConverters.Uint64ByteSliceConverter
 }
 
 // MetaInterceptorsContainerFactoryArgs holds the arguments needed for MetaInterceptorsContainerFactory
 type MetaInterceptorsContainerFactoryArgs struct {
+	CoreComponents         coreComponentsHolder
+	CryptoComponents       cryptoComponentsHolder
 	ShardCoordinator       sharding.Coordinator
 	NodesCoordinator       sharding.NodesCoordinator
 	Messenger              process.TopicHandler
 	Store                  dataRetriever.StorageService
-	ProtoMarshalizer       marshal.Marshalizer
-	TxSignMarshalizer      marshal.Marshalizer
-	Hasher                 hashing.Hasher
-	MultiSigner            crypto.MultiSigner
 	DataPool               dataRetriever.PoolsHolder
 	Accounts               state.AccountsAdapter
-	AddressPubkeyConverter state.PubkeyConverter
-	SingleSigner           crypto.SingleSigner
-	BlockSingleSigner      crypto.SingleSigner
-	KeyGen                 crypto.KeyGenerator
-	BlockKeyGen            crypto.KeyGenerator
 	MaxTxNonceDeltaAllowed int
 	TxFeeHandler           process.FeeHandler
 	BlackList              process.BlackListHandler
 	HeaderSigVerifier      process.InterceptedHeaderSigVerifier
-	ChainID                []byte
 	SizeCheckDelta         uint32
 	ValidityAttester       process.ValidityAttester
 	EpochStartTrigger      process.EpochStartTriggerHandler
 	WhiteListHandler       process.WhiteListHandler
 	WhiteListerVerifiedTxs process.WhiteListHandler
 	AntifloodHandler       process.P2PAntifloodHandler
-	NonceConverter         typeConverters.Uint64ByteSliceConverter
 }

@@ -25,44 +25,36 @@ type metaInterceptorsContainerFactory struct {
 func NewMetaInterceptorsContainerFactory(
 	args MetaInterceptorsContainerFactoryArgs,
 ) (*metaInterceptorsContainerFactory, error) {
-	if args.SizeCheckDelta > 0 {
-		args.ProtoMarshalizer = marshal.NewSizeCheckUnmarshalizer(args.ProtoMarshalizer, args.SizeCheckDelta)
-	}
-
 	err := checkBaseParams(
+		args.CoreComponents,
+		args.CryptoComponents,
 		args.ShardCoordinator,
 		args.Accounts,
-		args.ProtoMarshalizer,
-		args.TxSignMarshalizer,
-		args.Hasher,
 		args.Store,
 		args.DataPool,
 		args.Messenger,
-		args.MultiSigner,
 		args.NodesCoordinator,
 		args.BlackList,
 		args.AntifloodHandler,
 		args.WhiteListHandler,
 		args.WhiteListerVerifiedTxs,
-		args.AddressPubkeyConverter,
 	)
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(args.SingleSigner) {
-		return nil, process.ErrNilSingleSigner
+	if args.SizeCheckDelta > 0 {
+		sizeCheckMarshalizer := marshal.NewSizeCheckUnmarshalizer(
+			args.CoreComponents.InternalMarshalizer(),
+			args.SizeCheckDelta,
+		)
+		err = args.CoreComponents.SetInternalMarshalizer(sizeCheckMarshalizer)
+		if err != nil {
+			return nil, err
+		}
 	}
-	if check.IfNil(args.KeyGen) {
-		return nil, process.ErrNilKeyGen
-	}
+
 	if check.IfNil(args.TxFeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
-	}
-	if check.IfNil(args.BlockKeyGen) {
-		return nil, process.ErrNilKeyGen
-	}
-	if check.IfNil(args.BlockSingleSigner) {
-		return nil, process.ErrNilSingleSigner
 	}
 	if check.IfNil(args.HeaderSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
@@ -70,31 +62,19 @@ func NewMetaInterceptorsContainerFactory(
 	if check.IfNil(args.EpochStartTrigger) {
 		return nil, process.ErrNilEpochStartTrigger
 	}
-	if len(args.ChainID) == 0 {
-		return nil, process.ErrInvalidChainID
-	}
 	if check.IfNil(args.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		ProtoMarshalizer:       args.ProtoMarshalizer,
-		TxSignMarshalizer:      args.TxSignMarshalizer,
-		Hasher:                 args.Hasher,
+		CoreComponents:         args.CoreComponents,
+		CryptoComponents:       args.CryptoComponents,
 		ShardCoordinator:       args.ShardCoordinator,
 		NodesCoordinator:       args.NodesCoordinator,
-		MultiSigVerifier:       args.MultiSigner,
-		KeyGen:                 args.KeyGen,
-		BlockKeyGen:            args.BlockKeyGen,
-		Signer:                 args.SingleSigner,
-		BlockSigner:            args.BlockSingleSigner,
-		AddressPubkeyConv:      args.AddressPubkeyConverter,
 		FeeHandler:             args.TxFeeHandler,
 		HeaderSigVerifier:      args.HeaderSigVerifier,
-		ChainID:                args.ChainID,
 		ValidityAttester:       args.ValidityAttester,
 		EpochStartTrigger:      args.EpochStartTrigger,
-		NonceConverter:         args.NonceConverter,
 		WhiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 	}
 
@@ -104,9 +84,6 @@ func NewMetaInterceptorsContainerFactory(
 		shardCoordinator:       args.ShardCoordinator,
 		messenger:              args.Messenger,
 		store:                  args.Store,
-		marshalizer:            args.ProtoMarshalizer,
-		hasher:                 args.Hasher,
-		multiSigner:            args.MultiSigner,
 		dataPool:               args.DataPool,
 		nodesCoordinator:       args.NodesCoordinator,
 		blackList:              args.BlackList,
@@ -116,7 +93,6 @@ func NewMetaInterceptorsContainerFactory(
 		antifloodHandler:       args.AntifloodHandler,
 		whiteListHandler:       args.WhiteListHandler,
 		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
-		addressPubkeyConverter: args.AddressPubkeyConverter,
 	}
 
 	icf := &metaInterceptorsContainerFactory{

@@ -111,7 +111,7 @@ type processComponentsFactoryArgs struct {
 	rounder                   consensus.Rounder
 	shardCoordinator          sharding.Coordinator
 	nodesCoordinator          sharding.NodesCoordinator
-	data                      *mainFactory.DataComponents
+	data                      mainFactory.DataComponentsHolder
 	coreData                  mainFactory.CoreComponentsHolder
 	crypto                    mainFactory.CryptoComponentsHolder
 	state                     *mainFactory.StateComponents
@@ -151,7 +151,7 @@ func NewProcessComponentsFactoryArgs(
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *mainFactory.DataComponents,
+	data mainFactory.DataComponentsHolder,
 	coreData mainFactory.CoreComponentsHolder,
 	crypto mainFactory.CryptoComponentsHolder,
 	state *mainFactory.StateComponents,
@@ -299,7 +299,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 
 	log.Trace("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
 
-	txLogsStorage := args.data.Store.GetStorer(dataRetriever.TxLogsUnit)
+	txLogsStorage := args.data.StorageService().GetStorer(dataRetriever.TxLogsUnit)
 	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
 		Storer:      txLogsStorage,
 		Marshalizer: args.coreData.InternalMarshalizer(),
@@ -319,7 +319,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	bootStr := args.data.Store.GetStorer(dataRetriever.BootstrapUnit)
+	bootStr := args.data.StorageService().GetStorer(dataRetriever.BootstrapUnit)
 	bootStorer, err := bootstrapStorage.NewBootstrapStorer(args.coreData.InternalMarshalizer(), bootStr)
 	if err != nil {
 		return nil, err
@@ -346,7 +346,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	_, err = poolsCleaner.NewMiniBlocksPoolsCleaner(
-		args.data.Datapool.MiniBlocks(),
+		args.data.Datapool().MiniBlocks(),
 		args.rounder,
 		args.shardCoordinator,
 	)
@@ -356,7 +356,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 
 	_, err = poolsCleaner.NewTxsPoolsCleaner(
 		args.state.AddressPubkeyConverter,
-		args.data.Datapool,
+		args.data.Datapool(),
 		args.rounder,
 		args.shardCoordinator,
 	)
@@ -469,12 +469,12 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 		return err
 	}
 
-	err = args.data.Blkc.SetGenesisHeader(genesisBlock)
+	err = args.data.Blockchain().SetGenesisHeader(genesisBlock)
 	if err != nil {
 		return err
 	}
 
-	args.data.Blkc.SetGenesisHeaderHash(genesisBlockHash)
+	args.data.Blockchain().SetGenesisHeaderHash(genesisBlockHash)
 
 	marshalizedBlock, err := args.coreData.InternalMarshalizer().Marshal(genesisBlock)
 	if err != nil {
@@ -482,12 +482,12 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 	}
 
 	if args.shardCoordinator.SelfId() == core.MetachainShardId {
-		errNotCritical := args.data.Store.Put(dataRetriever.MetaBlockUnit, genesisBlockHash, marshalizedBlock)
+		errNotCritical := args.data.StorageService().Put(dataRetriever.MetaBlockUnit, genesisBlockHash, marshalizedBlock)
 		if errNotCritical != nil {
 			log.Error("error storing genesis metablock", "error", errNotCritical.Error())
 		}
 	} else {
-		errNotCritical := args.data.Store.Put(dataRetriever.BlockHeaderUnit, genesisBlockHash, marshalizedBlock)
+		errNotCritical := args.data.StorageService().Put(dataRetriever.BlockHeaderUnit, genesisBlockHash, marshalizedBlock)
 		if errNotCritical != nil {
 			log.Error("error storing genesis shardblock", "error", errNotCritical.Error())
 		}
@@ -511,7 +511,7 @@ func newEpochStartTrigger(
 		}
 
 		argsPeerMiniBlockSyncer := shardchain.ArgPeerMiniBlockSyncer{
-			MiniBlocksPool: args.data.Datapool.MiniBlocks(),
+			MiniBlocksPool: args.data.Datapool().MiniBlocks(),
 			Requesthandler: requestHandler,
 		}
 
@@ -525,8 +525,8 @@ func newEpochStartTrigger(
 			Hasher:               args.coreData.Hasher(),
 			HeaderValidator:      headerValidator,
 			Uint64Converter:      args.coreData.Uint64ByteSliceConverter(),
-			DataPool:             args.data.Datapool,
-			Storage:              args.data.Store,
+			DataPool:             args.data.Datapool(),
+			Storage:              args.data.StorageService(),
 			RequestHandler:       requestHandler,
 			Epoch:                args.startEpochNum,
 			EpochStartNotifier:   args.epochStartNotifier,
@@ -552,7 +552,7 @@ func newEpochStartTrigger(
 			Settings:           args.epochStart,
 			Epoch:              args.startEpochNum,
 			EpochStartNotifier: args.epochStartNotifier,
-			Storage:            args.data.Store,
+			Storage:            args.data.StorageService(),
 			Marshalizer:        args.coreData.InternalMarshalizer(),
 			Hasher:             args.coreData.Hasher(),
 		}
@@ -590,7 +590,7 @@ func CreateSoftwareVersionChecker(statusHandler core.AppStatusHandler) (*softwar
 func newInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *mainFactory.DataComponents,
+	data mainFactory.DataComponentsHolder,
 	coreData mainFactory.CoreComponentsHolder,
 	crypto mainFactory.CryptoComponentsHolder,
 	state *mainFactory.StateComponents,
@@ -645,7 +645,7 @@ func newInterceptorContainerFactory(
 
 func newResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
-	data *mainFactory.DataComponents,
+	data mainFactory.DataComponentsHolder,
 	coreData mainFactory.CoreComponentsHolder,
 	network mainFactory.NetworkComponentsHolder,
 	tries *mainFactory.TriesComponents,
@@ -682,9 +682,9 @@ func newResolverContainerFactory(
 func newShardInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *mainFactory.DataComponents,
-	dataCore mainFactory.CoreComponentsHolder,
-	crypto mainFactory.CryptoComponentsHolder,
+	dataComponents mainFactory.DataComponentsHolder,
+	coreComponents mainFactory.CoreComponentsHolder,
+	cryptoComponents mainFactory.CryptoComponentsHolder,
 	state *mainFactory.StateComponents,
 	network mainFactory.NetworkComponentsHolder,
 	economics *economics.EconomicsData,
@@ -701,29 +701,20 @@ func newShardInterceptorContainerFactory(
 		ShardCoordinator:       shardCoordinator,
 		NodesCoordinator:       nodesCoordinator,
 		Messenger:              network.NetworkMessenger(),
-		Store:                  data.Store,
-		ProtoMarshalizer:       dataCore.InternalMarshalizer(),
-		TxSignMarshalizer:      dataCore.TxMarshalizer(),
-		Hasher:                 dataCore.Hasher(),
-		KeyGen:                 crypto.TxSignKeyGen(),
-		BlockSignKeyGen:        crypto.BlockSignKeyGen(),
-		SingleSigner:           crypto.TxSingleSigner(),
-		BlockSingleSigner:      crypto.BlockSigner(),
-		MultiSigner:            crypto.MultiSigner(),
-		DataPool:               data.Datapool,
-		AddressPubkeyConverter: state.AddressPubkeyConverter,
+		Store:                  dataComponents.StorageService(),
+		CryptoComponents:       cryptoComponents,
+		CoreComponents:         coreComponents,
+		DataPool:               dataComponents.Datapool(),
 		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:           economics,
 		BlackList:              headerBlackList,
 		HeaderSigVerifier:      headerSigVerifier,
-		ChainID:                []byte(dataCore.ChainID()),
 		SizeCheckDelta:         sizeCheckDelta,
 		ValidityAttester:       validityAttester,
 		EpochStartTrigger:      epochStartTrigger,
 		WhiteListHandler:       whiteListHandler,
 		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
 		AntifloodHandler:       network.InputAntiFloodHandler(),
-		NonceConverter:         dataCore.Uint64ByteSliceConverter(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -736,7 +727,7 @@ func newShardInterceptorContainerFactory(
 func newMetaInterceptorContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *mainFactory.DataComponents,
+	data mainFactory.DataComponentsHolder,
 	dataCore mainFactory.CoreComponentsHolder,
 	crypto mainFactory.CryptoComponentsHolder,
 	network mainFactory.NetworkComponentsHolder,
@@ -751,33 +742,23 @@ func newMetaInterceptorContainerFactory(
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
+		CoreComponents:         dataCore,
+		CryptoComponents:       crypto,
 		ShardCoordinator:       shardCoordinator,
 		NodesCoordinator:       nodesCoordinator,
 		Messenger:              network.NetworkMessenger(),
-		Store:                  data.Store,
-		ProtoMarshalizer:       dataCore.InternalMarshalizer(),
-		TxSignMarshalizer:      dataCore.TxMarshalizer(),
-		Hasher:                 dataCore.Hasher(),
-		MultiSigner:            crypto.MultiSigner(),
-		DataPool:               data.Datapool,
+		Store:                  data.StorageService(),
 		Accounts:               state.AccountsAdapter,
-		AddressPubkeyConverter: state.AddressPubkeyConverter,
-		SingleSigner:           crypto.TxSingleSigner(),
-		BlockSingleSigner:      crypto.BlockSigner(),
-		KeyGen:                 crypto.TxSignKeyGen(),
-		BlockKeyGen:            crypto.BlockSignKeyGen(),
 		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:           economics,
 		BlackList:              headerBlackList,
 		HeaderSigVerifier:      headerSigVerifier,
-		ChainID:                []byte(dataCore.ChainID()),
 		SizeCheckDelta:         sizeCheckDelta,
 		ValidityAttester:       validityAttester,
 		EpochStartTrigger:      epochStartTrigger,
 		WhiteListHandler:       whiteListHandler,
 		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
 		AntifloodHandler:       network.InputAntiFloodHandler(),
-		NonceConverter:         dataCore.Uint64ByteSliceConverter(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -789,7 +770,7 @@ func newMetaInterceptorContainerFactory(
 
 func newShardResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
-	data *mainFactory.DataComponents,
+	data mainFactory.DataComponentsHolder,
 	core mainFactory.CoreComponentsHolder,
 	network mainFactory.NetworkComponentsHolder,
 	tries *mainFactory.TriesComponents,
@@ -805,9 +786,9 @@ func newShardResolverContainerFactory(
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:           shardCoordinator,
 		Messenger:                  network.NetworkMessenger(),
-		Store:                      data.Store,
+		Store:                      data.StorageService(),
 		Marshalizer:                core.InternalMarshalizer(),
-		DataPools:                  data.Datapool,
+		DataPools:                  data.Datapool(),
 		Uint64ByteSliceConverter:   core.Uint64ByteSliceConverter(),
 		DataPacker:                 dataPacker,
 		TriesContainer:             tries.TriesContainer,
@@ -826,7 +807,7 @@ func newShardResolverContainerFactory(
 
 func newMetaResolverContainerFactory(
 	shardCoordinator sharding.Coordinator,
-	data *mainFactory.DataComponents,
+	data mainFactory.DataComponentsHolder,
 	core mainFactory.CoreComponentsHolder,
 	network mainFactory.NetworkComponentsHolder,
 	tries *mainFactory.TriesComponents,
@@ -841,9 +822,9 @@ func newMetaResolverContainerFactory(
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:           shardCoordinator,
 		Messenger:                  network.NetworkMessenger(),
-		Store:                      data.Store,
+		Store:                      data.StorageService(),
 		Marshalizer:                core.InternalMarshalizer(),
-		DataPools:                  data.Datapool,
+		DataPools:                  data.Datapool(),
 		Uint64ByteSliceConverter:   core.Uint64ByteSliceConverter(),
 		DataPacker:                 dataPacker,
 		TriesContainer:             tries.TriesContainer,
@@ -870,29 +851,23 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	economicsData := args.economicsData
 
 	arg := genesisProcess.ArgsGenesisBlockCreator{
-		GenesisTime:              uint64(nodesSetup.StartTime),
-		StartEpochNum:            args.startEpochNum,
-		Accounts:                 stateComponents.AccountsAdapter,
-		PubkeyConv:               stateComponents.AddressPubkeyConverter,
-		InitialNodesSetup:        nodesSetup,
-		Economics:                economicsData,
-		ShardCoordinator:         shardCoordinator,
-		Store:                    dataComponents.Store,
-		Blkc:                     dataComponents.Blkc,
-		Marshalizer:              coreComponents.InternalMarshalizer(),
-		Hasher:                   coreComponents.Hasher(),
-		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter(),
-		DataPool:                 dataComponents.Datapool,
-		AccountsParser:           accountsParser,
-		SmartContractParser:      smartContractParser,
-		ValidatorAccounts:        stateComponents.PeerAccounts,
-		GasMap:                   args.gasSchedule,
-		VirtualMachineConfig:     args.mainConfig.VirtualMachineConfig,
-		TxLogsProcessor:          args.txLogsProcessor,
-		HardForkConfig:           args.mainConfig.Hardfork,
-		TrieStorageManagers:      args.tries.TrieStorageManagers,
-		ChainID:                  coreComponents.ChainID(),
-		SystemSCConfig:           *args.systemSCConfig,
+		Core:                 coreComponents,
+		Data:                 dataComponents,
+		GenesisTime:          uint64(nodesSetup.StartTime),
+		StartEpochNum:        args.startEpochNum,
+		Accounts:             stateComponents.AccountsAdapter,
+		InitialNodesSetup:    nodesSetup,
+		Economics:            economicsData,
+		ShardCoordinator:     shardCoordinator,
+		AccountsParser:       accountsParser,
+		SmartContractParser:  smartContractParser,
+		ValidatorAccounts:    stateComponents.PeerAccounts,
+		GasMap:               args.gasSchedule,
+		VirtualMachineConfig: args.mainConfig.VirtualMachineConfig,
+		TxLogsProcessor:      args.txLogsProcessor,
+		HardForkConfig:       args.mainConfig.Hardfork,
+		TrieStorageManagers:  args.tries.TrieStorageManagers,
+		SystemSCConfig:       *args.systemSCConfig,
 	}
 
 	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)
@@ -918,9 +893,9 @@ func newBlockTracker(
 		RequestHandler:   requestHandler,
 		Rounder:          rounder,
 		ShardCoordinator: processArgs.shardCoordinator,
-		Store:            processArgs.data.Store,
+		Store:            processArgs.data.StorageService(),
 		StartHeaders:     genesisBlocks,
-		PoolsHolder:      processArgs.data.Datapool,
+		PoolsHolder:      processArgs.data.Datapool(),
 		WhitelistHandler: processArgs.whiteListHandler,
 	}
 
@@ -1039,7 +1014,7 @@ func newShardBlockProcessor(
 	requestHandler process.RequestHandler,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *mainFactory.DataComponents,
+	data mainFactory.DataComponentsHolder,
 	core mainFactory.CoreComponentsHolder,
 	stateComponents *mainFactory.StateComponents,
 	forkDetector process.ForkDetector,
@@ -1072,8 +1047,8 @@ func newShardBlockProcessor(
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         stateComponents.AccountsAdapter,
 		PubkeyConv:       stateComponents.AddressPubkeyConverter,
-		StorageService:   data.Store,
-		BlockChain:       data.Blkc,
+		StorageService:   data.StorageService(),
+		BlockChain:       data.Blockchain(),
 		ShardCoordinator: shardCoordinator,
 		Marshalizer:      core.InternalMarshalizer(),
 		Uint64Converter:  core.Uint64ByteSliceConverter(),
@@ -1094,8 +1069,8 @@ func newShardBlockProcessor(
 		core.InternalMarshalizer(),
 		core.Hasher(),
 		stateComponents.AddressPubkeyConverter,
-		data.Store,
-		data.Datapool,
+		data.StorageService(),
+		data.Datapool(),
 	)
 	if err != nil {
 		return nil, err
@@ -1207,10 +1182,10 @@ func newShardBlockProcessor(
 
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		shardCoordinator,
-		data.Store,
+		data.StorageService(),
 		core.InternalMarshalizer(),
 		core.Hasher(),
-		data.Datapool,
+		data.Datapool(),
 		stateComponents.AddressPubkeyConverter,
 		stateComponents.AccountsAdapter,
 		requestHandler,
@@ -1238,7 +1213,7 @@ func newShardBlockProcessor(
 		core.InternalMarshalizer(),
 		shardCoordinator,
 		stateComponents.AccountsAdapter,
-		data.Datapool.MiniBlocks(),
+		data.Datapool().MiniBlocks(),
 		requestHandler,
 		preProcContainer,
 		interimProcContainer,
@@ -1255,15 +1230,13 @@ func newShardBlockProcessor(
 	accountsDb[state.UserAccountsState] = stateComponents.AccountsAdapter
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
+		CoreComponents:         core,
+		DataComponents:         data,
 		Version:                version,
 		AccountsDB:             accountsDb,
 		ForkDetector:           forkDetector,
-		Hasher:                 core.Hasher(),
-		Marshalizer:            core.InternalMarshalizer(),
-		Store:                  data.Store,
 		ShardCoordinator:       shardCoordinator,
 		NodesCoordinator:       nodesCoordinator,
-		Uint64Converter:        core.Uint64ByteSliceConverter(),
 		RequestHandler:         requestHandler,
 		Core:                   coreServiceContainer,
 		BlockChainHook:         vmFactory.BlockChainHookImpl(),
@@ -1273,9 +1246,7 @@ func newShardBlockProcessor(
 		HeaderValidator:        headerValidator,
 		BootStorer:             bootStorer,
 		BlockTracker:           blockTracker,
-		DataPool:               data.Datapool,
 		FeeHandler:             txFeeHandler,
-		BlockChain:             data.Blkc,
 		StateCheckpointModulus: stateCheckpointModulus,
 		BlockSizeThrottler:     blockSizeThrottler,
 	}
@@ -1300,7 +1271,7 @@ func newMetaBlockProcessor(
 	requestHandler process.RequestHandler,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
-	data *mainFactory.DataComponents,
+	data mainFactory.DataComponentsHolder,
 	core mainFactory.CoreComponentsHolder,
 	stateComponents *mainFactory.StateComponents,
 	forkDetector process.ForkDetector,
@@ -1329,8 +1300,8 @@ func newMetaBlockProcessor(
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         stateComponents.AccountsAdapter,
 		PubkeyConv:       stateComponents.AddressPubkeyConverter,
-		StorageService:   data.Store,
-		BlockChain:       data.Blkc,
+		StorageService:   data.StorageService(),
+		BlockChain:       data.Blockchain(),
 		ShardCoordinator: shardCoordinator,
 		Marshalizer:      core.InternalMarshalizer(),
 		Uint64Converter:  core.Uint64ByteSliceConverter(),
@@ -1363,8 +1334,8 @@ func newMetaBlockProcessor(
 		core.InternalMarshalizer(),
 		core.Hasher(),
 		stateComponents.AddressPubkeyConverter,
-		data.Store,
-		data.Datapool,
+		data.StorageService(),
+		data.Datapool(),
 	)
 	if err != nil {
 		return nil, err
@@ -1454,10 +1425,10 @@ func newMetaBlockProcessor(
 
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
 		shardCoordinator,
-		data.Store,
+		data.StorageService(),
 		core.InternalMarshalizer(),
 		core.Hasher(),
-		data.Datapool,
+		data.Datapool(),
 		stateComponents.AccountsAdapter,
 		requestHandler,
 		transactionProcessor,
@@ -1483,7 +1454,7 @@ func newMetaBlockProcessor(
 		core.InternalMarshalizer(),
 		shardCoordinator,
 		stateComponents.AccountsAdapter,
-		data.Datapool.MiniBlocks(),
+		data.Datapool().MiniBlocks(),
 		requestHandler,
 		preProcContainer,
 		interimProcContainer,
@@ -1509,7 +1480,7 @@ func newMetaBlockProcessor(
 		PeerState:        stateComponents.PeerAccounts,
 		BaseState:        stateComponents.AccountsAdapter,
 		ArgParser:        argsParser,
-		CurrTxs:          data.Datapool.CurrentBlockTxs(),
+		CurrTxs:          data.Datapool().CurrentBlockTxs(),
 		ScQuery:          scDataGetter,
 		RatingsData:      ratingsData,
 	}
@@ -1521,8 +1492,8 @@ func newMetaBlockProcessor(
 	argsEpochStartData := metachainEpochStart.ArgsNewEpochStartData{
 		Marshalizer:       core.InternalMarshalizer(),
 		Hasher:            core.Hasher(),
-		Store:             data.Store,
-		DataPool:          data.Datapool,
+		Store:             data.StorageService(),
+		DataPool:          data.Datapool(),
 		BlockTracker:      blockTracker,
 		ShardCoordinator:  shardCoordinator,
 		EpochStartTrigger: epochStartTrigger,
@@ -1536,7 +1507,7 @@ func newMetaBlockProcessor(
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
 		Marshalizer:         core.InternalMarshalizer(),
 		Hasher:              core.Hasher(),
-		Store:               data.Store,
+		Store:               data.StorageService(),
 		ShardCoordinator:    shardCoordinator,
 		NodesConfigProvider: nodesCoordinator,
 		RewardsHandler:      economicsData,
@@ -1547,8 +1518,8 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	rewardsStorage := data.Store.GetStorer(dataRetriever.RewardTransactionUnit)
-	miniBlockStorage := data.Store.GetStorer(dataRetriever.MiniBlockUnit)
+	rewardsStorage := data.StorageService().GetStorer(dataRetriever.RewardTransactionUnit)
+	miniBlockStorage := data.StorageService().GetStorer(dataRetriever.MiniBlockUnit)
 	argsEpochRewards := metachainEpochStart.ArgsNewRewardsCreator{
 		ShardCoordinator: shardCoordinator,
 		PubkeyConverter:  stateComponents.AddressPubkeyConverter,
@@ -1556,7 +1527,7 @@ func newMetaBlockProcessor(
 		MiniBlockStorage: miniBlockStorage,
 		Hasher:           core.Hasher(),
 		Marshalizer:      core.InternalMarshalizer(),
-		DataPool:         data.Datapool,
+		DataPool:         data.Datapool(),
 		CommunityAddress: economicsData.CommunityAddress(),
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
@@ -1569,7 +1540,7 @@ func newMetaBlockProcessor(
 		MiniBlockStorage: miniBlockStorage,
 		Hasher:           core.Hasher(),
 		Marshalizer:      core.InternalMarshalizer(),
-		DataPool:         data.Datapool,
+		DataPool:         data.Datapool(),
 	}
 	validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
 	if err != nil {
@@ -1581,15 +1552,13 @@ func newMetaBlockProcessor(
 	accountsDb[state.PeerAccountsState] = stateComponents.PeerAccounts
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
+		CoreComponents:         core,
+		DataComponents:         data,
 		Version:                version,
 		AccountsDB:             accountsDb,
 		ForkDetector:           forkDetector,
-		Hasher:                 core.Hasher(),
-		Marshalizer:            core.InternalMarshalizer(),
-		Store:                  data.Store,
 		ShardCoordinator:       shardCoordinator,
 		NodesCoordinator:       nodesCoordinator,
-		Uint64Converter:        core.Uint64ByteSliceConverter(),
 		RequestHandler:         requestHandler,
 		Core:                   coreServiceContainer,
 		BlockChainHook:         vmFactory.BlockChainHookImpl(),
@@ -1599,9 +1568,7 @@ func newMetaBlockProcessor(
 		HeaderValidator:        headerValidator,
 		BootStorer:             bootStorer,
 		BlockTracker:           blockTracker,
-		DataPool:               data.Datapool,
 		FeeHandler:             txFeeHandler,
-		BlockChain:             data.Blkc,
 		StateCheckpointModulus: stateCheckpointModulus,
 		BlockSizeThrottler:     blockSizeThrottler,
 	}

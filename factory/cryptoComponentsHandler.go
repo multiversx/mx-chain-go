@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"context"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -20,7 +19,6 @@ type CryptoComponentsHandlerArgs CryptoComponentsFactoryArgs
 type managedCryptoComponents struct {
 	*cryptoComponents
 	cryptoComponentsFactory *cryptoComponentsFactory
-	cancelFunc              func()
 	mutCryptoComponents     sync.RWMutex
 }
 
@@ -46,7 +44,6 @@ func (mcc *managedCryptoComponents) Create() error {
 
 	mcc.mutCryptoComponents.Lock()
 	mcc.cryptoComponents = cc
-	_, mcc.cancelFunc = context.WithCancel(context.Background())
 	mcc.mutCryptoComponents.Unlock()
 
 	return nil
@@ -55,8 +52,6 @@ func (mcc *managedCryptoComponents) Create() error {
 // Close closes the managed crypto components
 func (mcc *managedCryptoComponents) Close() error {
 	mcc.mutCryptoComponents.Lock()
-	mcc.cancelFunc()
-	mcc.cancelFunc = nil
 	mcc.cryptoComponents = nil
 	mcc.mutCryptoComponents.Unlock()
 

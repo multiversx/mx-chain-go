@@ -10,6 +10,15 @@ var ErrNilMessage = errors.New("nil message")
 // ErrNilAccountsAdapter defines the error when trying to use a nil AccountsAddapter
 var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 
+// ErrNilCoreComponentsHolder signals that a nil core components holder was provided
+var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
+
+// ErrNilCoreComponentsHolder signals that a nil crypto components holder was provided
+var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
+
+// ErrNilDataComponentsHolder signals that a nil data components holder was provided
+var ErrNilDataComponentsHolder = errors.New("nil data components holder")
+
 // ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
 var ErrNilHasher = errors.New("nil Hasher")
 

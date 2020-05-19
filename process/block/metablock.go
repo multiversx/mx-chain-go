@@ -49,10 +49,10 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(arguments.DataPool) {
+	if check.IfNil(arguments.DataComponents.Datapool()) {
 		return nil, process.ErrNilDataPoolHolder
 	}
-	if check.IfNil(arguments.DataPool.Headers()) {
+	if check.IfNil(arguments.DataComponents.Datapool().Headers()) {
 		return nil, process.ErrNilHeadersDataPool
 	}
 	if check.IfNil(arguments.SCDataGetter) {
@@ -80,18 +80,18 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		return nil, process.ErrNilValidatorStatistics
 	}
 
-	genesisHdr := arguments.BlockChain.GetGenesisHeader()
+	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	base := &baseProcessor{
 		accountsDB:             arguments.AccountsDB,
 		blockSizeThrottler:     arguments.BlockSizeThrottler,
 		forkDetector:           arguments.ForkDetector,
-		hasher:                 arguments.Hasher,
-		marshalizer:            arguments.Marshalizer,
-		store:                  arguments.Store,
+		hasher:                 arguments.CoreComponents.Hasher(),
+		marshalizer:            arguments.CoreComponents.InternalMarshalizer(),
+		store:                  arguments.DataComponents.StorageService(),
 		shardCoordinator:       arguments.ShardCoordinator,
 		feeHandler:             arguments.FeeHandler,
 		nodesCoordinator:       arguments.NodesCoordinator,
-		uint64Converter:        arguments.Uint64Converter,
+		uint64Converter:        arguments.CoreComponents.Uint64ByteSliceConverter(),
 		requestHandler:         arguments.RequestHandler,
 		appStatusHandler:       statusHandler.NewNilStatusHandler(),
 		blockChainHook:         arguments.BlockChainHook,
@@ -101,8 +101,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		rounder:                arguments.Rounder,
 		bootStorer:             arguments.BootStorer,
 		blockTracker:           arguments.BlockTracker,
-		dataPool:               arguments.DataPool,
-		blockChain:             arguments.BlockChain,
+		dataPool:               arguments.DataComponents.Datapool(),
+		blockChain:             arguments.DataComponents.Blockchain(),
 		stateCheckpointModulus: arguments.StateCheckpointModulus,
 		genesisNonce:           genesisHdr.GetNonce(),
 		version:                core.TrimSoftwareVersion(arguments.Version),

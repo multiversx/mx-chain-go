@@ -56,6 +56,7 @@ type ComponentHandler interface {
 // CoreComponentsHolder holds the core components
 type CoreComponentsHolder interface {
 	InternalMarshalizer() marshal.Marshalizer
+	SetInternalMarshalizer(marshalizer marshal.Marshalizer) error
 	TxMarshalizer() marshal.Marshalizer
 	VmMarshalizer() marshal.Marshalizer
 	Hasher() hashing.Hasher
@@ -105,6 +106,7 @@ type CryptoComponentsHandler interface {
 // DataComponentsHolder holds the data components
 type DataComponentsHolder interface {
 	Blockchain() data.ChainHandler
+	SetBlockchain(chain data.ChainHandler)
 	StorageService() dataRetriever.StorageService
 	Datapool() dataRetriever.PoolsHolder
 	IsInterfaceNil() bool
