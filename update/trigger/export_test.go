@@ -16,3 +16,25 @@ func (t *trigger) Closers() []update.Closer {
 
 	return t.closers
 }
+
+func (t *trigger) TriggerExecuting() bool {
+	return t.triggerExecuting
+}
+
+func (t *trigger) Epoch() uint32 {
+	return t.epoch
+}
+
+func (t *trigger) SetReceivedExecutingEpoch(
+	triggerReceived bool,
+	triggerExecuting bool,
+	epoch uint32,
+) {
+	t.triggerExecuting = triggerExecuting
+	t.triggerReceived = triggerReceived
+	t.epoch = epoch
+}
+
+func (t *trigger) ComputeTriggerStartOfEpoch(epoch uint32) bool {
+	return t.computeTriggerStartOfEpoch(epoch)
+}

@@ -47,7 +47,8 @@ type trigger struct {
 	enabledAuthenticated   bool
 	isTriggerSelf          bool
 	mutTriggered           sync.RWMutex
-	triggered              bool
+	triggerReceived        bool
+	triggerExecuting       bool
 	recordedTriggerMessage []byte
 	epoch                  uint32
 	getTimestampHandler    func() int64
@@ -59,6 +60,7 @@ type trigger struct {
 	epochConfirmedNotifier update.EpochChangeConfirmedNotifier
 	mutClosers             sync.RWMutex
 	closers                []update.Closer
+	chanTriggerReceived    chan struct{}
 }
 
 // NewTrigger returns the trigger instance
@@ -90,13 +92,15 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 		enabledAuthenticated: arg.EnabledAuthenticated,
 		selfPubKey:           arg.SelfPubKeyBytes,
 		triggerPubKey:        arg.TriggerPubKeyBytes,
-		triggered:            false,
+		triggerReceived:      false,
+		triggerExecuting:     false,
 		argumentParser:       arg.ArgumentParser,
 		epochProvider:        arg.EpochProvider,
 		exportFactoryHandler: arg.ExportFactoryHandler,
 		closeAfterInMinutes:  arg.CloseAfterExportInMinutes,
 		chanStopNodeProcess:  arg.ChanStopNodeProcess,
 		closers:              make([]update.Closer, 0),
+		chanTriggerReceived:  make(chan struct{}, 1), //buffer with one value as there might be async calls
 	}
 
 	t.isTriggerSelf = bytes.Equal(arg.TriggerPubKeyBytes, arg.SelfPubKeyBytes)
@@ -115,16 +119,30 @@ func (t *trigger) epochConfirmed(epoch uint32) {
 		return
 	}
 
-	t.mutTriggered.RLock()
-	isTriggered := t.triggered
-	triggeredEpoch := t.epoch
-	t.mutTriggered.RUnlock()
-
-	if !isTriggered || triggeredEpoch > epoch {
+	shouldStartHardfork := t.computeTriggerStartOfEpoch(epoch)
+	if !shouldStartHardfork {
 		return
 	}
 
 	t.exportAll()
+}
+
+func (t *trigger) computeTriggerStartOfEpoch(receivedTrigger uint32) bool {
+	t.mutTriggered.Lock()
+	defer t.mutTriggered.Unlock()
+
+	if !t.triggerReceived {
+		return false
+	}
+	if t.triggerExecuting {
+		return false
+	}
+	if receivedTrigger <= t.epoch {
+		return false
+	}
+
+	t.triggerExecuting = true
+	return true
 }
 
 // Trigger will start the hardfork process
@@ -133,31 +151,51 @@ func (t *trigger) Trigger(epoch uint32) error {
 		return update.ErrTriggerNotEnabled
 	}
 
-	t.mutTriggered.Lock()
-	if t.triggered {
-		t.mutTriggered.Unlock()
-		return update.ErrTriggerAlreadyDone
+	shouldTrigger, err := t.computeAndSetTrigger(epoch, nil) //original payload is nil because this node is the originator
+	if err != nil {
+		return err
 	}
-	t.triggered = true
-	t.epoch = epoch
-	t.mutTriggered.Unlock()
+	if !shouldTrigger {
+		return nil
+	}
 
-	t.doTrigger(epoch)
+	t.doTrigger()
 
 	return nil
 }
 
-func (t *trigger) doTrigger(epoch uint32) {
-	if epoch > t.epochProvider.MetaEpoch() {
-		return
+// computeAndSetTrigger needs to do 2 things atomically: set the original payload and epoch and determine if the trigger
+// can be called
+func (t *trigger) computeAndSetTrigger(epoch uint32, originalPayload []byte) (bool, error) {
+	t.mutTriggered.Lock()
+	defer t.mutTriggered.Unlock()
+
+	t.triggerReceived = true
+	if t.triggerExecuting {
+		return false, update.ErrTriggerAlreadyDone
+	}
+	t.epoch = epoch
+	if len(originalPayload) > 0 {
+		t.recordedTriggerMessage = originalPayload
 	}
 
-	t.mutTriggered.Lock()
-	t.triggered = true
-	t.mutTriggered.Unlock()
+	//writing on the notification chan should not be blocking as to allow self to initiate the hardfork process
+	select {
+	case t.chanTriggerReceived <- struct{}{}:
+	default:
+	}
 
+	if epoch > t.epochProvider.MetaEpoch() {
+		return false, nil
+	}
+
+	t.triggerExecuting = true
+
+	return true, nil
+}
+
+func (t *trigger) doTrigger() {
 	t.callClose()
-
 	t.exportAll()
 }
 
@@ -244,19 +282,16 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 		return true, fmt.Errorf("%w epoch out of grace period", update.ErrIncorrectHardforkMessage)
 	}
 
-	t.mutTriggered.Lock()
-	if t.triggered {
-		t.mutTriggered.Unlock()
-
-		return true, nil //trigger already in action for self node, send it to others
+	shouldTrigger, err := t.computeAndSetTrigger(uint32(epoch), originalPayload)
+	if err != nil {
+		log.Debug("receiver trigger", "err not critical", err)
+		return true, nil
+	}
+	if !shouldTrigger {
+		return true, nil
 	}
 
-	t.triggered = true
-	t.recordedTriggerMessage = originalPayload
-	t.epoch = uint32(epoch)
-	t.mutTriggered.Unlock()
-
-	t.doTrigger(uint32(epoch))
+	t.doTrigger()
 
 	return true, nil
 }
@@ -296,7 +331,7 @@ func (t *trigger) RecordedTriggerMessage() ([]byte, bool) {
 	t.mutTriggered.RLock()
 	defer t.mutTriggered.RUnlock()
 
-	return t.recordedTriggerMessage, t.triggered
+	return t.recordedTriggerMessage, t.triggerReceived
 }
 
 // CreateData creates a correct hardfork trigger message based on the identifier and the additional information
@@ -321,6 +356,12 @@ func (t *trigger) AddCloser(closer update.Closer) error {
 	t.mutClosers.Unlock()
 
 	return nil
+}
+
+// NotifyTriggerReceived will write a struct{}{} on the provided channel as soon as a trigger is received
+// this is done to decrease the latency of the heartbeat sending system
+func (t *trigger) NotifyTriggerReceived() <-chan struct{} {
+	return t.chanTriggerReceived
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

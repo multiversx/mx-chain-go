@@ -57,6 +57,7 @@ type HardforkTrigger interface {
 	Trigger(epoch uint32) error
 	CreateData() []byte
 	AddCloser(closer update.Closer) error
+	NotifyTriggerReceived() <-chan struct{}
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }

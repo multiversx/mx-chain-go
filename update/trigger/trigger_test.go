@@ -126,6 +126,12 @@ func TestTrigger_TriggerCalledTwiceShouldErr(t *testing.T) {
 	err = trig.Trigger(0)
 
 	assert.Equal(t, update.ErrTriggerAlreadyDone, err)
+
+	select {
+	case <-trig.NotifyTriggerReceived():
+	case <-time.After(time.Second):
+		assert.Fail(t, "should have write on the notify channel")
+	}
 }
 
 func TestTrigger_TriggerReceivedNotAHardforkTriggerRetNilButNotCall(t *testing.T) {
@@ -141,6 +147,33 @@ func TestTrigger_TriggerReceivedNotAHardforkTriggerRetNilButNotCall(t *testing.T
 
 	_, wasTriggered := trig.RecordedTriggerMessage()
 	assert.False(t, wasTriggered)
+}
+
+func TestTrigger_ComputeTriggerStartOfEpoch(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHardforkTrigger()
+	trig, _ := trigger.NewTrigger(arg)
+
+	trig.SetReceivedExecutingEpoch(false, false, 0)
+	assert.False(t, trig.ComputeTriggerStartOfEpoch(0))
+	assert.False(t, trig.TriggerExecuting())
+
+	trig.SetReceivedExecutingEpoch(true, true, 0)
+	assert.False(t, trig.ComputeTriggerStartOfEpoch(0))
+	assert.True(t, trig.TriggerExecuting())
+
+	trig.SetReceivedExecutingEpoch(true, false, 1)
+	assert.False(t, trig.ComputeTriggerStartOfEpoch(0))
+	assert.False(t, trig.TriggerExecuting())
+
+	trig.SetReceivedExecutingEpoch(true, false, 1)
+	assert.False(t, trig.ComputeTriggerStartOfEpoch(1))
+	assert.False(t, trig.TriggerExecuting())
+
+	trig.SetReceivedExecutingEpoch(true, false, 1)
+	assert.True(t, trig.ComputeTriggerStartOfEpoch(2))
+	assert.True(t, trig.TriggerExecuting())
 }
 
 func TestTrigger_TriggerReceivedNotEnabledShouldRetNilButNotCall(t *testing.T) {
