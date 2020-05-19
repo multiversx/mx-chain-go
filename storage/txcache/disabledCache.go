@@ -1,5 +1,11 @@
 package txcache
 
+import (
+	"github.com/ElrondNetwork/elrond-go/storage"
+)
+
+var _ storage.Cacher = (*DisabledCache)(nil)
+
 // DisabledCache represents a disabled cache
 type DisabledCache struct {
 }
@@ -80,10 +86,10 @@ func (cache *DisabledCache) Remove(key []byte) {
 func (cache *DisabledCache) RemoveOldest() {
 }
 
-//// Keys returns an empty slice
-//func (cache *DisabledCache) Keys() txHashes {
-//	return make([][]byte, 0)
-//}
+// Keys returns an empty slice
+func (cache *DisabledCache) Keys() txHashes {
+	return make([][]byte, 0)
+}
 
 // MaxSize returns zero
 func (cache *DisabledCache) MaxSize() int {

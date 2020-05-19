@@ -7,7 +7,7 @@ import (
 )
 
 func TestSweeping_CollectSweepable(t *testing.T) {
-	cache := newCacheToTest()
+	cache := newUnconstrainedCacheToTest()
 
 	cache.AddTx(createTx([]byte("alice-42"), "alice", 42))
 	cache.AddTx(createTx([]byte("bob-42"), "bob", 42))
@@ -50,7 +50,7 @@ func TestSweeping_CollectSweepable(t *testing.T) {
 }
 
 func TestSweeping_WhenSendersEscapeCollection(t *testing.T) {
-	cache := newCacheToTest()
+	cache := newUnconstrainedCacheToTest()
 
 	cache.AddTx(createTx([]byte("alice-42"), "alice", 42))
 	cache.AddTx(createTx([]byte("bob-42"), "bob", 42))
@@ -95,7 +95,7 @@ func TestSweeping_WhenSendersEscapeCollection(t *testing.T) {
 }
 
 func TestSweeping_SweepSweepable(t *testing.T) {
-	cache := newCacheToTest()
+	cache := newUnconstrainedCacheToTest()
 
 	cache.AddTx(createTx([]byte("alice-42"), "alice", 42))
 	cache.AddTx(createTx([]byte("bob-42"), "bob", 42))
