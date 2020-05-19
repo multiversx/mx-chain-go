@@ -711,27 +711,22 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 }
 
 func getBLSPublicKeys(registrationData *AuctionData, args *vmcommon.ContractCallInput) ([][]byte, error) {
-	blsKeys := registrationData.BlsPubKeys
-	if len(args.Arguments) > 0 {
-		for _, argKey := range args.Arguments {
-			found := false
-			for _, blsKey := range blsKeys {
-				if bytes.Equal(argKey, blsKey) {
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				log.Debug("bls key for validator not found")
-				return nil, vm.ErrBLSPublicKeyMissmatch
+	for _, argKey := range args.Arguments {
+		found := false
+		for _, blsKey := range registrationData.BlsPubKeys {
+			if bytes.Equal(argKey, blsKey) {
+				found = true
+				break
 			}
 		}
 
-		blsKeys = args.Arguments
+		if !found {
+			log.Debug("bls key for validator not found")
+			return nil, vm.ErrBLSPublicKeyMissmatch
+		}
 	}
 
-	return blsKeys, nil
+	return args.Arguments, nil
 }
 
 func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {

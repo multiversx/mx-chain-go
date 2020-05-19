@@ -555,6 +555,103 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeOneBlsPubKeyAndRestake(t *testing.T
 	assert.True(t, stakedData.Staked)
 }
 
+func TestStakingAuctionSC_ExecuteStakeUnStakeUnBondUnStakeUnBondOneBlsPubKey(t *testing.T) {
+	t.Parallel()
+
+	stakerAddress := []byte("staker1")
+	stakerPubKey := []byte("bls1")
+
+	unBondPeriod := uint64(5)
+	blockChainHook := &mock.BlockChainHookStub{}
+	args := createMockArgumentsForAuction()
+	args.ValidatorSettings = &mock.ValidatorSettingsStub{
+		UnBondPeriodCalled: func() uint64 {
+			return unBondPeriod
+		},
+		StakeEnableNonceCalled: func() uint64 {
+			return 0
+		},
+	}
+
+	atArgParser := vmcommon.NewAtArgumentParser()
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
+
+	argsStaking := createMockStakingScArguments()
+	argsStaking.MinStakeValue = args.ValidatorSettings.GenesisNodePrice()
+	argsStaking.Eei = eei
+	argsStaking.UnBondPeriod = args.ValidatorSettings.UnBondPeriod()
+	stakingSC, _ := NewStakingSmartContract(argsStaking)
+
+	eei.SetSCAddress([]byte("addr"))
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		return stakingSC, nil
+	}})
+
+	args.Eei = eei
+
+	sc, _ := NewStakingAuctionSmartContract(args)
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "stake"
+	arguments.CallerAddr = stakerAddress
+	arguments.Arguments = [][]byte{big.NewInt(1).Bytes(), stakerPubKey, []byte("signed")}
+	arguments.CallValue = big.NewInt(100).Set(args.ValidatorSettings.GenesisNodePrice())
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return 100
+	}
+	blockChainHook.CurrentEpochCalled = func() uint32 {
+		return 10
+	}
+	arguments.Function = "unStake"
+	arguments.Arguments = [][]byte{stakerPubKey}
+	arguments.CallValue = big.NewInt(0)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return 103
+	}
+	arguments.Function = "unBond"
+	arguments.Arguments = [][]byte{stakerPubKey}
+	arguments.CallValue = big.NewInt(0)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return 120
+	}
+	arguments.Function = "unStake"
+	arguments.Arguments = [][]byte{stakerPubKey}
+	arguments.CallValue = big.NewInt(0)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return 220
+	}
+	arguments.Function = "unStake"
+	arguments.Arguments = [][]byte{stakerPubKey}
+	arguments.CallValue = big.NewInt(0)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return 320
+	}
+	arguments.Function = "unBond"
+	arguments.Arguments = [][]byte{stakerPubKey}
+	arguments.CallValue = big.NewInt(0)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	eei.SetSCAddress(args.StakingSCAddress)
+	marshalledData := eei.GetStorage(stakerPubKey)
+	assert.Equal(t, 0, len(marshalledData))
+}
+
 func TestStakingAuctionSC_ExecuteStakeChangeRewardAddresStakeUnStake(t *testing.T) {
 	t.Parallel()
 
