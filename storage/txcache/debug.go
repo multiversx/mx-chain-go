@@ -45,7 +45,7 @@ func (listForSender *txListForSender) addTxDebug(correlation string, tx *Wrapped
 		listForSender.items.InsertAfter(tx, insertionPlace)
 	}
 
-	fmt.Println(correlation, "added to list of sender", fmt.Sprintf("%p", listForSender), "of size", listForSender.countTx())
+	fmt.Println(correlation, "added tx", fmt.Sprintf("%p", tx), "to list of sender", fmt.Sprintf("%p", listForSender), "of size", listForSender.countTx())
 	return true, make([][]byte, 0)
 }
 
@@ -62,7 +62,7 @@ func (cache *TxCache) removeTxByHashDebug(correlation string, txHash []byte) {
 
 	found := cache.txListBySender.removeTxDebug(correlation, tx)
 	if !found {
-		fmt.Println(correlation, "remove: not found in sender")
+		fmt.Println(correlation, "remove: tx", fmt.Sprintf("%p", tx), "not found in sender")
 	} else {
 		fmt.Println(correlation, "removed from sender")
 	}
@@ -77,7 +77,7 @@ func (txMap *txListBySenderMap) removeTxDebug(correlation string, tx *WrappedTra
 		return false
 	}
 
-	fmt.Println(correlation, "will remove from sender", fmt.Sprintf("%p", listForSender))
+	fmt.Println(correlation, "will remove tx", fmt.Sprintf("%p", tx), "from sender", fmt.Sprintf("%p", listForSender))
 	isFound := listForSender.RemoveTx(tx)
 	isEmpty := listForSender.IsEmpty()
 	if isEmpty {
