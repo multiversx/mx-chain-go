@@ -76,7 +76,7 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 		return nil, update.ErrNilEpochHandler
 	}
 	if check.IfNil(arg.ExportFactoryHandler) {
-		return nil, update.ErrNilExportFacotryHandler
+		return nil, update.ErrNilExportFactoryHandler
 	}
 	if arg.ChanStopNodeProcess == nil {
 		return nil, update.ErrNilChanStopNodeProcess
