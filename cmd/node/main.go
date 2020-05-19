@@ -1177,6 +1177,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
 		epochStartNotifier,
+		workingDir,
 	)
 	if err != nil {
 		return err
@@ -1862,6 +1863,7 @@ func createHardForkTrigger(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	epochNotifier factory.EpochStartNotifier,
+	workingDir string,
 ) (node.HardforkTrigger, error) {
 
 	selfPubKeyBytes, err := pubKey.ToByteArray()
@@ -1877,6 +1879,7 @@ func createHardForkTrigger(
 	accountsDBs[state.UserAccountsState] = stateComponents.AccountsAdapter
 	accountsDBs[state.PeerAccountsState] = stateComponents.PeerAccounts
 	hardForkConfig := config.Hardfork
+	exportFolder := filepath.Join(workingDir, hardForkConfig.ImportFolder)
 	argsExporter := exportFactory.ArgsExporter{
 		TxSignMarshalizer:        coreData.TxSignMarshalizer,
 		Marshalizer:              coreData.InternalMarshalizer,
@@ -1890,7 +1893,7 @@ func createHardForkTrigger(
 		Messenger:                network.NetMessenger,
 		ActiveAccountsDBs:        accountsDBs,
 		ExistingResolvers:        process.ResolversFinder,
-		ExportFolder:             hardForkConfig.ImportFolder,
+		ExportFolder:             exportFolder,
 		ExportTriesStorageConfig: hardForkConfig.ExportTriesStorageConfig,
 		ExportStateStorageConfig: hardForkConfig.ExportStateStorageConfig,
 		WhiteListHandler:         whiteListRequest,
@@ -1916,15 +1919,16 @@ func createHardForkTrigger(
 
 	atArgumentParser := vmcommon.NewAtArgumentParser()
 	argTrigger := trigger.ArgHardforkTrigger{
-		TriggerPubKeyBytes:     triggerPubKeyBytes,
-		SelfPubKeyBytes:        selfPubKeyBytes,
-		Enabled:                config.Hardfork.EnableTrigger,
-		EnabledAuthenticated:   config.Hardfork.EnableTriggerFromP2P,
-		ArgumentParser:         atArgumentParser,
-		EpochProvider:          process.EpochStartTrigger,
-		ExportFactoryHandler:   hardForkExportFactory,
-		ChanStopNodeProcess:    chanStopNodeProcess,
-		EpochConfirmedNotifier: epochNotifier,
+		TriggerPubKeyBytes:        triggerPubKeyBytes,
+		SelfPubKeyBytes:           selfPubKeyBytes,
+		Enabled:                   config.Hardfork.EnableTrigger,
+		EnabledAuthenticated:      config.Hardfork.EnableTriggerFromP2P,
+		ArgumentParser:            atArgumentParser,
+		EpochProvider:             process.EpochStartTrigger,
+		ExportFactoryHandler:      hardForkExportFactory,
+		ChanStopNodeProcess:       chanStopNodeProcess,
+		EpochConfirmedNotifier:    epochNotifier,
+		CloseAfterExportInMinutes: config.Hardfork.CloseAfterExportInMinutes,
 	}
 	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
 	if err != nil {

@@ -19,14 +19,18 @@ import (
 
 func createMockArgHardforkTrigger() trigger.ArgHardforkTrigger {
 	return trigger.ArgHardforkTrigger{
-		TriggerPubKeyBytes:        []byte("trigger"),
-		SelfPubKeyBytes:           []byte("self"),
-		Enabled:                   true,
-		EnabledAuthenticated:      true,
-		ArgumentParser:            vmcommon.NewAtArgumentParser(),
-		EpochProvider:             &mock.EpochHandlerStub{},
+		TriggerPubKeyBytes:   []byte("trigger"),
+		SelfPubKeyBytes:      []byte("self"),
+		Enabled:              true,
+		EnabledAuthenticated: true,
+		ArgumentParser:       vmcommon.NewAtArgumentParser(),
+		EpochProvider: &mock.EpochHandlerStub{
+			MetaEpochCalled: func() uint32 {
+				return trigger.MinimumEpochForHarfork
+			},
+		},
 		ExportFactoryHandler:      &mock.ExportFactoryHandlerStub{},
-		CloseAfterExportInMinutes: 0,
+		CloseAfterExportInMinutes: 2,
 		ChanStopNodeProcess:       make(chan endProcess.ArgEndProcess),
 		EpochConfirmedNotifier:    &mock.EpochStartNotifierStub{},
 	}
@@ -80,6 +84,17 @@ func TestTrigger_TriggerNotEnabledShouldErr(t *testing.T) {
 	assert.False(t, wasTriggered)
 }
 
+func TestTrigger_TriggerWrongEpochShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHardforkTrigger()
+	trig, _ := trigger.NewTrigger(arg)
+
+	err := trig.Trigger(trigger.MinimumEpochForHarfork - 1)
+
+	assert.True(t, errors.Is(err, update.ErrInvalidEpoch))
+}
+
 func TestTrigger_TriggerEnabledShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -90,7 +105,7 @@ func TestTrigger_TriggerEnabledShouldWork(t *testing.T) {
 	assert.Nil(t, payload)
 	assert.False(t, wasTriggered)
 
-	err := trig.Trigger(0)
+	err := trig.Trigger(trigger.MinimumEpochForHarfork)
 
 	// delay as to execute the async calls
 	time.Sleep(time.Second)
@@ -112,7 +127,7 @@ func TestTrigger_TriggerCalledTwiceShouldErr(t *testing.T) {
 	assert.Nil(t, payload)
 	assert.False(t, wasTriggered)
 
-	err := trig.Trigger(0)
+	err := trig.Trigger(trigger.MinimumEpochForHarfork)
 
 	// delay as to execute the async calls
 	time.Sleep(time.Second)
@@ -123,9 +138,9 @@ func TestTrigger_TriggerCalledTwiceShouldErr(t *testing.T) {
 	assert.Nil(t, payload)
 	assert.True(t, wasTriggered)
 
-	err = trig.Trigger(0)
+	err = trig.Trigger(trigger.MinimumEpochForHarfork)
 
-	assert.Equal(t, update.ErrTriggerAlreadyDone, err)
+	assert.Equal(t, update.ErrTriggerAlreadyInAction, err)
 
 	select {
 	case <-trig.NotifyTriggerReceived():
@@ -274,7 +289,7 @@ func TestTrigger_TriggerReceivedOutOfGracePeriodShouldErr(t *testing.T) {
 	assert.False(t, wasTriggered)
 }
 
-func TestTrigger_TriggerReceivedShouldWork(t *testing.T) {
+func TestTrigger_TriggerReceivedInvalidEpochShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgHardforkTrigger()
@@ -288,6 +303,30 @@ func TestTrigger_TriggerReceivedShouldWork(t *testing.T) {
 	data := []byte(trigger.HardforkTriggerString +
 		trigger.PayloadSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", messageTimeStamp))) +
 		trigger.PayloadSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", 0))))
+
+	payload, wasTriggered := trig.RecordedTriggerMessage()
+	assert.Nil(t, payload)
+	assert.False(t, wasTriggered)
+
+	isHardfork, err := trig.TriggerReceived(payloadReceived, data, arg.TriggerPubKeyBytes)
+	assert.True(t, isHardfork)
+	assert.True(t, errors.Is(err, update.ErrInvalidEpoch))
+}
+
+func TestTrigger_TriggerReceivedShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHardforkTrigger()
+	trig, _ := trigger.NewTrigger(arg)
+	payloadReceived := []byte("original message")
+	currentTimeStamp := time.Now().Unix()
+	trig.SetTimeHandler(func() int64 {
+		return currentTimeStamp
+	})
+	messageTimeStamp := currentTimeStamp - int64(trigger.HardforkGracePeriod.Seconds())
+	data := []byte(trigger.HardforkTriggerString +
+		trigger.PayloadSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", messageTimeStamp))) +
+		trigger.PayloadSeparator + hex.EncodeToString([]byte(fmt.Sprintf("%d", trigger.MinimumEpochForHarfork))))
 
 	payload, wasTriggered := trig.RecordedTriggerMessage()
 	assert.Nil(t, payload)
@@ -311,7 +350,7 @@ func TestTrigger_TriggerReceivedCreatePayloadShouldWork(t *testing.T) {
 
 	arg := createMockArgHardforkTrigger()
 	trig, _ := trigger.NewTrigger(arg)
-
+	trig.SetReceivedExecutingEpoch(false, false, trigger.MinimumEpochForHarfork)
 	data := trig.CreateData()
 	payloadReceived := []byte("original message")
 
@@ -336,7 +375,7 @@ func TestTrigger_TriggerReceivedOneCloseErrorsShouldContinueCalling(t *testing.T
 
 	arg := createMockArgHardforkTrigger()
 	trig, _ := trigger.NewTrigger(arg)
-
+	trig.SetReceivedExecutingEpoch(false, false, trigger.MinimumEpochForHarfork)
 	data := trig.CreateData()
 	payloadReceived := []byte("original message")
 

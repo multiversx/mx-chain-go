@@ -1,10 +1,13 @@
 package trigger
 
-import "github.com/ElrondNetwork/elrond-go/update"
+import (
+	"github.com/ElrondNetwork/elrond-go/update"
+)
 
 const HardforkTriggerString = hardforkTriggerString
 const PayloadSeparator = dataSeparator
 const HardforkGracePeriod = hardforkGracePeriod
+const MinimumEpochForHarfork = minimumEpochForHarfork
 
 func (t *trigger) SetTimeHandler(handler func() int64) {
 	t.getTimestampHandler = handler

@@ -334,11 +334,16 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 	if len(unrequestedHashes) == 0 {
 		return
 	}
-	log.Debug("requesting trie nodes from network",
+	logParts := []interface{}{
 		"topic", topic,
 		"shard", destShardID,
 		"num nodes", len(unrequestedHashes),
-	)
+	}
+	if len(hashes) == 1 {
+		logParts = append(logParts, "hash")
+		logParts = append(logParts, hashes[0])
+	}
+	log.Debug("requesting trie nodes from network", logParts...)
 
 	resolver, err := rrh.resolversFinder.MetaCrossShardResolver(topic, destShardID)
 	if err != nil {

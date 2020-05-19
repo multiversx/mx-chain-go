@@ -61,7 +61,7 @@ var externalPackages = []string{"dht", "nat", "basichost", "pubsub"}
 
 func init() {
 	for _, external := range externalPackages {
-		_ = logger.GetOrCreate(fmt.Sprintf("p2p/libp2p/external/%s", external))
+		_ = logger.GetOrCreate(fmt.Sprintf("libp2p/external/%s", external))
 	}
 }
 

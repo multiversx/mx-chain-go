@@ -195,3 +195,10 @@ changeConfigForHardfork(){
   export FIRST_PUBKEY=$(cat nodesSetup.json | grep pubkey -m 1 | cut -c18-209)
   updateTOMLValue config.toml "PublicKeyToListenFrom" "\"$FIRST_PUBKEY\""
 }
+
+copyBackConfigs(){
+  pushd $TESTNETDIR
+
+  echo "trying to copy-back the configs"
+  cp ./node/config/*.* $NODEDIR/config
+}

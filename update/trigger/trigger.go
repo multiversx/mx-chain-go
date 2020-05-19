@@ -20,6 +20,8 @@ const hardforkTriggerString = "hardfork trigger"
 const dataSeparator = "@"
 const hardforkGracePeriod = time.Minute * 5
 const epochGracePeriod = 4
+const minTimeToWaitAfterHardforkInMinutes = 2
+const minimumEpochForHarfork = 1
 
 var _ facade.HardforkTrigger = (*trigger)(nil)
 var log = logger.GetOrCreate("update/trigger")
@@ -86,6 +88,12 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 	if check.IfNil(arg.EpochConfirmedNotifier) {
 		return nil, update.ErrNilEpochConfirmedNotifier
 	}
+	if arg.CloseAfterExportInMinutes < minTimeToWaitAfterHardforkInMinutes {
+		return nil, fmt.Errorf("%w, minimum time to wait in minutes: %d",
+			update.ErrInvalidTimeToWaitAfterHardfork,
+			minTimeToWaitAfterHardforkInMinutes,
+		)
+	}
 
 	t := &trigger{
 		enabled:              arg.Enabled,
@@ -150,6 +158,9 @@ func (t *trigger) Trigger(epoch uint32) error {
 	if !t.enabled {
 		return update.ErrTriggerNotEnabled
 	}
+	if epoch < minimumEpochForHarfork {
+		return fmt.Errorf("%w, minimum epoch accepted is %d", update.ErrInvalidEpoch, minimumEpochForHarfork)
+	}
 
 	shouldTrigger, err := t.computeAndSetTrigger(epoch, nil) //original payload is nil because this node is the originator
 	if err != nil {
@@ -172,7 +183,7 @@ func (t *trigger) computeAndSetTrigger(epoch uint32, originalPayload []byte) (bo
 
 	t.triggerReceived = true
 	if t.triggerExecuting {
-		return false, update.ErrTriggerAlreadyDone
+		return false, update.ErrTriggerAlreadyInAction
 	}
 	t.epoch = epoch
 	if len(originalPayload) > 0 {
@@ -203,22 +214,26 @@ func (t *trigger) exportAll() {
 	t.mutTriggered.Lock()
 	defer t.mutTriggered.Unlock()
 
-	exportHandler, err := t.exportFactoryHandler.Create()
-	if err != nil {
-		log.Error("error while creating export handler", "error", err)
-		return
-	}
-
-	log.Info("started hardFork export process")
-	err = exportHandler.ExportAll(t.epoch)
-	if err != nil {
-		log.Error("error while exporting data", "error", err)
-		return
-	}
-	log.Info("finished hardFork export process")
+	epoch := t.epoch
 
 	go func() {
-		time.Sleep(time.Duration(t.closeAfterInMinutes) * time.Minute)
+		exportHandler, err := t.exportFactoryHandler.Create()
+		if err != nil {
+			log.Error("error while creating export handler", "error", err)
+			return
+		}
+
+		log.Info("started hardFork export process")
+		err = exportHandler.ExportAll(epoch)
+		if err != nil {
+			log.Error("error while exporting data", "error", err)
+			return
+		}
+		log.Info("finished hardFork export process")
+		wait := time.Duration(t.closeAfterInMinutes) * time.Minute
+		log.Info("node will still be active for", "time duration", wait)
+
+		time.Sleep(wait)
 		argument := endProcess.ArgEndProcess{
 			Reason:      "HardForkExport",
 			Description: "Node finished the export process with success",
@@ -275,6 +290,9 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 	epoch, err := t.getIntFromArgument(string(arguments[1]))
 	if err != nil {
 		return true, err
+	}
+	if epoch < minimumEpochForHarfork {
+		return true, fmt.Errorf("%w, minimum epoch accepted is %d", update.ErrInvalidEpoch, minimumEpochForHarfork)
 	}
 
 	currentEpoch := int64(t.epochProvider.MetaEpoch())

@@ -212,5 +212,11 @@ var ErrNilChanStopNodeProcess = errors.New("nil channel to stop node")
 // ErrNilEpochConfirmedNotifier signals that nil epoch confirmed notifier was provided
 var ErrNilEpochConfirmedNotifier = errors.New("nil epoch confirmed notifier")
 
-// ErrTriggerAlreadyDone signals that the trigger is already in action, can not re-enter
-var ErrTriggerAlreadyDone = errors.New("trigger already in action")
+// ErrTriggerAlreadyInAction signals that the trigger is already in action, can not re-enter
+var ErrTriggerAlreadyInAction = errors.New("trigger already in action")
+
+// ErrInvalidTimeToWaitAfterHardfork signals that an invalid time to wait after hardfork was provided
+var ErrInvalidTimeToWaitAfterHardfork = errors.New("invalid time to wait after hard fork")
+
+// ErrInvalidEpoch signals that an invalid epoch has been provided
+var ErrInvalidEpoch = errors.New("invalid epoch")

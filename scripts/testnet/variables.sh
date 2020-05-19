@@ -131,6 +131,18 @@ export NUMACCOUNTS="250"
 export TXGEN_REGENERATE_ACCOUNTS=0
 export TXGEN_ERC20_MODE=0
 
+# COPY_BACK_CONFIGS when set to 1 will copy back the configs and keys to the ./cmd/node/config directory
+# in order to have a node in the IDE that can run a node in debug mode but in the same network with the rest of the nodes
+# this option greatly helps the debugging process when running a small system test
+export COPY_BACK_CONFIGS=0
+# SKIP_VALIDATOR_IDX when setting a value greater than -1 will not launch the validator with the provided index
+export SKIP_VALIDATOR_IDX=-1
+# SKIP_OBSERVER_IDX when setting a value greater than -1 will not launch the observer with the provided index
+export SKIP_OBSERVER_IDX=-1
+
+# USE_HARDFORK will prepare the nodes to run the hardfork process, if needed
+export USE_HARDFORK=1
+
 # Load local overrides, .gitignored
 LOCAL_OVERRIDES="$ELRONDTESTNETSCRIPTSDIR/local.sh"
 if [ -f "$LOCAL_OVERRIDES" ]; then
@@ -144,5 +156,3 @@ export TOTAL_OBSERVERCOUNT=$total_observer_count
 # Leave unchanged.
 let "total_node_count = $SHARD_VALIDATORCOUNT * $SHARDCOUNT + $META_VALIDATORCOUNT + $TOTAL_OBSERVERCOUNT"
 export TOTAL_NODECOUNT=$total_node_count
-
-export USE_HARDFORK=1

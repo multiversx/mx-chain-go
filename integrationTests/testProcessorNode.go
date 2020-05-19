@@ -1330,6 +1330,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithDataPool(tpn.DataPool),
 		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
+		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 	log.LogIfError(err)
 

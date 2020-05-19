@@ -12,7 +12,12 @@ fi
 VALIDATOR_RES_PORT="$PORT_ORIGIN_VALIDATOR_REST"
 
 if [ -z "$1" ]; then
-  echo "epoch argument was not provided. Usage: './hardfork.sh [epoch number]' as in './hardfork.sh 0'"
+  echo "epoch argument was not provided. Usage: './hardfork.sh [epoch number]' as in './hardfork.sh 1'"
+  exit
+fi
+
+if [ $1 -lt "1" ]; then
+  echo "incorrect epoch argument was provided. Usage: './hardfork.sh [epoch number]' as in './hardfork.sh 1'"
   exit
 fi
 
