@@ -517,8 +517,8 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 // GetAllLeaves iterates the trie and returns a map that contains all leafNodes information
 func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
-	tr.mutOperation.Lock()
-	defer tr.mutOperation.Unlock()
+	tr.mutOperation.RLock()
+	defer tr.mutOperation.RUnlock()
 
 	if tr.root == nil {
 		return map[string][]byte{}, nil
