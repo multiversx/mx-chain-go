@@ -460,20 +460,13 @@ func Test_SearchCacheInconsistency(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 
-		go func() {
+		go func(routineID int) {
+			fmt.Println("routineID", routineID)
 			cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
 			cache.detectTxIdentityInconsistency("alice-x", "alice")
 			cache.Remove([]byte("alice-x"))
 			wg.Done()
-		}()
-
-		wg.Add(1)
-		// This is just to add some read-locking on senders (backing map)
-		go func() {
-			snapshot := cache.txListBySender.getSnapshotAscending()
-			cache.evictSendersAndTheirTxs(snapshot)
-			wg.Done()
-		}()
+		}(i)
 	}
 
 	wg.Wait()
