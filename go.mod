@@ -16,7 +16,7 @@ require (
 	github.com/gin-contrib/pprof v1.2.0
 	github.com/gin-gonic/gin v1.3.0
 	github.com/gizak/termui/v3 v3.1.0
-	github.com/gogo/protobuf v1.3.1
+	github.com/gogo/protobuf v1.3.21
 	github.com/golang/protobuf v1.3.5
 	github.com/google/gops v0.3.6
 	github.com/gorilla/websocket v1.4.2
@@ -46,3 +46,5 @@ require (
 	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
+
+replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
