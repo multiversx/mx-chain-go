@@ -11,53 +11,19 @@ import (
 )
 
 const oneMilion = 1000000
-const oneBillion = oneMilion * 1000
+const oneTrilion = oneMilion * oneMilion
 const delta = 0.00000001
 
-func toNanoERD(erd float64) uint64 {
-	return uint64(erd * float64(1000000000))
+func toMicroERD(erd uint64) uint64 {
+	return erd * 1000000
 }
 
 func kBToBytes(kB float32) uint64 {
 	return uint64(kB * 1000)
 }
 
-func (cache *TxCache) areInternalMapsConsistent() bool {
-	internalMapByHash := cache.txByHash
-	internalMapBySender := cache.txListBySender
-
-	senders := internalMapBySender.getSnapshotAscending()
-	numTransactionsInMapByHash := len(internalMapByHash.keys())
-	numTransactionsInMapBySender := 0
-
-	for _, sender := range senders {
-		numTransactionsInMapBySender += int(sender.countTx())
-
-		for _, hash := range sender.getTxHashesAsStrings() {
-			_, ok := internalMapByHash.getTx(hash)
-			if !ok {
-				return false
-			}
-		}
-	}
-
-	if numTransactionsInMapBySender != numTransactionsInMapByHash {
-		return false
-	}
-
-	return true
-}
-
-func (cache *TxCache) getHashesForSender(sender string) []string {
-	return cache.getListForSender(sender).getTxHashesAsStrings()
-}
-
 func (cache *TxCache) getListForSender(sender string) *txListForSender {
-	return cache.txListBySender.testGetListForSender(sender)
-}
-
-func (sendersMap *txListBySenderMap) testGetListForSender(sender string) *txListForSender {
-	list, ok := sendersMap.getListForSender(sender)
+	list, ok := cache.txListBySender.getListForSender(sender)
 	if !ok {
 		panic("sender not in cache")
 	}
@@ -81,21 +47,6 @@ func (cache *TxCache) isSenderSweepable(sender string) bool {
 	}
 
 	return false
-}
-
-func (listForSender *txListForSender) getTxHashesAsStrings() []string {
-	hashes := listForSender.getTxHashes()
-	return hashesAsStrings(hashes)
-}
-
-func hashesAsStrings(hashes txHashes) []string {
-	result := make([]string, len(hashes))
-
-	for i := 0; i < len(hashes); i++ {
-		result[i] = string(hashes[i])
-	}
-
-	return result
 }
 
 func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nTransactionsPerSender int) {
