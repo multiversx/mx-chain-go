@@ -163,13 +163,11 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
-				Size:                 100000,
-				SizePerSender:        1000,
-				SizeInBytes:          1000000000,
-				SizeInBytesPerSender: 10000000,
-				Shards:               16,
+				Size:        100000,
+				SizeInBytes: 1000000000,
+				Shards:      1,
 			},
-			MinGasPrice:    200000000000,
+			MinGasPrice:    100000000000000,
 			NumberOfShards: 1,
 		},
 	)
@@ -227,7 +225,8 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(store, marshalizer, hasher, cfg, ewl, generalCfg)
 
-	tr, _ := trie.NewTrie(trieStorage, marsh, hasher)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(trieStorage, marsh, hasher, maxTrieLevelInMemory)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address []byte) (wrapper state.AccountHandler, e error) {
 			return state.NewUserAccount(address)
@@ -355,7 +354,7 @@ func createConsensusOnlyNode(
 	singleBlsSigner := &mclsinglesig.BlsSingleSigner{}
 
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
-	go syncer.StartSync()
+	syncer.StartSyncingTime()
 
 	rounder, _ := round.NewRound(
 		time.Unix(startTime, 0),

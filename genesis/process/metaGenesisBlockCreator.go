@@ -48,11 +48,6 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		return nil, err
 	}
 
-	_, err = arg.Accounts.Commit()
-	if err != nil {
-		return nil, err
-	}
-
 	err = setStakedData(arg, processors.txProcessor, nodesListSplitter)
 	if err != nil {
 		return nil, err
@@ -333,6 +328,11 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 		return nil, err
 	}
 
+	queryService, err := smartContract.NewSCQueryService(vmContainer, arg.Economics)
+	if err != nil {
+		return nil, err
+	}
+
 	return &genesisProcessors{
 		txCoordinator:  txCoordinator,
 		systemSCs:      virtualMachineFactory.SystemSmartContractContainer(),
@@ -341,6 +341,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 		scProcessor:    scProcessor,
 		scrProcessor:   scProcessor,
 		rwdProcessor:   nil,
+		queryService:   queryService,
 	}, nil
 }
 
@@ -378,11 +379,6 @@ func deploySystemSmartContracts(
 		if err != nil {
 			return err
 		}
-	}
-
-	_, err := arg.Accounts.Commit()
-	if err != nil {
-		return err
 	}
 
 	return nil
