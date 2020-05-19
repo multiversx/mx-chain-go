@@ -263,21 +263,6 @@ func (listForSender *txListForSender) getTxHashes() txHashes {
 	return result
 }
 
-// getTx returns the transaction by hash (linear search)
-func (listForSender *txListForSender) getTx(hash []byte) (*WrappedTransaction, bool) {
-	listForSender.mutex.RLock()
-	defer listForSender.mutex.RUnlock()
-
-	for element := listForSender.items.Front(); element != nil; element = element.Next() {
-		value := element.Value.(*WrappedTransaction)
-		if bytes.Equal(value.TxHash, hash) {
-			return value, true
-		}
-	}
-
-	return nil, false
-}
-
 // This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) countTx() uint64 {
 	return uint64(listForSender.items.Len())
