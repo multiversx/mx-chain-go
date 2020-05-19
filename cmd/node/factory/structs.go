@@ -1601,11 +1601,11 @@ func newValidatorStatisticsProcessor(
 	processComponents *processComponentsFactoryArgs,
 ) (process.ValidatorStatisticsProcessor, error) {
 
-	storageService := processComponents.data.Store
+	storageService := processComponents.data.StorageService()
 
-	var peerDataPool peer.DataPool = processComponents.data.Datapool
+	var peerDataPool peer.DataPool = processComponents.data.Datapool()
 	if processComponents.shardCoordinator.SelfId() < processComponents.shardCoordinator.NumberOfShards() {
-		peerDataPool = processComponents.data.Datapool
+		peerDataPool = processComponents.data.Datapool()
 	}
 
 	hardForkConfig := processComponents.mainConfig.Hardfork

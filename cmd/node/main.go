@@ -1153,8 +1153,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents.AccountsAdapter,
 		stateComponents.PeerAccounts,
 		stateComponents.AddressPubkeyConverter,
-		dataComponents.Store,
-		dataComponents.Blkc,
+		managedDataComponents.StorageService(),
+		managedDataComponents.Blockchain(),
 		managedCoreComponents.InternalMarshalizer(),
 		managedCoreComponents.Hasher(),
 		managedCoreComponents.Uint64ByteSliceConverter(),
@@ -1234,7 +1234,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Debug("closing all store units....")
-	err = dataComponents.Store.CloseAll()
+	err = managedDataComponents.StorageService().CloseAll()
 	log.LogIfError(err)
 
 	dataTries := triesComponents.TriesContainer.GetAll()
@@ -1771,7 +1771,7 @@ func createNode(
 	nodesCoordinator sharding.NodesCoordinator,
 	coreData mainFactory.CoreComponentsHolder,
 	state *mainFactory.StateComponents,
-	data *mainFactory.DataComponents,
+	data mainFactory.DataComponentsHolder,
 	crypto mainFactory.CryptoComponentsHolder,
 	process *factory.Process,
 	network mainFactory.NetworkComponentsHolder,
@@ -1845,8 +1845,8 @@ func createNode(
 		node.WithAddressPubkeyConverter(state.AddressPubkeyConverter),
 		node.WithValidatorPubkeyConverter(state.ValidatorPubkeyConverter),
 		node.WithAccountsAdapter(state.AccountsAdapter),
-		node.WithBlockChain(data.Blkc),
-		node.WithDataStore(data.Store),
+		node.WithBlockChain(data.Blockchain()),
+		node.WithDataStore(data.StorageService()),
 		node.WithRoundDuration(nodesConfig.RoundDuration),
 		node.WithConsensusGroupSize(int(consensusGroupSize)),
 		node.WithSyncer(syncer),
@@ -1902,7 +1902,7 @@ func createNode(
 		return nil, err
 	}
 
-	err = nd.ApplyOptions(node.WithDataPool(data.Datapool))
+	err = nd.ApplyOptions(node.WithDataPool(data.Datapool()))
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
 	}
