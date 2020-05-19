@@ -153,6 +153,15 @@ func (s *Sender) SendHeartbeat() error {
 
 func (s *Sender) updateMetrics(hb *data.Heartbeat) {
 	result := s.computePeerList(hb.Pubkey)
+
+	nodeType := ""
+	if result == string(core.ObserverList) {
+		nodeType = string(core.NodeTypeObserver)
+	} else {
+		nodeType = string(core.NodeTypeValidator)
+	}
+
+	s.statusHandler.SetStringValue(core.MetricNodeType, nodeType)
 	s.statusHandler.SetStringValue(core.MetricPeerType, result)
 }
 
