@@ -3,6 +3,8 @@ package factory
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -155,4 +157,19 @@ type ProcessComponentsHolder interface {
 type ProcessComponentsHandler interface {
 	ComponentHandler
 	ProcessComponentsHolder
+}
+
+// StatusComponentsHolder holds the status components
+type StatusComponentsHolder interface {
+	TpsBenchmark() statistics.TPSBenchmark
+	ElasticIndexer() indexer.Indexer
+	SoftwareVersionChecker() statistics.SoftwareVersionChecker
+	StatusHandler() core.AppStatusHandler
+	IsInterfaceNil() bool
+}
+
+// StateComponentsHandler defines the status components handler actions
+type StateComponentsHandler interface {
+	ComponentHandler
+	StatusComponentsHolder
 }

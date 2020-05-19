@@ -136,3 +136,9 @@ var ErrNilSystemSCConfig = errors.New("nil system smart contract configuration")
 
 // ErrNilTxLogsConfiguration signals that a nil transaction logs processor has been provided
 var ErrNilTxLogsConfiguration = errors.New("nil transaction logs processor")
+
+// ErrInvalidRoundDuration signals that an invalid round duration has been provided
+var ErrInvalidRoundDuration = errors.New("invalid round duration provided")
+
+// ErrNilElasticOptions signals that nil elastic options have been provided
+var ErrNilElasticOptions = errors.New("nil elastic options")
