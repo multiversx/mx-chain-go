@@ -26,6 +26,8 @@ The installation of go should proceed as shown in official golang installation g
 The main branch that will be used is the master branch. Alternatively, an older release tag can be used.
 
 ```
+# set $GOPATH if not set and export to ~/.profile along with Go binary path
+$ if [[ $GOPATH=="" ]]; then GOPATH="$HOME/go" fi
 $ mkdir -p $GOPATH/src/github.com/ElrondNetwork
 $ cd $GOPATH/src/github.com/ElrondNetwork
 $ git clone https://github.com/ElrondNetwork/elrond-go
