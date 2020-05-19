@@ -7,7 +7,14 @@ import (
 
 var log = logger.GetOrCreate("txcache")
 
-func (cache *TxCache) monitorTxAddition() {
+func (cache *TxCache) monitorTxAddition(addedInByHash bool, addedInBySender bool) {
+	if !addedInByHash && !addedInBySender {
+		return
+	}
+	if addedInByHash != addedInBySender {
+		log.Trace("TxCache.monitorTxAddition(): slight inconsistency detected", "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
+	}
+
 	cache.numTxAddedBetweenSelections.Increment()
 
 	if cache.isEvictionInProgress.IsSet() {

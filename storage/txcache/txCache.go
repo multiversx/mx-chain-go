@@ -68,17 +68,17 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		cache.doEviction()
 	}
 
-	ok = true
-	added, evicted := cache.txListBySender.addTx(tx)
-	if added {
-		cache.txByHash.addTx(tx)
-		cache.monitorTxAddition()
-	}
-
+	addedInByHash := cache.txByHash.addTx(tx)
+	addedInBySender, evicted := cache.txListBySender.addTx(tx)
 	if len(evicted) > 0 {
 		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
+	// The return value "added" is true even if transaction added, but then removed due to limits be sender.
+	// This it to ensure that onAdded() notification is triggered.
+	ok = true
+	added = addedInByHash || addedInBySender
+	cache.monitorTxAddition(addedInByHash, addedInBySender)
 	return
 }
 

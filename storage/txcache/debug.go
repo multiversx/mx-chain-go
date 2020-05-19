@@ -6,16 +6,23 @@ import (
 
 func (cache *TxCache) addTxDebug(correlation string, tx *WrappedTransaction) (ok bool, added bool) {
 	ok = true
-	added, _ = cache.txListBySender.addTxDebug(correlation, tx)
-	if added {
-		fmt.Println(correlation, "now add to map by hash")
-		addedInByHash := cache.txByHash.addTx(tx)
-		if !addedInByHash {
-			fmt.Println(correlation, "not added in map by hash, already there")
-		} else {
-			fmt.Println(correlation, "added in map by hash")
-		}
+
+	addedInByHash := cache.txByHash.addTx(tx)
+	if addedInByHash {
+		fmt.Println(correlation, "added in map by hash")
 	} else {
+		fmt.Println(correlation, "not added in map by hash, already there")
+	}
+
+	addedInBySender, _ := cache.txListBySender.addTxDebug(correlation, tx)
+	if addedInBySender {
+		fmt.Println(correlation, "added in map by sender")
+	} else {
+		fmt.Println(correlation, "not added in map by sender, already there")
+	}
+
+	added = addedInByHash || addedInBySender
+	if !added {
 		fmt.Println(correlation, "not added at all (duplicated?)")
 	}
 
