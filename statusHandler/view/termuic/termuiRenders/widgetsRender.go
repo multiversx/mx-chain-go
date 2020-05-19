@@ -148,14 +148,14 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	if shardId == uint64(core.MetachainShardId) {
 		consensusInfo = fmt.Sprintf("Validator signed meta blocks: %d | Signed blocks headers: %d", countConsensus, countConsensusAcceptedBlocks)
 	} else {
-		consensusInfo = fmt.Sprintf("Validator signed blocks %d | Number accepted: %d", countConsensus, countConsensusAcceptedBlocks)
+		consensusInfo = fmt.Sprintf("Validator signed blocks %d | Blocks accepted: %d", countConsensus, countConsensusAcceptedBlocks)
 	}
 
 	rows[3] = []string{consensusInfo}
 
 	countLeader := wr.presenter.GetCountLeader()
 	countAcceptedBlocks := wr.presenter.GetCountAcceptedBlocks()
-	rows[4] = []string{fmt.Sprintf("Blocks proposed: %d | Number accepted:  %d", countLeader, countAcceptedBlocks)}
+	rows[4] = []string{fmt.Sprintf("Blocks proposed: %d | Blocks accepted:  %d", countLeader, countAcceptedBlocks)}
 
 	// TODO: repair the rewards estimation or replace these 2 rows with rating details
 	//switch instanceType {
