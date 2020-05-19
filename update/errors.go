@@ -203,8 +203,8 @@ var ErrEmptyChainID = errors.New("empty chain ID")
 // ErrNilArgumentParser signals that nil argument parser was provided
 var ErrNilArgumentParser = errors.New("nil argument parser")
 
-// ErrNilExportFactoryHandler signals that nil export handler factory has been provided
-var ErrNilExportFactoryHandler = errors.New("nil export handler factory")
+// ErrNilExportFactoryHandler signals that nil export factory handler has been provided
+var ErrNilExportFactoryHandler = errors.New("nil export factory handler")
 
 // ErrNilChanStopNodeProcess signals that nil channel to stop node was provided
 var ErrNilChanStopNodeProcess = errors.New("nil channel to stop node")
