@@ -18,26 +18,20 @@ type ArgShardedTxPool struct {
 func (args *ArgShardedTxPool) verify() error {
 	config := args.Config
 
-	if config.SizeInBytes == 0 {
-		return fmt.Errorf("%w: config.SizeInBytes is not valid", dataRetriever.ErrCacheConfigInvalidSizeInBytes)
+	if config.SizeInBytes < dataRetriever.TxPoolMinSizeInBytes {
+		return fmt.Errorf("%w: config.SizeInBytes is less than [dataRetriever.TxPoolMinSizeInBytes]", dataRetriever.ErrCacheConfigInvalidSizeInBytes)
 	}
-	if config.SizeInBytesPerSender == 0 {
-		return fmt.Errorf("%w: config.SizeInBytesPerSender is not valid", dataRetriever.ErrCacheConfigInvalidSizeInBytes)
+	if config.Size < 1 {
+		return fmt.Errorf("%w: config.Size is less than 1", dataRetriever.ErrCacheConfigInvalidSize)
 	}
-	if config.Size == 0 {
-		return fmt.Errorf("%w: config.Size is not valid", dataRetriever.ErrCacheConfigInvalidSize)
+	if config.Shards < 1 {
+		return fmt.Errorf("%w: config.Shards (map chunks) is less than 1", dataRetriever.ErrCacheConfigInvalidShards)
 	}
-	if config.SizePerSender == 0 {
-		return fmt.Errorf("%w: config.SizePerSender is not valid", dataRetriever.ErrCacheConfigInvalidSize)
+	if args.MinGasPrice < 1 {
+		return fmt.Errorf("%w: MinGasPrice is less than 1", dataRetriever.ErrCacheConfigInvalidEconomics)
 	}
-	if config.Shards == 0 {
-		return fmt.Errorf("%w: config.Shards (map chunks) is not valid", dataRetriever.ErrCacheConfigInvalidShards)
-	}
-	if args.MinGasPrice == 0 {
-		return fmt.Errorf("%w: MinGasPrice is not valid", dataRetriever.ErrCacheConfigInvalidEconomics)
-	}
-	if args.NumberOfShards == 0 {
-		return fmt.Errorf("%w: NumberOfShards is not valid", dataRetriever.ErrCacheConfigInvalidSharding)
+	if args.NumberOfShards < 1 {
+		return fmt.Errorf("%w: NumberOfShards is less than 1", dataRetriever.ErrCacheConfigInvalidSharding)
 	}
 
 	return nil
