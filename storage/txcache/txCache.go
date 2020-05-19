@@ -14,20 +14,16 @@ type txHashes = [][]byte
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
-	name                          string
-	txListBySender                txListBySenderMap
-	txByHash                      txByHashMap
-	config                        CacheConfig
-	evictionMutex                 sync.Mutex
-	evictionJournal               evictionJournal
-	evictionSnapshotOfSenders     []*txListForSender
-	isEvictionInProgress          atomic.Flag
-	numTxAddedBetweenSelections   atomic.Counter
-	numTxAddedDuringEviction      atomic.Counter
-	numTxRemovedBetweenSelections atomic.Counter
-	numTxRemovedDuringEviction    atomic.Counter
-	sweepingMutex                 sync.Mutex
-	sweepingListOfSenders         []*txListForSender
+	name                      string
+	txListBySender            txListBySenderMap
+	txByHash                  txByHashMap
+	config                    CacheConfig
+	evictionMutex             sync.Mutex
+	evictionJournal           evictionJournal
+	evictionSnapshotOfSenders []*txListForSender
+	isEvictionInProgress      atomic.Flag
+	sweepingMutex             sync.Mutex
+	sweepingListOfSenders     []*txListForSender
 }
 
 // NewTxCache creates a new transaction cache
@@ -68,17 +64,22 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		cache.doEviction()
 	}
 
-	addedInByHash := cache.txByHash.addTx(tx)
+	// The return value "added" is true even if transaction added, but then removed due to limits be sender.
+	// This it to ensure that onAdded() notification is triggered.
+	ok = true
+	added = cache.txByHash.addTx(tx)
+	if !added {
+		return
+	}
+
 	addedInBySender, evicted := cache.txListBySender.addTx(tx)
+	if !addedInBySender {
+		log.Trace("TxCache.AddTx(): slight inconsistency detected: !addedInBySender", "name", cache.name)
+	}
 	if len(evicted) > 0 {
 		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
-	// The return value "added" is true even if transaction added, but then removed due to limits be sender.
-	// This it to ensure that onAdded() notification is triggered.
-	ok = true
-	added = addedInByHash || addedInBySender
-	cache.monitorTxAddition(addedInByHash, addedInBySender)
 	return
 }
 
@@ -151,17 +152,14 @@ func (cache *TxCache) doAfterSelection() {
 
 // RemoveTxByHash removes tx by hash
 func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
-	tx, ok := cache.txByHash.removeTx(string(txHash))
-	if !ok {
+	tx, foundInByHash := cache.txByHash.removeTx(string(txHash))
+	if !foundInByHash {
 		return errTxNotFound
 	}
 
-	cache.monitorTxRemoval()
-
-	found := cache.txListBySender.removeTx(tx)
-	if !found {
-		cache.onRemoveTxInconsistency(txHash)
-		return errMapsSyncInconsistency
+	foundInBySender := cache.txListBySender.removeTx(tx)
+	if !foundInBySender {
+		log.Trace("TxCache.RemoveTxByHash(): slight inconsistency detected: !foundInBySender", "name", cache.name, "tx", txHash)
 	}
 
 	return nil

@@ -215,7 +215,7 @@ func Test_RemoveByTxHash_Error_WhenMissing(t *testing.T) {
 	require.Equal(t, err, errTxNotFound)
 }
 
-func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
+func Test_RemoveByTxHash_RemovesFromByHash_WhenMapsInconsistency(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
 
 	txHash := []byte("hash-1")
@@ -225,8 +225,8 @@ func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
 	// Cause an inconsistency between the two internal maps (theoretically possible in case of misbehaving eviction)
 	cache.txListBySender.removeTx(tx)
 
-	err := cache.RemoveTxByHash(txHash)
-	require.Equal(t, err, errMapsSyncInconsistency)
+	_ = cache.RemoveTxByHash(txHash)
+	require.Equal(t, 0, cache.txByHash.backingMap.Count())
 }
 
 func Test_Clear(t *testing.T) {
