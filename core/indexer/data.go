@@ -9,22 +9,54 @@ import (
 //  to be saved for a transaction. It has all the default fields
 //  plus some extra information for ease of search and filter
 type Transaction struct {
-	Hash          string        `json:"-"`
-	MBHash        string        `json:"miniBlockHash"`
-	BlockHash     string        `json:"blockHash"`
-	Nonce         uint64        `json:"nonce"`
-	Round         uint64        `json:"round"`
-	Value         string        `json:"value"`
-	Receiver      string        `json:"receiver"`
-	Sender        string        `json:"sender"`
-	ReceiverShard uint32        `json:"receiverShard"`
-	SenderShard   uint32        `json:"senderShard"`
-	GasPrice      uint64        `json:"gasPrice"`
-	GasLimit      uint64        `json:"gasLimit"`
-	Data          string        `json:"data"`
-	Signature     string        `json:"signature"`
-	Timestamp     time.Duration `json:"timestamp"`
-	Status        string        `json:"status"`
+	Hash                 string        `json:"-"`
+	MBHash               string        `json:"miniBlockHash"`
+	BlockHash            string        `json:"-"`
+	Nonce                uint64        `json:"nonce"`
+	Round                uint64        `json:"round"`
+	Value                string        `json:"value"`
+	Receiver             string        `json:"receiver"`
+	Sender               string        `json:"sender"`
+	ReceiverShard        uint32        `json:"receiverShard"`
+	SenderShard          uint32        `json:"senderShard"`
+	GasPrice             uint64        `json:"gasPrice"`
+	GasLimit             uint64        `json:"gasLimit"`
+	GasUsed              uint64        `json:"gasUsed"`
+	Data                 string        `json:"data"`
+	Signature            string        `json:"signature"`
+	Timestamp            time.Duration `json:"timestamp"`
+	Status               string        `json:"status"`
+	SmartContractResults []ScResult    `json:"scResults"`
+	Log                  TxLog         `json:"-"`
+}
+
+// TxLog holds all the data needed for a log structure
+type TxLog struct {
+	Address string  `json:"scAddress"`
+	Events  []Event `json:"events"`
+}
+
+// Event holds all the data needed for an event structure
+type Event struct {
+	Address    string   `json:"address"`
+	Identifier string   `json:"identifier"`
+	Topics     []string `json:"topics"`
+	Data       string   `json:"data"`
+}
+
+// ScResult is a structure containing all the fields that need to be saved for a smart contract result
+type ScResult struct {
+	Nonce        uint64 `json:"nonce"`
+	GasLimit     uint64 `json:"gasLimit"`
+	GasPrice     uint64 `json:"gasPrice"`
+	Value        string `json:"value"`
+	Sender       string `json:"sender"`
+	Receiver     string `json:"receiver"`
+	Code         string `json:"code"`
+	Data         string `json:"data"`
+	PreTxHash    string `json:"prevTxHash"`
+	CallType     string `json:"callType"`
+	CodeMetadata string `json:"codeMetaData"`
 }
 
 // Block is a structure containing all the fields that need

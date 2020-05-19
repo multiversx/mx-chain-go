@@ -81,7 +81,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 
 func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ctx context.Context) error {
 	for _, rootHash := range rootHashes {
-		dataTrie, err := trie.NewTrie(u.trieStorageManager, u.marshalizer, u.hasher)
+		dataTrie, err := trie.NewTrie(u.trieStorageManager, u.marshalizer, u.hasher, u.maxTrieLevelInMemory)
 		if err != nil {
 			return err
 		}

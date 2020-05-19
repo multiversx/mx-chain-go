@@ -20,8 +20,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -55,6 +55,7 @@ type ArgNodeFacade struct {
 	RestAPIServerDebugMode bool
 	WsAntifloodConfig      config.WebServerAntifloodConfig
 	FacadeConfig           config.FacadeConfig
+	ApiRoutesConfig        config.ApiRoutesConfig
 }
 
 // nodeFacade represents a facade for grouping the functionality for the node
@@ -66,6 +67,7 @@ type nodeFacade struct {
 	config                 config.FacadeConfig
 	restAPIServerDebugMode bool
 	wsAntifloodConfig      config.WebServerAntifloodConfig
+	apiRoutesConfig        config.ApiRoutesConfig
 }
 
 // NewNodeFacade creates a new Facade with a NodeWrapper
@@ -75,6 +77,9 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	}
 	if check.IfNil(arg.ApiResolver) {
 		return nil, ErrNilApiResolver
+	}
+	if len(arg.ApiRoutesConfig.APIPackages) == 0 {
+		return nil, ErrNoApiRoutesConfig
 	}
 	if arg.WsAntifloodConfig.SimultaneousRequests == 0 {
 		return nil, fmt.Errorf("%w, SimultaneousRequests should not be 0", ErrInvalidValue)
@@ -92,6 +97,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		restAPIServerDebugMode: arg.RestAPIServerDebugMode,
 		wsAntifloodConfig:      arg.WsAntifloodConfig,
 		config:                 arg.FacadeConfig,
+		apiRoutesConfig:        arg.ApiRoutesConfig,
 	}, nil
 }
 
@@ -159,7 +165,7 @@ func (nf *nodeFacade) startRest() {
 			"SameSourceResetIntervalInSec", nf.wsAntifloodConfig.SameSourceResetIntervalInSec,
 		)
 
-		err = api.Start(nf, limiters...)
+		err = api.Start(nf, nf.apiRoutesConfig, limiters...)
 		if err != nil {
 			log.Error("could not start webserver",
 				"error", err.Error(),
@@ -205,7 +211,7 @@ func (nf *nodeFacade) CreateTransaction(
 	senderHex string,
 	gasPrice uint64,
 	gasLimit uint64,
-	txData []byte,
+	txData string,
 	signatureHex string,
 ) (*transaction.Transaction, []byte, error) {
 
@@ -244,7 +250,7 @@ func (nf *nodeFacade) GetAccount(address string) (state.UserAccountHandler, erro
 }
 
 // GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network
-func (nf *nodeFacade) GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error) {
+func (nf *nodeFacade) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 	hbStatus := nf.node.GetHeartbeats()
 	if hbStatus == nil {
 		return nil, ErrHeartbeatsNotActive

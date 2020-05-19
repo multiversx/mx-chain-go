@@ -1,6 +1,9 @@
 package rewardTransaction
 
 import (
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -9,6 +12,8 @@ import (
 )
 
 var _ process.RewardTransactionProcessor = (*rewardTxProcessor)(nil)
+
+const rewardKey = "reward"
 
 type rewardTxProcessor struct {
 	accounts         state.AccountsAdapter
@@ -90,7 +95,28 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 		return err
 	}
 
+	rtp.saveAccumulatedRewards(rTx, accHandler)
+
 	return rtp.accounts.SaveAccount(accHandler)
+}
+
+func (rtp *rewardTxProcessor) saveAccumulatedRewards(
+	rtx *rewardTx.RewardTx,
+	userAccount state.UserAccountHandler,
+) {
+	if !core.IsSmartContractAddress(rtx.RcvAddr) {
+		return
+	}
+
+	existingReward := big.NewInt(0)
+	fullRewardKey := core.ElrondProtectedKeyPrefix + rewardKey
+	val, err := userAccount.DataTrieTracker().RetrieveValue([]byte(fullRewardKey))
+	if err == nil {
+		existingReward.SetBytes(val)
+	}
+
+	existingReward.Add(existingReward, rtx.Value)
+	userAccount.DataTrieTracker().SaveKeyValue([]byte(fullRewardKey), existingReward.Bytes())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

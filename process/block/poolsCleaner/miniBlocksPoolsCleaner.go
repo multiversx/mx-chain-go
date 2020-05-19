@@ -1,11 +1,13 @@
 package poolsCleaner
 
 import (
+	"context"
 	"sync"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/close"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -13,6 +15,8 @@ import (
 )
 
 var log = logger.GetOrCreate("process/block/poolsCleaner")
+
+var _ close.Closer = (*miniBlocksPoolsCleaner)(nil)
 
 type mbInfo struct {
 	round           int64
@@ -29,6 +33,7 @@ type miniBlocksPoolsCleaner struct {
 
 	mutMapMiniBlocksRounds sync.RWMutex
 	mapMiniBlocksRounds    map[string]*mbInfo
+	cancelFunc             func()
 }
 
 // NewMiniBlocksPoolsCleaner will return a new miniblocks pools cleaner
@@ -57,14 +62,25 @@ func NewMiniBlocksPoolsCleaner(
 	mbpc.mapMiniBlocksRounds = make(map[string]*mbInfo)
 	mbpc.miniblocksPool.RegisterHandler(mbpc.receivedMiniBlock)
 
-	go mbpc.cleanMiniblocksPools()
-
 	return &mbpc, nil
 }
 
-func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPools() {
+// StartCleaning actually starts the pools cleaning mechanism
+func (mbpc *miniBlocksPoolsCleaner) StartCleaning() {
+	var ctx context.Context
+	ctx, mbpc.cancelFunc = context.WithCancel(context.Background())
+	go mbpc.cleanMiniblocksPools(ctx)
+}
+
+func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPools(ctx context.Context) {
 	for {
-		time.Sleep(sleepTime)
+		select {
+		case <-ctx.Done():
+			log.Debug("miniBlocksPoolsCleaner's go routine is stopping...")
+			return
+		case <-time.After(sleepTime):
+		}
+
 		numMiniblocksInMap := mbpc.cleanMiniblocksPoolsIfNeeded()
 		log.Debug("miniBlocksPoolsCleaner.cleanMiniblocksPools", "num miniblocks in map", numMiniblocksInMap)
 	}
@@ -155,4 +171,18 @@ func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() int {
 	}
 
 	return len(mbpc.mapMiniBlocksRounds)
+}
+
+// Close will close the endless running go routine
+func (mbpc *miniBlocksPoolsCleaner) Close() error {
+	if mbpc.cancelFunc != nil {
+		mbpc.cancelFunc()
+	}
+
+	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (mbpc *miniBlocksPoolsCleaner) IsInterfaceNil() bool {
+	return mbpc == nil
 }

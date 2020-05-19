@@ -18,6 +18,15 @@ type HeaderHandlerStub struct {
 	CloneCalled                      func() data.HeaderHandler
 	GetChainIDCalled                 func() []byte
 	CheckChainIDCalled               func(reference []byte) error
+	CheckSoftwareVersionCalled       func() error
+}
+
+// CheckSoftwareVersion -
+func (hhs *HeaderHandlerStub) CheckSoftwareVersion() error {
+	if hhs.CheckSoftwareVersionCalled != nil {
+		return hhs.CheckSoftwareVersionCalled()
+	}
+	return nil
 }
 
 // GetAccumulatedFees -

@@ -1,10 +1,8 @@
 package integrationTests
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -32,13 +30,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
-	"github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
+	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
@@ -70,6 +67,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/pkg/errors"
@@ -85,7 +83,7 @@ var TestMarshalizer = &marshal.GogoProtoMarshalizer{}
 var TestVmMarshalizer = &marshal.JsonMarshalizer{}
 
 // TestTxSignMarshalizer represents the marshalizer used in vm communication
-var TestTxSignMarshalizer = &marshal.JsonMarshalizer{}
+var TestTxSignMarshalizer = &marshal.TxJsonMarshalizer{}
 
 // TestAddressPubkeyConverter represents an address public key converter
 var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32)
@@ -115,10 +113,10 @@ var TestBalanceComputationHandler, _ = preprocess.NewBalanceComputation()
 var MinTxGasPrice = uint64(10)
 
 // MinTxGasLimit defines minimum gas limit required by a transaction
-var MinTxGasLimit = uint64(1000)
+var MinTxGasLimit = uint64(1_000)
 
 // MaxGasLimitPerBlock defines maximum gas limit allowed per one block
-const MaxGasLimitPerBlock = uint64(300000)
+const MaxGasLimitPerBlock = uint64(3_000_000)
 
 const maxTxNonceDeltaAllowed = 8000
 const minConnectedPeers = 0
@@ -135,6 +133,10 @@ const roundDuration = 5 * time.Second
 
 // ChainID is the chain ID identifier used in integration tests, processing nodes
 var ChainID = []byte("integration tests chain ID")
+
+// SoftwareVersion is the software version identifier used in integration tests, processing nodes
+var SoftwareVersion = []byte("integration tests")
+
 var testCommunityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
 
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
@@ -153,6 +155,8 @@ type CryptoParams struct {
 	KeyGen       crypto.KeyGenerator
 	Keys         map[uint32][]*TestKeyPair
 	SingleSigner crypto.SingleSigner
+	TxKeyGen     crypto.KeyGenerator
+	TxKeys       map[uint32][]*TestKeyPair
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -166,14 +170,15 @@ type TestProcessorNode struct {
 	OwnAccount *TestWalletAccount
 	NodeKeys   *TestKeyPair
 
-	ExportFolder  string
-	DataPool      dataRetriever.PoolsHolder
-	Storage       dataRetriever.StorageService
-	PeerState     state.AccountsAdapter
-	AccntState    state.AccountsAdapter
-	TrieContainer state.TriesHolder
-	BlockChain    data.ChainHandler
-	GenesisBlocks map[uint32]data.HeaderHandler
+	ExportFolder        string
+	DataPool            dataRetriever.PoolsHolder
+	Storage             dataRetriever.StorageService
+	PeerState           state.AccountsAdapter
+	AccntState          state.AccountsAdapter
+	TrieStorageManagers map[string]data.StorageManager
+	TrieContainer       state.TriesHolder
+	BlockChain          data.ChainHandler
+	GenesisBlocks       map[uint32]data.HeaderHandler
 
 	EconomicsData *economics.TestEconomicsData
 	RatingsData   *rating.RatingsData
@@ -309,7 +314,7 @@ func NewTestProcessorNode(
 		},
 	}
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	messenger := CreateMessengerWithKadDht(initialNodeAddr)
 	tpn := &TestProcessorNode{
 		ShardCoordinator:  shardCoordinator,
 		Messenger:         messenger,
@@ -338,7 +343,7 @@ func NewTestProcessorNode(
 func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32, txSignPrivKeyShardId uint32, initialNodeAddr string, dPool dataRetriever.PoolsHolder) *TestProcessorNode {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	messenger := CreateMessengerWithKadDht(initialNodeAddr)
 	_ = messenger.SetThresholdMinConnectedPeers(minConnectedPeers)
 	nodesCoordinator := &mock.NodesCoordinatorMock{}
 	kg := &mock.KeyGenMock{}
@@ -371,14 +376,19 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 }
 
 func (tpn *TestProcessorNode) initAccountDBs() {
+	trieStorageManager, _ := CreateTrieStorageManager()
 	tpn.TrieContainer = state.NewDataTriesHolder()
 	var stateTrie data.Trie
-	tpn.AccntState, stateTrie, _ = CreateAccountsDB(UserAccount)
+	tpn.AccntState, stateTrie = CreateAccountsDB(UserAccount, trieStorageManager)
 	tpn.TrieContainer.Put([]byte(trieFactory.UserAccountTrie), stateTrie)
 
 	var peerTrie data.Trie
-	tpn.PeerState, peerTrie, _ = CreateAccountsDB(ValidatorAccount)
+	tpn.PeerState, peerTrie = CreateAccountsDB(ValidatorAccount, trieStorageManager)
 	tpn.TrieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerTrie)
+
+	tpn.TrieStorageManagers = make(map[string]data.StorageManager)
+	tpn.TrieStorageManagers[trieFactory.UserAccountTrie] = trieStorageManager
+	tpn.TrieStorageManagers[trieFactory.PeerAccountTrie] = trieStorageManager
 }
 
 func (tpn *TestProcessorNode) initValidatorStatistics() {
@@ -396,11 +406,9 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		DataPool:            tpn.DataPool,
 		StorageService:      tpn.Storage,
 		Marshalizer:         TestMarshalizer,
-		StakeValue:          big.NewInt(500),
 		Rater:               rater,
 		MaxComputableRounds: 1000,
 		RewardsHandler:      tpn.EconomicsData,
-		StartEpoch:          0,
 		NodesSetup:          tpn.NodesSetup,
 	}
 
@@ -419,11 +427,11 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initValidatorStatistics()
-	rootHash, err := tpn.ValidatorStatisticsProcessor.RootHash()
-	fmt.Println("error", err)
 
 	tpn.GenesisBlocks = CreateGenesisBlocks(
 		tpn.AccntState,
+		tpn.PeerState,
+		tpn.TrieStorageManagers,
 		TestAddressPubkeyConverter,
 		tpn.NodesSetup,
 		tpn.ShardCoordinator,
@@ -434,7 +442,6 @@ func (tpn *TestProcessorNode) initTestNode() {
 		TestUint64Converter,
 		tpn.DataPool,
 		tpn.EconomicsData.EconomicsData,
-		rootHash,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
@@ -821,7 +828,6 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		TestAddressPubkeyConverter,
 		tpn.Storage,
 		tpn.DataPool,
-		tpn.EconomicsData.EconomicsData,
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
@@ -833,8 +839,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ShardCoordinator,
 	)
 
-	gasSchedule := arwenConfig.MakeGasMap(1)
-	vm.FillGasMapInternal(gasSchedule, 1)
+	gasSchedule := arwenConfig.MakeGasMapForTests()
+	defaults.FillGasMapInternal(gasSchedule, 1)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:          gasSchedule,
 		MapDNSAddresses: make(map[string]struct{}),
@@ -984,11 +990,11 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		BuiltInFunctions: builtInFuncs,
 	}
 	gasSchedule := make(map[string]map[string]uint64)
-	vm.FillGasMapInternal(gasSchedule, 1)
+	defaults.FillGasMapInternal(gasSchedule, 1)
 	vmFactory, _ := metaProcess.NewVMContainerFactory(
 		argsHook,
 		tpn.EconomicsData.EconomicsData,
-		&genesis.NilMessageSignVerifier{},
+		&disabled.MessageSignVerifier{},
 		gasSchedule,
 		tpn.NodesSetup,
 		TestHasher,
@@ -999,6 +1005,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				OwnerAddress:    "aaaaaa",
 			},
 		},
+		tpn.PeerState,
 	)
 
 	tpn.VMContainer, _ = vmFactory.Create()
@@ -1135,6 +1142,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		StateCheckpointModulus: stateCheckpointModulus,
 		BlockChain:             tpn.BlockChain,
 		BlockSizeThrottler:     TestBlockSizeThrottler,
+		Version:                string(SoftwareVersion),
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -1161,9 +1169,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
-		blsKeyedPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(128)
 		argsStakingToPeer := scToProtocol.ArgStakingToPeer{
-			PubkeyConv:       blsKeyedPubkeyConverter,
+			PubkeyConv:       TestValidatorPubkeyConverter,
 			Hasher:           TestHasher,
 			ProtoMarshalizer: TestMarshalizer,
 			VmMarshalizer:    TestVmMarshalizer,
@@ -1352,7 +1359,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		TestAddressPubkeyConverter.Encode(tx.SndAddr),
 		tx.GasPrice,
 		tx.GasLimit,
-		tx.Data,
+		string(tx.Data),
 		hex.EncodeToString(tx.Signature),
 	)
 	if err != nil {
@@ -1403,7 +1410,7 @@ func (tpn *TestProcessorNode) StartSync() error {
 		return errors.New("no bootstrapper available")
 	}
 
-	tpn.Bootstrapper.StartSync()
+	tpn.Bootstrapper.StartSyncingBlocks()
 
 	return nil
 }

@@ -52,3 +52,15 @@ var ErrInvalidIdentifierForEpochStartBlockRequest = errors.New("invalid identifi
 
 // ErrNilEpochStartNotifier signals that nil epoch start notifier has been provided
 var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier")
+
+// ErrVersionNumComponents signals that a wrong number of components was provided
+var ErrVersionNumComponents = errors.New("invalid version while checking number of components")
+
+// ErrMajorVersionMismatch signals that the major version mismatch
+var ErrMajorVersionMismatch = errors.New("major version mismatch")
+
+// ErrMinorVersionMismatch signals that the minor version mismatch
+var ErrMinorVersionMismatch = errors.New("minor version mismatch")
+
+// ErrReleaseVersionMismatch signals that the release version mismatch
+var ErrReleaseVersionMismatch = errors.New("release version mismatch")

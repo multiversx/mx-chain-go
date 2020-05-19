@@ -130,7 +130,7 @@ func TestGetOffset(t *testing.T) {
 
 func TestCallQuery(t *testing.T) {
 	st := ntp2.NewSyncTime(config.NTPConfig{Hosts: []string{""}, SyncPeriodSeconds: 1}, queryMock4)
-	go st.StartSync()
+	st.StartSyncingTime()
 
 	assert.NotNil(t, st.Query())
 	assert.Equal(t, time.Second, st.SyncPeriod())
@@ -144,6 +144,8 @@ func TestCallQuery(t *testing.T) {
 	assert.NotEqual(t, qmc, 0)
 
 	fmt.Printf("Current time: %v\n", st.FormattedCurrentTime())
+
+	st.Close()
 }
 
 func TestCallQueryShouldErrIndexOutOfBounds(t *testing.T) {

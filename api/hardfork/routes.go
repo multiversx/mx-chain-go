@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,8 +18,8 @@ type TriggerHardforkHandler interface {
 }
 
 // Routes defines node related routes
-func Routes(router *gin.RouterGroup) {
-	router.POST("/trigger", Trigger)
+func Routes(router *wrapper.RouterWrapper) {
+	router.RegisterHandler(http.MethodPost, "/trigger", Trigger)
 }
 
 // Trigger will receive a trigger request from the client and propagate it for processing
