@@ -17,13 +17,6 @@ func (dps *DeployProcessorStub) Deploy(sc genesis.InitialSmartContractHandler) e
 	return nil
 }
 
-// SetReplacePlaceholders -
-func (dps *DeployProcessorStub) SetReplacePlaceholders(handler func(txData string, scResultingAddressBytes []byte) (string, error)) {
-	if dps.SetReplacePlaceholdersCalled != nil {
-		dps.SetReplacePlaceholdersCalled(handler)
-	}
-}
-
 // IsInterfaceNil -
 func (dps *DeployProcessorStub) IsInterfaceNil() bool {
 	return dps == nil

@@ -88,6 +88,12 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.NodeShuffler) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilShuffler)
 	}
+	if args.GeneralConfig.EpochStartConfig.MinNumOfPeersToConsiderBlockValid < minNumPeersToConsiderMetaBlockValid {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNotEnoughNumOfPeersToConsiderBlockValid)
+	}
+	if args.GeneralConfig.EpochStartConfig.MinNumConnectedPeersToStart < minNumConnectedPeers {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNotEnoughNumConnectedPeers)
+	}
 
 	return nil
 }

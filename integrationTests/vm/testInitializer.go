@@ -46,6 +46,8 @@ var pubkeyConv, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 var log = logger.GetOrCreate("integrationtests")
 
+const maxTrieLevelInMemory = uint(5)
+
 // VMTestContext -
 type VMTestContext struct {
 	TxProcessor    process.TransactionProcessor
@@ -118,7 +120,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 		generalCfg,
 	)
 
-	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher)
+	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher, maxTrieLevelInMemory)
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
 
 	return adb
@@ -256,7 +258,7 @@ func CreateVMAndBlockchainHook(
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
 	actualGasSchedule := gasSchedule
 	if gasSchedule == nil {
-		actualGasSchedule = arwenConfig.MakeGasMap(1)
+		actualGasSchedule = arwenConfig.MakeGasMapForTests()
 		defaults.FillGasMapInternal(actualGasSchedule, 1)
 	}
 

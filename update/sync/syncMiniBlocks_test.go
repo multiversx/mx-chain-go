@@ -225,3 +225,109 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolReceive(t *testing.T) {
 	cancel()
 	require.Nil(t, err)
 }
+
+func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInStorageReceive(t *testing.T) {
+	t.Parallel()
+
+	mbHash := []byte("mbHash")
+	mb := &block.MiniBlock{}
+	marshalizer := &mock.MarshalizerMock{}
+	args := ArgsNewPendingMiniBlocksSyncer{
+		Storage: &mock.StorerStub{
+			GetCalled: func(key []byte) (bytes []byte, err error) {
+				mbBytes, _ := marshalizer.Marshal(mb)
+				return mbBytes, nil
+			},
+		},
+		Cache: &mock.CacherStub{
+			RegisterHandlerCalled: func(_ func(_ []byte, _ interface{})) {},
+			PeekCalled: func(key []byte) (interface{}, bool) {
+				return nil, false
+			},
+		},
+		Marshalizer:    &mock.MarshalizerFake{},
+		RequestHandler: &mock.RequestHandlerStub{},
+	}
+
+	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
+	require.Nil(t, err)
+
+	metaBlock := &block.MetaBlock{
+		Nonce: 1, Epoch: 1, RootHash: []byte("metaRootHash"),
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					ShardID:                 0,
+					RootHash:                []byte("shardDataRootHash"),
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{{Hash: mbHash}},
+					FirstPendingMetaBlock:   []byte("firstPending"),
+				},
+			},
+		},
+	}
+	unFinished := make(map[string]*block.MetaBlock)
+	unFinished["firstPending"] = metaBlock
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
+	cancel()
+	require.Nil(t, err)
+}
+
+func TestSyncPendingMiniBlocksFromMeta_GetMiniBlocksShouldWork(t *testing.T) {
+	t.Parallel()
+
+	mbHash := []byte("mbHash")
+	mb := &block.MiniBlock{
+		TxHashes: [][]byte{[]byte("txHash")},
+	}
+	localErr := errors.New("not found")
+	marshalizer := &mock.MarshalizerMock{}
+	args := ArgsNewPendingMiniBlocksSyncer{
+		Storage: &mock.StorerStub{
+			GetCalled: func(key []byte) (bytes []byte, err error) {
+				mbBytes, _ := marshalizer.Marshal(mb)
+				return mbBytes, nil
+			},
+			GetFromEpochCalled: func(key []byte, epoch uint32) (bytes []byte, err error) {
+				return nil, localErr
+			},
+		},
+		Cache: &mock.CacherStub{
+			RegisterHandlerCalled: func(_ func(_ []byte, _ interface{})) {},
+			PeekCalled: func(key []byte) (interface{}, bool) {
+				return nil, false
+			},
+		},
+		Marshalizer:    &mock.MarshalizerFake{},
+		RequestHandler: &mock.RequestHandlerStub{},
+	}
+
+	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
+	require.Nil(t, err)
+
+	metaBlock := &block.MetaBlock{
+		Nonce: 1, Epoch: 1, RootHash: []byte("metaRootHash"),
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					ShardID:                 0,
+					RootHash:                []byte("shardDataRootHash"),
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{{Hash: mbHash}},
+					FirstPendingMetaBlock:   []byte("firstPending"),
+				},
+			},
+		},
+	}
+	unFinished := make(map[string]*block.MetaBlock)
+	unFinished["firstPending"] = metaBlock
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocksFromMeta(metaBlock, unFinished, ctx)
+	cancel()
+	require.Nil(t, err)
+
+	res, err := pendingMiniBlocksSyncer.GetMiniBlocks()
+	require.NoError(t, err)
+	require.Equal(t, mb, res[string(mbHash)])
+}
