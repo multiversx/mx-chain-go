@@ -13,10 +13,10 @@ type senderScoreParams struct {
 	count uint64
 	// Size is in bytes
 	size uint64
-	// Fee is in nano ERD
+	// Fee is in micro ERD
 	fee uint64
 	gas uint64
-	// Price is in nano ERD
+	// Price is in micro ERD
 	minGasPrice uint32
 }
 
@@ -41,7 +41,7 @@ func (listForSender *txListForSender) computeRawScore() float64 {
 	gas := listForSender.totalGas.GetUint64()
 	size := listForSender.totalBytes.GetUint64()
 	count := listForSender.countTx()
-	minGasPrice := listForSender.cacheConfig.MinGasPriceNanoErd
+	minGasPrice := listForSender.cacheConfig.MinGasPriceMicroErd
 
 	return computeSenderScore(senderScoreParams{count: count, size: size, fee: fee, gas: gas, minGasPrice: minGasPrice})
 }
@@ -59,8 +59,8 @@ func (listForSender *txListForSender) computeRawScore() float64 {
 // For asymptoticScore, see (https://en.wikipedia.org/wiki/Logistic_function)
 //
 // Where:
-//  - PPUAvg: average gas points (fee) per processing unit, in nano ERD
-//  - PPUMin: minimum gas points (fee) per processing unit (given by economics.toml), in nano ERD
+//  - PPUAvg: average gas points (fee) per processing unit, in micro ERD
+//  - PPUMin: minimum gas points (fee) per processing unit (given by economics.toml), in micro ERD
 //  - txCount: number of transactions
 //  - txSize: size of transactions, in kB (1000 bytes)
 //
