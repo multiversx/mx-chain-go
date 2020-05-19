@@ -8,10 +8,13 @@ func (cache *TxCache) addTxDebug(correlation string, tx *WrappedTransaction) (ok
 	ok = true
 	added, _ = cache.txListBySender.addTxDebug(correlation, tx)
 	if added {
-		cache.txByHash.addTx(tx)
-		fmt.Println(correlation, "added")
+		fmt.Println(correlation, "now add to map by hash")
+		addedInByHash := cache.txByHash.addTx(tx)
+		if !addedInByHash {
+			fmt.Println(correlation, "not added in map by hash")
+		}
 	} else {
-		fmt.Println(correlation, "not added")
+		fmt.Println(correlation, "not added at all (duplicated?)")
 	}
 
 	return
@@ -40,6 +43,7 @@ func (listForSender *txListForSender) addTxDebug(correlation string, tx *Wrapped
 		listForSender.items.InsertAfter(tx, insertionPlace)
 	}
 
+	fmt.Println(correlation, "added to list of sender")
 	return true, make([][]byte, 0)
 }
 
@@ -73,6 +77,7 @@ func (txMap *txListBySenderMap) removeTxDebug(correlation string, tx *WrappedTra
 	isEmpty := listForSender.IsEmpty()
 	if isEmpty {
 		fmt.Println(correlation, "empty sender will be removed")
+		// This removal is correlated to failure. Without this, no identity inconsistency.
 		txMap.removeSender(sender)
 	}
 
