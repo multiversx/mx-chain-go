@@ -1,6 +1,8 @@
 package txcache
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
@@ -12,6 +14,7 @@ type txListBySenderMap struct {
 	backingMap  *maps.BucketSortedMap
 	cacheConfig CacheConfig
 	counter     atomic.Counter
+	mutex       sync.Mutex
 }
 
 // newTxListBySenderMap creates a new instance of TxListBySenderMap
@@ -31,13 +34,22 @@ func (txMap *txListBySenderMap) addTx(tx *WrappedTransaction) (bool, txHashes) {
 	return listForSender.AddTx(tx)
 }
 
+// getOrAddListForSender gets or lazily creates a list (using double-checked locking pattern)
 func (txMap *txListBySenderMap) getOrAddListForSender(sender string) *txListForSender {
 	listForSender, ok := txMap.getListForSender(sender)
-	if !ok {
-		listForSender = txMap.addSender(sender)
+	if ok {
+		return listForSender
 	}
 
-	return listForSender
+	txMap.mutex.Lock()
+	defer txMap.mutex.Unlock()
+
+	listForSender, ok = txMap.getListForSender(sender)
+	if ok {
+		return listForSender
+	}
+
+	return txMap.addSender(sender)
 }
 
 func (txMap *txListBySenderMap) getListForSender(sender string) (*txListForSender, bool) {
