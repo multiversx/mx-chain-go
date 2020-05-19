@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -463,8 +464,9 @@ func Test_SearchCacheInconsistency(t *testing.T) {
 		go func(routineID int) {
 			correlation := fmt.Sprintf("%d", routineID)
 			cache.addTxDebug(correlation, createTx([]byte("alice-x"), "alice", 42))
-			cache.detectTxIdentityInconsistency(correlation, "alice-x", "alice")
+			assert.False(t, cache.detectTxIdentityInconsistency(correlation, "alice-x", "alice"))
 			cache.removeDebug(correlation, []byte("alice-x"))
+			fmt.Println(correlation, "done")
 			wg.Done()
 		}(i)
 	}
