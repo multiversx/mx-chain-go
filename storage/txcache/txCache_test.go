@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -451,6 +452,31 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 
 	timedOut := waitTimeout(&wg, 1*time.Second)
 	require.False(t, timedOut, "Timed out. Perhaps deadlock?")
+}
+
+func Test_SearchCacheInconsistency(t *testing.T) {
+	for try := 0; try < 100; try++ {
+		fmt.Println("====================================================================")
+
+		cache := newUnconstrainedCacheToTest()
+		var wg sync.WaitGroup
+
+		for i := 0; i < 2; i++ {
+			wg.Add(1)
+
+			go func(routineID int) {
+				correlation := fmt.Sprintf("%d", routineID)
+				cache.addTxDebug(correlation, createTx([]byte("alice-x"), "alice", 42))
+				assert.False(t, cache.detectTxIdentityInconsistency(correlation, "alice-x", "alice"))
+				cache.removeDebug(correlation, []byte("alice-x"))
+				fmt.Println(correlation, "done")
+				wg.Done()
+			}(i)
+		}
+
+		wg.Wait()
+	}
+
 }
 
 func newUnconstrainedCacheToTest() *TxCache {

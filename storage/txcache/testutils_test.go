@@ -2,6 +2,7 @@ package txcache
 
 import (
 	"encoding/binary"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -46,6 +47,32 @@ func (cache *TxCache) areInternalMapsConsistent() bool {
 	}
 
 	return true
+}
+
+func (cache *TxCache) detectTxIdentityInconsistency(correlation string, hash string, sender string) bool {
+	txInMapByHash, ok := cache.GetByTxHash([]byte(hash))
+	if !ok {
+		return false
+	}
+
+	txList, ok := cache.txListBySender.getListForSender(sender)
+	if !ok {
+		// In map by hash, but sender is missing
+		return false
+	}
+
+	txInMapBySender, ok := txList.getTx([]byte(hash))
+	if !ok {
+		// In map by hash, but not in map by sender
+		return false
+	}
+
+	if txInMapByHash != txInMapBySender {
+		fmt.Println(correlation, "ERROR: IDENTITY INCONSISTENCY DETECTED!")
+		return true
+	}
+
+	return false
 }
 
 func (cache *TxCache) getHashesForSender(sender string) []string {
