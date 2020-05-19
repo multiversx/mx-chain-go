@@ -455,23 +455,28 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 }
 
 func Test_SearchCacheInconsistency(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
-	var wg sync.WaitGroup
+	for try := 0; try < 100; try++ {
+		fmt.Println("====================================================================")
 
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
+		cache := newUnconstrainedCacheToTest()
+		var wg sync.WaitGroup
 
-		go func(routineID int) {
-			correlation := fmt.Sprintf("%d", routineID)
-			cache.addTxDebug(correlation, createTx([]byte("alice-x"), "alice", 42))
-			assert.False(t, cache.detectTxIdentityInconsistency(correlation, "alice-x", "alice"))
-			cache.removeDebug(correlation, []byte("alice-x"))
-			fmt.Println(correlation, "done")
-			wg.Done()
-		}(i)
+		for i := 0; i < 2; i++ {
+			wg.Add(1)
+
+			go func(routineID int) {
+				correlation := fmt.Sprintf("%d", routineID)
+				cache.addTxDebug(correlation, createTx([]byte("alice-x"), "alice", 42))
+				assert.False(t, cache.detectTxIdentityInconsistency(correlation, "alice-x", "alice"))
+				cache.removeDebug(correlation, []byte("alice-x"))
+				fmt.Println(correlation, "done")
+				wg.Done()
+			}(i)
+		}
+
+		wg.Wait()
 	}
 
-	wg.Wait()
 }
 
 func newUnconstrainedCacheToTest() *TxCache {

@@ -11,7 +11,9 @@ func (cache *TxCache) addTxDebug(correlation string, tx *WrappedTransaction) (ok
 		fmt.Println(correlation, "now add to map by hash")
 		addedInByHash := cache.txByHash.addTx(tx)
 		if !addedInByHash {
-			fmt.Println(correlation, "not added in map by hash")
+			fmt.Println(correlation, "not added in map by hash, already there")
+		} else {
+			fmt.Println(correlation, "added in map by hash")
 		}
 	} else {
 		fmt.Println(correlation, "not added at all (duplicated?)")
@@ -43,7 +45,7 @@ func (listForSender *txListForSender) addTxDebug(correlation string, tx *Wrapped
 		listForSender.items.InsertAfter(tx, insertionPlace)
 	}
 
-	fmt.Println(correlation, "added to list of sender")
+	fmt.Println(correlation, "added to list of sender", fmt.Sprintf("%p", listForSender), "of size", listForSender.countTx())
 	return true, make([][]byte, 0)
 }
 
@@ -60,7 +62,7 @@ func (cache *TxCache) removeTxByHashDebug(correlation string, txHash []byte) {
 
 	found := cache.txListBySender.removeTxDebug(correlation, tx)
 	if !found {
-		fmt.Println(correlation, "remove: not found in txListBySender")
+		fmt.Println(correlation, "remove: not found in sender")
 	} else {
 		fmt.Println(correlation, "removed from sender")
 	}
@@ -75,10 +77,11 @@ func (txMap *txListBySenderMap) removeTxDebug(correlation string, tx *WrappedTra
 		return false
 	}
 
+	fmt.Println(correlation, "will remove from sender", fmt.Sprintf("%p", listForSender))
 	isFound := listForSender.RemoveTx(tx)
 	isEmpty := listForSender.IsEmpty()
 	if isEmpty {
-		fmt.Println(correlation, "empty sender will be removed")
+		fmt.Println(correlation, "empty sender", fmt.Sprintf("%p", listForSender), "will be removed")
 		// This removal is correlated to failure. Without this, no identity inconsistency.
 		txMap.removeSender(sender)
 	}
