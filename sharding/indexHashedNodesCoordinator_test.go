@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"sort"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -19,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1496,6 +1498,189 @@ func TestIndexHashedNodesCoordinator_ShuffleOutNotFound(t *testing.T) {
 	require.False(t, processCalled)
 	expectedShardForNotFound := uint32(0)
 	require.Equal(t, expectedShardForNotFound, newShard)
+}
+
+func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_NoValidators(t *testing.T) {
+	t.Parallel()
+	arguments := createArguments()
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
+
+	validatorInfos := make([]*state.ShardValidatorInfo, 0)
+	newNodesConfig, err := ihgs.computeNodesConfigFromList(validatorInfos)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, newNodesConfig.eligibleMap)
+	assert.Equal(t, 0, len(newNodesConfig.eligibleMap))
+	assert.NotNil(t, newNodesConfig.waitingMap)
+	assert.Equal(t, 0, len(newNodesConfig.waitingMap))
+	assert.NotNil(t, newNodesConfig.leavingMap)
+	assert.Equal(t, 0, len(newNodesConfig.leavingMap))
+	assert.NotNil(t, newNodesConfig.newList)
+	assert.Equal(t, 0, len(newNodesConfig.newList))
+
+	nbShards := uint32(0)
+	assert.Equal(t, nbShards, newNodesConfig.nbShards)
+
+	newNodesConfig, err = ihgs.computeNodesConfigFromList(nil)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, newNodesConfig.eligibleMap)
+	assert.Equal(t, 0, len(newNodesConfig.eligibleMap))
+	assert.NotNil(t, newNodesConfig.waitingMap)
+	assert.Equal(t, 0, len(newNodesConfig.waitingMap))
+	assert.NotNil(t, newNodesConfig.leavingMap)
+	assert.Equal(t, 0, len(newNodesConfig.leavingMap))
+	assert.NotNil(t, newNodesConfig.newList)
+	assert.Equal(t, 0, len(newNodesConfig.newList))
+	assert.Equal(t, nbShards, newNodesConfig.nbShards)
+}
+
+func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_NilPk(t *testing.T) {
+	t.Parallel()
+	arguments := createArguments()
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
+
+	validatorInfos :=
+		[]*state.ShardValidatorInfo{
+			{
+				PublicKey:  pk,
+				ShardId:    0,
+				List:       "test1",
+				Index:      0,
+				TempRating: 0,
+			},
+			{
+				PublicKey:  nil,
+				ShardId:    0,
+				List:       "test",
+				Index:      0,
+				TempRating: 0,
+			},
+		}
+
+	newNodesConfig, err := ihgs.computeNodesConfigFromList(validatorInfos)
+
+	assert.Nil(t, newNodesConfig)
+	assert.NotNil(t, err)
+	assert.Equal(t, ErrNilPubKey, err)
+}
+
+func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_Validators(t *testing.T) {
+	t.Parallel()
+	arguments := createArguments()
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
+
+	shard0_Eligible0 := &state.ShardValidatorInfo{
+		[]byte("pk0"), 0, string(core.EligibleList), 1, 2,
+	}
+	shard0_Eligible1 := &state.ShardValidatorInfo{
+		[]byte("pk1"), 0, string(core.EligibleList), 2, 2,
+	}
+	shardmeta_Eligible0 := &state.ShardValidatorInfo{
+		[]byte("pk2"), core.MetachainShardId, string(core.EligibleList), 1, 4,
+	}
+	shard0_Waiting0 := &state.ShardValidatorInfo{
+		[]byte("pk3"), 0, string(core.WaitingList), 14, 0,
+	}
+	shardmeta_Waiting0 := &state.ShardValidatorInfo{
+		[]byte("pk4"), core.MetachainShardId, string(core.WaitingList), 15, 0,
+	}
+	shard0_New0 := &state.ShardValidatorInfo{
+		[]byte("pk5"), 0, string(core.NewList), 3, 0,
+	}
+	shard0_Leaving0 := &state.ShardValidatorInfo{
+		[]byte("pk6"), 0, string(core.LeavingList), 0, 0,
+	}
+	shard0_Leaving1 := &state.ShardValidatorInfo{
+		[]byte("pk7"), 0, string(core.LeavingList), 1, 0,
+	}
+
+	validatorInfos :=
+		[]*state.ShardValidatorInfo{
+			shard0_Eligible0,
+			shard0_Eligible1,
+			shardmeta_Eligible0,
+			shard0_Waiting0,
+			shardmeta_Waiting0,
+			shard0_New0,
+			shard0_Leaving0,
+			shard0_Leaving1,
+		}
+
+	newNodesConfig, err := ihgs.computeNodesConfigFromList(validatorInfos)
+	assert.Nil(t, err)
+
+	assert.Equal(t, uint32(1), newNodesConfig.nbShards)
+
+	verifySizes(t, newNodesConfig)
+	verifyLeavingNodes(t, newNodesConfig)
+
+	// maps have the correct validators inside
+	eligibleListShardZero := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shard0_Eligible0, shard0_Eligible1, shard0_Leaving0, shard0_Leaving1})
+	assert.Equal(t, eligibleListShardZero, newNodesConfig.eligibleMap[0])
+	eligibleListMeta := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shardmeta_Eligible0})
+	assert.Equal(t, eligibleListMeta, newNodesConfig.eligibleMap[core.MetachainShardId])
+
+	waitingListShardZero := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shard0_Waiting0})
+	assert.Equal(t, waitingListShardZero, newNodesConfig.waitingMap[0])
+	waitingListMeta := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shardmeta_Waiting0})
+	assert.Equal(t, waitingListMeta, newNodesConfig.waitingMap[core.MetachainShardId])
+
+	leavingListShardZero := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shard0_Leaving0, shard0_Leaving1})
+	assert.Equal(t, leavingListShardZero, newNodesConfig.leavingMap[0])
+	assert.Equal(t, 0, len(newNodesConfig.leavingMap[core.MetachainShardId]))
+
+	newListShardZero := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shard0_New0})
+	assert.Equal(t, newListShardZero, newNodesConfig.newList)
+}
+
+func createValidatorList(ihgs *indexHashedNodesCoordinator, shardValidators []*state.ShardValidatorInfo) []Validator {
+	validators := make([]Validator, len(shardValidators))
+	for i, v := range shardValidators {
+		shardValidator, _ := NewValidator(
+			v.PublicKey,
+			ihgs.GetChance(v.TempRating),
+			v.Index)
+		validators[i] = shardValidator
+	}
+	sort.Sort(validatorList(validators))
+	return validators
+}
+
+func verifyLeavingNodes(t *testing.T, newNodesConfig *epochNodesConfig) {
+	for leavingShardId, leavingValidators := range newNodesConfig.leavingMap {
+		for _, leavingValidator := range leavingValidators {
+			found, shardId := searchInMap(newNodesConfig.eligibleMap, leavingValidator.PubKey())
+			assert.True(t, found)
+			assert.Equal(t, leavingShardId, shardId)
+		}
+	}
+}
+
+func verifySizes(t *testing.T, newNodesConfig *epochNodesConfig) {
+	expectedEligibleSize := 2
+	expectedWaitingSize := 2
+	expectedNewSize := 1
+	expectedLeavingSize := 1
+
+	assert.NotNil(t, newNodesConfig)
+	assert.Equal(t, uint32(expectedEligibleSize-1), newNodesConfig.nbShards)
+	assert.Equal(t, expectedEligibleSize, len(newNodesConfig.eligibleMap))
+	assert.Equal(t, expectedWaitingSize, len(newNodesConfig.waitingMap))
+	assert.Equal(t, expectedNewSize, len(newNodesConfig.newList))
+	assert.Equal(t, expectedLeavingSize, len(newNodesConfig.leavingMap))
 }
 
 func TestIndexHashedNodesCoordinator_IsInterfaceNil(t *testing.T) {

@@ -635,12 +635,14 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		sort.Sort(validatorList(leavingList))
 	}
 
+	nbShards := core.MaxInt(0, len(eligibleMap)-1)
+
 	newNodesConfig := &epochNodesConfig{
 		eligibleMap: eligibleMap,
 		waitingMap:  waitingMap,
 		leavingMap:  leavingMap,
 		newList:     newNodesList,
-		nbShards:    uint32(len(eligibleMap)),
+		nbShards:    uint32(nbShards),
 	}
 
 	return newNodesConfig, nil
