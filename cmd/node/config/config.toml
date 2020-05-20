@@ -370,6 +370,7 @@
    HeartbeatRefreshIntervalInSec        = 60
    HideInactiveValidatorIntervalInSec   = 3600
    DurationToConsiderUnresponsiveInSec  = 60
+   PeerTypeRefreshIntervalInSec         = 60
    [Heartbeat.HeartbeatStorage]
        [Heartbeat.HeartbeatStorage.Cache]
            Size = 1000

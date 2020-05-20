@@ -77,6 +77,7 @@ type P2PAntifloodHandler interface {
 // PeerTypeProviderHandler defines what a component which computes the type of a peer should do
 type PeerTypeProviderHandler interface {
 	ComputeForPubKey(pubKey []byte) (core.PeerType, uint32, error)
+	GetAllPeerTypeInfos() []*state.PeerTypeInfo
 	IsInterfaceNil() bool
 }
 
