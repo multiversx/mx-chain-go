@@ -549,7 +549,7 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 		// go B: can't remove from map by hash, not found
 		// go B: won't remove from map by sender (sender unknown)
 
-		// Therefore, Alice could have one or two transactions in her list.
+		// Therefore, Alice may have one or two transactions in her list.
 		require.Equal(t, 1, cache.txByHash.backingMap.Count())
 		expectedTxsConsistent := []string{"alice-w"}
 		expectedTxsSlightlyInconsistent := []string{"alice-w", "alice-x"}
