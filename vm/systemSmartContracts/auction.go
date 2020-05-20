@@ -425,7 +425,7 @@ func (s *stakingAuctionSC) registerBLSKeys(registrationData *AuctionData, pubKey
 
 	newKeys, err := s.getNewValidKeys(registrationData.BlsPubKeys, blsKeys)
 	if err != nil {
-		return vm.ErrKeyAlreadyRegistered
+		return err
 	}
 
 	for _, blsKey := range newKeys {
