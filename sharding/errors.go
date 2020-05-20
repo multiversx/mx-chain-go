@@ -22,12 +22,6 @@ var ErrInvalidNumberPubKeys = errors.New("invalid number of public keys")
 // ErrNilNodesCoordinator signals that the nodesCoordinator is nil
 var ErrNilNodesCoordinator = errors.New("nil nodesCoordinator")
 
-// ErrNilValidatorsProvider signals that the validatorsProvider is nil
-var ErrNilValidatorsProvider = errors.New("nil validatorsProvider")
-
-// ErrNilEpochStartNotifier signals that the ErrNilEpochStartNotifier is nil
-var ErrNilEpochStartNotifier = errors.New("nil epochStartNotifier")
-
 // ErrNilMarshalizer signals that the marshalizer is nil
 var ErrNilMarshalizer = errors.New("nil marshalizer")
 
@@ -96,9 +90,6 @@ var ErrNotImplemented = errors.New("feature not implemented")
 
 // ErrNilCacher signals that a nil cacher has been provided
 var ErrNilCacher = errors.New("nil cacher")
-
-// ErrNilEpochHandler signals that a nil epoch handler has been provided
-var ErrNilEpochHandler = errors.New("nil epoch handler")
 
 // ErrInvalidSampleSize signals that an invalid sample size was provided
 var ErrInvalidSampleSize = errors.New("invalid sample size")
