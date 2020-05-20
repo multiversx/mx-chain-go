@@ -3,6 +3,7 @@ package systemSmartContracts
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -1701,8 +1702,8 @@ func TestAuctionStakingSC_ChangeRewardAddress(t *testing.T) {
 	changeRewardAddress(t, sc, stakerAddress, newRewardAddr, vmcommon.Ok)
 }
 
-/*
 func TestAuctionStakingSC_ChangeValidatorKeys(t *testing.T) {
+	t.Skip("function is disabled for now as it is not fully tested")
 	t.Parallel()
 
 	receiverAddr := []byte("receiverAddress")
@@ -1731,7 +1732,7 @@ func TestAuctionStakingSC_ChangeValidatorKeys(t *testing.T) {
 	nodesToRunBytes = big.NewInt(1).Bytes()
 	args.SigVerifier = &mock.MessageSignVerifierMock{
 		VerifyCalled: func(message []byte, signedMessage []byte, pubKey []byte) error {
-			return errors.New("err")
+			return errors.New("new")
 		},
 	}
 	changeValidatorKeys(t, sc, nodesToRunBytes, stakerAddress, stakerPubKey, newKey, []byte("signed"), vmcommon.UserError)
@@ -1743,7 +1744,7 @@ func TestAuctionStakingSC_ChangeValidatorKeys(t *testing.T) {
 	newKey = []byte("newKey1")
 	changeValidatorKeys(t, sc, nodesToRunBytes, stakerAddress, stakerPubKey, newKey, []byte("signed"), vmcommon.Ok)
 }
-*/
+
 func createVmContextWithStakingSc(stakeValue *big.Int, unboundPeriod uint64, blockChainHook vmcommon.BlockchainHook) *vmContext {
 	atArgParser := vmcommon.NewAtArgumentParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
