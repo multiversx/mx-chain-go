@@ -1,7 +1,6 @@
 package block_test
 
 import (
-	"errors"
 	"reflect"
 	"testing"
 
@@ -318,20 +317,6 @@ func TestHeader_GetMiniBlockHeadersWithDstShouldWork(t *testing.T) {
 
 	assert.Equal(t, uint32(0), hashesWithDest2[string(hash1S0R2)])
 	assert.Equal(t, uint32(0), hashesWithDest2[string(hash2S0R2)])
-}
-
-func TestHeader_CheckChainID(t *testing.T) {
-	t.Parallel()
-
-	chainID := []byte("chainID")
-	okChainID := []byte("chainID")
-	wrongChainID := []byte("wrong chain ID")
-	hdr := &block.Header{
-		ChainID: chainID,
-	}
-
-	assert.Nil(t, hdr.CheckChainID(okChainID))
-	assert.True(t, errors.Is(hdr.CheckChainID(wrongChainID), data.ErrInvalidChainID))
 }
 
 func TestMiniBlock_Clone(t *testing.T) {
