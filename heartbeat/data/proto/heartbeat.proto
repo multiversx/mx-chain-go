@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package proto;
 
-option go_package = "heartbeat";
+option go_package = "data";
 
 // Heartbeat represents the heartbeat message that is sent between peers
 message Heartbeat {

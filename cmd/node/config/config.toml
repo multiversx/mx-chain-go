@@ -220,9 +220,7 @@
 
 [TxDataPool]
     Size = 900000
-    SizePerSender = 1000
     SizeInBytes = 524288000
-    SizeInBytesPerSender = 614400
     Type = "TxCache"
     Shards = 16
 
@@ -372,6 +370,7 @@
    HeartbeatRefreshIntervalInSec        = 60
    HideInactiveValidatorIntervalInSec   = 3600
    DurationToConsiderUnresponsiveInSec  = 60
+   PeerTypeRefreshIntervalInSec         = 60
    [Heartbeat.HeartbeatStorage]
        [Heartbeat.HeartbeatStorage.Cache]
            Size = 1000

@@ -53,7 +53,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	vmf, err := NewVMContainerFactory(
 		config.VirtualMachineConfig{},
 		10000,
-		arwenConfig.MakeGasMap(1),
+		arwenConfig.MakeGasMapForTests(),
 		createMockVMAccountsArguments(),
 	)
 
@@ -68,7 +68,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	vmf, err := NewVMContainerFactory(
 		config.VirtualMachineConfig{},
 		10000,
-		arwenConfig.MakeGasMap(1),
+		arwenConfig.MakeGasMapForTests(),
 		createMockVMAccountsArguments(),
 	)
 	assert.NotNil(t, vmf)

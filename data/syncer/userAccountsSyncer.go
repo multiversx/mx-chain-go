@@ -33,16 +33,17 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 	}
 
 	b := &baseAccountsSyncer{
-		hasher:             args.Hasher,
-		marshalizer:        args.Marshalizer,
-		trieSyncers:        make(map[string]data.TrieSyncer),
-		dataTries:          make(map[string]data.Trie),
-		trieStorageManager: args.TrieStorageManager,
-		requestHandler:     args.RequestHandler,
-		waitTime:           args.WaitTime,
-		shardId:            args.ShardId,
-		cacher:             args.Cacher,
-		rootHash:           nil,
+		hasher:               args.Hasher,
+		marshalizer:          args.Marshalizer,
+		trieSyncers:          make(map[string]data.TrieSyncer),
+		dataTries:            make(map[string]data.Trie),
+		trieStorageManager:   args.TrieStorageManager,
+		requestHandler:       args.RequestHandler,
+		waitTime:             args.WaitTime,
+		shardId:              args.ShardId,
+		cacher:               args.Cacher,
+		rootHash:             nil,
+		maxTrieLevelInMemory: args.MaxTrieLevelInMemory,
 	}
 
 	u := &userAccountsSyncer{

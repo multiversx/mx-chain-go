@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	"math"
 	"math/big"
 	"strings"
 	"sync"
@@ -1157,7 +1156,7 @@ func CreateAndSendTransaction(
 		RcvAddr:  rcvAddress,
 		Data:     []byte(txData),
 		GasPrice: MinTxGasPrice,
-		GasLimit: MinTxGasLimit*100 + uint64(len(txData)),
+		GasLimit: MinTxGasLimit*1000 + uint64(len(txData)),
 	}
 
 	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
@@ -1988,11 +1987,9 @@ func createTxPool(selfShardID uint32) (dataRetriever.ShardedDataCacherNotifier, 
 	return txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
-				Size:                 100000,
-				SizePerSender:        math.MaxUint32,
-				SizeInBytes:          1000000000,
-				SizeInBytesPerSender: math.MaxUint32,
-				Shards:               16,
+				Size:        100000,
+				SizeInBytes: 1000000000,
+				Shards:      16,
 			},
 			MinGasPrice:    200000000000,
 			NumberOfShards: 1,
