@@ -84,3 +84,6 @@ var ErrNilContext = errors.New("nil context")
 
 // ErrInvalidIdentifier signals that the root hash has an  invalid identifier
 var ErrInvalidIdentifier = errors.New("invalid identifier")
+
+// ErrInvalidLevelValue signals that the given value for maxTrieLevelInMemory is invalid
+var ErrInvalidLevelValue = errors.New("invalid trie level in memory value")
