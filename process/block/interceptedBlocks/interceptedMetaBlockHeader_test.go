@@ -15,14 +15,14 @@ import (
 
 func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		ShardCoordinator:  mock.NewOneShardCoordinatorMock(),
-		Hasher:            testHasher,
-		Marshalizer:       testMarshalizer,
-		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           []byte("chain ID"),
-		ValidityAttester:  &mock.ValidityAttesterStub{},
-		EpochStartTrigger: &mock.EpochStartTriggerStub{},
-		NonceConverter:    mock.NewNonceHashConverterMock(),
+		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
+		Hasher:                  testHasher,
+		Marshalizer:             testMarshalizer,
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		ValidityAttester:        &mock.ValidityAttesterStub{},
+		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		NonceConverter:          mock.NewNonceHashConverterMock(),
 	}
 
 	hdr := createMockMetaHeader()
