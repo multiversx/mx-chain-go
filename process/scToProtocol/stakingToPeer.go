@@ -143,12 +143,6 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		}
 
 		blsPubKey := []byte(key)
-		var peerAcc state.PeerAccountHandler
-		peerAcc, err = stp.getPeerAccount(blsPubKey)
-		if err != nil {
-			return err
-		}
-
 		log.Trace("get on StakingScAddress called", "blsKey", blsPubKey)
 
 		query := process.SCQuery{
@@ -182,7 +176,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 			return err
 		}
 
-		err = stp.updatePeerState(stakingData, peerAcc, blsPubKey, nonce)
+		err = stp.updatePeerState(stakingData, blsPubKey, nonce)
 		if err != nil {
 			return err
 		}
@@ -193,12 +187,18 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 
 func (stp *stakingToPeer) updatePeerState(
 	stakingData systemSmartContracts.StakedData,
-	account state.PeerAccountHandler,
 	blsPubKey []byte,
 	nonce uint64,
 ) error {
+	if !stakingData.Staked && stakingData.RegisterNonce == nonce {
+		return nil
+	}
 
-	var err error
+	account, err := stp.getPeerAccount(blsPubKey)
+	if err != nil {
+		return err
+	}
+
 	if !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
 		err = account.SetRewardAddress(stakingData.RewardAddress)
 		if err != nil {
