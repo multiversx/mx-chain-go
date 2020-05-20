@@ -21,6 +21,7 @@ func createMockArgument() ArgHeartbeat {
 			DurationToConsiderUnresponsiveInSec: 10,
 			HeartbeatRefreshIntervalInSec:       1,
 			HideInactiveValidatorIntervalInSec:  20,
+			PeerTypeRefreshIntervalInSec:        60,
 		},
 		PrefsConfig: config.PreferencesConfig{
 			DestinationShardAsObserver: "0",
@@ -48,6 +49,7 @@ func createMockArgument() ArgHeartbeat {
 		VersionNumber:            "v0.0.0",
 		PeerShardMapper:          &mock.NetworkShardingCollectorStub{},
 		SizeCheckDelta:           0,
+		ValidatorsProvider:       &mock.ValidatorsProviderStub{},
 	}
 
 	return arg
@@ -55,7 +57,7 @@ func createMockArgument() ArgHeartbeat {
 
 //------- NewHeartbeatHandler
 
-func TestNewHeartbeatHandler_DurationInSecToConsiderUnresponsive(t *testing.T) {
+func TestNewHeartbeatHandler_DurationToConsiderUnresponsiveInSec(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()
@@ -63,7 +65,7 @@ func TestNewHeartbeatHandler_DurationInSecToConsiderUnresponsive(t *testing.T) {
 	hbh, err := NewHeartbeatHandler(arg)
 
 	assert.True(t, check.IfNil(hbh))
-	assert.Equal(t, heartbeat.ErrNegativeDurationInSecToConsiderUnresponsive, err)
+	assert.Equal(t, heartbeat.ErrInvalidDurationToConsiderUnresponsiveInSec, err)
 }
 
 func TestNewHeartbeatHandler_MaxTimeToWaitBetweenBroadcastsInSec(t *testing.T) {
@@ -100,7 +102,7 @@ func TestNewHeartbeatHandler_InvalidMaxTimeToWaitBetweenBroadcastsInSec(t *testi
 	assert.True(t, errors.Is(err, heartbeat.ErrWrongValues))
 }
 
-func TestNewHeartbeatHandler_InvalidDurationInSecToConsiderUnresponsive(t *testing.T) {
+func TestNewHeartbeatHandler_InvalidDurationToConsiderUnresponsiveInSec(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()

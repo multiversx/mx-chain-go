@@ -168,6 +168,7 @@ type HeartbeatConfig struct {
 	DurationToConsiderUnresponsiveInSec int
 	HeartbeatRefreshIntervalInSec       uint32
 	HideInactiveValidatorIntervalInSec  uint32
+	PeerTypeRefreshIntervalInSec        uint32
 	HeartbeatStorage                    StorageConfig
 }
 
