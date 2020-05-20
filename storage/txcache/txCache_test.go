@@ -487,7 +487,7 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 	for try := 0; try < 100; try++ {
 		var wg sync.WaitGroup
 
-		for i := 0; i < 5; i++ {
+		for i := 0; i < 50; i++ {
 			wg.Add(1)
 			go func() {
 				cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
@@ -528,7 +528,7 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 	for try := 0; try < 100; try++ {
 		var wg sync.WaitGroup
 
-		for i := 0; i < 5; i++ {
+		for i := 0; i < 50; i++ {
 			wg.Add(1)
 			go func() {
 				cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
