@@ -491,6 +491,17 @@ func WithHeaderSigVerifier(headerSigVerifier spos.RandSeedVerifier) Option {
 	}
 }
 
+// WithHeaderIntegrityVerifier sets up a header integrity verifier for the Node
+func WithHeaderIntegrityVerifier(headerIntegrityVerifier spos.HeaderIntegrityVerifier) Option {
+	return func(n *Node) error {
+		if check.IfNil(headerIntegrityVerifier) {
+			return ErrNilHeaderIntegrityVerifier
+		}
+		n.headerIntegrityVerifier = headerIntegrityVerifier
+		return nil
+	}
+}
+
 // WithValidatorStatistics sets up the validator statistics for the node
 func WithValidatorStatistics(validatorStatistics process.ValidatorStatisticsProcessor) Option {
 	return func(n *Node) error {
