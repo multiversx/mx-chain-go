@@ -225,13 +225,14 @@ func CreateNodeWithBLSAndTxKeys(
 
 	messenger := CreateMessengerWithKadDht(seedAddress)
 	tpn := &TestProcessorNode{
-		ShardCoordinator:  shardCoordinator,
-		Messenger:         messenger,
-		NodesCoordinator:  nodesCoordinator,
-		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           ChainID,
-		NodesSetup:        nodesSetup,
-		RatingsData:       ratingsData,
+		ShardCoordinator:        shardCoordinator,
+		Messenger:               messenger,
+		NodesCoordinator:        nodesCoordinator,
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		ChainID:                 ChainID,
+		NodesSetup:              nodesSetup,
+		RatingsData:             ratingsData,
 	}
 
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
