@@ -74,7 +74,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 
 	addedInBySender, evicted := cache.txListBySender.addTx(tx)
 	if !addedInBySender {
-		log.Trace("TxCache.AddTx(): slight inconsistency detected: !addedInBySender", "name", cache.name)
+		log.Trace("TxCache.AddTx(): slight inconsistency detected: !addedInBySender", "name", cache.name, "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr())
 	}
 	if len(evicted) > 0 {
 		cache.monitorEvictionWrtSenderLimit(tx.Tx.GetSndAddr(), evicted)
