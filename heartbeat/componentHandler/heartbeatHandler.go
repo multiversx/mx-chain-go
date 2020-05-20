@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	heartbeatStorage "github.com/ElrondNetwork/elrond-go/heartbeat/storage"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	peerProcess "github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -47,15 +49,17 @@ type ArgHeartbeat struct {
 	VersionNumber            string
 	PeerShardMapper          heartbeat.NetworkShardingCollector
 	SizeCheckDelta           uint32
+	ValidatorsProvider       peerProcess.ValidatorsProvider
 }
 
 // HeartbeatHandler is the struct used to manage heartbeat subsystem consisting of a heartbeat sender and monitor
 // wired on a dedicated p2p topic
 type HeartbeatHandler struct {
-	monitor    *process.Monitor
-	sender     *process.Sender
-	arg        ArgHeartbeat
-	cancelFunc func()
+	monitor          *process.Monitor
+	sender           *process.Sender
+	arg              ArgHeartbeat
+	peerTypeProvider *peer.PeerTypeProvider
+	cancelFunc       func()
 }
 
 // NewHeartbeatHandler will create a heartbeat handler containing both a monitor and a sender
@@ -74,6 +78,9 @@ func NewHeartbeatHandler(arg ArgHeartbeat) (*HeartbeatHandler, error) {
 
 func (hbh *HeartbeatHandler) create() error {
 	arg := hbh.arg
+
+	var ctx context.Context
+	ctx, hbh.cancelFunc = context.WithCancel(context.Background())
 
 	err := hbh.checkConfigParams(arg.HeartbeatConfig)
 	if err != nil {
@@ -94,17 +101,19 @@ func (hbh *HeartbeatHandler) create() error {
 			return err
 		}
 	}
-	argPeerTypeProvider := sharding.ArgPeerTypeProvider{
-		NodesCoordinator:        arg.NodesCoordinator,
-		EpochHandler:            arg.EpochStartTrigger,
-		EpochStartEventNotifier: arg.EpochStartRegistration,
+	argPeerTypeProvider := peer.ArgPeerTypeProvider{
+		NodesCoordinator:             arg.NodesCoordinator,
+		StartEpoch:                   arg.EpochStartTrigger.MetaEpoch(),
+		EpochStartEventNotifier:      arg.EpochStartRegistration,
+		ValidatorsProvider:           arg.ValidatorsProvider,
+		Context:                      ctx,
+		PeerTypeRefreshIntervalInSec: time.Duration(arg.HeartbeatConfig.PeerTypeRefreshIntervalInSec) * time.Second,
 	}
-
-	peerTypeProvider, err := sharding.NewPeerTypeProvider(argPeerTypeProvider)
+	peerTypeProvider, err := peer.NewPeerTypeProvider(argPeerTypeProvider)
 	if err != nil {
 		return err
 	}
-
+	hbh.peerTypeProvider = peerTypeProvider
 	argSender := process.ArgHeartbeatSender{
 		PeerMessenger:    arg.Messenger,
 		SingleSigner:     arg.SingleSigner,
@@ -189,8 +198,6 @@ func (hbh *HeartbeatHandler) create() error {
 		return err
 	}
 
-	var ctx context.Context
-	ctx, hbh.cancelFunc = context.WithCancel(context.Background())
 	go hbh.startSendingHeartbeats(ctx)
 
 	return nil
@@ -239,7 +246,7 @@ func (hbh *HeartbeatHandler) startSendingHeartbeats(ctx context.Context) {
 
 func (hbh *HeartbeatHandler) checkConfigParams(config config.HeartbeatConfig) error {
 	if config.DurationToConsiderUnresponsiveInSec < 1 {
-		return heartbeat.ErrNegativeDurationInSecToConsiderUnresponsive
+		return heartbeat.ErrInvalidDurationToConsiderUnresponsiveInSec
 	}
 	if config.MaxTimeToWaitBetweenBroadcastsInSec < 1 {
 		return heartbeat.ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec
@@ -251,7 +258,7 @@ func (hbh *HeartbeatHandler) checkConfigParams(config config.HeartbeatConfig) er
 		return fmt.Errorf("%w for MaxTimeToWaitBetweenBroadcastsInSec", heartbeat.ErrWrongValues)
 	}
 	if config.DurationToConsiderUnresponsiveInSec <= config.MaxTimeToWaitBetweenBroadcastsInSec {
-		return fmt.Errorf("%w for DurationInSecToConsiderUnresponsive", heartbeat.ErrWrongValues)
+		return fmt.Errorf("%w for DurationToConsiderUnresponsiveInSec", heartbeat.ErrWrongValues)
 	}
 
 	return nil
@@ -271,7 +278,7 @@ func (hbh *HeartbeatHandler) Sender() *process.Sender {
 func (hbh *HeartbeatHandler) Close() error {
 	hbh.cancelFunc()
 
-	return nil
+	return hbh.peerTypeProvider.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
