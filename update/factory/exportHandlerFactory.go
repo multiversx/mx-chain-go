@@ -218,6 +218,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		validityAttester:         args.ValidityAttester,
 		inputAntifloodHandler:    args.InputAntifloodHandler,
 		outputAntifloodHandler:   args.OutputAntifloodHandler,
+		maxTrieLevelInMemory:     args.MaxTrieLevelInMemory,
 	}
 
 	return e, nil

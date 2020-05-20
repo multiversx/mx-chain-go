@@ -96,10 +96,8 @@ $ go test ./...
 `sudo cp -r google /usr/include`
 3. Copy bin/protoc using <br>
 `sudo cp protoc  /usr/bin` 
-4. Fetch the repo https://github.com/traian-schiau/protobuf
-5. Checkout branch `casttypewith`
-6. Copy repo in $GOPATH/github.com/gogo/protobuf replacing everything 
-7. Compile gogo slick & copy binary using
+4. Fetch the repo github.com/ElrondNetwork/protobuf
+5. Compile gogo slick & copy binary using
 ```
 cd protoc-gen-gogoslick
 go build
