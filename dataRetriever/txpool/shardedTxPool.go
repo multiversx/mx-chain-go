@@ -304,7 +304,7 @@ func (txPool *shardedTxPool) GetCounts() counting.Counts {
 
 	for cacheID, shard := range txPool.backingMap {
 		cache := shard.Cache
-		counts.PutCounts(cacheID, cache.CountTx())
+		counts.PutCounts(cacheID, int64(cache.CountTx()))
 	}
 
 	return counts

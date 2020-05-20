@@ -36,7 +36,7 @@ func (cache *DisabledCache) RemoveTxByHash(txHash []byte) error {
 }
 
 // CountTx returns zero
-func (cache *DisabledCache) CountTx() int64 {
+func (cache *DisabledCache) CountTx() uint64 {
 	return 0
 }
 

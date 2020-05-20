@@ -109,8 +109,8 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 	// Alice and Bob evicted. Carol still there.
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
 	require.True(t, ok)
-	require.Equal(t, int64(1), cache.CountSenders())
-	require.Equal(t, int64(1), cache.CountTx())
+	require.Equal(t, uint64(1), cache.CountSenders())
+	require.Equal(t, uint64(1), cache.CountTx())
 }
 
 func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
@@ -145,8 +145,8 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 	// Alice and Bob evicted (lower score). Carol still there.
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
 	require.True(t, ok)
-	require.Equal(t, int64(1), cache.CountSenders())
-	require.Equal(t, int64(1), cache.CountTx())
+	require.Equal(t, uint64(1), cache.CountSenders())
+	require.Equal(t, uint64(1), cache.CountTx())
 }
 
 func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {

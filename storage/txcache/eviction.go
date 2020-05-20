@@ -50,19 +50,19 @@ func (cache *TxCache) isCapacityExceeded() bool {
 
 func (cache *TxCache) areThereTooManyBytes() bool {
 	numBytes := cache.NumBytes()
-	tooManyBytes := numBytes > int64(cache.config.NumBytesThreshold)
+	tooManyBytes := numBytes > uint64(cache.config.NumBytesThreshold)
 	return tooManyBytes
 }
 
 func (cache *TxCache) areThereTooManySenders() bool {
 	numSenders := cache.CountSenders()
-	tooManySenders := numSenders > int64(cache.config.CountThreshold)
+	tooManySenders := numSenders > uint64(cache.config.CountThreshold)
 	return tooManySenders
 }
 
 func (cache *TxCache) areThereTooManyTxs() bool {
 	numTxs := cache.CountTx()
-	tooManyTxs := numTxs > int64(cache.config.CountThreshold)
+	tooManyTxs := numTxs > uint64(cache.config.CountThreshold)
 	return tooManyTxs
 }
 

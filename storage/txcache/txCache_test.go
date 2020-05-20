@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -177,7 +176,7 @@ func Test_CountTx_And_Len(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash-2"), "alice", 2))
 	cache.AddTx(createTx([]byte("hash-3"), "alice", 3))
 
-	require.Equal(t, int64(3), cache.CountTx())
+	require.Equal(t, uint64(3), cache.CountTx())
 	require.Equal(t, 3, cache.Len())
 }
 
@@ -235,10 +234,10 @@ func Test_Clear(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-bob-7"), "bob", 7))
 	cache.AddTx(createTx([]byte("hash-alice-42"), "alice", 42))
-	require.Equal(t, int64(3), cache.CountTx())
+	require.Equal(t, uint64(3), cache.CountTx())
 
 	cache.Clear()
-	require.Equal(t, int64(0), cache.CountTx())
+	require.Equal(t, uint64(0), cache.CountTx())
 }
 
 func Test_ForEachTransaction(t *testing.T) {
@@ -310,7 +309,7 @@ func Test_SelectTransactions(t *testing.T) {
 		}
 	}
 
-	require.Equal(t, int64(nTotalTransactions), cache.CountTx())
+	require.Equal(t, uint64(nTotalTransactions), cache.CountTx())
 
 	sorted := cache.SelectTransactions(nRequestedTransactions, 2)
 
@@ -363,7 +362,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	require.NotNil(t, cache)
 
 	addManyTransactionsWithUniformDistribution(cache, 11, 10)
-	require.LessOrEqual(t, cache.CountTx(), int64(100))
+	require.LessOrEqual(t, cache.CountTx(), uint64(100))
 
 	config = CacheConfig{
 		Name:                       "untitled",
@@ -383,7 +382,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	require.NotNil(t, cache)
 
 	addManyTransactionsWithUniformDistribution(cache, 100, 1000)
-	require.LessOrEqual(t, cache.CountTx(), int64(250000))
+	require.LessOrEqual(t, cache.CountTx(), uint64(250000))
 }
 
 func Test_NotImplementedFunctions(t *testing.T) {
@@ -467,7 +466,6 @@ func Test_SearchCacheInconsistency(t *testing.T) {
 			go func(routineID int) {
 				correlation := fmt.Sprintf("%d", routineID)
 				cache.addTxDebug(correlation, createTx([]byte("alice-x"), "alice", 42))
-				assert.False(t, cache.detectTxIdentityInconsistency(correlation, "alice-x", "alice"))
 				cache.removeDebug(correlation, []byte("alice-x"))
 				fmt.Println(correlation, "done")
 				wg.Done()

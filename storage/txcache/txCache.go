@@ -167,13 +167,13 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 }
 
 // NumBytes gets the approximate number of bytes stored in the cache
-func (cache *TxCache) NumBytes() int64 {
-	return cache.txByHash.numBytes.Get()
+func (cache *TxCache) NumBytes() uint64 {
+	return cache.txByHash.numBytes.GetUint64()
 }
 
 // CountTx gets the number of transactions in the cache
-func (cache *TxCache) CountTx() int64 {
-	return cache.txByHash.counter.Get()
+func (cache *TxCache) CountTx() uint64 {
+	return cache.txByHash.counter.GetUint64()
 }
 
 // Len is an alias for CountTx
@@ -182,8 +182,8 @@ func (cache *TxCache) Len() int {
 }
 
 // CountSenders gets the number of senders in the cache
-func (cache *TxCache) CountSenders() int64 {
-	return cache.txListBySender.counter.Get()
+func (cache *TxCache) CountSenders() uint64 {
+	return cache.txListBySender.counter.GetUint64()
 }
 
 // ForEachTransaction iterates over the transactions in the cache
