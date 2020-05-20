@@ -3,7 +3,6 @@ package systemSmartContracts
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -1702,6 +1701,7 @@ func TestAuctionStakingSC_ChangeRewardAddress(t *testing.T) {
 	changeRewardAddress(t, sc, stakerAddress, newRewardAddr, vmcommon.Ok)
 }
 
+/*
 func TestAuctionStakingSC_ChangeValidatorKeys(t *testing.T) {
 	t.Parallel()
 
@@ -1743,7 +1743,7 @@ func TestAuctionStakingSC_ChangeValidatorKeys(t *testing.T) {
 	newKey = []byte("newKey1")
 	changeValidatorKeys(t, sc, nodesToRunBytes, stakerAddress, stakerPubKey, newKey, []byte("signed"), vmcommon.Ok)
 }
-
+*/
 func createVmContextWithStakingSc(stakeValue *big.Int, unboundPeriod uint64, blockChainHook vmcommon.BlockchainHook) *vmContext {
 	atArgParser := vmcommon.NewAtArgumentParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
