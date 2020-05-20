@@ -118,8 +118,9 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 		return s.setConfig(args)
 	case "changeRewardAddress":
 		return s.changeRewardAddress(args)
-	case "changeValidatorKeys":
-		return s.changeValidatorKeys(args)
+	// TODO: activate this after validation
+	//case "changeValidatorKeys":
+	//	return s.changeValidatorKeys(args)
 	case "unJail":
 		return s.unJail(args)
 	}
