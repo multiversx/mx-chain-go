@@ -68,10 +68,11 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 	}
 
 	d := &dataTrieFactory{
-		shardCoordinator: args.ShardCoordinator,
-		trieStorage:      trieStorage,
-		marshalizer:      args.Marshalizer,
-		hasher:           args.Hasher,
+		shardCoordinator:     args.ShardCoordinator,
+		trieStorage:          trieStorage,
+		marshalizer:          args.Marshalizer,
+		hasher:               args.Hasher,
+		maxTrieLevelInMemory: args.MaxTrieLevelInMemory,
 	}
 
 	return d, nil
