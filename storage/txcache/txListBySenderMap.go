@@ -63,6 +63,7 @@ func (txMap *txListBySenderMap) getListForSender(sender string) (*txListForSende
 }
 
 func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
+	log.Trace("txMap.addSender()", "sender", []byte(sender))
 	listForSender := newTxListForSender(sender, &txMap.cacheConfig, txMap.notifyScoreChange)
 
 	txMap.backingMap.Set(listForSender)
@@ -82,13 +83,16 @@ func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
-		txMap.onRemoveTxInconsistency(sender)
+		// This happens when a sender whose transactions were selected for processing is removed from cache in the meantime.
+		// When it comes to remove one if its transactions due to processing (commited / finalized block), they don't exist in cache anymore.
+		log.Trace("txListBySenderMap.removeTx() detected slight inconsistency: sender of tx not in cache", "tx", tx.TxHash, "sender", []byte(sender))
 		return false
 	}
 
 	isFound := listForSender.RemoveTx(tx)
 	isEmpty := listForSender.IsEmpty()
 	if isEmpty {
+		log.Trace("txMap.removeTx(): remove empty sender", "sender", []byte(sender))
 		txMap.removeSender(sender)
 	}
 

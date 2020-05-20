@@ -56,12 +56,6 @@ func (cache *TxCache) displaySendersHistogram() {
 	log.Debug("TxCache.sendersHistogram:", "chunks", txListBySenderMap.ChunksCounts(), "scoreChunks", txListBySenderMap.ScoreChunksCounts())
 }
 
-func (txMap *txListBySenderMap) onRemoveTxInconsistency(sender string) {
-	// This happens when a sender whose transactions were selected for processing is evicted from cache.
-	// When it comes to remove one if its transactions due to processing, they don't exist in cache anymore.
-	log.Trace("txListBySenderMap.removeTx() detected inconsistency: sender of tx not in cache", "sender", []byte(sender))
-}
-
 // evictionJournal keeps a short journal about the eviction process
 // This is useful for debugging and reasoning about the eviction
 type evictionJournal struct {
