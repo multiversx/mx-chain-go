@@ -67,35 +67,35 @@ func NewMetaInterceptorsContainerFactory(
 	if check.IfNil(args.HeaderSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
 	}
+	if check.IfNil(args.HeaderIntegrityVerifier) {
+		return nil, process.ErrNilHeaderIntegrityVerifier
+	}
 	if check.IfNil(args.EpochStartTrigger) {
 		return nil, process.ErrNilEpochStartTrigger
-	}
-	if len(args.ChainID) == 0 {
-		return nil, process.ErrInvalidChainID
 	}
 	if check.IfNil(args.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		ProtoMarshalizer:       args.ProtoMarshalizer,
-		TxSignMarshalizer:      args.TxSignMarshalizer,
-		Hasher:                 args.Hasher,
-		ShardCoordinator:       args.ShardCoordinator,
-		NodesCoordinator:       args.NodesCoordinator,
-		MultiSigVerifier:       args.MultiSigner,
-		KeyGen:                 args.KeyGen,
-		BlockKeyGen:            args.BlockKeyGen,
-		Signer:                 args.SingleSigner,
-		BlockSigner:            args.BlockSingleSigner,
-		AddressPubkeyConv:      args.AddressPubkeyConverter,
-		FeeHandler:             args.TxFeeHandler,
-		HeaderSigVerifier:      args.HeaderSigVerifier,
-		ChainID:                args.ChainID,
-		ValidityAttester:       args.ValidityAttester,
-		EpochStartTrigger:      args.EpochStartTrigger,
-		NonceConverter:         args.NonceConverter,
-		WhiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
+		ProtoMarshalizer:        args.ProtoMarshalizer,
+		TxSignMarshalizer:       args.TxSignMarshalizer,
+		Hasher:                  args.Hasher,
+		ShardCoordinator:        args.ShardCoordinator,
+		NodesCoordinator:        args.NodesCoordinator,
+		MultiSigVerifier:        args.MultiSigner,
+		KeyGen:                  args.KeyGen,
+		BlockKeyGen:             args.BlockKeyGen,
+		Signer:                  args.SingleSigner,
+		BlockSigner:             args.BlockSingleSigner,
+		AddressPubkeyConv:       args.AddressPubkeyConverter,
+		FeeHandler:              args.TxFeeHandler,
+		HeaderSigVerifier:       args.HeaderSigVerifier,
+		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
+		ValidityAttester:        args.ValidityAttester,
+		EpochStartTrigger:       args.EpochStartTrigger,
+		NonceConverter:          args.NonceConverter,
+		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
 	}
 
 	container := containers.NewInterceptorsContainer()
