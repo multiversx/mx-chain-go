@@ -19,10 +19,10 @@ var _ process.InterceptedData = (*InterceptedMetaHeader)(nil)
 type InterceptedMetaHeader struct {
 	hdr               *block.MetaBlock
 	sigVerifier       process.InterceptedHeaderSigVerifier
+	integrityVerifier process.InterceptedHeaderIntegrityVerifier
 	hasher            hashing.Hasher
 	shardCoordinator  sharding.Coordinator
 	hash              []byte
-	chainID           []byte
 	validityAttester  process.ValidityAttester
 	epochStartTrigger process.EpochStartTriggerHandler
 	nonceConverter    typeConverters.Uint64ByteSliceConverter
@@ -44,8 +44,8 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 		hdr:               hdr,
 		hasher:            arg.Hasher,
 		sigVerifier:       arg.HeaderSigVerifier,
+		integrityVerifier: arg.HeaderIntegrityVerifier,
 		shardCoordinator:  arg.ShardCoordinator,
-		chainID:           arg.ChainID,
 		validityAttester:  arg.ValidityAttester,
 		epochStartTrigger: arg.EpochStartTrigger,
 		nonceConverter:    arg.NonceConverter,
@@ -108,7 +108,7 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
-	return imh.hdr.CheckChainID(imh.chainID)
+	return imh.integrityVerifier.Verify(imh.hdr)
 }
 
 // integrity checks the integrity of the meta header block wrapper
