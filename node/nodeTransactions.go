@@ -10,6 +10,13 @@ import (
 
 // GetTransaction gets the transaction
 func (n *Node) GetTransaction(txHash string) (*transaction.Transaction, error) {
+	if !n.apiTransactionByHashThrottler.CanProcess() {
+		return nil, fmt.Errorf("too many requests now. try again later")
+	}
+
+	n.apiTransactionByHashThrottler.StartProcessing()
+	defer n.apiTransactionByHashThrottler.EndProcessing()
+
 	hash, err := hex.DecodeString(txHash)
 	if err != nil {
 		return nil, err
@@ -30,6 +37,13 @@ func (n *Node) GetTransaction(txHash string) (*transaction.Transaction, error) {
 
 // GetTransactionStatus gets the transaction status
 func (n *Node) GetTransactionStatus(txHash string) (string, error) {
+	if !n.apiTransactionByHashThrottler.CanProcess() {
+		return "system busy. try again later", nil
+	}
+
+	n.apiTransactionByHashThrottler.StartProcessing()
+	defer n.apiTransactionByHashThrottler.EndProcessing()
+
 	hash, err := hex.DecodeString(txHash)
 	if err != nil {
 		return "", err
