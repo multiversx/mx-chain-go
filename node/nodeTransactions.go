@@ -11,7 +11,7 @@ import (
 // GetTransaction gets the transaction
 func (n *Node) GetTransaction(txHash string) (*transaction.Transaction, error) {
 	if !n.apiTransactionByHashThrottler.CanProcess() {
-		return nil, fmt.Errorf("too many requests now. try again later")
+		return nil, ErrSystemBusyTxHash
 	}
 
 	n.apiTransactionByHashThrottler.StartProcessing()
@@ -38,7 +38,7 @@ func (n *Node) GetTransaction(txHash string) (*transaction.Transaction, error) {
 // GetTransactionStatus gets the transaction status
 func (n *Node) GetTransactionStatus(txHash string) (string, error) {
 	if !n.apiTransactionByHashThrottler.CanProcess() {
-		return "system busy. try again later", nil
+		return "", ErrSystemBusyTxHash
 	}
 
 	n.apiTransactionByHashThrottler.StartProcessing()

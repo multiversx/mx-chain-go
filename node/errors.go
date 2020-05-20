@@ -159,3 +159,6 @@ var ErrEmptyQueryHandlerName = errors.New("empty query handler name")
 
 // ErrNilApiTransactionByHashThrottler signals that a nil API transaction by hash throttler has been provided
 var ErrNilApiTransactionByHashThrottler = errors.New("nil api transaction by hash throttler")
+
+// ErrSystemBusyTxHash signals that too many requests occur in the same time on the transaction by hash provider
+var ErrSystemBusyTxHash = errors.New("system busy. try again later")
