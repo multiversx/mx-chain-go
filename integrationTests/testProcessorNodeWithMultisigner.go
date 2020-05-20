@@ -37,6 +37,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	keyIndex int,
 	ownAccount *TestWalletAccount,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
+	headerIntegrityVerifier process.InterceptedHeaderIntegrityVerifier,
 	nodeSetup sharding.GenesisNodesSetupHandler,
 ) *TestProcessorNode {
 
@@ -44,13 +45,14 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 
 	messenger := CreateMessengerWithKadDht(initialNodeAddr)
 	tpn := &TestProcessorNode{
-		ShardCoordinator:  shardCoordinator,
-		Messenger:         messenger,
-		NodesCoordinator:  nodesCoordinator,
-		HeaderSigVerifier: headerSigVerifier,
-		ChainID:           ChainID,
-		NodesSetup:        nodeSetup,
-		RatingsData:       ratingsData,
+		ShardCoordinator:        shardCoordinator,
+		Messenger:               messenger,
+		NodesCoordinator:        nodesCoordinator,
+		HeaderSigVerifier:       headerSigVerifier,
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		ChainID:                 ChainID,
+		NodesSetup:              nodeSetup,
+		RatingsData:             ratingsData,
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
@@ -223,13 +225,14 @@ func CreateNodeWithBLSAndTxKeys(
 
 	messenger := CreateMessengerWithKadDht(seedAddress)
 	tpn := &TestProcessorNode{
-		ShardCoordinator:  shardCoordinator,
-		Messenger:         messenger,
-		NodesCoordinator:  nodesCoordinator,
-		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           ChainID,
-		NodesSetup:        nodesSetup,
-		RatingsData:       ratingsData,
+		ShardCoordinator:        shardCoordinator,
+		Messenger:               messenger,
+		NodesCoordinator:        nodesCoordinator,
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		ChainID:                 ChainID,
+		NodesSetup:              nodesSetup,
+		RatingsData:             ratingsData,
 	}
 
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
@@ -406,6 +409,7 @@ func CreateNode(
 		keyIndex,
 		nil,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeaderIntegrityVerifierStub{},
 		nodesSetup,
 	)
 }
@@ -461,7 +465,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
 		if err != nil {
-			fmt.Println("Error creating node coordinator")
+			fmt.Println("Error creating node coordinator: " + err.Error())
 		}
 
 		nodesList := make([]*TestProcessorNode, len(validatorList))
@@ -474,6 +478,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			KeyGen:            keyGen,
 		}
 		headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
+		headerIntegrityVerifier, _ := headerCheck.NewHeaderIntegrityVerifier(ChainID)
 		for i := range validatorList {
 			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
 				uint32(nbShards),
@@ -486,6 +491,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 				i,
 				nil,
 				headerSig,
+				headerIntegrityVerifier,
 				nodesSetup,
 			)
 		}
@@ -572,6 +578,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			}
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
+			headerIntegrityVerifier, _ := headerCheck.NewHeaderIntegrityVerifier(ChainID)
 			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
 				uint32(nbShards),
 				shardId,
@@ -583,6 +590,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				i,
 				ownAccount,
 				headerSig,
+				headerIntegrityVerifier,
 				nodesSetup,
 			)
 		}
