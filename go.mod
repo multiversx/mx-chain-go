@@ -46,3 +46,5 @@ require (
 	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
+
+replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2

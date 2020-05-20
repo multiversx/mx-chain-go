@@ -1,4 +1,3 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. heartbeat.proto
 package process
 
 import (
@@ -9,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -415,6 +414,19 @@ func (m *Monitor) computeInactiveHeartbeatMessages() {
 		if v.peerType != peerType || v.computedShardID != shardId {
 			v.UpdateShardAndPeerType(shardId, peerType)
 			inactiveHbChangedMap[key] = v
+		}
+	}
+
+	peerTypeInfos := m.peerTypeProvider.GetAllPeerTypeInfos()
+	for _, peerTypeInfo := range peerTypeInfos {
+		if m.heartbeatMessages[peerTypeInfo.PublicKey] == nil {
+			hbmi, err := newHeartbeatMessageInfo(m.maxDurationPeerUnresponsive, peerTypeInfo.PeerType, m.genesisTime, m.timer)
+			if err != nil {
+				log.Debug("could not create hbmi ", "err", err)
+				continue
+			}
+			hbmi.computedShardID = peerTypeInfo.ShardId
+			m.heartbeatMessages[peerTypeInfo.PublicKey] = hbmi
 		}
 	}
 

@@ -215,6 +215,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		chainID:                  args.ChainID,
 		inputAntifloodHandler:    args.InputAntifloodHandler,
 		outputAntifloodHandler:   args.OutputAntifloodHandler,
+		maxTrieLevelInMemory:     args.MaxTrieLevelInMemory,
 	}
 
 	return e, nil
