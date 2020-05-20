@@ -65,9 +65,9 @@ type nodeFacade struct {
 	syncer                 ntp.SyncTimer
 	tpsBenchmark           *statistics.TpsBenchmark
 	config                 config.FacadeConfig
-	restAPIServerDebugMode bool
 	wsAntifloodConfig      config.WebServerAntifloodConfig
 	apiRoutesConfig        config.ApiRoutesConfig
+	restAPIServerDebugMode bool
 }
 
 // NewNodeFacade creates a new Facade with a NodeWrapper
