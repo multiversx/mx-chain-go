@@ -246,8 +246,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 		NumBytesThreshold:          math.MaxUint32,
 		CountThreshold:             100,
 		NumSendersToEvictInOneStep: 1,
-		LargeNumOfTxsForASender:    math.MaxUint32,
-		NumTxsToEvictFromASender:   0,
+		MinGasPriceNanoErd:         100,
 	}
 
 	// 11 * 10
@@ -261,8 +260,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 		NumBytesThreshold:          math.MaxUint32,
 		CountThreshold:             250000,
 		NumSendersToEvictInOneStep: 1,
-		LargeNumOfTxsForASender:    math.MaxUint32,
-		NumTxsToEvictFromASender:   0,
+		MinGasPriceNanoErd:         100,
 	}
 
 	// 100 * 1000
@@ -305,8 +303,8 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 	cache := newCacheToTest()
 
 	// Alice will quickly move between two score buckets (chunks)
-	cheapTransaction := createTxWithParams([]byte("alice-x-o"), "alice", 0, 128, 50000, 100*oneTrilion)
-	expensiveTransaction := createTxWithParams([]byte("alice-x-1"), "alice", 1, 128, 50000, 300*oneTrilion)
+	cheapTransaction := createTxWithParams([]byte("alice-x-o"), "alice", 0, 128, 50000, 100*oneBillion)
+	expensiveTransaction := createTxWithParams([]byte("alice-x-1"), "alice", 1, 128, 50000, 300*oneBillion)
 	cache.AddTx(cheapTransaction)
 	cache.AddTx(expensiveTransaction)
 
@@ -340,5 +338,5 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 }
 
 func newCacheToTest() *TxCache {
-	return NewTxCache(CacheConfig{Name: "test", NumChunksHint: 16, MinGasPriceMicroErd: 100})
+	return NewTxCache(CacheConfig{Name: "test", NumChunksHint: 16, MinGasPriceNanoErd: 100})
 }
