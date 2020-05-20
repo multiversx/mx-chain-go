@@ -312,7 +312,7 @@ func Test_promoteWaitingToNilEligible(t *testing.T) {
 
 	err := moveNodesToMap(nil, waitingMap)
 
-	assert.Equal(t, ErrNilorEmptyDestinationForDistribute, err)
+	assert.Equal(t, ErrNilOrEmptyDestinationForDistribute, err)
 }
 
 func Test_removeValidatorFromListFirst(t *testing.T) {
@@ -730,10 +730,10 @@ func Test_distributeValidatorsNilOrEmptyDestination(t *testing.T) {
 	newNodes := nbLists*maxNewNodesPerShard - 1
 	validatorsToDistribute := generateValidatorList(nbLists*newNodes - 1)
 	err := distributeValidators(nil, validatorsToDistribute, randomness)
-	assert.Equal(t, ErrNilorEmptyDestinationForDistribute, err)
+	assert.Equal(t, ErrNilOrEmptyDestinationForDistribute, err)
 
 	err = distributeValidators(make(map[uint32][]Validator), validatorsToDistribute, randomness)
-	assert.Equal(t, ErrNilorEmptyDestinationForDistribute, err)
+	assert.Equal(t, ErrNilOrEmptyDestinationForDistribute, err)
 }
 
 func Test_shuffleOutNodesNoLeaving(t *testing.T) {

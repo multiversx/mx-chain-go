@@ -17,7 +17,7 @@ func TestCrossShardValidatorDistributor_DistributeValidators_NilDestination(t *t
 	waitingMap := generateValidatorMap(nbWaiting, nbShards)
 
 	err := vd.DistributeValidators(nil, waitingMap, random)
-	assert.Equal(t, ErrNilorEmptyDestinationForDistribute, err)
+	assert.Equal(t, ErrNilOrEmptyDestinationForDistribute, err)
 }
 
 func TestCrossShardValidatorDistributor_DistributeValidators_DistributesEqually(t *testing.T) {
@@ -88,7 +88,7 @@ func TestIntraShardValidatorDistributor_DistributeValidators_NilDestination(t *t
 	waitingMap := generateValidatorMap(nbWaiting, nbShards)
 
 	err := vd.DistributeValidators(nil, waitingMap, random)
-	assert.Equal(t, ErrNilorEmptyDestinationForDistribute, err)
+	assert.Equal(t, ErrNilOrEmptyDestinationForDistribute, err)
 }
 
 func TestIntraShardValidatorDistributor_DistributeValidators_DistributesEqually(t *testing.T) {

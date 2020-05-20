@@ -61,6 +61,9 @@ var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
 // ErrSmallMetachainEligibleListSize signals that the eligible validators list's size is less than the consensus size
 var ErrSmallMetachainEligibleListSize = errors.New("small metachain eligible list size")
 
+// ErrMapSizeZero signals that there are no elements in the map
+var ErrMapSizeZero = errors.New("map size zero")
+
 // ErrEpochNodesConfigDoesNotExist signals that the epoch nodes configuration is missing
 var ErrEpochNodesConfigDoesNotExist = errors.New("epoch nodes configuration does not exist")
 
@@ -118,5 +121,5 @@ var ErrNilOwnPublicKey = errors.New("nil own public key")
 // ErrNilEndOfProcessingHandler signals that a nil end of processing handler has been provided
 var ErrNilEndOfProcessingHandler = errors.New("nil end of processing handler")
 
-// ErrNilorEmptyDestinationForDistribute signals that a nil or empty value was provided for destination of distributedNodes
-var ErrNilorEmptyDestinationForDistribute = errors.New("nil or empty destination list for distributeNodes")
+// ErrNilOrEmptyDestinationForDistribute signals that a nil or empty value was provided for destination of distributedNodes
+var ErrNilOrEmptyDestinationForDistribute = errors.New("nil or empty destination list for distributeNodes")

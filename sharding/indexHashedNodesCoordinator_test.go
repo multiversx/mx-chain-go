@@ -1502,6 +1502,7 @@ func TestIndexHashedNodesCoordinator_ShuffleOutNotFound(t *testing.T) {
 
 func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_NoValidators(t *testing.T) {
 	t.Parallel()
+
 	arguments := createArguments()
 	pk := []byte("pk")
 	arguments.SelfPublicKey = pk
@@ -1510,35 +1511,18 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_NoValidators(t *
 	validatorInfos := make([]*state.ShardValidatorInfo, 0)
 	newNodesConfig, err := ihgs.computeNodesConfigFromList(validatorInfos)
 
-	assert.Nil(t, err)
-	assert.NotNil(t, newNodesConfig.eligibleMap)
-	assert.Equal(t, 0, len(newNodesConfig.eligibleMap))
-	assert.NotNil(t, newNodesConfig.waitingMap)
-	assert.Equal(t, 0, len(newNodesConfig.waitingMap))
-	assert.NotNil(t, newNodesConfig.leavingMap)
-	assert.Equal(t, 0, len(newNodesConfig.leavingMap))
-	assert.NotNil(t, newNodesConfig.newList)
-	assert.Equal(t, 0, len(newNodesConfig.newList))
-
-	nbShards := uint32(0)
-	assert.Equal(t, nbShards, newNodesConfig.nbShards)
+	assert.Nil(t, newNodesConfig)
+	assert.True(t, errors.Is(err, ErrMapSizeZero))
 
 	newNodesConfig, err = ihgs.computeNodesConfigFromList(nil)
 
-	assert.Nil(t, err)
-	assert.NotNil(t, newNodesConfig.eligibleMap)
-	assert.Equal(t, 0, len(newNodesConfig.eligibleMap))
-	assert.NotNil(t, newNodesConfig.waitingMap)
-	assert.Equal(t, 0, len(newNodesConfig.waitingMap))
-	assert.NotNil(t, newNodesConfig.leavingMap)
-	assert.Equal(t, 0, len(newNodesConfig.leavingMap))
-	assert.NotNil(t, newNodesConfig.newList)
-	assert.Equal(t, 0, len(newNodesConfig.newList))
-	assert.Equal(t, nbShards, newNodesConfig.nbShards)
+	assert.Nil(t, newNodesConfig)
+	assert.True(t, errors.Is(err, ErrMapSizeZero))
 }
 
 func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_NilPk(t *testing.T) {
 	t.Parallel()
+
 	arguments := createArguments()
 	pk := []byte("pk")
 	arguments.SelfPublicKey = pk
@@ -1571,6 +1555,7 @@ func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_NilPk(t *testing
 
 func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_Validators(t *testing.T) {
 	t.Parallel()
+
 	arguments := createArguments()
 	pk := []byte("pk")
 	arguments.SelfPublicKey = pk

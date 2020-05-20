@@ -536,7 +536,7 @@ func copyValidatorMap(validators map[uint32][]Validator) map[uint32][]Validator 
 // moveNodesToMap moves the validators in the waiting list to corresponding eligible list
 func moveNodesToMap(destination map[uint32][]Validator, source map[uint32][]Validator) error {
 	if destination == nil {
-		return ErrNilorEmptyDestinationForDistribute
+		return ErrNilOrEmptyDestinationForDistribute
 	}
 
 	for k, v := range source {
@@ -549,7 +549,7 @@ func moveNodesToMap(destination map[uint32][]Validator, source map[uint32][]Vali
 // distributeNewNodes distributes a list of validators to the given validators map
 func distributeValidators(destLists map[uint32][]Validator, validators []Validator, randomness []byte) error {
 	if len(destLists) == 0 {
-		return ErrNilorEmptyDestinationForDistribute
+		return ErrNilOrEmptyDestinationForDistribute
 	}
 
 	// if there was a split or a merge, eligible map should already have a different nb of keys (shards)

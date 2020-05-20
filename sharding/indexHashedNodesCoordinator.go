@@ -648,7 +648,11 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		sort.Sort(validatorList(leavingList))
 	}
 
-	nbShards := core.MaxInt(0, len(eligibleMap)-1)
+	if len(eligibleMap) == 0 {
+		return nil, fmt.Errorf("%w eligible map size is zero. No validators found", ErrMapSizeZero)
+	}
+
+	nbShards := len(eligibleMap) - 1
 
 	newNodesConfig := &epochNodesConfig{
 		eligibleMap: eligibleMap,
