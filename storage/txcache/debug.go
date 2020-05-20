@@ -65,6 +65,8 @@ func (cache *TxCache) removeTxByHashDebug(correlation string, txHash []byte) {
 	if !ok {
 		fmt.Println(correlation, "remove: not found in txByHash")
 		return
+	} else {
+		fmt.Println(correlation, "removed from txByHash")
 	}
 
 	found := cache.txListBySender.removeTxDebug(correlation, tx)
