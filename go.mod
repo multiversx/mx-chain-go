@@ -3,7 +3,7 @@ module github.com/ElrondNetwork/elrond-go
 go 1.13
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm v0.3.18
+	github.com/ElrondNetwork/arwen-wasm-vm v0.3.19
 	github.com/ElrondNetwork/concurrent-map v0.1.2
 	github.com/ElrondNetwork/elrond-go-logger v1.0.3
 	github.com/ElrondNetwork/elrond-vm v0.0.25
@@ -46,3 +46,5 @@ require (
 	golang.org/x/net v0.0.0-20190923162816-aa69164e4478
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
+
+replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2

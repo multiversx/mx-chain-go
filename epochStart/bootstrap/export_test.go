@@ -76,6 +76,13 @@ func getGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
+		StateTriesConfig: config.StateTriesConfig{
+			CheckpointRoundsModulus:     5,
+			AccountsStatePruningEnabled: true,
+			PeerStatePruningEnabled:     true,
+			MaxStateTrieLevelInMemory:   5,
+			MaxPeerTrieLevelInMemory:    5,
+		},
 		TxDataPool: config.CacheConfig{
 			Size: 10000, Type: "LRU", Shards: 1,
 		},
