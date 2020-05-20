@@ -101,6 +101,8 @@ func getTriesArgs() factory.TriesComponentsFactoryArgs {
 				CheckpointRoundsModulus:     5,
 				AccountsStatePruningEnabled: false,
 				PeerStatePruningEnabled:     false,
+				MaxStateTrieLevelInMemory:   5,
+				MaxPeerTrieLevelInMemory:    5,
 			},
 		},
 	}

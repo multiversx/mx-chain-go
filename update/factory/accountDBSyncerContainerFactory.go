@@ -68,13 +68,14 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 	}
 
 	t := &accountDBSyncersContainerFactory{
-		shardCoordinator:   args.ShardCoordinator,
-		trieCacher:         args.TrieCacher,
-		requestHandler:     args.RequestHandler,
-		hasher:             args.Hasher,
-		marshalizer:        args.Marshalizer,
-		trieStorageManager: args.TrieStorageManager,
-		waitTime:           args.WaitTime,
+		shardCoordinator:     args.ShardCoordinator,
+		trieCacher:           args.TrieCacher,
+		requestHandler:       args.RequestHandler,
+		hasher:               args.Hasher,
+		marshalizer:          args.Marshalizer,
+		trieStorageManager:   args.TrieStorageManager,
+		waitTime:             args.WaitTime,
+		maxTrieLevelinMemory: args.MaxTrieLevelInMemory,
 	}
 
 	return t, nil
