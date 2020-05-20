@@ -549,10 +549,7 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 		// go B: can't remove from map by hash, not found
 		// go B: won't remove from map by sender (sender unknown)
 
-		// This scenario caused the error in the initial `pool++limits`,
-		// https://github.com/ElrondNetwork/elrond-go/pull/1716
-		// because we entered the state [tx in txListForSender, but not in map by hash],
-		// and before, the de-duplication (enforced at addition time in txListForSender) blocked the transaction to enter the map by hash.
+		// Therefore, Alice could have one or two transactions in her list.
 		require.Equal(t, 1, cache.txByHash.backingMap.Count())
 		expectedTxsConsistent := []string{"alice-w"}
 		expectedTxsSlightlyInconsistent := []string{"alice-w", "alice-x"}
