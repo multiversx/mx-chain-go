@@ -24,6 +24,7 @@ type Facade struct {
 	GetAccountHandler                 func(address string) (state.UserAccountHandler, error)
 	GenerateTransactionHandler        func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler             func(hash string) (*transaction.Transaction, error)
+	GetTransactionStatusHandler       func(hash string) (string, error)
 	CreateTransactionHandler          func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler        func(tx *transaction.Transaction) error
 	SendBulkTransactionsHandler       func(txs []*transaction.Transaction) (uint64, error)
@@ -90,6 +91,10 @@ func (f *Facade) CreateTransaction(
 // GetTransaction is the mock implementation of a handler's GetTransaction method
 func (f *Facade) GetTransaction(hash string) (*transaction.Transaction, error) {
 	return f.GetTransactionHandler(hash)
+}
+
+func (f *Facade) GetTransactionStatus(hash string) (string, error) {
+	return f.GetTransactionStatusHandler(hash)
 }
 
 // SendBulkTransactions is the mock implementation of a handler's SendBulkTransactions method

@@ -21,6 +21,7 @@ type NodeStub struct {
 		gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
 	GetTransactionHandler                          func(hash string) (*transaction.Transaction, error)
+	GetTransactionStatusHandler                    func(hash string) (string, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GetAccountHandler                              func(address string) (state.UserAccountHandler, error)
 	GetCurrentPublicKeyHandler                     func() string
@@ -68,6 +69,11 @@ func (ns *NodeStub) ValidateTransaction(tx *transaction.Transaction) error {
 // GetTransaction -
 func (ns *NodeStub) GetTransaction(hash string) (*transaction.Transaction, error) {
 	return ns.GetTransactionHandler(hash)
+}
+
+// GetTransactionStatus -
+func (ns *NodeStub) GetTransactionStatus(hash string) (string, error) {
+	return ns.GetTransactionStatusHandler(hash)
 }
 
 // SendBulkTransactions -

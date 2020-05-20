@@ -895,11 +895,6 @@ func (n *Node) CreateTransaction(
 	return tx, txHash, nil
 }
 
-//GetTransaction gets the transaction
-func (n *Node) GetTransaction(_ string) (*transaction.Transaction, error) {
-	return nil, fmt.Errorf("not yet implemented")
-}
-
 // GetAccount will return account details for a given address
 func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 	if check.IfNil(n.addressPubkeyConverter) {
