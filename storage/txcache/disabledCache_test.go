@@ -24,7 +24,7 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 	require.Nil(t, err)
 
 	count := cache.CountTx()
-	require.Equal(t, int64(0), count)
+	require.Equal(t, uint64(0), count)
 
 	length := cache.Len()
 	require.Equal(t, 0, length)
