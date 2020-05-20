@@ -238,15 +238,15 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 	}, nil
 }
 
-func createListsForAllShards(waitingCopy map[uint32][]Validator, shards uint32) {
+func createListsForAllShards(shardMap map[uint32][]Validator, shards uint32) {
 	for shardId := uint32(0); shardId < shards; shardId++ {
-		if waitingCopy[shardId] == nil {
-			waitingCopy[shardId] = make([]Validator, 0)
+		if shardMap[shardId] == nil {
+			shardMap[shardId] = make([]Validator, 0)
 		}
 	}
 
-	if waitingCopy[core.MetachainShardId] == nil {
-		waitingCopy[core.MetachainShardId] = make([]Validator, 0)
+	if shardMap[core.MetachainShardId] == nil {
+		shardMap[core.MetachainShardId] = make([]Validator, 0)
 	}
 }
 

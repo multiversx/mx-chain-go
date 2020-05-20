@@ -525,6 +525,17 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
+	ihgs.mutNodesConfig.RLock()
+	previousConfig := ihgs.nodesConfig[ihgs.currentEpoch]
+	if previousConfig != nil && previousConfig.nbShards != newNodesConfig.nbShards {
+		log.Warn("number of shards does not match",
+			"previous epoch", ihgs.currentEpoch,
+			"previous number of shards", previousConfig.nbShards,
+			"new epoch", newEpoch,
+			"new number of shards", newNodesConfig.nbShards)
+	}
+	ihgs.mutNodesConfig.RUnlock()
+
 	additionalLeavingMap, err := ihgs.nodesCoordinatorHelper.ComputeAdditionalLeaving(allValidatorInfo)
 	if err != nil {
 		log.Error("could not compute additionalLeaving Nodes  - do nothing on nodesCoordinator epochStartPrepare")
