@@ -2,6 +2,7 @@ package scToProtocol
 
 import (
 	"bytes"
+	"math"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -190,7 +191,7 @@ func (stp *stakingToPeer) updatePeerState(
 	blsPubKey []byte,
 	nonce uint64,
 ) error {
-	if !stakingData.Staked && stakingData.RegisterNonce == nonce {
+	if stakingData.StakedNonce == math.MaxUint64 {
 		return nil
 	}
 

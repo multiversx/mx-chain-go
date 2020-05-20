@@ -342,6 +342,7 @@ func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedData, error) {
 		JailedRound:   math.MaxUint64,
 		UnJailedNonce: 0,
 		JailedNonce:   0,
+		StakedNonce:   math.MaxUint64,
 	}
 
 	data := r.eei.GetStorage(key)
@@ -497,6 +498,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 			r.addToStakedNodes()
 		}
 		registrationData.Staked = true
+		registrationData.StakedNonce = r.eei.BlockChainHook().CurrentNonce()
 	}
 
 	registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
