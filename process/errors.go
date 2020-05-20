@@ -581,6 +581,9 @@ var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
+// ErrNilHeaderIntegrityVerifier signals that a nil header integrity verifier has been provided
+var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier")
+
 // ErrFailedTransaction signals that transaction is of type failed.
 var ErrFailedTransaction = errors.New("failed transaction, gas consumed")
 
@@ -598,9 +601,6 @@ var ErrReceiptsHashMissmatch = errors.New("receipts hash missmatch")
 
 // ErrMiniBlockNumMissMatch signals that number of miniblocks does not match
 var ErrMiniBlockNumMissMatch = errors.New("num miniblocks does not match")
-
-// ErrInvalidChainID signals that an invalid chain ID has been provided
-var ErrInvalidChainID = errors.New("invalid chain ID while processing")
 
 // ErrEpochStartDataDoesNotMatch signals that EpochStartData is not the same as the leader created
 var ErrEpochStartDataDoesNotMatch = errors.New("epoch start data does not match")
