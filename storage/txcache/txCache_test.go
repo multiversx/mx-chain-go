@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -87,11 +88,13 @@ func Test_AddTx(t *testing.T) {
 	ok, added := cache.AddTx(tx)
 	require.True(t, ok)
 	require.True(t, added)
+	require.True(t, cache.Has([]byte("hash-1")))
 
 	// Add it again (no-operation)
 	ok, added = cache.AddTx(tx)
 	require.True(t, ok)
 	require.False(t, added)
+	require.True(t, cache.Has([]byte("hash-1")))
 
 	foundTx, ok := cache.GetByTxHash([]byte("hash-1"))
 	require.True(t, ok)
@@ -391,9 +394,6 @@ func Test_NotImplementedFunctions(t *testing.T) {
 	evicted := cache.Put(nil, nil)
 	require.False(t, evicted)
 
-	has := cache.Has(nil)
-	require.False(t, has)
-
 	ok, evicted := cache.HasOrAdd(nil, nil)
 	require.False(t, ok)
 	require.False(t, evicted)
@@ -453,28 +453,120 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 	require.False(t, timedOut, "Timed out. Perhaps deadlock?")
 }
 
-func Test_SearchCacheInconsistency(t *testing.T) {
-	for try := 0; try < 100; try++ {
-		fmt.Println("====================================================================")
+func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testing.T) {
+	cache := newUnconstrainedCacheToTest()
 
-		cache := newUnconstrainedCacheToTest()
+	// Setup inconsistency: transaction already exists in map by hash, but not in map by sender
+	cache.txByHash.addTx(createTx([]byte("alice-x"), "alice", 42))
+
+	require.Equal(t, 1, cache.txByHash.backingMap.Count())
+	require.True(t, cache.Has([]byte("alice-x")))
+	ok, added := cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
+	require.True(t, ok)
+	require.True(t, added)
+	require.Equal(t, uint64(1), cache.CountSenders())
+	require.Equal(t, []string{"alice-x"}, cache.getHashesForSender("alice"))
+	cache.Clear()
+
+	// Setup inconsistency: transaction already exists in map by sender, but not in map by hash
+	cache.txListBySender.addTx(createTx([]byte("alice-x"), "alice", 42))
+
+	require.False(t, cache.Has([]byte("alice-x")))
+	ok, added = cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
+	require.True(t, ok)
+	require.True(t, added)
+	require.Equal(t, uint64(1), cache.CountSenders())
+	require.Equal(t, []string{"alice-x"}, cache.getHashesForSender("alice"))
+	cache.Clear()
+}
+
+func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *testing.T) {
+	cache := newUnconstrainedCacheToTest()
+
+	// A lot of routines concur to add & remove THE FIRST transaction of a sender
+	for try := 0; try < 100; try++ {
 		var wg sync.WaitGroup
 
-		for i := 0; i < 2; i++ {
+		for i := 0; i < 5; i++ {
 			wg.Add(1)
-
-			go func(routineID int) {
-				correlation := fmt.Sprintf("%d", routineID)
-				cache.addTxDebug(correlation, createTx([]byte("alice-x"), "alice", 42))
-				cache.removeDebug(correlation, []byte("alice-x"))
-				fmt.Println(correlation, "done")
+			go func() {
+				cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
+				cache.RemoveTxByHash([]byte("alice-x"))
 				wg.Done()
-			}(i)
+			}()
 		}
 
 		wg.Wait()
+		// In this case, there is the slight chance that:
+		// go A: add to map by hash
+		// go B: won't add in map by hash, already there
+		// go A: add to map by sender
+		// go A: remove from map by hash
+		// go A: remove from map by sender and delete empty sender
+		// go B: add to map by sender
+		// go B: can't remove from map by hash, not found
+		// go B: won't remove from map by sender (sender unknown)
+
+		// Therefore, the number of senders could be 0 or 1
+		require.Equal(t, 0, cache.txByHash.backingMap.Count())
+		expectedCountConsistent := 0
+		expectedCountSlightlyInconsistent := 1
+		actualCount := int(cache.txListBySender.backingMap.Count())
+		require.True(t, actualCount == expectedCountConsistent || actualCount == expectedCountSlightlyInconsistent)
+
+		// A further addition works:
+		cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
+		require.True(t, cache.Has([]byte("alice-x")))
+		require.Equal(t, []string{"alice-x"}, cache.getHashesForSender("alice"))
 	}
 
+	cache.Clear()
+
+	// A lot of routines concur to add & remove subsequent transactions of a sender
+	cache.AddTx(createTx([]byte("alice-w"), "alice", 41))
+
+	for try := 0; try < 100; try++ {
+		var wg sync.WaitGroup
+
+		for i := 0; i < 5; i++ {
+			wg.Add(1)
+			go func() {
+				cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
+				cache.RemoveTxByHash([]byte("alice-x"))
+				wg.Done()
+			}()
+		}
+
+		wg.Wait()
+
+		// In this case, there is the slight chance that:
+		// go A: add to map by hash
+		// go B: won't add in map by hash, already there
+		// go A: add to map by sender (existing sender/list)
+		// go A: remove from map by hash
+		// go A: remove from map by sender
+		// go B: add to map by sender (existing sender/list)
+		// go B: can't remove from map by hash, not found
+		// go B: won't remove from map by sender (sender unknown)
+
+		// This scenario caused the error in the initial `pool++limits`,
+		// https://github.com/ElrondNetwork/elrond-go/pull/1716
+		// because we entered the state [tx in txListForSender, but not in map by hash],
+		// and before, the de-duplication (enforced at addition time in txListForSender) blocked the transaction to enter the map by hash.
+		require.Equal(t, 1, cache.txByHash.backingMap.Count())
+		expectedTxsConsistent := []string{"alice-w"}
+		expectedTxsSlightlyInconsistent := []string{"alice-w", "alice-x"}
+		actualTxs := cache.getHashesForSender("alice")
+		require.True(t, assert.ObjectsAreEqual(expectedTxsConsistent, actualTxs) || assert.ObjectsAreEqual(expectedTxsSlightlyInconsistent, actualTxs))
+
+		// A further addition works:
+		cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
+		require.True(t, cache.Has([]byte("alice-w")))
+		require.True(t, cache.Has([]byte("alice-x")))
+		require.Equal(t, []string{"alice-w", "alice-x"}, cache.getHashesForSender("alice"))
+	}
+
+	cache.Clear()
 }
 
 func newUnconstrainedCacheToTest() *TxCache {

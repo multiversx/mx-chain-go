@@ -64,23 +64,21 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		cache.doEviction()
 	}
 
-	// The return value "added" is true even if transaction added, but then removed due to limits be sender.
-	// This it to ensure that onAdded() notification is triggered.
-	ok = true
-	added = cache.txByHash.addTx(tx)
-	if !added {
-		return
+	addedInByHash := cache.txByHash.addTx(tx)
+	addedInBySender, evicted := cache.txListBySender.addTx(tx)
+	if addedInByHash != addedInBySender {
+		log.Trace("TxCache.AddTx(): slight inconsistency detected:", "name", cache.name, "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
 	}
 
-	addedInBySender, evicted := cache.txListBySender.addTx(tx)
-	if !addedInBySender {
-		log.Trace("TxCache.AddTx(): slight inconsistency detected: !addedInBySender", "name", cache.name, "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr())
-	}
 	if len(evicted) > 0 {
 		cache.monitorEvictionWrtSenderLimit(tx.Tx.GetSndAddr(), evicted)
 		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
+	// The return value "added" is true even if transaction added, but then removed due to limits be sender.
+	// This it to ensure that onAdded() notification is triggered.
+	ok = true
+	added = addedInByHash || addedInBySender
 	return
 }
 
@@ -212,10 +210,10 @@ func (cache *TxCache) Get(key []byte) (value interface{}, ok bool) {
 	return nil, false
 }
 
-// Has is not implemented
+// Has checks is a transaction exists
 func (cache *TxCache) Has(key []byte) bool {
-	log.Error("TxCache.Has is not implemented")
-	return false
+	_, ok := cache.GetByTxHash(key)
+	return ok
 }
 
 // Peek gets a transaction by hash
