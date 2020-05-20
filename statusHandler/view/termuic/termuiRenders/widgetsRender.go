@@ -141,17 +141,10 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	pkBlockSign := wr.presenter.GetPublicKeyBlockSign()
 	rows[2] = []string{fmt.Sprintf("Public key BlockSign: %s", pkBlockSign)}
 
-	var consensusInfo string
 	countConsensus := wr.presenter.GetCountConsensus()
 	countConsensusAcceptedBlocks := wr.presenter.GetCountConsensusAcceptedBlocks()
 
-	if shardId == uint64(core.MetachainShardId) {
-		consensusInfo = fmt.Sprintf("Validator signed meta blocks: %d | Signed blocks headers: %d", countConsensus, countConsensusAcceptedBlocks)
-	} else {
-		consensusInfo = fmt.Sprintf("Validator signed blocks %d | Blocks accepted: %d", countConsensus, countConsensusAcceptedBlocks)
-	}
-
-	rows[3] = []string{consensusInfo}
+	rows[3] = []string{fmt.Sprintf("Validator signed blocks: %d | Blocks accepted: %d", countConsensus, countConsensusAcceptedBlocks)}
 
 	countLeader := wr.presenter.GetCountLeader()
 	countAcceptedBlocks := wr.presenter.GetCountAcceptedBlocks()
