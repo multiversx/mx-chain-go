@@ -7,6 +7,21 @@ import (
 
 var log = logger.GetOrCreate("txcache")
 
+func (cache *TxCache) monitorEvictionWrtSenderLimit(sender []byte, evicted [][]byte) {
+	var firstTx, secondTx, thirdTx []byte
+	if len(evicted) > 0 {
+		firstTx = evicted[0]
+	}
+	if len(evicted) > 1 {
+		secondTx = evicted[1]
+	}
+	if len(evicted) > 2 {
+		thirdTx = evicted[2]
+	}
+
+	log.Trace("TxCache.AddTx() evict transactions wrt. limit by sender", "name", cache.name, "sender", sender, "num", len(evicted), "first", firstTx, "second", secondTx, "third", thirdTx)
+}
+
 func (cache *TxCache) monitorEvictionStart() *core.StopWatch {
 	log.Debug("TxCache: eviction started", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
 	cache.displaySendersHistogram()
