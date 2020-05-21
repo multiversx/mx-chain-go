@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. auction.proto
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. auction.proto
 package systemSmartContracts
 
 import (
@@ -183,13 +183,15 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 		return vmcommon.UserError
 	}
 
+	txData := "changeRewardAddress@" + hex.EncodeToString(registrationData.RewardAddress)
 	for _, blsKey := range registrationData.BlsPubKeys {
-		vmOutput, err := s.executeOnStakingSC([]byte("changeRewardAddress@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
-		isError := err != nil || vmOutput.ReturnCode != vmcommon.Ok
-		if isError {
-			log.LogIfError(err)
-			return vmcommon.UserError
-		}
+		txData += "@" + hex.EncodeToString(blsKey)
+	}
+	vmOutput, err := s.executeOnStakingSC([]byte(txData))
+	isError := err != nil || vmOutput.ReturnCode != vmcommon.Ok
+	if isError {
+		log.LogIfError(err)
+		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
@@ -516,7 +518,11 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.OutOfGas
 	}
 
-	registrationData.RewardAddress = args.CallerAddr
+	isAlreadyRegistered := len(registrationData.RewardAddress) > 0
+	if !isAlreadyRegistered {
+		registrationData.RewardAddress = args.CallerAddr
+	}
+
 	registrationData.MaxStakePerNode = big.NewInt(0).Set(registrationData.TotalStakeValue)
 	registrationData.Epoch = s.eei.BlockChainHook().CurrentEpoch()
 
@@ -525,10 +531,17 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	if uint64(lenArgs) > maxNodesToRun*2+1 {
 		for i := maxNodesToRun*2 + 1; i < uint64(lenArgs); i++ {
 			if len(args.Arguments[i]) == len(args.CallerAddr) {
-				registrationData.RewardAddress = args.Arguments[i]
-			} else {
-				registrationData.MaxStakePerNode.SetBytes(args.Arguments[i])
+				if !isAlreadyRegistered {
+					registrationData.RewardAddress = args.Arguments[i]
+				}
+				continue
 			}
+
+			maxStakePerNode, ok := big.NewInt(0).SetString(string(args.Arguments[i]), conversionBase)
+			if !ok {
+				continue
+			}
+			registrationData.MaxStakePerNode.Set(maxStakePerNode)
 		}
 	}
 
@@ -698,27 +711,22 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 }
 
 func getBLSPublicKeys(registrationData *AuctionData, args *vmcommon.ContractCallInput) ([][]byte, error) {
-	blsKeys := registrationData.BlsPubKeys
-	if len(args.Arguments) > 0 {
-		for _, argKey := range args.Arguments {
-			found := false
-			for _, blsKey := range blsKeys {
-				if bytes.Equal(argKey, blsKey) {
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				log.Debug("bls key for validator not found")
-				return nil, vm.ErrBLSPublicKeyMissmatch
+	for _, argKey := range args.Arguments {
+		found := false
+		for _, blsKey := range registrationData.BlsPubKeys {
+			if bytes.Equal(argKey, blsKey) {
+				found = true
+				break
 			}
 		}
 
-		blsKeys = args.Arguments
+		if !found {
+			log.Debug("bls key for validator not found")
+			return nil, vm.ErrBLSPublicKeyMissmatch
+		}
 	}
 
-	return blsKeys, nil
+	return args.Arguments, nil
 }
 
 func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -818,7 +826,7 @@ func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.Retu
 	zero := big.NewInt(0)
 	claimable := big.NewInt(0).Sub(registrationData.TotalStakeValue, registrationData.LockedStake)
 	if claimable.Cmp(zero) <= 0 {
-		return vmcommon.UserError
+		return vmcommon.Ok
 	}
 
 	registrationData.TotalStakeValue.Set(registrationData.LockedStake)

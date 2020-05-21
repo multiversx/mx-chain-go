@@ -940,7 +940,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncStub{}),
+		node.WithSyncer(&mock.SyncTimerStub{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithResolversFinder(rf),
 		node.WithDataStore(store),
@@ -1004,7 +1004,7 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncStub{}),
+		node.WithSyncer(&mock.SyncTimerStub{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithAccountsAdapter(accountDb),
 		node.WithResolversFinder(rf),
@@ -1046,7 +1046,7 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncStub{}),
+		node.WithSyncer(&mock.SyncTimerStub{}),
 		node.WithShardCoordinator(shardingCoordinator),
 		node.WithDataStore(store),
 		node.WithResolversFinder(&mock.ResolversFinderStub{
@@ -1087,7 +1087,7 @@ func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncStub{}),
+		node.WithSyncer(&mock.SyncTimerStub{}),
 		node.WithShardCoordinator(shardingCoordinator),
 		node.WithDataStore(&mock.ChainStorerMock{}),
 		node.WithDataPool(&mock.PoolsHolderStub{}),
@@ -1140,7 +1140,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncStub{}),
+		node.WithSyncer(&mock.SyncTimerStub{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithAccountsAdapter(accountDb),
 		node.WithResolversFinder(rf),
@@ -1223,7 +1223,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncStub{}),
+		node.WithSyncer(&mock.SyncTimerStub{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithAccountsAdapter(accountDb),
 		node.WithResolversFinder(rf),
@@ -1305,7 +1305,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncStub{}),
+		node.WithSyncer(&mock.SyncTimerStub{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithAccountsAdapter(accountDb),
 		node.WithResolversFinder(rf),
@@ -1366,9 +1366,9 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
+		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
 	)
 
-	// TODO: when feature for starting from a higher epoch number is ready we should add a test for that as well
 	err := n.StartConsensus()
 	assert.Nil(t, err)
 }

@@ -1,6 +1,7 @@
 package spos
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -9,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/close"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -21,25 +23,31 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
+var _ close.Closer = (*Worker)(nil)
+
+// sleepTime defines the time in milliseconds between each iteration made in checkChannels method
+const sleepTime = 5 * time.Millisecond
+
 // Worker defines the data needed by spos to communicate between nodes which are in the validators group
 type Worker struct {
-	consensusService   ConsensusService
-	blockChain         data.ChainHandler
-	blockProcessor     process.BlockProcessor
-	bootstrapper       process.Bootstrapper
-	broadcastMessenger consensus.BroadcastMessenger
-	consensusState     *ConsensusState
-	forkDetector       process.ForkDetector
-	keyGenerator       crypto.KeyGenerator
-	marshalizer        marshal.Marshalizer
-	hasher             hashing.Hasher
-	rounder            consensus.Rounder
-	shardCoordinator   sharding.Coordinator
-	singleSigner       crypto.SingleSigner
-	syncTimer          ntp.SyncTimer
-	headerSigVerifier  HeaderSigVerifier
-	appStatusHandler   core.AppStatusHandler
-	chainID            []byte
+	consensusService        ConsensusService
+	blockChain              data.ChainHandler
+	blockProcessor          process.BlockProcessor
+	bootstrapper            process.Bootstrapper
+	broadcastMessenger      consensus.BroadcastMessenger
+	consensusState          *ConsensusState
+	forkDetector            process.ForkDetector
+	keyGenerator            crypto.KeyGenerator
+	marshalizer             marshal.Marshalizer
+	hasher                  hashing.Hasher
+	rounder                 consensus.Rounder
+	shardCoordinator        sharding.Coordinator
+	singleSigner            crypto.SingleSigner
+	syncTimer               ntp.SyncTimer
+	headerSigVerifier       HeaderSigVerifier
+	headerIntegrityVerifier HeaderIntegrityVerifier
+	appStatusHandler        core.AppStatusHandler
+	chainID                 []byte
 
 	networkShardingCollector consensus.NetworkShardingCollector
 
@@ -64,6 +72,7 @@ type Worker struct {
 	signatureSize       int
 	publicKeySize       int
 	publicKeyBitmapSize int
+	cancelFunc          func()
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -83,6 +92,7 @@ type WorkerArgs struct {
 	SingleSigner             crypto.SingleSigner
 	SyncTimer                ntp.SyncTimer
 	HeaderSigVerifier        HeaderSigVerifier
+	HeaderIntegrityVerifier  HeaderIntegrityVerifier
 	ChainID                  []byte
 	NetworkShardingCollector consensus.NetworkShardingCollector
 	AntifloodHandler         consensus.P2PAntifloodHandler
@@ -93,9 +103,7 @@ type WorkerArgs struct {
 
 // NewWorker creates a new Worker object
 func NewWorker(args *WorkerArgs) (*Worker, error) {
-	err := checkNewWorkerParams(
-		args,
-	)
+	err := checkNewWorkerParams(args)
 	if err != nil {
 		return nil, err
 	}
@@ -116,6 +124,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		singleSigner:             args.SingleSigner,
 		syncTimer:                args.SyncTimer,
 		headerSigVerifier:        args.HeaderSigVerifier,
+		headerIntegrityVerifier:  args.HeaderIntegrityVerifier,
 		chainID:                  args.ChainID,
 		appStatusHandler:         statusHandler.NewNilStatusHandler(),
 		networkShardingCollector: args.NetworkShardingCollector,
@@ -137,17 +146,20 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 	maxMessagesInARoundPerPeer := wrk.consensusService.GetMaxMessagesInARoundPerPeer()
 	wrk.antifloodHandler.SetMaxMessagesForTopic(topic, maxMessagesInARoundPerPeer)
 
-	go wrk.checkChannels()
-
 	wrk.mapDisplayHashConsensusMessage = make(map[string][]*consensus.Message)
 	wrk.publicKeyBitmapSize = wrk.getPublicKeyBitmapSize()
 
 	return &wrk, nil
 }
 
-func checkNewWorkerParams(
-	args *WorkerArgs,
-) error {
+// StartWorking actually starts the consensus working mechanism
+func (wrk *Worker) StartWorking() {
+	var ctx context.Context
+	ctx, wrk.cancelFunc = context.WithCancel(context.Background())
+	go wrk.checkChannels(ctx)
+}
+
+func checkNewWorkerParams(args *WorkerArgs) error {
 	if args == nil {
 		return ErrNilWorkerArgs
 	}
@@ -195,6 +207,9 @@ func checkNewWorkerParams(
 	}
 	if check.IfNil(args.HeaderSigVerifier) {
 		return ErrNilHeaderSigVerifier
+	}
+	if check.IfNil(args.HeaderIntegrityVerifier) {
+		return ErrNilHeaderIntegrityVerifier
 	}
 	if len(args.ChainID) == 0 {
 		return ErrInvalidChainID
@@ -385,16 +400,9 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 		"nbTxs", header.GetTxCount(),
 		"val stats root hash", header.GetValidatorStatsRootHash())
 
-	err := header.CheckChainID(wrk.chainID)
+	err := wrk.headerIntegrityVerifier.Verify(header)
 	if err != nil {
-		return fmt.Errorf("%w : verify chain ID for received header from consensus topic failed",
-			err)
-	}
-
-	err = header.CheckSoftwareVersion()
-	if err != nil {
-		return fmt.Errorf("%w : verify software version for received header from consensus topic failed",
-			err)
+		return fmt.Errorf("%w : verify header integrity from consensus topic failed", err)
 	}
 
 	err = wrk.headerSigVerifier.VerifyRandSeed(header)
@@ -540,9 +548,19 @@ func (wrk *Worker) executeMessage(cnsDtaList []*consensus.Message) {
 
 // checkChannels method is used to listen to the channels through which node receives and consumes,
 // during the round, different messages from the nodes which are in the validators group
-func (wrk *Worker) checkChannels() {
+func (wrk *Worker) checkChannels(ctx context.Context) {
+	var rcvDta *consensus.Message
+
 	for {
-		rcvDta := <-wrk.executeMessageChannel
+		select {
+		case <-ctx.Done():
+			log.Debug("worker's go routine is stopping...")
+			return
+		case rcvDta = <-wrk.executeMessageChannel:
+		case <-time.After(sleepTime):
+			continue
+		}
+
 		msgType := consensus.MessageType(rcvDta.MsgType)
 		if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
 			if callReceivedMessage(rcvDta) {
@@ -621,6 +639,15 @@ func (wrk *Worker) SetAppStatusHandler(ash core.AppStatusHandler) error {
 		return ErrNilAppStatusHandler
 	}
 	wrk.appStatusHandler = ash
+
+	return nil
+}
+
+// Close will close the endless running go routine
+func (wrk *Worker) Close() error {
+	if wrk.cancelFunc != nil {
+		wrk.cancelFunc()
+	}
 
 	return nil
 }

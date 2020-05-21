@@ -75,6 +75,7 @@ const (
 	shuffleBetweenShards = false
 	adaptivity           = false
 	hysteresis           = float32(0.2)
+	maxTrieLevelInMemory = uint(5)
 )
 
 // Type defines account types to save in accounts trie
@@ -390,7 +391,7 @@ func CreateAccountsDB(
 	accountType Type,
 	trieStorageManager data.StorageManager,
 ) (*state.AccountsDB, data.Trie) {
-	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher)
+	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher, maxTrieLevelInMemory)
 
 	accountFactory := getAccountFactory(accountType)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, TestMarshalizer, accountFactory)
@@ -786,7 +787,8 @@ func CreateNewDefaultTrie() data.Trie {
 		MaxSnapshots:       2,
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(CreateMemUnit(), TestMarshalizer, TestHasher, config.DBConfig{}, ewl, generalCfg)
-	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher)
+
+	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, maxTrieLevelInMemory)
 	return tr
 }
 
@@ -1162,7 +1164,7 @@ func CreateAndSendTransaction(
 		RcvAddr:  rcvAddress,
 		Data:     []byte(txData),
 		GasPrice: MinTxGasPrice,
-		GasLimit: MinTxGasLimit*100 + uint64(len(txData)),
+		GasLimit: MinTxGasLimit*1000 + uint64(len(txData)),
 	}
 
 	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
@@ -1746,35 +1748,71 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, _ uint32) map[uint
 	return validatorsMap
 }
 
+// GenValidatorsFromPubKeys generates a map of validators per shard out of public keys map
+func GenValidatorsFromPubKeysAndTxPubKeys(
+	blsPubKeysMap map[uint32][]string,
+	txPubKeysMap map[uint32][]string,
+) map[uint32][]sharding.GenesisNodeInfoHandler {
+	validatorsMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+
+	for shardId, shardNodesPks := range blsPubKeysMap {
+		var shardValidators []sharding.GenesisNodeInfoHandler
+		for i := 0; i < len(shardNodesPks); i++ {
+			v := mock.NewNodeInfo([]byte(txPubKeysMap[shardId][i]), []byte(shardNodesPks[i]), shardId)
+			shardValidators = append(shardValidators, v)
+		}
+		validatorsMap[shardId] = shardValidators
+	}
+
+	return validatorsMap
+}
+
 // CreateCryptoParams generates the crypto parameters (key pairs, key generator and suite) for multiple nodes
 func CreateCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards uint32) *CryptoParams {
+	txSuite := ed25519.NewEd25519()
+	txKeyGen := signing.NewKeyGenerator(txSuite)
 	suite := mcl.NewSuiteBLS12()
 	singleSigner := &ed25519SingleSig.Ed25519Signer{}
 	keyGen := signing.NewKeyGenerator(suite)
 
+	txKeysMap := make(map[uint32][]*TestKeyPair)
 	keysMap := make(map[uint32][]*TestKeyPair)
 	for shardId := uint32(0); shardId < nbShards; shardId++ {
+		txKeyPairs := make([]*TestKeyPair, nodesPerShard)
 		keyPairs := make([]*TestKeyPair, nodesPerShard)
 		for n := 0; n < nodesPerShard; n++ {
 			kp := &TestKeyPair{}
 			kp.Sk, kp.Pk = keyGen.GeneratePair()
 			keyPairs[n] = kp
+
+			txKp := &TestKeyPair{}
+			txKp.Sk, txKp.Pk = txKeyGen.GeneratePair()
+			txKeyPairs[n] = txKp
 		}
 		keysMap[shardId] = keyPairs
+		txKeysMap[shardId] = txKeyPairs
 	}
 
+	txKeyPairs := make([]*TestKeyPair, nbMetaNodes)
 	keyPairs := make([]*TestKeyPair, nbMetaNodes)
 	for n := 0; n < nbMetaNodes; n++ {
 		kp := &TestKeyPair{}
 		kp.Sk, kp.Pk = keyGen.GeneratePair()
 		keyPairs[n] = kp
+
+		txKp := &TestKeyPair{}
+		txKp.Sk, txKp.Pk = txKeyGen.GeneratePair()
+		txKeyPairs[n] = txKp
 	}
 	keysMap[core.MetachainShardId] = keyPairs
+	txKeysMap[core.MetachainShardId] = txKeyPairs
 
 	params := &CryptoParams{
 		Keys:         keysMap,
 		KeyGen:       keyGen,
 		SingleSigner: singleSigner,
+		TxKeyGen:     txKeyGen,
+		TxKeys:       txKeysMap,
 	}
 
 	return params
@@ -1961,7 +1999,7 @@ func createTxPool(selfShardID uint32) (dataRetriever.ShardedDataCacherNotifier, 
 				SizeInBytes: 1000000000,
 				Shards:      16,
 			},
-			MinGasPrice:    100000000000000,
+			MinGasPrice:    200000000000,
 			NumberOfShards: 1,
 			SelfShardID:    selfShardID,
 		},

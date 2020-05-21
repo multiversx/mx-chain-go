@@ -66,6 +66,12 @@ func (tep *txExecutionProcessor) GetNonce(senderBytes []byte) (uint64, error) {
 	return accnt.GetNonce(), nil
 }
 
+// AccountExists returns if an account exists in the accounts DB
+func (tep *txExecutionProcessor) AccountExists(address []byte) bool {
+	_, err := tep.accounts.GetExistingAccount(address)
+	return err == nil
+}
+
 // AddBalance adds the provided value on the balance field
 func (tep *txExecutionProcessor) AddBalance(senderBytes []byte, value *big.Int) error {
 	accnt, err := tep.accounts.LoadAccount(senderBytes)

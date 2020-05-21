@@ -35,6 +35,7 @@ type HeaderHandler interface {
 	GetSignature() []byte
 	GetLeaderSignature() []byte
 	GetChainID() []byte
+	GetSoftwareVersion() []byte
 	GetTimeStamp() uint64
 	GetTxCount() uint32
 	GetReceiptsHash() []byte
@@ -58,6 +59,7 @@ type HeaderHandler interface {
 	SetSignature(sg []byte)
 	SetLeaderSignature(sg []byte)
 	SetChainID(chainID []byte)
+	SetSoftwareVersion(version []byte)
 	SetTxCount(txCount uint32)
 
 	IsStartOfEpochBlock() bool
@@ -65,10 +67,6 @@ type HeaderHandler interface {
 
 	IsInterfaceNil() bool
 	Clone() HeaderHandler
-
-	// TODO: move this checks to a separate component
-	CheckChainID(reference []byte) error
-	CheckSoftwareVersion() error
 }
 
 // BodyHandler interface for a block body
@@ -210,7 +208,7 @@ type StorageManager interface {
 
 // TrieFactory creates new tries
 type TrieFactory interface {
-	Create(config.StorageConfig, string, bool) (StorageManager, Trie, error)
+	Create(config.StorageConfig, string, bool, uint) (StorageManager, Trie, error)
 	IsInterfaceNil() bool
 }
 

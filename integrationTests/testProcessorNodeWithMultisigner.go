@@ -2,6 +2,7 @@ package integrationTests
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"strconv"
 	"testing"
@@ -36,6 +37,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	keyIndex int,
 	ownAccount *TestWalletAccount,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
+	headerIntegrityVerifier process.InterceptedHeaderIntegrityVerifier,
 	nodeSetup sharding.GenesisNodesSetupHandler,
 ) *TestProcessorNode {
 
@@ -43,13 +45,14 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 
 	messenger := CreateMessengerWithKadDht(initialNodeAddr)
 	tpn := &TestProcessorNode{
-		ShardCoordinator:  shardCoordinator,
-		Messenger:         messenger,
-		NodesCoordinator:  nodesCoordinator,
-		HeaderSigVerifier: headerSigVerifier,
-		ChainID:           ChainID,
-		NodesSetup:        nodeSetup,
-		RatingsData:       ratingsData,
+		ShardCoordinator:        shardCoordinator,
+		Messenger:               messenger,
+		NodesCoordinator:        nodesCoordinator,
+		HeaderSigVerifier:       headerSigVerifier,
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		ChainID:                 ChainID,
+		NodesSetup:              nodeSetup,
+		RatingsData:             ratingsData,
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
@@ -110,6 +113,171 @@ func CreateNodesWithNodesCoordinatorWithCacher(
 	coordinatorFactory := &IndexHashedNodesCoordinatorFactory{}
 	return CreateNodesWithNodesCoordinatorFactory(nodesPerShard, nbMetaNodes, nbShards, shardConsensusGroupSize, metaConsensusGroupSize, seedAddress, coordinatorFactory)
 
+}
+
+// CreateNodesWithNodesCoordinatorAndTxKeys -
+func CreateNodesWithNodesCoordinatorAndTxKeys(
+	nodesPerShard int,
+	nbMetaNodes int,
+	nbShards int,
+	shardConsensusGroupSize int,
+	metaConsensusGroupSize int,
+	seedAddress string,
+) map[uint32][]*TestProcessorNode {
+	rater, _ := rating.NewBlockSigningRater(CreateRatingsData())
+	coordinatorFactory := &IndexHashedNodesCoordinatorWithRaterFactory{
+		PeerAccountListAndRatingHandler: rater,
+	}
+	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
+	blsPubKeys := PubKeysMapFromKeysMap(cp.Keys)
+	txPubKeys := PubKeysMapFromKeysMap(cp.TxKeys)
+	validatorsMap := GenValidatorsFromPubKeysAndTxPubKeys(blsPubKeys, txPubKeys)
+	validatorsMapForNodesCoordinator, _ := sharding.NodesInfoToValidators(validatorsMap)
+
+	waitingMap := make(map[uint32][]sharding.GenesisNodeInfoHandler)
+	for i := 0; i < nbShards; i++ {
+		waitingMap[uint32(i)] = make([]sharding.GenesisNodeInfoHandler, 0)
+	}
+	waitingMap[core.MetachainShardId] = make([]sharding.GenesisNodeInfoHandler, 0)
+
+	waitingMapForNodesCoordinator := make(map[uint32][]sharding.Validator)
+	for i := 0; i < nbShards; i++ {
+		waitingMapForNodesCoordinator[uint32(i)] = make([]sharding.Validator, 0)
+	}
+	waitingMapForNodesCoordinator[core.MetachainShardId] = make([]sharding.Validator, 0)
+
+	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]sharding.GenesisNodeInfoHandler, m2 map[uint32][]sharding.GenesisNodeInfoHandler) {
+		return validatorsMap, waitingMap
+	}}
+
+	nodesMap := make(map[uint32][]*TestProcessorNode)
+
+	for shardId, validatorList := range validatorsMap {
+		nodesList := make([]*TestProcessorNode, len(validatorList))
+
+		for i := range validatorList {
+			dataCache, _ := lrucache.NewCache(10000)
+			nodesList[i] = CreateNodeWithBLSAndTxKeys(
+				nodesPerShard,
+				nbMetaNodes,
+				shardConsensusGroupSize,
+				metaConsensusGroupSize,
+				shardId,
+				nbShards,
+				validatorsMapForNodesCoordinator,
+				waitingMapForNodesCoordinator,
+				i,
+				seedAddress,
+				cp,
+				dataCache,
+				coordinatorFactory,
+				nodesSetup,
+				nil,
+			)
+		}
+
+		nodesMap[shardId] = append(nodesMap[shardId], nodesList...)
+	}
+
+	return nodesMap
+}
+
+// CreateNodeWithBLSAndTxKeys -
+func CreateNodeWithBLSAndTxKeys(
+	nodesPerShard int,
+	nbMetaNodes int,
+	shardConsensusGroupSize int,
+	metaConsensusGroupSize int,
+	shardId uint32,
+	nbShards int,
+	validatorsMap map[uint32][]sharding.Validator,
+	waitingMap map[uint32][]sharding.Validator,
+	keyIndex int,
+	seedAddress string,
+	cp *CryptoParams,
+	cache sharding.Cacher,
+	coordinatorFactory NodesCoordinatorFactory,
+	nodesSetup sharding.GenesisNodesSetupHandler,
+	ratingsData *rating.RatingsData,
+) *TestProcessorNode {
+
+	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+	bootStorer := CreateMemUnit()
+	argFactory := ArgIndexHashedNodesCoordinatorFactory{
+		nodesPerShard,
+		nbMetaNodes,
+		shardConsensusGroupSize,
+		metaConsensusGroupSize,
+		shardId,
+		nbShards,
+		validatorsMap,
+		waitingMap,
+		keyIndex,
+		cp,
+		epochStartSubscriber,
+		TestHasher,
+		cache,
+		bootStorer,
+	}
+	nodesCoordinator := coordinatorFactory.CreateNodesCoordinator(argFactory)
+
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(nbShards), shardId)
+
+	messenger := CreateMessengerWithKadDht(seedAddress)
+	tpn := &TestProcessorNode{
+		ShardCoordinator:        shardCoordinator,
+		Messenger:               messenger,
+		NodesCoordinator:        nodesCoordinator,
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		ChainID:                 ChainID,
+		NodesSetup:              nodesSetup,
+		RatingsData:             ratingsData,
+	}
+
+	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
+	blsHasher := &blake2b.Blake2b{HashSize: hashing.BlsHashSize}
+	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
+
+	pubKeysMap := PubKeysMapFromKeysMap(cp.Keys)
+
+	tpn.MultiSigner, _ = multisig.NewBLSMultisig(
+		llsig,
+		pubKeysMap[shardId],
+		tpn.NodeKeys.Sk,
+		cp.KeyGen,
+		0,
+	)
+	if tpn.MultiSigner == nil {
+		fmt.Println("Error generating multisigner")
+	}
+	twa := &TestWalletAccount{}
+	twa.SingleSigner = cp.SingleSigner
+	twa.BlockSingleSigner = &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			return nil
+		},
+	}
+	sk := cp.TxKeys[shardId][keyIndex].Sk
+	pk := cp.TxKeys[shardId][keyIndex].Pk
+	keyGen := cp.TxKeyGen
+
+	pkBuff, _ := pk.ToByteArray()
+	fmt.Printf("Found pk: %s in shard %d\n", hex.EncodeToString(pkBuff), shardId)
+
+	twa.SkTxSign = sk
+	twa.PkTxSign = pk
+	twa.PkTxSignBytes, _ = pk.ToByteArray()
+	twa.KeygenTxSign = keyGen
+	twa.KeygenBlockSign = &mock.KeyGenMock{}
+	twa.Address = twa.PkTxSignBytes
+	tpn.OwnAccount = twa
+
+	tpn.EpochStartNotifier = epochStartSubscriber
+	tpn.initDataPools()
+	tpn.initTestNode()
+
+	return tpn
 }
 
 // CreateNodesWithNodesCoordinatorFactory returns a map with nodes per shard each using a real nodes coordinator
@@ -190,6 +358,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 	return nodesMap
 }
 
+// CreateNode -
 func CreateNode(
 	nodesPerShard int,
 	nbMetaNodes int,
@@ -240,6 +409,7 @@ func CreateNode(
 		keyIndex,
 		nil,
 		&mock.HeaderSigVerifierStub{},
+		&mock.HeaderIntegrityVerifierStub{},
 		nodesSetup,
 	)
 }
@@ -295,7 +465,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
 		if err != nil {
-			fmt.Println("Error creating node coordinator")
+			fmt.Println("Error creating node coordinator: " + err.Error())
 		}
 
 		nodesList := make([]*TestProcessorNode, len(validatorList))
@@ -308,6 +478,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			KeyGen:            keyGen,
 		}
 		headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
+		headerIntegrityVerifier, _ := headerCheck.NewHeaderIntegrityVerifier(ChainID)
 		for i := range validatorList {
 			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
 				uint32(nbShards),
@@ -320,6 +491,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 				i,
 				nil,
 				headerSig,
+				headerIntegrityVerifier,
 				nodesSetup,
 			)
 		}
@@ -406,6 +578,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			}
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
+			headerIntegrityVerifier, _ := headerCheck.NewHeaderIntegrityVerifier(ChainID)
 			nodesList[i] = NewTestProcessorNodeWithCustomNodesCoordinator(
 				uint32(nbShards),
 				shardId,
@@ -417,6 +590,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				i,
 				ownAccount,
 				headerSig,
+				headerIntegrityVerifier,
 				nodesSetup,
 			)
 		}

@@ -55,6 +55,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	TxFeeHandler           process.FeeHandler
 	BlackList              process.BlackListHandler
 	HeaderSigVerifier      process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
 	SizeCheckDelta         uint32
 	ValidityAttester       process.ValidityAttester
 	EpochStartTrigger      process.EpochStartTriggerHandler
@@ -97,6 +98,9 @@ func NewFullSyncInterceptorsContainerFactory(
 	if check.IfNil(args.HeaderSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
 	}
+	if check.IfNil(args.HeaderIntegrityVerifier) {
+		return nil, process.ErrNilHeaderIntegrityVerifier
+	}
 	if check.IfNil(args.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
@@ -120,6 +124,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		NodesCoordinator:       args.NodesCoordinator,
 		FeeHandler:             args.TxFeeHandler,
 		HeaderSigVerifier:      args.HeaderSigVerifier,
+		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
 		ValidityAttester:       args.ValidityAttester,
 		EpochStartTrigger:      args.EpochStartTrigger,
 		WhiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,

@@ -43,5 +43,6 @@ type ArgInterceptedDataFactory struct {
 	WhiteListerVerifiedTxs process.WhiteListHandler
 	HeaderSigVerifier      process.InterceptedHeaderSigVerifier
 	ValidityAttester       process.ValidityAttester
+	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
 	EpochStartTrigger      process.EpochStartTriggerHandler
 }

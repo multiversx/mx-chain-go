@@ -21,6 +21,7 @@ type ShardInterceptorsContainerFactoryArgs struct {
 	TxFeeHandler           process.FeeHandler
 	BlackList              process.BlackListHandler
 	HeaderSigVerifier      process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
 	SizeCheckDelta         uint32
 	ValidityAttester       process.ValidityAttester
 	EpochStartTrigger      process.EpochStartTriggerHandler
@@ -43,6 +44,7 @@ type MetaInterceptorsContainerFactoryArgs struct {
 	TxFeeHandler           process.FeeHandler
 	BlackList              process.BlackListHandler
 	HeaderSigVerifier      process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
 	SizeCheckDelta         uint32
 	ValidityAttester       process.ValidityAttester
 	EpochStartTrigger      process.EpochStartTriggerHandler

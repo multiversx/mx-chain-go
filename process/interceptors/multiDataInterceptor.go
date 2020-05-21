@@ -99,7 +99,6 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		return err
 	}
 
-	interceptedMultiData := make([]process.InterceptedData, 0)
 	lastErrEncountered := error(nil)
 	// TODO: might think of a way to gracefully close the goroutine which waits for the wait group
 	wgProcess := &sync.WaitGroup{}
@@ -107,7 +106,6 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 	go func() {
 		wgProcess.Wait()
-		mdi.processor.SignalEndOfProcessing(interceptedMultiData)
 		mdi.throttler.EndProcessing()
 	}()
 
@@ -119,8 +117,6 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 			wgProcess.Done()
 			continue
 		}
-
-		interceptedMultiData = append(interceptedMultiData, interceptedData)
 
 		isForCurrentShard := interceptedData.IsForCurrentShard()
 		isWhiteListed := mdi.whiteListRequest.IsWhiteListed(interceptedData)

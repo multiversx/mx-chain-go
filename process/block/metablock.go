@@ -1118,6 +1118,11 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.displayPoolsInfo()
 
+	errNotCritical = mp.removeBlockDataFromPools(headerHandler, bodyHandler)
+	if errNotCritical != nil {
+		log.Debug("removeBlockDataFromPools", "error", errNotCritical.Error())
+	}
+
 	mp.cleanupPools(headerHandler)
 
 	return nil

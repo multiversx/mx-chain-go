@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"context"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -31,9 +32,12 @@ func TestBaseBootstrap_SyncBlocksShouldNotCallSyncIfNotConnectedToTheNetwork(t *
 		},
 	}
 
-	go boot.syncBlocks()
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	go boot.syncBlocks(ctx)
+
 	//make sure go routine started and waited a few cycles of boot.syncBlocks
 	time.Sleep(time.Second + sleepTime*10)
+	cancelFunc()
 
 	assert.Equal(t, uint32(0), atomic.LoadUint32(&numCalls))
 }
@@ -57,10 +61,12 @@ func TestBaseBootstrap_SyncBlocksShouldCallSyncIfConnectedToTheNetwork(t *testin
 		},
 	}
 
-	go boot.syncBlocks()
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	go boot.syncBlocks(ctx)
 
 	//make sure go routine started and waited a few cycles of boot.syncBlocks
 	time.Sleep(time.Second + sleepTime*10)
+	cancelFunc()
 
 	assert.True(t, atomic.LoadUint32(&numCalls) > 0)
 }

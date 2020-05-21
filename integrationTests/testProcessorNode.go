@@ -53,6 +53,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
+	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
@@ -113,10 +114,10 @@ var TestBalanceComputationHandler, _ = preprocess.NewBalanceComputation()
 var MinTxGasPrice = uint64(10)
 
 // MinTxGasLimit defines minimum gas limit required by a transaction
-var MinTxGasLimit = uint64(1000)
+var MinTxGasLimit = uint64(1_000)
 
 // MaxGasLimitPerBlock defines maximum gas limit allowed per one block
-const MaxGasLimitPerBlock = uint64(300000)
+const MaxGasLimitPerBlock = uint64(3_000_000)
 
 const maxTxNonceDeltaAllowed = 8000
 const minConnectedPeers = 0
@@ -135,7 +136,7 @@ const roundDuration = 5 * time.Second
 var ChainID = []byte("integration tests chain ID")
 
 // SoftwareVersion is the software version identifier used in integration tests, processing nodes
-var SoftwareVersion = []byte("integration tests")
+var SoftwareVersion = []byte("intT")
 
 var testCommunityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
 
@@ -155,6 +156,8 @@ type CryptoParams struct {
 	KeyGen       crypto.KeyGenerator
 	Keys         map[uint32][]*TestKeyPair
 	SingleSigner crypto.SingleSigner
+	TxKeyGen     crypto.KeyGenerator
+	TxKeys       map[uint32][]*TestKeyPair
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -218,8 +221,9 @@ type TestProcessorNode struct {
 	EpochStartTrigger  TestEpochStartTrigger
 	EpochStartNotifier notifier.EpochStartNotifier
 
-	MultiSigner       crypto.MultiSigner
-	HeaderSigVerifier process.InterceptedHeaderSigVerifier
+	MultiSigner             crypto.MultiSigner
+	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
 
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	Rater                        sharding.PeerAccountListAndRatingHandler
@@ -313,13 +317,15 @@ func NewTestProcessorNode(
 	}
 
 	messenger := CreateMessengerWithKadDht(initialNodeAddr)
+	headerIntegrityVerifier, _ := headerCheck.NewHeaderIntegrityVerifier(ChainID)
 	tpn := &TestProcessorNode{
-		ShardCoordinator:  shardCoordinator,
-		Messenger:         messenger,
-		NodesCoordinator:  nodesCoordinator,
-		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           ChainID,
-		NodesSetup:        nodesSetup,
+		ShardCoordinator:        shardCoordinator,
+		Messenger:               messenger,
+		NodesCoordinator:        nodesCoordinator,
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		ChainID:                 ChainID,
+		NodesSetup:              nodesSetup,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -348,12 +354,13 @@ func NewTestProcessorNodeWithCustomDataPool(maxShards uint32, nodeShardId uint32
 	sk, pk := kg.GeneratePair()
 
 	tpn := &TestProcessorNode{
-		ShardCoordinator:  shardCoordinator,
-		Messenger:         messenger,
-		NodesCoordinator:  nodesCoordinator,
-		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           ChainID,
-		NodesSetup:        &mock.NodesSetupStub{},
+		ShardCoordinator:        shardCoordinator,
+		Messenger:               messenger,
+		NodesCoordinator:        nodesCoordinator,
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		ChainID:                 ChainID,
+		NodesSetup:              &mock.NodesSetupStub{},
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -683,6 +690,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			TxFeeHandler:           tpn.EconomicsData,
 			BlackList:              tpn.BlockBlackListHandler,
 			HeaderSigVerifier:      tpn.HeaderSigVerifier,
+			HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
 			SizeCheckDelta:         sizeCheckDelta,
 			ValidityAttester:       tpn.BlockTracker,
 			EpochStartTrigger:      tpn.EpochStartTrigger,
@@ -733,6 +741,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			TxFeeHandler:           tpn.EconomicsData,
 			BlackList:              tpn.BlockBlackListHandler,
 			HeaderSigVerifier:      tpn.HeaderSigVerifier,
+			HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
 			SizeCheckDelta:         sizeCheckDelta,
 			ValidityAttester:       tpn.BlockTracker,
 			EpochStartTrigger:      tpn.EpochStartTrigger,
@@ -840,7 +849,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		tpn.ShardCoordinator,
 	)
 
-	gasSchedule := arwenConfig.MakeGasMap(1)
+	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:          gasSchedule,
@@ -1178,9 +1187,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
-		blsKeyedPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(128)
 		argsStakingToPeer := scToProtocol.ArgStakingToPeer{
-			PubkeyConv:       blsKeyedPubkeyConverter,
+			PubkeyConv:       TestValidatorPubkeyConverter,
 			Hasher:           TestHasher,
 			ProtoMarshalizer: TestMarshalizer,
 			VmMarshalizer:    TestVmMarshalizer,
@@ -1330,6 +1338,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithPrivKey(tpn.NodeKeys.Sk),
 		node.WithPubKey(tpn.NodeKeys.Pk),
 		node.WithInterceptorsContainer(tpn.InterceptorsContainer),
+		node.WithHeaderIntegrityVerifier(tpn.HeaderIntegrityVerifier),
 		node.WithResolversFinder(tpn.ResolverFinder),
 		node.WithBlockProcessor(tpn.BlockProcessor),
 		node.WithTxSingleSigner(tpn.OwnAccount.SingleSigner),
@@ -1420,7 +1429,7 @@ func (tpn *TestProcessorNode) StartSync() error {
 		return errors.New("no bootstrapper available")
 	}
 
-	tpn.Bootstrapper.StartSync()
+	tpn.Bootstrapper.StartSyncingBlocks()
 
 	return nil
 }
@@ -1460,6 +1469,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	blockHeader.SetRandSeed(sig)
 	blockHeader.SetLeaderSignature([]byte("leader sign"))
 	blockHeader.SetChainID(tpn.ChainID)
+	blockHeader.SetSoftwareVersion(SoftwareVersion)
 	blockHeader.SetTimeStamp(round * uint64(tpn.Rounder.TimeDuration().Seconds()))
 
 	blockHeader, blockBody, err := tpn.BlockProcessor.CreateBlock(blockHeader, haveTime)

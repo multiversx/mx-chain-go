@@ -175,6 +175,9 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	}
 
 	for shardID := uint32(0); shardID < gbc.arg.ShardCoordinator.NumberOfShards(); shardID++ {
+		log.Debug("genesis block creator",
+			"shard ID", shardID,
+		)
 		newArgument, err = gbc.getNewArgForShard(shardID)
 		if err != nil {
 			return nil, fmt.Errorf("'%w' while creating new argument for shard %d",
@@ -195,6 +198,10 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 		}
 	}
 
+	log.Debug("genesis block creator",
+		"shard ID", "meta",
+	)
+
 	newArgument, err = gbc.getNewArgForShard(core.MetachainShardId)
 	if err != nil {
 		return nil, fmt.Errorf("'%w' while creating new argument for metachain", err)
@@ -212,6 +219,8 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	if err != nil {
 		return nil, fmt.Errorf("'%w' while saving genesis block for metachain", err)
 	}
+
+	//TODO call here trie pruning on all roothashes not from current shard
 
 	return genesisBlocks, nil
 }

@@ -117,11 +117,12 @@ type Node struct {
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
-	indexer                indexer.Indexer
-	blocksBlackListHandler process.BlackListHandler
-	bootStorer             process.BootStorer
-	requestedItemsHandler  dataRetriever.RequestedItemsHandler
-	headerSigVerifier      spos.HeaderSigVerifier
+	indexer                 indexer.Indexer
+	blocksBlackListHandler  process.BlackListHandler
+	bootStorer              process.BootStorer
+	requestedItemsHandler   dataRetriever.RequestedItemsHandler
+	headerSigVerifier       spos.HeaderSigVerifier
+	headerIntegrityVerifier spos.HeaderIntegrityVerifier
 
 	chainID                  []byte
 	blockTracker             process.BlockTracker
@@ -240,7 +241,8 @@ func (n *Node) StartConsensus() error {
 		log.Debug("cannot set app status handler for shard bootstrapper")
 	}
 
-	bootstrapper.StartSync()
+	bootstrapper.StartSyncingBlocks()
+
 	epoch := uint32(0)
 	crtBlockHeader := n.blkc.GetCurrentBlockHeader()
 	if !check.IfNil(crtBlockHeader) {
@@ -292,6 +294,7 @@ func (n *Node) StartConsensus() error {
 		SingleSigner:             n.singleSigner,
 		SyncTimer:                n.syncTimer,
 		HeaderSigVerifier:        n.headerSigVerifier,
+		HeaderIntegrityVerifier:  n.headerIntegrityVerifier,
 		ChainID:                  n.chainID,
 		NetworkShardingCollector: n.networkShardingCollector,
 		AntifloodHandler:         n.inputAntifloodHandler,
@@ -304,6 +307,8 @@ func (n *Node) StartConsensus() error {
 	if err != nil {
 		return err
 	}
+
+	worker.StartWorking()
 
 	n.dataPool.Headers().RegisterHandler(worker.ReceivedHeader)
 
@@ -356,7 +361,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	go chronologyHandler.StartRounds()
+	chronologyHandler.StartRounds()
 
 	return nil
 }
@@ -954,6 +959,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		VersionNumber:            versionNumber,
 		PeerShardMapper:          n.networkShardingCollector,
 		SizeCheckDelta:           n.sizeCheckDelta,
+		ValidatorsProvider:       n.validatorsProvider,
 	}
 
 	var err error

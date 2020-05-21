@@ -80,20 +80,6 @@ func TestNewInterceptedShardHeaderDataFactory_NilShardCoordinatorShouldErr(t *te
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
-func TestNewInterceptedShardHeaderDataFactory_NilChainIdShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, cryptoComponents := createMockComponentHolders()
-	coreComponents.ChainIdCalled = func() string {
-		return ""
-	}
-	arg := createMockArgument(coreComponents, cryptoComponents)
-
-	imh, err := NewInterceptedShardHeaderDataFactory(arg)
-	assert.True(t, check.IfNil(imh))
-	assert.Equal(t, process.ErrInvalidChainID, err)
-}
-
 func TestNewInterceptedShardHeaderDataFactory_NilValidityAttesterShouldErr(t *testing.T) {
 	t.Parallel()
 

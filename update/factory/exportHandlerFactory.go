@@ -41,11 +41,13 @@ type ArgsExporter struct {
 	ExportFolder             string
 	ExportTriesStorageConfig config.StorageConfig
 	ExportStateStorageConfig config.StorageConfig
+	MaxTrieLevelInMemory     uint
 	WhiteListHandler         process.WhiteListHandler
 	WhiteListerVerifiedTxs   process.WhiteListHandler
 	InterceptorsContainer    process.InterceptorsContainer
 	NodesCoordinator         sharding.NodesCoordinator
 	HeaderSigVerifier        process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier  process.InterceptedHeaderIntegrityVerifier
 	ValidityAttester         process.ValidityAttester
 	InputAntifloodHandler    dataRetriever.P2PAntifloodHandler
 	OutputAntifloodHandler   dataRetriever.P2PAntifloodHandler
@@ -64,6 +66,7 @@ type exportHandlerFactory struct {
 	exportFolder             string
 	exportTriesStorageConfig config.StorageConfig
 	exportStateStorageConfig config.StorageConfig
+	maxTrieLevelInMemory     uint
 	whiteListHandler         process.WhiteListHandler
 	whiteListerVerifiedTxs   process.WhiteListHandler
 	interceptorsContainer    process.InterceptorsContainer
@@ -72,6 +75,7 @@ type exportHandlerFactory struct {
 	accounts                 state.AccountsAdapter
 	nodesCoordinator         sharding.NodesCoordinator
 	headerSigVerifier        process.InterceptedHeaderSigVerifier
+	headerIntegrityVerifier  process.InterceptedHeaderIntegrityVerifier
 	validityAttester         process.ValidityAttester
 	resolverContainer        dataRetriever.ResolversContainer
 	inputAntifloodHandler    dataRetriever.P2PAntifloodHandler
@@ -152,6 +156,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.HeaderSigVerifier) {
 		return nil, update.ErrNilHeaderSigVerifier
 	}
+	if check.IfNil(args.HeaderIntegrityVerifier) {
+		return nil, update.ErrNilHeaderIntegrityVerifier
+	}
 	if check.IfNil(args.ValidityAttester) {
 		return nil, update.ErrNilValidityAttester
 	}
@@ -185,9 +192,11 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		accounts:                 args.ActiveAccountsDBs[state.UserAccountsState],
 		nodesCoordinator:         args.NodesCoordinator,
 		headerSigVerifier:        args.HeaderSigVerifier,
+		headerIntegrityVerifier:  args.HeaderIntegrityVerifier,
 		validityAttester:         args.ValidityAttester,
 		inputAntifloodHandler:    args.InputAntifloodHandler,
 		outputAntifloodHandler:   args.OutputAntifloodHandler,
+		maxTrieLevelInMemory:     args.MaxTrieLevelInMemory,
 	}
 
 	return e, nil
@@ -223,11 +232,12 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsDataTrieFactory := ArgsNewDataTrieFactory{
-		StorageConfig:    e.exportTriesStorageConfig,
-		SyncFolder:       e.exportFolder,
-		Marshalizer:      e.CoreComponents.InternalMarshalizer(),
-		Hasher:           e.CoreComponents.Hasher(),
-		ShardCoordinator: e.shardCoordinator,
+		StorageConfig:        e.exportTriesStorageConfig,
+		SyncFolder:           e.exportFolder,
+		Marshalizer:          e.CoreComponents.InternalMarshalizer(),
+		Hasher:               e.CoreComponents.Hasher(),
+		ShardCoordinator:     e.shardCoordinator,
+		MaxTrieLevelInMemory: e.maxTrieLevelInMemory,
 	}
 	dataTriesContainerFactory, err := NewDataTrieFactory(argsDataTrieFactory)
 	if err != nil {
@@ -258,13 +268,14 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsAccountsSyncers := ArgsNewAccountsDBSyncersContainerFactory{
-		TrieCacher:         e.dataPool.TrieNodes(),
-		RequestHandler:     e.requestHandler,
-		ShardCoordinator:   e.shardCoordinator,
-		Hasher:             e.CoreComponents.Hasher(),
-		Marshalizer:        e.CoreComponents.InternalMarshalizer(),
-		TrieStorageManager: dataTriesContainerFactory.TrieStorageManager(),
-		WaitTime:           time.Minute,
+		TrieCacher:           e.dataPool.TrieNodes(),
+		RequestHandler:       e.requestHandler,
+		ShardCoordinator:     e.shardCoordinator,
+		Hasher:               e.CoreComponents.Hasher(),
+		Marshalizer:          e.CoreComponents.InternalMarshalizer(),
+		TrieStorageManager:   dataTriesContainerFactory.TrieStorageManager(),
+		WaitTime:             time.Minute,
+		MaxTrieLevelInMemory: e.maxTrieLevelInMemory,
 	}
 	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)
 	if err != nil {
@@ -379,6 +390,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		TxFeeHandler:           &disabled.FeeHandler{},
 		BlackList:              timecache.NewTimeCache(time.Second),
 		HeaderSigVerifier:      e.headerSigVerifier,
+		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 		SizeCheckDelta:         math.MaxUint32,
 		ValidityAttester:       e.validityAttester,
 		EpochStartTrigger:      e.epochStartTrigger,

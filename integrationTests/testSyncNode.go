@@ -71,11 +71,12 @@ func NewTestSyncNode(
 				return nil
 			},
 		},
-		StorageBootstrapper: &mock.StorageBootstrapperMock{},
-		HeaderSigVerifier:   &mock.HeaderSigVerifierStub{},
-		ChainID:             ChainID,
-		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
-		NodesSetup:          nodesSetup,
+		StorageBootstrapper:     &mock.StorageBootstrapperMock{},
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		ChainID:                 ChainID,
+		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		NodesSetup:              nodesSetup,
 	}
 
 	kg := &mock.KeyGenMock{}

@@ -190,7 +190,7 @@
      MaxOpenFiles = 10
 
 [TrieStorageManagerConfig]
-    PruningBufferLen = 1000
+    PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
     MaxSnapshots = 2
 
@@ -373,6 +373,7 @@
    HeartbeatRefreshIntervalInSec        = 60
    HideInactiveValidatorIntervalInSec   = 3600
    DurationToConsiderUnresponsiveInSec  = 60
+   PeerTypeRefreshIntervalInSec         = 60
    [Heartbeat.HeartbeatStorage]
        [Heartbeat.HeartbeatStorage.Cache]
            Size = 1000
@@ -400,6 +401,8 @@
     CheckpointRoundsModulus = 100
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
+    MaxStateTrieLevelInMemory = 5
+    MaxPeerTrieLevelInMemory = 5
 
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB

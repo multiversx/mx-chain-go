@@ -281,6 +281,8 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if ok {
 		if shardID >= nodesConfig.nbShards && shardID != core.MetachainShardId {
+			log.Warn("shardID is not ok", "shardID", shardID, "nbShards", nodesConfig.nbShards)
+			ihgs.mutNodesConfig.RUnlock()
 			return nil, ErrInvalidShardId
 		}
 		selector = nodesConfig.selectors[shardID]
@@ -523,6 +525,17 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
+	ihgs.mutNodesConfig.RLock()
+	previousConfig := ihgs.nodesConfig[ihgs.currentEpoch]
+	if previousConfig != nil && previousConfig.nbShards != newNodesConfig.nbShards {
+		log.Warn("number of shards does not match",
+			"previous epoch", ihgs.currentEpoch,
+			"previous number of shards", previousConfig.nbShards,
+			"new epoch", newEpoch,
+			"new number of shards", newNodesConfig.nbShards)
+	}
+	ihgs.mutNodesConfig.RUnlock()
+
 	additionalLeavingMap, err := ihgs.nodesCoordinatorHelper.ComputeAdditionalLeaving(allValidatorInfo)
 	if err != nil {
 		log.Error("could not compute additionalLeaving Nodes  - do nothing on nodesCoordinator epochStartPrepare")
@@ -635,12 +648,18 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		sort.Sort(validatorList(leavingList))
 	}
 
+	if len(eligibleMap) == 0 {
+		return nil, fmt.Errorf("%w eligible map size is zero. No validators found", ErrMapSizeZero)
+	}
+
+	nbShards := len(eligibleMap) - 1
+
 	newNodesConfig := &epochNodesConfig{
 		eligibleMap: eligibleMap,
 		waitingMap:  waitingMap,
 		leavingMap:  leavingMap,
 		newList:     newNodesList,
-		nbShards:    uint32(len(eligibleMap)),
+		nbShards:    uint32(nbShards),
 	}
 
 	return newNodesConfig, nil

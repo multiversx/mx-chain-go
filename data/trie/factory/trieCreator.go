@@ -57,6 +57,7 @@ func (tc *trieCreator) Create(
 	trieStorageCfg config.StorageConfig,
 	shardID string,
 	pruningEnabled bool,
+	maxTrieLevelInMem uint,
 ) (data.StorageManager, data.Trie, error) {
 	trieStoragePath, mainDb := path.Split(tc.pathManager.PathForStatic(shardID, trieStorageCfg.DB.FilePath))
 
@@ -78,7 +79,7 @@ func (tc *trieCreator) Create(
 			return nil, nil, errNewTrie
 		}
 
-		newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher)
+		newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -123,7 +124,7 @@ func (tc *trieCreator) Create(
 		return nil, nil, err
 	}
 
-	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher)
+	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem)
 	if err != nil {
 		return nil, nil, err
 	}

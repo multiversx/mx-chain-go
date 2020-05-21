@@ -78,17 +78,18 @@ func CreateShardHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte
 // CreateMetaHeader -
 func CreateMetaHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte) {
 	hdr := &block.MetaBlock{
-		Nonce:         nonce,
-		Epoch:         0,
-		ShardInfo:     make([]block.ShardData, 0),
-		Signature:     []byte("signature"),
-		PubKeysBitmap: []byte{1},
-		PrevHash:      []byte("prev hash"),
-		PrevRandSeed:  []byte("prev rand seed"),
-		RandSeed:      []byte("rand seed"),
-		RootHash:      []byte("root hash"),
-		TxCount:       0,
-		ChainID:       chainID,
+		Nonce:           nonce,
+		Epoch:           0,
+		ShardInfo:       make([]block.ShardData, 0),
+		Signature:       []byte("signature"),
+		PubKeysBitmap:   []byte{1},
+		PrevHash:        []byte("prev hash"),
+		PrevRandSeed:    []byte("prev rand seed"),
+		RandSeed:        []byte("rand seed"),
+		RootHash:        []byte("root hash"),
+		TxCount:         0,
+		ChainID:         chainID,
+		SoftwareVersion: []byte("v1.0"),
 	}
 
 	hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, hdr)

@@ -190,6 +190,28 @@ func TestNewShardInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilKeyGen, err)
 }
 
+func TestNewShardInterceptorsContainerFactory_NilHeaderSigVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsShard()
+	args.HeaderSigVerifier = nil
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilHeaderSigVerifier, err)
+}
+
+func TestNewShardInterceptorsContainerFactory_NilHeaderIntegrityVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsShard()
+	args.HeaderIntegrityVerifier = nil
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilHeaderIntegrityVerifier, err)
+}
+
 func TestNewShardInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -260,20 +282,6 @@ func TestNewShardInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *te
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilBlackListHandler, err)
-}
-
-func TestNewShardInterceptorsContainerFactory_EmptyChainIDShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createMockComponentHolders()
-	coreComp.ChainIdCalled = func() string {
-		return ""
-	}
-	args := getArgumentsShard(coreComp, cryptoComp)
-	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
-
-	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrInvalidChainID, err)
 }
 
 func TestNewShardInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing.T) {
@@ -564,6 +572,7 @@ func getArgumentsShard(
 		TxFeeHandler:           &mock.FeeHandlerStub{},
 		BlackList:              &mock.BlackListHandlerStub{},
 		HeaderSigVerifier:      &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		SizeCheckDelta:         0,
 		ValidityAttester:       &mock.ValidityAttesterStub{},
 		EpochStartTrigger:      &mock.EpochStartTriggerStub{},

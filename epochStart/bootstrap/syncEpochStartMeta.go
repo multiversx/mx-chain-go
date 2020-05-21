@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorsFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -78,6 +79,10 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		return nil, err
 	}
 	e.metaBlockProcessor = processor
+	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(args.ChainID)
+	if err != nil {
+		return nil, err
+	}
 
 	err = args.CryptoComponentsHolder.SetMultiSigner(disabled.NewMultiSigner())
 	if err != nil {
@@ -90,6 +95,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		NodesCoordinator:  disabled.NewNodesCoordinator(),
 		FeeHandler:        args.EconomicsData,
 		HeaderSigVerifier: disabled.NewHeaderSigVerifier(),
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
 		ValidityAttester:  disabled.NewValidityAttester(),
 		EpochStartTrigger: disabled.NewEpochStartTrigger(),
 	}

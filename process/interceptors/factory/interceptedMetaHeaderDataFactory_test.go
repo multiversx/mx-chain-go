@@ -77,15 +77,16 @@ func createMockArgument(
 	cryptoComponents *mock.CryptoComponentsMock,
 ) *ArgInterceptedDataFactory {
 	return &ArgInterceptedDataFactory{
-		CoreComponents:         coreComponents,
-		CryptoComponents:       cryptoComponents,
-		ShardCoordinator:       mock.NewOneShardCoordinatorMock(),
-		NodesCoordinator:       mock.NewNodesCoordinatorMock(),
-		FeeHandler:             createMockFeeHandler(),
-		HeaderSigVerifier:      &mock.HeaderSigVerifierStub{},
-		ValidityAttester:       &mock.ValidityAttesterStub{},
-		EpochStartTrigger:      &mock.EpochStartTriggerStub{},
-		WhiteListerVerifiedTxs: &mock.WhiteListHandlerStub{},
+		CoreComponents:          coreComponents,
+		CryptoComponents:        cryptoComponents,
+		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
+		NodesCoordinator:        mock.NewNodesCoordinatorMock(),
+		FeeHandler:              createMockFeeHandler(),
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		ValidityAttester:        &mock.ValidityAttesterStub{},
+		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 	}
 }
 
@@ -143,6 +144,18 @@ func TestNewInterceptedMetaHeaderDataFactory_NilHeaderSigVerifierShouldErr(t *te
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
 	assert.True(t, check.IfNil(imh))
 	assert.Equal(t, process.ErrNilHeaderSigVerifier, err)
+}
+
+func TestNewInterceptedMetaHeaderDataFactory_NilHeaderIntegrityVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	arg := createMockArgument(coreComp, cryptoComp)
+	arg.HeaderIntegrityVerifier = nil
+
+	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
+	assert.True(t, check.IfNil(imh))
+	assert.Equal(t, process.ErrNilHeaderIntegrityVerifier, err)
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_NilShardCoordinatorShouldErr(t *testing.T) {

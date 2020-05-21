@@ -64,6 +64,13 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 				MinNumConnectedPeersToStart:       2,
 				MinNumOfPeersToConsiderBlockValid: 2,
 			},
+			StateTriesConfig: config.StateTriesConfig{
+				CheckpointRoundsModulus:     5,
+				AccountsStatePruningEnabled: true,
+				PeerStatePruningEnabled:     true,
+				MaxStateTrieLevelInMemory:   5,
+				MaxPeerTrieLevelInMemory:    5,
+			},
 		},
 		EconomicsData:              &economics.EconomicsData{},
 		GenesisNodesConfig:         &mock.NodesSetupStub{},

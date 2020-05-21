@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. staking.proto
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. staking.proto
 package systemSmartContracts
 
 import (
@@ -8,7 +8,7 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -276,8 +276,7 @@ func (r *stakingSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 
-	for i := 1; i < len(args.Arguments); i++ {
-		blsKey := args.Arguments[i]
+	for _, blsKey := range args.Arguments[1:] {
 		stakedData, err := r.getOrCreateRegisteredData(blsKey)
 		if err != nil {
 			return vmcommon.UserError

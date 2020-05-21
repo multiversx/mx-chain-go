@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -101,7 +102,6 @@ type InterceptedData interface {
 type InterceptorProcessor interface {
 	Validate(data InterceptedData, fromConnectedPeer p2p.PeerID) error
 	Save(data InterceptedData, fromConnectedPeer p2p.PeerID) error
-	SignalEndOfProcessing(data []InterceptedData)
 	IsInterfaceNil() bool
 }
 
@@ -294,10 +294,10 @@ type HashAccesser interface {
 // Bootstrapper is an interface that defines the behaviour of a struct that is able
 // to synchronize the node
 type Bootstrapper interface {
+	Close() error
 	AddSyncStateListener(func(isSyncing bool))
 	GetNodeState() core.NodeState
-	StopSync()
-	StartSync()
+	StartSyncingBlocks()
 	SetStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
@@ -634,11 +634,18 @@ type RequestBlockBodyHandler interface {
 	GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error)
 }
 
-// InterceptedHeaderSigVerifier is the interface needed at interceptors level to check a header if is correct
+// InterceptedHeaderSigVerifier is the interface needed at interceptors level to check that a header's signature is correct
 type InterceptedHeaderSigVerifier interface {
 	VerifyRandSeed(header data.HeaderHandler) error
 	VerifyRandSeedAndLeaderSignature(header data.HeaderHandler) error
 	VerifySignature(header data.HeaderHandler) error
+	IsInterfaceNil() bool
+}
+
+// InterceptedHeaderIntegrityVerifier is the interface needed at interceptors level to check that a header's integrity
+// is correct
+type InterceptedHeaderIntegrityVerifier interface {
+	Verify(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -839,6 +846,34 @@ type InterceptedDebugHandler interface {
 type MiniblockAndHash struct {
 	Miniblock *block.MiniBlock
 	Hash      []byte
+}
+
+// PoolsCleaner defines the functionality to clean pools for old records
+type PoolsCleaner interface {
+	Close() error
+	StartCleaning()
+	IsInterfaceNil() bool
+}
+
+// EpochHandler defines what a component which handles current epoch should be able to do
+type EpochHandler interface {
+	MetaEpoch() uint32
+	IsInterfaceNil() bool
+}
+
+// EpochStartEventNotifier provides Register and Unregister functionality for the end of epoch events
+type EpochStartEventNotifier interface {
+	RegisterHandler(handler epochStart.ActionHandler)
+	UnregisterHandler(handler epochStart.ActionHandler)
+	IsInterfaceNil() bool
+}
+
+// NodesCoordinator provides Validator methods needed for the peer processing
+type NodesCoordinator interface {
+	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	IsInterfaceNil() bool
 }
 
 // CoreComponentsHolder holds the core components needed by the interceptors

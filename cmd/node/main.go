@@ -499,7 +499,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-	log.Debug("config", "file", configurationSystemSCFile)
+	log.Debug("config", "file", configurationSystemSCConfigFileName)
 
 	configurationRatingsFileName := ctx.GlobalString(configurationRatingsFile.Name)
 	ratingsConfig, err := loadRatingsConfig(configurationRatingsFileName)
@@ -586,7 +586,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Debug("config", "file", ctx.GlobalString(nodesFile.Name))
 
 	syncer := ntp.NewSyncTime(generalConfig.NTPConfig, nil)
-	go syncer.StartSync()
+	syncer.StartSyncingTime()
 
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
@@ -1886,6 +1886,7 @@ func createNode(
 		node.WithBootStorer(process.BootStorer()),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier()),
+		node.WithHeaderIntegrityVerifier(process.HeaderIntegrityVerifier),
 		node.WithValidatorStatistics(process.ValidatorsStatistics()),
 		node.WithValidatorsProvider(process.ValidatorsProvider()),
 		node.WithChainID([]byte(coreData.ChainID())),
