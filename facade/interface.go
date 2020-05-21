@@ -33,6 +33,9 @@ type NodeHandler interface {
 	//GetTransaction gets the transaction
 	GetTransaction(hash string) (*transaction.Transaction, error)
 
+	//GetTransactionStatus gets the transaction status
+	GetTransactionStatus(hash string) (string, error)
+
 	// GetAccount returns an accountResponse containing information
 	//  about the account corelated with provided address
 	GetAccount(address string) (state.UserAccountHandler, error)

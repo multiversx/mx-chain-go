@@ -33,6 +33,12 @@ type Facade struct {
 	ComputeTransactionGasLimitHandler func(tx *transaction.Transaction) (uint64, error)
 	NodeConfigCalled                  func() map[string]interface{}
 	GetQueryHandlerCalled             func(name string) (debug.QueryHandler, error)
+	GetTransactionStatusCalled        func(hash string) (string, error)
+}
+
+// GetTransactionStatus -
+func (f *Facade) GetTransactionStatus(hash string) (string, error) {
+	return f.GetTransactionStatusCalled(hash)
 }
 
 // RestApiInterface -

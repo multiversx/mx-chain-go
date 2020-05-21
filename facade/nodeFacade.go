@@ -65,9 +65,9 @@ type nodeFacade struct {
 	syncer                 ntp.SyncTimer
 	tpsBenchmark           *statistics.TpsBenchmark
 	config                 config.FacadeConfig
-	restAPIServerDebugMode bool
 	wsAntifloodConfig      config.WebServerAntifloodConfig
 	apiRoutesConfig        config.ApiRoutesConfig
+	restAPIServerDebugMode bool
 }
 
 // NewNodeFacade creates a new Facade with a NodeWrapper
@@ -236,6 +236,11 @@ func (nf *nodeFacade) SendBulkTransactions(txs []*transaction.Transaction) (uint
 // GetTransaction gets the transaction with a specified hash
 func (nf *nodeFacade) GetTransaction(hash string) (*transaction.Transaction, error) {
 	return nf.node.GetTransaction(hash)
+}
+
+// GetTransactionStatus gets the current transaction status, given a specific tx hash
+func (nf *nodeFacade) GetTransactionStatus(hash string) (string, error) {
+	return nf.node.GetTransactionStatus(hash)
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume

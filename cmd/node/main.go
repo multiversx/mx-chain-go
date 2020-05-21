@@ -31,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/random"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -85,6 +86,7 @@ const (
 	defaultShardString           = "Shard"
 	metachainShardName           = "metachain"
 	secondsToWaitForP2PBootstrap = 20
+	maxNumGoRoutinesTxsByHashApi = 10
 )
 
 var (
@@ -1898,6 +1900,11 @@ func createNode(
 		return nil, err
 	}
 
+	apiTxsByHashThrottler, err := throttler.NewNumGoRoutinesThrottler(maxNumGoRoutinesTxsByHashApi)
+	if err != nil {
+		return nil, err
+	}
+
 	var nd *node.Node
 	nd, err = node.NewNode(
 		node.WithMessenger(network.NetMessenger),
@@ -1957,6 +1964,7 @@ func createNode(
 		node.WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		node.WithNodeStopChannel(chanStopNodeProcess),
+		node.WithApiTransactionByHashThrottler(apiTxsByHashThrottler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

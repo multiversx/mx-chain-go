@@ -92,6 +92,7 @@ type Node struct {
 	validatorsProvider            process.ValidatorsProvider
 	whiteListRequest              process.WhiteListHandler
 	whiteListerVerifiedTxs        process.WhiteListHandler
+	apiTransactionByHashThrottler Throttler
 
 	pubKey            crypto.PublicKey
 	privKey           crypto.PrivateKey
@@ -893,11 +894,6 @@ func (n *Node) CreateTransaction(
 	}
 
 	return tx, txHash, nil
-}
-
-//GetTransaction gets the transaction
-func (n *Node) GetTransaction(_ string) (*transaction.Transaction, error) {
-	return nil, fmt.Errorf("not yet implemented")
 }
 
 // GetAccount will return account details for a given address
