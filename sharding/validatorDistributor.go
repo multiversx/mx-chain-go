@@ -29,7 +29,7 @@ func (vd *CrossShardValidatorDistributor) DistributeValidators(
 		allValidators = append(allValidators, validatorList...)
 	}
 
-	return distributeValidators(allValidators, destination, rand)
+	return distributeValidators(destination, allValidators, rand)
 }
 
 // IsInterfaceNil - verifies if the interface is nil
