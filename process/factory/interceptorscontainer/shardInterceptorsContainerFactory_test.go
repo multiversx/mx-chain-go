@@ -194,7 +194,7 @@ func TestNewShardInterceptorsContainerFactory_NilHeaderSigVerifierShouldErr(t *t
 	t.Parallel()
 
 	coreComp, cryptoComp := createMockComponentHolders()
-	args := getArgumentsMeta(coreComp, cryptoComp)
+	args := getArgumentsShard(coreComp, cryptoComp)
 	args.HeaderSigVerifier = nil
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
@@ -206,7 +206,7 @@ func TestNewShardInterceptorsContainerFactory_NilHeaderIntegrityVerifierShouldEr
 	t.Parallel()
 
 	coreComp, cryptoComp := createMockComponentHolders()
-	args := getArgumentsMeta(coreComp, cryptoComp)
+	args := getArgumentsShard(coreComp, cryptoComp)
 	args.HeaderIntegrityVerifier = nil
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
