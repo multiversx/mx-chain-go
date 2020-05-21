@@ -716,7 +716,7 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 
 	for _, blsKey := range blsKeys {
 		if registrationData.NumStaked == 0 {
-			continue
+			break
 		}
 
 		vmOutput, err := s.executeOnStakingSC([]byte("unStake@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
@@ -840,9 +840,9 @@ func (s *stakingAuctionSC) deleteUnBondedKeys(registrationData *AuctionData, unB
 	for _, unBonded := range unBondedKeys {
 		for i, registeredKey := range registrationData.BlsPubKeys {
 			if bytes.Equal(unBonded, registeredKey) {
-				registrationData.BlsPubKeys[i] = registrationData.BlsPubKeys[len(registrationData.BlsPubKeys)-1]
-				registrationData.BlsPubKeys[len(registrationData.BlsPubKeys)-1] = nil
-				registrationData.BlsPubKeys = registrationData.BlsPubKeys[:len(registrationData.BlsPubKeys)-1]
+				lastIndex := len(registrationData.BlsPubKeys) - 1
+				registrationData.BlsPubKeys[i] = registrationData.BlsPubKeys[lastIndex]
+				registrationData.BlsPubKeys = registrationData.BlsPubKeys[:lastIndex]
 				break
 			}
 		}
