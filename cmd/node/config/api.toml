@@ -29,6 +29,9 @@
 
         # /address/:address/balance will return the balance of a given account
         { Name = "/:address/balance", Open = true }
+
+        # /address/:address/key/:key will return the value of a key for a given account
+        { Name = "/:address/key/:key", Open = true }
 	]
 
 [APIPackages.hardfork]

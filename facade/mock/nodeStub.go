@@ -32,6 +32,16 @@ type NodeStub struct {
 	IsSelfTriggerCalled                            func() bool
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 	GetTransactionStatusCalled                     func(hash string) (string, error)
+	GetValueForKeyCalled                           func(address string, key string) (string, error)
+}
+
+// GetValueForKey -
+func (ns *NodeStub) GetValueForKey(address string, key string) (string, error) {
+	if ns.GetValueForKeyCalled != nil {
+		return ns.GetValueForKeyCalled(address, key)
+	}
+
+	return "", nil
 }
 
 // GetTransactionStatus -

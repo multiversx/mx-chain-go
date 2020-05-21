@@ -392,6 +392,42 @@ func (n *Node) GetBalance(address string) (*big.Int, error) {
 	return account.GetBalance(), nil
 }
 
+// GetValueForKey will return the value for a key from a given account
+func (n *Node) GetValueForKey(address string, key string) (string, error) {
+	keyBytes, err := hex.DecodeString(key)
+	if err != nil {
+		return "", fmt.Errorf("invalid key: %w", err)
+	}
+
+	if check.IfNil(n.addressPubkeyConverter) || check.IfNil(n.accounts) {
+		return "", errors.New("initialize AccountsAdapter and PubkeyConverter first")
+	}
+
+	addr, err := n.addressPubkeyConverter.Decode(address)
+	if err != nil {
+		return "", errors.New("invalid address, could not decode from: " + err.Error())
+	}
+	accWrp, err := n.accounts.GetExistingAccount(addr)
+	if err != nil {
+		return "", errors.New("could not fetch sender address from provided param: " + err.Error())
+	}
+
+	if check.IfNil(accWrp) {
+		return "", errors.New("account not found")
+	}
+	account, ok := accWrp.(state.UserAccountHandler)
+	if !ok {
+		return "", errors.New("account not found - cannot convert to UserAccountHandler")
+	}
+
+	valueBytes, err := account.DataTrieTracker().RetrieveValue(keyBytes)
+	if err != nil {
+		return "", fmt.Errorf("fetching value error: %w", err)
+	}
+
+	return hex.EncodeToString(valueBytes), nil
+}
+
 // createChronologyHandler method creates a chronology object
 func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandler core.AppStatusHandler) (consensus.ChronologyHandler, error) {
 	chr, err := chronology.NewChronology(

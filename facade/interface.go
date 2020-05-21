@@ -20,6 +20,9 @@ type NodeHandler interface {
 	//GetBalance returns the balance for a specific address
 	GetBalance(address string) (*big.Int, error)
 
+	// GetValueForKey returns the value of a key from a given account
+	GetValueForKey(address string, key string) (string, error)
+
 	//CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
 		gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error)

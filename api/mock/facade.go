@@ -34,6 +34,7 @@ type Facade struct {
 	NodeConfigCalled                  func() map[string]interface{}
 	GetQueryHandlerCalled             func(name string) (debug.QueryHandler, error)
 	GetTransactionStatusCalled        func(hash string) (string, error)
+	GetValueForKeyCalled              func(address string, key string) (string, error)
 }
 
 // GetTransactionStatus -
@@ -72,6 +73,15 @@ func (f *Facade) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 // GetBalance is the mock implementation of a handler's GetBalance method
 func (f *Facade) GetBalance(address string) (*big.Int, error) {
 	return f.BalanceHandler(address)
+}
+
+// GetValueForKey is the mock implementation of a handler's GetValueForKey method
+func (f *Facade) GetValueForKey(address string, key string) (string, error) {
+	if f.GetValueForKeyCalled != nil {
+		return f.GetValueForKeyCalled(address, key)
+	}
+
+	return "", nil
 }
 
 // GetAccount is the mock implementation of a handler's GetAccount method
