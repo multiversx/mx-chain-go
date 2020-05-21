@@ -1075,8 +1075,8 @@ func shuffleList(list []string, random []byte) {
 
 func isNumArgsCorrectToStake(args [][]byte) bool {
 	maxNodesToRun := big.NewInt(0).SetBytes(args[0]).Uint64()
-	areEnoughArgs := uint64(len(args)) >= 2*maxNodesToRun+1
-	areNotTooManyArgs := uint64(len(args)) <= 2*maxNodesToRun+1+2
+	areEnoughArgs := uint64(len(args)) >= 2*maxNodesToRun+1       // NumNodes + LIST(BLS_KEY+SignedMessage)
+	areNotTooManyArgs := uint64(len(args)) <= 2*maxNodesToRun+1+2 // +2 are the optionals - reward address, maxStakePerNode
 	return areEnoughArgs && areNotTooManyArgs
 }
 
