@@ -135,7 +135,7 @@ func incrementCountAcceptedBlocks(
 		return
 	}
 
-	indexInBitmap := bitMap[myIndex/8]&(1<<uint8(myIndex%8)) != 0
+	indexInBitmap := myIndex != 0 && bitMap[myIndex/8]&(1<<uint8(myIndex%8)) != 0
 	if indexInBitmap {
 		appStatusHandler.Increment(core.MetricCountConsensusAcceptedBlocks)
 	}
@@ -167,29 +167,32 @@ func saveMetachainCommitBlockMetrics(
 		log.Debug("cannot get validators public keys", "error", err.Error())
 	}
 
-	countNotarizedHeaders(pubKeys, nodesCoordinator.GetOwnPublicKey(), appStatusHandler, len(header.ShardInfo))
+	countMetaAcceptedSignedBlocks(pubKeys, nodesCoordinator.GetOwnPublicKey(), appStatusHandler)
 }
 
-func countNotarizedHeaders(
+func countMetaAcceptedSignedBlocks(
 	publicKeys []string,
 	ownPublicKey []byte,
 	appStatusHandler core.AppStatusHandler,
-	numBlockHeaders int,
 ) {
 	isInConsensus := false
 
-	for _, publicKey := range publicKeys {
+	for index, publicKey := range publicKeys {
 		if bytes.Equal([]byte(publicKey), ownPublicKey) {
+			if index == 0 {
+				return
+			}
+
 			isInConsensus = true
 			break
 		}
 	}
 
-	if !isInConsensus || numBlockHeaders == 0 {
+	if !isInConsensus {
 		return
 	}
 
-	appStatusHandler.AddUint64(core.MetricCountConsensusAcceptedBlocks, uint64(numBlockHeaders))
+	appStatusHandler.Increment(core.MetricCountConsensusAcceptedBlocks)
 }
 
 func indexRoundInfo(

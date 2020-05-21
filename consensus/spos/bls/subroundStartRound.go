@@ -145,7 +145,9 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		log.Debug("not in consensus group")
 		sr.AppStatusHandler().SetStringValue(core.MetricConsensusState, "not in consensus group")
 	} else {
-		sr.AppStatusHandler().Increment(core.MetricCountConsensus)
+		if leader != sr.SelfPubKey() {
+			sr.AppStatusHandler().Increment(core.MetricCountConsensus)
+		}
 		sr.AppStatusHandler().SetStringValue(core.MetricConsensusState, "participant")
 	}
 
