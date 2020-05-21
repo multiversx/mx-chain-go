@@ -409,7 +409,7 @@ func (sr *subroundEndRound) extractMetaMiniBlocksAndTransactions(
 
 	identifier := sr.ShardCoordinator().CommunicationIdentifier(core.MetachainShardId)
 
-	for broadcastTopic, txsMarshalized := range metaTransactions {
+	for broadcastTopic, txsMarshalized := range transactions {
 		if !strings.Contains(broadcastTopic, identifier) {
 			continue
 		}
