@@ -135,9 +135,3 @@ type HeaderSigVerifier interface {
 	VerifySignature(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
-
-// HeaderIntegrityVerifier encapsulates methods useful to check that a header's integrity is correct
-type HeaderIntegrityVerifier interface {
-	Verify(header data.HeaderHandler) error
-	IsInterfaceNil() bool
-}

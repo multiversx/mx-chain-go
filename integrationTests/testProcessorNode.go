@@ -114,10 +114,10 @@ var TestBalanceComputationHandler, _ = preprocess.NewBalanceComputation()
 var MinTxGasPrice = uint64(10)
 
 // MinTxGasLimit defines minimum gas limit required by a transaction
-var MinTxGasLimit = uint64(1_000)
+var MinTxGasLimit = uint64(1000)
 
 // MaxGasLimitPerBlock defines maximum gas limit allowed per one block
-const MaxGasLimitPerBlock = uint64(3_000_000)
+const MaxGasLimitPerBlock = uint64(3000000)
 
 const maxTxNonceDeltaAllowed = 8000
 const minConnectedPeers = 0
@@ -678,25 +678,25 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 
 		metaIntercContFactArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
-			CoreComponents:         coreComponents,
-			CryptoComponents:       cryptoComponents,
-			ShardCoordinator:       tpn.ShardCoordinator,
-			NodesCoordinator:       tpn.NodesCoordinator,
-			Messenger:              tpn.Messenger,
-			Store:                  tpn.Storage,
-			DataPool:               tpn.DataPool,
-			Accounts:               tpn.AccntState,
-			MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
-			TxFeeHandler:           tpn.EconomicsData,
-			BlackList:              tpn.BlockBlackListHandler,
-			HeaderSigVerifier:      tpn.HeaderSigVerifier,
+			CoreComponents:          coreComponents,
+			CryptoComponents:        cryptoComponents,
+			ShardCoordinator:        tpn.ShardCoordinator,
+			NodesCoordinator:        tpn.NodesCoordinator,
+			Messenger:               tpn.Messenger,
+			Store:                   tpn.Storage,
+			DataPool:                tpn.DataPool,
+			Accounts:                tpn.AccntState,
+			MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
+			TxFeeHandler:            tpn.EconomicsData,
+			BlackList:               tpn.BlockBlackListHandler,
+			HeaderSigVerifier:       tpn.HeaderSigVerifier,
 			HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
-			SizeCheckDelta:         sizeCheckDelta,
-			ValidityAttester:       tpn.BlockTracker,
-			EpochStartTrigger:      tpn.EpochStartTrigger,
-			WhiteListHandler:       tpn.WhiteListHandler,
-			WhiteListerVerifiedTxs: tpn.WhiteListerVerifiedTxs,
-			AntifloodHandler:       &mock.NilAntifloodHandler{},
+			SizeCheckDelta:          sizeCheckDelta,
+			ValidityAttester:        tpn.BlockTracker,
+			EpochStartTrigger:       tpn.EpochStartTrigger,
+			WhiteListHandler:        tpn.WhiteListHandler,
+			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
+			AntifloodHandler:        &mock.NilAntifloodHandler{},
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
@@ -729,25 +729,25 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 
 		shardInterContFactArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
-			CoreComponents:         coreComponents,
-			CryptoComponents:       cryptoComponents,
-			Accounts:               tpn.AccntState,
-			ShardCoordinator:       tpn.ShardCoordinator,
-			NodesCoordinator:       tpn.NodesCoordinator,
-			Messenger:              tpn.Messenger,
-			Store:                  tpn.Storage,
-			DataPool:               tpn.DataPool,
-			MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
-			TxFeeHandler:           tpn.EconomicsData,
-			BlackList:              tpn.BlockBlackListHandler,
-			HeaderSigVerifier:      tpn.HeaderSigVerifier,
+			CoreComponents:          coreComponents,
+			CryptoComponents:        cryptoComponents,
+			Accounts:                tpn.AccntState,
+			ShardCoordinator:        tpn.ShardCoordinator,
+			NodesCoordinator:        tpn.NodesCoordinator,
+			Messenger:               tpn.Messenger,
+			Store:                   tpn.Storage,
+			DataPool:                tpn.DataPool,
+			MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
+			TxFeeHandler:            tpn.EconomicsData,
+			BlackList:               tpn.BlockBlackListHandler,
+			HeaderSigVerifier:       tpn.HeaderSigVerifier,
 			HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
-			SizeCheckDelta:         sizeCheckDelta,
-			ValidityAttester:       tpn.BlockTracker,
-			EpochStartTrigger:      tpn.EpochStartTrigger,
-			WhiteListHandler:       tpn.WhiteListHandler,
-			WhiteListerVerifiedTxs: tpn.WhiteListerVerifiedTxs,
-			AntifloodHandler:       &mock.NilAntifloodHandler{},
+			SizeCheckDelta:          sizeCheckDelta,
+			ValidityAttester:        tpn.BlockTracker,
+			EpochStartTrigger:       tpn.EpochStartTrigger,
+			WhiteListHandler:        tpn.WhiteListHandler,
+			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
+			AntifloodHandler:        &mock.NilAntifloodHandler{},
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 

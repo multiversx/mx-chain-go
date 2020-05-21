@@ -58,6 +58,7 @@ type processComponents struct {
 	BlackListHandler         process.BlackListHandler
 	BootStorer               process.BootStorer
 	HeaderSigVerifier        process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier  HeaderIntegrityVerifierHandler
 	ValidatorsStatistics     process.ValidatorStatisticsProcessor
 	ValidatorsProvider       process.ValidatorsProvider
 	BlockTracker             process.BlockTracker
@@ -200,6 +201,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier([]byte(pcf.coreData.ChainID()))
+	if err != nil {
+		return nil, err
+	}
+
 	resolversContainerFactory, err := pcf.newResolverContainerFactory()
 	if err != nil {
 		return nil, err
@@ -304,7 +310,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	_, err = poolsCleaner.NewMiniBlocksPoolsCleaner(
+	mbsPoolsCleaner, err := poolsCleaner.NewMiniBlocksPoolsCleaner(
 		pcf.data.Datapool().MiniBlocks(),
 		pcf.rounder,
 		pcf.shardCoordinator,
@@ -313,7 +319,9 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	_, err = poolsCleaner.NewTxsPoolsCleaner(
+	mbsPoolsCleaner.StartCleaning()
+
+	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
 		pcf.state.AddressPubkeyConverter,
 		pcf.data.Datapool(),
 		pcf.rounder,
@@ -323,8 +331,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	txsPoolsCleaner.StartCleaning()
+
 	interceptorContainerFactory, blackListHandler, err := pcf.newInterceptorContainerFactory(
 		headerSigVerifier,
+		headerIntegrityVerifier,
 		blockTracker,
 		epochStartTrigger,
 	)
@@ -681,12 +692,14 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory() (dataRetr
 
 func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
+	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	if pcf.shardCoordinator.SelfId() < pcf.shardCoordinator.NumberOfShards() {
 		return pcf.newShardInterceptorContainerFactory(
 			headerSigVerifier,
+			headerIntegrityVerifier,
 			validityAttester,
 			epochStartTrigger,
 		)
@@ -694,6 +707,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	if pcf.shardCoordinator.SelfId() == core.MetachainShardId {
 		return pcf.newMetaInterceptorContainerFactory(
 			headerSigVerifier,
+			headerIntegrityVerifier,
 			validityAttester,
 			epochStartTrigger,
 		)
@@ -704,29 +718,31 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 
 func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
+	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
-		CoreComponents:         pcf.coreData,
-		CryptoComponents:       pcf.crypto,
-		Accounts:               pcf.state.AccountsAdapter,
-		ShardCoordinator:       pcf.shardCoordinator,
-		NodesCoordinator:       pcf.nodesCoordinator,
-		Messenger:              pcf.network.NetworkMessenger(),
-		Store:                  pcf.data.StorageService(),
-		DataPool:               pcf.data.Datapool(),
-		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:           pcf.economicsData,
-		BlackList:              headerBlackList,
-		HeaderSigVerifier:      headerSigVerifier,
-		SizeCheckDelta:         pcf.sizeCheckDelta,
-		ValidityAttester:       validityAttester,
-		EpochStartTrigger:      epochStartTrigger,
-		WhiteListHandler:       pcf.whiteListHandler,
-		WhiteListerVerifiedTxs: pcf.whiteListerVerifiedTxs,
-		AntifloodHandler:       pcf.network.InputAntiFloodHandler(),
+		CoreComponents:          pcf.coreData,
+		CryptoComponents:        pcf.crypto,
+		Accounts:                pcf.state.AccountsAdapter,
+		ShardCoordinator:        pcf.shardCoordinator,
+		NodesCoordinator:        pcf.nodesCoordinator,
+		Messenger:               pcf.network.NetworkMessenger(),
+		Store:                   pcf.data.StorageService(),
+		DataPool:                pcf.data.Datapool(),
+		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:            pcf.economicsData,
+		BlackList:               headerBlackList,
+		HeaderSigVerifier:       headerSigVerifier,
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		SizeCheckDelta:          pcf.sizeCheckDelta,
+		ValidityAttester:        validityAttester,
+		EpochStartTrigger:       epochStartTrigger,
+		WhiteListHandler:        pcf.whiteListHandler,
+		WhiteListerVerifiedTxs:  pcf.whiteListerVerifiedTxs,
+		AntifloodHandler:        pcf.network.InputAntiFloodHandler(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -738,29 +754,31 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 
 func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
+	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
-		CoreComponents:         pcf.coreData,
-		CryptoComponents:       pcf.crypto,
-		ShardCoordinator:       pcf.shardCoordinator,
-		NodesCoordinator:       pcf.nodesCoordinator,
-		Messenger:              pcf.network.NetworkMessenger(),
-		Store:                  pcf.data.StorageService(),
-		DataPool:               pcf.data.Datapool(),
-		Accounts:               pcf.state.AccountsAdapter,
-		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:           pcf.economicsData,
-		BlackList:              headerBlackList,
-		HeaderSigVerifier:      headerSigVerifier,
-		SizeCheckDelta:         pcf.sizeCheckDelta,
-		ValidityAttester:       validityAttester,
-		EpochStartTrigger:      epochStartTrigger,
-		WhiteListHandler:       pcf.whiteListHandler,
-		WhiteListerVerifiedTxs: pcf.whiteListerVerifiedTxs,
-		AntifloodHandler:       pcf.network.InputAntiFloodHandler(),
+		CoreComponents:          pcf.coreData,
+		CryptoComponents:        pcf.crypto,
+		ShardCoordinator:        pcf.shardCoordinator,
+		NodesCoordinator:        pcf.nodesCoordinator,
+		Messenger:               pcf.network.NetworkMessenger(),
+		Store:                   pcf.data.StorageService(),
+		DataPool:                pcf.data.Datapool(),
+		Accounts:                pcf.state.AccountsAdapter,
+		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:            pcf.economicsData,
+		BlackList:               headerBlackList,
+		HeaderSigVerifier:       headerSigVerifier,
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		SizeCheckDelta:          pcf.sizeCheckDelta,
+		ValidityAttester:        validityAttester,
+		EpochStartTrigger:       epochStartTrigger,
+		WhiteListHandler:        pcf.whiteListHandler,
+		WhiteListerVerifiedTxs:  pcf.whiteListerVerifiedTxs,
+		AntifloodHandler:        pcf.network.InputAntiFloodHandler(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {

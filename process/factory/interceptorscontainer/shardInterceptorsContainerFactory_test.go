@@ -193,7 +193,8 @@ func TestNewShardInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 func TestNewShardInterceptorsContainerFactory_NilHeaderSigVerifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsShard()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.HeaderSigVerifier = nil
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
@@ -204,7 +205,8 @@ func TestNewShardInterceptorsContainerFactory_NilHeaderSigVerifierShouldErr(t *t
 func TestNewShardInterceptorsContainerFactory_NilHeaderIntegrityVerifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsShard()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.HeaderIntegrityVerifier = nil
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
@@ -560,24 +562,24 @@ func getArgumentsShard(
 	cryptoComp *mock.CryptoComponentsMock,
 ) interceptorscontainer.ShardInterceptorsContainerFactoryArgs {
 	return interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
-		CoreComponents:         coreComp,
-		CryptoComponents:       cryptoComp,
-		Accounts:               &mock.AccountsStub{},
-		ShardCoordinator:       mock.NewOneShardCoordinatorMock(),
-		NodesCoordinator:       mock.NewNodesCoordinatorMock(),
-		Messenger:              &mock.TopicHandlerStub{},
-		Store:                  createShardStore(),
-		DataPool:               createShardDataPools(),
-		MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
-		TxFeeHandler:           &mock.FeeHandlerStub{},
-		BlackList:              &mock.BlackListHandlerStub{},
-		HeaderSigVerifier:      &mock.HeaderSigVerifierStub{},
+		CoreComponents:          coreComp,
+		CryptoComponents:        cryptoComp,
+		Accounts:                &mock.AccountsStub{},
+		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
+		NodesCoordinator:        mock.NewNodesCoordinatorMock(),
+		Messenger:               &mock.TopicHandlerStub{},
+		Store:                   createShardStore(),
+		DataPool:                createShardDataPools(),
+		MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
+		TxFeeHandler:            &mock.FeeHandlerStub{},
+		BlackList:               &mock.BlackListHandlerStub{},
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		SizeCheckDelta:         0,
-		ValidityAttester:       &mock.ValidityAttesterStub{},
-		EpochStartTrigger:      &mock.EpochStartTriggerStub{},
-		AntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
-		WhiteListHandler:       &mock.WhiteListHandlerStub{},
-		WhiteListerVerifiedTxs: &mock.WhiteListHandlerStub{},
+		SizeCheckDelta:          0,
+		ValidityAttester:        &mock.ValidityAttesterStub{},
+		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		AntifloodHandler:        &mock.P2PAntifloodHandlerStub{},
+		WhiteListHandler:        &mock.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 	}
 }

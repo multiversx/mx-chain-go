@@ -70,16 +70,16 @@ func NewMetaInterceptorsContainerFactory(
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		CoreComponents:         args.CoreComponents,
-		CryptoComponents:       args.CryptoComponents,
-		ShardCoordinator:       args.ShardCoordinator,
-		NodesCoordinator:       args.NodesCoordinator,
-		FeeHandler:             args.TxFeeHandler,
-		HeaderSigVerifier:      args.HeaderSigVerifier,
+		CoreComponents:          args.CoreComponents,
+		CryptoComponents:        args.CryptoComponents,
+		ShardCoordinator:        args.ShardCoordinator,
+		NodesCoordinator:        args.NodesCoordinator,
+		FeeHandler:              args.TxFeeHandler,
+		HeaderSigVerifier:       args.HeaderSigVerifier,
 		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
-		ValidityAttester:       args.ValidityAttester,
-		EpochStartTrigger:      args.EpochStartTrigger,
-		WhiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
+		ValidityAttester:        args.ValidityAttester,
+		EpochStartTrigger:       args.EpochStartTrigger,
+		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
 	}
 
 	container := containers.NewInterceptorsContainer()

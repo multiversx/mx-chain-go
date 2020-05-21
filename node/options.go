@@ -492,7 +492,7 @@ func WithHeaderSigVerifier(headerSigVerifier spos.HeaderSigVerifier) Option {
 }
 
 // WithHeaderIntegrityVerifier sets up a header integrity verifier for the Node
-func WithHeaderIntegrityVerifier(headerIntegrityVerifier spos.HeaderIntegrityVerifier) Option {
+func WithHeaderIntegrityVerifier(headerIntegrityVerifier process.HeaderIntegrityVerifier) Option {
 	return func(n *Node) error {
 		if check.IfNil(headerIntegrityVerifier) {
 			return ErrNilHeaderIntegrityVerifier

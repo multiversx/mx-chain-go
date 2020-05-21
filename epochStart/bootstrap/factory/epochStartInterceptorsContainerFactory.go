@@ -57,7 +57,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	blackListHandler := timecache.NewTimeCache(timeSpanForBadHeaders)
 	feeHandler := &disabledGenesis.FeeHandler{}
 	headerSigVerifier := disabled.NewHeaderSigVerifier()
-	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(args.CoreComponents.ChainID)
+	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier([]byte(args.CoreComponents.ChainID()))
 	if err != nil {
 		return nil, err
 	}
@@ -66,25 +66,25 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	epochStartTrigger := disabled.NewEpochStartTrigger()
 
 	containerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
-		CoreComponents:         args.CoreComponents,
-		CryptoComponents:       args.CryptoComponents,
-		ShardCoordinator:       args.ShardCoordinator,
-		NodesCoordinator:       nodesCoordinator,
-		Messenger:              args.Messenger,
-		Store:                  storer,
-		DataPool:               args.DataPool,
-		Accounts:               accountsAdapter,
-		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:           feeHandler,
-		BlackList:              blackListHandler,
-		HeaderSigVerifier:      headerSigVerifier,
+		CoreComponents:          args.CoreComponents,
+		CryptoComponents:        args.CryptoComponents,
+		ShardCoordinator:        args.ShardCoordinator,
+		NodesCoordinator:        nodesCoordinator,
+		Messenger:               args.Messenger,
+		Store:                   storer,
+		DataPool:                args.DataPool,
+		Accounts:                accountsAdapter,
+		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:            feeHandler,
+		BlackList:               blackListHandler,
+		HeaderSigVerifier:       headerSigVerifier,
 		HeaderIntegrityVerifier: headerIntegrityVerifier,
-		SizeCheckDelta:         uint32(sizeCheckDelta),
-		ValidityAttester:       validityAttester,
-		EpochStartTrigger:      epochStartTrigger,
-		WhiteListHandler:       args.WhiteListHandler,
-		WhiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
-		AntifloodHandler:       antiFloodHandler,
+		SizeCheckDelta:          uint32(sizeCheckDelta),
+		ValidityAttester:        validityAttester,
+		EpochStartTrigger:       epochStartTrigger,
+		WhiteListHandler:        args.WhiteListHandler,
+		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
+		AntifloodHandler:        antiFloodHandler,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

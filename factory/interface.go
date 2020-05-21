@@ -45,6 +45,12 @@ type P2PAntifloodHandler interface {
 	IsInterfaceNil() bool
 }
 
+// HeaderIntegrityVerifierHandler is the interface needed to check that a header's integrity is correct
+type HeaderIntegrityVerifierHandler interface {
+	Verify(header data.HeaderHandler) error
+	IsInterfaceNil() bool
+}
+
 // Closer defines the Close behavior
 type Closer interface {
 	Close() error
@@ -148,6 +154,7 @@ type ProcessComponentsHolder interface {
 	BlackListHandler() process.BlackListHandler
 	BootStorer() process.BootStorer
 	HeaderSigVerifier() process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier() process.HeaderIntegrityVerifier
 	ValidatorsStatistics() process.ValidatorStatisticsProcessor
 	ValidatorsProvider() process.ValidatorsProvider
 	BlockTracker() process.BlockTracker

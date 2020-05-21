@@ -122,7 +122,7 @@ type Node struct {
 	bootStorer              process.BootStorer
 	requestedItemsHandler   dataRetriever.RequestedItemsHandler
 	headerSigVerifier       spos.HeaderSigVerifier
-	headerIntegrityVerifier spos.HeaderIntegrityVerifier
+	headerIntegrityVerifier process.HeaderIntegrityVerifier
 
 	chainID                  []byte
 	blockTracker             process.BlockTracker

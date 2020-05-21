@@ -425,6 +425,9 @@ var ErrInvalidPeerAccount = errors.New("invalid peer account")
 // ErrInvalidMetaHeader signals that a wrong implementation of HeaderHandler was provided
 var ErrInvalidMetaHeader = errors.New("invalid header provided, expected MetaBlock")
 
+// ErrInvalidChainID signals that an invalid chain ID was provided
+var ErrInvalidChainID = errors.New("invalid chain ID")
+
 // ErrNilEpochStartTrigger signals that a nil start of epoch trigger was provided
 var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
 

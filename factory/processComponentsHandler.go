@@ -168,6 +168,18 @@ func (m *managedProcessComponents) HeaderSigVerifier() process.InterceptedHeader
 	return m.processComponents.HeaderSigVerifier
 }
 
+// HeaderIntegrityVerifier returns the header integrity verifier
+func (m *managedProcessComponents) HeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.HeaderIntegrityVerifier
+}
+
 // ValidatorsStatistics returns the validator statistics processor
 func (m *managedProcessComponents) ValidatorsStatistics() process.ValidatorStatisticsProcessor {
 	m.mutProcessComponents.RLock()

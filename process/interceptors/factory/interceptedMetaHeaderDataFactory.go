@@ -64,15 +64,15 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedDataFactory) (*
 	}
 
 	return &interceptedMetaHeaderDataFactory{
-		marshalizer:       argument.CoreComponents.InternalMarshalizer(),
-		hasher:            argument.CoreComponents.Hasher(),
-		shardCoordinator:  argument.ShardCoordinator,
-		headerSigVerifier: argument.HeaderSigVerifier,
+		marshalizer:             argument.CoreComponents.InternalMarshalizer(),
+		hasher:                  argument.CoreComponents.Hasher(),
+		shardCoordinator:        argument.ShardCoordinator,
+		headerSigVerifier:       argument.HeaderSigVerifier,
 		headerIntegrityVerifier: argument.HeaderIntegrityVerifier,
-		chainID:           []byte(argument.CoreComponents.ChainID()),
-		validityAttester:  argument.ValidityAttester,
-		epochStartTrigger: argument.EpochStartTrigger,
-		nonceConverter:    argument.CoreComponents.Uint64ByteSliceConverter(),
+		chainID:                 []byte(argument.CoreComponents.ChainID()),
+		validityAttester:        argument.ValidityAttester,
+		epochStartTrigger:       argument.EpochStartTrigger,
+		nonceConverter:          argument.CoreComponents.Uint64ByteSliceConverter(),
 	}, nil
 }
 

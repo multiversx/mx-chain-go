@@ -1886,7 +1886,7 @@ func createNode(
 		node.WithBootStorer(process.BootStorer()),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier()),
-		node.WithHeaderIntegrityVerifier(process.HeaderIntegrityVerifier),
+		node.WithHeaderIntegrityVerifier(process.HeaderIntegrityVerifier()),
 		node.WithValidatorStatistics(process.ValidatorsStatistics()),
 		node.WithValidatorsProvider(process.ValidatorsProvider()),
 		node.WithChainID([]byte(coreData.ChainID())),

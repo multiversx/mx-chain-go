@@ -79,7 +79,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		return nil, err
 	}
 	e.metaBlockProcessor = processor
-	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(args.ChainID)
+	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier([]byte(args.CoreComponentsHolder.ChainID()))
 	if err != nil {
 		return nil, err
 	}
@@ -89,15 +89,15 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		return nil, err
 	}
 	argsInterceptedDataFactory := interceptorsFactory.ArgInterceptedDataFactory{
-		CoreComponents:    args.CoreComponentsHolder,
-		CryptoComponents:  args.CryptoComponentsHolder,
-		ShardCoordinator:  args.ShardCoordinator,
-		NodesCoordinator:  disabled.NewNodesCoordinator(),
-		FeeHandler:        args.EconomicsData,
-		HeaderSigVerifier: disabled.NewHeaderSigVerifier(),
+		CoreComponents:          args.CoreComponentsHolder,
+		CryptoComponents:        args.CryptoComponentsHolder,
+		ShardCoordinator:        args.ShardCoordinator,
+		NodesCoordinator:        disabled.NewNodesCoordinator(),
+		FeeHandler:              args.EconomicsData,
+		HeaderSigVerifier:       disabled.NewHeaderSigVerifier(),
 		HeaderIntegrityVerifier: headerIntegrityVerifier,
-		ValidityAttester:  disabled.NewValidityAttester(),
-		EpochStartTrigger: disabled.NewEpochStartTrigger(),
+		ValidityAttester:        disabled.NewValidityAttester(),
+		EpochStartTrigger:       disabled.NewEpochStartTrigger(),
 	}
 
 	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedDataFactory)

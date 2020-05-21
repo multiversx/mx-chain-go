@@ -171,7 +171,8 @@ func TestNewMetaInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 func TestNewMetaInterceptorsContainerFactory_NilHeaderSigVerifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.HeaderSigVerifier = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -182,7 +183,8 @@ func TestNewMetaInterceptorsContainerFactory_NilHeaderSigVerifierShouldErr(t *te
 func TestNewMetaInterceptorsContainerFactory_NilHeaderIntegrityVerifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.HeaderIntegrityVerifier = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -480,24 +482,24 @@ func getArgumentsMeta(
 	cryptoComp *mock.CryptoComponentsMock,
 ) interceptorscontainer.MetaInterceptorsContainerFactoryArgs {
 	return interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
-		CoreComponents:         coreComp,
-		CryptoComponents:       cryptoComp,
-		ShardCoordinator:       mock.NewOneShardCoordinatorMock(),
-		NodesCoordinator:       mock.NewNodesCoordinatorMock(),
-		Messenger:              &mock.TopicHandlerStub{},
-		Store:                  createMetaStore(),
-		DataPool:               createMetaDataPools(),
-		Accounts:               &mock.AccountsStub{},
-		MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
-		TxFeeHandler:           &mock.FeeHandlerStub{},
-		BlackList:              &mock.BlackListHandlerStub{},
-		HeaderSigVerifier:      &mock.HeaderSigVerifierStub{},
+		CoreComponents:          coreComp,
+		CryptoComponents:        cryptoComp,
+		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
+		NodesCoordinator:        mock.NewNodesCoordinatorMock(),
+		Messenger:               &mock.TopicHandlerStub{},
+		Store:                   createMetaStore(),
+		DataPool:                createMetaDataPools(),
+		Accounts:                &mock.AccountsStub{},
+		MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
+		TxFeeHandler:            &mock.FeeHandlerStub{},
+		BlackList:               &mock.BlackListHandlerStub{},
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-		SizeCheckDelta:         0,
-		ValidityAttester:       &mock.ValidityAttesterStub{},
-		EpochStartTrigger:      &mock.EpochStartTriggerStub{},
-		AntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
-		WhiteListHandler:       &mock.WhiteListHandlerStub{},
-		WhiteListerVerifiedTxs: &mock.WhiteListHandlerStub{},
+		SizeCheckDelta:          0,
+		ValidityAttester:        &mock.ValidityAttesterStub{},
+		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		AntifloodHandler:        &mock.P2PAntifloodHandlerStub{},
+		WhiteListHandler:        &mock.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 	}
 }

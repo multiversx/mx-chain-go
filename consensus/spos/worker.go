@@ -45,7 +45,7 @@ type Worker struct {
 	singleSigner            crypto.SingleSigner
 	syncTimer               ntp.SyncTimer
 	headerSigVerifier       HeaderSigVerifier
-	headerIntegrityVerifier HeaderIntegrityVerifier
+	headerIntegrityVerifier process.HeaderIntegrityVerifier
 	appStatusHandler        core.AppStatusHandler
 	chainID                 []byte
 
@@ -92,7 +92,7 @@ type WorkerArgs struct {
 	SingleSigner             crypto.SingleSigner
 	SyncTimer                ntp.SyncTimer
 	HeaderSigVerifier        HeaderSigVerifier
-	HeaderIntegrityVerifier  HeaderIntegrityVerifier
+	HeaderIntegrityVerifier  process.HeaderIntegrityVerifier
 	ChainID                  []byte
 	NetworkShardingCollector consensus.NetworkShardingCollector
 	AntifloodHandler         consensus.P2PAntifloodHandler

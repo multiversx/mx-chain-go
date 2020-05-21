@@ -13,9 +13,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -898,5 +898,11 @@ type CryptoComponentsHolder interface {
 	MultiSigner() crypto.MultiSigner
 	SetMultiSigner(ms crypto.MultiSigner) error
 	PublicKey() crypto.PublicKey
+	IsInterfaceNil() bool
+}
+
+// HeaderIntegrityVerifier encapsulates methods useful to check that a header's integrity is correct
+type HeaderIntegrityVerifier interface {
+	Verify(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }

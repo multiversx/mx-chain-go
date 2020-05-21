@@ -64,14 +64,14 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 	}
 
 	return &interceptedShardHeaderDataFactory{
-		marshalizer:       argument.CoreComponents.InternalMarshalizer(),
-		hasher:            argument.CoreComponents.Hasher(),
-		shardCoordinator:  argument.ShardCoordinator,
-		headerSigVerifier: argument.HeaderSigVerifier,
+		marshalizer:             argument.CoreComponents.InternalMarshalizer(),
+		hasher:                  argument.CoreComponents.Hasher(),
+		shardCoordinator:        argument.ShardCoordinator,
+		headerSigVerifier:       argument.HeaderSigVerifier,
 		headerIntegrityVerifier: argument.HeaderIntegrityVerifier,
-		validityAttester:  argument.ValidityAttester,
-		epochStartTrigger: argument.EpochStartTrigger,
-		nonceConverter:    argument.CoreComponents.Uint64ByteSliceConverter(),
+		validityAttester:        argument.ValidityAttester,
+		epochStartTrigger:       argument.EpochStartTrigger,
+		nonceConverter:          argument.CoreComponents.Uint64ByteSliceConverter(),
 	}, nil
 }
 

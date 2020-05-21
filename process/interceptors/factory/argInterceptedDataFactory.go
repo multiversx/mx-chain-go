@@ -35,14 +35,14 @@ type interceptedDataCryptoComponentsHolder interface {
 // ArgInterceptedDataFactory holds all dependencies required by the shard and meta intercepted data factory in order to create
 // new instances
 type ArgInterceptedDataFactory struct {
-	CoreComponents         interceptedDataCoreComponentsHolder
-	CryptoComponents       interceptedDataCryptoComponentsHolder
-	ShardCoordinator       sharding.Coordinator
-	NodesCoordinator       sharding.NodesCoordinator
-	FeeHandler             process.FeeHandler
-	WhiteListerVerifiedTxs process.WhiteListHandler
-	HeaderSigVerifier      process.InterceptedHeaderSigVerifier
-	ValidityAttester       process.ValidityAttester
+	CoreComponents          interceptedDataCoreComponentsHolder
+	CryptoComponents        interceptedDataCryptoComponentsHolder
+	ShardCoordinator        sharding.Coordinator
+	NodesCoordinator        sharding.NodesCoordinator
+	FeeHandler              process.FeeHandler
+	WhiteListerVerifiedTxs  process.WhiteListHandler
+	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
+	ValidityAttester        process.ValidityAttester
 	HeaderIntegrityVerifier process.InterceptedHeaderIntegrityVerifier
-	EpochStartTrigger      process.EpochStartTriggerHandler
+	EpochStartTrigger       process.EpochStartTriggerHandler
 }
