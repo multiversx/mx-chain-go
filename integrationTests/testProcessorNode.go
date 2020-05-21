@@ -632,8 +632,28 @@ func (tpn *TestProcessorNode) initInterceptors() {
 	if check.IfNil(tpn.EpochStartNotifier) {
 		tpn.EpochStartNotifier = &mock.EpochStartNotifierStub{}
 	}
-	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 
+	coreComponents := &mock.CoreComponentsMock{
+		IntMarsh:            TestMarshalizer,
+		TxMarsh:             TestTxSignMarshalizer,
+		Hash:                TestHasher,
+		UInt64ByteSliceConv: TestUint64Converter,
+		AddrPubKeyConv:      TestAddressPubkeyConverter,
+		ChainIdCalled: func() string {
+			return string(tpn.ChainID)
+		},
+	}
+
+	cryptoComponents := &mock.CryptoComponentsMock{
+		PubKey:   nil,
+		BlockSig: tpn.OwnAccount.BlockSingleSigner,
+		TxSig:    tpn.OwnAccount.SingleSigner,
+		MultiSig: TestMultiSig,
+		BlKeyGen: tpn.OwnAccount.KeygenBlockSign,
+		TxKeyGen: tpn.OwnAccount.KeygenTxSign,
+	}
+
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 			GenesisTime: tpn.Rounder.TimeStamp(),
 			Settings: &config.EpochStartConfig{
@@ -649,34 +669,26 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
+
 		metaIntercContFactArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
+			CoreComponents:         coreComponents,
+			CryptoComponents:       cryptoComponents,
 			ShardCoordinator:       tpn.ShardCoordinator,
 			NodesCoordinator:       tpn.NodesCoordinator,
 			Messenger:              tpn.Messenger,
 			Store:                  tpn.Storage,
-			ProtoMarshalizer:       TestMarshalizer,
-			TxSignMarshalizer:      TestTxSignMarshalizer,
-			Hasher:                 TestHasher,
-			MultiSigner:            TestMultiSig,
 			DataPool:               tpn.DataPool,
 			Accounts:               tpn.AccntState,
-			AddressPubkeyConverter: TestAddressPubkeyConverter,
-			SingleSigner:           tpn.OwnAccount.SingleSigner,
-			BlockSingleSigner:      tpn.OwnAccount.BlockSingleSigner,
-			KeyGen:                 tpn.OwnAccount.KeygenTxSign,
-			BlockKeyGen:            tpn.OwnAccount.KeygenBlockSign,
 			MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
 			TxFeeHandler:           tpn.EconomicsData,
 			BlackList:              tpn.BlockBlackListHandler,
 			HeaderSigVerifier:      tpn.HeaderSigVerifier,
-			ChainID:                tpn.ChainID,
 			SizeCheckDelta:         sizeCheckDelta,
 			ValidityAttester:       tpn.BlockTracker,
 			EpochStartTrigger:      tpn.EpochStartTrigger,
 			WhiteListHandler:       tpn.WhiteListHandler,
 			WhiteListerVerifiedTxs: tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:       &mock.NilAntifloodHandler{},
-			NonceConverter:         TestUint64Converter,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
@@ -709,33 +721,24 @@ func (tpn *TestProcessorNode) initInterceptors() {
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
 
 		shardInterContFactArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
+			CoreComponents:         coreComponents,
+			CryptoComponents:       cryptoComponents,
 			Accounts:               tpn.AccntState,
 			ShardCoordinator:       tpn.ShardCoordinator,
 			NodesCoordinator:       tpn.NodesCoordinator,
 			Messenger:              tpn.Messenger,
 			Store:                  tpn.Storage,
-			ProtoMarshalizer:       TestMarshalizer,
-			TxSignMarshalizer:      TestTxSignMarshalizer,
-			Hasher:                 TestHasher,
-			KeyGen:                 tpn.OwnAccount.KeygenTxSign,
-			BlockSignKeyGen:        tpn.OwnAccount.KeygenBlockSign,
-			SingleSigner:           tpn.OwnAccount.SingleSigner,
-			BlockSingleSigner:      tpn.OwnAccount.BlockSingleSigner,
-			MultiSigner:            TestMultiSig,
 			DataPool:               tpn.DataPool,
-			AddressPubkeyConverter: TestAddressPubkeyConverter,
 			MaxTxNonceDeltaAllowed: maxTxNonceDeltaAllowed,
 			TxFeeHandler:           tpn.EconomicsData,
 			BlackList:              tpn.BlockBlackListHandler,
 			HeaderSigVerifier:      tpn.HeaderSigVerifier,
-			ChainID:                tpn.ChainID,
 			SizeCheckDelta:         sizeCheckDelta,
 			ValidityAttester:       tpn.BlockTracker,
 			EpochStartTrigger:      tpn.EpochStartTrigger,
 			WhiteListHandler:       tpn.WhiteListHandler,
 			WhiteListerVerifiedTxs: tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:       &mock.NilAntifloodHandler{},
-			NonceConverter:         TestUint64Converter,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 
@@ -1115,16 +1118,26 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	accountsDb[state.UserAccountsState] = tpn.AccntState
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
 
+	coreComponents := &mock.CoreComponentsMock{
+		IntMarsh:            TestMarshalizer,
+		Hash:                TestHasher,
+		UInt64ByteSliceConv: TestUint64Converter,
+	}
+
+	dataComponents := &mock.DataComponentsMock{
+		Storage:    tpn.Storage,
+		DataPool:   tpn.DataPool,
+		BlockChain: tpn.BlockChain,
+	}
+
 	argumentsBase := block.ArgBaseProcessor{
+		CoreComponents:   coreComponents,
+		DataComponents:   dataComponents,
 		AccountsDB:       accountsDb,
 		ForkDetector:     tpn.ForkDetector,
-		Hasher:           TestHasher,
-		Marshalizer:      TestMarshalizer,
-		Store:            tpn.Storage,
 		ShardCoordinator: tpn.ShardCoordinator,
 		NodesCoordinator: tpn.NodesCoordinator,
 		FeeHandler:       tpn.FeeAccumulator,
-		Uint64Converter:  TestUint64Converter,
 		RequestHandler:   tpn.RequestHandler,
 		Core:             nil,
 		BlockChainHook:   tpn.BlockchainHook,
@@ -1136,9 +1149,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			},
 		},
 		BlockTracker:           tpn.BlockTracker,
-		DataPool:               tpn.DataPool,
 		StateCheckpointModulus: stateCheckpointModulus,
-		BlockChain:             tpn.BlockChain,
 		BlockSizeThrottler:     TestBlockSizeThrottler,
 		Version:                string(SoftwareVersion),
 	}

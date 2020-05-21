@@ -547,25 +547,32 @@ func CreateGenesisMetaBlock(
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
+	coreComponents := &mock.CoreComponentsMock{
+		IntMarsh:            marshalizer,
+		Hash:                hasher,
+		UInt64ByteSliceConv: uint64Converter,
+		AddrPubKeyConv:      pubkeyConv,
+	}
+	dataComponents := &mock.DataComponentsMock{
+		Storage:    store,
+		DataPool:   dataPool,
+		BlockChain: blkc,
+	}
+
 	argsMetaGenesis := genesisProcess.ArgsGenesisBlockCreator{
-		GenesisTime:              0,
-		Accounts:                 accounts,
-		TrieStorageManagers:      trieStorageManagers,
-		PubkeyConv:               pubkeyConv,
-		InitialNodesSetup:        nodesSetup,
-		ShardCoordinator:         shardCoordinator,
-		Store:                    store,
-		Blkc:                     blkc,
-		Marshalizer:              marshalizer,
-		Hasher:                   hasher,
-		Uint64ByteSliceConverter: uint64Converter,
-		DataPool:                 dataPool,
-		Economics:                economics,
-		ValidatorAccounts:        validatorAccounts,
-		GasMap:                   gasSchedule,
-		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
-		VirtualMachineConfig:     config.VirtualMachineConfig{},
-		HardForkConfig:           config.HardforkConfig{},
+		Core:                 coreComponents,
+		Data:                 dataComponents,
+		GenesisTime:          0,
+		Accounts:             accounts,
+		TrieStorageManagers:  trieStorageManagers,
+		InitialNodesSetup:    nodesSetup,
+		ShardCoordinator:     shardCoordinator,
+		Economics:            economics,
+		ValidatorAccounts:    validatorAccounts,
+		GasMap:               gasSchedule,
+		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
+		VirtualMachineConfig: config.VirtualMachineConfig{},
+		HardForkConfig:       config.HardforkConfig{},
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
@@ -588,8 +595,9 @@ func CreateGenesisMetaBlock(
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
-		argsMetaGenesis.Blkc = newBlkc
-		argsMetaGenesis.DataPool = newDataPool
+
+		argsMetaGenesis.Data.SetBlockchain(newBlkc)
+		dataComponents.DataPool = newDataPool
 	}
 
 	nodesHandler, err := mock.NewNodesHandlerMock(nodesSetup)

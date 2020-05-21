@@ -147,16 +147,26 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	accountsDb[state.UserAccountsState] = tpn.AccntState
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
 
+	coreComponents := &mock.CoreComponentsMock{
+		IntMarsh:            TestMarshalizer,
+		Hash:                TestHasher,
+		UInt64ByteSliceConv: TestUint64Converter,
+	}
+
+	dataComponents := &mock.DataComponentsMock{
+		Storage:    tpn.Storage,
+		DataPool:   tpn.DataPool,
+		BlockChain: tpn.BlockChain,
+	}
+
 	argumentsBase := block.ArgBaseProcessor{
+		CoreComponents:    coreComponents,
+		DataComponents:    dataComponents,
 		AccountsDB:        accountsDb,
 		ForkDetector:      nil,
-		Hasher:            TestHasher,
-		Marshalizer:       TestMarshalizer,
-		Store:             tpn.Storage,
 		ShardCoordinator:  tpn.ShardCoordinator,
 		NodesCoordinator:  tpn.NodesCoordinator,
 		FeeHandler:        tpn.FeeAccumulator,
-		Uint64Converter:   TestUint64Converter,
 		RequestHandler:    tpn.RequestHandler,
 		Core:              nil,
 		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
@@ -169,9 +179,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			},
 		},
 		BlockTracker:           tpn.BlockTracker,
-		DataPool:               tpn.DataPool,
 		StateCheckpointModulus: stateCheckpointModulus,
-		BlockChain:             tpn.BlockChain,
 		BlockSizeThrottler:     TestBlockSizeThrottler,
 		Version:                string(SoftwareVersion),
 	}

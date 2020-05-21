@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -17,11 +19,24 @@ type CoreComponentsMock struct {
 	AddrPubKeyConv      state.PubkeyConverter
 	PathHdl             storage.PathManagerHandler
 	ChainIdCalled       func() string
+	mutIntMarshalizer   sync.RWMutex
 }
 
 // InternalMarshalizer -
 func (ccm *CoreComponentsMock) InternalMarshalizer() marshal.Marshalizer {
+	ccm.mutIntMarshalizer.RLock()
+	defer ccm.mutIntMarshalizer.RUnlock()
+
 	return ccm.IntMarsh
+}
+
+// SetInternalMarshalizer -
+func (ccm *CoreComponentsMock) SetInternalMarshalizer(m marshal.Marshalizer) error {
+	ccm.mutIntMarshalizer.Lock()
+	ccm.IntMarsh = m
+	ccm.mutIntMarshalizer.Unlock()
+
+	return nil
 }
 
 // TxMarshalizer -

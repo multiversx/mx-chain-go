@@ -216,24 +216,35 @@ func hardForkImport(
 		defaults.FillGasMapInternal(gasSchedule, 1)
 		log.Warn("started import process")
 
+		coreComponents := &mock.CoreComponentsMock{
+			IntMarsh:            integrationTests.TestMarshalizer,
+			Hash:                integrationTests.TestHasher,
+			UInt64ByteSliceConv: integrationTests.TestUint64Converter,
+			AddrPubKeyConv:      integrationTests.TestAddressPubkeyConverter,
+			ChainIdCalled: func() string {
+				return string(node.ChainID)
+			},
+		}
+
+		dataComponents := &mock.DataComponentsMock{
+			Storage:    node.Storage,
+			DataPool:   node.DataPool,
+			BlockChain: node.BlockChain,
+		}
+
 		argsGenesis := process.ArgsGenesisBlockCreator{
-			GenesisTime:              0,
-			StartEpochNum:            0,
-			Accounts:                 node.AccntState,
-			PubkeyConv:               integrationTests.TestAddressPubkeyConverter,
-			InitialNodesSetup:        node.NodesSetup,
-			Economics:                node.EconomicsData.EconomicsData,
-			ShardCoordinator:         node.ShardCoordinator,
-			Store:                    node.Storage,
-			Blkc:                     node.BlockChain,
-			Marshalizer:              integrationTests.TestMarshalizer,
-			Hasher:                   integrationTests.TestHasher,
-			Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
-			DataPool:                 node.DataPool,
-			ValidatorAccounts:        node.PeerState,
-			GasMap:                   gasSchedule,
-			TxLogsProcessor:          &mock.TxLogsProcessorStub{},
-			VirtualMachineConfig:     config.VirtualMachineConfig{},
+			GenesisTime:          0,
+			StartEpochNum:        0,
+			Core:                 coreComponents,
+			Data:                 dataComponents,
+			Accounts:             node.AccntState,
+			InitialNodesSetup:    node.NodesSetup,
+			Economics:            node.EconomicsData.EconomicsData,
+			ShardCoordinator:     node.ShardCoordinator,
+			ValidatorAccounts:    node.PeerState,
+			GasMap:               gasSchedule,
+			TxLogsProcessor:      &mock.TxLogsProcessorStub{},
+			VirtualMachineConfig: config.VirtualMachineConfig{},
 			HardForkConfig: config.HardforkConfig{
 				MustImport:               true,
 				ImportFolder:             node.ExportFolder,
@@ -243,7 +254,6 @@ func hardForkImport(
 				ImportStateStorageConfig: *importStorageConfigs[id],
 			},
 			TrieStorageManagers: node.TrieStorageManagers,
-			ChainID:             string(node.ChainID),
 			SystemSCConfig: config.SystemSmartContractsConfig{
 				ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 					BaseIssuingCost: "1000",
@@ -293,12 +303,29 @@ func createHardForkExporter(
 		}
 		exportConfigs = append(exportConfigs, &exportConfig)
 
+		coreComponents := &mock.CoreComponentsMock{
+			IntMarsh:            integrationTests.TestMarshalizer,
+			TxMarsh:             integrationTests.TestTxSignMarshalizer,
+			Hash:                integrationTests.TestHasher,
+			UInt64ByteSliceConv: integrationTests.TestUint64Converter,
+			AddrPubKeyConv:      integrationTests.TestAddressPubkeyConverter,
+			ChainIdCalled: func() string {
+				return string(node.ChainID)
+			},
+		}
+
+		cryptoComponents := &mock.CryptoComponentsMock{
+			BlockSig: node.OwnAccount.BlockSingleSigner,
+			TxSig:    node.OwnAccount.SingleSigner,
+			MultiSig: node.MultiSigner,
+			BlKeyGen: node.OwnAccount.KeygenBlockSign,
+			TxKeyGen: node.OwnAccount.KeygenTxSign,
+		}
+
 		argsExportHandler := factory.ArgsExporter{
-			TxSignMarshalizer: integrationTests.TestTxSignMarshalizer,
-			Marshalizer:       integrationTests.TestMarshalizer,
-			Hasher:            integrationTests.TestHasher,
+			CoreComponents:    coreComponents,
+			CryptoComponents:  cryptoComponents,
 			HeaderValidator:   node.HeaderValidator,
-			Uint64Converter:   integrationTests.TestUint64Converter,
 			DataPool:          node.DataPool,
 			StorageService:    node.Storage,
 			RequestHandler:    node.RequestHandler,
@@ -323,15 +350,8 @@ func createHardForkExporter(
 			WhiteListerVerifiedTxs:   node.WhiteListerVerifiedTxs,
 			InterceptorsContainer:    node.InterceptorsContainer,
 			ExistingResolvers:        node.ResolversContainer,
-			MultiSigner:              node.MultiSigner,
 			NodesCoordinator:         node.NodesCoordinator,
-			SingleSigner:             node.OwnAccount.SingleSigner,
-			AddressPubkeyConverter:   integrationTests.TestAddressPubkeyConverter,
-			BlockKeyGen:              node.OwnAccount.KeygenBlockSign,
-			KeyGen:                   node.OwnAccount.KeygenTxSign,
-			BlockSigner:              node.OwnAccount.BlockSingleSigner,
 			HeaderSigVerifier:        node.HeaderSigVerifier,
-			ChainID:                  node.ChainID,
 			ValidityAttester:         node.BlockTracker,
 			OutputAntifloodHandler:   &mock.NilAntifloodHandler{},
 			InputAntifloodHandler:    &mock.NilAntifloodHandler{},
