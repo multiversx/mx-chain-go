@@ -283,11 +283,6 @@ func (ed *EconomicsData) MaxGasLimitPerBlock(shardID uint32) uint64 {
 	return ed.maxGasLimitPerBlock
 }
 
-// MaxGasLimitPerMetaBlock will return maximum gas limit allowed per block
-func (ed *EconomicsData) MaxGasLimitPerMetaBlock() uint64 {
-	return ed.maxGasLimitPerMetaBlock
-}
-
 // DeveloperPercentage will return the developer percentage value
 func (ed *EconomicsData) DeveloperPercentage() float64 {
 	return ed.developerPercentage
