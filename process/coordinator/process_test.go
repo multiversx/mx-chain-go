@@ -2545,7 +2545,7 @@ func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
 				SizeInBytes: 1000000000,
 				Shards:      1,
 			},
-			MinGasPrice:    100000000000000,
+			MinGasPrice:    200000000000,
 			NumberOfShards: 1,
 		},
 	)
