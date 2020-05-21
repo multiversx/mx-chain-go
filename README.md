@@ -68,7 +68,7 @@ $ ./keygenerator
 
 ### Start the node 
 #### Step 4a: Join Elrond testnet:
-Follow the steps outlined [here](https://docs.elrond.com/start-a-validator-node/start-the-network). This is because in order to join the testnet you need a specific node configuration.
+Follow the steps outlined [here](https://docs.elrond.com/validators/install). This is because in order to join the testnet you need a specific node configuration.
 ______
 OR
 ______
