@@ -37,7 +37,7 @@ type Worker struct {
 	shardCoordinator   sharding.Coordinator
 	singleSigner       crypto.SingleSigner
 	syncTimer          ntp.SyncTimer
-	headerSigVerifier  RandSeedVerifier
+	headerSigVerifier  HeaderSigVerifier
 	appStatusHandler   core.AppStatusHandler
 	chainID            []byte
 
@@ -82,7 +82,7 @@ type WorkerArgs struct {
 	ShardCoordinator         sharding.Coordinator
 	SingleSigner             crypto.SingleSigner
 	SyncTimer                ntp.SyncTimer
-	HeaderSigVerifier        RandSeedVerifier
+	HeaderSigVerifier        HeaderSigVerifier
 	ChainID                  []byte
 	NetworkShardingCollector consensus.NetworkShardingCollector
 	AntifloodHandler         consensus.P2PAntifloodHandler

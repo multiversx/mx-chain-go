@@ -121,7 +121,7 @@ type Node struct {
 	blocksBlackListHandler process.BlackListHandler
 	bootStorer             process.BootStorer
 	requestedItemsHandler  dataRetriever.RequestedItemsHandler
-	headerSigVerifier      spos.RandSeedVerifier
+	headerSigVerifier      spos.HeaderSigVerifier
 
 	chainID                  []byte
 	blockTracker             process.BlockTracker

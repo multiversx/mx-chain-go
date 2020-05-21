@@ -1054,43 +1054,45 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating process components")
-	processArgs := factory.NewProcessComponentsFactoryArgs(
-		(*mainFactory.CoreComponentsFactoryArgs)(&coreArgs),
-		accountsParser,
-		smartContractParser,
-		economicsData,
-		genesisNodesConfig,
-		gasSchedule,
-		rounder,
-		shardCoordinator,
-		nodesCoordinator,
-		managedDataComponents,
-		managedCoreComponents,
-		managedCryptoComponents,
-		stateComponents,
-		managedNetworkComponents,
-		triesComponents,
-		coreServiceContainer,
-		requestedItemsHandler,
-		whiteListRequest,
-		whiteListerVerifiedTxs,
-		epochStartNotifier,
-		*generalConfig,
-		currentEpoch,
-		rater,
-		generalConfig.Marshalizer.SizeCheckDelta,
-		generalConfig.StateTriesConfig.CheckpointRoundsModulus,
-		generalConfig.GeneralSettings.MaxComputableRounds,
-		generalConfig.Antiflood.NumConcurrentResolverJobs,
-		generalConfig.BlockSizeThrottleConfig.MinSizeInBytes,
-		generalConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
-		ratingsConfig.General.MaxRating,
-		managedCoreComponents.ValidatorPubKeyConverter(),
-		ratingsData,
-		systemSCConfig,
-		version,
-	)
-	processComponents, err := factory.ProcessComponentsFactory(processArgs)
+
+	processArgs := mainFactory.ProcessComponentsFactoryArgs{
+		CoreFactoryArgs:           (*mainFactory.CoreComponentsFactoryArgs)(&coreArgs),
+		AccountsParser:            accountsParser,
+		SmartContractParser:       smartContractParser,
+		EconomicsData:             economicsData,
+		NodesConfig:               genesisNodesConfig,
+		GasSchedule:               gasSchedule,
+		Rounder:                   rounder,
+		ShardCoordinator:          shardCoordinator,
+		NodesCoordinator:          nodesCoordinator,
+		Data:                      managedDataComponents,
+		CoreData:                  managedCoreComponents,
+		Crypto:                    managedCryptoComponents,
+		State:                     stateComponents,
+		Network:                   managedNetworkComponents,
+		Tries:                     triesComponents,
+		CoreServiceContainer:      coreServiceContainer,
+		RequestedItemsHandler:     requestedItemsHandler,
+		WhiteListHandler:          whiteListRequest,
+		WhiteListerVerifiedTxs:    whiteListerVerifiedTxs,
+		EpochStartNotifier:        epochStartNotifier,
+		EpochStart:                &generalConfig.EpochStartConfig,
+		Rater:                     rater,
+		RatingsData:               ratingsData,
+		StartEpochNum:             currentEpoch,
+		SizeCheckDelta:            generalConfig.Marshalizer.SizeCheckDelta,
+		StateCheckpointModulus:    generalConfig.StateTriesConfig.CheckpointRoundsModulus,
+		MaxComputableRounds:       generalConfig.GeneralSettings.MaxComputableRounds,
+		NumConcurrentResolverJobs: generalConfig.Antiflood.NumConcurrentResolverJobs,
+		MinSizeInBytes:            generalConfig.BlockSizeThrottleConfig.MinSizeInBytes,
+		MaxSizeInBytes:            generalConfig.BlockSizeThrottleConfig.MaxSizeInBytes,
+		MaxRating:                 ratingsConfig.General.MaxRating,
+		ValidatorPubkeyConverter:  managedCoreComponents.ValidatorPubKeyConverter(),
+		SystemSCConfig:            systemSCConfig,
+		Version:                   version,
+	}
+
+	managedProcessComponents, err := mainFactory.NewManagedProcessComponents(processArgs)
 	if err != nil {
 		return err
 	}
@@ -1100,8 +1102,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		elasticIndexer = nil
 	} else {
 		elasticIndexer = coreServiceContainer.Indexer()
-		elasticIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
-		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
+		elasticIndexer.SetTxLogsProcessor(managedProcessComponents.TxLogsProcessor())
+		managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
 	}
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
@@ -1119,7 +1121,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents,
 		managedDataComponents,
 		managedCryptoComponents,
-		processComponents,
+		managedProcessComponents,
 		managedNetworkComponents,
 		ctx.GlobalUint64(bootstrapRoundIndex.Name),
 		version,
@@ -1144,7 +1146,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		log.Trace("activating nodesCoordinator's validators indexing")
-		indexValidatorsListIfNeeded(elasticIndexer, nodesCoordinator, processComponents.EpochStartTrigger.Epoch(), log)
+		indexValidatorsListIfNeeded(
+			elasticIndexer,
+			nodesCoordinator,
+			managedProcessComponents.EpochStartTrigger().Epoch(),
+			log,
+		)
 	}
 
 	log.Trace("creating api resolver structure")
@@ -1176,7 +1183,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		currentNode.GetAppStatusHandler(),
 		statusPollingInterval,
 		managedNetworkComponents,
-		processComponents,
+		managedProcessComponents,
 		shardCoordinator,
 	)
 	if err != nil {
@@ -1773,7 +1780,7 @@ func createNode(
 	state *mainFactory.StateComponents,
 	data mainFactory.DataComponentsHolder,
 	crypto mainFactory.CryptoComponentsHolder,
-	process *factory.Process,
+	process mainFactory.ProcessComponentsHolder,
 	network mainFactory.NetworkComponentsHolder,
 	bootstrapRoundIndex uint64,
 	version string,
@@ -1807,7 +1814,7 @@ func createNode(
 		nodesCoordinator,
 		shardCoordinator,
 		epochStartRegistrationHandler,
-		process.EpochStartTrigger.Epoch(),
+		process.EpochStartTrigger().Epoch(),
 	)
 	if err != nil {
 		return nil, err
@@ -1850,9 +1857,9 @@ func createNode(
 		node.WithRoundDuration(nodesConfig.RoundDuration),
 		node.WithConsensusGroupSize(int(consensusGroupSize)),
 		node.WithSyncer(syncer),
-		node.WithBlockProcessor(process.BlockProcessor),
+		node.WithBlockProcessor(process.BlockProcessor()),
 		node.WithGenesisTime(time.Unix(nodesConfig.StartTime, 0)),
-		node.WithRounder(process.Rounder),
+		node.WithRounder(process.Rounder()),
 		node.WithShardCoordinator(shardCoordinator),
 		node.WithNodesCoordinator(nodesCoordinator),
 		node.WithUint64ByteSliceConverter(coreData.Uint64ByteSliceConverter()),
@@ -1862,28 +1869,28 @@ func createNode(
 		node.WithKeyGenForAccounts(crypto.TxSignKeyGen()),
 		node.WithPubKey(pubKey),
 		node.WithPrivKey(privKey),
-		node.WithForkDetector(process.ForkDetector),
-		node.WithInterceptorsContainer(process.InterceptorsContainer),
-		node.WithResolversFinder(process.ResolversFinder),
+		node.WithForkDetector(process.ForkDetector()),
+		node.WithInterceptorsContainer(process.InterceptorsContainer()),
+		node.WithResolversFinder(process.ResolversFinder()),
 		node.WithConsensusType(config.Consensus.Type),
 		node.WithTxSingleSigner(crypto.TxSingleSigner()),
 		node.WithTxStorageSize(config.TxStorage.Cache.Size),
 		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
 		node.WithAppStatusHandler(coreData.StatusHandler()),
 		node.WithIndexer(indexer),
-		node.WithEpochStartTrigger(process.EpochStartTrigger),
+		node.WithEpochStartTrigger(process.EpochStartTrigger()),
 		node.WithEpochStartEventNotifier(epochStartRegistrationHandler),
-		node.WithBlockBlackListHandler(process.BlackListHandler),
+		node.WithBlockBlackListHandler(process.BlackListHandler()),
 		node.WithPeerBlackListHandler(network.PeerBlackListHandler()),
 		node.WithNetworkShardingCollector(networkShardingCollector),
-		node.WithBootStorer(process.BootStorer),
+		node.WithBootStorer(process.BootStorer()),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
-		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
-		node.WithValidatorStatistics(process.ValidatorsStatistics),
-		node.WithValidatorsProvider(process.ValidatorsProvider),
+		node.WithHeaderSigVerifier(process.HeaderSigVerifier()),
+		node.WithValidatorStatistics(process.ValidatorsStatistics()),
+		node.WithValidatorsProvider(process.ValidatorsProvider()),
 		node.WithChainID([]byte(coreData.ChainID())),
-		node.WithBlockTracker(process.BlockTracker),
-		node.WithRequestHandler(process.RequestHandler),
+		node.WithBlockTracker(process.BlockTracker()),
+		node.WithRequestHandler(process.RequestHandler()),
 		node.WithInputAntifloodHandler(network.InputAntiFloodHandler()),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(hardforkTrigger),
@@ -1914,7 +1921,7 @@ func createNode(
 		}
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		err = nd.ApplyOptions(node.WithPendingMiniBlocksHandler(process.PendingMiniBlocksHandler))
+		err = nd.ApplyOptions(node.WithPendingMiniBlocksHandler(process.PendingMiniBlocksHandler()))
 		if err != nil {
 			return nil, errors.New("error creating meta-node: " + err.Error())
 		}
@@ -1922,8 +1929,8 @@ func createNode(
 
 	err = nodeDebugFactory.CreateInterceptedDebugHandler(
 		nd,
-		process.InterceptorsContainer,
-		process.ResolversFinder,
+		process.InterceptorsContainer(),
+		process.ResolversFinder(),
 		config.Debug.InterceptorResolver,
 	)
 	if err != nil {

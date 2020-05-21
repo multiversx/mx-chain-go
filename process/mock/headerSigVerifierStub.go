@@ -4,8 +4,18 @@ import "github.com/ElrondNetwork/elrond-go/data"
 
 // HeaderSigVerifierStub -
 type HeaderSigVerifierStub struct {
+	VerifyRandSeedCalled                   func(header data.HeaderHandler) error
 	VerifyRandSeedAndLeaderSignatureCalled func(header data.HeaderHandler) error
 	VerifySignatureCalled                  func(header data.HeaderHandler) error
+}
+
+// VerifyRandSeed -
+func (hsvm *HeaderSigVerifierStub) VerifyRandSeed(header data.HeaderHandler) error {
+	if hsvm.VerifyRandSeedCalled != nil {
+		return hsvm.VerifyRandSeedCalled(header)
+	}
+
+	return nil
 }
 
 // VerifyRandSeedAndLeaderSignature -

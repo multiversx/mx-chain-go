@@ -126,8 +126,10 @@ type PoolAdder interface {
 	IsInterfaceNil() bool
 }
 
-// RandSeedVerifier encapsulates methods that are check if header rand seed is correct
-type RandSeedVerifier interface {
+// HeaderSigVerifier encapsulates methods that check if header signature is correct
+type HeaderSigVerifier interface {
 	VerifyRandSeed(header data.HeaderHandler) error
+	VerifyRandSeedAndLeaderSignature(header data.HeaderHandler) error
+	VerifySignature(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }

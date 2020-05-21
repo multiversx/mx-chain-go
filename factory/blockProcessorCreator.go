@@ -85,15 +85,15 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         pcf.state.AccountsAdapter,
 		PubkeyConv:       pcf.state.AddressPubkeyConverter,
-		StorageService:   pcf.data.Store,
-		BlockChain:       pcf.data.Blkc,
+		StorageService:   pcf.data.StorageService(),
+		BlockChain:       pcf.data.Blockchain(),
 		ShardCoordinator: pcf.shardCoordinator,
 		Marshalizer:      pcf.coreData.InternalMarshalizer(),
 		Uint64Converter:  pcf.coreData.Uint64ByteSliceConverter(),
 		BuiltInFunctions: builtInFuncs,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(
-		pcf.coreComponents.Config.VirtualMachineConfig,
+		pcf.coreFactoryArgs.Config.VirtualMachineConfig,
 		pcf.economicsData.MaxGasLimitPerBlock(),
 		pcf.gasSchedule,
 		argsHook,
@@ -112,8 +112,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.coreData.InternalMarshalizer(),
 		pcf.coreData.Hasher(),
 		pcf.state.AddressPubkeyConverter,
-		pcf.data.Store,
-		pcf.data.Datapool,
+		pcf.data.StorageService(),
+		pcf.data.Datapool(),
 	)
 	if err != nil {
 		return nil, err
@@ -229,10 +229,10 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
 		pcf.shardCoordinator,
-		pcf.data.Store,
+		pcf.data.StorageService(),
 		pcf.coreData.InternalMarshalizer(),
 		pcf.coreData.Hasher(),
-		pcf.data.Datapool,
+		pcf.data.Datapool(),
 		pcf.state.AddressPubkeyConverter,
 		pcf.state.AccountsAdapter,
 		requestHandler,
@@ -260,7 +260,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.coreData.InternalMarshalizer(),
 		pcf.shardCoordinator,
 		pcf.state.AccountsAdapter,
-		pcf.data.Datapool.MiniBlocks(),
+		pcf.data.Datapool().MiniBlocks(),
 		requestHandler,
 		preProcContainer,
 		interimProcContainer,
@@ -277,15 +277,13 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
+		CoreComponents:         pcf.coreData,
+		DataComponents:         pcf.data,
 		Version:                pcf.version,
 		AccountsDB:             accountsDb,
 		ForkDetector:           forkDetector,
-		Hasher:                 pcf.coreData.Hasher(),
-		Marshalizer:            pcf.coreData.InternalMarshalizer(),
-		Store:                  pcf.data.Store,
 		ShardCoordinator:       pcf.shardCoordinator,
 		NodesCoordinator:       pcf.nodesCoordinator,
-		Uint64Converter:        pcf.coreData.Uint64ByteSliceConverter(),
 		RequestHandler:         requestHandler,
 		Core:                   pcf.coreServiceContainer,
 		BlockChainHook:         vmFactory.BlockChainHookImpl(),
@@ -295,9 +293,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		HeaderValidator:        headerValidator,
 		BootStorer:             bootStorer,
 		BlockTracker:           blockTracker,
-		DataPool:               pcf.data.Datapool,
 		FeeHandler:             txFeeHandler,
-		BlockChain:             pcf.data.Blkc,
 		StateCheckpointModulus: pcf.stateCheckpointModulus,
 		BlockSizeThrottler:     blockSizeThrottler,
 	}
@@ -333,8 +329,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         pcf.state.AccountsAdapter,
 		PubkeyConv:       pcf.state.AddressPubkeyConverter,
-		StorageService:   pcf.data.Store,
-		BlockChain:       pcf.data.Blkc,
+		StorageService:   pcf.data.StorageService(),
+		BlockChain:       pcf.data.Blockchain(),
 		ShardCoordinator: pcf.shardCoordinator,
 		Marshalizer:      pcf.coreData.InternalMarshalizer(),
 		Uint64Converter:  pcf.coreData.Uint64ByteSliceConverter(),
@@ -367,8 +363,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.coreData.InternalMarshalizer(),
 		pcf.coreData.Hasher(),
 		pcf.state.AddressPubkeyConverter,
-		pcf.data.Store,
-		pcf.data.Datapool,
+		pcf.data.StorageService(),
+		pcf.data.Datapool(),
 	)
 	if err != nil {
 		return nil, err
@@ -462,10 +458,10 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
 		pcf.shardCoordinator,
-		pcf.data.Store,
+		pcf.data.StorageService(),
 		pcf.coreData.InternalMarshalizer(),
 		pcf.coreData.Hasher(),
-		pcf.data.Datapool,
+		pcf.data.Datapool(),
 		pcf.state.AccountsAdapter,
 		requestHandler,
 		transactionProcessor,
@@ -491,7 +487,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.coreData.InternalMarshalizer(),
 		pcf.shardCoordinator,
 		pcf.state.AccountsAdapter,
-		pcf.data.Datapool.MiniBlocks(),
+		pcf.data.Datapool().MiniBlocks(),
 		requestHandler,
 		preProcContainer,
 		interimProcContainer,
@@ -517,7 +513,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		PeerState:        pcf.state.PeerAccounts,
 		BaseState:        pcf.state.AccountsAdapter,
 		ArgParser:        argsParser,
-		CurrTxs:          pcf.data.Datapool.CurrentBlockTxs(),
+		CurrTxs:          pcf.data.Datapool().CurrentBlockTxs(),
 		ScQuery:          scDataGetter,
 		RatingsData:      pcf.ratingsData,
 	}
@@ -529,8 +525,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	argsEpochStartData := metachainEpochStart.ArgsNewEpochStartData{
 		Marshalizer:       pcf.coreData.InternalMarshalizer(),
 		Hasher:            pcf.coreData.Hasher(),
-		Store:             pcf.data.Store,
-		DataPool:          pcf.data.Datapool,
+		Store:             pcf.data.StorageService(),
+		DataPool:          pcf.data.Datapool(),
 		BlockTracker:      blockTracker,
 		ShardCoordinator:  pcf.shardCoordinator,
 		EpochStartTrigger: epochStartTrigger,
@@ -544,7 +540,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),
 		Hasher:              pcf.coreData.Hasher(),
-		Store:               pcf.data.Store,
+		Store:               pcf.data.StorageService(),
 		ShardCoordinator:    pcf.shardCoordinator,
 		NodesConfigProvider: pcf.nodesCoordinator,
 		RewardsHandler:      pcf.economicsData,
@@ -555,8 +551,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	rewardsStorage := pcf.data.Store.GetStorer(dataRetriever.RewardTransactionUnit)
-	miniBlockStorage := pcf.data.Store.GetStorer(dataRetriever.MiniBlockUnit)
+	rewardsStorage := pcf.data.StorageService().GetStorer(dataRetriever.RewardTransactionUnit)
+	miniBlockStorage := pcf.data.StorageService().GetStorer(dataRetriever.MiniBlockUnit)
 	argsEpochRewards := metachainEpochStart.ArgsNewRewardsCreator{
 		ShardCoordinator: pcf.shardCoordinator,
 		PubkeyConverter:  pcf.state.AddressPubkeyConverter,
@@ -564,7 +560,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		MiniBlockStorage: miniBlockStorage,
 		Hasher:           pcf.coreData.Hasher(),
 		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		DataPool:         pcf.data.Datapool,
+		DataPool:         pcf.data.Datapool(),
 		CommunityAddress: pcf.economicsData.CommunityAddress(),
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
@@ -577,7 +573,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		MiniBlockStorage: miniBlockStorage,
 		Hasher:           pcf.coreData.Hasher(),
 		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		DataPool:         pcf.data.Datapool,
+		DataPool:         pcf.data.Datapool(),
 	}
 	validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
 	if err != nil {
@@ -589,15 +585,13 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts
 
 	argumentsBaseProcessor := block.ArgBaseProcessor{
+		CoreComponents:         pcf.coreData,
+		DataComponents:         pcf.data,
 		Version:                pcf.version,
 		AccountsDB:             accountsDb,
 		ForkDetector:           forkDetector,
-		Hasher:                 pcf.coreData.Hasher(),
-		Marshalizer:            pcf.coreData.InternalMarshalizer(),
-		Store:                  pcf.data.Store,
 		ShardCoordinator:       pcf.shardCoordinator,
 		NodesCoordinator:       pcf.nodesCoordinator,
-		Uint64Converter:        pcf.coreData.Uint64ByteSliceConverter(),
 		RequestHandler:         requestHandler,
 		Core:                   pcf.coreServiceContainer,
 		BlockChainHook:         vmFactory.BlockChainHookImpl(),
@@ -607,9 +601,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		HeaderValidator:        headerValidator,
 		BootStorer:             bootStorer,
 		BlockTracker:           blockTracker,
-		DataPool:               pcf.data.Datapool,
 		FeeHandler:             txFeeHandler,
-		BlockChain:             pcf.data.Blkc,
 		StateCheckpointModulus: pcf.stateCheckpointModulus,
 		BlockSizeThrottler:     blockSizeThrottler,
 	}

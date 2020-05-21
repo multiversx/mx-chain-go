@@ -68,7 +68,7 @@ type processComponents struct {
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
 type ProcessComponentsFactoryArgs struct {
-	CoreComponents            *CoreComponentsFactoryArgs
+	CoreFactoryArgs           *CoreComponentsFactoryArgs
 	AccountsParser            genesis.AccountsParser
 	SmartContractParser       genesis.InitialSmartContractParser
 	EconomicsData             *economics.EconomicsData
@@ -77,7 +77,7 @@ type ProcessComponentsFactoryArgs struct {
 	Rounder                   consensus.Rounder
 	ShardCoordinator          sharding.Coordinator
 	NodesCoordinator          sharding.NodesCoordinator
-	Data                      *DataComponents
+	Data                      DataComponentsHolder
 	CoreData                  CoreComponentsHolder
 	Crypto                    CryptoComponentsHolder
 	State                     *StateComponents
@@ -101,12 +101,11 @@ type ProcessComponentsFactoryArgs struct {
 	MaxRating                 uint32
 	ValidatorPubkeyConverter  state.PubkeyConverter
 	SystemSCConfig            *config.SystemSmartContractsConfig
-	TxLogsProcessor           process.TransactionLogProcessor
 	Version                   string
 }
 
 type processComponentsFactory struct {
-	coreComponents            *CoreComponentsFactoryArgs
+	coreFactoryArgs           *CoreComponentsFactoryArgs
 	accountsParser            genesis.AccountsParser
 	smartContractParser       genesis.InitialSmartContractParser
 	economicsData             *economics.EconomicsData
@@ -115,7 +114,7 @@ type processComponentsFactory struct {
 	rounder                   consensus.Rounder
 	shardCoordinator          sharding.Coordinator
 	nodesCoordinator          sharding.NodesCoordinator
-	data                      *DataComponents
+	data                      DataComponentsHolder
 	coreData                  CoreComponentsHolder
 	crypto                    CryptoComponentsHolder
 	state                     *StateComponents
@@ -150,7 +149,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}
 
 	return &processComponentsFactory{
-		coreComponents:            args.CoreComponents,
+		coreFactoryArgs:           args.CoreFactoryArgs,
 		accountsParser:            args.AccountsParser,
 		smartContractParser:       args.SmartContractParser,
 		economicsData:             args.EconomicsData,
@@ -261,7 +260,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	log.Trace("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
 
-	txLogsStorage := pcf.data.Store.GetStorer(dataRetriever.TxLogsUnit)
+	txLogsStorage := pcf.data.StorageService().GetStorer(dataRetriever.TxLogsUnit)
 	txLogsProcessor, err := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
 		Storer:      txLogsStorage,
 		Marshalizer: pcf.coreData.InternalMarshalizer(),
@@ -281,7 +280,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	bootStr := pcf.data.Store.GetStorer(dataRetriever.BootstrapUnit)
+	bootStr := pcf.data.StorageService().GetStorer(dataRetriever.BootstrapUnit)
 	bootStorer, err := bootstrapStorage.NewBootstrapStorer(pcf.coreData.InternalMarshalizer(), bootStr)
 	if err != nil {
 		return nil, err
@@ -306,7 +305,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	_, err = poolsCleaner.NewMiniBlocksPoolsCleaner(
-		pcf.data.Datapool.MiniBlocks(),
+		pcf.data.Datapool().MiniBlocks(),
 		pcf.rounder,
 		pcf.shardCoordinator,
 	)
@@ -316,7 +315,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	_, err = poolsCleaner.NewTxsPoolsCleaner(
 		pcf.state.AddressPubkeyConverter,
-		pcf.data.Datapool,
+		pcf.data.Datapool(),
 		pcf.rounder,
 		pcf.shardCoordinator,
 	)
@@ -401,14 +400,14 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.ValidatorStatisticsProcessor, error) {
 
-	storageService := pcf.data.Store
+	storageService := pcf.data.StorageService()
 
-	var peerDataPool peer.DataPool = pcf.data.Datapool
+	var peerDataPool peer.DataPool = pcf.data.Datapool()
 	if pcf.shardCoordinator.SelfId() < pcf.shardCoordinator.NumberOfShards() {
-		peerDataPool = pcf.data.Datapool
+		peerDataPool = pcf.data.Datapool()
 	}
 
-	hardForkConfig := pcf.coreComponents.Config.Hardfork
+	hardForkConfig := pcf.coreFactoryArgs.Config.Hardfork
 	ratingEnabledEpoch := uint32(0)
 	if hardForkConfig.MustImport {
 		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
@@ -448,7 +447,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 		}
 
 		argsPeerMiniBlockSyncer := shardchain.ArgPeerMiniBlockSyncer{
-			MiniBlocksPool: pcf.data.Datapool.MiniBlocks(),
+			MiniBlocksPool: pcf.data.Datapool().MiniBlocks(),
 			Requesthandler: requestHandler,
 		}
 
@@ -462,8 +461,8 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 			Hasher:               pcf.coreData.Hasher(),
 			HeaderValidator:      headerValidator,
 			Uint64Converter:      pcf.coreData.Uint64ByteSliceConverter(),
-			DataPool:             pcf.data.Datapool,
-			Storage:              pcf.data.Store,
+			DataPool:             pcf.data.Datapool(),
+			Storage:              pcf.data.StorageService(),
 			RequestHandler:       requestHandler,
 			Epoch:                pcf.startEpochNum,
 			EpochStartNotifier:   pcf.epochStartNotifier,
@@ -486,10 +485,10 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 	if pcf.shardCoordinator.SelfId() == core.MetachainShardId {
 		argEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 			GenesisTime:        time.Unix(pcf.nodesConfig.StartTime, 0),
-			Settings:           &pcf.coreComponents.Config.EpochStartConfig,
+			Settings:           &pcf.coreFactoryArgs.Config.EpochStartConfig,
 			Epoch:              pcf.startEpochNum,
 			EpochStartNotifier: pcf.epochStartNotifier,
-			Storage:            pcf.data.Store,
+			Storage:            pcf.data.StorageService(),
 			Marshalizer:        pcf.coreData.InternalMarshalizer(),
 			Hasher:             pcf.coreData.Hasher(),
 		}
@@ -510,29 +509,23 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 
 func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, error) {
 	arg := processGenesis.ArgsGenesisBlockCreator{
-		GenesisTime:              uint64(pcf.nodesConfig.StartTime),
-		StartEpochNum:            pcf.startEpochNum,
-		Accounts:                 pcf.state.AccountsAdapter,
-		PubkeyConv:               pcf.state.AddressPubkeyConverter,
-		InitialNodesSetup:        pcf.nodesConfig,
-		Economics:                pcf.economicsData,
-		ShardCoordinator:         pcf.shardCoordinator,
-		Store:                    pcf.data.Store,
-		Blkc:                     pcf.data.Blkc,
-		Marshalizer:              pcf.coreData.InternalMarshalizer(),
-		Hasher:                   pcf.coreData.Hasher(),
-		Uint64ByteSliceConverter: pcf.coreData.Uint64ByteSliceConverter(),
-		DataPool:                 pcf.data.Datapool,
-		AccountsParser:           pcf.accountsParser,
-		SmartContractParser:      pcf.smartContractParser,
-		ValidatorAccounts:        pcf.state.PeerAccounts,
-		GasMap:                   pcf.gasSchedule,
-		VirtualMachineConfig:     pcf.coreComponents.Config.VirtualMachineConfig,
-		TxLogsProcessor:          pcf.txLogsProcessor,
-		HardForkConfig:           pcf.coreComponents.Config.Hardfork,
-		TrieStorageManagers:      pcf.tries.TrieStorageManagers,
-		ChainID:                  pcf.coreData.ChainID(),
-		SystemSCConfig:           *pcf.systemSCConfig,
+		Core:                 pcf.coreData,
+		Data:                 pcf.data,
+		GenesisTime:          uint64(pcf.nodesConfig.StartTime),
+		StartEpochNum:        pcf.startEpochNum,
+		Accounts:             pcf.state.AccountsAdapter,
+		InitialNodesSetup:    pcf.nodesConfig,
+		Economics:            pcf.economicsData,
+		ShardCoordinator:     pcf.shardCoordinator,
+		AccountsParser:       pcf.accountsParser,
+		SmartContractParser:  pcf.smartContractParser,
+		ValidatorAccounts:    pcf.state.PeerAccounts,
+		GasMap:               pcf.gasSchedule,
+		VirtualMachineConfig: pcf.coreFactoryArgs.Config.VirtualMachineConfig,
+		TxLogsProcessor:      pcf.txLogsProcessor,
+		HardForkConfig:       pcf.coreFactoryArgs.Config.Hardfork,
+		TrieStorageManagers:  pcf.tries.TrieStorageManagers,
+		SystemSCConfig:       *pcf.systemSCConfig,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)
@@ -554,12 +547,12 @@ func (pcf *processComponentsFactory) prepareGenesisBlock(genesisBlocks map[uint3
 		return err
 	}
 
-	err = pcf.data.Blkc.SetGenesisHeader(genesisBlock)
+	err = pcf.data.Blockchain().SetGenesisHeader(genesisBlock)
 	if err != nil {
 		return err
 	}
 
-	pcf.data.Blkc.SetGenesisHeaderHash(genesisBlockHash)
+	pcf.data.Blockchain().SetGenesisHeaderHash(genesisBlockHash)
 
 	marshalizedBlock, err := pcf.coreData.InternalMarshalizer().Marshal(genesisBlock)
 	if err != nil {
@@ -567,12 +560,12 @@ func (pcf *processComponentsFactory) prepareGenesisBlock(genesisBlocks map[uint3
 	}
 
 	if pcf.shardCoordinator.SelfId() == core.MetachainShardId {
-		errNotCritical := pcf.data.Store.Put(dataRetriever.MetaBlockUnit, genesisBlockHash, marshalizedBlock)
+		errNotCritical := pcf.data.StorageService().Put(dataRetriever.MetaBlockUnit, genesisBlockHash, marshalizedBlock)
 		if errNotCritical != nil {
 			log.Error("error storing genesis metablock", "error", errNotCritical.Error())
 		}
 	} else {
-		errNotCritical := pcf.data.Store.Put(dataRetriever.BlockHeaderUnit, genesisBlockHash, marshalizedBlock)
+		errNotCritical := pcf.data.StorageService().Put(dataRetriever.BlockHeaderUnit, genesisBlockHash, marshalizedBlock)
 		if errNotCritical != nil {
 			log.Error("error storing genesis shardblock", "error", errNotCritical.Error())
 		}
@@ -593,9 +586,9 @@ func (pcf *processComponentsFactory) newBlockTracker(
 		RequestHandler:   requestHandler,
 		Rounder:          pcf.rounder,
 		ShardCoordinator: pcf.shardCoordinator,
-		Store:            pcf.data.Store,
+		Store:            pcf.data.StorageService(),
 		StartHeaders:     genesisBlocks,
-		PoolsHolder:      pcf.data.Datapool,
+		PoolsHolder:      pcf.data.Datapool(),
 		WhitelistHandler: pcf.whiteListHandler,
 	}
 
@@ -640,9 +633,9 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory() (dataRet
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:           pcf.shardCoordinator,
 		Messenger:                  pcf.network.NetworkMessenger(),
-		Store:                      pcf.data.Store,
+		Store:                      pcf.data.StorageService(),
 		Marshalizer:                pcf.coreData.InternalMarshalizer(),
-		DataPools:                  pcf.data.Datapool,
+		DataPools:                  pcf.data.Datapool(),
 		Uint64ByteSliceConverter:   pcf.coreData.Uint64ByteSliceConverter(),
 		DataPacker:                 dataPacker,
 		TriesContainer:             pcf.tries.TriesContainer,
@@ -668,9 +661,9 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory() (dataRetr
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:           pcf.shardCoordinator,
 		Messenger:                  pcf.network.NetworkMessenger(),
-		Store:                      pcf.data.Store,
+		Store:                      pcf.data.StorageService(),
 		Marshalizer:                pcf.coreData.InternalMarshalizer(),
-		DataPools:                  pcf.data.Datapool,
+		DataPools:                  pcf.data.Datapool(),
 		Uint64ByteSliceConverter:   pcf.coreData.Uint64ByteSliceConverter(),
 		DataPacker:                 dataPacker,
 		TriesContainer:             pcf.tries.TriesContainer,
@@ -685,10 +678,6 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory() (dataRetr
 	}
 	return resolversContainerFactory, nil
 }
-
-// -- Resolvers container Factory begin
-
-// -- Interceptors containers start
 
 func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
@@ -720,33 +709,24 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
+		CoreComponents:         pcf.coreData,
+		CryptoComponents:       pcf.crypto,
 		Accounts:               pcf.state.AccountsAdapter,
 		ShardCoordinator:       pcf.shardCoordinator,
 		NodesCoordinator:       pcf.nodesCoordinator,
 		Messenger:              pcf.network.NetworkMessenger(),
-		Store:                  pcf.data.Store,
-		ProtoMarshalizer:       pcf.coreData.InternalMarshalizer(),
-		TxSignMarshalizer:      pcf.coreData.TxMarshalizer(),
-		Hasher:                 pcf.coreData.Hasher(),
-		KeyGen:                 pcf.crypto.TxSignKeyGen(),
-		BlockSignKeyGen:        pcf.crypto.BlockSignKeyGen(),
-		SingleSigner:           pcf.crypto.TxSingleSigner(),
-		BlockSingleSigner:      pcf.crypto.BlockSigner(),
-		MultiSigner:            pcf.crypto.MultiSigner(),
-		DataPool:               pcf.data.Datapool,
-		AddressPubkeyConverter: pcf.state.AddressPubkeyConverter,
+		Store:                  pcf.data.StorageService(),
+		DataPool:               pcf.data.Datapool(),
 		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:           pcf.economicsData,
 		BlackList:              headerBlackList,
 		HeaderSigVerifier:      headerSigVerifier,
-		ChainID:                []byte(pcf.coreData.ChainID()),
 		SizeCheckDelta:         pcf.sizeCheckDelta,
 		ValidityAttester:       validityAttester,
 		EpochStartTrigger:      epochStartTrigger,
 		WhiteListHandler:       pcf.whiteListHandler,
 		WhiteListerVerifiedTxs: pcf.whiteListerVerifiedTxs,
 		AntifloodHandler:       pcf.network.InputAntiFloodHandler(),
-		NonceConverter:         pcf.coreData.Uint64ByteSliceConverter(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -763,33 +743,24 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
+		CoreComponents:         pcf.coreData,
+		CryptoComponents:       pcf.crypto,
 		ShardCoordinator:       pcf.shardCoordinator,
 		NodesCoordinator:       pcf.nodesCoordinator,
 		Messenger:              pcf.network.NetworkMessenger(),
-		Store:                  pcf.data.Store,
-		ProtoMarshalizer:       pcf.coreData.InternalMarshalizer(),
-		TxSignMarshalizer:      pcf.coreData.TxMarshalizer(),
-		Hasher:                 pcf.coreData.Hasher(),
-		MultiSigner:            pcf.crypto.MultiSigner(),
-		DataPool:               pcf.data.Datapool,
+		Store:                  pcf.data.StorageService(),
+		DataPool:               pcf.data.Datapool(),
 		Accounts:               pcf.state.AccountsAdapter,
-		AddressPubkeyConverter: pcf.state.AddressPubkeyConverter,
-		SingleSigner:           pcf.crypto.TxSingleSigner(),
-		BlockSingleSigner:      pcf.crypto.BlockSigner(),
-		KeyGen:                 pcf.crypto.TxSignKeyGen(),
-		BlockKeyGen:            pcf.crypto.BlockSignKeyGen(),
 		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:           pcf.economicsData,
 		BlackList:              headerBlackList,
 		HeaderSigVerifier:      headerSigVerifier,
-		ChainID:                []byte(pcf.coreData.ChainID()),
 		SizeCheckDelta:         pcf.sizeCheckDelta,
 		ValidityAttester:       validityAttester,
 		EpochStartTrigger:      epochStartTrigger,
 		WhiteListHandler:       pcf.whiteListHandler,
 		WhiteListerVerifiedTxs: pcf.whiteListerVerifiedTxs,
 		AntifloodHandler:       pcf.network.InputAntiFloodHandler(),
-		NonceConverter:         pcf.coreData.Uint64ByteSliceConverter(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -798,8 +769,6 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 
 	return interceptorContainerFactory, headerBlackList, nil
 }
-
-// -- Interceptors containers end
 
 func (pcf *processComponentsFactory) newForkDetector(
 	headerBlackList process.BlackListHandler,
@@ -817,7 +786,7 @@ func (pcf *processComponentsFactory) newForkDetector(
 
 func checkArgs(args ProcessComponentsFactoryArgs) error {
 	baseErrMessage := "error creating process components"
-	if args.CoreComponents == nil {
+	if args.CoreFactoryArgs == nil {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilCoreComponents)
 	}
 	if check.IfNil(args.AccountsParser) {
@@ -895,8 +864,6 @@ func checkArgs(args ProcessComponentsFactoryArgs) error {
 	if args.SystemSCConfig == nil {
 		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilSystemSCConfig)
 	}
-	if check.IfNil(args.TxLogsProcessor) {
-		return fmt.Errorf("%s: %w", baseErrMessage, ErrNilTxLogsConfiguration)
-	}
+
 	return nil
 }

@@ -12,7 +12,7 @@ import (
 func getProcessArgs() factory.ProcessComponentsFactoryArgs {
 	coreArgs := getCoreArgs()
 	return factory.ProcessComponentsFactoryArgs{
-		CoreComponents:            &coreArgs,
+		CoreFactoryArgs:           &coreArgs,
 		AccountsParser:            &mock.AccountsParserStub{},
 		SmartContractParser:       &mock.SmartContractParserStub{},
 		EconomicsData:             &economics.EconomicsData{},
@@ -21,9 +21,9 @@ func getProcessArgs() factory.ProcessComponentsFactoryArgs {
 		Rounder:                   &mock.RounderMock{},
 		ShardCoordinator:          mock.NewMultiShardsCoordinatorMock(2),
 		NodesCoordinator:          &mock.NodesCoordinatorMock{},
-		Data:                      &factory.DataComponents{},
-		CoreData:                  nil,
-		Crypto:                    nil,
+		Data:                      &mock.DataComponentsMock{},
+		CoreData:                  &mock.CoreComponentsMock{},
+		Crypto:                    &mock.CryptoComponentsMock{},
 		State:                     nil,
 		Network:                   nil,
 		Tries:                     nil,
@@ -44,7 +44,6 @@ func getProcessArgs() factory.ProcessComponentsFactoryArgs {
 		MaxRating:                 0,
 		ValidatorPubkeyConverter:  nil,
 		SystemSCConfig:            nil,
-		TxLogsProcessor:           nil,
 		Version:                   "",
 	}
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
@@ -129,7 +128,7 @@ func StartStatusPolling(
 	ash core.AppStatusHandler,
 	pollingInterval time.Duration,
 	networkComponents mainFactory.NetworkComponentsHolder,
-	processComponents *factory.Process,
+	processComponents mainFactory.ProcessComponentsHolder,
 	shardCoordinator sharding.Coordinator,
 ) error {
 	if ash == nil {
@@ -263,11 +262,11 @@ func setCurrentP2pNodeAddresses(
 
 func registerPollProbableHighestNonce(
 	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
-	processComponents *factory.Process,
+	processComponents mainFactory.ProcessComponentsHolder,
 ) error {
 
 	probableHighestNonceHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
-		probableHigherNonce := processComponents.ForkDetector.ProbableHighestNonce()
+		probableHigherNonce := processComponents.ForkDetector().ProbableHighestNonce()
 		appStatusHandler.SetUInt64Value(core.MetricProbableHighestNonce, probableHigherNonce)
 	}
 
