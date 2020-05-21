@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. node.proto
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. node.proto
 package trie
 
 import (
@@ -11,12 +11,11 @@ import (
 )
 
 const (
-	nrOfChildren            = 17
-	firstByte               = 0
-	maxTrieLevelAfterCommit = 6
-	hexTerminator           = 16
-	nibbleSize              = 4
-	nibbleMask              = 0x0f
+	nrOfChildren  = 17
+	firstByte     = 0
+	hexTerminator = 16
+	nibbleSize    = 4
+	nibbleMask    = 0x0f
 )
 
 type baseNode struct {

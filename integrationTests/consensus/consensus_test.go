@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -39,7 +38,7 @@ func initNodesAndTest(
 
 	fmt.Println("Step 1. Setup nodes...")
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	concMap := &sync.Map{}
@@ -55,6 +54,8 @@ func initNodesAndTest(
 	for _, nodesList := range nodes {
 		displayAndStartNodes(nodesList)
 	}
+
+	time.Sleep(p2pBootstrapDelay)
 
 	if numInvalid < numNodes {
 		for i := uint32(0); i < numInvalid; i++ {
@@ -147,8 +148,8 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(0)
-	roundTime := uint64(4000)
-	numCommBlock := uint64(10)
+	roundTime := uint64(5000)
+	numCommBlock := uint64(8)
 
 	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
 

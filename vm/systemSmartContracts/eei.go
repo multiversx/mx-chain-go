@@ -3,17 +3,20 @@ package systemSmartContracts
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type vmContext struct {
-	blockChainHook  vmcommon.BlockchainHook
-	cryptoHook      vmcommon.CryptoHook
-	systemContracts vm.SystemSCContainer
-	inputParser     vm.ArgumentsParser
-	scAddress       []byte
+	blockChainHook      vmcommon.BlockchainHook
+	cryptoHook          vmcommon.CryptoHook
+	validatorAccountsDB state.AccountsAdapter
+	systemContracts     vm.SystemSCContainer
+	inputParser         vm.ArgumentsParser
+	scAddress           []byte
 
 	storageUpdate  map[string]map[string][]byte
 	outputAccounts map[string]*vmcommon.OutputAccount
@@ -27,6 +30,7 @@ func NewVMContext(
 	blockChainHook vmcommon.BlockchainHook,
 	cryptoHook vmcommon.CryptoHook,
 	inputParser vm.ArgumentsParser,
+	validatorAccountsDB state.AccountsAdapter,
 ) (*vmContext, error) {
 	if check.IfNilReflect(blockChainHook) {
 		return nil, vm.ErrNilBlockchainHook
@@ -37,11 +41,15 @@ func NewVMContext(
 	if check.IfNil(inputParser) {
 		return nil, vm.ErrNilArgumentsParser
 	}
+	if check.IfNil(validatorAccountsDB) {
+		return nil, vm.ErrNilValidatorAccountsDB
+	}
 
 	vmc := &vmContext{
-		blockChainHook: blockChainHook,
-		cryptoHook:     cryptoHook,
-		inputParser:    inputParser,
+		blockChainHook:      blockChainHook,
+		cryptoHook:          cryptoHook,
+		inputParser:         inputParser,
+		validatorAccountsDB: validatorAccountsDB,
 	}
 	vmc.CleanCache()
 
@@ -110,12 +118,7 @@ func (host *vmContext) GetBalance(addr []byte) *big.Int {
 
 // Transfer handles any necessary value transfer required and takes
 // the necessary steps to create accounts
-func (host *vmContext) Transfer(
-	destination []byte,
-	sender []byte,
-	value *big.Int,
-	input []byte,
-) error {
+func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 
 	senderAcc, ok := host.outputAccounts[string(sender)]
 	if !ok {
@@ -140,6 +143,7 @@ func (host *vmContext) Transfer(
 	_ = senderAcc.BalanceDelta.Sub(senderAcc.BalanceDelta, value)
 	_ = destAcc.BalanceDelta.Add(destAcc.BalanceDelta, value)
 	destAcc.Data = append(destAcc.Data, input...)
+	destAcc.GasLimit += gasLimit
 
 	return nil
 }
@@ -215,7 +219,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 		return nil, err
 	}
 
-	err = host.Transfer(input.RecipientAddr, input.CallerAddr, input.CallValue, nil)
+	err = host.Transfer(input.RecipientAddr, input.CallerAddr, input.CallValue, nil, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +238,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 		return nil, err
 	}
 
-	if input.Function == "_init" {
+	if input.Function == core.SCDeployInitFunctionName {
 		return &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}, nil
 	}
 
@@ -381,6 +385,24 @@ func (host *vmContext) AddTxValueToSmartContract(value *big.Int, scAddress []byt
 	}
 
 	destAcc.BalanceDelta = big.NewInt(0).Add(destAcc.BalanceDelta, value)
+}
+
+// IsValidator returns true if the validator is in eligible or waiting list
+func (host *vmContext) IsValidator(blsKey []byte) bool {
+	acc, err := host.validatorAccountsDB.GetExistingAccount(blsKey)
+	if err != nil {
+		return false
+	}
+
+	validatorAccount, ok := acc.(state.PeerAccountHandler)
+	if !ok {
+		return false
+	}
+
+	// TODO: rename GetList from validator account
+	isValidator := validatorAccount.GetList() == string(core.EligibleList) ||
+		validatorAccount.GetList() == string(core.WaitingList)
+	return isValidator
 }
 
 // IsInterfaceNil returns if the underlying implementation is nil

@@ -10,7 +10,7 @@ import (
 
 // TransactionCoordinatorMock -
 type TransactionCoordinatorMock struct {
-	ComputeTransactionTypeCalled                         func(tx data.TransactionHandler) (process.TransactionType, error)
+	ComputeTransactionTypeCalled                         func(tx data.TransactionHandler) process.TransactionType
 	RequestMiniBlocksCalled                              func(header data.HeaderHandler)
 	RequestBlockTransactionsCalled                       func(body *block.Body)
 	IsDataPreparedForProcessingCalled                    func(haveTime func() time.Duration) error
@@ -28,6 +28,15 @@ type TransactionCoordinatorMock struct {
 	CreateMarshalizedDataCalled                 func(body *block.Body) map[string][][]byte
 	GetAllCurrentUsedTxsCalled                  func(blockType block.Type) map[string]data.TransactionHandler
 	VerifyCreatedBlockTransactionsCalled        func(hdr data.HeaderHandler, body *block.Body) error
+	CreatePostProcessMiniBlocksCalled           func() block.MiniBlockSlice
+}
+
+// CreatePostProcessMiniBlocks -
+func (tcm *TransactionCoordinatorMock) CreatePostProcessMiniBlocks() block.MiniBlockSlice {
+	if tcm.CreatePostProcessMiniBlocksCalled != nil {
+		return tcm.CreatePostProcessMiniBlocksCalled()
+	}
+	return nil
 }
 
 // CreateReceiptsHash -
@@ -36,9 +45,9 @@ func (tcm *TransactionCoordinatorMock) CreateReceiptsHash() ([]byte, error) {
 }
 
 // ComputeTransactionType -
-func (tcm *TransactionCoordinatorMock) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, error) {
+func (tcm *TransactionCoordinatorMock) ComputeTransactionType(tx data.TransactionHandler) process.TransactionType {
 	if tcm.ComputeTransactionTypeCalled == nil {
-		return 0, nil
+		return 0
 	}
 
 	return tcm.ComputeTransactionTypeCalled(tx)

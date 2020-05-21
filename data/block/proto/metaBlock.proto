@@ -45,6 +45,7 @@ message ShardData {
 	bytes                  PrevHash              = 9;
 	uint64                 Nonce                 = 10;
 	bytes                  AccumulatedFees       = 12 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes                  DeveloperFees         = 14 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 	uint32                 NumPendingMiniBlocks  = 11;
 	uint64                 LastIncludedMetaNonce = 13;
 	uint32                 ShardID               = 1;
@@ -70,9 +71,10 @@ message Economics {
 	bytes  TotalToDistribute      = 2 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 	bytes  TotalNewlyMinted       = 3 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 	bytes  RewardsPerBlockPerNode = 4 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	bytes  NodePrice              = 5 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	uint64 PrevEpochStartRound    = 6;
-	bytes  PrevEpochStartHash     = 7;
+	bytes  RewardsForCommunity    = 5 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes  NodePrice              = 6 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	uint64 PrevEpochStartRound    = 7;
+	bytes  PrevEpochStartHash     = 8;
 }
 
 // EpochStart holds the block information for end-of-epoch
@@ -84,6 +86,7 @@ message EpochStart {
 // MetaBlock holds the data that will be saved to the metachain each round
 message MetaBlock {
 	 uint64            Nonce                    = 1;
+	 uint32            Epoch                    = 2;
 	 uint64            Round                    = 3;
 	 uint64            TimeStamp                = 4;
 	 repeated ShardData       ShardInfo         = 5 [(gogoproto.nullable) = false];
@@ -100,8 +103,10 @@ message MetaBlock {
 	 bytes             ReceiptsHash             = 17;
 	 EpochStart        EpochStart               = 18 [(gogoproto.nullable) = false];
 	 bytes             ChainID                  = 19;
-	 bytes             AccumulatedFees          = 20 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	 bytes             AccumulatedFeesInEpoch   = 21 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	 uint32            Epoch                    = 2;
-	 uint32            TxCount                  = 15;
+	 bytes             SoftwareVersion          = 20;
+	 bytes             AccumulatedFees          = 21 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	 bytes             AccumulatedFeesInEpoch   = 22 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	 bytes             DeveloperFees            = 23 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	 bytes             DevFeesInEpoch           = 24 [(gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	 uint32            TxCount                  = 25;
 }

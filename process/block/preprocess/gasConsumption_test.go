@@ -18,6 +18,7 @@ func TestNewGasConsumption_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
 
 	gc, err := preprocess.NewGasComputation(
 		nil,
+		&mock.TxTypeHandlerMock{},
 	)
 
 	assert.Nil(t, gc)
@@ -29,6 +30,7 @@ func TestNewGasConsumption_ShouldWork(t *testing.T) {
 
 	gc, err := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	assert.NotNil(t, gc)
@@ -40,6 +42,7 @@ func TestGasConsumed_ShouldWork(t *testing.T) {
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	gc.SetGasConsumed(2, []byte("hash1"))
@@ -62,6 +65,7 @@ func TestGasRefunded_ShouldWork(t *testing.T) {
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	gc.SetGasRefunded(2, []byte("hash1"))
@@ -84,6 +88,7 @@ func TestComputeGasConsumedByTx_ShouldErrWrongTypeAssertion(t *testing.T) {
 
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	_, _, err := gc.ComputeGasConsumedByTx(0, 1, nil)
@@ -99,6 +104,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContra
 				return 6
 			},
 		},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	tx := transaction.Transaction{GasLimit: 7}
@@ -117,6 +123,9 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractI
 				return 6
 			},
 		},
+		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) process.TransactionType {
+			return process.SCInvoking
+		}},
 	)
 
 	tx := transaction.Transaction{GasLimit: 7, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
@@ -135,6 +144,9 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 				return 6
 			},
 		},
+		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) process.TransactionType {
+			return process.SCInvoking
+		}},
 	)
 
 	tx := transaction.Transaction{GasLimit: 7, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
@@ -153,6 +165,7 @@ func TestComputeGasConsumedByMiniBlock_ShouldErrMissingTransaction(t *testing.T)
 				return 6
 			},
 		},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	txHashes := make([][]byte, 0)
@@ -180,6 +193,7 @@ func TestComputeGasConsumedByMiniBlock_ShouldReturnZeroWhenOneTxIsMissing(t *tes
 				return 6
 			},
 		},
+		&mock.TxTypeHandlerMock{},
 	)
 
 	txHashes := make([][]byte, 0)
@@ -210,6 +224,12 @@ func TestComputeGasConsumedByMiniBlock_ShouldWork(t *testing.T) {
 				return 6
 			},
 		},
+		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) process.TransactionType {
+			if core.IsSmartContractAddress(tx.GetRcvAddr()) {
+				return process.SCInvoking
+			}
+			return process.MoveBalance
+		}},
 	)
 
 	txHashes := make([][]byte, 0)

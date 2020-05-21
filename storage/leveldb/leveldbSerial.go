@@ -3,6 +3,7 @@ package leveldb
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"runtime"
 	"sync"
@@ -12,6 +13,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
+
+var _ storage.Persister = (*SerialDB)(nil)
 
 // SerialDB holds a pointer to the leveldb database and the path to where it is stored.
 type SerialDB struct {
@@ -48,7 +51,7 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 
 	db, err := openLevelDB(path, options)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w for path %s", err, path)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -230,13 +233,13 @@ func (s *SerialDB) isClosed() bool {
 // Close closes the files/resources associated to the storage medium
 func (s *SerialDB) Close() error {
 	s.mutClosed.Lock()
+	defer s.mutClosed.Unlock()
+
 	if s.closed {
-		s.mutClosed.Unlock()
 		return nil
 	}
-	s.closed = true
-	s.mutClosed.Unlock()
 
+	s.closed = true
 	_ = s.putBatch()
 
 	s.cancel()
@@ -268,9 +271,9 @@ func (s *SerialDB) Destroy() error {
 
 	s.mutClosed.Lock()
 	s.closed = true
+	err := s.db.Close()
 	s.mutClosed.Unlock()
 
-	err := s.db.Close()
 	if err != nil {
 		return err
 	}

@@ -33,7 +33,9 @@ func haveTime() time.Duration {
 }
 
 func createTestBlockchain() *mock.BlockChainMock {
-	return &mock.BlockChainMock{}
+	return &mock.BlockChainMock{GetGenesisHeaderCalled: func() data.HeaderHandler {
+		return &block.Header{Nonce: 0}
+	}}
 }
 
 func generateTestCache() storage.Cacher {
@@ -166,8 +168,8 @@ func initDataPool(testHash []byte) *mock.PoolsHolderStub {
 			cs := &mock.HeadersCacherStub{}
 			cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
 			}
-			cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, err error) {
-				return nil, err
+			cs.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
+				return nil, process.ErrMissingHeader
 			}
 			cs.RemoveHeaderByHashCalled = func(key []byte) {
 			}
@@ -279,6 +281,8 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = &mock.AccountsStub{}
 
+	blkc := blockchain.NewBlockChain()
+	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
 	arguments := blproc.ArgShardProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			AccountsDB:        accountsDb,
@@ -304,8 +308,9 @@ func CreateMockArguments() blproc.ArgShardProcessor {
 			},
 			DataPool:           initDataPool([]byte("")),
 			BlockTracker:       mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
-			BlockChain:         blockchain.NewBlockChain(),
+			BlockChain:         blkc,
 			BlockSizeThrottler: &mock.BlockSizeThrottlerStub{},
+			Version:            "softwareVersion",
 		},
 	}
 
@@ -692,6 +697,9 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
 				Epoch: 2,
 			}
 		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
+		},
 	}
 	arguments.BlockChain = blockChain
 	sp, _ := blproc.NewShardProcessor(arguments)
@@ -719,7 +727,11 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
 				Epoch:           1,
 				RandSeed:        randSeed,
 				AccumulatedFees: big.NewInt(0),
+				DeveloperFees:   big.NewInt(0),
 			}
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
 		},
 	}
 	arguments.BlockChain = blockChain
@@ -752,6 +764,9 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
 				RandSeed: randSeed,
 			}
 		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
+		},
 	}
 	arguments.BlockChain = blockChain
 	sp, _ := blproc.NewShardProcessor(arguments)
@@ -771,12 +786,12 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 		return nil
 	}}
 	arguments.Hasher = hasher
-	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+	epochStartTrigger := &mock.EpochStartTriggerStub{
 		EpochCalled: func() uint32 {
-			return 5
+			return 2
 		},
 		MetaEpochCalled: func() uint32 {
-			return 5
+			return 3
 		},
 		IsEpochStartCalled: func() bool {
 			return true
@@ -785,6 +800,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 			return 100
 		},
 	}
+	arguments.EpochStartTrigger = epochStartTrigger
 
 	randSeed := []byte("randseed")
 	arguments.BlockChain = &mock.BlockChainMock{
@@ -793,6 +809,9 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 				Epoch:    2,
 				RandSeed: randSeed,
 			}
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
 		},
 	}
 
@@ -808,26 +827,16 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 		EpochStartMetaHash: epochStartHash,
 		RootHash:           rootHash,
 		AccumulatedFees:    big.NewInt(0),
+		DeveloperFees:      big.NewInt(0),
 	}
 
 	blk := &block.Body{}
 	err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
-	assert.True(t, errors.Is(err, process.ErrMissingHeader))
-
-	metaHdr := &block.MetaBlock{}
-	metaHdrData, _ := arguments.Marshalizer.Marshal(metaHdr)
-	_ = arguments.Store.Put(dataRetriever.MetaBlockUnit, []byte(core.EpochStartIdentifier(header.Epoch)), metaHdrData)
-
-	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 
-	hasher.ComputeCalled = func(s string) []byte {
-		if bytes.Equal([]byte(s), metaHdrData) {
-			return epochStartHash
-		}
-		return nil
+	epochStartTrigger.EpochStartMetaHdrHashCalled = func() []byte {
+		return header.EpochStartMetaHash
 	}
-
 	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
 }
@@ -863,6 +872,9 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 				RandSeed: randSeed,
 			}
 		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
+		},
 	}
 
 	sp, _ := blproc.NewShardProcessor(arguments)
@@ -877,6 +889,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 		EpochStartMetaHash: epochStartHash,
 		RootHash:           rootHash,
 		AccumulatedFees:    big.NewInt(0),
+		DeveloperFees:      big.NewInt(0),
 	}
 
 	blk := &block.Body{}
@@ -885,18 +898,97 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 
 	metaHdr := &block.MetaBlock{}
 	metaHdrData, _ := arguments.Marshalizer.Marshal(metaHdr)
-	_ = arguments.Store.Put(dataRetriever.MetaBlockUnit, []byte(core.EpochStartIdentifier(header.Epoch)), metaHdrData)
+	_ = arguments.Store.Put(dataRetriever.MetaBlockUnit, header.EpochStartMetaHash, metaHdrData)
 
 	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 
-	hasher.ComputeCalled = func(s string) []byte {
-		if bytes.Equal([]byte(s), metaHdrData) {
-			return epochStartHash
-		}
-		return nil
-	}
+	metaHdr = &block.MetaBlock{Epoch: 3, EpochStart: block.EpochStart{
+		LastFinalizedHeaders: []block.EpochStartShardData{{}},
+		Economics:            block.Economics{},
+	}}
+	metaHdrData, _ = arguments.Marshalizer.Marshal(metaHdr)
+	_ = arguments.Store.Put(dataRetriever.MetaBlockUnit, header.EpochStartMetaHash, metaHdrData)
 
 	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
+}
+
+func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfAccPruneIsDisabled(t *testing.T) {
+	t.Parallel()
+
+	pruningCalled := 0
+	peerAccDb := &mock.AccountsStub{
+		PruneTrieCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+			pruningCalled++
+		},
+		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+			pruningCalled++
+		},
+		IsPruningEnabledCalled: func() bool {
+			return true
+		},
+	}
+
+	arguments := CreateMockArguments()
+	arguments.AccountsDB[state.PeerAccountsState] = peerAccDb
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	prevHeader := &block.MetaBlock{
+		RootHash:               []byte("prevRootHash"),
+		ValidatorStatsRootHash: []byte("prevValidatorRootHash"),
+	}
+	currHeader := &block.MetaBlock{
+		RootHash:               []byte("prevRootHash"),
+		ValidatorStatsRootHash: []byte("currValidatorRootHash"),
+	}
+
+	bp.PruneStateOnRollback(currHeader, prevHeader)
+	assert.Equal(t, 2, pruningCalled)
+}
+
+func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDifferentValidatorRootHash(t *testing.T) {
+	t.Parallel()
+
+	pruningCalled := 0
+	peerAccDb := &mock.AccountsStub{
+		PruneTrieCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+			pruningCalled++
+		},
+		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+			pruningCalled++
+		},
+		IsPruningEnabledCalled: func() bool {
+			return true
+		},
+	}
+
+	accDb := &mock.AccountsStub{
+		PruneTrieCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+			pruningCalled++
+		},
+		CancelPruneCalled: func(rootHash []byte, identifier data.TriePruningIdentifier) {
+			pruningCalled++
+		},
+		IsPruningEnabledCalled: func() bool {
+			return true
+		},
+	}
+
+	arguments := CreateMockArguments()
+	arguments.AccountsDB[state.PeerAccountsState] = peerAccDb
+	arguments.AccountsDB[state.UserAccountsState] = accDb
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	prevHeader := &block.MetaBlock{
+		RootHash:               []byte("prevRootHash"),
+		ValidatorStatsRootHash: []byte("prevValidatorRootHash"),
+	}
+	currHeader := &block.MetaBlock{
+		RootHash:               []byte("prevRootHash"),
+		ValidatorStatsRootHash: []byte("currValidatorRootHash"),
+	}
+
+	bp.PruneStateOnRollback(currHeader, prevHeader)
+	assert.Equal(t, 2, pruningCalled)
 }

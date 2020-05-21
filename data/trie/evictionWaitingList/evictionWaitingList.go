@@ -3,12 +3,15 @@ package evictionWaitingList
 import (
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
+
+var log = logger.GetOrCreate("trie")
 
 // evictionWaitingList is a structure that caches keys that need to be removed from a certain database.
 // If the cache is full, the keys will be stored in the underlying database. Writing at the same key in
@@ -45,6 +48,8 @@ func NewEvictionWaitingList(size uint, db storage.Persister, marshalizer marshal
 func (ewl *evictionWaitingList) Put(rootHash []byte, hashes data.ModifiedHashes) error {
 	ewl.opMutex.Lock()
 	defer ewl.opMutex.Unlock()
+
+	log.Trace("trie eviction waiting list", "size", len(ewl.cache))
 
 	if uint(len(ewl.cache)) < ewl.cacheSize {
 		ewl.cache[string(rootHash)] = hashes
@@ -117,8 +122,9 @@ func (ewl *evictionWaitingList) IsInterfaceNil() bool {
 	return ewl == nil
 }
 
-// PresentInNewHashes searches for the given hash in all of the evictionWaitingList's newHashes
-func (ewl *evictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
+// ShouldKeepHash searches for the given hash in all of the evictionWaitingList's newHashes.
+// If the identifier is equal to oldRoot, then we should also search in oldHashes.
+func (ewl *evictionWaitingList) ShouldKeepHash(hash string, identifier data.TriePruningIdentifier) (bool, error) {
 	ewl.opMutex.RLock()
 	defer ewl.opMutex.RUnlock()
 
@@ -128,7 +134,7 @@ func (ewl *evictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
 		}
 
 		lastByte := key[len(key)-1]
-		if data.TriePruningIdentifier(lastByte) == data.OldRoot {
+		if data.TriePruningIdentifier(lastByte) == data.OldRoot && identifier == data.OldRoot {
 			continue
 		}
 
@@ -153,6 +159,7 @@ func (ewl *evictionWaitingList) PresentInNewHashes(hash string) (bool, error) {
 		}
 		_, ok := hashes[hash]
 		if ok {
+			log.Trace("should keep hash", "rootHash", []byte(key), "hash", hash)
 			return true, nil
 		}
 	}

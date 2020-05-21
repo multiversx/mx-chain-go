@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -89,8 +88,8 @@ func TestTxTypeHandler_ComputeTransactionTypeNil(t *testing.T) {
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
 
-	_, err = tth.ComputeTransactionType(nil)
-	assert.Equal(t, process.ErrNilTransaction, err)
+	txType := tth.ComputeTransactionType(nil)
+	assert.Equal(t, process.InvalidTransaction, txType)
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeNilTx(t *testing.T) {
@@ -109,8 +108,8 @@ func TestTxTypeHandler_ComputeTransactionTypeNilTx(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	tx = nil
-	_, err = tth.ComputeTransactionType(tx)
-	assert.Equal(t, process.ErrNilTransaction, err)
+	txType := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.InvalidTransaction, txType)
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeErrWrongTransaction(t *testing.T) {
@@ -128,8 +127,8 @@ func TestTxTypeHandler_ComputeTransactionTypeErrWrongTransaction(t *testing.T) {
 	tx.RcvAddr = nil
 	tx.Value = big.NewInt(45)
 
-	_, err = tth.ComputeTransactionType(tx)
-	assert.Equal(t, process.ErrWrongTransaction, err)
+	txType := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.InvalidTransaction, txType)
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
@@ -148,8 +147,7 @@ func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
-	txType, err := tth.ComputeTransactionType(tx)
-	assert.Nil(t, err)
+	txType := tth.ComputeTransactionType(tx)
 	assert.Equal(t, process.SCDeployment, txType)
 }
 
@@ -169,8 +167,7 @@ func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
 
-	txType, err := tth.ComputeTransactionType(tx)
-	assert.Nil(t, err)
+	txType := tth.ComputeTransactionType(tx)
 	assert.Equal(t, process.SCInvoking, txType)
 }
 
@@ -189,16 +186,13 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
-		CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
-			return mock.NewAddressMock(pubKey), nil
-		}}
+	}
 	tth, err := NewTxTypeHandler(arg)
 
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
 
-	txType, err := tth.ComputeTransactionType(tx)
-	assert.Nil(t, err)
+	txType := tth.ComputeTransactionType(tx)
 	assert.Equal(t, process.MoveBalance, txType)
 }
 
@@ -217,9 +211,7 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunc(t *testing.T) {
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
-		CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, err error) {
-			return mock.NewAddressMock(pubKey), nil
-		}}
+	}
 	builtIn := "builtIn"
 	arg.BuiltInFuncNames[builtIn] = struct{}{}
 	tth, err := NewTxTypeHandler(arg)
@@ -227,7 +219,6 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunc(t *testing.T) {
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
 
-	txType, err := tth.ComputeTransactionType(tx)
-	assert.Nil(t, err)
-	assert.Equal(t, process.SCInvoking, txType)
+	txType := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.BuiltInFunctionCall, txType)
 }

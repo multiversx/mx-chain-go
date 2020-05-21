@@ -1,5 +1,7 @@
 package marshal
 
+var _ Marshalizer = (*sizeCheckUnmarshalizer)(nil)
+
 type sizeCheckUnmarshalizer struct {
 	Marshalizer
 	acceptedDelta uint32
@@ -24,12 +26,20 @@ func (scu *sizeCheckUnmarshalizer) Unmarshal(obj interface{}, buff []byte) error
 		return err
 	}
 
-	out, erro := scu.Marshal(obj)
-	if erro != nil {
-		return err
+	var objSize int
+	result, ok := obj.(Sizer)
+	if !ok {
+		out, err := scu.Marshal(obj)
+		if err != nil {
+			return err
+		}
+
+		objSize = len(out)
+	} else {
+		objSize = result.Size()
 	}
 
-	maxSize := len(out) + len(out)*int(scu.acceptedDelta)/100
+	maxSize := objSize + objSize*int(scu.acceptedDelta)/100
 	if len(buff) > maxSize {
 		return ErrUnmarshallingBadSize
 	}

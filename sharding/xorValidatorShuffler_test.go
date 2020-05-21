@@ -3,18 +3,31 @@ package sharding
 import (
 	"bytes"
 	"crypto/rand"
+	"errors"
+	"fmt"
 	mathRand "math/rand"
 	"reflect"
+	"runtime"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var firstArray = []byte{0xFF, 0xFF, 0xAA, 0xAA, 0x00, 0x00}
 var secondArray = []byte{0xFF, 0x00, 0xAA, 0x55, 0x00, 0xFF}
 var expectedArray = []byte{0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF}
+
+const (
+	shuffleBetweenShards = false
+	adaptivity           = false
+	hysteresis           = float32(0.2)
+	eligiblePerShard     = 100
+	waitingPerShard      = 30
+)
 
 func generateRandomByteArray(size int) []byte {
 	r := make([]byte, size)
@@ -175,25 +188,13 @@ func testShuffledOut(
 }
 
 func createXorShufflerInter() *randXORShuffler {
-	shuffler := NewXorValidatorsShuffler(
-		100,
-		100,
-		0.2,
-		false,
-	)
-
-	shuffler.shuffleBetweenShards = true
+	shuffler := NewXorValidatorsShuffler(eligiblePerShard, eligiblePerShard, hysteresis, adaptivity, true)
 
 	return shuffler
 }
 
 func createXorShufflerIntraShards() *randXORShuffler {
-	shuffler := NewXorValidatorsShuffler(
-		100,
-		100,
-		0.2,
-		false,
-	)
+	shuffler := NewXorValidatorsShuffler(eligiblePerShard, eligiblePerShard, hysteresis, adaptivity, shuffleBetweenShards)
 
 	return shuffler
 }
@@ -295,12 +296,23 @@ func Test_promoteWaitingToEligible(t *testing.T) {
 	eligibleMapCopy := copyValidatorMap(eligibleMap)
 	waitingMapCopy := copyValidatorMap(waitingMap)
 
-	moveNodesToMap(eligibleMap, waitingMap)
+	err := moveNodesToMap(eligibleMap, waitingMap)
+	assert.Nil(t, err)
 
 	for k := range eligibleMap {
 		assert.Equal(t, eligibleMap[k], append(eligibleMapCopy[k], waitingMapCopy[k]...))
 		assert.Empty(t, waitingMap[k])
 	}
+}
+
+func Test_promoteWaitingToNilEligible(t *testing.T) {
+	t.Parallel()
+
+	waitingMap := generateValidatorMap(22, 2)
+
+	err := moveNodesToMap(nil, waitingMap)
+
+	assert.Equal(t, ErrNilOrEmptyDestinationForDistribute, err)
 }
 
 func Test_removeValidatorFromListFirst(t *testing.T) {
@@ -475,9 +487,7 @@ func Test_removeValidatorsFromListRandomValidatorsMaxSmaller(t *testing.T) {
 
 	_ = copy(validatorsCopy, validators)
 
-	sort.Slice(validators, func(i, j int) bool {
-		return bytes.Compare(validators[i].PubKey(), validators[j].PubKey()) < 0
-	})
+	sort.Sort(validatorList(validators))
 
 	validatorsToRemove = append(validatorsToRemove, validators[:nbValidatotrsToRemove]...)
 
@@ -496,14 +506,70 @@ func Test_removeValidatorsFromListRandomValidatorsMaxGreater(t *testing.T) {
 
 	_ = copy(validatorsCopy, validators)
 
-	sort.Slice(validators, func(i, j int) bool {
-		return bytes.Compare(validators[i].PubKey(), validators[j].PubKey()) < 0
-	})
+	sort.Sort(validatorList(validators))
 
 	validatorsToRemove = append(validatorsToRemove, validators[:nbValidatotrsToRemove]...)
 
 	v, removed := removeValidatorsFromList(validators, validatorsToRemove, maxToRemove)
 	testRemoveValidators(t, validatorsCopy, validatorsToRemove, v, removed, maxToRemove)
+}
+
+func Test_removeDupplicates_NoDupplicates(t *testing.T) {
+	t.Parallel()
+
+	firstList := generateValidatorList(30)
+	secondList := generateValidatorList(30)
+
+	firstListCopy := make([]Validator, len(firstList))
+	copy(firstListCopy, firstList)
+
+	secondListCopy := make([]Validator, len(secondList))
+	copy(secondListCopy, secondList)
+
+	secondListAfterRemove := removeDupplicates(firstList, secondList)
+
+	assert.Equal(t, firstListCopy, firstList)
+	assert.Equal(t, secondListCopy, secondListAfterRemove)
+}
+
+func Test_removeDupplicates_SomeDupplicates(t *testing.T) {
+	t.Parallel()
+
+	firstList := generateValidatorList(30)
+	secondList := generateValidatorList(20)
+	validatorsFromFirstList := firstList[0:10]
+	secondList = append(secondList, validatorsFromFirstList...)
+
+	firstListCopy := make([]Validator, len(firstList))
+	copy(firstListCopy, firstList)
+
+	secondListCopy := make([]Validator, len(secondList))
+	copy(secondListCopy, secondList)
+
+	secondListAfterRemove := removeDupplicates(firstList, secondList)
+
+	assert.Equal(t, firstListCopy, firstList)
+	assert.Equal(t, len(secondListCopy)-len(validatorsFromFirstList), len(secondListAfterRemove))
+	assert.Equal(t, secondListCopy[:20], secondListAfterRemove)
+}
+
+func Test_removeDupplicates_AllDupplicates(t *testing.T) {
+	t.Parallel()
+
+	firstList := generateValidatorList(30)
+	secondList := make([]Validator, len(firstList))
+	copy(secondList, firstList)
+
+	firstListCopy := make([]Validator, len(firstList))
+	copy(firstListCopy, firstList)
+	secondListCopy := make([]Validator, len(secondList))
+	copy(secondListCopy, secondList)
+
+	secondListAfterRemove := removeDupplicates(firstList, secondList)
+
+	assert.Equal(t, firstListCopy, firstList)
+	assert.Equal(t, len(secondListCopy)-len(firstListCopy), len(secondListAfterRemove))
+	assert.Equal(t, 0, len(secondListAfterRemove))
 }
 
 func Test_shuffleList(t *testing.T) {
@@ -558,7 +624,7 @@ func Test_distributeValidatorsEqualNumber(t *testing.T) {
 
 	nbLists := len(validatorsMap)
 	validatorsToDistribute := generateValidatorList(nbLists * newNodesPerShard)
-	err := distributeValidators(validatorsToDistribute, validatorsMap, randomness)
+	err := distributeValidators(validatorsMap, validatorsToDistribute, randomness)
 	testDistributeValidators(t, validatorsCopy, validatorsMap, validatorsToDistribute)
 	assert.Nil(t, err)
 }
@@ -580,7 +646,7 @@ func Test_distributeValidatorsEqualNumberNoMeta(t *testing.T) {
 
 	nbLists := len(validatorsMap)
 	validatorsToDistribute := generateValidatorList(nbLists * newNodesPerShard)
-	err := distributeValidators(validatorsToDistribute, validatorsMap, randomness)
+	err := distributeValidators(validatorsMap, validatorsToDistribute, randomness)
 	testDistributeValidators(t, validatorsCopy, validatorsMap, validatorsToDistribute)
 	assert.Nil(t, err)
 	assert.Nil(t, validatorsMap[core.MetachainShardId])
@@ -598,11 +664,11 @@ func Test_distributeValidatorsEqualNumberConsistent(t *testing.T) {
 
 	nbLists := len(validatorsMap)
 	validatorsToDistribute := generateValidatorList(nbLists * newNodesPerShard)
-	err := distributeValidators(validatorsToDistribute, validatorsMap, randomness)
+	err := distributeValidators(validatorsMap, validatorsToDistribute, randomness)
 	testDistributeValidators(t, validatorsCopy, validatorsMap, validatorsToDistribute)
 	assert.Nil(t, err)
 
-	err = distributeValidators(validatorsToDistribute, validatorsCopy, randomness)
+	err = distributeValidators(validatorsCopy, validatorsToDistribute, randomness)
 	assert.Nil(t, err)
 	for i := range validatorsCopy {
 		assert.Equal(t, validatorsMap[i], validatorsCopy[i])
@@ -622,7 +688,7 @@ func Test_distributeValidatorsUnequalNumber(t *testing.T) {
 	maxNewNodesPerShard := 10
 	newNodes := nbLists*maxNewNodesPerShard - 1
 	validatorsToDistribute := generateValidatorList(nbLists*newNodes - 1)
-	err := distributeValidators(validatorsToDistribute, validatorsMap, randomness)
+	err := distributeValidators(validatorsMap, validatorsToDistribute, randomness)
 	assert.Nil(t, err)
 	testDistributeValidators(t, validatorsCopy, validatorsMap, validatorsToDistribute)
 }
@@ -640,18 +706,18 @@ func Test_distributeValidatorsUnequalNumberConsistent(t *testing.T) {
 	maxNewNodesPerShard := 10
 	newNodes := nbLists*maxNewNodesPerShard - 1
 	validatorsToDistribute := generateValidatorList(nbLists*newNodes - 1)
-	err := distributeValidators(validatorsToDistribute, validatorsMap, randomness)
+	err := distributeValidators(validatorsMap, validatorsToDistribute, randomness)
 	assert.Nil(t, err)
 	testDistributeValidators(t, validatorsCopy, validatorsMap, validatorsToDistribute)
 
-	err = distributeValidators(validatorsToDistribute, validatorsCopy, randomness)
+	err = distributeValidators(validatorsCopy, validatorsToDistribute, randomness)
 	assert.Nil(t, err)
 	for i := range validatorsCopy {
 		assert.Equal(t, validatorsMap[i], validatorsCopy[i])
 	}
 }
 
-func Test_distributeValidatorsNilDestination(t *testing.T) {
+func Test_distributeValidatorsNilOrEmptyDestination(t *testing.T) {
 	t.Parallel()
 
 	randomness := generateRandomByteArray(32)
@@ -663,31 +729,43 @@ func Test_distributeValidatorsNilDestination(t *testing.T) {
 	maxNewNodesPerShard := 10
 	newNodes := nbLists*maxNewNodesPerShard - 1
 	validatorsToDistribute := generateValidatorList(nbLists*newNodes - 1)
-	err := distributeValidators(validatorsToDistribute, nil, randomness)
-	assert.Equal(t, ErrNilDestinationForDistribute, err)
+	err := distributeValidators(nil, validatorsToDistribute, randomness)
+	assert.Equal(t, ErrNilOrEmptyDestinationForDistribute, err)
+
+	err = distributeValidators(make(map[uint32][]Validator), validatorsToDistribute, randomness)
+	assert.Equal(t, ErrNilOrEmptyDestinationForDistribute, err)
 }
 
 func Test_shuffleOutNodesNoLeaving(t *testing.T) {
 	t.Parallel()
 
 	randomness := generateRandomByteArray(32)
-	eligibleNodesPerShard := 100
+	eligibleNodesPerShard := eligiblePerShard
 	waitingNodesPerShard := 40
 	nbShards := uint32(2)
 	var leaving []Validator
 
 	eligibleMap := generateValidatorMap(eligibleNodesPerShard, nbShards)
 	waitingMap := generateValidatorMap(waitingNodesPerShard, nbShards)
+	stillRemainingInLeaving := make([]Validator, 0)
+	numToRemove := make(map[uint32]int)
+	for shardId := range waitingMap {
+		numToRemove[shardId] = len(waitingMap[shardId])
+	}
 
-	shuffledOut, newEligible, newLeaving := shuffleOutNodes(eligibleMap, waitingMap, leaving, randomness)
-	testShuffledOut(t, eligibleMap, waitingMap, newEligible, shuffledOut, leaving, newLeaving)
+	shuffledOut, newEligible := shuffleOutNodes(eligibleMap, numToRemove, randomness)
+	shuffleOutList := make([]Validator, 0)
+	for _, shuffledOutPerShard := range shuffledOut {
+		shuffleOutList = append(shuffleOutList, shuffledOutPerShard...)
+	}
+	testShuffledOut(t, eligibleMap, waitingMap, newEligible, shuffleOutList, leaving, stillRemainingInLeaving)
 }
 
 func Test_shuffleOutNodesWithLeaving(t *testing.T) {
 	t.Parallel()
 
 	randomness := generateRandomByteArray(32)
-	eligibleNodesPerShard := 100
+	eligibleNodesPerShard := eligiblePerShard
 	waitingNodesPerShard := 40
 	nbShards := uint32(2)
 	leaving := make([]Validator, 0)
@@ -698,15 +776,27 @@ func Test_shuffleOutNodesWithLeaving(t *testing.T) {
 		leaving = append(leaving, valList[:len(valList)/5]...)
 	}
 
-	shuffledOut, newEligible, newLeaving := shuffleOutNodes(eligibleMap, waitingMap, leaving, randomness)
-	testShuffledOut(t, eligibleMap, waitingMap, newEligible, shuffledOut, leaving, newLeaving)
+	numToRemove := make(map[uint32]int)
+	for shardId := range waitingMap {
+		numToRemove[shardId] = len(waitingMap[shardId])
+	}
+
+	copyEligibleMap := copyValidatorMap(eligibleMap)
+	copyWaitingMap := copyValidatorMap(waitingMap)
+	newEligible, _, stillRemainingInLeaving := removeLeavingNodesFromValidatorMaps(copyEligibleMap, copyWaitingMap, numToRemove, leaving)
+	shuffledOut, newEligible := shuffleOutNodes(newEligible, numToRemove, randomness)
+	shuffleOutList := make([]Validator, 0)
+	for _, shuffledOutPerShard := range shuffledOut {
+		shuffleOutList = append(shuffleOutList, shuffledOutPerShard...)
+	}
+	testShuffledOut(t, eligibleMap, waitingMap, newEligible, shuffleOutList, leaving, stillRemainingInLeaving)
 }
 
 func Test_shuffleOutNodesWithLeavingMoreThanWaiting(t *testing.T) {
 	t.Parallel()
 
 	randomness := generateRandomByteArray(32)
-	eligibleNodesPerShard := 100
+	eligibleNodesPerShard := eligiblePerShard
 	waitingNodesPerShard := 40
 	nbShards := uint32(2)
 	leaving := make([]Validator, 0)
@@ -717,19 +807,27 @@ func Test_shuffleOutNodesWithLeavingMoreThanWaiting(t *testing.T) {
 		leaving = append(leaving, valList[:len(valList)/2+1]...)
 	}
 
-	shuffledOut, newEligible, newLeaving := shuffleOutNodes(eligibleMap, waitingMap, leaving, randomness)
-	testShuffledOut(t, eligibleMap, waitingMap, newEligible, shuffledOut, leaving, newLeaving)
+	numToRemove := make(map[uint32]int)
+	for shardId := range waitingMap {
+		numToRemove[shardId] = len(waitingMap[shardId])
+	}
+	copyEligibleMap := copyValidatorMap(eligibleMap)
+	copyWaitingMap := copyValidatorMap(waitingMap)
+
+	newEligible, _, stillRemainingInLeaving := removeLeavingNodesFromValidatorMaps(copyEligibleMap, copyWaitingMap, numToRemove, leaving)
+
+	shuffledOut, newEligible := shuffleOutNodes(newEligible, numToRemove, randomness)
+	shuffleOutList := make([]Validator, 0)
+	for _, shuffledOutPerShard := range shuffledOut {
+		shuffleOutList = append(shuffleOutList, shuffledOutPerShard...)
+	}
+	testShuffledOut(t, eligibleMap, waitingMap, newEligible, shuffleOutList, leaving, stillRemainingInLeaving)
 }
 
 func TestNewXorValidatorsShuffler(t *testing.T) {
 	t.Parallel()
 
-	shuffler := NewXorValidatorsShuffler(
-		100,
-		100,
-		0.2,
-		false,
-	)
+	shuffler := NewXorValidatorsShuffler(eligiblePerShard, eligiblePerShard, hysteresis, adaptivity, shuffleBetweenShards)
 
 	assert.NotNil(t, shuffler)
 }
@@ -745,9 +843,13 @@ func TestRandXORShuffler_computeNewShardsNotChanging(t *testing.T) {
 	nbWaitingPerShard := int(maxNodesNoSplit/nbShards - shuffler.nodesShard)
 	waiting := generateValidatorMap(nbWaitingPerShard, currentNbShards)
 	newNodes := generateValidatorList(0)
-	leaving := generateValidatorList(0)
+	leavingUnstake := generateValidatorList(0)
+	leavingRating := generateValidatorList(0)
 
-	newNbShards := shuffler.computeNewShards(eligible, waiting, newNodes, leaving, currentNbShards)
+	numNewNodes := len(newNodes)
+	numLeaving := len(leavingUnstake) + len(leavingRating)
+
+	newNbShards := shuffler.computeNewShards(eligible, waiting, numNewNodes, numLeaving, currentNbShards)
 	assert.Equal(t, currentNbShards, newNbShards)
 }
 
@@ -762,9 +864,13 @@ func TestRandXORShuffler_computeNewShardsWithSplit(t *testing.T) {
 	nbWaitingPerShard := int(maxNodesNoSplit/nbShards-shuffler.nodesShard) + 1
 	waiting := generateValidatorMap(nbWaitingPerShard, currentNbShards)
 	newNodes := generateValidatorList(0)
-	leaving := generateValidatorList(0)
+	leavingUnstake := generateValidatorList(0)
+	leavingRating := generateValidatorList(0)
 
-	newNbShards := shuffler.computeNewShards(eligible, waiting, newNodes, leaving, currentNbShards)
+	numNewNodes := len(newNodes)
+	numLeaving := len(leavingUnstake) + len(leavingRating)
+
+	newNbShards := shuffler.computeNewShards(eligible, waiting, numNewNodes, numLeaving, currentNbShards)
 	assert.Equal(t, currentNbShards+1, newNbShards)
 }
 
@@ -777,9 +883,13 @@ func TestRandXORShuffler_computeNewShardsWithMerge(t *testing.T) {
 	nbWaitingPerShard := 0
 	waiting := generateValidatorMap(nbWaitingPerShard, currentNbShards)
 	newNodes := generateValidatorList(0)
-	leaving := generateValidatorList(1)
+	leavingUnstake := generateValidatorList(1)
+	leavingRating := generateValidatorList(0)
 
-	newNbShards := shuffler.computeNewShards(eligible, waiting, newNodes, leaving, currentNbShards)
+	numNewNodes := len(newNodes)
+	numLeaving := len(leavingUnstake) + len(leavingRating)
+
+	newNbShards := shuffler.computeNewShards(eligible, waiting, numNewNodes, numLeaving, currentNbShards)
 	assert.Equal(t, currentNbShards-1, newNbShards)
 }
 
@@ -794,6 +904,7 @@ func TestRandXORShuffler_UpdateParams(t *testing.T) {
 		metaHysteresis:       0,
 		adaptivity:           true,
 		shuffleBetweenShards: true,
+		validatorDistributor: &CrossShardValidatorDistributor{},
 	}
 
 	shuffler.UpdateParams(
@@ -817,20 +928,24 @@ func TestRandXORShuffler_UpdateNodeListsNoReSharding(t *testing.T) {
 	randomness := generateRandomByteArray(32)
 
 	leavingNodes := make([]Validator, 0)
+	extraLeavingNodes := make([]Validator, 0)
 	newNodes := make([]Validator, 0)
 
 	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
 	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
 
 	args := ArgsUpdateNodes{
-		Eligible: eligibleMap,
-		Waiting:  waitingMap,
-		NewNodes: newNodes,
-		Leaving:  leavingNodes,
-		Rand:     randomness,
+		Eligible:          eligibleMap,
+		Waiting:           waitingMap,
+		NewNodes:          newNodes,
+		UnStakeLeaving:    leavingNodes,
+		AdditionalLeaving: extraLeavingNodes,
+		Rand:              randomness,
+		NbShards:          nbShards,
 	}
 
-	resUpdateNodeList := shuffler.UpdateNodeLists(args)
+	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
+	require.Nil(t, err)
 
 	allPrevEligible := getValidatorsInMap(eligibleMap)
 	allNewEligible := getValidatorsInMap(resUpdateNodeList.Eligible)
@@ -840,7 +955,7 @@ func TestRandXORShuffler_UpdateNodeListsNoReSharding(t *testing.T) {
 	assert.Equal(t, len(allPrevEligible)+len(allPrevWaiting), len(allNewEligible)+len(allNewWaiting))
 }
 
-func TestRandXORShuffler_UpdateNodeListsWithLeavingRemovesFromEligible(t *testing.T) {
+func TestRandXORShuffler_UpdateNodeListsWithUnstakeLeavingRemovesFromEligible(t *testing.T) {
 	t.Parallel()
 
 	eligiblePerShard := 10
@@ -849,22 +964,23 @@ func TestRandXORShuffler_UpdateNodeListsWithLeavingRemovesFromEligible(t *testin
 	shuffler := NewXorValidatorsShuffler(
 		uint32(eligiblePerShard),
 		uint32(eligibleMeta),
-		0.2,
-		false,
+		hysteresis,
+		adaptivity,
+		shuffleBetweenShards,
 	)
-	shuffler.shuffleBetweenShards = false
 
 	waitingPerShard := 2
 	nbShards := 0
 
 	args := createShufflerArgs(eligiblePerShard, waitingPerShard, uint32(nbShards))
 
-	args.Leaving = []Validator{
+	args.UnStakeLeaving = []Validator{
 		args.Eligible[core.MetachainShardId][0],
 		args.Eligible[core.MetachainShardId][1],
 	}
 
-	resUpdateNodeList := shuffler.UpdateNodeLists(args)
+	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
+	require.Nil(t, err)
 
 	allNewEligible := getValidatorsInMap(resUpdateNodeList.Eligible)
 	allNewWaiting := getValidatorsInMap(resUpdateNodeList.Waiting)
@@ -878,10 +994,9 @@ func TestRandXORShuffler_UpdateNodeListsWithLeavingRemovesFromEligible(t *testin
 	previousNumberOfNodes := (eligiblePerShard + waitingPerShard) * (nbShards + 1)
 	currentNumberOfNodes := len(allNewEligible) + len(allNewWaiting) + len(resUpdateNodeList.Leaving)
 	assert.Equal(t, previousNumberOfNodes, currentNumberOfNodes)
-
 }
 
-func TestRandXORShuffler_UpdateNodeListsWithLeavingRemovesFromWaiting(t *testing.T) {
+func TestRandXORShuffler_UpdateNodeListsWithUnstakeLeavingRemovesFromWaiting(t *testing.T) {
 	t.Parallel()
 
 	eligiblePerShard := 10
@@ -890,22 +1005,23 @@ func TestRandXORShuffler_UpdateNodeListsWithLeavingRemovesFromWaiting(t *testing
 	shuffler := NewXorValidatorsShuffler(
 		uint32(eligiblePerShard),
 		uint32(eligibleMeta),
-		0.2,
-		false,
+		hysteresis,
+		adaptivity,
+		shuffleBetweenShards,
 	)
-	shuffler.shuffleBetweenShards = false
 
 	waitingPerShard := 2
 	nbShards := 0
 
 	args := createShufflerArgs(eligiblePerShard, waitingPerShard, uint32(nbShards))
 
-	args.Leaving = []Validator{
+	args.UnStakeLeaving = []Validator{
 		args.Waiting[core.MetachainShardId][0],
 		args.Waiting[core.MetachainShardId][1],
 	}
 
-	resUpdateNodeList := shuffler.UpdateNodeLists(args)
+	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
+	require.Nil(t, err)
 
 	allNewEligible := getValidatorsInMap(resUpdateNodeList.Eligible)
 	allNewWaiting := getValidatorsInMap(resUpdateNodeList.Waiting)
@@ -921,16 +1037,10 @@ func TestRandXORShuffler_UpdateNodeListsWithLeavingRemovesFromWaiting(t *testing
 	assert.Equal(t, previousNumberOfNodes, currentNumberOfNodes)
 }
 
-func TestRandXORShuffler_UpdateNodeListsWithNonExistentLeavingDoesNotRemove(t *testing.T) {
+func TestRandXORShuffler_UpdateNodeListsWithNonExistentUnstakeLeavingDoesNotRemove(t *testing.T) {
 	t.Parallel()
 
-	shuffler := NewXorValidatorsShuffler(
-		10,
-		10,
-		0.2,
-		false,
-	)
-	shuffler.shuffleBetweenShards = false
+	shuffler := NewXorValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
 
 	eligiblePerShard := int(shuffler.nodesShard)
 	waitingPerShard := 2
@@ -938,7 +1048,7 @@ func TestRandXORShuffler_UpdateNodeListsWithNonExistentLeavingDoesNotRemove(t *t
 
 	args := createShufflerArgs(eligiblePerShard, waitingPerShard, nbShards)
 
-	args.Leaving = []Validator{
+	args.UnStakeLeaving = []Validator{
 		&validator{
 			pubKey: generateRandomByteArray(32),
 		},
@@ -947,7 +1057,8 @@ func TestRandXORShuffler_UpdateNodeListsWithNonExistentLeavingDoesNotRemove(t *t
 		},
 	}
 
-	resUpdateNodeList := shuffler.UpdateNodeLists(args)
+	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
+	require.Nil(t, err)
 
 	allNewEligible := getValidatorsInMap(resUpdateNodeList.Eligible)
 	allNewEligibleMap := listToValidatorMap(allNewEligible)
@@ -962,7 +1073,7 @@ func TestRandXORShuffler_UpdateNodeListsWithNonExistentLeavingDoesNotRemove(t *t
 	}
 
 	for i := range resUpdateNodeList.Leaving {
-		assert.Equal(t, args.Leaving[i], resUpdateNodeList.Leaving[i])
+		assert.Equal(t, args.UnStakeLeaving[i], resUpdateNodeList.Leaving[i])
 	}
 }
 
@@ -971,15 +1082,13 @@ func TestRandXORShuffler_UpdateNodeListsWithRangeOnMaps(t *testing.T) {
 	shuffleBetweenShards := []bool{true, false}
 
 	for _, shuffle := range shuffleBetweenShards {
-		eligiblePerShard := 100
-		eligibleMeta := 100
 		shuffler := NewXorValidatorsShuffler(
 			uint32(eligiblePerShard),
-			uint32(eligibleMeta),
-			0.2,
-			false,
+			uint32(eligiblePerShard),
+			hysteresis,
+			adaptivity,
+			shuffle,
 		)
-		shuffler.shuffleBetweenShards = shuffle
 
 		waitingPerShard := 20
 		numShards := 2
@@ -1006,12 +1115,14 @@ func TestRandXORShuffler_UpdateNodeListsWithRangeOnMaps(t *testing.T) {
 			allValidators = removeValidatorFromList(allValidators, randIndex)
 		}
 
-		args.Leaving = leavingValidators
+		args.UnStakeLeaving = leavingValidators
 
-		resUpdateNodeListInitial := shuffler.UpdateNodeLists(args)
+		resUpdateNodeListInitial, err := shuffler.UpdateNodeLists(args)
+		require.Nil(t, err)
 
 		for i := 0; i < 100; i++ {
-			resUpdateNodeList := shuffler.UpdateNodeLists(args)
+			resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
+			require.Nil(t, err)
 
 			assert.Equal(t, resUpdateNodeListInitial.Eligible, resUpdateNodeList.Eligible)
 			assert.Equal(t, resUpdateNodeListInitial.Waiting, resUpdateNodeList.Waiting)
@@ -1023,28 +1134,30 @@ func TestRandXORShuffler_UpdateNodeListsWithRangeOnMaps(t *testing.T) {
 func TestRandXORShuffler_UpdateNodeListsNoReShardingIntraShardShuffling(t *testing.T) {
 	t.Parallel()
 
-	shuffler := createXorShufflerIntraShards()
-
-	eligiblePerShard := int(shuffler.nodesShard)
-	waitingPerShard := 30
 	nbShards := uint32(3)
 	randomness := generateRandomByteArray(32)
 
+	shuffler := createXorShufflerIntraShards()
+
 	leavingNodes := make([]Validator, 0)
+	additionalLeavingNodes := make([]Validator, 0)
 	newNodes := make([]Validator, 0)
 
 	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
 	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
 
 	args := ArgsUpdateNodes{
-		Eligible: eligibleMap,
-		Waiting:  waitingMap,
-		NewNodes: newNodes,
-		Leaving:  leavingNodes,
-		Rand:     randomness,
+		Eligible:          eligibleMap,
+		Waiting:           waitingMap,
+		NewNodes:          newNodes,
+		UnStakeLeaving:    leavingNodes,
+		AdditionalLeaving: additionalLeavingNodes,
+		Rand:              randomness,
+		NbShards:          nbShards,
 	}
 
-	resUpdateNodeList := shuffler.UpdateNodeLists(args)
+	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
+	require.Nil(t, err)
 
 	allPrevEligible := getValidatorsInMap(eligibleMap)
 	allNewEligible := getValidatorsInMap(resUpdateNodeList.Eligible)
@@ -1052,6 +1165,1111 @@ func TestRandXORShuffler_UpdateNodeListsNoReShardingIntraShardShuffling(t *testi
 	allNewWaiting := getValidatorsInMap(resUpdateNodeList.Waiting)
 
 	assert.Equal(t, len(allPrevEligible)+len(allPrevWaiting), len(allNewEligible)+len(allNewWaiting))
+}
+
+func TestRandXORShuffler_RemoveLeavingNodesNotExistingInEligibleOrWaiting_WithAllKnown(t *testing.T) {
+	t.Parallel()
+
+	nbShards := uint32(3)
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	leavingValidators := []Validator{
+		eligibleMap[core.MetachainShardId][0],
+		eligibleMap[core.MetachainShardId][1],
+		waitingMap[0][1],
+		waitingMap[0][2],
+	}
+
+	stillRemaining, removed := removeLeavingNodesNotExistingInEligibleOrWaiting(leavingValidators, eligibleMap, waitingMap)
+
+	assert.Equal(t, len(leavingValidators), len(stillRemaining))
+	assert.Equal(t, 0, len(removed))
+
+	for _, leavingValidator := range leavingValidators {
+		foundInEligible, _ := searchInMap(eligibleMap, leavingValidator.PubKey())
+		foundInWaiting, _ := searchInMap(waitingMap, leavingValidator.PubKey())
+		assert.True(t, foundInEligible || foundInWaiting)
+	}
+
+}
+
+func TestRandXORShuffler_RemoveLeavingNodesNotExistingInEligibleOrWaiting_WithAllNotKnown(t *testing.T) {
+	t.Parallel()
+
+	leavingNumber := 4
+	nbShards := uint32(3)
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	leavingValidators := generateValidatorList(leavingNumber)
+
+	stillRemaining, removed := removeLeavingNodesNotExistingInEligibleOrWaiting(leavingValidators, eligibleMap, waitingMap)
+
+	assert.Equal(t, 0, len(stillRemaining))
+	assert.Equal(t, len(leavingValidators), len(removed))
+
+	for _, leavingValidator := range leavingValidators {
+		foundInEligible, _ := searchInMap(eligibleMap, leavingValidator.PubKey())
+		foundInWaiting, _ := searchInMap(waitingMap, leavingValidator.PubKey())
+		assert.False(t, foundInEligible || foundInWaiting)
+	}
+
+	for i := range leavingValidators {
+		assert.Equal(t, leavingValidators[i], removed[i])
+	}
+}
+
+func TestRandXORShuffler_RemoveLeavingNodesNotExistingInEligibleOrWaiting_3Found3NotFound(t *testing.T) {
+	t.Parallel()
+
+	eligiblePerShard := 10
+	waitingPerShard := 3
+	leavingNumber := 3
+	nbShards := uint32(3)
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	leavingValidators := generateValidatorList(leavingNumber)
+	leavingValidators = append(leavingValidators, eligibleMap[core.MetachainShardId][0])
+	leavingValidators = append(leavingValidators, eligibleMap[0][eligiblePerShard/2])
+	leavingValidators = append(leavingValidators, waitingMap[1][waitingPerShard-1])
+
+	stillRemaining, removed := removeLeavingNodesNotExistingInEligibleOrWaiting(leavingValidators, eligibleMap, waitingMap)
+
+	assert.Equal(t, 3, len(stillRemaining))
+	assert.Equal(t, 3, len(removed))
+
+	for i := range leavingValidators[:3] {
+		assert.Equal(t, leavingValidators[i], removed[i])
+	}
+
+	for _, leavingValidator := range leavingValidators[3:] {
+		foundInEligible, _ := searchInMap(eligibleMap, leavingValidator.PubKey())
+		foundInWaiting, _ := searchInMap(waitingMap, leavingValidator.PubKey())
+		assert.True(t, foundInEligible || foundInWaiting)
+	}
+}
+
+func TestRandXORShuffler_RemoveLeavingNodesFromValidatorMaps_FromEligible(t *testing.T) {
+	t.Parallel()
+
+	nbShards := uint32(0)
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	leavingValidators := []Validator{
+		eligibleMap[core.MetachainShardId][0],
+	}
+
+	numToRemove := make(map[uint32]int)
+	for shardId := range waitingMap {
+		numToRemove[shardId] = waitingPerShard
+	}
+
+	eligibleCopy := copyValidatorMap(eligibleMap)
+	waitingCopy := copyValidatorMap(waitingMap)
+
+	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators)
+
+	assert.Equal(t, eligiblePerShard-1, len(newEligible[core.MetachainShardId]))
+	assert.Equal(t, waitingPerShard, len(newWaiting[core.MetachainShardId]))
+	assert.Equal(t, 0, len(stillRemaining))
+
+	for _, leavingValidator := range leavingValidators {
+		foundInEligible, _ := searchInMap(eligibleMap, leavingValidator.PubKey())
+		assert.True(t, foundInEligible)
+		foundInEligible, _ = searchInMap(newEligible, leavingValidator.PubKey())
+		assert.False(t, foundInEligible)
+	}
+}
+
+func TestRandXORShuffler_RemoveLeavingNodesFromValidatorMaps_FromWaiting(t *testing.T) {
+	t.Parallel()
+
+	nbShards := uint32(0)
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	leavingValidators := []Validator{
+		waitingMap[core.MetachainShardId][1],
+	}
+
+	numToRemove := make(map[uint32]int)
+	for shardId := range waitingMap {
+		numToRemove[shardId] = waitingPerShard
+	}
+
+	eligibleCopy := copyValidatorMap(eligibleMap)
+	waitingCopy := copyValidatorMap(waitingMap)
+
+	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators)
+
+	assert.Equal(t, eligiblePerShard, len(newEligible[core.MetachainShardId]))
+	assert.Equal(t, waitingPerShard-1, len(newWaiting[core.MetachainShardId]))
+	assert.Equal(t, 0, len(stillRemaining))
+
+	for _, leavingValidator := range leavingValidators {
+		foundInEligible, _ := searchInMap(waitingMap, leavingValidator.PubKey())
+		assert.True(t, foundInEligible)
+		foundInEligible, _ = searchInMap(newWaiting, leavingValidator.PubKey())
+		assert.False(t, foundInEligible)
+	}
+}
+
+func TestRandXORShuffler_RemoveLeavingNodesFromValidatorMaps_NonExisting(t *testing.T) {
+	t.Parallel()
+
+	nbShards := uint32(0)
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	leavingValidators := generateValidatorList(1)
+
+	numToRemove := make(map[uint32]int)
+	for shardId := range waitingMap {
+		numToRemove[shardId] = waitingPerShard
+	}
+
+	eligibleCopy := copyValidatorMap(eligibleMap)
+	waitingCopy := copyValidatorMap(waitingMap)
+
+	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators)
+
+	assert.Equal(t, eligiblePerShard, len(newEligible[core.MetachainShardId]))
+	assert.Equal(t, waitingPerShard, len(newWaiting[core.MetachainShardId]))
+	assert.Equal(t, len(leavingValidators), len(stillRemaining))
+
+	for _, leavingValidator := range leavingValidators {
+		foundInEligible, _ := searchInMap(newEligible, leavingValidator.PubKey())
+		foundInWaiting, _ := searchInMap(newWaiting, leavingValidator.PubKey())
+		assert.False(t, foundInEligible || foundInWaiting)
+	}
+}
+
+func TestRandXORShuffler_RemoveLeavingNodesFromValidatorMaps_2Eligible2Waiting2NonExisting(t *testing.T) {
+	t.Parallel()
+
+	eligiblePerShard := 10
+	waitingPerShard := 6
+	nbShards := uint32(0)
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	leavingValidators := generateValidatorList(2)
+	leavingValidators = append(leavingValidators, []Validator{
+		eligibleMap[core.MetachainShardId][0],
+		eligibleMap[core.MetachainShardId][5]}...)
+	leavingValidators = append(leavingValidators, []Validator{
+		waitingMap[core.MetachainShardId][1],
+		waitingMap[core.MetachainShardId][2]}...)
+
+	numToRemove := make(map[uint32]int)
+	for shardId := range waitingMap {
+		numToRemove[shardId] = waitingPerShard
+	}
+
+	eligibleCopy := copyValidatorMap(eligibleMap)
+	waitingCopy := copyValidatorMap(waitingMap)
+
+	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators)
+
+	remainingInEligible := eligiblePerShard - 2
+	remainingInWaiting := waitingPerShard - 2
+	stillLeaving := 2
+
+	assert.Equal(t, remainingInEligible, len(newEligible[core.MetachainShardId]))
+	assert.Equal(t, remainingInWaiting, len(newWaiting[core.MetachainShardId]))
+	assert.Equal(t, stillLeaving, len(stillRemaining))
+
+	for _, leavingValidator := range leavingValidators[:2] {
+		foundInEligible, _ := searchInMap(newEligible, leavingValidator.PubKey())
+		foundInWaiting, _ := searchInMap(newWaiting, leavingValidator.PubKey())
+		assert.False(t, foundInEligible || foundInWaiting)
+	}
+
+	for _, leavingValidator := range leavingValidators[2:4] {
+		foundInWaiting, _ := searchInMap(newWaiting, leavingValidator.PubKey())
+		assert.False(t, foundInWaiting)
+	}
+
+	for _, leavingValidator := range leavingValidators[4:6] {
+		foundInEligible, _ := searchInMap(newEligible, leavingValidator.PubKey())
+		assert.False(t, foundInEligible)
+	}
+}
+
+func TestRandXORShuffler_RemoveLeavingNodesFromValidatorMaps_2FromEligible2FromWaitingFrom3Waiting(t *testing.T) {
+	t.Parallel()
+
+	eligiblePerShard := 10
+	waitingPerShard := 3
+	nbShards := uint32(0)
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	leavingValidators := make([]Validator, 0)
+	leavingValidators = append(leavingValidators, []Validator{
+		eligibleMap[core.MetachainShardId][0],
+		eligibleMap[core.MetachainShardId][5]}...)
+	leavingValidators = append(leavingValidators, []Validator{
+		waitingMap[core.MetachainShardId][1],
+		waitingMap[core.MetachainShardId][2]}...)
+
+	numToRemove := make(map[uint32]int)
+	for shardId := range waitingMap {
+		numToRemove[shardId] = waitingPerShard
+	}
+
+	eligibleCopy := copyValidatorMap(eligibleMap)
+	waitingCopy := copyValidatorMap(waitingMap)
+
+	newEligible, newWaiting, stillRemaining := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, leavingValidators)
+
+	// removed first 2 from waiting and just one from eligible
+	remainingInEligible := eligiblePerShard - 1
+	remainingInWaiting := waitingPerShard - 2
+	stillLeaving := 1
+
+	assert.Equal(t, remainingInEligible, len(newEligible[core.MetachainShardId]))
+	assert.Equal(t, remainingInWaiting, len(newWaiting[core.MetachainShardId]))
+	assert.Equal(t, stillLeaving, len(stillRemaining))
+
+	for _, leavingValidator := range leavingValidators[2:4] {
+		foundInWaiting, _ := searchInMap(newWaiting, leavingValidator.PubKey())
+		assert.False(t, foundInWaiting)
+	}
+
+	foundInEligible, _ := searchInMap(newEligible, leavingValidators[0].PubKey())
+	assert.False(t, foundInEligible)
+
+	foundInEligible, _ = searchInMap(newEligible, leavingValidators[1].PubKey())
+	assert.True(t, foundInEligible)
+}
+
+func TestRandXORShuffler_UpdateNodeLists_WithUnstakeLeaving(t *testing.T) {
+	t.Parallel()
+
+	nbShards := uint32(2)
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	unStakeLeaving := make(map[uint32][]Validator)
+	additionalLeaving := make(map[uint32][]Validator)
+	unStakeLeaving[core.MetachainShardId] = []Validator{
+		eligibleMap[core.MetachainShardId][0],
+		eligibleMap[core.MetachainShardId][eligiblePerShard-1],
+		waitingMap[core.MetachainShardId][0],
+		waitingMap[core.MetachainShardId][1],
+	}
+
+	unStakeLeaving[0] = []Validator{
+		waitingMap[0][0],
+		waitingMap[0][waitingPerShard/2]}
+
+	unStakeLeaving[1] = []Validator{
+		eligibleMap[1][0],
+		eligibleMap[1][1],
+		eligibleMap[1][2],
+		eligibleMap[1][eligiblePerShard-1]}
+
+	additionaLeavingList := make([]Validator, 0)
+	for _, shardLeaving := range unStakeLeaving {
+		additionaLeavingList = append(additionaLeavingList, shardLeaving...)
+	}
+
+	shuffler := createXorShufflerIntraShards()
+
+	arg := ArgsUpdateNodes{
+		Eligible:          eligibleMap,
+		Waiting:           waitingMap,
+		NewNodes:          make([]Validator, 0),
+		UnStakeLeaving:    additionaLeavingList,
+		AdditionalLeaving: make([]Validator, 0),
+		Rand:              generateRandomByteArray(32),
+		NbShards:          nbShards,
+	}
+
+	result, err := shuffler.UpdateNodeLists(arg)
+	require.Nil(t, err)
+
+	leavingPerShardMap, stillRemainingPerShardMap := createActuallyLeavingPerShards(unStakeLeaving, additionalLeaving, result.Leaving)
+
+	for i := uint32(0); i < nbShards+1; i++ {
+		shardId := i
+		if i == nbShards {
+			shardId = core.MetachainShardId
+		}
+		verifyResultsIntraShardShuffling(t,
+			eligibleMap[shardId],
+			waitingMap[shardId],
+			unStakeLeaving[shardId],
+			additionalLeaving[shardId],
+			result.Eligible[shardId],
+			result.Waiting[shardId],
+			leavingPerShardMap[shardId],
+			stillRemainingPerShardMap[shardId],
+		)
+	}
+}
+
+func TestRandXORShuffler_UpdateNodeLists_WithUnstakeLeaving_EnoughRemaining(t *testing.T) {
+	t.Parallel()
+
+	eligiblePerShard := 100
+	waitingPerShard := 30
+	nbShards := uint32(2)
+
+	shuffler := createXorShufflerIntraShards()
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	eligibleMap = generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap = generateValidatorMap(waitingPerShard, nbShards)
+	currentShardId := uint32(1)
+	unstakeLeaving := eligibleMap[currentShardId]                  // unstake 100
+	eligibleMap[currentShardId] = eligibleMap[currentShardId][:70] // eligible - 70
+
+	arg := ArgsUpdateNodes{
+		Eligible:          eligibleMap,
+		Waiting:           waitingMap,
+		NewNodes:          make([]Validator, 0),
+		UnStakeLeaving:    unstakeLeaving,
+		AdditionalLeaving: make([]Validator, 0),
+		Rand:              generateRandomByteArray(32),
+		NbShards:          nbShards,
+	}
+
+	result, err := shuffler.UpdateNodeLists(arg)
+	assert.NotNil(t, result)
+	assert.Nil(t, err)
+}
+
+func TestRandXORShuffler_UpdateNodeLists_WithUnstakeLeaving_NotEnoughRemaining(t *testing.T) {
+	t.Parallel()
+
+	eligiblePerShard := 100
+	waitingPerShard := 30
+	nbShards := uint32(2)
+
+	shuffler := createXorShufflerIntraShards()
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	unstakeLeaving := eligibleMap[core.MetachainShardId] // unstake 100
+
+	eligibleMap[core.MetachainShardId] = make([]Validator, 0) // eligible - no validators
+
+	arg := ArgsUpdateNodes{
+		Eligible:          eligibleMap,
+		Waiting:           waitingMap,
+		NewNodes:          make([]Validator, 0),
+		UnStakeLeaving:    unstakeLeaving,
+		AdditionalLeaving: make([]Validator, 0),
+		Rand:              generateRandomByteArray(32),
+		NbShards:          nbShards,
+	}
+
+	_, err := shuffler.UpdateNodeLists(arg)
+	assert.True(t, errors.Is(err, ErrSmallShardEligibleListSize))
+	assert.True(t, strings.Contains(err.Error(), fmt.Sprintf("%v", core.MetachainShardId)))
+
+	eligibleMap = generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap = generateValidatorMap(waitingPerShard, nbShards)
+
+	currentShardId := uint32(0)
+	unstakeLeaving = eligibleMap[currentShardId]                   // unstake 100
+	eligibleMap[currentShardId] = eligibleMap[currentShardId][:69] // eligible - 69
+
+	arg = ArgsUpdateNodes{
+		Eligible:          eligibleMap,
+		Waiting:           waitingMap,
+		NewNodes:          make([]Validator, 0),
+		UnStakeLeaving:    unstakeLeaving,
+		AdditionalLeaving: make([]Validator, 0),
+		Rand:              generateRandomByteArray(32),
+		NbShards:          uint32(len(eligibleMap)),
+	}
+
+	_, err = shuffler.UpdateNodeLists(arg)
+	assert.True(t, errors.Is(err, ErrSmallShardEligibleListSize))
+	assert.True(t, strings.Contains(err.Error(), fmt.Sprintf("%v", currentShardId)))
+}
+
+func TestRandXORShuffler_UpdateNodeLists_WithAdditionalLeaving(t *testing.T) {
+	t.Parallel()
+
+	nbShards := uint32(2)
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	additionalLeaving := make(map[uint32][]Validator)
+	unstakeLeaving := make(map[uint32][]Validator)
+	additionalLeaving[core.MetachainShardId] = []Validator{
+		eligibleMap[core.MetachainShardId][0],
+		eligibleMap[core.MetachainShardId][eligiblePerShard-1],
+		waitingMap[core.MetachainShardId][0],
+		waitingMap[core.MetachainShardId][1],
+	}
+
+	additionalLeaving[0] = []Validator{
+		waitingMap[0][0],
+		waitingMap[0][waitingPerShard/2]}
+
+	additionalLeaving[1] = []Validator{
+		eligibleMap[1][0],
+		eligibleMap[1][1],
+		eligibleMap[1][2],
+		eligibleMap[1][eligiblePerShard-1]}
+
+	unstakeLeavingList, additionalLeavingList := prepareListsFromMaps(unstakeLeaving, additionalLeaving)
+
+	shuffler := createXorShufflerIntraShards()
+
+	arg := ArgsUpdateNodes{
+		Eligible:          eligibleMap,
+		Waiting:           waitingMap,
+		NewNodes:          make([]Validator, 0),
+		UnStakeLeaving:    unstakeLeavingList,
+		AdditionalLeaving: additionalLeavingList,
+		Rand:              generateRandomByteArray(32),
+		NbShards:          nbShards,
+	}
+
+	result, err := shuffler.UpdateNodeLists(arg)
+	require.Nil(t, err)
+
+	leavingPerShardMap, stillRemainingPerShardMap := createActuallyLeavingPerShards(unstakeLeaving, additionalLeaving, result.Leaving)
+
+	for i := uint32(0); i < nbShards+1; i++ {
+		shardId := i
+		if i == nbShards {
+			shardId = core.MetachainShardId
+		}
+		verifyResultsIntraShardShuffling(t,
+			eligibleMap[shardId],
+			waitingMap[shardId],
+			additionalLeaving[shardId],
+			unstakeLeaving[shardId],
+			result.Eligible[shardId],
+			result.Waiting[shardId],
+			leavingPerShardMap[shardId],
+			stillRemainingPerShardMap[shardId],
+		)
+	}
+}
+
+func TestRandXORShuffler_UpdateNodeLists_WithUnstakeAndAdditionalLeaving_NoDupplicates(t *testing.T) {
+	t.Parallel()
+
+	eligiblePerShard := 100
+	waitingPerShard := 30
+	nbShards := uint32(2)
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	unstakeLeaving := make(map[uint32][]Validator)
+	unstakeLeaving[core.MetachainShardId] = []Validator{
+		eligibleMap[core.MetachainShardId][0],
+		waitingMap[core.MetachainShardId][0],
+	}
+
+	unstakeLeaving[0] = []Validator{
+		waitingMap[0][0],
+	}
+
+	unstakeLeaving[1] = []Validator{
+		eligibleMap[1][2],
+		eligibleMap[1][eligiblePerShard-1]}
+
+	additionalLeaving := make(map[uint32][]Validator)
+	additionalLeaving[core.MetachainShardId] = []Validator{
+		eligibleMap[core.MetachainShardId][eligiblePerShard-1],
+		waitingMap[core.MetachainShardId][1],
+	}
+
+	additionalLeaving[0] = []Validator{
+		waitingMap[0][waitingPerShard/2]}
+
+	additionalLeaving[1] = []Validator{
+		eligibleMap[1][0],
+		eligibleMap[1][1],
+	}
+
+	unstakeLeavingList, additionalLeavingList := prepareListsFromMaps(unstakeLeaving, additionalLeaving)
+
+	shuffler := createXorShufflerIntraShards()
+
+	arg := ArgsUpdateNodes{
+		Eligible:          eligibleMap,
+		Waiting:           waitingMap,
+		NewNodes:          make([]Validator, 0),
+		UnStakeLeaving:    unstakeLeavingList,
+		AdditionalLeaving: additionalLeavingList,
+		Rand:              generateRandomByteArray(32),
+		NbShards:          nbShards,
+	}
+
+	result, err := shuffler.UpdateNodeLists(arg)
+	require.Nil(t, err)
+
+	leavingPerShardMap, stillRemainingPerShardMap := createActuallyLeavingPerShards(unstakeLeaving, additionalLeaving, result.Leaving)
+
+	for i := uint32(0); i < nbShards+1; i++ {
+		shardId := i
+		if i == nbShards {
+			shardId = core.MetachainShardId
+		}
+		verifyResultsIntraShardShuffling(t,
+			eligibleMap[shardId],
+			waitingMap[shardId],
+			additionalLeaving[shardId],
+			unstakeLeaving[shardId],
+			result.Eligible[shardId],
+			result.Waiting[shardId],
+			leavingPerShardMap[shardId],
+			stillRemainingPerShardMap[shardId],
+		)
+	}
+}
+func TestRandXORShuffler_UpdateNodeLists_WithAdditionalLeaving_WithDupplicates(t *testing.T) {
+	t.Parallel()
+
+	eligiblePerShard := 100
+	waitingPerShard := 30
+	nbShards := uint32(2)
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	unstakeLeaving := make(map[uint32][]Validator)
+	unstakeLeaving[core.MetachainShardId] = []Validator{
+		eligibleMap[core.MetachainShardId][0],
+		eligibleMap[core.MetachainShardId][eligiblePerShard-1],
+		waitingMap[core.MetachainShardId][0],
+		waitingMap[core.MetachainShardId][1],
+	}
+
+	unstakeLeaving[0] = []Validator{
+		waitingMap[0][0],
+	}
+
+	unstakeLeaving[1] = []Validator{
+		eligibleMap[1][1],
+		eligibleMap[1][2],
+		eligibleMap[1][eligiblePerShard-1],
+	}
+
+	additionalLeaving := make(map[uint32][]Validator)
+	additionalLeaving[core.MetachainShardId] = []Validator{
+		eligibleMap[core.MetachainShardId][0],
+		waitingMap[core.MetachainShardId][0],
+		waitingMap[core.MetachainShardId][1],
+	}
+
+	additionalLeaving[0] = []Validator{
+		waitingMap[0][0],
+		waitingMap[0][waitingPerShard/2]}
+
+	additionalLeaving[1] = []Validator{
+		eligibleMap[1][0],
+		eligibleMap[1][1],
+		eligibleMap[1][2],
+	}
+
+	unstakeLeavingList, additionalLeavingList := prepareListsFromMaps(unstakeLeaving, additionalLeaving)
+
+	shuffler := createXorShufflerIntraShards()
+
+	arg := ArgsUpdateNodes{
+		Eligible:          eligibleMap,
+		Waiting:           waitingMap,
+		NewNodes:          make([]Validator, 0),
+		UnStakeLeaving:    unstakeLeavingList,
+		AdditionalLeaving: additionalLeavingList,
+		Rand:              generateRandomByteArray(32),
+		NbShards:          nbShards,
+	}
+
+	result, err := shuffler.UpdateNodeLists(arg)
+	require.Nil(t, err)
+
+	leavingPerShardMap, stillRemainingPerShardMap := createActuallyLeavingPerShards(unstakeLeaving, additionalLeaving, result.Leaving)
+
+	for i := uint32(0); i < nbShards+1; i++ {
+		shardId := i
+		if i == nbShards {
+			shardId = core.MetachainShardId
+		}
+		verifyResultsIntraShardShuffling(t,
+			eligibleMap[shardId],
+			waitingMap[shardId],
+			additionalLeaving[shardId],
+			unstakeLeaving[shardId],
+			result.Eligible[shardId],
+			result.Waiting[shardId],
+			leavingPerShardMap[shardId],
+			stillRemainingPerShardMap[shardId],
+		)
+	}
+}
+
+func TestRandXORShuffler_UpdateNodeLists_All(t *testing.T) {
+	t.Parallel()
+
+	eligiblePerShard := 4
+	waitingPerShard := 2
+	nbShards := uint32(2)
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
+
+	unstakeLeaving := make(map[uint32][]Validator)
+	additionalLeaving := make(map[uint32][]Validator)
+
+	// dupplicates on metachain both eligible and waiting
+	firstRemovedMeta := waitingMap[core.MetachainShardId][1]
+	secondRemovedMeta := eligibleMap[core.MetachainShardId][0]
+	notRemovedMeta := eligibleMap[core.MetachainShardId][eligiblePerShard-1]
+
+	unstakeLeaving[core.MetachainShardId] = []Validator{
+		secondRemovedMeta,
+		firstRemovedMeta,
+	}
+	additionalLeaving[core.MetachainShardId] = []Validator{
+		secondRemovedMeta,
+		firstRemovedMeta,
+		notRemovedMeta,
+	}
+
+	// no dupplicates on shard 0
+	firstRemovedShard0 := eligibleMap[0][3]
+	secondRemovedShard0 := waitingMap[0][0]
+	unstakeLeaving[0] = []Validator{
+		firstRemovedShard0,
+	}
+	additionalLeaving[0] = []Validator{
+		secondRemovedShard0,
+	}
+
+	// just 1 from waiting to be removed from shard 1
+	firstRemovedShard1 := waitingMap[1][1]
+	unstakeLeaving[1] = []Validator{
+		firstRemovedShard1,
+	}
+	additionalLeaving[1] = nil
+
+	unstakeLeavingList, additionalLeavingList := prepareListsFromMaps(unstakeLeaving, additionalLeaving)
+
+	shuffler := NewXorValidatorsShuffler(
+		uint32(eligiblePerShard),
+		uint32(eligiblePerShard),
+		hysteresis,
+		adaptivity,
+		shuffleBetweenShards)
+
+	arg := ArgsUpdateNodes{
+		Eligible:          eligibleMap,
+		Waiting:           waitingMap,
+		NewNodes:          make([]Validator, 0),
+		UnStakeLeaving:    unstakeLeavingList,
+		AdditionalLeaving: additionalLeavingList,
+		Rand:              generateRandomByteArray(32),
+		NbShards:          nbShards,
+	}
+
+	result, err := shuffler.UpdateNodeLists(arg)
+	require.Nil(t, err)
+
+	leavingPerShardMap, stillRemainingPerShardMap := createActuallyLeavingPerShards(unstakeLeaving, additionalLeaving, result.Leaving)
+
+	for i := uint32(0); i < nbShards+1; i++ {
+		shardId := i
+		if i == nbShards {
+			shardId = core.MetachainShardId
+		}
+		verifyResultsIntraShardShuffling(t,
+			eligibleMap[shardId],
+			waitingMap[shardId],
+			additionalLeaving[shardId],
+			unstakeLeaving[shardId],
+			result.Eligible[shardId],
+			result.Waiting[shardId],
+			leavingPerShardMap[shardId],
+			stillRemainingPerShardMap[shardId],
+		)
+	}
+
+	removedFromMeta := []Validator{firstRemovedMeta, secondRemovedMeta}
+	sort.Sort(validatorList(removedFromMeta))
+	sort.Sort(validatorList(leavingPerShardMap[core.MetachainShardId]))
+	assert.Equal(t, removedFromMeta, leavingPerShardMap[core.MetachainShardId])
+	found, _ := searchInMap(result.Eligible, firstRemovedMeta.PubKey())
+	assert.False(t, found)
+	found, _ = searchInMap(result.Waiting, secondRemovedMeta.PubKey())
+	assert.False(t, found)
+
+	remainingInMeta := []Validator{notRemovedMeta}
+	sort.Sort(validatorList(remainingInMeta))
+	sort.Sort(validatorList(stillRemainingPerShardMap[core.MetachainShardId]))
+	assert.Equal(t, remainingInMeta, stillRemainingPerShardMap[core.MetachainShardId])
+	found, shardId := searchInMap(result.Eligible, notRemovedMeta.PubKey())
+	assert.True(t, found)
+	assert.Equal(t, core.MetachainShardId, shardId)
+
+	removedFromShard0 := []Validator{firstRemovedShard0, secondRemovedShard0}
+	sort.Sort(validatorList(removedFromShard0))
+	sort.Sort(validatorList(leavingPerShardMap[0]))
+	assert.Equal(t, removedFromShard0, leavingPerShardMap[0])
+	found, _ = searchInMap(result.Eligible, firstRemovedShard0.PubKey())
+	assert.False(t, found)
+	found, _ = searchInMap(result.Waiting, secondRemovedShard0.PubKey())
+	assert.False(t, found)
+
+	removedFromShard1 := []Validator{firstRemovedShard1}
+	sort.Sort(validatorList(removedFromShard1))
+	sort.Sort(validatorList(leavingPerShardMap[1]))
+	assert.Equal(t, removedFromShard1, leavingPerShardMap[1])
+	found, _ = searchInMap(result.Waiting, secondRemovedShard0.PubKey())
+	assert.False(t, found)
+}
+
+func TestRandXORShuffler_UpdateNodeLists_WithNewNodes_NoWaiting(t *testing.T) {
+	t.Parallel()
+
+	eligiblePerShard := 10
+	newNodesPerShard := 10
+	numWaitingPerShard := 0
+	nbShards := uint32(2)
+	randomness := generateRandomByteArray(32)
+
+	leavingNodes := make([]Validator, 0)
+	additionalLeaving := make([]Validator, 0)
+	newNodes := generateValidatorList(newNodesPerShard * (int(nbShards) + 1))
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(numWaitingPerShard, nbShards)
+
+	args := ArgsUpdateNodes{
+		Eligible:          eligibleMap,
+		Waiting:           waitingMap,
+		NewNodes:          newNodes,
+		UnStakeLeaving:    leavingNodes,
+		AdditionalLeaving: additionalLeaving,
+		Rand:              randomness,
+		NbShards:          nbShards,
+	}
+
+	shuffler := NewXorValidatorsShuffler(uint32(eligiblePerShard), uint32(eligiblePerShard), hysteresis, adaptivity, shuffleBetweenShards)
+	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
+	require.Nil(t, err)
+
+	allNewEligible := getValidatorsInMap(resUpdateNodeList.Eligible)
+	allNewWaiting := getValidatorsInMap(resUpdateNodeList.Waiting)
+
+	oldEligible := getValidatorsInMap(args.Eligible)
+	sort.Sort(validatorList(allNewEligible))
+	sort.Sort(validatorList(oldEligible))
+	assert.Equal(t, oldEligible, allNewEligible)
+
+	sort.Sort(validatorList(allNewWaiting))
+	sort.Sort(validatorList(args.NewNodes))
+	assert.Equal(t, args.NewNodes, allNewWaiting)
+
+	for _, waitingInShard := range resUpdateNodeList.Waiting {
+		assert.Equal(t, newNodesPerShard, len(waitingInShard))
+	}
+
+	previousNumberOfNodes := (eligiblePerShard+numWaitingPerShard)*(int(nbShards)+1) + len(args.NewNodes)
+	currentNumberOfNodes := len(allNewEligible) + len(allNewWaiting) + len(resUpdateNodeList.Leaving)
+	assert.Equal(t, previousNumberOfNodes, currentNumberOfNodes)
+}
+
+func TestRandXORShuffler_UpdateNodeLists_WithNewNodes_NilOrEmptyWaiting(t *testing.T) {
+	t.Parallel()
+
+	eligiblePerShard := 10
+	newNodesPerShard := 10
+	nbShards := uint32(2)
+	randomness := generateRandomByteArray(32)
+
+	leavingNodes := make([]Validator, 0)
+	additionalLeaving := make([]Validator, 0)
+	newNodes := generateValidatorList(newNodesPerShard * (int(nbShards) + 1))
+
+	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
+
+	args := ArgsUpdateNodes{
+		Eligible:          eligibleMap,
+		Waiting:           nil,
+		NewNodes:          newNodes,
+		UnStakeLeaving:    leavingNodes,
+		AdditionalLeaving: additionalLeaving,
+		Rand:              randomness,
+		NbShards:          nbShards,
+	}
+
+	shuffler := NewXorValidatorsShuffler(uint32(eligiblePerShard), uint32(eligiblePerShard), hysteresis, adaptivity, shuffleBetweenShards)
+	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
+	require.Nil(t, err)
+	require.Equal(t, int(nbShards+1), len(resUpdateNodeList.Waiting))
+
+	args = ArgsUpdateNodes{
+		Eligible:          eligibleMap,
+		Waiting:           make(map[uint32][]Validator),
+		NewNodes:          newNodes,
+		UnStakeLeaving:    leavingNodes,
+		AdditionalLeaving: additionalLeaving,
+		Rand:              randomness,
+		NbShards:          nbShards,
+	}
+
+	resUpdateNodeList, err = shuffler.UpdateNodeLists(args)
+	require.Nil(t, err)
+	require.Equal(t, int(nbShards+1), len(resUpdateNodeList.Waiting))
+}
+
+func TestRandXORShuffler_UpdateNodeLists_WithNewNodes_WithWaiting(t *testing.T) {
+	t.Parallel()
+
+	numEligiblePerShard := 100
+	newNodesPerShard := 100
+	numWaitingPerShard := 30
+	nbShards := 2
+	randomness := generateRandomByteArray(32)
+
+	leavingNodes := make([]Validator, 0)
+	additionalLeaving := make([]Validator, 0)
+	newNodes := generateValidatorList(newNodesPerShard * (nbShards + 1))
+
+	eligibleMap := generateValidatorMap(numEligiblePerShard, uint32(nbShards))
+	waitingMap := generateValidatorMap(numWaitingPerShard, uint32(nbShards))
+
+	args := ArgsUpdateNodes{
+		Eligible:          eligibleMap,
+		Waiting:           waitingMap,
+		NewNodes:          newNodes,
+		UnStakeLeaving:    leavingNodes,
+		AdditionalLeaving: additionalLeaving,
+		Rand:              randomness,
+		NbShards:          uint32(nbShards),
+	}
+
+	shuffler := createXorShufflerIntraShards()
+	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
+	require.Nil(t, err)
+
+	allNewEligible := getValidatorsInMap(resUpdateNodeList.Eligible)
+	allNewWaiting := getValidatorsInMap(resUpdateNodeList.Waiting)
+
+	for _, newNode := range args.NewNodes {
+		found, _ := searchInMap(resUpdateNodeList.Waiting, newNode.PubKey())
+		assert.True(t, found)
+	}
+
+	for shardId, waitingInShard := range resUpdateNodeList.Waiting {
+		assert.Equal(t, newNodesPerShard+len(waitingMap[shardId]), len(waitingInShard))
+	}
+
+	previousNumberOfNodes := (numEligiblePerShard+numWaitingPerShard)*(nbShards+1) + len(args.NewNodes)
+	currentNumberOfNodes := len(allNewEligible) + len(allNewWaiting) + len(resUpdateNodeList.Leaving)
+	assert.Equal(t, previousNumberOfNodes, currentNumberOfNodes)
+}
+
+func TestRandXORShuffler_UpdateNodeLists_WithNewNodes_WithWaiting_WithLeaving(t *testing.T) {
+	t.Parallel()
+
+	numEligiblePerShard := 10
+	newNodesPerShard := 10
+	numWaitingPerShard := 3
+	nbShards := uint32(2)
+	randomness := generateRandomByteArray(32)
+
+	leavingNodes := make([]Validator, 0)
+	additionalLeaving := make([]Validator, 0)
+	newNodes := generateValidatorList(newNodesPerShard * (int(nbShards) + 1))
+
+	eligibleMap := generateValidatorMap(numEligiblePerShard, nbShards)
+	waitingMap := generateValidatorMap(numWaitingPerShard, nbShards)
+
+	// meta leaving 4 nodes, 1 dupplicate
+	leavingNodes = append(leavingNodes, []Validator{
+		eligibleMap[core.MetachainShardId][0],
+		eligibleMap[core.MetachainShardId][1],
+		waitingMap[core.MetachainShardId][2],
+	}...)
+
+	additionalLeaving = append(additionalLeaving, []Validator{
+		eligibleMap[core.MetachainShardId][0],
+		waitingMap[core.MetachainShardId][1],
+	}...)
+
+	// shard 0 leaving 2 nodes
+	leavingNodes = append(leavingNodes, []Validator{
+		waitingMap[0][2],
+	}...)
+	additionalLeaving = append(additionalLeaving, []Validator{
+		eligibleMap[0][5],
+	}...)
+
+	// shard 1 leaving
+	additionalLeaving = append(additionalLeaving, []Validator{
+		eligibleMap[1][2],
+	}...)
+
+	args := ArgsUpdateNodes{
+		Eligible:          eligibleMap,
+		Waiting:           waitingMap,
+		NewNodes:          newNodes,
+		UnStakeLeaving:    leavingNodes,
+		AdditionalLeaving: additionalLeaving,
+		Rand:              randomness,
+		NbShards:          nbShards,
+	}
+
+	shuffler := NewXorValidatorsShuffler(
+		uint32(numEligiblePerShard),
+		uint32(numEligiblePerShard),
+		hysteresis,
+		adaptivity,
+		shuffleBetweenShards)
+	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
+	require.Nil(t, err)
+
+	for _, newNode := range args.NewNodes {
+		found, _ := searchInMap(resUpdateNodeList.Waiting, newNode.PubKey())
+		assert.True(t, found)
+	}
+
+	assert.Equal(t, numEligiblePerShard, len(args.Eligible[core.MetachainShardId]))
+	assert.Equal(t, newNodesPerShard, len(resUpdateNodeList.Waiting[core.MetachainShardId])) // 3 left, just new nodes in waiting
+	assert.Equal(t, 1, len(resUpdateNodeList.StillRemaining))
+
+	numWaitingShard0 := newNodesPerShard + len(waitingMap[0]) - 2 //2 left => 1 in waiting
+	assert.Equal(t, numEligiblePerShard, len(resUpdateNodeList.Eligible[0]))
+	assert.Equal(t, numWaitingShard0, len(resUpdateNodeList.Waiting[0]))
+
+	numWaitingShard1 := newNodesPerShard + len(waitingMap[1]) - 1 //1 left => 2 in waiting
+	assert.Equal(t, numEligiblePerShard, len(resUpdateNodeList.Eligible[1]))
+	assert.Equal(t, numWaitingShard1, len(resUpdateNodeList.Waiting[1]))
+}
+
+func prepareListsFromMaps(unstakeLeaving map[uint32][]Validator, additionalLeaving map[uint32][]Validator) ([]Validator, []Validator) {
+	return getValidatorsInMap(unstakeLeaving), getValidatorsInMap(additionalLeaving)
+}
+
+func verifyResultsIntraShardShuffling(
+	t *testing.T,
+	eligible []Validator,
+	waiting []Validator,
+	unstakeLeaving []Validator,
+	additionalLeaving []Validator,
+	newEligible []Validator,
+	newWaiting []Validator,
+	leaving []Validator,
+	stillRemaining []Validator) {
+
+	removedNodes := make([]Validator, 0)
+	assert.Equal(t, len(eligible), len(newEligible))
+	initialNumWaiting := len(waiting)
+	numToRemove := initialNumWaiting
+
+	additionalLeaving = removeDupplicates(unstakeLeaving, additionalLeaving)
+
+	computedNewWaiting, removedFromWaiting := removeValidatorsFromList(waiting, unstakeLeaving, numToRemove)
+	removedNodes = append(removedNodes, removedFromWaiting...)
+	numToRemove = numToRemove - len(removedFromWaiting)
+
+	computedNewEligible, removedFromEligible := removeValidatorsFromList(eligible, unstakeLeaving, numToRemove)
+	numToRemove = numToRemove - len(removedFromEligible)
+	removedNodes = append(removedNodes, removedFromEligible...)
+
+	computedNewWaiting, removedFromWaiting = removeValidatorsFromList(computedNewWaiting, additionalLeaving, numToRemove)
+	numToRemove = numToRemove - len(removedFromWaiting)
+	removedNodes = append(removedNodes, removedFromWaiting...)
+
+	computedNewEligible, removedFromEligible = removeValidatorsFromList(computedNewEligible, additionalLeaving, numToRemove)
+	numToRemove = numToRemove - len(removedFromEligible)
+	removedNodes = append(removedNodes, removedFromEligible...)
+
+	actuallyRemoved := initialNumWaiting - numToRemove
+	previousNrValidatorsInShard := len(eligible) + len(waiting)
+	currentNrValidatorsInShard := len(newEligible) + len(newWaiting)
+
+	assert.Equal(t, previousNrValidatorsInShard, currentNrValidatorsInShard+actuallyRemoved)
+	assert.True(t, initialNumWaiting >= len(removedNodes))
+
+	allLeavingValidators := append(unstakeLeaving, additionalLeaving...)
+	computedStillRemaining, _ := removeValidatorsFromList(allLeavingValidators, removedNodes, len(removedNodes))
+
+	assert.Equal(t, len(removedNodes), len(leaving))
+	assert.Equal(t, len(allLeavingValidators), len(leaving)+len(stillRemaining))
+
+	assert.Equal(t, len(computedStillRemaining), len(stillRemaining))
+
+	// TODO: see how to correctly compute the removed validators
+	//assert.Equal(t, removedNodes, leaving)
+	//if len(computedStillRemaining) > 0 {
+	//	assert.Equal(t, computedStillRemaining, stillRemaining)
+	//}
+}
+
+func TestRandXORShuffler_ShuffleOutShard_WithMoreThanValidatorsShuffledOut(t *testing.T) {
+	t.Parallel()
+
+	validatorsNumber := 10
+	numToShuffle := 20
+	randomness := generateRandomByteArray(32)
+
+	validators := generateValidatorList(validatorsNumber)
+
+	shuffledOut, remaining := shuffleOutShard(validators, numToShuffle, randomness)
+
+	assert.Equal(t, validatorsNumber, len(shuffledOut))
+	assert.Equal(t, 0, len(remaining))
+}
+
+func TestRandXORShuffler_ShuffleOutShard_WithLessThanValidatorsShuffledOut(t *testing.T) {
+	t.Parallel()
+
+	validatorsNumber := 10
+	numToShuffle := 6
+	randomness := generateRandomByteArray(32)
+
+	validators := generateValidatorList(validatorsNumber)
+
+	shuffledOut, remaining := shuffleOutShard(validators, numToShuffle, randomness)
+
+	assert.Equal(t, numToShuffle, len(shuffledOut))
+	assert.Equal(t, validatorsNumber-numToShuffle, len(remaining))
+}
+
+func TestRandXORShuffler_ShuffleOutShard_WithZeroValidatorsShuffledOut(t *testing.T) {
+	t.Parallel()
+
+	validatorsNumber := 10
+	numToShuffle := 0
+	randomness := generateRandomByteArray(32)
+
+	validators := generateValidatorList(validatorsNumber)
+
+	shuffledOut, remaining := shuffleOutShard(validators, numToShuffle, randomness)
+
+	assert.Equal(t, 0, len(shuffledOut))
+	assert.Equal(t, validatorsNumber, len(remaining))
 }
 
 func listToValidatorMap(validators []Validator) map[string]Validator {
@@ -1068,17 +2286,62 @@ func createShufflerArgs(eligiblePerShard int, waitingPerShard int, nbShards uint
 	randomness := generateRandomByteArray(32)
 
 	leavingNodes := make([]Validator, 0)
+	additionalLeaving := make([]Validator, 0)
 	newNodes := make([]Validator, 0)
 
 	eligibleMap := generateValidatorMap(eligiblePerShard, nbShards)
 	waitingMap := generateValidatorMap(waitingPerShard, nbShards)
 
 	args := ArgsUpdateNodes{
-		Eligible: eligibleMap,
-		Waiting:  waitingMap,
-		NewNodes: newNodes,
-		Leaving:  leavingNodes,
-		Rand:     randomness,
+		Eligible:          eligibleMap,
+		Waiting:           waitingMap,
+		NewNodes:          newNodes,
+		UnStakeLeaving:    leavingNodes,
+		AdditionalLeaving: additionalLeaving,
+		Rand:              randomness,
+		NbShards:          nbShards,
 	}
 	return args
+}
+
+func BenchmarkRandXORShuffler_RemoveWithReslice(b *testing.B) {
+	nrValidators := 50000
+	validators := generateValidatorList(nrValidators)
+	validatorsCopy := make([]Validator, len(validators))
+	_ = copy(validatorsCopy, validators)
+
+	m := runtime.MemStats{}
+	runtime.ReadMemStats(&m)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for j := 0; j < len(validators)-2; j++ {
+			validators = removeValidatorFromListKeepOrder(validators, 2)
+		}
+	}
+
+	m2 := runtime.MemStats{}
+	runtime.ReadMemStats(&m2)
+	fmt.Println(fmt.Sprintf("Used %d MB", (m2.HeapAlloc-m.HeapAlloc)/1024/1024))
+}
+
+func BenchmarkRandXORShuffler_RemoveWithoutReslice(b *testing.B) {
+	nrValidators := 50000
+	validators := generateValidatorList(nrValidators)
+	validatorsCopy := make([]Validator, len(validators))
+	_ = copy(validatorsCopy, validators)
+
+	m := runtime.MemStats{}
+	runtime.ReadMemStats(&m)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for j := 0; j < len(validators)-2; j++ {
+			validators = removeValidatorFromList(validators, 2)
+		}
+	}
+
+	m2 := runtime.MemStats{}
+	runtime.ReadMemStats(&m2)
+	fmt.Println(fmt.Sprintf("Used %d MB", (m2.HeapAlloc-m.HeapAlloc)/1024/1024))
 }

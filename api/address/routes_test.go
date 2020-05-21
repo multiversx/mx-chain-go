@@ -15,8 +15,9 @@ import (
 	errors2 "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	mock2 "github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -221,7 +222,7 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{
 		GetAccountHandler: func(address string) (state.UserAccountHandler, error) {
-			acc, _ := state.NewUserAccount(&mock2.AddressMock{})
+			acc, _ := state.NewUserAccount([]byte("1234"))
 			_ = acc.AddToBalance(big.NewInt(100))
 			acc.IncreaseNonce(1)
 
@@ -263,7 +264,8 @@ func startNodeServer(handler address.FacadeHandler) *gin.Engine {
 	if handler != nil {
 		addressRoutes.Use(middleware.WithElrondFacade(handler))
 	}
-	address.Routes(addressRoutes)
+	addressRoute, _ := wrapper.NewRouterWrapper("address", addressRoutes, getRoutesConfig())
+	address.Routes(addressRoute)
 	return ws
 }
 
@@ -273,7 +275,21 @@ func startNodeServerWrongFacade() *gin.Engine {
 	ws.Use(func(c *gin.Context) {
 		c.Set("elrondFacade", mock.WrongFacade{})
 	})
-	addressRoute := ws.Group("/address")
+	ginAddressRoute := ws.Group("/address")
+	addressRoute, _ := wrapper.NewRouterWrapper("address", ginAddressRoute, getRoutesConfig())
 	address.Routes(addressRoute)
 	return ws
+}
+
+func getRoutesConfig() config.ApiRoutesConfig {
+	return config.ApiRoutesConfig{
+		APIPackages: map[string]config.APIPackageConfig{
+			"address": {
+				[]config.RouteConfig{
+					{Name: "/:address", Open: true},
+					{Name: "/:address/balance", Open: true},
+				},
+			},
+		},
+	}
 }

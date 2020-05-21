@@ -6,6 +6,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.InterceptorProcessor = (*TxInterceptorProcessor)(nil)
+
 // TxInterceptorProcessor is the processor used when intercepting transactions
 // (smart contract results, receipts, transaction) structs which satisfy TransactionHandler interface.
 type TxInterceptorProcessor struct {
@@ -56,10 +58,6 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ p2p.Pee
 	)
 
 	return nil
-}
-
-// SignalEndOfProcessing signals the end of processing
-func (txip *TxInterceptorProcessor) SignalEndOfProcessing(_ []process.InterceptedData) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

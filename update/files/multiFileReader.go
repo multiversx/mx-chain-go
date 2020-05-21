@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+var _ update.MultiFileReader = (*multiFileReader)(nil)
+
 type multiFileReader struct {
 	importFolder string
 	files        map[string]io.Closer
@@ -98,15 +100,18 @@ func (m *multiFileReader) ReadNextItem(fileName string) (string, []byte, error) 
 	}
 
 	hexEncoded := scanner.Text()
+
 	key, err := hex.DecodeString(hexEncoded)
 	if err != nil {
 		return "", nil, err
 	}
 
-	value, err := m.importStore.Get(key)
+	formattedKey := []byte(string(key) + fileName)
+	value, err := m.importStore.Get(formattedKey)
 	if err != nil {
 		return "", nil, err
 	}
+	log.Trace("import", "key", string(key), "value", value)
 
 	return string(key), value, nil
 }
@@ -131,13 +136,27 @@ func (m *multiFileReader) getDataReader(fileName string) (update.DataReader, err
 	return nil, update.ErrEndOfFile
 }
 
+// CloseFile will close the file and dataWriter
+func (m *multiFileReader) CloseFile(fileName string) {
+	file, ok := m.files[fileName]
+	if ok {
+		err := file.Close()
+		log.LogIfError(err, "closeFile multiFileWriter file close", fileName)
+	}
+}
+
 // Finish closes all the opened files
 func (m *multiFileReader) Finish() {
 	for fileName, file := range m.files {
 		err := file.Close()
 		if err != nil {
-			log.Warn("could not close file ", "fileName", fileName, "error", err)
+			log.Trace("could not close file ", "fileName", fileName, "error", err)
 		}
+	}
+
+	err := m.importStore.Close()
+	if err != nil {
+		log.Trace("could not close import store ", "error", err)
 	}
 }
 

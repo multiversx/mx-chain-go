@@ -2,8 +2,8 @@ package stateTrie
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/state/pubkeyConverter"
@@ -56,7 +57,7 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	_, err = adb.Commit()
 	assert.Nil(t, err)
 
-	acc, err := adb.LoadAccount(account.AddressContainer())
+	acc, err := adb.LoadAccount(account.AddressBytes())
 	assert.Nil(t, err)
 	recoveredAccount := acc.(state.UserAccountHandler)
 
@@ -82,7 +83,7 @@ func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
 
 	fmt.Printf("SC code is at address: %v\n", account.GetCodeHash())
 
-	acc, err := adb.LoadAccount(account.AddressContainer())
+	acc, err := adb.LoadAccount(account.AddressBytes())
 	assert.Nil(t, err)
 	recoveredAccount := acc.(state.UserAccountHandler)
 
@@ -134,12 +135,13 @@ func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testin
 func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	wg := sync.WaitGroup{}
 	wg.Add(100)
 
-	addresses := make([]state.AddressContainer, 0)
+	addresses := make([][]byte, 0)
 
 	//generating 100 different addresses
 	for len(addresses) < 100 {
@@ -147,7 +149,7 @@ func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
 
 		found := false
 		for i := 0; i < len(addresses); i++ {
-			if bytes.Equal(addresses[i].Bytes(), addr.Bytes()) {
+			if bytes.Equal(addresses[i], addr) {
 				found = true
 				break
 			}
@@ -250,7 +252,8 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
 	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, hasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
 
-	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher)
+	maxTrieLevelInMemory := uint(5)
+	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher, maxTrieLevelInMemory)
 
 	key := hasher.Compute("key")
 	value := hasher.Compute("value")
@@ -273,7 +276,8 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	//verifies that commit saves the new tries and that can be loaded back
 	t.Parallel()
 
-	adb, _, mu := integrationTests.CreateAccountsDB(0)
+	trieStore, mu := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStore)
 	adr1 := integrationTests.CreateRandomAddress()
 	adr2 := integrationTests.CreateRandomAddress()
 
@@ -310,7 +314,8 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), integrationTests.TestMarshalizer)
 	trieStorage, _ := trie.NewTrieStorageManager(mu, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	adb, _ = state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	//reloading a new trie to test if data is inside
@@ -343,7 +348,8 @@ func TestAccountsDB_CommitAnEmptyStateShouldWork(t *testing.T) {
 		}
 	}()
 
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	hash, err := adb.Commit()
 
@@ -416,7 +422,8 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
 	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
@@ -492,7 +499,8 @@ func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
 	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
@@ -571,7 +579,8 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	require.Nil(t, err)
 	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
@@ -641,7 +650,8 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
 	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
@@ -719,7 +729,8 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
 	hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
@@ -813,7 +824,8 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
 	assert.Nil(t, err)
@@ -866,7 +878,8 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
 	assert.Nil(t, err)
@@ -899,7 +912,8 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
 	assert.Nil(t, err)
@@ -1010,17 +1024,18 @@ func createAccounts(
 	nrOfAccounts int,
 	balance int,
 	persist storage.Persister,
-) (*state.AccountsDB, []state.AddressContainer, data.Trie) {
+) (*state.AccountsDB, [][]byte, data.Trie) {
 	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
 	store, _ := storageUnit.NewStorageUnit(cache, persist)
 	evictionWaitListSize := uint(100)
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
 	trieStorage, _ := trie.NewTrieStorageManager(store, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
-	addr := make([]state.AddressContainer, nrOfAccounts)
+	addr := make([][]byte, nrOfAccounts)
 	for i := 0; i < nrOfAccounts; i++ {
 		addr[i] = integrationTests.CreateAccount(adb, 0, big.NewInt(int64(balance)))
 	}
@@ -1030,7 +1045,7 @@ func createAccounts(
 
 func createAndExecTxs(
 	b *testing.B,
-	addr []state.AddressContainer,
+	addr [][]byte,
 	nrTxs int,
 	nrOfAccounts int,
 	txVal int,
@@ -1050,8 +1065,8 @@ func createAndExecTxs(
 		tx := &transaction2.Transaction{
 			Nonce:   1,
 			Value:   big.NewInt(int64(txVal)),
-			SndAddr: addr[sender].Bytes(),
-			RcvAddr: addr[receiver].Bytes(),
+			SndAddr: addr[sender],
+			RcvAddr: addr[receiver],
 		}
 
 		startTime := time.Now()
@@ -1068,7 +1083,8 @@ func BenchmarkTxExecution(b *testing.B) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
 	assert.Nil(b, err)
@@ -1096,13 +1112,14 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
 	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, generalCfg)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	hexPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
-	address1, _ := hexPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000000")
-	address2, _ := hexPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000001")
-	address3, _ := hexPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000002")
+	address1, _ := hexPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000000")
+	address2, _ := hexPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000001")
+	address3, _ := hexPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000002")
 
 	newDefaultAccount(adb, address1)
 	newDefaultAccount(adb, address2)
@@ -1121,7 +1138,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func newDefaultAccount(adb *state.AccountsDB, address state.AddressContainer) state.AccountHandler {
+func newDefaultAccount(adb *state.AccountsDB, address []byte) state.AccountHandler {
 	account, _ := adb.LoadAccount(address)
 	_ = adb.SaveAccount(account)
 
@@ -1137,11 +1154,12 @@ func TestAccountsDB_RecreateTrieInvalidatesDataTriesCache(t *testing.T) {
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
 	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, generalCfg)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	hexAddressPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
-	address1, _ := hexAddressPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000000")
+	address1, _ := hexAddressPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000000")
 
 	key1 := []byte("ABC")
 	key2 := []byte("ABD")
@@ -1190,12 +1208,13 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), integrationTests.TestMarshalizer)
 	trieStorage, _ := trie.NewTrieStorageManager(memorydb.New(), integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, generalCfg)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, maxTrieLevelInMemory)
 	adb, _ := state.NewAccountsDB(tr, integrationTests.TestHasher, integrationTests.TestMarshalizer, factory.NewAccountCreator())
 
 	hexAddressPubkeyConverter, _ := pubkeyConverter.NewHexPubkeyConverter(32)
-	address1, _ := hexAddressPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000000")
-	address2, _ := hexAddressPubkeyConverter.CreateAddressFromString("0000000000000000000000000000000000000000000000000000000000000001")
+	address1, _ := hexAddressPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000000")
+	address2, _ := hexAddressPubkeyConverter.Decode("0000000000000000000000000000000000000000000000000000000000000001")
 
 	key1 := []byte("ABC")
 	key2 := []byte("ABD")
@@ -1319,10 +1338,12 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	assert.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	assert.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
-	rootHash, _ := shardNode.AccntState.RootHash()
+	rootHash, err := shardNode.AccntState.RootHash()
+	assert.Nil(t, err)
+
 	if !bytes.Equal(rootHash, rootHashOfRollbackedBlock) {
 		time.Sleep(time.Second * 3)
-		err := shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
+		err = shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
 		assert.True(t, errors.Is(err, trie.ErrHashNotFound))
 	}
 
@@ -1340,7 +1361,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	)
 	time.Sleep(time.Second * 5)
 
-	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
+	err = shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(3), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	assert.Equal(t, uint64(4), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
@@ -1483,7 +1504,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	numMetachainNodes := 1
 	stateCheckpointModulus := uint(3)
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodesWithCustomStateCheckpointModulus(
@@ -1528,7 +1549,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	time.Sleep(integrationTests.StepDelay)
 
 	checkpointsRootHashes := make(map[int][][]byte)
-	snapshotsRootHashes := make(map[int][][]byte)
+	snapshotsRootHashes := make(map[uint32][][]byte)
 	prunedRootHashes := make(map[int][][]byte)
 
 	numShardNodes := numOfShards * nodesPerShard
@@ -1559,7 +1580,8 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	}
 
 	for i := 0; i < numOfShards*nodesPerShard; i++ {
-		testNodeStateCheckpointSnapshotAndPruning(t, nodes[i], checkpointsRootHashes[i], snapshotsRootHashes[i], prunedRootHashes[i])
+		shId := nodes[i].ShardCoordinator.SelfId()
+		testNodeStateCheckpointSnapshotAndPruning(t, nodes[i], checkpointsRootHashes[i], snapshotsRootHashes[shId], prunedRootHashes[i])
 	}
 }
 
@@ -1567,15 +1589,13 @@ func collectSnapshotAndCheckpointHashes(
 	nodes []*integrationTests.TestProcessorNode,
 	numShardNodes int,
 	checkpointsRootHashes map[int][][]byte,
-	snapshotsRootHashes map[int][][]byte,
+	snapshotsRootHashes map[uint32][][]byte,
 	prunedRootHashes map[int][][]byte,
 	stateCheckpointModulus uint64,
 ) {
 	for j := 0; j < numShardNodes; j++ {
 		currentBlockHeader := nodes[j].BlockChain.GetCurrentBlockHeader()
-
 		if currentBlockHeader.IsStartOfEpochBlock() {
-			snapshotsRootHashes[j] = append(snapshotsRootHashes[j], currentBlockHeader.GetRootHash())
 			continue
 		}
 
@@ -1586,6 +1606,23 @@ func collectSnapshotAndCheckpointHashes(
 		}
 
 		prunedRootHashes[j] = append(prunedRootHashes[j], currentBlockHeader.GetRootHash())
+	}
+
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
+			continue
+		}
+
+		currentBlockHeader := node.BlockChain.GetCurrentBlockHeader()
+		if !currentBlockHeader.IsStartOfEpochBlock() {
+			continue
+		}
+
+		metaHdr := currentBlockHeader.(*block.MetaBlock)
+		snapshotsRootHashes[core.MetachainShardId] = append(snapshotsRootHashes[core.MetachainShardId], metaHdr.GetRootHash())
+		for _, epochStartData := range metaHdr.EpochStart.LastFinalizedHeaders {
+			snapshotsRootHashes[epochStartData.ShardID] = append(snapshotsRootHashes[epochStartData.ShardID], epochStartData.RootHash)
+		}
 	}
 }
 
@@ -1615,6 +1652,9 @@ func testNodeStateCheckpointSnapshotAndPruning(
 	assert.Equal(t, 5, len(prunedRootHashes))
 	for i := range prunedRootHashes {
 		tr, err := stateTrie.Recreate(prunedRootHashes[i])
+		if err == nil {
+			fmt.Println(hex.EncodeToString(prunedRootHashes[i]))
+		}
 		assert.Nil(t, tr)
 		assert.NotNil(t, err)
 	}

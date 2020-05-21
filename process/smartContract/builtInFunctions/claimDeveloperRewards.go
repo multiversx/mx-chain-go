@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+var _ process.BuiltinFunction = (*claimDeveloperRewards)(nil)
 
 type claimDeveloperRewards struct {
 	gasCost uint64
@@ -23,36 +26,52 @@ func NewClaimDeveloperRewardsFunc(gasCost uint64) *claimDeveloperRewards {
 func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 	acntSnd, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
-) (*big.Int, uint64, error) {
+) (*vmcommon.VMOutput, error) {
 	if vmInput == nil {
-		return nil, 0, process.ErrNilVmInput
+		return nil, process.ErrNilVmInput
+	}
+	if vmInput.CallValue.Cmp(zero) != 0 {
+		return nil, process.ErrBuiltInFunctionCalledWithValue
 	}
 	if check.IfNil(acntDst) {
-		return nil, vmInput.GasProvided, process.ErrNilSCDestAccount
+		// cross-shard call, in sender shard only the gas is taken out
+		return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
 	}
 
 	if !bytes.Equal(vmInput.CallerAddr, acntDst.GetOwnerAddress()) {
-		return nil, vmInput.GasProvided, process.ErrOperationNotPermitted
+		return nil, process.ErrOperationNotPermitted
 	}
 	if vmInput.GasProvided < c.gasCost {
-		return nil, vmInput.GasProvided, process.ErrNotEnoughGas
+		return nil, process.ErrNotEnoughGas
 	}
 
 	value, err := acntDst.ClaimDeveloperRewards(vmInput.CallerAddr)
 	if err != nil {
-		return nil, vmInput.GasProvided, err
+		return nil, err
 	}
 
+	vmOutput := &vmcommon.VMOutput{GasRemaining: vmInput.GasProvided - c.gasCost}
+	outputAcc := &vmcommon.OutputAccount{
+		Address:      vmInput.CallerAddr,
+		BalanceDelta: big.NewInt(0).Set(value),
+	}
+	vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
+	vmOutput.OutputAccounts[string(outputAcc.Address)] = outputAcc
+
 	if check.IfNil(acntSnd) {
-		return value, vmInput.GasProvided, nil
+		return vmOutput, nil
 	}
 
 	err = acntSnd.AddToBalance(value)
 	if err != nil {
-		return nil, vmInput.GasProvided, err
+		return nil, err
 	}
 
-	return value, c.gasCost, nil
+	if core.IsSmartContractAddress(vmInput.CallerAddr) {
+		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
+	}
+
+	return vmOutput, nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

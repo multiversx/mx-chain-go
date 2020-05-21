@@ -34,6 +34,7 @@ type event struct {
 	numProcessed int
 	lastErr      error
 	numPrints    int
+	timestamp    int64
 }
 
 func (ev *event) String() string {
@@ -41,8 +42,9 @@ func (ev *event) String() string {
 	if ev.lastErr != nil {
 		strErr = ev.lastErr.Error()
 	}
+
 	return fmt.Sprintf("type: %s, topic: %s, hash: %s, numReqIntra: %d, numReqCross: %d, "+
-		"numReceived: %d, numProcessed: %d, last err: %s",
+		"numReceived: %d, numProcessed: %d, last err: %s, last query time: %s ",
 		ev.eventType,
 		ev.topic,
 		logger.DisplayByteSlice(ev.hash),
@@ -51,7 +53,13 @@ func (ev *event) String() string {
 		ev.numReceived,
 		ev.numProcessed,
 		strErr,
+		displayTime(ev.timestamp),
 	)
+}
+
+func displayTime(timestamp int64) string {
+	t := time.Unix(timestamp, 0)
+	return t.Format("2006-01-02 15:04:05.000")
 }
 
 type interceptorResolver struct {
@@ -62,6 +70,7 @@ type interceptorResolver struct {
 	resolveFailThreshold int
 	maxNumPrints         int
 	printEventHandler    func(data string)
+	timestampHandler     func() int64
 }
 
 // NewInterceptorResolver creates a new interceptorResolver able to hold requested-intercepted information
@@ -72,7 +81,8 @@ func NewInterceptorResolver(config config.InterceptorResolverDebugConfig) (*inte
 	}
 
 	ir := &interceptorResolver{
-		cache: cache,
+		cache:            cache,
+		timestampHandler: getCurrentTimeStamp,
 	}
 
 	err = ir.parseConfig(config)
@@ -86,6 +96,10 @@ func NewInterceptorResolver(config config.InterceptorResolverDebugConfig) (*inte
 	}
 
 	return ir, nil
+}
+
+func getCurrentTimeStamp() int64 {
+	return time.Now().Unix()
 }
 
 func (ir *interceptorResolver) parseConfig(config config.InterceptorResolverDebugConfig) error {
@@ -192,6 +206,7 @@ func (ir *interceptorResolver) logRequestedData(topic string, hash []byte, numRe
 			numReceived:  0,
 			numProcessed: 0,
 			lastErr:      nil,
+			timestamp:    ir.timestampHandler(),
 		}
 		ir.cache.Put(identifier, req)
 
@@ -205,6 +220,7 @@ func (ir *interceptorResolver) logRequestedData(topic string, hash []byte, numRe
 
 	req.numReqCross += numReqCross
 	req.numReqIntra += numReqIntra
+	req.timestamp = ir.timestampHandler()
 	ir.cache.Put(identifier, req)
 }
 
@@ -232,6 +248,7 @@ func (ir *interceptorResolver) logReceivedHash(topic string, hash []byte) {
 	}
 
 	req.numReceived++
+	req.timestamp = ir.timestampHandler()
 	ir.cache.Put(identifier, req)
 }
 
@@ -260,6 +277,7 @@ func (ir *interceptorResolver) logProcessedHash(topic string, hash []byte, err e
 
 	if err != nil {
 		req.numProcessed++
+		req.timestamp = ir.timestampHandler()
 		req.lastErr = err
 		ir.cache.Put(identifier, req)
 
@@ -339,6 +357,7 @@ func (ir *interceptorResolver) LogFailedToResolveData(topic string, hash []byte,
 			numReceived:  1,
 			numProcessed: 0,
 			lastErr:      err,
+			timestamp:    ir.timestampHandler(),
 		}
 		ir.cache.Put(identifier, req)
 
@@ -351,8 +370,19 @@ func (ir *interceptorResolver) LogFailedToResolveData(topic string, hash []byte,
 	}
 
 	ev.numReceived++
+	ev.timestamp = ir.timestampHandler()
 	ev.lastErr = err
 	ir.cache.Put(identifier, ev)
+}
+
+// LogSucceededToResolveData removes the recording that the resolver did not resolved a hash in the past
+func (ir *interceptorResolver) LogSucceededToResolveData(topic string, hash []byte) {
+	identifier := ir.computeIdentifier(resolveEvent, topic, hash)
+
+	ir.mutCriticalArea.Lock()
+	defer ir.mutCriticalArea.Unlock()
+
+	ir.cache.Remove(identifier)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -12,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/validator"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -106,10 +108,11 @@ func logError(err error) {
 func startNodeServer(handler validator.ValidatorsStatisticsApiHandler) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
-	validatorRoute := ws.Group("/validator")
+	ginValidatorRoute := ws.Group("/validator")
 	if handler != nil {
-		validatorRoute.Use(middleware.WithElrondFacade(handler))
+		ginValidatorRoute.Use(middleware.WithElrondFacade(handler))
 	}
+	validatorRoute, _ := wrapper.NewRouterWrapper("validator", ginValidatorRoute, getRoutesConfig())
 	validator.Routes(validatorRoute)
 	return ws
 }
@@ -120,7 +123,20 @@ func startNodeServerWrongFacade() *gin.Engine {
 	ws.Use(func(c *gin.Context) {
 		c.Set("elrondFacade", mock.WrongFacade{})
 	})
-	validatorRoute := ws.Group("/validator")
+	ginValidatorRoute := ws.Group("/validator")
+	validatorRoute, _ := wrapper.NewRouterWrapper("validator", ginValidatorRoute, getRoutesConfig())
 	validator.Routes(validatorRoute)
 	return ws
+}
+
+func getRoutesConfig() config.ApiRoutesConfig {
+	return config.ApiRoutesConfig{
+		APIPackages: map[string]config.APIPackageConfig{
+			"validator": {
+				[]config.RouteConfig{
+					{Name: "/statistics", Open: true},
+				},
+			},
+		},
+	}
 }

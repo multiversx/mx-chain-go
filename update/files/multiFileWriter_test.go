@@ -92,7 +92,7 @@ func TestWrite(t *testing.T) {
 	err := mfw.Write(fileName, key, value)
 	require.Nil(t, err)
 
-	dataFromStorer, _ := storer.Get([]byte(key))
+	dataFromStorer, _ := storer.Get([]byte(key + fileName))
 	require.True(t, bytes.Equal(value, dataFromStorer))
 
 	mfw.Finish()

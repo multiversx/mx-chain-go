@@ -1,6 +1,7 @@
 package ntp
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"math"
@@ -12,8 +13,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/close"
 	"github.com/beevik/ntp"
 )
+
+var _ SyncTimer = (*syncTime)(nil)
+var _ close.Closer = (*syncTime)(nil)
 
 var log = logger.GetOrCreate("ntp")
 
@@ -93,6 +98,7 @@ type syncTime struct {
 	syncPeriod  time.Duration
 	ntpOptions  NTPOptions
 	query       func(options NTPOptions, hostIndex int) (*ntp.Response, error)
+	cancelFunc  func()
 }
 
 // NewSyncTime creates a syncTime object. The customQueryFunc argument allows the caller to set a different NTP-querying
@@ -116,12 +122,24 @@ func NewSyncTime(
 	return &s
 }
 
-// StartSync method does the time synchronization at every syncPeriod time elapsed. This method should be started on go
+// StartSyncingTime method does the time synchronization at every syncPeriod time elapsed. This method should be started on go
 // routine
-func (s *syncTime) StartSync() {
+func (s *syncTime) StartSyncingTime() {
+	var ctx context.Context
+	ctx, s.cancelFunc = context.WithCancel(context.Background())
+	go s.startSync(ctx)
+}
+
+func (s *syncTime) startSync(ctx context.Context) {
 	for {
 		s.sync()
-		time.Sleep(s.getSleepTime())
+
+		select {
+		case <-ctx.Done():
+			log.Debug("syncTime's go routine is stopping...")
+			return
+		case <-time.After(s.getSleepTime()):
+		}
 	}
 }
 
@@ -254,6 +272,15 @@ func (s *syncTime) CurrentTime() time.Time {
 	s.mut.RUnlock()
 
 	return currentTime
+}
+
+// Close will close the endless running go routine
+func (s *syncTime) Close() error {
+	if s.cancelFunc != nil {
+		s.cancelFunc()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

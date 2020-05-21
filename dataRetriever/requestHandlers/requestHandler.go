@@ -10,8 +10,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
+
+var _ epochStart.RequestHandler = (*resolverRequestHandler)(nil)
+
+var log = logger.GetOrCreate("dataretriever/requesthandlers")
 
 type resolverRequestHandler struct {
 	epoch                 uint32
@@ -24,8 +29,6 @@ type resolverRequestHandler struct {
 	requestInterval       time.Duration
 	mutSweepTime          sync.Mutex
 }
-
-var log = logger.GetOrCreate("dataretriever/requesthandlers")
 
 // NewResolverRequestHandler creates a requestHandler interface implementation with request functions
 func NewResolverRequestHandler(
@@ -331,10 +334,10 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 	if len(unrequestedHashes) == 0 {
 		return
 	}
-	log.Debug("requesting transactions from network",
+	log.Debug("requesting trie nodes from network",
 		"topic", topic,
 		"shard", destShardID,
-		"num txs", len(unrequestedHashes),
+		"num nodes", len(unrequestedHashes),
 	)
 
 	resolver, err := rrh.resolversFinder.MetaCrossShardResolver(topic, destShardID)
@@ -349,7 +352,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 
 	trieResolver, ok := resolver.(dataRetriever.TrieNodesResolver)
 	if !ok {
-		log.Warn("wrong assertion type when creating transaction resolver")
+		log.Warn("wrong assertion type when creating a trie nodes resolver")
 		return
 	}
 

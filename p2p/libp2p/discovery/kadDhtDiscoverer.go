@@ -11,9 +11,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 )
+
+var _ p2p.PeerDiscoverer = (*KadDhtDiscoverer)(nil)
+var _ p2p.ReconnecterWithPauseResumeAndWatchdog = (*KadDhtDiscoverer)(nil)
 
 const (
 	initReconnectMul   = 20
@@ -21,9 +23,6 @@ const (
 	minWatchdogTimeout = time.Second
 	targetCps          = 3
 )
-
-var peerDiscoveryTimeout = 10 * time.Second
-var noOfQueries = 1
 
 var log = logger.GetOrCreate("p2p/libp2p/kaddht")
 
@@ -119,25 +118,7 @@ func (kdd *KadDhtDiscoverer) UpdateRandezVous(s string) error {
 	return kdd.startDHT()
 }
 
-func (kdd *KadDhtDiscoverer) protocols() []protocol.ID {
-	return []protocol.ID{
-		protocol.ID(fmt.Sprintf("%s/erd_%s", opts.ProtocolDHT, kdd.randezVous)),
-		protocol.ID(fmt.Sprintf("%s/erd", opts.ProtocolDHT)),
-		opts.ProtocolDHT,
-	}
-}
-
 func (kdd *KadDhtDiscoverer) startDHT() error {
-	defaultOptions := opts.Defaults
-	customOptions := func(opt *opts.Options) error {
-		err := defaultOptions(opt)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
 	ctxrun, cancel := context.WithCancel(kdd.context)
 	hd, err := NewHostDecorator(kdd.host, ctxrun, targetCps, time.Second)
 	if err != nil {
@@ -145,7 +126,14 @@ func (kdd *KadDhtDiscoverer) startDHT() error {
 		return err
 	}
 
-	kademliaDHT, err := dht.New(kdd.context, hd, opts.Protocols(kdd.protocols()...), customOptions)
+	protocolID := protocol.ID(kdd.randezVous)
+	kademliaDHT, err := dht.New(
+		kdd.context,
+		hd,
+		dht.ProtocolPrefix(protocolID),
+		dht.RoutingTableRefreshPeriod(kdd.routingTableRefresh),
+		dht.Mode(dht.ModeAutoServer),
+	)
 	if err != nil {
 		cancel()
 		return err
@@ -166,9 +154,8 @@ func (kdd *KadDhtDiscoverer) stopDHT() error {
 	kdd.refreshCancel()
 	kdd.refreshCancel = nil
 
-	for _, p := range kdd.protocols() {
-		kdd.host.RemoveStreamHandler(p)
-	}
+	protocolID := protocol.ID(kdd.randezVous)
+	kdd.host.RemoveStreamHandler(protocolID)
 
 	err := kdd.kadDHT.Close()
 
@@ -182,12 +169,6 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap(ctx context.Context) {
 		kdd.peersRefreshInterval,
 		kdd.initialPeersList,
 	)
-
-	cfg := dht.BootstrapConfig{
-		Period:  kdd.peersRefreshInterval,
-		Queries: noOfQueries,
-		Timeout: peerDiscoveryTimeout,
-	}
 
 	go func() {
 		<-chanStartBootstrap
@@ -203,7 +184,7 @@ func (kdd *KadDhtDiscoverer) connectToInitialAndBootstrap(ctx context.Context) {
 				if initConns {
 					var err error = nil
 					if kadDht != nil {
-						err = kadDht.BootstrapOnce(ctx, cfg)
+						err = kadDht.Bootstrap(ctx)
 					}
 					if err == kbucket.ErrLookupFailure {
 						kdd.ReconnectToNetwork()

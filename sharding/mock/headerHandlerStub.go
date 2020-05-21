@@ -19,8 +19,18 @@ func (hhs *HeaderHandlerStub) GetAccumulatedFees() *big.Int {
 	panic("implement me")
 }
 
+// GetDeveloperFees --
+func (hhs *HeaderHandlerStub) GetDeveloperFees() *big.Int {
+	panic("implement me")
+}
+
 // SetAccumulatedFees --
 func (hhs *HeaderHandlerStub) SetAccumulatedFees(_ *big.Int) {
+	panic("implement me")
+}
+
+// SetDeveloperFees --
+func (hhs *HeaderHandlerStub) SetDeveloperFees(_ *big.Int) {
 	panic("implement me")
 }
 
@@ -209,37 +219,21 @@ func (hhs *HeaderHandlerStub) SetValidatorStatsRootHash(_ []byte) {
 	panic("implement me")
 }
 
-// GetMiniBlockProcessed -
-func (hhs *HeaderHandlerStub) GetMiniBlockProcessed(_ []byte) bool {
-	panic("implement me")
-}
-
-// SetMiniBlockProcessed -
-func (hhs *HeaderHandlerStub) SetMiniBlockProcessed(_ []byte, _ bool) {
-	panic("implement me")
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (hhs *HeaderHandlerStub) IsInterfaceNil() bool {
 	return hhs == nil
 }
 
-// ItemsInHeader -
-func (hhs *HeaderHandlerStub) ItemsInHeader() uint32 {
-	panic("implement me")
-}
-
-// ItemsInBody -
-func (hhs *HeaderHandlerStub) ItemsInBody() uint32 {
-	panic("implement me")
-}
-
-// CheckChainID -
-func (hhs *HeaderHandlerStub) CheckChainID(_ []byte) error {
-	panic("implement me")
-}
-
 // GetEpochStartMetaHash -
 func (hhs *HeaderHandlerStub) GetEpochStartMetaHash() []byte {
 	panic("implement me")
+}
+
+// GetSoftwareVersion -
+func (hhs *HeaderHandlerStub) GetSoftwareVersion() []byte {
+	return []byte("v1.0")
+}
+
+// SetSoftwareVersion -
+func (hhs *HeaderHandlerStub) SetSoftwareVersion(version []byte) {
 }

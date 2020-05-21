@@ -10,7 +10,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -161,15 +160,12 @@ func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *test
 	n, _ := node.NewNode(
 		node.WithAccountsAdapter(accAdapter),
 		node.WithAddressPubkeyConverter(&mock.PubkeyConverterStub{
-			CreateAddressFromBytesCalled: func(pkBytes []byte) (container state.AddressContainer, err error) {
-				return mock.NewAddressMock(), nil
-			},
-			CreateAddressFromStringCalled: func(humanReadable string) (container state.AddressContainer, err error) {
+			DecodeCalled: func(humanReadable string) ([]byte, error) {
 				if len(humanReadable) == 0 {
 					return nil, expectedErr
 				}
 
-				return mock.NewAddressMock(), nil
+				return []byte("1234"), nil
 			},
 		}),
 		node.WithTxSingleSigner(singleSigner),
@@ -180,43 +176,6 @@ func TestGenerateAndSendBulkTransactions_InvalidReceiverAddressShouldErr(t *test
 	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1, sk)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "could not create receiver address from provided param")
-}
-
-func TestGenerateAndSendBulkTransactions_CreateAddressFromPublicKeyBytesErrorsShouldErr(t *testing.T) {
-	accAdapter := getAccAdapter(big.NewInt(0))
-	pubkeyConverter := &mock.PubkeyConverterStub{
-		CreateAddressFromBytesCalled: func(pubKey []byte) (container state.AddressContainer, e error) {
-			return nil, errors.New("error")
-		},
-	}
-	sk := &mock.PrivateKeyStub{GeneratePublicHandler: func() crypto.PublicKey {
-		return &mock.PublicKeyMock{
-			ToByteArrayHandler: func() (bytes []byte, err error) {
-				return []byte("key"), nil
-			},
-		}
-	}}
-	singleSigner := &mock.SinglesignMock{}
-	dataPool := &mock.PoolsHolderStub{
-		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-			return &mock.ShardedDataStub{
-				ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
-					return nil
-				},
-			}
-		},
-	}
-	n, _ := node.NewNode(
-		node.WithAccountsAdapter(accAdapter),
-		node.WithAddressPubkeyConverter(pubkeyConverter),
-		node.WithTxSingleSigner(singleSigner),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithDataPool(dataPool),
-	)
-
-	err := n.GenerateAndSendBulkTransactions("", big.NewInt(0), 1, sk)
-	assert.NotNil(t, err)
-	assert.Equal(t, "error", err.Error())
 }
 
 func TestGenerateAndSendBulkTransactions_MarshalizerErrorsShouldErr(t *testing.T) {

@@ -38,3 +38,10 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 func (vs *validatorStatistics) UpdateMissedBlocksCounters() error {
 	return vs.updateMissedBlocksCounters()
 }
+
+// GetCache -
+func (ptp *PeerTypeProvider) GetCache() map[string]*peerListAndShard {
+	ptp.mutCache.RLock()
+	defer ptp.mutCache.RUnlock()
+	return ptp.cache
+}

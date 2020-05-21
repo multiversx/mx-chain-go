@@ -1,10 +1,7 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. block.proto
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. block.proto
 package block
 
 import (
-	"bytes"
-	"encoding/hex"
-	"fmt"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -78,6 +75,11 @@ func (h *Header) SetChainID(chainID []byte) {
 	h.ChainID = chainID
 }
 
+// SetSoftwareVersion sets the software version of the header
+func (h *Header) SetSoftwareVersion(version []byte) {
+	h.SoftwareVersion = version
+}
+
 // SetTimeStamp sets header timestamp
 func (h *Header) SetTimeStamp(ts uint64) {
 	h.TimeStamp = ts
@@ -86,6 +88,11 @@ func (h *Header) SetTimeStamp(ts uint64) {
 // SetAccumulatedFees sets the accumulated fees in the header
 func (h *Header) SetAccumulatedFees(value *big.Int) {
 	h.AccumulatedFees.Set(value)
+}
+
+// SetDeveloperFees sets the developer fees in the header
+func (h *Header) SetDeveloperFees(value *big.Int) {
+	h.DeveloperFees.Set(value)
 }
 
 // SetTxCount sets the transaction count of the block associated with this header
@@ -159,21 +166,6 @@ func (h *Header) IsInterfaceNil() bool {
 // IsStartOfEpochBlock verifies if the block is of type start of epoch
 func (h *Header) IsStartOfEpochBlock() bool {
 	return len(h.EpochStartMetaHash) > 0
-}
-
-// CheckChainID returns nil if the header's chain ID matches the one provided
-// otherwise, it will error
-func (h *Header) CheckChainID(reference []byte) error {
-	if !bytes.Equal(h.ChainID, reference) {
-		return fmt.Errorf(
-			"%w, expected: %s, got %s",
-			data.ErrInvalidChainID,
-			hex.EncodeToString(reference),
-			hex.EncodeToString(h.ChainID),
-		)
-	}
-
-	return nil
 }
 
 // Clone the underlying data

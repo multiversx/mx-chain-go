@@ -1,7 +1,6 @@
 package executingMiniblocksSc
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
@@ -38,7 +37,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	assert.Nil(t, err)
 
 	maxShards := uint32(2)
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
@@ -72,7 +71,7 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(testBlock.StepDelay)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -85,11 +84,11 @@ func TestProcessWithScTxsTopUpAndWithdrawOnlyProposers(t *testing.T) {
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	hardCodedScResultingAddress, _ := nodeShard1.BlockchainHook.NewAddress(
-		nodes[idxNodeShard1].OwnAccount.Address.Bytes(),
+		nodes[idxNodeShard1].OwnAccount.Address,
 		nodes[idxNodeShard1].OwnAccount.Nonce,
 		factory.IELEVirtualMachine,
 	)
-	integrationTests.DeployScTx(nodes, idxNodeShard1, string(scCode), factory.IELEVirtualMachine)
+	integrationTests.DeployScTx(nodes, idxNodeShard1, string(scCode), factory.IELEVirtualMachine, "")
 
 	integrationTests.UpdateRound(nodes, round)
 	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
@@ -143,7 +142,7 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	assert.Nil(t, err)
 
 	maxShards := uint32(2)
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 	nodeProposerShard0 := integrationTests.NewTestProcessorNode(
@@ -225,19 +224,19 @@ func TestProcessWithScTxsJoinAndRewardTwoNodesInShard(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(testBlock.StepDelay)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(100000000)
 	topUpValue := big.NewInt(500)
 	rewardValue := big.NewInt(10)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
-	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode), factory.IELEVirtualMachine)
+	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode), factory.IELEVirtualMachine, "")
 
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
@@ -298,7 +297,7 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	assert.Nil(t, err)
 
 	maxShards := uint32(2)
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
@@ -346,18 +345,18 @@ func TestShouldProcessWithScTxsJoinNoCommitShouldProcessedByValidators(t *testin
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(testBlock.StepDelay)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(100000000)
 	topUpValue := big.NewInt(500)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
-	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode), factory.IELEVirtualMachine)
+	integrationTests.DeployScTx(nodes, idxProposerShard1, string(scCode), factory.IELEVirtualMachine, "")
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 
 	integrationTests.PlayerJoinsGame(
@@ -392,7 +391,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	maxShards := 2
 	consensusGroupSize := 2
 	nodesPerShard := 2
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	// create map of shards - testNodeProcessors for metachain and shard chain
@@ -442,7 +441,6 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	txNonce := uint64(0)
 	owner := senders[0][0]
 	ownerPk, _ := owner.GeneratePublic().ToByteArray()
-	ownerAddr, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(ownerPk)
 	integrationTests.ScCallTxWithParams(
 		nodeShard0,
 		owner,
@@ -459,7 +457,7 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	_ = integrationTests.IncrementAndPrintRound(round)
 
 	// test sender account decreased its balance with gasPrice * gasLimit
-	accnt, err := consensusNodes[shardId0][0].AccntState.GetExistingAccount(ownerAddr)
+	accnt, err := consensusNodes[shardId0][0].AccntState.GetExistingAccount(ownerPk)
 	assert.Nil(t, err)
 	ownerAccnt := accnt.(state.UserAccountHandler)
 	expectedBalance := big.NewInt(0).Set(initialVal)

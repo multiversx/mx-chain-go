@@ -21,7 +21,7 @@ type node interface {
 	isPosCollapsed(pos int) bool
 	isDirty() bool
 	getEncodedNode() ([]byte, error)
-	commit(force bool, level byte, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error
+	commit(force bool, level byte, maxTrieLevelInMemory uint, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error
 	resolveCollapsed(pos byte, db data.DBWriteCacher) error
 	hashNode() ([]byte, error)
 	hashChildren() error
@@ -48,12 +48,12 @@ type node interface {
 
 type atomicBuffer interface {
 	add(rootHash []byte)
-	remove(rootHash []byte)
-	removeAll() map[string]struct{}
+	removeAll() [][]byte
+	len() int
 }
 
 type snapshotNode interface {
-	commit(force bool, level byte, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error
+	commit(force bool, level byte, maxTrieLevelInMemory uint, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error
 }
 
 // RequestHandler defines the methods through which request to data can be made

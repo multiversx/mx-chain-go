@@ -37,22 +37,19 @@ type SubroundHandler interface {
 	EndTime() int64
 	// Name returns the name of the current rounder
 	Name() string
+	// ConsensusChannel returns the consensus channel
+	ConsensusChannel() chan bool
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
 
 // ChronologyHandler defines the actions which should be handled by a chronology implementation
 type ChronologyHandler interface {
+	Close() error
 	AddSubround(SubroundHandler)
 	RemoveAllSubrounds()
 	// StartRounds starts rounds in a sequential manner, one after the other
 	StartRounds()
-	IsInterfaceNil() bool
-}
-
-// SposFactory defines an interface for a consensus implementation
-type SposFactory interface {
-	GenerateSubrounds()
 	IsInterfaceNil() bool
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -490,6 +491,17 @@ func WithHeaderSigVerifier(headerSigVerifier spos.RandSeedVerifier) Option {
 	}
 }
 
+// WithHeaderIntegrityVerifier sets up a header integrity verifier for the Node
+func WithHeaderIntegrityVerifier(headerIntegrityVerifier spos.HeaderIntegrityVerifier) Option {
+	return func(n *Node) error {
+		if check.IfNil(headerIntegrityVerifier) {
+			return ErrNilHeaderIntegrityVerifier
+		}
+		n.headerIntegrityVerifier = headerIntegrityVerifier
+		return nil
+	}
+}
+
 // WithValidatorStatistics sets up the validator statistics for the node
 func WithValidatorStatistics(validatorStatistics process.ValidatorStatisticsProcessor) Option {
 	return func(n *Node) error {
@@ -650,7 +662,7 @@ func WithPublicKeySize(publicKeySize int) Option {
 }
 
 // WithNodeStopChannel sets up the channel which will handle closing the node
-func WithNodeStopChannel(channel chan bool) Option {
+func WithNodeStopChannel(channel chan endProcess.ArgEndProcess) Option {
 	return func(n *Node) error {
 		if channel == nil {
 			return ErrNilNodeStopChannel

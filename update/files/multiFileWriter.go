@@ -12,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+var _ update.MultiFileWriter = (*multiFileWriter)(nil)
+
 var log = logger.GetOrCreate("update/files")
 
 type multiFileWriter struct {
@@ -88,7 +90,9 @@ func (m *multiFileWriter) Write(fileName string, key string, value []byte) error
 		return err
 	}
 
-	err = m.exportStore.Put([]byte(key), value)
+	log.Trace("export", "key", key, "value", value)
+	formattedKey := []byte(key + fileName)
+	err = m.exportStore.Put(formattedKey, value)
 	if err != nil {
 		return err
 	}
@@ -116,20 +120,40 @@ func (m *multiFileWriter) getOrCreateDataWriter(fileName string) (update.DataWri
 	return nil, update.ErrNilDataWriter
 }
 
+// CloseFile will close the file and dataWriter
+func (m *multiFileWriter) CloseFile(fileName string) {
+	dataWriter, ok := m.dataWriters[fileName]
+	if ok {
+		err := dataWriter.Flush()
+		log.LogIfError(err, "closeFile multiFileWriter dataWriter Flush", fileName)
+	}
+
+	file, ok := m.files[fileName]
+	if ok {
+		err := file.Close()
+		log.LogIfError(err, "closeFile multiFileWriter file close", fileName)
+	}
+}
+
 // Finish flushes all the data to the files and closes the opened files
 func (m *multiFileWriter) Finish() {
 	for fileName, dataWriter := range m.dataWriters {
 		err := dataWriter.Flush()
 		if err != nil {
-			log.Warn("could not flush data for ", "fileName", fileName, "error", err)
+			log.Trace("could not flush data for ", "fileName", fileName, "error", err)
 		}
 	}
 
 	for fileName, file := range m.files {
 		err := file.Close()
 		if err != nil {
-			log.Warn("could not close file ", "fileName", fileName, "error", err)
+			log.Trace("could not close file ", "fileName", fileName, "error", err)
 		}
+	}
+
+	err := m.exportStore.Close()
+	if err != nil {
+		log.Warn("could not close storer", "error", err)
 	}
 }
 

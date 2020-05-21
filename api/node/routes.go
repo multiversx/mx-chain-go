@@ -6,16 +6,17 @@ import (
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/debug"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/gin-gonic/gin"
 )
 
 // FacadeHandler interface defines methods that can be used from `elrondFacade` context variable
 type FacadeHandler interface {
-	GetHeartbeats() ([]heartbeat.PubKeyHeartbeat, error)
+	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	TpsBenchmark() *statistics.TpsBenchmark
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
@@ -31,14 +32,14 @@ type QueryDebugRequest struct {
 type statisticsResponse struct {
 	LiveTPS               float64                   `json:"liveTPS"`
 	PeakTPS               float64                   `json:"peakTPS"`
-	NrOfShards            uint32                    `json:"nrOfShards"`
 	BlockNumber           uint64                    `json:"blockNumber"`
 	RoundNumber           uint64                    `json:"roundNumber"`
 	RoundTime             uint64                    `json:"roundTime"`
 	AverageBlockTxCount   *big.Int                  `json:"averageBlockTxCount"`
-	LastBlockTxCount      uint32                    `json:"lastBlockTxCount"`
 	TotalProcessedTxCount *big.Int                  `json:"totalProcessedTxCount"`
 	ShardStatistics       []shardStatisticsResponse `json:"shardStatistics"`
+	LastBlockTxCount      uint32                    `json:"lastBlockTxCount"`
+	NrOfShards            uint32                    `json:"nrOfShards"`
 }
 
 type shardStatisticsResponse struct {
@@ -53,13 +54,13 @@ type shardStatisticsResponse struct {
 }
 
 // Routes defines node related routes
-func Routes(router *gin.RouterGroup) {
-	router.GET("/epoch", EpochData)
-	router.GET("/heartbeatstatus", HeartbeatStatus)
-	router.GET("/statistics", Statistics)
-	router.GET("/status", StatusMetrics)
-	router.GET("/p2pstatus", P2pStatusMetrics)
-	router.POST("/debug", QueryDebug)
+func Routes(router *wrapper.RouterWrapper) {
+	router.RegisterHandler(http.MethodGet, "/epoch", EpochData)
+	router.RegisterHandler(http.MethodGet, "/heartbeatstatus", HeartbeatStatus)
+	router.RegisterHandler(http.MethodGet, "/statistics", Statistics)
+	router.RegisterHandler(http.MethodGet, "/status", StatusMetrics)
+	router.RegisterHandler(http.MethodGet, "/p2pstatus", P2pStatusMetrics)
+	router.RegisterHandler(http.MethodPost, "/debug", QueryDebug)
 	// placeholder for custom routes
 }
 
@@ -72,7 +73,6 @@ func EpochData(c *gin.Context) {
 	}
 
 	epochMetrics := ef.StatusMetrics().EpochMetrics()
-
 	c.JSON(http.StatusOK, gin.H{"epochData": epochMetrics})
 }
 
@@ -113,7 +113,6 @@ func StatusMetrics(c *gin.Context) {
 	}
 
 	details := ef.StatusMetrics().StatusMetricsMapWithoutP2P()
-
 	c.JSON(http.StatusOK, gin.H{"details": details})
 }
 
@@ -126,7 +125,6 @@ func P2pStatusMetrics(c *gin.Context) {
 	}
 
 	details := ef.StatusMetrics().StatusP2pMetricsMap()
-
 	c.JSON(http.StatusOK, gin.H{"details": details})
 }
 

@@ -9,9 +9,9 @@ import (
 // Coordinator defines what a shard state coordinator should hold
 type Coordinator interface {
 	NumberOfShards() uint32
-	ComputeId(address state.AddressContainer) uint32
+	ComputeId(address []byte) uint32
 	SelfId() uint32
-	SameShard(firstAddress, secondAddress state.AddressContainer) bool
+	SameShard(firstAddress, secondAddress []byte) bool
 	CommunicationIdentifier(destShardID uint32) string
 	IsInterfaceNil() bool
 }
@@ -33,6 +33,7 @@ type NodesCoordinator interface {
 	LoadState(key []byte) error
 	GetSavedStateKey() []byte
 	ShardIdForEpoch(epoch uint32) (uint32, error)
+	ShuffleOutForEpoch(_ uint32)
 	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
 	ConsensusGroupSize(uint32) int
 	GetNumTotalEligible() uint64
@@ -43,6 +44,7 @@ type NodesCoordinator interface {
 type EpochStartEventNotifier interface {
 	RegisterHandler(handler epochStart.ActionHandler)
 	UnregisterHandler(handler epochStart.ActionHandler)
+	IsInterfaceNil() bool
 }
 
 // PublicKeysSelector allows retrieval of eligible validators public keys
@@ -50,7 +52,7 @@ type PublicKeysSelector interface {
 	GetValidatorsIndexes(publicKeys []string, epoch uint32) ([]uint64, error)
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
-	GetAllLeavingValidatorsPublicKeys(epoch uint32) ([][]byte, error)
+	GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetOwnPublicKey() []byte
 }
@@ -63,12 +65,13 @@ type EpochHandler interface {
 
 // ArgsUpdateNodes holds the parameters required by the shuffler to generate a new nodes configuration
 type ArgsUpdateNodes struct {
-	Eligible map[uint32][]Validator
-	Waiting  map[uint32][]Validator
-	NewNodes []Validator
-	Leaving  []Validator
-	Rand     []byte
-	NbShards uint32
+	Eligible          map[uint32][]Validator
+	Waiting           map[uint32][]Validator
+	NewNodes          []Validator
+	UnStakeLeaving    []Validator
+	AdditionalLeaving []Validator
+	Rand              []byte
+	NbShards          uint32
 }
 
 // ResUpdateNodes holds the result of the UpdateNodes method
@@ -82,14 +85,14 @@ type ResUpdateNodes struct {
 // NodesShuffler provides shuffling functionality for nodes
 type NodesShuffler interface {
 	UpdateParams(numNodesShard uint32, numNodesMeta uint32, hysteresis float32, adaptivity bool)
-	UpdateNodeLists(args ArgsUpdateNodes) ResUpdateNodes
+	UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error)
 	IsInterfaceNil() bool
 }
 
 // NodesCoordinatorHelper provides polymorphism functionality for nodesCoordinator
 type NodesCoordinatorHelper interface {
 	ValidatorsWeights(validators []Validator) ([]uint32, error)
-	ComputeLeaving(allValidators []*state.ShardValidatorInfo) ([]Validator, error)
+	ComputeAdditionalLeaving(allValidators []*state.ShardValidatorInfo) (map[uint32][]Validator, error)
 	GetChance(uint32) uint32
 }
 
@@ -124,6 +127,8 @@ type ChanceComputer interface {
 
 //Cacher provides the capabilities needed to store and retrieve information needed in the NodesCoordinator
 type Cacher interface {
+	// Clear is used to completely clear the cache.
+	Clear()
 	// Put adds a value to the cache.  Returns true if an eviction occurred.
 	Put(key []byte, value interface{}) (evicted bool)
 	// Get looks up a key's value from the cache.
@@ -168,13 +173,13 @@ type GenesisNodesSetupHandler interface {
 // GenesisNodeInfoHandler defines the public methods for the genesis nodes info
 type GenesisNodeInfoHandler interface {
 	AssignedShard() uint32
-	Address() []byte
-	PubKey() []byte
+	AddressBytes() []byte
+	PubKeyBytes() []byte
 	IsInterfaceNil() bool
 }
 
-// ValidatorsProvider can get the latest validator infos from the trie
-type ValidatorsProvider interface {
-	GetLatestValidatorInfos() (map[uint32][]*state.ValidatorInfo, error)
+// ValidatorsDistributor distributes validators across shards
+type ValidatorsDistributor interface {
+	DistributeValidators(destination map[uint32][]Validator, source map[uint32][]Validator, rand []byte) error
 	IsInterfaceNil() bool
 }

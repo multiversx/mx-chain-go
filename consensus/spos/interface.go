@@ -96,6 +96,8 @@ type SubroundsFactory interface {
 
 //WorkerHandler represents the interface for the SposWorker
 type WorkerHandler interface {
+	Close() error
+	StartWorking()
 	//AddReceivedMessageCall adds a new handler function for a received message type
 	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(cnsDta *consensus.Message) bool)
 	//AddReceivedHeaderHandler adds a new handler function for a received header
@@ -129,5 +131,11 @@ type PoolAdder interface {
 // RandSeedVerifier encapsulates methods that are check if header rand seed is correct
 type RandSeedVerifier interface {
 	VerifyRandSeed(header data.HeaderHandler) error
+	IsInterfaceNil() bool
+}
+
+// HeaderIntegrityVerifier encapsulates methods useful to check that a header's integrity is correct
+type HeaderIntegrityVerifier interface {
+	Verify(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }

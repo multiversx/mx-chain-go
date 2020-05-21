@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -118,6 +119,7 @@ func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
 		PreviousEpochStart: &block.MetaBlock{Epoch: 1},
 		ShardHeader:        &block.Header{Nonce: 1},
 		Headers:            headers,
+		NodesConfig:        &sharding.NodesCoordinatorRegistry{},
 	}
 
 	err := shardStrHandler.SaveDataToStorage(components)

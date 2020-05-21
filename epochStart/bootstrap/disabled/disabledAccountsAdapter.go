@@ -14,7 +14,7 @@ func NewAccountsAdapter() *accountsAdapter {
 }
 
 // LoadAccount -
-func (a *accountsAdapter) LoadAccount(_ state.AddressContainer) (state.AccountHandler, error) {
+func (a *accountsAdapter) LoadAccount(_ []byte) (state.AccountHandler, error) {
 	return nil, nil
 }
 
@@ -28,12 +28,12 @@ func (a *accountsAdapter) PruneTrie(_ []byte, _ data.TriePruningIdentifier) {
 }
 
 // GetExistingAccount -
-func (a *accountsAdapter) GetExistingAccount(_ state.AddressContainer) (state.AccountHandler, error) {
+func (a *accountsAdapter) GetExistingAccount(_ []byte) (state.AccountHandler, error) {
 	return nil, nil
 }
 
 // RemoveAccount -
-func (a *accountsAdapter) RemoveAccount(_ state.AddressContainer) error {
+func (a *accountsAdapter) RemoveAccount(_ []byte) error {
 	return nil
 }
 

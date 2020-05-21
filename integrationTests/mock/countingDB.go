@@ -1,8 +1,11 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 )
+
+var _ storage.Persister = (*countingDB)(nil)
 
 type countingDB struct {
 	db      *memorydb.DB

@@ -1,7 +1,6 @@
 package executingMiniblocksSc
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -32,7 +31,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 
 	maxShards := uint32(1)
 	numOfNodes := 4
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
@@ -66,7 +65,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(block.StepDelay)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -82,7 +81,7 @@ func TestShouldProcessWithScTxsJoinAndRewardOneRound(t *testing.T) {
 	integrationTests.MintAllNodes(nodes, initialVal)
 	integrationTests.MintAllPlayers(nodes, players, initialVal)
 
-	integrationTests.DeployScTx(nodes, idxProposer, string(scCode), factory.IELEVirtualMachine)
+	integrationTests.DeployScTx(nodes, idxProposer, string(scCode), factory.IELEVirtualMachine, "")
 	time.Sleep(block.StepDelay)
 	integrationTests.ProposeBlock(nodes, []int{idxProposer}, round, nonce)
 	time.Sleep(block.StepDelay)
@@ -172,12 +171,12 @@ func TestShouldProcessMultipleERC20ContractsInSingleShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	scCode, err := ioutil.ReadFile("./wrc20_arwen_01.wasm")
+	scCode, err := ioutil.ReadFile("../../../vm/arwen/testdata/erc20-c-03/wrc20_arwen.wasm")
 	assert.Nil(t, err)
 
 	maxShards := uint32(1)
 	numOfNodes := 2
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
@@ -210,7 +209,7 @@ func TestShouldProcessMultipleERC20ContractsInSingleShard(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(block.StepDelay)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -225,7 +224,7 @@ func TestShouldProcessMultipleERC20ContractsInSingleShard(t *testing.T) {
 	integrationTests.MintAllNodes(nodes, initialVal)
 	integrationTests.MintAllPlayers(nodes, players, initialVal)
 
-	integrationTests.DeployScTx(nodes, idxProposer, hex.EncodeToString(scCode), factory.ArwenVirtualMachine)
+	integrationTests.DeployScTx(nodes, idxProposer, hex.EncodeToString(scCode), factory.ArwenVirtualMachine, "001000000000")
 	time.Sleep(block.StepDelay)
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, []int{idxProposer}, round, nonce)
 
@@ -266,7 +265,7 @@ func playersDoTransfer(
 	for _, playerToTransfer := range players {
 		for _, player := range players {
 			createAndSendTx(node, player, big.NewInt(0), 20000, scAddress,
-				[]byte("transfer@"+hex.EncodeToString(playerToTransfer.Address.Bytes())+"@"+hex.EncodeToString(txValue.Bytes())))
+				[]byte("transfer@"+hex.EncodeToString(playerToTransfer.Address)+"@"+hex.EncodeToString(txValue.Bytes())))
 		}
 	}
 }
@@ -282,7 +281,7 @@ func createAndSendTx(
 	tx := &transaction.Transaction{
 		Nonce:    player.Nonce,
 		Value:    txValue,
-		SndAddr:  player.Address.Bytes(),
+		SndAddr:  player.Address,
 		RcvAddr:  rcvAddress,
 		Data:     txData,
 		GasPrice: node.EconomicsData.GetMinGasPrice(),

@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.TransactionProcessor = (*metaTxProcessor)(nil)
+
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type metaTxProcessor struct {
 	*baseTxProcessor
@@ -72,12 +74,7 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) e
 		return process.ErrNilTransaction
 	}
 
-	adrSrc, adrDst, err := txProc.getAddresses(tx)
-	if err != nil {
-		return err
-	}
-
-	acntSnd, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
+	acntSnd, acntDst, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
 	if err != nil {
 		return err
 	}
@@ -107,16 +104,13 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) e
 		return err
 	}
 
-	txType, err := txProc.txTypeHandler.ComputeTransactionType(tx)
-	if err != nil {
-		return err
-	}
+	txType := txProc.txTypeHandler.ComputeTransactionType(tx)
 
 	switch txType {
 	case process.SCDeployment:
-		return txProc.processSCDeployment(tx, adrSrc)
+		return txProc.processSCDeployment(tx, tx.SndAddr)
 	case process.SCInvoking:
-		return txProc.processSCInvoking(tx, adrSrc, adrDst)
+		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 	}
 
 	snapshot := txProc.accounts.JournalLen()
@@ -130,7 +124,7 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) e
 
 func (txProc *metaTxProcessor) processSCDeployment(
 	tx *transaction.Transaction,
-	adrSrc state.AddressContainer,
+	adrSrc []byte,
 ) error {
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
@@ -145,7 +139,7 @@ func (txProc *metaTxProcessor) processSCDeployment(
 
 func (txProc *metaTxProcessor) processSCInvoking(
 	tx *transaction.Transaction,
-	adrSrc, adrDst state.AddressContainer,
+	adrSrc, adrDst []byte,
 ) error {
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.

@@ -87,6 +87,7 @@ func createDefaultWorkerArgs() *spos.WorkerArgs {
 		SingleSigner:             singleSignerMock,
 		SyncTimer:                syncTimerMock,
 		HeaderSigVerifier:        &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier:  &mock.HeaderIntegrityVerifierStub{},
 		ChainID:                  chainID,
 		NetworkShardingCollector: createMockNetworkShardingCollector(),
 		AntifloodHandler:         createMockP2PAntifloodHandler(),
@@ -287,6 +288,28 @@ func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
+}
+
+func TestWorker_NewWorkerHeaderSigVerifierNilShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.HeaderSigVerifier = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilHeaderSigVerifier, err)
+}
+
+func TestWorker_NewWorkerHeaderIntegrityVerifierShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.HeaderIntegrityVerifier = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilHeaderIntegrityVerifier, err)
 }
 
 func TestWorker_NewWorkerEmptyChainIDShouldFail(t *testing.T) {
@@ -547,7 +570,8 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 	wrk.SetBlockProcessor(&mock.BlockProcessorMock{
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 			return &block.Header{
-				ChainID: chainID,
+				ChainID:         chainID,
+				SoftwareVersion: []byte("version"),
 			}
 		},
 		RevertAccountStateCalled: func(header data.HeaderHandler) {
@@ -1260,6 +1284,7 @@ func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBlockIsNotFinished(t
 func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
+	wrk.StartWorking()
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
@@ -1285,11 +1310,14 @@ func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 	wrk.ExecuteMessage(cnsDataList)
 
 	assert.Nil(t, wrk.ReceivedMessages()[msgType][0])
+
+	wrk.Close()
 }
 
 func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
+	wrk.StartWorking()
 	wrk.SetReceivedMessagesCalls(bls.MtBlockHeader, func(cnsMsg *consensus.Message) bool {
 		_ = wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bls.SrBlock, true)
 		return true
@@ -1322,6 +1350,8 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, isBlockJobDone)
+
+	wrk.Close()
 }
 
 func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
@@ -1428,6 +1458,7 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
+	wrk.StartWorking()
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
@@ -1458,6 +1489,8 @@ func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 
 	rcvMsg = wrk.ReceivedMessages()
 	assert.Equal(t, 0, len(rcvMsg[msgType]))
+
+	wrk.Close()
 }
 
 func TestWorker_SetAppStatusHandlerNilShouldErr(t *testing.T) {

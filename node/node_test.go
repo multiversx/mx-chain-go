@@ -10,11 +10,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -29,7 +27,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/node"
-	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -40,16 +37,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fromConnectedPeerId = p2p.PeerID("from connected peer Id")
-
 func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 	return mock.NewPubkeyConverterMock(32)
 }
 
 func getAccAdapter(balance *big.Int) *mock.AccountsStub {
 	accDB := &mock.AccountsStub{}
-	accDB.GetExistingAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		acc, _ := state.NewUserAccount(addressContainer)
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		acc, _ := state.NewUserAccount(address)
 		_ = acc.AddToBalance(balance)
 		acc.IncreaseNonce(1)
 
@@ -139,32 +134,10 @@ func TestGetBalance_NoAccAdapterShouldError(t *testing.T) {
 	assert.Equal(t, "initialize AccountsAdapter and PubkeyConverter first", err.Error())
 }
 
-func TestGetBalance_CreateAddressFailsShouldError(t *testing.T) {
-
-	accAdapter := getAccAdapter(big.NewInt(0))
-	pubkeyConverter := &mock.PubkeyConverterStub{
-		CreateAddressFromStringCalled: func(humanReadable string) (container state.AddressContainer, err error) {
-			return nil, errors.New("error")
-		},
-	}
-	singleSigner := &mock.SinglesignMock{}
-	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(pubkeyConverter),
-		node.WithAccountsAdapter(accAdapter),
-		node.WithTxSingleSigner(singleSigner),
-	)
-	_, err := n.GetBalance("deadbeaf")
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "invalid address")
-}
-
 func TestGetBalance_GetAccountFailsShouldError(t *testing.T) {
 
 	accAdapter := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return nil, errors.New("error")
 		},
 	}
@@ -194,7 +167,7 @@ func createDummyHexAddress(hexChars int) string {
 func TestGetBalance_GetAccountReturnsNil(t *testing.T) {
 
 	accAdapter := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return nil, nil
 		},
 	}
@@ -282,7 +255,7 @@ func TestGenerateTransaction_CreateAddressFailsShouldError(t *testing.T) {
 func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 
 	accAdapter := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
+		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return nil, nil
 		},
 	}
@@ -302,8 +275,8 @@ func TestGenerateTransaction_GetAccountFailsShouldError(t *testing.T) {
 func TestGenerateTransaction_GetAccountReturnsNilShouldWork(t *testing.T) {
 
 	accAdapter := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
-			return state.NewUserAccount(addrContainer)
+		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			return state.NewUserAccount(address)
 		},
 	}
 	privateKey := getPrivateKey()
@@ -408,8 +381,8 @@ func TestGenerateTransaction_ShouldSetCorrectNonce(t *testing.T) {
 
 	nonce := uint64(7)
 	accAdapter := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addrContainer state.AddressContainer) (state.AccountHandler, error) {
-			acc, _ := state.NewUserAccount(addrContainer)
+		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			acc, _ := state.NewUserAccount(address)
 			_ = acc.AddToBalance(big.NewInt(0))
 			acc.IncreaseNonce(nonce)
 
@@ -471,7 +444,7 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	sender := ""
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := []byte("-")
+	txData := "-"
 	signature := "-"
 
 	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
@@ -490,8 +463,8 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAddressPubkeyConverter(
 			&mock.PubkeyConverterStub{
-				CreateAddressFromStringCalled: func(hexAddress string) (container state.AddressContainer, e error) {
-					return state.NewAddress([]byte(hexAddress)), nil
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
+					return []byte(hexAddress), nil
 				},
 			},
 		),
@@ -503,7 +476,7 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	sender := ""
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := []byte("-")
+	txData := "-"
 	signature := "-"
 
 	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
@@ -523,8 +496,8 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 		node.WithHasher(getHasher()),
 		node.WithAddressPubkeyConverter(
 			&mock.PubkeyConverterStub{
-				CreateAddressFromStringCalled: func(hexAddress string) (container state.AddressContainer, e error) {
-					return state.NewAddress([]byte(hexAddress)), nil
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
+					return []byte(hexAddress), nil
 				},
 			},
 		),
@@ -537,7 +510,7 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	sender := "snd"
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := []byte("-")
+	txData := "-"
 	signature := "-"
 
 	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
@@ -564,8 +537,8 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 		),
 		node.WithAddressPubkeyConverter(
 			&mock.PubkeyConverterStub{
-				CreateAddressFromStringCalled: func(hexAddress string) (container state.AddressContainer, e error) {
-					return state.NewAddress([]byte(hexAddress)), nil
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
+					return []byte(hexAddress), nil
 				},
 			}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
@@ -577,7 +550,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	sender := "snd"
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
-	txData := []byte("-")
+	txData := "-"
 	signature := "617eff4f"
 
 	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature)
@@ -746,107 +719,6 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 	assert.True(t, containString(process.ShardCacherIdentifier(1, 0), txShardedStores))
 }
 
-//------- StartHeartbeat
-
-func TestNode_StartHeartbeatDisabledShouldNotCreateObjects(t *testing.T) {
-	t.Parallel()
-
-	n, _ := node.NewNode()
-	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 1,
-		MaxTimeToWaitBetweenBroadcastsInSec: 2,
-		DurationInSecToConsiderUnresponsive: 3,
-		Enabled:                             false,
-	}, "v0.1",
-		"undefined",
-	)
-
-	assert.Nil(t, err)
-	assert.Nil(t, n.HeartbeatMonitor())
-	assert.Nil(t, n.HeartbeatSender())
-	assert.Nil(t, n.GetHeartbeats())
-}
-
-func TestNode_StartHeartbeatInvalidMinTimeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	n, _ := node.NewNode()
-	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: -1,
-		MaxTimeToWaitBetweenBroadcastsInSec: 2,
-		DurationInSecToConsiderUnresponsive: 3,
-		Enabled:                             true,
-	}, "v0.1",
-		"undefined",
-	)
-
-	assert.Equal(t, node.ErrNegativeMinTimeToWaitBetweenBroadcastsInSec, err)
-}
-
-func TestNode_StartHeartbeatInvalidMaxTimeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	n, _ := node.NewNode()
-	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 1,
-		MaxTimeToWaitBetweenBroadcastsInSec: -1,
-		DurationInSecToConsiderUnresponsive: 3,
-		Enabled:                             true,
-	}, "v0.1",
-		"undefined",
-	)
-
-	assert.Equal(t, node.ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec, err)
-}
-
-func TestNode_StartHeartbeatInvalidDurationShouldErr(t *testing.T) {
-	t.Parallel()
-
-	n, _ := node.NewNode()
-	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 1,
-		MaxTimeToWaitBetweenBroadcastsInSec: 1,
-		DurationInSecToConsiderUnresponsive: -1,
-		Enabled:                             true,
-	}, "v0.1",
-		"undefined",
-	)
-
-	assert.Equal(t, node.ErrNegativeDurationInSecToConsiderUnresponsive, err)
-}
-
-func TestNode_StartHeartbeatInvalidMaxTimeMinTimeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	n, _ := node.NewNode()
-	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 1,
-		MaxTimeToWaitBetweenBroadcastsInSec: 1,
-		DurationInSecToConsiderUnresponsive: 2,
-		Enabled:                             true,
-	}, "v0.1",
-		"undefined",
-	)
-
-	assert.Equal(t, node.ErrWrongValues, err)
-}
-
-func TestNode_StartHeartbeatInvalidMaxTimeDurationShouldErr(t *testing.T) {
-	t.Parallel()
-
-	n, _ := node.NewNode()
-	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 1,
-		MaxTimeToWaitBetweenBroadcastsInSec: 2,
-		DurationInSecToConsiderUnresponsive: 2,
-		Enabled:                             true,
-	}, "v0.1",
-		"undefined",
-	)
-
-	assert.Equal(t, node.ErrWrongValues, err)
-}
-
 func TestNode_ConsensusTopicNilShardCoordinator(t *testing.T) {
 	t.Parallel()
 
@@ -980,577 +852,6 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestNode_StartHeartbeatNilMarshalizerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	n, _ := node.NewNode(
-		node.WithSingleSigner(&mock.SinglesignMock{}),
-		node.WithKeyGen(&mock.KeyGenMock{}),
-		node.WithMessenger(&mock.MessengerStub{
-			HasTopicCalled: func(name string) bool {
-				return false
-			},
-			HasTopicValidatorCalled: func(name string) bool {
-				return false
-			},
-			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
-				return nil
-			},
-			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
-				return nil
-			},
-		}),
-		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithPrivKey(&mock.PrivateKeyStub{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithDataStore(&mock.ChainStorerMock{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return mock.NewStorerMock()
-			},
-		}),
-		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
-				return map[uint32][]*state.ValidatorInfo{
-					0: {
-						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
-					},
-				}, nil
-			},
-		}),
-		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
-	)
-	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 1,
-		MaxTimeToWaitBetweenBroadcastsInSec: 2,
-		DurationInSecToConsiderUnresponsive: 3,
-		Enabled:                             true,
-	}, "v0.1",
-		"undefined",
-	)
-
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "marshalizer")
-}
-
-func TestNode_StartHeartbeatNilKeygenShouldErr(t *testing.T) {
-	t.Parallel()
-
-	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithSingleSigner(&mock.SinglesignMock{}),
-		node.WithMessenger(&mock.MessengerStub{
-			HasTopicCalled: func(name string) bool {
-				return false
-			},
-			HasTopicValidatorCalled: func(name string) bool {
-				return false
-			},
-			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
-				return nil
-			},
-			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
-				return nil
-			},
-		}),
-		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
-		node.WithPrivKey(&mock.PrivateKeyStub{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithDataStore(&mock.ChainStorerMock{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return mock.NewStorerMock()
-			},
-		}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
-				return map[uint32][]*state.ValidatorInfo{
-					0: {
-						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
-					},
-				}, nil
-			},
-		}),
-		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
-		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-	)
-	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 1,
-		MaxTimeToWaitBetweenBroadcastsInSec: 2,
-		DurationInSecToConsiderUnresponsive: 3,
-		Enabled:                             true,
-	}, "v0.1",
-		"undefined",
-	)
-
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "key generator")
-}
-
-func TestNode_StartHeartbeatHasTopicValidatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithSingleSigner(&mock.SinglesignMock{}),
-		node.WithKeyGen(&mock.KeyGenMock{}),
-		node.WithMessenger(&mock.MessengerStub{
-			HasTopicValidatorCalled: func(name string) bool {
-				return true
-			},
-		}),
-		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithDataStore(&mock.ChainStorerMock{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return mock.NewStorerMock()
-			},
-		}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
-				return map[uint32][]*state.ValidatorInfo{
-					0: {
-						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
-					},
-				}, nil
-			},
-		}),
-	)
-	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 1,
-		MaxTimeToWaitBetweenBroadcastsInSec: 2,
-		DurationInSecToConsiderUnresponsive: 3,
-		Enabled:                             true,
-	}, "v0.1",
-		"undefined",
-	)
-
-	assert.Equal(t, node.ErrValidatorAlreadySet, err)
-}
-
-func TestNode_StartHeartbeatCreateTopicFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	errExpected := errors.New("expected error")
-	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithSingleSigner(&mock.SinglesignMock{}),
-		node.WithKeyGen(&mock.KeyGenMock{}),
-		node.WithMessenger(&mock.MessengerStub{
-			HasTopicValidatorCalled: func(name string) bool {
-				return false
-			},
-			HasTopicCalled: func(name string) bool {
-				return false
-			},
-			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
-				return errExpected
-			},
-		}),
-		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithDataStore(&mock.ChainStorerMock{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return mock.NewStorerMock()
-			},
-		}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
-				return map[uint32][]*state.ValidatorInfo{
-					0: {
-						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
-					},
-				}, nil
-			},
-		}),
-	)
-	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 1,
-		MaxTimeToWaitBetweenBroadcastsInSec: 2,
-		DurationInSecToConsiderUnresponsive: 3,
-		Enabled:                             true,
-	}, "v0.1",
-		"undefined",
-	)
-
-	assert.Equal(t, errExpected, err)
-}
-
-func TestNode_StartHeartbeatRegisterMessageProcessorFailsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	errExpected := errors.New("expected error")
-	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithSingleSigner(&mock.SinglesignMock{}),
-		node.WithKeyGen(&mock.KeyGenMock{}),
-		node.WithMessenger(&mock.MessengerStub{
-			HasTopicValidatorCalled: func(name string) bool {
-				return false
-			},
-			HasTopicCalled: func(name string) bool {
-				return false
-			},
-			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
-				return nil
-			},
-			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
-				return errExpected
-			},
-		}),
-		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
-		node.WithPrivKey(&mock.PrivateKeyStub{}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithDataStore(&mock.ChainStorerMock{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return mock.NewStorerMock()
-			},
-		}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
-		node.WithNetworkShardingCollector(
-			&mock.NetworkShardingCollectorStub{
-				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
-			}),
-		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
-				return map[uint32][]*state.ValidatorInfo{
-					0: {
-						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
-					},
-				}, nil
-			},
-		}),
-		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
-		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
-		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(96)),
-	)
-	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 1,
-		MaxTimeToWaitBetweenBroadcastsInSec: 2,
-		DurationInSecToConsiderUnresponsive: 3,
-		Enabled:                             true,
-		HbmiRefreshIntervalInSec:            1,
-		HideInactiveValidatorIntervalInSec:  600,
-	}, "v0.1",
-		"undefined",
-	)
-
-	assert.Equal(t, errExpected, err)
-}
-
-func TestNode_StartHeartbeatShouldWorkAndCallSendHeartbeat(t *testing.T) {
-	t.Parallel()
-
-	wasBroadcast := atomic.Value{}
-	wasBroadcast.Store(false)
-	buffData := []byte("buff data")
-	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{
-			MarshalHandler: func(obj interface{}) (bytes []byte, e error) {
-				return buffData, nil
-			},
-		}, testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithSingleSigner(&mock.SinglesignMock{}),
-		node.WithKeyGen(&mock.KeyGenMock{}),
-		node.WithMessenger(&mock.MessengerStub{
-			HasTopicValidatorCalled: func(name string) bool {
-				return false
-			},
-			HasTopicCalled: func(name string) bool {
-				return false
-			},
-			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
-				return nil
-			},
-			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
-				return nil
-			},
-			BroadcastCalled: func(topic string, buff []byte) {
-				if bytes.Equal(buffData, buff) {
-					wasBroadcast.Store(true)
-				}
-			},
-		}),
-		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
-		node.WithPrivKey(&mock.PrivateKeyStub{
-			GeneratePublicHandler: func() crypto.PublicKey {
-				return &mock.PublicKeyMock{
-					ToByteArrayHandler: func() (i []byte, e error) {
-						return []byte("pk1"), nil
-					},
-				}
-			},
-		}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithDataStore(&mock.ChainStorerMock{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return mock.NewStorerMock()
-			},
-		}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
-		node.WithNetworkShardingCollector(
-			&mock.NetworkShardingCollectorStub{
-				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
-			}),
-		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{
-			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-				return nil
-			},
-		}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
-				return map[uint32][]*state.ValidatorInfo{
-					0: {
-						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
-					},
-				}, nil
-			},
-		}),
-		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
-		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
-		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(96)),
-	)
-	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 1,
-		MaxTimeToWaitBetweenBroadcastsInSec: 2,
-		DurationInSecToConsiderUnresponsive: 3,
-		Enabled:                             true,
-		HbmiRefreshIntervalInSec:            1,
-		HideInactiveValidatorIntervalInSec:  1,
-	}, "v0.1",
-		"undefined",
-	)
-
-	assert.Nil(t, err)
-	time.Sleep(time.Second * 3)
-	assert.Equal(t, true, wasBroadcast.Load())
-}
-
-func TestNode_StartHeartbeatShouldSetNodesFromInitialPubKeysAsValidators(t *testing.T) {
-	t.Parallel()
-
-	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{
-			MarshalHandler: func(obj interface{}) (bytes []byte, e error) {
-				return make([]byte, 0), nil
-			},
-		}, testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithSingleSigner(&mock.SinglesignMock{}),
-		node.WithKeyGen(&mock.KeyGenMock{}),
-		node.WithMessenger(&mock.MessengerStub{
-			HasTopicValidatorCalled: func(name string) bool {
-				return false
-			},
-			HasTopicCalled: func(name string) bool {
-				return false
-			},
-			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
-				return nil
-			},
-			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
-				return nil
-			},
-			BroadcastCalled: func(topic string, buff []byte) {
-			},
-		}),
-		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1", "pk2"}, 1: {"pk3"}}),
-		node.WithPrivKey(&mock.PrivateKeyStub{
-			GeneratePublicHandler: func() crypto.PublicKey {
-				return &mock.PublicKeyMock{
-					ToByteArrayHandler: func() (i []byte, e error) {
-						return []byte("pk1"), nil
-					},
-				}
-			},
-		}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithDataStore(&mock.ChainStorerMock{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return mock.NewStorerMock()
-			},
-		}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{
-			GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
-				return map[uint32][][]byte{
-					0: {[]byte("pk1"), []byte("pk2")},
-					1: {[]byte("pk3")},
-				}, nil
-			},
-		}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
-		node.WithNetworkShardingCollector(
-			&mock.NetworkShardingCollectorStub{
-				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
-			}),
-		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
-				return map[uint32][]*state.ValidatorInfo{
-					0: {
-						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
-					},
-					1: {
-						{PublicKey: []byte("pk3")},
-					},
-				}, nil
-			},
-		}),
-		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{
-			GetLatestValidatorInfosCalled: func() (map[uint32][]*state.ValidatorInfo, error) {
-				return map[uint32][]*state.ValidatorInfo{
-					0: {
-						{PublicKey: []byte("pk1"), List: string(core.EligibleList)},
-						{PublicKey: []byte("pk2"), List: string(core.EligibleList)},
-					},
-					1: {
-						{PublicKey: []byte("pk3"), List: string(core.EligibleList)},
-					},
-				}, nil
-			},
-		}),
-		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
-		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(96)),
-	)
-
-	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 1,
-		MaxTimeToWaitBetweenBroadcastsInSec: 2,
-		DurationInSecToConsiderUnresponsive: 3,
-		Enabled:                             true,
-		HbmiRefreshIntervalInSec:            1,
-		HideInactiveValidatorIntervalInSec:  1,
-	}, "v0.1",
-		"undefined",
-	)
-	assert.Nil(t, err)
-
-	elements := n.HeartbeatMonitor().GetHeartbeats()
-
-	assert.Equal(t, 3, len(elements))
-	for _, status := range elements {
-		assert.Equal(t, string(core.EligibleList), status.PeerType)
-	}
-}
-
-func TestNode_StartHeartbeatNilMessageProcessReceivedMessageShouldNotWork(t *testing.T) {
-	t.Parallel()
-
-	var registeredHandler p2p.MessageProcessor
-
-	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(&mock.MarshalizerMock{
-			MarshalHandler: func(obj interface{}) (bytes []byte, e error) {
-				return make([]byte, 0), nil
-			},
-		}, testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithSingleSigner(&mock.SinglesignMock{}),
-		node.WithKeyGen(&mock.KeyGenMock{}),
-		node.WithMessenger(&mock.MessengerStub{
-			HasTopicValidatorCalled: func(name string) bool {
-				return false
-			},
-			HasTopicCalled: func(name string) bool {
-				return false
-			},
-			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
-				return nil
-			},
-			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
-				registeredHandler = handler
-				return nil
-			},
-			BroadcastCalled: func(topic string, buff []byte) {
-			},
-		}),
-		node.WithInitialNodesPubKeys(map[uint32][]string{0: {"pk1"}}),
-		node.WithPrivKey(&mock.PrivateKeyStub{
-			GeneratePublicHandler: func() crypto.PublicKey {
-				return &mock.PublicKeyMock{
-					ToByteArrayHandler: func() (i []byte, e error) {
-						return []byte("pk1"), nil
-					},
-				}
-			},
-		}),
-		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
-		node.WithDataStore(&mock.ChainStorerMock{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-				return mock.NewStorerMock()
-			},
-		}),
-		node.WithNodesCoordinator(&mock.NodesCoordinatorMock{}),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
-		node.WithEpochStartEventNotifier(&mock.EpochStartNotifierStub{}),
-		node.WithNetworkShardingCollector(
-			&mock.NetworkShardingCollectorStub{
-				UpdatePeerIdPublicKeyCalled: func(pid p2p.PeerID, pk []byte) {},
-			}),
-		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{
-			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-				return nil
-			},
-			CanProcessMessagesOnTopicCalled: func(peer p2p.PeerID, topic string, numMessages uint32) error {
-				return nil
-			},
-		}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorMock{
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
-				return map[uint32][]*state.ValidatorInfo{
-					0: {
-						{PublicKey: []byte("pk1")}, {PublicKey: []byte("pk2")},
-					},
-				}, nil
-			},
-		}),
-		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
-		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
-		node.WithValidatorPubkeyConverter(mock.NewPubkeyConverterMock(96)),
-	)
-
-	err := n.StartHeartbeat(config.HeartbeatConfig{
-		MinTimeToWaitBetweenBroadcastsInSec: 1,
-		MaxTimeToWaitBetweenBroadcastsInSec: 2,
-		DurationInSecToConsiderUnresponsive: 3,
-		Enabled:                             true,
-		HbmiRefreshIntervalInSec:            1,
-		HideInactiveValidatorIntervalInSec:  1,
-	}, "v0.1",
-		"undefined",
-	)
-	assert.Nil(t, err)
-	assert.NotNil(t, registeredHandler)
-
-	err = registeredHandler.ProcessReceivedMessage(nil, fromConnectedPeerId)
-	assert.NotNil(t, err)
-	assert.Equal(t, heartbeat.ErrNilMessage, err)
-}
-
 func TestNode_StartConsensusGenesisBlockNotInitializedShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -1639,7 +940,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncStub{}),
+		node.WithSyncer(&mock.SyncTimerStub{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithResolversFinder(rf),
 		node.WithDataStore(store),
@@ -1703,7 +1004,7 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncStub{}),
+		node.WithSyncer(&mock.SyncTimerStub{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithAccountsAdapter(accountDb),
 		node.WithResolversFinder(rf),
@@ -1745,7 +1046,7 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncStub{}),
+		node.WithSyncer(&mock.SyncTimerStub{}),
 		node.WithShardCoordinator(shardingCoordinator),
 		node.WithDataStore(store),
 		node.WithResolversFinder(&mock.ResolversFinderStub{
@@ -1786,7 +1087,7 @@ func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncStub{}),
+		node.WithSyncer(&mock.SyncTimerStub{}),
 		node.WithShardCoordinator(shardingCoordinator),
 		node.WithDataStore(&mock.ChainStorerMock{}),
 		node.WithDataPool(&mock.PoolsHolderStub{}),
@@ -1839,7 +1140,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncStub{}),
+		node.WithSyncer(&mock.SyncTimerStub{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithAccountsAdapter(accountDb),
 		node.WithResolversFinder(rf),
@@ -1922,7 +1223,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncStub{}),
+		node.WithSyncer(&mock.SyncTimerStub{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithAccountsAdapter(accountDb),
 		node.WithResolversFinder(rf),
@@ -2004,7 +1305,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
-		node.WithSyncer(&mock.SyncStub{}),
+		node.WithSyncer(&mock.SyncTimerStub{}),
 		node.WithShardCoordinator(mock.NewOneShardCoordinatorMock()),
 		node.WithAccountsAdapter(accountDb),
 		node.WithResolversFinder(rf),
@@ -2065,9 +1366,9 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithNetworkShardingCollector(&mock.NetworkShardingCollectorStub{}),
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
+		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
 	)
 
-	// TODO: when feature for starting from a higher epoch number is ready we should add a test for that as well
 	err := n.StartConsensus()
 	assert.Nil(t, err)
 }
@@ -2091,7 +1392,7 @@ func TestNode_GetAccountWithNilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	accDB := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
 		},
 	}
@@ -2110,7 +1411,7 @@ func TestNode_GetAccountPubkeyConverterFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	accDB := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
 		},
 	}
@@ -2120,7 +1421,7 @@ func TestNode_GetAccountPubkeyConverterFailsShouldErr(t *testing.T) {
 		node.WithAccountsAdapter(accDB),
 		node.WithAddressPubkeyConverter(
 			&mock.PubkeyConverterStub{
-				CreateAddressFromStringCalled: func(hexAddress string) (container state.AddressContainer, e error) {
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
 					return nil, errExpected
 				},
 			}),
@@ -2136,7 +1437,7 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	t.Parallel()
 
 	accDB := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return nil, state.ErrAccNotFound
 		},
 	}
@@ -2160,7 +1461,7 @@ func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
 
 	errExpected := errors.New("expected error")
 	accDB := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return nil, errExpected
 		},
 	}
@@ -2180,14 +1481,14 @@ func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	t.Parallel()
 
-	accnt, _ := state.NewUserAccount(&mock.AddressMock{})
+	accnt, _ := state.NewUserAccount([]byte("1234"))
 	_ = accnt.AddToBalance(big.NewInt(1))
 	accnt.IncreaseNonce(2)
 	accnt.SetRootHash([]byte("root hash"))
 	accnt.SetCodeHash([]byte("code hash"))
 
 	accDB := &mock.AccountsStub{
-		GetExistingAccountCalled: func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
+		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			return accnt, nil
 		},
 	}
@@ -2354,8 +1655,8 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 		},
 	}
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	shardCoordinator.ComputeIdCalled = func(address state.AddressContainer) uint32 {
-		items := strings.Split(string(address.Bytes()), "Shard")
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		items := strings.Split(string(address), "Shard")
 		sId, _ := strconv.ParseUint(items[1], 2, 32)
 		return uint32(sId)
 	}
@@ -2417,7 +1718,7 @@ func TestNode_SendBulkTransactionsMultiShardTxsShouldBeMappedCorrectly(t *testin
 				require.Nil(t, errMarshal)
 
 				mutRecoveredTransactions.Lock()
-				sId := shardCoordinator.ComputeId(state.NewAddress(tx.SndAddr))
+				sId := shardCoordinator.ComputeId(tx.SndAddr)
 				recoveredTransactions[sId] = append(recoveredTransactions[sId], &tx)
 				mutRecoveredTransactions.Unlock()
 

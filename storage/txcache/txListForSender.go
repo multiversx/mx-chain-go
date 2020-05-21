@@ -8,36 +8,38 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
-const gracePeriodLowerBound = 5
-const gracePeriodUpperBound = 7
-
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
-	copyDetectedGap       bool
-	copyPreviousNonce     uint64
-	sender                string
-	items                 *list.List
-	copyBatchIndex        *list.Element
-	cacheConfig           *CacheConfig
-	scoreChunk            *maps.MapChunk
-	mutex                 sync.RWMutex
-	scoreChangeInProgress atomic.Flag
-	accountNonceKnown     atomic.Flag
-	sweepable             atomic.Flag
-	lastComputedScore     atomic.Uint32
-	accountNonce          atomic.Uint64
-	totalBytes            atomic.Counter
-	totalGas              atomic.Counter
-	totalFee              atomic.Counter
-	numFailedSelections   atomic.Counter
+	copyDetectedGap     bool
+	copyPreviousNonce   uint64
+	sender              string
+	items               *list.List
+	copyBatchIndex      *list.Element
+	cacheConfig         *CacheConfig
+	scoreChunk          *maps.MapChunk
+	accountNonceKnown   atomic.Flag
+	lastComputedScore   atomic.Uint32
+	accountNonce        atomic.Uint64
+	totalBytes          atomic.Counter
+	totalGas            atomic.Counter
+	totalFee            atomic.Counter
+	numFailedSelections atomic.Counter
+	onScoreChange       scoreChangeCallback
+	sweepable           atomic.Flag
+
+	scoreChunkMutex sync.RWMutex
+	mutex           sync.RWMutex
 }
 
+type scoreChangeCallback func(value *txListForSender)
+
 // newTxListForSender creates a new (sorted) list of transactions
-func newTxListForSender(sender string, cacheConfig *CacheConfig) *txListForSender {
+func newTxListForSender(sender string, cacheConfig *CacheConfig, onScoreChange scoreChangeCallback) *txListForSender {
 	return &txListForSender{
-		items:       list.New(),
-		sender:      sender,
-		cacheConfig: cacheConfig,
+		items:         list.New(),
+		sender:        sender,
+		cacheConfig:   cacheConfig,
+		onScoreChange: onScoreChange,
 	}
 }
 
@@ -49,12 +51,13 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) {
 	defer listForSender.mutex.Unlock()
 
 	nonce := tx.Tx.GetNonce()
-	mark := listForSender.findTxWithLowerNonce(nonce)
+	gasPrice := tx.Tx.GetGasPrice()
+	insertionPlace := listForSender.findInsertionPlace(nonce, gasPrice)
 
-	if mark == nil {
+	if insertionPlace == nil {
 		listForSender.items.PushFront(tx)
 	} else {
-		listForSender.items.InsertAfter(tx, mark)
+		listForSender.items.InsertAfter(tx, insertionPlace)
 	}
 
 	listForSender.onAddedTransaction(tx)
@@ -64,13 +67,21 @@ func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction)
 	listForSender.totalBytes.Add(int64(estimateTxSize(tx)))
 	listForSender.totalGas.Add(int64(estimateTxGas(tx)))
 	listForSender.totalFee.Add(int64(estimateTxFee(tx)))
+	listForSender.onScoreChange(listForSender)
 }
 
 // This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) findTxWithLowerNonce(nonce uint64) *list.Element {
+func (listForSender *txListForSender) findInsertionPlace(incomingNonce uint64, incomingGasPrice uint64) *list.Element {
 	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
-		value := element.Value.(*WrappedTransaction)
-		if value.Tx.GetNonce() < nonce {
+		tx := element.Value.(*WrappedTransaction).Tx
+		nonce := tx.GetNonce()
+		gasPrice := tx.GetGasPrice()
+
+		if nonce == incomingNonce && gasPrice > incomingGasPrice {
+			return element
+		}
+
+		if nonce < incomingNonce {
 			return element
 		}
 	}
@@ -99,7 +110,8 @@ func (listForSender *txListForSender) onRemovedListElement(element *list.Element
 
 	listForSender.totalBytes.Subtract(int64(estimateTxSize(value)))
 	listForSender.totalGas.Subtract(int64(estimateTxGas(value)))
-	listForSender.totalGas.Subtract(int64(estimateTxFee(value)))
+	listForSender.totalFee.Subtract(int64(estimateTxFee(value)))
+	listForSender.onScoreChange(listForSender)
 }
 
 // RemoveHighNonceTxs removes "count" transactions from the back of the list
@@ -248,7 +260,7 @@ func approximatelyCountTxInLists(lists []*txListForSender) uint64 {
 	return count
 }
 
-// notifyAccountNonce does not update the "sweepable" flag, nor the "numFailedSelections" counter,
+// notifyAccountNonce does not update the "numFailedSelections" counter,
 // since the notification comes at a time when we cannot actually detect whether the initial gap still exists or it was resolved.
 func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) {
 	listForSender.accountNonce.Set(nonce)
@@ -267,7 +279,6 @@ func (listForSender *txListForSender) verifyInitialGapOnSelectionStart() bool {
 		}
 	} else {
 		listForSender.numFailedSelections.Reset()
-		listForSender.sweepable.Unset()
 	}
 
 	return hasInitialGap
@@ -306,10 +317,10 @@ func (listForSender *txListForSender) getLowestNonceTx() *WrappedTransaction {
 // isInGracePeriod returns whether the sender is grace period due to a number of failed selections
 func (listForSender *txListForSender) isInGracePeriod() bool {
 	numFailedSelections := listForSender.numFailedSelections.Get()
-	return numFailedSelections >= gracePeriodLowerBound && numFailedSelections <= gracePeriodUpperBound
+	return numFailedSelections >= senderGracePeriodLowerBound && numFailedSelections <= senderGracePeriodUpperBound
 }
 
 func (listForSender *txListForSender) isGracePeriodExceeded() bool {
 	numFailedSelections := listForSender.numFailedSelections.Get()
-	return numFailedSelections > gracePeriodUpperBound
+	return numFailedSelections > senderGracePeriodUpperBound
 }

@@ -100,3 +100,24 @@ var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
 
 // ErrInvalidMinNumberOfNodes signals that provided minimum number of nodes is invalid
 var ErrInvalidMinNumberOfNodes = errors.New("invalid min number of nodes")
+
+// ErrInvalidBaseIssuingCost signals that invalid base issuing cost has been provided
+var ErrInvalidBaseIssuingCost = errors.New("invalid base issuing cost")
+
+// ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
+var ErrNilHasher = errors.New("nil Hasher")
+
+// ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
+var ErrNilMarshalizer = errors.New("nil Marshalizer")
+
+// ErrNegativeInitialSupply signals that negative initial supply has been provided
+var ErrNegativeInitialSupply = errors.New("negative initial supply was provided")
+
+// ErrTokenAlreadyRegistered signals that token was already registered
+var ErrTokenAlreadyRegistered = errors.New("token was already registered")
+
+// ErrNilSystemSCConfig signals that nil system sc config was provided
+var ErrNilSystemSCConfig = errors.New("nil system sc config")
+
+// ErrNilValidatorAccountsDB signals that nil validator accounts DB was provided
+var ErrNilValidatorAccountsDB = errors.New("nil validator accounts DB")

@@ -1,7 +1,6 @@
 package integrationTests
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"strconv"
@@ -83,7 +82,7 @@ func NewTestP2PNode(
 		fmt.Printf("Error creating NewPeerShardMapper: %s\n", err.Error())
 	}
 
-	tP2pNode.Messenger = CreateMessengerFromConfig(context.Background(), p2pConfig)
+	tP2pNode.Messenger = CreateMessengerFromConfig(p2pConfig)
 	localId := tP2pNode.Messenger.ID()
 	tP2pNode.NetworkShardingUpdater.UpdatePeerIdShardId(localId, shardCoordinator.SelfId())
 
@@ -148,20 +147,21 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithValidatorPubkeyConverter(TestValidatorPubkeyConverter),
+		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 	)
 	if err != nil {
 		fmt.Printf("Error creating node: %s\n", err.Error())
 	}
 
 	hbConfig := config.HeartbeatConfig{
-		Enabled:                             true,
 		MinTimeToWaitBetweenBroadcastsInSec: 4,
 		MaxTimeToWaitBetweenBroadcastsInSec: 6,
-		DurationInSecToConsiderUnresponsive: 60,
-		HbmiRefreshIntervalInSec:            5,
+		DurationToConsiderUnresponsiveInSec: 60,
+		HeartbeatRefreshIntervalInSec:       5,
 		HideInactiveValidatorIntervalInSec:  600,
+		PeerTypeRefreshIntervalInSec:        5,
 	}
-	err = tP2pNode.Node.StartHeartbeat(hbConfig, "test", "")
+	err = tP2pNode.Node.StartHeartbeat(hbConfig, "test", config.PreferencesConfig{})
 	if err != nil {
 		fmt.Printf("Error starting heartbeat: %s\n", err.Error())
 	}

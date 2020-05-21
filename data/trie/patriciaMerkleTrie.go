@@ -9,11 +9,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 var log = logger.GetOrCreate("trie")
+
+var _ dataRetriever.TrieDataGetter = (*patriciaMerkleTrie)(nil)
 
 const (
 	extension = iota
@@ -21,7 +24,8 @@ const (
 	branch
 )
 
-var emptyTrieHash = make([]byte, 32)
+// EmptyTrieHash returns the value with empty trie hash
+var EmptyTrieHash = make([]byte, 32)
 
 type patriciaMerkleTrie struct {
 	root node
@@ -33,6 +37,9 @@ type patriciaMerkleTrie struct {
 
 	oldHashes [][]byte
 	oldRoot   []byte
+	newHashes data.ModifiedHashes
+
+	maxTrieLevelInMemory uint
 }
 
 // NewTrie creates a new Patricia Merkle Trie
@@ -40,6 +47,7 @@ func NewTrie(
 	trieStorage data.StorageManager,
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
+	maxTrieLevelInMemory uint,
 ) (*patriciaMerkleTrie, error) {
 	if check.IfNil(trieStorage) {
 		return nil, ErrNilTrieStorage
@@ -50,13 +58,19 @@ func NewTrie(
 	if check.IfNil(hsh) {
 		return nil, ErrNilHasher
 	}
+	if maxTrieLevelInMemory <= 0 {
+		return nil, ErrInvalidLevelValue
+	}
+	log.Debug("created new trie", "max trie level in memory", maxTrieLevelInMemory)
 
 	return &patriciaMerkleTrie{
-		trieStorage: trieStorage,
-		marshalizer: msh,
-		hasher:      hsh,
-		oldHashes:   make([][]byte, 0),
-		oldRoot:     make([]byte, 0),
+		trieStorage:          trieStorage,
+		marshalizer:          msh,
+		hasher:               hsh,
+		oldHashes:            make([][]byte, 0),
+		oldRoot:              make([]byte, 0),
+		newHashes:            make(data.ModifiedHashes),
+		maxTrieLevelInMemory: maxTrieLevelInMemory,
 	}, nil
 }
 
@@ -166,7 +180,7 @@ func (tr *patriciaMerkleTrie) Root() ([]byte, error) {
 	defer tr.mutOperation.Unlock()
 
 	if tr.root == nil {
-		return emptyTrieHash, nil
+		return EmptyTrieHash, nil
 	}
 
 	hash := tr.root.getHash()
@@ -203,7 +217,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		}
 	}
 
-	err = tr.root.commit(false, 0, tr.trieStorage.Database(), tr.trieStorage.Database())
+	err = tr.root.commit(false, 0, tr.maxTrieLevelInMemory, tr.trieStorage.Database(), tr.trieStorage.Database())
 	if err != nil {
 		return err
 	}
@@ -213,33 +227,39 @@ func (tr *patriciaMerkleTrie) Commit() error {
 
 func (tr *patriciaMerkleTrie) markForEviction() error {
 	newRoot := tr.root.getHash()
-	newHashes := make(data.ModifiedHashes)
-	err := tr.root.getDirtyHashes(newHashes)
-	if err != nil {
-		return err
-	}
 
 	oldHashes := make(data.ModifiedHashes)
 	for i := range tr.oldHashes {
 		oldHashes[hex.EncodeToString(tr.oldHashes[i])] = struct{}{}
 	}
 
-	removeDuplicatedKeys(oldHashes, newHashes)
+	removeDuplicatedKeys(oldHashes, tr.newHashes)
 
-	if len(newHashes) > 0 && len(newRoot) > 0 {
+	if len(tr.newHashes) > 0 && len(newRoot) > 0 {
 		newRoot = append(newRoot, byte(data.NewRoot))
-		err = tr.trieStorage.MarkForEviction(newRoot, newHashes)
+		err := tr.trieStorage.MarkForEviction(newRoot, tr.newHashes)
 		if err != nil {
 			return err
 		}
+
+		for key := range tr.newHashes {
+			log.Trace("MarkForEviction newHashes", "hash", key)
+		}
+
+		tr.newHashes = make(data.ModifiedHashes)
 	}
 
 	if len(tr.oldHashes) > 0 && len(tr.oldRoot) > 0 {
 		tr.oldRoot = append(tr.oldRoot, byte(data.OldRoot))
-		err = tr.trieStorage.MarkForEviction(tr.oldRoot, oldHashes)
+		err := tr.trieStorage.MarkForEviction(tr.oldRoot, oldHashes)
 		if err != nil {
 			return err
 		}
+
+		for key := range oldHashes {
+			log.Trace("MarkForEviction oldHashes", "hash", key)
+		}
+
 		tr.oldRoot = make([]byte, 0)
 		tr.oldHashes = make([][]byte, 0)
 	}
@@ -266,6 +286,7 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 			tr.trieStorage,
 			tr.marshalizer,
 			tr.hasher,
+			tr.maxTrieLevelInMemory,
 		)
 	}
 
@@ -305,7 +326,7 @@ func emptyTrie(root []byte) bool {
 	if len(root) == 0 {
 		return true
 	}
-	if bytes.Equal(root, emptyTrieHash) {
+	if bytes.Equal(root, EmptyTrieHash) {
 		return true
 	}
 	return false
@@ -322,8 +343,8 @@ func (tr *patriciaMerkleTrie) Prune(rootHash []byte, identifier data.TriePruning
 // CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
 func (tr *patriciaMerkleTrie) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
 	tr.mutOperation.Lock()
-	rootHash = append(rootHash, byte(identifier))
-	tr.trieStorage.CancelPrune(rootHash)
+
+	tr.trieStorage.CancelPrune(rootHash, identifier)
 	tr.mutOperation.Unlock()
 }
 
@@ -345,9 +366,40 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 	return oldHashes
 }
 
+// GetDirtyHashes returns all the dirty hashes from the trie
+func (tr *patriciaMerkleTrie) GetDirtyHashes() (data.ModifiedHashes, error) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	if tr.root == nil {
+		return nil, nil
+	}
+
+	err := tr.root.setRootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	dirtyHashes := make(data.ModifiedHashes)
+	err = tr.root.getDirtyHashes(dirtyHashes)
+	if err != nil {
+		return nil, err
+	}
+
+	return dirtyHashes, nil
+}
+
+// SetNewHashes adds the given hashes to tr.newHashes
+func (tr *patriciaMerkleTrie) SetNewHashes(newHashes data.ModifiedHashes) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	tr.newHashes = newHashes
+}
+
 // SetCheckpoint adds the current state of the trie to the snapshot database
 func (tr *patriciaMerkleTrie) SetCheckpoint(rootHash []byte) {
-	if bytes.Equal(rootHash, emptyTrieHash) {
+	if bytes.Equal(rootHash, EmptyTrieHash) {
 		log.Trace("should not snapshot empty trie")
 		return
 	}
@@ -358,7 +410,7 @@ func (tr *patriciaMerkleTrie) SetCheckpoint(rootHash []byte) {
 // TakeSnapshot creates a new database in which the current state of the trie is saved.
 // If the maximum number of snapshots has been reached, the oldest snapshot is removed.
 func (tr *patriciaMerkleTrie) TakeSnapshot(rootHash []byte) {
-	if bytes.Equal(rootHash, emptyTrieHash) {
+	if bytes.Equal(rootHash, EmptyTrieHash) {
 		log.Trace("should not snapshot empty trie")
 		return
 	}
@@ -381,6 +433,7 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte) (data.Trie, error)
 		tr.trieStorage,
 		tr.marshalizer,
 		tr.hasher,
+		tr.maxTrieLevelInMemory,
 	)
 	if err != nil {
 		return nil, err
@@ -395,7 +448,7 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte) (data.Trie, error)
 	newTr.root = newRoot
 
 	if db != tr.Database() {
-		err = newTr.root.commit(true, 0, db, tr.Database())
+		err = newTr.root.commit(true, 0, tr.maxTrieLevelInMemory, db, tr.Database())
 		if err != nil {
 			return nil, err
 		}
@@ -464,7 +517,9 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 // GetAllLeaves iterates the trie and returns a map that contains all leafNodes information
 func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
-	//TODO: save those leafs into a levelDB struct (cache and storage) and at processing time to get from that structure.
+	tr.mutOperation.RLock()
+	defer tr.mutOperation.RUnlock()
+
 	if tr.root == nil {
 		return map[string][]byte{}, nil
 	}

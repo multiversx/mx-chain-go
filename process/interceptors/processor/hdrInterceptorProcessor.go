@@ -7,6 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.InterceptorProcessor = (*HdrInterceptorProcessor)(nil)
+
 // HdrInterceptorProcessor is the processor used when intercepting headers
 // (shard headers, meta headers) structs which satisfy HeaderHandler interface.
 type HdrInterceptorProcessor struct {
@@ -64,10 +66,6 @@ func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ p2p.Pee
 	hip.headers.AddHeader(interceptedHdr.Hash(), interceptedHdr.HeaderHandler())
 
 	return nil
-}
-
-// SignalEndOfProcessing signals the end of processing
-func (hip *HdrInterceptorProcessor) SignalEndOfProcessing(data []process.InterceptedData) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

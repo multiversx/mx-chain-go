@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.DataMarshalizer = (*basePostProcessor)(nil)
+
 type txShardInfo struct {
 	senderShardID   uint32
 	receiverShardID uint32
@@ -102,12 +104,6 @@ func (bpp *basePostProcessor) GetAllCurrentFinishedTxs() map[string]data.Transac
 
 	scrPool := make(map[string]data.TransactionHandler)
 	for txHash, txInfoInterResult := range bpp.interResultsForBlock {
-		if txInfoInterResult.receiverShardID != bpp.shardCoordinator.SelfId() {
-			continue
-		}
-		if txInfoInterResult.senderShardID != bpp.shardCoordinator.SelfId() {
-			continue
-		}
 		scrPool[txHash] = txInfoInterResult.tx
 	}
 	bpp.mutInterResultsForBlock.Unlock()

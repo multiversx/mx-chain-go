@@ -1,7 +1,6 @@
 package startInEpoch
 
 import (
-	"context"
 	"math/big"
 	"os"
 	"testing"
@@ -52,7 +51,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	numNodesPerShard := 3
 	numMetachainNodes := 3
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
@@ -117,7 +116,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	endOfEpoch.VerifyIfAddedShardHeadersAreWithNewEpoch(t, nodes)
 
 	epochHandler := &mock.EpochStartTriggerStub{
-		EpochCalled: func() uint32 {
+		MetaEpochCalled: func() uint32 {
 			return epoch
 		},
 	}
@@ -172,7 +171,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	uint64Converter := uint64ByteSlice.NewBigEndianConverter()
 
 	nodeToJoinLate := integrationTests.NewTestProcessorNode(uint32(numOfShards), shardID, shardID, "")
-	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), integrationTests.GetConnectableAddress(advertiser))
+	messenger := integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertiser))
 	_ = messenger.Bootstrap()
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 	nodeToJoinLate.Messenger = messenger
@@ -193,6 +192,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		BlockSingleSigner:          &mock.SignerMock{},
 		KeyGen:                     &mock.KeyGenMock{},
 		BlockKeyGen:                &mock.KeyGenMock{},
+		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
+		StorageUnitOpener:          &mock.UnitOpenerStub{},
 		GenesisNodesConfig:         nodesConfig,
 		PathManager:                &mock.PathManagerStub{},
 		WorkingDir:                 "test_directory",
@@ -293,7 +294,6 @@ func createTries(
 		Marshalizer:              marshalizer,
 		Hasher:                   hasher,
 		PathManager:              pathManager,
-		ShardId:                  core.GetShardIdString(shardId),
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig,
 	}
 	trieFactory, err := triesFactory.NewTrieFactory(trieFactoryArgs)
@@ -302,14 +302,24 @@ func createTries(
 	}
 
 	trieStorageManagers := make(map[string]data.StorageManager)
-	userStorageManager, userAccountTrie, err := trieFactory.Create(config.AccountsTrieStorage, config.StateTriesConfig.AccountsStatePruningEnabled)
+	userStorageManager, userAccountTrie, err := trieFactory.Create(
+		config.AccountsTrieStorage,
+		core.GetShardIdString(shardId),
+		config.StateTriesConfig.AccountsStatePruningEnabled,
+		config.StateTriesConfig.MaxStateTrieLevelInMemory,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 	trieContainer.Put([]byte(triesFactory.UserAccountTrie), userAccountTrie)
 	trieStorageManagers[triesFactory.UserAccountTrie] = userStorageManager
 
-	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(config.PeerAccountsTrieStorage, config.StateTriesConfig.PeerStatePruningEnabled)
+	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(
+		config.PeerAccountsTrieStorage,
+		core.GetShardIdString(shardId),
+		config.StateTriesConfig.PeerStatePruningEnabled,
+		config.StateTriesConfig.MaxPeerTrieLevelInMemory,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -326,8 +336,10 @@ func getGeneralConfig() config.Config {
 			StartInEpochEnabled: true,
 		},
 		EpochStartConfig: config.EpochStartConfig{
-			MinRoundsBetweenEpochs: 5,
-			RoundsPerEpoch:         10,
+			MinRoundsBetweenEpochs:            5,
+			RoundsPerEpoch:                    10,
+			MinNumConnectedPeersToStart:       2,
+			MinNumOfPeersToConsiderBlockValid: 2,
 		},
 		WhiteListPool: config.CacheConfig{
 			Size:   10000,
@@ -390,6 +402,8 @@ func getGeneralConfig() config.Config {
 			CheckpointRoundsModulus:     100,
 			AccountsStatePruningEnabled: false,
 			PeerStatePruningEnabled:     false,
+			MaxStateTrieLevelInMemory:   5,
+			MaxPeerTrieLevelInMemory:    5,
 		},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
 			PruningBufferLen:   1000,

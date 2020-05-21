@@ -121,6 +121,11 @@ func (e *EpochStartTriggerStub) MetaEpoch() uint32 {
 	return 0
 }
 
+// Close -
+func (e *EpochStartTriggerStub) Close() error {
+	return nil
+}
+
 // IsInterfaceNil -
 func (e *EpochStartTriggerStub) IsInterfaceNil() bool {
 	return e == nil

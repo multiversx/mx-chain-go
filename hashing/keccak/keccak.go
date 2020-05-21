@@ -1,8 +1,11 @@
 package keccak
 
 import (
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"golang.org/x/crypto/sha3"
 )
+
+var _ hashing.Hasher = (*Keccak)(nil)
 
 var keccakEmptyHash []byte
 

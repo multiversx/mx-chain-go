@@ -43,9 +43,11 @@ type baseForkDetector struct {
 	fork       forkInfo
 	mutFork    sync.RWMutex
 
-	blackListHandler process.BlackListHandler
-	genesisTime      int64
-	blockTracker     process.BlockTracker
+	blackListHandler   process.BlackListHandler
+	genesisTime        int64
+	blockTracker       process.BlockTracker
+	forkDetector       forkDetector
+	maxForkHeaderEpoch uint32
 }
 
 // SetRollBackNonce sets the nonce where the chain should roll back
@@ -86,7 +88,6 @@ func (bfd *baseForkDetector) removePastOrInvalidRecords() {
 func (bfd *baseForkDetector) checkBlockBasicValidity(
 	header data.HeaderHandler,
 	headerHash []byte,
-	state process.BlockHeaderState,
 ) error {
 
 	if check.IfNil(header) {
@@ -229,13 +230,16 @@ func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 
 	bfd.mutHeaders.Unlock()
 
+	bfd.forkDetector.computeFinalCheckpoint()
+
 	probableHighestNonce := bfd.computeProbableHighestNonce()
 	bfd.setProbableHighestNonce(probableHighestNonce)
 
 	log.Debug("forkDetector.RemoveHeader",
 		"nonce", nonce,
 		"hash", hash,
-		"probable highest nonce", probableHighestNonce)
+		"probable highest nonce", probableHighestNonce,
+		"final check point nonce", bfd.finalCheckpoint().nonce)
 }
 
 func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {
@@ -441,7 +445,8 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 		selfHdrInfo = nil
 		forkHeaderRound = math.MaxUint64
 		forkHeaderHash = nil
-		forkHeaderEpoch = getMaxEpochFromHdrsInfo(hdrsInfo)
+		forkHeaderEpoch = 0
+		bfd.maxForkHeaderEpoch = getMaxEpochFromHdrsInfo(hdrsInfo)
 
 		for i := 0; i < len(hdrsInfo); i++ {
 			if hdrsInfo[i].state == process.BHProcessed {
@@ -501,8 +506,7 @@ func (bfd *baseForkDetector) computeForkInfo(
 	if hdrInfo.state == process.BHNotarized {
 		currentForkRound = process.MinForkRound
 	} else {
-		if hdrInfo.epoch < lastForkEpoch {
-			log.Debug("computeForkInfo: epoch change fork choice")
+		if hdrInfo.epoch < bfd.maxForkHeaderEpoch {
 			return lastForkHash, lastForkRound, lastForkEpoch
 		}
 	}
@@ -533,12 +537,12 @@ func (bfd *baseForkDetector) shouldSignalFork(
 
 	if lastForkRound != process.MinForkRound {
 		if headerInfo.epoch > lastForkEpoch {
-			log.Debug("shouldSignalFork epoch change false")
+			log.Trace("shouldSignalFork epoch change false")
 			return false
 		}
 
 		if headerInfo.epoch < lastForkEpoch {
-			log.Debug("shouldSignalFork epoch change true")
+			log.Trace("shouldSignalFork epoch change true")
 			return true
 		}
 	}
@@ -650,7 +654,7 @@ func (bfd *baseForkDetector) addHeader(
 	doJobOnBHProcessed func(data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte),
 ) error {
 
-	err := bfd.checkBlockBasicValidity(header, headerHash, state)
+	err := bfd.checkBlockBasicValidity(header, headerHash)
 	if err != nil {
 		return err
 	}
