@@ -682,12 +682,16 @@ func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandle
 		return err
 	}
 
+	return bp.removeBlockDataFromPools(headerHandler, bodyHandler)
+}
+
+func (bp *baseProcessor) removeBlockDataFromPools(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error {
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = bp.txCoordinator.RemoveBlockDataFromPool(body)
+	err := bp.txCoordinator.RemoveBlockDataFromPool(body)
 	if err != nil {
 		return err
 	}
