@@ -31,6 +31,16 @@ type NodeStub struct {
 	DirectTriggerCalled                            func() error
 	IsSelfTriggerCalled                            func() bool
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
+	GetTransactionStatusCalled                     func(hash string) (string, error)
+}
+
+// GetTransactionStatus -
+func (ns *NodeStub) GetTransactionStatus(hash string) (string, error) {
+	if ns.GetTransactionStatusCalled != nil {
+		return ns.GetTransactionStatusCalled(hash)
+	}
+
+	return "unknown", nil
 }
 
 // EncodeAddressPubkey -
