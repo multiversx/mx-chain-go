@@ -535,7 +535,7 @@ type ValidatorSettingsHandler interface {
 // FeeHandler is able to perform some economics calculation on a provided transaction
 type FeeHandler interface {
 	DeveloperPercentage() float64
-	MaxGasLimitPerBlock() uint64
+	MaxGasLimitPerBlock(shardID uint32) uint64
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
 	ComputeFee(tx TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx TransactionWithFeeHandler) error

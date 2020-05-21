@@ -523,11 +523,12 @@ func CreateEconomicsData() *economics.EconomicsData {
 				CommunityAddress:    testCommunityAddress,
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock:  maxGasLimitPerBlock,
-				MinGasPrice:          minGasPrice,
-				MinGasLimit:          minGasLimit,
-				GasPerDataByte:       "1",
-				DataLimitForBaseCalc: "10000",
+				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
+				MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
+				MinGasPrice:             minGasPrice,
+				MinGasLimit:             minGasLimit,
+				GasPerDataByte:          "1",
+				DataLimitForBaseCalc:    "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
 				GenesisNodePrice:         "500000000",
