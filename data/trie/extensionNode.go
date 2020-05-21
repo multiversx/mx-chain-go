@@ -187,6 +187,8 @@ func (en *extensionNode) commit(force bool, level byte, maxTrieLevelInMemory uin
 		return err
 	}
 	if uint(level) == maxTrieLevelInMemory {
+		log.Trace("collapse extension node on commit")
+
 		var collapsed node
 		collapsed, err = en.getCollapsed()
 		if err != nil {
@@ -561,6 +563,7 @@ func (en *extensionNode) loadChildren(getNode func([]byte) (node, error)) ([][]b
 	if err != nil {
 		return [][]byte{en.EncodedChild}, nil, nil
 	}
+	log.Trace("load extension node child", "child hash", en.EncodedChild)
 	en.child = child
 
 	return nil, []node{child}, nil
