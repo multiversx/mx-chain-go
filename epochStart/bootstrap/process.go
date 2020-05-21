@@ -67,8 +67,8 @@ type ComponentsNeededForBootstrap struct {
 // epochStartBootstrap will handle requesting the needed data to start when joining late the network
 type epochStartBootstrap struct {
 	// should come via arguments
-	coreComponentsHolder       BootstrapCoreComponentsHolder
-	cryptoComponentsHolder     BootstrapCryptoComponentsHolder
+	coreComponentsHolder       process.CoreComponentsHolder
+	cryptoComponentsHolder     process.CryptoComponentsHolder
 	messenger                  Messenger
 	generalConfig              config.Config
 	economicsData              *economics.EconomicsData
@@ -117,8 +117,8 @@ type baseDataInStorage struct {
 
 // ArgsEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
 type ArgsEpochStartBootstrap struct {
-	CoreComponentsHolder       BootstrapCoreComponentsHolder
-	CryptoComponentsHolder     BootstrapCryptoComponentsHolder
+	CoreComponentsHolder       process.CoreComponentsHolder
+	CryptoComponentsHolder     process.CryptoComponentsHolder
 	DestinationShardAsObserver uint32
 	TrieStorageManagers        map[string]data.StorageManager
 	Messenger                  Messenger
@@ -330,22 +330,14 @@ func (e *epochStartBootstrap) createSyncers() error {
 	var err error
 
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
+		CoreComponents:         e.coreComponentsHolder,
+		CryptoComponents:       e.cryptoComponentsHolder,
 		Config:                 e.generalConfig,
 		ShardCoordinator:       e.shardCoordinator,
-		ProtoMarshalizer:       e.coreComponentsHolder.InternalMarshalizer(),
-		TxSignMarshalizer:      e.coreComponentsHolder.TxMarshalizer(),
-		Hasher:                 e.coreComponentsHolder.Hasher(),
 		Messenger:              e.messenger,
 		DataPool:               e.dataPool,
-		SingleSigner:           e.cryptoComponentsHolder.TxSingleSigner(),
-		BlockSingleSigner:      e.cryptoComponentsHolder.BlockSigner(),
-		KeyGen:                 e.cryptoComponentsHolder.TxSignKeyGen(),
-		BlockKeyGen:            e.cryptoComponentsHolder.BlockSignKeyGen(),
 		WhiteListHandler:       e.whiteListHandler,
 		WhiteListerVerifiedTxs: e.whiteListerVerifiedTxs,
-		ChainID:                []byte(e.coreComponentsHolder.ChainID()),
-		AddressPubkeyConv:      e.coreComponentsHolder.AddressPubKeyConverter(),
-		NonceConverter:         e.coreComponentsHolder.Uint64ByteSliceConverter(),
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)

@@ -1,15 +1,20 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/crypto"
+import (
+	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/crypto"
+)
 
 // CryptoComponentsMock -
 type CryptoComponentsMock struct {
-	PubKey   crypto.PublicKey
-	BlockSig crypto.SingleSigner
-	TxSig    crypto.SingleSigner
-	MultiSig crypto.MultiSigner
-	BlKeyGen crypto.KeyGenerator
-	TxKeyGen crypto.KeyGenerator
+	PubKey    crypto.PublicKey
+	BlockSig  crypto.SingleSigner
+	TxSig     crypto.SingleSigner
+	MultiSig  crypto.MultiSigner
+	BlKeyGen  crypto.KeyGenerator
+	TxKeyGen  crypto.KeyGenerator
+	mutCrypto sync.RWMutex
 }
 
 // PublicKey -
@@ -29,7 +34,19 @@ func (ccm *CryptoComponentsMock) TxSingleSigner() crypto.SingleSigner {
 
 // MultiSigner -
 func (ccm *CryptoComponentsMock) MultiSigner() crypto.MultiSigner {
+	ccm.mutCrypto.RLock()
+	defer ccm.mutCrypto.RUnlock()
+
 	return ccm.MultiSig
+}
+
+// SetMultiSigner -
+func (ccm *CryptoComponentsMock) SetMultiSigner(m crypto.MultiSigner) error {
+	ccm.mutCrypto.Lock()
+	ccm.MultiSig = m
+	ccm.mutCrypto.Unlock()
+
+	return nil
 }
 
 // BlockSignKeyGen -

@@ -32,8 +32,8 @@ type epochStartMetaSyncer struct {
 
 // ArgsNewEpochStartMetaSyncer -
 type ArgsNewEpochStartMetaSyncer struct {
-	CoreComponentsHolder   BootstrapCoreComponentsHolder
-	CryptoComponentsHolder BootstrapCryptoComponentsHolder
+	CoreComponentsHolder   process.CoreComponentsHolder
+	CryptoComponentsHolder process.CryptoComponentsHolder
 	RequestHandler         RequestHandler
 	Messenger              Messenger
 	ShardCoordinator       sharding.Coordinator
@@ -79,24 +79,19 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	}
 	e.metaBlockProcessor = processor
 
+	err = args.CryptoComponentsHolder.SetMultiSigner(disabled.NewMultiSigner())
+	if err != nil {
+		return nil, err
+	}
 	argsInterceptedDataFactory := interceptorsFactory.ArgInterceptedDataFactory{
-		ProtoMarshalizer:  args.CoreComponentsHolder.InternalMarshalizer(),
-		TxSignMarshalizer: args.CoreComponentsHolder.TxMarshalizer(),
-		Hasher:            args.CoreComponentsHolder.Hasher(),
+		CoreComponents:    args.CoreComponentsHolder,
+		CryptoComponents:  args.CryptoComponentsHolder,
 		ShardCoordinator:  args.ShardCoordinator,
-		MultiSigVerifier:  disabled.NewMultiSigVerifier(),
 		NodesCoordinator:  disabled.NewNodesCoordinator(),
-		KeyGen:            args.CryptoComponentsHolder.TxSignKeyGen(),
-		BlockKeyGen:       args.CryptoComponentsHolder.BlockSignKeyGen(),
-		Signer:            args.CryptoComponentsHolder.TxSingleSigner(),
-		BlockSigner:       args.CryptoComponentsHolder.BlockSigner(),
-		AddressPubkeyConv: args.CoreComponentsHolder.AddressPubKeyConverter(),
 		FeeHandler:        args.EconomicsData,
 		HeaderSigVerifier: disabled.NewHeaderSigVerifier(),
-		ChainID:           []byte(args.CoreComponentsHolder.ChainID()),
 		ValidityAttester:  disabled.NewValidityAttester(),
 		EpochStartTrigger: disabled.NewEpochStartTrigger(),
-		NonceConverter:    args.CoreComponentsHolder.Uint64ByteSliceConverter(),
 	}
 
 	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedDataFactory)
