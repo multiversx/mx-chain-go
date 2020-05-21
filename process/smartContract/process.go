@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -795,7 +796,12 @@ func (sc *scProcessor) createSmartContractResult(
 	result.RcvAddr = outAcc.Address
 	result.SndAddr = tx.GetRcvAddr()
 	result.Code = outAcc.Code
-	result.Data = append(outAcc.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
+	result.Data = outAcc.Data
+	if bytes.Equal(result.GetRcvAddr(), factory.StakingSCAddress) {
+		//TODO: write directly from staking smart contract to the validator trie - it gets complicated in reverts
+		// storage update for staking contract is used in stakingToPeer
+		result.Data = append(result.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
+	}
 	result.GasLimit = outAcc.GasLimit
 	result.GasPrice = tx.GetGasPrice()
 	result.PrevTxHash = txHash
