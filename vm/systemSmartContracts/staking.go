@@ -342,6 +342,7 @@ func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedData, error) {
 		JailedRound:   math.MaxUint64,
 		UnJailedNonce: 0,
 		JailedNonce:   0,
+		StakedNonce:   math.MaxUint64,
 	}
 
 	data := r.eei.GetStorage(key)
@@ -488,15 +489,16 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 		return vmcommon.UserError
 	}
 
-	if registrationData.StakeValue.Cmp(stakeValue) < 0 {
-		registrationData.StakeValue.Set(stakeValue)
-	}
-
 	if !onlyRegister {
 		if !registrationData.Staked {
 			r.addToStakedNodes()
 		}
 		registrationData.Staked = true
+		registrationData.StakedNonce = r.eei.BlockChainHook().CurrentNonce()
+
+		if registrationData.StakeValue.Cmp(stakeValue) < 0 {
+			registrationData.StakeValue.Set(stakeValue)
+		}
 	}
 
 	registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
@@ -580,8 +582,8 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 
-	if registrationData.Staked || registrationData.UnStakedNonce <= registrationData.RegisterNonce {
-		log.Debug("unBond is not possible for address which is staked or is not in unBond period")
+	if registrationData.Staked {
+		log.Debug("unBond is not possible for address which is staked")
 		return vmcommon.UserError
 	}
 
