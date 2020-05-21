@@ -28,6 +28,7 @@ type interceptedDataCryptoComponentsHolder interface {
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
 	MultiSigner() crypto.MultiSigner
+	PublicKey() crypto.PublicKey
 	IsInterfaceNil() bool
 }
 

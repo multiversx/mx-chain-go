@@ -30,22 +30,28 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if argument == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
-	if check.IfNil(argument.ProtoMarshalizer) {
+	if check.IfNil(argument.CoreComponents) {
+		return nil, process.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(argument.CryptoComponents) {
+		return nil, process.ErrNilCryptoComponentsHolder
+	}
+	if check.IfNil(argument.CoreComponents.InternalMarshalizer()) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(argument.TxSignMarshalizer) {
+	if check.IfNil(argument.CoreComponents.TxMarshalizer()) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(argument.Hasher) {
+	if check.IfNil(argument.CoreComponents.Hasher()) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(argument.KeyGen) {
+	if check.IfNil(argument.CryptoComponents.TxSignKeyGen()) {
 		return nil, process.ErrNilKeyGen
 	}
-	if check.IfNil(argument.Signer) {
+	if check.IfNil(argument.CryptoComponents.TxSingleSigner()) {
 		return nil, process.ErrNilSingleSigner
 	}
-	if check.IfNil(argument.AddressPubkeyConv) {
+	if check.IfNil(argument.CoreComponents.AddressPubKeyConverter()) {
 		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(argument.ShardCoordinator) {
@@ -59,12 +65,12 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	}
 
 	return &interceptedTxDataFactory{
-		protoMarshalizer:       argument.ProtoMarshalizer,
-		signMarshalizer:        argument.TxSignMarshalizer,
-		hasher:                 argument.Hasher,
-		keyGen:                 argument.KeyGen,
-		singleSigner:           argument.Signer,
-		pubkeyConverter:        argument.AddressPubkeyConv,
+		protoMarshalizer:       argument.CoreComponents.InternalMarshalizer(),
+		signMarshalizer:        argument.CoreComponents.TxMarshalizer(),
+		hasher:                 argument.CoreComponents.Hasher(),
+		keyGen:                 argument.CryptoComponents.TxSignKeyGen(),
+		singleSigner:           argument.CryptoComponents.TxSingleSigner(),
+		pubkeyConverter:        argument.CoreComponents.AddressPubKeyConverter(),
 		shardCoordinator:       argument.ShardCoordinator,
 		feeHandler:             argument.FeeHandler,
 		whiteListerVerifiedTxs: argument.WhiteListerVerifiedTxs,

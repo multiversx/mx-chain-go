@@ -35,8 +35,8 @@ type baseInterceptorsContainerFactory struct {
 }
 
 func checkBaseParams(
-	coreComponents coreComponentsHolder,
-	cryptoComponents cryptoComponentsHolder,
+	coreComponents process.CoreComponentsHolder,
+	cryptoComponents process.CryptoComponentsHolder,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
 	store dataRetriever.StorageService,
