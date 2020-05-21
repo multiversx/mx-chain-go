@@ -61,13 +61,12 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	antiFloodComponents, err := antifloodFactory.NewP2PAntiFloodAndBlackList(ncf.mainConfig, ncf.statusHandler)
+	antiFloodComponents, err := antifloodFactory.NewP2PAntiFloodComponents(ncf.mainConfig, ncf.statusHandler)
 	if err != nil {
 		return nil, err
 	}
-	inAntifloodHandler, p2pPeerBlackList := antiFloodComponents.AntiFloodHandler, antiFloodComponents.BlacklistHandler
 
-	inputAntifloodHandler, ok := inAntifloodHandler.(P2PAntifloodHandler)
+	inputAntifloodHandler, ok := antiFloodComponents.AntiFloodHandler.(P2PAntifloodHandler)
 	if !ok {
 		return nil, fmt.Errorf("%w when casting input antiflood handler to structs/P2PAntifloodHandler", ErrWrongTypeAssertion)
 	}
@@ -82,7 +81,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, fmt.Errorf("%w when casting output antiflood handler to structs/P2PAntifloodHandler", ErrWrongTypeAssertion)
 	}
 
-	err = netMessenger.SetPeerBlackListHandler(p2pPeerBlackList)
+	err = netMessenger.SetPeerBlackListHandler(antiFloodComponents.BlacklistHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +90,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		netMessenger:           netMessenger,
 		inputAntifloodHandler:  inputAntifloodHandler,
 		outputAntifloodHandler: outputAntifloodHandler,
-		peerBlackListHandler:   p2pPeerBlackList,
+		peerBlackListHandler:   antiFloodComponents.BlacklistHandler,
 		floodPreventer:         antiFloodComponents.FloodPreventer,
 		outFloodPreventer:      outFloodPreventer,
 		topicFloodPreventer:    antiFloodComponents.TopicFloodPreventer,

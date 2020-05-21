@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -29,8 +29,8 @@ type AntiFloodComponents struct {
 	TopicFloodPreventer process.TopicFloodPreventer
 }
 
-// NewP2PAntiFloodAndBlackList will return instances of antiflood and blacklist, based on the config
-func NewP2PAntiFloodAndBlackList(
+// NewP2PAntiFloodComponents will return instances of antiflood and blacklist, based on the config
+func NewP2PAntiFloodComponents(
 	config config.Config,
 	statusHandler core.AppStatusHandler,
 ) (*AntiFloodComponents, error) {
@@ -38,7 +38,7 @@ func NewP2PAntiFloodAndBlackList(
 		return nil, p2p.ErrNilStatusHandler
 	}
 	if config.Antiflood.Enabled {
-		return initP2PAntiFloodAndBlackList(config, statusHandler)
+		return initP2PAntiFloodComponents(config, statusHandler)
 	}
 
 	return &AntiFloodComponents{
@@ -49,7 +49,7 @@ func NewP2PAntiFloodAndBlackList(
 	}, nil
 }
 
-func initP2PAntiFloodAndBlackList(
+func initP2PAntiFloodComponents(
 	mainConfig config.Config,
 	statusHandler core.AppStatusHandler,
 ) (*AntiFloodComponents, error) {

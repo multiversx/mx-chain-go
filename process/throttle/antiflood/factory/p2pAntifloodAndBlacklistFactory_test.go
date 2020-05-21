@@ -13,7 +13,7 @@ func TestNewP2PAntiFloodAndBlackList_NilStatusHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	cfg := config.Config{}
-	components, err := NewP2PAntiFloodAndBlackList(cfg, nil)
+	components, err := NewP2PAntiFloodComponents(cfg, nil)
 	assert.Nil(t, components)
 	assert.Equal(t, p2p.ErrNilStatusHandler, err)
 }
@@ -27,7 +27,7 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnDisabledImplementations(
 		},
 	}
 	ash := &mock.AppStatusHandlerMock{}
-	components, err := NewP2PAntiFloodAndBlackList(cfg, ash)
+	components, err := NewP2PAntiFloodComponents(cfg, ash)
 	assert.NotNil(t, components)
 	assert.Nil(t, err)
 
@@ -69,7 +69,7 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 	}
 
 	ash := &mock.AppStatusHandlerMock{}
-	components, err := NewP2PAntiFloodAndBlackList(cfg, ash)
+	components, err := NewP2PAntiFloodComponents(cfg, ash)
 	assert.Nil(t, err)
 	assert.NotNil(t, components.AntiFloodHandler)
 	assert.NotNil(t, components.BlacklistHandler)

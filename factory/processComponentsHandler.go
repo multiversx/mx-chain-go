@@ -239,3 +239,8 @@ func (m *managedProcessComponents) TxLogsProcessor() process.TransactionLogProce
 
 	return m.processComponents.TxLogsProcessor
 }
+
+// IsInterfaceNil returns true if the interface is nil
+func (m *managedProcessComponents) IsInterfaceNil() bool {
+	return m == nil
+}

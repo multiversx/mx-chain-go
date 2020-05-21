@@ -1,6 +1,7 @@
 package softwareVersion
 
 import (
+	"context"
 	"crypto/rand"
 	"math/big"
 	"time"
@@ -22,7 +23,7 @@ type SoftwareVersionChecker struct {
 	stableTagProvider         StableTagProviderHandler
 	mostRecentSoftwareVersion string
 	checkRandInterval         time.Duration
-	closeFunc                 func() error
+	closeFunc                 context.CancelFunc
 }
 
 var log = logger.GetOrCreate("core/statistics")
@@ -56,12 +57,19 @@ func NewSoftwareVersionChecker(appStatusHandler core.AppStatusHandler, stableTag
 
 // StartCheckSoftwareVersion will check on a specific interval if a new software version is available
 func (svc *SoftwareVersionChecker) StartCheckSoftwareVersion() {
-	go func() {
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	svc.closeFunc = cancelFunc
+	go func(ctx context.Context) {
 		for {
 			svc.readLatestStableVersion()
-			time.Sleep(svc.checkRandInterval)
+			select {
+			case <-ctx.Done():
+				log.Info("software version checker closed")
+				return
+			case <-time.After(svc.checkRandInterval):
+			}
 		}
-	}()
+	}(ctx)
 }
 
 func (svc *SoftwareVersionChecker) readLatestStableVersion() {
@@ -84,5 +92,8 @@ func (svc *SoftwareVersionChecker) IsInterfaceNil() bool {
 
 // Close will handle the closing of opened go routines
 func (svc *SoftwareVersionChecker) Close() error {
+	if svc.closeFunc != nil {
+		svc.closeFunc()
+	}
 	return nil
 }

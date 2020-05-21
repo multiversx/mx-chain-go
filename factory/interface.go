@@ -154,6 +154,7 @@ type ProcessComponentsHolder interface {
 	PendingMiniBlocksHandler() process.PendingMiniBlocksHandler
 	RequestHandler() process.RequestHandler
 	TxLogsProcessor() process.TransactionLogProcessorDatabase
+	IsInterfaceNil() bool
 }
 
 // ProcessComponentsHandler defines the process components handler actions
