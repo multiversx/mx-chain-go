@@ -50,6 +50,9 @@ const MaxTxNonceDeltaAllowed = 30000
 //TODO convert this const into a var and read it from config when this code moves to another binary
 const MaxBulkTransactionSize = 1 << 18 //256KB bulks
 
+// MaxTxsToRequest specifies the maximum number of txs to request
+const MaxTxsToRequest = 1000
+
 // ConsensusTopic is the topic used in consensus algorithm
 const ConsensusTopic = "consensus"
 

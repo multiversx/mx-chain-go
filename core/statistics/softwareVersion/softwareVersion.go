@@ -22,6 +22,7 @@ type SoftwareVersionChecker struct {
 	stableTagProvider         StableTagProviderHandler
 	mostRecentSoftwareVersion string
 	checkRandInterval         time.Duration
+	closeFunc                 func() error
 }
 
 var log = logger.GetOrCreate("core/statistics")
@@ -74,4 +75,14 @@ func (svc *SoftwareVersionChecker) readLatestStableVersion() {
 	}
 
 	svc.statusHandler.SetStringValue(core.MetricLatestTagSoftwareVersion, svc.mostRecentSoftwareVersion)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (svc *SoftwareVersionChecker) IsInterfaceNil() bool {
+	return svc == nil
+}
+
+// Close will handle the closing of opened go routines
+func (svc *SoftwareVersionChecker) Close() error {
+	return nil
 }

@@ -86,6 +86,7 @@ func (n *Node) GenerateAndSendBulkTransactions(receiverHex string, value *big.In
 		}(nonce)
 	}
 
+	// TODO: might think of a way to stop waiting at a signal
 	wg.Wait()
 
 	if errFound != nil {

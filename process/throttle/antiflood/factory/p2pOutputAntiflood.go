@@ -12,19 +12,19 @@ import (
 )
 
 // NewP2POutputAntiFlood will return an instance of an output antiflood component based on the config
-func NewP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandler, error) {
+func NewP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandler, process.FloodPreventer, error) {
 	if mainConfig.Antiflood.Enabled {
 		return initP2POutputAntiFlood(mainConfig)
 	}
 
-	return &disabledAntiFlood{}, nil
+	return &disabledAntiFlood{}, &disabledFloodPreventer{}, nil
 }
 
-func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandler, error) {
+func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandler, process.FloodPreventer, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(mainConfig.Antiflood.Cache)
 	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Size, cacheConfig.Shards)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	peerMaxMessagesPerSecond := mainConfig.Antiflood.PeerMaxOutput.MessagesPerSecond
@@ -38,11 +38,11 @@ func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandl
 		math.MaxUint64,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	topicFloodPreventer := floodPreventers.NewNilTopicFloodPreventer()
-	startResettingFloodPreventers(floodPreventer, topicFloodPreventer, make([]config.TopicMaxMessagesConfig, 0))
 
-	return antiflood.NewP2PAntiflood(floodPreventer, topicFloodPreventer)
+	p2pAntiFlood, err := antiflood.NewP2PAntiflood(floodPreventer, topicFloodPreventer)
+	return p2pAntiFlood, floodPreventer, nil
 }

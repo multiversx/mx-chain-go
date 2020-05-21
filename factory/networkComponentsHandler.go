@@ -3,16 +3,20 @@ package factory
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
 )
 
 var _ ComponentHandler = (*managedNetworkComponents)(nil)
 var _ NetworkComponentsHolder = (*managedNetworkComponents)(nil)
 var _ NetworkComponentsHandler = (*managedNetworkComponents)(nil)
+
+var durationSweepP2PBlacklist = time.Second * 5
 
 // NetworkComponentsHandlerArgs holds the arguments to create a network component handler instance
 type NetworkComponentsHandlerArgs struct {
@@ -55,8 +59,11 @@ func (mnc *managedNetworkComponents) Create() error {
 
 	mnc.mutNetworkComponents.Lock()
 	mnc.networkComponents = nc
-	_, mnc.cancelFunc = context.WithCancel(context.Background())
+	var ctx context.Context
+	ctx, mnc.cancelFunc = context.WithCancel(context.Background())
 	mnc.mutNetworkComponents.Unlock()
+
+	mnc.startResettingAntiFloodComponents(ctx)
 
 	return nil
 }
@@ -129,4 +136,67 @@ func (mnc *managedNetworkComponents) PeerBlackListHandler() process.BlackListHan
 // IsInterfaceNil returns true if the interface is nil
 func (mnc *managedNetworkComponents) IsInterfaceNil() bool {
 	return mnc == nil
+}
+
+func (mnc *managedNetworkComponents) startResettingAntiFloodComponents(ctx context.Context) {
+	// input flood preventer
+	maxMessagesCfg := mnc.networkComponentsFactory.mainConfig.Antiflood.Topic.MaxMessages
+	startResettingFloodPreventers(
+		mnc.networkComponents.floodPreventer,
+		mnc.networkComponents.topicFloodPreventer,
+		maxMessagesCfg,
+		ctx,
+	)
+
+	// output flood preventer
+	startResettingFloodPreventers(
+		mnc.networkComponents.outFloodPreventer,
+		floodPreventers.NewNilTopicFloodPreventer(),
+		make([]config.TopicMaxMessagesConfig, 0),
+		ctx,
+	)
+
+	startSweepingP2PPeerBlackList(mnc.networkComponents.peerBlackListHandler, ctx)
+}
+
+func startResettingFloodPreventers(
+	floodPreventer process.FloodPreventer,
+	topicFloodPreventer process.TopicFloodPreventer,
+	topicMaxMessages []config.TopicMaxMessagesConfig,
+	ctx context.Context,
+) {
+	localTopicMaxMessages := make([]config.TopicMaxMessagesConfig, len(topicMaxMessages))
+	copy(localTopicMaxMessages, topicMaxMessages)
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				log.Debug("startResettingFloodPreventers's go routine is stopping...")
+				return
+			case <-time.After(time.Second):
+			}
+
+			floodPreventer.Reset()
+			for _, topicMaxMsg := range localTopicMaxMessages {
+				topicFloodPreventer.ResetForTopic(topicMaxMsg.Topic)
+			}
+			topicFloodPreventer.ResetForNotRegisteredTopics()
+		}
+	}()
+}
+
+func startSweepingP2PPeerBlackList(p2pPeerBlackList process.BlackListHandler, ctx context.Context) {
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				log.Debug("startSweepingP2PPeerBlackList's go routine is stopping...")
+				return
+			case <-time.After(durationSweepP2PBlacklist):
+			}
+
+			p2pPeerBlackList.Sweep()
+		}
+	}()
 }

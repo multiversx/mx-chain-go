@@ -34,19 +34,9 @@ func (scm *MultipleShardsCoordinatorMock) SelfId() uint32 {
 	return scm.CurrentShard
 }
 
-// SetSelfId -
-func (scm *MultipleShardsCoordinatorMock) SetSelfId(_ uint32) error {
-	return nil
-}
-
 // SameShard -
 func (scm *MultipleShardsCoordinatorMock) SameShard(_, _ []byte) bool {
 	return true
-}
-
-// SetNoShards -
-func (scm *MultipleShardsCoordinatorMock) SetNoShards(noShards uint32) {
-	scm.NoShards = noShards
 }
 
 // CommunicationIdentifier returns the identifier between current shard ID and destination shard ID
