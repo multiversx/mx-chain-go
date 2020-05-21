@@ -110,7 +110,6 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 		libp2p.DefaultTransports,
 		//we need the disable relay option in order to save the node's bandwidth as much as possible
 		libp2p.DisableRelay(),
-		libp2p.EnableNATService(),
 		libp2p.NATPortMap(),
 	}
 
