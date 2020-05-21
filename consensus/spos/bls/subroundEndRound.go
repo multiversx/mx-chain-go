@@ -3,6 +3,7 @@ package bls
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -160,7 +161,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	// create and broadcast header final info
 	sr.createAndBroadcastHeaderFinalInfo()
 
-	// broadcast block body and header
+	// broadcast header
 	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header)
 	if err != nil {
 		log.Debug("doEndRoundJob.BroadcastHeader", "error", err.Error())
@@ -376,15 +377,66 @@ func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {
 			return err
 		}
 
-		return sr.BroadcastMessenger().SetDataForDelayBroadcast(headerHash, miniBlocks, transactions)
+		metaMiniBlocks, metaTransactions := sr.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
+
+		err = sr.BroadcastMessenger().SetDataForDelayBroadcast(headerHash, miniBlocks, transactions)
+		if err != nil {
+			return err
+		}
+
+		return sr.broadcast(metaMiniBlocks, metaTransactions)
 	}
 
-	err = sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)
-	if err != nil {
-		return err
+	return sr.broadcast(miniBlocks, transactions)
+}
+
+func (sr *subroundEndRound) extractMetaMiniBlocksAndTransactions(
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+) (map[uint32][]byte, map[string][][]byte) {
+
+	metaMiniBlocks := make(map[uint32][]byte, 0)
+	metaTransactions := make(map[string][][]byte, 0)
+
+	for shardID, mbsMarshalized := range miniBlocks {
+		if shardID != core.MetachainShardId {
+			continue
+		}
+
+		metaMiniBlocks[shardID] = mbsMarshalized
+		delete(miniBlocks, shardID)
 	}
 
-	return sr.BroadcastMessenger().BroadcastTransactions(transactions)
+	identifier := sr.ShardCoordinator().CommunicationIdentifier(core.MetachainShardId)
+
+	for broadcastTopic, txsMarshalized := range transactions {
+		if !strings.Contains(broadcastTopic, identifier) {
+			continue
+		}
+
+		metaTransactions[broadcastTopic] = txsMarshalized
+		delete(transactions, broadcastTopic)
+	}
+
+	return metaMiniBlocks, metaTransactions
+}
+
+func (sr *subroundEndRound) broadcast(miniBlocks map[uint32][]byte, transactions map[string][][]byte) error {
+	if len(miniBlocks) > 0 {
+		err := sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(transactions) > 0 {
+		err := sr.BroadcastMessenger().BroadcastTransactions(transactions)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved

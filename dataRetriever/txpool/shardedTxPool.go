@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/counting"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -37,14 +37,14 @@ type txPoolShard struct {
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
 func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNotifier, error) {
-	log.Trace("NewShardedTxPool", "args", args)
+	log.Info("NewShardedTxPool", "args", args)
 
 	err := args.verify()
 	if err != nil {
 		return nil, err
 	}
 
-	const oneTrilion = 1000000 * 1000000
+	const oneBillion = 1000000 * 1000
 	numCaches := 2*args.NumberOfShards - 1
 
 	cacheConfigPrototype := txcache.CacheConfig{
@@ -55,7 +55,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		NumSendersToEvictInOneStep: dataRetriever.TxPoolNumSendersToEvictInOneStep,
 		LargeNumOfTxsForASender:    dataRetriever.TxPoolLargeNumOfTxsForASender,
 		NumTxsToEvictFromASender:   dataRetriever.TxPoolNumTxsToEvictFromASender,
-		MinGasPriceMicroErd:        uint32(args.MinGasPrice / oneTrilion),
+		MinGasPriceNanoErd:         uint32(args.MinGasPrice / oneBillion),
 	}
 
 	cacheConfigPrototypeForSelfShard := cacheConfigPrototype
@@ -144,6 +144,7 @@ func (txPool *shardedTxPool) AddData(key []byte, value interface{}, cacheID stri
 
 	sourceShardID, destinationShardID, err := process.ParseShardCacherIdentifier(cacheID)
 	if err != nil {
+		log.Error("shardedTxPool.AddData()", "err", err)
 		return
 	}
 

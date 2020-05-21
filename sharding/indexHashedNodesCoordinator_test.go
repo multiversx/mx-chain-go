@@ -1500,6 +1500,36 @@ func TestIndexHashedNodesCoordinator_ShuffleOutNotFound(t *testing.T) {
 	require.Equal(t, expectedShardForNotFound, newShard)
 }
 
+func TestIndexHashedNodesCoordinator_ShuffleOut_NilConfig(t *testing.T) {
+	t.Parallel()
+
+	processCalled := false
+	newShard := uint32(0)
+
+	arguments := createArguments()
+	arguments.ShuffledOutHandler = &mock.ShuffledOutHandlerStub{
+		ProcessCalled: func(newShardID uint32) error {
+			processCalled = true
+			newShard = newShardID
+			return nil
+		},
+	}
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	epoch := uint32(2)
+	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: nil,
+	}
+
+	ihgs.ShuffleOutForEpoch(epoch)
+	require.False(t, processCalled)
+	expectedShardForNotFound := uint32(0)
+	require.Equal(t, expectedShardForNotFound, newShard)
+}
+
 func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_NoValidators(t *testing.T) {
 	t.Parallel()
 
