@@ -11,11 +11,11 @@ import (
 )
 
 const oneMilion = 1000000
-const oneTrilion = oneMilion * oneMilion
+const oneBillion = oneMilion * 1000
 const delta = 0.00000001
 
-func toMicroERD(erd uint64) uint64 {
-	return erd * 1000000
+func toNanoERD(erd float64) uint64 {
+	return uint64(erd * float64(1000000000))
 }
 
 func kBToBytes(kB float32) uint64 {
