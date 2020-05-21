@@ -114,6 +114,9 @@ func (nsc *nodeSetupChecker) subtractStakedValue(
 		if check.IfNil(dh) {
 			return genesis.ErrNilDelegationHandler
 		}
+		if !bytes.Equal(dh.AddressBytes(), addressBytes) {
+			continue
+		}
 
 		addr, ok := delegated[string(dh.AddressBytes())]
 		if !ok {
