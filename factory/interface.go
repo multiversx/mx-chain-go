@@ -91,6 +91,7 @@ type CryptoComponentsHolder interface {
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
 	MultiSigner() crypto.MultiSigner
+	SetMultiSigner(ms crypto.MultiSigner) error
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSignKeyGen() crypto.KeyGenerator
 	MessageSignVerifier() vm.MessageSignVerifier

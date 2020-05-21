@@ -154,6 +154,19 @@ func (mcc *managedCryptoComponents) MultiSigner() crypto.MultiSigner {
 	return mcc.cryptoComponents.MultiSigner
 }
 
+// SetMultiSigner sets the block multi-signer
+func (mcc *managedCryptoComponents) SetMultiSigner(ms crypto.MultiSigner) error {
+	mcc.mutCryptoComponents.Lock()
+	defer mcc.mutCryptoComponents.Unlock()
+
+	if mcc.cryptoComponents == nil {
+		return ErrNilCryptoComponents
+	}
+
+	mcc.cryptoComponents.MultiSigner = ms
+	return nil
+}
+
 // BlockSignKeyGen returns the block signer key generator
 func (mcc *managedCryptoComponents) BlockSignKeyGen() crypto.KeyGenerator {
 	mcc.mutCryptoComponents.RLock()

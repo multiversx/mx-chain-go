@@ -11,6 +11,9 @@ var ErrNilGenesisConfiguration = errors.New("nil genesis configuration provided"
 // ErrNilCoreComponents signals that nil core components have been provided
 var ErrNilCoreComponents = errors.New("nil core components provided")
 
+// ErrNilCryptoComponents signals that a nil crypto components has been provided
+var ErrNilCryptoComponents = errors.New("nil crypto components provided")
+
 // ErrNilTriesComponents signals that nil tries components have been provided
 var ErrNilTriesComponents = errors.New("nil tries components provided")
 
