@@ -207,22 +207,22 @@ func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput)
 		return vmcommon.UserError
 	}
 
+	numNodesToChange := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
+	if uint64(len(args.Arguments)) < numNodesToChange*3+1 {
+		return vmcommon.UserError
+	}
+
+	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.ChangeValidatorKeys * numNodesToChange)
+	if err != nil {
+		return vmcommon.OutOfGas
+	}
+
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
 		return vmcommon.UserError
 	}
 	if len(registrationData.BlsPubKeys) == 0 {
 		return vmcommon.UserError
-	}
-
-	numNodesToChange := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
-	if uint64(len(args.Arguments)) < numNodesToChange*3+1 {
-		return vmcommon.UserError
-	}
-
-	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.ChangeValidatorKeys)
-	if err != nil {
-		return vmcommon.OutOfGas
 	}
 
 	for i := 1; i < len(args.Arguments); i += 3 {
@@ -491,6 +491,11 @@ func (s *stakingAuctionSC) isFunctionEnabled(nonce uint64) bool {
 }
 
 func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Stake)
+	if err != nil {
+		return vmcommon.OutOfGas
+	}
+
 	isStakeEnabled := s.isFunctionEnabled(s.enableStakingNonce)
 	if !isStakeEnabled {
 		return vmcommon.UserError
@@ -515,11 +520,6 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	if !isNumArgsCorrectToStake(args.Arguments) {
 		log.Debug("incorrect number of arguments to call stake", "numArgs", args.Arguments)
 		return vmcommon.UserError
-	}
-
-	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Stake)
-	if err != nil {
-		return vmcommon.OutOfGas
 	}
 
 	isAlreadyRegistered := len(registrationData.RewardAddress) > 0
