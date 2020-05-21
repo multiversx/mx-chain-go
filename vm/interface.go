@@ -32,7 +32,7 @@ type SystemSCContainer interface {
 // SystemEI defines the environment interface system smart contract can use
 type SystemEI interface {
 	ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
-	Transfer(destination []byte, sender []byte, value *big.Int, input []byte) error
+	Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error
 	GetBalance(addr []byte) *big.Int
 	SetStorage(key []byte, value []byte)
 	GetStorage(key []byte) []byte
@@ -40,6 +40,7 @@ type SystemEI interface {
 	UseGas(gasToConsume uint64) error
 	BlockChainHook() vmcommon.BlockchainHook
 	CryptoHook() vmcommon.CryptoHook
+	IsValidator(blsKey []byte) bool
 
 	IsInterfaceNil() bool
 }

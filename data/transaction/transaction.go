@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. transaction.proto
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. transaction.proto
 package transaction
 
 import (
@@ -65,7 +65,7 @@ type frontendTransaction struct {
 	ReceiverUsername []byte `json:"receiverUsername,omitempty"`
 	GasPrice         uint64 `json:"gasPrice"`
 	GasLimit         uint64 `json:"gasLimit"`
-	Data             []byte `json:"data,omitempty"`
+	Data             string `json:"data,omitempty"`
 	Signature        string `json:"signature,omitempty"`
 }
 
@@ -87,7 +87,7 @@ func (tx *Transaction) GetDataForSigning(encoder Encoder, marshalizer Marshalize
 		GasLimit:         tx.GasLimit,
 		SenderUsername:   tx.SndUserName,
 		ReceiverUsername: tx.RcvUserName,
-		Data:             tx.Data,
+		Data:             string(tx.Data),
 	}
 
 	return marshalizer.Marshal(ftx)

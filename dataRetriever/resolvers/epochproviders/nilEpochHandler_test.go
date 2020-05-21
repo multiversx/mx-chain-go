@@ -13,5 +13,5 @@ func TestNilEpochHandler_Epoch(t *testing.T) {
 	nilEpoch := &nilEpochHandler{}
 
 	require.False(t, check.IfNil(nilEpoch))
-	require.Equal(t, uint32(0), nilEpoch.Epoch())
+	require.Equal(t, uint32(0), nilEpoch.MetaEpoch())
 }

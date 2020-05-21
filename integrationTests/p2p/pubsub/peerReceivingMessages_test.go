@@ -1,7 +1,6 @@
 package peerDisconnecting
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -13,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var durationBootstrapingTime = 2 * time.Second
 var durationTest = 30 * time.Second
 
 type messageProcessorStub struct {
@@ -38,13 +36,12 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 	numOfPeers := 20
 
 	//Step 1. Create advertiser
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 
 	//Step 2. Create numOfPeers instances of messenger type and call bootstrap
 	peers := make([]p2p.Messenger, numOfPeers)
 	for i := 0; i < numOfPeers; i++ {
-		node := integrationTests.CreateMessengerWithKadDht(context.Background(),
-			integrationTests.GetConnectableAddress(advertiser))
+		node := integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertiser))
 		peers[i] = node
 	}
 
@@ -111,7 +108,7 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 			fmt.Println(fmt.Sprintf("Bootstrap() for peer id %s failed:%s", p.ID(), err.Error()))
 		}
 	}
-	integrationTests.WaitForBootstrapAndShowConnected(peers, durationBootstrapingTime)
+	integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
 
 	//Step 5. Continuously send messages from one peer
 	for timeStart := time.Now(); timeStart.Add(durationTest).Unix() > time.Now().Unix(); {
@@ -148,7 +145,7 @@ func TestBroadcastMessageComesFormTheConnectedPeers(t *testing.T) {
 	assert.Nil(t, err)
 
 	fmt.Println("bootstrapping nodes")
-	time.Sleep(durationBootstrapingTime)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	broadcastIdx := 6
 	receiverIdx := 0

@@ -14,9 +14,6 @@ var ErrNoFileToImport = errors.New("no files to import")
 // ErrEndOfFile signals that end of file was reached
 var ErrEndOfFile = errors.New("end of file")
 
-// ErrHashMissmatch signals that received hash is not equal with processed one
-var ErrHashMissmatch = errors.New("hash missmatch")
-
 // ErrNilDataWriter signals that data writer is nil
 var ErrNilDataWriter = errors.New("nil data writer")
 
@@ -143,6 +140,9 @@ var ErrNilBlockSigner = errors.New("nil block signer")
 // ErrNilHeaderSigVerifier signals that nil header sig verifier was provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
+// ErrNilHeaderIntegrityVerifier signals that nil header integrity verifier was provided
+var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier")
+
 // ErrNilValidityAttester signals that nil validity was provided
 var ErrNilValidityAttester = errors.New("nil validity attester")
 
@@ -175,3 +175,30 @@ var ErrNilAntiFloodHandler = errors.New("nil anti flood handler")
 
 // ErrIncorrectHardforkMessage signals that the hardfork message is incorrectly formatted
 var ErrIncorrectHardforkMessage = errors.New("incorrect hardfork message")
+
+// ErrNilRwdTxProcessor signals that nil reward transaction processor has been provided
+var ErrNilRwdTxProcessor = errors.New("nil reward transaction processor")
+
+// ErrNilSCRProcessor signals that nil smart contract result processor has been provided
+var ErrNilSCRProcessor = errors.New("nil smart contract result processor")
+
+// ErrNilTxProcessor signals that nil transaction processor has been provided
+var ErrNilTxProcessor = errors.New("nil transaction processor")
+
+// ErrNilImportHandler signals that nil import handler has been provided
+var ErrNilImportHandler = errors.New("nil import handler")
+
+// ErrNilTxCoordinator signals that nil tx coordinator has been provided
+var ErrNilTxCoordinator = errors.New("nil tx coordinator")
+
+// ErrNilPendingTxProcessor signals that nil pending tx processor has been provided
+var ErrNilPendingTxProcessor = errors.New("nil pending tx processor")
+
+// ErrNilHardForkBlockProcessor signals that nil hard fork block processor has been provided
+var ErrNilHardForkBlockProcessor = errors.New("nil hard fork block processor")
+
+// ErrNilTrieStorageManagers signals that nil trie storage managers has been provided
+var ErrNilTrieStorageManagers = errors.New("nil trie storage managers")
+
+// ErrEmptyChainID signals that empty chain ID was provided
+var ErrEmptyChainID = errors.New("empty chain ID")

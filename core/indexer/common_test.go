@@ -13,11 +13,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,24 +34,32 @@ func TestGetTransactionByType_SC(t *testing.T) {
 	cp := createCommonProcessor()
 
 	nonce := uint64(10)
-	smartContract := &smartContractResult.SmartContractResult{Nonce: nonce}
 	txHash := []byte("txHash")
-	mbHash := []byte("mbHash")
-	blockHash := []byte("blockHash")
-	mb := &block.MiniBlock{TxHashes: [][]byte{txHash}}
-	header := &block.Header{Nonce: 2}
-
-	resultTx := cp.getTransactionByType(smartContract, txHash, mbHash, blockHash, mb, header, "")
-	expectedTx := &Transaction{
-		Hash:      hex.EncodeToString(txHash),
-		MBHash:    hex.EncodeToString(mbHash),
-		BlockHash: hex.EncodeToString(blockHash),
-		Nonce:     nonce,
-		Value:     "<nil>",
-		Status:    "Success",
+	code := []byte("code")
+	sndAddr, rcvAddr := []byte("snd"), []byte("rec")
+	smartContractRes := &smartContractResult.SmartContractResult{
+		Nonce:      nonce,
+		PrevTxHash: txHash,
+		Code:       code,
+		Data:       []byte(""),
+		SndAddr:    sndAddr,
+		RcvAddr:    rcvAddr,
+		CallType:   vmcommon.CallType(0),
 	}
 
-	require.Equal(t, expectedTx, resultTx)
+	scRes := cp.convertScResultInDatabaseScr(smartContractRes)
+	expectedTx := ScResult{
+		Nonce:     nonce,
+		PreTxHash: hex.EncodeToString(txHash),
+		Code:      string(code),
+		Data:      "",
+		Sender:    cp.addressPubkeyConverter.Encode(sndAddr),
+		Receiver:  cp.addressPubkeyConverter.Encode(rcvAddr),
+		Value:     "<nil>",
+		CallType:  "\x00",
+	}
+
+	require.Equal(t, expectedTx, scRes)
 }
 
 func TestGetTransactionByType_RewardTx(t *testing.T) {
@@ -64,65 +72,23 @@ func TestGetTransactionByType_RewardTx(t *testing.T) {
 	rwdTx := &rewardTx.RewardTx{Round: round, RcvAddr: rcvAddr}
 	txHash := []byte("txHash")
 	mbHash := []byte("mbHash")
-	blockHash := []byte("blockHash")
 	mb := &block.MiniBlock{TxHashes: [][]byte{txHash}}
 	header := &block.Header{Nonce: 2}
 	status := "Success"
 
-	resultTx := cp.getTransactionByType(rwdTx, txHash, mbHash, blockHash, mb, header, status)
+	resultTx := cp.buildRewardTransaction(rwdTx, txHash, mbHash, mb, header, status)
 	expectedTx := &Transaction{
-		Hash:      hex.EncodeToString(txHash),
-		MBHash:    hex.EncodeToString(mbHash),
-		BlockHash: hex.EncodeToString(blockHash),
-		Round:     round,
-		Receiver:  hex.EncodeToString(rcvAddr),
-		Status:    status,
-		Value:     "<nil>",
-		Sender:    fmt.Sprintf("%d", core.MetachainShardId),
-		Data:      "",
+		Hash:     hex.EncodeToString(txHash),
+		MBHash:   hex.EncodeToString(mbHash),
+		Round:    round,
+		Receiver: hex.EncodeToString(rcvAddr),
+		Status:   status,
+		Value:    "<nil>",
+		Sender:   fmt.Sprintf("%d", core.MetachainShardId),
+		Data:     "",
 	}
 
 	require.Equal(t, expectedTx, resultTx)
-}
-
-func TestGetTransactionByType_Receipt(t *testing.T) {
-	t.Parallel()
-
-	cp := createCommonProcessor()
-
-	receiptTest := &receipt.Receipt{Value: big.NewInt(100)}
-	txHash := []byte("txHash")
-	mbHash := []byte("mbHash")
-	blockHash := []byte("blockHash")
-	mb := &block.MiniBlock{TxHashes: [][]byte{txHash}}
-	header := &block.Header{Nonce: 2}
-
-	resultTx := cp.getTransactionByType(receiptTest, txHash, mbHash, blockHash, mb, header, "")
-	expectedTx := &Transaction{
-		Hash:      hex.EncodeToString(txHash),
-		MBHash:    hex.EncodeToString(mbHash),
-		BlockHash: hex.EncodeToString(blockHash),
-		Value:     receiptTest.Value.String(),
-		Status:    "Success",
-	}
-
-	require.Equal(t, expectedTx, resultTx)
-}
-
-func TestGetTransactionByType_Nil(t *testing.T) {
-	t.Parallel()
-
-	cp := createCommonProcessor()
-
-	txHash := []byte("txHash")
-	mbHash := []byte("mbHash")
-	blockHash := []byte("blockHash")
-	mb := &block.MiniBlock{TxHashes: [][]byte{txHash}}
-	header := &block.Header{Nonce: 2}
-
-	resultTx := cp.getTransactionByType(nil, txHash, mbHash, blockHash, mb, header, "")
-
-	require.Nil(t, resultTx)
 }
 
 func TestPrepareBufferMiniblocks(t *testing.T) {
@@ -195,4 +161,20 @@ func TestComputeSizeOfTxs(t *testing.T) {
 	require.Greater(t, lenTxs, expectedSizeDeltaMinus)
 	require.Less(t, lenTxs, expectedSizeDeltaPlus)
 	fmt.Printf("Size of %d transactions : %d Kbs \n", numTxs, lenTxs/kb)
+}
+
+func TestInterpretAsString(t *testing.T) {
+	t.Parallel()
+
+	data1 := []byte("@75736572206572726f72@b099086f9bddfcb0a4f45bada01b528f0d1981d7e20344523a7e41a7d8e9c7a6")
+	expectedData1 := "@user error@b099086f9bddfcb0a4f45bada01b528f0d1981d7e20344523a7e41a7d8e9c7a6"
+
+	decodedData := decodeScResultData(data1)
+	require.Equal(t, expectedData1, decodedData)
+
+	data2 := append([]byte("@75736572206572726f72@"), 150, 160)
+	expectedData2 := "@user error"
+
+	decodedData = decodeScResultData(data2)
+	require.Equal(t, expectedData2, decodedData)
 }

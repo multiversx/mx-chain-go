@@ -12,9 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	epochStartGenesis "github.com/ElrondNetwork/elrond-go/epochStart/genesis"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
+	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -47,6 +47,7 @@ type ArgsExporter struct {
 	ExportFolder             string
 	ExportTriesStorageConfig config.StorageConfig
 	ExportStateStorageConfig config.StorageConfig
+	MaxTrieLevelInMemory     uint
 	WhiteListHandler         process.WhiteListHandler
 	WhiteListerVerifiedTxs   process.WhiteListHandler
 	InterceptorsContainer    process.InterceptorsContainer
@@ -58,7 +59,7 @@ type ArgsExporter struct {
 	KeyGen                   crypto.KeyGenerator
 	BlockSigner              crypto.SingleSigner
 	HeaderSigVerifier        process.InterceptedHeaderSigVerifier
-	ChainID                  []byte
+	HeaderIntegrityVerifier  process.InterceptedHeaderIntegrityVerifier
 	ValidityAttester         process.ValidityAttester
 	InputAntifloodHandler    dataRetriever.P2PAntifloodHandler
 	OutputAntifloodHandler   dataRetriever.P2PAntifloodHandler
@@ -79,6 +80,7 @@ type exportHandlerFactory struct {
 	exportFolder             string
 	exportTriesStorageConfig config.StorageConfig
 	exportStateStorageConfig config.StorageConfig
+	maxTrieLevelInMemory     uint
 	whiteListHandler         process.WhiteListHandler
 	whiteListerVerifiedTxs   process.WhiteListHandler
 	interceptorsContainer    process.InterceptorsContainer
@@ -93,7 +95,7 @@ type exportHandlerFactory struct {
 	blockSigner              crypto.SingleSigner
 	addressPubkeyConverter   state.PubkeyConverter
 	headerSigVerifier        process.InterceptedHeaderSigVerifier
-	chainID                  []byte
+	headerIntegrityVerifier  process.InterceptedHeaderIntegrityVerifier
 	validityAttester         process.ValidityAttester
 	resolverContainer        dataRetriever.ResolversContainer
 	inputAntifloodHandler    dataRetriever.P2PAntifloodHandler
@@ -168,6 +170,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.HeaderSigVerifier) {
 		return nil, update.ErrNilHeaderSigVerifier
 	}
+	if check.IfNil(args.HeaderIntegrityVerifier) {
+		return nil, update.ErrNilHeaderIntegrityVerifier
+	}
 	if check.IfNil(args.ValidityAttester) {
 		return nil, update.ErrNilValidityAttester
 	}
@@ -209,10 +214,11 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		keyGen:                   args.KeyGen,
 		blockSigner:              args.BlockSigner,
 		headerSigVerifier:        args.HeaderSigVerifier,
+		headerIntegrityVerifier:  args.HeaderIntegrityVerifier,
 		validityAttester:         args.ValidityAttester,
-		chainID:                  args.ChainID,
 		inputAntifloodHandler:    args.InputAntifloodHandler,
 		outputAntifloodHandler:   args.OutputAntifloodHandler,
+		maxTrieLevelInMemory:     args.MaxTrieLevelInMemory,
 	}
 
 	return e, nil
@@ -248,11 +254,12 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsDataTrieFactory := ArgsNewDataTrieFactory{
-		StorageConfig:    e.exportTriesStorageConfig,
-		SyncFolder:       e.exportFolder,
-		Marshalizer:      e.marshalizer,
-		Hasher:           e.hasher,
-		ShardCoordinator: e.shardCoordinator,
+		StorageConfig:        e.exportTriesStorageConfig,
+		SyncFolder:           e.exportFolder,
+		Marshalizer:          e.marshalizer,
+		Hasher:               e.hasher,
+		ShardCoordinator:     e.shardCoordinator,
+		MaxTrieLevelInMemory: e.maxTrieLevelInMemory,
 	}
 	dataTriesContainerFactory, err := NewDataTrieFactory(argsDataTrieFactory)
 	if err != nil {
@@ -283,13 +290,14 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsAccountsSyncers := ArgsNewAccountsDBSyncersContainerFactory{
-		TrieCacher:         e.dataPool.TrieNodes(),
-		RequestHandler:     e.requestHandler,
-		ShardCoordinator:   e.shardCoordinator,
-		Hasher:             e.hasher,
-		Marshalizer:        e.marshalizer,
-		TrieStorageManager: dataTriesContainerFactory.TrieStorageManager(),
-		WaitTime:           time.Minute,
+		TrieCacher:           e.dataPool.TrieNodes(),
+		RequestHandler:       e.requestHandler,
+		ShardCoordinator:     e.shardCoordinator,
+		Hasher:               e.hasher,
+		Marshalizer:          e.marshalizer,
+		TrieStorageManager:   dataTriesContainerFactory.TrieStorageManager(),
+		WaitTime:             time.Minute,
+		MaxTrieLevelInMemory: e.maxTrieLevelInMemory,
 	}
 	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)
 	if err != nil {
@@ -392,34 +400,34 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 
 func (e *exportHandlerFactory) createInterceptors() error {
 	argsInterceptors := ArgsNewFullSyncInterceptorsContainerFactory{
-		Accounts:               e.accounts,
-		ShardCoordinator:       e.shardCoordinator,
-		NodesCoordinator:       e.nodesCoordinator,
-		Messenger:              e.messenger,
-		Store:                  e.storageService,
-		Marshalizer:            e.marshalizer,
-		TxSignMarshalizer:      e.txSignMarshalizer,
-		Hasher:                 e.hasher,
-		KeyGen:                 e.keyGen,
-		BlockSignKeyGen:        e.blockKeyGen,
-		SingleSigner:           e.singleSigner,
-		BlockSingleSigner:      e.blockSigner,
-		MultiSigner:            e.multiSigner,
-		DataPool:               e.dataPool,
-		AddressPubkeyConverter: e.addressPubkeyConverter,
-		MaxTxNonceDeltaAllowed: math.MaxInt32,
-		TxFeeHandler:           epochStartGenesis.NewGenesisFeeHandler(),
-		BlackList:              timecache.NewTimeCache(time.Second),
-		HeaderSigVerifier:      e.headerSigVerifier,
-		ChainID:                e.chainID,
-		SizeCheckDelta:         math.MaxUint32,
-		ValidityAttester:       e.validityAttester,
-		EpochStartTrigger:      e.epochStartTrigger,
-		WhiteListHandler:       e.whiteListHandler,
-		WhiteListerVerifiedTxs: e.whiteListerVerifiedTxs,
-		InterceptorsContainer:  e.interceptorsContainer,
-		AntifloodHandler:       e.inputAntifloodHandler,
-		NonceConverter:         e.uint64Converter,
+		Accounts:                e.accounts,
+		ShardCoordinator:        e.shardCoordinator,
+		NodesCoordinator:        e.nodesCoordinator,
+		Messenger:               e.messenger,
+		Store:                   e.storageService,
+		Marshalizer:             e.marshalizer,
+		TxSignMarshalizer:       e.txSignMarshalizer,
+		Hasher:                  e.hasher,
+		KeyGen:                  e.keyGen,
+		BlockSignKeyGen:         e.blockKeyGen,
+		SingleSigner:            e.singleSigner,
+		BlockSingleSigner:       e.blockSigner,
+		MultiSigner:             e.multiSigner,
+		DataPool:                e.dataPool,
+		AddressPubkeyConverter:  e.addressPubkeyConverter,
+		MaxTxNonceDeltaAllowed:  math.MaxInt32,
+		TxFeeHandler:            &disabled.FeeHandler{},
+		BlackList:               timecache.NewTimeCache(time.Second),
+		HeaderSigVerifier:       e.headerSigVerifier,
+		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
+		SizeCheckDelta:          math.MaxUint32,
+		ValidityAttester:        e.validityAttester,
+		EpochStartTrigger:       e.epochStartTrigger,
+		WhiteListHandler:        e.whiteListHandler,
+		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
+		InterceptorsContainer:   e.interceptorsContainer,
+		AntifloodHandler:        e.inputAntifloodHandler,
+		NonceConverter:          e.uint64Converter,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {

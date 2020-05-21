@@ -165,7 +165,7 @@ func TestEvictionWaitingList_EvictFromDB(t *testing.T) {
 	assert.Nil(t, val)
 }
 
-func TestEvictionWaitingList_PresentInNewHashes(t *testing.T) {
+func TestEvictionWaitingList_ShouldKeepHash(t *testing.T) {
 	t.Parallel()
 
 	ewl, _ := NewEvictionWaitingList(getDefaultParameters())
@@ -184,12 +184,12 @@ func TestEvictionWaitingList_PresentInNewHashes(t *testing.T) {
 		_ = ewl.Put(roots[i], hashesMap)
 	}
 
-	present, err := ewl.PresentInNewHashes("hash0")
+	present, err := ewl.ShouldKeepHash("hash0", 1)
 	assert.True(t, present)
 	assert.Nil(t, err)
 }
 
-func TestEvictionWaitingList_PresentInNewHashesShouldReturnFalse(t *testing.T) {
+func TestEvictionWaitingList_ShouldKeepHashShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
 	ewl, _ := NewEvictionWaitingList(getDefaultParameters())
@@ -207,12 +207,35 @@ func TestEvictionWaitingList_PresentInNewHashesShouldReturnFalse(t *testing.T) {
 		_ = ewl.Put(roots[i], hashesMap)
 	}
 
-	present, err := ewl.PresentInNewHashes("hash0")
+	present, err := ewl.ShouldKeepHash("hash2", 1)
 	assert.False(t, present)
 	assert.Nil(t, err)
 }
 
-func TestEvictionWaitingList_PresentInNewHashesInDb(t *testing.T) {
+func TestEvictionWaitingList_ShouldKeepHashShouldReturnTrueIfPresentInOldHashes(t *testing.T) {
+	t.Parallel()
+
+	ewl, _ := NewEvictionWaitingList(getDefaultParameters())
+
+	hashesMap := data.ModifiedHashes{
+		"hash0": {},
+		"hash1": {},
+	}
+	roots := [][]byte{
+		{1, 2, 3, 4, 5, 0},
+		{6, 7, 8, 9, 10, 0},
+	}
+
+	for i := range roots {
+		_ = ewl.Put(roots[i], hashesMap)
+	}
+
+	present, err := ewl.ShouldKeepHash("hash0", 0)
+	assert.False(t, present)
+	assert.Nil(t, err)
+}
+
+func TestEvictionWaitingList_ShouldKeepHashSearchInDb(t *testing.T) {
 	t.Parallel()
 
 	cacheSize := uint(2)
@@ -237,12 +260,12 @@ func TestEvictionWaitingList_PresentInNewHashesInDb(t *testing.T) {
 		_ = ewl.Put(roots[i], hashesMap)
 	}
 
-	present, err := ewl.PresentInNewHashes("hash0")
+	present, err := ewl.ShouldKeepHash("hash0", 1)
 	assert.True(t, present)
 	assert.Nil(t, err)
 }
 
-func TestEvictionWaitingList_PresentInNewHashesInvalidKey(t *testing.T) {
+func TestEvictionWaitingList_ShouldKeepHashInvalidKey(t *testing.T) {
 	t.Parallel()
 
 	ewl, _ := NewEvictionWaitingList(getDefaultParameters())
@@ -254,7 +277,7 @@ func TestEvictionWaitingList_PresentInNewHashesInvalidKey(t *testing.T) {
 
 	_ = ewl.Put([]byte{}, hashesMap)
 
-	present, err := ewl.PresentInNewHashes("hash0")
+	present, err := ewl.ShouldKeepHash("hash0", 1)
 	assert.False(t, present)
 	assert.Equal(t, ErrInvalidKey, err)
 }

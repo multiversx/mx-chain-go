@@ -1,7 +1,6 @@
 package executingMiniblocks
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 	"sync"
@@ -37,7 +36,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	valMinting := big.NewInt(100000)
 	valToTransferPerTx := big.NewInt(2)
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
@@ -150,7 +149,7 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 	nodesPerShard := 3
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
@@ -238,7 +237,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
@@ -336,8 +335,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 			assert.Equal(t, big.NewInt(0), account.GetBalance())
 		}
 
-		receiver, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(receiverAddress)
-		accWrp, err := verifierNode.AccntState.GetExistingAccount(receiver)
+		accWrp, err := verifierNode.AccntState.GetExistingAccount(receiverAddress)
 		if err != nil {
 			continue
 		}
@@ -359,7 +357,7 @@ func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
 	nbShards := 1
 	consensusGroupSize := 400
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)

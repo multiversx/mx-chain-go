@@ -65,6 +65,9 @@ var ErrNilHeaderValidator = errors.New("nil header validator")
 // ErrNilDataPoolsHolder signals that nil data pools holder has been provided
 var ErrNilDataPoolsHolder = errors.New("nil data pools holder")
 
+// ErrNilCommunityAddress signals that a nil community address was provided
+var ErrNilCommunityAddress = errors.New("nil community address")
+
 // ErrNilStorageService signals that nil storage service has been provided
 var ErrNilStorageService = errors.New("nil storage service")
 
@@ -109,6 +112,9 @@ var ErrNilRewardsHandler = errors.New("rewards handler is nil")
 
 // ErrNilTotalAccumulatedFeesInEpoch signals that total accumulated fees in epoch is nil
 var ErrNilTotalAccumulatedFeesInEpoch = errors.New("total accumulated fees in epoch is nil")
+
+// ErrNilTotalDevFeesInEpoch signals that total developer fees in epoch is nil
+var ErrNilTotalDevFeesInEpoch = errors.New("total developer fees in epoch is nil")
 
 // ErrEndOfEpochEconomicsDataDoesNotMatch signals that end of epoch data does not match
 var ErrEndOfEpochEconomicsDataDoesNotMatch = errors.New("end of epoch economics data does not match")
@@ -179,8 +185,8 @@ var ErrNilRater = errors.New("nil rater")
 // ErrNilTriesContainer signals that a nil tries container has been provided
 var ErrNilTriesContainer = errors.New("nil tries container")
 
-// ErrNilTrieStorageManager signals that a nil trie storage managers map has been provided
-var ErrNilTrieStorageManager = errors.New("nil trie storage managers map")
+// ErrNilTrieStorageManagers signals that a nil trie storage managers map has been provided
+var ErrNilTrieStorageManagers = errors.New("nil trie storage managers map")
 
 // ErrInvalidDefaultDBPath signals that an invalid default database path has been provided
 var ErrInvalidDefaultDBPath = errors.New("invalid default db path")
@@ -196,3 +202,18 @@ var ErrInvalidWorkingDir = errors.New("invalid working directory")
 
 // ErrTimeoutWaitingForMetaBlock signals that a timeout event was raised while waiting for the epoch start meta block
 var ErrTimeoutWaitingForMetaBlock = errors.New("timeout while waiting for epoch start meta block")
+
+// ErrNilStorageUnitOpener signals that a nil storage unit opener was provided
+var ErrNilStorageUnitOpener = errors.New("nil storage unit opener")
+
+// ErrNilLatestStorageDataProvider signals that a nil latest storage data provider was provided
+var ErrNilLatestStorageDataProvider = errors.New("nil latest storage data provider")
+
+// ErrNilShuffler signals that a nil shuffler was provided
+var ErrNilShuffler = errors.New("nil nodes shuffler provided")
+
+// ErrNotEnoughNumConnectedPeers signals that config is invalid for num of connected peers
+var ErrNotEnoughNumConnectedPeers = errors.New("not enough min num of connected peers from config")
+
+// ErrNotEnoughNumOfPeersToConsiderBlockValid signals that config is invalid for num of peer to consider block valid
+var ErrNotEnoughNumOfPeersToConsiderBlockValid = errors.New("not enough num of peers to consider block valid from config")

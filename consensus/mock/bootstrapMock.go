@@ -11,8 +11,7 @@ type BootstrapperMock struct {
 	CreateAndCommitEmptyBlockCalled func(uint32) (data.BodyHandler, data.HeaderHandler, error)
 	AddSyncStateListenerCalled      func(func(bool))
 	GetNodeStateCalled              func() core.NodeState
-	StartSyncCalled                 func()
-	StopSyncCalled                  func()
+	StartSyncingBlocksCalled        func()
 	SetStatusHandlerCalled          func(handler core.AppStatusHandler) error
 }
 
@@ -41,19 +40,19 @@ func (boot *BootstrapperMock) GetNodeState() core.NodeState {
 	return core.NsSynchronized
 }
 
-// StartSync -
-func (boot *BootstrapperMock) StartSync() {
-	boot.StartSyncCalled()
-}
-
-// StopSync -
-func (boot *BootstrapperMock) StopSync() {
-	boot.StopSyncCalled()
+// StartSyncingBlocks -
+func (boot *BootstrapperMock) StartSyncingBlocks() {
+	boot.StartSyncingBlocksCalled()
 }
 
 // SetStatusHandler -
 func (boot *BootstrapperMock) SetStatusHandler(handler core.AppStatusHandler) error {
 	return boot.SetStatusHandlerCalled(handler)
+}
+
+// Close -
+func (boot *BootstrapperMock) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

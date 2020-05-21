@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/gin-gonic/gin"
 )
@@ -14,7 +15,7 @@ import (
 // TxService interface defines methods that can be used from `elrondFacade` context variable
 type TxService interface {
 	CreateTransaction(nonce uint64, value string, receiver string, sender string, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error)
+		gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	GetTransaction(hash string) (*transaction.Transaction, error)
@@ -43,7 +44,7 @@ type SendTxRequest struct {
 	Sender    string `form:"sender" json:"sender"`
 	Receiver  string `form:"receiver" json:"receiver"`
 	Value     string `form:"value" json:"value"`
-	Data      []byte `form:"data" json:"data"`
+	Data      string `form:"data" json:"data"`
 	Nonce     uint64 `form:"nonce" json:"nonce"`
 	GasPrice  uint64 `form:"gasPrice" json:"gasPrice"`
 	GasLimit  uint64 `form:"gasLimit" json:"gasLimit"`
@@ -61,11 +62,11 @@ type TxResponse struct {
 }
 
 // Routes defines transaction related routes
-func Routes(router *gin.RouterGroup) {
-	router.POST("/send", SendTransaction)
-	router.POST("/cost", ComputeTransactionGasLimit)
-	router.POST("/send-multiple", SendMultipleTransactions)
-	router.GET("/:txhash", GetTransaction)
+func Routes(router *wrapper.RouterWrapper) {
+	router.RegisterHandler(http.MethodPost, "/send", SendTransaction)
+	router.RegisterHandler(http.MethodPost, "/cost", ComputeTransactionGasLimit)
+	router.RegisterHandler(http.MethodPost, "/send-multiple", SendMultipleTransactions)
+	router.RegisterHandler(http.MethodGet, "/:txhash", GetTransaction)
 }
 
 // SendTransaction will receive a transaction from the client and propagate it for processing
@@ -131,8 +132,11 @@ func SendMultipleTransactions(c *gin.Context) {
 
 	var txs []*transaction.Transaction
 	var tx *transaction.Transaction
-	for _, receivedTx := range gtx {
-		tx, _, err = ef.CreateTransaction(
+	var txHash []byte
+
+	txsHashes := make(map[int]string, 0)
+	for idx, receivedTx := range gtx {
+		tx, txHash, err = ef.CreateTransaction(
 			receivedTx.Nonce,
 			receivedTx.Value,
 			receivedTx.Receiver,
@@ -152,6 +156,7 @@ func SendMultipleTransactions(c *gin.Context) {
 		}
 
 		txs = append(txs, tx)
+		txsHashes[idx] = hex.EncodeToString(txHash)
 	}
 
 	numOfSentTxs, err := ef.SendBulkTransactions(txs)
@@ -160,7 +165,13 @@ func SendMultipleTransactions(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"txsSent": numOfSentTxs})
+	c.JSON(
+		http.StatusOK,
+		gin.H{
+			"txsSent":   numOfSentTxs,
+			"txsHashes": txsHashes,
+		},
+	)
 }
 
 // GetTransaction returns transaction details for a given txhash
@@ -213,7 +224,7 @@ func txResponseFromTransaction(ef TxService, tx *transaction.Transaction) (TxRes
 	response.Nonce = tx.Nonce
 	response.Sender = sender
 	response.Receiver = receiver
-	response.Data = tx.Data
+	response.Data = string(tx.Data)
 	response.Signature = hex.EncodeToString(tx.Signature)
 	response.Value = tx.Value.String()
 	response.GasLimit = tx.GasLimit

@@ -76,7 +76,7 @@ func NewTrieSyncer(
 // StartSyncing completes the trie, asking for missing trie nodes on the network
 func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 	if len(rootHash) == 0 {
-		return ErrInvalidHash
+		return nil
 	}
 	if ctx == nil {
 		return ErrNilContext
@@ -98,7 +98,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 
 		numUnResolved := ts.requestNodes()
 		if !shouldRetryAfterRequest && numUnResolved == 0 {
-			err := ts.trie.Commit()
+			err = ts.trie.Commit()
 			if err != nil {
 				return err
 			}

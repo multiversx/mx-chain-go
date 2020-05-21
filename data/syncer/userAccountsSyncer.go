@@ -33,16 +33,17 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 	}
 
 	b := &baseAccountsSyncer{
-		hasher:             args.Hasher,
-		marshalizer:        args.Marshalizer,
-		trieSyncers:        make(map[string]data.TrieSyncer),
-		dataTries:          make(map[string]data.Trie),
-		trieStorageManager: args.TrieStorageManager,
-		requestHandler:     args.RequestHandler,
-		waitTime:           args.WaitTime,
-		shardId:            args.ShardId,
-		cacher:             args.Cacher,
-		rootHash:           nil,
+		hasher:               args.Hasher,
+		marshalizer:          args.Marshalizer,
+		trieSyncers:          make(map[string]data.TrieSyncer),
+		dataTries:            make(map[string]data.Trie),
+		trieStorageManager:   args.TrieStorageManager,
+		requestHandler:       args.RequestHandler,
+		waitTime:             args.WaitTime,
+		shardId:              args.ShardId,
+		cacher:               args.Cacher,
+		rootHash:             nil,
+		maxTrieLevelInMemory: args.MaxTrieLevelInMemory,
 	}
 
 	u := &userAccountsSyncer{
@@ -62,7 +63,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 
 	err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	mainTrie := u.dataTries[string(rootHash)]
@@ -81,7 +82,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 
 func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ctx context.Context) error {
 	for _, rootHash := range rootHashes {
-		dataTrie, err := trie.NewTrie(u.trieStorageManager, u.marshalizer, u.hasher)
+		dataTrie, err := trie.NewTrie(u.trieStorageManager, u.marshalizer, u.hasher, u.maxTrieLevelInMemory)
 		if err != nil {
 			return err
 		}

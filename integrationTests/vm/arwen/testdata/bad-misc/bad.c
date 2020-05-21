@@ -86,7 +86,7 @@ void badWriteLog4()
 void badBigIntStorageStore1()
 {
   bigInt number = bigIntNew(100);
-  bigIntStorageStoreUnsigned("test", number + 42);
+  bigIntStorageStoreUnsigned("test", 32, number + 42);
 }
 
 i64 doStackoverflow(i64 a) {

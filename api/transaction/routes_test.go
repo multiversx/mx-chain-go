@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/config"
 	tr "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -72,7 +74,7 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	assert.Equal(t, hex.EncodeToString([]byte(sender)), txResp.Sender)
 	assert.Equal(t, hex.EncodeToString([]byte(receiver)), txResp.Receiver)
 	assert.Equal(t, value.String(), txResp.Value)
-	assert.Equal(t, txData, txResp.Data)
+	assert.Equal(t, string(txData), txResp.Data)
 }
 
 func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
@@ -176,7 +178,7 @@ func TestSendTransaction_ErrorWhenFacadeSendTransactionError(t *testing.T) {
 	errorString := "send transaction error"
 
 	facade := mock.Facade{
-		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string) (t *tr.Transaction, i []byte, err error) {
+		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data string, signatureHex string) (t *tr.Transaction, i []byte, err error) {
 			return nil, nil, nil
 		},
 		SendBulkTransactionsHandler: func(txs []*tr.Transaction) (u uint64, err error) {
@@ -221,7 +223,7 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 
 	facade := mock.Facade{
 		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-			gasLimit uint64, data []byte, signatureHex string) (t *tr.Transaction, i []byte, err error) {
+			gasLimit uint64, data string, signatureHex string) (t *tr.Transaction, i []byte, err error) {
 			txHash, _ := hex.DecodeString(hexTxHash)
 			return nil, txHash, nil
 		},
@@ -300,7 +302,7 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 
 	facade := mock.Facade{
 		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-			gasLimit uint64, data []byte, signatureHex string) (*tr.Transaction, []byte, error) {
+			gasLimit uint64, data string, signatureHex string) (*tr.Transaction, []byte, error) {
 			createTxWasCalled = true
 			return &tr.Transaction{}, make([]byte, 0), nil
 		},
@@ -318,7 +320,7 @@ func TestSendMultipleTransactions_OkPayloadShouldWork(t *testing.T) {
 		Sender:    "sender1",
 		Receiver:  "receiver1",
 		Value:     "100",
-		Data:      []byte{},
+		Data:      "",
 		Nonce:     0,
 		GasPrice:  0,
 		GasLimit:  0,
@@ -360,10 +362,11 @@ func logError(err error) {
 func startNodeServer(handler transaction.TxService) *gin.Engine {
 	ws := gin.New()
 	ws.Use(cors.Default())
-	transactionRoute := ws.Group("/transaction")
+	ginTransactionRoute := ws.Group("/transaction")
 	if handler != nil {
-		transactionRoute.Use(middleware.WithElrondFacade(handler))
+		ginTransactionRoute.Use(middleware.WithElrondFacade(handler))
 	}
+	transactionRoute, _ := wrapper.NewRouterWrapper("transaction", ginTransactionRoute, getRoutesConfig())
 	transaction.Routes(transactionRoute)
 	return ws
 }
@@ -374,7 +377,23 @@ func startNodeServerWrongFacade() *gin.Engine {
 	ws.Use(func(c *gin.Context) {
 		c.Set("elrondFacade", mock.WrongFacade{})
 	})
-	transactionRoute := ws.Group("/transaction")
+	ginTransactionRoute := ws.Group("/transaction")
+	transactionRoute, _ := wrapper.NewRouterWrapper("transaction", ginTransactionRoute, getRoutesConfig())
 	transaction.Routes(transactionRoute)
 	return ws
+}
+
+func getRoutesConfig() config.ApiRoutesConfig {
+	return config.ApiRoutesConfig{
+		APIPackages: map[string]config.APIPackageConfig{
+			"transaction": {
+				[]config.RouteConfig{
+					{Name: "/send", Open: true},
+					{Name: "/send-multiple", Open: true},
+					{Name: "/cost", Open: true},
+					{Name: "/:txhash", Open: true},
+				},
+			},
+		},
+	}
 }

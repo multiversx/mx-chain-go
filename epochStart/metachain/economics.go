@@ -87,6 +87,9 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	if metaBlock.AccumulatedFeesInEpoch == nil {
 		return nil, epochStart.ErrNilTotalAccumulatedFeesInEpoch
 	}
+	if metaBlock.DevFeesInEpoch == nil {
+		return nil, epochStart.ErrNilTotalDevFeesInEpoch
+	}
 	if !metaBlock.IsStartOfEpochBlock() || metaBlock.Epoch < 1 {
 		return nil, epochStart.ErrNotEpochStartBlock
 	}
@@ -121,6 +124,12 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		rwdPerBlock.Div(totalRewardsToBeDistributed, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 	}
 
+	e.adjustRewardsPerBlockWithDeveloperFees(rwdPerBlock, metaBlock.DevFeesInEpoch, totalNumBlocksInEpoch)
+	e.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, metaBlock.AccumulatedFeesInEpoch, totalNumBlocksInEpoch)
+	rewardsForCommunity := e.computeRewardsForCommunity(totalRewardsToBeDistributed)
+	// adjust rewards per block taking into consideration community rewards
+	e.adjustRewardsPerBlockWithCommunityRewards(rwdPerBlock, rewardsForCommunity, totalNumBlocksInEpoch)
+
 	prevEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, prevEpochStart)
 	if err != nil {
 		return nil, err
@@ -131,6 +140,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		TotalToDistribute:      big.NewInt(0).Set(totalRewardsToBeDistributed),
 		TotalNewlyMinted:       big.NewInt(0).Set(newTokens),
 		RewardsPerBlockPerNode: e.computeRewardsPerValidatorPerBlock(rwdPerBlock),
+		RewardsForCommunity:    rewardsForCommunity,
 		// TODO: get actual nodePrice from auction smart contract (currently on another feature branch, and not all features enabled)
 		NodePrice:           big.NewInt(0).Set(prevEpochEconomics.NodePrice),
 		PrevEpochStartRound: prevEpochStart.GetRound(),
@@ -138,6 +148,42 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	}
 
 	return &computedEconomics, nil
+}
+
+// compute the rewards for community - percentage from total rewards
+func (e *economics) computeRewardsForCommunity(totalRewards *big.Int) *big.Int {
+	rewardsForCommunity := core.GetPercentageOfValue(totalRewards, e.rewardsHandler.CommunityPercentage())
+	return rewardsForCommunity
+}
+
+// adjustment for rewards given for each proposed block taking community rewards into consideration
+func (e *economics) adjustRewardsPerBlockWithCommunityRewards(
+	rwdPerBlock *big.Int,
+	communityRewards *big.Int,
+	blocksInEpoch uint64,
+) {
+	communityRewardsPerBlock := big.NewInt(0).Div(communityRewards, big.NewInt(0).SetUint64(blocksInEpoch))
+	rwdPerBlock.Sub(rwdPerBlock, communityRewardsPerBlock)
+}
+
+// adjustment for rewards given for each proposed block taking developer fees into consideration
+func (e *economics) adjustRewardsPerBlockWithDeveloperFees(
+	rwdPerBlock *big.Int,
+	developerFees *big.Int,
+	blocksInEpoch uint64,
+) {
+	developerFeesPerBlock := big.NewInt(0).Div(developerFees, big.NewInt(0).SetUint64(blocksInEpoch))
+	rwdPerBlock.Sub(rwdPerBlock, developerFeesPerBlock)
+}
+
+func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
+	rwdPerBlock *big.Int,
+	accumulatedFees *big.Int,
+	blocksInEpoch uint64,
+) {
+	rewardsForLeaders := core.GetPercentageOfValue(accumulatedFees, e.rewardsHandler.LeaderPercentage())
+	averageLeaderRewardPerBlock := big.NewInt(0).Div(rewardsForLeaders, big.NewInt(0).SetUint64(blocksInEpoch))
+	rwdPerBlock.Sub(rwdPerBlock, averageLeaderRewardPerBlock)
 }
 
 // compute rewards per node per block
@@ -265,11 +311,13 @@ func logEconomicsDifferences(computed *block.Economics, received *block.Economic
 		"computed total newly minted", computed.TotalNewlyMinted,
 		"computed total supply", computed.TotalSupply,
 		"computed rewards per block per node", computed.RewardsPerBlockPerNode,
+		"computed rewards for community", computed.RewardsForCommunity,
 		"computed node price", computed.NodePrice,
 		"\nreceived total to distribute", received.TotalToDistribute,
 		"received total newly minted", received.TotalNewlyMinted,
 		"received total supply", received.TotalSupply,
 		"received rewards per block per node", received.RewardsPerBlockPerNode,
+		"received rewards for community", received.RewardsForCommunity,
 		"received node price", received.NodePrice,
 	)
 }

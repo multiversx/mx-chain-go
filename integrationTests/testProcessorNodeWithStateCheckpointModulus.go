@@ -1,8 +1,6 @@
 package integrationTests
 
 import (
-	"context"
-
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -58,13 +56,14 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		},
 	}
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	messenger := CreateMessengerWithKadDht(initialNodeAddr)
 	tpn := &TestProcessorNode{
-		ShardCoordinator:  shardCoordinator,
-		Messenger:         messenger,
-		NodesCoordinator:  nodesCoordinator,
-		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           ChainID,
+		ShardCoordinator:        shardCoordinator,
+		Messenger:               messenger,
+		NodesCoordinator:        nodesCoordinator,
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		ChainID:                 ChainID,
 	}
 	tpn.NodesSetup = nodesSetup
 
@@ -86,9 +85,10 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
 	tpn.initValidatorStatistics()
-	rootHash, _ := tpn.ValidatorStatisticsProcessor.RootHash()
 	tpn.GenesisBlocks = CreateGenesisBlocks(
 		tpn.AccntState,
+		tpn.PeerState,
+		tpn.TrieStorageManagers,
 		TestAddressPubkeyConverter,
 		tpn.NodesSetup,
 		tpn.ShardCoordinator,
@@ -99,7 +99,6 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		TestUint64Converter,
 		tpn.DataPool,
 		tpn.EconomicsData.EconomicsData,
-		rootHash,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors()

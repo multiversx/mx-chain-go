@@ -131,6 +131,12 @@ var ErrNilBlockProcessor = errors.New("nil block processor")
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
+// ErrNilNodesConfigProvider signals that an operation has been attempted to or with a nil nodes config provider
+var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
+
+// ErrNilSystemSCConfig signals that nil system sc config was provided
+var ErrNilSystemSCConfig = errors.New("nil system sc config")
+
 // ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
 var ErrNilRounder = errors.New("nil Rounder")
 
@@ -160,12 +166,6 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
 // ErrNilNodesCoordinator signals that an operation has been attempted to or with a nil nodes coordinator
 var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
-
-// ErrInvalidRcvAddr signals that an operation has been attempted to or with an invalid receiver address
-var ErrInvalidRcvAddr = errors.New("invalid receiver address")
-
-// ErrInvalidSndAddr signals that an operation has been attempted to or with an invalid sender address
-var ErrInvalidSndAddr = errors.New("invalid sender address")
 
 // ErrNilKeyGen signals that an operation has been attempted to or with a nil single sign key generator
 var ErrNilKeyGen = errors.New("nil key generator")
@@ -289,9 +289,6 @@ var ErrHeaderNotFinal = errors.New("header in metablock is not final")
 
 // ErrShardIdMissmatch signals shard ID does not match expectations
 var ErrShardIdMissmatch = errors.New("shard ID missmatch")
-
-// ErrMintAddressNotInThisShard signals that the mint address does not belong to current shard
-var ErrMintAddressNotInThisShard = errors.New("mint address does not belong to current shard")
 
 // ErrNotarizedHeadersSliceIsNil signals that the slice holding notarized headers is nil
 var ErrNotarizedHeadersSliceIsNil = errors.New("notarized headers slice is nil")
@@ -424,6 +421,18 @@ var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
 
 // ErrNilEpochHandler signals that a nil epoch handler was provided
 var ErrNilEpochHandler = errors.New("nil epoch handler")
+
+// ErrNilValidatorsProvider signals that the validatorsProvider is nil
+var ErrNilValidatorsProvider = errors.New("nil validatorsProvider")
+
+// ErrNilEpochStartNotifier signals that the ErrNilEpochStartNotifier is nil
+var ErrNilEpochStartNotifier = errors.New("nil epochStartNotifier")
+
+// ErrInvalidPeerTypeRefreshIntervalInSec signals that the peerTypeRefreshIntervalInSec is invalid - zero or less
+var ErrInvalidPeerTypeRefreshIntervalInSec = errors.New("nil PeerTypeRefreshIntervalInSec")
+
+// ErrNilContext signals that the context is nil
+var ErrNilContext = errors.New("nil context")
 
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
@@ -572,6 +581,9 @@ var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
 // ErrNilHeaderSigVerifier signals that a nil header sig verifier has been provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
+// ErrNilHeaderIntegrityVerifier signals that a nil header integrity verifier has been provided
+var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier")
+
 // ErrFailedTransaction signals that transaction is of type failed.
 var ErrFailedTransaction = errors.New("failed transaction, gas consumed")
 
@@ -589,9 +601,6 @@ var ErrReceiptsHashMissmatch = errors.New("receipts hash missmatch")
 
 // ErrMiniBlockNumMissMatch signals that number of miniblocks does not match
 var ErrMiniBlockNumMissMatch = errors.New("num miniblocks does not match")
-
-// ErrInvalidChainID signals that an invalid chain ID has been provided
-var ErrInvalidChainID = errors.New("invalid chain ID while processing")
 
 // ErrEpochStartDataDoesNotMatch signals that EpochStartData is not the same as the leader created
 var ErrEpochStartDataDoesNotMatch = errors.New("epoch start data does not match")
@@ -638,8 +647,14 @@ var ErrValidatorInfoMiniBlockNotFromMeta = errors.New("validatorInfo miniblocks 
 // ErrAccumulatedFeesDoNotMatch signals that accumulated fees do not match
 var ErrAccumulatedFeesDoNotMatch = errors.New("accumulated fees do not match")
 
+// ErrDeveloperFeesDoNotMatch signals that developer fees do not match
+var ErrDeveloperFeesDoNotMatch = errors.New("developer fees do not match")
+
 // ErrAccumulatedFeesInEpochDoNotMatch signals that accumulated fees in epoch do not match
 var ErrAccumulatedFeesInEpochDoNotMatch = errors.New("accumulated fees in epoch do not match")
+
+// ErrDevFeesInEpochDoNotMatch signals that developer fees in epoch do not match
+var ErrDevFeesInEpochDoNotMatch = errors.New("developer fees in epoch do not match")
 
 // ErrNilRewardsHandler signals that rewards handler is nil
 var ErrNilRewardsHandler = errors.New("rewards handler is nil")
@@ -737,6 +752,9 @@ var ErrNilVmInput = errors.New("nil vm input")
 // ErrNilDnsAddresses signals that nil dns addresses map was provided
 var ErrNilDnsAddresses = errors.New("nil dns addresses map")
 
+// ErrNilCommunityAddress signals that a nil community address was provided
+var ErrNilCommunityAddress = errors.New("nil community address")
+
 // ErrCallerIsNotTheDNSAddress signals that called address is not the DNS address
 var ErrCallerIsNotTheDNSAddress = errors.New("not a dns address")
 
@@ -760,3 +778,9 @@ var ErrNilRatingsInfoHandler = errors.New("nil ratings info handler")
 
 // ErrNilInterceptedDebugHandler signals that a nil intercepted debug handler has been provided
 var ErrNilInterceptedDebugHandler = errors.New("nil intercepted debug handler")
+
+// ErrBuiltInFunctionCalledWithValue signals that builtin function was called with value that is not allowed
+var ErrBuiltInFunctionCalledWithValue = errors.New("built in function called with tx value is not allowed")
+
+// ErrEmptySoftwareVersion signals that empty software version was called
+var ErrEmptySoftwareVersion = errors.New("empty software version")

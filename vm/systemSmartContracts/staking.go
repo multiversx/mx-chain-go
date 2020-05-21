@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. staking.proto
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. staking.proto
 package systemSmartContracts
 
 import (
@@ -8,7 +8,8 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -18,13 +19,6 @@ var log = logger.GetOrCreate("vm/systemsmartcontracts")
 
 const ownerKey = "owner"
 const nodesConfigKey = "nodesConfig"
-
-// StakingNodesConfig is the structure which is saved in the storage of the contract to monitor the nodes leaving and registering
-type StakingNodesConfig struct {
-	MinNumNodes int64
-	StakedNodes int64
-	JailedNodes int64
-}
 
 type stakingSC struct {
 	eei                      vm.SystemEI
@@ -95,7 +89,7 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	}
 
 	switch args.Function {
-	case "_init":
+	case core.SCDeployInitFunctionName:
 		return r.init(args)
 	case "stake":
 		return r.stake(args, false)
@@ -244,12 +238,6 @@ func (r *stakingSC) changeValidatorKey(args *vmcommon.ContractCallInput) vmcommo
 		return vmcommon.UserError
 	}
 
-	err := r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.ChangeValidatorKeys +
-		r.gasCost.BaseOperationCost.DataCopyPerByte*uint64(len(args.Arguments[0])))
-	if err != nil {
-		return vmcommon.OutOfGas
-	}
-
 	oldKey := args.Arguments[0]
 	newKey := args.Arguments[1]
 	if len(oldKey) != len(newKey) {
@@ -288,24 +276,13 @@ func (r *stakingSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 
-	for i := 1; i < len(args.Arguments); i++ {
-		blsKey := args.Arguments[i]
-		err := r.eei.UseGas(r.gasCost.BaseOperationCost.DataCopyPerByte * uint64(len(blsKey)))
-		if err != nil {
-			return vmcommon.OutOfGas
-		}
-
+	for _, blsKey := range args.Arguments[1:] {
 		stakedData, err := r.getOrCreateRegisteredData(blsKey)
 		if err != nil {
 			return vmcommon.UserError
 		}
 		if len(stakedData.RewardAddress) == 0 {
 			continue
-		}
-
-		err = r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.ChangeRewardAddress)
-		if err != nil {
-			return vmcommon.OutOfGas
 		}
 
 		stakedData.RewardAddress = newRewardAddress
@@ -331,11 +308,6 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		}
 		if len(stakedData.RewardAddress) == 0 {
 			return vmcommon.UserError
-		}
-
-		err = r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.UnJail)
-		if err != nil {
-			return vmcommon.OutOfGas
 		}
 
 		if stakedData.UnJailedNonce <= stakedData.JailedNonce {
@@ -373,7 +345,7 @@ func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedData, error) {
 	}
 
 	data := r.eei.GetStorage(key)
-	if data != nil {
+	if len(data) > 0 {
 		err := json.Unmarshal(data, &registrationData)
 		if err != nil {
 			log.Debug("unmarshal error on staking SC stake function",
@@ -431,11 +403,6 @@ func (r *stakingSC) jail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 func (r *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) < 1 {
 		return vmcommon.UserError
-	}
-
-	err := r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.Get)
-	if err != nil {
-		return vmcommon.OutOfGas
 	}
 
 	value := r.eei.GetStorage(args.Arguments[0])
@@ -521,13 +488,6 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 		return vmcommon.UserError
 	}
 
-	err = r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.Stake +
-		r.gasCost.BaseOperationCost.StorePerByte*uint64(len(args.Arguments[0])) +
-		r.gasCost.BaseOperationCost.StorePerByte*uint64(len(args.Arguments[1])))
-	if err != nil {
-		return vmcommon.OutOfGas
-	}
-
 	if registrationData.StakeValue.Cmp(stakeValue) < 0 {
 		registrationData.StakeValue.Set(stakeValue)
 	}
@@ -589,11 +549,6 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.UserError
 	}
 
-	err = r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.UnStake)
-	if err != nil {
-		return vmcommon.OutOfGas
-	}
-
 	r.removeFromStakedNodes()
 	registrationData.Staked = false
 	registrationData.UnStakedEpoch = r.eei.BlockChainHook().CurrentEpoch()
@@ -639,14 +594,9 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		log.Error("unBond is not possible for jailed nodes")
 		return vmcommon.UserError
 	}
-	if !r.canUnBond() {
-		log.Error("unBond is not possible as too many left")
+	if !r.canUnBond() || r.eei.IsValidator(args.Arguments[0]) {
+		log.Error("unBond is not possible as not enough remaining")
 		return vmcommon.UserError
-	}
-
-	err = r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.UnBond)
-	if err != nil {
-		return vmcommon.OutOfGas
 	}
 
 	r.eei.SetStorage(args.Arguments[0], nil)
@@ -709,11 +659,6 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	}
 	if len(registrationData.RewardAddress) == 0 {
 		return vmcommon.UserError
-	}
-
-	err = r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.Get)
-	if err != nil {
-		return vmcommon.OutOfGas
 	}
 
 	if registrationData.Staked {

@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. peerAccountData.proto
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. peerAccountData.proto
 package state
 
 import (
@@ -16,25 +16,23 @@ func NewEmptyPeerAccount() *peerAccount {
 	return &peerAccount{
 		baseAccount: &baseAccount{},
 		PeerAccountData: PeerAccountData{
-			Stake:           big.NewInt(0),
 			AccumulatedFees: big.NewInt(0),
 		},
 	}
 }
 
 // NewPeerAccount creates new simple account wrapper for an PeerAccountContainer (that has just been initialized)
-func NewPeerAccount(addressContainer AddressContainer) (*peerAccount, error) {
-	if addressContainer == nil {
-		return nil, ErrNilAddressContainer
+func NewPeerAccount(address []byte) (*peerAccount, error) {
+	if len(address) == 0 {
+		return nil, ErrNilAddress
 	}
 
 	return &peerAccount{
 		baseAccount: &baseAccount{
-			addressContainer: addressContainer,
-			dataTrieTracker:  NewTrackableDataTrie(addressContainer.Bytes(), nil),
+			address:         address,
+			dataTrieTracker: NewTrackableDataTrie(address, nil),
 		},
 		PeerAccountData: PeerAccountData{
-			Stake:           big.NewInt(0),
 			AccumulatedFees: big.NewInt(0),
 		},
 	}, nil
@@ -57,16 +55,6 @@ func (pa *peerAccount) SetRewardAddress(address []byte) error {
 	}
 
 	pa.RewardAddress = address
-	return nil
-}
-
-// SetStake sets the account's stake
-func (pa *peerAccount) SetStake(stake *big.Int) error {
-	if stake == nil {
-		return ErrNilStake
-	}
-
-	pa.Stake = big.NewInt(0).Set(stake)
 	return nil
 }
 

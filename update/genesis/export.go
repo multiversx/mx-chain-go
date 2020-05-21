@@ -34,7 +34,7 @@ type stateExport struct {
 	hasher           hashing.Hasher
 }
 
-var log = logger.GetOrCreate("update/genesis/")
+var log = logger.GetOrCreate("update/genesis")
 
 // NewStateExporter exports all the data at a specific moment to a set of files
 func NewStateExporter(args ArgsNewStateExporter) (*stateExport, error) {
@@ -179,7 +179,7 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 		return err
 	}
 
-	accType, shId, err := GetTrieTypeAndShId(key)
+	accType, shId, err := GetTrieTypeAndShId(fileName)
 	if err != nil {
 		return err
 	}
@@ -215,13 +215,14 @@ func (se *stateExport) exportDataTries(leafs map[string][]byte, accType Type, sh
 		}
 	}
 
+	se.writer.CloseFile(fileName)
 	return nil
 }
 
 func (se *stateExport) exportAccountLeafs(leafs map[string][]byte, accType Type, shId uint32, fileName string) error {
 	for address, buff := range leafs {
 		keyToExport := CreateAccountKey(accType, shId, address)
-		account, err := NewEmptyAccount(accType)
+		account, err := NewEmptyAccount(accType, []byte(address))
 		if err != nil {
 			log.Warn("error creating new account account", "address", address, "error", err)
 			continue
@@ -248,6 +249,7 @@ func (se *stateExport) exportAccountLeafs(leafs map[string][]byte, accType Type,
 		}
 	}
 
+	se.writer.CloseFile(fileName)
 	return nil
 }
 

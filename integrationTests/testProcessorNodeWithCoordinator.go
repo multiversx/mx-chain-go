@@ -1,7 +1,6 @@
 package integrationTests
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -84,7 +83,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				NbShards:                numShards,
 				EligibleNodes:           validatorsMapForNodesCoordinator,
 				WaitingNodes:            waitingMapForNodesCoordinator,
-				SelfPublicKey:           v.PubKey(),
+				SelfPublicKey:           v.PubKeyBytes(),
 				ConsensusGroupCache:     cache,
 				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 			}
@@ -172,8 +171,7 @@ func generateSkAndPkInShard(
 	sk, pk := keyGen.GeneratePair()
 	for {
 		pkBytes, _ := pk.ToByteArray()
-		addr, _ := TestAddressPubkeyConverter.CreateAddressFromBytes(pkBytes)
-		if shardCoordinator.ComputeId(addr) == addrShardID {
+		if shardCoordinator.ComputeId(pkBytes) == addrShardID {
 			break
 		}
 		sk, pk = keyGen.GeneratePair()
@@ -194,14 +192,15 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	messenger := CreateMessengerWithKadDht(initialNodeAddr)
 	tpn := &TestProcessorNode{
-		ShardCoordinator:  shardCoordinator,
-		Messenger:         messenger,
-		NodesCoordinator:  nodesCoordinator,
-		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           ChainID,
-		NodesSetup:        nodesSetup,
+		ShardCoordinator:        shardCoordinator,
+		Messenger:               messenger,
+		NodesCoordinator:        nodesCoordinator,
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		ChainID:                 ChainID,
+		NodesSetup:              nodesSetup,
 	}
 
 	tpn.NodeKeys = &TestKeyPair{
@@ -238,7 +237,7 @@ func newTestProcessorNodeWithCustomNodesCoordinator(
 		Nonce:             0,
 		Balance:           nil,
 	}
-	tpn.OwnAccount.Address, _ = TestAddressPubkeyConverter.CreateAddressFromBytes(kp.TxSignPkBytes)
+	tpn.OwnAccount.Address = kp.TxSignPkBytes
 
 	tpn.initDataPools()
 	tpn.initTestNode()

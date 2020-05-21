@@ -14,6 +14,8 @@ import (
 
 	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/gin-contrib/cors"
@@ -285,7 +287,8 @@ func startNodeServer(handler interface{}) *gin.Engine {
 		c.Set("elrondFacade", handler)
 		c.Next()
 	})
-	Routes(getValuesRoute)
+	vmValuesRoute, _ := wrapper.NewRouterWrapper("vm-values", getValuesRoute, getRoutesConfig())
+	Routes(vmValuesRoute)
 
 	return ws
 }
@@ -322,4 +325,19 @@ func requireErrorOnGetSingleValueRoutes(t *testing.T, facade interface{}, reques
 	statusCode = doPost(facade, "/vm-values/int", request, &response)
 	require.Equal(t, http.StatusBadRequest, statusCode)
 	require.Contains(t, response.Error, errExpected.Error())
+}
+
+func getRoutesConfig() config.ApiRoutesConfig {
+	return config.ApiRoutesConfig{
+		APIPackages: map[string]config.APIPackageConfig{
+			"vm-values": {
+				[]config.RouteConfig{
+					{Name: "/hex", Open: true},
+					{Name: "/string", Open: true},
+					{Name: "/int", Open: true},
+					{Name: "/query", Open: true},
+				},
+			},
+		},
+	}
 }

@@ -4,11 +4,11 @@ import "github.com/ElrondNetwork/elrond-go/data/state"
 
 // AccountsFactoryStub -
 type AccountsFactoryStub struct {
-	CreateAccountCalled func(address state.AddressContainer) (state.AccountHandler, error)
+	CreateAccountCalled func(address []byte) (state.AccountHandler, error)
 }
 
 // CreateAccount -
-func (afs *AccountsFactoryStub) CreateAccount(address state.AddressContainer) (state.AccountHandler, error) {
+func (afs *AccountsFactoryStub) CreateAccount(address []byte) (state.AccountHandler, error) {
 	return afs.CreateAccountCalled(address)
 }
 

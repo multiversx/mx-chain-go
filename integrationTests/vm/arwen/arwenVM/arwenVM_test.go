@@ -42,7 +42,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	tx := vm.CreateTx(
 		t,
 		senderAddressBytes,
-		vm.CreateEmptyAddress().Bytes(),
+		vm.CreateEmptyAddress(),
 		senderNonce,
 		transferOnCalls,
 		gasPrice,
@@ -107,7 +107,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	tx = vm.CreateTx(
 		t,
 		ownerAddressBytes,
-		vm.CreateEmptyAddress().Bytes(),
+		vm.CreateEmptyAddress(),
 		ownerNonce,
 		transferOnCalls,
 		gasPrice,
@@ -171,7 +171,7 @@ func runWASMVMBenchmark(
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,
 		Value:     new(big.Int).Set(transferOnCalls),
-		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
+		RcvAddr:   vm.CreateEmptyAddress(),
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
@@ -253,7 +253,7 @@ func TestWASMNamespacing(t *testing.T) {
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,
 		Value:     new(big.Int).Set(transferOnCalls),
-		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
+		RcvAddr:   vm.CreateEmptyAddress(),
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
@@ -312,7 +312,7 @@ func TestWASMMetering(t *testing.T) {
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,
 		Value:     new(big.Int).Set(transferOnCalls),
-		RcvAddr:   vm.CreateEmptyAddress().Bytes(),
+		RcvAddr:   vm.CreateEmptyAddress(),
 		SndAddr:   ownerAddressBytes,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
@@ -733,17 +733,18 @@ func TestAndCatchTrieError(t *testing.T) {
 			require.Nil(t, testContext.GetLatestError())
 
 			if index%5 == 0 {
-				err := testContext.Accounts.RevertToSnapshot(snapShot)
-				if err != nil {
-					log.Warn("revert to snapshot", "error", err.Error())
+				errRevert := testContext.Accounts.RevertToSnapshot(snapShot)
+				if errRevert != nil {
+					log.Warn("revert to snapshot", "error", errRevert.Error())
 				}
 			}
 		}
 
 		tx = vm.CreateTransferTokenTx(ownerNonce, erc20value, scAddress, ownerAddressBytes, accumulateAddress)
+		require.NotNil(t, tx)
 
-		newRootHash, err := testContext.Accounts.Commit()
-		require.Nil(t, err)
+		newRootHash, errNewRh := testContext.Accounts.Commit()
+		require.Nil(t, errNewRh)
 
 		for index, testAddress := range receiverAddresses {
 			if index%5 == 0 {
@@ -757,9 +758,9 @@ func TestAndCatchTrieError(t *testing.T) {
 			require.Nil(t, testContext.GetLatestError())
 
 			if index%5 == 0 {
-				err := testContext.Accounts.RevertToSnapshot(snapShot)
-				if err != nil {
-					log.Warn("revert to snapshot", "error", err.Error())
+				errRevert := testContext.Accounts.RevertToSnapshot(snapShot)
+				if errRevert != nil {
+					log.Warn("revert to snapshot", "error", errRevert.Error())
 				}
 			}
 		}
