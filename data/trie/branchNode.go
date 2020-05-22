@@ -275,6 +275,8 @@ func (bn *branchNode) commit(force bool, level byte, maxTrieLevelInMemory uint, 
 		return err
 	}
 	if uint(level) == maxTrieLevelInMemory {
+		log.Trace("collapse branch node on commit")
+
 		var collapsed node
 		collapsed, err = bn.getCollapsed()
 		if err != nil {
@@ -690,6 +692,7 @@ func (bn *branchNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte
 		}
 
 		existingChildren = append(existingChildren, child)
+		log.Trace("load branch node child", "child hash", bn.EncodedChildren[i])
 		bn.children[i] = child
 	}
 

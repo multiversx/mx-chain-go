@@ -134,8 +134,11 @@ func SendMultipleTransactions(c *gin.Context) {
 
 	var txs []*transaction.Transaction
 	var tx *transaction.Transaction
-	for _, receivedTx := range gtx {
-		tx, _, err = ef.CreateTransaction(
+	var txHash []byte
+
+	txsHashes := make(map[int]string, 0)
+	for idx, receivedTx := range gtx {
+		tx, txHash, err = ef.CreateTransaction(
 			receivedTx.Nonce,
 			receivedTx.Value,
 			receivedTx.Receiver,
@@ -155,6 +158,7 @@ func SendMultipleTransactions(c *gin.Context) {
 		}
 
 		txs = append(txs, tx)
+		txsHashes[idx] = hex.EncodeToString(txHash)
 	}
 
 	numOfSentTxs, err := ef.SendBulkTransactions(txs)
@@ -163,7 +167,13 @@ func SendMultipleTransactions(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"txsSent": numOfSentTxs})
+	c.JSON(
+		http.StatusOK,
+		gin.H{
+			"txsSent":   numOfSentTxs,
+			"txsHashes": txsHashes,
+		},
+	)
 }
 
 // GetTransaction returns transaction details for a given txhash
