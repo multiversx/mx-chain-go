@@ -15,6 +15,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+var _ process.TxValidatorHandler = (*InterceptedUnsignedTransaction)(nil)
+var _ process.InterceptedData = (*InterceptedUnsignedTransaction)(nil)
+
 // InterceptedUnsignedTransaction holds and manages a transaction based struct with extended functionality
 type InterceptedUnsignedTransaction struct {
 	uTx               *smartContractResult.SmartContractResult
@@ -26,7 +29,6 @@ type InterceptedUnsignedTransaction struct {
 	rcvShard          uint32
 	sndShard          uint32
 	isForCurrentShard bool
-	sndAddr           state.AddressContainer
 }
 
 // NewInterceptedUnsignedTransaction returns a new instance of InterceptedUnsignedTransaction
@@ -97,19 +99,8 @@ func (inUTx *InterceptedUnsignedTransaction) CheckValidity() error {
 func (inUTx *InterceptedUnsignedTransaction) processFields(uTxBuffWithSig []byte) error {
 	inUTx.hash = inUTx.hasher.Compute(string(uTxBuffWithSig))
 
-	var err error
-	inUTx.sndAddr, err = inUTx.pubkeyConv.CreateAddressFromBytes(inUTx.uTx.SndAddr)
-	if err != nil {
-		return process.ErrInvalidSndAddr
-	}
-
-	rcvAddr, err := inUTx.pubkeyConv.CreateAddressFromBytes(inUTx.uTx.RcvAddr)
-	if err != nil {
-		return process.ErrInvalidRcvAddr
-	}
-
-	inUTx.rcvShard = inUTx.coordinator.ComputeId(rcvAddr)
-	inUTx.sndShard = inUTx.coordinator.ComputeId(inUTx.sndAddr)
+	inUTx.rcvShard = inUTx.coordinator.ComputeId(inUTx.uTx.RcvAddr)
+	inUTx.sndShard = inUTx.coordinator.ComputeId(inUTx.uTx.SndAddr)
 
 	isForCurrentShardRecv := inUTx.rcvShard == inUTx.coordinator.SelfId()
 	isForCurrentShardSender := inUTx.sndShard == inUTx.coordinator.SelfId()
@@ -145,8 +136,8 @@ func (inUTx *InterceptedUnsignedTransaction) Nonce() uint64 {
 }
 
 // SenderAddress returns the transaction sender address
-func (inUTx *InterceptedUnsignedTransaction) SenderAddress() state.AddressContainer {
-	return inUTx.sndAddr
+func (inUTx *InterceptedUnsignedTransaction) SenderAddress() []byte {
+	return inUTx.uTx.SndAddr
 }
 
 // ReceiverShardId returns the receiver shard

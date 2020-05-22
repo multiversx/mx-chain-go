@@ -5,13 +5,21 @@ import (
 	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
+
+var _ process.RewardsHandler = (*EconomicsData)(nil)
+var _ process.ValidatorSettingsHandler = (*EconomicsData)(nil)
+var _ process.FeeHandler = (*EconomicsData)(nil)
 
 // EconomicsData will store information about economics
 type EconomicsData struct {
 	leaderPercentage         float64
+	communityPercentage      float64
+	communityAddress         string
 	maxGasLimitPerBlock      uint64
+	maxGasLimitPerMetaBlock  uint64
 	gasPerDataByte           uint64
 	dataLimitForBaseCalc     uint64
 	minGasPrice              uint64
@@ -49,7 +57,10 @@ func NewEconomicsData(economics *config.EconomicsConfig) (*EconomicsData, error)
 
 	return &EconomicsData{
 		leaderPercentage:         economics.RewardsSettings.LeaderPercentage,
+		communityPercentage:      economics.RewardsSettings.CommunityPercentage,
+		communityAddress:         economics.RewardsSettings.CommunityAddress,
 		maxGasLimitPerBlock:      data.maxGasLimitPerBlock,
+		maxGasLimitPerMetaBlock:  data.maxGasLimitPerMetaBlock,
 		minGasPrice:              data.minGasPrice,
 		minGasLimit:              data.minGasLimit,
 		genesisNodePrice:         data.genesisNodePrice,
@@ -96,6 +107,11 @@ func convertValues(economics *config.EconomicsConfig) (*EconomicsData, error) {
 	}
 
 	maxGasLimitPerBlock, err := strconv.ParseUint(economics.FeeSettings.MaxGasLimitPerBlock, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, process.ErrInvalidMaxGasLimitPerBlock
+	}
+
+	maxGasLimitPerMetaBlock, err := strconv.ParseUint(economics.FeeSettings.MaxGasLimitPerMetaBlock, conversionBase, bitConversionSize)
 	if err != nil {
 		return nil, process.ErrInvalidMaxGasLimitPerBlock
 	}
@@ -159,6 +175,7 @@ func convertValues(economics *config.EconomicsConfig) (*EconomicsData, error) {
 		genesisNodePrice:         genesisNodePrice,
 		unBondPeriod:             unBondPeriod,
 		maxGasLimitPerBlock:      maxGasLimitPerBlock,
+		maxGasLimitPerMetaBlock:  maxGasLimitPerMetaBlock,
 		gasPerDataByte:           gasPerDataByte,
 		dataLimitForBaseCalc:     dataLimitForBaseCalc,
 		genesisTotalSupply:       genesisTotalSupply,
@@ -175,9 +192,14 @@ func convertValues(economics *config.EconomicsConfig) (*EconomicsData, error) {
 func checkValues(economics *config.EconomicsConfig) error {
 	if isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) ||
 		isPercentageInvalid(economics.RewardsSettings.DeveloperPercentage) ||
+		isPercentageInvalid(economics.RewardsSettings.CommunityPercentage) ||
 		isPercentageInvalid(economics.GlobalSettings.MaximumInflation) ||
-		isPercentageInvalid(economics.GlobalSettings.MaximumInflation) {
+		isPercentageInvalid(economics.GlobalSettings.MinimumInflation) {
 		return process.ErrInvalidRewardsPercentages
+	}
+
+	if len(economics.RewardsSettings.CommunityAddress) == 0 {
+		return process.ErrNilCommunityAddress
 	}
 
 	return nil
@@ -217,6 +239,16 @@ func (ed *EconomicsData) MinGasPrice() uint64 {
 	return ed.minGasPrice
 }
 
+// MinGasLimit will return min gas limit
+func (ed *EconomicsData) MinGasLimit() uint64 {
+	return ed.minGasLimit
+}
+
+// GasPerDataByte will return the gas required for a data byte
+func (ed *EconomicsData) GasPerDataByte() uint64 {
+	return ed.gasPerDataByte
+}
+
 // ComputeFee computes the provided transaction's fee
 func (ed *EconomicsData) ComputeFee(tx process.TransactionWithFeeHandler) *big.Int {
 	gasPrice := big.NewInt(0).SetUint64(tx.GetGasPrice())
@@ -244,13 +276,26 @@ func (ed *EconomicsData) CheckValidityTxValues(tx process.TransactionWithFeeHand
 }
 
 // MaxGasLimitPerBlock will return maximum gas limit allowed per block
-func (ed *EconomicsData) MaxGasLimitPerBlock() uint64 {
+func (ed *EconomicsData) MaxGasLimitPerBlock(shardID uint32) uint64 {
+	if shardID == core.MetachainShardId {
+		return ed.maxGasLimitPerMetaBlock
+	}
 	return ed.maxGasLimitPerBlock
 }
 
 // DeveloperPercentage will return the developer percentage value
 func (ed *EconomicsData) DeveloperPercentage() float64 {
 	return ed.developerPercentage
+}
+
+// CommunityPercentage will return the community percentage value
+func (ed *EconomicsData) CommunityPercentage() float64 {
+	return ed.communityPercentage
+}
+
+// CommunityAddress will return the community address
+func (ed *EconomicsData) CommunityAddress() string {
+	return ed.communityAddress
 }
 
 // ComputeGasLimit returns the gas limit need by the provided transaction in order to be executed

@@ -12,6 +12,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+var _ process.SCQueryService = (*SCQueryService)(nil)
+
 // SCQueryService can execute Get functions over SC to fetch stored values
 type SCQueryService struct {
 	vmContainer  process.VirtualMachinesContainer
@@ -77,7 +79,7 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 		CallerAddr:  query.ScAddress,
 		CallValue:   big.NewInt(0),
 		GasPrice:    gasPrice,
-		GasProvided: service.economicsFee.MaxGasLimitPerBlock(),
+		GasProvided: service.economicsFee.MaxGasLimitPerBlock(0),
 		Arguments:   query.Arguments,
 		CallType:    vmcommon.DirectCall,
 	}
@@ -132,7 +134,7 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 		return 0, err
 	}
 
-	gasConsumed := service.economicsFee.MaxGasLimitPerBlock() - vmOutput.GasRemaining
+	gasConsumed := service.economicsFee.MaxGasLimitPerBlock(0) - vmOutput.GasRemaining
 
 	return gasConsumed, nil
 }

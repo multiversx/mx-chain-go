@@ -1,20 +1,12 @@
 package factory
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
-	"regexp"
-	"sort"
-	"strconv"
-	"strings"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
-	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -24,48 +16,49 @@ import (
 
 // ArgsNewOpenStorageUnits defines the arguments in order to open a set of storage units from disk
 type ArgsNewOpenStorageUnits struct {
-	GeneralConfig      config.Config
-	Marshalizer        marshal.Marshalizer
-	WorkingDir         string
-	ChainID            string
-	DefaultDBPath      string
-	DefaultEpochString string
-	DefaultShardString string
+	GeneralConfig             config.Config
+	Marshalizer               marshal.Marshalizer
+	BootstrapDataProvider     BootstrapDataProviderHandler
+	LatestStorageDataProvider storage.LatestStorageDataProviderHandler
+	WorkingDir                string
+	ChainID                   string
+	DefaultDBPath             string
+	DefaultEpochString        string
+	DefaultShardString        string
 }
 
 type openStorageUnits struct {
-	generalConfig      config.Config
-	marshalizer        marshal.Marshalizer
-	workingDir         string
-	chainID            string
-	defaultDBPath      string
-	defaultEpochString string
-	defaultShardString string
+	generalConfig             config.Config
+	marshalizer               marshal.Marshalizer
+	bootstrapDataProvider     BootstrapDataProviderHandler
+	latestStorageDataProvider storage.LatestStorageDataProviderHandler
+	workingDir                string
+	chainID                   string
+	defaultDBPath             string
+	defaultEpochString        string
+	defaultShardString        string
 }
 
 // NewStorageUnitOpenHandler creates an openStorageUnits component
-// TODO refactor this and unit tests
 func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits, error) {
 	o := &openStorageUnits{
-		generalConfig:      args.GeneralConfig,
-		marshalizer:        args.Marshalizer,
-		workingDir:         args.WorkingDir,
-		chainID:            args.ChainID,
-		defaultDBPath:      args.DefaultDBPath,
-		defaultEpochString: args.DefaultEpochString,
-		defaultShardString: args.DefaultShardString,
+		generalConfig:             args.GeneralConfig,
+		marshalizer:               args.Marshalizer,
+		workingDir:                args.WorkingDir,
+		chainID:                   args.ChainID,
+		defaultDBPath:             args.DefaultDBPath,
+		defaultEpochString:        args.DefaultEpochString,
+		defaultShardString:        args.DefaultShardString,
+		bootstrapDataProvider:     args.BootstrapDataProvider,
+		latestStorageDataProvider: args.LatestStorageDataProvider,
 	}
 
 	return o, nil
 }
 
-// OpenStorageUnits will open bootstrap storage unit
-func (o *openStorageUnits) OpenStorageUnits() (storage.Storer, error) {
-	parentDir, lastEpoch, err := getParentDirAndLastEpoch(
-		o.workingDir,
-		o.chainID,
-		o.defaultDBPath,
-		o.defaultEpochString)
+// GetMostRecentBootstrapStorageUnit will open bootstrap storage unit
+func (o *openStorageUnits) GetMostRecentBootstrapStorageUnit() (storage.Storer, error) {
+	parentDir, lastEpoch, err := o.latestStorageDataProvider.GetParentDirAndLastEpoch()
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +69,7 @@ func (o *openStorageUnits) OpenStorageUnits() (storage.Storer, error) {
 		parentDir,
 		fmt.Sprintf("%s_%d", o.defaultEpochString, lastEpoch),
 	)
-	shardIdsStr, err := getShardsFromDirectory(pathWithoutShard, o.defaultShardString)
+	shardIdsStr, err := o.latestStorageDataProvider.GetShardsFromDirectory(pathWithoutShard)
 	if err != nil {
 		return nil, err
 	}
@@ -92,29 +85,36 @@ func (o *openStorageUnits) OpenStorageUnits() (storage.Storer, error) {
 		o.generalConfig.BootstrapStorage.DB.FilePath,
 	)
 
-	persister, errCreate := persisterFactory.Create(persisterPath)
-	if errCreate != nil {
-		return nil, errCreate
+	persister, err := createDB(persisterFactory, persisterPath)
+	if err != nil {
+		return nil, err
 	}
 
-	defer func() {
-		if err != nil {
-			errClose := persister.Close()
-			log.LogIfError(errClose)
-		}
-	}()
-
-	cacher, errCache := lrucache.NewCache(10)
-	if errCache != nil {
-		return nil, errCache
+	cacher, err := lrucache.NewCache(10)
+	if err != nil {
+		return nil, err
 	}
 
-	storer, errStorageUnit := storageUnit.NewStorageUnit(cacher, persister)
-	if errStorageUnit != nil {
-		return nil, errStorageUnit
+	storer, err := storageUnit.NewStorageUnit(cacher, persister)
+	if err != nil {
+		return nil, err
 	}
 
 	return storer, nil
+}
+
+func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage.Persister, error) {
+	var persister storage.Persister
+	var err error
+	for i := 0; i < core.MaxRetriesToCreateDB; i++ {
+		persister, err = persisterFactory.Create(persisterPath)
+		if err == nil {
+			return persister, nil
+		}
+		log.Warn("Create Persister failed", "path", persisterPath, "error", err)
+		time.Sleep(core.SleepTimeBetweenCreateDBRetries)
+	}
+	return nil, err
 }
 
 func (o *openStorageUnits) getMostUpToDateDirectory(
@@ -132,13 +132,10 @@ func (o *openStorageUnits) getMostUpToDateDirectory(
 			o.generalConfig.BootstrapStorage.DB.FilePath,
 		)
 
-		bootstrapData, storer, errGet := getBootstrapDataForPersisterPath(persisterFactory, persisterPath, o.marshalizer)
+		bootstrapData, errGet := o.loadDataForShard(persisterFactory, persisterPath)
 		if errGet != nil {
 			continue
 		}
-
-		errClose := storer.Close()
-		log.LogIfError(errClose)
 
 		if bootstrapData.LastRound > highestRoundInStoredShards {
 			highestRoundInStoredShards = bootstrapData.LastRound
@@ -153,286 +150,26 @@ func (o *openStorageUnits) getMostUpToDateDirectory(
 	return mostRecentShard, nil
 }
 
-// TODO refactor this and test it
-
-// LatestDataFromStorage represents the DTO structure to return from storage
-type LatestDataFromStorage struct {
-	Epoch           uint32
-	ShardID         uint32
-	LastRound       int64
-	EpochStartRound uint64
-}
-
-// FindLatestDataFromStorage finds the last data (such as last epoch, shard ID or round) by searching over the
-// storage folders and opening older databases
-func FindLatestDataFromStorage(
-	generalConfig config.Config,
-	marshalizer marshal.Marshalizer,
-	workingDir string,
-	chainID string,
-	defaultDBPath string,
-	defaultEpochString string,
-	defaultShardString string,
-) (LatestDataFromStorage, error) {
-	parentDir, lastEpoch, err := getParentDirAndLastEpoch(workingDir, chainID, defaultDBPath, defaultEpochString)
-	if err != nil {
-		return LatestDataFromStorage{}, err
-	}
-
-	return getLastEpochAndRoundFromStorage(generalConfig, marshalizer, parentDir, defaultEpochString, defaultShardString, lastEpoch)
-}
-
-func getParentDirAndLastEpoch(
-	workingDir string,
-	chainID string,
-	defaultDBPath string,
-	defaultEpochString string,
-) (string, uint32, error) {
-	parentDir := filepath.Join(
-		workingDir,
-		defaultDBPath,
-		chainID)
-
-	f, err := os.Open(parentDir)
-	if err != nil {
-		return "", 0, err
-	}
-
-	files, err := f.Readdir(allFiles)
-	_ = f.Close()
-
-	if err != nil {
-		return "", 0, err
-	}
-
-	epochDirs := make([]string, 0, len(files))
-	for _, file := range files {
-		if !file.IsDir() {
-			continue
-		}
-
-		isEpochDir := strings.HasPrefix(file.Name(), defaultEpochString)
-		if !isEpochDir {
-			continue
-		}
-
-		epochDirs = append(epochDirs, file.Name())
-	}
-
-	lastEpoch, err := getLastEpochFromDirNames(epochDirs)
-	if err != nil {
-		return "", 0, err
-	}
-
-	return parentDir, lastEpoch, nil
-}
-
-func getLastEpochFromDirNames(epochDirs []string) (uint32, error) {
-	if len(epochDirs) == 0 {
-		return 0, nil
-	}
-
-	re := regexp.MustCompile("[0-9]+")
-	epochsInDirName := make([]uint32, 0, len(epochDirs))
-
-	for _, dirname := range epochDirs {
-		epochStr := re.FindString(dirname)
-		epoch, err := strconv.ParseInt(epochStr, 10, 64)
-		if err != nil {
-			return 0, err
-		}
-
-		epochsInDirName = append(epochsInDirName, uint32(epoch))
-	}
-
-	sort.Slice(epochsInDirName, func(i, j int) bool {
-		return epochsInDirName[i] > epochsInDirName[j]
-	})
-
-	return epochsInDirName[0], nil
-}
-
-func getLastEpochAndRoundFromStorage(
-	config config.Config,
-	marshalizer marshal.Marshalizer,
-	parentDir string,
-	defaultEpochString string,
-	defaultShardString string,
-	epoch uint32,
-) (LatestDataFromStorage, error) {
-	persisterFactory := NewPersisterFactory(config.BootstrapStorage.DB)
-	pathWithoutShard := filepath.Join(
-		parentDir,
-		fmt.Sprintf("%s_%d", defaultEpochString, epoch),
-	)
-	shardIdsStr, err := getShardsFromDirectory(pathWithoutShard, defaultShardString)
-	if err != nil {
-		return LatestDataFromStorage{}, err
-	}
-
-	var mostRecentBootstrapData *bootstrapStorage.BootstrapData
-	var mostRecentShard string
-	highestRoundInStoredShards := int64(0)
-	epochStartRound := uint64(0)
-
-	var storer storage.Storer
-	var errGet error
-	var bootstrapData *bootstrapStorage.BootstrapData
-	for _, shardIdStr := range shardIdsStr {
-		if !check.IfNil(storer) {
-			errClose := storer.Close()
-			log.LogIfError(errClose)
-		}
-
-		persisterPath := filepath.Join(
-			pathWithoutShard,
-			fmt.Sprintf("%s_%s", defaultShardString, shardIdStr),
-			config.BootstrapStorage.DB.FilePath,
-		)
-
-		bootstrapData, storer, errGet = getBootstrapDataForPersisterPath(persisterFactory, persisterPath, marshalizer)
-		if errGet != nil {
-			continue
-		}
-
-		if bootstrapData.LastRound > highestRoundInStoredShards {
-			shardID, err := convertShardIDToUint32(shardIdStr)
-			if err != nil {
-				log.Debug("could not convert shard id to uint32", "err", err)
-				continue
-			}
-			epochStartRound, err = loadEpochStartRound(shardID, bootstrapData.EpochStartTriggerConfigKey, storer)
-			if err != nil {
-				log.Debug("could not load epoch start round", "err", err)
-				continue
-			}
-
-			highestRoundInStoredShards = bootstrapData.LastRound
-			mostRecentBootstrapData = bootstrapData
-			mostRecentShard = shardIdStr
-		}
-	}
-
-	if !check.IfNil(storer) {
-		errClose := storer.Close()
-		log.LogIfError(errClose)
-	}
-
-	if mostRecentBootstrapData == nil {
-		return LatestDataFromStorage{}, storage.ErrBootstrapDataNotFoundInStorage
-	}
-	shardIDAsUint32, err := convertShardIDToUint32(mostRecentShard)
-	if err != nil {
-		return LatestDataFromStorage{}, err
-	}
-
-	lastestData := LatestDataFromStorage{
-		Epoch:           mostRecentBootstrapData.LastHeader.Epoch,
-		ShardID:         shardIDAsUint32,
-		LastRound:       mostRecentBootstrapData.LastRound,
-		EpochStartRound: epochStartRound,
-	}
-
-	return lastestData, nil
-}
-
-func loadEpochStartRound(
-	shardID uint32,
-	key []byte,
-	storer storage.Storer,
-) (uint64, error) {
-	trigInternalKey := append([]byte(core.TriggerRegistryKeyPrefix), key...)
-	data, err := storer.Get(trigInternalKey)
-	if err != nil {
-		return 0, err
-	}
-
-	if shardID == core.MetachainShardId {
-		state := &metachain.TriggerRegistry{}
-		err = json.Unmarshal(data, state)
-		if err != nil {
-			return 0, err
-		}
-
-		return state.CurrEpochStartRound, nil
-	}
-
-	state := &shardchain.TriggerRegistry{}
-	err = json.Unmarshal(data, state)
-	if err != nil {
-		return 0, err
-	}
-
-	return state.EpochStartRound, nil
-}
-
-func getBootstrapDataForPersisterPath(
-	persisterFactory *PersisterFactory,
+func (o *openStorageUnits) loadDataForShard(
+	persisterFactory storage.PersisterFactory,
 	persisterPath string,
-	marshalizer marshal.Marshalizer,
-) (*bootstrapStorage.BootstrapData, storage.Storer, error) {
-	persister, err := persisterFactory.Create(persisterPath)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	cacher, err := lrucache.NewCache(10)
-	if err != nil {
-		errClose := persister.Close()
-		log.LogIfError(errClose)
-		return nil, nil, err
-	}
-
-	var storer storage.Storer
+) (*bootstrapStorage.BootstrapData, error) {
+	bootstrapData, storer, err := o.bootstrapDataProvider.LoadForPath(persisterFactory, persisterPath)
 	defer func() {
-		if err != nil {
+		if storer != nil {
 			errClose := storer.Close()
-			log.LogIfError(errClose)
+			if errClose != nil {
+				log.Debug("openStorageunits: error closing storer",
+					"persister path", persisterPath,
+					"error", errClose)
+			}
 		}
 	}()
 
-	storer, err = storageUnit.NewStorageUnit(cacher, persister)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	bootStorer, err := bootstrapStorage.NewBootstrapStorer(marshalizer, storer)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	highestRound := bootStorer.GetHighestRound()
-	bootstrapData, err := bootStorer.Get(highestRound)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return &bootstrapData, storer, nil
+	return bootstrapData, err
 }
 
-func getShardsFromDirectory(path string, defaultShardString string) ([]string, error) {
-	shardIDs := make([]string, 0)
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-
-	files, err := f.Readdir(allFiles)
-	_ = f.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, file := range files {
-		fileName := file.Name()
-		stringToSplitBy := defaultShardString + "_"
-		splitSlice := strings.Split(fileName, stringToSplitBy)
-		if len(splitSlice) < 2 {
-			continue
-		}
-
-		shardIDs = append(shardIDs, splitSlice[1])
-	}
-
-	return shardIDs, nil
+// IsInterfaceNil returns true if there is no value under the interface
+func (o *openStorageUnits) IsInterfaceNil() bool {
+	return o == nil
 }

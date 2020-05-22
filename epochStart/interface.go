@@ -11,6 +11,7 @@ import (
 
 // TriggerHandler defines the functionalities for an start of epoch trigger
 type TriggerHandler interface {
+	Close() error
 	ForceEpochStart(round uint64) error
 	IsEpochStart() bool
 	Epoch() uint32
@@ -70,6 +71,7 @@ type ActionHandler interface {
 type RegistrationHandler interface {
 	RegisterHandler(handler ActionHandler)
 	UnregisterHandler(handler ActionHandler)
+	IsInterfaceNil() bool
 }
 
 // Notifier defines which actions should be done for handling new epoch's events

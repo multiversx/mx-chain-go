@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -63,6 +63,8 @@ type baseProcessor struct {
 	feeHandler              process.TransactionFeeHandler
 	blockChain              data.ChainHandler
 	hdrsForCurrBlock        *hdrForBlock
+	genesisNonce            uint64
+	version                 string
 
 	appStatusHandler       core.AppStatusHandler
 	stateCheckpointModulus uint
@@ -118,7 +120,7 @@ func (bp *baseProcessor) checkBlockValidity(
 	currentBlockHeader := bp.blockChain.GetCurrentBlockHeader()
 
 	if check.IfNil(currentBlockHeader) {
-		if headerHandler.GetNonce() == 1 { // first block after genesis
+		if headerHandler.GetNonce() == bp.genesisNonce+1 { // first block after genesis
 			if bytes.Equal(headerHandler.GetPrevHash(), bp.blockChain.GetGenesisHeaderHash()) {
 				// TODO: add genesis block verification
 				return nil
@@ -213,6 +215,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	lastNotarizedHdrRound := prevHdr.GetRound()
 
 	missingNonces := make([]uint64, 0)
+	isMaxLimitReached := false
 	for i := 0; i < len(sortedHdrs); i++ {
 		currHdr := sortedHdrs[i]
 		if currHdr == nil {
@@ -226,29 +229,39 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 
 		hdrTooNew := currHdr.GetRound() > maxRound
 		if hdrTooNew {
-			break
+			isMaxLimitReached = true
 		}
 
 		if !bp.blockTracker.ShouldAddHeader(currHdr) {
-			break
+			isMaxLimitReached = true
 		}
 
-		if currHdr.GetNonce()-prevHdr.GetNonce() > 1 {
-			for j := prevHdr.GetNonce() + 1; j < currHdr.GetNonce(); j++ {
+		roundsDiff := int64(maxRound) - int64(prevHdr.GetRound())
+		noncesDiff := int64(currHdr.GetNonce()) - int64(prevHdr.GetNonce())
+		minDiff := core.MinInt64(roundsDiff, noncesDiff)
+
+		if minDiff > 1 {
+			numNonces := uint64(minDiff) - 1
+			startNonce := prevHdr.GetNonce() + 1
+			endNonce := startNonce + numNonces
+
+			for j := startNonce; j < endNonce; j++ {
 				missingNonces = append(missingNonces, j)
+				if len(missingNonces) >= process.MaxHeaderRequestsAllowed {
+					isMaxLimitReached = true
+					break
+				}
 			}
+		}
+
+		if isMaxLimitReached {
+			break
 		}
 
 		prevHdr = currHdr
 	}
 
-	requested := 0
 	for _, nonce := range missingNonces {
-		if requested >= process.MaxHeaderRequestsAllowed {
-			break
-		}
-
-		requested++
 		go bp.requestHeaderByShardAndNonce(shardId, nonce)
 	}
 
@@ -382,6 +395,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BlockSizeThrottler) {
 		return process.ErrNilBlockSizeThrottler
 	}
+	if len(arguments.Version) == 0 {
+		return process.ErrEmptySoftwareVersion
+	}
 
 	return nil
 }
@@ -393,10 +409,14 @@ func (bp *baseProcessor) createBlockStarted() {
 	bp.feeHandler.CreateBlockStarted()
 }
 
-func (bp *baseProcessor) verifyAccumulatedFees(header data.HeaderHandler) error {
+func (bp *baseProcessor) verifyFees(header data.HeaderHandler) error {
 	if header.GetAccumulatedFees().Cmp(bp.feeHandler.GetAccumulatedFees()) != 0 {
 		return process.ErrAccumulatedFeesDoNotMatch
 	}
+	if header.GetDeveloperFees().Cmp(bp.feeHandler.GetDeveloperFees()) != 0 {
+		return process.ErrDeveloperFeesDoNotMatch
+	}
+
 	return nil
 }
 
@@ -531,25 +551,25 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []block.Min
 // related to the block which should be processed
 // this method should be called only under the mutex protection: hdrsForCurrBlock.mutHdrsForBlock
 func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
-	shardId uint32,
+	shardID uint32,
 	finality uint32,
 ) uint32 {
 	requestedHeaders := uint32(0)
 	missingFinalityAttestingHeaders := uint32(0)
 
-	highestHdrNonce := bp.hdrsForCurrBlock.highestHdrNonce[shardId]
+	highestHdrNonce := bp.hdrsForCurrBlock.highestHdrNonce[shardID]
 	if highestHdrNonce == uint64(0) {
 		return missingFinalityAttestingHeaders
 	}
 
+	headersPool := bp.dataPool.Headers()
 	lastFinalityAttestingHeader := highestHdrNonce + uint64(finality)
 	for i := highestHdrNonce + 1; i <= lastFinalityAttestingHeader; i++ {
-		headers, headersHashes := bp.blockTracker.GetTrackedHeadersWithNonce(shardId, i)
-
-		if len(headers) == 0 {
+		headers, headersHashes, err := headersPool.GetHeadersByNonceAndShardId(i, shardID)
+		if err != nil {
 			missingFinalityAttestingHeaders++
 			requestedHeaders++
-			go bp.requestHeaderByShardAndNonce(shardId, i)
+			go bp.requestHeaderByShardAndNonce(shardID, i)
 			continue
 		}
 
@@ -564,17 +584,17 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	if requestedHeaders > 0 {
 		log.Debug("requested missing finality attesting headers",
 			"num headers", requestedHeaders,
-			"shard", shardId)
+			"shard", shardID)
 	}
 
 	return missingFinalityAttestingHeaders
 }
 
-func (bp *baseProcessor) requestHeaderByShardAndNonce(targetShardID uint32, nonce uint64) {
-	if targetShardID == core.MetachainShardId {
+func (bp *baseProcessor) requestHeaderByShardAndNonce(shardID uint32, nonce uint64) {
+	if shardID == core.MetachainShardId {
 		bp.requestHandler.RequestMetaHeaderByNonce(nonce)
 	} else {
-		bp.requestHandler.RequestShardHeaderByNonce(targetShardID, nonce)
+		bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
 	}
 }
 
@@ -662,12 +682,16 @@ func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandle
 		return err
 	}
 
+	return bp.removeBlockDataFromPools(headerHandler, bodyHandler)
+}
+
+func (bp *baseProcessor) removeBlockDataFromPools(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error {
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = bp.txCoordinator.RemoveBlockDataFromPool(body)
+	err := bp.txCoordinator.RemoveBlockDataFromPool(body)
 	if err != nil {
 		return err
 	}
@@ -979,12 +1003,6 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	accounts.CancelPrune(rootHash, data.NewRoot)
-	if finalHeader.IsStartOfEpochBlock() {
-		log.Debug("trie snapshot", "rootHash", rootHash)
-		accounts.SnapshotState(rootHash)
-	}
-
 	// TODO generate checkpoint on a trigger
 	if bp.stateCheckpointModulus != 0 {
 		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
@@ -997,6 +1015,7 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
+	accounts.CancelPrune(prevRootHash, data.NewRoot)
 	accounts.PruneTrie(prevRootHash, data.OldRoot)
 }
 
@@ -1025,13 +1044,13 @@ func (bp *baseProcessor) commitAll() error {
 func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler) {
 	for key := range bp.accountsDB {
 		if !bp.accountsDB[key].IsPruningEnabled() {
-			return
+			continue
 		}
 
 		rootHash, prevRootHash := bp.getRootHashes(currHeader, prevHeader, key)
 
 		if bytes.Equal(rootHash, prevRootHash) {
-			return
+			continue
 		}
 
 		bp.accountsDB[key].CancelPrune(prevRootHash, data.OldRoot)

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"math"
 	"math/big"
 	"testing"
 
@@ -41,7 +42,7 @@ func createBlockBody() *block.Body {
 		MiniBlocks: []*block.MiniBlock{
 			{
 				TxHashes:        [][]byte{[]byte("hash1"), []byte("hash2")},
-				ReceiverShardID: 0,
+				ReceiverShardID: core.MetachainShardId,
 				SenderShardID:   core.MetachainShardId,
 				Type:            block.SmartContractResultBlock,
 			},
@@ -142,8 +143,8 @@ func TestNewStakingToPeer_ShouldWork(t *testing.T) {
 
 	arguments := createMockArgumentsNewStakingToPeer()
 
-	stakingToPeer, err := NewStakingToPeer(arguments)
-	assert.NotNil(t, stakingToPeer)
+	stp, err := NewStakingToPeer(arguments)
+	assert.NotNil(t, stp)
 	assert.Nil(t, err)
 }
 
@@ -160,10 +161,10 @@ func TestStakingToPeer_UpdateProtocolCannotGetTxShouldErr(t *testing.T) {
 
 	arguments := createMockArgumentsNewStakingToPeer()
 	arguments.CurrTxs = currTx
-	stakingToPeer, _ := NewStakingToPeer(arguments)
+	stp, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()
-	err := stakingToPeer.UpdateProtocol(blockBody, 0)
+	err := stp.UpdateProtocol(blockBody, 0)
 	assert.Nil(t, err)
 	assert.True(t, called)
 }
@@ -180,10 +181,10 @@ func TestStakingToPeer_UpdateProtocolWrongTransactionTypeShouldErr(t *testing.T)
 
 	arguments := createMockArgumentsNewStakingToPeer()
 	arguments.CurrTxs = currTx
-	stakingToPeer, _ := NewStakingToPeer(arguments)
+	stp, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()
-	err := stakingToPeer.UpdateProtocol(blockBody, 0)
+	err := stp.UpdateProtocol(blockBody, 0)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
 
@@ -206,49 +207,11 @@ func TestStakingToPeer_UpdateProtocolCannotGetStorageUpdatesShouldErr(t *testing
 	arguments := createMockArgumentsNewStakingToPeer()
 	arguments.ArgParser = argParser
 	arguments.CurrTxs = currTx
-	stakingToPeer, _ := NewStakingToPeer(arguments)
+	stp, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()
-	err := stakingToPeer.UpdateProtocol(blockBody, 0)
+	err := stp.UpdateProtocol(blockBody, 0)
 	assert.Nil(t, err)
-}
-
-func TestStakingToPeer_UpdateProtocolWrongAccountShouldErr(t *testing.T) {
-	t.Parallel()
-
-	currTx := &mock.TxForCurrentBlockStub{}
-	currTx.GetTxCalled = func(txHash []byte) (handler data.TransactionHandler, e error) {
-		return &smartContractResult.SmartContractResult{
-			RcvAddr: factory.StakingSCAddress,
-		}, nil
-	}
-
-	arguments := createMockArgumentsNewStakingToPeer()
-	offset := make([]byte, 0, arguments.PubkeyConv.Len())
-	for i := 0; i < arguments.PubkeyConv.Len(); i++ {
-		offset = append(offset, 99)
-	}
-
-	argParser := &mock.ArgumentParserMock{}
-	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
-		return []*vmcommon.StorageUpdate{
-			{Offset: offset, Data: []byte("data1")},
-		}, nil
-	}
-
-	peerState := &mock.AccountsStub{}
-	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		return &mock.AccountWrapMock{}, nil
-	}
-
-	arguments.ArgParser = argParser
-	arguments.CurrTxs = currTx
-	arguments.PeerState = peerState
-	stakingToPeer, _ := NewStakingToPeer(arguments)
-
-	blockBody := createBlockBody()
-	err := stakingToPeer.UpdateProtocol(blockBody, 0)
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
 
 func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) {
@@ -269,15 +232,14 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 	}
 
 	peerState := &mock.AccountsStub{}
-	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		peerAcc, _ := state.NewPeerAccount(addressContainer)
+	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		peerAcc, _ := state.NewPeerAccount(address)
 		_ = peerAcc.SetRewardAddress([]byte("addr"))
 		_ = peerAcc.SetBLSPublicKey([]byte("BlsAddr"))
-		_ = peerAcc.SetStake(big.NewInt(100))
 
 		return peerAcc, nil
 	}
-	peerState.RemoveAccountCalled = func(addressContainer state.AddressContainer) error {
+	peerState.RemoveAccountCalled = func(address []byte) error {
 		return nil
 	}
 
@@ -291,10 +253,10 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 	arguments.CurrTxs = currTx
 	arguments.PeerState = peerState
 	arguments.ProtoMarshalizer = marshalizer
-	stakingToPeer, _ := NewStakingToPeer(arguments)
+	stp, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()
-	err := stakingToPeer.UpdateProtocol(blockBody, 0)
+	err := stp.UpdateProtocol(blockBody, 0)
 	assert.Nil(t, err)
 }
 
@@ -322,10 +284,9 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 	}
 
 	peerState := &mock.AccountsStub{}
-	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		peerAcc, _ := state.NewPeerAccount(addressContainer)
+	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		peerAcc, _ := state.NewPeerAccount(address)
 		_ = peerAcc.SetRewardAddress([]byte("key"))
-		_ = peerAcc.SetStake(big.NewInt(100))
 
 		return peerAcc, nil
 	}
@@ -347,10 +308,10 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 	arguments.ProtoMarshalizer = marshalizer
 	arguments.VmMarshalizer = marshalizer
 	arguments.ScQuery = scDataGetter
-	stakingToPeer, _ := NewStakingToPeer(arguments)
+	stp, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()
-	err := stakingToPeer.UpdateProtocol(blockBody, 0)
+	err := stp.UpdateProtocol(blockBody, 0)
 	assert.Equal(t, state.ErrEmptyAddress, err)
 }
 
@@ -385,10 +346,9 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 		},
 	}
 
-	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		peerAccount, _ := state.NewPeerAccount(addressContainer)
-		peerAccount.Stake = big.NewInt(0)
-		peerAccount.RewardAddress = []byte(address)
+	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		peerAccount, _ := state.NewPeerAccount(address)
+		peerAccount.RewardAddress = address
 		return peerAccount, nil
 	}
 
@@ -410,10 +370,10 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 	arguments.ProtoMarshalizer = marshalizer
 	arguments.VmMarshalizer = marshalizer
 	arguments.ScQuery = scDataGetter
-	stakingToPeer, _ := NewStakingToPeer(arguments)
+	stp, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()
-	err := stakingToPeer.UpdateProtocol(blockBody, 0)
+	err := stp.UpdateProtocol(blockBody, 0)
 	assert.Equal(t, testError, err)
 }
 
@@ -447,10 +407,9 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 			return testError
 		},
 	}
-	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{})
-		peerAccount.Stake = big.NewInt(100)
-		peerAccount.BLSPublicKey = []byte(address)
+	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		peerAccount, _ := state.NewPeerAccount([]byte("1234"))
+		peerAccount.BLSPublicKey = address
 		peerAccount.Nonce = 1
 		return peerAccount, nil
 	}
@@ -473,10 +432,10 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 	arguments.ProtoMarshalizer = marshalizer
 	arguments.VmMarshalizer = marshalizer
 	arguments.ScQuery = scDataGetter
-	stakingToPeer, _ := NewStakingToPeer(arguments)
+	stp, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()
-	err := stakingToPeer.UpdateProtocol(blockBody, 0)
+	err := stp.UpdateProtocol(blockBody, 0)
 	assert.Equal(t, testError, err)
 }
 
@@ -509,10 +468,9 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 			return nil
 		},
 	}
-	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{})
-		peerAccount.Stake = big.NewInt(100)
-		peerAccount.BLSPublicKey = []byte(address)
+	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		peerAccount, _ := state.NewPeerAccount([]byte("1234"))
+		peerAccount.BLSPublicKey = address
 		peerAccount.Nonce = 1
 		return peerAccount, nil
 	}
@@ -535,10 +493,10 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 	arguments.ProtoMarshalizer = marshalizer
 	arguments.VmMarshalizer = marshalizer
 	arguments.ScQuery = scDataGetter
-	stakingToPeer, _ := NewStakingToPeer(arguments)
+	stp, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()
-	err := stakingToPeer.UpdateProtocol(blockBody, 0)
+	err := stp.UpdateProtocol(blockBody, 0)
 	assert.Nil(t, err)
 }
 
@@ -572,10 +530,9 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 			return testError
 		},
 	}
-	peerState.LoadAccountCalled = func(addressContainer state.AddressContainer) (handler state.AccountHandler, e error) {
-		peerAccount, _ := state.NewPeerAccount(&mock.AddressMock{})
-		peerAccount.Stake = big.NewInt(100)
-		peerAccount.BLSPublicKey = []byte(address)
+	peerState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		peerAccount, _ := state.NewPeerAccount([]byte("1234"))
+		peerAccount.BLSPublicKey = address
 		peerAccount.IndexInList = 1
 		return peerAccount, nil
 	}
@@ -598,18 +555,27 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 	arguments.ProtoMarshalizer = marshalizer
 	arguments.VmMarshalizer = marshalizer
 	arguments.ScQuery = scDataGetter
-	stakingToPeer, _ := NewStakingToPeer(arguments)
+	stp, _ := NewStakingToPeer(arguments)
 
 	blockBody := createBlockBody()
-	err := stakingToPeer.UpdateProtocol(blockBody, 0)
+	err := stp.UpdateProtocol(blockBody, 0)
 	assert.Equal(t, testError, err)
 }
 
 func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	t.Parallel()
 
+	var peerAccount state.PeerAccountHandler
+	peerAccount = state.NewEmptyPeerAccount()
+	peerAccountsDB := &mock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			return peerAccount, nil
+		},
+	}
+
 	arguments := createMockArgumentsNewStakingToPeer()
-	stakingToPeer, _ := NewStakingToPeer(arguments)
+	arguments.PeerState = peerAccountsDB
+	stp, _ := NewStakingToPeer(arguments)
 
 	stakingData := systemSmartContracts.StakedData{
 		RegisterNonce: 0,
@@ -621,40 +587,45 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 		JailedRound:   0,
 		JailedNonce:   0,
 		UnJailedNonce: 0,
+		StakedNonce:   math.MaxUint64,
 	}
-	var peerAccount state.PeerAccountHandler
-	peerAccount = state.NewEmptyPeerAccount()
+
 	blsPubKey := []byte("key")
 	nonce := uint64(1)
-	err := stakingToPeer.updatePeerState(stakingData, peerAccount, blsPubKey, nonce)
+	err := stp.updatePeerState(stakingData, blsPubKey, nonce)
 	assert.Nil(t, err)
+	assert.Equal(t, 0, len(peerAccount.GetRewardAddress()))
+
+	stakingData.Staked = true
+	stakingData.StakedNonce = nonce
+	err = stp.updatePeerState(stakingData, blsPubKey, nonce)
 	assert.True(t, bytes.Equal(blsPubKey, peerAccount.GetBLSPublicKey()))
 	assert.True(t, bytes.Equal(stakingData.RewardAddress, peerAccount.GetRewardAddress()))
 	assert.Equal(t, 0, len(peerAccount.GetList()))
 
 	stakingData.RegisterNonce = 10
-	_ = stakingToPeer.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.RegisterNonce)
+	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.RegisterNonce)
 	assert.Equal(t, string(core.NewList), peerAccount.GetList())
 
 	stakingData.UnStakedNonce = 11
-	_ = stakingToPeer.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.UnStakedNonce)
+	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
 	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
 
 	peerAccount.SetListAndIndex(0, string(core.EligibleList), 5)
 	stakingData.JailedNonce = 12
-	_ = stakingToPeer.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.JailedNonce)
+	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.JailedNonce)
 	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
 
 	// it is still jailed - no change allowed
 	stakingData.RegisterNonce = 13
-	_ = stakingToPeer.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.RegisterNonce)
+	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.RegisterNonce)
 	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
 
 	stakingData.UnJailedNonce = 14
-	_ = stakingToPeer.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.UnJailedNonce)
+	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
 	assert.Equal(t, string(core.NewList), peerAccount.GetList())
 
 	stakingData.UnStakedNonce = 15
-	_ = stakingToPeer.updatePeerState(stakingData, peerAccount, blsPubKey, stakingData.UnStakedNonce)
+	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
 	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
 }

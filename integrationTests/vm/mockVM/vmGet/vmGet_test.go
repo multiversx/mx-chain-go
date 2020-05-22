@@ -60,7 +60,7 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 	tx := vm.CreateTx(
 		t,
 		senderAddressBytes,
-		vm.CreateEmptyAddress().Bytes(),
+		vm.CreateEmptyAddress(),
 		senderNonce,
 		transferOnCalls,
 		gasPrice,

@@ -10,6 +10,10 @@ import (
 
 var log = logger.GetOrCreate("crypto/signing/ed25519")
 
+var _ crypto.Group = (*suiteEd25519)(nil)
+var _ crypto.Random = (*suiteEd25519)(nil)
+var _ crypto.Suite = (*suiteEd25519)(nil)
+
 // ED25519 is the string representations of the ed25519 scheme
 const ED25519 = "Ed25519"
 

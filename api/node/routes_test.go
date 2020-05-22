@@ -16,11 +16,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/node"
+	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/debug"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -108,7 +110,7 @@ func TestHeartbeatstatus_FromFacadeErrors(t *testing.T) {
 
 	errExpected := errs.New("expected error")
 	facade := mock.Facade{
-		GetHeartbeatsHandler: func() ([]heartbeat.PubKeyHeartbeat, error) {
+		GetHeartbeatsHandler: func() ([]data.PubKeyHeartbeat, error) {
 			return nil, errExpected
 		},
 	}
@@ -127,17 +129,17 @@ func TestHeartbeatstatus_FromFacadeErrors(t *testing.T) {
 func TestHeartbeatstatus(t *testing.T) {
 	t.Parallel()
 
-	hbStatus := []heartbeat.PubKeyHeartbeat{
+	hbStatus := []data.PubKeyHeartbeat{
 		{
 			PublicKey:       "pk1",
 			TimeStamp:       time.Now(),
-			MaxInactiveTime: heartbeat.Duration{Duration: 0},
+			MaxInactiveTime: data.Duration{Duration: 0},
 			IsActive:        true,
 			ReceivedShardID: uint32(0),
 		},
 	}
 	facade := mock.Facade{
-		GetHeartbeatsHandler: func() (heartbeats []heartbeat.PubKeyHeartbeat, e error) {
+		GetHeartbeatsHandler: func() (heartbeats []data.PubKeyHeartbeat, e error) {
 			return hbStatus, nil
 		},
 	}
@@ -380,7 +382,25 @@ func startNodeServerWithFacade(facade interface{}) *gin.Engine {
 		})
 	}
 
-	nodeRoutes := ws.Group("/node")
+	ginNodeRoutes := ws.Group("/node")
+	nodeRoutes, _ := wrapper.NewRouterWrapper("node", ginNodeRoutes, getRoutesConfig())
 	node.Routes(nodeRoutes)
 	return ws
+}
+
+func getRoutesConfig() config.ApiRoutesConfig {
+	return config.ApiRoutesConfig{
+		APIPackages: map[string]config.APIPackageConfig{
+			"node": {
+				[]config.RouteConfig{
+					{Name: "/status", Open: true},
+					{Name: "/statistics", Open: true},
+					{Name: "/heartbeatstatus", Open: true},
+					{Name: "/p2pstatus", Open: true},
+					{Name: "/epoch", Open: true},
+					{Name: "/debug", Open: true},
+				},
+			},
+		},
+	}
 }

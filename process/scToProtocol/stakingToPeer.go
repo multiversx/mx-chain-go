@@ -2,6 +2,7 @@ package scToProtocol
 
 import (
 	"bytes"
+	"math"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -18,6 +19,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+var _ process.SmartContractToProtocolHandler = (*stakingToPeer)(nil)
 
 var log = logger.GetOrCreate("process/scToProtocol")
 
@@ -115,12 +118,7 @@ func checkIfNil(args ArgStakingToPeer) error {
 }
 
 func (stp *stakingToPeer) getPeerAccount(key []byte) (state.PeerAccountHandler, error) {
-	adrSrc, err := stp.pubkeyConv.CreateAddressFromBytes(key)
-	if err != nil {
-		return nil, err
-	}
-
-	account, err := stp.peerState.LoadAccount(adrSrc)
+	account, err := stp.peerState.LoadAccount(key)
 	if err != nil {
 		return nil, err
 	}
@@ -146,12 +144,6 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		}
 
 		blsPubKey := []byte(key)
-		var peerAcc state.PeerAccountHandler
-		peerAcc, err = stp.getPeerAccount(blsPubKey)
-		if err != nil {
-			return err
-		}
-
 		log.Trace("get on StakingScAddress called", "blsKey", blsPubKey)
 
 		query := process.SCQuery{
@@ -171,13 +163,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		}
 		// no data under key -> peer can be deleted from trie
 		if len(data) == 0 {
-			var adrSrc state.AddressContainer
-			adrSrc, err = stp.pubkeyConv.CreateAddressFromBytes(blsPubKey)
-			if err != nil {
-				return err
-			}
-
-			err = stp.peerState.RemoveAccount(adrSrc)
+			err = stp.peerState.RemoveAccount(blsPubKey)
 			if err != nil {
 				return err
 			}
@@ -191,7 +177,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 			return err
 		}
 
-		err = stp.updatePeerState(stakingData, peerAcc, blsPubKey, nonce)
+		err = stp.updatePeerState(stakingData, blsPubKey, nonce)
 		if err != nil {
 			return err
 		}
@@ -202,12 +188,18 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 
 func (stp *stakingToPeer) updatePeerState(
 	stakingData systemSmartContracts.StakedData,
-	account state.PeerAccountHandler,
 	blsPubKey []byte,
 	nonce uint64,
 ) error {
+	if stakingData.StakedNonce == math.MaxUint64 {
+		return nil
+	}
 
-	var err error
+	account, err := stp.getPeerAccount(blsPubKey)
+	if err != nil {
+		return err
+	}
+
 	if !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
 		err = account.SetRewardAddress(stakingData.RewardAddress)
 		if err != nil {
@@ -217,13 +209,6 @@ func (stp *stakingToPeer) updatePeerState(
 
 	if !bytes.Equal(account.GetBLSPublicKey(), blsPubKey) {
 		err = account.SetBLSPublicKey(blsPubKey)
-		if err != nil {
-			return err
-		}
-	}
-
-	if account.GetStake().Cmp(stakingData.StakeValue) != 0 {
-		err = account.SetStake(stakingData.StakeValue)
 		if err != nil {
 			return err
 		}
@@ -275,7 +260,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) ([]string, erro
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
-		if miniBlock.SenderShardID != core.MetachainShardId {
+		if miniBlock.SenderShardID != core.MetachainShardId || miniBlock.ReceiverShardID != core.MetachainShardId {
 			continue
 		}
 

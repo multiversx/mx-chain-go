@@ -50,10 +50,14 @@ func ScCallTxWithParams(
 }
 
 // DeployScTx creates and sends a SC tx
-func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string, vmType []byte) {
+func DeployScTx(nodes []*TestProcessorNode, senderIdx int, scCode string, vmType []byte, initArguments string) {
 	fmt.Println("Deploying SC...")
 	scCodeMetadataString := "0000"
 	data := scCode + "@" + hex.EncodeToString(vmType) + "@" + scCodeMetadataString
+	if len(initArguments) > 0 {
+		data += "@" + initArguments
+	}
+
 	txDeploy := generateTx(
 		nodes[senderIdx].OwnAccount.SkTxSign,
 		nodes[senderIdx].OwnAccount.SingleSigner,
@@ -82,7 +86,7 @@ func PlayerJoinsGame(
 	round int32,
 	scAddress []byte,
 ) {
-	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, player.Address.Bytes())
+	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, player.Address)
 	fmt.Println("Calling SC.joinGame...")
 	txScCall := generateTx(
 		player.SkTxSign,
@@ -91,7 +95,7 @@ func PlayerJoinsGame(
 			nonce:    player.Nonce,
 			value:    joinGameVal,
 			rcvAddr:  scAddress,
-			sndAddr:  player.Address.Bytes(),
+			sndAddr:  player.Address,
 			data:     fmt.Sprintf("joinGame@00%s", hex.EncodeToString(big.NewInt(0).SetInt64(int64(round)).Bytes())),
 			gasLimit: 5000,
 			gasPrice: gasPriceForGameSC,
@@ -101,7 +105,7 @@ func PlayerJoinsGame(
 	newBalance = newBalance.Sub(player.Balance, joinGameVal)
 	player.Balance = player.Balance.Set(newBalance)
 
-	fmt.Printf("Join %s\n", hex.EncodeToString(player.Address.Bytes()))
+	fmt.Printf("Join %s\n", hex.EncodeToString(player.Address))
 	_, _ = txDispatcherNode.SendTransaction(txScCall)
 }
 
@@ -115,7 +119,7 @@ func NodeCallsRewardAndSend(
 	scAddress []byte,
 ) {
 	fmt.Println("Calling SC.rewardAndSendToWallet...")
-	winnerAddress := winnerPlayer.Address.Bytes()
+	winnerAddress := winnerPlayer.Address
 	txScCall := generateTx(
 		nodes[idxNodeOwner].OwnAccount.SkTxSign,
 		nodes[idxNodeOwner].OwnAccount.SingleSigner,
@@ -204,7 +208,7 @@ func getNodeWithinSameShardAsPlayer(
 	player []byte,
 ) *TestProcessorNode {
 	nodeWithCaller := nodes[0]
-	playerShId := nodeWithCaller.ShardCoordinator.ComputeId(CreateAddressFromAddrBytes(player))
+	playerShId := nodeWithCaller.ShardCoordinator.ComputeId(player)
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() == playerShId {
 			nodeWithCaller = node
@@ -221,10 +225,10 @@ func CheckPlayerBalanceTheSameWithBlockchain(
 	nodes []*TestProcessorNode,
 	player *TestWalletAccount,
 ) {
-	nodeWithCaller := getNodeWithinSameShardAsPlayer(nodes, player.Address.Bytes())
+	nodeWithCaller := getNodeWithinSameShardAsPlayer(nodes, player.Address)
 
 	fmt.Println("Checking sender has initial-topUp val...")
-	accnt, _ := nodeWithCaller.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(player.Address.Bytes()))
+	accnt, _ := nodeWithCaller.AccntState.GetExistingAccount(player.Address)
 	assert.NotNil(t, accnt)
 	ok := assert.Equal(t, player.Balance.Uint64(), accnt.(state.UserAccountHandler).GetBalance().Uint64())
 	if !ok {
@@ -246,7 +250,7 @@ func CheckBalanceIsDoneCorrectlySCSideAndReturnExpectedVal(
 	nodeWithSc := nodes[idxNodeScExists]
 
 	fmt.Println("Checking SC account has topUp-withdraw val...")
-	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(scAddressBytes))
+	accnt, _ := nodeWithSc.AccntState.GetExistingAccount(scAddressBytes)
 	assert.NotNil(t, accnt)
 	expectedSC := big.NewInt(0).Set(topUpVal)
 	expectedSC.Sub(expectedSC, withdraw)
@@ -329,7 +333,7 @@ func CheckSenderBalanceOkAfterTopUpAndWithdraw(
 	expectedSender := big.NewInt(0).Set(initialVal)
 	expectedSender.Sub(expectedSender, topUpVal)
 	expectedSender.Add(expectedSender, withdraw)
-	accnt, _ := nodeWithCaller.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(nodeWithCaller.OwnAccount.PkTxSignBytes))
+	accnt, _ := nodeWithCaller.AccntState.GetExistingAccount(nodeWithCaller.OwnAccount.PkTxSignBytes)
 	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedSender, accnt.(state.UserAccountHandler).GetBalance())
 }
@@ -344,7 +348,7 @@ func CheckSenderBalanceOkAfterTopUp(
 	fmt.Println("Checking sender has initial-topUp val...")
 	expectedVal := big.NewInt(0).Set(initialVal)
 	expectedVal.Sub(expectedVal, topUpVal)
-	accnt, _ := nodeWithCaller.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(nodeWithCaller.OwnAccount.PkTxSignBytes))
+	accnt, _ := nodeWithCaller.AccntState.GetExistingAccount(nodeWithCaller.OwnAccount.PkTxSignBytes)
 	assert.NotNil(t, accnt)
 	assert.Equal(t, expectedVal, accnt.(state.UserAccountHandler).GetBalance())
 }
@@ -357,7 +361,7 @@ func CheckScTopUp(
 	scAddressBytes []byte,
 ) {
 	fmt.Println("Checking SC account received topUp val...")
-	accnt, err := nodeWithSc.AccntState.GetExistingAccount(CreateAddressFromAddrBytes(scAddressBytes))
+	accnt, err := nodeWithSc.AccntState.GetExistingAccount(scAddressBytes)
 	assert.Nil(t, err)
 	assert.NotNil(t, accnt)
 	assert.Equal(t, topUpVal, accnt.(state.UserAccountHandler).GetBalance())

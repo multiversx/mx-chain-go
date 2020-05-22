@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
@@ -1062,7 +1061,7 @@ func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
 				SizeInBytes: 1000000000,
 				Shards:      1,
 			},
-			MinGasPrice:    100000000000000,
+			MinGasPrice:    200000000000,
 			NumberOfShards: 1,
 		},
 	)
@@ -1097,14 +1096,14 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 	dataPool := initDataPool()
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	shardCoordinatorMock := mock.NewMultiShardsCoordinatorMock(3)
-	shardCoordinatorMock.ComputeIdCalled = func(address state.AddressContainer) uint32 {
-		if bytes.Equal(address.Bytes(), []byte("0")) {
+	shardCoordinatorMock.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, []byte("0")) {
 			return 0
 		}
-		if bytes.Equal(address.Bytes(), []byte("1")) {
+		if bytes.Equal(address, []byte("1")) {
 			return 1
 		}
-		if bytes.Equal(address.Bytes(), []byte("2")) {
+		if bytes.Equal(address, []byte("2")) {
 			return 2
 		}
 

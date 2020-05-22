@@ -13,7 +13,7 @@ type ValidatorStatisticsProcessorStub struct {
 	RootHashCalled                           func() ([]byte, error)
 	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfo) error
 	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
-	ProcessRatingsEndOfEpochCalled           func(validatorInfos map[uint32][]*state.ValidatorInfo) error
+	ProcessRatingsEndOfEpochCalled           func(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error
 	ProcessCalled                            func(validatorInfo data.ShardValidatorInfoHandler) error
 	CommitCalled                             func() ([]byte, error)
 }
@@ -37,9 +37,9 @@ func (pm *ValidatorStatisticsProcessorStub) Commit() ([]byte, error) {
 }
 
 // ProcessRatingsEndOfEpoch -
-func (vsp *ValidatorStatisticsProcessorStub) ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo) error {
+func (vsp *ValidatorStatisticsProcessorStub) ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error {
 	if vsp.ProcessRatingsEndOfEpochCalled != nil {
-		return vsp.ProcessRatingsEndOfEpochCalled(validatorInfos)
+		return vsp.ProcessRatingsEndOfEpochCalled(validatorInfos, epoch)
 	}
 	return nil
 }
@@ -58,14 +58,6 @@ func (vsp *ValidatorStatisticsProcessorStub) GetValidatorInfoForRootHash(rootHas
 		return vsp.GetValidatorInfoForRootHashCalled(rootHash)
 	}
 	return nil, nil
-}
-
-// ProcessRatingsEndOfEpoch -
-func (vsp *ValidatorStatisticsProcessorStub) GetValidatorInfoEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo) error {
-	if vsp.ProcessRatingsEndOfEpochCalled != nil {
-		return vsp.ProcessRatingsEndOfEpochCalled(validatorInfos)
-	}
-	return nil
 }
 
 // UpdatePeerState -
@@ -99,6 +91,10 @@ func (vsp *ValidatorStatisticsProcessorStub) GetPeerAccount(address []byte) (sta
 	}
 
 	return nil, nil
+}
+
+// DisplayRatings -
+func (vsp *ValidatorStatisticsProcessorStub) DisplayRatings(_ uint32) {
 }
 
 // IsInterfaceNil -

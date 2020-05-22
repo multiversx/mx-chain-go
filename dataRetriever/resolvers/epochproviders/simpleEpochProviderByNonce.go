@@ -2,6 +2,8 @@ package epochproviders
 
 import "github.com/ElrondNetwork/elrond-go/dataRetriever"
 
+var _ dataRetriever.EpochProviderByNonce = (*simpleEpochProviderByNonce)(nil)
+
 //TODO: implement a real epoch provider by nonce
 
 // simpleEpochProviderByNonce will use the epoch handler to return the current epoch
@@ -18,7 +20,7 @@ func NewSimpleEpochProviderByNonce(epochHandler dataRetriever.EpochHandler) *sim
 
 // EpochForNonce will return the current epoch from the epoch handler
 func (sepbn *simpleEpochProviderByNonce) EpochForNonce(_ uint64) (uint32, error) {
-	return sepbn.epochHandler.Epoch(), nil
+	return sepbn.epochHandler.MetaEpoch(), nil
 }
 
 // IsInterfaceNil returns true if there is not value under the interface

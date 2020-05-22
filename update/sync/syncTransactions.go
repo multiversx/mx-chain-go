@@ -18,6 +18,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+var _ update.PendingTransactionsSyncHandler = (*pendingTransactions)(nil)
+
 type pendingTransactions struct {
 	mutPendingTx            sync.Mutex
 	mapTransactions         map[string]data.TransactionHandler

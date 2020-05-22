@@ -27,11 +27,6 @@ type txInfo struct {
 	*txShardInfo
 }
 
-type txsHashesInfo struct {
-	txHashes        [][]byte
-	receiverShardID uint32
-}
-
 type txsForBlock struct {
 	missingTxs     int
 	mutTxsForBlock sync.RWMutex
@@ -288,18 +283,18 @@ func (bpp *basePreProcess) computeGasConsumed(
 	if bpp.shardCoordinator.SelfId() == senderShardId {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInSenderShard
 
-		if *gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerBlock() {
+		if *gasConsumedByMiniBlockInReceiverShard+gasConsumedByTxInReceiverShard > bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId()) {
 			return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 		}
 	} else {
 		gasConsumedByTxInSelfShard = gasConsumedByTxInReceiverShard
 
-		if *gasConsumedByMiniBlockInSenderShard+gasConsumedByTxInSenderShard > bpp.economicsFee.MaxGasLimitPerBlock() {
+		if *gasConsumedByMiniBlockInSenderShard+gasConsumedByTxInSenderShard > bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId()) {
 			return process.ErrMaxGasLimitPerMiniBlockInSenderShardIsReached
 		}
 	}
 
-	if *totalGasConsumedInSelfShard+gasConsumedByTxInSelfShard > bpp.economicsFee.MaxGasLimitPerBlock() {
+	if *totalGasConsumedInSelfShard+gasConsumedByTxInSelfShard > bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId()) {
 		return process.ErrMaxGasLimitPerBlockInSelfShardIsReached
 	}
 
@@ -357,12 +352,7 @@ func (bpp *basePreProcess) saveAccountBalanceForAddress(address []byte) {
 }
 
 func (bpp *basePreProcess) getBalanceForAddress(address []byte) (*big.Int, error) {
-	addressContainer, err := bpp.pubkeyConverter.CreateAddressFromBytes(address)
-	if err != nil {
-		return nil, err
-	}
-
-	accountHandler, err := bpp.accounts.GetExistingAccount(addressContainer)
+	accountHandler, err := bpp.accounts.GetExistingAccount(address)
 	if err != nil {
 		return nil, err
 	}

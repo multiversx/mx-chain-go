@@ -26,6 +26,8 @@ const (
 	SCDeployment
 	// SCInvoking defines ID of a transaction of type smart contract call
 	SCInvoking
+	// BuiltInFunctionCall defines ID of a builtin function call
+	BuiltInFunctionCall
 	// RewardTx defines ID of a reward transaction
 	RewardTx
 	// InvalidTransaction defines unknown transaction type
@@ -55,10 +57,6 @@ const NumTxPerSenderBatchForFillingMiniblock = 10
 // committed block nonce, after which, node is considered himself not synced
 const NonceDifferenceWhenSynced = 0
 
-// MaxRequestsWithTimeoutAllowed defines the maximum allowed number of requests with timeout,
-// before a special action to be applied
-const MaxRequestsWithTimeoutAllowed = 5
-
 // MaxSyncWithErrorsAllowed defines the maximum allowed number of sync with errors,
 // before a special action to be applied
 const MaxSyncWithErrorsAllowed = 10
@@ -83,9 +81,13 @@ const MinForkRound = uint64(0)
 // MaxNumPendingMiniBlocks defines the maximum number of pending miniblocks, after which a shard could be considered stuck
 const MaxNumPendingMiniBlocks = 100
 
-// MaxMetaNoncesBehind defines the maximum difference between the current metablock nonce and the processed metablock
+// MaxMetaNoncesBehind defines the maximum difference between the current meta block nonce and the processed meta block
 // nonce before a shard is considered stuck
-const MaxMetaNoncesBehind = 8
+const MaxMetaNoncesBehind = 15
+
+// MaxShardNoncesBehind defines the maximum difference between the current shard block nonce and the last notarized
+// shard block nonce by meta, before meta is considered stuck
+const MaxShardNoncesBehind = 15
 
 // MaxRoundsWithoutNewBlockReceived defines the maximum rounds to wait for a new block to be received,
 // before a special action to be applied
@@ -101,7 +103,7 @@ const MaxShardHeadersAllowedInOneMetaBlock = 100
 const MaxNumOfTxsToSelect = 30000
 
 // MaxRoundsToKeepUnprocessedMiniBlocks defines the maximum number of rounds for which unprocessed miniblocks are kept in pool
-const MaxRoundsToKeepUnprocessedMiniBlocks = 50
+const MaxRoundsToKeepUnprocessedMiniBlocks = 100
 
 // MaxRoundsToKeepUnprocessedTransactions defines the maximum number of rounds for which unprocessed transactions are kept in pool
-const MaxRoundsToKeepUnprocessedTransactions = 50
+const MaxRoundsToKeepUnprocessedTransactions = 100

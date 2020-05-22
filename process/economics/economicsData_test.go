@@ -18,17 +18,20 @@ func createDummyEconomicsConfig() *config.EconomicsConfig {
 		GlobalSettings: config.GlobalSettings{
 			TotalSupply:      "2000000000000000000000",
 			MinimumInflation: 0,
-			MaximumInflation: 0.5,
+			MaximumInflation: 0.05,
 		},
 		RewardsSettings: config.RewardsSettings{
-			LeaderPercentage: 0.1,
+			LeaderPercentage:    0.1,
+			CommunityPercentage: 0.1,
+			CommunityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 		},
 		FeeSettings: config.FeeSettings{
-			MaxGasLimitPerBlock:  "100000",
-			MinGasPrice:          "18446744073709551615",
-			MinGasLimit:          "500",
-			GasPerDataByte:       "1",
-			DataLimitForBaseCalc: "100000000",
+			MaxGasLimitPerBlock:     "100000",
+			MaxGasLimitPerMetaBlock: "1000000",
+			MinGasPrice:             "18446744073709551615",
+			MinGasLimit:             "500",
+			GasPerDataByte:          "1",
+			DataLimitForBaseCalc:    "100000000",
 		},
 		ValidatorSettings: config.ValidatorSettings{
 			GenesisNodePrice:         "500000000",

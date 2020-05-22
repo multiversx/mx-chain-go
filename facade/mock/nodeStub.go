@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 )
 
 // NodeStub -
@@ -18,7 +18,7 @@ type NodeStub struct {
 	GetBalanceHandler          func(address string) (*big.Int, error)
 	GenerateTransactionHandler func(sender string, receiver string, amount string, code string) (*transaction.Transaction, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error)
+		gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
 	GetTransactionHandler                          func(hash string) (*transaction.Transaction, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
@@ -26,7 +26,7 @@ type NodeStub struct {
 	GetCurrentPublicKeyHandler                     func() string
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
-	GetHeartbeatsHandler                           func() []heartbeat.PubKeyHeartbeat
+	GetHeartbeatsHandler                           func() []data.PubKeyHeartbeat
 	ValidatorStatisticsApiCalled                   func() (map[string]*state.ValidatorApiResponse, error)
 	DirectTriggerCalled                            func() error
 	IsSelfTriggerCalled                            func() bool
@@ -55,7 +55,7 @@ func (ns *NodeStub) GetBalance(address string) (*big.Int, error) {
 
 // CreateTransaction -
 func (ns *NodeStub) CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-	gasLimit uint64, data []byte, signatureHex string) (*transaction.Transaction, []byte, error) {
+	gasLimit uint64, data string, signatureHex string) (*transaction.Transaction, []byte, error) {
 
 	return ns.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex)
 }
@@ -81,7 +81,7 @@ func (ns *NodeStub) GetAccount(address string) (state.UserAccountHandler, error)
 }
 
 // GetHeartbeats -
-func (ns *NodeStub) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
+func (ns *NodeStub) GetHeartbeats() []data.PubKeyHeartbeat {
 	return ns.GetHeartbeatsHandler()
 }
 

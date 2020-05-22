@@ -9,6 +9,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
+var _ GenesisNodesSetupHandler = (*NodesSetup)(nil)
+var _ GenesisNodeInfoHandler = (*NodeInfo)(nil)
+
 // InitialNode holds data from json
 type InitialNode struct {
 	PubKey  string `json:"pubkey"`
@@ -29,13 +32,13 @@ func (ni *NodeInfo) AssignedShard() uint32 {
 	return ni.assignedShard
 }
 
-// Address gets the node address
-func (ni *NodeInfo) Address() []byte {
+// AddressBytes gets the node address as bytes
+func (ni *NodeInfo) AddressBytes() []byte {
 	return ni.address
 }
 
-// PubKey gets the node public key
-func (ni *NodeInfo) PubKey() []byte {
+// PubKeyBytes gets the node public key as bytes
+func (ni *NodeInfo) PubKeyBytes() []byte {
 	return ni.pubKey
 }
 
@@ -52,13 +55,12 @@ type NodesSetup struct {
 	MinNodesPerShard   uint32 `json:"minNodesPerShard"`
 	ChainID            string `json:"chainID"`
 
-	MetaChainConsensusGroupSize uint32 `json:"metaChainConsensusGroupSize"`
-	MetaChainMinNodes           uint32 `json:"metaChainMinNodes"`
+	MetaChainConsensusGroupSize uint32  `json:"metaChainConsensusGroupSize"`
+	MetaChainMinNodes           uint32  `json:"metaChainMinNodes"`
+	Hysteresis                  float32 `json:"hysteresis"`
+	Adaptivity                  bool    `json:"adaptivity"`
 
 	InitialNodes []*InitialNode `json:"initialNodes"`
-
-	Hysteresis float32 `json:"hysteresis"`
-	Adaptivity bool    `json:"adaptivity"`
 
 	nrOfShards               uint32
 	nrOfNodes                uint32
@@ -232,7 +234,7 @@ func (ns *NodesSetup) InitialNodesPubKeys() map[uint32][]string {
 	for shardId, nodesInfo := range ns.eligible {
 		pubKeys := make([]string, len(nodesInfo))
 		for i := 0; i < len(nodesInfo); i++ {
-			pubKeys[i] = string(nodesInfo[i].PubKey())
+			pubKeys[i] = string(nodesInfo[i].PubKeyBytes())
 		}
 
 		allNodesPubKeys[shardId] = pubKeys
@@ -244,6 +246,16 @@ func (ns *NodesSetup) InitialNodesPubKeys() map[uint32][]string {
 // InitialNodesInfo - gets initial nodes info
 func (ns *NodesSetup) InitialNodesInfo() (map[uint32][]GenesisNodeInfoHandler, map[uint32][]GenesisNodeInfoHandler) {
 	return ns.eligible, ns.waiting
+}
+
+// AllInitialNodes returns all initial nodes loaded
+func (ns *NodesSetup) AllInitialNodes() []GenesisNodeInfoHandler {
+	list := make([]GenesisNodeInfoHandler, len(ns.InitialNodes))
+	for idx, initialNode := range ns.InitialNodes {
+		list[idx] = initialNode
+	}
+
+	return list
 }
 
 // InitialEligibleNodesPubKeysForShard - gets initial nodes public keys for shard
@@ -258,7 +270,7 @@ func (ns *NodesSetup) InitialEligibleNodesPubKeysForShard(shardId uint32) ([]str
 	nodesInfo := ns.eligible[shardId]
 	pubKeys := make([]string, len(nodesInfo))
 	for i := 0; i < len(nodesInfo); i++ {
-		pubKeys[i] = string(nodesInfo[i].PubKey())
+		pubKeys[i] = string(nodesInfo[i].PubKeyBytes())
 	}
 
 	return pubKeys, nil

@@ -1,7 +1,11 @@
 package metachain
 
 import (
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -14,7 +18,10 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
+var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
+
 type vmContainerFactory struct {
+	validatorAccountsDB state.AccountsAdapter
 	blockChainHookImpl  *hooks.BlockChainHookImpl
 	cryptoHook          vmcommon.CryptoHook
 	systemContracts     vm.SystemSCContainer
@@ -22,6 +29,9 @@ type vmContainerFactory struct {
 	messageSigVerifier  vm.MessageSignVerifier
 	nodesConfigProvider vm.NodesConfigProvider
 	gasSchedule         map[string]map[string]uint64
+	hasher              hashing.Hasher
+	marshalizer         marshal.Marshalizer
+	systemSCConfig      *config.SystemSmartContractsConfig
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -31,6 +41,10 @@ func NewVMContainerFactory(
 	messageSignVerifier vm.MessageSignVerifier,
 	gasSchedule map[string]map[string]uint64,
 	nodesConfigProvider vm.NodesConfigProvider,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+	systemSCConfig *config.SystemSmartContractsConfig,
+	validatorAccountsDB state.AccountsAdapter,
 ) (*vmContainerFactory, error) {
 	if economics == nil {
 		return nil, process.ErrNilEconomicsData
@@ -39,7 +53,19 @@ func NewVMContainerFactory(
 		return nil, process.ErrNilKeyGen
 	}
 	if check.IfNil(nodesConfigProvider) {
-		return nil, vm.ErrNilNodesConfigProvider
+		return nil, process.ErrNilNodesConfigProvider
+	}
+	if check.IfNil(hasher) {
+		return nil, process.ErrNilHasher
+	}
+	if check.IfNil(marshalizer) {
+		return nil, process.ErrNilMarshalizer
+	}
+	if systemSCConfig == nil {
+		return nil, process.ErrNilSystemSCConfig
+	}
+	if check.IfNil(validatorAccountsDB) {
+		return nil, vm.ErrNilValidatorAccountsDB
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argBlockChainHook)
@@ -55,6 +81,10 @@ func NewVMContainerFactory(
 		messageSigVerifier:  messageSignVerifier,
 		gasSchedule:         gasSchedule,
 		nodesConfigProvider: nodesConfigProvider,
+		hasher:              hasher,
+		marshalizer:         marshalizer,
+		systemSCConfig:      systemSCConfig,
+		validatorAccountsDB: validatorAccountsDB,
 	}, nil
 }
 
@@ -78,7 +108,12 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, error) {
 	atArgumentParser := vmcommon.NewAtArgumentParser()
 
-	systemEI, err := systemSmartContracts.NewVMContext(vmf.blockChainHookImpl, vmf.cryptoHook, atArgumentParser)
+	systemEI, err := systemSmartContracts.NewVMContext(
+		vmf.blockChainHookImpl,
+		vmf.cryptoHook,
+		atArgumentParser,
+		vmf.validatorAccountsDB,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +124,9 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 		SigVerifier:         vmf.messageSigVerifier,
 		GasMap:              vmf.gasSchedule,
 		NodesConfigProvider: vmf.nodesConfigProvider,
+		Hasher:              vmf.hasher,
+		Marshalizer:         vmf.marshalizer,
+		SystemSCConfig:      vmf.systemSCConfig,
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
 	if err != nil {

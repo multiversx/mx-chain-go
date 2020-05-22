@@ -17,7 +17,7 @@ type ValidatorStatisticsProcessorMock struct {
 	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
 	ProcessCalled                            func(validatorInfo data.ShardValidatorInfoHandler) error
 	CommitCalled                             func() ([]byte, error)
-	ProcessRatingsEndOfEpochCalled           func(validatorInfos map[uint32][]*state.ValidatorInfo) error
+	ProcessRatingsEndOfEpochCalled           func(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error
 }
 
 // UpdatePeerState -
@@ -47,9 +47,9 @@ func (pm *ValidatorStatisticsProcessorMock) Commit() ([]byte, error) {
 }
 
 // ProcessRatingsEndOfEpoch -
-func (vsp *ValidatorStatisticsProcessorMock) ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo) error {
+func (vsp *ValidatorStatisticsProcessorMock) ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error {
 	if vsp.ProcessRatingsEndOfEpochCalled != nil {
-		return vsp.ProcessRatingsEndOfEpochCalled(validatorInfos)
+		return vsp.ProcessRatingsEndOfEpochCalled(validatorInfos, epoch)
 	}
 
 	return nil
@@ -94,6 +94,10 @@ func (vsp *ValidatorStatisticsProcessorMock) GetPeerAccount(address []byte) (sta
 	}
 
 	return nil, nil
+}
+
+// DisplayRatings -
+func (vsp *ValidatorStatisticsProcessorMock) DisplayRatings(_ uint32) {
 }
 
 // IsInterfaceNil -

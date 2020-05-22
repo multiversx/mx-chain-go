@@ -6,13 +6,13 @@ import (
 
 type pruningBuffer struct {
 	mutOp  sync.RWMutex
-	buffer map[string]struct{}
+	buffer [][]byte
 	size   uint32
 }
 
 func newPruningBuffer(pruningBufferLen uint32) *pruningBuffer {
 	return &pruningBuffer{
-		buffer: make(map[string]struct{}),
+		buffer: make([][]byte, 0),
 		size:   pruningBufferLen,
 	}
 }
@@ -22,33 +22,30 @@ func (pb *pruningBuffer) add(rootHash []byte) {
 	defer pb.mutOp.Unlock()
 
 	if uint32(len(pb.buffer)) == pb.size {
-		log.Trace("pruning buffer is full", "rootHash", rootHash)
+		log.Warn("pruning buffer is full", "rootHash", rootHash)
 		return
 	}
 
-	pb.buffer[string(rootHash)] = struct{}{}
+	pb.buffer = append(pb.buffer, rootHash)
 	log.Trace("pruning buffer add", "rootHash", rootHash)
 }
 
-func (pb *pruningBuffer) remove(rootHash []byte) {
-	pb.mutOp.Lock()
-	defer pb.mutOp.Unlock()
-
-	delete(pb.buffer, string(rootHash))
-}
-
-func (pb *pruningBuffer) removeAll() map[string]struct{} {
+func (pb *pruningBuffer) removeAll() [][]byte {
 	pb.mutOp.Lock()
 	defer pb.mutOp.Unlock()
 
 	log.Trace("pruning buffer", "len", len(pb.buffer))
 
-	buffer := make(map[string]struct{})
-	for key := range pb.buffer {
-		buffer[key] = struct{}{}
-	}
-
-	pb.buffer = make(map[string]struct{})
+	buffer := make([][]byte, len(pb.buffer))
+	copy(buffer, pb.buffer)
+	pb.buffer = pb.buffer[:0]
 
 	return buffer
+}
+
+func (pb *pruningBuffer) len() int {
+	pb.mutOp.RLock()
+	defer pb.mutOp.RUnlock()
+
+	return len(pb.buffer)
 }

@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/serviceContainer"
@@ -20,7 +20,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
-const maxCleanTime = time.Second
+var _ process.BlockProcessor = (*shardProcessor)(nil)
+
+const timeBetweenCheckForEpochStart = 100 * time.Millisecond
 
 // shardProcessor implements shardProcessor interface and actually it tries to execute block
 type shardProcessor struct {
@@ -51,6 +53,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, process.ErrNilTransactionPool
 	}
 
+	genesisHdr := arguments.BlockChain.GetGenesisHeader()
 	base := &baseProcessor{
 		accountsDB:             arguments.AccountsDB,
 		blockSizeThrottler:     arguments.BlockSizeThrottler,
@@ -74,6 +77,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		stateCheckpointModulus: arguments.StateCheckpointModulus,
 		blockChain:             arguments.BlockChain,
 		feeHandler:             arguments.FeeHandler,
+		genesisNonce:           genesisHdr.GetNonce(),
+		version:                core.TrimSoftwareVersion(arguments.Version),
 	}
 
 	sp := shardProcessor{
@@ -170,12 +175,16 @@ func (sp *shardProcessor) ProcessBlock(
 
 	haveMissingMetaHeaders := requestedMetaHdrs > 0 || requestedFinalityAttestingMetaHdrs > 0
 	if haveMissingMetaHeaders {
-		log.Debug("requested missing meta headers",
-			"num headers", requestedMetaHdrs,
-		)
-		log.Debug("requested missing finality attesting meta headers",
-			"num finality meta headers", requestedFinalityAttestingMetaHdrs,
-		)
+		if requestedMetaHdrs > 0 {
+			log.Debug("requested missing meta headers",
+				"num headers", requestedMetaHdrs,
+			)
+		}
+		if requestedFinalityAttestingMetaHdrs > 0 {
+			log.Debug("requested missing finality attesting meta headers",
+				"num finality meta headers", requestedFinalityAttestingMetaHdrs,
+			)
+		}
 
 		err = sp.waitForMetaHdrHashes(haveTime())
 
@@ -250,7 +259,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	err = sp.verifyAccumulatedFees(header)
+	err = sp.verifyFees(header)
 	if err != nil {
 		return err
 	}
@@ -276,8 +285,9 @@ func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, haveTime f
 
 	go sp.requestHandler.RequestMetaHeader(header.EpochStartMetaHash)
 
+	headersPool := sp.dataPool.Headers()
 	for {
-		time.Sleep(time.Millisecond)
+		time.Sleep(timeBetweenCheckForEpochStart)
 		if haveTime() < 0 {
 			break
 		}
@@ -285,6 +295,19 @@ func (sp *shardProcessor) requestEpochStartInfo(header *block.Header, haveTime f
 		if sp.epochStartTrigger.IsEpochStart() {
 			return nil
 		}
+
+		epochStartMetaHdr, err := headersPool.GetHeaderByHash(header.EpochStartMetaHash)
+		if err != nil {
+			continue
+		}
+
+		_, _, err = headersPool.GetHeadersByNonceAndShardId(epochStartMetaHdr.GetNonce()+1, core.MetachainShardId)
+		if err != nil {
+			go sp.requestHandler.RequestMetaHeaderByNonce(epochStartMetaHdr.GetNonce() + 1)
+			continue
+		}
+
+		return nil
 	}
 
 	return process.ErrTimeIsOut
@@ -376,23 +399,17 @@ func (sp *shardProcessor) checkEpochCorrectness(
 
 	isOldEpochStart := header.IsStartOfEpochBlock() && header.GetEpoch() < sp.epochStartTrigger.MetaEpoch()
 	if isOldEpochStart {
-		epochStartId := core.EpochStartIdentifier(header.GetEpoch())
-		metaBlock, err := process.GetMetaHeaderFromStorage([]byte(epochStartId), sp.marshalizer, sp.store)
+		metaBlock, err := process.GetMetaHeader(header.EpochStartMetaHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 		if err != nil {
+			go sp.requestHandler.RequestStartOfEpochMetaBlock(header.GetEpoch())
 			return fmt.Errorf("%w could not find epoch start metablock for epoch %d",
 				err, header.GetEpoch())
 		}
 
-		metaBlockHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, metaBlock)
-		if err != nil {
-			return fmt.Errorf("%w could not calculate hash for epoch start metablock for epoch %d",
-				err, header.GetEpoch())
-		}
-
-		if !bytes.Equal(header.EpochStartMetaHash, metaBlockHash) {
-			log.Warn("epoch start meta hash missmatch", "proposed", header.EpochStartMetaHash, "calculated", metaBlockHash)
-			return fmt.Errorf("%w proposed header with epoch %d has invalid epochStartMetaHash",
-				process.ErrEpochDoesNotMatch, header.GetEpoch())
+		isMetaBlockCorrect := metaBlock.IsStartOfEpochBlock() && metaBlock.GetEpoch() == header.GetEpoch()
+		if !isMetaBlockCorrect {
+			return fmt.Errorf("%w proposed header with epoch %d does not include correct start of epoch metaBlock %s",
+				process.ErrEpochDoesNotMatch, header.GetEpoch(), header.EpochStartMetaHash)
 		}
 	}
 
@@ -875,6 +892,11 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.displayPoolsInfo()
 
+	errNotCritical = sp.removeBlockDataFromPools(headerHandler, bodyHandler)
+	if errNotCritical != nil {
+		log.Debug("removeBlockDataFromPools", "error", errNotCritical.Error())
+	}
+
 	sp.cleanupPools(headerHandler)
 
 	return nil
@@ -909,16 +931,33 @@ func (sp *shardProcessor) displayPoolsInfo() {
 func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeader *block.Header) {
 	sp.snapShotEpochStartFromMeta(currentHeader)
 
-	for i := range headers {
-		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(headers[i].GetPrevHash(), sp.marshalizer, sp.store)
+	for _, hdr := range headers {
+		prevHeader, errNotCritical := process.GetShardHeaderFromStorage(hdr.GetPrevHash(), sp.marshalizer, sp.store)
 		if errNotCritical != nil {
 			log.Debug("could not get shard header from storage")
 			return
 		}
+		if hdr.IsStartOfEpochBlock() {
+			sp.nodesCoordinator.ShuffleOutForEpoch(hdr.GetEpoch())
+		}
+
+		log.Trace("updateState: prevHeader",
+			"shard", prevHeader.GetShardID(),
+			"epoch", prevHeader.GetEpoch(),
+			"round", prevHeader.GetRound(),
+			"nonce", prevHeader.GetNonce(),
+			"root hash", prevHeader.GetRootHash())
+
+		log.Trace("updateState: currHeader",
+			"shard", hdr.GetShardID(),
+			"epoch", hdr.GetEpoch(),
+			"round", hdr.GetRound(),
+			"nonce", hdr.GetNonce(),
+			"root hash", hdr.GetRootHash())
 
 		sp.updateStateStorage(
-			headers[i],
-			headers[i].GetRootHash(),
+			hdr,
+			hdr.GetRootHash(),
 			prevHeader.GetRootHash(),
 			sp.accountsDB[state.UserAccountsState],
 		)
@@ -931,29 +970,31 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
 		return
 	}
 
-	if header.IsStartOfEpochBlock() {
-		epochStartId := core.EpochStartIdentifier(header.GetEpoch())
-		metaBlock, err := process.GetMetaHeaderFromStorage([]byte(epochStartId), sp.marshalizer, sp.store)
-		if err != nil {
-			log.Warn("could not find epoch start metablock for", "epoch", header.GetEpoch(), "err", err)
-			return
+	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	defer sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
+	for _, metaHash := range header.MetaBlockHashes {
+		metaHdrInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaHash)]
+		if !ok {
+			continue
+		}
+		metaHdr, ok := metaHdrInfo.hdr.(*block.MetaBlock)
+		if !ok {
+			continue
+		}
+		if !metaHdr.IsStartOfEpochBlock() {
+			continue
 		}
 
-		for _, epochStartShData := range metaBlock.EpochStart.LastFinalizedHeaders {
+		for _, epochStartShData := range metaHdr.EpochStart.LastFinalizedHeaders {
 			if epochStartShData.ShardID != header.ShardID {
 				continue
 			}
 
 			rootHash := epochStartShData.RootHash
-			accounts.CancelPrune(rootHash, data.NewRoot)
 			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash)
 			accounts.SnapshotState(rootHash)
-
-			return
 		}
-
-		log.Warn("could not find epoch start shard data in metaBlock for", "epoch", header.GetEpoch(), "err", err)
-		return
 	}
 }
 
@@ -1055,6 +1096,8 @@ func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) data.Heade
 		Nonce:           nonce,
 		Round:           round,
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+		SoftwareVersion: []byte(sp.version),
 	}
 
 	return header
@@ -1675,6 +1718,7 @@ func (sp *shardProcessor) applyBodyToHeader(shardHeader *block.Header, body *blo
 	shardHeader.MiniBlockHeaders = miniBlockHeaders
 	shardHeader.TxCount = uint32(totalTxCount)
 	shardHeader.AccumulatedFees = sp.feeHandler.GetAccumulatedFees()
+	shardHeader.DeveloperFees = sp.feeHandler.GetDeveloperFees()
 
 	sw.Start("sortHeaderHashesForCurrentBlockByNonce")
 	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)

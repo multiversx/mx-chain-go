@@ -5,8 +5,9 @@ import (
 	"math"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 )
+
+var _ Coordinator = (*multiShardCoordinator)(nil)
 
 // multiShardCoordinator struct defines the functionality for handling transaction dispatching to
 // the corresponding shards. The number of shards is currently passed as a constructor
@@ -45,8 +46,8 @@ func (msc *multiShardCoordinator) calculateMasks() (uint32, uint32) {
 }
 
 // ComputeId calculates the shard for a given address container
-func (msc *multiShardCoordinator) ComputeId(address state.AddressContainer) uint32 {
-	return msc.ComputeIdFromBytes(address.Bytes())
+func (msc *multiShardCoordinator) ComputeId(address []byte) uint32 {
+	return msc.ComputeIdFromBytes(address)
 }
 
 // ComputeIdFromBytes calculates the shard for a given address
@@ -86,8 +87,8 @@ func (msc *multiShardCoordinator) SelfId() uint32 {
 }
 
 // SameShard returns weather two addresses belong to the same shard
-func (msc *multiShardCoordinator) SameShard(firstAddress, secondAddress state.AddressContainer) bool {
-	if bytes.Equal(firstAddress.Bytes(), secondAddress.Bytes()) {
+func (msc *multiShardCoordinator) SameShard(firstAddress, secondAddress []byte) bool {
+	if bytes.Equal(firstAddress, secondAddress) {
 		return true
 	}
 

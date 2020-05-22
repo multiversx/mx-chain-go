@@ -35,13 +35,16 @@ type HeaderHandler interface {
 	GetSignature() []byte
 	GetLeaderSignature() []byte
 	GetChainID() []byte
+	GetSoftwareVersion() []byte
 	GetTimeStamp() uint64
 	GetTxCount() uint32
 	GetReceiptsHash() []byte
 	GetAccumulatedFees() *big.Int
+	GetDeveloperFees() *big.Int
 	GetEpochStartMetaHash() []byte
 
 	SetAccumulatedFees(value *big.Int)
+	SetDeveloperFees(value *big.Int)
 	SetShardID(shId uint32)
 	SetNonce(n uint64)
 	SetEpoch(e uint32)
@@ -56,6 +59,7 @@ type HeaderHandler interface {
 	SetSignature(sg []byte)
 	SetLeaderSignature(sg []byte)
 	SetChainID(chainID []byte)
+	SetSoftwareVersion(version []byte)
 	SetTxCount(txCount uint32)
 
 	IsStartOfEpochBlock() bool
@@ -63,7 +67,6 @@ type HeaderHandler interface {
 
 	IsInterfaceNil() bool
 	Clone() HeaderHandler
-	CheckChainID(reference []byte) error
 }
 
 // BodyHandler interface for a block body
@@ -152,6 +155,8 @@ type Trie interface {
 	SetCheckpoint(rootHash []byte)
 	ResetOldHashes() [][]byte
 	AppendToOldHashes([][]byte)
+	GetDirtyHashes() (ModifiedHashes, error)
+	SetNewHashes(ModifiedHashes)
 	Database() DBWriteCacher
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetAllLeaves() (map[string][]byte, error)
@@ -175,7 +180,7 @@ type DBWriteCacher interface {
 type DBRemoveCacher interface {
 	Put([]byte, ModifiedHashes) error
 	Evict([]byte) (ModifiedHashes, error)
-	PresentInNewHashes(hash string) (bool, error)
+	ShouldKeepHash(hash string, identifier TriePruningIdentifier) (bool, error)
 	IsInterfaceNil() bool
 }
 
@@ -192,7 +197,7 @@ type StorageManager interface {
 	TakeSnapshot([]byte)
 	SetCheckpoint([]byte)
 	Prune([]byte, TriePruningIdentifier)
-	CancelPrune([]byte)
+	CancelPrune([]byte, TriePruningIdentifier)
 	MarkForEviction([]byte, ModifiedHashes) error
 	GetDbThatContainsHash([]byte) DBWriteCacher
 	IsPruningEnabled() bool
@@ -203,7 +208,7 @@ type StorageManager interface {
 
 // TrieFactory creates new tries
 type TrieFactory interface {
-	Create(config.StorageConfig, bool) (StorageManager, Trie, error)
+	Create(config.StorageConfig, string, bool, uint) (StorageManager, Trie, error)
 	IsInterfaceNil() bool
 }
 

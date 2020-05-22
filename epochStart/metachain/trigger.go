@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/close"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -17,11 +18,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var log = logger.GetOrCreate("epochStart/metachain")
+
+var _ dataRetriever.EpochHandler = (*trigger)(nil)
+var _ epochStart.TriggerHandler = (*trigger)(nil)
+var _ process.EpochStartTriggerHandler = (*trigger)(nil)
+var _ process.EpochBootstrapper = (*trigger)(nil)
+var _ close.Closer = (*trigger)(nil)
 
 const minimumNonceToStartEpoch = 4
 
@@ -100,7 +108,6 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 	}
 
 	trigggerStateKey := core.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
-
 	trig := &trigger{
 		triggerStateKey:             []byte(trigggerStateKey),
 		roundsPerEpoch:              uint64(args.Settings.RoundsPerEpoch),
@@ -238,12 +245,13 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 
 	t.currEpochStartRound = metaBlock.Round
 	t.epoch = metaBlock.Epoch
-	t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
-	t.epochStartNotifier.NotifyAll(metaBlock)
 	t.isEpochStart = false
 	t.currentRound = metaBlock.Round
 	t.epochStartMeta = metaBlock
 	t.epochStartMetaHash = metaHash
+
+	t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
+	t.epochStartNotifier.NotifyAll(metaBlock)
 
 	t.saveCurrentState(metaBlock.Round)
 
@@ -415,6 +423,11 @@ func (t *trigger) SetCurrentEpochStartRound(round uint64) {
 	t.currentRound = round
 	t.saveCurrentState(round)
 	t.mutTrigger.Unlock()
+}
+
+// Close will close the endless running go routine
+func (t *trigger) Close() error {
+	return nil
 }
 
 // IsInterfaceNil return true if underlying object is nil

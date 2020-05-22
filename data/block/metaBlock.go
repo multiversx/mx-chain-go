@@ -1,10 +1,7 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. metaBlock.proto
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. metaBlock.proto
 package block
 
 import (
-	"bytes"
-	"encoding/hex"
-	"fmt"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -79,9 +76,19 @@ func (m *MetaBlock) SetChainID(chainID []byte) {
 	m.ChainID = chainID
 }
 
+// SetSoftwareVersion sets the software version of the block
+func (m *MetaBlock) SetSoftwareVersion(version []byte) {
+	m.SoftwareVersion = version
+}
+
 // SetAccumulatedFees sets the accumulated fees in the header
 func (m *MetaBlock) SetAccumulatedFees(value *big.Int) {
 	m.AccumulatedFees.Set(value)
+}
+
+// SetDeveloperFees sets the developer fees in the header
+func (m *MetaBlock) SetDeveloperFees(value *big.Int) {
+	m.DeveloperFees.Set(value)
 }
 
 // SetTimeStamp sets header timestamp
@@ -139,21 +146,6 @@ func (m *MetaBlock) IsStartOfEpochBlock() bool {
 func (m *MetaBlock) Clone() data.HeaderHandler {
 	metaBlockCopy := *m
 	return &metaBlockCopy
-}
-
-// CheckChainID returns nil if the header's chain ID matches the one provided
-// otherwise, it will error
-func (m *MetaBlock) CheckChainID(reference []byte) error {
-	if !bytes.Equal(m.ChainID, reference) {
-		return fmt.Errorf(
-			"%w, expected: %s, got %s",
-			data.ErrInvalidChainID,
-			hex.EncodeToString(reference),
-			hex.EncodeToString(m.ChainID),
-		)
-	}
-
-	return nil
 }
 
 // GetEpochStartMetaHash returns the hash of the epoch start meta block

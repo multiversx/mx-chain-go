@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
+var _ update.MissingHeadersByHashSyncer = (*syncHeadersByHash)(nil)
+
 type syncHeadersByHash struct {
 	mutMissingHdrs          sync.Mutex
 	mapHeaders              map[string]data.HeaderHandler
@@ -174,7 +176,7 @@ func (m *syncHeadersByHash) getHeaderFromPoolOrStorage(hash []byte) (data.Header
 	}
 
 	var hdr block.Header
-	err = m.marshalizer.Unmarshal(hdr, hdrData)
+	err = m.marshalizer.Unmarshal(&hdr, hdrData)
 	if err != nil {
 		return nil, false
 	}

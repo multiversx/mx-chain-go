@@ -11,7 +11,7 @@ func (boot *ShardBootstrap) RequestHeaderWithNonce(nonce uint64) {
 	boot.requestHeaderWithNonce(nonce)
 }
 
-func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) (block.MiniBlockSlice, [][]byte) {
+func (boot *ShardBootstrap) GetMiniBlocks(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
 	return boot.miniBlocksProvider.GetMiniBlocks(hashes)
 }
 
@@ -67,8 +67,8 @@ func (bfd *baseForkDetector) FinalCheckpointRound() uint64 {
 	return bfd.finalCheckpoint().round
 }
 
-func (bfd *baseForkDetector) CheckBlockValidity(header *block.Header, headerHash []byte, state process.BlockHeaderState) error {
-	return bfd.checkBlockBasicValidity(header, headerHash, state)
+func (bfd *baseForkDetector) CheckBlockValidity(header *block.Header, headerHash []byte) error {
+	return bfd.checkBlockBasicValidity(header, headerHash)
 }
 
 func (bfd *baseForkDetector) RemovePastHeaders() {
@@ -198,8 +198,8 @@ func (boot *baseBootstrap) ComputeNodeState() {
 	boot.computeNodeState()
 }
 
-func (boot *baseBootstrap) ResetProbableHighestNonceIfNeeded(headerHandler data.HeaderHandler) {
-	boot.resetProbableHighestNonceIfNeeded(headerHandler)
+func (boot *baseBootstrap) DoJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
+	boot.doJobOnSyncBlockFail(bodyHandler, headerHandler, err)
 }
 
 func (boot *baseBootstrap) SetNumSyncedWithErrorsForNonce(nonce uint64, numSyncedWithErrors uint32) {

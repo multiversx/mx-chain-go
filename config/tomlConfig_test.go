@@ -115,17 +115,22 @@ func TestTomlParser(t *testing.T) {
 }
 
 func TestTomlEconomicsParser(t *testing.T) {
-	rewardsValue := "1000000000000000000000000000000000"
 	communityPercentage := 0.1
 	leaderPercentage := 0.1
-	burnPercentage := 0.8
+	developerPercentage := 0.3
 	maxGasLimitPerBlock := "18446744073709551615"
 	minGasPrice := "18446744073709551615"
 	minGasLimit := "18446744073709551615"
+	communityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
+	denominatinoCoefficient := "0.000000000000000001"
 
 	cfgEconomicsExpected := EconomicsConfig{
 		RewardsSettings: RewardsSettings{
-			LeaderPercentage: leaderPercentage,
+			LeaderPercentage:               leaderPercentage,
+			CommunityPercentage:            communityPercentage,
+			CommunityAddress:               communityAddress,
+			DenominationCoefficientForView: denominatinoCoefficient,
+			DeveloperPercentage:            developerPercentage,
 		},
 		FeeSettings: FeeSettings{
 			MaxGasLimitPerBlock: maxGasLimitPerBlock,
@@ -136,10 +141,11 @@ func TestTomlEconomicsParser(t *testing.T) {
 
 	testString := `
 [RewardsSettings]
-    RewardsValue = "` + rewardsValue + `"
     CommunityPercentage = ` + fmt.Sprintf("%.6f", communityPercentage) + `
+	CommunityAddress = "` + communityAddress + `"
+	DenominationCoefficientForView = "` + denominatinoCoefficient + `"
     LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage) + `
-    BurnPercentage =  ` + fmt.Sprintf("%.6f", burnPercentage) + `
+	DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
 [FeeSettings]
 	MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `"
     MinGasPrice = "` + minGasPrice + `"
@@ -206,4 +212,56 @@ func TestTomlExternalParser(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, cfgExternalExpected, cfg)
+}
+
+func TestAPIRoutesToml(t *testing.T) {
+	package0 := "testPackage0"
+	route0 := "testRoute0"
+	route1 := "testRoute1"
+
+	package1 := "testPackage1"
+	route2 := "testRoute2"
+
+	expectedCfg := ApiRoutesConfig{
+		APIPackages: map[string]APIPackageConfig{
+			package0: {
+				Routes: []RouteConfig{
+					{Name: route0, Open: true},
+					{Name: route1, Open: true},
+				},
+			},
+			package1: {
+				Routes: []RouteConfig{
+					{Name: route2, Open: false},
+				},
+			},
+		},
+	}
+
+	testString := `
+     # API routes configuration
+[APIPackages]
+
+[APIPackages.` + package0 + `]
+	Routes = [
+        # test comment
+        { Name = "` + route0 + `", Open = true },
+
+        # test comment
+        { Name = "` + route1 + `", Open = true },
+	]
+
+[APIPackages.` + package1 + `]
+	Routes = [
+         # test comment
+        { Name = "` + route2 + `", Open = false }
+    ]
+ `
+
+	cfg := ApiRoutesConfig{}
+
+	err := toml.Unmarshal([]byte(testString), &cfg)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedCfg, cfg)
 }

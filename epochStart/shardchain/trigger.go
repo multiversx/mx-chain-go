@@ -2,6 +2,7 @@ package shardchain
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"math"
 	"sort"
@@ -11,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/close"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -25,6 +27,12 @@ import (
 )
 
 var log = logger.GetOrCreate("epochStart/shardchain")
+
+var _ dataRetriever.EpochHandler = (*trigger)(nil)
+var _ epochStart.TriggerHandler = (*trigger)(nil)
+var _ process.EpochStartTriggerHandler = (*trigger)(nil)
+var _ process.EpochBootstrapper = (*trigger)(nil)
+var _ close.Closer = (*trigger)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in requestMissingMiniblocks method
 const sleepTime = 1 * time.Second
@@ -92,6 +100,7 @@ type trigger struct {
 
 	mapMissingMiniblocks map[string]uint32
 	mutMissingMiniblocks sync.RWMutex
+	cancelFunc           func()
 }
 
 type metaInfo struct {
@@ -222,7 +231,10 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	}
 
 	t.mapMissingMiniblocks = make(map[string]uint32)
-	go t.requestMissingMiniblocks()
+
+	var ctx context.Context
+	ctx, t.cancelFunc = context.WithCancel(context.Background())
+	go t.requestMissingMiniblocks(ctx)
 
 	return t, nil
 }
@@ -238,9 +250,14 @@ func (t *trigger) clearMissingMiniblocksMap(epoch uint32) {
 	}
 }
 
-func (t *trigger) requestMissingMiniblocks() {
+func (t *trigger) requestMissingMiniblocks(ctx context.Context) {
 	for {
-		time.Sleep(sleepTime)
+		select {
+		case <-ctx.Done():
+			log.Debug("trigger's go routine is stopping...")
+			return
+		case <-time.After(sleepTime):
+		}
 
 		t.mutMissingMiniblocks.RLock()
 		if len(t.mapMissingMiniblocks) == 0 {
@@ -256,7 +273,14 @@ func (t *trigger) requestMissingMiniblocks() {
 		t.mutMissingMiniblocks.RUnlock()
 
 		go t.requestHandler.RequestMiniBlocks(core.MetachainShardId, missingMiniblocks)
-		time.Sleep(waitTime)
+
+		select {
+		case <-ctx.Done():
+			log.Debug("trigger's go routine is stopping...")
+			return
+		case <-time.After(waitTime):
+		}
+
 		t.updateMissingMiniblocks()
 	}
 }
@@ -770,11 +794,11 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	t.epoch = shardHdr.Epoch
 	if t.metaEpoch < t.epoch {
 		t.metaEpoch = t.epoch
+		t.epochMetaBlockHash = shardHdr.EpochStartMetaHash
 	}
 
 	t.isEpochStart = false
 	t.newEpochHdrReceived = false
-	t.epochMetaBlockHash = shardHdr.EpochStartMetaHash
 	t.epochStartShardHeader = shardHdr
 	finishedStartOfEpochMetaHdrs := t.getAllFinishedStartOfEpochMetaHdrs()
 
@@ -911,6 +935,15 @@ func (t *trigger) saveCurrentState(round uint64) {
 	if err != nil {
 		log.Debug("error saving trigger state", "error", err, "key", t.triggerStateKey)
 	}
+}
+
+// Close will close the endless running go routine
+func (t *trigger) Close() error {
+	if t.cancelFunc != nil {
+		t.cancelFunc()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

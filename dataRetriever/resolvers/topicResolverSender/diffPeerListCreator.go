@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
+var _ dataRetriever.PeerListCreator = (*DiffPeerListCreator)(nil)
+
 // DiffPeerListCreator can create a peer list by making the set difference between peers on
 // main topic and the exclusion topic. If the resulting list is empty, will return the peers on the main topic.
 type DiffPeerListCreator struct {

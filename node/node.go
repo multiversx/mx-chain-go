@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"math/rand"
 	syncGo "sync"
 	"sync/atomic"
 	"time"
@@ -23,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -30,10 +30,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/componentHandler"
+	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
+	heartbeatProcess "github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/node/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/node/heartbeat/storage"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -51,6 +53,8 @@ const SendTransactionsPipe = "send transactions pipe"
 
 var log = logger.GetOrCreate("node")
 var numSecondsBetweenPrints = 20
+
+var _ facade.NodeHandler = (*Node)(nil)
 
 // Option represents a functional configuration parameter that can operate
 //  over the None struct.
@@ -82,8 +86,6 @@ type Node struct {
 	interceptorsContainer         process.InterceptorsContainer
 	resolversFinder               dataRetriever.ResolversFinder
 	peerBlackListHandler          process.BlackListHandler
-	heartbeatMonitor              *heartbeat.Monitor
-	heartbeatSender               *heartbeat.Sender
 	appStatusHandler              core.AppStatusHandler
 	validatorStatistics           process.ValidatorStatisticsProcessor
 	hardforkTrigger               HardforkTrigger
@@ -115,11 +117,12 @@ type Node struct {
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
-	indexer                indexer.Indexer
-	blocksBlackListHandler process.BlackListHandler
-	bootStorer             process.BootStorer
-	requestedItemsHandler  dataRetriever.RequestedItemsHandler
-	headerSigVerifier      spos.RandSeedVerifier
+	indexer                 indexer.Indexer
+	blocksBlackListHandler  process.BlackListHandler
+	bootStorer              process.BootStorer
+	requestedItemsHandler   dataRetriever.RequestedItemsHandler
+	headerSigVerifier       spos.RandSeedVerifier
+	headerIntegrityVerifier spos.HeaderIntegrityVerifier
 
 	chainID                  []byte
 	blockTracker             process.BlockTracker
@@ -137,10 +140,12 @@ type Node struct {
 	signatureSize int
 	publicKeySize int
 
-	chanStopNodeProcess chan bool
+	chanStopNodeProcess chan endProcess.ArgEndProcess
 
 	mutQueryHandlers syncGo.RWMutex
 	queryHandlers    map[string]debug.QueryHandler
+
+	heartbeatHandler *componentHandler.HeartbeatHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -236,7 +241,8 @@ func (n *Node) StartConsensus() error {
 		log.Debug("cannot set app status handler for shard bootstrapper")
 	}
 
-	bootstrapper.StartSync()
+	bootstrapper.StartSyncingBlocks()
+
 	epoch := uint32(0)
 	crtBlockHeader := n.blkc.GetCurrentBlockHeader()
 	if !check.IfNil(crtBlockHeader) {
@@ -288,6 +294,7 @@ func (n *Node) StartConsensus() error {
 		SingleSigner:             n.singleSigner,
 		SyncTimer:                n.syncTimer,
 		HeaderSigVerifier:        n.headerSigVerifier,
+		HeaderIntegrityVerifier:  n.headerIntegrityVerifier,
 		ChainID:                  n.chainID,
 		NetworkShardingCollector: n.networkShardingCollector,
 		AntifloodHandler:         n.inputAntifloodHandler,
@@ -300,6 +307,8 @@ func (n *Node) StartConsensus() error {
 	if err != nil {
 		return err
 	}
+
+	worker.StartWorking()
 
 	n.dataPool.Headers().RegisterHandler(worker.ReceivedHeader)
 
@@ -352,7 +361,7 @@ func (n *Node) StartConsensus() error {
 		return err
 	}
 
-	go chronologyHandler.StartRounds()
+	chronologyHandler.StartRounds()
 
 	return nil
 }
@@ -363,9 +372,9 @@ func (n *Node) GetBalance(address string) (*big.Int, error) {
 		return nil, errors.New("initialize AccountsAdapter and PubkeyConverter first")
 	}
 
-	addr, err := n.addressPubkeyConverter.CreateAddressFromString(address)
+	addr, err := n.addressPubkeyConverter.Decode(address)
 	if err != nil {
-		return nil, errors.New("invalid address, could not decode from hex: " + err.Error())
+		return nil, errors.New("invalid address, could not decode from: " + err.Error())
 	}
 	accWrp, err := n.accounts.GetExistingAccount(addr)
 	if err != nil {
@@ -734,24 +743,14 @@ func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
 }
 
 func (n *Node) getSenderShardId(tx *transaction.Transaction) (uint32, error) {
-	senderBytes, err := n.addressPubkeyConverter.CreateAddressFromBytes(tx.SndAddr)
-	if err != nil {
-		return 0, err
-	}
-
-	senderShardId := n.shardCoordinator.ComputeId(senderBytes)
+	senderShardId := n.shardCoordinator.ComputeId(tx.SndAddr)
 	if senderShardId != n.shardCoordinator.SelfId() {
 		return senderShardId, nil
 	}
 
 	//tx is cross-shard with self, send it on the [transaction topic]_self_cross directly so it will
 	//traverse the network only once
-	recvBytes, err := n.addressPubkeyConverter.CreateAddressFromBytes(tx.RcvAddr)
-	if err != nil {
-		return 0, err
-	}
-
-	return n.shardCoordinator.ComputeId(recvBytes), nil
+	return n.shardCoordinator.ComputeId(tx.RcvAddr), nil
 }
 
 // ValidateTransaction will validate a transaction
@@ -847,7 +846,7 @@ func (n *Node) CreateTransaction(
 	sender string,
 	gasPrice uint64,
 	gasLimit uint64,
-	dataField []byte,
+	dataField string,
 	signatureHex string,
 ) (*transaction.Transaction, []byte, error) {
 
@@ -858,12 +857,12 @@ func (n *Node) CreateTransaction(
 		return nil, nil, ErrNilAccountsAdapter
 	}
 
-	receiverAddress, err := n.addressPubkeyConverter.CreateAddressFromString(receiver)
+	receiverAddress, err := n.addressPubkeyConverter.Decode(receiver)
 	if err != nil {
 		return nil, nil, errors.New("could not create receiver address from provided param")
 	}
 
-	senderAddress, err := n.addressPubkeyConverter.CreateAddressFromString(sender)
+	senderAddress, err := n.addressPubkeyConverter.Decode(sender)
 	if err != nil {
 		return nil, nil, errors.New("could not create sender address from provided param")
 	}
@@ -881,11 +880,11 @@ func (n *Node) CreateTransaction(
 	tx := &transaction.Transaction{
 		Nonce:     nonce,
 		Value:     valAsBigInt,
-		RcvAddr:   receiverAddress.Bytes(),
-		SndAddr:   senderAddress.Bytes(),
+		RcvAddr:   receiverAddress,
+		SndAddr:   senderAddress,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      dataField,
+		Data:      []byte(dataField),
 		Signature: signatureBytes,
 	}
 
@@ -912,7 +911,7 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 		return nil, ErrNilAccountsAdapter
 	}
 
-	addr, err := n.addressPubkeyConverter.CreateAddressFromString(address)
+	addr, err := n.addressPubkeyConverter.Decode(address)
 	if err != nil {
 		return nil, err
 	}
@@ -934,167 +933,52 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 }
 
 // StartHeartbeat starts the node's heartbeat processing/signaling module
-func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber string, nodeDisplayName string) error {
-	if !hbConfig.Enabled {
-		return nil
+//TODO(next PR) remove the instantiation of the heartbeat component from here
+func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber string, prefsConfig config.PreferencesConfig) error {
+	arg := componentHandler.ArgHeartbeat{
+		HeartbeatConfig:          hbConfig,
+		PrefsConfig:              prefsConfig,
+		Marshalizer:              n.internalMarshalizer,
+		Messenger:                n.messenger,
+		ShardCoordinator:         n.shardCoordinator,
+		NodesCoordinator:         n.nodesCoordinator,
+		AppStatusHandler:         n.appStatusHandler,
+		Storer:                   n.store.GetStorer(dataRetriever.HeartbeatUnit),
+		ValidatorStatistics:      n.validatorStatistics,
+		KeyGenerator:             n.keyGen,
+		SingleSigner:             n.singleSigner,
+		PrivKey:                  n.privKey,
+		HardforkTrigger:          n.hardforkTrigger,
+		AntifloodHandler:         n.inputAntifloodHandler,
+		PeerBlackListHandler:     n.peerBlackListHandler,
+		ValidatorPubkeyConverter: n.validatorPubkeyConverter,
+		EpochStartTrigger:        n.epochStartTrigger,
+		EpochStartRegistration:   n.epochStartRegistrationHandler,
+		Timer:                    &heartbeatProcess.RealTimer{},
+		GenesisTime:              n.genesisTime,
+		VersionNumber:            versionNumber,
+		PeerShardMapper:          n.networkShardingCollector,
+		SizeCheckDelta:           n.sizeCheckDelta,
+		ValidatorsProvider:       n.validatorsProvider,
 	}
 
-	err := n.checkConfigParams(hbConfig)
-	if err != nil {
-		return err
-	}
+	var err error
+	n.heartbeatHandler, err = componentHandler.NewHeartbeatHandler(arg)
 
-	if n.messenger.HasTopicValidator(core.HeartbeatTopic) {
-		return ErrValidatorAlreadySet
-	}
-
-	if !n.messenger.HasTopic(core.HeartbeatTopic) {
-		err = n.messenger.CreateTopic(core.HeartbeatTopic, true)
-		if err != nil {
-			return err
-		}
-	}
-	argPeerTypeProvider := sharding.ArgPeerTypeProvider{
-		NodesCoordinator:        n.nodesCoordinator,
-		EpochHandler:            n.epochStartTrigger,
-		EpochStartEventNotifier: n.epochStartRegistrationHandler,
-	}
-
-	peerTypeProvider, err := sharding.NewPeerTypeProvider(argPeerTypeProvider)
-	if err != nil {
-		return err
-	}
-
-	argSender := heartbeat.ArgHeartbeatSender{
-		PeerMessenger:    n.messenger,
-		SingleSigner:     n.singleSigner,
-		PrivKey:          n.privKey,
-		Marshalizer:      n.internalMarshalizer,
-		Topic:            core.HeartbeatTopic,
-		ShardCoordinator: n.shardCoordinator,
-		PeerTypeProvider: peerTypeProvider,
-		StatusHandler:    n.appStatusHandler,
-		VersionNumber:    versionNumber,
-		NodeDisplayName:  nodeDisplayName,
-		HardforkTrigger:  n.hardforkTrigger,
-	}
-
-	n.heartbeatSender, err = heartbeat.NewSender(argSender)
-	if err != nil {
-		return err
-	}
-
-	heartbeatStorageUnit := n.store.GetStorer(dataRetriever.HeartbeatUnit)
-
-	heartBeatMsgProcessor, err := heartbeat.NewMessageProcessor(
-		n.singleSigner,
-		n.keyGen,
-		n.internalMarshalizer,
-		n.networkShardingCollector,
-	)
-	if err != nil {
-		return err
-	}
-
-	heartbeatStorer, err := storage.NewHeartbeatDbStorer(heartbeatStorageUnit, n.internalMarshalizer)
-	if err != nil {
-		return err
-	}
-
-	timer := &heartbeat.RealTimer{}
-	netInputMarshalizer := n.internalMarshalizer
-	if n.sizeCheckDelta > 0 {
-		netInputMarshalizer = marshal.NewSizeCheckUnmarshalizer(n.internalMarshalizer, n.sizeCheckDelta)
-	}
-
-	allValidators, _, _ := n.getLatestValidators()
-	pubKeysMap := make(map[uint32][]string)
-	for shardID, valsInShard := range allValidators {
-		for _, val := range valsInShard {
-			pubKeysMap[shardID] = append(pubKeysMap[shardID], string(val.PublicKey))
-		}
-	}
-
-	argMonitor := heartbeat.ArgHeartbeatMonitor{
-		Marshalizer:                        netInputMarshalizer,
-		MaxDurationPeerUnresponsive:        time.Second * time.Duration(hbConfig.DurationInSecToConsiderUnresponsive),
-		PubKeysMap:                         pubKeysMap,
-		GenesisTime:                        n.genesisTime,
-		MessageHandler:                     heartBeatMsgProcessor,
-		Storer:                             heartbeatStorer,
-		PeerTypeProvider:                   peerTypeProvider,
-		Timer:                              timer,
-		AntifloodHandler:                   n.inputAntifloodHandler,
-		HardforkTrigger:                    n.hardforkTrigger,
-		PeerBlackListHandler:               n.peerBlackListHandler,
-		ValidatorPubkeyConverter:           n.validatorPubkeyConverter,
-		HbmiRefreshIntervalInSec:           hbConfig.HbmiRefreshIntervalInSec,
-		HideInactiveValidatorIntervalInSec: hbConfig.HideInactiveValidatorIntervalInSec,
-	}
-	n.heartbeatMonitor, err = heartbeat.NewMonitor(argMonitor)
-	if err != nil {
-		return err
-	}
-
-	err = n.heartbeatMonitor.SetAppStatusHandler(n.appStatusHandler)
-	if err != nil {
-		return err
-	}
-
-	err = n.messenger.RegisterMessageProcessor(core.HeartbeatTopic, n.heartbeatMonitor)
-	if err != nil {
-		return err
-	}
-
-	go n.startSendingHeartbeats(hbConfig)
-
-	return nil
-}
-
-func (n *Node) checkConfigParams(config config.HeartbeatConfig) error {
-	if config.DurationInSecToConsiderUnresponsive < 1 {
-		return ErrNegativeDurationInSecToConsiderUnresponsive
-	}
-	if config.MaxTimeToWaitBetweenBroadcastsInSec < 1 {
-		return ErrNegativeMaxTimeToWaitBetweenBroadcastsInSec
-	}
-	if config.MinTimeToWaitBetweenBroadcastsInSec < 1 {
-		return ErrNegativeMinTimeToWaitBetweenBroadcastsInSec
-	}
-	if config.MaxTimeToWaitBetweenBroadcastsInSec <= config.MinTimeToWaitBetweenBroadcastsInSec {
-		return ErrWrongValues
-	}
-	if config.DurationInSecToConsiderUnresponsive <= config.MaxTimeToWaitBetweenBroadcastsInSec {
-		return ErrWrongValues
-	}
-
-	return nil
-}
-
-func (n *Node) startSendingHeartbeats(config config.HeartbeatConfig) {
-	r := rand.New(rand.NewSource(time.Now().Unix()))
-
-	for {
-		diffSeconds := config.MaxTimeToWaitBetweenBroadcastsInSec - config.MinTimeToWaitBetweenBroadcastsInSec
-		diffNanos := int64(diffSeconds) * time.Second.Nanoseconds()
-		randomNanos := r.Int63n(diffNanos)
-		timeToWait := time.Second*time.Duration(config.MinTimeToWaitBetweenBroadcastsInSec) + time.Duration(randomNanos)
-
-		time.Sleep(timeToWait)
-
-		err := n.heartbeatSender.SendHeartbeat()
-		if err != nil {
-			log.Debug("SendHeartbeat", "error", err.Error())
-		}
-	}
+	return err
 }
 
 // GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
-func (n *Node) GetHeartbeats() []heartbeat.PubKeyHeartbeat {
-	if n.heartbeatMonitor == nil {
-		return nil
+func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
+	if check.IfNil(n.heartbeatHandler) {
+		return make([]heartbeatData.PubKeyHeartbeat, 0)
 	}
-	return n.heartbeatMonitor.GetHeartbeats()
+	mon := n.heartbeatHandler.Monitor()
+	if check.IfNil(mon) {
+		return make([]heartbeatData.PubKeyHeartbeat, 0)
+	}
+
+	return mon.GetHeartbeats()
 }
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys

@@ -10,11 +10,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,20 +34,19 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 
 	genesisFile := "genesisEdgeCase.json"
 
-	genesisBalances := &sharding.Genesis{}
-	err := core.LoadJsonFile(genesisBalances, genesisFile)
+	accountsParser, err := parsing.NewAccountsParser(genesisFile, big.NewInt(6000000000), integrationTests.TestAddressPubkeyConverter)
 	assert.Nil(t, err)
 
-	fmt.Printf("Loaded %d entries...\n", len(genesisBalances.InitialBalances))
+	fmt.Printf("Loaded %d entries...\n", len(accountsParser.InitialAccounts()))
 
-	referenceRootHash, adbReference := getRootHashByRunningInitialBalances(genesisBalances.InitialBalances)
+	referenceRootHash, adbReference := getRootHashByRunningInitialAccounts(accountsParser.InitialAccounts())
 	fmt.Printf("Root hash: %s\n", base64.StdEncoding.EncodeToString(referenceRootHash))
 
 	_, _ = adbReference.RootHash()
 
 	noOfTests := 1000
 	for i := 0; i < noOfTests; i++ {
-		rootHash, adb := getRootHashByRunningInitialBalances(genesisBalances.InitialBalances)
+		rootHash, adb := getRootHashByRunningInitialAccounts(accountsParser.InitialAccounts())
 		if !bytes.Equal(rootHash, referenceRootHash) {
 			_, _ = adb.RootHash()
 			fmt.Printf("**** Wrong root hash on iteration %d: %s\n", i, base64.StdEncoding.EncodeToString(rootHash))
@@ -296,21 +295,20 @@ func printTestDebugLines(
 	fmt.Println(strTr)
 }
 
-func getRootHashByRunningInitialBalances(initialBalances []*sharding.InitialBalance) ([]byte, state.AccountsAdapter) {
-	adb, _, _ := integrationTests.CreateAccountsDB(0)
+func getRootHashByRunningInitialAccounts(initialAccounts []genesis.InitialAccountHandler) ([]byte, state.AccountsAdapter) {
+	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
-	uniformIndexes := make([]int, len(initialBalances))
-	for i := 0; i < len(initialBalances); i++ {
+	uniformIndexes := make([]int, len(initialAccounts))
+	for i := 0; i < len(initialAccounts); i++ {
 		uniformIndexes[i] = i
 	}
 	randomIndexes, _ := fisherYatesShuffle(uniformIndexes)
 
 	for _, idx := range randomIndexes {
-		ib := initialBalances[idx]
-		balance, _ := big.NewInt(0).SetString(ib.Balance, 10)
-
-		decoded, _ := integrationTests.TestAddressPubkeyConverter.Decode(ib.PubKey)
-		integrationTests.MintAddress(adb, decoded, balance)
+		ia := initialAccounts[idx]
+		decoded, _ := integrationTests.TestAddressPubkeyConverter.Decode(ia.GetAddress())
+		integrationTests.MintAddress(adb, decoded, ia.GetBalanceValue())
 	}
 
 	rootHash, _ := adb.Commit()

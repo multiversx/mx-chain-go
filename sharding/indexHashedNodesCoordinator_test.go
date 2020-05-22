@@ -2,8 +2,10 @@ package sharding
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"runtime"
+	"sort"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -18,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -72,7 +75,7 @@ func createArguments() ArgNodesCoordinator {
 	nbShards := uint32(1)
 	eligibleMap := createDummyNodesMap(10, nbShards, "eligible")
 	waitingMap := createDummyNodesMap(3, nbShards, "waiting")
-	nodeShuffler := NewXorValidatorsShuffler(10, 10, 0, false)
+	nodeShuffler := NewXorValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -206,7 +209,7 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 
 	eligibleMap := createDummyNodesMap(10, 3, "eligible")
 	waitingMap := createDummyNodesMap(3, 3, "waiting")
-	nodeShuffler := NewXorValidatorsShuffler(10, 10, 0, false)
+	nodeShuffler := NewXorValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -251,7 +254,7 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testi
 
 	eligibleMap := createDummyNodesMap(5, 3, "eligible")
 	waitingMap := createDummyNodesMap(3, 3, "waiting")
-	nodeShuffler := NewXorValidatorsShuffler(10, 10, 0, false)
+	nodeShuffler := NewXorValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -310,7 +313,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 	nodesMap := make(map[uint32][]Validator)
 	nodesMap[0] = list
 	nodesMap[core.MetachainShardId] = tmp[core.MetachainShardId]
-	nodeShuffler := NewXorValidatorsShuffler(10, 10, 0, false)
+	nodeShuffler := NewXorValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -341,7 +344,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 	nodesPerShard := uint32(400)
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
-	nodeShuffler := NewXorValidatorsShuffler(nodesPerShard, nodesPerShard, 0, false)
+	nodeShuffler := NewXorValidatorsShuffler(nodesPerShard, nodesPerShard, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -401,7 +404,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 	nodesPerShard := uint32(400)
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
-	nodeShuffler := NewXorValidatorsShuffler(nodesPerShard, nodesPerShard, 0, false)
+	nodeShuffler := NewXorValidatorsShuffler(nodesPerShard, nodesPerShard, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -484,7 +487,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameP
 	nodesPerShard := uint32(400)
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
-	nodeShuffler := NewXorValidatorsShuffler(nodesPerShard, nodesPerShard, 0, false)
+	nodeShuffler := NewXorValidatorsShuffler(nodesPerShard, nodesPerShard, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -532,7 +535,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 	nodesPerShard := uint32(400)
 	waitingMap := make(map[uint32][]Validator)
 	eligibleMap := createDummyNodesMap(nodesPerShard, 1, "eligible")
-	nodeShuffler := NewXorValidatorsShuffler(nodesPerShard, nodesPerShard, 0, false)
+	nodeShuffler := NewXorValidatorsShuffler(nodesPerShard, nodesPerShard, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -565,7 +568,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 
 func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap map[uint32][]Validator, b *testing.B) {
 	waitingMap := make(map[uint32][]Validator)
-	nodeShuffler := NewXorValidatorsShuffler(10, 10, 0, false)
+	nodeShuffler := NewXorValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -600,7 +603,7 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 
 func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize int, nodesMap map[uint32][]Validator, b *testing.B) {
 	waitingMap := make(map[uint32][]Validator)
-	nodeShuffler := NewXorValidatorsShuffler(10, 10, 0, false)
+	nodeShuffler := NewXorValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -725,7 +728,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 	eligibleMap[core.MetachainShardId] = listMeta
 	eligibleMap[0] = listShard0
 	eligibleMap[1] = listShard1
-	nodeShuffler := NewXorValidatorsShuffler(10, 10, 0, false)
+	nodeShuffler := NewXorValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -769,7 +772,7 @@ func TestNewIndexHashedNodesCoordinator_GetValidatorWithPublicKeyNotExistingEpoc
 	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
 
 	_, _, err := ihgs.GetValidatorWithPublicKey(arguments.EligibleNodes[0][0].PubKey(), 1)
-	require.Equal(t, ErrEpochNodesConfigDoesNotExist, err)
+	require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
 }
 
 func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.T) {
@@ -803,7 +806,7 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 	eligibleMap[core.MetachainShardId] = listMeta
 	eligibleMap[shardZeroId] = listShard0
 	eligibleMap[shardOneId] = listShard1
-	nodeShuffler := NewXorValidatorsShuffler(10, 10, 0, false)
+	nodeShuffler := NewXorValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -862,7 +865,7 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 	waitingMap[core.MetachainShardId] = listMeta
 	waitingMap[shardZeroId] = listShard0
 	waitingMap[shardOneId] = listShard1
-	nodeShuffler := NewXorValidatorsShuffler(10, 10, 0, false)
+	nodeShuffler := NewXorValidatorsShuffler(10, 10, hysteresis, adaptivity, shuffleBetweenShards)
 	epochStartSubscriber := &mock.EpochStartNotifierStub{}
 	bootStorer := mock.NewStorerMock()
 
@@ -903,6 +906,9 @@ func createBlockBodyFromNodesCoordinator(ihgs *indexHashedNodesCoordinator, epoc
 	mbs = createMiniBlocksForNodesMap(ihgs.nodesConfig[epoch].waitingMap, string(core.WaitingList), ihgs.marshalizer)
 	body.MiniBlocks = append(body.MiniBlocks, mbs...)
 
+	mbs = createMiniBlocksForNodesMap(ihgs.nodesConfig[epoch].leavingMap, string(core.LeavingList), ihgs.marshalizer)
+	body.MiniBlocks = append(body.MiniBlocks, mbs...)
+
 	return body
 }
 
@@ -934,24 +940,132 @@ func TestIndexHashedNodesCoordinator_EpochStart(t *testing.T) {
 
 	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
+	epoch := uint32(1)
 
 	header := &block.MetaBlock{
 		PrevRandSeed: []byte("rand seed"),
 		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
-		Epoch:        1,
+		Epoch:        epoch,
 	}
 
-	body := createBlockBodyFromNodesCoordinator(ihgs, 0)
+	ihgs.nodesConfig[epoch] = ihgs.nodesConfig[0]
+
+	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
 	ihgs.EpochStartPrepare(header, body)
 	ihgs.EpochStartAction(header)
 
-	validators, err := ihgs.GetAllEligibleValidatorsPublicKeys(1)
+	validators, err := ihgs.GetAllEligibleValidatorsPublicKeys(epoch)
 	require.Nil(t, err)
 	require.NotNil(t, validators)
 
 	computedShardId := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[0])
 	// should remain in same shard with intra shard shuffling
 	require.Equal(t, arguments.ShardIDAsObserver, computedShardId)
+}
+
+func TestIndexHashedNodesCoordinator_EpochStartInEligible(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+	epoch := uint32(2)
+
+	header := &block.MetaBlock{
+		PrevRandSeed: []byte("rand seed"),
+		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		Epoch:        epoch,
+	}
+
+	validatorShard := core.MetachainShardId
+	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID: validatorShard,
+			eligibleMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
+			},
+		},
+	}
+	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
+	ihgs.EpochStartPrepare(header, body)
+	ihgs.EpochStartAction(header)
+
+	computedShardId := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[epoch])
+
+	require.Equal(t, validatorShard, computedShardId)
+}
+
+func TestIndexHashedNodesCoordinator_EpochStartInWaiting(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	epoch := uint32(2)
+	header := &block.MetaBlock{
+		PrevRandSeed: []byte("rand seed"),
+		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		Epoch:        epoch,
+	}
+
+	validatorShard := core.MetachainShardId
+	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID: validatorShard,
+			waitingMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
+			},
+		},
+	}
+	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
+	ihgs.EpochStartPrepare(header, body)
+	ihgs.EpochStartAction(header)
+
+	computedShardId := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[epoch])
+	require.Equal(t, validatorShard, computedShardId)
+}
+
+func TestIndexHashedNodesCoordinator_EpochStartInLeaving(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	epoch := uint32(2)
+	header := &block.MetaBlock{
+		PrevRandSeed: []byte("rand seed"),
+		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		Epoch:        epoch,
+	}
+
+	validatorShard := core.MetachainShardId
+	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID: validatorShard,
+			eligibleMap: map[uint32][]Validator{
+				validatorShard: {
+					mock.NewValidatorMock([]byte("eligiblePk"), 1, 1),
+				},
+			},
+			leavingMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
+			},
+		},
+	}
+	body := createBlockBodyFromNodesCoordinator(ihgs, epoch)
+	ihgs.EpochStartPrepare(header, body)
+	ihgs.EpochStartAction(header)
+
+	computedShardId := ihgs.computeShardForSelfPublicKey(ihgs.nodesConfig[epoch])
+	require.Equal(t, validatorShard, computedShardId)
 }
 
 func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysNotExistingEpoch(t *testing.T) {
@@ -964,7 +1078,7 @@ func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysNotExisting
 	var pKeys []string
 	randomness := []byte("randomness")
 	pKeys, err = ihgs.GetConsensusValidatorsPublicKeys(randomness, 0, 0, 1)
-	require.Equal(t, ErrEpochNodesConfigDoesNotExist, err)
+	require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
 	require.Nil(t, pKeys)
 }
 
@@ -1063,7 +1177,7 @@ func TestIndexHashedNodesCoordinator_ShardIdForEpochInvalidEpoch(t *testing.T) {
 	require.Nil(t, err)
 
 	shardId, err := ihgs.ShardIdForEpoch(1)
-	require.Equal(t, ErrEpochNodesConfigDoesNotExist, err)
+	require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
 	require.Equal(t, uint32(0), shardId)
 }
 
@@ -1231,6 +1345,357 @@ func TestIndexHashedNodesCoordinator_GetOwnPublicKey(t *testing.T) {
 
 	ownPubKey := ihgs.GetOwnPublicKey()
 	require.Equal(t, arguments.SelfPublicKey, ownPubKey)
+}
+
+func TestIndexHashedNodesCoordinator_ShuffleOutWithEligible(t *testing.T) {
+	t.Parallel()
+
+	processCalled := false
+	newShard := uint32(0)
+
+	arguments := createArguments()
+	arguments.ShuffledOutHandler = &mock.ShuffledOutHandlerStub{
+		ProcessCalled: func(newShardID uint32) error {
+			processCalled = true
+			newShard = newShardID
+			return nil
+		},
+	}
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	epoch := uint32(2)
+	validatorShard := uint32(7)
+	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID: validatorShard,
+			eligibleMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
+			},
+		},
+	}
+
+	ihgs.ShuffleOutForEpoch(epoch)
+	require.True(t, processCalled)
+	require.Equal(t, validatorShard, newShard)
+}
+
+func TestIndexHashedNodesCoordinator_ShuffleOutWithWaiting(t *testing.T) {
+	t.Parallel()
+
+	processCalled := false
+	newShard := uint32(0)
+
+	arguments := createArguments()
+	arguments.ShuffledOutHandler = &mock.ShuffledOutHandlerStub{
+		ProcessCalled: func(newShardID uint32) error {
+			processCalled = true
+			newShard = newShardID
+			return nil
+		},
+	}
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	epoch := uint32(2)
+	validatorShard := uint32(7)
+	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID: validatorShard,
+			waitingMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock(pk, 1, 1)},
+			},
+		},
+	}
+
+	ihgs.ShuffleOutForEpoch(epoch)
+	require.True(t, processCalled)
+	require.Equal(t, validatorShard, newShard)
+}
+
+func TestIndexHashedNodesCoordinator_ShuffleOutWithObserver(t *testing.T) {
+	t.Parallel()
+
+	processCalled := false
+	newShard := uint32(0)
+
+	arguments := createArguments()
+	arguments.ShuffledOutHandler = &mock.ShuffledOutHandlerStub{
+		ProcessCalled: func(newShardID uint32) error {
+			processCalled = true
+			newShard = newShardID
+			return nil
+		},
+	}
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	epoch := uint32(2)
+	validatorShard := uint32(7)
+	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID: validatorShard,
+			eligibleMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock([]byte("eligibleKey"), 1, 1)},
+			},
+			waitingMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock([]byte("waitingKey"), 1, 1)},
+			},
+			leavingMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock(pk, 1, 1)}},
+		},
+	}
+
+	ihgs.ShuffleOutForEpoch(epoch)
+	require.False(t, processCalled)
+	expectedShardForLeaving := uint32(0)
+	require.Equal(t, expectedShardForLeaving, newShard)
+}
+
+func TestIndexHashedNodesCoordinator_ShuffleOutNotFound(t *testing.T) {
+	t.Parallel()
+
+	processCalled := false
+	newShard := uint32(0)
+
+	arguments := createArguments()
+	arguments.ShuffledOutHandler = &mock.ShuffledOutHandlerStub{
+		ProcessCalled: func(newShardID uint32) error {
+			processCalled = true
+			newShard = newShardID
+			return nil
+		},
+	}
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	epoch := uint32(2)
+	validatorShard := uint32(7)
+	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID: validatorShard,
+			eligibleMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock([]byte("eligibleKey"), 1, 1)},
+			},
+			waitingMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock([]byte("waitingKey"), 1, 1)},
+			},
+			leavingMap: map[uint32][]Validator{
+				validatorShard: {mock.NewValidatorMock([]byte("observerKey"), 1, 1)},
+			},
+		},
+	}
+
+	ihgs.ShuffleOutForEpoch(epoch)
+	require.False(t, processCalled)
+	expectedShardForNotFound := uint32(0)
+	require.Equal(t, expectedShardForNotFound, newShard)
+}
+
+func TestIndexHashedNodesCoordinator_ShuffleOut_NilConfig(t *testing.T) {
+	t.Parallel()
+
+	processCalled := false
+	newShard := uint32(0)
+
+	arguments := createArguments()
+	arguments.ShuffledOutHandler = &mock.ShuffledOutHandlerStub{
+		ProcessCalled: func(newShardID uint32) error {
+			processCalled = true
+			newShard = newShardID
+			return nil
+		},
+	}
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, err := NewIndexHashedNodesCoordinator(arguments)
+	require.Nil(t, err)
+
+	epoch := uint32(2)
+	ihgs.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: nil,
+	}
+
+	ihgs.ShuffleOutForEpoch(epoch)
+	require.False(t, processCalled)
+	expectedShardForNotFound := uint32(0)
+	require.Equal(t, expectedShardForNotFound, newShard)
+}
+
+func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_NoValidators(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
+
+	validatorInfos := make([]*state.ShardValidatorInfo, 0)
+	newNodesConfig, err := ihgs.computeNodesConfigFromList(validatorInfos)
+
+	assert.Nil(t, newNodesConfig)
+	assert.True(t, errors.Is(err, ErrMapSizeZero))
+
+	newNodesConfig, err = ihgs.computeNodesConfigFromList(nil)
+
+	assert.Nil(t, newNodesConfig)
+	assert.True(t, errors.Is(err, ErrMapSizeZero))
+}
+
+func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_NilPk(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
+
+	validatorInfos :=
+		[]*state.ShardValidatorInfo{
+			{
+				PublicKey:  pk,
+				ShardId:    0,
+				List:       "test1",
+				Index:      0,
+				TempRating: 0,
+			},
+			{
+				PublicKey:  nil,
+				ShardId:    0,
+				List:       "test",
+				Index:      0,
+				TempRating: 0,
+			},
+		}
+
+	newNodesConfig, err := ihgs.computeNodesConfigFromList(validatorInfos)
+
+	assert.Nil(t, newNodesConfig)
+	assert.NotNil(t, err)
+	assert.Equal(t, ErrNilPubKey, err)
+}
+
+func TestIndexHashedNodesCoordinator_computeNodesConfigFromList_Validators(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	pk := []byte("pk")
+	arguments.SelfPublicKey = pk
+	ihgs, _ := NewIndexHashedNodesCoordinator(arguments)
+
+	shard0_Eligible0 := &state.ShardValidatorInfo{
+		[]byte("pk0"), 0, string(core.EligibleList), 1, 2,
+	}
+	shard0_Eligible1 := &state.ShardValidatorInfo{
+		[]byte("pk1"), 0, string(core.EligibleList), 2, 2,
+	}
+	shardmeta_Eligible0 := &state.ShardValidatorInfo{
+		[]byte("pk2"), core.MetachainShardId, string(core.EligibleList), 1, 4,
+	}
+	shard0_Waiting0 := &state.ShardValidatorInfo{
+		[]byte("pk3"), 0, string(core.WaitingList), 14, 0,
+	}
+	shardmeta_Waiting0 := &state.ShardValidatorInfo{
+		[]byte("pk4"), core.MetachainShardId, string(core.WaitingList), 15, 0,
+	}
+	shard0_New0 := &state.ShardValidatorInfo{
+		[]byte("pk5"), 0, string(core.NewList), 3, 0,
+	}
+	shard0_Leaving0 := &state.ShardValidatorInfo{
+		[]byte("pk6"), 0, string(core.LeavingList), 0, 0,
+	}
+	shard0_Leaving1 := &state.ShardValidatorInfo{
+		[]byte("pk7"), 0, string(core.LeavingList), 1, 0,
+	}
+
+	validatorInfos :=
+		[]*state.ShardValidatorInfo{
+			shard0_Eligible0,
+			shard0_Eligible1,
+			shardmeta_Eligible0,
+			shard0_Waiting0,
+			shardmeta_Waiting0,
+			shard0_New0,
+			shard0_Leaving0,
+			shard0_Leaving1,
+		}
+
+	newNodesConfig, err := ihgs.computeNodesConfigFromList(validatorInfos)
+	assert.Nil(t, err)
+
+	assert.Equal(t, uint32(1), newNodesConfig.nbShards)
+
+	verifySizes(t, newNodesConfig)
+	verifyLeavingNodes(t, newNodesConfig)
+
+	// maps have the correct validators inside
+	eligibleListShardZero := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shard0_Eligible0, shard0_Eligible1, shard0_Leaving0, shard0_Leaving1})
+	assert.Equal(t, eligibleListShardZero, newNodesConfig.eligibleMap[0])
+	eligibleListMeta := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shardmeta_Eligible0})
+	assert.Equal(t, eligibleListMeta, newNodesConfig.eligibleMap[core.MetachainShardId])
+
+	waitingListShardZero := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shard0_Waiting0})
+	assert.Equal(t, waitingListShardZero, newNodesConfig.waitingMap[0])
+	waitingListMeta := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shardmeta_Waiting0})
+	assert.Equal(t, waitingListMeta, newNodesConfig.waitingMap[core.MetachainShardId])
+
+	leavingListShardZero := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shard0_Leaving0, shard0_Leaving1})
+	assert.Equal(t, leavingListShardZero, newNodesConfig.leavingMap[0])
+	assert.Equal(t, 0, len(newNodesConfig.leavingMap[core.MetachainShardId]))
+
+	newListShardZero := createValidatorList(ihgs,
+		[]*state.ShardValidatorInfo{shard0_New0})
+	assert.Equal(t, newListShardZero, newNodesConfig.newList)
+}
+
+func createValidatorList(ihgs *indexHashedNodesCoordinator, shardValidators []*state.ShardValidatorInfo) []Validator {
+	validators := make([]Validator, len(shardValidators))
+	for i, v := range shardValidators {
+		shardValidator, _ := NewValidator(
+			v.PublicKey,
+			ihgs.GetChance(v.TempRating),
+			v.Index)
+		validators[i] = shardValidator
+	}
+	sort.Sort(validatorList(validators))
+	return validators
+}
+
+func verifyLeavingNodes(t *testing.T, newNodesConfig *epochNodesConfig) {
+	for leavingShardId, leavingValidators := range newNodesConfig.leavingMap {
+		for _, leavingValidator := range leavingValidators {
+			found, shardId := searchInMap(newNodesConfig.eligibleMap, leavingValidator.PubKey())
+			assert.True(t, found)
+			assert.Equal(t, leavingShardId, shardId)
+		}
+	}
+}
+
+func verifySizes(t *testing.T, newNodesConfig *epochNodesConfig) {
+	expectedEligibleSize := 2
+	expectedWaitingSize := 2
+	expectedNewSize := 1
+	expectedLeavingSize := 1
+
+	assert.NotNil(t, newNodesConfig)
+	assert.Equal(t, uint32(expectedEligibleSize-1), newNodesConfig.nbShards)
+	assert.Equal(t, expectedEligibleSize, len(newNodesConfig.eligibleMap))
+	assert.Equal(t, expectedWaitingSize, len(newNodesConfig.waitingMap))
+	assert.Equal(t, expectedNewSize, len(newNodesConfig.newList))
+	assert.Equal(t, expectedLeavingSize, len(newNodesConfig.leavingMap))
 }
 
 func TestIndexHashedNodesCoordinator_IsInterfaceNil(t *testing.T) {

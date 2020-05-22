@@ -21,7 +21,7 @@ import (
 
 func generateAccountDBFromTrie(trie data.Trie) *state.AccountsDB {
 	accnt, _ := state.NewAccountsDB(trie, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer) (state.AccountHandler, error) {
+		CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address), nil
 		},
 	})
@@ -29,12 +29,11 @@ func generateAccountDBFromTrie(trie data.Trie) *state.AccountsDB {
 }
 
 func generateAccount() *mock.AccountWrapMock {
-	adr := mock.NewAddressMock()
-	return mock.NewAccountWrapMock(adr)
+	return mock.NewAccountWrapMock(make([]byte, 32))
 }
 
-func generateAddressAccountAccountsDB(trie data.Trie) (state.AddressContainer, *mock.AccountWrapMock, *state.AccountsDB) {
-	adr := mock.NewAddressMock()
+func generateAddressAccountAccountsDB(trie data.Trie) ([]byte, *mock.AccountWrapMock, *state.AccountsDB) {
+	adr := make([]byte, 32)
 	account := mock.NewAccountWrapMock(adr)
 
 	adb := generateAccountDBFromTrie(trie)
@@ -221,7 +220,7 @@ func TestAccountsDB_SaveAccountMalfunctionMarshalizerShouldErr(t *testing.T) {
 	mockTrie := &mock.TrieStub{}
 	marshalizer := &mock.MarshalizerMock{}
 	adb, _ := state.NewAccountsDB(mockTrie, &mock.HasherMock{}, marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer) (state.AccountHandler, error) {
+		CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address), nil
 		},
 	})
@@ -269,7 +268,7 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 		},
 	}
 
-	adr := mock.NewAddressMock()
+	adr := make([]byte, 32)
 	adb := generateAccountDBFromTrie(trieStub)
 
 	err := adb.RemoveAccount(adr)
@@ -284,7 +283,7 @@ func TestAccountsDB_LoadAccountMalfunctionTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
 	trieStub := &mock.TrieStub{}
-	adr := mock.NewAddressMock()
+	adr := make([]byte, 32)
 	adb := generateAccountDBFromTrie(trieStub)
 
 	_, err := adb.LoadAccount(adr)
@@ -303,7 +302,7 @@ func TestAccountsDB_LoadAccountNotFoundShouldCreateEmpty(t *testing.T) {
 		},
 	}
 
-	adr := mock.NewAddressMock()
+	adr := make([]byte, 32)
 	adb := generateAccountDBFromTrie(trieStub)
 
 	accountExpected := mock.NewAccountWrapMock(adr)
@@ -325,7 +324,7 @@ func TestAccountsDB_LoadAccountExistingShouldLoadCodeAndDataTrie(t *testing.T) {
 
 	trieStub := &mock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
-			if bytes.Equal(key, acc.AddressContainer().Bytes()) {
+			if bytes.Equal(key, acc.AddressBytes()) {
 				return (&mock.MarshalizerMock{}).Marshal(acc)
 			}
 			if bytes.Equal(key, codeHash) {
@@ -339,7 +338,7 @@ func TestAccountsDB_LoadAccountExistingShouldLoadCodeAndDataTrie(t *testing.T) {
 	}
 
 	adb := generateAccountDBFromTrie(trieStub)
-	retrievedAccount, err := adb.LoadAccount(acc.AddressContainer())
+	retrievedAccount, err := adb.LoadAccount(acc.AddressBytes())
 	assert.Nil(t, err)
 
 	account, _ := retrievedAccount.(state.UserAccountHandler)
@@ -353,7 +352,7 @@ func TestAccountsDB_GetExistingAccountMalfunctionTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
 	trieStub := &mock.TrieStub{}
-	adr := mock.NewAddressMock()
+	adr := make([]byte, 32)
 	adb := generateAccountDBFromTrie(trieStub)
 
 	_, err := adb.GetExistingAccount(adr)
@@ -369,7 +368,7 @@ func TestAccountsDB_GetExistingAccountNotFoundShouldRetNil(t *testing.T) {
 		},
 	}
 
-	adr := mock.NewAddressMock()
+	adr := make([]byte, 32)
 	adb := generateAccountDBFromTrie(trieStub)
 
 	account, err := adb.GetExistingAccount(adr)
@@ -391,7 +390,7 @@ func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
 
 	trieStub := &mock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, e error) {
-			if bytes.Equal(key, acc.AddressContainer().Bytes()) {
+			if bytes.Equal(key, acc.AddressBytes()) {
 				return (&mock.MarshalizerMock{}).Marshal(acc)
 			}
 			if bytes.Equal(key, codeHash) {
@@ -405,7 +404,7 @@ func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
 	}
 
 	adb := generateAccountDBFromTrie(trieStub)
-	retrievedAccount, err := adb.GetExistingAccount(acc.AddressContainer())
+	retrievedAccount, err := adb.GetExistingAccount(acc.AddressBytes())
 	assert.Nil(t, err)
 
 	account, _ := retrievedAccount.(state.UserAccountHandler)
@@ -436,7 +435,7 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 	}
 
 	adb, _ = state.NewAccountsDB(&trieMock, &mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer) (state.AccountHandler, error) {
+		CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address), nil
 		},
 	})
@@ -465,13 +464,13 @@ func TestAccountsDB_LoadCodeWrongHashLengthShouldErr(t *testing.T) {
 func TestAccountsDB_LoadCodeMalfunctionTrieShouldErr(t *testing.T) {
 	t.Parallel()
 
-	adr := mock.NewAddressMock()
+	adr := make([]byte, 32)
 	account := generateAccount()
 	mockTrie := &mock.TrieStub{}
 	adb := generateAccountDBFromTrie(mockTrie)
 
 	//just search a hash. Any hash will do
-	account.SetCodeHash(adr.Bytes())
+	account.SetCodeHash(adr)
 
 	err := adb.LoadCode(account)
 	assert.NotNil(t, err)
@@ -485,21 +484,21 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 	trieStub := mock.TrieStub{}
 	trieStub.GetCalled = func(key []byte) (bytes []byte, e error) {
 		//will return adr.Bytes() so its hash will correspond to adr.Hash()
-		return adr.Bytes(), nil
+		return adr, nil
 	}
 	marshalizer := mock.MarshalizerMock{}
 	adb, _ := state.NewAccountsDB(&trieStub, &mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer) (state.AccountHandler, error) {
+		CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address), nil
 		},
 	})
 
 	//just search a hash. Any hash will do
-	account.SetCodeHash(adr.Bytes())
+	account.SetCodeHash(adr)
 
 	err := adb.LoadCode(account)
 	assert.Nil(t, err)
-	assert.Equal(t, adr.Bytes(), account.GetCode())
+	assert.Equal(t, adr, account.GetCode())
 }
 
 //------- RetrieveData
@@ -640,7 +639,7 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 
 	adb := generateAccountDBFromTrie(&trieStub)
 
-	state2, _ := adb.LoadAccount(mock.NewAddressMock())
+	state2, _ := adb.LoadAccount(make([]byte, 32))
 	state2.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue([]byte("dog"), []byte("puppy"))
 	_ = adb.SaveAccount(state2)
 
@@ -811,11 +810,12 @@ func TestAccountsDB_RevertToSnapshotShouldWork(t *testing.T) {
 	hsh := mock.HasherMock{}
 	accFactory := factory.NewAccountCreator()
 	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
-	tr, _ := trie.NewTrie(storageManager, marsh, hsh)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(storageManager, marsh, hsh, maxTrieLevelInMemory)
 
 	adb, _ := state.NewAccountsDB(tr, hsh, marsh, accFactory)
 
-	acc, _ := adb.LoadAccount(mock.NewAddressMock())
+	acc, _ := adb.LoadAccount(make([]byte, 32))
 	acc.(state.UserAccountHandler).SetCode([]byte("code"))
 	_ = adb.SaveAccount(acc)
 

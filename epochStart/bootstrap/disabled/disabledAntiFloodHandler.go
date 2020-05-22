@@ -1,8 +1,11 @@
 package disabled
 
 import (
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
+
+var _ dataRetriever.P2PAntifloodHandler = (*antiFloodHandler)(nil)
 
 type antiFloodHandler struct {
 }

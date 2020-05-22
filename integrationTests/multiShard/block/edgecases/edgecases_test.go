@@ -1,13 +1,12 @@
 package edgecases
 
 import (
-	"context"
 	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -31,7 +30,7 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
@@ -52,7 +51,7 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 	p2pBootstrapNodes(nodesMap)
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(block.StepDelay)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(1)
@@ -113,7 +112,7 @@ func TestMetaShouldBeAbleToProduceBlockInAVeryHighRoundAndStartOfEpoch(t *testin
 	nbShards := 1
 	consensusGroupSize := 1
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
@@ -203,7 +202,7 @@ func printAccount(node *integrationTests.TestProcessorNode) {
 	accnt, _ := node.AccntState.GetExistingAccount(node.OwnAccount.Address)
 	if check.IfNil(accnt) {
 		log.Info("account",
-			"address", node.OwnAccount.Address.Bytes(),
+			"address", node.OwnAccount.Address,
 			"nonce", "-",
 			"balance", "-",
 		)
@@ -211,7 +210,7 @@ func printAccount(node *integrationTests.TestProcessorNode) {
 		return
 	}
 	log.Info("account",
-		"address", node.OwnAccount.Address.Bytes(),
+		"address", node.OwnAccount.Address,
 		"nonce", accnt.GetNonce(),
 		"balance", accnt.(state.UserAccountHandler).GetBalance(),
 	)
@@ -221,7 +220,7 @@ func generateAndSendTxs(
 	n *integrationTests.TestProcessorNode,
 	transferValue uint64,
 	sk crypto.PrivateKey,
-	addr state.AddressContainer,
+	addr []byte,
 	pkReceiver crypto.PublicKey,
 ) {
 	accnt, _ := n.AccntState.GetExistingAccount(addr)

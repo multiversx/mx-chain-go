@@ -97,6 +97,15 @@ func TestIsUnknownEpochIdentifier_OkIdentifierShouldReturnFalse(t *testing.T) {
 	assert.False(t, res)
 }
 
+func TestIsUnknownEpochIdentifier_Ok(t *testing.T) {
+	t.Parallel()
+
+	identifier := core.EpochStartIdentifier(math.MaxUint32)
+	res, err := core.IsUnknownEpochIdentifier([]byte(identifier))
+	assert.Nil(t, err)
+	assert.True(t, res)
+}
+
 func TestCalculateHash_Good(t *testing.T) {
 	t.Parallel()
 

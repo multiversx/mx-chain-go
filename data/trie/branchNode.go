@@ -240,7 +240,7 @@ func (bn *branchNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(bn)
 }
 
-func (bn *branchNode) commit(force bool, level byte, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
+func (bn *branchNode) commit(force bool, level byte, maxTrieLevelInMemory uint, originDb data.DBWriteCacher, targetDb data.DBWriteCacher) error {
 	level++
 	err := bn.isEmptyOrNil()
 	if err != nil {
@@ -264,7 +264,7 @@ func (bn *branchNode) commit(force bool, level byte, originDb data.DBWriteCacher
 			continue
 		}
 
-		err = bn.children[i].commit(force, level, originDb, targetDb)
+		err = bn.children[i].commit(force, level, maxTrieLevelInMemory, originDb, targetDb)
 		if err != nil {
 			return err
 		}
@@ -274,7 +274,9 @@ func (bn *branchNode) commit(force bool, level byte, originDb data.DBWriteCacher
 	if err != nil {
 		return err
 	}
-	if level == maxTrieLevelAfterCommit {
+	if uint(level) == maxTrieLevelInMemory {
+		log.Trace("collapse branch node on commit")
+
 		var collapsed node
 		collapsed, err = bn.getCollapsed()
 		if err != nil {
@@ -690,6 +692,7 @@ func (bn *branchNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte
 		}
 
 		existingChildren = append(existingChildren, child)
+		log.Trace("load branch node child", "child hash", bn.EncodedChildren[i])
 		bn.children[i] = child
 	}
 

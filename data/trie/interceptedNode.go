@@ -7,10 +7,13 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
+
+var _ process.TxValidatorHandler = (*InterceptedTrieNode)(nil)
+var _ process.InterceptedData = (*InterceptedTrieNode)(nil)
 
 // InterceptedTrieNode implements intercepted data interface and is used when trie nodes are intercepted
 type InterceptedTrieNode struct {
@@ -113,7 +116,7 @@ func (inTn *InterceptedTrieNode) Nonce() uint64 {
 }
 
 // SenderAddress returns nil
-func (inTn *InterceptedTrieNode) SenderAddress() state.AddressContainer {
+func (inTn *InterceptedTrieNode) SenderAddress() []byte {
 	return nil
 }
 
@@ -125,12 +128,4 @@ func (inTn *InterceptedTrieNode) Fee() *big.Int {
 // Identifiers returns the identifiers used in requests
 func (inTn *InterceptedTrieNode) Identifiers() [][]byte {
 	return [][]byte{inTn.hash}
-}
-
-// CreateEndOfProcessingTriggerNode changes the hash of the current node by appending the hash to the current hash.
-// This construction will be used to trigger the end of processing for all of the received data
-func (inTn *InterceptedTrieNode) CreateEndOfProcessingTriggerNode() {
-	inTn.mutex.Lock()
-	inTn.hash = append(inTn.hash, inTn.hash...)
-	inTn.mutex.Unlock()
 }

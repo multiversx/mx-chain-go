@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 )
 
+var _ process.BootstrapperFromStorage = (*shardStorageBootstrapper)(nil)
+
 type shardStorageBootstrapper struct {
 	*storageBootstrapper
 }

@@ -2,8 +2,9 @@ package sharding
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 )
+
+var _ Coordinator = (*OneShardCoordinator)(nil)
 
 // OneShardCoordinator creates a shard coordinator object
 type OneShardCoordinator struct{}
@@ -14,7 +15,7 @@ func (osc *OneShardCoordinator) NumberOfShards() uint32 {
 }
 
 // ComputeId gets shard for the given address
-func (osc *OneShardCoordinator) ComputeId(_ state.AddressContainer) uint32 {
+func (osc *OneShardCoordinator) ComputeId(_ []byte) uint32 {
 	return 0
 }
 
@@ -24,7 +25,7 @@ func (osc *OneShardCoordinator) SelfId() uint32 {
 }
 
 // SameShard returns weather two addresses belong to the same shard
-func (osc *OneShardCoordinator) SameShard(_, _ state.AddressContainer) bool {
+func (osc *OneShardCoordinator) SameShard(_, _ []byte) bool {
 	return true
 }
 

@@ -20,7 +20,7 @@ func (ncm *NodesCoordinatorMock) GetChance(uint32) uint32 {
 }
 
 // GetAllLeavingValidatorsPublicKeys -
-func (ncm *NodesCoordinatorMock) GetAllLeavingValidatorsPublicKeys(_ uint32) ([][]byte, error) {
+func (ncm *NodesCoordinatorMock) GetAllLeavingValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
 
@@ -122,6 +122,11 @@ func (ncm *NodesCoordinatorMock) ShardIdForEpoch(_ uint32) (uint32, error) {
 	panic("not implemented")
 }
 
+// ShuffleOutForEpoch verifies if the shards changed in the new epoch and calls the shuffleOutHandler
+func (ncm *NodesCoordinatorMock) ShuffleOutForEpoch(_ uint32) {
+	panic("not implemented")
+}
+
 // GetConsensusWhitelistedNodes return the whitelisted nodes allowed to send consensus messages, for each of the shards
 func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
 	_ uint32,
@@ -129,9 +134,9 @@ func (ncm *NodesCoordinatorMock) GetConsensusWhitelistedNodes(
 	panic("not implemented")
 }
 
-// ComputeLeaving -
-func (ncm *NodesCoordinatorMock) ComputeLeaving([]*state.ShardValidatorInfo) ([]sharding.Validator, error) {
-	return make([]sharding.Validator, 0), nil
+// ComputeAdditionalLeaving -
+func (ncm *NodesCoordinatorMock) ComputeAdditionalLeaving([]*state.ShardValidatorInfo) (map[uint32][]sharding.Validator, error) {
+	return make(map[uint32][]sharding.Validator), nil
 }
 
 // GetValidatorWithPublicKey -

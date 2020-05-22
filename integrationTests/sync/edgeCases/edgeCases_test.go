@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard tests the following scenario:
@@ -88,6 +89,10 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 
 	syncNodesSlice := []*integrationTests.TestProcessorNode{syncMetaNode}
 	integrationTests.StartP2PBootstrapOnProcessorNodes(syncNodesSlice)
+
+	require.True(t, len(syncMetaNode.Messenger.ConnectedPeers()) > 1, "not enough peers connected to this node."+
+		" Check that the peer discovery mechanism works properly.")
+
 	integrationTests.StartSyncingBlocks(syncNodesSlice)
 
 	//after joining the network we must propose a new block on the metachain as to be received by the sync

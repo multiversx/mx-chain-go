@@ -2,7 +2,6 @@ package executingMiniblocks
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"math/big"
 	"testing"
@@ -29,7 +28,7 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 
 	maxShards := uint32(1)
 	numOfNodes := 4
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
@@ -52,7 +51,7 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(testBlock.P2pBootstrapDelay)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(1)
@@ -96,7 +95,7 @@ func TestShardShouldProposeBlockContainingInvalidTransactions(t *testing.T) {
 
 	maxShards := uint32(1)
 	numOfNodes := 2
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
@@ -120,7 +119,7 @@ func TestShardShouldProposeBlockContainingInvalidTransactions(t *testing.T) {
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
-	time.Sleep(testBlock.StepDelay)
+	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	round := uint64(0)
 	nonce := uint64(1)

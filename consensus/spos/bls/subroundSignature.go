@@ -1,6 +1,8 @@
 package bls
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -76,7 +78,9 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		return false
 	}
 
-	if !sr.IsSelfLeaderInCurrentRound() {
+	isSelfLeader := sr.IsSelfLeaderInCurrentRound()
+
+	if !isSelfLeader {
 		//TODO: Analyze it is possible to send message only to leader with O(1) instead of O(n)
 		cnsMsg := consensus.NewConsensusMessage(
 			sr.GetData(),
@@ -110,6 +114,10 @@ func (sr *subroundSignature) doSignatureJob() bool {
 		return false
 	}
 
+	if isSelfLeader {
+		go sr.waitAllSignatures()
+	}
+
 	return true
 }
 
@@ -132,13 +140,6 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 	}
 
 	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), sr.Current()) {
-		return false
-	}
-
-	// if this node is leader in this round and it already received 2/3 + 1 of signatures
-	// it will ignore any others received later
-	threshold := sr.Threshold(sr.Current())
-	if ok, _ := sr.signaturesCollected(threshold); ok {
 		return false
 	}
 
@@ -168,13 +169,6 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	threshold = sr.Threshold(sr.Current())
-	if ok, n := sr.signaturesCollected(threshold); ok {
-		log.Debug("step 2: signatures",
-			"received", n,
-			"total", len(sr.ConsensusGroup()))
-	}
-
 	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState, "signed")
 	return true
 }
@@ -195,14 +189,22 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey())
 
 	threshold := sr.Threshold(sr.Current())
-	areSignaturesCollected, _ := sr.signaturesCollected(threshold)
+	areSignaturesCollected, numSigs := sr.signaturesCollected(threshold)
+	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
+	isTimeOut := sr.remainingTime() <= 0
 
-	isJobDoneByLeader := isSelfLeader && areSignaturesCollected
+	isJobDoneByLeader := isSelfLeader && (areAllSignaturesCollected || (areSignaturesCollected && isTimeOut))
 	isJobDoneByConsensusNode := !isSelfLeader && isSelfInConsensusGroup && sr.IsSelfJobDone(sr.Current())
 
 	isSubroundFinished := !isSelfInConsensusGroup || isJobDoneByConsensusNode || isJobDoneByLeader
 
 	if isSubroundFinished {
+		if isSelfLeader {
+			log.Debug("step 2: signatures",
+				"received", numSigs,
+				"total", len(sr.ConsensusGroup()))
+		}
+
 		log.Debug("step 2: subround has been finished",
 			"subround", sr.Name())
 		sr.SetStatus(sr.Current(), spos.SsFinished)
@@ -238,4 +240,26 @@ func (sr *subroundSignature) signaturesCollected(threshold int) (bool, int) {
 	}
 
 	return n >= threshold, n
+}
+
+func (sr *subroundSignature) waitAllSignatures() {
+	remainingTime := sr.remainingTime()
+	time.Sleep(remainingTime)
+
+	if sr.IsSubroundFinished(sr.Current()) {
+		return
+	}
+
+	select {
+	case sr.ConsensusChannel() <- true:
+	default:
+	}
+}
+
+func (sr *subroundSignature) remainingTime() time.Duration {
+	startTime := sr.Rounder().TimeStamp()
+	maxTime := time.Duration(float64(sr.StartTime()) + float64(sr.EndTime()-sr.StartTime())*waitingAllSigsMaxTimeThreshold)
+	remainigTime := sr.Rounder().RemainingTime(startTime, maxTime)
+
+	return remainigTime
 }

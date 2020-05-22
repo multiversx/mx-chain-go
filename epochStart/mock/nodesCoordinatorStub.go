@@ -25,7 +25,7 @@ func (ncm *NodesCoordinatorStub) ValidatorsWeights(_ []sharding.Validator) ([]ui
 }
 
 // GetAllLeavingValidatorsPublicKeys -
-func (ncm *NodesCoordinatorStub) GetAllLeavingValidatorsPublicKeys(_ uint32) ([][]byte, error) {
+func (ncm *NodesCoordinatorStub) GetAllLeavingValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
 
@@ -34,8 +34,8 @@ func (ncm *NodesCoordinatorStub) SetConfig(_ *sharding.NodesCoordinatorRegistry)
 	return nil
 }
 
-// ComputeLeaving -
-func (ncm *NodesCoordinatorStub) ComputeLeaving(_ []*state.ShardValidatorInfo) ([]sharding.Validator, error) {
+// ComputeAdditionalLeaving -
+func (ncm *NodesCoordinatorStub) ComputeAdditionalLeaving(_ []*state.ShardValidatorInfo) (map[uint32][]sharding.Validator, error) {
 	return nil, nil
 }
 
@@ -122,6 +122,11 @@ func (ncm *NodesCoordinatorStub) GetSavedStateKey() []byte {
 // ShardIdForEpoch returns the nodesCoordinator configured ShardId for specified epoch if epoch configuration exists,
 // otherwise error
 func (ncm *NodesCoordinatorStub) ShardIdForEpoch(_ uint32) (uint32, error) {
+	panic("not implemented")
+}
+
+// ShuffleOutForEpoch verifies if the shards changed in the new epoch and calls the shuffleOutHandler
+func (ncm *NodesCoordinatorStub) ShuffleOutForEpoch(_ uint32) {
 	panic("not implemented")
 }
 

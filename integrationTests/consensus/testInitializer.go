@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -54,6 +53,7 @@ const blsConsensusType = "bls"
 const signatureSize = 48
 const publicKeySize = 96
 
+var p2pBootstrapDelay = time.Second * 5
 var consensusChainID = []byte("consensus chain ID")
 var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
@@ -167,7 +167,7 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 				SizeInBytes: 1000000000,
 				Shards:      1,
 			},
-			MinGasPrice:    100000000000000,
+			MinGasPrice:    200000000000,
 			NumberOfShards: 1,
 		},
 	)
@@ -225,9 +225,10 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	}
 	trieStorage, _ := trie.NewTrieStorageManager(store, marshalizer, hasher, cfg, ewl, generalCfg)
 
-	tr, _ := trie.NewTrie(trieStorage, marsh, hasher)
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(trieStorage, marsh, hasher, maxTrieLevelInMemory)
 	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, &mock.AccountsFactoryStub{
-		CreateAccountCalled: func(address state.AddressContainer) (wrapper state.AccountHandler, e error) {
+		CreateAccountCalled: func(address []byte) (wrapper state.AccountHandler, e error) {
 			return state.NewUserAccount(address)
 		},
 	})
@@ -298,7 +299,7 @@ func createConsensusOnlyNode(
 	testHasher := createHasher(consensusType)
 	testMarshalizer := &marshal.GogoProtoMarshalizer{}
 
-	messenger := integrationTests.CreateMessengerWithKadDht(context.Background(), initialAddr)
+	messenger := integrationTests.CreateMessengerWithKadDht(initialAddr)
 	rootHash := []byte("roothash")
 
 	blockChain := createTestBlockChain()
@@ -319,8 +320,9 @@ func createConsensusOnlyNode(
 		},
 		CreateNewHeaderCalled: func(round uint64, nonce uint64) data.HeaderHandler {
 			return &dataBlock.Header{
-				Round: round,
-				Nonce: nonce,
+				Round:           round,
+				Nonce:           nonce,
+				SoftwareVersion: []byte("version"),
 			}
 		},
 	}
@@ -352,7 +354,7 @@ func createConsensusOnlyNode(
 	singleBlsSigner := &mclsinglesig.BlsSingleSigner{}
 
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
-	go syncer.StartSync()
+	syncer.StartSyncingTime()
 
 	rounder, _ := round.NewRound(
 		time.Unix(startTime, 0),
@@ -446,6 +448,7 @@ func createConsensusOnlyNode(
 		node.WithBootStorer(&mock.BoostrapStorerMock{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
+		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
 		node.WithChainID(consensusChainID),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 		node.WithUint64ByteSliceConverter(&mock.Uint64ByteSliceConverterMock{}),

@@ -161,7 +161,7 @@ type ResolversContainerFactory interface {
 
 // EpochHandler defines the functionality to get the current epoch
 type EpochHandler interface {
-	Epoch() uint32
+	MetaEpoch() uint32
 	IsInterfaceNil() bool
 }
 
@@ -360,5 +360,6 @@ type WhiteListHandler interface {
 type ResolverDebugHandler interface {
 	LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int)
 	LogFailedToResolveData(topic string, hash []byte, err error)
+	LogSucceededToResolveData(topic string, hash []byte)
 	IsInterfaceNil() bool
 }

@@ -19,7 +19,7 @@ type SerializableValidator struct {
 type EpochValidators struct {
 	EligibleValidators map[string][]*SerializableValidator `json:"eligibleValidators"`
 	WaitingValidators  map[string][]*SerializableValidator `json:"waitingValidators"`
-	LeavingValidators  []*SerializableValidator            `json:"leavingValidators"`
+	LeavingValidators  map[string][]*SerializableValidator `json:"leavingValidators"`
 }
 
 // NodesCoordinatorRegistry holds the data that can be used to initialize a nodes coordinator
@@ -161,7 +161,7 @@ func epochNodesConfigToEpochValidators(config *epochNodesConfig) *EpochValidator
 	result := &EpochValidators{
 		EligibleValidators: make(map[string][]*SerializableValidator, len(config.eligibleMap)),
 		WaitingValidators:  make(map[string][]*SerializableValidator, len(config.waitingMap)),
-		LeavingValidators:  make([]*SerializableValidator, 0, len(config.leavingList)),
+		LeavingValidators:  make(map[string][]*SerializableValidator, len(config.leavingMap)),
 	}
 
 	for k, v := range config.eligibleMap {
@@ -172,12 +172,8 @@ func epochNodesConfigToEpochValidators(config *epochNodesConfig) *EpochValidator
 		result.WaitingValidators[fmt.Sprint(k)] = ValidatorArrayToSerializableValidatorArray(v)
 	}
 
-	for _, v := range config.leavingList {
-		result.LeavingValidators = append(result.LeavingValidators, &SerializableValidator{
-			PubKey:  v.PubKey(),
-			Chances: v.Chances(),
-			Index:   v.Index(),
-		})
+	for k, v := range config.leavingMap {
+		result.LeavingValidators[fmt.Sprint(k)] = ValidatorArrayToSerializableValidatorArray(v)
 	}
 
 	return result
@@ -197,13 +193,9 @@ func epochValidatorsToEpochNodesConfig(config *EpochValidators) (*epochNodesConf
 		return nil, err
 	}
 
-	result.leavingList = make([]Validator, 0, len(config.LeavingValidators))
-	for _, serializableValidator := range config.LeavingValidators {
-		validator, err := NewValidator(serializableValidator.PubKey, serializableValidator.Chances, serializableValidator.Index)
-		if err != nil {
-			return nil, err
-		}
-		result.leavingList = append(result.leavingList, validator)
+	result.leavingMap, err = serializableValidatorsMapToValidatorsMap(config.LeavingValidators)
+	if err != nil {
+		return nil, err
 	}
 
 	return result, nil
@@ -266,7 +258,7 @@ func NodesInfoToValidators(nodesInfo map[uint32][]GenesisNodeInfoHandler) (map[u
 	for shId, nodeInfoList := range nodesInfo {
 		validators := make([]Validator, 0, len(nodeInfoList))
 		for index, nodeInfo := range nodeInfoList {
-			validator, err := NewValidator(nodeInfo.PubKey(), defaultSelectionChances, uint32(index))
+			validator, err := NewValidator(nodeInfo.PubKeyBytes(), defaultSelectionChances, uint32(index))
 			if err != nil {
 				return nil, err
 			}

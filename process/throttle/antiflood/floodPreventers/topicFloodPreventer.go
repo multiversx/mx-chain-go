@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.TopicFloodPreventer = (*topicFloodPreventer)(nil)
+
 const topicMinMessages = 1
 
 // WildcardCharacter is the character string used to specify that the topic refers to a
@@ -48,7 +50,7 @@ func NewTopicFloodPreventer(
 }
 
 // IncreaseLoad tries to increment the counter values held at "identifier" position for the given topic
-// It returns true if it had succeeded incrementing (existing counter value is lower than provided maxMessagesPerPeer)
+// It returns nil if it had succeeded incrementing (existing counter value is lower than provided maxMessagesPerPeer)
 func (tfp *topicFloodPreventer) IncreaseLoad(identifier string, topic string, numMessages uint32) error {
 	tfp.mutTopicMaxMessages.Lock()
 	defer tfp.mutTopicMaxMessages.Unlock()
@@ -58,7 +60,6 @@ func (tfp *topicFloodPreventer) IncreaseLoad(identifier string, topic string, nu
 		tfp.counterMap[topic] = make(map[string]uint32)
 	}
 
-	_, ok = tfp.counterMap[topic][identifier]
 	tfp.counterMap[topic][identifier] += numMessages
 
 	limitExceeded := tfp.counterMap[topic][identifier] > tfp.maxMessagesForTopic(topic)

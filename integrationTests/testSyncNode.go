@@ -1,7 +1,6 @@
 package integrationTests
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
@@ -61,7 +60,7 @@ func NewTestSyncNode(
 		},
 	}
 
-	messenger := CreateMessengerWithKadDht(context.Background(), initialNodeAddr)
+	messenger := CreateMessengerWithKadDht(initialNodeAddr)
 
 	tpn := &TestProcessorNode{
 		ShardCoordinator: shardCoordinator,
@@ -72,11 +71,12 @@ func NewTestSyncNode(
 				return nil
 			},
 		},
-		StorageBootstrapper: &mock.StorageBootstrapperMock{},
-		HeaderSigVerifier:   &mock.HeaderSigVerifierStub{},
-		ChainID:             ChainID,
-		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
-		NodesSetup:          nodesSetup,
+		StorageBootstrapper:     &mock.StorageBootstrapperMock{},
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		ChainID:                 ChainID,
+		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		NodesSetup:              nodesSetup,
 	}
 
 	kg := &mock.KeyGenMock{}
@@ -174,6 +174,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		StateCheckpointModulus: stateCheckpointModulus,
 		BlockChain:             tpn.BlockChain,
 		BlockSizeThrottler:     TestBlockSizeThrottler,
+		Version:                string(SoftwareVersion),
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

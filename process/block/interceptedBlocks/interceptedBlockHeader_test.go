@@ -23,14 +23,14 @@ var hdrEpoch = uint32(78)
 
 func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		ShardCoordinator:  mock.NewOneShardCoordinatorMock(),
-		Hasher:            testHasher,
-		Marshalizer:       testMarshalizer,
-		HeaderSigVerifier: &mock.HeaderSigVerifierStub{},
-		ChainID:           []byte("chain ID"),
-		ValidityAttester:  &mock.ValidityAttesterStub{},
-		EpochStartTrigger: &mock.EpochStartTriggerStub{},
-		NonceConverter:    mock.NewNonceHashConverterMock(),
+		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
+		Hasher:                  testHasher,
+		Marshalizer:             testMarshalizer,
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		ValidityAttester:        &mock.ValidityAttesterStub{},
+		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		NonceConverter:          mock.NewNonceHashConverterMock(),
 	}
 
 	hdr := createMockShardHeader()
@@ -58,6 +58,7 @@ func createMockShardHeader() *dataBlock.Header {
 		MetaBlockHashes:  nil,
 		TxCount:          0,
 		ChainID:          []byte("chain ID"),
+		SoftwareVersion:  []byte("version"),
 	}
 }
 

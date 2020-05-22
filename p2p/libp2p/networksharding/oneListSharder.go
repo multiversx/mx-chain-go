@@ -9,6 +9,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+var _ p2p.CommonSharder = (*oneListSharder)(nil)
+
 const minAllowedConnectedPeersOneSharder = 3
 
 type oneListSharder struct {

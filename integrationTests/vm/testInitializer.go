@@ -12,7 +12,6 @@ import (
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/pubkeyConverter"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -32,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm/iele/elrond/node/endpoint"
 	"github.com/stretchr/testify/assert"
@@ -45,6 +45,8 @@ var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var pubkeyConv, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 var log = logger.GetOrCreate("integrationtests")
+
+const maxTrieLevelInMemory = uint(5)
 
 // VMTestContext -
 type VMTestContext struct {
@@ -69,7 +71,7 @@ type accountFactory struct {
 }
 
 // CreateAccount -
-func (af *accountFactory) CreateAccount(address state.AddressContainer) (state.AccountHandler, error) {
+func (af *accountFactory) CreateAccount(address []byte) (state.AccountHandler, error) {
 	return state.NewUserAccount(address)
 }
 
@@ -79,10 +81,10 @@ func (af *accountFactory) IsInterfaceNil() bool {
 }
 
 // CreateEmptyAddress -
-func CreateEmptyAddress() state.AddressContainer {
+func CreateEmptyAddress() []byte {
 	buff := make([]byte, testHasher.Size())
 
-	return state.NewAddress(buff)
+	return buff
 }
 
 // CreateMemUnit -
@@ -118,7 +120,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 		generalCfg,
 	)
 
-	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher)
+	tr, _ := trie.NewTrie(trieStorage, marsh, testHasher, maxTrieLevelInMemory)
 	adb, _ := state.NewAccountsDB(tr, testHasher, marsh, &accountFactory{})
 
 	return adb
@@ -126,12 +128,7 @@ func CreateInMemoryShardAccountsDB() *state.AccountsDB {
 
 // CreateAccount -
 func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, balance *big.Int) ([]byte, error) {
-	address, err := pubkeyConv.CreateAddressFromBytes(pubKey)
-	if err != nil {
-		return nil, err
-	}
-
-	account, err := accnts.LoadAccount(address)
+	account, err := accnts.LoadAccount(pubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +180,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	gasSchedule := make(map[string]map[string]uint64)
-	FillGasMapInternal(gasSchedule, 1)
+	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:  vmContainer,
@@ -261,13 +258,14 @@ func CreateVMAndBlockchainHook(
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
 	actualGasSchedule := gasSchedule
 	if gasSchedule == nil {
-		actualGasSchedule = arwenConfig.MakeGasMap(1)
-		FillGasMapInternal(actualGasSchedule, 1)
+		actualGasSchedule = arwenConfig.MakeGasMapForTests()
+		defaults.FillGasMapInternal(actualGasSchedule, 1)
 	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:          actualGasSchedule,
 		MapDNSAddresses: make(map[string]struct{}),
+		Marshalizer:     testMarshalizer,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
@@ -326,7 +324,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
 	gasSchedule := make(map[string]map[string]uint64)
-	FillGasMapInternal(gasSchedule, 1)
+	defaults.FillGasMapInternal(gasSchedule, 1)
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:  vmContainer,
 		ArgsParser:   argsParser,
@@ -381,8 +379,7 @@ func TestDeployedContractContents(
 ) {
 
 	scCodeBytes, _ := hex.DecodeString(scCode)
-	destinationAddress, _ := pubkeyConv.CreateAddressFromBytes(destinationAddressBytes)
-	destinationRecovAccount, _ := accnts.GetExistingAccount(destinationAddress)
+	destinationRecovAccount, _ := accnts.GetExistingAccount(destinationAddressBytes)
 	destinationRecovShardAccount, ok := destinationRecovAccount.(state.UserAccountHandler)
 
 	assert.True(t, ok)
@@ -409,8 +406,7 @@ func TestDeployedContractContents(
 
 // AccountExists -
 func AccountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
-	address, _ := pubkeyConv.CreateAddressFromBytes(addressBytes)
-	accnt, _ := accnts.GetExistingAccount(address)
+	accnt, _ := accnts.GetExistingAccount(addressBytes)
 
 	return accnt != nil
 }
@@ -503,7 +499,7 @@ func CreateDeployTx(
 		Nonce:    senderNonce,
 		Value:    new(big.Int).Set(value),
 		SndAddr:  senderAddressBytes,
-		RcvAddr:  CreateEmptyAddress().Bytes(),
+		RcvAddr:  CreateEmptyAddress(),
 		Data:     []byte(scCodeAndVMType),
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
@@ -519,8 +515,7 @@ func TestAccount(
 	expectedBalance *big.Int,
 ) *big.Int {
 
-	senderAddress, _ := pubkeyConv.CreateAddressFromBytes(senderAddressBytes)
-	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddress)
+	senderRecovAccount, _ := accnts.GetExistingAccount(senderAddressBytes)
 	senderRecovShardAccount := senderRecovAccount.(state.UserAccountHandler)
 
 	assert.Equal(t, expectedNonce, senderRecovShardAccount.GetNonce())
@@ -545,8 +540,7 @@ func ComputeExpectedBalance(
 
 // GetAccountsBalance -
 func GetAccountsBalance(addrBytes []byte, accnts state.AccountsAdapter) *big.Int {
-	address, _ := pubkeyConv.CreateAddressFromBytes(addrBytes)
-	accnt, _ := accnts.GetExistingAccount(address)
+	accnt, _ := accnts.GetExistingAccount(addrBytes)
 	shardAccnt, _ := accnt.(state.UserAccountHandler)
 
 	return shardAccnt.GetBalance()
@@ -616,51 +610,4 @@ func CreateMoveBalanceTx(
 		GasPrice: 1,
 		GasLimit: gasLimit,
 	}
-}
-
-// FillGasMapInternal -
-func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
-	gasMap[core.BaseOperationCost] = FillGasMapBaseOperationCosts(value)
-	gasMap[core.BuiltInCost] = FillGasMapBuiltInCosts(value)
-	gasMap[core.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(value)
-
-	return gasMap
-}
-
-// FillGasMapBaseOperationCosts -
-func FillGasMapBaseOperationCosts(value uint64) map[string]uint64 {
-	gasMap := make(map[string]uint64)
-	gasMap["StorePerByte"] = value
-	gasMap["DataCopyPerByte"] = value
-	gasMap["ReleasePerByte"] = value
-	gasMap["PersistPerByte"] = value
-	gasMap["CompilePerByte"] = value
-
-	return gasMap
-}
-
-// FillGasMapBuiltInCosts -
-func FillGasMapBuiltInCosts(value uint64) map[string]uint64 {
-	gasMap := make(map[string]uint64)
-	gasMap["ClaimDeveloperRewards"] = value
-	gasMap["ChangeOwnerAddress"] = value
-	gasMap["SaveUserName"] = value
-	gasMap["SaveKeyValue"] = value
-
-	return gasMap
-}
-
-// FillGasMapMetaChainSystemSCsCosts -
-func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
-	gasMap := make(map[string]uint64)
-	gasMap["Stake"] = value
-	gasMap["UnStake"] = value
-	gasMap["UnBond"] = value
-	gasMap["Claim"] = value
-	gasMap["Get"] = value
-	gasMap["ChangeRewardAddress"] = value
-	gasMap["ChangeValidatorKeys"] = value
-	gasMap["UnJail"] = value
-
-	return gasMap
 }

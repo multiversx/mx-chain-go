@@ -1,7 +1,6 @@
 package kadDht
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -12,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var durationBootstrapingTime = 2 * time.Second
 var durationTopicAnnounceTime = 2 * time.Second
 
 func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
@@ -23,15 +21,14 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 	numOfPeers := 20
 
 	//Step 1. Create advertiser
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	//Step 2. Create numOfPeers instances of messenger type and call bootstrap
 	peers := make([]p2p.Messenger, numOfPeers)
 
 	for i := 0; i < numOfPeers; i++ {
-		peers[i] = integrationTests.CreateMessengerWithKadDht(context.Background(),
-			integrationTests.GetConnectableAddress(advertiser))
+		peers[i] = integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertiser))
 
 		_ = peers[i].Bootstrap()
 	}
@@ -49,7 +46,7 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiser(t *testing.T) {
 		}
 	}()
 
-	integrationTests.WaitForBootstrapAndShowConnected(peers, durationBootstrapingTime)
+	integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
 
 	//Step 3. Create a test topic, add receiving handlers
 	createTestTopicAndWaitForAnnouncements(t, peers)
@@ -79,12 +76,11 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 
 	//Step 1. Create 3 advertisers and connect them together
 	advertisers := make([]p2p.Messenger, numOfAdvertisers)
-	advertisers[0] = integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertisers[0] = integrationTests.CreateMessengerWithKadDht("")
 	_ = advertisers[0].Bootstrap()
 
 	for idx := 1; idx < numOfAdvertisers; idx++ {
-		advertisers[idx] = integrationTests.CreateMessengerWithKadDht(context.Background(),
-			integrationTests.GetConnectableAddress(advertisers[0]))
+		advertisers[idx] = integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertisers[0]))
 		_ = advertisers[idx].Bootstrap()
 	}
 
@@ -92,8 +88,7 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 	peers := make([]p2p.Messenger, numOfPeers)
 
 	for i := 0; i < numOfPeers; i++ {
-		peers[i] = integrationTests.CreateMessengerWithKadDht(context.Background(),
-			integrationTests.GetConnectableAddress(advertisers[i%numOfAdvertisers]))
+		peers[i] = integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertisers[i%numOfAdvertisers]))
 		_ = peers[i].Bootstrap()
 	}
 
@@ -112,7 +107,7 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 		}
 	}()
 
-	integrationTests.WaitForBootstrapAndShowConnected(peers, durationBootstrapingTime)
+	integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
 
 	//Step 3. Create a test topic, add receiving handlers
 	createTestTopicAndWaitForAnnouncements(t, peers)
@@ -130,6 +125,88 @@ func TestPeerDiscoveryAndMessageSendingWithThreeAdvertisers(t *testing.T) {
 	}
 
 	assert.Fail(t, "test failed. Discovery/message passing are not validated")
+}
+
+func TestPeerDiscoveryAndMessageSendingWithOneAdvertiserAndProtocolID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	randezVous1 := "/erd/kad/1.0.0"
+	randezVous2 := "/amony/kad/0.0.0"
+
+	peer1 := integrationTests.CreateMessengerWithKadDhtAndProtocolID(
+		integrationTests.GetConnectableAddress(advertiser),
+		randezVous1,
+	)
+	peer2 := integrationTests.CreateMessengerWithKadDhtAndProtocolID(
+		integrationTests.GetConnectableAddress(advertiser),
+		randezVous1,
+	)
+	peer3 := integrationTests.CreateMessengerWithKadDhtAndProtocolID(
+		integrationTests.GetConnectableAddress(advertiser),
+		randezVous2,
+	)
+
+	peers := []p2p.Messenger{peer1, peer2, peer3}
+
+	for _, peer := range peers {
+		_ = peer.Bootstrap()
+	}
+
+	//cleanup function that closes all messengers
+	defer func() {
+		for i := 0; i < len(peers); i++ {
+			if peers[i] != nil {
+				_ = peers[i].Close()
+			}
+		}
+
+		if advertiser != nil {
+			_ = advertiser.Close()
+		}
+	}()
+
+	integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
+
+	createTestTopicAndWaitForAnnouncements(t, peers)
+
+	topic := "test topic"
+	message := []byte("message")
+	messageProcessors := assignProcessors(peers, topic)
+
+	peer1.Broadcast(topic, message)
+	time.Sleep(time.Second * 2)
+
+	assert.Equal(t, message, messageProcessors[0].GetLastMessage())
+	assert.Equal(t, message, messageProcessors[1].GetLastMessage())
+	assert.Nil(t, messageProcessors[2].GetLastMessage())
+
+	assert.Equal(t, 2, len(peer1.ConnectedPeers()))
+	assert.Equal(t, 2, len(peer2.ConnectedPeers()))
+	assert.Equal(t, 1, len(peer3.ConnectedPeers()))
+}
+
+func assignProcessors(peers []p2p.Messenger, topic string) []*peerDiscovery.SimpleMessageProcessor {
+	processors := make([]*peerDiscovery.SimpleMessageProcessor, 0, len(peers))
+	for _, peer := range peers {
+		if peer.HasTopicValidator(topic) {
+			_ = peer.UnregisterMessageProcessor(topic)
+		}
+
+		proc := &peerDiscovery.SimpleMessageProcessor{}
+		processors = append(processors, proc)
+
+		err := peer.RegisterMessageProcessor(topic, proc)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+	}
+
+	return processors
 }
 
 func createTestTopicAndWaitForAnnouncements(t *testing.T, peers []p2p.Messenger) {

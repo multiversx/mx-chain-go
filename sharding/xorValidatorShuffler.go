@@ -2,14 +2,34 @@ package sharding
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 )
+
+var _ NodesShuffler = (*randXORShuffler)(nil)
+
+type shuffleNodesArg struct {
+	eligible          map[uint32][]Validator
+	waiting           map[uint32][]Validator
+	unstakeLeaving    []Validator
+	additionalLeaving []Validator
+	newNodes          []Validator
+	randomness        []byte
+	nodesMeta         uint32
+	nodesPerShard     uint32
+	nbShards          uint32
+	distributor       ValidatorsDistributor
+}
 
 // TODO: Decide if transaction load statistics will be used for limiting the number of shards
 type randXORShuffler struct {
-	// TODO: remove the references to this constant when reinitialization of node in new shard is implemented
+	// TODO: remove the references to this constant and the distributor
+	// when reinitialization of node in new shard is implemented
 	shuffleBetweenShards bool
+	validatorDistributor ValidatorsDistributor
 
 	adaptivity        bool
 	nodesShard        uint32
@@ -26,10 +46,18 @@ func NewXorValidatorsShuffler(
 	nodesMeta uint32,
 	hysteresis float32,
 	adaptivity bool,
+	shuffleBetweenShards bool,
 ) *randXORShuffler {
-	rxs := &randXORShuffler{}
+	log.Debug("Shuffler created", "shuffleBetweenShards", shuffleBetweenShards)
+	rxs := &randXORShuffler{shuffleBetweenShards: shuffleBetweenShards}
 
 	rxs.UpdateParams(nodesShard, nodesMeta, hysteresis, adaptivity)
+
+	if rxs.shuffleBetweenShards {
+		rxs.validatorDistributor = &CrossShardValidatorDistributor{}
+	} else {
+		rxs.validatorDistributor = &IntraShardValidatorDistributor{}
+	}
 
 	return rxs
 }
@@ -71,18 +99,27 @@ func (rxs *randXORShuffler) UpdateParams(
 //          b)  In case (shuffled out nodes + new nodes) < (nbShards * perShardHysteresis) then we can immediately
 //              execute the shard merge
 //          c)  No change in the number of shards then nothing extra needs to be done
-func (rxs *randXORShuffler) UpdateNodeLists(args ArgsUpdateNodes) ResUpdateNodes {
+func (rxs *randXORShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error) {
 	eligibleAfterReshard := copyValidatorMap(args.Eligible)
 	waitingAfterReshard := copyValidatorMap(args.Waiting)
 
-	newNbShards := rxs.computeNewShards(args.Eligible, args.Waiting, args.NewNodes, args.Leaving, args.NbShards)
+	args.AdditionalLeaving = removeDupplicates(args.UnStakeLeaving, args.AdditionalLeaving)
+	totalLeavingNum := len(args.AdditionalLeaving) + len(args.UnStakeLeaving)
+
+	newNbShards := rxs.computeNewShards(
+		args.Eligible,
+		args.Waiting,
+		len(args.NewNodes),
+		totalLeavingNum,
+		args.NbShards,
+	)
 
 	rxs.mutShufflerParams.RLock()
 	canSplit := rxs.adaptivity && newNbShards > args.NbShards
 	canMerge := rxs.adaptivity && newNbShards < args.NbShards
+	nodesPerShard := rxs.nodesShard
+	nodesMeta := rxs.nodesMeta
 	rxs.mutShufflerParams.RUnlock()
-
-	leavingNodes := args.Leaving
 
 	if canSplit {
 		eligibleAfterReshard, waitingAfterReshard = rxs.splitShards(args.Eligible, args.Waiting, newNbShards)
@@ -91,34 +128,62 @@ func (rxs *randXORShuffler) UpdateNodeLists(args ArgsUpdateNodes) ResUpdateNodes
 		eligibleAfterReshard, waitingAfterReshard = rxs.mergeShards(args.Eligible, args.Waiting, newNbShards)
 	}
 
-	// TODO: remove the conditional and the else branch when reinitialization of node in new shard is implemented
-	if rxs.shuffleBetweenShards {
-		return shuffleNodesInterShards(eligibleAfterReshard, waitingAfterReshard, leavingNodes, args.NewNodes, args.Rand)
-	}
-
-	return shuffleNodesIntraShards(eligibleAfterReshard, waitingAfterReshard, leavingNodes, args.NewNodes, args.Rand)
+	return shuffleNodes(shuffleNodesArg{
+		eligible:          eligibleAfterReshard,
+		waiting:           waitingAfterReshard,
+		unstakeLeaving:    args.UnStakeLeaving,
+		additionalLeaving: args.AdditionalLeaving,
+		newNodes:          args.NewNodes,
+		randomness:        args.Rand,
+		nodesMeta:         nodesMeta,
+		nodesPerShard:     nodesPerShard,
+		nbShards:          args.NbShards,
+		distributor:       rxs.validatorDistributor,
+	})
 }
 
-func removeFromWaiting(waitingNodes map[uint32][]Validator, leavingNodes []Validator) (map[uint32][]Validator, []Validator) {
-	sortedShardIds := sortKeys(waitingNodes)
+func removeDupplicates(unstake []Validator, additionalLeaving []Validator) []Validator {
+	additionalCopy := make([]Validator, 0, len(additionalLeaving))
+	additionalCopy = append(additionalCopy, additionalLeaving...)
+
+	for _, unstakeValidator := range unstake {
+		for i := len(additionalCopy) - 1; i >= 0; i-- {
+			if bytes.Equal(unstakeValidator.PubKey(), additionalCopy[i].PubKey()) {
+				additionalCopy = removeValidatorFromList(additionalCopy, i)
+			}
+		}
+	}
+
+	return additionalCopy
+}
+
+func removeNodesFromMap(
+	existingNodes map[uint32][]Validator,
+	leavingNodes []Validator,
+	numToRemove map[uint32]int,
+) (map[uint32][]Validator, []Validator) {
+	sortedShardIds := sortKeys(existingNodes)
+	numRemoved := 0
+
 	for _, shardId := range sortedShardIds {
-		leavingNodes = removeNodesFromWaiting(waitingNodes, leavingNodes, shardId)
+		numToRemoveOnShard := numToRemove[shardId]
+		leavingNodes, numRemoved = removeNodesFromShard(existingNodes, leavingNodes, shardId, numToRemoveOnShard)
+		numToRemove[shardId] -= numRemoved
 	}
 
-	return waitingNodes, leavingNodes
+	return existingNodes, leavingNodes
 }
 
-func removeNodesFromWaiting(waitingNodes map[uint32][]Validator, leavingNodes []Validator, shard uint32) []Validator {
-	vList := waitingNodes[shard]
-	nbToRemove := len(vList)
+func removeNodesFromShard(existingNodes map[uint32][]Validator, leavingNodes []Validator, shard uint32, nbToRemove int) ([]Validator, int) {
+	vList := existingNodes[shard]
 	if len(leavingNodes) < nbToRemove {
 		nbToRemove = len(leavingNodes)
 	}
 
-	vList, removedNodes := removeValidatorsFromList(vList, leavingNodes, nbToRemove)
+	vList, removedNodes := removeValidatorsFromList(existingNodes[shard], leavingNodes, nbToRemove)
 	leavingNodes, _ = removeValidatorsFromList(leavingNodes, removedNodes, len(removedNodes))
-	waitingNodes[shard] = vList
-	return leavingNodes
+	existingNodes[shard] = vList
+	return leavingNodes, len(removedNodes)
 }
 
 // IsInterfaceNil verifies if the underlying object is nil
@@ -126,100 +191,145 @@ func (rxs *randXORShuffler) IsInterfaceNil() bool {
 	return rxs == nil
 }
 
-// shuffleNodesInterShards shuffles the nodes: shards eligible -> common pool, shard waiting -> shard eligible list,
-// common pool -> shards waiting
-func shuffleNodesInterShards(
-	eligible map[uint32][]Validator,
-	waiting map[uint32][]Validator,
-	leaving []Validator,
-	newNodes []Validator,
-	randomness []byte,
-) ResUpdateNodes {
-	var shuffledOutNodes []Validator
+func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
+	allLeaving := append(arg.unstakeLeaving, arg.additionalLeaving...)
 
-	stillRemainingInLeaving := make([]Validator, len(leaving))
-	copy(stillRemainingInLeaving, leaving)
+	waitingCopy := copyValidatorMap(arg.waiting)
+	eligibleCopy := copyValidatorMap(arg.eligible)
 
-	waiting, stillRemainingInLeaving = removeFromWaiting(waiting, stillRemainingInLeaving)
+	createListsForAllShards(waitingCopy, arg.nbShards)
 
-	shuffledOutNodes, eligible, stillRemainingInLeaving = shuffleOutNodes(
-		eligible,
-		waiting,
-		stillRemainingInLeaving,
-		randomness,
-	)
-	moveNodesToMap(eligible, waiting)
+	numToRemove, err := computeNumToRemove(arg)
+	if err != nil {
+		return nil, err
+	}
 
-	err := distributeValidators(newNodes, waiting, randomness)
+	remainingUnstakeLeaving, _ := removeLeavingNodesNotExistingInEligibleOrWaiting(arg.unstakeLeaving, waitingCopy, eligibleCopy)
+	remainingAdditionalLeaving, _ := removeLeavingNodesNotExistingInEligibleOrWaiting(arg.additionalLeaving, waitingCopy, eligibleCopy)
+
+	newEligible, newWaiting, stillRemainingUnstakeLeaving := removeLeavingNodesFromValidatorMaps(eligibleCopy, waitingCopy, numToRemove, remainingUnstakeLeaving)
+	newEligible, newWaiting, stillRemainingAdditionalLeaving := removeLeavingNodesFromValidatorMaps(newEligible, newWaiting, numToRemove, remainingAdditionalLeaving)
+
+	stillRemainingInLeaving := append(stillRemainingUnstakeLeaving, stillRemainingAdditionalLeaving...)
+
+	shuffledOutMap, newEligible := shuffleOutNodes(newEligible, numToRemove, arg.randomness)
+
+	err = moveNodesToMap(newEligible, newWaiting)
+	if err != nil {
+		log.Warn("moveNodesToMap failed", "error", err)
+	}
+	err = distributeValidators(newWaiting, arg.newNodes, arg.randomness)
 	if err != nil {
 		log.Warn("distributeValidators newNodes failed", "error", err)
 	}
 
-	err = distributeValidators(shuffledOutNodes, waiting, randomness)
+	err = arg.distributor.DistributeValidators(newWaiting, shuffledOutMap, arg.randomness)
 	if err != nil {
-		log.Warn("distributeValidators shuffledOutNodes failed", "error", err)
+		log.Warn("distributeValidators shuffledOut failed", "error", err)
 	}
 
-	actualLeaving, _ := removeValidatorsFromList(leaving, stillRemainingInLeaving, len(stillRemainingInLeaving))
+	actualLeaving, _ := removeValidatorsFromList(allLeaving, stillRemainingInLeaving, len(stillRemainingInLeaving))
 
-	return ResUpdateNodes{
-		Eligible:       eligible,
-		Waiting:        waiting,
+	return &ResUpdateNodes{
+		Eligible:       newEligible,
+		Waiting:        newWaiting,
 		Leaving:        actualLeaving,
 		StillRemaining: stillRemainingInLeaving,
+	}, nil
+}
+
+func createListsForAllShards(shardMap map[uint32][]Validator, shards uint32) {
+	for shardId := uint32(0); shardId < shards; shardId++ {
+		if shardMap[shardId] == nil {
+			shardMap[shardId] = make([]Validator, 0)
+		}
+	}
+
+	if shardMap[core.MetachainShardId] == nil {
+		shardMap[core.MetachainShardId] = make([]Validator, 0)
 	}
 }
 
-// shuffleNodesIntraShards shuffles nodes only between the waiting list and eligible list of a shard, not between
-// different shards
-func shuffleNodesIntraShards(
+func computeNumToRemove(arg shuffleNodesArg) (map[uint32]int, error) {
+	numToRemove := make(map[uint32]int)
+	if arg.nbShards == 0 {
+		return numToRemove, nil
+	}
+
+	for shardId := uint32(0); shardId < arg.nbShards; shardId++ {
+		maxToRemove, err := computeNumToRemovePerShard(
+			len(arg.eligible[shardId]),
+			len(arg.waiting[shardId]),
+			int(arg.nodesPerShard))
+		if err != nil {
+			return nil, fmt.Errorf("%w shard=%v", err, shardId)
+		}
+		numToRemove[shardId] = maxToRemove
+	}
+
+	maxToRemove, err := computeNumToRemovePerShard(
+		len(arg.eligible[core.MetachainShardId]),
+		len(arg.waiting[core.MetachainShardId]),
+		int(arg.nodesMeta))
+	if err != nil {
+		return nil, fmt.Errorf("%w shard=%v", err, core.MetachainShardId)
+	}
+	numToRemove[core.MetachainShardId] = maxToRemove
+
+	return numToRemove, nil
+}
+
+func computeNumToRemovePerShard(numEligible int, numWaiting int, nodesPerShard int) (int, error) {
+	notEnoughValidatorsInShard := numEligible+numWaiting < nodesPerShard
+	if notEnoughValidatorsInShard {
+		return 0, ErrSmallShardEligibleListSize
+	}
+	return numEligible + numWaiting - nodesPerShard, nil
+}
+
+func removeLeavingNodesNotExistingInEligibleOrWaiting(
+	leavingValidators []Validator,
+	waiting map[uint32][]Validator,
+	eligible map[uint32][]Validator,
+) ([]Validator, []Validator) {
+	notFoundValidators := make([]Validator, 0)
+
+	for _, v := range leavingValidators {
+		found, _ := searchInMap(waiting, v.PubKey())
+		if found {
+			continue
+		}
+		found, _ = searchInMap(eligible, v.PubKey())
+		if !found {
+			log.Debug("Leaving validator not found in waiting or eligible", "pk", v.PubKey())
+			notFoundValidators = append(notFoundValidators, v)
+		}
+	}
+
+	return removeValidatorsFromList(leavingValidators, notFoundValidators, len(notFoundValidators))
+}
+
+func removeLeavingNodesFromValidatorMaps(
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
+	numToRemove map[uint32]int,
 	leaving []Validator,
-	newNodes []Validator,
-	randomness []byte,
-) ResUpdateNodes {
+) (map[uint32][]Validator, map[uint32][]Validator, []Validator) {
 
-	shuffledOutMap := make(map[uint32][]Validator)
 	stillRemainingInLeaving := make([]Validator, len(leaving))
 	copy(stillRemainingInLeaving, leaving)
 
-	waiting, stillRemainingInLeaving = removeFromWaiting(waiting, stillRemainingInLeaving)
-
-	sortedShardIds := sortKeys(eligible)
-	for _, shardId := range sortedShardIds {
-		validators := eligible[shardId]
-		shuffledOutMap[shardId], eligible[shardId], stillRemainingInLeaving = shuffleOutShard(
-			validators,
-			len(waiting[shardId]),
-			stillRemainingInLeaving,
-			randomness,
-		)
-	}
-
-	moveNodesToMap(eligible, waiting)
-	err := distributeValidators(newNodes, waiting, randomness)
-	if err != nil {
-		log.Warn("distributeValidators newNodes failed", "error", err)
-	}
-	moveNodesToMap(waiting, shuffledOutMap)
-
-	actualLeaving, _ := removeValidatorsFromList(leaving, stillRemainingInLeaving, len(stillRemainingInLeaving))
-
-	return ResUpdateNodes{
-		Eligible:       eligible,
-		Waiting:        waiting,
-		Leaving:        actualLeaving,
-		StillRemaining: stillRemainingInLeaving,
-	}
+	waiting, stillRemainingInLeaving = removeNodesFromMap(waiting, stillRemainingInLeaving, numToRemove)
+	eligible, stillRemainingInLeaving = removeNodesFromMap(eligible, stillRemainingInLeaving, numToRemove)
+	return eligible, waiting, stillRemainingInLeaving
 }
 
 // computeNewShards determines the new number of shards based on the number of nodes in the network
 func (rxs *randXORShuffler) computeNewShards(
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
-	newNodes []Validator,
-	leavingNodes []Validator,
+	numNewNodes int,
+	numLeavingNodes int,
 	nbShards uint32,
 ) uint32 {
 
@@ -230,7 +340,7 @@ func (rxs *randXORShuffler) computeNewShards(
 		nbWaiting += len(waiting[shard])
 	}
 
-	nodesNewEpoch := uint32(nbEligible + nbWaiting + len(newNodes) - len(leavingNodes))
+	nodesNewEpoch := uint32(nbEligible + nbWaiting + numNewNodes - numLeavingNodes)
 
 	rxs.mutShufflerParams.RLock()
 	maxNodesMeta := rxs.nodesMeta + rxs.metaHysteresis
@@ -254,52 +364,43 @@ func (rxs *randXORShuffler) computeNewShards(
 	return nbShardsNew
 }
 
-// shuffleOutNodes shuffles the list of eligible validators in each shard and returns the array of shuffled out
+// shuffleOutNodes shuffles the list of eligible validators in each shard and returns the map of shuffled out
 // validators
 func shuffleOutNodes(
 	eligible map[uint32][]Validator,
-	waiting map[uint32][]Validator,
-	leaving []Validator,
+	numToShuffle map[uint32]int,
 	randomness []byte,
-) ([]Validator, map[uint32][]Validator, []Validator) {
-	shuffledOut := make([]Validator, 0)
+) (map[uint32][]Validator, map[uint32][]Validator) {
+	shuffledOutMap := make(map[uint32][]Validator)
 	newEligible := make(map[uint32][]Validator)
 	var shardShuffledOut []Validator
 
 	sortedShardIds := sortKeys(eligible)
 	for _, shardId := range sortedShardIds {
 		validators := eligible[shardId]
-		shardShuffledOut, validators, leaving = shuffleOutShard(validators, len(waiting[shardId]), leaving, randomness)
-		shuffledOut = append(shuffledOut, shardShuffledOut...)
-
+		shardShuffledOut, validators = shuffleOutShard(validators, numToShuffle[shardId], randomness)
+		shuffledOutMap[shardId] = shardShuffledOut
 		newEligible[shardId], _ = removeValidatorsFromList(validators, shardShuffledOut, len(shardShuffledOut))
 	}
 
-	return shuffledOut, newEligible, leaving
+	return shuffledOutMap, newEligible
 }
 
 // shuffleOutShard selects the validators to be shuffled out from a shard
 func shuffleOutShard(
 	validators []Validator,
 	validatorsToSelect int,
-	leaving []Validator,
 	randomness []byte,
-) ([]Validator, []Validator, []Validator) {
-	var removed []Validator
-
+) ([]Validator, []Validator) {
 	if len(validators) < validatorsToSelect {
 		validatorsToSelect = len(validators)
 	}
 
-	validators, removed = removeValidatorsFromList(validators, leaving, validatorsToSelect)
-	stillRemainingInLeaving, _ := removeValidatorsFromList(leaving, removed, len(removed))
-
-	validatorsToSelect -= len(removed)
 	shardShuffledEligible := shuffleList(validators, randomness)
 	shardShuffledOut := shardShuffledEligible[:validatorsToSelect]
 	remainingEligible := shardShuffledEligible[validatorsToSelect:]
 
-	return shardShuffledOut, remainingEligible, stillRemainingInLeaving
+	return shardShuffledOut, remainingEligible
 }
 
 // shuffleList returns a shuffled list of validators.
@@ -339,9 +440,11 @@ func removeValidatorsFromList(
 			break
 		}
 
-		for index, val := range resultedList {
+		for i := len(resultedList) - 1; i >= 0; i-- {
+			val := resultedList[i]
 			if bytes.Equal(val.PubKey(), valToRemove.PubKey()) {
-				resultedList = removeValidatorFromList(resultedList, index)
+				resultedList = removeValidatorFromList(resultedList, i)
+
 				removed = append(removed, val)
 				break
 			}
@@ -358,13 +461,21 @@ func removeValidatorsFromList(
 // Attention: The slice given as parameter will have its element on position index swapped with the last element
 func removeValidatorFromList(validatorList []Validator, index int) []Validator {
 	indexNotOK := index > len(validatorList)-1 || index < 0
-
 	if indexNotOK {
 		return validatorList
 	}
 
 	validatorList[index] = validatorList[len(validatorList)-1]
 	return validatorList[:len(validatorList)-1]
+}
+
+func removeValidatorFromListKeepOrder(validatorList []Validator, index int) []Validator {
+	indexNotOK := index > len(validatorList)-1 || index < 0
+	if indexNotOK {
+		return validatorList
+	}
+
+	return append(validatorList[:index], validatorList[index+1:]...)
 }
 
 // xorBytes XORs two byte arrays up to the shortest length of the two, and returns the resulted XORed bytes.
@@ -423,17 +534,22 @@ func copyValidatorMap(validators map[uint32][]Validator) map[uint32][]Validator 
 }
 
 // moveNodesToMap moves the validators in the waiting list to corresponding eligible list
-func moveNodesToMap(destination map[uint32][]Validator, source map[uint32][]Validator) {
+func moveNodesToMap(destination map[uint32][]Validator, source map[uint32][]Validator) error {
+	if destination == nil {
+		return ErrNilOrEmptyDestinationForDistribute
+	}
+
 	for k, v := range source {
 		destination[k] = append(destination[k], v...)
 		source[k] = make([]Validator, 0)
 	}
+	return nil
 }
 
 // distributeNewNodes distributes a list of validators to the given validators map
-func distributeValidators(validators []Validator, destLists map[uint32][]Validator, randomness []byte) error {
+func distributeValidators(destLists map[uint32][]Validator, validators []Validator, randomness []byte) error {
 	if len(destLists) == 0 {
-		return ErrNilDestinationForDistribute
+		return ErrNilOrEmptyDestinationForDistribute
 	}
 
 	// if there was a split or a merge, eligible map should already have a different nb of keys (shards)

@@ -6,7 +6,7 @@ import (
 	"math"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -15,6 +15,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
+
+var _ storage.Storer = (*PruningStorer)(nil)
 
 var log = logger.GetOrCreate("storage/pruning")
 
@@ -29,8 +31,8 @@ const epochForDefaultEpochPrepareHdr = math.MaxUint32 - 7
 // persisterData structure is used so the persister and its path can be kept in the same place
 type persisterData struct {
 	persister storage.Persister
-	epoch     uint32
 	path      string
+	epoch     uint32
 	isClosed  bool
 }
 
@@ -47,10 +49,10 @@ type PruningStorer struct {
 	persisterFactory      DbFactoryHandler
 	mutEpochPrepareHdr    sync.RWMutex
 	epochPrepareHdr       *block.MetaBlock
+	identifier            string
 	numOfEpochsToKeep     uint32
 	numOfActivePersisters uint32
 	epochForPutOperation  uint32
-	identifier            string
 	fullArchive           bool
 	pruningEnabled        bool
 }
@@ -209,12 +211,16 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 
 	ps.cacher.Put(key, data)
 
-	var persisterToUse *persisterData
-	persisterInSetEpoch, ok := ps.persistersMapByEpoch[ps.epochForPutOperation]
-	if ok && !persisterInSetEpoch.isClosed {
-		persisterToUse = persisterInSetEpoch
-	} else {
-		persisterToUse = ps.activePersisters[0]
+	persisterToUse := ps.activePersisters[0]
+	if ps.pruningEnabled {
+		persisterInSetEpoch, ok := ps.persistersMapByEpoch[ps.epochForPutOperation]
+		if ok && !persisterInSetEpoch.isClosed {
+			persisterToUse = persisterInSetEpoch
+		} else {
+			log.Debug("active persister not found",
+				"epoch", ps.epochForPutOperation,
+				"used", persisterToUse.epoch)
+		}
 	}
 
 	err := persisterToUse.persister.Put(key, data)
@@ -442,7 +448,9 @@ func (ps *PruningStorer) HasInEpoch(key []byte, epoch uint32) error {
 
 // SetEpochForPutOperation will set the epoch to be used when using the put operation
 func (ps *PruningStorer) SetEpochForPutOperation(epoch uint32) {
+	ps.lock.Lock()
 	ps.epochForPutOperation = epoch
+	ps.lock.Unlock()
 }
 
 // Remove removes the data associated to the given key from both cache and persistence medium

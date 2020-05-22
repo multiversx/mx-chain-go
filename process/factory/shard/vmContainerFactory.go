@@ -8,12 +8,15 @@ import (
 	ipcNodePart "github.com/ElrondNetwork/arwen-wasm-vm/ipc/nodepart"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 
 var logVMContainerFactory = logger.GetOrCreate("vmContainerFactory")
 
@@ -98,6 +101,7 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 				BlockGasLimit:            vmf.blockGasLimit,
 				GasSchedule:              vmf.gasSchedule,
 				ProtocolBuiltinFunctions: vmf.builtinFunctions,
+				ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
 			},
 			LogsMarshalizer:     logsMarshalizer,
 			MessagesMarshalizer: messagesMarshalizer,
@@ -117,6 +121,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHan
 			BlockGasLimit:            vmf.blockGasLimit,
 			GasSchedule:              vmf.gasSchedule,
 			ProtocolBuiltinFunctions: vmf.builtinFunctions,
+			ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
 		},
 	)
 }

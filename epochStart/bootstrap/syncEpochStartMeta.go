@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -16,10 +17,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorsFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+var _ epochStart.StartOfEpochMetaSyncer = (*epochStartMetaSyncer)(nil)
 
 type epochStartMetaSyncer struct {
 	requestHandler        RequestHandler
@@ -27,26 +31,27 @@ type epochStartMetaSyncer struct {
 	marshalizer           marshal.Marshalizer
 	hasher                hashing.Hasher
 	singleDataInterceptor process.Interceptor
-	metaBlockProcessor    *epochStartMetaBlockProcessor
+	metaBlockProcessor    EpochStartMetaBlockInterceptorProcessor
 }
 
 // ArgsNewEpochStartMetaSyncer -
 type ArgsNewEpochStartMetaSyncer struct {
-	RequestHandler    RequestHandler
-	Messenger         Messenger
-	Marshalizer       marshal.Marshalizer
-	TxSignMarshalizer marshal.Marshalizer
-	ShardCoordinator  sharding.Coordinator
-	KeyGen            crypto.KeyGenerator
-	BlockKeyGen       crypto.KeyGenerator
-	Hasher            hashing.Hasher
-	Signer            crypto.SingleSigner
-	BlockSigner       crypto.SingleSigner
-	ChainID           []byte
-	EconomicsData     *economics.EconomicsData
-	WhitelistHandler  process.WhiteListHandler
-	AddressPubkeyConv state.PubkeyConverter
-	NonceConverter    typeConverters.Uint64ByteSliceConverter
+	RequestHandler     RequestHandler
+	Messenger          Messenger
+	Marshalizer        marshal.Marshalizer
+	TxSignMarshalizer  marshal.Marshalizer
+	ShardCoordinator   sharding.Coordinator
+	KeyGen             crypto.KeyGenerator
+	BlockKeyGen        crypto.KeyGenerator
+	Hasher             hashing.Hasher
+	Signer             crypto.SingleSigner
+	BlockSigner        crypto.SingleSigner
+	ChainID            []byte
+	EconomicsData      *economics.EconomicsData
+	WhitelistHandler   process.WhiteListHandler
+	AddressPubkeyConv  state.PubkeyConverter
+	NonceConverter     typeConverters.Uint64ByteSliceConverter
+	StartInEpochConfig config.EpochStartConfig
 }
 
 // thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
@@ -72,30 +77,36 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		args.Marshalizer,
 		args.Hasher,
 		thresholdForConsideringMetaBlockCorrect,
+		args.StartInEpochConfig.MinNumConnectedPeersToStart,
+		args.StartInEpochConfig.MinNumOfPeersToConsiderBlockValid,
 	)
 	if err != nil {
 		return nil, err
 	}
 	e.metaBlockProcessor = processor
+	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(args.ChainID)
+	if err != nil {
+		return nil, err
+	}
 
 	argsInterceptedDataFactory := interceptorsFactory.ArgInterceptedDataFactory{
-		ProtoMarshalizer:  args.Marshalizer,
-		TxSignMarshalizer: args.TxSignMarshalizer,
-		Hasher:            args.Hasher,
-		ShardCoordinator:  args.ShardCoordinator,
-		MultiSigVerifier:  disabled.NewMultiSigVerifier(),
-		NodesCoordinator:  disabled.NewNodesCoordinator(),
-		KeyGen:            args.KeyGen,
-		BlockKeyGen:       args.BlockKeyGen,
-		Signer:            args.Signer,
-		BlockSigner:       args.BlockSigner,
-		AddressPubkeyConv: args.AddressPubkeyConv,
-		FeeHandler:        args.EconomicsData,
-		HeaderSigVerifier: disabled.NewHeaderSigVerifier(),
-		ChainID:           args.ChainID,
-		ValidityAttester:  disabled.NewValidityAttester(),
-		EpochStartTrigger: disabled.NewEpochStartTrigger(),
-		NonceConverter:    args.NonceConverter,
+		ProtoMarshalizer:        args.Marshalizer,
+		TxSignMarshalizer:       args.TxSignMarshalizer,
+		Hasher:                  args.Hasher,
+		ShardCoordinator:        args.ShardCoordinator,
+		MultiSigVerifier:        disabled.NewMultiSigVerifier(),
+		NodesCoordinator:        disabled.NewNodesCoordinator(),
+		KeyGen:                  args.KeyGen,
+		BlockKeyGen:             args.BlockKeyGen,
+		Signer:                  args.Signer,
+		BlockSigner:             args.BlockSigner,
+		AddressPubkeyConv:       args.AddressPubkeyConv,
+		FeeHandler:              args.EconomicsData,
+		HeaderSigVerifier:       disabled.NewHeaderSigVerifier(),
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		ValidityAttester:        disabled.NewValidityAttester(),
+		EpochStartTrigger:       disabled.NewEpochStartTrigger(),
+		NonceConverter:          args.NonceConverter,
 	}
 
 	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedDataFactory)
@@ -142,17 +153,18 @@ func (e *epochStartMetaSyncer) SyncEpochStartMeta(timeToWait time.Duration) (*bl
 func (e *epochStartMetaSyncer) resetTopicsAndInterceptors() {
 	err := e.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic)
 	if err != nil {
-		log.Info("error unregistering message processors", "error", err)
+		log.Trace("error unregistering message processors", "error", err)
 	}
 }
 
 func (e *epochStartMetaSyncer) initTopicForEpochStartMetaBlockInterceptor() error {
 	err := e.messenger.CreateTopic(factory.MetachainBlocksTopic, true)
 	if err != nil {
-		log.Info("error registering message processor", "error", err)
+		log.Warn("error messenger create topic", "error", err)
 		return err
 	}
 
+	e.resetTopicsAndInterceptors()
 	err = e.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, e.singleDataInterceptor)
 	if err != nil {
 		return err

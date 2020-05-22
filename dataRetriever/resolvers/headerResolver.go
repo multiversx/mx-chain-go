@@ -15,6 +15,8 @@ import (
 
 var log = logger.GetOrCreate("dataretriever/resolvers")
 
+var _ dataRetriever.HeaderResolver = (*HeaderResolver)(nil)
+
 // ArgHeaderResolver is the argument structure used to create new HeaderResolver instance
 type ArgHeaderResolver struct {
 	SenderResolver       dataRetriever.TopicResolverSender
@@ -151,6 +153,8 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 		return nil
 	}
 
+	hdrRes.ResolverDebugHandler().LogSucceededToResolveData(hdrRes.topic, rd.Value)
+
 	return hdrRes.Send(buff, message.Peer())
 }
 
@@ -229,12 +233,11 @@ func (hdrRes *HeaderResolver) resolveHeaderFromEpoch(key []byte) ([]byte, error)
 	if err != nil {
 		return nil, err
 	}
-
 	if isUnknownEpoch {
-		actualKey = []byte(core.EpochStartIdentifier(hdrRes.epochHandler.Epoch()))
+		actualKey = []byte(core.EpochStartIdentifier(hdrRes.epochHandler.MetaEpoch()))
 	}
 
-	return hdrRes.hdrStorage.Get(actualKey)
+	return hdrRes.hdrStorage.SearchFirst(actualKey)
 }
 
 // RequestDataFromHash requests a header from other peers having input the hdr hash

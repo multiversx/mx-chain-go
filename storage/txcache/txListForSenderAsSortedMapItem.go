@@ -3,7 +3,6 @@ package txcache
 import (
 	"math"
 
-	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
@@ -14,10 +13,10 @@ type senderScoreParams struct {
 	count uint64
 	// Size is in bytes
 	size uint64
-	// Fee is in micro ERD
+	// Fee is in nano ERD
 	fee uint64
 	gas uint64
-	// Price is in micro ERD
+	// Price is in nano ERD
 	minGasPrice uint32
 }
 
@@ -42,7 +41,7 @@ func (listForSender *txListForSender) computeRawScore() float64 {
 	gas := listForSender.totalGas.GetUint64()
 	size := listForSender.totalBytes.GetUint64()
 	count := listForSender.countTx()
-	minGasPrice := listForSender.cacheConfig.MinGasPriceMicroErd
+	minGasPrice := listForSender.cacheConfig.MinGasPriceNanoErd
 
 	return computeSenderScore(senderScoreParams{count: count, size: size, fee: fee, gas: gas, minGasPrice: minGasPrice})
 }
@@ -60,8 +59,8 @@ func (listForSender *txListForSender) computeRawScore() float64 {
 // For asymptoticScore, see (https://en.wikipedia.org/wiki/Logistic_function)
 //
 // Where:
-//  - PPUAvg: average gas points (fee) per processing unit, in micro ERD
-//  - PPUMin: minimum gas points (fee) per processing unit (given by economics.toml), in micro ERD
+//  - PPUAvg: average gas points (fee) per processing unit, in nano ERD
+//  - PPUMin: minimum gas points (fee) per processing unit (given by economics.toml), in nano ERD
 //  - txCount: number of transactions
 //  - txSize: size of transactions, in kB (1000 bytes)
 //
@@ -82,7 +81,7 @@ func computeSenderScore(params senderScoreParams) float64 {
 	// We use size in ~kB
 	const bytesInKB = 1000
 	size := float64(params.size) / bytesInKB
-	sizePow2 := float64(size) * float64(size)
+	sizePow2 := size * size
 	sizeScore := math.Log(sizePow2+1) + 1
 
 	rawScore := PPUScore / countScore / sizeScore
@@ -96,15 +95,15 @@ func computeSenderScore(params senderScoreParams) float64 {
 
 // GetScoreChunk returns the score chunk the sender is currently in
 func (listForSender *txListForSender) GetScoreChunk() *maps.MapChunk {
+	listForSender.scoreChunkMutex.RLock()
+	defer listForSender.scoreChunkMutex.RUnlock()
+
 	return listForSender.scoreChunk
 }
 
 // SetScoreChunk returns the score chunk the sender is currently in
 func (listForSender *txListForSender) SetScoreChunk(scoreChunk *maps.MapChunk) {
+	listForSender.scoreChunkMutex.Lock()
 	listForSender.scoreChunk = scoreChunk
-}
-
-// ScoreChangeInProgressFlag gets the atomic flag indicating whether a score change is in progress
-func (listForSender *txListForSender) ScoreChangeInProgressFlag() *atomic.Flag {
-	return &listForSender.scoreChangeInProgress
+	listForSender.scoreChunkMutex.Unlock()
 }

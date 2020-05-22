@@ -1,7 +1,6 @@
 package interceptedBlocks
 
 import (
-	"context"
 	"fmt"
 	"sync/atomic"
 	"testing"
@@ -31,7 +30,7 @@ func TestHeaderAndMiniBlocksAreRoutedCorrectly(t *testing.T) {
 	senderShard := uint32(0)
 	recvShards := []uint32{1, 2}
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
@@ -96,7 +95,7 @@ func TestMetaHeadersAreRequsted(t *testing.T) {
 	}
 
 	maxShards := uint32(2)
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
@@ -122,34 +121,36 @@ func TestMetaHeadersAreRequsted(t *testing.T) {
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	metaHdrFromMetachain := &block.MetaBlock{
-		Nonce:         1,
-		Round:         1,
-		Epoch:         0,
-		ShardInfo:     nil,
-		Signature:     []byte("signature"),
-		PubKeysBitmap: []byte{1},
-		PrevHash:      []byte("prev hash"),
-		PrevRandSeed:  []byte("prev rand seed"),
-		RandSeed:      []byte("rand seed"),
-		RootHash:      []byte("root hash"),
-		TxCount:       0,
-		ChainID:       integrationTests.ChainID,
+		Nonce:           1,
+		Round:           1,
+		Epoch:           0,
+		ShardInfo:       nil,
+		Signature:       []byte("signature"),
+		PubKeysBitmap:   []byte{1},
+		PrevHash:        []byte("prev hash"),
+		PrevRandSeed:    []byte("prev rand seed"),
+		RandSeed:        []byte("rand seed"),
+		RootHash:        []byte("root hash"),
+		TxCount:         0,
+		ChainID:         integrationTests.ChainID,
+		SoftwareVersion: integrationTests.SoftwareVersion,
 	}
 	metaHdrHashFromMetachain, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaHdrFromMetachain)
 
 	metaHdrFromShard := &block.MetaBlock{
-		Nonce:         1,
-		Round:         2,
-		Epoch:         0,
-		ShardInfo:     nil,
-		Signature:     []byte("signature"),
-		PubKeysBitmap: []byte{1},
-		PrevHash:      []byte("prev hash"),
-		PrevRandSeed:  []byte("prev rand seed"),
-		RandSeed:      []byte("rand seed"),
-		RootHash:      []byte("root hash"),
-		TxCount:       0,
-		ChainID:       integrationTests.ChainID,
+		Nonce:           1,
+		Round:           2,
+		Epoch:           0,
+		ShardInfo:       nil,
+		Signature:       []byte("signature"),
+		PubKeysBitmap:   []byte{1},
+		PrevHash:        []byte("prev hash"),
+		PrevRandSeed:    []byte("prev rand seed"),
+		RandSeed:        []byte("rand seed"),
+		RootHash:        []byte("root hash"),
+		TxCount:         0,
+		ChainID:         integrationTests.ChainID,
+		SoftwareVersion: integrationTests.SoftwareVersion,
 	}
 	metaHdrFromShardHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaHdrFromShard)
 
@@ -180,7 +181,7 @@ func TestMetaHeadersAreRequestedByAMetachainNode(t *testing.T) {
 	}
 
 	maxShards := uint32(2)
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
@@ -207,34 +208,36 @@ func TestMetaHeadersAreRequestedByAMetachainNode(t *testing.T) {
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	metaBlock1 := &block.MetaBlock{
-		Nonce:         1,
-		Round:         1,
-		Epoch:         0,
-		ShardInfo:     nil,
-		Signature:     []byte("signature"),
-		PubKeysBitmap: []byte{1},
-		PrevHash:      []byte("prev hash"),
-		PrevRandSeed:  []byte("prev rand seed"),
-		RandSeed:      []byte("rand seed"),
-		RootHash:      []byte("root hash"),
-		TxCount:       0,
-		ChainID:       integrationTests.ChainID,
+		Nonce:           1,
+		Round:           1,
+		Epoch:           0,
+		ShardInfo:       nil,
+		Signature:       []byte("signature"),
+		PubKeysBitmap:   []byte{1},
+		PrevHash:        []byte("prev hash"),
+		PrevRandSeed:    []byte("prev rand seed"),
+		RandSeed:        []byte("rand seed"),
+		RootHash:        []byte("root hash"),
+		TxCount:         0,
+		ChainID:         integrationTests.ChainID,
+		SoftwareVersion: integrationTests.SoftwareVersion,
 	}
 	metaBlock1Hash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaBlock1)
 
 	metaBlock2 := &block.MetaBlock{
-		Nonce:         2,
-		Round:         2,
-		Epoch:         0,
-		ShardInfo:     nil,
-		Signature:     []byte("signature"),
-		PubKeysBitmap: []byte{1},
-		PrevHash:      []byte("prev hash"),
-		PrevRandSeed:  []byte("prev rand seed"),
-		RandSeed:      []byte("rand seed"),
-		RootHash:      []byte("root hash"),
-		TxCount:       0,
-		ChainID:       integrationTests.ChainID,
+		Nonce:           2,
+		Round:           2,
+		Epoch:           0,
+		ShardInfo:       nil,
+		Signature:       []byte("signature"),
+		PubKeysBitmap:   []byte{1},
+		PrevHash:        []byte("prev hash"),
+		PrevRandSeed:    []byte("prev rand seed"),
+		RandSeed:        []byte("rand seed"),
+		RootHash:        []byte("root hash"),
+		TxCount:         0,
+		ChainID:         integrationTests.ChainID,
+		SoftwareVersion: integrationTests.SoftwareVersion,
 	}
 	metaBlock2Hash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaBlock2)
 

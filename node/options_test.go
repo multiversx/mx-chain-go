@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/stretchr/testify/assert"
@@ -425,7 +426,7 @@ func TestWithSyncer_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	sync := &mock.SyncStub{}
+	sync := &mock.SyncTimerStub{}
 
 	opt := WithSyncer(sync)
 	err := opt(node)
@@ -957,6 +958,31 @@ func TestWithHeaderSigVerifier_OkHeaderSigVerfierShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestWithHeaderSigVerifier_NilHeaderIntegrityVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithHeaderIntegrityVerifier(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilHeaderIntegrityVerifier, err)
+}
+
+func TestWithHeaderSigVerifier_OkHeaderIntegrityVerfierShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	hdrIntVerifier := &mock.HeaderIntegrityVerifierStub{}
+
+	opt := WithHeaderIntegrityVerifier(hdrIntVerifier)
+	err := opt(node)
+
+	assert.Nil(t, err)
+	assert.Equal(t, hdrIntVerifier, node.headerIntegrityVerifier)
+}
+
 func TestWithRequestedItemsHandler_OkRequestedItemsHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -1287,7 +1313,7 @@ func TestWithNodeStopChannel_OkNodeStopChannelShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	ch := make(chan bool, 1)
+	ch := make(chan endProcess.ArgEndProcess, 1)
 	opt := WithNodeStopChannel(ch)
 	err := opt(node)
 

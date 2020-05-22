@@ -2,7 +2,6 @@ package smartContract
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -12,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -25,6 +25,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var log = logger.GetOrCreate("integrationtests/multishard/smartcontract")
+
 func TestSCCallingIntraShard(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -34,7 +36,7 @@ func TestSCCallingIntraShard(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 0
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
@@ -118,7 +120,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
@@ -146,10 +148,10 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	initialVal := big.NewInt(1000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
-	firstSCOwner := nodes[0].OwnAccount.Address.Bytes()
+	firstSCOwner := nodes[0].OwnAccount.Address
 
 	// deploy the smart contracts
-	firstSCAddress := putDeploySCToDataPool("./testdata/counter.wasm", firstSCOwner, 0, big.NewInt(50), "", nodes)
+	firstSCAddress := putDeploySCToDataPool("../../vm/arwen/testdata/counter/counter.wasm", firstSCOwner, 0, big.NewInt(50), "", nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -179,8 +181,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 		nonce++
 	}
 
-	address, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(firstSCAddress)
-	shId := nodes[0].ShardCoordinator.ComputeId(address)
+	shId := nodes[0].ShardCoordinator.ComputeId(firstSCAddress)
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() != shId {
 			continue
@@ -190,7 +191,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 		require.NotNil(t, numCalled)
 	}
 
-	account := getAccountFromAddrBytes(nodes[0].AccntState, nodes[0].OwnAccount.Address.Bytes())
+	account := getAccountFromAddrBytes(nodes[0].AccntState, nodes[0].OwnAccount.Address)
 	require.Equal(t, big.NewInt(0), account.GetDeveloperReward())
 
 	newOwnerAddress := []byte("12345678123456781234567812345678")
@@ -220,7 +221,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	nodesPerShard := 2
 	numMetachainNodes := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
@@ -248,10 +249,10 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	initialVal := big.NewInt(1000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
-	firstSCOwner := nodes[0].OwnAccount.Address.Bytes()
+	firstSCOwner := nodes[0].OwnAccount.Address
 
 	// deploy the smart contracts
-	firstSCAddress := putDeploySCToDataPool("./testdata/counter.wasm", firstSCOwner, 0, big.NewInt(50), "", nodes)
+	firstSCAddress := putDeploySCToDataPool("../../vm/arwen/testdata/counter/counter.wasm", firstSCOwner, 0, big.NewInt(50), "", nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -281,8 +282,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 		nonce++
 	}
 
-	address, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(firstSCAddress)
-	shId := nodes[0].ShardCoordinator.ComputeId(address)
+	shId := nodes[0].ShardCoordinator.ComputeId(firstSCAddress)
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() != shId {
 			continue
@@ -292,7 +292,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 		require.NotNil(t, numCalled)
 	}
 
-	account := getAccountFromAddrBytes(nodes[0].AccntState, nodes[0].OwnAccount.Address.Bytes())
+	account := getAccountFromAddrBytes(nodes[0].AccntState, nodes[0].OwnAccount.Address)
 	require.Equal(t, big.NewInt(0), account.GetDeveloperReward())
 	fmt.Println("smart contract owner before claim", account.GetBalance())
 	oldOwnerBalance := big.NewInt(0).Set(account.GetBalance())
@@ -317,14 +317,13 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 		nonce++
 	}
 
-	account = getAccountFromAddrBytes(nodes[0].AccntState, nodes[0].OwnAccount.Address.Bytes())
+	account = getAccountFromAddrBytes(nodes[0].AccntState, nodes[0].OwnAccount.Address)
 	fmt.Println("smart contract owner after claim", account.GetBalance())
 	require.True(t, account.GetBalance().Cmp(oldOwnerBalance) == 1)
 }
 
 func getAccountFromAddrBytes(accState state.AccountsAdapter, address []byte) state.UserAccountHandler {
-	addrCont, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(address)
-	sndrAcc, _ := accState.GetExistingAccount(addrCont)
+	sndrAcc, _ := accState.GetExistingAccount(address)
 
 	sndAccSt, _ := sndrAcc.(state.UserAccountHandler)
 
@@ -340,7 +339,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	nodesPerShard := 3
 	numMetachainNodes := 3
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodes := integrationTests.CreateNodes(
@@ -402,8 +401,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	// verify how many times was shard 0 and shard 1 called
-	address, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(firstSCAddress)
-	shId := nodes[0].ShardCoordinator.ComputeId(address)
+	shId := nodes[0].ShardCoordinator.ComputeId(firstSCAddress)
 	for index, node := range nodes {
 		if node.ShardCoordinator.SelfId() != shId {
 			continue
@@ -428,7 +426,7 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 	shardConsensusGroupSize := 2
 	metaConsensusGroupSize := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
@@ -523,7 +521,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	shardConsensusGroupSize := 2
 	metaConsensusGroupSize := 2
 
-	advertiser := integrationTests.CreateMessengerWithKadDht(context.Background(), "")
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
 
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
@@ -568,23 +566,49 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 
 	// mint smart contract holders
 	shardNode := findAnyShardNode(nodes)
-	delegateSCOwner := shardNode.OwnAccount.Address.Bytes()
-	totalStake := shardNode.EconomicsData.GenesisNodePrice()
-	node_share_per_10000 := 3000
-	stakerBLSKey, _ := hex.DecodeString(strings.Repeat("a", 128*2))
+	delegateSCOwner := shardNode.OwnAccount.Address
+	stakePerNode := shardNode.EconomicsData.GenesisNodePrice()
+	totalStake := stakePerNode // 1 node only in this test
+	nodeSharePer10000 := 3000
+	time_before_force_unstake := 680400
+	stakerBLSKey, _ := hex.DecodeString(strings.Repeat("a", 96*2))
 	stakerBLSSignature, _ := hex.DecodeString(strings.Repeat("c", 32*2))
 
 	// deploy the delegation smart contract
 	delegateSCAddress := putDeploySCToDataPool(
 		"./testdata/delegate/delegation.wasm", delegateSCOwner, 0, big.NewInt(0),
-		fmt.Sprintf("@%x@%x@%s", totalStake, node_share_per_10000, hex.EncodeToString(factory2.AuctionSCAddress)),
+		fmt.Sprintf("@%x@%s@%x", nodeSharePer10000, hex.EncodeToString(factory2.AuctionSCAddress), time_before_force_unstake),
 		nodes)
 	shardNode.OwnAccount.Nonce++
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
+	// check that the version is the expected one
+	scQueryVersion := &process.SCQuery{
+		ScAddress: delegateSCAddress,
+		FuncName:  "version",
+		Arguments: [][]byte{},
+	}
+	vmOutputVersion, _ := shardNode.SCQueryService.ExecuteQuery(scQueryVersion)
+	assert.NotNil(t, vmOutputVersion)
+	assert.Equal(t, len(vmOutputVersion.ReturnData), 1)
+	require.True(t, bytes.Contains(vmOutputVersion.ReturnData[0], []byte("0.2.")))
+	log.Info("SC deployed", "version", string(vmOutputVersion.ReturnData[0]))
+
+	// set number of nodes
+	setNumNodesTxData := "setNumNodes@1"
+	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, setNumNodesTxData)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+
+	// set stake per node
+	setStakePerNodeTxData := fmt.Sprintf("setStakePerNode@%x", stakePerNode)
+	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, setStakePerNodeTxData)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+
 	// set BLS keys in the contract
-	setBlsTxData := "setBlsKeys@1@" + hex.EncodeToString(stakerBLSKey)
+	setBlsTxData := "setBlsKeys@" + hex.EncodeToString(stakerBLSKey)
 	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, setBlsTxData)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
@@ -612,7 +636,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	// check that delegation contract was correctly initialized by querying for total stake
 	scQuery1 := &process.SCQuery{
 		ScAddress: delegateSCAddress,
-		FuncName:  "getTotalStake",
+		FuncName:  "getExpectedStake",
 		Arguments: [][]byte{},
 	}
 	vmOutput1, _ := shardNode.SCQueryService.ExecuteQuery(scQuery1)
@@ -634,13 +658,13 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	// check that the staking transaction worked
 	scQuery3 := &process.SCQuery{
 		ScAddress: delegateSCAddress,
-		FuncName:  "getUnfilledStake",
+		FuncName:  "getFilledStake",
 		Arguments: [][]byte{},
 	}
 	vmOutput3, _ := shardNode.SCQueryService.ExecuteQuery(scQuery3)
 	assert.NotNil(t, vmOutput3)
 	assert.Equal(t, len(vmOutput3.ReturnData), 1)
-	assert.True(t, len(vmOutput3.ReturnData[0]) == 0) // unfilled stake == 0
+	assert.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput3.ReturnData[0])) == 0) // filled stake == total stake
 
 	// check that the staking system smart contract has the value
 	for _, node := range nodes {
@@ -679,7 +703,11 @@ func putDeploySCToDataPool(
 	initArgs string,
 	nodes []*integrationTests.TestProcessorNode,
 ) []byte {
-	scCode, _ := ioutil.ReadFile(fileName)
+	scCode, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		panic(fmt.Sprintf("putDeploySCToDataPool(): %s", err))
+	}
+
 	scCodeString := hex.EncodeToString(scCode)
 	scCodeMetadataString := "0000"
 
@@ -693,13 +721,12 @@ func putDeploySCToDataPool(
 		RcvAddr:  make([]byte, 32),
 		SndAddr:  pubkey,
 		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),
-		GasLimit: nodes[0].EconomicsData.MaxGasLimitPerBlock() - 1,
+		GasLimit: nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1,
 		Data:     []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString + initArgs),
 	}
 	txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)
 
-	address, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(pubkey)
-	shId := nodes[0].ShardCoordinator.ComputeId(address)
+	shId := nodes[0].ShardCoordinator.ComputeId(pubkey)
 
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() != shId {
@@ -717,8 +744,7 @@ func mintPubKey(
 	initialVal *big.Int,
 	nodes []*integrationTests.TestProcessorNode,
 ) {
-	address, _ := integrationTests.TestAddressPubkeyConverter.CreateAddressFromBytes(pubkey)
-	shId := nodes[0].ShardCoordinator.ComputeId(address)
+	shId := nodes[0].ShardCoordinator.ComputeId(pubkey)
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() != shId {
 			continue
