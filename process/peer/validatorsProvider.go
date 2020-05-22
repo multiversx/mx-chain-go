@@ -52,12 +52,9 @@ func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorA
 	vp.mutCachedMap.Lock()
 	defer vp.mutCachedMap.Unlock()
 
-	latestHash, err := vp.validatorStatistics.RootHash()
-	if err != nil {
-		return vp.cachedMap
-	}
+	lastFinalizedRootHash := vp.validatorStatistics.LastFinalizedRootHash()
 
-	validators, err := vp.validatorStatistics.GetValidatorInfoForRootHash(latestHash)
+	validators, err := vp.validatorStatistics.GetValidatorInfoForRootHash(lastFinalizedRootHash)
 	if err != nil {
 		return vp.cachedMap
 	}
@@ -90,12 +87,9 @@ func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorA
 // GetLatestValidatorInfos gets the latest configuration of validators per shard from the peerAccountsTrie
 // TODO: add cache here
 func (vp *validatorsProvider) GetLatestValidatorInfos() (map[uint32][]*state.ValidatorInfo, error) {
-	latestHash, err := vp.validatorStatistics.RootHash()
-	if err != nil {
-		return nil, err
-	}
+	lastFinalizedRootHash := vp.validatorStatistics.LastFinalizedRootHash()
 
-	validators, err := vp.validatorStatistics.GetValidatorInfoForRootHash(latestHash)
+	validators, err := vp.validatorStatistics.GetValidatorInfoForRootHash(lastFinalizedRootHash)
 	if err != nil {
 		return nil, err
 	}
