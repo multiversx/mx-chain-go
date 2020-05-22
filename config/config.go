@@ -276,7 +276,6 @@ type HardforkConfig struct {
 	PublicKeyToListenFrom     string
 	CloseAfterExportInMinutes uint32
 
-	MustImport bool
 	StartRound uint64
 	StartNonce uint64
 	StartEpoch uint32

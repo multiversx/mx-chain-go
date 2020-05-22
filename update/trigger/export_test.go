@@ -41,3 +41,7 @@ func (t *trigger) SetReceivedExecutingEpoch(
 func (t *trigger) ComputeTriggerStartOfEpoch(epoch uint32) bool {
 	return t.computeTriggerStartOfEpoch(epoch)
 }
+
+func (ish *importStartHandler) SetVersion(version string) {
+	ish.currentVersion = version
+}

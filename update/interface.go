@@ -233,3 +233,12 @@ type Closer interface {
 	Close() error
 	IsInterfaceNil() bool
 }
+
+// ImportStartHandler can manage the process of starting the import after the hardfork event
+type ImportStartHandler interface {
+	IsAfterExportBeforeImport() bool
+	ShouldStartImport() bool
+	ResetStartImport() error
+	SetStartImport() error
+	IsInterfaceNil() bool
+}

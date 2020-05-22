@@ -38,6 +38,7 @@ type ArgHardforkTrigger struct {
 	CloseAfterExportInMinutes uint32
 	ChanStopNodeProcess       chan endProcess.ArgEndProcess
 	EpochConfirmedNotifier    update.EpochChangeConfirmedNotifier
+	ImportStartHandler        update.ImportStartHandler
 }
 
 // trigger implements a hardfork trigger that is able to notify a set list of handlers if this instance gets triggered
@@ -63,6 +64,7 @@ type trigger struct {
 	mutClosers             sync.RWMutex
 	closers                []update.Closer
 	chanTriggerReceived    chan struct{}
+	importStartHandler     update.ImportStartHandler
 }
 
 // NewTrigger returns the trigger instance
@@ -94,6 +96,9 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 			minTimeToWaitAfterHardforkInMinutes,
 		)
 	}
+	if check.IfNil(arg.ImportStartHandler) {
+		return nil, update.ErrNilImportStartHandler
+	}
 
 	t := &trigger{
 		enabled:              arg.Enabled,
@@ -109,6 +114,7 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 		chanStopNodeProcess:  arg.ChanStopNodeProcess,
 		closers:              make([]update.Closer, 0),
 		chanTriggerReceived:  make(chan struct{}, 1), //buffer with one value as there might be async calls
+		importStartHandler:   arg.ImportStartHandler,
 	}
 
 	t.isTriggerSelf = bytes.Equal(arg.TriggerPubKeyBytes, arg.SelfPubKeyBytes)
@@ -230,6 +236,12 @@ func (t *trigger) exportAll() {
 			return
 		}
 		log.Info("finished hardFork export process")
+		errNotCritical := t.importStartHandler.SetStartImport()
+		if errNotCritical != nil {
+			log.Error("error setting the node to start the import after the restart",
+				"error", errNotCritical)
+		}
+
 		wait := time.Duration(t.closeAfterInMinutes) * time.Minute
 		log.Info("node will still be active for", "time duration", wait)
 
@@ -302,7 +314,7 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 
 	shouldTrigger, err := t.computeAndSetTrigger(uint32(epoch), originalPayload)
 	if err != nil {
-		log.Debug("receiver trigger", "err not critical", err)
+		log.Debug("received trigger", "status", err)
 		return true, nil
 	}
 	if !shouldTrigger {

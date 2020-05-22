@@ -69,6 +69,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/update"
 	exportFactory "github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -810,6 +811,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(workingDir, defaultDBPath), appVersion)
+	if err != nil {
+		return err
+	}
+
 	bootstrapDataProvider, err := storageFactory.NewBootstrapDataProvider(coreComponents.InternalMarshalizer)
 	if err != nil {
 		return err
@@ -874,6 +880,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		Rounder:                    rounder,
 		AddressPubkeyConverter:     addressPubkeyConverter,
 		LatestStorageDataProvider:  latestStorageDataProvider,
+		ImportStartHandler:         importStartHandler,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -1155,6 +1162,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ratingsData,
 		systemSCConfig,
 		version,
+		importStartHandler,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1177,6 +1185,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		whiteListerVerifiedTxs,
 		chanStopNodeProcess,
 		epochStartNotifier,
+		importStartHandler,
 		workingDir,
 	)
 	if err != nil {
@@ -1863,6 +1872,7 @@ func createHardForkTrigger(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	epochNotifier factory.EpochStartNotifier,
+	importStartHandler update.ImportStartHandler,
 	workingDir string,
 ) (node.HardforkTrigger, error) {
 
@@ -1929,6 +1939,7 @@ func createHardForkTrigger(
 		ChanStopNodeProcess:       chanStopNodeProcess,
 		EpochConfirmedNotifier:    epochNotifier,
 		CloseAfterExportInMinutes: config.Hardfork.CloseAfterExportInMinutes,
+		ImportStartHandler:        importStartHandler,
 	}
 	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
 	if err != nil {

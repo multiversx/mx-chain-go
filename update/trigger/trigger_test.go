@@ -33,6 +33,7 @@ func createMockArgHardforkTrigger() trigger.ArgHardforkTrigger {
 		CloseAfterExportInMinutes: 2,
 		ChanStopNodeProcess:       make(chan endProcess.ArgEndProcess),
 		EpochConfirmedNotifier:    &mock.EpochStartNotifierStub{},
+		ImportStartHandler:        &mock.ImportStartHandlerStub{},
 	}
 }
 
@@ -317,6 +318,14 @@ func TestTrigger_TriggerReceivedShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgHardforkTrigger()
+	setStartImportCalled := int32(0)
+	arg.ImportStartHandler = &mock.ImportStartHandlerStub{
+		SetStartImportCalled: func() error {
+			atomic.StoreInt32(&setStartImportCalled, 1)
+			//returned error here should not interfere with the export hardfork process
+			return errors.New("not a critical error")
+		},
+	}
 	trig, _ := trigger.NewTrigger(arg)
 	payloadReceived := []byte("original message")
 	currentTimeStamp := time.Now().Unix()
@@ -343,6 +352,7 @@ func TestTrigger_TriggerReceivedShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, payloadReceived, payload)
 	assert.True(t, wasTriggered)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&setStartImportCalled))
 }
 
 func TestTrigger_TriggerReceivedCreatePayloadShouldWork(t *testing.T) {

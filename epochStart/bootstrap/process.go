@@ -98,6 +98,7 @@ type epochStartBootstrap struct {
 	nodeShuffler               sharding.NodesShuffler
 	rounder                    epochStart.Rounder
 	addressPubkeyConverter     state.PubkeyConverter
+	importStartHandler         epochStart.ImportStartHandler
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -162,6 +163,7 @@ type ArgsEpochStartBootstrap struct {
 	NodeShuffler               sharding.NodesShuffler
 	Rounder                    epochStart.Rounder
 	AddressPubkeyConverter     state.PubkeyConverter
+	ImportStartHandler         epochStart.ImportStartHandler
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -201,6 +203,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		latestStorageDataProvider:  args.LatestStorageDataProvider,
 		addressPubkeyConverter:     args.AddressPubkeyConverter,
 		shuffledOut:                false,
+		importStartHandler:         args.ImportStartHandler,
 	}
 
 	whiteListCache, err := storageUnit.NewCache(
@@ -282,6 +285,11 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	)
 	if err != nil {
 		return Parameters{}, err
+	}
+
+	if e.importStartHandler.IsAfterExportBeforeImport() {
+		log.Info("after hardfork event, bootstrap from storage")
+		return e.prepareEpochZero()
 	}
 
 	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()

@@ -58,6 +58,7 @@ import (
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -141,6 +142,7 @@ type processComponentsFactoryArgs struct {
 	systemSCConfig            *config.SystemSmartContractsConfig
 	txLogsProcessor           process.TransactionLogProcessor
 	version                   string
+	importStartHandler        update.ImportStartHandler
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -179,6 +181,7 @@ func NewProcessComponentsFactoryArgs(
 	ratingsData process.RatingsInfoHandler,
 	systemSCConfig *config.SystemSmartContractsConfig,
 	version string,
+	importStartHandler update.ImportStartHandler,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -216,6 +219,7 @@ func NewProcessComponentsFactoryArgs(
 		validatorPubkeyConverter:  validatorPubkeyConverter,
 		systemSCConfig:            systemSCConfig,
 		version:                   version,
+		importStartHandler:        importStartHandler,
 	}
 }
 
@@ -901,6 +905,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		TrieStorageManagers:      args.tries.TrieStorageManagers,
 		ChainID:                  string(args.coreComponents.ChainID),
 		SystemSCConfig:           *args.systemSCConfig,
+		ImportStartHandler:       args.importStartHandler,
 	}
 
 	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)
@@ -1651,7 +1656,8 @@ func newValidatorStatisticsProcessor(
 
 	hardForkConfig := processComponents.mainConfig.Hardfork
 	ratingEnabledEpoch := uint32(0)
-	if hardForkConfig.MustImport {
+
+	if processComponents.importStartHandler.ShouldStartImport() {
 		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
 	}
 	arguments := peer.ArgValidatorStatisticsProcessor{

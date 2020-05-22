@@ -574,6 +574,7 @@ func CreateGenesisMetaBlock(
 				OwnerAddress:    "aaaaaa",
 			},
 		},
+		ImportStartHandler: &mock.ImportStartHandlerStub{},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

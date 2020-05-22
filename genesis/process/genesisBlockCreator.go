@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/files"
 	hardfork "github.com/ElrondNetwork/elrond-go/update/genesis"
 )
@@ -54,7 +55,7 @@ func NewGenesisBlockCreator(arg ArgsGenesisBlockCreator) (*genesisBlockCreator, 
 }
 
 func mustDoHardForkImportProcess(arg ArgsGenesisBlockCreator) bool {
-	return arg.HardForkConfig.MustImport && arg.StartEpochNum <= arg.HardForkConfig.StartEpoch
+	return arg.ImportStartHandler.ShouldStartImport() && arg.StartEpochNum <= arg.HardForkConfig.StartEpoch
 }
 
 func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
@@ -144,6 +145,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	}
 	if arg.TrieStorageManagers == nil {
 		return genesis.ErrNilTrieStorageManager
+	}
+	if check.IfNil(arg.ImportStartHandler) {
+		return update.ErrNilImportStartHandler
 	}
 
 	return nil

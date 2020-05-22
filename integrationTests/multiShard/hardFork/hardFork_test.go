@@ -235,7 +235,6 @@ func hardForkImport(
 			TxLogsProcessor:          &mock.TxLogsProcessorStub{},
 			VirtualMachineConfig:     config.VirtualMachineConfig{},
 			HardForkConfig: config.HardforkConfig{
-				MustImport:               true,
 				ImportFolder:             node.ExportFolder,
 				StartEpoch:               1000,
 				StartNonce:               1000,
@@ -252,6 +251,11 @@ func hardForkImport(
 			},
 			AccountsParser:      &mock.AccountsParserStub{},
 			SmartContractParser: &mock.SmartContractParserStub{},
+			ImportStartHandler: &mock.ImportStartHandlerStub{
+				ShouldStartImportCalled: func() bool {
+					return true
+				},
+			},
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)

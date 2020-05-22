@@ -57,8 +57,11 @@ export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 # ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
 export ALWAYS_NEW_CHAINID=1
 
+# ALWAYS_NEW_APP_VERSION will set a new version each time the node will be compiled
+export ALWAYS_NEW_APP_VERSION=0
+
 # ALWAYS_UPDATE_CONFIGS will re-generate configs (toml + json) each time ./start.sh
-# Set this variable to 0 when testing bootstram from storage or other edge cases where you do not want a fresh new config
+# Set this variable to 0 when testing bootstrap from storage or other edge cases where you do not want a fresh new config
 # each time.
 export ALWAYS_UPDATE_CONFIGS=1
 

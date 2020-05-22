@@ -94,6 +94,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if args.GeneralConfig.EpochStartConfig.MinNumConnectedPeersToStart < minNumConnectedPeers {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNotEnoughNumConnectedPeers)
 	}
+	if check.IfNil(args.ImportStartHandler) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilImportStartHandler)
+	}
 
 	return nil
 }
