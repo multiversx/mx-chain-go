@@ -129,6 +129,10 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 }
 
 func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) == 0 {
+		return vmcommon.UserError
+	}
+
 	config := s.getConfig(s.eei.BlockChainHook().CurrentEpoch())
 	totalUnJailPrice := big.NewInt(0).Mul(config.UnJailPrice, big.NewInt(int64(len(args.Arguments))))
 
@@ -136,7 +140,7 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnJail)
+	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnJail * uint64(len(args.Arguments)))
 	if err != nil {
 		return vmcommon.OutOfGas
 	}
@@ -522,6 +526,16 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
+	maxNodesToRun := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
+	if maxNodesToRun == 0 {
+		return vmcommon.UserError
+	}
+
+	err = s.eei.UseGas((maxNodesToRun - 1) * s.gasCost.MetaChainSystemSCsCost.Stake)
+	if err != nil {
+		return vmcommon.OutOfGas
+	}
+
 	isAlreadyRegistered := len(registrationData.RewardAddress) > 0
 	if !isAlreadyRegistered {
 		registrationData.RewardAddress = args.CallerAddr
@@ -535,7 +549,6 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	maxNodesToRun := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
 	numQualified := big.NewInt(0).Div(registrationData.TotalStakeValue, config.MinStakeValue)
 	if uint64(len(registrationData.BlsPubKeys)) > numQualified.Uint64() {
 		return vmcommon.OutOfFunds
@@ -693,6 +706,9 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 	if args.CallValue.Cmp(zero) != 0 {
 		return vmcommon.UserError
 	}
+	if len(args.Arguments) == 0 {
+		return vmcommon.UserError
+	}
 
 	isUnStakeEnabled := s.isFunctionEnabled(s.enableStakingNonce)
 	if !isUnStakeEnabled {
@@ -704,7 +720,7 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 		return vmcommon.UserError
 	}
 
-	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnStake)
+	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnStake * uint64(len(args.Arguments)))
 	if err != nil {
 		return vmcommon.OutOfGas
 	}
@@ -760,6 +776,9 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 	if args.CallValue.Cmp(zero) != 0 {
 		return vmcommon.UserError
 	}
+	if len(args.Arguments) == 0 {
+		return vmcommon.UserError
+	}
 
 	isStakeEnabled := s.isFunctionEnabled(s.enableStakingNonce)
 	if !isStakeEnabled {
@@ -776,7 +795,7 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnBond)
+	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnBond * uint64(len(args.Arguments)))
 	if err != nil {
 		return vmcommon.OutOfGas
 	}
