@@ -231,7 +231,6 @@ func (tr *patriciaMerkleTrie) markForEviction() error {
 
 	if bytes.Equal(newRoot, tr.oldRoot) {
 		log.Trace("old root and new root are identical", "rootHash", newRoot)
-		log.Trace("print trie", "trie", tr.String())
 		return nil
 	}
 
@@ -240,7 +239,7 @@ func (tr *patriciaMerkleTrie) markForEviction() error {
 		oldHashes[hex.EncodeToString(tr.oldHashes[i])] = struct{}{}
 	}
 
-	log.Trace("trie hashes sizes", "newHashes", len(tr.newHashes), "oldHashes", oldHashes)
+	log.Trace("trie hashes sizes", "newHashes", len(tr.newHashes), "oldHashes", len(oldHashes))
 	removeDuplicatedKeys(oldHashes, tr.newHashes)
 
 	if len(tr.newHashes) > 0 && len(newRoot) > 0 {
