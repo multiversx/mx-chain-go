@@ -284,6 +284,18 @@ const MetricStartTime = "erd_start_time"
 // MetricRoundDuration is the metric that specifies the round duration in milliseconds
 const MetricRoundDuration = "erd_round_duration"
 
+// MetricPeakTPS holds the peak transactions per second
+const MetricPeakTPS = "erd_peak_tps"
+
+// MetricLastBlockTxCount holds the number of transactions in the last block
+const MetricLastBlockTxCount = "erd_last_block_tx_count"
+
+// MetricAverageBlockTxCount holds the average count of transactions in a block
+const MetricAverageBlockTxCount = "erd_average_block_tx_count"
+
+// LastNonceKeyMetricsStorage holds the key used for storing the last nonce for stored metrics
+const LastNonceKeyMetricsStorage = "lastNonce"
+
 // MetachainShardId will be used to identify a shard ID as metachain
 const MetachainShardId = uint32(0xFFFFFFFF)
 

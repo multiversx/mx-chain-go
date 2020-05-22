@@ -1010,11 +1010,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	err = statusHandlersInfo.UpdateStorerAndMetricsForPersistentHandler(dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit))
-	if err != nil {
-		return err
-	}
-
 	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricNodeDisplayName, preferencesConfig.Preferences.NodeDisplayName)
 	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricChainId, genesisNodesConfig.ChainID)
 	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricGasPerDataByte, economicsData.GasPerDataByte())
@@ -1062,7 +1057,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.LogIfError(err)
 
 	log.Trace("creating tps benchmark components")
-	tpsBenchmark, err := statistics.NewTPSBenchmark(shardCoordinator.NumberOfShards(), genesisNodesConfig.RoundDuration/1000)
+	initialTpsBenchmark := statusHandlersInfo.LoadTpsBenchmarkFromStorage(
+		dataComponents.Store.GetStorer(dataRetriever.StatusMetricsUnit),
+		coreComponents.InternalMarshalizer,
+	)
+	tpsBenchmark, err := statistics.NewTPSBenchmarkWithInitialData(
+		statusHandlersInfo.StatusHandler,
+		initialTpsBenchmark,
+		shardCoordinator.NumberOfShards(),
+		genesisNodesConfig.RoundDuration/1000,
+	)
 	if err != nil {
 		return err
 	}
