@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -840,4 +841,47 @@ func TestSubroundEndRound_IsOutOfTimeShouldReturnTrue(t *testing.T) {
 
 	res := sr.IsOutOfTime()
 	assert.True(t, res)
+}
+
+func TestSubroundEndRound_ExtractMiniBlocksAndTransactionsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	sr := *initSubroundEndRound()
+
+	miniBlocks := make(map[uint32][]byte, 0)
+	transactions := make(map[string][][]byte, 0)
+
+	miniBlocks[1] = []byte("mbs_shard_1")
+	miniBlocks[core.MetachainShardId] = []byte("mbs_shard_meta")
+	miniBlocks[2] = []byte("mbs_shard_2")
+
+	transactions["transactions_0_1"] = [][]byte{
+		[]byte("tx1_shard_1"),
+		[]byte("tx2_shard_1"),
+		[]byte("tx3_shard_1"),
+	}
+
+	transactions["transactions_0_META"] = [][]byte{
+		[]byte("tx1_shard_meta"),
+		[]byte("tx2_shard_meta"),
+		[]byte("tx3_shard_meta"),
+	}
+
+	transactions["transactions_0_2"] = [][]byte{
+		[]byte("tx1_shard_2"),
+		[]byte("tx2_shard_2"),
+		[]byte("tx3_shard_2"),
+	}
+
+	metaMiniBlocks, metaTransactions := sr.ExtractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
+
+	require.Equal(t, 2, len(miniBlocks))
+	require.Equal(t, 2, len(transactions))
+	require.Equal(t, 1, len(metaMiniBlocks))
+	require.Equal(t, 1, len(metaTransactions))
+
+	assert.Nil(t, miniBlocks[core.MetachainShardId])
+	assert.Nil(t, transactions["transactions_0_META"])
+	assert.NotNil(t, metaMiniBlocks[core.MetachainShardId])
+	assert.NotNil(t, metaTransactions["transactions_0_META"])
 }
