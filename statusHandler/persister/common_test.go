@@ -6,19 +6,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetUint64_NotWork(t *testing.T) {
-	t.Parallel()
-
-	value := GetUint64(float32(100))
-
-	require.Equal(t, uint64(0), value)
-}
-
 func TestGetUint64(t *testing.T) {
 	t.Parallel()
 
 	expectedValue := uint64(100)
-	value := GetUint64(float64(100))
+	value := GetUint64(uint64(100))
+
+	require.Equal(t, expectedValue, value)
+}
+
+func TestGetString(t *testing.T) {
+	t.Parallel()
+
+	expectedValue := "tesstt"
+	value := GetString("tesstt")
 
 	require.Equal(t, expectedValue, value)
 }
