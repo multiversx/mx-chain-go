@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis/process"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
@@ -151,8 +152,10 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 
 	time.Sleep(time.Second)
 
+	scCode := arwen.GetSCCode("../testdata/erc20-c-03/wrc20_arwen.wasm")
+
 	/////////----- wait for epoch end period
-	epoch := uint32(1)
+	epoch := uint32(2)
 	nrRoundsToPropagateMultiShard := uint64(6)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
