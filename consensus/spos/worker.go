@@ -411,7 +411,9 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 			err)
 	}
 
-	wrk.processReceivedHeaderMetric(cnsMsg)
+	if wrk.bootstrapper.GetNodeState() == core.NsSynchronized {
+		wrk.processReceivedHeaderMetric(cnsMsg)
+	}
 
 	errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
 	if errNotCritical != nil {
