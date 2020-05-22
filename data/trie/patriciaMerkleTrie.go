@@ -101,6 +101,8 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	log.Trace("update trie", "key", key, "val", value)
+
 	hexKey := keyBytesToHex(key)
 	newLn, err := newLeafNode(hexKey, value, tr.marshalizer, tr.hasher)
 	if err != nil {
