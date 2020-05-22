@@ -1079,7 +1079,7 @@ func (vs *validatorStatistics) Process(svi data.ShardValidatorInfoHandler) error
 
 // SetLastFinalizedRootHash - sets the last finalized root hash needed for correct validatorStatistics computations
 func (vs *validatorStatistics) SetLastFinalizedRootHash(lastFinalizedRootHash []byte) {
-	if lastFinalizedRootHash == nil {
+	if len(lastFinalizedRootHash) == 0 {
 		return
 	}
 
