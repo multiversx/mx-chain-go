@@ -1659,6 +1659,34 @@ func TestIsShardStuck_ShouldReturnFalseWhenSelfShardIsMetachain(t *testing.T) {
 	assert.False(t, mbt.IsShardStuck(1))
 }
 
+func TestIsShardStuck_ShouldReturnFalseWhenMetaIsNotStuck(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(1)
+	shardID := uint32(core.MetachainShardId)
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	sbt.AddSelfNotarizedHeader(0, &block.Header{Nonce: nonce + process.MaxShardNoncesBehind}, nil)
+	sbt.AddSelfNotarizedHeader(shardID, &block.Header{Nonce: nonce}, nil)
+
+	assert.False(t, sbt.IsShardStuck(shardID))
+}
+
+func TestIsShardStuck_ShouldReturnTrueWhenMetaIsStuck(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(1)
+	shardID := uint32(core.MetachainShardId)
+	shardArguments := CreateShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	sbt.AddSelfNotarizedHeader(0, &block.Header{Nonce: nonce + process.MaxShardNoncesBehind + 1}, nil)
+	sbt.AddSelfNotarizedHeader(shardID, &block.Header{Nonce: nonce}, nil)
+
+	assert.True(t, sbt.IsShardStuck(shardID))
+}
+
 func TestIsShardStuck_ShouldReturnFalseWhenLastShardProcessedMetaNonceIsZero(t *testing.T) {
 	t.Parallel()
 
