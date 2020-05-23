@@ -73,6 +73,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 10
+	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
@@ -88,9 +89,11 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	time.Sleep(time.Second)
 
+	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	/////////----- wait for unbond period
+	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, int(nodes[0].EconomicsData.UnBondPeriod()), nonce, round, idxProposers)
 
 	////////----- send unBond
@@ -102,6 +105,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 
 	time.Sleep(time.Second)
 
+	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	verifyUnbound(t, nodes)
@@ -180,6 +184,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 10
+	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	time.Sleep(time.Second)
@@ -201,9 +206,11 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 
 	time.Sleep(time.Second)
 
+	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	/////////----- wait for unbound period
+	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, int(nodes[0].EconomicsData.UnBondPeriod()), nonce, round, idxProposers)
 
 	////////----- send unBound
@@ -218,6 +225,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 
 	time.Sleep(time.Second)
 
+	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	verifyUnbound(t, nodes)
@@ -303,6 +311,7 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 	for i := uint64(0); i < nbBlocksToProduce; i++ {
 		for _, nodesSlice := range nodesMap {
 			integrationTests.UpdateRound(nodesSlice, round)
+			integrationTests.AddSelfNotarizedHeaderByMetachain(nodesSlice)
 		}
 
 		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)

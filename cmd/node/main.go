@@ -729,6 +729,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.InternalMarshalizer, coreComponents.Uint64ByteSliceConverter)
+	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
+	if err != nil {
+		return err
+	}
+
+	coreComponents.StatusHandler = statusHandlersInfo.StatusHandler
+
 	triesArgs := mainFactory.TriesComponentsFactoryArgs{
 		Marshalizer:      coreComponents.InternalMarshalizer,
 		Hasher:           coreComponents.Hasher,
@@ -909,14 +917,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.InternalMarshalizer, coreComponents.Uint64ByteSliceConverter)
-	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
-	if err != nil {
-		return err
-	}
-
-	coreComponents.StatusHandler = statusHandlersInfo.StatusHandler
 
 	log.Trace("creating data components")
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
@@ -2134,7 +2134,11 @@ func createApiResolver(
 			return nil, err
 		}
 	} else {
-		vmFactory, err = shard.NewVMContainerFactory(config.VirtualMachineConfig, economics.MaxGasLimitPerBlock(), gasSchedule, argsHook)
+		vmFactory, err = shard.NewVMContainerFactory(
+			config.VirtualMachineConfig,
+			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
+			gasSchedule,
+			argsHook)
 		if err != nil {
 			return nil, err
 		}

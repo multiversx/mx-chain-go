@@ -48,7 +48,7 @@ func (fhs *FeeHandlerStub) SetMinGasLimit(minGasLimit uint64) {
 }
 
 // MaxGasLimitPerBlock -
-func (fhs *FeeHandlerStub) MaxGasLimitPerBlock() uint64 {
+func (fhs *FeeHandlerStub) MaxGasLimitPerBlock(uint32) uint64 {
 	return fhs.MaxGasLimitPerBlockCalled()
 }
 

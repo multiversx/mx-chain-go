@@ -53,20 +53,21 @@ type ArgValidatorStatisticsProcessor struct {
 }
 
 type validatorStatistics struct {
-	marshalizer             marshal.Marshalizer
-	dataPool                DataPool
-	storageService          dataRetriever.StorageService
-	nodesCoordinator        sharding.NodesCoordinator
-	shardCoordinator        sharding.Coordinator
-	pubkeyConv              state.PubkeyConverter
-	peerAdapter             state.AccountsAdapter
-	rater                   sharding.PeerAccountListAndRatingHandler
-	rewardsHandler          process.RewardsHandler
-	maxComputableRounds     uint64
-	missedBlocksCounters    validatorRoundCounters
-	mutMissedBlocksCounters sync.RWMutex
-	genesisNonce            uint64
-	ratingEnableEpoch       uint32
+	marshalizer            marshal.Marshalizer
+	dataPool               DataPool
+	storageService         dataRetriever.StorageService
+	nodesCoordinator       sharding.NodesCoordinator
+	shardCoordinator       sharding.Coordinator
+	pubkeyConv             state.PubkeyConverter
+	peerAdapter            state.AccountsAdapter
+	rater                  sharding.PeerAccountListAndRatingHandler
+	rewardsHandler         process.RewardsHandler
+	maxComputableRounds    uint64
+	missedBlocksCounters   validatorRoundCounters
+	mutValidatorStatistics sync.RWMutex
+	genesisNonce           uint64
+	ratingEnableEpoch      uint32
+	lastFinalizedRootHash  []byte
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -273,9 +274,9 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 		return vs.peerAdapter.RootHash()
 	}
 
-	vs.mutMissedBlocksCounters.Lock()
+	vs.mutValidatorStatistics.Lock()
 	vs.missedBlocksCounters.reset()
-	vs.mutMissedBlocksCounters.Unlock()
+	vs.mutValidatorStatistics.Unlock()
 
 	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
 	epoch := header.GetEpoch()
@@ -652,9 +653,9 @@ func (vs *validatorStatistics) computeDecrease(
 			return err
 		}
 
-		vs.mutMissedBlocksCounters.Lock()
+		vs.mutValidatorStatistics.Lock()
 		vs.missedBlocksCounters.decreaseLeader(consensusGroup[0].PubKey())
-		vs.mutMissedBlocksCounters.Unlock()
+		vs.mutValidatorStatistics.Unlock()
 
 		swInner.Start("ComputeDecreaseProposer")
 		newRating := vs.rater.ComputeDecreaseProposer(
@@ -695,8 +696,8 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 		return nil
 	}
 
-	vs.mutMissedBlocksCounters.Lock()
-	defer vs.mutMissedBlocksCounters.Unlock()
+	vs.mutValidatorStatistics.Lock()
+	defer vs.mutValidatorStatistics.Unlock()
 
 	for j := 1; j < len(consensusGroup); j++ {
 		validatorPeerAccount, verr := vs.GetPeerAccount(consensusGroup[j].PubKey())
@@ -916,10 +917,10 @@ func (vs *validatorStatistics) getMatchingPrevShardData(currentShardData block.S
 }
 
 func (vs *validatorStatistics) updateMissedBlocksCounters() error {
-	vs.mutMissedBlocksCounters.Lock()
+	vs.mutValidatorStatistics.Lock()
 	defer func() {
 		vs.missedBlocksCounters.reset()
-		vs.mutMissedBlocksCounters.Unlock()
+		vs.mutValidatorStatistics.Unlock()
 	}()
 
 	for pubKey, roundCounters := range vs.missedBlocksCounters {
@@ -1074,4 +1075,22 @@ func (vs *validatorStatistics) Process(svi data.ShardValidatorInfoHandler) error
 
 	pa.SetRating(svi.GetTempRating())
 	return vs.peerAdapter.SaveAccount(pa)
+}
+
+// SetLastFinalizedRootHash - sets the last finalized root hash needed for correct validatorStatistics computations
+func (vs *validatorStatistics) SetLastFinalizedRootHash(lastFinalizedRootHash []byte) {
+	if len(lastFinalizedRootHash) == 0 {
+		return
+	}
+
+	vs.mutValidatorStatistics.Lock()
+	vs.lastFinalizedRootHash = lastFinalizedRootHash
+	vs.mutValidatorStatistics.Unlock()
+}
+
+// LastFinalizedRootHash returns the root hash of the validator statistics trie that was last finalized
+func (vs *validatorStatistics) LastFinalizedRootHash() []byte {
+	vs.mutValidatorStatistics.RLock()
+	defer vs.mutValidatorStatistics.RUnlock()
+	return vs.lastFinalizedRootHash
 }
