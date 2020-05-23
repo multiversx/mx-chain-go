@@ -23,8 +23,8 @@ func (vs *validatorStatistics) GetMatchingPrevShardData(currentShardData block.S
 
 // GetLeaderDecreaseCount -
 func (vs *validatorStatistics) GetLeaderDecreaseCount(key []byte) uint32 {
-	vs.mutMissedBlocksCounters.RLock()
-	defer vs.mutMissedBlocksCounters.RUnlock()
+	vs.mutValidatorStatistics.RLock()
+	defer vs.mutValidatorStatistics.RUnlock()
 
 	return vs.missedBlocksCounters.get(key).leaderDecreaseCount
 }
