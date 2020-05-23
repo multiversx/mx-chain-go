@@ -125,7 +125,10 @@ func (shi *statusHandlersInfo) UpdateStorerAndMetricsForPersistentHandler(store 
 }
 
 // LoadTpsBenchmarkFromStorage will try to load tps benchmark from storage or zero values otherwise
-func (shi *statusHandlersInfo) LoadTpsBenchmarkFromStorage(store storage.Storer, marshalizer marshal.Marshalizer) *statistics.TpsPersistentData {
+func (shi *statusHandlersInfo) LoadTpsBenchmarkFromStorage(
+	store storage.Storer,
+	marshalizer marshal.Marshalizer,
+) *statistics.TpsPersistentData {
 	emptyTpsBenchmarks := &statistics.TpsPersistentData{
 		BlockNumber:           0,
 		RoundNumber:           0,
@@ -136,20 +139,20 @@ func (shi *statusHandlersInfo) LoadTpsBenchmarkFromStorage(store storage.Storer,
 	}
 	lastNonceBytes, err := store.Get([]byte(core.LastNonceKeyMetricsStorage))
 	if err != nil {
-		log.Trace("cannot load last nonce from metrics storage", "error", err, "key", []byte("lastNonce"))
+		log.Debug("cannot load last nonce from metrics storage", "error", err, "key", []byte("lastNonce"))
 		return emptyTpsBenchmarks
 	}
 
 	lastDataList, err := store.Get(lastNonceBytes)
 	if err != nil {
-		log.Trace("cannot load metrics from storage", "error", err, "key", lastNonceBytes)
+		log.Debug("cannot load metrics from storage", "error", err, "key", lastNonceBytes)
 		return emptyTpsBenchmarks
 	}
 
 	metricsList := &metrics.MetricsList{}
 	err = marshalizer.Unmarshal(metricsList, lastDataList)
 	if err != nil {
-		log.Trace("cannot unmarshal persistent metrics", err)
+		log.Debug("cannot unmarshal persistent metrics", "error", err)
 		return emptyTpsBenchmarks
 	}
 
@@ -161,27 +164,14 @@ func (shi *statusHandlersInfo) LoadTpsBenchmarkFromStorage(store storage.Storer,
 	okTpsBenchmarks.RoundNumber = persister.GetUint64(metricsMap[core.MetricCurrentRound])
 	okTpsBenchmarks.LastBlockTxCount = uint32(persister.GetUint64(metricsMap[core.MetricLastBlockTxCount]))
 	okTpsBenchmarks.PeakTPS = float64(persister.GetUint64(metricsMap[core.MetricPeakTPS]))
+	okTpsBenchmarks.TotalProcessedTxCount = persister.GetBigIntFromString(metricsMap[core.MetricNumProcessedTxs])
+	okTpsBenchmarks.AverageBlockTxCount = persister.GetBigIntFromString(metricsMap[core.MetricAverageBlockTxCount])
 
-	totalNumProcessedTxs := persister.GetString(metricsMap[core.MetricNumProcessedTxs])
-	totNumProcessedTxsBI, ok := big.NewInt(0).SetString(totalNumProcessedTxs, 10)
-	if ok {
-		okTpsBenchmarks.TotalProcessedTxCount = totNumProcessedTxsBI
-	} else {
-		okTpsBenchmarks.TotalProcessedTxCount = big.NewInt(0)
-	}
-
-	averageTxBlockCount := persister.GetString(metricsMap[core.MetricAverageBlockTxCount])
-	averageTxBlockCountBI, ok := big.NewInt(0).SetString(averageTxBlockCount, 10)
-	if ok {
-		okTpsBenchmarks.AverageBlockTxCount = averageTxBlockCountBI
-	} else {
-		okTpsBenchmarks.AverageBlockTxCount = big.NewInt(0)
-	}
-
-	log.Trace("loaded tps benchmark from storage",
+	log.Debug("loaded tps benchmark from storage",
 		"block number", okTpsBenchmarks.BlockNumber,
 		"round number", okTpsBenchmarks.RoundNumber,
 		"total txs processed", okTpsBenchmarks.TotalProcessedTxCount.String())
+
 	return okTpsBenchmarks
 }
 

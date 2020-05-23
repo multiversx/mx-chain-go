@@ -116,6 +116,7 @@ func (psh *PersistentStatusHandler) saveMetricsInDb(nonce uint64) {
 	if err != nil {
 		log.Debug("cannot save last nonce for metrics storage",
 			"error", err)
+		return
 	}
 	log.Trace("saved last nonce metrics", "key", []byte("lastNonce"), "value", nonceBytes)
 }

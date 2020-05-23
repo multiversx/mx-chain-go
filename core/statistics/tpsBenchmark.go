@@ -56,9 +56,13 @@ func NewTPSBenchmarkWithInitialData(
 	appStatusHandler core.AppStatusHandler,
 	initialTpsBenchmark *TpsPersistentData,
 	nrOfShards uint32,
-	roundDuration uint64) (*TpsBenchmark, error) {
+	roundDuration uint64,
+) (*TpsBenchmark, error) {
 	if roundDuration == 0 {
 		return nil, ErrInvalidRoundDuration
+	}
+	if initialTpsBenchmark == nil {
+		return nil, ErrNilInitialTPSBenchmarks
 	}
 	if check.IfNil(appStatusHandler) {
 		return nil, ErrNilStatusHandler
@@ -90,7 +94,8 @@ func NewTPSBenchmarkWithInitialData(
 // nrOfShards represents the total number of shards, roundDuration is the duration for a round in seconds
 func NewTPSBenchmark(
 	nrOfShards uint32,
-	roundDuration uint64) (*TpsBenchmark, error) {
+	roundDuration uint64,
+) (*TpsBenchmark, error) {
 	if roundDuration == 0 {
 		return nil, ErrInvalidRoundDuration
 	}
