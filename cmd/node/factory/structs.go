@@ -373,6 +373,11 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 
 	txsPoolsCleaner.StartCleaning()
 
+	_, err = track.NewMiniBlockTrack(args.data.Datapool, args.shardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
 	interceptorContainerFactory, blackListHandler, err := newInterceptorContainerFactory(
 		args.shardCoordinator,
 		args.nodesCoordinator,
