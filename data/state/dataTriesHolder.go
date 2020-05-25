@@ -21,6 +21,7 @@ func NewDataTriesHolder() *dataTriesHolder {
 // Put adds a trie pointer to the tries map
 func (dth *dataTriesHolder) Put(key []byte, tr data.Trie) {
 	dth.mutex.Lock()
+	log.Debug("added data trie", "key", key)
 	dth.tries[string(key)] = tr
 	dth.mutex.Unlock()
 }
@@ -60,13 +61,14 @@ func (dth *dataTriesHolder) GetAllTries() map[string]data.Trie {
 	for key, trie := range dth.tries {
 		copyTries[key] = trie
 	}
-
+	log.Debug("data tries holder len", "len", len(copyTries))
 	return copyTries
 }
 
 // Reset clears the tries map
 func (dth *dataTriesHolder) Reset() {
 	dth.mutex.Lock()
+	log.Debug("reset data tries holder")
 	dth.tries = make(map[string]data.Trie)
 	dth.mutex.Unlock()
 }

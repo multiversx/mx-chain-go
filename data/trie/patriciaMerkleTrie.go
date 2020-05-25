@@ -101,7 +101,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	log.Trace("update trie", "key", key, "val", value)
+	log.Trace("update trie", "key", hex.EncodeToString(key), "val", hex.EncodeToString(value))
 
 	hexKey := keyBytesToHex(key)
 	newLn, err := newLeafNode(hexKey, value, tr.marshalizer, tr.hasher)
@@ -219,7 +219,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		}
 	}
 
-	log.Trace("started committing trie with rootHash", "rootHash", tr.root.getHash())
+	log.Trace("started committing trie with rootHash", "rootHash", tr.String())
 	err = tr.root.commit(false, 0, tr.maxTrieLevelInMemory, tr.trieStorage.Database(), tr.trieStorage.Database())
 	if err != nil {
 		return err
