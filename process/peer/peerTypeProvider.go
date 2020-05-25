@@ -192,7 +192,7 @@ func aggregatePType(
 		for _, val := range shardValidators {
 			foundInTrieValidator := newCache[string(val)]
 			peerType := currentPeerType
-			if foundInTrieValidator != nil && foundInTrieValidator.pType != currentPeerType {
+			if foundInTrieValidator != nil && shouldCombine(foundInTrieValidator.pType, currentPeerType) {
 				peerType = core.PeerType(fmt.Sprintf(core.CombinedPeerType, currentPeerType, foundInTrieValidator.pType))
 			}
 
@@ -202,6 +202,14 @@ func aggregatePType(
 			}
 		}
 	}
+}
+
+func shouldCombine(triePeerType core.PeerType, currentPeerType core.PeerType) bool {
+	notTheSame := triePeerType != currentPeerType
+	notEligibleOrWaiting := triePeerType != core.EligibleList &&
+		triePeerType != core.WaitingList
+
+	return notTheSame && notEligibleOrWaiting
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
