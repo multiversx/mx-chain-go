@@ -107,6 +107,16 @@ func (af *p2pAntiflood) CanProcessMessagesOnTopic(peer p2p.PeerID, topic string,
 	return nil
 }
 
+// SetMaxMessagesForTopic will update the maximum number of messages that can be received from a peer in a topic
+func (af *p2pAntiflood) SetMaxMessagesForTopic(topic string, numMessages uint32) {
+	af.topicPreventer.SetMaxMessagesForTopic(topic, numMessages)
+}
+
+// ResetForTopic clears all map values for a given topic
+func (af *p2pAntiflood) ResetForTopic(topic string) {
+	af.topicPreventer.ResetForTopic(topic)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (af *p2pAntiflood) IsInterfaceNil() bool {
 	return af == nil

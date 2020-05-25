@@ -215,3 +215,39 @@ func TestP2pAntiflood_CanProcessMessagesOnTopicCanAccumulateShouldWork(t *testin
 
 	assert.Nil(t, err)
 }
+
+func TestP2pAntiflood_ResetForTopicSetMaxMessagesShouldWork(t *testing.T) {
+	t.Parallel()
+
+	resetTopicCalled := false
+	resetTopicParameter := ""
+	setMaxMessagesForTopicCalled := false
+	setMaxMessagesForTopicParameter1 := ""
+	setMaxMessagesForTopicParameter2 := uint32(0)
+	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.TopicAntiFloodStub{
+			ResetForTopicCalled: func(topic string) {
+				resetTopicCalled = true
+				resetTopicParameter = topic
+			},
+			SetMaxMessagesForTopicCalled: func(topic string, num uint32) {
+				setMaxMessagesForTopicCalled = true
+				setMaxMessagesForTopicParameter1 = topic
+				setMaxMessagesForTopicParameter2 = num
+			},
+		},
+		&mock.FloodPreventerStub{},
+	)
+
+	resetTopic := "reset topic"
+	afm.ResetForTopic(resetTopic)
+	assert.True(t, resetTopicCalled)
+	assert.Equal(t, resetTopic, resetTopicParameter)
+
+	setMaxMessagesForTopic := "set max message for topic"
+	setMaxMessagesForTopicNum := uint32(77463)
+	afm.SetMaxMessagesForTopic(setMaxMessagesForTopic, setMaxMessagesForTopicNum)
+	assert.True(t, setMaxMessagesForTopicCalled)
+	assert.Equal(t, setMaxMessagesForTopic, setMaxMessagesForTopicParameter1)
+	assert.Equal(t, setMaxMessagesForTopicNum, setMaxMessagesForTopicParameter2)
+}

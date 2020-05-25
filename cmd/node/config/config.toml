@@ -287,7 +287,7 @@
         [Antiflood.SlowReacting.PeerMaxInput]
             MessagesPerInterval = 2500
             TotalSizePerInterval = 15728640 # 15MB/interval
-        [Antiflood.FastReacting.BlackList]
+        [Antiflood.SlowReacting.BlackList]
             ThresholdNumMessagesPerInterval = 6000
             ThresholdSizePerInterval = 37748736 # 36MB/interval
             NumFloodingRounds = 2
