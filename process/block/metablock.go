@@ -1197,6 +1197,8 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 		return
 	}
 
+	mp.validatorStatisticsProcessor.SetLastFinalizedRootHash(lastMetaBlock.GetValidatorStatsRootHash())
+
 	prevHeader, errNotCritical := process.GetMetaHeaderFromStorage(lastMetaBlock.GetPrevHash(), mp.marshalizer, mp.store)
 	if errNotCritical != nil {
 		log.Debug("could not get meta header from storage")

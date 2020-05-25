@@ -11,6 +11,7 @@ type ValidatorStatisticsProcessorStub struct {
 	RevertPeerStateCalled                    func(header data.HeaderHandler) error
 	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler, error)
 	RootHashCalled                           func() ([]byte, error)
+	LastFinalizedRootHashCalled              func() []byte
 	ResetValidatorStatisticsAtNewEpochCalled func(vInfos map[uint32][]*state.ValidatorInfo) error
 	GetValidatorInfoForRootHashCalled        func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
 	ProcessRatingsEndOfEpochCalled           func(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error
@@ -95,6 +96,18 @@ func (vsp *ValidatorStatisticsProcessorStub) GetPeerAccount(address []byte) (sta
 
 // DisplayRatings -
 func (vsp *ValidatorStatisticsProcessorStub) DisplayRatings(_ uint32) {
+}
+
+// SetLastFinalizedRootHash -
+func (vsp *ValidatorStatisticsProcessorStub) SetLastFinalizedRootHash(_ []byte) {
+}
+
+// LastFinalizedRootHash -
+func (vsp *ValidatorStatisticsProcessorStub) LastFinalizedRootHash() []byte {
+	if vsp.LastFinalizedRootHashCalled != nil {
+		return vsp.LastFinalizedRootHashCalled()
+	}
+	return nil
 }
 
 // IsInterfaceNil -

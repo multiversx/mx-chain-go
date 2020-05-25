@@ -129,6 +129,10 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 }
 
 func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) == 0 {
+		return vmcommon.UserError
+	}
+
 	config := s.getConfig(s.eei.BlockChainHook().CurrentEpoch())
 	totalUnJailPrice := big.NewInt(0).Mul(config.UnJailPrice, big.NewInt(int64(len(args.Arguments))))
 
@@ -136,7 +140,7 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnJail)
+	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnJail * uint64(len(args.Arguments)))
 	if err != nil {
 		return vmcommon.OutOfGas
 	}
