@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"bytes"
 	"container/list"
 	"sync"
 
@@ -47,14 +48,15 @@ func newTxListForSender(sender string, constraints *senderConstraints, onScoreCh
 
 // AddTx adds a transaction in sender's list
 // This is a "sorted" insert
-func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) {
+func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, [][]byte) {
 	// We don't allow concurrent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
-	nonce := tx.Tx.GetNonce()
-	gasPrice := tx.Tx.GetGasPrice()
-	insertionPlace := listForSender.findInsertionPlace(nonce, gasPrice)
+	insertionPlace, err := listForSender.findInsertionPlace(tx)
+	if err != nil {
+		return false, nil
+	}
 
 	if insertionPlace == nil {
 		listForSender.items.PushFront(tx)
@@ -63,6 +65,39 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) {
 	}
 
 	listForSender.onAddedTransaction(tx)
+	evicted := listForSender.applySizeConstraints()
+	listForSender.triggerScoreChange()
+	return true, evicted
+}
+
+// This function should only be used in critical section (listForSender.mutex)
+func (listForSender *txListForSender) applySizeConstraints() [][]byte {
+	evictedTxHashes := make([][]byte, 0)
+
+	// Iterate back to front
+	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
+		if !listForSender.isCapacityExceeded() {
+			break
+		}
+
+		listForSender.items.Remove(element)
+		listForSender.onRemovedListElement(element)
+
+		// Keep track of removed transactions
+		value := element.Value.(*WrappedTransaction)
+		evictedTxHashes = append(evictedTxHashes, value.TxHash)
+	}
+
+	return evictedTxHashes
+}
+
+func (listForSender *txListForSender) isCapacityExceeded() bool {
+	maxBytes := int64(listForSender.cacheConfig.NumBytesPerSenderThreshold)
+	maxNumTxs := uint64(listForSender.cacheConfig.CountPerSenderThreshold)
+	tooManyBytes := listForSender.totalBytes.Get() > maxBytes
+	tooManyTxs := listForSender.countTx() > maxNumTxs
+
+	return tooManyBytes || tooManyTxs
 }
 
 func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction) {
@@ -87,22 +122,35 @@ func (listForSender *txListForSender) getScoreParams() senderScoreParams {
 }
 
 // This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) findInsertionPlace(incomingNonce uint64, incomingGasPrice uint64) *list.Element {
-	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
-		tx := element.Value.(*WrappedTransaction).Tx
-		nonce := tx.GetNonce()
-		gasPrice := tx.GetGasPrice()
+func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTransaction) (*list.Element, error) {
+	incomingNonce := incomingTx.Tx.GetNonce()
+	incomingGasPrice := incomingTx.Tx.GetGasPrice()
 
-		if nonce == incomingNonce && gasPrice > incomingGasPrice {
-			return element
+	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
+		currentTx := element.Value.(*WrappedTransaction)
+		currentTxNonce := currentTx.Tx.GetNonce()
+		currentTxGasPrice := currentTx.Tx.GetGasPrice()
+
+		if incomingTx.sameAs(currentTx) {
+			// The incoming transaction will be discarded
+			return nil, errTxDuplicated
 		}
 
-		if nonce < incomingNonce {
-			return element
+		if currentTxNonce == incomingNonce && currentTxGasPrice > incomingGasPrice {
+			// The incoming transaction will be placed right after the existing one, which has same nonce but higher price.
+			// If the nonces are the same, but the incoming gas price is higher or equal, the search loop continues.
+			return element, nil
+		}
+
+		if currentTxNonce < incomingNonce {
+			// We've found the first transaction with a lower nonce than the incoming one,
+			// thus the incoming transaction will be placed right after this one.
+			return element, nil
 		}
 	}
 
-	return nil
+	// The incoming transaction will be inserted at the head of the list.
+	return nil, nil
 }
 
 // RemoveTx removes a transaction from the sender's list
@@ -116,6 +164,7 @@ func (listForSender *txListForSender) RemoveTx(tx *WrappedTransaction) bool {
 	if isFound {
 		listForSender.items.Remove(marker)
 		listForSender.onRemovedListElement(marker)
+		listForSender.triggerScoreChange()
 	}
 
 	return isFound
@@ -127,55 +176,27 @@ func (listForSender *txListForSender) onRemovedListElement(element *list.Element
 	listForSender.totalBytes.Subtract(int64(estimateTxSize(value)))
 	listForSender.totalGas.Subtract(int64(estimateTxGas(value)))
 	listForSender.totalFee.Subtract(int64(estimateTxFee(value)))
-	listForSender.onScoreChange(listForSender)
-}
-
-// RemoveHighNonceTxs removes "count" transactions from the back of the list
-func (listForSender *txListForSender) RemoveHighNonceTxs(count uint32) [][]byte {
-	listForSender.mutex.Lock()
-	defer listForSender.mutex.Unlock()
-
-	removedTxHashes := make([][]byte, count)
-
-	index := uint32(0)
-	var previous *list.Element
-	for element := listForSender.items.Back(); element != nil && count > index; element = previous {
-		// Remove node
-		previous = element.Prev()
-		listForSender.items.Remove(element)
-		listForSender.onRemovedListElement(element)
-
-		// Keep track of removed transaction
-		value := element.Value.(*WrappedTransaction)
-		removedTxHashes[index] = value.TxHash
-
-		index++
-	}
-
-	return removedTxHashes
 }
 
 // This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTransaction) *list.Element {
+	txToFindHash := txToFind.TxHash
+	txToFindNonce := txToFind.Tx.GetNonce()
+
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(*WrappedTransaction)
 
-		if value == txToFind {
+		if bytes.Equal(value.TxHash, txToFindHash) {
 			return element
 		}
 
 		// Optimization: stop search at this point, since the list is sorted by nonce
-		if value.Tx.GetNonce() > txToFind.Tx.GetNonce() {
+		if value.Tx.GetNonce() > txToFindNonce {
 			break
 		}
 	}
 
 	return nil
-}
-
-// HasMoreThan checks whether the list has more items than specified
-func (listForSender *txListForSender) HasMoreThan(count uint32) bool {
-	return uint32(listForSender.countTxWithLock()) > count
 }
 
 // IsEmpty checks whether the list is empty

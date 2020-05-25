@@ -8,10 +8,10 @@ type CacheConfig struct {
 	NumChunksHint              uint32
 	EvictionEnabled            bool
 	NumBytesThreshold          uint32
+	NumBytesPerSenderThreshold uint32
 	CountThreshold             uint32
+	CountPerSenderThreshold    uint32
 	NumSendersToEvictInOneStep uint32
-	LargeNumOfTxsForASender    uint32
-	NumTxsToEvictFromASender   uint32
 	MinGasPriceNanoErd         uint32
 }
 
@@ -20,6 +20,7 @@ type senderConstraints struct {
 	maxNumBytes uint32
 }
 
+// TODO: perhaps add better constraints for "CountThreshold" and "NumBytesThreshold"?
 func (config *CacheConfig) verify() error {
 	if len(config.Name) == 0 {
 		return fmt.Errorf("%w: config.Name is invalid", errInvalidCacheConfig)

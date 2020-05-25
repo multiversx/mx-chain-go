@@ -512,6 +512,11 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	randomness := metaHdr.GetPrevRandSeed()
 	newEpoch := metaHdr.GetEpoch()
 
+	if check.IfNil(body) && newEpoch == ihgs.currentEpoch {
+		log.Debug("nil body provided for epoch start prepare, it is normal in case of revertStateToBlock")
+		return
+	}
+
 	allValidatorInfo, err := createValidatorInfoFromBody(body, ihgs.marshalizer, ihgs.numTotalEligible)
 	if err != nil {
 		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare")

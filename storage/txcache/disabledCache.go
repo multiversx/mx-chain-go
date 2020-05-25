@@ -37,7 +37,7 @@ func (cache *DisabledCache) RemoveTxByHash(txHash []byte) error {
 }
 
 // CountTx returns zero
-func (cache *DisabledCache) CountTx() int64 {
+func (cache *DisabledCache) CountTx() uint64 {
 	return 0
 }
 
@@ -88,7 +88,7 @@ func (cache *DisabledCache) RemoveOldest() {
 }
 
 // Keys returns an empty slice
-func (cache *DisabledCache) Keys() txHashes {
+func (cache *DisabledCache) Keys() [][]byte {
 	return make([][]byte, 0)
 }
 
