@@ -133,17 +133,21 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 	totalUnJailPrice := big.NewInt(0).Mul(config.UnJailPrice, big.NewInt(int64(len(args.Arguments))))
 
 	if totalUnJailPrice.Cmp(args.CallValue) != 0 {
+
+		s.eei.SetReturnMessage("insufficient funds sent for unJail")
 		return vmcommon.UserError
 	}
 
 	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnJail)
 	if err != nil {
+		s.eei.SetReturnMessage("insufficient gas limit")
 		return vmcommon.OutOfGas
 	}
 
 	for _, argument := range args.Arguments {
 		vmOutput, _ := s.executeOnStakingSC([]byte("unJail@" + hex.EncodeToString(argument)))
 		if vmOutput != nil && vmOutput.ReturnCode == vmcommon.OutOfGas {
+			s.eei.SetReturnMessage("insufficient gas limit")
 			return vmcommon.OutOfGas
 		}
 	}
@@ -153,34 +157,42 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
+		s.eei.SetReturnMessage("transaction value must be zero")
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) < 1 {
+		s.eei.SetReturnMessage("insufficient number of arguments")
 		return vmcommon.UserError
 	}
 	if len(args.Arguments[0]) != len(args.CallerAddr) {
+		s.eei.SetReturnMessage("wrong reward address")
 		return vmcommon.UserError
 	}
 
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
+		s.eei.SetReturnMessage("cannot get or create registration data: error " + err.Error())
 		return vmcommon.UserError
 	}
 	if len(registrationData.RewardAddress) == 0 {
+		s.eei.SetReturnMessage("cannot change reward address, key is not registered")
 		return vmcommon.UserError
 	}
 	if bytes.Equal(registrationData.RewardAddress, args.Arguments[0]) {
+		s.eei.SetReturnMessage("new reward address is equals with old reward address")
 		return vmcommon.UserError
 	}
 
 	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.ChangeRewardAddress * uint64(len(registrationData.BlsPubKeys)))
 	if err != nil {
+		s.eei.SetReturnMessage("insufficient gas limit")
 		return vmcommon.OutOfGas
 	}
 
 	registrationData.RewardAddress = args.Arguments[0]
 	err = s.saveRegistrationData(args.CallerAddr, registrationData)
 	if err != nil {
+		s.eei.SetReturnMessage("cannot save registration data: error " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -192,6 +204,7 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 	isError := err != nil || vmOutput.ReturnCode != vmcommon.Ok
 	if isError {
 		log.LogIfError(err)
+		s.eei.SetReturnMessage(vmOutput.ReturnMessage)
 		return vmcommon.UserError
 	}
 
@@ -200,28 +213,34 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 
 func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
+		s.eei.SetReturnMessage("transaction value must be 0")
 		return vmcommon.UserError
 	}
 	// list of arguments are NumNodes, (OldKey, NewKey, SignedMessage) X NumNodes
 	if len(args.Arguments) < minArgsLenToChangeValidatorKey {
+		s.eei.SetReturnMessage("invalid number of arguments")
 		return vmcommon.UserError
 	}
 
 	numNodesToChange := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
 	if uint64(len(args.Arguments)) < numNodesToChange*3+1 {
+		s.eei.SetReturnMessage("invalid number of arguments")
 		return vmcommon.UserError
 	}
 
 	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.ChangeValidatorKeys * numNodesToChange)
 	if err != nil {
+		s.eei.SetReturnMessage("insufficient gas limit")
 		return vmcommon.OutOfGas
 	}
 
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
+		s.eei.SetReturnMessage("cannot get or create registration data: error " + err.Error())
 		return vmcommon.UserError
 	}
 	if len(registrationData.BlsPubKeys) == 0 {
+		s.eei.SetReturnMessage("no bls key in storage")
 		return vmcommon.UserError
 	}
 
@@ -232,11 +251,13 @@ func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput)
 
 		err := s.sigVerifier.Verify(args.CallerAddr, signedWithNewKey, newBlsKey)
 		if err != nil {
+			s.eei.SetReturnMessage("invalid signature: error " + err.Error())
 			return vmcommon.UserError
 		}
 
 		err = s.replaceBLSKey(registrationData, oldBlsKey, newBlsKey)
 		if err != nil {
+			s.eei.SetReturnMessage("cannot replace bls key: error " + err.Error())
 			return vmcommon.UserError
 		}
 	}
@@ -274,15 +295,18 @@ func (s *stakingAuctionSC) replaceBLSKey(registrationData *AuctionData, oldBlsKe
 
 func (s *stakingAuctionSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
+		s.eei.SetReturnMessage("transaction value must be zero")
 		return vmcommon.UserError
 	}
 
 	if len(args.Arguments) < 1 {
+		s.eei.SetReturnMessage("insufficient number of arguments")
 		return vmcommon.UserError
 	}
 
 	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Get)
 	if err != nil {
+		s.eei.SetReturnMessage("insufficient gas limit")
 		return vmcommon.OutOfGas
 	}
 
@@ -296,11 +320,15 @@ func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.
 	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
 	if !bytes.Equal(ownerAddress, args.CallerAddr) {
 		log.Debug("setConfig function was not called by the owner address")
+
+		s.eei.SetReturnMessage("setConfig function was not called by the owner address")
 		return vmcommon.UserError
 	}
 
 	if len(args.Arguments) != 7 {
 		log.Debug("setConfig function called with wrong number of arguments")
+
+		s.eei.SetReturnMessage("setConfig function called with wrong number of arguments")
 		return vmcommon.UserError
 	}
 
@@ -316,6 +344,8 @@ func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.
 	configData, err := json.Marshal(config)
 	if err != nil {
 		log.Debug("setConfig marshall config error")
+
+		s.eei.SetReturnMessage("setConfig marshall config error")
 		return vmcommon.UserError
 	}
 	epochBytes := args.Arguments[6]
@@ -376,6 +406,8 @@ func (s *stakingAuctionSC) init(args *vmcommon.ContractCallInput) vmcommon.Retur
 	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
 	if ownerAddress != nil {
 		log.Error("smart contract was already initialized")
+
+		s.eei.SetReturnMessage("smart contract was already initialized")
 		return vmcommon.UserError
 	}
 
@@ -448,11 +480,14 @@ func (s *stakingAuctionSC) registerBLSKeys(
 func (s *stakingAuctionSC) updateStakeValue(registrationData *AuctionData, caller []byte) vmcommon.ReturnCode {
 	if len(registrationData.BlsPubKeys) == 0 {
 		log.Debug("not enough arguments to process stake function")
+
+		s.eei.SetReturnMessage("not enough arguments to process stake function")
 		return vmcommon.UserError
 	}
 
 	err := s.saveRegistrationData(caller, registrationData)
 	if err != nil {
+		s.eei.SetReturnMessage("cannot save registration data error " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -493,22 +528,26 @@ func (s *stakingAuctionSC) isFunctionEnabled(nonce uint64) bool {
 func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Stake)
 	if err != nil {
+		s.eei.SetReturnMessage("insufficient gas")
 		return vmcommon.OutOfGas
 	}
 
 	isStakeEnabled := s.isFunctionEnabled(s.enableStakingNonce)
 	if !isStakeEnabled {
+		s.eei.SetReturnMessage("stake is not enable")
 		return vmcommon.UserError
 	}
 
 	config := s.getConfig(s.eei.BlockChainHook().CurrentEpoch())
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
+		s.eei.SetReturnMessage("cannot get or create registration data: error " + err.Error())
 		return vmcommon.UserError
 	}
 
 	registrationData.TotalStakeValue.Add(registrationData.TotalStakeValue, args.CallValue)
 	if registrationData.TotalStakeValue.Cmp(config.MinStakeValue) < 0 {
+		s.eei.SetReturnMessage("insufficient stake value")
 		return vmcommon.UserError
 	}
 
@@ -519,6 +558,8 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 
 	if !isNumArgsCorrectToStake(args.Arguments) {
 		log.Debug("incorrect number of arguments to call stake", "numArgs", args.Arguments)
+
+		s.eei.SetReturnMessage("incorrect number of arguments to call stake")
 		return vmcommon.UserError
 	}
 
@@ -532,12 +573,14 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 
 	blsKeys, err := s.registerBLSKeys(registrationData, args.CallerAddr, args.Arguments)
 	if err != nil {
+		s.eei.SetReturnMessage("cannot register bls key: error " + err.Error())
 		return vmcommon.UserError
 	}
 
 	maxNodesToRun := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
 	numQualified := big.NewInt(0).Div(registrationData.TotalStakeValue, config.MinStakeValue)
 	if uint64(len(registrationData.BlsPubKeys)) > numQualified.Uint64() {
+		s.eei.SetReturnMessage("insufficient funds")
 		return vmcommon.OutOfFunds
 	}
 
@@ -572,6 +615,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 
 	err = s.saveRegistrationData(args.CallerAddr, registrationData)
 	if err != nil {
+		s.eei.SetReturnMessage("cannot save registration data: error " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -691,26 +735,31 @@ func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedData, error) {
 
 func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
+		s.eei.SetReturnMessage("transaction value must be zero")
 		return vmcommon.UserError
 	}
 
 	isUnStakeEnabled := s.isFunctionEnabled(s.enableStakingNonce)
 	if !isUnStakeEnabled {
+		s.eei.SetReturnMessage("unStake is not enable")
 		return vmcommon.UserError
 	}
 
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
+		s.eei.SetReturnMessage("cannot get or create registration data: error " + err.Error())
 		return vmcommon.UserError
 	}
 
 	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnStake)
 	if err != nil {
+		s.eei.SetReturnMessage("insufficient gas limit")
 		return vmcommon.OutOfGas
 	}
 
 	blsKeys, err := getBLSPublicKeys(registrationData, args)
 	if err != nil {
+		s.eei.SetReturnMessage("bls key problem : error " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -731,6 +780,7 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 
 	err = s.saveRegistrationData(args.CallerAddr, registrationData)
 	if err != nil {
+		s.eei.SetReturnMessage("cannot save registration data: error " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -758,26 +808,31 @@ func getBLSPublicKeys(registrationData *AuctionData, args *vmcommon.ContractCall
 
 func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
+		s.eei.SetReturnMessage("transaction value must be zero")
 		return vmcommon.UserError
 	}
 
 	isStakeEnabled := s.isFunctionEnabled(s.enableStakingNonce)
 	if !isStakeEnabled {
+		s.eei.SetReturnMessage("unBond is not enable")
 		return vmcommon.UserError
 	}
 
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
+		s.eei.SetReturnMessage("cannot get or create registration data: error " + err.Error())
 		return vmcommon.UserError
 	}
 
 	blsKeys, err := getBLSPublicKeys(registrationData, args)
 	if err != nil {
+		s.eei.SetReturnMessage("bls key problem: error " + err.Error())
 		return vmcommon.UserError
 	}
 
 	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnBond)
 	if err != nil {
+		s.eei.SetReturnMessage("insufficient gas limit")
 		return vmcommon.OutOfGas
 	}
 
@@ -818,6 +873,8 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
 	if err != nil {
 		log.Debug("transfer error on unBond function")
+
+		s.eei.SetReturnMessage("transfer error on unBond function")
 		return vmcommon.UserError
 	}
 
@@ -829,6 +886,8 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		err := s.saveRegistrationData(args.CallerAddr, registrationData)
 		if err != nil {
 			log.Debug("cannot save registration data change")
+
+			s.eei.SetReturnMessage("cannot save registration data: error " + err.Error())
 			return vmcommon.UserError
 		}
 	}
@@ -856,13 +915,16 @@ func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.Retu
 
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
+		s.eei.SetReturnMessage("cannot get registration data: error " + err.Error())
 		return vmcommon.UserError
 	}
 	if len(registrationData.RewardAddress) == 0 {
+		s.eei.SetReturnMessage("key is not registered, claim is not possible")
 		return vmcommon.UserError
 	}
 	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Claim)
 	if err != nil {
+		s.eei.SetReturnMessage("insufficient gas limit")
 		return vmcommon.OutOfGas
 	}
 
@@ -875,7 +937,9 @@ func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.Retu
 	registrationData.TotalStakeValue.Set(registrationData.LockedStake)
 	err = s.saveRegistrationData(args.CallerAddr, registrationData)
 	if err != nil {
-		log.Debug("cannot save registration data change")
+		log.Debug("cannot save registration data: error " + err.Error())
+
+		s.eei.SetReturnMessage("cannot save registration data: error " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -884,6 +948,8 @@ func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.Retu
 		log.Debug("transfer error on finalizeUnStake function",
 			"error", err.Error(),
 		)
+
+		s.eei.SetReturnMessage("transfer error on finalizeUnStake function: error " + err.Error())
 		return vmcommon.UserError
 	}
 

@@ -21,4 +21,5 @@ message SmartContractResult  {
 	uint64   GasPrice       = 10 [(gogoproto.jsontag) = "gasPrice"];
 	int64    CallType  	    = 11 [(gogoproto.jsontag)= "callType", (gogoproto.casttype) = "github.com/ElrondNetwork/elrond-vm-common.CallType"];
 	bytes    CodeMetadata   = 12 [(gogoproto.jsontag) = "codeMetadata,omitempty"];
+	bytes    ReturnMessage  = 13 [(gogoproto.jsontag) = "returnMessage,omitempty"];
 }
