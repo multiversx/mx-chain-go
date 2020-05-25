@@ -160,7 +160,6 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 	nonce++
 
 	time.Sleep(time.Second)
-	_ = logger.SetLogLevel("*:DEBUG,process/smartcontract:TRACE")
 	transferToken := big.NewInt(10)
 	ownerNode := nodes[0]
 	initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
