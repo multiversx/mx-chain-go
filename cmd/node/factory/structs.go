@@ -276,11 +276,17 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
-	validatorsProvider, err := peer.NewValidatorsProvider(
-		validatorStatisticsProcessor,
-		args.maxRating,
-		args.validatorPubkeyConverter,
-	)
+	argVSP := peer.ArgValidatorsProvider{
+		NodesCoordinator:                  args.nodesCoordinator,
+		StartEpoch:                        args.startEpochNum,
+		EpochStartEventNotifier:           args.epochStartNotifier,
+		CacheRefreshIntervalDurationInSec: time.Duration(args.mainConfig.Heartbeat.PeerTypeRefreshIntervalInSec) * time.Second,
+		ValidatorStatistics:               validatorStatisticsProcessor,
+		MaxRating:                         args.maxRating,
+		PubKeyConverter:                   args.validatorPubkeyConverter,
+	}
+
+	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)
 	if err != nil {
 		return nil, err
 	}

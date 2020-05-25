@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -16,36 +17,54 @@ import (
 )
 
 func TestNewValidatorsProvider_WithNilValidatorStatisticsShouldErr(t *testing.T) {
-	maxRating := uint32(10)
-	vp, err := NewValidatorsProvider(
-		nil,
-		maxRating,
-		mock.NewPubkeyConverterMock(32),
-	)
+	arg := createDefaultValidatorsProviderArg()
+	arg.ValidatorStatistics = nil
+	vp, err := NewValidatorsProvider(arg)
 	assert.Equal(t, process.ErrNilValidatorStatistics, err)
 	assert.Nil(t, vp)
 }
 
 func TestNewValidatorsProvider_WithMaxRatingZeroShouldErr(t *testing.T) {
-	maxRating := uint32(0)
-	vp, err := NewValidatorsProvider(
-		&mock.ValidatorStatisticsProcessorStub{},
-		maxRating,
-		mock.NewPubkeyConverterMock(32),
-	)
+	arg := createDefaultValidatorsProviderArg()
+	arg.MaxRating = uint32(0)
+	vp, err := NewValidatorsProvider(arg)
 	assert.Equal(t, process.ErrMaxRatingZero, err)
 	assert.Nil(t, vp)
 }
 
 func TestNewValidatorsProvider_WithNilValidatorPubkeyConverterShouldErr(t *testing.T) {
-	maxRating := uint32(10)
-	vp, err := NewValidatorsProvider(
-		&mock.ValidatorStatisticsProcessorStub{},
-		maxRating,
-		nil,
-	)
+	arg := createDefaultValidatorsProviderArg()
+	arg.PubKeyConverter = nil
+	vp, err := NewValidatorsProvider(arg)
 
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)
+	assert.True(t, check.IfNil(vp))
+}
+
+func TestNewValidatorsProvider_WithNilNodesCoordinatorrShouldErr(t *testing.T) {
+	arg := createDefaultValidatorsProviderArg()
+	arg.NodesCoordinator = nil
+	vp, err := NewValidatorsProvider(arg)
+
+	assert.Equal(t, process.ErrNilNodesCoordinator, err)
+	assert.True(t, check.IfNil(vp))
+}
+
+func TestNewValidatorsProvider_WithNilStartOfEpochTriggerShouldErr(t *testing.T) {
+	arg := createDefaultValidatorsProviderArg()
+	arg.EpochStartEventNotifier = nil
+	vp, err := NewValidatorsProvider(arg)
+
+	assert.Equal(t, process.ErrNilEpochStartNotifier, err)
+	assert.True(t, check.IfNil(vp))
+}
+
+func TestNewValidatorsProvider_WithNilRefresCacheIntervalInSecShouldErr(t *testing.T) {
+	arg := createDefaultValidatorsProviderArg()
+	arg.CacheRefreshIntervalDurationInSec = 0
+	vp, err := NewValidatorsProvider(arg)
+
+	assert.Equal(t, process.ErrInvalidCacheRefreshIntervalInSec, err)
 	assert.True(t, check.IfNil(vp))
 }
 
@@ -57,6 +76,7 @@ func TestValidatorsProvider_GetLatestValidatorsSecondHashDoesNotExist(t *testing
 	validatorInfos := map[uint32][]*state.ValidatorInfo{
 		0: {initialInfo},
 	}
+
 	gotOk := false
 	gotNil := false
 	vs := &mock.ValidatorStatisticsProcessorStub{
@@ -74,17 +94,18 @@ func TestValidatorsProvider_GetLatestValidatorsSecondHashDoesNotExist(t *testing
 	}
 
 	maxRating := uint32(100)
-	vp, _ := NewValidatorsProvider(
-		vs,
-		maxRating,
-		mock.NewPubkeyConverterMock(32),
-	)
+	args := createDefaultValidatorsProviderArg()
+	args.ValidatorStatistics = vs
+	args.MaxRating = maxRating
+	vp, _ := NewValidatorsProvider(args)
+	time.Sleep(time.Millisecond)
 	vinfos := vp.GetLatestValidators()
 	assert.NotNil(t, vinfos)
 	assert.Equal(t, 1, len(vinfos))
-
+	time.Sleep(time.Millisecond)
 	root = []byte("otherHash")
 	vinfos2 := vp.GetLatestValidators()
+	time.Sleep(time.Millisecond)
 	assert.NotNil(t, vinfos2)
 	assert.Equal(t, 1, len(vinfos2))
 
@@ -103,6 +124,14 @@ func TestValidatorsProvider_GetLatestValidatorsSecondHashDoesNotExist(t *testing
 	assert.Equal(t, initialInfo.GetTotalLeaderFailure(), validatorInfoApi.GetTotalNumLeaderFailure())
 	assert.Equal(t, initialInfo.GetTotalValidatorSuccess(), validatorInfoApi.GetTotalNumValidatorSuccess())
 	assert.Equal(t, initialInfo.GetTotalValidatorFailure(), validatorInfoApi.GetTotalNumValidatorFailure())
+}
+
+func TestValidatorsProvider_ShouldWork(t *testing.T) {
+	args := createDefaultValidatorsProviderArg()
+	vp, err := NewValidatorsProvider(args)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, vp)
 }
 
 func createMockValidatorInfo() *state.ValidatorInfo {
@@ -128,15 +157,14 @@ func createMockValidatorInfo() *state.ValidatorInfo {
 	return initialInfo
 }
 
-func TestValidatorsProvider_ShouldWork(t *testing.T) {
-	vs := &mock.ValidatorStatisticsProcessorStub{}
-	maxRating := uint32(7)
-	vp, err := NewValidatorsProvider(
-		vs,
-		maxRating,
-		mock.NewPubkeyConverterMock(32),
-	)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, vp)
+func createDefaultValidatorsProviderArg() ArgValidatorsProvider {
+	return ArgValidatorsProvider{
+		NodesCoordinator:                  &mock.NodesCoordinatorMock{},
+		StartEpoch:                        1,
+		EpochStartEventNotifier:           &mock.EpochStartNotifierStub{},
+		CacheRefreshIntervalDurationInSec: 1 * time.Millisecond,
+		ValidatorStatistics:               &mock.ValidatorStatisticsProcessorStub{},
+		MaxRating:                         100,
+		PubKeyConverter:                   mock.NewPubkeyConverterMock(32),
+	}
 }

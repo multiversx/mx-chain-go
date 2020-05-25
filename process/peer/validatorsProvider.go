@@ -1,69 +1,175 @@
 package peer
 
 import (
+	"context"
+	"fmt"
 	"sync"
+	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var _ process.ValidatorsProvider = (*validatorsProvider)(nil)
 
 // validatorsProvider is the main interface for validators' provider
 type validatorsProvider struct {
-	mutCachedMap        sync.Mutex
-	cachedMap           map[string]*state.ValidatorApiResponse
-	validatorStatistics process.ValidatorStatisticsProcessor
-	maxRating           uint32
-	pubkeyConverter     state.PubkeyConverter
+	nodesCoordinator             process.NodesCoordinator
+	validatorStatistics          process.ValidatorStatisticsProcessor
+	cache                        map[string]*state.ValidatorApiResponse
+	cacheRefreshIntervalDuration time.Duration
+	refreshCache                 chan uint32
+	mutCache                     sync.RWMutex
+	cancelFunc                   func()
+	maxRating                    uint32
+	pubkeyConverter              state.PubkeyConverter
+}
+
+// ArgValidatorsProvider contains all parameters needed for creating a validatorsProvider
+type ArgValidatorsProvider struct {
+	NodesCoordinator                  process.NodesCoordinator
+	StartEpoch                        uint32
+	EpochStartEventNotifier           process.EpochStartEventNotifier
+	CacheRefreshIntervalDurationInSec time.Duration
+	ValidatorStatistics               process.ValidatorStatisticsProcessor
+	MaxRating                         uint32
+	PubKeyConverter                   state.PubkeyConverter
 }
 
 // NewValidatorsProvider instantiates a new validatorsProvider structure responsible of keeping account of
 //  the latest information about the validators
 func NewValidatorsProvider(
-	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
-	maxRating uint32,
-	pubkeyConverter state.PubkeyConverter,
+	args ArgValidatorsProvider,
 ) (*validatorsProvider, error) {
-	if check.IfNil(validatorStatisticsProcessor) {
+	if check.IfNil(args.ValidatorStatistics) {
 		return nil, process.ErrNilValidatorStatistics
 	}
-	if check.IfNil(pubkeyConverter) {
+	if check.IfNil(args.PubKeyConverter) {
 		return nil, process.ErrNilPubkeyConverter
 	}
-	if maxRating == 0 {
+	if check.IfNil(args.NodesCoordinator) {
+		return nil, process.ErrNilNodesCoordinator
+	}
+	if check.IfNil(args.EpochStartEventNotifier) {
+		return nil, process.ErrNilEpochStartNotifier
+	}
+	if args.MaxRating == 0 {
 		return nil, process.ErrMaxRatingZero
 	}
+	if args.CacheRefreshIntervalDurationInSec <= 0 {
+		return nil, process.ErrInvalidCacheRefreshIntervalInSec
+	}
+
+	currentContext, cancelfunc := context.WithCancel(context.Background())
 
 	validatorsProvider := &validatorsProvider{
-		mutCachedMap:        sync.Mutex{},
-		cachedMap:           make(map[string]*state.ValidatorApiResponse),
-		maxRating:           maxRating,
-		validatorStatistics: validatorStatisticsProcessor,
-		pubkeyConverter:     pubkeyConverter,
+		nodesCoordinator:             args.NodesCoordinator,
+		validatorStatistics:          args.ValidatorStatistics,
+		cache:                        make(map[string]*state.ValidatorApiResponse),
+		cacheRefreshIntervalDuration: args.CacheRefreshIntervalDurationInSec,
+		refreshCache:                 make(chan uint32),
+		mutCache:                     sync.RWMutex{},
+		cancelFunc:                   cancelfunc,
+		maxRating:                    args.MaxRating,
+		pubkeyConverter:              args.PubKeyConverter,
 	}
+
+	go validatorsProvider.startRefreshProcess(currentContext, args.StartEpoch)
+	args.EpochStartEventNotifier.RegisterHandler(validatorsProvider.epochStartEventHandler())
 
 	return validatorsProvider, nil
 }
 
 // GetLatestValidators gets the latest configuration of validators from the peerAccountsTrie
 func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorApiResponse {
-	vp.mutCachedMap.Lock()
-	defer vp.mutCachedMap.Unlock()
+	vp.mutCache.Lock()
+	defer vp.mutCache.Unlock()
 
+	return vp.cache
+}
+
+func (vp *validatorsProvider) epochStartEventHandler() sharding.EpochStartActionHandler {
+	subscribeHandler := notifier.NewHandlerForEpochStart(
+		func(hdr data.HeaderHandler) {
+			log.Trace("epochStartEventHandler - refreshCache forced",
+				"nonce", hdr.GetNonce(),
+				"shard", hdr.GetShardID(),
+				"round", hdr.GetRound(),
+				"epoch", hdr.GetEpoch())
+			go func() {
+				vp.refreshCache <- hdr.GetEpoch()
+			}()
+		},
+		func(_ data.HeaderHandler) {},
+		core.IndexerOrder,
+	)
+
+	return subscribeHandler
+}
+
+func (vp *validatorsProvider) startRefreshProcess(ctx context.Context, startEpoch uint32) {
+	epoch := startEpoch
+	for {
+		vp.updateCache(epoch)
+		select {
+		case epoch = <-vp.refreshCache:
+			log.Trace("startRefreshProcess - forced refresh", "epoch", epoch)
+		case <-ctx.Done():
+			log.Debug("validatorsProvider's go routine is stopping...")
+			return
+		case <-time.After(vp.cacheRefreshIntervalDuration):
+			log.Trace("startRefreshProcess - time after")
+		}
+	}
+}
+
+func (vp *validatorsProvider) updateCache(epoch uint32) {
 	lastFinalizedRootHash := vp.validatorStatistics.LastFinalizedRootHash()
-	validators, err := vp.validatorStatistics.GetValidatorInfoForRootHash(lastFinalizedRootHash)
+	allNodes, err := vp.validatorStatistics.GetValidatorInfoForRootHash(lastFinalizedRootHash)
 	if err != nil {
-		log.Trace("Could not get trie for hash", "hash", lastFinalizedRootHash)
-		return vp.cachedMap
+		log.Trace("validatorsProvider - GetLatestValidatorInfos failed", "error", err)
 	}
 
-	mapToReturn := make(map[string]*state.ValidatorApiResponse)
-	for _, validatorInfosInShard := range validators {
+	newCache := vp.createNewCache(epoch, allNodes)
+
+	vp.mutCache.Lock()
+	vp.cache = newCache
+	vp.mutCache.Unlock()
+}
+
+func (vp *validatorsProvider) createNewCache(
+	epoch uint32,
+	allNodes map[uint32][]*state.ValidatorInfo,
+) map[string]*state.ValidatorApiResponse {
+	newCache := vp.createValidatorApiResponseMapFromValidatorInfoMap(allNodes)
+
+	nodesMapEligible, err := vp.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
+	if err != nil {
+		log.Debug("peerTypeProvider - GetAllEligibleValidatorsPublicKeys failed", "epoch", epoch)
+	}
+	aggregatePType(newCache, nodesMapEligible, core.EligibleList)
+
+	nodesMapWaiting, err := vp.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
+	if err != nil {
+		log.Debug("peerTypeProvider - GetAllWaitingValidatorsPublicKeys failed", "epoch", epoch)
+	}
+	aggregatePType(newCache, nodesMapWaiting, core.WaitingList)
+
+	return newCache
+}
+
+func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(allNodes map[uint32][]*state.ValidatorInfo) map[string]*state.ValidatorApiResponse {
+	newCache := make(map[string]*state.ValidatorApiResponse)
+
+	for _, validatorInfosInShard := range allNodes {
 		for _, validatorInfo := range validatorInfosInShard {
 			strKey := vp.pubkeyConverter.Encode(validatorInfo.PublicKey)
-			mapToReturn[strKey] = &state.ValidatorApiResponse{
+			newCache[strKey] = &state.ValidatorApiResponse{
 				NumLeaderSuccess:         validatorInfo.LeaderSuccess,
 				NumLeaderFailure:         validatorInfo.LeaderFailure,
 				NumValidatorSuccess:      validatorInfo.ValidatorSuccess,
@@ -82,12 +188,48 @@ func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorA
 		}
 	}
 
-	vp.cachedMap = mapToReturn
+	return newCache
+}
 
-	return mapToReturn
+func aggregatePType(
+	newCache map[string]*state.ValidatorApiResponse,
+	validatorsMap map[uint32][][]byte,
+	currentList core.PeerType,
+) {
+	for shardID, shardValidators := range validatorsMap {
+		for _, val := range shardValidators {
+			foundInTrieValidator, ok := newCache[string(val)]
+			if !ok || foundInTrieValidator == nil {
+				continue
+			}
+			peerType := string(currentList)
+			trieList := core.PeerType(foundInTrieValidator.List)
+			if shouldCombine(trieList, currentList) {
+				peerType = fmt.Sprintf(core.CombinedPeerType, currentList, trieList)
+			}
+
+			newCache[string(val)].ShardId = shardID
+			newCache[string(val)].List = peerType
+		}
+	}
+}
+
+func shouldCombine(triePeerType core.PeerType, currentPeerType core.PeerType) bool {
+	notTheSame := triePeerType != currentPeerType
+	notEligibleOrWaiting := triePeerType != core.EligibleList &&
+		triePeerType != core.WaitingList
+
+	return notTheSame && notEligibleOrWaiting
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (vs *validatorsProvider) IsInterfaceNil() bool {
-	return vs == nil
+func (vp *validatorsProvider) IsInterfaceNil() bool {
+	return vp == nil
+}
+
+// Close - frees up everything, cancels long running methods
+func (vp *validatorsProvider) Close() error {
+	vp.cancelFunc()
+
+	return nil
 }
