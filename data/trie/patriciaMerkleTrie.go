@@ -241,6 +241,9 @@ func (tr *patriciaMerkleTrie) markForEviction() error {
 
 	if bytes.Equal(newRoot, tr.oldRoot) {
 		log.Trace("old root and new root are identical", "rootHash", newRoot)
+		tr.newHashes = make(data.ModifiedHashes)
+		tr.oldRoot = make([]byte, 0)
+		tr.oldHashes = make([][]byte, 0)
 		return nil
 	}
 
