@@ -56,8 +56,8 @@ func (cache *TxCache) getListForSender(sender string) *txListForSender {
 	return cache.txListBySender.testGetListForSender(sender)
 }
 
-func (sendersMap *txListBySenderMap) testGetListForSender(sender string) *txListForSender {
-	list, ok := sendersMap.getListForSender(sender)
+func (txMap *txListBySenderMap) testGetListForSender(sender string) *txListForSender {
+	list, ok := txMap.getListForSender(sender)
 	if !ok {
 		panic("sender not in cache")
 	}

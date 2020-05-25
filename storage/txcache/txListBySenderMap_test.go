@@ -120,7 +120,7 @@ func BenchmarkSendersMap_GetSnapshotAscending(b *testing.B) {
 	}
 
 	numSenders := 250000
-	maps := make([]txListBySenderMap, b.N)
+	maps := make([]*txListBySenderMap, b.N)
 	for i := 0; i < b.N; i++ {
 		maps[i] = createTxListBySenderMap(numSenders)
 	}
@@ -164,7 +164,7 @@ func TestSendersMap_GetSnapshots_NoPanic_IfAlsoConcurrentMutation(t *testing.T) 
 	wg.Wait()
 }
 
-func createTxListBySenderMap(numSenders int) txListBySenderMap {
+func createTxListBySenderMap(numSenders int) *txListBySenderMap {
 	myMap := newSendersMapToTest()
 	for i := 0; i < numSenders; i++ {
 		sender := fmt.Sprintf("Sender-%d", i)
@@ -175,7 +175,7 @@ func createTxListBySenderMap(numSenders int) txListBySenderMap {
 	return myMap
 }
 
-func newSendersMapToTest() txListBySenderMap {
+func newSendersMapToTest() *txListBySenderMap {
 	return newTxListBySenderMap(4, CacheConfig{
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountPerSenderThreshold:    math.MaxUint32,

@@ -15,23 +15,24 @@ func (cache *TxCache) doEviction() {
 		return
 	}
 
-	journal := evictionJournal{}
-
 	cache.evictionMutex.Lock()
 	defer cache.evictionMutex.Unlock()
 
 	cache.isEvictionInProgress.Set()
 	defer cache.isEvictionInProgress.Unset()
 
-	stopWatch := cache.monitorEvictionStart()
-
-	if cache.isCapacityExceeded() {
-		cache.makeSnapshotOfSenders()
-		journal.passOneNumSteps, journal.passOneNumTxs, journal.passOneNumSenders = cache.evictSendersInLoop()
-		journal.evictionPerformed = true
+	if !cache.isCapacityExceeded() {
+		return
 	}
 
+	stopWatch := cache.monitorEvictionStart()
+	cache.makeSnapshotOfSenders()
+
+	journal := evictionJournal{}
+	journal.passOneNumSteps, journal.passOneNumTxs, journal.passOneNumSenders = cache.evictSendersInLoop()
+	journal.evictionPerformed = true
 	cache.evictionJournal = journal
+
 	cache.monitorEvictionEnd(stopWatch)
 	cache.destroySnapshotOfSenders()
 }

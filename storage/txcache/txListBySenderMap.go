@@ -18,10 +18,10 @@ type txListBySenderMap struct {
 }
 
 // newTxListBySenderMap creates a new instance of TxListBySenderMap
-func newTxListBySenderMap(nChunksHint uint32, cacheConfig CacheConfig) txListBySenderMap {
+func newTxListBySenderMap(nChunksHint uint32, cacheConfig CacheConfig) *txListBySenderMap {
 	backingMap := maps.NewBucketSortedMap(nChunksHint, numberOfScoreChunks)
 
-	return txListBySenderMap{
+	return &txListBySenderMap{
 		backingMap:  backingMap,
 		cacheConfig: cacheConfig,
 	}

@@ -491,7 +491,7 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 			wg.Add(1)
 			go func() {
 				cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
-				cache.RemoveTxByHash([]byte("alice-x"))
+				_ = cache.RemoveTxByHash([]byte("alice-x"))
 				wg.Done()
 			}()
 		}
@@ -532,7 +532,7 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 			wg.Add(1)
 			go func() {
 				cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
-				cache.RemoveTxByHash([]byte("alice-x"))
+				_ = cache.RemoveTxByHash([]byte("alice-x"))
 				wg.Done()
 			}()
 		}

@@ -13,8 +13,8 @@ var _ storage.Cacher = (*TxCache)(nil)
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
 	name                      string
-	txListBySender            txListBySenderMap
-	txByHash                  txByHashMap
+	txListBySender            *txListBySenderMap
+	txByHash                  *txByHashMap
 	config                    CacheConfig
 	evictionMutex             sync.Mutex
 	evictionJournal           evictionJournal
@@ -63,10 +63,10 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	addedInBySender, evicted := cache.txListBySender.addTx(tx)
 	if addedInByHash != addedInBySender {
 		// This can happen  when two go-routines concur to add the same transaction:
-		// A adds to "txByHash"
-		// B won't add to "txByHash" (duplicate)
-		// B adds to "txListBySender"
-		// A won't add to "txListBySender" (duplicate)
+		// - A adds to "txByHash"
+		// - B won't add to "txByHash" (duplicate)
+		// - B adds to "txListBySender"
+		// - A won't add to "txListBySender" (duplicate)
 		log.Trace("TxCache.AddTx(): slight inconsistency detected:", "name", cache.name, "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
 	}
 
@@ -156,6 +156,14 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 
 	foundInBySender := cache.txListBySender.removeTx(tx)
 	if !foundInBySender {
+		// This condition can arise often at high load & eviction, when two go-routines concur to remove the same transaction:
+		// - A = remove transactions upon commit / final
+		// - B = remove transactions due to high load (eviction)
+		//
+		// - A reaches "RemoveTxByHash()", then "cache.txByHash.removeTx()".
+		// - B reaches "cache.txByHash.RemoveTxsBulk()"
+		// - B reaches "cache.txListBySender.RemoveSendersBulk()"
+		// - A reaches "cache.txListBySender.removeTx()", but sender does not exist anymore
 		log.Trace("TxCache.RemoveTxByHash(): slight inconsistency detected: !foundInBySender", "name", cache.name, "tx", txHash)
 	}
 
