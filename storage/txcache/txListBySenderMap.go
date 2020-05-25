@@ -1,6 +1,8 @@
 package txcache
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
@@ -13,13 +15,14 @@ type txListBySenderMap struct {
 	senderConstraints senderConstraints
 	counter           atomic.Counter
 	scoreComputer     scoreComputer
+	mutex             sync.Mutex
 }
 
 // newTxListBySenderMap creates a new instance of TxListBySenderMap
-func newTxListBySenderMap(nChunksHint uint32, senderConstraints senderConstraints, scoreComputer scoreComputer) txListBySenderMap {
+func newTxListBySenderMap(nChunksHint uint32, senderConstraints senderConstraints, scoreComputer scoreComputer) *txListBySenderMap {
 	backingMap := maps.NewBucketSortedMap(nChunksHint, numberOfScoreChunks)
 
-	return txListBySenderMap{
+	return &txListBySenderMap{
 		backingMap:        backingMap,
 		senderConstraints: senderConstraints,
 		scoreComputer:     scoreComputer,

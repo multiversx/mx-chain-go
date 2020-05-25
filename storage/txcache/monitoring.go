@@ -42,8 +42,6 @@ func (cache *TxCache) monitorSelectionStart() *core.StopWatch {
 func (cache *TxCache) monitorSelectionEnd(selection []*WrappedTransaction, stopWatch *core.StopWatch) {
 	stopWatch.Stop("selection")
 	duration := stopWatch.GetMeasurement("selection")
-	numTxAdded := cache.numTxAddedBetweenSelections.Reset()
-	numTxRemoved := cache.numTxRemovedBetweenSelections.Reset()
 	numSendersSelected := cache.numSendersSelected.Reset()
 	numSendersWithInitialGap := cache.numSendersWithInitialGap.Reset()
 	numSendersWithMiddleGap := cache.numSendersWithMiddleGap.Reset()
@@ -51,8 +49,6 @@ func (cache *TxCache) monitorSelectionEnd(selection []*WrappedTransaction, stopW
 
 	log.Debug("TxCache: selection ended", "name", cache.name, "duration", duration,
 		"numTxSelected", len(selection),
-		"numTxAddedBetweenSelections", numTxAdded,
-		"numTxRemovedBetweenSelections", numTxRemoved,
 		"numSendersSelected", numSendersSelected,
 		"numSendersWithInitialGap", numSendersWithInitialGap,
 		"numSendersWithMiddleGap", numSendersWithMiddleGap,

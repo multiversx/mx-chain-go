@@ -92,8 +92,8 @@ func (listForSender *txListForSender) applySizeConstraints() [][]byte {
 }
 
 func (listForSender *txListForSender) isCapacityExceeded() bool {
-	maxBytes := int64(listForSender.cacheConfig.NumBytesPerSenderThreshold)
-	maxNumTxs := uint64(listForSender.cacheConfig.CountPerSenderThreshold)
+	maxBytes := int64(listForSender.constraints.maxNumBytes)
+	maxNumTxs := uint64(listForSender.constraints.maxNumTxs)
 	tooManyBytes := listForSender.totalBytes.Get() > maxBytes
 	tooManyTxs := listForSender.countTx() > maxNumTxs
 

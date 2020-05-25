@@ -10,7 +10,7 @@ type txCache interface {
 	AddTx(tx *WrappedTransaction) (ok bool, added bool)
 	GetByTxHash(txHash []byte) (*WrappedTransaction, bool)
 	RemoveTxByHash(txHash []byte) error
-	CountTx() int64
+	CountTx() uint64
 	ForEachTransaction(function ForEachTransaction)
 	SelectTransactions(numRequested int, batchSizePerSender int) []*WrappedTransaction
 	NotifyAccountNonce(accountKey []byte, nonce uint64)

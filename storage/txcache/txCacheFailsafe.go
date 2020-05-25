@@ -56,7 +56,7 @@ func (decorator *txCacheFailsafeDecorator) RemoveTxByHash(txHash []byte) error {
 }
 
 // CountTx delegates to backing cache
-func (decorator *txCacheFailsafeDecorator) CountTx() int64 {
+func (decorator *txCacheFailsafeDecorator) CountTx() uint64 {
 	return decorator.backingCache.CountTx()
 }
 
@@ -111,7 +111,7 @@ func (decorator *txCacheFailsafeDecorator) RemoveOldest() {
 }
 
 // Keys delegates to backing cache
-func (decorator *txCacheFailsafeDecorator) Keys() txHashes {
+func (decorator *txCacheFailsafeDecorator) Keys() [][]byte {
 	return decorator.backingCache.Keys()
 }
 

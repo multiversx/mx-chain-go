@@ -14,8 +14,8 @@ var _ txCache = (*TxCache)(nil)
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
 	name                      string
-	txListBySender            txListBySenderMap
-	txByHash                  txByHashMap
+	txListBySender            *txListBySenderMap
+	txByHash                  *txByHashMap
 	config                    CacheConfig
 	evictionMutex             sync.Mutex
 	evictionJournal           evictionJournal
