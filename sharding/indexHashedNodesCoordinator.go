@@ -512,6 +512,11 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	randomness := metaHdr.GetPrevRandSeed()
 	newEpoch := metaHdr.GetEpoch()
 
+	if check.IfNil(body) && newEpoch == ihgs.currentEpoch {
+		log.Debug("nil body provided for epoch start prepare, it is normal in case of revertStateToBlock")
+		return
+	}
+
 	allValidatorInfo, err := createValidatorInfoFromBody(body, ihgs.marshalizer, ihgs.numTotalEligible)
 	if err != nil {
 		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare")
@@ -723,15 +728,29 @@ func (ihgs *indexHashedNodesCoordinator) ShuffleOutForEpoch(epoch uint32) {
 	nodesConfig := ihgs.nodesConfig[epoch]
 	ihgs.mutNodesConfig.Unlock()
 
+	if nodesConfig == nil {
+		log.Warn("shuffleOutForEpoch failed",
+			"epoch", epoch,
+			"error", ErrEpochNodesConfigDoesNotExist)
+		return
+	}
+
 	if isValidator(nodesConfig, ihgs.selfPubKey) {
 		err := ihgs.shuffledOutHandler.Process(nodesConfig.shardID)
 		if err != nil {
-			log.Warn("Shuffle out process failed", "err", err)
+			log.Warn("shuffle out process failed", "err", err)
 		}
 	}
 }
 
 func isValidator(config *epochNodesConfig, pk []byte) bool {
+	if config == nil {
+		return false
+	}
+
+	config.mutNodesMaps.RLock()
+	defer config.mutNodesMaps.RUnlock()
+
 	found := false
 	found, _ = searchInMap(config.eligibleMap, pk)
 	if found {
