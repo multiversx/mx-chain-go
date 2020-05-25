@@ -1165,14 +1165,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	var elasticIndexer indexer.Indexer
-	if check.IfNil(coreServiceContainer) {
-		elasticIndexer = nil
-	} else {
-		if !check.IfNil(coreServiceContainer) && !check.IfNil(coreServiceContainer.Indexer()) {
-			elasticIndexer = coreServiceContainer.Indexer()
-			elasticIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
-			processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
-		}
+	if !check.IfNil(coreServiceContainer) && !check.IfNil(coreServiceContainer.Indexer()) {
+		elasticIndexer = coreServiceContainer.Indexer()
+		elasticIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
+		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
 	}
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
