@@ -449,7 +449,7 @@ func (en *extensionNode) print(writer io.Writer, index int, db data.DBWriteCache
 		key += fmt.Sprintf("%d", k)
 	}
 
-	str := fmt.Sprintf("E:(%v) - %v", hex.EncodeToString(en.hash), en.dirty)
+	str := fmt.Sprintf("E: key= %v, (%v) - %v", en.Key, hex.EncodeToString(en.hash), en.dirty)
 	_, _ = fmt.Fprint(writer, str)
 
 	if en.child == nil {

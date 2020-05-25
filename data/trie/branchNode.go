@@ -491,6 +491,10 @@ func (bn *branchNode) delete(key []byte, db data.DBWriteCacher) (bool, node, [][
 			return false, nil, emptyHashes, err
 		}
 
+		if !bn.children[pos].isDirty() {
+			oldHashes = append(oldHashes, bn.children[pos].getHash())
+		}
+
 		newNode, err = bn.children[pos].reduceNode(pos)
 		if err != nil {
 			return false, nil, emptyHashes, err

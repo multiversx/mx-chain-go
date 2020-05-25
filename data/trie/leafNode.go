@@ -277,7 +277,7 @@ func (ln *leafNode) print(writer io.Writer, _ int, _ data.DBWriteCacher) {
 		val += fmt.Sprintf("%d", v)
 	}
 
-	_, _ = fmt.Fprintf(writer, "L:(%v) - %v\n", hex.EncodeToString(ln.hash), ln.dirty)
+	_, _ = fmt.Fprintf(writer, "L: key= %v, (%v) - %v\n", ln.Key, hex.EncodeToString(ln.hash), ln.dirty)
 }
 
 func (ln *leafNode) deepClone() node {
