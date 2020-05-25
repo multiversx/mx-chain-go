@@ -24,5 +24,8 @@ func TestDisabledBlacklistHandler_ShouldNotPanic(t *testing.T) {
 	err := dbh.Add("")
 	assert.Nil(t, err)
 
+	err = dbh.AddWithSpan("", 0)
+	assert.Nil(t, err)
+
 	dbh.Sweep()
 }

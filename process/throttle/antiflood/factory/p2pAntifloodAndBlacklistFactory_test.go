@@ -50,22 +50,10 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 				Size:   10,
 				Shards: 2,
 			},
-			PeerMaxInput: config.AntifloodLimitsConfig{
-				MessagesPerSecond:  10,
-				TotalSizePerSecond: 10,
-			},
-			NetworkMaxInput: config.AntifloodLimitsConfig{
-				MessagesPerSecond:  10,
-				TotalSizePerSecond: 10,
-			},
+			FastReacting: createFloodPreventerConfig(),
+			SlowReacting: createFloodPreventerConfig(),
 			Topic: config.TopicAntifloodConfig{
 				DefaultMaxMessagesPerSec: 10,
-			},
-			BlackList: config.BlackListConfig{
-				ThresholdNumMessagesPerSecond: 10,
-				ThresholdSizePerSecond:        10,
-				NumFloodingRounds:             10,
-				PeerBanDurationInSeconds:      10,
 			},
 		},
 	}
@@ -75,4 +63,24 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 	assert.Nil(t, err)
 	assert.NotNil(t, af)
 	assert.NotNil(t, bl)
+}
+
+func createFloodPreventerConfig() config.FloodPreventerConfig {
+	return config.FloodPreventerConfig{
+		IntervalInSeconds: 1,
+		NetworkMaxInput: config.AntifloodLimitsConfig{
+			MessagesPerInterval:  10,
+			TotalSizePerInterval: 10,
+		},
+		PeerMaxInput: config.AntifloodLimitsConfig{
+			MessagesPerInterval:  10,
+			TotalSizePerInterval: 10,
+		},
+		BlackList: config.BlackListConfig{
+			ThresholdNumMessagesPerInterval: 10,
+			ThresholdSizePerInterval:        10,
+			NumFloodingRounds:               10,
+			PeerBanDurationInSeconds:        10,
+		},
+	}
 }

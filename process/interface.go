@@ -574,6 +574,7 @@ type PeerChangesHandler interface {
 // BlackListHandler can determine if a certain key is or not blacklisted
 type BlackListHandler interface {
 	Add(key string) error
+	AddWithSpan(key string, span time.Duration) error
 	Has(key string) bool
 	Sweep()
 	IsInterfaceNil() bool

@@ -127,12 +127,6 @@ func (qfp *quotaFloodPreventer) IncreaseLoad(identifier string, size uint64) err
 }
 
 func (qfp *quotaFloodPreventer) increaseLoad(identifier string, size uint64) error {
-	isGlobalQuotaReached := qfp.globalQuota.numReceivedMessages > qfp.maxMessages ||
-		qfp.globalQuota.sizeReceivedMessages > qfp.maxSize
-	if isGlobalQuotaReached {
-		return process.ErrSystemBusy
-	}
-
 	valueQuota, ok := qfp.cacher.Get([]byte(identifier))
 	if !ok {
 		qfp.putDefaultQuota(identifier, size)
@@ -153,7 +147,13 @@ func (qfp *quotaFloodPreventer) increaseLoad(identifier string, size uint64) err
 	isPeerQuotaReached := q.numReceivedMessages > qfp.maxMessagesPerPeer ||
 		q.sizeReceivedMessages > qfp.maxSizePerPeer
 	if isPeerQuotaReached {
-		return process.ErrSystemBusy
+		return fmt.Errorf("%w for pid %s", process.ErrSystemBusy, identifier)
+	}
+
+	isGlobalQuotaReached := qfp.globalQuota.numReceivedMessages > qfp.maxMessages ||
+		qfp.globalQuota.sizeReceivedMessages > qfp.maxSize
+	if isGlobalQuotaReached {
+		return fmt.Errorf("%w for global quata", process.ErrSystemBusy)
 	}
 
 	q.numProcessedMessages++

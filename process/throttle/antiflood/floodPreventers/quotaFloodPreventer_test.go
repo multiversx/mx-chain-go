@@ -347,7 +347,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerNumMessagesShouldNotPutAn
 
 	err := qfp.IncreaseLoad("identifier", minTotalSize)
 
-	assert.Equal(t, process.ErrSystemBusy, err)
+	assert.True(t, errors.Is(err, process.ErrSystemBusy))
 }
 
 func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerSizeShouldNotPutAndReturnFalse(t *testing.T) {
@@ -379,12 +379,12 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerSizeShouldNotPutAndReturn
 
 	err := qfp.IncreaseLoad("identifier", minTotalSize)
 
-	assert.Equal(t, process.ErrSystemBusy, err)
+	assert.True(t, errors.Is(err, process.ErrSystemBusy))
 }
 
 //------- IncreaseLoad globally
 
-func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxNumMessagesShouldNotPutAndReturnFalse(t *testing.T) {
+func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxNumMessagesShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
 	globalMessages := uint32(minMessages + 11)
@@ -392,11 +392,9 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxNumMessagesShouldNotPutAndRet
 	qfp, _ := NewQuotaFloodPreventer(
 		&mock.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				return nil, false
+				return &quota{}, true
 			},
 			PutCalled: func(key []byte, value interface{}) (evicted bool) {
-				assert.Fail(t, "should have not called put")
-
 				return false
 			},
 		},
@@ -410,10 +408,10 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxNumMessagesShouldNotPutAndRet
 
 	err := qfp.IncreaseLoad("identifier", minTotalSize)
 
-	assert.Equal(t, process.ErrSystemBusy, err)
+	assert.True(t, errors.Is(err, process.ErrSystemBusy))
 }
 
-func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxSizeShouldNotPutAndReturnFalse(t *testing.T) {
+func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxSizeShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
 	globalMessages := uint32(minMessages)
@@ -421,11 +419,9 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxSizeShouldNotPutAndReturnFals
 	qfp, _ := NewQuotaFloodPreventer(
 		&mock.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				return nil, false
+				return &quota{}, true
 			},
 			PutCalled: func(key []byte, value interface{}) (evicted bool) {
-				assert.Fail(t, "should have not called put")
-
 				return false
 			},
 		},
@@ -439,7 +435,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxSizeShouldNotPutAndReturnFals
 
 	err := qfp.IncreaseLoad("identifier", minTotalSize)
 
-	assert.Equal(t, process.ErrSystemBusy, err)
+	assert.True(t, errors.Is(err, process.ErrSystemBusy))
 }
 
 func TestCountersMap_IncreaseLoadShouldWorkConcurrently(t *testing.T) {

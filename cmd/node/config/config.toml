@@ -265,15 +265,38 @@
 [Antiflood]
     Enabled = true
     NumConcurrentResolverJobs = 50
-    [Antiflood.NetworkMaxInput]
-        MessagesPerSecond = 400
-        TotalSizePerSecond = 4194304
-    [Antiflood.PeerMaxInput]
-        MessagesPerSecond = 75
-        TotalSizePerSecond = 2097152
+    [Antiflood.FastReacting]
+        IntervalInSeconds = 1
+        [Antiflood.FastReacting.NetworkMaxInput]
+            MessagesPerInterval  = 400
+            TotalSizePerInterval = 4194304
+        [Antiflood.FastReacting.PeerMaxInput]
+            MessagesPerInterval  = 75
+            TotalSizePerInterval = 2097152
+        [Antiflood.FastReacting.BlackList]
+            ThresholdNumMessagesPerInterval = 480
+            ThresholdSizePerInterval = 5242880
+            NumFloodingRounds = 10
+            PeerBanDurationInSeconds = 300
+
+    [Antiflood.SlowReacting]
+        IntervalInSeconds = 30
+        [Antiflood.SlowReacting.NetworkMaxInput]
+            MessagesPerInterval = 5000
+            TotalSizePerInterval = 31457280 # 30MB/interval
+        [Antiflood.SlowReacting.PeerMaxInput]
+            MessagesPerInterval = 2500
+            TotalSizePerInterval = 15728640 # 15MB/interval
+        [Antiflood.FastReacting.BlackList]
+            ThresholdNumMessagesPerInterval = 6000
+            ThresholdSizePerInterval = 37748736 # 36MB/interval
+            NumFloodingRounds = 2
+            PeerBanDurationInSeconds = 3600
+
     [Antiflood.PeerMaxOutput]
-        MessagesPerSecond = 75
-        TotalSizePerSecond = 2097152
+        MessagesPerInterval  = 75
+        TotalSizePerInterval = 2097152
+
     [Antiflood.Cache]
         Size = 5000
         Type = "LRU"
@@ -282,11 +305,6 @@
         MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 10 },
                        { Topic = "shardBlocks*", NumMessagesPerSec = 20 },
                        { Topic = "metachainBlocks", NumMessagesPerSec = 20 }]
-    [Antiflood.BlackList]
-        ThresholdNumMessagesPerSecond = 150
-        ThresholdSizePerSecond = 4194304
-        NumFloodingRounds = 10
-        PeerBanDurationInSeconds = 300
     [Antiflood.WebServer]
         # SimultaneousRequests represents the number of concurrent requests accepted by the web server
         # this is a global throttler that acts on all http connections regardless of the originating source

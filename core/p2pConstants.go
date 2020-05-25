@@ -56,9 +56,9 @@ const MetricP2PPeakPeerNumReceivedMessages = "erd_p2p_peak_peer_num_received_mes
 // the amount of time counted on a connected peer
 const MetricP2PPeakPeerSizeReceivedMessages = "erd_p2p_peak_peer_size_received_messages"
 
-// MetricP2PPeakPeerxNumProcessedMessages represents the peak maximum number of processed messages in the amount of time
+// MetricP2PPeakPeerNumProcessedMessages represents the peak maximum number of processed messages in the amount of time
 // counted on a connected peer
-const MetricP2PPeakPeerxNumProcessedMessages = "erd_p2p_peak_peer_num_processed_messages"
+const MetricP2PPeakPeerNumProcessedMessages = "erd_p2p_peak_peer_num_processed_messages"
 
 // MetricP2PPeakPeerSizeProcessedMessages represents the peak maximum size of processed data (sum of all messages) in
 // the amount of time counted on a connected peer

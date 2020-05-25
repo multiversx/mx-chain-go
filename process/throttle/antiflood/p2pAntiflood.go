@@ -14,38 +14,50 @@ var log = logger.GetOrCreate("process/throttle/antiflood")
 var _ process.P2PAntifloodHandler = (*p2pAntiflood)(nil)
 
 type p2pAntiflood struct {
-	process.FloodPreventer
-	process.TopicFloodPreventer
+	floodPreventers []process.FloodPreventer
+	topicPreventer  process.TopicFloodPreventer
 }
 
 // NewP2PAntiflood creates a new p2p anti flood protection mechanism built on top of a flood preventer implementation.
 // It contains only the p2p anti flood logic that should be applied
-func NewP2PAntiflood(floodPreventer process.FloodPreventer, topicFloodPreventer process.TopicFloodPreventer) (*p2pAntiflood, error) {
-	if check.IfNil(floodPreventer) {
-		return nil, p2p.ErrNilFloodPreventer
+func NewP2PAntiflood(
+	topicFloodPreventer process.TopicFloodPreventer,
+	floodPreventers ...process.FloodPreventer,
+) (*p2pAntiflood, error) {
+
+	if len(floodPreventers) == 0 {
+		return nil, process.ErrEmptyFloodPreventerList
 	}
 	if check.IfNil(topicFloodPreventer) {
-		return nil, p2p.ErrNilTopicFloodPreventer
+		return nil, process.ErrNilTopicFloodPreventer
 	}
 
 	return &p2pAntiflood{
-		FloodPreventer:      floodPreventer,
-		TopicFloodPreventer: topicFloodPreventer,
+		floodPreventers: floodPreventers,
+		topicPreventer:  topicFloodPreventer,
 	}, nil
 }
 
 // CanProcessMessage signals if a p2p message can be processed or not
 func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
-	floodPreventer := af.FloodPreventer
-	if check.IfNil(floodPreventer) {
-		return p2p.ErrNilFloodPreventer
-	}
 	if message == nil {
 		return p2p.ErrNilMessage
 	}
 
+	var lastErrFound error
+	for _, fp := range af.floodPreventers {
+		err := af.canProcessMessage(fp, message, fromConnectedPeer)
+		if err != nil {
+			lastErrFound = err
+		}
+	}
+
+	return lastErrFound
+}
+
+func (af *p2pAntiflood) canProcessMessage(fp process.FloodPreventer, message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error {
 	//protect from directly connected peer
-	err := floodPreventer.IncreaseLoadGlobal(fromConnectedPeer.Pretty(), uint64(len(message.Data())))
+	err := fp.IncreaseLoadGlobal(fromConnectedPeer.Pretty(), uint64(len(message.Data())))
 	if err != nil {
 		log.Trace("floodPreventer.AccumulateGlobal connected peer",
 			"error", err,
@@ -60,7 +72,7 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 
 	if fromConnectedPeer != message.Peer() {
 		//protect from the flooding messages that originate from the same source but come from different peers
-		err = floodPreventer.IncreaseLoad(message.Peer().Pretty(), uint64(len(message.Data())))
+		err = fp.IncreaseLoad(message.Peer().Pretty(), uint64(len(message.Data())))
 		if err != nil {
 			log.Trace("floodPreventer.AccumulateGlobal originator",
 				"error", err,
@@ -79,12 +91,7 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 
 // CanProcessMessagesOnTopic signals if a p2p message can be processed or not for a given topic
 func (af *p2pAntiflood) CanProcessMessagesOnTopic(peer p2p.PeerID, topic string, numMessages uint32) error {
-	topicFloodPreventer := af.TopicFloodPreventer
-	if check.IfNil(topicFloodPreventer) {
-		return p2p.ErrNilTopicFloodPreventer
-	}
-
-	err := topicFloodPreventer.IncreaseLoad(peer.Pretty(), topic, numMessages)
+	err := af.topicPreventer.IncreaseLoad(peer.Pretty(), topic, numMessages)
 	if err != nil {
 		log.Trace("topicFloodPreventer.Accumulate peer",
 			"error", err,
@@ -102,5 +109,5 @@ func (af *p2pAntiflood) CanProcessMessagesOnTopic(peer p2p.PeerID, topic string,
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (af *p2pAntiflood) IsInterfaceNil() bool {
-	return af == nil || check.IfNil(af.FloodPreventer) || check.IfNil(af.TopicFloodPreventer)
+	return af == nil
 }

@@ -167,6 +167,7 @@ func createBlacklistHandlersAndProcessors(
 			thresholdNumReceived,
 			thresholdSizeReceived,
 			maxFloodingRounds,
+			time.Minute*5,
 		)
 	}
 	return blacklistProcessors, blacklistHandlers

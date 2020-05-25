@@ -41,54 +41,28 @@ func initP2PAntiFloodAndBlackList(
 	mainConfig config.Config,
 	statusHandler core.AppStatusHandler,
 ) (process.P2PAntifloodHandler, process.BlackListHandler, error) {
-	cacheConfig := storageFactory.GetCacherFromConfig(mainConfig.Antiflood.Cache)
-	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Size, cacheConfig.Shards)
-	if err != nil {
-		return nil, nil, err
-	}
+	p2pPeerBlackList := timecache.NewTimeCache(300 * time.Second)
 
-	blackListCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Size, cacheConfig.Shards)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	peerMaxMessagesPerSecond := mainConfig.Antiflood.PeerMaxInput.MessagesPerSecond
-	peerMaxTotalSizePerSecond := mainConfig.Antiflood.PeerMaxInput.TotalSizePerSecond
-	maxMessagesPerSecond := mainConfig.Antiflood.NetworkMaxInput.MessagesPerSecond
-	maxTotalSizePerSecond := mainConfig.Antiflood.NetworkMaxInput.TotalSizePerSecond
-
-	quotaProcessor, err := p2pQuota.NewP2PQuotaProcessor(statusHandler)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	peerBanInSeconds := mainConfig.Antiflood.BlackList.PeerBanDurationInSeconds
-	if peerBanInSeconds == 0 {
-		return nil, nil, fmt.Errorf("Antiflood.BlackList.PeerBanDurationInSeconds should be greater than 0")
-	}
-
-	p2pPeerBlackList := timecache.NewTimeCache(time.Second * time.Duration(peerBanInSeconds))
-	blackListProcessor, err := blackList.NewP2PBlackListProcessor(
-		blackListCache,
+	fastReactingFloodPreventer, err := createFloodPreventer(
+		mainConfig.Antiflood.FastReacting,
+		mainConfig.Antiflood.Cache,
+		statusHandler,
+		"fast_reacting",
 		p2pPeerBlackList,
-		mainConfig.Antiflood.BlackList.ThresholdNumMessagesPerSecond,
-		mainConfig.Antiflood.BlackList.ThresholdSizePerSecond,
-		mainConfig.Antiflood.BlackList.NumFloodingRounds,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("%w when creating fast reacting flood preventer", err)
 	}
 
-	floodPreventer, err := floodPreventers.NewQuotaFloodPreventer(
-		antifloodCache,
-		[]floodPreventers.QuotaStatusHandler{quotaProcessor, blackListProcessor},
-		peerMaxMessagesPerSecond,
-		peerMaxTotalSizePerSecond,
-		maxMessagesPerSecond,
-		maxTotalSizePerSecond,
+	slowReactingFloodPreventer, err := createFloodPreventer(
+		mainConfig.Antiflood.SlowReacting,
+		mainConfig.Antiflood.Cache,
+		statusHandler,
+		"slow_reacting",
+		p2pPeerBlackList,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("%w when creating fast reacting flood preventer", err)
 	}
 
 	topicFloodPreventer, err := floodPreventers.NewTopicFloodPreventer(mainConfig.Antiflood.Topic.DefaultMaxMessagesPerSec)
@@ -96,26 +70,19 @@ func initP2PAntiFloodAndBlackList(
 		return nil, nil, err
 	}
 
-	log.Debug("started antiflood & blacklist components",
-		"peerMaxMessagesPerSecond", peerMaxMessagesPerSecond,
-		"peerMaxTotalSizePerSecond", core.ConvertBytes(peerMaxTotalSizePerSecond),
-		"maxMessagesPerSecond", maxMessagesPerSecond,
-		"maxTotalSizePerSecond", core.ConvertBytes(maxTotalSizePerSecond),
-		"peerBanDurationInSeconds", peerBanInSeconds,
-		"thresholdNumMessagesPerSecond", mainConfig.Antiflood.BlackList.ThresholdNumMessagesPerSecond,
-		"thresholdSizePerSecond", mainConfig.Antiflood.BlackList.ThresholdSizePerSecond,
-		"numFloodingRounds", mainConfig.Antiflood.BlackList.NumFloodingRounds,
-	)
-
 	topicMaxMessages := mainConfig.Antiflood.Topic.MaxMessages
 	setMaxMessages(topicFloodPreventer, topicMaxMessages)
 
-	p2pAntiflood, err := antiflood.NewP2PAntiflood(floodPreventer, topicFloodPreventer)
+	p2pAntiflood, err := antiflood.NewP2PAntiflood(
+		topicFloodPreventer,
+		fastReactingFloodPreventer,
+		slowReactingFloodPreventer,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	startResettingFloodPreventers(floodPreventer, topicFloodPreventer, topicMaxMessages)
+	startResettingTopicFloodPreventer(topicFloodPreventer, topicMaxMessages)
 	startSweepingP2PPeerBlackList(p2pPeerBlackList)
 
 	return p2pAntiflood, p2pPeerBlackList, nil
@@ -127,10 +94,10 @@ func setMaxMessages(topicFloodPreventer process.TopicFloodPreventer, topicMaxMes
 	}
 }
 
-func startResettingFloodPreventers(
-	floodPreventer process.FloodPreventer,
+func startResettingTopicFloodPreventer(
 	topicFloodPreventer process.TopicFloodPreventer,
 	topicMaxMessages []config.TopicMaxMessagesConfig,
+	floodPreventers ...process.FloodPreventer,
 ) {
 	localTopicMaxMessages := make([]config.TopicMaxMessagesConfig, len(topicMaxMessages))
 	copy(localTopicMaxMessages, topicMaxMessages)
@@ -138,7 +105,9 @@ func startResettingFloodPreventers(
 	go func() {
 		for {
 			time.Sleep(time.Second)
-			floodPreventer.Reset()
+			for _, fp := range floodPreventers {
+				fp.Reset()
+			}
 			for _, topicMaxMsg := range localTopicMaxMessages {
 				topicFloodPreventer.ResetForTopic(topicMaxMsg.Topic)
 			}
@@ -154,4 +123,81 @@ func startSweepingP2PPeerBlackList(p2pPeerBlackList process.BlackListHandler) {
 			p2pPeerBlackList.Sweep()
 		}
 	}()
+}
+
+func createFloodPreventer(
+	floodPreventerConfig config.FloodPreventerConfig,
+	antifloodCacheConfig config.CacheConfig,
+	statusHandler core.AppStatusHandler,
+	quotaIdentifier string,
+	blackListHandler process.BlackListHandler,
+) (process.FloodPreventer, error) {
+	cacheConfig := storageFactory.GetCacherFromConfig(antifloodCacheConfig)
+	blackListCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Size, cacheConfig.Shards)
+	if err != nil {
+		return nil, err
+	}
+
+	blackListProcessor, err := blackList.NewP2PBlackListProcessor(
+		blackListCache,
+		blackListHandler,
+		floodPreventerConfig.BlackList.ThresholdNumMessagesPerInterval,
+		floodPreventerConfig.BlackList.ThresholdSizePerInterval,
+		floodPreventerConfig.BlackList.NumFloodingRounds,
+		time.Duration(floodPreventerConfig.IntervalInSeconds)*time.Second,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	antifloodCache, err := storageUnit.NewCache(cacheConfig.Type, cacheConfig.Size, cacheConfig.Shards)
+	if err != nil {
+		return nil, err
+	}
+
+	quotaProcessor, err := p2pQuota.NewP2PQuotaProcessor(statusHandler, quotaIdentifier)
+	if err != nil {
+		return nil, err
+	}
+
+	peerMaxMessagesPerSecond := floodPreventerConfig.PeerMaxInput.MessagesPerInterval
+	peerMaxTotalSizePerSecond := floodPreventerConfig.PeerMaxInput.TotalSizePerInterval
+	maxMessagesPerSecond := floodPreventerConfig.NetworkMaxInput.MessagesPerInterval
+	maxTotalSizePerSecond := floodPreventerConfig.NetworkMaxInput.TotalSizePerInterval
+
+	floodPreventer, err := floodPreventers.NewQuotaFloodPreventer(
+		antifloodCache,
+		[]floodPreventers.QuotaStatusHandler{quotaProcessor, blackListProcessor},
+		peerMaxMessagesPerSecond,
+		peerMaxTotalSizePerSecond,
+		maxMessagesPerSecond,
+		maxTotalSizePerSecond,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("started antiflood & blacklist component",
+		"type", quotaIdentifier,
+		"interval in seconds", floodPreventerConfig.IntervalInSeconds,
+		"peerMaxMessagesPerInterval", peerMaxMessagesPerSecond,
+		"peerMaxTotalSizePerInterval", core.ConvertBytes(peerMaxTotalSizePerSecond),
+		"maxMessagesPerInterval", maxMessagesPerSecond,
+		"maxTotalSizePerInterval", core.ConvertBytes(maxTotalSizePerSecond),
+		"peerBanDurationInSeconds", floodPreventerConfig.BlackList.PeerBanDurationInSeconds,
+		"thresholdNumMessagesPerSecond", floodPreventerConfig.BlackList.ThresholdNumMessagesPerInterval,
+		"thresholdSizePerSecond", floodPreventerConfig.BlackList.ThresholdSizePerInterval,
+		"numFloodingRounds", floodPreventerConfig.BlackList.NumFloodingRounds,
+	)
+
+	go func() {
+		wait := time.Duration(floodPreventerConfig.IntervalInSeconds) * time.Second
+
+		for {
+			time.Sleep(wait)
+			floodPreventer.Reset()
+		}
+	}()
+
+	return floodPreventer, nil
 }

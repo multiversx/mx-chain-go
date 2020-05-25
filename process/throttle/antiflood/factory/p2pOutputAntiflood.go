@@ -27,8 +27,8 @@ func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandl
 		return nil, err
 	}
 
-	peerMaxMessagesPerSecond := mainConfig.Antiflood.PeerMaxOutput.MessagesPerSecond
-	peerMaxTotalSizePerSecond := mainConfig.Antiflood.PeerMaxOutput.TotalSizePerSecond
+	peerMaxMessagesPerSecond := mainConfig.Antiflood.PeerMaxOutput.MessagesPerInterval
+	peerMaxTotalSizePerSecond := mainConfig.Antiflood.PeerMaxOutput.TotalSizePerInterval
 	floodPreventer, err := floodPreventers.NewQuotaFloodPreventer(
 		antifloodCache,
 		make([]floodPreventers.QuotaStatusHandler, 0),
@@ -42,7 +42,7 @@ func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandl
 	}
 
 	topicFloodPreventer := floodPreventers.NewNilTopicFloodPreventer()
-	startResettingFloodPreventers(floodPreventer, topicFloodPreventer, make([]config.TopicMaxMessagesConfig, 0))
+	startResettingTopicFloodPreventer(topicFloodPreventer, make([]config.TopicMaxMessagesConfig, 0), floodPreventer)
 
-	return antiflood.NewP2PAntiflood(floodPreventer, topicFloodPreventer)
+	return antiflood.NewP2PAntiflood(topicFloodPreventer, floodPreventer)
 }

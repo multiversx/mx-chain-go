@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -15,6 +17,11 @@ type disabledBlacklistHandler struct {
 
 // Add does nothing
 func (nbh *disabledBlacklistHandler) Add(_ string) error {
+	return nil
+}
+
+// AddWithSpan does nothing
+func (nbh *disabledBlacklistHandler) AddWithSpan(_ string, _ time.Duration) error {
 	return nil
 }
 
