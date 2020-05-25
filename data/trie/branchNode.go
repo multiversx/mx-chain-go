@@ -491,13 +491,14 @@ func (bn *branchNode) delete(key []byte, db data.DBWriteCacher) (bool, node, [][
 			return false, nil, emptyHashes, err
 		}
 
-		if !bn.children[pos].isDirty() {
-			oldHashes = append(oldHashes, bn.children[pos].getHash())
-		}
-
-		newNode, err = bn.children[pos].reduceNode(pos)
+		var newChildHash bool
+		newNode, newChildHash, err = bn.children[pos].reduceNode(pos)
 		if err != nil {
 			return false, nil, emptyHashes, err
+		}
+
+		if newChildHash && !bn.children[pos].isDirty() {
+			oldHashes = append(oldHashes, bn.children[pos].getHash())
 		}
 
 		return true, newNode, oldHashes, nil
@@ -508,13 +509,13 @@ func (bn *branchNode) delete(key []byte, db data.DBWriteCacher) (bool, node, [][
 	return true, bn, oldHashes, nil
 }
 
-func (bn *branchNode) reduceNode(pos int) (node, error) {
+func (bn *branchNode) reduceNode(pos int) (node, bool, error) {
 	newEn, err := newExtensionNode([]byte{byte(pos)}, bn, bn.marsh, bn.hasher)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	return newEn, nil
+	return newEn, false, nil
 }
 
 func getChildPosition(n *branchNode) (nrOfChildren int, childPos int) {

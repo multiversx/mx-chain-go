@@ -132,6 +132,10 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 		}
 		tr.root = newRoot
 		tr.oldHashes = append(tr.oldHashes, oldHashes...)
+
+		for i := range oldHashes {
+			log.Trace("oldHashes for insert", "hash", oldHashes[i])
+		}
 	} else {
 		if tr.root == nil {
 			return nil
@@ -147,6 +151,10 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 		}
 		tr.root = newRoot
 		tr.oldHashes = append(tr.oldHashes, oldHashes...)
+
+		for i := range oldHashes {
+			log.Trace("oldHashes for delete", "hash", oldHashes[i])
+		}
 	}
 
 	return nil
