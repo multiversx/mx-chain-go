@@ -110,6 +110,16 @@ func TestNewTrieWithNilHasher(t *testing.T) {
 	assert.Equal(t, trie.ErrNilHasher, err)
 }
 
+func TestNewTrieWithInvalidMaxTrieLevelInMemory(t *testing.T) {
+	t.Parallel()
+
+	trieStorage, marshalizer, hasher, _ := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, 0)
+
+	assert.Nil(t, tr)
+	assert.Equal(t, trie.ErrInvalidLevelValue, err)
+}
+
 func TestPatriciaMerkleTree_Get(t *testing.T) {
 	t.Parallel()
 

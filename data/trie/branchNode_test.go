@@ -69,11 +69,12 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager, *mock.EvictionWai
 
 	trieStorage, _ := NewTrieStorageManager(db, marsh, hsh, cfg, evictionWaitList, generalCfg)
 	tr := &patriciaMerkleTrie{
-		trieStorage: trieStorage,
-		marshalizer: marsh,
-		hasher:      hsh,
-		oldHashes:   make([][]byte, 0),
-		oldRoot:     make([]byte, 0),
+		trieStorage:          trieStorage,
+		marshalizer:          marsh,
+		hasher:               hsh,
+		oldHashes:            make([][]byte, 0),
+		oldRoot:              make([]byte, 0),
+		maxTrieLevelInMemory: 5,
 	}
 
 	return tr, trieStorage, evictionWaitList

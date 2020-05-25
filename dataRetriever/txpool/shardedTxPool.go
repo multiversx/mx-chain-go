@@ -31,7 +31,7 @@ type shardedTxPool struct {
 
 type txPoolShard struct {
 	CacheID string
-	Cache   txCache
+	Cache   *txcache.TxCache
 }
 
 // NewShardedTxPool creates a new sharded tx pool
@@ -51,10 +51,10 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		NumChunksHint:              args.Config.Shards,
 		EvictionEnabled:            true,
 		NumBytesThreshold:          args.Config.SizeInBytes / numCaches,
-		NumBytesPerSenderThreshold: args.Config.SizeInBytesPerSender,
 		CountThreshold:             args.Config.Size / numCaches,
-		CountPerSenderThreshold:    args.Config.SizePerSender,
 		NumSendersToEvictInOneStep: dataRetriever.TxPoolNumSendersToEvictInOneStep,
+		LargeNumOfTxsForASender:    dataRetriever.TxPoolLargeNumOfTxsForASender,
+		NumTxsToEvictFromASender:   dataRetriever.TxPoolNumTxsToEvictFromASender,
 		MinGasPriceNanoErd:         uint32(args.MinGasPrice / oneBillion),
 	}
 
@@ -82,7 +82,7 @@ func (txPool *shardedTxPool) ShardDataStore(cacheID string) storage.Cacher {
 }
 
 // getTxCache returns the requested cache
-func (txPool *shardedTxPool) getTxCache(cacheID string) txCache {
+func (txPool *shardedTxPool) getTxCache(cacheID string) *txcache.TxCache {
 	shard := txPool.getOrCreateShard(cacheID)
 	return shard.Cache
 }
@@ -108,7 +108,8 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 
 	shard, ok := txPool.backingMap[cacheID]
 	if !ok {
-		cache := txPool.createTxCache(cacheID)
+		cacheConfig := txPool.getCacheConfig(cacheID)
+		cache := txcache.NewTxCache(cacheConfig)
 		shard = &txPoolShard{
 			CacheID: cacheID,
 			Cache:   cache,
@@ -118,12 +119,6 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 	}
 
 	return shard
-}
-
-func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
-	cacheConfig := txPool.getCacheConfig(cacheID)
-	cache := txcache.CreateCache(cacheConfig)
-	return cache
 }
 
 func (txPool *shardedTxPool) getCacheConfig(cacheID string) txcache.CacheConfig {

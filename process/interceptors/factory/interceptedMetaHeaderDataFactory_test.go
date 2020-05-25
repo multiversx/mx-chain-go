@@ -52,24 +52,24 @@ func createMockFeeHandler() process.FeeHandler {
 
 func createMockArgument() *ArgInterceptedDataFactory {
 	return &ArgInterceptedDataFactory{
-		ProtoMarshalizer:     &mock.MarshalizerMock{},
-		TxSignMarshalizer:    &mock.MarshalizerMock{},
-		Hasher:               mock.HasherMock{},
-		ShardCoordinator:     mock.NewOneShardCoordinatorMock(),
-		MultiSigVerifier:     mock.NewMultiSigner(),
-		NodesCoordinator:     mock.NewNodesCoordinatorMock(),
-		KeyGen:               createMockKeyGen(),
-		BlockKeyGen:            createMockKeyGen(),
-		Signer:                 createMockSigner(),
-		BlockSigner:            createMockSigner(),
-		AddressPubkeyConv:      createMockPubkeyConverter(),
-		FeeHandler:             createMockFeeHandler(),
-		HeaderSigVerifier:      &mock.HeaderSigVerifierStub{},
-		ChainID:                []byte("chain ID"),
-		ValidityAttester:       &mock.ValidityAttesterStub{},
-		EpochStartTrigger:      &mock.EpochStartTriggerStub{},
-		NonceConverter:         mock.NewNonceHashConverterMock(),
-		WhiteListerVerifiedTxs: &mock.WhiteListHandlerStub{},
+		ProtoMarshalizer:        &mock.MarshalizerMock{},
+		TxSignMarshalizer:       &mock.MarshalizerMock{},
+		Hasher:                  mock.HasherMock{},
+		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
+		MultiSigVerifier:        mock.NewMultiSigner(),
+		NodesCoordinator:        mock.NewNodesCoordinatorMock(),
+		KeyGen:                  createMockKeyGen(),
+		BlockKeyGen:             createMockKeyGen(),
+		Signer:                  createMockSigner(),
+		BlockSigner:             createMockSigner(),
+		AddressPubkeyConv:       createMockPubkeyConverter(),
+		FeeHandler:              createMockFeeHandler(),
+		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		ValidityAttester:        &mock.ValidityAttesterStub{},
+		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		NonceConverter:          mock.NewNonceHashConverterMock(),
+		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 	}
 }
 
@@ -126,6 +126,17 @@ func TestNewInterceptedMetaHeaderDataFactory_NilHeaderSigVerifierShouldErr(t *te
 	assert.Equal(t, process.ErrNilHeaderSigVerifier, err)
 }
 
+func TestNewInterceptedMetaHeaderDataFactory_NilHeaderIntegrityVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.HeaderIntegrityVerifier = nil
+
+	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
+	assert.True(t, check.IfNil(imh))
+	assert.Equal(t, process.ErrNilHeaderIntegrityVerifier, err)
+}
+
 func TestNewInterceptedMetaHeaderDataFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -135,17 +146,6 @@ func TestNewInterceptedMetaHeaderDataFactory_NilShardCoordinatorShouldErr(t *tes
 	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
 	assert.True(t, check.IfNil(imh))
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
-}
-
-func TestNewInterceptedMetaHeaderDataFactory_NilChainIdShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createMockArgument()
-	arg.ChainID = nil
-
-	imh, err := NewInterceptedMetaHeaderDataFactory(arg)
-	assert.True(t, check.IfNil(imh))
-	assert.Equal(t, process.ErrInvalidChainID, err)
 }
 
 func TestNewInterceptedMetaHeaderDataFactory_NilValidityAttesterShouldErr(t *testing.T) {

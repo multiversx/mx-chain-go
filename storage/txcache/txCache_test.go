@@ -1,7 +1,6 @@
 package txcache
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"sync"
@@ -14,73 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_NewTxCache(t *testing.T) {
-	config := CacheConfig{
-		Name:                       "test",
-		NumChunksHint:              16,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceNanoErd:         100,
-	}
-
-	withEvictionConfig := CacheConfig{
-		Name:                       "test",
-		NumChunksHint:              16,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceNanoErd:         100,
-		EvictionEnabled:            true,
-		NumBytesThreshold:          math.MaxUint32,
-		CountThreshold:             math.MaxUint32,
-		NumSendersToEvictInOneStep: 100,
-	}
-
-	cache, err := NewTxCache(config)
-	require.Nil(t, err)
-	require.NotNil(t, cache)
-
-	badConfig := config
-	badConfig.Name = ""
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.Name")
-
-	badConfig = config
-	badConfig.NumChunksHint = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumChunksHint")
-
-	badConfig = config
-	badConfig.NumBytesPerSenderThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumBytesPerSenderThreshold")
-
-	badConfig = config
-	badConfig.CountPerSenderThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.CountPerSenderThreshold")
-
-	badConfig = config
-	badConfig.MinGasPriceNanoErd = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.MinGasPriceNanoErd")
-
-	badConfig = withEvictionConfig
-	badConfig.NumBytesThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumBytesThreshold")
-
-	badConfig = withEvictionConfig
-	badConfig.CountThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.CountThreshold")
-
-	badConfig = withEvictionConfig
-	badConfig.NumSendersToEvictInOneStep = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumSendersToEvictInOneStep")
-}
-
-func requireErrorOnNewTxCache(t *testing.T, config CacheConfig, errExpected error, errPartialMessage string) {
-	cache, errReceived := NewTxCache(config)
-	require.Nil(t, cache)
-	require.True(t, errors.Is(errReceived, errExpected))
-	require.Contains(t, errReceived.Error(), errPartialMessage)
-}
-
 func Test_AddTx(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	cache := newCacheToTest()
 
 	tx := createTx([]byte("hash-1"), "alice", 1)
 
@@ -99,7 +33,7 @@ func Test_AddTx(t *testing.T) {
 }
 
 func Test_AddNilTx_DoesNothing(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	cache := newCacheToTest()
 
 	txHash := []byte("hash-1")
 
@@ -112,46 +46,8 @@ func Test_AddNilTx_DoesNothing(t *testing.T) {
 	require.Nil(t, foundTx)
 }
 
-func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) {
-	cache := newCacheToTest(math.MaxUint32, 3)
-
-	cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1))
-	cache.AddTx(createTx([]byte("tx-alice-2"), "alice", 2))
-	cache.AddTx(createTx([]byte("tx-alice-4"), "alice", 4))
-	cache.AddTx(createTx([]byte("tx-bob-1"), "bob", 1))
-	cache.AddTx(createTx([]byte("tx-bob-2"), "bob", 2))
-	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
-	require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
-	require.True(t, cache.areInternalMapsConsistent())
-
-	cache.AddTx(createTx([]byte("tx-alice-3"), "alice", 3))
-	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3"}, cache.getHashesForSender("alice"))
-	require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
-	require.True(t, cache.areInternalMapsConsistent())
-}
-
-func Test_AddTx_AppliesSizeConstraintsPerSenderForNumBytes(t *testing.T) {
-	cache := newCacheToTest(1024, math.MaxUint32)
-
-	cache.AddTx(createTxWithParams([]byte("tx-alice-1"), "alice", 1, 128, 42, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-alice-2"), "alice", 2, 512, 42, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-alice-4"), "alice", 3, 256, 42, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-bob-1"), "bob", 1, 512, 42, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-bob-2"), "bob", 2, 513, 42, 42))
-
-	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
-	require.Equal(t, []string{"tx-bob-1"}, cache.getHashesForSender("bob"))
-	require.True(t, cache.areInternalMapsConsistent())
-
-	cache.AddTx(createTxWithParams([]byte("tx-alice-3"), "alice", 3, 256, 42, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-bob-2"), "bob", 3, 512, 42, 42))
-	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3"}, cache.getHashesForSender("alice"))
-	require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
-	require.True(t, cache.areInternalMapsConsistent())
-}
-
 func Test_RemoveByTxHash(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	cache := newCacheToTest()
 
 	cache.AddTx(createTx([]byte("hash-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-2"), "alice", 2))
@@ -170,7 +66,7 @@ func Test_RemoveByTxHash(t *testing.T) {
 }
 
 func Test_CountTx_And_Len(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	cache := newCacheToTest()
 
 	cache.AddTx(createTx([]byte("hash-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-2"), "alice", 2))
@@ -181,7 +77,7 @@ func Test_CountTx_And_Len(t *testing.T) {
 }
 
 func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	cache := newCacheToTest()
 
 	txHash := []byte("hash-1")
 	tx := createTx(txHash, "alice", 1)
@@ -209,13 +105,13 @@ func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {
 }
 
 func Test_RemoveByTxHash_Error_WhenMissing(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	cache := newCacheToTest()
 	err := cache.RemoveTxByHash([]byte("missing"))
-	require.Equal(t, err, errTxNotFound)
+	require.Equal(t, err, ErrTxNotFound)
 }
 
 func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	cache := newCacheToTest()
 
 	txHash := []byte("hash-1")
 	tx := createTx(txHash, "alice", 1)
@@ -225,11 +121,11 @@ func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
 	cache.txListBySender.removeTx(tx)
 
 	err := cache.RemoveTxByHash(txHash)
-	require.Equal(t, err, errMapsSyncInconsistency)
+	require.Equal(t, err, ErrMapsSyncInconsistency)
 }
 
 func Test_Clear(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	cache := newCacheToTest()
 
 	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-bob-7"), "bob", 7))
@@ -241,7 +137,7 @@ func Test_Clear(t *testing.T) {
 }
 
 func Test_ForEachTransaction(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	cache := newCacheToTest()
 
 	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-bob-7"), "bob", 7))
@@ -254,7 +150,7 @@ func Test_ForEachTransaction(t *testing.T) {
 }
 
 func Test_SelectTransactions_Dummy(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	cache := newCacheToTest()
 
 	cache.AddTx(createTx([]byte("hash-alice-4"), "alice", 4))
 	cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
@@ -270,7 +166,7 @@ func Test_SelectTransactions_Dummy(t *testing.T) {
 }
 
 func Test_SelectTransactions_BreaksAtNonceGaps(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	cache := newCacheToTest()
 
 	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
@@ -291,7 +187,7 @@ func Test_SelectTransactions_BreaksAtNonceGaps(t *testing.T) {
 }
 
 func Test_SelectTransactions(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	cache := newCacheToTest()
 
 	// Add "nSenders" * "nTransactionsPerSender" transactions in the cache (in reversed nonce order)
 	nSenders := 1000
@@ -328,7 +224,7 @@ func Test_SelectTransactions(t *testing.T) {
 }
 
 func Test_Keys(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	cache := newCacheToTest()
 
 	cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
 	cache.AddTx(createTx([]byte("alice-y"), "alice", 43))
@@ -345,48 +241,36 @@ func Test_Keys(t *testing.T) {
 
 func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	config := CacheConfig{
-		Name:                       "untitled",
 		NumChunksHint:              16,
 		EvictionEnabled:            true,
 		NumBytesThreshold:          math.MaxUint32,
 		CountThreshold:             100,
 		NumSendersToEvictInOneStep: 1,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
 		MinGasPriceNanoErd:         100,
 	}
 
 	// 11 * 10
-	cache, err := NewTxCache(config)
-	require.Nil(t, err)
-	require.NotNil(t, cache)
-
+	cache := NewTxCache(config)
 	addManyTransactionsWithUniformDistribution(cache, 11, 10)
 	require.LessOrEqual(t, cache.CountTx(), int64(100))
 
 	config = CacheConfig{
-		Name:                       "untitled",
 		NumChunksHint:              16,
 		EvictionEnabled:            true,
 		NumBytesThreshold:          math.MaxUint32,
 		CountThreshold:             250000,
 		NumSendersToEvictInOneStep: 1,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
 		MinGasPriceNanoErd:         100,
 	}
 
 	// 100 * 1000
-	cache, err = NewTxCache(config)
-	require.Nil(t, err)
-	require.NotNil(t, cache)
-
+	cache = NewTxCache(config)
 	addManyTransactionsWithUniformDistribution(cache, 100, 1000)
 	require.LessOrEqual(t, cache.CountTx(), int64(250000))
 }
 
 func Test_NotImplementedFunctions(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	cache := newCacheToTest()
 
 	evicted := cache.Put(nil, nil)
 	require.False(t, evicted)
@@ -404,7 +288,7 @@ func Test_NotImplementedFunctions(t *testing.T) {
 }
 
 func Test_IsInterfaceNil(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	cache := newCacheToTest()
 	require.False(t, check.IfNil(cache))
 
 	makeNil := func() storage.Cacher {
@@ -416,7 +300,7 @@ func Test_IsInterfaceNil(t *testing.T) {
 }
 
 func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	cache := newCacheToTest()
 
 	// Alice will quickly move between two score buckets (chunks)
 	cheapTransaction := createTxWithParams([]byte("alice-x-o"), "alice", 0, 128, 50000, 100*oneBillion)
@@ -453,32 +337,6 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 	require.False(t, timedOut, "Timed out. Perhaps deadlock?")
 }
 
-func newUnconstrainedCacheToTest() *TxCache {
-	cache, err := NewTxCache(CacheConfig{
-		Name:                       "test",
-		NumChunksHint:              16,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceNanoErd:         100,
-	})
-	if err != nil {
-		panic(fmt.Sprintf("newUnconstrainedCacheToTest(): %s", err))
-	}
-
-	return cache
-}
-
-func newCacheToTest(numBytesPerSenderThreshold uint32, countPerSenderThreshold uint32) *TxCache {
-	cache, err := NewTxCache(CacheConfig{
-		Name:                       "test",
-		NumChunksHint:              16,
-		NumBytesPerSenderThreshold: numBytesPerSenderThreshold,
-		CountPerSenderThreshold:    countPerSenderThreshold,
-		MinGasPriceNanoErd:         100,
-	})
-	if err != nil {
-		panic(fmt.Sprintf("newCacheToTest(): %s", err))
-	}
-
-	return cache
+func newCacheToTest() *TxCache {
+	return NewTxCache(CacheConfig{Name: "test", NumChunksHint: 16, MinGasPriceNanoErd: 100})
 }

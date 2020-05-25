@@ -11,8 +11,6 @@ import (
 var _ storage.Cacher = (*TxCache)(nil)
 var _ txCache = (*TxCache)(nil)
 
-type txHashes = [][]byte
-
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
 	name                          string
@@ -36,13 +34,8 @@ type TxCache struct {
 }
 
 // NewTxCache creates a new transaction cache
-func NewTxCache(config CacheConfig) (*TxCache, error) {
+func NewTxCache(config CacheConfig) *TxCache {
 	log.Debug("NewTxCache", "config", config)
-
-	err := config.verify()
-	if err != nil {
-		return nil, err
-	}
 
 	// Note: for simplicity, we use the same "numChunksHint" for both internal concurrent maps
 	numChunksHint := config.NumChunksHint
@@ -58,7 +51,7 @@ func NewTxCache(config CacheConfig) (*TxCache, error) {
 	}
 
 	txCache.initSweepable()
-	return txCache, nil
+	return txCache
 }
 
 // AddTx adds a transaction in the cache
@@ -76,14 +69,10 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	}
 
 	ok = true
-	added, evicted := cache.txListBySender.addTx(tx)
+	added = cache.txByHash.addTx(tx)
 	if added {
-		cache.txByHash.addTx(tx)
+		cache.txListBySender.addTx(tx)
 		cache.monitorTxAddition()
-	}
-
-	if len(evicted) > 0 {
-		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
 	return
@@ -161,7 +150,7 @@ func (cache *TxCache) doAfterSelection() {
 func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 	tx, ok := cache.txByHash.removeTx(string(txHash))
 	if !ok {
-		return errTxNotFound
+		return ErrTxNotFound
 	}
 
 	cache.monitorTxRemoval()
@@ -169,7 +158,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 	found := cache.txListBySender.removeTx(tx)
 	if !found {
 		cache.onRemoveTxInconsistency(txHash)
-		return errMapsSyncInconsistency
+		return ErrMapsSyncInconsistency
 	}
 
 	return nil
@@ -253,7 +242,7 @@ func (cache *TxCache) RemoveOldest() {
 }
 
 // Keys returns the tx hashes in the cache
-func (cache *TxCache) Keys() txHashes {
+func (cache *TxCache) Keys() [][]byte {
 	return cache.txByHash.keys()
 }
 

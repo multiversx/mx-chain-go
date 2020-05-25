@@ -212,7 +212,7 @@ func hardForkImport(
 	importStorageConfigs []*config.StorageConfig,
 ) {
 	for id, node := range nodes {
-		gasSchedule := arwenConfig.MakeGasMap(1)
+		gasSchedule := arwenConfig.MakeGasMapForTests()
 		defaults.FillGasMapInternal(gasSchedule, 1)
 		log.Warn("started import process")
 
@@ -332,7 +332,7 @@ func createHardForkExporter(
 			KeyGen:                   node.OwnAccount.KeygenTxSign,
 			BlockSigner:              node.OwnAccount.BlockSingleSigner,
 			HeaderSigVerifier:        node.HeaderSigVerifier,
-			ChainID:                  node.ChainID,
+			HeaderIntegrityVerifier:  node.HeaderIntegrityVerifier,
 			ValidityAttester:         node.BlockTracker,
 			OutputAntifloodHandler:   &mock.NilAntifloodHandler{},
 			InputAntifloodHandler:    &mock.NilAntifloodHandler{},

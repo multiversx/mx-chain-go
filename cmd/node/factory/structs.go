@@ -93,6 +93,7 @@ type Process struct {
 	BlackListHandler         process.BlackListHandler
 	BootStorer               process.BootStorer
 	HeaderSigVerifier        HeaderSigVerifierHandler
+	HeaderIntegrityVerifier  HeaderIntegrityVerifierHandler
 	ValidatorsStatistics     process.ValidatorStatisticsProcessor
 	ValidatorsProvider       process.ValidatorsProvider
 	BlockTracker             process.BlockTracker
@@ -227,6 +228,10 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		KeyGen:            args.crypto.BlockSignKeyGen,
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
+	if err != nil {
+		return nil, err
+	}
+	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier([]byte(args.nodesConfig.ChainID))
 	if err != nil {
 		return nil, err
 	}
@@ -378,6 +383,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.network,
 		args.economicsData,
 		headerSigVerifier,
+		headerIntegrityVerifier,
 		args.sizeCheckDelta,
 		blockTracker,
 		epochStartTrigger,
@@ -453,6 +459,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		BlackListHandler:         blackListHandler,
 		BootStorer:               bootStorer,
 		HeaderSigVerifier:        headerSigVerifier,
+		HeaderIntegrityVerifier:  headerIntegrityVerifier,
 		ValidatorsStatistics:     validatorStatisticsProcessor,
 		ValidatorsProvider:       validatorsProvider,
 		BlockTracker:             blockTracker,
@@ -601,6 +608,7 @@ func newInterceptorContainerFactory(
 	network *mainFactory.NetworkComponents,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
+	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
@@ -618,6 +626,7 @@ func newInterceptorContainerFactory(
 			network,
 			economics,
 			headerSigVerifier,
+			headerIntegrityVerifier,
 			sizeCheckDelta,
 			validityAttester,
 			epochStartTrigger,
@@ -636,6 +645,7 @@ func newInterceptorContainerFactory(
 			state,
 			economics,
 			headerSigVerifier,
+			headerIntegrityVerifier,
 			sizeCheckDelta,
 			validityAttester,
 			epochStartTrigger,
@@ -693,6 +703,7 @@ func newShardInterceptorContainerFactory(
 	network *mainFactory.NetworkComponents,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
+	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
@@ -701,33 +712,33 @@ func newShardInterceptorContainerFactory(
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
-		Accounts:               state.AccountsAdapter,
-		ShardCoordinator:       shardCoordinator,
-		NodesCoordinator:       nodesCoordinator,
-		Messenger:              network.NetMessenger,
-		Store:                  data.Store,
-		ProtoMarshalizer:       dataCore.InternalMarshalizer,
-		TxSignMarshalizer:      dataCore.TxSignMarshalizer,
-		Hasher:                 dataCore.Hasher,
-		KeyGen:                 crypto.TxSignKeyGen,
-		BlockSignKeyGen:        crypto.BlockSignKeyGen,
-		SingleSigner:           crypto.TxSingleSigner,
-		BlockSingleSigner:      crypto.SingleSigner,
-		MultiSigner:            crypto.MultiSigner,
-		DataPool:               data.Datapool,
-		AddressPubkeyConverter: state.AddressPubkeyConverter,
-		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:           economics,
-		BlackList:              headerBlackList,
-		HeaderSigVerifier:      headerSigVerifier,
-		ChainID:                dataCore.ChainID,
-		SizeCheckDelta:         sizeCheckDelta,
-		ValidityAttester:       validityAttester,
-		EpochStartTrigger:      epochStartTrigger,
-		WhiteListHandler:       whiteListHandler,
-		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
-		AntifloodHandler:       network.InputAntifloodHandler,
-		NonceConverter:         dataCore.Uint64ByteSliceConverter,
+		Accounts:                state.AccountsAdapter,
+		ShardCoordinator:        shardCoordinator,
+		NodesCoordinator:        nodesCoordinator,
+		Messenger:               network.NetMessenger,
+		Store:                   data.Store,
+		ProtoMarshalizer:        dataCore.InternalMarshalizer,
+		TxSignMarshalizer:       dataCore.TxSignMarshalizer,
+		Hasher:                  dataCore.Hasher,
+		KeyGen:                  crypto.TxSignKeyGen,
+		BlockSignKeyGen:         crypto.BlockSignKeyGen,
+		SingleSigner:            crypto.TxSingleSigner,
+		BlockSingleSigner:       crypto.SingleSigner,
+		MultiSigner:             crypto.MultiSigner,
+		DataPool:                data.Datapool,
+		AddressPubkeyConverter:  state.AddressPubkeyConverter,
+		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:            economics,
+		BlackList:               headerBlackList,
+		HeaderSigVerifier:       headerSigVerifier,
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		SizeCheckDelta:          sizeCheckDelta,
+		ValidityAttester:        validityAttester,
+		EpochStartTrigger:       epochStartTrigger,
+		WhiteListHandler:        whiteListHandler,
+		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
+		AntifloodHandler:        network.InputAntifloodHandler,
+		NonceConverter:          dataCore.Uint64ByteSliceConverter,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -747,6 +758,7 @@ func newMetaInterceptorContainerFactory(
 	state *mainFactory.StateComponents,
 	economics *economics.EconomicsData,
 	headerSigVerifier HeaderSigVerifierHandler,
+	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	sizeCheckDelta uint32,
 	validityAttester process.ValidityAttester,
 	epochStartTrigger process.EpochStartTriggerHandler,
@@ -755,33 +767,33 @@ func newMetaInterceptorContainerFactory(
 ) (process.InterceptorsContainerFactory, process.BlackListHandler, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
-		ShardCoordinator:       shardCoordinator,
-		NodesCoordinator:       nodesCoordinator,
-		Messenger:              network.NetMessenger,
-		Store:                  data.Store,
-		ProtoMarshalizer:       dataCore.InternalMarshalizer,
-		TxSignMarshalizer:      dataCore.TxSignMarshalizer,
-		Hasher:                 dataCore.Hasher,
-		MultiSigner:            crypto.MultiSigner,
-		DataPool:               data.Datapool,
-		Accounts:               state.AccountsAdapter,
-		AddressPubkeyConverter: state.AddressPubkeyConverter,
-		SingleSigner:           crypto.TxSingleSigner,
-		BlockSingleSigner:      crypto.SingleSigner,
-		KeyGen:                 crypto.TxSignKeyGen,
-		BlockKeyGen:            crypto.BlockSignKeyGen,
-		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:           economics,
-		BlackList:              headerBlackList,
-		HeaderSigVerifier:      headerSigVerifier,
-		ChainID:                dataCore.ChainID,
-		SizeCheckDelta:         sizeCheckDelta,
-		ValidityAttester:       validityAttester,
-		EpochStartTrigger:      epochStartTrigger,
-		WhiteListHandler:       whiteListHandler,
-		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
-		AntifloodHandler:       network.InputAntifloodHandler,
-		NonceConverter:         dataCore.Uint64ByteSliceConverter,
+		ShardCoordinator:        shardCoordinator,
+		NodesCoordinator:        nodesCoordinator,
+		Messenger:               network.NetMessenger,
+		Store:                   data.Store,
+		ProtoMarshalizer:        dataCore.InternalMarshalizer,
+		TxSignMarshalizer:       dataCore.TxSignMarshalizer,
+		Hasher:                  dataCore.Hasher,
+		MultiSigner:             crypto.MultiSigner,
+		DataPool:                data.Datapool,
+		Accounts:                state.AccountsAdapter,
+		AddressPubkeyConverter:  state.AddressPubkeyConverter,
+		SingleSigner:            crypto.TxSingleSigner,
+		BlockSingleSigner:       crypto.SingleSigner,
+		KeyGen:                  crypto.TxSignKeyGen,
+		BlockKeyGen:             crypto.BlockSignKeyGen,
+		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:            economics,
+		BlackList:               headerBlackList,
+		HeaderSigVerifier:       headerSigVerifier,
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		SizeCheckDelta:          sizeCheckDelta,
+		ValidityAttester:        validityAttester,
+		EpochStartTrigger:       epochStartTrigger,
+		WhiteListHandler:        whiteListHandler,
+		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
+		AntifloodHandler:        network.InputAntifloodHandler,
+		NonceConverter:          dataCore.Uint64ByteSliceConverter,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1083,7 +1095,11 @@ func newShardBlockProcessor(
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 		BuiltInFunctions: builtInFuncs,
 	}
-	vmFactory, err := shard.NewVMContainerFactory(config.VirtualMachineConfig, economics.MaxGasLimitPerBlock(), gasSchedule, argsHook)
+	vmFactory, err := shard.NewVMContainerFactory(
+		config.VirtualMachineConfig,
+		economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
+		gasSchedule,
+		argsHook)
 	if err != nil {
 		return nil, err
 	}

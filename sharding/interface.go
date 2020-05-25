@@ -44,6 +44,7 @@ type NodesCoordinator interface {
 type EpochStartEventNotifier interface {
 	RegisterHandler(handler epochStart.ActionHandler)
 	UnregisterHandler(handler epochStart.ActionHandler)
+	IsInterfaceNil() bool
 }
 
 // PublicKeysSelector allows retrieval of eligible validators public keys
@@ -174,12 +175,6 @@ type GenesisNodeInfoHandler interface {
 	AssignedShard() uint32
 	AddressBytes() []byte
 	PubKeyBytes() []byte
-	IsInterfaceNil() bool
-}
-
-// ValidatorsProvider can get the latest validator infos from the trie
-type ValidatorsProvider interface {
-	GetLatestValidatorInfos() (map[uint32][]*state.ValidatorInfo, error)
 	IsInterfaceNil() bool
 }
 

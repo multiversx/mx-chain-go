@@ -29,11 +29,9 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	phf.transactions, _ = txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
-				Size:                 100000,
-				SizePerSender:        1000,
-				SizeInBytes:          1000000000,
-				SizeInBytesPerSender: 10000000,
-				Shards:               16,
+				Size:        10000,
+				SizeInBytes: 1000000000,
+				Shards:      16,
 			},
 			MinGasPrice:    200000000000,
 			NumberOfShards: 1,
