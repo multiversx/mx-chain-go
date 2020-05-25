@@ -233,7 +233,7 @@ func (se *stateExport) exportAccountLeafs(leafs map[string][]byte, accType Type,
 			if err != nil {
 				return err
 			}
-			log.Trace("error unmarshaling account this is maybe a code", "address", address, "error", err)
+			log.Info("error unmarshaling account this is maybe a code", "address", address, "error", err)
 			continue
 		}
 
