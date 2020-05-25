@@ -10,8 +10,6 @@ import (
 
 var _ storage.Cacher = (*TxCache)(nil)
 
-type txHashes = [][]byte
-
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
 	name                      string
@@ -53,11 +51,8 @@ func NewTxCache(config CacheConfig) (*TxCache, error) {
 // AddTx adds a transaction in the cache
 // Eviction happens if maximum capacity is reached
 func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
-	ok = false
-	added = false
-
 	if tx == nil || check.IfNil(tx.Tx) {
-		return
+		return false, false
 	}
 
 	if cache.config.EvictionEnabled {
@@ -67,6 +62,11 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	addedInByHash := cache.txByHash.addTx(tx)
 	addedInBySender, evicted := cache.txListBySender.addTx(tx)
 	if addedInByHash != addedInBySender {
+		// This can happen  when two go-routines concur to add the same transaction:
+		// A adds to "txByHash"
+		// B won't add to "txByHash" (duplicate)
+		// B adds to "txListBySender"
+		// A won't add to "txListBySender" (duplicate)
 		log.Trace("TxCache.AddTx(): slight inconsistency detected:", "name", cache.name, "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
 	}
 
@@ -77,9 +77,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 
 	// The return value "added" is true even if transaction added, but then removed due to limits be sender.
 	// This it to ensure that onAdded() notification is triggered.
-	ok = true
-	added = addedInByHash || addedInBySender
-	return
+	return true, addedInByHash || addedInBySender
 }
 
 // GetByTxHash gets the transaction by hash
@@ -242,7 +240,7 @@ func (cache *TxCache) RemoveOldest() {
 }
 
 // Keys returns the tx hashes in the cache
-func (cache *TxCache) Keys() txHashes {
+func (cache *TxCache) Keys() [][]byte {
 	return cache.txByHash.keys()
 }
 

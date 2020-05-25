@@ -67,7 +67,7 @@ func (cache *TxCache) areThereTooManyTxs() bool {
 }
 
 // This is called concurrently by two goroutines: the eviction one and the sweeping one
-func (cache *TxCache) doEvictItems(txsToEvict txHashes, sendersToEvict []string) (countTxs uint32, countSenders uint32) {
+func (cache *TxCache) doEvictItems(txsToEvict [][]byte, sendersToEvict []string) (countTxs uint32, countSenders uint32) {
 	countTxs = cache.txByHash.RemoveTxsBulk(txsToEvict)
 	countSenders = cache.txListBySender.RemoveSendersBulk(sendersToEvict)
 	return
@@ -116,7 +116,7 @@ func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32
 // This is called concurrently by two goroutines: the eviction one and the sweeping one
 func (cache *TxCache) evictSendersAndTheirTxs(listsToEvict []*txListForSender) (uint32, uint32) {
 	sendersToEvict := make([]string, 0, len(listsToEvict))
-	txsToEvict := make(txHashes, 0, approximatelyCountTxInLists(listsToEvict))
+	txsToEvict := make([][]byte, 0, approximatelyCountTxInLists(listsToEvict))
 
 	for _, txList := range listsToEvict {
 		sendersToEvict = append(sendersToEvict, txList.sender)

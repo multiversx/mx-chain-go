@@ -88,7 +88,7 @@ func (listForSender *txListForSender) getTxHashesAsStrings() []string {
 	return hashesAsStrings(hashes)
 }
 
-func hashesAsStrings(hashes txHashes) []string {
+func hashesAsStrings(hashes [][]byte) []string {
 	result := make([]string, len(hashes))
 
 	for i := 0; i < len(hashes); i++ {

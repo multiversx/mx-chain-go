@@ -46,7 +46,7 @@ func newTxListForSender(sender string, cacheConfig *CacheConfig, onScoreChange s
 
 // AddTx adds a transaction in sender's list
 // This is a "sorted" insert
-func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, txHashes) {
+func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, [][]byte) {
 	// We don't allow concurrent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
@@ -69,8 +69,8 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, txHas
 }
 
 // This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) applySizeConstraints() txHashes {
-	evictedTxHashes := make(txHashes, 0)
+func (listForSender *txListForSender) applySizeConstraints() [][]byte {
+	evictedTxHashes := make([][]byte, 0)
 
 	// Iterate back to front
 	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
@@ -249,11 +249,11 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 }
 
 // getTxHashes returns the hashes of transactions in the list
-func (listForSender *txListForSender) getTxHashes() txHashes {
+func (listForSender *txListForSender) getTxHashes() [][]byte {
 	listForSender.mutex.RLock()
 	defer listForSender.mutex.RUnlock()
 
-	result := make(txHashes, 0, listForSender.countTx())
+	result := make([][]byte, 0, listForSender.countTx())
 
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(*WrappedTransaction)

@@ -57,7 +57,7 @@ func (txMap *txByHashMap) getTx(txHash string) (*WrappedTransaction, bool) {
 }
 
 // RemoveTxsBulk removes transactions, in bulk
-func (txMap *txByHashMap) RemoveTxsBulk(txHashes txHashes) uint32 {
+func (txMap *txByHashMap) RemoveTxsBulk(txHashes [][]byte) uint32 {
 	oldCount := uint32(txMap.counter.Get())
 
 	for _, txHash := range txHashes {
@@ -86,9 +86,9 @@ func (txMap *txByHashMap) clear() {
 	txMap.counter.Set(0)
 }
 
-func (txMap *txByHashMap) keys() txHashes {
+func (txMap *txByHashMap) keys() [][]byte {
 	keys := txMap.backingMap.Keys()
-	keysAsBytes := make(txHashes, len(keys))
+	keysAsBytes := make([][]byte, len(keys))
 	for i := 0; i < len(keys); i++ {
 		keysAsBytes[i] = []byte(keys[i])
 	}

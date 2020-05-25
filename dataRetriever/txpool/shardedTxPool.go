@@ -87,6 +87,7 @@ func (txPool *shardedTxPool) getTxCache(cacheID string) txCache {
 	return shard.Cache
 }
 
+// TODO: Perhaps create all caches in constructor?
 func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
 	cacheID = txPool.routeToCacheUnions(cacheID)
 

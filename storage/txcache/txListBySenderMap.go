@@ -28,7 +28,7 @@ func newTxListBySenderMap(nChunksHint uint32, cacheConfig CacheConfig) txListByS
 }
 
 // addTx adds a transaction in the map, in the corresponding list (selected by its sender)
-func (txMap *txListBySenderMap) addTx(tx *WrappedTransaction) (bool, txHashes) {
+func (txMap *txListBySenderMap) addTx(tx *WrappedTransaction) (bool, [][]byte) {
 	sender := string(tx.Tx.GetSndAddr())
 	listForSender := txMap.getOrAddListForSender(sender)
 	return listForSender.AddTx(tx)

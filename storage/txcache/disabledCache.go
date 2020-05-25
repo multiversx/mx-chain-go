@@ -87,7 +87,7 @@ func (cache *DisabledCache) RemoveOldest() {
 }
 
 // Keys returns an empty slice
-func (cache *DisabledCache) Keys() txHashes {
+func (cache *DisabledCache) Keys() [][]byte {
 	return make([][]byte, 0)
 }
 
