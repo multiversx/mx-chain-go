@@ -93,3 +93,9 @@ var ErrNilMarshalizer = errors.New("nil marshalizer")
 
 // ErrWrongTypeAssertion is thrown when a wrong type assertion is spotted
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrCacheSizeInvalid signals that size of cache is less than 1
+var ErrCacheSizeInvalid = errors.New("cache size is less than 1")
+
+// ErrCacheCapacityInvalid signals that capacity of cache is less than 1
+var ErrCacheCapacityInvalid = errors.New("cache capacity is less than 1")

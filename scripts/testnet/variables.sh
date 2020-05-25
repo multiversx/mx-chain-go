@@ -44,14 +44,14 @@ export BLOCK_SIGN_FORMAT="hex"
 export GENESIS_STAKE_TYPE="delegated" #'delegated' or 'direct' as in direct stake
 
 # Shard structure
-export SHARDCOUNT=2
-export SHARD_VALIDATORCOUNT=3
-export SHARD_OBSERVERCOUNT=1
-export SHARD_CONSENSUS_SIZE=3
+export SHARDCOUNT=1
+export SHARD_VALIDATORCOUNT=8
+export SHARD_OBSERVERCOUNT=0
+export SHARD_CONSENSUS_SIZE=8
 
 # Metashard structure
-export META_VALIDATORCOUNT=3
-export META_OBSERVERCOUNT=1
+export META_VALIDATORCOUNT=8
+export META_OBSERVERCOUNT=0
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
 # ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called

@@ -14,7 +14,7 @@ var log = logger.GetOrCreate("storage/lrucache")
 
 // LRUCache implements a Least Recently Used eviction cache
 type LRUCache struct {
-	cache   *lru.Cache
+	cache   storage.LRUCacheHandler
 	maxsize int
 
 	mutAddedDataHandlers sync.RWMutex
