@@ -53,9 +53,9 @@ func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorA
 	defer vp.mutCachedMap.Unlock()
 
 	lastFinalizedRootHash := vp.validatorStatistics.LastFinalizedRootHash()
-
 	validators, err := vp.validatorStatistics.GetValidatorInfoForRootHash(lastFinalizedRootHash)
 	if err != nil {
+		log.Trace("Could not get trie for hash", "hash", lastFinalizedRootHash)
 		return vp.cachedMap
 	}
 
@@ -75,6 +75,9 @@ func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorA
 				RatingModifier:           validatorInfo.RatingModifier,
 				Rating:                   float32(validatorInfo.Rating) * 100 / float32(vp.maxRating),
 				TempRating:               float32(validatorInfo.TempRating) * 100 / float32(vp.maxRating),
+				ShardId:                  validatorInfo.ShardId,
+				List:                     validatorInfo.List,
+				Index:                    validatorInfo.Index,
 			}
 		}
 	}
@@ -82,19 +85,6 @@ func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorA
 	vp.cachedMap = mapToReturn
 
 	return mapToReturn
-}
-
-// GetLatestValidatorInfos gets the latest configuration of validators per shard from the peerAccountsTrie
-// TODO: add cache here
-func (vp *validatorsProvider) GetLatestValidatorInfos() (map[uint32][]*state.ValidatorInfo, error) {
-	lastFinalizedRootHash := vp.validatorStatistics.LastFinalizedRootHash()
-
-	validators, err := vp.validatorStatistics.GetValidatorInfoForRootHash(lastFinalizedRootHash)
-	if err != nil {
-		return nil, err
-	}
-
-	return validators, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
