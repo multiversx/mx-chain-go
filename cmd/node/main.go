@@ -1088,11 +1088,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		if err != nil {
 			return err
 		}
+	}
 
-		err = setServiceContainer(shardCoordinator, tpsBenchmark)
-		if err != nil {
-			return err
-		}
+	err = setServiceContainer(shardCoordinator, tpsBenchmark)
+	if err != nil {
+		return err
 	}
 
 	gasScheduleConfigurationFileName := ctx.GlobalString(gasScheduleConfigurationFile.Name)
@@ -1168,9 +1168,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if check.IfNil(coreServiceContainer) {
 		elasticIndexer = nil
 	} else {
-		elasticIndexer = coreServiceContainer.Indexer()
-		elasticIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
-		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
+		if !check.IfNil(coreServiceContainer) && !check.IfNil(coreServiceContainer.Indexer()) {
+			elasticIndexer = coreServiceContainer.Indexer()
+			elasticIndexer.SetTxLogsProcessor(processComponents.TxLogsProcessor)
+			processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
+		}
 	}
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
@@ -2034,8 +2036,13 @@ func setServiceContainer(shardCoordinator sharding.Coordinator, tpsBenchmark *st
 		return nil
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
+		var indexerToUse indexer.Indexer
+		indexerToUse = indexer.NewNilIndexer()
+		if dbIndexer != nil {
+			indexerToUse = dbIndexer
+		}
 		coreServiceContainer, err = serviceContainer.NewServiceContainer(
-			serviceContainer.WithIndexer(dbIndexer),
+			serviceContainer.WithIndexer(indexerToUse),
 			serviceContainer.WithTPSBenchmark(tpsBenchmark))
 		if err != nil {
 			return err
