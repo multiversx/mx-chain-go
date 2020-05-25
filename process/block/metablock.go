@@ -1222,6 +1222,8 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 		prevHeader.GetValidatorStatsRootHash(),
 		mp.accountsDB[state.PeerAccountsState],
 	)
+
+	mp.validatorStatisticsProcessor.SetLastFinalizedRootHash(prevHeader.GetValidatorStatsRootHash())
 }
 
 func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
