@@ -227,6 +227,10 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		}
 	}
 
+	tr.newHashes = make(data.ModifiedHashes)
+	tr.oldRoot = make([]byte, 0)
+	tr.oldHashes = make([][]byte, 0)
+
 	log.Trace("started committing trie with rootHash", "rootHash", tr.String())
 	err = tr.root.commit(false, 0, tr.maxTrieLevelInMemory, tr.trieStorage.Database(), tr.trieStorage.Database())
 	if err != nil {
@@ -241,9 +245,6 @@ func (tr *patriciaMerkleTrie) markForEviction() error {
 
 	if bytes.Equal(newRoot, tr.oldRoot) {
 		log.Trace("old root and new root are identical", "rootHash", newRoot)
-		tr.newHashes = make(data.ModifiedHashes)
-		tr.oldRoot = make([]byte, 0)
-		tr.oldHashes = make([][]byte, 0)
 		return nil
 	}
 
@@ -265,8 +266,6 @@ func (tr *patriciaMerkleTrie) markForEviction() error {
 		for key := range tr.newHashes {
 			log.Trace("MarkForEviction newHashes", "hash", key)
 		}
-
-		tr.newHashes = make(data.ModifiedHashes)
 	}
 
 	if len(oldHashes) > 0 && len(tr.oldRoot) > 0 {
@@ -279,9 +278,6 @@ func (tr *patriciaMerkleTrie) markForEviction() error {
 		for key := range oldHashes {
 			log.Trace("MarkForEviction oldHashes", "hash", key)
 		}
-
-		tr.oldRoot = make([]byte, 0)
-		tr.oldHashes = make([][]byte, 0)
 	}
 	return nil
 }
