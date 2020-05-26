@@ -268,34 +268,34 @@
     [Antiflood.FastReacting]
         IntervalInSeconds = 1
         [Antiflood.FastReacting.NetworkMaxInput]
-            MessagesPerInterval  = 400
-            TotalSizePerInterval = 4194304
-        [Antiflood.FastReacting.PeerMaxInput]
-            MessagesPerInterval  = 75
+            MessagesPerInterval  = 200
             TotalSizePerInterval = 2097152
+        [Antiflood.FastReacting.PeerMaxInput]
+            MessagesPerInterval  = 37
+            TotalSizePerInterval = 1048576
         [Antiflood.FastReacting.BlackList]
-            ThresholdNumMessagesPerInterval = 480
-            ThresholdSizePerInterval = 5242880
+            ThresholdNumMessagesPerInterval = 240
+            ThresholdSizePerInterval = 3145728
             NumFloodingRounds = 10
             PeerBanDurationInSeconds = 300
 
     [Antiflood.SlowReacting]
         IntervalInSeconds = 30
         [Antiflood.SlowReacting.NetworkMaxInput]
-            MessagesPerInterval = 5000
-            TotalSizePerInterval = 31457280 # 30MB/interval
-        [Antiflood.SlowReacting.PeerMaxInput]
             MessagesPerInterval = 2500
             TotalSizePerInterval = 15728640 # 15MB/interval
+        [Antiflood.SlowReacting.PeerMaxInput]
+            MessagesPerInterval = 1250
+            TotalSizePerInterval = 7340032 # 7MB/interval
         [Antiflood.SlowReacting.BlackList]
-            ThresholdNumMessagesPerInterval = 6000
-            ThresholdSizePerInterval = 37748736 # 36MB/interval
+            ThresholdNumMessagesPerInterval = 3000
+            ThresholdSizePerInterval = 18874368 # 18MB/interval
             NumFloodingRounds = 2
             PeerBanDurationInSeconds = 3600
 
     [Antiflood.PeerMaxOutput]
-        MessagesPerInterval  = 75
-        TotalSizePerInterval = 2097152
+        MessagesPerInterval  = 37
+        TotalSizePerInterval = 1048576
 
     [Antiflood.Cache]
         Size = 5000
