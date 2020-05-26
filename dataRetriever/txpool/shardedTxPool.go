@@ -31,7 +31,7 @@ type shardedTxPool struct {
 
 type txPoolShard struct {
 	CacheID string
-	Cache   *txcache.TxCache
+	Cache   txCache
 }
 
 // NewShardedTxPool creates a new sharded tx pool
@@ -51,10 +51,10 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		NumChunksHint:              args.Config.Shards,
 		EvictionEnabled:            true,
 		NumBytesThreshold:          args.Config.SizeInBytes / numCaches,
+		NumBytesPerSenderThreshold: args.Config.SizeInBytesPerSender,
 		CountThreshold:             args.Config.Size / numCaches,
+		CountPerSenderThreshold:    args.Config.SizePerSender,
 		NumSendersToEvictInOneStep: dataRetriever.TxPoolNumSendersToEvictInOneStep,
-		LargeNumOfTxsForASender:    dataRetriever.TxPoolLargeNumOfTxsForASender,
-		NumTxsToEvictFromASender:   dataRetriever.TxPoolNumTxsToEvictFromASender,
 		MinGasPriceNanoErd:         uint32(args.MinGasPrice / oneBillion),
 	}
 
@@ -82,11 +82,12 @@ func (txPool *shardedTxPool) ShardDataStore(cacheID string) storage.Cacher {
 }
 
 // getTxCache returns the requested cache
-func (txPool *shardedTxPool) getTxCache(cacheID string) *txcache.TxCache {
+func (txPool *shardedTxPool) getTxCache(cacheID string) txCache {
 	shard := txPool.getOrCreateShard(cacheID)
 	return shard.Cache
 }
 
+// TODO: Perhaps create all caches in constructor?
 func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
 	cacheID = txPool.routeToCacheUnions(cacheID)
 
@@ -108,8 +109,7 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 
 	shard, ok := txPool.backingMap[cacheID]
 	if !ok {
-		cacheConfig := txPool.getCacheConfig(cacheID)
-		cache := txcache.NewTxCache(cacheConfig)
+		cache := txPool.createTxCache(cacheID)
 		shard = &txPoolShard{
 			CacheID: cacheID,
 			Cache:   cache,
@@ -119,6 +119,17 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 	}
 
 	return shard
+}
+
+func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
+	cacheConfig := txPool.getCacheConfig(cacheID)
+	cache, err := txcache.NewTxCache(cacheConfig)
+	if err != nil {
+		log.Error("shardedTxPool.createTxCache()", "err", err)
+		return txcache.NewDisabledCache()
+	}
+
+	return cache
 }
 
 func (txPool *shardedTxPool) getCacheConfig(cacheID string) txcache.CacheConfig {
@@ -294,7 +305,7 @@ func (txPool *shardedTxPool) GetCounts() counting.Counts {
 
 	for cacheID, shard := range txPool.backingMap {
 		cache := shard.Cache
-		counts.PutCounts(cacheID, cache.CountTx())
+		counts.PutCounts(cacheID, int64(cache.CountTx()))
 	}
 
 	return counts
