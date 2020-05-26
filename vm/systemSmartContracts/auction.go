@@ -154,11 +154,6 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 			continue
 		}
 
-		if vmOutput.ReturnCode == vmcommon.OutOfGas {
-			s.eei.AddReturnMessage("insufficient gas limit")
-			return vmcommon.OutOfGas
-		}
-
 		s.eei.AddReturnMessage(vmOutput.ReturnMessage)
 	}
 
@@ -171,7 +166,7 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) < 1 {
-		s.eei.AddReturnMessage("insufficient number of arguments")
+		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: min expected %d, got %d", 1, 0))
 		return vmcommon.UserError
 	}
 	if len(args.Arguments[0]) != len(args.CallerAddr) {
@@ -227,12 +222,12 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 
 func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		s.eei.AddReturnMessage("transaction value must be 0")
+		s.eei.AddReturnMessage("transaction value must be zero")
 		return vmcommon.UserError
 	}
 	// list of arguments are NumNodes, (OldKey, NewKey, SignedMessage) X NumNodes
 	if len(args.Arguments) < minArgsLenToChangeValidatorKey {
-		retMessage := fmt.Sprintf("invalid number of arguments expected %d, got %d", minArgsLenToChangeValidatorKey, len(args.Arguments))
+		retMessage := fmt.Sprintf("invalid number of arguments: min expected %d, got %d", minArgsLenToChangeValidatorKey, len(args.Arguments))
 		s.eei.AddReturnMessage(retMessage)
 		return vmcommon.UserError
 	}
@@ -240,7 +235,7 @@ func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput)
 	numNodesToChange := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
 	expectedNumArguments := numNodesToChange*3 + 1
 	if uint64(len(args.Arguments)) < expectedNumArguments {
-		retMessage := fmt.Sprintf("invalid number of arguments expected %d, got %d", expectedNumArguments, len(args.Arguments))
+		retMessage := fmt.Sprintf("invalid number of arguments: min expected %d, got %d", expectedNumArguments, len(args.Arguments))
 		s.eei.AddReturnMessage(retMessage)
 		return vmcommon.UserError
 	}
@@ -323,7 +318,7 @@ func (s *stakingAuctionSC) get(args *vmcommon.ContractCallInput) vmcommon.Return
 	}
 
 	if len(args.Arguments) < 1 {
-		s.eei.AddReturnMessage("insufficient number of arguments")
+		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: min expected %d, got %d", 1, 0))
 		return vmcommon.UserError
 	}
 
@@ -499,8 +494,8 @@ func (s *stakingAuctionSC) registerBLSKeys(
 
 func (s *stakingAuctionSC) updateStakeValue(registrationData *AuctionData, caller []byte) vmcommon.ReturnCode {
 	if len(registrationData.BlsPubKeys) == 0 {
-		log.Debug("not enough arguments to process stake function")
-		s.eei.AddReturnMessage("not enough arguments to process stake function")
+		log.Debug("no bls keys has been provided")
+		s.eei.AddReturnMessage("no bls keys has been provided")
 		return vmcommon.UserError
 	}
 
@@ -547,7 +542,7 @@ func (s *stakingAuctionSC) isFunctionEnabled(nonce uint64) bool {
 func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Stake)
 	if err != nil {
-		s.eei.AddReturnMessage("insufficient gas")
+		s.eei.AddReturnMessage("insufficient gas limit")
 		return vmcommon.OutOfGas
 	}
 
@@ -581,18 +576,20 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	if !isNumArgsCorrectToStake(args.Arguments) {
-		log.Debug("incorrect number of arguments to call stake", "numArgs", args.Arguments)
-		s.eei.AddReturnMessage("incorrect number of arguments to call stake")
+		log.Debug("invalid number of arguments to call stake", "numArgs", args.Arguments)
+		s.eei.AddReturnMessage("invalid number of arguments to call stake")
 		return vmcommon.UserError
 	}
 
 	maxNodesToRun := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
 	if maxNodesToRun == 0 {
+		s.eei.AddReturnMessage("number of nodes argument must be greater than zero")
 		return vmcommon.UserError
 	}
 
 	err = s.eei.UseGas((maxNodesToRun - 1) * s.gasCost.MetaChainSystemSCsCost.Stake)
 	if err != nil {
+		s.eei.AddReturnMessage("insufficient gas limit")
 		return vmcommon.OutOfGas
 	}
 
@@ -776,7 +773,7 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) == 0 {
-		s.eei.AddReturnMessage("invalid number of arguments")
+		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
 		return vmcommon.UserError
 	}
 
@@ -800,7 +797,7 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 
 	blsKeys, err := getBLSPublicKeys(registrationData, args)
 	if err != nil {
-		s.eei.AddReturnMessage("bls key problem : error " + err.Error())
+		s.eei.AddReturnMessage("bls key problem: error " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -810,9 +807,13 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 		}
 
 		vmOutput, err := s.executeOnStakingSC([]byte("unStake@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
-		isError := err != nil || vmOutput.ReturnCode != vmcommon.Ok
-		if isError {
-			log.LogIfError(err)
+		if err != nil {
+			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unStake for key %s, error %s", hex.EncodeToString(blsKey), err.Error()))
+			continue
+		}
+
+		if vmOutput.ReturnCode != vmcommon.Ok {
+			s.eei.AddReturnMessage(vmOutput.ReturnMessage)
 			continue
 		}
 
@@ -853,7 +854,7 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) == 0 {
-		s.eei.AddReturnMessage("invalid number of arguments")
+		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
 		return vmcommon.UserError
 	}
 

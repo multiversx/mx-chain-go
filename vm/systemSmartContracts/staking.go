@@ -235,7 +235,7 @@ func (r *stakingSC) changeValidatorKey(args *vmcommon.ContractCallInput) vmcommo
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) < 2 {
-		r.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments expected %d, got %d", 2, len(args.Arguments)))
+		r.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 2, len(args.Arguments)))
 		return vmcommon.UserError
 	}
 
@@ -419,7 +419,7 @@ func (r *stakingSC) jail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 
 func (r *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) < 1 {
-		r.eei.AddReturnMessage("invalid number of arguments")
+		r.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
 		return vmcommon.UserError
 	}
 
@@ -459,8 +459,8 @@ func (r *stakingSC) setStakeValueForCurrentEpoch(args *vmcommon.ContractCallInpu
 	}
 
 	if len(args.Arguments) < 1 {
-		log.Debug("nil arguments to call setStakeValueForCurrentEpoch")
-		r.eei.AddReturnMessage("nil arguments to call setStakeValueForCurrentEpoch")
+		log.Debug("invalid number of arguments to call setStakeValueForCurrentEpoch", "expected min", 1, "got", 0)
+		r.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments to call call setStakeValueForCurrentEpoch: expected min %d, got %d", 1, 0))
 		return vmcommon.UserError
 	}
 
@@ -661,7 +661,8 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 
 	if len(args.Arguments) != 2 {
 		log.Debug("slash function called by wrong number of arguments")
-		r.eei.AddReturnMessage("slash function called by wrong number of arguments")
+		retMessage := fmt.Sprintf("slash function called by wrong number of arguments: expected %d, got %d", 2, len(args.Arguments))
+		r.eei.AddReturnMessage(retMessage)
 		return vmcommon.UserError
 	}
 
@@ -702,7 +703,7 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 
 func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) < 1 {
-		r.eei.AddReturnMessage("invalid number of arguments")
+		r.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d , got %d", 1, 0))
 		return vmcommon.UserError
 	}
 
