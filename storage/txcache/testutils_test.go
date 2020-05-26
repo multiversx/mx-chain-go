@@ -65,8 +65,11 @@ func (txMap *txListBySenderMap) testGetListForSender(sender string) *txListForSe
 	return list
 }
 
-func (cache *TxCache) getRawScoreOfSender(sender string) float64 {
-	return cache.getListForSender(sender).computeRawScore()
+func (cache *TxCache) getScoreOfSender(sender string) uint32 {
+	list := cache.getListForSender(sender)
+	scoreParams := list.getScoreParams()
+	computer := cache.txListBySender.scoreComputer
+	return computer.computeScore(scoreParams)
 }
 
 func (cache *TxCache) getNumFailedSelectionsOfSender(sender string) int {

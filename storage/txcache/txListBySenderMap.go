@@ -11,19 +11,21 @@ const numberOfScoreChunks = uint32(100)
 
 // txListBySenderMap is a map-like structure for holding and accessing transactions by sender
 type txListBySenderMap struct {
-	backingMap  *maps.BucketSortedMap
-	cacheConfig CacheConfig
-	counter     atomic.Counter
-	mutex       sync.Mutex
+	backingMap        *maps.BucketSortedMap
+	senderConstraints senderConstraints
+	counter           atomic.Counter
+	scoreComputer     scoreComputer
+	mutex             sync.Mutex
 }
 
 // newTxListBySenderMap creates a new instance of TxListBySenderMap
-func newTxListBySenderMap(nChunksHint uint32, cacheConfig CacheConfig) *txListBySenderMap {
+func newTxListBySenderMap(nChunksHint uint32, senderConstraints senderConstraints, scoreComputer scoreComputer) *txListBySenderMap {
 	backingMap := maps.NewBucketSortedMap(nChunksHint, numberOfScoreChunks)
 
 	return &txListBySenderMap{
-		backingMap:  backingMap,
-		cacheConfig: cacheConfig,
+		backingMap:        backingMap,
+		senderConstraints: senderConstraints,
+		scoreComputer:     scoreComputer,
 	}
 }
 
@@ -64,7 +66,7 @@ func (txMap *txListBySenderMap) getListForSender(sender string) (*txListForSende
 
 func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
 	log.Trace("txMap.addSender()", "sender", []byte(sender))
-	listForSender := newTxListForSender(sender, &txMap.cacheConfig, txMap.notifyScoreChange)
+	listForSender := newTxListForSender(sender, &txMap.senderConstraints, txMap.notifyScoreChange)
 
 	txMap.backingMap.Set(listForSender)
 	txMap.counter.Increment()
@@ -73,8 +75,10 @@ func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
 }
 
 // This function should only be called in a critical section managed by a "txListForSender"
-func (txMap *txListBySenderMap) notifyScoreChange(txList *txListForSender) {
-	txMap.backingMap.NotifyScoreChange(txList)
+func (txMap *txListBySenderMap) notifyScoreChange(txList *txListForSender, scoreParams senderScoreParams) {
+	score := txMap.scoreComputer.computeScore(scoreParams)
+	txList.setLastComputedScore(score)
+	txMap.backingMap.NotifyScoreChange(txList, score)
 }
 
 // removeTx removes a transaction from the map
