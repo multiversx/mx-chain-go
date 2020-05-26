@@ -1,6 +1,8 @@
 package txcache
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
@@ -12,32 +14,42 @@ type txListBySenderMap struct {
 	backingMap  *maps.BucketSortedMap
 	cacheConfig CacheConfig
 	counter     atomic.Counter
+	mutex       sync.Mutex
 }
 
 // newTxListBySenderMap creates a new instance of TxListBySenderMap
-func newTxListBySenderMap(nChunksHint uint32, cacheConfig CacheConfig) txListBySenderMap {
+func newTxListBySenderMap(nChunksHint uint32, cacheConfig CacheConfig) *txListBySenderMap {
 	backingMap := maps.NewBucketSortedMap(nChunksHint, numberOfScoreChunks)
 
-	return txListBySenderMap{
+	return &txListBySenderMap{
 		backingMap:  backingMap,
 		cacheConfig: cacheConfig,
 	}
 }
 
 // addTx adds a transaction in the map, in the corresponding list (selected by its sender)
-func (txMap *txListBySenderMap) addTx(tx *WrappedTransaction) {
+func (txMap *txListBySenderMap) addTx(tx *WrappedTransaction) (bool, [][]byte) {
 	sender := string(tx.Tx.GetSndAddr())
 	listForSender := txMap.getOrAddListForSender(sender)
-	listForSender.AddTx(tx)
+	return listForSender.AddTx(tx)
 }
 
+// getOrAddListForSender gets or lazily creates a list (using double-checked locking pattern)
 func (txMap *txListBySenderMap) getOrAddListForSender(sender string) *txListForSender {
 	listForSender, ok := txMap.getListForSender(sender)
-	if !ok {
-		listForSender = txMap.addSender(sender)
+	if ok {
+		return listForSender
 	}
 
-	return listForSender
+	txMap.mutex.Lock()
+	defer txMap.mutex.Unlock()
+
+	listForSender, ok = txMap.getListForSender(sender)
+	if ok {
+		return listForSender
+	}
+
+	return txMap.addSender(sender)
 }
 
 func (txMap *txListBySenderMap) getListForSender(sender string) (*txListForSender, bool) {
@@ -51,6 +63,7 @@ func (txMap *txListBySenderMap) getListForSender(sender string) (*txListForSende
 }
 
 func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
+	log.Trace("txMap.addSender()", "sender", []byte(sender))
 	listForSender := newTxListForSender(sender, &txMap.cacheConfig, txMap.notifyScoreChange)
 
 	txMap.backingMap.Set(listForSender)
@@ -70,13 +83,16 @@ func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
-		txMap.onRemoveTxInconsistency(sender)
+		// This happens when a sender whose transactions were selected for processing is removed from cache in the meantime.
+		// When it comes to remove one if its transactions due to processing (commited / finalized block), they don't exist in cache anymore.
+		log.Trace("txListBySenderMap.removeTx() detected slight inconsistency: sender of tx not in cache", "tx", tx.TxHash, "sender", []byte(sender))
 		return false
 	}
 
 	isFound := listForSender.RemoveTx(tx)
-
-	if listForSender.IsEmpty() {
+	isEmpty := listForSender.IsEmpty()
+	if isEmpty {
+		log.Trace("txMap.removeTx(): remove empty sender", "sender", []byte(sender))
 		txMap.removeSender(sender)
 	}
 
