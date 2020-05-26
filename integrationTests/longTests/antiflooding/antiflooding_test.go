@@ -30,10 +30,7 @@ func createWorkableConfig() config.Config {
 			},
 			FastReacting: config.FloodPreventerConfig{
 				IntervalInSeconds: 1,
-				NetworkMaxInput: config.AntifloodLimitsConfig{
-					MessagesPerInterval:  400,
-					TotalSizePerInterval: 4194304,
-				},
+				ReservedPercent:   20,
 				PeerMaxInput: config.AntifloodLimitsConfig{
 					MessagesPerInterval:  75,
 					TotalSizePerInterval: 2097152,
@@ -47,10 +44,7 @@ func createWorkableConfig() config.Config {
 			},
 			SlowReacting: config.FloodPreventerConfig{
 				IntervalInSeconds: 30,
-				NetworkMaxInput: config.AntifloodLimitsConfig{
-					MessagesPerInterval:  5000,
-					TotalSizePerInterval: 31457280,
-				},
+				ReservedPercent:   20,
 				PeerMaxInput: config.AntifloodLimitsConfig{
 					MessagesPerInterval:  2500,
 					TotalSizePerInterval: 15728640,
@@ -95,7 +89,7 @@ func TestAntifloodingForLargerPeriodOfTime(t *testing.T) {
 
 	processors := createProcessors(peers, topic, idxBadPeers, idxGoodPeers)
 
-	go startFlooding(peers, topic, idxBadPeers, 8*1024*1024, 960*1024)
+	go startFlooding(peers, topic, idxBadPeers, 1*1024*1024, 256*1024)
 
 	for i := 0; i < 1000; i++ {
 		displayProcessors(processors, idxBadPeers, i)

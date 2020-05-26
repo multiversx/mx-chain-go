@@ -14,6 +14,7 @@ import (
 var log = logger.GetOrCreate("process/throttle/antiflood/blacklist")
 
 const minBanDuration = time.Second
+const minFloodingRounds = 2
 
 type p2pBlackListProcessor struct {
 	thresholdNumReceivedFlood  uint32
@@ -47,8 +48,8 @@ func NewP2PBlackListProcessor(
 	if thresholdSizeReceivedFlood == 0 {
 		return nil, fmt.Errorf("%w, thresholdSizeReceivedFlood == 0", process.ErrInvalidValue)
 	}
-	if numFloodingRounds < 2 {
-		return nil, fmt.Errorf("%w, numFloodingRounds < 2", process.ErrInvalidValue)
+	if numFloodingRounds < minFloodingRounds {
+		return nil, fmt.Errorf("%w, numFloodingRounds < %d", process.ErrInvalidValue, minFloodingRounds)
 	}
 	if banDuration < minBanDuration {
 		return nil, fmt.Errorf("%w for ban duration in NewP2PBlackListProcessor", process.ErrInvalidValue)
@@ -120,9 +121,6 @@ func (pbp *p2pBlackListProcessor) incrementStatsFloodingPeer(identifier string) 
 
 	pbp.cacher.Put([]byte(identifier), val+1)
 }
-
-// SetGlobalQuota does nothing (here to comply with QuotaStatusHandler interface)
-func (pbp *p2pBlackListProcessor) SetGlobalQuota(_ uint32, _ uint64, _ uint32, _ uint64) {}
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (pbp *p2pBlackListProcessor) IsInterfaceNil() bool {

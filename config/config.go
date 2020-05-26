@@ -250,7 +250,7 @@ type AntifloodConfig struct {
 // FloodPreventerConfig will hold all flood preventer parameters
 type FloodPreventerConfig struct {
 	IntervalInSeconds uint32
-	NetworkMaxInput   AntifloodLimitsConfig
+	ReservedPercent   uint32
 	PeerMaxInput      AntifloodLimitsConfig
 	BlackList         BlackListConfig
 }

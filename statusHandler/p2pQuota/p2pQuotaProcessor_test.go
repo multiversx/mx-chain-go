@@ -63,24 +63,16 @@ func TestP2PQuotaProcessor_ResetStatisticsShouldEmptyStatsAndCallSetOnAllMetrics
 	numProcessed := uint64(3)
 	sizeProcessed := uint64(4)
 
-	numReceivedNetwork := uint64(5)
-	sizeReceivedNetwork := uint64(6)
-	numProcessedNetwork := uint64(7)
-	sizeProcessedNetwork := uint64(8)
-
 	status := mock.NewAppStatusHandlerMock()
 	quotaIdentifier := "identifier"
 	pqp, _ := p2pQuota.NewP2PQuotaProcessor(status, quotaIdentifier)
 	pqp.AddQuota(identifier, uint32(numReceived), sizeReceived, uint32(numProcessed), sizeProcessed)
-	pqp.SetGlobalQuota(uint32(numReceivedNetwork), sizeReceivedNetwork, uint32(numProcessedNetwork), sizeProcessedNetwork)
 
 	pqp.ResetStatistics()
 
 	assert.Nil(t, pqp.GetQuota(identifier))
 
 	numReceivers := uint64(1)
-	checkNetworkMetrics(t, status, numReceivedNetwork, sizeReceivedNetwork, numProcessedNetwork, sizeProcessedNetwork, quotaIdentifier)
-	checkPeakNetworkMetrics(t, status, numReceivedNetwork, sizeReceivedNetwork, numProcessedNetwork, sizeProcessedNetwork, quotaIdentifier)
 	checkPeerMetrics(t, status, numReceived, sizeReceived, numProcessed, sizeProcessed, quotaIdentifier)
 	checkPeakPeerMetrics(t, status, numReceived, sizeReceived, numProcessed, sizeProcessed, quotaIdentifier)
 	checkNumReceivers(t, status, numReceivers, numReceivers, quotaIdentifier)
@@ -114,78 +106,6 @@ func TestP2PQuotaProcessor_ResetStatisticsShouldSetPeerStatisticsTops(t *testing
 	checkPeerMetrics(t, status, numReceived2, sizeReceived2, numProcessed2, sizeProcessed2, quotaIdentifier)
 	checkPeakPeerMetrics(t, status, numReceived1, sizeReceived1, numProcessed1, sizeProcessed1, quotaIdentifier)
 	checkNumReceivers(t, status, numReceivers, numReceivers, quotaIdentifier)
-}
-
-func TestP2PQuotaProcessor_ResetStatisticsShouldSetNetworkStatisticsTops(t *testing.T) {
-	t.Parallel()
-
-	numReceivedNetwork1 := uint64(10)
-	sizeReceivedNetwork1 := uint64(20)
-	numProcessedNetwork1 := uint64(30)
-	sizeProcessedNetwork1 := uint64(40)
-
-	numReceivedNetwork2 := uint64(1)
-	sizeReceivedNetwork2 := uint64(2)
-	numProcessedNetwork2 := uint64(3)
-	sizeProcessedNetwork2 := uint64(4)
-
-	status := mock.NewAppStatusHandlerMock()
-	quotaIdentifier := "identifier"
-	pqp, _ := p2pQuota.NewP2PQuotaProcessor(status, quotaIdentifier)
-	pqp.SetGlobalQuota(uint32(numReceivedNetwork1), sizeReceivedNetwork1, uint32(numProcessedNetwork1), sizeProcessedNetwork1)
-	pqp.ResetStatistics()
-	pqp.SetGlobalQuota(uint32(numReceivedNetwork2), sizeReceivedNetwork2, uint32(numProcessedNetwork2), sizeProcessedNetwork2)
-
-	pqp.ResetStatistics()
-
-	checkNetworkMetrics(t, status, numReceivedNetwork2, sizeReceivedNetwork2, numProcessedNetwork2, sizeProcessedNetwork2, quotaIdentifier)
-	checkPeakNetworkMetrics(t, status, numReceivedNetwork1, sizeReceivedNetwork1, numProcessedNetwork1, sizeProcessedNetwork1, quotaIdentifier)
-}
-
-func checkNetworkMetrics(
-	t *testing.T,
-	status *mock.AppStatusHandlerMock,
-	numReceived uint64,
-	sizeReceived uint64,
-	numProcessed uint64,
-	sizeProcessed uint64,
-	identifier string,
-) {
-
-	value := status.GetUint64(core.MetricP2PNetworkNumReceivedMessages + "_" + identifier)
-	assert.Equal(t, value, numReceived)
-
-	value = status.GetUint64(core.MetricP2PNetworkSizeReceivedMessages + "_" + identifier)
-	assert.Equal(t, value, sizeReceived)
-
-	value = status.GetUint64(core.MetricP2PNetworkNumProcessedMessages + "_" + identifier)
-	assert.Equal(t, value, numProcessed)
-
-	value = status.GetUint64(core.MetricP2PNetworkSizeProcessedMessages + "_" + identifier)
-	assert.Equal(t, value, sizeProcessed)
-}
-
-func checkPeakNetworkMetrics(
-	t *testing.T,
-	status *mock.AppStatusHandlerMock,
-	numReceived uint64,
-	sizeReceived uint64,
-	numProcessed uint64,
-	sizeProcessed uint64,
-	identifier string,
-) {
-
-	value := status.GetUint64(core.MetricP2PPeakNetworkNumReceivedMessages + "_" + identifier)
-	assert.Equal(t, value, numReceived)
-
-	value = status.GetUint64(core.MetricP2PPeakNetworkSizeReceivedMessages + "_" + identifier)
-	assert.Equal(t, value, sizeReceived)
-
-	value = status.GetUint64(core.MetricP2PPeakNetworkNumProcessedMessages + "_" + identifier)
-	assert.Equal(t, value, numProcessed)
-
-	value = status.GetUint64(core.MetricP2PPeakNetworkSizeProcessedMessages + "_" + identifier)
-	assert.Equal(t, value, sizeProcessed)
 }
 
 func checkPeerMetrics(

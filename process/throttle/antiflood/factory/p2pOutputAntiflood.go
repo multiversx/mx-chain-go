@@ -1,15 +1,16 @@
 package factory
 
 import (
-	"math"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
+
+const outputReservedPercent = uint32(0)
 
 // NewP2POutputAntiFlood will return an instance of an output antiflood component based on the config
 func NewP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandler, error) {
@@ -17,7 +18,7 @@ func NewP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandle
 		return initP2POutputAntiFlood(mainConfig)
 	}
 
-	return &disabledAntiFlood{}, nil
+	return &disabled.AntiFlood{}, nil
 }
 
 func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandler, error) {
@@ -34,8 +35,7 @@ func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandl
 		make([]floodPreventers.QuotaStatusHandler, 0),
 		peerMaxMessagesPerSecond,
 		peerMaxTotalSizePerSecond,
-		math.MaxUint32,
-		math.MaxUint64,
+		outputReservedPercent,
 	)
 	if err != nil {
 		return nil, err
@@ -44,5 +44,5 @@ func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandl
 	topicFloodPreventer := floodPreventers.NewNilTopicFloodPreventer()
 	startResettingTopicFloodPreventer(topicFloodPreventer, make([]config.TopicMaxMessagesConfig, 0), floodPreventer)
 
-	return antiflood.NewP2PAntiflood(topicFloodPreventer, floodPreventer)
+	return antiflood.NewP2PAntiflood(&disabled.BlacklistHandler{}, topicFloodPreventer, floodPreventer)
 }

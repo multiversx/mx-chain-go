@@ -12,10 +12,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewP2PAntiflood_NilBlacklistHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	afm, err := antiflood.NewP2PAntiflood(
+		nil,
+		&mock.TopicAntiFloodStub{},
+		&mock.FloodPreventerStub{},
+	)
+	assert.True(t, check.IfNil(afm))
+	assert.True(t, errors.Is(err, process.ErrNilBlackListHandler))
+}
+
 func TestNewP2PAntiflood_EmptyFloodPreventerListShouldErr(t *testing.T) {
 	t.Parallel()
 
-	afm, err := antiflood.NewP2PAntiflood(&mock.TopicAntiFloodStub{})
+	afm, err := antiflood.NewP2PAntiflood(
+		&mock.BlackListHandlerStub{},
+		&mock.TopicAntiFloodStub{},
+	)
 	assert.True(t, check.IfNil(afm))
 	assert.True(t, errors.Is(err, process.ErrEmptyFloodPreventerList))
 }
@@ -23,7 +38,11 @@ func TestNewP2PAntiflood_EmptyFloodPreventerListShouldErr(t *testing.T) {
 func TestNewP2PAntiflood_NilTopicFloodPreventerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	afm, err := antiflood.NewP2PAntiflood(nil, &mock.FloodPreventerStub{})
+	afm, err := antiflood.NewP2PAntiflood(
+		&mock.BlackListHandlerStub{},
+		nil,
+		&mock.FloodPreventerStub{},
+	)
 	assert.True(t, check.IfNil(afm))
 	assert.True(t, errors.Is(err, process.ErrNilTopicFloodPreventer))
 }
@@ -31,7 +50,11 @@ func TestNewP2PAntiflood_NilTopicFloodPreventerShouldErr(t *testing.T) {
 func TestNewP2PAntiflood_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	afm, err := antiflood.NewP2PAntiflood(&mock.TopicAntiFloodStub{}, &mock.FloodPreventerStub{})
+	afm, err := antiflood.NewP2PAntiflood(
+		&mock.BlackListHandlerStub{},
+		&mock.TopicAntiFloodStub{},
+		&mock.FloodPreventerStub{},
+	)
 
 	assert.False(t, check.IfNil(afm))
 	assert.Nil(t, err)
@@ -42,7 +65,11 @@ func TestNewP2PAntiflood_ShouldWork(t *testing.T) {
 func TestP2PAntiflood_CanProcessMessageNilMessageShouldError(t *testing.T) {
 	t.Parallel()
 
-	afm, _ := antiflood.NewP2PAntiflood(&mock.TopicAntiFloodStub{}, &mock.FloodPreventerStub{})
+	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.BlackListHandlerStub{},
+		&mock.TopicAntiFloodStub{},
+		&mock.FloodPreventerStub{},
+	)
 
 	err := afm.CanProcessMessage(nil, "connected peer")
 	assert.Equal(t, p2p.ErrNilMessage, err)
@@ -58,9 +85,10 @@ func TestP2PAntiflood_CanNotIncrementFromConnectedPeerShouldError(t *testing.T) 
 		FromField: messageOriginator,
 	}
 	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.BlackListHandlerStub{},
 		&mock.TopicAntiFloodStub{},
 		&mock.FloodPreventerStub{
-			IncreaseLoadGlobalCalled: func(identifier string, size uint64) error {
+			IncreaseLoadCalled: func(identifier string, size uint64) error {
 				if identifier != fromConnectedPeer.Pretty() {
 					assert.Fail(t, "should have been the connected peer")
 				}
@@ -85,17 +113,14 @@ func TestP2PAntiflood_CanNotIncrementMessageOriginatorShouldError(t *testing.T) 
 		PeerField: p2p.PeerID(messageOriginator),
 	}
 	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.BlackListHandlerStub{},
 		&mock.TopicAntiFloodStub{},
 		&mock.FloodPreventerStub{
-			IncreaseLoadGlobalCalled: func(identifier string, size uint64) error {
-				if identifier != fromConnectedPeer.Pretty() {
-					return process.ErrSystemBusy
-				}
-
-				return nil
-			},
 			IncreaseLoadCalled: func(identifier string, size uint64) error {
 				if identifier == message.PeerField.Pretty() {
+					return process.ErrSystemBusy
+				}
+				if identifier != fromConnectedPeer.Pretty() {
 					return process.ErrSystemBusy
 				}
 
@@ -118,11 +143,9 @@ func TestP2PAntiflood_ShouldWork(t *testing.T) {
 		PeerField: p2p.PeerID(messageOriginator),
 	}
 	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.BlackListHandlerStub{},
 		&mock.TopicAntiFloodStub{},
 		&mock.FloodPreventerStub{
-			IncreaseLoadGlobalCalled: func(identifier string, size uint64) error {
-				return nil
-			},
 			IncreaseLoadCalled: func(identifier string, size uint64) error {
 				return nil
 			},
@@ -145,10 +168,6 @@ func TestP2PAntiflood_ShouldWorkWithMoreThanOneFlodPreventer(t *testing.T) {
 	numIncreasedLoads := 0
 
 	fp := &mock.FloodPreventerStub{
-		IncreaseLoadGlobalCalled: func(identifier string, size uint64) error {
-			numIncreasedLoads++
-			return nil
-		},
 		IncreaseLoadCalled: func(identifier string, size uint64) error {
 			numIncreasedLoads++
 			return nil
@@ -156,6 +175,7 @@ func TestP2PAntiflood_ShouldWorkWithMoreThanOneFlodPreventer(t *testing.T) {
 	}
 
 	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.BlackListHandlerStub{},
 		&mock.TopicAntiFloodStub{},
 		fp,
 		fp,
@@ -175,6 +195,7 @@ func TestP2pAntiflood_CanProcessMessagesOnTopicCanNotAccumulateShouldError(t *te
 	topicCall := "topic"
 	identifierCall := p2p.PeerID("id")
 	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.BlackListHandlerStub{},
 		&mock.TopicAntiFloodStub{
 			IncreaseLoadCalled: func(identifier string, topic string, numMessages uint32) error {
 				if identifier == identifierCall.Pretty() && topic == topicCall && numMessages == numMessagesCall {
@@ -199,6 +220,7 @@ func TestP2pAntiflood_CanProcessMessagesOnTopicCanAccumulateShouldWork(t *testin
 	topicCall := "topic"
 	identifierCall := p2p.PeerID("id")
 	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.BlackListHandlerStub{},
 		&mock.TopicAntiFloodStub{
 			IncreaseLoadCalled: func(identifier string, topic string, numMessages uint32) error {
 				if identifier == identifierCall.Pretty() && topic == topicCall && numMessages == numMessagesCall {
@@ -216,6 +238,33 @@ func TestP2pAntiflood_CanProcessMessagesOnTopicCanAccumulateShouldWork(t *testin
 	assert.Nil(t, err)
 }
 
+func TestP2pAntiflood_CanProcessMessagesOriginatorIsBlacklistedShouldErr(t *testing.T) {
+	t.Parallel()
+
+	identifier := p2p.PeerID("id")
+	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.BlackListHandlerStub{
+			HasCalled: func(key string) bool {
+				return true
+			},
+		},
+		&mock.TopicAntiFloodStub{},
+		&mock.FloodPreventerStub{
+			IncreaseLoadCalled: func(identifier string, size uint64) error {
+				return nil
+			},
+		},
+	)
+	message := &mock.P2PMessageMock{
+		DataField: []byte("data"),
+		PeerField: identifier,
+	}
+
+	err := afm.CanProcessMessage(message, identifier)
+
+	assert.True(t, errors.Is(err, process.ErrOriginatorIsBlacklisted))
+}
+
 func TestP2pAntiflood_ResetForTopicSetMaxMessagesShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -225,6 +274,7 @@ func TestP2pAntiflood_ResetForTopicSetMaxMessagesShouldWork(t *testing.T) {
 	setMaxMessagesForTopicParameter1 := ""
 	setMaxMessagesForTopicParameter2 := uint32(0)
 	afm, _ := antiflood.NewP2PAntiflood(
+		&mock.BlackListHandlerStub{},
 		&mock.TopicAntiFloodStub{
 			ResetForTopicCalled: func(topic string) {
 				resetTopicCalled = true

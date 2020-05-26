@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/mock"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/disabled"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,8 +34,8 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnDisabledImplementations(
 	assert.NotNil(t, bl)
 	assert.Nil(t, err)
 
-	_, ok1 := af.(*disabledAntiFlood)
-	_, ok2 := bl.(*disabledBlacklistHandler)
+	_, ok1 := af.(*disabled.AntiFlood)
+	_, ok2 := bl.(*disabled.BlacklistHandler)
 	assert.True(t, ok1)
 	assert.True(t, ok2)
 }
@@ -68,10 +69,6 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 func createFloodPreventerConfig() config.FloodPreventerConfig {
 	return config.FloodPreventerConfig{
 		IntervalInSeconds: 1,
-		NetworkMaxInput: config.AntifloodLimitsConfig{
-			MessagesPerInterval:  10,
-			TotalSizePerInterval: 10,
-		},
 		PeerMaxInput: config.AntifloodLimitsConfig{
 			MessagesPerInterval:  10,
 			TotalSizePerInterval: 10,

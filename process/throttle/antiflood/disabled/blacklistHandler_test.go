@@ -1,4 +1,4 @@
-package factory
+package disabled
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDisabledBlacklistHandler_ShouldNotPanic(t *testing.T) {
+func TestBlacklistHandler_ShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -15,7 +15,7 @@ func TestDisabledBlacklistHandler_ShouldNotPanic(t *testing.T) {
 		assert.Nil(t, r, "this shouldn't panic")
 	}()
 
-	dbh := &disabledBlacklistHandler{}
+	dbh := &BlacklistHandler{}
 	assert.False(t, check.IfNil(dbh))
 
 	val := dbh.Has("a")

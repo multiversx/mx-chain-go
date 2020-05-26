@@ -267,29 +267,25 @@
     NumConcurrentResolverJobs = 50
     [Antiflood.FastReacting]
         IntervalInSeconds = 1
-        [Antiflood.FastReacting.NetworkMaxInput]
-            MessagesPerInterval  = 200
-            TotalSizePerInterval = 2097152
+        ReservedPercent   = 20
         [Antiflood.FastReacting.PeerMaxInput]
-            MessagesPerInterval  = 37
-            TotalSizePerInterval = 1048576
+            MessagesPerInterval  = 90
+            TotalSizePerInterval = 2516582
         [Antiflood.FastReacting.BlackList]
-            ThresholdNumMessagesPerInterval = 240
-            ThresholdSizePerInterval = 3145728
+            ThresholdNumMessagesPerInterval = 180
+            ThresholdSizePerInterval = 5033164
             NumFloodingRounds = 10
             PeerBanDurationInSeconds = 300
 
     [Antiflood.SlowReacting]
         IntervalInSeconds = 30
-        [Antiflood.SlowReacting.NetworkMaxInput]
-            MessagesPerInterval = 2500
-            TotalSizePerInterval = 15728640 # 15MB/interval
+        ReservedPercent   = 20
         [Antiflood.SlowReacting.PeerMaxInput]
-            MessagesPerInterval = 1250
-            TotalSizePerInterval = 7340032 # 7MB/interval
+            MessagesPerInterval = 3000
+            TotalSizePerInterval = 18874368 # 18MB/interval
         [Antiflood.SlowReacting.BlackList]
-            ThresholdNumMessagesPerInterval = 3000
-            ThresholdSizePerInterval = 18874368 # 18MB/interval
+            ThresholdNumMessagesPerInterval = 6000
+            ThresholdSizePerInterval = 37748736 # 18MB/interval
             NumFloodingRounds = 2
             PeerBanDurationInSeconds = 3600
 

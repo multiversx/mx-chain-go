@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/p2pQuota"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -34,7 +35,7 @@ func NewP2PAntiFloodAndBlackList(
 		return initP2PAntiFloodAndBlackList(config, statusHandler)
 	}
 
-	return &disabledAntiFlood{}, &disabledBlacklistHandler{}, nil
+	return &disabled.AntiFlood{}, &disabled.BlacklistHandler{}, nil
 }
 
 func initP2PAntiFloodAndBlackList(
@@ -74,6 +75,7 @@ func initP2PAntiFloodAndBlackList(
 	setMaxMessages(topicFloodPreventer, topicMaxMessages)
 
 	p2pAntiflood, err := antiflood.NewP2PAntiflood(
+		p2pPeerBlackList,
 		topicFloodPreventer,
 		fastReactingFloodPreventer,
 		slowReactingFloodPreventer,
@@ -162,16 +164,14 @@ func createFloodPreventer(
 
 	peerMaxMessagesPerSecond := floodPreventerConfig.PeerMaxInput.MessagesPerInterval
 	peerMaxTotalSizePerSecond := floodPreventerConfig.PeerMaxInput.TotalSizePerInterval
-	maxMessagesPerSecond := floodPreventerConfig.NetworkMaxInput.MessagesPerInterval
-	maxTotalSizePerSecond := floodPreventerConfig.NetworkMaxInput.TotalSizePerInterval
+	reservedPercent := floodPreventerConfig.ReservedPercent
 
 	floodPreventer, err := floodPreventers.NewQuotaFloodPreventer(
 		antifloodCache,
 		[]floodPreventers.QuotaStatusHandler{quotaProcessor, blackListProcessor},
 		peerMaxMessagesPerSecond,
 		peerMaxTotalSizePerSecond,
-		maxMessagesPerSecond,
-		maxTotalSizePerSecond,
+		reservedPercent,
 	)
 	if err != nil {
 		return nil, err
@@ -182,8 +182,6 @@ func createFloodPreventer(
 		"interval in seconds", floodPreventerConfig.IntervalInSeconds,
 		"peerMaxMessagesPerInterval", peerMaxMessagesPerSecond,
 		"peerMaxTotalSizePerInterval", core.ConvertBytes(peerMaxTotalSizePerSecond),
-		"maxMessagesPerInterval", maxMessagesPerSecond,
-		"maxTotalSizePerInterval", core.ConvertBytes(maxTotalSizePerSecond),
 		"peerBanDurationInSeconds", floodPreventerConfig.BlackList.PeerBanDurationInSeconds,
 		"thresholdNumMessagesPerSecond", floodPreventerConfig.BlackList.ThresholdNumMessagesPerInterval,
 		"thresholdSizePerSecond", floodPreventerConfig.BlackList.ThresholdSizePerInterval,

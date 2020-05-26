@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/disabled"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +21,7 @@ func TestNewP2POutputAntiFlood_ShouldWorkAndReturnDisabledImplementations(t *tes
 	assert.NotNil(t, af)
 	assert.Nil(t, err)
 
-	_, ok := af.(*disabledAntiFlood)
+	_, ok := af.(*disabled.AntiFlood)
 	assert.True(t, ok)
 }
 
