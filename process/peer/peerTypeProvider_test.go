@@ -14,7 +14,7 @@ import (
 )
 
 func TestNewPeerTypeProvider_NilNodesCoordinator(t *testing.T) {
-	arg := createDefaultArg()
+	arg := createDefaultArgPeerTypeProvider()
 	arg.NodesCoordinator = nil
 
 	ptp, err := NewPeerTypeProvider(arg)
@@ -23,7 +23,7 @@ func TestNewPeerTypeProvider_NilNodesCoordinator(t *testing.T) {
 }
 
 func TestNewPeerTypeProvider_NilEpochStartNotifier(t *testing.T) {
-	arg := createDefaultArg()
+	arg := createDefaultArgPeerTypeProvider()
 	arg.EpochStartEventNotifier = nil
 
 	ptp, err := NewPeerTypeProvider(arg)
@@ -32,7 +32,7 @@ func TestNewPeerTypeProvider_NilEpochStartNotifier(t *testing.T) {
 }
 
 func TestNewPeerTypeProvider_ShouldWork(t *testing.T) {
-	arg := createDefaultArg()
+	arg := createDefaultArgPeerTypeProvider()
 
 	ptp, err := NewPeerTypeProvider(arg)
 	assert.Nil(t, err)
@@ -43,7 +43,7 @@ func TestPeerTypeProvider_CallsPopulateAndRegister(t *testing.T) {
 	numRegisterHandlerCalled := int32(0)
 	numPopulateCacheCalled := int32(0)
 
-	arg := createDefaultArg()
+	arg := createDefaultArgPeerTypeProvider()
 	arg.EpochStartEventNotifier = &mock.EpochStartNotifierStub{
 		RegisterHandlerCalled: func(handler epochStart.ActionHandler) {
 			atomic.AddInt32(&numRegisterHandlerCalled, 1)
@@ -70,7 +70,7 @@ func TestPeerTypeProvider_UpdateCache(t *testing.T) {
 	eligibleMap[initialShardId] = [][]byte{
 		[]byte(pk),
 	}
-	arg := createDefaultArg()
+	arg := createDefaultArgPeerTypeProvider()
 	arg.NodesCoordinator = &mock.NodesCoordinatorMock{
 		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			return eligibleMap, nil
@@ -113,7 +113,7 @@ func TestNewPeerTypeProvider_createCache(t *testing.T) {
 		[]byte(pkLeaving),
 	}
 
-	arg := createDefaultArg()
+	arg := createDefaultArgPeerTypeProvider()
 	arg.NodesCoordinator = &mock.NodesCoordinatorMock{
 		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			return eligibleMap, nil
@@ -150,7 +150,7 @@ func TestNewPeerTypeProvider_createCache(t *testing.T) {
 }
 
 func TestNewPeerTypeProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
-	arg := createDefaultArg()
+	arg := createDefaultArgPeerTypeProvider()
 	callNumber := 0
 	epochStartNotifier := &mock.EpochStartNotifierStub{}
 	arg.EpochStartEventNotifier = epochStartNotifier
@@ -179,7 +179,7 @@ func TestNewPeerTypeProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 }
 
 func TestNewPeerTypeProvider_ComputeForKeyFromCache(t *testing.T) {
-	arg := createDefaultArg()
+	arg := createDefaultArgPeerTypeProvider()
 	pk := []byte("pk1")
 	initialShardId := uint32(1)
 	popMutex := sync.RWMutex{}
@@ -209,7 +209,7 @@ func TestNewPeerTypeProvider_ComputeForKeyFromCache(t *testing.T) {
 }
 
 func TestNewPeerTypeProvider_ComputeForKeyNotFoundInCacheReturnsObserver(t *testing.T) {
-	arg := createDefaultArg()
+	arg := createDefaultArgPeerTypeProvider()
 	pk := []byte("pk1")
 	arg.NodesCoordinator = &mock.NodesCoordinatorMock{
 		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
@@ -227,13 +227,13 @@ func TestNewPeerTypeProvider_ComputeForKeyNotFoundInCacheReturnsObserver(t *test
 }
 
 func TestNewPeerTypeProvider_IsInterfaceNil(t *testing.T) {
-	arg := createDefaultArg()
+	arg := createDefaultArgPeerTypeProvider()
 
 	ptp, _ := NewPeerTypeProvider(arg)
 	assert.False(t, ptp.IsInterfaceNil())
 }
 
-func createDefaultArg() ArgPeerTypeProvider {
+func createDefaultArgPeerTypeProvider() ArgPeerTypeProvider {
 	return ArgPeerTypeProvider{
 		NodesCoordinator:        &mock.NodesCoordinatorMock{},
 		StartEpoch:              0,

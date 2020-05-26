@@ -152,13 +152,13 @@ func (vp *validatorsProvider) createNewCache(
 	if err != nil {
 		log.Debug("peerTypeProvider - GetAllEligibleValidatorsPublicKeys failed", "epoch", epoch)
 	}
-	aggregatePType(newCache, nodesMapEligible, core.EligibleList)
+	vp.aggregatePType(newCache, nodesMapEligible, core.EligibleList)
 
 	nodesMapWaiting, err := vp.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
 	if err != nil {
 		log.Debug("peerTypeProvider - GetAllWaitingValidatorsPublicKeys failed", "epoch", epoch)
 	}
-	aggregatePType(newCache, nodesMapWaiting, core.WaitingList)
+	vp.aggregatePType(newCache, nodesMapWaiting, core.WaitingList)
 
 	return newCache
 }
@@ -183,7 +183,6 @@ func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(
 				TempRating:               float32(validatorInfo.TempRating) * 100 / float32(vp.maxRating),
 				ShardId:                  validatorInfo.ShardId,
 				List:                     validatorInfo.List,
-				Index:                    validatorInfo.Index,
 			}
 		}
 	}
@@ -191,25 +190,31 @@ func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(
 	return newCache
 }
 
-func aggregatePType(
+func (vp *validatorsProvider) aggregatePType(
 	newCache map[string]*state.ValidatorApiResponse,
 	validatorsMap map[uint32][][]byte,
 	currentList core.PeerType,
 ) {
 	for shardID, shardValidators := range validatorsMap {
 		for _, val := range shardValidators {
-			foundInTrieValidator, ok := newCache[string(val)]
+			encodedKey := vp.pubkeyConverter.Encode(val)
+			foundInTrieValidator, ok := newCache[encodedKey]
+			peerType := string(currentList)
+
 			if !ok || foundInTrieValidator == nil {
+				newCache[encodedKey] = &state.ValidatorApiResponse{}
+				newCache[encodedKey].ShardId = shardID
+				newCache[encodedKey].List = peerType
 				continue
 			}
-			peerType := string(currentList)
+
 			trieList := core.PeerType(foundInTrieValidator.List)
 			if shouldCombine(trieList, currentList) {
 				peerType = fmt.Sprintf(core.CombinedPeerType, currentList, trieList)
 			}
 
-			newCache[string(val)].ShardId = shardID
-			newCache[string(val)].List = peerType
+			newCache[encodedKey].ShardId = shardID
+			newCache[encodedKey].List = peerType
 		}
 	}
 }
