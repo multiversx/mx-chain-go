@@ -150,15 +150,15 @@ func (vp *validatorsProvider) createNewCache(
 
 	nodesMapEligible, err := vp.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
-		log.Debug("peerTypeProvider - GetAllEligibleValidatorsPublicKeys failed", "epoch", epoch)
+		log.Debug("validatorsProvider - GetAllEligibleValidatorsPublicKeys failed", "epoch", epoch)
 	}
-	vp.aggregatePType(newCache, nodesMapEligible, core.EligibleList)
+	vp.aggregateLists(newCache, nodesMapEligible, core.EligibleList)
 
 	nodesMapWaiting, err := vp.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
 	if err != nil {
-		log.Debug("peerTypeProvider - GetAllWaitingValidatorsPublicKeys failed", "epoch", epoch)
+		log.Debug("validatorsProvider - GetAllWaitingValidatorsPublicKeys failed", "epoch", epoch)
 	}
-	vp.aggregatePType(newCache, nodesMapWaiting, core.WaitingList)
+	vp.aggregateLists(newCache, nodesMapWaiting, core.WaitingList)
 
 	return newCache
 }
@@ -195,7 +195,7 @@ func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(
 	return newCache
 }
 
-func (vp *validatorsProvider) aggregatePType(
+func (vp *validatorsProvider) aggregateLists(
 	newCache map[string]*state.ValidatorApiResponse,
 	validatorsMap map[uint32][][]byte,
 	currentList core.PeerType,
@@ -210,6 +210,7 @@ func (vp *validatorsProvider) aggregatePType(
 				newCache[encodedKey] = &state.ValidatorApiResponse{}
 				newCache[encodedKey].ShardId = shardID
 				newCache[encodedKey].List = peerType
+				log.Debug("validator from map not found in trie", "pk", encodedKey, "map", peerType)
 				continue
 			}
 

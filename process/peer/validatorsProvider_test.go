@@ -316,7 +316,7 @@ func TestValidatorsProvider_aggregatePType_equal(t *testing.T) {
 		pubkeyConverter: pubKeyConverter,
 	}
 
-	vp.aggregatePType(cache, validatorsMap, core.EligibleList)
+	vp.aggregateLists(cache, validatorsMap, core.EligibleList)
 
 	assert.Equal(t, trieInctiveShardId, cache[encondedInactive].ShardId)
 	assert.Equal(t, inactiveList, cache[encondedInactive].List)

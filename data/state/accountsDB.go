@@ -584,7 +584,7 @@ func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier data.TriePruningIde
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	log.Debug("accountsDB.PruneTrie", "root hash", rootHash)
+	log.Trace("accountsDB.PruneTrie", "root hash", rootHash)
 
 	adb.mainTrie.Prune(rootHash, identifier)
 }
@@ -594,7 +594,7 @@ func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier data.TriePruningI
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	log.Debug("accountsDB.CancelPrune", "root hash", rootHash)
+	log.Trace("accountsDB.CancelPrune", "root hash", rootHash)
 
 	adb.mainTrie.CancelPrune(rootHash, identifier)
 }
