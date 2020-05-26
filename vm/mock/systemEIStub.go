@@ -121,8 +121,8 @@ func (s *SystemEIStub) SetStorage(key []byte, value []byte) {
 	}
 }
 
-// SetReturnMessage -
-func (s *SystemEIStub) SetReturnMessage(msg string) {
+// AddReturnMessage -
+func (s *SystemEIStub) AddReturnMessage(msg string) {
 	if s.SetReturnMessageCalled != nil {
 		s.SetReturnMessageCalled(msg)
 	}

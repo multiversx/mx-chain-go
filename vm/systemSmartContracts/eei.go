@@ -162,7 +162,7 @@ func (host *vmContext) copyToNewContext() *vmContext {
 
 func (host *vmContext) copyFromContext(currContext *vmContext) {
 	host.output = append(host.output, currContext.output...)
-	host.returnMessage = currContext.returnMessage
+	host.AddReturnMessage(currContext.returnMessage)
 
 	for key, storageUpdate := range currContext.storageUpdate {
 		if _, ok := host.storageUpdate[key]; !ok {
@@ -241,8 +241,6 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 	}
 
 	if input.Function == core.SCDeployInitFunctionName {
-		log.Debug("cannot call smart contract init function")
-
 		return &vmcommon.VMOutput{
 			ReturnCode:    vmcommon.UserError,
 			ReturnMessage: "cannot call smart contract init function",
@@ -266,9 +264,14 @@ func (host *vmContext) Finish(value []byte) {
 	host.output = append(host.output, value)
 }
 
-// SetReturnMessage will set the return message
-func (host *vmContext) SetReturnMessage(message string) {
-	host.returnMessage = message
+// AddReturnMessage will set the return message
+func (host *vmContext) AddReturnMessage(message string) {
+	if host.returnMessage == "" {
+		host.returnMessage = message
+		return
+	}
+
+	host.returnMessage += "@" + message
 }
 
 // BlockChainHook returns the blockchain hook
