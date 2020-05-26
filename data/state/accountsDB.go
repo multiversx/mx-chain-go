@@ -452,9 +452,6 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	dataTries := adb.dataTries.GetAll()
 	for i := 0; i < len(dataTries); i++ {
 		oldTrieHashes := dataTries[i].ResetOldHashes()
-		for j := range oldTrieHashes {
-			log.Debug("old data trie hash", "hash", oldTrieHashes[j])
-		}
 		newTrieHashes, err := dataTries[i].GetDirtyHashes()
 		if err != nil {
 			return nil, err
@@ -467,7 +464,6 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 
 		oldHashes = append(oldHashes, oldTrieHashes...)
 		for hash := range newTrieHashes {
-			log.Debug("new data trie hash", "hash", hash)
 			newHashes[hash] = struct{}{}
 		}
 	}

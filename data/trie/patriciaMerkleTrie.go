@@ -134,7 +134,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 		tr.oldHashes = append(tr.oldHashes, oldHashes...)
 
 		for i := range oldHashes {
-			log.Trace("oldHashes for insert", "hash", oldHashes[i])
+			log.Trace("oldHashes after insert", "hash", oldHashes[i])
 		}
 	} else {
 		if tr.root == nil {
@@ -153,7 +153,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 		tr.oldHashes = append(tr.oldHashes, oldHashes...)
 
 		for i := range oldHashes {
-			log.Trace("oldHashes for delete", "hash", oldHashes[i])
+			log.Trace("oldHashes after delete", "hash", oldHashes[i])
 		}
 	}
 
@@ -231,7 +231,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	tr.oldRoot = make([]byte, 0)
 	tr.oldHashes = make([][]byte, 0)
 
-	log.Trace("started committing trie with rootHash", "rootHash", tr.String())
+	log.Trace("started committing trie", "trie", tr.String())
 	err = tr.root.commit(false, 0, tr.maxTrieLevelInMemory, tr.trieStorage.Database(), tr.trieStorage.Database())
 	if err != nil {
 		return err
@@ -378,6 +378,11 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 	oldHashes := tr.oldHashes
 	tr.oldHashes = make([][]byte, 0)
 	tr.oldRoot = make([]byte, 0)
+
+	for i := range oldHashes {
+		log.Trace("old trie hash", "hash", oldHashes[i])
+	}
+
 	tr.mutOperation.Unlock()
 
 	return oldHashes
@@ -401,6 +406,10 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (data.ModifiedHashes, error) {
 	err = tr.root.getDirtyHashes(dirtyHashes)
 	if err != nil {
 		return nil, err
+	}
+
+	for hash := range dirtyHashes {
+		log.Trace("new trie hash", "hash", hash)
 	}
 
 	return dirtyHashes, nil
