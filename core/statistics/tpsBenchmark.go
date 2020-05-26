@@ -261,6 +261,7 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 	s.statusHandler.SetUInt64Value(core.MetricLastBlockTxCount, uint64(header.TxCount))
 	s.statusHandler.SetUInt64Value(core.MetricPeakTPS, uint64(s.peakTPS))
 	s.statusHandler.SetStringValue(core.MetricAverageBlockTxCount, s.averageBlockTxCount.String())
+	s.statusHandler.AddUint64(core.MetricNumProcessedTxs, uint64(header.TxCount))
 
 	for _, shardInfo := range header.ShardInfo {
 		shardStat, ok := s.shardStatistics[shardInfo.ShardID]

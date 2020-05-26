@@ -164,7 +164,7 @@ func (shi *statusHandlersInfo) LoadTpsBenchmarkFromStorage(
 	okTpsBenchmarks.RoundNumber = persister.GetUint64(metricsMap[core.MetricCurrentRound])
 	okTpsBenchmarks.LastBlockTxCount = uint32(persister.GetUint64(metricsMap[core.MetricLastBlockTxCount]))
 	okTpsBenchmarks.PeakTPS = float64(persister.GetUint64(metricsMap[core.MetricPeakTPS]))
-	okTpsBenchmarks.TotalProcessedTxCount = persister.GetBigIntFromString(metricsMap[core.MetricNumProcessedTxs])
+	okTpsBenchmarks.TotalProcessedTxCount = big.NewInt(int64(persister.GetUint64(metricsMap[core.MetricNumProcessedTxs])))
 	okTpsBenchmarks.AverageBlockTxCount = persister.GetBigIntFromString(metricsMap[core.MetricAverageBlockTxCount])
 
 	log.Debug("loaded tps benchmark from storage",
