@@ -1368,28 +1368,6 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 	} else {
 		sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
-
-	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(metaBlock.GetShardID())
-	if err != nil {
-		log.Debug("receivedMetaBlock.GetLastCrossNotarizedHeader",
-			"shard", metaBlock.GetShardID(),
-			"error", err.Error())
-		return
-	}
-
-	if metaBlock.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
-		return
-	}
-	if metaBlock.GetRound() <= lastCrossNotarizedHeader.GetRound() {
-		return
-	}
-
-	isMetaBlockOutOfRequestRange := metaBlock.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
-	if isMetaBlockOutOfRequestRange {
-		return
-	}
-
-	go sp.txCoordinator.RequestMiniBlocks(metaBlock)
 }
 
 func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32, uint32) {

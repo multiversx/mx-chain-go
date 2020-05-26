@@ -16,6 +16,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
+const extraDelayForBroadcast = 2 * time.Second
+
 type subroundEndRound struct {
 	*spos.Subround
 	processingThresholdPercentage int
@@ -384,10 +386,12 @@ func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {
 			return err
 		}
 
-		return sr.broadcast(metaMiniBlocks, metaTransactions)
+		go sr.broadcast(metaMiniBlocks, metaTransactions, 0)
+		return nil
 	}
 
-	return sr.broadcast(miniBlocks, transactions)
+	go sr.broadcast(miniBlocks, transactions, extraDelayForBroadcast)
+	return nil
 }
 
 func (sr *subroundEndRound) extractMetaMiniBlocksAndTransactions(
@@ -421,22 +425,26 @@ func (sr *subroundEndRound) extractMetaMiniBlocksAndTransactions(
 	return metaMiniBlocks, metaTransactions
 }
 
-func (sr *subroundEndRound) broadcast(miniBlocks map[uint32][]byte, transactions map[string][][]byte) error {
+func (sr *subroundEndRound) broadcast(
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+	extraDelayForBroadcast time.Duration,
+) {
+	time.Sleep(extraDelayForBroadcast)
+
 	if len(miniBlocks) > 0 {
 		err := sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)
 		if err != nil {
-			return err
+			log.Debug("broadcast.BroadcastMiniBlocks", "error", err.Error())
 		}
 	}
 
 	if len(transactions) > 0 {
 		err := sr.BroadcastMessenger().BroadcastTransactions(transactions)
 		if err != nil {
-			return err
+			log.Debug("broadcast.BroadcastTransactions", "error", err.Error())
 		}
 	}
-
-	return nil
 }
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved

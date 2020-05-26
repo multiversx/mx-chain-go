@@ -1610,28 +1610,6 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 	} else {
 		mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
-
-	lastCrossNotarizedHeader, _, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardHeader.GetShardID())
-	if err != nil {
-		log.Debug("receivedShardHeader.GetLastCrossNotarizedHeader",
-			"shard", shardHeader.GetShardID(),
-			"error", err.Error())
-		return
-	}
-
-	if shardHeader.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
-		return
-	}
-	if shardHeader.GetRound() <= lastCrossNotarizedHeader.GetRound() {
-		return
-	}
-
-	isShardHeaderOutOfRequestRange := shardHeader.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
-	if isShardHeaderOutOfRequestRange {
-		return
-	}
-
-	go mp.txCoordinator.RequestMiniBlocks(shardHeader)
 }
 
 // requestMissingFinalityAttestingShardHeaders requests the headers needed to accept the current selected headers for
