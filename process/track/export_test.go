@@ -198,3 +198,7 @@ func (mbt *miniBlockTrack) ReceivedMiniBlock(key []byte, value interface{}) {
 func (mbt *miniBlockTrack) GetTransactionPool(mbType block.Type) dataRetriever.ShardedDataCacherNotifier {
 	return mbt.getTransactionPool(mbType)
 }
+
+func (mbt *miniBlockTrack) SetBlockTransactionsPool(blockTransactionsPool dataRetriever.ShardedDataCacherNotifier) {
+	mbt.blockTransactionsPool = blockTransactionsPool
+}
