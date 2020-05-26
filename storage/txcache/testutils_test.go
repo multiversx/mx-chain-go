@@ -22,8 +22,42 @@ func kBToBytes(kB float32) uint64 {
 	return uint64(kB * 1000)
 }
 
+func (cache *TxCache) areInternalMapsConsistent() bool {
+	internalMapByHash := cache.txByHash
+	internalMapBySender := cache.txListBySender
+
+	senders := internalMapBySender.getSnapshotAscending()
+	numTransactionsInMapByHash := len(internalMapByHash.keys())
+	numTransactionsInMapBySender := 0
+
+	for _, sender := range senders {
+		numTransactionsInMapBySender += int(sender.countTx())
+
+		for _, hash := range sender.getTxHashesAsStrings() {
+			_, ok := internalMapByHash.getTx(hash)
+			if !ok {
+				return false
+			}
+		}
+	}
+
+	if numTransactionsInMapBySender != numTransactionsInMapByHash {
+		return false
+	}
+
+	return true
+}
+
+func (cache *TxCache) getHashesForSender(sender string) []string {
+	return cache.getListForSender(sender).getTxHashesAsStrings()
+}
+
 func (cache *TxCache) getListForSender(sender string) *txListForSender {
-	list, ok := cache.txListBySender.getListForSender(sender)
+	return cache.txListBySender.testGetListForSender(sender)
+}
+
+func (txMap *txListBySenderMap) testGetListForSender(sender string) *txListForSender {
+	list, ok := txMap.getListForSender(sender)
 	if !ok {
 		panic("sender not in cache")
 	}
@@ -47,6 +81,21 @@ func (cache *TxCache) isSenderSweepable(sender string) bool {
 	}
 
 	return false
+}
+
+func (listForSender *txListForSender) getTxHashesAsStrings() []string {
+	hashes := listForSender.getTxHashes()
+	return hashesAsStrings(hashes)
+}
+
+func hashesAsStrings(hashes [][]byte) []string {
+	result := make([]string, len(hashes))
+
+	for i := 0; i < len(hashes); i++ {
+		result[i] = string(hashes[i])
+	}
+
+	return result
 }
 
 func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nTransactionsPerSender int) {
