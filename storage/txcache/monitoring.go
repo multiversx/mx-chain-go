@@ -71,6 +71,7 @@ func (cache *TxCache) monitorBatchSelectionEnd(journal batchSelectionJournal) {
 		if journal.hasInitialGap {
 			cache.numSendersWithInitialGap.Increment()
 		} else if journal.hasMiddleGap {
+			// Currently, we only count middle gaps on first batch (for simplicity)
 			cache.numSendersWithMiddleGap.Increment()
 		}
 
