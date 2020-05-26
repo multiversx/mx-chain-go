@@ -13,10 +13,10 @@ type txByHashMap struct {
 }
 
 // newTxByHashMap creates a new TxByHashMap instance
-func newTxByHashMap(nChunksHint uint32) txByHashMap {
+func newTxByHashMap(nChunksHint uint32) *txByHashMap {
 	backingMap := maps.NewConcurrentMap(nChunksHint)
 
-	return txByHashMap{
+	return &txByHashMap{
 		backingMap: backingMap,
 	}
 }
