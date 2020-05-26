@@ -3,6 +3,7 @@ package broadcast
 import (
 	"bytes"
 	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -14,6 +15,8 @@ import (
 )
 
 var _ consensus.BroadcastMessenger = (*shardChainMessenger)(nil)
+
+const extraDelayForBroadcast = time.Second
 
 type delayedBroadcastData struct {
 	headerHash   []byte
@@ -185,6 +188,15 @@ func (scm *shardChainMessenger) headerReceived(headerHandler data.HeaderHandler,
 	if len(headerHashes) == 0 {
 		return
 	}
+
+	go scm.broadcastDataForHeaders(headerHashes)
+}
+
+func (scm *shardChainMessenger) broadcastDataForHeaders(headerHashes [][]byte) {
+	time.Sleep(extraDelayForBroadcast)
+
+	scm.mutDataForBroadcast.Lock()
+	defer scm.mutDataForBroadcast.Unlock()
 
 	for i := len(scm.delayedBroadcastData) - 1; i >= 0; i-- {
 		for _, headerHash := range headerHashes {
