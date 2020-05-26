@@ -55,25 +55,12 @@ type shardStatisticsResponse struct {
 
 // Routes defines node related routes
 func Routes(router *wrapper.RouterWrapper) {
-	router.RegisterHandler(http.MethodGet, "/epoch", EpochData)
 	router.RegisterHandler(http.MethodGet, "/heartbeatstatus", HeartbeatStatus)
 	router.RegisterHandler(http.MethodGet, "/statistics", Statistics)
 	router.RegisterHandler(http.MethodGet, "/status", StatusMetrics)
 	router.RegisterHandler(http.MethodGet, "/p2pstatus", P2pStatusMetrics)
 	router.RegisterHandler(http.MethodPost, "/debug", QueryDebug)
 	// placeholder for custom routes
-}
-
-// EpochData returns data about current epoch
-func EpochData(c *gin.Context) {
-	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
-		return
-	}
-
-	epochMetrics := ef.StatusMetrics().EpochMetrics()
-	c.JSON(http.StatusOK, gin.H{"epochData": epochMetrics})
 }
 
 // HeartbeatStatus respond with the heartbeat status of the node

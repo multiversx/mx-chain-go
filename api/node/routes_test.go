@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
@@ -259,30 +258,6 @@ func TestP2PStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	assert.False(t, strings.Contains(respStr, key))
 }
 
-func TestEpochMetrics_ShouldWork(t *testing.T) {
-	statusMetricsProvider := statusHandler.NewStatusMetrics()
-	key := core.MetricEpochNumber
-	value := uint64(37)
-	statusMetricsProvider.SetUInt64Value(key, value)
-
-	facade := mock.Facade{}
-	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
-		return statusMetricsProvider
-	}
-
-	ws := startNodeServer(&facade)
-	req, _ := http.NewRequest("GET", "/node/epoch", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	respBytes, _ := ioutil.ReadAll(resp.Body)
-	respStr := string(respBytes)
-	assert.Equal(t, resp.Code, http.StatusOK)
-
-	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
-	assert.True(t, keyAndValueFoundInResponse)
-}
-
 func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -397,7 +372,6 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/statistics", Open: true},
 					{Name: "/heartbeatstatus", Open: true},
 					{Name: "/p2pstatus", Open: true},
-					{Name: "/epoch", Open: true},
 					{Name: "/debug", Open: true},
 				},
 			},

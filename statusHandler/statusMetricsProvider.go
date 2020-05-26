@@ -126,21 +126,6 @@ func (sm *statusMetrics) StatusP2pMetricsMap() map[string]interface{} {
 	return statusMetricsMap
 }
 
-// EpochMetrics will return metrics related to current epoch
-func (sm *statusMetrics) EpochMetrics() map[string]interface{} {
-	epochMetrics := make(map[string]interface{})
-
-	currentRound := sm.loadUint64Metric(core.MetricCurrentRound)
-	roundNumberAtEpochStart := sm.loadUint64Metric(core.MetricRoundAtEpochStart)
-	epochMetrics[core.MetricEpochNumber] = sm.loadUint64Metric(core.MetricEpochNumber)
-	epochMetrics[core.MetricRoundsPerEpoch] = sm.loadUint64Metric(core.MetricRoundsPerEpoch)
-	epochMetrics[core.MetricCurrentRound] = currentRound
-	epochMetrics[core.MetricRoundAtEpochStart] = roundNumberAtEpochStart
-	epochMetrics[core.MetricRoundsPassedInCurrentEpoch] = currentRound - roundNumberAtEpochStart
-
-	return epochMetrics
-}
-
 // ConfigMetrics will return metrics related to current configuration
 func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 	configMetrics := make(map[string]interface{})
@@ -164,9 +149,15 @@ func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 func (sm *statusMetrics) NetworkMetrics() map[string]interface{} {
 	networkMetrics := make(map[string]interface{})
 
+	currentRound := sm.loadUint64Metric(core.MetricCurrentRound)
+	roundNumberAtEpochStart := sm.loadUint64Metric(core.MetricRoundAtEpochStart)
+
 	networkMetrics[core.MetricNonce] = sm.loadUint64Metric(core.MetricNonce)
-	networkMetrics[core.MetricCurrentRound] = sm.loadUint64Metric(core.MetricCurrentRound)
+	networkMetrics[core.MetricCurrentRound] = currentRound
 	networkMetrics[core.MetricEpochNumber] = sm.loadUint64Metric(core.MetricEpochNumber)
+	networkMetrics[core.MetricRoundAtEpochStart] = roundNumberAtEpochStart
+	networkMetrics[core.MetricRoundsPerEpoch] = sm.loadUint64Metric(core.MetricRoundsPerEpoch)
+	networkMetrics[core.MetricRoundsPassedInCurrentEpoch] = currentRound - roundNumberAtEpochStart
 
 	return networkMetrics
 }
