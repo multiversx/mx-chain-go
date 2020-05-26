@@ -412,11 +412,15 @@ func (en *extensionNode) delete(key []byte, db data.DBWriteCacher) (bool, node, 
 	}
 }
 
-func (en *extensionNode) reduceNode(pos int) (node, error) {
+func (en *extensionNode) reduceNode(pos int) (node, bool, error) {
 	k := append([]byte{byte(pos)}, en.Key...)
-	en.Key = k
 
-	return en, nil
+	newEn, err := newExtensionNode(k, en.child, en.marsh, en.hasher)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return newEn, true, nil
 }
 
 func (en *extensionNode) clone() *extensionNode {
@@ -449,7 +453,7 @@ func (en *extensionNode) print(writer io.Writer, index int, db data.DBWriteCache
 		key += fmt.Sprintf("%d", k)
 	}
 
-	str := fmt.Sprintf("E:(%v) - %v", hex.EncodeToString(en.hash), en.dirty)
+	str := fmt.Sprintf("E: key= %v, (%v) - %v", en.Key, hex.EncodeToString(en.hash), en.dirty)
 	_, _ = fmt.Fprint(writer, str)
 
 	if en.child == nil {
