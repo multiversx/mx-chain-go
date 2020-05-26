@@ -133,8 +133,8 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 		tr.root = newRoot
 		tr.oldHashes = append(tr.oldHashes, oldHashes...)
 
-		for i := range oldHashes {
-			log.Trace("oldHashes after insert", "hash", oldHashes[i])
+		for _, hash := range oldHashes {
+			log.Trace("oldHashes after insert", "hash", hash)
 		}
 	} else {
 		if tr.root == nil {
@@ -152,8 +152,8 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 		tr.root = newRoot
 		tr.oldHashes = append(tr.oldHashes, oldHashes...)
 
-		for i := range oldHashes {
-			log.Trace("oldHashes after delete", "hash", oldHashes[i])
+		for _, hash := range oldHashes {
+			log.Trace("oldHashes after delete", "hash", hash)
 		}
 	}
 
@@ -379,8 +379,8 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 	tr.oldHashes = make([][]byte, 0)
 	tr.oldRoot = make([]byte, 0)
 
-	for i := range oldHashes {
-		log.Trace("old trie hash", "hash", oldHashes[i])
+	for _, hash := range oldHashes {
+		log.Trace("old trie hash", "hash", hash)
 	}
 
 	tr.mutOperation.Unlock()
