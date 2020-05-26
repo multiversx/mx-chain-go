@@ -412,15 +412,14 @@ func TestValidatorsProvider_createCache(t *testing.T) {
 	assert.Equal(t, leavingList, cache[encodedPkLeaving].List)
 	assert.Equal(t, leavingShardId, cache[encodedPkLeaving].ShardId)
 
-	encodedPkInactive := pubKeyConverter.Encode(pkInactive)
-	assert.NotNil(t, cache[encodedPkInactive])
-	assert.Equal(t, inactiveList, cache[encodedPkInactive].List)
-	assert.Equal(t, inactiveShardId, cache[encodedPkInactive].ShardId)
-
 	encodedPkNew := pubKeyConverter.Encode(pkNew)
 	assert.NotNil(t, cache[encodedPkNew])
 	assert.Equal(t, newList, cache[encodedPkNew].List)
 	assert.Equal(t, newShardId, cache[encodedPkNew].ShardId)
+
+	// inactive validators are not returned
+	encodedPkInactive := pubKeyConverter.Encode(pkInactive)
+	assert.Nil(t, cache[encodedPkInactive])
 }
 
 func TestValidatorsProvider_createCache_combined(t *testing.T) {
@@ -483,16 +482,15 @@ func TestValidatorsProvider_createCache_combined(t *testing.T) {
 	assert.Equal(t, eligibleList, cache[encodedPkEligible].List)
 	assert.Equal(t, nodesCoordinatorEligibleShardId, cache[encodedPkEligible].ShardId)
 
-	encodedPkInactive := arg.PubKeyConverter.Encode(pkInactive)
-	assert.NotNil(t, cache[encodedPkInactive])
-	assert.Equal(t, inactiveList, cache[encodedPkInactive].List)
-	assert.Equal(t, inactiveShardId, cache[encodedPkInactive].ShardId)
-
 	encodedPkLeavingInTrie := arg.PubKeyConverter.Encode(pkLeavingInTrie)
 	computedPeerType := fmt.Sprintf(core.CombinedPeerType, core.EligibleList, core.LeavingList)
 	assert.NotNil(t, cache[encodedPkLeavingInTrie])
 	assert.Equal(t, computedPeerType, cache[encodedPkLeavingInTrie].List)
 	assert.Equal(t, nodesCoordinatorLeavingShardId, cache[encodedPkLeavingInTrie].ShardId)
+
+	// inactive validators are not returned
+	encodedPkInactive := arg.PubKeyConverter.Encode(pkInactive)
+	assert.Nil(t, cache[encodedPkInactive])
 }
 
 func TestValidatorsProvider_CallsPopulateOnlyAfterTimeout(t *testing.T) {

@@ -130,13 +130,14 @@ type Config struct {
 	PublicKeyPeerId  CacheConfig
 	PeerIdShardId    CacheConfig
 
-	Antiflood       AntifloodConfig
-	ResourceStats   ResourceStatsConfig
-	Heartbeat       HeartbeatConfig
-	GeneralSettings GeneralSettingsConfig
-	Consensus       TypeConfig
-	StoragePruning  StoragePruningConfig
-	TxLogsStorage   StorageConfig
+	Antiflood           AntifloodConfig
+	ResourceStats       ResourceStatsConfig
+	Heartbeat           HeartbeatConfig
+	ValidatorStatistics ValidatorStatisticsConfig
+	GeneralSettings     GeneralSettingsConfig
+	Consensus           TypeConfig
+	StoragePruning      StoragePruningConfig
+	TxLogsStorage       StorageConfig
 
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
@@ -168,8 +169,12 @@ type HeartbeatConfig struct {
 	DurationToConsiderUnresponsiveInSec int
 	HeartbeatRefreshIntervalInSec       uint32
 	HideInactiveValidatorIntervalInSec  uint32
-	PeerTypeRefreshIntervalInSec        uint32
 	HeartbeatStorage                    StorageConfig
+}
+
+// ValidatorStatisticsConfig will hold validator statistics specific settings
+type ValidatorStatisticsConfig struct {
+	CacheRefreshIntervalInSec uint32
 }
 
 // GeneralSettingsConfig will hold the general settings for a node

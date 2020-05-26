@@ -276,11 +276,12 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	cacheRefreshDuration := time.Duration(args.mainConfig.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
 	argVSP := peer.ArgValidatorsProvider{
 		NodesCoordinator:                  args.nodesCoordinator,
 		StartEpoch:                        args.startEpochNum,
 		EpochStartEventNotifier:           args.epochStartNotifier,
-		CacheRefreshIntervalDurationInSec: time.Duration(args.mainConfig.Heartbeat.PeerTypeRefreshIntervalInSec) * time.Second,
+		CacheRefreshIntervalDurationInSec: cacheRefreshDuration,
 		ValidatorStatistics:               validatorStatisticsProcessor,
 		MaxRating:                         args.maxRating,
 		PubKeyConverter:                   args.validatorPubkeyConverter,

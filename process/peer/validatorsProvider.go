@@ -165,9 +165,14 @@ func (vp *validatorsProvider) createNewCache(
 
 func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(allNodes map[uint32][]*state.ValidatorInfo) map[string]*state.ValidatorApiResponse {
 	newCache := make(map[string]*state.ValidatorApiResponse)
-
+	inactiveList := string(core.InactiveList)
 	for _, validatorInfosInShard := range allNodes {
 		for _, validatorInfo := range validatorInfosInShard {
+			// do not display inactive validators
+			if validatorInfo.List == inactiveList {
+				continue
+			}
+
 			strKey := vp.pubkeyConverter.Encode(validatorInfo.PublicKey)
 			newCache[strKey] = &state.ValidatorApiResponse{
 				NumLeaderSuccess:         validatorInfo.LeaderSuccess,
@@ -220,11 +225,12 @@ func (vp *validatorsProvider) aggregatePType(
 }
 
 func shouldCombine(triePeerType core.PeerType, currentPeerType core.PeerType) bool {
-	notTheSame := triePeerType != currentPeerType
-	notEligibleOrWaiting := triePeerType != core.EligibleList &&
-		triePeerType != core.WaitingList
+	// currently just "eligible (leaving)" or "waiting (leaving)" are allowed to combine
+	isLeaving := triePeerType == core.LeavingList
+	isEligibleOrWaiting := currentPeerType == core.EligibleList ||
+		currentPeerType == core.WaitingList
 
-	return notTheSame && notEligibleOrWaiting
+	return isLeaving && isEligibleOrWaiting
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
