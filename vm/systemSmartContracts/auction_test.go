@@ -378,7 +378,7 @@ func TestStakingAuctionSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
 	stakingAuctionSC, _ := NewStakingAuctionSmartContract(args)
 
 	arguments.Function = "stake"
-	arguments.CallValue = big.NewInt(1000000)
+	arguments.CallValue = big.NewInt(0).Mul(big.NewInt(2), args.ValidatorSettings.GenesisNodePrice())
 	arguments.Arguments = [][]byte{big.NewInt(2).Bytes(), key1, []byte("msg1"), key2, []byte("msg2"), maxStakePerNoce.Bytes(), rewardAddr}
 
 	errCode := stakingAuctionSC.Execute(arguments)
@@ -983,6 +983,7 @@ func TestAuctionStakingSC_ExecuteStake(t *testing.T) {
 		TotalStakeValue: args.ValidatorSettings.GenesisNodePrice(),
 		LockedStake:     args.ValidatorSettings.GenesisNodePrice(),
 		MaxStakePerNode: args.ValidatorSettings.GenesisNodePrice(),
+		NumStaked:       1,
 	}
 
 	atArgParser := vmcommon.NewAtArgumentParser()
@@ -1166,6 +1167,7 @@ func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {
 		TotalStakeValue: args.ValidatorSettings.GenesisNodePrice(),
 		LockedStake:     args.ValidatorSettings.GenesisNodePrice(),
 		MaxStakePerNode: args.ValidatorSettings.GenesisNodePrice(),
+		NumStaked:       1,
 	}
 	marshaledRegistrationData, _ := json.Marshal(auctionData)
 	eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
@@ -1492,6 +1494,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 		TotalStakeValue: args.ValidatorSettings.GenesisNodePrice(),
 		LockedStake:     args.ValidatorSettings.GenesisNodePrice(),
 		MaxStakePerNode: args.ValidatorSettings.GenesisNodePrice(),
+		NumStaked:       1,
 	}
 	marshaledRegistrationData, _ := json.Marshal(auctionData)
 	eei.SetSCAddress(args.AuctionSCAddress)
@@ -1703,6 +1706,7 @@ func TestAuctionStakingSC_ChangeRewardAddress(t *testing.T) {
 }
 
 func TestAuctionStakingSC_ChangeValidatorKeys(t *testing.T) {
+	t.Skip("function is disabled for now as it is not fully tested")
 	t.Parallel()
 
 	receiverAddr := []byte("receiverAddress")
@@ -1731,7 +1735,7 @@ func TestAuctionStakingSC_ChangeValidatorKeys(t *testing.T) {
 	nodesToRunBytes = big.NewInt(1).Bytes()
 	args.SigVerifier = &mock.MessageSignVerifierMock{
 		VerifyCalled: func(message []byte, signedMessage []byte, pubKey []byte) error {
-			return errors.New("err")
+			return errors.New("new")
 		},
 	}
 	changeValidatorKeys(t, sc, nodesToRunBytes, stakerAddress, stakerPubKey, newKey, []byte("signed"), vmcommon.UserError)

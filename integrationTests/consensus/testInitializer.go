@@ -163,11 +163,13 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
-				Size:        100000,
-				SizeInBytes: 1000000000,
-				Shards:      1,
+				Size:                 100000,
+				SizePerSender:        1000,
+				SizeInBytes:          1000000000,
+				SizeInBytesPerSender: 10000000,
+				Shards:               16,
 			},
-			MinGasPrice:    100000000000000,
+			MinGasPrice:    200000000000,
 			NumberOfShards: 1,
 		},
 	)
@@ -448,6 +450,7 @@ func createConsensusOnlyNode(
 		node.WithBootStorer(&mock.BoostrapStorerMock{}),
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithHeaderSigVerifier(&mock.HeaderSigVerifierStub{}),
+		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
 		node.WithChainID(consensusChainID),
 		node.WithRequestHandler(&mock.RequestHandlerStub{}),
 		node.WithUint64ByteSliceConverter(&mock.Uint64ByteSliceConverterMock{}),

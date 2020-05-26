@@ -2,10 +2,12 @@ package config
 
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
-	Type        string `json:"type"`
-	Size        uint32 `json:"size"`
-	SizeInBytes uint32 `json:"sizeInBytes"`
-	Shards      uint32 `json:"shards"`
+	Type                 string `json:"type"`
+	Size                 uint32 `json:"size"`
+	SizePerSender        uint32 `json:"sizePerSender"`
+	SizeInBytes          uint32 `json:"sizeInBytes"`
+	SizeInBytesPerSender uint32 `json:"sizeInBytesPerSender"`
+	Shards               uint32 `json:"shards"`
 }
 
 //HeadersPoolConfig will map the headers cache configuration
@@ -168,6 +170,7 @@ type HeartbeatConfig struct {
 	DurationToConsiderUnresponsiveInSec int
 	HeartbeatRefreshIntervalInSec       uint32
 	HideInactiveValidatorIntervalInSec  uint32
+	PeerTypeRefreshIntervalInSec        uint32
 	HeartbeatStorage                    StorageConfig
 }
 

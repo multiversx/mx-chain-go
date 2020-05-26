@@ -264,7 +264,7 @@ func TestNewNodeSetupChecker_CheckStakedAndDelegatedShouldWork(t *testing.T) {
 	nsc, _ := checking.NewNodesSetupChecker(
 		&mock.AccountsParserStub{
 			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
-				return []genesis.InitialAccountHandler{iaStaked, iaDelegated}
+				return []genesis.InitialAccountHandler{iaDelegated, iaStaked}
 			},
 		},
 		nodePrice,

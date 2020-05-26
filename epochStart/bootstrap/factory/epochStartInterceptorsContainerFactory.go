@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
+	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -27,8 +28,8 @@ const timeSpanForBadHeaders = time.Minute
 // ArgsEpochStartInterceptorContainer holds the arguments needed for creating a new epoch start interceptors
 // container factory
 type ArgsEpochStartInterceptorContainer struct {
-	Config            config.Config
-	ShardCoordinator  sharding.Coordinator
+	Config                 config.Config
+	ShardCoordinator       sharding.Coordinator
 	TxSignMarshalizer      marshal.Marshalizer
 	ProtoMarshalizer       marshal.Marshalizer
 	Hasher                 hashing.Hasher
@@ -41,8 +42,8 @@ type ArgsEpochStartInterceptorContainer struct {
 	WhiteListHandler       update.WhiteListHandler
 	WhiteListerVerifiedTxs update.WhiteListHandler
 	AddressPubkeyConv      state.PubkeyConverter
-	ChainID                []byte
 	NonceConverter         typeConverters.Uint64ByteSliceConverter
+	ChainID                []byte
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but will many disabled
@@ -59,38 +60,42 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	blackListHandler := timecache.NewTimeCache(timeSpanForBadHeaders)
 	feeHandler := &disabledGenesis.FeeHandler{}
 	headerSigVerifier := disabled.NewHeaderSigVerifier()
+	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(args.ChainID)
+	if err != nil {
+		return nil, err
+	}
 	sizeCheckDelta := 0
 	validityAttester := disabled.NewValidityAttester()
 	epochStartTrigger := disabled.NewEpochStartTrigger()
 
 	containerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
-		ShardCoordinator:       args.ShardCoordinator,
-		NodesCoordinator:       nodesCoordinator,
-		Messenger:              args.Messenger,
-		Store:                  storer,
-		ProtoMarshalizer:       args.ProtoMarshalizer,
-		TxSignMarshalizer:      args.TxSignMarshalizer,
-		Hasher:                 args.Hasher,
-		MultiSigner:            multiSigner,
-		DataPool:               args.DataPool,
-		Accounts:               accountsAdapter,
-		AddressPubkeyConverter: args.AddressPubkeyConv,
-		SingleSigner:           args.SingleSigner,
-		BlockSingleSigner:      args.BlockSingleSigner,
-		KeyGen:                 args.KeyGen,
-		BlockKeyGen:            args.BlockKeyGen,
-		MaxTxNonceDeltaAllowed: core.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:           feeHandler,
-		BlackList:              blackListHandler,
-		HeaderSigVerifier:      headerSigVerifier,
-		ChainID:                args.ChainID,
-		SizeCheckDelta:         uint32(sizeCheckDelta),
-		ValidityAttester:       validityAttester,
-		EpochStartTrigger:      epochStartTrigger,
-		WhiteListHandler:       args.WhiteListHandler,
-		WhiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
-		AntifloodHandler:       antiFloodHandler,
-		NonceConverter:         args.NonceConverter,
+		ShardCoordinator:        args.ShardCoordinator,
+		NodesCoordinator:        nodesCoordinator,
+		Messenger:               args.Messenger,
+		Store:                   storer,
+		ProtoMarshalizer:        args.ProtoMarshalizer,
+		TxSignMarshalizer:       args.TxSignMarshalizer,
+		Hasher:                  args.Hasher,
+		MultiSigner:             multiSigner,
+		DataPool:                args.DataPool,
+		Accounts:                accountsAdapter,
+		AddressPubkeyConverter:  args.AddressPubkeyConv,
+		SingleSigner:            args.SingleSigner,
+		BlockSingleSigner:       args.BlockSingleSigner,
+		KeyGen:                  args.KeyGen,
+		BlockKeyGen:             args.BlockKeyGen,
+		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:            feeHandler,
+		BlackList:               blackListHandler,
+		HeaderSigVerifier:       headerSigVerifier,
+		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		SizeCheckDelta:          uint32(sizeCheckDelta),
+		ValidityAttester:        validityAttester,
+		EpochStartTrigger:       epochStartTrigger,
+		WhiteListHandler:        args.WhiteListHandler,
+		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
+		AntifloodHandler:        antiFloodHandler,
+		NonceConverter:          args.NonceConverter,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

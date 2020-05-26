@@ -58,6 +58,9 @@ func NewTrie(
 	if check.IfNil(hsh) {
 		return nil, ErrNilHasher
 	}
+	if maxTrieLevelInMemory <= 0 {
+		return nil, ErrInvalidLevelValue
+	}
 	log.Debug("created new trie", "max trie level in memory", maxTrieLevelInMemory)
 
 	return &patriciaMerkleTrie{
@@ -214,6 +217,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		}
 	}
 
+	log.Trace("started committing trie with rootHash", "rootHash", tr.root.getHash())
 	err = tr.root.commit(false, 0, tr.maxTrieLevelInMemory, tr.trieStorage.Database(), tr.trieStorage.Database())
 	if err != nil {
 		return err
@@ -225,11 +229,17 @@ func (tr *patriciaMerkleTrie) Commit() error {
 func (tr *patriciaMerkleTrie) markForEviction() error {
 	newRoot := tr.root.getHash()
 
+	if bytes.Equal(newRoot, tr.oldRoot) {
+		log.Trace("old root and new root are identical", "rootHash", newRoot)
+		return nil
+	}
+
 	oldHashes := make(data.ModifiedHashes)
 	for i := range tr.oldHashes {
 		oldHashes[hex.EncodeToString(tr.oldHashes[i])] = struct{}{}
 	}
 
+	log.Trace("trie hashes sizes", "newHashes", len(tr.newHashes), "oldHashes", len(oldHashes))
 	removeDuplicatedKeys(oldHashes, tr.newHashes)
 
 	if len(tr.newHashes) > 0 && len(newRoot) > 0 {
@@ -246,7 +256,7 @@ func (tr *patriciaMerkleTrie) markForEviction() error {
 		tr.newHashes = make(data.ModifiedHashes)
 	}
 
-	if len(tr.oldHashes) > 0 && len(tr.oldRoot) > 0 {
+	if len(oldHashes) > 0 && len(tr.oldRoot) > 0 {
 		tr.oldRoot = append(tr.oldRoot, byte(data.OldRoot))
 		err := tr.trieStorage.MarkForEviction(tr.oldRoot, oldHashes)
 		if err != nil {
@@ -269,6 +279,7 @@ func removeDuplicatedKeys(oldHashes map[string]struct{}, newHashes map[string]st
 		if ok {
 			delete(oldHashes, key)
 			delete(newHashes, key)
+			log.Trace("found in newHashes and oldHashes", "hash", key)
 		}
 	}
 }
@@ -514,7 +525,9 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 
 // GetAllLeaves iterates the trie and returns a map that contains all leafNodes information
 func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
-	//TODO: save those leafs into a levelDB struct (cache and storage) and at processing time to get from that structure.
+	tr.mutOperation.RLock()
+	defer tr.mutOperation.RUnlock()
+
 	if tr.root == nil {
 		return map[string][]byte{}, nil
 	}
