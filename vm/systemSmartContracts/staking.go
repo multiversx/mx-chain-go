@@ -703,7 +703,7 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 
 func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) < 1 {
-		r.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d , got %d", 1, 0))
+		r.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
 		return vmcommon.UserError
 	}
 
