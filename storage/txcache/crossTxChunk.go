@@ -14,14 +14,16 @@ type crossTxChunkItem struct {
 
 // crossTx is a chunk of the crossTxCache
 type crossTxChunk struct {
+	config         crossTxChunkConfig
 	items          map[string]crossTxChunkItem
 	itemsAsList    *list.List
 	keysToImmunize map[string]struct{}
 	mutex          sync.RWMutex
 }
 
-func newCrossTxChunk() *crossTxChunk {
+func newCrossTxChunk(config crossTxChunkConfig) *crossTxChunk {
 	return &crossTxChunk{
+		config:      config,
 		items:       make(map[string]crossTxChunkItem),
 		itemsAsList: list.New(),
 	}

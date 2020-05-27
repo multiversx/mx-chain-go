@@ -60,3 +60,21 @@ func (config *CacheConfig) getSenderConstraints() senderConstraints {
 		maxNumTxs:   config.CountPerSenderThreshold,
 	}
 }
+
+type crossTxCacheConfig struct {
+	numChunks   uint32
+	maxNumTxs   uint32
+	maxNumBytes uint32
+}
+
+func (config *crossTxCacheConfig) getChunkConfig() crossTxChunkConfig {
+	return crossTxChunkConfig{
+		maxNumTxs:   config.maxNumTxs / config.numChunks,
+		maxNumBytes: config.maxNumBytes / config.numChunks,
+	}
+}
+
+type crossTxChunkConfig struct {
+	maxNumTxs   uint32
+	maxNumBytes uint32
+}

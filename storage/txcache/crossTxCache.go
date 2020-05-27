@@ -6,18 +6,14 @@ import (
 
 // crossTxCache holds cross-shard transactions (where destination == me)
 type crossTxCache struct {
-	mutex   sync.RWMutex
-	nChunks uint32
-	chunks  []*crossTxChunk
+	config crossTxCacheConfig
+	chunks []*crossTxChunk
+	mutex  sync.RWMutex
 }
 
-func newCrossTxCache(nChunks uint32) *crossTxCache {
-	if nChunks == 0 {
-		nChunks = 1
-	}
-
+func newCrossTxCache(config crossTxCacheConfig) *crossTxCache {
 	cache := crossTxCache{
-		nChunks: nChunks,
+		config: config,
 	}
 
 	cache.initializeChunks()
@@ -29,10 +25,12 @@ func (cache *crossTxCache) initializeChunks() {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
-	cache.chunks = make([]*crossTxChunk, cache.nChunks)
+	config := cache.config
+	chunkConfig := config.getChunkConfig()
 
-	for i := uint32(0); i < cache.nChunks; i++ {
-		cache.chunks[i] = newCrossTxChunk()
+	cache.chunks = make([]*crossTxChunk, config.numChunks)
+	for i := uint32(0); i < config.numChunks; i++ {
+		cache.chunks[i] = newCrossTxChunk(chunkConfig)
 	}
 }
 
@@ -77,7 +75,9 @@ func (cache *crossTxCache) RemoveOldest(numToRemove int) {
 func (cache *crossTxCache) getChunkByKey(key string) *crossTxChunk {
 	cache.mutex.RLock()
 	defer cache.mutex.RUnlock()
-	return cache.chunks[fnv32Hash(key)%cache.nChunks]
+	chunkIndex := cache.getChunkIndexByKey(key)
+
+	return cache.chunks[chunkIndex]
 }
 
 func (cache *crossTxCache) getChunkByIndex(index uint32) *crossTxChunk {
@@ -90,11 +90,15 @@ func (cache *crossTxCache) groupKeysByChunk(keys []string) map[uint32][]string {
 	groups := make(map[uint32][]string)
 
 	for _, key := range keys {
-		chunkIndex := fnv32Hash(key) % cache.nChunks
+		chunkIndex := cache.getChunkIndexByKey(key)
 		groups[chunkIndex] = append(groups[chunkIndex], key)
 	}
 
 	return groups
+}
+
+func (cache *crossTxCache) getChunkIndexByKey(key string) uint32 {
+	return fnv32Hash(key) % cache.config.numChunks
 }
 
 // fnv32Hash implements https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function for 32 bits
