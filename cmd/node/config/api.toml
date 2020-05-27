@@ -88,7 +88,7 @@
          { Name = "/cost", Open = true },
 
          # /transaction/:txhash will return the transaction in JSON format based on its hash
-         { Name = "/:txhash", Open = true }
+         { Name = "/:txhash", Open = true },
 
          # /transaction/:txhash/status will return the status of a transaction based on its hash
          { Name = "/:txhash/status", Open = true }
