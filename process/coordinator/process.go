@@ -704,7 +704,7 @@ func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[st
 
 		broadcastTopic, err := createBroadcastTopic(tc.shardCoordinator, miniBlock.ReceiverShardID, miniBlock.Type)
 		if err != nil {
-			log.Warn("createBroadcastTopic", "error", err.Error())
+			log.Warn("CreateMarshalizedData.createBroadcastTopic", "error", err.Error())
 			continue
 		}
 
