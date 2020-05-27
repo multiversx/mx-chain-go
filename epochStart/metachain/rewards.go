@@ -432,7 +432,6 @@ func (rc *rewardsCreator) SaveTxBlockToStorage(_ *block.MetaBlock, body *block.B
 		mbHash := rc.hasher.Compute(string(marshalizedData))
 		_ = rc.miniBlockStorage.Put(mbHash, marshalizedData)
 	}
-	rc.clean()
 }
 
 // DeleteTxsFromStorage deletes data from storage
