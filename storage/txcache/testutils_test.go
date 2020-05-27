@@ -192,6 +192,6 @@ var _ scoreComputer = (*disabledScoreComputer)(nil)
 type disabledScoreComputer struct {
 }
 
-func (computer *disabledScoreComputer) computeScore(scoreParams senderScoreParams) uint32 {
+func (computer *disabledScoreComputer) computeScore(_ senderScoreParams) uint32 {
 	return 0
 }

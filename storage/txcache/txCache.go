@@ -210,7 +210,7 @@ func (cache *TxCache) Clear() {
 }
 
 // Put is not implemented
-func (cache *TxCache) Put(key []byte, value interface{}) (evicted bool) {
+func (cache *TxCache) Put(_ []byte, _ interface{}) (evicted bool) {
 	log.Error("TxCache.Put is not implemented")
 	return false
 }
@@ -240,7 +240,7 @@ func (cache *TxCache) Peek(key []byte) (value interface{}, ok bool) {
 }
 
 // HasOrAdd is not implemented
-func (cache *TxCache) HasOrAdd(key []byte, value interface{}) (ok, evicted bool) {
+func (cache *TxCache) HasOrAdd(_ []byte, _ interface{}) (ok, evicted bool) {
 	log.Error("TxCache.HasOrAdd is not implemented")
 	return false, false
 }

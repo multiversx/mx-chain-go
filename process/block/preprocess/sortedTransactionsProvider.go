@@ -8,7 +8,7 @@ import (
 
 // TODO: Refactor "transactions.go" to not require the components in this file anymore
 // createSortedTransactionsProvider is a "simple factory" for "SortedTransactionsProvider" objects
-func createSortedTransactionsProvider(transactionsPreprocessor *transactions, cache storage.Cacher, cacheKey string) SortedTransactionsProvider {
+func createSortedTransactionsProvider(cache storage.Cacher) SortedTransactionsProvider {
 	txCache, isTxCache := cache.(TxCache)
 	if isTxCache {
 		return newAdapterTxCacheToSortedTransactionsProvider(txCache)

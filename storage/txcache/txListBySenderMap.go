@@ -108,6 +108,11 @@ func (txMap *txListBySenderMap) removeSender(sender string) bool {
 		return false
 	}
 
+	// TODO / bugfix: when we concurrently try to remove the same sender,
+	// we might end up decrementing the counter twice.
+	// Possible solution: use an "onItemRemoved" callback in the "backingMap"
+	// to decrement the counter.
+
 	txMap.backingMap.Remove(sender)
 	txMap.counter.Decrement()
 	return true
