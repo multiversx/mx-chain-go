@@ -123,12 +123,7 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 
 func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 	cacheConfig := txPool.getCacheConfig(cacheID)
-	cache, err := txcache.NewTxCache(cacheConfig)
-	if err != nil {
-		log.Error("shardedTxPool.createTxCache()", "err", err)
-		return txcache.NewDisabledCache()
-	}
-
+	cache := txcache.CreateCache(cacheConfig)
 	return cache
 }
 
