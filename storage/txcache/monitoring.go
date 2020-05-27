@@ -67,19 +67,21 @@ type batchSelectionJournal struct {
 }
 
 func (cache *TxCache) monitorBatchSelectionEnd(journal batchSelectionJournal) {
-	if journal.isFirstBatch {
-		if journal.hasInitialGap {
-			cache.numSendersWithInitialGap.Increment()
-		} else if journal.hasMiddleGap {
-			// Currently, we only count middle gaps on first batch (for simplicity)
-			cache.numSendersWithMiddleGap.Increment()
-		}
+	if !journal.isFirstBatch {
+		return
+	}
 
-		if journal.isGracePeriod {
-			cache.numSendersInGracePeriod.Increment()
-		} else if journal.copied > 0 {
-			cache.numSendersSelected.Increment()
-		}
+	if journal.hasInitialGap {
+		cache.numSendersWithInitialGap.Increment()
+	} else if journal.hasMiddleGap {
+		// Currently, we only count middle gaps on first batch (for simplicity)
+		cache.numSendersWithMiddleGap.Increment()
+	}
+
+	if journal.isGracePeriod {
+		cache.numSendersInGracePeriod.Increment()
+	} else if journal.copied > 0 {
+		cache.numSendersSelected.Increment()
 	}
 }
 

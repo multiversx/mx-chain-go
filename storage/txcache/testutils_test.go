@@ -186,3 +186,12 @@ func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 		return true // timed out
 	}
 }
+
+var _ scoreComputer = (*disabledScoreComputer)(nil)
+
+type disabledScoreComputer struct {
+}
+
+func (computer *disabledScoreComputer) computeScore(_ senderScoreParams) uint32 {
+	return 0
+}

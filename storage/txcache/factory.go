@@ -1,6 +1,6 @@
 package txcache
 
-// CreateCache creates a (fail-safe) transactions cache
+// CreateCache creates a transactions cache
 func CreateCache(config CacheConfig) txCache {
 	cache, err := NewTxCache(config)
 	if err != nil {
@@ -8,6 +8,5 @@ func CreateCache(config CacheConfig) txCache {
 		return NewDisabledCache()
 	}
 
-	cacheFailsafe := newTxCacheFailsafe(cache)
-	return cacheFailsafe
+	return cache
 }

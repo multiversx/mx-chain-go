@@ -39,6 +39,11 @@ func (txMap *txByHashMap) removeTx(txHash string) (*WrappedTransaction, bool) {
 		return nil, false
 	}
 
+	// TODO / bugfix: when we concurrently try to remove the same transaction,
+	// we might end up decrementing the counters twice.
+	// Possible solution: use an "onItemRemoved" callback in the "backingMap"
+	// to decrement the counters.
+
 	txMap.backingMap.Remove(txHash)
 	txMap.counter.Decrement()
 	txMap.numBytes.Subtract(int64(estimateTxSize(tx)))
