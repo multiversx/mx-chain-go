@@ -20,9 +20,10 @@ type AccountsDB struct {
 	marshalizer    marshal.Marshalizer
 	accountFactory AccountFactory
 
-	dataTries TriesHolder
-	entries   []JournalEntry
-	mutOp     sync.RWMutex
+	lastRootHash []byte
+	dataTries    TriesHolder
+	entries      []JournalEntry
+	mutOp        sync.RWMutex
 }
 
 var log = logger.GetOrCreate("state")
@@ -406,6 +407,10 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 		return ErrSnapshotValueOutOfBounds
 	}
 
+	if snapshot == 0 {
+		return adb.recreateTrie(adb.lastRootHash)
+	}
+
 	for i := len(adb.entries) - 1; i >= snapshot; i-- {
 		account, err := adb.entries[i].Revert()
 		if err != nil {
@@ -490,6 +495,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 		log.Trace("accountsDB.Commit ended", "error", err.Error())
 		return nil, err
 	}
+	adb.lastRootHash = root
 
 	log.Trace("accountsDB.Commit ended", "root hash", root)
 
@@ -515,6 +521,10 @@ func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
+	return adb.recreateTrie(rootHash)
+}
+
+func (adb *AccountsDB) recreateTrie(rootHash []byte) error {
 	log.Trace("accountsDB.RecreateTrie", "root hash", rootHash)
 	defer func() {
 		log.Trace("accountsDB.RecreateTrie ended")

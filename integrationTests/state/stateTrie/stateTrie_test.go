@@ -783,6 +783,9 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 
 	//Step 4. 2-nd account changes its data
 	snapshotMod := adb.JournalLen()
+
+	state2, err = adb.LoadAccount(adr2)
+	assert.Nil(t, err)
 	state2.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, newVal)
 	err = adb.SaveAccount(state2)
 	assert.Nil(t, err)
@@ -808,6 +811,9 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	rootHash, err = adb.RootHash()
 	assert.Nil(t, err)
 	hrCreated2Rev := base64.StdEncoding.EncodeToString(rootHash)
+
+	state2, err = adb.LoadAccount(adr2)
+	assert.Nil(t, err)
 	rootHash, err = state2.(state.UserAccountHandler).DataTrie().Root()
 	assert.Nil(t, err)
 	hrRoot2Rev := base64.StdEncoding.EncodeToString(rootHash)
