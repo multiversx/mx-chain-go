@@ -3,6 +3,8 @@ package txcache
 import (
 	"container/list"
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 )
 
 var emptyStruct struct{}
@@ -18,6 +20,7 @@ type crossTxChunk struct {
 	items          map[string]crossTxChunkItem
 	itemsAsList    *list.List
 	keysToImmunize map[string]struct{}
+	numBytes       int
 	mutex          sync.RWMutex
 }
 
@@ -52,6 +55,7 @@ func (chunk *crossTxChunk) getItem(key string) (*WrappedTransaction, bool) {
 	return chunk.getItemNoLock(key)
 }
 
+// This function should only be used in critical section (chunk.mutex)
 func (chunk *crossTxChunk) getItemNoLock(key string) (*WrappedTransaction, bool) {
 	item, ok := chunk.items[key]
 	if !ok {
@@ -64,6 +68,8 @@ func (chunk *crossTxChunk) getItemNoLock(key string) (*WrappedTransaction, bool)
 func (chunk *crossTxChunk) addItem(item *WrappedTransaction) {
 	chunk.mutex.Lock()
 	defer chunk.mutex.Unlock()
+
+	chunk.doEviction()
 
 	key := string(item.TxHash)
 
@@ -81,6 +87,35 @@ func (chunk *crossTxChunk) addItem(item *WrappedTransaction) {
 	if shouldImmunize {
 		item.ImmunizeAgainstEviction()
 	}
+
+	chunk.trackNumBytesOnAdd(item)
+}
+
+// This function should only be used in critical section (chunk.mutex)
+func (chunk *crossTxChunk) doEviction() {
+	if !chunk.isCapacityExceeded() {
+		return
+	}
+
+	chunk.removeOldest(42)
+}
+
+// This function should only be used in critical section (chunk.mutex)
+func (chunk *crossTxChunk) trackNumBytesOnAdd(item *WrappedTransaction) {
+	chunk.numBytes += int(estimateTxSize(item))
+}
+
+// This function should only be used in critical section (chunk.mutex)
+func (chunk *crossTxChunk) trackNumBytesOnRemove(item *WrappedTransaction) {
+	chunk.numBytes -= int(estimateTxSize(item))
+	chunk.numBytes = core.MaxInt(chunk.numBytes, 0)
+}
+
+// This function should only be used in critical section (chunk.mutex)
+func (chunk *crossTxChunk) isCapacityExceeded() bool {
+	tooManyItems := len(chunk.items) >= int(chunk.config.maxNumTxs)
+	tooManyBytes := chunk.numBytes >= int(chunk.config.maxNumBytes)
+	return tooManyItems || tooManyBytes
 }
 
 func (chunk *crossTxChunk) removeItem(key string) {
