@@ -70,14 +70,16 @@ func (kg *keyGenerator) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, er
 
 // PublicKeyFromByteArray unmarshalls a byte array into a public key Point
 func (kg *keyGenerator) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
-	if b == nil {
+	if len(b) != kg.suite.PointLen() {
 		return nil, crypto.ErrInvalidParam
 	}
+
 	point := kg.suite.CreatePoint()
 	err := point.UnmarshalBinary(b)
 	if err != nil {
 		return nil, err
 	}
+
 	return &publicKey{
 		suite: kg.suite,
 		pk:    point,
