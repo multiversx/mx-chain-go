@@ -1966,6 +1966,12 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 		mrsData[shardId] = buff
 	}
 
+	if len(mrsData) > 0 {
+		log.Debug("metaProcessor.MarshalizedDataToBroadcast",
+			"num miniblocks", len(mrsData),
+			"num txs", len(mrsTxs))
+	}
+
 	return mrsData, mrsTxs, nil
 }
 

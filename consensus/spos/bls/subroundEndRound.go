@@ -435,14 +435,14 @@ func (sr *subroundEndRound) broadcast(
 	if len(miniBlocks) > 0 {
 		err := sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)
 		if err != nil {
-			log.Debug("broadcast.BroadcastMiniBlocks", "error", err.Error())
+			log.Warn("broadcast.BroadcastMiniBlocks", "error", err.Error())
 		}
 	}
 
 	if len(transactions) > 0 {
 		err := sr.BroadcastMessenger().BroadcastTransactions(transactions)
 		if err != nil {
-			log.Debug("broadcast.BroadcastTransactions", "error", err.Error())
+			log.Warn("broadcast.BroadcastTransactions", "error", err.Error())
 		}
 	}
 }

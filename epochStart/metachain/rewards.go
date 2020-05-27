@@ -332,30 +332,48 @@ func (rc *rewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][
 
 	txs := make(map[string][][]byte)
 
+	numRewardsMiniBlocks := 0
+	numRewardsTxs := 0
+	numRewardsTxsAdded := 0
+
 	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
 
-		broadCastTopic := createBroadcastTopic(rc.shardCoordinator, miniBlock.ReceiverShardID)
-		if _, ok := txs[broadCastTopic]; !ok {
-			txs[broadCastTopic] = make([][]byte, 0, len(miniBlock.TxHashes))
+		numRewardsMiniBlocks++
+		numRewardsTxs += len(miniBlock.TxHashes)
+
+		broadcastTopic := createBroadcastTopic(rc.shardCoordinator, miniBlock.ReceiverShardID)
+		if _, ok := txs[broadcastTopic]; !ok {
+			txs[broadcastTopic] = make([][]byte, 0, len(miniBlock.TxHashes))
 		}
+
+		log.Debug("rewardsCreator.CreateMarshalizedData", "broadcastTopic", broadcastTopic)
 
 		for _, txHash := range miniBlock.TxHashes {
 			rwdTx, err := rc.currTxs.GetTx(txHash)
 			if err != nil {
+				log.Warn("rewardsCreator.CreateMarshalizedData.GetTx", "hash", txHash, "error", err)
 				continue
 			}
 
 			marshalizedData, err := rc.marshalizer.Marshal(rwdTx)
 			if err != nil {
+				log.Error("rewardsCreator.CreateMarshalizedData.Marshal", "hash", txHash, "error", err)
 				continue
 			}
 
-			txs[broadCastTopic] = append(txs[broadCastTopic], marshalizedData)
+			txs[broadcastTopic] = append(txs[broadcastTopic], marshalizedData)
+			numRewardsTxsAdded++
 		}
 	}
+
+	log.Debug("rewardsCreator.CreateMarshalizedData",
+		"num rewards miniblocks", numRewardsMiniBlocks,
+		"num rewards txs", numRewardsTxs,
+		"num rewards txs added", numRewardsTxsAdded,
+	)
 
 	return txs
 }

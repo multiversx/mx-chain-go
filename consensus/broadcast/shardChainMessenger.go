@@ -16,7 +16,7 @@ import (
 
 var _ consensus.BroadcastMessenger = (*shardChainMessenger)(nil)
 
-const extraDelayForBroadcast = time.Second
+const extraDelayForBroadcast = 2 * time.Second
 
 type delayedBroadcastData struct {
 	headerHash   []byte

@@ -457,6 +457,7 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 	if metaHdr.IsStartOfEpochBlock() {
 		t.newEpochHdrReceived = true
 		t.mapEpochStartHdrs[string(metaBlockHash)] = metaHdr
+		time.Sleep(waitTime) // waiting for late broadcast miniblocks and transactions to be received
 	}
 
 	t.mapHashHdr[string(metaBlockHash)] = metaHdr
