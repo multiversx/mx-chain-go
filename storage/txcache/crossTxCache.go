@@ -69,9 +69,6 @@ func (cache *crossTxCache) Remove(key string) {
 	chunk.removeItem(key)
 }
 
-func (cache *crossTxCache) RemoveOldest(numToRemove int) {
-}
-
 func (cache *crossTxCache) getChunkByKey(key string) *crossTxChunk {
 	cache.mutex.RLock()
 	defer cache.mutex.RUnlock()

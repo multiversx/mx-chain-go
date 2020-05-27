@@ -62,19 +62,22 @@ func (config *CacheConfig) getSenderConstraints() senderConstraints {
 }
 
 type crossTxCacheConfig struct {
-	numChunks   uint32
-	maxNumTxs   uint32
-	maxNumBytes uint32
+	numChunks                   uint32
+	maxNumItems                 uint32
+	maxNumBytes                 uint32
+	numItemsToPreemptivelyEvict uint32
 }
 
 func (config *crossTxCacheConfig) getChunkConfig() crossTxChunkConfig {
 	return crossTxChunkConfig{
-		maxNumTxs:   config.maxNumTxs / config.numChunks,
-		maxNumBytes: config.maxNumBytes / config.numChunks,
+		maxNumItems:                 config.maxNumItems / config.numChunks,
+		maxNumBytes:                 config.maxNumBytes / config.numChunks,
+		numItemsToPreemptivelyEvict: config.numItemsToPreemptivelyEvict / config.numChunks,
 	}
 }
 
 type crossTxChunkConfig struct {
-	maxNumTxs   uint32
-	maxNumBytes uint32
+	maxNumItems                 uint32
+	maxNumBytes                 uint32
+	numItemsToPreemptivelyEvict uint32
 }

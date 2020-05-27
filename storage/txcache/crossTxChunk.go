@@ -93,11 +93,14 @@ func (chunk *crossTxChunk) addItem(item *WrappedTransaction) {
 
 // This function should only be used in critical section (chunk.mutex)
 func (chunk *crossTxChunk) doEviction() {
-	if !chunk.isCapacityExceeded() {
-		return
-	}
+	for !chunk.isCapacityExceeded() {
+		numToRemove := chunk.config.numItemsToPreemptivelyEvict
+		numRemoved := chunk.removeOldest(numToRemove)
 
-	chunk.removeOldest(42)
+		if numRemoved < numToRemove {
+			break
+		}
+	}
 }
 
 // This function should only be used in critical section (chunk.mutex)
@@ -113,7 +116,7 @@ func (chunk *crossTxChunk) trackNumBytesOnRemove(item *WrappedTransaction) {
 
 // This function should only be used in critical section (chunk.mutex)
 func (chunk *crossTxChunk) isCapacityExceeded() bool {
-	tooManyItems := len(chunk.items) >= int(chunk.config.maxNumTxs)
+	tooManyItems := len(chunk.items) >= int(chunk.config.maxNumItems)
 	tooManyBytes := chunk.numBytes >= int(chunk.config.maxNumBytes)
 	return tooManyItems || tooManyBytes
 }
@@ -127,16 +130,18 @@ func (chunk *crossTxChunk) removeItem(key string) {
 		return
 	}
 
+	// TODO: duplication
 	delete(chunk.items, key)
 	delete(chunk.keysToImmunize, key)
 	chunk.itemsAsList.Remove(item.listElement)
+	chunk.trackNumBytesOnRemove(item.payload)
 }
 
-func (chunk *crossTxChunk) removeOldest(numToRemove int) {
+func (chunk *crossTxChunk) removeOldest(numToRemove uint32) uint32 {
 	chunk.mutex.Lock()
 	defer chunk.mutex.Unlock()
 
-	numRemoved := 0
+	numRemoved := uint32(0)
 	for element := chunk.itemsAsList.Front(); element != nil; element = element.Next() {
 		item := element.Value.(*WrappedTransaction)
 		key := string(item.TxHash)
@@ -145,14 +150,18 @@ func (chunk *crossTxChunk) removeOldest(numToRemove int) {
 			continue
 		}
 
+		// TODO: duplication
 		delete(chunk.items, key)
 		chunk.itemsAsList.Remove(element)
+		chunk.trackNumBytesOnRemove(item)
 
 		numRemoved++
 		if numRemoved == numToRemove {
 			break
 		}
 	}
+
+	return numRemoved
 }
 
 func (chunk *crossTxChunk) countItems() uint32 {
