@@ -130,7 +130,7 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 func (txPool *shardedTxPool) getCacheConfig(cacheID string) txcache.CacheConfig {
 	var cacheConfig txcache.CacheConfig
 
-	isForSenderMe := process.IsShardCacherIdentifierIntraShard(cacheID, txPool.selfShardID)
+	isForSenderMe := process.IsShardCacherIdentifierForSourceMe(cacheID, txPool.selfShardID)
 	if isForSenderMe {
 		cacheConfig = txPool.cacheConfigPrototypeForSenderMe
 	} else {
