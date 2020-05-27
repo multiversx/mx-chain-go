@@ -184,7 +184,7 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 		return vmcommon.UserError
 	}
 	if bytes.Equal(registrationData.RewardAddress, args.Arguments[0]) {
-		s.eei.AddReturnMessage("new reward address is equals with the old reward address")
+		s.eei.AddReturnMessage("new reward address is equal with the old reward address")
 		return vmcommon.UserError
 	}
 
@@ -672,7 +672,7 @@ func (s *stakingAuctionSC) activateStakingFor(
 
 		vmOutput, err := s.executeOnStakingSC([]byte("stake@" + hex.EncodeToString(blsKeys[i]) + "@" + hex.EncodeToString(rewardAddress)))
 		if err != nil {
-			s.eei.AddReturnMessage(fmt.Sprintf("cannot do stake for key %s,  error %s", hex.EncodeToString(blsKeys[i]), err.Error()))
+			s.eei.AddReturnMessage(fmt.Sprintf("cannot do stake for key %s, error %s", hex.EncodeToString(blsKeys[i]), err.Error()))
 			continue
 		}
 
