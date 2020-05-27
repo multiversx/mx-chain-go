@@ -12,5 +12,7 @@ type txCache interface {
 	GetByTxHash(txHash []byte) (*txcache.WrappedTransaction, bool)
 	RemoveTxByHash(txHash []byte) error
 	CountTx() uint64
+	ImmunizeTxsAgainstEviction(keys [][]byte)
+	// TODO: Add remove bulk
 	ForEachTransaction(function txcache.ForEachTransaction)
 }

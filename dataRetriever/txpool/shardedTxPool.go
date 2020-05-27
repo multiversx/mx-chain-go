@@ -232,6 +232,7 @@ func (txPool *shardedTxPool) RemoveSetOfDataFromPool(keys [][]byte, cacheID stri
 func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
 	numRemoved := 0
 	for _, key := range txHashes {
+		// TODO: Optimize.
 		if txPool.removeTx(key, cacheID) {
 			numRemoved++
 		}
@@ -242,7 +243,8 @@ func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
 
 // ImmunizeSetOfDataAgainstEviction marks the items as non-evictable
 func (txPool *shardedTxPool) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
-	// TODO: implement
+	shard := txPool.getOrCreateShard(cacheID)
+	shard.Cache.ImmunizeTxsAgainstEviction(keys)
 }
 
 // RemoveDataFromAllShards removes the transaction from the pool (it searches in all shards)
