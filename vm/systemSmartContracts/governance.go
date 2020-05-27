@@ -404,6 +404,9 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.FunctionWrongSignature
 	}
 
+	proposalToVote := args.Arguments[0]
+	voteString := string(args.Arguments[1])
+
 	voterAddress := args.CallerAddr
 	validatorAddress := args.CallerAddr
 	if len(args.Arguments) == 3 {
@@ -414,8 +417,18 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	if !bytes.Equal(voterAddress, validatorAddress) {
-
+	numNodesToVote := uint32(0)
+	validatorData := g.getOrCreateValidatorData(validatorAddress, numStakedNodes)
+	found := false
+	for _, voter := range validatorData.Delegators {
+		if bytes.Equal(voter.Address, voterAddress) {
+			found = true
+			numNodesToVote = voter.NumNodes
+			break
+		}
+	}
+	if !found || numNodesToVote == 0 {
+		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
