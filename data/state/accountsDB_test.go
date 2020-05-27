@@ -884,3 +884,40 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 	assert.True(t, recreateCalled)
 	assert.True(t, getAllLeavesCalled)
 }
+
+func TestAccountsDB_RecreateTrieInvalidatesJournalEntries(t *testing.T) {
+	t.Parallel()
+
+	marsh := &mock.MarshalizerMock{}
+	hsh := mock.HasherMock{}
+	accFactory := factory.NewAccountCreator()
+	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(mock.NewMemDbMock())
+	maxTrieLevelInMemory := uint(5)
+	tr, _ := trie.NewTrie(storageManager, marsh, hsh, maxTrieLevelInMemory)
+	adb, _ := state.NewAccountsDB(tr, hsh, marsh, accFactory)
+
+	address := make([]byte, 32)
+	key := []byte("key")
+	value := []byte("value")
+
+	acc, _ := adb.LoadAccount(address)
+	_ = adb.SaveAccount(acc)
+	rootHash, _ := adb.Commit()
+
+	acc, _ = adb.LoadAccount(address)
+	acc.(state.UserAccountHandler).SetCode([]byte("code"))
+	_ = adb.SaveAccount(acc)
+
+	acc, _ = adb.LoadAccount(address)
+	acc.(state.UserAccountHandler).IncreaseNonce(1)
+	_ = adb.SaveAccount(acc)
+
+	acc, _ = adb.LoadAccount(address)
+	acc.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, value)
+	_ = adb.SaveAccount(acc)
+
+	assert.Equal(t, 5, adb.JournalLen())
+	err := adb.RecreateTrie(rootHash)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, adb.JournalLen())
+}

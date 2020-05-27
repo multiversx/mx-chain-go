@@ -521,6 +521,7 @@ func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
 	}()
 
 	adb.dataTries.Reset()
+	adb.entries = make([]JournalEntry, 0)
 	newTrie, err := adb.mainTrie.Recreate(rootHash)
 	if err != nil {
 		return err
