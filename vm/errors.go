@@ -121,3 +121,6 @@ var ErrNilSystemSCConfig = errors.New("nil system sc config")
 
 // ErrNilValidatorAccountsDB signals that nil validator accounts DB was provided
 var ErrNilValidatorAccountsDB = errors.New("nil validator accounts DB")
+
+// ErrInvalidStartEndVoteNonce signals that invalid arguments where passed for start or end vote nonce
+var ErrInvalidStartEndVoteNonce = errors.New("invalid start/end vote nonce")

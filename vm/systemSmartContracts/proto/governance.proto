@@ -7,20 +7,27 @@ option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
+message GeneralProposal {
+    bytes  IssuerAddress  = 1 [(gogoproto.jsontag) = "IssuerAddress"];
+    bytes  GitHubCommit   = 2 [(gogoproto.jsontag) = "GitHubCommit"];
+    uint64 StartVoteNonce = 3 [(gogoproto.jsontag) = "StartVoteNonce"];
+    uint64 EndVoteNonce   = 4 [(gogoproto.jsontag) = "EndVoteNonce"];
+    uint32 Yes            = 5 [(gogoproto.jsontag) = "Yes"];
+    uint32 No             = 6 [(gogoproto.jsontag) = "No"];
+    uint32 Veto           = 7 [(gogoproto.jsontag) = "Veto"];
+    uint32 DontCare       = 8 [(gogoproto.jsontag) = "DontCare"];
+    bool   Voted          = 9 [(gogoproto.jsontag) = "Voted"];
+}
+
 message WhiteListProposal {
-    bytes IssuerAddress = 1 [(gogoproto.jsontag) = "IssuerAddress"];
+    bytes  WhiteListAddress        = 1 [(gogoproto.jsontag) = "WhiteListAddress"];
+    GeneralProposal ProposalStatus = 2 [(gogoproto.jsontag) = "ProposalStatus"];
 }
 
 message HardForkProposal {
-    bytes  IssuerAddress      = 1 [(gogoproto.jsontag) = "IssuerAddress"];
-    uint32 EpochToHardFork    = 2 [(gogoproto.jsontag) = "EpochToHardFork"];
-    bytes  NewSoftwareVersion = 3 [(gogoproto.jsontag) = "NewSoftwareVersion"];
-}
-
-message GeneralProposal {
-    bytes  GitHubCommit   = 1 [(gogoproto.jsontag) = "GitHubCommit"];
-    uint64 StartVoteNonce = 2 [(gogoproto.jsontag) = "StartVoteNonce"];
-    uint64 EndVoteNonce   = 3 [(gogoproto.jsontag) = "EndVoteNonce"];
+    uint32 EpochToHardFork         = 1 [(gogoproto.jsontag) = "EpochToHardFork"];
+    bytes  NewSoftwareVersion      = 2 [(gogoproto.jsontag) = "NewSoftwareVersion"];
+    GeneralProposal ProposalStatus = 3 [(gogoproto.jsontag) = "ProposalStatus"];
 }
 
 message GovernanceConfig {
@@ -30,4 +37,3 @@ message GovernanceConfig {
     int32 MinVetoThreshold = 4 [(gogoproto.jsontag) = "MinVetoThreshold"];
     bytes ProposalFee      = 5 [(gogoproto.jsontag) = "ProposalFee", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
-

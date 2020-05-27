@@ -17,6 +17,7 @@ import (
 )
 
 const governanceConfigKey = "governanceConfig"
+const hardForkEpochGracePeriod = 2
 
 // ArgsNewGovernanceContract defines the arguments needed for the on-chain governance contract
 type ArgsNewGovernanceContract struct {
@@ -168,26 +169,216 @@ func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput)
 	if args.CallValue.Cmp(g.baseProposalCost) != 0 {
 		return vmcommon.OutOfFunds
 	}
-	if len(args.Arguments) != 1 {
+	if len(args.Arguments) != 4 {
 		return vmcommon.FunctionWrongSignature
 	}
+	if g.isWhiteListed(args.CallerAddr) {
+		return vmcommon.UserError
+	}
+
+	startVoteNonce, endVoteNonce, err := g.startEndNonceFromArguments(args.Arguments[2], args.Arguments[3])
+	if err != nil {
+		return vmcommon.UserError
+	}
+
+	whiteListAcc := &WhiteListProposal{
+		WhiteListAddress: args.Arguments[0],
+		ProposalStatus: &GeneralProposal{
+			IssuerAddress:  args.CallerAddr,
+			GitHubCommit:   args.Arguments[1],
+			StartVoteNonce: startVoteNonce,
+			EndVoteNonce:   endVoteNonce,
+			Yes:            0,
+			No:             0,
+			Veto:           0,
+			DontCare:       0,
+			Voted:          false,
+		},
+	}
+	marshalledData, err := g.marshalizer.Marshal(whiteListAcc)
+	if err != nil {
+		return vmcommon.UserError
+	}
+
+	g.eei.SetStorage(args.Arguments[0], marshalledData)
 
 	return vmcommon.Ok
+}
+
+func (g *governanceContract) startEndNonceFromArguments(argStart []byte, argEnd []byte) (uint64, uint64, error) {
+	startVoteNonce, ok := big.NewInt(0).SetString(string(argStart), conversionBase)
+	if !ok {
+		return 0, 0, vm.ErrInvalidStartEndVoteNonce
+	}
+	if !startVoteNonce.IsUint64() {
+		return 0, 0, vm.ErrInvalidStartEndVoteNonce
+	}
+	endVoteNonce, ok := big.NewInt(0).SetString(string(argEnd), conversionBase)
+	if !ok {
+		return 0, 0, vm.ErrInvalidStartEndVoteNonce
+	}
+	if !endVoteNonce.IsUint64() {
+		return 0, 0, vm.ErrInvalidStartEndVoteNonce
+	}
+	currentNonce := g.eei.BlockChainHook().CurrentNonce()
+	if currentNonce > startVoteNonce.Uint64() || startVoteNonce.Uint64() > endVoteNonce.Uint64() {
+		return 0, 0, vm.ErrInvalidStartEndVoteNonce
+	}
+
+	return startVoteNonce.Uint64(), endVoteNonce.Uint64(), nil
 }
 
 func (g *governanceContract) isWhiteListed(address []byte) bool {
-	return false
+	marshalledData := g.eei.GetStorage(address)
+	if len(marshalledData) == 0 {
+		return false
+	}
+
+	whiteListAcc := &WhiteListProposal{}
+	err := g.marshalizer.Unmarshal(whiteListAcc, marshalledData)
+	if err != nil {
+		return false
+	}
+
+	return whiteListAcc.ProposalStatus.Voted
 }
 
-func (g *governanceContract) whiteListAtGenesis(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (g *governanceContract) whiteListAtGenesis(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		return vmcommon.UserError
+	}
+	if g.isWhiteListed(args.CallerAddr) {
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 1 {
+		return vmcommon.UserError
+	}
+	if len(args.Arguments[0]) != len(args.CallerAddr) {
+		return vmcommon.UserError
+	}
+
+	whiteListAcc := &WhiteListProposal{
+		WhiteListAddress: args.Arguments[0],
+		ProposalStatus: &GeneralProposal{
+			IssuerAddress:  args.CallerAddr,
+			GitHubCommit:   []byte("genesis"),
+			StartVoteNonce: 0,
+			EndVoteNonce:   0,
+			Yes:            uint32(g.governanceConfig.NumNodes),
+			No:             0,
+			Veto:           0,
+			DontCare:       0,
+			Voted:          true,
+		},
+	}
+	marshalledData, err := g.marshalizer.Marshal(whiteListAcc)
+	if err != nil {
+		return vmcommon.UserError
+	}
+
+	g.eei.SetStorage(args.Arguments[0], marshalledData)
+
 	return vmcommon.Ok
 }
 
-func (g *governanceContract) hardForkProposal(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(g.baseProposalCost) != 0 {
+		return vmcommon.OutOfFunds
+	}
+	if len(args.Arguments) != 4 {
+		return vmcommon.FunctionWrongSignature
+	}
+	if g.isWhiteListed(args.CallerAddr) {
+		return vmcommon.UserError
+	}
+
+	gitHubCommit := args.Arguments[2]
+	marshalledData := g.eei.GetStorage(gitHubCommit)
+	if len(marshalledData) != 0 {
+		return vmcommon.UserError
+	}
+
+	startVoteNonce, endVoteNonce, err := g.startEndNonceFromArguments(args.Arguments[3], args.Arguments[4])
+	if err != nil {
+		return vmcommon.UserError
+	}
+
+	bigIntEpochToHardFork, ok := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
+	if !ok || !bigIntEpochToHardFork.IsUint64() {
+		return vmcommon.UserError
+	}
+
+	epochToHardFork := uint32(bigIntEpochToHardFork.Uint64())
+	currentEpoch := g.eei.BlockChainHook().CurrentEpoch()
+	if epochToHardFork < currentEpoch && currentEpoch-epochToHardFork < hardForkEpochGracePeriod {
+		return vmcommon.UserError
+	}
+
+	hardForkProposal := &HardForkProposal{
+		EpochToHardFork:    epochToHardFork,
+		NewSoftwareVersion: args.Arguments[1],
+		ProposalStatus: &GeneralProposal{
+			IssuerAddress:  args.CallerAddr,
+			GitHubCommit:   gitHubCommit,
+			StartVoteNonce: startVoteNonce,
+			EndVoteNonce:   endVoteNonce,
+			Yes:            0,
+			No:             0,
+			Veto:           0,
+			DontCare:       0,
+			Voted:          false,
+		},
+	}
+	marshalledData, err = g.marshalizer.Marshal(hardForkProposal)
+	if err != nil {
+		return vmcommon.UserError
+	}
+
+	g.eei.SetStorage(gitHubCommit, marshalledData)
+
 	return vmcommon.Ok
 }
 
-func (g *governanceContract) proposal(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(g.baseProposalCost) != 0 {
+		return vmcommon.OutOfFunds
+	}
+	if len(args.Arguments) != 4 {
+		return vmcommon.FunctionWrongSignature
+	}
+	if g.isWhiteListed(args.CallerAddr) {
+		return vmcommon.UserError
+	}
+
+	gitHubCommit := args.Arguments[0]
+	marshalledData := g.eei.GetStorage(gitHubCommit)
+	if len(marshalledData) != 0 {
+		return vmcommon.UserError
+	}
+
+	startVoteNonce, endVoteNonce, err := g.startEndNonceFromArguments(args.Arguments[1], args.Arguments[2])
+	if err != nil {
+		return vmcommon.UserError
+	}
+
+	generalProposal := &GeneralProposal{
+		IssuerAddress:  args.CallerAddr,
+		GitHubCommit:   gitHubCommit,
+		StartVoteNonce: startVoteNonce,
+		EndVoteNonce:   endVoteNonce,
+		Yes:            0,
+		No:             0,
+		Veto:           0,
+		DontCare:       0,
+		Voted:          false,
+	}
+	marshalledData, err = g.marshalizer.Marshal(generalProposal)
+	if err != nil {
+		return vmcommon.UserError
+	}
+
+	g.eei.SetStorage(gitHubCommit, marshalledData)
+
 	return vmcommon.Ok
 }
 

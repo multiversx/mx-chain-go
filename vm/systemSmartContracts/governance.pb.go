@@ -28,110 +28,22 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-type WhiteListProposal struct {
-	IssuerAddress []byte `protobuf:"bytes,1,opt,name=IssuerAddress,proto3" json:"IssuerAddress"`
-}
-
-func (m *WhiteListProposal) Reset()      { *m = WhiteListProposal{} }
-func (*WhiteListProposal) ProtoMessage() {}
-func (*WhiteListProposal) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e18a03da5266c714, []int{0}
-}
-func (m *WhiteListProposal) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *WhiteListProposal) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *WhiteListProposal) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WhiteListProposal.Merge(m, src)
-}
-func (m *WhiteListProposal) XXX_Size() int {
-	return m.Size()
-}
-func (m *WhiteListProposal) XXX_DiscardUnknown() {
-	xxx_messageInfo_WhiteListProposal.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WhiteListProposal proto.InternalMessageInfo
-
-func (m *WhiteListProposal) GetIssuerAddress() []byte {
-	if m != nil {
-		return m.IssuerAddress
-	}
-	return nil
-}
-
-type HardForkProposal struct {
-	IssuerAddress      []byte `protobuf:"bytes,1,opt,name=IssuerAddress,proto3" json:"IssuerAddress"`
-	EpochToHardFork    uint32 `protobuf:"varint,2,opt,name=EpochToHardFork,proto3" json:"EpochToHardFork"`
-	NewSoftwareVersion []byte `protobuf:"bytes,3,opt,name=NewSoftwareVersion,proto3" json:"NewSoftwareVersion"`
-}
-
-func (m *HardForkProposal) Reset()      { *m = HardForkProposal{} }
-func (*HardForkProposal) ProtoMessage() {}
-func (*HardForkProposal) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e18a03da5266c714, []int{1}
-}
-func (m *HardForkProposal) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *HardForkProposal) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
-	}
-	return b[:n], nil
-}
-func (m *HardForkProposal) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_HardForkProposal.Merge(m, src)
-}
-func (m *HardForkProposal) XXX_Size() int {
-	return m.Size()
-}
-func (m *HardForkProposal) XXX_DiscardUnknown() {
-	xxx_messageInfo_HardForkProposal.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_HardForkProposal proto.InternalMessageInfo
-
-func (m *HardForkProposal) GetIssuerAddress() []byte {
-	if m != nil {
-		return m.IssuerAddress
-	}
-	return nil
-}
-
-func (m *HardForkProposal) GetEpochToHardFork() uint32 {
-	if m != nil {
-		return m.EpochToHardFork
-	}
-	return 0
-}
-
-func (m *HardForkProposal) GetNewSoftwareVersion() []byte {
-	if m != nil {
-		return m.NewSoftwareVersion
-	}
-	return nil
-}
-
 type GeneralProposal struct {
-	GitHubCommit   []byte `protobuf:"bytes,1,opt,name=GitHubCommit,proto3" json:"GitHubCommit"`
-	StartVoteNonce uint64 `protobuf:"varint,2,opt,name=StartVoteNonce,proto3" json:"StartVoteNonce"`
-	EndVoteNonce   uint64 `protobuf:"varint,3,opt,name=EndVoteNonce,proto3" json:"EndVoteNonce"`
+	IssuerAddress  []byte `protobuf:"bytes,1,opt,name=IssuerAddress,proto3" json:"IssuerAddress"`
+	GitHubCommit   []byte `protobuf:"bytes,2,opt,name=GitHubCommit,proto3" json:"GitHubCommit"`
+	StartVoteNonce uint64 `protobuf:"varint,3,opt,name=StartVoteNonce,proto3" json:"StartVoteNonce"`
+	EndVoteNonce   uint64 `protobuf:"varint,4,opt,name=EndVoteNonce,proto3" json:"EndVoteNonce"`
+	Yes            uint32 `protobuf:"varint,5,opt,name=Yes,proto3" json:"Yes"`
+	No             uint32 `protobuf:"varint,6,opt,name=No,proto3" json:"No"`
+	Veto           uint32 `protobuf:"varint,7,opt,name=Veto,proto3" json:"Veto"`
+	DontCare       uint32 `protobuf:"varint,8,opt,name=DontCare,proto3" json:"DontCare"`
+	Voted          bool   `protobuf:"varint,9,opt,name=Voted,proto3" json:"Voted"`
 }
 
 func (m *GeneralProposal) Reset()      { *m = GeneralProposal{} }
 func (*GeneralProposal) ProtoMessage() {}
 func (*GeneralProposal) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e18a03da5266c714, []int{2}
+	return fileDescriptor_e18a03da5266c714, []int{0}
 }
 func (m *GeneralProposal) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -156,6 +68,13 @@ func (m *GeneralProposal) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_GeneralProposal proto.InternalMessageInfo
 
+func (m *GeneralProposal) GetIssuerAddress() []byte {
+	if m != nil {
+		return m.IssuerAddress
+	}
+	return nil
+}
+
 func (m *GeneralProposal) GetGitHubCommit() []byte {
 	if m != nil {
 		return m.GitHubCommit
@@ -175,6 +94,143 @@ func (m *GeneralProposal) GetEndVoteNonce() uint64 {
 		return m.EndVoteNonce
 	}
 	return 0
+}
+
+func (m *GeneralProposal) GetYes() uint32 {
+	if m != nil {
+		return m.Yes
+	}
+	return 0
+}
+
+func (m *GeneralProposal) GetNo() uint32 {
+	if m != nil {
+		return m.No
+	}
+	return 0
+}
+
+func (m *GeneralProposal) GetVeto() uint32 {
+	if m != nil {
+		return m.Veto
+	}
+	return 0
+}
+
+func (m *GeneralProposal) GetDontCare() uint32 {
+	if m != nil {
+		return m.DontCare
+	}
+	return 0
+}
+
+func (m *GeneralProposal) GetVoted() bool {
+	if m != nil {
+		return m.Voted
+	}
+	return false
+}
+
+type WhiteListProposal struct {
+	WhiteListAddress []byte           `protobuf:"bytes,1,opt,name=WhiteListAddress,proto3" json:"WhiteListAddress"`
+	ProposalStatus   *GeneralProposal `protobuf:"bytes,2,opt,name=ProposalStatus,proto3" json:"ProposalStatus"`
+}
+
+func (m *WhiteListProposal) Reset()      { *m = WhiteListProposal{} }
+func (*WhiteListProposal) ProtoMessage() {}
+func (*WhiteListProposal) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e18a03da5266c714, []int{1}
+}
+func (m *WhiteListProposal) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *WhiteListProposal) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *WhiteListProposal) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WhiteListProposal.Merge(m, src)
+}
+func (m *WhiteListProposal) XXX_Size() int {
+	return m.Size()
+}
+func (m *WhiteListProposal) XXX_DiscardUnknown() {
+	xxx_messageInfo_WhiteListProposal.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WhiteListProposal proto.InternalMessageInfo
+
+func (m *WhiteListProposal) GetWhiteListAddress() []byte {
+	if m != nil {
+		return m.WhiteListAddress
+	}
+	return nil
+}
+
+func (m *WhiteListProposal) GetProposalStatus() *GeneralProposal {
+	if m != nil {
+		return m.ProposalStatus
+	}
+	return nil
+}
+
+type HardForkProposal struct {
+	EpochToHardFork    uint32           `protobuf:"varint,1,opt,name=EpochToHardFork,proto3" json:"EpochToHardFork"`
+	NewSoftwareVersion []byte           `protobuf:"bytes,2,opt,name=NewSoftwareVersion,proto3" json:"NewSoftwareVersion"`
+	ProposalStatus     *GeneralProposal `protobuf:"bytes,3,opt,name=ProposalStatus,proto3" json:"ProposalStatus"`
+}
+
+func (m *HardForkProposal) Reset()      { *m = HardForkProposal{} }
+func (*HardForkProposal) ProtoMessage() {}
+func (*HardForkProposal) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e18a03da5266c714, []int{2}
+}
+func (m *HardForkProposal) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *HardForkProposal) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *HardForkProposal) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HardForkProposal.Merge(m, src)
+}
+func (m *HardForkProposal) XXX_Size() int {
+	return m.Size()
+}
+func (m *HardForkProposal) XXX_DiscardUnknown() {
+	xxx_messageInfo_HardForkProposal.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_HardForkProposal proto.InternalMessageInfo
+
+func (m *HardForkProposal) GetEpochToHardFork() uint32 {
+	if m != nil {
+		return m.EpochToHardFork
+	}
+	return 0
+}
+
+func (m *HardForkProposal) GetNewSoftwareVersion() []byte {
+	if m != nil {
+		return m.NewSoftwareVersion
+	}
+	return nil
+}
+
+func (m *HardForkProposal) GetProposalStatus() *GeneralProposal {
+	if m != nil {
+		return m.ProposalStatus
+	}
+	return nil
 }
 
 type GovernanceConfig struct {
@@ -249,53 +305,109 @@ func (m *GovernanceConfig) GetProposalFee() *math_big.Int {
 }
 
 func init() {
+	proto.RegisterType((*GeneralProposal)(nil), "proto.GeneralProposal")
 	proto.RegisterType((*WhiteListProposal)(nil), "proto.WhiteListProposal")
 	proto.RegisterType((*HardForkProposal)(nil), "proto.HardForkProposal")
-	proto.RegisterType((*GeneralProposal)(nil), "proto.GeneralProposal")
 	proto.RegisterType((*GovernanceConfig)(nil), "proto.GovernanceConfig")
 }
 
 func init() { proto.RegisterFile("governance.proto", fileDescriptor_e18a03da5266c714) }
 
 var fileDescriptor_e18a03da5266c714 = []byte{
-	// 547 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x93, 0xc1, 0x6a, 0x13, 0x41,
-	0x18, 0xc7, 0x77, 0xda, 0x46, 0x74, 0x6c, 0x6d, 0xba, 0x16, 0x09, 0x1e, 0x66, 0x4b, 0x4e, 0x05,
-	0x69, 0x72, 0x50, 0x10, 0x14, 0xc1, 0x6e, 0x68, 0xd3, 0x40, 0xbb, 0xd4, 0x4d, 0x88, 0xe0, 0x6d,
-	0x92, 0x9d, 0xec, 0x2e, 0xcd, 0xce, 0x17, 0x66, 0x66, 0x1b, 0xbc, 0xf9, 0x08, 0x3e, 0x86, 0xf8,
-	0x06, 0xbe, 0x81, 0xc7, 0xe0, 0x29, 0xa7, 0xd5, 0x6c, 0x10, 0x64, 0x4f, 0x7d, 0x04, 0x71, 0xda,
-	0x26, 0xd9, 0xa4, 0x37, 0x4f, 0x3b, 0xff, 0xdf, 0x9f, 0xef, 0xff, 0xcd, 0xc7, 0xb7, 0x83, 0x8b,
-	0x3e, 0x5c, 0x32, 0xc1, 0x29, 0xef, 0xb2, 0xca, 0x40, 0x80, 0x02, 0xb3, 0xa0, 0x3f, 0x4f, 0x0f,
-	0xfc, 0x50, 0x05, 0x71, 0xa7, 0xd2, 0x85, 0xa8, 0xea, 0x83, 0x0f, 0x55, 0x8d, 0x3b, 0x71, 0x4f,
-	0x2b, 0x2d, 0xf4, 0xe9, 0xba, 0xaa, 0x7c, 0x8a, 0x77, 0xde, 0x07, 0xa1, 0x62, 0xa7, 0xa1, 0x54,
-	0xe7, 0x02, 0x06, 0x20, 0x69, 0xdf, 0x7c, 0x89, 0xb7, 0x1a, 0x52, 0xc6, 0x4c, 0x1c, 0x7a, 0x9e,
-	0x60, 0x52, 0x96, 0xd0, 0x1e, 0xda, 0xdf, 0xb4, 0x77, 0xb2, 0xc4, 0xca, 0x1b, 0x6e, 0x5e, 0x96,
-	0x7f, 0x20, 0x5c, 0x3c, 0xa1, 0xc2, 0x3b, 0x06, 0x71, 0xf1, 0xdf, 0x69, 0xe6, 0x1b, 0xbc, 0x7d,
-	0x34, 0x80, 0x6e, 0xd0, 0x82, 0xdb, 0xcc, 0xd2, 0xda, 0x1e, 0xda, 0xdf, 0xb2, 0x1f, 0x67, 0x89,
-	0xb5, 0x6c, 0xb9, 0xcb, 0xc0, 0x3c, 0xc6, 0xa6, 0xc3, 0x86, 0x4d, 0xe8, 0xa9, 0x21, 0x15, 0xac,
-	0xcd, 0x84, 0x0c, 0x81, 0x97, 0xd6, 0x75, 0xf3, 0x27, 0x59, 0x62, 0xdd, 0xe1, 0xba, 0x77, 0xb0,
-	0xf2, 0x37, 0x84, 0xb7, 0xeb, 0x8c, 0x33, 0x41, 0xfb, 0xb3, 0x99, 0x5e, 0xe0, 0xcd, 0x7a, 0xa8,
-	0x4e, 0xe2, 0x4e, 0x0d, 0xa2, 0x28, 0x54, 0x37, 0x23, 0x15, 0xb3, 0xc4, 0xca, 0x71, 0x37, 0xa7,
-	0xcc, 0x57, 0xf8, 0x51, 0x53, 0x51, 0xa1, 0xda, 0xa0, 0x98, 0x03, 0xbc, 0xcb, 0xf4, 0x3c, 0x1b,
-	0xb6, 0x99, 0x25, 0xd6, 0x92, 0xe3, 0x2e, 0xe9, 0x7f, 0x1d, 0x8f, 0xb8, 0x37, 0xaf, 0x5c, 0xd7,
-	0x95, 0xba, 0xe3, 0x22, 0x77, 0x73, 0xaa, 0xfc, 0x7b, 0x0d, 0x17, 0xeb, 0xb3, 0x3f, 0xa5, 0x06,
-	0xbc, 0x17, 0xfa, 0xe6, 0x3e, 0xbe, 0xef, 0xc4, 0x91, 0x03, 0x1e, 0xbb, 0xde, 0xc5, 0xba, 0xbd,
-	0x99, 0x25, 0xd6, 0x8c, 0xb9, 0xb3, 0x93, 0xf9, 0x0c, 0x3f, 0x38, 0x0b, 0xf9, 0xbb, 0x18, 0x44,
-	0x1c, 0xe9, 0xbb, 0x16, 0xec, 0xad, 0x2c, 0xb1, 0xe6, 0xd0, 0x9d, 0x1f, 0xcd, 0xb7, 0xb8, 0x78,
-	0x16, 0xf2, 0x73, 0x2a, 0x65, 0x2b, 0x10, 0x4c, 0x06, 0xd0, 0xf7, 0xf4, 0x2d, 0x0b, 0xf6, 0x6e,
-	0x96, 0x58, 0x2b, 0x9e, 0xbb, 0x42, 0x6e, 0x12, 0xda, 0x4c, 0xc1, 0x3c, 0x61, 0x23, 0x97, 0x90,
-	0xf3, 0xdc, 0x15, 0x62, 0x5e, 0xe2, 0x87, 0xb7, 0x3b, 0x3a, 0x66, 0xac, 0x54, 0xd0, 0x6b, 0x69,
-	0x65, 0x89, 0xb5, 0x88, 0xbf, 0xfe, 0xb4, 0x0e, 0x23, 0xaa, 0x82, 0x6a, 0x27, 0xf4, 0x2b, 0x0d,
-	0xae, 0x5e, 0x2f, 0x3c, 0x99, 0xa3, 0xbe, 0x00, 0xee, 0x39, 0x4c, 0x0d, 0x41, 0x5c, 0x54, 0x99,
-	0x56, 0x07, 0x3e, 0x54, 0x3d, 0xaa, 0x68, 0xc5, 0x0e, 0xfd, 0x06, 0x57, 0x35, 0x2a, 0x15, 0x13,
-	0xee, 0x62, 0xa2, 0xed, 0x8c, 0x26, 0xc4, 0x18, 0x4f, 0x88, 0x71, 0x35, 0x21, 0xe8, 0x53, 0x4a,
-	0xd0, 0x97, 0x94, 0xa0, 0xef, 0x29, 0x41, 0xa3, 0x94, 0xa0, 0x71, 0x4a, 0xd0, 0xaf, 0x94, 0xa0,
-	0x3f, 0x29, 0x31, 0xae, 0x52, 0x82, 0x3e, 0x4f, 0x89, 0x31, 0x9a, 0x12, 0x63, 0x3c, 0x25, 0xc6,
-	0x87, 0x5d, 0xf9, 0x51, 0x2a, 0x16, 0x35, 0x23, 0x2a, 0x54, 0x0d, 0xb8, 0x12, 0xb4, 0xab, 0x64,
-	0xe7, 0x9e, 0x7e, 0x9d, 0xcf, 0xff, 0x06, 0x00, 0x00, 0xff, 0xff, 0x71, 0x3f, 0x91, 0x70, 0xe7,
-	0x03, 0x00, 0x00,
+	// 679 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x54, 0xdd, 0x6a, 0x13, 0x41,
+	0x14, 0xce, 0xe4, 0xa7, 0x4d, 0xa7, 0x49, 0x9b, 0x8e, 0xa5, 0xac, 0x22, 0x3b, 0xa1, 0x57, 0x01,
+	0x69, 0x02, 0x2a, 0x08, 0x8a, 0x60, 0x37, 0xf6, 0x0f, 0xec, 0x52, 0x27, 0xa5, 0xa2, 0x77, 0x9b,
+	0xec, 0x74, 0xb3, 0x34, 0xbb, 0x53, 0x66, 0x66, 0x5b, 0xbc, 0xf3, 0x09, 0xc4, 0xc7, 0x50, 0x9f,
+	0xc4, 0xcb, 0x5e, 0xf6, 0x6a, 0xb5, 0x5b, 0x04, 0x59, 0x10, 0xfa, 0x08, 0xb2, 0xb3, 0xcd, 0xcf,
+	0x26, 0xbd, 0xf3, 0x66, 0xe7, 0x7c, 0xdf, 0x97, 0x73, 0x66, 0xce, 0x7c, 0x67, 0x02, 0x6b, 0x0e,
+	0x3b, 0xa3, 0xdc, 0xb7, 0xfc, 0x1e, 0x6d, 0x9e, 0x72, 0x26, 0x19, 0x2a, 0xa9, 0xe5, 0xc1, 0x86,
+	0xe3, 0xca, 0x7e, 0xd0, 0x6d, 0xf6, 0x98, 0xd7, 0x72, 0x98, 0xc3, 0x5a, 0x8a, 0xee, 0x06, 0xc7,
+	0x0a, 0x29, 0xa0, 0xa2, 0x34, 0x6b, 0xfd, 0x73, 0x01, 0x2e, 0xef, 0x50, 0x9f, 0x72, 0x6b, 0x70,
+	0xc0, 0xd9, 0x29, 0x13, 0xd6, 0x00, 0x3d, 0x83, 0xd5, 0x3d, 0x21, 0x02, 0xca, 0x37, 0x6d, 0x9b,
+	0x53, 0x21, 0x34, 0x50, 0x07, 0x8d, 0x8a, 0xb1, 0x12, 0x87, 0x38, 0x2b, 0x90, 0x2c, 0x44, 0x4f,
+	0x61, 0x65, 0xc7, 0x95, 0xbb, 0x41, 0xb7, 0xcd, 0x3c, 0xcf, 0x95, 0x5a, 0x5e, 0xe5, 0xd5, 0xe2,
+	0x10, 0x67, 0x78, 0x92, 0x41, 0xe8, 0x39, 0x5c, 0xea, 0x48, 0x8b, 0xcb, 0x23, 0x26, 0xa9, 0xc9,
+	0xfc, 0x1e, 0xd5, 0x0a, 0x75, 0xd0, 0x28, 0x1a, 0x28, 0x0e, 0xf1, 0x94, 0x42, 0xa6, 0x70, 0xb2,
+	0xe3, 0x96, 0x6f, 0x8f, 0x33, 0x8b, 0x2a, 0x53, 0xed, 0x38, 0xc9, 0x93, 0x0c, 0x42, 0xf7, 0x61,
+	0xe1, 0x3d, 0x15, 0x5a, 0xa9, 0x0e, 0x1a, 0x55, 0x63, 0x3e, 0x0e, 0x71, 0x02, 0x49, 0xf2, 0x41,
+	0x6b, 0x30, 0x6f, 0x32, 0x6d, 0x4e, 0x29, 0x73, 0x71, 0x88, 0xf3, 0x26, 0x23, 0x79, 0x93, 0xa1,
+	0x87, 0xb0, 0x78, 0x44, 0x25, 0xd3, 0xe6, 0x95, 0x52, 0x8e, 0x43, 0xac, 0x30, 0x51, 0x5f, 0xd4,
+	0x80, 0xe5, 0xd7, 0xcc, 0x97, 0x6d, 0x8b, 0x53, 0xad, 0xac, 0x7e, 0x51, 0x89, 0x43, 0x3c, 0xe2,
+	0xc8, 0x28, 0x42, 0x18, 0x96, 0x92, 0x73, 0xd8, 0xda, 0x42, 0x1d, 0x34, 0xca, 0xc6, 0x42, 0x1c,
+	0xe2, 0x94, 0x20, 0xe9, 0xb2, 0xfe, 0x0d, 0xc0, 0x95, 0x77, 0x7d, 0x57, 0xd2, 0x37, 0xae, 0x90,
+	0x23, 0x4b, 0x5e, 0xc1, 0xda, 0x88, 0xcc, 0xba, 0xb2, 0x1a, 0x87, 0x78, 0x46, 0x23, 0x33, 0x0c,
+	0x22, 0x70, 0x69, 0x58, 0xad, 0x23, 0x2d, 0x19, 0x08, 0xe5, 0xce, 0xe2, 0xe3, 0xb5, 0x74, 0x10,
+	0x9a, 0x53, 0x43, 0x90, 0xde, 0x7e, 0x36, 0x83, 0x4c, 0xe1, 0xf5, 0xbf, 0x00, 0xd6, 0x76, 0x2d,
+	0x6e, 0x6f, 0x33, 0x7e, 0x32, 0x3a, 0xea, 0x4b, 0xb8, 0xbc, 0x75, 0xca, 0x7a, 0xfd, 0x43, 0x36,
+	0x94, 0xd4, 0x49, 0xab, 0xc6, 0xbd, 0x38, 0xc4, 0xd3, 0x12, 0x99, 0x26, 0xd0, 0x36, 0x44, 0x26,
+	0x3d, 0xef, 0xb0, 0x63, 0x79, 0x6e, 0x71, 0x7a, 0x44, 0xb9, 0x70, 0x99, 0x7f, 0x3b, 0x49, 0x6b,
+	0x71, 0x88, 0xef, 0x50, 0xc9, 0x1d, 0xdc, 0x1d, 0xfd, 0x16, 0xfe, 0xbb, 0xdf, 0xdf, 0x79, 0x58,
+	0xdb, 0x19, 0xbd, 0xbb, 0x36, 0xf3, 0x8f, 0x5d, 0x27, 0xf1, 0xde, 0x0c, 0x3c, 0x93, 0xd9, 0x34,
+	0xb5, 0xa4, 0x90, 0x7a, 0x3f, 0xe4, 0xc8, 0x28, 0x42, 0x8f, 0xe0, 0xc2, 0xbe, 0xeb, 0xbf, 0x0d,
+	0x18, 0x0f, 0x3c, 0xd5, 0x51, 0xc9, 0xa8, 0xc6, 0x21, 0x1e, 0x93, 0x64, 0x1c, 0x26, 0x8e, 0xef,
+	0xbb, 0xfe, 0x81, 0x25, 0xc4, 0x61, 0x9f, 0x53, 0xd1, 0x67, 0x03, 0x5b, 0x75, 0x50, 0x4a, 0x1d,
+	0x9f, 0xd6, 0xc8, 0x0c, 0x73, 0x5b, 0x21, 0x99, 0xcf, 0x71, 0x85, 0x62, 0xa6, 0x42, 0x46, 0x23,
+	0x33, 0x0c, 0x3a, 0x83, 0x8b, 0xc3, 0x1b, 0xd8, 0xa6, 0x54, 0xbd, 0x97, 0x8a, 0x71, 0x18, 0x87,
+	0x78, 0x92, 0xfe, 0xfe, 0x13, 0x6f, 0x7a, 0x96, 0xec, 0xb7, 0xba, 0xae, 0xd3, 0xdc, 0xf3, 0xe5,
+	0x8b, 0x89, 0x3f, 0xa0, 0xad, 0x01, 0x67, 0xbe, 0x6d, 0x52, 0x79, 0xce, 0xf8, 0x49, 0x8b, 0x2a,
+	0xb4, 0xe1, 0xb0, 0x96, 0x6d, 0x49, 0xab, 0x69, 0xb8, 0xce, 0x5e, 0xf2, 0x2a, 0x84, 0xa4, 0x9c,
+	0x4c, 0x56, 0x34, 0xcc, 0x8b, 0x2b, 0x3d, 0x77, 0x79, 0xa5, 0xe7, 0x6e, 0xae, 0x74, 0xf0, 0x29,
+	0xd2, 0xc1, 0xd7, 0x48, 0x07, 0x3f, 0x22, 0x1d, 0x5c, 0x44, 0x3a, 0xb8, 0x8c, 0x74, 0xf0, 0x2b,
+	0xd2, 0xc1, 0x9f, 0x48, 0xcf, 0xdd, 0x44, 0x3a, 0xf8, 0x72, 0xad, 0xe7, 0x2e, 0xae, 0xf5, 0xdc,
+	0xe5, 0xb5, 0x9e, 0xfb, 0xb0, 0x2a, 0x3e, 0x0a, 0x49, 0xbd, 0x8e, 0x67, 0x71, 0xd9, 0x66, 0xbe,
+	0xe4, 0x56, 0x4f, 0x8a, 0xee, 0x9c, 0xb2, 0xfc, 0xc9, 0xbf, 0x00, 0x00, 0x00, 0xff, 0xff, 0xb5,
+	0xbe, 0xdf, 0x00, 0x35, 0x05, 0x00, 0x00,
 }
 
+func (this *GeneralProposal) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*GeneralProposal)
+	if !ok {
+		that2, ok := that.(GeneralProposal)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.IssuerAddress, that1.IssuerAddress) {
+		return false
+	}
+	if !bytes.Equal(this.GitHubCommit, that1.GitHubCommit) {
+		return false
+	}
+	if this.StartVoteNonce != that1.StartVoteNonce {
+		return false
+	}
+	if this.EndVoteNonce != that1.EndVoteNonce {
+		return false
+	}
+	if this.Yes != that1.Yes {
+		return false
+	}
+	if this.No != that1.No {
+		return false
+	}
+	if this.Veto != that1.Veto {
+		return false
+	}
+	if this.DontCare != that1.DontCare {
+		return false
+	}
+	if this.Voted != that1.Voted {
+		return false
+	}
+	return true
+}
 func (this *WhiteListProposal) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
@@ -315,7 +427,10 @@ func (this *WhiteListProposal) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !bytes.Equal(this.IssuerAddress, that1.IssuerAddress) {
+	if !bytes.Equal(this.WhiteListAddress, that1.WhiteListAddress) {
+		return false
+	}
+	if !this.ProposalStatus.Equal(that1.ProposalStatus) {
 		return false
 	}
 	return true
@@ -339,43 +454,13 @@ func (this *HardForkProposal) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !bytes.Equal(this.IssuerAddress, that1.IssuerAddress) {
-		return false
-	}
 	if this.EpochToHardFork != that1.EpochToHardFork {
 		return false
 	}
 	if !bytes.Equal(this.NewSoftwareVersion, that1.NewSoftwareVersion) {
 		return false
 	}
-	return true
-}
-func (this *GeneralProposal) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*GeneralProposal)
-	if !ok {
-		that2, ok := that.(GeneralProposal)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if !bytes.Equal(this.GitHubCommit, that1.GitHubCommit) {
-		return false
-	}
-	if this.StartVoteNonce != that1.StartVoteNonce {
-		return false
-	}
-	if this.EndVoteNonce != that1.EndVoteNonce {
+	if !this.ProposalStatus.Equal(that1.ProposalStatus) {
 		return false
 	}
 	return true
@@ -419,13 +504,34 @@ func (this *GovernanceConfig) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *GeneralProposal) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 13)
+	s = append(s, "&systemSmartContracts.GeneralProposal{")
+	s = append(s, "IssuerAddress: "+fmt.Sprintf("%#v", this.IssuerAddress)+",\n")
+	s = append(s, "GitHubCommit: "+fmt.Sprintf("%#v", this.GitHubCommit)+",\n")
+	s = append(s, "StartVoteNonce: "+fmt.Sprintf("%#v", this.StartVoteNonce)+",\n")
+	s = append(s, "EndVoteNonce: "+fmt.Sprintf("%#v", this.EndVoteNonce)+",\n")
+	s = append(s, "Yes: "+fmt.Sprintf("%#v", this.Yes)+",\n")
+	s = append(s, "No: "+fmt.Sprintf("%#v", this.No)+",\n")
+	s = append(s, "Veto: "+fmt.Sprintf("%#v", this.Veto)+",\n")
+	s = append(s, "DontCare: "+fmt.Sprintf("%#v", this.DontCare)+",\n")
+	s = append(s, "Voted: "+fmt.Sprintf("%#v", this.Voted)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
 func (this *WhiteListProposal) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 5)
+	s := make([]string, 0, 6)
 	s = append(s, "&systemSmartContracts.WhiteListProposal{")
-	s = append(s, "IssuerAddress: "+fmt.Sprintf("%#v", this.IssuerAddress)+",\n")
+	s = append(s, "WhiteListAddress: "+fmt.Sprintf("%#v", this.WhiteListAddress)+",\n")
+	if this.ProposalStatus != nil {
+		s = append(s, "ProposalStatus: "+fmt.Sprintf("%#v", this.ProposalStatus)+",\n")
+	}
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -435,21 +541,11 @@ func (this *HardForkProposal) GoString() string {
 	}
 	s := make([]string, 0, 7)
 	s = append(s, "&systemSmartContracts.HardForkProposal{")
-	s = append(s, "IssuerAddress: "+fmt.Sprintf("%#v", this.IssuerAddress)+",\n")
 	s = append(s, "EpochToHardFork: "+fmt.Sprintf("%#v", this.EpochToHardFork)+",\n")
 	s = append(s, "NewSoftwareVersion: "+fmt.Sprintf("%#v", this.NewSoftwareVersion)+",\n")
-	s = append(s, "}")
-	return strings.Join(s, "")
-}
-func (this *GeneralProposal) GoString() string {
-	if this == nil {
-		return "nil"
+	if this.ProposalStatus != nil {
+		s = append(s, "ProposalStatus: "+fmt.Sprintf("%#v", this.ProposalStatus)+",\n")
 	}
-	s := make([]string, 0, 7)
-	s = append(s, "&systemSmartContracts.GeneralProposal{")
-	s = append(s, "GitHubCommit: "+fmt.Sprintf("%#v", this.GitHubCommit)+",\n")
-	s = append(s, "StartVoteNonce: "+fmt.Sprintf("%#v", this.StartVoteNonce)+",\n")
-	s = append(s, "EndVoteNonce: "+fmt.Sprintf("%#v", this.EndVoteNonce)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -475,6 +571,83 @@ func valueToGoStringGovernance(v interface{}, typ string) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("func(v %v) *%v { return &v } ( %#v )", typ, typ, pv)
 }
+func (m *GeneralProposal) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GeneralProposal) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GeneralProposal) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Voted {
+		i--
+		if m.Voted {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x48
+	}
+	if m.DontCare != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.DontCare))
+		i--
+		dAtA[i] = 0x40
+	}
+	if m.Veto != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.Veto))
+		i--
+		dAtA[i] = 0x38
+	}
+	if m.No != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.No))
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.Yes != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.Yes))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.EndVoteNonce != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.EndVoteNonce))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.StartVoteNonce != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.StartVoteNonce))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.GitHubCommit) > 0 {
+		i -= len(m.GitHubCommit)
+		copy(dAtA[i:], m.GitHubCommit)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.GitHubCommit)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.IssuerAddress) > 0 {
+		i -= len(m.IssuerAddress)
+		copy(dAtA[i:], m.IssuerAddress)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.IssuerAddress)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *WhiteListProposal) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -495,10 +668,22 @@ func (m *WhiteListProposal) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.IssuerAddress) > 0 {
-		i -= len(m.IssuerAddress)
-		copy(dAtA[i:], m.IssuerAddress)
-		i = encodeVarintGovernance(dAtA, i, uint64(len(m.IssuerAddress)))
+	if m.ProposalStatus != nil {
+		{
+			size, err := m.ProposalStatus.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintGovernance(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.WhiteListAddress) > 0 {
+		i -= len(m.WhiteListAddress)
+		copy(dAtA[i:], m.WhiteListAddress)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.WhiteListAddress)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -525,64 +710,29 @@ func (m *HardForkProposal) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if m.ProposalStatus != nil {
+		{
+			size, err := m.ProposalStatus.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintGovernance(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0x1a
+	}
 	if len(m.NewSoftwareVersion) > 0 {
 		i -= len(m.NewSoftwareVersion)
 		copy(dAtA[i:], m.NewSoftwareVersion)
 		i = encodeVarintGovernance(dAtA, i, uint64(len(m.NewSoftwareVersion)))
 		i--
-		dAtA[i] = 0x1a
+		dAtA[i] = 0x12
 	}
 	if m.EpochToHardFork != 0 {
 		i = encodeVarintGovernance(dAtA, i, uint64(m.EpochToHardFork))
 		i--
-		dAtA[i] = 0x10
-	}
-	if len(m.IssuerAddress) > 0 {
-		i -= len(m.IssuerAddress)
-		copy(dAtA[i:], m.IssuerAddress)
-		i = encodeVarintGovernance(dAtA, i, uint64(len(m.IssuerAddress)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *GeneralProposal) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *GeneralProposal) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *GeneralProposal) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.EndVoteNonce != 0 {
-		i = encodeVarintGovernance(dAtA, i, uint64(m.EndVoteNonce))
-		i--
-		dAtA[i] = 0x18
-	}
-	if m.StartVoteNonce != 0 {
-		i = encodeVarintGovernance(dAtA, i, uint64(m.StartVoteNonce))
-		i--
-		dAtA[i] = 0x10
-	}
-	if len(m.GitHubCommit) > 0 {
-		i -= len(m.GitHubCommit)
-		copy(dAtA[i:], m.GitHubCommit)
-		i = encodeVarintGovernance(dAtA, i, uint64(len(m.GitHubCommit)))
-		i--
-		dAtA[i] = 0xa
+		dAtA[i] = 0x8
 	}
 	return len(dAtA) - i, nil
 }
@@ -652,7 +802,7 @@ func encodeVarintGovernance(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *WhiteListProposal) Size() (n int) {
+func (m *GeneralProposal) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -660,6 +810,48 @@ func (m *WhiteListProposal) Size() (n int) {
 	_ = l
 	l = len(m.IssuerAddress)
 	if l > 0 {
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	l = len(m.GitHubCommit)
+	if l > 0 {
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	if m.StartVoteNonce != 0 {
+		n += 1 + sovGovernance(uint64(m.StartVoteNonce))
+	}
+	if m.EndVoteNonce != 0 {
+		n += 1 + sovGovernance(uint64(m.EndVoteNonce))
+	}
+	if m.Yes != 0 {
+		n += 1 + sovGovernance(uint64(m.Yes))
+	}
+	if m.No != 0 {
+		n += 1 + sovGovernance(uint64(m.No))
+	}
+	if m.Veto != 0 {
+		n += 1 + sovGovernance(uint64(m.Veto))
+	}
+	if m.DontCare != 0 {
+		n += 1 + sovGovernance(uint64(m.DontCare))
+	}
+	if m.Voted {
+		n += 2
+	}
+	return n
+}
+
+func (m *WhiteListProposal) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.WhiteListAddress)
+	if l > 0 {
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	if m.ProposalStatus != nil {
+		l = m.ProposalStatus.Size()
 		n += 1 + l + sovGovernance(uint64(l))
 	}
 	return n
@@ -671,10 +863,6 @@ func (m *HardForkProposal) Size() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.IssuerAddress)
-	if l > 0 {
-		n += 1 + l + sovGovernance(uint64(l))
-	}
 	if m.EpochToHardFork != 0 {
 		n += 1 + sovGovernance(uint64(m.EpochToHardFork))
 	}
@@ -682,24 +870,9 @@ func (m *HardForkProposal) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovGovernance(uint64(l))
 	}
-	return n
-}
-
-func (m *GeneralProposal) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.GitHubCommit)
-	if l > 0 {
+	if m.ProposalStatus != nil {
+		l = m.ProposalStatus.Size()
 		n += 1 + l + sovGovernance(uint64(l))
-	}
-	if m.StartVoteNonce != 0 {
-		n += 1 + sovGovernance(uint64(m.StartVoteNonce))
-	}
-	if m.EndVoteNonce != 0 {
-		n += 1 + sovGovernance(uint64(m.EndVoteNonce))
 	}
 	return n
 }
@@ -736,12 +909,31 @@ func sovGovernance(x uint64) (n int) {
 func sozGovernance(x uint64) (n int) {
 	return sovGovernance(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
+func (this *GeneralProposal) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&GeneralProposal{`,
+		`IssuerAddress:` + fmt.Sprintf("%v", this.IssuerAddress) + `,`,
+		`GitHubCommit:` + fmt.Sprintf("%v", this.GitHubCommit) + `,`,
+		`StartVoteNonce:` + fmt.Sprintf("%v", this.StartVoteNonce) + `,`,
+		`EndVoteNonce:` + fmt.Sprintf("%v", this.EndVoteNonce) + `,`,
+		`Yes:` + fmt.Sprintf("%v", this.Yes) + `,`,
+		`No:` + fmt.Sprintf("%v", this.No) + `,`,
+		`Veto:` + fmt.Sprintf("%v", this.Veto) + `,`,
+		`DontCare:` + fmt.Sprintf("%v", this.DontCare) + `,`,
+		`Voted:` + fmt.Sprintf("%v", this.Voted) + `,`,
+		`}`,
+	}, "")
+	return s
+}
 func (this *WhiteListProposal) String() string {
 	if this == nil {
 		return "nil"
 	}
 	s := strings.Join([]string{`&WhiteListProposal{`,
-		`IssuerAddress:` + fmt.Sprintf("%v", this.IssuerAddress) + `,`,
+		`WhiteListAddress:` + fmt.Sprintf("%v", this.WhiteListAddress) + `,`,
+		`ProposalStatus:` + strings.Replace(this.ProposalStatus.String(), "GeneralProposal", "GeneralProposal", 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -751,21 +943,9 @@ func (this *HardForkProposal) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&HardForkProposal{`,
-		`IssuerAddress:` + fmt.Sprintf("%v", this.IssuerAddress) + `,`,
 		`EpochToHardFork:` + fmt.Sprintf("%v", this.EpochToHardFork) + `,`,
 		`NewSoftwareVersion:` + fmt.Sprintf("%v", this.NewSoftwareVersion) + `,`,
-		`}`,
-	}, "")
-	return s
-}
-func (this *GeneralProposal) String() string {
-	if this == nil {
-		return "nil"
-	}
-	s := strings.Join([]string{`&GeneralProposal{`,
-		`GitHubCommit:` + fmt.Sprintf("%v", this.GitHubCommit) + `,`,
-		`StartVoteNonce:` + fmt.Sprintf("%v", this.StartVoteNonce) + `,`,
-		`EndVoteNonce:` + fmt.Sprintf("%v", this.EndVoteNonce) + `,`,
+		`ProposalStatus:` + strings.Replace(this.ProposalStatus.String(), "GeneralProposal", "GeneralProposal", 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -792,7 +972,7 @@ func valueToStringGovernance(v interface{}) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("*%v", pv)
 }
-func (m *WhiteListProposal) Unmarshal(dAtA []byte) error {
+func (m *GeneralProposal) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -815,10 +995,10 @@ func (m *WhiteListProposal) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: WhiteListProposal: wiretype end group for non-group")
+			return fmt.Errorf("proto: GeneralProposal: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: WhiteListProposal: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: GeneralProposal: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -853,6 +1033,297 @@ func (m *WhiteListProposal) Unmarshal(dAtA []byte) error {
 			m.IssuerAddress = append(m.IssuerAddress[:0], dAtA[iNdEx:postIndex]...)
 			if m.IssuerAddress == nil {
 				m.IssuerAddress = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GitHubCommit", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.GitHubCommit = append(m.GitHubCommit[:0], dAtA[iNdEx:postIndex]...)
+			if m.GitHubCommit == nil {
+				m.GitHubCommit = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartVoteNonce", wireType)
+			}
+			m.StartVoteNonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.StartVoteNonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EndVoteNonce", wireType)
+			}
+			m.EndVoteNonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.EndVoteNonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Yes", wireType)
+			}
+			m.Yes = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Yes |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field No", wireType)
+			}
+			m.No = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.No |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Veto", wireType)
+			}
+			m.Veto = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Veto |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DontCare", wireType)
+			}
+			m.DontCare = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.DontCare |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Voted", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Voted = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGovernance(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *WhiteListProposal) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGovernance
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WhiteListProposal: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WhiteListProposal: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WhiteListAddress", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WhiteListAddress = append(m.WhiteListAddress[:0], dAtA[iNdEx:postIndex]...)
+			if m.WhiteListAddress == nil {
+				m.WhiteListAddress = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProposalStatus", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.ProposalStatus == nil {
+				m.ProposalStatus = &GeneralProposal{}
+			}
+			if err := m.ProposalStatus.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
 			}
 			iNdEx = postIndex
 		default:
@@ -909,40 +1380,6 @@ func (m *HardForkProposal) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field IssuerAddress", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGovernance
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.IssuerAddress = append(m.IssuerAddress[:0], dAtA[iNdEx:postIndex]...)
-			if m.IssuerAddress == nil {
-				m.IssuerAddress = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field EpochToHardFork", wireType)
 			}
@@ -961,7 +1398,7 @@ func (m *HardForkProposal) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 3:
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field NewSoftwareVersion", wireType)
 			}
@@ -995,64 +1432,11 @@ func (m *HardForkProposal) Unmarshal(dAtA []byte) error {
 				m.NewSoftwareVersion = []byte{}
 			}
 			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipGovernance(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *GeneralProposal) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowGovernance
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: GeneralProposal: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GeneralProposal: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
+		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field GitHubCommit", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field ProposalStatus", wireType)
 			}
-			var byteLen int
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGovernance
@@ -1062,64 +1446,28 @@ func (m *GeneralProposal) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= int(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			if byteLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthGovernance
 			}
-			postIndex := iNdEx + byteLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthGovernance
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.GitHubCommit = append(m.GitHubCommit[:0], dAtA[iNdEx:postIndex]...)
-			if m.GitHubCommit == nil {
-				m.GitHubCommit = []byte{}
+			if m.ProposalStatus == nil {
+				m.ProposalStatus = &GeneralProposal{}
+			}
+			if err := m.ProposalStatus.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
 			}
 			iNdEx = postIndex
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field StartVoteNonce", wireType)
-			}
-			m.StartVoteNonce = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGovernance
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.StartVoteNonce |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EndVoteNonce", wireType)
-			}
-			m.EndVoteNonce = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGovernance
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.EndVoteNonce |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipGovernance(dAtA[iNdEx:])
