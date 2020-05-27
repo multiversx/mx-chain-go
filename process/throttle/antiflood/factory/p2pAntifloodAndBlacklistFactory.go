@@ -23,6 +23,10 @@ import (
 var durationSweepP2PBlacklist = time.Second * 5
 var log = logger.GetOrCreate("p2p/antiflood/factory")
 
+const defaultSpan = 300 * time.Second
+const fastReactingIdentifier = "fast_reacting"
+const slowReactingIdentifier = "slow_reacting"
+
 // NewP2PAntiFloodAndBlackList will return instances of antiflood and blacklist, based on the config
 func NewP2PAntiFloodAndBlackList(
 	config config.Config,
@@ -42,13 +46,13 @@ func initP2PAntiFloodAndBlackList(
 	mainConfig config.Config,
 	statusHandler core.AppStatusHandler,
 ) (process.P2PAntifloodHandler, process.BlackListHandler, error) {
-	p2pPeerBlackList := timecache.NewTimeCache(300 * time.Second)
+	p2pPeerBlackList := timecache.NewTimeCache(defaultSpan)
 
 	fastReactingFloodPreventer, err := createFloodPreventer(
 		mainConfig.Antiflood.FastReacting,
 		mainConfig.Antiflood.Cache,
 		statusHandler,
-		"fast_reacting",
+		fastReactingIdentifier,
 		p2pPeerBlackList,
 	)
 	if err != nil {
@@ -59,7 +63,7 @@ func initP2PAntiFloodAndBlackList(
 		mainConfig.Antiflood.SlowReacting,
 		mainConfig.Antiflood.Cache,
 		statusHandler,
-		"slow_reacting",
+		slowReactingIdentifier,
 		p2pPeerBlackList,
 	)
 	if err != nil {
