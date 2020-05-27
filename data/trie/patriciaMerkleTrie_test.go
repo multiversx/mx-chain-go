@@ -534,6 +534,28 @@ func TestPatriciaMerkleTrie_ClosePersister(t *testing.T) {
 	assert.Equal(t, storage.ErrSerialDBIsClosed, err)
 }
 
+func TestPatriciaMerkleTree_reduceBranchNodeReturnsOldHashesCorrectly(t *testing.T) {
+	t.Parallel()
+
+	key1 := []byte("ABC")
+	key2 := []byte("ABD")
+	val1 := []byte("val1")
+	val2 := []byte("val2")
+
+	tr := emptyTrie()
+	_ = tr.Update(key1, val1)
+	_ = tr.Update(key2, val2)
+	_ = tr.Commit()
+
+	_ = tr.Update(key1, nil)
+	_ = tr.Update(key1, val1)
+
+	oldHashes := tr.ResetOldHashes()
+	newHashes, _ := tr.GetDirtyHashes()
+
+	assert.Equal(t, len(oldHashes), len(newHashes))
+}
+
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.Keccak{}
