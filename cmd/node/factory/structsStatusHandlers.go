@@ -170,6 +170,9 @@ func (shi *statusHandlersInfo) LoadTpsBenchmarkFromStorage(
 	log.Debug("loaded tps benchmark from storage",
 		"block number", okTpsBenchmarks.BlockNumber,
 		"round number", okTpsBenchmarks.RoundNumber,
+		"peak tps", okTpsBenchmarks.PeakTPS,
+		"last block tx count", okTpsBenchmarks.LastBlockTxCount,
+		"average block tx count", okTpsBenchmarks.AverageBlockTxCount,
 		"total txs processed", okTpsBenchmarks.TotalProcessedTxCount.String())
 
 	return okTpsBenchmarks
