@@ -202,10 +202,9 @@ func TestNodeFacade_GetTransactionWithValidInputsShouldNotReturnError(t *testing
 	t.Parallel()
 
 	testHash := "testHash"
-	testTx := &transaction.Transaction{}
-	//testTx.
+	testTx := &transaction.ApiTransactionResult{}
 	node := &mock.NodeStub{
-		GetTransactionHandler: func(hash string) (*transaction.Transaction, error) {
+		GetTransactionHandler: func(hash string) (*transaction.ApiTransactionResult, error) {
 			if hash == testHash {
 				return testTx, nil
 			}
@@ -238,9 +237,9 @@ func TestNodeFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *tes
 	t.Parallel()
 
 	testHash := "testHash"
-	testTx := &transaction.Transaction{}
+	testTx := &transaction.ApiTransactionResult{}
 	node := &mock.NodeStub{
-		GetTransactionHandler: func(hash string) (*transaction.Transaction, error) {
+		GetTransactionHandler: func(hash string) (*transaction.ApiTransactionResult, error) {
 			if hash == testHash {
 				return testTx, nil
 			}

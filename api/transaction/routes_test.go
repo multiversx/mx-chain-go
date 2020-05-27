@@ -90,16 +90,16 @@ func TestGetTransactionStatus(t *testing.T) {
 func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
-	value := big.NewInt(10)
-	txData := []byte("data")
+	value := "10"
+	txData := "data"
 	hash := "hash"
 	facade := mock.Facade{
-		GetTransactionHandler: func(hash string) (i *tr.Transaction, e error) {
-			return &tr.Transaction{
-				SndAddr: []byte(sender),
-				RcvAddr: []byte(receiver),
-				Data:    txData,
-				Value:   new(big.Int).Set(value),
+		GetTransactionHandler: func(hash string) (i *tr.ApiTransactionResult, e error) {
+			return &tr.ApiTransactionResult{
+				Sender:   sender,
+				Receiver: receiver,
+				Data:     txData,
+				Value:    value,
 			}, nil
 		},
 	}
@@ -115,29 +115,29 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	txResp := transactionResponse.TxResp
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, hex.EncodeToString([]byte(sender)), txResp.Sender)
-	assert.Equal(t, hex.EncodeToString([]byte(receiver)), txResp.Receiver)
-	assert.Equal(t, value.String(), txResp.Value)
-	assert.Equal(t, string(txData), txResp.Data)
+	assert.Equal(t, sender, txResp.Sender)
+	assert.Equal(t, receiver, txResp.Receiver)
+	assert.Equal(t, value, txResp.Value)
+	assert.Equal(t, txData, txResp.Data)
 }
 
 func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	sender := "sender"
 	receiver := "receiver"
-	value := big.NewInt(10)
+	value := "10"
 	txData := "data"
 	hs := "hash"
 	wrongHash := "wronghash"
 	facade := mock.Facade{
-		GetTransactionHandler: func(hash string) (i *tr.Transaction, e error) {
+		GetTransactionHandler: func(hash string) (i *tr.ApiTransactionResult, e error) {
 			if hash != hs {
 				return nil, nil
 			}
-			return &tr.Transaction{
-				SndAddr: []byte(sender),
-				RcvAddr: []byte(receiver),
-				Data:    []byte(txData),
-				Value:   value,
+			return &tr.ApiTransactionResult{
+				Sender:   sender,
+				Receiver: receiver,
+				Data:     txData,
+				Value:    value,
 			}, nil
 		},
 	}
@@ -150,7 +150,7 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	transactionResponse := TransactionResponse{}
 	loadResponse(resp.Body, &transactionResponse)
 
-	assert.Equal(t, http.StatusNotFound, resp.Code)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 	assert.Nil(t, transactionResponse.TxResp)
 }
 

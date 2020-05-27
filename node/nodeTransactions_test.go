@@ -1,6 +1,7 @@
 package node_test
 
 import (
+	"encoding/hex"
 	"errors"
 	"testing"
 
@@ -256,7 +257,7 @@ func TestNode_GetTransaction_InvalidHashShouldErr(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestNode_GetTransaction_ShouldFindInTxCacheAndReturnReceived(t *testing.T) {
+func TestNode_GetTransaction_ShouldFindInTxCacheAndReturn(t *testing.T) {
 	t.Parallel()
 
 	throttler := &mock.ThrottlerStub{
@@ -271,6 +272,7 @@ func TestNode_GetTransaction_ShouldFindInTxCacheAndReturnReceived(t *testing.T) 
 		node.WithApiTransactionByHashThrottler(throttler),
 		node.WithDataPool(dataPool),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
+		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 	)
 	expectedTx, _ := getDummyTx()
 	tx, err := n.GetTransaction("aaaa")
@@ -278,7 +280,7 @@ func TestNode_GetTransaction_ShouldFindInTxCacheAndReturnReceived(t *testing.T) 
 	assert.Equal(t, expectedTx.Nonce, tx.Nonce)
 }
 
-func TestNode_GetTransaction_ShouldFindInRwdTxCacheAndReturnReceived(t *testing.T) {
+func TestNode_GetTransaction_ShouldFindInRwdTxCacheAndReturn(t *testing.T) {
 	t.Parallel()
 
 	throttler := &mock.ThrottlerStub{
@@ -294,14 +296,15 @@ func TestNode_GetTransaction_ShouldFindInRwdTxCacheAndReturnReceived(t *testing.
 		node.WithApiTransactionByHashThrottler(throttler),
 		node.WithDataPool(dataPool),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
+		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 	)
 	expectedTx, _ := getDummyTx()
 	tx, err := n.GetTransaction("aaaa")
 	assert.NoError(t, err)
-	assert.Equal(t, expectedTx.Nonce, tx.Nonce)
+	assert.Equal(t, hex.EncodeToString(expectedTx.RcvAddr), tx.Receiver)
 }
 
-func TestNode_GetTransaction_ShouldFindInUnsignedTxCacheAndReturnReceived(t *testing.T) {
+func TestNode_GetTransaction_ShouldFindInUnsignedTxCacheAndReturn(t *testing.T) {
 	t.Parallel()
 
 	throttler := &mock.ThrottlerStub{
@@ -318,6 +321,7 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxCacheAndReturnReceived(t *tes
 		node.WithApiTransactionByHashThrottler(throttler),
 		node.WithDataPool(dataPool),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
+		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 	)
 	expectedTx, _ := getDummyTx()
 	tx, err := n.GetTransaction("aaaa")
@@ -325,7 +329,7 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxCacheAndReturnReceived(t *tes
 	assert.Equal(t, expectedTx.Nonce, tx.Nonce)
 }
 
-func TestNode_GetTransaction_ShouldFindInTxStorageAndReturnExecuted(t *testing.T) {
+func TestNode_GetTransaction_ShouldFindInTxStorageAndReturn(t *testing.T) {
 	t.Parallel()
 
 	throttler := &mock.ThrottlerStub{
@@ -348,6 +352,7 @@ func TestNode_GetTransaction_ShouldFindInTxStorageAndReturnExecuted(t *testing.T
 		node.WithDataPool(dataPool),
 		node.WithDataStore(storer),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
+		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 	)
 	expectedTx, _ := getDummyTx()
 	tx, err := n.GetTransaction("aaaa")
@@ -355,7 +360,7 @@ func TestNode_GetTransaction_ShouldFindInTxStorageAndReturnExecuted(t *testing.T
 	assert.Equal(t, expectedTx.Nonce, tx.Nonce)
 }
 
-func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturnExecuted(t *testing.T) {
+func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturn(t *testing.T) {
 	t.Parallel()
 
 	throttler := &mock.ThrottlerStub{
@@ -382,14 +387,15 @@ func TestNode_GetTransaction_ShouldFindInRwdTxStorageAndReturnExecuted(t *testin
 		node.WithDataPool(dataPool),
 		node.WithDataStore(storer),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
+		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 	)
 	expectedTx, _ := getDummyTx()
 	tx, err := n.GetTransaction("aaaa")
 	assert.NoError(t, err)
-	assert.Equal(t, expectedTx.Nonce, tx.Nonce)
+	assert.Equal(t, hex.EncodeToString(expectedTx.RcvAddr), tx.Receiver)
 }
 
-func TestNode_GetTransaction_ShouldFindInUnsignedTxStorageAndReturnExecuted(t *testing.T) {
+func TestNode_GetTransaction_ShouldFindInUnsignedTxStorageAndReturn(t *testing.T) {
 	t.Parallel()
 
 	throttler := &mock.ThrottlerStub{
@@ -417,6 +423,7 @@ func TestNode_GetTransaction_ShouldFindInUnsignedTxStorageAndReturnExecuted(t *t
 		node.WithDataPool(dataPool),
 		node.WithDataStore(storer),
 		node.WithInternalMarshalizer(&mock.MarshalizerFake{}, 0),
+		node.WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 	)
 	expectedTx, _ := getDummyTx()
 	tx, err := n.GetTransaction("aaaa")
@@ -526,7 +533,7 @@ func getStorerStub(find bool) storage.Storer {
 }
 
 func getDummyTx() (*transaction.Transaction, []byte) {
-	tx := transaction.Transaction{Nonce: 37}
+	tx := transaction.Transaction{Nonce: 37, RcvAddr: []byte("rcvr")}
 	marshalizer := &mock.MarshalizerFake{}
 	txBytes, _ := marshalizer.Marshal(&tx)
 	return &tx, txBytes

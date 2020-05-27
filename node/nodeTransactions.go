@@ -13,10 +13,10 @@ import (
 type transactionType string
 
 const (
-	moveBalanceTx transactionType = "moveBalance"
-	unsignedTx    transactionType = "unsignedTx"
-	rewardTx      transactionType = "rewardTx"
-	invalidTx     transactionType = "invalidTx"
+	normalTx   transactionType = "normal"
+	unsignedTx transactionType = "unsignedTx"
+	rewardTx   transactionType = "rewardTx"
+	invalidTx  transactionType = "invalidTx"
 )
 
 // GetTransaction gets the transaction
@@ -77,7 +77,7 @@ func (n *Node) getTxFromDataPool(hash []byte) ([]byte, transactionType, bool) {
 	txsPool := n.dataPool.Transactions()
 	txBytes, found := txsPool.SearchFirstData(hash)
 	if found && txBytes != nil {
-		return txBytes.([]byte), moveBalanceTx, true
+		return txBytes.([]byte), normalTx, true
 	}
 
 	rewardTxsPool := n.dataPool.RewardTransactions()
@@ -117,7 +117,7 @@ func (n *Node) getTxFromStorage(hash []byte) ([]byte, transactionType, bool) {
 	txsStorer := n.store.GetStorer(dataRetriever.TransactionUnit)
 	txBytes, err := txsStorer.SearchFirst(hash)
 	if err == nil {
-		return txBytes, moveBalanceTx, true
+		return txBytes, normalTx, true
 	}
 
 	rewardTxsStorer := n.store.GetStorer(dataRetriever.RewardTransactionUnit)
@@ -137,14 +137,14 @@ func (n *Node) getTxFromStorage(hash []byte) ([]byte, transactionType, bool) {
 
 func (n *Node) convertBytesToTransaction(txBytes []byte, txType transactionType) (*transaction.ApiTransactionResult, error) {
 	switch txType {
-	case moveBalanceTx:
+	case normalTx:
 		var tx transaction.Transaction
 		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
 		if err != nil {
 			return nil, err
 		}
 		return &transaction.ApiTransactionResult{
-			Type:      string(moveBalanceTx),
+			Type:      string(normalTx),
 			Nonce:     tx.Nonce,
 			Value:     tx.Value.String(),
 			Receiver:  n.addressPubkeyConverter.Encode(tx.RcvAddr),
@@ -161,15 +161,11 @@ func (n *Node) convertBytesToTransaction(txBytes []byte, txType transactionType)
 			return nil, err
 		}
 		return &transaction.ApiTransactionResult{
-			Type:      string(rewardTx),
-			Nonce:     tx.GetNonce(),
-			Value:     tx.GetValue().String(),
-			Receiver:  n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
-			Sender:    n.addressPubkeyConverter.Encode(tx.GetSndAddr()),
-			GasPrice:  tx.GetGasPrice(),
-			GasLimit:  tx.GetGasLimit(),
-			Data:      string(tx.GetData()),
-			Signature: hex.EncodeToString(tx.GetData()),
+			Type:     string(rewardTx),
+			Round:    tx.GetRound(),
+			Epoch:    tx.GetEpoch(),
+			Value:    tx.GetValue().String(),
+			Receiver: n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
 		}, nil
 
 	case unsignedTx:
@@ -187,6 +183,7 @@ func (n *Node) convertBytesToTransaction(txBytes []byte, txType transactionType)
 			GasPrice:  tx.GetGasPrice(),
 			GasLimit:  tx.GetGasLimit(),
 			Data:      string(tx.GetData()),
+			Code:      string(tx.GetCode()),
 			Signature: "",
 		}, nil
 	default:
