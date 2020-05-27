@@ -37,3 +37,13 @@ message GovernanceConfig {
     int32 MinVetoThreshold = 4 [(gogoproto.jsontag) = "MinVetoThreshold"];
     bytes ProposalFee      = 5 [(gogoproto.jsontag) = "ProposalFee", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
+
+message VoterData {
+    bytes  Address  = 1 [(gogoproto.jsontag) = "Address"];
+    uint32 NumNodes = 2 [(gogoproto.jsontag) = "NumNodes"];
+}
+
+message ValidatorData {
+    repeated VoterData Delegators = 1 [(gogoproto.jsontag) = "Delegators"];
+    uint32             NumNodes   = 2 [(gogoproto.jsontag) = "NumNodes"];
+}
