@@ -159,7 +159,27 @@ func (g *governanceContract) getConfig() (*GovernanceConfig, error) {
 	return scConfig, nil
 }
 
-func (g *governanceContract) whiteListProposal(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	currentNonce := g.eei.BlockChainHook().CurrentNonce()
+	if currentNonce == 0 {
+		return g.whiteListAtGenesis(args)
+	}
+
+	if args.CallValue.Cmp(g.baseProposalCost) != 0 {
+		return vmcommon.OutOfFunds
+	}
+	if len(args.Arguments) != 1 {
+		return vmcommon.FunctionWrongSignature
+	}
+
+	return vmcommon.Ok
+}
+
+func (g *governanceContract) isWhiteListed(address []byte) bool {
+	return false
+}
+
+func (g *governanceContract) whiteListAtGenesis(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
