@@ -239,7 +239,7 @@ func (nf *nodeFacade) SendBulkTransactions(txs []*transaction.Transaction) (uint
 }
 
 // GetTransaction gets the transaction with a specified hash
-func (nf *nodeFacade) GetTransaction(hash string) (*transaction.Transaction, error) {
+func (nf *nodeFacade) GetTransaction(hash string) (*transaction.ApiTransactionResult, error) {
 	return nf.node.GetTransaction(hash)
 }
 

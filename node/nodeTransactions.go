@@ -4,12 +4,23 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	rewardTxData "github.com/ElrondNetwork/elrond-go/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
+type transactionType string
+
+const (
+	moveBalanceTx transactionType = "moveBalance"
+	unsignedTx    transactionType = "unsignedTx"
+	rewardTx      transactionType = "rewardTx"
+	invalidTx     transactionType = "invalidTx"
+)
+
 // GetTransaction gets the transaction
-func (n *Node) GetTransaction(txHash string) (*transaction.Transaction, error) {
+func (n *Node) GetTransaction(txHash string) (*transaction.ApiTransactionResult, error) {
 	if !n.apiTransactionByHashThrottler.CanProcess() {
 		return nil, ErrSystemBusyTxHash
 	}
@@ -22,14 +33,14 @@ func (n *Node) GetTransaction(txHash string) (*transaction.Transaction, error) {
 		return nil, err
 	}
 
-	txBytes, found := n.getTxFromDataPool(hash)
+	txBytes, txType, found := n.getTxFromDataPool(hash)
 	if found {
-		return n.convertBytesToTransaction(txBytes)
+		return n.convertBytesToTransaction(txBytes, txType)
 	}
 
-	txBytes, found = n.getTxFromStorage(hash)
+	txBytes, txType, found = n.getTxFromStorage(hash)
 	if found {
-		return n.convertBytesToTransaction(txBytes)
+		return n.convertBytesToTransaction(txBytes, txType)
 	}
 
 	return nil, fmt.Errorf("transaction not found")
@@ -49,7 +60,7 @@ func (n *Node) GetTransactionStatus(txHash string) (string, error) {
 		return "", err
 	}
 
-	_, foundInDataPool := n.getTxFromDataPool(hash)
+	_, _, foundInDataPool := n.getTxFromDataPool(hash)
 	if foundInDataPool {
 		return "received", nil
 	}
@@ -62,26 +73,26 @@ func (n *Node) GetTransactionStatus(txHash string) (string, error) {
 	return "unknown", nil
 }
 
-func (n *Node) getTxFromDataPool(hash []byte) ([]byte, bool) {
+func (n *Node) getTxFromDataPool(hash []byte) ([]byte, transactionType, bool) {
 	txsPool := n.dataPool.Transactions()
 	txBytes, found := txsPool.SearchFirstData(hash)
 	if found && txBytes != nil {
-		return txBytes.([]byte), true
+		return txBytes.([]byte), moveBalanceTx, true
 	}
 
 	rewardTxsPool := n.dataPool.RewardTransactions()
 	txBytes, found = rewardTxsPool.SearchFirstData(hash)
 	if found && txBytes != nil {
-		return txBytes.([]byte), true
+		return txBytes.([]byte), rewardTx, true
 	}
 
 	unsignedTxsPool := n.dataPool.UnsignedTransactions()
 	txBytes, found = unsignedTxsPool.SearchFirstData(hash)
 	if found && txBytes != nil {
-		return txBytes.([]byte), true
+		return txBytes.([]byte), unsignedTx, true
 	}
 
-	return nil, false
+	return nil, invalidTx, false
 }
 
 func (n *Node) isTxInStorage(hash []byte) bool {
@@ -102,34 +113,83 @@ func (n *Node) isTxInStorage(hash []byte) bool {
 	return err == nil
 }
 
-func (n *Node) getTxFromStorage(hash []byte) ([]byte, bool) {
+func (n *Node) getTxFromStorage(hash []byte) ([]byte, transactionType, bool) {
 	txsStorer := n.store.GetStorer(dataRetriever.TransactionUnit)
 	txBytes, err := txsStorer.SearchFirst(hash)
 	if err == nil {
-		return txBytes, true
+		return txBytes, moveBalanceTx, true
 	}
 
 	rewardTxsStorer := n.store.GetStorer(dataRetriever.RewardTransactionUnit)
 	txBytes, err = rewardTxsStorer.SearchFirst(hash)
 	if err == nil {
-		return txBytes, true
+		return txBytes, rewardTx, true
 	}
 
 	unsignedTransactionsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 	txBytes, err = unsignedTransactionsStorer.SearchFirst(hash)
 	if err == nil {
-		return txBytes, true
+		return txBytes, unsignedTx, true
 	}
 
-	return nil, false
+	return nil, invalidTx, false
 }
 
-func (n *Node) convertBytesToTransaction(txBytes []byte) (*transaction.Transaction, error) {
-	var tx transaction.Transaction
-	err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
-	if err != nil {
-		return nil, err
-	}
+func (n *Node) convertBytesToTransaction(txBytes []byte, txType transactionType) (*transaction.ApiTransactionResult, error) {
+	switch txType {
+	case moveBalanceTx:
+		var tx transaction.Transaction
+		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
+		if err != nil {
+			return nil, err
+		}
+		return &transaction.ApiTransactionResult{
+			Type:      string(moveBalanceTx),
+			Nonce:     tx.Nonce,
+			Value:     tx.Value.String(),
+			Receiver:  n.addressPubkeyConverter.Encode(tx.RcvAddr),
+			Sender:    n.addressPubkeyConverter.Encode(tx.SndAddr),
+			GasPrice:  tx.GasPrice,
+			GasLimit:  tx.GasLimit,
+			Data:      string(tx.Data),
+			Signature: hex.EncodeToString(tx.Signature),
+		}, nil
+	case rewardTx:
+		var tx rewardTxData.RewardTx
+		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
+		if err != nil {
+			return nil, err
+		}
+		return &transaction.ApiTransactionResult{
+			Type:      string(rewardTx),
+			Nonce:     tx.GetNonce(),
+			Value:     tx.GetValue().String(),
+			Receiver:  n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
+			Sender:    n.addressPubkeyConverter.Encode(tx.GetSndAddr()),
+			GasPrice:  tx.GetGasPrice(),
+			GasLimit:  tx.GetGasLimit(),
+			Data:      string(tx.GetData()),
+			Signature: hex.EncodeToString(tx.GetData()),
+		}, nil
 
-	return &tx, nil
+	case unsignedTx:
+		var tx smartContractResult.SmartContractResult
+		err := n.internalMarshalizer.Unmarshal(&tx, txBytes)
+		if err != nil {
+			return nil, err
+		}
+		return &transaction.ApiTransactionResult{
+			Type:      string(unsignedTx),
+			Nonce:     tx.GetNonce(),
+			Value:     tx.GetValue().String(),
+			Receiver:  n.addressPubkeyConverter.Encode(tx.GetRcvAddr()),
+			Sender:    n.addressPubkeyConverter.Encode(tx.GetSndAddr()),
+			GasPrice:  tx.GetGasPrice(),
+			GasLimit:  tx.GetGasLimit(),
+			Data:      string(tx.GetData()),
+			Signature: "",
+		}, nil
+	default:
+		return &transaction.ApiTransactionResult{Type: string(invalidTx)}, nil // this shouldn't happen
+	}
 }

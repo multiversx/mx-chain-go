@@ -34,7 +34,7 @@ type NodeHandler interface {
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
 
 	//GetTransaction gets the transaction
-	GetTransaction(hash string) (*transaction.Transaction, error)
+	GetTransaction(hash string) (*transaction.ApiTransactionResult, error)
 
 	//GetTransactionStatus gets the transaction status
 	GetTransactionStatus(hash string) (string, error)
