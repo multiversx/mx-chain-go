@@ -203,18 +203,6 @@ func (n *Node) CreateShardedStores() error {
 		return errors.New("nil header sharded data store")
 	}
 
-	shards := n.shardCoordinator.NumberOfShards()
-	currentShardId := n.shardCoordinator.SelfId()
-
-	transactionsDataStore.CreateShardStore(process.ShardCacherIdentifier(currentShardId, currentShardId))
-	for i := uint32(0); i < shards; i++ {
-		if i == n.shardCoordinator.SelfId() {
-			continue
-		}
-		transactionsDataStore.CreateShardStore(process.ShardCacherIdentifier(i, currentShardId))
-		transactionsDataStore.CreateShardStore(process.ShardCacherIdentifier(currentShardId, i))
-	}
-
 	return nil
 }
 
