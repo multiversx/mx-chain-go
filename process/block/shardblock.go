@@ -1739,7 +1739,6 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	mrsData := make(map[uint32][]byte, sp.shardCoordinator.NumberOfShards()+1)
 	mrsTxs := sp.txCoordinator.CreateMarshalizedData(body)
 
 	bodies := make(map[uint32]block.MiniBlockSlice)
@@ -1751,14 +1750,21 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 		bodies[miniBlock.ReceiverShardID] = append(bodies[miniBlock.ReceiverShardID], miniBlock)
 	}
 
+	mrsData := make(map[uint32][]byte, len(bodies))
 	for shardId, subsetBlockBody := range bodies {
 		bodyForShard := block.Body{MiniBlocks: subsetBlockBody}
 		buff, err := sp.marshalizer.Marshal(&bodyForShard)
 		if err != nil {
-			log.Debug("marshalizer.Marshal", "error", process.ErrMarshalWithoutSuccess.Error())
+			log.Error("shardProcessor.MarshalizedDataToBroadcast.Marshal", "error", err.Error())
 			continue
 		}
 		mrsData[shardId] = buff
+	}
+
+	if len(mrsData) > 0 {
+		log.Debug("shardProcessor.MarshalizedDataToBroadcast",
+			"num miniblocks", len(mrsData),
+			"num txs", len(mrsTxs))
 	}
 
 	return mrsData, mrsTxs, nil

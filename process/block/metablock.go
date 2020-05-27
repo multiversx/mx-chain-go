@@ -1960,7 +1960,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	for shardId, subsetBlockBody := range bodies {
 		buff, err := mp.marshalizer.Marshal(&block.Body{MiniBlocks: subsetBlockBody})
 		if err != nil {
-			log.Debug(process.ErrMarshalWithoutSuccess.Error())
+			log.Error("metaProcessor.MarshalizedDataToBroadcast.Marshal", "error", err.Error())
 			continue
 		}
 		mrsData[shardId] = buff

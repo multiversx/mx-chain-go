@@ -330,26 +330,17 @@ func (rc *rewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][
 		return nil
 	}
 
-	txs := make(map[string][][]byte)
-
-	numRewardsMiniBlocks := 0
-	numRewardsTxs := 0
-	numRewardsTxsAdded := 0
+	mrsTxs := make(map[string][][]byte)
 
 	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
 
-		numRewardsMiniBlocks++
-		numRewardsTxs += len(miniBlock.TxHashes)
-
 		broadcastTopic := createBroadcastTopic(rc.shardCoordinator, miniBlock.ReceiverShardID)
-		if _, ok := txs[broadcastTopic]; !ok {
-			txs[broadcastTopic] = make([][]byte, 0, len(miniBlock.TxHashes))
+		if _, ok := mrsTxs[broadcastTopic]; !ok {
+			mrsTxs[broadcastTopic] = make([][]byte, 0, len(miniBlock.TxHashes))
 		}
-
-		log.Debug("rewardsCreator.CreateMarshalizedData", "broadcastTopic", broadcastTopic)
 
 		for _, txHash := range miniBlock.TxHashes {
 			rwdTx, err := rc.currTxs.GetTx(txHash)
@@ -364,18 +355,15 @@ func (rc *rewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][
 				continue
 			}
 
-			txs[broadcastTopic] = append(txs[broadcastTopic], marshalizedData)
-			numRewardsTxsAdded++
+			mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], marshalizedData)
+		}
+
+		if len(mrsTxs[broadcastTopic]) == 0 {
+			delete(mrsTxs, broadcastTopic)
 		}
 	}
 
-	log.Debug("rewardsCreator.CreateMarshalizedData",
-		"num rewards miniblocks", numRewardsMiniBlocks,
-		"num rewards txs", numRewardsTxs,
-		"num rewards txs added", numRewardsTxsAdded,
-	)
-
-	return txs
+	return mrsTxs
 }
 
 // GetRewardsTxs will return rewards txs MUST be called before SaveTxBlockToStorage
