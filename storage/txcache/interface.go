@@ -14,6 +14,7 @@ type txCache interface {
 	ForEachTransaction(function ForEachTransaction)
 	SelectTransactions(numRequested int, batchSizePerSender int) []*WrappedTransaction
 	NotifyAccountNonce(accountKey []byte, nonce uint64)
+	ImmunizeTxsAgainstEviction(keys [][]byte)
 }
 
 type scoreComputer interface {

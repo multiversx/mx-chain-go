@@ -105,6 +105,10 @@ func (cache *DisabledCache) RegisterHandler(func(key []byte, value interface{}))
 func (cache *DisabledCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
 }
 
+// ImmunizeTxsAgainstEviction does nothing
+func (cache *DisabledCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (cache *DisabledCache) IsInterfaceNil() bool {
 	return cache == nil

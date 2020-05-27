@@ -277,6 +277,10 @@ func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
 	cache.txListBySender.notifyAccountNonce(accountKey, nonce)
 }
 
+// ImmunizeTxsAgainstEviction does nothing for this type of cache
+func (cache *TxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (cache *TxCache) IsInterfaceNil() bool {
 	return cache == nil
