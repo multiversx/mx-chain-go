@@ -92,7 +92,7 @@ func GetValueForKey(c *gin.Context) {
 	}
 
 	key := c.Param("key")
-	if addr == "" {
+	if key == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrGetValueForKey.Error(), errors.ErrEmptyKey.Error())})
 		return
 	}
