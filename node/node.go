@@ -402,24 +402,24 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 	}
 
 	if check.IfNil(n.addressPubkeyConverter) || check.IfNil(n.accounts) {
-		return "", errors.New("initialize AccountsAdapter and PubkeyConverter first")
+		return "", fmt.Errorf("initialize AccountsAdapter and PubkeyConverter first")
 	}
 
 	addr, err := n.addressPubkeyConverter.Decode(address)
 	if err != nil {
-		return "", errors.New("invalid address, could not decode from: " + err.Error())
+		return "", fmt.Errorf("invalid address, could not decode from: %w", err)
 	}
 	accWrp, err := n.accounts.GetExistingAccount(addr)
 	if err != nil {
-		return "", errors.New("could not fetch sender address from provided param: " + err.Error())
+		return "", fmt.Errorf("could not fetch sender address from provided param: %w", err)
 	}
 
 	if check.IfNil(accWrp) {
-		return "", errors.New("account not found")
+		return "", fmt.Errorf("account not found")
 	}
 	account, ok := accWrp.(state.UserAccountHandler)
 	if !ok {
-		return "", errors.New("account not found - cannot convert to UserAccountHandler")
+		return "", fmt.Errorf("account not found - cannot convert to UserAccountHandler")
 	}
 
 	valueBytes, err := account.DataTrieTracker().RetrieveValue(keyBytes)

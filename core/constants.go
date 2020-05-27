@@ -302,6 +302,18 @@ const BuiltInCost = "BuiltInCost"
 // MetaChainSystemSCsCost represents the field name for metachain system smart contract operation costs
 const MetaChainSystemSCsCost = "MetaChainSystemSCsCost"
 
+// TransactionStatus is the type used to represent the status of a transaction
+type TransactionStatus string
+
+// TxStatusReceived represents the status of a transaction which was received but not yet executed
+const TxStatusReceived TransactionStatus = "received"
+
+// TxStatusExecuted represents the status of a transaction which was received and executed
+const TxStatusExecuted TransactionStatus = "executed"
+
+// TxStatusUnknown represents the status returned for a missing transaction
+const TxStatusUnknown TransactionStatus = "unknown"
+
 const (
 	// StorerOrder defines the order of storers to be notified of a start of epoch event
 	StorerOrder = iota

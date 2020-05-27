@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -60,7 +61,7 @@ func TestNode_GetTransactionStatus_ShouldFindInTxCacheAndReturnReceived(t *testi
 	)
 	res, err := n.GetTransactionStatus("aaaa")
 	assert.NoError(t, err)
-	assert.Equal(t, "received", res)
+	assert.Equal(t, string(core.TxStatusReceived), res)
 }
 
 func TestNode_GetTransactionStatus_ShouldFindInRwdTxCacheAndReturnReceived(t *testing.T) {
@@ -81,7 +82,7 @@ func TestNode_GetTransactionStatus_ShouldFindInRwdTxCacheAndReturnReceived(t *te
 	)
 	res, err := n.GetTransactionStatus("aaaa")
 	assert.NoError(t, err)
-	assert.Equal(t, "received", res)
+	assert.Equal(t, string(core.TxStatusReceived), res)
 }
 
 func TestNode_GetTransactionStatus_ShouldFindInUnsignedTxCacheAndReturnReceived(t *testing.T) {
@@ -103,7 +104,7 @@ func TestNode_GetTransactionStatus_ShouldFindInUnsignedTxCacheAndReturnReceived(
 	)
 	res, err := n.GetTransactionStatus("aaaa")
 	assert.NoError(t, err)
-	assert.Equal(t, "received", res)
+	assert.Equal(t, string(core.TxStatusReceived), res)
 }
 
 func TestNode_GetTransactionStatus_ShouldFindInTxStorageAndReturnExecuted(t *testing.T) {
@@ -131,7 +132,7 @@ func TestNode_GetTransactionStatus_ShouldFindInTxStorageAndReturnExecuted(t *tes
 	)
 	res, err := n.GetTransactionStatus("aaaa")
 	assert.NoError(t, err)
-	assert.Equal(t, "executed", res)
+	assert.Equal(t, string(core.TxStatusExecuted), res)
 }
 
 func TestNode_GetTransactionStatus_ShouldFindInRwdTxStorageAndReturnExecuted(t *testing.T) {
@@ -163,7 +164,7 @@ func TestNode_GetTransactionStatus_ShouldFindInRwdTxStorageAndReturnExecuted(t *
 	)
 	res, err := n.GetTransactionStatus("aaaa")
 	assert.NoError(t, err)
-	assert.Equal(t, "executed", res)
+	assert.Equal(t, string(core.TxStatusExecuted), res)
 }
 
 func TestNode_GetTransactionStatus_ShouldFindInUnsignedTxStorageAndReturnExecuted(t *testing.T) {
@@ -196,7 +197,7 @@ func TestNode_GetTransactionStatus_ShouldFindInUnsignedTxStorageAndReturnExecute
 	)
 	res, err := n.GetTransactionStatus("aaaa")
 	assert.NoError(t, err)
-	assert.Equal(t, "executed", res)
+	assert.Equal(t, string(core.TxStatusExecuted), res)
 }
 
 func TestNode_GetTransactionStatus_ShouldNotFindAndReturnUnknown(t *testing.T) {
@@ -224,7 +225,7 @@ func TestNode_GetTransactionStatus_ShouldNotFindAndReturnUnknown(t *testing.T) {
 	)
 	res, err := n.GetTransactionStatus("aaaa")
 	assert.NoError(t, err)
-	assert.Equal(t, "unknown", res)
+	assert.Equal(t, string(core.TxStatusUnknown), res)
 }
 
 func TestNode_GetTransaction_ThrottlerCannotProcessShouldErr(t *testing.T) {

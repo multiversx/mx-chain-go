@@ -97,13 +97,13 @@ func GetValueForKey(c *gin.Context) {
 		return
 	}
 
-	balance, err := ef.GetValueForKey(addr, key)
+	value, err := ef.GetValueForKey(addr, key)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrGetValueForKey.Error(), err.Error())})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"value": balance})
+	c.JSON(http.StatusOK, gin.H{"value": value})
 }
 
 func accountResponseFromBaseAccount(address string, account state.UserAccountHandler) accountResponse {
