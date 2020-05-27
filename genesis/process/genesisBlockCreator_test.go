@@ -62,6 +62,7 @@ func createMockArgument(
 			},
 		},
 		TrieStorageManagers: trieStorageManagers,
+		KeyGen:              &mock.KeyGenMock{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{

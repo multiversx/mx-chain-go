@@ -575,6 +575,7 @@ func CreateGenesisMetaBlock(
 				OwnerAddress:    "aaaaaa",
 			},
 		},
+		KeyGen: &mock.KeyGenMock{},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

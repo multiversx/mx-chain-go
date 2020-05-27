@@ -133,3 +133,9 @@ var ErrMissingElement = errors.New("missing element")
 
 // ErrGetVersionFromSC signals that a call to "version" function on a contract resulted in an unexpected result
 var ErrGetVersionFromSC = errors.New("get version from contract returned an invalid response")
+
+// ErrEmptyPubKey signals that empty public key has been provided
+var ErrEmptyPubKey = errors.New("empty public key")
+
+// ErrNilKeyGenerator signals that nil key generator has been provided
+var ErrNilKeyGenerator = errors.New("nil key generator")

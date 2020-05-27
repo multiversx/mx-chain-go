@@ -918,6 +918,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		TrieStorageManagers:      args.tries.TrieStorageManagers,
 		ChainID:                  string(args.coreComponents.ChainID),
 		SystemSCConfig:           *args.systemSCConfig,
+		KeyGen:                   args.crypto.BlockSignKeyGen,
 	}
 
 	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)
