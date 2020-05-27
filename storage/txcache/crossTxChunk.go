@@ -5,6 +5,8 @@ import (
 	"sync"
 )
 
+var emptyStruct struct{}
+
 type crossTxChunkItem struct {
 	payload     *WrappedTransaction
 	listElement *list.Element
@@ -12,9 +14,10 @@ type crossTxChunkItem struct {
 
 // crossTx is a chunk of the crossTxCache
 type crossTxChunk struct {
-	items       map[string]crossTxChunkItem
-	itemsAsList *list.List
-	mutex       sync.RWMutex
+	items          map[string]crossTxChunkItem
+	itemsAsList    *list.List
+	keysToImmunize map[string]struct{}
+	mutex          sync.RWMutex
 }
 
 func newCrossTxChunk() *crossTxChunk {
@@ -24,10 +27,30 @@ func newCrossTxChunk() *crossTxChunk {
 	}
 }
 
+func (chunk *crossTxChunk) immunizeKeys(keys []string) {
+	chunk.mutex.Lock()
+	defer chunk.mutex.Unlock()
+
+	for _, key := range keys {
+		item, ok := chunk.getItemNoLock(key)
+
+		if ok {
+			// Item exists, immunize on the spot
+			item.ImmunizeAgainstEviction()
+		} else {
+			// Item not exists, will be immunized as it appears
+			chunk.keysToImmunize[key] = emptyStruct
+		}
+	}
+}
+
 func (chunk *crossTxChunk) getItem(key string) (*WrappedTransaction, bool) {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()
+	return chunk.getItemNoLock(key)
+}
 
+func (chunk *crossTxChunk) getItemNoLock(key string) (*WrappedTransaction, bool) {
 	item, ok := chunk.items[key]
 	if !ok {
 		return nil, false
@@ -50,6 +73,12 @@ func (chunk *crossTxChunk) addItem(item *WrappedTransaction) {
 	// We also need to hold a reference to the list element, to have O(1) removal.
 	element := chunk.itemsAsList.PushBack(item)
 	chunk.items[key] = crossTxChunkItem{payload: item, listElement: element}
+
+	// Immunize if appropriate
+	_, shouldImmunize := chunk.keysToImmunize[key]
+	if shouldImmunize {
+		item.ImmunizeAgainstEviction()
+	}
 }
 
 func (chunk *crossTxChunk) removeItem(key string) {
@@ -62,6 +91,7 @@ func (chunk *crossTxChunk) removeItem(key string) {
 	}
 
 	delete(chunk.items, key)
+	delete(chunk.keysToImmunize, key)
 	chunk.itemsAsList.Remove(item.listElement)
 }
 
@@ -74,7 +104,9 @@ func (chunk *crossTxChunk) removeOldest(numToRemove int) {
 		item := element.Value.(*WrappedTransaction)
 		key := string(item.TxHash)
 
-		// TODO: if value.IsProtected(), skip.
+		if item.IsImmuneToEviction() {
+			continue
+		}
 
 		delete(chunk.items, key)
 		chunk.itemsAsList.Remove(element)
@@ -89,7 +121,6 @@ func (chunk *crossTxChunk) removeOldest(numToRemove int) {
 func (chunk *crossTxChunk) countItems() uint32 {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()
-
 	return uint32(len(chunk.items))
 }
 

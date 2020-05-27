@@ -4,12 +4,6 @@ import (
 	"sync"
 )
 
-// TODO: ProtectItems(keys) -> current protection & future protection?
-// UnprotectItems() = explicit removal, actually.
-// Protection is just for eviction (RemoveOldest).
-// For protecting existing txs: iterate over keys, fetch items, mark as protected
-// For future protection... keep keys in secondary map? Append to that map, replace keys in that map?
-
 // crossTxCache holds cross-shard transactions (where destination == me)
 type crossTxCache struct {
 	mutex   sync.RWMutex
@@ -42,40 +36,65 @@ func (cache *crossTxCache) initializeChunks() {
 	}
 }
 
+func (cache *crossTxCache) immunizeKeys(keys []string) {
+	groups := cache.groupKeysByChunk(keys)
+
+	for chunkIndex, chunkKeys := range groups {
+		chunk := cache.getChunkByIndex(chunkIndex)
+		chunk.immunizeKeys(chunkKeys)
+	}
+}
+
 // AddItem adds the item in the map
 func (cache *crossTxCache) AddItem(item *WrappedTransaction) {
 	key := string(item.TxHash)
-	chunk := cache.getChunk(key)
+	chunk := cache.getChunkByKey(key)
 	chunk.addItem(item)
 }
 
 // Get gets an item from the map
 func (cache *crossTxCache) Get(key string) (*WrappedTransaction, bool) {
-	chunk := cache.getChunk(key)
+	chunk := cache.getChunkByKey(key)
 	return chunk.getItem(key)
 }
 
 // Has returns whether the item is in the map
 func (cache *crossTxCache) Has(key string) bool {
-	chunk := cache.getChunk(key)
+	chunk := cache.getChunkByKey(key)
 	_, ok := chunk.getItem(key)
 	return ok
 }
 
 // Remove removes an element from the map
 func (cache *crossTxCache) Remove(key string) {
-	chunk := cache.getChunk(key)
+	chunk := cache.getChunkByKey(key)
 	chunk.removeItem(key)
 }
 
 func (cache *crossTxCache) RemoveOldest(numToRemove int) {
 }
 
-// getChunk returns the chunk holding the given key.
-func (cache *crossTxCache) getChunk(key string) *crossTxChunk {
+func (cache *crossTxCache) getChunkByKey(key string) *crossTxChunk {
 	cache.mutex.RLock()
 	defer cache.mutex.RUnlock()
 	return cache.chunks[fnv32Hash(key)%cache.nChunks]
+}
+
+func (cache *crossTxCache) getChunkByIndex(index uint32) *crossTxChunk {
+	cache.mutex.RLock()
+	defer cache.mutex.RUnlock()
+	return cache.chunks[index]
+}
+
+func (cache *crossTxCache) groupKeysByChunk(keys []string) map[uint32][]string {
+	groups := make(map[uint32][]string)
+
+	for _, key := range keys {
+		chunkIndex := fnv32Hash(key) % cache.nChunks
+		groups[chunkIndex] = append(groups[chunkIndex], key)
+	}
+
+	return groups
 }
 
 // fnv32Hash implements https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function for 32 bits
