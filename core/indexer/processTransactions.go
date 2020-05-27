@@ -3,6 +3,7 @@ package indexer
 import (
 	"encoding/hex"
 	"math/big"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
@@ -88,6 +89,14 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 
 	for hash, nrScResult := range countScResults {
 		if nrScResult < minimumNumberOfSmartContractResults {
+			if len(transactions[hash].SmartContractResults) > 0 {
+				scResultData := transactions[hash].SmartContractResults[0].Data
+				if strings.Contains(scResultData, "@ok") {
+					// ESDT contract calls generate just one smart contract result
+					continue
+				}
+			}
+
 			transactions[hash].Status = txStatusNotExecuted
 		}
 	}
