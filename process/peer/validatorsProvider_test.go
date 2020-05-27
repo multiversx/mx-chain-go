@@ -280,7 +280,7 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 	assert.Equal(t, len(validatorsMap[initialShardId]), len(vsp.cache))
 	encodedKey := arg.PubKeyConverter.Encode(pk)
 	assert.NotNil(t, vsp.cache[encodedKey])
-	assert.Equal(t, initialList, vsp.cache[encodedKey].List)
+	assert.Equal(t, initialList, vsp.cache[encodedKey].ValidatorStatus)
 	assert.Equal(t, initialShardId, vsp.cache[encodedKey].ShardId)
 }
 
@@ -300,9 +300,9 @@ func TestValidatorsProvider_aggregatePType_equal(t *testing.T) {
 	encondedInactive := pubKeyConverter.Encode(pkInactive)
 	encodedLeaving := pubKeyConverter.Encode(pkLeaving)
 	cache := make(map[string]*state.ValidatorApiResponse)
-	cache[encondedInactive] = &state.ValidatorApiResponse{List: inactiveList, ShardId: trieInctiveShardId}
-	cache[encodedEligible] = &state.ValidatorApiResponse{List: eligibleList, ShardId: trieEligibleShardId}
-	cache[encodedLeaving] = &state.ValidatorApiResponse{List: leavingList, ShardId: trieLeavingShardId}
+	cache[encondedInactive] = &state.ValidatorApiResponse{ValidatorStatus: inactiveList, ShardId: trieInctiveShardId}
+	cache[encodedEligible] = &state.ValidatorApiResponse{ValidatorStatus: eligibleList, ShardId: trieEligibleShardId}
+	cache[encodedLeaving] = &state.ValidatorApiResponse{ValidatorStatus: leavingList, ShardId: trieLeavingShardId}
 
 	nodesCoordinatorEligibleShardId := uint32(0)
 	nodesCoordinatorLeavingShardId := core.MetachainShardId
@@ -319,14 +319,14 @@ func TestValidatorsProvider_aggregatePType_equal(t *testing.T) {
 	vp.aggregateLists(cache, validatorsMap, core.EligibleList)
 
 	assert.Equal(t, trieInctiveShardId, cache[encondedInactive].ShardId)
-	assert.Equal(t, inactiveList, cache[encondedInactive].List)
+	assert.Equal(t, inactiveList, cache[encondedInactive].ValidatorStatus)
 
 	assert.Equal(t, nodesCoordinatorEligibleShardId, cache[encodedEligible].ShardId)
-	assert.Equal(t, eligibleList, cache[encodedEligible].List)
+	assert.Equal(t, eligibleList, cache[encodedEligible].ValidatorStatus)
 
 	aggregatedList := "eligible (leaving)"
 	assert.Equal(t, nodesCoordinatorLeavingShardId, cache[encodedLeaving].ShardId)
-	assert.Equal(t, aggregatedList, cache[encodedLeaving].List)
+	assert.Equal(t, aggregatedList, cache[encodedLeaving].ValidatorStatus)
 }
 
 func TestValidatorsProvider_createCache(t *testing.T) {
@@ -399,22 +399,22 @@ func TestValidatorsProvider_createCache(t *testing.T) {
 
 	encodedPkEligible := pubKeyConverter.Encode(pkEligible)
 	assert.NotNil(t, cache[encodedPkEligible])
-	assert.Equal(t, eligibleList, cache[encodedPkEligible].List)
+	assert.Equal(t, eligibleList, cache[encodedPkEligible].ValidatorStatus)
 	assert.Equal(t, eligibleShardId, cache[encodedPkEligible].ShardId)
 
 	encodedPkWaiting := pubKeyConverter.Encode(pkWaiting)
 	assert.NotNil(t, cache[encodedPkWaiting])
-	assert.Equal(t, waitingList, cache[encodedPkWaiting].List)
+	assert.Equal(t, waitingList, cache[encodedPkWaiting].ValidatorStatus)
 	assert.Equal(t, waitingShardId, cache[encodedPkWaiting].ShardId)
 
 	encodedPkLeaving := pubKeyConverter.Encode(pkLeaving)
 	assert.NotNil(t, cache[encodedPkLeaving])
-	assert.Equal(t, leavingList, cache[encodedPkLeaving].List)
+	assert.Equal(t, leavingList, cache[encodedPkLeaving].ValidatorStatus)
 	assert.Equal(t, leavingShardId, cache[encodedPkLeaving].ShardId)
 
 	encodedPkNew := pubKeyConverter.Encode(pkNew)
 	assert.NotNil(t, cache[encodedPkNew])
-	assert.Equal(t, newList, cache[encodedPkNew].List)
+	assert.Equal(t, newList, cache[encodedPkNew].ValidatorStatus)
 	assert.Equal(t, newShardId, cache[encodedPkNew].ShardId)
 
 	// inactive validators are not returned
@@ -479,13 +479,13 @@ func TestValidatorsProvider_createCache_combined(t *testing.T) {
 
 	encodedPkEligible := arg.PubKeyConverter.Encode(pkEligibleInTrie)
 	assert.NotNil(t, cache[encodedPkEligible])
-	assert.Equal(t, eligibleList, cache[encodedPkEligible].List)
+	assert.Equal(t, eligibleList, cache[encodedPkEligible].ValidatorStatus)
 	assert.Equal(t, nodesCoordinatorEligibleShardId, cache[encodedPkEligible].ShardId)
 
 	encodedPkLeavingInTrie := arg.PubKeyConverter.Encode(pkLeavingInTrie)
 	computedPeerType := fmt.Sprintf(core.CombinedPeerType, core.EligibleList, core.LeavingList)
 	assert.NotNil(t, cache[encodedPkLeavingInTrie])
-	assert.Equal(t, computedPeerType, cache[encodedPkLeavingInTrie].List)
+	assert.Equal(t, computedPeerType, cache[encodedPkLeavingInTrie].ValidatorStatus)
 	assert.Equal(t, nodesCoordinatorLeavingShardId, cache[encodedPkLeavingInTrie].ShardId)
 
 	// inactive validators are not returned

@@ -187,7 +187,7 @@ func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(
 				Rating:                   float32(validatorInfo.Rating) * 100 / float32(vp.maxRating),
 				TempRating:               float32(validatorInfo.TempRating) * 100 / float32(vp.maxRating),
 				ShardId:                  validatorInfo.ShardId,
-				List:                     validatorInfo.List,
+				ValidatorStatus:          validatorInfo.List,
 			}
 		}
 	}
@@ -209,24 +209,24 @@ func (vp *validatorsProvider) aggregateLists(
 			if !ok || foundInTrieValidator == nil {
 				newCache[encodedKey] = &state.ValidatorApiResponse{}
 				newCache[encodedKey].ShardId = shardID
-				newCache[encodedKey].List = peerType
+				newCache[encodedKey].ValidatorStatus = peerType
 				log.Debug("validator from map not found in trie", "pk", encodedKey, "map", peerType)
 				continue
 			}
 
-			trieList := core.PeerType(foundInTrieValidator.List)
+			trieList := core.PeerType(foundInTrieValidator.ValidatorStatus)
 			if shouldCombine(trieList, currentList) {
 				peerType = fmt.Sprintf(core.CombinedPeerType, currentList, trieList)
 			}
 
 			newCache[encodedKey].ShardId = shardID
-			newCache[encodedKey].List = peerType
+			newCache[encodedKey].ValidatorStatus = peerType
 		}
 	}
 }
 
 func shouldCombine(triePeerType core.PeerType, currentPeerType core.PeerType) bool {
-	// currently just "eligible (leaving)" or "waiting (leaving)" are allowed to combine
+	// currently just "eligible (leaving)" or "waiting (leaving)" are allowed
 	isLeaving := triePeerType == core.LeavingList
 	isEligibleOrWaiting := currentPeerType == core.EligibleList ||
 		currentPeerType == core.WaitingList
