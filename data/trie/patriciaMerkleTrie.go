@@ -133,11 +133,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 		tr.root = newRoot
 		tr.oldHashes = append(tr.oldHashes, oldHashes...)
 
-		if log.GetLevel() == logger.LogTrace {
-			for _, hash := range oldHashes {
-				log.Trace("oldHashes after insert", "hash", hash)
-			}
-		}
+		logArrayWithTrace("oldHashes after insert", "hash", oldHashes)
 	} else {
 		if tr.root == nil {
 			return nil
@@ -154,11 +150,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 		tr.root = newRoot
 		tr.oldHashes = append(tr.oldHashes, oldHashes...)
 
-		if log.GetLevel() == logger.LogTrace {
-			for _, hash := range oldHashes {
-				log.Trace("oldHashes after delete", "hash", hash)
-			}
-		}
+		logArrayWithTrace("oldHashes after delete", "hash", oldHashes)
 	}
 
 	return nil
@@ -270,11 +262,7 @@ func (tr *patriciaMerkleTrie) markForEviction() error {
 			return err
 		}
 
-		if log.GetLevel() == logger.LogTrace {
-			for key := range tr.newHashes {
-				log.Trace("MarkForEviction newHashes", "hash", key)
-			}
-		}
+		logMapWithTrace("MarkForEviction newHashes", "hash", tr.newHashes)
 	}
 
 	if len(oldHashes) > 0 && len(tr.oldRoot) > 0 {
@@ -284,11 +272,7 @@ func (tr *patriciaMerkleTrie) markForEviction() error {
 			return err
 		}
 
-		if log.GetLevel() == logger.LogTrace {
-			for key := range oldHashes {
-				log.Trace("MarkForEviction oldHashes", "hash", key)
-			}
-		}
+		logMapWithTrace("MarkForEviction oldHashes", "hash", oldHashes)
 	}
 	return nil
 }
@@ -390,11 +374,7 @@ func (tr *patriciaMerkleTrie) ResetOldHashes() [][]byte {
 	tr.oldHashes = make([][]byte, 0)
 	tr.oldRoot = make([]byte, 0)
 
-	if log.GetLevel() == logger.LogTrace {
-		for _, hash := range oldHashes {
-			log.Trace("old trie hash", "hash", hash)
-		}
-	}
+	logArrayWithTrace("old trie hash", "hash", oldHashes)
 
 	tr.mutOperation.Unlock()
 
@@ -421,11 +401,7 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (data.ModifiedHashes, error) {
 		return nil, err
 	}
 
-	if log.GetLevel() == logger.LogTrace {
-		for hash := range dirtyHashes {
-			log.Trace("new trie hash", "hash", hash)
-		}
-	}
+	logMapWithTrace("new trie hash", "hash", dirtyHashes)
 
 	return dirtyHashes, nil
 }
@@ -577,4 +553,20 @@ func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
 // IsPruningEnabled returns true if state pruning is enabled
 func (tr *patriciaMerkleTrie) IsPruningEnabled() bool {
 	return tr.trieStorage.IsPruningEnabled()
+}
+
+func logArrayWithTrace(message string, paramName string, hashes [][]byte) {
+	if log.GetLevel() == logger.LogTrace {
+		for _, hash := range hashes {
+			log.Trace(message, paramName, hash)
+		}
+	}
+}
+
+func logMapWithTrace(message string, paramName string, hashes data.ModifiedHashes) {
+	if log.GetLevel() == logger.LogTrace {
+		for key := range hashes {
+			log.Trace(message, paramName, key)
+		}
+	}
 }
