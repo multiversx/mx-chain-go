@@ -186,12 +186,13 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		return err
 	}
 
+	returnMessage := ""
+
 	var vmOutput *vmcommon.VMOutput
 	var executedBuiltIn bool
 	snapshot := sc.accounts.JournalLen()
 	defer func() {
 		if err != nil && !executedBuiltIn {
-			returnMessage := ""
 			if vmOutput != nil {
 				returnMessage = vmOutput.ReturnMessage
 			}
@@ -205,6 +206,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	err = sc.prepareSmartContractCall(tx, acntSnd)
 	if err != nil {
+		returnMessage = "cannot prepare smart contract call"
 		log.Debug("prepare smart contract call error", "error", err.Error())
 		return nil
 	}
@@ -212,12 +214,14 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var vmInput *vmcommon.ContractCallInput
 	vmInput, err = sc.createVMCallInput(tx)
 	if err != nil {
+		returnMessage = "cannot create VMInput, check the transaction data field"
 		log.Debug("create vm call input error", "error", err.Error())
 		return nil
 	}
 
 	executedBuiltIn, err = sc.resolveBuiltInFunctions(txHash, tx, acntSnd, acntDst, vmInput)
 	if err != nil {
+		returnMessage = "cannot resolve build in function"
 		log.Debug("processed built in functions error", "error", err.Error())
 		return err
 	}
@@ -232,6 +236,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 	var vm vmcommon.VMExecutionHandler
 	vm, err = findVMByTransaction(sc.vmContainer, tx)
 	if err != nil {
+		returnMessage = "cannot get vm from address"
 		log.Debug("get vm from address error", "error", err.Error())
 		return nil
 	}
@@ -244,6 +249,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 
 	err = sc.saveAccounts(acntSnd, acntDst)
 	if err != nil {
+		returnMessage = "cannot save accounts"
 		log.Debug("saveAccounts error", "error", err)
 		return nil
 	}

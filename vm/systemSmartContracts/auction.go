@@ -97,7 +97,9 @@ func NewStakingAuctionSmartContract(
 
 // Execute calls one of the functions from the auction staking smart contract and runs the code according to the input
 func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if CheckIfNil(args) != nil {
+	err := CheckIfNil(args)
+	if err != nil {
+		s.eei.AddReturnMessage("nil arguments: error " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -131,7 +133,7 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 
 func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) == 0 {
-		s.eei.AddReturnMessage("invalid number of arguments: got 0")
+		s.eei.AddReturnMessage("invalid number of arguments: expected min 1, got 0")
 		return vmcommon.UserError
 	}
 
@@ -167,7 +169,7 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) < 1 {
-		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: min expected %d, got %d", 1, 0))
+		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
 		return vmcommon.UserError
 	}
 	if len(args.Arguments[0]) != len(args.CallerAddr) {
@@ -227,7 +229,7 @@ func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput)
 	}
 	// list of arguments are NumNodes, (OldKey, NewKey, SignedMessage) X NumNodes
 	if len(args.Arguments) < minArgsLenToChangeValidatorKey {
-		retMessage := fmt.Sprintf("invalid number of arguments: min expected %d, got %d", minArgsLenToChangeValidatorKey, len(args.Arguments))
+		retMessage := fmt.Sprintf("invalid number of arguments: expected min %d, got %d", minArgsLenToChangeValidatorKey, len(args.Arguments))
 		s.eei.AddReturnMessage(retMessage)
 		return vmcommon.UserError
 	}
@@ -235,7 +237,7 @@ func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput)
 	numNodesToChange := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
 	expectedNumArguments := numNodesToChange*3 + 1
 	if uint64(len(args.Arguments)) < expectedNumArguments {
-		retMessage := fmt.Sprintf("invalid number of arguments: min expected %d, got %d", expectedNumArguments, len(args.Arguments))
+		retMessage := fmt.Sprintf("invalid number of arguments: expected min %d, got %d", expectedNumArguments, len(args.Arguments))
 		s.eei.AddReturnMessage(retMessage)
 		return vmcommon.UserError
 	}
@@ -317,7 +319,7 @@ func (s *stakingAuctionSC) get(args *vmcommon.ContractCallInput) vmcommon.Return
 	}
 
 	if len(args.Arguments) < 1 {
-		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: min expected %d, got %d", 1, 0))
+		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
 		return vmcommon.UserError
 	}
 
@@ -481,7 +483,7 @@ func (s *stakingAuctionSC) registerBLSKeys(
 	for _, blsKey := range newKeys {
 		vmOutput, err := s.executeOnStakingSC([]byte("register@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
 		if err != nil {
-			s.eei.AddReturnMessage("cannot do register: error" + err.Error())
+			s.eei.AddReturnMessage("cannot do register: " + err.Error())
 			return nil, nil
 		}
 
@@ -735,7 +737,7 @@ func (s *stakingAuctionSC) saveRegistrationData(key []byte, auction *AuctionData
 func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedData, error) {
 	vmOutput, err := s.executeOnStakingSC([]byte("get@" + hex.EncodeToString(key)))
 	if err != nil {
-		s.eei.AddReturnMessage("cannot executed get: error " + err.Error())
+		s.eei.AddReturnMessage("cannot executed get: " + err.Error())
 		return nil, err
 	}
 
@@ -800,7 +802,7 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 
 	blsKeys, err := getBLSPublicKeys(registrationData, args)
 	if err != nil {
-		s.eei.AddReturnMessage("bls key problem: error " + err.Error())
+		s.eei.AddReturnMessage("bls key problem: " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -811,7 +813,7 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 
 		vmOutput, err := s.executeOnStakingSC([]byte("unStake@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
 		if err != nil {
-			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unStake for key %s, error %s", hex.EncodeToString(blsKey), err.Error()))
+			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unStake for key %s: %s", hex.EncodeToString(blsKey), err.Error()))
 			continue
 		}
 
@@ -956,6 +958,7 @@ func (s *stakingAuctionSC) deleteUnBondedKeys(registrationData *AuctionData, unB
 
 func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
+		s.eei.AddReturnMessage("transaction value must be zero")
 		return vmcommon.UserError
 	}
 

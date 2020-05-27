@@ -266,6 +266,10 @@ func (host *vmContext) Finish(value []byte) {
 
 // AddReturnMessage will set the return message
 func (host *vmContext) AddReturnMessage(message string) {
+	if message == "" {
+		return
+	}
+
 	if host.returnMessage == "" {
 		host.returnMessage = message
 		return
