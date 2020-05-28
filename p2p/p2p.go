@@ -147,10 +147,6 @@ type Messenger interface {
 	// given topic.
 	UnregisterMessageProcessor(topic string) error
 
-	// OutgoingChannelLoadBalancer returns the ChannelLoadBalancer instance
-	// through which the Messenger is sending messages to the network.
-	OutgoingChannelLoadBalancer() ChannelLoadBalancer
-
 	// BroadcastOnChannelBlocking asynchronously waits until it can send a
 	// message on the channel, but once it is able to, it synchronously sends the
 	// message, blocking until sending is completed.

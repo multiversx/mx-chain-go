@@ -778,3 +778,12 @@ var ErrBuiltInFunctionCalledWithValue = errors.New("built in function called wit
 
 // ErrEmptySoftwareVersion signals that empty software version was called
 var ErrEmptySoftwareVersion = errors.New("empty software version")
+
+// ErrEmptyFloodPreventerList signals that an empty flood preventer list has been provided
+var ErrEmptyFloodPreventerList = errors.New("empty flood preventer provided")
+
+// ErrNilTopicFloodPreventer signals that a nil topic flood preventer has been provided
+var ErrNilTopicFloodPreventer = errors.New("nil topic flood preventer")
+
+// ErrOriginatorIsBlacklisted signals that a message originator is blacklisted on the current node
+var ErrOriginatorIsBlacklisted = errors.New("originator is blacklisted")
