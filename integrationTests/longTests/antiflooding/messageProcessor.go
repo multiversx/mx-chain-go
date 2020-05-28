@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+const millisecondsInSecond = 1000
+
 type messageProcessor struct {
 	antiflooder                     process.P2PAntifloodHandler
 	messenger                       p2p.Messenger
@@ -19,7 +21,7 @@ type messageProcessor struct {
 	sizeMessagesReceivedPerInterval uint64
 }
 
-// NewMessageProcessor -
+// NewMessageProcessor creates a new p2p message processor implementation used in the long test
 func NewMessageProcessor(antiflooder process.P2PAntifloodHandler, messenger p2p.Messenger) *messageProcessor {
 	return &messageProcessor{
 		antiflooder: antiflooder,
@@ -78,7 +80,7 @@ func (mp *messageProcessor) NumMessagesReceivedPerInterval(basetime time.Duratio
 
 	num := atomic.SwapUint32(&mp.numMessagesReceivedPerInterval, 0)
 	divider := basetime / time.Millisecond
-	return num * 1000 / uint32(divider)
+	return num * millisecondsInSecond / uint32(divider)
 }
 
 // SizeMessagesReceivedPerInterval returns the average number of bytes per second
@@ -89,7 +91,7 @@ func (mp *messageProcessor) SizeMessagesReceivedPerInterval(basetime time.Durati
 
 	num := atomic.SwapUint64(&mp.sizeMessagesReceivedPerInterval, 0)
 	divider := basetime / time.Millisecond
-	return num * 1000 / uint64(divider)
+	return num * millisecondsInSecond / uint64(divider)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
