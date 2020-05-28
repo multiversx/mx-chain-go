@@ -517,16 +517,26 @@ func (s *stakingAuctionSC) getVerifiedBLSKeysFromArgs(txPubKey []byte, args [][]
 	blsKeys := make([][]byte, 0)
 	maxNodesToRun := big.NewInt(0).SetBytes(args[0]).Uint64()
 
+	invalidBlsKeys := make([]string, 0)
 	for i := uint64(1); i < maxNodesToRun*2+1; i += 2 {
 		blsKey := args[i]
 		signedMessage := args[i+1]
 		err := s.sigVerifier.Verify(txPubKey, signedMessage, blsKey)
 		if err != nil {
-			s.eei.AddReturnMessage("invalid BLS key: " + err.Error())
+			invalidBlsKeys = append(invalidBlsKeys, hex.EncodeToString(txPubKey))
 			continue
 		}
 
 		blsKeys = append(blsKeys, blsKey)
+	}
+	if len(invalidBlsKeys) != 0 {
+		returnMessage := "invalid BLS keys: "
+		for _, blsKey := range invalidBlsKeys {
+			returnMessage += blsKey + ","
+		}
+		// remove last character from return message
+		returnMessage = returnMessage[:len(returnMessage)-1]
+		s.eei.AddReturnMessage(returnMessage)
 	}
 
 	return blsKeys
