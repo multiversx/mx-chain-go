@@ -252,7 +252,6 @@ type TransactionLogProcessorDatabase interface {
 // ValidatorsProvider is the main interface for validators' provider
 type ValidatorsProvider interface {
 	GetLatestValidators() map[string]*state.ValidatorApiResponse
-	GetLatestValidatorInfos() (map[uint32][]*state.ValidatorInfo, error)
 	IsInterfaceNil() bool
 }
 

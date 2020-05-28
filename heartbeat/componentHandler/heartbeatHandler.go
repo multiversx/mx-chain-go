@@ -102,12 +102,9 @@ func (hbh *HeartbeatHandler) create() error {
 		}
 	}
 	argPeerTypeProvider := peer.ArgPeerTypeProvider{
-		NodesCoordinator:             arg.NodesCoordinator,
-		StartEpoch:                   arg.EpochStartTrigger.MetaEpoch(),
-		EpochStartEventNotifier:      arg.EpochStartRegistration,
-		ValidatorsProvider:           arg.ValidatorsProvider,
-		Context:                      ctx,
-		PeerTypeRefreshIntervalInSec: time.Duration(arg.HeartbeatConfig.PeerTypeRefreshIntervalInSec) * time.Second,
+		NodesCoordinator:        arg.NodesCoordinator,
+		StartEpoch:              arg.EpochStartTrigger.MetaEpoch(),
+		EpochStartEventNotifier: arg.EpochStartRegistration,
 	}
 	peerTypeProvider, err := peer.NewPeerTypeProvider(argPeerTypeProvider)
 	if err != nil {
@@ -280,7 +277,7 @@ func (hbh *HeartbeatHandler) Sender() *process.Sender {
 func (hbh *HeartbeatHandler) Close() error {
 	hbh.cancelFunc()
 
-	return hbh.peerTypeProvider.Close()
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
