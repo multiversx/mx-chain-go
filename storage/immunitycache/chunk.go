@@ -70,26 +70,17 @@ func (chunk *immunityChunk) addItemWithLock(item CacheItem) (ok bool, added bool
 
 	err := chunk.evictItemsIfCapacityExceededNoLock()
 	if err != nil {
+		// No more room for the new item
 		return false, false
 	}
 
-	key := string(item.GetKey())
-
-	if _, exists := chunk.items[key]; exists {
+	// Discard duplicates
+	if chunk.itemExistsNoLock(item) {
 		return true, false
 	}
 
-	// First, we insert (append) in the linked list; then in the map
-	// We also need to hold a reference to the list element, to have O(1) removal.
-	element := chunk.itemsAsList.PushBack(item)
-	chunk.items[key] = immunityChunkItem{item: item, listElement: element}
-
-	// Immunize if appropriate
-	_, shouldImmunize := chunk.keysToImmunizeFuture[key]
-	if shouldImmunize {
-		item.ImmunizeAgainstEviction()
-	}
-
+	chunk.addItemNoLock(item)
+	chunk.immunizeItemOnAddNoLock(item)
 	chunk.trackNumBytesOnAddNoLock(item)
 	return true, true
 }
@@ -163,6 +154,30 @@ func (chunk *immunityChunk) monitorEvictionNoLock(numRemoved int, err error) {
 		log.Debug("immunityChunk.monitorEviction()", "name", cacheName, "numRemoved", numRemoved, "err", err)
 	} else if numRemoved > 0 {
 		log.Trace("immunityChunk.monitorEviction()", "name", cacheName, "numRemoved", numRemoved)
+	}
+}
+
+func (chunk *immunityChunk) itemExistsNoLock(item CacheItem) bool {
+	key := string(item.GetKey())
+	_, exists := chunk.items[key]
+	return exists
+}
+
+func (chunk *immunityChunk) addItemNoLock(item CacheItem) {
+	key := string(item.GetKey())
+
+	// First, we insert (append) in the linked list; then in the map.
+	// In the map, we also need to hold a reference to the list element, to have O(1) removal.
+	element := chunk.itemsAsList.PushBack(item)
+	chunk.items[key] = immunityChunkItem{item: item, listElement: element}
+}
+
+func (chunk *immunityChunk) immunizeItemOnAddNoLock(item CacheItem) {
+	key := string(item.GetKey())
+
+	if _, immunize := chunk.keysToImmunizeFuture[key]; immunize {
+		item.ImmunizeAgainstEviction()
+		delete(chunk.keysToImmunizeFuture, key)
 	}
 }
 
