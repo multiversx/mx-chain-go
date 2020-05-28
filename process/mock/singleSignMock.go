@@ -33,6 +33,11 @@ func (sskgm *SingleSignKeyGenMock) PublicKeyFromByteArray(b []byte) (crypto.Publ
 	return sskgm.PublicKeyFromByteArrayCalled(b)
 }
 
+// CheckPublicKeyValid -
+func (sskgm *SingleSignKeyGenMock) CheckPublicKeyValid(_ []byte) error {
+	return nil
+}
+
 // Suite -
 func (sskgm *SingleSignKeyGenMock) Suite() crypto.Suite {
 	return sskgm.SuiteCalled()

@@ -121,3 +121,6 @@ var ErrNilSystemSCConfig = errors.New("nil system sc config")
 
 // ErrNilValidatorAccountsDB signals that nil validator accounts DB was provided
 var ErrNilValidatorAccountsDB = errors.New("nil validator accounts DB")
+
+// ErrNilPublicKey signals that nil public key has been provided
+var ErrNilPublicKey = errors.New("nil public key")
