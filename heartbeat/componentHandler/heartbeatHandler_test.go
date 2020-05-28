@@ -21,7 +21,6 @@ func createMockArgument() ArgHeartbeat {
 			DurationToConsiderUnresponsiveInSec: 10,
 			HeartbeatRefreshIntervalInSec:       1,
 			HideInactiveValidatorIntervalInSec:  20,
-			PeerTypeRefreshIntervalInSec:        60,
 		},
 		PrefsConfig: config.PreferencesConfig{
 			DestinationShardAsObserver: "0",
