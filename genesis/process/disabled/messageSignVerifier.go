@@ -25,7 +25,7 @@ func (msv *messageSignVerifier) Verify(_ []byte, _ []byte, pubKey []byte) error 
 	if len(pubKey) == 0 {
 		return genesis.ErrEmptyPubKey
 	}
-	_, err := msv.kg.PublicKeyFromByteArray(pubKey)
+	err := msv.kg.CheckPublicKeyValid(pubKey)
 	if err != nil {
 		return err
 	}
