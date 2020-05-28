@@ -408,6 +408,7 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 	}
 
 	if snapshot == 0 {
+		log.Trace("revert snapshot to adb.lastRootHash", "hash", adb.lastRootHash)
 		return adb.recreateTrie(adb.lastRootHash)
 	}
 
@@ -521,7 +522,13 @@ func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	return adb.recreateTrie(rootHash)
+	err := adb.recreateTrie(rootHash)
+	if err != nil {
+		return err
+	}
+	adb.lastRootHash = rootHash
+
+	return nil
 }
 
 func (adb *AccountsDB) recreateTrie(rootHash []byte) error {
