@@ -4,7 +4,7 @@ const HardforkTriggerString = hardforkTriggerString
 const PayloadSeparator = dataSeparator
 const HardforkGracePeriod = hardforkGracePeriod
 
-func (t *trigger) RegisteredHandlers() []func() {
+func (t *trigger) RegisteredHandlers() []func(epoch uint32) {
 	t.mutTriggerHandlers.RLock()
 	defer t.mutTriggerHandlers.RUnlock()
 

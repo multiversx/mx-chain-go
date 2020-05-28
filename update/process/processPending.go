@@ -26,7 +26,7 @@ type ArgsPendingTransactionProcessor struct {
 	TxProcessor      process.TransactionProcessor
 	RwdTxProcessor   process.RewardTransactionProcessor
 	ScrTxProcessor   process.SmartContractResultProcessor
-	PubKeyConv       state.PubkeyConverter
+	PubKeyConv       core.PubkeyConverter
 	ShardCoordinator sharding.Coordinator
 }
 
@@ -35,7 +35,7 @@ type pendingProcessor struct {
 	txProcessor      process.TransactionProcessor
 	rwdTxProcessor   process.RewardTransactionProcessor
 	scrTxProcessor   process.SmartContractResultProcessor
-	pubKeyConv       state.PubkeyConverter
+	pubKeyConv       core.PubkeyConverter
 	shardCoordinator sharding.Coordinator
 }
 

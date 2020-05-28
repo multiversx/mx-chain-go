@@ -603,7 +603,7 @@ func DisplayProcessTxDetails(
 	message string,
 	accountHandler state.AccountHandler,
 	txHandler data.TransactionHandler,
-	addressPubkeyConverter state.PubkeyConverter,
+	addressPubkeyConverter core.PubkeyConverter,
 ) {
 	if !check.IfNil(accountHandler) {
 		account, ok := accountHandler.(state.UserAccountHandler)

@@ -13,10 +13,10 @@ type txByHashMap struct {
 }
 
 // newTxByHashMap creates a new TxByHashMap instance
-func newTxByHashMap(nChunksHint uint32) txByHashMap {
+func newTxByHashMap(nChunksHint uint32) *txByHashMap {
 	backingMap := maps.NewConcurrentMap(nChunksHint)
 
-	return txByHashMap{
+	return &txByHashMap{
 		backingMap: backingMap,
 	}
 }
@@ -39,6 +39,11 @@ func (txMap *txByHashMap) removeTx(txHash string) (*WrappedTransaction, bool) {
 		return nil, false
 	}
 
+	// TODO / bugfix: when we concurrently try to remove the same transaction,
+	// we might end up decrementing the counters twice.
+	// Possible solution: use an "onItemRemoved" callback in the "backingMap"
+	// to decrement the counters.
+
 	txMap.backingMap.Remove(txHash)
 	txMap.counter.Decrement()
 	txMap.numBytes.Subtract(int64(estimateTxSize(tx)))
@@ -58,15 +63,15 @@ func (txMap *txByHashMap) getTx(txHash string) (*WrappedTransaction, bool) {
 
 // RemoveTxsBulk removes transactions, in bulk
 func (txMap *txByHashMap) RemoveTxsBulk(txHashes [][]byte) uint32 {
-	oldCount := uint32(txMap.counter.Get())
+	numRemoved := uint32(0)
 
 	for _, txHash := range txHashes {
-		txMap.removeTx(string(txHash))
+		_, removed := txMap.removeTx(string(txHash))
+		if removed {
+			numRemoved++
+		}
 	}
 
-	newCount := uint32(txMap.counter.Get())
-	// TODO: Check this for overflow as well, then fix in EN-6299
-	numRemoved := oldCount - newCount
 	return numRemoved
 }
 

@@ -27,7 +27,7 @@ var _ process.EpochStartRewardsCreator = (*rewardsCreator)(nil)
 // ArgsNewRewardsCreator defines the arguments structure needed to create a new rewards creator
 type ArgsNewRewardsCreator struct {
 	ShardCoordinator sharding.Coordinator
-	PubkeyConverter  state.PubkeyConverter
+	PubkeyConverter  core.PubkeyConverter
 	RewardsStorage   storage.Storer
 	MiniBlockStorage storage.Storer
 	Hasher           hashing.Hasher
@@ -39,7 +39,7 @@ type ArgsNewRewardsCreator struct {
 type rewardsCreator struct {
 	currTxs          dataRetriever.TransactionCacher
 	shardCoordinator sharding.Coordinator
-	pubkeyConverter  state.PubkeyConverter
+	pubkeyConverter  core.PubkeyConverter
 	rewardsStorage   storage.Storer
 	miniBlockStorage storage.Storer
 	communityAddress []byte
@@ -330,34 +330,40 @@ func (rc *rewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][
 		return nil
 	}
 
-	txs := make(map[string][][]byte)
+	mrsTxs := make(map[string][][]byte)
 
 	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
 
-		broadCastTopic := createBroadcastTopic(rc.shardCoordinator, miniBlock.ReceiverShardID)
-		if _, ok := txs[broadCastTopic]; !ok {
-			txs[broadCastTopic] = make([][]byte, 0, len(miniBlock.TxHashes))
+		broadcastTopic := createBroadcastTopic(rc.shardCoordinator, miniBlock.ReceiverShardID)
+		if _, ok := mrsTxs[broadcastTopic]; !ok {
+			mrsTxs[broadcastTopic] = make([][]byte, 0, len(miniBlock.TxHashes))
 		}
 
 		for _, txHash := range miniBlock.TxHashes {
 			rwdTx, err := rc.currTxs.GetTx(txHash)
 			if err != nil {
+				log.Warn("rewardsCreator.CreateMarshalizedData.GetTx", "hash", txHash, "error", err)
 				continue
 			}
 
 			marshalizedData, err := rc.marshalizer.Marshal(rwdTx)
 			if err != nil {
+				log.Error("rewardsCreator.CreateMarshalizedData.Marshal", "hash", txHash, "error", err)
 				continue
 			}
 
-			txs[broadCastTopic] = append(txs[broadCastTopic], marshalizedData)
+			mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], marshalizedData)
+		}
+
+		if len(mrsTxs[broadcastTopic]) == 0 {
+			delete(mrsTxs, broadcastTopic)
 		}
 	}
 
-	return txs
+	return mrsTxs
 }
 
 // GetRewardsTxs will return rewards txs MUST be called before SaveTxBlockToStorage
@@ -414,7 +420,6 @@ func (rc *rewardsCreator) SaveTxBlockToStorage(_ *block.MetaBlock, body *block.B
 		mbHash := rc.hasher.Compute(string(marshalizedData))
 		_ = rc.miniBlockStorage.Put(mbHash, marshalizedData)
 	}
-	rc.clean()
 }
 
 // DeleteTxsFromStorage deletes data from storage

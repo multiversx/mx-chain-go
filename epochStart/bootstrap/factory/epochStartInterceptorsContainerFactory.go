@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -41,7 +40,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	BlockKeyGen            crypto.KeyGenerator
 	WhiteListHandler       update.WhiteListHandler
 	WhiteListerVerifiedTxs update.WhiteListHandler
-	AddressPubkeyConv      state.PubkeyConverter
+	AddressPubkeyConv      core.PubkeyConverter
 	NonceConverter         typeConverters.Uint64ByteSliceConverter
 	ChainID                []byte
 }

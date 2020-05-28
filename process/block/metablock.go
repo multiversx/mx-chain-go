@@ -1197,6 +1197,8 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 		return
 	}
 
+	mp.validatorStatisticsProcessor.SetLastFinalizedRootHash(lastMetaBlock.GetValidatorStatsRootHash())
+
 	prevHeader, errNotCritical := process.GetMetaHeaderFromStorage(lastMetaBlock.GetPrevHash(), mp.marshalizer, mp.store)
 	if errNotCritical != nil {
 		log.Debug("could not get meta header from storage")
@@ -1222,8 +1224,6 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 		prevHeader.GetValidatorStatsRootHash(),
 		mp.accountsDB[state.PeerAccountsState],
 	)
-
-	mp.validatorStatisticsProcessor.SetLastFinalizedRootHash(prevHeader.GetValidatorStatsRootHash())
 }
 
 func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
@@ -1611,27 +1611,7 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 		mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
 
-	lastCrossNotarizedHeader, _, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardHeader.GetShardID())
-	if err != nil {
-		log.Debug("receivedShardHeader.GetLastCrossNotarizedHeader",
-			"shard", shardHeader.GetShardID(),
-			"error", err.Error())
-		return
-	}
-
-	if shardHeader.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
-		return
-	}
-	if shardHeader.GetRound() <= lastCrossNotarizedHeader.GetRound() {
-		return
-	}
-
-	isShardHeaderOutOfRequestRange := shardHeader.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
-	if isShardHeaderOutOfRequestRange {
-		return
-	}
-
-	go mp.txCoordinator.RequestMiniBlocks(shardHeader)
+	go mp.requestMiniBlocksIfNeeded(headerHandler)
 }
 
 // requestMissingFinalityAttestingShardHeaders requests the headers needed to accept the current selected headers for
@@ -1982,7 +1962,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	for shardId, subsetBlockBody := range bodies {
 		buff, err := mp.marshalizer.Marshal(&block.Body{MiniBlocks: subsetBlockBody})
 		if err != nil {
-			log.Debug(process.ErrMarshalWithoutSuccess.Error())
+			log.Error("metaProcessor.MarshalizedDataToBroadcast.Marshal", "error", err.Error())
 			continue
 		}
 		mrsData[shardId] = buff

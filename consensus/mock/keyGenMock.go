@@ -24,6 +24,7 @@ type KeyGenMock struct {
 	GeneratePairMock            func() (crypto.PrivateKey, crypto.PublicKey)
 	PrivateKeyFromByteArrayMock func(b []byte) (crypto.PrivateKey, error)
 	PublicKeyFromByteArrayMock  func(b []byte) (crypto.PublicKey, error)
+	CheckPublicKeyValidMock     func(b []byte) error
 	SuiteMock                   func() crypto.Suite
 }
 
@@ -85,6 +86,11 @@ func (keyGen *KeyGenMock) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, 
 // PublicKeyFromByteArray generates a public key from it's byte array representation
 func (keyGen *KeyGenMock) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, error) {
 	return keyGen.PublicKeyFromByteArrayMock(b)
+}
+
+// CheckPublicKeyValid verifies the validity of the public key
+func (keyGen *KeyGenMock) CheckPublicKeyValid(b []byte) error {
+	return keyGen.CheckPublicKeyValidMock(b)
 }
 
 // Suite -
