@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/txcache/maps"
 )
 
+var _ maps.BucketSortedMapItem = (*txListForSender)(nil)
+
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
 	copyDetectedGap     bool
@@ -16,7 +18,7 @@ type txListForSender struct {
 	sender              string
 	items               *list.List
 	copyBatchIndex      *list.Element
-	cacheConfig         *CacheConfig
+	constraints         *senderConstraints
 	scoreChunk          *maps.MapChunk
 	accountNonceKnown   atomic.Flag
 	lastComputedScore   atomic.Uint32
@@ -32,14 +34,14 @@ type txListForSender struct {
 	mutex           sync.RWMutex
 }
 
-type scoreChangeCallback func(value *txListForSender)
+type scoreChangeCallback func(value *txListForSender, scoreParams senderScoreParams)
 
 // newTxListForSender creates a new (sorted) list of transactions
-func newTxListForSender(sender string, cacheConfig *CacheConfig, onScoreChange scoreChangeCallback) *txListForSender {
+func newTxListForSender(sender string, constraints *senderConstraints, onScoreChange scoreChangeCallback) *txListForSender {
 	return &txListForSender{
 		items:         list.New(),
 		sender:        sender,
-		cacheConfig:   cacheConfig,
+		constraints:   constraints,
 		onScoreChange: onScoreChange,
 	}
 }
@@ -90,8 +92,8 @@ func (listForSender *txListForSender) applySizeConstraints() [][]byte {
 }
 
 func (listForSender *txListForSender) isCapacityExceeded() bool {
-	maxBytes := int64(listForSender.cacheConfig.NumBytesPerSenderThreshold)
-	maxNumTxs := uint64(listForSender.cacheConfig.CountPerSenderThreshold)
+	maxBytes := int64(listForSender.constraints.maxNumBytes)
+	maxNumTxs := uint64(listForSender.constraints.maxNumTxs)
 	tooManyBytes := listForSender.totalBytes.Get() > maxBytes
 	tooManyTxs := listForSender.countTx() > maxNumTxs
 
@@ -105,7 +107,18 @@ func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction)
 }
 
 func (listForSender *txListForSender) triggerScoreChange() {
-	listForSender.onScoreChange(listForSender)
+	scoreParams := listForSender.getScoreParams()
+	listForSender.onScoreChange(listForSender, scoreParams)
+}
+
+// This function should only be used in critical section (listForSender.mutex)
+func (listForSender *txListForSender) getScoreParams() senderScoreParams {
+	fee := listForSender.totalFee.GetUint64()
+	gas := listForSender.totalGas.GetUint64()
+	size := listForSender.totalBytes.GetUint64()
+	count := listForSender.countTx()
+
+	return senderScoreParams{count: count, size: size, fee: fee, gas: gas}
 }
 
 // This function should only be used in critical section (listForSender.mutex)
@@ -193,11 +206,13 @@ func (listForSender *txListForSender) IsEmpty() bool {
 
 // selectBatchTo copies a batch (usually small) of transactions to a destination slice
 // It also updates the internal state used for copy operations
-func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destination []*WrappedTransaction, batchSize int) int {
+func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destination []*WrappedTransaction, batchSize int) batchSelectionJournal {
 	// We can't read from multiple goroutines at the same time
 	// And we can't mutate the sender's list while reading it
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
+
+	journal := batchSelectionJournal{}
 
 	// Reset the internal state used for copy operations
 	if isFirstBatch {
@@ -206,6 +221,9 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 		listForSender.copyBatchIndex = listForSender.items.Front()
 		listForSender.copyPreviousNonce = 0
 		listForSender.copyDetectedGap = hasInitialGap
+
+		journal.isFirstBatch = true
+		journal.hasInitialGap = hasInitialGap
 	}
 
 	element := listForSender.copyBatchIndex
@@ -218,6 +236,7 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 	// then one transaction will be returned. But subsequent reads for this sender will return nothing.
 	if detectedGap {
 		if isFirstBatch && listForSender.isInGracePeriod() {
+			journal.isGracePeriod = true
 			batchSize = 1
 		} else {
 			batchSize = 0
@@ -235,6 +254,7 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 
 		if previousNonce > 0 && txNonce > previousNonce+1 {
 			listForSender.copyDetectedGap = true
+			journal.hasMiddleGap = true
 			break
 		}
 
@@ -245,7 +265,8 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 
 	listForSender.copyBatchIndex = element
 	listForSender.copyPreviousNonce = previousNonce
-	return copied
+	journal.copied = copied
+	return journal
 }
 
 // getTxHashes returns the hashes of transactions in the list
@@ -347,4 +368,32 @@ func (listForSender *txListForSender) isInGracePeriod() bool {
 func (listForSender *txListForSender) isGracePeriodExceeded() bool {
 	numFailedSelections := listForSender.numFailedSelections.Get()
 	return numFailedSelections > senderGracePeriodUpperBound
+}
+
+func (listForSender *txListForSender) getLastComputedScore() uint32 {
+	return listForSender.lastComputedScore.Get()
+}
+
+func (listForSender *txListForSender) setLastComputedScore(score uint32) {
+	listForSender.lastComputedScore.Set(score)
+}
+
+// GetKey returns the key
+func (listForSender *txListForSender) GetKey() string {
+	return listForSender.sender
+}
+
+// GetScoreChunk returns the score chunk the sender is currently in
+func (listForSender *txListForSender) GetScoreChunk() *maps.MapChunk {
+	listForSender.scoreChunkMutex.RLock()
+	defer listForSender.scoreChunkMutex.RUnlock()
+
+	return listForSender.scoreChunk
+}
+
+// SetScoreChunk returns the score chunk the sender is currently in
+func (listForSender *txListForSender) SetScoreChunk(scoreChunk *maps.MapChunk) {
+	listForSender.scoreChunkMutex.Lock()
+	listForSender.scoreChunk = scoreChunk
+	listForSender.scoreChunkMutex.Unlock()
 }
