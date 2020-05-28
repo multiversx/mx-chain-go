@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/factory"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -25,12 +24,15 @@ const hardForkEpochGracePeriod = 2
 
 // ArgsNewGovernanceContract defines the arguments needed for the on-chain governance contract
 type ArgsNewGovernanceContract struct {
-	Eei              vm.SystemEI
-	GasCost          vm.GasCost
-	GovernanceConfig config.GovernanceSystemSCConfig
-	ESDTSCAddress    []byte
-	Marshalizer      marshal.Marshalizer
-	Hasher           hashing.Hasher
+	Eei                 vm.SystemEI
+	GasCost             vm.GasCost
+	GovernanceConfig    config.GovernanceSystemSCConfig
+	ESDTSCAddress       []byte
+	Marshalizer         marshal.Marshalizer
+	Hasher              hashing.Hasher
+	GovernanceSCAddress []byte
+	StakingSCAddress    []byte
+	AuctionSCAddress    []byte
 }
 
 type governanceContract struct {
@@ -68,9 +70,9 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		gasCost:             args.GasCost,
 		baseProposalCost:    baseProposalCost,
 		ownerAddress:        nil,
-		governanceSCAddress: factory.GovernanceSCAddress,
-		stakingSCAddress:    factory.StakingSCAddress,
-		auctionSCAddress:    factory.AuctionSCAddress,
+		governanceSCAddress: args.GovernanceSCAddress,
+		stakingSCAddress:    args.StakingSCAddress,
+		auctionSCAddress:    args.AuctionSCAddress,
 		marshalizer:         args.Marshalizer,
 		hasher:              args.Hasher,
 		governanceConfig:    args.GovernanceConfig,
@@ -169,12 +171,17 @@ func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput)
 	if currentNonce == 0 {
 		return g.whiteListAtGenesis(args)
 	}
-
 	if args.CallValue.Cmp(g.baseProposalCost) != 0 {
 		return vmcommon.OutOfFunds
 	}
 	if len(args.Arguments) != 4 {
 		return vmcommon.FunctionWrongSignature
+	}
+	if len(args.Arguments[0]) != len(args.CallerAddr) {
+		return vmcommon.UserError
+	}
+	if g.proposalExists(args.Arguments[0]) {
+		return vmcommon.UserError
 	}
 	if g.isWhiteListed(args.CallerAddr) {
 		return vmcommon.UserError
@@ -185,29 +192,51 @@ func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput)
 		return vmcommon.UserError
 	}
 
+	key := append([]byte(proposalPrefix), args.Arguments[0]...)
 	whiteListAcc := &WhiteListProposal{
 		WhiteListAddress: args.Arguments[0],
-		ProposalStatus: &GeneralProposal{
-			IssuerAddress:  args.CallerAddr,
-			GitHubCommit:   args.Arguments[1],
-			StartVoteNonce: startVoteNonce,
-			EndVoteNonce:   endVoteNonce,
-			Yes:            0,
-			No:             0,
-			Veto:           0,
-			DontCare:       0,
-			Voted:          false,
-		},
+		ProposalStatus:   key,
 	}
+
+	key = append([]byte(whiteListPrefix), args.Arguments[0]...)
+	generalProposal := &GeneralProposal{
+		IssuerAddress:  args.CallerAddr,
+		GitHubCommit:   args.Arguments[1],
+		StartVoteNonce: startVoteNonce,
+		EndVoteNonce:   endVoteNonce,
+		Yes:            0,
+		No:             0,
+		Veto:           0,
+		DontCare:       0,
+		Voted:          false,
+		TopReference:   key,
+	}
+
 	marshalledData, err := g.marshalizer.Marshal(whiteListAcc)
 	if err != nil {
 		return vmcommon.UserError
 	}
 
-	key := append([]byte(whiteListPrefix), args.Arguments[0]...)
+	key = append([]byte(whiteListPrefix), args.Arguments[0]...)
 	g.eei.SetStorage(key, marshalledData)
 
+	err = g.saveGeneralProposal(args.Arguments[0], generalProposal)
+	if err != nil {
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
+}
+
+func (g *governanceContract) saveGeneralProposal(reference []byte, generalProposal *GeneralProposal) error {
+	marshalledData, err := g.marshalizer.Marshal(generalProposal)
+	if err != nil {
+		return err
+	}
+	key := append([]byte(proposalPrefix), reference...)
+	g.eei.SetStorage(key, marshalledData)
+
+	return nil
 }
 
 func (g *governanceContract) startEndNonceFromArguments(argStart []byte, argEnd []byte) (uint64, uint64, error) {
@@ -233,6 +262,29 @@ func (g *governanceContract) startEndNonceFromArguments(argStart []byte, argEnd 
 	return startVoteNonce.Uint64(), endVoteNonce.Uint64(), nil
 }
 
+func (g *governanceContract) proposalExists(reference []byte) bool {
+	key := append([]byte(proposalPrefix), reference...)
+	marshalledData := g.eei.GetStorage(key)
+	return len(marshalledData) > 0
+}
+
+func (g *governanceContract) getGeneralProposal(reference []byte) (*GeneralProposal, error) {
+	key := append([]byte(proposalPrefix), reference...)
+	marshalledData := g.eei.GetStorage(key)
+
+	if len(marshalledData) == 0 {
+		return nil, vm.ErrEmptyStorage
+	}
+
+	generalProposal := &GeneralProposal{}
+	err := g.marshalizer.Unmarshal(generalProposal, marshalledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return generalProposal, nil
+}
+
 func (g *governanceContract) isWhiteListed(address []byte) bool {
 	key := append([]byte(whiteListPrefix), address...)
 	marshalledData := g.eei.GetStorage(key)
@@ -240,13 +292,15 @@ func (g *governanceContract) isWhiteListed(address []byte) bool {
 		return false
 	}
 
-	whiteListAcc := &WhiteListProposal{}
-	err := g.marshalizer.Unmarshal(whiteListAcc, marshalledData)
+	key = append([]byte(proposalPrefix), address...)
+	marshalledData = g.eei.GetStorage(key)
+	generalProposal := &GeneralProposal{}
+	err := g.marshalizer.Unmarshal(generalProposal, marshalledData)
 	if err != nil {
 		return false
 	}
 
-	return whiteListAcc.ProposalStatus.Voted
+	return generalProposal.Voted
 }
 
 func (g *governanceContract) whiteListAtGenesis(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -262,28 +316,41 @@ func (g *governanceContract) whiteListAtGenesis(args *vmcommon.ContractCallInput
 	if len(args.Arguments[0]) != len(args.CallerAddr) {
 		return vmcommon.UserError
 	}
+	if g.proposalExists(args.Arguments[0]) {
+		return vmcommon.UserError
+	}
 
+	key := append([]byte(proposalPrefix), args.Arguments[0]...)
 	whiteListAcc := &WhiteListProposal{
 		WhiteListAddress: args.Arguments[0],
-		ProposalStatus: &GeneralProposal{
-			IssuerAddress:  args.CallerAddr,
-			GitHubCommit:   []byte("genesis"),
-			StartVoteNonce: 0,
-			EndVoteNonce:   0,
-			Yes:            uint32(g.governanceConfig.NumNodes),
-			No:             0,
-			Veto:           0,
-			DontCare:       0,
-			Voted:          true,
-		},
+		ProposalStatus:   key,
+	}
+
+	key = append([]byte(whiteListPrefix), args.Arguments[0]...)
+	generalProposal := &GeneralProposal{
+		IssuerAddress:  args.CallerAddr,
+		GitHubCommit:   []byte("genesis"),
+		StartVoteNonce: 0,
+		EndVoteNonce:   0,
+		Yes:            int32(g.governanceConfig.NumNodes),
+		No:             0,
+		Veto:           0,
+		DontCare:       0,
+		Voted:          true,
+		TopReference:   key,
 	}
 	marshalledData, err := g.marshalizer.Marshal(whiteListAcc)
 	if err != nil {
 		return vmcommon.UserError
 	}
 
-	key := append([]byte(whiteListPrefix), args.Arguments[0]...)
+	key = append([]byte(whiteListPrefix), args.Arguments[0]...)
 	g.eei.SetStorage(key, marshalledData)
+
+	err = g.saveGeneralProposal(args.Arguments[0], generalProposal)
+	if err != nil {
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
 }
@@ -295,11 +362,14 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 	if len(args.Arguments) != 4 {
 		return vmcommon.FunctionWrongSignature
 	}
-	if g.isWhiteListed(args.CallerAddr) {
+	if !g.isWhiteListed(args.CallerAddr) {
+		return vmcommon.UserError
+	}
+	gitHubCommit := args.Arguments[2]
+	if g.proposalExists(gitHubCommit) {
 		return vmcommon.UserError
 	}
 
-	gitHubCommit := args.Arguments[2]
 	key := append([]byte(hardForkPrefix), gitHubCommit...)
 	marshalledData := g.eei.GetStorage(key)
 	if len(marshalledData) != 0 {
@@ -322,26 +392,36 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 		return vmcommon.UserError
 	}
 
+	key = append([]byte(proposalPrefix), gitHubCommit...)
 	hardForkProposal := &HardForkProposal{
 		EpochToHardFork:    epochToHardFork,
 		NewSoftwareVersion: args.Arguments[1],
-		ProposalStatus: &GeneralProposal{
-			IssuerAddress:  args.CallerAddr,
-			GitHubCommit:   gitHubCommit,
-			StartVoteNonce: startVoteNonce,
-			EndVoteNonce:   endVoteNonce,
-			Yes:            0,
-			No:             0,
-			Veto:           0,
-			DontCare:       0,
-			Voted:          false,
-		},
+		ProposalStatus:     key,
+	}
+
+	key = append([]byte(hardForkPrefix), gitHubCommit...)
+	generalProposal := &GeneralProposal{
+		IssuerAddress:  args.CallerAddr,
+		GitHubCommit:   gitHubCommit,
+		StartVoteNonce: startVoteNonce,
+		EndVoteNonce:   endVoteNonce,
+		Yes:            0,
+		No:             0,
+		Veto:           0,
+		DontCare:       0,
+		Voted:          false,
+		TopReference:   key,
 	}
 	marshalledData, err = g.marshalizer.Marshal(hardForkProposal)
 	if err != nil {
 		return vmcommon.UserError
 	}
 	g.eei.SetStorage(key, marshalledData)
+
+	err = g.saveGeneralProposal(args.Arguments[0], generalProposal)
+	if err != nil {
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
 }
@@ -353,14 +433,11 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 	if len(args.Arguments) != 4 {
 		return vmcommon.FunctionWrongSignature
 	}
-	if g.isWhiteListed(args.CallerAddr) {
+	if !g.isWhiteListed(args.CallerAddr) {
 		return vmcommon.UserError
 	}
-
 	gitHubCommit := args.Arguments[0]
-	key := append([]byte(hardForkPrefix), gitHubCommit...)
-	marshalledData := g.eei.GetStorage(gitHubCommit)
-	if len(marshalledData) != 0 {
+	if g.proposalExists(gitHubCommit) {
 		return vmcommon.UserError
 	}
 
@@ -380,12 +457,10 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 		DontCare:       0,
 		Voted:          false,
 	}
-	marshalledData, err = g.marshalizer.Marshal(generalProposal)
+	err = g.saveGeneralProposal(gitHubCommit, generalProposal)
 	if err != nil {
 		return vmcommon.UserError
 	}
-
-	g.eei.SetStorage(key, marshalledData)
 
 	return vmcommon.Ok
 }
@@ -405,7 +480,14 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 
 	proposalToVote := args.Arguments[0]
+	if !g.proposalExists(proposalToVote) {
+		return vmcommon.UserError
+	}
+
 	voteString := string(args.Arguments[1])
+	if !g.isValidVoteString(voteString) {
+		return vmcommon.UserError
+	}
 
 	voterAddress := args.CallerAddr
 	validatorAddress := args.CallerAddr
@@ -417,8 +499,12 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	numNodesToVote := uint32(0)
-	validatorData := g.getOrCreateValidatorData(validatorAddress, numStakedNodes)
+	numNodesToVote := int32(0)
+	validatorData, err := g.getOrCreateValidatorData(validatorAddress, int32(numStakedNodes))
+	if err != nil {
+		return vmcommon.UserError
+	}
+
 	found := false
 	for _, voter := range validatorData.Delegators {
 		if bytes.Equal(voter.Address, voterAddress) {
@@ -427,14 +513,108 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 			break
 		}
 	}
-	if !found || numNodesToVote == 0 {
+	if !found || numNodesToVote <= 0 {
+		return vmcommon.UserError
+	}
+
+	err = g.voteForProposal(proposalToVote, voteString, voterAddress, numNodesToVote)
+	if err != nil {
 		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
 }
 
-func (g *governanceContract) getOrCreateValidatorData(address []byte, numNodes uint32) *ValidatorData {
+func (g *governanceContract) isValidVoteString(vote string) bool {
+	switch vote {
+	case "yes":
+		return true
+	case "no":
+		return true
+	case "veto":
+		return true
+	case "dontCare":
+		return true
+	}
+	return false
+}
+
+func (g *governanceContract) voteForProposal(
+	proposal []byte,
+	vote string,
+	voter []byte,
+	numVotes int32,
+) error {
+	voteData, err := g.getOrCreateVoteData(proposal, voter)
+	if err != nil {
+		return err
+	}
+	if voteData.NumVotes == numVotes && voteData.VoteValue == vote {
+		return nil
+	}
+
+	oldNum := voteData.NumVotes
+	oldValue := voteData.VoteValue
+
+	voteData.NumVotes = numVotes
+	voteData.VoteValue = vote
+	err = g.saveVoteValue(proposal, voter, voteData)
+	if err != nil {
+		return err
+	}
+
+	generalProposal, err := g.getGeneralProposal(proposal)
+	if err != nil {
+		return err
+	}
+
+	g.addVotedDataToProposal(generalProposal, oldValue, -oldNum)
+	g.addVotedDataToProposal(generalProposal, vote, numVotes)
+
+	return nil
+}
+
+func (g *governanceContract) addVotedDataToProposal(generalProposal *GeneralProposal, voteValue string, numVotes int32) {
+	switch voteValue {
+	case "yes":
+		generalProposal.Yes += numVotes
+	case "no":
+		generalProposal.No += numVotes
+	case "veto":
+		generalProposal.Veto += numVotes
+	case "dontCare":
+		generalProposal.DontCare += numVotes
+	}
+}
+
+func (g *governanceContract) saveVoteValue(proposal []byte, voter []byte, voteData *VoteData) error {
+	key := append(proposal, voter...)
+	marshalledData, err := g.marshalizer.Marshal(voteData)
+	if err != nil {
+		return err
+	}
+
+	g.eei.SetStorage(key, marshalledData)
+	return nil
+}
+
+func (g *governanceContract) getOrCreateVoteData(proposal []byte, voter []byte) (*VoteData, error) {
+	voteData := &VoteData{}
+	key := append(proposal, voter...)
+	marshalledData := g.eei.GetStorage(key)
+	if len(marshalledData) == 0 {
+		return voteData, nil
+	}
+
+	err := g.marshalizer.Unmarshal(voteData, marshalledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return voteData, nil
+}
+
+func (g *governanceContract) getOrCreateValidatorData(address []byte, numNodes int32) (*ValidatorData, error) {
 	validatorData := &ValidatorData{
 		Delegators: make([]*VoterData, 0, 1),
 		NumNodes:   numNodes,
@@ -447,23 +627,23 @@ func (g *governanceContract) getOrCreateValidatorData(address []byte, numNodes u
 	key := append([]byte(validatorPrefix), address...)
 	marshalledData := g.eei.GetStorage(key)
 	if len(marshalledData) == 0 {
-		return validatorData
+		return validatorData, nil
 	}
 
 	err := g.marshalizer.Unmarshal(validatorData, marshalledData)
 	if err != nil {
-		return validatorData
+		return nil, err
 	}
 
 	oldNumNodes := validatorData.NumNodes
 	validatorData.NumNodes = numNodes
 	if len(validatorData.Delegators) == 1 {
-		return validatorData
+		return validatorData, nil
 	}
 
 	log.Trace("difference in old num nodes and new num nodes with delegated voting", oldNumNodes, numNodes)
 
-	return validatorData
+	return validatorData, nil
 }
 
 func (g *governanceContract) delegateVotePower(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -472,7 +652,7 @@ func (g *governanceContract) delegateVotePower(_ *vmcommon.ContractCallInput) vm
 }
 
 func (g *governanceContract) revokeVotePower(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	log.Trace("delegateVotePower not yet implemented")
+	log.Trace("revokeVotePower not yet implemented")
 	return vmcommon.UserError
 }
 

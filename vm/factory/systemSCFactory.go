@@ -129,6 +129,7 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 		BleedPercentagePerRound:  scf.validatorSettings.BleedPercentagePerRound(),
 		MaximumPercentageToBleed: scf.validatorSettings.MaximumPercentageToBleed(),
 		GasCost:                  scf.gasCost,
+		Marshalizer:              scf.marshalizer,
 	}
 	staking, err := systemSmartContracts.NewStakingSmartContract(argsStaking)
 	if err != nil {
@@ -148,6 +149,7 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 		StakingSCAddress:    StakingSCAddress,
 		AuctionSCAddress:    AuctionSCAddress,
 		GasCost:             scf.gasCost,
+		Marshalizer:         scf.marshalizer,
 	}
 	auction, err := systemSmartContracts.NewStakingAuctionSmartContract(args)
 	if err != nil {

@@ -12,22 +12,24 @@ message GeneralProposal {
     bytes  GitHubCommit   = 2 [(gogoproto.jsontag) = "GitHubCommit"];
     uint64 StartVoteNonce = 3 [(gogoproto.jsontag) = "StartVoteNonce"];
     uint64 EndVoteNonce   = 4 [(gogoproto.jsontag) = "EndVoteNonce"];
-    uint32 Yes            = 5 [(gogoproto.jsontag) = "Yes"];
-    uint32 No             = 6 [(gogoproto.jsontag) = "No"];
-    uint32 Veto           = 7 [(gogoproto.jsontag) = "Veto"];
-    uint32 DontCare       = 8 [(gogoproto.jsontag) = "DontCare"];
+    int32 Yes             = 5 [(gogoproto.jsontag) = "Yes"];
+    int32 No              = 6 [(gogoproto.jsontag) = "No"];
+    int32 Veto            = 7 [(gogoproto.jsontag) = "Veto"];
+    int32 DontCare        = 8 [(gogoproto.jsontag) = "DontCare"];
     bool   Voted          = 9 [(gogoproto.jsontag) = "Voted"];
+    repeated bytes Voters = 10 [(gogoproto.jsontag) = "Voters"];
+    bytes  TopReference   = 11 [(gogoproto.jsontag) = "TopReference"];
 }
 
 message WhiteListProposal {
-    bytes  WhiteListAddress        = 1 [(gogoproto.jsontag) = "WhiteListAddress"];
-    GeneralProposal ProposalStatus = 2 [(gogoproto.jsontag) = "ProposalStatus"];
+    bytes WhiteListAddress = 1 [(gogoproto.jsontag) = "WhiteListAddress"];
+    bytes ProposalStatus   = 2 [(gogoproto.jsontag) = "ProposalStatus"];
 }
 
 message HardForkProposal {
-    uint32 EpochToHardFork         = 1 [(gogoproto.jsontag) = "EpochToHardFork"];
-    bytes  NewSoftwareVersion      = 2 [(gogoproto.jsontag) = "NewSoftwareVersion"];
-    GeneralProposal ProposalStatus = 3 [(gogoproto.jsontag) = "ProposalStatus"];
+    uint32 EpochToHardFork    = 1 [(gogoproto.jsontag) = "EpochToHardFork"];
+    bytes  NewSoftwareVersion = 2 [(gogoproto.jsontag) = "NewSoftwareVersion"];
+    bytes  ProposalStatus     = 3 [(gogoproto.jsontag) = "ProposalStatus"];
 }
 
 message GovernanceConfig {
@@ -40,10 +42,15 @@ message GovernanceConfig {
 
 message VoterData {
     bytes  Address  = 1 [(gogoproto.jsontag) = "Address"];
-    uint32 NumNodes = 2 [(gogoproto.jsontag) = "NumNodes"];
+    int32 NumNodes = 2 [(gogoproto.jsontag) = "NumNodes"];
 }
 
 message ValidatorData {
     repeated VoterData Delegators = 1 [(gogoproto.jsontag) = "Delegators"];
-    uint32             NumNodes   = 2 [(gogoproto.jsontag) = "NumNodes"];
+    int32              NumNodes   = 2 [(gogoproto.jsontag) = "NumNodes"];
+}
+
+message VoteData {
+    int32  NumVotes  = 1 [(gogoproto.jsontag) = "VoteData"];
+    string VoteValue = 2 [(gogoproto.jsontag) = "VoteValue"];
 }
