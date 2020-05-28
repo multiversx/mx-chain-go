@@ -65,7 +65,7 @@ func (txMap *txListBySenderMap) getListForSender(sender string) (*txListForSende
 }
 
 func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
-	log.Trace("txMap.addSender()", "sender", []byte(sender))
+	//log.Trace("txMap.addSender()", "sender", []byte(sender))
 	listForSender := newTxListForSender(sender, &txMap.senderConstraints, txMap.notifyScoreChange)
 
 	txMap.backingMap.Set(listForSender)
@@ -96,7 +96,7 @@ func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 	isFound := listForSender.RemoveTx(tx)
 	isEmpty := listForSender.IsEmpty()
 	if isEmpty {
-		log.Trace("txMap.removeTx(): remove empty sender", "sender", []byte(sender))
+		//log.Trace("txMap.removeTx(): remove empty sender", "sender", []byte(sender))
 		txMap.removeSender(sender)
 	}
 
