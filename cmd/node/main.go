@@ -1899,10 +1899,11 @@ func createHardForkTrigger(
 		KeyGen:                   crypto.TxSignKeyGen,
 		BlockSigner:              crypto.SingleSigner,
 		HeaderSigVerifier:        process.HeaderSigVerifier,
-		ChainID:                  coreData.ChainID,
-		ValidityAttester:         process.BlockTracker,
+		HeaderIntegrityVerifier:  process.HeaderIntegrityVerifier,
+		MaxTrieLevelInMemory:     config.StateTriesConfig.MaxStateTrieLevelInMemory,
 		InputAntifloodHandler:    network.InputAntifloodHandler,
 		OutputAntifloodHandler:   network.OutputAntifloodHandler,
+		ValidityAttester:         process.BlockTracker,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
