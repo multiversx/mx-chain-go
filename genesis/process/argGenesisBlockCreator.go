@@ -41,7 +41,7 @@ type ArgsGenesisBlockCreator struct {
 	TrieStorageManagers      map[string]data.StorageManager
 	ChainID                  string
 	SystemSCConfig           config.SystemSmartContractsConfig
-	KeyGen                   crypto.KeyGenerator
+	BlockSignKeyGen          crypto.KeyGenerator
 	// created component needed only for hardfork
 	importHandler update.ImportHandler
 }

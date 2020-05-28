@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
@@ -27,10 +28,24 @@ func TestNewSmartContractsParser_NilPubkeyConverterShouldErr(t *testing.T) {
 	ap, err := parsing.NewSmartContractsParser(
 		"./testdata/smartcontracts_ok.json",
 		nil,
+		&mock.KeyGeneratorStub{},
 	)
 
 	assert.True(t, check.IfNil(ap))
 	assert.Equal(t, genesis.ErrNilPubkeyConverter, err)
+}
+
+func TestNewSmartContractsParser_NilKeyGeneratorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ap, err := parsing.NewSmartContractsParser(
+		"./testdata/smartcontracts_ok.json",
+		createMockHexPubkeyConverter(),
+		nil,
+	)
+
+	assert.True(t, check.IfNil(ap))
+	assert.Equal(t, genesis.ErrNilKeyGenerator, err)
 }
 
 func TestNewSmartContractsParser_BadFilenameShouldEr(t *testing.T) {
@@ -39,6 +54,7 @@ func TestNewSmartContractsParser_BadFilenameShouldEr(t *testing.T) {
 	scp, err := parsing.NewSmartContractsParser(
 		"inexistent file",
 		createMockHexPubkeyConverter(),
+		&mock.KeyGeneratorStub{},
 	)
 
 	assert.True(t, check.IfNil(scp))
@@ -51,6 +67,7 @@ func TestNewSmartContractsParser_BadJsonShouldErr(t *testing.T) {
 	scp, err := parsing.NewSmartContractsParser(
 		"testdata/smartcontracts_bad.json",
 		createMockHexPubkeyConverter(),
+		&mock.KeyGeneratorStub{},
 	)
 
 	assert.True(t, check.IfNil(scp))
@@ -63,6 +80,7 @@ func TestNewSmartContractsParser_ShouldWork(t *testing.T) {
 	scp, err := parsing.NewSmartContractsParser(
 		"testdata/smartcontracts_ok.json",
 		createMockHexPubkeyConverter(),
+		&mock.KeyGeneratorStub{},
 	)
 
 	assert.False(t, check.IfNil(scp))
@@ -96,6 +114,25 @@ func TestSmartContractsParser_ProcessInvalidOwnerAddressShouldErr(t *testing.T) 
 	err := scp.Process()
 
 	assert.True(t, errors.Is(err, genesis.ErrInvalidOwnerAddress))
+}
+
+func TestSmartContractsParser_ProcessInvalidOwnerPublicKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	scp := parsing.NewTestSmartContractsParser(createMockHexPubkeyConverter())
+	scp.SetKeyGenerator(&mock.KeyGeneratorStub{
+		PublicKeyFromByteArrayCalled: func(b []byte) (crypto.PublicKey, error) {
+			return nil, expectedErr
+		},
+	})
+	isc := createMockInitialSmartContract("0001")
+	isc.Owner = "00"
+	scp.SetInitialSmartContracts([]*data.InitialSmartContract{isc})
+
+	err := scp.Process()
+
+	assert.True(t, errors.Is(err, genesis.ErrInvalidPubKey))
 }
 
 func TestSmartContractsParser_ProcessEmptyVmTypeShouldErr(t *testing.T) {

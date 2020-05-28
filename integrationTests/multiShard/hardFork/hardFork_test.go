@@ -252,7 +252,7 @@ func hardForkImport(
 			},
 			AccountsParser:      &mock.AccountsParserStub{},
 			SmartContractParser: &mock.SmartContractParserStub{},
-			KeyGen:              &mock.KeyGenMock{},
+			BlockSignKeyGen:     &mock.KeyGenMock{},
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)

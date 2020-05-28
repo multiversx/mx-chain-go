@@ -1,6 +1,7 @@
 package pubkeyConverter_test
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -81,7 +82,7 @@ func TestBech32PubkeyConverter_EncodeDecodeShouldWork(t *testing.T) {
 	addressLen := 32
 	bpc, _ := pubkeyConverter.NewBech32PubkeyConverter(addressLen)
 
-	buff := []byte("12345678901234567890123456789012")
+	buff, _ := hex.DecodeString("1000000000000000000000000000000000000000000000000000000000000000")
 	str := bpc.Encode(buff)
 
 	assert.Equal(t, 0, strings.Index(str, pubkeyConverter.Prefix))
