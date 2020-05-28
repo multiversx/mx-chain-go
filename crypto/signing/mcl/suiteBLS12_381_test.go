@@ -1,9 +1,11 @@
 package mcl
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/herumi/bls-go-binary/bls"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -115,6 +117,73 @@ func TestSuiteBLS12_GetUnderlyingSuite(t *testing.T) {
 	obj := suite.GetUnderlyingSuite()
 
 	assert.NotNil(t, obj)
+}
+
+func TestSuiteBLS12_CheckPointValidOK(t *testing.T) {
+	validPointHexStr := "368723d835fca6bc0c17a270e51b731f69f9fe482ed88e8c3d879f228291d48057aa12d0de8476b4a111e945399253" +
+		"15d2d3fd1b85e29e465b8814b713cbf833115f4562e28dcf58e960751f0581578ca1819c8790aa5a5300c5c317b74dca01"
+
+	suite := NewSuiteBLS12()
+
+	validPointBytes, err:= hex.DecodeString(validPointHexStr)
+	require.Nil(t, err)
+	err = suite.CheckPointValid(validPointBytes)
+	require.Nil(t, err)
+}
+
+func TestSuiteBLS12_CheckPointValidShortHexStringShouldErr(t *testing.T) {
+	shortPointHexStr := "368723d835fca6bc0c17a270e51b731f69f9fe482ed88e8c3d879f228291d48057aa12d0de8476b4a111e945399253" +
+		"15d2d3fd1b85e29e465b8814b713cbf833115f4562e28dcf58e960751f0581578ca1819c8790aa5a5300c5c317b74d"
+
+	suite := NewSuiteBLS12()
+
+	shortPointBytes, err := hex.DecodeString(shortPointHexStr)
+	require.Nil(t, err)
+	err = suite.CheckPointValid(shortPointBytes)
+	require.Equal(t, crypto.ErrInvalidParam, err)
+}
+
+func TestSuiteBLS12_CheckPointValidLongHexStrShouldErr(t *testing.T) {
+	longPointHexStr := "368723d835fca6bc0c17a270e51b731f69f9fe482ed88e8c3d879f228291d48057aa12d0de8476b4a111e945399253"+
+		"15d2d3fd1b85e29e465b8814b713cbf833115f4562e28dcf58e960751f0581578ca1819c8790aa5a5300c5c317b74d"+
+		"15d2d3fd1b85e29e465b8814b713cbf833115f4562e28dcf58e960751f0581578ca1819c8790aa5a5300c5c317b74d"
+
+	suite := NewSuiteBLS12()
+
+	longPointBytes, err := hex.DecodeString(longPointHexStr)
+	require.Nil(t, err)
+	err = suite.CheckPointValid(longPointBytes)
+	require.Equal(t, crypto.ErrInvalidParam, err)
+}
+
+func TestSuiteBLS12_CheckPointValidInvalidPointHexStrShouldErr(t *testing.T) {
+	invalidPointHexStr := "368723d835fca6bc0c17a270e51b731f69f9fe482ed88e8c3d879f228291d48057aa12d0de8476b4a111e945399253" +
+		"15d2d3fd1b85e29e465b8814b713cbf833115f4562e28dcf58e960751f0581578ca1819c8790aa5a5300c5caaaaaaaaaaa"
+	oneHexCharCorruptedPointHexStr :="368723d835fca6bc0c17a270e51b731f69f9fe482ed88e8c3d879f228291d48057aa12d0de8476b4a111e945399253" +
+		"15d2d3fd1b85e29e465b8814b713cbf833115f4562e28dcf58e960751f0581578ca1819c8790aa5a5300c5c317b74dca0a"
+	suite := NewSuiteBLS12()
+
+	invalidPointBytes, err := hex.DecodeString(invalidPointHexStr)
+	require.Nil(t, err)
+	err = suite.CheckPointValid(invalidPointBytes)
+	require.NotNil(t, err)
+
+	oneHexCharCorruptedPointBytes, err := hex.DecodeString(oneHexCharCorruptedPointHexStr)
+	require.Nil(t, err)
+	err = suite.CheckPointValid(oneHexCharCorruptedPointBytes)
+	require.NotNil(t, err)
+}
+
+func TestSuiteBLS12_CheckPointValidZeroHexStrShouldErr(t *testing.T) {
+	zeroPointHexStr := "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" +
+		"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+
+	suite := NewSuiteBLS12()
+
+	zeroPointBytes, err := hex.DecodeString(zeroPointHexStr)
+	require.Nil(t, err)
+	err = suite.CheckPointValid(zeroPointBytes)
+	require.Equal(t, crypto.ErrInvalidPoint, err)
 }
 
 func TestSuiteBLS12_IsInterfaceNil(t *testing.T) {

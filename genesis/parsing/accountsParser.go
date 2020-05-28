@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
@@ -18,6 +19,7 @@ type accountsParser struct {
 	initialAccounts []*data.InitialAccount
 	entireSupply    *big.Int
 	pubkeyConverter state.PubkeyConverter
+	keyGenerator    crypto.KeyGenerator
 }
 
 // NewAccountsParser creates a new decoded accounts genesis structure from json config file
@@ -25,6 +27,7 @@ func NewAccountsParser(
 	genesisFilePath string,
 	entireSupply *big.Int,
 	pubkeyConverter state.PubkeyConverter,
+	keyGenerator crypto.KeyGenerator,
 ) (*accountsParser, error) {
 
 	if entireSupply == nil {
@@ -35,6 +38,9 @@ func NewAccountsParser(
 	}
 	if check.IfNil(pubkeyConverter) {
 		return nil, genesis.ErrNilPubkeyConverter
+	}
+	if check.IfNil(keyGenerator) {
+		return nil, genesis.ErrNilKeyGenerator
 	}
 
 	initialAccounts := make([]*data.InitialAccount, 0)
@@ -47,6 +53,7 @@ func NewAccountsParser(
 		initialAccounts: initialAccounts,
 		entireSupply:    entireSupply,
 		pubkeyConverter: pubkeyConverter,
+		keyGenerator:    keyGenerator,
 	}
 
 	err = gp.process()
@@ -95,8 +102,16 @@ func (ap *accountsParser) parseElement(initialAccount *data.InitialAccount) erro
 	}
 	addressBytes, err := ap.pubkeyConverter.Decode(initialAccount.Address)
 	if err != nil {
-		return fmt.Errorf("%w for `%s`",
-			genesis.ErrInvalidAddress, initialAccount.Address)
+		return fmt.Errorf("%w for `%s`", genesis.ErrInvalidAddress, initialAccount.Address)
+	}
+
+	err = ap.keyGenerator.CheckPublicKeyValid(addressBytes)
+	if err != nil {
+		return fmt.Errorf("%w for `%s`, error: %s",
+			genesis.ErrInvalidPubKey,
+			initialAccount.Address,
+			err.Error(),
+		)
 	}
 
 	initialAccount.SetAddressBytes(addressBytes)
