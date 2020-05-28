@@ -380,7 +380,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItShouldReturnFrom
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.ObserverdPeer,
+		PeerType: core.ObserverPeer,
 		ShardID:  shardId,
 	}
 
@@ -438,7 +438,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItShouldReturnFrom
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.ObserverdPeer,
+		PeerType: core.ObserverPeer,
 		ShardID:  shardId,
 	}
 
@@ -526,7 +526,7 @@ func TestPeerShardMapper_GetPeerInfoShouldWorkConcurrently(t *testing.T) {
 		go func() {
 			peerInfo := psm.GetPeerInfo(pid)
 			expectedPeerInfo := core.P2PPeerInfo{
-				PeerType: core.ObserverdPeer,
+				PeerType: core.ObserverPeer,
 				ShardID:  shardId,
 			}
 
