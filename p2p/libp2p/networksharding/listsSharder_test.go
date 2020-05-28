@@ -42,7 +42,7 @@ func createStringPeersShardResolver() *mock.PeerShardResolverStub {
 				pInfo.PeerType = core.ValidatorPeer
 			}
 			if strings.Contains(strPid, observerMarker) {
-				pInfo.PeerType = core.ObserverdPeer
+				pInfo.PeerType = core.ObserverPeer
 			}
 
 			return pInfo

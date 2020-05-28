@@ -183,10 +183,14 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator) (*genesisP
 		BuiltInFunctions: builtInFuncs,
 	}
 
+	pubKeyVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)
+	if err != nil {
+		return nil, err
+	}
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(
 		argsHook,
 		arg.Economics,
-		&disabled.MessageSignVerifier{},
+		pubKeyVerifier,
 		arg.GasMap,
 		arg.InitialNodesSetup,
 		arg.Hasher,
