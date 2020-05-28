@@ -44,7 +44,7 @@ func (cache *crossTxCache) initializeChunks() {
 	}
 }
 
-func (cache *crossTxCache) immunizeKeys(keys []string) {
+func (cache *crossTxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
 	groups := cache.groupKeysByChunk(keys)
 
 	for chunkIndex, chunkKeys := range groups {
@@ -98,11 +98,11 @@ func (cache *crossTxCache) getChunkByIndex(index uint32) *crossTxChunk {
 	return cache.chunks[index]
 }
 
-func (cache *crossTxCache) groupKeysByChunk(keys []string) map[uint32][]string {
-	groups := make(map[uint32][]string)
+func (cache *crossTxCache) groupKeysByChunk(keys [][]byte) map[uint32][][]byte {
+	groups := make(map[uint32][][]byte)
 
 	for _, key := range keys {
-		chunkIndex := cache.getChunkIndexByKey(key)
+		chunkIndex := cache.getChunkIndexByKey(string(key))
 		groups[chunkIndex] = append(groups[chunkIndex], key)
 	}
 
@@ -211,11 +211,6 @@ func (cache *crossTxCache) Peek(key []byte) (value interface{}, ok bool) {
 func (cache *crossTxCache) HasOrAdd(_ []byte, _ interface{}) (ok, evicted bool) {
 	log.Error("crossTxCache.HasOrAdd is not implemented")
 	return false, false
-}
-
-// ImmunizeTxsAgainstEviction does nothing for this type of cache
-func (cache *crossTxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
-	// TODO: implement
 }
 
 // MaxSize returns the capacity of the cache

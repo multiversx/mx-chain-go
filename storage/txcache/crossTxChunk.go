@@ -32,19 +32,19 @@ func newCrossTxChunk(config crossTxChunkConfig) *crossTxChunk {
 	}
 }
 
-func (chunk *crossTxChunk) immunizeKeys(keys []string) {
+func (chunk *crossTxChunk) immunizeKeys(keys [][]byte) {
 	chunk.mutex.Lock()
 	defer chunk.mutex.Unlock()
 
 	for _, key := range keys {
-		item, ok := chunk.getItemNoLock(key)
+		item, ok := chunk.getItemNoLock(string(key))
 
 		if ok {
 			// Item exists, immunize on the spot
 			item.ImmunizeAgainstEviction()
 		} else {
 			// Item not exists, will be immunized as it appears
-			chunk.keysToImmunize[key] = emptyStruct
+			chunk.keysToImmunize[string(key)] = emptyStruct
 		}
 	}
 }
