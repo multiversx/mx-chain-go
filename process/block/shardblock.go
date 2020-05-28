@@ -1368,6 +1368,8 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 	} else {
 		sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
+
+	go sp.requestMiniBlocksIfNeeded(headerHandler)
 }
 
 func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32, uint32) {
@@ -1759,12 +1761,6 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 			continue
 		}
 		mrsData[shardId] = buff
-	}
-
-	if len(mrsData) > 0 {
-		log.Debug("shardProcessor.MarshalizedDataToBroadcast",
-			"num miniblocks", len(mrsData),
-			"num txs", len(mrsTxs))
 	}
 
 	return mrsData, mrsTxs, nil

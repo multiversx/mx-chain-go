@@ -1610,6 +1610,8 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 	} else {
 		mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
+
+	go mp.requestMiniBlocksIfNeeded(headerHandler)
 }
 
 // requestMissingFinalityAttestingShardHeaders requests the headers needed to accept the current selected headers for
@@ -1964,12 +1966,6 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 			continue
 		}
 		mrsData[shardId] = buff
-	}
-
-	if len(mrsData) > 0 {
-		log.Debug("metaProcessor.MarshalizedDataToBroadcast",
-			"num miniblocks", len(mrsData),
-			"num txs", len(mrsTxs))
 	}
 
 	return mrsData, mrsTxs, nil

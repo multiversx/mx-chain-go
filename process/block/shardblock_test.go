@@ -2428,6 +2428,168 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 	assert.Equal(t, 0, len(mstx))
 }
 
+//------- receivedMetaBlock
+
+func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	datapool := mock.NewPoolsHolderMock()
+
+	//we will have a metablock that will return 3 miniblock hashes
+	//1 miniblock hash will be in cache
+	//2 will be requested on network
+
+	miniBlockHash1 := []byte("miniblock hash 1 found in cache")
+	miniBlockHash2 := []byte("miniblock hash 2")
+	miniBlockHash3 := []byte("miniblock hash 3")
+
+	metaBlock := &block.MetaBlock{
+		Nonce: 1,
+		Round: 1,
+		ShardInfo: []block.ShardData{
+			{
+				ShardID: 1,
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
+					{Hash: miniBlockHash1, SenderShardID: 1, ReceiverShardID: 0},
+					{Hash: miniBlockHash2, SenderShardID: 1, ReceiverShardID: 0},
+					{Hash: miniBlockHash3, SenderShardID: 1, ReceiverShardID: 0},
+				}},
+		}}
+
+	//put this metaBlock inside datapool
+	metaBlockHash := []byte("metablock hash")
+	datapool.Headers().AddHeader(metaBlockHash, metaBlock)
+	//put the existing miniblock inside datapool
+	datapool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{})
+
+	miniBlockHash1Requested := int32(0)
+	miniBlockHash2Requested := int32(0)
+	miniBlockHash3Requested := int32(0)
+
+	requestHandler := &mock.RequestHandlerStub{
+		RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
+			if bytes.Equal(miniBlockHash1, miniblockHash) {
+				atomic.AddInt32(&miniBlockHash1Requested, 1)
+			}
+			if bytes.Equal(miniBlockHash2, miniblockHash) {
+				atomic.AddInt32(&miniBlockHash2Requested, 1)
+			}
+			if bytes.Equal(miniBlockHash3, miniblockHash) {
+				atomic.AddInt32(&miniBlockHash3Requested, 1)
+			}
+		},
+	}
+
+	tc, _ := coordinator.NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		initAccountsMock(),
+		datapool.MiniBlocks(),
+		requestHandler,
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+	)
+
+	arguments := CreateMockArgumentsMultiShard()
+	arguments.DataPool = datapool
+	arguments.Hasher = hasher
+	arguments.Marshalizer = marshalizer
+	arguments.RequestHandler = requestHandler
+	arguments.TxCoordinator = tc
+
+	bp, _ := blproc.NewShardProcessor(arguments)
+	bp.ReceivedMetaBlock(metaBlock, metaBlockHash)
+
+	//we have to wait to be sure txHash1Requested is not incremented by a late call
+	time.Sleep(core.WaitTimeBeforeRequestBlockInfo + time.Second)
+
+	assert.Equal(t, int32(0), atomic.LoadInt32(&miniBlockHash1Requested))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&miniBlockHash2Requested))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&miniBlockHash2Requested))
+}
+
+//--------- receivedMetaBlockNoMissingMiniBlocks
+func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testing.T) {
+	t.Parallel()
+
+	hasher := mock.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+	datapool := mock.NewPoolsHolderMock()
+
+	//we will have a metablock that will return 3 miniblock hashes
+	//1 miniblock hash will be in cache
+	//2 will be requested on network
+
+	miniBlockHash1 := []byte("miniblock hash 1 found in cache")
+
+	metaBlock := &block.MetaBlock{
+		Nonce: 1,
+		Round: 1,
+		ShardInfo: []block.ShardData{
+			{
+				ShardID: 1,
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
+					{
+						Hash:            miniBlockHash1,
+						SenderShardID:   1,
+						ReceiverShardID: 0,
+					},
+				},
+			},
+		}}
+
+	//put this metaBlock inside datapool
+	metaBlockHash := []byte("metablock hash")
+	datapool.Headers().AddHeader(metaBlockHash, metaBlock)
+	//put the existing miniblock inside datapool
+	datapool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{})
+
+	noOfMissingMiniBlocks := int32(0)
+
+	requestHandler := &mock.RequestHandlerStub{
+		RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
+			atomic.AddInt32(&noOfMissingMiniBlocks, 1)
+		},
+	}
+
+	tc, _ := coordinator.NewTransactionCoordinator(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		initAccountsMock(),
+		datapool.MiniBlocks(),
+		requestHandler,
+		&mock.PreProcessorContainerMock{},
+		&mock.InterimProcessorContainerMock{},
+		&mock.GasHandlerMock{},
+		&mock.FeeAccumulatorStub{},
+		&mock.BlockSizeComputationStub{},
+		&mock.BalanceComputationStub{},
+	)
+
+	arguments := CreateMockArgumentsMultiShard()
+	arguments.DataPool = datapool
+	arguments.Hasher = hasher
+	arguments.Marshalizer = marshalizer
+	arguments.RequestHandler = requestHandler
+	arguments.TxCoordinator = tc
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+	sp.ReceivedMetaBlock(metaBlock, metaBlockHash)
+
+	//we have to wait to be sure txHash1Requested is not incremented by a late call
+	time.Sleep(core.WaitTimeBeforeRequestBlockInfo + time.Second)
+
+	assert.Equal(t, int32(0), atomic.LoadInt32(&noOfMissingMiniBlocks))
+}
+
 //--------- createAndProcessCrossMiniBlocksDstMe
 func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 	t.Parallel()
