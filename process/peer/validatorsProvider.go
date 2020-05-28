@@ -3,6 +3,7 @@ package peer
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -16,7 +17,7 @@ type validatorsProvider struct {
 	cachedMap           map[string]*state.ValidatorApiResponse
 	validatorStatistics process.ValidatorStatisticsProcessor
 	maxRating           uint32
-	pubkeyConverter     state.PubkeyConverter
+	pubkeyConverter     core.PubkeyConverter
 }
 
 // NewValidatorsProvider instantiates a new validatorsProvider structure responsible of keeping account of
@@ -24,7 +25,7 @@ type validatorsProvider struct {
 func NewValidatorsProvider(
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	maxRating uint32,
-	pubkeyConverter state.PubkeyConverter,
+	pubkeyConverter core.PubkeyConverter,
 ) (*validatorsProvider, error) {
 	if check.IfNil(validatorStatisticsProcessor) {
 		return nil, process.ErrNilValidatorStatistics

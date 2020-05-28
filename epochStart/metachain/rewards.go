@@ -27,7 +27,7 @@ var _ process.EpochStartRewardsCreator = (*rewardsCreator)(nil)
 // ArgsNewRewardsCreator defines the arguments structure needed to create a new rewards creator
 type ArgsNewRewardsCreator struct {
 	ShardCoordinator sharding.Coordinator
-	PubkeyConverter  state.PubkeyConverter
+	PubkeyConverter  core.PubkeyConverter
 	RewardsStorage   storage.Storer
 	MiniBlockStorage storage.Storer
 	Hasher           hashing.Hasher
@@ -39,7 +39,7 @@ type ArgsNewRewardsCreator struct {
 type rewardsCreator struct {
 	currTxs          dataRetriever.TransactionCacher
 	shardCoordinator sharding.Coordinator
-	pubkeyConverter  state.PubkeyConverter
+	pubkeyConverter  core.PubkeyConverter
 	rewardsStorage   storage.Storer
 	miniBlockStorage storage.Storer
 	communityAddress []byte

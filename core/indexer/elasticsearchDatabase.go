@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -27,8 +26,8 @@ type elasticSearchDatabaseArgs struct {
 	password                 string
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
-	addressPubkeyConverter   state.PubkeyConverter
-	validatorPubkeyConverter state.PubkeyConverter
+	addressPubkeyConverter   core.PubkeyConverter
+	validatorPubkeyConverter core.PubkeyConverter
 }
 
 // elasticSearchDatabase object it contains business logic built over databaseWriterHandler glue code wrapper

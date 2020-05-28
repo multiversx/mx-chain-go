@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
@@ -49,7 +49,7 @@ type ArgsNewEpochStartMetaSyncer struct {
 	ChainID            []byte
 	EconomicsData      *economics.EconomicsData
 	WhitelistHandler   process.WhiteListHandler
-	AddressPubkeyConv  state.PubkeyConverter
+	AddressPubkeyConv  core.PubkeyConverter
 	NonceConverter     typeConverters.Uint64ByteSliceConverter
 	StartInEpochConfig config.EpochStartConfig
 }
