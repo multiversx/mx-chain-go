@@ -576,6 +576,7 @@ type PeerChangesHandler interface {
 // BlackListHandler can determine if a certain key is or not blacklisted
 type BlackListHandler interface {
 	Add(key string) error
+	AddWithSpan(key string, span time.Duration) error
 	Has(key string) bool
 	Sweep()
 	IsInterfaceNil() bool
@@ -679,7 +680,6 @@ type BlockTracker interface {
 // FloodPreventer defines the behavior of a component that is able to signal that too many events occurred
 // on a provided identifier between Reset calls
 type FloodPreventer interface {
-	IncreaseLoadGlobal(identifier string, size uint64) error
 	IncreaseLoad(identifier string, size uint64) error
 	Reset()
 	IsInterfaceNil() bool
