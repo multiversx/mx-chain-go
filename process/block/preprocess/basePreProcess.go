@@ -42,7 +42,7 @@ type basePreProcess struct {
 	blockSizeComputation BlockSizeComputationHandler
 	balanceComputation   BalanceComputationHandler
 	accounts             state.AccountsAdapter
-	pubkeyConverter      state.PubkeyConverter
+	pubkeyConverter      core.PubkeyConverter
 }
 
 func (bpp *basePreProcess) removeDataFromPools(
@@ -90,6 +90,7 @@ func (bpp *basePreProcess) createMarshalizedData(txHashes [][]byte, forBlock *tx
 		forBlock.mutTxsForBlock.RUnlock()
 
 		if txInfoFromMap == nil || check.IfNil(txInfoFromMap.tx) {
+			log.Warn("basePreProcess.createMarshalizedData: tx not found", "hash", txHash)
 			continue
 		}
 

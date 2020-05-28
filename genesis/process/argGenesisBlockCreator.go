@@ -2,6 +2,7 @@ package process
 
 import (
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -22,7 +23,7 @@ type ArgsGenesisBlockCreator struct {
 	StartEpochNum            uint32
 	Accounts                 state.AccountsAdapter
 	ValidatorAccounts        state.AccountsAdapter
-	PubkeyConv               state.PubkeyConverter
+	PubkeyConv               core.PubkeyConverter
 	InitialNodesSetup        genesis.InitialNodesHandler
 	Economics                *economics.EconomicsData //TODO refactor and use an interface
 	ShardCoordinator         sharding.Coordinator

@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -18,7 +17,7 @@ import (
 type accountsParser struct {
 	initialAccounts []*data.InitialAccount
 	entireSupply    *big.Int
-	pubkeyConverter state.PubkeyConverter
+	pubkeyConverter core.PubkeyConverter
 	keyGenerator    crypto.KeyGenerator
 }
 
@@ -26,7 +25,7 @@ type accountsParser struct {
 func NewAccountsParser(
 	genesisFilePath string,
 	entireSupply *big.Int,
-	pubkeyConverter state.PubkeyConverter,
+	pubkeyConverter core.PubkeyConverter,
 	keyGenerator crypto.KeyGenerator,
 ) (*accountsParser, error) {
 

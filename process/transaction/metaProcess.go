@@ -26,7 +26,7 @@ func NewMetaTxProcessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	accounts state.AccountsAdapter,
-	pubkeyConv state.PubkeyConverter,
+	pubkeyConv core.PubkeyConverter,
 	shardCoordinator sharding.Coordinator,
 	scProcessor process.SmartContractProcessor,
 	txTypeHandler process.TxTypeHandler,

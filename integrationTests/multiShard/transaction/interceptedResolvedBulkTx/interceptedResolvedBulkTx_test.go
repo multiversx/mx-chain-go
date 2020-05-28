@@ -50,7 +50,6 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	}()
 
 	txToSend := 100
-
 	generateCoordinator, _ := sharding.NewMultiShardCoordinator(uint32(numOfShards), shardId)
 
 	fmt.Println("Generating and broadcasting transactions...")
@@ -64,6 +63,7 @@ func TestNode_InterceptorBulkTxsSentFromSameShardShouldRemainInSenderShard(t *te
 	transactionValue := big.NewInt(1)
 	senderPrivateKeys := []crypto.PrivateKey{nodes[idxSender].OwnAccount.SkTxSign}
 	integrationTests.CreateMintingForSenders(nodes, shardId, senderPrivateKeys, balanceValue)
+
 	_ = nodes[idxSender].Node.GenerateAndSendBulkTransactions(addrInShardFive, transactionValue, uint64(txToSend), nodes[idxSender].OwnAccount.SkTxSign)
 
 	time.Sleep(time.Second * 10)

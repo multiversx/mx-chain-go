@@ -32,7 +32,7 @@ var zero = big.NewInt(0)
 type scProcessor struct {
 	accounts         state.AccountsAdapter
 	tempAccounts     process.TemporaryAccountsHandler
-	pubkeyConv       state.PubkeyConverter
+	pubkeyConv       core.PubkeyConverter
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
@@ -57,7 +57,7 @@ type ArgsNewSmartContractProcessor struct {
 	Marshalizer      marshal.Marshalizer
 	AccountsDB       state.AccountsAdapter
 	TempAccounts     process.TemporaryAccountsHandler
-	PubkeyConv       state.PubkeyConverter
+	PubkeyConv       core.PubkeyConverter
 	Coordinator      sharding.Coordinator
 	ScrForwarder     process.IntermediateTransactionHandler
 	TxFeeHandler     process.TransactionFeeHandler
