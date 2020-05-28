@@ -17,7 +17,7 @@ import (
 type accountsParser struct {
 	initialAccounts []*data.InitialAccount
 	entireSupply    *big.Int
-	pubkeyConverter core.PubkeyConverter,
+	pubkeyConverter core.PubkeyConverter
 	keyGenerator    crypto.KeyGenerator
 }
 
