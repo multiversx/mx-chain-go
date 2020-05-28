@@ -144,6 +144,7 @@ type processComponentsFactoryArgs struct {
 	txLogsProcessor           process.TransactionLogProcessor
 	version                   string
 	importStartHandler        update.ImportStartHandler
+	workingDir                string
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -183,6 +184,7 @@ func NewProcessComponentsFactoryArgs(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	version string,
 	importStartHandler update.ImportStartHandler,
+	workingDir string,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -221,6 +223,7 @@ func NewProcessComponentsFactoryArgs(
 		systemSCConfig:            systemSCConfig,
 		version:                   version,
 		importStartHandler:        importStartHandler,
+		workingDir:                workingDir,
 	}
 }
 
@@ -321,7 +324,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}
 
 	args.txLogsProcessor = txLogsProcessor
-	genesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(args)
+	genesisBlocks, err := generateGenesisHeadersAndApplyInitialBalances(args, args.workingDir)
 	if err != nil {
 		return nil, err
 	}
@@ -892,7 +895,7 @@ func newMetaResolverContainerFactory(
 	return resolversContainerFactory, nil
 }
 
-func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactoryArgs) (map[uint32]data.HeaderHandler, error) {
+func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactoryArgs, workingDir string) (map[uint32]data.HeaderHandler, error) {
 	coreComponents := args.coreData
 	stateComponents := args.state
 	dataComponents := args.data
@@ -927,6 +930,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		ChainID:                  string(args.coreComponents.ChainID),
 		SystemSCConfig:           *args.systemSCConfig,
 		ImportStartHandler:       args.importStartHandler,
+		WorkingDir:               workingDir,
 	}
 
 	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)

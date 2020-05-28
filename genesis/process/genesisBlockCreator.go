@@ -3,6 +3,7 @@ package process
 import (
 	"fmt"
 	"path"
+	"path/filepath"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -59,9 +60,11 @@ func mustDoHardForkImportProcess(arg ArgsGenesisBlockCreator) bool {
 }
 
 func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
+	importFolder := filepath.Join(gbc.arg.WorkingDir, gbc.arg.HardForkConfig.ImportFolder)
+
 	importConfig := gbc.arg.HardForkConfig.ImportStateStorageConfig
 	dbConfig := factory.GetDBFromConfig(importConfig.DB)
-	dbConfig.FilePath = path.Join(gbc.arg.HardForkConfig.ImportFolder, importConfig.DB.FilePath)
+	dbConfig.FilePath = path.Join(importFolder, importConfig.DB.FilePath)
 	importStore, err := storageUnit.NewStorageUnitFromConf(
 		factory.GetCacherFromConfig(importConfig.Cache),
 		dbConfig,
@@ -72,7 +75,7 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 	}
 
 	args := files.ArgsNewMultiFileReader{
-		ImportFolder: gbc.arg.HardForkConfig.ImportFolder,
+		ImportFolder: importFolder,
 		ImportStore:  importStore,
 	}
 	multiFileReader, err := files.NewMultiFileReader(args)

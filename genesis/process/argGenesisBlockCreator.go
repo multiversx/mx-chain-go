@@ -41,6 +41,7 @@ type ArgsGenesisBlockCreator struct {
 	ChainID                  string
 	SystemSCConfig           config.SystemSmartContractsConfig
 	ImportStartHandler       update.ImportStartHandler
+	WorkingDir               string
 	// created component needed only for hardfork
 	importHandler update.ImportHandler
 }
