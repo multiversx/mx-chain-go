@@ -65,16 +65,20 @@ func (chunk *crossTxChunk) getItemNoLock(key string) (*WrappedTransaction, bool)
 	return item.payload, true
 }
 
-func (chunk *crossTxChunk) addItem(item *WrappedTransaction) {
+func (chunk *crossTxChunk) addItem(item *WrappedTransaction) (ok bool, added bool) {
 	chunk.mutex.Lock()
 	defer chunk.mutex.Unlock()
 
-	chunk.doEviction()
+	numRemoved, err := chunk.doEviction()
+	log.Trace("crossTxChunk.doEviction()", "numRemoved", numRemoved, "err", err)
+	if err != nil {
+		return false, false
+	}
 
 	key := string(item.TxHash)
 
-	if _, ok := chunk.items[key]; ok {
-		return
+	if _, exists := chunk.items[key]; exists {
+		return true, false
 	}
 
 	// First, we insert (append) in the linked list; then in the map
@@ -89,18 +93,31 @@ func (chunk *crossTxChunk) addItem(item *WrappedTransaction) {
 	}
 
 	chunk.trackNumBytesOnAdd(item)
+	return true, true
 }
 
 // This function should only be used in critical section (chunk.mutex)
-func (chunk *crossTxChunk) doEviction() {
-	for !chunk.isCapacityExceeded() {
-		numToRemove := chunk.config.numItemsToPreemptivelyEvict
-		numRemoved := chunk.removeOldest(numToRemove)
-
-		if numRemoved < numToRemove {
-			break
-		}
+func (chunk *crossTxChunk) doEviction() (numRemoved uint32, err error) {
+	if !chunk.isCapacityExceeded() {
+		return 0, nil
 	}
+
+	numToRemoveEachStep := chunk.config.numItemsToPreemptivelyEvict
+
+	// Do first step out of the loop
+	numRemovedInStep := chunk.removeOldest(numToRemoveEachStep)
+	numRemoved += numRemovedInStep
+
+	if numRemovedInStep == 0 {
+		return 0, errFailedCrossTxEviction
+	}
+
+	for !chunk.isCapacityExceeded() && numRemovedInStep == numToRemoveEachStep {
+		numRemovedInStep = chunk.removeOldest(numToRemoveEachStep)
+		numRemoved += numRemovedInStep
+	}
+
+	return numRemoved, nil
 }
 
 // This function should only be used in critical section (chunk.mutex)
@@ -137,10 +154,8 @@ func (chunk *crossTxChunk) removeItem(key string) {
 	chunk.trackNumBytesOnRemove(item.payload)
 }
 
+// This function should only be used in critical section (chunk.mutex)
 func (chunk *crossTxChunk) removeOldest(numToRemove uint32) uint32 {
-	chunk.mutex.Lock()
-	defer chunk.mutex.Unlock()
-
 	numRemoved := uint32(0)
 	for element := chunk.itemsAsList.Front(); element != nil; element = element.Next() {
 		item := element.Value.(*WrappedTransaction)
