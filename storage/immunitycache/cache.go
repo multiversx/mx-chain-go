@@ -49,8 +49,8 @@ func (cache *ImmunityCache) initializeChunksWithLock() {
 	}
 }
 
-// ImmunizeItemsAgainstEviction marks items as immune to eviction
-func (cache *ImmunityCache) ImmunizeItemsAgainstEviction(keys [][]byte) (numNowTotal, numFutureTotal int) {
+// ImmunizeKeys marks items as immune to eviction
+func (cache *ImmunityCache) ImmunizeKeys(keys [][]byte) (numNowTotal, numFutureTotal int) {
 	groups := cache.groupKeysByChunk(keys)
 
 	for chunkIndex, chunkKeys := range groups {
@@ -100,7 +100,7 @@ func (cache *ImmunityCache) getChunkByIndexWithLock(index uint32) *immunityChunk
 func (cache *ImmunityCache) Add(item CacheItem) (ok bool, added bool) {
 	key := string(item.GetKey())
 	chunk := cache.getChunkByKeyWithLock(key)
-	return chunk.addItem(item)
+	return chunk.addItemWithLock(item)
 }
 
 func (cache *ImmunityCache) getChunkByKeyWithLock(key string) *immunityChunk {
@@ -123,13 +123,13 @@ func (cache *ImmunityCache) Get(key []byte) (value interface{}, ok bool) {
 // GetItem gets an item by key
 func (cache *ImmunityCache) GetItem(key []byte) (CacheItem, bool) {
 	chunk := cache.getChunkByKeyWithLock(string(key))
-	return chunk.getItem(string(key))
+	return chunk.getItemWithLock(string(key))
 }
 
 // Has checks is an item exists
 func (cache *ImmunityCache) Has(key []byte) bool {
 	chunk := cache.getChunkByKeyWithLock(string(key))
-	_, ok := chunk.getItem(string(key))
+	_, ok := chunk.getItemWithLock(string(key))
 	return ok
 }
 
@@ -159,7 +159,7 @@ func (cache *ImmunityCache) Remove(key []byte) {
 // TODO: In the future, add this method to the "storage.Cacher" interface
 func (cache *ImmunityCache) RemoveWithResult(key []byte) bool {
 	chunk := cache.getChunkByKeyWithLock(string(key))
-	return chunk.removeItem(string(key))
+	return chunk.removeItemWithLock(string(key))
 }
 
 // RemoveOldest is not implemented

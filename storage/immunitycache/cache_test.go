@@ -12,7 +12,7 @@ func TestImmunityCache_ImmunizeAgainstEviction(t *testing.T) {
 	cache := newCacheToTest(1, 8, math.MaxUint32)
 
 	cache.addTestItems("a", "b", "c", "d")
-	numNow, numFuture := cache.ImmunizeItemsAgainstEviction(keysAsBytes([]string{"a", "b", "e", "f"}))
+	numNow, numFuture := cache.ImmunizeKeys(keysAsBytes([]string{"a", "b", "e", "f"}))
 	require.Equal(t, 2, numNow)
 	require.Equal(t, 2, numFuture)
 	require.Equal(t, 4, cache.Len())
