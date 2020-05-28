@@ -495,7 +495,7 @@ func CreateGenesisBlocks(
 	accounts state.AccountsAdapter,
 	validatorAccounts state.AccountsAdapter,
 	trieStorageManagers map[string]data.StorageManager,
-	pubkeyConv state.PubkeyConverter,
+	pubkeyConv core.PubkeyConverter,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	shardCoordinator sharding.Coordinator,
 	store dataRetriever.StorageService,
@@ -536,7 +536,7 @@ func CreateGenesisMetaBlock(
 	accounts state.AccountsAdapter,
 	validatorAccounts state.AccountsAdapter,
 	trieStorageManagers map[string]data.StorageManager,
-	pubkeyConv state.PubkeyConverter,
+	pubkeyConv core.PubkeyConverter,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	shardCoordinator sharding.Coordinator,
 	store dataRetriever.StorageService,
@@ -575,6 +575,7 @@ func CreateGenesisMetaBlock(
 				OwnerAddress:    "aaaaaa",
 			},
 		},
+		BlockSignKeyGen: &mock.KeyGenMock{},
 		ImportStartHandler: &mock.ImportStartHandlerStub{},
 	}
 
@@ -1743,7 +1744,7 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, _ uint32) map[uint
 	return validatorsMap
 }
 
-// GenValidatorsFromPubKeys generates a map of validators per shard out of public keys map
+// GenValidatorsFromPubKeysAndTxPubKeys generates a map of validators per shard out of public keys map
 func GenValidatorsFromPubKeysAndTxPubKeys(
 	blsPubKeysMap map[uint32][]string,
 	txPubKeysMap map[uint32][]string,

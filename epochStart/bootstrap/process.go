@@ -97,7 +97,7 @@ type epochStartBootstrap struct {
 	uint64Converter            typeConverters.Uint64ByteSliceConverter
 	nodeShuffler               sharding.NodesShuffler
 	rounder                    epochStart.Rounder
-	addressPubkeyConverter     state.PubkeyConverter
+	addressPubkeyConverter     core.PubkeyConverter
 	importStartHandler         epochStart.ImportStartHandler
 
 	// created components
@@ -162,7 +162,7 @@ type ArgsEpochStartBootstrap struct {
 	Uint64Converter            typeConverters.Uint64ByteSliceConverter
 	NodeShuffler               sharding.NodesShuffler
 	Rounder                    epochStart.Rounder
-	AddressPubkeyConverter     state.PubkeyConverter
+	AddressPubkeyConverter     core.PubkeyConverter
 	ImportStartHandler         epochStart.ImportStartHandler
 }
 

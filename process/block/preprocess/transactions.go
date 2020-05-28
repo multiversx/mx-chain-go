@@ -65,7 +65,7 @@ func NewTransactionPreprocessor(
 	gasHandler process.GasHandler,
 	blockTracker BlockTracker,
 	blockType block.Type,
-	pubkeyConverter state.PubkeyConverter,
+	pubkeyConverter core.PubkeyConverter,
 	blockSizeComputation BlockSizeComputationHandler,
 	balanceComputation BalanceComputationHandler,
 ) (*transactions, error) {

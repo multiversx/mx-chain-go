@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -54,7 +55,7 @@ type ArgsExporter struct {
 	MultiSigner              crypto.MultiSigner
 	NodesCoordinator         sharding.NodesCoordinator
 	SingleSigner             crypto.SingleSigner
-	AddressPubkeyConverter   state.PubkeyConverter
+	AddressPubkeyConverter   core.PubkeyConverter
 	BlockKeyGen              crypto.KeyGenerator
 	KeyGen                   crypto.KeyGenerator
 	BlockSigner              crypto.SingleSigner
@@ -93,7 +94,7 @@ type exportHandlerFactory struct {
 	blockKeyGen              crypto.KeyGenerator
 	keyGen                   crypto.KeyGenerator
 	blockSigner              crypto.SingleSigner
-	addressPubkeyConverter   state.PubkeyConverter
+	addressPubkeyConverter   core.PubkeyConverter
 	headerSigVerifier        process.InterceptedHeaderSigVerifier
 	headerIntegrityVerifier  process.InterceptedHeaderIntegrityVerifier
 	validityAttester         process.ValidityAttester

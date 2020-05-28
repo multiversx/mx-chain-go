@@ -52,6 +52,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 	roundsPerEpoch := uint64(10)
 	for _, node := range nodes {
 		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		node.WaitTime = 100 * time.Millisecond
 	}
 
 	idxProposers := make([]int, numOfShards+1)
@@ -281,6 +282,7 @@ func hardForkImport(
 			},
 			AccountsParser:      &mock.AccountsParserStub{},
 			SmartContractParser: &mock.SmartContractParserStub{},
+			BlockSignKeyGen:     &mock.KeyGenMock{},
 			ImportStartHandler: &mock.ImportStartHandlerStub{
 				ShouldStartImportCalled: func() bool {
 					return true

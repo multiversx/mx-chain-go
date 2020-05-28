@@ -35,6 +35,7 @@ type SystemEI interface {
 	Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error
 	GetBalance(addr []byte) *big.Int
 	SetStorage(key []byte, value []byte)
+	AddReturnMessage(msg string)
 	GetStorage(key []byte) []byte
 	Finish(value []byte)
 	UseGas(gasToConsume uint64) error

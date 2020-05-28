@@ -11,7 +11,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/heartbeat"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -34,7 +33,7 @@ type ArgHeartbeatMonitor struct {
 	AntifloodHandler                   heartbeat.P2PAntifloodHandler
 	HardforkTrigger                    heartbeat.HardforkTrigger
 	PeerBlackListHandler               heartbeat.BlackListHandler
-	ValidatorPubkeyConverter           state.PubkeyConverter
+	ValidatorPubkeyConverter           core.PubkeyConverter
 	HeartbeatRefreshIntervalInSec      uint32
 	HideInactiveValidatorIntervalInSec uint32
 }
@@ -58,7 +57,7 @@ type Monitor struct {
 	antifloodHandler                   heartbeat.P2PAntifloodHandler
 	hardforkTrigger                    heartbeat.HardforkTrigger
 	peerBlackListHandler               heartbeat.BlackListHandler
-	validatorPubkeyConverter           state.PubkeyConverter
+	validatorPubkeyConverter           core.PubkeyConverter
 	heartbeatRefreshIntervalInSec      uint32
 	hideInactiveValidatorIntervalInSec uint32
 }

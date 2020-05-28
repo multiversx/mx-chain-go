@@ -81,8 +81,8 @@ type Node struct {
 	epochStartTrigger             epochStart.TriggerHandler
 	epochStartRegistrationHandler epochStart.RegistrationHandler
 	accounts                      state.AccountsAdapter
-	addressPubkeyConverter        state.PubkeyConverter
-	validatorPubkeyConverter      state.PubkeyConverter
+	addressPubkeyConverter        core.PubkeyConverter
+	validatorPubkeyConverter      core.PubkeyConverter
 	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
 	interceptorsContainer         process.InterceptorsContainer
 	resolversFinder               dataRetriever.ResolversFinder

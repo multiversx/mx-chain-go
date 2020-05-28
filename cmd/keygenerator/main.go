@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/urfave/cli"
 )
@@ -204,7 +203,7 @@ func generateTxKey(index int, numKeys int) error {
 	return generateAndSave(index, numKeys, walletKeyFileName, genForBlockSigningSk, pubkeyConverter)
 }
 
-func generateAndSave(index int, numKeys int, baseFilename string, genForBlockSigningSk crypto.KeyGenerator, pubkeyConverter state.PubkeyConverter) error {
+func generateAndSave(index int, numKeys int, baseFilename string, genForBlockSigningSk crypto.KeyGenerator, pubkeyConverter core.PubkeyConverter) error {
 	folder, err := generateFolder(index, numKeys)
 	if err != nil {
 		return err
