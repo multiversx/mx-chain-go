@@ -141,14 +141,14 @@ func Test_ShardDataStore_CreatesIfMissingWithoutConcurrencyIssues(t *testing.T) 
 func Test_AddData(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
-	cache := pool.getTxCache("1")
+	cache := pool.getTxCache("0")
 
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "1")
-	pool.AddData([]byte("hash-y"), createTx("alice", 43), "1")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "0")
+	pool.AddData([]byte("hash-y"), createTx("alice", 43), "0")
 	require.Equal(t, 2, cache.Len())
 
 	// Try to add again, duplication does not occur
-	pool.AddData([]byte("hash-x"), createTx("alice", 42), "1")
+	pool.AddData([]byte("hash-x"), createTx("alice", 42), "0")
 	require.Equal(t, 2, cache.Len())
 
 	_, ok := cache.GetByTxHash([]byte("hash-x"))
@@ -175,8 +175,8 @@ func Test_AddData_CallsOnAddedHandlers(t *testing.T) {
 	})
 
 	// Second addition is ignored (txhash-based deduplication)
-	pool.AddData([]byte("hash-1"), createTx("alice", 42), "1")
-	pool.AddData([]byte("hash-1"), createTx("alice", 42), "1")
+	pool.AddData([]byte("hash-1"), createTx("alice", 42), "0")
+	pool.AddData([]byte("hash-1"), createTx("alice", 42), "0")
 
 	waitABit()
 	require.Equal(t, uint32(1), atomic.LoadUint32(&numAdded))
@@ -319,7 +319,7 @@ func Test_NotImplementedFunctions(t *testing.T) {
 }
 
 func Test_routeToCacheUnions(t *testing.T) {
-	config := storageUnit.CacheConfig{Size: 100, SizePerSender: 10, SizeInBytes: 409600, SizeInBytesPerSender: 40960, Shards: 16}
+	config := storageUnit.CacheConfig{Size: 100, SizePerSender: 10, SizeInBytes: 409600, SizeInBytesPerSender: 40960, Shards: 1}
 	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 4, SelfShardID: 42}
 	poolAsInterface, _ := NewShardedTxPool(args)
 	pool := poolAsInterface.(*shardedTxPool)
@@ -369,7 +369,7 @@ type thisIsNotATransaction struct {
 }
 
 func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
-	config := storageUnit.CacheConfig{Size: 100, SizePerSender: 10, SizeInBytes: 409600, SizeInBytesPerSender: 40960, Shards: 16}
-	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 4}
+	config := storageUnit.CacheConfig{Size: 100, SizePerSender: 10, SizeInBytes: 409600, SizeInBytesPerSender: 40960, Shards: 1}
+	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 4, SelfShardID: 0}
 	return NewShardedTxPool(args)
 }

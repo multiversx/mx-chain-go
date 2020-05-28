@@ -136,16 +136,16 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 		}
 
 		return cache
-	} else {
-		config := txPool.configPrototypeDestinationMe
-		config.Name = cacheID
-		cache, err := txcache.NewCrossTxCache(config)
-		if err != nil {
-			panic("todo: " + err.Error())
-		}
-
-		return cache
 	}
+
+	config := txPool.configPrototypeDestinationMe
+	config.Name = cacheID
+	cache, err := txcache.NewCrossTxCache(config)
+	if err != nil {
+		panic("todo: " + err.Error())
+	}
+
+	return cache
 }
 
 // AddData adds the transaction to the cache
@@ -240,7 +240,7 @@ func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
 		}
 	}
 
-	log.Debug("shardedTxPool.removeTxBulk()", "numToRemove", len(txHashes), "numRemoved", numRemoved)
+	log.Debug("shardedTxPool.removeTxBulk()", "name", cacheID, "numToRemove", len(txHashes), "numRemoved", numRemoved)
 }
 
 // ImmunizeSetOfDataAgainstEviction marks the items as non-evictable
