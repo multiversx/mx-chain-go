@@ -176,7 +176,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShard(t 
 }
 
 // TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAndRequestShouldWork tests what happens when
-// a network with 5 shards, each containing 3 nodes broadcast 100 transactions from node 0 and the destination shard
+// a network with 5 shards, each containing 3 nodes broadcast 10 transactions from node 0 and the destination shard
 // requests the same set of those generated transactions.
 // Node 0 is part of the shard 0 and its public key is mapped in shard 4.
 // Destination shard nodes (shard id 5) requests the same transactions set from nodes in shard 4 (senders).
@@ -213,7 +213,7 @@ func TestNode_InterceptorBulkTxsSentFromOtherShardShouldBeRoutedInSenderShardAnd
 		}
 	}()
 
-	txToSend := 100
+	txToSend := 10
 
 	shardRequester := uint32(5)
 	randomShard := uint32(2)
