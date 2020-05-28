@@ -29,7 +29,7 @@ type validatorsProvider struct {
 	lock                         sync.RWMutex
 	cancelFunc                   func()
 	maxRating                    uint32
-	pubkeyConverter              state.PubkeyConverter
+	pubkeyConverter              core.PubkeyConverter
 }
 
 // ArgValidatorsProvider contains all parameters needed for creating a validatorsProvider

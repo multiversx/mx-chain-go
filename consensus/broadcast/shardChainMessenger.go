@@ -16,8 +16,6 @@ import (
 
 var _ consensus.BroadcastMessenger = (*shardChainMessenger)(nil)
 
-const extraDelayForBroadcast = time.Second
-
 type delayedBroadcastData struct {
 	headerHash   []byte
 	miniblocks   map[uint32][]byte
@@ -193,7 +191,7 @@ func (scm *shardChainMessenger) headerReceived(headerHandler data.HeaderHandler,
 }
 
 func (scm *shardChainMessenger) broadcastDataForHeaders(headerHashes [][]byte) {
-	time.Sleep(extraDelayForBroadcast)
+	time.Sleep(core.ExtraDelayForBroadcastBlockInfo)
 
 	scm.mutDataForBroadcast.Lock()
 	defer scm.mutDataForBroadcast.Unlock()

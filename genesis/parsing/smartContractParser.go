@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -17,7 +16,7 @@ import (
 // smartContractParser hold data for initial smart contracts
 type smartContractParser struct {
 	initialSmartContracts []*data.InitialSmartContract
-	pubkeyConverter       state.PubkeyConverter
+	pubkeyConverter       core.PubkeyConverter
 	checkForFileHandler   func(filename string) error
 	keyGenerator          crypto.KeyGenerator
 }
@@ -25,7 +24,7 @@ type smartContractParser struct {
 // NewSmartContractsParser creates a new decoded smart contracts genesis structure from json config file
 func NewSmartContractsParser(
 	genesisFilePath string,
-	pubkeyConverter state.PubkeyConverter,
+	pubkeyConverter core.PubkeyConverter,
 	keyGenerator crypto.KeyGenerator,
 ) (*smartContractParser, error) {
 

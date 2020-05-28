@@ -19,14 +19,6 @@ const (
 // HashLength defines how many bytes are used in a hash
 const HashLength = 32
 
-// PubkeyConverter can convert public key bytes to/from a human readable form
-type PubkeyConverter interface {
-	Len() int
-	Decode(humanReadable string) ([]byte, error)
-	Encode(pkBytes []byte) string
-	IsInterfaceNil() bool
-}
-
 // AccountFactory creates an account of different types
 type AccountFactory interface {
 	CreateAccount(address []byte) (AccountHandler, error)

@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -20,7 +19,7 @@ import (
 var _ process.IntermediateTransactionHandler = (*intermediateResultsProcessor)(nil)
 
 type intermediateResultsProcessor struct {
-	pubkeyConv state.PubkeyConverter
+	pubkeyConv core.PubkeyConverter
 	blockType  block.Type
 	currTxs    dataRetriever.TransactionCacher
 
@@ -32,7 +31,7 @@ func NewIntermediateResultsProcessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	coordinator sharding.Coordinator,
-	pubkeyConv state.PubkeyConverter,
+	pubkeyConv core.PubkeyConverter,
 	store dataRetriever.StorageService,
 	blockType block.Type,
 	currTxs dataRetriever.TransactionCacher,

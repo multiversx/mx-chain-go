@@ -31,7 +31,7 @@ type txProcessor struct {
 func NewTxProcessor(
 	accounts state.AccountsAdapter,
 	hasher hashing.Hasher,
-	pubkeyConv state.PubkeyConverter,
+	pubkeyConv core.PubkeyConverter,
 	marshalizer marshal.Marshalizer,
 	shardCoordinator sharding.Coordinator,
 	scProcessor process.SmartContractProcessor,
