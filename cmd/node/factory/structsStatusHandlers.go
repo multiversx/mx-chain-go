@@ -185,10 +185,10 @@ func (shi *statusHandlersInfo) updateTpsMetrics(metricsMap map[string]interface{
 		if key == core.MetricAverageBlockTxCount {
 			log.Trace("setting metric value", "key", key, "value string", value.(string))
 			shi.StatusHandler.SetStringValue(key, value.(string))
-		} else {
-			log.Trace("setting metric value", "key", key, "value uint64", value.(uint64))
-			shi.StatusHandler.SetUInt64Value(key, value.(uint64))
+			continue
 		}
+		log.Trace("setting metric value", "key", key, "value uint64", value.(uint64))
+		shi.StatusHandler.SetUInt64Value(key, value.(uint64))
 	}
 }
 

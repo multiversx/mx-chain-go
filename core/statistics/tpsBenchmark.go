@@ -309,12 +309,12 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 	return nil
 }
 
-func (s *TpsBenchmark) shouldUpdateFields(mb *block.MetaBlock) bool {
+func (s *TpsBenchmark) shouldUpdateFields(metaBlock *block.MetaBlock) bool {
 	if s.initialBlockNumber == defaultBlockNumber {
 		return true
 	}
 
-	return uint64(s.initialBlockNumber) < mb.Nonce
+	return uint64(s.initialBlockNumber) < metaBlock.Nonce
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

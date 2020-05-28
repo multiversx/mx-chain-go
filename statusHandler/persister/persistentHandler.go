@@ -119,8 +119,14 @@ func (psh *PersistentStatusHandler) saveMetricsInDb(nonce uint64) {
 			"error", err)
 		return
 	}
-	log.Trace("saved tps benchmark", "peak tps", metricsMap[core.MetricPeakTPS], "total num processed txs", metricsMap[core.MetricNumProcessedTxs], "round", metricsMap[core.MetricCurrentRound], "nonce", metricsMap[core.MetricNonce])
-	log.Trace("saved last nonce metrics", "key", []byte("lastNonce"), "value", nonceBytes)
+	log.Trace("saved tps benchmark",
+		"peak tps", metricsMap[core.MetricPeakTPS],
+		"total num processed txs", metricsMap[core.MetricNumProcessedTxs],
+		"round", metricsMap[core.MetricCurrentRound],
+		"nonce", metricsMap[core.MetricNonce])
+	log.Trace("saved last nonce metrics",
+		"key", []byte("lastNonce"),
+		"value", nonceBytes)
 }
 
 // SetInt64Value method - will update the value for a key
