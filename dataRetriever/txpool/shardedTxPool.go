@@ -136,7 +136,7 @@ func (txPool *shardedTxPool) getCacheConfig(cacheID string) txcache.CacheConfig 
 }
 
 // AddData adds the transaction to the cache
-func (txPool *shardedTxPool) AddData(key []byte, value interface{}, cacheID string) {
+func (txPool *shardedTxPool) AddData(key []byte, value interface{}, _ int, cacheID string) {
 	valueAsTransaction, ok := value.(data.TransactionHandler)
 	if !ok {
 		return

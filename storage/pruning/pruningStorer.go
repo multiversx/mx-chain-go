@@ -209,7 +209,7 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
-	ps.cacher.Put(key, data)
+	ps.cacher.Put(key, data, len(data))
 
 	persisterToUse := ps.activePersisters[0]
 	if ps.pruningEnabled {
@@ -258,7 +258,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 
 				found = true
 				// if found in persistence unit, add it to cache
-				ps.cacher.Put(key, v)
+				ps.cacher.Put(key, v, len(v.([]byte)))
 				break
 			}
 		}

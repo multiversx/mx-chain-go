@@ -50,7 +50,7 @@ func TestSortTxByNonce_OneTxShouldWork(t *testing.T) {
 
 	cacher, _ := storageUnit.NewCache(storageUnit.LRUCache, 100, 1)
 	hash, tx := createRandTx(randomizer)
-	cacher.HasOrAdd(hash, tx)
+	cacher.HasOrAdd(hash, tx, tx.Size())
 	txs, txHashes := sortTxByNonce(cacher)
 
 	require.Equal(t, 1, len(txs))
@@ -148,7 +148,7 @@ func TestSortTxByNonce_TransactionsWithSameNonceShouldGetSorted(t *testing.T) {
 		buffTx, _ := marshalizer.Marshal(tx)
 		hash := mock.HasherMock{}.Compute(string(buffTx))
 
-		cache.Put(hash, tx)
+		cache.Put(hash, tx, tx.Size())
 	}
 
 	sortedTxs, _ := sortTxByNonce(cache)
@@ -191,7 +191,7 @@ func genCacherTransactionsHashes(noOfTx int) (storage.Cacher, []*transaction.Tra
 
 	for i := 0; i < noOfTx; i++ {
 		hash, tx := createRandTx(randomizer)
-		cacher.HasOrAdd(hash, tx)
+		cacher.HasOrAdd(hash, tx, tx.Size())
 
 		genHashes = append(genHashes, hash)
 		genTransactions = append(genTransactions, tx)

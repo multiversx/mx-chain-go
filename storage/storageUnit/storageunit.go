@@ -102,7 +102,7 @@ func (u *Unit) Put(key, data []byte) error {
 	u.lock.Lock()
 	defer u.lock.Unlock()
 
-	u.cacher.Put(key, data)
+	u.cacher.Put(key, data, len(data))
 
 	err := u.persister.Put(key, data)
 	if err != nil {
@@ -144,13 +144,12 @@ func (u *Unit) Get(key []byte) ([]byte, error) {
 		// search it in second persistence medium
 		if u.bloomFilter == nil || u.bloomFilter.MayContain(key) {
 			v, err = u.persister.Get(key)
-
 			if err != nil {
 				return nil, err
 			}
 
 			// if found in persistence unit, add it in cache
-			u.cacher.Put(key, v)
+			u.cacher.Put(key, v, len(v.([]byte)))
 		} else {
 			return nil, fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(key))
 		}

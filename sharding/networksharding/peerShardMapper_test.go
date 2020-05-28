@@ -182,7 +182,7 @@ func TestPeerShardMapper_UpdatePeerIdPublicKeyWrongTypePkInPeerIdPkShouldRemove(
 	pid1 := p2p.PeerID("pid1")
 
 	wrongTypePk := uint64(7)
-	psm.PeerIdPk().Put([]byte(pid1), wrongTypePk)
+	psm.PeerIdPk().Put([]byte(pid1), wrongTypePk, 8)
 
 	psm.UpdatePeerIdPublicKey(pid1, pk1)
 
@@ -347,7 +347,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorWrongTypeInCacheShouldReturn
 		epochZero,
 	)
 	pid := p2p.PeerID("dummy peer ID")
-	psm.PeerIdPk().Put([]byte(pid), wrongTypePk)
+	psm.PeerIdPk().Put([]byte(pid), wrongTypePk, 8)
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
@@ -405,7 +405,7 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItWrongTypeInCache
 	pid := p2p.PeerID("dummy peer ID")
 	psm.UpdatePeerIdPublicKey(pid, pk)
 	wrongTypeShardId := "shard 4"
-	psm.FallbackPkShard().Put(pk, wrongTypeShardId)
+	psm.FallbackPkShard().Put(pk, wrongTypeShardId, len(wrongTypeShardId))
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
@@ -488,7 +488,7 @@ func TestPeerShardMapper_GetPeerInfoWithWrongTypeInCacheShouldReturnUnknown(t *t
 	)
 	pid := p2p.PeerID("dummy peer ID")
 	wrongTypeShardId := "shard 4"
-	psm.FallbackPidShard().Put([]byte(pid), wrongTypeShardId)
+	psm.FallbackPidShard().Put([]byte(pid), wrongTypeShardId, len(wrongTypeShardId))
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{

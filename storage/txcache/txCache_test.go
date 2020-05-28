@@ -272,13 +272,13 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 func Test_NotImplementedFunctions(t *testing.T) {
 	cache := newCacheToTest()
 
-	evicted := cache.Put(nil, nil)
+	evicted := cache.Put(nil, nil, 0)
 	require.False(t, evicted)
 
 	has := cache.Has(nil)
 	require.False(t, has)
 
-	ok, evicted := cache.HasOrAdd(nil, nil)
+	ok, evicted := cache.HasOrAdd(nil, nil, 0)
 	require.False(t, ok)
 	require.False(t, evicted)
 

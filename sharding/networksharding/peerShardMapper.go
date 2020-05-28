@@ -14,6 +14,7 @@ import (
 )
 
 const maxNumPidsPerPk = 3
+const shardIdSize = 4
 
 var log = logger.GetOrCreate("sharding/networksharding")
 
@@ -210,10 +211,10 @@ func (psm *PeerShardMapper) UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte) {
 
 	objPidsQueue, found := psm.pkPeerId.Get(pk)
 	if !found {
-		psm.peerIdPk.Put([]byte(pid), pk)
+		psm.peerIdPk.Put([]byte(pid), pk, len(pk))
 		pq := newPidQueue()
 		pq.push(pid)
-		psm.pkPeerId.Put(pk, pq)
+		psm.pkPeerId.Put(pk, pq, len(pk))
 		return
 	}
 
@@ -227,7 +228,7 @@ func (psm *PeerShardMapper) UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte) {
 	idxPid := pq.indexOf(pid)
 	if idxPid != indexNotFound {
 		pq.promote(idxPid)
-		psm.peerIdPk.Put([]byte(pid), pk)
+		psm.peerIdPk.Put([]byte(pid), pk, len(pk))
 		return
 	}
 
@@ -238,8 +239,8 @@ func (psm *PeerShardMapper) UpdatePeerIdPublicKey(pid p2p.PeerID, pk []byte) {
 		psm.peerIdPk.Remove([]byte(evictedPid))
 		psm.fallbackPidShard.Remove([]byte(evictedPid))
 	}
-	psm.pkPeerId.Put(pk, pq)
-	psm.peerIdPk.Put([]byte(pid), pk)
+	psm.pkPeerId.Put(pk, pq, pq.size())
+	psm.peerIdPk.Put([]byte(pid), pk, len(pk))
 }
 
 func (psm *PeerShardMapper) removePidAssociation(pid p2p.PeerID) {
@@ -271,17 +272,17 @@ func (psm *PeerShardMapper) removePidAssociation(pid p2p.PeerID) {
 		return
 	}
 
-	psm.pkPeerId.Put(oldPkBuff, pq)
+	psm.pkPeerId.Put(oldPkBuff, pq, pq.size())
 }
 
 // UpdatePublicKeyShardId updates the fallback search map containing public key and shard IDs
 func (psm *PeerShardMapper) UpdatePublicKeyShardId(pk []byte, shardId uint32) {
-	psm.fallbackPkShard.HasOrAdd(pk, shardId)
+	psm.fallbackPkShard.HasOrAdd(pk, shardId, shardIdSize)
 }
 
 // UpdatePeerIdShardId updates the fallback search map containing peer IDs and shard IDs
 func (psm *PeerShardMapper) UpdatePeerIdShardId(pid p2p.PeerID, shardId uint32) {
-	psm.fallbackPidShard.HasOrAdd([]byte(pid), shardId)
+	psm.fallbackPidShard.HasOrAdd([]byte(pid), shardId, shardIdSize)
 }
 
 // EpochStartAction is the method called whenever an action needs to be undertaken in respect to the epoch change

@@ -117,7 +117,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaUnderThresholdShouldNotCallGetOrPut(
 				assert.Fail(t, "should not have called get")
 				return nil, false
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				assert.Fail(t, "should not have called put")
 				return false
 			},
@@ -144,7 +144,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaOverThresholdInexistentDataOnGetShou
 			GetCalled: func(key []byte) (interface{}, bool) {
 				return nil, false
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				putCalled = true
 				assert.Equal(t, uint32(1), value)
 				assert.Equal(t, identifier, string(key))
@@ -176,7 +176,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaOverThresholdDataNotValidOnGetShould
 			GetCalled: func(key []byte) (interface{}, bool) {
 				return "invalid data", true
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				putCalled = true
 				assert.Equal(t, uint32(1), value)
 				assert.Equal(t, identifier, string(key))
@@ -209,7 +209,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaShouldIncrement(t *testing.T) {
 			GetCalled: func(key []byte) (interface{}, bool) {
 				return existingValue, true
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				putCalled = true
 				assert.Equal(t, existingValue+1, value)
 				assert.Equal(t, identifier, string(key))

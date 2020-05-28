@@ -154,7 +154,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadIdentifierNotPresentPutQuotaAndRetur
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				q, isQuota := value.(*quota)
 				if !isQuota {
 					return
@@ -189,7 +189,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadNotQuotaSavedInCacheShouldPutQuotaAn
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return "bad value", true
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				q, isQuota := value.(*quota)
 				if !isQuota {
 					return
@@ -230,7 +230,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadUnderMaxValuesShouldIncrementAndRetu
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return existingQuota, true
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				q, isQuota := value.(*quota)
 				if !isQuota {
 					return
@@ -273,7 +273,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadGlobalWithResetShouldWork(t *testing
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return existingQuota, true
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				if string(key) == identifier {
 					numPutOperations++
 				}
@@ -332,7 +332,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerNumMessagesShouldNotPutAn
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return existingQuota, true
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				assert.Fail(t, "should have not called put")
 
 				return false
@@ -364,7 +364,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerSizeShouldNotPutAndReturn
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return existingQuota, true
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				assert.Fail(t, "should have not called put")
 
 				return false
@@ -394,7 +394,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxNumMessagesShouldNotPutAndRet
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				assert.Fail(t, "should have not called put")
 
 				return false
@@ -423,7 +423,7 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxSizeShouldNotPutAndReturnFals
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
-			PutCalled: func(key []byte, value interface{}) (evicted bool) {
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				assert.Fail(t, "should have not called put")
 
 				return false
@@ -513,8 +513,8 @@ func TestCountersMap_ResetShouldCallQuotaStatus(t *testing.T) {
 		sizeProcessedMessages: 8,
 	}
 
-	cacher.HasOrAdd(key1, quota1)
-	cacher.HasOrAdd(key2, quota2)
+	cacher.HasOrAdd(key1, quota1, quota1.Size())
+	cacher.HasOrAdd(key2, quota2, quota2.Size())
 
 	resetStatisticsCalled := false
 	quota1Compared := false

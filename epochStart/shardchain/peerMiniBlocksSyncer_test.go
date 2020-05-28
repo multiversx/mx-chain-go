@@ -243,7 +243,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksShould
 			}
 			return nil, false
 		},
-		PutCalled: func(key []byte, value interface{}) (evicted bool) {
+		PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 			if bytes.Equal(key, peerMiniBlockHash) {
 				receivedMiniblock(key, value)
 				return false
@@ -256,7 +256,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksShould
 		RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblockHashes [][]byte) {
 			if destShardID == core.MetachainShardId &&
 				bytes.Equal(miniblockHashes[0], peerMiniBlockHash) {
-				args.MiniBlocksPool.Put(peerMiniBlockHash, peerMiniblock)
+				args.MiniBlocksPool.Put(peerMiniBlockHash, peerMiniblock, peerMiniblock.Size())
 			}
 		},
 	}
@@ -307,7 +307,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksTimeou
 			}
 			return nil, false
 		},
-		PutCalled: func(key []byte, value interface{}) (evicted bool) {
+		PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 			if bytes.Equal(key, peerMiniBlockHash) {
 				receivedMiniblock(key, value)
 				return false
@@ -321,7 +321,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksTimeou
 			if destShardID == core.MetachainShardId &&
 				bytes.Equal(miniblockHashes[0], peerMiniBlockHash) {
 				time.Sleep(5100 * time.Millisecond)
-				args.MiniBlocksPool.Put(peerMiniBlockHash, miniBlockHeader)
+				args.MiniBlocksPool.Put(peerMiniBlockHash, miniBlockHeader, miniBlockHeader.Size())
 			}
 		},
 	}

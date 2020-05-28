@@ -105,7 +105,7 @@ func initBasicTestData() (*mock.PoolsHolderMock, data.ChainHandler, []byte, *blo
 	tdp := mock.NewPoolsHolderMock()
 	txHash := []byte("tx_hash1")
 	randSeed := []byte("rand seed")
-	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, process.ShardCacherIdentifier(1, 0))
+	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, 0, process.ShardCacherIdentifier(1, 0))
 	blkc := blockchain.NewBlockChain()
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
@@ -969,7 +969,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	tx := &transaction.Transaction{}
-	tdp.Transactions().AddData(txHash, tx, shardCoordinator.CommunicationIdentifier(0))
+	tdp.Transactions().AddData(txHash, tx, tx.Size(), shardCoordinator.CommunicationIdentifier(0))
 
 	hasher := &mock.HasherStub{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -1418,7 +1418,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 
 	tdp := mock.NewPoolsHolderMock()
 	txHash := []byte("tx_hash1")
-	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, process.ShardCacherIdentifier(1, 0))
+	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, 0, process.ShardCacherIdentifier(1, 0))
 	rootHash := []byte("rootHash")
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash)
@@ -2460,7 +2460,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	metaBlockHash := []byte("metablock hash")
 	datapool.Headers().AddHeader(metaBlockHash, metaBlock)
 	//put the existing miniblock inside datapool
-	datapool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{})
+	datapool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{}, 0)
 
 	miniBlockHash1Requested := int32(0)
 	miniBlockHash2Requested := int32(0)
@@ -2547,7 +2547,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 	metaBlockHash := []byte("metablock hash")
 	datapool.Headers().AddHeader(metaBlockHash, metaBlock)
 	//put the existing miniblock inside datapool
-	datapool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{})
+	datapool.MiniBlocks().Put(miniBlockHash1, &block.MiniBlock{}, 0)
 
 	noOfMissingMiniBlocks := int32(0)
 
@@ -2590,7 +2590,7 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 
 	tdp := mock.NewPoolsHolderMock()
 	txHash := []byte("tx_hash1")
-	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, process.ShardCacherIdentifier(1, 0))
+	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, 0, process.ShardCacherIdentifier(1, 0))
 
 	hasher := &mock.HasherStub{}
 	marshalizer := &mock.MarshalizerMock{}
@@ -2725,15 +2725,15 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	datapool.Transactions().AddData(txHash1, &transaction.Transaction{
 		Nonce: tx1Nonce,
 		Data:  txHash1,
-	}, cacheId)
+	}, 0, cacheId)
 	datapool.Transactions().AddData(txHash2, &transaction.Transaction{
 		Nonce: tx2Nonce,
 		Data:  txHash2,
-	}, cacheId)
+	}, 0, cacheId)
 	datapool.Transactions().AddData(txHash3, &transaction.Transaction{
 		Nonce: tx3Nonce,
 		Data:  txHash3,
-	}, cacheId)
+	}, 0, cacheId)
 
 	tx1ExecutionResult := uint64(0)
 	tx2ExecutionResult := uint64(0)

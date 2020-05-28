@@ -85,7 +85,7 @@ func createShardedDataChacherNotifier(
 				}
 				return nil, false
 			},
-			AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+			AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheId string) {
 			},
 		}
 	}

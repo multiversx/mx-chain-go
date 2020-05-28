@@ -91,7 +91,7 @@ func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ p
 		return nil
 	}
 
-	mip.miniblockCache.HasOrAdd(hash, miniblock)
+	mip.miniblockCache.HasOrAdd(hash, miniblock, miniblock.Size())
 
 	return nil
 }

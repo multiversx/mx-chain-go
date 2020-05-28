@@ -45,7 +45,7 @@ func TestMutexHolder_OtherObjectInCacheShouldRewriteWithNewMutexAndReturn(t *tes
 
 	mh, _ := libp2p.NewMutexHolder(10)
 	key := "key"
-	mh.Mutexes().Put([]byte(key), "not a mutex value")
+	mh.Mutexes().Put([]byte(key), "not a mutex value", 0)
 	mut := mh.Get(key)
 
 	assert.NotNil(t, mut)
@@ -61,7 +61,7 @@ func TestMutexHolder_MutexFoundShouldReturnIt(t *testing.T) {
 	mh, _ := libp2p.NewMutexHolder(10)
 	key := "key"
 	mut := &sync.Mutex{}
-	mh.Mutexes().Put([]byte(key), mut)
+	mh.Mutexes().Put([]byte(key), mut, 0)
 	mutRecov := mh.Get(key)
 
 	assert.NotNil(t, mutRecov)

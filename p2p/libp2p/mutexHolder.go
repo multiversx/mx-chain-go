@@ -35,14 +35,14 @@ func (mh *MutexHolder) Get(key string) *sync.Mutex {
 	val, ok := mh.mutexes.Get(sliceKey)
 	if !ok {
 		newMutex := &sync.Mutex{}
-		mh.mutexes.Put(sliceKey, newMutex)
+		mh.mutexes.Put(sliceKey, newMutex, 0)
 		return newMutex
 	}
 
 	mutex, ok := val.(*sync.Mutex)
 	if !ok {
 		newMutex := &sync.Mutex{}
-		mh.mutexes.Put(sliceKey, newMutex)
+		mh.mutexes.Put(sliceKey, newMutex, 0)
 		return newMutex
 	}
 

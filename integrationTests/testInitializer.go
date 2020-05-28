@@ -1522,7 +1522,7 @@ func CreateRequesterDataPool(recvTxs map[int]map[string]struct{}, mutRecvTxs *sy
 		ShardDataStoreCalled: func(cacheId string) (c storage.Cacher) {
 			return nil
 		},
-		AddDataCalled: func(key []byte, data interface{}, cacheId string) {
+		AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheId string) {
 			mutRecvTxs.Lock()
 			defer mutRecvTxs.Unlock()
 
@@ -1555,7 +1555,7 @@ func CreateResolversDataPool(
 	for i := 0; i < maxTxs; i++ {
 		tx, txHash := generateValidTx(t, shardCoordinator, senderShardID, recvShardId)
 		cacherIdentifier := process.ShardCacherIdentifier(1, 0)
-		txPool.AddData(txHash, tx, cacherIdentifier)
+		txPool.AddData(txHash, tx, tx.Size(), cacherIdentifier)
 		txHashes[i] = txHash
 		txsSndAddr = append(txsSndAddr, tx.SndAddr)
 	}
@@ -1741,7 +1741,7 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, _ uint32) map[uint
 	return validatorsMap
 }
 
-// GenValidatorsFromPubKeys generates a map of validators per shard out of public keys map
+// GenValidatorsFromPubKeysAndTxPubKeys generates a map of validators per shard out of public keys map
 func GenValidatorsFromPubKeysAndTxPubKeys(
 	blsPubKeysMap map[uint32][]string,
 	txPubKeysMap map[uint32][]string,

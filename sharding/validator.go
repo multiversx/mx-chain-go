@@ -41,9 +41,14 @@ func (v *validator) Index() uint32 {
 	return v.index
 }
 
-// String returns the toString respresentation of the validator
+// String returns the toString representation of the validator
 func (v *validator) String() string {
 	return fmt.Sprintf("%s %v %v", hex.EncodeToString(v.pubKey), v.index, v.chances)
+}
+
+// Size returns the size in bytes held by an instance of this struct
+func (v *validator) Size() int {
+	return len(v.pubKey) + 8
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
