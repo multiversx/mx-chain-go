@@ -153,13 +153,13 @@ func (chunk *crossTxChunk) isCapacityExceeded() bool {
 	return tooManyItems || tooManyBytes
 }
 
-func (chunk *crossTxChunk) removeItem(key string) {
+func (chunk *crossTxChunk) removeItem(key string) bool {
 	chunk.mutex.Lock()
 	defer chunk.mutex.Unlock()
 
 	item, ok := chunk.items[key]
 	if !ok {
-		return
+		return false
 	}
 
 	// TODO: duplication
@@ -167,6 +167,7 @@ func (chunk *crossTxChunk) removeItem(key string) {
 	delete(chunk.keysToImmunize, key)
 	chunk.itemsAsList.Remove(item.listElement)
 	chunk.trackNumBytesOnRemove(item.payload)
+	return true
 }
 
 func (chunk *crossTxChunk) RemoveOldest(numToRemove int) int {

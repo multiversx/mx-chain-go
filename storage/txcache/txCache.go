@@ -155,10 +155,10 @@ func (cache *TxCache) doAfterSelection() {
 }
 
 // RemoveTxByHash removes tx by hash
-func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
+func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 	tx, foundInByHash := cache.txByHash.removeTx(string(txHash))
 	if !foundInByHash {
-		return errTxNotFound
+		return false
 	}
 
 	foundInBySender := cache.txListBySender.removeTx(tx)
@@ -174,7 +174,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) error {
 		log.Trace("TxCache.RemoveTxByHash(): slight inconsistency detected: !foundInBySender", "name", cache.name, "tx", txHash)
 	}
 
-	return nil
+	return true
 }
 
 // NumBytes gets the approximate number of bytes stored in the cache

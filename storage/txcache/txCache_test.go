@@ -159,8 +159,8 @@ func Test_RemoveByTxHash(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-2"), "alice", 2))
 
-	err := cache.RemoveTxByHash([]byte("hash-1"))
-	require.Nil(t, err)
+	removed := cache.RemoveTxByHash([]byte("hash-1"))
+	require.True(t, removed)
 	cache.Remove([]byte("hash-2"))
 
 	foundTx, ok := cache.GetByTxHash([]byte("hash-1"))
@@ -211,10 +211,10 @@ func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {
 	require.Nil(t, foundTxGet)
 }
 
-func Test_RemoveByTxHash_Error_WhenMissing(t *testing.T) {
+func Test_RemoveByTxHash_WhenMissing(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
-	err := cache.RemoveTxByHash([]byte("missing"))
-	require.Equal(t, err, errTxNotFound)
+	removed := cache.RemoveTxByHash([]byte("missing"))
+	require.False(t, removed)
 }
 
 func Test_RemoveByTxHash_RemovesFromByHash_WhenMapsInconsistency(t *testing.T) {

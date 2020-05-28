@@ -91,19 +91,6 @@ func (cache *crossTxCache) GetItem(key string) (*WrappedTransaction, bool) {
 	return chunk.getItem(key)
 }
 
-// Has returns whether the item is in the map
-func (cache *crossTxCache) HasItem(key string) bool {
-	chunk := cache.getChunkByKey(key)
-	_, ok := chunk.getItem(key)
-	return ok
-}
-
-// Remove removes an element from the map
-func (cache *crossTxCache) RemoveItem(key string) {
-	chunk := cache.getChunkByKey(key)
-	chunk.removeItem(key)
-}
-
 func (cache *crossTxCache) getChunkByKey(key string) *crossTxChunk {
 	cache.mutex.RLock()
 	defer cache.mutex.RUnlock()
@@ -233,7 +220,9 @@ func (cache *crossTxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool
 
 // Has checks is a transaction exists
 func (cache *crossTxCache) Has(key []byte) bool {
-	return cache.HasItem(string(key))
+	chunk := cache.getChunkByKey(string(key))
+	_, ok := chunk.getItem(string(key))
+	return ok
 }
 
 // Peek gets a transaction by hash
@@ -269,13 +258,14 @@ func (cache *crossTxCache) RegisterHandler(func(key []byte, value interface{})) 
 
 // Remove removes tx by hash
 func (cache *crossTxCache) Remove(key []byte) {
-	cache.RemoveItem(string(key))
+	_ = cache.RemoveTxByHash(key)
 }
 
 // RemoveTxByHash removes tx by hash
-func (cache *crossTxCache) RemoveTxByHash(txHash []byte) error {
-	cache.RemoveItem(string(txHash))
-	return nil
+func (cache *crossTxCache) RemoveTxByHash(txHash []byte) bool {
+	key := string(txHash)
+	chunk := cache.getChunkByKey(key)
+	return chunk.removeItem(key)
 }
 
 // RemoveOldest is not implemented

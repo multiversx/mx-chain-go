@@ -221,8 +221,7 @@ func (txPool *shardedTxPool) RemoveData(key []byte, cacheID string) {
 // removeTx removes the transaction from the pool
 func (txPool *shardedTxPool) removeTx(txHash []byte, cacheID string) bool {
 	shard := txPool.getOrCreateShard(cacheID)
-	err := shard.Cache.RemoveTxByHash(txHash)
-	return err == nil
+	return shard.Cache.RemoveTxByHash(txHash)
 }
 
 // RemoveSetOfDataFromPool removes a bunch of transactions from the pool
