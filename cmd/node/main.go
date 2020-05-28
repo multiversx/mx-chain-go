@@ -1784,8 +1784,8 @@ func createElasticIndexer(
 	hasher hashing.Hasher,
 	nodesCoordinator sharding.NodesCoordinator,
 	startNotifier notifier.EpochStartNotifier,
-	addressPubkeyConverter state.PubkeyConverter,
-	validatorPubkeyConverter state.PubkeyConverter,
+	addressPubkeyConverter core.PubkeyConverter,
+	validatorPubkeyConverter core.PubkeyConverter,
 	shardId uint32,
 ) (indexer.Indexer, error) {
 	arguments := indexer.ElasticIndexerArgs{
@@ -2080,7 +2080,7 @@ func createApiResolver(
 	config *config.Config,
 	accnts state.AccountsAdapter,
 	validatorAccounts state.AccountsAdapter,
-	pubkeyConv state.PubkeyConverter,
+	pubkeyConv core.PubkeyConverter,
 	storageService dataRetriever.StorageService,
 	blockChain data.ChainHandler,
 	marshalizer marshal.Marshalizer,
