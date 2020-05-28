@@ -456,15 +456,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	var err error
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
 	if withLogFile {
-		var fileForLogs *os.File
-		fileForLogs, err = prepareLogFile(workingDir)
+		_, err = prepareLogFile(workingDir)
 		if err != nil {
 			return fmt.Errorf("%w creating a log file", err)
 		}
-
-		defer func() {
-			_ = fileForLogs.Close()
-		}()
 	}
 
 	logger.ToggleCorrelation(ctx.GlobalBool(logWithCorrelation.Name))
