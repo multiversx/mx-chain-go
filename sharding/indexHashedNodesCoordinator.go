@@ -281,6 +281,8 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	nodesConfig, ok := ihgs.nodesConfig[epoch]
 	if ok {
 		if shardID >= nodesConfig.nbShards && shardID != core.MetachainShardId {
+			log.Warn("shardID is not ok", "shardID", shardID, "nbShards", nodesConfig.nbShards)
+			ihgs.mutNodesConfig.RUnlock()
 			return nil, ErrInvalidShardId
 		}
 		selector = nodesConfig.selectors[shardID]
@@ -510,6 +512,11 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	randomness := metaHdr.GetPrevRandSeed()
 	newEpoch := metaHdr.GetEpoch()
 
+	if check.IfNil(body) && newEpoch == ihgs.currentEpoch {
+		log.Debug("nil body provided for epoch start prepare, it is normal in case of revertStateToBlock")
+		return
+	}
+
 	allValidatorInfo, err := createValidatorInfoFromBody(body, ihgs.marshalizer, ihgs.numTotalEligible)
 	if err != nil {
 		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare")
@@ -522,6 +529,17 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		log.Error("could not compute nodes config from list - do nothing on nodesCoordinator epochStartPrepare")
 		return
 	}
+
+	ihgs.mutNodesConfig.RLock()
+	previousConfig := ihgs.nodesConfig[ihgs.currentEpoch]
+	if previousConfig != nil && previousConfig.nbShards != newNodesConfig.nbShards {
+		log.Warn("number of shards does not match",
+			"previous epoch", ihgs.currentEpoch,
+			"previous number of shards", previousConfig.nbShards,
+			"new epoch", newEpoch,
+			"new number of shards", newNodesConfig.nbShards)
+	}
+	ihgs.mutNodesConfig.RUnlock()
 
 	additionalLeavingMap, err := ihgs.nodesCoordinatorHelper.ComputeAdditionalLeaving(allValidatorInfo)
 	if err != nil {
@@ -635,12 +653,18 @@ func (ihgs *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		sort.Sort(validatorList(leavingList))
 	}
 
+	if len(eligibleMap) == 0 {
+		return nil, fmt.Errorf("%w eligible map size is zero. No validators found", ErrMapSizeZero)
+	}
+
+	nbShards := len(eligibleMap) - 1
+
 	newNodesConfig := &epochNodesConfig{
 		eligibleMap: eligibleMap,
 		waitingMap:  waitingMap,
 		leavingMap:  leavingMap,
 		newList:     newNodesList,
-		nbShards:    uint32(len(eligibleMap)),
+		nbShards:    uint32(nbShards),
 	}
 
 	return newNodesConfig, nil
@@ -704,15 +728,29 @@ func (ihgs *indexHashedNodesCoordinator) ShuffleOutForEpoch(epoch uint32) {
 	nodesConfig := ihgs.nodesConfig[epoch]
 	ihgs.mutNodesConfig.Unlock()
 
+	if nodesConfig == nil {
+		log.Warn("shuffleOutForEpoch failed",
+			"epoch", epoch,
+			"error", ErrEpochNodesConfigDoesNotExist)
+		return
+	}
+
 	if isValidator(nodesConfig, ihgs.selfPubKey) {
 		err := ihgs.shuffledOutHandler.Process(nodesConfig.shardID)
 		if err != nil {
-			log.Warn("Shuffle out process failed", "err", err)
+			log.Warn("shuffle out process failed", "err", err)
 		}
 	}
 }
 
 func isValidator(config *epochNodesConfig, pk []byte) bool {
+	if config == nil {
+		return false
+	}
+
+	config.mutNodesMaps.RLock()
+	defer config.mutNodesMaps.RUnlock()
+
 	found := false
 	found, _ = searchInMap(config.eligibleMap, pk)
 	if found {

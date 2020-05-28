@@ -11,6 +11,6 @@ type txCache interface {
 	AddTx(tx *txcache.WrappedTransaction) (ok bool, added bool)
 	GetByTxHash(txHash []byte) (*txcache.WrappedTransaction, bool)
 	RemoveTxByHash(txHash []byte) error
-	CountTx() int64
+	CountTx() uint64
 	ForEachTransaction(function txcache.ForEachTransaction)
 }

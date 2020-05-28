@@ -107,11 +107,11 @@ func TestSweeping_SweepSweepable(t *testing.T) {
 		cache.getListForSender("bob"),
 	}
 
-	require.Equal(t, int64(3), cache.CountTx())
-	require.Equal(t, int64(3), cache.CountSenders())
+	require.Equal(t, uint64(3), cache.CountTx())
+	require.Equal(t, uint64(3), cache.CountSenders())
 
 	cache.sweepSweepable()
 
-	require.Equal(t, int64(1), cache.CountTx())
-	require.Equal(t, int64(1), cache.CountSenders())
+	require.Equal(t, uint64(1), cache.CountTx())
+	require.Equal(t, uint64(1), cache.CountSenders())
 }

@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // PeerTypeProviderStub -
@@ -18,7 +19,17 @@ func (p *PeerTypeProviderStub) ComputeForPubKey(pubKey []byte) (core.PeerType, u
 	return "", 0, nil
 }
 
+// GetAllPeerTypeInfos -
+func (p *PeerTypeProviderStub) GetAllPeerTypeInfos() []*state.PeerTypeInfo {
+	return nil
+}
+
 // IsInterfaceNil -
 func (p *PeerTypeProviderStub) IsInterfaceNil() bool {
 	return p == nil
+}
+
+// Close  -
+func (p *PeerTypeProviderStub) Close() error {
+	return nil
 }

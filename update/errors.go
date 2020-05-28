@@ -140,6 +140,9 @@ var ErrNilBlockSigner = errors.New("nil block signer")
 // ErrNilHeaderSigVerifier signals that nil header sig verifier was provided
 var ErrNilHeaderSigVerifier = errors.New("nil header sig verifier")
 
+// ErrNilHeaderIntegrityVerifier signals that nil header integrity verifier was provided
+var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier")
+
 // ErrNilValidityAttester signals that nil validity was provided
 var ErrNilValidityAttester = errors.New("nil validity attester")
 
@@ -203,8 +206,8 @@ var ErrEmptyChainID = errors.New("empty chain ID")
 // ErrNilArgumentParser signals that nil argument parser was provided
 var ErrNilArgumentParser = errors.New("nil argument parser")
 
-// ErrNilExportFacotryHandler signals that nil export handler factory has been provided
-var ErrNilExportFacotryHandler = errors.New("nil export handler factory")
+// ErrNilExportFactoryHandler signals that nil export factory handler has been provided
+var ErrNilExportFactoryHandler = errors.New("nil export factory handler")
 
 // ErrNilChanStopNodeProcess signals that nil channel to stop node was provided
 var ErrNilChanStopNodeProcess = errors.New("nil channel to stop node")

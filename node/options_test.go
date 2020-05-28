@@ -958,6 +958,31 @@ func TestWithHeaderSigVerifier_OkHeaderSigVerfierShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestWithHeaderSigVerifier_NilHeaderIntegrityVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithHeaderIntegrityVerifier(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilHeaderIntegrityVerifier, err)
+}
+
+func TestWithHeaderSigVerifier_OkHeaderIntegrityVerfierShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	hdrIntVerifier := &mock.HeaderIntegrityVerifierStub{}
+
+	opt := WithHeaderIntegrityVerifier(hdrIntVerifier)
+	err := opt(node)
+
+	assert.Nil(t, err)
+	assert.Equal(t, hdrIntVerifier, node.headerIntegrityVerifier)
+}
+
 func TestWithRequestedItemsHandler_OkRequestedItemsHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 

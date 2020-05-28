@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
@@ -2009,4 +2010,20 @@ func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds 
 	}
 
 	return nonce, round
+}
+
+// AddSelfNotarizedHeaderByMetachain -
+func AddSelfNotarizedHeaderByMetachain(nodes []*TestProcessorNode) {
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() == core.MetachainShardId {
+			continue
+		}
+
+		header := n.BlockChain.GetCurrentBlockHeader()
+		if check.IfNil(header) {
+			continue
+		}
+
+		n.BlockTracker.AddSelfNotarizedHeader(core.MetachainShardId, header, nil)
+	}
 }

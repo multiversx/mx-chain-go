@@ -22,12 +22,6 @@ var ErrInvalidNumberPubKeys = errors.New("invalid number of public keys")
 // ErrNilNodesCoordinator signals that the nodesCoordinator is nil
 var ErrNilNodesCoordinator = errors.New("nil nodesCoordinator")
 
-// ErrNilValidatorsProvider signals that the validatorsProvider is nil
-var ErrNilValidatorsProvider = errors.New("nil validatorsProvider")
-
-// ErrNilEpochStartNotifier signals that the ErrNilEpochStartNotifier is nil
-var ErrNilEpochStartNotifier = errors.New("nil epochStartNotifier")
-
 // ErrNilMarshalizer signals that the marshalizer is nil
 var ErrNilMarshalizer = errors.New("nil marshalizer")
 
@@ -67,6 +61,9 @@ var ErrSmallShardEligibleListSize = errors.New("small shard eligible list size")
 // ErrSmallMetachainEligibleListSize signals that the eligible validators list's size is less than the consensus size
 var ErrSmallMetachainEligibleListSize = errors.New("small metachain eligible list size")
 
+// ErrMapSizeZero signals that there are no elements in the map
+var ErrMapSizeZero = errors.New("map size zero")
+
 // ErrEpochNodesConfigDoesNotExist signals that the epoch nodes configuration is missing
 var ErrEpochNodesConfigDoesNotExist = errors.New("epoch nodes configuration does not exist")
 
@@ -97,9 +94,6 @@ var ErrNotImplemented = errors.New("feature not implemented")
 // ErrNilCacher signals that a nil cacher has been provided
 var ErrNilCacher = errors.New("nil cacher")
 
-// ErrNilEpochHandler signals that a nil epoch handler has been provided
-var ErrNilEpochHandler = errors.New("nil epoch handler")
-
 // ErrInvalidSampleSize signals that an invalid sample size was provided
 var ErrInvalidSampleSize = errors.New("invalid sample size")
 
@@ -127,5 +121,5 @@ var ErrNilOwnPublicKey = errors.New("nil own public key")
 // ErrNilEndOfProcessingHandler signals that a nil end of processing handler has been provided
 var ErrNilEndOfProcessingHandler = errors.New("nil end of processing handler")
 
-// ErrNilDestinationForDistribute signals that a nil value was provided for destination of distributedNodes
-var ErrNilDestinationForDistribute = errors.New("nil destination list for distributeNodes")
+// ErrNilOrEmptyDestinationForDistribute signals that a nil or empty value was provided for destination of distributedNodes
+var ErrNilOrEmptyDestinationForDistribute = errors.New("nil or empty destination list for distributeNodes")

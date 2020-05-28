@@ -118,11 +118,12 @@ type Node struct {
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
-	indexer                indexer.Indexer
-	blocksBlackListHandler process.BlackListHandler
-	bootStorer             process.BootStorer
-	requestedItemsHandler  dataRetriever.RequestedItemsHandler
-	headerSigVerifier      spos.RandSeedVerifier
+	indexer                 indexer.Indexer
+	blocksBlackListHandler  process.BlackListHandler
+	bootStorer              process.BootStorer
+	requestedItemsHandler   dataRetriever.RequestedItemsHandler
+	headerSigVerifier       spos.RandSeedVerifier
+	headerIntegrityVerifier spos.HeaderIntegrityVerifier
 
 	chainID                  []byte
 	blockTracker             process.BlockTracker
@@ -294,6 +295,7 @@ func (n *Node) StartConsensus() error {
 		SingleSigner:             n.singleSigner,
 		SyncTimer:                n.syncTimer,
 		HeaderSigVerifier:        n.headerSigVerifier,
+		HeaderIntegrityVerifier:  n.headerIntegrityVerifier,
 		ChainID:                  n.chainID,
 		NetworkShardingCollector: n.networkShardingCollector,
 		AntifloodHandler:         n.inputAntifloodHandler,
@@ -725,10 +727,7 @@ func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
 	)
 
 	for _, tx := range txs {
-		senderShardId, err := n.getSenderShardId(tx)
-		if err != nil {
-			continue
-		}
+		senderShardId := n.shardCoordinator.ComputeId(tx.SndAddr)
 
 		marshalizedTx, err := n.internalMarshalizer.Marshal(tx)
 		if err != nil {
@@ -750,17 +749,6 @@ func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
 			numOfSentTxs += uint64(len(txsForShard))
 		}
 	}
-}
-
-func (n *Node) getSenderShardId(tx *transaction.Transaction) (uint32, error) {
-	senderShardId := n.shardCoordinator.ComputeId(tx.SndAddr)
-	if senderShardId != n.shardCoordinator.SelfId() {
-		return senderShardId, nil
-	}
-
-	//tx is cross-shard with self, send it on the [transaction topic]_self_cross directly so it will
-	//traverse the network only once
-	return n.shardCoordinator.ComputeId(tx.RcvAddr), nil
 }
 
 // ValidateTransaction will validate a transaction
@@ -969,6 +957,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		VersionNumber:            versionNumber,
 		PeerShardMapper:          n.networkShardingCollector,
 		SizeCheckDelta:           n.sizeCheckDelta,
+		ValidatorsProvider:       n.validatorsProvider,
 	}
 
 	var err error

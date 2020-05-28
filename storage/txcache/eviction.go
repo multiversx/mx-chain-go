@@ -15,23 +15,24 @@ func (cache *TxCache) doEviction() {
 		return
 	}
 
-	journal := evictionJournal{}
-
 	cache.evictionMutex.Lock()
 	defer cache.evictionMutex.Unlock()
 
 	cache.isEvictionInProgress.Set()
 	defer cache.isEvictionInProgress.Unset()
 
-	stopWatch := cache.monitorEvictionStart()
-
-	if cache.isCapacityExceeded() {
-		cache.makeSnapshotOfSenders()
-		journal.passOneNumSteps, journal.passOneNumTxs, journal.passOneNumSenders = cache.evictSendersInLoop()
-		journal.evictionPerformed = true
+	if !cache.isCapacityExceeded() {
+		return
 	}
 
+	stopWatch := cache.monitorEvictionStart()
+	cache.makeSnapshotOfSenders()
+
+	journal := evictionJournal{}
+	journal.passOneNumSteps, journal.passOneNumTxs, journal.passOneNumSenders = cache.evictSendersInLoop()
+	journal.evictionPerformed = true
 	cache.evictionJournal = journal
+
 	cache.monitorEvictionEnd(stopWatch)
 	cache.destroySnapshotOfSenders()
 }
@@ -50,24 +51,24 @@ func (cache *TxCache) isCapacityExceeded() bool {
 
 func (cache *TxCache) areThereTooManyBytes() bool {
 	numBytes := cache.NumBytes()
-	tooManyBytes := numBytes > int64(cache.config.NumBytesThreshold)
+	tooManyBytes := numBytes > uint64(cache.config.NumBytesThreshold)
 	return tooManyBytes
 }
 
 func (cache *TxCache) areThereTooManySenders() bool {
 	numSenders := cache.CountSenders()
-	tooManySenders := numSenders > int64(cache.config.CountThreshold)
+	tooManySenders := numSenders > uint64(cache.config.CountThreshold)
 	return tooManySenders
 }
 
 func (cache *TxCache) areThereTooManyTxs() bool {
 	numTxs := cache.CountTx()
-	tooManyTxs := numTxs > int64(cache.config.CountThreshold)
+	tooManyTxs := numTxs > uint64(cache.config.CountThreshold)
 	return tooManyTxs
 }
 
 // This is called concurrently by two goroutines: the eviction one and the sweeping one
-func (cache *TxCache) doEvictItems(txsToEvict txHashes, sendersToEvict []string) (countTxs uint32, countSenders uint32) {
+func (cache *TxCache) doEvictItems(txsToEvict [][]byte, sendersToEvict []string) (countTxs uint32, countSenders uint32) {
 	countTxs = cache.txByHash.RemoveTxsBulk(txsToEvict)
 	countSenders = cache.txListBySender.RemoveSendersBulk(sendersToEvict)
 	return
@@ -116,7 +117,7 @@ func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32
 // This is called concurrently by two goroutines: the eviction one and the sweeping one
 func (cache *TxCache) evictSendersAndTheirTxs(listsToEvict []*txListForSender) (uint32, uint32) {
 	sendersToEvict := make([]string, 0, len(listsToEvict))
-	txsToEvict := make(txHashes, 0, approximatelyCountTxInLists(listsToEvict))
+	txsToEvict := make([][]byte, 0, approximatelyCountTxInLists(listsToEvict))
 
 	for _, txList := range listsToEvict {
 		sendersToEvict = append(sendersToEvict, txList.sender)

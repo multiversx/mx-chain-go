@@ -157,6 +157,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 			if err != nil {
 				return false, err
 			}
+			log.Trace("loaded children for node", "hash", currentNode.getHash())
 
 			if len(currentMissingNodes) > 0 {
 				for _, hash := range currentMissingNodes {
@@ -259,8 +260,10 @@ func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
 	ts.mutOperation.Lock()
 	defer ts.mutOperation.Unlock()
 
-	_, ok := ts.nodesForTrie[string(hash)]
-	if !ok {
+	log.Trace("trie node intercepted", "hash", hash)
+
+	n, ok := ts.nodesForTrie[string(hash)]
+	if !ok || n.received {
 		return
 	}
 

@@ -26,6 +26,8 @@ The installation of go should proceed as shown in official golang installation g
 The main branch that will be used is the master branch. Alternatively, an older release tag can be used.
 
 ```
+# set $GOPATH if not set and export to ~/.profile along with Go binary path
+$ if [[ $GOPATH=="" ]]; then GOPATH="$HOME/go" fi
 $ mkdir -p $GOPATH/src/github.com/ElrondNetwork
 $ cd $GOPATH/src/github.com/ElrondNetwork
 $ git clone https://github.com/ElrondNetwork/elrond-go
@@ -68,7 +70,7 @@ $ ./keygenerator
 
 ### Start the node 
 #### Step 4a: Join Elrond testnet:
-Follow the steps outlined [here](https://docs.elrond.com/start-a-validator-node/start-the-network). This is because in order to join the testnet you need a specific node configuration.
+Follow the steps outlined [here](https://docs.elrond.com/validators/install). This is because in order to join the testnet you need a specific node configuration.
 ______
 OR
 ______
@@ -94,10 +96,8 @@ $ go test ./...
 `sudo cp -r google /usr/include`
 3. Copy bin/protoc using <br>
 `sudo cp protoc  /usr/bin` 
-4. Fetch the repo https://github.com/traian-schiau/protobuf
-5. Checkout branch `casttypewith`
-6. Copy repo in $GOPATH/github.com/gogo/protobuf replacing everything 
-7. Compile gogo slick & copy binary using
+4. Fetch the repo github.com/ElrondNetwork/protobuf
+5. Compile gogo slick & copy binary using
 ```
 cd protoc-gen-gogoslick
 go build
@@ -209,3 +209,4 @@ Please make sure your contributions adhere to our coding guidelines:
     - E.g. "core/indexer: fixed a typo"
 
 Please see the [documentation](https://docs.elrond.com/) for more details on the Elrond project.
+

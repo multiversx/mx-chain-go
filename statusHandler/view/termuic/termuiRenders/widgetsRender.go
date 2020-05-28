@@ -141,44 +141,40 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	pkBlockSign := wr.presenter.GetPublicKeyBlockSign()
 	rows[2] = []string{fmt.Sprintf("Public key BlockSign: %s", pkBlockSign)}
 
-	var consensusInfo string
 	countConsensus := wr.presenter.GetCountConsensus()
 	countConsensusAcceptedBlocks := wr.presenter.GetCountConsensusAcceptedBlocks()
 
-	if shardId == uint64(core.MetachainShardId) {
-		consensusInfo = fmt.Sprintf("Count consensus participant: %d | Signed blocks headers: %d", countConsensus, countConsensusAcceptedBlocks)
-
-	} else {
-		consensusInfo = fmt.Sprintf("Consensus accepted / signed blocks: %d / %d", countConsensusAcceptedBlocks, countConsensus)
-	}
-
-	rows[3] = []string{consensusInfo}
+	rows[3] = []string{fmt.Sprintf("Validator signed blocks: %d | Blocks accepted: %d", countConsensus, countConsensusAcceptedBlocks)}
 
 	countLeader := wr.presenter.GetCountLeader()
 	countAcceptedBlocks := wr.presenter.GetCountAcceptedBlocks()
-	rows[4] = []string{fmt.Sprintf("Blocks accepted / blocks proposed:  %d / %d", countAcceptedBlocks, countLeader)}
+	rows[4] = []string{fmt.Sprintf("Blocks proposed: %d | Blocks accepted:  %d", countLeader, countAcceptedBlocks)}
 
-	switch instanceType {
-	case string(core.NodeTypeValidator):
-		rewardsPerHour := wr.presenter.CalculateRewardsPerHour()
-		rows[5] = []string{fmt.Sprintf("Rewards estimation: %s ERD/h (without fees)", rewardsPerHour)}
+	// TODO: repair the rewards estimation or replace these 2 rows with rating details
+	//switch instanceType {
+	//case string(core.NodeTypeValidator):
+	//	rewardsPerHour := wr.presenter.CalculateRewardsPerHour()
+	//	rows[5] = []string{fmt.Sprintf("Rewards estimation: %s ERD/h (without fees)", rewardsPerHour)}
+	//
+	//	var rewardsInfo []string
+	//	totalRewardsValue, diffRewards := wr.presenter.GetTotalRewardsValue()
+	//	zeroString := "0" + wr.presenter.GetZeros()
+	//	if diffRewards != zeroString {
+	//		wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorGreen)
+	//		rewardsInfo = []string{fmt.Sprintf("Total rewards %s + %s ERD (without fees)", totalRewardsValue, diffRewards)}
+	//	} else {
+	//		wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorWhite)
+	//		rewardsInfo = []string{fmt.Sprintf("Total rewards %s ERD (without fees)", totalRewardsValue)}
+	//	}
+	//	rows[6] = rewardsInfo
+	//
+	//default:
+	//	rows[5] = []string{""}
+	//	rows[6] = []string{""}
+	//}
 
-		var rewardsInfo []string
-		totalRewardsValue, diffRewards := wr.presenter.GetTotalRewardsValue()
-		zeroString := "0" + wr.presenter.GetZeros()
-		if diffRewards != zeroString {
-			wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorGreen)
-			rewardsInfo = []string{fmt.Sprintf("Total rewards %s + %s ERD (without fees)", totalRewardsValue, diffRewards)}
-		} else {
-			wr.instanceInfo.RowStyles[7] = ui.NewStyle(ui.ColorWhite)
-			rewardsInfo = []string{fmt.Sprintf("Total rewards %s ERD (without fees)", totalRewardsValue)}
-		}
-		rows[6] = rewardsInfo
-
-	default:
-		rows[5] = []string{""}
-		rows[6] = []string{""}
-	}
+	rows[5] = []string{""}
+	rows[6] = []string{""}
 
 	wr.instanceInfo.Title = "Elrond instance info"
 	wr.instanceInfo.RowSeparator = false

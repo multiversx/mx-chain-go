@@ -56,8 +56,8 @@ func (cache *TxCache) getListForSender(sender string) *txListForSender {
 	return cache.txListBySender.testGetListForSender(sender)
 }
 
-func (sendersMap *txListBySenderMap) testGetListForSender(sender string) *txListForSender {
-	list, ok := sendersMap.getListForSender(sender)
+func (txMap *txListBySenderMap) testGetListForSender(sender string) *txListForSender {
+	list, ok := txMap.getListForSender(sender)
 	if !ok {
 		panic("sender not in cache")
 	}
@@ -65,8 +65,11 @@ func (sendersMap *txListBySenderMap) testGetListForSender(sender string) *txList
 	return list
 }
 
-func (cache *TxCache) getRawScoreOfSender(sender string) float64 {
-	return cache.getListForSender(sender).computeRawScore()
+func (cache *TxCache) getScoreOfSender(sender string) uint32 {
+	list := cache.getListForSender(sender)
+	scoreParams := list.getScoreParams()
+	computer := cache.txListBySender.scoreComputer
+	return computer.computeScore(scoreParams)
 }
 
 func (cache *TxCache) getNumFailedSelectionsOfSender(sender string) int {
@@ -88,7 +91,7 @@ func (listForSender *txListForSender) getTxHashesAsStrings() []string {
 	return hashesAsStrings(hashes)
 }
 
-func hashesAsStrings(hashes txHashes) []string {
+func hashesAsStrings(hashes [][]byte) []string {
 	result := make([]string, len(hashes))
 
 	for i := 0; i < len(hashes); i++ {
@@ -182,4 +185,13 @@ func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 	case <-time.After(timeout):
 		return true // timed out
 	}
+}
+
+var _ scoreComputer = (*disabledScoreComputer)(nil)
+
+type disabledScoreComputer struct {
+}
+
+func (computer *disabledScoreComputer) computeScore(_ senderScoreParams) uint32 {
+	return 0
 }

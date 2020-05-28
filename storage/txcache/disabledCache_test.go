@@ -24,7 +24,7 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 	require.Nil(t, err)
 
 	count := cache.CountTx()
-	require.Equal(t, int64(0), count)
+	require.Equal(t, uint64(0), count)
 
 	length := cache.Len()
 	require.Equal(t, 0, length)
@@ -61,4 +61,5 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 	require.Equal(t, 0, maxSize)
 
 	require.NotPanics(t, func() { cache.RegisterHandler(func(_ []byte, _ interface{}) {}) })
+	require.False(t, cache.IsInterfaceNil())
 }

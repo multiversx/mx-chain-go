@@ -458,15 +458,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	var err error
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
 	if withLogFile {
-		var fileForLogs *os.File
-		fileForLogs, err = prepareLogFile(workingDir)
+		_, err = prepareLogFile(workingDir)
 		if err != nil {
 			return fmt.Errorf("%w creating a log file", err)
 		}
-
-		defer func() {
-			_ = fileForLogs.Close()
-		}()
 	}
 
 	logger.ToggleCorrelation(ctx.GlobalBool(logWithCorrelation.Name))
@@ -525,7 +520,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-	log.Debug("config", "file", configurationSystemSCFile)
+	log.Debug("config", "file", configurationSystemSCConfigFileName)
 
 	configurationRatingsFileName := ctx.GlobalString(configurationRatingsFile.Name)
 	ratingsConfig, err := loadRatingsConfig(configurationRatingsFileName)
@@ -731,6 +726,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.InternalMarshalizer, coreComponents.Uint64ByteSliceConverter)
+	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
+	if err != nil {
+		return err
+	}
+
+	coreComponents.StatusHandler = statusHandlersInfo.StatusHandler
+
 	triesArgs := mainFactory.TriesComponentsFactoryArgs{
 		Marshalizer:      coreComponents.InternalMarshalizer,
 		Hasher:           coreComponents.Hasher,
@@ -917,14 +920,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
-
-	handlersArgs := factory.NewStatusHandlersFactoryArgs(useLogView.Name, ctx, coreComponents.InternalMarshalizer, coreComponents.Uint64ByteSliceConverter)
-	statusHandlersInfo, err := factory.CreateStatusHandlers(handlersArgs)
-	if err != nil {
-		return err
-	}
-
-	coreComponents.StatusHandler = statusHandlersInfo.StatusHandler
 
 	log.Trace("creating data components")
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
@@ -1917,10 +1912,11 @@ func createHardForkTrigger(
 		KeyGen:                   crypto.TxSignKeyGen,
 		BlockSigner:              crypto.SingleSigner,
 		HeaderSigVerifier:        process.HeaderSigVerifier,
-		ChainID:                  coreData.ChainID,
-		ValidityAttester:         process.BlockTracker,
+		HeaderIntegrityVerifier:  process.HeaderIntegrityVerifier,
+		MaxTrieLevelInMemory:     config.StateTriesConfig.MaxStateTrieLevelInMemory,
 		InputAntifloodHandler:    network.InputAntifloodHandler,
 		OutputAntifloodHandler:   network.OutputAntifloodHandler,
+		ValidityAttester:         process.BlockTracker,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
@@ -2051,6 +2047,7 @@ func createNode(
 		node.WithBootStorer(process.BootStorer),
 		node.WithRequestedItemsHandler(requestedItemsHandler),
 		node.WithHeaderSigVerifier(process.HeaderSigVerifier),
+		node.WithHeaderIntegrityVerifier(process.HeaderIntegrityVerifier),
 		node.WithValidatorStatistics(process.ValidatorsStatistics),
 		node.WithValidatorsProvider(process.ValidatorsProvider),
 		node.WithChainID(coreData.ChainID),
@@ -2236,7 +2233,11 @@ func createApiResolver(
 			return nil, err
 		}
 	} else {
-		vmFactory, err = shard.NewVMContainerFactory(config.VirtualMachineConfig, economics.MaxGasLimitPerBlock(), gasSchedule, argsHook)
+		vmFactory, err = shard.NewVMContainerFactory(
+			config.VirtualMachineConfig,
+			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
+			gasSchedule,
+			argsHook)
 		if err != nil {
 			return nil, err
 		}

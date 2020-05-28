@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -87,11 +88,13 @@ func Test_AddTx(t *testing.T) {
 	ok, added := cache.AddTx(tx)
 	require.True(t, ok)
 	require.True(t, added)
+	require.True(t, cache.Has([]byte("hash-1")))
 
 	// Add it again (no-operation)
 	ok, added = cache.AddTx(tx)
 	require.True(t, ok)
 	require.False(t, added)
+	require.True(t, cache.Has([]byte("hash-1")))
 
 	foundTx, ok := cache.GetByTxHash([]byte("hash-1"))
 	require.True(t, ok)
@@ -176,7 +179,7 @@ func Test_CountTx_And_Len(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash-2"), "alice", 2))
 	cache.AddTx(createTx([]byte("hash-3"), "alice", 3))
 
-	require.Equal(t, int64(3), cache.CountTx())
+	require.Equal(t, uint64(3), cache.CountTx())
 	require.Equal(t, 3, cache.Len())
 }
 
@@ -214,7 +217,7 @@ func Test_RemoveByTxHash_Error_WhenMissing(t *testing.T) {
 	require.Equal(t, err, errTxNotFound)
 }
 
-func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
+func Test_RemoveByTxHash_RemovesFromByHash_WhenMapsInconsistency(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
 
 	txHash := []byte("hash-1")
@@ -224,8 +227,8 @@ func Test_RemoveByTxHash_Error_WhenMapsInconsistency(t *testing.T) {
 	// Cause an inconsistency between the two internal maps (theoretically possible in case of misbehaving eviction)
 	cache.txListBySender.removeTx(tx)
 
-	err := cache.RemoveTxByHash(txHash)
-	require.Equal(t, err, errMapsSyncInconsistency)
+	_ = cache.RemoveTxByHash(txHash)
+	require.Equal(t, 0, cache.txByHash.backingMap.Count())
 }
 
 func Test_Clear(t *testing.T) {
@@ -234,10 +237,10 @@ func Test_Clear(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-bob-7"), "bob", 7))
 	cache.AddTx(createTx([]byte("hash-alice-42"), "alice", 42))
-	require.Equal(t, int64(3), cache.CountTx())
+	require.Equal(t, uint64(3), cache.CountTx())
 
 	cache.Clear()
-	require.Equal(t, int64(0), cache.CountTx())
+	require.Equal(t, uint64(0), cache.CountTx())
 }
 
 func Test_ForEachTransaction(t *testing.T) {
@@ -309,7 +312,7 @@ func Test_SelectTransactions(t *testing.T) {
 		}
 	}
 
-	require.Equal(t, int64(nTotalTransactions), cache.CountTx())
+	require.Equal(t, uint64(nTotalTransactions), cache.CountTx())
 
 	sorted := cache.SelectTransactions(nRequestedTransactions, 2)
 
@@ -362,7 +365,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	require.NotNil(t, cache)
 
 	addManyTransactionsWithUniformDistribution(cache, 11, 10)
-	require.LessOrEqual(t, cache.CountTx(), int64(100))
+	require.LessOrEqual(t, cache.CountTx(), uint64(100))
 
 	config = CacheConfig{
 		Name:                       "untitled",
@@ -382,7 +385,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	require.NotNil(t, cache)
 
 	addManyTransactionsWithUniformDistribution(cache, 100, 1000)
-	require.LessOrEqual(t, cache.CountTx(), int64(250000))
+	require.LessOrEqual(t, cache.CountTx(), uint64(250000))
 }
 
 func Test_NotImplementedFunctions(t *testing.T) {
@@ -390,9 +393,6 @@ func Test_NotImplementedFunctions(t *testing.T) {
 
 	evicted := cache.Put(nil, nil)
 	require.False(t, evicted)
-
-	has := cache.Has(nil)
-	require.False(t, has)
 
 	ok, evicted := cache.HasOrAdd(nil, nil)
 	require.False(t, ok)
@@ -451,6 +451,119 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 
 	timedOut := waitTimeout(&wg, 1*time.Second)
 	require.False(t, timedOut, "Timed out. Perhaps deadlock?")
+}
+
+func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testing.T) {
+	cache := newUnconstrainedCacheToTest()
+
+	// Setup inconsistency: transaction already exists in map by hash, but not in map by sender
+	cache.txByHash.addTx(createTx([]byte("alice-x"), "alice", 42))
+
+	require.Equal(t, 1, cache.txByHash.backingMap.Count())
+	require.True(t, cache.Has([]byte("alice-x")))
+	ok, added := cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
+	require.True(t, ok)
+	require.True(t, added)
+	require.Equal(t, uint64(1), cache.CountSenders())
+	require.Equal(t, []string{"alice-x"}, cache.getHashesForSender("alice"))
+	cache.Clear()
+
+	// Setup inconsistency: transaction already exists in map by sender, but not in map by hash
+	cache.txListBySender.addTx(createTx([]byte("alice-x"), "alice", 42))
+
+	require.False(t, cache.Has([]byte("alice-x")))
+	ok, added = cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
+	require.True(t, ok)
+	require.True(t, added)
+	require.Equal(t, uint64(1), cache.CountSenders())
+	require.Equal(t, []string{"alice-x"}, cache.getHashesForSender("alice"))
+	cache.Clear()
+}
+
+func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *testing.T) {
+	cache := newUnconstrainedCacheToTest()
+
+	// A lot of routines concur to add & remove THE FIRST transaction of a sender
+	for try := 0; try < 100; try++ {
+		var wg sync.WaitGroup
+
+		for i := 0; i < 50; i++ {
+			wg.Add(1)
+			go func() {
+				cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
+				_ = cache.RemoveTxByHash([]byte("alice-x"))
+				wg.Done()
+			}()
+		}
+
+		wg.Wait()
+		// In this case, there is the slight chance that:
+		// go A: add to map by hash
+		// go B: won't add in map by hash, already there
+		// go A: add to map by sender
+		// go A: remove from map by hash
+		// go A: remove from map by sender and delete empty sender
+		// go B: add to map by sender
+		// go B: can't remove from map by hash, not found
+		// go B: won't remove from map by sender (sender unknown)
+
+		// Therefore, the number of senders could be 0 or 1
+		require.Equal(t, 0, cache.txByHash.backingMap.Count())
+		expectedCountConsistent := 0
+		expectedCountSlightlyInconsistent := 1
+		actualCount := int(cache.txListBySender.backingMap.Count())
+		require.True(t, actualCount == expectedCountConsistent || actualCount == expectedCountSlightlyInconsistent)
+
+		// A further addition works:
+		cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
+		require.True(t, cache.Has([]byte("alice-x")))
+		require.Equal(t, []string{"alice-x"}, cache.getHashesForSender("alice"))
+	}
+
+	cache.Clear()
+
+	// A lot of routines concur to add & remove subsequent transactions of a sender
+	cache.AddTx(createTx([]byte("alice-w"), "alice", 41))
+
+	for try := 0; try < 100; try++ {
+		var wg sync.WaitGroup
+
+		for i := 0; i < 50; i++ {
+			wg.Add(1)
+			go func() {
+				cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
+				_ = cache.RemoveTxByHash([]byte("alice-x"))
+				wg.Done()
+			}()
+		}
+
+		wg.Wait()
+
+		// In this case, there is the slight chance that:
+		// go A: add to map by hash
+		// go B: won't add in map by hash, already there
+		// go A: add to map by sender (existing sender/list)
+		// go A: remove from map by hash
+		// go A: remove from map by sender
+		// go B: add to map by sender (existing sender/list)
+		// go B: can't remove from map by hash, not found
+		// go B: won't remove from map by sender (sender unknown)
+
+		// Therefore, Alice may have one or two transactions in her list.
+		require.Equal(t, 1, cache.txByHash.backingMap.Count())
+		expectedTxsConsistent := []string{"alice-w"}
+		expectedTxsSlightlyInconsistent := []string{"alice-w", "alice-x"}
+		actualTxs := cache.getHashesForSender("alice")
+		require.True(t, assert.ObjectsAreEqual(expectedTxsConsistent, actualTxs) || assert.ObjectsAreEqual(expectedTxsSlightlyInconsistent, actualTxs))
+
+		// A further addition works:
+		cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
+		require.True(t, cache.Has([]byte("alice-w")))
+		require.True(t, cache.Has([]byte("alice-x")))
+		require.Equal(t, []string{"alice-w", "alice-x"}, cache.getHashesForSender("alice"))
+	}
+
+	cache.Clear()
 }
 
 func newUnconstrainedCacheToTest() *TxCache {

@@ -197,6 +197,8 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 	waitingCopy := copyValidatorMap(arg.waiting)
 	eligibleCopy := copyValidatorMap(arg.eligible)
 
+	createListsForAllShards(waitingCopy, arg.nbShards)
+
 	numToRemove, err := computeNumToRemove(arg)
 	if err != nil {
 		return nil, err
@@ -216,7 +218,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 	if err != nil {
 		log.Warn("moveNodesToMap failed", "error", err)
 	}
-	err = distributeValidators(arg.newNodes, newWaiting, arg.randomness)
+	err = distributeValidators(newWaiting, arg.newNodes, arg.randomness)
 	if err != nil {
 		log.Warn("distributeValidators newNodes failed", "error", err)
 	}
@@ -236,13 +238,25 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 	}, nil
 }
 
+func createListsForAllShards(shardMap map[uint32][]Validator, shards uint32) {
+	for shardId := uint32(0); shardId < shards; shardId++ {
+		if shardMap[shardId] == nil {
+			shardMap[shardId] = make([]Validator, 0)
+		}
+	}
+
+	if shardMap[core.MetachainShardId] == nil {
+		shardMap[core.MetachainShardId] = make([]Validator, 0)
+	}
+}
+
 func computeNumToRemove(arg shuffleNodesArg) (map[uint32]int, error) {
 	numToRemove := make(map[uint32]int)
 	if arg.nbShards == 0 {
 		return numToRemove, nil
 	}
 
-	for shardId := uint32(0); shardId < arg.nbShards-1; shardId++ {
+	for shardId := uint32(0); shardId < arg.nbShards; shardId++ {
 		maxToRemove, err := computeNumToRemovePerShard(
 			len(arg.eligible[shardId]),
 			len(arg.waiting[shardId]),
@@ -522,7 +536,7 @@ func copyValidatorMap(validators map[uint32][]Validator) map[uint32][]Validator 
 // moveNodesToMap moves the validators in the waiting list to corresponding eligible list
 func moveNodesToMap(destination map[uint32][]Validator, source map[uint32][]Validator) error {
 	if destination == nil {
-		return ErrNilDestinationForDistribute
+		return ErrNilOrEmptyDestinationForDistribute
 	}
 
 	for k, v := range source {
@@ -533,9 +547,9 @@ func moveNodesToMap(destination map[uint32][]Validator, source map[uint32][]Vali
 }
 
 // distributeNewNodes distributes a list of validators to the given validators map
-func distributeValidators(validators []Validator, destLists map[uint32][]Validator, randomness []byte) error {
-	if destLists == nil {
-		return ErrNilDestinationForDistribute
+func distributeValidators(destLists map[uint32][]Validator, validators []Validator, randomness []byte) error {
+	if len(destLists) == 0 {
+		return ErrNilOrEmptyDestinationForDistribute
 	}
 
 	// if there was a split or a merge, eligible map should already have a different nb of keys (shards)

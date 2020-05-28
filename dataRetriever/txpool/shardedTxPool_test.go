@@ -144,11 +144,11 @@ func Test_AddData(t *testing.T) {
 
 	pool.AddData([]byte("hash-x"), createTx("alice", 42), "1")
 	pool.AddData([]byte("hash-y"), createTx("alice", 43), "1")
-	require.Equal(t, int64(2), cache.CountTx())
+	require.Equal(t, uint64(2), cache.CountTx())
 
 	// Try to add again, duplication does not occur
 	pool.AddData([]byte("hash-x"), createTx("alice", 42), "1")
-	require.Equal(t, int64(2), cache.CountTx())
+	require.Equal(t, uint64(2), cache.CountTx())
 
 	_, ok := cache.GetByTxHash([]byte("hash-x"))
 	require.True(t, ok)
@@ -217,7 +217,7 @@ func Test_RemoveSetOfDataFromPool(t *testing.T) {
 
 	pool.AddData([]byte("hash-x"), createTx("alice", 42), "0")
 	pool.AddData([]byte("hash-y"), createTx("bob", 43), "0")
-	require.Equal(t, int64(2), cache.CountTx())
+	require.Equal(t, uint64(2), cache.CountTx())
 
 	pool.RemoveSetOfDataFromPool([][]byte{[]byte("hash-x"), []byte("hash-y")}, "0")
 	require.Zero(t, cache.CountTx())
@@ -243,8 +243,8 @@ func Test_MergeShardStores(t *testing.T) {
 	pool.AddData([]byte("hash-y"), createTx("alice", 43), "2_0")
 	pool.MergeShardStores("1_0", "2_0")
 
-	require.Equal(t, int64(0), pool.getTxCache("1_0").CountTx())
-	require.Equal(t, int64(2), pool.getTxCache("2_0").CountTx())
+	require.Equal(t, uint64(0), pool.getTxCache("1_0").CountTx())
+	require.Equal(t, uint64(2), pool.getTxCache("2_0").CountTx())
 }
 
 func Test_Clear(t *testing.T) {
@@ -268,8 +268,8 @@ func Test_ClearShardStore(t *testing.T) {
 	pool.AddData([]byte("hash-z"), createTx("alice", 15), "5")
 
 	pool.ClearShardStore("1")
-	require.Equal(t, int64(0), pool.getTxCache("1").CountTx())
-	require.Equal(t, int64(1), pool.getTxCache("5").CountTx())
+	require.Equal(t, uint64(0), pool.getTxCache("1").CountTx())
+	require.Equal(t, uint64(1), pool.getTxCache("5").CountTx())
 }
 
 func Test_RegisterHandler(t *testing.T) {

@@ -15,6 +15,12 @@ type CacheConfig struct {
 	MinGasPriceNanoErd         uint32
 }
 
+type senderConstraints struct {
+	maxNumTxs   uint32
+	maxNumBytes uint32
+}
+
+// TODO: perhaps add better constraints for "CountThreshold" and "NumBytesThreshold"?
 func (config *CacheConfig) verify() error {
 	if len(config.Name) == 0 {
 		return fmt.Errorf("%w: config.Name is invalid", errInvalidCacheConfig)
@@ -46,4 +52,11 @@ func (config *CacheConfig) verify() error {
 	}
 
 	return nil
+}
+
+func (config *CacheConfig) getSenderConstraints() senderConstraints {
+	return senderConstraints{
+		maxNumBytes: config.NumBytesPerSenderThreshold,
+		maxNumTxs:   config.CountPerSenderThreshold,
+	}
 }
