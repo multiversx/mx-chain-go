@@ -16,6 +16,7 @@ type ArgShardedTxPool struct {
 	SelfShardID    uint32
 }
 
+// TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.
 func (args *ArgShardedTxPool) verify() error {
 	config := args.Config
 

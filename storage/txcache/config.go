@@ -25,7 +25,7 @@ type senderConstraints struct {
 	maxNumBytes uint32
 }
 
-// TODO: perhaps add better constraints for "CountThreshold" and "NumBytesThreshold"?
+// TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.
 func (config *ConfigSourceMe) verify() error {
 	if len(config.Name) == 0 {
 		return fmt.Errorf("%w: config.Name is invalid", errInvalidCacheConfig)
@@ -80,6 +80,7 @@ type ConfigDestinationMe struct {
 	NumItemsToPreemptivelyEvict uint32
 }
 
+// TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.
 func (config *ConfigDestinationMe) verify() error {
 	if len(config.Name) == 0 {
 		return fmt.Errorf("%w: config.Name is invalid", errInvalidCacheConfig)

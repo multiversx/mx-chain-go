@@ -90,7 +90,6 @@ func (txPool *shardedTxPool) getTxCache(cacheID string) txCache {
 	return shard.Cache
 }
 
-// TODO: Perhaps create all caches in constructor?
 func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
 	cacheID = txPool.routeToCacheUnions(cacheID)
 
@@ -148,6 +147,12 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 	}
 
 	return cache
+}
+
+// ImmunizeSetOfDataAgainstEviction marks the items as non-evictable
+func (txPool *shardedTxPool) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
+	shard := txPool.getOrCreateShard(cacheID)
+	shard.Cache.ImmunizeTxsAgainstEviction(keys)
 }
 
 // AddData adds the transaction to the cache
@@ -241,12 +246,6 @@ func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
 	}
 
 	log.Debug("shardedTxPool.removeTxBulk()", "name", cacheID, "numToRemove", len(txHashes), "numRemoved", numRemoved)
-}
-
-// ImmunizeSetOfDataAgainstEviction marks the items as non-evictable
-func (txPool *shardedTxPool) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
-	shard := txPool.getOrCreateShard(cacheID)
-	shard.Cache.ImmunizeTxsAgainstEviction(keys)
 }
 
 // RemoveDataFromAllShards removes the transaction from the pool (it searches in all shards)
