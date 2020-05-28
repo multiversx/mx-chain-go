@@ -31,13 +31,8 @@ func (cache *DisabledCache) SelectTransactions(numRequested int, batchSizePerSen
 }
 
 // RemoveTxByHash does nothing
-func (cache *DisabledCache) RemoveTxByHash(txHash []byte) error {
-	return nil
-}
-
-// CountTx returns zero
-func (cache *DisabledCache) CountTx() uint64 {
-	return 0
+func (cache *DisabledCache) RemoveTxByHash(txHash []byte) bool {
+	return false
 }
 
 // Len returns zero

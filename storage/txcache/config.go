@@ -80,6 +80,26 @@ type ConfigDestinationMe struct {
 	NumItemsToPreemptivelyEvict uint32
 }
 
+func (config *ConfigDestinationMe) verify() error {
+	if len(config.Name) == 0 {
+		return fmt.Errorf("%w: config.Name is invalid", errInvalidCacheConfig)
+	}
+	if config.NumChunks == 0 {
+		return fmt.Errorf("%w: config.NumChunks is invalid", errInvalidCacheConfig)
+	}
+	if config.MaxNumItems == 0 {
+		return fmt.Errorf("%w: config.MaxNumItems is invalid", errInvalidCacheConfig)
+	}
+	if config.MaxNumBytes == 0 {
+		return fmt.Errorf("%w: config.MaxNumBytes is invalid", errInvalidCacheConfig)
+	}
+	if config.NumItemsToPreemptivelyEvict == 0 {
+		return fmt.Errorf("%w: config.NumItemsToPreemptivelyEvict is invalid", errInvalidCacheConfig)
+	}
+
+	return nil
+}
+
 func (config *ConfigDestinationMe) getChunkConfig() crossTxChunkConfig {
 	numChunks := core.MaxUint32(config.NumChunks, 1)
 

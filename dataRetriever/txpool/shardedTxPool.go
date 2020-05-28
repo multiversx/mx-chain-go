@@ -132,7 +132,8 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 		config.Name = cacheID
 		cache, err := txcache.NewTxCache(config)
 		if err != nil {
-			panic("todo: " + err.Error())
+			log.Error("shardedTxPool.createTxCache()", "err", err)
+			return txcache.NewDisabledCache()
 		}
 
 		return cache
@@ -142,7 +143,8 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 	config.Name = cacheID
 	cache, err := txcache.NewCrossTxCache(config)
 	if err != nil {
-		panic("todo: " + err.Error())
+		log.Error("shardedTxPool.createTxCache()", "err", err)
+		return txcache.NewDisabledCache()
 	}
 
 	return cache

@@ -6,25 +6,25 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var _ storage.Cacher = (*crossTxCache)(nil)
+var _ storage.Cacher = (*CrossTxCache)(nil)
 
-// crossTxCache holds cross-shard transactions (where destination == me)
-type crossTxCache struct {
+// CrossTxCache holds cross-shard transactions (where destination == me)
+type CrossTxCache struct {
 	config ConfigDestinationMe
 	chunks []*crossTxChunk
 	mutex  sync.RWMutex
 }
 
 // NewCrossTxCache creates a new transactions cache
-func NewCrossTxCache(config ConfigDestinationMe) (*crossTxCache, error) {
-	// TODO: Remove logic
-	if config.NumChunks == 0 {
-		config.NumChunks = 1
-	}
-
+func NewCrossTxCache(config ConfigDestinationMe) (*CrossTxCache, error) {
 	log.Debug("NewCrossTxCache", "config", config.String())
 
-	cache := crossTxCache{
+	err := config.verify()
+	if err != nil {
+		return nil, err
+	}
+
+	cache := CrossTxCache{
 		config: config,
 	}
 
@@ -32,7 +32,7 @@ func NewCrossTxCache(config ConfigDestinationMe) (*crossTxCache, error) {
 	return &cache, nil
 }
 
-func (cache *crossTxCache) initializeChunks() {
+func (cache *CrossTxCache) initializeChunks() {
 	// Assignment is not an atomic operation, so we have to wrap this in a critical section
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
@@ -46,20 +46,13 @@ func (cache *crossTxCache) initializeChunks() {
 	}
 }
 
-func (cache *crossTxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
+func (cache *CrossTxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
 	numNow, numFuture := cache.doImmunizeTxsAgainstEviction(keys)
 	log.Debug("crossTxCache.ImmunizeTxsAgainstEviction()", "name", cache.config.Name, "len(keys)", len(keys), "numNow", numNow, "numFuture", numFuture)
 	cache.diagnose()
 }
 
-func (cache *crossTxCache) diagnose() {
-	count := cache.Count()
-	countImmunized := cache.CountImmunized()
-	numBytes := cache.NumBytes()
-	log.Debug("crossTxCache.diagnose()", "name", cache.config.Name, "count", count, "countImmunized", countImmunized, "numBytes", numBytes)
-}
-
-func (cache *crossTxCache) doImmunizeTxsAgainstEviction(keys [][]byte) (numNowTotal, numFutureTotal int) {
+func (cache *CrossTxCache) doImmunizeTxsAgainstEviction(keys [][]byte) (numNowTotal, numFutureTotal int) {
 	groups := cache.groupKeysByChunk(keys)
 
 	for chunkIndex, chunkKeys := range groups {
@@ -73,14 +66,21 @@ func (cache *crossTxCache) doImmunizeTxsAgainstEviction(keys [][]byte) (numNowTo
 	return
 }
 
+func (cache *CrossTxCache) diagnose() {
+	count := cache.Count()
+	countImmunized := cache.CountImmunized()
+	numBytes := cache.NumBytes()
+	log.Debug("crossTxCache.diagnose()", "name", cache.config.Name, "count", count, "countImmunized", countImmunized, "numBytes", numBytes)
+}
+
 // AddTx adds a transaction in the cache
-func (cache *crossTxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
+func (cache *CrossTxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	key := string(tx.TxHash)
 	chunk := cache.getChunkByKey(key)
 	return chunk.addItem(tx)
 }
 
-func (cache *crossTxCache) getChunkByKey(key string) *crossTxChunk {
+func (cache *CrossTxCache) getChunkByKey(key string) *crossTxChunk {
 	cache.mutex.RLock()
 	defer cache.mutex.RUnlock()
 	chunkIndex := cache.getChunkIndexByKey(key)
@@ -88,13 +88,13 @@ func (cache *crossTxCache) getChunkByKey(key string) *crossTxChunk {
 	return cache.chunks[chunkIndex]
 }
 
-func (cache *crossTxCache) getChunkByIndex(index uint32) *crossTxChunk {
+func (cache *CrossTxCache) getChunkByIndex(index uint32) *crossTxChunk {
 	cache.mutex.RLock()
 	defer cache.mutex.RUnlock()
 	return cache.chunks[index]
 }
 
-func (cache *crossTxCache) groupKeysByChunk(keys [][]byte) map[uint32][][]byte {
+func (cache *CrossTxCache) groupKeysByChunk(keys [][]byte) map[uint32][][]byte {
 	groups := make(map[uint32][][]byte)
 
 	for _, key := range keys {
@@ -105,7 +105,7 @@ func (cache *crossTxCache) groupKeysByChunk(keys [][]byte) map[uint32][][]byte {
 	return groups
 }
 
-func (cache *crossTxCache) getChunkIndexByKey(key string) uint32 {
+func (cache *CrossTxCache) getChunkIndexByKey(key string) uint32 {
 	return fnv32Hash(key) % cache.config.NumChunks
 }
 
@@ -121,14 +121,14 @@ func fnv32Hash(key string) uint32 {
 }
 
 // Clear clears the map
-func (cache *crossTxCache) Clear() {
+func (cache *CrossTxCache) Clear() {
 	// There is no need to explicitly remove each item for each chunk
 	// The garbage collector will remove the data from memory
 	cache.initializeChunks()
 }
 
 // Count returns the number of elements within the map
-func (cache *crossTxCache) Count() int {
+func (cache *CrossTxCache) Count() int {
 	count := 0
 	for _, chunk := range cache.getChunks() {
 		count += chunk.CountItems()
@@ -137,7 +137,7 @@ func (cache *crossTxCache) Count() int {
 }
 
 // CountImmunized returns the number of immunized (current or future) elements within the map
-func (cache *crossTxCache) CountImmunized() int {
+func (cache *CrossTxCache) CountImmunized() int {
 	count := 0
 	for _, chunk := range cache.getChunks() {
 		count += chunk.CountItems()
@@ -146,7 +146,7 @@ func (cache *crossTxCache) CountImmunized() int {
 }
 
 // NumBytes estimates the size of the cache, in bytes
-func (cache *crossTxCache) NumBytes() int {
+func (cache *CrossTxCache) NumBytes() int {
 	numBytes := 0
 	for _, chunk := range cache.getChunks() {
 		numBytes += chunk.NumBytes()
@@ -155,12 +155,12 @@ func (cache *crossTxCache) NumBytes() int {
 }
 
 // Len is an alias for Count
-func (cache *crossTxCache) Len() int {
+func (cache *CrossTxCache) Len() int {
 	return cache.Count()
 }
 
 // Keys returns all keys
-func (cache *crossTxCache) Keys() [][]byte {
+func (cache *CrossTxCache) Keys() [][]byte {
 	count := cache.Count()
 	// count is not exact anymore, since we are in a different lock than the one aquired by Count() (but is a good approximation)
 	keys := make([][]byte, 0, count)
@@ -172,14 +172,14 @@ func (cache *crossTxCache) Keys() [][]byte {
 	return keys
 }
 
-func (cache *crossTxCache) getChunks() []*crossTxChunk {
+func (cache *CrossTxCache) getChunks() []*crossTxChunk {
 	cache.mutex.RLock()
 	defer cache.mutex.RUnlock()
 	return cache.chunks
 }
 
 // ForEachTransaction iterates over the transactions in the cache
-func (cache *crossTxCache) ForEachTransaction(function ForEachTransaction) {
+func (cache *CrossTxCache) ForEachTransaction(function ForEachTransaction) {
 	chunks := cache.getChunks()
 
 	for _, chunk := range chunks {
@@ -194,7 +194,7 @@ func (cache *crossTxCache) ForEachTransaction(function ForEachTransaction) {
 }
 
 // Get gets a transaction by hash
-func (cache *crossTxCache) Get(key []byte) (value interface{}, ok bool) {
+func (cache *CrossTxCache) Get(key []byte) (value interface{}, ok bool) {
 	tx, ok := cache.GetByTxHash(key)
 	if ok {
 		return tx.Tx, true
@@ -203,20 +203,20 @@ func (cache *crossTxCache) Get(key []byte) (value interface{}, ok bool) {
 }
 
 // GetByTxHash gets the transaction by hash
-func (cache *crossTxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
+func (cache *CrossTxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 	chunk := cache.getChunkByKey(string(txHash))
 	return chunk.getItem(string(txHash))
 }
 
 // Has checks is a transaction exists
-func (cache *crossTxCache) Has(key []byte) bool {
+func (cache *CrossTxCache) Has(key []byte) bool {
 	chunk := cache.getChunkByKey(string(key))
 	_, ok := chunk.getItem(string(key))
 	return ok
 }
 
 // Peek gets a transaction by hash
-func (cache *crossTxCache) Peek(key []byte) (value interface{}, ok bool) {
+func (cache *CrossTxCache) Peek(key []byte) (value interface{}, ok bool) {
 	tx, ok := cache.GetByTxHash(key)
 	if ok {
 		return tx.Tx, true
@@ -225,45 +225,45 @@ func (cache *crossTxCache) Peek(key []byte) (value interface{}, ok bool) {
 }
 
 // HasOrAdd is not implemented
-func (cache *crossTxCache) HasOrAdd(_ []byte, _ interface{}) (ok, evicted bool) {
+func (cache *CrossTxCache) HasOrAdd(_ []byte, _ interface{}) (ok, evicted bool) {
 	log.Error("crossTxCache.HasOrAdd is not implemented")
 	return false, false
 }
 
 // MaxSize returns the capacity of the cache
-func (cache *crossTxCache) MaxSize() int {
+func (cache *CrossTxCache) MaxSize() int {
 	return int(cache.config.MaxNumItems)
 }
 
 // Put is not implemented
-func (cache *crossTxCache) Put(_ []byte, _ interface{}) (evicted bool) {
+func (cache *CrossTxCache) Put(_ []byte, _ interface{}) (evicted bool) {
 	log.Error("crossTxCache.Put is not implemented")
 	return false
 }
 
 // RegisterHandler is not implemented
-func (cache *crossTxCache) RegisterHandler(func(key []byte, value interface{})) {
+func (cache *CrossTxCache) RegisterHandler(func(key []byte, value interface{})) {
 	log.Error("crossTxCache.RegisterHandler is not implemented")
 }
 
 // Remove removes tx by hash
-func (cache *crossTxCache) Remove(key []byte) {
+func (cache *CrossTxCache) Remove(key []byte) {
 	_ = cache.RemoveTxByHash(key)
 }
 
 // RemoveTxByHash removes tx by hash
-func (cache *crossTxCache) RemoveTxByHash(txHash []byte) bool {
+func (cache *CrossTxCache) RemoveTxByHash(txHash []byte) bool {
 	key := string(txHash)
 	chunk := cache.getChunkByKey(key)
 	return chunk.removeItem(key)
 }
 
 // RemoveOldest is not implemented
-func (cache *crossTxCache) RemoveOldest() {
+func (cache *CrossTxCache) RemoveOldest() {
 	log.Error("TxCache.RemoveOldest is not implemented")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (cache *crossTxCache) IsInterfaceNil() bool {
+func (cache *CrossTxCache) IsInterfaceNil() bool {
 	return cache == nil
 }

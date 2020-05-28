@@ -39,8 +39,9 @@ func TestCrossTxCache_Fnv32Hash(t *testing.T) {
 	require.Equal(t, 3, int(fnv32Hash("d")%4))
 }
 
-func newUnconstrainedCrossTxCacheToTest(numChunks uint32) *crossTxCache {
+func newUnconstrainedCrossTxCacheToTest(numChunks uint32) *CrossTxCache {
 	cache, err := NewCrossTxCache(ConfigDestinationMe{
+		Name:                        "test",
 		NumChunks:                   numChunks,
 		MaxNumItems:                 math.MaxUint32,
 		MaxNumBytes:                 math.MaxUint32,
@@ -53,8 +54,9 @@ func newUnconstrainedCrossTxCacheToTest(numChunks uint32) *crossTxCache {
 	return cache
 }
 
-func newCrossTxCacheToTest(numChunks uint32, maxNumItems uint32, numMaxBytes uint32) *crossTxCache {
+func newCrossTxCacheToTest(numChunks uint32, maxNumItems uint32, numMaxBytes uint32) *CrossTxCache {
 	cache, err := NewCrossTxCache(ConfigDestinationMe{
+		Name:                        "test",
 		NumChunks:                   numChunks,
 		MaxNumItems:                 maxNumItems,
 		MaxNumBytes:                 numMaxBytes,
@@ -67,12 +69,12 @@ func newCrossTxCacheToTest(numChunks uint32, maxNumItems uint32, numMaxBytes uin
 	return cache
 }
 
-func (cache *crossTxCache) addTestTxs(hashes ...string) {
+func (cache *CrossTxCache) addTestTxs(hashes ...string) {
 	for _, hash := range hashes {
 		_, _ = cache.addTestTx(hash)
 	}
 }
 
-func (cache *crossTxCache) addTestTx(hash string) (ok, added bool) {
+func (cache *CrossTxCache) addTestTx(hash string) (ok, added bool) {
 	return cache.AddTx(createTx([]byte(hash), ".", uint64(42)))
 }
