@@ -187,9 +187,19 @@ func Test_SearchFirstData(t *testing.T) {
 	pool := poolAsInterface.(*shardedTxPool)
 
 	tx := createTx("alice", 42)
-	pool.AddData([]byte("hash-x"), tx, "1")
+	pool.AddData([]byte("hash-x"), tx, "0")
+	pool.AddData([]byte("hash-y"), tx, "0_1")
+	pool.AddData([]byte("hash-z"), tx, "2_3")
 
 	foundTx, ok := pool.SearchFirstData([]byte("hash-x"))
+	require.True(t, ok)
+	require.Equal(t, tx, foundTx)
+
+	foundTx, ok = pool.SearchFirstData([]byte("hash-y"))
+	require.True(t, ok)
+	require.Equal(t, tx, foundTx)
+
+	foundTx, ok = pool.SearchFirstData([]byte("hash-z"))
 	require.True(t, ok)
 	require.Equal(t, tx, foundTx)
 }
