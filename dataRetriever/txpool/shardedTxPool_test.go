@@ -343,27 +343,6 @@ func Test_routeToCacheUnions(t *testing.T) {
 	require.Equal(t, "foobar", pool.routeToCacheUnions("foobar"))
 }
 
-// TODO: Add another test to check the whole allocated space (size, count)
-// func Test_getCacheConfig(t *testing.T) {
-// 	config := storageUnit.CacheConfig{Size: 150, SizePerSender: 1, SizeInBytes: 61440, SizeInBytesPerSender: 40960, Shards: 16}
-// 	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 8, SelfShardID: 4}
-// 	poolAsInterface, _ := NewShardedTxPool(args)
-// 	pool := poolAsInterface.(*shardedTxPool)
-
-// 	numBytesAccumulator := uint32(0)
-// 	countAccumulator := uint32(0)
-
-// 	for i := 0; i < 8; i++ {
-// 		cacheConfig := pool.getCacheConfig(fmt.Sprint(i))
-// 		numBytesAccumulator += cacheConfig.NumBytesThreshold
-// 		countAccumulator += cacheConfig.CountThreshold
-// 	}
-
-// 	// Cache configurations are complementary, they use the whole allocated space (size, count)
-// 	require.Equal(t, 61440, int(numBytesAccumulator))
-// 	require.Equal(t, 150, int(countAccumulator))
-// }
-
 func createTx(sender string, nonce uint64) data.TransactionHandler {
 	return &transaction.Transaction{
 		SndAddr: []byte(sender),
