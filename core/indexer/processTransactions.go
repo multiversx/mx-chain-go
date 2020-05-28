@@ -3,6 +3,7 @@ package indexer
 import (
 	"encoding/hex"
 	"math/big"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
@@ -18,10 +19,12 @@ import (
 )
 
 const (
-	txStatusSuccess                     = "Success"
-	txStatusPending                     = "Pending"
-	txStatusInvalid                     = "Invalid"
-	txStatusNotExecuted                 = "Not Executed"
+	txStatusSuccess     = "Success"
+	txStatusPending     = "Pending"
+	txStatusInvalid     = "Invalid"
+	txStatusNotExecuted = "Not Executed"
+	// A smart contract action (deploy, call, ...) should have minimum 2 smart contract results
+	// exception to this rule are smart contract calls to ESDT contract
 	minimumNumberOfSmartContractResults = 2
 )
 
@@ -87,6 +90,14 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 
 	for hash, nrScResult := range countScResults {
 		if nrScResult < minimumNumberOfSmartContractResults {
+			if len(transactions[hash].SmartContractResults) > 0 {
+				scResultData := transactions[hash].SmartContractResults[0].Data
+				if strings.Contains(scResultData, "@ok") {
+					// ESDT contract calls generate just one smart contract result
+					continue
+				}
+			}
+
 			transactions[hash].Status = txStatusNotExecuted
 		}
 	}

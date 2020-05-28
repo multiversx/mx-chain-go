@@ -188,19 +188,19 @@ func (cm *commonProcessor) buildRewardTransaction(
 
 func (cm *commonProcessor) convertScResultInDatabaseScr(sc *smartContractResult.SmartContractResult) ScResult {
 	decodedData := decodeScResultData(sc.Data)
-
 	return ScResult{
-		Nonce:        sc.Nonce,
-		GasLimit:     sc.GasLimit,
-		GasPrice:     sc.GasPrice,
-		Value:        sc.Value.String(),
-		Sender:       cm.addressPubkeyConverter.Encode(sc.SndAddr),
-		Receiver:     cm.addressPubkeyConverter.Encode(sc.RcvAddr),
-		Code:         string(sc.Code),
-		Data:         decodedData,
-		PreTxHash:    hex.EncodeToString(sc.PrevTxHash),
-		CallType:     string(sc.CallType),
-		CodeMetadata: string(sc.CodeMetadata),
+		Nonce:         sc.Nonce,
+		GasLimit:      sc.GasLimit,
+		GasPrice:      sc.GasPrice,
+		Value:         sc.Value.String(),
+		Sender:        cm.addressPubkeyConverter.Encode(sc.SndAddr),
+		Receiver:      cm.addressPubkeyConverter.Encode(sc.RcvAddr),
+		Code:          string(sc.Code),
+		Data:          decodedData,
+		PreTxHash:     hex.EncodeToString(sc.PrevTxHash),
+		CallType:      string(sc.CallType),
+		CodeMetadata:  string(sc.CodeMetadata),
+		ReturnMessage: string(sc.ReturnMessage),
 	}
 }
 
