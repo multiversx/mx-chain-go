@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -530,12 +531,7 @@ func (s *stakingAuctionSC) getVerifiedBLSKeysFromArgs(txPubKey []byte, args [][]
 		blsKeys = append(blsKeys, blsKey)
 	}
 	if len(invalidBlsKeys) != 0 {
-		returnMessage := "invalid BLS keys: "
-		for _, blsKey := range invalidBlsKeys {
-			returnMessage += blsKey + ","
-		}
-		// remove last character from return message
-		returnMessage = returnMessage[:len(returnMessage)-1]
+		returnMessage := "invalid BLS keys: " + strings.Join(invalidBlsKeys, ", ")
 		s.eei.AddReturnMessage(returnMessage)
 	}
 
