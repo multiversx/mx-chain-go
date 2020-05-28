@@ -39,7 +39,7 @@ type alarmScheduler struct {
 func NewAlarmScheduler() *alarmScheduler {
 	as := &alarmScheduler{
 		cancelFunc:      nil,
-		scheduledAlarms: nil,
+		scheduledAlarms: make(map[string]*alarmItem),
 		event:           make(chan alarmEvent),
 	}
 	ctx, cancelFunc := context.WithCancel(context.Background())
