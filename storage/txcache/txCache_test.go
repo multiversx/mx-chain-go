@@ -16,7 +16,7 @@ import (
 )
 
 func Test_NewTxCache(t *testing.T) {
-	config := CacheConfig{
+	config := ConfigSourceMe{
 		Name:                       "test",
 		NumChunksHint:              16,
 		NumBytesPerSenderThreshold: math.MaxUint32,
@@ -24,7 +24,7 @@ func Test_NewTxCache(t *testing.T) {
 		MinGasPriceNanoErd:         100,
 	}
 
-	withEvictionConfig := CacheConfig{
+	withEvictionConfig := ConfigSourceMe{
 		Name:                       "test",
 		NumChunksHint:              16,
 		NumBytesPerSenderThreshold: math.MaxUint32,
@@ -73,7 +73,7 @@ func Test_NewTxCache(t *testing.T) {
 	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumSendersToEvictInOneStep")
 }
 
-func requireErrorOnNewTxCache(t *testing.T, config CacheConfig, errExpected error, errPartialMessage string) {
+func requireErrorOnNewTxCache(t *testing.T, config ConfigSourceMe, errExpected error, errPartialMessage string) {
 	cache, errReceived := NewTxCache(config)
 	require.Nil(t, cache)
 	require.True(t, errors.Is(errReceived, errExpected))
@@ -347,7 +347,7 @@ func Test_Keys(t *testing.T) {
 }
 
 func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
-	config := CacheConfig{
+	config := ConfigSourceMe{
 		Name:                       "untitled",
 		NumChunksHint:              16,
 		EvictionEnabled:            true,
@@ -367,7 +367,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	addManyTransactionsWithUniformDistribution(cache, 11, 10)
 	require.LessOrEqual(t, cache.CountTx(), uint64(100))
 
-	config = CacheConfig{
+	config = ConfigSourceMe{
 		Name:                       "untitled",
 		NumChunksHint:              16,
 		EvictionEnabled:            true,
@@ -567,7 +567,7 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 }
 
 func newUnconstrainedCacheToTest() *TxCache {
-	cache, err := NewTxCache(CacheConfig{
+	cache, err := NewTxCache(ConfigSourceMe{
 		Name:                       "test",
 		NumChunksHint:              16,
 		NumBytesPerSenderThreshold: math.MaxUint32,
@@ -582,7 +582,7 @@ func newUnconstrainedCacheToTest() *TxCache {
 }
 
 func newCacheToTest(numBytesPerSenderThreshold uint32, countPerSenderThreshold uint32) *TxCache {
-	cache, err := NewTxCache(CacheConfig{
+	cache, err := NewTxCache(ConfigSourceMe{
 		Name:                       "test",
 		NumChunksHint:              16,
 		NumBytesPerSenderThreshold: numBytesPerSenderThreshold,

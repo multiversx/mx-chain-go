@@ -10,7 +10,7 @@ import (
 )
 
 func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
-	config := CacheConfig{
+	config := ConfigSourceMe{
 		Name:                       "untitled",
 		NumChunksHint:              16,
 		CountThreshold:             100,
@@ -47,7 +47,7 @@ func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
 func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 	numBytesPerTx := uint32(1000)
 
-	config := CacheConfig{
+	config := ConfigSourceMe{
 		Name:                       "untitled",
 		NumChunksHint:              16,
 		CountThreshold:             math.MaxUint32,
@@ -82,7 +82,7 @@ func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 }
 
 func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
-	config := CacheConfig{
+	config := ConfigSourceMe{
 		Name:                       "untitled",
 		NumChunksHint:              16,
 		NumBytesThreshold:          math.MaxUint32,
@@ -114,7 +114,7 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 }
 
 func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
-	config := CacheConfig{
+	config := ConfigSourceMe{
 		Name:                       "untitled",
 		NumChunksHint:              16,
 		CountThreshold:             math.MaxUint32,
@@ -150,7 +150,7 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 }
 
 func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
-	config := CacheConfig{
+	config := ConfigSourceMe{
 		Name:                       "untitled",
 		NumChunksHint:              1,
 		CountThreshold:             0,
@@ -173,7 +173,7 @@ func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
 }
 
 func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T) {
-	config := CacheConfig{
+	config := ConfigSourceMe{
 		Name:                       "untitled",
 		NumChunksHint:              1,
 		CountThreshold:             0,
@@ -198,7 +198,7 @@ func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T)
 }
 
 func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
-	config := CacheConfig{
+	config := ConfigSourceMe{
 		Name:                       "untitled",
 		NumChunksHint:              1,
 		CountThreshold:             0,
@@ -230,7 +230,7 @@ func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
 // 25000 senders with 10 transactions each, with default "NumSendersToEvictInOneStep".
 // ~1 second on average laptop.
 func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
-	config := CacheConfig{
+	config := ConfigSourceMe{
 		Name:                       "untitled",
 		NumChunksHint:              16,
 		EvictionEnabled:            true,

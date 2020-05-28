@@ -72,6 +72,7 @@ func (chunk *crossTxChunk) addItem(item *WrappedTransaction) (ok bool, added boo
 	numRemoved, err := chunk.doEviction()
 	log.Trace("crossTxChunk.doEviction()", "numRemoved", numRemoved, "err", err)
 	if err != nil {
+		// TODO: perhaps add immunized transaction even if there's no more space (all transactions immunized, full capacity)?
 		return false, false
 	}
 
@@ -185,12 +186,12 @@ func (chunk *crossTxChunk) countItems() uint32 {
 	return uint32(len(chunk.items))
 }
 
-func (chunk *crossTxChunk) appendKeys(keysAccumulator []string) []string {
+func (chunk *crossTxChunk) appendKeys(keysAccumulator [][]byte) [][]byte {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()
 
 	for key := range chunk.items {
-		keysAccumulator = append(keysAccumulator, key)
+		keysAccumulator = append(keysAccumulator, []byte(key))
 	}
 
 	return keysAccumulator

@@ -1,9 +1,14 @@
 package txcache
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
 
-// CacheConfig holds cache configuration
-type CacheConfig struct {
+	"github.com/ElrondNetwork/elrond-go/core"
+)
+
+// ConfigSourceMe holds cache configuration
+type ConfigSourceMe struct {
 	Name                       string
 	NumChunksHint              uint32
 	EvictionEnabled            bool
@@ -21,7 +26,7 @@ type senderConstraints struct {
 }
 
 // TODO: perhaps add better constraints for "CountThreshold" and "NumBytesThreshold"?
-func (config *CacheConfig) verify() error {
+func (config *ConfigSourceMe) verify() error {
 	if len(config.Name) == 0 {
 		return fmt.Errorf("%w: config.Name is invalid", errInvalidCacheConfig)
 	}
@@ -54,26 +59,40 @@ func (config *CacheConfig) verify() error {
 	return nil
 }
 
-func (config *CacheConfig) getSenderConstraints() senderConstraints {
+func (config *ConfigSourceMe) getSenderConstraints() senderConstraints {
 	return senderConstraints{
 		maxNumBytes: config.NumBytesPerSenderThreshold,
 		maxNumTxs:   config.CountPerSenderThreshold,
 	}
 }
 
-type crossTxCacheConfig struct {
-	numChunks                   uint32
-	maxNumItems                 uint32
-	maxNumBytes                 uint32
-	numItemsToPreemptivelyEvict uint32
+func (config *ConfigSourceMe) String() string {
+	bytes, _ := json.Marshal(config)
+	return string(bytes)
 }
 
-func (config *crossTxCacheConfig) getChunkConfig() crossTxChunkConfig {
+// ConfigDestinationMe holds cache configuration
+type ConfigDestinationMe struct {
+	Name                        string
+	NumChunks                   uint32
+	MaxNumItems                 uint32
+	MaxNumBytes                 uint32
+	NumItemsToPreemptivelyEvict uint32
+}
+
+func (config *ConfigDestinationMe) getChunkConfig() crossTxChunkConfig {
+	numChunks := core.MaxUint32(config.NumChunks, 1)
+
 	return crossTxChunkConfig{
-		maxNumItems:                 config.maxNumItems / config.numChunks,
-		maxNumBytes:                 config.maxNumBytes / config.numChunks,
-		numItemsToPreemptivelyEvict: config.numItemsToPreemptivelyEvict / config.numChunks,
+		maxNumItems:                 config.MaxNumItems / numChunks,
+		maxNumBytes:                 config.MaxNumBytes / numChunks,
+		numItemsToPreemptivelyEvict: config.NumItemsToPreemptivelyEvict / numChunks,
 	}
+}
+
+func (config *ConfigDestinationMe) String() string {
+	bytes, _ := json.Marshal(config)
+	return string(bytes)
 }
 
 type crossTxChunkConfig struct {

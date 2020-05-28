@@ -5,10 +5,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var _ storage.Cacher = (*TxCache)(nil)
 var _ txCache = (*TxCache)(nil)
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
@@ -16,7 +14,7 @@ type TxCache struct {
 	name                      string
 	txListBySender            *txListBySenderMap
 	txByHash                  *txByHashMap
-	config                    CacheConfig
+	config                    ConfigSourceMe
 	evictionMutex             sync.Mutex
 	evictionJournal           evictionJournal
 	evictionSnapshotOfSenders []*txListForSender
@@ -30,8 +28,8 @@ type TxCache struct {
 }
 
 // NewTxCache creates a new transaction cache
-func NewTxCache(config CacheConfig) (*TxCache, error) {
-	log.Debug("NewTxCache", "config", config)
+func NewTxCache(config ConfigSourceMe) (*TxCache, error) {
+	log.Debug("NewTxCache", "config", config.String())
 
 	err := config.verify()
 	if err != nil {

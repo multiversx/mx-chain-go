@@ -4,20 +4,30 @@ import (
 	"sync"
 )
 
+var _ txCache = (*crossTxCache)(nil)
+
 // crossTxCache holds cross-shard transactions (where destination == me)
 type crossTxCache struct {
-	config crossTxCacheConfig
+	config ConfigDestinationMe
 	chunks []*crossTxChunk
 	mutex  sync.RWMutex
 }
 
-func newCrossTxCache(config crossTxCacheConfig) *crossTxCache {
+// NewCrossTxCache creates a new transactions cache
+func NewCrossTxCache(config ConfigDestinationMe) (*crossTxCache, error) {
+	// TODO: Remove logic
+	if config.NumChunks == 0 {
+		config.NumChunks = 1
+	}
+
+	log.Debug("NewCrossTxCache", "config", config.String())
+
 	cache := crossTxCache{
 		config: config,
 	}
 
 	cache.initializeChunks()
-	return &cache
+	return &cache, nil
 }
 
 func (cache *crossTxCache) initializeChunks() {
@@ -28,8 +38,8 @@ func (cache *crossTxCache) initializeChunks() {
 	config := cache.config
 	chunkConfig := config.getChunkConfig()
 
-	cache.chunks = make([]*crossTxChunk, config.numChunks)
-	for i := uint32(0); i < config.numChunks; i++ {
+	cache.chunks = make([]*crossTxChunk, config.NumChunks)
+	for i := uint32(0); i < config.NumChunks; i++ {
 		cache.chunks[i] = newCrossTxChunk(chunkConfig)
 	}
 }
@@ -43,28 +53,33 @@ func (cache *crossTxCache) immunizeKeys(keys []string) {
 	}
 }
 
+// AddTx adds a transaction in the cache
+func (cache *crossTxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
+	return cache.AddItem(tx)
+}
+
 // AddItem adds the item in the map
-func (cache *crossTxCache) AddItem(item *WrappedTransaction) {
+func (cache *crossTxCache) AddItem(item *WrappedTransaction) (ok bool, added bool) {
 	key := string(item.TxHash)
 	chunk := cache.getChunkByKey(key)
-	chunk.addItem(item)
+	return chunk.addItem(item)
 }
 
 // Get gets an item from the map
-func (cache *crossTxCache) Get(key string) (*WrappedTransaction, bool) {
+func (cache *crossTxCache) GetItem(key string) (*WrappedTransaction, bool) {
 	chunk := cache.getChunkByKey(key)
 	return chunk.getItem(key)
 }
 
 // Has returns whether the item is in the map
-func (cache *crossTxCache) Has(key string) bool {
+func (cache *crossTxCache) HasItem(key string) bool {
 	chunk := cache.getChunkByKey(key)
 	_, ok := chunk.getItem(key)
 	return ok
 }
 
 // Remove removes an element from the map
-func (cache *crossTxCache) Remove(key string) {
+func (cache *crossTxCache) RemoveItem(key string) {
 	chunk := cache.getChunkByKey(key)
 	chunk.removeItem(key)
 }
@@ -95,7 +110,7 @@ func (cache *crossTxCache) groupKeysByChunk(keys []string) map[uint32][]string {
 }
 
 func (cache *crossTxCache) getChunkIndexByKey(key string) uint32 {
-	return fnv32Hash(key) % cache.config.numChunks
+	return fnv32Hash(key) % cache.config.NumChunks
 }
 
 // fnv32Hash implements https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function for 32 bits
@@ -125,11 +140,16 @@ func (cache *crossTxCache) Count() uint32 {
 	return count
 }
 
-// Keys returns all keys as []string
-func (cache *crossTxCache) Keys() []string {
+// Len is an alias for CountTx
+func (cache *crossTxCache) Len() int {
+	return int(cache.Count())
+}
+
+// Keys returns all keys
+func (cache *crossTxCache) Keys() [][]byte {
 	count := cache.Count()
 	// count is not exact anymore, since we are in a different lock than the one aquired by Count() (but is a good approximation)
-	keys := make([]string, 0, count)
+	keys := make([][]byte, 0, count)
 
 	for _, chunk := range cache.getChunks() {
 		keys = chunk.appendKeys(keys)
@@ -142,4 +162,95 @@ func (cache *crossTxCache) getChunks() []*crossTxChunk {
 	cache.mutex.RLock()
 	defer cache.mutex.RUnlock()
 	return cache.chunks
+}
+
+// ForEachTransaction iterates over the transactions in the cache
+func (cache *crossTxCache) ForEachTransaction(function ForEachTransaction) {
+	chunks := cache.getChunks()
+
+	for _, chunk := range chunks {
+		// TODO: do not lock private mutex. Call chunk.IterCb()
+		chunk.mutex.RLock()
+		for key, value := range chunk.items {
+			tx := value.payload
+			function([]byte(key), tx)
+		}
+		chunk.mutex.RUnlock()
+	}
+}
+
+// Get gets a transaction by hash
+func (cache *crossTxCache) Get(key []byte) (value interface{}, ok bool) {
+	tx, ok := cache.GetItem(string(key))
+	if ok {
+		return tx.Tx, true
+	}
+	return nil, false
+}
+
+// GetByTxHash gets the transaction by hash
+func (cache *crossTxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
+	return cache.GetItem(string(txHash))
+}
+
+// Has checks is a transaction exists
+func (cache *crossTxCache) Has(key []byte) bool {
+	return cache.HasItem(string(key))
+}
+
+// Peek gets a transaction by hash
+func (cache *crossTxCache) Peek(key []byte) (value interface{}, ok bool) {
+	tx, ok := cache.GetByTxHash(key)
+	if ok {
+		return tx.Tx, true
+	}
+	return nil, false
+}
+
+// HasOrAdd is not implemented
+func (cache *crossTxCache) HasOrAdd(_ []byte, _ interface{}) (ok, evicted bool) {
+	log.Error("crossTxCache.HasOrAdd is not implemented")
+	return false, false
+}
+
+// ImmunizeTxsAgainstEviction does nothing for this type of cache
+func (cache *crossTxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
+	// TODO: implement
+}
+
+// MaxSize returns the capacity of the cache
+func (cache *crossTxCache) MaxSize() int {
+	return int(cache.config.MaxNumItems)
+}
+
+// Put is not implemented
+func (cache *crossTxCache) Put(_ []byte, _ interface{}) (evicted bool) {
+	log.Error("crossTxCache.Put is not implemented")
+	return false
+}
+
+// RegisterHandler is not implemented
+func (cache *crossTxCache) RegisterHandler(func(key []byte, value interface{})) {
+	log.Error("crossTxCache.RegisterHandler is not implemented")
+}
+
+// Remove removes tx by hash
+func (cache *crossTxCache) Remove(key []byte) {
+	cache.RemoveItem(string(key))
+}
+
+// RemoveTxByHash removes tx by hash
+func (cache *crossTxCache) RemoveTxByHash(txHash []byte) error {
+	cache.RemoveItem(string(txHash))
+	return nil
+}
+
+// RemoveOldest is not implemented
+func (cache *crossTxCache) RemoveOldest() {
+	log.Error("TxCache.RemoveOldest is not implemented")
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (cache *crossTxCache) IsInterfaceNil() bool {
+	return cache == nil
 }

@@ -1,6 +1,7 @@
 package txpool
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -41,4 +42,9 @@ func (args *ArgShardedTxPool) verify() error {
 	}
 
 	return nil
+}
+
+func (args *ArgShardedTxPool) String() string {
+	bytes, _ := json.Marshal(args)
+	return string(bytes)
 }
