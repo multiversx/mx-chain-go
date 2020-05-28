@@ -703,10 +703,7 @@ func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
 	)
 
 	for _, tx := range txs {
-		senderShardId, err := n.getSenderShardId(tx)
-		if err != nil {
-			continue
-		}
+		senderShardId := n.shardCoordinator.ComputeId(tx.SndAddr)
 
 		marshalizedTx, err := n.internalMarshalizer.Marshal(tx)
 		if err != nil {
@@ -728,17 +725,6 @@ func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
 			numOfSentTxs += uint64(len(txsForShard))
 		}
 	}
-}
-
-func (n *Node) getSenderShardId(tx *transaction.Transaction) (uint32, error) {
-	senderShardId := n.shardCoordinator.ComputeId(tx.SndAddr)
-	if senderShardId != n.shardCoordinator.SelfId() {
-		return senderShardId, nil
-	}
-
-	//tx is cross-shard with self, send it on the [transaction topic]_self_cross directly so it will
-	//traverse the network only once
-	return n.shardCoordinator.ComputeId(tx.RcvAddr), nil
 }
 
 // ValidateTransaction will validate a transaction
