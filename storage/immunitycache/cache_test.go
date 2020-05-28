@@ -48,7 +48,7 @@ func newUnconstrainedCacheToTest(numChunks uint32) *ImmunityCache {
 		NumItemsToPreemptivelyEvict: math.MaxUint32,
 	})
 	if err != nil {
-		panic(fmt.Sprintf("newUnconstrainedCrossTxCacheToTest(): %s", err))
+		panic(fmt.Sprintf("newUnconstrainedCacheToTest(): %s", err))
 	}
 
 	return cache
