@@ -86,6 +86,11 @@ func (kg *keyGenerator) PublicKeyFromByteArray(b []byte) (crypto.PublicKey, erro
 	}, nil
 }
 
+// CheckPublicKeyValid verifies the validity of the public key
+func (kg *keyGenerator) CheckPublicKeyValid(b []byte) error {
+	return kg.suite.CheckPointValid(b)
+}
+
 // Suite returns the Suite (curve data) used for this key generator
 func (kg *keyGenerator) Suite() crypto.Suite {
 	return kg.suite
