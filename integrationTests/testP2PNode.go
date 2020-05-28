@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
@@ -21,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ShardTopic is the topic string generator for sharded topics
@@ -114,9 +116,15 @@ func (tP2pNode *TestP2PNode) initNode() {
 	pubkeys := tP2pNode.getPubkeys()
 
 	argHardforkTrigger := trigger.ArgHardforkTrigger{
-		TriggerPubKeyBytes:   []byte("invalid trigger public key"),
-		Enabled:              false,
-		EnabledAuthenticated: false,
+		TriggerPubKeyBytes:        []byte("invalid trigger public key"),
+		Enabled:                   false,
+		EnabledAuthenticated:      false,
+		ArgumentParser:            vmcommon.NewAtArgumentParser(),
+		EpochProvider:             &mock.EpochStartTriggerStub{},
+		ExportFactoryHandler:      &mock.ExportFactoryHandlerStub{},
+		CloseAfterExportInMinutes: 0,
+		ChanStopNodeProcess:       make(chan endProcess.ArgEndProcess),
+		EpochConfirmedNotifier:    &mock.EpochStartNotifierStub{},
 	}
 	argHardforkTrigger.SelfPubKeyBytes, _ = tP2pNode.NodeKeys.Pk.ToByteArray()
 	hardforkTrigger, _ := trigger.NewTrigger(argHardforkTrigger)
