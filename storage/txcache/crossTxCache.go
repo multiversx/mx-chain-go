@@ -46,9 +46,10 @@ func (cache *CrossTxCache) initializeChunks() {
 	}
 }
 
+// ImmunizeTxsAgainstEviction marks items as non-evictable
 func (cache *CrossTxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
 	numNow, numFuture := cache.doImmunizeTxsAgainstEviction(keys)
-	log.Debug("crossTxCache.ImmunizeTxsAgainstEviction()", "name", cache.config.Name, "len(keys)", len(keys), "numNow", numNow, "numFuture", numFuture)
+	log.Debug("CrossTxCache.ImmunizeTxsAgainstEviction()", "name", cache.config.Name, "len(keys)", len(keys), "numNow", numNow, "numFuture", numFuture)
 	cache.diagnose()
 }
 
@@ -66,18 +67,15 @@ func (cache *CrossTxCache) doImmunizeTxsAgainstEviction(keys [][]byte) (numNowTo
 	return
 }
 
-func (cache *CrossTxCache) diagnose() {
-	count := cache.Count()
-	countImmunized := cache.CountImmunized()
-	numBytes := cache.NumBytes()
-	log.Debug("crossTxCache.diagnose()", "name", cache.config.Name, "count", count, "countImmunized", countImmunized, "numBytes", numBytes)
-}
+func (cache *CrossTxCache) groupKeysByChunk(keys [][]byte) map[uint32][][]byte {
+	groups := make(map[uint32][][]byte)
 
-// AddTx adds a transaction in the cache
-func (cache *CrossTxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
-	key := string(tx.TxHash)
-	chunk := cache.getChunkByKey(key)
-	return chunk.addItem(tx)
+	for _, key := range keys {
+		chunkIndex := cache.getChunkIndexByKey(string(key))
+		groups[chunkIndex] = append(groups[chunkIndex], key)
+	}
+
+	return groups
 }
 
 func (cache *CrossTxCache) getChunkByKey(key string) *crossTxChunk {
@@ -94,19 +92,15 @@ func (cache *CrossTxCache) getChunkByIndex(index uint32) *crossTxChunk {
 	return cache.chunks[index]
 }
 
-func (cache *CrossTxCache) groupKeysByChunk(keys [][]byte) map[uint32][][]byte {
-	groups := make(map[uint32][][]byte)
-
-	for _, key := range keys {
-		chunkIndex := cache.getChunkIndexByKey(string(key))
-		groups[chunkIndex] = append(groups[chunkIndex], key)
-	}
-
-	return groups
-}
-
 func (cache *CrossTxCache) getChunkIndexByKey(key string) uint32 {
 	return fnv32Hash(key) % cache.config.NumChunks
+}
+
+func (cache *CrossTxCache) diagnose() {
+	count := cache.Count()
+	countImmunized := cache.CountImmunized()
+	numBytes := cache.NumBytes()
+	log.Debug("CrossTxCache.diagnose()", "name", cache.config.Name, "count", count, "countImmunized", countImmunized, "numBytes", numBytes)
 }
 
 // fnv32Hash implements https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function for 32 bits
@@ -120,11 +114,28 @@ func fnv32Hash(key string) uint32 {
 	return hash
 }
 
+// AddTx adds a transaction in the cache
+func (cache *CrossTxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
+	key := string(tx.TxHash)
+	chunk := cache.getChunkByKey(key)
+	return chunk.addItem(tx)
+}
+
 // Clear clears the map
 func (cache *CrossTxCache) Clear() {
 	// There is no need to explicitly remove each item for each chunk
 	// The garbage collector will remove the data from memory
 	cache.initializeChunks()
+}
+
+// MaxSize returns the capacity of the cache
+func (cache *CrossTxCache) MaxSize() int {
+	return int(cache.config.MaxNumItems)
+}
+
+// Len is an alias for Count
+func (cache *CrossTxCache) Len() int {
+	return cache.Count()
 }
 
 // Count returns the number of elements within the map
@@ -154,11 +165,6 @@ func (cache *CrossTxCache) NumBytes() int {
 	return numBytes
 }
 
-// Len is an alias for Count
-func (cache *CrossTxCache) Len() int {
-	return cache.Count()
-}
-
 // Keys returns all keys
 func (cache *CrossTxCache) Keys() [][]byte {
 	count := cache.Count()
@@ -176,21 +182,6 @@ func (cache *CrossTxCache) getChunks() []*crossTxChunk {
 	cache.mutex.RLock()
 	defer cache.mutex.RUnlock()
 	return cache.chunks
-}
-
-// ForEachTransaction iterates over the transactions in the cache
-func (cache *CrossTxCache) ForEachTransaction(function ForEachTransaction) {
-	chunks := cache.getChunks()
-
-	for _, chunk := range chunks {
-		// TODO: do not lock private mutex. Call chunk.IterCb()
-		chunk.mutex.RLock()
-		for key, value := range chunk.items {
-			tx := value.payload
-			function([]byte(key), tx)
-		}
-		chunk.mutex.RUnlock()
-	}
 }
 
 // Get gets a transaction by hash
@@ -226,24 +217,14 @@ func (cache *CrossTxCache) Peek(key []byte) (value interface{}, ok bool) {
 
 // HasOrAdd is not implemented
 func (cache *CrossTxCache) HasOrAdd(_ []byte, _ interface{}) (ok, evicted bool) {
-	log.Error("crossTxCache.HasOrAdd is not implemented")
+	log.Error("CrossTxCache.HasOrAdd is not implemented")
 	return false, false
-}
-
-// MaxSize returns the capacity of the cache
-func (cache *CrossTxCache) MaxSize() int {
-	return int(cache.config.MaxNumItems)
 }
 
 // Put is not implemented
 func (cache *CrossTxCache) Put(_ []byte, _ interface{}) (evicted bool) {
-	log.Error("crossTxCache.Put is not implemented")
+	log.Error("CrossTxCache.Put is not implemented")
 	return false
-}
-
-// RegisterHandler is not implemented
-func (cache *CrossTxCache) RegisterHandler(func(key []byte, value interface{})) {
-	log.Error("crossTxCache.RegisterHandler is not implemented")
 }
 
 // Remove removes tx by hash
@@ -260,7 +241,27 @@ func (cache *CrossTxCache) RemoveTxByHash(txHash []byte) bool {
 
 // RemoveOldest is not implemented
 func (cache *CrossTxCache) RemoveOldest() {
-	log.Error("TxCache.RemoveOldest is not implemented")
+	log.Error("CrossTxCache.RemoveOldest is not implemented")
+}
+
+// RegisterHandler is not implemented
+func (cache *CrossTxCache) RegisterHandler(func(key []byte, value interface{})) {
+	log.Error("CrossTxCache.RegisterHandler is not implemented")
+}
+
+// ForEachTransaction iterates over the transactions in the cache
+func (cache *CrossTxCache) ForEachTransaction(function ForEachTransaction) {
+	chunks := cache.getChunks()
+
+	for _, chunk := range chunks {
+		// TODO: do not lock private mutex. Call chunk.IterCb()
+		chunk.mutex.RLock()
+		for key, value := range chunk.items {
+			tx := value.payload
+			function([]byte(key), tx)
+		}
+		chunk.mutex.RUnlock()
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
