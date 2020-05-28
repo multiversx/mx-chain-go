@@ -62,7 +62,7 @@ func createMockArgument(
 			},
 		},
 		TrieStorageManagers: trieStorageManagers,
-		KeyGen:              &mock.KeyGenMock{},
+		BlockSignKeyGen:     &mock.KeyGenMock{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -117,12 +117,14 @@ func createMockArgument(
 		genesisFilename,
 		arg.Economics.TotalSupply(),
 		arg.PubkeyConv,
+		&mock.KeyGeneratorStub{},
 	)
 	require.Nil(t, err)
 
 	arg.SmartContractParser, err = parsing.NewSmartContractsParser(
 		"testdata/smartcontracts.json",
 		arg.PubkeyConv,
+		&mock.KeyGeneratorStub{},
 	)
 	require.Nil(t, err)
 

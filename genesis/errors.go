@@ -17,6 +17,9 @@ var ErrEmptyAddress = errors.New("empty address")
 // ErrInvalidAddress signals that an invalid address was found
 var ErrInvalidAddress = errors.New("invalid address")
 
+// ErrInvalidPubKey signals that an invalid public key has been provided
+var ErrInvalidPubKey = errors.New("invalid public key")
+
 // ErrInvalidSupplyString signals that the supply string is not a valid number
 var ErrInvalidSupplyString = errors.New("invalid supply string")
 

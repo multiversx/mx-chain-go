@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
@@ -74,6 +75,7 @@ func TestNewAccountsParser_NilEntireBalanceShouldErr(t *testing.T) {
 		"./testdata/genesis_ok.json",
 		nil,
 		createMockHexPubkeyConverter(),
+		&mock.KeyGeneratorStub{},
 	)
 
 	assert.True(t, check.IfNil(ap))
@@ -87,6 +89,7 @@ func TestNewAccountsParser_ZeroEntireBalanceShouldErr(t *testing.T) {
 		"./testdata/genesis_ok.json",
 		big.NewInt(0),
 		createMockHexPubkeyConverter(),
+		&mock.KeyGeneratorStub{},
 	)
 
 	assert.True(t, check.IfNil(ap))
@@ -100,6 +103,7 @@ func TestNewAccountsParser_BadFilenameShouldErr(t *testing.T) {
 		"inexistent file",
 		big.NewInt(1),
 		createMockHexPubkeyConverter(),
+		&mock.KeyGeneratorStub{},
 	)
 
 	assert.True(t, check.IfNil(ap))
@@ -113,10 +117,25 @@ func TestNewAccountsParser_NilPubkeyConverterShouldErr(t *testing.T) {
 		"inexistent file",
 		big.NewInt(1),
 		nil,
+		&mock.KeyGeneratorStub{},
 	)
 
 	assert.True(t, check.IfNil(ap))
 	assert.Equal(t, genesis.ErrNilPubkeyConverter, err)
+}
+
+func TestNewAccountsParser_NilKeyGeneratorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ap, err := parsing.NewAccountsParser(
+		"inexistent file",
+		big.NewInt(1),
+		createMockHexPubkeyConverter(),
+		nil,
+	)
+
+	assert.True(t, check.IfNil(ap))
+	assert.Equal(t, genesis.ErrNilKeyGenerator, err)
 }
 
 func TestNewAccountsParser_BadJsonShouldErr(t *testing.T) {
@@ -126,6 +145,7 @@ func TestNewAccountsParser_BadJsonShouldErr(t *testing.T) {
 		"testdata/genesis_bad.json",
 		big.NewInt(1),
 		createMockHexPubkeyConverter(),
+		&mock.KeyGeneratorStub{},
 	)
 
 	assert.True(t, check.IfNil(ap))
@@ -139,6 +159,7 @@ func TestNewAccountsParser_ShouldWork(t *testing.T) {
 		"testdata/genesis_ok.json",
 		big.NewInt(30),
 		createMockHexPubkeyConverter(),
+		&mock.KeyGeneratorStub{},
 	)
 
 	assert.False(t, check.IfNil(ap))
@@ -172,6 +193,25 @@ func TestAccountsParser_ProcessInvalidAddressShouldErr(t *testing.T) {
 	err := ap.Process()
 
 	assert.True(t, errors.Is(err, genesis.ErrInvalidAddress))
+}
+
+func TestAccountsParser_ProcessInvalidPublicKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+	ap.SetKeyGenerator(&mock.KeyGeneratorStub{
+		PublicKeyFromByteArrayCalled: func(b []byte) (crypto.PublicKey, error) {
+			return nil, expectedErr
+		},
+	})
+	ib := createMockInitialAccount()
+	ib.Address = "00"
+	ap.SetInitialAccounts([]*data.InitialAccount{ib})
+
+	err := ap.Process()
+
+	assert.True(t, errors.Is(err, genesis.ErrInvalidPubKey))
 }
 
 func TestAccountsParser_ProcessEmptyDelegationAddressButWithBalanceShouldErr(t *testing.T) {
