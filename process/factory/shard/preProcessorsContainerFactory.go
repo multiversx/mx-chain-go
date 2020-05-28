@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -21,7 +22,7 @@ type preProcessorsContainerFactory struct {
 	marshalizer          marshal.Marshalizer
 	hasher               hashing.Hasher
 	dataPool             dataRetriever.PoolsHolder
-	pubkeyConverter      state.PubkeyConverter
+	pubkeyConverter      core.PubkeyConverter
 	txProcessor          process.TransactionProcessor
 	scProcessor          process.SmartContractProcessor
 	scResultProcessor    process.SmartContractResultProcessor
@@ -42,7 +43,7 @@ func NewPreProcessorsContainerFactory(
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	dataPool dataRetriever.PoolsHolder,
-	pubkeyConverter state.PubkeyConverter,
+	pubkeyConverter core.PubkeyConverter,
 	accounts state.AccountsAdapter,
 	requestHandler process.RequestHandler,
 	txProcessor process.TransactionProcessor,

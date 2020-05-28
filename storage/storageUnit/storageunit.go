@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -67,10 +67,12 @@ type UnitConfig struct {
 
 // CacheConfig holds the configurable elements of a cache
 type CacheConfig struct {
-	Type        CacheType
-	SizeInBytes uint32
-	Size        uint32
-	Shards      uint32
+	Type                 CacheType
+	SizeInBytes          uint32
+	SizeInBytesPerSender uint32
+	Size                 uint32
+	SizePerSender        uint32
+	Shards               uint32
 }
 
 // DBConfig holds the configurable elements of a database

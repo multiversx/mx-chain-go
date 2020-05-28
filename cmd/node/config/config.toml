@@ -220,7 +220,9 @@
 
 [TxDataPool]
     Size = 900000
+    SizePerSender = 20000
     SizeInBytes = 524288000
+    SizeInBytesPerSender = 12288000
     Type = "TxCache"
     Shards = 16
 
@@ -265,15 +267,34 @@
 [Antiflood]
     Enabled = true
     NumConcurrentResolverJobs = 50
-    [Antiflood.NetworkMaxInput]
-        MessagesPerSecond = 400
-        TotalSizePerSecond = 4194304
-    [Antiflood.PeerMaxInput]
-        MessagesPerSecond = 75
-        TotalSizePerSecond = 2097152
+    [Antiflood.FastReacting]
+        IntervalInSeconds = 1
+        ReservedPercent   = 20
+        [Antiflood.FastReacting.PeerMaxInput]
+            MessagesPerInterval  = 90
+            TotalSizePerInterval = 2516582
+        [Antiflood.FastReacting.BlackList]
+            ThresholdNumMessagesPerInterval = 180
+            ThresholdSizePerInterval = 5033164
+            NumFloodingRounds = 10
+            PeerBanDurationInSeconds = 300
+
+    [Antiflood.SlowReacting]
+        IntervalInSeconds = 30
+        ReservedPercent   = 20
+        [Antiflood.SlowReacting.PeerMaxInput]
+            MessagesPerInterval = 3000
+            TotalSizePerInterval = 18874368 # 18MB/interval
+        [Antiflood.SlowReacting.BlackList]
+            ThresholdNumMessagesPerInterval = 6000
+            ThresholdSizePerInterval = 37748736 # 18MB/interval
+            NumFloodingRounds = 2
+            PeerBanDurationInSeconds = 3600
+
     [Antiflood.PeerMaxOutput]
-        MessagesPerSecond = 75
-        TotalSizePerSecond = 2097152
+        MessagesPerInterval  = 37
+        TotalSizePerInterval = 1048576
+
     [Antiflood.Cache]
         Size = 5000
         Type = "LRU"
@@ -282,11 +303,6 @@
         MaxMessages = [{ Topic = "heartbeat", NumMessagesPerSec = 10 },
                        { Topic = "shardBlocks*", NumMessagesPerSec = 20 },
                        { Topic = "metachainBlocks", NumMessagesPerSec = 20 }]
-    [Antiflood.BlackList]
-        ThresholdNumMessagesPerSecond = 150
-        ThresholdSizePerSecond = 4194304
-        NumFloodingRounds = 10
-        PeerBanDurationInSeconds = 300
     [Antiflood.WebServer]
         # SimultaneousRequests represents the number of concurrent requests accepted by the web server
         # this is a global throttler that acts on all http connections regardless of the originating source
@@ -416,18 +432,29 @@
     EnableTrigger = true
     EnableTriggerFromP2P = true
     PublicKeyToListenFrom = "b5ea539180627040b2703cabde8ebece0ded59a0c9d2d4a8a73a299fb7bc11d36ac3d1a620501c230059cffa983a7419d192a50ca55ed8aa07254658dda27aba1e54f50fd7cfbb9e66ce1715d72f9c1b0b05272388f9825742161a211debff15"
+	CloseAfterExportInMinutes = 10
 	MustImport = false
-	ImportFolder = ""
-	StartRound = 0
-	StartNonce = 0
-	StartEpoch = 0
-	ValidatorGracePeriodInEpochs = 0 #defines how long is the rating computation disabled after hardfork
+	ImportFolder = "export"
+	StartRound = 10000
+	StartNonce = 10000
+	StartEpoch = 100
+	ValidatorGracePeriodInEpochs = 1 #defines how long is the rating computation disabled after hardfork
 	[HardFork.ExportStateStorageConfig]
 	    [HardFork.ExportStateStorageConfig.Cache]
             Size = 5000
             Type = "LRU"
         [HardFork.ExportStateStorageConfig.DB]
             FilePath = "ExportStateStorage/MainDB"
+            Type = "LvlDBSerial"
+            BatchDelaySeconds = 2
+            MaxBatchSize = 1000
+            MaxOpenFiles = 10
+    [HardFork.ExportTriesStorageConfig]
+        [HardFork.ExportTriesStorageConfig.Cache]
+            Size = 5000
+            Type = "LRU"
+        [HardFork.ExportTriesStorageConfig.DB]
+            FilePath = "ExportTrieStorage/MainTrie"
             Type = "LvlDBSerial"
             BatchDelaySeconds = 2
             MaxBatchSize = 1000

@@ -42,7 +42,7 @@ func NewRewardTxPreprocessor(
 	accounts state.AccountsAdapter,
 	onRequestRewardTransaction func(shardID uint32, txHashes [][]byte),
 	gasHandler process.GasHandler,
-	pubkeyConverter state.PubkeyConverter,
+	pubkeyConverter core.PubkeyConverter,
 	blockSizeComputation BlockSizeComputationHandler,
 	balanceComputation BalanceComputationHandler,
 ) (*rewardTxPreprocessor, error) {

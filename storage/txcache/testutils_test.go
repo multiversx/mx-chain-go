@@ -22,8 +22,42 @@ func kBToBytes(kB float32) uint64 {
 	return uint64(kB * 1000)
 }
 
+func (cache *TxCache) areInternalMapsConsistent() bool {
+	internalMapByHash := cache.txByHash
+	internalMapBySender := cache.txListBySender
+
+	senders := internalMapBySender.getSnapshotAscending()
+	numTransactionsInMapByHash := len(internalMapByHash.keys())
+	numTransactionsInMapBySender := 0
+
+	for _, sender := range senders {
+		numTransactionsInMapBySender += int(sender.countTx())
+
+		for _, hash := range sender.getTxHashesAsStrings() {
+			_, ok := internalMapByHash.getTx(hash)
+			if !ok {
+				return false
+			}
+		}
+	}
+
+	if numTransactionsInMapBySender != numTransactionsInMapByHash {
+		return false
+	}
+
+	return true
+}
+
+func (cache *TxCache) getHashesForSender(sender string) []string {
+	return cache.getListForSender(sender).getTxHashesAsStrings()
+}
+
 func (cache *TxCache) getListForSender(sender string) *txListForSender {
-	list, ok := cache.txListBySender.getListForSender(sender)
+	return cache.txListBySender.testGetListForSender(sender)
+}
+
+func (txMap *txListBySenderMap) testGetListForSender(sender string) *txListForSender {
+	list, ok := txMap.getListForSender(sender)
 	if !ok {
 		panic("sender not in cache")
 	}
@@ -31,8 +65,11 @@ func (cache *TxCache) getListForSender(sender string) *txListForSender {
 	return list
 }
 
-func (cache *TxCache) getRawScoreOfSender(sender string) float64 {
-	return cache.getListForSender(sender).computeRawScore()
+func (cache *TxCache) getScoreOfSender(sender string) uint32 {
+	list := cache.getListForSender(sender)
+	scoreParams := list.getScoreParams()
+	computer := cache.txListBySender.scoreComputer
+	return computer.computeScore(scoreParams)
 }
 
 func (cache *TxCache) getNumFailedSelectionsOfSender(sender string) int {
@@ -47,6 +84,21 @@ func (cache *TxCache) isSenderSweepable(sender string) bool {
 	}
 
 	return false
+}
+
+func (listForSender *txListForSender) getTxHashesAsStrings() []string {
+	hashes := listForSender.getTxHashes()
+	return hashesAsStrings(hashes)
+}
+
+func hashesAsStrings(hashes [][]byte) []string {
+	result := make([]string, len(hashes))
+
+	for i := 0; i < len(hashes); i++ {
+		result[i] = string(hashes[i])
+	}
+
+	return result
 }
 
 func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nTransactionsPerSender int) {
@@ -133,4 +185,13 @@ func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 	case <-time.After(timeout):
 		return true // timed out
 	}
+}
+
+var _ scoreComputer = (*disabledScoreComputer)(nil)
+
+type disabledScoreComputer struct {
+}
+
+func (computer *disabledScoreComputer) computeScore(_ senderScoreParams) uint32 {
+	return 0
 }

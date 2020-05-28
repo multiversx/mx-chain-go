@@ -14,6 +14,7 @@ var _ process.FloodPreventer = (*quotaFloodPreventer)(nil)
 const minMessages = 1
 const minTotalSize = 1 //1Byte
 const initNumMessages = 1
+const maxPercentReserved = 90
 
 type quota struct {
 	numReceivedMessages   uint32
@@ -30,13 +31,11 @@ func (q *quota) Size() int {
 // quotaFloodPreventer represents a cache of quotas per peer used in antiflooding mechanism
 type quotaFloodPreventer struct {
 	maxMessagesPerPeer uint32
-	maxMessages        uint32
 	mutOperation       *sync.RWMutex
 	cacher             storage.Cacher
 	statusHandlers     []QuotaStatusHandler
 	maxSizePerPeer     uint64
-	maxSize            uint64
-	globalQuota        *quota
+	percentReserved    uint32
 }
 
 // NewQuotaFloodPreventer creates a new flood preventer based on quota / peer
@@ -45,8 +44,7 @@ func NewQuotaFloodPreventer(
 	statusHandlers []QuotaStatusHandler,
 	maxMessagesPerPeer uint32,
 	maxTotalSizePerPeer uint64,
-	maxMessages uint32,
-	maxTotalSize uint64,
+	percentReserved uint32,
 ) (*quotaFloodPreventer, error) {
 
 	if check.IfNil(cacher) {
@@ -58,31 +56,24 @@ func NewQuotaFloodPreventer(
 		}
 	}
 	if maxMessagesPerPeer < minMessages {
-		return nil, fmt.Errorf("%w raised in NewCountersMap, maxMessagesPerPeer: provided %d, minimum %d",
+		return nil, fmt.Errorf("%w, maxMessagesPerPeer: provided %d, minimum %d",
 			process.ErrInvalidValue,
 			maxMessagesPerPeer,
 			minMessages,
 		)
 	}
 	if maxTotalSizePerPeer < minTotalSize {
-		return nil, fmt.Errorf("%w raised in NewCountersMap, maxTotalSizePerPeer: provided %d, minimum %d",
-			process.ErrInvalidValue,
-			maxTotalSize,
-			minTotalSize,
-		)
-	}
-	if maxMessages < minMessages {
-		return nil, fmt.Errorf("%w raised in NewCountersMap, maxMessages: provided %d, minimum %d",
+		return nil, fmt.Errorf("%w, maxTotalSizePerPeer: provided %d, minimum %d",
 			process.ErrInvalidValue,
 			maxMessagesPerPeer,
-			minMessages,
+			minTotalSize,
 		)
 	}
-	if maxTotalSize < minTotalSize {
-		return nil, fmt.Errorf("%w raised in NewCountersMap, maxTotalSize: provided %d, minimum %d",
+	if percentReserved > maxPercentReserved {
+		return nil, fmt.Errorf("%w, percentReserved: provided %d, maximum %d",
 			process.ErrInvalidValue,
-			maxTotalSize,
-			minTotalSize,
+			percentReserved,
+			maxPercentReserved,
 		)
 	}
 
@@ -92,31 +83,8 @@ func NewQuotaFloodPreventer(
 		statusHandlers:     statusHandlers,
 		maxMessagesPerPeer: maxMessagesPerPeer,
 		maxSizePerPeer:     maxTotalSizePerPeer,
-		maxMessages:        maxMessages,
-		maxSize:            maxTotalSize,
-		globalQuota:        &quota{},
+		percentReserved:    percentReserved,
 	}, nil
-}
-
-// IncreaseLoadGlobal tries to increment the counter values held at "identifier" position
-// It returns true if it had succeeded incrementing (existing counter value is lower or equal with provided maxOperations)
-// We need the mutOperation here as the get and put should be done atomically.
-// Otherwise we might yield a slightly higher number of false valid increments
-// This method also checks the global sum quota and increment its values
-func (qfp *quotaFloodPreventer) IncreaseLoadGlobal(identifier string, size uint64) error {
-	qfp.mutOperation.Lock()
-
-	qfp.globalQuota.numReceivedMessages++
-	qfp.globalQuota.sizeReceivedMessages += size
-
-	err := qfp.increaseLoad(identifier, size)
-	if err == nil {
-		qfp.globalQuota.numProcessedMessages++
-		qfp.globalQuota.sizeProcessedMessages += size
-	}
-	qfp.mutOperation.Unlock()
-
-	return err
 }
 
 // IncreaseLoad tries to increment the counter values held at "identifier" position
@@ -132,12 +100,6 @@ func (qfp *quotaFloodPreventer) IncreaseLoad(identifier string, size uint64) err
 }
 
 func (qfp *quotaFloodPreventer) increaseLoad(identifier string, size uint64) error {
-	isGlobalQuotaReached := qfp.globalQuota.numReceivedMessages > qfp.maxMessages ||
-		qfp.globalQuota.sizeReceivedMessages > qfp.maxSize
-	if isGlobalQuotaReached {
-		return process.ErrSystemBusy
-	}
-
 	valueQuota, ok := qfp.cacher.Get([]byte(identifier))
 	if !ok {
 		qfp.putDefaultQuota(identifier, size)
@@ -155,17 +117,23 @@ func (qfp *quotaFloodPreventer) increaseLoad(identifier string, size uint64) err
 	q.numReceivedMessages++
 	q.sizeReceivedMessages += size
 
-	isPeerQuotaReached := q.numReceivedMessages > qfp.maxMessagesPerPeer ||
-		q.sizeReceivedMessages > qfp.maxSizePerPeer
+	maxNumMessagesReached := qfp.isMaximumReached(uint64(qfp.maxMessagesPerPeer), uint64(q.numReceivedMessages))
+	maxSizeMessagesReached := qfp.isMaximumReached(qfp.maxSizePerPeer, q.sizeReceivedMessages)
+	isPeerQuotaReached := maxNumMessagesReached || maxSizeMessagesReached
 	if isPeerQuotaReached {
-		return process.ErrSystemBusy
+		return fmt.Errorf("%w for pid %s", process.ErrSystemBusy, identifier)
 	}
 
 	q.numProcessedMessages++
 	q.sizeProcessedMessages += size
-	qfp.cacher.Put([]byte(identifier), q, q.Size())
 
 	return nil
+}
+
+func (qfp *quotaFloodPreventer) isMaximumReached(absoluteMax uint64, counted uint64) bool {
+	max := uint64(100-qfp.percentReserved) * absoluteMax / 100
+
+	return counted > max
 }
 
 func (qfp *quotaFloodPreventer) putDefaultQuota(identifier string, size uint64) {
@@ -188,7 +156,6 @@ func (qfp *quotaFloodPreventer) Reset() {
 
 	//TODO change this if cacher.Clear() is time consuming
 	qfp.cacher.Clear()
-	qfp.globalQuota = &quota{}
 }
 
 func (qfp *quotaFloodPreventer) resetStatusHandlers() {
@@ -219,13 +186,6 @@ func (qfp quotaFloodPreventer) createStatistics() {
 			q.sizeProcessedMessages,
 		)
 	}
-
-	qfp.setGlobalQuota(
-		qfp.globalQuota.numReceivedMessages,
-		qfp.globalQuota.sizeReceivedMessages,
-		qfp.globalQuota.numProcessedMessages,
-		qfp.globalQuota.sizeProcessedMessages,
-	)
 }
 
 func (qfp *quotaFloodPreventer) addQuota(
@@ -237,17 +197,6 @@ func (qfp *quotaFloodPreventer) addQuota(
 ) {
 	for _, statusHandler := range qfp.statusHandlers {
 		statusHandler.AddQuota(identifier, numReceived, sizeReceived, numProcessed, sizeProcessed)
-	}
-}
-
-func (qfp *quotaFloodPreventer) setGlobalQuota(
-	numReceived uint32,
-	sizeReceived uint64,
-	numProcessed uint32,
-	sizeProcessed uint64,
-) {
-	for _, statusHandler := range qfp.statusHandlers {
-		statusHandler.SetGlobalQuota(numReceived, sizeReceived, numProcessed, sizeProcessed)
 	}
 }
 

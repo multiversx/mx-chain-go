@@ -17,7 +17,6 @@ type SCQueryService interface {
 type StatusMetricsHandler interface {
 	StatusMetricsMapWithoutP2P() map[string]interface{}
 	StatusP2pMetricsMap() map[string]interface{}
-	EpochMetrics() map[string]interface{}
 	ConfigMetrics() map[string]interface{}
 	NetworkMetrics() map[string]interface{}
 	IsInterfaceNil() bool

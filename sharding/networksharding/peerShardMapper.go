@@ -104,7 +104,7 @@ func (psm *PeerShardMapper) GetPeerInfo(pid p2p.PeerID) core.P2PPeerInfo {
 	shardId, ok := psm.getShardIDSearchingPkInFallbackCache(pk)
 	if ok {
 		pInfo = &core.P2PPeerInfo{
-			PeerType: core.ObserverdPeer,
+			PeerType: core.ObserverPeer,
 			ShardID:  shardId,
 		}
 
@@ -194,7 +194,7 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid p2p.PeerI
 	}
 
 	return &core.P2PPeerInfo{
-		PeerType: core.ObserverdPeer,
+		PeerType: core.ObserverPeer,
 		ShardID:  shard,
 	}
 }

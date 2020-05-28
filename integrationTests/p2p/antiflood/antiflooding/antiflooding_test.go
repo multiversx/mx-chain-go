@@ -41,15 +41,12 @@ func TestAntifloodWithNumMessagesFromTheSamePeer(t *testing.T) {
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2
 	peerMaxNumProcessMessages := uint32(5)
-	maxNumProcessMessages := uint32(math.MaxUint32)
 	maxMessageSize := uint64(1 << 20) //1MB
 	interceptors, err := antiflood.CreateTopicsAndMockInterceptors(
 		peers,
 		nil,
 		topic,
 		peerMaxNumProcessMessages,
-		maxMessageSize,
-		maxNumProcessMessages,
 		maxMessageSize,
 	)
 	assert.Nil(t, err)
@@ -96,15 +93,12 @@ func TestAntifloodWithNumMessagesFromOtherPeers(t *testing.T) {
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2
 	peerMaxNumProcessMessages := uint32(5)
-	maxNumProcessMessages := uint32(math.MaxUint32)
 	maxMessageSize := uint64(1 << 20) //1MB
 	interceptors, err := antiflood.CreateTopicsAndMockInterceptors(
 		peers,
 		nil,
 		topic,
 		peerMaxNumProcessMessages,
-		maxMessageSize,
-		maxNumProcessMessages,
 		maxMessageSize,
 	)
 	assert.Nil(t, err)
@@ -157,7 +151,6 @@ func TestAntifloodWithLargeSizeMessagesFromTheSamePeer(t *testing.T) {
 	topic := "test_topic"
 	broadcastMessageDuration := time.Second * 2
 	maxNumProcessMessages := uint32(math.MaxUint32)
-	maxMessageSize := uint64(math.MaxUint64)
 	peerMaxMessageSize := uint64(1 << 10) //1KB
 	interceptors, err := antiflood.CreateTopicsAndMockInterceptors(
 		peers,
@@ -165,8 +158,6 @@ func TestAntifloodWithLargeSizeMessagesFromTheSamePeer(t *testing.T) {
 		topic,
 		maxNumProcessMessages,
 		peerMaxMessageSize,
-		maxNumProcessMessages,
-		maxMessageSize,
 	)
 	assert.Nil(t, err)
 

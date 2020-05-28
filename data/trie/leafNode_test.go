@@ -483,9 +483,10 @@ func TestLeafNode_reduceNode(t *testing.T) {
 	expected, _ := newLeafNode([]byte{2, 100, 111, 103}, nil, marsh, hasher)
 	expected.dirty = true
 
-	node, err := ln.reduceNode(2)
+	node, newChildHash, err := ln.reduceNode(2)
 	assert.Equal(t, expected, node)
 	assert.Nil(t, err)
+	assert.True(t, newChildHash)
 }
 
 func TestLeafNode_isEmptyOrNil(t *testing.T) {

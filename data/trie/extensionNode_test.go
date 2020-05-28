@@ -715,9 +715,10 @@ func TestExtensionNode_reduceNode(t *testing.T) {
 	expected.marsh = en.marsh
 	expected.hasher = en.hasher
 
-	node, err := en.reduceNode(2)
+	node, newChildPos, err := en.reduceNode(2)
 	assert.Equal(t, expected, node)
 	assert.Nil(t, err)
+	assert.True(t, newChildPos)
 }
 
 func TestExtensionNode_reduceNodeCollapsedNode(t *testing.T) {

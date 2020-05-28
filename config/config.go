@@ -2,10 +2,12 @@ package config
 
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
-	Type        string `json:"type"`
-	Size        uint32 `json:"size"`
-	SizeInBytes uint32 `json:"sizeInBytes"`
-	Shards      uint32 `json:"shards"`
+	Type                 string `json:"type"`
+	Size                 uint32 `json:"size"`
+	SizePerSender        uint32 `json:"sizePerSender"`
+	SizeInBytes          uint32 `json:"sizeInBytes"`
+	SizeInBytesPerSender uint32 `json:"sizeInBytesPerSender"`
+	Shards               uint32 `json:"shards"`
 }
 
 //HeadersPoolConfig will map the headers cache configuration
@@ -210,10 +212,10 @@ type WebServerAntifloodConfig struct {
 
 // BlackListConfig will hold the p2p peer black list threshold values
 type BlackListConfig struct {
-	ThresholdNumMessagesPerSecond uint32
-	ThresholdSizePerSecond        uint64
-	NumFloodingRounds             uint32
-	PeerBanDurationInSeconds      uint32
+	ThresholdNumMessagesPerInterval uint32
+	ThresholdSizePerInterval        uint64
+	NumFloodingRounds               uint32
+	PeerBanDurationInSeconds        uint32
 }
 
 // TopicMaxMessagesConfig will hold the maximum number of messages/sec per topic value
@@ -238,21 +240,28 @@ type TxAccumulatorConfig struct {
 type AntifloodConfig struct {
 	Enabled                   bool
 	NumConcurrentResolverJobs int32
-	NetworkMaxInput           AntifloodLimitsConfig
-	PeerMaxInput              AntifloodLimitsConfig
+	FastReacting              FloodPreventerConfig
+	SlowReacting              FloodPreventerConfig
 	PeerMaxOutput             AntifloodLimitsConfig
 	Cache                     CacheConfig
-	BlackList                 BlackListConfig
 	WebServer                 WebServerAntifloodConfig
 	Topic                     TopicAntifloodConfig
 	TxAccumulator             TxAccumulatorConfig
 }
 
+// FloodPreventerConfig will hold all flood preventer parameters
+type FloodPreventerConfig struct {
+	IntervalInSeconds uint32
+	ReservedPercent   uint32
+	PeerMaxInput      AntifloodLimitsConfig
+	BlackList         BlackListConfig
+}
+
 // AntifloodLimitsConfig will hold the maximum antiflood limits in both number of messages and total
 // size of the messages
 type AntifloodLimitsConfig struct {
-	MessagesPerSecond  uint32
-	TotalSizePerSecond uint64
+	MessagesPerInterval  uint32
+	TotalSizePerInterval uint64
 }
 
 // VirtualMachineConfig holds configuration for the Virtual Machine(s)
@@ -270,9 +279,10 @@ type VirtualMachineOutOfProcessConfig struct {
 
 // HardforkConfig holds the configuration for the hardfork trigger
 type HardforkConfig struct {
-	EnableTrigger         bool
-	EnableTriggerFromP2P  bool
-	PublicKeyToListenFrom string
+	EnableTrigger             bool
+	EnableTriggerFromP2P      bool
+	PublicKeyToListenFrom     string
+	CloseAfterExportInMinutes uint32
 
 	MustImport bool
 	StartRound uint64
@@ -283,6 +293,7 @@ type HardforkConfig struct {
 
 	ImportFolder             string
 	ExportStateStorageConfig StorageConfig
+	ExportTriesStorageConfig StorageConfig
 	ImportStateStorageConfig StorageConfig
 }
 
