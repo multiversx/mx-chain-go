@@ -12,6 +12,19 @@ import (
 
 //------- Add
 
+func TestTimeCache_EmptyKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tc := timecache.NewTimeCache(time.Second)
+	key := ""
+
+	err := tc.Add(key)
+
+	_, ok := tc.KeyTime(key)
+	assert.Equal(t, storage.ErrEmptyKey, err)
+	assert.False(t, ok)
+}
+
 func TestTimeCache_AddShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -59,6 +72,25 @@ func TestTimeCache_DoubleAddAfterExpirationAndSweepShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, key, keys[0])
 	assert.True(t, ok)
+}
+
+func TestTimeCache_AddWithSpanShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tc := timecache.NewTimeCache(time.Second)
+	key := "key1"
+
+	duration := time.Second * 1638
+	err := tc.AddWithSpan(key, duration)
+
+	keys := tc.Keys()
+	_, ok := tc.KeyTime(key)
+	assert.Nil(t, err)
+	assert.Equal(t, key, keys[0])
+	assert.True(t, ok)
+
+	durRecovered, _ := tc.KeySpan(key)
+	assert.Equal(t, duration, durRecovered)
 }
 
 //------- Has
