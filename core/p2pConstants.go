@@ -1,37 +1,5 @@
 package core
 
-// MetricP2PNetworkNumReceivedMessages represents the current total network number of received messages in the amount
-// of time. It represents the sum of all received messages from all connected peers
-const MetricP2PNetworkNumReceivedMessages = "erd_p2p_network_num_received_messages"
-
-// MetricP2PNetworkSizeReceivedMessages represents the current total network size of received messages in the amount
-// of time. It represents the sum of all received messages from all connected peers
-const MetricP2PNetworkSizeReceivedMessages = "erd_p2p_network_size_received_messages"
-
-// MetricP2PNetworkNumProcessedMessages represents the current total network number of processed messages in the amount
-// of time. It represents the sum of all processed messages from all connected peers
-const MetricP2PNetworkNumProcessedMessages = "erd_p2p_network_num_processed_messages"
-
-// MetricP2PNetworkSizeProcessedMessages represents the current total network size of processed messages in the amount
-// of time. It represents the sum of all processed messages from all connected peers
-const MetricP2PNetworkSizeProcessedMessages = "erd_p2p_network_size_processed_messages"
-
-// MetricP2PPeakNetworkNumReceivedMessages represents the peak network number of received messages in the amount of time
-// It represents the peak sum of all received messages from all connected peers
-const MetricP2PPeakNetworkNumReceivedMessages = "erd_p2p_peak_network_num_received_messages"
-
-// MetricP2PPeakNetworkSizeReceivedMessages represents the peak network size of received messages in the amount of time
-// It represents the peak sum of all received messages from all connected peers
-const MetricP2PPeakNetworkSizeReceivedMessages = "erd_p2p_peak_network_size_received_messages"
-
-// MetricP2PPeakNetworkNumProcessedMessages represents the peak network number of processed messages in the amount of time
-// It represents the peak sum of all processed messages from all connected peers
-const MetricP2PPeakNetworkNumProcessedMessages = "erd_p2p_peak_network_num_processed_messages"
-
-// MetricP2PPeakNetworkSizeProcessedMessages represents the peak network size of processed messages in the amount of time
-// It represents the peak sum of all processed messages from all connected peers
-const MetricP2PPeakNetworkSizeProcessedMessages = "erd_p2p_peak_network_size_processed_messages"
-
 // MetricP2PPeerNumReceivedMessages represents the current maximum number of received messages in the amount of time
 // counted on a connected peer
 const MetricP2PPeerNumReceivedMessages = "erd_p2p_peer_num_received_messages"
@@ -56,9 +24,9 @@ const MetricP2PPeakPeerNumReceivedMessages = "erd_p2p_peak_peer_num_received_mes
 // the amount of time counted on a connected peer
 const MetricP2PPeakPeerSizeReceivedMessages = "erd_p2p_peak_peer_size_received_messages"
 
-// MetricP2PPeakPeerxNumProcessedMessages represents the peak maximum number of processed messages in the amount of time
+// MetricP2PPeakPeerNumProcessedMessages represents the peak maximum number of processed messages in the amount of time
 // counted on a connected peer
-const MetricP2PPeakPeerxNumProcessedMessages = "erd_p2p_peak_peer_num_processed_messages"
+const MetricP2PPeakPeerNumProcessedMessages = "erd_p2p_peak_peer_num_processed_messages"
 
 // MetricP2PPeakPeerSizeProcessedMessages represents the peak maximum size of processed data (sum of all messages) in
 // the amount of time counted on a connected peer
