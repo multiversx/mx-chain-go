@@ -19,7 +19,7 @@ type ImmunityCache struct {
 }
 
 // NewImmunityCache creates a new cache
-func (config CacheConfig) NewImmunityCache() (*ImmunityCache, error) {
+func NewImmunityCache(config CacheConfig) (*ImmunityCache, error) {
 	log.Debug("NewImmunityCache", "config", config.String())
 
 	err := config.verify()

@@ -6,7 +6,7 @@ type CacheItem interface {
 	Payload() interface{}
 	Size() int
 	IsImmuneToEviction() bool
-	ImmunizeAgainstEviction() bool
+	ImmunizeAgainstEviction()
 }
 
 // ForEachItem is an iterator callback
