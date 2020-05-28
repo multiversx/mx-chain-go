@@ -10,12 +10,12 @@ import (
 var emptyStruct struct{}
 
 type immunityChunk struct {
-	config               immunityChunkConfig
-	items                map[string]chunkItemWrapper
-	itemsAsList          *list.List
-	keysToImmunizeFuture map[string]struct{}
-	numBytes             int
-	mutex                sync.RWMutex
+	config      immunityChunkConfig
+	items       map[string]chunkItemWrapper
+	itemsAsList *list.List
+	immuneKeys  map[string]struct{}
+	numBytes    int
+	mutex       sync.RWMutex
 }
 
 type chunkItemWrapper struct {
@@ -27,10 +27,10 @@ func newImmunityChunk(config immunityChunkConfig) *immunityChunk {
 	log.Trace("newImmunityChunk", "config", config.String())
 
 	return &immunityChunk{
-		config:               config,
-		items:                make(map[string]chunkItemWrapper),
-		itemsAsList:          list.New(),
-		keysToImmunizeFuture: make(map[string]struct{}),
+		config:      config,
+		items:       make(map[string]chunkItemWrapper),
+		itemsAsList: list.New(),
+		immuneKeys:  make(map[string]struct{}),
 	}
 }
 
@@ -47,9 +47,11 @@ func (chunk *immunityChunk) ImmunizeKeys(keys [][]byte) (numNow, numFuture int) 
 			numNow++
 		} else {
 			// Item not yet in cache, will be immunized in the future
-			chunk.keysToImmunizeFuture[string(key)] = emptyStruct
 			numFuture++
 		}
+
+		// Disregarding the items presence, we hold the immune key
+		chunk.immuneKeys[string(key)] = emptyStruct
 	}
 
 	return
@@ -177,9 +179,9 @@ func (chunk *immunityChunk) addItemNoLock(item CacheItem) {
 func (chunk *immunityChunk) immunizeItemOnAddNoLock(item CacheItem) {
 	key := string(item.GetKey())
 
-	if _, immunize := chunk.keysToImmunizeFuture[key]; immunize {
+	if _, immunize := chunk.immuneKeys[key]; immunize {
 		item.ImmunizeAgainstEviction()
-		delete(chunk.keysToImmunizeFuture, key)
+		// We do not remove the key from "immuneKeys", we hold it there until item's removal.
 	}
 }
 
@@ -199,7 +201,7 @@ func (chunk *immunityChunk) RemoveItem(key string) bool {
 
 	// In order to improve the robustness of the cache, we'll also remove from "keysToImmunizeFuture",
 	// even if the item does not actually exist in the cache - to allow un-doing immunization intent (perhaps useful for rollbacks).
-	delete(chunk.keysToImmunizeFuture, key)
+	delete(chunk.immuneKeys, key)
 
 	wrapper, ok := chunk.items[key]
 	if !ok {
@@ -233,7 +235,7 @@ func (chunk *immunityChunk) Count() int {
 func (chunk *immunityChunk) CountImmune() int {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()
-	return len(chunk.keysToImmunizeFuture)
+	return len(chunk.immuneKeys)
 }
 
 // NumBytes gets the number of bytes stored

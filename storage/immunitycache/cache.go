@@ -199,11 +199,11 @@ func (cache *ImmunityCache) getChunksWithLock() []*immunityChunk {
 	return cache.chunks
 }
 
-// CountImmunized returns the number of immunized (current or future) elements within the map
-func (cache *ImmunityCache) CountImmunized() int {
+// CountImmune returns the number of immunized (current or future) elements within the map
+func (cache *ImmunityCache) CountImmune() int {
 	count := 0
 	for _, chunk := range cache.getChunksWithLock() {
-		count += chunk.Count()
+		count += chunk.CountImmune()
 	}
 	return count
 }
