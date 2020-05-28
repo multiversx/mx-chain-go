@@ -40,7 +40,7 @@ type ArgValidatorsProvider struct {
 	CacheRefreshIntervalDurationInSec time.Duration
 	ValidatorStatistics               process.ValidatorStatisticsProcessor
 	MaxRating                         uint32
-	PubKeyConverter                   state.PubkeyConverter
+	PubKeyConverter                   core.PubkeyConverter
 }
 
 // NewValidatorsProvider instantiates a new validatorsProvider structure responsible of keeping account of
