@@ -5,9 +5,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var _ txCache = (*TxCache)(nil)
+var _ storage.Cacher = (*TxCache)(nil)
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {

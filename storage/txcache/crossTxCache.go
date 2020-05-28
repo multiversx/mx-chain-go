@@ -2,9 +2,11 @@ package txcache
 
 import (
 	"sync"
+
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var _ txCache = (*crossTxCache)(nil)
+var _ storage.Cacher = (*crossTxCache)(nil)
 
 // crossTxCache holds cross-shard transactions (where destination == me)
 type crossTxCache struct {
