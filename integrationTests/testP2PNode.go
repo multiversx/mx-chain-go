@@ -115,6 +115,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 
 	pubkeys := tP2pNode.getPubkeys()
 
+	pkBytes, _ := tP2pNode.NodeKeys.Pk.ToByteArray()
 	argHardforkTrigger := trigger.ArgHardforkTrigger{
 		TriggerPubKeyBytes:        []byte("invalid trigger public key"),
 		Enabled:                   false,
@@ -125,6 +126,8 @@ func (tP2pNode *TestP2PNode) initNode() {
 		CloseAfterExportInMinutes: 5,
 		ChanStopNodeProcess:       make(chan endProcess.ArgEndProcess),
 		EpochConfirmedNotifier:    &mock.EpochStartNotifierStub{},
+		SelfPubKeyBytes:           pkBytes,
+		ImportStartHandler:        &mock.ImportStartHandlerStub{},
 	}
 	argHardforkTrigger.SelfPubKeyBytes, _ = tP2pNode.NodeKeys.Pk.ToByteArray()
 	hardforkTrigger, err := trigger.NewTrigger(argHardforkTrigger)
