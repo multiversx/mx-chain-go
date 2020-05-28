@@ -64,7 +64,7 @@ func (chunk *immunityChunk) getItemNoLock(key string) (CacheItem, bool) {
 	return item.item, true
 }
 
-func (chunk *immunityChunk) addItemWithLock(item CacheItem) (ok bool, added bool) {
+func (chunk *immunityChunk) AddItem(item CacheItem) (ok bool, added bool) {
 	chunk.mutex.Lock()
 	defer chunk.mutex.Unlock()
 
@@ -122,9 +122,7 @@ func (chunk *immunityChunk) evictItemsNoLock() (numRemoved int, err error) {
 
 func (chunk *immunityChunk) removeOldestNoLock(numToRemove int) int {
 	numRemoved := 0
-
-	list := chunk.itemsAsList
-	element := list.Front()
+	element := chunk.itemsAsList.Front()
 
 	for element != nil && numRemoved < numToRemove {
 		item := element.Value.(CacheItem)
@@ -139,7 +137,7 @@ func (chunk *immunityChunk) removeOldestNoLock(numToRemove int) int {
 		elementToRemove := element
 		element = element.Next()
 		delete(chunk.items, key)
-		list.Remove(elementToRemove)
+		chunk.itemsAsList.Remove(elementToRemove)
 		chunk.trackNumBytesOnRemoveNoLock(item)
 		numRemoved++
 	}
@@ -185,15 +183,18 @@ func (chunk *immunityChunk) trackNumBytesOnAddNoLock(item CacheItem) {
 	chunk.numBytes += item.Size()
 }
 
-func (chunk *immunityChunk) getItemWithLock(key string) (CacheItem, bool) {
+func (chunk *immunityChunk) GetItem(key string) (CacheItem, bool) {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()
 	return chunk.getItemNoLock(key)
 }
 
-func (chunk *immunityChunk) removeItemWithLock(key string) bool {
+func (chunk *immunityChunk) RemoveItem(key string) bool {
 	chunk.mutex.Lock()
 	defer chunk.mutex.Unlock()
+
+	// TODO: explain why.
+	delete(chunk.keysToImmunizeFuture, key)
 
 	item, ok := chunk.items[key]
 	if !ok {
@@ -202,7 +203,6 @@ func (chunk *immunityChunk) removeItemWithLock(key string) bool {
 
 	// TODO: duplication
 	delete(chunk.items, key)
-	delete(chunk.keysToImmunizeFuture, key)
 	chunk.itemsAsList.Remove(item.listElement)
 	chunk.trackNumBytesOnRemoveNoLock(item.item)
 	return true
@@ -213,30 +213,35 @@ func (chunk *immunityChunk) trackNumBytesOnRemoveNoLock(item CacheItem) {
 	chunk.numBytes = core.MaxInt(chunk.numBytes, 0)
 }
 
+// RemoveOldest removes a number of old items
 func (chunk *immunityChunk) RemoveOldest(numToRemove int) int {
 	chunk.mutex.Lock()
 	defer chunk.mutex.Unlock()
 	return chunk.removeOldestNoLock(numToRemove)
 }
 
-func (chunk *immunityChunk) CountItems() int {
+// Count counts the items
+func (chunk *immunityChunk) Count() int {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()
 	return len(chunk.items)
 }
 
-func (chunk *immunityChunk) CountImmunized() int {
+// CountImmune counts the immune items
+func (chunk *immunityChunk) CountImmune() int {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()
 	return len(chunk.keysToImmunizeFuture)
 }
 
+// NumBytes gets the number of bytes stored
 func (chunk *immunityChunk) NumBytes() int {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()
 	return chunk.numBytes
 }
 
+// KeysInOrder gets the keys, in order
 func (chunk *immunityChunk) KeysInOrder() [][]byte {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()
@@ -251,6 +256,7 @@ func (chunk *immunityChunk) KeysInOrder() [][]byte {
 	return keys
 }
 
+// AppendKeys accumulates keys in a given slice
 func (chunk *immunityChunk) AppendKeys(keysAccumulator [][]byte) [][]byte {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()

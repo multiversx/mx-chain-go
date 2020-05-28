@@ -100,7 +100,7 @@ func (cache *ImmunityCache) getChunkByIndexWithLock(index uint32) *immunityChunk
 func (cache *ImmunityCache) Add(item CacheItem) (ok bool, added bool) {
 	key := string(item.GetKey())
 	chunk := cache.getChunkByKeyWithLock(key)
-	return chunk.addItemWithLock(item)
+	return chunk.AddItem(item)
 }
 
 func (cache *ImmunityCache) getChunkByKeyWithLock(key string) *immunityChunk {
@@ -123,13 +123,13 @@ func (cache *ImmunityCache) Get(key []byte) (value interface{}, ok bool) {
 // GetItem gets an item by key
 func (cache *ImmunityCache) GetItem(key []byte) (CacheItem, bool) {
 	chunk := cache.getChunkByKeyWithLock(string(key))
-	return chunk.getItemWithLock(string(key))
+	return chunk.GetItem(string(key))
 }
 
 // Has checks is an item exists
 func (cache *ImmunityCache) Has(key []byte) bool {
 	chunk := cache.getChunkByKeyWithLock(string(key))
-	_, ok := chunk.getItemWithLock(string(key))
+	_, ok := chunk.GetItem(string(key))
 	return ok
 }
 
@@ -159,7 +159,7 @@ func (cache *ImmunityCache) Remove(key []byte) {
 // TODO: In the future, add this method to the "storage.Cacher" interface
 func (cache *ImmunityCache) RemoveWithResult(key []byte) bool {
 	chunk := cache.getChunkByKeyWithLock(string(key))
-	return chunk.removeItemWithLock(string(key))
+	return chunk.RemoveItem(string(key))
 }
 
 // RemoveOldest is not implemented
@@ -188,7 +188,7 @@ func (cache *ImmunityCache) Len() int {
 func (cache *ImmunityCache) Count() int {
 	count := 0
 	for _, chunk := range cache.getChunksWithLock() {
-		count += chunk.CountItems()
+		count += chunk.Count()
 	}
 	return count
 }
@@ -203,7 +203,7 @@ func (cache *ImmunityCache) getChunksWithLock() []*immunityChunk {
 func (cache *ImmunityCache) CountImmunized() int {
 	count := 0
 	for _, chunk := range cache.getChunksWithLock() {
-		count += chunk.CountItems()
+		count += chunk.Count()
 	}
 	return count
 }
