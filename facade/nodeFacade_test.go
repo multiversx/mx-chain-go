@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -485,19 +486,23 @@ func TestNodeFacade_Trigger(t *testing.T) {
 	wasCalled := false
 	expectedErr := errors.New("expected err")
 	arg := createMockArguments()
+	epoch := uint32(4638)
+	recoveredEpoch := uint32(0)
 	arg.Node = &mock.NodeStub{
-		DirectTriggerCalled: func() error {
+		DirectTriggerCalled: func(e uint32) error {
 			wasCalled = true
+			atomic.StoreUint32(&recoveredEpoch, e)
 
 			return expectedErr
 		},
 	}
 	nf, _ := NewNodeFacade(arg)
 
-	err := nf.Trigger()
+	err := nf.Trigger(epoch)
 
 	assert.True(t, wasCalled)
 	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, epoch, atomic.LoadUint32(&recoveredEpoch))
 }
 
 func TestNodeFacade_IsSelfTrigger(t *testing.T) {

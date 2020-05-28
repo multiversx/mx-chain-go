@@ -1,6 +1,7 @@
 package hardfork
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
@@ -13,8 +14,13 @@ const execBroadcastTrigger = "executed, trigger is affecting current node and wi
 
 // TriggerHardforkHandler interface defines methods that can be used from `elrondFacade` context variable
 type TriggerHardforkHandler interface {
-	Trigger() error
+	Trigger(epoch uint32) error
 	IsSelfTrigger() bool
+}
+
+// HarforkRequest represents the structure on which user input for triggering a hardfork will validate against
+type HarforkRequest struct {
+	Epoch uint32 `form:"epoch" json:"epoch"`
 }
 
 // Routes defines node related routes
@@ -30,7 +36,14 @@ func Trigger(c *gin.Context) {
 		return
 	}
 
-	err := ef.Trigger()
+	var hr = HarforkRequest{}
+	err := c.ShouldBindJSON(&hr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
+		return
+	}
+
+	err = ef.Trigger(hr.Epoch)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
