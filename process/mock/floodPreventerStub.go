@@ -2,14 +2,8 @@ package mock
 
 // FloodPreventerStub -
 type FloodPreventerStub struct {
-	IncreaseLoadGlobalCalled func(identifier string, size uint64) error
-	IncreaseLoadCalled       func(identifier string, size uint64) error
-	ResetCalled              func()
-}
-
-// IncreaseLoadGlobal -
-func (fps *FloodPreventerStub) IncreaseLoadGlobal(identifier string, size uint64) error {
-	return fps.IncreaseLoadGlobalCalled(identifier, size)
+	IncreaseLoadCalled func(identifier string, size uint64) error
+	ResetCalled        func()
 }
 
 // IncreaseLoad -

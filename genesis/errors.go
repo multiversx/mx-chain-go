@@ -17,6 +17,9 @@ var ErrEmptyAddress = errors.New("empty address")
 // ErrInvalidAddress signals that an invalid address was found
 var ErrInvalidAddress = errors.New("invalid address")
 
+// ErrInvalidPubKey signals that an invalid public key has been provided
+var ErrInvalidPubKey = errors.New("invalid public key")
+
 // ErrInvalidSupplyString signals that the supply string is not a valid number
 var ErrInvalidSupplyString = errors.New("invalid supply string")
 
@@ -133,3 +136,9 @@ var ErrMissingElement = errors.New("missing element")
 
 // ErrGetVersionFromSC signals that a call to "version" function on a contract resulted in an unexpected result
 var ErrGetVersionFromSC = errors.New("get version from contract returned an invalid response")
+
+// ErrEmptyPubKey signals that empty public key has been provided
+var ErrEmptyPubKey = errors.New("empty public key")
+
+// ErrNilKeyGenerator signals that nil key generator has been provided
+var ErrNilKeyGenerator = errors.New("nil key generator")

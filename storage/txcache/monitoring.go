@@ -42,8 +42,47 @@ func (cache *TxCache) monitorSelectionStart() *core.StopWatch {
 func (cache *TxCache) monitorSelectionEnd(selection []*WrappedTransaction, stopWatch *core.StopWatch) {
 	stopWatch.Stop("selection")
 	duration := stopWatch.GetMeasurement("selection")
-	log.Debug("TxCache: selection ended", "name", cache.name, "duration", duration, "numTxSelected", len(selection))
+	numSendersSelected := cache.numSendersSelected.Reset()
+	numSendersWithInitialGap := cache.numSendersWithInitialGap.Reset()
+	numSendersWithMiddleGap := cache.numSendersWithMiddleGap.Reset()
+	numSendersInGracePeriod := cache.numSendersInGracePeriod.Reset()
+
+	log.Debug("TxCache: selection ended", "name", cache.name, "duration", duration,
+		"numTxSelected", len(selection),
+		"numSendersSelected", numSendersSelected,
+		"numSendersWithInitialGap", numSendersWithInitialGap,
+		"numSendersWithMiddleGap", numSendersWithMiddleGap,
+		"numSendersInGracePeriod", numSendersInGracePeriod,
+	)
+
 	cache.displaySendersHistogram()
+}
+
+type batchSelectionJournal struct {
+	isFirstBatch  bool
+	copied        int
+	hasInitialGap bool
+	hasMiddleGap  bool
+	isGracePeriod bool
+}
+
+func (cache *TxCache) monitorBatchSelectionEnd(journal batchSelectionJournal) {
+	if !journal.isFirstBatch {
+		return
+	}
+
+	if journal.hasInitialGap {
+		cache.numSendersWithInitialGap.Increment()
+	} else if journal.hasMiddleGap {
+		// Currently, we only count middle gaps on first batch (for simplicity)
+		cache.numSendersWithMiddleGap.Increment()
+	}
+
+	if journal.isGracePeriod {
+		cache.numSendersInGracePeriod.Increment()
+	} else if journal.copied > 0 {
+		cache.numSendersSelected.Increment()
+	}
 }
 
 func (cache *TxCache) monitorSweepingStart() *core.StopWatch {
