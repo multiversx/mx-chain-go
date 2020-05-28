@@ -102,6 +102,5 @@ type crossTxChunkConfig struct {
 }
 
 func (config *crossTxChunkConfig) String() string {
-	bytes, _ := json.Marshal(config)
-	return string(bytes)
+	return fmt.Sprintf("maxNumItems: %d, maxNumBytes: %d, numItemsToPreemptivelyEvict: %d", config.maxNumItems, config.maxNumBytes, config.numItemsToPreemptivelyEvict)
 }

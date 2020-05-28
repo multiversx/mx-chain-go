@@ -59,6 +59,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 	}
 
 	configPrototypeDestinationMe := txcache.ConfigDestinationMe{
+		NumChunks:                   args.Config.Shards,
 		MaxNumBytes:                 args.Config.SizeInBytes / numPairs,
 		MaxNumItems:                 args.Config.Size / numPairs,
 		NumItemsToPreemptivelyEvict: dataRetriever.TxPoolNumTxsToPreemptivelyEvict,
