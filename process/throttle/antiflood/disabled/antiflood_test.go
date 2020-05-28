@@ -1,4 +1,4 @@
-package factory
+package disabled
 
 import (
 	"testing"
@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDisabledAntiFlood_ShouldNotPanic(t *testing.T) {
+func TestAntiFlood_ShouldNotPanic(t *testing.T) {
 	t.Parallel()
 
 	defer func() {
@@ -16,7 +16,7 @@ func TestDisabledAntiFlood_ShouldNotPanic(t *testing.T) {
 		assert.Nil(t, r, "this shouldn't panic")
 	}()
 
-	daf := &disabledAntiFlood{}
+	daf := &AntiFlood{}
 	assert.False(t, check.IfNil(daf))
 
 	daf.SetMaxMessagesForTopic("test", 10)
