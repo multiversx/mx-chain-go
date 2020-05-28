@@ -138,7 +138,7 @@ type processComponentsFactoryArgs struct {
 	minSizeInBytes            uint32
 	maxSizeInBytes            uint32
 	maxRating                 uint32
-	validatorPubkeyConverter  state.PubkeyConverter
+	validatorPubkeyConverter  core.PubkeyConverter
 	systemSCConfig            *config.SystemSmartContractsConfig
 	txLogsProcessor           process.TransactionLogProcessor
 	version                   string
@@ -176,7 +176,7 @@ func NewProcessComponentsFactoryArgs(
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
 	maxRating uint32,
-	validatorPubkeyConverter state.PubkeyConverter,
+	validatorPubkeyConverter core.PubkeyConverter,
 	ratingsData process.RatingsInfoHandler,
 	systemSCConfig *config.SystemSmartContractsConfig,
 	version string,
