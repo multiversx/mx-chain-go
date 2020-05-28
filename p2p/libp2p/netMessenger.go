@@ -577,11 +577,6 @@ func (netMes *networkMessenger) HasTopicValidator(name string) bool {
 	return validator != nil
 }
 
-// OutgoingChannelLoadBalancer returns the channel load balancer object used by the messenger to send data
-func (netMes *networkMessenger) OutgoingChannelLoadBalancer() p2p.ChannelLoadBalancer {
-	return netMes.outgoingPLB
-}
-
 // BroadcastOnChannelBlocking tries to send a byte buffer onto a topic using provided channel
 // It is a blocking method. It needs to be launched on a go routine
 func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error {
@@ -808,7 +803,7 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 			} else {
 				connPeerInfo.IntraShardValidators = append(connPeerInfo.IntraShardValidators, connString)
 			}
-		case core.ObserverdPeer:
+		case core.ObserverPeer:
 			if selfPeerInfo.ShardID != peerInfo.ShardID {
 				connPeerInfo.CrossShardObservers = append(connPeerInfo.CrossShardObservers, connString)
 			} else {
