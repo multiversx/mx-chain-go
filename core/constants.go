@@ -393,6 +393,10 @@ const ElrondProtectedKeyPrefix = "ELROND"
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10
 
-// WaitTimeBeforeRequestBlockInfo represents the number of seconds to wait since a block is received and the moment
-// when requests for its components, like mini blocks and transactions, would be done if they are still missing
-const WaitTimeBeforeRequestBlockInfo = 5 * time.Second
+// ExtraDelayForBroadcastBlockInfo represents the number of seconds to wait since a block has been broadcast and the
+// moment when its components, like mini blocks and transactions, would be broadcast too
+const ExtraDelayForBroadcastBlockInfo = 2 * time.Second
+
+// ExtraDelayForRequestBlockInfo represents the number of seconds to wait since a block has been received and the
+// moment when its components, like mini blocks and transactions, would be requested too if they are still missing
+const ExtraDelayForRequestBlockInfo = 4 * time.Second

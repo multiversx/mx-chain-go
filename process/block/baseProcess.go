@@ -1147,7 +1147,7 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 	}
 
 	// waiting for late broadcast of mini blocks and transactions to be done and received
-	time.Sleep(core.WaitTimeBeforeRequestBlockInfo)
+	time.Sleep(core.ExtraDelayForRequestBlockInfo)
 
 	bp.txCoordinator.RequestMiniBlocks(headerHandler)
 }

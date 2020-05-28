@@ -16,8 +16,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
-const extraDelayForBroadcast = 2 * time.Second
-
 type subroundEndRound struct {
 	*spos.Subround
 	processingThresholdPercentage int
@@ -390,7 +388,7 @@ func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {
 		return nil
 	}
 
-	go sr.broadcast(miniBlocks, transactions, extraDelayForBroadcast)
+	go sr.broadcast(miniBlocks, transactions, core.ExtraDelayForBroadcastBlockInfo)
 	return nil
 }
 

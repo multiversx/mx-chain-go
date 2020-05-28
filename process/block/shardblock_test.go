@@ -2508,7 +2508,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	bp.ReceivedMetaBlock(metaBlock, metaBlockHash)
 
 	//we have to wait to be sure txHash1Requested is not incremented by a late call
-	time.Sleep(core.WaitTimeBeforeRequestBlockInfo + time.Second)
+	time.Sleep(core.ExtraDelayForRequestBlockInfo + time.Second)
 
 	assert.Equal(t, int32(0), atomic.LoadInt32(&miniBlockHash1Requested))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&miniBlockHash2Requested))
@@ -2585,7 +2585,7 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 	sp.ReceivedMetaBlock(metaBlock, metaBlockHash)
 
 	//we have to wait to be sure txHash1Requested is not incremented by a late call
-	time.Sleep(core.WaitTimeBeforeRequestBlockInfo + time.Second)
+	time.Sleep(core.ExtraDelayForRequestBlockInfo + time.Second)
 
 	assert.Equal(t, int32(0), atomic.LoadInt32(&noOfMissingMiniBlocks))
 }
