@@ -11,14 +11,14 @@ var emptyStruct struct{}
 
 type immunityChunk struct {
 	config               immunityChunkConfig
-	items                map[string]immunityChunkItem
+	items                map[string]chunkItemWrapper
 	itemsAsList          *list.List
 	keysToImmunizeFuture map[string]struct{}
 	numBytes             int
 	mutex                sync.RWMutex
 }
 
-type immunityChunkItem struct {
+type chunkItemWrapper struct {
 	item        CacheItem
 	listElement *list.Element
 }
@@ -28,7 +28,7 @@ func newImmunityChunk(config immunityChunkConfig) *immunityChunk {
 
 	return &immunityChunk{
 		config:               config,
-		items:                make(map[string]immunityChunkItem),
+		items:                make(map[string]chunkItemWrapper),
 		itemsAsList:          list.New(),
 		keysToImmunizeFuture: make(map[string]struct{}),
 	}
@@ -56,12 +56,12 @@ func (chunk *immunityChunk) ImmunizeKeys(keys [][]byte) (numNow, numFuture int) 
 }
 
 func (chunk *immunityChunk) getItemNoLock(key string) (CacheItem, bool) {
-	item, ok := chunk.items[key]
+	wrapper, ok := chunk.items[key]
 	if !ok {
 		return nil, false
 	}
 
-	return item.item, true
+	return wrapper.item, true
 }
 
 func (chunk *immunityChunk) AddItem(item CacheItem) (ok bool, added bool) {
@@ -126,23 +126,27 @@ func (chunk *immunityChunk) removeOldestNoLock(numToRemove int) int {
 
 	for element != nil && numRemoved < numToRemove {
 		item := element.Value.(CacheItem)
-		key := string(item.GetKey())
 
 		if item.IsImmuneToEviction() {
 			element = element.Next()
 			continue
 		}
 
-		// TODO: duplication
 		elementToRemove := element
 		element = element.Next()
-		delete(chunk.items, key)
-		chunk.itemsAsList.Remove(elementToRemove)
-		chunk.trackNumBytesOnRemoveNoLock(item)
+
+		chunk.removeNoLock(elementToRemove)
 		numRemoved++
 	}
 
 	return numRemoved
+}
+
+func (chunk *immunityChunk) removeNoLock(element *list.Element) {
+	item := element.Value.(CacheItem)
+	delete(chunk.items, string(item.GetKey()))
+	chunk.itemsAsList.Remove(element)
+	chunk.trackNumBytesOnRemoveNoLock(item)
 }
 
 func (chunk *immunityChunk) monitorEvictionNoLock(numRemoved int, err error) {
@@ -167,7 +171,7 @@ func (chunk *immunityChunk) addItemNoLock(item CacheItem) {
 	// First, we insert (append) in the linked list; then in the map.
 	// In the map, we also need to hold a reference to the list element, to have O(1) removal.
 	element := chunk.itemsAsList.PushBack(item)
-	chunk.items[key] = immunityChunkItem{item: item, listElement: element}
+	chunk.items[key] = chunkItemWrapper{item: item, listElement: element}
 }
 
 func (chunk *immunityChunk) immunizeItemOnAddNoLock(item CacheItem) {
@@ -193,18 +197,16 @@ func (chunk *immunityChunk) RemoveItem(key string) bool {
 	chunk.mutex.Lock()
 	defer chunk.mutex.Unlock()
 
-	// TODO: explain why.
+	// In order to improve the robustness of the cache, we'll also remove from "keysToImmunizeFuture",
+	// even if the item does not actually exist in the cache - to allow un-doing immunization intent (perhaps useful for rollbacks).
 	delete(chunk.keysToImmunizeFuture, key)
 
-	item, ok := chunk.items[key]
+	wrapper, ok := chunk.items[key]
 	if !ok {
 		return false
 	}
 
-	// TODO: duplication
-	delete(chunk.items, key)
-	chunk.itemsAsList.Remove(item.listElement)
-	chunk.trackNumBytesOnRemoveNoLock(item.item)
+	chunk.removeNoLock(wrapper.listElement)
 	return true
 }
 
