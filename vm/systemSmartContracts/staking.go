@@ -231,21 +231,24 @@ func (r *stakingSC) calculateStakeAfterBleed(startRound uint64, endRound uint64,
 
 func (r *stakingSC) changeValidatorKey(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
-		log.Debug("stake function not allowed to be called by", "address", args.CallerAddr)
+		r.eei.AddReturnMessage("changeValidatorKey function not allowed to be called by address " + string(args.CallerAddr))
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) < 2 {
+		r.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 2, len(args.Arguments)))
 		return vmcommon.UserError
 	}
 
 	oldKey := args.Arguments[0]
 	newKey := args.Arguments[1]
 	if len(oldKey) != len(newKey) {
+		r.eei.AddReturnMessage("invalid bls key")
 		return vmcommon.UserError
 	}
 
 	stakedData, err := r.getOrCreateRegisteredData(oldKey)
 	if err != nil {
+		r.eei.AddReturnMessage("cannot get or create registered data: error " + err.Error())
 		return vmcommon.UserError
 	}
 	if len(stakedData.RewardAddress) == 0 {
@@ -256,6 +259,7 @@ func (r *stakingSC) changeValidatorKey(args *vmcommon.ContractCallInput) vmcommo
 	r.eei.SetStorage(oldKey, nil)
 	err = r.saveStakingData(newKey, stakedData)
 	if err != nil {
+		r.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -265,20 +269,24 @@ func (r *stakingSC) changeValidatorKey(args *vmcommon.ContractCallInput) vmcommo
 func (r *stakingSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
 		log.Debug("stake function not allowed to be called by", "address", args.CallerAddr)
+		r.eei.AddReturnMessage("stake function not allowed to be called by address " + string(args.CallerAddr))
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) < 2 {
+		r.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 2, len(args.Arguments)))
 		return vmcommon.UserError
 	}
 
 	newRewardAddress := args.Arguments[0]
 	if len(newRewardAddress) != len(args.CallerAddr) {
+		r.eei.AddReturnMessage("invalid reward address")
 		return vmcommon.UserError
 	}
 
 	for _, blsKey := range args.Arguments[1:] {
 		stakedData, err := r.getOrCreateRegisteredData(blsKey)
 		if err != nil {
+			r.eei.AddReturnMessage("cannot get or create registered data: error " + err.Error())
 			return vmcommon.UserError
 		}
 		if len(stakedData.RewardAddress) == 0 {
@@ -288,6 +296,7 @@ func (r *stakingSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmcomm
 		stakedData.RewardAddress = newRewardAddress
 		err = r.saveStakingData(blsKey, stakedData)
 		if err != nil {
+			r.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
 			return vmcommon.UserError
 		}
 	}
@@ -297,16 +306,19 @@ func (r *stakingSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmcomm
 
 func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
-		log.Debug("stake function not allowed to be called by", "address", args.CallerAddr)
+		log.Debug("unJail function not allowed to be called by", "address", args.CallerAddr)
+		r.eei.AddReturnMessage("unJail function not allowed to be called by address " + string(args.CallerAddr))
 		return vmcommon.UserError
 	}
 
 	for _, argument := range args.Arguments {
 		stakedData, err := r.getOrCreateRegisteredData(argument)
 		if err != nil {
+			r.eei.AddReturnMessage("cannot get or created registered data: error " + err.Error())
 			return vmcommon.UserError
 		}
 		if len(stakedData.RewardAddress) == 0 {
+			r.eei.AddReturnMessage("cannot unJail a key that is not registered")
 			return vmcommon.UserError
 		}
 
@@ -324,6 +336,7 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 
 		err = r.saveStakingData(argument, stakedData)
 		if err != nil {
+			r.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
 			return vmcommon.UserError
 		}
 	}
@@ -380,9 +393,11 @@ func (r *stakingSC) jail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	for _, argument := range args.Arguments {
 		stakedData, err := r.getOrCreateRegisteredData(argument)
 		if err != nil {
+			r.eei.AddReturnMessage("cannot get or create registered data: error " + err.Error())
 			return vmcommon.UserError
 		}
 		if len(stakedData.RewardAddress) == 0 {
+			r.eei.AddReturnMessage("cannot jail a key that is not registered")
 			return vmcommon.UserError
 		}
 
@@ -394,6 +409,7 @@ func (r *stakingSC) jail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		stakedData.JailedNonce = r.eei.BlockChainHook().CurrentNonce()
 		err = r.saveStakingData(argument, stakedData)
 		if err != nil {
+			r.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
 			return vmcommon.UserError
 		}
 	}
@@ -403,6 +419,7 @@ func (r *stakingSC) jail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 
 func (r *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) < 1 {
+		r.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
 		return vmcommon.UserError
 	}
 
@@ -416,6 +433,7 @@ func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
 	if ownerAddress != nil {
 		log.Debug("smart contract was already initialized")
+		r.eei.AddReturnMessage("smart contract was already initialized")
 		return vmcommon.UserError
 	}
 
@@ -435,12 +453,14 @@ func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 
 func (r *stakingSC) setStakeValueForCurrentEpoch(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
-		log.Debug("stake function not allowed to be called by", "address", args.CallerAddr)
+		log.Debug("setStakeValueForCurrentEpoch function not allowed to be called by", "address", args.CallerAddr)
+		r.eei.AddReturnMessage("setStakeValueForCurrentEpoch function not allowed to be called by address " + string(args.CallerAddr))
 		return vmcommon.UserError
 	}
 
 	if len(args.Arguments) < 1 {
-		log.Debug("nil arguments to call setStakeValueForCurrentEpoch")
+		log.Debug("invalid number of arguments to call setStakeValueForCurrentEpoch", "expected min", 1, "got", 0)
+		r.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments to call setStakeValueForCurrentEpoch: expected min %d, got %d", 1, 0))
 		return vmcommon.UserError
 	}
 
@@ -476,16 +496,19 @@ func (r *stakingSC) getStakeValueForCurrentEpoch() *big.Int {
 func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) vmcommon.ReturnCode {
 	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
 		log.Debug("stake function not allowed to be called by", "address", args.CallerAddr)
+		r.eei.AddReturnMessage("stake function not allowed to be called by address " + string(args.CallerAddr))
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) < 2 {
 		log.Debug("not enough arguments, needed BLS key and reward address")
+		r.eei.AddReturnMessage("not enough arguments, needed BLS key and reward address")
 		return vmcommon.UserError
 	}
 
 	stakeValue := r.getStakeValueForCurrentEpoch()
 	registrationData, err := r.getOrCreateRegisteredData(args.Arguments[0])
 	if err != nil {
+		r.eei.AddReturnMessage("cannot get or create registered data: error " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -506,6 +529,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 
 	err = r.saveStakingData(args.Arguments[0], registrationData)
 	if err != nil {
+		r.eei.AddReturnMessage("cannot save staking registered data: error " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -515,18 +539,23 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
 		log.Debug("unStake function not allowed to be called by", "address", args.CallerAddr)
+		r.eei.AddReturnMessage("unStake function not allowed to be called by address " + string(args.CallerAddr))
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) < 2 {
 		log.Debug("not enough arguments, needed BLS key and reward address")
+		r.eei.AddReturnMessage("not enough arguments, needed BLS key and reward address")
 		return vmcommon.UserError
 	}
 
 	registrationData, err := r.getOrCreateRegisteredData(args.Arguments[0])
 	if err != nil {
+		log.Debug("cannot get or create registered data", "error", err.Error())
+		r.eei.AddReturnMessage("cannot get or create registered data: error " + err.Error())
 		return vmcommon.UserError
 	}
 	if len(registrationData.RewardAddress) == 0 {
+		r.eei.AddReturnMessage("cannot unStake a key that is not registered")
 		return vmcommon.UserError
 	}
 
@@ -535,19 +564,24 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 			"caller", args.CallerAddr,
 			"staker", registrationData.RewardAddress,
 		)
+
+		r.eei.AddReturnMessage("unStake possible only from staker caller")
 		return vmcommon.UserError
 	}
 
 	if !registrationData.Staked {
 		log.Error("unStake is not possible for address with is already unStaked")
+		r.eei.AddReturnMessage("unStake is not possible for address with is already unStaked")
 		return vmcommon.UserError
 	}
 	if registrationData.JailedRound != math.MaxUint64 {
 		log.Error("unStake is not possible for jailed nodes")
+		r.eei.AddReturnMessage("unStake is not possible for jailed nodes")
 		return vmcommon.UserError
 	}
 	if !r.canUnStake() {
 		log.Error("unStake is not possible as too many left")
+		r.eei.AddReturnMessage("unStake is not possible as too many left")
 		return vmcommon.UserError
 	}
 
@@ -558,6 +592,7 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 
 	err = r.saveStakingData(args.Arguments[0], registrationData)
 	if err != nil {
+		r.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -566,38 +601,46 @@ func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 
 func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
-		log.Debug("unStake function not allowed to be called by", "address", args.CallerAddr)
+		log.Debug("unBond function not allowed to be called by", "address", args.CallerAddr)
+		r.eei.AddReturnMessage("unBond function not allowed to be called by address " + string(args.CallerAddr))
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) < 1 {
 		log.Debug("not enough arguments, needed BLS key and reward address")
+		r.eei.AddReturnMessage("not enough arguments, needed BLS key and reward address")
 		return vmcommon.UserError
 	}
 
 	registrationData, err := r.getOrCreateRegisteredData(args.Arguments[0])
 	if err != nil {
+		r.eei.AddReturnMessage("cannot get or create registered data: error " + err.Error())
 		return vmcommon.UserError
 	}
 	if len(registrationData.RewardAddress) == 0 {
+		r.eei.AddReturnMessage("cannot unBond a key that is not registered")
 		return vmcommon.UserError
 	}
 
 	if registrationData.Staked {
 		log.Debug("unBond is not possible for address which is staked")
+		r.eei.AddReturnMessage("unBond is not possible for address which is staked")
 		return vmcommon.UserError
 	}
 
 	currentNonce := r.eei.BlockChainHook().CurrentNonce()
 	if currentNonce-registrationData.UnStakedNonce < r.unBondPeriod {
 		log.Debug("unBond is not possible for address because unBond period did not pass")
+		r.eei.AddReturnMessage("unBond is not possible for address because unBond period did not pass")
 		return vmcommon.UserError
 	}
 	if registrationData.JailedRound != math.MaxUint64 {
 		log.Error("unBond is not possible for jailed nodes")
+		r.eei.AddReturnMessage("unBond is not possible for jailed nodes")
 		return vmcommon.UserError
 	}
 	if !r.canUnBond() || r.eei.IsValidator(args.Arguments[0]) {
 		log.Error("unBond is not possible as not enough remaining")
+		r.eei.AddReturnMessage("unBond is not possible as not enough remaining")
 		return vmcommon.UserError
 	}
 
@@ -612,23 +655,30 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	ownerAddress := r.eei.GetStorage([]byte(ownerKey))
 	if !bytes.Equal(ownerAddress, args.CallerAddr) {
 		log.Debug("slash function called by not the owners address")
+		r.eei.AddReturnMessage("slash function called by not the owners address")
 		return vmcommon.UserError
 	}
 
 	if len(args.Arguments) != 2 {
-		log.Debug("slash function called by wrong number of arguments")
+		log.Debug("slash function called with wrong number of arguments")
+		retMessage := fmt.Sprintf("slash function called with wrong number of arguments: expected %d, got %d", 2, len(args.Arguments))
+		r.eei.AddReturnMessage(retMessage)
 		return vmcommon.UserError
 	}
 
 	registrationData, err := r.getOrCreateRegisteredData(args.Arguments[0])
 	if err != nil {
+		r.eei.AddReturnMessage("cannot get ore create registered data: error " + err.Error())
 		return vmcommon.UserError
 	}
 	if len(registrationData.RewardAddress) == 0 {
+		r.eei.AddReturnMessage("invalid reward address")
 		return vmcommon.UserError
 	}
 	if !registrationData.Staked {
 		log.Debug("cannot slash already unstaked or user not staked")
+
+		r.eei.AddReturnMessage("cannot slash already unstaked or user not staked")
 		return vmcommon.UserError
 	}
 
@@ -644,6 +694,7 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 
 	err = r.saveStakingData(args.Arguments[0], registrationData)
 	if err != nil {
+		r.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -652,14 +703,17 @@ func (r *stakingSC) slash(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 
 func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) < 1 {
+		r.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
 		return vmcommon.UserError
 	}
 
 	registrationData, err := r.getOrCreateRegisteredData(args.Arguments[0])
 	if err != nil {
+		r.eei.AddReturnMessage("cannot get or create registered data: error " + err.Error())
 		return vmcommon.UserError
 	}
 	if len(registrationData.RewardAddress) == 0 {
+		r.eei.AddReturnMessage("key is not registered")
 		return vmcommon.UserError
 	}
 
@@ -668,6 +722,7 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return vmcommon.Ok
 	}
 
+	r.eei.AddReturnMessage("account not staked")
 	return vmcommon.UserError
 }
 
