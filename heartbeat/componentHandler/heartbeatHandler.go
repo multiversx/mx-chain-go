@@ -41,7 +41,7 @@ type ArgHeartbeat struct {
 	HardforkTrigger          heartbeat.HardforkTrigger
 	AntifloodHandler         heartbeat.P2PAntifloodHandler
 	PeerBlackListHandler     heartbeat.BlackListHandler
-	ValidatorPubkeyConverter state.PubkeyConverter
+	ValidatorPubkeyConverter core.PubkeyConverter
 	EpochStartTrigger        sharding.EpochHandler
 	EpochStartRegistration   sharding.EpochStartEventNotifier
 	Timer                    heartbeat.Timer

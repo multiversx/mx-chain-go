@@ -1,9 +1,9 @@
 package metachain
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -17,7 +17,7 @@ type intermediateProcessorsContainerFactory struct {
 	shardCoordinator sharding.Coordinator
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
-	pubkeyConverter  state.PubkeyConverter
+	pubkeyConverter  core.PubkeyConverter
 	store            dataRetriever.StorageService
 	poolsHolder      dataRetriever.PoolsHolder
 }
@@ -27,7 +27,7 @@ func NewIntermediateProcessorsContainerFactory(
 	shardCoordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
-	pubkeyConverter state.PubkeyConverter,
+	pubkeyConverter core.PubkeyConverter,
 	store dataRetriever.StorageService,
 	poolsHolder dataRetriever.PoolsHolder,
 ) (*intermediateProcessorsContainerFactory, error) {
