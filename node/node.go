@@ -117,11 +117,12 @@ type Node struct {
 	currentSendingGoRoutines int32
 	bootstrapRoundIndex      uint64
 
-	indexer                indexer.Indexer
-	blocksBlackListHandler process.BlackListHandler
-	bootStorer             process.BootStorer
-	requestedItemsHandler  dataRetriever.RequestedItemsHandler
-	headerSigVerifier      spos.RandSeedVerifier
+	indexer                 indexer.Indexer
+	blocksBlackListHandler  process.BlackListHandler
+	bootStorer              process.BootStorer
+	requestedItemsHandler   dataRetriever.RequestedItemsHandler
+	headerSigVerifier       spos.RandSeedVerifier
+	headerIntegrityVerifier spos.HeaderIntegrityVerifier
 
 	chainID                  []byte
 	blockTracker             process.BlockTracker
@@ -293,6 +294,7 @@ func (n *Node) StartConsensus() error {
 		SingleSigner:             n.singleSigner,
 		SyncTimer:                n.syncTimer,
 		HeaderSigVerifier:        n.headerSigVerifier,
+		HeaderIntegrityVerifier:  n.headerIntegrityVerifier,
 		ChainID:                  n.chainID,
 		NetworkShardingCollector: n.networkShardingCollector,
 		AntifloodHandler:         n.inputAntifloodHandler,
@@ -957,6 +959,7 @@ func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber str
 		VersionNumber:            versionNumber,
 		PeerShardMapper:          n.networkShardingCollector,
 		SizeCheckDelta:           n.sizeCheckDelta,
+		ValidatorsProvider:       n.validatorsProvider,
 	}
 
 	var err error

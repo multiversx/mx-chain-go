@@ -60,8 +60,8 @@ func TestValidatorsProvider_GetLatestValidatorsSecondHashDoesNotExist(t *testing
 	gotOk := false
 	gotNil := false
 	vs := &mock.ValidatorStatisticsProcessorStub{
-		RootHashCalled: func() (bytes []byte, err error) {
-			return root, nil
+		LastFinalizedRootHashCalled: func() (bytes []byte) {
+			return root
 		},
 		GetValidatorInfoForRootHashCalled: func(rootHash []byte) (m map[uint32][]*state.ValidatorInfo, err error) {
 			if bytes.Equal([]byte("rootHash"), rootHash) {

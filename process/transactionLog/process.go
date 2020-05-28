@@ -103,7 +103,7 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 	}
 
 	if len(logEntries) == 0 {
-		log.Debug("txLogProcessor.SaveLog()",
+		log.Trace("txLogProcessor.SaveLog()",
 			"txHash", hex.EncodeToString(txHash),
 			"message", "no logEntries provided",
 		)

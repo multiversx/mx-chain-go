@@ -69,11 +69,12 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager, *mock.EvictionWai
 
 	trieStorage, _ := NewTrieStorageManager(db, marsh, hsh, cfg, evictionWaitList, generalCfg)
 	tr := &patriciaMerkleTrie{
-		trieStorage: trieStorage,
-		marshalizer: marsh,
-		hasher:      hsh,
-		oldHashes:   make([][]byte, 0),
-		oldRoot:     make([]byte, 0),
+		trieStorage:          trieStorage,
+		marshalizer:          marsh,
+		hasher:               hsh,
+		oldHashes:            make([][]byte, 0),
+		oldRoot:              make([]byte, 0),
+		maxTrieLevelInMemory: 5,
 	}
 
 	return tr, trieStorage, evictionWaitList
@@ -894,9 +895,10 @@ func TestBranchNode_reduceNode(t *testing.T) {
 	key := append([]byte{childPos}, []byte("dog")...)
 	ln, _ := newLeafNode(key, []byte("dog"), bn.marsh, bn.hasher)
 
-	node, err := bn.children[childPos].reduceNode(int(childPos))
+	node, newChildHash, err := bn.children[childPos].reduceNode(int(childPos))
 	assert.Equal(t, ln, node)
 	assert.Nil(t, err)
+	assert.True(t, newChildHash)
 }
 
 func TestBranchNode_getChildPosition(t *testing.T) {
@@ -1144,7 +1146,6 @@ func TestPatriciaMerkleTrie_CommitCollapsedDirtyTrieShouldWork(t *testing.T) {
 	_ = tr.Commit()
 
 	assert.False(t, tr.root.isDirty())
-	assert.True(t, tr.root.isCollapsed())
 }
 
 func testSameBranchNodeContent(t *testing.T, expected *branchNode, actual *branchNode) {
@@ -1301,9 +1302,10 @@ func TestBranchNode_reduceNodeBnChild(t *testing.T) {
 	pos := 5
 	expectedNode, _ := newExtensionNode([]byte{byte(pos)}, en.child, marsh, hasher)
 
-	newNode, err := en.child.reduceNode(pos)
+	newNode, newChildHash, err := en.child.reduceNode(pos)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNode, newNode)
+	assert.False(t, newChildHash)
 }
 
 func TestBranchNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {

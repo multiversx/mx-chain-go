@@ -23,8 +23,8 @@ func (vs *validatorStatistics) GetMatchingPrevShardData(currentShardData block.S
 
 // GetLeaderDecreaseCount -
 func (vs *validatorStatistics) GetLeaderDecreaseCount(key []byte) uint32 {
-	vs.mutMissedBlocksCounters.RLock()
-	defer vs.mutMissedBlocksCounters.RUnlock()
+	vs.mutValidatorStatistics.RLock()
+	defer vs.mutValidatorStatistics.RUnlock()
 
 	return vs.missedBlocksCounters.get(key).leaderDecreaseCount
 }
@@ -37,4 +37,11 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 // UpdateMissedBlocksCounters -
 func (vs *validatorStatistics) UpdateMissedBlocksCounters() error {
 	return vs.updateMissedBlocksCounters()
+}
+
+// GetCache -
+func (ptp *PeerTypeProvider) GetCache() map[string]*peerListAndShard {
+	ptp.mutCache.RLock()
+	defer ptp.mutCache.RUnlock()
+	return ptp.cache
 }

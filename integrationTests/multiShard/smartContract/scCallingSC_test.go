@@ -592,7 +592,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	vmOutputVersion, _ := shardNode.SCQueryService.ExecuteQuery(scQueryVersion)
 	assert.NotNil(t, vmOutputVersion)
 	assert.Equal(t, len(vmOutputVersion.ReturnData), 1)
-	assert.True(t, bytes.Equal([]byte("0.2.0"), vmOutputVersion.ReturnData[0]))
+	require.True(t, bytes.Contains(vmOutputVersion.ReturnData[0], []byte("0.2.")))
 	log.Info("SC deployed", "version", string(vmOutputVersion.ReturnData[0]))
 
 	// set number of nodes
@@ -721,7 +721,7 @@ func putDeploySCToDataPool(
 		RcvAddr:  make([]byte, 32),
 		SndAddr:  pubkey,
 		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),
-		GasLimit: nodes[0].EconomicsData.MaxGasLimitPerBlock() - 1,
+		GasLimit: nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1,
 		Data:     []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString + initArgs),
 	}
 	txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)

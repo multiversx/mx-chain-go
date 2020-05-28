@@ -155,6 +155,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithHardforkTrigger(hardforkTrigger),
 		node.WithPeerBlackListHandler(&mock.BlackListHandlerStub{}),
 		node.WithValidatorPubkeyConverter(TestValidatorPubkeyConverter),
+		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 	)
 	if err != nil {
 		fmt.Printf("Error creating node: %s\n", err.Error())
@@ -166,6 +167,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		DurationToConsiderUnresponsiveInSec: 60,
 		HeartbeatRefreshIntervalInSec:       5,
 		HideInactiveValidatorIntervalInSec:  600,
+		PeerTypeRefreshIntervalInSec:        5,
 	}
 	err = tP2pNode.Node.StartHeartbeat(hbConfig, "test", config.PreferencesConfig{})
 	if err != nil {

@@ -76,8 +76,8 @@ func TestMetrics_IncrementCountAcceptedBlocks_ShouldWork(t *testing.T) {
 	nodesCoord := &mock.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]sharding.Validator, error) {
 			return []sharding.Validator{
-				mock.NewValidatorMock([]byte("key")), // nodes coordinator default return for OwnPubKey()
 				mock.NewValidatorMock([]byte("another-key")),
+				mock.NewValidatorMock([]byte("key")), // nodes coordinator default return for OwnPubKey()
 			}, nil
 		},
 	}
@@ -87,6 +87,6 @@ func TestMetrics_IncrementCountAcceptedBlocks_ShouldWork(t *testing.T) {
 		},
 	}
 
-	incrementCountAcceptedBlocks(nodesCoord, statusHandler, &block.Header{PubKeysBitmap: []byte{1, 0}})
+	incrementCountAcceptedBlocks(nodesCoord, statusHandler, &block.Header{PubKeysBitmap: []byte{2, 0}})
 	assert.True(t, incrementWasCalled)
 }

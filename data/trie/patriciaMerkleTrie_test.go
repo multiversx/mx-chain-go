@@ -110,6 +110,16 @@ func TestNewTrieWithNilHasher(t *testing.T) {
 	assert.Equal(t, trie.ErrNilHasher, err)
 }
 
+func TestNewTrieWithInvalidMaxTrieLevelInMemory(t *testing.T) {
+	t.Parallel()
+
+	trieStorage, marshalizer, hasher, _ := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, 0)
+
+	assert.Nil(t, tr)
+	assert.Equal(t, trie.ErrInvalidLevelValue, err)
+}
+
 func TestPatriciaMerkleTree_Get(t *testing.T) {
 	t.Parallel()
 
@@ -522,6 +532,28 @@ func TestPatriciaMerkleTrie_ClosePersister(t *testing.T) {
 	key, err := tr.Database().Get([]byte("key"))
 	assert.Nil(t, key)
 	assert.Equal(t, storage.ErrSerialDBIsClosed, err)
+}
+
+func TestPatriciaMerkleTree_reduceBranchNodeReturnsOldHashesCorrectly(t *testing.T) {
+	t.Parallel()
+
+	key1 := []byte("ABC")
+	key2 := []byte("ABD")
+	val1 := []byte("val1")
+	val2 := []byte("val2")
+
+	tr := emptyTrie()
+	_ = tr.Update(key1, val1)
+	_ = tr.Update(key2, val2)
+	_ = tr.Commit()
+
+	_ = tr.Update(key1, nil)
+	_ = tr.Update(key1, val1)
+
+	oldHashes := tr.ResetOldHashes()
+	newHashes, _ := tr.GetDirtyHashes()
+
+	assert.Equal(t, len(oldHashes), len(newHashes))
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {

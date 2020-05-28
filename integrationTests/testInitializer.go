@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"math/big"
 	"strings"
 	"sync"
@@ -18,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
@@ -1987,9 +1989,11 @@ func createTxPool(selfShardID uint32) (dataRetriever.ShardedDataCacherNotifier, 
 	return txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
-				Size:        100000,
-				SizeInBytes: 1000000000,
-				Shards:      16,
+				Size:                 100000,
+				SizePerSender:        math.MaxUint32,
+				SizeInBytes:          1000000000,
+				SizeInBytesPerSender: math.MaxUint32,
+				Shards:               16,
 			},
 			MinGasPrice:    200000000000,
 			NumberOfShards: 1,
@@ -2005,4 +2009,20 @@ func WaitOperationToBeDone(t *testing.T, nodes []*TestProcessorNode, nrOfRounds 
 	}
 
 	return nonce, round
+}
+
+// AddSelfNotarizedHeaderByMetachain -
+func AddSelfNotarizedHeaderByMetachain(nodes []*TestProcessorNode) {
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() == core.MetachainShardId {
+			continue
+		}
+
+		header := n.BlockChain.GetCurrentBlockHeader()
+		if check.IfNil(header) {
+			continue
+		}
+
+		n.BlockTracker.AddSelfNotarizedHeader(core.MetachainShardId, header, nil)
+	}
 }

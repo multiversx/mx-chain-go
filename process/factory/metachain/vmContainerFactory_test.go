@@ -75,11 +75,12 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				CommunityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 			},
 			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock:  "10000000000",
-				MinGasPrice:          "10",
-				MinGasLimit:          "10",
-				GasPerDataByte:       "1",
-				DataLimitForBaseCalc: "10000",
+				MaxGasLimitPerBlock:     "10000000000",
+				MaxGasLimitPerMetaBlock: "10000000000",
+				MinGasPrice:             "10",
+				MinGasLimit:             "10",
+				GasPerDataByte:          "1",
+				DataLimitForBaseCalc:    "10000",
 			},
 			ValidatorSettings: config.ValidatorSettings{
 				GenesisNodePrice:         "500",
