@@ -25,14 +25,17 @@ type crossTxChunk struct {
 }
 
 func newCrossTxChunk(config crossTxChunkConfig) *crossTxChunk {
+	log.Trace("newCrossTxChunk", "config", config.String())
+
 	return &crossTxChunk{
-		config:      config,
-		items:       make(map[string]crossTxChunkItem),
-		itemsAsList: list.New(),
+		config:         config,
+		items:          make(map[string]crossTxChunkItem),
+		itemsAsList:    list.New(),
+		keysToImmunize: make(map[string]struct{}),
 	}
 }
 
-func (chunk *crossTxChunk) ImmunizeKeys(keys [][]byte) {
+func (chunk *crossTxChunk) ImmunizeKeys(keys [][]byte) (numNow, numFuture int) {
 	chunk.mutex.Lock()
 	defer chunk.mutex.Unlock()
 
@@ -42,11 +45,15 @@ func (chunk *crossTxChunk) ImmunizeKeys(keys [][]byte) {
 		if ok {
 			// Item exists, immunize on the spot
 			item.ImmunizeAgainstEviction()
+			numNow++
 		} else {
 			// Item not exists, will be immunized as it appears
 			chunk.keysToImmunize[string(key)] = emptyStruct
+			numFuture++
 		}
 	}
+
+	return
 }
 
 func (chunk *crossTxChunk) getItem(key string) (*WrappedTransaction, bool) {
@@ -196,10 +203,16 @@ func (chunk *crossTxChunk) removeOldestNoLock(numToRemove int) int {
 	return numRemoved
 }
 
-func (chunk *crossTxChunk) countItems() int {
+func (chunk *crossTxChunk) CountItems() int {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()
 	return len(chunk.items)
+}
+
+func (chunk *crossTxChunk) NumBytes() int {
+	chunk.mutex.RLock()
+	defer chunk.mutex.RUnlock()
+	return chunk.numBytes
 }
 
 func (chunk *crossTxChunk) KeysInOrder() [][]byte {

@@ -100,3 +100,8 @@ type crossTxChunkConfig struct {
 	maxNumBytes                 uint32
 	numItemsToPreemptivelyEvict uint32
 }
+
+func (config *crossTxChunkConfig) String() string {
+	bytes, _ := json.Marshal(config)
+	return string(bytes)
+}

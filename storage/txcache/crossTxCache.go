@@ -45,13 +45,27 @@ func (cache *crossTxCache) initializeChunks() {
 }
 
 func (cache *crossTxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
-	// log trace. accumulators: how many now, how many futures.
+	numNow, numFuture := cache.doImmunizeTxsAgainstEviction(keys)
+	log.Debug("crossTxCache.ImmunizeTxsAgainstEviction()", "name", cache.config.Name, "len(keys)", len(keys), "numNow", numNow, "numFuture", numFuture)
+	cache.diagnose()
+}
+
+func (cache *crossTxCache) diagnose() {
+	log.Debug("crossTxCache.diagnose()", "name", cache.config.Name, "count", cache.Count(), "numBytes", cache.NumBytes())
+}
+
+func (cache *crossTxCache) doImmunizeTxsAgainstEviction(keys [][]byte) (numNowTotal, numFutureTotal int) {
 	groups := cache.groupKeysByChunk(keys)
 
 	for chunkIndex, chunkKeys := range groups {
 		chunk := cache.getChunkByIndex(chunkIndex)
-		chunk.ImmunizeKeys(chunkKeys)
+		numNow, numFuture := chunk.ImmunizeKeys(chunkKeys)
+
+		numNowTotal += numNow
+		numFutureTotal += numFuture
 	}
+
+	return
 }
 
 // AddTx adds a transaction in the cache
@@ -136,12 +150,21 @@ func (cache *crossTxCache) Clear() {
 func (cache *crossTxCache) Count() int {
 	count := 0
 	for _, chunk := range cache.getChunks() {
-		count += chunk.countItems()
+		count += chunk.CountItems()
 	}
 	return count
 }
 
-// Len is an alias for CountTx
+// NumBytes estimates the size of the cache, in bytes
+func (cache *crossTxCache) NumBytes() int {
+	numBytes := 0
+	for _, chunk := range cache.getChunks() {
+		numBytes += chunk.NumBytes()
+	}
+	return numBytes
+}
+
+// Len is an alias for Count
 func (cache *crossTxCache) Len() int {
 	return cache.Count()
 }
