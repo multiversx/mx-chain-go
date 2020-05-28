@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"reflect"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -105,9 +104,14 @@ func TestValidatorsProvider_GetLatestValidatorsSecondHashDoesNotExist(t *testing
 		},
 	}
 
+	nc := &mock.NodesCoordinatorMock{GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+		return map[uint32][][]byte{0: {initialInfo.PublicKey}}, nil
+	}}
+
 	maxRating := uint32(100)
 	args := createDefaultValidatorsProviderArg()
 	args.ValidatorStatistics = vs
+	args.NodesCoordinator = nc
 	args.MaxRating = maxRating
 	vp, _ := NewValidatorsProvider(args)
 	time.Sleep(time.Millisecond)
@@ -126,7 +130,6 @@ func TestValidatorsProvider_GetLatestValidatorsSecondHashDoesNotExist(t *testing
 	assert.True(t, gotOk)
 	assert.True(t, gotNil)
 	mut.Unlock()
-	assert.True(t, reflect.DeepEqual(vinfos, vinfos2))
 	validatorInfoApi := vinfos[hex.EncodeToString(initialInfo.GetPublicKey())]
 	assert.Equal(t, initialInfo.GetTempRating(), uint32(validatorInfoApi.GetTempRating()))
 	assert.Equal(t, initialInfo.GetRating(), uint32(validatorInfoApi.GetRating()))
@@ -198,11 +201,11 @@ func TestValidatorsProvider_UpdateCache_WithError(t *testing.T) {
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 nil,
-		mutCache:                     sync.RWMutex{},
+		lock:                         sync.RWMutex{},
 		pubkeyConverter:              mock.NewPubkeyConverterMock(32),
 	}
 
-	vsp.updateCache(0)
+	vsp.updateCache()
 
 	assert.NotNil(t, vsp.GetCache())
 	assert.Equal(t, 1, len(vsp.GetCache()))
@@ -218,14 +221,14 @@ func TestValidatorsProvider_Cancel_startRefreshProcess(t *testing.T) {
 		cache:                        make(map[string]*state.ValidatorApiResponse),
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 make(chan uint32),
-		mutCache:                     sync.RWMutex{},
+		lock:                         sync.RWMutex{},
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	mutFinished := sync.Mutex{}
 	finished := false
 	go func() {
-		vsp.startRefreshProcess(ctx, 0)
+		vsp.startRefreshProcess(ctx)
 		mutFinished.Lock()
 		finished = true
 		mutFinished.Unlock()
@@ -271,10 +274,10 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 nil,
 		pubkeyConverter:              mock.NewPubkeyConverterMock(32),
-		mutCache:                     sync.RWMutex{},
+		lock:                         sync.RWMutex{},
 	}
 
-	vsp.updateCache(0)
+	vsp.updateCache()
 
 	assert.NotNil(t, vsp.cache)
 	assert.Equal(t, len(validatorsMap[initialShardId]), len(vsp.cache))
@@ -390,7 +393,7 @@ func TestValidatorsProvider_createCache(t *testing.T) {
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		pubkeyConverter:              pubKeyConverter,
-		mutCache:                     sync.RWMutex{},
+		lock:                         sync.RWMutex{},
 	}
 
 	cache := vsp.createNewCache(0, validatorsMap)
@@ -472,7 +475,7 @@ func TestValidatorsProvider_createCache_combined(t *testing.T) {
 		pubkeyConverter:              arg.PubKeyConverter,
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
-		mutCache:                     sync.RWMutex{},
+		lock:                         sync.RWMutex{},
 	}
 
 	cache := vsp.createNewCache(0, validatorsMap)
@@ -563,6 +566,45 @@ func TestValidatorsProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 	assert.NotNil(t, vsp.GetCache()[encodedEligible])
 }
 
+func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testing.T) {
+	arg := createDefaultValidatorsProviderArg()
+	callNumber := 0
+	epochStartNotifier := &mock.EpochStartNotifierStub{}
+	arg.EpochStartEventNotifier = epochStartNotifier
+	arg.CacheRefreshIntervalDurationInSec = 5 * time.Millisecond
+	pkEligibleInTrie := []byte("pk1")
+
+	validatorStatisticsProcessor := &mock.ValidatorStatisticsProcessorStub{}
+	validatorStatisticsProcessor.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+		callNumber++
+		// first call comes from the constructor
+		if callNumber == 1 {
+			return nil, nil
+		}
+		return map[uint32][]*state.ValidatorInfo{
+			0: {
+				{
+					PublicKey: pkEligibleInTrie,
+					List:      string(core.EligibleList),
+				},
+			},
+		}, nil
+	}
+	arg.ValidatorStatistics = validatorStatisticsProcessor
+
+	vsp, _ := NewValidatorsProvider(arg)
+	encodedEligible := arg.PubKeyConverter.Encode(pkEligibleInTrie)
+	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
+	time.Sleep(arg.CacheRefreshIntervalDurationInSec)
+	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
+	time.Sleep(arg.CacheRefreshIntervalDurationInSec)
+	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
+
+	resp := vsp.GetLatestValidators()
+	assert.Equal(t, 1, len(vsp.GetCache()))
+	assert.Equal(t, 1, len(resp))
+	assert.NotNil(t, vsp.GetCache()[encodedEligible])
+}
 func createMockValidatorInfo() *state.ValidatorInfo {
 	initialInfo := &state.ValidatorInfo{
 		PublicKey:                  []byte("a1"),

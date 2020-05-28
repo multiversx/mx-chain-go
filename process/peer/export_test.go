@@ -48,7 +48,7 @@ func (ptp *PeerTypeProvider) GetCache() map[string]*peerListAndShard {
 
 // GetCache -
 func (ptp *validatorsProvider) GetCache() map[string]*state.ValidatorApiResponse {
-	ptp.mutCache.RLock()
-	defer ptp.mutCache.RUnlock()
+	ptp.lock.RLock()
+	defer ptp.lock.RUnlock()
 	return ptp.cache
 }

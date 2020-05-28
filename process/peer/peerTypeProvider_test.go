@@ -95,22 +95,16 @@ func TestPeerTypeProvider_UpdateCache(t *testing.T) {
 func TestNewPeerTypeProvider_createCache(t *testing.T) {
 	pkEligible := "pk1"
 	pkWaiting := "pk2"
-	pkLeaving := "pk3"
 
 	eligibleMap := make(map[uint32][][]byte)
 	waitingMap := make(map[uint32][][]byte)
-	leavingMap := make(map[uint32][][]byte)
 	eligibleShardId := uint32(0)
 	waitingShardId := uint32(1)
-	leavingShardId := uint32(2)
 	eligibleMap[eligibleShardId] = [][]byte{
 		[]byte(pkEligible),
 	}
 	waitingMap[waitingShardId] = [][]byte{
 		[]byte(pkWaiting),
-	}
-	leavingMap[leavingShardId] = [][]byte{
-		[]byte(pkLeaving),
 	}
 
 	arg := createDefaultArgPeerTypeProvider()
@@ -120,9 +114,6 @@ func TestNewPeerTypeProvider_createCache(t *testing.T) {
 		},
 		GetAllWaitingValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			return waitingMap, nil
-		},
-		GetAllLeavingValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
-			return leavingMap, nil
 		},
 	}
 
@@ -143,10 +134,6 @@ func TestNewPeerTypeProvider_createCache(t *testing.T) {
 	assert.NotNil(t, cache[pkWaiting])
 	assert.Equal(t, core.WaitingList, cache[pkWaiting].pType)
 	assert.Equal(t, waitingShardId, cache[pkWaiting].pShard)
-
-	assert.NotNil(t, cache[pkLeaving])
-	assert.Equal(t, core.LeavingList, cache[pkLeaving].pType)
-	assert.Equal(t, leavingShardId, cache[pkLeaving].pShard)
 }
 
 func TestNewPeerTypeProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {

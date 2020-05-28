@@ -24,7 +24,9 @@ type validatorsProvider struct {
 	cache                        map[string]*state.ValidatorApiResponse
 	cacheRefreshIntervalDuration time.Duration
 	refreshCache                 chan uint32
-	mutCache                     sync.RWMutex
+	currentEpoch                 uint32
+	lastCacheUpdate              time.Time
+	lock                         sync.RWMutex
 	cancelFunc                   func()
 	maxRating                    uint32
 	pubkeyConverter              state.PubkeyConverter
@@ -73,13 +75,14 @@ func NewValidatorsProvider(
 		cache:                        make(map[string]*state.ValidatorApiResponse),
 		cacheRefreshIntervalDuration: args.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 make(chan uint32),
-		mutCache:                     sync.RWMutex{},
+		lock:                         sync.RWMutex{},
 		cancelFunc:                   cancelfunc,
 		maxRating:                    args.MaxRating,
 		pubkeyConverter:              args.PubKeyConverter,
+		currentEpoch:                 args.StartEpoch,
 	}
 
-	go validatorsProvider.startRefreshProcess(currentContext, args.StartEpoch)
+	go validatorsProvider.startRefreshProcess(currentContext)
 	args.EpochStartEventNotifier.RegisterHandler(validatorsProvider.epochStartEventHandler())
 
 	return validatorsProvider, nil
@@ -87,10 +90,17 @@ func NewValidatorsProvider(
 
 // GetLatestValidators gets the latest configuration of validators from the peerAccountsTrie
 func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorApiResponse {
-	vp.mutCache.RLock()
-	defer vp.mutCache.RUnlock()
+	vp.lock.RLock()
+	shouldUpdate := time.Since(vp.lastCacheUpdate) > vp.cacheRefreshIntervalDuration
+	vp.lock.RUnlock()
 
+	if shouldUpdate {
+		vp.updateCache()
+	}
+
+	vp.lock.RLock()
 	clonedMap := cloneMap(vp.cache)
+	vp.lock.RUnlock()
 
 	return clonedMap
 }
@@ -145,35 +155,39 @@ func (vp *validatorsProvider) epochStartEventHandler() sharding.EpochStartAction
 	return subscribeHandler
 }
 
-func (vp *validatorsProvider) startRefreshProcess(ctx context.Context, startEpoch uint32) {
-	epoch := startEpoch
+func (vp *validatorsProvider) startRefreshProcess(ctx context.Context) {
 	for {
-		vp.updateCache(epoch)
+		vp.updateCache()
 		select {
-		case epoch = <-vp.refreshCache:
-			log.Trace("startRefreshProcess - forced refresh", "epoch", epoch)
+		case epoch := <-vp.refreshCache:
+			vp.lock.Lock()
+			vp.currentEpoch = epoch
+			vp.lock.Unlock()
+			log.Trace("startRefreshProcess - forced refresh", "epoch", vp.currentEpoch)
 		case <-ctx.Done():
 			log.Debug("validatorsProvider's go routine is stopping...")
 			return
-		case <-time.After(vp.cacheRefreshIntervalDuration):
-			log.Trace("startRefreshProcess - time after")
 		}
 	}
 }
 
-func (vp *validatorsProvider) updateCache(epoch uint32) {
+func (vp *validatorsProvider) updateCache() {
 	lastFinalizedRootHash := vp.validatorStatistics.LastFinalizedRootHash()
 	allNodes, err := vp.validatorStatistics.GetValidatorInfoForRootHash(lastFinalizedRootHash)
 	if err != nil {
 		log.Trace("validatorsProvider - GetLatestValidatorInfos failed", "error", err)
 	}
 
+	vp.lock.RLock()
+	epoch := vp.currentEpoch
+	vp.lock.RUnlock()
+
 	newCache := vp.createNewCache(epoch, allNodes)
 
-	vp.mutCache.Lock()
+	vp.lock.Lock()
+	vp.lastCacheUpdate = time.Now()
 	vp.cache = newCache
-
-	vp.mutCache.Unlock()
+	vp.lock.Unlock()
 }
 
 func (vp *validatorsProvider) createNewCache(
