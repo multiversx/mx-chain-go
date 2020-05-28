@@ -20,10 +20,12 @@ import (
 )
 
 const (
-	txStatusSuccess                     = "Success"
-	txStatusPending                     = "Pending"
-	txStatusInvalid                     = "Invalid"
-	txStatusNotExecuted                 = "Not Executed"
+	txStatusSuccess     = "Success"
+	txStatusPending     = "Pending"
+	txStatusInvalid     = "Invalid"
+	txStatusNotExecuted = "Not Executed"
+	// A smart contract action (deploy, call, ...) should have minimum 2 smart contract results
+	// exception to this rule are smart contract calls to ESDT contract
 	minimumNumberOfSmartContractResults = 2
 )
 

@@ -99,7 +99,7 @@ func NewStakingAuctionSmartContract(
 func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := CheckIfNil(args)
 	if err != nil {
-		s.eei.AddReturnMessage("nil arguments: error " + err.Error())
+		s.eei.AddReturnMessage("nil arguments: " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -522,6 +522,7 @@ func (s *stakingAuctionSC) getVerifiedBLSKeysFromArgs(txPubKey []byte, args [][]
 		signedMessage := args[i+1]
 		err := s.sigVerifier.Verify(txPubKey, signedMessage, blsKey)
 		if err != nil {
+			s.eei.AddReturnMessage("invalid BLS key: " + err.Error())
 			continue
 		}
 
