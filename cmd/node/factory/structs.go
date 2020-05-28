@@ -451,6 +451,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.accountsParser,
 		args.economicsData.GenesisNodePrice(),
 		args.validatorPubkeyConverter,
+		args.crypto.BlockSignKeyGen,
 	)
 	if err != nil {
 		return nil, err
@@ -922,6 +923,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		TrieStorageManagers:      args.tries.TrieStorageManagers,
 		ChainID:                  string(args.coreComponents.ChainID),
 		SystemSCConfig:           *args.systemSCConfig,
+		BlockSignKeyGen:          args.crypto.BlockSignKeyGen,
 	}
 
 	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)
