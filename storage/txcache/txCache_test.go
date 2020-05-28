@@ -18,22 +18,22 @@ import (
 func Test_NewTxCache(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                       "test",
-		NumChunksHint:              16,
+		NumChunks:                  16,
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountPerSenderThreshold:    math.MaxUint32,
 		MinGasPriceNanoErd:         100,
 	}
 
 	withEvictionConfig := ConfigSourceMe{
-		Name:                       "test",
-		NumChunksHint:              16,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceNanoErd:         100,
-		EvictionEnabled:            true,
-		NumBytesThreshold:          math.MaxUint32,
-		CountThreshold:             math.MaxUint32,
-		NumSendersToEvictInOneStep: 100,
+		Name:                          "test",
+		NumChunks:                     16,
+		NumBytesPerSenderThreshold:    math.MaxUint32,
+		CountPerSenderThreshold:       math.MaxUint32,
+		MinGasPriceNanoErd:            100,
+		EvictionEnabled:               true,
+		NumBytesThreshold:             math.MaxUint32,
+		CountThreshold:                math.MaxUint32,
+		NumSendersToPreemptivelyEvict: 100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -45,8 +45,8 @@ func Test_NewTxCache(t *testing.T) {
 	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.Name")
 
 	badConfig = config
-	badConfig.NumChunksHint = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumChunksHint")
+	badConfig.NumChunks = 0
+	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumChunks")
 
 	badConfig = config
 	badConfig.NumBytesPerSenderThreshold = 0
@@ -69,8 +69,8 @@ func Test_NewTxCache(t *testing.T) {
 	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.CountThreshold")
 
 	badConfig = withEvictionConfig
-	badConfig.NumSendersToEvictInOneStep = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumSendersToEvictInOneStep")
+	badConfig.NumSendersToPreemptivelyEvict = 0
+	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumSendersToPreemptivelyEvict")
 }
 
 func requireErrorOnNewTxCache(t *testing.T, config ConfigSourceMe, errExpected error, errPartialMessage string) {
@@ -348,15 +348,15 @@ func Test_Keys(t *testing.T) {
 
 func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	config := ConfigSourceMe{
-		Name:                       "untitled",
-		NumChunksHint:              16,
-		EvictionEnabled:            true,
-		NumBytesThreshold:          math.MaxUint32,
-		CountThreshold:             100,
-		NumSendersToEvictInOneStep: 1,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceNanoErd:         100,
+		Name:                          "untitled",
+		NumChunks:                     16,
+		EvictionEnabled:               true,
+		NumBytesThreshold:             math.MaxUint32,
+		CountThreshold:                100,
+		NumSendersToPreemptivelyEvict: 1,
+		NumBytesPerSenderThreshold:    math.MaxUint32,
+		CountPerSenderThreshold:       math.MaxUint32,
+		MinGasPriceNanoErd:            100,
 	}
 
 	// 11 * 10
@@ -368,15 +368,15 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	require.LessOrEqual(t, cache.CountTx(), uint64(100))
 
 	config = ConfigSourceMe{
-		Name:                       "untitled",
-		NumChunksHint:              16,
-		EvictionEnabled:            true,
-		NumBytesThreshold:          math.MaxUint32,
-		CountThreshold:             250000,
-		NumSendersToEvictInOneStep: 1,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceNanoErd:         100,
+		Name:                          "untitled",
+		NumChunks:                     16,
+		EvictionEnabled:               true,
+		NumBytesThreshold:             math.MaxUint32,
+		CountThreshold:                250000,
+		NumSendersToPreemptivelyEvict: 1,
+		NumBytesPerSenderThreshold:    math.MaxUint32,
+		CountPerSenderThreshold:       math.MaxUint32,
+		MinGasPriceNanoErd:            100,
 	}
 
 	// 100 * 1000
@@ -569,7 +569,7 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 func newUnconstrainedCacheToTest() *TxCache {
 	cache, err := NewTxCache(ConfigSourceMe{
 		Name:                       "test",
-		NumChunksHint:              16,
+		NumChunks:                  16,
 		NumBytesPerSenderThreshold: math.MaxUint32,
 		CountPerSenderThreshold:    math.MaxUint32,
 		MinGasPriceNanoErd:         100,
@@ -584,7 +584,7 @@ func newUnconstrainedCacheToTest() *TxCache {
 func newCacheToTest(numBytesPerSenderThreshold uint32, countPerSenderThreshold uint32) *TxCache {
 	cache, err := NewTxCache(ConfigSourceMe{
 		Name:                       "test",
-		NumChunksHint:              16,
+		NumChunks:                  16,
 		NumBytesPerSenderThreshold: numBytesPerSenderThreshold,
 		CountPerSenderThreshold:    countPerSenderThreshold,
 		MinGasPriceNanoErd:         100,

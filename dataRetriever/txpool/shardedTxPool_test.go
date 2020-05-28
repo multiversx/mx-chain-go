@@ -89,7 +89,7 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	require.Equal(t, uint32(291271110), pool.configPrototypeSourceMe.NumBytesThreshold)
 	require.Equal(t, uint32(614400), pool.configPrototypeSourceMe.NumBytesPerSenderThreshold)
 	require.Equal(t, uint32(1000), pool.configPrototypeSourceMe.CountPerSenderThreshold)
-	require.Equal(t, uint32(100), pool.configPrototypeSourceMe.NumSendersToEvictInOneStep)
+	require.Equal(t, uint32(100), pool.configPrototypeSourceMe.NumSendersToPreemptivelyEvict)
 	require.Equal(t, uint32(200), pool.configPrototypeSourceMe.MinGasPriceNanoErd)
 	require.Equal(t, uint32(500000), pool.configPrototypeSourceMe.CountThreshold)
 

@@ -9,15 +9,15 @@ import (
 
 // ConfigSourceMe holds cache configuration
 type ConfigSourceMe struct {
-	Name                       string
-	NumChunksHint              uint32
-	EvictionEnabled            bool
-	NumBytesThreshold          uint32
-	NumBytesPerSenderThreshold uint32
-	CountThreshold             uint32
-	CountPerSenderThreshold    uint32
-	NumSendersToEvictInOneStep uint32
-	MinGasPriceNanoErd         uint32
+	Name                          string
+	NumChunks                     uint32
+	EvictionEnabled               bool
+	NumBytesThreshold             uint32
+	NumBytesPerSenderThreshold    uint32
+	CountThreshold                uint32
+	CountPerSenderThreshold       uint32
+	NumSendersToPreemptivelyEvict uint32
+	MinGasPriceNanoErd            uint32
 }
 
 type senderConstraints struct {
@@ -30,8 +30,8 @@ func (config *ConfigSourceMe) verify() error {
 	if len(config.Name) == 0 {
 		return fmt.Errorf("%w: config.Name is invalid", errInvalidCacheConfig)
 	}
-	if config.NumChunksHint == 0 {
-		return fmt.Errorf("%w: config.NumChunksHint is invalid", errInvalidCacheConfig)
+	if config.NumChunks == 0 {
+		return fmt.Errorf("%w: config.NumChunks is invalid", errInvalidCacheConfig)
 	}
 	if config.NumBytesPerSenderThreshold == 0 {
 		return fmt.Errorf("%w: config.NumBytesPerSenderThreshold is invalid", errInvalidCacheConfig)
@@ -51,8 +51,8 @@ func (config *ConfigSourceMe) verify() error {
 			return fmt.Errorf("%w: config.CountThreshold is invalid", errInvalidCacheConfig)
 		}
 
-		if config.NumSendersToEvictInOneStep == 0 {
-			return fmt.Errorf("%w: config.NumSendersToEvictInOneStep is invalid", errInvalidCacheConfig)
+		if config.NumSendersToPreemptivelyEvict == 0 {
+			return fmt.Errorf("%w: config.NumSendersToPreemptivelyEvict is invalid", errInvalidCacheConfig)
 		}
 	}
 
