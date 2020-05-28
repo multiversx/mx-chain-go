@@ -83,7 +83,7 @@ func (scp *smartContractParser) parseElement(initialSmartContract *data.InitialS
 			genesis.ErrInvalidOwnerAddress, initialSmartContract.Owner)
 	}
 
-	_, err = scp.keyGenerator.PublicKeyFromByteArray(ownerBytes)
+	err = scp.keyGenerator.CheckPublicKeyValid(ownerBytes)
 	if err != nil {
 		return fmt.Errorf("%w for owner `%s`, error: %s",
 			genesis.ErrInvalidPubKey,

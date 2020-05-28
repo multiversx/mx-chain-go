@@ -9,7 +9,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
@@ -201,8 +200,8 @@ func TestAccountsParser_ProcessInvalidPublicKeyShouldErr(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	ap.SetKeyGenerator(&mock.KeyGeneratorStub{
-		PublicKeyFromByteArrayCalled: func(b []byte) (crypto.PublicKey, error) {
-			return nil, expectedErr
+		CheckPublicKeyValidCalled: func(b []byte) error {
+			return expectedErr
 		},
 	})
 	ib := createMockInitialAccount()

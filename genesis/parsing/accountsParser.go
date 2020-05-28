@@ -105,7 +105,7 @@ func (ap *accountsParser) parseElement(initialAccount *data.InitialAccount) erro
 		return fmt.Errorf("%w for `%s`", genesis.ErrInvalidAddress, initialAccount.Address)
 	}
 
-	_, err = ap.keyGenerator.PublicKeyFromByteArray(addressBytes)
+	err = ap.keyGenerator.CheckPublicKeyValid(addressBytes)
 	if err != nil {
 		return fmt.Errorf("%w for `%s`, error: %s",
 			genesis.ErrInvalidPubKey,

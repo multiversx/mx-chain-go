@@ -81,7 +81,7 @@ func (nsc *nodeSetupChecker) Check(initialNodes []sharding.GenesisNodeInfoHandle
 
 func (nsc *nodeSetupChecker) ckeckGenesisNodes(initialNodes []sharding.GenesisNodeInfoHandler) error {
 	for _, node := range initialNodes {
-		_, err := nsc.keyGenerator.PublicKeyFromByteArray(node.PubKeyBytes())
+		err := nsc.keyGenerator.CheckPublicKeyValid(node.PubKeyBytes())
 		if err != nil {
 			return fmt.Errorf("%w for node's public key `%s`, error: %s",
 				genesis.ErrInvalidPubKey,

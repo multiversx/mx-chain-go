@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/genesis/mock"
@@ -122,8 +121,8 @@ func TestSmartContractsParser_ProcessInvalidOwnerPublicKeyShouldErr(t *testing.T
 	expectedErr := errors.New("expected error")
 	scp := parsing.NewTestSmartContractsParser(createMockHexPubkeyConverter())
 	scp.SetKeyGenerator(&mock.KeyGeneratorStub{
-		PublicKeyFromByteArrayCalled: func(b []byte) (crypto.PublicKey, error) {
-			return nil, expectedErr
+		CheckPublicKeyValidCalled: func(b []byte) error {
+			return expectedErr
 		},
 	})
 	isc := createMockInitialSmartContract("0001")

@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/checking"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
@@ -132,8 +131,8 @@ func TestNewNodesSetupChecker_CheckNotAValidPubkeyShouldErr(t *testing.T) {
 		big.NewInt(0),
 		mock.NewPubkeyConverterMock(32),
 		&mock.KeyGeneratorStub{
-			PublicKeyFromByteArrayCalled: func(b []byte) (crypto.PublicKey, error) {
-				return nil, expectedErr
+			CheckPublicKeyValidCalled: func(b []byte) error {
+				return expectedErr
 			},
 		},
 	)
