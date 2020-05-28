@@ -570,23 +570,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			economicsConfig.GlobalSettings.TotalSupply)
 	}
 
-	accountsParser, err := parsing.NewAccountsParser(
-		ctx.GlobalString(genesisFile.Name),
-		totalSupply,
-		addressPubkeyConverter,
-	)
-	if err != nil {
-		return err
-	}
-
-	smartContractParser, err := parsing.NewSmartContractsParser(
-		ctx.GlobalString(smartContractsFile.Name),
-		addressPubkeyConverter,
-	)
-	if err != nil {
-		return err
-	}
-
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
 
 	genesisNodesConfig, err := sharding.NewNodesSetup(
@@ -709,6 +692,25 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 	cryptoComponents, err := cryptoComponentsFactory.Create()
+	if err != nil {
+		return err
+	}
+
+	accountsParser, err := parsing.NewAccountsParser(
+		ctx.GlobalString(genesisFile.Name),
+		totalSupply,
+		addressPubkeyConverter,
+		cryptoComponents.TxSignKeyGen,
+	)
+	if err != nil {
+		return err
+	}
+
+	smartContractParser, err := parsing.NewSmartContractsParser(
+		ctx.GlobalString(smartContractsFile.Name),
+		addressPubkeyConverter,
+		cryptoComponents.TxSignKeyGen,
+	)
 	if err != nil {
 		return err
 	}
