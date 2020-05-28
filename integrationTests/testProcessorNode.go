@@ -243,6 +243,7 @@ type TestProcessorNode struct {
 	ChainID []byte
 
 	ExportHandler update.ExportHandler
+	WaitTime      time.Duration
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -1490,6 +1491,9 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 // BroadcastBlock broadcasts the block and body to the connected peers
 func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) {
 	_ = tpn.BroadcastMessenger.BroadcastBlock(body, header)
+
+	time.Sleep(tpn.WaitTime)
+
 	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
 	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks)
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions)
