@@ -209,6 +209,12 @@ func (chunk *crossTxChunk) CountItems() int {
 	return len(chunk.items)
 }
 
+func (chunk *crossTxChunk) CountImmunized() int {
+	chunk.mutex.RLock()
+	defer chunk.mutex.RUnlock()
+	return len(chunk.keysToImmunize)
+}
+
 func (chunk *crossTxChunk) NumBytes() int {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()

@@ -51,7 +51,10 @@ func (cache *crossTxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
 }
 
 func (cache *crossTxCache) diagnose() {
-	log.Debug("crossTxCache.diagnose()", "name", cache.config.Name, "count", cache.Count(), "numBytes", cache.NumBytes())
+	count := cache.Count()
+	countImmunized := cache.CountImmunized()
+	numBytes := cache.NumBytes()
+	log.Debug("crossTxCache.diagnose()", "name", cache.config.Name, "count", count, "countImmunized", countImmunized, "numBytes", numBytes)
 }
 
 func (cache *crossTxCache) doImmunizeTxsAgainstEviction(keys [][]byte) (numNowTotal, numFutureTotal int) {
@@ -148,6 +151,15 @@ func (cache *crossTxCache) Clear() {
 
 // Count returns the number of elements within the map
 func (cache *crossTxCache) Count() int {
+	count := 0
+	for _, chunk := range cache.getChunks() {
+		count += chunk.CountItems()
+	}
+	return count
+}
+
+// CountImmunized returns the number of immunized (current or future) elements within the map
+func (cache *crossTxCache) CountImmunized() int {
 	count := 0
 	for _, chunk := range cache.getChunks() {
 		count += chunk.CountItems()
