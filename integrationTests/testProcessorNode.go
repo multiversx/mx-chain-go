@@ -997,10 +997,11 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	}
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
+	signVerifer, _ := disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
 	vmFactory, _ := metaProcess.NewVMContainerFactory(
 		argsHook,
 		tpn.EconomicsData.EconomicsData,
-		&disabled.MessageSignVerifier{},
+		signVerifer,
 		gasSchedule,
 		tpn.NodesSetup,
 		TestHasher,
