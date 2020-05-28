@@ -251,16 +251,8 @@ func (cache *CrossTxCache) RegisterHandler(func(key []byte, value interface{})) 
 
 // ForEachTransaction iterates over the transactions in the cache
 func (cache *CrossTxCache) ForEachTransaction(function ForEachTransaction) {
-	chunks := cache.getChunks()
-
-	for _, chunk := range chunks {
-		// TODO: do not lock private mutex. Call chunk.IterCb()
-		chunk.mutex.RLock()
-		for key, value := range chunk.items {
-			tx := value.payload
-			function([]byte(key), tx)
-		}
-		chunk.mutex.RUnlock()
+	for _, chunk := range cache.getChunks() {
+		chunk.ForEachTransaction(function)
 	}
 }
 

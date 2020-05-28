@@ -246,3 +246,13 @@ func (chunk *crossTxChunk) AppendKeys(keysAccumulator [][]byte) [][]byte {
 
 	return keysAccumulator
 }
+
+// ForEachTransaction iterates over the transactions in the chunk
+func (chunk *crossTxChunk) ForEachTransaction(function ForEachTransaction) {
+	chunk.mutex.RLock()
+	defer chunk.mutex.RUnlock()
+
+	for key, value := range chunk.items {
+		function([]byte(key), value.payload)
+	}
+}
