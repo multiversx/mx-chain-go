@@ -568,23 +568,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			economicsConfig.GlobalSettings.TotalSupply)
 	}
 
-	accountsParser, err := parsing.NewAccountsParser(
-		ctx.GlobalString(genesisFile.Name),
-		totalSupply,
-		addressPubkeyConverter,
-	)
-	if err != nil {
-		return err
-	}
-
-	smartContractParser, err := parsing.NewSmartContractsParser(
-		ctx.GlobalString(smartContractsFile.Name),
-		addressPubkeyConverter,
-	)
-	if err != nil {
-		return err
-	}
-
 	log.Debug("config", "file", ctx.GlobalString(genesisFile.Name))
 
 	genesisNodesConfig, err := sharding.NewNodesSetup(
@@ -707,6 +690,25 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 	cryptoComponents, err := cryptoComponentsFactory.Create()
+	if err != nil {
+		return err
+	}
+
+	accountsParser, err := parsing.NewAccountsParser(
+		ctx.GlobalString(genesisFile.Name),
+		totalSupply,
+		addressPubkeyConverter,
+		cryptoComponents.TxSignKeyGen,
+	)
+	if err != nil {
+		return err
+	}
+
+	smartContractParser, err := parsing.NewSmartContractsParser(
+		ctx.GlobalString(smartContractsFile.Name),
+		addressPubkeyConverter,
+		cryptoComponents.TxSignKeyGen,
+	)
 	if err != nil {
 		return err
 	}
@@ -1780,8 +1782,8 @@ func createElasticIndexer(
 	hasher hashing.Hasher,
 	nodesCoordinator sharding.NodesCoordinator,
 	startNotifier notifier.EpochStartNotifier,
-	addressPubkeyConverter state.PubkeyConverter,
-	validatorPubkeyConverter state.PubkeyConverter,
+	addressPubkeyConverter core.PubkeyConverter,
+	validatorPubkeyConverter core.PubkeyConverter,
 	shardId uint32,
 ) (indexer.Indexer, error) {
 	arguments := indexer.ElasticIndexerArgs{
@@ -2071,7 +2073,7 @@ func createApiResolver(
 	config *config.Config,
 	accnts state.AccountsAdapter,
 	validatorAccounts state.AccountsAdapter,
-	pubkeyConv state.PubkeyConverter,
+	pubkeyConv core.PubkeyConverter,
 	storageService dataRetriever.StorageService,
 	blockChain data.ChainHandler,
 	marshalizer marshal.Marshalizer,

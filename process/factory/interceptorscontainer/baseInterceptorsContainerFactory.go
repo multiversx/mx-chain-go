@@ -38,7 +38,7 @@ type baseInterceptorsContainerFactory struct {
 	antifloodHandler       process.P2PAntifloodHandler
 	whiteListHandler       process.WhiteListHandler
 	whiteListerVerifiedTxs process.WhiteListHandler
-	addressPubkeyConverter state.PubkeyConverter
+	addressPubkeyConverter core.PubkeyConverter
 }
 
 func checkBaseParams(
@@ -56,7 +56,7 @@ func checkBaseParams(
 	antifloodHandler process.P2PAntifloodHandler,
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
-	addressPubkeyConverter state.PubkeyConverter,
+	addressPubkeyConverter core.PubkeyConverter,
 ) error {
 	if check.IfNil(shardCoordinator) {
 		return process.ErrNilShardCoordinator

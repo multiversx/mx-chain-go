@@ -43,7 +43,7 @@ type fullSyncInterceptorsContainerFactory struct {
 	maxTxNonceDeltaAllowed int
 	keyGen                 crypto.KeyGenerator
 	singleSigner           crypto.SingleSigner
-	addressPubkeyConv      state.PubkeyConverter
+	addressPubkeyConv      core.PubkeyConverter
 	whiteListHandler       update.WhiteListHandler
 	whiteListerVerifiedTxs update.WhiteListHandler
 	antifloodHandler       process.P2PAntifloodHandler
@@ -65,7 +65,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	BlockSingleSigner       crypto.SingleSigner
 	MultiSigner             crypto.MultiSigner
 	DataPool                dataRetriever.PoolsHolder
-	AddressPubkeyConverter  state.PubkeyConverter
+	AddressPubkeyConverter  core.PubkeyConverter
 	MaxTxNonceDeltaAllowed  int
 	TxFeeHandler            process.FeeHandler
 	BlackList               process.BlackListHandler

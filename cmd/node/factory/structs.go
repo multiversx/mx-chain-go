@@ -135,7 +135,7 @@ type processComponentsFactoryArgs struct {
 	minSizeInBytes            uint32
 	maxSizeInBytes            uint32
 	maxRating                 uint32
-	validatorPubkeyConverter  state.PubkeyConverter
+	validatorPubkeyConverter  core.PubkeyConverter
 	systemSCConfig            *config.SystemSmartContractsConfig
 	txLogsProcessor           process.TransactionLogProcessor
 	version                   string
@@ -173,7 +173,7 @@ func NewProcessComponentsFactoryArgs(
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
 	maxRating uint32,
-	validatorPubkeyConverter state.PubkeyConverter,
+	validatorPubkeyConverter core.PubkeyConverter,
 	ratingsData process.RatingsInfoHandler,
 	systemSCConfig *config.SystemSmartContractsConfig,
 	version string,
@@ -448,6 +448,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.accountsParser,
 		args.economicsData.GenesisNodePrice(),
 		args.validatorPubkeyConverter,
+		args.crypto.BlockSignKeyGen,
 	)
 	if err != nil {
 		return nil, err
@@ -918,6 +919,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		TrieStorageManagers:      args.tries.TrieStorageManagers,
 		ChainID:                  string(args.coreComponents.ChainID),
 		SystemSCConfig:           *args.systemSCConfig,
+		BlockSignKeyGen:          args.crypto.BlockSignKeyGen,
 	}
 
 	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)

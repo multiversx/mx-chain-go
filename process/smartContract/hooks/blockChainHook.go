@@ -28,7 +28,7 @@ var log = logger.GetOrCreate("process/smartContract/blockChainHook")
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
 	Accounts         state.AccountsAdapter
-	PubkeyConv       state.PubkeyConverter
+	PubkeyConv       core.PubkeyConverter
 	StorageService   dataRetriever.StorageService
 	BlockChain       data.ChainHandler
 	ShardCoordinator sharding.Coordinator
@@ -40,7 +40,7 @@ type ArgBlockChainHook struct {
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
 type BlockChainHookImpl struct {
 	accounts         state.AccountsAdapter
-	pubkeyConv       state.PubkeyConverter
+	pubkeyConv       core.PubkeyConverter
 	storageService   dataRetriever.StorageService
 	blockChain       data.ChainHandler
 	shardCoordinator sharding.Coordinator

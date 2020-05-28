@@ -1,6 +1,7 @@
 package interceptorscontainer
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -27,7 +28,7 @@ type ShardInterceptorsContainerFactoryArgs struct {
 	BlockSingleSigner       crypto.SingleSigner
 	MultiSigner             crypto.MultiSigner
 	DataPool                dataRetriever.PoolsHolder
-	AddressPubkeyConverter  state.PubkeyConverter
+	AddressPubkeyConverter  core.PubkeyConverter
 	MaxTxNonceDeltaAllowed  int
 	TxFeeHandler            process.FeeHandler
 	BlackList               process.BlackListHandler
@@ -54,7 +55,7 @@ type MetaInterceptorsContainerFactoryArgs struct {
 	MultiSigner             crypto.MultiSigner
 	DataPool                dataRetriever.PoolsHolder
 	Accounts                state.AccountsAdapter
-	AddressPubkeyConverter  state.PubkeyConverter
+	AddressPubkeyConverter  core.PubkeyConverter
 	SingleSigner            crypto.SingleSigner
 	BlockSingleSigner       crypto.SingleSigner
 	KeyGen                  crypto.KeyGenerator
