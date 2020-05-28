@@ -620,7 +620,7 @@ func (txs *transactions) notifyTransactionProviderIfNeeded() {
 			continue
 		}
 
-		sortedTransactionsProvider := createSortedTransactionsProvider(txs, txShardPool, strCache)
+		sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
 		sortedTransactionsProvider.NotifyAccountNonce([]byte(senderAddress), account.GetNonce())
 	}
 	txs.mutAccountsInfo.RUnlock()
@@ -1041,7 +1041,7 @@ func (txs *transactions) computeSortedTxs(
 		return nil, process.ErrNilTxDataPool
 	}
 
-	sortedTransactionsProvider := createSortedTransactionsProvider(txs, txShardPool, strCache)
+	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
 

@@ -69,8 +69,7 @@ func (sortedMap *BucketSortedMap) Set(item BucketSortedMapItem) {
 }
 
 // NotifyScoreChange moves or adds the item to the corresponding score chunk
-func (sortedMap *BucketSortedMap) NotifyScoreChange(item BucketSortedMapItem) {
-	newScore := item.ComputeScore()
+func (sortedMap *BucketSortedMap) NotifyScoreChange(item BucketSortedMapItem, newScore uint32) {
 	if newScore > sortedMap.maxScore {
 		newScore = sortedMap.maxScore
 	}
