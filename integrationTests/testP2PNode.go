@@ -167,7 +167,6 @@ func (tP2pNode *TestP2PNode) initNode() {
 		DurationToConsiderUnresponsiveInSec: 60,
 		HeartbeatRefreshIntervalInSec:       5,
 		HideInactiveValidatorIntervalInSec:  600,
-		PeerTypeRefreshIntervalInSec:        5,
 	}
 	err = tP2pNode.Node.StartHeartbeat(hbConfig, "test", config.PreferencesConfig{})
 	if err != nil {
