@@ -125,12 +125,6 @@ func (ptp *PeerTypeProvider) createNewCache(
 	}
 	computePeerTypeAndShardId(newCache, nodesMapWaiting, core.WaitingList)
 
-	ndoesMapLeaving, err := ptp.nodesCoordinator.GetAllLeavingValidatorsPublicKeys(epoch)
-	if err != nil {
-		log.Debug("peerTypeProvider - GetAllLeavingValidatorsPublicKeys failed", "epoch", epoch)
-	}
-	computePeerTypeAndShardId(newCache, ndoesMapLeaving, core.LeavingList)
-
 	return newCache
 }
 

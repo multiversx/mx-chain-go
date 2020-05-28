@@ -87,10 +87,43 @@ func NewValidatorsProvider(
 
 // GetLatestValidators gets the latest configuration of validators from the peerAccountsTrie
 func (vp *validatorsProvider) GetLatestValidators() map[string]*state.ValidatorApiResponse {
-	vp.mutCache.Lock()
-	defer vp.mutCache.Unlock()
+	vp.mutCache.RLock()
+	defer vp.mutCache.RUnlock()
 
-	return vp.cache
+	clonedMap := cloneMap(vp.cache)
+
+	return clonedMap
+}
+
+func cloneMap(cache map[string]*state.ValidatorApiResponse) map[string]*state.ValidatorApiResponse {
+	newMap := make(map[string]*state.ValidatorApiResponse)
+
+	for k, v := range cache {
+		newMap[k] = cloneValidatorAPIResponse(v)
+	}
+
+	return newMap
+}
+
+func cloneValidatorAPIResponse(v *state.ValidatorApiResponse) *state.ValidatorApiResponse {
+	if v == nil {
+		return nil
+	}
+	return &state.ValidatorApiResponse{
+		TempRating:               v.TempRating,
+		NumLeaderSuccess:         v.NumLeaderSuccess,
+		NumLeaderFailure:         v.NumLeaderFailure,
+		NumValidatorSuccess:      v.NumValidatorSuccess,
+		NumValidatorFailure:      v.NumValidatorFailure,
+		Rating:                   v.Rating,
+		RatingModifier:           v.RatingModifier,
+		TotalNumLeaderSuccess:    v.TotalNumLeaderSuccess,
+		TotalNumLeaderFailure:    v.TotalNumLeaderFailure,
+		TotalNumValidatorSuccess: v.TotalNumValidatorSuccess,
+		TotalNumValidatorFailure: v.TotalNumValidatorFailure,
+		ShardId:                  v.ShardId,
+		ValidatorStatus:          v.ValidatorStatus,
+	}
 }
 
 func (vp *validatorsProvider) epochStartEventHandler() sharding.EpochStartActionHandler {
@@ -139,6 +172,7 @@ func (vp *validatorsProvider) updateCache(epoch uint32) {
 
 	vp.mutCache.Lock()
 	vp.cache = newCache
+
 	vp.mutCache.Unlock()
 }
 

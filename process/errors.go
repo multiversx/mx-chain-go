@@ -426,7 +426,7 @@ var ErrNilEpochHandler = errors.New("nil epoch handler")
 var ErrNilEpochStartNotifier = errors.New("nil epochStartNotifier")
 
 // ErrInvalidCacheRefreshIntervalInSec signals that the cacheRefreshIntervalInSec is invalid - zero or less
-var ErrInvalidCacheRefreshIntervalInSec = errors.New("nil acheRefreshIntervalInSe")
+var ErrInvalidCacheRefreshIntervalInSec = errors.New("invalid cacheRefreshIntervalInSec")
 
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
