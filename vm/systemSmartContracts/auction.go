@@ -313,7 +313,7 @@ func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.
 		return vmcommon.UserError
 	}
 
-	config := AuctionConfig{
+	config := &AuctionConfig{
 		MinStakeValue: big.NewInt(0).SetBytes(args.Arguments[0]),
 		NumNodes:      uint32(big.NewInt(0).SetBytes(args.Arguments[1]).Uint64()),
 		TotalSupply:   big.NewInt(0).SetBytes(args.Arguments[2]),
@@ -369,7 +369,7 @@ func (s *stakingAuctionSC) getConfig(epoch uint32) AuctionConfig {
 	}
 
 	if s.checkConfigCorrectness(*config) != nil {
-		baseConfigData, err := s.marshalizer.Marshal(s.baseConfig)
+		baseConfigData, err := s.marshalizer.Marshal(&s.baseConfig)
 		if err != nil {
 			log.Warn("marshal error on getConfig function, returning baseConfig")
 			return s.baseConfig
@@ -658,7 +658,7 @@ func (s *stakingAuctionSC) getOrCreateRegistrationData(key []byte) (*AuctionData
 }
 
 func (s *stakingAuctionSC) saveRegistrationData(key []byte, auction *AuctionData) error {
-	data, err := s.marshalizer.Marshal(*auction)
+	data, err := s.marshalizer.Marshal(auction)
 	if err != nil {
 		log.Debug("marshal error on staking SC stake function ",
 			"error", err.Error(),

@@ -366,7 +366,7 @@ func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedData, error) {
 }
 
 func (r *stakingSC) saveStakingData(key []byte, stakedData *StakedData) error {
-	data, err := r.marshalizer.Marshal(*stakedData)
+	data, err := r.marshalizer.Marshal(stakedData)
 	if err != nil {
 		log.Debug("marshal error on staking SC stake function ",
 			"error", err.Error(),
