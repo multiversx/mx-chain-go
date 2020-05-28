@@ -12,7 +12,7 @@ func TestCrossTxCache_DoImmunizeTxsAgainstEviction(t *testing.T) {
 	cache := newCrossTxCacheToTest(1, 8, math.MaxUint32)
 
 	cache.addTestTxs("a", "b", "c", "d")
-	numNow, numFuture := cache.doImmunizeTxsAgainstEviction(hashesAsBytes([]string{"a", "b", "e", "f"}))
+	numNow, numFuture := cache.ImmunizeKeys(hashesAsBytes([]string{"a", "b", "e", "f"}))
 	require.Equal(t, 2, numNow)
 	require.Equal(t, 2, numFuture)
 	require.Equal(t, 4, cache.Len())
@@ -22,21 +22,6 @@ func TestCrossTxCache_DoImmunizeTxsAgainstEviction(t *testing.T) {
 
 	cache.addTestTxs("i", "j", "k", "l")
 	require.ElementsMatch(t, []string{"a", "b", "e", "f", "i", "j", "k", "l"}, hashesAsStrings(cache.Keys()))
-}
-
-// This information about (hash to chunk) distribution is useful to write tests
-func TestCrossTxCache_Fnv32Hash(t *testing.T) {
-	// Cache with 2 chunks
-	require.Equal(t, 0, int(fnv32Hash("a")%2))
-	require.Equal(t, 1, int(fnv32Hash("b")%2))
-	require.Equal(t, 0, int(fnv32Hash("c")%2))
-	require.Equal(t, 1, int(fnv32Hash("d")%2))
-
-	// Cache with 4 chunks
-	require.Equal(t, 2, int(fnv32Hash("a")%4))
-	require.Equal(t, 1, int(fnv32Hash("b")%4))
-	require.Equal(t, 0, int(fnv32Hash("c")%4))
-	require.Equal(t, 3, int(fnv32Hash("d")%4))
 }
 
 func newUnconstrainedCrossTxCacheToTest(numChunks uint32) *CrossTxCache {

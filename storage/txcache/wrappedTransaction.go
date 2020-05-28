@@ -18,6 +18,31 @@ type WrappedTransaction struct {
 	isImmuneToEvictionFlag atomic.Flag
 }
 
+// GetKey gets the transaction hash
+func (wrappedTx *WrappedTransaction) GetKey() []byte {
+	return wrappedTx.TxHash
+}
+
+// Payload gets the inner (wrapped) transaction
+func (wrappedTx *WrappedTransaction) Payload() interface{} {
+	return wrappedTx.Tx
+}
+
+// Size gets the size (in bytes) of the transaction
+func (wrappedTx *WrappedTransaction) Size() int {
+	return int(estimateTxSize(wrappedTx))
+}
+
+// IsImmuneToEviction returns whether the transaction is immune to eviction
+func (wrappedTx *WrappedTransaction) IsImmuneToEviction() bool {
+	return wrappedTx.isImmuneToEvictionFlag.IsSet()
+}
+
+// ImmunizeAgainstEviction marks the transaction as immune to eviction
+func (wrappedTx *WrappedTransaction) ImmunizeAgainstEviction() {
+	wrappedTx.isImmuneToEvictionFlag.Set()
+}
+
 func (wrappedTx *WrappedTransaction) sameAs(another *WrappedTransaction) bool {
 	return bytes.Equal(wrappedTx.TxHash, another.TxHash)
 }
@@ -44,14 +69,4 @@ func estimateTxFee(tx *WrappedTransaction) uint64 {
 	gasPrice := float32(tx.Tx.GetGasPrice()) / 1000
 	feeInNanoERD := gasLimit * gasPrice
 	return uint64(feeInNanoERD)
-}
-
-// IsImmuneToEviction returns whether the transaction is immune to eviction
-func (wrappedTx *WrappedTransaction) IsImmuneToEviction() bool {
-	return wrappedTx.isImmuneToEvictionFlag.IsSet()
-}
-
-// ImmunizeAgainstEviction marks the transaction as immune to eviction
-func (wrappedTx *WrappedTransaction) ImmunizeAgainstEviction() {
-	wrappedTx.isImmuneToEvictionFlag.Set()
 }
