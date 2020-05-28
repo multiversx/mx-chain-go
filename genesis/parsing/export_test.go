@@ -3,7 +3,7 @@ package parsing
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/genesis/data"
 )
 
@@ -19,18 +19,18 @@ func (ap *accountsParser) Process() error {
 	return ap.process()
 }
 
-func (ap *accountsParser) SetPukeyConverter(pubkeyConverter state.PubkeyConverter) {
+func (ap *accountsParser) SetPukeyConverter(pubkeyConverter core.PubkeyConverter) {
 	ap.pubkeyConverter = pubkeyConverter
 }
 
-func NewTestAccountsParser(pubkeyConverter state.PubkeyConverter) *accountsParser {
+func NewTestAccountsParser(pubkeyConverter core.PubkeyConverter) *accountsParser {
 	return &accountsParser{
 		pubkeyConverter: pubkeyConverter,
 		initialAccounts: make([]*data.InitialAccount, 0),
 	}
 }
 
-func NewTestSmartContractsParser(pubkeyConverter state.PubkeyConverter) *smartContractParser {
+func NewTestSmartContractsParser(pubkeyConverter core.PubkeyConverter) *smartContractParser {
 	scp := &smartContractParser{
 		pubkeyConverter:       pubkeyConverter,
 		initialSmartContracts: make([]*data.InitialSmartContract, 0),

@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -36,8 +35,8 @@ type txDatabaseProcessor struct {
 func newTxDatabaseProcessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
-	addressPubkeyConverter state.PubkeyConverter,
-	validatorPubkeyConverter state.PubkeyConverter,
+	addressPubkeyConverter core.PubkeyConverter,
+	validatorPubkeyConverter core.PubkeyConverter,
 ) *txDatabaseProcessor {
 	return &txDatabaseProcessor{
 		hasher:      hasher,

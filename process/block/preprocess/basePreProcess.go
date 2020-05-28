@@ -42,7 +42,7 @@ type basePreProcess struct {
 	blockSizeComputation BlockSizeComputationHandler
 	balanceComputation   BalanceComputationHandler
 	accounts             state.AccountsAdapter
-	pubkeyConverter      state.PubkeyConverter
+	pubkeyConverter      core.PubkeyConverter
 }
 
 func (bpp *basePreProcess) removeDataFromPools(
