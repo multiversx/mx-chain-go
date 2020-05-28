@@ -1369,27 +1369,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 	}
 
-	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(metaBlock.GetShardID())
-	if err != nil {
-		log.Debug("receivedMetaBlock.GetLastCrossNotarizedHeader",
-			"shard", metaBlock.GetShardID(),
-			"error", err.Error())
-		return
-	}
-
-	if metaBlock.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
-		return
-	}
-	if metaBlock.GetRound() <= lastCrossNotarizedHeader.GetRound() {
-		return
-	}
-
-	isMetaBlockOutOfRequestRange := metaBlock.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToRequestInAdvance
-	if isMetaBlockOutOfRequestRange {
-		return
-	}
-
-	go sp.txCoordinator.RequestMiniBlocks(metaBlock)
+	go sp.requestMiniBlocksIfNeeded(headerHandler)
 }
 
 func (sp *shardProcessor) requestMetaHeaders(shardHeader *block.Header) (uint32, uint32) {
@@ -1761,7 +1741,6 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	mrsData := make(map[uint32][]byte, sp.shardCoordinator.NumberOfShards()+1)
 	mrsTxs := sp.txCoordinator.CreateMarshalizedData(body)
 
 	bodies := make(map[uint32]block.MiniBlockSlice)
@@ -1773,11 +1752,12 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 		bodies[miniBlock.ReceiverShardID] = append(bodies[miniBlock.ReceiverShardID], miniBlock)
 	}
 
+	mrsData := make(map[uint32][]byte, len(bodies))
 	for shardId, subsetBlockBody := range bodies {
 		bodyForShard := block.Body{MiniBlocks: subsetBlockBody}
 		buff, err := sp.marshalizer.Marshal(&bodyForShard)
 		if err != nil {
-			log.Debug("marshalizer.Marshal", "error", process.ErrMarshalWithoutSuccess.Error())
+			log.Error("shardProcessor.MarshalizedDataToBroadcast.Marshal", "error", err.Error())
 			continue
 		}
 		mrsData[shardId] = buff
