@@ -8,7 +8,7 @@ func (pt P2PPeerType) String() string {
 	switch pt {
 	case ValidatorPeer:
 		return "validator"
-	case ObserverdPeer:
+	case ObserverPeer:
 		return "observer"
 	default:
 		return "unknown"
@@ -20,8 +20,8 @@ const (
 	UnknownPeer P2PPeerType = iota
 	// ValidatorPeer means that the peer is a validator
 	ValidatorPeer
-	// ObserverdPeer means that the peer is an observer
-	ObserverdPeer
+	// ObserverPeer means that the peer is an observer
+	ObserverPeer
 )
 
 // P2PPeerInfo represents a peer info structure
