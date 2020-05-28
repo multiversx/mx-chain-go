@@ -45,11 +45,12 @@ func (cache *crossTxCache) initializeChunks() {
 }
 
 func (cache *crossTxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
+	// log trace. accumulators: how many now, how many futures.
 	groups := cache.groupKeysByChunk(keys)
 
 	for chunkIndex, chunkKeys := range groups {
 		chunk := cache.getChunkByIndex(chunkIndex)
-		chunk.immunizeKeys(chunkKeys)
+		chunk.ImmunizeKeys(chunkKeys)
 	}
 }
 
@@ -132,8 +133,8 @@ func (cache *crossTxCache) Clear() {
 }
 
 // Count returns the number of elements within the map
-func (cache *crossTxCache) Count() uint32 {
-	count := uint32(0)
+func (cache *crossTxCache) Count() int {
+	count := 0
 	for _, chunk := range cache.getChunks() {
 		count += chunk.countItems()
 	}
@@ -142,7 +143,7 @@ func (cache *crossTxCache) Count() uint32 {
 
 // Len is an alias for CountTx
 func (cache *crossTxCache) Len() int {
-	return int(cache.Count())
+	return cache.Count()
 }
 
 // Keys returns all keys
@@ -152,7 +153,7 @@ func (cache *crossTxCache) Keys() [][]byte {
 	keys := make([][]byte, 0, count)
 
 	for _, chunk := range cache.getChunks() {
-		keys = chunk.appendKeys(keys)
+		keys = chunk.AppendKeys(keys)
 	}
 
 	return keys

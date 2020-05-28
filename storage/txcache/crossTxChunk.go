@@ -32,7 +32,7 @@ func newCrossTxChunk(config crossTxChunkConfig) *crossTxChunk {
 	}
 }
 
-func (chunk *crossTxChunk) immunizeKeys(keys [][]byte) {
+func (chunk *crossTxChunk) ImmunizeKeys(keys [][]byte) {
 	chunk.mutex.Lock()
 	defer chunk.mutex.Unlock()
 
@@ -70,9 +70,8 @@ func (chunk *crossTxChunk) addItem(item *WrappedTransaction) (ok bool, added boo
 	defer chunk.mutex.Unlock()
 
 	numRemoved, err := chunk.doEviction()
-	log.Trace("crossTxChunk.doEviction()", "numRemoved", numRemoved, "err", err)
+	chunk.monitorEviction(numRemoved, err)
 	if err != nil {
-		// TODO: perhaps add immunized transaction even if there's no more space (all transactions immunized, full capacity)?
 		return false, false
 	}
 
@@ -98,27 +97,35 @@ func (chunk *crossTxChunk) addItem(item *WrappedTransaction) (ok bool, added boo
 }
 
 // This function should only be used in critical section (chunk.mutex)
-func (chunk *crossTxChunk) doEviction() (numRemoved uint32, err error) {
+func (chunk *crossTxChunk) doEviction() (numRemoved int, err error) {
 	if !chunk.isCapacityExceeded() {
 		return 0, nil
 	}
 
-	numToRemoveEachStep := chunk.config.numItemsToPreemptivelyEvict
+	numToRemoveEachStep := int(chunk.config.numItemsToPreemptivelyEvict)
 
-	// Do first step out of the loop
-	numRemovedInStep := chunk.removeOldest(numToRemoveEachStep)
+	// We perform the first step out of the loop (to detect and return error)
+	numRemovedInStep := chunk.removeOldestNoLock(numToRemoveEachStep)
 	numRemoved += numRemovedInStep
 
 	if numRemovedInStep == 0 {
 		return 0, errFailedCrossTxEviction
 	}
 
-	for !chunk.isCapacityExceeded() && numRemovedInStep == numToRemoveEachStep {
-		numRemovedInStep = chunk.removeOldest(numToRemoveEachStep)
+	for chunk.isCapacityExceeded() && numRemovedInStep == numToRemoveEachStep {
+		numRemovedInStep = chunk.removeOldestNoLock(numToRemoveEachStep)
 		numRemoved += numRemovedInStep
 	}
 
 	return numRemoved, nil
+}
+
+func (chunk *crossTxChunk) monitorEviction(numRemoved int, err error) {
+	if err != nil {
+		log.Debug("crossTxChunk.doEviction()", "numRemoved", numRemoved, "err", err)
+	} else if numRemoved > 0 {
+		log.Trace("crossTxChunk.doEviction()", "numRemoved", numRemoved)
+	}
 }
 
 // This function should only be used in critical section (chunk.mutex)
@@ -155,38 +162,61 @@ func (chunk *crossTxChunk) removeItem(key string) {
 	chunk.trackNumBytesOnRemove(item.payload)
 }
 
+func (chunk *crossTxChunk) RemoveOldest(numToRemove int) int {
+	chunk.mutex.Lock()
+	defer chunk.mutex.Unlock()
+	return chunk.removeOldestNoLock(numToRemove)
+}
+
 // This function should only be used in critical section (chunk.mutex)
-func (chunk *crossTxChunk) removeOldest(numToRemove uint32) uint32 {
-	numRemoved := uint32(0)
-	for element := chunk.itemsAsList.Front(); element != nil; element = element.Next() {
+func (chunk *crossTxChunk) removeOldestNoLock(numToRemove int) int {
+	numRemoved := 0
+
+	list := chunk.itemsAsList
+	element := list.Front()
+
+	for element != nil && numRemoved < numToRemove {
 		item := element.Value.(*WrappedTransaction)
 		key := string(item.TxHash)
 
 		if item.IsImmuneToEviction() {
+			element = element.Next()
 			continue
 		}
 
 		// TODO: duplication
+		elementToRemove := element
+		element = element.Next()
 		delete(chunk.items, key)
-		chunk.itemsAsList.Remove(element)
+		list.Remove(elementToRemove)
 		chunk.trackNumBytesOnRemove(item)
-
 		numRemoved++
-		if numRemoved == numToRemove {
-			break
-		}
 	}
 
 	return numRemoved
 }
 
-func (chunk *crossTxChunk) countItems() uint32 {
+func (chunk *crossTxChunk) countItems() int {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()
-	return uint32(len(chunk.items))
+	return len(chunk.items)
 }
 
-func (chunk *crossTxChunk) appendKeys(keysAccumulator [][]byte) [][]byte {
+func (chunk *crossTxChunk) KeysInOrder() [][]byte {
+	chunk.mutex.RLock()
+	defer chunk.mutex.RUnlock()
+
+	keys := make([][]byte, 0, chunk.itemsAsList.Len())
+
+	for element := chunk.itemsAsList.Front(); element != nil; element = element.Next() {
+		value := element.Value.(*WrappedTransaction)
+		keys = append(keys, value.TxHash)
+	}
+
+	return keys
+}
+
+func (chunk *crossTxChunk) AppendKeys(keysAccumulator [][]byte) [][]byte {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()
 

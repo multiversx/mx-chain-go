@@ -101,6 +101,16 @@ func hashesAsStrings(hashes [][]byte) []string {
 	return result
 }
 
+func hashesAsBytes(hashes []string) [][]byte {
+	result := make([][]byte, len(hashes))
+
+	for i := 0; i < len(hashes); i++ {
+		result[i] = []byte(hashes[i])
+	}
+
+	return result
+}
+
 func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nTransactionsPerSender int) {
 	for senderTag := 0; senderTag < nSenders; senderTag++ {
 		sender := createFakeSenderAddress(senderTag)
