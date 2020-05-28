@@ -74,5 +74,5 @@ func (cache *crossTxCache) addTestTxs(hashes ...string) {
 }
 
 func (cache *crossTxCache) addTestTx(hash string) (ok, added bool) {
-	return cache.AddItem(createTx([]byte(hash), ".", uint64(42)))
+	return cache.AddTx(createTx([]byte(hash), ".", uint64(42)))
 }

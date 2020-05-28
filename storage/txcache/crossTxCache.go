@@ -75,20 +75,9 @@ func (cache *crossTxCache) doImmunizeTxsAgainstEviction(keys [][]byte) (numNowTo
 
 // AddTx adds a transaction in the cache
 func (cache *crossTxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
-	return cache.AddItem(tx)
-}
-
-// AddItem adds the item in the map
-func (cache *crossTxCache) AddItem(item *WrappedTransaction) (ok bool, added bool) {
-	key := string(item.TxHash)
+	key := string(tx.TxHash)
 	chunk := cache.getChunkByKey(key)
-	return chunk.addItem(item)
-}
-
-// Get gets an item from the map
-func (cache *crossTxCache) GetItem(key string) (*WrappedTransaction, bool) {
-	chunk := cache.getChunkByKey(key)
-	return chunk.getItem(key)
+	return chunk.addItem(tx)
 }
 
 func (cache *crossTxCache) getChunkByKey(key string) *crossTxChunk {
@@ -206,7 +195,7 @@ func (cache *crossTxCache) ForEachTransaction(function ForEachTransaction) {
 
 // Get gets a transaction by hash
 func (cache *crossTxCache) Get(key []byte) (value interface{}, ok bool) {
-	tx, ok := cache.GetItem(string(key))
+	tx, ok := cache.GetByTxHash(key)
 	if ok {
 		return tx.Tx, true
 	}
@@ -215,7 +204,8 @@ func (cache *crossTxCache) Get(key []byte) (value interface{}, ok bool) {
 
 // GetByTxHash gets the transaction by hash
 func (cache *crossTxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
-	return cache.GetItem(string(txHash))
+	chunk := cache.getChunkByKey(string(txHash))
+	return chunk.getItem(string(txHash))
 }
 
 // Has checks is a transaction exists
