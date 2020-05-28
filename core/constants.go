@@ -74,6 +74,9 @@ const MetricCurrentRound = "erd_current_round"
 // MetricNonce is the metric for monitoring the nonce of a node
 const MetricNonce = "erd_nonce"
 
+// MetricNonceForTPS is the metric for monitoring the nonce of a node used in TPS benchmarks
+const MetricNonceForTPS = "erd_nonce_for_tps"
+
 // MetricProbableHighestNonce is the metric for monitoring the max speculative nonce received by the node by listening on the network
 const MetricProbableHighestNonce = "erd_probable_highest_nonce"
 

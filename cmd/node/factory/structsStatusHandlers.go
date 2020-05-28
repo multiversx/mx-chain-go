@@ -160,12 +160,14 @@ func (shi *statusHandlersInfo) LoadTpsBenchmarkFromStorage(
 
 	okTpsBenchmarks := &statistics.TpsPersistentData{}
 
-	okTpsBenchmarks.BlockNumber = persister.GetUint64(metricsMap[core.MetricNonce])
+	okTpsBenchmarks.BlockNumber = persister.GetUint64(metricsMap[core.MetricNonceForTPS])
 	okTpsBenchmarks.RoundNumber = persister.GetUint64(metricsMap[core.MetricCurrentRound])
 	okTpsBenchmarks.LastBlockTxCount = uint32(persister.GetUint64(metricsMap[core.MetricLastBlockTxCount]))
 	okTpsBenchmarks.PeakTPS = float64(persister.GetUint64(metricsMap[core.MetricPeakTPS]))
 	okTpsBenchmarks.TotalProcessedTxCount = big.NewInt(int64(persister.GetUint64(metricsMap[core.MetricNumProcessedTxs])))
 	okTpsBenchmarks.AverageBlockTxCount = persister.GetBigIntFromString(metricsMap[core.MetricAverageBlockTxCount])
+
+	shi.updateTpsMetrics(metricsMap)
 
 	log.Debug("loaded tps benchmark from storage",
 		"block number", okTpsBenchmarks.BlockNumber,
@@ -176,6 +178,18 @@ func (shi *statusHandlersInfo) LoadTpsBenchmarkFromStorage(
 		"total txs processed", okTpsBenchmarks.TotalProcessedTxCount.String())
 
 	return okTpsBenchmarks
+}
+
+func (shi *statusHandlersInfo) updateTpsMetrics(metricsMap map[string]interface{}) {
+	for key, value := range metricsMap {
+		if key == core.MetricAverageBlockTxCount {
+			log.Trace("setting metric value", "key", key, "value string", value.(string))
+			shi.StatusHandler.SetStringValue(key, value.(string))
+		} else {
+			log.Trace("setting metric value", "key", key, "value uint64", value.(uint64))
+			shi.StatusHandler.SetUInt64Value(key, value.(uint64))
+		}
+	}
 }
 
 // CreateStatusHandlerPresenter will return an instance of PresenterStatusHandler

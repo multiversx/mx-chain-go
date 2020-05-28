@@ -258,17 +258,19 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 	s.blockNumber = header.Nonce
 	s.roundNumber = header.Round
 	s.lastBlockTxCount = header.TxCount
-	if s.initialBlockNumber != defaultBlockNumber && uint64(s.initialBlockNumber) < header.Nonce {
+	shouldUpdateTotalNumAndPeak := s.shouldUpdateFields(header)
+	if shouldUpdateTotalNumAndPeak {
 		s.totalProcessedTxCount.Add(s.totalProcessedTxCount, big.NewInt(int64(header.TxCount)))
 		s.statusHandler.AddUint64(core.MetricNumProcessedTxs, uint64(header.TxCount))
 	}
 	s.averageBlockTxCount.Quo(s.totalProcessedTxCount, big.NewInt(int64(header.Nonce)))
 
 	currentTPS := float64(uint64(header.TxCount) / s.roundTime)
-	if currentTPS > s.peakTPS {
+	if currentTPS > s.peakTPS && shouldUpdateTotalNumAndPeak {
 		s.peakTPS = currentTPS
 	}
 
+	s.statusHandler.SetUInt64Value(core.MetricNonceForTPS, header.Nonce)
 	s.statusHandler.SetUInt64Value(core.MetricLastBlockTxCount, uint64(header.TxCount))
 	s.statusHandler.SetUInt64Value(core.MetricPeakTPS, uint64(s.peakTPS))
 	s.statusHandler.SetStringValue(core.MetricAverageBlockTxCount, s.averageBlockTxCount.String())
@@ -305,6 +307,14 @@ func (s *TpsBenchmark) updateStatistics(header *block.MetaBlock) error {
 	}
 
 	return nil
+}
+
+func (s *TpsBenchmark) shouldUpdateFields(mb *block.MetaBlock) bool {
+	if s.initialBlockNumber == defaultBlockNumber {
+		return true
+	}
+
+	return uint64(s.initialBlockNumber) < mb.Nonce
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
