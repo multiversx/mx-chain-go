@@ -79,6 +79,8 @@ type EpochStartNotifier interface {
 	UnregisterHandler(handler epochStart.ActionHandler)
 	NotifyAll(hdr data.HeaderHandler)
 	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	RegisterForEpochChangeConfirmed(handler func(epoch uint32))
+	NotifyEpochChangeConfirmed(epoch uint32)
 	IsInterfaceNil() bool
 }
 
@@ -100,6 +102,7 @@ type Process struct {
 	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
 	RequestHandler           process.RequestHandler
 	TxLogsProcessor          process.TransactionLogProcessorDatabase
+	HeaderValidator          epochStart.HeaderValidator
 }
 
 type processComponentsFactoryArgs struct {
@@ -483,6 +486,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
 		RequestHandler:           requestHandler,
 		TxLogsProcessor:          txLogsProcessor,
+		HeaderValidator:          headerValidator,
 	}, nil
 }
 

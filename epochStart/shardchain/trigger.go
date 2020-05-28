@@ -498,6 +498,7 @@ func (t *trigger) updateTriggerFromMeta() {
 			t.epochMetaBlockHash = []byte(currMetaInfo.hash)
 			t.epochStartMeta = currMetaInfo.hdr
 			t.saveCurrentState(currMetaInfo.hdr.GetRound())
+			t.epochStartNotifier.NotifyEpochChangeConfirmed(t.metaEpoch)
 
 			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.metaEpoch, t.epochStartRound)
 			log.Debug(display.Headline(msg, "", "#"))
