@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -19,7 +19,7 @@ var zero = big.NewInt(0)
 type nodeSetupChecker struct {
 	accountsParser           genesis.AccountsParser
 	initialNodePrice         *big.Int
-	validatorPubkeyConverter state.PubkeyConverter
+	validatorPubkeyConverter core.PubkeyConverter
 	keyGenerator             crypto.KeyGenerator
 }
 
@@ -32,7 +32,7 @@ type delegationAddress struct {
 func NewNodesSetupChecker(
 	accountsParser genesis.AccountsParser,
 	initialNodePrice *big.Int,
-	validatorPubkeyConverter state.PubkeyConverter,
+	validatorPubkeyConverter core.PubkeyConverter,
 	keyGenerator crypto.KeyGenerator,
 ) (*nodeSetupChecker, error) {
 	if check.IfNil(accountsParser) {

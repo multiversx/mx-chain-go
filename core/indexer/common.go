@@ -17,14 +17,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 type commonProcessor struct {
-	addressPubkeyConverter   state.PubkeyConverter
-	validatorPubkeyConverter state.PubkeyConverter
+	addressPubkeyConverter   core.PubkeyConverter
+	validatorPubkeyConverter core.PubkeyConverter
 }
 
 func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
