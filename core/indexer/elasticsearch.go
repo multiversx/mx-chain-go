@@ -107,7 +107,6 @@ func (ei *elasticIndexer) SaveBlock(
 	go ei.database.SaveHeader(headerHandler, signersIndexes, body, notarizedHeadersHashes, txsSizeInBytes)
 
 	if len(body.MiniBlocks) == 0 {
-		log.Debug("indexer", "error", ErrNoMiniblocks.Error())
 		return
 	}
 
