@@ -192,12 +192,7 @@ func GetTransaction(c *gin.Context) {
 
 	tx, err := ef.GetTransaction(txhash)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if tx == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrTxNotFound.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrTxNotFound.Error(), err.Error())})
 		return
 	}
 

@@ -33,7 +33,7 @@ type NodeHandler interface {
 	//SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
 
-	//GetTransaction gets the transaction
+	//GetTransaction will return a transaction based on the hash
 	GetTransaction(hash string) (*transaction.ApiTransactionResult, error)
 
 	//GetTransactionStatus gets the transaction status

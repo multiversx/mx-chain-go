@@ -1,6 +1,6 @@
 package transaction
 
-// ApiTransactionResult is the DTO which will be returned on the get transaction by hash endpoint
+// ApiTransactionResult is the data transfer object which will be returned on the get transaction by hash endpoint
 type ApiTransactionResult struct {
 	Type      string `json:"type"`
 	Nonce     uint64 `json:"nonce,omitempty"`
