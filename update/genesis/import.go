@@ -229,8 +229,12 @@ func newAccountCreator(accType Type) (state.AccountFactory, error) {
 }
 
 func (si *stateImport) getTrie(shardID uint32, accType Type) (data.Trie, error) {
-	shIDString := core.ShardIdToString(shardID)
-	trieForShard, ok := si.tries[shIDString]
+	trieString := core.ShardIdToString(shardID)
+	if accType == ValidatorAccount {
+		trieString = "validator"
+	}
+
+	trieForShard, ok := si.tries[trieString]
 	if ok {
 		return trieForShard, nil
 	}
@@ -245,7 +249,7 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (data.Trie, error) 
 		return nil, err
 	}
 
-	si.tries[shIDString] = trieForShard
+	si.tries[trieString] = trieForShard
 
 	return trieForShard, nil
 }
