@@ -145,3 +145,6 @@ export TOTAL_OBSERVERCOUNT=$total_observer_count
 let "total_node_count = $SHARD_VALIDATORCOUNT * $SHARDCOUNT + $META_VALIDATORCOUNT + $TOTAL_OBSERVERCOUNT"
 export TOTAL_NODECOUNT=$total_node_count
 
+# METASHARD_ID will be used to identify a shard ID as metachain
+export METASHARD_ID=4294967295
+
