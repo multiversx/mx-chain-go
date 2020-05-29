@@ -244,7 +244,7 @@ func (n *Node) StartConsensus() error {
 
 	bootstrapper.StartSyncingBlocks()
 
-	epoch := uint32(0)
+	epoch := n.blkc.GetGenesisHeader().GetEpoch()
 	crtBlockHeader := n.blkc.GetCurrentBlockHeader()
 	if !check.IfNil(crtBlockHeader) {
 		epoch = crtBlockHeader.GetEpoch()
@@ -412,7 +412,6 @@ func (n *Node) createChronologyHandler(rounder consensus.Rounder, appStatusHandl
 		rounder,
 		n.syncTimer,
 	)
-
 	if err != nil {
 		return nil, err
 	}

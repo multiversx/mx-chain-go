@@ -289,9 +289,10 @@ type HardforkConfig struct {
 	PublicKeyToListenFrom     string
 	CloseAfterExportInMinutes uint32
 
-	StartRound uint64
-	StartNonce uint64
-	StartEpoch uint32
+	StartRound    uint64
+	StartNonce    uint64
+	StartEpoch    uint32
+	AfterHardFork bool
 
 	ValidatorGracePeriodInEpochs uint32
 

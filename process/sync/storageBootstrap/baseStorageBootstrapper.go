@@ -69,6 +69,10 @@ func (st *storageBootstrapper) loadBlocks() error {
 	var headerInfo bootstrapStorage.BootstrapData
 
 	round := st.bootStorer.GetHighestRound()
+	if round == 0 {
+		log.Debug("Load blocks does nothing as start from genesis")
+		return nil
+	}
 	storageHeadersInfo := make([]bootstrapStorage.BootstrapData, 0)
 
 	log.Debug("Load blocks started...")

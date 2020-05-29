@@ -122,6 +122,8 @@ type epochStartBootstrap struct {
 	peerAccountTries   map[string]data.Trie
 	baseData           baseDataInStorage
 	shuffledOut        bool
+	startEpoch         uint32
+	startRound         int64
 }
 
 type baseDataInStorage struct {
@@ -225,6 +227,14 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		return nil, err
 	}
 
+	if epochStartProvider.generalConfig.Hardfork.AfterHardFork {
+		epochStartProvider.startEpoch = epochStartProvider.generalConfig.Hardfork.StartEpoch
+		epochStartProvider.baseData.lastEpoch = epochStartProvider.startEpoch
+		epochStartProvider.startRound = int64(epochStartProvider.generalConfig.Hardfork.StartRound)
+		epochStartProvider.baseData.lastRound = epochStartProvider.startRound
+		epochStartProvider.baseData.epochStartRound = uint64(epochStartProvider.startRound)
+	}
+
 	return epochStartProvider, nil
 }
 
@@ -235,7 +245,7 @@ func (e *epochStartBootstrap) isStartInEpochZero() bool {
 		return true
 	}
 
-	currentRound := e.rounder.Index()
+	currentRound := e.rounder.Index() - e.startRound
 	epochEndPlusGracePeriod := float64(e.generalConfig.EpochStartConfig.RoundsPerEpoch) * (gracePeriodInPercentage + 1.0)
 	log.Debug("IsStartInEpochZero", "currentRound", currentRound, "epochEndRound", epochEndPlusGracePeriod)
 	return float64(currentRound) < epochEndPlusGracePeriod
@@ -243,7 +253,7 @@ func (e *epochStartBootstrap) isStartInEpochZero() bool {
 
 func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
 	parameters := Parameters{
-		Epoch:       0,
+		Epoch:       e.startEpoch,
 		SelfShardId: e.genesisShardCoordinator.SelfId(),
 		NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
 	}
@@ -287,14 +297,8 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	if e.importStartHandler.IsAfterExportBeforeImport() {
-		log.Info("after hardfork event, bootstrap from storage")
-		return e.prepareEpochZero()
-	}
-
-	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
-	if isCurrentEpochSaved || e.isStartInEpochZero() {
-		if e.baseData.lastEpoch == 0 {
+	if e.isStartInEpochZero() || e.computeIfCurrentEpochIsSaved() {
+		if e.baseData.lastEpoch == e.startEpoch {
 			return e.prepareEpochZero()
 		}
 

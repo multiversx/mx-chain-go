@@ -84,6 +84,7 @@ type indexHashedNodesCoordinator struct {
 	consensusGroupCacher          Cacher
 	loadingFromDisk               atomic.Value
 	shuffledOutHandler            ShuffledOutHandler
+	startEpoch                    uint32
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -122,6 +123,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		consensusGroupCacher:          arguments.ConsensusGroupCache,
 		shardIDAsObserver:             arguments.ShardIDAsObserver,
 		shuffledOutHandler:            arguments.ShuffledOutHandler,
+		startEpoch:                    arguments.StartEpoch,
 	}
 
 	ihgs.loadingFromDisk.Store(false)
@@ -785,7 +787,7 @@ func (ihgs *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	publicKeysPrevEpoch := make(map[uint32][][]byte)
 	prevEpochConfigExists := false
 
-	if epoch > 0 {
+	if epoch > ihgs.startEpoch {
 		publicKeysPrevEpoch, err = ihgs.GetAllEligibleValidatorsPublicKeys(epoch - 1)
 		if err == nil {
 			prevEpochConfigExists = true

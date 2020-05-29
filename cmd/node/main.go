@@ -807,11 +807,17 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	startRound := int64(0)
+	if generalConfig.Hardfork.AfterHardFork {
+		startRound = int64(generalConfig.Hardfork.StartRound)
+	}
 	rounder, err := round.NewRound(
 		time.Unix(genesisNodesConfig.StartTime, 0),
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(genesisNodesConfig.RoundDuration),
-		syncer)
+		syncer,
+		startRound,
+	)
 	if err != nil {
 		return err
 	}
@@ -993,6 +999,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		shardCoordinator.SelfId(),
 		chanStopNodeProcess,
 		bootstrapParameters,
+		currentEpoch,
 	)
 	if err != nil {
 		return err
@@ -1691,6 +1698,7 @@ func createNodesCoordinator(
 	currentShardID uint32,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	bootstrapParameters bootstrap.Parameters,
+	startEpoch uint32,
 ) (sharding.NodesCoordinator, error) {
 	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
 	if err != nil {
@@ -1711,7 +1719,7 @@ func createNodesCoordinator(
 	if errWaitingValidators != nil {
 		return nil, errWaitingValidators
 	}
-	currentEpoch := uint32(0)
+	currentEpoch := startEpoch
 	if bootstrapParameters.NodesConfig != nil {
 		nodeRegistry := bootstrapParameters.NodesConfig
 		currentEpoch = bootstrapParameters.Epoch
@@ -1776,6 +1784,7 @@ func createNodesCoordinator(
 		ConsensusGroupCache:     consensusGroupCache,
 		ShuffledOutHandler:      shuffledOutHandler,
 		Epoch:                   currentEpoch,
+		StartEpoch:              startEpoch,
 	}
 
 	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
