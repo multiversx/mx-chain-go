@@ -83,7 +83,10 @@ func createMockEpochStartCreatorArguments() ArgsNewEpochStartData {
 }
 
 func createMemUnit() storage.Storer {
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 10, 1)
+	size := uint32(10)
+	shards := uint32(1)
+	sizeInBytes := uint64(0)
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, size, shards, sizeInBytes)
 	persist, _ := memorydb.NewlruDB(100000)
 	unit, _ := storageUnit.NewStorageUnit(cache, persist)
 
@@ -124,13 +127,13 @@ func createTestDataPool(selfShardID uint32) dataRetriever.PoolsHolder {
 	hdrPool, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
 
 	cacherCfg := storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards, cacherCfg.SizeInBytes)
 
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards, cacherCfg.SizeInBytes)
 
 	cacherCfg = storageUnit.CacheConfig{Size: 50000, Type: storageUnit.LRUCache}
-	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards, cacherCfg.SizeInBytes)
 
 	currTxs, _ := dataPool.NewCurrentBlockPool()
 

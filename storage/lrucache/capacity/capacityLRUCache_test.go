@@ -40,12 +40,12 @@ func TestNewCapacityLRU(t *testing.T) {
 	assert.NotNil(t, cache.items)
 }
 
-func TestCapacityLRUCache_Put(t *testing.T) {
+func TestCapacityLRUCache_AddSized(t *testing.T) {
 	cache := createDefaultCache()
 	data := []byte("test")
 	key := "key"
 	capacity := int64(5)
-	cache.Add(key, data, capacity)
+	cache.AddSized(key, data, capacity)
 
 	v, ok := cache.Get(key)
 	assert.True(t, ok)
@@ -57,12 +57,12 @@ func TestCapacityLRUCache_Put(t *testing.T) {
 	assert.Equal(t, key, keys[0])
 }
 
-func TestCapacityLRUCache_HasOrAdd(t *testing.T) {
+func TestCapacityLRUCache_ContainsOrAddSized(t *testing.T) {
 	cache := createDefaultCache()
 	data := []byte("data1")
 	key := "key"
 
-	found, evicted := cache.HasOrAdd(key, data, 1)
+	found, evicted := cache.ContainsOrAddSized(key, data, 1)
 	assert.False(t, found)
 	assert.False(t, evicted)
 
@@ -72,7 +72,7 @@ func TestCapacityLRUCache_HasOrAdd(t *testing.T) {
 	assert.Equal(t, data, v)
 
 	data2 := []byte("data2")
-	found, evicted = cache.HasOrAdd(key, data2, 1)
+	found, evicted = cache.ContainsOrAddSized(key, data2, 1)
 	assert.True(t, found)
 	assert.False(t, evicted)
 

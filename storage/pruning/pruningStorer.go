@@ -106,7 +106,7 @@ func initPruningStorer(
 		return nil, storage.ErrCacheSizeIsLowerThanBatchSize
 	}
 
-	cache, err = storageUnit.NewCache(args.CacheConf.Type, args.CacheConf.Size, args.CacheConf.Shards)
+	cache, err = storageUnit.NewCache(args.CacheConf.Type, args.CacheConf.Size, args.CacheConf.Shards, args.CacheConf.SizeInBytes)
 	if err != nil {
 		return nil, err
 	}

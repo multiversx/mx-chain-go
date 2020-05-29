@@ -1106,6 +1106,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		storageUnit.CacheType(generalConfig.WhiteListPool.Type),
 		generalConfig.WhiteListPool.Size,
 		generalConfig.WhiteListPool.Shards,
+		generalConfig.WhiteListPool.SizeInBytes,
 	)
 	if err != nil {
 		return err
@@ -2271,6 +2272,7 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 		storageUnit.CacheType(generalConfig.WhiteListerVerifiedTxs.Type),
 		generalConfig.WhiteListerVerifiedTxs.Size,
 		generalConfig.WhiteListerVerifiedTxs.Shards,
+		generalConfig.WhiteListPool.SizeInBytes,
 	)
 	if err != nil {
 		return nil, err

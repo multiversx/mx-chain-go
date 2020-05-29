@@ -8,10 +8,11 @@ import (
 
 const defaultMemDBSize = 10000
 const defaultNumShards = 1
+const noSizeInBytes = 0
 
 // CreateMemUnit creates an in-memory storer unit using maps
 func CreateMemUnit() storage.Storer {
-	cache, err := storageUnit.NewCache(storageUnit.LRUCache, defaultMemDBSize, defaultNumShards)
+	cache, err := storageUnit.NewCache(storageUnit.LRUCache, defaultMemDBSize, defaultNumShards, noSizeInBytes)
 	if err != nil {
 		return nil
 	}

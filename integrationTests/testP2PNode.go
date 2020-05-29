@@ -69,9 +69,9 @@ func NewTestP2PNode(
 
 	tP2pNode.ShardCoordinator = shardCoordinator
 
-	pidPk, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 0)
-	pkShardId, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 0)
-	pidShardId, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 0)
+	pidPk, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 0, 0)
+	pkShardId, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 0, 0)
+	pidShardId, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 0, 0)
 	startInEpoch := uint32(0)
 	tP2pNode.NetworkShardingUpdater, err = networksharding.NewPeerShardMapper(
 		pidPk,
@@ -267,7 +267,7 @@ func CreateNodesWithTestP2PNodes(
 	validatorsForNodesCoordinator, _ := sharding.NodesInfoToValidators(validatorsMap)
 	nodesMap := make(map[uint32][]*TestP2PNode)
 	cacherCfg := storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache, Shards: 1}
-	cache, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	cache, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards, cacherCfg.SizeInBytes)
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,

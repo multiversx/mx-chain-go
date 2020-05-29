@@ -184,5 +184,19 @@ type LRUCacheHandler interface {
 	Keys() []interface{}
 	Len() int
 	Purge()
-	Resize(int) int
+}
+
+//SizeLRUCacheHandler is the interface for size capable LRU cache.
+type SizeLRUCacheHandler interface {
+	AddSized(key, value interface{}, sizeInBytes int64) bool
+	Get(key interface{}) (value interface{}, ok bool)
+	Contains(key interface{}) (ok bool)
+	ContainsOrAddSized(key, value interface{}, sizeInBytes int64) (ok, evicted bool)
+	Peek(key interface{}) (value interface{}, ok bool)
+	Remove(key interface{}) bool
+	RemoveOldest() (interface{}, interface{}, bool)
+	GetOldest() (interface{}, interface{}, bool)
+	Keys() []interface{}
+	Len() int
+	Purge()
 }

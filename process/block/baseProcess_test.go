@@ -39,7 +39,7 @@ func createTestBlockchain() *mock.BlockChainMock {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 1)
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 1, 0)
 	return cache
 }
 

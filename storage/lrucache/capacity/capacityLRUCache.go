@@ -60,8 +60,8 @@ func (c *CapacityLRU) Purge() {
 	c.evictList.Init()
 }
 
-// Add adds a value to the cache.  Returns true if an eviction occurred.
-func (c *CapacityLRU) Add(key, value interface{}, sizeInBytes int64) (evicted bool) {
+// AddSized adds a value to the cache.  Returns true if an eviction occurred.
+func (c *CapacityLRU) AddSized(key, value interface{}, sizeInBytes int64) (evicted bool) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -121,10 +121,10 @@ func (c *CapacityLRU) Contains(key interface{}) (ok bool) {
 	return ok
 }
 
-// HasOrAdd checks if a key is in the cache without updating the
+// ContainsOrAddSized checks if a key is in the cache without updating the
 // recent-ness or deleting it for being stale, and if not, adds the value.
 // Returns whether found and whether an eviction occurred.
-func (c *CapacityLRU) HasOrAdd(key, value interface{}, sizeInBytes int64) (ok, evicted bool) {
+func (c *CapacityLRU) ContainsOrAddSized(key, value interface{}, sizeInBytes int64) (ok, evicted bool) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 

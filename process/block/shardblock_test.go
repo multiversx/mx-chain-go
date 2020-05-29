@@ -66,15 +66,15 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	hdrPool, _ := headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
 
 	cacherCfg := storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	txBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards, cacherCfg.SizeInBytes)
 
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
-	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	peerChangeBlockBody, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards, cacherCfg.SizeInBytes)
 
 	cacherCfg = storageUnit.CacheConfig{Size: 100000, Type: storageUnit.LRUCache, Shards: 1}
 
 	cacherCfg = storageUnit.CacheConfig{Size: 50000, Type: storageUnit.LRUCache, Shards: 1}
-	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards)
+	trieNodes, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards, cacherCfg.SizeInBytes)
 
 	currTxs, _ := dataPool.NewCurrentBlockPool()
 
