@@ -166,6 +166,17 @@ generateProxyObserverList() {
       let OBSERVER_INDEX++
     done
   done
+  # Start Meta Observers
+  for OBSERVER_IN_SHARD in `seq $META_OBSERVERCOUNT`; do
+      let "PORT = $PORT_ORIGIN_OBSERVER_REST + $OBSERVER_INDEX"
+
+      echo -n "[[Observers]]" >> config_edit.toml
+      echo -n "   ShardId = 4294967295" >> config_edit.toml
+      echo -n "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
+      echo -n ""$'\n' >> config_edit.toml
+
+      let OBSERVER_INDEX++
+    done
 }
 
 updateTOMLValue() {
