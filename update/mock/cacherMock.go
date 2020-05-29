@@ -91,11 +91,6 @@ func (cm *CacherMock) Remove(key []byte) {
 	delete(cm.dataMap, string(key))
 }
 
-// RemoveOldest -
-func (cm *CacherMock) RemoveOldest() {
-	panic("implement me")
-}
-
 // Keys -
 func (cm *CacherMock) Keys() [][]byte {
 	panic("implement me")

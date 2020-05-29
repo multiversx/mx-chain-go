@@ -52,7 +52,6 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 	require.False(t, evicted)
 
 	cache.Remove([]byte{})
-	cache.RemoveOldest()
 
 	keys := cache.Keys()
 	require.Equal(t, 0, len(keys))

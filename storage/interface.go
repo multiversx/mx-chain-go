@@ -61,8 +61,6 @@ type Cacher interface {
 	HasOrAdd(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool)
 	// Remove removes the provided key from the cache.
 	Remove(key []byte)
-	// RemoveOldest removes the oldest item from the cache.
-	RemoveOldest()
 	// Keys returns a slice of the keys in the cache, from oldest to newest.
 	Keys() [][]byte
 	// Len returns the number of items in the cache.
@@ -179,8 +177,6 @@ type LRUCacheHandler interface {
 	ContainsOrAdd(key, value interface{}) (ok, evicted bool)
 	Peek(key interface{}) (value interface{}, ok bool)
 	Remove(key interface{}) bool
-	RemoveOldest() (interface{}, interface{}, bool)
-	GetOldest() (interface{}, interface{}, bool)
 	Keys() []interface{}
 	Len() int
 	Purge()
@@ -194,8 +190,6 @@ type SizeLRUCacheHandler interface {
 	ContainsOrAddSized(key, value interface{}, sizeInBytes int64) (ok, evicted bool)
 	Peek(key interface{}) (value interface{}, ok bool)
 	Remove(key interface{}) bool
-	RemoveOldest() (interface{}, interface{}, bool)
-	GetOldest() (interface{}, interface{}, bool)
 	Keys() []interface{}
 	Len() int
 	Purge()

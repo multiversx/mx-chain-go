@@ -25,7 +25,6 @@ type LRUCache struct {
 // NewCache creates a new LRU cache instance
 func NewCache(size int) (*LRUCache, error) {
 	cache, err := lru.New(size)
-
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +43,7 @@ func NewCache(size int) (*LRUCache, error) {
 
 // NewCacheWithSizeInBytes creates a new sized LRU cache instance
 func NewCacheWithSizeInBytes(size int, sizeInBytes int64) (*LRUCache, error) {
-	cache, err := capacity.NewCapacityLRU(size, sizeInBytes, nil)
+	cache, err := capacity.NewCapacityLRU(size, sizeInBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -132,11 +131,6 @@ func (c *LRUCache) callAddedDataHandlers(key []byte, value interface{}) {
 // Remove removes the provided key from the cache.
 func (c *LRUCache) Remove(key []byte) {
 	c.cache.Remove(string(key))
-}
-
-// RemoveOldest removes the oldest item from the cache.
-func (c *LRUCache) RemoveOldest() {
-	c.cache.RemoveOldest()
 }
 
 // Keys returns a slice of the keys in the cache, from oldest to newest.

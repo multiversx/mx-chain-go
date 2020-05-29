@@ -83,10 +83,6 @@ func (cache *DisabledCache) HasOrAdd(_ []byte, _ interface{}, _ int) (ok, evicte
 func (cache *DisabledCache) Remove(_ []byte) {
 }
 
-// RemoveOldest does nothing
-func (cache *DisabledCache) RemoveOldest() {
-}
-
 // Keys returns an empty slice
 func (cache *DisabledCache) Keys() [][]byte {
 	return make([][]byte, 0)

@@ -250,11 +250,6 @@ func (cache *TxCache) Remove(key []byte) {
 	_ = cache.RemoveTxByHash(key)
 }
 
-// RemoveOldest is not implemented
-func (cache *TxCache) RemoveOldest() {
-	log.Error("TxCache.RemoveOldest is not implemented")
-}
-
 // Keys returns the tx hashes in the cache
 func (cache *TxCache) Keys() [][]byte {
 	return cache.txByHash.keys()

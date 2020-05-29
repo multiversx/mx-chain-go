@@ -200,22 +200,6 @@ func TestFIFOShardedCache_RemovePresent(t *testing.T) {
 	assert.False(t, found, "not expected to find key %s", key)
 }
 
-func TestFIFOShardedCache_RemoveOldestEmpty(t *testing.T) {
-	c, err := fifocache.NewShardedCache(10, 2)
-
-	assert.Nil(t, err, "no error expected but got %s", err)
-
-	l := c.Len()
-
-	assert.Zero(t, l, "expected size 0 but got %d", l)
-
-	c.RemoveOldest()
-
-	l = c.Len()
-
-	assert.Zero(t, l, "expected size 0 but got %d", l)
-}
-
 func TestFIFOShardedCache_Keys(t *testing.T) {
 	c, err := fifocache.NewShardedCache(10, 2)
 

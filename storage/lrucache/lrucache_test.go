@@ -7,17 +7,68 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/stretchr/testify/assert"
 )
 
 var timeoutWaitForWaitGroups = time.Second * 2
 
-func TestLRUCache_PutNotPresent(t *testing.T) {
-	key, val := []byte("key"), []byte("value")
-	c, err := lrucache.NewCache(10)
+//------- NewCache
 
-	assert.Nil(t, err, "no error expected but got %s", err)
+func TestNewCache_BadSizeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	c, err := lrucache.NewCache(0)
+
+	assert.True(t, check.IfNil(c))
+	assert.NotNil(t, err)
+}
+
+func TestNewCache_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	c, err := lrucache.NewCache(1)
+
+	assert.False(t, check.IfNil(c))
+	assert.Nil(t, err)
+}
+
+//------- NewCacheWithSizeInBytes
+
+func TestNewCacheWithSizeInBytes_BadSizeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	c, err := lrucache.NewCacheWithSizeInBytes(0, 100000)
+
+	assert.True(t, check.IfNil(c))
+	assert.Equal(t, storage.ErrCacheSizeInvalid, err)
+}
+
+func TestNewCacheWithSizeInBytes_BadSizeInBytesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	c, err := lrucache.NewCacheWithSizeInBytes(1, 0)
+
+	assert.True(t, check.IfNil(c))
+	assert.Equal(t, storage.ErrCacheCapacityInvalid, err)
+}
+
+func TestNewCacheWithSizeInBytes_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	c, err := lrucache.NewCacheWithSizeInBytes(1, 100000)
+
+	assert.False(t, check.IfNil(c))
+	assert.Nil(t, err)
+}
+
+func TestLRUCache_PutNotPresent(t *testing.T) {
+	t.Parallel()
+
+	key, val := []byte("key"), []byte("value")
+	c, _ := lrucache.NewCache(10)
 
 	l := c.Len()
 
@@ -30,10 +81,10 @@ func TestLRUCache_PutNotPresent(t *testing.T) {
 }
 
 func TestLRUCache_PutPresent(t *testing.T) {
-	key, val := []byte("key"), []byte("value")
-	c, err := lrucache.NewCache(10)
+	t.Parallel()
 
-	assert.Nil(t, err, "no error expected but got %s", err)
+	key, val := []byte("key"), []byte("value")
+	c, _ := lrucache.NewCache(10)
 
 	c.Put(key, val, 0)
 	c.Put(key, val, 0)
@@ -43,12 +94,12 @@ func TestLRUCache_PutPresent(t *testing.T) {
 }
 
 func TestLRUCache_PutPresentRewrite(t *testing.T) {
+	t.Parallel()
+
 	key := []byte("key")
 	val1 := []byte("value1")
 	val2 := []byte("value2")
-	c, err := lrucache.NewCache(10)
-
-	assert.Nil(t, err, "no error expected but got %s", err)
+	c, _ := lrucache.NewCache(10)
 
 	c.Put(key, val1, 0)
 	c.Put(key, val2, 0)
@@ -61,10 +112,10 @@ func TestLRUCache_PutPresentRewrite(t *testing.T) {
 }
 
 func TestLRUCache_GetNotPresent(t *testing.T) {
-	key := []byte("key1")
-	c, err := lrucache.NewCache(10)
+	t.Parallel()
 
-	assert.Nil(t, err, "no error expected but got %s", err)
+	key := []byte("key1")
+	c, _ := lrucache.NewCache(10)
 
 	v, ok := c.Get(key)
 
@@ -72,10 +123,10 @@ func TestLRUCache_GetNotPresent(t *testing.T) {
 }
 
 func TestLRUCache_GetPresent(t *testing.T) {
-	key, val := []byte("key2"), []byte("value2")
-	c, err := lrucache.NewCache(10)
+	t.Parallel()
 
-	assert.Nil(t, err, "no error expected but got %s", err)
+	key, val := []byte("key2"), []byte("value2")
+	c, _ := lrucache.NewCache(10)
 
 	c.Put(key, val, 0)
 
@@ -86,10 +137,10 @@ func TestLRUCache_GetPresent(t *testing.T) {
 }
 
 func TestLRUCache_HasNotPresent(t *testing.T) {
-	key := []byte("key3")
-	c, err := lrucache.NewCache(10)
+	t.Parallel()
 
-	assert.Nil(t, err, "no error expected but got %s", err)
+	key := []byte("key3")
+	c, _ := lrucache.NewCache(10)
 
 	found := c.Has(key)
 
@@ -97,10 +148,10 @@ func TestLRUCache_HasNotPresent(t *testing.T) {
 }
 
 func TestLRUCache_HasPresent(t *testing.T) {
-	key, val := []byte("key4"), []byte("value4")
-	c, err := lrucache.NewCache(10)
+	t.Parallel()
 
-	assert.Nil(t, err, "no error expected but got %s", err)
+	key, val := []byte("key4"), []byte("value4")
+	c, _ := lrucache.NewCache(10)
 
 	c.Put(key, val, 0)
 
@@ -110,10 +161,10 @@ func TestLRUCache_HasPresent(t *testing.T) {
 }
 
 func TestLRUCache_PeekNotPresent(t *testing.T) {
-	key := []byte("key5")
-	c, err := lrucache.NewCache(10)
+	t.Parallel()
 
-	assert.Nil(t, err, "no error expected but got %s", err)
+	key := []byte("key5")
+	c, _ := lrucache.NewCache(10)
 
 	_, ok := c.Peek(key)
 
@@ -121,10 +172,10 @@ func TestLRUCache_PeekNotPresent(t *testing.T) {
 }
 
 func TestLRUCache_PeekPresent(t *testing.T) {
-	key, val := []byte("key6"), []byte("value6")
-	c, err := lrucache.NewCache(10)
+	t.Parallel()
 
-	assert.Nil(t, err, "no error expected but got %s", err)
+	key, val := []byte("key6"), []byte("value6")
+	c, _ := lrucache.NewCache(10)
 
 	c.Put(key, val, 0)
 	v, ok := c.Peek(key)
@@ -134,9 +185,10 @@ func TestLRUCache_PeekPresent(t *testing.T) {
 }
 
 func TestLRUCache_HasOrAddNotPresent(t *testing.T) {
+	t.Parallel()
+
 	key, val := []byte("key7"), []byte("value7")
-	c, err := lrucache.NewCache(10)
-	assert.Nil(t, err, "no error expected but got %s", err)
+	c, _ := lrucache.NewCache(10)
 
 	_, ok := c.Peek(key)
 	assert.False(t, ok, "not expected to find key %s", key)
@@ -148,10 +200,10 @@ func TestLRUCache_HasOrAddNotPresent(t *testing.T) {
 }
 
 func TestLRUCache_HasOrAddPresent(t *testing.T) {
-	key, val := []byte("key8"), []byte("value8")
-	c, err := lrucache.NewCache(10)
+	t.Parallel()
 
-	assert.Nil(t, err, "no error expected but got %s", err)
+	key, val := []byte("key8"), []byte("value8")
+	c, _ := lrucache.NewCache(10)
 
 	_, ok := c.Peek(key)
 
@@ -165,10 +217,10 @@ func TestLRUCache_HasOrAddPresent(t *testing.T) {
 }
 
 func TestLRUCache_RemoveNotPresent(t *testing.T) {
-	key := []byte("key9")
-	c, err := lrucache.NewCache(10)
+	t.Parallel()
 
-	assert.Nil(t, err, "no error expected but got %s", err)
+	key := []byte("key9")
+	c, _ := lrucache.NewCache(10)
 
 	found := c.Has(key)
 
@@ -181,10 +233,10 @@ func TestLRUCache_RemoveNotPresent(t *testing.T) {
 }
 
 func TestLRUCache_RemovePresent(t *testing.T) {
-	key, val := []byte("key10"), []byte("value10")
-	c, err := lrucache.NewCache(10)
+	t.Parallel()
 
-	assert.Nil(t, err, "no error expected but got %s", err)
+	key, val := []byte("key10"), []byte("value10")
+	c, _ := lrucache.NewCache(10)
 
 	c.Put(key, val, 0)
 	found := c.Has(key)
@@ -197,45 +249,10 @@ func TestLRUCache_RemovePresent(t *testing.T) {
 	assert.False(t, found, "not expected to find key %s", key)
 }
 
-func TestLRUCache_RemoveOldestEmpty(t *testing.T) {
-	c, err := lrucache.NewCache(10)
-
-	assert.Nil(t, err, "no error expected but got %s", err)
-
-	l := c.Len()
-
-	assert.Zero(t, l, "expected size 0 but got %d", l)
-
-	c.RemoveOldest()
-
-	l = c.Len()
-
-	assert.Zero(t, l, "expected size 0 but got %d", l)
-}
-
-func TestLRUCache_RemoveOldestPresent(t *testing.T) {
-	c, err := lrucache.NewCache(10)
-
-	assert.Nil(t, err, "no error expected but got %s", err)
-
-	for i := 0; i < 5; i++ {
-		key, val := []byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("value%d", i))
-		c.Put(key, val, 0)
-	}
-
-	l := c.Len()
-
-	assert.Equal(t, l, 5, "expected 5 elements in cache but found %d", l)
-	c.RemoveOldest()
-	found := c.Has([]byte("key0"))
-
-	assert.False(t, found, "not expected to find key key0")
-}
-
 func TestLRUCache_Keys(t *testing.T) {
-	c, err := lrucache.NewCache(10)
+	t.Parallel()
 
-	assert.Nil(t, err, "no error expected but got %s", err)
+	c, _ := lrucache.NewCache(10)
 
 	for i := 0; i < 20; i++ {
 		key, val := []byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("value%d", i))
@@ -249,9 +266,9 @@ func TestLRUCache_Keys(t *testing.T) {
 }
 
 func TestLRUCache_Len(t *testing.T) {
-	c, err := lrucache.NewCache(10)
+	t.Parallel()
 
-	assert.Nil(t, err, "no error expected but got %s", err)
+	c, _ := lrucache.NewCache(10)
 
 	for i := 0; i < 20; i++ {
 		key, val := []byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("value%d", i))
@@ -264,9 +281,9 @@ func TestLRUCache_Len(t *testing.T) {
 }
 
 func TestLRUCache_Clear(t *testing.T) {
-	c, err := lrucache.NewCache(10)
+	t.Parallel()
 
-	assert.Nil(t, err, "no error expected but got %s", err)
+	c, _ := lrucache.NewCache(10)
 
 	for i := 0; i < 5; i++ {
 		key, val := []byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("value%d", i))
@@ -286,8 +303,7 @@ func TestLRUCache_Clear(t *testing.T) {
 func TestLRUCache_CacherRegisterAddedDataHandlerNilHandlerShouldIgnore(t *testing.T) {
 	t.Parallel()
 
-	c, err := lrucache.NewCache(100)
-	assert.Nil(t, err)
+	c, _ := lrucache.NewCache(100)
 	c.RegisterHandler(nil)
 
 	assert.Equal(t, 0, len(c.AddedDataHandlers()))
@@ -313,8 +329,7 @@ func TestLRUCache_CacherRegisterPutAddedDataHandlerShouldWork(t *testing.T) {
 		chDone <- true
 	}()
 
-	c, err := lrucache.NewCache(100)
-	assert.Nil(t, err)
+	c, _ := lrucache.NewCache(100)
 	c.RegisterHandler(f)
 	c.Put([]byte("aaaa"), "bbbb", 0)
 
@@ -348,8 +363,7 @@ func TestLRUCache_CacherRegisterHasOrAddAddedDataHandlerShouldWork(t *testing.T)
 		chDone <- true
 	}()
 
-	c, err := lrucache.NewCache(100)
-	assert.Nil(t, err)
+	c, _ := lrucache.NewCache(100)
 	c.RegisterHandler(f)
 	c.HasOrAdd([]byte("aaaa"), "bbbb", 0)
 
@@ -379,8 +393,7 @@ func TestLRUCache_CacherRegisterHasOrAddAddedDataHandlerNotAddedShouldNotCall(t 
 		chDone <- true
 	}()
 
-	c, err := lrucache.NewCache(100)
-	assert.Nil(t, err)
+	c, _ := lrucache.NewCache(100)
 	//first add, no call
 	c.HasOrAdd([]byte("aaaa"), "bbbb", 0)
 	c.RegisterHandler(f)

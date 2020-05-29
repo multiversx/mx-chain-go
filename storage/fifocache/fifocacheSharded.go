@@ -105,12 +105,6 @@ func (c *FIFOShardedCache) Remove(key []byte) {
 	c.cache.Remove(string(key))
 }
 
-// RemoveOldest removes the oldest item from the cache.
-func (c *FIFOShardedCache) RemoveOldest() {
-	// nothing to do, oldest is automatically removed when adding a new item.
-	log.Debug("remove oldest item not done, oldest item will be automatically cleared on reaching capacity")
-}
-
 // Keys returns a slice of the keys in the cache, from oldest to newest.
 func (c *FIFOShardedCache) Keys() [][]byte {
 	res := c.cache.Keys()

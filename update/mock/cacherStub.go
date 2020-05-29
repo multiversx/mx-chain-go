@@ -51,11 +51,6 @@ func (cs *CacherStub) Remove(key []byte) {
 	cs.RemoveCalled(key)
 }
 
-// RemoveOldest -
-func (cs *CacherStub) RemoveOldest() {
-	cs.RemoveOldestCalled()
-}
-
 // Keys -
 func (cs *CacherStub) Keys() [][]byte {
 	return cs.KeysCalled()
