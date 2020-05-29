@@ -25,15 +25,15 @@ require (
 	github.com/ipfs/go-log v1.0.4
 	github.com/jbenet/goprocess v0.1.4
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
-	github.com/libp2p/go-libp2p v0.9.2
-	github.com/libp2p/go-libp2p-core v0.5.6
-	github.com/libp2p/go-libp2p-discovery v0.4.0
-	github.com/libp2p/go-libp2p-kad-dht v0.8.0
-	github.com/libp2p/go-libp2p-kbucket v0.4.2
-	github.com/libp2p/go-libp2p-pubsub v0.3.1
+	github.com/libp2p/go-libp2p v0.8.2
+	github.com/libp2p/go-libp2p-core v0.5.3
+	github.com/libp2p/go-libp2p-discovery v0.3.0
+	github.com/libp2p/go-libp2p-kad-dht v0.7.11
+	github.com/libp2p/go-libp2p-kbucket v0.4.1
+	github.com/libp2p/go-libp2p-pubsub v0.2.6
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/mr-tron/base58 v1.1.3
-	github.com/multiformats/go-multiaddr v0.2.2
+	github.com/multiformats/go-multiaddr v0.2.1
 	github.com/pelletier/go-toml v1.6.0
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/profile v1.3.0
