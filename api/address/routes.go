@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/gin-gonic/gin"
 )
@@ -39,40 +40,88 @@ func Routes(router *wrapper.RouterWrapper) {
 func GetAccount(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
 	addr := c.Param("address")
 	acc, err := ef.GetAccount(addr)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrCouldNotGetAccount.Error(), err.Error())})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrCouldNotGetAccount.Error(), err.Error()),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"account": accountResponseFromBaseAccount(addr, acc)})
+
+	c.JSON(
+		http.StatusOK,
+		core.GenericAPIResponse{
+			Data:  gin.H{"account": accountResponseFromBaseAccount(addr, acc)},
+			Error: "",
+			Code:  string(core.ReturnCodeSuccess),
+		},
+	)
 }
 
 // GetBalance returns the balance for the address parameter
 func GetBalance(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 	addr := c.Param("address")
-
 	if addr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrGetBalance.Error(), errors.ErrEmptyAddress.Error())})
+		c.JSON(
+			http.StatusBadRequest,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetBalance.Error(), errors.ErrEmptyAddress.Error()),
+				Code:  string(core.ReturnCodeRequestErrror),
+			},
+		)
 		return
 	}
 
 	balance, err := ef.GetBalance(addr)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrGetBalance.Error(), err.Error())})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetBalance.Error(), err.Error()),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
-
-	c.JSON(http.StatusOK, gin.H{"balance": balance.String()})
+	c.JSON(
+		http.StatusOK,
+		core.GenericAPIResponse{
+			Data:  gin.H{"balance": balance.String()},
+			Error: "",
+			Code:  string(core.ReturnCodeSuccess),
+		},
+	)
 }
 
 func accountResponseFromBaseAccount(address string, account state.UserAccountHandler) accountResponse {

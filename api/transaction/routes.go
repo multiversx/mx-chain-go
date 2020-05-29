@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/gin-gonic/gin"
 )
@@ -73,14 +74,28 @@ func Routes(router *wrapper.RouterWrapper) {
 func SendTransaction(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(TxService)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
 	var gtx = SendTxRequest{}
 	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
+		c.JSON(
+			http.StatusBadRequest,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
+				Code:  string(core.ReturnCodeRequestErrror),
+			},
+		)
 		return
 	}
 
@@ -95,38 +110,80 @@ func SendTransaction(c *gin.Context) {
 		gtx.Signature,
 	)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error())})
+		c.JSON(
+			http.StatusBadRequest,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
+				Code:  string(core.ReturnCodeRequestErrror),
+			},
+		)
 		return
 	}
 
 	err = ef.ValidateTransaction(tx)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error())})
+		c.JSON(
+			http.StatusBadRequest,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
+				Code:  string(core.ReturnCodeRequestErrror),
+			},
+		)
 		return
 	}
 
 	_, err = ef.SendBulkTransactions([]*transaction.Transaction{tx})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
 	txHexHash := hex.EncodeToString(txHash)
-	c.JSON(http.StatusOK, gin.H{"txHash": txHexHash})
+	c.JSON(
+		http.StatusOK,
+		core.GenericAPIResponse{
+			Data:  gin.H{"txHash": txHexHash},
+			Error: "",
+			Code:  string(core.ReturnCodeSuccess),
+		},
+	)
 }
 
 // SendMultipleTransactions will receive a number of transactions and will propagate them for processing
 func SendMultipleTransactions(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(TxService)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
 	var gtx []SendTxRequest
 	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
+		c.JSON(
+			http.StatusBadRequest,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
+				Code:  string(core.ReturnCodeRequestErrror),
+			},
+		)
 		return
 	}
 
@@ -161,52 +218,92 @@ func SendMultipleTransactions(c *gin.Context) {
 
 	numOfSentTxs, err := ef.SendBulkTransactions(txs)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
 	c.JSON(
 		http.StatusOK,
-		gin.H{
-			"txsSent":   numOfSentTxs,
-			"txsHashes": txsHashes,
+		core.GenericAPIResponse{
+			Data: gin.H{
+				"txsSent":   numOfSentTxs,
+				"txsHashes": txsHashes,
+			},
+			Error: "",
+			Code:  string(core.ReturnCodeSuccess),
 		},
 	)
 }
 
 // GetTransaction returns transaction details for a given txhash
 func GetTransaction(c *gin.Context) {
-
 	ef, ok := c.MustGet("elrondFacade").(TxService)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
 	txhash := c.Param("txhash")
 	if txhash == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyTxHash.Error())})
+		c.JSON(
+			http.StatusBadRequest,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyTxHash.Error()),
+				Code:  string(core.ReturnCodeRequestErrror),
+			},
+		)
 		return
 	}
 
 	tx, err := ef.GetTransaction(txhash)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrGetTransaction.Error()})
-		return
-	}
-
-	if tx == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": errors.ErrTxNotFound.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrGetTransaction.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
 	response, err := txResponseFromTransaction(ef, tx)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"transaction": response})
+	c.JSON(
+		http.StatusOK,
+		core.GenericAPIResponse{
+			Data:  gin.H{"transaction": response},
+			Error: "",
+			Code:  string(core.ReturnCodeSuccess),
+		},
+	)
 }
 
 func txResponseFromTransaction(ef TxService, tx *transaction.Transaction) (TxResponse, error) {
@@ -237,13 +334,27 @@ func txResponseFromTransaction(ef TxService, tx *transaction.Transaction) (TxRes
 func ComputeTransactionGasLimit(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(TxService)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 	var gtx SendTxRequest
 	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
+		c.JSON(
+			http.StatusBadRequest,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
+				Code:  string(core.ReturnCodeRequestErrror),
+			},
+		)
 		return
 	}
 
@@ -258,15 +369,36 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 		gtx.Signature,
 	)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
 	cost, err := ef.ComputeTransactionGasLimit(tx)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"txGasUnits": cost})
+	c.JSON(
+		http.StatusOK,
+		core.GenericAPIResponse{
+			Data:  gin.H{"txGasUnits": cost},
+			Error: "",
+			Code:  string(core.ReturnCodeSuccess),
+		},
+	)
 }

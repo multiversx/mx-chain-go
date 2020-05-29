@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/gin-gonic/gin"
 )
 
@@ -32,20 +33,41 @@ func Routes(router *wrapper.RouterWrapper) {
 func Trigger(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(TriggerHardforkHandler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
 	var hr = HarforkRequest{}
 	err := c.ShouldBindJSON(&hr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
+		c.JSON(
+			http.StatusBadRequest,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
+				Code:  string(core.ReturnCodeRequestErrror),
+			},
+		)
 		return
 	}
 
 	err = ef.Trigger(hr.Epoch)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
@@ -54,5 +76,12 @@ func Trigger(c *gin.Context) {
 		status = execBroadcastTrigger
 	}
 
-	c.JSON(http.StatusOK, gin.H{"status": status})
+	c.JSON(
+		http.StatusOK,
+		core.GenericAPIResponse{
+			Data:  gin.H{"status": status},
+			Error: "",
+			Code:  string(core.ReturnCodeSuccess),
+		},
+	)
 }

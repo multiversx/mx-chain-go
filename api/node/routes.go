@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
@@ -67,52 +68,115 @@ func Routes(router *wrapper.RouterWrapper) {
 func HeartbeatStatus(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
 	hbStatus, err := ef.GetHeartbeats()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": hbStatus})
+	c.JSON(
+		http.StatusOK,
+		core.GenericAPIResponse{
+			Data:  gin.H{"message": hbStatus},
+			Error: "",
+			Code:  string(core.ReturnCodeSuccess),
+		},
+	)
 }
 
 // Statistics returns the blockchain statistics
 func Statistics(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"statistics": statsFromTpsBenchmark(ef.TpsBenchmark())})
+	c.JSON(
+		http.StatusOK,
+		core.GenericAPIResponse{
+			Data:  gin.H{"statistics": statsFromTpsBenchmark(ef.TpsBenchmark())},
+			Error: "",
+			Code:  string(core.ReturnCodeSuccess),
+		},
+	)
 }
 
 // StatusMetrics returns the node statistics exported by an StatusMetricsHandler without p2p statistics
 func StatusMetrics(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
 	details := ef.StatusMetrics().StatusMetricsMapWithoutP2P()
-	c.JSON(http.StatusOK, gin.H{"details": details})
+	c.JSON(
+		http.StatusOK,
+		core.GenericAPIResponse{
+			Data:  gin.H{"details": details},
+			Error: "",
+			Code:  string(core.ReturnCodeSuccess),
+		},
+	)
 }
 
 // P2pStatusMetrics returns the node's p2p statistics exported by a StatusMetricsHandler
 func P2pStatusMetrics(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
 	details := ef.StatusMetrics().StatusP2pMetricsMap()
-	c.JSON(http.StatusOK, gin.H{"details": details})
+	c.JSON(
+		http.StatusOK,
+		core.GenericAPIResponse{
+			Data:  gin.H{"details": details},
+			Error: "",
+			Code:  string(core.ReturnCodeSuccess),
+		},
+	)
 }
 
 func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResponse {
@@ -149,22 +213,50 @@ func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResp
 func QueryDebug(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
 	var gtx = QueryDebugRequest{}
 	err := c.ShouldBindJSON(&gtx)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error())})
+		c.JSON(
+			http.StatusBadRequest,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
+				Code:  string(core.ReturnCodeRequestErrror),
+			},
+		)
 		return
 	}
 
 	qh, err := ef.GetQueryHandler(gtx.Name)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("%s: %s", errors.ErrQueryError.Error(), err.Error())})
+		c.JSON(
+			http.StatusBadRequest,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrQueryError.Error(), err.Error()),
+				Code:  string(core.ReturnCodeRequestErrror),
+			},
+		)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"result": qh.Query(gtx.Search)})
+	c.JSON(
+		http.StatusOK,
+		core.GenericAPIResponse{
+			Data:  gin.H{"result": qh.Query(gtx.Search)},
+			Error: "",
+			Code:  string(core.ReturnCodeSuccess),
+		},
+	)
 }

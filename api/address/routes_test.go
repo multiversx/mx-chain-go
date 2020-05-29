@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -210,12 +211,12 @@ func TestGetAccount_FailWhenFacadeGetAccountFails(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	accountResponse := AccountResponse{}
-	loadResponse(resp.Body, &accountResponse)
+	response := core.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.Empty(t, accountResponse.Account)
-	assert.NotEmpty(t, accountResponse.Error)
-	assert.True(t, strings.Contains(accountResponse.Error, fmt.Sprintf("%s: %s", errors2.ErrCouldNotGetAccount.Error(), returnedError)))
+	assert.Empty(t, response.Data)
+	assert.NotEmpty(t, response.Error)
+	assert.True(t, strings.Contains(response.Error, fmt.Sprintf("%s: %s", errors2.ErrCouldNotGetAccount.Error(), returnedError)))
 }
 
 func TestGetAccount_ReturnsSuccessfully(t *testing.T) {

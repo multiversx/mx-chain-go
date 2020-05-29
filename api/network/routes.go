@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/gin-gonic/gin"
 )
@@ -25,22 +26,50 @@ func Routes(router *wrapper.RouterWrapper) {
 func ConfigData(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
 	configMetrics := ef.StatusMetrics().ConfigMetrics()
-	c.JSON(http.StatusOK, gin.H{"config": configMetrics})
+	c.JSON(
+		http.StatusOK,
+		core.GenericAPIResponse{
+			Data:  gin.H{"config": configMetrics},
+			Error: "",
+			Code:  string(core.ReturnCodeSuccess),
+		},
+	)
 }
 
 // GetNetworkData returns data about current network metrics
 func GetNetworkData(c *gin.Context) {
 	ef, ok := c.MustGet("elrondFacade").(FacadeHandler)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": errors.ErrInvalidAppContext.Error()})
+		c.JSON(
+			http.StatusInternalServerError,
+			core.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  string(core.ReturnCodeInternalError),
+			},
+		)
 		return
 	}
 
 	networkMetrics := ef.StatusMetrics().NetworkMetrics()
-	c.JSON(http.StatusOK, gin.H{"status": networkMetrics})
+	c.JSON(
+		http.StatusOK,
+		core.GenericAPIResponse{
+			Data:  gin.H{"status": networkMetrics},
+			Error: "",
+			Code:  string(core.ReturnCodeSuccess),
+		},
+	)
 }
