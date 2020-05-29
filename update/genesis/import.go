@@ -2,6 +2,7 @@ package genesis
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -403,7 +404,10 @@ func (si *stateImport) importState(fileName string) error {
 
 		err = json.Unmarshal(marshalledData, account)
 		if err != nil {
-			log.Info("error unmarshaling account this is maybe a code", "address", address, "error", err)
+			log.Warn("error unmarshaling account this is maybe a code error",
+				"address", hex.EncodeToString(address),
+				"error", err,
+			)
 			err = mainTrie.Update(address, marshalledData)
 			if err != nil {
 				break
