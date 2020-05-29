@@ -6,6 +6,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,23 +26,23 @@ func TestNewImmunityCache(t *testing.T) {
 
 	invalidConfig := config
 	invalidConfig.Name = ""
-	requireErrorOnNewCache(t, invalidConfig, errInvalidConfig, "config.Name")
+	requireErrorOnNewCache(t, invalidConfig, storage.ErrInvalidConfig, "config.Name")
 
 	invalidConfig = config
 	invalidConfig.NumChunks = 0
-	requireErrorOnNewCache(t, invalidConfig, errInvalidConfig, "config.NumChunks")
+	requireErrorOnNewCache(t, invalidConfig, storage.ErrInvalidConfig, "config.NumChunks")
 
 	invalidConfig = config
 	invalidConfig.MaxNumItems = 0
-	requireErrorOnNewCache(t, invalidConfig, errInvalidConfig, "config.MaxNumItems")
+	requireErrorOnNewCache(t, invalidConfig, storage.ErrInvalidConfig, "config.MaxNumItems")
 
 	invalidConfig = config
 	invalidConfig.MaxNumBytes = 0
-	requireErrorOnNewCache(t, invalidConfig, errInvalidConfig, "config.MaxNumBytes")
+	requireErrorOnNewCache(t, invalidConfig, storage.ErrInvalidConfig, "config.MaxNumBytes")
 
 	invalidConfig = config
 	invalidConfig.NumItemsToPreemptivelyEvict = 0
-	requireErrorOnNewCache(t, invalidConfig, errInvalidConfig, "config.NumItemsToPreemptivelyEvict")
+	requireErrorOnNewCache(t, invalidConfig, storage.ErrInvalidConfig, "config.NumItemsToPreemptivelyEvict")
 }
 
 func requireErrorOnNewCache(t *testing.T, config CacheConfig, errExpected error, errPartialMessage string) {
@@ -197,7 +198,7 @@ func TestImmunityCache_ForEachItem(t *testing.T) {
 
 	keys := make([]string, 0)
 	cache.addTestItems("a", "b", "c", "d")
-	cache.ForEachItem(func(key []byte, value CacheItem) {
+	cache.ForEachItem(func(key []byte, value storage.CacheItem) {
 		keys = append(keys, string(key))
 	})
 

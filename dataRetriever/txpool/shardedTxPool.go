@@ -50,8 +50,8 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 	configPrototypeSourceMe := txcache.ConfigSourceMe{
 		NumChunks:                     args.Config.Shards,
 		EvictionEnabled:               true,
-		NumBytesThreshold:             args.Config.SizeInBytes / numPairs * args.NumberOfShards,
-		CountThreshold:                args.Config.Size / numPairs * args.NumberOfShards,
+		NumBytesThreshold:             (args.Config.SizeInBytes / numPairs) * args.NumberOfShards,
+		CountThreshold:                (args.Config.Size / numPairs) * args.NumberOfShards,
 		NumBytesPerSenderThreshold:    args.Config.SizeInBytesPerSender,
 		CountPerSenderThreshold:       args.Config.SizePerSender,
 		NumSendersToPreemptivelyEvict: dataRetriever.TxPoolNumSendersToPreemptivelyEvict,

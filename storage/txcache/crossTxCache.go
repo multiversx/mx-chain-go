@@ -46,7 +46,13 @@ func NewCrossTxCache(config ConfigDestinationMe) (*CrossTxCache, error) {
 // ImmunizeTxsAgainstEviction marks items as non-evictable
 func (cache *CrossTxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
 	numNow, numFuture := cache.ImmunityCache.ImmunizeKeys(keys)
-	log.Debug("CrossTxCache.ImmunizeTxsAgainstEviction()", "name", cache.config.Name, "len(keys)", len(keys), "numNow", numNow, "numFuture", numFuture)
+	log.Debug("CrossTxCache.ImmunizeTxsAgainstEviction()",
+		"name", cache.config.Name,
+		"len(keys)", len(keys),
+		"numNow", numNow,
+		"numFuture", numFuture,
+	)
+
 	cache.diagnose()
 }
 
@@ -54,7 +60,12 @@ func (cache *CrossTxCache) diagnose() {
 	count := cache.Count()
 	countImmune := cache.CountImmune()
 	numBytes := cache.NumBytes()
-	log.Debug("CrossTxCache.diagnose()", "name", cache.config.Name, "count", count, "countImmune", countImmune, "numBytes", numBytes)
+	log.Debug("CrossTxCache.diagnose()",
+		"name", cache.config.Name,
+		"count", count,
+		"countImmune", countImmune,
+		"numBytes", numBytes,
+	)
 }
 
 // AddTx adds a transaction in the cache
@@ -79,7 +90,7 @@ func (cache *CrossTxCache) RemoveTxByHash(txHash []byte) bool {
 
 // ForEachTransaction iterates over the transactions in the cache
 func (cache *CrossTxCache) ForEachTransaction(function ForEachTransaction) {
-	cache.ForEachItem(func(key []byte, item immunitycache.CacheItem) {
+	cache.ForEachItem(func(key []byte, item storage.CacheItem) {
 		function(key, item.(*WrappedTransaction))
 	})
 }

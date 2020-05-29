@@ -9,7 +9,7 @@ import (
 
 var _ storage.Cacher = (*ImmunityCache)(nil)
 
-var log = logger.GetOrCreate("ImmunityCache")
+var log = logger.GetOrCreate("immunitycache")
 
 // ImmunityCache is a cache-like structure
 type ImmunityCache struct {
@@ -35,26 +35,25 @@ func NewImmunityCache(config CacheConfig) (*ImmunityCache, error) {
 	return &cache, nil
 }
 
-func (cache *ImmunityCache) initializeChunksWithLock() {
-	// Assignment is not an atomic operation, so we have to wrap this in a critical section
-	cache.mutex.Lock()
-	defer cache.mutex.Unlock()
+func (ic *ImmunityCache) initializeChunksWithLock() {
+	ic.mutex.Lock()
+	defer ic.mutex.Unlock()
 
-	config := cache.config
+	config := ic.config
 	chunkConfig := config.getChunkConfig()
 
-	cache.chunks = make([]*immunityChunk, config.NumChunks)
+	ic.chunks = make([]*immunityChunk, config.NumChunks)
 	for i := uint32(0); i < config.NumChunks; i++ {
-		cache.chunks[i] = newImmunityChunk(chunkConfig)
+		ic.chunks[i] = newImmunityChunk(chunkConfig)
 	}
 }
 
 // ImmunizeKeys marks items as immune to eviction
-func (cache *ImmunityCache) ImmunizeKeys(keys [][]byte) (numNowTotal, numFutureTotal int) {
-	groups := cache.groupKeysByChunk(keys)
+func (ic *ImmunityCache) ImmunizeKeys(keys [][]byte) (numNowTotal, numFutureTotal int) {
+	groups := ic.groupKeysByChunk(keys)
 
 	for chunkIndex, chunkKeys := range groups {
-		chunk := cache.getChunkByIndexWithLock(chunkIndex)
+		chunk := ic.getChunkByIndexWithLock(chunkIndex)
 
 		numNow, numFuture := chunk.ImmunizeKeys(chunkKeys)
 		numNowTotal += numNow
@@ -64,19 +63,19 @@ func (cache *ImmunityCache) ImmunizeKeys(keys [][]byte) (numNowTotal, numFutureT
 	return
 }
 
-func (cache *ImmunityCache) groupKeysByChunk(keys [][]byte) map[uint32][][]byte {
+func (ic *ImmunityCache) groupKeysByChunk(keys [][]byte) map[uint32][][]byte {
 	groups := make(map[uint32][][]byte)
 
 	for _, key := range keys {
-		chunkIndex := cache.getChunkIndexByKey(string(key))
+		chunkIndex := ic.getChunkIndexByKey(string(key))
 		groups[chunkIndex] = append(groups[chunkIndex], key)
 	}
 
 	return groups
 }
 
-func (cache *ImmunityCache) getChunkIndexByKey(key string) uint32 {
-	return fnv32Hash(key) % cache.config.NumChunks
+func (ic *ImmunityCache) getChunkIndexByKey(key string) uint32 {
+	return fnv32Hash(key) % ic.config.NumChunks
 }
 
 // fnv32Hash implements https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function for 32 bits
@@ -90,30 +89,30 @@ func fnv32Hash(key string) uint32 {
 	return hash
 }
 
-func (cache *ImmunityCache) getChunkByIndexWithLock(index uint32) *immunityChunk {
-	cache.mutex.RLock()
-	defer cache.mutex.RUnlock()
-	return cache.chunks[index]
+func (ic *ImmunityCache) getChunkByIndexWithLock(index uint32) *immunityChunk {
+	ic.mutex.RLock()
+	defer ic.mutex.RUnlock()
+	return ic.chunks[index]
 }
 
 // Add adds an item in the cache
-func (cache *ImmunityCache) Add(item CacheItem) (ok bool, added bool) {
+func (ic *ImmunityCache) Add(item storage.CacheItem) (ok bool, added bool) {
 	key := string(item.GetKey())
-	chunk := cache.getChunkByKeyWithLock(key)
+	chunk := ic.getChunkByKeyWithLock(key)
 	return chunk.AddItem(item)
 }
 
-func (cache *ImmunityCache) getChunkByKeyWithLock(key string) *immunityChunk {
-	cache.mutex.RLock()
-	defer cache.mutex.RUnlock()
+func (ic *ImmunityCache) getChunkByKeyWithLock(key string) *immunityChunk {
+	ic.mutex.RLock()
+	defer ic.mutex.RUnlock()
 
-	chunkIndex := cache.getChunkIndexByKey(key)
-	return cache.chunks[chunkIndex]
+	chunkIndex := ic.getChunkIndexByKey(key)
+	return ic.chunks[chunkIndex]
 }
 
 // Get gets an item (payload) by key
-func (cache *ImmunityCache) Get(key []byte) (value interface{}, ok bool) {
-	item, ok := cache.GetItem(key)
+func (ic *ImmunityCache) Get(key []byte) (value interface{}, ok bool) {
+	item, ok := ic.GetItem(key)
 	if ok {
 		return item.Payload(), true
 	}
@@ -121,109 +120,108 @@ func (cache *ImmunityCache) Get(key []byte) (value interface{}, ok bool) {
 }
 
 // GetItem gets an item by key
-func (cache *ImmunityCache) GetItem(key []byte) (CacheItem, bool) {
-	chunk := cache.getChunkByKeyWithLock(string(key))
+func (ic *ImmunityCache) GetItem(key []byte) (storage.CacheItem, bool) {
+	chunk := ic.getChunkByKeyWithLock(string(key))
 	return chunk.GetItem(string(key))
 }
 
 // Has checks is an item exists
-func (cache *ImmunityCache) Has(key []byte) bool {
-	chunk := cache.getChunkByKeyWithLock(string(key))
+func (ic *ImmunityCache) Has(key []byte) bool {
+	chunk := ic.getChunkByKeyWithLock(string(key))
 	_, ok := chunk.GetItem(string(key))
 	return ok
 }
 
 // Peek gets an item
-func (cache *ImmunityCache) Peek(key []byte) (value interface{}, ok bool) {
-	return cache.Get(key)
+func (ic *ImmunityCache) Peek(key []byte) (value interface{}, ok bool) {
+	return ic.Get(key)
 }
 
 // HasOrAdd is not implemented
-func (cache *ImmunityCache) HasOrAdd(_ []byte, _ interface{}) (ok, evicted bool) {
+func (ic *ImmunityCache) HasOrAdd(_ []byte, _ interface{}) (ok, evicted bool) {
 	log.Error("ImmunityCache.HasOrAdd is not implemented")
 	return false, false
 }
 
 // Put is not implemented
-func (cache *ImmunityCache) Put(_ []byte, _ interface{}) (evicted bool) {
+func (ic *ImmunityCache) Put(_ []byte, _ interface{}) (evicted bool) {
 	log.Error("ImmunityCache.Put is not implemented")
 	return false
 }
 
 // Remove removes an item
-func (cache *ImmunityCache) Remove(key []byte) {
-	_ = cache.RemoveWithResult(key)
+func (ic *ImmunityCache) Remove(key []byte) {
+	_ = ic.RemoveWithResult(key)
 }
 
 // RemoveWithResult removes an item
 // TODO: In the future, add this method to the "storage.Cacher" interface
-func (cache *ImmunityCache) RemoveWithResult(key []byte) bool {
-	chunk := cache.getChunkByKeyWithLock(string(key))
+func (ic *ImmunityCache) RemoveWithResult(key []byte) bool {
+	chunk := ic.getChunkByKeyWithLock(string(key))
 	return chunk.RemoveItem(string(key))
 }
 
 // RemoveOldest is not implemented
-func (cache *ImmunityCache) RemoveOldest() {
+func (ic *ImmunityCache) RemoveOldest() {
 	log.Error("ImmunityCache.RemoveOldest is not implemented")
 }
 
 // Clear clears the map
-func (cache *ImmunityCache) Clear() {
+func (ic *ImmunityCache) Clear() {
 	// There is no need to explicitly remove each item for each chunk
 	// The garbage collector will remove the data from memory
-	cache.initializeChunksWithLock()
+	ic.initializeChunksWithLock()
 }
 
 // MaxSize returns the capacity of the cache
-func (cache *ImmunityCache) MaxSize() int {
-	return int(cache.config.MaxNumItems)
+func (ic *ImmunityCache) MaxSize() int {
+	return int(ic.config.MaxNumItems)
 }
 
 // Len is an alias for Count
-func (cache *ImmunityCache) Len() int {
-	return cache.Count()
+func (ic *ImmunityCache) Len() int {
+	return ic.Count()
 }
 
 // Count returns the number of elements within the map
-func (cache *ImmunityCache) Count() int {
+func (ic *ImmunityCache) Count() int {
 	count := 0
-	for _, chunk := range cache.getChunksWithLock() {
+	for _, chunk := range ic.getChunksWithLock() {
 		count += chunk.Count()
 	}
 	return count
 }
 
-func (cache *ImmunityCache) getChunksWithLock() []*immunityChunk {
-	cache.mutex.RLock()
-	defer cache.mutex.RUnlock()
-	return cache.chunks
+func (ic *ImmunityCache) getChunksWithLock() []*immunityChunk {
+	ic.mutex.RLock()
+	defer ic.mutex.RUnlock()
+	return ic.chunks
 }
 
 // CountImmune returns the number of immunized (current or future) elements within the map
-func (cache *ImmunityCache) CountImmune() int {
+func (ic *ImmunityCache) CountImmune() int {
 	count := 0
-	for _, chunk := range cache.getChunksWithLock() {
+	for _, chunk := range ic.getChunksWithLock() {
 		count += chunk.CountImmune()
 	}
 	return count
 }
 
 // NumBytes estimates the size of the cache, in bytes
-func (cache *ImmunityCache) NumBytes() int {
+func (ic *ImmunityCache) NumBytes() int {
 	numBytes := 0
-	for _, chunk := range cache.getChunksWithLock() {
+	for _, chunk := range ic.getChunksWithLock() {
 		numBytes += chunk.NumBytes()
 	}
 	return numBytes
 }
 
 // Keys returns all keys
-func (cache *ImmunityCache) Keys() [][]byte {
-	count := cache.Count()
-	// count is not exact anymore, since we are in a different lock than the one aquired by Count() (but is a good approximation)
+func (ic *ImmunityCache) Keys() [][]byte {
+	count := ic.Count()
 	keys := make([][]byte, 0, count)
 
-	for _, chunk := range cache.getChunksWithLock() {
+	for _, chunk := range ic.getChunksWithLock() {
 		keys = chunk.AppendKeys(keys)
 	}
 
@@ -231,18 +229,18 @@ func (cache *ImmunityCache) Keys() [][]byte {
 }
 
 // RegisterHandler is not implemented
-func (cache *ImmunityCache) RegisterHandler(func(key []byte, value interface{})) {
+func (ic *ImmunityCache) RegisterHandler(func(key []byte, value interface{})) {
 	log.Error("ImmunityCache.RegisterHandler is not implemented")
 }
 
 // ForEachItem iterates over the items in the cache
-func (cache *ImmunityCache) ForEachItem(function ForEachItem) {
-	for _, chunk := range cache.getChunksWithLock() {
+func (ic *ImmunityCache) ForEachItem(function storage.ForEachItem) {
+	for _, chunk := range ic.getChunksWithLock() {
 		chunk.ForEachItem(function)
 	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (cache *ImmunityCache) IsInterfaceNil() bool {
-	return cache == nil
+func (ic *ImmunityCache) IsInterfaceNil() bool {
+	return ic == nil
 }

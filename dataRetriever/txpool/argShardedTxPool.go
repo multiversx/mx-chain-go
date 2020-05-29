@@ -45,6 +45,7 @@ func (args *ArgShardedTxPool) verify() error {
 	return nil
 }
 
+// String returns a readable representation of the object
 func (args *ArgShardedTxPool) String() string {
 	bytes, _ := json.Marshal(args)
 	return string(bytes)

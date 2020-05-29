@@ -170,3 +170,15 @@ type ShardCoordinator interface {
 	CommunicationIdentifier(destShardID uint32) string
 	IsInterfaceNil() bool
 }
+
+// CacheItem defines the interface of a cache item
+type CacheItem interface {
+	GetKey() []byte
+	Payload() interface{}
+	Size() int
+	IsImmuneToEviction() bool
+	ImmunizeAgainstEviction()
+}
+
+// ForEachItem is an iterator callback
+type ForEachItem func(key []byte, value CacheItem)

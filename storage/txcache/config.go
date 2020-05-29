@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // ConfigSourceMe holds cache configuration
@@ -28,31 +29,31 @@ type senderConstraints struct {
 // TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.
 func (config *ConfigSourceMe) verify() error {
 	if len(config.Name) == 0 {
-		return fmt.Errorf("%w: config.Name is invalid", errInvalidCacheConfig)
+		return fmt.Errorf("%w: config.Name is invalid", storage.ErrInvalidConfig)
 	}
 	if config.NumChunks == 0 {
-		return fmt.Errorf("%w: config.NumChunks is invalid", errInvalidCacheConfig)
+		return fmt.Errorf("%w: config.NumChunks is invalid", storage.ErrInvalidConfig)
 	}
 	if config.NumBytesPerSenderThreshold == 0 {
-		return fmt.Errorf("%w: config.NumBytesPerSenderThreshold is invalid", errInvalidCacheConfig)
+		return fmt.Errorf("%w: config.NumBytesPerSenderThreshold is invalid", storage.ErrInvalidConfig)
 	}
 	if config.CountPerSenderThreshold == 0 {
-		return fmt.Errorf("%w: config.CountPerSenderThreshold is invalid", errInvalidCacheConfig)
+		return fmt.Errorf("%w: config.CountPerSenderThreshold is invalid", storage.ErrInvalidConfig)
 	}
 	if config.MinGasPriceNanoErd == 0 {
-		return fmt.Errorf("%w: config.MinGasPriceNanoErd is invalid", errInvalidCacheConfig)
+		return fmt.Errorf("%w: config.MinGasPriceNanoErd is invalid", storage.ErrInvalidConfig)
 	}
 	if config.EvictionEnabled {
 		if config.NumBytesThreshold == 0 {
-			return fmt.Errorf("%w: config.NumBytesThreshold is invalid", errInvalidCacheConfig)
+			return fmt.Errorf("%w: config.NumBytesThreshold is invalid", storage.ErrInvalidConfig)
 		}
 
 		if config.CountThreshold == 0 {
-			return fmt.Errorf("%w: config.CountThreshold is invalid", errInvalidCacheConfig)
+			return fmt.Errorf("%w: config.CountThreshold is invalid", storage.ErrInvalidConfig)
 		}
 
 		if config.NumSendersToPreemptivelyEvict == 0 {
-			return fmt.Errorf("%w: config.NumSendersToPreemptivelyEvict is invalid", errInvalidCacheConfig)
+			return fmt.Errorf("%w: config.NumSendersToPreemptivelyEvict is invalid", storage.ErrInvalidConfig)
 		}
 	}
 
@@ -66,8 +67,13 @@ func (config *ConfigSourceMe) getSenderConstraints() senderConstraints {
 	}
 }
 
+// String returns a readable representation of the object
 func (config *ConfigSourceMe) String() string {
-	bytes, _ := json.Marshal(config)
+	bytes, err := json.Marshal(config)
+	if err != nil {
+		log.Error("ConfigSourceMe.String()", "err", err)
+	}
+
 	return string(bytes)
 }
 
@@ -83,19 +89,19 @@ type ConfigDestinationMe struct {
 // TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.
 func (config *ConfigDestinationMe) verify() error {
 	if len(config.Name) == 0 {
-		return fmt.Errorf("%w: config.Name is invalid", errInvalidCacheConfig)
+		return fmt.Errorf("%w: config.Name is invalid", storage.ErrInvalidConfig)
 	}
 	if config.NumChunks == 0 {
-		return fmt.Errorf("%w: config.NumChunks is invalid", errInvalidCacheConfig)
+		return fmt.Errorf("%w: config.NumChunks is invalid", storage.ErrInvalidConfig)
 	}
 	if config.MaxNumItems == 0 {
-		return fmt.Errorf("%w: config.MaxNumItems is invalid", errInvalidCacheConfig)
+		return fmt.Errorf("%w: config.MaxNumItems is invalid", storage.ErrInvalidConfig)
 	}
 	if config.MaxNumBytes == 0 {
-		return fmt.Errorf("%w: config.MaxNumBytes is invalid", errInvalidCacheConfig)
+		return fmt.Errorf("%w: config.MaxNumBytes is invalid", storage.ErrInvalidConfig)
 	}
 	if config.NumItemsToPreemptivelyEvict == 0 {
-		return fmt.Errorf("%w: config.NumItemsToPreemptivelyEvict is invalid", errInvalidCacheConfig)
+		return fmt.Errorf("%w: config.NumItemsToPreemptivelyEvict is invalid", storage.ErrInvalidConfig)
 	}
 
 	return nil
@@ -111,8 +117,13 @@ func (config *ConfigDestinationMe) getChunkConfig() crossTxChunkConfig {
 	}
 }
 
+// String returns a readable representation of the object
 func (config *ConfigDestinationMe) String() string {
-	bytes, _ := json.Marshal(config)
+	bytes, err := json.Marshal(config)
+	if err != nil {
+		log.Error("ConfigDestinationMe.String()", "err", err)
+	}
+
 	return string(bytes)
 }
 
@@ -123,5 +134,10 @@ type crossTxChunkConfig struct {
 }
 
 func (config *crossTxChunkConfig) String() string {
-	return fmt.Sprintf("maxNumItems: %d, maxNumBytes: %d, numItemsToPreemptivelyEvict: %d", config.maxNumItems, config.maxNumBytes, config.numItemsToPreemptivelyEvict)
+	return fmt.Sprintf(
+		"maxNumItems: %d, maxNumBytes: %d, numItemsToPreemptivelyEvict: %d",
+		config.maxNumItems,
+		config.maxNumBytes,
+		config.numItemsToPreemptivelyEvict,
+	)
 }

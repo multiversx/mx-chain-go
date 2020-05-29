@@ -42,35 +42,35 @@ func Test_NewTxCache(t *testing.T) {
 
 	badConfig := config
 	badConfig.Name = ""
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.Name")
+	requireErrorOnNewTxCache(t, badConfig, storage.ErrInvalidConfig, "config.Name")
 
 	badConfig = config
 	badConfig.NumChunks = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumChunks")
+	requireErrorOnNewTxCache(t, badConfig, storage.ErrInvalidConfig, "config.NumChunks")
 
 	badConfig = config
 	badConfig.NumBytesPerSenderThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumBytesPerSenderThreshold")
+	requireErrorOnNewTxCache(t, badConfig, storage.ErrInvalidConfig, "config.NumBytesPerSenderThreshold")
 
 	badConfig = config
 	badConfig.CountPerSenderThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.CountPerSenderThreshold")
+	requireErrorOnNewTxCache(t, badConfig, storage.ErrInvalidConfig, "config.CountPerSenderThreshold")
 
 	badConfig = config
 	badConfig.MinGasPriceNanoErd = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.MinGasPriceNanoErd")
+	requireErrorOnNewTxCache(t, badConfig, storage.ErrInvalidConfig, "config.MinGasPriceNanoErd")
 
 	badConfig = withEvictionConfig
 	badConfig.NumBytesThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumBytesThreshold")
+	requireErrorOnNewTxCache(t, badConfig, storage.ErrInvalidConfig, "config.NumBytesThreshold")
 
 	badConfig = withEvictionConfig
 	badConfig.CountThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.CountThreshold")
+	requireErrorOnNewTxCache(t, badConfig, storage.ErrInvalidConfig, "config.CountThreshold")
 
 	badConfig = withEvictionConfig
 	badConfig.NumSendersToPreemptivelyEvict = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumSendersToPreemptivelyEvict")
+	requireErrorOnNewTxCache(t, badConfig, storage.ErrInvalidConfig, "config.NumSendersToPreemptivelyEvict")
 }
 
 func requireErrorOnNewTxCache(t *testing.T, config ConfigSourceMe, errExpected error, errPartialMessage string) {

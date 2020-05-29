@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 var emptyStruct struct{}
@@ -19,7 +20,7 @@ type immunityChunk struct {
 }
 
 type chunkItemWrapper struct {
-	item        CacheItem
+	item        storage.CacheItem
 	listElement *list.Element
 }
 
@@ -34,6 +35,7 @@ func newImmunityChunk(config immunityChunkConfig) *immunityChunk {
 	}
 }
 
+// ImmunizeKeys marks keys as immune to eviction
 func (chunk *immunityChunk) ImmunizeKeys(keys [][]byte) (numNow, numFuture int) {
 	chunk.mutex.Lock()
 	defer chunk.mutex.Unlock()
@@ -57,7 +59,7 @@ func (chunk *immunityChunk) ImmunizeKeys(keys [][]byte) (numNow, numFuture int) 
 	return
 }
 
-func (chunk *immunityChunk) getItemNoLock(key string) (CacheItem, bool) {
+func (chunk *immunityChunk) getItemNoLock(key string) (storage.CacheItem, bool) {
 	wrapper, ok := chunk.items[key]
 	if !ok {
 		return nil, false
@@ -66,7 +68,7 @@ func (chunk *immunityChunk) getItemNoLock(key string) (CacheItem, bool) {
 	return wrapper.item, true
 }
 
-func (chunk *immunityChunk) AddItem(item CacheItem) (ok bool, added bool) {
+func (chunk *immunityChunk) AddItem(item storage.CacheItem) (ok bool, added bool) {
 	chunk.mutex.Lock()
 	defer chunk.mutex.Unlock()
 
@@ -111,7 +113,7 @@ func (chunk *immunityChunk) evictItemsNoLock() (numRemoved int, err error) {
 	numRemoved += numRemovedInStep
 
 	if numRemovedInStep == 0 {
-		return 0, errFailedEviction
+		return 0, storage.ErrFailedCacheEviction
 	}
 
 	for chunk.isCapacityExceededNoLock() && numRemovedInStep == numToRemoveEachStep {
@@ -127,7 +129,7 @@ func (chunk *immunityChunk) removeOldestNoLock(numToRemove int) int {
 	element := chunk.itemsAsList.Front()
 
 	for element != nil && numRemoved < numToRemove {
-		item := element.Value.(CacheItem)
+		item := element.Value.(storage.CacheItem)
 
 		if item.IsImmuneToEviction() {
 			element = element.Next()
@@ -145,7 +147,7 @@ func (chunk *immunityChunk) removeOldestNoLock(numToRemove int) int {
 }
 
 func (chunk *immunityChunk) removeNoLock(element *list.Element) {
-	item := element.Value.(CacheItem)
+	item := element.Value.(storage.CacheItem)
 	delete(chunk.items, string(item.GetKey()))
 	chunk.itemsAsList.Remove(element)
 	chunk.trackNumBytesOnRemoveNoLock(item)
@@ -156,27 +158,29 @@ func (chunk *immunityChunk) monitorEvictionNoLock(numRemoved int, err error) {
 
 	if err != nil {
 		log.Debug("immunityChunk.monitorEviction()", "name", cacheName, "numRemoved", numRemoved, "err", err)
-	} else if numRemoved > 0 {
+		return
+	}
+
+	if numRemoved > 0 {
 		log.Trace("immunityChunk.monitorEviction()", "name", cacheName, "numRemoved", numRemoved)
 	}
 }
 
-func (chunk *immunityChunk) itemExistsNoLock(item CacheItem) bool {
+func (chunk *immunityChunk) itemExistsNoLock(item storage.CacheItem) bool {
 	key := string(item.GetKey())
 	_, exists := chunk.items[key]
 	return exists
 }
 
-func (chunk *immunityChunk) addItemNoLock(item CacheItem) {
+// First, we insert (append) in the linked list; then in the map.
+// In the map, we also need to hold a reference to the list element, to have O(1) removal.
+func (chunk *immunityChunk) addItemNoLock(item storage.CacheItem) {
 	key := string(item.GetKey())
-
-	// First, we insert (append) in the linked list; then in the map.
-	// In the map, we also need to hold a reference to the list element, to have O(1) removal.
 	element := chunk.itemsAsList.PushBack(item)
 	chunk.items[key] = chunkItemWrapper{item: item, listElement: element}
 }
 
-func (chunk *immunityChunk) immunizeItemOnAddNoLock(item CacheItem) {
+func (chunk *immunityChunk) immunizeItemOnAddNoLock(item storage.CacheItem) {
 	key := string(item.GetKey())
 
 	if _, immunize := chunk.immuneKeys[key]; immunize {
@@ -185,22 +189,23 @@ func (chunk *immunityChunk) immunizeItemOnAddNoLock(item CacheItem) {
 	}
 }
 
-func (chunk *immunityChunk) trackNumBytesOnAddNoLock(item CacheItem) {
+func (chunk *immunityChunk) trackNumBytesOnAddNoLock(item storage.CacheItem) {
 	chunk.numBytes += item.Size()
 }
 
-func (chunk *immunityChunk) GetItem(key string) (CacheItem, bool) {
+func (chunk *immunityChunk) GetItem(key string) (storage.CacheItem, bool) {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()
 	return chunk.getItemNoLock(key)
 }
 
+// RemoveItem removes an item from the chunk
+// In order to improve the robustness of the cache, we'll also remove from "keysToImmunizeFuture",
+// even if the item does not actually exist in the cache - to allow un-doing immunization intent (perhaps useful for rollbacks).
 func (chunk *immunityChunk) RemoveItem(key string) bool {
 	chunk.mutex.Lock()
 	defer chunk.mutex.Unlock()
 
-	// In order to improve the robustness of the cache, we'll also remove from "keysToImmunizeFuture",
-	// even if the item does not actually exist in the cache - to allow un-doing immunization intent (perhaps useful for rollbacks).
 	delete(chunk.immuneKeys, key)
 
 	wrapper, ok := chunk.items[key]
@@ -212,7 +217,7 @@ func (chunk *immunityChunk) RemoveItem(key string) bool {
 	return true
 }
 
-func (chunk *immunityChunk) trackNumBytesOnRemoveNoLock(item CacheItem) {
+func (chunk *immunityChunk) trackNumBytesOnRemoveNoLock(item storage.CacheItem) {
 	chunk.numBytes -= item.Size()
 	chunk.numBytes = core.MaxInt(chunk.numBytes, 0)
 }
@@ -251,9 +256,8 @@ func (chunk *immunityChunk) KeysInOrder() [][]byte {
 	defer chunk.mutex.RUnlock()
 
 	keys := make([][]byte, 0, chunk.itemsAsList.Len())
-
 	for element := chunk.itemsAsList.Front(); element != nil; element = element.Next() {
-		item := element.Value.(CacheItem)
+		item := element.Value.(storage.CacheItem)
 		keys = append(keys, item.GetKey())
 	}
 
@@ -273,11 +277,16 @@ func (chunk *immunityChunk) AppendKeys(keysAccumulator [][]byte) [][]byte {
 }
 
 // ForEachItem iterates over the items in the chunk
-func (chunk *immunityChunk) ForEachItem(function ForEachItem) {
+func (chunk *immunityChunk) ForEachItem(function storage.ForEachItem) {
 	chunk.mutex.RLock()
 	defer chunk.mutex.RUnlock()
 
 	for key, value := range chunk.items {
 		function([]byte(key), value.item)
 	}
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (chunk *immunityChunk) IsInterfaceNil() bool {
+	return chunk == nil
 }

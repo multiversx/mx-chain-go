@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // CacheConfig holds cache configuration
@@ -18,19 +19,19 @@ type CacheConfig struct {
 
 func (config *CacheConfig) verify() error {
 	if len(config.Name) == 0 {
-		return fmt.Errorf("%w: config.Name is invalid", errInvalidConfig)
+		return fmt.Errorf("%w: config.Name is invalid", storage.ErrInvalidConfig)
 	}
 	if config.NumChunks == 0 {
-		return fmt.Errorf("%w: config.NumChunks is invalid", errInvalidConfig)
+		return fmt.Errorf("%w: config.NumChunks is invalid", storage.ErrInvalidConfig)
 	}
 	if config.MaxNumItems == 0 {
-		return fmt.Errorf("%w: config.MaxNumItems is invalid", errInvalidConfig)
+		return fmt.Errorf("%w: config.MaxNumItems is invalid", storage.ErrInvalidConfig)
 	}
 	if config.MaxNumBytes == 0 {
-		return fmt.Errorf("%w: config.MaxNumBytes is invalid", errInvalidConfig)
+		return fmt.Errorf("%w: config.MaxNumBytes is invalid", storage.ErrInvalidConfig)
 	}
 	if config.NumItemsToPreemptivelyEvict == 0 {
-		return fmt.Errorf("%w: config.NumItemsToPreemptivelyEvict is invalid", errInvalidConfig)
+		return fmt.Errorf("%w: config.NumItemsToPreemptivelyEvict is invalid", storage.ErrInvalidConfig)
 	}
 
 	return nil
@@ -47,8 +48,13 @@ func (config *CacheConfig) getChunkConfig() immunityChunkConfig {
 	}
 }
 
+// String returns a readable representation of the object
 func (config *CacheConfig) String() string {
-	bytes, _ := json.Marshal(config)
+	bytes, err := json.Marshal(config)
+	if err != nil {
+		log.Error("CacheConfig.String()", "err", err)
+	}
+
 	return string(bytes)
 }
 
@@ -59,6 +65,12 @@ type immunityChunkConfig struct {
 	numItemsToPreemptivelyEvict uint32
 }
 
+// String returns a readable representation of the object
 func (config *immunityChunkConfig) String() string {
-	return fmt.Sprintf("maxNumItems: %d, maxNumBytes: %d, numItemsToPreemptivelyEvict: %d", config.maxNumItems, config.maxNumBytes, config.numItemsToPreemptivelyEvict)
+	return fmt.Sprintf(
+		"maxNumItems: %d, maxNumBytes: %d, numItemsToPreemptivelyEvict: %d",
+		config.maxNumItems,
+		config.maxNumBytes,
+		config.numItemsToPreemptivelyEvict,
+	)
 }

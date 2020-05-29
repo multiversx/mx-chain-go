@@ -2,9 +2,10 @@ package immunitycache
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-var _ CacheItem = (*cacheItem)(nil)
+var _ storage.CacheItem = (*cacheItem)(nil)
 
 type cacheItem struct {
 	key      string
@@ -59,7 +60,6 @@ func (item *cacheItem) ImmunizeAgainstEviction() {
 
 func keysAsStrings(keys [][]byte) []string {
 	result := make([]string, len(keys))
-
 	for i := 0; i < len(keys); i++ {
 		result[i] = string(keys[i])
 	}
@@ -69,7 +69,6 @@ func keysAsStrings(keys [][]byte) []string {
 
 func keysAsBytes(keys []string) [][]byte {
 	result := make([][]byte, len(keys))
-
 	for i := 0; i < len(keys); i++ {
 		result[i] = []byte(keys[i])
 	}
