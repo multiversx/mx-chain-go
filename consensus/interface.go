@@ -60,7 +60,16 @@ type BroadcastMessenger interface {
 	BroadcastMiniBlocks(map[uint32][]byte) error
 	BroadcastTransactions(map[string][][]byte) error
 	BroadcastConsensusMessage(*Message) error
-	SetDataForDelayBroadcast(headerHash []byte, miniBlocks map[uint32][]byte, transactions map[string][][]byte) error
+	SetLeaderDelayBroadcast(headerHash []byte, miniBlocks map[uint32][]byte, transactions map[string][][]byte) error
+	SetValidatorDelayBroadcast(
+		headerHash []byte,
+		prevRandSeed []byte,
+		round uint64,
+		miniBlocks map[uint32][]byte,
+		miniBlockHashes map[uint32]map[string]struct{},
+		transactions map[string][][]byte,
+		order uint8,
+	) error
 	IsInterfaceNil() bool
 }
 
@@ -92,5 +101,11 @@ type P2PAntifloodHandler interface {
 // HeadersPoolSubscriber can subscribe for notifications when a new block header is added to the headers pool
 type HeadersPoolSubscriber interface {
 	RegisterHandler(handler func(headerHandler data.HeaderHandler, headerHash []byte))
+	IsInterfaceNil() bool
+}
+
+// InterceptorSubscriber can subscribe for notifications when data is received by an interceptor
+type InterceptorSubscriber interface {
+	RegisterHandler(handler func(toShard uint32, data []byte))
 	IsInterfaceNil() bool
 }

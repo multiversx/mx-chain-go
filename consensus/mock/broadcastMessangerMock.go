@@ -7,9 +7,18 @@ import (
 
 // BroadcastMessengerMock -
 type BroadcastMessengerMock struct {
-	BroadcastBlockCalled            func(data.BodyHandler, data.HeaderHandler) error
-	BroadcastHeaderCalled           func(data.HeaderHandler) error
-	SetDataForDelayBroadcastCalled  func([]byte, map[uint32][]byte, map[string][][]byte) error
+	BroadcastBlockCalled             func(data.BodyHandler, data.HeaderHandler) error
+	BroadcastHeaderCalled            func(data.HeaderHandler) error
+	SetDataForDelayBroadcastCalled   func([]byte, map[uint32][]byte, map[string][][]byte) error
+	SetValidatorDelayBroadcastCalled func(
+		headerHash []byte,
+		prevRandSeed []byte,
+		round uint64,
+		miniBlocks map[uint32][]byte,
+		miniBlockHashes map[uint32]map[string]struct{},
+		transactions map[string][][]byte,
+		order uint8,
+	) error
 	BroadcastMiniBlocksCalled       func(map[uint32][]byte) error
 	BroadcastTransactionsCalled     func(map[string][][]byte) error
 	BroadcastConsensusMessageCalled func(*consensus.Message) error
@@ -31,8 +40,8 @@ func (bmm *BroadcastMessengerMock) BroadcastMiniBlocks(miniBlocks map[uint32][]b
 	return nil
 }
 
-// SetDataForDelayBroadcast -
-func (bmm *BroadcastMessengerMock) SetDataForDelayBroadcast(
+// SetLeaderDelayBroadcast -
+func (bmm *BroadcastMessengerMock) SetLeaderDelayBroadcast(
 	headerHash []byte,
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
@@ -47,6 +56,30 @@ func (bmm *BroadcastMessengerMock) SetDataForDelayBroadcast(
 	}
 
 	return bmm.BroadcastTransactions(transactions)
+}
+
+// SetValidatorDelayBroadcast -
+func (bmm *BroadcastMessengerMock) SetValidatorDelayBroadcast(
+	headerHash []byte,
+	prevRandSeed []byte,
+	round uint64,
+	miniBlocks map[uint32][]byte,
+	miniBlockHashes map[uint32]map[string]struct{},
+	transactions map[string][][]byte,
+	order uint8,
+) error {
+	if bmm.SetValidatorDelayBroadcastCalled != nil {
+		return bmm.SetValidatorDelayBroadcastCalled(
+			headerHash,
+			prevRandSeed,
+			round,
+			miniBlocks,
+			miniBlockHashes,
+			transactions,
+			order,
+		)
+	}
+	return nil
 }
 
 // BroadcastTransactions -

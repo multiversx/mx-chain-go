@@ -17,7 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -98,6 +98,7 @@ type InterceptedData interface {
 type InterceptorProcessor interface {
 	Validate(data InterceptedData, fromConnectedPeer p2p.PeerID) error
 	Save(data InterceptedData, fromConnectedPeer p2p.PeerID) error
+	RegisterHandler(handler func(toShard uint32, data []byte))
 	IsInterfaceNil() bool
 }
 
@@ -437,6 +438,7 @@ type BlockChainHookHandler interface {
 type Interceptor interface {
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer p2p.PeerID) error
 	SetInterceptedDebugHandler(handler InterceptedDebugHandler) error
+	RegisterHandler(handler func(toShard uint32, data []byte))
 	IsInterfaceNil() bool
 }
 

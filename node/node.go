@@ -267,6 +267,7 @@ func (n *Node) StartConsensus() error {
 		n.privKey,
 		n.singleSigner,
 		n.dataPool.Headers(),
+		n.interceptorsContainer,
 	)
 
 	if err != nil {

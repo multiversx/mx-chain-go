@@ -20,6 +20,10 @@ func (is *InterceptorStub) SetInterceptedDebugHandler(_ process.InterceptedDebug
 	return nil
 }
 
+// RegisterHandler -
+func (is *InterceptorStub) RegisterHandler(_ func(toShard uint32, data []byte)) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (is *InterceptorStub) IsInterfaceNil() bool {
 	return is == nil

@@ -1,6 +1,8 @@
 package broadcast
 
 import (
+	"time"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
@@ -9,27 +11,37 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var log = logger.GetOrCreate("consensus/broadcast")
 
+type alarmScheduler interface {
+	Add(callback func(alarmID string), duration time.Duration, alarmID string)
+	Cancel(alarmID string)
+	Close()
+}
+
 type commonMessenger struct {
-	marshalizer      marshal.Marshalizer
-	messenger        consensus.P2PMessenger
-	privateKey       crypto.PrivateKey
-	shardCoordinator sharding.Coordinator
-	singleSigner     crypto.SingleSigner
+	marshalizer           marshal.Marshalizer
+	messenger             consensus.P2PMessenger
+	privateKey            crypto.PrivateKey
+	shardCoordinator      sharding.Coordinator
+	singleSigner          crypto.SingleSigner
+	alarm                 alarmScheduler
+	interceptorsContainer process.InterceptorsContainer
 }
 
 // CommonMessengerArgs holds the arguments for creating commonMessenger instance
 type CommonMessengerArgs struct {
-	Marshalizer      marshal.Marshalizer
-	Messenger        consensus.P2PMessenger
-	PrivateKey       crypto.PrivateKey
-	ShardCoordinator sharding.Coordinator
-	SingleSigner     crypto.SingleSigner
+	Marshalizer           marshal.Marshalizer
+	Messenger             consensus.P2PMessenger
+	PrivateKey            crypto.PrivateKey
+	ShardCoordinator      sharding.Coordinator
+	SingleSigner          crypto.SingleSigner
+	InterceptorsContainer process.InterceptorsContainer
 }
 
 func checkCommonMessengerNilParameters(
@@ -49,6 +61,9 @@ func checkCommonMessengerNilParameters(
 	}
 	if check.IfNil(args.SingleSigner) {
 		return spos.ErrNilSingleSigner
+	}
+	if check.IfNil(args.InterceptorsContainer) {
+		return spos.ErrNilInterceptorsContainer
 	}
 
 	return nil

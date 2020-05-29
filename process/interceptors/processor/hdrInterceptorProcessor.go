@@ -68,6 +68,11 @@ func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ p2p.Pee
 	return nil
 }
 
+// RegisterHandler registers a callback function to be notified of incoming headers
+func (hip *HdrInterceptorProcessor) RegisterHandler(_ func(toShard uint32, data []byte)) {
+	panic("not implemented")
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (hip *HdrInterceptorProcessor) IsInterfaceNil() bool {
 	return hip == nil

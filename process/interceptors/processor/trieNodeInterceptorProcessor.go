@@ -27,7 +27,7 @@ func NewTrieNodesInterceptorProcessor(interceptedNodes storage.Cacher) (*TrieNod
 }
 
 // Validate checks if the intercepted data can be processed
-func (tnip *TrieNodeInterceptorProcessor) Validate(data process.InterceptedData, _ p2p.PeerID) error {
+func (tnip *TrieNodeInterceptorProcessor) Validate(_ process.InterceptedData, _ p2p.PeerID) error {
 	return nil
 }
 
@@ -40,6 +40,11 @@ func (tnip *TrieNodeInterceptorProcessor) Save(data process.InterceptedData, _ p
 
 	tnip.interceptedNodes.Put(nodeData.Hash(), nodeData)
 	return nil
+}
+
+// RegisterHandler registers a callback function to be notified of incoming trie nodes
+func (tnip *TrieNodeInterceptorProcessor) RegisterHandler(_ func(toShard uint32, data []byte)) {
+	panic("not implemented")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

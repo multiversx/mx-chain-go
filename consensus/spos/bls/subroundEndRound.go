@@ -379,7 +379,7 @@ func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {
 
 		metaMiniBlocks, metaTransactions := sr.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
 
-		err = sr.BroadcastMessenger().SetDataForDelayBroadcast(headerHash, miniBlocks, transactions)
+		err = sr.BroadcastMessenger().SetLeaderDelayBroadcast(headerHash, miniBlocks, transactions)
 		if err != nil {
 			return err
 		}
@@ -388,6 +388,63 @@ func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {
 	}
 
 	return sr.broadcast(miniBlocks, transactions)
+}
+
+func (sr *subroundEndRound) prepareBroadcastMiniBlocksAndTransactionsForValidator() error {
+	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.Header, sr.Body)
+	if err != nil {
+		return err
+	}
+
+	if sr.ShardCoordinator().SelfId() != core.MetachainShardId {
+		var headerHash []byte
+		headerHash, err = core.CalculateHash(sr.Marshalizer(), sr.Hasher(), sr.Header)
+		if err != nil {
+			return err
+		}
+		metaMiniBlocks, metaTransactions := sr.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
+		miniBlockHashesCrossFromMe := sr.extractMiniBlockHashesCrossFromMe()
+
+		var idx int
+		idx, err = sr.SelfConsensusGroupIndex()
+		if err != nil {
+			err = sr.BroadcastMessenger().SetValidatorDelayBroadcast(
+				headerHash,
+				sr.Header.GetPrevRandSeed(),
+				sr.Header.GetRound(),
+				miniBlocks,
+				miniBlockHashesCrossFromMe,
+				transactions,
+				uint8(idx),
+			)
+		}
+
+		if err != nil {
+			return err
+		}
+
+		return sr.broadcast(metaMiniBlocks, metaTransactions)
+	}
+
+	return sr.broadcast(miniBlocks, transactions)
+}
+
+func (sr *subroundEndRound) extractMiniBlockHashesCrossFromMe() map[uint32]map[string]struct{} {
+	mbHashesForShards := make(map[uint32]map[string]struct{})
+	for i := uint32(0); i < sr.ShardCoordinator().NumberOfShards(); i++ {
+		if i == sr.ShardCoordinator().SelfId() {
+			continue
+		}
+		mbHashesForShards[i] = make(map[string]struct{})
+
+		miniBlockHeaders := sr.Header.GetMiniBlockHeadersWithDst(i)
+		for key := range miniBlockHeaders {
+			mbHashesForShards[i][key] = struct{}{}
+		}
+	}
+	// TODO: Do we need to add also for metachain?
+
+	return mbHashesForShards
 }
 
 func (sr *subroundEndRound) extractMetaMiniBlocksAndTransactions(

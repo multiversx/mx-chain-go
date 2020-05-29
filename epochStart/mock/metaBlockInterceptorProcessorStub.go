@@ -14,17 +14,21 @@ type MetaBlockInterceptorProcessorStub struct {
 }
 
 // Validate -
-func (m *MetaBlockInterceptorProcessorStub) Validate(data process.InterceptedData, fromConnectedPeer p2p.PeerID) error {
+func (m *MetaBlockInterceptorProcessorStub) Validate(data process.InterceptedData, _ p2p.PeerID) error {
 	return nil
 }
 
 // Save -
-func (m *MetaBlockInterceptorProcessorStub) Save(data process.InterceptedData, fromConnectedPeer p2p.PeerID) error {
+func (m *MetaBlockInterceptorProcessorStub) Save(_ process.InterceptedData, _ p2p.PeerID) error {
 	return nil
 }
 
+// RegisterHandler -
+func (m *MetaBlockInterceptorProcessorStub) RegisterHandler(_ func(toShard uint32, data []byte)) {
+}
+
 // SignalEndOfProcessing -
-func (m *MetaBlockInterceptorProcessorStub) SignalEndOfProcessing(data []process.InterceptedData) {
+func (m *MetaBlockInterceptorProcessorStub) SignalEndOfProcessing(_ []process.InterceptedData) {
 }
 
 // IsInterfaceNil -

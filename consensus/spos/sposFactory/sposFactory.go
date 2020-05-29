@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -60,6 +61,7 @@ func GetBroadcastMessenger(
 	privateKey crypto.PrivateKey,
 	singleSigner crypto.SingleSigner,
 	headersSubscriber consensus.HeadersPoolSubscriber,
+	interceptorsContainer process.InterceptorsContainer,
 ) (consensus.BroadcastMessenger, error) {
 
 	commonMessengerArgs := broadcast.CommonMessengerArgs{

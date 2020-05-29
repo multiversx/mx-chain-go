@@ -263,6 +263,11 @@ func (e *epochStartMetaBlockProcessor) processEntry(
 	return false
 }
 
+// RegisterHandler registers a callback function to be notified of incoming epoch start metablocks
+func (e *epochStartMetaBlockProcessor) RegisterHandler(_ func(toShard uint32, data []byte)) {
+	panic("not implemented")
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (e *epochStartMetaBlockProcessor) IsInterfaceNil() bool {
 	return e == nil

@@ -340,7 +340,7 @@ func TestShardChainMessenger_SetDataForDelayBroadcastNilHeaderHashShouldErr(t *t
 
 	_, miniblocks, transactions := createDelayData("1")
 
-	err := scm.SetDataForDelayBroadcast(nil, miniblocks, transactions)
+	err := scm.SetLeaderDelayBroadcast(nil, miniblocks, transactions)
 	assert.Equal(t, spos.ErrNilHeaderHash, err)
 }
 
@@ -350,7 +350,7 @@ func TestShardChainMessenger_SetDataForDelayBroadcastNilMiniblocksShouldReturnNi
 
 	headerHash, _, transactions := createDelayData("1")
 
-	err := scm.SetDataForDelayBroadcast(headerHash, nil, transactions)
+	err := scm.SetLeaderDelayBroadcast(headerHash, nil, transactions)
 	assert.Nil(t, err)
 }
 
@@ -366,14 +366,14 @@ func TestShardChainMessenger_SetDataForDelayBroadcastShouldTriggerWaitingDelayed
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
 	headerHash, miniBlocksMarshalled, transactions := createDelayData("1")
-	err := scm.SetDataForDelayBroadcast(headerHash, miniBlocksMarshalled, transactions)
+	err := scm.SetLeaderDelayBroadcast(headerHash, miniBlocksMarshalled, transactions)
 	time.Sleep(10 * time.Millisecond)
 	assert.Nil(t, err)
 	assert.False(t, wasCalled.IsSet())
 
 	wasCalled.Unset()
 	headerHash2, miniBlocksMarshalled2, transactions2 := createDelayData("2")
-	err = scm.SetDataForDelayBroadcast(headerHash2, miniBlocksMarshalled2, transactions2)
+	err = scm.SetLeaderDelayBroadcast(headerHash2, miniBlocksMarshalled2, transactions2)
 	time.Sleep(10 * time.Millisecond)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled.IsSet())
@@ -419,7 +419,7 @@ func TestShardChainMessenger_HeaderReceivedForRegisteredDelayedDataShouldBroadca
 	metaBlock := createMetaBlock()
 	metaBlock.ShardInfo[0].HeaderHash = headerHash
 
-	err := scm.SetDataForDelayBroadcast(headerHash, miniBlocksMarshalled, transactions)
+	err := scm.SetLeaderDelayBroadcast(headerHash, miniBlocksMarshalled, transactions)
 	assert.Nil(t, err)
 	time.Sleep(10 * time.Millisecond)
 	mutData.Lock()
@@ -456,7 +456,7 @@ func TestShardChainMessenger_HeaderReceivedForNotRegisteredDelayedDataShouldNotB
 	metaBlock := createMetaBlock()
 	metaBlock.ShardInfo[0].HeaderHash = headerHash[1:]
 
-	err := scm.SetDataForDelayBroadcast(headerHash, miniBlocksMarshalled, transactions)
+	err := scm.SetLeaderDelayBroadcast(headerHash, miniBlocksMarshalled, transactions)
 	assert.Nil(t, err)
 	time.Sleep(10 * time.Millisecond)
 	mutData.Lock()
@@ -494,7 +494,7 @@ func TestShardChainMessenger_HeaderReceivedForNextRegisteredDelayedDataShouldBro
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
 	headerHash, miniBlocksMarshalled, transactions := createDelayData("1")
-	err := scm.SetDataForDelayBroadcast(headerHash, miniBlocksMarshalled, transactions)
+	err := scm.SetLeaderDelayBroadcast(headerHash, miniBlocksMarshalled, transactions)
 	assert.Nil(t, err)
 	time.Sleep(10 * time.Millisecond)
 	mutData.Lock()
@@ -502,7 +502,7 @@ func TestShardChainMessenger_HeaderReceivedForNextRegisteredDelayedDataShouldBro
 	mutData.Unlock()
 
 	headerHash2, miniBlocksMarshalled2, transactions2 := createDelayData("2")
-	err = scm.SetDataForDelayBroadcast(headerHash2, miniBlocksMarshalled2, transactions2)
+	err = scm.SetLeaderDelayBroadcast(headerHash2, miniBlocksMarshalled2, transactions2)
 	assert.Nil(t, err)
 	time.Sleep(10 * time.Millisecond)
 	mutData.Lock()

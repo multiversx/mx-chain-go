@@ -21,6 +21,10 @@ func (ips *InterceptorProcessorStub) Save(data process.InterceptedData, _ p2p.Pe
 	return ips.SaveCalled(data)
 }
 
+// RegisterHandler -
+func (ips *InterceptorProcessorStub) RegisterHandler(_ func(toShard uint32, data []byte)) {
+}
+
 // IsInterfaceNil -
 func (ips *InterceptorProcessorStub) IsInterfaceNil() bool {
 	return ips == nil

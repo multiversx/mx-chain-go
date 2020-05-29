@@ -60,6 +60,11 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, _ p2p.Pee
 	return nil
 }
 
+// RegisterHandler registers a callback function to be notified of incoming transactions
+func (txip *TxInterceptorProcessor) RegisterHandler(_ func(toShard uint32, data []byte)) {
+	panic("not implemented")
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (txip *TxInterceptorProcessor) IsInterfaceNil() bool {
 	return txip == nil

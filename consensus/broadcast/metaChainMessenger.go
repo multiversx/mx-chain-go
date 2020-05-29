@@ -101,9 +101,23 @@ func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error 
 	return nil
 }
 
-// SetDataForDelayBroadcast - not used for metachain nodes
-func (mcm *metaChainMessenger) SetDataForDelayBroadcast(_ []byte, _ map[uint32][]byte, _ map[string][][]byte) error {
-	log.Warn("SetDataForDelayBroadcast not implemented for metachain")
+// SetLeaderDelayBroadcast - not used for metachain nodes
+func (mcm *metaChainMessenger) SetLeaderDelayBroadcast(_ []byte, _ map[uint32][]byte, _ map[string][][]byte) error {
+	log.Warn("SetLeaderDelayBroadcast not implemented for metachain")
+	return nil
+}
+
+// SetValidatorDelayBroadcast - not used for metachain nodes
+func (mcm *metaChainMessenger) SetValidatorDelayBroadcast(
+	_ []byte,
+	_ []byte,
+	_ uint64,
+	_ map[uint32][]byte,
+	_ map[uint32]map[string]struct{},
+	_ map[string][][]byte,
+	_ uint8,
+) error {
+	log.Warn("SetValidatorDelayBroadcast not implemented for metachain")
 	return nil
 }
 

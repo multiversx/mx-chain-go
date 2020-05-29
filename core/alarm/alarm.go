@@ -172,3 +172,8 @@ func (as *alarmScheduler) updateAlarms(elapsed time.Duration) time.Duration {
 func (as *alarmScheduler) Close() {
 	as.cancelFunc()
 }
+
+// IsInterfaceNil returns true if interface is nil
+func (as *alarmScheduler) IsInterfaceNil() bool {
+	return as == nil
+}

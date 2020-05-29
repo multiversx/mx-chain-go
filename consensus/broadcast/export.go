@@ -20,7 +20,7 @@ func (scm *shardChainMessenger) HeaderReceived(headerHandler data.HeaderHandler,
 }
 
 // GetShardHeaderHashesFromMetachainBlock returns the header hashes for specified shard ID from the given metaHeader
-func GetShardHeaderHashesFromMetachainBlock(headerHandler data.HeaderHandler, shardID uint32) ([][]byte, error) {
+func GetShardHeaderHashesFromMetachainBlock(headerHandler data.HeaderHandler, shardID uint32) ([][]byte, []*headerDataForValidator, error) {
 	return getShardHeaderHashesFromMetachainBlock(headerHandler, shardID)
 }
 
