@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"math/big"
 	"strings"
 	"sync"
@@ -494,7 +495,7 @@ func CreateGenesisBlocks(
 	accounts state.AccountsAdapter,
 	validatorAccounts state.AccountsAdapter,
 	trieStorageManagers map[string]data.StorageManager,
-	pubkeyConv state.PubkeyConverter,
+	pubkeyConv core.PubkeyConverter,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	shardCoordinator sharding.Coordinator,
 	store dataRetriever.StorageService,
@@ -535,7 +536,7 @@ func CreateGenesisMetaBlock(
 	accounts state.AccountsAdapter,
 	validatorAccounts state.AccountsAdapter,
 	trieStorageManagers map[string]data.StorageManager,
-	pubkeyConv state.PubkeyConverter,
+	pubkeyConv core.PubkeyConverter,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	shardCoordinator sharding.Coordinator,
 	store dataRetriever.StorageService,
@@ -574,6 +575,7 @@ func CreateGenesisMetaBlock(
 				OwnerAddress:    "aaaaaa",
 			},
 		},
+		BlockSignKeyGen: &mock.KeyGenMock{},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
@@ -1741,7 +1743,7 @@ func GenValidatorsFromPubKeys(pubKeysMap map[uint32][]string, _ uint32) map[uint
 	return validatorsMap
 }
 
-// GenValidatorsFromPubKeys generates a map of validators per shard out of public keys map
+// GenValidatorsFromPubKeysAndTxPubKeys generates a map of validators per shard out of public keys map
 func GenValidatorsFromPubKeysAndTxPubKeys(
 	blsPubKeysMap map[uint32][]string,
 	txPubKeysMap map[uint32][]string,
@@ -1988,9 +1990,11 @@ func createTxPool(selfShardID uint32) (dataRetriever.ShardedDataCacherNotifier, 
 	return txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
-				Size:        100000,
-				SizeInBytes: 1000000000,
-				Shards:      16,
+				Size:                 100000,
+				SizePerSender:        math.MaxUint32,
+				SizeInBytes:          1000000000,
+				SizeInBytesPerSender: math.MaxUint32,
+				Shards:               16,
 			},
 			MinGasPrice:    200000000000,
 			NumberOfShards: 1,

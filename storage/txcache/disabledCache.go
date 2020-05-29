@@ -1,5 +1,12 @@
 package txcache
 
+import (
+	"github.com/ElrondNetwork/elrond-go/storage"
+)
+
+var _ storage.Cacher = (*DisabledCache)(nil)
+var _ txCache = (*DisabledCache)(nil)
+
 // DisabledCache represents a disabled cache
 type DisabledCache struct {
 }
@@ -30,7 +37,7 @@ func (cache *DisabledCache) RemoveTxByHash(txHash []byte) error {
 }
 
 // CountTx returns zero
-func (cache *DisabledCache) CountTx() int64 {
+func (cache *DisabledCache) CountTx() uint64 {
 	return 0
 }
 
@@ -80,10 +87,10 @@ func (cache *DisabledCache) Remove(key []byte) {
 func (cache *DisabledCache) RemoveOldest() {
 }
 
-//// Keys returns an empty slice
-//func (cache *DisabledCache) Keys() txHashes {
-//	return make([][]byte, 0)
-//}
+// Keys returns an empty slice
+func (cache *DisabledCache) Keys() [][]byte {
+	return make([][]byte, 0)
+}
 
 // MaxSize returns zero
 func (cache *DisabledCache) MaxSize() int {
@@ -92,6 +99,10 @@ func (cache *DisabledCache) MaxSize() int {
 
 // RegisterHandler does nothing
 func (cache *DisabledCache) RegisterHandler(func(key []byte, value interface{})) {
+}
+
+// NotifyAccountNonce does nothing
+func (cache *DisabledCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

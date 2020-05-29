@@ -62,10 +62,9 @@ func TestRoutingOfTransactionsInShards(t *testing.T) {
 	//- if the node sends all numOfShards*numOfShards txs, then it will have in the pool
 	//  (numOfShards + numOfShards - 1 -> both sender and destination) txs related to its shard
 	//- if the node will have to receive all those generated txs, it will receive only those txs
-	//  where the node is the sender + the tx that originated from shard x and sender node was also on shard x,
-	//  so numOfShards + 1 in total
+	//  where the node is the sender, so numOfShards in total
 	//- since all shards emmit numOfShards*numOfShards, expectedNumTxs is computed as:
-	expectedNumTxs := (numOfShards + numOfShards - 1) + (numOfShards+1)*(numOfShards-1)
+	expectedNumTxs := (numOfShards + numOfShards - 1) + numOfShards*(numOfShards-1)
 	checkTransactionsInPool(t, nodes, expectedNumTxs)
 }
 

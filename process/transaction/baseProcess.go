@@ -18,7 +18,7 @@ import (
 type baseTxProcessor struct {
 	accounts         state.AccountsAdapter
 	shardCoordinator sharding.Coordinator
-	pubkeyConv       state.PubkeyConverter
+	pubkeyConv       core.PubkeyConverter
 	economicsFee     process.FeeHandler
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
@@ -180,7 +180,7 @@ func (txProc *baseTxProcessor) processIfTxErrorCrossShard(tx *transaction.Transa
 	}
 
 	snapshot := txProc.accounts.JournalLen()
-	err = txProc.scProcessor.ProcessIfError(nil, txHash, tx, errorString, snapshot)
+	err = txProc.scProcessor.ProcessIfError(nil, txHash, tx, errorString, nil, snapshot)
 	if err != nil {
 		return err
 	}

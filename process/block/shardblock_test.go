@@ -49,9 +49,11 @@ func createTestShardDataPool() dataRetriever.PoolsHolder {
 	txPool, _ := txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
-				Size:        100000,
-				SizeInBytes: 1000000000,
-				Shards:      1,
+				Size:                 100000,
+				SizePerSender:        1000,
+				SizeInBytes:          1000000000,
+				SizeInBytesPerSender: 10000000,
+				Shards:               16,
 			},
 			MinGasPrice:    200000000000,
 			NumberOfShards: 1,
@@ -2506,7 +2508,7 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	bp.ReceivedMetaBlock(metaBlock, metaBlockHash)
 
 	//we have to wait to be sure txHash1Requested is not incremented by a late call
-	time.Sleep(time.Second)
+	time.Sleep(core.ExtraDelayForRequestBlockInfo + time.Second)
 
 	assert.Equal(t, int32(0), atomic.LoadInt32(&miniBlockHash1Requested))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&miniBlockHash2Requested))
@@ -2581,6 +2583,10 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 	sp.ReceivedMetaBlock(metaBlock, metaBlockHash)
+
+	//we have to wait to be sure txHash1Requested is not incremented by a late call
+	time.Sleep(core.ExtraDelayForRequestBlockInfo + time.Second)
+
 	assert.Equal(t, int32(0), atomic.LoadInt32(&noOfMissingMiniBlocks))
 }
 
