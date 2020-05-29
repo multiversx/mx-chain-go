@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/node"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
@@ -194,8 +195,14 @@ func TestStatistics_ReturnsSuccessfully(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
+	response := core.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
 	statisticsRsp := StatisticsResponse{}
-	loadResponse(resp.Body, &statisticsRsp)
+	mapResponseData := response.Data.(map[string]interface{})
+	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
+	_ = json.Unmarshal(mapResponseDataBytes, &statisticsRsp)
+
 	assert.Equal(t, resp.Code, http.StatusOK)
 	assert.Equal(t, statisticsRsp.Statistics.NrOfShards, nrOfShards)
 }
@@ -307,8 +314,13 @@ func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	queryResponse := &QueryResponse{}
-	loadResponse(resp.Body, queryResponse)
+	response := core.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	queryResponse := QueryResponse{}
+	mapResponseData := response.Data.(map[string]interface{})
+	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
+	_ = json.Unmarshal(mapResponseDataBytes, &queryResponse)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Contains(t, queryResponse.Result, str1)

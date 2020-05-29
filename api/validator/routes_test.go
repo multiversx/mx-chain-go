@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/validator"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -83,12 +84,17 @@ func TestValidatorStatistics_ReturnsSuccessfully(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := ValidatorStatisticsResponse{}
+	response := core.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
+
+	validatorStatistics := ValidatorStatisticsResponse{}
+	mapResponseData := response.Data.(map[string]interface{})
+	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
+	_ = json.Unmarshal(mapResponseDataBytes, &validatorStatistics)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 
-	assert.Equal(t, response.Result, mapToReturn)
+	assert.Equal(t, validatorStatistics.Result, mapToReturn)
 }
 
 func loadResponse(rsp io.Reader, destination interface{}) {

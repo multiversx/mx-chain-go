@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	tr "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -65,11 +66,15 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
+	response := core.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
 	transactionResponse := TransactionResponse{}
-	loadResponse(resp.Body, &transactionResponse)
+	mapResponseData := response.Data.(map[string]interface{})
+	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
+	_ = json.Unmarshal(mapResponseDataBytes, &transactionResponse)
 
 	txResp := transactionResponse.TxResp
-
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, hex.EncodeToString([]byte(sender)), txResp.Sender)
 	assert.Equal(t, hex.EncodeToString([]byte(receiver)), txResp.Receiver)
@@ -82,12 +87,11 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	receiver := "receiver"
 	value := big.NewInt(10)
 	txData := "data"
-	hs := "hash"
 	wrongHash := "wronghash"
 	facade := mock.Facade{
 		GetTransactionHandler: func(hash string) (i *tr.Transaction, e error) {
-			if hash != hs {
-				return nil, nil
+			if hash == wrongHash {
+				return nil, errors.New("local error")
 			}
 			return &tr.Transaction{
 				SndAddr: []byte(sender),
@@ -106,7 +110,7 @@ func TestGetTransaction_WithUnknownHashShouldReturnNil(t *testing.T) {
 	transactionResponse := TransactionResponse{}
 	loadResponse(resp.Body, &transactionResponse)
 
-	assert.Equal(t, http.StatusNotFound, resp.Code)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 	assert.Nil(t, transactionResponse.TxResp)
 }
 
@@ -251,8 +255,13 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
+	response := core.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
 	txHashResponse := TransactionHashResponse{}
-	loadResponse(resp.Body, &txHashResponse)
+	mapResponseData := response.Data.(map[string]interface{})
+	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
+	_ = json.Unmarshal(mapResponseDataBytes, &txHashResponse)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Empty(t, txHashResponse.Error)
