@@ -71,7 +71,10 @@ func (st *storageBootstrapper) loadBlocks() error {
 	round := st.bootStorer.GetHighestRound()
 	if round == 0 {
 		log.Debug("Load blocks does nothing as start from genesis")
-		return nil
+		err = st.bootStorer.SaveLastRound(0)
+		log.LogIfError(err, "bootstorer")
+
+		return process.ErrNotEnoughValidBlocksInStorage
 	}
 	storageHeadersInfo := make([]bootstrapStorage.BootstrapData, 0)
 
