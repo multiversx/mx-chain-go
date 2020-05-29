@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/gin-gonic/gin"
 )
@@ -42,10 +42,10 @@ func GetAccount(c *gin.Context) {
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
-			core.GenericAPIResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(core.ReturnCodeInternalError),
+				Code:  string(shared.ReturnCodeInternalError),
 			},
 		)
 		return
@@ -56,10 +56,10 @@ func GetAccount(c *gin.Context) {
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
-			core.GenericAPIResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: fmt.Sprintf("%s: %s", errors.ErrCouldNotGetAccount.Error(), err.Error()),
-				Code:  string(core.ReturnCodeInternalError),
+				Code:  string(shared.ReturnCodeInternalError),
 			},
 		)
 		return
@@ -67,10 +67,10 @@ func GetAccount(c *gin.Context) {
 
 	c.JSON(
 		http.StatusOK,
-		core.GenericAPIResponse{
+		shared.GenericAPIResponse{
 			Data:  gin.H{"account": accountResponseFromBaseAccount(addr, acc)},
 			Error: "",
-			Code:  string(core.ReturnCodeSuccess),
+			Code:  string(shared.ReturnCodeSuccess),
 		},
 	)
 }
@@ -81,10 +81,10 @@ func GetBalance(c *gin.Context) {
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
-			core.GenericAPIResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(core.ReturnCodeInternalError),
+				Code:  string(shared.ReturnCodeInternalError),
 			},
 		)
 		return
@@ -93,10 +93,10 @@ func GetBalance(c *gin.Context) {
 	if addr == "" {
 		c.JSON(
 			http.StatusBadRequest,
-			core.GenericAPIResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: fmt.Sprintf("%s: %s", errors.ErrGetBalance.Error(), errors.ErrEmptyAddress.Error()),
-				Code:  string(core.ReturnCodeRequestErrror),
+				Code:  string(shared.ReturnCodeRequestErrror),
 			},
 		)
 		return
@@ -106,20 +106,20 @@ func GetBalance(c *gin.Context) {
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
-			core.GenericAPIResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: fmt.Sprintf("%s: %s", errors.ErrGetBalance.Error(), err.Error()),
-				Code:  string(core.ReturnCodeInternalError),
+				Code:  string(shared.ReturnCodeInternalError),
 			},
 		)
 		return
 	}
 	c.JSON(
 		http.StatusOK,
-		core.GenericAPIResponse{
+		shared.GenericAPIResponse{
 			Data:  gin.H{"balance": balance.String()},
 			Error: "",
-			Code:  string(core.ReturnCodeSuccess),
+			Code:  string(shared.ReturnCodeSuccess),
 		},
 	)
 }

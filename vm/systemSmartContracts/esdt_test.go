@@ -1,6 +1,8 @@
 package systemSmartContracts
 
 import (
+	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -29,6 +31,8 @@ func TestNewESDTSmartContract(t *testing.T) {
 
 	args := createMockArgumentsForESDT()
 	e, err := NewESDTSmartContract(args)
+	ky := hex.EncodeToString([]byte("ELRONDesdttxgenESDTtkn"))
+	fmt.Println(ky)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, e)

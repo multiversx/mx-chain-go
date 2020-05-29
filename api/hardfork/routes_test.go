@@ -15,9 +15,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -72,7 +72,7 @@ func TestTrigger_WithWrongFacadeShouldErr(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := core.GenericAPIResponse{}
+	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
@@ -98,7 +98,7 @@ func TestTrigger_TriggerCanNotExecuteShouldErr(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := core.GenericAPIResponse{}
+	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
@@ -143,7 +143,7 @@ func TestTrigger_ManualShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := core.GenericAPIResponse{}
+	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 
 	triggerResponse := TriggerResponse{}
@@ -176,7 +176,7 @@ func TestTrigger_BroadcastShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := core.GenericAPIResponse{}
+	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 
 	triggerResponse := TriggerResponse{}

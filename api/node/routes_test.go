@@ -16,9 +16,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/ElrondNetwork/elrond-go/api/node"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
@@ -195,7 +195,7 @@ func TestStatistics_ReturnsSuccessfully(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := core.GenericAPIResponse{}
+	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 
 	statisticsRsp := StatisticsResponse{}
@@ -314,7 +314,7 @@ func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := core.GenericAPIResponse{}
+	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 
 	queryResponse := QueryResponse{}

@@ -1,4 +1,4 @@
-package core
+package shared
 
 // GenericAPIResponse defines the structure of all responses on API endpoints
 type GenericAPIResponse struct {

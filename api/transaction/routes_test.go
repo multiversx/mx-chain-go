@@ -15,10 +15,10 @@ import (
 	errors2 "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/transaction"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	tr "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -66,7 +66,7 @@ func TestGetTransaction_WithCorrectHashShouldReturnTransaction(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := core.GenericAPIResponse{}
+	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 
 	transactionResponse := TransactionResponse{}
@@ -255,7 +255,7 @@ func TestSendTransaction_ReturnsSuccessfully(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := core.GenericAPIResponse{}
+	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 
 	txHashResponse := TransactionHashResponse{}

@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
@@ -70,10 +70,10 @@ func HeartbeatStatus(c *gin.Context) {
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
-			core.GenericAPIResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(core.ReturnCodeInternalError),
+				Code:  string(shared.ReturnCodeInternalError),
 			},
 		)
 		return
@@ -83,10 +83,10 @@ func HeartbeatStatus(c *gin.Context) {
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
-			core.GenericAPIResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: err.Error(),
-				Code:  string(core.ReturnCodeInternalError),
+				Code:  string(shared.ReturnCodeInternalError),
 			},
 		)
 		return
@@ -94,10 +94,10 @@ func HeartbeatStatus(c *gin.Context) {
 
 	c.JSON(
 		http.StatusOK,
-		core.GenericAPIResponse{
-			Data:  gin.H{"message": hbStatus},
+		shared.GenericAPIResponse{
+			Data:  gin.H{"heartbeats": hbStatus},
 			Error: "",
-			Code:  string(core.ReturnCodeSuccess),
+			Code:  string(shared.ReturnCodeSuccess),
 		},
 	)
 }
@@ -108,10 +108,10 @@ func Statistics(c *gin.Context) {
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
-			core.GenericAPIResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(core.ReturnCodeInternalError),
+				Code:  string(shared.ReturnCodeInternalError),
 			},
 		)
 		return
@@ -119,10 +119,10 @@ func Statistics(c *gin.Context) {
 
 	c.JSON(
 		http.StatusOK,
-		core.GenericAPIResponse{
+		shared.GenericAPIResponse{
 			Data:  gin.H{"statistics": statsFromTpsBenchmark(ef.TpsBenchmark())},
 			Error: "",
-			Code:  string(core.ReturnCodeSuccess),
+			Code:  string(shared.ReturnCodeSuccess),
 		},
 	)
 }
@@ -133,10 +133,10 @@ func StatusMetrics(c *gin.Context) {
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
-			core.GenericAPIResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(core.ReturnCodeInternalError),
+				Code:  string(shared.ReturnCodeInternalError),
 			},
 		)
 		return
@@ -145,10 +145,10 @@ func StatusMetrics(c *gin.Context) {
 	details := ef.StatusMetrics().StatusMetricsMapWithoutP2P()
 	c.JSON(
 		http.StatusOK,
-		core.GenericAPIResponse{
-			Data:  gin.H{"details": details},
+		shared.GenericAPIResponse{
+			Data:  gin.H{"metrics": details},
 			Error: "",
-			Code:  string(core.ReturnCodeSuccess),
+			Code:  string(shared.ReturnCodeSuccess),
 		},
 	)
 }
@@ -159,10 +159,10 @@ func P2pStatusMetrics(c *gin.Context) {
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
-			core.GenericAPIResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(core.ReturnCodeInternalError),
+				Code:  string(shared.ReturnCodeInternalError),
 			},
 		)
 		return
@@ -171,10 +171,10 @@ func P2pStatusMetrics(c *gin.Context) {
 	details := ef.StatusMetrics().StatusP2pMetricsMap()
 	c.JSON(
 		http.StatusOK,
-		core.GenericAPIResponse{
-			Data:  gin.H{"details": details},
+		shared.GenericAPIResponse{
+			Data:  gin.H{"metrics": details},
 			Error: "",
-			Code:  string(core.ReturnCodeSuccess),
+			Code:  string(shared.ReturnCodeSuccess),
 		},
 	)
 }
@@ -215,10 +215,10 @@ func QueryDebug(c *gin.Context) {
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
-			core.GenericAPIResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(core.ReturnCodeInternalError),
+				Code:  string(shared.ReturnCodeInternalError),
 			},
 		)
 		return
@@ -229,10 +229,10 @@ func QueryDebug(c *gin.Context) {
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
-			core.GenericAPIResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
-				Code:  string(core.ReturnCodeRequestErrror),
+				Code:  string(shared.ReturnCodeRequestErrror),
 			},
 		)
 		return
@@ -242,10 +242,10 @@ func QueryDebug(c *gin.Context) {
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
-			core.GenericAPIResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: fmt.Sprintf("%s: %s", errors.ErrQueryError.Error(), err.Error()),
-				Code:  string(core.ReturnCodeRequestErrror),
+				Code:  string(shared.ReturnCodeRequestErrror),
 			},
 		)
 		return
@@ -253,10 +253,10 @@ func QueryDebug(c *gin.Context) {
 
 	c.JSON(
 		http.StatusOK,
-		core.GenericAPIResponse{
+		shared.GenericAPIResponse{
 			Data:  gin.H{"result": qh.Query(gtx.Search)},
 			Error: "",
-			Code:  string(core.ReturnCodeSuccess),
+			Code:  string(shared.ReturnCodeSuccess),
 		},
 	)
 }

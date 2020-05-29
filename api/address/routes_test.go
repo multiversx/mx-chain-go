@@ -15,9 +15,9 @@ import (
 	errors2 "github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/mock"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -78,7 +78,7 @@ func TestGetBalance_WithCorrectAddressShouldNotReturnError(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := core.GenericAPIResponse{}
+	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, http.StatusOK, resp.Code)
 
@@ -104,7 +104,7 @@ func TestGetBalance_WithWrongAddressShouldError(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := core.GenericAPIResponse{}
+	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.Equal(t, "", response.Error)
@@ -126,7 +126,7 @@ func TestGetBalance_NodeGetBalanceReturnsError(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := core.GenericAPIResponse{}
+	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 	assert.Equal(t, fmt.Sprintf("%s: %s", errors2.ErrGetBalance.Error(), balanceError.Error()), response.Error)
@@ -147,7 +147,7 @@ func TestGetBalance_WithEmptyAddressShoudReturnError(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := core.GenericAPIResponse{}
+	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
 	assert.NotEmpty(t, response)
@@ -164,7 +164,7 @@ func TestGetBalance_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := core.GenericAPIResponse{}
+	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
 	assert.Equal(t, response.Error, errors2.ErrInvalidAppContext.Error())
@@ -178,7 +178,7 @@ func TestGetAccount_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := core.GenericAPIResponse{}
+	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
 	assert.Equal(t, response.Error, errors2.ErrInvalidAppContext.Error())
@@ -198,7 +198,7 @@ func TestGetAccount_FailWhenFacadeGetAccountFails(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := core.GenericAPIResponse{}
+	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
 	assert.Empty(t, response.Data)
@@ -224,7 +224,7 @@ func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := core.GenericAPIResponse{}
+	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 	mapResponse := response.Data.(map[string]interface{})
 	accountResponse := AccountResponse{}

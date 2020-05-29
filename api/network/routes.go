@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
+	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/gin-gonic/gin"
 )
@@ -28,10 +28,10 @@ func ConfigData(c *gin.Context) {
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
-			core.GenericAPIResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(core.ReturnCodeInternalError),
+				Code:  string(shared.ReturnCodeInternalError),
 			},
 		)
 		return
@@ -40,10 +40,10 @@ func ConfigData(c *gin.Context) {
 	configMetrics := ef.StatusMetrics().ConfigMetrics()
 	c.JSON(
 		http.StatusOK,
-		core.GenericAPIResponse{
+		shared.GenericAPIResponse{
 			Data:  gin.H{"config": configMetrics},
 			Error: "",
-			Code:  string(core.ReturnCodeSuccess),
+			Code:  string(shared.ReturnCodeSuccess),
 		},
 	)
 }
@@ -54,10 +54,10 @@ func GetNetworkData(c *gin.Context) {
 	if !ok {
 		c.JSON(
 			http.StatusInternalServerError,
-			core.GenericAPIResponse{
+			shared.GenericAPIResponse{
 				Data:  nil,
 				Error: errors.ErrInvalidAppContext.Error(),
-				Code:  string(core.ReturnCodeInternalError),
+				Code:  string(shared.ReturnCodeInternalError),
 			},
 		)
 		return
@@ -66,10 +66,10 @@ func GetNetworkData(c *gin.Context) {
 	networkMetrics := ef.StatusMetrics().NetworkMetrics()
 	c.JSON(
 		http.StatusOK,
-		core.GenericAPIResponse{
+		shared.GenericAPIResponse{
 			Data:  gin.H{"status": networkMetrics},
 			Error: "",
-			Code:  string(core.ReturnCodeSuccess),
+			Code:  string(shared.ReturnCodeSuccess),
 		},
 	)
 }
