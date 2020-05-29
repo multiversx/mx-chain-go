@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -28,7 +29,7 @@ type preProcessorsContainerFactory struct {
 	economicsFee         process.FeeHandler
 	gasHandler           process.GasHandler
 	blockTracker         preprocess.BlockTracker
-	pubkeyConverter      state.PubkeyConverter
+	pubkeyConverter      core.PubkeyConverter
 	blockSizeComputation preprocess.BlockSizeComputationHandler
 	balanceComputation   preprocess.BalanceComputationHandler
 }
@@ -47,7 +48,7 @@ func NewPreProcessorsContainerFactory(
 	economicsFee process.FeeHandler,
 	gasHandler process.GasHandler,
 	blockTracker preprocess.BlockTracker,
-	pubkeyConverter state.PubkeyConverter,
+	pubkeyConverter core.PubkeyConverter,
 	blockSizeComputation preprocess.BlockSizeComputationHandler,
 	balanceComputation preprocess.BalanceComputationHandler,
 ) (*preProcessorsContainerFactory, error) {

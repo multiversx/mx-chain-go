@@ -74,6 +74,9 @@ const MetricCurrentRound = "erd_current_round"
 // MetricNonce is the metric for monitoring the nonce of a node
 const MetricNonce = "erd_nonce"
 
+// MetricNonceForTPS is the metric for monitoring the nonce of a node used in TPS benchmarks
+const MetricNonceForTPS = "erd_nonce_for_tps"
+
 // MetricProbableHighestNonce is the metric for monitoring the max speculative nonce received by the node by listening on the network
 const MetricProbableHighestNonce = "erd_probable_highest_nonce"
 
@@ -284,6 +287,18 @@ const MetricStartTime = "erd_start_time"
 // MetricRoundDuration is the metric that specifies the round duration in milliseconds
 const MetricRoundDuration = "erd_round_duration"
 
+// MetricPeakTPS holds the peak transactions per second
+const MetricPeakTPS = "erd_peak_tps"
+
+// MetricLastBlockTxCount holds the number of transactions in the last block
+const MetricLastBlockTxCount = "erd_last_block_tx_count"
+
+// MetricAverageBlockTxCount holds the average count of transactions in a block
+const MetricAverageBlockTxCount = "erd_average_block_tx_count"
+
+// LastNonceKeyMetricsStorage holds the key used for storing the last nonce for stored metrics
+const LastNonceKeyMetricsStorage = "lastNonce"
+
 // MetachainShardId will be used to identify a shard ID as metachain
 const MetachainShardId = uint32(0xFFFFFFFF)
 
@@ -404,3 +419,11 @@ const ElrondProtectedKeyPrefix = "ELROND"
 
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10
+
+// ExtraDelayForBroadcastBlockInfo represents the number of seconds to wait since a block has been broadcast and the
+// moment when its components, like mini blocks and transactions, would be broadcast too
+const ExtraDelayForBroadcastBlockInfo = 2 * time.Second
+
+// ExtraDelayForRequestBlockInfo represents the number of seconds to wait since a block has been received and the
+// moment when its components, like mini blocks and transactions, would be requested too if they are still missing
+const ExtraDelayForRequestBlockInfo = 4 * time.Second

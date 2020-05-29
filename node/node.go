@@ -80,8 +80,8 @@ type Node struct {
 	epochStartTrigger             epochStart.TriggerHandler
 	epochStartRegistrationHandler epochStart.RegistrationHandler
 	accounts                      state.AccountsAdapter
-	addressPubkeyConverter        state.PubkeyConverter
-	validatorPubkeyConverter      state.PubkeyConverter
+	addressPubkeyConverter        core.PubkeyConverter
+	validatorPubkeyConverter      core.PubkeyConverter
 	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
 	interceptorsContainer         process.InterceptorsContainer
 	resolversFinder               dataRetriever.ResolversFinder
@@ -1019,8 +1019,8 @@ func (n *Node) getLatestValidators() (map[uint32][]*state.ValidatorInfo, map[str
 }
 
 // DirectTrigger will start the hardfork trigger
-func (n *Node) DirectTrigger() error {
-	return n.hardforkTrigger.Trigger()
+func (n *Node) DirectTrigger(epoch uint32) error {
+	return n.hardforkTrigger.Trigger(epoch)
 }
 
 // IsSelfTrigger returns true if the trigger's registered public key matches the self public key

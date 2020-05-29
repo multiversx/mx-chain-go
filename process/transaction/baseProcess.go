@@ -18,7 +18,7 @@ import (
 type baseTxProcessor struct {
 	accounts         state.AccountsAdapter
 	shardCoordinator sharding.Coordinator
-	pubkeyConv       state.PubkeyConverter
+	pubkeyConv       core.PubkeyConverter
 	economicsFee     process.FeeHandler
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
