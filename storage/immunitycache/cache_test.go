@@ -77,7 +77,10 @@ func TestImmunityCache_ImmunizeAgainstEviction(t *testing.T) {
 func TestImmunityCache_AddThenRemove(t *testing.T) {
 	cache := newCacheToTest(1, 8, maxNumBytesUpperBound)
 
-	cache.addTestItems("a", "b", "c", "d")
+	_, _ = cache.Add(newCacheItem("a"))
+	_, _ = cache.Add(newCacheItem("b"))
+	_, _ = cache.HasOrAdd(nil, newCacheItem("c")) // Same as Add()
+	_ = cache.Put(nil, newCacheItem("d"))         // Same as Add()
 	require.Equal(t, 4, cache.Len())
 	require.True(t, cache.Has([]byte("a")))
 	require.True(t, cache.Has([]byte("c")))
@@ -112,8 +115,8 @@ func TestImmunityCache_AddThenRemove(t *testing.T) {
 func TestImmunityCache_Get(t *testing.T) {
 	cache := newCacheToTest(1, 8, maxNumBytesUpperBound)
 
-	a := newCacheItemWithPayload("a", "foo")
-	b := newCacheItemWithPayload("b", "bar")
+	a := newCacheItem("a")
+	b := newCacheItem("b")
 	ok, added := cache.Add(a)
 	require.True(t, ok && added)
 	ok, added = cache.Add(b)
@@ -123,37 +126,37 @@ func TestImmunityCache_Get(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, a, item)
 
-	payload, ok := cache.Get([]byte("a"))
+	itemAsEmptyInterface, ok := cache.Get([]byte("a"))
 	require.True(t, ok)
-	require.Equal(t, "foo", payload)
+	require.Equal(t, a, itemAsEmptyInterface)
 
-	payload, ok = cache.Peek([]byte("a"))
+	itemAsEmptyInterface, ok = cache.Peek([]byte("a"))
 	require.True(t, ok)
-	require.Equal(t, "foo", payload)
+	require.Equal(t, a, itemAsEmptyInterface)
 
 	item, ok = cache.GetItem([]byte("b"))
 	require.True(t, ok)
 	require.Equal(t, b, item)
 
-	payload, ok = cache.Get([]byte("b"))
+	itemAsEmptyInterface, ok = cache.Get([]byte("b"))
 	require.True(t, ok)
-	require.Equal(t, "bar", payload)
+	require.Equal(t, b, itemAsEmptyInterface)
 
-	payload, ok = cache.Peek([]byte("b"))
+	itemAsEmptyInterface, ok = cache.Peek([]byte("b"))
 	require.True(t, ok)
-	require.Equal(t, "bar", payload)
+	require.Equal(t, b, itemAsEmptyInterface)
 
 	item, ok = cache.GetItem([]byte("c"))
 	require.False(t, ok)
 	require.Nil(t, item)
 
-	payload, ok = cache.Get([]byte("c"))
+	itemAsEmptyInterface, ok = cache.Get([]byte("c"))
 	require.False(t, ok)
-	require.Nil(t, payload)
+	require.Nil(t, itemAsEmptyInterface)
 
-	payload, ok = cache.Peek([]byte("c"))
+	itemAsEmptyInterface, ok = cache.Peek([]byte("c"))
 	require.False(t, ok)
-	require.Nil(t, payload)
+	require.Nil(t, itemAsEmptyInterface)
 }
 
 func TestImmunityCache_AddThenRemove_ChangesNumBytes(t *testing.T) {

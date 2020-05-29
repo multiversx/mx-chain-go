@@ -214,7 +214,8 @@ func (cache *TxCache) Put(_ []byte, _ interface{}) (evicted bool) {
 	return false
 }
 
-// Get gets a transaction by hash
+// Get gets a transaction (unwrapped) by hash
+// Implemented for compatibiltiy reasons (see txPoolsCleaner.go).
 func (cache *TxCache) Get(key []byte) (value interface{}, ok bool) {
 	tx, ok := cache.GetByTxHash(key)
 	if ok {
@@ -229,7 +230,8 @@ func (cache *TxCache) Has(key []byte) bool {
 	return ok
 }
 
-// Peek gets a transaction by hash
+// Peek gets a transaction (unwrapped) by hash
+// Implemented for compatibiltiy reasons (see transactions.go, common.go).
 func (cache *TxCache) Peek(key []byte) (value interface{}, ok bool) {
 	tx, ok := cache.GetByTxHash(key)
 	if ok {

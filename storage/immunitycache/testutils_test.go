@@ -9,41 +9,26 @@ var _ storage.CacheItem = (*cacheItem)(nil)
 
 type cacheItem struct {
 	key      string
-	payload  interface{}
 	size     int
 	isImmune atomic.Flag
 }
 
 func newCacheItem(key string) *cacheItem {
 	return &cacheItem{
-		key:     key,
-		payload: emptyStruct,
-		size:    42,
+		key:  key,
+		size: 42,
 	}
 }
 
 func newCacheItemWithSize(key string, size int) *cacheItem {
 	return &cacheItem{
-		key:     key,
-		payload: emptyStruct,
-		size:    size,
-	}
-}
-
-func newCacheItemWithPayload(key string, payload interface{}) *cacheItem {
-	return &cacheItem{
-		key:     key,
-		payload: payload,
-		size:    42,
+		key:  key,
+		size: size,
 	}
 }
 
 func (item *cacheItem) GetKey() []byte {
 	return []byte(item.key)
-}
-
-func (item *cacheItem) Payload() interface{} {
-	return item.payload
 }
 
 func (item *cacheItem) Size() int {

@@ -112,12 +112,7 @@ func (ic *ImmunityCache) getChunkByKeyWithLock(key string) *immunityChunk {
 
 // Get gets an item (payload) by key
 func (ic *ImmunityCache) Get(key []byte) (value interface{}, ok bool) {
-	item, ok := ic.GetItem(key)
-	if !ok {
-		return nil, false
-	}
-
-	return item.Payload(), true
+	return ic.GetItem(key)
 }
 
 // GetItem gets an item by key
@@ -138,15 +133,20 @@ func (ic *ImmunityCache) Peek(key []byte) (value interface{}, ok bool) {
 	return ic.Get(key)
 }
 
-// HasOrAdd is not implemented
-func (ic *ImmunityCache) HasOrAdd(_ []byte, _ interface{}) (ok, evicted bool) {
-	log.Error("ImmunityCache.HasOrAdd is not implemented")
-	return false, false
+// HasOrAdd adds an item in the cache
+func (ic *ImmunityCache) HasOrAdd(_ []byte, value interface{}) (ok, evicted bool) {
+	valueAsCacheItem, ok := value.(storage.CacheItem)
+	if !ok {
+		return false, false
+	}
+
+	ok, _ = ic.Add(valueAsCacheItem)
+	return ok, false
 }
 
-// Put is not implemented
-func (ic *ImmunityCache) Put(_ []byte, _ interface{}) (evicted bool) {
-	log.Error("ImmunityCache.Put is not implemented")
+// Put adds an item in the cache
+func (ic *ImmunityCache) Put(key []byte, value interface{}) (evicted bool) {
+	ic.HasOrAdd(key, value)
 	return false
 }
 

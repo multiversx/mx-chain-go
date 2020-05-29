@@ -23,11 +23,6 @@ func (wrappedTx *WrappedTransaction) GetKey() []byte {
 	return wrappedTx.TxHash
 }
 
-// Payload gets the inner (wrapped) transaction
-func (wrappedTx *WrappedTransaction) Payload() interface{} {
-	return wrappedTx.Tx
-}
-
 // Size gets the size (in bytes) of the transaction
 func (wrappedTx *WrappedTransaction) Size() int {
 	return int(estimateTxSize(wrappedTx))

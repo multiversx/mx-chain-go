@@ -174,7 +174,6 @@ type ShardCoordinator interface {
 // CacheItem defines the interface of a cache item
 type CacheItem interface {
 	GetKey() []byte
-	Payload() interface{}
 	Size() int
 	IsImmuneToEviction() bool
 	ImmunizeAgainstEviction()

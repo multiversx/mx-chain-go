@@ -83,6 +83,23 @@ func (cache *CrossTxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool
 	return item.(*WrappedTransaction), true
 }
 
+// Get returns the unwrapped payload of a TransactionWrapper
+// Implemented for compatibiltiy reasons (see txPoolsCleaner.go).
+func (cache *CrossTxCache) Get(key []byte) (value interface{}, ok bool) {
+	wrapped, ok := cache.GetByTxHash(key)
+	if !ok {
+		return nil, false
+	}
+
+	return wrapped.Tx, true
+}
+
+// Peek returns the unwrapped payload of a TransactionWrapper
+// Implemented for compatibiltiy reasons (see transactions.go, common.go).
+func (cache *CrossTxCache) Peek(key []byte) (value interface{}, ok bool) {
+	return cache.Get(key)
+}
+
 // RemoveTxByHash removes tx by hash
 func (cache *CrossTxCache) RemoveTxByHash(txHash []byte) bool {
 	return cache.RemoveWithResult(txHash)
