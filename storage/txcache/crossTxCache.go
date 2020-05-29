@@ -79,8 +79,12 @@ func (cache *CrossTxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool
 	if !ok {
 		return nil, false
 	}
+	tx, ok := item.(*WrappedTransaction)
+	if !ok {
+		return nil, false
+	}
 
-	return item.(*WrappedTransaction), true
+	return tx, true
 }
 
 // Get returns the unwrapped payload of a TransactionWrapper
@@ -108,7 +112,12 @@ func (cache *CrossTxCache) RemoveTxByHash(txHash []byte) bool {
 // ForEachTransaction iterates over the transactions in the cache
 func (cache *CrossTxCache) ForEachTransaction(function ForEachTransaction) {
 	cache.ForEachItem(func(key []byte, item storage.CacheItem) {
-		function(key, item.(*WrappedTransaction))
+		tx, ok := item.(*WrappedTransaction)
+		if !ok {
+			return
+		}
+
+		function(key, tx)
 	})
 }
 

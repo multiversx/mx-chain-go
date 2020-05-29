@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sync"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -221,6 +223,32 @@ func TestImmunityCache_Fnv32Hash(t *testing.T) {
 	require.Equal(t, 1, int(fnv32Hash("b")%4))
 	require.Equal(t, 0, int(fnv32Hash("c")%4))
 	require.Equal(t, 3, int(fnv32Hash("d")%4))
+}
+
+func TestImmunityCache_ClearConcurrentWithRangeOverChunks(t *testing.T) {
+	cache := newCacheToTest(16, 4, 1000)
+	require.Equal(t, 16, len(cache.chunks))
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		for i := 0; i < 10000; i++ {
+			cache.Clear()
+		}
+		wg.Done()
+	}()
+
+	go func() {
+		for i := 0; i < 10000; i++ {
+			for _, chunk := range cache.getChunksWithLock() {
+				assert.Equal(t, 0, chunk.Count())
+			}
+		}
+		wg.Done()
+	}()
+
+	wg.Wait()
 }
 
 func newUnconstrainedCacheToTest(numChunks uint32) *ImmunityCache {

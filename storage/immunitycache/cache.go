@@ -9,7 +9,7 @@ import (
 
 var _ storage.Cacher = (*ImmunityCache)(nil)
 
-var log = logger.GetOrCreate("immunitycache")
+var log = logger.GetOrCreate("storage/immunitycache")
 
 // ImmunityCache is a cache-like structure
 type ImmunityCache struct {
