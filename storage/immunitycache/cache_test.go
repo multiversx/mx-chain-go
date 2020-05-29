@@ -15,7 +15,7 @@ func TestNewImmunityCache(t *testing.T) {
 		Name:                        "test",
 		NumChunks:                   16,
 		MaxNumItems:                 math.MaxUint32,
-		MaxNumBytes:                 math.MaxUint32,
+		MaxNumBytes:                 maxNumBytesUpperBound,
 		NumItemsToPreemptivelyEvict: 100,
 	}
 
@@ -53,7 +53,7 @@ func requireErrorOnNewCache(t *testing.T, config CacheConfig, errExpected error,
 }
 
 func TestImmunityCache_ImmunizeAgainstEviction(t *testing.T) {
-	cache := newCacheToTest(1, 8, math.MaxUint32)
+	cache := newCacheToTest(1, 8, maxNumBytesUpperBound)
 
 	cache.addTestItems("a", "b", "c", "d")
 	numNow, numFuture := cache.ImmunizeKeys(keysAsBytes([]string{"a", "b", "e", "f"}))
@@ -75,7 +75,7 @@ func TestImmunityCache_ImmunizeAgainstEviction(t *testing.T) {
 }
 
 func TestImmunityCache_AddThenRemove(t *testing.T) {
-	cache := newCacheToTest(1, 8, math.MaxUint32)
+	cache := newCacheToTest(1, 8, maxNumBytesUpperBound)
 
 	cache.addTestItems("a", "b", "c", "d")
 	require.Equal(t, 4, cache.Len())
@@ -110,7 +110,7 @@ func TestImmunityCache_AddThenRemove(t *testing.T) {
 }
 
 func TestImmunityCache_Get(t *testing.T) {
-	cache := newCacheToTest(1, 8, math.MaxUint32)
+	cache := newCacheToTest(1, 8, maxNumBytesUpperBound)
 
 	a := newCacheItemWithPayload("a", "foo")
 	b := newCacheItemWithPayload("b", "bar")

@@ -9,7 +9,7 @@ import (
 )
 
 func TestCrossTxCache_DoImmunizeTxsAgainstEviction(t *testing.T) {
-	cache := newCrossTxCacheToTest(1, 8, math.MaxUint32)
+	cache := newCrossTxCacheToTest(1, 8, math.MaxUint16)
 
 	cache.addTestTxs("a", "b", "c", "d")
 	numNow, numFuture := cache.ImmunizeKeys(hashesAsBytes([]string{"a", "b", "e", "f"}))
@@ -29,7 +29,7 @@ func newUnconstrainedCrossTxCacheToTest(numChunks uint32) *CrossTxCache {
 		Name:                        "test",
 		NumChunks:                   numChunks,
 		MaxNumItems:                 math.MaxUint32,
-		MaxNumBytes:                 math.MaxUint32,
+		MaxNumBytes:                 math.MaxUint16,
 		NumItemsToPreemptivelyEvict: math.MaxUint32,
 	})
 	if err != nil {

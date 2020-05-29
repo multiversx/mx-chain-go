@@ -16,8 +16,8 @@ func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
 		CountThreshold:                100,
 		CountPerSenderThreshold:       math.MaxUint32,
 		NumSendersToPreemptivelyEvict: 20,
-		NumBytesThreshold:             math.MaxUint32,
-		NumBytesPerSenderThreshold:    math.MaxUint32,
+		NumBytesThreshold:             maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		MinGasPriceNanoErd:            100,
 	}
 
@@ -53,7 +53,7 @@ func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 		CountThreshold:                math.MaxUint32,
 		CountPerSenderThreshold:       math.MaxUint32,
 		NumBytesThreshold:             numBytesPerTx * 100,
-		NumBytesPerSenderThreshold:    math.MaxUint32,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		NumSendersToPreemptivelyEvict: 20,
 		MinGasPriceNanoErd:            100,
 	}
@@ -85,8 +85,8 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                          "untitled",
 		NumChunks:                     16,
-		NumBytesThreshold:             math.MaxUint32,
-		NumBytesPerSenderThreshold:    math.MaxUint32,
+		NumBytesThreshold:             maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		CountThreshold:                2,
 		CountPerSenderThreshold:       math.MaxUint32,
 		NumSendersToPreemptivelyEvict: 2,
@@ -120,7 +120,7 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 		CountThreshold:                math.MaxUint32,
 		CountPerSenderThreshold:       math.MaxUint32,
 		NumBytesThreshold:             1000,
-		NumBytesPerSenderThreshold:    math.MaxUint32,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		NumSendersToPreemptivelyEvict: 2,
 		MinGasPriceNanoErd:            100,
 	}
@@ -155,7 +155,7 @@ func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
 		NumChunks:                     1,
 		CountThreshold:                0,
 		NumSendersToPreemptivelyEvict: 1,
-		NumBytesPerSenderThreshold:    math.MaxUint32,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:       math.MaxUint32,
 		MinGasPriceNanoErd:            100,
 	}
@@ -178,7 +178,7 @@ func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T)
 		NumChunks:                     1,
 		CountThreshold:                0,
 		NumSendersToPreemptivelyEvict: 42,
-		NumBytesPerSenderThreshold:    math.MaxUint32,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:       math.MaxUint32,
 		MinGasPriceNanoErd:            100,
 	}
@@ -203,7 +203,7 @@ func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
 		NumChunks:                     1,
 		CountThreshold:                0,
 		NumSendersToPreemptivelyEvict: 1,
-		NumBytesPerSenderThreshold:    math.MaxUint32,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:       math.MaxUint32,
 		MinGasPriceNanoErd:            100,
 	}
@@ -237,7 +237,7 @@ func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 		NumBytesThreshold:             1000000000,
 		CountThreshold:                240000,
 		NumSendersToPreemptivelyEvict: dataRetriever.TxPoolNumSendersToPreemptivelyEvict,
-		NumBytesPerSenderThreshold:    math.MaxUint32,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:       math.MaxUint32,
 		MinGasPriceNanoErd:            100,
 	}

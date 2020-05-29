@@ -19,7 +19,7 @@ func Test_NewTxCache(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                       "test",
 		NumChunks:                  16,
-		NumBytesPerSenderThreshold: math.MaxUint32,
+		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:    math.MaxUint32,
 		MinGasPriceNanoErd:         100,
 	}
@@ -27,11 +27,11 @@ func Test_NewTxCache(t *testing.T) {
 	withEvictionConfig := ConfigSourceMe{
 		Name:                          "test",
 		NumChunks:                     16,
-		NumBytesPerSenderThreshold:    math.MaxUint32,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:       math.MaxUint32,
 		MinGasPriceNanoErd:            100,
 		EvictionEnabled:               true,
-		NumBytesThreshold:             math.MaxUint32,
+		NumBytesThreshold:             maxNumBytesUpperBound,
 		CountThreshold:                math.MaxUint32,
 		NumSendersToPreemptivelyEvict: 100,
 	}
@@ -116,7 +116,7 @@ func Test_AddNilTx_DoesNothing(t *testing.T) {
 }
 
 func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) {
-	cache := newCacheToTest(math.MaxUint32, 3)
+	cache := newCacheToTest(maxNumBytesPerSenderUpperBound, 3)
 
 	cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("tx-alice-2"), "alice", 2))
@@ -351,10 +351,10 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 		Name:                          "untitled",
 		NumChunks:                     16,
 		EvictionEnabled:               true,
-		NumBytesThreshold:             math.MaxUint32,
+		NumBytesThreshold:             maxNumBytesUpperBound,
 		CountThreshold:                100,
 		NumSendersToPreemptivelyEvict: 1,
-		NumBytesPerSenderThreshold:    math.MaxUint32,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:       math.MaxUint32,
 		MinGasPriceNanoErd:            100,
 	}
@@ -371,10 +371,10 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 		Name:                          "untitled",
 		NumChunks:                     16,
 		EvictionEnabled:               true,
-		NumBytesThreshold:             math.MaxUint32,
+		NumBytesThreshold:             maxNumBytesUpperBound,
 		CountThreshold:                250000,
 		NumSendersToPreemptivelyEvict: 1,
-		NumBytesPerSenderThreshold:    math.MaxUint32,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:       math.MaxUint32,
 		MinGasPriceNanoErd:            100,
 	}
@@ -570,7 +570,7 @@ func newUnconstrainedCacheToTest() *TxCache {
 	cache, err := NewTxCache(ConfigSourceMe{
 		Name:                       "test",
 		NumChunks:                  16,
-		NumBytesPerSenderThreshold: math.MaxUint32,
+		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:    math.MaxUint32,
 		MinGasPriceNanoErd:         100,
 	})

@@ -79,7 +79,7 @@ func TestImmunityChunk_AddItemDoesNotEvictImmuneItems(t *testing.T) {
 func newUnconstrainedChunkToTest() *immunityChunk {
 	chunk := newImmunityChunk(immunityChunkConfig{
 		maxNumItems:                 math.MaxUint32,
-		maxNumBytes:                 math.MaxUint32,
+		maxNumBytes:                 maxNumBytesUpperBound,
 		numItemsToPreemptivelyEvict: math.MaxUint32,
 	})
 

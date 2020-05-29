@@ -8,6 +8,18 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+const numChunksLowerBound = 1
+const numChunksUpperBound = 128
+const minGasPriceNanoErdLowerBound = 1
+const maxNumItemsLowerBound = 4
+const maxNumBytesLowerBound = maxNumItemsLowerBound * 1
+const maxNumBytesUpperBound = 1_073_741_824 // one GB
+const maxNumItemsPerSenderLowerBound = 1
+const maxNumBytesPerSenderLowerBound = maxNumItemsPerSenderLowerBound * 1
+const maxNumBytesPerSenderUpperBound = 33_554_432 // 32 MB
+const numTxsToPreemptivelyEvictLowerBound = 1
+const numSendersToPreemptivelyEvictLowerBound = 1
+
 // ConfigSourceMe holds cache configuration
 type ConfigSourceMe struct {
 	Name                          string
@@ -31,28 +43,26 @@ func (config *ConfigSourceMe) verify() error {
 	if len(config.Name) == 0 {
 		return fmt.Errorf("%w: config.Name is invalid", storage.ErrInvalidConfig)
 	}
-	if config.NumChunks == 0 {
+	if config.NumChunks < numChunksLowerBound || config.NumChunks > numChunksUpperBound {
 		return fmt.Errorf("%w: config.NumChunks is invalid", storage.ErrInvalidConfig)
 	}
-	if config.NumBytesPerSenderThreshold == 0 {
+	if config.NumBytesPerSenderThreshold < maxNumBytesPerSenderLowerBound || config.NumBytesPerSenderThreshold > maxNumBytesPerSenderUpperBound {
 		return fmt.Errorf("%w: config.NumBytesPerSenderThreshold is invalid", storage.ErrInvalidConfig)
 	}
-	if config.CountPerSenderThreshold == 0 {
+	if config.CountPerSenderThreshold < maxNumItemsPerSenderLowerBound {
 		return fmt.Errorf("%w: config.CountPerSenderThreshold is invalid", storage.ErrInvalidConfig)
 	}
-	if config.MinGasPriceNanoErd == 0 {
+	if config.MinGasPriceNanoErd < minGasPriceNanoErdLowerBound {
 		return fmt.Errorf("%w: config.MinGasPriceNanoErd is invalid", storage.ErrInvalidConfig)
 	}
 	if config.EvictionEnabled {
-		if config.NumBytesThreshold == 0 {
+		if config.NumBytesThreshold < maxNumBytesLowerBound || config.NumBytesThreshold > maxNumBytesUpperBound {
 			return fmt.Errorf("%w: config.NumBytesThreshold is invalid", storage.ErrInvalidConfig)
 		}
-
-		if config.CountThreshold == 0 {
+		if config.CountThreshold < maxNumItemsLowerBound {
 			return fmt.Errorf("%w: config.CountThreshold is invalid", storage.ErrInvalidConfig)
 		}
-
-		if config.NumSendersToPreemptivelyEvict == 0 {
+		if config.NumSendersToPreemptivelyEvict < numSendersToPreemptivelyEvictLowerBound {
 			return fmt.Errorf("%w: config.NumSendersToPreemptivelyEvict is invalid", storage.ErrInvalidConfig)
 		}
 	}
@@ -91,16 +101,16 @@ func (config *ConfigDestinationMe) verify() error {
 	if len(config.Name) == 0 {
 		return fmt.Errorf("%w: config.Name is invalid", storage.ErrInvalidConfig)
 	}
-	if config.NumChunks == 0 {
+	if config.NumChunks < numChunksLowerBound || config.NumChunks > numChunksUpperBound {
 		return fmt.Errorf("%w: config.NumChunks is invalid", storage.ErrInvalidConfig)
 	}
-	if config.MaxNumItems == 0 {
+	if config.MaxNumItems < maxNumItemsLowerBound {
 		return fmt.Errorf("%w: config.MaxNumItems is invalid", storage.ErrInvalidConfig)
 	}
-	if config.MaxNumBytes == 0 {
+	if config.MaxNumBytes < maxNumBytesLowerBound || config.MaxNumBytes > maxNumBytesUpperBound {
 		return fmt.Errorf("%w: config.MaxNumBytes is invalid", storage.ErrInvalidConfig)
 	}
-	if config.NumItemsToPreemptivelyEvict == 0 {
+	if config.NumItemsToPreemptivelyEvict < numTxsToPreemptivelyEvictLowerBound {
 		return fmt.Errorf("%w: config.NumItemsToPreemptivelyEvict is invalid", storage.ErrInvalidConfig)
 	}
 

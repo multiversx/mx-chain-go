@@ -113,10 +113,11 @@ func (ic *ImmunityCache) getChunkByKeyWithLock(key string) *immunityChunk {
 // Get gets an item (payload) by key
 func (ic *ImmunityCache) Get(key []byte) (value interface{}, ok bool) {
 	item, ok := ic.GetItem(key)
-	if ok {
-		return item.Payload(), true
+	if !ok {
+		return nil, false
 	}
-	return nil, false
+
+	return item.Payload(), true
 }
 
 // GetItem gets an item by key
