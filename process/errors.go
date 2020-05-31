@@ -787,3 +787,6 @@ var ErrNilTopicFloodPreventer = errors.New("nil topic flood preventer")
 
 // ErrOriginatorIsBlacklisted signals that a message originator is blacklisted on the current node
 var ErrOriginatorIsBlacklisted = errors.New("originator is blacklisted")
+
+// ErrShardIsStuck signals that a shard is stuck
+var ErrShardIsStuck = errors.New("shard is stuck")

@@ -111,6 +111,8 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 		log.Trace("requestByHashes", "hash", txHash)
 	}
 
+	rrh.whiteList.Add(unrequestedHashes)
+
 	go rrh.requestHashesWithDataSplit(unrequestedHashes, txResolver)
 
 	rrh.addRequestedItems(unrequestedHashes)
@@ -175,6 +177,8 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 		return
 	}
 
+	rrh.whiteList.Add([][]byte{miniblockHash})
+
 	err = resolver.RequestDataFromHash(miniblockHash, rrh.epoch)
 	if err != nil {
 		log.Debug("RequestMiniBlock.RequestDataFromHash",
@@ -216,6 +220,8 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 		return
 	}
 
+	rrh.whiteList.Add(unrequestedHashes)
+
 	err = miniBlocksResolver.RequestDataFromHashArray(unrequestedHashes, rrh.epoch)
 	if err != nil {
 		log.Debug("RequestMiniBlocks.RequestDataFromHashArray",
@@ -249,6 +255,8 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 		return
 	}
 
+	rrh.whiteList.Add([][]byte{hash})
+
 	err = headerResolver.RequestDataFromHash(hash, rrh.epoch)
 	if err != nil {
 		log.Debug("RequestShardHeader.RequestDataFromHash",
@@ -280,6 +288,8 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 		)
 		return
 	}
+
+	rrh.whiteList.Add([][]byte{hash})
 
 	err = resolver.RequestDataFromHash(hash, rrh.epoch)
 	if err != nil {
@@ -314,6 +324,8 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 		)
 		return
 	}
+
+	rrh.whiteList.Add([][]byte{key})
 
 	err = headerResolver.RequestDataFromNonce(nonce, rrh.epoch)
 	if err != nil {
@@ -360,6 +372,8 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 		log.Trace("requestByHashes", "hash", txHash)
 	}
 
+	rrh.whiteList.Add(unrequestedHashes)
+
 	go rrh.requestHashesWithDataSplit(unrequestedHashes, trieResolver)
 
 	rrh.addRequestedItems(unrequestedHashes)
@@ -383,6 +397,8 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 		)
 		return
 	}
+
+	rrh.whiteList.Add([][]byte{key})
 
 	err = headerResolver.RequestDataFromNonce(nonce, rrh.epoch)
 	if err != nil {
@@ -419,8 +435,6 @@ func (rrh *resolverRequestHandler) addRequestedItems(keys [][]byte) {
 			return
 		}
 	}
-
-	rrh.whiteList.Add(keys)
 }
 
 func (rrh *resolverRequestHandler) getShardHeaderResolver(shardID uint32) (dataRetriever.HeaderResolver, error) {
@@ -506,6 +520,8 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 		log.Warn("wrong assertion type when creating header resolver")
 		return
 	}
+
+	rrh.whiteList.Add([][]byte{epochStartIdentifier})
 
 	err = headerResolver.RequestDataFromEpoch(epochStartIdentifier)
 	if err != nil {
