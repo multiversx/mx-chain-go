@@ -27,7 +27,7 @@ const (
 )
 
 // TODO: move this to config parameters
-const nodeCoordinatorStoredEpochs = 2
+const nodeCoordinatorStoredEpochs = 3
 
 type validatorWithShardID struct {
 	validator Validator
@@ -303,10 +303,11 @@ func (ihgs *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	consensusSize := ihgs.ConsensusGroupSize(shardID)
 	randomness = []byte(fmt.Sprintf("%d-%s", round, randomness))
 
-	log.Debug("ComputeValidatorsGroup",
+	log.Debug("computeValidatorsGroup",
 		"randomness", randomness,
 		"consensus size", consensusSize,
-		"eligible list length", len(eligibleList))
+		"eligible list length", len(eligibleList),
+		"epoch", epoch)
 
 	tempList, err := selectValidators(selector, randomness, uint32(consensusSize), eligibleList)
 	if err != nil {

@@ -268,7 +268,7 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 }
 
 // UpdatePeerState takes a header, updates the peer state for all of the
-//  consensus members and returns the new root hash
+// consensus members and returns the new root hash
 func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
 	if header.GetNonce() == 0 {
 		return vs.peerAdapter.RootHash()
@@ -278,17 +278,13 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 	vs.missedBlocksCounters.reset()
 	vs.mutValidatorStatistics.Unlock()
 
-	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
-	epoch := header.GetEpoch()
-	if header.IsStartOfEpochBlock() && epoch > 0 {
-		epoch = epoch - 1
-	}
-
 	previousHeader, ok := cache[string(header.GetPrevHash())]
 	if !ok {
 		log.Warn("UpdatePeerState could not get meta header from cache", "error", process.ErrMissingHeader.Error(), "hash", header.GetPrevHash(), "round", header.GetRound(), "nonce", header.GetNonce())
 		return nil, process.ErrMissingHeader
 	}
+
+	epoch := computeEpoch(header)
 
 	var err error
 	if previousHeader.IsStartOfEpochBlock() {
@@ -324,22 +320,24 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 		return vs.peerAdapter.RootHash()
 	}
 	log.Trace("Increasing", "round", previousHeader.GetRound(), "prevRandSeed", previousHeader.GetPrevRandSeed())
+
+	consensusGroupEpoch := computeEpoch(previousHeader)
 	consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(
 		previousHeader.GetPrevRandSeed(),
 		previousHeader.GetRound(),
 		previousHeader.GetShardID(),
-		epoch)
+		consensusGroupEpoch)
 	if err != nil {
 		return nil, err
 	}
 	leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
-	log.Trace("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
+	log.Debug("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
 	err = vs.updateValidatorInfo(
 		consensusGroup,
 		previousHeader.GetPubKeysBitmap(),
 		previousHeader.GetAccumulatedFees(),
 		previousHeader.GetShardID(),
-		epoch)
+		consensusGroupEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -354,19 +352,30 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 	return rootHash, nil
 }
 
+func computeEpoch(header data.HeaderHandler) uint32 {
+	// TODO: change if start of epoch block needs to be validated by the new epoch nodes
+	// previous block was proposed by the consensus group of the previous epoch
+	epoch := header.GetEpoch()
+	if (header.IsStartOfEpochBlock()) && epoch > 0 {
+		epoch = epoch - 1
+	}
+
+	return epoch
+}
+
 func (vs *validatorStatistics) DisplayRatings(epoch uint32) {
 	validatorPKs, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		log.Warn("could not get ValidatorPublicKeys", "epoch", epoch)
 		return
 	}
-	log.Trace("started printing tempRatings")
+	log.Debug("started printing tempRatings")
 	for shardID, list := range validatorPKs {
 		for _, pk := range list {
-			log.Trace("tempRating", "PK", pk, "tempRating", vs.getTempRating(string(pk)), "ShardID", shardID)
+			log.Debug("tempRating", "PK", pk, "tempRating", vs.getTempRating(string(pk)), "ShardID", shardID)
 		}
 	}
-	log.Trace("finished printing tempRatings")
+	log.Debug("finished printing tempRatings")
 }
 
 // Commit commits the validator statistics trie and returns the root hash
@@ -734,16 +743,22 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 		return process.ErrInvalidMetaHeader
 	}
 
-	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
-	epoch := header.GetEpoch()
-	if header.IsStartOfEpochBlock() && epoch > 0 {
-		epoch = epoch - 1
-	}
-
 	for _, h := range metaHeader.ShardInfo {
 		if h.Nonce == vs.genesisNonce {
 			continue
 		}
+
+		currentHeader, ok := cacheMap[string(h.HeaderHash)]
+		if !ok {
+			log.Warn("updateShardDataPeerState could not get shard header from cache",
+				"error", process.ErrMissingHeader.Error(),
+				"hash", h.GetPrevHash(),
+				"round", h.GetRound(),
+				"nonce", h.GetNonce())
+			return process.ErrMissingHeader
+		}
+
+		epoch := computeEpoch(currentHeader)
 
 		shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeConsensusGroup(h.PrevRandSeed, h.Round, h.ShardID, epoch)
 		if shardInfoErr != nil {
@@ -845,7 +860,7 @@ func (vs *validatorStatistics) updateValidatorInfo(
 	if len(signingBitmap) == 0 {
 		return process.ErrNilPubKeysBitmap
 	}
-
+	log.Debug("update validator info")
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
 		peerAcc, err := vs.GetPeerAccount(validatorList[i].PubKey())
@@ -862,16 +877,19 @@ func (vs *validatorStatistics) updateValidatorInfo(
 
 		switch actionType {
 		case leaderSuccess:
+			log.Trace("increasing leader success", "pk", peerAcc.GetBLSPublicKey())
 			peerAcc.IncreaseLeaderSuccessRate(1)
 			peerAcc.SetConsecutiveProposerMisses(0)
 			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating())
 			leaderAccumulatedFees := core.GetPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
 			peerAcc.AddToAccumulatedFees(leaderAccumulatedFees)
 		case validatorSuccess:
+			log.Trace("increasing validator success", "pk", peerAcc.GetBLSPublicKey())
 			peerAcc.IncreaseValidatorSuccessRate(1)
 			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
 		case validatorFail:
 			if epoch >= vs.ratingEnableEpoch {
+				log.Trace("increasing validator fail", "pk", peerAcc.GetBLSPublicKey())
 				peerAcc.DecreaseValidatorSuccessRate(1)
 				newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
 			}
