@@ -1579,12 +1579,14 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 }
 
 func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaHdr data.HeaderHandler) {
-	log.Debug("meta hdrs added",
-		"nb", hdrsAdded,
-		"lastMetaHdr", lastMetaHdr.GetNonce(),
+	log.Debug("meta headers added",
+		"num", hdrsAdded,
+		"highest nonce", lastMetaHdr.GetNonce(),
 	)
 
-	if hdrsAdded == 0 {
+	roundTooOld := sp.rounder.Index() > int64(lastMetaHdr.GetRound()+process.MaxRoundsWithoutNewBlockReceived)
+	shouldRequestCrossHeaders := hdrsAdded == 0 && roundTooOld
+	if shouldRequestCrossHeaders {
 		fromNonce := lastMetaHdr.GetNonce() + 1
 		toNonce := fromNonce + uint64(sp.metaBlockFinality)
 		for nonce := fromNonce; nonce <= toNonce; nonce++ {
