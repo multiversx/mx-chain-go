@@ -251,21 +251,6 @@ func TestImmunityCache_ClearConcurrentWithRangeOverChunks(t *testing.T) {
 	wg.Wait()
 }
 
-func newUnconstrainedCacheToTest(numChunks uint32) *ImmunityCache {
-	cache, err := NewImmunityCache(CacheConfig{
-		Name:                        "test",
-		NumChunks:                   numChunks,
-		MaxNumItems:                 math.MaxUint32,
-		MaxNumBytes:                 math.MaxUint32,
-		NumItemsToPreemptivelyEvict: math.MaxUint32,
-	})
-	if err != nil {
-		panic(fmt.Sprintf("newUnconstrainedCacheToTest(): %s", err))
-	}
-
-	return cache
-}
-
 func newCacheToTest(numChunks uint32, maxNumItems uint32, numMaxBytes uint32) *ImmunityCache {
 	cache, err := NewImmunityCache(CacheConfig{
 		Name:                        "test",
@@ -281,8 +266,8 @@ func newCacheToTest(numChunks uint32, maxNumItems uint32, numMaxBytes uint32) *I
 	return cache
 }
 
-func (cache *ImmunityCache) addTestItems(keys ...string) {
+func (ic *ImmunityCache) addTestItems(keys ...string) {
 	for _, key := range keys {
-		_, _ = cache.Add(newCacheItem(key))
+		_, _ = ic.Add(newCacheItem(key))
 	}
 }
