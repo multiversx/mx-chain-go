@@ -79,7 +79,7 @@ func (p *PeerAccountHandlerMock) SetStake(_ *big.Int) error {
 // GetAccumulatedFees -
 func (p *PeerAccountHandlerMock) GetAccumulatedFees() *big.Int {
 	if p.GetAccumulatedFeesCalled != nil {
-		p.GetAccumulatedFeesCalled()
+		return p.GetAccumulatedFeesCalled()
 	}
 	return big.NewInt(0)
 }
