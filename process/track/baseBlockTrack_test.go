@@ -88,7 +88,7 @@ func generateStorageUnit() storage.Storer {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 1)
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, 1000, 1, 0)
 	return cache
 }
 
@@ -1663,7 +1663,7 @@ func TestIsShardStuck_ShouldReturnFalseWhenMetaIsNotStuck(t *testing.T) {
 	t.Parallel()
 
 	nonce := uint64(1)
-	shardID := uint32(core.MetachainShardId)
+	shardID := core.MetachainShardId
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -1677,7 +1677,7 @@ func TestIsShardStuck_ShouldReturnTrueWhenMetaIsStuck(t *testing.T) {
 	t.Parallel()
 
 	nonce := uint64(1)
-	shardID := uint32(core.MetachainShardId)
+	shardID := core.MetachainShardId
 	shardArguments := CreateShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 

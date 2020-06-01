@@ -128,7 +128,7 @@ func TestMiniblockInterceptorProcessor_NilMiniblockShouldNotAdd(t *testing.T) {
 
 	arg := createMockMiniblockArgument()
 	cacher := arg.MiniblockCache.(*mock.CacherStub)
-	cacher.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
+	cacher.HasOrAddCalled = func(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool) {
 		assert.Fail(t, "hasOrAdd should have not been called")
 		return
 	}
@@ -151,7 +151,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblockNotForCurrentShardShouldNotA
 
 	arg := createMockMiniblockArgument()
 	cacher := arg.MiniblockCache.(*mock.CacherStub)
-	cacher.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
+	cacher.HasOrAddCalled = func(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool) {
 		assert.Fail(t, "hasOrAdd should have not been called")
 		return
 	}
@@ -173,7 +173,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblockWithSenderInSameShardShouldA
 
 	arg := createMockMiniblockArgument()
 	cacher := arg.MiniblockCache.(*mock.CacherStub)
-	cacher.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
+	cacher.HasOrAddCalled = func(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool) {
 		_, ok = value.(*block.MiniBlock)
 		if !ok {
 			assert.Fail(t, "hasOrAdd called for an invalid type")
@@ -203,7 +203,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblocksWithReceiverInSameShardShou
 
 	arg := createMockMiniblockArgument()
 	cacher := arg.MiniblockCache.(*mock.CacherStub)
-	cacher.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
+	cacher.HasOrAddCalled = func(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool) {
 		_, ok = value.(*block.MiniBlock)
 		if !ok {
 			assert.Fail(t, "hasOrAdd called for an invalid type")
@@ -239,7 +239,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblocksMarshalizerFailShouldNotAdd
 		},
 	}
 	cacher := arg.MiniblockCache.(*mock.CacherStub)
-	cacher.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
+	cacher.HasOrAddCalled = func(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool) {
 		assert.Fail(t, "hasOrAdd should have not been called")
 		return
 	}
@@ -267,7 +267,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblockCrossShardForMeNotWhiteListe
 	}
 
 	cacher := arg.MiniblockCache.(*mock.CacherStub)
-	cacher.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
+	cacher.HasOrAddCalled = func(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool) {
 		assert.Fail(t, "hasOrAdd should have not been called")
 		return
 	}
@@ -296,7 +296,7 @@ func TestMiniblockInterceptorProcessor_SaveMiniblockCrossShardForMeWhiteListedSh
 
 	addedInPool := false
 	cacher := arg.MiniblockCache.(*mock.CacherStub)
-	cacher.HasOrAddCalled = func(key []byte, value interface{}) (ok, evicted bool) {
+	cacher.HasOrAddCalled = func(key []byte, value interface{}, sizeInBytes int) (ok, evicted bool) {
 		addedInPool = true
 		return
 	}

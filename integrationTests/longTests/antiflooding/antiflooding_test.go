@@ -24,9 +24,9 @@ func createWorkableConfig() config.Config {
 		Antiflood: config.AntifloodConfig{
 			Enabled: true,
 			Cache: config.CacheConfig{
-				Type:   "LRU",
-				Size:   5000,
-				Shards: 16,
+				Type:     "LRU",
+				Capacity: 5000,
+				Shards:   16,
 			},
 			FastReacting: config.FloodPreventerConfig{
 				IntervalInSeconds: 1,

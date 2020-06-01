@@ -102,3 +102,18 @@ var ErrFailedCacheEviction = errors.New("failed eviction within cache")
 
 // ErrItemAlreadyInCache signals that an item is already in cache
 var ErrItemAlreadyInCache = errors.New("item already in cache")
+
+// ErrCacheSizeInvalid signals that size of cache is less than 1
+var ErrCacheSizeInvalid = errors.New("cache size is less than 1")
+
+// ErrCacheCapacityInvalid signals that capacity of cache is less than 1
+var ErrCacheCapacityInvalid = errors.New("cache capacity is less than 1")
+
+// ErrLRUCacheWithProvidedSize signals that a simple LRU cache is wanted but the user provided a positive size in bytes value
+var ErrLRUCacheWithProvidedSize = errors.New("LRU cache does not support size in bytes")
+
+// ErrLRUCacheInvalidSize signals that the provided size in bytes value for LRU cache is invalid
+var ErrLRUCacheInvalidSize = errors.New("wrong size in bytes value for LRU cache")
+
+// ErrNegativeSizeInBytes signals that the provided size in bytes value is negative
+var ErrNegativeSizeInBytes = errors.New("negative size in bytes")

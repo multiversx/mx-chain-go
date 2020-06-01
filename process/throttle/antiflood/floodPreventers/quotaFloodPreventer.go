@@ -15,12 +15,18 @@ const minMessages = 1
 const minTotalSize = 1 //1Byte
 const initNumMessages = 1
 const maxPercentReserved = 90
+const quotaStructSize = 24
 
 type quota struct {
 	numReceivedMessages   uint32
 	numProcessedMessages  uint32
 	sizeReceivedMessages  uint64
 	sizeProcessedMessages uint64
+}
+
+// Size returns the size of a quota object
+func (q *quota) Size() int {
+	return quotaStructSize
 }
 
 // quotaFloodPreventer represents a cache of quotas per peer used in antiflooding mechanism
@@ -138,7 +144,7 @@ func (qfp *quotaFloodPreventer) putDefaultQuota(identifier string, size uint64) 
 		numProcessedMessages:  initNumMessages,
 		sizeProcessedMessages: size,
 	}
-	qfp.cacher.Put([]byte(identifier), q)
+	qfp.cacher.Put([]byte(identifier), q, q.Size())
 }
 
 // Reset clears all map values
