@@ -27,7 +27,7 @@ const (
 )
 
 // TODO: move this to config parameters
-const nodeCoordinatorStoredEpochs = 3
+const nodeCoordinatorStoredEpochs = 2
 
 type validatorWithShardID struct {
 	validator Validator
