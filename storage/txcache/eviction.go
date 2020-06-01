@@ -87,7 +87,7 @@ func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32
 
 	snapshot := cache.evictionSnapshotOfSenders
 	snapshotLength := uint32(len(snapshot))
-	batchSize := cache.config.NumSendersToEvictInOneStep
+	batchSize := cache.config.NumSendersToPreemptivelyEvict
 	batchStart := uint32(0)
 
 	for step = 0; shouldContinue(); step++ {

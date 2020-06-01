@@ -16,24 +16,24 @@ import (
 )
 
 func Test_NewTxCache(t *testing.T) {
-	config := CacheConfig{
+	config := ConfigSourceMe{
 		Name:                       "test",
-		NumChunksHint:              16,
-		NumBytesPerSenderThreshold: math.MaxUint32,
+		NumChunks:                  16,
+		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:    math.MaxUint32,
 		MinGasPriceNanoErd:         100,
 	}
 
-	withEvictionConfig := CacheConfig{
-		Name:                       "test",
-		NumChunksHint:              16,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceNanoErd:         100,
-		EvictionEnabled:            true,
-		NumBytesThreshold:          math.MaxUint32,
-		CountThreshold:             math.MaxUint32,
-		NumSendersToEvictInOneStep: 100,
+	withEvictionConfig := ConfigSourceMe{
+		Name:                          "test",
+		NumChunks:                     16,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
+		CountPerSenderThreshold:       math.MaxUint32,
+		MinGasPriceNanoErd:            100,
+		EvictionEnabled:               true,
+		NumBytesThreshold:             maxNumBytesUpperBound,
+		CountThreshold:                math.MaxUint32,
+		NumSendersToPreemptivelyEvict: 100,
 	}
 
 	cache, err := NewTxCache(config)
@@ -42,38 +42,38 @@ func Test_NewTxCache(t *testing.T) {
 
 	badConfig := config
 	badConfig.Name = ""
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.Name")
+	requireErrorOnNewTxCache(t, badConfig, storage.ErrInvalidConfig, "config.Name")
 
 	badConfig = config
-	badConfig.NumChunksHint = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumChunksHint")
+	badConfig.NumChunks = 0
+	requireErrorOnNewTxCache(t, badConfig, storage.ErrInvalidConfig, "config.NumChunks")
 
 	badConfig = config
 	badConfig.NumBytesPerSenderThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumBytesPerSenderThreshold")
+	requireErrorOnNewTxCache(t, badConfig, storage.ErrInvalidConfig, "config.NumBytesPerSenderThreshold")
 
 	badConfig = config
 	badConfig.CountPerSenderThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.CountPerSenderThreshold")
+	requireErrorOnNewTxCache(t, badConfig, storage.ErrInvalidConfig, "config.CountPerSenderThreshold")
 
 	badConfig = config
 	badConfig.MinGasPriceNanoErd = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.MinGasPriceNanoErd")
+	requireErrorOnNewTxCache(t, badConfig, storage.ErrInvalidConfig, "config.MinGasPriceNanoErd")
 
 	badConfig = withEvictionConfig
 	badConfig.NumBytesThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumBytesThreshold")
+	requireErrorOnNewTxCache(t, badConfig, storage.ErrInvalidConfig, "config.NumBytesThreshold")
 
 	badConfig = withEvictionConfig
 	badConfig.CountThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.CountThreshold")
+	requireErrorOnNewTxCache(t, badConfig, storage.ErrInvalidConfig, "config.CountThreshold")
 
 	badConfig = withEvictionConfig
-	badConfig.NumSendersToEvictInOneStep = 0
-	requireErrorOnNewTxCache(t, badConfig, errInvalidCacheConfig, "config.NumSendersToEvictInOneStep")
+	badConfig.NumSendersToPreemptivelyEvict = 0
+	requireErrorOnNewTxCache(t, badConfig, storage.ErrInvalidConfig, "config.NumSendersToPreemptivelyEvict")
 }
 
-func requireErrorOnNewTxCache(t *testing.T, config CacheConfig, errExpected error, errPartialMessage string) {
+func requireErrorOnNewTxCache(t *testing.T, config ConfigSourceMe, errExpected error, errPartialMessage string) {
 	cache, errReceived := NewTxCache(config)
 	require.Nil(t, cache)
 	require.True(t, errors.Is(errReceived, errExpected))
@@ -116,7 +116,7 @@ func Test_AddNilTx_DoesNothing(t *testing.T) {
 }
 
 func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) {
-	cache := newCacheToTest(math.MaxUint32, 3)
+	cache := newCacheToTest(maxNumBytesPerSenderUpperBound, 3)
 
 	cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("tx-alice-2"), "alice", 2))
@@ -159,8 +159,8 @@ func Test_RemoveByTxHash(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-2"), "alice", 2))
 
-	err := cache.RemoveTxByHash([]byte("hash-1"))
-	require.Nil(t, err)
+	removed := cache.RemoveTxByHash([]byte("hash-1"))
+	require.True(t, removed)
 	cache.Remove([]byte("hash-2"))
 
 	foundTx, ok := cache.GetByTxHash([]byte("hash-1"))
@@ -211,10 +211,10 @@ func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {
 	require.Nil(t, foundTxGet)
 }
 
-func Test_RemoveByTxHash_Error_WhenMissing(t *testing.T) {
+func Test_RemoveByTxHash_WhenMissing(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
-	err := cache.RemoveTxByHash([]byte("missing"))
-	require.Equal(t, err, errTxNotFound)
+	removed := cache.RemoveTxByHash([]byte("missing"))
+	require.False(t, removed)
 }
 
 func Test_RemoveByTxHash_RemovesFromByHash_WhenMapsInconsistency(t *testing.T) {
@@ -347,16 +347,16 @@ func Test_Keys(t *testing.T) {
 }
 
 func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
-	config := CacheConfig{
-		Name:                       "untitled",
-		NumChunksHint:              16,
-		EvictionEnabled:            true,
-		NumBytesThreshold:          math.MaxUint32,
-		CountThreshold:             100,
-		NumSendersToEvictInOneStep: 1,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceNanoErd:         100,
+	config := ConfigSourceMe{
+		Name:                          "untitled",
+		NumChunks:                     16,
+		EvictionEnabled:               true,
+		NumBytesThreshold:             maxNumBytesUpperBound,
+		CountThreshold:                100,
+		NumSendersToPreemptivelyEvict: 1,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
+		CountPerSenderThreshold:       math.MaxUint32,
+		MinGasPriceNanoErd:            100,
 	}
 
 	// 11 * 10
@@ -367,16 +367,16 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	addManyTransactionsWithUniformDistribution(cache, 11, 10)
 	require.LessOrEqual(t, cache.CountTx(), uint64(100))
 
-	config = CacheConfig{
-		Name:                       "untitled",
-		NumChunksHint:              16,
-		EvictionEnabled:            true,
-		NumBytesThreshold:          math.MaxUint32,
-		CountThreshold:             250000,
-		NumSendersToEvictInOneStep: 1,
-		NumBytesPerSenderThreshold: math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
-		MinGasPriceNanoErd:         100,
+	config = ConfigSourceMe{
+		Name:                          "untitled",
+		NumChunks:                     16,
+		EvictionEnabled:               true,
+		NumBytesThreshold:             maxNumBytesUpperBound,
+		CountThreshold:                250000,
+		NumSendersToPreemptivelyEvict: 1,
+		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
+		CountPerSenderThreshold:       math.MaxUint32,
+		MinGasPriceNanoErd:            100,
 	}
 
 	// 100 * 1000
@@ -567,10 +567,10 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 }
 
 func newUnconstrainedCacheToTest() *TxCache {
-	cache, err := NewTxCache(CacheConfig{
+	cache, err := NewTxCache(ConfigSourceMe{
 		Name:                       "test",
-		NumChunksHint:              16,
-		NumBytesPerSenderThreshold: math.MaxUint32,
+		NumChunks:                  16,
+		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:    math.MaxUint32,
 		MinGasPriceNanoErd:         100,
 	})
@@ -582,9 +582,9 @@ func newUnconstrainedCacheToTest() *TxCache {
 }
 
 func newCacheToTest(numBytesPerSenderThreshold uint32, countPerSenderThreshold uint32) *TxCache {
-	cache, err := NewTxCache(CacheConfig{
+	cache, err := NewTxCache(ConfigSourceMe{
 		Name:                       "test",
-		NumChunksHint:              16,
+		NumChunks:                  16,
 		NumBytesPerSenderThreshold: numBytesPerSenderThreshold,
 		CountPerSenderThreshold:    countPerSenderThreshold,
 		MinGasPriceNanoErd:         100,
