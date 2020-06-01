@@ -12,13 +12,14 @@ message GeneralProposal {
     bytes  GitHubCommit   = 2 [(gogoproto.jsontag) = "GitHubCommit"];
     uint64 StartVoteNonce = 3 [(gogoproto.jsontag) = "StartVoteNonce"];
     uint64 EndVoteNonce   = 4 [(gogoproto.jsontag) = "EndVoteNonce"];
-    int32 Yes             = 5 [(gogoproto.jsontag) = "Yes"];
-    int32 No              = 6 [(gogoproto.jsontag) = "No"];
-    int32 Veto            = 7 [(gogoproto.jsontag) = "Veto"];
-    int32 DontCare        = 8 [(gogoproto.jsontag) = "DontCare"];
+    int32  Yes            = 5 [(gogoproto.jsontag) = "Yes"];
+    int32  No             = 6 [(gogoproto.jsontag) = "No"];
+    int32  Veto           = 7 [(gogoproto.jsontag) = "Veto"];
+    int32  DontCare       = 8 [(gogoproto.jsontag) = "DontCare"];
     bool   Voted          = 9 [(gogoproto.jsontag) = "Voted"];
     repeated bytes Voters = 10 [(gogoproto.jsontag) = "Voters"];
     bytes  TopReference   = 11 [(gogoproto.jsontag) = "TopReference"];
+    bool   Closed         = 12 [(gogoproto.jsontag) = "Closed"];
 }
 
 message WhiteListProposal {

@@ -4,6 +4,7 @@ package systemSmartContracts
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -100,8 +101,10 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.delegateVotePower(args)
 	case "revokeVotePower":
 		return g.revokeVotePower(args)
-	case "changeNumOfNodes":
-		return g.changeNumOfNodes(args)
+	case "changeConfig":
+		return g.changeConfig(args)
+	case "closeProposal":
+		return g.closeProposal(args)
 	}
 
 	return vmcommon.FunctionNotFound
@@ -125,29 +128,55 @@ func (g *governanceContract) init(args *vmcommon.ContractCallInput) vmcommon.Ret
 	return vmcommon.Ok
 }
 
-func (g *governanceContract) changeNumOfNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !bytes.Equal(g.ownerAddress, args.CallerAddr) {
+		g.eei.AddReturnMessage("changeConfig can be called only by owner")
 		return vmcommon.UserError
 	}
 	if args.CallValue.Cmp(zero) != 0 {
+		g.eei.AddReturnMessage("changeConfig can be called only without callValue")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments) != 1 {
+	if len(args.Arguments) != 4 {
+		g.eei.AddReturnMessage("changeConfig needs 4 arguments")
 		return vmcommon.UserError
 	}
 
 	numNodes, ok := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
 	if !ok || numNodes.Cmp(big.NewInt(0)) < 0 {
+		g.eei.AddReturnMessage("changeConfig first argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
+	minQuorum, ok := big.NewInt(0).SetString(string(args.Arguments[1]), conversionBase)
+	if !ok || numNodes.Cmp(big.NewInt(0)) < 0 {
+		g.eei.AddReturnMessage("changeConfig second argument is incorrectly formatted")
+		return vmcommon.UserError
+	}
+	minVeto, ok := big.NewInt(0).SetString(string(args.Arguments[2]), conversionBase)
+	if !ok || numNodes.Cmp(big.NewInt(0)) < 0 {
+		g.eei.AddReturnMessage("changeConfig third argument is incorrectly formatted")
+		return vmcommon.UserError
+	}
+	minPass, ok := big.NewInt(0).SetString(string(args.Arguments[3]), conversionBase)
+	if !ok || numNodes.Cmp(big.NewInt(0)) < 0 {
+		g.eei.AddReturnMessage("changeConfig fourth argument is incorrectly formatted")
+		return vmcommon.UserError
+	}
+
 	scConfig, err := g.getConfig()
 	if err != nil {
+		g.eei.AddReturnMessage("changeConfig error " + err.Error())
 		return vmcommon.UserError
 	}
 
 	scConfig.NumNodes = numNodes.Int64()
+	scConfig.MinQuorum = int32(minQuorum.Int64())
+	scConfig.MinVetoThreshold = int32(minVeto.Int64())
+	scConfig.MinPassThreshold = int32(minPass.Int64())
+
 	marshalledData, err := g.marshalizer.Marshal(scConfig)
 	if err != nil {
+		g.eei.AddReturnMessage("changeConfig error " + err.Error())
 		return vmcommon.UserError
 	}
 	g.eei.SetStorage([]byte(governanceConfigKey), marshalledData)
@@ -172,36 +201,38 @@ func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput)
 		return g.whiteListAtGenesis(args)
 	}
 	if args.CallValue.Cmp(g.baseProposalCost) != 0 {
+		g.eei.AddReturnMessage("invalid callValue, needs exactly " + g.baseProposalCost.String())
 		return vmcommon.OutOfFunds
 	}
-	if len(args.Arguments) != 4 {
+	if len(args.Arguments) != 3 {
+		g.eei.AddReturnMessage("invalid number of arguments")
 		return vmcommon.FunctionWrongSignature
 	}
-	if len(args.Arguments[0]) != len(args.CallerAddr) {
-		return vmcommon.UserError
-	}
 	if g.proposalExists(args.Arguments[0]) {
+		g.eei.AddReturnMessage("cannot re-propose existing proposal")
 		return vmcommon.UserError
 	}
 	if g.isWhiteListed(args.CallerAddr) {
+		g.eei.AddReturnMessage("address is already whitelisted")
 		return vmcommon.UserError
 	}
 
-	startVoteNonce, endVoteNonce, err := g.startEndNonceFromArguments(args.Arguments[2], args.Arguments[3])
+	startVoteNonce, endVoteNonce, err := g.startEndNonceFromArguments(args.Arguments[1], args.Arguments[2])
 	if err != nil {
+		g.eei.AddReturnMessage("invalid start/end vote nonce " + err.Error())
 		return vmcommon.UserError
 	}
 
-	key := append([]byte(proposalPrefix), args.Arguments[0]...)
+	key := append([]byte(proposalPrefix), args.CallerAddr...)
 	whiteListAcc := &WhiteListProposal{
-		WhiteListAddress: args.Arguments[0],
+		WhiteListAddress: args.CallerAddr,
 		ProposalStatus:   key,
 	}
 
-	key = append([]byte(whiteListPrefix), args.Arguments[0]...)
+	key = append([]byte(whiteListPrefix), args.CallerAddr...)
 	generalProposal := &GeneralProposal{
 		IssuerAddress:  args.CallerAddr,
-		GitHubCommit:   args.Arguments[1],
+		GitHubCommit:   args.Arguments[0],
 		StartVoteNonce: startVoteNonce,
 		EndVoteNonce:   endVoteNonce,
 		Yes:            0,
@@ -210,18 +241,21 @@ func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput)
 		DontCare:       0,
 		Voted:          false,
 		TopReference:   key,
+		Voters:         make([][]byte, 0),
 	}
 
 	marshalledData, err := g.marshalizer.Marshal(whiteListAcc)
 	if err != nil {
+		g.eei.AddReturnMessage("marshall error " + err.Error())
 		return vmcommon.UserError
 	}
 
-	key = append([]byte(whiteListPrefix), args.Arguments[0]...)
+	key = append([]byte(whiteListPrefix), args.CallerAddr...)
 	g.eei.SetStorage(key, marshalledData)
 
 	err = g.saveGeneralProposal(args.Arguments[0], generalProposal)
 	if err != nil {
+		g.eei.AddReturnMessage("save proposal error " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -305,28 +339,29 @@ func (g *governanceContract) isWhiteListed(address []byte) bool {
 
 func (g *governanceContract) whiteListAtGenesis(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
+		log.Warn("whiteList at genesis should be without callValue")
 		return vmcommon.UserError
 	}
 	if g.isWhiteListed(args.CallerAddr) {
+		log.Warn("address is already whiteListed")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments) != 1 {
+	if len(args.Arguments) != 0 {
+		log.Warn("excepted argument number is 0")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[0]) != len(args.CallerAddr) {
-		return vmcommon.UserError
-	}
-	if g.proposalExists(args.Arguments[0]) {
+	if g.proposalExists(args.CallerAddr) {
+		log.Warn("proposal with this key already exists")
 		return vmcommon.UserError
 	}
 
-	key := append([]byte(proposalPrefix), args.Arguments[0]...)
+	key := append([]byte(proposalPrefix), args.CallerAddr...)
 	whiteListAcc := &WhiteListProposal{
-		WhiteListAddress: args.Arguments[0],
+		WhiteListAddress: args.CallerAddr,
 		ProposalStatus:   key,
 	}
 
-	key = append([]byte(whiteListPrefix), args.Arguments[0]...)
+	key = append([]byte(whiteListPrefix), args.CallerAddr...)
 	generalProposal := &GeneralProposal{
 		IssuerAddress:  args.CallerAddr,
 		GitHubCommit:   []byte("genesis"),
@@ -338,17 +373,20 @@ func (g *governanceContract) whiteListAtGenesis(args *vmcommon.ContractCallInput
 		DontCare:       0,
 		Voted:          true,
 		TopReference:   key,
+		Voters:         make([][]byte, 0),
 	}
 	marshalledData, err := g.marshalizer.Marshal(whiteListAcc)
 	if err != nil {
+		log.Warn("marshal error in whiteListAtGenesis", "err", err)
 		return vmcommon.UserError
 	}
 
-	key = append([]byte(whiteListPrefix), args.Arguments[0]...)
+	key = append([]byte(whiteListPrefix), args.CallerAddr...)
 	g.eei.SetStorage(key, marshalledData)
 
-	err = g.saveGeneralProposal(args.Arguments[0], generalProposal)
+	err = g.saveGeneralProposal(args.CallerAddr, generalProposal)
 	if err != nil {
+		log.Warn("save general proposal ", "err", err)
 		return vmcommon.UserError
 	}
 
@@ -357,38 +395,46 @@ func (g *governanceContract) whiteListAtGenesis(args *vmcommon.ContractCallInput
 
 func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(g.baseProposalCost) != 0 {
+		g.eei.AddReturnMessage("invalid proposal cost, expected " + g.baseProposalCost.String())
 		return vmcommon.OutOfFunds
 	}
 	if len(args.Arguments) != 4 {
+		g.eei.AddReturnMessage("invalid number of arguments, expected 4")
 		return vmcommon.FunctionWrongSignature
 	}
 	if !g.isWhiteListed(args.CallerAddr) {
+		g.eei.AddReturnMessage("called address is not whiteListed")
 		return vmcommon.UserError
 	}
 	gitHubCommit := args.Arguments[2]
 	if g.proposalExists(gitHubCommit) {
+		g.eei.AddReturnMessage("proposal already exists")
 		return vmcommon.UserError
 	}
 
 	key := append([]byte(hardForkPrefix), gitHubCommit...)
 	marshalledData := g.eei.GetStorage(key)
 	if len(marshalledData) != 0 {
+		g.eei.AddReturnMessage("hardFork proposal already exists")
 		return vmcommon.UserError
 	}
 
 	startVoteNonce, endVoteNonce, err := g.startEndNonceFromArguments(args.Arguments[3], args.Arguments[4])
 	if err != nil {
+		g.eei.AddReturnMessage("invalid start/end vote nonce" + err.Error())
 		return vmcommon.UserError
 	}
 
 	bigIntEpochToHardFork, ok := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
 	if !ok || !bigIntEpochToHardFork.IsUint64() {
+		g.eei.AddReturnMessage("invalid argument for epoch")
 		return vmcommon.UserError
 	}
 
 	epochToHardFork := uint32(bigIntEpochToHardFork.Uint64())
 	currentEpoch := g.eei.BlockChainHook().CurrentEpoch()
 	if epochToHardFork < currentEpoch && currentEpoch-epochToHardFork < hardForkEpochGracePeriod {
+		g.eei.AddReturnMessage("invalid epoch to hardFork")
 		return vmcommon.UserError
 	}
 
@@ -411,15 +457,20 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 		DontCare:       0,
 		Voted:          false,
 		TopReference:   key,
+		Voters:         make([][]byte, 0),
 	}
 	marshalledData, err = g.marshalizer.Marshal(hardForkProposal)
 	if err != nil {
+		log.Warn("hardFork proposal marshal", "err", err)
+		g.eei.AddReturnMessage("marshal proposal" + err.Error())
 		return vmcommon.UserError
 	}
 	g.eei.SetStorage(key, marshalledData)
 
 	err = g.saveGeneralProposal(args.Arguments[0], generalProposal)
 	if err != nil {
+		log.Warn("save general proposal", err, "error")
+		g.eei.AddReturnMessage("saveGeneralProposal" + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -428,21 +479,26 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 
 func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(g.baseProposalCost) != 0 {
+		g.eei.AddReturnMessage("invalid proposal cost, expected " + g.baseProposalCost.String())
 		return vmcommon.OutOfFunds
 	}
 	if len(args.Arguments) != 4 {
+		g.eei.AddReturnMessage("invalid number of arguments, expected 4")
 		return vmcommon.FunctionWrongSignature
 	}
 	if !g.isWhiteListed(args.CallerAddr) {
+		g.eei.AddReturnMessage("called address is not whiteListed")
 		return vmcommon.UserError
 	}
 	gitHubCommit := args.Arguments[0]
 	if g.proposalExists(gitHubCommit) {
+		g.eei.AddReturnMessage("proposal already exists")
 		return vmcommon.UserError
 	}
 
 	startVoteNonce, endVoteNonce, err := g.startEndNonceFromArguments(args.Arguments[1], args.Arguments[2])
 	if err != nil {
+		g.eei.AddReturnMessage("invalid start/end vote nonce" + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -456,9 +512,12 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 		Veto:           0,
 		DontCare:       0,
 		Voted:          false,
+		Voters:         make([][]byte, 0),
 	}
 	err = g.saveGeneralProposal(gitHubCommit, generalProposal)
 	if err != nil {
+		log.Warn("saveGeneralProposal", "err", err)
+		g.eei.AddReturnMessage("saveGeneralProposal" + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -467,25 +526,31 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 
 func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
+		g.eei.AddReturnMessage("invalid proposal cost, expected 0")
 		return vmcommon.OutOfFunds
 	}
 	if len(args.Arguments) < 2 || len(args.Arguments) > 3 {
+		g.eei.AddReturnMessage("invalid number of argument expected 2 or 3")
 		return vmcommon.FunctionWrongSignature
 	}
 	if len(args.Arguments) == 3 && len(args.Arguments[2]) != len(args.CallerAddr) {
+		g.eei.AddReturnMessage("wrong argument number 3 should be a valid address")
 		return vmcommon.FunctionWrongSignature
 	}
 	if len(args.Arguments) == 3 && bytes.Equal(args.CallerAddr, args.Arguments[2]) {
+		g.eei.AddReturnMessage("wrong argument number 3 should be different than caller")
 		return vmcommon.FunctionWrongSignature
 	}
 
 	proposalToVote := args.Arguments[0]
 	if !g.proposalExists(proposalToVote) {
+		g.eei.AddReturnMessage("proposal does not exists")
 		return vmcommon.UserError
 	}
 
 	voteString := string(args.Arguments[1])
 	if !g.isValidVoteString(voteString) {
+		g.eei.AddReturnMessage("argument 1 is not a valid vote string")
 		return vmcommon.UserError
 	}
 
@@ -496,12 +561,15 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 	numStakedNodes, err := g.numOfStakedNodes(validatorAddress)
 	if err != nil || numStakedNodes == 0 {
+		g.eei.AddReturnMessage("address has 0 voting power")
 		return vmcommon.UserError
 	}
 
 	numNodesToVote := int32(0)
 	validatorData, err := g.getOrCreateValidatorData(validatorAddress, int32(numStakedNodes))
 	if err != nil {
+		log.Warn("getOrCreateValidatorData", "err", err)
+		g.eei.AddReturnMessage("getOrCreateValidator data error" + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -514,11 +582,13 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 		}
 	}
 	if !found || numNodesToVote <= 0 {
+		g.eei.AddReturnMessage("address has 0 voting power")
 		return vmcommon.UserError
 	}
 
 	err = g.voteForProposal(proposalToVote, voteString, voterAddress, numNodesToVote)
 	if err != nil {
+		g.eei.AddReturnMessage("voteForProposal " + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -547,6 +617,7 @@ func (g *governanceContract) voteForProposal(
 ) error {
 	voteData, err := g.getOrCreateVoteData(proposal, voter)
 	if err != nil {
+		log.Warn("getOrCreateVoteData", "err", err)
 		return err
 	}
 	if voteData.NumVotes == numVotes && voteData.VoteValue == vote {
@@ -560,6 +631,7 @@ func (g *governanceContract) voteForProposal(
 	voteData.VoteValue = vote
 	err = g.saveVoteValue(proposal, voter, voteData)
 	if err != nil {
+		log.Warn("saveVoteValue", "err", err)
 		return err
 	}
 
@@ -572,8 +644,15 @@ func (g *governanceContract) voteForProposal(
 		return vm.ErrVotedForAnExpiredProposal
 	}
 
+	generalProposal.Voters = append(generalProposal.Voters, voter)
 	g.addVotedDataToProposal(generalProposal, oldValue, -oldNum)
 	g.addVotedDataToProposal(generalProposal, vote, numVotes)
+
+	err = g.saveGeneralProposal(proposal, generalProposal)
+	if err != nil {
+		log.Warn("saveGeneralProposal", "err", err)
+		return err
+	}
 
 	return nil
 }
@@ -684,6 +763,81 @@ func (g *governanceContract) numOfStakedNodes(address []byte) (uint32, error) {
 	}
 
 	return auctionData.NumStaked, nil
+}
+
+func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		g.eei.AddReturnMessage("closeProposal callValue expected to be 0")
+		return vmcommon.UserError
+	}
+	if !g.isWhiteListed(args.CallerAddr) {
+		g.eei.AddReturnMessage("called is not whitelisted")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 1 {
+		g.eei.AddReturnMessage("invalid number of arguments expected 1")
+		return vmcommon.UserError
+	}
+	proposal := args.Arguments[0]
+	generalProposal, err := g.getGeneralProposal(proposal)
+	if err != nil {
+		g.eei.AddReturnMessage("getGeneralProposal error " + err.Error())
+		return vmcommon.UserError
+	}
+	if generalProposal.Closed {
+		g.eei.AddReturnMessage("proposal is already closed, do nothing")
+		return vmcommon.Ok
+	}
+
+	currentNonce := g.eei.BlockChainHook().CurrentNonce()
+	if currentNonce < generalProposal.EndVoteNonce {
+		g.eei.AddReturnMessage(fmt.Sprintf("proposal can be closed only after nonce %d", generalProposal.EndVoteNonce))
+		return vmcommon.UserError
+	}
+
+	generalProposal.Closed = true
+	err = g.computeEndResults(generalProposal)
+	if err != nil {
+		g.eei.AddReturnMessage("computeEndResults error" + err.Error())
+		return vmcommon.UserError
+	}
+
+	err = g.saveGeneralProposal(proposal, generalProposal)
+	if err != nil {
+		g.eei.AddReturnMessage("saveGeneralProposal error" + err.Error())
+		return vmcommon.UserError
+	}
+
+	for _, voter := range generalProposal.Voters {
+		key := append(proposal, voter...)
+		g.eei.SetStorage(key, nil)
+	}
+
+	return vmcommon.Ok
+}
+
+func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error {
+	baseConfig, err := g.getConfig()
+	if err != nil {
+		return err
+	}
+	totalVotes := proposal.Yes + proposal.No + proposal.DontCare + proposal.Veto
+	if totalVotes < baseConfig.MinQuorum {
+		proposal.Voted = false
+		return nil
+	}
+
+	if proposal.Veto > baseConfig.MinVetoThreshold {
+		proposal.Voted = false
+		return nil
+	}
+
+	if proposal.Yes > baseConfig.MinPassThreshold {
+		proposal.Voted = true
+		return nil
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil
