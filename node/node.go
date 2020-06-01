@@ -312,6 +312,8 @@ func (n *Node) StartConsensus() error {
 
 	n.dataPool.Headers().RegisterHandler(worker.ReceivedHeader)
 
+	// apply consensus group size on the input antiflooder just befor consensus creation topic
+	n.inputAntifloodHandler.ApplyConsensusSize(n.nodesCoordinator.ConsensusGroupSize(n.shardCoordinator.SelfId()))
 	err = n.createConsensusTopic(worker)
 	if err != nil {
 		return err
