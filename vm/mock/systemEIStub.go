@@ -13,6 +13,7 @@ type SystemEIStub struct {
 	TransferCalled                  func(destination []byte, sender []byte, value *big.Int, input []byte) error
 	GetBalanceCalled                func(addr []byte) *big.Int
 	SetStorageCalled                func(key []byte, value []byte)
+	SetReturnMessageCalled          func(msg string)
 	GetStorageCalled                func(key []byte) []byte
 	SelfDestructCalled              func(beneficiary []byte)
 	CreateVMOutputCalled            func() *vmcommon.VMOutput
@@ -117,6 +118,13 @@ func (s *SystemEIStub) GetBalance(addr []byte) *big.Int {
 func (s *SystemEIStub) SetStorage(key []byte, value []byte) {
 	if s.SetStorageCalled != nil {
 		s.SetStorageCalled(key, value)
+	}
+}
+
+// AddReturnMessage -
+func (s *SystemEIStub) AddReturnMessage(msg string) {
+	if s.SetReturnMessageCalled != nil {
+		s.SetReturnMessageCalled(msg)
 	}
 }
 

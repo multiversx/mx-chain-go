@@ -36,7 +36,7 @@ type shardChainMessenger struct {
 	delayedBroadcastData       []*delayedBroadcastData
 	maxDelayCacheSize          uint32
 	maxValidatorDelayCacheSize uint32
-	mutDataForBroadcast        sync.Mutex
+	mutDataForBroadcast        sync.RWMutex
 }
 
 // ShardChainMessengerArgs holds the arguments for creating a shardChainMessenger instance
@@ -79,7 +79,7 @@ func NewShardChainMessenger(
 		delayedBroadcastData:       make([]*delayedBroadcastData, 0),
 		maxDelayCacheSize:          args.MaxDelayCacheSize,
 		maxValidatorDelayCacheSize: args.MaxValidatorDelayCacheSize,
-		mutDataForBroadcast:        sync.Mutex{},
+		mutDataForBroadcast:        sync.RWMutex{},
 	}
 
 	scm.headersSubscriber.RegisterHandler(scm.headerReceived)
@@ -235,8 +235,8 @@ func (scm *shardChainMessenger) SetValidatorDelayBroadcast(
 }
 
 func (scm *shardChainMessenger) headerReceived(headerHandler data.HeaderHandler, _ []byte) {
-	scm.mutDataForBroadcast.Lock()
-	defer scm.mutDataForBroadcast.Unlock()
+	scm.mutDataForBroadcast.RLock()
+	defer scm.mutDataForBroadcast.RUnlock()
 
 	if len(scm.delayedBroadcastData) == 0 {
 		return
@@ -254,7 +254,16 @@ func (scm *shardChainMessenger) headerReceived(headerHandler data.HeaderHandler,
 		return
 	}
 
-	scm.scheduleValidatorBroadcast(dataForValidators)
+	go scm.scheduleValidatorBroadcast(dataForValidators)
+
+	go scm.broadcastDataForHeaders(headerHashes)
+}
+
+func (scm *shardChainMessenger) broadcastDataForHeaders(headerHashes [][]byte) {
+	time.Sleep(core.ExtraDelayForBroadcastBlockInfo)
+
+	scm.mutDataForBroadcast.Lock()
+	defer scm.mutDataForBroadcast.Unlock()
 
 	for i := len(scm.delayedBroadcastData) - 1; i >= 0; i-- {
 		for _, headerHash := range headerHashes {

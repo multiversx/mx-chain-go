@@ -112,6 +112,8 @@ type Suite interface {
 	Random
 	// CreateKeyPair creates a scalar and a point pair that can be used in asymmetric cryptography
 	CreateKeyPair() (Scalar, Point)
+	// IsPointValid returns nil if point is valid otherwise error. Zero is reported also as invalid
+	CheckPointValid(pointBytes []byte) error
 	// GetUnderlyingSuite returns the library suite that crypto.Suite wraps
 	GetUnderlyingSuite() interface{}
 }
@@ -124,6 +126,8 @@ type KeyGenerator interface {
 	PrivateKeyFromByteArray(b []byte) (PrivateKey, error)
 	// PublicKeyFromByteArray creates a crypto.PublicKey from a byte array
 	PublicKeyFromByteArray(b []byte) (PublicKey, error)
+	//CheckPublicKeyValid verifies the validity of the public key
+	CheckPublicKeyValid(b []byte) error
 	// Suite returns the crypto.Suite used by the KeyGenerator
 	Suite() Suite
 	// IsInterfaceNil returns true if there is no value under the interface

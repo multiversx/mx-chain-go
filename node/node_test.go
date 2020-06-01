@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -1802,9 +1803,12 @@ func TestNode_DirectTrigger(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
+	epoch := uint32(47839)
+	recoveredEpoch := uint32(0)
 	hardforkTrigger := &mock.HardforkTriggerStub{
-		TriggerCalled: func() error {
+		TriggerCalled: func(e uint32) error {
 			wasCalled = true
+			atomic.StoreUint32(&recoveredEpoch, e)
 
 			return nil
 		},
@@ -1813,10 +1817,11 @@ func TestNode_DirectTrigger(t *testing.T) {
 		node.WithHardforkTrigger(hardforkTrigger),
 	)
 
-	err := n.DirectTrigger()
+	err := n.DirectTrigger(epoch)
 
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
+	assert.Equal(t, epoch, recoveredEpoch)
 }
 
 func TestNode_IsSelfTrigger(t *testing.T) {

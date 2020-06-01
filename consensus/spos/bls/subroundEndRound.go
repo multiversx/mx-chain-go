@@ -384,10 +384,12 @@ func (sr *subroundEndRound) broadcastMiniBlocksAndTransactions() error {
 			return err
 		}
 
-		return sr.broadcast(metaMiniBlocks, metaTransactions)
+		go sr.broadcast(metaMiniBlocks, metaTransactions, 0)
+		return nil
 	}
 
-	return sr.broadcast(miniBlocks, transactions)
+	go sr.broadcast(miniBlocks, transactions, core.ExtraDelayForBroadcastBlockInfo)
+	return nil
 }
 
 func (sr *subroundEndRound) prepareBroadcastMiniBlocksAndTransactionsForValidator() error {
@@ -478,22 +480,26 @@ func (sr *subroundEndRound) extractMetaMiniBlocksAndTransactions(
 	return metaMiniBlocks, metaTransactions
 }
 
-func (sr *subroundEndRound) broadcast(miniBlocks map[uint32][]byte, transactions map[string][][]byte) error {
+func (sr *subroundEndRound) broadcast(
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+	extraDelayForBroadcast time.Duration,
+) {
+	time.Sleep(extraDelayForBroadcast)
+
 	if len(miniBlocks) > 0 {
 		err := sr.BroadcastMessenger().BroadcastMiniBlocks(miniBlocks)
 		if err != nil {
-			return err
+			log.Warn("broadcast.BroadcastMiniBlocks", "error", err.Error())
 		}
 	}
 
 	if len(transactions) > 0 {
 		err := sr.BroadcastMessenger().BroadcastTransactions(transactions)
 		if err != nil {
-			return err
+			log.Warn("broadcast.BroadcastTransactions", "error", err.Error())
 		}
 	}
-
-	return nil
 }
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved

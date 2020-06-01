@@ -2,6 +2,7 @@ package broadcast_test
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"sync"
 	"testing"
 	"time"
@@ -438,7 +439,7 @@ func TestShardChainMessenger_HeaderReceivedForRegisteredDelayedDataShouldBroadca
 	mutData.Unlock()
 
 	scm.HeaderReceived(metaBlock, []byte("meta hash"))
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(core.ExtraDelayForBroadcastBlockInfo + 10*time.Millisecond)
 	mutData.Lock()
 	assert.True(t, wasCalled)
 	assert.Contains(t, broadcastBuffer, miniBlocksMarshalled[1])
@@ -528,7 +529,7 @@ func TestShardChainMessenger_HeaderReceivedForNextRegisteredDelayedDataShouldBro
 	expectedSent = append(expectedSent, miniBlocksMarshalled2[1])
 
 	scm.HeaderReceived(metaBlock, []byte("meta hash"))
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(core.ExtraDelayForBroadcastBlockInfo + 10*time.Millisecond)
 	mutData.Lock()
 	assert.True(t, wasCalled)
 	assert.True(t, isIncluded(expectedSent, broadcastBuffer))

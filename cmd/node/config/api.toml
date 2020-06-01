@@ -9,9 +9,6 @@
         # /node/heartbeatstatus will return all heartbeats messages from the nodes in the network
         { Name = "/heartbeatstatus", Open = true },
 
-        # /node/epoch will return data about the current epoch
-        { Name = "/epoch", Open = true },
-
         # /node/statistics will return statistics about the chain, such as the peak TPS
         { Name = "/statistics", Open = true },
 

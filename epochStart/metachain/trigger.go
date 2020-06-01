@@ -277,6 +277,7 @@ func (t *trigger) SetFinalityAttestingRound(round uint64) {
 	if round > t.currEpochStartRound {
 		t.epochFinalityAttestingRound = round
 		t.saveCurrentState(round)
+		t.epochStartNotifier.NotifyEpochChangeConfirmed(t.epoch)
 	}
 }
 

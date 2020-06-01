@@ -35,10 +35,6 @@ func (item *dummyItem) GetKey() string {
 	return item.key
 }
 
-func (item *dummyItem) ComputeScore() uint32 {
-	return item.score.Get()
-}
-
 func (item *dummyItem) GetScoreChunk() *MapChunk {
 	item.chunkMutex.RLock()
 	defer item.chunkMutex.RUnlock()
@@ -55,7 +51,7 @@ func (item *dummyItem) SetScoreChunk(chunk *MapChunk) {
 
 func (item *dummyItem) simulateMutationThatChangesScore(myMap *BucketSortedMap) {
 	item.mutex.Lock()
-	myMap.NotifyScoreChange(item)
+	myMap.NotifyScoreChange(item, item.score.Get())
 	item.mutex.Unlock()
 }
 
@@ -375,7 +371,7 @@ func TestBucketSortedMap_ClearConcurrentWithWrite(t *testing.T) {
 		for j := 0; j < 10000; j++ {
 			myMap.Set(newDummyItem("foobar"))
 			myMap.Remove("foobar")
-			myMap.NotifyScoreChange(newDummyItem("foobar"))
+			myMap.NotifyScoreChange(newDummyItem("foobar"), 42)
 			simulateMutationThatChangesScore(myMap, "foobar")
 		}
 

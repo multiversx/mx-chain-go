@@ -80,8 +80,8 @@ type Node struct {
 	epochStartTrigger             epochStart.TriggerHandler
 	epochStartRegistrationHandler epochStart.RegistrationHandler
 	accounts                      state.AccountsAdapter
-	addressPubkeyConverter        state.PubkeyConverter
-	validatorPubkeyConverter      state.PubkeyConverter
+	addressPubkeyConverter        core.PubkeyConverter
+	validatorPubkeyConverter      core.PubkeyConverter
 	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
 	interceptorsContainer         process.InterceptorsContainer
 	resolversFinder               dataRetriever.ResolversFinder
@@ -716,10 +716,7 @@ func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
 	)
 
 	for _, tx := range txs {
-		senderShardId, err := n.getSenderShardId(tx)
-		if err != nil {
-			continue
-		}
+		senderShardId := n.shardCoordinator.ComputeId(tx.SndAddr)
 
 		marshalizedTx, err := n.internalMarshalizer.Marshal(tx)
 		if err != nil {
@@ -741,17 +738,6 @@ func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
 			numOfSentTxs += uint64(len(txsForShard))
 		}
 	}
-}
-
-func (n *Node) getSenderShardId(tx *transaction.Transaction) (uint32, error) {
-	senderShardId := n.shardCoordinator.ComputeId(tx.SndAddr)
-	if senderShardId != n.shardCoordinator.SelfId() {
-		return senderShardId, nil
-	}
-
-	//tx is cross-shard with self, send it on the [transaction topic]_self_cross directly so it will
-	//traverse the network only once
-	return n.shardCoordinator.ComputeId(tx.RcvAddr), nil
 }
 
 // ValidateTransaction will validate a transaction
@@ -1002,8 +988,8 @@ func (n *Node) getLatestValidators() (map[uint32][]*state.ValidatorInfo, map[str
 }
 
 // DirectTrigger will start the hardfork trigger
-func (n *Node) DirectTrigger() error {
-	return n.hardforkTrigger.Trigger()
+func (n *Node) DirectTrigger(epoch uint32) error {
+	return n.hardforkTrigger.Trigger(epoch)
 }
 
 // IsSelfTrigger returns true if the trigger's registered public key matches the self public key
