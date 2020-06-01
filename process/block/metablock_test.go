@@ -2151,7 +2151,7 @@ func TestMetaProcessor_UpdateShardsHeadersNonce_ShouldWork(t *testing.T) {
 	}
 }
 
-func TestMetaProcessor_CreateMiniBlocksJournalLenNotZeroShouldErr(t *testing.T) {
+func TestMetaProcessor_CreateMiniBlocksJournalLenNotZeroShouldReturnEmptyBody(t *testing.T) {
 	t.Parallel()
 
 	accntAdapter := &mock.AccountsStub{
@@ -2166,11 +2166,11 @@ func TestMetaProcessor_CreateMiniBlocksJournalLenNotZeroShouldErr(t *testing.T) 
 	metaHdr := &block.MetaBlock{Round: round}
 
 	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
-	assert.Nil(t, bodyHandler)
-	assert.Equal(t, process.ErrAccountStateDirty, err)
+	assert.Nil(t, err)
+	assert.Equal(t, &block.Body{}, bodyHandler)
 }
 
-func TestMetaProcessor_CreateMiniBlocksNoTimeShouldErr(t *testing.T) {
+func TestMetaProcessor_CreateMiniBlocksNoTimeShouldReturnEmptyBody(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockMetaArguments()
@@ -2179,8 +2179,8 @@ func TestMetaProcessor_CreateMiniBlocksNoTimeShouldErr(t *testing.T) {
 	metaHdr := &block.MetaBlock{Round: round}
 
 	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return false })
-	assert.Nil(t, bodyHandler)
-	assert.Equal(t, process.ErrTimeIsOut, err)
+	assert.Nil(t, err)
+	assert.Equal(t, &block.Body{}, bodyHandler)
 }
 
 func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
