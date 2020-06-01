@@ -266,8 +266,8 @@ func CreateNodesWithTestP2PNodes(
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(numShards))
 	validatorsForNodesCoordinator, _ := sharding.NodesInfoToValidators(validatorsMap)
 	nodesMap := make(map[uint32][]*TestP2PNode)
-	cacherCfg := storageUnit.CacheConfig{Size: 10000, Type: storageUnit.LRUCache, Shards: 1}
-	cache, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards, cacherCfg.SizeInBytes)
+	cacherCfg := storageUnit.CacheConfig{Capacity: 10000, Type: storageUnit.LRUCache, Shards: 1}
+	cache, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 			ShardConsensusGroupSize: shardConsensusGroupSize,

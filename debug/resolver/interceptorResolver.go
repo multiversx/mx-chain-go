@@ -11,6 +11,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/debug"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
@@ -21,6 +22,8 @@ const minThresholdResolve = 1
 const minThresholdRequests = 1
 const minDebugLineExpiration = 1
 const newLineChar = "\n"
+const numIntsInEventStruct = 6
+const intSize = 8
 
 var log = logger.GetOrCreate("debug/resolver")
 
@@ -39,7 +42,7 @@ type event struct {
 
 // Size returns the number of bytes taken by an event line
 func (ev *event) Size() int {
-	size := len(ev.eventType) + len(ev.hash) + len(ev.topic) + 8*6
+	size := len(ev.eventType) + len(ev.hash) + len(ev.topic) + numIntsInEventStruct*intSize
 	if ev.lastErr != nil {
 		size += len(ev.lastErr.Error())
 	}
@@ -74,7 +77,7 @@ func displayTime(timestamp int64) string {
 
 type interceptorResolver struct {
 	mutCriticalArea      sync.RWMutex
-	cache                *lrucache.LRUCache
+	cache                storage.Cacher
 	intervalAutoPrint    time.Duration
 	requestsThreshold    int
 	resolveFailThreshold int

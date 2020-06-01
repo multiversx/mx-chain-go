@@ -114,3 +114,6 @@ var ErrLRUCacheWithProvidedSize = errors.New("LRU cache does not support size in
 
 // ErrLRUCacheInvalidSize signals that the provided size in bytes value for LRU cache is invalid
 var ErrLRUCacheInvalidSize = errors.New("wrong size in bytes value for LRU cache")
+
+// ErrNegativeSizeInBytes signals that the provided size in bytes value is negative
+var ErrNegativeSizeInBytes = errors.New("negative size in bytes")

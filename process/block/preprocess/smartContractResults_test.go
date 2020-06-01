@@ -998,7 +998,7 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 	dataPool := mock.NewPoolsHolderMock()
 
 	shardedDataStub := &mock.ShardedDataStub{
-		AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheId string) {
+		AddDataCalled: func(_ []byte, _ interface{}, _ int, _ string) {
 		},
 		RegisterHandlerCalled: func(i func(key []byte, value interface{})) {
 		},

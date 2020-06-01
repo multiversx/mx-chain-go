@@ -1059,7 +1059,7 @@ func createTxPool() (dataRetriever.ShardedDataCacherNotifier, error) {
 	return txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageUnit.CacheConfig{
-				Size:                 100000,
+				Capacity:             100000,
 				SizePerSender:        1000,
 				SizeInBytes:          1000000000,
 				SizeInBytesPerSender: 10000000,

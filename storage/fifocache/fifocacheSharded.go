@@ -43,6 +43,7 @@ func (c *FIFOShardedCache) Clear() {
 }
 
 // Put adds a value to the cache.  Returns true if an eviction occurred.
+// the int parameter for size is not used as, for now, fifo sharded cache can not count for its contained data size
 func (c *FIFOShardedCache) Put(key []byte, value interface{}, _ int) (evicted bool) {
 	c.cache.Set(string(key), value)
 	c.callAddedDataHandlers(key, value)

@@ -63,7 +63,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	nilRootHash, _ := requesterTrie.Root()
 	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(
 		&mock.CacherStub{
-			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+			PutCalled: func(_ []byte, _ interface{}, _ int) (evicted bool) {
 				return false
 			},
 		},

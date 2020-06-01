@@ -110,9 +110,9 @@ func getTriesArgs() factory.TriesComponentsFactoryArgs {
 
 func getCacheCfg() config.CacheConfig {
 	return config.CacheConfig{
-		Type:   "LRU",
-		Size:   10,
-		Shards: 1,
+		Type:     "LRU",
+		Capacity: 10,
+		Shards:   1,
 	}
 }
 

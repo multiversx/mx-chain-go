@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+const intSize = 8
+
 var _ Validator = (*validator)(nil)
 
 type validator struct {
@@ -48,7 +50,7 @@ func (v *validator) String() string {
 
 // Size returns the size in bytes held by an instance of this struct
 func (v *validator) Size() int {
-	return len(v.pubKey) + 8
+	return len(v.pubKey) + intSize
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

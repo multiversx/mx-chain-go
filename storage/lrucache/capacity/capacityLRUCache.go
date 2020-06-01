@@ -11,14 +11,15 @@ import (
 
 var log = logger.GetOrCreate("storage/lrucache/capacity")
 
-// CapacityLRU implements a non thread safe LRU Cache with a max capacity size
-type CapacityLRU struct {
+// capacityLRU implements a non thread safe LRU Cache with a max capacity size
+type capacityLRU struct {
 	lock                   sync.Mutex
 	size                   int
 	maxCapacityInBytes     int64
 	currentCapacityInBytes int64
-	evictList              *list.List
-	items                  map[interface{}]*list.Element
+	//TODO investigate if we can replace this list with a binary tree. Check also the other implementation lruCache
+	evictList *list.List
+	items     map[interface{}]*list.Element
 }
 
 // entry is used to hold a value in the evictList
@@ -29,14 +30,14 @@ type entry struct {
 }
 
 // NewCapacityLRU constructs an CapacityLRU of the given size with a byte size capacity
-func NewCapacityLRU(size int, byteCapacity int64) (*CapacityLRU, error) {
+func NewCapacityLRU(size int, byteCapacity int64) (*capacityLRU, error) {
 	if size < 1 {
 		return nil, storage.ErrCacheSizeInvalid
 	}
 	if byteCapacity < 1 {
 		return nil, storage.ErrCacheCapacityInvalid
 	}
-	c := &CapacityLRU{
+	c := &capacityLRU{
 		size:               size,
 		maxCapacityInBytes: byteCapacity,
 		evictList:          list.New(),
@@ -46,7 +47,7 @@ func NewCapacityLRU(size int, byteCapacity int64) (*CapacityLRU, error) {
 }
 
 // Purge is used to completely clear the cache.
-func (c *CapacityLRU) Purge() {
+func (c *capacityLRU) Purge() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -56,12 +57,12 @@ func (c *CapacityLRU) Purge() {
 }
 
 // AddSized adds a value to the cache.  Returns true if an eviction occurred.
-func (c *CapacityLRU) AddSized(key, value interface{}, sizeInBytes int64) bool {
+func (c *capacityLRU) AddSized(key, value interface{}, sizeInBytes int64) bool {
 	if sizeInBytes < 0 {
 		log.Error("size LRU cache add error",
 			"key", fmt.Sprintf("%v", key),
 			"value", fmt.Sprintf("%v", value),
-			"error", "size in bytes is negative",
+			"error", storage.ErrNegativeSizeInBytes,
 		)
 
 		return false
@@ -80,14 +81,18 @@ func (c *CapacityLRU) AddSized(key, value interface{}, sizeInBytes int64) bool {
 	return c.evictIfNeeded()
 }
 
-func (c *CapacityLRU) addNew(key interface{}, value interface{}, sizeInBytes int64) {
-	ent := &entry{key, value, sizeInBytes}
+func (c *capacityLRU) addNew(key interface{}, value interface{}, sizeInBytes int64) {
+	ent := &entry{
+		key:   key,
+		value: value,
+		size:  sizeInBytes,
+	}
 	e := c.evictList.PushFront(ent)
 	c.items[key] = e
 	c.currentCapacityInBytes += sizeInBytes
 }
 
-func (c *CapacityLRU) update(key interface{}, value interface{}, sizeInBytes int64, ent *list.Element) {
+func (c *capacityLRU) update(key interface{}, value interface{}, sizeInBytes int64, ent *list.Element) {
 	c.evictList.MoveToFront(ent)
 
 	e := ent.Value.(*entry)
@@ -100,7 +105,7 @@ func (c *CapacityLRU) update(key interface{}, value interface{}, sizeInBytes int
 }
 
 // Get looks up a key's value from the cache.
-func (c *CapacityLRU) Get(key interface{}) (interface{}, bool) {
+func (c *capacityLRU) Get(key interface{}) (interface{}, bool) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -118,7 +123,7 @@ func (c *CapacityLRU) Get(key interface{}) (interface{}, bool) {
 
 // Contains checks if a key is in the cache, without updating the recent-ness
 // or deleting it for being stale.
-func (c *CapacityLRU) Contains(key interface{}) bool {
+func (c *capacityLRU) Contains(key interface{}) bool {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -127,10 +132,10 @@ func (c *CapacityLRU) Contains(key interface{}) bool {
 	return ok
 }
 
-// ContainsOrAddSized checks if a key is in the cache without updating the
+// AddSizedIfMissing checks if a key is in the cache without updating the
 // recent-ness or deleting it for being stale, and if not, adds the value.
 // Returns whether found and whether an eviction occurred.
-func (c *CapacityLRU) ContainsOrAddSized(key, value interface{}, sizeInBytes int64) (bool, bool) {
+func (c *capacityLRU) AddSizedIfMissing(key, value interface{}, sizeInBytes int64) (bool, bool) {
 	if sizeInBytes < 0 {
 		log.Error("size LRU cache contains or add error",
 			"key", fmt.Sprintf("%v", key),
@@ -156,7 +161,7 @@ func (c *CapacityLRU) ContainsOrAddSized(key, value interface{}, sizeInBytes int
 
 // Peek returns the key value (or undefined if not found) without updating
 // the "recently used"-ness of the key.
-func (c *CapacityLRU) Peek(key interface{}) (interface{}, bool) {
+func (c *capacityLRU) Peek(key interface{}) (interface{}, bool) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -169,7 +174,7 @@ func (c *CapacityLRU) Peek(key interface{}) (interface{}, bool) {
 
 // Remove removes the provided key from the cache, returning if the
 // key was contained.
-func (c *CapacityLRU) Remove(key interface{}) bool {
+func (c *capacityLRU) Remove(key interface{}) bool {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -181,7 +186,7 @@ func (c *CapacityLRU) Remove(key interface{}) bool {
 }
 
 // Keys returns a slice of the keys in the cache, from oldest to newest.
-func (c *CapacityLRU) Keys() []interface{} {
+func (c *capacityLRU) Keys() []interface{} {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -195,7 +200,7 @@ func (c *CapacityLRU) Keys() []interface{} {
 }
 
 // Len returns the number of items in the cache.
-func (c *CapacityLRU) Len() int {
+func (c *capacityLRU) Len() int {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -203,7 +208,7 @@ func (c *CapacityLRU) Len() int {
 }
 
 // removeOldest removes the oldest item from the cache.
-func (c *CapacityLRU) removeOldest() {
+func (c *capacityLRU) removeOldest() {
 	ent := c.evictList.Back()
 	if ent != nil {
 		c.removeElement(ent)
@@ -211,14 +216,14 @@ func (c *CapacityLRU) removeOldest() {
 }
 
 // removeElement is used to remove a given list element from the cache
-func (c *CapacityLRU) removeElement(e *list.Element) {
+func (c *capacityLRU) removeElement(e *list.Element) {
 	c.evictList.Remove(e)
 	kv := e.Value.(*entry)
 	delete(c.items, kv.key)
 	c.currentCapacityInBytes -= kv.size
 }
 
-func (c *CapacityLRU) adjustSize(key interface{}, sizeInBytes int64) {
+func (c *capacityLRU) adjustSize(key interface{}, sizeInBytes int64) {
 	element := c.items[key]
 	if element == nil || element.Value == nil || element.Value.(*entry) == nil {
 		return
@@ -232,7 +237,7 @@ func (c *CapacityLRU) adjustSize(key interface{}, sizeInBytes int64) {
 	c.evictIfNeeded()
 }
 
-func (c *CapacityLRU) shouldEvict() bool {
+func (c *capacityLRU) shouldEvict() bool {
 	if c.evictList.Len() == 1 {
 		// keep at least one element, no matter how large it is
 		return false
@@ -241,7 +246,7 @@ func (c *CapacityLRU) shouldEvict() bool {
 	return c.evictList.Len() > c.size || c.currentCapacityInBytes > c.maxCapacityInBytes
 }
 
-func (c *CapacityLRU) evictIfNeeded() bool {
+func (c *capacityLRU) evictIfNeeded() bool {
 	evicted := false
 	for c.shouldEvict() {
 		c.removeOldest()

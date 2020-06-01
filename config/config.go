@@ -2,12 +2,12 @@ package config
 
 // CacheConfig will map the json cache configuration
 type CacheConfig struct {
-	Type                 string `json:"type"`
-	Size                 uint32 `json:"size"`
-	SizePerSender        uint32 `json:"sizePerSender"`
-	SizeInBytes          uint64 `json:"sizeInBytes"`
-	SizeInBytesPerSender uint32 `json:"sizeInBytesPerSender"`
-	Shards               uint32 `json:"shards"`
+	Type                 string
+	Capacity             uint32
+	SizePerSender        uint32
+	SizeInBytes          uint64
+	SizeInBytesPerSender uint32
+	Shards               uint32
 }
 
 //HeadersPoolConfig will map the headers cache configuration
@@ -18,43 +18,43 @@ type HeadersPoolConfig struct {
 
 // DBConfig will map the json db configuration
 type DBConfig struct {
-	FilePath          string `json:"file"`
-	Type              string `json:"type"`
-	BatchDelaySeconds int    `json:"batchDelaySeconds"`
-	MaxBatchSize      int    `json:"maxBatchSize"`
-	MaxOpenFiles      int    `json:"maxOpenFiles"`
+	FilePath          string
+	Type              string
+	BatchDelaySeconds int
+	MaxBatchSize      int
+	MaxOpenFiles      int
 }
 
 // BloomFilterConfig will map the json bloom filter configuration
 type BloomFilterConfig struct {
-	Size     uint     `json:"size"`
-	HashFunc []string `json:"hashFunc"`
+	Size     uint
+	HashFunc []string
 }
 
 // StorageConfig will map the json storage unit configuration
 type StorageConfig struct {
-	Cache CacheConfig       `json:"cache"`
-	DB    DBConfig          `json:"db"`
-	Bloom BloomFilterConfig `json:"bloom"`
+	Cache CacheConfig
+	DB    DBConfig
+	Bloom BloomFilterConfig
 }
 
 // PubkeyConfig will map the json public key configuration
 type PubkeyConfig struct {
-	Length          int    `json:"length"`
-	Type            string `json:"type"`
+	Length          int
+	Type            string
 	SignatureLength int
 }
 
 // TypeConfig will map the json string type configuration
 type TypeConfig struct {
-	Type string `json:"type"`
+	Type string
 }
 
 // MarshalizerConfig holds the marshalizer related configuration
 type MarshalizerConfig struct {
-	Type string `json:"type"`
+	Type string
 	//TODO check if we still need this
-	SizeCheckDelta uint32 `json:"sizeCheckDelta"`
+	SizeCheckDelta uint32
 }
 
 // NTPConfig will hold the configuration for NTP queries
@@ -68,8 +68,8 @@ type NTPConfig struct {
 
 // EvictionWaitingListConfig will hold the configuration for the EvictionWaitingList
 type EvictionWaitingListConfig struct {
-	Size uint     `json:"size"`
-	DB   DBConfig `json:"db"`
+	Size uint
+	DB   DBConfig
 }
 
 // EpochStartConfig will hold the configuration of EpochStart settings

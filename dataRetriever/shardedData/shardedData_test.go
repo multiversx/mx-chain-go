@@ -19,16 +19,16 @@ import (
 var timeoutWaitForWaitGroups = time.Second * 2
 
 var defaultTestConfig = storageUnit.CacheConfig{
-	Size: 1000,
-	Type: storageUnit.LRUCache,
+	Capacity: 1000,
+	Type:     storageUnit.LRUCache,
 }
 
 func TestNewShardedData_BadConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
 	cacheConfigBad := storageUnit.CacheConfig{
-		Size: 0,
-		Type: storageUnit.LRUCache,
+		Capacity: 0,
+		Type:     storageUnit.LRUCache,
 	}
 
 	sd, err := shardedData.NewShardedData(cacheConfigBad)
@@ -40,8 +40,8 @@ func TestNewShardedData_GoodConfigShouldWork(t *testing.T) {
 	t.Parallel()
 
 	cacheConfigBad := storageUnit.CacheConfig{
-		Size: 10,
-		Type: storageUnit.LRUCache,
+		Capacity: 10,
+		Type:     storageUnit.LRUCache,
 	}
 
 	sd, err := shardedData.NewShardedData(cacheConfigBad)
@@ -53,8 +53,8 @@ func TestNewShardedData_CreateShardStore(t *testing.T) {
 	t.Parallel()
 
 	cacheConfigBad := storageUnit.CacheConfig{
-		Size: 10,
-		Type: storageUnit.LRUCache,
+		Capacity: 10,
+		Type:     storageUnit.LRUCache,
 	}
 
 	sd, err := shardedData.NewShardedData(cacheConfigBad)
@@ -103,12 +103,12 @@ func TestShardedData_StorageEvictsData(t *testing.T) {
 
 	sd, _ := shardedData.NewShardedData(defaultTestConfig)
 
-	for i := 1; i < int(defaultTestConfig.Size+100); i++ {
+	for i := 1; i < int(defaultTestConfig.Capacity+100); i++ {
 		key := []byte(strconv.Itoa(i))
 		sd.AddData(key, &transaction.Transaction{Nonce: uint64(i)}, 0, "1")
 	}
 
-	assert.Equal(t, int(defaultTestConfig.Size), sd.ShardDataStore("1").Len(),
+	assert.Equal(t, int(defaultTestConfig.Capacity), sd.ShardDataStore("1").Len(),
 		"Transaction pool entries excedes the maximum configured number")
 }
 
@@ -130,7 +130,7 @@ func TestShardedData_AddDataInParallel(t *testing.T) {
 
 	wg := sync.WaitGroup{}
 
-	vals := int(defaultTestConfig.Size)
+	vals := int(defaultTestConfig.Capacity)
 	wg.Add(vals)
 
 	for i := 0; i < vals; i++ {

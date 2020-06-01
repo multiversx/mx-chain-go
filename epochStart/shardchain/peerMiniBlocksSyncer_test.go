@@ -243,7 +243,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksShould
 			}
 			return nil, false
 		},
-		PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+		PutCalled: func(key []byte, value interface{}, _ int) (evicted bool) {
 			if bytes.Equal(key, peerMiniBlockHash) {
 				receivedMiniblock(key, value)
 				return false
@@ -307,7 +307,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksTimeou
 			}
 			return nil, false
 		},
-		PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+		PutCalled: func(key []byte, value interface{}, _ int) (evicted bool) {
 			if bytes.Equal(key, peerMiniBlockHash) {
 				receivedMiniblock(key, value)
 				return false

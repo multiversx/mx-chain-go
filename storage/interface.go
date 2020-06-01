@@ -180,7 +180,7 @@ type CacheItem interface {
 // ForEachItem is an iterator callback
 type ForEachItem func(key []byte, value CacheItem)
 
-//LRUCacheHandler is the interface for LRU cache.
+// LRUCacheHandler is the interface for LRU cache.
 type LRUCacheHandler interface {
 	Add(key, value interface{}) bool
 	Get(key interface{}) (value interface{}, ok bool)
@@ -193,12 +193,12 @@ type LRUCacheHandler interface {
 	Purge()
 }
 
-//SizeLRUCacheHandler is the interface for size capable LRU cache.
-type SizeLRUCacheHandler interface {
+// SizedLRUCacheHandler is the interface for size capable LRU cache.
+type SizedLRUCacheHandler interface {
 	AddSized(key, value interface{}, sizeInBytes int64) bool
 	Get(key interface{}) (value interface{}, ok bool)
 	Contains(key interface{}) (ok bool)
-	ContainsOrAddSized(key, value interface{}, sizeInBytes int64) (ok, evicted bool)
+	AddSizedIfMissing(key, value interface{}, sizeInBytes int64) (ok, evicted bool)
 	Peek(key interface{}) (value interface{}, ok bool)
 	Remove(key interface{}) bool
 	Keys() []interface{}

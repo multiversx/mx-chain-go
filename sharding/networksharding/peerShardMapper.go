@@ -14,7 +14,7 @@ import (
 )
 
 const maxNumPidsPerPk = 3
-const shardIdSize = 4
+const uint32Size = 4
 
 var log = logger.GetOrCreate("sharding/networksharding")
 
@@ -277,12 +277,12 @@ func (psm *PeerShardMapper) removePidAssociation(pid p2p.PeerID) {
 
 // UpdatePublicKeyShardId updates the fallback search map containing public key and shard IDs
 func (psm *PeerShardMapper) UpdatePublicKeyShardId(pk []byte, shardId uint32) {
-	psm.fallbackPkShard.HasOrAdd(pk, shardId, shardIdSize)
+	psm.fallbackPkShard.HasOrAdd(pk, shardId, uint32Size)
 }
 
 // UpdatePeerIdShardId updates the fallback search map containing peer IDs and shard IDs
 func (psm *PeerShardMapper) UpdatePeerIdShardId(pid p2p.PeerID, shardId uint32) {
-	psm.fallbackPidShard.HasOrAdd([]byte(pid), shardId, shardIdSize)
+	psm.fallbackPidShard.HasOrAdd([]byte(pid), shardId, uint32Size)
 }
 
 // EpochStartAction is the method called whenever an action needs to be undertaken in respect to the epoch change

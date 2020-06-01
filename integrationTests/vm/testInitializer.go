@@ -89,10 +89,10 @@ func CreateEmptyAddress() []byte {
 
 // CreateMemUnit -
 func CreateMemUnit() storage.Storer {
-	size := uint32(10)
+	capacity := uint32(10)
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
-	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, size, shards, sizeInBytes)
+	cache, _ := storageUnit.NewCache(storageUnit.LRUCache, capacity, shards, sizeInBytes)
 
 	unit, _ := storageUnit.NewStorageUnit(cache, memorydb.New())
 	return unit

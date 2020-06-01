@@ -102,11 +102,11 @@ func initPruningStorer(
 	if check.IfNil(args.PathManager) {
 		return nil, storage.ErrNilPathManager
 	}
-	if args.MaxBatchSize > int(args.CacheConf.Size) {
+	if args.MaxBatchSize > int(args.CacheConf.Capacity) {
 		return nil, storage.ErrCacheSizeIsLowerThanBatchSize
 	}
 
-	cache, err = storageUnit.NewCache(args.CacheConf.Type, args.CacheConf.Size, args.CacheConf.Shards, args.CacheConf.SizeInBytes)
+	cache, err = storageUnit.NewCache(args.CacheConf.Type, args.CacheConf.Capacity, args.CacheConf.Shards, args.CacheConf.SizeInBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -256,9 +256,14 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 					continue
 				}
 
+				buff, ok := v.([]byte)
+				if !ok {
+					continue
+				}
+
 				found = true
 				// if found in persistence unit, add it to cache
-				ps.cacher.Put(key, v, len(v.([]byte)))
+				ps.cacher.Put(key, v, len(buff))
 				break
 			}
 		}

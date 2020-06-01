@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createDefaultCache() *CapacityLRU {
+func createDefaultCache() *capacityLRU {
 	cache, _ := NewCapacityLRU(100, 100)
 	return cache
 }
@@ -198,16 +198,16 @@ func TestCapacityLRUCache_AddSizedEvictionBySizeInBytesExistingOneLargeElementSh
 	assert.False(t, c.Contains(keys[1]))
 }
 
-//------- ContainsOrAddSized
+//------- AddSizedIfMissing
 
-func TestCapacityLRUCache_ContainsOrAddSized(t *testing.T) {
+func TestCapacityLRUCache_AddSizedIfMissing(t *testing.T) {
 	t.Parallel()
 
 	c := createDefaultCache()
 	data := []byte("data1")
 	key := "key"
 
-	found, evicted := c.ContainsOrAddSized(key, data, 1)
+	found, evicted := c.AddSizedIfMissing(key, data, 1)
 	assert.False(t, found)
 	assert.False(t, evicted)
 
@@ -217,7 +217,7 @@ func TestCapacityLRUCache_ContainsOrAddSized(t *testing.T) {
 	assert.Equal(t, data, v)
 
 	data2 := []byte("data2")
-	found, evicted = c.ContainsOrAddSized(key, data2, 1)
+	found, evicted = c.AddSizedIfMissing(key, data2, 1)
 	assert.True(t, found)
 	assert.False(t, evicted)
 
@@ -227,14 +227,14 @@ func TestCapacityLRUCache_ContainsOrAddSized(t *testing.T) {
 	assert.Equal(t, data, v)
 }
 
-func TestCapacityLRUCache_ContainsOrAddSizedNegativeSizeInBytesShouldReturnFalse(t *testing.T) {
+func TestCapacityLRUCache_AddSizedIfMissingNegativeSizeInBytesShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
 	c := createDefaultCache()
 	data := []byte("data1")
 	key := "key"
 
-	has, evicted := c.ContainsOrAddSized(key, data, -1)
+	has, evicted := c.AddSizedIfMissing(key, data, -1)
 	assert.False(t, has)
 	assert.False(t, evicted)
 	assert.Equal(t, 0, c.Len())

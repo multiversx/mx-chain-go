@@ -1779,7 +1779,7 @@ func createNetworkShardingCollector(
 }
 
 func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
-	return storageUnit.NewCache(storageUnit.CacheType(cacheConfig.Type), cacheConfig.Size, cacheConfig.Shards, cacheConfig.SizeInBytes)
+	return storageUnit.NewCache(storageUnit.CacheType(cacheConfig.Type), cacheConfig.Capacity, cacheConfig.Shards, cacheConfig.SizeInBytes)
 }
 
 // CreateLatestStorageDataProvider will create a latest storage data provider handler

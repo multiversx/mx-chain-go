@@ -12,7 +12,7 @@ func (slca *simpleLRUCacheAdapter) AddSized(key, value interface{}, _ int64) boo
 	return slca.Add(key, value)
 }
 
-// ContainsOrAddSized calls ContainsOrAdd without the size in bytes parameter
-func (slca *simpleLRUCacheAdapter) ContainsOrAddSized(key, value interface{}, _ int64) (ok, evicted bool) {
+// AddSizedIfMissing calls ContainsOrAdd without the size in bytes parameter
+func (slca *simpleLRUCacheAdapter) AddSizedIfMissing(key, value interface{}, _ int64) (ok, evicted bool) {
 	return slca.ContainsOrAdd(key, value)
 }

@@ -41,8 +41,8 @@ func CreateTopicsAndMockInterceptors(
 			return nil, fmt.Errorf("%w, pid: %s", err, p.ID())
 		}
 
-		cacherCfg := storageUnit.CacheConfig{Size: 100, Type: storageUnit.LRUCache, Shards: 1}
-		antifloodPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Size, cacherCfg.Shards, cacherCfg.SizeInBytes)
+		cacherCfg := storageUnit.CacheConfig{Capacity: 100, Type: storageUnit.LRUCache, Shards: 1}
+		antifloodPool, _ := storageUnit.NewCache(cacherCfg.Type, cacherCfg.Capacity, cacherCfg.Shards, cacherCfg.SizeInBytes)
 
 		interceptors[idx] = newMessageProcessor()
 		statusHandlers := []floodPreventers.QuotaStatusHandler{&nilQuotaStatusHandler{}}

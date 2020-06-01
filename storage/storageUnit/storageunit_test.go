@@ -541,8 +541,8 @@ func TestCreateBloomFilterFromConfOk(t *testing.T) {
 func TestNewStorageUnit_FromConfWrongCacheSizeVsBatchSize(t *testing.T) {
 
 	storer, err := storageUnit.NewStorageUnitFromConf(storageUnit.CacheConfig{
-		Size: 10,
-		Type: storageUnit.LRUCache,
+		Capacity: 10,
+		Type:     storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
 		FilePath:          "Blocks",
 		Type:              storageUnit.LvlDB,
@@ -561,8 +561,8 @@ func TestNewStorageUnit_FromConfWrongCacheSizeVsBatchSize(t *testing.T) {
 func TestNewStorageUnit_FromConfWrongCacheConfig(t *testing.T) {
 
 	storer, err := storageUnit.NewStorageUnitFromConf(storageUnit.CacheConfig{
-		Size: 10,
-		Type: "NotLRU",
+		Capacity: 10,
+		Type:     "NotLRU",
 	}, storageUnit.DBConfig{
 		FilePath:          "Blocks",
 		Type:              storageUnit.LvlDB,
@@ -580,8 +580,8 @@ func TestNewStorageUnit_FromConfWrongCacheConfig(t *testing.T) {
 
 func TestNewStorageUnit_FromConfWrongDBConfig(t *testing.T) {
 	storer, err := storageUnit.NewStorageUnitFromConf(storageUnit.CacheConfig{
-		Size: 10,
-		Type: storageUnit.LRUCache,
+		Capacity: 10,
+		Type:     storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
 		FilePath: "Blocks",
 		Type:     "NotLvlDB",
@@ -596,8 +596,8 @@ func TestNewStorageUnit_FromConfWrongDBConfig(t *testing.T) {
 
 func TestNewStorageUnit_FromConfLvlDBOk(t *testing.T) {
 	storer, err := storageUnit.NewStorageUnitFromConf(storageUnit.CacheConfig{
-		Size: 10,
-		Type: storageUnit.LRUCache,
+		Capacity: 10,
+		Type:     storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
 		FilePath:          "Blocks",
 		Type:              storageUnit.LvlDB,
@@ -617,8 +617,8 @@ func TestNewStorageUnit_FromConfLvlDBOk(t *testing.T) {
 
 func TestNewStorageUnit_WithBlankBloomFilterShouldWorkLvlDB(t *testing.T) {
 	storer, err := storageUnit.NewStorageUnitFromConf(storageUnit.CacheConfig{
-		Size: 10,
-		Type: storageUnit.LRUCache,
+		Capacity: 10,
+		Type:     storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
 		FilePath:          "Blocks",
 		Type:              storageUnit.LvlDB,
@@ -636,8 +636,8 @@ func TestNewStorageUnit_WithBlankBloomFilterShouldWorkLvlDB(t *testing.T) {
 
 func TestNewStorageUnit_WithConfigBloomFilterShouldCreateBloomFilterLvlDB(t *testing.T) {
 	storer, err := storageUnit.NewStorageUnitFromConf(storageUnit.CacheConfig{
-		Size: 10,
-		Type: storageUnit.LRUCache,
+		Capacity: 10,
+		Type:     storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
 		FilePath:          "Blocks",
 		Type:              storageUnit.LvlDB,
@@ -658,8 +658,8 @@ func TestNewStorageUnit_WithConfigBloomFilterShouldCreateBloomFilterLvlDB(t *tes
 
 func TestNewStorageUnit_WithInvalidConfigBloomFilterLvlDBShouldErr(t *testing.T) {
 	storer, err := storageUnit.NewStorageUnitFromConf(storageUnit.CacheConfig{
-		Size: 10,
-		Type: storageUnit.LRUCache,
+		Capacity: 10,
+		Type:     storageUnit.LRUCache,
 	}, storageUnit.DBConfig{
 		FilePath:          "Blocks",
 		Type:              storageUnit.LvlDB,

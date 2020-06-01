@@ -15,6 +15,7 @@ const minMessages = 1
 const minTotalSize = 1 //1Byte
 const initNumMessages = 1
 const maxPercentReserved = 90
+const quotaStructSize = 24
 
 type quota struct {
 	numReceivedMessages   uint32
@@ -25,7 +26,7 @@ type quota struct {
 
 // Size returns the size of a quota object
 func (q *quota) Size() int {
-	return 24
+	return quotaStructSize
 }
 
 // quotaFloodPreventer represents a cache of quotas per peer used in antiflooding mechanism

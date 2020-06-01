@@ -3,6 +3,7 @@ package libp2p
 import (
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
@@ -10,7 +11,7 @@ import (
 type MutexHolder struct {
 	//generalMutex is used to serialize the access to the already concurrent safe lrucache
 	generalMutex sync.Mutex
-	mutexes      *lrucache.LRUCache
+	mutexes      storage.Cacher
 }
 
 // NewMutexHolder creates a new instance of MutexHolder with specified capacity.

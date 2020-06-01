@@ -51,7 +51,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 		NumChunks:                     args.Config.Shards,
 		EvictionEnabled:               true,
 		NumBytesThreshold:             (uint32(args.Config.SizeInBytes) / numPairs) * args.NumberOfShards,
-		CountThreshold:                (args.Config.Size / numPairs) * args.NumberOfShards,
+		CountThreshold:                (args.Config.Capacity / numPairs) * args.NumberOfShards,
 		NumBytesPerSenderThreshold:    args.Config.SizeInBytesPerSender,
 		CountPerSenderThreshold:       args.Config.SizePerSender,
 		NumSendersToPreemptivelyEvict: dataRetriever.TxPoolNumSendersToPreemptivelyEvict,
@@ -61,7 +61,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 	configPrototypeDestinationMe := txcache.ConfigDestinationMe{
 		NumChunks:                   args.Config.Shards,
 		MaxNumBytes:                 uint32(args.Config.SizeInBytes) / numPairs,
-		MaxNumItems:                 args.Config.Size / numPairs,
+		MaxNumItems:                 args.Config.Capacity / numPairs,
 		NumItemsToPreemptivelyEvict: dataRetriever.TxPoolNumTxsToPreemptivelyEvict,
 	}
 

@@ -1,5 +1,8 @@
 package mock
 
+const uint32Size = 4
+const numUint32 = 2
+
 type validator struct {
 	pubKey  []byte
 	chances uint32
@@ -32,7 +35,7 @@ func (v *validator) Index() uint32 {
 
 // Size -
 func (v *validator) Size() int {
-	return len(v.pubKey) + 8
+	return len(v.pubKey) + uint32Size*numUint32
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

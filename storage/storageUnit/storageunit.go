@@ -73,7 +73,7 @@ type CacheConfig struct {
 	Type                 CacheType
 	SizeInBytes          uint64
 	SizeInBytesPerSender uint32
-	Size                 uint32
+	Capacity             uint32
 	SizePerSender        uint32
 	Shards               uint32
 }
@@ -153,8 +153,13 @@ func (u *Unit) Get(key []byte) ([]byte, error) {
 				return nil, err
 			}
 
+			buff, okAssertion := v.([]byte)
+			if !okAssertion {
+				return nil, fmt.Errorf("key: %s is not a byte slice", base64.StdEncoding.EncodeToString(key))
+			}
+
 			// if found in persistence unit, add it in cache
-			u.cacher.Put(key, v, len(v.([]byte)))
+			u.cacher.Put(key, v, len(buff))
 		} else {
 			return nil, fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(key))
 		}
@@ -295,11 +300,11 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 		}
 	}()
 
-	if dbConf.MaxBatchSize > int(cacheConf.Size) {
+	if dbConf.MaxBatchSize > int(cacheConf.Capacity) {
 		return nil, storage.ErrCacheSizeIsLowerThanBatchSize
 	}
 
-	cache, err = NewCache(cacheConf.Type, cacheConf.Size, cacheConf.Shards, cacheConf.SizeInBytes)
+	cache, err = NewCache(cacheConf.Type, cacheConf.Capacity, cacheConf.Shards, cacheConf.SizeInBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +335,7 @@ func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, bloomFilterC
 
 //NewCache creates a new cache from a cache config
 //TODO: add a cacher factory or a cacheConfig param instead
-func NewCache(cacheType CacheType, size uint32, shards uint32, sizeInBytes uint64) (storage.Cacher, error) {
+func NewCache(cacheType CacheType, capacity uint32, shards uint32, sizeInBytes uint64) (storage.Cacher, error) {
 	var cacher storage.Cacher
 	var err error
 
@@ -340,7 +345,7 @@ func NewCache(cacheType CacheType, size uint32, shards uint32, sizeInBytes uint6
 			return nil, storage.ErrLRUCacheWithProvidedSize
 		}
 
-		cacher, err = lrucache.NewCache(int(size))
+		cacher, err = lrucache.NewCache(int(capacity))
 	case SizeLRUCache:
 		if sizeInBytes < minimumSizeForLRUCache {
 			return nil, fmt.Errorf("%w, provided %d, minimum %d",
@@ -350,9 +355,9 @@ func NewCache(cacheType CacheType, size uint32, shards uint32, sizeInBytes uint6
 			)
 		}
 
-		cacher, err = lrucache.NewCacheWithSizeInBytes(int(size), int64(sizeInBytes))
+		cacher, err = lrucache.NewCacheWithSizeInBytes(int(capacity), int64(sizeInBytes))
 	case FIFOShardedCache:
-		cacher, err = fifocache.NewShardedCache(int(size), int(shards))
+		cacher, err = fifocache.NewShardedCache(int(capacity), int(shards))
 		if err != nil {
 			return nil, err
 		}
