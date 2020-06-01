@@ -18,15 +18,15 @@ var _ dataRetriever.ShardedDataCacherNotifier = (*shardedTxPool)(nil)
 
 var log = logger.GetOrCreate("txpool")
 
-// shardedTxPool holds transaction caches organised by destination shard
+// shardedTxPool holds transaction caches organised by source & destination shard
 type shardedTxPool struct {
-	mutexBackingMap                  sync.RWMutex
-	backingMap                       map[string]*txPoolShard
-	mutexAddCallbacks                sync.RWMutex
-	onAddCallbacks                   []func(key []byte, value interface{})
-	cacheConfigPrototype             txcache.CacheConfig
-	cacheConfigPrototypeForSelfShard txcache.CacheConfig
-	selfShardID                      uint32
+	mutexBackingMap              sync.RWMutex
+	backingMap                   map[string]*txPoolShard
+	mutexAddCallbacks            sync.RWMutex
+	onAddCallbacks               []func(key []byte, value interface{})
+	configPrototypeDestinationMe txcache.ConfigDestinationMe
+	configPrototypeSourceMe      txcache.ConfigSourceMe
+	selfShardID                  uint32
 }
 
 type txPoolShard struct {
@@ -37,7 +37,7 @@ type txPoolShard struct {
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
 func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNotifier, error) {
-	log.Info("NewShardedTxPool", "args", args)
+	log.Info("NewShardedTxPool", "args", args.String())
 
 	err := args.verify()
 	if err != nil {
@@ -45,31 +45,34 @@ func NewShardedTxPool(args ArgShardedTxPool) (dataRetriever.ShardedDataCacherNot
 	}
 
 	const oneBillion = 1000000 * 1000
-	numCaches := 2*args.NumberOfShards - 1
+	numPairs := 2*args.NumberOfShards - 1
 
-	cacheConfigPrototype := txcache.CacheConfig{
-		NumChunksHint:              args.Config.Shards,
-		EvictionEnabled:            true,
-		NumBytesThreshold:          args.Config.SizeInBytes / numCaches,
-		NumBytesPerSenderThreshold: args.Config.SizeInBytesPerSender,
-		CountThreshold:             args.Config.Size / numCaches,
-		CountPerSenderThreshold:    args.Config.SizePerSender,
-		NumSendersToEvictInOneStep: dataRetriever.TxPoolNumSendersToEvictInOneStep,
-		MinGasPriceNanoErd:         uint32(args.MinGasPrice / oneBillion),
+	configPrototypeSourceMe := txcache.ConfigSourceMe{
+		NumChunks:                     args.Config.Shards,
+		EvictionEnabled:               true,
+		NumBytesThreshold:             (args.Config.SizeInBytes / numPairs) * args.NumberOfShards,
+		CountThreshold:                (args.Config.Size / numPairs) * args.NumberOfShards,
+		NumBytesPerSenderThreshold:    args.Config.SizeInBytesPerSender,
+		CountPerSenderThreshold:       args.Config.SizePerSender,
+		NumSendersToPreemptivelyEvict: dataRetriever.TxPoolNumSendersToPreemptivelyEvict,
+		MinGasPriceNanoErd:            uint32(args.MinGasPrice / oneBillion),
 	}
 
-	cacheConfigPrototypeForSelfShard := cacheConfigPrototype
-	cacheConfigPrototypeForSelfShard.CountThreshold *= args.NumberOfShards
-	cacheConfigPrototypeForSelfShard.NumBytesThreshold *= args.NumberOfShards
+	configPrototypeDestinationMe := txcache.ConfigDestinationMe{
+		NumChunks:                   args.Config.Shards,
+		MaxNumBytes:                 args.Config.SizeInBytes / numPairs,
+		MaxNumItems:                 args.Config.Size / numPairs,
+		NumItemsToPreemptivelyEvict: dataRetriever.TxPoolNumTxsToPreemptivelyEvict,
+	}
 
 	shardedTxPoolObject := &shardedTxPool{
-		mutexBackingMap:                  sync.RWMutex{},
-		backingMap:                       make(map[string]*txPoolShard),
-		mutexAddCallbacks:                sync.RWMutex{},
-		onAddCallbacks:                   make([]func(key []byte, value interface{}), 0),
-		cacheConfigPrototype:             cacheConfigPrototype,
-		cacheConfigPrototypeForSelfShard: cacheConfigPrototypeForSelfShard,
-		selfShardID:                      args.SelfShardID,
+		mutexBackingMap:              sync.RWMutex{},
+		backingMap:                   make(map[string]*txPoolShard),
+		mutexAddCallbacks:            sync.RWMutex{},
+		onAddCallbacks:               make([]func(key []byte, value interface{}), 0),
+		configPrototypeDestinationMe: configPrototypeDestinationMe,
+		configPrototypeSourceMe:      configPrototypeSourceMe,
+		selfShardID:                  args.SelfShardID,
 	}
 
 	return shardedTxPoolObject, nil
@@ -87,7 +90,6 @@ func (txPool *shardedTxPool) getTxCache(cacheID string) txCache {
 	return shard.Cache
 }
 
-// TODO: Perhaps create all caches in constructor?
 func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
 	cacheID = txPool.routeToCacheUnions(cacheID)
 
@@ -122,23 +124,35 @@ func (txPool *shardedTxPool) createShard(cacheID string) *txPoolShard {
 }
 
 func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
-	cacheConfig := txPool.getCacheConfig(cacheID)
-	cache := txcache.CreateCache(cacheConfig)
+	isForSenderMe := process.IsShardCacherIdentifierForSourceMe(cacheID, txPool.selfShardID)
+
+	if isForSenderMe {
+		config := txPool.configPrototypeSourceMe
+		config.Name = cacheID
+		cache, err := txcache.NewTxCache(config)
+		if err != nil {
+			log.Error("shardedTxPool.createTxCache()", "err", err)
+			return txcache.NewDisabledCache()
+		}
+
+		return cache
+	}
+
+	config := txPool.configPrototypeDestinationMe
+	config.Name = cacheID
+	cache, err := txcache.NewCrossTxCache(config)
+	if err != nil {
+		log.Error("shardedTxPool.createTxCache()", "err", err)
+		return txcache.NewDisabledCache()
+	}
+
 	return cache
 }
 
-func (txPool *shardedTxPool) getCacheConfig(cacheID string) txcache.CacheConfig {
-	var cacheConfig txcache.CacheConfig
-
-	isForSelfShard := process.IsShardCacherIdentifierIntraShard(cacheID, txPool.selfShardID)
-	if isForSelfShard {
-		cacheConfig = txPool.cacheConfigPrototypeForSelfShard
-	} else {
-		cacheConfig = txPool.cacheConfigPrototype
-	}
-
-	cacheConfig.Name = cacheID
-	return cacheConfig
+// ImmunizeSetOfDataAgainstEviction marks the items as non-evictable
+func (txPool *shardedTxPool) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
+	shard := txPool.getOrCreateShard(cacheID)
+	shard.Cache.ImmunizeTxsAgainstEviction(keys)
 }
 
 // AddData adds the transaction to the cache
@@ -214,8 +228,7 @@ func (txPool *shardedTxPool) RemoveData(key []byte, cacheID string) {
 // removeTx removes the transaction from the pool
 func (txPool *shardedTxPool) removeTx(txHash []byte, cacheID string) bool {
 	shard := txPool.getOrCreateShard(cacheID)
-	err := shard.Cache.RemoveTxByHash(txHash)
-	return err == nil
+	return shard.Cache.RemoveTxByHash(txHash)
 }
 
 // RemoveSetOfDataFromPool removes a bunch of transactions from the pool
@@ -232,7 +245,7 @@ func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
 		}
 	}
 
-	log.Debug("shardedTxPool.removeTxBulk()", "numToRemove", len(txHashes), "numRemoved", numRemoved)
+	log.Debug("shardedTxPool.removeTxBulk()", "name", cacheID, "numToRemove", len(txHashes), "numRemoved", numRemoved)
 }
 
 // RemoveDataFromAllShards removes the transaction from the pool (it searches in all shards)
@@ -306,7 +319,7 @@ func (txPool *shardedTxPool) GetCounts() counting.Counts {
 
 	for cacheID, shard := range txPool.backingMap {
 		cache := shard.Cache
-		counts.PutCounts(cacheID, int64(cache.CountTx()))
+		counts.PutCounts(cacheID, int64(cache.Len()))
 	}
 
 	return counts
