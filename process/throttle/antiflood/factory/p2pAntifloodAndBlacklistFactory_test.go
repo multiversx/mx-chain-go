@@ -70,8 +70,8 @@ func createFloodPreventerConfig() config.FloodPreventerConfig {
 	return config.FloodPreventerConfig{
 		IntervalInSeconds: 1,
 		PeerMaxInput: config.AntifloodLimitsConfig{
-			MessagesPerInterval:  10,
-			TotalSizePerInterval: 10,
+			BaseMessagesPerInterval: 10,
+			TotalSizePerInterval:    10,
 		},
 		BlackList: config.BlackListConfig{
 			ThresholdNumMessagesPerInterval: 10,

@@ -21,6 +21,7 @@ func TestAntiFlood_ShouldNotPanic(t *testing.T) {
 
 	daf.SetMaxMessagesForTopic("test", 10)
 	daf.ResetForTopic("test")
+	daf.ApplyConsensusSize(0)
 	_ = daf.CanProcessMessagesOnTopic(p2p.PeerID(1), "test", 1)
 	_ = daf.CanProcessMessage(nil, p2p.PeerID(2))
 }

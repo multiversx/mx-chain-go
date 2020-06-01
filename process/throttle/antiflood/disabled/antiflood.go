@@ -29,6 +29,10 @@ func (af *AntiFlood) CanProcessMessagesOnTopic(_ p2p.PeerID, _ string, _ uint32)
 	return nil
 }
 
+// ApplyConsensusSize does nothing
+func (af *AntiFlood) ApplyConsensusSize(_ int) {
+}
+
 // IsInterfaceNil return true if there is no value under the interface
 func (af *AntiFlood) IsInterfaceNil() bool {
 	return af == nil

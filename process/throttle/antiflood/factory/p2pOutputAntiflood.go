@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
-const outputReservedPercent = uint32(0)
+const outputReservedPercent = float32(0)
 
 // NewP2POutputAntiFlood will return an instance of an output antiflood component based on the config
 func NewP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandler, error) {
@@ -28,15 +28,20 @@ func initP2POutputAntiFlood(mainConfig config.Config) (process.P2PAntifloodHandl
 		return nil, err
 	}
 
-	peerMaxMessagesPerSecond := mainConfig.Antiflood.PeerMaxOutput.MessagesPerInterval
-	peerMaxTotalSizePerSecond := mainConfig.Antiflood.PeerMaxOutput.TotalSizePerInterval
-	floodPreventer, err := floodPreventers.NewQuotaFloodPreventer(
-		antifloodCache,
-		make([]floodPreventers.QuotaStatusHandler, 0),
-		peerMaxMessagesPerSecond,
-		peerMaxTotalSizePerSecond,
-		outputReservedPercent,
-	)
+	basePeerMaxMessagesPerInterval := mainConfig.Antiflood.PeerMaxOutput.BaseMessagesPerInterval
+	peerMaxTotalSizePerInterval := mainConfig.Antiflood.PeerMaxOutput.TotalSizePerInterval
+	arg := floodPreventers.ArgQuotaFloodPreventer{
+		Name:                      outputIdentifier,
+		Cacher:                    antifloodCache,
+		StatusHandlers:            make([]floodPreventers.QuotaStatusHandler, 0),
+		BaseMaxNumMessagesPerPeer: basePeerMaxMessagesPerInterval,
+		MaxTotalSizePerPeer:       peerMaxTotalSizePerInterval,
+		PercentReserved:           outputReservedPercent,
+		IncreaseThreshold:         0,
+		IncreaseFactor:            0,
+	}
+
+	floodPreventer, err := floodPreventers.NewQuotaFloodPreventer(arg)
 	if err != nil {
 		return nil, err
 	}

@@ -26,6 +26,7 @@ var log = logger.GetOrCreate("p2p/antiflood/factory")
 const defaultSpan = 300 * time.Second
 const fastReactingIdentifier = "fast_reacting"
 const slowReactingIdentifier = "slow_reacting"
+const outputIdentifier = "output"
 
 // NewP2PAntiFloodAndBlackList will return instances of antiflood and blacklist, based on the config
 func NewP2PAntiFloodAndBlackList(
@@ -166,17 +167,21 @@ func createFloodPreventer(
 		return nil, err
 	}
 
-	peerMaxMessagesPerSecond := floodPreventerConfig.PeerMaxInput.MessagesPerInterval
-	peerMaxTotalSizePerSecond := floodPreventerConfig.PeerMaxInput.TotalSizePerInterval
+	basePeerMaxMessagesPerInterval := floodPreventerConfig.PeerMaxInput.BaseMessagesPerInterval
+	peerMaxTotalSizePerInterval := floodPreventerConfig.PeerMaxInput.TotalSizePerInterval
 	reservedPercent := floodPreventerConfig.ReservedPercent
 
-	floodPreventer, err := floodPreventers.NewQuotaFloodPreventer(
-		antifloodCache,
-		[]floodPreventers.QuotaStatusHandler{quotaProcessor, blackListProcessor},
-		peerMaxMessagesPerSecond,
-		peerMaxTotalSizePerSecond,
-		reservedPercent,
-	)
+	argFloodPreventer := floodPreventers.ArgQuotaFloodPreventer{
+		Name:                      quotaIdentifier,
+		Cacher:                    antifloodCache,
+		StatusHandlers:            []floodPreventers.QuotaStatusHandler{quotaProcessor, blackListProcessor},
+		BaseMaxNumMessagesPerPeer: basePeerMaxMessagesPerInterval,
+		MaxTotalSizePerPeer:       peerMaxTotalSizePerInterval,
+		PercentReserved:           reservedPercent,
+		IncreaseThreshold:         floodPreventerConfig.PeerMaxInput.IncreaseFactor.Threshold,
+		IncreaseFactor:            floodPreventerConfig.PeerMaxInput.IncreaseFactor.Factor,
+	}
+	floodPreventer, err := floodPreventers.NewQuotaFloodPreventer(argFloodPreventer)
 	if err != nil {
 		return nil, err
 	}
@@ -184,12 +189,14 @@ func createFloodPreventer(
 	log.Debug("started antiflood & blacklist component",
 		"type", quotaIdentifier,
 		"interval in seconds", floodPreventerConfig.IntervalInSeconds,
-		"peerMaxMessagesPerInterval", peerMaxMessagesPerSecond,
-		"peerMaxTotalSizePerInterval", core.ConvertBytes(peerMaxTotalSizePerSecond),
+		"base peerMaxMessagesPerInterval", basePeerMaxMessagesPerInterval,
+		"peerMaxTotalSizePerInterval", core.ConvertBytes(peerMaxTotalSizePerInterval),
 		"peerBanDurationInSeconds", floodPreventerConfig.BlackList.PeerBanDurationInSeconds,
 		"thresholdNumMessagesPerSecond", floodPreventerConfig.BlackList.ThresholdNumMessagesPerInterval,
 		"thresholdSizePerSecond", floodPreventerConfig.BlackList.ThresholdSizePerInterval,
 		"numFloodingRounds", floodPreventerConfig.BlackList.NumFloodingRounds,
+		"increase threshold", floodPreventerConfig.PeerMaxInput.IncreaseFactor.Threshold,
+		"increase factor", floodPreventerConfig.PeerMaxInput.IncreaseFactor.Factor,
 	)
 
 	go func() {

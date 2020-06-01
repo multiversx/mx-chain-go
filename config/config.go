@@ -257,7 +257,7 @@ type AntifloodConfig struct {
 // FloodPreventerConfig will hold all flood preventer parameters
 type FloodPreventerConfig struct {
 	IntervalInSeconds uint32
-	ReservedPercent   uint32
+	ReservedPercent   float32
 	PeerMaxInput      AntifloodLimitsConfig
 	BlackList         BlackListConfig
 }
@@ -265,8 +265,15 @@ type FloodPreventerConfig struct {
 // AntifloodLimitsConfig will hold the maximum antiflood limits in both number of messages and total
 // size of the messages
 type AntifloodLimitsConfig struct {
-	MessagesPerInterval  uint32
-	TotalSizePerInterval uint64
+	BaseMessagesPerInterval uint32
+	TotalSizePerInterval    uint64
+	IncreaseFactor          IncreaseFactorConfig
+}
+
+// IncreaseFactorConfig defines the configurations used to increase the set values of a flood preventer
+type IncreaseFactorConfig struct {
+	Threshold uint32
+	Factor    float32
 }
 
 // VirtualMachineConfig holds configuration for the Virtual Machine(s)

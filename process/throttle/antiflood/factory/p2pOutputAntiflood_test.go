@@ -37,8 +37,8 @@ func TestNewP2POutputAntiFlood_BadCacheConfigShouldErr(t *testing.T) {
 				Shards:   2,
 			},
 			PeerMaxOutput: config.AntifloodLimitsConfig{
-				MessagesPerInterval:  10,
-				TotalSizePerInterval: 10,
+				BaseMessagesPerInterval: 10,
+				TotalSizePerInterval:    10,
 			},
 		},
 	}
@@ -60,8 +60,8 @@ func TestNewP2POutputAntiFlood_BadConfigShouldErr(t *testing.T) {
 				Shards:   2,
 			},
 			PeerMaxOutput: config.AntifloodLimitsConfig{
-				MessagesPerInterval:  0,
-				TotalSizePerInterval: 10,
+				BaseMessagesPerInterval: 0,
+				TotalSizePerInterval:    10,
 			},
 		},
 	}
@@ -83,8 +83,8 @@ func TestNewP2POutputAntiFlood_ShouldWorkAndReturnOkImplementations(t *testing.T
 				Shards:   2,
 			},
 			PeerMaxOutput: config.AntifloodLimitsConfig{
-				MessagesPerInterval:  10,
-				TotalSizePerInterval: 10,
+				BaseMessagesPerInterval: 10,
+				TotalSizePerInterval:    10,
 			},
 		},
 	}
