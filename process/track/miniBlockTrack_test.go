@@ -1,6 +1,8 @@
 package track_test
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -8,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/track"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewMiniBlockTrack_NilDataPoolHolderErr(t *testing.T) {
@@ -122,10 +123,9 @@ func TestReceivedMiniBlock_ShouldReturnIfKeyIsNil(t *testing.T) {
 
 	wasCalled := false
 	blockTransactionsPool := &mock.ShardedDataStub{
-		//TODO: Replace this method with the real one which notifies cacher about txs which should be protected
-		//ProtectSetOfDataForEvictionCalled: func(keys [][]byte, destCacheId string) {
-		//	wasCalled = true
-		//},
+		ImmunizeSetOfDataAgainstEvictionCalled: func(keys [][]byte, destCacheId string) {
+			wasCalled = true
+		},
 	}
 	mbt.SetBlockTransactionsPool(blockTransactionsPool)
 	mbt.ReceivedMiniBlock(nil, nil)
@@ -141,10 +141,9 @@ func TestReceivedMiniBlock_ShouldReturnIfWrongTypeAssertion(t *testing.T) {
 
 	wasCalled := false
 	blockTransactionsPool := &mock.ShardedDataStub{
-		//TODO: Replace this method with the real one which notifies cacher about txs which should be protected
-		//ProtectSetOfDataForEvictionCalled: func(keys [][]byte, destCacheId string) {
-		//	wasCalled = true
-		//},
+		ImmunizeSetOfDataAgainstEvictionCalled: func(keys [][]byte, destCacheId string) {
+			wasCalled = true
+		},
 	}
 	mbt.SetBlockTransactionsPool(blockTransactionsPool)
 	mbt.ReceivedMiniBlock([]byte("mb_hash"), nil)
@@ -160,10 +159,9 @@ func TestReceivedMiniBlock_ShouldReturnIfMiniBlockIsNotCrossShardDestMe(t *testi
 
 	wasCalled := false
 	blockTransactionsPool := &mock.ShardedDataStub{
-		//TODO: Replace this method with the real one which notifies cacher about txs which should be protected
-		//ProtectSetOfDataForEvictionCalled: func(keys [][]byte, destCacheId string) {
-		//	wasCalled = true
-		//},
+		ImmunizeSetOfDataAgainstEvictionCalled: func(keys [][]byte, destCacheId string) {
+			wasCalled = true
+		},
 	}
 	mbt.SetBlockTransactionsPool(blockTransactionsPool)
 	mbt.ReceivedMiniBlock([]byte("mb_hash"), &block.MiniBlock{})
@@ -179,10 +177,9 @@ func TestReceivedMiniBlock_ShouldReturnIfMiniBlockTypeIsWrong(t *testing.T) {
 
 	wasCalled := false
 	blockTransactionsPool := &mock.ShardedDataStub{
-		//TODO: Replace this method with the real one which notifies cacher about txs which should be protected
-		//ProtectSetOfDataForEvictionCalled: func(keys [][]byte, destCacheId string) {
-		//	wasCalled = true
-		//},
+		ImmunizeSetOfDataAgainstEvictionCalled: func(keys [][]byte, destCacheId string) {
+			wasCalled = true
+		},
 	}
 	mbt.SetBlockTransactionsPool(blockTransactionsPool)
 	mbt.ReceivedMiniBlock(
@@ -201,13 +198,11 @@ func TestReceivedMiniBlock_ShouldWork(t *testing.T) {
 	dataPool := createDataPool()
 	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock())
 
-	//TODO: Change value to false when the real method call will be done bellow
-	wasCalled := true
+	wasCalled := false
 	blockTransactionsPool := &mock.ShardedDataStub{
-		//TODO: Replace this method with the real one which notifies cacher about txs which should be protected
-		//ProtectSetOfDataForEvictionCalled: func(keys [][]byte, destCacheId string) {
-		//	wasCalled = true
-		//},
+		ImmunizeSetOfDataAgainstEvictionCalled: func(keys [][]byte, destCacheId string) {
+			wasCalled = true
+		},
 	}
 	mbt.SetBlockTransactionsPool(blockTransactionsPool)
 	mbt.ReceivedMiniBlock(
