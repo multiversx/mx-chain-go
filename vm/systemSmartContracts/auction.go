@@ -630,6 +630,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		for i := maxNodesToRun*2 + 1; i < uint64(lenArgs); i++ {
 			if len(args.Arguments[i]) == len(args.CallerAddr) {
 				if !isAlreadyRegistered {
+					s.eei.AddReturnMessage("reward address after being registered can be changed only through changeRewardAddress")
 					registrationData.RewardAddress = args.Arguments[i]
 				}
 				continue
@@ -678,7 +679,6 @@ func (s *stakingAuctionSC) activateStakingFor(
 		}
 
 		if stakedData.Staked {
-			numStaked++
 			continue
 		}
 
