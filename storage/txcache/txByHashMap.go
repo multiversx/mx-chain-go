@@ -39,11 +39,14 @@ func (txMap *txByHashMap) removeTx(txHash string) (*WrappedTransaction, bool) {
 		return nil, false
 	}
 
-	tx := item.(*WrappedTransaction)
+	tx, ok := item.(*WrappedTransaction)
+	if !ok {
+		return nil, false
+	}
 
 	if removed {
-	txMap.counter.Decrement()
-	txMap.numBytes.Subtract(int64(estimateTxSize(tx)))
+		txMap.counter.Decrement()
+		txMap.numBytes.Subtract(int64(estimateTxSize(tx)))
 	}
 
 	return tx, true
